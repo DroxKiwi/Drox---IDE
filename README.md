@@ -1,94 +1,121 @@
-# Drox IDE (fork VS Code + moteur Drox)
+# Drox IDE
 
-Ce dépôt est un fork **Code - OSS** rebaptisé **Drox IDE**, avec le moteur agent **Drox** intégré nativement dans le workbench (Ollama-first, Rust).
+**Drox IDE** est un fork privé de [Visual Studio Code — Open Source](https://github.com/microsoft/vscode) (Code - OSS), avec le moteur agent **Drox** intégré nativement dans le workbench : chat dédié, orchestration multi-rôles (architecte / exécuteurs), processus Rust `drox --serve`, inférence **Ollama-first**.
 
-**Démarrage rapide Drox** : voir **[DROX.md](DROX.md)** (~15 min : build, watch, chat, Ollama).  
-**Documentation Drox** : [drox-engine/docs/README.md](drox-engine/docs/README.md) · **Moteur** : [guides/GUIDE-MOTEUR-DROX.md](drox-engine/docs/guides/GUIDE-MOTEUR-DROX.md) (§18 = intégration fork).
+> Dépôt **privé** — propriété KDDS. Le moteur et l’UI Drox ne sont pas publiés séparément du fork.
 
-```powershell
-npm install
-cd drox-engine\drox; cargo build -p drox-cli; cd ..\..
-npm run watch          # terminal 1
-.\scripts\code.bat     # terminal 2 → Ctrl+Shift+P → "Drox: Open Chat"
-```
+| | |
+|---|---|
+| **Base VS Code** | `1.122.0` (`package.json`) |
+| **Cap produit Drox** | **1.3.0** — parallélisation des exécuteurs ([doc](drox-engine/docs/1.3.0/README.md)) |
+| **Onboarding dev** | **[DROX.md](DROX.md)** (~15 min) |
+| **Hub documentation** | [drox-engine/docs/README.md](drox-engine/docs/README.md) |
 
 ---
 
-# Visual Studio Code - Open Source ("Code - OSS")
-[![Feature Requests](https://img.shields.io/github/issues/microsoft/vscode/feature-request.svg)](https://github.com/microsoft/vscode/issues?q=is%3Aopen+is%3Aissue+label%3Afeature-request+sort%3Areactions-%2B1-desc)
-[![Bugs](https://img.shields.io/github/issues/microsoft/vscode/bug.svg)](https://github.com/microsoft/vscode/issues?utf8=✓&q=is%3Aissue+is%3Aopen+label%3Abug)
-[![Gitter](https://img.shields.io/badge/chat-on%20gitter-yellow.svg)](https://gitter.im/Microsoft/vscode)
+## Démarrage rapide
 
-## The Repository
+**Prérequis** : Node.js 18+, Rust stable, [Ollama](https://ollama.com) (ou API compatible).
 
-This repository ("`Code - OSS`") is where we (Microsoft) develop the [Visual Studio Code](https://code.visualstudio.com) product together with the community. Not only do we work on code and issues here, but we also publish our [roadmap](https://github.com/microsoft/vscode/wiki/Roadmap), [monthly iteration plans](https://github.com/microsoft/vscode/wiki/Iteration-Plans), and our [endgame plans](https://github.com/microsoft/vscode/wiki/Running-the-Endgame). This source code is available to everyone under the standard [MIT license](https://github.com/microsoft/vscode/blob/main/LICENSE.txt).
+```powershell
+npm install
+cd drox-engine\drox
+cargo build -p drox-cli
+cd ..\..
 
-## Visual Studio Code
+# Terminal 1 — compilation continue
+npm run watch
 
-<p align="center">
-  <img alt="VS Code in action" src="https://github.com/user-attachments/assets/56af271c-949d-454c-a3ea-16188c063414">
-</p>
+# Terminal 2 — fenêtre IDE
+.\scripts\code.bat
+```
 
-[Visual Studio Code](https://code.visualstudio.com) is a distribution of the `Code - OSS` repository with Microsoft-specific customizations released under a traditional [Microsoft product license](https://code.visualstudio.com/License/).
+Dans l’IDE : **Ctrl+Shift+P** → **« Drox: Open Chat »**.  
+Configurer le LLM : `drox-engine/drox/.drox/.env` (voir `env.example`).
 
-[Visual Studio Code](https://code.visualstudio.com) combines the simplicity of a code editor with what developers need for their core edit-build-debug cycle. It provides comprehensive code editing, navigation, and understanding support along with lightweight debugging, a rich extensibility model, and lightweight integration with existing tools.
+Détails, smoke tests et dépannage : **[DROX.md](DROX.md)**.
 
-Visual Studio Code is updated monthly with new features and bug fixes. You can download it for Windows, macOS, and Linux on [Visual Studio Code's website](https://code.visualstudio.com/Download). To get the latest releases every day, install the [Insiders build](https://code.visualstudio.com/insiders).
+---
 
-## Contributing
+## Structure du dépôt
 
-There are many ways in which you can participate in this project, for example:
+```
+Drox---IDE/
+├── drox-engine/              # Propriété Drox (hors noyau Microsoft)
+│   ├── drox/                   # Workspace Rust — moteur (drox-cli --serve)
+│   ├── docs/                   # Plans, specs, suivi par version (1.2.0, 1.3.0…)
+│   └── extension-vscode/       # Extension de référence (F5 séparé, pas le runtime IDE)
+├── src/vs/workbench/contrib/drox/   # Intégration workbench + chat webview
+├── resources/drox/             # Binaire embarqué release (`npm run package-drox`)
+├── product.json                # Branding Drox IDE
+├── DROX.md                     # Guide développeur
+└── (reste)                     # Noyau VS Code — merges upstream
+```
 
-* [Submit bugs and feature requests](https://github.com/microsoft/vscode/issues), and help us verify as they are checked in
-* Review [source code changes](https://github.com/microsoft/vscode/pulls)
-* Review the [documentation](https://github.com/microsoft/vscode-docs) and make pull requests for anything from typos to new content.
+### Moteur Rust (`drox-engine/drox/`)
 
-If you are interested in fixing issues and contributing directly to the code base,
-please see the document [How to Contribute](https://github.com/microsoft/vscode/wiki/How-to-Contribute), which covers the following:
+Crates principales : `drox-cli`, `drox-engine`, `drox-tools`, `drox-llm`, `drox-context`, `drox-session`, `drox-permissions`, `drox-mcp`, `drox-types`.
 
-* [How to build and run from source](https://github.com/microsoft/vscode/wiki/How-to-Contribute)
-* [The development workflow, including debugging and running tests](https://github.com/microsoft/vscode/wiki/How-to-Contribute#debugging)
-* [Coding guidelines](https://github.com/microsoft/vscode/wiki/Coding-Guidelines)
-* [Submitting pull requests](https://github.com/microsoft/vscode/wiki/How-to-Contribute#pull-requests)
-* [Finding an issue to work on](https://github.com/microsoft/vscode/wiki/How-to-Contribute#where-to-contribute)
-* [Contributing to translations](https://aka.ms/vscodeloc)
+Contrat IDE ↔ moteur : **JSON-RPC NDJSON** sur stdio (`drox --serve`). Spécification : [PROTOCOLE-JSONRPC.md](drox-engine/docs/0.0.0/architecture/PROTOCOLE-JSONRPC.md).
 
-## Feedback
+### Intégration IDE
 
-* Ask a question on [Stack Overflow](https://stackoverflow.com/questions/tagged/vscode)
-* [Request a new feature](CONTRIBUTING.md)
-* Upvote [popular feature requests](https://github.com/microsoft/vscode/issues?q=is%3Aopen+is%3Aissue+label%3Afeature-request+sort%3Areactions-%2B1-desc)
-* [File an issue](https://github.com/microsoft/vscode/issues)
-* Connect with the extension author community on [GitHub Discussions](https://github.com/microsoft/vscode-discussions/discussions) or [Slack](https://aka.ms/vscode-dev-community)
-* Follow [@code](https://x.com/code) and let us know what you think!
+- **Adaptateur** : services workbench, IPC, `tool/exec`, settings `nexus.drox.*`
+- **UI** : webview modulaire sous `contrib/drox/browser/media/droxChat/`
+- **Patches noyau minimaux** : quelques fichiers hors `contrib/drox` (liste dans [ARCHITECTURE-DECOUPLAGE-UPSTREAM.md](drox-engine/docs/1.2.0/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md))
 
-See our [wiki](https://github.com/microsoft/vscode/wiki/Feedback-Channels) for a description of each of these channels and information on some other available community-driven channels.
+La logique agentique ne doit **pas** être dispersée dans `contrib/chat/` ni le noyau VS Code — c’est la condition pour suivre les releases Microsoft sans tout casser.
 
-## Related Projects
+---
 
-Many of the core components and extensions to VS Code live in their own repositories on GitHub. For example, the [node debug adapter](https://github.com/microsoft/vscode-node-debug) and the [mono debug adapter](https://github.com/microsoft/vscode-mono-debug) repositories are separate from each other. For a complete list, please visit the [Related Projects](https://github.com/microsoft/vscode/wiki/Related-Projects) page on our [wiki](https://github.com/microsoft/vscode/wiki).
+## Documentation par version
 
-## Bundled Extensions
+| Version | Entrée |
+|---------|--------|
+| **1.3.0** (en cours) | [drox-engine/docs/1.3.0/README.md](drox-engine/docs/1.3.0/README.md) |
+| **1.2.0** (orchestration séquentielle) | [drox-engine/docs/1.2.0/](drox-engine/docs/1.2.0/) |
+| Archives & guides | [drox-engine/docs/0.0.0/](drox-engine/docs/0.0.0/) · [GUIDE-MOTEUR-DROX.md](drox-engine/docs/0.0.0/guides/GUIDE-MOTEUR-DROX.md) |
 
-VS Code includes a set of built-in extensions located in the [extensions](extensions) folder, including grammars and snippets for many languages. Extensions that provide rich language support (inline suggestions, Go to Definition) for a language have the suffix `language-features`. For example, the `json` extension provides coloring for `JSON` and the `json-language-features` extension provides rich language support for `JSON`.
+---
 
-## Development Container
+## Mises à jour VS Code (upstream)
 
-This repository includes a Visual Studio Code Dev Containers / GitHub Codespaces development container.
+Le remote **`upstream`** pointe vers `https://github.com/microsoft/vscode.git` (déjà configuré sur ce clone).
 
-* For [Dev Containers](https://aka.ms/vscode-remote/download/containers), use the **Dev Containers: Clone Repository in Container Volume...** command which creates a Docker volume for better disk I/O on macOS and Windows.
-  * If you already have VS Code and Docker installed, you can also click [here](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/vscode) to get started. This will cause VS Code to automatically install the Dev Containers extension if needed, clone the source code into a container volume, and spin up a dev container for use.
+**Oui**, vous pouvez intégrer les nouvelles versions de VS Code : le moteur (`drox-engine/`) et l’UI (`contrib/drox/`) vivent dans des arbres **propres au fork** ; Microsoft ne les modifie pas. Seuls ~6 fichiers « crochets » du noyau demandent une résolution manuelle à chaque merge.
 
-* For Codespaces, install the [GitHub Codespaces](https://marketplace.visualstudio.com/items?itemName=GitHub.codespaces) extension in VS Code, and use the **Codespaces: Create New Codespace** command.
+**Processus recommandé** :
 
-Docker / the Codespace should have at least **4 cores and 6 GB of RAM (8 GB recommended)** to run a full build. See the [development container README](.devcontainer/README.md) for more information.
+1. Branche dédiée : `integrate/vscode-<version>`
+2. `git fetch upstream` puis merge de `upstream/main` (ou tag release)
+3. Résoudre : `product.json` → patches §5 du doc upstream → `contrib/drox/` → **ne pas écraser** `drox-engine/` sauf accident
+4. Valider : `npm run compile`, `cargo test --workspace` dans `drox-engine/drox`, smoke chat Drox
 
-## Code of Conduct
+Guides détaillés :
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+- [ARCHITECTURE-DECOUPLAGE-UPSTREAM.md](drox-engine/docs/1.2.0/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md)
+- [PLAN-UPSTREAM-1.122.md](drox-engine/docs/1.2.0/steps/03-upstream/PLAN-UPSTREAM-1.122.md)
 
-## License
+**Note historique** : ce dépôt a été importé en snapshot squashed (`Export Drox IDE 1.3.0`). L’historique Git n’est plus linéaire avec l’ancien fork public, mais l’**arbre de fichiers** reste mergeable avec `upstream/main` comme un fork classique.
 
-Copyright (c) Microsoft Corporation. All rights reserved.
+---
 
-Licensed under the [MIT](LICENSE.txt) license.
+## CI & packaging
+
+| Commande | Rôle |
+|----------|------|
+| `npm run watch` / `compile` | IDE + contrib Drox |
+| `cargo build -p drox-cli` | Binaire moteur seul |
+| `npm run package-drox` | Embarque `drox` dans `resources/drox/` |
+| `npm run test-drox` | Tests unitaires workbench Drox |
+
+Workflow GitHub : [.github/workflows/drox-rust.yml](.github/workflows/drox-rust.yml) (fmt, clippy, tests Rust sur `drox-engine/drox/`).
+
+---
+
+## Licence
+
+- **Noyau VS Code** : [MIT](LICENSE.txt) — Copyright Microsoft Corporation.
+- **Drox** (`drox-engine/`, `contrib/drox/`, branding) : travail KDDS — même base MIT pour le code dérivé du fork OSS.
+
+Les marques *Visual Studio Code* et *VS Code* appartiennent à Microsoft. *Drox IDE* est une distribution distincte non affiliée.
