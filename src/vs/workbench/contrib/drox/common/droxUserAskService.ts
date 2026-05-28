@@ -1,0 +1,49 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+import { Event } from '../../../../base/common/event.js';
+
+import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+
+import { DroxUserAskHostMessage } from './droxUserAsk.js';
+
+
+
+export const IDroxUserAskService = createDecorator<IDroxUserAskService>('droxUserAskService');
+
+
+
+export interface IDroxUserAskService {
+
+	readonly _serviceBrand: undefined;
+
+
+
+	readonly onDidChangePending: Event<boolean>;
+
+
+
+	readonly hasPending: boolean;
+
+
+
+	attachWebview(post: (message: DroxUserAskHostMessage) => void): void;
+
+
+
+	handleWebviewAnswer(raw: unknown): void;
+
+
+
+	resolvePendingAsSkipped(): void;
+
+	/** Mode permission du run agent en cours (pour auto-allow en Accept Edit). */
+	setActivePermissionMode(mode: string | undefined): void;
+
+	getActivePermissionMode(): string | undefined;
+
+}
+
+

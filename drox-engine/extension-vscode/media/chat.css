@@ -1,0 +1,2535 @@
+/* --- Reset / base --- */
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  box-sizing: border-box;
+  /* Aide les contrôles natifs (liste du <select>) à suivre le thème clair/sombre. */
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  min-height: 100%;
+  position: relative;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+textarea,
+input,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* --- Barre de progression indéterminée (run en cours) --- */
+
+.progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+  background: transparent;
+  /* Au-dessus du header (z-index 20) pour rester visible pendant un run. */
+  z-index: 30;
+  pointer-events: none;
+}
+
+.progress[hidden] {
+  display: none;
+}
+
+.progress::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--vscode-progressBar-background, var(--vscode-focusBorder)) 50%,
+    transparent 100%
+  );
+  animation: drox-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes drox-progress {
+  0% {
+    left: -30%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* --- Header bar --- */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBar-background, transparent);
+  position: relative;
+  z-index: 20;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.brand {
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+
+.mode-picker {
+  position: relative;
+}
+
+.mode-picker select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(
+    --vscode-dropdown-background,
+    var(--vscode-button-secondaryBackground, transparent)
+  );
+  color: var(
+    --vscode-dropdown-foreground,
+    var(--vscode-button-secondaryForeground, var(--vscode-foreground))
+  );
+  border: 1px solid
+    var(--vscode-dropdown-border, var(--vscode-input-border, transparent));
+  border-radius: 6px;
+  padding: 3px 22px 3px 9px;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+body.vscode-dark .mode-picker select,
+body.vscode-high-contrast .mode-picker select,
+body.vscode-high-contrast-light .mode-picker select {
+  color-scheme: dark;
+}
+
+body.vscode-light .mode-picker select {
+  color-scheme: light;
+}
+
+.mode-picker select:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.mode-picker::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid currentColor;
+  transform: translateY(-2px);
+  opacity: 0.7;
+}
+
+/* --- Panneau historique --- */
+
+.history-panel {
+  position: absolute;
+  top: 40px; /* sous le header */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  border-top: 1px solid var(--vscode-panel-border);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.18s ease;
+  pointer-events: none;
+}
+
+.history-panel.open {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.history-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 4px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-empty {
+  padding: 14px 10px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  font-size: 12px;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  text-align: left;
+  width: 100%;
+  color: var(--vscode-foreground);
+}
+
+.history-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.history-item.current {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.history-item .title {
+  font-size: 12.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item .meta {
+  font-size: 10.5px;
+  opacity: 0.7;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.history-item .meta .size {
+  opacity: 0.7;
+}
+
+.history-error {
+  padding: 10px;
+  color: var(--vscode-errorForeground);
+  font-size: 12px;
+}
+
+/* --- Log --- */
+
+.log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Évite que les nombreux blocs (phases, outils) se compriment en colonne flex. */
+.log > * {
+  flex-shrink: 0;
+}
+
+.log::-webkit-scrollbar {
+  width: 8px;
+}
+
+.log::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+  border-radius: 4px;
+}
+
+.msg-user {
+  color: var(--vscode-textLink-foreground);
+}
+
+.msg-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  max-width: 100%;
+}
+
+.msg-row-user .msg-user-prefix {
+  opacity: 0.75;
+}
+
+.msg-footer {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1px;
+  margin-top: 1px;
+  padding: 0 0 2px;
+  opacity: 0.5;
+  transition: opacity 0.12s ease;
+  user-select: none;
+  /* Contexte de positionnement : le menu « ⋯ » reste dans la largeur du fil. */
+}
+
+.msg-row:hover .msg-footer,
+.msg-footer:focus-within {
+  opacity: 1;
+}
+
+.msg-footer-btn {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--vscode-descriptionForeground);
+}
+
+.msg-footer-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.msg-footer-details {
+  display: inline-block;
+}
+
+.msg-footer-details > summary {
+  list-style: none;
+}
+
+.msg-footer-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.msg-footer-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  left: auto;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  background: var(--vscode-menu-background);
+  color: var(--vscode-menu-foreground);
+  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border));
+  border-radius: 6px;
+  padding: 4px;
+  z-index: 80;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  overflow-wrap: anywhere;
+}
+
+.msg-footer-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+  color: inherit;
+  background: transparent;
+  border: none;
+}
+
+.msg-footer-menu-item:hover {
+  background: var(--vscode-menu-selectionBackground);
+  color: var(--vscode-menu-selectionForeground);
+}
+
+.msg-assistant {
+  color: var(--vscode-foreground);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* --- Rendu markdown (assistant) --- */
+/* Le `pre-wrap` global de .msg-assistant est conservé : il s'applique aux
+   text nodes nus, donc les retours à la ligne simples dans un paragraphe
+   sont respectés. Les éléments de bloc (p, ul, h1…) annulent ce héritage là
+   où c'est nécessaire. */
+
+.markdown > * {
+  margin: 0;
+}
+
+.markdown > * + * {
+  margin-top: 6px;
+}
+
+.markdown p {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--vscode-foreground);
+  margin-top: 10px;
+}
+
+.markdown h1 {
+  font-size: 16px;
+}
+.markdown h2 {
+  font-size: 14.5px;
+}
+.markdown h3 {
+  font-size: 13.5px;
+}
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 12.5px;
+}
+
+.markdown strong {
+  font-weight: 600;
+}
+
+.markdown em {
+  font-style: italic;
+}
+
+.markdown del {
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.markdown a {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+}
+
+.markdown a:hover {
+  text-decoration: underline;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 20px;
+}
+
+.markdown li {
+  margin: 2px 0;
+  white-space: pre-wrap;
+}
+
+.markdown li > p:first-child {
+  margin: 0;
+}
+
+.markdown blockquote {
+  padding: 2px 10px;
+  border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-focusBorder));
+  background: var(--vscode-textBlockQuote-background, transparent);
+  color: var(--vscode-descriptionForeground);
+  white-space: pre-wrap;
+}
+
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.25));
+  margin: 8px 0;
+}
+
+/* Code inline : pas de bordure trop visible, juste un fond léger. */
+.markdown code {
+  font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+  font-size: 11.5px;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.15));
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: pre-wrap;
+}
+
+/* Bloc de code (```lang…```) : encadré, scrollable horizontal au besoin,
+   coloration via classe `language-xxx` plus tard si on intègre highlight. */
+.markdown pre.md-code {
+  margin: 4px 0;
+  padding: 8px 10px;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.12));
+  border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.2));
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre;
+  font-size: 11.5px;
+}
+
+.markdown pre.md-code > code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  white-space: pre;
+}
+
+/* Caret clignotant à la fin du bloc en cours de streaming.
+   En mode markdown, on désactive ce caret : il atterrirait après le dernier
+   bloc (un <p>) donc sur sa propre ligne, ce qui est moche. Les indicateurs
+   globaux (barre de progression + status bar « Drox réfléchit… ») suffisent
+   à signaler l'activité. */
+.msg-assistant.streaming::after {
+  content: "▌";
+  display: inline-block;
+  margin-left: 1px;
+  color: var(--vscode-foreground);
+  opacity: 0.6;
+  animation: drox-caret 1s steps(1) infinite;
+}
+
+.msg-assistant.streaming.markdown::after {
+  content: none;
+}
+
+@keyframes drox-caret {
+  0%,
+  50% {
+    opacity: 0.7;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Indicateur "Drox réfléchit" : 3 points qui pulsent. */
+.msg-loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 2px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11.5px;
+  align-self: flex-start;
+}
+
+.msg-loader .dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.msg-loader .dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: drox-dots 1.1s ease-in-out infinite;
+}
+
+.msg-loader .dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.msg-loader .dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes drox-dots {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.msg-error {
+  color: var(--vscode-errorForeground);
+  white-space: pre-wrap;
+}
+
+.msg-system {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11.5px;
+  font-style: italic;
+}
+
+/* --- Chip « Session archivée » (Sprint M1 — mémoire de session) ---------
+ *
+ * Émis à la fin d'un run non trivial, juste avant `Stop`. Volontairement
+ * discret : une ligne avec une bordure légère, sans fond, alignée avec le
+ * reste du fil. L'objectif est d'**informer** que la session a laissé une
+ * trace réutilisable, sans interrompre la lecture du dernier `answering`.
+ */
+.msg-memory-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  color: var(--vscode-descriptionForeground);
+  border-left: 2px solid var(--vscode-charts-blue, #4a90e2);
+  opacity: 0.85;
+}
+
+.msg-memory-chip .memory-chip-icon {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--vscode-charts-blue, #4a90e2);
+}
+
+.msg-memory-chip .memory-chip-label {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.msg-memory-chip .memory-chip-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--vscode-editor-font-family), monospace;
+}
+
+.msg-memory-chip .memory-chip-link {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+  font-size: 11px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.msg-memory-chip .memory-chip-link:hover {
+  text-decoration: underline;
+}
+
+/* --- To-do list (output du tool `todo_write`) --- */
+
+.msg-todos {
+  margin: 14px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 6px;
+  background: var(--vscode-editorWidget-background, transparent);
+}
+
+.todos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.todos-title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.todos-counter {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.todos-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--vscode-foreground);
+}
+
+.todo-ic {
+  flex: 0 0 16px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.9;
+  user-select: none;
+}
+
+.todo-text {
+  flex: 1 1 auto;
+  word-break: break-word;
+}
+
+.todo-item.todo-pending .todo-ic {
+  color: var(--vscode-descriptionForeground);
+}
+
+.todo-item.todo-progress .todo-ic {
+  color: var(--vscode-charts-blue, var(--vscode-textLink-foreground));
+  animation: todo-pulse 1.6s ease-in-out infinite;
+}
+
+.todo-item.todo-progress .todo-text {
+  font-weight: 500;
+}
+
+.todo-item.todo-done .todo-ic {
+  color: var(--vscode-charts-green, var(--vscode-terminal-ansiGreen));
+}
+
+.todo-item.todo-done .todo-text {
+  color: var(--vscode-descriptionForeground);
+  text-decoration: line-through;
+  text-decoration-color: var(--vscode-descriptionForeground);
+  text-decoration-thickness: 1px;
+}
+
+.todo-item.todo-cancel .todo-ic {
+  color: var(--vscode-disabledForeground, var(--vscode-descriptionForeground));
+}
+
+.todo-item.todo-cancel .todo-text {
+  color: var(--vscode-disabledForeground, var(--vscode-descriptionForeground));
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+@keyframes todo-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* --- Plan de cours (`course_plan_write`, mode Professeur) --- */
+
+.msg-course-plan {
+  margin: 14px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 6px;
+  background: var(--vscode-editorWidget-background, transparent);
+}
+
+.course-plan-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.course-plan-title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.course-plan-mission {
+  flex: 1 1 auto;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  min-width: 0;
+  word-break: break-word;
+}
+
+.course-plan-counter {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.course-plan-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.course-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.course-ic {
+  flex: 0 0 16px;
+  text-align: center;
+}
+
+.course-kind {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+  padding-top: 2px;
+}
+
+.course-text {
+  flex: 1 1 auto;
+  word-break: break-word;
+}
+
+.course-step.course-active .course-ic {
+  color: var(--vscode-charts-blue, var(--vscode-textLink-foreground));
+  animation: todo-pulse 1.6s ease-in-out infinite;
+}
+
+.course-step.course-active .course-text {
+  font-weight: 500;
+}
+
+.course-step.course-mastered .course-text {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.course-plan-sticky {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background, transparent);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.course-plan-sticky .sticky-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-plan-sticky.expanded {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.course-plan-sticky .sticky-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  width: 100%;
+  font-size: 11px;
+}
+
+.course-cycle-banner[hidden],
+.course-plan-sticky[hidden],
+.todo-sticky[hidden],
+.run-objective-sticky[hidden],
+.scope-parking[hidden],
+.user-prompt-sticky[hidden],
+.professor-guard-banner[hidden] {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.course-cycle-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 12px 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--vscode-inputValidation-warningBorder, #b89500);
+  border-radius: 4px;
+  background: var(
+    --vscode-inputValidation-warningBackground,
+    rgba(184, 149, 0, 0.12)
+  );
+  font-size: 11px;
+  color: var(--vscode-foreground);
+}
+
+.course-cycle-banner .course-cycle-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.course-cycle-banner .course-cycle-hint {
+  opacity: 0.85;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.professor-guard-banner {
+  margin: 0 12px 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-inputValidation-infoBorder, #3794ff);
+  border-radius: 4px;
+  background: var(
+    --vscode-inputValidation-infoBackground,
+    rgba(55, 148, 255, 0.1)
+  );
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--vscode-foreground);
+}
+
+/* Sticky compact au-dessus du composer : visible tant qu'il reste un item
+   non terminé. Clic / Entrée = scroll vers le bloc complet dans le log. */
+.todo-sticky {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background, transparent);
+  color: var(--vscode-foreground);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.todo-sticky:hover {
+  background: var(--vscode-list-hoverBackground, transparent);
+}
+
+.todo-sticky:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.todo-sticky .sticky-ic {
+  flex: 0 0 14px;
+  text-align: center;
+  color: var(--vscode-charts-blue, var(--vscode-textLink-foreground));
+}
+
+.todo-sticky .sticky-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-sticky .sticky-counter {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.85;
+}
+
+/* Sprint Plan UI — le sticky est désormais cliquable pour basculer
+ * entre `compact` (étape courante) et `expanded` (mini-liste complète).
+ * Chevron à droite, layout flex inchangé en compact. */
+.todo-sticky .sticky-chevron {
+  flex: 0 0 auto;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+  margin-left: 2px;
+  font-size: 10px;
+}
+
+.todo-sticky.expanded {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.todo-sticky .sticky-expanded-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.todo-sticky .sticky-expanded-header .sticky-text {
+  font-weight: 600;
+}
+
+.todo-sticky .sticky-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.todo-sticky .sticky-li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 2px 0;
+  line-height: 1.35;
+}
+
+.todo-sticky .sticky-li-ic {
+  flex: 0 0 14px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}
+
+.todo-sticky .sticky-li-text {
+  flex: 1 1 auto;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.todo-sticky .sticky-li-in_progress .sticky-li-ic {
+  color: var(--vscode-charts-blue, var(--vscode-textLink-foreground));
+}
+
+.todo-sticky .sticky-li-completed .sticky-li-ic {
+  color: var(--vscode-charts-green, var(--vscode-terminal-ansiGreen));
+}
+
+.todo-sticky .sticky-li-completed .sticky-li-text {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.todo-sticky .sticky-li-cancelled .sticky-li-text {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* Sticky — dernier message utilisateur envoyé (§2.24), fixé en haut du fil. */
+.user-prompt-sticky {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 12px 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-left: 3px solid var(--vscode-charts-green, var(--vscode-textLink-foreground));
+  border-radius: 4px;
+  background: var(--vscode-input-background, var(--vscode-editorWidget-background));
+  color: var(--vscode-foreground);
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+  user-select: none;
+}
+
+.user-prompt-sticky:hover {
+  background: var(--vscode-list-hoverBackground, var(--vscode-input-background));
+}
+
+.user-prompt-sticky:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.user-prompt-sticky .sticky-ic {
+  flex: 0 0 14px;
+  margin-top: 1px;
+  text-align: center;
+  color: var(--vscode-charts-green, var(--vscode-textLink-foreground));
+}
+
+.user-prompt-sticky .sticky-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-prompt-sticky .sticky-text {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  word-break: break-word;
+}
+
+.user-prompt-sticky .sticky-meta {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-prompt-sticky .sticky-jump {
+  flex: 0 0 auto;
+  align-self: center;
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+/* Sticky — objectif verrouillé du run (§2.25). */
+.run-objective-sticky {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 12px 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-left: 3px solid var(--vscode-charts-orange, var(--vscode-editorWarning-foreground));
+  border-radius: 4px;
+  background: var(--vscode-input-background, var(--vscode-editorWidget-background));
+  color: var(--vscode-foreground);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.run-objective-sticky .sticky-ic {
+  flex: 0 0 14px;
+  margin-top: 1px;
+  text-align: center;
+  color: var(--vscode-charts-orange, var(--vscode-editorWarning-foreground));
+}
+
+.run-objective-sticky .sticky-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.run-objective-sticky .sticky-text {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  word-break: break-word;
+}
+
+/* Parking hors scope (`scope_defer`, §2.25). */
+.scope-parking {
+  flex: 0 0 auto;
+  margin: 2px 12px 6px;
+  font-size: 11px;
+}
+
+.scope-parking-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 4px 8px;
+  border: 1px dashed var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.scope-parking-toggle:hover {
+  background: var(--vscode-list-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.scope-parking-list {
+  margin: 4px 0 0;
+  padding: 0 0 0 18px;
+  list-style: disc;
+  color: var(--vscode-foreground);
+}
+
+.scope-parking-list[hidden] {
+  display: none !important;
+}
+
+.scope-parking-item {
+  margin: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scope-parking-finding {
+  font-weight: 500;
+}
+
+.scope-parking-reason {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.msg-row.msg-row-highlight {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: outline-color 0.15s ease;
+}
+
+/* --- Appels d'outils : ligne plate type Cursor --- */
+/* Pas de cadre, pas de background : juste `<icône d'état> <verb> <target>` en
+   gris atténué, monospace pour `target`. Cliquable pour déplier args/output
+   en dessous (corps minimaliste, barre verticale fine, monospace gris). */
+
+.msg-tool {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.msg-tool + .msg-tool {
+  margin-top: 1px;
+}
+
+.msg-tool > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.5;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.msg-tool > summary::-webkit-details-marker,
+.msg-tool > summary::marker {
+  display: none;
+  content: "";
+}
+
+.msg-tool > summary:hover {
+  color: var(--vscode-foreground);
+}
+
+.msg-tool > summary:hover .tool-target {
+  color: var(--vscode-foreground);
+  opacity: 0.95;
+}
+
+.msg-tool .tool-icon {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.75;
+}
+
+.msg-tool .tool-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.msg-tool .tool-icon .spin {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  animation: drox-spin 0.9s linear infinite;
+  display: inline-block;
+}
+
+.msg-tool.done .tool-icon {
+  color: var(--vscode-charts-green, #3fb950);
+  opacity: 0.8;
+}
+
+.msg-tool.errored .tool-icon {
+  color: var(--vscode-errorForeground);
+  opacity: 0.9;
+}
+
+.msg-tool .tool-verb {
+  font-weight: 500;
+  color: var(--vscode-descriptionForeground);
+}
+
+.msg-tool.done .tool-verb,
+.msg-tool.errored .tool-verb {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.9;
+}
+
+.msg-tool .tool-target {
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11.5px;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.msg-tool[open] > summary .tool-target {
+  white-space: normal;
+}
+
+.msg-tool-body {
+  margin: 2px 0 6px 6px;
+  padding: 2px 0 2px 14px;
+  border-left: 1px solid
+    color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
+  background: transparent;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.msg-tool .tool-args,
+.msg-tool .tool-output {
+  margin: 0;
+  padding: 2px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.9;
+}
+
+.msg-tool .tool-sep {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+/* Pendant le run : effet shimmer sur le verb pour signaler l'activité.
+   Le spinner de gauche reste mais subtil ; la brillance horizontale guide
+   l'œil sans nécessiter de cadre. */
+.msg-tool.running .tool-verb {
+  background-image: linear-gradient(
+    90deg,
+    var(--vscode-descriptionForeground) 0%,
+    var(--vscode-descriptionForeground) 30%,
+    var(--vscode-foreground) 50%,
+    var(--vscode-descriptionForeground) 70%,
+    var(--vscode-descriptionForeground) 100%
+  );
+  background-size: 220% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: drox-shimmer 2.4s linear infinite;
+}
+
+/* --- Carte "fichier modifié" repliable (Cursor-like) --- */
+
+.msg-file-change {
+  align-self: stretch;
+  margin: 4px 0;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  overflow: hidden;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  color: var(--vscode-foreground);
+}
+
+.msg-file-change > summary.fc-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  background: var(--vscode-titleBar-inactiveBackground, var(--vscode-sideBarSectionHeader-background, transparent));
+  border-bottom: 1px solid transparent;
+}
+
+.msg-file-change[open] > summary.fc-summary {
+  border-bottom-color: var(--vscode-panel-border);
+}
+
+.msg-file-change > summary::-webkit-details-marker,
+.msg-file-change > summary::marker {
+  display: none;
+  content: "";
+}
+
+.msg-file-change > summary.fc-summary:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.msg-file-change .fc-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-descriptionForeground);
+}
+
+.msg-file-change .fc-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.msg-file-change .fc-op {
+  font-size: 10.5px;
+  color: var(--vscode-descriptionForeground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.msg-file-change .fc-path {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.msg-file-change .fc-stats {
+  display: inline-flex;
+  gap: 6px;
+  font-size: 10.5px;
+}
+
+.msg-file-change .fc-add {
+  color: var(--vscode-charts-green, #3fb950);
+}
+
+.msg-file-change .fc-rem {
+  color: var(--vscode-errorForeground);
+}
+
+.msg-file-change .fc-spacer {
+  flex: 1 1 auto;
+}
+
+.msg-file-change .fc-open {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.7;
+  flex: 0 0 22px;
+}
+
+.msg-file-change .fc-open:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+  opacity: 1;
+}
+
+.msg-file-change .fc-open svg {
+  width: 14px;
+  height: 14px;
+}
+
+.msg-file-change .fc-body {
+  max-height: 360px;
+  overflow: auto;
+  background: var(--vscode-editor-background);
+}
+
+.msg-file-change .fc-diff {
+  margin: 0;
+  padding: 6px 0;
+  background: transparent;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11.5px;
+  line-height: 1.45;
+  white-space: pre;
+  tab-size: 4;
+}
+
+.msg-file-change .diff-line {
+  display: block;
+  padding: 0 10px;
+  white-space: pre;
+  font-family: inherit;
+  color: var(--vscode-editor-foreground);
+}
+
+.msg-file-change .diff-line.diff-add {
+  background: var(--vscode-diffEditor-insertedTextBackground, rgba(63, 185, 80, 0.16));
+  color: var(--vscode-editor-foreground);
+}
+
+.msg-file-change .diff-line.diff-rem {
+  background: var(--vscode-diffEditor-removedTextBackground, rgba(248, 81, 73, 0.16));
+  color: var(--vscode-editor-foreground);
+}
+
+.msg-file-change .diff-line.diff-hunk {
+  background: var(--vscode-editorIndentGuide-background, rgba(127, 127, 127, 0.08));
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.msg-file-change .diff-line.diff-ctx {
+  color: var(--vscode-descriptionForeground);
+}
+
+/* --- Composer (zone d'envoi en bas) --- */
+
+.composer {
+  border-top: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBar-background, transparent);
+  padding: 8px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.composer-hint {
+  margin: 0;
+  padding: 4px 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--vscode-descriptionForeground);
+  border-radius: 6px;
+  background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.06));
+}
+
+.composer-hint kbd {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+.composer.dragging {
+  outline: 2px dashed var(--vscode-focusBorder);
+  outline-offset: -4px;
+  background: var(--vscode-list-dropBackground, transparent);
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.attachments:empty {
+  display: none;
+}
+
+/* --- Références fichier/dossier (drag-drop depuis l'Explorateur) --- */
+
+.refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.refs:empty {
+  display: none;
+}
+
+/* Sprint §2.14 — messages en file d'attente pendant un run */
+.pending-prompts:empty,
+.pending-prompts[hidden] {
+  display: none;
+}
+
+.pending-prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.pending-prompt-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+  background: var(
+    --vscode-editorWidget-background,
+    var(--vscode-input-background)
+  );
+}
+
+.pending-prompt-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pending-prompt-snippet {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--vscode-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-prompt-meta {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.pending-prompt-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pending-prompt-edit,
+.pending-prompt-remove {
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  cursor: pointer;
+}
+
+.pending-prompt-edit:hover,
+.pending-prompt-remove:hover {
+  background: var(--vscode-button-secondaryHoverBackground, var(--vscode-toolbar-hoverBackground));
+}
+
+.pending-prompt-remove {
+  color: var(--vscode-errorForeground, #f48771);
+}
+
+.stop-run-btn {
+  color: var(--vscode-errorForeground, #f48771);
+}
+
+.stop-run-btn:not([hidden]):hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.send-queue-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+  background: var(--vscode-badge-background, var(--vscode-focusBorder));
+  color: var(--vscode-badge-foreground, var(--vscode-button-foreground));
+  pointer-events: none;
+}
+
+.send-queue-badge[hidden] {
+  display: none;
+}
+
+.ref-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px 2px 6px;
+  border-radius: 12px;
+  border: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-inactiveSelectionBackground, transparent);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px;
+  max-width: 100%;
+}
+
+.ref-chip .ref-icon {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  color: var(--vscode-descriptionForeground);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ref-chip .ref-icon svg {
+  width: 11px;
+  height: 11px;
+}
+
+.ref-chip .ref-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.ref-chip .ref-remove {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.7;
+  background: transparent;
+}
+
+.ref-chip .ref-remove:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+/* Smart paste (§2.9) — chip distincte des références fichier classique.
+ * On garde la même hauteur / typographie que `.ref-chip` pour rester
+ * groupés visuellement, mais on souligne l'origine « extrait » par un
+ * accent de couleur sur l'icône et un label cliquable (ouvre la source). */
+.ref-chip.paste-chip {
+  background: var(--vscode-editor-selectionHighlightBackground, transparent);
+  border-color: var(--vscode-focusBorder);
+}
+
+.ref-chip.paste-chip .paste-icon {
+  color: var(--vscode-focusBorder);
+}
+
+.ref-chip.paste-chip .paste-label {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  text-align: left;
+}
+
+.ref-chip.paste-chip .paste-label:hover {
+  text-decoration: underline;
+}
+
+.ref-chip.paste-chip-terminal {
+  border-color: var(--vscode-terminal-ansiGreen, var(--vscode-focusBorder));
+}
+
+.ref-chip.paste-chip-terminal .paste-icon {
+  color: var(--vscode-terminal-ansiGreen, var(--vscode-focusBorder));
+}
+
+/* ── Sprint Questions bloquantes (§2.13) — carte modale au-dessus du composer.
+ * Inspirée de la carte Cursor (capture jointe) : titre + compteur, prompt,
+ * options A/B/C cliquables, champ de détails optionnels, actions Skip/
+ * Précédent/Continuer en bas. */
+.user-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 6px 0;
+  border: 1px solid var(--vscode-focusBorder);
+  border-radius: 8px;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  font-size: 12px;
+}
+
+.user-ask[hidden] {
+  display: none;
+}
+
+.user-ask-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.user-ask-title {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-ask-title::before {
+  content: "❔";
+  font-size: 13px;
+}
+
+.user-ask-counter {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+
+.user-ask-prompt {
+  color: var(--vscode-foreground);
+  line-height: 1.4;
+}
+
+.user-ask-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-ask-option {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.user-ask-option:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.user-ask-option.selected {
+  background: var(--vscode-button-secondaryBackground, var(--vscode-toolbar-hoverBackground));
+  border-color: var(--vscode-focusBorder);
+}
+
+.user-ask-option-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-descriptionForeground);
+}
+
+.user-ask-option.selected .user-ask-option-letter {
+  background: var(--vscode-focusBorder);
+  color: var(--vscode-editor-background);
+  border-color: var(--vscode-focusBorder);
+}
+
+.user-ask-option-label {
+  flex: 1 1 auto;
+  white-space: normal;
+}
+
+.user-ask-free {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-ask-free-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 26px;
+  padding: 5px 8px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  font: inherit;
+}
+
+.user-ask-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.user-ask-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.user-ask-action:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.user-ask-action[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.user-ask-action.skip {
+  color: var(--vscode-descriptionForeground);
+}
+
+.user-ask-action.next {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.user-ask-action.next:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.user-ask-action kbd {
+  display: inline-flex;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+}
+
+.attachment {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+}
+
+.attachment img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.attachment .remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+}
+
+.attachment .remove:hover {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.editor {
+  position: relative;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor:focus-within {
+  border-color: var(--vscode-focusBorder);
+}
+
+.prompt-suggestions {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+}
+
+.prompt-suggestion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.prompt-suggestion-item:hover,
+.prompt-suggestion-item.selected {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.15));
+}
+
+.prompt-suggestion-item.selected {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.prompt-suggestion-label {
+  font-family: var(--vscode-editor-font-family, monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prompt-suggestion-meta {
+  flex-shrink: 0;
+  opacity: 0.65;
+  font-size: 11px;
+}
+
+textarea#prompt {
+  resize: none;
+  min-height: 38px;
+  max-height: 240px;
+  background: transparent;
+  color: var(--vscode-input-foreground);
+  border: none;
+  outline: none;
+  padding: 8px 10px 6px;
+  line-height: 1.45;
+  overflow-y: auto;
+}
+
+textarea#prompt::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+  opacity: 0.7;
+}
+
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 6px;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--vscode-foreground);
+  opacity: 0.75;
+  transition: background 0.1s, opacity 0.1s;
+}
+
+.icon-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  opacity: 1;
+}
+
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.send-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  transition: opacity 0.1s, transform 0.05s;
+}
+
+.send-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.send-btn:active {
+  transform: scale(0.95);
+}
+
+.send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.send-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Deux icônes dans le bouton : flèche par défaut, carré quand `.stopping`.
+   On les superpose ou bien on cache l'inactive. La superposition est
+   inutile ici, simple swap par `display`. */
+.send-btn .icon-stop {
+  display: none;
+}
+
+.send-btn.stopping .icon-send {
+  display: none;
+}
+
+.send-btn.stopping .icon-stop {
+  display: block;
+}
+
+/* En mode « stop », couleur d'avertissement subtile (rouge VS Code) pour
+   signaler que l'action est destructive (annule le run). On garde le rond
+   pour ne pas chambouler la mise en page, juste le fond/texte changent. */
+.send-btn.stopping {
+  background: var(--vscode-errorForeground, #f48771);
+  color: var(--vscode-button-foreground);
+}
+
+.send-btn.stopping:hover {
+  background: color-mix(in srgb, var(--vscode-errorForeground, #f48771) 85%, white);
+}
+
+/* Bouton "loading" : on cache la flèche et on affiche un ring qui tourne. */
+.send-btn.loading svg {
+  visibility: hidden;
+}
+
+.send-btn.loading::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: drox-spin 0.8s linear infinite;
+}
+
+.send-btn {
+  position: relative;
+}
+
+@keyframes drox-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Status bar (tokens / ctx) --- */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 6px;
+  border-top: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBar-background, transparent);
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  user-select: none;
+}
+
+.status .stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status .stat strong {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+}
+
+.status .spacer {
+  flex: 1 1 auto;
+}
+
+/* État courant à gauche du status bar (visible pendant un run). */
+.status .status-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vscode-foreground);
+  font-style: italic;
+  opacity: 0.9;
+  max-width: 60%;
+  overflow: hidden;
+}
+
+.status .status-state[hidden] {
+  display: none;
+}
+
+.status .status-state #status-state-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vscode-progressBar-background, var(--vscode-focusBorder));
+  display: inline-block;
+  animation: drox-pulse 1.1s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes drox-pulse {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+/* --- Blocs de phase : refonte minimaliste type Cursor (« Thought for 20s ») ---
+   Chaque phase est un `<details class="phase-block">` frère sur `logEl`.
+   Plus de cadre, plus de background : juste une ligne titre (icône d'état
+   discrète masquée + label) + corps en italique gris sur barre verticale
+   fine. Le tout aligné comme une trace de pensée verticale.
+*/
+
+.phase-block {
+  margin: 0;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  overflow: visible;
+}
+
+.phase-block + .phase-block {
+  margin-top: 2px;
+}
+
+.phase-block > .phase-summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.5;
+  list-style: none;
+  user-select: none;
+}
+
+.phase-block > .phase-summary::-webkit-details-marker,
+.phase-block > .phase-summary::marker {
+  display: none;
+}
+
+.phase-block > .phase-summary:hover {
+  color: var(--vscode-foreground);
+  background: transparent;
+}
+
+/* Emojis de PHASE_META masqués : on s'aligne sur le ton sobre de Cursor
+   (texte seul, pas de pictogramme). Conservés dans le DOM pour pouvoir les
+   réactiver si besoin via un futur réglage. */
+.phase-block .phase-icon {
+  display: none;
+}
+
+.phase-block .phase-label {
+  flex: 0 1 auto;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.phase-block .phase-body {
+  margin: 2px 0 6px 6px;
+  padding: 2px 0 4px 14px;
+  border-left: 1px solid
+    color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
+  border-top: none;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* Pendant le streaming : effet shimmer sur le label, plus de dot pulsant.
+   Le shimmer suffit comme indicateur d'activité et reste cohérent avec
+   l'effet sur les `tool-verb` running. */
+.phase-block.streaming > .phase-summary .phase-label {
+  background-image: linear-gradient(
+    90deg,
+    var(--vscode-descriptionForeground) 0%,
+    var(--vscode-descriptionForeground) 30%,
+    var(--vscode-foreground) 50%,
+    var(--vscode-descriptionForeground) 70%,
+    var(--vscode-descriptionForeground) 100%
+  );
+  background-size: 220% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: drox-shimmer 2.4s linear infinite;
+}
+
+.phase-block.streaming > .phase-summary::after {
+  content: none;
+}
+
+/* Une fois la phase fermée et terminée, on baisse encore la prominence. */
+.phase-block:not([open]):not(.streaming) > .phase-summary {
+  opacity: 0.85;
+}
+
+/* Markdown / outils imbriqués dans une phase : compactage doux. */
+.phase-block .phase-body .msg-assistant,
+.phase-block .phase-body .msg-tool {
+  margin: 2px 0;
+}
+
+/* --- Phases « pensives » : encore plus atténuées --- */
+/* `reasoning` / `planning` / `verifying` : on rend la trace de réflexion
+   plus sombre et italique pour qu'elle se distingue visuellement des phases
+   d'action (`reading`, `acting`, `next-move`). */
+
+.phase-block.phase-reasoning,
+.phase-block.phase-internal_reasoning,
+.phase-block.phase-analyzing,
+.phase-block.phase-planning,
+.phase-block.phase-testing,
+.phase-block.phase-verifying {
+  background: transparent;
+  border: none;
+}
+
+.phase-block.phase-reasoning > .phase-summary .phase-label,
+.phase-block.phase-analyzing > .phase-summary .phase-label,
+.phase-block.phase-planning > .phase-summary .phase-label,
+.phase-block.phase-testing > .phase-summary .phase-label,
+.phase-block.phase-verifying > .phase-summary .phase-label {
+  font-weight: 500;
+  letter-spacing: 0.15px;
+  opacity: 0.85;
+}
+
+.phase-block.phase-reasoning .phase-body,
+.phase-block.phase-internal_reasoning .phase-body,
+.phase-block.phase-analyzing .phase-body,
+.phase-block.phase-planning .phase-body,
+.phase-block.phase-testing .phase-body,
+.phase-block.phase-verifying .phase-body {
+  font-style: italic;
+  font-size: 0.92em;
+  line-height: 1.55;
+  opacity: 0.78;
+}
+
+.phase-block.phase-reasoning .phase-body .msg-assistant,
+.phase-block.phase-internal_reasoning .phase-body .msg-assistant,
+.phase-block.phase-analyzing .phase-body .msg-assistant,
+.phase-block.phase-planning .phase-body .msg-assistant,
+.phase-block.phase-testing .phase-body .msg-assistant,
+.phase-block.phase-verifying .phase-body .msg-assistant {
+  background: transparent;
+  padding: 0;
+  border: none;
+  color: inherit;
+  font-style: inherit;
+}
+
+.phase-block.phase-reasoning.streaming .phase-body,
+.phase-block.phase-internal_reasoning.streaming .phase-body,
+.phase-block.phase-analyzing.streaming .phase-body,
+.phase-block.phase-planning.streaming .phase-body,
+.phase-block.phase-testing.streaming .phase-body,
+.phase-block.phase-verifying.streaming .phase-body {
+  max-height: min(70vh, 36rem);
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* --- Reading : intentions (« Je vais lire… ») entre les outils ---
+   Même famille visuelle que les traces « pensives » : italique + texte
+   atténué. Les cartes `.msg-tool` (Listed, Read, …) gardent le style
+   opérationnel plein contraste. */
+.phase-block.phase-analyzing .phase-body .msg-assistant {
+  font-style: italic;
+  font-size: 0.92em;
+  line-height: 1.55;
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  color: color-mix(
+    in srgb,
+    var(--vscode-descriptionForeground) 72%,
+    var(--vscode-editor-foreground, var(--vscode-foreground)) 28%
+  );
+  opacity: 0.88;
+}
+
+.phase-block.phase-reading .phase-body .msg-assistant {
+  font-style: italic;
+  font-size: 0.92em;
+  line-height: 1.55;
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  color: color-mix(
+    in srgb,
+    var(--vscode-descriptionForeground) 78%,
+    var(--vscode-editor-foreground, var(--vscode-foreground)) 22%
+  );
+  opacity: 0.9;
+}
+
+.phase-block.phase-reading .phase-body .msg-assistant.markdown,
+.phase-block.phase-reading .phase-body .msg-assistant.markdown p,
+.phase-block.phase-reading .phase-body .msg-assistant.markdown li {
+  color: inherit;
+}
+
+.phase-block.phase-reading .phase-body .msg-assistant.markdown strong {
+  color: color-mix(
+    in srgb,
+    var(--vscode-descriptionForeground) 55%,
+    var(--vscode-editor-foreground, var(--vscode-foreground)) 45%
+  );
+  font-weight: 600;
+}
+
+/* --- Animation shimmer partagée (phases + tools en cours) ---
+   Brillance horizontale appliquée au texte (`background-clip: text`).
+   Subtile : ne distrait pas, mais signale clairement l'activité.
+*/
+@keyframes drox-shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}

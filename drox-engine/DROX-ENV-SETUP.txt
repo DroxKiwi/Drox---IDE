@@ -1,0 +1,57 @@
+# DROX - Variables d'environnement (terminal)
+
+Ce fichier rappelle les variables utiles pour lancer Drox avec Ollama.
+
+## 1) Variables principales
+
+- `DROX_CODE_USE_OLLAMA=1` : force le backend Ollama
+- `OLLAMA_HOST` : endpoint HTTP de ton serveur Ollama/proxy
+- `OLLAMA_MODEL` : tag du modèle (ex: `gemma4:26b`)
+- `DROX_OLLAMA_EXTRA_HEADERS_JSON` : headers HTTP additionnels en JSON (ex: `x-api-key`)
+
+Optionnel:
+- `OLLAMA_API_KEY` : envoie `Authorization: Bearer ...` si ton endpoint le demande
+
+---
+
+## 2) Exemple PowerShell (Windows)
+
+```powershell
+$env:DROX_CODE_USE_OLLAMA = "1"
+$env:OLLAMA_HOST = "https://ton-endpoint.example.com"
+$env:OLLAMA_MODEL = "gemma4:26b"
+$env:DROX_OLLAMA_EXTRA_HEADERS_JSON = '{"x-api-key":"TA_CLE_API"}'
+
+# Optionnel (si ton endpoint attend un Bearer token)
+# $env:OLLAMA_API_KEY = "TON_BEARER_TOKEN"
+
+bun src/entrypoints/cli.tsx
+```
+
+---
+
+## 3) Exemple Bash (Linux/macOS)
+
+```bash
+export DROX_CODE_USE_OLLAMA=1
+export OLLAMA_HOST="https://ton-endpoint.example.com"
+export OLLAMA_MODEL="gemma4:26b"
+export DROX_OLLAMA_EXTRA_HEADERS_JSON='{"x-api-key":"TA_CLE_API"}'
+
+# Optionnel (si ton endpoint attend un Bearer token)
+# export OLLAMA_API_KEY="TON_BEARER_TOKEN"
+
+bun src/entrypoints/cli.tsx
+```
+
+---
+
+## 4) Variante avec plusieurs headers
+
+```text
+DROX_OLLAMA_EXTRA_HEADERS_JSON={"x-api-key":"TA_CLE","x-tenant-id":"mon-tenant","x-env":"prod"}
+```
+
+Important:
+- `DROX_OLLAMA_EXTRA_HEADERS_JSON` doit être un JSON valide.
+- Les valeurs doivent être des chaînes de caractères.

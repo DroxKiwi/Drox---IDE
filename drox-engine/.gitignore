@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+.next/
+out/
+
+# Runtime / logs
+*.log
+logs/
+*.pid
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Caches
+.cache/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Cursor local state
+.cursor/
+
+# Drox local artefacts (workspace state, attachements UI, env)
+.drox/attachments/
+.drox/.env

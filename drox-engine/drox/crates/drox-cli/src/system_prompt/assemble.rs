@@ -1,0 +1,154 @@
+//! Construction du `system_prompt` fusionné pour un run agent.
+
+use drox_engine::RoleId;
+
+use crate::language::Language;
+use crate::prompts::{
+    append_system_supplement, prepend_core_system_prompt, EXPLORATION_INTERNAL_ENGLISH_RULE,
+    SUBAGENTS_ORCHESTRATION_SUPPLEMENT, NATIVE_THINKING_REASONING_SUPPLEMENT,
+    PROFESSOR_MODE_SUPPLEMENT,
+};
+
+/// Entrée d'assemblage — agent `Standard` ou rôle orchestration.
+#[derive(Debug, Clone)]
+pub struct AssembleInput {
+    pub role_id: RoleId,
+    pub cli_system: Option<String>,
+    pub memdir_prefix: Option<String>,
+    pub memory_sessions_block: Option<String>,
+    pub skills_block: Option<String>,
+    pub drox_ignore_block: String,
+    pub workspace_map_block: Option<String>,
+    pub language: Option<Language>,
+    pub native_thinking: bool,
+    pub professor_mode: bool,
+    pub disabled_tools_notice: Option<String>,
+    /// Sous-agents activés (`task` explore + supplément prompt M5).
+    pub subagents_enabled: bool,
+}
+
+#[must_use]
+fn merge_optional_system(cli: Option<String>, mem: Option<String>) -> Option<String> {
+    match (cli, mem) {
+        (None, None) => None,
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (Some(a), Some(b)) => Some(format!("{a}\n\n{b}")),
+    }
+}
+
+/// Assemble le prompt système complet (core + memdir + listings + suppléments).
+#[must_use]
+pub fn assemble_system_prompt(input: AssembleInput) -> Option<String> {
+    match input.role_id {
+        RoleId::Standard => assemble_standard(input),
+        RoleId::Architect | RoleId::Executor => assemble_orchestration_support(input),
+    }
+}
+
+/// Contexte workspace pour un rôle orchestration (le core prompt vient de `ARCHITECT_*` / `EXECUTOR_*`).
+#[must_use]
+fn assemble_orchestration_support(input: AssembleInput) -> Option<String> {
+    let base = merge_optional_system(input.cli_system, input.memdir_prefix);
+    let mut parts = String::new();
+    if let Some(b) = base {
+        parts.push_str(&b);
+    }
+    if let Some(block) = input.memory_sessions_block {
+        if !parts.is_empty() {
+            parts.push_str("\n\n");
+        }
+        parts.push_str(&block);
+    }
+    parts.push_str("\n\n");
+    parts.push_str(&input.drox_ignore_block);
+    if parts.trim().is_empty() {
+        None
+    } else {
+        Some(parts)
+    }
+}
+
+/// Chemin **Standard** (agent unique legacy).
+#[must_use]
+fn assemble_standard(input: AssembleInput) -> Option<String> {
+    let base = merge_optional_system(input.cli_system, input.memdir_prefix);
+    let mut base_system = prepend_core_system_prompt(base);
+    if let Some(block) = input.memory_sessions_block {
+        base_system.push_str("\n\n");
+        base_system.push_str(&block);
+    }
+    if let Some(block) = input.skills_block {
+        base_system.push_str("\n\n");
+        base_system.push_str(&block);
+    }
+    base_system.push_str("\n\n");
+    base_system.push_str(&input.drox_ignore_block);
+    if let Some(block) = input.workspace_map_block {
+        base_system.push_str("\n\n");
+        base_system.push_str(&block);
+    }
+    let base_system = Some(base_system);
+    let mut system_merged =
+        crate::language::merge_into_system(base_system, input.language.as_ref());
+    system_merged = append_system_supplement(
+        system_merged,
+        EXPLORATION_INTERNAL_ENGLISH_RULE,
+    );
+    if input.native_thinking {
+        system_merged = append_system_supplement(
+            system_merged,
+            NATIVE_THINKING_REASONING_SUPPLEMENT,
+        );
+    }
+    if input.professor_mode {
+        match &mut system_merged {
+            Some(s) => {
+                s.push_str("\n\n");
+                s.push_str(PROFESSOR_MODE_SUPPLEMENT);
+            }
+            None => {
+                system_merged = Some(PROFESSOR_MODE_SUPPLEMENT.to_string());
+            }
+        }
+    }
+    if input.subagents_enabled {
+        system_merged = append_system_supplement(
+            system_merged,
+            SUBAGENTS_ORCHESTRATION_SUPPLEMENT,
+        );
+    }
+    if let Some(notice) = input.disabled_tools_notice {
+        match &mut system_merged {
+            Some(s) => s.push_str(&notice),
+            None => system_merged = Some(notice.trim_start().to_string()),
+        }
+    }
+    system_merged
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn standard_assemble_keeps_memory_listing() {
+        let merged = assemble_system_prompt(AssembleInput {
+            role_id: RoleId::Standard,
+            cli_system: None,
+            memdir_prefix: None,
+            memory_sessions_block: Some("## MEMORY SESSIONS\nblock".into()),
+            skills_block: None,
+            drox_ignore_block: "droxignore".into(),
+            workspace_map_block: None,
+            language: None,
+            native_thinking: false,
+            professor_mode: false,
+            disabled_tools_notice: None,
+            subagents_enabled: false,
+        })
+        .unwrap();
+        assert!(merged.contains("MEMORY SESSIONS"));
+        assert!(!merged.contains("Small-model execution profile"));
+    }
+}

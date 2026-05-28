@@ -1,0 +1,88 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+(function (D) {
+	const fn = D.fn;
+	fn.getPromptText = function() {
+		return D.dom.promptEl.value;
+	}
+
+	fn.setPromptText = function(value) {
+		D.dom.promptEl.value = value;
+	}
+
+	fn.clearPromptText = function() {
+		fn.setPromptText('');
+	}
+
+	fn.isPromptTextEmpty = function() {
+		return fn.getPromptText().trim().length === 0;
+	}
+
+	fn.getPromptCursor = function() {
+		return D.dom.promptEl.selectionStart ?? fn.getPromptText().length;
+	}
+
+	fn.placeCaretAtEnd = function() {
+		const len = fn.getPromptText().length;
+		D.dom.promptEl.focus();
+		D.dom.promptEl.setSelectionRange(len, len);
+	}
+
+	fn.normalizePermissionMode = function(mode) {
+		const raw = String(mode || '').trim();
+		if (D.const.VALID_MODES.has(raw)) {
+			return raw;
+		}
+		return D.const.LEGACY_MODE_MAP[raw] || D.const.DEFAULT_PERMISSION_MODE;
+	}
+
+	fn.getPermissionMode = function() {
+		return fn.normalizePermissionMode(D.state.selectedPermissionMode);
+	}
+
+	fn.syncAgentVignetteUi = function() {
+		if (!D.dom.agentVignettesEl) {
+			return;
+		}
+		for (const btn of D.dom.agentVignettesEl.querySelectorAll('.agent-vignette')) {
+			if (!(btn instanceof HTMLButtonElement)) {
+				continue;
+			}
+			const mode = btn.dataset.mode || '';
+			const on = mode === D.state.selectedPermissionMode;
+			btn.classList.toggle('selected', on);
+			btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+		}
+	}
+
+	fn.setPermissionMode = function(mode, persist = true) {
+		D.state.selectedPermissionMode = fn.normalizePermissionMode(mode);
+		fn.syncAgentVignetteUi();
+		if (persist) {
+			D.vscode.postMessage({
+				type: 'setPermissionMode',
+				permissionMode: D.state.selectedPermissionMode,
+			});
+		}
+	}
+
+	fn.initAgentVignettes = function() {
+		if (!D.dom.agentVignettesEl) {
+			return;
+		}
+		fn.syncAgentVignetteUi();
+		for (const btn of D.dom.agentVignettesEl.querySelectorAll('.agent-vignette')) {
+			if (!(btn instanceof HTMLButtonElement)) {
+				continue;
+			}
+			btn.addEventListener('click', () => {
+				const mode = btn.dataset.mode || 'default';
+				fn.setPermissionMode(mode, true);
+			});
+		}
+	}
+
+})(globalThis.DroxChat);
