@@ -6,7 +6,7 @@
 // allow-any-unicode-comment-file
 
 import { Registry } from '../../../../platform/registry/common/platform.js';
-import { Extensions, IConfigurationMigrationRegistry } from '../../../common/configuration.js';
+import { ConfigurationKeyValuePairs, ConfigurationMigration, Extensions, IConfigurationMigrationRegistry } from '../../../common/configuration.js';
 import { DroxSetting } from './droxConfiguration.js';
 
 /** Anciennes clés `nexus.drox.*` (pré-rebrand Drox IDE). */
@@ -51,10 +51,10 @@ const ALL_DROX_SETTING_KEYS: string[] = [
 	DroxSetting.SubagentsNumCtx,
 ];
 
-function migrateNexusDroxKey(legacyKey: string, newKey: string) {
+function migrateNexusDroxKey(legacyKey: string, newKey: string): ConfigurationMigration {
 	return {
 		key: legacyKey,
-		migrateFn: (value: unknown) => {
+		migrateFn: (value: unknown): ConfigurationKeyValuePairs => {
 			if (value === undefined) {
 				return [];
 			}
@@ -66,7 +66,7 @@ function migrateNexusDroxKey(legacyKey: string, newKey: string) {
 	};
 }
 
-const migrations = ALL_DROX_SETTING_KEYS.map((newKey) =>
+const migrations: ConfigurationMigration[] = ALL_DROX_SETTING_KEYS.map((newKey) =>
 	migrateNexusDroxKey(`${LEGACY_NEXUS_PREFIX}${newKey.slice('drox.'.length)}`, newKey),
 );
 

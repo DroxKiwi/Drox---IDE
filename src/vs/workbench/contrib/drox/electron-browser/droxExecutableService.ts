@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { dirname } from '../../../../base/common/path.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
@@ -28,6 +29,7 @@ export class DroxExecutableService implements IDroxExecutableService {
 			configuredPath,
 			workspaceFolderPaths,
 			appRoot: this.environmentService.appRoot,
+			installDir: dirname(this.environmentService.execPath),
 		});
 	}
 }

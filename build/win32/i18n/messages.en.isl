@@ -1,5 +1,5 @@
 ﻿[Messages]
-FinishedLabel=Setup has finished installing [name] on your computer. The application may be launched by selecting the installed shortcuts.
+FinishedLabel=Setup has finished installing [name]. Launch from the Start menu or open the Command Palette (Ctrl+Shift+P) → "Open Drox Chat".
 ConfirmUninstall=Are you sure you want to completely remove %1 and all of its components?
 
 [CustomMessages]
@@ -14,4 +14,4 @@ RunAfter=Run %1 after installation
 Other=Other:
 SourceFile=%1 Source File
 OpenWithCodeContextMenu=Open w&ith %1
-UpdatingVisualStudioCode=Updating Visual Studio Code...
+UpdatingDroxIDE=Updating Drox IDE...

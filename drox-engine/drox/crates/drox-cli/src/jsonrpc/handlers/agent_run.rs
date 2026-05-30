@@ -775,9 +775,11 @@ pub(crate) fn wrap_executable_tools(
     }
     for name in remote_names {
         let Some(inner) = registry.get(&name) else {
-            tracing::warn!(
+            // Normal for orchestration Architect runs: allowlist excludes file_edit/bash/etc.;
+            // those tools are wrapped when the Executor role registry includes them.
+            tracing::debug!(
                 %name,
-                "client declared executable tool but no local counterpart exists; ignored"
+                "client declared executable tool but no local counterpart in this run registry; ignored"
             );
             continue;
         };

@@ -16,7 +16,7 @@ Objectifs :
 |---|----------|
 | F1 | Installation **one-click** (ou proche) sur la plateforme cible prioritaire (Windows). |
 | F2 | **Mises à jour** contrôlées par nous (canal stable ; bêta optionnel plus tard). |
-| F3 | **Téléchargement gratuit** sans donner le repo `Nexus-IDE---VsCode` ni `drox-engine` en clair. |
+| F3 | **Téléchargement gratuit** sans donner le repo `Drox---IDE` ni `drox-engine` en clair. |
 | F4 | Traçabilité des versions (manifest, changelog, signature si possible). |
 
 Hors scope immédiat (1.3.0) sauf décision explicite :
@@ -111,7 +111,7 @@ drox-ide-releases/           # repo public OU bucket S3 / GitHub Releases
 
 | Dépôt | Visibilité | Contenu |
 |-------|------------|---------|
-| `Nexus-IDE---VsCode` (actuel) | Privé / équipe | Sources complètes, CI build |
+| `Drox---IDE` (actuel) | Privé / équipe | Sources complètes, CI build |
 | `drox-ide-releases` (à créer) | Public | Binaires + manifests uniquement |
 | Site vitrine (projet en test) | Public | Pages marketing + lien téléchargement → `latest.json` ou Releases |
 

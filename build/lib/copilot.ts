@@ -97,6 +97,29 @@ export function getCopilotExcludeFilter(platform: string, arch: string): string[
  * the public SDK, whose runtime addon loader expects runtime.node in the root
  * prebuilds layout.
  */
+/**
+ * Whether patchWin32Dependencies / rcedit should touch a native binary.
+ * Skips foreign-arch `.node` files bundled inside Copilot (e.g. x64-linux) that
+ * rcedit cannot load on a Windows build host.
+ */
+export function shouldPatchPeFileForPlatform(platform: string, arch: string, relativePath: string): boolean {
+	const p = relativePath.replace(/\\/g, '/');
+	const { nodePlatform, nodeArch } = toNodePlatformArch(platform, arch);
+	const target = `${nodePlatform}-${nodeArch}`;
+
+	if (p.includes('/prebuilds/') && !p.includes(`/prebuilds/${target}/`)) {
+		return false;
+	}
+
+	// Explicit vendor/arch folders (claude-agent-sdk, optional deps, …)
+	const foreignArchDir = /\/(x64-linux|arm64-linux|aarch64-linux|linux-x64|linux-arm64|linux-arm|linux-ia32|linux-riscv64|linux-ppc64|linux-s390x|darwin-arm64|darwin-x64|x64-osx|arm64-osx|win32-arm64|win32-ia32)(\/|$)/i;
+	if (foreignArchDir.test(p) && !p.includes(`/${target}/`)) {
+		return false;
+	}
+
+	return true;
+}
+
 export function getCopilotRuntimePrebuildFiles(platform: string, arch: string, nodeModulesRoot = 'node_modules'): string[] {
 	const { nodePlatform, nodeArch } = toNodePlatformArch(platform, arch);
 	const targetPlatformArch = `${nodePlatform}-${nodeArch}`;

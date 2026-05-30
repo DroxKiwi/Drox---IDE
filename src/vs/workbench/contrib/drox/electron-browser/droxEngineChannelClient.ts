@@ -16,6 +16,7 @@ import {
 	IDroxEngineNotificationPayload,
 	IDroxEngineRespondArgs,
 	IDroxEngineServerRequestPayload,
+	IDroxEngineStartArgs,
 } from '../common/droxIpc.js';
 
 export class DroxEngineChannelClient extends Disposable {
@@ -77,12 +78,18 @@ export class DroxEngineChannelClient extends Disposable {
 		}));
 	}
 
-	start(executable: string, cwd: string, env?: Record<string, string>): Promise<void> {
+	start(
+		executable: string,
+		cwd: string,
+		env?: Record<string, string>,
+		resolveHints?: IDroxEngineStartArgs['resolveHints'],
+	): Promise<void> {
 		return this.channel.call(DroxEngineCommand.Start, {
 			windowId: this.windowId,
 			executable,
 			cwd,
 			env,
+			resolveHints,
 		});
 	}
 

@@ -79,7 +79,7 @@ Ordre recommandé : **P0 → F1 → F2 → F3 → F4 → F5 → F6 → F7**.
 | P0.4 | Audit chaînes UI restantes | grep `Nexus`, `kdds-nexus`, `nexus.drox` dans `src/vs/workbench/contrib/drox` | Zéro chaîne utilisateur obsolète |
 | P0.5 | NOTICE / attribution Code OSS | `ThirdPartyNotices.txt`, `LICENSE.txt` dans package | Conformité MIT |
 
-**Note** : le **nom du repo Git** (`Nexus-IDE---VsCode`) peut rester ; seul le **produit installé** compte pour la distribution.
+**Note** : le **nom du repo Git** (`Drox---IDE`, privé) est distinct du **produit installé** (`Drox IDE`) — seul ce dernier compte pour la distribution publique.
 
 ---
 
@@ -93,18 +93,22 @@ Ordre recommandé : **P0 → F1 → F2 → F3 → F4 → F5 → F6 → F7**.
 - Rust toolchain (pour `package-drox`)
 - Inno Setup (via `npm install` → `innosetup` déjà en devDependency)
 - Espace disque ~15–25 Go (build + artefact)
+- **Windows SDK** (optionnel) : `signtool.exe` pour `patchWin32Dependencies` — le fork ignore son absence en build local OSS ; la CI Azure ajoute le SDK au `PATH`
 
 #### Séquence manuelle (première fois)
 
 ```powershell
 # Racine du fork
-cd C:\Users\coren\Desktop\GitHub\Nexus-IDE---VsCode
+cd C:\Users\coren\Desktop\GitHub\Drox---IDE
 
 npm install
 npm run electron                    # binaire Electron + nom produit
 
 # Moteur Drox release embarqué
 npm run package-drox                # → resources/drox/win32-x64/drox.exe
+
+# Extension Copilot built-in (obligatoire avant min-ci en build local)
+npm run gulp compile-copilot-extension-build
 
 # Compilation complète (long — suivre doc upstream / CI)
 npm run gulp vscode-win32-x64-min-ci
@@ -126,9 +130,10 @@ npm run gulp vscode-win32-x64-inno-updater
 
 | ID | Tâche | Livrable |
 |----|--------|----------|
-| F1.1 | Script documenté `scripts/build-release-win32.ps1` (enchaîne package-drox + gulp) | README section « Release build » |
+| F1.1 | Script documenté `scripts/build-release-win32.ps1` (enchaîne package-drox + gulp) | ✅ `npm run build-release-win32` · [DROX.md](../../../../DROX.md) |
 | F1.2 | Smoke : lancer `Drox IDE.exe` depuis le dossier packagé (sans `code.bat`) | Checklist dans ce doc §8 |
-| F1.3 | Vérifier résolution `drox.executablePath` → `resources/drox/...` | Chat Drox démarre un run |
+| F1.3 | Vérifier résolution `drox.executablePath` → `resources/drox/...` (à côté de `resources/app/` en package) | Chat Drox démarre un run |
+| F1.3b | Assets webview copiés (`build/next/index.ts` → `contrib/drox/browser/media/**`) | Pas de rectangles blancs / chat mort |
 | F1.4 | Exclure sources du dossier (audit taille + pas de `src/`, pas de `drox-engine/crates/`) | Liste fichiers interdits |
 
 **Dépendances** : P0.3 (exe nommé).
@@ -402,13 +407,15 @@ Après install depuis Setup :
 
 ## 10. Suivi d’avancement (à cocher)
 
+> Détail clôture 1.3.0 : **[CLOSURE-1.3.0.md](./CLOSURE-1.3.0.md)**
+
 | Phase | Statut | Date |
 |-------|--------|------|
-| P0 Branding | 🟡 En cours (product.json OK) | 2026-05-28 |
-| F1 Build packagé | ⬜ | |
-| F2 Installeur | ⬜ | |
-| F3 Canal releases | ⬜ | |
+| P0 Branding | 🟡 Icônes OK ; audit chaînes restantes | 2026-05-28 |
+| F1 Build packagé | ✅ | 2026-05-29 |
+| F2 Installeur | 🟡 Fonctionne ; polish licence/UI/context menu | 2026-05-29 |
+| F3 Canal releases | ✅ v1.3.0 publiée, install depuis GitHub OK | 2026-05-29 |
 | F4 Notification IDE | ⬜ | |
 | F5 Updater | ⬜ | |
 | F6 Site | ⬜ | |
-| F7 ADR / guide | ⬜ | |
+| F7 ADR / guide | 🟡 RULES.md | 2026-05-29 |

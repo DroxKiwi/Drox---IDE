@@ -28,7 +28,7 @@ import minimist from 'minimist';
 import { compileBuildWithoutManglingTask, compileBuildWithManglingTask } from './gulpfile.compile.ts';
 import { compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileAllExtensionsBuildTask, compileExtensionMediaBuildTask, cleanExtensionsBuildTask, compileCopilotExtensionBuildTask } from './gulpfile.extensions.ts';
 import { copyCodiconsTask } from './lib/compilation.ts';
-import { getCopilotExcludeFilter, getCopilotRuntimePrebuildFiles, getRipgrepExcludeFilter, prepareBuiltInCopilotRipgrepShim } from './lib/copilot.ts';
+import { getCopilotExcludeFilter, getCopilotRuntimePrebuildFiles, getRipgrepExcludeFilter, prepareBuiltInCopilotRipgrepShim, shouldPatchPeFileForPlatform } from './lib/copilot.ts';
 import { useEsbuildTranspile } from './buildConfig.ts';
 import { promisify } from 'util';
 import globCallback from 'glob';
@@ -182,7 +182,7 @@ task.task(task.define('core-ci-old', task.series(
 	)
 )));
 
-task.task(task.define('core-ci', task.series(
+const coreCiPreamble = [
 	copyCodiconsTask,
 	compileNonNativeExtensionsBuildTask,
 	compileExtensionMediaBuildTask,
@@ -191,12 +191,24 @@ task.task(task.define('core-ci', task.series(
 	task.define('tsgo-typecheck', () => spawnTsgo(path.join(root, 'src', 'tsconfig.json'), { taskName: 'tsgo-typecheck', noEmit: true })),
 	// Transpile individual files to out-build first (for unit tests)
 	task.define('esbuild-out-build', () => runEsbuildTranspile('out-build', false)),
+] as const;
+
+const esbuildVscodeMinDesktop = task.define('esbuild-vscode-min', () => runEsbuildBundle('out-vscode-min', true, true, 'desktop', `${sourceMappingURLBase}/core`));
+
+task.task(task.define('core-ci', task.series(
+	...coreCiPreamble,
 	// Then bundle for shipping (bundles also write NLS files to out-build)
 	task.parallel(
-		task.define('esbuild-vscode-min', () => runEsbuildBundle('out-vscode-min', true, true, 'desktop', `${sourceMappingURLBase}/core`)),
+		esbuildVscodeMinDesktop,
 		task.define('esbuild-vscode-reh-min', () => runEsbuildBundle('out-vscode-reh-min', true, true, 'server', `${sourceMappingURLBase}/core`)),
 		task.define('esbuild-vscode-reh-web-min', () => runEsbuildBundle('out-vscode-reh-web-min', true, true, 'server-web', `${sourceMappingURLBase}/core`)),
 	)
+)));
+
+/** Desktop IDE only — avoids parallel server bundles (flaky NLS on Windows). Use for Drox F1 release. */
+task.task(task.define('core-ci-desktop', task.series(
+	...coreCiPreamble,
+	esbuildVscodeMinDesktop,
 )));
 
 /**
@@ -372,6 +384,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				'resources/win32/bower.ico',
 				'resources/win32/c.ico',
 				'resources/win32/code.ico',
+				'resources/win32/drox.ico',
 				'resources/win32/config.ico',
 				'resources/win32/cpp.ico',
 				'resources/win32/csharp.ico',
@@ -529,9 +542,10 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 }
 
 function hasAuthenticodeSignature(filePath: string): Promise<boolean> {
-	return new Promise((resolve, reject) => {
+	return new Promise(resolve => {
 		const proc = cp.spawn('signtool.exe', ['verify', '/pa', filePath]);
-		proc.on('error', reject);
+		// Local OSS builds often lack Windows SDK / signtool on PATH — treat as unsigned.
+		proc.on('error', () => resolve(false));
 		proc.on('exit', code => resolve(code === 0));
 	});
 }
@@ -548,7 +562,7 @@ async function stripAuthenticodeSignature(filePath: string): Promise<void> {
 		let out = '';
 		proc.stdout?.on('data', chunk => out += chunk.toString());
 		proc.stderr?.on('data', chunk => out += chunk.toString());
-		proc.on('error', reject);
+		proc.on('error', () => resolve());
 		proc.on('exit', code => {
 			if (code === 0) {
 				resolve();
@@ -560,16 +574,16 @@ async function stripAuthenticodeSignature(filePath: string): Promise<void> {
 	});
 }
 
-function patchWin32DependenciesTask(destinationFolderName: string) {
+function patchWin32DependenciesTask(platform: string, arch: string, destinationFolderName: string) {
 	const cwd = path.join(path.dirname(root), destinationFolderName);
 
 	return async () => {
-		const versionedResourcesFolder = util.getVersionedResourcesFolder('win32', commit!);
+		const versionedResourcesFolder = util.getVersionedResourcesFolder(platform, commit!);
 		const deps = (await Promise.all([
 			glob('**/*.node', { cwd, ignore: 'extensions/node_modules/@parcel/watcher/**' }),
 			glob('**/rg.exe', { cwd }),
 			glob('**/*explorer_command*.dll', { cwd }),
-		])).flatMap(o => o);
+		])).flatMap(o => o).filter(dep => shouldPatchPeFileForPlatform(platform, arch, dep));
 		const packageJson = JSON.parse(await fs.promises.readFile(path.join(cwd, versionedResourcesFolder, 'resources', 'app', 'package.json'), 'utf8'));
 		const product = JSON.parse(await fs.promises.readFile(path.join(cwd, versionedResourcesFolder, 'resources', 'app', 'product.json'), 'utf8'));
 		const baseVersion = packageJson.version.replace(/-.*$/, '');
@@ -578,20 +592,24 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 			const basename = path.basename(dep);
 			const fullPath = path.join(cwd, dep);
 
-			await stripAuthenticodeSignature(fullPath);
-			await rcedit(fullPath, {
-				'file-version': baseVersion,
-				'version-string': {
-					'CompanyName': 'Microsoft Corporation',
-					'FileDescription': product.nameLong,
-					'FileVersion': packageJson.version,
-					'InternalName': basename,
-					'LegalCopyright': 'Copyright (C) 2026 Microsoft. All rights reserved',
-					'OriginalFilename': basename,
-					'ProductName': product.nameLong,
-					'ProductVersion': packageJson.version,
-				}
-			});
+			try {
+				await stripAuthenticodeSignature(fullPath);
+				await rcedit(fullPath, {
+					'file-version': baseVersion,
+					'version-string': {
+						'CompanyName': 'Microsoft Corporation',
+						'FileDescription': product.nameLong,
+						'FileVersion': packageJson.version,
+						'InternalName': basename,
+						'LegalCopyright': 'Copyright (C) 2026 Microsoft. All rights reserved',
+						'OriginalFilename': basename,
+						'ProductName': product.nameLong,
+						'ProductVersion': packageJson.version,
+					}
+				});
+			} catch (err) {
+				console.warn(`[patchWin32Dependencies] skip ${dep}: ${err}`);
+			}
 		});
 
 		await Promise.all(patchPromises);
@@ -644,7 +662,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 		];
 
 		if (platform === 'win32') {
-			packageTasks.push(patchWin32DependenciesTask(destinationFolderName));
+			packageTasks.push(patchWin32DependenciesTask(platform, arch, destinationFolderName));
 		}
 
 		const vscodeTaskCI = task.define(`vscode${dashed(platform)}${dashed(arch)}${dashed(minified)}-ci`, task.series(...packageTasks));

@@ -89,6 +89,7 @@ export function readDroxGeneralSettingsForWebview(
 		openModifiedFiles: readBool(deps.configurationService, DroxSetting.OpenModifiedFiles, resource, true),
 		addDiagnosticOnHover: readBool(deps.configurationService, DroxSetting.AddDiagnosticOnHover, resource, false),
 		mcpToolsEnabled: isMcpToolsEnabled(deps.configurationService, resource),
+		showChatErrorsAndWarnings: readBool(deps.configurationService, DroxSetting.ChatShowErrorsAndWarnings, resource, true),
 	};
 }
 
@@ -99,7 +100,7 @@ export function pushGeneralSettingsToWebview(
 ): void {
 	host.post({
 		kind: 'generalSettings',
-		settings: readDroxGeneralSettingsForWebview({ runSettingsService, configurationService }),
+		settings: readDroxGeneralSettingsForWebview({ runSettingsService, configurationService }) as unknown as Record<string, unknown>,
 	});
 }
 

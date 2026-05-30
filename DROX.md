@@ -125,12 +125,24 @@ Smoke RPC manuel : [drox-engine/docs/operations/SMOKE-RPC.md](drox-engine/docs/o
 
 ---
 
-## Build release (installateur)
+## Build release (Windows x64)
 
-1. `npm run package-drox` sur chaque OS cible (ou CI).
-2. Tâche gulp habituelle (`vscode-win32-x64`, etc.) — voir [resources/drox/README.md](resources/drox/README.md).
+Script unique (F1 — application packagée) :
 
-L’utilisateur final n’a **pas** besoin de Rust si le binaire est embarqué.
+```powershell
+npm run build-release-win32
+# ou avec installeur Inno (F2) :
+.\scripts\build-release-win32.ps1 -WithSetup
+```
+
+Enchaîne : `package-drox` → `gulp core-ci` → `vscode-win32-x64-min-ci` → `inno-updater`.  
+Sortie : `..\VSCode-win32-x64\Drox IDE.exe` (dossier parent du repo).
+
+Options : `-SkipNpmInstall`, `-SkipElectron`, `-SkipCompile` (re-package seulement), `-WithInnoUpdaterOnly`.
+
+Plan complet : [drox-engine/docs/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md](drox-engine/docs/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md).
+
+L’utilisateur final n’a **pas** besoin de Rust si le binaire est embarqué dans `resources/drox/`.
 
 ---
 

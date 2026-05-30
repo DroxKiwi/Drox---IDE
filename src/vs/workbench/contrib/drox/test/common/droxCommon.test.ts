@@ -45,7 +45,11 @@ import {
 import { countDiffLines } from '../../common/droxFileChange.js';
 import { normalizeWindowsFsPath } from '../../common/droxPathUtil.js';
 import { parsePartialPath } from '../../common/droxPromptCompletion.js';
-import { droxResourcePlatformFolder } from '../../common/droxExecutable.js';
+import {
+	droxResourcePlatformFolder,
+	enumerateDroxExecutableCandidates,
+	isBareDroxExecutableName,
+} from '../../common/droxExecutable.js';
 import { isUnderDroxAgentOutputPath } from '../../common/droxWorkspacePaths.js';
 import { parseUserAskParams } from '../../common/droxUserAsk.js';
 import { extractTodosFromToolOutput, isTodoWriteOutput } from '../../common/droxTodoExtract.js';
@@ -108,6 +112,29 @@ suite('Drox — executable packaging folder', () => {
 				|| folder === 'linux-armhf',
 			);
 		}
+	});
+
+	test('isBareDroxExecutableName treats bare command as auto-resolve', () => {
+		assert.ok(isBareDroxExecutableName('drox'));
+		assert.ok(isBareDroxExecutableName('drox.exe'));
+		assert.ok(isBareDroxExecutableName('  Drox.EXE  '));
+		assert.ok(!isBareDroxExecutableName(''));
+		assert.ok(!isBareDroxExecutableName('C:\\Drox\\resources\\drox\\win32-x64\\drox.exe'));
+	});
+
+	test('enumerateDroxExecutableCandidates prefers installDir packaged path', () => {
+		const folder = droxResourcePlatformFolder();
+		if (!folder) {
+			return;
+		}
+		const bin = process.platform === 'win32' ? 'drox.exe' : 'drox';
+		const list = enumerateDroxExecutableCandidates({
+			configuredPath: '',
+			workspaceFolderPaths: [],
+			installDir: '/DroxIDE',
+		});
+		assert.ok(list.length > 0);
+		assert.ok(list[0].replace(/\\/g, '/').endsWith(`/resources/drox/${folder}/${bin}`));
 	});
 });
 
