@@ -5,11 +5,11 @@
 #
 # Usage:
 #   .\scripts\release-publish-win32.ps1
-#   .\scripts\release-publish-win32.ps1 -ProductVersion 1.3.0 -SetupExe .\path\setup.exe
+#   .\scripts\release-publish-win32.ps1 -ProductVersion 1.3.1 -SetupExe .\path\setup.exe
 
 [CmdletBinding()]
 param(
-	[string]$ProductVersion = '1.3.0',
+	[string]$ProductVersion = '',
 	[string]$SetupExe = '',
 	[string]$ReleasesRepo = '',
 	[string]$GitHubOrg = 'DroxKiwi',
@@ -19,6 +19,18 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
+
+function Get-DroxProductVersionFromJson {
+	$productJsonPath = Join-Path $repoRoot 'product.json'
+	$raw = Get-Content -Raw -Path $productJsonPath | ConvertFrom-Json
+	if ($raw.droxVersion) { return [string]$raw.droxVersion }
+	if ($raw.version) { return [string]$raw.version }
+	return '1.3.1'
+}
+
+if (-not $ProductVersion) {
+	$ProductVersion = Get-DroxProductVersionFromJson
+}
 
 function Write-Utf8NoBomFile([string]$Path, [string]$Content) {
 	$utf8 = New-Object System.Text.UTF8Encoding $false

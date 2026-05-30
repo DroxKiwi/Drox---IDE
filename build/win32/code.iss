@@ -1,7 +1,9 @@
 #define RootLicenseFileName FileExists(RepoDir + '\LICENSE-INSTALL.txt') ? 'LICENSE-INSTALL.txt' : (FileExists(RepoDir + '\LICENSE.rtf') ? 'LICENSE.rtf' : 'LICENSE.txt')
 #define LocalizedLanguageFile(Language = "") \
-    DirExists(RepoDir + "\licenses") && Language != "" \
+    Language != "" && FileExists(RepoDir + '\licenses\LICENSE-' + Language + '.rtf') \
       ? ('; LicenseFile: "' + RepoDir + '\licenses\LICENSE-' + Language + '.rtf"') \
+      : Language != "" && FileExists(RepoDir + '\licenses\LICENSE-' + Language + '.txt') \
+      ? ('; LicenseFile: "' + RepoDir + '\licenses\LICENSE-' + Language + '.txt"') \
       : '; LicenseFile: "' + RepoDir + '\' + RootLicenseFileName + '"'
 
 [Setup]

@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **Base VS Code** | `1.122.0` (`package.json`) |
-| **Cap produit Drox** | **1.3.0** — parallélisation des exécuteurs ([doc](drox-engine/docs/1.3.0/README.md)) |
+| **Cap produit Drox** | **1.3.1** — distribution Windows / installeur ([doc](drox-engine/docs/1.3.0/finalisation/CLOSURE-1.3.0.md)) |
 | **Onboarding dev** | **[DROX.md](DROX.md)** (~15 min) |
 | **Hub documentation** | [drox-engine/docs/README.md](drox-engine/docs/README.md) |
 
