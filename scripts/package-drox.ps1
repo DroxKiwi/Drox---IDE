@@ -28,10 +28,13 @@ $built = Join-Path $droxCrateRoot "target\$targetDir\$binName"
 
 Write-Host "[package-drox] cargo build --$Profile -p drox-cli ($platformFolder)"
 Push-Location $droxCrateRoot
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 try {
-	cargo build --$Profile -p drox-cli
+	cargo build --$Profile -p drox-cli 2>&1 | ForEach-Object { Write-Host $_ }
 	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
+	$ErrorActionPreference = $prevEap
 	Pop-Location
 }
 

@@ -18,6 +18,11 @@ import {
 import { IDroxBashExecArgs, IDroxBashExecResult } from '../common/droxBash.js';
 import { IDroxFetchHttpArgs, IDroxFetchHttpResult } from '../common/droxIpc.js';
 import { runDroxBashExec } from './droxBashExec.js';
+import {
+	defaultDroxInstallDir,
+	isUnresolvedBareDroxExecutable,
+	resolveDroxExecutableOnDisk,
+} from './droxExecutableMain.js';
 import { droxLocalHttpGet } from './droxLocalHttp.js';
 import { DroxRpcClientMain } from './droxRpcClientMain.js';
 
@@ -73,8 +78,22 @@ export class DroxEngineMainService extends Disposable {
 	}
 
 	async start(args: IDroxEngineStartArgs): Promise<void> {
-		const { windowId, executable, cwd, env = {} } = args;
+		let { windowId, executable, cwd, env = {} } = args;
 		await this.disposeWindow(windowId);
+
+		if (isUnresolvedBareDroxExecutable(executable)) {
+			const hints = args.resolveHints;
+			const resolved = resolveDroxExecutableOnDisk({
+				configuredPath: hints?.configuredPath ?? '',
+				installDir: defaultDroxInstallDir(),
+				appRoot: hints?.appRoot,
+				workspaceFolderPaths: hints?.workspaceFolderPaths ?? (cwd ? [cwd] : []),
+			});
+			if (resolved) {
+				this.logService.info(`[Drox] resolved bundled engine: ${resolved}`);
+				executable = resolved;
+			}
+		}
 
 		const host = new DroxEngineHost(windowId, executable, cwd, env, {
 			onLog: text => this._onLog.fire({ windowId, text }),

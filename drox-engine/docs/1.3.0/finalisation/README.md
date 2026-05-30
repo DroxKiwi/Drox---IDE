@@ -19,6 +19,7 @@
 | Document | Contenu |
 |----------|---------|
 | [PLAN-DISTRIBUTION-LAUNCHER.md](./PLAN-DISTRIBUTION-LAUNCHER.md) | **Plan d’implémentation** — build packagé, installeur, MAJ hybride, releases |
+| [PATCHES-UPSTREAM-BUILD.md](./PATCHES-UPSTREAM-BUILD.md) | **Patches build** — à réappliquer après merge VS Code |
 | [FINALISATION-DISTRIBUTION.md](./FINALISATION-DISTRIBUTION.md) | Cadrage produit (vision, composants, décisions) |
 | [CRITERES-TEST-REEL.md](./CRITERES-TEST-REEL.md) | Grille de validation « projet entier / session longue » |
 | [MISE-A-JOUR-ARCHITECTE-TODO.md](./MISE-A-JOUR-ARCHITECTE-TODO.md) | Correctifs 1.3.0 sur la clôture `todo_write` et anti-boucle Architecte |

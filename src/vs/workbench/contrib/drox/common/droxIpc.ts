@@ -43,6 +43,12 @@ export interface IDroxEngineStartArgs {
 	readonly executable: string;
 	readonly cwd: string;
 	readonly env?: Record<string, string>;
+	/** Hints for main-process bundled `drox.exe` resolution when `executable` is bare `drox`. */
+	readonly resolveHints?: {
+		readonly configuredPath?: string;
+		readonly appRoot?: string;
+		readonly workspaceFolderPaths?: readonly string[];
+	};
 }
 
 export interface IDroxEngineRequestArgs {

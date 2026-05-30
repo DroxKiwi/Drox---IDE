@@ -297,6 +297,9 @@ const desktopResourcePatterns = [
 	// Sessions - built-in prompts and skills
 	'vs/sessions/prompts/*.prompt.md',
 	'vs/sessions/skills/**/SKILL.md',
+
+	// Drox IDE — chat webview (CSS + modules under media/droxChat/)
+	'vs/workbench/contrib/drox/browser/media/**/*',
 ];
 
 // Resources for server target (minimal - no UI)
@@ -586,6 +589,7 @@ async function copyResources(outDir: string, target: BuildTarget): Promise<void>
 	for (const pattern of resourcePatterns) {
 		const files = await globAsync(pattern, {
 			cwd: path.join(REPO_ROOT, SRC_DIR),
+			nodir: true,
 			ignore: ignorePatterns,
 		});
 
