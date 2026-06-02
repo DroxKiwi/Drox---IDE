@@ -52,13 +52,16 @@
 ## Arborescence docs
 
 ```
-drox-engine/docs/1.3.0/
-├── README.md                 ← suivi version (index + décisions)
-├── cartographie/README.md    ← ce fichier
-├── steps/
-│   ├── 01-vision/
-│   ├── 02-implementation/    ← plan checklist
-│   ├── 03-parallelisme/      ← design validé
-│   └── 04-resilience/
-└── retour_discussion/        ← exports smoke
+drox-engine/docs/1.3/
+├── README.md                 ← hub ligne 1.3
+├── 1.3.0/                    ← livré (moteur + v1.3.0)
+│   ├── README.md
+│   ├── cartographie/         ← ce fichier
+│   ├── steps/01-vision … 04-resilience/
+│   └── finalisation/
+└── 1.3.1/                    ← release produit (en cours)
+    ├── finalisation/CLOSURE-1.3.1.md
+    └── retour_discussion/
+
+../feature-brainstorm/          ← idées post-release (hors docs/1.3)
 ```

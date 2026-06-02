@@ -66,6 +66,8 @@ export type ExtensionVirtualWorkspaceSupport = {
 
 export interface IProductConfiguration {
 	readonly version: string;
+	/** Drox product release (semver). `version` stays the VS Code API base for extensions. */
+	readonly droxVersion?: string;
 	readonly date?: string;
 	readonly quality?: string;
 	readonly commit?: string;
@@ -429,4 +431,19 @@ export interface IDefaultChatAgent {
 	readonly openAiCompatibleProviderType?: string;
 	/** Optional: forwarded as `COPILOT_MODEL` for BYOK / local providers. */
 	readonly openAiCompatibleDefaultModel?: string;
+}
+
+type IProductDisplayVersionInfo = Pick<IProductConfiguration, 'version' | 'droxVersion' | 'target' | 'darwinUniversalAssetId'>;
+
+/** User-facing version line (About, issue reporter). Keeps `version` as VS Code API base when `droxVersion` is set. */
+export function getProductDisplayVersion(product: IProductDisplayVersionInfo): string {
+	let display = product.droxVersion
+		? `${product.droxVersion} (base VS Code ${product.version})`
+		: product.version;
+	if (product.target) {
+		display = `${display} (${product.target} setup)`;
+	} else if (product.darwinUniversalAssetId) {
+		display = `${display} (Universal)`;
+	}
+	return display;
 }

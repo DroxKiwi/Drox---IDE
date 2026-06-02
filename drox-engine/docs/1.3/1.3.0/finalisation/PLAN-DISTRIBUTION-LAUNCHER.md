@@ -401,21 +401,22 @@ Après install depuis Setup :
 | Inno / gulp win32 | `build/gulpfile.vscode.win32.ts`, `build/win32/code.iss` |
 | Update upstream (référence) | `src/vs/workbench/contrib/update/`, `updateService.win32.ts` |
 | Test terrain | [CRITERES-TEST-REEL.md](./CRITERES-TEST-REEL.md) |
-| Idées post-1.3.0 | [../1.3.1/idees/](../1.3.1/idees/README.md) |
+| Idées / brainstorm | [feature-brainstorm/](../../../feature-brainstorm/README.md) |
 
 ---
 
 ## 10. Suivi d’avancement (à cocher)
 
-> Détail clôture 1.3.0 : **[CLOSURE-1.3.0.md](./CLOSURE-1.3.0.md)**
+> Clôture **1.3.0** (moteur + F1/F3) : [CLOSURE-1.3.0.md](./CLOSURE-1.3.0.md)  
+> Clôture **1.3.1** (installeur, F4, F5) : [CLOSURE-1.3.1.md](../../1.3.1/finalisation/CLOSURE-1.3.1.md)
 
-| Phase | Statut | Date |
-|-------|--------|------|
-| P0 Branding | 🟡 Icônes OK ; audit chaînes restantes | 2026-05-28 |
-| F1 Build packagé | ✅ | 2026-05-29 |
-| F2 Installeur | 🟡 Fonctionne ; polish licence/UI/context menu | 2026-05-29 |
-| F3 Canal releases | ✅ v1.3.0 publiée, install depuis GitHub OK | 2026-05-29 |
-| F4 Notification IDE | ⬜ | |
-| F5 Updater | ⬜ | |
-| F6 Site | ⬜ | |
-| F7 ADR / guide | 🟡 RULES.md | 2026-05-29 |
+| Phase | Statut | Version |
+|-------|--------|---------|
+| P0 Branding | 🟡 | 1.3.0 |
+| F1 Build packagé | ✅ | 1.3.0 |
+| F3 Canal releases | ✅ `v1.3.0` | 1.3.0 |
+| F2 Installeur polish | 🟡 | **1.3.1** |
+| F4 Notification IDE | ⬜ | **1.3.1** |
+| F5 Updater | ⬜ | **1.3.1** |
+| F6 Site | ⬜ | post-1.3.1 |
+| F7 ADR / guide | 🟡 RULES.md | 1.3.1 |

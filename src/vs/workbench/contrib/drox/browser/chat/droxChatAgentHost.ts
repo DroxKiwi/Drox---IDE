@@ -8,6 +8,7 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
+import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { IOutputService } from '../../../../services/output/common/output.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxLongMemoryService } from '../../common/droxLongMemoryService.js';
@@ -23,6 +24,11 @@ import { DroxChatTabsManager } from './droxChatTabsManager.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { handleDroxFileMutationAfterToolFinish, IDroxChatFileActionsHost } from './droxChatFileActions.js';
+import { IHostService } from '../../../../services/host/browser/host.js';
+import { mainWindow } from '../../../../../base/browser/window.js';
+import { FocusMode } from '../../../../../platform/native/common/native.js';
+import { localize } from '../../../../../nls.js';
+import { DroxSetting } from '../../common/droxConfiguration.js';
 
 export interface IDroxChatAgentBridgeHost extends IDroxChatFileActionsHost {
 	post(message: DroxHostToWebviewMessage): void;
@@ -57,6 +63,7 @@ export function createDroxChatAgentEventHost(
 		readonly logService: ILogService;
 		readonly runSettingsService: IDroxRunSettingsService;
 		readonly runRevertService: IDroxRunRevertService;
+		readonly hostService: IHostService;
 	},
 ): IDroxChatAgentDoneHost {
 	return {
@@ -90,6 +97,40 @@ export function createDroxChatAgentEventHost(
 		shouldResetConversationAfterDone: () => deps.chatSessionService.getPendingSessionReset(),
 		clearPendingSessionReset: () => deps.chatSessionService.setPendingSessionReset(false),
 		resetActiveTabConversation: () => tabs.resetActiveTabConversation(),
+		notifyRunCycleFinished: (runId, status, error) => {
+			if (deps.configurationService.getValue<boolean>(DroxSetting.CycleDoneWindowsNotification) === false) {
+				return;
+			}
+			if (deps.hostService.hasFocus) {
+				return;
+			}
+			const tabTitle = tabs.getActiveTab()?.title?.trim();
+			const runLabel = tabTitle && tabTitle.length > 0
+				? tabTitle
+				: runId && runId.length > 0
+					? runId
+					: localize('drox.cycle.defaultRunName', 'Run');
+			const title = status === 'error'
+				? localize('drox.cycle.failed.title', 'Cycle arrêté')
+				: localize('drox.cycle.done.title', 'Cycle terminé');
+			const body = status === 'error'
+				? localize(
+					'drox.cycle.failed.body',
+					'{0} s\'est arrêté ({1}).',
+					runLabel,
+					error && error.trim().length > 0 ? error.trim() : localize('drox.cycle.failed.generic', 'erreur'),
+				)
+				: localize('drox.cycle.done.body', '{0} est terminé.', runLabel);
+			void deps.hostService
+				.showToast({ title, body }, CancellationToken.None)
+				.then(result => {
+					if (result.clicked) {
+						return deps.hostService.focus(mainWindow, { mode: FocusMode.Force });
+					}
+					return undefined;
+				})
+				.catch(err => deps.logService.debug(`[Drox] cycle toast failed: ${err instanceof Error ? err.message : String(err)}`));
+		},
 	};
 }
 

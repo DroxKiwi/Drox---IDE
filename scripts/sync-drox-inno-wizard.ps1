@@ -1,5 +1,5 @@
-# Generate Inno Setup wizard BMPs (black + Drox green) from logo3.png.
-# Output: resources/win32/inno-big-*.bmp, inno-small-*.bmp
+# Generate Inno Setup wizard BMPs (Drox #1E1E1E + green accent) from logo3.png.
+# BMP = 24-bit opaque only (no alpha → pas de magenta / traits parasites sous Inno).
 #
 # Usage:
 #   .\scripts\sync-drox-inno-wizard.ps1
@@ -9,8 +9,8 @@
 param(
 	[string]$SourcePng = '',
 	[int]$DarkThreshold = 18,
-	[double]$BigLogoFill = 0.58,
-	[double]$SmallLogoFill = 0.72
+	[double]$BigLogoFill = 0.52,
+	[double]$SmallLogoFill = 0.78
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,10 +19,9 @@ $destDir = Join-Path $repoRoot 'resources\win32'
 
 Add-Type -AssemblyName System.Drawing
 
-# Align with droxChatMvp.css (--drox-ui-green, dark workbench)
 $BgColor = [System.Drawing.Color]::FromArgb(255, 30, 30, 30)       # #1E1E1E
 $AccentColor = [System.Drawing.Color]::FromArgb(255, 61, 122, 61)  # #3D7A3D
-$AccentGlow = [System.Drawing.Color]::FromArgb(48, 63, 185, 80)    # soft green glow
+$MutedGreen = [System.Drawing.Color]::FromArgb(255, 42, 74, 42)    # bande secondaire opaque
 
 $bigSizes = @{
 	100 = @{ W = 164; H = 314 }
@@ -91,30 +90,36 @@ function Draw-BigWizardPanel([System.Drawing.Image]$src, [int]$w, [int]$h, [doub
 	try {
 		$g.Clear($BgColor)
 
-		# Left accent bar + bottom glow (Drox green on dark)
-		$barW = [Math]::Max(3, [int]($w * 0.018))
+		# Barre verte gauche (opaque) - faisceau anime en Pascal sur le wizard live
+		$barW = [Math]::Max(3, [int]($w * 0.022))
 		$g.FillRectangle((New-Object System.Drawing.SolidBrush $AccentColor), 0, 0, $barW, $h)
-		$glowH = [int]($h * 0.22)
-		$g.FillRectangle((New-Object System.Drawing.SolidBrush $AccentGlow), 0, $h - $glowH, $w, $glowH)
+
+		# Leger degrade bas opaque (pas d'alpha)
+		$fadeH = [Math]::Max(24, [int]($h * 0.12))
+		for ($i = 0; $i -lt $fadeH; $i++) {
+			$t = $i / $fadeH
+			$mix = [int](30 + (42 - 30) * $t)
+			$c = [System.Drawing.Color]::FromArgb(255, $mix, [int]($mix * 1.35), $mix)
+			$g.DrawLine((New-Object System.Drawing.Pen $c), $barW, $h - $fadeH + $i, $w - 1, $h - $fadeH + $i)
+		}
 
 		$bounds = Get-ContentBounds ([System.Drawing.Bitmap]$src) $DarkThreshold
-		$inner = [int]([Math]::Min($w, $h) * $logoFill)
-		$x = [int](($w - $inner) / 2)
-		$y = [int]($h * 0.14)
+		$inner = [int]([Math]::Min($w - $barW * 2, $h * 0.55) * $logoFill)
+		$x = $barW + [int](($w - $barW - $inner) / 2)
+		$y = [int]($h * 0.16)
 		$srcRect = New-Object System.Drawing.Rectangle $bounds.X, $bounds.Y, $bounds.Width, $bounds.Height
 		$destRect = New-Object System.Drawing.Rectangle $x, $y, $inner, $inner
 		$g.DrawImage($src, $destRect, $srcRect, [System.Drawing.GraphicsUnit]::Pixel)
 
-		# Wordmark stripe
-		$fontSize = [Math]::Max(8, [int]($w * 0.11))
-		$font = [System.Drawing.Font]::new('Segoe UI', [single]$fontSize, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
+		$fontSize = [Math]::Max(8, [int]($w * 0.1))
+		$font = [System.Drawing.Font]::new('Segoe UI Semibold', [single]$fontSize, [System.Drawing.FontStyle]::Regular, [System.Drawing.GraphicsUnit]::Pixel)
 		try {
-			$brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(230, 255, 255, 255))
+			$brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 220, 235, 220))
 			try {
 				$text = 'Drox IDE'
 				$sizeF = $g.MeasureString($text, $font)
-				$tx = [int](($w - $sizeF.Width) / 2)
-				$ty = [int]($y + $inner + ($h - $y - $inner) * 0.22)
+				$tx = $barW + [int](($w - $barW - $sizeF.Width) / 2)
+				$ty = [int]($y + $inner + ($h - $y - $inner) * 0.12)
 				$g.DrawString($text, $font, $brush, [single]$tx, [single]$ty)
 			} finally { $brush.Dispose() }
 		} finally { $font.Dispose() }
@@ -129,8 +134,7 @@ function Draw-SmallWizardIcon([System.Drawing.Image]$src, [int]$size, [double]$l
 	$g = New-Graphics $bmp
 	try {
 		$g.Clear($BgColor)
-		$border = [Math]::Max(1, [int]($size * 0.04))
-		$g.DrawRectangle((New-Object System.Drawing.Pen $AccentColor, $border), 0, 0, $size - 1, $size - 1)
+		# Pas de contour vert — Inno affiche deja le logo en haut a droite
 
 		$bounds = Get-ContentBounds ([System.Drawing.Bitmap]$src) $DarkThreshold
 		$inner = [int]($size * $logoFill)

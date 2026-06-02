@@ -1,6 +1,6 @@
 # Finalisation 1.3.0 — Distribution, launcher, dépôt production
 
-**Statut** : cadrage (vision) — **plan d’exécution** : [PLAN-DISTRIBUTION-LAUNCHER.md](./PLAN-DISTRIBUTION-LAUNCHER.md)  
+**Statut** : cadrage 1.3.0 (archive) — **plan** : [PLAN-DISTRIBUTION-LAUNCHER.md](./PLAN-DISTRIBUTION-LAUNCHER.md) · **clôture active** : [1.3.1](../../1.3.1/finalisation/CLOSURE-1.3.1.md)  
 **Date** : 2026-05-27 (cadrage) · 2026-05-28 (plan détaillé)  
 **Public** : équipe produit / build / release
 

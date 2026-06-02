@@ -21,10 +21,9 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
 function Get-DroxProductVersionFromJson {
-	$productJsonPath = Join-Path $repoRoot 'product.json'
-	$raw = Get-Content -Raw -Path $productJsonPath | ConvertFrom-Json
-	if ($raw.droxVersion) { return [string]$raw.droxVersion }
-	if ($raw.version) { return [string]$raw.version }
+	$pkgPath = Join-Path $repoRoot 'package.json'
+	$pkg = Get-Content -Raw -Path $pkgPath | ConvertFrom-Json
+	if ($pkg.droxVersion) { return [string]$pkg.droxVersion }
 	return '1.3.1'
 }
 

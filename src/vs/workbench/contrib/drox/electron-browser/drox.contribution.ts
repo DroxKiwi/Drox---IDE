@@ -40,6 +40,11 @@ import './droxEngineConfigContribution.js';
 import './droxEngineWarmStartContribution.js';
 import './droxEngineWorkbenchContribution.js';
 import './droxLlmModelsContribution.js';
+import './droxUpdateService.js';
+import './droxUpdateNotificationContribution.js';
+import { registerDroxUpdateActions } from './droxUpdateActions.js';
+
+registerDroxUpdateActions();
 
 registerSingleton(IDroxRefsBridgeService, DroxRefsBridgeService, InstantiationType.Eager);
 registerSingleton(IDroxComposerBridgeService, DroxComposerBridgeService, InstantiationType.Eager);

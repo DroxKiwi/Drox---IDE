@@ -5,6 +5,7 @@ Thumbs.db
 node_modules/
 .tmp/
 .build/
+build/win32/inno-setup-6/
 .vscode/extensions/**/out/
 extensions/**/dist/
 src/vs/base/browser/ui/codicons/codicon/codicon.ttf

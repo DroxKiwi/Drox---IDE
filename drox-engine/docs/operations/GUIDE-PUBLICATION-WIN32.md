@@ -1,0 +1,168 @@
+# Publication Windows — guide rapide
+
+Checklist pour publier une release Drox IDE (ex. `1.3.1`) et clôturer la branche de travail.
+
+**Repos** : sources `Drox---IDE` · manifestes `Drox---IDE---releases`  
+**Version produit** : champ `droxVersion` dans `package.json` (pas `version` VS Code).
+
+---
+
+## 1. Préparer la version (repo sources)
+
+```powershell
+cd C:\Users\coren\Desktop\GitHub\Drox---IDE
+```
+
+1. Mettre à jour **`droxVersion`** dans `package.json` (ex. `1.3.2`).
+2. Commit / push de la branche feature (ex. `release/1.3.1`).
+3. Merger vers `main` quand la release est prête (PR ou merge local).
+
+---
+
+## 2. Build + manifestes (une commande)
+
+**Premier build** ou changement d’icône exe :
+
+```powershell
+npm run drox:ship -- -Full
+```
+
+**Rebuild habituel** (dépendances déjà installées) :
+
+```powershell
+npm run drox:ship
+```
+
+**Re-package rapide** (aucun changement TypeScript) :
+
+```powershell
+npm run drox:ship -- -Fast
+```
+
+**Après modifs `contrib/drox`** :
+
+```powershell
+npm run drox:ship -- -Force
+```
+
+### Sorties
+
+| Artefact | Chemin |
+|----------|--------|
+| Installeur local (test) | `.build\win32-x64\user-setup\Drox-IDE-UserSetup-<ver>-win32-x64.exe` |
+| Copie pour GitHub | `..\Drox---IDE---releases\_upload\Drox-IDE-Setup-<ver>-win32-x64.exe` |
+| Manifeste MAJ | `..\Drox---IDE---releases\stable\latest.json` |
+| Notes / SHA256 | `..\Drox---IDE---releases\stable\<ver>\` |
+
+Installeur seul (sans manifestes) : `npm run drox:build`  
+Manifestes seuls (setup déjà buildé) : `npm run drox:publish`
+
+---
+
+## 3. Publier le repo releases (git)
+
+```powershell
+cd C:\Users\coren\Desktop\GitHub\Drox---IDE---releases
+
+git add stable/ .gitignore NOTICE.md README.md
+git status   # aucun .exe ne doit apparaître
+git commit -m "Release v<VER> win32-x64 (manifest)"
+git push
+```
+
+**Ne pas** `git add` le `.exe` : `_upload/` et `*.exe` sont ignorés.
+
+---
+
+## 4. Publier le binaire (GitHub Release)
+
+### Sans `gh` CLI — interface web
+
+1. https://github.com/DroxKiwi/Drox---IDE---releases/releases → **New release**
+2. Tag : `v<VER>` (ex. `v1.3.1`) sur `main`
+3. Titre : `Drox IDE <VER>`
+4. Description : coller `stable\<VER>\RELEASE_NOTES.md`
+5. Joindre `_upload\Drox-IDE-Setup-<VER>-win32-x64.exe` (**garder ce nom exact**)
+6. **Publish release**
+
+### Avec GitHub CLI
+
+```powershell
+winget install --id GitHub.cli
+# redémarrer PowerShell
+gh auth login
+
+cd C:\Users\coren\Desktop\GitHub\Drox---IDE---releases
+gh release create v<VER> ".\_upload\Drox-IDE-Setup-<VER>-win32-x64.exe" `
+  --title "Drox IDE <VER>" `
+  --notes-file ".\stable\<VER>\RELEASE_NOTES.md"
+```
+
+---
+
+## 5. Vérifier
+
+- [ ] `stable/latest.json` sur `main` : `version` = `<VER>`, `platforms.win32-x64.installerUrl` télécharge l’exe
+- [ ] SHA256 du fichier téléchargé = `stable\<VER>\SHA256SUMS`
+- [ ] Install UserSetup ou exe Release → **À propos** affiche `<VER>`
+- [ ] (Optionnel) notif MAJ : install `<VER>` puis publier `<VER+1>` sur `latest.json`
+
+---
+
+## 6. Clôturer la branche (repo sources)
+
+Sur `Drox---IDE`, après merge de la PR release :
+
+```powershell
+cd C:\Users\coren\Desktop\GitHub\Drox---IDE
+git checkout main
+git pull
+
+# Tag sources (optionnel, documentation)
+git tag v<VER>
+git push origin v<VER>
+
+# Supprimer la branche locale + distante
+git branch -d release/<VER>
+git push origin --delete release/<VER>
+```
+
+Sur GitHub : fermer la PR, supprimer la branche si pas déjà fait.
+
+Mettre à jour le doc de clôture versionné :  
+`drox-engine/docs/1.3/<VER>/finalisation/CLOSURE-<VER>.md` → statut **livré**.
+
+---
+
+## Aide-mémoire (copier-coller)
+
+Remplacer `<VER>` par la version (ex. `1.3.1`).
+
+```powershell
+# --- Sources ---
+cd C:\Users\coren\Desktop\GitHub\Drox---IDE
+# editer package.json -> droxVersion = <VER>
+npm run drox:ship
+
+# --- Releases (manifestes) ---
+cd C:\Users\coren\Desktop\GitHub\Drox---IDE---releases
+git add stable/ .gitignore NOTICE.md README.md
+git commit -m "Release v<VER> win32-x64 (manifest)"
+git push
+# puis Release GitHub + exe dans _upload\
+
+# --- Clôture branche ---
+cd C:\Users\coren\Desktop\GitHub\Drox---IDE
+git checkout main && git pull
+git tag v<VER> && git push origin v<VER>
+git branch -d release/<VER>
+git push origin --delete release/<VER>
+```
+
+---
+
+## Voir aussi
+
+- [RULES.md](../../../../RULES.md) — build, git, releases
+- [PLAN-DISTRIBUTION-LAUNCHER.md](../1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md) — architecture F3–F5
+- [CLOSURE-1.3.1.md](../1.3/1.3.1/finalisation/CLOSURE-1.3.1.md) — checklist release 1.3.1

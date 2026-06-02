@@ -31,6 +31,7 @@ import { IScreenshotService } from './screenshotService.js';
 import { IIssueFormService } from '../common/issue.js';
 import { IProcessService } from '../../../../platform/process/common/process.js';
 import { IWorkbenchAssignmentService } from '../../../services/assignment/common/assignmentService.js';
+import { getProductDisplayVersion } from '../../../../base/common/product.js';
 import product from '../../../../platform/product/common/product.js';
 import { IContextMenuService, IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
 import { IMarkdownRendererService } from '../../../../platform/markdown/browser/markdownRenderer.js';
@@ -435,7 +436,7 @@ export class IssueReporterEditorPane extends EditorPane {
 
 		try {
 			// Version info
-			const vscodeVersion = `${product.nameShort} ${!!product.darwinUniversalAssetId ? `${product.version} (Universal)` : product.version} (${product.commit || 'Commit unknown'}, ${product.date || 'Date unknown'})`;
+			const vscodeVersion = `${product.nameShort} ${getProductDisplayVersion(product)} (${product.commit || 'Commit unknown'}, ${product.date || 'Date unknown'})`;
 			const systemInfo = await this.processService.getSystemInfo();
 			this.wizard.updateModel({
 				versionInfo: { vscodeVersion, os: systemInfo.os },

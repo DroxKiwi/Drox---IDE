@@ -60,6 +60,7 @@ export interface IDroxChatAgentDoneHost extends IDroxChatAgentEventHost {
 	shouldResetConversationAfterDone(): boolean;
 	clearPendingSessionReset(): void;
 	resetActiveTabConversation(): void;
+	notifyRunCycleFinished(runId: string | undefined, status: string | undefined, error: string | undefined): void;
 }
 
 function executorJobIdFromEvent(ev: Record<string, unknown>): string | undefined {
@@ -360,6 +361,7 @@ export function dispatchAgentDone(host: IDroxChatAgentDoneHost, params: unknown)
 	host.clearActivePermissionMode();
 
 	const p = params as { status?: string; error?: string } | undefined;
+	host.notifyRunCycleFinished(doneRunId, p?.status, p?.error);
 	if (p?.status === 'error' && p.error) {
 		const raw = p.error;
 		if (/loop detected/i.test(raw)) {

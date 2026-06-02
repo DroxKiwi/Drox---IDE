@@ -73,7 +73,7 @@ Sur une machine 12–24 Go VRAM, faire tourner **deux modèles** ou **N requête
 ## Liens existants
 
 - Settings : `drox.server`, `drox.architect.model`, `drox.executor.model`  
-- Doc : [PARALLELISME-DESIGN.md](../../steps/03-parallelisme/PARALLELISME-DESIGN.md), [MODELES-PAR-TAILLE.md](../../../0.0.0/architecture/MODELES-PAR-TAILLE.md)  
+- Doc : [PARALLELISME-DESIGN.md](../1.3/1.3.0/steps/03-parallelisme/PARALLELISME-DESIGN.md), [MODELES-PAR-TAILLE.md](../0.0/architecture/MODELES-PAR-TAILLE.md)  
 - Script : `scripts/ollama_parallel_probe.py` (probes charge parallèle)
 
 ---
