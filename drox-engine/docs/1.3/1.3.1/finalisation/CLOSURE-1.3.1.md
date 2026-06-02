@@ -2,7 +2,7 @@
 
 **Date** : 2026-05-29  
 **Version cible** : `droxVersion` **1.3.1**  
-**Statut global** : 🟡 en cours
+**Statut global** : ✅ livré (merge `main`, tag `v1.3.1`)
 
 **Document de suivi unique** pour la release : légal / dé-branding, installeur, MAJ in-app, publication.
 
