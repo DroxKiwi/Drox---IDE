@@ -26,6 +26,7 @@ import { IMarkdownRendererService } from '../../../../platform/markdown/browser/
 import { IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
 import { isRemoteDiagnosticError } from '../../../../platform/diagnostics/common/diagnostics.js';
 import { defaultButtonStyles, defaultCheckboxStyles, defaultInputBoxStyles, defaultKeybindingLabelStyles, defaultSelectBoxStyles } from '../../../../platform/theme/browser/defaultStyles.js';
+import { getProductDisplayVersion } from '../../../../base/common/product.js';
 import product from '../../../../platform/product/common/product.js';
 import { URI } from '../../../../base/common/uri.js';
 import { normalizeGitHubUrl } from '../common/issueReporterUtil.js';
@@ -2063,7 +2064,7 @@ export class IssueReporterOverlay {
 		const rows: [string, string | undefined][] = [
 			['Issue Category', this.getIssueTypeTitle(this.selectedIssueType ?? IssueType.Bug)],
 			['Target', this.getIssueSourceLabel()],
-			['VS Code Version', modelData.versionInfo?.vscodeVersion ?? product.version],
+			['VS Code Version', modelData.versionInfo?.vscodeVersion ?? getProductDisplayVersion(product)],
 			['OS Version', modelData.versionInfo?.os ?? modelData.systemInfo?.os],
 		];
 

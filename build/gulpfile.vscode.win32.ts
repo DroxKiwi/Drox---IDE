@@ -9,11 +9,12 @@ import { gulp } from './lib/gulp/facade.ts';
 import * as path from 'path';
 import rcedit from 'rcedit';
 import vfs from 'vinyl-fs';
-import pkg from '../package.json' with { type: 'json' };
 import product from '../product.json' with { type: 'json' };
 import { getVersion } from './lib/getVersion.ts';
 import * as task from './lib/gulp/task.ts';
 import * as util from './lib/util.ts';
+import { getDroxSetupVersion } from './lib/droxVersion.ts';
+import { resolveInnoSetupCompiler } from './lib/resolveInnoSetup.ts';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -22,11 +23,12 @@ const repoPath = path.dirname(import.meta.dirname);
 const commit = getVersion(repoPath);
 const buildPath = (arch: string) => path.join(path.dirname(repoPath), `VSCode-win32-${arch}`);
 const setupDir = (arch: string, target: string) => path.join(repoPath, '.build', `win32-${arch}`, `${target}-setup`);
-const innoSetupPath = path.join(path.dirname(path.dirname(require.resolve('innosetup'))), 'bin', 'ISCC.exe');
 const signWin32Path = path.join(repoPath, 'build', 'azure-pipelines', 'common', 'sign-win32.ts');
 
 function packageInnoSetup(iss: string, options: { definitions?: Record<string, unknown> }, cb: (err?: Error | null) => void) {
 	const definitions = options.definitions || {};
+	const inno = resolveInnoSetupCompiler(repoPath);
+	console.log(`[inno] ISCC ${inno.version} (${inno.source}): ${inno.iscc}`);
 
 	if (process.argv.some(arg => arg === '--debug-inno')) {
 		definitions['Debug'] = 'true';
@@ -47,7 +49,7 @@ function packageInnoSetup(iss: string, options: { definitions?: Record<string, u
 		`/sesrp=node ${signWin32Path} $f`
 	];
 
-	cp.spawn(innoSetupPath, args, { stdio: ['ignore', 'inherit', 'inherit'] })
+	cp.spawn(inno.iscc, args, { stdio: ['ignore', 'inherit', 'inherit'] })
 		.on('error', cb)
 		.on('exit', code => {
 			if (code === 0) {
@@ -80,8 +82,7 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		const productJson = JSON.parse(fs.readFileSync(originalProductJsonPath, 'utf8'));
 		productJson['target'] = target;
 
-		const droxVersion = (product as typeof product & { droxVersion?: string }).droxVersion;
-		const setupVersion = droxVersion ?? pkg.version.replace(/-\w+$/, '');
+		const setupVersion = getDroxSetupVersion();
 
 		const definitions: Record<string, unknown> = {
 			NameLong: product.nameLong,

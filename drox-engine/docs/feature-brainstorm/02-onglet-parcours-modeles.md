@@ -69,7 +69,7 @@ L’utilisateur qui fait tourner `npm run dev` + agent sur un gros repo (cf. cap
 ## Liens existants
 
 - UI chat : trays outils, explore bundle, `12-fileChange.js`  
-- [FLOW-DECISIONS-MOTEUR.md](../../../1.2.0/cartographie/FLOW-DECISIONS-MOTEUR.md) — phases explore / answering
+- [FLOW-DECISIONS-MOTEUR.md](../1.2.0/cartographie/FLOW-DECISIONS-MOTEUR.md) — phases explore / answering
 
 ---
 

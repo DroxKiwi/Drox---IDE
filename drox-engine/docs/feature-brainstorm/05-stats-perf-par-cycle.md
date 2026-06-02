@@ -86,11 +86,11 @@ Cycle 2 — 4 min 12 s
 
 | Doc / code | Rôle |
 |------------|------|
-| [UI-DISPLAY-LINEAR-WORKFLOW.md](../../1.2.0/steps/09-ui/UI-DISPLAY-LINEAR-WORKFLOW.md) | Modèle cycle UI |
-| [PARALLELISME-DESIGN.md](../../steps/03-parallelisme/PARALLELISME-DESIGN.md) | Slots parallèles |
+| [UI-DISPLAY-LINEAR-WORKFLOW.md](../1.2.0/steps/09-ui/UI-DISPLAY-LINEAR-WORKFLOW.md) | Modèle cycle UI |
+| [PARALLELISME-DESIGN.md](../1.3/1.3.0/steps/03-parallelisme/PARALLELISME-DESIGN.md) | Slots parallèles |
 | `droxChat/04-history.js`, `09-host.js` | `ctxTokens`, `usage` |
 | `droxSessionCompact.ts` | Tokens compaction |
-| [CRITERES-TEST-REEL.md](../../finalisation/CRITERES-TEST-REEL.md) | Sessions longues — KPI terrain |
+| [CRITERES-TEST-REEL.md](../1.3/1.3.0/finalisation/CRITERES-TEST-REEL.md) | Sessions longues — KPI terrain |
 
 ---
 

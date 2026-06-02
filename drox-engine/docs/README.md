@@ -40,7 +40,18 @@ Docs réparties sous [`1.2.0/steps/`](1.2.0/steps/) — **ordre = numéro de dos
 | [`11-operations/`](1.2.0/steps/11-operations/) | Smoke manuel |
 | [`1.2.0/cartographie/`](1.2.0/cartographie/) | **Flux Mermaid** — branches de décision moteur |
 
-Archive pré-1.2.0 : dossier [`0.0.0/`](0.0.0/).
+Archive pré-1.2.0 : dossier [`0.0/`](0.0/).
+
+---
+
+## Version 1.3 (parallélisme & distribution)
+
+| Dossier | Contenu |
+|---------|---------|
+| [`1.3/`](1.3/README.md) | Hub ligne 1.3 |
+| [`1.3/1.3.0/`](1.3/1.3.0/README.md) | Moteur batch exécuteurs + release `v1.3.0` — **livré** |
+| [`1.3/1.3.1/`](1.3/1.3.1/README.md) | Première release publique — **en cours** ([CLOSURE](1.3/1.3.1/finalisation/CLOSURE-1.3.1.md)) |
+| [`feature-brainstorm/`](feature-brainstorm/README.md) | Idées / brainstorm (hors releases 1.3.x) |
 
 ---
 
@@ -65,6 +76,7 @@ Archive pré-1.2.0 : dossier [`0.0.0/`](0.0.0/).
 | [DROX.md](../../DROX.md) | Build, watch, Ollama, premier chat |
 | [guides/GUIDE-MOTEUR-DROX.md](guides/GUIDE-MOTEUR-DROX.md) | Phases, tools, permissions, JSON-RPC — **§18 = fork Nexus** |
 | [architecture/PROTOCOLE-JSONRPC.md](architecture/PROTOCOLE-JSONRPC.md) | Contrat wire NDJSON (`drox --serve`) |
+| [operations/GUIDE-PUBLICATION-WIN32.md](operations/GUIDE-PUBLICATION-WIN32.md) | **Publication release** Windows + clôture branche |
 | [operations/SMOKE-RPC.md](operations/SMOKE-RPC.md) | Smoke RPC manuel |
 | [operations/PATCHNOTE-STABILISATION-PROFILS.md](operations/PATCHNOTE-STABILISATION-PROFILS.md) | **Actif** — carnet bugs Low → Medium (campagnes de test) |
 

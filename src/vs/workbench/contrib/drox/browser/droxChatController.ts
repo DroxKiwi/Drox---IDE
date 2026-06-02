@@ -17,6 +17,7 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { IOutputService } from '../../../services/output/common/output.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
+import { IHostService } from '../../../services/host/browser/host.js';
 import { ITerminalService } from '../../terminal/browser/terminal.js';
 import { IDroxEngineNotificationPayload } from '../common/droxIpc.js';
 import { IDroxAttachmentPayload } from '../common/droxAttachments.js';
@@ -89,6 +90,7 @@ export class DroxChatController extends Disposable
 		@IDroxRunRevertService private readonly runRevertService: IDroxRunRevertService,
 		@IClipboardService private readonly clipboardService: IClipboardService,
 		@IStorageService storageService: IStorageService,
+		@IHostService private readonly hostService: IHostService,
 	) {
 		super();
 		this._layoutStore = new DroxChatLayoutStore(storageService);
@@ -355,6 +357,7 @@ export class DroxChatController extends Disposable
 			logService: this.logService,
 			runSettingsService: this.runSettingsService,
 			runRevertService: this.runRevertService,
+			hostService: this.hostService,
 		};
 	}
 

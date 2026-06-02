@@ -84,7 +84,7 @@ Utilisateur : brief + doc (PDF/MD) + contraintes
 ## Liens existants
 
 - Orchestration `v1_2`, `parallel_with`, `architect_todo_gate`, `final_answer_guard`  
-- Doc : [VISION-CONSOLIDEE-1.3.0.md](../../steps/01-vision/VISION-CONSOLIDEE-1.3.0.md), [CRITERES-TEST-REEL.md](../../finalisation/CRITERES-TEST-REEL.md)  
+- Doc : [VISION-CONSOLIDEE-1.3.0.md](../1.3/1.3.0/steps/01-vision/VISION-CONSOLIDEE-1.3.0.md), [CRITERES-TEST-REEL.md](../1.3/1.3.0/finalisation/CRITERES-TEST-REEL.md)  
 - Idées 01–03 : infra perf, visibilité, validation web
 
 ---

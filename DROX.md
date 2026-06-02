@@ -127,20 +127,19 @@ Smoke RPC manuel : [drox-engine/docs/operations/SMOKE-RPC.md](drox-engine/docs/o
 
 ## Build release (Windows x64)
 
-Script unique (F1 — application packagée) :
-
 ```powershell
-npm run build-release-win32
-# ou avec installeur Inno (F2) :
-.\scripts\build-release-win32.ps1 -WithSetup
+npm run drox:build    # installeur (F1+F2)
+npm run drox:ship     # installeur + manifestes F3
 ```
 
-Enchaîne : `package-drox` → `gulp core-ci` → `vscode-win32-x64-min-ci` → `inno-updater`.  
-Sortie : `..\VSCode-win32-x64\Drox IDE.exe` (dossier parent du repo).
+Options : `npm run drox:build -- -Fast` · `-Force` · `-Full` (voir [RULES.md](RULES.md)).
 
-Options : `-SkipNpmInstall`, `-SkipElectron`, `-SkipCompile` (re-package seulement), `-WithInnoUpdaterOnly`.
+Bas niveau : `npm run build-release-win32` / `.\scripts\build-release-win32.ps1 -WithSetup`.
 
-Plan complet : [drox-engine/docs/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md](drox-engine/docs/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md).
+Enchaîne : `package-drox` → gulp min-ci → installeur Inno.  
+Sortie app : `..\VSCode-win32-x64\Drox IDE.exe` · installeur : `.build\win32-x64\user-setup\`.
+
+Plan distribution : [drox-engine/docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md](drox-engine/docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md) · Clôture release : [CLOSURE-1.3.1.md](drox-engine/docs/1.3/1.3.1/finalisation/CLOSURE-1.3.1.md).
 
 L’utilisateur final n’a **pas** besoin de Rust si le binaire est embarqué dans `resources/drox/`.
 

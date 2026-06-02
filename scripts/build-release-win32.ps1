@@ -179,6 +179,8 @@ Write-Step 'gulp vscode-win32-x64-inno-updater'
 Invoke-Gulp 'vscode-win32-x64-inno-updater'
 
 if ($WithSetup) {
+	& (Join-Path $PSScriptRoot 'ensure-inno-setup.ps1')
+	if ($LASTEXITCODE -ne 0) { throw 'Inno Setup 6.6+ requis (voir scripts/ensure-inno-setup.ps1)' }
 	Write-Step 'gulp vscode-win32-x64-user-setup - installeur Inno'
 	Invoke-Gulp 'vscode-win32-x64-user-setup'
 	$setupDir = Join-Path $repoRoot '.build\win32-x64\user-setup'

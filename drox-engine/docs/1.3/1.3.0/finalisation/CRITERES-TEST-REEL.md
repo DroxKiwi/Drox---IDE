@@ -63,4 +63,4 @@
 - oui / non — …
 ```
 
-Déposer les retours détaillés dans `drox-engine/docs/1.3.0/retour_discussion/` si besoin.
+Déposer les retours détaillés dans `drox-engine/docs/1.3/1.3.1/retour_discussion/` si besoin.

@@ -83,6 +83,18 @@ export const enum DroxSetting {
 
 	WarmStart = 'drox.warmStart',
 
+	UpdateManifestUrl = 'drox.update.manifestUrl',
+
+	UpdateNotifyOnStartup = 'drox.update.notifyOnStartup',
+
+	/** Dev/test only: pretend remote latest is this semver (must be > droxVersion to show prompt). */
+	UpdateSimulateLatestVersion = 'drox.update.simulateLatestVersion',
+
+	/** Dev/test only: URL opened by « Installer maintenant » when simulateLatestVersion is set. */
+	UpdateSimulateInstallerUrl = 'drox.update.simulateInstallerUrl',
+
+	CycleDoneWindowsNotification = 'drox.notifications.cycleDone.windows',
+
 	/** Afficher erreurs / avertissements moteur dans le fil Drox Chat. */
 	ChatShowErrorsAndWarnings = 'drox.chat.showErrorsAndWarnings',
 
@@ -623,6 +635,81 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 				'Pre-spawn `drox --serve` and run the JSON-RPC `initialize` handshake after the workbench restores, so the first chat message avoids cold-start latency.',
 
+			),
+
+		},
+
+		[DroxSetting.UpdateManifestUrl]: {
+
+			type: 'string',
+
+			default: 'https://raw.githubusercontent.com/DroxKiwi/Drox---IDE---releases/main/stable/latest.json',
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.update.manifestUrl',
+				'URL of the Drox update manifest (`latest.json`). Used to detect updates from the installed app.',
+			),
+
+		},
+
+		[DroxSetting.UpdateNotifyOnStartup]: {
+
+			type: 'boolean',
+
+			default: true,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.update.notifyOnStartup',
+				'Check for Drox updates at startup and show a notification when a newer version is available.',
+			),
+
+		},
+
+		[DroxSetting.UpdateSimulateLatestVersion]: {
+
+			type: 'string',
+
+			default: '',
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.update.simulateLatestVersion',
+				'**Dev/test:** if set (e.g. `99.0.0`), skips the remote manifest and uses this as the latest version. Use with **Drox: Check for Updates** to preview the update notification without publishing a release.',
+			),
+
+		},
+
+		[DroxSetting.UpdateSimulateInstallerUrl]: {
+
+			type: 'string',
+
+			default: 'https://github.com/DroxKiwi/Drox---IDE---releases/releases/latest',
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.update.simulateInstallerUrl',
+				'**Dev/test:** URL used when `drox.update.simulateLatestVersion` is set and you click **Installer maintenant**.',
+			),
+
+		},
+
+		[DroxSetting.CycleDoneWindowsNotification]: {
+
+			type: 'boolean',
+
+			default: true,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.notifications.cycleDone.windows',
+				'Show a Windows toast when a Drox run cycle finishes while this app window is not focused.',
 			),
 
 		},
