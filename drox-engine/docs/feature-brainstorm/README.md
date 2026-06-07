@@ -18,7 +18,7 @@ Statut par défaut : **idée brute** jusqu’à promotion en chantier (`drox-eng
 | 09 | [Rôles spécialisés compréhension code](09-roles-specialises-comprehension-code.md) | Nouveaux rôles (cartographe, analyste, …) pour **comprendre** le repo avant d’agir | Idée |
 | 10 | [Paramétrage prompts & strictesse](10-parametrage-prompts-strictesse.md) | Rendre réglables seuils gates + textes injectés (`system` / nudges) — profil `relaxed` / `strict` | Idée · **registre variables** |
 | 11 | [Télémétrie locale IDE + APIs](11-telemetry-ide-locale-apis.md) | Dashboard runs (charts), stockage `.drox/telemetry`, RPC `telemetry.*` — **aucun cloud** | Idée |
-| 12 | [Benchmark & config par modèle](12-presets-globaux-benchmark-hardware.md) | Teste le modèle **choisi** sur le PC → profil capacités (ctx, vision, tools, long run…) + config conseillée paramètre par paramètre ou preset bundle (**sans** changer le modèle) | **Cible [1.3.3](../1.3/1.3.3/README.md)** |
+| 12 | [Benchmark & config par modèle](12-presets-globaux-benchmark-hardware.md) | Teste le modèle **choisi** sur le PC → profil capacités (ctx, vision, tools, long run…) + config conseillée paramètre par paramètre ou preset bundle (**sans** changer le modèle) | **Cible [1.3.5](../1.3/1.3.5/README.md)** |
 | 13 | [Agents Window KDDS / Drox](13-agents-window-kdds-drox.md) | Réutiliser le chassis **Agents Window** VS Code, le rebrancher sur **drox.exe**, rebrand **KDDS** — fin de la double stack Copilot vs Drox | Idée |
 | 14 | [Persona première activation](14-persona-premiere-activation.md) | Onboarding : le modèle se présente, confirme identité + style de discussion, persiste `.drox/persona` | Idée |
 

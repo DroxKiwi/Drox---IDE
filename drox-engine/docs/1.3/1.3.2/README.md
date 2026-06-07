@@ -39,9 +39,11 @@ Checklist release : [finalisation/CLOSURE-1.3.2.md](finalisation/CLOSURE-1.3.2.m
 
 ---
 
-## Reporté en 1.3.3
+## Suite
 
-Les **3 piliers** produit (index / RAG local, contexte graphe, fast path latence) → [../1.3.3/README.md](../1.3.3/README.md).
+- **1.3.3** — release fiable (pipeline, package aligné) → [../1.3.3/README.md](../1.3.3/README.md)
+- **1.3.4** — stabilisation moteur (tests) → [../1.3.4/README.md](../1.3.4/README.md)
+- **1.3.5** — index / graphe / fast path → [../1.3.5/README.md](../1.3.5/README.md)
 
 Anciens axes 1.3.2 (sessions segmentées, dé-brand, télémétrie, prompts par palier…) : **hors périmètre** cette release — voir CLOSURE § « exclu ».
 

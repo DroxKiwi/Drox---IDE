@@ -1,7 +1,7 @@
 # Publish Drox IDE win32 installer artifacts to the drox-ide-releases repo.
 #
-# Prerequisite: build with setup
-#   .\scripts\build-release-win32.ps1 -SkipNpmInstall -SkipCompile -WithSetup
+# Prerequisite: build with setup (garde-fous alignement droxVersion)
+#   npm run drox:ship -- -Force
 #
 # Usage:
 #   .\scripts\release-publish-win32.ps1
@@ -62,6 +62,17 @@ if (-not $SetupExe) {
 
 if (-not $SetupExe -or -not (Test-Path $SetupExe)) {
 	Write-Error 'Installeur introuvable. Passez -SetupExe ou generez-le avec -WithSetup.'
+}
+
+$packagedDir = Join-Path (Split-Path -Parent $repoRoot) 'VSCode-win32-x64'
+if (Test-Path $packagedDir) {
+	. (Join-Path $PSScriptRoot 'lib\drox-bundle-readiness.ps1')
+	Initialize-DroxBundleReadiness -RepoRoot $repoRoot
+	$publishIssues = @(Get-PackagedReleaseIntegrityIssues -PackagedDir $packagedDir -ExpectedVersion $ProductVersion)
+	if ($publishIssues.Count -gt 0) {
+		throw (Format-PackagedReleaseIntegrityReport -Issues $publishIssues -PackagedDir $packagedDir)
+	}
+	Write-Host "[release-publish] Package aligne sur droxVersion $ProductVersion." -ForegroundColor Green
 }
 
 if (-not (Test-Path $ReleasesRepo)) {

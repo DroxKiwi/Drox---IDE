@@ -71,54 +71,33 @@ function Invoke-Gulp([string]$TaskName) {
 	Invoke-Npm @('run', 'gulp', '--', $TaskName)
 }
 
-# Marqueur embarqué dans out-vscode-min/main.js après correctif résolution drox.exe packagé.
-$script:DroxMinBundleMarker = 'resolved bundled engine'
-
-function Test-DroxEngineResolverInMinBundle {
-	$mainJs = Join-Path $repoRoot 'out-vscode-min\main.js'
-	if (-not (Test-Path $mainJs)) {
-		return $false
-	}
-	$hit = Select-String -Path $mainJs -Pattern $script:DroxMinBundleMarker -Quiet -ErrorAction SilentlyContinue
-	return [bool]$hit
-}
-
-function Test-OutVscodeMinReady {
-	$preload = Join-Path $repoRoot 'out-vscode-min\vs\base\parts\sandbox\electron-browser\preload.js'
-	$chatCss = Join-Path $repoRoot 'out-vscode-min\vs\workbench\contrib\drox\browser\media\droxChatMvp.css'
-	return (Test-Path $preload) -and (Test-Path $chatCss) -and (Test-DroxEngineResolverInMinBundle)
-}
+. (Join-Path $PSScriptRoot 'lib\drox-bundle-readiness.ps1')
+Initialize-DroxBundleReadiness -RepoRoot $repoRoot
 
 function Ensure-OutVscodeMin {
-	$needsCompile = $ForceCompile -or -not (Test-OutVscodeMinReady)
+	$issues = @(Get-DroxBundleReadinessIssues)
+	$needsCompile = $ForceCompile -or ($issues.Count -gt 0)
 	if (-not $needsCompile) {
+		Write-Host "[build-release] Bundle min OK (droxVersion $(Get-PackageDroxVersion))." -ForegroundColor Green
 		return
 	}
 	if ($SkipCompile -and -not $ForceCompile) {
-		throw @"
-[build-release] out-vscode-min obsolete ou incomplet (marqueur '$($script:DroxMinBundleMarker)' absent).
-  Relancez avec -ForceCompile (sans -SkipCompile) :
-    .\scripts\build-release-win32.ps1 -SkipNpmInstall -ForceCompile
-"@
+		throw (Format-DroxBundleReadinessReport -Issues $issues)
+	}
+	if ($issues.Count -gt 0) {
+		Write-Host (Format-DroxBundleReadinessReport -Issues $issues) -ForegroundColor Yellow
 	}
 	if ($ForceCompile) {
-		Write-Host "[build-release] -ForceCompile : rebundle out-vscode-min (~15-45 min)" -ForegroundColor Yellow
-	} elseif (-not (Test-DroxEngineResolverInMinBundle)) {
-		Write-Host '[build-release] Bundle min sans correctif drox.exe - core-ci-desktop obligatoire' -ForegroundColor Yellow
+		Write-Host '[build-release] -ForceCompile : rebundle out-vscode-min (~15-45 min)' -ForegroundColor Yellow
 	}
 	Write-Step 'gulp core-ci-desktop - bundle out-vscode-min seulement (sans server/reh)'
 	Invoke-Gulp 'core-ci-desktop'
-	if (-not (Test-OutVscodeMinReady)) {
-		throw ('out-vscode-min incomplet apres core-ci : preload, chat CSS ou marqueur "{0}" manquant' -f $script:DroxMinBundleMarker)
+	Write-DroxBundleStamp
+	$after = @(Get-DroxBundleReadinessIssues)
+	if ($after.Count -gt 0) {
+		throw (Format-DroxBundleReadinessReport -Issues $after)
 	}
-}
-
-function Test-PackagedDroxResolverInMainJs {
-	$mainJs = Join-Path $outDir 'resources\app\out\main.js'
-	if (-not (Test-Path $mainJs)) {
-		return $false
-	}
-	return [bool](Select-String -Path $mainJs -Pattern $script:DroxMinBundleMarker -Quiet -ErrorAction SilentlyContinue)
+	Write-Host "[build-release] Bundle min rebuilde pour droxVersion $(Get-PackageDroxVersion)." -ForegroundColor Green
 }
 
 Write-Host 'Drox IDE - build release win32-x64'
@@ -221,18 +200,11 @@ Moteur embarque absent sous $outDir
 "@
 }
 
-if (-not (Test-PackagedDroxResolverInMainJs)) {
-	Write-Error @"
-Le package ne contient pas le correctif resolution drox.exe (marqueur '$($script:DroxMinBundleMarker)' absent de resources\app\out\main.js).
-  Le gulp min-ci a reutilise un out-vscode-min obsolete. Relancez avec -ForceCompile :
-    .\scripts\build-release-win32.ps1 -SkipNpmInstall -ForceCompile
-"@
+$packageIssues = @(Get-PackagedReleaseIntegrityIssues -PackagedDir $outDir)
+if ($packageIssues.Count -gt 0) {
+	throw (Format-PackagedReleaseIntegrityReport -Issues $packageIssues -PackagedDir $outDir)
 }
-
-$chatCss = Join-Path $outDir 'resources\app\out\vs\workbench\contrib\drox\browser\media\droxChatMvp.css'
-if (-not (Test-Path $chatCss)) {
-	Write-Warning "Assets chat webview absents : $chatCss - relancer core-ci puis min-ci"
-}
+Write-Host (Format-PackagedReleaseIntegrityReport -Issues @() -PackagedDir $outDir) -ForegroundColor Green
 
 $forbidden = @(
 	Join-Path $outDir 'resources\app\src'

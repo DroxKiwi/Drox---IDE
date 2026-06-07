@@ -3,7 +3,7 @@
 **Statut** : idée brute  
 **Date** : 2026-06-06 (rev. 2)  
 **Priorité** : haute produit — onboarding local + éviter les runs impossibles  
-**Cible** : [1.3.3](../1.3/1.3.3/README.md) § P4  
+**Cible** : [1.3.5](../1.3/1.3.5/README.md) § P4  
 **Liens** : [08-performance](08-performance-traitement-rapide.md) · [10-parametrage](10-parametrage-prompts-strictesse.md) · `EngineTuning` (`orchestration/tuning/mod.rs`)
 
 ---
@@ -164,7 +164,7 @@ suggestion « utilisez un modèle plus petit »  ← message séparé, pas prese
 | `StrictnessPreset` | **Un** levier dans `RecommendedConfig` |
 | `EngineTuning` | Résolu depuis preset config + overrides |
 | Idée 10 | Détail des variables ; idée 12 = **calibration auto** par modèle×hardware |
-| 1.3.3 P3 fast path | Benchmark B9 + flag `completion.enabled` dans la reco |
+| 1.3.5 P3 fast path | Benchmark B9 + flag `completion.enabled` dans la reco |
 
 ---
 
@@ -201,5 +201,5 @@ suggestion « utilisez un modèle plus petit »  ← message séparé, pas prese
 
 ## Liens
 
-- [Plan 1.3.3 § P4](../1.3/1.3.3/PLAN-1.3.3.md)
+- [Plan 1.3.5 § P4](../1.3/1.3.5/PLAN-1.3.5.md)
 - [Hub brainstorm](README.md)
