@@ -9,11 +9,8 @@ use drox_tools::{
 };
 use serde_json::Value;
 
-/// Taille minimale (octets) pour considérer un `.md` comme livrable valide.
+/// Taille minimale preset `normal` (E2) — préférer [`EngineTuning::min_deliverable_bytes`].
 pub const MIN_DELIVERABLE_BYTES: u64 = 64;
-
-/// Extrait max injecté dans le rapport architecte.
-const EXCERPT_MAX_CHARS: usize = 600;
 
 /// Livrable `.md` trouvé sur disque pour une tâche déléguée.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,6 +78,7 @@ pub fn deliverable_path_from_tool_success(
     plan_id: &str,
     task_id: &str,
     workspace: &Utf8Path,
+    min_deliverable_bytes: u64,
 ) -> Option<String> {
     if !matches!(tool_name, "file_write" | "file_edit") {
         return None;
@@ -100,7 +98,7 @@ pub fn deliverable_path_from_tool_success(
         .get("bytes_written")
         .and_then(|v| v.as_u64())
         .or_else(|| file_size_on_disk(workspace, &rel));
-    if bytes.unwrap_or(0) < MIN_DELIVERABLE_BYTES {
+    if bytes.unwrap_or(0) < min_deliverable_bytes {
         return None;
     }
     Some(rel)
@@ -110,6 +108,7 @@ fn scan_deliverable_dir(
     workspace: &Utf8Path,
     dir_rel: &str,
     preferred_rel: Option<&str>,
+    min_deliverable_bytes: u64,
 ) -> Option<DeliverableOnDisk> {
     let dir_abs = workspace.join(dir_rel);
     let dir_std = dir_abs.as_std_path();
@@ -130,7 +129,7 @@ fn scan_deliverable_dir(
         }
         let meta = entry.metadata().ok()?;
         let bytes = meta.len();
-        if bytes < MIN_DELIVERABLE_BYTES {
+        if bytes < min_deliverable_bytes {
             continue;
         }
         let rel = format!("{dir_rel}/{}", name.replace('\\', "/"));
@@ -166,16 +165,26 @@ pub fn find_deliverable_on_disk(
     plan_id: &str,
     task_id: &str,
     preferred_filename: Option<&str>,
+    min_deliverable_bytes: u64,
 ) -> Option<DeliverableOnDisk> {
     let dir_rel = deliverable_dir_prefix(plan_id, task_id);
     let preferred_rel = preferred_filename.map(|name| format!("{dir_rel}/{name}"));
-    scan_deliverable_dir(workspace, &dir_rel, preferred_rel.as_deref())
+    scan_deliverable_dir(
+        workspace,
+        &dir_rel,
+        preferred_rel.as_deref(),
+        min_deliverable_bytes,
+    )
 }
 
 /// Rapport synthétique pour l'Architecte quand le moteur clôt sur le fichier.
 #[must_use]
-pub fn synthesize_executor_report_from_disk(task_id: &str, deliverable: &DeliverableOnDisk) -> String {
-    let excerpt = excerpt_deliverable(&deliverable.content);
+pub fn synthesize_executor_report_from_disk(
+    task_id: &str,
+    deliverable: &DeliverableOnDisk,
+    excerpt_max_chars: usize,
+) -> String {
+    let excerpt = excerpt_deliverable(&deliverable.content, excerpt_max_chars);
     format!(
         "## Executor report · {task_id}\n\n\
          **Status:** completed\n\n\
@@ -200,16 +209,16 @@ pub fn executor_deliverable_closure_notice(task_id: &str, deliverable_path: &str
     )
 }
 
-fn excerpt_deliverable(content: &str) -> String {
+fn excerpt_deliverable(content: &str, excerpt_max_chars: usize) -> String {
     let trimmed = content.trim();
     if trimmed.is_empty() {
         return "*(file empty)*".to_string();
     }
     let chars: Vec<char> = trimmed.chars().collect();
-    if chars.len() <= EXCERPT_MAX_CHARS {
+    if chars.len() <= excerpt_max_chars {
         return trimmed.to_string();
     }
-    let cut: String = chars.into_iter().take(EXCERPT_MAX_CHARS).collect();
+    let cut: String = chars.into_iter().take(excerpt_max_chars).collect();
     format!("{cut}…")
 }
 
@@ -292,7 +301,8 @@ mod tests {
             "x".repeat(80),
         )
         .unwrap();
-        let found = find_deliverable_on_disk(root, PLAN, "t2", Some(title)).unwrap();
+        let found = find_deliverable_on_disk(root, PLAN, "t2", Some(title), MIN_DELIVERABLE_BYTES)
+            .unwrap();
         assert_eq!(
             found.path,
             format!(".drox/agent-output/plan_test/t2/{title}")
@@ -310,7 +320,7 @@ mod tests {
             "# Report\n\n".to_string() + &"line\n".repeat(20),
         )
         .unwrap();
-        assert!(find_deliverable_on_disk(root, PLAN, "t2", None).is_none());
+        assert!(find_deliverable_on_disk(root, PLAN, "t2", None, MIN_DELIVERABLE_BYTES).is_none());
     }
 
     #[test]
@@ -334,6 +344,7 @@ mod tests {
             PLAN,
             "t2",
             root,
+            MIN_DELIVERABLE_BYTES,
         );
         assert_eq!(detected.as_deref(), Some(rel));
     }
@@ -345,7 +356,7 @@ mod tests {
             bytes: 200,
             content: "# Config\n\nScripts: dev, build".into(),
         };
-        let r = synthesize_executor_report_from_disk("t2", &d);
+        let r = synthesize_executor_report_from_disk("t2", &d, 600);
         assert!(r.contains("completed"));
         assert!(r.contains("Deliverable check:** met"));
         assert!(r.contains("Composants ui.md"));

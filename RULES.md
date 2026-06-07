@@ -40,7 +40,7 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 | Dépôt | Rôle |
 |-------|------|
 | `Drox---IDE` | Sources, build, développement (souvent privé) |
-| `Drox---IDE---releases` | Manifestes publics (`latest.json`, notes) — **pas** les gros binaires dans git |
+| `Drox---IDE---OR` | Manifestes publics (`latest.json`, notes, NOTICE) — **pas** les gros binaires dans git |
 
 ### Releases GitHub
 
@@ -56,7 +56,7 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 - Nom utilisateur : **Drox IDE** (moteur **Drox**). Plus de « Nexus » / `kdds-nexus` dans l’UI ou le package.
 - Profil utilisateur : `%APPDATA%\.drox-ide`
 - `product.json` : source de vérité pour noms exe, mutex, AppId, dossiers.
-- URLs produit (`licenseUrl`, `reportIssueUrl`) : pointer vers **Drox** / `Drox---IDE---releases`, pas Microsoft / Nexus.
+- URLs produit (`licenseUrl`, `reportIssueUrl`) : pointer vers **Drox** / `Drox---IDE---OR`, pas Microsoft / Nexus.
 - Licence distribuée : conserver **`LICENSE.txt`** + **`ThirdPartyNotices.txt`** dans le package ; voir `NOTICE-DROX.txt` pour l’attribution KDDS. EULA produit (non open source) : voir `drox-engine/docs/1.3/1.3.1/finalisation/LICENCE-PRODUIT.md`.
 - Release **1.3.1** : pas de liens Microsoft / Copilot visibles à l’usage ; suivi [CLOSURE-1.3.1.md](drox-engine/docs/1.3/1.3.1/finalisation/CLOSURE-1.3.1.md) et [PLAN-DEBRAND-MICROSOFT.md](drox-engine/docs/1.3/1.3.1/finalisation/PLAN-DEBRAND-MICROSOFT.md).
 
@@ -193,6 +193,14 @@ Mettre à jour les schémas quand le comportement moteur change (version produit
 
 - **Langue** des échanges avec l’utilisateur : **français**.
 - **Scope minimal** : pas de refactor ou de fichiers hors sujet sans demande.
+
+### Orchestration moteur — interdictions (obligatoire)
+
+- **Pas de listes heuristiques** sur le message utilisateur : interdit de classer l'intention par listes de mots-clés, regex « salut / bonjour / merci », longueur minimale du prompt, ou tout autre NLP codé en dur dans le moteur ou l'IDE pour choisir discuss vs edit.
+- **Routage discuss / edit** : uniquement via `architectInteractionMode` (RPC), tour intent modèle (`[gate: architect_discuss|architect_edit]`), ou marqueurs protocolaires déjà définis — pas de raccourci heuristique parallèle.
+- **Prompts modèle** : ne pas injecter de numéros de version produit (ex. « Drox 1.2 », « 1.3.2 ») dans les system prompts architecte / exécuteur ; le modèle juge l'intention dans le texte du prompt, le code ne duplique pas cette logique.
+- **Plans** : en chemin edit, chaque ligne `todo_write` doit refléter une demande utilisateur explicite — pas de plan d'audit / analyse de répertoire par défaut.
+
 - Ne pas committer sans demande ; ne pas pousser sur le remote sans demande.
 - Préférer réutiliser les scripts existants (`build-release-win32.ps1`, `sync-drox-win32-icons.ps1`, `release-publish-win32.ps1`) plutôt que réinventer le pipeline.
 - Après modif du plan distribution : mettre à jour `drox-engine/docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` et **1.3.1/finalisation/CLOSURE-1.3.1.md** si le processus release change.
@@ -235,9 +243,9 @@ Checklist smoke : `drox-engine/docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAU
 | Audit licences 1.3.1 | `drox-engine/docs/1.3/1.3.1/finalisation/AUDIT-LICENCES-1.3.1.md` |
 | Feature brainstorm (idées) | `drox-engine/docs/feature-brainstorm/README.md` |
 | Patches fork / merge upstream | `drox-engine/docs/1.3/1.3.0/finalisation/PATCHES-UPSTREAM-BUILD.md` |
-| Repo releases | `../Drox---IDE---releases/README.md` |
+| Repo releases | `../Drox---IDE---OR/README.md` |
 | Guide dev Drox | `DROX.md` (si présent) |
 
 ---
 
-*Dernière mise à jour : 2026-05-29 — §5 README moteur (ton brut, chronologie, Mermaid).*
+*Dernière mise à jour : 2026-06-02 — §6 orchestration (pas de listes heuristiques, pas de version dans les prompts modèle).*

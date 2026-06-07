@@ -3,8 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
+import { existsSync } from 'fs';
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, DisposableMap } from '../../../../base/common/lifecycle.js';
+import { isBareDroxExecutableName } from '../common/droxExecutable.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import {
 	IDroxEngineErrorPayload,
@@ -81,18 +85,27 @@ export class DroxEngineMainService extends Disposable {
 		let { windowId, executable, cwd, env = {} } = args;
 		await this.disposeWindow(windowId);
 
+		const hints = args.resolveHints;
+		const configuredPath = hints?.configuredPath?.trim() ?? '';
+		if (configuredPath.length > 0 && !isBareDroxExecutableName(configuredPath) && !existsSync(configuredPath)) {
+			this.logService.warn(
+				`[Drox] drox.executablePath not found (${configuredPath}) — probing workspace / appRoot / installDir`,
+			);
+		}
+
 		if (isUnresolvedBareDroxExecutable(executable)) {
-			const hints = args.resolveHints;
 			const resolved = resolveDroxExecutableOnDisk({
-				configuredPath: hints?.configuredPath ?? '',
+				configuredPath,
 				installDir: defaultDroxInstallDir(),
 				appRoot: hints?.appRoot,
 				workspaceFolderPaths: hints?.workspaceFolderPaths ?? (cwd ? [cwd] : []),
 			});
 			if (resolved) {
-				this.logService.info(`[Drox] resolved bundled engine: ${resolved}`);
+				this.logService.info(`[Drox] resolved engine: ${resolved}`);
 				executable = resolved;
 			}
+		} else if (!existsSync(executable)) {
+			this.logService.error(`[Drox] engine binary missing: ${executable}`);
 		}
 
 		const host = new DroxEngineHost(windowId, executable, cwd, env, {

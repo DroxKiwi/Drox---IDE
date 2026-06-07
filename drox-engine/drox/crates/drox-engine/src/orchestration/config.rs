@@ -1,4 +1,4 @@
-//! Configuration modèles orchestration `v1_2` (1.2.0).
+//! Model pairing for `role_split` orchestration (architect + executor).
 //!
 //! Recycle les réglages produit existants :
 //! - modèle principal (`params.model` / `nexus.drox.architect.model`, ex-`nexus.drox.model`)
@@ -10,7 +10,7 @@ pub const DEFAULT_EXECUTOR_MODEL: &str = "qwen3.5:2b";
 
 use super::parallel_batch::MAX_PARALLEL_EXECUTORS_CAP;
 
-/// Paire architecte / exécutant pour un run `v1_2`.
+/// Architect / executor model pair for a `role_split` run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OrchestrationConfig {
     pub architect_model: String,

@@ -37,6 +37,8 @@ import { IOverlayWebview, IWebviewService, WebviewContentPurpose } from '../../w
 import { asWebviewUri } from '../../webview/common/webview.js';
 
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
+import { formatDroxChatVersionLabel, formatDroxChatVersionTitle } from '../common/droxProductVersion.js';
 
 import { DroxViews } from '../common/drox.js';
 
@@ -89,6 +91,8 @@ export class DroxChatViewPane extends ViewPane {
 		@IHoverService hoverService: IHoverService,
 
 		@IWebviewService private readonly webviewService: IWebviewService,
+
+		@IProductService private readonly productService: IProductService,
 
 	) {
 
@@ -248,7 +252,12 @@ export class DroxChatViewPane extends ViewPane {
 
 
 
-		webview.setHtml(getDroxChatHtml(cssUri, scriptUris));
+		webview.setHtml(getDroxChatHtml(
+			cssUri,
+			scriptUris,
+			formatDroxChatVersionLabel(this.productService),
+			formatDroxChatVersionTitle(this.productService),
+		));
 
 		this._chatController.attachWebview(webview, getWindow(this.element), this._container);
 

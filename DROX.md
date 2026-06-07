@@ -55,7 +55,7 @@ Terminal B — fenêtre Electron :
 
 ### 3. Workspace & LLM
 
-1. **Fichier → Ouvrir le dossier…** → racine de ce repo (pour trouver `drox-engine/drox/target/debug/drox.exe`).
+1. **Workspace** : n’importe quel projet (ex. `site-kdds`) — le moteur dev est résolu via `appRoot` → `drox-engine/drox/target/debug/drox.exe`. Ouvrir ce repo n’est plus obligatoire.
 2. Créer `drox-engine/drox/.drox/.env` à partir de `drox-engine/drox/.drox/env.example` :
 
 ```env
@@ -97,7 +97,9 @@ Réglages : palette → **« Drox: Open Settings »** ou recherche `drox` dans P
 | `drox.tools.disabled` | Liste d’outils désactivés |
 | `drox.tools.mcp.enabled` | MCP dynamiques |
 
-Résolution du binaire (sans setting) : workspace `drox-engine/drox/target/{debug,release}/` → `resources/drox/<plateforme>/` → `PATH`.
+Résolution du binaire (sans setting) : workspace cargo → **appRoot cargo** (dev) → `resources/drox/<plateforme>/` (snapshot) → `PATH`. Après `cargo build`, le moteur redémarre automatiquement quand `drox.exe` change.
+
+Vérification : `.\scripts\verify-drox-engine.ps1` — le binaire utilisé doit être `MODERN (role_split)`.
 
 ---
 

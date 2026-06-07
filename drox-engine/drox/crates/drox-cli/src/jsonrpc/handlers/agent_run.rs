@@ -11,7 +11,7 @@ use std::sync::atomic::AtomicBool;
 use async_trait::async_trait;
 use camino::{Utf8Path, Utf8PathBuf};
 use drox_engine::{
-    Agent, AgentConfig, AgentEvent, CompactionConfig, ContextPolicy, JsonlTranscriptSink,
+    Agent, AgentConfig, AgentEvent, CompactionConfig, ContextPolicy, JsonlTranscriptSink, Phase,
     EngineOrchestrationDelegate, LayeredConfig, MemoryRuntime, OrchestrationConfig,
     PermissionEngine, PermissionMode, PermissionPolicy, OrchestrationMode, RunSpec, SessionError,
     SessionNotesHandle, TranscriptSessionConfig, SubagentJobRegistry,
@@ -95,7 +95,7 @@ pub async fn agent_run(server: Server, params: Option<Value>) -> Result<Value, R
     let run_cancel = Arc::new(AtomicBool::new(false));
 
     let join = tokio::spawn(async move {
-        let outcome = super::orchestration_run::drive_run_v1_2(
+        let outcome = super::orchestration_run::drive_role_split_run(
             &server_for_task,
             run_id_for_task.clone(),
             &params_for_task,
@@ -150,6 +150,8 @@ pub(crate) struct AgentSetupOverrides {
     pub system_override: Option<String>,
     pub force_disable_subagents: bool,
     pub orchestration_delegate: Option<OrchestrationDelegateWireInput>,
+    /// Objectif verrouillé injecté avant le run.
+    pub run_objective_override: Option<String>,
 }
 
 #[allow(clippy::too_many_lines)] // plomberie linéaire : workspace + memory + permissions + transcript + registry
@@ -157,9 +159,22 @@ pub(crate) async fn build_agent_setup(
     server: &Server,
     run_id: &str,
     params: &AgentRunParams,
-    run_spec: RunSpec,
+    mut run_spec: RunSpec,
     overrides: AgentSetupOverrides,
 ) -> Result<AgentSetup, RpcError> {
+    let engine_tuning = drox_engine::resolve_engine_tuning(
+        params.engine_strictness.as_deref(),
+        params.engine_tuning.as_ref(),
+    );
+    if run_spec.is_orchestration_role() {
+        run_spec =
+            RunSpec::for_orchestration_role_with_tuning(run_spec.role_id, &engine_tuning);
+    } else {
+        run_spec.limits.max_todo_items =
+            engine_tuning.max_todo_items.map(|n| n as usize);
+        run_spec.limits.memory_budget_tokens = engine_tuning.memory_budget_tokens;
+    }
+
     let effective_model = overrides
         .model_override
         .clone()
@@ -254,6 +269,8 @@ pub(crate) async fn build_agent_setup(
             professor_mode: mode.is_professor(),
             disabled_tools_notice: format_disabled_tools_notice(&params.disabled_tools),
             subagents_enabled,
+            engine_tuning: engine_tuning.clone(),
+            discussion_allow_reads: run_spec.discussion_allow_reads,
         })
     };
 
@@ -337,16 +354,13 @@ pub(crate) async fn build_agent_setup(
             executor_llm,
             vec![orch_wire.orch_cfg.executor_model.clone()],
             chat_options.clone(),
-            params
-                .subagents_max_iterations
-                .or(params.max_iterations)
-                .unwrap_or(8)
-                .clamp(1, 25),
+            engine_tuning.executor_subrun_max_iterations as usize,
             executor_num_ctx,
             Some(policy.clone()),
             Some(orchestration_delegate_hook(server, run_id)),
             run_cancel,
             orch_wire.orch_cfg.max_parallel_executors,
+            engine_tuning.clone(),
         ));
         ctx = ctx
             .with_orchestration_delegate(delegate)
@@ -354,7 +368,7 @@ pub(crate) async fn build_agent_setup(
         tracing::info!(
             executor_model = %orch_wire.orch_cfg.executor_model,
             max_parallel_executors = orch_wire.orch_cfg.max_parallel_executors,
-            "orchestration v1_2 — delegate_executor wired for Architect run"
+            "orchestration role_split — delegate_executor wired for Architect run"
         );
     }
 
@@ -424,7 +438,7 @@ pub(crate) async fn build_agent_setup(
         workspace_root: workspace,
         llm: llm.clone(),
         compaction_prompt: crate::prompts::COMPACTION_PROMPT.to_string(),
-        compaction_config: CompactionConfig::default(),
+        compaction_config: CompactionConfig::from_tuning(&engine_tuning),
         notes: SessionNotesHandle::new(),
         model_label: model_label.clone(),
     };
@@ -441,22 +455,30 @@ pub(crate) async fn build_agent_setup(
         max_iterations: params.max_iterations.unwrap_or(12),
         chat_options,
         permissions: Some(policy),
-        context: Some(ContextPolicy::for_model_context_window(num_ctx)),
+        context: Some(ContextPolicy::for_model_context_window_with_tuning(
+            num_ctx,
+            &engine_tuning,
+        )),
         transcript,
         memory: Some(memory_runtime),
         transcript_session_id: params.session_id.clone(),
         workspace_fingerprint,
-        max_parallel_tool_calls: drox_engine::DEFAULT_MAX_PARALLEL_TOOL_CALLS,
+        max_parallel_tool_calls: engine_tuning.max_parallel_tool_calls as usize,
         tool_hooks: if tool_hooks.is_enabled() {
             Some(tool_hooks)
         } else {
             None
         },
-        run_objective: params.run_objective.clone(),
+        run_objective: overrides
+            .run_objective_override
+            .clone()
+            .or_else(|| params.run_objective.clone()),
         delegate_task_id: None,
         executor_deliverable_task_id: None,
         executor_deliverable_plan_id: None,
         run_spec,
+        engine_tuning,
+        orchestration_run_id: Some(run_id.to_string()),
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);
@@ -467,6 +489,49 @@ pub(crate) async fn build_agent_setup(
     })
 }
 
+/// Notifie la fin d'un run (`agent/done`, status completed).
+pub(crate) async fn notify_agent_run_completed(server: &Server, run_id: &str) {
+    server
+        .notify(
+            "agent/done",
+            AgentDoneNotification {
+                run_id: run_id.to_string(),
+                status: RunStatus::Completed,
+                error: None,
+            },
+        )
+        .await;
+}
+
+/// Notifie un événement agent (hors stream interne).
+pub(crate) async fn notify_agent_event(server: &Server, run_id: &str, event: AgentEvent) {
+    server
+        .notify(
+            "agent/event",
+            AgentEventNotification {
+                run_id: run_id.to_string(),
+                event,
+                job_id: None,
+            },
+        )
+        .await;
+}
+
+/// Filtre les événements stream relayés à l'UI (mode interne sans relay).
+fn agent_event_relay_to_ui(ev: &AgentEvent, relay_ui_stream: bool) -> bool {
+    if relay_ui_stream {
+        return true;
+    }
+    !matches!(
+        ev,
+        AgentEvent::TextDelta { .. }
+            | AgentEvent::PhaseEnter { .. }
+            | AgentEvent::PhaseClose
+            | AgentEvent::RunObjective { .. }
+            | AgentEvent::RoleEnter { .. }
+    )
+}
+
 /// Pilote un agent, notifie les événements, collecte le texte assistant.
 pub(crate) async fn drive_role_run(
     server: &Server,
@@ -474,7 +539,9 @@ pub(crate) async fn drive_role_run(
     setup: AgentSetup,
     user_blocks: Vec<Content>,
     role_wire: &str,
-) -> (RunOutcome, String) {
+    emit_agent_done: bool,
+    relay_ui_stream: bool,
+) -> (RunOutcome, String, String) {
     server
         .notify(
             "agent/event",
@@ -496,6 +563,8 @@ pub(crate) async fn drive_role_run(
     let mut stream = agent.run_with_history_blocks(history, user_blocks);
     let mut errored = false;
     let mut assistant_text = String::new();
+    let mut answering_text = String::new();
+    let mut relay_phase: Option<Phase> = None;
 
     while let Some(event) = stream.next().await {
         if server.is_run_cancelled(run_id) {
@@ -503,8 +572,14 @@ pub(crate) async fn drive_role_run(
         }
         match event {
             Ok(ev) => {
+                if let AgentEvent::PhaseEnter { phase } = &ev {
+                    relay_phase = Some(*phase);
+                }
                 if let AgentEvent::TextDelta { ref text } = ev {
                     assistant_text.push_str(text);
+                    if relay_phase == Some(Phase::Answering) {
+                        answering_text.push_str(text);
+                    }
                 }
                 if let Some(ref p) = ui_stats_path {
                     if let Err(e) = merge_ui_stats_from_agent_event(p, &ev).await {
@@ -512,16 +587,18 @@ pub(crate) async fn drive_role_run(
                     }
                 }
                 let is_stop = matches!(&ev, AgentEvent::Stop { .. });
-                server
-                    .notify(
-                        "agent/event",
-                        AgentEventNotification {
-                            run_id: run_id.to_string(),
-                            event: ev,
-                            job_id: None,
-                        },
-                    )
-                    .await;
+                if agent_event_relay_to_ui(&ev, relay_ui_stream) {
+                    server
+                        .notify(
+                            "agent/event",
+                            AgentEventNotification {
+                                run_id: run_id.to_string(),
+                                event: ev,
+                                job_id: None,
+                            },
+                        )
+                        .await;
+                }
                 if is_stop {
                     break;
                 }
@@ -544,7 +621,7 @@ pub(crate) async fn drive_role_run(
     }
 
     if server.is_run_cancelled(run_id) {
-        return (RunOutcome::Errored, assistant_text);
+        return (RunOutcome::Errored, assistant_text, answering_text);
     }
 
     let outcome = if errored {
@@ -553,8 +630,8 @@ pub(crate) async fn drive_role_run(
         RunOutcome::Completed
     };
 
-    // Clôture UI (`busy: false`) — `drive_run` le fait déjà ; `drive_role_run` (v1_2) non.
-    if !errored {
+    // Clôture UI (`busy: false`) — le tour intent (`emit_agent_done: false`) ne clôt pas le run global.
+    if emit_agent_done && !errored {
         server
             .notify(
                 "agent/done",
@@ -567,7 +644,7 @@ pub(crate) async fn drive_role_run(
             .await;
     }
 
-    (outcome, assistant_text)
+    (outcome, assistant_text, answering_text)
 }
 
 #[allow(dead_code)]
@@ -775,7 +852,7 @@ pub(crate) fn wrap_executable_tools(
     }
     for name in remote_names {
         let Some(inner) = registry.get(&name) else {
-            // Normal for orchestration Architect runs: allowlist excludes file_edit/bash/etc.;
+            // Orchestration Architect runs expose full workspace tools + delegate_executor;
             // those tools are wrapped when the Executor role registry includes them.
             tracing::debug!(
                 %name,
@@ -881,11 +958,12 @@ async fn build_transcript(
     let id = SessionId::from_string(sid.clone());
     let path = transcript_path(&dir, &id);
     let stats_path = session_ui_stats_path(&dir, &id);
-    let history = match read_transcript(&path).await {
+    let mut history = match read_transcript(&path).await {
         Ok(h) => h,
         Err(SessionError::NotFound(_)) => Vec::new(),
         Err(e) => return Err(RpcError::new(ENGINE_ERROR, format!("session read: {e}"))),
     };
+    drox_engine::sanitize_transcript_user_messages(&mut history);
     let append_from = history.len() + usize::from(system_merged.is_some());
     let sink = JsonlTranscriptSink::arc(path);
     Ok((
@@ -1201,7 +1279,7 @@ fn resolve_subagent_llm(
     ))
 }
 
-/// Client LLM unique pour l'exécutant orchestration (`v1_2`).
+/// Dedicated LLM client for the orchestration executor (`role_split`).
 /// Parallélisme des tâches : `max_parallel_executors` + slots Ollama (`OLLAMA_NUM_PARALLEL`).
 pub(crate) async fn build_orchestration_executor_llm(
     params: &AgentRunParams,
@@ -1220,12 +1298,12 @@ pub(crate) async fn build_orchestration_executor_llm(
     // Même modèle → réutiliser le client parent (l'exécuteur passe `num_ctx` par requête
     // dans `EngineOrchestrationDelegate`). Un second client forçait un rechargement Ollama
     // (VRAM) et des 500 « model failed to load » alors que l'architecte tournait déjà.
-    if executor_model == parent_model {
+    if executor_model == parent_model && executor_num_ctx == parent_num_ctx {
         tracing::info!(
             executor_model = %executor_model,
             executor_num_ctx,
             parent_num_ctx,
-            "orchestration executor — reusing parent Ollama client (same model)"
+            "orchestration executor — reusing parent Ollama client (same model and num_ctx)"
         );
         return Ok(vec![parent_llm.clone()]);
     }

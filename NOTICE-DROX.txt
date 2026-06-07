@@ -10,3 +10,5 @@ The installed application also includes ThirdPartyNotices.txt listing
 licenses for bundled open-source components.
 
 See LICENSE.txt (MIT) and ThirdPartyNotices.txt in the installation directory.
+
+Product notice (releases): https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md

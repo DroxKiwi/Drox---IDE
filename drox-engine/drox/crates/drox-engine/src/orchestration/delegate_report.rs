@@ -82,6 +82,7 @@ pub fn finalize_delegate_result(
     successful_tools: usize,
     engine_error: Option<&str>,
     deliverable_on_disk: Option<&DeliverableOnDisk>,
+    executor_deliverable_excerpt_max_chars: usize,
 ) -> (DelegateStatus, String) {
     let tools_succeeded = successful_tools > 0;
     let extracted = extract_executor_report(full_stream);
@@ -108,7 +109,7 @@ pub fn finalize_delegate_result(
     let mut report = if let Some(extracted) = extracted.filter(|s| !s.is_empty()) {
         extracted
     } else if let Some(disk) = deliverable_on_disk {
-        synthesize_executor_report_from_disk(task_id, disk)
+        synthesize_executor_report_from_disk(task_id, disk, executor_deliverable_excerpt_max_chars)
     } else if tools_succeeded {
         "(Executor ran tools but did not produce a structured **Executor report** — \
          Architect must verify the workspace or re-delegate with a clearer brief.)"
@@ -165,14 +166,14 @@ mod tests {
     #[test]
     fn glob_noise_is_partial_not_completed() {
         let raw = "I will glob node_modules...\n## Executor report · t2\n\n**Deliverable check:** not met\n";
-        let (status, _) = finalize_delegate_result("t2", raw, false, false, 3, None, None);
+        let (status, _) = finalize_delegate_result("t2", raw, false, false, 3, None, None, 600);
         assert_eq!(status, DelegateStatus::Partial);
     }
 
     #[test]
     fn structured_met_is_completed() {
         let raw = "## Executor report · t1\n\n**Deliverable check:** met\n\n**What I did:**\n- read file\n";
-        let (status, report) = finalize_delegate_result("t1", raw, false, false, 1, None, None);
+        let (status, report) = finalize_delegate_result("t1", raw, false, false, 1, None, None, 600);
         assert_eq!(status, DelegateStatus::Completed);
         assert!(report.contains("Executor report"));
     }
@@ -188,13 +189,15 @@ mod tests {
             2,
             Some("loop detected"),
             None,
+            600,
         );
         assert_eq!(status, DelegateStatus::Completed);
     }
 
     #[test]
     fn engine_error_without_tools_is_failed() {
-        let (status, _) = finalize_delegate_result("t1", "", false, true, 0, Some("timeout"), None);
+        let (status, _) =
+            finalize_delegate_result("t1", "", false, true, 0, Some("timeout"), None, 600);
         assert_eq!(status, DelegateStatus::Failed);
     }
 
@@ -213,6 +216,7 @@ mod tests {
             2,
             None,
             Some(&disk),
+            600,
         );
         assert_eq!(status, DelegateStatus::Completed);
         assert!(report.contains("on-disk deliverable"));
@@ -234,6 +238,7 @@ mod tests {
             2,
             None,
             Some(&disk),
+            600,
         );
         assert_eq!(status, DelegateStatus::Blocked);
     }

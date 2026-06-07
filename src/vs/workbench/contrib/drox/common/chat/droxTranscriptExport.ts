@@ -51,7 +51,7 @@ function roleLabel(role: IDroxTranscriptMessage['role']): string {
 	}
 }
 
-function pushStepSeparator(out: string[], step: number, title: string): void {
+export function pushDroxExportStepSeparator(out: string[], step: number, title: string): void {
 	out.push('');
 	out.push('═'.repeat(72));
 	out.push(`Step ${step} — ${title}`);
@@ -59,7 +59,7 @@ function pushStepSeparator(out: string[], step: number, title: string): void {
 	out.push('');
 }
 
-function formatPhaseAwareText(text: string, out: string[]): void {
+export function formatDroxPhaseAwareText(text: string, out: string[]): void {
 	const lines = text.replace(/\r\n/g, '\n').split('\n');
 	const buf: string[] = [];
 	const flushBuf = (): void => {
@@ -453,7 +453,7 @@ function formatAssistantBlocksChronological(
 		if (block.type === 'text') {
 			const text = blockText(block);
 			if (text?.trim()) {
-				formatPhaseAwareText(text, out);
+				formatDroxPhaseAwareText(text, out);
 			}
 			continue;
 		}
@@ -523,7 +523,7 @@ function emitOrphanToolResults(
 				continue;
 			}
 			step.value += 1;
-			pushStepSeparator(out, step.value, `TOOL RESULT (orphan${id ? ` · ${id}` : ''})`);
+			pushDroxExportStepSeparator(out, step.value, `TOOL RESULT (orphan${id ? ` · ${id}` : ''})`);
 			consumed.add(id);
 			const raw = typeof block.content === 'string' ? block.content : previewJson(block.content, maxToolResult);
 			formatToolResultRich(undefined, raw, Boolean(block.is_error), maxToolResult, maxDelegateReport, out);
@@ -569,7 +569,7 @@ export function formatDroxTranscriptExport(opts: IFormatDroxTranscriptExportOpti
 			continue;
 		}
 		step.value += 1;
-		pushStepSeparator(out, step.value, roleLabel(m.role));
+		pushDroxExportStepSeparator(out, step.value, roleLabel(m.role));
 		const blocks = Array.isArray(m.content) ? m.content : [];
 
 		if (m.role === 'user') {

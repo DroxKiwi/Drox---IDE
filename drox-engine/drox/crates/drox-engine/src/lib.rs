@@ -55,23 +55,38 @@ pub use tool_orchestration::{
     partition_tool_calls, ToolCallBatch, DEFAULT_MAX_PARALLEL_TOOL_CALLS,
 };
 
-pub use agent::{Agent, AgentConfig, AgentStream};
+pub use agent::{Agent, AgentConfig, AgentStream, apply_architect_edit_start, ArchitectEditStartOutcome};
 pub use run_spec::{
     GateKind, RoleId, RunLimits, RunSpec, RUN_SPEC_VERSION, ARCHITECT_TOOL_ALLOWLIST,
     EXECUTOR_TOOL_ALLOWLIST,
 };
 pub use orchestration::{
-    architect_system_prompt_for_run, architect_user_message, executor_user_message_from_delegate,
-    prepare_run_spec,
-    OrchestrationConfig, OrchestrationMode, ARCHITECT_SYSTEM_PROMPT, DEFAULT_ARCHITECT_MODEL,
-    DEFAULT_EXECUTOR_MODEL, EXECUTOR_SYSTEM_PROMPT,
+    extract_first_json_object, looks_like_gate_json_response, GateChainResult, StartRunKind,
+    architect_discussion_user_message,
+    architect_edit_system_prompt_core_for_run, architect_edit_system_prompt_core_for_run_vars,
+    architect_user_message, executor_user_message_from_delegate,
+    extract_discussion_done_from_text, extract_discussion_user_facing_reply,
+    extract_mode_from_text, parse_mode_marker,
+    ArchitectGate, ArchitectWorkMode,
+    EngineTuning, EngineTuningOverrides, OrchestrationConfig, OrchestrationMode, PromptBlockId,
+    PromptVars, StrictnessPreset, resolve_engine_tuning,
+    architect_discussion_system_prompt, architect_discussion_system_prompt_default,
+    architect_discussion_system_prompt_for_start_run,
+    architect_tool_short_description, architect_parallel_slots_supplement,
+    is_architect_read_tool_for_delegate_cap, tool_supplements_all_architect,
+    ARCHITECT_DISCUSSION_CORE_PROMPT, ARCHITECT_DISCUSSION_SYSTEM_PROMPT,
+    initial_run_objective_for_concrete_edit, sanitize_architect_user_prompt,
+    sanitize_transcript_user_messages,
+    DEFAULT_ARCHITECT_MODEL, DEFAULT_EXECUTOR_MODEL,
+    EXECUTOR_SYSTEM_PROMPT,
 };
 pub use orchestration_delegate::{
     EngineOrchestrationDelegate, executor_tool_registry,
 };
 pub use compaction::{
     choose_live_compact_split_idx, compact_until_budget, format_compact_checkpoint, summarize_run,
-    try_live_compact, CompactionConfig, CHECKPOINT_MAX_CHARS, LIVE_COMPACT_MAX_PASSES,
+    try_live_compact, CompactionConfig, LiveCompactSettings, CHECKPOINT_MAX_CHARS,
+    LIVE_COMPACT_MAX_PASSES,
     LIVE_COMPACT_MAX_TAIL_RATIO, LIVE_COMPACT_TAIL_KEEP_MESSAGES,
     CompactionResult, LiveCompactReport, LIVE_COMPACT_MIN_PREFIX_TOKENS,
 };

@@ -107,33 +107,6 @@ pub(crate) fn phase_for_tool(tool_name: &str, active_phase: Option<Phase>) -> Ph
     }
 }
 
-/// `true` si le texte utilisateur ressemble à une demande d'analyse de dépôt (§2.18).
-#[must_use]
-pub(crate) fn user_prompt_suggests_workspace_analysis(text: &str) -> bool {
-    let lower = text.to_lowercase();
-    [
-        "analyse",
-        "analyze",
-        "audit",
-        "vue d'ensemble",
-        "overview",
-        "structure du projet",
-        "structure of the project",
-        "explore le repo",
-        "explore the repo",
-        "cartograph",
-        "survey the",
-        "comprendre le projet",
-        "understand the project",
-        "analyse le projet",
-        "analyze the project",
-        "analyse ce repo",
-        "analyze this repo",
-    ]
-    .iter()
-    .any(|needle| lower.contains(needle))
-}
-
 #[must_use]
 pub(crate) fn is_workspace_exploration_tool(name: &str) -> bool {
     matches!(
@@ -447,14 +420,6 @@ mod tests {
         ] {
             assert_eq!(phase_for_tool(t, None), Phase::Acting, "{t}");
         }
-    }
-
-    #[test]
-    fn user_prompt_suggests_workspace_analysis_heuristic() {
-        assert!(user_prompt_suggests_workspace_analysis(
-            "Peux-tu analyser la structure du projet ?"
-        ));
-        assert!(!user_prompt_suggests_workspace_analysis("fix the typo in README"));
     }
 
     #[test]

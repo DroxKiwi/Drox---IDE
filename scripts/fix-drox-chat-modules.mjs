@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 const root = path.resolve(import.meta.dirname, '..');
-const dir = path.join(root, 'src/vs/workbench/contrib/drox/browser/media/droxChat');
+const dir = path.join(root, 'src/vs/workbench/contrib/drox/browser/media/droxChat/_legacy-flat');
 
 const apiNames = [
 	'getPromptText', 'setPromptText', 'clearPromptText', 'isPromptTextEmpty', 'getPromptCursor', 'placeCaretAtEnd',

@@ -42,7 +42,11 @@ else if (globalThis._VSCODE_PRODUCT_JSON && globalThis._VSCODE_PACKAGE_JSON) {
 	// Version is added during built time, but we still
 	// want to have it running out of sources so we
 	// read it from package.json only when we need it.
-	const pkg = globalThis._VSCODE_PACKAGE_JSON as { version: string; droxVersion?: string };
+	const pkg = globalThis._VSCODE_PACKAGE_JSON as {
+		version: string;
+		droxVersion?: string;
+		droxEngineDevBuild?: number;
+	};
 
 	if (!product.version) {
 		Object.assign(product, {
@@ -53,6 +57,12 @@ else if (globalThis._VSCODE_PRODUCT_JSON && globalThis._VSCODE_PACKAGE_JSON) {
 	if (!product.droxVersion && pkg.droxVersion) {
 		Object.assign(product, {
 			droxVersion: pkg.droxVersion
+		});
+	}
+
+	if (product.droxEngineDevBuild === undefined && typeof pkg.droxEngineDevBuild === 'number') {
+		Object.assign(product, {
+			droxEngineDevBuild: pkg.droxEngineDevBuild
 		});
 	}
 }

@@ -25,6 +25,7 @@ use crate::orchestration::{
     executor_user_message_from_delegate, finalize_delegate_result, post_delegate_truth_check,
     validate_parallel_batch, EXECUTOR_SYSTEM_PROMPT,
 };
+use crate::orchestration::EngineTuning;
 use crate::run_spec::{RoleId, RunSpec};
 use crate::{default_tool_registry, permissions::PermissionPolicy};
 
@@ -56,6 +57,7 @@ pub struct EngineOrchestrationDelegate {
     event_hook: Option<drox_tools::OrchestrationDelegateEventHook>,
     run_cancel: Arc<AtomicBool>,
     max_parallel_executors: usize,
+    engine_tuning: EngineTuning,
 }
 
 impl EngineOrchestrationDelegate {
@@ -70,6 +72,7 @@ impl EngineOrchestrationDelegate {
         event_hook: Option<drox_tools::OrchestrationDelegateEventHook>,
         run_cancel: Arc<AtomicBool>,
         max_parallel_executors: usize,
+        engine_tuning: EngineTuning,
     ) -> Self {
         let llms = if llms.is_empty() {
             panic!("EngineOrchestrationDelegate requires at least one LLM client");
@@ -91,6 +94,7 @@ impl EngineOrchestrationDelegate {
             event_hook,
             run_cancel,
             max_parallel_executors: max_parallel_executors.clamp(1, crate::orchestration::MAX_PARALLEL_EXECUTORS_CAP),
+            engine_tuning,
         }
     }
 
@@ -192,7 +196,8 @@ impl EngineOrchestrationDelegate {
         chat_options.num_ctx = Some(self.executor_num_ctx as i64);
 
         let registry = Arc::new(executor_tool_registry());
-        let run_spec = RunSpec::for_orchestration_role(RoleId::Executor);
+        let run_spec =
+            RunSpec::for_orchestration_role_with_tuning(RoleId::Executor, &self.engine_tuning);
 
         let agent = Agent::new(
             llm,
@@ -200,23 +205,26 @@ impl EngineOrchestrationDelegate {
             executor_ctx,
             AgentConfig {
                 system_prompt: Some(EXECUTOR_SYSTEM_PROMPT.to_string()),
-                max_iterations: self.max_iterations,
+                max_iterations: self.engine_tuning.executor_subrun_max_iterations as usize,
                 chat_options,
                 permissions: self.permissions.clone(),
-                context: Some(ContextPolicy::for_model_context_window(
+                context: Some(ContextPolicy::for_model_context_window_with_tuning(
                     self.executor_num_ctx,
+                    &self.engine_tuning,
                 )),
                 transcript: None,
                 memory: None,
                 transcript_session_id: None,
                 workspace_fingerprint: String::new(),
-                max_parallel_tool_calls: 2,
+                max_parallel_tool_calls: self.engine_tuning.max_parallel_tool_calls as usize,
                 tool_hooks: None,
                 run_objective: Some(description.clone()),
                 delegate_task_id: Some(task_id.clone()),
                 executor_deliverable_task_id: Some(task_id.clone()),
                 executor_deliverable_plan_id: Some(plan_id.to_string()),
                 run_spec,
+                engine_tuning: self.engine_tuning.clone(),
+                orchestration_run_id: None,
             },
         );
 
@@ -269,8 +277,15 @@ impl EngineOrchestrationDelegate {
             role_id: "architect".to_string(),
         });
 
-        let disk_deliverable =
-            find_deliverable_on_disk(&workspace, plan_id, &task_id, Some(&deliverable_filename));
+        let min_bytes = self.engine_tuning.min_deliverable_bytes;
+        let excerpt_max = self.engine_tuning.executor_deliverable_excerpt_max_chars as usize;
+        let disk_deliverable = find_deliverable_on_disk(
+            &workspace,
+            plan_id,
+            &task_id,
+            Some(&deliverable_filename),
+            min_bytes,
+        );
 
         let scope_paths: Vec<String> = scope
             .as_ref()
@@ -298,6 +313,7 @@ impl EngineOrchestrationDelegate {
             successful_tools,
             engine_error.as_deref(),
             disk_deliverable.as_ref(),
+            excerpt_max,
         );
 
         let truth = post_delegate_truth_check(
@@ -305,6 +321,7 @@ impl EngineOrchestrationDelegate {
             &scope_paths,
             task_kind,
             disk_deliverable.as_ref(),
+            min_bytes,
         );
         delegate_status = apply_truth_check_to_status(delegate_status, &truth);
 
@@ -506,6 +523,7 @@ mod tests {
             2,
             Some("loop detected: model repeated the same text for 3 consecutive turns"),
             None,
+            600,
         );
         assert_eq!(status, DelegateStatus::Partial);
         assert!(report.contains("structured"));
@@ -521,6 +539,7 @@ mod tests {
             0,
             Some("LLM error: timeout"),
             None,
+            600,
         );
         assert_eq!(status, DelegateStatus::Failed);
         assert!(!status.success());

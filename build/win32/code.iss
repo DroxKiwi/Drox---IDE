@@ -11,9 +11,9 @@ AppId={#AppId}
 AppName={#NameLong}
 AppVerName={#NameVersion}
 AppPublisher=KDDS
-AppPublisherURL=https://github.com/DroxKiwi/Drox---IDE---releases
-AppSupportURL=https://github.com/DroxKiwi/Drox---IDE---releases/issues
-AppUpdatesURL=https://github.com/DroxKiwi/Drox---IDE---releases/releases
+AppPublisherURL=https://github.com/DroxKiwi/Drox---IDE---OR
+AppSupportURL=https://github.com/DroxKiwi/Drox---IDE---OR/issues
+AppUpdatesURL=https://github.com/DroxKiwi/Drox---IDE---OR/releases
 DefaultGroupName={#NameLong}
 AllowNoIcons=yes
 OutputDir={#OutputDir}
@@ -43,8 +43,8 @@ WizardStyle=modern dark hidebevels includetitlebar excludelightcontrols
 WizardBackColor=$1E1E1E
 
 // We've seen an uptick on broken installations from updates which were unable
-// to shutdown VS Code. We rely on the fact that the update signals
-// that VS Code is ready to be shutdown, so we're good to use `force` here.
+// to shutdown Drox IDE. We rely on the fact that the update signals
+// that the app is ready to be shutdown, so we're good to use `force` here.
 CloseApplications=force
 
 #ifdef Sign
@@ -1342,7 +1342,7 @@ begin
 
   #if "user" == InstallTarget
     if not WizardSilent() and IsAdmin() then begin
-      if MsgBox('This User Installer is not meant to be run as an Administrator. If you would like to install Drox IDE for all users on this system, use the System Installer from https://github.com/DroxKiwi/Drox---IDE---releases instead. Continue anyway?', mbError, MB_OKCANCEL) = IDCANCEL then begin
+      if MsgBox('This User Installer is not meant to be run as an Administrator. If you would like to install Drox IDE for all users on this system, use the System Installer from https://github.com/DroxKiwi/Drox---IDE---OR instead. Continue anyway?', mbError, MB_OKCANCEL) = IDCANCEL then begin
         Result := False;
       end;
     end;

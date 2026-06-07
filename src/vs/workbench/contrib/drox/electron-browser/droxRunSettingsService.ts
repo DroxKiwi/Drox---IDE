@@ -26,11 +26,14 @@ import {
 
 	readLlmSettings,
 
+	readArchitectInteractionMode,
 	readPermissionMode,
 
 	readSubagentSettings,
 } from '../common/droxRunSettings.js';
 import { readOrchestrationMaxParallelExecutors } from '../common/droxConfiguration.js';
+import { readDroxEngineStrictness } from '../common/droxEngineStrictness.js';
+import { DroxArchitectInteractionMode } from '../common/droxArchitectInteractionMode.js';
 import { DroxPermissionMode } from '../common/droxPermissionAsk.js';
 
 import { IDroxAgentRunImage } from '../common/droxAttachments.js';
@@ -121,6 +124,12 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 
 	}
 
+	getArchitectInteractionMode(resource?: URI): DroxArchitectInteractionMode {
+
+		return readArchitectInteractionMode(this.configurationService, resource);
+
+	}
+
 	filterExecutableTools(toolNames: readonly string[], resource?: URI): string[] {
 
 		const disabled = getDisabledToolNames(this.getDisabledToolsForRun(resource));
@@ -162,6 +171,14 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 			mcpToolsEnabled: this.isMcpToolsEnabled(resource),
 
 			orchestrationMaxParallelExecutors: readOrchestrationMaxParallelExecutors(this.configurationService, resource),
+
+			architectInteractionMode: readArchitectInteractionMode(this.configurationService, resource),
+
+			engineStrictness: readDroxEngineStrictness(this.configurationService, resource),
+
+			configService: this.configurationService,
+
+			configResource: resource,
 
 		});
 

@@ -13,30 +13,82 @@ import { webviewGenericCspSource } from '../../webview/common/webview.js';
 
 
 
-/** Chat webview scripts (order matters — see scripts/split-drox-chat-v2.mjs). */
+/** Chat webview scripts (order matters — see `droxChat/README.md`). */
 export const DROX_CHAT_SCRIPT_FILES = [
-	'droxChat/00-context.js',
-	'droxChat/01-prompt.js',
-	'droxChat/01b-models.js',
-	'droxChat/01c-role-models.js',
-	'droxChat/01d-general-settings.js',
-	'droxChat/02-chrome.js',
-	'droxChat/03-composer.js',
-	'droxChat/03b-userPromptSticky.js',
-	'droxChat/04-history.js',
-	'droxChat/05-attachments.js',
-	'droxChat/06-userAsk.js',
-	'droxChat/11-markdown.js',
-	'droxChat/07-log.js',
-	'droxChat/07b-runTimeline.js',
-	'droxChat/13-collapsibleTray.js',
-	'droxChat/12-fileChange.js',
-	'droxChat/08-tabs.js',
-	'droxChat/09-host.js',
-	'droxChat/10-bootstrap.js',
+	'droxChat/core/00-bootstrap.js',
+	'droxChat/core/dom.js',
+	'droxChat/core/constants-modes.js',
+	'droxChat/core/state.js',
+	'droxChat/core/warmup-phrases.js',
+	'droxChat/core/constants-meta.js',
+	'droxChat/settings/01-prompt.js',
+	'droxChat/settings/01b-models.js',
+	'droxChat/settings/role-models/state.js',
+	'droxChat/settings/role-models/helpers.js',
+	'droxChat/settings/role-models/panel.js',
+	'droxChat/settings/role-models/persist.js',
+	'droxChat/settings/role-models/host-sync.js',
+	'droxChat/settings/role-models/init.js',
+	'droxChat/settings/general-settings/state.js',
+	'droxChat/settings/general-settings/chat-issues.js',
+	'droxChat/settings/general-settings/helpers.js',
+	'droxChat/settings/general-settings/panel.js',
+	'droxChat/settings/general-settings/host-sync.js',
+	'droxChat/settings/general-settings/init.js',
+	'droxChat/chrome/util.js',
+	'droxChat/chrome/composer-chrome.js',
+	'droxChat/chrome/phase-labels.js',
+	'droxChat/chrome/architect-tail.js',
+	'droxChat/chrome/busy.js',
+	'droxChat/chrome/activity.js',
+	'droxChat/chrome/todos.js',
+	'droxChat/composer/pending.js',
+	'droxChat/composer/helpers.js',
+	'droxChat/composer/refs.js',
+	'droxChat/composer/path-complete.js',
+	'droxChat/composer/payload.js',
+	'droxChat/composer/send.js',
+	'droxChat/composer/03b-userPromptSticky.js',
+	'droxChat/session/04-history.js',
+	'droxChat/session/lazy-history.js',
+	'droxChat/attachments/05-attachments.js',
+	'droxChat/user-ask/06-userAsk.js',
+	'droxChat/markdown/11-markdown.js',
+	'droxChat/stream/log/00-constants.js',
+	'droxChat/stream/discussion/state.js',
+	'droxChat/stream/display/simple.js',
+	'droxChat/stream/answer/helpers.js',
+	'droxChat/stream/answer/presentation.js',
+	'droxChat/stream/messages/viewer.js',
+	'droxChat/stream/messages/scroll.js',
+	'droxChat/stream/messages/user.js',
+	'droxChat/stream/messages/orchestration.js',
+	'droxChat/stream/executor/capture.js',
+	'droxChat/stream/executor/subagents.js',
+	'droxChat/stream/answer/stream.js',
+	'droxChat/stream/tools/logTools.js',
+	'droxChat/stream/timeline/strip.js',
+	'droxChat/stream/timeline/thinking.js',
+	'droxChat/stream/timeline/phases.js',
+	'droxChat/stream/timeline/architect-rail.js',
+	'droxChat/stream/timeline/mount.js',
+	'droxChat/stream/timeline/overrides.js',
+	'droxChat/tools/13-collapsibleTray.js',
+	'droxChat/tools/12-fileChange.js',
+	'droxChat/session/08-tabs.js',
+	'droxChat/bridge/tool-events.js',
+	'droxChat/bridge/abort.js',
+	'droxChat/bridge/send-button.js',
+	'droxChat/bridge/host-message.js',
+	'droxChat/bridge/10-bootstrap.js',
 ] as const;
 
-export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string {
+export function getDroxChatHtml(
+	cssUri: URI,
+	scriptUris: readonly URI[],
+	versionLabel: string,
+	versionTitle: string,
+): string {
 
 	const css = cssUri.toString(true);
 
@@ -102,7 +154,9 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 	const rolePanelParallelLabel = localize('droxChatRolePanelParallel', 'Concurrent executor requests');
 	const rolePanelReloadLabel = localize('droxChatRolePanelReload', 'Reload models');
 	const rolePanelApplyLabel = localize('droxChatRolePanelClose', 'Close');
-	const rolePanelExecutorHint = localize('droxChatRolePanelExecutorEmpty', 'Empty = same as architect');
+	const rolePanelExecutorHint = localize('droxChatRolePanelExecutorEmpty', 'Choose a dedicated model, or pick « same as architect » to reuse the architect model and all LLM parameters.');
+	const rolePanelSameAsSummary = localize('droxChatRolePanelSameAsSummary', 'Same model and LLM settings as the architect ({0}). Only concurrent executors can be changed below.');
+	const rolePanelSameAsSummaryNoModel = localize('droxChatRolePanelSameAsSummaryNoModel', 'Same model and LLM settings as the architect. Only concurrent executors can be changed below.');
 
 	const generalSettingsVignetteName = localize('droxChatGeneralSettingsVignetteName', 'Settings');
 	const generalSettingsVignetteDesc = localize('droxChatGeneralSettingsVignetteDesc', 'General Drox options');
@@ -129,6 +183,19 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 	const generalSettingsShowChatErrorsAndWarnings = localize('droxChatGeneralSettingsShowChatErrorsAndWarnings', 'Show errors and warnings');
 	const generalSettingsOpenAll = localize('droxChatGeneralSettingsOpenAll', 'Open all Drox settings…');
 	const generalSettingsPanelClose = localize('droxChatGeneralSettingsPanelClose', 'Close');
+	const generalSettingsSectionEngine = localize('droxChatGeneralSettingsSectionEngine', 'Engine strictness');
+	const generalSettingsEngineStrictness = localize('droxChatGeneralSettingsEngineStrictness', 'Strictness preset');
+	const generalSettingsEngineStrictnessRelaxed = localize('droxChatGeneralSettingsEngineStrictnessRelaxed', 'Relaxed');
+	const generalSettingsEngineStrictnessNormal = localize('droxChatGeneralSettingsEngineStrictnessNormal', 'Normal');
+	const generalSettingsEngineStrictnessStrict = localize('droxChatGeneralSettingsEngineStrictnessStrict', 'Strict');
+	const generalSettingsEngineStrictnessCustom = localize('droxChatGeneralSettingsEngineStrictnessCustom', 'Custom');
+	const generalSettingsEngineTuningHint = localize('droxChatGeneralSettingsEngineTuningHint', 'Numeric overrides (base = normal). Full list in Drox settings.');
+	const generalSettingsReadBudgetPercent = localize('droxChatGeneralSettingsReadBudgetPercent', 'Read budget %');
+	const generalSettingsMaxReadsBeforeDelegate = localize('droxChatGeneralSettingsMaxReadsBeforeDelegate', 'Max reads before delegate nudge');
+	const generalSettingsMaxMutationsBeforeDelegateNudge = localize('droxChatGeneralSettingsMaxMutationsBeforeDelegateNudge', 'Max direct edits before delegate nudge');
+	const generalSettingsLoopStrikes = localize('droxChatGeneralSettingsLoopStrikes', 'Loop strikes before abort');
+	const generalSettingsRequireDelegate = localize('droxChatGeneralSettingsRequireDelegate', 'Require delegate before todo complete');
+	const generalSettingsContextSnip = localize('droxChatGeneralSettingsContextSnip', 'Context snip enabled');
 
 	const modelReloadLabel = localize('droxChatModelReload', 'Reload model list from server');
 
@@ -169,6 +236,14 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 	<header id="chat-chrome" class="chat-chrome">
 
 		<div id="session-tab-bar" class="session-tab-bar">
+
+			<div id="drox-chat-brand" class="drox-chat-brand" title="${versionTitle}">
+
+				<span class="drox-chat-brand-name">DROX</span>
+
+				<span id="drox-chat-version" class="drox-chat-brand-version">${versionLabel}</span>
+
+			</div>
 
 			<div id="session-tabs-list" class="session-tabs-list" role="tablist" aria-label="${title}"></div>
 
@@ -276,7 +351,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 			</div>
 
-			<label class="role-model-field">
+			<label id="role-model-panel-model-row" class="role-model-field role-model-field-executor-model-row">
 
 				<span>${rolePanelModelLabel}</span>
 
@@ -284,7 +359,12 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 			</label>
 
-			<p id="role-model-panel-executor-hint" class="role-model-panel-hint" hidden>${rolePanelExecutorHint}</p>
+			<p id="role-model-panel-same-as-summary" class="role-model-panel-same-as-block" hidden data-with-model="${rolePanelSameAsSummary}" data-no-model="${rolePanelSameAsSummaryNoModel}">
+				<span id="role-model-panel-same-as-summary-text" class="role-model-panel-hint"></span>
+				<button type="button" id="role-model-panel-switch-dedicated" class="role-model-panel-link-btn">${localize('droxChatRolePanelSwitchDedicated', 'Choose a dedicated model…')}</button>
+			</p>
+
+			<p id="role-model-panel-executor-hint" class="role-model-panel-hint role-model-field-executor-dedicated-hint" hidden>${rolePanelExecutorHint}</p>
 
 			<div id="role-model-panel-architect-fields" class="role-model-panel-architect-fields">
 
@@ -348,7 +428,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 			<div id="role-model-panel-executor-fields" class="role-model-panel-executor-fields">
 
-				<label class="role-model-field role-model-field-executor-only">
+				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
 
 					<span>${rolePanelNumCtxLabel}</span>
 
@@ -356,7 +436,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 				</label>
 
-				<label class="role-model-field role-model-field-executor-only">
+				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
 
 					<span>${rolePanelTopPLabel}</span>
 
@@ -364,7 +444,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 				</label>
 
-				<label class="role-model-field role-model-field-executor-only">
+				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
 
 					<span>${rolePanelTopKLabel}</span>
 
@@ -372,7 +452,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 				</label>
 
-				<label class="role-model-field role-model-field-executor-only">
+				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
 
 					<span>${rolePanelRepeatPenaltyLabel}</span>
 
@@ -380,7 +460,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 				</label>
 
-				<label class="role-model-field role-model-field-executor-only">
+				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
 
 					<span>${rolePanelMinPLabel}</span>
 
@@ -388,7 +468,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 				</label>
 
-				<label class="role-model-field role-model-field-executor-only">
+				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
 
 					<span>${rolePanelSeedLabel}</span>
 
@@ -396,7 +476,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 				</label>
 
-				<label class="role-model-field role-model-field-executor-only">
+				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
 
 					<span>${rolePanelTempLabel}</span>
 
@@ -404,7 +484,7 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 
 				</label>
 
-				<label class="role-model-field role-model-field-executor-only">
+				<label class="role-model-field role-model-field-executor-only role-model-field-executor-concurrent-only">
 
 					<span>${rolePanelParallelLabel}</span>
 
@@ -543,6 +623,80 @@ export function getDroxChatHtml(cssUri: URI, scriptUris: readonly URI[]): string
 				<input type="number" id="general-settings-num-predict" class="general-settings-input" min="1" step="1" placeholder="—" />
 
 			</label>
+
+			<p class="general-settings-section-label">${generalSettingsSectionEngine}</p>
+
+			<label class="general-settings-field">
+
+				<span>${generalSettingsEngineStrictness}</span>
+
+				<select id="general-settings-engine-strictness" class="general-settings-input">
+
+					<option value="relaxed">${generalSettingsEngineStrictnessRelaxed}</option>
+
+					<option value="normal" selected>${generalSettingsEngineStrictnessNormal}</option>
+
+					<option value="strict">${generalSettingsEngineStrictnessStrict}</option>
+
+					<option value="custom">${generalSettingsEngineStrictnessCustom}</option>
+
+				</select>
+
+			</label>
+
+			<div id="general-settings-engine-tuning" class="general-settings-engine-tuning" hidden>
+
+				<p class="general-settings-hint">${generalSettingsEngineTuningHint}</p>
+
+				<label class="general-settings-field">
+
+					<span>${generalSettingsReadBudgetPercent}</span>
+
+					<input type="number" id="general-settings-tuning-read-budget-percent" class="general-settings-input" min="5" max="100" step="1" />
+
+				</label>
+
+				<label class="general-settings-field">
+
+					<span>${generalSettingsMaxReadsBeforeDelegate}</span>
+
+					<input type="number" id="general-settings-tuning-max-reads-before-delegate" class="general-settings-input" min="1" max="64" step="1" />
+
+				</label>
+
+				<label class="general-settings-field">
+
+					<span>${generalSettingsMaxMutationsBeforeDelegateNudge}</span>
+
+					<input type="number" id="general-settings-tuning-max-mutations-before-delegate-nudge" class="general-settings-input" min="1" max="16" step="1" />
+
+				</label>
+
+				<label class="general-settings-field">
+
+					<span>${generalSettingsLoopStrikes}</span>
+
+					<input type="number" id="general-settings-tuning-loop-strikes" class="general-settings-input" min="1" max="5" step="1" />
+
+				</label>
+
+				<label class="general-settings-field general-settings-field-check">
+
+					<input type="checkbox" id="general-settings-tuning-require-delegate" />
+
+					<span>${generalSettingsRequireDelegate}</span>
+
+				</label>
+
+				<label class="general-settings-field general-settings-field-check">
+
+					<input type="checkbox" id="general-settings-tuning-context-snip" />
+
+					<span>${generalSettingsContextSnip}</span>
+
+				</label>
+
+			</div>
 
 			<p class="general-settings-section-label">${generalSettingsSectionBehavior}</p>
 

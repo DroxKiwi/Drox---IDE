@@ -175,7 +175,7 @@ npm run drox:ship
 | Haute produit | **Performance globale** — traitements beaucoup plus rapides (troncature volontaire, moins de tours, tuning à affiner) | [08-performance-traitement-rapide.md](../../feature-brainstorm/08-performance-traitement-rapide.md) |
 | — | Autres idées (01–05) | [feature-brainstorm/README.md](../../feature-brainstorm/README.md) |
 
-Retour terrain (2026-06-02) : reprise session validée ; perf chargement, réponses simples et latence runs à traiter en **1.3.2+**.
+Retour terrain (2026-06-02) : reprise session validée ; perf chargement, réponses simples et latence runs → **[CLOSURE-1.3.2](../../1.3.2/finalisation/CLOSURE-1.3.2.md)**.
 
 ---
 

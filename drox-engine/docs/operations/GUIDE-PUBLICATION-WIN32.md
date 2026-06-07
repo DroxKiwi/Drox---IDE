@@ -161,6 +161,30 @@ git push origin --delete release/<VER>
 
 ---
 
+## Depannage notifications MAJ (install 1.3.1)
+
+Les reglages ont des **valeurs par defaut** (`drox.update.manifestUrl`, `drox.update.notifyOnStartup: true`). En dev, un `settings.json` avec URL vide **ecrase** le defaut : supprimer la cle ou laisser l'URL complete.
+
+| Symptome | Cause probable |
+|----------|----------------|
+| Rien au demarrage | `latest.json` a la **meme** version que l'install (ex. 1.3.1 = 1.3.1) — normal |
+| « manifestUrl is not set » | Setting vide dans `%APPDATA%\.drox-ide\User\settings.json` |
+| Commande introuvable | Build installe **avant** le code MAJ — reinstaller un Setup recent |
+| Pas de lien installeur | Manifeste sans `platforms.win32-x64` (corrige en 1.3.2+) |
+
+**Test rapide sur install 1.3.1** (sans publier 1.3.2) :
+
+1. Palette : **Drox: Check for Updates** — doit afficher « a jour (1.3.1) » si le manifeste distant est en 1.3.1.
+2. Ou reglages utilisateur :
+   ```json
+   "drox.update.simulateLatestVersion": "99.0.0"
+   ```
+   puis **Drox: Check for Updates** → notification de test.
+
+**Test reel** : publier `1.3.2` sur `stable/latest.json` + Release GitHub, garder l'install 1.3.1, redemarrer l'IDE.
+
+---
+
 ## Voir aussi
 
 - [RULES.md](../../../../RULES.md) — build, git, releases

@@ -345,6 +345,11 @@ impl Server {
 ///
 /// Lit NDJSON sur stdin, écrit NDJSON sur stdout, jusqu'à EOF ou `shutdown`.
 pub async fn serve_stdio() -> anyhow::Result<()> {
+    tracing::info!(
+        version = env!("CARGO_PKG_VERSION"),
+        orchestration_pipeline = "role_split",
+        "drox engine ready (--serve)"
+    );
     let (out_tx, mut out_rx) = mpsc::channel::<String>(64);
 
     let writer_task = tokio::spawn(async move {

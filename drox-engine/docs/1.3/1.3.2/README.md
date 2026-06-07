@@ -1,16 +1,71 @@
-# Drox IDE 1.3.2
+# Drox 1.3.2 — Moteur stabilisé
 
-Branche de travail pour le **test notification MAJ** (install 1.3.1 → `latest.json` 1.3.2).
+**Statut** : **tests & clôture** (juin 2026)  
+**Branche** : `1.3.2`  
+**Prérequis** : [1.3.1](../1.3.1/README.md)
 
-## Objectif
+---
 
-- Publier `1.3.2` sur `Drox---IDE---releases` (`latest.json` + GitHub Release).
-- Valider F4 : notif au démarrage sur une install **1.3.1**.
+## En une phrase
 
-## Build / publish
+On **coupe le bruit** (gate chain TOML, paliers `E-*`, backpack, tours intent) et on **valide** un moteur simple : architecte + prompts + tool gates + sub-agents.
 
-```powershell
-npm run drox:ship
+---
+
+## Livré côté moteur
+
+| Élément | Détail |
+|---------|--------|
+| Routage | RPC `architectInteractionMode` ou défaut **edit** |
+| Prompt edit | `01_core.md` + tous les `T-*` au boot |
+| Workflow | Choix du **modèle** (pas de palier moteur) |
+| Garde-fous | `architect_gates.rs` + `gates.rs` (tool gates + clôture) |
+| Retiré | `GateEngine`, `EditTier`, backpack, `architect_intent`, events `GateProbe`… |
+
+**Carte code** : [CONDUCTEUR-CODE.md](CONDUCTEUR-CODE.md)  
+**Docs obsolètes** : [gates/ARCHIVE.md](gates/ARCHIVE.md)
+
+---
+
+## Prochaine étape : **tester & fiabiliser**
+
+| Doc | Rôle |
+|-----|------|
+| [TEST-PLAN-1.3.2.md](finalisation/TEST-PLAN-1.3.2.md) | Scénarios Salut, discuss/edit, export sans `GATE · probe` |
+| [VALIDATION-PRESETS-ENGINE-1.3.2.md](finalisation/VALIDATION-PRESETS-ENGINE-1.3.2.md) | **Presets** `relaxed` / `normal` / `strict` — pertinence des paramètres IDE après refacto |
+| [CLOSURE-1.3.2.md](finalisation/CLOSURE-1.3.2.md) | Checklist release |
+
+Checklist release : [finalisation/CLOSURE-1.3.2.md](finalisation/CLOSURE-1.3.2.md)
+
+---
+
+## Reporté en 1.3.3
+
+Les **3 piliers** produit (index / RAG local, contexte graphe, fast path latence) → [../1.3.3/README.md](../1.3.3/README.md).
+
+Anciens axes 1.3.2 (sessions segmentées, dé-brand, télémétrie, prompts par palier…) : **hors périmètre** cette release — voir CLOSURE § « exclu ».
+
+---
+
+## Docs utiles (à jour)
+
+| Doc | Rôle |
+|-----|------|
+| [CONDUCTEUR-CODE.md](CONDUCTEUR-CODE.md) | Architecture actuelle |
+| [PROTOCOL-CONTRACT.md](PROTOCOL-CONTRACT.md) | Protocole UI (partiellement à réviser) |
+| [PATCHNOTES-1.3.2.md](PATCHNOTES-1.3.2.md) | Notes release |
+| [JOURNAL-1.3.2.md](JOURNAL-1.3.2.md) | Journal dev |
+
+## Docs historiques (ne pas suivre)
+
+Plans gates, backpack, paliers `E-*`, circuit gate chain → [gates/ARCHIVE.md](gates/ARCHIVE.md)
+
+---
+
+## Versionning
+
+```json
+"droxVersion": "1.3.2"
 ```
 
-Voir [GUIDE-PUBLICATION-WIN32.md](../../operations/GUIDE-PUBLICATION-WIN32.md).
+Build : [GUIDE-PUBLICATION-WIN32.md](../../operations/GUIDE-PUBLICATION-WIN32.md)

@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import { existsSync } from 'fs';
 import { dirname } from '../../../../base/common/path.js';
 import {
@@ -21,8 +23,10 @@ export function resolveDroxExecutableOnDisk(
 	options: IDroxExecutableResolveOptions,
 ): string | undefined {
 	const trimmed = options.configuredPath.trim();
-	if (trimmed.length > 0 && !isBareDroxExecutableName(trimmed) && existsSync(trimmed)) {
-		return trimmed;
+	if (trimmed.length > 0 && !isBareDroxExecutableName(trimmed)) {
+		if (existsSync(trimmed)) {
+			return trimmed;
+		}
 	}
 
 	for (const candidate of enumerateDroxExecutableCandidates(options)) {

@@ -19,6 +19,9 @@ impl FinalAnswerGuard {
         run_fully_closable: bool,
         running_subagent_jobs: usize,
     ) -> bool {
+        if role == RoleId::ArchitectDiscussion {
+            return self.answered_once && running_subagent_jobs == 0;
+        }
         role == RoleId::Architect
             && self.answered_once
             && todos_pending == 0

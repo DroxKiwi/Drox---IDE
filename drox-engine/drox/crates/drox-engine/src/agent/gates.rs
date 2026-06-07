@@ -14,20 +14,19 @@ pub(crate) fn task_background_requested(arguments: &Value) -> bool {
 }
 
 use crate::event::Phase;
+use crate::EngineTuning;
 use crate::run_spec::{GateKind, RunSpec};
 
 use super::architect_gates;
 use super::architect_state::ArchitectRunState;
 use super::executor_gates;
 
-use super::nudges::{
-    EXPLORE_RUNNING_MUTATION_BLOCKED, EXPLORE_TASK_QUEUE_FULL,
-    MUTATING_TOOLS_FOR_STEP_TRACKING,
-};
+use super::nudges::MUTATING_TOOLS_FOR_STEP_TRACKING;
 use super::phases::phase_from_name_token;
 
 pub(crate) use super::architect_gates::{
-    architect_orchestration_record_successful_tool, architect_record_read_only_tool_success,
+    architect_delegate_cap_nudge, architect_orchestration_record_successful_tool,
+    architect_record_read_only_tool_success,
 };
 
 /// Extensions pour lesquelles une mutation ne déclenche pas la gate `testing` (§2.11).
@@ -57,11 +56,6 @@ pub(crate) const CODE_MUTATION_TESTING_NUDGE: &str = "You modified **code** in t
     `lsp` with diagnostics, or `file_read` on a file you edited.\n\
     \n\
     Do not skip this — the engine will keep refusing `[phase: done]` until testing ran.";
-
-/// Seuil minimal (caractères hors marqueurs de phase) pour considérer qu'une
-/// réponse utilisateur existe déjà dans une phase interne (`reading`, etc.)
-/// et éviter le nudge `MISSING_ANSWERING_PROMPT` (qui dupliquait l'analyse).
-pub(crate) const PROMOTABLE_ANSWER_MIN_CHARS: usize = 120;
 
 pub(crate) const MISSING_ANSWERING_PROMPT: &str = "You emitted `[phase: done]` without \
     ever using `[phase: answering]` in this run. The engine cannot close yet: \
@@ -373,6 +367,18 @@ pub(crate) const ASK_USER_QUESTION_AFTER_MUTATION: &str =
      Use read-only tools (`glob`, `grep`, `file_read`, `lsp`) first, or ask in plain Markdown under \
      `[phase: clarifying]` without this tool.";
 
+/// Explore async : file pleine (`task` + `background: true`).
+const EXPLORE_TASK_QUEUE_FULL: &str =
+    "Blocked: an Explore sub-agent is already running (max concurrent reached). \
+     Wait for its report to be injected, or use `background: false` to run synchronously.";
+
+/// Explore async : mutation interdite tant qu'un job tourne.
+const EXPLORE_RUNNING_MUTATION_BLOCKED: &str =
+    "Blocked: an Explore sub-agent is still running in the background. \
+     Wait for its structured report to be injected, or use read-only tools (`file_read`, \
+     `grep`, `glob`, `lsp`, `task` with `background: false` only if you must block). \
+     Do not mutate files or run shell until the job completes.";
+
 /// Bloque un second `task` async si `max_concurrent` atteint ; nudge Medium si un job tourne déjà.
 #[must_use]
 pub(crate) fn explore_second_task_block(
@@ -424,6 +430,7 @@ pub(crate) fn tool_pre_gate_block(
     executor_deliverable_met: bool,
     workspace: Option<&camino::Utf8Path>,
     drox_ignore: Option<&drox_session::DroxIgnoreMatcher>,
+    tuning: &EngineTuning,
 ) -> Option<String> {
     if let Some(state) = architect_state {
         if let Some(msg) = architect_gates::architect_orchestration_pre_gate(
@@ -434,6 +441,7 @@ pub(crate) fn tool_pre_gate_block(
             saw_successful_todo_write_in_run,
             workspace,
             drox_ignore,
+            tuning,
         ) {
             return Some(msg);
         }
@@ -443,6 +451,7 @@ pub(crate) fn tool_pre_gate_block(
         call_name,
         call_arguments,
         executor_deliverable_met,
+        tuning,
     ) {
         return Some(msg);
     }
@@ -471,7 +480,10 @@ pub(crate) fn tool_pre_gate_block(
         return Some(SESSION_END_FORBIDDEN_FOR_MODEL.to_string());
     }
     if !professor && call_name == "todo_write" {
-        if let Some(max) = spec.max_todo_items() {
+        let max_todo = spec
+            .max_todo_items()
+            .or(tuning.max_todo_items.map(|n| n as usize));
+        if let Some(max) = max_todo {
             if let Some(count) = todo_item_count(call_arguments) {
                 if count > max {
                     return Some(format!(
@@ -497,10 +509,9 @@ pub(crate) fn tool_pre_gate_block(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::architect_gates::{
-        architect_orchestration_pre_gate, ARCHITECT_MAX_READS_BEFORE_DELEGATE,
-    };
+    use crate::agent::architect_gates::architect_orchestration_pre_gate;
     use crate::agent::architect_state::ArchitectRunState;
+    use crate::EngineTuning;
     use serde_json::json;
 
     #[test]
@@ -528,23 +539,11 @@ mod tests {
     }
 
     #[test]
-    fn architect_redelegate_cap_blocks_third_attempt() {
+    fn architect_redelegate_never_pre_blocked() {
         let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
         let mut state = ArchitectRunState::new();
-        state.workspace_map_loaded = true;
-        state.delegate_counts.insert("t1".into(), 2);
-        let long_instr = "x".repeat(80);
-        let msg = architect_orchestration_pre_gate(
-            &spec,
-            "delegate_executor",
-            &json!({ "task_id": "t1", "description": "x", "instructions": long_instr }),
-            &state,
-            true,
-            None,
-            None,
-        );
-        assert!(msg.is_some());
-        state.delegate_counts.insert("t1".into(), 1);
+        state.delegate_counts.insert("t1".into(), 5);
+        let long_instr = "x".repeat(120);
         assert!(architect_orchestration_pre_gate(
             &spec,
             "delegate_executor",
@@ -553,15 +552,16 @@ mod tests {
             true,
             None,
             None,
+            &EngineTuning::from_preset(crate::orchestration::StrictnessPreset::Strict),
         )
         .is_none());
     }
 
     #[test]
-    fn architect_delegate_requires_todo_write() {
+    fn architect_delegate_never_pre_blocked() {
         let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
         let state = ArchitectRunState::new();
-        let msg = architect_orchestration_pre_gate(
+        assert!(architect_orchestration_pre_gate(
             &spec,
             "delegate_executor",
             &json!({ "task_id": "t1" }),
@@ -569,16 +569,17 @@ mod tests {
             false,
             None,
             None,
-        );
-        assert!(msg.is_some());
+            &EngineTuning::default(),
+        )
+        .is_none());
     }
 
     #[test]
-    fn architect_monolith_reads_blocked_after_cap() {
+    fn architect_reads_never_pre_blocked_after_cap() {
         let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
         let mut state = ArchitectRunState::new();
-        state.reads_since_delegate = ARCHITECT_MAX_READS_BEFORE_DELEGATE;
-        let msg = architect_orchestration_pre_gate(
+        state.reads_since_delegate = 99;
+        assert!(architect_orchestration_pre_gate(
             &spec,
             "glob",
             &json!({ "pattern": "**/*" }),
@@ -586,8 +587,9 @@ mod tests {
             true,
             None,
             None,
-        );
-        assert!(msg.is_some());
+            &EngineTuning::default(),
+        )
+        .is_none());
     }
 
     #[test]
@@ -611,6 +613,7 @@ mod tests {
             false,
             None,
             None,
+            &EngineTuning::default(),
         );
         assert!(msg.is_none());
     }

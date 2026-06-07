@@ -14,10 +14,15 @@ import { NotebookSetting } from '../../notebook/common/notebookCommon.js';
 import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from '../../../../platform/accessibility/common/accessibility.js';
 import { URI } from '../../../../base/common/uri.js';
 import product from '../../../../platform/product/common/product.js';
+import { DROX_PRODUCT_DOCS_URL } from '../../drox/common/droxProductUrls.js';
 
 interface IGettingStartedContentProvider {
 	(): string;
 }
+
+const gettingStartedVideoUrl = product.droxMicrosoftAgentsSurfaceEnabled === true
+	? 'https://aka.ms/vscode-getting-started-video'
+	: DROX_PRODUCT_DOCS_URL;
 
 const defaultChat = {
 	documentationUrl: product.defaultChatAgent?.documentationUrl ?? '',
@@ -347,7 +352,7 @@ export const walkthroughs: GettingStartedWalkthroughContent = [
 				{
 					id: 'videoTutorial',
 					title: localize('gettingStarted.videoTutorial.title', "Watch video tutorials"),
-					description: localize('gettingStarted.videoTutorial.description.interpolated', "Watch the first in a series of short & practical video tutorials for VS Code's key features.\n{0}", Button(localize('watch', "Watch Tutorial"), 'https://aka.ms/vscode-getting-started-video')),
+					description: localize('gettingStarted.videoTutorial.description.interpolated', "Watch the first in a series of short & practical video tutorials for VS Code's key features.\n{0}", Button(localize('watch', "Watch Tutorial"), gettingStartedVideoUrl)),
 					media: { type: 'svg', altText: 'VS Code Settings', path: 'learn.svg' },
 				}
 			]

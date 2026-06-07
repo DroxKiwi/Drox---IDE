@@ -3,11 +3,21 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { DroxHostToWebviewMessage } from '../browser/droxChatBridge.js';
 import { IDroxSessionListEntry, IDroxSessionReadResult } from './droxSession.js';
 
 export const IDroxSessionService = createDecorator<IDroxSessionService>('droxSessionService');
+
+export interface IDroxUiReplayTailResult {
+	readonly messages: DroxHostToWebviewMessage[];
+	readonly hasOlder: boolean;
+	readonly totalEventCount: number;
+	/** Index du premier message du slice dans le journal complet. */
+	readonly oldestLoadedIndex: number;
+}
 
 export interface IDroxWorkspaceResetResult {
 	readonly sessionsFilesRemoved: number;
@@ -28,6 +38,19 @@ export interface IDroxSessionService {
 
 	/** Journal des messages hôte→webview pour rejeu fidèle à la fermeture. */
 	readUiReplay(id: string, workspaceFsPath: string): Promise<DroxHostToWebviewMessage[]>;
+
+	/** Derniers tours du journal UI (L1 tail-first). */
+	readUiReplayTail(
+		id: string,
+		workspaceFsPath: string,
+		opts: { readonly maxTurns: number },
+	): Promise<IDroxUiReplayTailResult>;
+
+	readUiReplayOlder(
+		id: string,
+		workspaceFsPath: string,
+		opts: { readonly beforeIndex: number; readonly maxTurns: number },
+	): Promise<IDroxUiReplayTailResult>;
 
 	appendUiReplayMessage(id: string, workspaceFsPath: string, message: DroxHostToWebviewMessage): Promise<void>;
 

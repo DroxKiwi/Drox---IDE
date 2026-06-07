@@ -6,8 +6,8 @@
 	"sharedDataFolderName": ".drox-ide-shared",
 	"win32MutexName": "droxide",
 	"licenseName": "MIT",
-	"licenseUrl": "https://github.com/DroxKiwi/Drox---IDE---releases/blob/main/NOTICE.md",
-	"serverLicenseUrl": "https://github.com/DroxKiwi/Drox---IDE---releases/blob/main/NOTICE.md",
+	"licenseUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+	"serverLicenseUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
 	"serverGreeting": [],
 	"serverLicense": [],
 	"serverLicensePrompt": "",
@@ -30,10 +30,15 @@
 	"darwinProfilePayloadUUID": "7C3F46AB-6956-4FB2-CA02-9A31D336B7EE",
 	"linuxIconName": "drox-ide",
 	"licenseFileName": "LICENSE.txt",
-	"reportIssueUrl": "https://github.com/DroxKiwi/Drox---IDE---releases/issues/new",
+	"reportIssueUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/issues/new",
+	"documentationUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/README.md",
+	"privacyStatementUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
 	"nodejsRepository": "https://nodejs.org",
 	"urlProtocol": "drox-ide",
-	"agentsTelemetryAppName": "agents",
+	"agentsTelemetryAppName": "",
+	"enableTelemetry": false,
+	"showTelemetryOptOut": false,
+	"removeTelemetryMachineId": true,
 	"webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/",
 	"builtInExtensions": [
 		{
@@ -85,23 +90,24 @@
 			}
 		}
 	],
+	"droxMicrosoftAgentsSurfaceEnabled": false,
 	"defaultChatAgent": {
 		"extensionId": "github.copilot-chat",
 		"chatExtensionId": "github.copilot-chat",
 		"chatExtensionOutputId": "",
 		"chatExtensionOutputExtensionStateCommand": "",
-		"documentationUrl": "https://aka.ms/github-copilot-overview",
-		"termsStatementUrl": "https://aka.ms/github-copilot-terms-statement",
-		"privacyStatementUrl": "https://aka.ms/github-copilot-privacy-statement",
-		"skusDocumentationUrl": "https://aka.ms/github-copilot-plans",
-		"publicCodeMatchesUrl": "https://aka.ms/github-copilot-match-public-code",
-		"managePlanUrl": "https://aka.ms/github-copilot-manage-plan",
-		"upgradePlanUrl": "https://aka.ms/github-copilot-upgrade-plan",
-		"signUpUrl": "https://aka.ms/github-sign-up",
+		"documentationUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"termsStatementUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"privacyStatementUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"skusDocumentationUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"publicCodeMatchesUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"managePlanUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"upgradePlanUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"signUpUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
 		"provider": {
 			"default": {
-				"id": "github",
-				"name": "GitHub"
+				"id": "drox",
+				"name": "Drox"
 			},
 			"enterprise": {
 				"id": "github-enterprise",
@@ -163,8 +169,8 @@
 	"onboardingKeymaps": [
 		{
 			"id": "vscode",
-			"label": "VS Code",
-			"description": "Default keyboard mapping"
+			"label": "Default",
+			"description": "Default Drox IDE keyboard mapping"
 		},
 		{
 			"id": "sublime",
@@ -235,8 +241,6 @@
 			"type": "light"
 		}
 	],
-	"builtInExtensionsEnabledWithAutoUpdates": [
-		"GitHub.copilot-chat"
-	],
+	"builtInExtensionsEnabledWithAutoUpdates": [],
 	"sessionsWindowAllowedExtensions": []
 }

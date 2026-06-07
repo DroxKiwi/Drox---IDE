@@ -48,6 +48,8 @@ import { pushLlmModelsSnapshotToWebview } from './chat/droxChatLlmModels.js';
 import { IDroxChatWebviewRouterDeps, IDroxChatWebviewRouterHost, routeDroxChatWebviewMessage } from './chat/droxChatWebviewRouter.js';
 import { IDroxLlmModelsService } from '../common/droxLlmModelsService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
+import { formatDroxChatVersionLabel, formatDroxChatVersionTitle } from '../common/droxProductVersion.js';
 
 export class DroxChatController extends Disposable
 	implements IDroxChatTabsDelegate, IDroxChatSendRunHost, IDroxChatWebviewRouterHost, IDroxChatAgentBridgeHost {
@@ -91,9 +93,11 @@ export class DroxChatController extends Disposable
 		@IClipboardService private readonly clipboardService: IClipboardService,
 		@IStorageService storageService: IStorageService,
 		@IHostService private readonly hostService: IHostService,
+		@IProductService private readonly productService: IProductService,
 	) {
 		super();
 		this._layoutStore = new DroxChatLayoutStore(storageService);
+		this._register(this.droxEngineService.onDidInitialize(() => this.postProductVersionToWebview()));
 		this._tabs = new DroxChatTabsManager(
 			this,
 			this._layoutStore,
@@ -174,6 +178,18 @@ export class DroxChatController extends Disposable
 		this._uiReplayRecordingEnabled = enabled;
 	}
 
+	postProductVersionToWebview(): void {
+		if (!this._webviewReady) {
+			return;
+		}
+		const build = this.droxEngineService.engineDevBuild;
+		this.post({
+			kind: 'productVersion',
+			label: formatDroxChatVersionLabel(this.productService, build),
+			title: formatDroxChatVersionTitle(this.productService, build),
+		});
+	}
+
 	post(message: DroxHostToWebviewMessage): void {
 		let outgoing = message;
 		if (message.kind === 'append') {
@@ -218,6 +234,7 @@ export class DroxChatController extends Disposable
 			}
 			this._tabs.postTabs();
 			this.post({ kind: 'state', busy: false });
+			this.postProductVersionToWebview();
 			this.post({ kind: 'permissionMode', mode: this.runSettingsService.getPermissionMode() });
 			pushLlmModelsSnapshotToWebview(
 				this,

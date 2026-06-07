@@ -26,13 +26,13 @@ pub struct Language {
 impl Language {
     fn known(code: &str, display: &str) -> Self {
         let system_instruction = format!(
-            "Langue principale ({code}) — **deux canaux** :\n\
-             1. **Utilisateur** : dans `[phase: answering]` uniquement (réponse finale \
-             + micro-annonces brèves visibles dans le fil), rédigez en {display} \
-             (sauf changement explicite de langue par l'utilisateur).\n\
-             2. **Exploration interne** : dans `analyzing`, `reading`, `planning`, \
-             `acting`, `testing`, `verifying`, `clarifying` et dans le flux natif \
-             `thinking` si actif — notes télégraphiques **en anglais uniquement**."
+            "Primary language ({code}) — **two channels** :\n\
+             1. **User-facing** : in `[phase: answering]` only (final reply and short \
+             visible micro-announcements), write in {display} unless the user explicitly \
+             switches language.\n\
+             2. **Internal exploration** : in `analyzing`, `reading`, `planning`, \
+             `acting`, `testing`, `verifying`, `clarifying` and in native `thinking` \
+             when active — telegraphic notes **in English only**."
         );
         Self {
             display: display.into(),
@@ -151,8 +151,8 @@ mod tests {
     fn merge_into_system_keeps_order() {
         let lang = parse("fr").unwrap();
         let merged = merge_into_system(Some("Mem rules".into()), Some(&lang)).unwrap();
-        assert!(merged.starts_with("Langue principale"));
-        assert!(merged.contains("anglais uniquement"));
+        assert!(merged.starts_with("Primary language"));
+        assert!(merged.contains("English only"));
         assert!(merged.contains("Mem rules"));
     }
 
@@ -160,6 +160,6 @@ mod tests {
     fn french_primary_splits_user_and_exploration_language() {
         let l = parse("fr").unwrap();
         assert!(l.system_instruction.contains("[phase: answering]"));
-        assert!(l.system_instruction.contains("anglais uniquement"));
+        assert!(l.system_instruction.contains("English only"));
     }
 }

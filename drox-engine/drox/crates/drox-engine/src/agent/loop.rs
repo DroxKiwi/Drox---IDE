@@ -13,13 +13,17 @@ use uuid::Uuid;
 
 use crate::error::EngineError;
 use crate::event::{AgentEvent, Phase};
+use crate::orchestration::{
+    architect_run_context_block_compaction, architect_run_context_block_per_turn,
+};
 use crate::run_spec::RoleId;
 use crate::long_memory::ContextChunkSummaryV1;
 use crate::memory::{MemoryTracker, persist_compaction_result, persist_run};
 use crate::tool_orchestration::{ToolCallBatch, partition_tool_calls};
 
 use super::architect_state::{
-    ArchitectRunState, inject_architect_cycle_anchor,
+    inject_architect_run_snapshot_after_checkpoint, refresh_architect_run_snapshot,
+    ArchitectRunState,
 };
 use super::gates::{
     done_gate_missing_answering, done_gate_professor_without_plan,
@@ -28,26 +32,25 @@ use super::gates::{
     is_todo_recreation_from_scratch,
     parse_hallucinated_phase_from_tool_call,
     plan_write_gate_satisfied, record_counts_as_code_mutation, tool_pre_gate_block,
-    architect_orchestration_record_successful_tool, architect_record_read_only_tool_success,
+    architect_delegate_cap_nudge, architect_orchestration_record_successful_tool,
+    architect_record_read_only_tool_success,
 };
 use super::nudges::{
     ask_user_question_loop_nudge, explore_jobs_pending_nudge, run_objective_system_block,
-    step_by_step_todo_nudge, ANALYZING_PHASE_NUDGE, done_only_nudge_prompt,
-    loop_detected_nudge_prompt, loop_intervention_user_message,
-    MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
+    step_by_step_todo_nudge, ANALYZING_PHASE_NUDGE, ARCHITECT_NO_WORK_NUDGE_PROMPT,
+    done_only_nudge_prompt, loop_intervention_level, loop_intervention_ui_message,
+    loop_recenter_user_message, LOOP_DETECTED_SYSTEM_NUDGE,
     MUTATING_TOOL_BEFORE_TODO_WRITE_NUDGE, MUTATING_TOOLS_FOR_STEP_TRACKING,
     NATIVE_THINKING_UI_SUPPLEMENT, nudge_prompt,
 };
 use crate::orchestration::{
     deliverable_path_from_tool_success, executor_deliverable_closure_notice,
-    executor_delegated_task_block, EXECUTOR_NATIVE_THINKING_SUPPLEMENT, EXECUTOR_ROLE_SUPPLEMENT,
+    executor_delegated_task_block, extract_discussion_done_from_text,
+    EXECUTOR_NATIVE_THINKING_SUPPLEMENT, EXECUTOR_ROLE_SUPPLEMENT,
 };
 use drox_types::{StopReason, Usage};
 use crate::subagent_jobs::RunningSubagentJob;
-use super::phases::{
-    is_workspace_exploration_tool,
-    user_prompt_suggests_workspace_analysis,
-};
+use super::phases::is_workspace_exploration_tool;
 use super::agent_stream::{
     consume_stream, enforce_max_tools_per_turn, push_assistant_message,
     run_has_promotable_user_facing_text, LoopDecision,
@@ -56,9 +59,10 @@ use super::agent_stream::{
 use super::final_answer_guard::FinalAnswerGuard;
 use super::subagent_report_gate::should_drain_subagent_reports;
 use super::{
-    build_tool_specs, confirm_with_user, first_user_text, format_tool_result_for_llm,
-    is_professor_run, mirror_workspace_map_from_tool, push_tool_error_tracked,
-    user_blocks_plain_text, Agent,
+    build_tool_specs, confirm_with_user, first_user_text,
+    format_tool_result_for_llm,
+    is_professor_run, last_user_text, mirror_workspace_map_from_tool, push_tool_error_tracked,
+    Agent,
 };
 use drox_tools::{structure_task_async_completed, ToolContext};
 
@@ -71,7 +75,8 @@ impl Agent {
         tx: mpsc::Sender<Result<AgentEvent, EngineError>>,
     ) {
         let professor = is_professor_run(self.config.permissions.as_ref());
-        let tool_specs = build_tool_specs(&self.registry, professor, &self.config.run_spec);
+        let base_tool_specs =
+            build_tool_specs(&self.registry, professor, &self.config.run_spec);
         // Sprint M1 â€” si la mÃ©moire de session est configurÃ©e, on greffe
         // le `SessionNotesHandle` partagÃ© dans le `ToolContext` du run.
         // Les tools `session_note` / `memory_read` / `memory_list` y voient
@@ -98,17 +103,18 @@ impl Agent {
             messages.push(Message::system(thinking_supplement));
         }
         if let Some(obj) = &self.config.run_objective {
-            let block = if self.config.run_spec.role_id == RoleId::Executor {
+            if self.config.run_spec.role_id == RoleId::Executor {
                 let task_id = self
                     .config
                     .delegate_task_id
                     .as_deref()
                     .unwrap_or("task");
-                executor_delegated_task_block(task_id, obj)
-            } else {
-                run_objective_system_block(obj)
-            };
-            messages.push(Message::system(block));
+                messages.push(Message::system(executor_delegated_task_block(
+                    task_id, obj,
+                )));
+            } else if self.config.run_spec.role_id != RoleId::Architect {
+                messages.push(Message::system(run_objective_system_block(obj)));
+            }
         }
         messages.extend(history);
         // Garantit qu'il y a toujours au moins un bloc texte pour les
@@ -118,8 +124,6 @@ impl Agent {
         } else {
             user_blocks
         };
-        let user_analysis_intent =
-            user_prompt_suggests_workspace_analysis(&user_blocks_plain_text(&user_blocks));
         messages.push(Message::user_with_blocks(user_blocks));
 
         let mut transcript_cursor = self
@@ -185,21 +189,26 @@ impl Agent {
         let mut saw_analyzing_phase_in_run = false;
         let mut saw_code_mutation_in_run = false;
         let mut saw_testing_phase_in_run = false;
-        let mut architect_state = ArchitectRunState::new();
-        let mut consecutive_todo_completion_gate_failures: u32 = 0;
+        let mut architect_state =
+            ArchitectRunState::with_engine_tuning(&self.config.engine_tuning);
         let mut final_answer_guard = FinalAnswerGuard::default();
         if self.config.run_spec.role_id == RoleId::Architect {
-            if let Some(req) = first_user_text(&messages) {
-                architect_state.anchor_user_request(&req);
-            }
-            if let Some(obj) = effective_run_objective.as_deref() {
-                architect_state.anchor_run_objective(obj);
-            }
-            inject_architect_cycle_anchor(
-                &mut messages,
-                &architect_state.cycle_anchor_block(effective_run_objective.as_deref()),
+            let req = last_user_text(&messages).or_else(|| first_user_text(&messages));
+            let start_outcome = super::edit_start::apply_architect_edit_start(
+                req.as_deref(),
+                effective_run_objective.as_deref(),
+                &mut architect_state,
             );
+            if let Some(obj) = start_outcome.run_objective {
+                effective_run_objective = Some(obj);
+            } else if let Some(req) = req {
+                architect_state.anchor_user_request(&req);
+                if let Some(obj) = effective_run_objective.as_deref() {
+                    architect_state.anchor_run_objective(obj);
+                }
+            }
         }
+        let mut consecutive_todo_completion_gate_failures: u32 = 0;
         let testing_gate_active = !ctx.plan_mode && !professor;
         let mut executor_deliverable_met = false;
         let mut executor_deliverable_path: Option<String> = None;
@@ -280,6 +289,16 @@ impl Agent {
                 )));
             }
 
+            if self.config.run_spec.role_id == RoleId::Architect {
+                refresh_architect_run_snapshot(
+                    &mut messages,
+                    &architect_run_context_block_per_turn(
+                        &architect_state,
+                        effective_run_objective.as_deref(),
+                    ),
+                );
+            }
+
             if self
                 .maybe_snip(
                     &mut messages,
@@ -299,11 +318,13 @@ impl Agent {
                 return;
             }
 
+            let tour_tool_specs = base_tool_specs.clone();
+
             let options = self
                 .config
                 .chat_options
                 .clone()
-                .with_tools(tool_specs.clone());
+                .with_tools(tour_tool_specs);
 
             let stream = match self.llm.stream_chat(messages.clone(), options).await {
                 Ok(s) => s,
@@ -326,6 +347,19 @@ impl Agent {
             );
 
             push_assistant_message(&mut messages, &outcome);
+            if self.config.run_spec.role_id == RoleId::Architect {
+                let had_work_mode = architect_state.work_mode_anchor.is_some();
+                architect_state.try_anchor_work_mode_from_text(&outcome.text);
+                if !had_work_mode && architect_state.work_mode_anchor.is_some() {
+                    refresh_architect_run_snapshot(
+                        &mut messages,
+                        &architect_run_context_block_per_turn(
+                            &architect_state,
+                            effective_run_objective.as_deref(),
+                        ),
+                    );
+                }
+            }
             last_stop_reason = outcome.reason;
             last_usage = outcome.usage.clone();
             if self.emit_context_usage(&messages, &tx).await.is_err() {
@@ -334,13 +368,18 @@ impl Agent {
             if let Some(obj) = &outcome.run_objective {
                 if effective_run_objective.is_none() {
                     effective_run_objective = Some(obj.clone());
-                    messages.push(Message::system(run_objective_system_block(obj)));
+                    if self.config.run_spec.role_id != RoleId::Architect {
+                        messages.push(Message::system(run_objective_system_block(obj)));
+                    }
                 }
                 if self.config.run_spec.role_id == RoleId::Architect {
                     architect_state.anchor_run_objective(obj);
-                    inject_architect_cycle_anchor(
+                    refresh_architect_run_snapshot(
                         &mut messages,
-                        &architect_state.cycle_anchor_block(effective_run_objective.as_deref()),
+                        &architect_run_context_block_per_turn(
+                            &architect_state,
+                            effective_run_objective.as_deref(),
+                        ),
                     );
                 }
             }
@@ -370,25 +409,38 @@ impl Agent {
             // que celles-ci injectent leurs propres nudges et pourraient
             // masquer la boucle (le modÃ¨le rÃ©pondrait pareil mais on
             // continuerait Ã  nudger sans jamais stopper).
-            match loop_detector.observe(&outcome) {
+            match loop_detector.observe(
+                &outcome,
+                self.config.engine_tuning.loop_strikes_before_abort,
+            ) {
                 LoopDecision::Ok => {}
-                LoopDecision::Warn { kind } => {
+                LoopDecision::Warn { kind, strike } => {
+                    let max_strikes = self.config.engine_tuning.loop_strikes_before_abort;
+                    let level = loop_intervention_level(strike, max_strikes);
                     debug!(
                         kind,
-                        "boucle dÃ©tectÃ©e (1er strike) â€” injection nudge anti-boucle"
+                        strike,
+                        level,
+                        "boucle détectée — injection recentrage (continue run)"
                     );
-                    let user_message = loop_intervention_user_message("warn", kind, 2);
+                    let ui_message =
+                        loop_intervention_ui_message(level, kind, strike, max_strikes);
+                    let model_recenter = loop_recenter_user_message(
+                        &self.config.run_spec,
+                        kind,
+                        strike,
+                        max_strikes,
+                    );
                     let _ = tx
                         .send(Ok(AgentEvent::LoopIntervention {
-                            level: "warn".into(),
+                            level: level.to_string(),
                             loop_kind: Some(kind.to_string()),
-                            turns: Some(2),
-                            user_message: user_message.clone(),
+                            turns: Some(strike),
+                            user_message: ui_message,
                         }))
                         .await;
-                    messages.push(Message::system(loop_detected_nudge_prompt(
-                        &self.config.run_spec,
-                    )));
+                    messages.push(Message::user(model_recenter));
+                    messages.push(Message::system(LOOP_DETECTED_SYSTEM_NUDGE));
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
                         .await
@@ -404,13 +456,15 @@ impl Agent {
                         turns,
                         "boucle non rÃ©solue — abort"
                     );
-                    let user_message = loop_intervention_user_message("abort", kind, turns);
+                    let max_strikes = self.config.engine_tuning.loop_strikes_before_abort;
+                    let ui_message =
+                        loop_intervention_ui_message("abort", kind, turns, max_strikes);
                     let _ = tx
                         .send(Ok(AgentEvent::LoopIntervention {
                             level: "abort".into(),
                             loop_kind: Some(kind.to_string()),
                             turns: Some(turns),
-                            user_message,
+                            user_message: ui_message,
                         }))
                         .await;
                     let _ = tx
@@ -510,7 +564,12 @@ impl Agent {
                     }
                 }
                 if !seen_answering_in_run {
-                    if run_has_promotable_user_facing_text(&outcome, &messages) {
+                    if run_has_promotable_user_facing_text(
+                        &outcome,
+                        &messages,
+                        self.config.run_spec.role_id,
+                        &self.config.engine_tuning,
+                    ) {
                         debug!(
                             "[phase: done] sans answering mais texte dÃ©jÃ  prÃ©sent â€” promotion UI, pas de second tour LLM"
                         );
@@ -648,6 +707,41 @@ impl Agent {
             // (`answering` + `done`) ou continuer (`reading` / `acting` + tool).
             // Aucun compteur sÃ©parÃ© : `max_iterations` borne tout.
             if outcome.tool_calls.is_empty() {
+                if self.config.run_spec.role_id == RoleId::ArchitectDiscussion
+                    && outcome.tool_calls.is_empty()
+                    && (extract_discussion_done_from_text(&outcome.text)
+                        || outcome.final_phase == Some(Phase::Done))
+                {
+                    final_answer_guard.mark_user_facing_answer_seen();
+                    debug!("architect discussion — marqueur de clôture, fin du run");
+                    let _ = tx
+                        .send(Ok(AgentEvent::Stop {
+                            reason: outcome.reason,
+                            usage: outcome.usage.clone(),
+                        }))
+                        .await;
+                    return;
+                }
+                if self.config.run_spec.role_id == RoleId::ArchitectDiscussion
+                    && self.config.engine_tuning.discussion_auto_stop_on_reply
+                    && outcome.tool_calls.is_empty()
+                    && run_has_promotable_user_facing_text(
+                        &outcome,
+                        &messages,
+                        RoleId::ArchitectDiscussion,
+                        &self.config.engine_tuning,
+                    )
+                {
+                    final_answer_guard.mark_user_facing_answer_seen();
+                    debug!("architect discussion — réponse directe, fin du run");
+                    let _ = tx
+                        .send(Ok(AgentEvent::Stop {
+                            reason: outcome.reason,
+                            usage: outcome.usage.clone(),
+                        }))
+                        .await;
+                    return;
+                }
                 // Cas typique GLM-4.7-Flash : le modÃ¨le a dÃ©jÃ  Ã©mis sa
                 // rÃ©ponse en `answering` mais a omis le `[phase: done]`
                 // final. Le nudge gÃ©nÃ©rique le fait rÃ©-Ã©crire toute la
@@ -658,8 +752,22 @@ impl Agent {
                     && last_todo_pending == 0
                     && last_todo_in_progress == 0
                 {
+                    // Run edit architect : pas de clôture « réponse seule » sans plan (todo_write).
+                    let architect_edit_needs_plan = self.config.run_spec.role_id
+                        == RoleId::Architect
+                        && !plan_write_gate_satisfied(
+                            professor,
+                            saw_successful_todo_write_in_run,
+                            saw_successful_course_plan_write_in_run,
+                        );
                     // Réponse déjà publiée → clôture sans 2e tour LLM (évite bandeau reasoning / double réponse).
-                    if run_has_promotable_user_facing_text(&outcome, &messages) {
+                    if !architect_edit_needs_plan
+                        && run_has_promotable_user_facing_text(
+                        &outcome,
+                        &messages,
+                        self.config.run_spec.role_id,
+                        &self.config.engine_tuning,
+                    ) {
                         debug!(
                             "answering without done, text already published — auto close (done UI)"
                         );
@@ -705,7 +813,13 @@ impl Agent {
                 }
 
                 debug!("tour sans tool_call et sans [phase: done] â€” nudge");
-                let nudge = if self.config.run_spec.role_id == RoleId::Architect
+                let no_work_edit = self.config.run_spec.role_id == RoleId::Architect
+                    && architect_state.todo_statuses.is_empty()
+                    && !saw_code_mutation_in_run
+                    && !saw_successful_todo_write_in_run;
+                let nudge = if no_work_edit {
+                    ARCHITECT_NO_WORK_NUDGE_PROMPT
+                } else if self.config.run_spec.role_id == RoleId::Architect
                     && architect_state.run_fully_closable()
                 {
                     super::nudges::ARCHITECT_RUN_CLOSABLE_NUDGE_PROMPT
@@ -1117,9 +1231,10 @@ impl Agent {
                                             architect_state
                                                 .ensure_plan_id_on_todo_write(is_fresh_plan);
                                             architect_state.ingest_todo_labels(&value);
-                                            inject_architect_cycle_anchor(
+                                            inject_architect_run_snapshot_after_checkpoint(
                                                 &mut messages,
-                                                &architect_state.cycle_anchor_block(
+                                                &architect_run_context_block_compaction(
+                                                    &architect_state,
                                                     effective_run_objective.as_deref(),
                                                 ),
                                             );
@@ -1236,6 +1351,16 @@ impl Agent {
                                             &mut architect_state,
                                         );
                                     }
+                                    let mut delegate_cap_nudge: Option<&str> = None;
+                                    if self.config.run_spec.role_id == RoleId::Architect
+                                        && !is_delegate_executor
+                                    {
+                                        delegate_cap_nudge = architect_delegate_cap_nudge(
+                                            &self.config.engine_tuning,
+                                            &mut architect_state,
+                                            &call.name,
+                                        );
+                                    }
                                     let mut hook_appendix: Option<String> = None;
                                     if let Some(hooks) = self
                                         .config
@@ -1271,6 +1396,10 @@ impl Agent {
                                         for_llm.push_str("\n\n");
                                         for_llm.push_str(&ack);
                                     }
+                                    if let Some(nudge) = delegate_cap_nudge {
+                                        for_llm.push_str("\n\n");
+                                        for_llm.push_str(nudge);
+                                    }
                                     if self.config.run_spec.role_id == RoleId::Architect
                                         && call.name == "delegate_executor"
                                     {
@@ -1290,6 +1419,7 @@ impl Agent {
                                             plan_id,
                                             task_id,
                                             &ctx.effective_workspace(),
+                                            self.config.engine_tuning.min_deliverable_bytes,
                                         ) {
                                             executor_deliverable_met = true;
                                             executor_deliverable_path = Some(path);
@@ -1378,10 +1508,11 @@ impl Agent {
                 return;
             }
 
-            if user_analysis_intent
+            // S2 — nudge protocolaire : rôle Architecte + exploration sans `[phase: analyzing]`
+            // (pas d'heuristique sur le texte utilisateur).
+            if self.config.run_spec.role_id == RoleId::Architect
                 && !analyzing_phase_nudge_sent
                 && !saw_analyzing_phase_in_run
-                && iter == 0
             {
                 let exploration_calls = outcome
                     .tool_calls
@@ -1391,7 +1522,7 @@ impl Agent {
                 if exploration_calls >= 2 {
                     debug!(
                         exploration_calls,
-                        "analyzing phase nudge â€” exploration sans marqueur analyzing"
+                        "analyzing phase nudge — exploration sans marqueur analyzing"
                     );
                     messages.push(Message::system(ANALYZING_PHASE_NUDGE));
                     analyzing_phase_nudge_sent = true;
@@ -1408,7 +1539,7 @@ impl Agent {
             }
 
             if consecutive_ask_user_question_failures
-                >= MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES
+                >= self.config.engine_tuning.max_consecutive_ask_user_failures
             {
                 debug!(
                     consecutive_ask_user_question_failures,
@@ -1636,7 +1767,9 @@ impl Agent {
                 return Ok(());
             }
         }
-        if let Some(report) = policy.maybe_snip(messages) {
+        if self.config.engine_tuning.context_snip_enabled
+            && let Some(report) = policy.maybe_snip(messages)
+        {
             let tokens_before_snip = tokens;
             tokens = policy.count_tokens(messages);
             debug!(
@@ -1661,12 +1794,14 @@ impl Agent {
         let Some(memory) = self.config.memory.as_ref() else {
             return Ok(());
         };
+        let live = crate::compaction::LiveCompactSettings::from_tuning(&self.config.engine_tuning);
         if let Some(report) = crate::compaction::compact_until_budget(
             memory.llm.as_ref(),
             memory.compaction_prompt.as_str(),
             messages,
             policy,
             &memory.compaction_config,
+            &live,
         )
         .await
         {
@@ -1711,9 +1846,12 @@ impl Agent {
                 "live compaction — persistance session (contexte plein)"
             );
             if self.config.run_spec.role_id == RoleId::Architect {
-                inject_architect_cycle_anchor(
+                inject_architect_run_snapshot_after_checkpoint(
                     messages,
-                    &architect_state.cycle_anchor_block(effective_run_objective),
+                    &architect_run_context_block_compaction(
+                        architect_state,
+                        effective_run_objective,
+                    ),
                 );
             }
             self.maybe_persist_session(
@@ -1891,6 +2029,7 @@ impl Agent {
             executor_deliverable_met,
             Some(&ctx.effective_workspace()),
             ctx.drox_ignore.as_ref(),
+            &self.config.engine_tuning,
         )
     }
 

@@ -13,7 +13,8 @@ import {
 	IDroxSessionUiStats,
 	IDroxTranscriptMessage,
 } from '../common/droxSession.js';
-import { IDroxSessionService, IDroxWorkspaceResetResult } from '../common/droxSessionService.js';
+import { IDroxSessionService, IDroxUiReplayTailResult, IDroxWorkspaceResetResult } from '../common/droxSessionService.js';
+import { sliceUiReplayBeforeTurns, sliceUiReplayTailTurns } from '../common/droxUiReplayTail.js';
 import { droxWorkspaceSessionsDir } from '../common/droxWorkspacePaths.js';
 import {
 	droxSessionUiReplayPath,
@@ -83,6 +84,11 @@ export class DroxSessionService implements IDroxSessionService {
 	}
 
 	async readUiReplay(id: string, workspaceFsPath: string): Promise<DroxHostToWebviewMessage[]> {
+		const tail = await this.readUiReplayTail(id, workspaceFsPath, { maxTurns: Number.MAX_SAFE_INTEGER });
+		return tail.messages;
+	}
+
+	private async readUiReplayParsed(id: string, workspaceFsPath: string): Promise<DroxHostToWebviewMessage[]> {
 		if (!id.startsWith('ses_')) {
 			return [];
 		}
@@ -101,6 +107,43 @@ export class DroxSessionService implements IDroxSessionService {
 		} catch {
 			return [];
 		}
+	}
+
+	async readUiReplayTail(
+		id: string,
+		workspaceFsPath: string,
+		opts: { readonly maxTurns: number },
+	): Promise<IDroxUiReplayTailResult> {
+		const out = await this.readUiReplayParsed(id, workspaceFsPath);
+		const { slice, hasOlder, oldestLoadedIndex } = sliceUiReplayTailTurns(out, opts.maxTurns);
+		return {
+			messages: slice,
+			hasOlder,
+			totalEventCount: out.length,
+			oldestLoadedIndex,
+		};
+	}
+
+	async readUiReplayOlder(
+		id: string,
+		workspaceFsPath: string,
+		opts: { readonly beforeIndex: number; readonly maxTurns: number },
+	): Promise<IDroxUiReplayTailResult> {
+		const out = await this.readUiReplayParsed(id, workspaceFsPath);
+		if (out.length === 0) {
+			return { messages: [], hasOlder: false, totalEventCount: 0, oldestLoadedIndex: 0 };
+		}
+		const { slice, hasOlder, oldestLoadedIndex } = sliceUiReplayBeforeTurns(
+			out,
+			opts.beforeIndex,
+			opts.maxTurns,
+		);
+		return {
+			messages: slice,
+			hasOlder,
+			totalEventCount: out.length,
+			oldestLoadedIndex,
+		};
 	}
 
 	async appendUiReplayMessage(

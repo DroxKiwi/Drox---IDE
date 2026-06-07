@@ -18,6 +18,7 @@ import { IOutputService } from '../../../../services/output/common/output.js';
 import { ITerminalService } from '../../../terminal/browser/terminal.js';
 import { DroxCommands } from '../../common/drox.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
+import { normalizeDroxArchitectInteractionMode } from '../../common/droxArchitectInteractionMode.js';
 import { normalizeDroxPermissionMode } from '../../common/droxPermissionAsk.js';
 import { IDroxAttachmentPayload } from '../../common/droxAttachments.js';
 import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js';
@@ -148,6 +149,11 @@ export async function routeDroxChatWebviewMessage(
 			await deps.configurationService.updateValue(DroxSetting.PermissionMode, mode);
 			break;
 		}
+		case 'setArchitectInteractionMode': {
+			const mode = normalizeDroxArchitectInteractionMode(raw.architectInteractionMode);
+			await deps.configurationService.updateValue(DroxSetting.ArchitectInteractionMode, mode);
+			break;
+		}
 		case 'cancelRun':
 			cancelDroxChatRun(host, {
 				userAskService: deps.userAskService,
@@ -193,6 +199,9 @@ export async function routeDroxChatWebviewMessage(
 			break;
 		case 'loadSession':
 			await tabs.loadSession(raw.sessionId);
+			break;
+		case 'loadSessionOlder':
+			await tabs.loadOlderSessionHistory(raw.sessionId, raw.beforeIndex);
 			break;
 		case 'switchTab':
 			await tabs.switchChatTab(raw.sessionId);

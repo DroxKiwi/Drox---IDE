@@ -115,6 +115,12 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			}
 			return;
 
+		case 'user_facing_reply':
+			if (typeof ev.text === 'string' && ev.text.length > 0) {
+				host.post({ kind: 'userFacingReply', text: ev.text });
+			}
+			return;
+
 		case 'role_enter':
 			if (typeof ev.role_id === 'string') {
 				host.post({ kind: 'orchestrationRole', role: ev.role_id, executorJobId });

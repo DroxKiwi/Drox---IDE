@@ -17,11 +17,17 @@ import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js'
 import { DroxViews } from '../common/drox.js';
 import '../common/droxSettingMigration.js';
 import { registerDroxConfiguration } from '../common/droxConfiguration.js';
+import { registerDroxProductDefaultsConfiguration } from '../common/droxProductDefaultsConfiguration.js';
 import { DroxChatViewPane } from './droxChatViewPane.js';
 import { registerDroxActions } from './droxActions.js';
 import { DroxDiagnosticContribution } from './droxDiagnosticContribution.js';
+import './droxMicrosoftAgentsSurfaceContribution.js';
+import './droxTelemetryContribution.js';
+import './droxExternalUrlRemapContribution.js';
+import './droxHelpMenuContribution.js';
 
 registerDroxConfiguration();
+registerDroxProductDefaultsConfiguration();
 registerDroxActions();
 
 const droxViewIcon = registerIcon('drox-view-icon', Codicon.commentDiscussion, localize('droxViewIcon', 'View icon of the Drox agent view.'));

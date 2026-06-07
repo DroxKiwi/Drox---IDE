@@ -98,7 +98,7 @@ impl Tool for DelegateExecutorTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let delegate = ctx.orchestration_delegate.as_ref().ok_or_else(|| {
             ToolError::invalid_args(
-                "Executor delegation is not configured for this run (orchestration v1_2 required).",
+                "Executor delegation is not configured for this run (role_split orchestration required).",
             )
         })?;
         let args: DelegateExecutorInput = serde_json::from_value(input)?;

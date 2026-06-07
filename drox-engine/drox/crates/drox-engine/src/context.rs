@@ -19,6 +19,8 @@ use drox_context::{
 };
 use drox_types::Message;
 
+use crate::orchestration::EngineTuning;
+
 /// Politique de contexte (cheap to clone).
 #[derive(Clone)]
 pub struct ContextPolicy {
@@ -52,12 +54,22 @@ impl ContextPolicy {
     /// se déclenche vers ~75 % de la fenêtre configurée (pas dès les premiers milliers de tokens).
     #[must_use]
     pub fn for_model_context_window(num_ctx: usize) -> Self {
+        Self::for_model_context_window_with_tuning(num_ctx, &EngineTuning::default())
+    }
+
+    /// Fenêtre `num_ctx` + snip activé/désactivé via [`EngineTuning::context_snip_enabled`] (F11).
+    #[must_use]
+    pub fn for_model_context_window_with_tuning(num_ctx: usize, tuning: &EngineTuning) -> Self {
         let window = num_ctx.max(2048);
-        Self {
+        let mut policy = Self {
             counter: Arc::new(RoughTokenCounter::default()),
             budget: ContextBudget::for_model_context_window(window),
             snip: Some(SnipConfig::default()),
+        };
+        if !tuning.context_snip_enabled {
+            policy = policy.without_snip();
         }
+        policy
     }
 
     #[must_use]

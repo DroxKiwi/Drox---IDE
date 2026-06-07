@@ -41,11 +41,13 @@ Cela exécute `cargo build --release -p drox-cli` dans `drox-engine/drox/` et co
 
 L’IDE cherche le binaire dans cet ordre (voir `droxExecutable.ts`) :
 
-1. `nexus.drox.executablePath` si défini
-2. `drox-engine/drox/target/{debug,release}/` dans le workspace
-3. `resources/drox/<plateforme>/drox[.exe]` sous `appRoot`
-4. `resources/drox/drox[.exe]` (ancien layout plat)
+1. `drox.executablePath` si défini (chemin absolu existant)
+2. `drox-engine/drox/target/{debug,release}/` dans le **workspace** ouvert
+3. `drox-engine/drox/target/{debug,release}/` sous **appRoot** (dev F5 — avant le snapshot packagé)
+4. `resources/drox/<plateforme>/drox[.exe]` sous `appRoot` / installDir (snapshot — peut être **périmé** en dev)
 5. `drox` sur le `PATH`
+
+En dogfood sur un projet externe (ex. `site-kdds`), l’étape 3 évite de prendre le binaire embarqué obsolète.
 
 ## Git
 

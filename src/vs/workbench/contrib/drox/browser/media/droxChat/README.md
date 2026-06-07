@@ -1,25 +1,41 @@
 # Drox chat webview modules
 
-**Suivi projet** : [drox-engine/docs/ide/CHAT-WEBVIEW-MODULES.md](../../../../../../../../drox-engine/docs/ide/CHAT-WEBVIEW-MODULES.md) · [hub doc](../../../../../../../../drox-engine/docs/README.md).
+**Suivi projet** : [drox-engine/docs/ide/CHAT-WEBVIEW-MODULES.md](../../../../../../../../drox-engine/docs/ide/CHAT-WEBVIEW-MODULES.md) · **Découpage 1.3.2** : [drox-engine/docs/1.3/1.3.2/DECOUPAGE-CHAT-WEBVIEW.md](../../../../../../../../drox-engine/docs/1.3/1.3.2/DECOUPAGE-CHAT-WEBVIEW.md)
 
-The chat UI is split from `droxChatMvp.js.bak` into ordered modules under `droxChat/`.
+Modules ordonnés par mécanique, chargés via `DROX_CHAT_SCRIPT_FILES` dans `droxChatWebview.ts`.
 
-| File | Role |
-|------|------|
-| `00-context.js` | `DroxChat` namespace, DOM refs, state, constants |
-| `01-prompt.js` | Prompt textarea helpers, permission modes |
-| `01b-models.js` | Sélecteur modèle Ollama (liste `/api/tags`) |
-| `02-chrome.js` | Busy state, activity grid, todos |
-| `03-composer.js` | Send queue, @ completion, refs, slash commands |
-| `04-history.js` | Session history panel, token footer |
-| `05-attachments.js` | Images, drag-and-drop |
-| `06-userAsk.js` | User-ask card |
-| `11-markdown.js` | Rendu markdown CSP-safe (réponses assistant) |
-| `07-log.js` | Message log, phases, tools |
-| `08-tabs.js` | Session tabs |
-| `09-host.js` | `handleHostMessage` (host → webview) |
-| `10-bootstrap.js` | Event listeners, `webviewReady` |
+## Arborescence racine
 
-**Regenerate:** `node scripts/split-drox-chat-v2.mjs` (source: `droxChatMvp.js.bak`).
+| Dossier | Mécanique |
+|---------|-----------|
+| `core/` | `00-bootstrap.js`, `dom.js`, `constants-modes.js`, `state.js`, `warmup-phrases.js`, `constants-meta.js` |
+| `settings/` | Prompt, modèles (`role-models/`), réglages (`general-settings/`) |
+| `chrome/` | `util`, `composer-chrome`, `busy`, `activity`, `todos`, … |
+| `composer/` | `pending`, `refs`, `path-complete`, `send`, … (+ `03b-userPromptSticky.js`) |
+| `session/` | Historique, onglets |
+| `attachments/` | Fichiers / images |
+| `user-ask/` | Carte user-ask |
+| `stream/` | Fil de messages (voir ci-dessous) |
+| `markdown/` | Rendu markdown |
+| `tools/` | Tray outils, file changes |
+| `bridge/` | `tool-events`, `host-message`, `10-bootstrap` |
 
-**Load order:** `DROX_CHAT_SCRIPT_FILES` in `droxChatWebview.ts`.
+## `stream/` (ex-`07-log.js`)
+
+| Sous-dossier | Fichiers |
+|--------------|----------|
+| `log/` | `00-constants.js` — `D.streamLog` (phases, marqueurs) |
+| `discussion/` | `state.js` |
+| `answer/` | `helpers.js`, `presentation.js`, `stream.js` |
+| `messages/` | `viewer.js`, `scroll.js`, `user.js`, `orchestration.js` |
+| `executor/` | `capture.js`, `subagents.js` |
+| `dev/` | `gateTags.js` |
+| `tools/` | `logTools.js` — blocs outil dans le fil |
+| `timeline/` | `strip.js`, `thinking.js`, `phases.js`, `architect-rail.js`, `mount.js`, `overrides.js` — fil linéaire (**overrides en dernier**) |
+
+Routage texte : `display/simple.js` (`appendDelta` → `routeSimpleDisplayDelta`). Les modules `timeline/overrides.js` gèrent strip, outils et sous-agents uniquement.
+
+## Regénération
+
+- `node scripts/split-00-context.mjs` · `split-01c-role-models.mjs` · `split-03-composer.mjs` · `split-02-chrome.mjs` · `split-09-host.mjs` · `split-01d-general-settings.mjs` (sources monolithiques supprimées après run)
+- `node scripts/split-drox-chat-v2.mjs` → `droxChat/_legacy-flat/` (ne pas écraser la structure actuelle)

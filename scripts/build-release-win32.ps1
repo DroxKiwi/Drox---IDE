@@ -193,6 +193,9 @@ if ($WithSetup) {
 # --- Verifications smoke F1 ---
 Write-Step 'Verifications'
 
+& (Join-Path $repoRoot 'scripts\verify-legal-package.ps1') -PackagedDir $outDir
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 $exe = Join-Path $outDir "$productShort.exe"
 if (-not (Test-Path $exe)) {
 	# repli si le nom diffère

@@ -33,37 +33,28 @@ use tracing::{instrument, warn};
 use crate::context::ContextPolicy;
 use crate::error::EngineError;
 use crate::event::AgentEvent;
-use crate::run_spec::RunSpec;
+use crate::run_spec::{RoleId, RunSpec};
 use crate::memory::MemoryRuntime;
 use crate::permissions::PermissionPolicy;
 
 mod architect_gates;
 mod architect_todo_gate;
 mod cycle_sanity;
-mod architect_plan_quality;
 mod architect_state;
+mod edit_start;
 mod executor_gates;
 mod gates;
 mod r#loop;
 mod nudges;
 mod phases;
+pub(crate) use phases::{parse_phase_marker, strip_phase_protocol_lines};
 mod agent_stream;
 mod final_answer_guard;
 mod subagent_report_gate;
 
 pub(crate) use agent_stream::PendingToolCall;
-
-
-pub(crate) fn user_blocks_plain_text(blocks: &[Content]) -> String {
-    blocks
-        .iter()
-        .filter_map(|b| match b {
-            Content::Text { text } => Some(text.as_str()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
-}
+pub use architect_state::{ArchitectRunState, ARCHITECT_RUN_SNAPSHOT_MARKER};
+pub use edit_start::{apply_architect_edit_start, ArchitectEditStartOutcome};
 
 /// Corps du message `role = tool` renvoyé au LLM après exécution réussie.
 ///
@@ -125,6 +116,10 @@ pub struct AgentConfig {
     pub executor_deliverable_plan_id: Option<String>,
     /// Spécification d'exécution du run (couche B). Voir `run_spec`.
     pub run_spec: RunSpec,
+    /// Paramètres strictness / gates résolus (`resolve_engine_tuning`).
+    pub engine_tuning: crate::orchestration::EngineTuning,
+    /// Id run orchestration (corrélation RPC / transcript).
+    pub orchestration_run_id: Option<String>,
 }
 
 impl Default for AgentConfig {
@@ -146,6 +141,8 @@ impl Default for AgentConfig {
             executor_deliverable_task_id: None,
             executor_deliverable_plan_id: None,
             run_spec: RunSpec::default(),
+            engine_tuning: crate::orchestration::EngineTuning::default(),
+            orchestration_run_id: None,
         }
     }
 }
@@ -313,23 +310,41 @@ async fn push_tool_error(
 ///
 /// Retourne `None` si aucun message `user` n'a (encore) de texte —
 /// l'appelant utilisera alors un slug générique (`"session"`).
+fn user_message_text(m: &Message) -> Option<String> {
+    if !matches!(m.role, Role::User) {
+        return None;
+    }
+    let mut buf = String::new();
+    for block in &m.content {
+        if let Content::Text { text } = block {
+            if !buf.is_empty() {
+                buf.push(' ');
+            }
+            buf.push_str(text);
+        }
+    }
+    let trimmed = buf.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
 pub(crate) fn first_user_text(messages: &[Message]) -> Option<String> {
     for m in messages {
-        if !matches!(m.role, Role::User) {
-            continue;
+        if let Some(t) = user_message_text(m) {
+            return Some(t);
         }
-        let mut buf = String::new();
-        for block in &m.content {
-            if let Content::Text { text } = block {
-                if !buf.is_empty() {
-                    buf.push(' ');
-                }
-                buf.push_str(text);
-            }
-        }
-        let trimmed = buf.trim();
-        if !trimmed.is_empty() {
-            return Some(trimmed.to_string());
+    }
+    None
+}
+
+/// Dernier message `user` non vide (message courant en session multi-tours).
+pub(crate) fn last_user_text(messages: &[Message]) -> Option<String> {
+    for m in messages.iter().rev() {
+        if let Some(t) = user_message_text(m) {
+            return Some(t);
         }
     }
     None
@@ -368,9 +383,16 @@ pub(crate) fn build_tool_specs(
             continue;
         }
         if let Some(tool) = registry.get(&name) {
+            let description = if run_spec.role_id == RoleId::Architect {
+                crate::orchestration::architect_tool_short_description(&name)
+                    .map(str::to_string)
+                    .unwrap_or_else(|| tool.description().to_string())
+            } else {
+                tool.description().to_string()
+            };
             specs.push(ToolSpec {
                 name: tool.name().to_string(),
-                description: tool.description().to_string(),
+                description,
                 parameters: tool.input_schema(),
             });
         }
@@ -390,6 +412,7 @@ mod tests {
 
     use crate::context::ContextPolicy;
     use crate::event::Phase;
+    use crate::RoleId;
     use drox_context::{ContextBudget, RoughTokenCounter};
     use super::agent_stream::{TurnOutcome, consume_stream, run_has_promotable_user_facing_text};
     use super::nudges::step_by_step_todo_nudge;
@@ -1724,7 +1747,33 @@ mod tests {
             saw_testing: false,
             run_objective: None,
         };
-        assert!(run_has_promotable_user_facing_text(&outcome, &[]));
+        assert!(run_has_promotable_user_facing_text(
+            &outcome,
+            &[],
+            RoleId::Architect,
+            &crate::EngineTuning::default(),
+        ));
+    }
+
+    #[test]
+    fn run_has_promotable_user_facing_text_accepts_short_discussion_greeting() {
+        let outcome = TurnOutcome {
+            text: "Salut ! Comment puis-je vous aider ?".to_string(),
+            tool_calls: vec![],
+            reason: StopReason::EndTurn,
+            usage: Usage::default(),
+            final_phase: None,
+            saw_answering: false,
+            saw_analyzing: false,
+            saw_testing: false,
+            run_objective: None,
+        };
+        assert!(run_has_promotable_user_facing_text(
+            &outcome,
+            &[],
+            RoleId::ArchitectDiscussion,
+            &crate::EngineTuning::default(),
+        ));
     }
 
     #[test]
@@ -1740,7 +1789,12 @@ mod tests {
             saw_testing: false,
             run_objective: None,
         };
-        assert!(!run_has_promotable_user_facing_text(&outcome, &[]));
+        assert!(!run_has_promotable_user_facing_text(
+            &outcome,
+            &[],
+            RoleId::Architect,
+            &crate::EngineTuning::default(),
+        ));
     }
 
     #[tokio::test]
@@ -2112,10 +2166,13 @@ mod tests {
         let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
         // `max_iterations` largement supérieur à 3 pour s'assurer que c'est
         // bien le `LoopDetector` qui clôt le run, pas le garde-fou.
-        let cfg = AgentConfig {
+        let mut cfg = AgentConfig {
             max_iterations: 12,
             ..AgentConfig::default()
         };
+        cfg.engine_tuning.loop_strikes_before_abort = 1;
+        cfg.engine_tuning.gate_done_requires_answering = true;
+        cfg.engine_tuning.promotable_answer_min_chars = 10_000;
         let agent = Agent::new(llm, registry, ctx, cfg);
 
         let raw: Vec<_> = agent.run("explique").collect::<Vec<_>>().await;
@@ -2170,13 +2227,18 @@ mod tests {
             same_turn(),
             same_turn(),
             same_turn(),
+            same_turn(),
+            same_turn(),
         ]));
         let registry = Arc::new(ToolRegistry::new());
         let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
-        let cfg = AgentConfig {
+        let mut cfg = AgentConfig {
             max_iterations: 12,
             ..AgentConfig::default()
         };
+        cfg.engine_tuning.loop_strikes_before_abort = 1;
+        cfg.engine_tuning.gate_done_requires_answering = true;
+        cfg.engine_tuning.promotable_answer_min_chars = 10_000;
         let agent = Agent::new(llm, registry, ctx, cfg);
 
         let raw: Vec<_> = agent.run("essaie").collect::<Vec<_>>().await;

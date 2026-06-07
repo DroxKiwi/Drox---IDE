@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import { join } from '../../../../base/common/path.js';
 import { droxWorkspaceSessionsDir } from './droxWorkspacePaths.js';
 
@@ -25,6 +27,8 @@ const UI_REPLAY_EXCLUDED_KINDS = new Set<string>([
 	'chatReset',
 	'sessionReplayDone',
 	'replayPrepare',
+	'sessionHistory',
+	'sessionHistoryPageDone',
 	'session',
 	'memory',
 	'appendReferences',

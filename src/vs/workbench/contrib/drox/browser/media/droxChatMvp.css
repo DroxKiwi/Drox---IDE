@@ -218,6 +218,37 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	min-width: 0;
 }
 
+.drox-chat-brand {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 0;
+	padding: 2px 8px 2px 4px;
+	margin-right: 2px;
+	border-right: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+	min-width: 0;
+	user-select: none;
+	cursor: default;
+}
+
+.drox-chat-brand-name {
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	line-height: 1.1;
+	opacity: 0.92;
+}
+
+.drox-chat-brand-version {
+	font-size: 10px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.15;
+	opacity: 0.72;
+	white-space: nowrap;
+}
+
 .session-tabs-list {
 	flex: 1 1 auto;
 	min-width: 0;
@@ -938,6 +969,18 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	margin: 0;
 }
 
+.drox-user-facing-reply,
+.drox-chat-stream {
+	margin: 0;
+	width: 100%;
+}
+
+.drox-run-answer .drox-user-facing-reply,
+.drox-run-answer .drox-chat-stream {
+	font-size: 13px;
+	line-height: 1.45;
+}
+
 .todo-item.todo-active {
 	outline: 1px solid var(--drox-ui-green, var(--vscode-focusBorder));
 	outline-offset: 2px;
@@ -1038,6 +1081,92 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .msg-loop-intervention-recovery {
 	border-left-color: var(--vscode-charts-blue, #3794ff);
 	background: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 12%, transparent);
+}
+
+/* Tags dev gate (orange) — `DROX_DEV_GATE_TAGS_ENABLED` dans droxChatDev.ts */
+.msg-gate-dev {
+	--drox-gate-dev-fg: #e86a00;
+	--drox-gate-dev-bg: color-mix(in srgb, #e86a00 16%, var(--vscode-editor-background));
+	margin: 8px 0;
+	padding: 8px 10px;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--drox-gate-dev-fg);
+	border: 1px solid color-mix(in srgb, var(--drox-gate-dev-fg) 42%, transparent);
+	border-left-width: 3px;
+	background: var(--drox-gate-dev-bg);
+	border-radius: 6px;
+}
+
+.msg-gate-dev-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px 10px;
+	margin-bottom: 4px;
+}
+
+.msg-gate-dev-label {
+	font-weight: 700;
+	font-size: 11px;
+	letter-spacing: 0.02em;
+}
+
+.msg-gate-dev-badge {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	opacity: 0.88;
+	padding: 1px 6px;
+	border-radius: 3px;
+	background: color-mix(in srgb, var(--drox-gate-dev-fg) 22%, transparent);
+}
+
+.msg-gate-dev-sub {
+	font-size: 11px;
+	opacity: 0.9;
+	margin: 4px 0 2px;
+}
+
+.msg-gate-dev-body {
+	margin: 0;
+	padding: 6px 8px;
+	font-size: 11px;
+	line-height: 1.45;
+	white-space: pre-wrap;
+	word-break: break-word;
+	color: var(--vscode-foreground);
+	background: color-mix(in srgb, var(--drox-gate-dev-fg) 8%, var(--vscode-editor-background));
+	border-radius: 4px;
+	max-height: 200px;
+	overflow: auto;
+}
+
+.msg-gate-dev-body-json {
+	font-family: var(--vscode-editor-font-family);
+}
+
+.msg-gate-dev-foot {
+	margin-top: 4px;
+	font-size: 11px;
+	opacity: 0.85;
+}
+
+.msg-gate-path {
+	margin: 6px 0;
+	padding: 6px 10px;
+	font-size: 12px;
+	line-height: 1.35;
+	color: var(--vscode-descriptionForeground);
+	border-left: 3px solid var(--vscode-textLink-foreground);
+	background: color-mix(in srgb, var(--vscode-editorWidget-background) 88%, transparent);
+	border-radius: 4px;
+}
+
+.msg-gate-path-complete {
+	border-left-color: var(--vscode-testing-iconPassed);
+	font-weight: 500;
 }
 
 .msg-explore-notice {
@@ -2080,6 +2209,24 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	letter-spacing: 0.04em;
 }
 
+.general-settings-hint {
+	font-size: 11px;
+	opacity: 0.75;
+	margin: 0 0 8px;
+	line-height: 1.35;
+}
+
+.general-settings-engine-tuning {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 8px;
+}
+
+.general-settings-engine-tuning[hidden] {
+	display: none !important;
+}
+
 .general-settings-section-label {
 	margin: 4px 0 0;
 	font-size: 10px;
@@ -2186,6 +2333,31 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+}
+
+/* Executor « same as architect » : seul le parallélisme est configurable. */
+.role-model-panel.role-model-executor-same-as .role-model-field-executor-model-row,
+.role-model-panel.role-model-executor-same-as .role-model-field-executor-dedicated-hint,
+.role-model-panel.role-model-executor-same-as .role-model-field-executor-llm-only {
+	display: none !important;
+}
+
+.role-model-panel-same-as-block {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 0;
+}
+
+.role-model-panel-link-btn {
+	align-self: flex-start;
+	font-size: 10px;
+	padding: 0;
+	border: none;
+	background: none;
+	color: var(--vscode-textLink-foreground);
+	cursor: pointer;
+	text-decoration: underline;
 }
 
 .role-model-panel-select,

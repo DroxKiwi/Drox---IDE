@@ -1,6 +1,6 @@
 //! Construction du `system_prompt` fusionné pour un run agent.
 
-use drox_engine::RoleId;
+use drox_engine::{architect_discussion_system_prompt, EngineTuning, RoleId};
 
 use crate::language::Language;
 use crate::prompts::{
@@ -25,6 +25,10 @@ pub struct AssembleInput {
     pub disabled_tools_notice: Option<String>,
     /// Sous-agents activés (`task` explore + supplément prompt M5).
     pub subagents_enabled: bool,
+    /// `agent.run` → tuning résolu (discussion read budget, etc.).
+    pub engine_tuning: EngineTuning,
+    /// `false` après gate `discuss_reply_only` — pas de carte workspace.
+    pub discussion_allow_reads: bool,
 }
 
 #[must_use]
@@ -43,7 +47,39 @@ pub fn assemble_system_prompt(input: AssembleInput) -> Option<String> {
     match input.role_id {
         RoleId::Standard => assemble_standard(input),
         RoleId::Architect | RoleId::Executor => assemble_orchestration_support(input),
+        RoleId::ArchitectDiscussion => assemble_architect_discussion(input),
     }
+}
+
+/// Discussion : prompt léger + carte workspace si reads autorisées.
+#[must_use]
+fn assemble_architect_discussion(input: AssembleInput) -> Option<String> {
+    let mut parts = architect_discussion_system_prompt(&input.engine_tuning);
+    let ignore = input.drox_ignore_block.trim();
+    if !ignore.is_empty() {
+        parts.push_str("\n\n");
+        parts.push_str(ignore);
+    }
+    if input.discussion_allow_reads {
+        if let Some(block) = input.workspace_map_block {
+            parts.push_str("\n\n");
+            parts.push_str(&block);
+        }
+    }
+    let mut system_merged = crate::language::merge_into_system(Some(parts), input.language.as_ref());
+    if input.native_thinking {
+        system_merged = append_system_supplement(
+            system_merged,
+            NATIVE_THINKING_REASONING_SUPPLEMENT,
+        );
+    }
+    if let Some(notice) = input.disabled_tools_notice {
+        match &mut system_merged {
+            Some(s) => s.push_str(&notice),
+            None => system_merged = Some(notice.trim_start().to_string()),
+        }
+    }
+    system_merged
 }
 
 /// Contexte workspace pour un rôle orchestration (le core prompt vient de `ARCHITECT_*` / `EXECUTOR_*`).
@@ -146,6 +182,8 @@ mod tests {
             professor_mode: false,
             disabled_tools_notice: None,
             subagents_enabled: false,
+            engine_tuning: EngineTuning::default(),
+            discussion_allow_reads: true,
         })
         .unwrap();
         assert!(merged.contains("MEMORY SESSIONS"));

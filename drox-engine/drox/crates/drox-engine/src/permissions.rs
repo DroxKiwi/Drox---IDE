@@ -461,7 +461,11 @@ mod tests {
         let decision = policy.evaluate("bash", &json!({ "command": "rm -rf /tmp/z" }));
         assert!(decision.is_deny(), "got {decision:?}");
         if let PermissionDecision::Deny { message, .. } = decision {
-            assert!(message.contains("refusée") || message.contains("refused"));
+            assert!(
+                message.contains("denied")
+                    || message.contains("refusée")
+                    || message.contains("refused")
+            );
         }
     }
 

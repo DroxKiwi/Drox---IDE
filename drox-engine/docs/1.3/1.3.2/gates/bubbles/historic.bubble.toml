@@ -1,0 +1,13 @@
+id = "historic"
+version = 1
+category = "narrative"
+description = "Compact recent session transcript (pull, not full JSONL dump)."
+
+[params]
+turns = { type = "u32", default = 6, max = 40 }
+
+[limits]
+max_chars = 24_000
+
+[source]
+handler = "session_transcript_compact"

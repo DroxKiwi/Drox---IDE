@@ -1,0 +1,10 @@
+id = "last_gate"
+version = 1
+category = "narrative"
+description = "Summary of the last gate pass (id, branch, value) from run journal."
+
+[limits]
+max_chars = 2_000
+
+[source]
+handler = "last_gate_pass"

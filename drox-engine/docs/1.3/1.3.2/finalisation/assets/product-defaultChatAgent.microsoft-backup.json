@@ -1,0 +1,22 @@
+{
+	"_comment": "Sauvegarde upstream — restaurer dans product.json pour réactiver Copilot/Agents Microsoft (voir D1-DESACTIVATION-MICROSOFT-AGENTS-1.3.2.md).",
+	"defaultChatAgent": {
+		"extensionId": "github.copilot-chat",
+		"chatExtensionId": "github.copilot-chat",
+		"documentationUrl": "https://aka.ms/github-copilot-overview",
+		"termsStatementUrl": "https://aka.ms/github-copilot-terms-statement",
+		"privacyStatementUrl": "https://aka.ms/github-copilot-privacy-statement",
+		"skusDocumentationUrl": "https://aka.ms/github-copilot-plans",
+		"publicCodeMatchesUrl": "https://aka.ms/github-copilot-match-public-code",
+		"managePlanUrl": "https://aka.ms/github-copilot-manage-plan",
+		"upgradePlanUrl": "https://aka.ms/github-copilot-upgrade-plan",
+		"signUpUrl": "https://aka.ms/github-sign-up",
+		"entitlementUrl": "https://api.github.com/copilot_internal/user",
+		"entitlementSignupLimitedUrl": "https://api.github.com/copilot_internal/subscribe_limited_user",
+		"tokenEntitlementUrl": "https://api.github.com/copilot_internal/v2/token",
+		"mcpRegistryDataUrl": "https://api.github.com/copilot/mcp_registry"
+	},
+	"builtInExtensionsEnabledWithAutoUpdates": [
+		"GitHub.copilot-chat"
+	]
+}

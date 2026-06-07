@@ -53,53 +53,14 @@ const MUTATION_FILE_EXTENSIONS: &[&str] = &[
     "zsh", "ps1", "dart", "rb", "php", "swift",
 ];
 
-const MUTATION_VERBS: &[&str] = &[
-    "créer",
-    "creer",
-    "create",
-    "modifier",
-    "modify",
-    "fix",
-    "corriger",
-    "implement",
-    "implément",
-    "implementer",
-    "ajouter",
-    "add ",
-    "intégrer",
-    "integrer",
-    "integrate",
-    "wire",
-    "refactor",
-    "patch",
-    "écrire le fichier",
-    "write the file",
-    "file_write",
-    "file_edit",
-];
-
-/// Infère mutation vs lecture à partir du brief et du `scope`.
+/// Infère mutation vs lecture à partir du **`scope`** (fichiers source ciblés) — pas de scan du brief.
 #[must_use]
 pub fn classify_delegate_task(
     scope: &[String],
-    description: &str,
-    deliverable: Option<&str>,
-    instructions: Option<&str>,
+    _description: &str,
+    _deliverable: Option<&str>,
+    _instructions: Option<&str>,
 ) -> DelegateTaskKind {
-    let mut text = String::new();
-    text.push_str(description);
-    if let Some(d) = deliverable {
-        text.push(' ');
-        text.push_str(d);
-    }
-    if let Some(i) = instructions {
-        text.push(' ');
-        text.push_str(i);
-    }
-    let lower = text.to_ascii_lowercase();
-    if MUTATION_VERBS.iter().any(|v| lower.contains(v)) {
-        return DelegateTaskKind::Mutation;
-    }
     let file_targets: Vec<_> = scope
         .iter()
         .filter(|p| scope_path_looks_like_source_file(p))
@@ -129,6 +90,7 @@ pub fn post_delegate_truth_check(
     scope: &[String],
     kind: DelegateTaskKind,
     disk: Option<&DeliverableOnDisk>,
+    min_deliverable_bytes: u64,
 ) -> TruthCheck {
     let mut scope_checks = Vec::new();
     let mut mutation_file_targets = 0u32;
@@ -158,7 +120,7 @@ pub fn post_delegate_truth_check(
 
     let agent_output_path = disk.map(|d| d.path.clone());
     let agent_output_bytes = disk.map(|d| d.bytes).unwrap_or(0);
-    let has_agent_md = agent_output_bytes >= 64;
+    let has_agent_md = agent_output_bytes >= min_deliverable_bytes;
 
     let mutation_ok = if mutation_file_targets > 0 {
         mutation_files_ok == mutation_file_targets
@@ -339,7 +301,7 @@ pub fn recovery_checkpoint_block(
     }
     block.push_str(&format!(
         "- Re-delegate attempts used: {delegate_attempts}/2\n\
-         Forbidden: mark `{task_id}` completed; restart full discovery; empty todo_write.\n"
+         Suggested: read deliverable, re-delegate with narrower scope, fix yourself with `file_edit`/`bash`, or adjust `todo_write`.\n"
     ));
     block
 }
@@ -384,8 +346,8 @@ mod tests {
     #[test]
     fn classify_read_only_analysis() {
         let kind = classify_delegate_task(
-            &["app/package.json".into()],
-            "Lister les dépendances dans package.json",
+            &["app-kdds-main/src".into()],
+            "Lister les dépendances",
             Some("Tableau deps"),
             None,
         );
@@ -397,7 +359,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let ws = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
         let scope = vec!["src/missing.ts".into()];
-        let truth = post_delegate_truth_check(&ws, &scope, DelegateTaskKind::Mutation, None);
+        let truth = post_delegate_truth_check(&ws, &scope, DelegateTaskKind::Mutation, None, 64);
         assert!(!truth.mutation_ok);
         let status = apply_truth_check_to_status(DelegateStatus::Completed, &truth);
         assert_eq!(status, DelegateStatus::Partial);
@@ -411,7 +373,7 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join("hook.ts"), b"export {}").unwrap();
         let scope = vec!["src/hook.ts".into()];
-        let truth = post_delegate_truth_check(&ws, &scope, DelegateTaskKind::Mutation, None);
+        let truth = post_delegate_truth_check(&ws, &scope, DelegateTaskKind::Mutation, None, 64);
         assert!(truth.mutation_ok);
     }
 
@@ -422,7 +384,7 @@ mod tests {
         let dir = ws.join("app-kdds-main/src");
         fs::create_dir_all(&dir).unwrap();
         let scope = vec!["app-kdds-main/src".into()];
-        let truth = post_delegate_truth_check(&ws, &scope, DelegateTaskKind::ReadOnly, None);
+        let truth = post_delegate_truth_check(&ws, &scope, DelegateTaskKind::ReadOnly, None, 64);
         assert!(truth.read_deliverable_ok);
         assert!(truth.passes_for_completed());
     }
@@ -437,7 +399,8 @@ mod tests {
             content: "# ok".into(),
         };
         let scope = vec!["src/never-created.ts".into()];
-        let truth = post_delegate_truth_check(&ws, &scope, DelegateTaskKind::Mutation, Some(&disk));
+        let truth =
+            post_delegate_truth_check(&ws, &scope, DelegateTaskKind::Mutation, Some(&disk), 64);
         let status = apply_truth_check_to_status(DelegateStatus::Completed, &truth);
         assert_eq!(status, DelegateStatus::Partial);
         let failure = build_failure_packet("t1", status, &truth, 3, 1, None).unwrap();
