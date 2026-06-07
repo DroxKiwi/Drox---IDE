@@ -1,4 +1,4 @@
-# Plan 1.3.5 — Index, graphe, fast path
+# Plan 1.3.5 — Onboarding, index, graphe, fast path
 
 **Version** : brouillon juin 2026  
 **Base** : moteur 1.3.2 (`role_split` simplifié — voir [CONDUCTEUR-CODE.md](../1.3.2/CONDUCTEUR-CODE.md))  
@@ -9,6 +9,12 @@
 ## Vision
 
 ```text
+Premier lancement
+  → Onboarding Drox (assistant paramétrage, pas Copilot)
+       ├─► Détection Ollama / drox.exe / workspace
+       ├─► Choix modèle + benchmark (P4) → preset conseillé
+       └─► Tour rapide Chat + réglages essentiels
+
 IDE (curseur, LSP, buffer)
   → Index local (.drox/index/)
   → ContextPack (≤5 fichiers + extraits)
@@ -135,16 +141,64 @@ Modèle choisi par l'utilisateur inchangé → benchmark → reco appliquée →
 
 ---
 
+## P5 — Onboarding & premier lancement (accueil + paramétrage guidé)
+
+**Problème** : D1.x coupe le welcome / onboarding Microsoft (`startupEditor: none`, Copilot off) sans proposer d’alternative Drox — le nouvel utilisateur atterrit dans une IDE vide sans savoir configurer Ollama, les modèles ni le moteur.
+
+**Cible** : une **interface d’accueil Drox** (webview ou workbench editor dédié) au premier lancement (et réouvrable depuis Aide), qui **accompagne intelligemment** le paramétrage minimal pour un premier run Chat réussi.
+
+### Principes produit
+
+| Principe | Détail |
+|----------|--------|
+| **Zéro Copilot** | Pas de login Microsoft ; ton et visuels Drox (logo, #1E1E1E / vert) |
+| **Progressif** | Étapes courtes, skippables, reprise possible (`drox.onboarding.completed`) |
+| **Actionnable** | Chaque étape écrit un réglage réel (`drox.*`, preset engine) — pas un tutoriel passif |
+| **Branché moteur** | Détection via `drox.exe` / health Ollama ; benchmark P4 en étape optionnelle « optimiser » |
+
+### Parcours proposé (v1)
+
+| Étape | Contenu | Sortie |
+|-------|---------|--------|
+| O0 | Bienvenue + « qu’est-ce que Drox » (local, privé, Chat agent) | — |
+| O1 | Vérif `drox.exe` + Ollama installé / démarré | lien install si KO |
+| O2 | Choix **modèle architecte** (+ exécuteur si différent) | `drox.architect.model`, `drox.executor.model` |
+| O3 | *(optionnel)* Benchmark rapide (P4.1–P4.2) → preset **Éco / Équilibré / Performance** | `drox.engine.strictness` + bundle reco |
+| O4 | Permissions outils (bash, édition fichiers) — rappel sandbox | `drox.tools.*` sensibles |
+| O5 | Mini tour : ouvrir Chat, première consigne, historique sessions | ouvre `DroxViews.ChatViewId` |
+| O6 | Terminé — « rouvrir l’assistant » dans menu Aide | `drox.onboarding.completed = true` |
+
+### Livrables
+
+| Phase | Livrable | Priorité |
+|-------|----------|----------|
+| P5.0 | Spec UX + états (`not_started` / `in_progress` / `completed` / `skipped`) | P0 |
+| P5.1 | Shell UI (webview `contrib/drox` ou editor onboarding) + routing étapes | P0 |
+| P5.2 | O1–O2 : détection + binding settings (sans benchmark) | P0 |
+| P5.3 | Intégration benchmark P4 en O3 (si profil absent) | P1 |
+| P5.4 | O4–O6 + réouverture Aide · pas de re-show auto si `completed` | P1 |
+| P5.5 | i18n FR/EN, télémétrie off (aucun envoi MS) | P1 |
+
+### Critère d'acceptation
+
+Install fraîche 1.3.5 → onboarding s’ouvre au premier lancement → utilisateur sans doc externe configure Ollama + modèle → premier message Chat obtient une réponse → onboarding marqué terminé et ne réapparaît pas au redémarrage (sauf « Relancer l’assistant de configuration »).
+
+**Hors scope P5 v1** : walkthroughs extensions VS Code, import settings Cursor/VS Code, tutoriel orchestration avancée (→ doc / 1.4.x).
+
+---
+
 ## Ordre recommandé
 
 ```text
-P1.0 ContextPack RPC
+P5.0–P5.2 onboarding shell + Ollama/modèle (UX produit — peut démarrer tôt)
+  ∥ P1.0 ContextPack RPC
   → P1.1 heuristique IDE+LSP
   → P2.0 GraphContext format + injection
   → P1.2 index persistant
-  → P4.0–P4.2 presets + benchmark (peut démarrer en parallèle de P1)
+  → P4.0–P4.2 presets + benchmark
+  → P5.3 benchmark dans onboarding (O3)
   → P3.0 fast path RPC
-  → P4.3 apply preset + wizard UI
+  → P4.3 apply preset + P5.4 fin parcours / Aide
   → P1.3 embeddings (si besoin réel)
   → P4.4 parallèle + fast path benchmark
 ```

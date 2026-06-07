@@ -15,7 +15,7 @@
 | **P1** | Presets `relaxed` / `normal` / `strict` validés post-refacto |
 | **P1** | Tests unitaires IDE drox (replay, remap, …) |
 
-**Hors scope** : index RAG, graphe, fast path → [1.3.5](../1.3.5/README.md).
+**Hors scope** : onboarding, index RAG, graphe, fast path → [1.3.5](../1.3.5/README.md).
 
 ---
 
@@ -58,7 +58,7 @@ npm run test-node -- --run "vs/workbench/contrib/drox/test/common/"
 
 ## Suite (1.3.5)
 
-Index, graphe, fast path, benchmark — [PLAN-1.3.5.md](../1.3.5/PLAN-1.3.5.md).
+Onboarding, index, graphe, fast path, benchmark — [PLAN-1.3.5.md](../1.3.5/PLAN-1.3.5.md).
 
 ---
 

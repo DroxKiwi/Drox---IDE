@@ -110,7 +110,7 @@ npm run release-publish-win32
 | Sortie installeur F2 | `.build\win32-x64\user-setup\Drox-IDE-UserSetup-*.exe` |
 | Moteur embarqué | `resources\drox\win32-x64\drox.exe` (à côté de `resources\app\` en package) |
 | Alignement release | `out-vscode-min/drox-bundle-stamp.json` = `droxVersion` du `package.json` ; sentinelles chat 1.3.2+ ; vérif post-package (product.json + moteur MODERN) |
-| Marqueur bundle moteur | `'resolved bundled engine'` dans `out-vscode-min/main.js` (insuffisant seul — voir `scripts/lib/drox-bundle-readiness.ps1`) |
+| Marqueurs bundle | `clientName:"drox-ide"` dans `main.js` ; contributions Drox dans `workbench.desktop.main.js` ; media chat — voir `scripts/lib/drox-bundle-readiness.ps1` |
 
 ### Installeur (Inno Setup)
 

@@ -1,6 +1,6 @@
 # Drox 1.3.3 — Release fiable (pipeline & package)
 
-**Statut** : **en cours** (branche `1.3.3`)  
+**Statut** : **livré** (juin 2026)  
 **Prérequis** : [1.3.2](../1.3.2/README.md) mergée sur `main`
 
 ---

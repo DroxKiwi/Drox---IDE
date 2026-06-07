@@ -39,6 +39,10 @@ function Write-Banner([string]$Title) {
 	Write-Host ('=== {0} ===' -f $Title) -ForegroundColor Cyan
 }
 
+function Assert-ExternalExitSuccess {
+	if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
 function Assert-DroxBundleReadyForFastRelease {
 	$issues = @(Get-DroxBundleReadinessIssues)
 	if ($issues.Count -eq 0) { return }
@@ -50,19 +54,21 @@ $(Format-DroxBundleReadinessReport -Issues $issues)
 
 function Invoke-BuildRelease {
 	$buildScript = Join-Path $PSScriptRoot 'build-release-win32.ps1'
-	$buildArgs = @('-WithSetup')
-	if (-not $Full) { $buildArgs += '-SkipNpmInstall' }
+	# Hashtable splatting requis : un tableau de chaines (-WithSetup, etc.) est lie
+	# en positionnel et atterrit sur DroxProfile (ValidateSet release|debug).
+	$buildParams = @{ WithSetup = $true }
+	if (-not $Full) { $buildParams.SkipNpmInstall = $true }
 	if ($Fast) {
 		Assert-DroxBundleReadyForFastRelease
-		$buildArgs += '-SkipCompile'
+		$buildParams.SkipCompile = $true
 	}
-	if ($Force) { $buildArgs += '-ForceCompile' }
+	if ($Force) { $buildParams.ForceCompile = $true }
 	if ($Force -and $Fast) {
 		Write-Host '[drox-release] -Force ignore -Fast.' -ForegroundColor Yellow
-		$buildArgs = $buildArgs | Where-Object { $_ -ne '-SkipCompile' }
+		$buildParams.Remove('SkipCompile')
 	}
-	& $buildScript @buildArgs
-	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+	& $buildScript @buildParams
+	Assert-ExternalExitSuccess
 }
 
 function Invoke-SyncWizard {
@@ -70,7 +76,7 @@ function Invoke-SyncWizard {
 	if (Test-Path $wizardScript) {
 		Write-Banner 'Wizard Inno (BMP)'
 		& $wizardScript
-		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		Assert-ExternalExitSuccess
 	}
 }
 
@@ -78,14 +84,14 @@ function Invoke-PublishManifests {
 	$noticeScript = Join-Path $repoRoot 'scripts\sync-release-notice.ps1'
 	if (Test-Path $noticeScript) {
 		& $noticeScript
-		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		Assert-ExternalExitSuccess
 	}
 	$publishScript = Join-Path $PSScriptRoot 'release-publish-win32.ps1'
-	$publishArgs = @()
-	if ($ProductVersion) { $publishArgs += '-ProductVersion', $ProductVersion }
-	if ($DryRun) { $publishArgs += '-DryRun' }
-	& $publishScript @publishArgs
-	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+	$publishParams = @{}
+	if ($ProductVersion) { $publishParams.ProductVersion = $ProductVersion }
+	if ($DryRun) { $publishParams.DryRun = $true }
+	& $publishScript @publishParams
+	Assert-ExternalExitSuccess
 }
 
 function Get-DroxVersion {
@@ -104,7 +110,7 @@ else { Write-Host '  mode: standard (compile si bundle obsolete)' }
 	switch ($Action) {
 	'build' {
 		& (Join-Path $repoRoot 'scripts\verify-legal-package.ps1')
-		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		Assert-ExternalExitSuccess
 		Invoke-SyncWizard
 		Write-Banner 'Build F1+F2 (app + installeur)'
 		Invoke-BuildRelease
@@ -124,7 +130,7 @@ else { Write-Host '  mode: standard (compile si bundle obsolete)' }
 	}
 	'ship' {
 		& (Join-Path $repoRoot 'scripts\verify-legal-package.ps1')
-		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+		Assert-ExternalExitSuccess
 		Invoke-SyncWizard
 		Write-Banner 'Build F1+F2'
 		Invoke-BuildRelease

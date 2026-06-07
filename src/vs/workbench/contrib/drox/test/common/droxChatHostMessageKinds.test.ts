@@ -7,7 +7,7 @@ import assert from 'assert';
 import { readFileSync } from 'fs';
 import { FileAccess } from '../../../../../base/common/network.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { DROX_HOST_TO_WEBVIEW_MESSAGE_KINDS } from '../../common/droxChatHostMessageKinds.js';
+import { DROX_HOST_TO_WEBVIEW_MESSAGE_KINDS, isDroxHostToWebviewMessageKind } from '../../common/droxChatHostMessageKinds.js';
 
 function extractHostMessageSwitchCases(source: string): string[] {
 	const cases: string[] = [];
@@ -30,7 +30,7 @@ suite('Drox chat host message kinds', () => {
 		const jsKinds = extractHostMessageSwitchCases(source);
 		const registry = [...DROX_HOST_TO_WEBVIEW_MESSAGE_KINDS].sort();
 
-		const missingInRegistry = jsKinds.filter(k => !registry.includes(k));
+		const missingInRegistry = jsKinds.filter(k => !isDroxHostToWebviewMessageKind(k));
 		const missingInJs = registry.filter(k => !jsKinds.includes(k));
 
 		assert.deepStrictEqual(

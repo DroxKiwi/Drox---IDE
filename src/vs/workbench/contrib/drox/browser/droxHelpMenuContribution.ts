@@ -2,6 +2,15 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import { URI } from '../../../../base/common/uri.js';
+import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
+import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
+import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+import { IOpenerService } from '../../../../platform/opener/common/opener.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
+import { localize2 } from '../../../../nls.js';
+import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
+import { isDroxMicrosoftAgentsSurfaceEnabled } from '../common/droxMicrosoftAgentsSurface.js';
 import { DROX_ENGINE_DOCS_URL, DROX_PRODUCT_REPO_URL } from '../common/droxProductUrls.js';
 function openExternalUrl(accessor: ServicesAccessor, url: string): void {
 	accessor.get(IOpenerService).open(URI.parse(url));

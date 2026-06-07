@@ -15,7 +15,6 @@ import {
 	TelemetryConfiguration,
 } from '../../../../platform/telemetry/common/telemetry.js';
 import { ChatConfiguration } from '../../chat/common/constants.js';
-import { DROX_PRODUCT_NOTICE_URL } from './droxProductUrls.js';
 
 /**
  * Overrides de défauts produit Drox (chargé après `chat.shared.contribution`).

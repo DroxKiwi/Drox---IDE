@@ -1,6 +1,6 @@
 # Drox 1.3.4 — Stabilisation moteur
 
-**Statut** : **planifié** (après [1.3.3](../1.3.3/README.md))  
+**Statut** : **en cours** (branche `1.3.4`)  
 **Prérequis** : package IDE fiable, installeur aligné sur `main`
 
 ---
