@@ -70,6 +70,7 @@ import { IHostService } from '../../../services/host/browser/host.js';
 import { IWorkbenchThemeService } from '../../../services/themes/common/workbenchThemeService.js';
 import { GettingStartedIndexList } from './gettingStartedList.js';
 import { canShowAgentsBanner, createAgentsBanner } from '../../chat/browser/agentSessions/agentSessionsBanner.js';
+import { isDroxMicrosoftAgentsSurfaceEnabled } from '../../drox/common/droxMicrosoftAgentsSurface.js';
 import { IChatEntitlementService } from '../../../services/chat/common/chatEntitlementService.js';
 import { AccessibilityVerbositySettingId } from '../../accessibility/browser/accessibilityConfiguration.js';
 import { AccessibleViewAction } from '../../accessibility/browser/accessibleViewActions.js';
@@ -944,7 +945,10 @@ export class GettingStartedPage extends EditorPane {
 		);
 
 		const footerChildren: HTMLElement[] = [];
-		if (canShowAgentsBanner(this.chatEntitlementService)) {
+		if (
+			isDroxMicrosoftAgentsSurfaceEnabled(this.productService)
+			&& canShowAgentsBanner(this.chatEntitlementService)
+		) {
 			const agentsBanner = createAgentsBanner(
 				{
 					cssClass: 'getting-started-category.agents-banner',

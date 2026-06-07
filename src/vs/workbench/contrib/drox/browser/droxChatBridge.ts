@@ -24,6 +24,8 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'setPermissionMode'; readonly permissionMode: string }
 
+	| { readonly type: 'setArchitectInteractionMode'; readonly architectInteractionMode: string }
+
 	| { readonly type: 'setModel'; readonly model: string }
 
 	| { readonly type: 'setArchitectModel'; readonly model: string }
@@ -68,6 +70,8 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'loadSession'; readonly sessionId: string }
 
+	| { readonly type: 'loadSessionOlder'; readonly sessionId: string; readonly beforeIndex: number }
+
 	| { readonly type: 'switchTab'; readonly sessionId: string }
 
 	| { readonly type: 'closeTab'; readonly sessionId: string }
@@ -101,6 +105,8 @@ export type DroxHostToWebviewMessage =
 
 	| { readonly kind: 'state'; readonly busy: boolean }
 
+	| { readonly kind: 'productVersion'; readonly label: string; readonly title: string }
+
 	| {
 		readonly kind: 'append';
 		readonly role: 'user' | 'assistant' | 'error' | 'system';
@@ -122,6 +128,8 @@ export type DroxHostToWebviewMessage =
 	| { readonly kind: 'exploreNotice'; readonly text: string }
 
 	| { readonly kind: 'orchestrationRole'; readonly role: string; readonly executorJobId?: string }
+
+	| { readonly kind: 'userFacingReply'; readonly text: string }
 
 	| {
 		readonly kind: 'subagentStart';
@@ -178,7 +186,11 @@ export type DroxHostToWebviewMessage =
 
 	| { readonly kind: 'sessionReplayDone' }
 
-	| { readonly kind: 'replayPrepare' }
+	| { readonly kind: 'replayPrepare'; readonly prepend?: boolean }
+
+	| { readonly kind: 'sessionHistory'; readonly hasOlder: boolean; readonly oldestLoadedIndex: number }
+
+	| { readonly kind: 'sessionHistoryPageDone' }
 
 	| { readonly kind: 'sessions'; readonly items: ReadonlyArray<{ id: string; modifiedSecs: number; sizeBytes: number; title?: string }>; readonly currentId: string | null; readonly error?: string }
 
@@ -201,6 +213,8 @@ export type DroxHostToWebviewMessage =
 	| { readonly kind: 'todoUpdate'; readonly todos: ReadonlyArray<{ readonly id: string; readonly content: string; readonly status: string }> }
 
 	| { readonly kind: 'permissionMode'; readonly mode: string }
+
+	| { readonly kind: 'architectInteractionMode'; readonly mode: string }
 
 	| { readonly kind: 'runRevert'; readonly canRevert: boolean; readonly fileCount: number }
 
@@ -255,6 +269,10 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 		return typeof (msg as { permissionMode?: unknown }).permissionMode === 'string';
 	}
 
+	if (t === 'setArchitectInteractionMode') {
+		return typeof (msg as { architectInteractionMode?: unknown }).architectInteractionMode === 'string';
+	}
+
 	if (t === 'setModel' || t === 'setArchitectModel' || t === 'setExecutorModel') {
 		return typeof (msg as { model?: unknown }).model === 'string';
 	}
@@ -271,6 +289,11 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 		return typeof (msg as { sessionId?: unknown }).sessionId === 'string';
 
+	}
+
+	if (t === 'loadSessionOlder') {
+		const m = msg as { sessionId?: unknown; beforeIndex?: unknown };
+		return typeof m.sessionId === 'string' && typeof m.beforeIndex === 'number' && Number.isFinite(m.beforeIndex);
 	}
 
 	if (t === 'openFile') {

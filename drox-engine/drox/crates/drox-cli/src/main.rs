@@ -565,6 +565,8 @@ async fn main() -> anyhow::Result<()> {
         executor_deliverable_task_id: None,
         executor_deliverable_plan_id: None,
         run_spec: drox_engine::RunSpec::for_standard_agent(false),
+        engine_tuning: drox_engine::EngineTuning::default(),
+        orchestration_run_id: None,
     };
     let agent = Agent::new(llm, registry, ctx, agent_config);
 

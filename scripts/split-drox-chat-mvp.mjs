@@ -8,7 +8,7 @@ import path from 'path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const srcPath = path.join(root, 'src/vs/workbench/contrib/drox/browser/media/droxChatMvp.js');
-const outDir = path.join(root, 'src/vs/workbench/contrib/drox/browser/media/droxChat');
+const outDir = path.join(root, 'src/vs/workbench/contrib/drox/browser/media/droxChat/_legacy-flat');
 const backupPath = srcPath + '.bak';
 
 const header = '// Copyright (c) 2026 KDDS. Drox integration for KDDS Nexus.\n\n';

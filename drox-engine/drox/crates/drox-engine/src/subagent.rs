@@ -319,6 +319,8 @@ impl EngineSubagentExecutor {
                 executor_deliverable_task_id: None,
                 executor_deliverable_plan_id: None,
                 run_spec: child_spec,
+                engine_tuning: crate::orchestration::EngineTuning::default(),
+                orchestration_run_id: None,
             },
         );
 

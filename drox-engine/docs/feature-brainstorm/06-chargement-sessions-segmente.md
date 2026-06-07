@@ -1,8 +1,8 @@
 # Idée 06 — Chargement segmenté des discussions historisées
 
-**Statut** : idée validée terrain (dogfooding) — cible **post-1.3.1**  
+**Statut** : cible release **[1.3.2](../1.3/1.3.2/README.md)** (pilier 2)  
 **Date** : 2026-06-02  
-**Priorité** : haute UX (pas bloquant release 1.3.1)
+**Priorité** : haute UX
 
 ---
 

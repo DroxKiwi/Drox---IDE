@@ -5,8 +5,6 @@
 
 // allow-any-unicode-comment-file
 
-
-
 const MAX_JSON_CHARS = 1800;
 
 

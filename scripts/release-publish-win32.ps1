@@ -13,7 +13,7 @@ param(
 	[string]$SetupExe = '',
 	[string]$ReleasesRepo = '',
 	[string]$GitHubOrg = 'DroxKiwi',
-	[string]$GitHubRepo = 'Drox---IDE---releases',
+	[string]$GitHubRepo = 'Drox---IDE---OR',
 	[switch]$DryRun
 )
 
@@ -42,7 +42,7 @@ function Write-Utf8NoBomLines([string]$Path, [string[]]$Lines) {
 }
 
 if (-not $ReleasesRepo) {
-	$ReleasesRepo = Join-Path (Split-Path -Parent $repoRoot) 'Drox---IDE---releases'
+	$ReleasesRepo = Join-Path (Split-Path -Parent $repoRoot) 'Drox---IDE---OR'
 }
 
 if (-not $SetupExe) {

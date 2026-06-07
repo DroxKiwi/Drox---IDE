@@ -15,6 +15,7 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
+import { createDroxEngineTuningConfigurationProperties } from './droxEngineTuningConfiguration.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
 
@@ -36,6 +37,65 @@ export const enum DroxSetting {
 
 	/** Nombre max d'exécuteurs orchestration en parallèle (`parallel_with`). */
 	OrchestrationMaxParallelExecutors = 'drox.orchestration.maxParallelExecutors',
+
+	/**
+	 * Gate architecte : `auto` (tour intent LLM), `discussion` (sans outils), `action` (plan + délégation).
+	 * Wire RPC `architectInteractionMode`.
+	 */
+	ArchitectInteractionMode = 'drox.architect.interactionMode',
+
+	/**
+	 * Sévérité orchestration (prompts additifs + gates numériques).
+	 * Wire RPC `engineStrictness` → `PromptVars` moteur.
+	 */
+	EngineStrictness = 'drox.engine.strictness',
+
+	/** Surcharges unitaires (visibles si strictness = `custom`). Wire RPC `engineTuning`. */
+	EngineTuningReadBudgetPercent = 'drox.engine.tuning.readBudgetPercent',
+	EngineTuningMaxReadsBeforeDelegate = 'drox.engine.tuning.maxReadsBeforeDelegate',
+	EngineTuningMaxMutationsBeforeDelegateNudge = 'drox.engine.tuning.maxMutationsBeforeDelegateNudge',
+	EngineTuningMinDelegateInstructionsLen = 'drox.engine.tuning.minDelegateInstructionsLen',
+	EngineTuningMaxDelegateScopePaths = 'drox.engine.tuning.maxDelegateScopePaths',
+	EngineTuningDelegateScopeMaxFiles = 'drox.engine.tuning.delegateScopeMaxFiles',
+	EngineTuningPromotableAnswerMinChars = 'drox.engine.tuning.promotableAnswerMinChars',
+	EngineTuningDiscussionPromotableMinChars = 'drox.engine.tuning.discussionPromotableMinChars',
+	EngineTuningDiscussionAutoStopOnReply = 'drox.engine.tuning.discussionAutoStopOnReply',
+	EngineTuningIntentMaxIterations = 'drox.engine.tuning.intentMaxIterations',
+	EngineTuningDiscussionMaxIterations = 'drox.engine.tuning.discussionMaxIterations',
+	EngineTuningLoopStrikesBeforeAbort = 'drox.engine.tuning.loopStrikesBeforeAbort',
+	EngineTuningMaxDelegationsPerTask = 'drox.engine.tuning.maxDelegationsPerTask',
+	EngineTuningMaxToolsPerTurnArchitect = 'drox.engine.tuning.maxToolsPerTurnArchitect',
+	EngineTuningMaxToolsPerTurnDiscussion = 'drox.engine.tuning.maxToolsPerTurnDiscussion',
+	EngineTuningMaxConsecutiveAskUserFailures = 'drox.engine.tuning.maxConsecutiveAskUserFailures',
+	EngineTuningMaxToolsPerTurnIntent = 'drox.engine.tuning.maxToolsPerTurnIntent',
+	EngineTuningMaxToolsPerTurnExecutor = 'drox.engine.tuning.maxToolsPerTurnExecutor',
+	EngineTuningMaxParallelToolCalls = 'drox.engine.tuning.maxParallelToolCalls',
+	EngineTuningMaxTodoItems = 'drox.engine.tuning.maxTodoItems',
+	EngineTuningMemoryBudgetTokens = 'drox.engine.tuning.memoryBudgetTokens',
+	EngineTuningRequireDelegateBeforeTodoComplete = 'drox.engine.tuning.requireDelegateBeforeTodoComplete',
+	EngineTuningRequireWorkspaceMapBeforeDelegate = 'drox.engine.tuning.requireWorkspaceMapBeforeDelegate',
+	EngineTuningMinDeliverableBytes = 'drox.engine.tuning.minDeliverableBytes',
+	EngineTuningExecutorDeliverableExcerptMaxChars = 'drox.engine.tuning.executorDeliverableExcerptMaxChars',
+	EngineTuningExecutorSubrunMaxIterations = 'drox.engine.tuning.executorSubrunMaxIterations',
+	EngineTuningLiveCompactTailKeepMessages = 'drox.engine.tuning.liveCompactTailKeepMessages',
+	EngineTuningLiveCompactMaxTailRatio = 'drox.engine.tuning.liveCompactMaxTailRatio',
+	EngineTuningLiveCompactMinPrefixTokens = 'drox.engine.tuning.liveCompactMinPrefixTokens',
+	EngineTuningLiveCompactMaxPasses = 'drox.engine.tuning.liveCompactMaxPasses',
+	EngineTuningCheckpointMaxChars = 'drox.engine.tuning.checkpointMaxChars',
+	EngineTuningAnchorUserRequestMaxChars = 'drox.engine.tuning.anchorUserRequestMaxChars',
+	EngineTuningAnchorPlanMaxItems = 'drox.engine.tuning.anchorPlanMaxItems',
+	EngineTuningSummarizeToolResultTruncate = 'drox.engine.tuning.summarizeToolResultTruncate',
+	EngineTuningReinjectToolResultTruncate = 'drox.engine.tuning.reinjectToolResultTruncate',
+	EngineTuningContextSnipEnabled = 'drox.engine.tuning.contextSnipEnabled',
+	EngineTuningExecutorGlobHeavyBlocked = 'drox.engine.tuning.executorGlobHeavyBlocked',
+	EngineTuningExecutorAskUserBlocked = 'drox.engine.tuning.executorAskUserBlocked',
+	EngineTuningExecutorTodoWriteBlocked = 'drox.engine.tuning.executorTodoWriteBlocked',
+	EngineTuningExecutorDeliverableMetBlocked = 'drox.engine.tuning.executorDeliverableMetBlocked',
+	EngineTuningGateDoneRequiresAnswering = 'drox.engine.tuning.gateDoneRequiresAnswering',
+	EngineTuningGateTestingAfterCodeMutation = 'drox.engine.tuning.gateTestingAfterCodeMutation',
+	EngineTuningGateTodoRecreationBlocked = 'drox.engine.tuning.gateTodoRecreationBlocked',
+	EngineTuningGateProfessorCoursePlan = 'drox.engine.tuning.gateProfessorCoursePlan',
+	EngineTuningGateTodoStaleBeforeDone = 'drox.engine.tuning.gateTodoStaleBeforeDone',
 
 	/** @deprecated Utiliser {@link DroxSetting.ArchitectModel}. */
 	Model = 'drox.model',
@@ -95,6 +155,9 @@ export const enum DroxSetting {
 
 	CycleDoneWindowsNotification = 'drox.notifications.cycleDone.windows',
 
+	/** Notifier aussi lorsque la fenêtre Drox a le focus (sinon : uniquement fenêtre inactive / autre app). */
+	CycleDoneWhenFocused = 'drox.notifications.cycleDone.whenFocused',
+
 	/** Afficher erreurs / avertissements moteur dans le fil Drox Chat. */
 	ChatShowErrorsAndWarnings = 'drox.chat.showErrorsAndWarnings',
 
@@ -116,16 +179,20 @@ export const enum DroxSetting {
 
 }
 
+/** Default `latest.json` URL (also used when user settings clear the manifest URL). */
+export const DROX_DEFAULT_UPDATE_MANIFEST_URL =
+	'https://raw.githubusercontent.com/DroxKiwi/Drox---IDE---OR/main/stable/latest.json';
+
 /** Défaut `num_ctx` sous-agents — plus bas que le parent (32k) pour limiter la VRAM à 2 modèles. */
 export const DROX_DEFAULT_SUBAGENT_NUM_CTX = 8192;
 
 /** Plafond `drox.orchestration.maxParallelExecutors` (aligné moteur `MAX_PARALLEL_EXECUTORS_CAP`). */
 export const DROX_MAX_PARALLEL_EXECUTORS_CAP = 100;
 
-/** Liste dynamique — modèle Architecte (chat + orchestration `v1_2`). */
+/** Liste dynamique — modèle Architecte (chat + orchestration `role_split`). */
 export const droxArchitectModelEnumValues: string[] = [''];
 
-/** Liste dynamique — modèle Exécutant (orchestration `v1_2` + `task` legacy). */
+/** Liste dynamique — modèle Exécutant (orchestration `role_split` + `task` legacy). */
 export const droxExecutorModelEnumValues: string[] = [''];
 
 /** @deprecated Alias enum — garde la rétrocompat settings. */
@@ -141,7 +208,7 @@ const droxArchitectModelSettingSchema: IConfigurationPropertySchema = {
 	scope: ConfigurationScope.RESOURCE,
 	markdownDescription: localize(
 		'drox.architect.model',
-		'**Architect** model for the final orchestration path. Same list as the Drox chat picker — loaded from `drox.server` (reload via ↻ in chat). Replaces the legacy `drox.model` key.',
+		'**Architect** LLM for planning, gates, and `delegate_executor` (`role_split` orchestration). Same list as the chat picker (↻ reloads from `drox.server`). Replaces legacy `drox.model`.',
 	),
 };
 
@@ -152,7 +219,7 @@ const droxExecutorModelSettingSchema: IConfigurationPropertySchema = {
 	scope: ConfigurationScope.RESOURCE,
 	markdownDescription: localize(
 		'drox.executor.model',
-		'**Executor** model for delegated execution tasks (`delegate_executor`). Same list as the architect model. **Empty** = reuse the architect model. Parallel tasks share this model (configure concurrency via **Concurrent executor requests** and server `OLLAMA_NUM_PARALLEL`). Replaces the legacy `drox.subagents.model` key.',
+		'**Executor** LLM for each `delegate_executor` sub-run (grep, `file_write`, …). Same list as the Architect model. **Empty** = reuse the Architect model. Parallel tasks share this model (see **Parallel executors** and `OLLAMA_NUM_PARALLEL`). Replaces `drox.subagents.model`.',
 	),
 };
 
@@ -298,10 +365,34 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.orchestration.maxParallelExecutors',
-				'Max concurrent **orchestration Executors** in one `delegate_executor` batch. Default **1** (sequential). Upper bound **{0}** — raise only with disjoint scopes and enough Ollama VRAM (`OLLAMA_NUM_PARALLEL`).',
+				'**Parallel executors** — Executor sub-runs started in parallel in one `delegate_executor` batch (`parallel_with`). Default **1** (sequential). Cap **{0}** — raise only with disjoint `scope` paths and enough LLM server capacity (`OLLAMA_NUM_PARALLEL`, VRAM).',
 				DROX_MAX_PARALLEL_EXECUTORS_CAP,
 			),
 		},
+
+		[DroxSetting.ArchitectInteractionMode]: {
+			type: 'string',
+			enum: ['auto', 'discussion', 'action'],
+			default: 'auto',
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.architect.interactionMode',
+				'**Architect mode** (`role_split`) per message: **Auto** — intent probe picks discuss vs action (`[gate: architect_discuss|architect_edit]`); **Discussion** — direct reply, limited read tools; **Action** — full workspace tools (edit, bash, …) with optional `delegate_executor` for parallel sub-agents. Synced with composer vignettes.',
+			),
+		},
+
+		[DroxSetting.EngineStrictness]: {
+			type: 'string',
+			enum: ['relaxed', 'normal', 'strict', 'custom'],
+			default: 'normal',
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.engine.strictness',
+				'**Engine strictness** — preset bundles for orchestration prompts (`role_split`) and numeric limits (reads, loops, delegations, gates). **Relaxed** / **Normal** / **Strict** use fixed engine values; **Custom** applies `drox.engine.tuning.*` below (overrides Normal).',
+			),
+		},
+
+		...createDroxEngineTuningConfigurationProperties(),
 
 		[DroxSetting.Model]: droxLegacyModelSettingSchema,
 
@@ -369,7 +460,10 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			scope: ConfigurationScope.RESOURCE,
 
-			description: localize('drox.maxIterations', 'Max LLM ↔ tool iterations per `agent.run`.'),
+			markdownDescription: localize(
+				'drox.maxIterations',
+				'**Parent agent iterations** — maximum LLM ↔ tool turns per `agent.run` (main Architect). Distinct from `drox.engine.tuning.executorSubrunMaxIterations` (Executor sub-runs).',
+			),
 
 		},
 
@@ -443,7 +537,10 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			scope: ConfigurationScope.RESOURCE,
 
-			description: localize('drox.numCtx', 'Ollama `num_ctx` (context window).'),
+			markdownDescription: localize(
+				'drox.numCtx',
+				'**Parent context window** — Ollama `num_ctx` for the Architect and main run. Executors may use a different window via server/model profile.',
+			),
 
 		},
 
@@ -643,7 +740,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			type: 'string',
 
-			default: 'https://raw.githubusercontent.com/DroxKiwi/Drox---IDE---releases/main/stable/latest.json',
+			default: DROX_DEFAULT_UPDATE_MANIFEST_URL,
 
 			scope: ConfigurationScope.APPLICATION,
 
@@ -688,7 +785,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			type: 'string',
 
-			default: 'https://github.com/DroxKiwi/Drox---IDE---releases/releases/latest',
+			default: 'https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest',
 
 			scope: ConfigurationScope.APPLICATION,
 
@@ -709,7 +806,22 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			markdownDescription: localize(
 				'drox.notifications.cycleDone.windows',
-				'Show a Windows toast when a Drox run cycle finishes while this app window is not focused.',
+				'Notify when a Drox orchestration cycle finishes (`agent/done`). Uses a workbench banner and, when the window is inactive, a system toast (Windows).',
+			),
+
+		},
+
+		[DroxSetting.CycleDoneWhenFocused]: {
+
+			type: 'boolean',
+
+			default: false,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.notifications.cycleDone.whenFocused',
+				'Also show the workbench notification while this window is focused (system toast stays disabled until you switch away).',
 			),
 
 		},

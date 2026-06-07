@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import { Emitter } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
@@ -21,7 +23,7 @@ import {
 import { DroxSetting } from '../common/droxConfiguration.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IDroxExecutableService } from '../common/droxExecutableService.js';
-import { IDroxEngineService, InitializeOptions, RpcRequestHandler } from '../common/droxEngineService.js';
+import { DroxEngineInitializeResult, IDroxEngineService, InitializeOptions, RpcRequestHandler } from '../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 import { RpcRequestResult } from '../common/droxRpc.js';
 import { DroxEngineChannelClient } from './droxEngineChannelClient.js';
@@ -34,6 +36,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 	private readonly requestHandlers = new Map<string, RpcRequestHandler>();
 	private _started = false;
 	private _initialized = false;
+	private _engineDevBuild: number | undefined;
 	private _initializePromise: Promise<unknown> | undefined;
 	private readonly _clientCapabilities = {
 		executableTools: [] as string[],
@@ -62,6 +65,13 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 	get isInitialized(): boolean {
 		return this._initialized;
 	}
+
+	get engineDevBuild(): number | undefined {
+		return this._engineDevBuild;
+	}
+
+	private readonly _onDidInitialize = this._register(new Emitter<DroxEngineInitializeResult>());
+	readonly onDidInitialize = this._onDidInitialize.event;
 
 	constructor(
 		@IMainProcessService mainProcessService: IMainProcessService,
@@ -147,7 +157,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 
 	private async doInitialize(): Promise<unknown> {
 		await this.start();
-		return this.request('initialize', {
+		const init = await this.request('initialize', {
 			protocolVersion: '1.0',
 			clientName: 'drox-ide',
 			clientVersion: '0.1.0',
@@ -155,7 +165,19 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 				executableTools: this._clientCapabilities.executableTools,
 				interactiveAsk: this._clientCapabilities.interactiveAsk,
 			},
-		});
+		}) as DroxEngineInitializeResult;
+		const version = typeof init?.serverVersion === 'string' ? init.serverVersion : '?';
+		const pipeline = typeof init?.orchestrationPipeline === 'string' ? init.orchestrationPipeline : '(legacy — rebuild drox or fix drox.executablePath)';
+		const devBuild = typeof init?.devBuild === 'number' && Number.isFinite(init.devBuild) && init.devBuild > 0
+			? Math.floor(init.devBuild)
+			: undefined;
+		this._engineDevBuild = devBuild;
+		this.appendEngineLog(`[engine] version=${version} devBuild=${devBuild ?? '—'} pipeline=${pipeline}\n`);
+		if (pipeline !== 'role_split') {
+			this.appendEngineLog('[warn] Legacy engine — rebuild drox-cli in drox-engine/drox, then set drox.executablePath to target/debug/drox.exe\n');
+		}
+		this._onDidInitialize.fire(init ?? {});
+		return init;
 	}
 
 	request(method: string, params?: unknown): Promise<unknown> {
@@ -192,6 +214,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 	private resetEngineState(): void {
 		this._started = false;
 		this._initialized = false;
+		this._engineDevBuild = undefined;
 		this._initializePromise = undefined;
 		this._clientCapabilities.executableTools = [];
 		this._clientCapabilities.interactiveAsk = true;

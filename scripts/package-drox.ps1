@@ -26,12 +26,13 @@ $binName = 'drox.exe'
 $targetDir = if ($Profile -eq 'release') { 'release' } else { 'debug' }
 $built = Join-Path $droxCrateRoot "target\$targetDir\$binName"
 
-Write-Host "[package-drox] cargo build --$Profile -p drox-cli ($platformFolder)"
+$cargoArgs = if ($Profile -eq 'release') { @('build', '--release', '-p', 'drox-cli') } else { @('build', '-p', 'drox-cli') }
+Write-Host "[package-drox] cargo $($cargoArgs -join ' ') ($platformFolder)"
 Push-Location $droxCrateRoot
 $prevEap = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 try {
-	cargo build --$Profile -p drox-cli 2>&1 | ForEach-Object { Write-Host $_ }
+	& cargo @cargoArgs 2>&1 | ForEach-Object { Write-Host $_ }
 	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 } finally {
 	$ErrorActionPreference = $prevEap

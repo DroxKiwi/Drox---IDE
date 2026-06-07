@@ -9,25 +9,37 @@ use drox_types::{Content, Message, Role};
 use serde_json::Value;
 
 use crate::compaction::is_context_checkpoint_message;
+use crate::orchestration::{
+    ask_payload_declares_cycle_user_check, delegate_payload_is_sanity_task,
+    is_meta_synthesis_task,
+};
+
 use super::cycle_sanity::{
     CycleSanityOutcome, cycle_sanity_failed_summary, infer_sanity_from_delegate_output,
-    looks_like_sanity_delegate_payload, looks_like_user_sanity_delegation,
 };
 use super::architect_todo_gate;
-use crate::orchestration::DelegateStatus;
+use crate::orchestration::{extract_mode_from_text, ArchitectWorkMode, DelegateStatus};
 
-/// Marqueur du bloc `system` réinjecté après compaction (et au fil du run).
+/// Marqueur legacy (transcripts / compaction anciens).
 pub const ARCHITECT_CYCLE_ANCHOR_MARKER: &str = "## Architect cycle anchor (engine)";
 
-const ANCHOR_USER_REQUEST_MAX_CHARS: usize = 900;
-const ANCHOR_PLAN_MAX_ITEMS: usize = 24;
+/// Marqueur du snapshot factuel run (`CTX-run-snapshot`).
+pub const ARCHITECT_RUN_SNAPSHOT_MARKER: &str = "## Architect run snapshot (engine)";
 
 /// Chemins connus issus de `workspace_map_read` (ou carte persistée).
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ArchitectRunState {
+    anchor_user_request_max_chars: usize,
+    anchor_plan_max_items: usize,
     pub workspace_paths: HashSet<String>,
     pub workspace_map_loaded: bool,
     pub reads_since_delegate: usize,
+    /// `file_edit` / `file_write` directs depuis la dernière délégation.
+    pub mutations_since_delegate: usize,
+    /// Nudge lecture (cap preset) déjà injecté depuis la dernière délégation.
+    pub delegate_reads_nudge_sent: bool,
+    /// Nudge mutation (cap preset) déjà injecté depuis la dernière délégation.
+    pub delegate_mutations_nudge_sent: bool,
     pub delegate_counts: HashMap<String, u32>,
     pub verified_task_ids: HashSet<String>,
     /// Scope par tâche (batch `parallel_with` — verify ciblée hors `last_delegate`).
@@ -61,6 +73,14 @@ pub struct ArchitectRunState {
     pub user_request_anchor: Option<String>,
     /// Objectif verrouillé (`[run_objective: …]` ou config run).
     pub run_objective_anchor: Option<String>,
+    /// Sous-mode déclaré par le modèle (`[mode: discovery|task]`) — première déclaration conservée.
+    pub work_mode_anchor: Option<ArchitectWorkMode>,
+}
+
+impl Default for ArchitectRunState {
+    fn default() -> Self {
+        Self::with_engine_tuning(&crate::EngineTuning::default())
+    }
 }
 
 impl ArchitectRunState {
@@ -69,7 +89,42 @@ impl ArchitectRunState {
         Self::default()
     }
 
+    #[must_use]
+    pub fn with_engine_tuning(tuning: &crate::EngineTuning) -> Self {
+        Self {
+            anchor_user_request_max_chars: tuning.anchor_user_request_max_chars as usize,
+            anchor_plan_max_items: tuning.anchor_plan_max_items as usize,
+            workspace_paths: HashSet::new(),
+            workspace_map_loaded: false,
+            reads_since_delegate: 0,
+            mutations_since_delegate: 0,
+            delegate_reads_nudge_sent: false,
+            delegate_mutations_nudge_sent: false,
+            delegate_counts: HashMap::new(),
+            verified_task_ids: HashSet::new(),
+            task_delegate_scopes: HashMap::new(),
+            task_delegate_status: HashMap::new(),
+            last_delegate_task_id: None,
+            last_delegate_scope: Vec::new(),
+            last_delegate_status: None,
+            orchestration_plan_id: None,
+            task_labels: HashMap::new(),
+            todo_statuses: HashMap::new(),
+            last_failure: None,
+            last_delegate_verified: false,
+            run_closable_nudge_sent: false,
+            cycle_sanity: CycleSanityOutcome::default(),
+            cycle_sanity_nudge_sent: false,
+            cycle_sanity_note: None,
+            consecutive_done_without_close: 0,
+            user_request_anchor: None,
+            run_objective_anchor: None,
+            work_mode_anchor: None,
+        }
+    }
+
     /// Alloue un nouveau `plan_id` (premier `todo_write` ou nouveau plan).
+    /// La carte workspace reste valide pour toute la session (pas de re-`workspace_map_read` forcé).
     pub fn start_new_plan(&mut self) {
         let plan_id = new_orchestration_plan_id();
         tracing::info!(
@@ -86,6 +141,9 @@ impl ArchitectRunState {
         self.last_delegate_status = None;
         self.last_delegate_scope.clear();
         self.reads_since_delegate = 0;
+        self.mutations_since_delegate = 0;
+        self.delegate_reads_nudge_sent = false;
+        self.delegate_mutations_nudge_sent = false;
     }
 
     /// Mémorise le `scope` d'une tâche avant `delegate_executor` (primaire ou `parallel_with`).
@@ -208,7 +266,7 @@ impl ArchitectRunState {
         self.last_delegate_status = Some(status);
         if let Some(ref id) = task_id {
             self.task_delegate_status.insert(id.clone(), status);
-            if wire_verified {
+            if wire_verified || status == DelegateStatus::Completed {
                 self.verified_task_ids.insert(id.clone());
             } else {
                 self.verified_task_ids.remove(id);
@@ -372,9 +430,16 @@ impl ArchitectRunState {
         if self.user_request_anchor.is_some() {
             return;
         }
-        let t = text.trim();
+        self.set_user_request_anchor(text);
+    }
+
+    /// Remplace l’ancre demande user (ex. tour edit après gate `has_concrete_goal`).
+    pub fn set_user_request_anchor(&mut self, text: &str) {
+        let literal = crate::orchestration::sanitize_architect_user_prompt(text);
+        let t = literal.trim();
         if !t.is_empty() {
-            self.user_request_anchor = Some(truncate_anchor_text(t, ANCHOR_USER_REQUEST_MAX_CHARS));
+            self.user_request_anchor =
+                Some(truncate_anchor_text(t, self.anchor_user_request_max_chars));
         }
     }
 
@@ -382,6 +447,16 @@ impl ArchitectRunState {
         let t = objective.trim();
         if !t.is_empty() {
             self.run_objective_anchor = Some(truncate_anchor_text(t, 320));
+        }
+    }
+
+    /// Mémorise `[mode: discovery|task]` depuis une réponse assistant (idempotent).
+    pub fn try_anchor_work_mode_from_text(&mut self, text: &str) {
+        if self.work_mode_anchor.is_some() {
+            return;
+        }
+        if let Some(mode) = extract_mode_from_text(text) {
+            self.work_mode_anchor = Some(mode);
         }
     }
 
@@ -414,6 +489,7 @@ impl ArchitectRunState {
             .collect();
         ArchitectHelpSnapshot {
             user_request: self.user_request_anchor.clone(),
+            work_mode: self.work_mode_anchor.map(ArchitectWorkMode::as_str).map(str::to_string),
             run_objective: live_run_objective
                 .map(str::trim)
                 .filter(|s| !s.is_empty())
@@ -435,42 +511,84 @@ impl ArchitectRunState {
         }
     }
 
-    /// Bloc `system` : pourquoi ce cycle + plan courant + dernière délégation.
+    /// Bloc post-compaction (checkpoint complet) — délégué au snapshot unifié.
     #[must_use]
     pub fn cycle_anchor_block(&self, live_run_objective: Option<&str>) -> String {
-        let mut block = format!(
-            "{ARCHITECT_CYCLE_ANCHOR_MARKER}\n\n\
-             You are the **Architect**. Earlier turns were compressed — use this block as ground truth.\n\n\
-             ### User request (authoritative)\n"
-        );
-        if let Some(req) = self.user_request_anchor.as_deref() {
-            block.push_str("> ");
-            block.push_str(req);
-            block.push_str("\n\n");
-        } else {
-            block.push_str(
-                "*(not captured — do not invent goals; read `memory_read` / ask the user if needed)*\n\n",
-            );
+        crate::orchestration::architect_run_context_block_compaction(
+            self,
+            live_run_objective,
+        )
+    }
+
+    /// Plan / todos pour le snapshot (≤ `anchor_plan_max_items` lignes).
+    #[must_use]
+    pub(crate) fn format_plan_snapshot_public(&self) -> String {
+        self.format_plan_snapshot()
+    }
+
+    /// Tâche courante : première `in_progress` hors meta, sinon dernier `task_id` délégué.
+    #[must_use]
+    pub(crate) fn current_focus_task_line(&self) -> Option<(String, String, String)> {
+        for (id, status) in &self.todo_statuses {
+            if status == "in_progress" && !self.is_meta_synthesis_task(id) {
+                let label = self
+                    .task_labels
+                    .get(id)
+                    .cloned()
+                    .unwrap_or_else(|| id.clone());
+                return Some((id.clone(), label, status.clone()));
+            }
         }
-        block.push_str("### Locked run objective\n");
-        if let Some(obj) = live_run_objective
-            .or(self.run_objective_anchor.as_deref())
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
+        self.last_delegate_task_id.as_ref().map(|id| {
+            let status = self
+                .todo_statuses
+                .get(id)
+                .cloned()
+                .unwrap_or_else(|| "in_progress".to_string());
+            let label = self
+                .task_labels
+                .get(id)
+                .cloned()
+                .unwrap_or_else(|| id.clone());
+            (id.clone(), label, status)
+        })
+    }
+
+    /// Résumé court de la dernière délégation (sans tableau checkpoint).
+    #[must_use]
+    pub(crate) fn format_last_delegate_snapshot(&self) -> String {
+        let task = self
+            .last_delegate_task_id
+            .as_deref()
+            .unwrap_or("(none)");
+        let status = self
+            .last_delegate_status
+            .map(|s| s.as_str())
+            .unwrap_or("unknown");
+        let scope = if self.last_delegate_scope.is_empty() {
+            "(none)".to_string()
+        } else {
+            self.last_delegate_scope
+                .iter()
+                .take(3)
+                .map(|p| format!("`{p}`"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
+        let verified = if self.last_delegate_verified {
+            "yes"
+        } else if self
+            .last_delegate_task_id
+            .as_ref()
+            .is_some_and(|id| self.verified_task_ids.contains(id))
         {
-            block.push_str("> ");
-            block.push_str(obj);
-            block.push('\n');
+            "yes (architect)"
         } else {
-            block.push_str(
-                "*(none yet — emit `[run_objective: …]` before heavy work, aligned with the user request above)*\n",
-            );
-        }
-        block.push_str("\n### Current plan (`todo_write`)\n");
-        block.push_str(&self.format_plan_snapshot());
-        block.push_str("\n\n");
-        block.push_str(&self.cycle_checkpoint_block());
-        block
+            "no"
+        };
+        format!(
+            "> task **{task}** · status **{status}** · verified **{verified}** · scope {scope}"
+        )
     }
 
     #[must_use]
@@ -488,7 +606,7 @@ impl ArchitectRunState {
         ids.dedup();
         let mut out = String::new();
         for (i, id) in ids.iter().enumerate() {
-            if i >= ANCHOR_PLAN_MAX_ITEMS {
+            if i >= self.anchor_plan_max_items {
                 out.push_str("\n- … (plan truncated)");
                 break;
             }
@@ -546,12 +664,12 @@ impl ArchitectRunState {
         {
             "yes (architect verify)"
         } else {
-            "no — see recovery block; verify scope on disk before `completed`"
+            "no — optional spot-check or read deliverable `.md`"
         };
         let plan = self
             .orchestration_plan_id
             .as_deref()
-            .unwrap_or("(no plan yet — call todo_write first)");
+            .unwrap_or("(no plan id yet)");
         let output_path = self
             .last_delegate_task_id
             .as_ref()
@@ -563,15 +681,15 @@ impl ArchitectRunState {
              - Last delegation: **{task}** · status **{status}** · verified: **{verified}**\n\
              - Scope: {scope}\n\
              - Follow the **User request** and **Current plan** in the cycle anchor above — shard large tasks, never refuse.\n\
-             - After `partial`: verify on scope OR read `{output_path}`, \
-             then mark todo `completed` before the next task."
+             - After `partial`: read `{output_path}` or spot-check scope; re-delegate or update todos when ready.\n\
+             - **You:** full edit/bash tools; **sub-agents** optional for parallel shards (`delegate_executor`)."
         );
         let mut task_ids: Vec<&str> = self.todo_statuses.keys().map(String::as_str).collect();
         task_ids.sort_unstable();
         if !task_ids.is_empty() {
             let mut rows = String::from(
                 "\n\n### Todo checkpoint table\n\
-                 | task_id | delegated_count | verified | last_status | next_required_action |\n\
+                 | task_id | delegated_count | verified | last_status | suggested_next |\n\
                  |---|---:|---|---|---|\n",
             );
             for id in task_ids {
@@ -586,19 +704,19 @@ impl ArchitectRunState {
                     .get(id)
                     .map(String::as_str)
                     .unwrap_or("unknown");
-                let next_required_action = match last_status {
+                let suggested_next = match last_status {
                     "completed" if verified_flag == "yes" => "none",
-                    "completed" => "verify scope proof (`file_read`/`grep`/`lsp`)",
+                    "completed" => "optional: read deliverable or spot-check",
                     "in_progress" if delegated_count == 0 => {
-                        "call `delegate_executor` with same `task_id`"
+                        "consider `delegate_executor` (sub-agent)"
                     }
-                    "in_progress" => "verify result, then set `completed`",
-                    "pending" => "set `in_progress`, then delegate",
+                    "in_progress" => "read deliverable; update todo when satisfied",
+                    "pending" => "delegate or mark `in_progress`",
                     "cancelled" => "none",
-                    _ => "update status in `todo_write`",
+                    _ => "update `todo_write` if tracking plan",
                 };
                 rows.push_str(&format!(
-                    "| `{id}` | {delegated_count} | {verified_flag} | `{last_status}` | {next_required_action} |\n"
+                    "| `{id}` | {delegated_count} | {verified_flag} | `{last_status}` | {suggested_next} |\n"
                 ));
             }
             block.push_str(&rows);
@@ -658,9 +776,22 @@ impl ArchitectRunState {
     /// Tâche de synthèse / résumé — pas de `delegate_executor` requis.
     #[must_use]
     pub fn is_meta_synthesis_task(&self, task_id: &str) -> bool {
-        self.task_labels
-            .get(task_id)
-            .is_some_and(|label| super::architect_plan_quality::is_meta_synthesis_label(label))
+        let content = self.task_labels.get(task_id).map(String::as_str);
+        is_meta_synthesis_task(task_id, content)
+    }
+
+    /// Toutes les tâches de travail (hors meta) sont terminées (`completed` ou `cancelled`).
+    #[must_use]
+    pub fn all_work_tasks_terminal(&self) -> bool {
+        for (id, status) in &self.todo_statuses {
+            if self.is_meta_synthesis_task(id) {
+                continue;
+            }
+            if !matches!(status.as_str(), "completed" | "cancelled") {
+                return false;
+            }
+        }
+        true
     }
 
     /// Toutes les tâches de travail (hors meta) sont `completed` et vérifiées.
@@ -712,10 +843,10 @@ impl ArchitectRunState {
             return;
         }
         match tool_name {
-            "ask_user_question" if looks_like_user_sanity_delegation(arguments) => {
+            "ask_user_question" if ask_payload_declares_cycle_user_check(arguments) => {
                 self.cycle_sanity = CycleSanityOutcome::UserDelegated;
             }
-            "delegate_executor" if looks_like_sanity_delegate_payload(arguments) => {
+            "delegate_executor" if delegate_payload_is_sanity_task(arguments) => {
                 if let Some(outcome) = infer_sanity_from_delegate_output(output) {
                     self.cycle_sanity = outcome;
                     if outcome == CycleSanityOutcome::Failed {
@@ -734,8 +865,8 @@ impl ArchitectRunState {
             return None;
         }
         Some(
-            "## Cycle sanity check required (engine)\n\
-             All plan tasks are `completed`, but you must **confirm the project still works** \
+            "## Cycle sanity check (engine suggestion)\n\
+             All plan tasks are `completed` — consider confirming the project still works \
              before `[phase: answering]`.\n\
              - **If you can:** one `delegate_executor` with a **smoke command** for this stack \
              (`npm test`, `cargo test`, `pytest`, build, lint — pick what matches the repo). \
@@ -783,11 +914,52 @@ impl ArchitectRunState {
     pub fn needs_replan_after_blocked(&self) -> bool {
         matches!(self.last_delegate_status, Some(DelegateStatus::Blocked))
     }
+
+    /// Délégation terminée (`completed` / `partial`) mais pas encore vérifiée (hors meta).
+    #[must_use]
+    pub fn has_unverified_work_delegate(&self) -> bool {
+        for (task_id, status) in &self.task_delegate_status {
+            if self.is_meta_synthesis_task(task_id) {
+                continue;
+            }
+            if matches!(
+                status,
+                DelegateStatus::Completed | DelegateStatus::Partial
+            ) && !self.verified_task_ids.contains(task_id)
+            {
+                return true;
+            }
+        }
+        false
+    }
+
+    #[must_use]
+    pub fn has_work_todo_in_progress(&self) -> bool {
+        self.todo_statuses.iter().any(|(id, s)| {
+            s == "in_progress" && !self.is_meta_synthesis_task(id)
+        })
+    }
+
+    #[must_use]
+    pub fn has_work_todo_pending(&self) -> bool {
+        self.todo_statuses.iter().any(|(id, s)| {
+            s == "pending" && !self.is_meta_synthesis_task(id)
+        })
+    }
 }
 
-/// Réinjecte / remplace le bloc ancre architecte juste après le checkpoint de compaction.
-pub fn inject_architect_cycle_anchor(messages: &mut Vec<Message>, anchor: &str) {
-    messages.retain(|m| !is_architect_cycle_anchor_message(m));
+/// Rafraîchit le snapshot en fin d'historique (chaque tour edit, après suppléments E/T).
+pub fn refresh_architect_run_snapshot(messages: &mut Vec<Message>, snapshot: &str) {
+    messages.retain(|m| !is_architect_run_snapshot_message(m));
+    messages.push(Message::system(snapshot.to_string()));
+}
+
+/// Post-compaction / `todo_write` : une seule copie du snapshot après le checkpoint.
+pub fn inject_architect_run_snapshot_after_checkpoint(
+    messages: &mut Vec<Message>,
+    snapshot: &str,
+) {
+    messages.retain(|m| !is_architect_run_snapshot_message(m));
     let insert_at = messages
         .iter()
         .position(is_context_checkpoint_message)
@@ -799,13 +971,16 @@ pub fn inject_architect_cycle_anchor(messages: &mut Vec<Message>, anchor: &str) 
                 .count()
                 .max(1)
         });
-    messages.insert(insert_at, Message::system(anchor.to_string()));
+    messages.insert(insert_at, Message::system(snapshot.to_string()));
 }
 
 #[must_use]
-pub fn is_architect_cycle_anchor_message(m: &Message) -> bool {
-    matches!(m.role, Role::System)
-        && system_message_text(m).contains(ARCHITECT_CYCLE_ANCHOR_MARKER)
+pub fn is_architect_run_snapshot_message(m: &Message) -> bool {
+    if !matches!(m.role, Role::System) {
+        return false;
+    }
+    let text = system_message_text(m);
+    text.contains(ARCHITECT_RUN_SNAPSHOT_MARKER) || text.contains(ARCHITECT_CYCLE_ANCHOR_MARKER)
 }
 
 #[must_use]
@@ -888,72 +1063,6 @@ fn verification_path_from_tool_args(tool_name: &str, arguments: &Value) -> Optio
 }
 
 #[must_use]
-pub fn is_agent_output_task_path(path: &str, plan_id: Option<&str>, task_id: &str) -> bool {
-    let p = normalize_workspace_path(path);
-    let tid = task_id.trim();
-    if tid.is_empty() {
-        return false;
-    }
-    if let Some(pid) = plan_id.filter(|s| !s.is_empty()) {
-        let prefix = format!(".drox/agent-output/{pid}/{tid}");
-        if p.starts_with(&prefix) || p.contains(&format!("/{prefix}/")) {
-            return true;
-        }
-    }
-    p.starts_with(&format!(".drox/agent-output/{tid}"))
-        || p.contains(&format!("/.drox/agent-output/{tid}/"))
-}
-
-#[must_use]
-pub fn validate_scope_paths(
-    scope: &[String],
-    known: &HashSet<String>,
-) -> Option<String> {
-    if scope.is_empty() {
-        return None;
-    }
-    if known.is_empty() {
-        return Some(
-            "Blocked: call `workspace_map_read` first, then set `scope` paths from the map."
-                .to_string(),
-        );
-    }
-    let mut bad = Vec::new();
-    for raw in scope {
-        let p = normalize_workspace_path(raw);
-        if p.is_empty() {
-            continue;
-        }
-        if scope_path_known(&p, known) {
-            continue;
-        }
-        bad.push(p);
-    }
-    if bad.is_empty() {
-        return None;
-    }
-    let mut msg = format!(
-        "Blocked: scope path(s) not in workspace map: {}. ",
-        bad.iter()
-            .map(|p| format!("`{p}`"))
-            .collect::<Vec<_>>()
-            .join(", ")
-    );
-    if let Some(hint) = suggest_path_for_basename(&bad[0], known) {
-        msg.push_str(&format!("Try instead: `{hint}`. "));
-    }
-    msg.push_str("Copy paths verbatim from `workspace_map_read`.");
-    Some(msg)
-}
-
-fn scope_path_known(path: &str, known: &HashSet<String>) -> bool {
-    if known.contains(path) {
-        return true;
-    }
-    known.iter().any(|k| k.starts_with(&format!("{path}/")) || path.starts_with(&format!("{k}/")))
-}
-
-#[must_use]
 fn recovery_block_from_failure(
     task_id: &str,
     status: &str,
@@ -961,8 +1070,8 @@ fn recovery_block_from_failure(
     delegate_attempts: u32,
 ) -> String {
     let mut block = format!(
-        "## Architect — recovery required (task `{task_id}`)\n\
-         Last delegate: **{status}** — engine verified: **no**.\n"
+        "## Architect — delegate recovery (task `{task_id}`)\n\
+         Last delegate: **{status}** — spot-check or re-delegate suggested (engine verified: **no**).\n"
     );
     if let Some(s) = failure.get("summary").and_then(|v| v.as_str()) {
         block.push_str(&format!("- Failure: {s}\n"));
@@ -999,19 +1108,10 @@ fn recovery_block_from_failure(
         }
     }
     block.push_str(&format!(
-        "- Re-delegate attempts used: {delegate_attempts}/2\n\
-         Forbidden: mark `{task_id}` completed without scope proof; empty `todo_write`; restart discovery.\n"
+        "- Re-delegate attempts used: {delegate_attempts}\n\
+         Suggested: read deliverable `.md`, re-delegate with narrower scope, or adjust `todo_write` — avoid restarting full discovery.\n"
     ));
     block
-}
-
-fn suggest_path_for_basename(missing: &str, known: &HashSet<String>) -> Option<String> {
-    let base = missing.rsplit('/').next().unwrap_or(missing);
-    known
-        .iter()
-        .filter(|k| k.ends_with(&format!("/{base}")) || k.as_str() == base)
-        .min_by_key(|k| k.len())
-        .cloned()
 }
 
 #[cfg(test)]
@@ -1030,14 +1130,6 @@ mod tests {
         }));
         assert!(st.workspace_map_loaded);
         assert!(st.workspace_paths.contains("app-kdds-main/package.json"));
-    }
-
-    #[test]
-    fn validate_scope_rejects_root_package_json() {
-        let mut known = HashSet::new();
-        known.insert("app-kdds-main/package.json".into());
-        let err = validate_scope_paths(&["package.json".into()], &known).unwrap();
-        assert!(err.contains("not in workspace map"));
     }
 
     #[test]
@@ -1085,24 +1177,12 @@ mod tests {
     }
 
     #[test]
-    fn complete_gate_requires_delegate_then_verify() {
+    fn complete_gate_never_blocks_workflow() {
         let st = ArchitectRunState::new();
-        assert!(st
-            .complete_gate_for_task("t1")
-            .unwrap()
-            .contains("delegate_executor"));
-
+        assert!(st.complete_gate_for_task("t1").is_none());
         let mut delegated = ArchitectRunState::new();
         delegated.delegate_counts.insert("t1".into(), 1);
-        assert!(delegated
-            .complete_gate_for_task("t1")
-            .unwrap()
-            .contains("not verified"));
-
-        let mut ok = ArchitectRunState::new();
-        ok.delegate_counts.insert("t1".into(), 1);
-        ok.verified_task_ids.insert("t1".into());
-        assert!(ok.complete_gate_for_task("t1").is_none());
+        assert!(delegated.complete_gate_for_task("t1").is_none());
     }
 
     #[test]
@@ -1185,15 +1265,25 @@ mod tests {
             .insert("t1".into(), "Trouver flashlight-overlay.tsx".into());
         st.todo_statuses.insert("t1".into(), "in_progress".into());
         let block = st.cycle_anchor_block(None);
-        assert!(block.contains(ARCHITECT_CYCLE_ANCHOR_MARKER));
+        assert!(block.contains(ARCHITECT_RUN_SNAPSHOT_MARKER));
         assert!(block.contains("Agrandir la lampe torche"));
         assert!(block.contains("**t1** [in_progress]"));
         assert!(block.contains("plan_test"));
     }
 
     #[test]
-    fn inject_architect_cycle_anchor_replaces_previous() {
-        use super::inject_architect_cycle_anchor;
+    fn cycle_anchor_block_includes_work_mode() {
+        let mut st = ArchitectRunState::new();
+        st.try_anchor_work_mode_from_text("[mode: discovery]\nExploring the repo.");
+        let block = st.cycle_anchor_block(None);
+        assert!(block.contains("discovery"));
+        st.try_anchor_work_mode_from_text("[mode: task]");
+        assert_eq!(st.work_mode_anchor, Some(ArchitectWorkMode::Discovery));
+    }
+
+    #[test]
+    fn inject_architect_run_snapshot_after_checkpoint_replaces_previous() {
+        use super::inject_architect_run_snapshot_after_checkpoint;
         let mut st = ArchitectRunState::new();
         st.anchor_user_request("Demande A");
         let mut msgs = vec![
@@ -1201,27 +1291,27 @@ mod tests {
             Message::system("[context checkpoint — earlier messages compressed by the engine]\n\n## Objective\nold"),
             Message::user("tail"),
         ];
-        inject_architect_cycle_anchor(&mut msgs, &st.cycle_anchor_block(None));
+        inject_architect_run_snapshot_after_checkpoint(&mut msgs, &st.cycle_anchor_block(None));
         assert_eq!(
             msgs.iter()
-                .filter(|m| is_architect_cycle_anchor_message(m))
+                .filter(|m| is_architect_run_snapshot_message(m))
                 .count(),
             1
         );
         assert!(msgs[2..]
             .iter()
-            .any(|m| is_architect_cycle_anchor_message(m)));
+            .any(|m| is_architect_run_snapshot_message(m)));
         st.anchor_user_request("Demande B");
-        inject_architect_cycle_anchor(&mut msgs, &st.cycle_anchor_block(None));
+        inject_architect_run_snapshot_after_checkpoint(&mut msgs, &st.cycle_anchor_block(None));
         assert_eq!(
             msgs.iter()
-                .filter(|m| is_architect_cycle_anchor_message(m))
+                .filter(|m| is_architect_run_snapshot_message(m))
                 .count(),
             1
         );
         let anchor = msgs
             .iter()
-            .find(|m| is_architect_cycle_anchor_message(m))
+            .find(|m| is_architect_run_snapshot_message(m))
             .unwrap();
         assert!(system_message_text(anchor).contains("Demande A"));
     }

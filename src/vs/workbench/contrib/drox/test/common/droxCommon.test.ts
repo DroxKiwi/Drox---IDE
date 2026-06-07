@@ -14,6 +14,7 @@ import { isDroxWebviewToHostMessage } from '../../browser/droxChatBridge.js';
 import { droxLlmModelEnumValues, updateDroxLlmModelEnum } from '../../common/droxConfiguration.js';
 import { parseDroxEnvFileContent } from '../../common/droxEnvFile.js';
 import { formatDroxTranscriptExport } from '../../common/chat/droxTranscriptExport.js';
+import { formatDroxUiReplayExport } from '../../common/chat/droxUiReplayExport.js';
 import {
 	buildLlmModelListUrl,
 	normalizeLlmServerBaseUrl,
@@ -122,7 +123,7 @@ suite('Drox — executable packaging folder', () => {
 		assert.ok(!isBareDroxExecutableName('C:\\Drox\\resources\\drox\\win32-x64\\drox.exe'));
 	});
 
-	test('enumerateDroxExecutableCandidates prefers installDir packaged path', () => {
+	test('enumerateDroxExecutableCandidates prefers workspace cargo build over installDir', () => {
 		const folder = droxResourcePlatformFolder();
 		if (!folder) {
 			return;
@@ -130,11 +131,33 @@ suite('Drox — executable packaging folder', () => {
 		const bin = process.platform === 'win32' ? 'drox.exe' : 'drox';
 		const list = enumerateDroxExecutableCandidates({
 			configuredPath: '',
-			workspaceFolderPaths: [],
+			workspaceFolderPaths: ['/ws'],
 			installDir: '/DroxIDE',
+			appRoot: '/DroxIDE/resources/app',
 		});
 		assert.ok(list.length > 0);
-		assert.ok(list[0].replace(/\\/g, '/').endsWith(`/resources/drox/${folder}/${bin}`));
+		assert.ok(list[0].replace(/\\/g, '/').endsWith(`/ws/drox-engine/drox/target/debug/${bin}`));
+		const installIdx = list.findIndex(p => p.replace(/\\/g, '/').endsWith(`/resources/drox/${folder}/${bin}`));
+		const wsIdx = list.findIndex(p => p.includes('/ws/drox-engine/drox/target/debug/'));
+		assert.ok(wsIdx >= 0 && installIdx > wsIdx);
+	});
+
+	test('enumerateDroxExecutableCandidates prefers appRoot cargo over bundled resources (external workspace)', () => {
+		const folder = droxResourcePlatformFolder();
+		if (!folder) {
+			return;
+		}
+		const bin = process.platform === 'win32' ? 'drox.exe' : 'drox';
+		const list = enumerateDroxExecutableCandidates({
+			configuredPath: '',
+			workspaceFolderPaths: ['/site-kdds'],
+			appRoot: '/DroxIDE/resources/app',
+		});
+		const cargoIdx = list.findIndex(p => p.replace(/\\/g, '/').endsWith(`/drox-engine/drox/target/debug/${bin}`));
+		const bundledIdx = list.findIndex(p => p.replace(/\\/g, '/').includes(`/resources/drox/${folder}/${bin}`));
+		assert.ok(cargoIdx >= 0, 'appRoot cargo debug candidate');
+		assert.ok(bundledIdx >= 0, 'bundled candidate');
+		assert.ok(cargoIdx < bundledIdx, 'cargo must be probed before bundled snapshot');
 	});
 });
 
@@ -682,6 +705,39 @@ suite('Drox — transcript replay', () => {
 suite('Drox — transcript export', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
+	test('formatDroxUiReplayExport preserves UI event order', () => {
+		const journal = [
+			{ kind: 'append', role: 'user', text: 'Salut' },
+			{ kind: 'gatePath', phase: 'pass', gateId: 'entry', gatePath: 'entry', branch: 'architect_discuss' },
+			{ kind: 'orchestrationRole', role: 'architect_discussion' },
+			{ kind: 'phase', phase: 'internal_reasoning' },
+			{ kind: 'delta', text: 'Salut ! ' },
+			{ kind: 'delta', text: 'Comment puis-je vous aider ?' },
+			{ kind: 'phase', close: true },
+			{ kind: 'userFacingReply', text: 'Bonjour ! Comment puis-je t\'aider aujourd\'hui ?' },
+		];
+		const text = formatDroxUiReplayExport({
+			sessionId: 'ses_ui',
+			journal,
+			transcriptMessageCount: 2,
+		});
+		assert.ok(text.includes('UI journal events: 8'));
+		assert.ok(text.includes('Step 1 — USER'));
+		assert.ok(text.includes('GATE PATH'));
+		assert.ok(text.includes('architect_discuss'));
+		assert.ok(text.includes('ROLE'));
+		assert.ok(text.includes('internal_reasoning'));
+		assert.ok(text.includes('THINKING STREAM'));
+		assert.ok(text.includes('Salut !'));
+		assert.ok(text.includes('USER-FACING REPLY'));
+		assert.ok(text.includes('Bonjour !'));
+		const userIdx = text.indexOf('Step 1 — USER');
+		const gateIdx = text.indexOf('GATE PATH');
+		const streamIdx = text.indexOf('THINKING STREAM');
+		const replyIdx = text.indexOf('USER-FACING REPLY');
+		assert.ok(userIdx < gateIdx && gateIdx < streamIdx && streamIdx < replyIdx);
+	});
+
 	test('formatDroxTranscriptExport includes phases, tools, and results in execution order', () => {
 		const messages: IDroxTranscriptMessage[] = [
 			{ role: 'user', content: [{ type: 'text', text: 'Change orb colors to dark blue' }] },
@@ -812,14 +868,14 @@ suite('Drox — orchestration model params', () => {
 			subagents: { enabled: true, maxIterations: 15, maxConcurrent: 1, model: 'qwen3.5:2b', numCtx: 8192 },
 			mcpToolsEnabled: true,
 		});
-		assert.strictEqual(params.orchestrationMode, 'v1_2');
+		assert.strictEqual(params.orchestrationMode, 'role_split');
 		assert.strictEqual(params.model, 'qwen3.5:9b');
 		assert.strictEqual(params.subagentsModel, 'qwen3.5:2b');
 		assert.strictEqual(params.subagentsEnabled, undefined);
 		assert.strictEqual(params.orchestrationMaxParallelExecutors, 1);
 	});
 
-	test('buildAgentRunParams v1_2 forwards orchestrationMaxParallelExecutors', () => {
+	test('buildAgentRunParams role_split forwards orchestrationMaxParallelExecutors', () => {
 		const params = buildAgentRunParams({
 			prompt: 'parallel',
 			workspace: WS,
@@ -848,7 +904,7 @@ suite('Drox — orchestration model params', () => {
 		assert.strictEqual(params.subagentsEnabled, undefined);
 		assert.strictEqual(params.subagentsModel, 'qwen3.5:4b');
 		assert.strictEqual(params.subagentsNumCtx, 16384);
-		assert.strictEqual(params.orchestrationMode, 'v1_2');
+		assert.strictEqual(params.orchestrationMode, 'role_split');
 	});
 
 	test('buildAgentRunParams forwards executor numCtx without legacy subagents.enabled', () => {
@@ -862,8 +918,95 @@ suite('Drox — orchestration model params', () => {
 			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
 			mcpToolsEnabled: true,
 		});
-		assert.strictEqual(params.subagentsNumCtx, 8192);
+		assert.strictEqual(params.subagentsNumCtx, 32768);
 		assert.strictEqual(params.subagentsEnabled, undefined);
+	});
+
+	test('buildAgentRunParams omits architectInteractionMode when auto', () => {
+		const params = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings(),
+			disabledTools: [],
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
+			mcpToolsEnabled: true,
+			architectInteractionMode: 'auto',
+		});
+		assert.strictEqual(params.architectInteractionMode, undefined);
+	});
+
+	test('buildAgentRunParams forwards architectInteractionMode discussion', () => {
+		const params = buildAgentRunParams({
+			prompt: 'explain',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings(),
+			disabledTools: [],
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
+			mcpToolsEnabled: true,
+			architectInteractionMode: 'discussion',
+		});
+		assert.strictEqual(params.architectInteractionMode, 'discussion');
+	});
+
+	test('buildAgentRunParams forwards architectInteractionMode action', () => {
+		const params = buildAgentRunParams({
+			prompt: 'fix bug',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings(),
+			disabledTools: [],
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
+			mcpToolsEnabled: true,
+			architectInteractionMode: 'action',
+		});
+		assert.strictEqual(params.architectInteractionMode, 'action');
+	});
+
+	test('buildAgentRunParams always forwards engineStrictness', () => {
+		const defaultParams = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings(),
+			disabledTools: [],
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(defaultParams.engineStrictness, 'normal');
+
+		const strictParams = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings(),
+			disabledTools: [],
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
+			mcpToolsEnabled: true,
+			engineStrictness: 'strict',
+		});
+		assert.strictEqual(strictParams.engineStrictness, 'strict');
+	});
+
+	test('buildAgentRunParams uses distinct executor numCtx when executor model is set', () => {
+		const params = buildAgentRunParams({
+			prompt: 'v1_2',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings({ numCtx: 32768 }),
+			disabledTools: [],
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: 'qwen3.5:4b', numCtx: 8192 },
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(params.subagentsModel, 'qwen3.5:4b');
+		assert.strictEqual(params.subagentsNumCtx, 8192);
 	});
 
 	test('normalizeLlmServerBaseUrl strips trailing slash', () => {

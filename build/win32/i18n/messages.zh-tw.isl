@@ -1,4 +1,8 @@
-﻿[CustomMessages]
+﻿[Messages]
+FinishedLabel=[name] 安裝完成。從開始功能表或命令選擇區 (Ctrl+Shift+P) 啟動 Drox IDE，然後開啟 «Open Drox Chat»。
+ConfirmUninstall=您確定要完全移除 %1 及其所有元件嗎？
+
+[CustomMessages]
 AddContextMenuFiles=將 [以 %1 開啟] 動作加入 Windows 檔案總管檔案的操作功能表中
 AddContextMenuFolders=將 [以 %1 開啟] 動作加入 Windows 檔案總管目錄的操作功能表中
 AssociateWithFiles=針對支援的檔案類型將 %1 註冊為編輯器

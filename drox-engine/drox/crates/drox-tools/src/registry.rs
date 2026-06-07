@@ -8,7 +8,8 @@ use serde_json::Value;
 use crate::context::ToolContext;
 use crate::error::ToolError;
 use crate::simple::{
-    AskUserQuestionTool, BashTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
+    AskUserQuestionTool,
+    BashTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
     FileWriteTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
     SkillListTool, SkillReadTool, GitWorktreeEnterTool, GitWorktreeExitTool, CopyPathTool,
     CoursePlanWriteTool,     ScopeDeferTool, SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool,

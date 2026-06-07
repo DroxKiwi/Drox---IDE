@@ -117,7 +117,19 @@ mod tests {
         assert!(names.iter().any(|n| n == "file_read"));
         assert!(names.iter().any(|n| n == "delegate_executor"));
         assert!(names.iter().any(|n| n == "architect_help"));
-        assert!(!names.iter().any(|n| n == "file_edit"));
+        assert!(names.iter().any(|n| n == "file_edit"));
+        assert!(names.iter().any(|n| n == "bash"));
+    }
+
+    #[test]
+    fn architect_discussion_registry_read_only() {
+        let spec = RunSpec::for_architect_discussion();
+        let registry = registry_for_spec(&spec);
+        let names = registry.names();
+        assert!(names.iter().any(|n| n == "file_read"));
+        assert!(names.iter().any(|n| n == "workspace_map_read"));
+        assert!(!names.iter().any(|n| n == "todo_write"));
+        assert!(!names.iter().any(|n| n == "delegate_executor"));
     }
 
     #[test]

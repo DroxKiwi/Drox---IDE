@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import * as path from '../../../../base/common/path.js';
 
 import { isWindows } from '../../../../base/common/platform.js';
@@ -104,13 +106,13 @@ export function droxResourcePlatformFolder(): string | undefined {
 
  * Order:
 
- *   1. `drox.executablePath` when set.
+ *   1. `drox.executablePath` when set and the file exists.
 
  *   2. Probes under each workspace folder (`drox-engine/drox/target/...`).
 
- *   3. Probes under `installDir` (`<exe-dir>/resources/drox/<platform>/`).
+ *   3. Probes under `appRoot` — **cargo `target/debug` first**, then packaged `resources/drox/<platform>/`.
 
- *   4. Probes under `appRoot` (dev cargo + packaged `resources/drox/<platform>/`).
+ *   4. Probes under `installDir` (`<exe-dir>/resources/drox/<platform>/` — often stale).
 
  *   5. Fallback: `drox` on PATH.
 
@@ -125,11 +127,6 @@ export function enumerateDroxExecutableCandidates(options: IDroxExecutableResolv
 	const candidates: string[] = [];
 	const platformFolder = droxResourcePlatformFolder();
 
-	if (options.installDir && platformFolder) {
-		candidates.push(path.join(options.installDir, 'resources', 'drox', platformFolder, BIN));
-		candidates.push(path.join(options.installDir, 'resources', 'drox', BIN));
-	}
-
 	for (const root of options.workspaceFolderPaths) {
 		candidates.push(
 			path.join(root, 'drox-engine', 'drox', 'target', 'debug', BIN),
@@ -140,6 +137,12 @@ export function enumerateDroxExecutableCandidates(options: IDroxExecutableResolv
 	}
 
 	if (options.appRoot) {
+		// Fresh cargo builds in the IDE repo (F5 dev) — before packaged `resources/drox/` snapshot,
+		// so dogfooding on an external workspace (e.g. site-kdds) still picks target/debug.
+		candidates.push(
+			path.join(options.appRoot, 'drox-engine', 'drox', 'target', 'debug', BIN),
+			path.join(options.appRoot, 'drox-engine', 'drox', 'target', 'release', BIN),
+		);
 		if (platformFolder) {
 			candidates.push(path.join(options.appRoot, 'resources', 'drox', platformFolder, BIN));
 			// Packaged layout: `resources/drox/` next to `resources/app/`.
@@ -147,10 +150,11 @@ export function enumerateDroxExecutableCandidates(options: IDroxExecutableResolv
 		}
 		candidates.push(path.join(options.appRoot, 'resources', 'drox', BIN));
 		candidates.push(path.join(options.appRoot, '..', 'drox', BIN));
-		candidates.push(
-			path.join(options.appRoot, 'drox-engine', 'drox', 'target', 'debug', BIN),
-			path.join(options.appRoot, 'drox-engine', 'drox', 'target', 'release', BIN),
-		);
+	}
+
+	if (options.installDir && platformFolder) {
+		candidates.push(path.join(options.installDir, 'resources', 'drox', platformFolder, BIN));
+		candidates.push(path.join(options.installDir, 'resources', 'drox', BIN));
 	}
 
 	return candidates;
@@ -162,7 +166,9 @@ export async function resolveDroxExecutablePath(
 ): Promise<string> {
 	const trimmed = options.configuredPath.trim();
 	if (trimmed.length > 0 && !isBareDroxExecutableName(trimmed)) {
-		return trimmed;
+		if (await fileService.exists(URI.file(trimmed))) {
+			return trimmed;
+		}
 	}
 
 	for (const candidate of enumerateDroxExecutableCandidates(options)) {

@@ -1,4 +1,8 @@
-﻿[CustomMessages]
+﻿[Messages]
+FinishedLabel=A(z) [name] telepítése befejeződött. Indítsa a Drox IDE-t a Start menüből vagy a parancspalettáról (Ctrl+Shift+P) → „Open Drox Chat”.
+ConfirmUninstall=Biztosan teljesen eltávolítja a(z) %1 programot és minden összetevőjét?
+
+[CustomMessages]
 AddContextMenuFiles="Megnyitás a következővel: %1" parancs hozzáadása a fájlok helyi menüjéhez a Windows Intézőben
 AddContextMenuFolders="Megnyitás a következővel: %1" parancs hozzáadása a mappák helyi menüjéhez a Windows Intézőben
 AssociateWithFiles=%1 regisztrálása szerkesztőként a támogatott fájltípusokhoz

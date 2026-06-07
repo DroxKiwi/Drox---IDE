@@ -9,6 +9,7 @@ import { createDecorator } from '../../../../platform/instantiation/common/insta
 
 import { IDroxAgentRunImage } from './droxAttachments.js';
 
+import { DroxArchitectInteractionMode } from './droxArchitectInteractionMode.js';
 import { DroxPermissionMode } from './droxPermissionAsk.js';
 import { IDroxLlmSettings, IDroxSubagentSettings } from './droxRunSettings.js';
 
@@ -37,6 +38,8 @@ export interface IDroxRunSettingsService {
 	isMcpToolsEnabled(resource?: URI): boolean;
 
 	getPermissionMode(resource?: URI): DroxPermissionMode;
+
+	getArchitectInteractionMode(resource?: URI): DroxArchitectInteractionMode;
 
 	filterExecutableTools(toolNames: readonly string[], resource?: URI): string[];
 

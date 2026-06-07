@@ -68,6 +68,13 @@ export interface IProductConfiguration {
 	readonly version: string;
 	/** Drox product release (semver). `version` stays the VS Code API base for extensions. */
 	readonly droxVersion?: string;
+	/**
+	 * When `false` (default release), Microsoft Agents Window / VS Code chat surfaces are hidden.
+	 * See `drox-engine/docs/1.3/1.3.2/finalisation/D1-DESACTIVATION-MICROSOFT-AGENTS-1.3.2.md`.
+	 */
+	readonly droxMicrosoftAgentsSurfaceEnabled?: boolean;
+	/** Dev-only: engine / gates iteration counter (shown as droxVersion.N in chat). */
+	readonly droxEngineDevBuild?: number;
 	readonly date?: string;
 	readonly quality?: string;
 	readonly commit?: string;

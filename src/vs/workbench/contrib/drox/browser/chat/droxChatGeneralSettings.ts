@@ -3,8 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
+import { DROX_ENGINE_TUNING_RPC_FIELDS } from '../../common/droxEngineTuning.js';
+import {
+	DroxEngineStrictnessPreset,
+	normalizeDroxEngineStrictnessPreset,
+	readDroxEngineStrictness,
+} from '../../common/droxEngineStrictness.js';
 import { isMcpToolsEnabled, readLlmSettings } from '../../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
@@ -26,6 +34,9 @@ export interface IDroxGeneralSettingsWire {
 	readonly addDiagnosticOnHover: boolean;
 	readonly mcpToolsEnabled: boolean;
 	readonly showChatErrorsAndWarnings: boolean;
+	readonly engineStrictness: DroxEngineStrictnessPreset;
+	/** Surcharges affichées/éditables uniquement si `engineStrictness === 'custom'`. */
+	readonly engineTuning?: Record<string, number | boolean>;
 }
 
 export interface IDroxGeneralSettingsPatch {
@@ -45,6 +56,8 @@ export interface IDroxGeneralSettingsPatch {
 	readonly addDiagnosticOnHover?: boolean;
 	readonly mcpToolsEnabled?: boolean;
 	readonly showChatErrorsAndWarnings?: boolean;
+	readonly engineStrictness?: DroxEngineStrictnessPreset;
+	readonly engineTuning?: Record<string, number | boolean>;
 }
 
 export interface IDroxChatGeneralSettingsHost {
@@ -73,6 +86,24 @@ export function readDroxGeneralSettingsForWebview(
 		return typeof v === 'string' ? v.trim() : '';
 	};
 	const provider = deps.configurationService.getValue<string>(DroxSetting.LlmProvider, { resource });
+	const engineStrictness = readDroxEngineStrictness(deps.configurationService, resource);
+	const engineTuning: Record<string, number | boolean> = {};
+	if (engineStrictness === 'custom') {
+		for (const { rpcKey, settingKey, kind } of DROX_ENGINE_TUNING_RPC_FIELDS) {
+			const v = deps.configurationService.getValue<number | boolean>(settingKey, { resource });
+			if (kind === 'boolean') {
+				if (typeof v === 'boolean') {
+					engineTuning[rpcKey] = v;
+				}
+			} else if (typeof v === 'number' && !Number.isNaN(v)) {
+				if ((rpcKey === 'maxTodoItems' || rpcKey === 'memoryBudgetTokens') && v <= 0) {
+					continue;
+				}
+				engineTuning[rpcKey] = v;
+			}
+		}
+	}
+
 	return {
 		llmProvider: typeof provider === 'string' && provider ? provider : 'ollama',
 		server: llm.server,
@@ -90,6 +121,8 @@ export function readDroxGeneralSettingsForWebview(
 		addDiagnosticOnHover: readBool(deps.configurationService, DroxSetting.AddDiagnosticOnHover, resource, false),
 		mcpToolsEnabled: isMcpToolsEnabled(deps.configurationService, resource),
 		showChatErrorsAndWarnings: readBool(deps.configurationService, DroxSetting.ChatShowErrorsAndWarnings, resource, true),
+		engineStrictness,
+		engineTuning: Object.keys(engineTuning).length > 0 ? engineTuning : undefined,
 	};
 }
 
@@ -163,5 +196,21 @@ export async function setDroxGeneralSettingsFromWebview(
 	}
 	if (patch.showChatErrorsAndWarnings !== undefined) {
 		await update(DroxSetting.ChatShowErrorsAndWarnings, Boolean(patch.showChatErrorsAndWarnings));
+	}
+	if (patch.engineStrictness !== undefined) {
+		await update(DroxSetting.EngineStrictness, normalizeDroxEngineStrictnessPreset(patch.engineStrictness));
+	}
+	if (patch.engineTuning && typeof patch.engineTuning === 'object') {
+		for (const { rpcKey, settingKey, kind } of DROX_ENGINE_TUNING_RPC_FIELDS) {
+			if (!(rpcKey in patch.engineTuning)) {
+				continue;
+			}
+			const raw = patch.engineTuning[rpcKey];
+			if (kind === 'boolean') {
+				await update(settingKey, Boolean(raw));
+			} else if (typeof raw === 'number' && Number.isFinite(raw)) {
+				await update(settingKey, raw);
+			}
+		}
 	}
 }

@@ -12,9 +12,15 @@ Statut par défaut : **idée brute** jusqu’à promotion en chantier (`drox-eng
 | 03 | [Preview web & outils navigateur](03-preview-web-outils-navigateur.md) | Onglet IDE sur l’app web : navigation, DOM, devtools pour le modèle | Idée |
 | 04 | [Mode long-run](04-mode-long-run.md) | Tâches très complexes sur **plusieurs heures**, plan à centaines d’étapes | Idée |
 | 05 | [Stats perf par cycle](05-stats-perf-par-cycle.md) | KPI par cycle : lignes modifiées, tokens par rôle/sous-agent, outils, durée | Idée |
-| 06 | [Chargement sessions segmenté](06-chargement-sessions-segmente.md) | Reprise historique OK mais lente — afficher **la fin** d’abord, puis le reste | **Priorité post-1.3.1** |
-| 07 | [Réponses légères sans plan](07-reponses-legere-sans-plan.md) | Salut / avis rapide — pas de plan ni délégation si inutile | **Priorité post-1.3.1** |
-| 08 | [Performance traitement rapide](08-performance-traitement-rapide.md) | Accélérer fortement les runs — troncature, moins de travail, tuning | **Priorité post-1.3.1** (pistes ouvertes) |
+| 06 | [Chargement sessions segmenté](06-chargement-sessions-segmente.md) | Reprise historique OK mais lente — afficher **la fin** d’abord, puis le reste | **Cible [1.3.2](../1.3/1.3.2/README.md)** |
+| 07 | [Réponses légères sans plan](07-reponses-legere-sans-plan.md) | Salut / avis rapide — pas de plan ni délégation si inutile | **Cible [1.3.2](../1.3/1.3.2/README.md)** |
+| 08 | [Performance traitement rapide](08-performance-traitement-rapide.md) | Accélérer fortement les runs — troncature, moins de travail, tuning | Post-1.3.2 |
+| 09 | [Rôles spécialisés compréhension code](09-roles-specialises-comprehension-code.md) | Nouveaux rôles (cartographe, analyste, …) pour **comprendre** le repo avant d’agir | Idée |
+| 10 | [Paramétrage prompts & strictesse](10-parametrage-prompts-strictesse.md) | Rendre réglables seuils gates + textes injectés (`system` / nudges) — profil `relaxed` / `strict` | Idée · **registre variables** |
+| 11 | [Télémétrie locale IDE + APIs](11-telemetry-ide-locale-apis.md) | Dashboard runs (charts), stockage `.drox/telemetry`, RPC `telemetry.*` — **aucun cloud** | Idée |
+| 12 | [Benchmark & config par modèle](12-presets-globaux-benchmark-hardware.md) | Teste le modèle **choisi** sur le PC → profil capacités (ctx, vision, tools, long run…) + config conseillée paramètre par paramètre ou preset bundle (**sans** changer le modèle) | **Cible [1.3.3](../1.3/1.3.3/README.md)** |
+| 13 | [Agents Window KDDS / Drox](13-agents-window-kdds-drox.md) | Réutiliser le chassis **Agents Window** VS Code, le rebrancher sur **drox.exe**, rebrand **KDDS** — fin de la double stack Copilot vs Drox | Idée |
+| 14 | [Persona première activation](14-persona-premiere-activation.md) | Onboarding : le modèle se présente, confirme identité + style de discussion, persiste `.drox/persona` | Idée |
 
 ---
 

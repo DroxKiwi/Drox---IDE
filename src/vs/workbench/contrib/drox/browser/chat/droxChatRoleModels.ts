@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { DROX_DEFAULT_SUBAGENT_NUM_CTX, DROX_MAX_PARALLEL_EXECUTORS_CAP, DroxSetting, readOrchestrationMaxParallelExecutors } from '../../common/droxConfiguration.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
@@ -17,6 +19,13 @@ export async function setDroxArchitectModelFromWebview(
 	await deps.configurationService.updateValue(DroxSetting.ArchitectModel, model.trim(), { resource });
 }
 
+function isExecutorSameAsArchitect(
+	deps: Pick<{ runSettingsService: IDroxRunSettingsService }, 'runSettingsService'>,
+): boolean {
+	const resource = deps.runSettingsService.getWorkspaceResource();
+	return !deps.runSettingsService.getSubagentSettings(resource).model.trim();
+}
+
 export async function setDroxExecutorModelFromWebview(
 	deps: Pick<{ runSettingsService: IDroxRunSettingsService }, 'runSettingsService'> & {
 		configurationService: IConfigurationService;
@@ -24,7 +33,15 @@ export async function setDroxExecutorModelFromWebview(
 	model: string,
 ): Promise<void> {
 	const resource = deps.runSettingsService.getWorkspaceResource();
-	await deps.configurationService.updateValue(DroxSetting.ExecutorModel, model.trim(), { resource });
+	const trimmed = model.trim();
+	await deps.configurationService.updateValue(DroxSetting.ExecutorModel, trimmed, { resource });
+	await deps.configurationService.updateValue(DroxSetting.SubagentsModel, trimmed, { resource });
+	if (!trimmed) {
+		const llm = deps.runSettingsService.getLlmSettings(resource);
+		if (llm.numCtx !== undefined && Number.isFinite(llm.numCtx) && llm.numCtx > 0) {
+			await deps.configurationService.updateValue(DroxSetting.SubagentsNumCtx, llm.numCtx, { resource });
+		}
+	}
 }
 
 export async function setDroxArchitectLlmParamsFromWebview(
@@ -63,6 +80,9 @@ export async function setDroxArchitectLlmParamsFromWebview(
 	if (params.temperature !== undefined && Number.isFinite(params.temperature)) {
 		await deps.configurationService.updateValue(DroxSetting.Temperature, params.temperature, { resource });
 	}
+	if (isExecutorSameAsArchitect(deps) && params.numCtx !== undefined && Number.isFinite(params.numCtx)) {
+		await deps.configurationService.updateValue(DroxSetting.SubagentsNumCtx, params.numCtx, { resource });
+	}
 }
 
 export async function setDroxExecutorLlmParamsFromWebview(
@@ -80,6 +100,9 @@ export async function setDroxExecutorLlmParamsFromWebview(
 	},
 ): Promise<void> {
 	const resource = deps.runSettingsService.getWorkspaceResource();
+	if (isExecutorSameAsArchitect(deps)) {
+		return;
+	}
 	if (params.numCtx !== undefined && Number.isFinite(params.numCtx)) {
 		await deps.configurationService.updateValue(DroxSetting.SubagentsNumCtx, params.numCtx, { resource });
 	}
@@ -141,11 +164,14 @@ export function readDroxRoleModelsForWebview(
 	const resource = deps.runSettingsService.getWorkspaceResource();
 	const llm = deps.runSettingsService.getLlmSettings(resource);
 	const sub = deps.runSettingsService.getSubagentSettings(resource);
+	const executorSameAsArchitect = !sub.model.trim();
 	return {
 		architectModel: llm.model,
 		executorModel: sub.model,
 		architectNumCtx: llm.numCtx,
-		executorNumCtx: sub.numCtx ?? DROX_DEFAULT_SUBAGENT_NUM_CTX,
+		executorNumCtx: executorSameAsArchitect
+			? (llm.numCtx ?? DROX_DEFAULT_SUBAGENT_NUM_CTX)
+			: (sub.numCtx ?? DROX_DEFAULT_SUBAGENT_NUM_CTX),
 		architectTopP: llm.topP,
 		architectTopK: llm.topK,
 		architectRepeatPenalty: llm.repeatPenalty,

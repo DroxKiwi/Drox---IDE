@@ -3,7 +3,16 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import { Event } from '../../../../base/common/event.js';
+
+/** Résultat partiel de `initialize` (camelCase côté IDE). */
+export type DroxEngineInitializeResult = {
+	readonly serverVersion?: string;
+	readonly orchestrationPipeline?: string;
+	readonly devBuild?: number;
+};
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IDroxEngineErrorPayload, IDroxEngineExitPayload, IDroxEngineLogPayload, IDroxEngineNotificationPayload, IDroxEngineServerRequestPayload } from './droxIpc.js';
 import { InitializeOptions, RpcRequestHandler, RpcRequestResult } from './droxRpc.js';
@@ -23,6 +32,12 @@ export interface IDroxEngineService {
 
 	/** `initialize` JSON-RPC completed successfully for this engine instance. */
 	readonly isInitialized: boolean;
+
+	/** Stamp compilé dans `drox.exe` (`build.rs`), lu à `initialize`. */
+	readonly engineDevBuild: number | undefined;
+
+	/** Émis après chaque `initialize` réussi (warm start ou premier run). */
+	readonly onDidInitialize: Event<DroxEngineInitializeResult>;
 
 	/** Spawn `drox --serve` in the main process (idempotent per window). */
 	start(): Promise<void>;

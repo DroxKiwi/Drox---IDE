@@ -1,0 +1,10 @@
+id = "last_user_message"
+version = 1
+category = "narrative"
+description = "Sanitized user message for the current decision (no ## Reminder legacy)."
+
+[limits]
+max_chars = 8_000
+
+[source]
+handler = "last_user_message"

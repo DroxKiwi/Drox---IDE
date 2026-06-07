@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// allow-any-unicode-comment-file
+
 import { isWindows } from '../../../../base/common/platform.js';
 import { join, normalize } from '../../../../base/common/path.js';
 import { normalizeWindowsFsPath } from './droxPathUtil.js';

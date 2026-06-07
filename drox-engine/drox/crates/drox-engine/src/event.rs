@@ -84,6 +84,8 @@ pub enum AgentEvent {
     PhaseClose,
     /// Token(s) de texte produits par l'assistant.
     TextDelta { text: String },
+    /// Réponse finale destinée à l'utilisateur (tour discussion — source canonique UI).
+    UserFacingReply { text: String },
     /// Le modèle a décidé d'invoquer un tool. Émis dès la réception de la
     /// décision, avant exécution.
     ToolStart {

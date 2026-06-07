@@ -55,15 +55,29 @@ pub struct InitializeResult {
     pub server_name: &'static str,
     pub server_version: &'static str,
     pub protocol_version: &'static str,
+    /// Wire pipeline id (1.3.2+). Absent on legacy bundled engines.
+    pub orchestration_pipeline: &'static str,
+    /// Compteur injecté à la compilation (`build.rs`) — affiché dans le header chat IDE.
+    pub dev_build: u32,
     pub capabilities: ServerCapabilities,
 }
 
+#[must_use]
+fn dev_build_from_compile_env() -> u32 {
+    option_env!("DROX_DEV_BUILD")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0)
+}
+
 impl InitializeResult {
-    pub const fn current() -> Self {
+    #[must_use]
+    pub fn current() -> Self {
         Self {
             server_name: "drox",
             server_version: env!("CARGO_PKG_VERSION"),
             protocol_version: PROTOCOL_VERSION,
+            orchestration_pipeline: "role_split",
+            dev_build: dev_build_from_compile_env(),
             capabilities: ServerCapabilities::CURRENT,
         }
     }
@@ -181,12 +195,21 @@ pub struct AgentRunParams {
     /// (ou `DROX_SUBAGENTS_NUM_CTX`).
     #[serde(default)]
     pub subagents_num_ctx: Option<usize>,
-    /// Orchestration finale (chemin unique) : `v1_2`/`v1_3` (les alias legacy sont ignorés).
+    /// Orchestration pipeline: `role_split` (aliases `v1_2` / `v1_3` still accepted with deprecation warn).
     #[serde(default)]
     pub orchestration_mode: Option<String>,
     /// Nombre max d'exécuteurs en parallèle (`delegate_executor` + `parallel_with`). Défaut 1.
     #[serde(default)]
     pub orchestration_max_parallel_executors: Option<usize>,
+    /// Gate architecte : `discussion` | `action` | `auto` (défaut — tour modèle `[gate: …]`).
+    #[serde(default)]
+    pub architect_interaction_mode: Option<String>,
+    /// Sévérité moteur : `relaxed` | `normal` | `strict` | `custom` (défaut `normal` si absent).
+    #[serde(default)]
+    pub engine_strictness: Option<String>,
+    /// Surcharges unitaires — appliquées **uniquement** si `engineStrictness` = `custom`.
+    #[serde(default)]
+    pub engine_tuning: Option<drox_engine::EngineTuningOverrides>,
 }
 
 /// Image attachée à un `agent.run`. `data` est la base64 brute (sans préfixe
@@ -438,6 +461,7 @@ mod tests {
         let r = InitializeResult::current();
         assert_eq!(r.server_name, "drox");
         assert_eq!(r.protocol_version, PROTOCOL_VERSION);
+        assert!(r.dev_build > 0, "dev_build must be set by build.rs");
         assert!(r.capabilities.run_streaming_events);
         // Sprint Questions bloquantes (§2.13) — le serveur sait poser des
         // questions interactives via `user/ask`, indépendamment de la
@@ -528,10 +552,50 @@ mod tests {
     fn agent_run_params_round_trips_orchestration_mode() {
         let raw = json!({
             "prompt": "hi",
-            "orchestrationMode": "v1_2"
+            "orchestrationMode": "role_split"
         });
         let p: AgentRunParams = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.orchestration_mode.as_deref(), Some("v1_2"));
+        assert_eq!(p.orchestration_mode.as_deref(), Some("role_split"));
+    }
+
+    #[test]
+    fn agent_run_params_round_trips_architect_interaction_mode() {
+        let raw = json!({
+            "prompt": "hi",
+            "architectInteractionMode": "discussion"
+        });
+        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
+        assert_eq!(
+            p.architect_interaction_mode.as_deref(),
+            Some("discussion")
+        );
+    }
+
+    #[test]
+    fn agent_run_params_round_trips_engine_strictness() {
+        let raw = json!({
+            "prompt": "hi",
+            "engineStrictness": "strict"
+        });
+        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
+        assert_eq!(p.engine_strictness.as_deref(), Some("strict"));
+    }
+
+    #[test]
+    fn agent_run_params_round_trips_engine_tuning_custom() {
+        let raw = json!({
+            "prompt": "hi",
+            "engineStrictness": "custom",
+            "engineTuning": {
+                "discussionPromotableMinChars": 8,
+                "maxReadsBeforeDelegate": 6
+            }
+        });
+        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
+        assert_eq!(p.engine_strictness.as_deref(), Some("custom"));
+        let t = p.engine_tuning.as_ref().unwrap();
+        assert_eq!(t.discussion_promotable_min_chars, Some(8));
+        assert_eq!(t.max_reads_before_delegate, Some(6));
     }
 
     #[test]

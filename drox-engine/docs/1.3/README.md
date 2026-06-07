@@ -1,27 +1,24 @@
 # Ligne de version 1.3
 
-Segmentation par **release produit** :
-
-| Dossier | Périmètre |
-|---------|-----------|
-| [**1.3.0/**](1.3.0/README.md) | Moteur : parallélisme exécuteurs, résilience, UI batch — **livré** |
-| [**1.3.1/**](1.3.1/README.md) | **Première release publique** : licences, dé-branding, installeur, MAJ — **en cours** |
+| Dossier | Périmètre | Statut |
+|---------|-----------|--------|
+| [**1.3.0/**](1.3.0/README.md) | Parallélisme, résilience, UI batch | **Livré** |
+| [**1.3.1/**](1.3.1/README.md) | Première release publique, installeur, MAJ | **Livré** |
+| [**1.3.2/**](1.3.2/README.md) | Moteur stabilisé, pré-release IDE (L2, D1–D2) | **Livré (code)** |
+| [**1.3.3/**](1.3.3/README.md) | Stabilisation moteur (tests) + package/MAJ fiables | **En cours** |
 
 ---
 
 ## Entrées rapides
 
-**1.3.0 (fait)**
+**1.3.2 (livré)**
 
-- [Vision & plan moteur](1.3.0/steps/01-vision/VISION-CONSOLIDEE-1.3.0.md)
-- [Plan d’implémentation](1.3.0/steps/02-implementation/PLAN-IMPLEMENTATION-1.3.0.md)
-- [Première release GitHub `v1.3.0`](1.3.0/finalisation/CLOSURE-1.3.0.md)
+- [README](1.3.2/README.md) · [CONDUCTEUR-CODE](1.3.2/CONDUCTEUR-CODE.md) · [CLOSURE](1.3.2/finalisation/CLOSURE-1.3.2.md)
 
-**1.3.1 (finalisation)**
+**1.3.3 (en cours)**
 
-- [Suivi release (CLOSURE)](1.3.1/finalisation/CLOSURE-1.3.1.md) — blocs A (licences), F (dé-brand), B–E (installeur, MAJ, publish)
-- [Feature brainstorm](../feature-brainstorm/README.md) — backlog idées (hors 1.3)
+- [README](1.3.3/README.md) · [PLAN](1.3.3/PLAN-1.3.3.md) · [CLOSURE](1.3.3/finalisation/CLOSURE-1.3.3.md)
 
 ---
 
-*Règles build / release : [RULES.md](../../../RULES.md) (racine fork).*
+*Build / release : [RULES.md](../../../RULES.md)*

@@ -60,6 +60,11 @@ function Invoke-SyncWizard {
 }
 
 function Invoke-PublishManifests {
+	$noticeScript = Join-Path $repoRoot 'scripts\sync-release-notice.ps1'
+	if (Test-Path $noticeScript) {
+		& $noticeScript
+		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+	}
 	$publishScript = Join-Path $PSScriptRoot 'release-publish-win32.ps1'
 	$publishArgs = @()
 	if ($ProductVersion) { $publishArgs += '-ProductVersion', $ProductVersion }
@@ -81,8 +86,10 @@ elseif ($Fast) { Write-Host '  mode: Fast (-SkipCompile)' }
 elseif ($Force) { Write-Host '  mode: Force (-ForceCompile)' }
 else { Write-Host '  mode: standard (compile si bundle obsolete)' }
 
-switch ($Action) {
+	switch ($Action) {
 	'build' {
+		& (Join-Path $repoRoot 'scripts\verify-legal-package.ps1')
+		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 		Invoke-SyncWizard
 		Write-Banner 'Build F1+F2 (app + installeur)'
 		Invoke-BuildRelease
@@ -101,6 +108,8 @@ switch ($Action) {
 		Invoke-PublishManifests
 	}
 	'ship' {
+		& (Join-Path $repoRoot 'scripts\verify-legal-package.ps1')
+		if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 		Invoke-SyncWizard
 		Write-Banner 'Build F1+F2'
 		Invoke-BuildRelease
@@ -108,6 +117,6 @@ switch ($Action) {
 		Invoke-PublishManifests
 		Write-Host ''
 		Write-Host ('Pipeline termine (droxVersion {0}).' -f $version) -ForegroundColor Green
-		Write-Host 'Reste : commit + push dans Drox---IDE---releases, puis gh release create (voir sortie ci-dessus).' -ForegroundColor Yellow
+		Write-Host 'Reste : commit + push dans Drox---IDE---OR, puis gh release create (voir sortie ci-dessus).' -ForegroundColor Yellow
 	}
 }

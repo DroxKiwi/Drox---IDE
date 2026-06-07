@@ -22,7 +22,7 @@ import * as crypto from 'crypto';
 import * as cp from 'child_process';
 import * as i18n from './lib/i18n.ts';
 import { getProductionDependencies } from './lib/dependencies.ts';
-import { getPackageDroxVersion } from './lib/droxVersion.ts';
+import { getPackageDroxEngineDevBuild, getPackageDroxVersion } from './lib/droxVersion.ts';
 import { config } from './lib/electron.ts';
 import { createAsar } from './lib/asar.ts';
 import minimist from 'minimist';
@@ -321,6 +321,10 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				if (droxVersion) {
 					json.droxVersion = droxVersion;
 				}
+				const droxEngineDevBuild = getPackageDroxEngineDevBuild();
+				if (droxEngineDevBuild !== undefined) {
+					json.droxEngineDevBuild = droxEngineDevBuild;
+				}
 				return json;
 			}))
 			.pipe(es.through(function (file) {
@@ -328,7 +332,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				this.emit('data', file);
 			}));
 
-		const license = gulp.src([product.licenseFileName, 'ThirdPartyNotices.txt', 'licenses/**'], { base: '.', allowEmpty: true });
+		const license = gulp.src([product.licenseFileName, 'ThirdPartyNotices.txt', 'NOTICE-DROX.txt', 'licenses/**'], { base: '.', allowEmpty: true });
 
 		// TODO the API should be copied to `out` during compile, not here
 		const api = gulp.src('src/vscode-dts/vscode.d.ts').pipe(rename('out/vscode-dts/vscode.d.ts'));

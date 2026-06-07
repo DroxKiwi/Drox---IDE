@@ -1,6 +1,6 @@
 # Idée 07 — Réponses légères sans plan (salutations, avis rapide)
 
-**Statut** : idée validée terrain — cible **post-1.3.1**  
+**Statut** : cible release **[1.3.2](../1.3/1.3.2/README.md)** (pilier 1)  
 **Date** : 2026-06-02  
 **Priorité** : haute UX / coût tokens
 
@@ -38,7 +38,20 @@ L’orchestration `v1_2` est optimisée pour les **tâches de dev** ; les **éch
 
 ---
 
-## Pistes techniques
+## Implémentation 1.3.2 (moteur)
+
+| Élément | Détail |
+|---------|--------|
+| **Gate (modèle)** | Tour intent : le modèle répond à « demande de modification ? » par **`[gate: architect_edit]`** ou **`[gate: architect_discuss]`** (prompt `ARCHITECT_INTENT_SYSTEM_PROMPT`) |
+| **Override RPC** | `architectInteractionMode` = `discussion` \| `action` \| `auto` (pas de tour intent si forcé) |
+| **Discussion** | Rôle `ArchitectDiscussion` — outils **lecture seule** (map, read, grep, glob, lsp), pas de plan ni `delegate_executor` |
+| **Édition** | Rôle `Architect` — orchestration actuelle |
+
+Voir `orchestration/architect_gate.rs` et `orchestration_run.rs`. **Pas de liste heuristique de mots-clés.**
+
+---
+
+## Pistes techniques (historique)
 
 | Piste | Détail |
 |-------|--------|
@@ -52,10 +65,11 @@ L’orchestration `v1_2` est optimisée pour les **tâches de dev** ; les **éch
 
 ## Critères d’acceptation (MVP)
 
-- [ ] « Salut, ça va ? » → réponse en < 5 s ressenti, **zéro** `delegate_executor`.
-- [ ] « Tu en penses quoi de faire Y ? » → avis structuré court ; plan uniquement si l’utilisateur confirme ou demande implémentation.
-- [ ] Tâche explicite (« ajoute un bouton dans `App.tsx` ») → comportement orchestration actuel inchangé.
+- [ ] « Salut, ça va ? » → tour intent → gate `architect_discuss`, pas de plan / pas de `delegate_executor` (dogfooding `chat.txt` : échec si chemin edit).
+- [x] « Tu en penses quoi de faire Y ? » → même voie discussion si le modèle (ou RPC) choisit `discuss`.
+- [ ] Tâche explicite (« ajoute un bouton dans `App.tsx` ») → gate `architect_edit` + orchestration inchangée (validation dogfooding).
 - [ ] Pas de régression sur les gates `done` / `answering` des vrais runs.
+- [x] Sous-mode édition : `[mode: discovery|task]` parsé côté modèle, ancré dans le cycle (`architect_mode.rs`, ancre cycle).
 
 ---
 

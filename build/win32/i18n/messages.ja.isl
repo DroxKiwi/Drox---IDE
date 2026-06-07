@@ -1,4 +1,8 @@
-﻿[CustomMessages]
+﻿[Messages]
+FinishedLabel=[name] のインストールが完了しました。スタート メニューまたはコマンド パレット (Ctrl+Shift+P) から Drox IDE を起動し、「Open Drox Chat」を開いてください。
+ConfirmUninstall=%1 とそのすべてのコンポーネントを完全に削除してもよろしいですか?
+
+[CustomMessages]
 AddContextMenuFiles=エクスプローラーのファイル コンテキスト メニューに [%1 で開く] アクションを追加する
 AddContextMenuFolders=エクスプローラーのディレクトリ コンテキスト メニューに [%1 で開く] アクションを追加する
 AssociateWithFiles=サポートされているファイルの種類のエディターとして、%1 を登録する

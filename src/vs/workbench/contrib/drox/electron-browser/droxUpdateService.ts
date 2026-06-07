@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken } from '../../../../base/common/cancellation.js';
+import { isWindows } from '../../../../base/common/platform.js';
 import * as semver from '../../../../base/common/semver/semver.js';
 import { URI } from '../../../../base/common/uri.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
@@ -15,8 +16,18 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { asTextOrError, IRequestService } from '../../../../platform/request/common/request.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { DroxSetting } from '../common/droxConfiguration.js';
+import { DROX_DEFAULT_UPDATE_MANIFEST_URL, DroxSetting } from '../common/droxConfiguration.js';
 import { IDroxUpdateCheckOptions, IDroxUpdateCheckResult, IDroxUpdateService } from '../common/droxUpdateService.js';
+
+interface IDroxPlatformRelease {
+	readonly installerUrl?: string;
+	readonly installerURL?: string;
+	readonly installer_url?: string;
+	readonly downloadUrl?: string;
+	readonly downloadURL?: string;
+	readonly url?: string;
+	readonly sha256?: string;
+}
 
 interface IDroxLatestManifest {
 	readonly version?: string;
@@ -31,6 +42,7 @@ interface IDroxLatestManifest {
 	readonly notes_url?: string;
 	readonly releaseNotesUrl?: string;
 	readonly releaseNotesURL?: string;
+	readonly platforms?: Record<string, IDroxPlatformRelease | undefined>;
 	readonly assets?: {
 		readonly windows?: {
 			readonly installerUrl?: string;
@@ -67,21 +79,15 @@ export class DroxUpdateService extends Disposable implements IDroxUpdateService 
 		const simulated = this.configurationService.getValue<string>(DroxSetting.UpdateSimulateLatestVersion)?.trim();
 		if (simulated) {
 			const simulateInstaller = this.configurationService.getValue<string>(DroxSetting.UpdateSimulateInstallerUrl)?.trim()
-				|| 'https://github.com/DroxKiwi/Drox---IDE---releases/releases/latest';
+				|| 'https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest';
 			return this.evaluateVersions(current, simulated, {
 				installerUrl: simulateInstaller,
 				notesUrl: simulateInstaller,
 			}, options, true);
 		}
 
-		const manifestUrl = this.configurationService.getValue<string>(DroxSetting.UpdateManifestUrl)?.trim();
-		if (!manifestUrl) {
-			const msg = localize('drox.update.noManifestUrl', 'drox.update.manifestUrl is not set.');
-			if (options.notifyIfUpToDate) {
-				this.notificationService.info(msg);
-			}
-			return { kind: 'skipped', currentVersion: current, message: msg };
-		}
+		const manifestUrl = this.resolveManifestUrl();
+		this.logService.debug(`[Drox] update check: current=${current} manifest=${manifestUrl}`);
 
 		try {
 			const context = await this.requestService.request(
@@ -105,10 +111,11 @@ export class DroxUpdateService extends Disposable implements IDroxUpdateService 
 				}
 				return { kind: 'error', currentVersion: current, message: msg };
 			}
+			this.logService.debug(`[Drox] update manifest: latest=${latest}`);
 			return this.evaluateVersions(current, latest, parsed, options, false);
 		} catch (error) {
 			const msg = error instanceof Error ? error.message : String(error);
-			this.logService.debug(`[Drox] update check failed: ${msg}`);
+			this.logService.warn(`[Drox] update check failed: ${msg}`);
 			if (options.notifyIfUpToDate) {
 				this.notificationService.warn(
 					localize('drox.update.checkFailed', 'Update check failed: {0}', msg),
@@ -116,6 +123,23 @@ export class DroxUpdateService extends Disposable implements IDroxUpdateService 
 			}
 			return { kind: 'error', currentVersion: current, message: msg };
 		}
+	}
+
+	private resolveManifestUrl(): string {
+		const configured = this.configurationService.getValue<string>(DroxSetting.UpdateManifestUrl);
+		const trimmed = typeof configured === 'string' ? configured.trim() : '';
+		return trimmed.length > 0 ? trimmed : DROX_DEFAULT_UPDATE_MANIFEST_URL;
+	}
+
+	private pickPlatformRelease(manifest: IDroxLatestManifest): IDroxPlatformRelease | undefined {
+		const platforms = manifest.platforms;
+		if (!platforms) {
+			return undefined;
+		}
+		if (isWindows) {
+			return platforms['win32-x64'] ?? platforms['win32'];
+		}
+		return platforms['darwin-arm64'] ?? platforms['darwin-x64'] ?? platforms['linux-x64'];
 	}
 
 	private evaluateVersions(
@@ -179,7 +203,14 @@ export class DroxUpdateService extends Disposable implements IDroxUpdateService 
 	}
 
 	private showUpdatePrompt(manifest: IDroxLatestManifest, currentVersion: string, latestVersion: string): void {
+		const platform = this.pickPlatformRelease(manifest);
 		const installerUrl = this.pickUrl(
+			platform?.installerUrl,
+			platform?.installerURL,
+			platform?.installer_url,
+			platform?.downloadUrl,
+			platform?.downloadURL,
+			platform?.url,
 			manifest.installerUrl,
 			manifest.installerURL,
 			manifest.installer_url,
@@ -230,7 +261,6 @@ export class DroxUpdateService extends Disposable implements IDroxUpdateService 
 			{
 				sticky: true,
 				onCancel: () => {
-					// Close button (X) should behave like "Later" for this session.
 					this.dismissedVersionInSession = latestVersion;
 				},
 			},

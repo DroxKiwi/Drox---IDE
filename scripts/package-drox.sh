@@ -44,10 +44,15 @@ esac
 TARGET_DIR="$PROFILE"
 BUILT="$DROX_ROOT/target/$TARGET_DIR/$BIN"
 
-echo "[package-drox] cargo build --$PROFILE -p drox-cli ($PLATFORM_FOLDER)"
+if [[ "$PROFILE" == "release" ]]; then
+	CARGO_BUILD_ARGS=(build --release -p drox-cli)
+else
+	CARGO_BUILD_ARGS=(build -p drox-cli)
+fi
+echo "[package-drox] cargo ${CARGO_BUILD_ARGS[*]} ($PLATFORM_FOLDER)"
 (
 	cd "$DROX_ROOT"
-	cargo build --"$PROFILE" -p drox-cli
+	cargo "${CARGO_BUILD_ARGS[@]}"
 )
 
 if [[ ! -f "$BUILT" ]]; then

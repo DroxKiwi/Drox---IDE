@@ -8,8 +8,10 @@ use tracing::debug;
 
 use crate::error::EngineError;
 use crate::event::{AgentEvent, Phase};
-use crate::run_spec::RunSpec;
-use super::gates::{is_hallucinated_phase_tool_call, PROMOTABLE_ANSWER_MIN_CHARS};
+use crate::run_spec::{RoleId, RunSpec};
+use super::gates::{
+    is_hallucinated_phase_tool_call,
+};
 
 use super::phases::{
     needs_synthetic_phase_enter, phase_for_tool,
@@ -93,9 +95,9 @@ pub(crate) struct LoopDetector {
 pub(crate) enum LoopDecision {
     /// Tour normal, pas de rÃ©pÃ©tition.
     Ok,
-    /// 1re rÃ©pÃ©tition stricte â€” injecter un nudge anti-boucle.
-    Warn { kind: &'static str },
-    /// 2e rÃ©pÃ©tition aprÃ¨s nudge â€” stopper avec `EngineError::LoopDetected`.
+    /// Répétition stricte — recentrage (`user` + `system`) puis continuer le run.
+    Warn { kind: &'static str, strike: u32 },
+    /// Strikes épuisés — stopper avec `EngineError::LoopDetected`.
     Abort { kind: &'static str, turns: u32 },
 }
 
@@ -111,7 +113,11 @@ impl LoopDetector {
     }
 
     /// Examine un `TurnOutcome` et renvoie la dÃ©cision Ã  prendre.
-    pub(crate) fn observe(&mut self, outcome: &TurnOutcome) -> LoopDecision {
+    pub(crate) fn observe(
+        &mut self,
+        outcome: &TurnOutcome,
+        max_strikes_before_abort: u32,
+    ) -> LoopDecision {
         let text_h = hash_text(&outcome.text);
         let tools_h = hash_tool_calls(&outcome.tool_calls);
         let fp = combine_hash(text_h, tools_h);
@@ -152,12 +158,16 @@ impl LoopDetector {
         };
 
         self.strike = self.strike.saturating_add(1);
-        match self.strike {
-            1 => LoopDecision::Warn { kind },
-            _ => LoopDecision::Abort {
+        if self.strike <= max_strikes_before_abort {
+            LoopDecision::Warn {
                 kind,
-                turns: self.strike + 1, // strike == 2 â†’ 3e tour identique au total
-            },
+                strike: self.strike,
+            }
+        } else {
+            LoopDecision::Abort {
+                kind,
+                turns: self.strike.saturating_add(1),
+            }
         }
     }
 }
@@ -606,9 +616,24 @@ mod enforce_tests {
 }
 
 #[must_use]
-pub(crate) fn run_has_promotable_user_facing_text(outcome: &TurnOutcome, messages: &[Message]) -> bool {
+pub(crate) fn promotable_answer_min_chars(role_id: RoleId, tuning: &crate::EngineTuning) -> usize {
+    if role_id == RoleId::ArchitectDiscussion {
+        tuning.discussion_promotable_min_chars as usize
+    } else {
+        tuning.promotable_answer_min_chars as usize
+    }
+}
+
+#[must_use]
+pub(crate) fn run_has_promotable_user_facing_text(
+    outcome: &TurnOutcome,
+    messages: &[Message],
+    role_id: RoleId,
+    tuning: &crate::EngineTuning,
+) -> bool {
+    let min = promotable_answer_min_chars(role_id, tuning);
     let from_outcome = strip_phase_protocol_lines(&outcome.text);
-    if from_outcome.trim().chars().count() >= PROMOTABLE_ANSWER_MIN_CHARS {
+    if from_outcome.trim().chars().count() >= min {
         return true;
     }
     for m in messages.iter().rev() {
@@ -616,7 +641,7 @@ pub(crate) fn run_has_promotable_user_facing_text(outcome: &TurnOutcome, message
             continue;
         }
         let plain = strip_phase_protocol_lines(&message_plain_text(m));
-        if plain.trim().chars().count() >= PROMOTABLE_ANSWER_MIN_CHARS {
+        if plain.trim().chars().count() >= min {
             return true;
         }
     }

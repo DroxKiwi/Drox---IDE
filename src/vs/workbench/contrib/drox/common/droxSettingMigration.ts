@@ -19,6 +19,7 @@ const ALL_DROX_SETTING_KEYS: string[] = [
 	DroxSetting.ArchitectModel,
 	DroxSetting.ExecutorModel,
 	DroxSetting.OrchestrationMaxParallelExecutors,
+	DroxSetting.ArchitectInteractionMode,
 	DroxSetting.Model,
 	DroxSetting.PermissionMode,
 	DroxSetting.ApiKey,

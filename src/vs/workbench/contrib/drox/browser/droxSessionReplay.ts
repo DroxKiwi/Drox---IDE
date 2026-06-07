@@ -283,6 +283,30 @@ export async function replayUiJournalMessages(
 	}
 }
 
+/** L2 — prepend un lot d'événements UI au-dessus du fil actuel. */
+export async function replayUiJournalMessagesPrepend(
+	delegate: Pick<IDroxChatTabsDelegate, 'post'>,
+	messages: readonly DroxHostToWebviewMessage[],
+): Promise<void> {
+	delegate.post({ kind: 'replayPrepare', prepend: true });
+	for (let i = 0; i < messages.length; i++) {
+		delegate.post(messages[i]!);
+	}
+	delegate.post({ kind: 'sessionHistoryPageDone' });
+}
+
+/** L2 — prepend transcript (sessions sans ui-replay). */
+export async function replayTranscriptMessagesPrepend(
+	host: IDroxChatAgentEventHost,
+	messages: readonly IDroxTranscriptMessage[],
+): Promise<void> {
+	host.post({ kind: 'replayPrepare', prepend: true });
+	for (let i = 0; i < messages.length; i++) {
+		replayTranscriptMessageRich(host, messages[i]!);
+	}
+	host.post({ kind: 'sessionHistoryPageDone' });
+}
+
 /** Rejoue tout le transcript (rich ou compact si volumineux). */
 export async function replayTranscriptMessages(
 	host: IDroxChatAgentEventHost,

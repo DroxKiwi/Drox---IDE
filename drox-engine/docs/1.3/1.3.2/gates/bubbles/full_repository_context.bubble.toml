@@ -1,0 +1,13 @@
+id = "full_repository_context"
+version = 1
+category = "code"
+description = "Workspace orientation — summarized map or prefix, not raw full tree by default."
+
+[params]
+path_prefix = { type = "string", optional = true }
+
+[limits]
+max_chars = 32_000
+
+[source]
+handler = "workspace_map_summary"

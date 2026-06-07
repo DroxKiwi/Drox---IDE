@@ -43,13 +43,7 @@ use tracing::{debug, warn};
 
 use crate::context::ContextPolicy;
 use crate::error::EngineError;
-
-/// Limite d'un `tool_result` dans le condensé envoyé au modèle de compaction.
-const DEFAULT_SUMMARIZE_TOOL_RESULT_TRUNCATE: usize = 300;
-
-/// Limite par défaut d'un `tool_result` réinjecté dans la conversation à
-/// résumer (persist M1). Au-delà, le bloc est tronqué.
-const DEFAULT_TOOL_RESULT_TRUNCATE: usize = 800;
+use crate::orchestration::EngineTuning;
 
 /// Préambule placé devant chaque `tool_result` tronqué dans le condensé.
 /// Permet au modèle de compaction de **savoir** que le contenu est tronqué
@@ -74,12 +68,48 @@ pub struct CompactionConfig {
 
 impl Default for CompactionConfig {
     fn default() -> Self {
+        Self::from_tuning(&EngineTuning::default())
+    }
+}
+
+impl CompactionConfig {
+    #[must_use]
+    pub fn from_tuning(tuning: &EngineTuning) -> Self {
         Self {
             temperature: 0.1,
             max_summary_tokens: 1200,
-            tool_result_truncate_chars: DEFAULT_TOOL_RESULT_TRUNCATE,
-            summarize_tool_result_truncate_chars: DEFAULT_SUMMARIZE_TOOL_RESULT_TRUNCATE,
+            tool_result_truncate_chars: tuning.reinject_tool_result_truncate as usize,
+            summarize_tool_result_truncate_chars: tuning.summarize_tool_result_truncate as usize,
         }
+    }
+}
+
+/// Paramètres live compact / checkpoint (registre F1–F5).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LiveCompactSettings {
+    pub tail_keep_messages: usize,
+    pub max_tail_ratio: f32,
+    pub min_prefix_tokens: usize,
+    pub max_passes: u32,
+    pub checkpoint_max_chars: usize,
+}
+
+impl LiveCompactSettings {
+    #[must_use]
+    pub fn from_tuning(tuning: &EngineTuning) -> Self {
+        Self {
+            tail_keep_messages: tuning.live_compact_tail_keep_messages as usize,
+            max_tail_ratio: tuning.live_compact_max_tail_ratio,
+            min_prefix_tokens: tuning.live_compact_min_prefix_tokens as usize,
+            max_passes: tuning.live_compact_max_passes,
+            checkpoint_max_chars: tuning.checkpoint_max_chars as usize,
+        }
+    }
+}
+
+impl Default for LiveCompactSettings {
+    fn default() -> Self {
+        Self::from_tuning(&EngineTuning::default())
     }
 }
 
@@ -191,19 +221,11 @@ async fn summarize_run_inner(
     })
 }
 
-/// Messages conservés en fin d'historique (borne haute ; le split peut réduire la queue).
+/// Valeurs preset `normal` — compat tests / exports (`EngineTuning::default()`).
 pub const LIVE_COMPACT_TAIL_KEEP_MESSAGES: usize = 4;
-
-/// Fraction max de la fenêtre effective pour la queue tail (tokens).
 pub const LIVE_COMPACT_MAX_TAIL_RATIO: f32 = 0.20;
-
-/// Borne basse de jetons (dans `messages[1..split]`) avant d'appeler le LLM.
 pub const LIVE_COMPACT_MIN_PREFIX_TOKENS: usize = 3_000;
-
-/// Nombre max de passes microcompact + snip + summarize par déclenchement.
 pub const LIVE_COMPACT_MAX_PASSES: u32 = 3;
-
-/// Taille max du checkpoint injecté (caractères UTF-8).
 pub const CHECKPOINT_MAX_CHARS: usize = 3_000;
 
 /// Préambule du message `system` injecté après compaction live.
@@ -258,13 +280,14 @@ pub fn choose_live_compact_split_idx(
     policy: &ContextPolicy,
     tail_keep: usize,
     min_prefix_tokens: usize,
+    max_tail_ratio: f32,
 ) -> Option<usize> {
     let n = messages.len();
     if tail_keep == 0 || n <= tail_keep.saturating_add(1) {
         return None;
     }
-    let max_tail_tokens = (policy.budget().effective_window() as f32 * LIVE_COMPACT_MAX_TAIL_RATIO)
-        as usize;
+    let max_tail_tokens =
+        (policy.budget().effective_window() as f32 * max_tail_ratio) as usize;
 
     let mut split = n.saturating_sub(tail_keep);
     if split <= 1 {
@@ -293,7 +316,7 @@ pub fn choose_live_compact_split_idx(
 
 /// Construit un checkpoint court à partir du markdown de compaction (sections structurées).
 #[must_use]
-pub fn format_compact_checkpoint(summary_md: &str) -> String {
+pub fn format_compact_checkpoint(summary_md: &str, checkpoint_max_chars: usize) -> String {
     let (objective, files) = extract_metadata(summary_md);
     let mut body = String::new();
     if !objective.is_empty() {
@@ -311,7 +334,7 @@ pub fn format_compact_checkpoint(summary_md: &str) -> String {
         body = truncate_chars(summary_md, 800);
     }
     let full = format!("{CHECKPOINT_PREAMBLE}{body}");
-    truncate_chars(&full, CHECKPOINT_MAX_CHARS)
+    truncate_chars(&full, checkpoint_max_chars)
 }
 
 fn append_section_excerpt(
@@ -357,12 +380,14 @@ pub async fn try_live_compact(
     messages: &mut Vec<Message>,
     policy: &ContextPolicy,
     config: &CompactionConfig,
+    live: &LiveCompactSettings,
 ) -> Option<LiveCompactReport> {
     let split = choose_live_compact_split_idx(
         messages,
         policy,
-        LIVE_COMPACT_TAIL_KEEP_MESSAGES,
-        LIVE_COMPACT_MIN_PREFIX_TOKENS,
+        live.tail_keep_messages,
+        live.min_prefix_tokens,
+        live.max_tail_ratio,
     )?;
     let old_len = messages.len();
     let tokens_before = policy.count_tokens(messages);
@@ -384,7 +409,7 @@ pub async fn try_live_compact(
     };
     let tail = messages.get(split..)?.to_vec();
     let head = messages.first()?.clone();
-    let checkpoint_body = format_compact_checkpoint(&result.summary);
+    let checkpoint_body = format_compact_checkpoint(&result.summary, live.checkpoint_max_chars);
     let checkpoint = Message::system(checkpoint_body);
     let mut new_msgs = Vec::with_capacity(2 + tail.len());
     new_msgs.push(head);
@@ -415,6 +440,7 @@ pub async fn compact_until_budget(
     messages: &mut Vec<Message>,
     policy: &ContextPolicy,
     config: &CompactionConfig,
+    live: &LiveCompactSettings,
 ) -> Option<LiveCompactReport> {
     use drox_context::{MicrocompactConfig, microcompact_messages};
 
@@ -422,7 +448,7 @@ pub async fn compact_until_budget(
     let mc_config = MicrocompactConfig::default();
     let mut last_report: Option<LiveCompactReport> = None;
 
-    for _pass in 0..LIVE_COMPACT_MAX_PASSES {
+    for _pass in 0..live.max_passes {
         let tokens_start = policy.count_tokens(messages);
         if tokens_start < threshold {
             break;
@@ -455,6 +481,7 @@ pub async fn compact_until_budget(
             messages,
             policy,
             config,
+            live,
         )
         .await
         else {
@@ -773,7 +800,8 @@ Refactorer la couche auth
             &msgs,
             &policy,
             LIVE_COMPACT_TAIL_KEEP_MESSAGES,
-            LIVE_COMPACT_MIN_PREFIX_TOKENS
+            LIVE_COMPACT_MIN_PREFIX_TOKENS,
+            LIVE_COMPACT_MAX_TAIL_RATIO,
         )
         .is_none());
     }
@@ -784,7 +812,7 @@ Refactorer la couche auth
             "## Objective\nShort goal\n## Decisions\n{}\n## Files touched\n- a.rs\n",
             "x".repeat(8_000)
         );
-        let cp = format_compact_checkpoint(&verbose);
+        let cp = format_compact_checkpoint(&verbose, CHECKPOINT_MAX_CHARS);
         assert!(cp.contains("Short goal"));
         assert!(cp.len() <= CHECKPOINT_MAX_CHARS + 4);
         assert!(!cp.contains(&"x".repeat(1000)));
@@ -809,6 +837,7 @@ Refactorer la couche auth
             &policy,
             LIVE_COMPACT_TAIL_KEEP_MESSAGES,
             1_000,
+            LIVE_COMPACT_MAX_TAIL_RATIO,
         )
         .expect("split");
         let tail_msgs = msgs.len() - split;
@@ -834,6 +863,7 @@ Refactorer la couche auth
             &policy,
             LIVE_COMPACT_TAIL_KEEP_MESSAGES,
             LIVE_COMPACT_MIN_PREFIX_TOKENS,
+            LIVE_COMPACT_MAX_TAIL_RATIO,
         )
         .expect("prefix must be fat enough");
         assert_eq!(split, msgs.len() - LIVE_COMPACT_TAIL_KEEP_MESSAGES);
