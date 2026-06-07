@@ -1,4 +1,4 @@
-# Clôture 1.3.3 — stabilisation moteur & release fiable
+# Clôture 1.3.3 — release fiable (pipeline & package)
 
 **Version** : `droxVersion` **1.3.3**  
 **Statut** : **ouvert**
@@ -9,26 +9,25 @@
 
 | # | Livrable | Statut |
 |---|----------|--------|
-| **R1** | Installeur win32 **1.3.3** rebuild `-ForceCompile` | ☐ |
-| **R2** | Chaîne MAJ (`latest.json` + Release OR) testée | ☐ |
-| **R3** | TEST-PLAN 1.3.2 exécuté (T1–T10) | ☐ |
-| **R4** | VALIDATION-PRESETS P8–P13 | ☐ |
-| **R5** | `cargo test -p drox-engine` vert | ☐ |
-| **R6** | Tests unitaires IDE drox (replay, remap, …) | ☐ |
+| **R1** | Garde-fous `drox-bundle-readiness` (build + publish) | ☐ |
+| **R2** | Installeur win32 **1.3.3** rebuild `-Force` (UI 1.3.2+ dans le package) | ☐ |
+| **R3** | `drox.exe` embarqué MODERN vérifié | ☐ |
+| **R4** | Chaîne MAJ (`latest.json` + Release OR) testée | ☐ |
+| **R5** | Smoke install S1–S5 ([PLAN](../PLAN-1.3.3.md)) | ☐ |
 
 ---
 
 ## Hors scope 1.3.3
 
-- Index / RAG local, graphe, fast path (backlog [PLAN-1.3.3.md](../PLAN-1.3.3.md))
+- TEST-PLAN T1–T10, presets P8–P13 → [1.3.4](../../1.3.4/PLAN-1.3.4.md)
+- Index / graphe / fast path → [1.3.5](../../1.3.5/PLAN-1.3.5.md)
 - Agents Window KDDS
-- Open VSX / marketplace
 
 ---
 
 ## Contexte
 
-Release **1.3.2** mergée sur `main` (code produit) ; binaire OR **1.3.2** publié depuis un bundle obsolète — **1.3.3** corrige le package et valide la MAJ.
+Release **1.3.2** OR = bundle `out-vscode-min` obsolète (installeur ≠ code source). **1.3.3** corrige le pipeline et republie un binaire fidèle.
 
 ---
 

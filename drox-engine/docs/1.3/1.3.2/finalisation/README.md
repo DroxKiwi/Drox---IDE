@@ -15,6 +15,6 @@
 | [PATCHNOTES-1.3.2.md](../PATCHNOTES-1.3.2.md) | Notes release (stabilisation moteur) |
 | [CONDUCTEUR-CODE.md](../CONDUCTEUR-CODE.md) | Architecture moteur actuelle |
 
-**Suivant** : [1.3.3](../../1.3.3/README.md) (index, graphe, fast path)
+**Suivant** : [1.3.3](../../1.3.3/README.md) (release fiable) → [1.3.4](../../1.3.4/README.md) (stabilisation) → [1.3.5](../../1.3.5/README.md) (index, graphe, fast path)
 
 Docs obsolètes (gates, backpack) : [gates/ARCHIVE.md](../gates/ARCHIVE.md)

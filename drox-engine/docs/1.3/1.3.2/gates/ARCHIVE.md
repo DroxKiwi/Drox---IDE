@@ -24,4 +24,4 @@ Les fichiers ci-dessous sont conservés comme **historique** — ne pas les suiv
 
 **Remplacement produit (1.3.2)** : routage RPC + prompts `01_core` + workflow modèle libre + tool gates.
 
-**Suite (1.3.3)** : index local, graphe contexte, fast path → [../../1.3.3/README.md](../../1.3.3/README.md).
+**Suite (1.3.5)** : index local, graphe contexte, fast path → [../../1.3.5/README.md](../../1.3.5/README.md).

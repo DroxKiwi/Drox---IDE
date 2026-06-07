@@ -11,7 +11,7 @@
 
 La 1.3.2 **retire le bruit** du moteur (gate chain TOML, paliers `E-*`, backpack, tours `architect_intent`) et livre un flux **simple et testable** : architecte + prompts + tool gates + sub-agents.
 
-Les anciens « 3 piliers » produit (sessions segmentées, dé-brand, gate discussion avancée…) et les features contexte/latence → **[1.3.3](../1.3.3/README.md)**.
+Les anciens « 3 piliers » produit (sessions segmentées, dé-brand, gate discussion avancée…) et les features contexte/latence → **[1.3.5](../1.3.5/README.md)**.
 
 ---
 
@@ -38,7 +38,7 @@ Les anciens « 3 piliers » produit (sessions segmentées, dé-brand, gate discu
 
 - Carte code actuelle : CONDUCTEUR-CODE
 - Archive plans gates/backpack : [gates/ARCHIVE.md](gates/ARCHIVE.md)
-- Plan 1.3.3 (index, graphe, fast path) : [PLAN-1.3.3.md](../1.3.3/PLAN-1.3.3.md)
+- Plan 1.3.5 (index, graphe, fast path) : [PLAN-1.3.5.md](../1.3.5/PLAN-1.3.5.md)
 
 ---
 
@@ -57,7 +57,7 @@ Exécuter [TEST-PLAN-1.3.2.md](finalisation/TEST-PLAN-1.3.2.md) :
 
 | Sujet | Destination |
 |-------|-------------|
-| Index / RAG local, graphe contexte, fast path | [1.3.3](../1.3.3/README.md) |
+| Index / RAG local, graphe contexte, fast path | [1.3.5](../1.3.5/README.md) |
 | Sessions segmentées | 1.3.3+ ou IDE |
 | Dé-branding + licences | release produit / 1.3.1 |
 | Retrait UI Exploring | IDE |

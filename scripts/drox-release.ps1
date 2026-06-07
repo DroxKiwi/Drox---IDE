@@ -31,16 +31,31 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
+. (Join-Path $PSScriptRoot 'lib\drox-bundle-readiness.ps1')
+Initialize-DroxBundleReadiness -RepoRoot $repoRoot
+
 function Write-Banner([string]$Title) {
 	Write-Host ''
 	Write-Host ('=== {0} ===' -f $Title) -ForegroundColor Cyan
+}
+
+function Assert-DroxBundleReadyForFastRelease {
+	$issues = @(Get-DroxBundleReadinessIssues)
+	if ($issues.Count -eq 0) { return }
+	throw @"
+[drox-release] -Fast refuse : le bundle n'est pas aligne sur droxVersion $(Get-PackageDroxVersion).
+$(Format-DroxBundleReadinessReport -Issues $issues)
+"@
 }
 
 function Invoke-BuildRelease {
 	$buildScript = Join-Path $PSScriptRoot 'build-release-win32.ps1'
 	$buildArgs = @('-WithSetup')
 	if (-not $Full) { $buildArgs += '-SkipNpmInstall' }
-	if ($Fast) { $buildArgs += '-SkipCompile' }
+	if ($Fast) {
+		Assert-DroxBundleReadyForFastRelease
+		$buildArgs += '-SkipCompile'
+	}
 	if ($Force) { $buildArgs += '-ForceCompile' }
 	if ($Force -and $Fast) {
 		Write-Host '[drox-release] -Force ignore -Fast.' -ForegroundColor Yellow

@@ -45,6 +45,8 @@ npm run drox:ship -- -Fast
 npm run drox:ship -- -Force
 ```
 
+Le build **refuse** de publier si `out-vscode-min` n’est pas aligné sur `droxVersion` (`drox-bundle-stamp.json`, sentinelles UI, sources plus récentes que le bundle, `product.json` et `drox.exe` MODERN dans le package). `-Fast` échoue dans ce cas au lieu de recycler un vieux bundle.
+
 ### Sorties
 
 | Artefact | Chemin |

@@ -60,6 +60,6 @@ agent.run (orchestrationMode: role_split)
 
 ---
 
-## Prochaine évolution (1.3.3)
+## Prochaine évolution
 
-Index local, contexte graphe, fast path complétion — voir [../1.3.3/README.md](../1.3.3/README.md).
+- **1.3.3** release fiable · **1.3.4** stabilisation · **1.3.5** index / graphe / fast path — [../README.md](../README.md)

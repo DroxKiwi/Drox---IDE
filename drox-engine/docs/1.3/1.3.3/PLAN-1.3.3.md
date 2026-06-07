@@ -1,7 +1,7 @@
-# Plan 1.3.3 — Stabilisation moteur & release fiable
+# Plan 1.3.3 — Release fiable (pipeline & package)
 
 **Version** : 1.3.3 · juin 2026  
-**Base** : moteur 1.3.2 mergé (`role_split` — [CONDUCTEUR-CODE.md](../1.3.2/CONDUCTEUR-CODE.md))
+**Base** : code 1.3.2 sur `main` ([CONDUCTEUR-CODE.md](../1.3.2/CONDUCTEUR-CODE.md))
 
 ---
 
@@ -9,81 +9,72 @@
 
 | Priorité | Livrable |
 |----------|----------|
-| **P0** | Installeur **1.3.3** = code `main` / branche `1.3.3` (rebuild `-ForceCompile`) |
-| **P0** | MAJ in-app testée (install ≤1.3.2 → notif → 1.3.3) |
-| **P0** | TEST-PLAN 1.3.2 exécuté et signé |
-| **P1** | Presets `relaxed` / `normal` / `strict` validés post-refacto |
-| **P1** | `cargo test -p drox-engine` vert en CI locale |
+| **P0** | Garde-fous build (`scripts/lib/drox-bundle-readiness.ps1`) — refuse bundle / package désalignés |
+| **P0** | Installeur **1.3.3** = rebundle `-Force` (UI 1.3.2+ dans l’exe) |
+| **P0** | `drox.exe` embarqué MODERN (`role_split`) |
+| **P0** | MAJ in-app testée (`latest.json` → GitHub Release OR) |
+| **P1** | Smoke manuel post-install (chat, lazy history, welcome, Aide Drox) |
 
-**Hors scope immédiat** : index RAG, graphe contexte, fast path complétion — voir [backlog](#backlog-post-stabilisation).
+**Hors scope 1.3.3** : TEST-PLAN T1–T10 signé → [1.3.4](../1.3.4/PLAN-1.3.4.md) · index / graphe → [1.3.5](../1.3.5/PLAN-1.3.5.md).
 
 ---
 
-## Phase S — Stabilisation (cette release)
+## Phase B — Build & package
 
-### S.1 Tests manuels moteur
+### B.1 Garde-fous (livré code)
 
-Reprendre [TEST-PLAN-1.3.2.md](../1.3.2/finalisation/TEST-PLAN-1.3.2.md) :
+Module `scripts/lib/drox-bundle-readiness.ps1` :
 
-- T1–T4 routage (pas de gate chain dans l’export)
-- T5–T8 tool gates
-- T9–T10 sub-agents / scope
+- `drox-bundle-stamp.json` = `droxVersion` du `package.json`
+- Sentinelles UI (lazy-history, core bootstrap, contributions D1.x)
+- Rejet des artefacts monolithe (`00-context.js`, …)
+- Fraîcheur sources `contrib/drox` + Rust vs bundle
+- Vérif post-package : `product.json`, stamp, moteur MODERN
+- `-Fast` et `drox:publish` bloqués si désaligné
 
-Critère : export transcript sans artefacts `GATE · probe` / `architect_intent`.
-
-### S.2 Presets & réglages IDE
-
-[VALIDATION-PRESETS-ENGINE-1.3.2.md](../1.3.2/finalisation/VALIDATION-PRESETS-ENGINE-1.3.2.md) — P8–P13.
-
-### S.3 Tests automatisés
+### B.2 Build release
 
 ```powershell
-cd drox-engine\drox
-cargo test -p drox-engine
-npm run test-node -- --run "vs/workbench/contrib/drox/test/common/"
+npm run drox:ship -- -Force
 ```
 
-### S.4 Package & MAJ
+Critères automatiques (échec = pas de ship) :
 
-```powershell
-# Rebuild obligatoire — ne pas réutiliser out-vscode-min obsolète
-.\scripts\build-release-win32.ps1 -SkipNpmInstall -ForceCompile -WithSetup
-npm run drox:publish   # ou drox:ship si build déjà fait
-# Puis Release GitHub + latest.json sur Drox---IDE---OR
-```
+- [ ] `out-vscode-min/drox-bundle-stamp.json` → `1.3.3`
+- [ ] Pas d’artefacts obsolètes dans le bundle
+- [ ] `resources/app/product.json` → `droxVersion` **1.3.3**
 
-Vérifier **À propos** → `droxVersion` **1.3.3** dans l’exe installé.
+### B.3 Smoke install
 
-### S.5 Régression IDE (1.3.2 livré)
+| # | Vérification |
+|---|--------------|
+| S1 | **À propos** → `1.3.3` |
+| S2 | Chat : modules découpés (pas d’UI monolithe 1.3.1) |
+| S3 | Session lazy L2 ([PLAN-CHARGEMENT-SESSION](../1.3.2/finalisation/PLAN-CHARGEMENT-SESSION-LAZY-1.3.2.md)) |
+| S4 | Welcome Drox, menu Aide, télémétrie off (D1.x) |
+| S5 | `.\scripts\verify-drox-engine.ps1` sur binaire installé → MODERN |
 
-| # | Scénario |
-|---|----------|
-| H1–H3 | Session lazy L2 ([PLAN-CHARGEMENT-SESSION](../1.3.2/finalisation/PLAN-CHARGEMENT-SESSION-LAZY-1.3.2.md)) |
-| D1 | Agents MS off, Drox Chat OK |
-| D1.3–D1.5 | Welcome, Aide, télémétrie off |
+### B.4 Publication OR
+
+1. `gh release create` avec le `.exe` rebuild
+2. `latest.json` → **1.3.3**
+3. Test MAJ depuis install 1.3.1 / 1.3.2 (sans `drox.update.simulateLatestVersion`)
 
 ---
 
 ## Critère « 1.3.3 livrée »
 
-- [ ] Binaire installé = features 1.3.2+ (pas de bundle stale)
-- [ ] MAJ depuis install précédente fonctionne
-- [ ] TEST-PLAN + presets OK
-- [ ] `cargo test` vert
+- [ ] Installeur = code `main` / 1.3.2 (UI + moteur alignés)
+- [ ] Pipeline refuse un package stale (reproductible)
+- [ ] MAJ in-app OK
 - [ ] [CLOSURE-1.3.3.md](finalisation/CLOSURE-1.3.3.md) signée
 
 ---
 
-## Backlog (post-stabilisation)
+## Suite
 
->Ancien plan « 3 piliers » — **reporté** après tag 1.3.3 stable.
-
-| Pilier | Résumé | Référence |
-|--------|--------|-----------|
-| Index local | ~5 fichiers pertinents au curseur | feature-brainstorm / 1.3.3 draft |
-| Graphe contexte | imports, callers, tests condensés | idem |
-| Fast path | complétion locale basse latence | idem |
-| Benchmark hardware | presets par modèle / PC | [fiche 12](../../feature-brainstorm/12-presets-globaux-benchmark-hardware.md) |
+- **[1.3.4](../1.3.4/README.md)** — stabilisation moteur (tests, presets, cargo)
+- **[1.3.5](../1.3.5/README.md)** — index, graphe, fast path
 
 ---
 
