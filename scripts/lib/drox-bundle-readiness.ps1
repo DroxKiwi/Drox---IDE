@@ -1,15 +1,22 @@
 # Drox IDE - garde-fous release : bundle out-vscode-min + moteur alignes sur package.json (droxVersion).
 # Dot-source depuis build-release-win32.ps1 et drox-release.ps1.
 
-$script:DroxMinBundleMarker = 'resolved bundled engine'
+# Marqueur RPC moteur dans le bundle main (process Electron).
+$script:DroxMinMainMarker = 'clientName:"drox-ide"'
+$script:DroxWorkbenchBundleRel = 'vs\workbench\workbench.desktop.main.js'
 $script:DroxBundleStampName = 'drox-bundle-stamp.json'
 
-# Fichiers compiles requis (architecture chat / IDE 1.3.2+).
-$script:DroxBundleSentinels = @(
+# Ressources copiees telles quelles dans out-vscode-min (webview chat 1.3.2+).
+$script:DroxBundleResourceSentinels = @(
 	'vs\workbench\contrib\drox\browser\media\droxChat\session\lazy-history.js',
-	'vs\workbench\contrib\drox\browser\media\droxChat\core\00-bootstrap.js',
-	'vs\workbench\contrib\drox\browser\droxTelemetryContribution.js',
-	'vs\workbench\contrib\drox\browser\droxHelpMenuContribution.js'
+	'vs\workbench\contrib\drox\browser\media\droxChat\core\00-bootstrap.js'
+)
+
+# Contributions TS bundlees dans workbench.desktop.main.js (pas de .js separe).
+$script:DroxWorkbenchBundleMarkers = @(
+	'droxChat/core/00-bootstrap.js',
+	'workbench.contrib.droxTelemetry',
+	'workbench.contrib.droxHelpMenu'
 )
 
 # Reliquats d'un vieux bundle (monolithe webview) - ne doivent plus etre dans out-vscode-min.
@@ -80,11 +87,30 @@ function Read-DroxBundleStamp {
 	}
 }
 
-function Test-DroxEngineResolverInMinBundle {
+function Test-StringInBundleFile {
+	param(
+		[string]$BaseDir,
+		[string]$RelativePath,
+		[string]$Marker
+	)
+	$path = Join-Path $BaseDir $RelativePath
+	if (-not (Test-Path $path)) { return $false }
+	return [bool](Select-String -Path $path -Pattern ([regex]::Escape($Marker)) -Quiet -ErrorAction SilentlyContinue)
+}
+
+function Test-DroxMainProcessInMinBundle {
 	param([string]$BaseDir = $script:DroxMinDir)
-	$mainJs = Join-Path $BaseDir 'main.js'
-	if (-not (Test-Path $mainJs)) { return $false }
-	return [bool](Select-String -Path $mainJs -Pattern $script:DroxMinBundleMarker -Quiet -ErrorAction SilentlyContinue)
+	return (Test-StringInBundleFile -BaseDir $BaseDir -RelativePath 'main.js' -Marker $script:DroxMinMainMarker)
+}
+
+function Test-DroxWorkbenchBundleMarkers {
+	param([string]$BaseDir = $script:DroxMinDir)
+	foreach ($marker in $script:DroxWorkbenchBundleMarkers) {
+		if (-not (Test-StringInBundleFile -BaseDir $BaseDir -RelativePath $script:DroxWorkbenchBundleRel -Marker $marker)) {
+			return $false
+		}
+	}
+	return $true
 }
 
 function Get-LatestWriteTimeUnder {
@@ -129,14 +155,21 @@ function Get-DroxBundleReadinessIssues {
 	$chatCss = Join-Path $BaseDir 'vs\workbench\contrib\drox\browser\media\droxChatMvp.css'
 	if (-not (Test-Path $preload)) { $issues.Add('preload.js manquant dans le bundle min') }
 	if (-not (Test-Path $chatCss)) { $issues.Add('droxChatMvp.css manquant dans le bundle min') }
-	if (-not (Test-DroxEngineResolverInMinBundle -BaseDir $BaseDir)) {
-		$issues.Add("marqueur moteur '$($script:DroxMinBundleMarker)' absent de main.js")
+	if (-not (Test-DroxMainProcessInMinBundle -BaseDir $BaseDir)) {
+		$issues.Add("marqueur main.js '$($script:DroxMinMainMarker)' absent (RPC drox-ide)")
+	}
+	if (-not (Test-DroxWorkbenchBundleMarkers -BaseDir $BaseDir)) {
+		foreach ($marker in $script:DroxWorkbenchBundleMarkers) {
+			if (-not (Test-StringInBundleFile -BaseDir $BaseDir -RelativePath $script:DroxWorkbenchBundleRel -Marker $marker)) {
+				$issues.Add("marqueur workbench absent : $marker")
+			}
+		}
 	}
 
-	foreach ($rel in $script:DroxBundleSentinels) {
+	foreach ($rel in $script:DroxBundleResourceSentinels) {
 		$p = Join-Path $BaseDir $rel
 		if (-not (Test-Path $p)) {
-			$issues.Add("sentinelle manquante : $rel")
+			$issues.Add("ressource manquante : $rel")
 		}
 	}
 
@@ -226,13 +259,20 @@ function Get-PackagedReleaseIntegrityIssues {
 		$issues.Add("stamp package droxVersion=$($stamp.droxVersion) != attendu $ExpectedVersion")
 	}
 
-	if (-not (Test-DroxEngineResolverInMinBundle -BaseDir $appOut)) {
-		$issues.Add("marqueur '$($script:DroxMinBundleMarker)' absent du main.js package")
+	if (-not (Test-DroxMainProcessInMinBundle -BaseDir $appOut)) {
+		$issues.Add("package : marqueur main.js '$($script:DroxMinMainMarker)' absent")
+	}
+	if (-not (Test-DroxWorkbenchBundleMarkers -BaseDir $appOut)) {
+		foreach ($marker in $script:DroxWorkbenchBundleMarkers) {
+			if (-not (Test-StringInBundleFile -BaseDir $appOut -RelativePath $script:DroxWorkbenchBundleRel -Marker $marker)) {
+				$issues.Add("package : marqueur workbench absent $marker")
+			}
+		}
 	}
 
-	foreach ($rel in $script:DroxBundleSentinels) {
+	foreach ($rel in $script:DroxBundleResourceSentinels) {
 		if (-not (Test-Path (Join-Path $appOut $rel))) {
-			$issues.Add("package : sentinelle manquante $rel")
+			$issues.Add("package : ressource manquante $rel")
 		}
 	}
 	foreach ($rel in $script:DroxStaleBundleArtifacts) {

@@ -40,9 +40,9 @@ npm run drox:ship -- -Force
 
 Critères automatiques (échec = pas de ship) :
 
-- [ ] `out-vscode-min/drox-bundle-stamp.json` → `1.3.3`
-- [ ] Pas d’artefacts obsolètes dans le bundle
-- [ ] `resources/app/product.json` → `droxVersion` **1.3.3**
+- [x] `out-vscode-min/drox-bundle-stamp.json` → `1.3.3`
+- [x] Pas d’artefacts obsolètes dans le bundle
+- [x] `resources/app/product.json` → `droxVersion` **1.3.3**
 
 ### B.3 Smoke install
 
@@ -64,17 +64,17 @@ Critères automatiques (échec = pas de ship) :
 
 ## Critère « 1.3.3 livrée »
 
-- [ ] Installeur = code `main` / 1.3.2 (UI + moteur alignés)
-- [ ] Pipeline refuse un package stale (reproductible)
-- [ ] MAJ in-app OK
-- [ ] [CLOSURE-1.3.3.md](finalisation/CLOSURE-1.3.3.md) signée
+- [x] Installeur = code `main` / 1.3.2 (UI + moteur alignés)
+- [x] Pipeline refuse un package stale (reproductible)
+- [x] MAJ in-app OK
+- [x] [CLOSURE-1.3.3.md](finalisation/CLOSURE-1.3.3.md) signée
 
 ---
 
 ## Suite
 
 - **[1.3.4](../1.3.4/README.md)** — stabilisation moteur (tests, presets, cargo)
-- **[1.3.5](../1.3.5/README.md)** — index, graphe, fast path
+- **[1.3.5](../1.3.5/README.md)** — onboarding, index, graphe, fast path
 
 ---
 

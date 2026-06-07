@@ -65,3 +65,4 @@ if ($failures.Count -gt 0) {
 
 Write-Host '[verify-legal-package] OK — LICENSE.txt, ThirdPartyNotices.txt, NOTICE-DROX.txt, LICENSE-INSTALL.txt' -ForegroundColor Green
 Write-Host '  Regeneration complete ThirdPartyNotices : outil OSS Microsoft (rebase upstream) si deps changent.' -ForegroundColor DarkGray
+exit 0

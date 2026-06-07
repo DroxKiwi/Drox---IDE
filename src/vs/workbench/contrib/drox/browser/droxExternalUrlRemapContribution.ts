@@ -2,6 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import { matchesSomeScheme, Schemas } from '../../../../base/common/network.js';
+import { URI } from '../../../../base/common/uri.js';
+import { IOpenerService, OpenOptions } from '../../../../platform/opener/common/opener.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
+import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
 import { remapDroxOutboundUrl, shouldRemapDroxOutboundUrls } from '../common/droxExternalUrlRemap.js';
 class DroxExternalUrlRemapContribution implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.droxExternalUrlRemap';

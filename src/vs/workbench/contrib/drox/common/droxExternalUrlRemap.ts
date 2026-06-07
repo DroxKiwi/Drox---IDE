@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 // allow-any-unicode-comment-file
+import { IProductService } from '../../../../platform/product/common/productService.js';
+import { isDroxMicrosoftAgentsSurfaceEnabled } from './droxMicrosoftAgentsSurface.js';
 import { DROX_PRODUCT_NOTICE_URL } from './droxProductUrls.js';
 const DROX_ALLOWED_HOST_SNIPPETS = [
 	'github.com/droxkiwi',
