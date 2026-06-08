@@ -1,7 +1,10 @@
 //! Injected system block — current station + next candidate (mode A).
+//!
+//! Line-oriented format — parsed by `boot.rs` for cross-turn restore.
 
 use drox_types::{Content, Message, Role};
 
+use super::propose_hold;
 use super::state::RunRailState;
 
 /// Marker for rail snapshot messages (distinct from architect run snapshot).
@@ -19,12 +22,23 @@ pub fn run_rail_snapshot_block(state: &RunRailState) -> String {
         .next_candidate_mode_a()
         .map(|s| s.as_str())
         .unwrap_or("none");
+    let propose_hold_line = if state.propose_awaiting_user {
+        "Propose hold: active — advance blocked until the user replies."
+    } else {
+        "Propose hold: inactive"
+    };
+    let advance_hint = if propose_hold::blocks_advance(state) {
+        "Advance is blocked — wait for the user message, then declare `[gate: advance]`."
+    } else {
+        "Declare `[gate: hold]` to answer now, or `[gate: advance]` to enter the next station."
+    };
     format!(
         "{RUN_RAIL_SNAPSHOT_MARKER}\n\
          Station: {station}\n\
          Depth: {depth}\n\
+         {propose_hold_line}\n\
          Next candidate (mode A): {next}\n\
-         Declare `[gate: hold]` to answer now, or `[gate: advance]` to enter the next station."
+         {advance_hint}"
     )
 }
 

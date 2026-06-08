@@ -1,4 +1,6 @@
 //! Per-run rail state (station, depth, counters) — separate from orchestration todos.
+//!
+//! Design: `drox-engine/docs/1.4/1.4.0/05-CODE-ARCHITECTURE.md`
 
 use super::station::{RunDepth, RunStation};
 
@@ -7,8 +9,11 @@ use super::station::{RunDepth, RunStation};
 pub struct RunRailState {
     pub station: RunStation,
     pub depth: RunDepth,
-    /// Reserved — circuit breaker / segment counters (Phase 2+).
+    /// C4 — advance to PLAN blocked until the next user message at PROPOSE.
+    pub propose_awaiting_user: bool,
+    /// C6 — consecutive failures on the same path at ACT.
     pub act_failure_strikes: u32,
+    pub act_failure_last_path: Option<String>,
 }
 
 impl RunRailState {
@@ -17,7 +22,9 @@ impl RunRailState {
         Self {
             station: RunStation::BOOT,
             depth: RunDepth::Short,
+            propose_awaiting_user: false,
             act_failure_strikes: 0,
+            act_failure_last_path: None,
         }
     }
 

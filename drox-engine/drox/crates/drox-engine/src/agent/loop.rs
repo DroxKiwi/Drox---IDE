@@ -208,6 +208,12 @@ impl Agent {
                     architect_state.anchor_run_objective(obj);
                 }
             }
+            if run_rail::run_rail_active(
+                &self.config.engine_tuning,
+                self.config.run_spec.role_id,
+            ) {
+                run_rail::on_turn_start(&mut architect_state.rail, &messages, true);
+            }
         }
         let mut consecutive_todo_completion_gate_failures: u32 = 0;
         let testing_gate_active = !ctx.plan_mode && !professor;
@@ -303,10 +309,8 @@ impl Agent {
                     &self.config.engine_tuning,
                     self.config.run_spec.role_id,
                 ) {
-                    run_rail::refresh_run_rail_snapshot(
-                        &mut messages,
-                        &run_rail::run_rail_snapshot_block(&architect_state.rail),
-                    );
+                    run_rail::on_turn_start(&mut architect_state.rail, &messages, false);
+                    run_rail::refresh_snapshot(&mut messages, &architect_state.rail);
                 }
             }
 
@@ -363,11 +367,23 @@ impl Agent {
                     &self.config.engine_tuning,
                     self.config.run_spec.role_id,
                 ) {
-                    run_rail::apply_assistant_turn(&mut architect_state.rail, &outcome.text);
-                    run_rail::refresh_run_rail_snapshot(
-                        &mut messages,
-                        &run_rail::run_rail_snapshot_block(&architect_state.rail),
+                    let rail_action = run_rail::after_assistant_turn(
+                        &mut architect_state.rail,
+                        &outcome.text,
                     );
+                    run_rail::refresh_snapshot(&mut messages, &architect_state.rail);
+                    if rail_action == run_rail::AfterAssistantAction::PauseForUser
+                        && outcome.tool_calls.is_empty()
+                    {
+                        debug!("[run_rail] PROPOSE hold — pause for user reply");
+                        let _ = tx
+                            .send(Ok(AgentEvent::Stop {
+                                reason: outcome.reason,
+                                usage: outcome.usage.clone(),
+                            }))
+                            .await;
+                        return;
+                    }
                 }
                 let had_work_mode = architect_state.work_mode_anchor.is_some();
                 architect_state.try_anchor_work_mode_from_text(&outcome.text);
@@ -1342,11 +1358,21 @@ impl Agent {
                                         );
                                     }
                                     if self.config.run_spec.role_id == RoleId::Architect {
-                                        architect_state.observe_cycle_sanity_tool(
-                                            &call.name,
-                                            &call.arguments,
-                                            &value,
+                                        let rail_on = run_rail::run_rail_active(
+                                            &self.config.engine_tuning,
+                                            self.config.run_spec.role_id,
                                         );
+                                        if run_rail::should_observe_cycle_sanity(
+                                            rail_on,
+                                            &architect_state.rail,
+                                            &call.name,
+                                        ) {
+                                            architect_state.observe_cycle_sanity_tool(
+                                                &call.name,
+                                                &call.arguments,
+                                                &value,
+                                            );
+                                        }
                                     }
                                     let mut verify_ack: Option<String> = None;
                                     if self.config.run_spec.role_id == RoleId::Architect {
@@ -1498,6 +1524,32 @@ impl Agent {
                                     .is_err()
                                     {
                                         return;
+                                    }
+                                    if self.config.run_spec.role_id == RoleId::Architect
+                                        && run_rail::run_rail_active(
+                                            &self.config.engine_tuning,
+                                            self.config.run_spec.role_id,
+                                        )
+                                    {
+                                        if let Some(nudge) = run_rail::on_act_tool_failure(
+                                            &mut architect_state.rail,
+                                            &call.name,
+                                            &call.arguments,
+                                        ) {
+                                            messages.push(Message::system(nudge.to_string()));
+                                            run_rail::refresh_snapshot(
+                                                &mut messages,
+                                                &architect_state.rail,
+                                            );
+                                            debug!("[run_rail] ACT circuit breaker — stop run");
+                                            let _ = tx
+                                                .send(Ok(AgentEvent::Stop {
+                                                    reason: StopReason::EndTurn,
+                                                    usage: last_usage.clone(),
+                                                }))
+                                                .await;
+                                            return;
+                                        }
                                     }
                                 }
                             }

@@ -1,6 +1,9 @@
 //! Apply `hold` / `advance` and depth markers to [`RunRailState`].
+//!
+//! PROPOSE hold semantics: `propose_hold.rs`. Do not inline station rules here.
 
 use super::markers::{GateTransition, ParsedRailMarkers};
+use super::propose_hold;
 use super::station::RunStation;
 use super::state::RunRailState;
 
@@ -10,29 +13,34 @@ pub fn apply_parsed_markers(state: &mut RunRailState, parsed: ParsedRailMarkers)
         state.depth = depth;
     }
     match parsed.gate {
-        Some(GateTransition::Hold) => state.apply_hold(),
-        Some(GateTransition::Advance) => state.apply_advance(),
+        Some(GateTransition::Hold) => apply_hold(state),
+        Some(GateTransition::Advance) => apply_advance(state),
         None => {}
     }
 }
 
 /// Parse assistant text and update rail state.
 pub fn apply_assistant_turn(state: &mut RunRailState, assistant_text: &str) {
+    propose_hold::maybe_enter_from_assistant_text(state, assistant_text);
     let parsed = super::markers::parse_rail_markers(assistant_text);
     apply_parsed_markers(state, parsed);
 }
 
-impl RunRailState {
-    /// `hold` — stop at current depth; move to answering station.
-    pub fn apply_hold(&mut self) {
-        self.station = RunStation::Answer;
+/// `hold` — PROPOSE complex stays at PROPOSE (C4); otherwise → ANSWER.
+pub fn apply_hold(state: &mut RunRailState) {
+    if propose_hold::try_enter_from_hold_marker(state) {
+        return;
     }
+    state.station = RunStation::Answer;
+}
 
-    /// `advance` — enter next linear candidate (mode A).
-    pub fn apply_advance(&mut self) {
-        if let Some(next) = self.next_candidate_mode_a() {
-            self.station = next;
-        }
+/// `advance` — enter next linear candidate (mode A); blocked during PROPOSE hold.
+pub fn apply_advance(state: &mut RunRailState) {
+    if propose_hold::blocks_advance(state) {
+        return;
+    }
+    if let Some(next) = state.next_candidate_mode_a() {
+        state.station = next;
     }
 }
 
@@ -44,23 +52,37 @@ mod tests {
     #[test]
     fn advance_intent_to_read() {
         let mut state = RunRailState::new();
-        state.apply_advance();
+        apply_advance(&mut state);
         assert_eq!(state.station, RunStation::Read);
     }
 
     #[test]
-    fn hold_jumps_to_answer() {
+    fn hold_jumps_to_answer_from_read() {
         let mut state = RunRailState::new();
         state.station = RunStation::Read;
-        state.apply_hold();
+        apply_hold(&mut state);
         assert_eq!(state.station, RunStation::Answer);
     }
 
     #[test]
-    fn apply_depth_from_text() {
+    fn complex_read_advances_to_propose() {
         let mut state = RunRailState::new();
         apply_assistant_turn(&mut state, "[depth: complex]\n[gate: advance]");
         assert_eq!(state.depth, RunDepth::Complex);
         assert_eq!(state.station, RunStation::Read);
+        apply_advance(&mut state);
+        assert_eq!(state.station, RunStation::Propose);
+    }
+
+    #[test]
+    fn propose_hold_blocks_advance_to_plan() {
+        let mut state = RunRailState {
+            station: RunStation::Propose,
+            depth: RunDepth::Complex,
+            propose_awaiting_user: true,
+            ..RunRailState::new()
+        };
+        apply_advance(&mut state);
+        assert_eq!(state.station, RunStation::Propose);
     }
 }

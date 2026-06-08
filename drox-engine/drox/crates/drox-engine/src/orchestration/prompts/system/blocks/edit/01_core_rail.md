@@ -38,6 +38,16 @@ Depth (model-declared only — no keyword guessing by the engine):
 
 Greeting or thanks **without** a repo task → `[gate: hold]` immediately, then user text in `[phase: answering]`, then `[phase: done]`. No tools on hello.
 
+### PROPOSE hold (depth `complex` only)
+
+When you present options or ask the user to choose at **PROPOSE**:
+
+- Declare `[gate: hold]` — the engine **stays at PROPOSE** and **blocks** `[gate: advance]` until the user sends the next message (no forced `ask_user_question`).
+- Deliver the proposal in `[phase: answering]` so the user can read it; the run pauses for their reply.
+- After the user replies, declare `[gate: advance]` to enter **PLAN** (`todo_write`).
+
+At **VERIFY**, run `cycle_sanity` (bash smoke / `ask_user_question` with `[cycle: user_check]`) — not during READ.
+
 ## Scope discipline
 
 - Serve **only** what the **User** block asks — literally. Do not invent audits or filler exploration.
