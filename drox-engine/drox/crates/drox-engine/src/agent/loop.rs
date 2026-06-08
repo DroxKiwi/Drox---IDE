@@ -67,6 +67,13 @@ use super::{
 };
 use drox_tools::{structure_task_async_completed, ToolContext};
 
+/// Outcome of optional run-rail ACT segment delegation (Phase 3).
+enum SegmentSpawnOutcome {
+    NotApplicable,
+    Spawned,
+    Failed,
+}
+
 impl Agent {
     #[allow(clippy::too_many_lines)]
     pub(crate) async fn drive_inner(
@@ -367,12 +374,21 @@ impl Agent {
                     &self.config.engine_tuning,
                     self.config.run_spec.role_id,
                 ) {
-                    let rail_action = run_rail::after_assistant_turn(
+                    let focus = architect_state
+                        .current_focus_task_line()
+                        .map(|(id, label, _)| (id, label));
+                    let rail_turn = run_rail::after_assistant_turn(
                         &mut architect_state.rail,
                         &outcome.text,
+                        focus,
                     );
                     run_rail::refresh_snapshot(&mut messages, &architect_state.rail);
-                    if rail_action == run_rail::AfterAssistantAction::PauseForUser
+                    for ev in &rail_turn.station_events {
+                        let _ = tx
+                            .send(Ok(run_rail::to_agent_event(ev)))
+                            .await;
+                    }
+                    if rail_turn.action == run_rail::AfterAssistantAction::PauseForUser
                         && outcome.tool_calls.is_empty()
                     {
                         debug!("[run_rail] PROPOSE hold — pause for user reply");
@@ -1249,12 +1265,46 @@ impl Agent {
                                     };
                             }
 
+                            match self
+                                .try_run_rail_act_segment(
+                                    &tx,
+                                    &ctx,
+                                    call,
+                                    &mut architect_state,
+                                    &mut messages,
+                                )
+                                .await
+                            {
+                                SegmentSpawnOutcome::Failed => return,
+                                SegmentSpawnOutcome::Spawned => {
+                                    if let Err(e) = self
+                                        .flush_transcript(&messages, &mut transcript_cursor)
+                                        .await
+                                    {
+                                        let _ = tx.send(Err(e)).await;
+                                        return;
+                                    }
+                                    continue;
+                                }
+                                SegmentSpawnOutcome::NotApplicable => {}
+                            }
+
                             let exec = self
                                 .registry
                                 .execute_named(&call.name, &ctx, call.arguments.clone())
                                 .await;
                             match exec {
                                 Ok(mut value) => {
+                                    if run_rail::run_rail_active(
+                                        &self.config.engine_tuning,
+                                        self.config.run_spec.role_id,
+                                    ) && architect_state.rail.station
+                                        == run_rail::RunStation::Act
+                                    {
+                                        run_rail::record_act_tool_step(
+                                            &mut architect_state.rail,
+                                        );
+                                    }
                                     memory_tracker.record_tool(&call.name);
                                     let _todo_prev_had_open_items = if call.name == "todo_write" {
                                         last_todo_pending > 0 || last_todo_in_progress > 0
@@ -2178,6 +2228,76 @@ impl Agent {
             return false;
         }
         true
+    }
+
+    /// Spawn an ACT segment instead of inline mutation when rail triggers match (C7).
+    async fn try_run_rail_act_segment(
+        &self,
+        tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
+        ctx: &ToolContext,
+        call: &PendingToolCall,
+        architect_state: &mut ArchitectRunState,
+        messages: &mut Vec<Message>,
+    ) -> SegmentSpawnOutcome {
+        if !run_rail::run_rail_active(&self.config.engine_tuning, self.config.run_spec.role_id) {
+            return SegmentSpawnOutcome::NotApplicable;
+        }
+        let workspace = ctx.effective_workspace();
+        let Some(request) = run_rail::segment_spawn_request(
+            &architect_state.rail,
+            architect_state,
+            &call.name,
+            &call.arguments,
+            &workspace,
+        )
+        .await
+        else {
+            return SegmentSpawnOutcome::NotApplicable;
+        };
+        let run_id = self
+            .config
+            .orchestration_run_id
+            .as_deref()
+            .unwrap_or("rail-run");
+        let plan_id = architect_state.orchestration_plan_id.as_deref();
+        debug!(
+            task_id = %request.task_id,
+            tool = %call.name,
+            "[run_rail] spawning ACT segment"
+        );
+        match run_rail::run_segment_for_tool(
+            self,
+            tx,
+            &workspace,
+            run_id,
+            request,
+            plan_id,
+            call.id.clone(),
+            &mut architect_state.rail,
+        )
+        .await
+        {
+            Ok((msg, report)) => {
+                run_rail::record_act_tool_step(&mut architect_state.rail);
+                if tx
+                    .send(Ok(AgentEvent::ToolFinish {
+                        id: call.id.clone(),
+                        output: report.tool_result_json(),
+                        is_error: false,
+                    }))
+                    .await
+                    .is_err()
+                {
+                    return SegmentSpawnOutcome::Failed;
+                }
+                messages.push(msg);
+                SegmentSpawnOutcome::Spawned
+            }
+            Err(e) => {
+                let _ = tx.send(Err(e)).await;
+                SegmentSpawnOutcome::Failed
+            }
+        }
     }
 
     /// Applique le succès d'un tool read-only (lot parallèle §2.29).

@@ -110,6 +110,21 @@
 					fn.renderOrchestrationRole(m.role);
 				}
 				break;
+			case 'railStationEnter':
+				fn.renderRailStationEnter?.(m);
+				break;
+			case 'railStationHold':
+				fn.renderRailStationHold?.(m);
+				break;
+			case 'railStationDone':
+				fn.renderRailStationDone?.(m);
+				break;
+			case 'railSegmentStart':
+				fn.renderRailSegmentStart?.(m);
+				break;
+			case 'railSegmentDone':
+				fn.renderRailSegmentDone?.(m);
+				break;
 			case 'subagentStart':
 				fn.renderSubagentStart(m);
 				break;

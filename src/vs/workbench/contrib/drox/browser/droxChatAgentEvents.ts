@@ -226,6 +226,61 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			}
 			return;
 
+		case 'rail_station_enter':
+			if (typeof ev.station === 'string') {
+				host.post({
+					kind: 'railStationEnter',
+					station: ev.station,
+					label: typeof ev.label === 'string' ? ev.label : undefined,
+					taskId: typeof ev.task_id === 'string' ? ev.task_id : undefined,
+				});
+			}
+			return;
+
+		case 'rail_station_hold':
+			if (typeof ev.station === 'string') {
+				host.post({
+					kind: 'railStationHold',
+					station: ev.station,
+				});
+			}
+			return;
+
+		case 'rail_station_done':
+			if (typeof ev.station === 'string') {
+				host.post({
+					kind: 'railStationDone',
+					station: ev.station,
+				});
+			}
+			return;
+
+		case 'rail_segment_start':
+			if (typeof ev.task_id === 'string') {
+				host.post({
+					kind: 'railSegmentStart',
+					station: typeof ev.station === 'string' ? ev.station : 'act',
+					taskId: ev.task_id,
+					label: typeof ev.label === 'string' ? ev.label : undefined,
+					scope: Array.isArray(ev.scope) ? ev.scope.map(String) : [],
+				});
+			}
+			return;
+
+		case 'rail_segment_done':
+			if (typeof ev.task_id === 'string') {
+				host.post({
+					kind: 'railSegmentDone',
+					taskId: ev.task_id,
+					status: typeof ev.status === 'string' ? ev.status : 'partial',
+					summary: typeof ev.summary === 'string' ? ev.summary : undefined,
+					pathsTouched: Array.isArray(ev.paths_touched)
+						? ev.paths_touched.map(String)
+						: [],
+				});
+			}
+			return;
+
 		case 'subagent_start':
 			if (typeof ev.subagent_type === 'string') {
 				host.post({
