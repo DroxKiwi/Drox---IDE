@@ -12,6 +12,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use drox_tools::{DynTool, Tool, ToolContext, ToolError};
 use serde_json::Value;
+use tracing::warn;
 use uuid::Uuid;
 
 use super::protocol::{ToolExecParams, ToolExecResult};
@@ -63,6 +64,7 @@ impl Tool for RemoteTool {
     }
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
+        log_malformed_client_tool_input(self.name.as_ref(), &input);
         let params = ToolExecParams {
             run_id: self.run_id.clone(),
             call_id: Uuid::new_v4().to_string(),
@@ -92,5 +94,46 @@ impl Tool for RemoteTool {
             )));
         }
         Ok(result.output)
+    }
+}
+
+/// Diagnostic C9 — `file_edit` with empty payload before `tool/exec` (see docs/1.4/1.4.0/INVESTIGATION-file-edit.md).
+fn log_malformed_client_tool_input(tool_name: &str, input: &Value) {
+    if tool_name != "file_edit" {
+        return;
+    }
+    let Some(obj) = input.as_object() else {
+        warn!(
+            tool = tool_name,
+            input_preview = %truncate_json_preview(input),
+            "file_edit: tool/exec input is not a JSON object"
+        );
+        return;
+    };
+    let has_path = obj
+        .get("path")
+        .or_else(|| obj.get("file_path"))
+        .and_then(|v| v.as_str())
+        .is_some_and(|s| !s.trim().is_empty());
+    let edits = obj.get("edits").and_then(|v| v.as_array());
+    let has_edits = edits.is_some_and(|a| !a.is_empty());
+    if !has_path || !has_edits {
+        warn!(
+            tool = tool_name,
+            has_path,
+            edits_len = edits.map(|a| a.len()).unwrap_or(0),
+            input_preview = %truncate_json_preview(input),
+            "file_edit: tool/exec input missing path or non-empty edits array"
+        );
+    }
+}
+
+fn truncate_json_preview(value: &Value) -> String {
+    let s = value.to_string();
+    const MAX: usize = 400;
+    if s.len() <= MAX {
+        s
+    } else {
+        format!("{}…", &s[..MAX])
     }
 }

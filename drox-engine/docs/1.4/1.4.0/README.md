@@ -28,7 +28,9 @@ Refonte du **conducteur architecte** : rail linéaire à **stations consultative
 ├── 06-UI-BLOCKS.md
 ├── 07-IMPLEMENTATION-PHASES.md
 ├── 08-MIGRATION.md
-└── 09-TEST-PLAN.md
+├── 09-TEST-PLAN.md
+├── 10-DECISIONS-PRODUIT.md
+└── INVESTIGATION-file-edit.md
 ```
 
 **Lecture recommandée** : `01` → `02` → `03` → `05` (avant tout PR code).

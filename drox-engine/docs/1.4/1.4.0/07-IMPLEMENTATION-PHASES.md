@@ -16,14 +16,16 @@ Pas de big-bang sur `loop.rs`.
 
 **But** : arborescence compilable, tests vides, zéro changement UX.
 
-| Tâche | Fichier |
-|-------|---------|
-| Créer `agent/run_rail/` | `mod.rs`, `station.rs`, `state.rs` stubs |
-| `RunRailState` dans `ArchitectRunState` ou parallèle | `architect_state.rs` |
-| Flag tuning `run_rail_enabled: false` | `EngineTuning` |
-| Tests `cargo test run_rail` | compilent, 0 comportement |
+| Tâche | Fichier | Statut |
+|-------|---------|--------|
+| Créer `agent/run_rail/` | `mod.rs`, `station.rs`, `state.rs` | ✅ |
+| `RunRailState` dans `ArchitectRunState` | `architect_state.rs` | ✅ |
+| Flag tuning `run_rail_enabled: false` | `EngineTuning` | ✅ |
+| Tests `cargo test run_rail` | compilent | ✅ |
+| Log diagnostic `file_edit` | `remote_tool.rs` + [INVESTIGATION](INVESTIGATION-file-edit.md) | ✅ |
+| `droxVersion` 1.4.0 | `package.json` | ✅ |
 
-**Critère merge** : `cargo test -p drox-engine` vert, flag off = comportement 1.3.4 identique.
+**Critère merge** : `cargo test -p drox-engine` vert, flag off = comportement inchangé.
 
 ---
 

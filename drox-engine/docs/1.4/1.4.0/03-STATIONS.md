@@ -34,7 +34,7 @@ Allowlist exacte : `run_rail/policy.rs` (source de vérité code). Ce tableau es
 ### READ
 
 - **But** : faits repo, pas d’opinion longue sans synthèse.
-- **Candidate (A)** : `PROPOSE` si depth `complex` **ou** user a demandé design ; sinon `ACT` (chemin court) — voir depth ci-dessous.
+- **Candidate (A)** : `ACT` si depth `short` ; `PROPOSE` si depth `complex` (voir [10-DECISIONS-PRODUIT.md](10-DECISIONS-PRODUIT.md) C1/C5).
 - **Outils** : allowlist lecture architecte actuelle.
 - **Compteur** : relecture même fichier → strike (réutiliser pattern `loop_intervention`, compteur dans `RunRailState`).
 
@@ -80,7 +80,7 @@ Allowlist exacte : `run_rail/policy.rs` (source de vérité code). Ce tableau es
 | | `short` | `complex` |
 |---|---------|-----------|
 | **Défaut** | oui | non |
-| **Déclencheurs complex** | — | user : charte, refonte, thème, multi-fichiers ; ou modèle `[depth: complex]` |
+| **Déclencheurs complex** | — | modèle **`[depth: complex]`** uniquement (pas d’heuristique mots-clés moteur) |
 | **Chemin typique** | INTENT → READ → ACT → VERIFY → ANSWER | … → PROPOSE → PLAN → ACT → … |
 | **Hold PROPOSE** | rare | si question ouverte au user |
 

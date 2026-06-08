@@ -37,6 +37,7 @@ use crate::run_spec::{RoleId, RunSpec};
 use crate::memory::MemoryRuntime;
 use crate::permissions::PermissionPolicy;
 
+mod run_rail;
 mod architect_gates;
 mod architect_todo_gate;
 mod cycle_sanity;
