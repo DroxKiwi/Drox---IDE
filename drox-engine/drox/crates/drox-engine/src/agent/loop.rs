@@ -57,6 +57,7 @@ use super::agent_stream::{
     LoopDetector, PendingToolCall,
 };
 use super::final_answer_guard::FinalAnswerGuard;
+use super::run_rail;
 use super::subagent_report_gate::should_drain_subagent_reports;
 use super::{
     build_tool_specs, confirm_with_user, first_user_text,
@@ -298,6 +299,15 @@ impl Agent {
                         self.config.run_spec.executor_delegation_enabled,
                     ),
                 );
+                if run_rail::run_rail_active(
+                    &self.config.engine_tuning,
+                    self.config.run_spec.role_id,
+                ) {
+                    run_rail::refresh_run_rail_snapshot(
+                        &mut messages,
+                        &run_rail::run_rail_snapshot_block(&architect_state.rail),
+                    );
+                }
             }
 
             if self
@@ -349,6 +359,16 @@ impl Agent {
 
             push_assistant_message(&mut messages, &outcome);
             if self.config.run_spec.role_id == RoleId::Architect {
+                if run_rail::run_rail_active(
+                    &self.config.engine_tuning,
+                    self.config.run_spec.role_id,
+                ) {
+                    run_rail::apply_assistant_turn(&mut architect_state.rail, &outcome.text);
+                    run_rail::refresh_run_rail_snapshot(
+                        &mut messages,
+                        &run_rail::run_rail_snapshot_block(&architect_state.rail),
+                    );
+                }
                 let had_work_mode = architect_state.work_mode_anchor.is_some();
                 architect_state.try_anchor_work_mode_from_text(&outcome.text);
                 if !had_work_mode && architect_state.work_mode_anchor.is_some() {

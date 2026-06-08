@@ -15,7 +15,7 @@ pub(crate) fn task_background_requested(arguments: &Value) -> bool {
 
 use crate::event::Phase;
 use crate::EngineTuning;
-use crate::run_spec::{GateKind, RunSpec};
+use crate::run_spec::{GateKind, RoleId, RunSpec};
 
 use super::architect_gates;
 use super::architect_state::ArchitectRunState;
@@ -444,6 +444,11 @@ pub(crate) fn tool_pre_gate_block(
             tuning,
         ) {
             return Some(msg);
+        }
+        if tuning.run_rail_enabled && spec.role_id == RoleId::Architect {
+            if let Some(msg) = super::run_rail::tool_pre_gate_rail(&state.rail, call_name) {
+                return Some(msg);
+            }
         }
     }
     if let Some(msg) = executor_gates::executor_orchestration_pre_gate(
