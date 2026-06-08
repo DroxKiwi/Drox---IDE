@@ -6,6 +6,10 @@
 import { localize } from '../../../../nls.js';
 import { ConfigurationScope, IConfigurationPropertySchema } from '../../../../platform/configuration/common/configurationRegistry.js';
 import { DroxSetting } from './droxConfiguration.js';
+import {
+	DROX_EXECUTOR_DELEGATION_TUNING_SETTINGS,
+	isExecutorDelegationUiEnabled,
+} from './droxOrchestrationUi.js';
 const TUNING_CUSTOM_ONLY = localize(
 	'drox.engine.tuning.customOnly',
 	'*(Effective only when **Engine strictness** is `custom` — ignored for relaxed, normal, and strict presets.)*',
@@ -18,7 +22,7 @@ function appendTuningCustomOnly(markdownDescription: string): string {
  * Default values come from engine presets (`EngineTuning::from_preset`).
  */
 export function createDroxEngineTuningConfigurationProperties(): Record<string, IConfigurationPropertySchema> {
-	return {
+	const properties: Record<string, IConfigurationPropertySchema> = {
 		[DroxSetting.EngineTuningReadBudgetPercent]: {
 			type: 'number',
 			default: 70,
@@ -489,4 +493,10 @@ export function createDroxEngineTuningConfigurationProperties(): Record<string, 
 			)),
 		},
 	};
+	if (!isExecutorDelegationUiEnabled()) {
+		for (const key of DROX_EXECUTOR_DELEGATION_TUNING_SETTINGS) {
+			delete properties[key];
+		}
+	}
+	return properties;
 }

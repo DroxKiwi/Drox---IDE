@@ -7,6 +7,11 @@ You have **full workspace tools** (`file_edit`, `bash`, `grep`, …) — work di
 - Optional `todo_write` to track shards.\n\n\
 When the user-facing answer is ready: `[phase: answering]` then `[phase: done]`. Do not repeat the same verification checklist.";
 
+pub(crate) const ARCHITECT_NUDGE_SOLO_PROMPT: &str = "\
+Continue as **Architect**: re-read the **user request** and your last tool results.\n\n\
+You have **full workspace tools** (`file_edit`, `bash`, `grep`, `file_read`, `lsp`, …) — work directly; optional `todo_write` for multi-step work.\n\n\
+When the user-facing answer is ready: `[phase: answering]` then `[phase: done]`. Do not repeat the same verification checklist.";
+
 pub(crate) const ARCHITECT_CYCLE_SANITY_NUDGE_PROMPT: &str = "\
 [NUDGE] Plan tasks look **done** — consider a quick **sanity check** before the user summary.\n\n\
 1. **Smoke:** `bash` yourself or one `delegate_executor` with `task_id` `sanity`.\n\n\
@@ -14,9 +19,20 @@ pub(crate) const ARCHITECT_CYCLE_SANITY_NUDGE_PROMPT: &str = "\
 3. If something fails, say so in `[phase: answering]` with fix hints — do not claim success.\n\n\
 4. Then `[phase: answering]` → `[phase: done]`.";
 
+pub(crate) const ARCHITECT_CYCLE_SANITY_NUDGE_SOLO_PROMPT: &str = "\
+[NUDGE] Plan tasks look **done** — consider a quick **sanity check** before the user summary.\n\n\
+1. **Smoke:** run one matching command with **`bash`** (`npm test`, `cargo test`, `pytest`, build, lint — pick what fits the repo).\n\n\
+2. **Or** `ask_user_question` with `[cycle: user_check]` if only the user can verify.\n\n\
+3. If something fails, say so in `[phase: answering]` with fix hints — do not claim success.\n\n\
+4. Then `[phase: answering]` → `[phase: done]`.";
+
 pub(crate) const ARCHITECT_CYCLE_SANITY_BLOCK_DONE_PROMPT: &str = "\
 [NUDGE] `[phase: done]` early — **cycle sanity** is still open in the engine snapshot.\n\n\
 Run a smoke `delegate_executor` or ask the user (`[cycle: user_check]`), or call `architect_help { \"topic\": \"sanity\" }`.";
+
+pub(crate) const ARCHITECT_CYCLE_SANITY_BLOCK_DONE_SOLO_PROMPT: &str = "\
+[NUDGE] `[phase: done]` early — **cycle sanity** is still open in the engine snapshot.\n\n\
+Run a smoke **`bash`** command or ask the user (`[cycle: user_check]`), or call `architect_help { \"topic\": \"sanity\" }`.";
 
 pub(crate) const ARCHITECT_RUN_CLOSABLE_NUDGE_PROMPT: &str = "\
 [NUDGE] The run looks **ready to close**.\n\n\
@@ -37,6 +53,37 @@ Publish: line `[discussion: reply]`, your user-facing answer, then line `[discus
 pub(crate) const ARCHITECT_NO_WORK_NUDGE_PROMPT: &str = "\
 [NUDGE] This looks like a **light message**, not a repo task.\n\n\
 Reply in **`[phase: answering]`**, then **`[phase: done]`** — no `todo_write`, no `delegate_executor`, no exploration tools.";
+
+pub(crate) const ARCHITECT_NO_WORK_NUDGE_SOLO_PROMPT: &str = "\
+[NUDGE] This looks like a **light message**, not a repo task.\n\n\
+Reply in **`[phase: answering]`**, then **`[phase: done]`** — no `todo_write`, no exploration tools.";
+
+#[must_use]
+pub(crate) fn architect_cycle_sanity_nudge_prompt(delegation: bool) -> &'static str {
+    if delegation {
+        ARCHITECT_CYCLE_SANITY_NUDGE_PROMPT
+    } else {
+        ARCHITECT_CYCLE_SANITY_NUDGE_SOLO_PROMPT
+    }
+}
+
+#[must_use]
+pub(crate) fn architect_cycle_sanity_block_done_prompt(delegation: bool) -> &'static str {
+    if delegation {
+        ARCHITECT_CYCLE_SANITY_BLOCK_DONE_PROMPT
+    } else {
+        ARCHITECT_CYCLE_SANITY_BLOCK_DONE_SOLO_PROMPT
+    }
+}
+
+#[must_use]
+pub(crate) fn architect_no_work_nudge_prompt(delegation: bool) -> &'static str {
+    if delegation {
+        ARCHITECT_NO_WORK_NUDGE_PROMPT
+    } else {
+        ARCHITECT_NO_WORK_NUDGE_SOLO_PROMPT
+    }
+}
 
 /// Après N lectures sans délégation (`max_reads_before_delegate` — preset).
 pub(crate) const ARCHITECT_DELEGATE_AFTER_READS_NUDGE: &str = "\

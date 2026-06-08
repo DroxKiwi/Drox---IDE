@@ -1,4 +1,4 @@
-# Plan 1.3.3 — Release fiable (pipeline & package)
+﻿# Plan 1.3.3 — Release fiable (pipeline & package)
 
 **Version** : 1.3.3 · juin 2026  
 **Base** : code 1.3.2 sur `main` ([CONDUCTEUR-CODE.md](../1.3.2/CONDUCTEUR-CODE.md))
@@ -15,7 +15,7 @@
 | **P0** | MAJ in-app testée (`latest.json` → GitHub Release OR) |
 | **P1** | Smoke manuel post-install (chat, lazy history, welcome, Aide Drox) |
 
-**Hors scope 1.3.3** : TEST-PLAN T1–T10 signé → [1.3.4](../1.3.4/PLAN-1.3.4.md) · index / graphe → [1.3.5](../1.3.5/PLAN-1.3.5.md).
+**Hors scope 1.3.3** : TEST-PLAN T1–T10 signé → [1.3.4](../1.3.4/PLAN-1.3.4.md) · index / graphe → [1.4.1](../../1.4/1.4.1/PLAN-1.4.1.md).
 
 ---
 
@@ -74,7 +74,7 @@ Critères automatiques (échec = pas de ship) :
 ## Suite
 
 - **[1.3.4](../1.3.4/README.md)** — stabilisation moteur (tests, presets, cargo)
-- **[1.3.5](../1.3.5/README.md)** — onboarding, index, graphe, fast path
+- **[1.4.1](../../1.4/1.4.1/README.md)** — onboarding, index, graphe, fast path
 
 ---
 

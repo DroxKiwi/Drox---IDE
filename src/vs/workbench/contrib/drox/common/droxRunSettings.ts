@@ -19,6 +19,7 @@ import {
 	wireEngineStrictnessForRpc,
 } from './droxEngineStrictness.js';
 import { wireEngineTuningForRpc } from './droxEngineTuning.js';
+import { isExecutorDelegationUiEnabled } from './droxOrchestrationUi.js';
 import { DroxPermissionMode, normalizeDroxPermissionMode } from './droxPermissionAsk.js';
 import { droxWorkspaceSessionsDir } from './droxWorkspacePaths.js';
 export interface IDroxLlmSettings {
@@ -215,18 +216,22 @@ export function buildAgentRunParams(opts: {
 	if (opts.disabledTools.length > 0) {
 		params.disabledTools = [...opts.disabledTools];
 	}
-	if (opts.subagents.model) {
+	const executorDelegationUi = isExecutorDelegationUiEnabled();
+	if (executorDelegationUi && opts.subagents.model) {
 		params.subagentsModel = opts.subagents.model;
 	}
 	const executorSameAsArchitect = !opts.subagents.model?.trim();
-	const executorNumCtx =
-		executorSameAsArchitect &&
-			opts.settings.numCtx !== undefined &&
-			opts.settings.numCtx > 0
-			? Math.floor(opts.settings.numCtx)
-			: opts.subagents.numCtx > 0
-				? Math.floor(opts.subagents.numCtx)
-				: undefined;
+	let executorNumCtx: number | undefined;
+	if (executorDelegationUi) {
+		executorNumCtx =
+			executorSameAsArchitect &&
+				opts.settings.numCtx !== undefined &&
+				opts.settings.numCtx > 0
+				? Math.floor(opts.settings.numCtx)
+				: opts.subagents.numCtx > 0
+					? Math.floor(opts.subagents.numCtx)
+					: undefined;
+	}
 	if (executorNumCtx !== undefined) {
 		params.subagentsNumCtx = executorNumCtx;
 	}
@@ -255,7 +260,10 @@ export function buildAgentRunParams(opts: {
 	delete params.subagentsEnabled;
 	delete params.subagentsMaxIterations;
 	delete params.subagentsMaxConcurrent;
-	params.orchestrationMaxParallelExecutors = opts.orchestrationMaxParallelExecutors ?? 1;
+	// Solo 1.3.4 : pas de sub-agents — le moteur force parallel_slots = 1.
+	params.orchestrationMaxParallelExecutors = executorDelegationUi
+		? (opts.orchestrationMaxParallelExecutors ?? 1)
+		: 1;
 	const architectGate = wireArchitectInteractionMode(
 		opts.architectInteractionMode ?? 'auto',
 	);
@@ -273,6 +281,11 @@ export function buildAgentRunParams(opts: {
 		if (tuning) {
 			params.engineTuning = tuning;
 		}
+	}
+	if (!executorDelegationUi && strictness === 'custom') {
+		const tuning = (params.engineTuning ?? {}) as Record<string, unknown>;
+		tuning.executorDelegationEnabled = false;
+		params.engineTuning = tuning;
 	}
 	return params;
 }

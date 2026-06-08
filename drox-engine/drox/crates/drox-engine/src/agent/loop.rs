@@ -37,7 +37,7 @@ use super::gates::{
 };
 use super::nudges::{
     ask_user_question_loop_nudge, explore_jobs_pending_nudge, run_objective_system_block,
-    step_by_step_todo_nudge, ANALYZING_PHASE_NUDGE, ARCHITECT_NO_WORK_NUDGE_PROMPT,
+    step_by_step_todo_nudge, ANALYZING_PHASE_NUDGE,
     done_only_nudge_prompt, loop_intervention_level, loop_intervention_ui_message,
     loop_recenter_user_message, LOOP_DETECTED_SYSTEM_NUDGE,
     MUTATING_TOOL_BEFORE_TODO_WRITE_NUDGE, MUTATING_TOOLS_FOR_STEP_TRACKING,
@@ -295,6 +295,7 @@ impl Agent {
                     &architect_run_context_block_per_turn(
                         &architect_state,
                         effective_run_objective.as_deref(),
+                        self.config.run_spec.executor_delegation_enabled,
                     ),
                 );
             }
@@ -356,6 +357,7 @@ impl Agent {
                         &architect_run_context_block_per_turn(
                             &architect_state,
                             effective_run_objective.as_deref(),
+                            self.config.run_spec.executor_delegation_enabled,
                         ),
                     );
                 }
@@ -379,6 +381,7 @@ impl Agent {
                         &architect_run_context_block_per_turn(
                             &architect_state,
                             effective_run_objective.as_deref(),
+                            self.config.run_spec.executor_delegation_enabled,
                         ),
                     );
                 }
@@ -499,7 +502,9 @@ impl Agent {
                                 architect_state.cycle_sanity_nudge_sent = true;
                                 debug!("[phase: done] architect cycle sanity — nudge");
                                 messages.push(Message::system(
-                                    super::nudges::ARCHITECT_CYCLE_SANITY_NUDGE_PROMPT,
+                                    super::nudges::architect_cycle_sanity_nudge_prompt(
+                                        self.config.run_spec.executor_delegation_enabled,
+                                    ),
                                 ));
                                 loop_detector.reset();
                                 if let Err(e) = self
@@ -514,7 +519,9 @@ impl Agent {
                             if outcome.tool_calls.is_empty() {
                                 debug!("[phase: done] blocked — cycle sanity pending");
                                 messages.push(Message::system(
-                                    super::nudges::ARCHITECT_CYCLE_SANITY_BLOCK_DONE_PROMPT,
+                                    super::nudges::architect_cycle_sanity_block_done_prompt(
+                                        self.config.run_spec.executor_delegation_enabled,
+                                    ),
                                 ));
                                 loop_detector.reset();
                                 if let Err(e) = self
@@ -817,8 +824,9 @@ impl Agent {
                     && architect_state.todo_statuses.is_empty()
                     && !saw_code_mutation_in_run
                     && !saw_successful_todo_write_in_run;
+                let delegation = self.config.run_spec.executor_delegation_enabled;
                 let nudge = if no_work_edit {
-                    ARCHITECT_NO_WORK_NUDGE_PROMPT
+                    super::nudges::architect_no_work_nudge_prompt(delegation)
                 } else if self.config.run_spec.role_id == RoleId::Architect
                     && architect_state.run_fully_closable()
                 {
@@ -826,7 +834,7 @@ impl Agent {
                 } else if self.config.run_spec.role_id == RoleId::Architect
                     && architect_state.run_closable()
                 {
-                    super::nudges::ARCHITECT_CYCLE_SANITY_NUDGE_PROMPT
+                    super::nudges::architect_cycle_sanity_nudge_prompt(delegation)
                 } else {
                     nudge_prompt(&self.config.run_spec)
                 };
@@ -1236,6 +1244,7 @@ impl Agent {
                                                 &architect_run_context_block_compaction(
                                                     &architect_state,
                                                     effective_run_objective.as_deref(),
+                                                    self.config.run_spec.executor_delegation_enabled,
                                                 ),
                                             );
                                             if let Some(ref pid) =
@@ -1404,7 +1413,9 @@ impl Agent {
                                         && call.name == "delegate_executor"
                                     {
                                         for_llm.push_str("\n\n");
-                                        for_llm.push_str(&architect_state.cycle_checkpoint_block());
+                                        for_llm.push_str(&architect_state.cycle_checkpoint_block(
+                                            self.config.run_spec.executor_delegation_enabled,
+                                        ));
                                     }
                                     mirror_workspace_map_from_tool(&ctx, &call.name, &value)
                                         .await;
@@ -1851,6 +1862,7 @@ impl Agent {
                     &architect_run_context_block_compaction(
                         architect_state,
                         effective_run_objective,
+                        self.config.run_spec.executor_delegation_enabled,
                     ),
                 );
             }

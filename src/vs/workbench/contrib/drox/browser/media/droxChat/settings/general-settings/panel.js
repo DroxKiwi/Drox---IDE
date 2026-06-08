@@ -38,10 +38,12 @@
 		setVal('general-settings-engine-strictness', s.engineStrictness || 'normal');
 		const tuning = s.engineTuning && typeof s.engineTuning === 'object' ? s.engineTuning : {};
 		setVal('general-settings-tuning-read-budget-percent', tuning.readBudgetPercent ?? 70);
-		setVal('general-settings-tuning-max-reads-before-delegate', tuning.maxReadsBeforeDelegate ?? 16);
-		setVal('general-settings-tuning-max-mutations-before-delegate-nudge', tuning.maxMutationsBeforeDelegateNudge ?? 3);
 		setVal('general-settings-tuning-loop-strikes', tuning.loopStrikesBeforeAbort ?? 4);
-		setVal('general-settings-tuning-require-delegate', tuning.requireDelegateBeforeTodoComplete === true);
+		if (document.getElementById('general-settings-tuning-max-reads-before-delegate')) {
+			setVal('general-settings-tuning-max-reads-before-delegate', tuning.maxReadsBeforeDelegate ?? 16);
+			setVal('general-settings-tuning-max-mutations-before-delegate-nudge', tuning.maxMutationsBeforeDelegateNudge ?? 3);
+			setVal('general-settings-tuning-require-delegate', tuning.requireDelegateBeforeTodoComplete === true);
+		}
 		setVal('general-settings-tuning-context-snip', tuning.contextSnipEnabled !== false);
 		fn.syncEngineTuningPanelVisibility();
 		const disabled = D.state.busy;
@@ -87,14 +89,17 @@
 			engineStrictness: strictness,
 		};
 		if (strictness === 'custom') {
-			patch.engineTuning = {
+			const tuning = {
 				readBudgetPercent: num('general-settings-tuning-read-budget-percent'),
-				maxReadsBeforeDelegate: num('general-settings-tuning-max-reads-before-delegate'),
-				maxMutationsBeforeDelegateNudge: num('general-settings-tuning-max-mutations-before-delegate-nudge'),
 				loopStrikesBeforeAbort: num('general-settings-tuning-loop-strikes'),
-				requireDelegateBeforeTodoComplete: bool('general-settings-tuning-require-delegate'),
 				contextSnipEnabled: bool('general-settings-tuning-context-snip'),
 			};
+			if (document.getElementById('general-settings-tuning-max-reads-before-delegate')) {
+				tuning.maxReadsBeforeDelegate = num('general-settings-tuning-max-reads-before-delegate');
+				tuning.maxMutationsBeforeDelegateNudge = num('general-settings-tuning-max-mutations-before-delegate-nudge');
+				tuning.requireDelegateBeforeTodoComplete = bool('general-settings-tuning-require-delegate');
+			}
+			patch.engineTuning = tuning;
 		}
 		return patch;
 	};

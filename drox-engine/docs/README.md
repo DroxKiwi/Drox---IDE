@@ -51,6 +51,7 @@ Archive pré-1.2.0 : dossier [`0.0/`](0.0/).
 | [`1.3/`](1.3/README.md) | Hub ligne 1.3 |
 | [`1.3/1.3.0/`](1.3/1.3.0/README.md) | Moteur batch exécuteurs + release `v1.3.0` — **livré** |
 | [`1.3/1.3.1/`](1.3/1.3.1/README.md) | Première release publique — **en cours** ([CLOSURE](1.3/1.3.1/finalisation/CLOSURE-1.3.1.md)) |
+| [`1.4/`](1.4/README.md) | **1.4.0** Run Rail · **1.4.1** index/graphe (ex-1.3.5) |
 | [`feature-brainstorm/`](feature-brainstorm/README.md) | Idées / brainstorm (hors releases 1.3.x) |
 
 ---

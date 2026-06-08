@@ -384,7 +384,10 @@ pub(crate) fn build_tool_specs(
         }
         if let Some(tool) = registry.get(&name) {
             let description = if run_spec.role_id == RoleId::Architect {
-                crate::orchestration::architect_tool_short_description(&name)
+                crate::orchestration::architect_tool_short_description(
+                    &name,
+                    run_spec.executor_delegation_enabled,
+                )
                     .map(str::to_string)
                     .unwrap_or_else(|| tool.description().to_string())
             } else {

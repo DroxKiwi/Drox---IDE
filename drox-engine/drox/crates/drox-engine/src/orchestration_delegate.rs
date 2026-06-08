@@ -177,6 +177,7 @@ impl EngineOrchestrationDelegate {
             orchestration_run_closable: false,
             orchestration_max_parallel_executors: 1,
             architect_help_snapshot: None,
+            executor_delegation_enabled: parent_ctx.executor_delegation_enabled,
         }
         .with_agent_markdown_root(agent_output_dir_for_plan_task(plan_id, &task_id))
         .with_agent_markdown_filename(deliverable_filename.clone());

@@ -22,9 +22,9 @@ pub(crate) use standard::{
     NATIVE_THINKING_UI_SUPPLEMENT,
 };
 pub(crate) use architect::{
-    ARCHITECT_CYCLE_SANITY_BLOCK_DONE_PROMPT, ARCHITECT_CYCLE_SANITY_NUDGE_PROMPT,
-    ARCHITECT_DELEGATE_AFTER_MUTATIONS_NUDGE, ARCHITECT_DELEGATE_AFTER_READS_NUDGE,
-    ARCHITECT_NO_WORK_NUDGE_PROMPT, ARCHITECT_RUN_CLOSABLE_NUDGE_PROMPT,
+    architect_cycle_sanity_block_done_prompt, architect_cycle_sanity_nudge_prompt,
+    architect_no_work_nudge_prompt, ARCHITECT_DELEGATE_AFTER_MUTATIONS_NUDGE,
+    ARCHITECT_DELEGATE_AFTER_READS_NUDGE, ARCHITECT_RUN_CLOSABLE_NUDGE_PROMPT,
 };
 pub(crate) use loop_intervention::{
     loop_intervention_level, loop_intervention_ui_message, loop_recenter_user_message,

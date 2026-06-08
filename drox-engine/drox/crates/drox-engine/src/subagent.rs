@@ -279,6 +279,7 @@ impl EngineSubagentExecutor {
             orchestration_run_closable: false,
             orchestration_max_parallel_executors: 1,
             architect_help_snapshot: None,
+            executor_delegation_enabled: parent_ctx.executor_delegation_enabled,
         };
 
         let child_spec = self.parent_run_spec.clone();

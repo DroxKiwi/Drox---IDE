@@ -17,7 +17,7 @@ pub fn architect_edit_system_prompt_core_for_run(
     if !tool_protocols.is_empty() {
         parts.push(tool_protocols);
     }
-    if max_parallel_executors > 1 {
+    if vars.executor_delegation_enabled && max_parallel_executors > 1 {
         parts.push(parallel_slots_supplement(max_parallel_executors, vars));
     }
     join_sections(&parts)

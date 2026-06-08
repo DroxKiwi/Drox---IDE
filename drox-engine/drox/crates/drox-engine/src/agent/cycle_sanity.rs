@@ -34,6 +34,27 @@ impl CycleSanityOutcome {
 }
 
 #[must_use]
+pub fn infer_sanity_from_bash_output(output: &Value) -> Option<CycleSanityOutcome> {
+    let exit_code = output.get("exit_code").and_then(|v| v.as_i64())?;
+    if exit_code == 0 {
+        Some(CycleSanityOutcome::Passed)
+    } else {
+        Some(CycleSanityOutcome::Failed)
+    }
+}
+
+#[must_use]
+pub fn cycle_sanity_failed_summary_from_bash(output: &Value) -> String {
+    output
+        .get("stderr")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| output.get("stdout").and_then(|v| v.as_str()))
+        .map(|s| s.trim().chars().take(500).collect::<String>())
+        .unwrap_or_else(|| "Sanity bash command failed (non-zero exit)".to_string())
+}
+
+#[must_use]
 pub fn infer_sanity_from_delegate_output(output: &Value) -> Option<CycleSanityOutcome> {
     let status_str = output
         .get("status")
@@ -71,4 +92,26 @@ pub fn cycle_sanity_failed_summary(output: &Value) -> String {
         .and_then(|v| v.as_str())
         .map(|s| format!("Delegate status: {s}"))
         .unwrap_or_else(|| "Sanity check delegate did not pass".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn bash_exit_zero_passes_sanity() {
+        assert_eq!(
+            infer_sanity_from_bash_output(&json!({ "exit_code": 0 })),
+            Some(CycleSanityOutcome::Passed)
+        );
+    }
+
+    #[test]
+    fn bash_nonzero_fails_sanity() {
+        assert_eq!(
+            infer_sanity_from_bash_output(&json!({ "exit_code": 1 })),
+            Some(CycleSanityOutcome::Failed)
+        );
+    }
 }

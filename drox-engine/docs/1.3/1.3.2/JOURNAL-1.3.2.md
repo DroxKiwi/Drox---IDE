@@ -1,4 +1,4 @@
-# Journal 1.3.2 — ce qu’on a fait
+﻿# Journal 1.3.2 — ce qu’on a fait
 
 Document vivant : une entrée par livrable (date, statut, liens).
 
@@ -113,7 +113,7 @@ Document vivant : une entrée par livrable (date, statut, liens).
 | **S2** | Tests dogfood T1–T10 + presets P8–P10 | ☐ | TEST-PLAN · VALIDATION-PRESETS |
 | **S3** | Tag / release 1.3.2 | ☐ | CLOSURE |
 
-**1.3.3** (release fiable) : [../1.3.3/PLAN-1.3.3.md](../1.3.3/PLAN-1.3.3.md) · **1.3.4** (stabilisation) : [../1.3.4/PLAN-1.3.4.md](../1.3.4/PLAN-1.3.4.md) · **1.3.5** (index, graphe) : [../1.3.5/PLAN-1.3.5.md](../1.3.5/PLAN-1.3.5.md)
+**1.3.3** (release fiable) : [../1.3.3/PLAN-1.3.3.md](../1.3.3/PLAN-1.3.3.md) · **1.3.4** (stabilisation) : [../1.3.4/PLAN-1.3.4.md](../1.3.4/PLAN-1.3.4.md) · **1.4.1** (index, graphe) : [../../1.4/1.4.1/PLAN-1.4.1.md](../../1.4/1.4.1/PLAN-1.4.1.md)
 
 ---
 

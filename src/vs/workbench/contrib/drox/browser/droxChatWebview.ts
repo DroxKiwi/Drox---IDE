@@ -9,6 +9,7 @@ import { URI } from '../../../../base/common/uri.js';
 
 import { localize } from '../../../../nls.js';
 
+import { isExecutorDelegationUiEnabled } from '../common/droxOrchestrationUi.js';
 import { webviewGenericCspSource } from '../../webview/common/webview.js';
 
 
@@ -138,11 +139,39 @@ export function getDroxChatHtml(
 		'Free reading. Each file edit or write requires your confirmation.',
 	);
 
+	const executorDelegationUi = isExecutorDelegationUiEnabled();
 	const architectVignetteName = localize('droxChatArchitectVignetteName', 'Architect');
-	const architectVignetteDesc = localize('droxChatArchitectVignetteDesc', 'Planning model — click to configure');
+	const architectVignetteDesc = executorDelegationUi
+		? localize('droxChatArchitectVignetteDesc', 'Planning model — click to configure')
+		: localize('droxChatArchitectVignetteDescSolo', 'Agent model — click to configure');
 	const executorVignetteName = localize('droxChatExecutorVignetteName', 'Executor');
 	const executorVignetteDesc = localize('droxChatExecutorVignetteDesc', 'Execution model — click to configure');
-	const roleModelsPickerLabel = localize('droxChatRoleModels', 'Orchestration models');
+	const roleModelsPickerLabel = executorDelegationUi
+		? localize('droxChatRoleModels', 'Orchestration models')
+		: localize('droxChatArchitectModelPicker', 'Architect model');
+	const bodyClass = executorDelegationUi ? '' : 'drox-architect-solo-ui';
+	const executorVignetteHtml = executorDelegationUi
+		? `
+			<button type="button" id="executor-model-vignette" class="agent-vignette role-model-vignette" data-role="executor" aria-expanded="false" title="${executorVignetteName}">
+
+				<span class="vignette-peek" aria-hidden="true"><span class="vignette-peek-icon">⚙</span></span>
+
+				<span class="vignette-rise">
+
+					<span class="vignette-icon" aria-hidden="true">⚙</span>
+
+					<span class="vignette-copy">
+
+						<strong class="vignette-name">${executorVignetteName}</strong>
+
+						<span class="vignette-desc" id="executor-vignette-model-hint">${executorVignetteDesc}</span>
+
+					</span>
+
+				</span>
+
+			</button>`
+		: '';
 	const rolePanelModelLabel = localize('droxChatRolePanelModel', 'Model');
 	const rolePanelNumCtxLabel = localize('droxChatRolePanelNumCtx', 'Context (num_ctx)');
 	const rolePanelTopPLabel = localize('droxChatRolePanelTopP', 'Top P');
@@ -196,6 +225,34 @@ export function getDroxChatHtml(
 	const generalSettingsLoopStrikes = localize('droxChatGeneralSettingsLoopStrikes', 'Loop strikes before abort');
 	const generalSettingsRequireDelegate = localize('droxChatGeneralSettingsRequireDelegate', 'Require delegate before todo complete');
 	const generalSettingsContextSnip = localize('droxChatGeneralSettingsContextSnip', 'Context snip enabled');
+	const delegateTuningFieldsHtml = executorDelegationUi
+		? `
+				<label class="general-settings-field">
+
+					<span>${generalSettingsMaxReadsBeforeDelegate}</span>
+
+					<input type="number" id="general-settings-tuning-max-reads-before-delegate" class="general-settings-input" min="1" max="64" step="1" />
+
+				</label>
+
+				<label class="general-settings-field">
+
+					<span>${generalSettingsMaxMutationsBeforeDelegateNudge}</span>
+
+					<input type="number" id="general-settings-tuning-max-mutations-before-delegate-nudge" class="general-settings-input" min="1" max="16" step="1" />
+
+				</label>`
+		: '';
+	const requireDelegateFieldHtml = executorDelegationUi
+		? `
+				<label class="general-settings-field general-settings-field-check">
+
+					<input type="checkbox" id="general-settings-tuning-require-delegate" />
+
+					<span>${generalSettingsRequireDelegate}</span>
+
+				</label>`
+		: '';
 
 	const modelReloadLabel = localize('droxChatModelReload', 'Reload model list from server');
 
@@ -229,7 +286,7 @@ export function getDroxChatHtml(
 
 </head>
 
-<body>
+<body class="${bodyClass}">
 
 	<div id="progress"></div>
 
@@ -319,25 +376,7 @@ export function getDroxChatHtml(
 
 			</button>
 
-			<button type="button" id="executor-model-vignette" class="agent-vignette role-model-vignette" data-role="executor" aria-expanded="false" title="${executorVignetteName}">
-
-				<span class="vignette-peek" aria-hidden="true"><span class="vignette-peek-icon">⚙</span></span>
-
-				<span class="vignette-rise">
-
-					<span class="vignette-icon" aria-hidden="true">⚙</span>
-
-					<span class="vignette-copy">
-
-						<strong class="vignette-name">${executorVignetteName}</strong>
-
-						<span class="vignette-desc" id="executor-vignette-model-hint">${executorVignetteDesc}</span>
-
-					</span>
-
-				</span>
-
-			</button>
+${executorVignetteHtml}
 
 		</div>
 
@@ -656,21 +695,7 @@ export function getDroxChatHtml(
 
 				</label>
 
-				<label class="general-settings-field">
-
-					<span>${generalSettingsMaxReadsBeforeDelegate}</span>
-
-					<input type="number" id="general-settings-tuning-max-reads-before-delegate" class="general-settings-input" min="1" max="64" step="1" />
-
-				</label>
-
-				<label class="general-settings-field">
-
-					<span>${generalSettingsMaxMutationsBeforeDelegateNudge}</span>
-
-					<input type="number" id="general-settings-tuning-max-mutations-before-delegate-nudge" class="general-settings-input" min="1" max="16" step="1" />
-
-				</label>
+${delegateTuningFieldsHtml}
 
 				<label class="general-settings-field">
 
@@ -680,13 +705,7 @@ export function getDroxChatHtml(
 
 				</label>
 
-				<label class="general-settings-field general-settings-field-check">
-
-					<input type="checkbox" id="general-settings-tuning-require-delegate" />
-
-					<span>${generalSettingsRequireDelegate}</span>
-
-				</label>
+${requireDelegateFieldHtml}
 
 				<label class="general-settings-field general-settings-field-check">
 

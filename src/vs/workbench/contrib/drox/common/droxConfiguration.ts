@@ -16,6 +16,10 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
 import { createDroxEngineTuningConfigurationProperties } from './droxEngineTuningConfiguration.js';
+import {
+	DROX_EXECUTOR_DELEGATION_TOP_LEVEL_SETTINGS,
+	isExecutorDelegationUiEnabled,
+} from './droxOrchestrationUi.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
 
@@ -208,7 +212,7 @@ const droxArchitectModelSettingSchema: IConfigurationPropertySchema = {
 	scope: ConfigurationScope.RESOURCE,
 	markdownDescription: localize(
 		'drox.architect.model',
-		'**Architect** LLM for planning, gates, and `delegate_executor` (`role_split` orchestration). Same list as the chat picker (↻ reloads from `drox.server`). Replaces legacy `drox.model`.',
+		'**Architect** LLM for planning, gates, and workspace tools (`role_split` orchestration). Same list as the chat picker (↻ reloads from `drox.server`). Replaces legacy `drox.model`.',
 	),
 };
 
@@ -377,7 +381,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.architect.interactionMode',
-				'**Architect mode** (`role_split`) per message: **Auto** — intent probe picks discuss vs action (`[gate: architect_discuss|architect_edit]`); **Discussion** — direct reply, limited read tools; **Action** — full workspace tools (edit, bash, …) with optional `delegate_executor` for parallel sub-agents. Synced with composer vignettes.',
+				'**Architect mode** (`role_split`) per message: **Auto** — intent probe picks discuss vs action (`[gate: architect_discuss|architect_edit]`); **Discussion** — direct reply, limited read tools; **Action** — full workspace tools (edit, bash, reads, …). Synced with composer vignettes.',
 			),
 		},
 
@@ -965,6 +969,14 @@ export function updateDroxLlmModelEnum(models: readonly string[]): void {
 }
 
 export function registerDroxConfiguration(): void {
+	if (!isExecutorDelegationUiEnabled()) {
+		const props = droxConfigurationNode.properties;
+		if (props) {
+			for (const key of DROX_EXECUTOR_DELEGATION_TOP_LEVEL_SETTINGS) {
+				delete props[key];
+			}
+		}
+	}
 	Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration(droxConfigurationNode);
 }
 

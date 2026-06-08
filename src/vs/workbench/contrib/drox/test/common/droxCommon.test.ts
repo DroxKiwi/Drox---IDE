@@ -857,25 +857,41 @@ suite('Drox — orchestration model params', () => {
 		assert.strictEqual(params.modelTier, undefined);
 	});
 
-	test('buildAgentRunParams forces final orchestration mode and strips legacy subagent flags', () => {
+	test('buildAgentRunParams solo UI omits executor RPC fields', () => {
 		const params = buildAgentRunParams({
 			prompt: 'v1_2',
 			workspace: WS,
 			mode: 'acceptEdits',
 			sessionId: 's1',
-			settings: mockLlmSettings({ model: 'qwen3.5:9b' }),
+			settings: mockLlmSettings({ model: 'qwen3.5:9b', numCtx: 32768 }),
 			disabledTools: [],
 			subagents: { enabled: true, maxIterations: 15, maxConcurrent: 1, model: 'qwen3.5:2b', numCtx: 8192 },
 			mcpToolsEnabled: true,
 		});
 		assert.strictEqual(params.orchestrationMode, 'role_split');
 		assert.strictEqual(params.model, 'qwen3.5:9b');
-		assert.strictEqual(params.subagentsModel, 'qwen3.5:2b');
+		assert.strictEqual(params.subagentsModel, undefined);
+		assert.strictEqual(params.subagentsNumCtx, undefined);
 		assert.strictEqual(params.subagentsEnabled, undefined);
 		assert.strictEqual(params.orchestrationMaxParallelExecutors, 1);
 	});
 
-	test('buildAgentRunParams role_split forwards orchestrationMaxParallelExecutors', () => {
+	test('buildAgentRunParams solo UI never sends boolean subagentsNumCtx', () => {
+		const params = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings({ numCtx: 16384 }),
+			disabledTools: [],
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(params.subagentsNumCtx, undefined);
+		assert.notStrictEqual(params.subagentsNumCtx, false);
+	});
+
+	test('buildAgentRunParams role_split pins parallel executors to 1 in solo UI', () => {
 		const params = buildAgentRunParams({
 			prompt: 'parallel',
 			workspace: WS,
@@ -887,39 +903,7 @@ suite('Drox — orchestration model params', () => {
 			mcpToolsEnabled: true,
 			orchestrationMaxParallelExecutors: 2,
 		});
-		assert.strictEqual(params.orchestrationMaxParallelExecutors, 2);
-	});
-
-	test('buildAgentRunParams keeps subagents model payload for executor mapping', () => {
-		const params = buildAgentRunParams({
-			prompt: 'audit',
-			workspace: WS,
-			mode: 'acceptEdits',
-			sessionId: 's1',
-			settings: mockLlmSettings(),
-			disabledTools: [],
-			subagents: { enabled: true, maxIterations: 8, maxConcurrent: 1, model: 'qwen3.5:4b', numCtx: 16384 },
-			mcpToolsEnabled: true,
-		});
-		assert.strictEqual(params.subagentsEnabled, undefined);
-		assert.strictEqual(params.subagentsModel, 'qwen3.5:4b');
-		assert.strictEqual(params.subagentsNumCtx, 16384);
-		assert.strictEqual(params.orchestrationMode, 'role_split');
-	});
-
-	test('buildAgentRunParams forwards executor numCtx without legacy subagents.enabled', () => {
-		const params = buildAgentRunParams({
-			prompt: 'v1_2',
-			workspace: WS,
-			mode: 'acceptEdits',
-			sessionId: 's1',
-			settings: mockLlmSettings({ numCtx: 32768 }),
-			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
-			mcpToolsEnabled: true,
-		});
-		assert.strictEqual(params.subagentsNumCtx, 32768);
-		assert.strictEqual(params.subagentsEnabled, undefined);
+		assert.strictEqual(params.orchestrationMaxParallelExecutors, 1);
 	});
 
 	test('buildAgentRunParams omits architectInteractionMode when auto', () => {
