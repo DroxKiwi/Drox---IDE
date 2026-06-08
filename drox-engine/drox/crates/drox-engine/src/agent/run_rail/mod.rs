@@ -2,8 +2,7 @@
 //!
 //! Design: `drox-engine/docs/1.4/1.4.0/README.md`
 //!
-//! Phase 2: PROPOSE hold (C4), ACT circuit breaker (C6), VERIFY-only cycle_sanity.
-//! `loop.rs` calls only [`loop_hooks`].
+//! Phase 3: ACT segments (C7/C8), station UI events, `loop_hooks` facade.
 
 mod act_failure;
 mod boot;
@@ -14,18 +13,23 @@ mod nudges;
 mod policy;
 mod pre_gate;
 mod propose_hold;
+mod segment;
 mod snapshot_block;
 mod station;
+mod station_events;
 mod state;
 mod transition;
 mod user_turn;
 
-pub use loop_hooks::{AfterAssistantAction, on_act_tool_failure, on_turn_start};
-pub use loop_hooks::{after_assistant_turn, refresh_snapshot, should_observe_cycle_sanity};
+pub use loop_hooks::{
+    after_assistant_turn, on_act_tool_failure, on_turn_start, record_act_tool_step,
+    refresh_snapshot, run_segment_for_tool, segment_spawn_request, should_observe_cycle_sanity,
+    AfterAssistantAction,
+};
 pub use pre_gate::tool_pre_gate_rail;
 pub use snapshot_block::{refresh_run_rail_snapshot, run_rail_snapshot_block};
-#[allow(unused_imports)]
-pub use station::{RunDepth, RunStation};
+pub use station_events::to_agent_event;
+pub use station::RunStation;
 pub use state::RunRailState;
 
 /// Whether the run rail conductor is active for this run (architect **edit** only).

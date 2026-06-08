@@ -193,6 +193,38 @@ pub enum AgentEvent {
         turns: Option<u32>,
         user_message: String,
     },
+    /// Run rail 1.4 — entered a new station (`advance`).
+    RailStationEnter {
+        station: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        label: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        task_id: Option<String>,
+    },
+    /// Run rail 1.4 — `hold` (PROPOSE user wait or jump to ANSWER).
+    RailStationHold {
+        station: String,
+    },
+    /// Run rail 1.4 — left a station (`advance` or `hold` follow-up).
+    RailStationDone {
+        station: String,
+    },
+    /// Run rail 1.4 — ACT segment spawned (isolated executor slice).
+    RailSegmentStart {
+        station: String,
+        task_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        label: Option<String>,
+        scope: Vec<String>,
+    },
+    /// Run rail 1.4 — ACT segment report integrated.
+    RailSegmentDone {
+        task_id: String,
+        status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        summary: Option<String>,
+        paths_touched: Vec<String>,
+    },
 }
 
 impl AgentEvent {

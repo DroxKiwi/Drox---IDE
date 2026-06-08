@@ -71,6 +71,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/stream/timeline/strip.js',
 	'droxChat/stream/timeline/thinking.js',
 	'droxChat/stream/timeline/phases.js',
+	'droxChat/stream/timeline/run-rail-stations.js',
 	'droxChat/stream/timeline/architect-rail.js',
 	'droxChat/stream/timeline/mount.js',
 	'droxChat/stream/timeline/overrides.js',

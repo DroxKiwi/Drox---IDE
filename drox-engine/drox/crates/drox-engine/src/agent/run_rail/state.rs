@@ -2,6 +2,8 @@
 //!
 //! Design: `drox-engine/docs/1.4/1.4.0/05-CODE-ARCHITECTURE.md`
 
+use std::collections::HashSet;
+
 use super::station::{RunDepth, RunStation};
 
 /// Mutable rail state for one architect edit run.
@@ -14,6 +16,10 @@ pub struct RunRailState {
     /// C6 — consecutive failures on the same path at ACT.
     pub act_failure_strikes: u32,
     pub act_failure_last_path: Option<String>,
+    /// Tool calls executed at ACT in the parent (segment trigger C7).
+    pub act_tool_steps: u32,
+    /// Paths already delegated to a segment this run (avoid respawn loops).
+    pub segment_spawned_paths: HashSet<String>,
 }
 
 impl RunRailState {
@@ -25,6 +31,8 @@ impl RunRailState {
             propose_awaiting_user: false,
             act_failure_strikes: 0,
             act_failure_last_path: None,
+            act_tool_steps: 0,
+            segment_spawned_paths: HashSet::new(),
         }
     }
 

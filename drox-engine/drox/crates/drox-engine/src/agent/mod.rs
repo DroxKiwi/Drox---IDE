@@ -180,6 +180,24 @@ pub struct Agent {
 }
 
 impl Agent {
+    /// Parent LLM for nested run-rail segments (`run_rail/segment/runner.rs`).
+    #[must_use]
+    pub(crate) fn llm_client(&self) -> Arc<dyn LlmClient> {
+        self.llm.clone()
+    }
+
+    /// Tool context snapshot for segment sub-runs.
+    #[must_use]
+    pub(crate) fn tool_context(&self) -> ToolContext {
+        self.ctx.clone()
+    }
+
+    /// Config snapshot for segment sub-runs.
+    #[must_use]
+    pub(crate) fn agent_config(&self) -> AgentConfig {
+        self.config.clone()
+    }
+
     pub fn new(
         llm: Arc<dyn LlmClient>,
         registry: Arc<ToolRegistry>,
