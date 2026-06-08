@@ -48,6 +48,7 @@ pub fn architect_run_context_block(
     state: &ArchitectRunState,
     live_run_objective: Option<&str>,
     profile: RunSnapshotProfile,
+    executor_delegation_enabled: bool,
 ) -> String {
     let flags = section_flags_for_profile(profile);
 
@@ -82,7 +83,7 @@ pub fn architect_run_context_block(
     }
 
     block.push_str("\n### Plan / todos\n");
-    block.push_str(&state.format_plan_snapshot_public());
+    block.push_str(&state.format_plan_snapshot_public(executor_delegation_enabled));
     block.push('\n');
 
     if flags.focus_task {
@@ -92,7 +93,10 @@ pub fn architect_run_context_block(
         }
     }
 
-    if flags.last_delegate && state.last_delegate_task_id.is_some() {
+    if flags.last_delegate
+        && executor_delegation_enabled
+        && state.last_delegate_task_id.is_some()
+    {
         block.push_str("\n### Last delegate\n");
         block.push_str(&state.format_last_delegate_snapshot());
         block.push('\n');
@@ -128,7 +132,7 @@ pub fn architect_run_context_block(
 
     if flags.compaction_checkpoint {
         block.push_str("\n\n");
-        block.push_str(&state.cycle_checkpoint_block());
+        block.push_str(&state.cycle_checkpoint_block(executor_delegation_enabled));
     }
 
     block
@@ -138,16 +142,28 @@ pub fn architect_run_context_block(
 pub fn architect_run_context_block_per_turn(
     state: &ArchitectRunState,
     live_run_objective: Option<&str>,
+    executor_delegation_enabled: bool,
 ) -> String {
-    architect_run_context_block(state, live_run_objective, RunSnapshotProfile::PerTurn)
+    architect_run_context_block(
+        state,
+        live_run_objective,
+        RunSnapshotProfile::PerTurn,
+        executor_delegation_enabled,
+    )
 }
 
 #[must_use]
 pub fn architect_run_context_block_compaction(
     state: &ArchitectRunState,
     live_run_objective: Option<&str>,
+    executor_delegation_enabled: bool,
 ) -> String {
-    architect_run_context_block(state, live_run_objective, RunSnapshotProfile::PostCompaction)
+    architect_run_context_block(
+        state,
+        live_run_objective,
+        RunSnapshotProfile::PostCompaction,
+        executor_delegation_enabled,
+    )
 }
 
 #[must_use]
@@ -177,17 +193,35 @@ mod tests {
         st.anchor_user_request("Fix login");
         st.last_delegate_task_id = Some("t1".into());
         st.last_delegate_status = Some(DelegateStatus::Completed);
-        let block = architect_run_context_block_per_turn(&st, None);
+        let block = architect_run_context_block_per_turn(&st, None, true);
         assert!(block.contains(ARCHITECT_RUN_SNAPSHOT_MARKER));
         assert!(block.contains("Fix login"));
         assert!(block.contains("### Last delegate\n"));
     }
 
     #[test]
+    fn solo_hides_last_delegate_section() {
+        let mut st = ArchitectRunState::new();
+        st.last_delegate_task_id = Some("t1".into());
+        st.last_delegate_status = Some(DelegateStatus::Completed);
+        let block = architect_run_context_block_per_turn(&st, None, false);
+        assert!(!block.contains("### Last delegate\n"));
+    }
+
+    #[test]
     fn compaction_includes_checkpoint_table() {
         let mut st = ArchitectRunState::new();
         st.todo_statuses.insert("t1".into(), "pending".into());
-        let block = architect_run_context_block_compaction(&st, None);
+        let block = architect_run_context_block_compaction(&st, None, true);
         assert!(block.contains("Architect cycle checkpoint"));
+    }
+
+    #[test]
+    fn solo_compaction_checkpoint_omits_delegate() {
+        let mut st = ArchitectRunState::new();
+        st.todo_statuses.insert("t1".into(), "pending".into());
+        let block = architect_run_context_block_compaction(&st, None, false);
+        assert!(block.contains("no sub-agents"));
+        assert!(!block.contains("delegate_executor"));
     }
 }

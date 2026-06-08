@@ -15,7 +15,8 @@ use crate::orchestration::{
 };
 
 use super::cycle_sanity::{
-    CycleSanityOutcome, cycle_sanity_failed_summary, infer_sanity_from_delegate_output,
+    CycleSanityOutcome, cycle_sanity_failed_summary, cycle_sanity_failed_summary_from_bash,
+    infer_sanity_from_bash_output, infer_sanity_from_delegate_output,
 };
 use super::architect_todo_gate;
 use crate::orchestration::{extract_mode_from_text, ArchitectWorkMode, DelegateStatus};
@@ -513,17 +514,22 @@ impl ArchitectRunState {
 
     /// Bloc post-compaction (checkpoint complet) — délégué au snapshot unifié.
     #[must_use]
-    pub fn cycle_anchor_block(&self, live_run_objective: Option<&str>) -> String {
+    pub fn cycle_anchor_block(
+        &self,
+        live_run_objective: Option<&str>,
+        executor_delegation_enabled: bool,
+    ) -> String {
         crate::orchestration::architect_run_context_block_compaction(
             self,
             live_run_objective,
+            executor_delegation_enabled,
         )
     }
 
     /// Plan / todos pour le snapshot (≤ `anchor_plan_max_items` lignes).
     #[must_use]
-    pub(crate) fn format_plan_snapshot_public(&self) -> String {
-        self.format_plan_snapshot()
+    pub(crate) fn format_plan_snapshot_public(&self, executor_delegation_enabled: bool) -> String {
+        self.format_plan_snapshot(executor_delegation_enabled)
     }
 
     /// Tâche courante : première `in_progress` hors meta, sinon dernier `task_id` délégué.
@@ -592,9 +598,12 @@ impl ArchitectRunState {
     }
 
     #[must_use]
-    fn format_plan_snapshot(&self) -> String {
+    fn format_plan_snapshot(&self, executor_delegation_enabled: bool) -> String {
         if self.task_labels.is_empty() && self.todo_statuses.is_empty() {
-            return "*(no plan yet — call `todo_write` before `delegate_executor`)*".to_string();
+            if executor_delegation_enabled {
+                return "*(no plan yet — call `todo_write` before `delegate_executor`)*".to_string();
+            }
+            return "*(no plan yet — optional `todo_write` for multi-step work)*".to_string();
         }
         let mut ids: Vec<String> = self
             .task_labels
@@ -626,17 +635,22 @@ impl ArchitectRunState {
                 format_args!("\n- **{id}** [{status}]{verified} — {label}"),
             );
         }
-        if let Some(plan) = self.orchestration_plan_id.as_deref() {
-            out.push_str(&format!(
-                "\n\nPlan output folder: `.drox/agent-output/{plan}/<task_id>/`"
-            ));
+        if executor_delegation_enabled {
+            if let Some(plan) = self.orchestration_plan_id.as_deref() {
+                out.push_str(&format!(
+                    "\n\nPlan output folder: `.drox/agent-output/{plan}/<task_id>/`"
+                ));
+            }
         }
         out.trim_start_matches('\n').to_string()
     }
 
     /// Checkpoint injecté après compaction / délégation pour garder le fil architecte.
     #[must_use]
-    pub fn cycle_checkpoint_block(&self) -> String {
+    pub fn cycle_checkpoint_block(&self, executor_delegation_enabled: bool) -> String {
+        if !executor_delegation_enabled {
+            return self.cycle_checkpoint_block_solo();
+        }
         let task = self
             .last_delegate_task_id
             .as_deref()
@@ -721,7 +735,7 @@ impl ArchitectRunState {
             }
             block.push_str(&rows);
         }
-        if let Some(sanity) = self.cycle_sanity_pending_block() {
+        if let Some(sanity) = self.cycle_sanity_pending_block(true) {
             block.push_str("\n\n");
             block.push_str(&sanity);
         } else if self.cycle_sanity == CycleSanityOutcome::Failed {
@@ -755,6 +769,64 @@ impl ArchitectRunState {
                         .unwrap_or(1),
                 ));
             }
+        }
+        block
+    }
+
+    fn cycle_checkpoint_block_solo(&self) -> String {
+        let plan = self
+            .orchestration_plan_id
+            .as_deref()
+            .unwrap_or("(no plan id yet)");
+        let mut block = format!(
+            "## Architect cycle checkpoint (engine)\n\
+             - Plan id: **{plan}**\n\
+             - **Mode:** architect works **directly** — no sub-agents on this product path.\n\
+             - Follow the **User request** and **Current plan** in the cycle anchor above."
+        );
+        let mut task_ids: Vec<&str> = self.todo_statuses.keys().map(String::as_str).collect();
+        task_ids.sort_unstable();
+        if !task_ids.is_empty() {
+            let mut rows = String::from(
+                "\n\n### Todo checkpoint table\n\
+                 | task_id | last_status | suggested_next |\n\
+                 |---|---|---|\n",
+            );
+            for id in task_ids {
+                let last_status = self
+                    .todo_statuses
+                    .get(id)
+                    .map(String::as_str)
+                    .unwrap_or("unknown");
+                let suggested_next = match last_status {
+                    "completed" => "none",
+                    "in_progress" => "finish with `file_edit` / `bash` / reads",
+                    "pending" => "mark `in_progress` or work directly",
+                    "cancelled" => "none",
+                    _ => "update `todo_write` if tracking plan",
+                };
+                rows.push_str(&format!(
+                    "| `{id}` | `{last_status}` | {suggested_next} |\n"
+                ));
+            }
+            block.push_str(&rows);
+        }
+        if let Some(sanity) = self.cycle_sanity_pending_block(false) {
+            block.push_str("\n\n");
+            block.push_str(&sanity);
+        } else if self.cycle_sanity == CycleSanityOutcome::Failed {
+            if let Some(note) = self.cycle_sanity_note.as_deref() {
+                block.push_str("\n\n## Cycle sanity — FAILED (engine)\n");
+                block.push_str(&format!("- Summary: {note}\n"));
+                block.push_str(
+                    "- In `[phase: answering]`, tell the user what failed and offer fix hints — do not close as success.\n",
+                );
+            }
+        } else if self.cycle_sanity == CycleSanityOutcome::UserDelegated {
+            block.push_str(
+                "\n\n## Cycle sanity — user verification requested (engine)\n\
+                 - You asked the user to verify manually. In `[phase: answering]`, summarize what they should check.\n",
+            );
         }
         block
     }
@@ -854,25 +926,50 @@ impl ArchitectRunState {
                     }
                 }
             }
+            "bash" => {
+                if let Some(outcome) = infer_sanity_from_bash_output(output) {
+                    self.cycle_sanity = outcome;
+                    if outcome == CycleSanityOutcome::Failed {
+                        self.cycle_sanity_note =
+                            Some(cycle_sanity_failed_summary_from_bash(output));
+                    }
+                }
+            }
             _ => {}
         }
     }
 
     /// Bloc injecté dans le checkpoint quand la sanity est encore en attente.
     #[must_use]
-    pub fn cycle_sanity_pending_block(&self) -> Option<String> {
+    pub fn cycle_sanity_pending_block(&self, executor_delegation_enabled: bool) -> Option<String> {
         if !self.run_closable() || self.cycle_sanity_resolved() {
             return None;
+        }
+        if executor_delegation_enabled {
+            return Some(
+                "## Cycle sanity check (engine suggestion)\n\
+                 All plan tasks are `completed` — consider confirming the project still works \
+                 before `[phase: answering]`.\n\
+                 - **If you can:** one `delegate_executor` with a **smoke command** for this stack \
+                 (`npm test`, `cargo test`, `pytest`, build, lint — pick what matches the repo). \
+                 Use `task_id` `sanity` or say so in `instructions`.\n\
+                 - **If you cannot** (repo too large, unknown tech, no safe command): `ask_user_question` \
+                 asking the user to run a specific check and report back.\n\
+                 - **If smoke fails:** `[phase: answering]` must state what broke and give **concrete fix hints** \
+                 (paths, likely cause, next steps) — do not pretend success.\n\
+                 - **If smoke passes:** proceed to user summary, then `[phase: done]`.\n\
+                 Call `architect_help { \"topic\": \"sanity\" }` for the playbook."
+                    .to_string(),
+            );
         }
         Some(
             "## Cycle sanity check (engine suggestion)\n\
              All plan tasks are `completed` — consider confirming the project still works \
              before `[phase: answering]`.\n\
-             - **If you can:** one `delegate_executor` with a **smoke command** for this stack \
-             (`npm test`, `cargo test`, `pytest`, build, lint — pick what matches the repo). \
-             Use `task_id` `sanity` or say so in `instructions`.\n\
+             - **If you can:** run one matching command with **`bash`** for this stack \
+             (`npm test`, `cargo test`, `pytest`, build, lint — pick what matches the repo).\n\
              - **If you cannot** (repo too large, unknown tech, no safe command): `ask_user_question` \
-             asking the user to run a specific check and report back.\n\
+             with `[cycle: user_check]` asking the user to run a specific check.\n\
              - **If smoke fails:** `[phase: answering]` must state what broke and give **concrete fix hints** \
              (paths, likely cause, next steps) — do not pretend success.\n\
              - **If smoke passes:** proceed to user summary, then `[phase: done]`.\n\
@@ -1264,7 +1361,7 @@ mod tests {
         st.task_labels
             .insert("t1".into(), "Trouver flashlight-overlay.tsx".into());
         st.todo_statuses.insert("t1".into(), "in_progress".into());
-        let block = st.cycle_anchor_block(None);
+        let block = st.cycle_anchor_block(None, false);
         assert!(block.contains(ARCHITECT_RUN_SNAPSHOT_MARKER));
         assert!(block.contains("Agrandir la lampe torche"));
         assert!(block.contains("**t1** [in_progress]"));
@@ -1275,7 +1372,7 @@ mod tests {
     fn cycle_anchor_block_includes_work_mode() {
         let mut st = ArchitectRunState::new();
         st.try_anchor_work_mode_from_text("[mode: discovery]\nExploring the repo.");
-        let block = st.cycle_anchor_block(None);
+        let block = st.cycle_anchor_block(None, false);
         assert!(block.contains("discovery"));
         st.try_anchor_work_mode_from_text("[mode: task]");
         assert_eq!(st.work_mode_anchor, Some(ArchitectWorkMode::Discovery));
@@ -1291,7 +1388,7 @@ mod tests {
             Message::system("[context checkpoint — earlier messages compressed by the engine]\n\n## Objective\nold"),
             Message::user("tail"),
         ];
-        inject_architect_run_snapshot_after_checkpoint(&mut msgs, &st.cycle_anchor_block(None));
+        inject_architect_run_snapshot_after_checkpoint(&mut msgs, &st.cycle_anchor_block(None, false));
         assert_eq!(
             msgs.iter()
                 .filter(|m| is_architect_run_snapshot_message(m))
@@ -1302,7 +1399,7 @@ mod tests {
             .iter()
             .any(|m| is_architect_run_snapshot_message(m)));
         st.anchor_user_request("Demande B");
-        inject_architect_run_snapshot_after_checkpoint(&mut msgs, &st.cycle_anchor_block(None));
+        inject_architect_run_snapshot_after_checkpoint(&mut msgs, &st.cycle_anchor_block(None, false));
         assert_eq!(
             msgs.iter()
                 .filter(|m| is_architect_run_snapshot_message(m))

@@ -135,6 +135,8 @@ pub struct RunSpec {
     pub gates: GateFlags,
     /// Discussion : `false` après `START_RUN.discuss_reply_only` (aucun outil).
     pub discussion_allow_reads: bool,
+    /// `false` (1.3.4) : masque `delegate_executor` ; code exécuteur conservé côté moteur.
+    pub executor_delegation_enabled: bool,
 }
 
 impl RunSpec {
@@ -148,6 +150,7 @@ impl RunSpec {
             subagents_enabled,
             gates: GateFlags::all_enabled(),
             discussion_allow_reads: true,
+            executor_delegation_enabled: false,
         }
     }
 
@@ -190,6 +193,7 @@ impl RunSpec {
             subagents_enabled,
             gates: GateFlags::all_enabled(),
             discussion_allow_reads: true,
+            executor_delegation_enabled: false,
         }
     }
 
@@ -235,7 +239,12 @@ impl RunSpec {
         }
         match self.role_id {
             RoleId::Standard => true,
-            RoleId::Architect => ARCHITECT_TOOL_ALLOWLIST.contains(&tool_name),
+            RoleId::Architect => {
+                if tool_name == "delegate_executor" && !self.executor_delegation_enabled {
+                    return false;
+                }
+                ARCHITECT_TOOL_ALLOWLIST.contains(&tool_name)
+            }
             RoleId::ArchitectDiscussion => {
                 self.discussion_allow_reads
                     && ARCHITECT_DISCUSSION_TOOL_ALLOWLIST.contains(&tool_name)
@@ -304,6 +313,7 @@ impl RunSpec {
         spec.limits.max_todo_items = tuning.max_todo_items.map(|n| n as usize);
         spec.limits.memory_budget_tokens = tuning.memory_budget_tokens;
         spec.gates = GateFlags::from_tuning(tuning);
+        spec.executor_delegation_enabled = tuning.executor_delegation_enabled;
         spec
     }
 }
@@ -325,11 +335,11 @@ mod tests {
     }
 
     #[test]
-    fn architect_allowlist_allows_mutations_and_delegate() {
+    fn architect_allowlist_allows_mutations_delegate_disabled_by_default() {
         let spec = RunSpec::for_orchestration_role(RoleId::Architect);
         assert!(spec.tool_visible("file_read"));
         assert!(spec.tool_visible("grep"));
-        assert!(spec.tool_visible("delegate_executor"));
+        assert!(!spec.tool_visible("delegate_executor"));
         assert!(spec.tool_visible("file_edit"));
         assert!(spec.tool_visible("bash"));
         assert!(spec.tool_visible("file_write"));
@@ -370,6 +380,16 @@ mod tests {
         assert!(!spec.discussion_allow_reads);
         assert!(!spec.tool_visible("file_read"));
         assert!(!spec.tool_visible("workspace_map_read"));
+    }
+
+    #[test]
+    fn tuning_can_enable_executor_delegation() {
+        let mut tuning = crate::orchestration::EngineTuning::from_preset(
+            crate::orchestration::StrictnessPreset::Normal,
+        );
+        tuning.executor_delegation_enabled = true;
+        let spec = RunSpec::for_orchestration_role_with_tuning(RoleId::Architect, &tuning);
+        assert!(spec.tool_visible("delegate_executor"));
     }
 
     #[test]

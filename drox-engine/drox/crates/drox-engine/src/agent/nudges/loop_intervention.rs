@@ -23,9 +23,14 @@ fn apply_strike_placeholders(raw: &str, strike: u32, max_strikes: u32) -> String
 fn role_block(spec: &RunSpec) -> &'static str {
     match spec.role_id {
         RoleId::Executor => tpl::ROLE_EXECUTOR,
-        RoleId::Architect | RoleId::ArchitectDiscussion => {
-            tpl::ROLE_ARCHITECT
+        RoleId::Architect => {
+            if spec.executor_delegation_enabled {
+                tpl::ROLE_ARCHITECT
+            } else {
+                tpl::ROLE_ARCHITECT_SOLO
+            }
         }
+        RoleId::ArchitectDiscussion => tpl::ROLE_ARCHITECT,
         RoleId::Standard => tpl::ROLE_STANDARD,
     }
 }

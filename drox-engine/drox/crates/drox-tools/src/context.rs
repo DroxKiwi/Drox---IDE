@@ -69,6 +69,8 @@ pub struct ToolContext {
     pub orchestration_max_parallel_executors: usize,
     /// Snapshot pour `architect_help` (rôle Architecte uniquement).
     pub architect_help_snapshot: Option<ArchitectHelpSnapshot>,
+    /// `false` (1.3.4) : playbook / guidance sans `delegate_executor`.
+    pub executor_delegation_enabled: bool,
 }
 
 impl ToolContext {
@@ -97,7 +99,14 @@ impl ToolContext {
             orchestration_run_closable: false,
             orchestration_max_parallel_executors: 1,
             architect_help_snapshot: None,
+            executor_delegation_enabled: false,
         }
+    }
+
+    #[must_use]
+    pub fn with_executor_delegation_enabled(mut self, enabled: bool) -> Self {
+        self.executor_delegation_enabled = enabled;
+        self
     }
 
     /// Nombre max d'items `in_progress` autorisés par `todo_write` pour ce run.

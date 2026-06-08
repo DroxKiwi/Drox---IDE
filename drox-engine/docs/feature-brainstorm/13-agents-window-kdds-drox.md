@@ -1,4 +1,4 @@
-# Idée 13 — S’approprier l’Agents Window VS Code (marque KDDS / Drox)
+﻿# Idée 13 — S’approprier l’Agents Window VS Code (marque KDDS / Drox)
 
 **Statut** : idée brute (brainstorm)  
 **Date** : 2026-06-07  
@@ -142,7 +142,7 @@ Réutilise l’agrégation `SessionsManagementService` au lieu de réécrire ong
 
 - [UI Phase 1 — chat natif](../0.0/ide/UI-PHASE1-CHAT-NATIF.md) — vision Cursor-like (auxiliary bar)
 - [CONDUCTEUR-CODE 1.3.2](../1.3/1.3.2/CONDUCTEUR-CODE.md) — moteur actuel
-- [1.3.5 — trois piliers](../1.3/1.3.5/README.md) — index / graphe / fast path (complémentaire, pas concurrent)
+- [1.4.1 — trois piliers](../1.4/1.4.1/README.md) — index / graphe / fast path (complémentaire, pas concurrent)
 - [10 — Paramétrage prompts & strictesse](10-parametrage-prompts-strictesse.md) — customizations côté moteur
 - Upstream : `src/vs/sessions/SESSIONS.md`, `COPILOT_CHAT_SESSIONS_PROVIDER.md`
 

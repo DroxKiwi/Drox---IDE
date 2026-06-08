@@ -1,4 +1,4 @@
-# Drox 1.3.3 — Release fiable (pipeline & package)
+﻿# Drox 1.3.3 — Release fiable (pipeline & package)
 
 **Statut** : **livré** (juin 2026)  
 **Prérequis** : [1.3.2](../1.3.2/README.md) mergée sur `main`
@@ -29,7 +29,7 @@ L’installeur OR **1.3.2** a été produit avec un `out-vscode-min` recyclé (3
 
 **Reporté en [1.3.4](../1.3.4/README.md)** : TEST-PLAN complet, presets, `cargo test` systématique.
 
-**Reporté en [1.3.5](../1.3.5/README.md)** : index, graphe, fast path.
+**Reporté en [1.4.1](../../1.4/1.4.1/README.md)** : index, graphe, fast path.
 
 ---
 

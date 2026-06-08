@@ -188,8 +188,17 @@ mod tests {
     }
 
     #[test]
-    fn delegate_cap_nudge_after_reads_preset() {
+    fn delegate_cap_nudge_skipped_when_delegation_disabled() {
         let tuning = EngineTuning::from_preset(crate::orchestration::StrictnessPreset::Strict);
+        let mut state = ArchitectRunState::new();
+        state.reads_since_delegate = tuning.max_reads_before_delegate as usize;
+        assert!(architect_delegate_cap_nudge(&tuning, &mut state, "file_read").is_none());
+    }
+
+    #[test]
+    fn delegate_cap_nudge_after_reads_preset() {
+        let mut tuning = EngineTuning::from_preset(crate::orchestration::StrictnessPreset::Strict);
+        tuning.executor_delegation_enabled = true;
         let mut state = ArchitectRunState::new();
         state.reads_since_delegate = tuning.max_reads_before_delegate as usize;
         let nudge = architect_delegate_cap_nudge(&tuning, &mut state, "file_read");
@@ -200,7 +209,8 @@ mod tests {
 
     #[test]
     fn delegate_cap_nudge_after_mutations_preset() {
-        let tuning = EngineTuning::from_preset(crate::orchestration::StrictnessPreset::Strict);
+        let mut tuning = EngineTuning::from_preset(crate::orchestration::StrictnessPreset::Strict);
+        tuning.executor_delegation_enabled = true;
         let mut state = ArchitectRunState::new();
         state.mutations_since_delegate = tuning.max_mutations_before_delegate_nudge as usize;
         let nudge = architect_delegate_cap_nudge(&tuning, &mut state, "file_edit");
@@ -324,6 +334,9 @@ pub(crate) fn architect_delegate_cap_nudge(
     state: &mut ArchitectRunState,
     tool_name: &str,
 ) -> Option<&'static str> {
+    if !tuning.executor_delegation_enabled {
+        return None;
+    }
     if is_architect_read_tool(tool_name)
         && state.reads_since_delegate >= tuning.max_reads_before_delegate as usize
         && !state.delegate_reads_nudge_sent

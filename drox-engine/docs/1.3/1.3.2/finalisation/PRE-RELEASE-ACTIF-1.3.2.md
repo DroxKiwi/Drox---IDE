@@ -1,6 +1,6 @@
-# Pré-release active — Drox IDE 1.3.2
+﻿# Pré-release active — Drox IDE 1.3.2
 
-**Objectif** : passer de « moteur stabilisé en dogfood » à une **release produit** utilisable en développement actif — sans promettre la 1.3.5 (index, graphe).
+**Objectif** : passer de « moteur stabilisé en dogfood » à une **release produit** utilisable en développement actif — sans promettre la 1.4.1 (index, graphe).
 
 **Statut** : chantier ouvert — **bloquant tag `v1.3.2` stable**.
 

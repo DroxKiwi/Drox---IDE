@@ -1,4 +1,4 @@
-# Clôture 1.3.2 — moteur stabilisé (sans bruit)
+﻿# Clôture 1.3.2 — moteur stabilisé (sans bruit)
 
 **Date cible** : juin 2026  
 **Version** : `droxVersion` **1.3.2**  
@@ -33,14 +33,14 @@ Tout ce qui traînait dans les plans 1.3.2 initiaux **ne fait plus partie** de c
 |------------|----------|----------|
 | Gate chain TOML (`entry` → `discuss.*`) | **Annulé** | Archive [gates/ARCHIVE.md](../gates/ARCHIVE.md) |
 | Paliers `E-*` / injection palier dans loop | **Annulé** | — |
-| Backpack / RAG fiches | **Annulé** | Remplacé par vision 1.3.5 (index local) |
+| Backpack / RAG fiches | **Annulé** | Remplacé par vision 1.4.1 (index local) |
 | Prompts additifs phases 1–2 (snapshot par palier) | **Annulé** | Snapshot factuel complet conservé |
 | Sessions segmentées (pilier 2) | **Reporté** | 1.3.3+ ou IDE hors moteur |
 | Dé-branding + licences (pilier 3) | **Reporté** | 1.3.1 / release produit |
 | Télémétrie / perf globale | **Reporté** | 1.3.3+ |
 | Retrait UI Exploring | **Reporté** | IDE — hors blocage moteur |
 
-**Les 3 piliers produit** (index intelligent, graphe contexte, fast path / latence) → **[1.3.5](../1.3.5/README.md)**. Release fiable → **[1.3.3](../1.3.3/README.md)**.
+**Les 3 piliers produit** (index intelligent, graphe contexte, fast path / latence) → **[1.4.1](../../1.4/1.4.1/README.md)**. Release fiable → **[1.3.3](../1.3.3/README.md)**.
 
 ---
 
@@ -78,7 +78,7 @@ Tout ce qui traînait dans les plans 1.3.2 initiaux **ne fait plus partie** de c
 | 2026-06-06 | **Recentrage** : 1.3.2 = simplification moteur + tests ; reste → 1.3.3 |
 | 2026-06-06 | Suppression GateEngine, EditTier, backpack, reliquats code/UI |
 | 2026-06-07 | Dette webview S8 documentée ; nudges délégation paramétriques S9 ; dogfood site-kdds OK ([chat.txt](../chat.txt)) |
-| 2026-06-07 | Merge `1.3.2` → `main` ; **1.3.3** (release fiable) · **1.3.4** (stabilisation) · **1.3.5** (piliers) |
+| 2026-06-07 | Merge `1.3.2` → `main` ; **1.3.3** (release fiable) · **1.3.4** (stabilisation) · **1.4.1** (piliers) |
 
 ---
 
@@ -86,4 +86,4 @@ Tout ce qui traînait dans les plans 1.3.2 initiaux **ne fait plus partie** de c
 
 - [README 1.3.2](../README.md)
 - [TEST-PLAN](TEST-PLAN-1.3.2.md)
-- [1.3.3](../1.3.3/README.md) · [1.3.4](../1.3.4/README.md) · [1.3.5](../1.3.5/README.md)
+- [1.3.3](../1.3.3/README.md) · [1.3.4](../1.3.4/README.md) · [1.4.1](../../1.4/1.4.1/README.md)

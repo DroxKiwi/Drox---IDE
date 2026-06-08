@@ -1,4 +1,4 @@
-# Clôture 1.3.3 — release fiable (pipeline & package)
+﻿# Clôture 1.3.3 — release fiable (pipeline & package)
 
 **Version** : `droxVersion` **1.3.3**  
 **Statut** : **livré** — installeur OR publié, `latest.json` → 1.3.3 (juin 2026)
@@ -20,7 +20,7 @@
 ## Hors scope 1.3.3
 
 - TEST-PLAN T1–T10, presets P8–P13 → [1.3.4](../../1.3.4/PLAN-1.3.4.md)
-- Index / graphe / fast path → [1.3.5](../../1.3.5/PLAN-1.3.5.md)
+- Index / graphe / fast path → [1.4.1](../../../1.4/1.4.1/PLAN-1.4.1.md) (ex-1.3.5)
 - Agents Window KDDS
 
 ---

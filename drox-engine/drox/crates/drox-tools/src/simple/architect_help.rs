@@ -63,10 +63,9 @@ impl Tool for ArchitectHelpTool {
     }
 
     fn description(&self) -> &str {
-        "Contextual playbook for the Architect role: full tools vs Executor sub-agents (`delegate_executor`), \
-         parallel slot count, when to verify, update todos, or close. Read-only. \
-         Use when unsure what to do next — especially delegate vs direct edit, or near `[phase: done]`. \
-         Format: {\"topic\": \"auto\"|\"closure\"|\"sanity\"|\"delegate\"|\"verify\"|\"plan\"|\"phases\"|\"general\"}."
+        "Contextual playbook for the Architect role: plan, verify, sanity, closure. Read-only. \
+         Use when unsure what to do next or near `[phase: done]`. \
+         Format: {\"topic\": \"auto\"|\"closure\"|\"sanity\"|\"plan\"|\"phases\"|\"general\"}."
     }
 
     fn input_schema(&self) -> Value {
@@ -88,9 +87,14 @@ impl Tool for ArchitectHelpTool {
                 "architect_help: unavailable outside Architect orchestration runs",
             ));
         };
-        let topic = resolve_topic(&args.topic, snapshot);
-        let parallel_slots = ctx.max_todo_in_progress_allowed();
-        let guidance = build_guidance(topic, snapshot, parallel_slots);
+        let delegation = ctx.executor_delegation_enabled;
+        let topic = resolve_topic(&args.topic, snapshot, delegation);
+        let parallel_slots = if delegation {
+            ctx.max_todo_in_progress_allowed()
+        } else {
+            1
+        };
+        let guidance = build_guidance(topic, snapshot, parallel_slots, delegation);
         Ok(json!({
             "topic": topic,
             "run_closable": snapshot.run_closable,
@@ -111,8 +115,11 @@ enum HelpTopic {
     General,
 }
 
-fn resolve_topic(raw: &str, snapshot: &ArchitectHelpSnapshot) -> &'static str {
+fn resolve_topic(raw: &str, snapshot: &ArchitectHelpSnapshot, delegation: bool) -> &'static str {
     let topic = parse_topic(raw);
+    if topic == HelpTopic::Delegate && !delegation {
+        return "general";
+    }
     if topic != HelpTopic::Auto {
         return topic_wire(topic);
     }
@@ -122,7 +129,8 @@ fn resolve_topic(raw: &str, snapshot: &ArchitectHelpSnapshot) -> &'static str {
     if snapshot.run_closable && snapshot.cycle_sanity == "pending" {
         return "sanity";
     }
-    if snapshot.last_delegate_status.as_deref() == Some("partial")
+    if delegation
+        && snapshot.last_delegate_status.as_deref() == Some("partial")
         && !snapshot.last_delegate_verified
     {
         return "verify";
@@ -159,7 +167,12 @@ fn topic_wire(t: HelpTopic) -> &'static str {
     }
 }
 
-fn build_guidance(topic: &str, s: &ArchitectHelpSnapshot, parallel_slots: usize) -> String {
+fn build_guidance(
+    topic: &str,
+    s: &ArchitectHelpSnapshot,
+    parallel_slots: usize,
+    delegation: bool,
+) -> String {
     let mut out = String::from("## Architect help\n\n");
     out.push_str("### Run snapshot\n");
     if let Some(req) = s.user_request.as_deref() {
@@ -189,15 +202,19 @@ fn build_guidance(topic: &str, s: &ArchitectHelpSnapshot, parallel_slots: usize)
     if let Some(pid) = s.plan_id.as_deref() {
         out.push_str(&format!("- **Plan id:** `{pid}` → `.drox/agent-output/{pid}/<task_id>/`\n"));
     }
-    out.push_str("- **Your tools:** full workspace access (`file_edit`, `bash`, reads, …) — you are not limited to delegation.\n");
-    if parallel_slots > 1 {
-        out.push_str(&format!(
-            "- **Parallel sub-agents:** up to **{parallel_slots}** slots — batch independent scopes via `delegate_executor` `tasks[]`.\n"
-        ));
+    out.push_str("- **Your tools:** full workspace access (`file_edit`, `bash`, reads, …).\n");
+    if delegation {
+        if parallel_slots > 1 {
+            out.push_str(&format!(
+                "- **Parallel sub-agents:** up to **{parallel_slots}** slots — batch independent scopes via `delegate_executor` `tasks[]`.\n"
+            ));
+        } else {
+            out.push_str(
+                "- **Sub-agents:** optional — one `delegate_executor` task at a time when isolating work; otherwise edit/bash yourself.\n",
+            );
+        }
     } else {
-        out.push_str(
-            "- **Sub-agents:** optional — one `delegate_executor` task at a time when isolating work; otherwise edit/bash yourself.\n",
-        );
+        out.push_str("- **Mode:** architect works **directly** — no `delegate_executor` on this product path.\n");
     }
     if !s.todo_items.is_empty() {
         out.push_str("- **Todos:**\n");
@@ -215,27 +232,29 @@ fn build_guidance(topic: &str, s: &ArchitectHelpSnapshot, parallel_slots: usize)
             ));
         }
     }
-    if let Some(task) = s.last_delegate_task_id.as_deref() {
-        out.push_str(&format!(
-            "- **Last delegate:** `{task}` · status `{}` · engine verified: {}\n",
-            s.last_delegate_status.as_deref().unwrap_or("?"),
-            s.last_delegate_verified
-        ));
+    if delegation {
+        if let Some(task) = s.last_delegate_task_id.as_deref() {
+            out.push_str(&format!(
+                "- **Last delegate:** `{task}` · status `{}` · engine verified: {}\n",
+                s.last_delegate_status.as_deref().unwrap_or("?"),
+                s.last_delegate_verified
+            ));
+        }
     }
     out.push('\n');
     match topic {
-        "closure" => out.push_str(guidance_closure(s)),
-        "sanity" => out.push_str(guidance_sanity(s)),
-        "delegate" => out.push_str(&guidance_delegate(s, parallel_slots)),
-        "verify" => out.push_str(&guidance_verify(s)),
-        "plan" => out.push_str(&guidance_plan(parallel_slots)),
-        "phases" => out.push_str(guidance_phases()),
-        _ => out.push_str(guidance_general(s)),
+        "closure" => out.push_str(guidance_closure(s, delegation)),
+        "sanity" => out.push_str(guidance_sanity(s, delegation)),
+        "delegate" if delegation => out.push_str(&guidance_delegate(s, parallel_slots)),
+        "verify" if delegation => out.push_str(&guidance_verify(s)),
+        "plan" => out.push_str(&guidance_plan(parallel_slots, delegation)),
+        "phases" => out.push_str(guidance_phases(delegation)),
+        _ => out.push_str(guidance_general(s, delegation)),
     }
     out
 }
 
-fn guidance_sanity(s: &ArchitectHelpSnapshot) -> &'static str {
+fn guidance_sanity(s: &ArchitectHelpSnapshot, delegation: bool) -> &'static str {
     if s.run_fully_closable {
         return "### Cycle sanity — already resolved\n\
                 Proceed with `[phase: answering]` and `[phase: done]` (see `topic: closure`).";
@@ -247,38 +266,67 @@ fn guidance_sanity(s: &ArchitectHelpSnapshot) -> &'static str {
                 2. Give **fix hints** (likely files, config, dependency, order of operations).\n\
                 3. Offer to fix in a follow-up — do **not** claim the mission succeeded.";
     }
+    if delegation {
+        return "### Cycle sanity — suggested before close\n\
+         All todos are done — consider confirming the **whole project still works**:\n\
+         1. Pick one command that matches the stack (`package.json` scripts, `Cargo.toml`, `pyproject.toml`, CI config).\n\
+         2. `delegate_executor` with `task_id` `sanity`, narrow `scope`, instructions with exact command + success criteria.\n\
+         3. If impossible (size, unknown tech): `ask_user_question` with a **specific** manual check.\n\
+         4. On pass → user summary. On fail → report + hints. Then `[phase: done]`.";
+    }
     "### Cycle sanity — suggested before close\n\
      All todos are done — consider confirming the **whole project still works**:\n\
      1. Pick one command that matches the stack (`package.json` scripts, `Cargo.toml`, `pyproject.toml`, CI config).\n\
-     2. `delegate_executor` with `task_id` `sanity`, narrow `scope`, instructions with exact command + success criteria.\n\
-     3. If impossible (size, unknown tech): `ask_user_question` with a **specific** manual check.\n\
+     2. Run it yourself with **`bash`** (or targeted `file_read` / `grep` if no safe command).\n\
+     3. If impossible (size, unknown tech): `ask_user_question` with a **specific** manual check (`[cycle: user_check]`).\n\
      4. On pass → user summary. On fail → report + hints. Then `[phase: done]`."
 }
 
-fn guidance_closure(s: &ArchitectHelpSnapshot) -> &'static str {
+fn guidance_closure(s: &ArchitectHelpSnapshot, delegation: bool) -> &'static str {
     if s.run_fully_closable {
-        "### Closure — do this now\n\
-         1. **Stop** calling `delegate_executor`, `workspace_map_read`, `file_read`, `grep`, `glob`.\n\
-         2. Emit **`[phase: answering]`** once with the **user-facing** summary (what changed, paths).\n\
-         3. On the **next line**, emit only **`[phase: done]`** — no tools, no repeated tables.\n\
-         4. Do **not** re-summarize in thinking — the engine will stop the run.\n\
-         Optional: `todo_write` with the same completed list (or empty if engine allows) then steps 2–3."
-    } else if s.run_closable {
-        "### Closure — waiting on cycle sanity\n\
-         Plan tasks are done. Complete **cycle sanity** first (`architect_help { \"topic\": \"sanity\" }`), \
-         then call `topic: closure` again."
-    } else if s.todo_items.is_empty() {
-        "### Closure — light run (no plan)\n\
-         No `todo_write` yet. If the user only greeted or asked something simple:\n\
-         1. **Stop** calling tools.\n\
-         2. **`[phase: answering]`** — short reply visible in chat.\n\
-         3. **`[phase: done]`** on the next line.\n\
-         If they asked for real repo work, prefer `delegate_executor` (sub-agent) — optional `todo_write` — do not loop on `architect_help`."
-    } else {
-        "### Closure — not yet\n\
-         Open todos remain. Finish with direct edits/bash and/or `delegate_executor` for parallel shards → \
-         optional sanity check → then `[phase: answering]` + `[phase: done]`."
+        if delegation {
+            return "### Closure — do this now\n\
+                 1. **Stop** calling `delegate_executor`, `workspace_map_read`, `file_read`, `grep`, `glob`.\n\
+                 2. Emit **`[phase: answering]`** once with the **user-facing** summary (what changed, paths).\n\
+                 3. On the **next line**, emit only **`[phase: done]`** — no tools, no repeated tables.\n\
+                 4. Do **not** re-summarize in thinking — the engine will stop the run.\n\
+                 Optional: `todo_write` with the same completed list (or empty if engine allows) then steps 2–3.";
+        }
+        return "### Closure — do this now\n\
+             1. **Stop** calling tools (`workspace_map_read`, `file_read`, `grep`, `glob`, edits).\n\
+             2. Emit **`[phase: answering]`** once with the **user-facing** summary (what changed, paths).\n\
+             3. On the **next line**, emit only **`[phase: done]`** — no tools, no repeated tables.\n\
+             4. Do **not** re-summarize in thinking — the engine will stop the run.";
     }
+    if s.run_closable {
+        return "### Closure — waiting on cycle sanity\n\
+             Plan tasks are done. Complete **cycle sanity** first (`architect_help { \"topic\": \"sanity\" }`), \
+             then call `topic: closure` again.";
+    }
+    if s.todo_items.is_empty() {
+        if delegation {
+            return "### Closure — light run (no plan)\n\
+                 No `todo_write` yet. If the user only greeted or asked something simple:\n\
+                 1. **Stop** calling tools.\n\
+                 2. **`[phase: answering]`** — short reply visible in chat.\n\
+                 3. **`[phase: done]`** on the next line.\n\
+                 If they asked for real repo work, prefer `delegate_executor` (sub-agent) — optional `todo_write` — do not loop on `architect_help`.";
+        }
+        return "### Closure — light run (no plan)\n\
+             No `todo_write` yet. If the user only greeted or asked something simple:\n\
+             1. **Stop** calling tools.\n\
+             2. **`[phase: answering]`** — short reply visible in chat.\n\
+             3. **`[phase: done]`** on the next line.\n\
+             If they asked for real repo work, work directly (`file_edit`, `bash`, reads) — optional `todo_write`.";
+    }
+    if delegation {
+        return "### Closure — not yet\n\
+             Open todos remain. Finish with direct edits/bash and/or `delegate_executor` for parallel shards → \
+             optional sanity check → then `[phase: answering]` + `[phase: done]`.";
+    }
+    "### Closure — not yet\n\
+     Open todos remain. Finish with direct `file_edit` / `bash` / reads → optional sanity `bash` → \
+     then `[phase: answering]` + `[phase: done]`."
 }
 
 fn guidance_delegate(s: &ArchitectHelpSnapshot, parallel_slots: usize) -> String {
@@ -323,7 +371,15 @@ fn guidance_verify(s: &ArchitectHelpSnapshot) -> String {
     )
 }
 
-fn guidance_plan(parallel_slots: usize) -> String {
+fn guidance_plan(parallel_slots: usize, delegation: bool) -> String {
+    if !delegation {
+        return "### Plan (`todo_write` — optional)\n\
+             - Split the **user request** into small steps (not generic « analyze project »).\n\
+             - Keep one task `in_progress` at a time when tracking work.\n\
+             - Execute each step yourself with `file_edit`, `bash`, `grep`, `file_read`.\n\
+             - Skip `todo_write` entirely for one-shot fixes."
+            .to_string();
+    }
     let in_progress_rule = if parallel_slots > 1 {
         format!(
             "     - With **{parallel_slots}** parallel slots: up to {parallel_slots} tasks may be `in_progress` at once when launching a batch (`tasks[]`); otherwise keep one active.\n"
@@ -343,28 +399,44 @@ fn guidance_plan(parallel_slots: usize) -> String {
     )
 }
 
-fn guidance_phases() -> &'static str {
+fn guidance_phases(delegation: bool) -> &'static str {
+    if delegation {
+        return "### Phases (Architect)\n\
+             - `[phase: planning]` / `[phase: analyzing]` — orient & optional plan.\n\
+             - `[phase: acting]` — edit, bash, delegate, verify.\n\
+             - `[phase: answering]` — **only** user-visible report (Markdown).\n\
+             - `[phase: done]` — single terminal line; run ends.\n\
+             `[run_objective: …]` early: one actionable line for the UI banner.";
+    }
     "### Phases (Architect)\n\
      - `[phase: planning]` / `[phase: analyzing]` — orient & optional plan.\n\
-     - `[phase: acting]` — edit, bash, delegate, verify.\n\
+     - `[phase: acting]` — edit, bash, reads, verify.\n\
      - `[phase: answering]` — **only** user-visible report (Markdown).\n\
      - `[phase: done]` — single terminal line; run ends.\n\
      `[run_objective: …]` early: one actionable line for the UI banner."
 }
 
-fn guidance_general(s: &ArchitectHelpSnapshot) -> &'static str {
+fn guidance_general(s: &ArchitectHelpSnapshot, delegation: bool) -> &'static str {
     if s.run_fully_closable {
-        return guidance_closure(s);
+        return guidance_closure(s, delegation);
     }
     if s.run_closable {
-        return guidance_sanity(s);
+        return guidance_sanity(s, delegation);
+    }
+    if delegation {
+        return "### General cycle\n\
+             1. Anchor on the **user request**.\n\
+             2. **Act** — `file_edit` / `bash` / reads yourself, or `delegate_executor` to parallelize.\n\
+             3. Optional `todo_write` to track shards.\n\
+             4. User summary in `[phase: answering]`, then `[phase: done]`.\n\
+             Topics: `delegate`, `plan`, `verify`, `sanity`, `closure`.";
     }
     "### General cycle\n\
      1. Anchor on the **user request**.\n\
-     2. **Act** — `file_edit` / `bash` / reads yourself, or `delegate_executor` to parallelize.\n\
-     3. Optional `todo_write` to track shards.\n\
+     2. **Act** — `file_edit` / `bash` / reads yourself.\n\
+     3. Optional `todo_write` to track steps.\n\
      4. User summary in `[phase: answering]`, then `[phase: done]`.\n\
-     Topics: `delegate`, `plan`, `verify`, `sanity`, `closure`."
+     Topics: `plan`, `sanity`, `closure`."
 }
 
 #[cfg(test)]
@@ -393,14 +465,25 @@ mod tests {
 
     #[test]
     fn auto_topic_picks_closure_when_closable() {
-        assert_eq!(resolve_topic("auto", &snapshot_closable()), "closure");
+        assert_eq!(resolve_topic("auto", &snapshot_closable(), false), "closure");
     }
 
     #[test]
     fn closure_guidance_tells_to_stop_tools() {
-        let g = build_guidance("closure", &snapshot_closable(), 1);
+        let g = build_guidance("closure", &snapshot_closable(), 1, false);
         assert!(g.contains("[phase: done]"));
         assert!(g.contains("Stop"));
+    }
+
+    #[test]
+    fn solo_sanity_guidance_uses_bash_not_delegate() {
+        let s = ArchitectHelpSnapshot {
+            run_closable: true,
+            ..Default::default()
+        };
+        let g = guidance_sanity(&s, false);
+        assert!(g.contains("bash"));
+        assert!(!g.contains("delegate_executor"));
     }
 
     #[tokio::test]

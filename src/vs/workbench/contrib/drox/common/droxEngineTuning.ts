@@ -6,6 +6,7 @@
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { DroxSetting } from './droxConfiguration.js';
+import { DROX_EXECUTOR_DELEGATION_TUNING_SETTINGS, isExecutorDelegationUiEnabled } from './droxOrchestrationUi.js';
 import { DroxEngineStrictnessPreset } from './droxEngineStrictness.js';
 /** Objet partiel envoyé dans `agent.run` (`engineTuning`). */
 export type DroxEngineTuningOverrides = Record<string, number | boolean>;
@@ -15,8 +16,7 @@ interface EngineTuningRpcField {
 	readonly settingKey: string;
 	readonly kind: RpcFieldKind;
 }
-/** Registre complet wire RPC ↔ settings IDE. */
-export const DROX_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] = [
+const ALL_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] = [
 	{ rpcKey: 'readBudgetPercent', settingKey: DroxSetting.EngineTuningReadBudgetPercent, kind: 'number' },
 	{ rpcKey: 'maxReadsBeforeDelegate', settingKey: DroxSetting.EngineTuningMaxReadsBeforeDelegate, kind: 'number' },
 	{ rpcKey: 'maxMutationsBeforeDelegateNudge', settingKey: DroxSetting.EngineTuningMaxMutationsBeforeDelegateNudge, kind: 'number' },
@@ -63,6 +63,19 @@ export const DROX_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] = [
 	{ rpcKey: 'gateProfessorCoursePlan', settingKey: DroxSetting.EngineTuningGateProfessorCoursePlan, kind: 'boolean' },
 	{ rpcKey: 'gateTodoStaleBeforeDone', settingKey: DroxSetting.EngineTuningGateTodoStaleBeforeDone, kind: 'boolean' },
 ];
+
+const DELEGATION_RPC_KEYS = new Set(
+	DROX_EXECUTOR_DELEGATION_TUNING_SETTINGS.map((settingKey) => {
+		const field = ALL_ENGINE_TUNING_RPC_FIELDS.find((f) => f.settingKey === settingKey);
+		return field?.rpcKey;
+	}).filter((k): k is string => typeof k === 'string'),
+);
+
+/** Registre wire RPC ↔ settings IDE (hors délégation si UI désactivée). */
+export const DROX_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] =
+	isExecutorDelegationUiEnabled()
+		? ALL_ENGINE_TUNING_RPC_FIELDS
+		: ALL_ENGINE_TUNING_RPC_FIELDS.filter((f) => !DELEGATION_RPC_KEYS.has(f.rpcKey));
 function readOptionalNumber(
 	configService: IConfigurationService,
 	key: string,

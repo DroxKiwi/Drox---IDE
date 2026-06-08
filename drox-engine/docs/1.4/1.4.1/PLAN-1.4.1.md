@@ -1,8 +1,8 @@
-# Plan 1.3.5 — Onboarding, index, graphe, fast path
+﻿# Plan 1.4.1 — Onboarding, index, graphe, fast path
 
-**Version** : brouillon juin 2026  
-**Base** : moteur 1.3.2 (`role_split` simplifié — voir [CONDUCTEUR-CODE.md](../1.3.2/CONDUCTEUR-CODE.md))  
-**Prérequis** : [1.3.3](../1.3.3/README.md) release fiable · [1.3.4](../1.3.4/README.md) stabilisation moteur
+**Version** : brouillon juin 2026 (ex-1.3.5, renumérotée en 1.4.1)  
+**Base** : moteur [1.4.0 Run Rail](../1.4.0/README.md) + `role_split` — voir [CONDUCTEUR-CODE.md](../../1.3/1.3.2/CONDUCTEUR-CODE.md)  
+**Prérequis** : [1.3.3](../../1.3/1.3.3/README.md) release fiable · [1.4.0](../1.4.0/README.md) run rail livré
 
 ---
 
@@ -181,7 +181,7 @@ Modèle choisi par l'utilisateur inchangé → benchmark → reco appliquée →
 
 ### Critère d'acceptation
 
-Install fraîche 1.3.5 → onboarding s’ouvre au premier lancement → utilisateur sans doc externe configure Ollama + modèle → premier message Chat obtient une réponse → onboarding marqué terminé et ne réapparaît pas au redémarrage (sauf « Relancer l’assistant de configuration »).
+Install fraîche 1.4.1 → onboarding s’ouvre au premier lancement → utilisateur sans doc externe configure Ollama + modèle → premier message Chat obtient une réponse → onboarding marqué terminé et ne réapparaît pas au redémarrage (sauf « Relancer l’assistant de configuration »).
 
 **Hors scope P5 v1** : walkthroughs extensions VS Code, import settings Cursor/VS Code, tutoriel orchestration avancée (→ doc / 1.4.x).
 

@@ -131,7 +131,11 @@
 				break;
 			case 'append':
 				if (m.role === 'error') {
-					fn.appendExploreNotice(m.text || '');
+					if (typeof fn.appendExploreNotice === 'function') {
+						fn.appendExploreNotice(m.text || '');
+					} else {
+						fn.appendMessage('error', m.text || '');
+					}
 					break;
 				}
 				fn.finalizeAssistant();

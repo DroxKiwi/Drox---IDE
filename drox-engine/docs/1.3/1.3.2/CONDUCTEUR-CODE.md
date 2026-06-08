@@ -62,4 +62,10 @@ agent.run (orchestrationMode: role_split)
 
 ## Prochaine évolution
 
-- **1.3.3** release fiable · **1.3.4** stabilisation · **1.3.5** index / graphe / fast path — [../README.md](../README.md)
+| Version | Sujet | Doc |
+|---------|-------|-----|
+| **1.3.4** | Architecte solo (clôturée anticipé) | [../1.3.4/README.md](../1.3.4/README.md) |
+| **1.4.0** | **Run Rail** — rail linéaire, hold/advance, segments | [../../1.4/1.4.0/README.md](../../1.4/1.4.0/README.md) |
+| **1.4.1** | Index / graphe / fast path (complète READ) | [../../1.4/1.4.1/PLAN-1.4.1.md](../../1.4/1.4.1/PLAN-1.4.1.md) |
+
+Le run rail **remplace** le modèle « workflow 100 % modèle + ceintures tardives » sans ressusciter `GateEngine`. Carte code : [05-CODE-ARCHITECTURE.md](../../1.4/1.4.0/05-CODE-ARCHITECTURE.md).

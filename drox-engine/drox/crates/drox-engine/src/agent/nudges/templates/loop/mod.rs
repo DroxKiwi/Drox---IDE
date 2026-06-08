@@ -4,6 +4,7 @@
 
 pub(crate) const SYSTEM_NUDGE: &str = include_str!("system_nudge.md");
 pub(crate) const ROLE_ARCHITECT: &str = include_str!("role_architect.md");
+pub(crate) const ROLE_ARCHITECT_SOLO: &str = include_str!("role_architect_solo.md");
 pub(crate) const ROLE_EXECUTOR: &str = include_str!("role_executor.md");
 pub(crate) const ROLE_STANDARD: &str = include_str!("role_standard.md");
 pub(crate) const REPEAT_TEXT: &str = include_str!("repeat_text.md");

@@ -1,4 +1,4 @@
-# Archive — docs gates / backpack / paliers (obsolètes)
+﻿# Archive — docs gates / backpack / paliers (obsolètes)
 
 > **Juin 2026** : la branche **1.3.2 stabilisée** a **retiré** le routage `GateEngine`, les paliers `EditTier` (`e_*`), le backpack et les tours `architect_intent`.  
 > **Référence actuelle** : [CONDUCTEUR-CODE.md](../CONDUCTEUR-CODE.md).
@@ -24,4 +24,4 @@ Les fichiers ci-dessous sont conservés comme **historique** — ne pas les suiv
 
 **Remplacement produit (1.3.2)** : routage RPC + prompts `01_core` + workflow modèle libre + tool gates.
 
-**Suite (1.3.5)** : index local, graphe contexte, fast path → [../../1.3.5/README.md](../../1.3.5/README.md).
+**Suite (1.4.1)** : index local, graphe contexte, fast path → [../../../1.4/1.4.1/README.md](../../../1.4/1.4.1/README.md).

@@ -319,7 +319,8 @@ pub(crate) async fn build_agent_setup(
         .with_user_asker(asker)
         .with_scope_deferred(scope_deferred)
         .with_workspace_map(workspace_map.clone())
-        .with_drox_ignore(drox_ignore);
+        .with_drox_ignore(drox_ignore)
+        .with_executor_delegation_enabled(run_spec.executor_delegation_enabled);
     if let Some(hub) = mcp_hub {
         tracing::info!(
             servers = ?hub.server_names(),

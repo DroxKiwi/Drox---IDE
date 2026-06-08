@@ -1,4 +1,4 @@
-# Drox 1.3.2 — Moteur stabilisé
+﻿# Drox 1.3.2 — Moteur stabilisé
 
 **Statut** : **tests & clôture** (juin 2026)  
 **Branche** : `1.3.2`  
@@ -43,7 +43,7 @@ Checklist release : [finalisation/CLOSURE-1.3.2.md](finalisation/CLOSURE-1.3.2.m
 
 - **1.3.3** — release fiable (pipeline, package aligné) → [../1.3.3/README.md](../1.3.3/README.md)
 - **1.3.4** — stabilisation moteur (tests) → [../1.3.4/README.md](../1.3.4/README.md)
-- **1.3.5** — index / graphe / fast path → [../1.3.5/README.md](../1.3.5/README.md)
+- **1.4.1** — index / graphe / fast path → [../../1.4/1.4.1/README.md](../../1.4/1.4.1/README.md)
 
 Anciens axes 1.3.2 (sessions segmentées, dé-brand, télémétrie, prompts par palier…) : **hors périmètre** cette release — voir CLOSURE § « exclu ».
 
