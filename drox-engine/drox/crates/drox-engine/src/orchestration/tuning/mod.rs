@@ -85,6 +85,8 @@ pub struct EngineTuningOverrides {
     pub gate_todo_stale_before_done: Option<bool>,
     /// Réactive `delegate_executor` + exécuteurs (désactivé par défaut en 1.3.4).
     pub executor_delegation_enabled: Option<bool>,
+    /// Active le conducteur run rail (1.4.0) sur les runs architecte edit.
+    pub run_rail_enabled: Option<bool>,
 }
 
 /// Paramètres moteur résolus (prompts + gates + limites).
@@ -147,6 +149,8 @@ pub struct EngineTuning {
     pub gate_todo_stale_before_done: bool,
     /// `false` (1.3.4) : architecte seul — code exécuteur conservé, outil masqué.
     pub executor_delegation_enabled: bool,
+    /// `false` (Phase 0) : run rail documenté mais inactif jusqu'à Phase 1+.
+    pub run_rail_enabled: bool,
 }
 
 /// Alias historique — prompts additifs 1.3.2 phase 3a.
@@ -214,6 +218,7 @@ impl EngineTuning {
                 gate_professor_course_plan: true,
                 gate_todo_stale_before_done: true,
                 executor_delegation_enabled: false,
+                run_rail_enabled: false,
             },
             StrictnessPreset::Strict => Self {
                 strictness,
@@ -261,6 +266,7 @@ impl EngineTuning {
                 gate_professor_course_plan: true,
                 gate_todo_stale_before_done: true,
                 executor_delegation_enabled: false,
+                run_rail_enabled: false,
             },
             StrictnessPreset::Normal | StrictnessPreset::Custom => Self {
                 strictness,
@@ -308,6 +314,7 @@ impl EngineTuning {
                 gate_professor_course_plan: true,
                 gate_todo_stale_before_done: true,
                 executor_delegation_enabled: false,
+                run_rail_enabled: false,
             },
         };
         if strictness == StrictnessPreset::Custom {
@@ -443,6 +450,7 @@ impl EngineTuning {
             &mut self.executor_delegation_enabled,
             o.executor_delegation_enabled,
         );
+        apply_opt(&mut self.run_rail_enabled, o.run_rail_enabled);
     }
 
     pub fn clamp_to_bounds(&mut self) {
@@ -557,6 +565,26 @@ mod tests {
             let t = resolve_engine_tuning(Some(preset), None);
             assert!(!t.executor_delegation_enabled, "preset={preset}");
         }
+    }
+
+    #[test]
+    fn run_rail_disabled_by_default_all_presets() {
+        for preset in ["relaxed", "normal", "strict"] {
+            let t = resolve_engine_tuning(Some(preset), None);
+            assert!(!t.run_rail_enabled, "preset={preset}");
+        }
+    }
+
+    #[test]
+    fn custom_can_enable_run_rail() {
+        let t = resolve_engine_tuning(
+            Some("custom"),
+            Some(&EngineTuningOverrides {
+                run_rail_enabled: Some(true),
+                ..Default::default()
+            }),
+        );
+        assert!(t.run_rail_enabled);
     }
 
     #[test]

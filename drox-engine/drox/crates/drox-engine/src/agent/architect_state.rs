@@ -19,6 +19,7 @@ use super::cycle_sanity::{
     infer_sanity_from_bash_output, infer_sanity_from_delegate_output,
 };
 use super::architect_todo_gate;
+use super::run_rail::RunRailState;
 use crate::orchestration::{extract_mode_from_text, ArchitectWorkMode, DelegateStatus};
 
 /// Marqueur legacy (transcripts / compaction anciens).
@@ -76,6 +77,8 @@ pub struct ArchitectRunState {
     pub run_objective_anchor: Option<String>,
     /// Sous-mode déclaré par le modèle (`[mode: discovery|task]`) — première déclaration conservée.
     pub work_mode_anchor: Option<ArchitectWorkMode>,
+    /// Run rail conductor (1.4.0) — inactive while `run_rail_enabled` is false.
+    pub rail: RunRailState,
 }
 
 impl Default for ArchitectRunState {
@@ -121,6 +124,7 @@ impl ArchitectRunState {
             user_request_anchor: None,
             run_objective_anchor: None,
             work_mode_anchor: None,
+            rail: RunRailState::new(),
         }
     }
 
