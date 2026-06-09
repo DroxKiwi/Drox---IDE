@@ -1,220 +1,140 @@
-﻿# Plan 1.4.1 — Onboarding, index, graphe, fast path
+﻿# Plan 1.4.1 — Stabilisation dogfood
 
-**Version** : brouillon juin 2026 (ex-1.3.5, renumérotée en 1.4.1)  
-**Base** : moteur [1.4.0 Run Rail](../1.4.0/README.md) + `role_split` — voir [CONDUCTEUR-CODE.md](../../1.3/1.3.2/CONDUCTEUR-CODE.md)  
-**Prérequis** : [1.3.3](../../1.3/1.3.3/README.md) release fiable · [1.4.0](../1.4.0/README.md) run rail livré
+**Version** : juin 2026  
+**Prérequis** : [1.4.0](../1.4.0/README.md) **clôturée** (moteur rail validé — B-RAIL-01 résolu)  
+**Parent backlog** : [SMOKE-BACKLOG](../1.4.0/SMOKE-BACKLOG.md)  
+**Hors scope** : polish UI chat → [1.4.2](../1.4.2/README.md) · index/graphe → [1.4.3](../1.4.3/PLAN-1.4.3.md)
+
+> **Note** : l’ancien plan « index & graphe » vit désormais en [PLAN-1.4.3.md](../1.4.3/PLAN-1.4.3.md).
 
 ---
 
 ## Vision
 
-```text
-Premier lancement
-  → Onboarding Drox (assistant paramétrage, pas Copilot)
-       ├─► Détection Ollama / drox.exe / workspace
-       ├─► Choix modèle + benchmark (P4) → preset conseillé
-       └─► Tour rapide Chat + réglages essentiels
+Corriger les **bugs moteur et session** observés au smoke juin 2026, sans refonte du fil chat. L’utilisateur doit pouvoir enchaîner des runs fiables après la 1.4.0 ; l’UI visuelle attend la 1.4.2.
 
-IDE (curseur, LSP, buffer)
-  → Index local (.drox/index/)
-  → ContextPack (≤5 fichiers + extraits)
-  → GraphContext (voisins typés)
-       ├─► Fast path (complétion, petit modèle, <100ms perceived)
-       └─► Architecte chat (run existant, pack injecté au boot)
+```text
+1.4.0 rail OK
+    → 1.4.1 discuss + boucles + session + busy
+        → 1.4.2 UI chat
+            → 1.4.3 index/graphe
 ```
 
 ---
 
-## P1 — Indexation intelligente (RAG local)
+## S1 — Discuss & routage léger (M-DISC-01)
 
-**Problème** : `workspace_map_read` donne l'arbre ; le modèle doit encore deviner quoi lire.
+**Problème** : « Salut » → `architect_discussion` mais `file_read` + `memory_list` malgré règle greeting-only (transcript `ses_5f0a049a`).
 
-**Cible** : à la position du curseur, assembler **~5 fichiers** sans tour LLM de recherche.
+| Tâche | Fichier / zone |
+|-------|----------------|
+| Pre-gate discuss : 0 outil si `DiscussReplyOnly` + message light | `start_run.rs`, `architect_gates.rs` |
+| Rejeter tools post-hoc si greeting-only détecté | `gates.rs` ou `loop.rs` |
+| Test `cargo test` scénario salut | `orchestration/start_run.rs` tests |
 
-### Couches
-
-| Couche | Source | Latence |
-|--------|--------|---------|
-| A | Fichier ouvert, sélection, diagnostics LSP | 0 ms |
-| B | Graphe import / call / tests (index disque) | ms |
-| C | Embeddings chunks locaux (optionnel) | 10–50 ms |
-
-### Livrables
-
-| Phase | Livrable | Priorité |
-|-------|----------|----------|
-| P1.0 | Contrat RPC `ContextPack` (IDE → moteur) | P0 |
-| P1.1 | Heuristique A+B sans embeddings | P0 |
-| P1.2 | Persistance `.drox/index/symbols.jsonl` + `edges.jsonl` | P1 |
-| P1.3 | Chunks + embeddings (sqlite-vec ou équivalent) | P2 |
-
-### Critère d'acceptation
-
-Run edit sur une fonction : le boot system contient un bloc **Context pack** avec ≤5 chemins et extraits bornés ; l'architecte n'appelle pas `workspace_map_read` pour « comprendre » le voisinage immédiat.
+**Critère** : R1 discuss — 0 outil, 1 tour LLM, `[phase: done]` ; export < 50 events UI.
 
 ---
 
-## P2 — Contexte par graphe
+## S2 — Fin de run & état busy (B-UI-07)
 
-**Problème** : l'arbre plat ne dit pas *pourquoi* les fichiers sont liés.
+**Problème** : modèle terminé mais UI `busy` ; events perdus au blur app ; messages user triplés.
 
-**Cible** : injecter une **Graph View** condensée :
+| Tâche | Fichier |
+|-------|---------|
+| Garantir `busy: false` sur Stop / erreur / cancel | `droxChatAgentEvents.ts`, `droxChatSendRun.ts` |
+| Réconcilier runId au retour focus (heartbeat ou poll état moteur) | `droxChatAgentHost.ts` |
+| Éviter double envoi user pendant busy stale | webview router / composer |
 
-```text
-### Graph context (focus: src/auth/login.ts::validateToken)
-  imports → jwt.ts, user.ts
-  called_by → middleware.ts
-  tests → login.test.ts
-```
-
-### Livrables
-
-| Phase | Livrable |
-|-------|----------|
-| P2.0 | Format markdown `GraphContext` + injection boot edit |
-| P2.1 | Builder depuis index P1.2 (arêtes typées) |
-| P2.2 | Remplacement progressif de la carte workspace complète en discuss |
-
-### Impact orchestration
-
-- `scope` delegate dérivé du pack (moins d'erreurs)
-- Cap `max_reads_before_delegate` moins souvent atteint
+**Critère** : run charte terminé → bouton stop désactivé < 2 s même après alt-tab ; pas de message user dupliqué.
 
 ---
 
-## P3 — Fast path (latence / workflow)
+## S3 — Session replay performant (B-UI-06 — couche moteur/persistance)
 
-**Problème** : la boucle architecte (plan, delegate, phases) est trop lente pour Tab / complétion inline.
+**Problème** : réouverture app → replay 10k events UI, fil incorrect.
 
-**Cible** : **deux chemins** distincts :
+| Tâche | Fichier |
+|-------|---------|
+| Compaction journal : fusion `delta` consécutifs à l’écriture | `droxUiReplayJournal.ts`, session persist |
+| Option cold-start : transcript moteur d’abord, UI lazy | `droxChatTabsManager.ts` |
+| Snapshot compact par tour (option v1.1) | `.drox/sessions/` format |
 
-| Chemin | Modèle | Usage |
-|--------|--------|-------|
-| **Fast** | Petit, local, quantisé | Complétion, multi-ligne, refactor local |
-| **Slow** | Architecte actuel | Chat, delegate, verify |
-
-### Livrables
-
-| Phase | Livrable |
-|-------|----------|
-| P3.0 | Spec RPC `completion.run` (hors `agent.run` orchestration) |
-| P3.1 | ContextPack seul (pas de `todo_write` / delegate) |
-| P3.2 | Modèle + settings dédiés IDE (`drox.completionModel`) |
-| P3.3 | (Optionnel) LoRA / adapter workflow Drox |
-
-### Critère d'acceptation
-
-Complétion inline : premier token visible &lt; 100 ms perceived sur machine dogfood ; **aucun** event `architect` / `delegate_executor`.
+**Critère** : session 5k events → chargement perçu < 2 s ; contenu cohérent (affichage fin → 1.4.2).
 
 ---
 
-## P4 — Benchmark local & config recommandée (par modèle)
+## S4 — Boucles & clôture run (B-MOTOR-01, B-MOTOR-03)
 
-**Problème** : l'utilisateur choisit un modèle mais ne sait pas quels réglages (`num_ctx`, parallélisme, strictness…) ni quelles **capacités** (vision, tools, long run) sont viables sur **son** hardware.
+**Problème** : préambules thinking répétés ; double `[phase: answering]` ; loop intervention tardive.
 
-**Cible** : benchmark du **modèle choisi** → profil de capacités + **config fortement conseillée** (paramètre par paramètre ou preset bundle). **Le modèle reste hors preset.**
+| Tâche | Fichier |
+|-------|---------|
+| Réduire réinjection snapshot redondante mid-run | `architect_state.rs`, `run_snapshot` |
+| `FinalAnswerGuard` : pas de 2e promotion answering | `final_answer_guard.rs` |
+| Fingerprint loop : ignorer préambules stables | `loop.rs`, `phases.rs` |
 
-### Sorties
-
-| Artefact | Contenu |
-|----------|---------|
-| `ModelCapabilityProfile` | ctx max, vision, cohérence court/long, fiabilité outils, débit, parallélisme |
-| `RecommendedConfig` | `num_ctx`, exécuteurs, `engine.strictness`, compaction… — preset Éco/Équilibré/Performance = **bundle de paramètres**, pas choix de modèle |
-
-### Benchmark (`benchmark.run`)
-
-| Phase | Livrable |
-|-------|----------|
-| P4.0 | Spec profil + reco + mapping settings |
-| P4.1 | `hardware.detect` + B1–B3 (TTFT, débit, ctx max) |
-| P4.2 | B5–B7 cohérence court/long + tool calling |
-| P4.3 | UI détail + preset bundle + `recommendedConfig.apply` |
-| P4.4 | B8 vision, B4 parallèle, B9 fast path |
-
-Stockage : `.drox/models/<model-id>/profile.json`.
-
-**Fiche** : [12-presets-globaux-benchmark-hardware.md](../../feature-brainstorm/12-presets-globaux-benchmark-hardware.md)
-
-### Critère d'acceptation
-
-Modèle choisi par l'utilisateur inchangé → benchmark → reco appliquée → run sans OOM ; profil réutilisé si hardware identique.
+**Critère** : run charte < 80 steps moteur ; une seule réponse finale canonique.
 
 ---
 
-## P5 — Onboarding & premier lancement (accueil + paramétrage guidé)
+## S5 — VERIFY Windows (B-MOTOR-02)
 
-**Problème** : D1.x coupe le welcome / onboarding Microsoft (`startupEditor: none`, Copilot off) sans proposer d’alternative Drox — le nouvel utilisateur atterrit dans une IDE vide sans savoir configurer Ollama, les modèles ni le moteur.
+**Problème** : spirale bash (`head`, lint timeout, quoting `node -e`) sur Windows.
 
-**Cible** : une **interface d’accueil Drox** (webview ou workbench editor dédié) au premier lancement (et réouvrable depuis Aide), qui **accompagne intelligemment** le paramétrage minimal pour un premier run Chat réussi.
+| Tâche | Fichier |
+|-------|---------|
+| Rappel OS Windows dans prompt VERIFY / sanity | `nudges/`, prompt verify |
+| `cycle_sanity` : commandes PowerShell-compat en nudge | `cycle_sanity.rs` |
+| (Optionnel) pre-check bash `head`/`tail` | `permissions` ou tool wrapper |
 
-### Principes produit
+**Critère** : smoke VERIFY Next.js Windows ≤ 2 bash utiles.
 
-| Principe | Détail |
+---
+
+## S6 — Bench modèles & doc (non-code)
+
+| Livrable | Détail |
 |----------|--------|
-| **Zéro Copilot** | Pas de login Microsoft ; ton et visuels Drox (logo, #1E1E1E / vert) |
-| **Progressif** | Étapes courtes, skippables, reprise possible (`drox.onboarding.completed`) |
-| **Actionnable** | Chaque étape écrit un réglage réel (`drox.*`, preset engine) — pas un tutoriel passif |
-| **Branché moteur** | Détection via `drox.exe` / health Ollama ; benchmark P4 en étape optionnelle « optimiser » |
-
-### Parcours proposé (v1)
-
-| Étape | Contenu | Sortie |
-|-------|---------|--------|
-| O0 | Bienvenue + « qu’est-ce que Drox » (local, privé, Chat agent) | — |
-| O1 | Vérif `drox.exe` + Ollama installé / démarré | lien install si KO |
-| O2 | Choix **modèle architecte** (+ exécuteur si différent) | `drox.architect.model`, `drox.executor.model` |
-| O3 | *(optionnel)* Benchmark rapide (P4.1–P4.2) → preset **Éco / Équilibré / Performance** | `drox.engine.strictness` + bundle reco |
-| O4 | Permissions outils (bash, édition fichiers) — rappel sandbox | `drox.tools.*` sensibles |
-| O5 | Mini tour : ouvrir Chat, première consigne, historique sessions | ouvre `DroxViews.ChatViewId` |
-| O6 | Terminé — « rouvrir l’assistant » dans menu Aide | `drox.onboarding.completed = true` |
-
-### Livrables
-
-| Phase | Livrable | Priorité |
-|-------|----------|----------|
-| P5.0 | Spec UX + états (`not_started` / `in_progress` / `completed` / `skipped`) | P0 |
-| P5.1 | Shell UI (webview `contrib/drox` ou editor onboarding) + routing étapes | P0 |
-| P5.2 | O1–O2 : détection + binding settings (sans benchmark) | P0 |
-| P5.3 | Intégration benchmark P4 en O3 (si profil absent) | P1 |
-| P5.4 | O4–O6 + réouverture Aide · pas de re-show auto si `completed` | P1 |
-| P5.5 | i18n FR/EN, télémétrie off (aucun envoi MS) | P1 |
-
-### Critère d'acceptation
-
-Install fraîche 1.4.1 → onboarding s’ouvre au premier lancement → utilisateur sans doc externe configure Ollama + modèle → premier message Chat obtient une réponse → onboarding marqué terminé et ne réapparaît pas au redémarrage (sauf « Relancer l’assistant de configuration »).
-
-**Hors scope P5 v1** : walkthroughs extensions VS Code, import settings Cursor/VS Code, tutoriel orchestration avancée (→ doc / 1.4.x).
+| Matrice modèles | Qwen 27b = dogfood D3 ; Gemma 26b = hors scope edit |
+| Rejouer R16 | `runRailEnabled: false` sur relaxed/strict après 1.4.0 |
+| Mettre à jour TEST-PLAN sign-off | [09-TEST-PLAN](../1.4.0/09-TEST-PLAN.md) |
 
 ---
 
 ## Ordre recommandé
 
 ```text
-P5.0–P5.2 onboarding shell + Ollama/modèle (UX produit — peut démarrer tôt)
-  ∥ P1.0 ContextPack RPC
-  → P1.1 heuristique IDE+LSP
-  → P2.0 GraphContext format + injection
-  → P1.2 index persistant
-  → P4.0–P4.2 presets + benchmark
-  → P5.3 benchmark dans onboarding (O3)
-  → P3.0 fast path RPC
-  → P4.3 apply preset + P5.4 fin parcours / Aide
-  → P1.3 embeddings (si besoin réel)
-  → P4.4 parallèle + fast path benchmark
+S1 discuss (rapide, haute valeur R1)
+  → S2 busy (bloque usage quotidien)
+  → S4 boucles (qualité runs longs)
+  → S3 session replay (perf cold start)
+  → S5 VERIFY Windows
+  → S6 doc + regression
 ```
 
 ---
 
-## Références brainstorm
+## Critère de clôture 1.4.1
 
-- [08-performance-traitement-rapide.md](../../feature-brainstorm/08-performance-traitement-rapide.md)
-- [09-roles-specialises-comprehension-code.md](../../feature-brainstorm/09-roles-specialises-comprehension-code.md) (Cartographe / Analyste — fusionné en index P1/P2)
-- [12-presets-globaux-benchmark-hardware.md](../../feature-brainstorm/12-presets-globaux-benchmark-hardware.md)
+- [ ] M-DISC-01 + B-UI-07 + B-MOTOR-01/02/03 fermés ou explicitement reportés en 1.4.2 avec justification
+- [ ] B-UI-06 compaction livrée (affichage peut rester 1.4.2)
+- [ ] `cargo test -p drox-engine` vert
+- [ ] Smoke : salut + charte CSS rejoués sur qwen27b sans régression rail 1.4.0
+- [ ] [SMOKE-BACKLOG](../1.4.0/SMOKE-BACKLOG.md) journal mis à jour
 
 ---
 
-## Non-objectifs
+## Non-objectifs 1.4.1
 
-- Gate chain TOML
-- Backpack `.drox/backpack/`
-- Palier `EditTier` moteur
+- B-UI-01 à 05 (layout, plan sticky, ask_user markdown, ordre thinking)
+- Index / graphe / fast path / onboarding (→ 1.4.3)
+- Nouveau comportement rail (→ doit être en 1.4.0)
+
+---
+
+## Liens
+
+- [README 1.4.1](README.md)
+- [1.4.2 UI](../1.4.2/README.md)
+- [1.4.3 index](../1.4.3/PLAN-1.4.3.md)

@@ -88,7 +88,11 @@ Pas de big-bang sur `loop.rs`.
 | `run_rail_enabled: true` défaut preset `normal` | `orchestration/tuning/mod.rs` | ✅ |
 | CLOSURE 1.4 | [09-TEST-PLAN.md](09-TEST-PLAN.md) signé après dogfood | ☐ |
 
-**Critère merge** : preset `normal` active le rail ; export UI rejoue les stations ; dogfood charte CSS (R5–R7).
+**État juin 2026** : code phases 0–4 ✅ · dogfood ⚠️ · **bloquant** [B-RAIL-01](SMOKE-BACKLOG.md) (rail invisible en usage réel).
+
+**Suite versions** : moteur [1.4.0 CLOSURE](finalisation/CLOSURE-1.4.0.md) → bugs [1.4.1](../1.4.1/README.md) → UI [1.4.2](../1.4.2/README.md).
+
+**Critère tag 1.4.0** : events `railStation*` + pre_gate observables sur smoke charte qwen27b — pas le polish UI chat.
 
 ---
 
@@ -99,7 +103,7 @@ Pas de big-bang sur `loop.rs`.
     └── 1.4 Phase 0–1
             └── 1.4 Phase 2–3 (dogfood)
                     └── 1.4 Phase 4 + tag
-                            └── 1.4.1 index (inject READ boot)
+                            └── 1.4.3 index (inject READ boot)
 ```
 
 ---

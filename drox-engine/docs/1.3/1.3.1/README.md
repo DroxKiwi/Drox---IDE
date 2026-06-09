@@ -1,6 +1,6 @@
 # Drox 1.3.1 — première release publique
 
-**Statut** : finalisation en cours  
+**Statut** : **livré** (archivé — ligne 1.3 figée, voir [CLOSURE-1.3.1](finalisation/CLOSURE-1.3.1.md))  
 **Date** : 2026-05-29  
 **Prérequis** : [**1.3.0**](../1.3.0/README.md) (moteur parallélisme + release `v1.3.0`)
 

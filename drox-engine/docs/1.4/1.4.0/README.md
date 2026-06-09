@@ -1,8 +1,8 @@
 # Drox 1.4.0 — Run Rail (conducteur linéaire)
 
-**Statut** : **ouvert** — [OPENING](finalisation/OPENING-1.4.0.md) · branche git `1.4.0`  
+**Statut** : **ouvert — bloqué moteur** — code phases 0–4 livré ; [CLOSURE](finalisation/CLOSURE-1.4.0.md) · [SMOKE-BACKLOG](SMOKE-BACKLOG.md) · branche `1.4.0`  
 **Prérequis** : [1.3.4 clôturée](../../1.3/1.3.4/finalisation/CLOSURE-1.3.4.md)  
-**Suite** : [1.4.1 — index & graphe](../1.4.1/README.md)
+**Suite** : [1.4.1 stabilisation](../1.4.1/README.md) → [1.4.2 UI](../1.4.2/README.md) → [1.4.3 index & graphe](../1.4.3/README.md)
 
 ---
 
