@@ -5,10 +5,15 @@
 
 // allow-any-unicode-comment-file
 
-// Run rail 1.4 — repliable station blocks (U2).
+// Run rail 1.4 — repliable station blocks (U2) + segment sub-blocks (U3).
 
 (function (D) {
 	const fn = D.fn;
+	const SEGMENT_STATUS_BADGE = {
+		completed: { label: 'Done', className: 'rail-badge-done' },
+		partial: { label: 'Partial', className: 'rail-badge-partial' },
+		blocked: { label: 'Blocked', className: 'rail-badge-blocked' },
+	};
 	const STATION_LABELS = {
 		intent: 'Intention',
 		read: 'Exploration',
@@ -42,6 +47,18 @@
 		fn.scrollLog?.();
 	}
 
+	function appendRailBadge(parent, label, className) {
+		const badge = document.createElement('span');
+		badge.className = `rail-badge ${className}`;
+		badge.textContent = label;
+		parent.appendChild(badge);
+	}
+
+	function segmentStatusBadge(status) {
+		const key = String(status ?? '').trim().toLowerCase();
+		return SEGMENT_STATUS_BADGE[key] || { label: key || 'unknown', className: 'rail-badge-partial' };
+	}
+
 	fn.renderRailStationEnter = function (payload) {
 		const station = String(payload?.station ?? '').trim();
 		if (!station) {
@@ -58,7 +75,10 @@
 		el.appendChild(summary);
 		const body = document.createElement('div');
 		body.className = 'msg-rail-station-body';
-		body.textContent = payload?.taskId ? `task ${payload.taskId}` : '';
+		const taskId = String(payload?.taskId ?? '').trim();
+		if (taskId) {
+			body.textContent = `task ${taskId}`;
+		}
 		el.appendChild(body);
 		D.state.runRailStationCards.set(station, el);
 		mountRailCard(el);
@@ -101,11 +121,23 @@
 		const act = D.state.runRailStationCards.get('act');
 		const el = document.createElement('details');
 		el.className = 'msg-rail-segment msg-rail-segment-running';
-		el.open = false;
+		el.open = true;
+		el.dataset.taskId = taskId;
 		const summary = document.createElement('summary');
 		summary.className = 'msg-rail-segment-summary';
+		const label = String(payload?.label ?? '').trim();
 		const scope = Array.isArray(payload?.scope) ? payload.scope.join(', ') : '';
-		summary.textContent = `Segment ${taskId}${scope ? ` — ${scope}` : ''}`;
+		const title = document.createElement('span');
+		title.className = 'msg-rail-segment-title';
+		title.textContent = label || `Segment ${taskId}`;
+		summary.appendChild(title);
+		appendRailBadge(summary, 'Running', 'rail-badge-running');
+		if (scope) {
+			const meta = document.createElement('span');
+			meta.className = 'msg-rail-segment-scope';
+			meta.textContent = scope;
+			summary.appendChild(meta);
+		}
 		el.appendChild(summary);
 		if (act) {
 			const body = act.querySelector('.msg-rail-station-body');
@@ -127,17 +159,36 @@
 			return;
 		}
 		el.classList.remove('msg-rail-segment-running');
-		el.classList.add('msg-rail-segment-done');
 		const status = String(payload?.status ?? 'partial');
+		const badge = segmentStatusBadge(status);
+		el.classList.add(
+			status === 'completed' ? 'msg-rail-segment-done' : 'msg-rail-segment-partial',
+		);
+		el.open = false;
 		const summary = el.querySelector('.msg-rail-segment-summary');
 		if (summary) {
-			summary.textContent = `Segment ${taskId} — ${status}`;
+			summary.textContent = '';
+			const title = document.createElement('span');
+			title.className = 'msg-rail-segment-title';
+			title.textContent = `Segment ${taskId}`;
+			summary.appendChild(title);
+			appendRailBadge(summary, badge.label, badge.className);
 		}
+		const body = document.createElement('div');
+		body.className = 'msg-rail-segment-body';
 		const note = String(payload?.summary ?? '').trim();
+		const paths = Array.isArray(payload?.pathsTouched)
+			? payload.pathsTouched.map(String).filter(Boolean)
+			: [];
+		const parts = [];
 		if (note) {
-			const body = document.createElement('div');
-			body.className = 'msg-rail-segment-body';
-			body.textContent = note;
+			parts.push(note);
+		}
+		if (paths.length > 0) {
+			parts.push(`Paths: ${paths.join(', ')}`);
+		}
+		if (parts.length > 0) {
+			body.textContent = parts.join('\n');
 			el.appendChild(body);
 		}
 	};

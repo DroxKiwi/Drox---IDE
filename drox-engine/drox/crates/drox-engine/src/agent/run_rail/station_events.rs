@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn propose_hold_emits_hold_event() {
-        use super::propose_hold;
+        use crate::agent::run_rail::propose_hold;
         let mut state = RunRailState::new();
         state.station = RunStation::Propose;
         let before = snapshot(&state);

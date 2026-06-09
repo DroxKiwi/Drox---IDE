@@ -320,6 +320,9 @@ impl EngineTuning {
         if strictness == StrictnessPreset::Custom {
             t.strictness = StrictnessPreset::Custom;
         }
+        if strictness == StrictnessPreset::Normal {
+            t.run_rail_enabled = true;
+        }
         t
     }
 
@@ -568,11 +571,11 @@ mod tests {
     }
 
     #[test]
-    fn run_rail_disabled_by_default_all_presets() {
-        for preset in ["relaxed", "normal", "strict"] {
-            let t = resolve_engine_tuning(Some(preset), None);
-            assert!(!t.run_rail_enabled, "preset={preset}");
-        }
+    fn run_rail_enabled_only_on_normal_preset() {
+        assert!(!resolve_engine_tuning(Some("relaxed"), None).run_rail_enabled);
+        assert!(resolve_engine_tuning(Some("normal"), None).run_rail_enabled);
+        assert!(!resolve_engine_tuning(Some("strict"), None).run_rail_enabled);
+        assert!(!resolve_engine_tuning(Some("custom"), None).run_rail_enabled);
     }
 
     #[test]
