@@ -44,10 +44,14 @@ mod tests {
     use crate::run_spec::RoleId;
 
     #[test]
-    fn run_rail_inactive_by_default() {
-        let tuning = crate::EngineTuning::default();
-        assert!(!run_rail_active(&tuning, RoleId::Architect));
-        assert!(!run_rail_active(&tuning, RoleId::ArchitectDiscussion));
+    fn run_rail_active_on_normal_preset_only() {
+        let normal = crate::EngineTuning::default();
+        assert!(run_rail_active(&normal, RoleId::Architect));
+        assert!(!run_rail_active(&normal, RoleId::ArchitectDiscussion));
+
+        let relaxed =
+            crate::orchestration::tuning::resolve_engine_tuning(Some("relaxed"), None);
+        assert!(!run_rail_active(&relaxed, RoleId::Architect));
     }
 
     #[test]

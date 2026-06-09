@@ -385,6 +385,76 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 					);
 				});
 				break;
+			case 'railStationEnter':
+				flushDelta();
+				emit('RAIL STATION ENTER', () => {
+					const lines = [
+						str(entry.station) ? `Station: ${str(entry.station)}` : '',
+						str(entry.label) ? `Label: ${str(entry.label)}` : '',
+						str(entry.taskId) ? `Task: ${str(entry.taskId)}` : '',
+					].filter(Boolean);
+					pushSection(
+						out,
+						`### Rail · enter · ${str(entry.station) || '?'}`,
+						lines.join('\n'),
+					);
+				});
+				break;
+			case 'railStationHold':
+				flushDelta();
+				emit('RAIL STATION HOLD', () => {
+					pushSection(
+						out,
+						`### Rail · hold · ${str(entry.station) || '?'}`,
+						'En attente du retour utilisateur',
+					);
+				});
+				break;
+			case 'railStationDone':
+				flushDelta();
+				emit('RAIL STATION DONE', () => {
+					pushSection(
+						out,
+						`### Rail · done · ${str(entry.station) || '?'}`,
+						'Station terminée',
+					);
+				});
+				break;
+			case 'railSegmentStart':
+				flushDelta();
+				emit('RAIL SEGMENT START', () => {
+					const scope = Array.isArray(entry.scope) ? entry.scope.map(String) : [];
+					const lines = [
+						str(entry.station) ? `Station: ${str(entry.station)}` : '',
+						str(entry.taskId) ? `Task: ${str(entry.taskId)}` : '',
+						str(entry.label) ? `Label: ${str(entry.label)}` : '',
+						scope.length > 0 ? `Scope: ${scope.join(', ')}` : '',
+					].filter(Boolean);
+					pushSection(
+						out,
+						`### Rail · segment start · ${str(entry.taskId) || '?'}`,
+						lines.join('\n'),
+					);
+				});
+				break;
+			case 'railSegmentDone':
+				flushDelta();
+				emit('RAIL SEGMENT DONE', () => {
+					const paths = Array.isArray(entry.pathsTouched)
+						? entry.pathsTouched.map(String)
+						: [];
+					const lines = [
+						str(entry.status) ? `Status: ${str(entry.status)}` : '',
+						str(entry.summary) ? str(entry.summary) : '',
+						paths.length > 0 ? `Paths: ${paths.join(', ')}` : '',
+					].filter(Boolean);
+					pushSection(
+						out,
+						`### Rail · segment done · ${str(entry.taskId) || '?'}`,
+						lines.join('\n'),
+					);
+				});
+				break;
 			case 'subagentStart':
 				emit('SUBAGENT START', () => {
 					pushSection(

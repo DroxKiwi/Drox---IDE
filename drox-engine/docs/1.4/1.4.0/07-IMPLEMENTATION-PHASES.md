@@ -81,12 +81,14 @@ Pas de big-bang sur `loop.rs`.
 
 ## Phase 4 — UI blocs + polish
 
-| Tâche | Détail |
-|-------|--------|
-| UI U3 | sous-blocs segment |
-| Export transcript | aligné stations |
-| `run_rail_enabled: true` défaut preset `normal` | tuning |
-| CLOSURE 1.4 | [09-TEST-PLAN.md](09-TEST-PLAN.md) signé |
+| Tâche | Détail | Statut |
+|-------|--------|--------|
+| UI U3 | sous-blocs segment (badges, scope, paths) | ✅ |
+| Export transcript | `droxUiReplayExport` — events `railStation*` / `railSegment*` | ✅ |
+| `run_rail_enabled: true` défaut preset `normal` | `orchestration/tuning/mod.rs` | ✅ |
+| CLOSURE 1.4 | [09-TEST-PLAN.md](09-TEST-PLAN.md) signé après dogfood | ☐ |
+
+**Critère merge** : preset `normal` active le rail ; export UI rejoue les stations ; dogfood charte CSS (R5–R7).
 
 ---
 

@@ -738,6 +738,50 @@ suite('Drox — transcript export', () => {
 		assert.ok(userIdx < gateIdx && gateIdx < streamIdx && streamIdx < replyIdx);
 	});
 
+	test('formatDroxUiReplayExport includes run rail station and segment events', () => {
+		const journal = [
+			{ kind: 'append', role: 'user', text: 'Charte CSS' },
+			{ kind: 'railStationEnter', station: 'read', label: 'Exploration' },
+			{ kind: 'railStationDone', station: 'read' },
+			{ kind: 'railStationEnter', station: 'propose', label: 'Proposition' },
+			{ kind: 'railStationHold', station: 'propose' },
+			{ kind: 'railStationEnter', station: 'act', label: 'Exécution' },
+			{
+				kind: 'railSegmentStart',
+				station: 'act',
+				taskId: 'seg-1',
+				label: 'globals.css',
+				scope: ['src/globals.css'],
+			},
+			{
+				kind: 'railSegmentDone',
+				taskId: 'seg-1',
+				status: 'completed',
+				summary: 'Charte appliquée',
+				pathsTouched: ['src/globals.css'],
+			},
+			{ kind: 'railStationDone', station: 'act' },
+		];
+		const text = formatDroxUiReplayExport({
+			sessionId: 'ses_rail',
+			journal,
+		});
+		assert.ok(text.includes('RAIL STATION ENTER'));
+		assert.ok(text.includes('### Rail · enter · read'));
+		assert.ok(text.includes('RAIL STATION HOLD'));
+		assert.ok(text.includes('RAIL SEGMENT START'));
+		assert.ok(text.includes('### Rail · segment start · seg-1'));
+		assert.ok(text.includes('globals.css'));
+		assert.ok(text.includes('RAIL SEGMENT DONE'));
+		assert.ok(text.includes('Status: completed'));
+		assert.ok(text.includes('Charte appliquée'));
+		const readIdx = text.indexOf('### Rail · enter · read');
+		const holdIdx = text.indexOf('RAIL STATION HOLD');
+		const segStartIdx = text.indexOf('RAIL SEGMENT START');
+		const segDoneIdx = text.indexOf('RAIL SEGMENT DONE');
+		assert.ok(readIdx < holdIdx && holdIdx < segStartIdx && segStartIdx < segDoneIdx);
+	});
+
 	test('formatDroxTranscriptExport includes phases, tools, and results in execution order', () => {
 		const messages: IDroxTranscriptMessage[] = [
 			{ role: 'user', content: [{ type: 'text', text: 'Change orb colors to dark blue' }] },

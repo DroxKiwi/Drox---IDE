@@ -30,7 +30,8 @@ Refonte du **conducteur architecte** : rail linéaire à **stations consultative
 ├── 08-MIGRATION.md
 ├── 09-TEST-PLAN.md
 ├── 10-DECISIONS-PRODUIT.md
-└── INVESTIGATION-file-edit.md
+├── INVESTIGATION-file-edit.md
+└── SMOKE-BACKLOG.md          ← bugs dogfood (post-Phase 4)
 ```
 
 **Lecture recommandée** : `01` → `02` → `03` → `05` (avant tout PR code).

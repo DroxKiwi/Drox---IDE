@@ -679,6 +679,104 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	background: color-mix(in srgb, var(--vscode-editor-background) 90%, var(--vscode-errorForeground) 10%);
 }
 
+.msg-rail-station,
+.msg-rail-segment {
+	margin: 6px 0;
+	padding: 6px 10px;
+	border-radius: 6px;
+	border-left: 3px solid var(--vscode-textLink-foreground, #3794ff);
+	background: color-mix(in srgb, var(--vscode-editor-background) 94%, var(--vscode-textLink-foreground) 6%);
+	font-size: 0.9em;
+}
+
+.msg-rail-station > summary,
+.msg-rail-segment > summary {
+	cursor: pointer;
+	font-weight: 600;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.msg-rail-station > summary::-webkit-details-marker,
+.msg-rail-segment > summary::-webkit-details-marker {
+	display: none;
+}
+
+.msg-rail-station-body {
+	margin-top: 6px;
+	padding-left: 4px;
+}
+
+.msg-rail-segment {
+	margin: 4px 0 6px 8px;
+	border-left-color: var(--drox-ui-green, #3d7a3d);
+	background: color-mix(in srgb, var(--vscode-editor-background) 96%, var(--drox-ui-green, #3d7a3d) 4%);
+}
+
+.msg-rail-segment-scope {
+	font-size: 0.85em;
+	opacity: 0.85;
+	flex: 1 1 100%;
+}
+
+.msg-rail-segment-body {
+	margin-top: 6px;
+	white-space: pre-wrap;
+	opacity: 0.9;
+	font-size: 0.92em;
+}
+
+.msg-rail-station-running,
+.msg-rail-segment-running {
+	border-left-color: var(--vscode-progressBar-background, var(--vscode-focusBorder));
+}
+
+.msg-rail-station-waiting {
+	border-left-color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.msg-rail-station-done {
+	opacity: 0.82;
+}
+
+.msg-rail-segment-partial {
+	border-left-color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.msg-rail-segment-done {
+	border-left-color: var(--drox-ui-green, #3d7a3d);
+}
+
+.rail-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 1px 6px;
+	border-radius: 4px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+.rail-badge-running {
+	background: color-mix(in srgb, var(--vscode-progressBar-background, #0e70c0) 22%, transparent);
+}
+
+.rail-badge-done {
+	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 24%, transparent);
+}
+
+.rail-badge-partial {
+	background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 22%, transparent);
+}
+
+.rail-badge-blocked {
+	background: color-mix(in srgb, var(--vscode-errorForeground, #f48771) 22%, transparent);
+}
+
 .msg-orchestration-role {
 	margin: 8px 12px 4px;
 	padding: 6px 10px;

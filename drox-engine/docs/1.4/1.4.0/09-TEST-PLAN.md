@@ -12,7 +12,7 @@ cargo test -p drox-engine run_rail::
 .\scripts\verify-drox-engine.ps1
 ```
 
-`engineTuning.runRailEnabled: true` (custom) ou preset post-CLOSURE.
+Preset **`normal`** : `runRailEnabled` actif par défaut (Phase 4). Override `custom` ou presets `relaxed`/`strict` pour désactiver.
 
 ---
 
