@@ -8,7 +8,7 @@
 
 ## Motif de clôture anticipée
 
-Le chantier **stabilisation solo** (Phase S/U) est interrompu au profit de la refonte conducteur **[1.4.0 Run Rail](../../../1.4/1.4.0/README.md)**. Le dogfood [chat.txt](../../chat.txt) a démontré que des patches incrémentaux (Phase H) ne suffisent pas : il faut un rail linéaire + segments.
+Le chantier **stabilisation solo** (Phase S/U) est interrompu au profit de la refonte conducteur **[1.4.0 Run Rail](../../../1.4/1.4.0/README.md)**. Le dogfood ([chat_qwen27b.txt](../../chat_qwen27b.txt) et transcripts associés) a démontré que des patches incrémentaux (Phase H) ne suffisent pas : il faut un rail linéaire + segments.
 
 ---
 
@@ -37,7 +37,7 @@ Le chantier **stabilisation solo** (Phase S/U) est interrompu au profit de la re
 
 ## Hors scope (renuméroté)
 
-- Index / graphe / fast path : **[1.4.1](../../../1.4/1.4.1/README.md)** (ex-1.3.5)
+- Index / graphe / fast path : **[1.4.3](../../../1.4/1.4.3/README.md)** (ex-1.3.5)
 
 ---
 

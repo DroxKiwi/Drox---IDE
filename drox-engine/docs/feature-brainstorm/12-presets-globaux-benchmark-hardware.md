@@ -3,7 +3,7 @@
 **Statut** : idée brute  
 **Date** : 2026-06-06 (rev. 2)  
 **Priorité** : haute produit — onboarding local + éviter les runs impossibles  
-**Cible** : [1.4.1](../1.4/1.4.1/README.md) § P4  
+**Cible** : [1.4.3](../1.4/1.4.3/PLAN-1.4.3.md) § P4  
 **Liens** : [08-performance](08-performance-traitement-rapide.md) · [10-parametrage](10-parametrage-prompts-strictesse.md) · `EngineTuning` (`orchestration/tuning/mod.rs`)
 
 ---
@@ -201,5 +201,5 @@ suggestion « utilisez un modèle plus petit »  ← message séparé, pas prese
 
 ## Liens
 
-- [Plan 1.4.1 § P4](../1.4/1.4.1/PLAN-1.4.1.md)
+- [Plan 1.4.3 § P4](../1.4/1.4.3/PLAN-1.4.3.md)
 - [Hub brainstorm](README.md)

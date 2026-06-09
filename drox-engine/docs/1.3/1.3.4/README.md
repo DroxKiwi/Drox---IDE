@@ -1,5 +1,7 @@
 ﻿# Drox 1.3.4 — Architecte seul
 
+> Ligne 1.3 **archivée** — [CLOSURE-1.3](../CLOSURE-1.3.md)
+
 **Statut** : **clôturée anticipément** (juin 2026) — branche `1.3.4` figée  
 **Suite** : branche **`1.4.0`** — [Run Rail](../../1.4/1.4.0/README.md)  
 **Clôture** : [CLOSURE-1.3.4.md](finalisation/CLOSURE-1.3.4.md)

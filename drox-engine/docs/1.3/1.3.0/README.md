@@ -1,5 +1,7 @@
 # Drox 1.3.0 — livré
 
+> Ligne 1.3 **archivée** — [CLOSURE-1.3](../CLOSURE-1.3.md)
+
 **Thème** : parallélisation des exécuteurs orchestration (`v1_2` → lot moteur 1.3) + **première release Windows** (F1/F3).
 
 **Statut** (2026-05-29) : moteur **clôturé** ; canal `v1.3.0` publié. La suite distribution (installeur polish, MAJ in-app) est dans [**1.3.1**](../1.3.1/README.md).

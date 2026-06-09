@@ -1,5 +1,7 @@
 ﻿# Drox 1.3.3 — Release fiable (pipeline & package)
 
+> Ligne 1.3 **archivée** — [CLOSURE-1.3](../CLOSURE-1.3.md) · suite [1.4](../../1.4/README.md)
+
 **Statut** : **livré** (juin 2026)  
 **Prérequis** : [1.3.2](../1.3.2/README.md) mergée sur `main`
 

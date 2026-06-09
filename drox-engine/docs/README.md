@@ -44,14 +44,18 @@ Archive pré-1.2.0 : dossier [`0.0/`](0.0/).
 
 ---
 
-## Version 1.3 (parallélisme & distribution)
+## Version 1.3 (archivée)
 
 | Dossier | Contenu |
 |---------|---------|
-| [`1.3/`](1.3/README.md) | Hub ligne 1.3 |
-| [`1.3/1.3.0/`](1.3/1.3.0/README.md) | Moteur batch exécuteurs + release `v1.3.0` — **livré** |
-| [`1.3/1.3.1/`](1.3/1.3.1/README.md) | Première release publique — **en cours** ([CLOSURE](1.3/1.3.1/finalisation/CLOSURE-1.3.1.md)) |
-| [`1.4/`](1.4/README.md) | **1.4.0** Run Rail · **1.4.1** index/graphe (ex-1.3.5) |
+| [`1.3/`](1.3/README.md) | Hub ligne 1.3 — **figée** ([CLOSURE-1.3](1.3/CLOSURE-1.3.md)) |
+| [`1.3/1.3.0/` … `1.3.4/`](1.3/README.md) | Parallélisme, distribution, moteur stabilisé, architecte seul — **livré / archivé** |
+
+## Version 1.4 (active)
+
+| Dossier | Contenu |
+|---------|---------|
+| [`1.4/`](1.4/README.md) | **1.4.0** Run Rail · **1.4.1** stabilisation · **1.4.2** UI · **1.4.3** index/graphe |
 | [`feature-brainstorm/`](feature-brainstorm/README.md) | Idées / brainstorm (hors releases 1.3.x) |
 
 ---

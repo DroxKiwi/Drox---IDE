@@ -1,31 +1,41 @@
-﻿# Drox 1.4.1 — Index, graphe, fast path
+﻿# Drox 1.4.1 — Stabilisation dogfood
 
-**Statut** : **planifié** (après [1.4.0](../1.4.0/README.md))  
-**Ancienne numérotation** : 1.4.1 (déplacée juin 2026)  
-**Prérequis** : [1.4.0 Run Rail](../1.4.0/README.md) livré · package fiable [1.3.3](../../1.3/1.3.3/README.md)
+**Statut** : **planifié** (après clôture moteur [1.4.0](../1.4.0/README.md))  
+**Prérequis** : Run rail validé en dogfood (B-RAIL-01 résolu)
 
 ---
 
 ## En une phrase
 
-Trois piliers contexte & latence : **index local** au curseur, **graphe** typé injecté au boot READ, **fast path** complétion hors boucle architecte.
+Corrections **bugs relevés au smoke** juin 2026 — discuss, boucles moteur, session replay, état busy — **sans** refonte UI chat.
 
 ---
 
-## Piliers
+## Plan
 
-| Pilier | Résumé |
-|--------|--------|
-| **P1** | Index / ContextPack (~5 fichiers pertinents) |
-| **P2** | GraphContext (imports, callers, tests) |
-| **P3** | Fast path complétion (`completion.run`) |
-| **P4** | Benchmark hardware & presets par modèle |
+→ **[PLAN-1.4.1.md](PLAN-1.4.1.md)** (stabilisation)
+
+L’ancien plan **index / graphe / fast path** est en **[1.4.3](../1.4.3/PLAN-1.4.3.md)**.
 
 ---
 
-## Liens
+## Périmètre (backlog)
 
-- [Plan détaillé](PLAN-1.4.1.md)
-- [1.4.0 — Run Rail](../1.4.0/README.md)
+| ID | Sujet | Plan |
+|----|-------|------|
+| **M-DISC-01** | Salut discuss → outils interdits | S1 |
+| **B-UI-07** | Run `busy` stale | S2 |
+| **B-UI-06** | Replay session lent (compaction) | S3 |
+| **B-MOTOR-01** | Thinking / préambules en boucle | S4 |
+| **B-MOTOR-02** | Bash VERIFY Windows | S5 |
+| **B-MOTOR-03** | Double answering | S4 |
+
+Détail : [SMOKE-BACKLOG](../1.4.0/SMOKE-BACKLOG.md)
+
+---
+
+## Suite
+
+- [1.4.2 — UI chat](../1.4.2/README.md)
+- [1.4.3 — Index & graphe](../1.4.3/README.md)
 - [Hub 1.4](../README.md)
-- [Conducteur moteur (base)](../../1.3/1.3.2/CONDUCTEUR-CODE.md)

@@ -85,9 +85,29 @@ Preset **`normal`** : `runRailEnabled` actif par défaut (Phase 4). Override `cu
 
 ---
 
+## Résultats smoke juin 2026
+
+Transcripts : `docs/1.3/chat_qwen27b.txt` (charte + salut), `chat_qwen9b.txt`, `chat_gemma426b.txt`.
+
+| ID | Résultat | Commentaire |
+|----|----------|-------------|
+| R1 | ⚠️ | Discuss : réponse OK, **2 outils** sur salut (M-DISC-01) |
+| R2 | — | Non rejoué |
+| R3 | ✅ partiel | Exploration repo qwen9b/27b |
+| R4 | — | Non rejoué |
+| R5–R7 | ⚠️ | Charte : produit OK, **rail absent** (B-RAIL-01) |
+| R8–R15 | ❌ | Rail non observable |
+| R16–R17 | ⚠️ / ✅ | Discuss routé ; rail off non retesté |
+| D1 | ⚠️ | Charte livrée ; steps > 100 |
+| D2–D3 | ⚠️ | Session longue 27b ; Gemma non représentatif |
+
+**Clôture** : voir [CLOSURE](finalisation/CLOSURE-1.4.0.md) — moteur rail avant tag ; UI → 1.4.2.
+
+---
+
 ## Sign-off CLOSURE 1.4
 
-- [ ] R1–R17 pass
+- [ ] R1–R17 pass (après fix B-RAIL-01)
 - [ ] D1–D3 pass
 - [ ] `cargo test -p drox-engine` vert
 - [ ] Doc 01–08 à jour avec écarts constatés

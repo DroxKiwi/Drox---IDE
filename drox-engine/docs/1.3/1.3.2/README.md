@@ -1,6 +1,8 @@
 ﻿# Drox 1.3.2 — Moteur stabilisé
 
-**Statut** : **tests & clôture** (juin 2026)  
+> Ligne 1.3 **archivée** — [CLOSURE-1.3](../CLOSURE-1.3.md) · suite [1.4](../../1.4/README.md)
+
+**Statut** : **livré (code)** (juin 2026)  
 **Branche** : `1.3.2`  
 **Prérequis** : [1.3.1](../1.3.1/README.md)
 
