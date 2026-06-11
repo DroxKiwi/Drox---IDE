@@ -442,7 +442,14 @@ mod tests {
         let r = InitializeResult::current();
         assert_eq!(r.server_name, "drox");
         assert_eq!(r.protocol_version, PROTOCOL_VERSION);
-        assert!(r.dev_build > 0, "dev_build must be set by build.rs");
+        let compile_dev_build = option_env!("DROX_DEV_BUILD")
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(0);
+        if compile_dev_build == 0 {
+            assert_eq!(r.dev_build, 0, "release build omits dev stamp");
+        } else {
+            assert!(r.dev_build > 0, "dev_build must be set by build.rs");
+        }
         assert!(r.capabilities.run_streaming_events);
         // Sprint Questions bloquantes (§2.13) — le serveur sait poser des
         // questions interactives via `user/ask`, indépendamment de la

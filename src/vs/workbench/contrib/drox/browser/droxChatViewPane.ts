@@ -38,6 +38,7 @@ import { asWebviewUri } from '../../webview/common/webview.js';
 
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
+import { isDroxDevFeatureEnabled } from '../common/droxDevSurface.js';
 import { formatDroxChatVersionLabel, formatDroxChatVersionTitle } from '../common/droxProductVersion.js';
 
 import { DroxViews } from '../common/drox.js';
@@ -257,6 +258,7 @@ export class DroxChatViewPane extends ViewPane {
 			scriptUris,
 			formatDroxChatVersionLabel(this.productService),
 			formatDroxChatVersionTitle(this.productService),
+			isDroxDevFeatureEnabled('exportTranscript', this.productService),
 		));
 
 		this._chatController.attachWebview(webview, getWindow(this.element), this._container);

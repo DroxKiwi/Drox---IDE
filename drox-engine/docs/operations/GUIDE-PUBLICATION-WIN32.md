@@ -47,6 +47,8 @@ npm run drox:ship -- -Force
 
 Le build **refuse** de publier si `out-vscode-min` n’est pas aligné sur `droxVersion` (`drox-bundle-stamp.json`, sentinelles UI, sources plus récentes que le bundle, `product.json` et `drox.exe` MODERN dans le package). `-Fast` échoue dans ce cas au lieu de recycler un vieux bundle.
 
+**Surface release** : `build-release-win32.ps1` force `DROX_PRODUCT_SURFACE=release` → `product.json` packagé sans `droxEngineDevBuild`, header chat en semver seul, `drox.exe` sans stamp dev (`DROX_OMIT_DEV_BUILD=1`). En watch/F5, `droxSurface: dev` dans les sources conserve suffixe build et outils dogfood.
+
 ### Sorties
 
 | Artefact | Chemin |

@@ -250,6 +250,12 @@ function Get-PackagedReleaseIntegrityIssues {
 		if ([string]$product.droxVersion -ne $ExpectedVersion) {
 			$issues.Add("product.json droxVersion=$($product.droxVersion) != attendu $ExpectedVersion")
 		}
+		if ([string]$product.droxSurface -ne 'release') {
+			$issues.Add("product.json droxSurface=$($product.droxSurface) != release (relancer build-release avec DROX_PRODUCT_SURFACE)")
+		}
+		if ($null -ne $product.PSObject.Properties['droxEngineDevBuild']) {
+			$issues.Add('product.json package contient droxEngineDevBuild (interdit en release)')
+		}
 	}
 
 	$stamp = Read-DroxBundleStamp -BaseDir $appOut

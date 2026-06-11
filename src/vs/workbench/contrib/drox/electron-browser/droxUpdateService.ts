@@ -17,6 +17,7 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { asTextOrError, IRequestService } from '../../../../platform/request/common/request.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { DROX_DEFAULT_UPDATE_MANIFEST_URL, DroxSetting } from '../common/droxConfiguration.js';
+import { isDroxDevFeatureEnabled } from '../common/droxDevSurface.js';
 import { IDroxUpdateCheckOptions, IDroxUpdateCheckResult, IDroxUpdateService } from '../common/droxUpdateService.js';
 
 interface IDroxPlatformRelease {
@@ -76,7 +77,8 @@ export class DroxUpdateService extends Disposable implements IDroxUpdateService 
 			return { kind: 'skipped', message: 'No product version (droxVersion).' };
 		}
 
-		const simulated = this.configurationService.getValue<string>(DroxSetting.UpdateSimulateLatestVersion)?.trim();
+		const simulatedRaw = this.configurationService.getValue<string>(DroxSetting.UpdateSimulateLatestVersion)?.trim();
+		const simulated = isDroxDevFeatureEnabled('updateSimulateLatest', this.productService) ? simulatedRaw : '';
 		if (simulated) {
 			const simulateInstaller = this.configurationService.getValue<string>(DroxSetting.UpdateSimulateInstallerUrl)?.trim()
 				|| 'https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest';

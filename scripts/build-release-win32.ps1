@@ -29,6 +29,7 @@ if ($ForceCompile -and $SkipCompile) {
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$env:DROX_PRODUCT_SURFACE = 'release'
 $parentRoot = Split-Path -Parent $repoRoot
 $outDir = Join-Path $parentRoot 'VSCode-win32-x64'
 $productShort = 'Drox IDE'

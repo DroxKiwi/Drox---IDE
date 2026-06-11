@@ -1,140 +1,300 @@
 # Plan 1.4.1 — Stabilisation dogfood
 
-**Version** : juin 2026  
-**Prérequis** : replanification post-[pause 1.4.0](../archive/1.4.0/README.md)  
-**Parent backlog** : [SMOKE-BACKLOG](../archive/1.4.0/SMOKE-BACKLOG.md)  
+**Version** : juin 2026 — **réaligné post-clôture [1.4.0](../1.4.0/archive/finalisation/CLOSURE-1.4.0.md)**  
+**Branche** : `1.4.1`  
+**Parent backlog** : [SMOKE-BACKLOG](../1.4.0/archive/SMOKE-BACKLOG.md)  
+**Ouverture** : [OPENING-1.4.1](finalisation/OPENING-1.4.1.md)  
 **Hors scope** : polish UI chat → [1.4.2](../1.4.2/README.md) · index/graphe → [1.4.3](../1.4.3/PLAN-1.4.3.md)
 
-> **Note** : l’ancien plan « index & graphe » vit désormais en [PLAN-1.4.3.md](../1.4.3/PLAN-1.4.3.md).
+> Ce plan a été rédigé **avant** la livraison squelette 1.4.0. Il est **réaligné** sur le dogfood juin 2026 (Qwen 27b, installeur 1.4.0) et sur ce que la refonte a **réellement** changé.
 
 ---
 
-## Vision
+## Contexte post-1.4.0
 
-Corriger les **bugs moteur et session** observés au smoke juin 2026, sans refonte du fil chat. L’utilisateur doit pouvoir enchaîner des runs fiables après la 1.4.0 ; l’UI visuelle attend la 1.4.2.
+### Ce que la 1.4.0 a livré (ne pas rouvrir)
+
+| Zone | État |
+|------|------|
+| Run rail | Conducteur unique edit ; stations ; `pre_gate` ; mutations inline ACT |
+| Reliquats 1.3 | Executor, `delegate_executor`, segments ACT, Professor, Standard CLI **retirés** |
+| VERIFY → ACT | Boucle `verify.rs` sur échec bash/lint (partiel B-MOTOR-02) |
+| UI fork P0 | Modules executor/delegate retirés (phase 2d) |
+| Tests moteur | `cargo test -p drox-engine` vert (~201 tests) |
+
+### Dogfood juin 2026 — constats pour la 1.4.1
+
+| Verdict | Détail |
+|---------|--------|
+| **Rail OK** | Runs structurés, rapides, pas de boucles 1.3 flagrantes ; stations visibles (`intent→read→plan→act`) |
+| **Pas prod-ready** | UI busy, discuss salut, préambules thinking, double answering, replay lent, VERIFY Windows |
+| **Écart produit** | Brief edit concret → **0 `file_edit`** ou clôture sans mutation alors que le code matche déjà le brief |
+| **Distribution** | Installeur 1.4.0 : suffixe version dev + réglages dogfood visibles en « prod » |
+| **Résidu rail** | Modèle n’émet presque jamais `[gate:]` — auto-advance moteur seulement (B-RAIL-01 résidu → doc / prompt, pas bloquant 1.4.1) |
+
+### Vision
+
+Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rail ni polish UI complet.
 
 ```text
-1.4.0 rail OK
-    → 1.4.1 discuss + boucles + session + busy
+1.4.0 squelette rail clôturé
+    → 1.4.1 surface prod + bugs smoke (discuss, busy, boucles, ACT, VERIFY, replay)
         → 1.4.2 UI chat
             → 1.4.3 index/graphe
 ```
 
 ---
 
-## S1 — Discuss & routage léger (M-DISC-01)
+## Backlog 1.4.1 (trié)
 
-**Problème** : « Salut » → `architect_discussion` mais `file_read` + `memory_list` malgré règle greeting-only (transcript `ses_5f0a049a`).
-
-| Tâche | Fichier / zone |
-|-------|----------------|
-| Pre-gate discuss : 0 outil si `DiscussReplyOnly` + message light | `start_run.rs`, `architect_gates.rs` |
-| Rejeter tools post-hoc si greeting-only détecté | `gates.rs` ou `loop.rs` |
-| Test `cargo test` scénario salut | `orchestration/start_run.rs` tests |
-
-**Critère** : R1 discuss — 0 outil, 1 tour LLM, `[phase: done]` ; export < 50 events UI.
-
----
-
-## S2 — Fin de run & état busy (B-UI-07)
-
-**Problème** : modèle terminé mais UI `busy` ; events perdus au blur app ; messages user triplés.
-
-| Tâche | Fichier |
-|-------|---------|
-| Garantir `busy: false` sur Stop / erreur / cancel | `droxChatAgentEvents.ts`, `droxChatSendRun.ts` |
-| Réconcilier runId au retour focus (heartbeat ou poll état moteur) | `droxChatAgentHost.ts` |
-| Éviter double envoi user pendant busy stale | webview router / composer |
-
-**Critère** : run charte terminé → bouton stop désactivé < 2 s même après alt-tab ; pas de message user dupliqué.
+| ID | Sujet | Phase | Priorité |
+|----|-------|-------|----------|
+| **B-REL-01** | `droxSurface` + registre features dev ; version prod sans suffixe | P1 | P0 — visible installateurs |
+| **M-DISC-01** | Salut discuss → outils interdits quand même | P2 | P0 |
+| **B-UI-07** | Run `busy` stale après `done` / blur app | P3 | P0 |
+| **B-MOTOR-04** | Run edit sans mutation (`file_edit` absent) ou clôture prématurée | P4 | P0 |
+| **B-MOTOR-01** | Préambules thinking / re-plan à chaque micro-avancée | P4 | P1 |
+| **B-MOTOR-03** | Double `[phase: answering]` | P4 | P1 |
+| **B-MOTOR-02** | Spirale bash VERIFY Windows (`head`, quoting, timeout) | P5 | P1 |
+| **B-UI-06** | Replay session lent (compaction journal / cold start) | P6 | P1 |
+| **G-DEBT-01** | `loop/drive/tools.rs` ~530 L (> plafond FOI 500) | P7 | P2 |
+| **B-UI-01…05** | Trays, plan sticky, ask_user markdown, ordre thinking | — | **1.4.2** |
+| **B-RAIL-01 résidu** | Pas de `[gate:]` modèle | — | doc / 1.4.2 prompt |
 
 ---
 
-## S3 — Session replay performant (B-UI-06 — couche moteur/persistance)
+## Synthèse par thème (référence rapide)
 
-**Problème** : réouverture app → replay 10k events UI, fil incorrect.
+### P1 — Surface prod vs dev (`droxSurface`) — B-REL-01
 
-| Tâche | Fichier |
-|-------|---------|
-| Compaction journal : fusion `delta` consécutifs à l’écriture | `droxUiReplayJournal.ts`, session persist |
-| Option cold-start : transcript moteur d’abord, UI lazy | `droxChatTabsManager.ts` |
-| Snapshot compact par tour (option v1.1) | `.drox/sessions/` format |
+**Problème** : installeur 1.4.0+ affiche `1.4.0.xxxxxx` ; `droxEngineDevBuild` packagé ; `DROX_DEV_BUILD` dans `drox.exe` ; export transcript / `simulateLatest*` accessibles en release.
 
-**Critère** : session 5k events → chargement perçu < 2 s ; contenu cohérent (affichage fin → 1.4.2).
+**Principe** : `droxSurface` (`dev` | `release`) figé au `drox:ship` ; registre `DROX_DEV_FEATURES` + `isDroxDevFeatureEnabled()`.
+
+**Critère** : `drox:ship` → header **`1.4.0`** seul ; watch garde le suffixe ; `drox-bundle-readiness` refuse surface ≠ release.
+
+### P2 — Discuss — M-DISC-01
+
+**Problème** : « Salut » → `architect_discussion` mais `file_read` + `memory_list` (transcript `ses_5f0a049a`).
+
+**Critère** : R1 discuss — 0 outil, 1 tour, `[phase: done]` ; export < 50 events UI.
+
+### P3 — Busy & sync session — B-UI-07
+
+**Problème** : modèle terminé mais UI `busy` ; events perdus au blur ; messages user triplés.
+
+**Critère** : run terminé → `busy: false` < 2 s après alt-tab ; pas de message user dupliqué.
+
+### P4 — Boucles, answering, ACT — B-MOTOR-01/03/04
+
+**Problèmes** :
+
+- Préambules thinking répétés ; snapshot redondant mid-run (B-MOTOR-01).
+- Double promotion `[phase: answering]` (B-MOTOR-03).
+- Brief edit → lecture seule ou `done` sans `file_edit` quand mutation attendue (B-MOTOR-04 — dogfood post-1.4.0).
+
+**Pistes** : `final_answer_guard.rs` ; fingerprint loop ; `stall_act` ; nudge ACT si station PLAN/READ trop longue sans mutation ; vérifier `pre_gate` + promotion VERIFY→ANSWER sans passage ACT.
+
+**Critère** : run charte < 80 steps moteur ; une réponse finale ; au moins une mutation si le brief l’exige explicitement.
+
+### P5 — VERIFY Windows — B-MOTOR-02
+
+**Problème** : `head`, lint timeout, quoting `node -e` (steps 20–23 qwen27b). Partiellement atténué par VERIFY→ACT en 1.4.0.
+
+**Pistes** : rappel OS Windows dans blocs VERIFY / nudges ; pre-check bash incompatible.
+
+**Critère** : smoke VERIFY Next.js Windows ≤ 2 bash utiles ; retour ACT structuré après erreur compile.
+
+### P6 — Replay session — B-UI-06
+
+**Problème** : réouverture → replay 10k events UI (~10 s).
+
+**Pistes** : fusion `delta` à l’écriture ; cold-start transcript moteur + UI lazy.
+
+**Critère** : session 5k events → chargement perçu < 2 s (affichage fin → 1.4.2).
+
+### P7 — Dette structure — G-DEBT-01
+
+**Problème** : `loop/drive/tools.rs` ~530 L (gate G-lignes Phase 5).
+
+**Critère** : split sans changement comportement ; tests verts.
+
+### P8 — Validation & clôture
+
+Rejouer smoke R1 (salut) + R3/R4 (charte CSS) sur **qwen27b** ; matrice modèles ; mettre à jour SMOKE-BACKLOG et [09-TEST-PLAN](../1.4.0/archive/09-TEST-PLAN.md).
 
 ---
 
-## S4 — Boucles & clôture run (B-MOTOR-01, B-MOTOR-03)
+## XIV — Tableau d’exécution ordonné
 
-**Problème** : préambules thinking répétés ; double `[phase: answering]` ; loop intervention tardive.
+Faire les étapes **dans l’ordre**. Cocher `☐` → `☑`. Ne pas sauter une gate **G** sans justification documentée.
 
-| Tâche | Fichier |
-|-------|---------|
-| Réduire réinjection snapshot redondante mid-run | `architect_state.rs`, `run_snapshot` |
-| `FinalAnswerGuard` : pas de 2e promotion answering | `final_answer_guard.rs` |
-| Fingerprint loop : ignorer préambules stables | `loop.rs`, `phases.rs` |
+### Gates de validation (répéter après chaque phase)
 
-**Critère** : run charte < 80 steps moteur ; une seule réponse finale canonique.
-
----
-
-## S5 — VERIFY Windows (B-MOTOR-02)
-
-**Problème** : spirale bash (`head`, lint timeout, quoting `node -e`) sur Windows.
-
-| Tâche | Fichier |
-|-------|---------|
-| Rappel OS Windows dans prompt VERIFY / sanity | `nudges/`, prompt verify |
-| `cycle_sanity` : commandes PowerShell-compat en nudge | `cycle_sanity.rs` |
-| (Optionnel) pre-check bash `head`/`tail` | `permissions` ou tool wrapper |
-
-**Critère** : smoke VERIFY Next.js Windows ≤ 2 bash utiles.
+| Gate | Commande / critère |
+|------|-------------------|
+| **G-test** | `cargo test -p drox-engine` vert |
+| **G-build** | `cargo build -p drox-cli` sans warning |
+| **G-ts** | `npm run compile-check-ts-native` OK |
+| **G-smoke-discuss** | « Salut » → 0 outil, 1 tour, `done` |
+| **G-smoke-edit** | Charte CSS qwen27b : rail visible, mutation si brief l’exige, pas de double answering |
+| **G-ship** | (P1 seulement) `drox:ship` dry-run / readiness : `droxSurface: release`, pas de `droxEngineDevBuild` packagé |
 
 ---
 
-## S6 — Bench modèles & doc (non-code)
+### Phase 0 — Alignement doc
 
-| Livrable | Détail |
-|----------|--------|
-| Matrice modèles | Qwen 27b = dogfood D3 ; Gemma 26b = hors scope edit |
-| Rejouer R16 | `runRailEnabled: false` sur relaxed/strict après 1.4.0 |
-| Mettre à jour TEST-PLAN sign-off | [09-TEST-PLAN](../archive/1.4.0/09-TEST-PLAN.md) |
+| # | ☐ | Action | ID | Gate |
+|---|-----|--------|-----|------|
+| 0.1 | ☑ | Réaligner PLAN-1.4.1 post-clôture 1.4.0 + dogfood juin 2026 | — | — |
+| 0.2 | ☐ | Mettre à jour README 1.4.1 + OPENING si écart | — | — |
+| 0.3 | ☐ | Journal SMOKE-BACKLOG : statuts 1.4.1, ajout B-MOTOR-04 / B-REL-01 | — | — |
 
 ---
 
-## Ordre recommandé
+### Phase 1 — Surface prod vs dev (P1)
+
+| # | ☐ | Action | Fichier / zone | ID |
+|---|-----|--------|----------------|-----|
+| 1.1 | ☑ | Ajouter `droxSurface` + `getDroxSurface()` | `product.json`, `product.ts` | B-REL-01 |
+| 1.2 | ☑ | **CREATE** `droxDevSurface.ts` : `DROX_DEV_FEATURES` + `isDroxDevFeatureEnabled()` | `contrib/drox/common/` | B-REL-01 |
+| 1.3 | ☑ | Version chat / About : pas de suffixe si `release` | `droxProductVersion.ts`, `droxChatController.ts` | B-REL-01 |
+| 1.4 | ☑ | Packaging : `droxSurface: release`, retirer `droxEngineDevBuild` du product packagé | `build/gulpfile.vscode.ts` | B-REL-01 |
+| 1.5 | ☑ | `DROX_OMIT_DEV_BUILD=1` au ship ; pas de stamp dans `drox.exe` release | `drox-cli/build.rs`, `package-drox.ps1` | B-REL-01 |
+| 1.6 | ☑ | Masquer settings dev (`simulateLatest*`, etc.) | `droxConfiguration.ts`, settings webview | B-REL-01 |
+| 1.7 | ☑ | Masquer UI dev (export transcript, toggles dogfood) | `droxChatWebview.ts`, `bridge/` | B-REL-01 |
+| 1.8 | ☑ | Garde-fou `drox-bundle-readiness` | `scripts/lib/drox-bundle-readiness.ps1` | B-REL-01 |
+| 1.9 | ☑ | Tests `droxProductVersion.test.ts`, `droxDevSurface.test.ts` | `contrib/drox/test/` | B-REL-01 |
+| 1.10 | ☑ | Doc release RULES + GUIDE-PUBLICATION | `RULES.md`, `GUIDE-PUBLICATION-WIN32.md` | B-REL-01 |
+| | | | | **G-ts** · **G-ship** |
+
+---
+
+### Phase 2 — Discuss (P2)
+
+| # | ☐ | Action | Fichier / zone | ID |
+|---|-----|--------|----------------|-----|
+| 2.1 | ☐ | Pre-gate discuss : 0 outil si `DiscussReplyOnly` + message light | `start_run.rs`, `architect_gates.rs` | M-DISC-01 |
+| 2.2 | ☐ | Rejeter tool calls post-hoc si greeting-only | `gates/` ou `loop/drive/` | M-DISC-01 |
+| 2.3 | ☐ | Test `cargo test` scénario salut | `orchestration/start_run.rs` tests | M-DISC-01 |
+| | | | | **G-test** · **G-smoke-discuss** |
+
+---
+
+### Phase 3 — Busy & sync IDE (P3)
+
+| # | ☐ | Action | Fichier / zone | ID |
+|---|-----|--------|----------------|-----|
+| 3.1 | ☐ | Garantir `busy: false` sur Stop / erreur / cancel / `done` | `droxChatAgentEvents.ts`, `droxChatSendRun.ts` | B-UI-07 |
+| 3.2 | ☐ | Réconcilier runId au retour focus (heartbeat ou poll moteur) | `droxChatAgentHost.ts` | B-UI-07 |
+| 3.3 | ☐ | Bloquer double envoi user pendant `busy` stale | webview router / composer | B-UI-07 |
+| 3.4 | ☐ | Test manuel : alt-tab pendant run + après `done` | smoke | B-UI-07 |
+| | | | | **G-ts** · **G-smoke-edit** (partiel) |
+
+---
+
+### Phase 4 — Boucles, answering, mutations (P4)
+
+| # | ☐ | Action | Fichier / zone | ID |
+|---|-----|--------|----------------|-----|
+| 4.1 | ☐ | Réduire réinjection snapshot redondante mid-run | `state/`, `run_snapshot.rs` | B-MOTOR-01 |
+| 4.2 | ☐ | `FinalAnswerGuard` : une seule promotion `answering` | `final_answer_guard.rs` | B-MOTOR-03 |
+| 4.3 | ☐ | Fingerprint loop : ignorer préambules stables | `stream/`, `phases.rs` | B-MOTOR-01 |
+| 4.4 | ☐ | Diagnostiquer runs 0 `file_edit` : log station + tool reject | dogfood transcript | B-MOTOR-04 |
+| 4.5 | ☐ | Nudge / gate : brief mutation explicite → forcer passage ACT ou refuser `done` sans mutation | `rail/`, `gates/done.rs`, `stall_act` | B-MOTOR-04 |
+| 4.6 | ☐ | Vérifier clôture « code déjà OK » : answering honnête sans faux `file_edit` | prompt / `done` gate | B-MOTOR-04 |
+| | | | | **G-test** · **G-smoke-edit** |
+
+---
+
+### Phase 5 — VERIFY Windows (P5)
+
+| # | ☐ | Action | Fichier / zone | ID |
+|---|-----|--------|----------------|-----|
+| 5.1 | ☐ | Rappel OS Windows dans blocs VERIFY / nudges | `prompts/`, `nudges/` | B-MOTOR-02 |
+| 5.2 | ☐ | Suggestions PowerShell-compat (`Get-Content` vs `head`) | nudges verify | B-MOTOR-02 |
+| 5.3 | ☐ | (Optionnel) pre-check bash `head`/`tail` avant exec | permissions ou wrapper | B-MOTOR-02 |
+| 5.4 | ☐ | Smoke VERIFY Next.js Windows | manuel | B-MOTOR-02 |
+| | | | | **G-test** · **G-smoke-edit** |
+
+---
+
+### Phase 6 — Replay session (P6)
+
+| # | ☐ | Action | Fichier / zone | ID |
+|---|-----|--------|----------------|-----|
+| 6.1 | ☐ | Compaction journal : fusion `delta` consécutifs à l’écriture | `droxUiReplayJournal.ts` | B-UI-06 |
+| 6.2 | ☐ | Cold-start : transcript moteur d’abord, UI replay lazy | `droxChatTabsManager.ts` | B-UI-06 |
+| 6.3 | ☐ | (Option v1.1) snapshot compact par tour | `.drox/sessions/` | B-UI-06 |
+| 6.4 | ☐ | Mesurer cold start session 5k events | smoke | B-UI-06 |
+| | | | | **G-ts** |
+
+---
+
+### Phase 7 — Dette structure (P7)
+
+| # | ☐ | Action | Fichier / zone | ID |
+|---|-----|--------|----------------|-----|
+| 7.1 | ☐ | **SPLIT** `loop/drive/tools.rs` sous plafond 500 L | `loop/drive/tools/` | G-DEBT-01 |
+| 7.2 | ☐ | Aucun autre fichier `agent/` > 500 L après split | `agent/` | G-DEBT-01 |
+| | | | | **G-test** · **G-build** |
+
+---
+
+### Phase 8 — Validation & clôture
+
+| # | ☐ | Action | ID | Gate |
+|---|-----|--------|-----|------|
+| 8.1 | ☐ | Matrice modèles : Qwen 27b = dogfood D3 ; Gemma 26b = hors scope edit | S6 | doc |
+| 8.2 | ☐ | Rejouer R16 post-1.4.0 : charte CSS `runRailEnabled: true` | S6 | **G-smoke-edit** |
+| 8.3 | ☐ | Mettre à jour sign-off [09-TEST-PLAN](../1.4.0/archive/09-TEST-PLAN.md) | S6 | — |
+| 8.4 | ☐ | Journal [SMOKE-BACKLOG](../1.4.0/archive/SMOKE-BACKLOG.md) à jour | — | — |
+| 8.5 | ☐ | **CREATE** CLOSURE-1.4.1.md | — | toutes gates |
+| 8.6 | ☐ | Bump `droxVersion` → **1.4.1** + ship si critères prod OK | B-REL-01 | **G-ship** |
+
+---
+
+## Ordre recommandé (résumé)
 
 ```text
-S1 discuss (rapide, haute valeur R1)
-  → S2 busy (bloque usage quotidien)
-  → S4 boucles (qualité runs longs)
-  → S3 session replay (perf cold start)
-  → S5 VERIFY Windows
-  → S6 doc + regression
+P0  Phase 1  droxSurface (prod crédible)
+  → P2 discuss
+  → P3 busy
+  → P4 boucles + ACT + answering
+  → P5 VERIFY Windows
+  → P6 replay
+  → P7 split tools.rs (si marge)
+  → P8 smoke + clôture
 ```
 
 ---
 
-## Critère de clôture 1.4.1
+## Critères de clôture 1.4.1
 
-- [ ] M-DISC-01 + B-UI-07 + B-MOTOR-01/02/03 fermés ou explicitement reportés en 1.4.2 avec justification
-- [ ] B-UI-06 compaction livrée (affichage peut rester 1.4.2)
-- [ ] `cargo test -p drox-engine` vert
-- [ ] Smoke : salut + charte CSS rejoués sur qwen27b sans régression rail 1.4.0
-- [ ] [SMOKE-BACKLOG](../archive/1.4.0/SMOKE-BACKLOG.md) journal mis à jour
+- [x] **B-REL-01** : prod sans suffixe dev ; features dogfood coupées en release ; readiness OK (code — valider au prochain `drox:ship`)
+- [ ] **M-DISC-01** + **B-UI-07** + **B-MOTOR-01/02/03/04** fermés ou reportés en 1.4.2 **avec justification**
+- [ ] **B-UI-06** compaction livrée (polish affichage replay → 1.4.2)
+- [ ] **G-DEBT-01** ou report explicite
+- [ ] `cargo test -p drox-engine` vert ; `compile-check-ts-native` OK
+- [ ] Smoke : salut + charte CSS qwen27b sans régression rail 1.4.0
+- [ ] SMOKE-BACKLOG journal à jour
 
 ---
 
 ## Non-objectifs 1.4.1
 
-- B-UI-01 à 05 (layout, plan sticky, ask_user markdown, ordre thinking)
-- Index / graphe / fast path / onboarding (→ 1.4.3)
-- Nouveau comportement rail (→ doit être en 1.4.0)
+- B-UI-01 à 05 (layout trays, plan sticky, ask_user markdown, ordre thinking) → **1.4.2**
+- Conducteur UI stations complet → **1.4.2** ([UI-CONDUCTEUR](../1.4.0/UI-CONDUCTEUR.md))
+- Index / graphe / fast path / onboarding → **1.4.3**
+- Nouveau paradigme rail ou retour Executor / segments → interdit (figé 1.4.0)
+- Listes heuristiques message pour routage discuss/edit → interdit ([RULES.md](../../../../RULES.md) §6)
 
 ---
 
 ## Liens
 
 - [README 1.4.1](README.md)
+- [CLOSURE 1.4.0](../1.4.0/archive/finalisation/CLOSURE-1.4.0.md)
+- [FOI-REFONTE](../1.4.0/FOI-REFONTE.md)
 - [1.4.2 UI](../1.4.2/README.md)
 - [1.4.3 index](../1.4.3/PLAN-1.4.3.md)

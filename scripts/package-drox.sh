@@ -46,10 +46,12 @@ BUILT="$DROX_ROOT/target/$TARGET_DIR/$BIN"
 
 if [[ "$PROFILE" == "release" ]]; then
 	CARGO_BUILD_ARGS=(build --release -p drox-cli)
+	export DROX_OMIT_DEV_BUILD=1
 else
 	CARGO_BUILD_ARGS=(build -p drox-cli)
+	unset DROX_OMIT_DEV_BUILD
 fi
-echo "[package-drox] cargo ${CARGO_BUILD_ARGS[*]} ($PLATFORM_FOLDER)"
+echo "[package-drox] cargo ${CARGO_BUILD_ARGS[*]} ($PLATFORM_FOLDER) DROX_OMIT_DEV_BUILD=${DROX_OMIT_DEV_BUILD:-}"
 (
 	cd "$DROX_ROOT"
 	cargo "${CARGO_BUILD_ARGS[@]}"

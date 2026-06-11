@@ -65,9 +65,10 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 | Champ | Exemple | Usage |
 |-------|---------|--------|
 | **`version`** | `1.122.0` | Base VS Code / API extensions (Copilot, marketplace) — ne pas remplacer par la version Drox |
-| **`droxVersion`** | `1.3.1` | Release produit : installeur, `latest.json`, dialogue **À propos** |
+| **`droxVersion`** | `1.4.0` | Release produit : installeur, `latest.json`, dialogue **À propos** |
+| **`droxSurface`** | `dev` | `dev` en sources / watch ; `release` injecté au package via `DROX_PRODUCT_SURFACE` (`build-release-win32.ps1`) |
 
-Pour une nouvelle release Drox : modifier **`droxVersion`** uniquement (sauf rebase upstream majeur → mettre à jour **`version`** aussi).
+Pour une nouvelle release Drox : modifier **`droxVersion`** uniquement (sauf rebase upstream majeur → mettre à jour **`version`** aussi). Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.
 
 Affichage utilisateur : `1.3.1 (base VS Code 1.122.0)` via `getProductDisplayVersion()` dans le code. Build : `build/lib/droxVersion.ts`.
 
@@ -109,7 +110,8 @@ npm run release-publish-win32
 | Sortie package F1 | Parent du repo : `..\VSCode-win32-x64\` |
 | Sortie installeur F2 | `.build\win32-x64\user-setup\Drox-IDE-UserSetup-*.exe` |
 | Moteur embarqué | `resources\drox\win32-x64\drox.exe` (à côté de `resources\app\` en package) |
-| Alignement release | `out-vscode-min/drox-bundle-stamp.json` = `droxVersion` du `package.json` ; sentinelles chat 1.3.2+ ; vérif post-package (product.json + moteur MODERN) |
+| Alignement release | `out-vscode-min/drox-bundle-stamp.json` = `droxVersion` du `package.json` ; `product.json` packagé : `droxSurface: release`, sans `droxEngineDevBuild` ; `drox.exe` ship sans stamp (`DROX_OMIT_DEV_BUILD=1`) |
+| Features dev | Registre `DROX_DEV_FEATURES` / `isDroxDevFeatureEnabled()` — suffixe version chat, simulate MAJ, export transcript |
 | Marqueurs bundle | `clientName:"drox-ide"` dans `main.js` ; contributions Drox dans `workbench.desktop.main.js` ; media chat — voir `scripts/lib/drox-bundle-readiness.ps1` |
 
 ### Installeur (Inno Setup)
@@ -157,10 +159,11 @@ Même ton en **FR** et en **EN** (EN = traduction brute, pas re-marketing).
 
 ### Structure
 
-1. **Sommaire** — ancres FR / EN + lien schéma Mermaid.
-2. **Schéma** — état actuel (ex. orchestration 1.3), avant le prose.
-3. **Corps FR** — intro une ligne, `___`, invariants, `___`, chronologie par mois.
-4. **Corps EN** — même squelette, deuxième moitié du fichier.
+1. **Sommaire** — ancres FR / EN + liens vue globale + schéma Mermaid.
+2. **Vue globale** — pile Ollama / moteur / IDE (diagrammes grossiers), avant le schéma détaillé.
+3. **Schéma** — état actuel (ex. run rail 1.4), avant le prose.
+4. **Corps FR** — intro une ligne, `___`, invariants, `___`, chronologie par mois.
+5. **Corps EN** — même squelette, deuxième moitié du fichier.
 
 Séparateurs de section : ligne seule `___` (pas de titres « Fonctionnalités » ou « Features »).
 

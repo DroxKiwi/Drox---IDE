@@ -73,6 +73,11 @@ export interface IProductConfiguration {
 	 * See `drox-engine/docs/1.3/1.3.2/finalisation/D1-DESACTIVATION-MICROSOFT-AGENTS-1.3.2.md`.
 	 */
 	readonly droxMicrosoftAgentsSurfaceEnabled?: boolean;
+	/**
+	 * Surface produit : `dev` (suffixe build, outils dogfood) ou `release` (ship).
+	 * Fixe en `release` dans le package `drox:ship`.
+	 */
+	readonly droxSurface?: 'dev' | 'release';
 	/** Dev-only: engine / gates iteration counter (shown as droxVersion.N in chat). */
 	readonly droxEngineDevBuild?: number;
 	readonly date?: string;
