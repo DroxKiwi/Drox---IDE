@@ -22,7 +22,7 @@ import * as crypto from 'crypto';
 import * as cp from 'child_process';
 import * as i18n from './lib/i18n.ts';
 import { getProductionDependencies } from './lib/dependencies.ts';
-import { getPackageDroxEngineDevBuild, getPackageDroxVersion } from './lib/droxVersion.ts';
+import { getPackageDroxEngineDevBuild, getPackageDroxVersion, resolveDroxProductSurfaceForPackaging } from './lib/droxVersion.ts';
 import { config } from './lib/electron.ts';
 import { createAsar } from './lib/asar.ts';
 import minimist from 'minimist';
@@ -321,9 +321,15 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				if (droxVersion) {
 					json.droxVersion = droxVersion;
 				}
-				const droxEngineDevBuild = getPackageDroxEngineDevBuild();
-				if (droxEngineDevBuild !== undefined) {
-					json.droxEngineDevBuild = droxEngineDevBuild;
+				const droxSurface = resolveDroxProductSurfaceForPackaging();
+				json.droxSurface = droxSurface;
+				if (droxSurface === 'dev') {
+					const droxEngineDevBuild = getPackageDroxEngineDevBuild();
+					if (droxEngineDevBuild !== undefined) {
+						json.droxEngineDevBuild = droxEngineDevBuild;
+					}
+				} else {
+					delete json.droxEngineDevBuild;
 				}
 				return json;
 			}))

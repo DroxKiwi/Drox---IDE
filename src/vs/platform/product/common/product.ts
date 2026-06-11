@@ -45,6 +45,7 @@ else if (globalThis._VSCODE_PRODUCT_JSON && globalThis._VSCODE_PACKAGE_JSON) {
 	const pkg = globalThis._VSCODE_PACKAGE_JSON as {
 		version: string;
 		droxVersion?: string;
+		droxSurface?: 'dev' | 'release';
 		droxEngineDevBuild?: number;
 	};
 
@@ -57,6 +58,12 @@ else if (globalThis._VSCODE_PRODUCT_JSON && globalThis._VSCODE_PACKAGE_JSON) {
 	if (!product.droxVersion && pkg.droxVersion) {
 		Object.assign(product, {
 			droxVersion: pkg.droxVersion
+		});
+	}
+
+	if (!product.droxSurface && (pkg.droxSurface === 'dev' || pkg.droxSurface === 'release')) {
+		Object.assign(product, {
+			droxSurface: pkg.droxSurface
 		});
 	}
 

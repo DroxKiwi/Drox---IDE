@@ -15,7 +15,9 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
+import product from '../../../../platform/product/common/product.js';
 import { createDroxEngineTuningConfigurationProperties } from './droxEngineTuningConfiguration.js';
+import { isDroxDevFeatureEnabled } from './droxDevSurface.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
 
@@ -231,6 +233,30 @@ export function readDroxConfigString(
 export function readArchitectModel(configService: IConfigurationService, resource?: URI): string {
 	return readDroxConfigString(configService, DroxSetting.ArchitectModel, DroxSetting.Model, resource);
 }
+
+const droxDevOnlyUpdateSimulateProperties: Record<string, IConfigurationPropertySchema> =
+	isDroxDevFeatureEnabled('updateSimulateLatest', product)
+		? {
+			[DroxSetting.UpdateSimulateLatestVersion]: {
+				type: 'string',
+				default: '',
+				scope: ConfigurationScope.APPLICATION,
+				markdownDescription: localize(
+					'drox.update.simulateLatestVersion',
+					'**Dev/test:** if set (e.g. `99.0.0`), skips the remote manifest and uses this as the latest version. Use with **Drox: Check for Updates** to preview the update notification without publishing a release.',
+				),
+			},
+			[DroxSetting.UpdateSimulateInstallerUrl]: {
+				type: 'string',
+				default: 'https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest',
+				scope: ConfigurationScope.APPLICATION,
+				markdownDescription: localize(
+					'drox.update.simulateInstallerUrl',
+					'**Dev/test:** URL used when `drox.update.simulateLatestVersion` is set and you click **Installer maintenant**.',
+				),
+			},
+		}
+		: {};
 
 export const droxConfigurationNode: IConfigurationNode = {
 	id: 'drox',
@@ -692,35 +718,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		},
 
-		[DroxSetting.UpdateSimulateLatestVersion]: {
-
-			type: 'string',
-
-			default: '',
-
-			scope: ConfigurationScope.APPLICATION,
-
-			markdownDescription: localize(
-				'drox.update.simulateLatestVersion',
-				'**Dev/test:** if set (e.g. `99.0.0`), skips the remote manifest and uses this as the latest version. Use with **Drox: Check for Updates** to preview the update notification without publishing a release.',
-			),
-
-		},
-
-		[DroxSetting.UpdateSimulateInstallerUrl]: {
-
-			type: 'string',
-
-			default: 'https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest',
-
-			scope: ConfigurationScope.APPLICATION,
-
-			markdownDescription: localize(
-				'drox.update.simulateInstallerUrl',
-				'**Dev/test:** URL used when `drox.update.simulateLatestVersion` is set and you click **Installer maintenant**.',
-			),
-
-		},
+		...droxDevOnlyUpdateSimulateProperties,
 
 		[DroxSetting.CycleDoneWindowsNotification]: {
 

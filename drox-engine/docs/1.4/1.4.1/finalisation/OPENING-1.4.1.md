@@ -8,9 +8,9 @@
 
 ## Objectif
 
-Fiabiliser le moteur et la session **sans** nouvelle refonte. La 1.4.0 a livré le run rail et retiré les reliquats 1.3 ; la 1.4.1 corrige les bugs observés au dogfood.
+Fiabiliser le moteur et la session **sans** nouvelle refonte rail. La **1.4.0** (clôturée juin 2026) a livré le squelette run rail ; la **1.4.1** corrige les bugs du [SMOKE-BACKLOG](../../1.4.0/archive/SMOKE-BACKLOG.md) **après** ce dogfood, plus la surface prod (`droxSurface`).
 
-→ Plan : [PLAN-1.4.1.md](../PLAN-1.4.1.md)
+→ Plan + tableau d’exécution : [PLAN-1.4.1.md](../PLAN-1.4.1.md) § XIV
 
 ---
 

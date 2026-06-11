@@ -33,6 +33,13 @@ suite('droxProductVersion', () => {
 		);
 	});
 
+	test('formatDroxChatVersionLabel release surface ignores engine build', () => {
+		assert.strictEqual(
+			formatDroxChatVersionLabel({ droxVersion: '1.4.0', version: '1.122.0', droxSurface: 'release', droxEngineDevBuild: 27 }, 482901),
+			'1.4.0',
+		);
+	});
+
 	test('getDroxEngineDevBuildFromProduct rejects invalid', () => {
 		assert.strictEqual(getDroxEngineDevBuildFromProduct({ droxEngineDevBuild: -1 }), undefined);
 		assert.strictEqual(getDroxEngineDevBuildFromProduct({ droxEngineDevBuild: NaN }), undefined);

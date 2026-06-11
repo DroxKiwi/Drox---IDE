@@ -44,112 +44,208 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 **[⚠️ Statut produit 1.4.1](#statut-produit)** · [Statut EN](#en-product-status)
 
-[Schéma 1.3 — prompts & outils](#schema-13)
+[Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.4 — run rail](#schema-rail)
 
 **FR**
 
 [Moteur Drox](#fr) · [Invariants](#fr-invariants) · [Chronologie](#fr-chronologie)
 
-[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13)
+[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14)
 
 **EN**
 
 [Drox Engine](#en) · [Invariants](#en-invariants) · [Timeline](#en-timeline)
 
-[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13)
+[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14)
 
 ___
 
-<a id="schema-13"></a>
+<a id="vue-globale"></a>
 
-## Schéma — 1.3 (prompts & outils)
+## Vue globale
 
-Run `agent.run` · orchestration architecte / exécuteur (`DROX_ORCHESTRATION=v1_2`) · lot **1.3** : batch parallèle, `FailurePacket`, re-délégation ciblée · sous-agent legacy `task` désactivé.
+Tu codes dans un repo. **Drox IDE** est l’éditeur. **Ollama** fait tourner le modèle en local (Qwen, Gemma, etc. — celui que tu choisis dans les réglages). Entre les deux : **`drox.exe`**, le moteur Rust : il enchaîne les tours LLM, décide quels outils appeler, et demande à l’IDE ce qu’il ne peut pas faire seul (LSP, diff, questions).
+
+**La pile (grossier)**
+
+```mermaid
+flowchart LR
+  DEV(["Toi + ton repo"])
+  IDE(["Drox IDE"])
+  MOT(["drox.exe"])
+  OLL(["Ollama"])
+  MDL(["Ton modele"])
+
+  DEV <-->|fichiers terminal| IDE
+  IDE <-->|stdio NDJSON| MOT
+  MOT <-->|HTTP localhost| OLL
+  OLL --- MDL
+```
+
+**Un message dans le chat (grossier)**
+
+```mermaid
+flowchart TB
+  U(["Tu envoies un message"])
+  I(["Drox IDE"])
+  M(["Moteur Drox"])
+  L(["LLM via Ollama"])
+  O(["Outils : lire ecrire bash grep..."])
+
+  U --> I
+  I -->|agent.run| M
+  M -->|prompt + historique| L
+  L -->|texte + appels outil| M
+  M -->|file_read bash...| O
+  O -->|resultats| I
+  I -->|tool/exec| M
+  M -->|reponse finale| I
+  I --> U
+```
+
+**Qui fait quoi**
+
+| Brique | Rôle |
+|--------|------|
+| **Ollama** | Inférence : un modèle, ta machine, pas de compte cloud imposé |
+| **drox.exe** | Boucle agent, run rail, permissions, session, filtre des outils |
+| **Drox IDE** | UI chat, éditeur, exécution LSP/diff/bash côté workspace |
+| **Toi** | Repo, modèle choisi, mode permission (default / plan / acceptEdits…) |
+
+Le détail du conducteur (stations, marqueurs, prompts) est dans [Schéma 1.4 — run rail](#schema-rail) plus bas.
+
+___
+
+<a id="overview"></a>
+
+## Overview
+
+You work in a repo. **Drox IDE** is the editor. **Ollama** runs the model locally (Qwen, Gemma, etc. — whichever you pick in settings). In between: **`drox.exe`**, the Rust engine: it runs LLM turns, decides which tools to call, and asks the IDE for what it cannot do itself (LSP, diff, prompts).
+
+**The stack (coarse)**
+
+```mermaid
+flowchart LR
+  DEV(["You + your repo"])
+  IDE(["Drox IDE"])
+  MOT(["drox.exe"])
+  OLL(["Ollama"])
+  MDL(["Your model"])
+
+  DEV <-->|files terminal| IDE
+  IDE <-->|stdio NDJSON| MOT
+  MOT <-->|HTTP localhost| OLL
+  OLL --- MDL
+```
+
+**One chat message (coarse)**
+
+```mermaid
+flowchart TB
+  U(["You send a message"])
+  I(["Drox IDE"])
+  M(["Drox engine"])
+  L(["LLM via Ollama"])
+  O(["Tools: read write bash grep..."])
+
+  U --> I
+  I -->|agent.run| M
+  M -->|prompt + history| L
+  L -->|text + tool calls| M
+  M -->|file_read bash...| O
+  O -->|results| I
+  I -->|tool/exec| M
+  M -->|final reply| I
+  I --> U
+```
+
+**Who does what**
+
+| Piece | Role |
+|-------|------|
+| **Ollama** | Inference: one model, your machine, no mandated cloud account |
+| **drox.exe** | Agent loop, run rail, permissions, session, tool filtering |
+| **Drox IDE** | Chat UI, editor, LSP/diff/bash execution in the workspace |
+| **You** | Repo, chosen model, permission mode (default / plan / acceptEdits…) |
+
+Conductor detail (stations, markers, prompts) is in [Schema 1.4 — run rail](#schema-rail) below.
+
+___
+
+<a id="schema-rail"></a>
+
+## Schéma — 1.4 (run rail)
+
+Run `agent.run` · **deux chemins IDE** : **edit** (Architect + run rail) et **discuss** (ArchitectDiscussion, court) · lot **1.4** : un conducteur, stations, filtre outils par station, prompt boot unique `01_core_rail_solo.md` · `delegate_executor`, Executor, segments ACT, Professor, Standard CLI **retirés**.
 
 **Vue d’ensemble**
 
 ```mermaid
 flowchart LR
   IDE(["Client IDE"])
-  MOT(("Moteur Rust 1.3"))
-  ARC[["Architecte transcript parent"]]
-  EXE1[["Executeur 1"]]
-  EXE2[["Executeur N"]]
+  MOT(("Moteur Rust 1.4"))
+  ARC[["Architecte solo"]]
+  RAIL[["Run rail"]]
+  DISC[["Discuss court"]]
 
   IDE <-->|NDJSON stdio| MOT
   MOT --- ARC
-  ARC -->|delegate_executor sync| EXE1
-  ARC -->|batch scopes disjoints| EXE2
-  EXE1 -.->|rapport synthese| ARC
-  EXE2 -.->|results batch| ARC
+  ARC -->|edit run_rail_enabled| RAIL
+  ARC -->|discuss| DISC
 ```
 
-**Prompts & registres par rôle**
+**Stations edit (chemin long vs court)**
 
 ```mermaid
-flowchart TB
-  subgraph arch_p [Architecte]
-    direction LR
-    a1["RunSpec Architect"]
-    a2["architect_system_prompt"]
-    a3["assemble_system_prompt"]
-    a4["allowlist 6 outils par tour"]
-    a1 --> a2 --> a3 --> a4
-  end
-
-  subgraph exe_p [Executeur]
-    direction LR
-    e1["RunSpec Executor"]
-    e2["EXECUTOR_SYSTEM_PROMPT"]
-    e3["brief tache scope"]
-    e4["allowlist 2 outils par tour"]
-    e1 --> e2 --> e3 --> e4
-  end
-
-  arch_p -.->|delegate_executor| exe_p
+flowchart LR
+  I[INTENT] --> R[READ]
+  R -->|depth complex| P[PROPOSE]
+  R --> PL[PLAN]
+  P --> PL
+  PL --> A[ACT]
+  R -->|chemin court| A
+  A --> V[VERIFY]
+  V --> AN[ANSWER]
 ```
 
-**Cycle d’une délégation**
+**Tour LLM sur le rail**
 
 ```mermaid
 sequenceDiagram
   autonumber
   participant IDE as Client
-  participant ARC as Architecte
-  participant DEL as delegate_executor
-  participant EXE as Executeur
+  participant DRV as loop/drive
+  participant RAIL as rail/policy
+  participant LLM as LLM
 
-  IDE->>ARC: agent.run et events
-  Note over ARC: gates phases todo_write
-
-  ARC->>DEL: tasks 1 ou batch
-  DEL->>DEL: scope_disjoint_gate
-  par Executeurs paralleles
-    DEL->>EXE: sous-run bloquant
-    loop tour executeur
-      EXE->>IDE: tool exec lsp
-      IDE-->>EXE: resultat
-    end
-    EXE->>EXE: agent-output
+  IDE->>DRV: agent.run
+  DRV->>RAIL: station courante
+  RAIL->>RAIL: filtre tool_specs par station
+  DRV->>LLM: boot 01_core_rail_solo + snapshot tour
+  Note over LLM: gate hold/advance depth answering done
+  LLM-->>DRV: tool_calls et/ou marqueurs
+  opt outil client
+    DRV->>IDE: tool/exec lsp diff
+    IDE-->>DRV: resultat
   end
-  DEL->>DEL: truth_check FailurePacket
-  DEL-->>ARC: reportMarkdown verified
-  opt echec partiel
-    ARC->>DEL: retry_per_task 1 tache
-    DEL-->>ARC: nouveau rapport
+  opt stall ACT
+    DRV->>LLM: nudge stall_act
   end
-  Note over ARC: pas de transcript executeur complet
+  LLM-->>DRV: phase answering puis done
+  DRV-->>IDE: agent/done
 ```
 
 | Identifiant | Fonction |
 |-------------|----------|
-| `RunSpec` | Allowlist + limites par rôle ; seuls ces outils partent au LLM |
-| `assemble_system_prompt` | Contexte workspace sur l’Architecte uniquement |
-| `delegate_executor` | Sync ; batch `tasks[]` ; architecte en attente |
-| `parallel_batch` | Plusieurs exécuteurs si scopes disjoints et slots libres |
-| `failure_absorption` | `truth_check` + `FailurePacket` dans le rapport |
-| `retry_per_task` | Re-délégation d’une tâche seule après échec partiel |
-| `architect_gates` | Anti-rattrapage, cap relances, todo ouvert avant `done` |
+| `run_rail_enabled` | Active le rail sur le chemin edit (preset normal IDE) |
+| `rail/policy.rs` | Allowlist outils **par station** avant envoi au LLM |
+| `01_core_rail_solo.md` | Seul boot system edit ; marqueurs `[gate:]` `[depth:]` `[phase:]` |
+| `pre_gate` | Orientation action ; rejet outil hors station |
+| `[gate: hold]` / `[gate: advance]` | Stop → ANSWER ou acceptation station candidate |
+| `[depth: short]` / `[depth: complex]` | Après READ ; PROPOSE si complex + hold user |
+| `stall_act` | Nudge si ACT sans mutation après N tours |
+| `final_answer_guard` | Une seule promotion `[phase: answering]` par run |
+| `ArchitectDiscussion` | Réponse légère sans rail complet (intent discuss) |
 
 ___
 
@@ -165,15 +261,16 @@ ___
 
 ## Invariants
 
-`moteur_seul` — phases, gates, orchestration et registre d’outils vivent dans Rust ; le client ne décide pas du protocole agent.
-`done_obligatoire` — fin de run uniquement sur marqueur `[phase: done]` ; pas de « plus d’outil donc on arrête ».
-`answering_avant_done` — `done` refusé ou nudgé si `answering` n’a pas été vu dans le run.
-`phases_marqueurs` — le modèle annonce `analyzing`, `reading`, `acting`, `testing`, `answering`, etc. ; seul le texte sous `answering` est la réponse utilisateur.
-`architecte_pas_executant` — rôle architecte : plan + délégation ; pas de glob/grep/file_read pour rattraper un exécuteur (gates).
-`brief_delegate` — chaque `delegate_executor` embarque instructions, livrable, `scope` ; pas un titre vide.
-`rapport_synthese` — l’architecte reçoit un rapport exécuteur résumé, pas le transcript intégral du sous-run.
-`roles_pas_tiers` — vignettes Low/Medium abandonnées ; remplacées par modèles et registres séparés architecte / exécuteur.
-`batch_parallel_with` — plusieurs tâches exécuteur dans un seul appel ; scopes disjoints ; plafond `maxParallelExecutors`.
+`moteur_seul` — stations, gates, filtre outils et orchestration vivent dans Rust ; le client stream et exécute LSP/diff, il ne conduit pas le run.
+`rail_seul_guide` — chemin edit : le **run rail** est le seul conducteur ; pas de LoopDetector 1.3, `cycle_sanity`, ni second guide parallèle.
+`architecte_solo` — un seul agent edit ; pas de `delegate_executor`, pas de `RoleId::Executor`, mutations **inline** en station ACT.
+`deux_chemins` — **edit** (rail complet) vs **discuss** (`ArchitectDiscussion`, court) ; routage via `architectInteractionMode` / intent modèle, pas de heuristique message côté moteur.
+`outils_par_station` — le moteur filtre `tool_specs` avant chaque tour LLM (READ ≠ ACT ≠ VERIFY).
+`gate_hold_advance` — transitions de station via `[gate: hold]` (→ ANSWER) ou `[gate: advance]` ; pas de `[phase: reading|acting|planning|testing]` comme langage de conduite.
+`depth_apres_read` — `[depth: short|complex]` après READ ; PROPOSE seulement si complex + hold utilisateur.
+`done_obligatoire` — fin de run uniquement sur `[phase: done]` ; pas de « plus d’outil donc on arrête ».
+`answering_avant_done` — `done` refusé ou nudgé si `[phase: answering]` n’a pas été vu ; seul le texte sous `answering` est la réponse utilisateur.
+`nudges_minces` — post-refonte : `stall_act`, `schema_error`, `done_only` seulement.
 
 ___
 
@@ -296,6 +393,25 @@ ___
 
 ___
 
+<a id="fr-2026-06-v14"></a>
+
+### 2026-06 — `v1_4` (run rail)
+
+`run_rail_solo` — refonte 1.4.0 : un conducteur edit, reliquats 1.3 retirés du chemin IDE.
+`stations_rail` — INTENT → READ → [PROPOSE] → PLAN → ACT → VERIFY → ANSWER ; chemin court sans PLAN/PROPOSE.
+`01_core_rail_solo` — seul prompt boot edit ; suppression `01_core.md`, `parallel_slots`, `delegate_executor` prompts.
+`rail_policy` — filtre outils par station dans `rail/policy.rs` avant LLM.
+`segment_act_del` — plus de shards Executor ; `file_edit` / `file_write` / `bash` en station ACT.
+`delegate_executor_del` — Executor, `FailurePacket`, batch parallèle hors contrat runtime.
+`professor_standard_del` — modes Professor et Standard CLI coupés du `drive`.
+`discuss_path` — `ArchitectDiscussion` : réponse légère, pas rail complet.
+`nudges_rail` — `stall_act`, `schema_error`, `done_only` ; fin nudges 1.3 (`cycle_sanity`, `step_by_step`, etc.).
+`final_answer_guard` — une promotion `[phase: answering]` ; anti double réponse finale.
+`agent_split_v2` — `loop/drive/`, `state/`, `gates/`, `rail/`, `nudges/` ; plafond ~500 L/fichier.
+`ui_2d` — retrait UI multi-modèle / executor côté IDE (settings, webview) ; polish conducteur → 1.4.2.
+
+___
+
 <a id="en-product-status"></a>
 
 # ⚠️ PRODUCT STATUS — READ FIRST
@@ -326,15 +442,16 @@ ___
 
 ## Invariants
 
-`moteur_seul` — phases, gates, orchestration, and tool registry live in Rust; the client does not own the agent protocol.
+`moteur_seul` — stations, gates, tool filtering, and orchestration live in Rust; the client streams and runs LSP/diff, it does not drive the run.
+`rail_seul_guide` — edit path: **run rail** is the only conductor; no 1.3 LoopDetector, `cycle_sanity`, or parallel guide.
+`architecte_solo` — single edit agent; no `delegate_executor`, no `RoleId::Executor`; mutations **inline** in ACT station.
+`deux_chemins` — **edit** (full rail) vs **discuss** (`ArchitectDiscussion`, short); routing via `architectInteractionMode` / model intent, no message heuristics in the engine.
+`outils_par_station` — engine filters `tool_specs` before each LLM turn (READ ≠ ACT ≠ VERIFY).
+`gate_hold_advance` — station transitions via `[gate: hold]` (→ ANSWER) or `[gate: advance]`; no `[phase: reading|acting|planning|testing]` as drive language.
+`depth_apres_read` — `[depth: short|complex]` after READ; PROPOSE only if complex + user hold.
 `done_obligatoire` — run ends only on `[phase: done]`; no “no more tools so we stop”.
-`answering_avant_done` — `done` blocked or nudged if `answering` was not seen in the run.
-`phases_marqueurs` — model announces `analyzing`, `reading`, `acting`, `testing`, `answering`, etc.; only text under `answering` is the user-facing reply.
-`architecte_pas_executant` — architect role: plan + delegate; no glob/grep/file_read to bail out a failed executor (gates).
-`brief_delegate` — every `delegate_executor` carries instructions, deliverable, `scope`; no empty title.
-`rapport_synthese` — architect gets a summarized executor report, not the full sub-run transcript.
-`roles_pas_tiers` — Low/Medium tiers dropped; replaced by separate architect / executor models and registries.
-`batch_parallel_with` — multiple executor tasks in one call; disjoint scopes; cap `maxParallelExecutors`.
+`answering_avant_done` — `done` blocked or nudged if `[phase: answering]` was not seen; only text under `answering` is the user-facing reply.
+`nudges_minces` — post-refactor: `stall_act`, `schema_error`, `done_only` only.
 
 ___
 
@@ -454,3 +571,22 @@ ___
 `scope_disjoint_gate` — batch rejected if paths overlap.
 `retry_per_task` — targeted re-delegation after partial failure.
 `architect_todo_guidance` — anti-loop plan closure.
+
+___
+
+<a id="en-2026-06-v14"></a>
+
+### 2026-06 — `v1_4` (run rail)
+
+`run_rail_solo` — 1.4.0 refactor: single edit conductor; 1.3 relics removed from IDE path.
+`stations_rail` — INTENT → READ → [PROPOSE] → PLAN → ACT → VERIFY → ANSWER; short path skips PLAN/PROPOSE.
+`01_core_rail_solo` — sole edit boot prompt; dropped `01_core.md`, `parallel_slots`, `delegate_executor` prompts.
+`rail_policy` — per-station tool filter in `rail/policy.rs` before LLM.
+`segment_act_del` — no Executor shards; `file_edit` / `file_write` / `bash` in ACT station.
+`delegate_executor_del` — Executor, `FailurePacket`, parallel batch out of runtime contract.
+`professor_standard_del` — Professor and Standard CLI modes cut from `drive`.
+`discuss_path` — `ArchitectDiscussion`: light reply, no full rail.
+`nudges_rail` — `stall_act`, `schema_error`, `done_only`; end of 1.3 nudges (`cycle_sanity`, `step_by_step`, etc.).
+`final_answer_guard` — single `[phase: answering]` promotion; no double final reply.
+`agent_split_v2` — `loop/drive/`, `state/`, `gates/`, `rail/`, `nudges/`; ~500 L/file cap.
+`ui_2d` — multi-model / executor UI removed on IDE side (settings, webview); conductor polish → 1.4.2.

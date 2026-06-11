@@ -1,6 +1,7 @@
 {
 	"nameShort": "Drox IDE",
 	"nameLong": "Drox IDE",
+	"droxSurface": "dev",
 	"applicationName": "drox-ide",
 	"dataFolderName": ".drox-ide",
 	"sharedDataFolderName": ".drox-ide-shared",

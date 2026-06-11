@@ -27,7 +27,12 @@ $targetDir = if ($Profile -eq 'release') { 'release' } else { 'debug' }
 $built = Join-Path $droxCrateRoot "target\$targetDir\$binName"
 
 $cargoArgs = if ($Profile -eq 'release') { @('build', '--release', '-p', 'drox-cli') } else { @('build', '-p', 'drox-cli') }
-Write-Host "[package-drox] cargo $($cargoArgs -join ' ') ($platformFolder)"
+if ($Profile -eq 'release') {
+	$env:DROX_OMIT_DEV_BUILD = '1'
+} else {
+	Remove-Item Env:DROX_OMIT_DEV_BUILD -ErrorAction SilentlyContinue
+}
+Write-Host "[package-drox] cargo $($cargoArgs -join ' ') ($platformFolder) DROX_OMIT_DEV_BUILD=$($env:DROX_OMIT_DEV_BUILD)"
 Push-Location $droxCrateRoot
 $prevEap = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'

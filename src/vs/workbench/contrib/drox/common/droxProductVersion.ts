@@ -5,8 +5,10 @@
 
 // allow-any-unicode-comment-file
 
+import { IDroxSurfaceProductInfo, isDroxDevFeatureEnabled } from './droxDevSurface.js';
+
 /** Champs produit utiles pour le libellé chat (tous optionnels côté appelant). */
-export type DroxProductVersionInfo = {
+export type DroxProductVersionInfo = IDroxSurfaceProductInfo & {
 	readonly droxVersion?: string;
 	readonly version?: string;
 	readonly droxEngineDevBuild?: number;
@@ -46,6 +48,9 @@ export function formatDroxChatVersionLabel(
 	engineDevBuild?: number,
 ): string {
 	const base = getDroxProductSemver(product);
+	if (!isDroxDevFeatureEnabled('chatVersionDevSuffix', product)) {
+		return base;
+	}
 	const build = resolveDroxEngineDevBuild(product, engineDevBuild);
 	return build !== undefined && build > 0 ? `${base}.${build}` : base;
 }
@@ -56,6 +61,9 @@ export function formatDroxChatVersionTitle(
 	engineDevBuild?: number,
 ): string {
 	const label = formatDroxChatVersionLabel(product, engineDevBuild);
+	if (!isDroxDevFeatureEnabled('chatVersionDevSuffix', product)) {
+		return `Drox ${label}`;
+	}
 	const build = resolveDroxEngineDevBuild(product, engineDevBuild);
 	const fromEngine = typeof engineDevBuild === 'number' && engineDevBuild > 0;
 	if (build !== undefined && build > 0) {

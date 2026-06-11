@@ -86,6 +86,7 @@ export function getDroxChatHtml(
 	scriptUris: readonly URI[],
 	versionLabel: string,
 	versionTitle: string,
+	showExportTranscript = true,
 ): string {
 
 	const css = cssUri.toString(true);
@@ -239,7 +240,7 @@ export function getDroxChatHtml(
 
 			<div class="session-tab-actions">
 
-				<button type="button" id="export-transcript" class="icon-btn" title="${exportTranscriptLabel}" aria-label="${exportTranscriptLabel}">${iconExport}</button>
+				${showExportTranscript ? `<button type="button" id="export-transcript" class="icon-btn" title="${exportTranscriptLabel}" aria-label="${exportTranscriptLabel}">${iconExport}</button>` : ''}
 
 				<button type="button" id="history-toggle" class="icon-btn" title="${historyLabel}" aria-label="${historyLabel}">${iconHistory}</button>
 

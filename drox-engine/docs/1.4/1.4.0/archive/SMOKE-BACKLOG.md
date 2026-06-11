@@ -9,7 +9,7 @@
 | Version | PÃ©rimÃ¨tre |
 |---------|-----------|
 | **1.4.0** | Moteur rail (B-RAIL-02, B-SEG-01/02) â€” **bloque la clÃ´ture** Â· B-RAIL-01 partiel |
-| **[1.4.1](../../1.4.1/README.md)** | Bugs moteur/session dogfood (MOTOR, discuss salut) |
+| **[1.4.1](../../1.4.1/README.md)** | Surface prod (`droxSurface`), bugs moteur/session dogfood post-1.4.0 |
 | **[1.4.2](../../1.4.2/README.md)** | Bugs UI chat (B-UI-*) |
 
 Source : transcripts [`chat_qwen27b.txt`](../../../1.3/chat_qwen27b.txt), `chat_qwen9b.txt`, `chat_gemma426b.txt`.
@@ -351,6 +351,30 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ---
 
+## B-MOTOR-04 â€” Run edit sans mutation (`file_edit` absent)
+
+**Cible** : **1.4.1**
+
+**SymptÃ´me** : brief edit explicite mais run terminÃ© avec **0 `file_edit`** ; ou clÃ´ture en `answering` sans mutation alors que le brief lâ€™exigeait (dogfood juin 2026 post-1.4.0).
+
+**Plan** : [PLAN-1.4.1](../../1.4.1/PLAN-1.4.1.md) phase P4.
+
+**CritÃ¨re fix** : mutation explicite demandÃ©e â†’ au moins un `file_edit`/`file_write` rÃ©ussi ou answering honnÃªte expliquant lâ€™absence de patch.
+
+---
+
+## B-REL-01 â€” Surface prod vs dev (`droxSurface`)
+
+**Cible** : **1.4.1**
+
+**SymptÃ´me** : installeur 1.4.0 affiche `1.4.0.xxxxxx` ; rÃ©glages dogfood visibles en release.
+
+**Plan** : [PLAN-1.4.1](../../1.4.1/PLAN-1.4.1.md) phase P1.
+
+**CritÃ¨re fix** : `drox:ship` â†’ semver produit seul ; features dev masquÃ©es ; readiness OK.
+
+---
+
 ## Lien avec Run Rail 1.4.0
 
 | Backlog | AttÃ©nuation attendue du rail (pas encore prouvÃ©e en dogfood) |
@@ -378,6 +402,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 | 2026-06-09 | Smoke qwen27b complet : B-UI-06/07, B-RAIL-01 ; bench modÃ¨les gemma/qwen9b/qwen27b |
 | 2026-06-09 | Tri versions 1.4.0 moteur / 1.4.1 bugs / 1.4.2 UI ; salut simple â†’ M-DISC-01 |
 | 2026-06-05 | Phase 4 VERIFY loop : `verify.rs`, transition gate, snapshot ; B-MOTOR-02 partiel |
+| 2026-06-05 | Clôture squelette 1.4.0 ; PLAN-1.4.1 réaligné post-dogfood ; B-MOTOR-04, B-REL-01 ajoutés |
 
 ---
 
