@@ -1,6 +1,6 @@
-# Idée 07 — Réponses légères sans plan (salutations, avis rapide)
+﻿# Idée 07 — Réponses légères sans plan (salutations, avis rapide)
 
-**Statut** : partiellement livré 1.3.2 (discuss heuristique) — **cible complète [1.4.0 Run Rail](../1.4/1.4.0/README.md)**  
+**Statut** : partiellement livré 1.3.2 (discuss heuristique) — **cible complète [1.4.0 Run Rail](../1.4/archive/1.4.0/README.md)**  
 **Date** : 2026-06-02 · mis à jour 2026-06-05  
 **Priorité** : haute UX / coût tokens
 
@@ -59,7 +59,7 @@ L’idée 07 est absorbée par le **rail consultatif** :
 - `[gate: advance]` seulement si le modèle juge la profondeur nécessaire ;
 - mode **A** : candidate unique proposée par le moteur.
 
-Voir [01-VISION.md](../1.4/1.4.0/01-VISION.md) et [03-STATIONS.md](../1.4/1.4.0/03-STATIONS.md).
+Voir [01-VISION.md](../1.4/archive/1.4.0/01-VISION.md) et [03-STATIONS.md](../1.4/archive/1.4.0/03-STATIONS.md).
 
 ---
 

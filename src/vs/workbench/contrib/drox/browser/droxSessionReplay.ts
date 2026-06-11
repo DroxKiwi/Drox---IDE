@@ -5,7 +5,6 @@
 
 // allow-any-unicode-comment-file
 
-import { isDroxExploreToolName } from '../common/droxExploreTools.js';
 import { isFileMutationToolName } from '../common/droxFileMutation.js';
 import { IDroxTranscriptContentBlock, IDroxTranscriptMessage, transcriptMessageToReplayAppends } from '../common/droxSession.js';
 import { describeToolCall, previewJson } from '../common/droxToolPreview.js';
@@ -19,6 +18,20 @@ const REPLAY_YIELD_EVERY = 6;
 const REPLAY_YIELD_MS = 48;
 
 const SKIP_TOOL_UI = new Set(['course_plan_write', 'scope_defer']);
+const SKIP_TOOL_PREVIEW_NAMES = new Set([
+	'file_read',
+	'glob',
+	'grep',
+	'lsp',
+	'web_search',
+	'web_fetch',
+	'workspace_map_read',
+	'memory_read',
+	'memory_list',
+	'bash',
+	'list_mcp_resources',
+	'read_mcp_resource',
+]);
 const IGNORED_PHASES = new Set(['reasoning', 'next-move']);
 const PHASE_LINE_RE = /^\[phase:\s*([^\]]+)\]\s*$/i;
 
@@ -77,60 +90,6 @@ function replayAssistantTextWithPhases(host: IDroxChatAgentEventHost, text: stri
 	flush();
 }
 
-function replayDelegateExecutorFromOutput(
-	host: IDroxChatAgentEventHost,
-	output: unknown,
-): boolean {
-	let parsed: Record<string, unknown> | undefined;
-	if (output && typeof output === 'object' && !Array.isArray(output)) {
-		parsed = output as Record<string, unknown>;
-	} else if (typeof output === 'string') {
-		try {
-			const p = JSON.parse(output) as unknown;
-			if (p && typeof p === 'object' && !Array.isArray(p)) {
-				parsed = p as Record<string, unknown>;
-			}
-		} catch {
-			return false;
-		}
-	}
-	if (!parsed) {
-		return false;
-	}
-	const results = Array.isArray(parsed.results)
-		? (parsed.results as Record<string, unknown>[])
-		: [parsed];
-	for (const row of results) {
-		const taskId = String(row.taskId ?? row.task_id ?? '').trim() || '?';
-		const status = String(row.status ?? row.task_status ?? '').trim().toLowerCase();
-		const success = status !== 'failed' && row.success !== false;
-		const summary = String(row.reportMarkdown ?? row.report_markdown ?? row.summary ?? '').trim();
-		host.post({
-			kind: 'subagentStart',
-			subagentType: 'executor',
-			description: '',
-			jobId: taskId,
-			background: false,
-		});
-		host.post({
-			kind: 'subagentDone',
-			subagentType: 'executor',
-			jobId: taskId,
-			summary: summary || `(task ${taskId} — ${status || 'done'})`,
-			truncated: row.truncated === true,
-			iterationsUsed:
-				typeof row.iterationsUsed === 'number'
-					? row.iterationsUsed
-					: typeof row.iterations_used === 'number'
-						? row.iterations_used
-						: undefined,
-			success,
-			taskStatus: status || undefined,
-		});
-	}
-	return true;
-}
-
 function replayToolStart(host: IDroxChatAgentEventHost, id: string, name: string, args: unknown): void {
 	const toolId = id || '?';
 	const toolName = name || '?';
@@ -148,7 +107,7 @@ function replayToolStart(host: IDroxChatAgentEventHost, id: string, name: string
 	}
 	const { verb, target } = describeToolCall(toolName, args);
 	const isFileMutation = isFileMutationToolName(toolName);
-	const skipArgsPreview = isFileMutation || isDroxExploreToolName(toolName);
+	const skipArgsPreview = isFileMutation || SKIP_TOOL_PREVIEW_NAMES.has(toolName);
 	host.post({
 		kind: 'tool',
 		phase: 'start',
@@ -172,7 +131,6 @@ function replayToolFinish(host: IDroxChatAgentEventHost, toolUseId: string, rawC
 	const pendingName = pending?.name;
 
 	if (pendingName === 'delegate_executor') {
-		replayDelegateExecutorFromOutput(host, output);
 		return;
 	}
 
@@ -199,7 +157,7 @@ function replayToolFinish(host: IDroxChatAgentEventHost, toolUseId: string, rawC
 		pendingName === 'notebook_edit';
 	const skipOutputPreview =
 		(isFileMutationFinish && !isError) ||
-		isDroxExploreToolName(pendingName) ||
+		(pendingName && SKIP_TOOL_PREVIEW_NAMES.has(pendingName)) ||
 		pendingName === 'delegate_executor' ||
 		pendingName === 'file_read' ||
 		pendingName === 'grep' ||

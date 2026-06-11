@@ -50,10 +50,6 @@
 				if (typeof fn.commitRunStripAnchor === 'function') {
 					fn.commitRunStripAnchor();
 				}
-				if (fn.isExecutorCaptureActive()) {
-					D.state.pendingTodoUpdates = Array.isArray(m.todos) ? m.todos : [];
-					break;
-				}
 				fn.renderTodos(Array.isArray(m.todos) ? m.todos : []);
 				break;
 			case 'clearAssistant':
@@ -104,8 +100,6 @@
 					}
 					if (role === 'architect') {
 						fn.unlockArchitectEditRunPresentation?.();
-						D.state.pendingExecutorThinking = null;
-						D.state.pendingExecutorThinkingByJob?.clear();
 					}
 					fn.renderOrchestrationRole(m.role);
 				}
@@ -118,18 +112,6 @@
 				break;
 			case 'railStationDone':
 				fn.renderRailStationDone?.(m);
-				break;
-			case 'railSegmentStart':
-				fn.renderRailSegmentStart?.(m);
-				break;
-			case 'railSegmentDone':
-				fn.renderRailSegmentDone?.(m);
-				break;
-			case 'subagentStart':
-				fn.renderSubagentStart(m);
-				break;
-			case 'subagentDone':
-				fn.renderSubagentDone(m);
 				break;
 			case 'tabs':
 				D.state.openTabs = Array.isArray(m.tabs)
@@ -196,7 +178,7 @@
 				fn.applyUserFacingReply?.(m.text || '');
 				break;
 			case 'delta':
-				fn.appendDelta(m.text || '', m.executorJobId);
+				fn.appendDelta(m.text || '');
 				break;
 			case 'tool':
 				if (typeof fn.commitRunStripAnchor === 'function') {

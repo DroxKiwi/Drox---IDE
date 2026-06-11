@@ -58,12 +58,9 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 			if (
 				e.affectsConfiguration(DroxSetting.ArchitectModel)
 				|| e.affectsConfiguration(DroxSetting.Model)
-				|| e.affectsConfiguration(DroxSetting.ExecutorModel)
-				|| e.affectsConfiguration(DroxSetting.SubagentsModel)
 				|| e.affectsConfiguration(DroxSetting.NumCtx)
 				|| e.affectsConfiguration(DroxSetting.TopP)
 				|| e.affectsConfiguration(DroxSetting.Temperature)
-				|| e.affectsConfiguration(DroxSetting.SubagentsNumCtx)
 			) {
 				this._snapshot = { ...this._snapshot, selected: this.readSelectedModel() };
 				this._onDidChange.fire(this._snapshot);

@@ -1,7 +1,7 @@
-﻿# Drox 1.4.1 — Stabilisation dogfood
+# Drox 1.4.1 — Stabilisation dogfood
 
-**Statut** : **planifié** (après clôture moteur [1.4.0](../1.4.0/README.md))  
-**Prérequis** : Run rail validé en dogfood (B-RAIL-01 résolu)
+**Statut** : **chantier actif** — stabilisation au-dessus du squelette **1.4.0** clôturé  
+**Prérequis** : [CLOSURE-1.4.0](../1.4.0/archive/finalisation/CLOSURE-1.4.0.md) · avertissement [README racine](../../../../README.md#statut-produit)
 
 ---
 
@@ -30,7 +30,7 @@ L’ancien plan **index / graphe / fast path** est en **[1.4.3](../1.4.3/PLAN-1.
 | **B-MOTOR-02** | Bash VERIFY Windows | S5 |
 | **B-MOTOR-03** | Double answering | S4 |
 
-Détail : [SMOKE-BACKLOG](../1.4.0/SMOKE-BACKLOG.md)
+Détail : [SMOKE-BACKLOG](../1.4.0/archive/SMOKE-BACKLOG.md)
 
 ---
 

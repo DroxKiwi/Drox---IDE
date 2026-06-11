@@ -1,4 +1,4 @@
-//! Wrapper `Tool` qui délègue l'exécution au client connecté en JSON-RPC.
+﻿//! Wrapper `Tool` qui délègue l'exécution au client connecté en JSON-RPC.
 //!
 //! Pour chaque tool listé dans `clientCapabilities.executableTools`, le serveur
 //! remplace l'implémentation locale par un [`RemoteTool`] qui envoie une
@@ -97,7 +97,7 @@ impl Tool for RemoteTool {
     }
 }
 
-/// Diagnostic C9 — `file_edit` with empty payload before `tool/exec` (see docs/1.4/1.4.0/INVESTIGATION-file-edit.md).
+/// Diagnostic C9 — `file_edit` with empty payload before `tool/exec` (see docs/1.4/archive/1.4.0/INVESTIGATION-file-edit.md).
 fn log_malformed_client_tool_input(tool_name: &str, input: &Value) {
     if tool_name != "file_edit" {
         return;

@@ -10,7 +10,7 @@ use drox_types::Content;
 
 use crate::jsonrpc::handlers::agent_run::{
     build_agent_setup, drive_role_run, notify_agent_event, notify_agent_run_completed,
-    AgentSetupOverrides, OrchestrationDelegateWireInput, RunOutcome,
+    AgentSetupOverrides, RunOutcome,
 };
 use crate::jsonrpc::protocol::AgentRunParams;
 use crate::jsonrpc::server::Server;
@@ -77,11 +77,7 @@ async fn drive_role_split_discuss(
             .clamp(1, 25),
     );
 
-    let orch_cfg = OrchestrationConfig::from_agent_run(
-        discussion_params.model.as_deref(),
-        discussion_params.subagents_model.as_deref(),
-        discussion_params.orchestration_max_parallel_executors,
-    );
+    let orch_cfg = OrchestrationConfig::from_agent_run(discussion_params.model.as_deref());
 
     let spec = RunSpec::for_architect_discussion_with_reads(allow_reads);
     let wire = spec.role_wire_id();
@@ -103,8 +99,6 @@ async fn drive_role_split_discuss(
         AgentSetupOverrides {
             model_override: Some(orch_cfg.architect_model.clone()),
             system_override: Some(discussion_system),
-            force_disable_subagents: true,
-            orchestration_delegate: None,
             run_objective_override: None,
         },
     )
@@ -148,25 +142,12 @@ async fn drive_role_split_edit(
         params.engine_strictness.as_deref(),
         params.engine_tuning.as_ref(),
     );
-    let orch_cfg = OrchestrationConfig::from_agent_run(
-        params.model.as_deref(),
-        params.subagents_model.as_deref(),
-        params.orchestration_max_parallel_executors,
-    );
+    let orch_cfg = OrchestrationConfig::from_agent_run(params.model.as_deref());
 
     let run_objective_override = initial_run_objective_for_concrete_edit(&params.prompt);
-    let delegation_enabled = tuning.executor_delegation_enabled;
-    let parallel_slots = if delegation_enabled {
-        orch_cfg.max_parallel_executors
-    } else {
-        1
-    };
 
     tracing::info!(
         architect_model = %orch_cfg.architect_model,
-        executor_model = %orch_cfg.executor_model,
-        max_parallel_executors = orch_cfg.max_parallel_executors,
-        executor_delegation_enabled = delegation_enabled,
         start_run = start_run.wire_id(),
         run_objective_locked = run_objective_override.is_some(),
         "orchestration role_split — architect_edit"
@@ -176,11 +157,6 @@ async fn drive_role_split_edit(
     let architect_wire = architect_spec.role_wire_id();
 
     let architect_model = orch_cfg.architect_model.clone();
-    let orchestration_delegate = if delegation_enabled {
-        Some(OrchestrationDelegateWireInput { orch_cfg })
-    } else {
-        None
-    };
 
     let architect_setup = build_agent_setup(
         server,
@@ -189,12 +165,7 @@ async fn drive_role_split_edit(
         architect_spec,
         AgentSetupOverrides {
             model_override: Some(architect_model),
-            system_override: Some(architect_edit_system_prompt_core_for_run_vars(
-                parallel_slots,
-                &tuning,
-            )),
-            force_disable_subagents: true,
-            orchestration_delegate,
+            system_override: Some(architect_edit_system_prompt_core_for_run_vars(&tuning)),
             run_objective_override,
         },
     )

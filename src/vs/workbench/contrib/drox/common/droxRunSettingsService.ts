@@ -4,61 +4,31 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../base/common/uri.js';
-
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-
 import { IDroxAgentRunImage } from './droxAttachments.js';
-
 import { DroxArchitectInteractionMode } from './droxArchitectInteractionMode.js';
 import { DroxPermissionMode } from './droxPermissionAsk.js';
-import { IDroxLlmSettings, IDroxSubagentSettings } from './droxRunSettings.js';
-
-
+import { IDroxLlmSettings } from './droxRunSettings.js';
 
 export const IDroxRunSettingsService = createDecorator<IDroxRunSettingsService>('droxRunSettingsService');
 
-
-
 export interface IDroxRunSettingsService {
-
 	readonly _serviceBrand: undefined;
 
-
-
 	getWorkspaceResource(): URI | undefined;
-
 	getLlmSettings(resource?: URI): IDroxLlmSettings;
-
 	getEnvOverrides(resource?: URI): Record<string, string>;
-
 	getDisabledToolsForRun(resource?: URI): string[];
-
-	getSubagentSettings(resource?: URI): IDroxSubagentSettings;
-
 	isMcpToolsEnabled(resource?: URI): boolean;
-
 	getPermissionMode(resource?: URI): DroxPermissionMode;
-
 	getArchitectInteractionMode(resource?: URI): DroxArchitectInteractionMode;
-
 	filterExecutableTools(toolNames: readonly string[], resource?: URI): string[];
-
 	buildAgentRunParams(opts: {
-
 		prompt: string;
-
 		workspace: string;
-
 		mode: string;
-
 		sessionId: string;
-
 		images?: readonly IDroxAgentRunImage[];
-
 		runObjective?: string;
-
 	}): Record<string, unknown>;
-
 }
-
-

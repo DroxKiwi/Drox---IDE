@@ -347,7 +347,7 @@
 		'Marking targets on the todo board…',
 		'Sending the scout to package.json…',
 		'Clearing rooms one folder at a time…',
-		'Breaching with delegate_executor…',
+		'Breaching the next station on the rail…',
 		'Holding the bridge while tests run…',
 		'Manning the turret on flaky CI…',
 		'Revving the chainsaw — paperwork later…',

@@ -13,7 +13,7 @@ Statut par défaut : **idée brute** jusqu’à promotion en chantier (`drox-eng
 | 04 | [Mode long-run](04-mode-long-run.md) | Tâches très complexes sur **plusieurs heures**, plan à centaines d’étapes | Idée |
 | 05 | [Stats perf par cycle](05-stats-perf-par-cycle.md) | KPI par cycle : lignes modifiées, tokens par rôle/sous-agent, outils, durée | Idée |
 | 06 | [Chargement sessions segmenté](06-chargement-sessions-segmente.md) | Reprise historique OK mais lente — afficher **la fin** d’abord, puis le reste | **Cible [1.3.2](../1.3/1.3.2/README.md)** |
-| 07 | [Réponses légères sans plan](07-reponses-legere-sans-plan.md) | Salut / avis rapide — pas de plan ni délégation si inutile | **Cible [1.4.0 Run Rail](../1.4/1.4.0/README.md)** (hold/advance) |
+| 07 | [Réponses légères sans plan](07-reponses-legere-sans-plan.md) | Salut / avis rapide — pas de plan ni délégation si inutile | **Archive [1.4.0 Run Rail](../1.4/archive/1.4.0/README.md)** (pause) |
 | 08 | [Performance traitement rapide](08-performance-traitement-rapide.md) | Accélérer fortement les runs — troncature, moins de travail, tuning | Post-1.3.2 |
 | 09 | [Rôles spécialisés compréhension code](09-roles-specialises-comprehension-code.md) | Nouveaux rôles (cartographe, analyste, …) pour **comprendre** le repo avant d’agir | Idée |
 | 10 | [Paramétrage prompts & strictesse](10-parametrage-prompts-strictesse.md) | Rendre réglables seuils gates + textes injectés (`system` / nudges) — profil `relaxed` / `strict` | Idée · **registre variables** |

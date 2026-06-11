@@ -226,31 +226,20 @@
 		D.dom.stickyRunObjectiveEl.removeAttribute('title');
 	}
 
-	/** Compteur discret : agent principal (run) + sous-agents `task` actifs. */
+	/** Compteur discret : run architecte solo en cours. */
 	fn.updateAgentActivitySticky = function() {
 		const el = D.dom.agentActivityStickyEl;
 		if (!el) {
 			return;
 		}
-		const parent = D.state.busy ? 1 : 0;
-		const sub = D.state.activeSubagentCount || 0;
-		const total = parent + sub;
-		if (total <= 0) {
+		if (!D.state.busy) {
 			el.hidden = true;
 			el.textContent = '';
 			return;
 		}
 		el.hidden = false;
-		el.textContent =
-			total === 1 ? '1 agent actif' : `${total} agents actifs`;
-		if (sub > 0) {
-			el.title =
-				`Agents logiques Drox : principal ${parent ? 'oui' : 'non'} + ${sub} sous-agent(s).\n` +
-				`Ollama n’affiche qu’une ligne par tag modèle (ex. 9b + 2b = 2 lignes si les deux sous-agents partagent le même modèle).\n` +
-				`Parallèle GPU sur le même tag : OLLAMA_NUM_PARALLEL côté serveur, pas MAX_LOADED_MODELS.`;
-		} else {
-			el.title = 'Agent principal en cours';
-		}
+		el.textContent = 'Run en cours';
+		el.title = 'Architect run in progress';
 	}
 
 	fn.hideAgentActivitySticky = function() {

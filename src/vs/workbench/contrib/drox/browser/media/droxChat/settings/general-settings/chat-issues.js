@@ -7,7 +7,7 @@
 	const fn = D.fn;
 
 	const CHAT_ISSUE_SELECTORS =
-		'.msg.error, .msg-explore-notice, .msg-loop-intervention-warn, .msg-loop-intervention-abort, .msg-tool.error, .executor-action-line.error, .drox-explore-line.error, .msg-subagent-failed, .msg-subagent-partial';
+		'.msg.error, .msg-explore-notice, .msg-loop-intervention-warn, .msg-loop-intervention-abort, .msg-tool.error, .executor-action-line.error';
 
 	fn.isChatErrorsWarningsVisible = function () {
 		return D.state.generalSettings?.showChatErrorsAndWarnings !== false;

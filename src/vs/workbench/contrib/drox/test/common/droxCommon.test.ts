@@ -38,7 +38,12 @@ import {
 	formatDiagnosticForComposer,
 	payloadFromMarker,
 } from '../../common/droxDiagnosticToChat.js';
-import { isPermissionToolAsk, shouldAutoAllowPermissionAsk } from '../../common/droxPermissionAsk.js';
+import {
+	isPermissionToolAsk,
+	normalizeDroxPermissionMode,
+	resolveDroxPermissionMode,
+	shouldAutoAllowPermissionAsk,
+} from '../../common/droxPermissionAsk.js';
 import {
 	applyNotebookCellEdits,
 	normalizeNotebookEditInput,
@@ -61,7 +66,6 @@ import {
 	pickActiveUserPromptStickyIndex,
 	truncateUserPromptStickyText,
 } from '../../common/droxUserPromptSticky.js';
-import { explorePhaseForToolName, isDroxExploreToolName } from '../../common/droxExploreTools.js';
 import { IDroxTranscriptMessage } from '../../common/droxSession.js';
 import { replayTranscriptMessageRich } from '../../browser/droxSessionReplay.js';
 import { DroxHostToWebviewMessage } from '../../browser/droxChatBridge.js';
@@ -402,6 +406,32 @@ suite('Drox — diagnostics → chat', () => {
 		assert.ok(!shouldAutoAllowPermissionAsk(undefined));
 	});
 
+	test('normalizeDroxPermissionMode downgrades removed professor mode', () => {
+		assert.strictEqual(normalizeDroxPermissionMode('professor'), 'imNotCrazy');
+		assert.strictEqual(normalizeDroxPermissionMode('Professor'), 'imNotCrazy');
+	});
+
+	test('resolveDroxPermissionMode flags professor downgrade', () => {
+		const resolved = resolveDroxPermissionMode('professor');
+		assert.strictEqual(resolved.mode, 'imNotCrazy');
+		assert.strictEqual(resolved.downgradedFromProfessor, true);
+		assert.strictEqual(resolveDroxPermissionMode('trustEdit').downgradedFromProfessor, false);
+	});
+
+	test('buildAgentRunParams never sends professor wire mode', () => {
+		const params = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'professor',
+			sessionId: 'ses_test',
+			settings: mockLlmSettings(),
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(params.mode, 'imNotCrazy');
+		assert.notStrictEqual(params.mode, 'professor');
+	});
+
 	test('isPermissionToolAsk detects engine permission ask', () => {
 		const perm = parseUserAskParams({
 			askId: 'p1',
@@ -608,22 +638,6 @@ suite('Drox — chat chrome sticky', () => {
 	});
 });
 
-suite('Drox — explore tools', () => {
-	ensureNoDisposablesAreLeakedInTestSuite();
-
-	test('isDroxExploreToolName', () => {
-		assert.ok(isDroxExploreToolName('file_read'));
-		assert.ok(isDroxExploreToolName('bash'));
-		assert.ok(!isDroxExploreToolName('file_edit'));
-	});
-
-	test('explorePhaseForToolName', () => {
-		assert.strictEqual(explorePhaseForToolName('glob'), 'analyzing');
-		assert.strictEqual(explorePhaseForToolName('file_read'), 'reading');
-		assert.strictEqual(explorePhaseForToolName('file_edit'), 'acting');
-	});
-});
-
 suite('Drox — transcript replay', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
@@ -663,7 +677,7 @@ suite('Drox — transcript replay', () => {
 		assert.ok(!posts.some(p => p.kind === 'append' && typeof p.text === 'string' && p.text.includes('[tool]')));
 	});
 
-	test('replayTranscriptMessageRich — delegate_executor → cartes executor', () => {
+	test('replayTranscriptMessageRich — delegate_executor ignoré (solo UI)', () => {
 		const { host, posts } = mockReplayHost();
 		replayTranscriptMessageRich(host, {
 			role: 'assistant',
@@ -676,14 +690,12 @@ suite('Drox — transcript replay', () => {
 				tool_use_id: 'tu_del',
 				content: JSON.stringify({
 					batch: true,
-					results: [{ taskId: 't1', status: 'completed', reportMarkdown: '## Executor report · t1\n\nDone.' }],
+					results: [{ taskId: 't1', status: 'completed', reportMarkdown: 'Done.' }],
 				}),
 				is_error: false,
 			}],
 		});
-		assert.ok(posts.some(p => p.kind === 'subagentStart' && p.subagentType === 'executor'));
-		assert.ok(posts.some(p => p.kind === 'subagentDone' && p.jobId === 't1'));
-		assert.ok(!posts.some(p => p.kind === 'tool' && p.phase === 'finish' && String(p.outputPreview || '').includes('"batch"')));
+		assert.ok(!posts.some(p => p.kind === 'tool'));
 	});
 
 	test('replayTranscriptMessageRich — phases depuis le texte assistant', () => {
@@ -738,7 +750,7 @@ suite('Drox — transcript export', () => {
 		assert.ok(userIdx < gateIdx && gateIdx < streamIdx && streamIdx < replyIdx);
 	});
 
-	test('formatDroxUiReplayExport includes run rail station and segment events', () => {
+	test('formatDroxUiReplayExport includes run rail station events', () => {
 		const journal = [
 			{ kind: 'append', role: 'user', text: 'Charte CSS' },
 			{ kind: 'railStationEnter', station: 'read', label: 'Exploration' },
@@ -746,20 +758,6 @@ suite('Drox — transcript export', () => {
 			{ kind: 'railStationEnter', station: 'propose', label: 'Proposition' },
 			{ kind: 'railStationHold', station: 'propose' },
 			{ kind: 'railStationEnter', station: 'act', label: 'Exécution' },
-			{
-				kind: 'railSegmentStart',
-				station: 'act',
-				taskId: 'seg-1',
-				label: 'globals.css',
-				scope: ['src/globals.css'],
-			},
-			{
-				kind: 'railSegmentDone',
-				taskId: 'seg-1',
-				status: 'completed',
-				summary: 'Charte appliquée',
-				pathsTouched: ['src/globals.css'],
-			},
 			{ kind: 'railStationDone', station: 'act' },
 		];
 		const text = formatDroxUiReplayExport({
@@ -769,17 +767,11 @@ suite('Drox — transcript export', () => {
 		assert.ok(text.includes('RAIL STATION ENTER'));
 		assert.ok(text.includes('### Rail · enter · read'));
 		assert.ok(text.includes('RAIL STATION HOLD'));
-		assert.ok(text.includes('RAIL SEGMENT START'));
-		assert.ok(text.includes('### Rail · segment start · seg-1'));
-		assert.ok(text.includes('globals.css'));
-		assert.ok(text.includes('RAIL SEGMENT DONE'));
-		assert.ok(text.includes('Status: completed'));
-		assert.ok(text.includes('Charte appliquée'));
+		assert.ok(!text.includes('RAIL SEGMENT'));
 		const readIdx = text.indexOf('### Rail · enter · read');
 		const holdIdx = text.indexOf('RAIL STATION HOLD');
-		const segStartIdx = text.indexOf('RAIL SEGMENT START');
-		const segDoneIdx = text.indexOf('RAIL SEGMENT DONE');
-		assert.ok(readIdx < holdIdx && holdIdx < segStartIdx && segStartIdx < segDoneIdx);
+		const actDoneIdx = text.indexOf('### Rail · done · act');
+		assert.ok(readIdx < holdIdx && holdIdx < actDoneIdx);
 	});
 
 	test('formatDroxTranscriptExport includes phases, tools, and results in execution order', () => {
@@ -895,7 +887,6 @@ suite('Drox — orchestration model params', () => {
 			sessionId: 's1',
 			settings: mockLlmSettings(),
 			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
 			mcpToolsEnabled: true,
 		});
 		assert.strictEqual(params.modelTier, undefined);
@@ -909,7 +900,6 @@ suite('Drox — orchestration model params', () => {
 			sessionId: 's1',
 			settings: mockLlmSettings({ model: 'qwen3.5:9b', numCtx: 32768 }),
 			disabledTools: [],
-			subagents: { enabled: true, maxIterations: 15, maxConcurrent: 1, model: 'qwen3.5:2b', numCtx: 8192 },
 			mcpToolsEnabled: true,
 		});
 		assert.strictEqual(params.orchestrationMode, 'role_split');
@@ -917,36 +907,6 @@ suite('Drox — orchestration model params', () => {
 		assert.strictEqual(params.subagentsModel, undefined);
 		assert.strictEqual(params.subagentsNumCtx, undefined);
 		assert.strictEqual(params.subagentsEnabled, undefined);
-		assert.strictEqual(params.orchestrationMaxParallelExecutors, 1);
-	});
-
-	test('buildAgentRunParams solo UI never sends boolean subagentsNumCtx', () => {
-		const params = buildAgentRunParams({
-			prompt: 'hi',
-			workspace: WS,
-			mode: 'acceptEdits',
-			sessionId: 's1',
-			settings: mockLlmSettings({ numCtx: 16384 }),
-			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
-			mcpToolsEnabled: true,
-		});
-		assert.strictEqual(params.subagentsNumCtx, undefined);
-		assert.notStrictEqual(params.subagentsNumCtx, false);
-	});
-
-	test('buildAgentRunParams role_split pins parallel executors to 1 in solo UI', () => {
-		const params = buildAgentRunParams({
-			prompt: 'parallel',
-			workspace: WS,
-			mode: 'acceptEdits',
-			sessionId: 's1',
-			settings: mockLlmSettings(),
-			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
-			mcpToolsEnabled: true,
-			orchestrationMaxParallelExecutors: 2,
-		});
 		assert.strictEqual(params.orchestrationMaxParallelExecutors, 1);
 	});
 
@@ -958,7 +918,6 @@ suite('Drox — orchestration model params', () => {
 			sessionId: 's1',
 			settings: mockLlmSettings(),
 			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
 			mcpToolsEnabled: true,
 			architectInteractionMode: 'auto',
 		});
@@ -973,7 +932,6 @@ suite('Drox — orchestration model params', () => {
 			sessionId: 's1',
 			settings: mockLlmSettings(),
 			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
 			mcpToolsEnabled: true,
 			architectInteractionMode: 'discussion',
 		});
@@ -988,7 +946,6 @@ suite('Drox — orchestration model params', () => {
 			sessionId: 's1',
 			settings: mockLlmSettings(),
 			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
 			mcpToolsEnabled: true,
 			architectInteractionMode: 'action',
 		});
@@ -1003,7 +960,6 @@ suite('Drox — orchestration model params', () => {
 			sessionId: 's1',
 			settings: mockLlmSettings(),
 			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
 			mcpToolsEnabled: true,
 		});
 		assert.strictEqual(defaultParams.engineStrictness, 'normal');
@@ -1015,26 +971,10 @@ suite('Drox — orchestration model params', () => {
 			sessionId: 's1',
 			settings: mockLlmSettings(),
 			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: '', numCtx: 8192 },
 			mcpToolsEnabled: true,
 			engineStrictness: 'strict',
 		});
 		assert.strictEqual(strictParams.engineStrictness, 'strict');
-	});
-
-	test('buildAgentRunParams uses distinct executor numCtx when executor model is set', () => {
-		const params = buildAgentRunParams({
-			prompt: 'v1_2',
-			workspace: WS,
-			mode: 'acceptEdits',
-			sessionId: 's1',
-			settings: mockLlmSettings({ numCtx: 32768 }),
-			disabledTools: [],
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, model: 'qwen3.5:4b', numCtx: 8192 },
-			mcpToolsEnabled: true,
-		});
-		assert.strictEqual(params.subagentsModel, 'qwen3.5:4b');
-		assert.strictEqual(params.subagentsNumCtx, 8192);
 	});
 
 	test('normalizeLlmServerBaseUrl strips trailing slash', () => {

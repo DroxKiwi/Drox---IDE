@@ -1,9 +1,4 @@
 //! Tools « simples » et « moyens » (sprints 1.3-1.5) + `bash` (sprint 2.2.4).
-//!
-//! Simple (1.3) : `file_read`, `file_write`, `delete_path`, `grep`, `glob`.
-//! Moyens (1.5) : `file_edit`, `web_fetch`, `ask_user_question`, `exit_plan_mode`.
-//! Bash (2.2.4) : `bash` (impl locale `sh -c` / `cmd /C` ; généralement
-//! déléguée au client en mode hybride).
 
 mod architect_help;
 mod ask;
@@ -25,14 +20,11 @@ mod session_end;
 mod session_search;
 mod scope_defer;
 mod session_note;
-mod delegate_executor;
-mod task;
 mod skill_list;
 mod skill_read;
 mod git_worktree_enter;
 mod git_worktree_exit;
 mod copy_path;
-mod course_plan_write;
 mod todo_write;
 mod web_fetch;
 mod web_search;
@@ -59,14 +51,11 @@ pub use session_end::SessionEndTool;
 pub use session_search::SessionSearchTool;
 pub use scope_defer::ScopeDeferTool;
 pub use session_note::SessionNoteTool;
-pub use delegate_executor::DelegateExecutorTool;
-pub use task::TaskTool;
 pub use skill_list::SkillListTool;
 pub use skill_read::SkillReadTool;
 pub use git_worktree_enter::GitWorktreeEnterTool;
 pub use git_worktree_exit::GitWorktreeExitTool;
 pub use copy_path::CopyPathTool;
-pub use course_plan_write::CoursePlanWriteTool;
 pub use todo_write::{normalize_todo_write_payload, TodoWriteTool};
 pub use web_fetch::WebFetchTool;
 pub use web_search::WebSearchTool;

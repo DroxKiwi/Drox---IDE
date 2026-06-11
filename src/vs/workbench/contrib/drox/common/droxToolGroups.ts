@@ -97,13 +97,6 @@ export const DROX_TOOL_GROUPS: readonly IDroxToolGroup[] = [
 			{ name: 'git_worktree_exit', label: 'git_worktree_exit', description: localize('drox.tool.gitWorktreeExit', 'Leave current worktree') },
 		],
 	},
-	{
-		id: 'professor',
-		label: localize('drox.toolGroup.professor', 'Professor mode'),
-		tools: [
-			{ name: 'course_plan_write', label: 'course_plan_write', description: localize('drox.tool.coursePlanWrite', 'Course plan (professor mode)') },
-		],
-	},
 ];
 
 export const DROX_TOGGLEABLE_TOOL_NAMES: readonly string[] = DROX_TOOL_GROUPS.flatMap(g => g.tools.map(t => t.name));

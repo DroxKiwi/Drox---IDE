@@ -37,7 +37,6 @@
 
 pub mod agent;
 pub mod orchestration;
-pub mod orchestration_delegate;
 pub mod run_spec;
 pub mod compaction;
 pub mod context;
@@ -46,9 +45,6 @@ pub mod event;
 pub mod memory;
 pub mod long_memory;
 pub mod permissions;
-pub mod professor;
-pub mod subagent;
-pub mod subagent_jobs;
 pub mod tool_hooks;
 pub mod tool_orchestration;
 pub use tool_orchestration::{
@@ -58,30 +54,24 @@ pub use tool_orchestration::{
 pub use agent::{Agent, AgentConfig, AgentStream, apply_architect_edit_start, ArchitectEditStartOutcome};
 pub use run_spec::{
     GateKind, RoleId, RunLimits, RunSpec, RUN_SPEC_VERSION, ARCHITECT_TOOL_ALLOWLIST,
-    EXECUTOR_TOOL_ALLOWLIST,
 };
 pub use orchestration::{
     extract_first_json_object, looks_like_gate_json_response, GateChainResult, StartRunKind,
     architect_discussion_user_message,
     architect_edit_system_prompt_core_for_run, architect_edit_system_prompt_core_for_run_vars,
-    architect_user_message, executor_user_message_from_delegate,
+    architect_user_message,
     extract_discussion_done_from_text, extract_discussion_user_facing_reply,
-    extract_mode_from_text, parse_mode_marker,
-    ArchitectGate, ArchitectWorkMode,
+    ArchitectGate,
     EngineTuning, EngineTuningOverrides, OrchestrationConfig, OrchestrationMode, PromptBlockId,
     PromptVars, StrictnessPreset, resolve_engine_tuning,
     architect_discussion_system_prompt, architect_discussion_system_prompt_default,
     architect_discussion_system_prompt_for_start_run,
-    architect_tool_short_description, architect_parallel_slots_supplement,
-    is_architect_read_tool_for_delegate_cap, tool_supplements_all_architect,
+    architect_tool_short_description,
+    tool_supplements_all_architect,
     ARCHITECT_DISCUSSION_CORE_PROMPT, ARCHITECT_DISCUSSION_SYSTEM_PROMPT,
     initial_run_objective_for_concrete_edit, sanitize_architect_user_prompt,
     sanitize_transcript_user_messages,
-    DEFAULT_ARCHITECT_MODEL, DEFAULT_EXECUTOR_MODEL,
-    EXECUTOR_SYSTEM_PROMPT,
-};
-pub use orchestration_delegate::{
-    EngineOrchestrationDelegate, executor_tool_registry,
+    DEFAULT_ARCHITECT_MODEL,
 };
 pub use compaction::{
     choose_live_compact_split_idx, compact_until_budget, format_compact_checkpoint, summarize_run,
@@ -113,10 +103,8 @@ pub use drox_session::{
 };
 pub use drox_tools::{
     format_skills_listing_for_prompt, load_skills_catalog, SessionNote, SessionNotesHandle,
-    SubagentExecutor, SubagentSettings, ToolContext, ToolRegistry,
+    ToolContext, ToolRegistry,
 };
-pub use subagent::{EngineSubagentExecutor, explore_tool_registry};
-pub use subagent_jobs::{RunningSubagentJob, SubagentJobRegistry};
 pub use error::EngineError;
 pub use event::{AgentEvent, Phase};
 pub use long_memory::{ContextChunkSummaryV1, SessionClosureV1};

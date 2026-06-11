@@ -58,6 +58,21 @@ pub(crate) fn parse_run_objective_marker(line: &str) -> Option<String> {
     Some(text.to_string())
 }
 
+/// Whether this phase should emit [`AgentEvent::PhaseEnter`] when run rail is active (C11).
+///
+/// Rail on: only `internal_reasoning`, `answering`, `done` — intermediate phases are
+/// consumed silently (like legacy `reasoning` / `next-move`).
+#[must_use]
+pub(crate) fn phase_visible_in_ui(phase: Phase, rail_active: bool) -> bool {
+    if !rail_active {
+        return true;
+    }
+    matches!(
+        phase,
+        Phase::InternalReasoning | Phase::Answering | Phase::Done
+    )
+}
+
 /// Marqueurs de phase **retirés du protocole** : la ligne est consommée
 /// (aucun `PhaseEnter`, pas de texte) pour compatibilité avec d'anciens prompts.
 #[must_use]
@@ -102,7 +117,7 @@ pub(crate) fn phase_for_tool(tool_name: &str, active_phase: Option<Phase>) -> Ph
         "glob" | "file_read" | "grep" | "lsp" | "web_search" | "web_fetch"
         | "list_mcp_resources" | "read_mcp_resource" | "workspace_map_read"
         | "memory_read" | "memory_list" | "task"
-        | "todo_write" | "course_plan_write" | "ask_user_question" => exploration_default,
+        | "todo_write" | "ask_user_question" => exploration_default,
         _ => Phase::Acting,
     }
 }
@@ -139,17 +154,6 @@ pub(crate) fn needs_synthetic_phase_enter(active: Option<Phase>, tool_name: &str
         return is_workspace_exploration_tool(tool_name) || tool_name == "bash";
     }
     false
-}
-
-/// Texte normalisé pour détection de boucle / quasi-répétition (profil Low).
-#[must_use]
-#[allow(dead_code)] // conservé pour tests phases ; détection boucle Low retirée du hot path
-pub(crate) fn normalize_for_loop_fingerprint(text: &str) -> String {
-    strip_phase_protocol_lines(text)
-        .to_ascii_lowercase()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
 }
 
 /// Retire les lignes protocole (`[phase: …]`, `[run_objective: …]`, …).
@@ -241,15 +245,6 @@ impl PhaseLineBuffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn normalize_for_loop_fingerprint_strips_phases() {
-        let n = normalize_for_loop_fingerprint(
-            "[phase: reading]\nHello world\n[phase: acting]",
-        );
-        assert!(n.contains("hello"));
-        assert!(!n.contains("phase"));
-    }
 
     #[test]
     fn parse_run_objective_marker_extracts_actionable_line() {
@@ -420,6 +415,14 @@ mod tests {
         ] {
             assert_eq!(phase_for_tool(t, None), Phase::Acting, "{t}");
         }
+    }
+
+    #[test]
+    fn phase_visible_in_ui_filters_intermediate_when_rail_on() {
+        assert!(phase_visible_in_ui(Phase::Answering, true));
+        assert!(phase_visible_in_ui(Phase::Done, true));
+        assert!(!phase_visible_in_ui(Phase::Reading, true));
+        assert!(phase_visible_in_ui(Phase::Reading, false));
     }
 
     #[test]

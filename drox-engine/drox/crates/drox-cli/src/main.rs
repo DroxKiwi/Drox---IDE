@@ -10,6 +10,7 @@ mod asker;
 mod env_file;
 mod jsonrpc;
 mod language;
+mod permission_guard;
 mod prompts;
 mod system_prompt;
 
@@ -203,6 +204,10 @@ fn build_permission_policy(
     } else {
         PermissionMode::Default
     };
+
+    if !crate::permission_guard::permission_mode_supported(mode) {
+        anyhow::bail!(crate::permission_guard::PROFESSOR_MODE_REMOVED);
+    }
 
     for unreachable in detect_unreachable_rules(&rules, &DetectUnreachableOptions::default()) {
         tracing::warn!(
@@ -561,10 +566,7 @@ async fn main() -> anyhow::Result<()> {
             None
         },
         run_objective: None,
-        delegate_task_id: None,
-        executor_deliverable_task_id: None,
-        executor_deliverable_plan_id: None,
-        run_spec: drox_engine::RunSpec::for_standard_agent(false),
+        run_spec: drox_engine::RunSpec::for_standard_agent(),
         engine_tuning: drox_engine::EngineTuning::default(),
         orchestration_run_id: None,
     };

@@ -2,7 +2,9 @@
 
 use camino::{Utf8Path, Utf8PathBuf};
 
+#[cfg(test)]
 use crate::error::ToolError;
+#[cfg(test)]
 use crate::path_util::resolve_path_for_write;
 
 /// Racine workspace-relative des artefacts markdown agent.
@@ -97,12 +99,14 @@ pub fn agent_output_deliverable_path(plan_id: &str, task_id: &str, task_label: &
         .to_string()
         .replace('\\', "/")
 }
+#[cfg(test)]
 #[must_use]
 fn is_markdown_path(path: &str) -> bool {
     let lower = path.to_ascii_lowercase();
     lower.ends_with(".md") || lower.ends_with(".markdown")
 }
 
+#[cfg(test)]
 #[must_use]
 fn path_under_markdown_root(rel: &str, md_root_rel: &str) -> bool {
     let norm = rel.replace('\\', "/").trim_start_matches('/').to_string();
@@ -110,6 +114,7 @@ fn path_under_markdown_root(rel: &str, md_root_rel: &str) -> bool {
     norm == root || norm.starts_with(&format!("{root}/"))
 }
 
+#[cfg(test)]
 #[must_use]
 fn is_under_drox_agent_tree(rel: &str) -> bool {
     let norm = rel.replace('\\', "/").trim_start_matches('/').to_string();
@@ -119,6 +124,7 @@ fn is_under_drox_agent_tree(rel: &str) -> bool {
         || norm == AGENT_OUTPUT_DIR
 }
 
+#[cfg(test)]
 #[must_use]
 fn is_under_agent_output_tree(rel: &str) -> bool {
     let norm = rel.replace('\\', "/").trim_start_matches('/').to_string();
@@ -126,6 +132,7 @@ fn is_under_agent_output_tree(rel: &str) -> bool {
 }
 
 /// Chemin relatif workspace → `foo/bar` (fichier cible peut ne pas exister encore).
+#[cfg(test)]
 fn relative_to_workspace(workspace_root: &Utf8Path, resolved: &Utf8Path) -> Result<String, ToolError> {
     let root_canon = std::fs::canonicalize(workspace_root.as_std_path())
         .map_err(|e| ToolError::io(workspace_root.to_owned(), e))?;
@@ -155,6 +162,7 @@ fn relative_to_workspace(workspace_root: &Utf8Path, resolved: &Utf8Path) -> Resu
 }
 
 /// Chemin relatif logique (sans canonicaliser le fichier cible).
+#[cfg(test)]
 fn logical_relative_path(workspace_root: &Utf8Path, user_path: &str) -> Result<String, ToolError> {
     let trimmed = user_path.trim();
     if trimmed.is_empty() {
@@ -168,6 +176,7 @@ fn logical_relative_path(workspace_root: &Utf8Path, user_path: &str) -> Result<S
 }
 
 /// Si `agent_markdown_root` est défini, réécrit les `.md` hors `.drox/` vers ce dossier.
+#[cfg(test)]
 pub fn resolve_write_path_for_agent(
     workspace_root: &Utf8Path,
     user_path: &str,

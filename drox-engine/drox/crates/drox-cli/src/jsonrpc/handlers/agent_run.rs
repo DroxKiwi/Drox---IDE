@@ -12,10 +12,10 @@ use async_trait::async_trait;
 use camino::{Utf8Path, Utf8PathBuf};
 use drox_engine::{
     Agent, AgentConfig, AgentEvent, CompactionConfig, ContextPolicy, JsonlTranscriptSink, Phase,
-    EngineOrchestrationDelegate, LayeredConfig, MemoryRuntime, OrchestrationConfig,
+    LayeredConfig, MemoryRuntime,
     PermissionEngine, PermissionMode, PermissionPolicy, OrchestrationMode, RunSpec, SessionError,
-    SessionNotesHandle, TranscriptSessionConfig, SubagentJobRegistry,
-    WorkspaceMapStore, EngineSubagentExecutor, SubagentSettings,
+    SessionNotesHandle, TranscriptSessionConfig,
+    WorkspaceMapStore,
     apply_prompt_memory_budget, format_sessions_listing_for_prompt, load_memdir,
     load_sessions_listing, memdir_system_prefix, read_session_ui_stats,
     read_transcript, session_ui_stats_path, transcript_path, write_session_ui_stats,
@@ -28,8 +28,7 @@ use drox_permissions::{
     detect_unreachable_rules, format_rule, parse_rule,
 };
 use drox_tools::{
-    OrchestrationDelegateEventHook, OrchestrationDelegateHookEvent, ScopeDeferredHandle,
-    SubagentEventHook, SubagentHookEvent, ToolContext, ToolError, ToolRegistry, UserAnswer,
+    ScopeDeferredHandle, ToolContext, ToolError, ToolRegistry, UserAnswer,
     UserAsker, UserQuestion,
 };
 use drox_types::{Content, SessionId};
@@ -137,19 +136,11 @@ pub(crate) struct AgentSetup {
     ui_stats_path: Option<Utf8PathBuf>,
 }
 
-/// Contexte pour brancher `delegate_executor` sur un run Architecte.
-#[derive(Debug, Clone)]
-pub(crate) struct OrchestrationDelegateWireInput {
-    pub orch_cfg: OrchestrationConfig,
-}
-
 /// Surcharges pour sous-runs orchestration 1.2.0.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct AgentSetupOverrides {
     pub model_override: Option<String>,
     pub system_override: Option<String>,
-    pub force_disable_subagents: bool,
-    pub orchestration_delegate: Option<OrchestrationDelegateWireInput>,
     /// Objectif verrouillé injecté avant le run.
     pub run_objective_override: Option<String>,
 }
@@ -235,17 +226,7 @@ pub(crate) async fn build_agent_setup(
 
     let (mode, policy) = build_permission_policy(params, &workspace)?;
 
-    let mut subagents_enabled = params.subagents_enabled.unwrap_or(false);
-    if overrides.force_disable_subagents {
-        subagents_enabled = false;
-    }
-
-    // Mode Professeur : propositions seules côté client (`applyFsWrites: false`).
-    let apply = if mode.is_professor() {
-        false
-    } else {
-        params.apply_edits.unwrap_or(false)
-    };
+    let apply = params.apply_edits.unwrap_or(false);
 
     let (memdir_prefix, memory_sessions_block) = apply_prompt_memory_budget(
         memdir_system_prefix(&mem),
@@ -266,9 +247,7 @@ pub(crate) async fn build_agent_setup(
             workspace_map_block: workspace_map.format_for_prompt(),
             language: lang,
             native_thinking: params.native_thinking == Some(true),
-            professor_mode: mode.is_professor(),
             disabled_tools_notice: format_disabled_tools_notice(&params.disabled_tools),
-            subagents_enabled,
             engine_tuning: engine_tuning.clone(),
             discussion_allow_reads: run_spec.discussion_allow_reads,
         })
@@ -283,21 +262,11 @@ pub(crate) async fn build_agent_setup(
         .unwrap_or_else(|| std::env::var("DROX_MODEL").unwrap_or_else(|_| "llama3.2".into()));
 
     let mcp_hub = McpHub::discover(&workspace).await;
-    let mut subagent_settings = SubagentSettings {
-        enabled: subagents_enabled,
-        max_iterations: params.subagents_max_iterations.unwrap_or(15).clamp(1, 50),
-        max_concurrent: params.subagents_max_concurrent.unwrap_or(1).clamp(1, 8),
-        event_hook: None,
-    };
-    if subagent_settings.enabled {
-        subagent_settings.event_hook = Some(subagent_event_hook(server, run_id));
-    }
     let registry = build_registry_for_run(RegistryBuildInput {
         run_spec: run_spec.clone(),
         mcp_enabled: params.mcp_tools_enabled.unwrap_or(true),
         mcp_hub: mcp_hub.clone(),
         disabled_tools: params.disabled_tools.clone(),
-        subagent_settings: subagent_settings.clone(),
     })
     .await;
     let registry = Arc::new(wrap_executable_tools(registry, server, run_id));
@@ -319,8 +288,7 @@ pub(crate) async fn build_agent_setup(
         .with_user_asker(asker)
         .with_scope_deferred(scope_deferred)
         .with_workspace_map(workspace_map.clone())
-        .with_drox_ignore(drox_ignore)
-        .with_executor_delegation_enabled(run_spec.executor_delegation_enabled);
+        .with_drox_ignore(drox_ignore);
     if let Some(hub) = mcp_hub {
         tracing::info!(
             servers = ?hub.server_names(),
@@ -338,95 +306,6 @@ pub(crate) async fn build_agent_setup(
         think: params.native_thinking,
         ..ChatOptions::default()
     };
-
-    if let Some(ref orch_wire) = overrides.orchestration_delegate {
-        let executor_llm = build_orchestration_executor_llm(
-            params,
-            &llm,
-            num_ctx as i64,
-            &orch_wire.orch_cfg.executor_model,
-        )
-        .await?;
-        let executor_num_ctx = resolve_subagent_num_ctx(params) as usize;
-        let run_cancel = server
-            .run_cancel_flag(run_id)
-            .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
-        let delegate = Arc::new(EngineOrchestrationDelegate::new(
-            executor_llm,
-            vec![orch_wire.orch_cfg.executor_model.clone()],
-            chat_options.clone(),
-            engine_tuning.executor_subrun_max_iterations as usize,
-            executor_num_ctx,
-            Some(policy.clone()),
-            Some(orchestration_delegate_hook(server, run_id)),
-            run_cancel,
-            orch_wire.orch_cfg.max_parallel_executors,
-            engine_tuning.clone(),
-        ));
-        ctx = ctx
-            .with_orchestration_delegate(delegate)
-            .with_orchestration_max_parallel_executors(orch_wire.orch_cfg.max_parallel_executors);
-        tracing::info!(
-            executor_model = %orch_wire.orch_cfg.executor_model,
-            max_parallel_executors = orch_wire.orch_cfg.max_parallel_executors,
-            "orchestration role_split — delegate_executor wired for Architect run"
-        );
-    }
-
-    if subagent_settings.enabled {
-        let subagent_num_ctx = resolve_subagent_num_ctx(params);
-        tracing::info!(
-            subagents_enabled = true,
-            subagents_num_ctx_param = ?params.subagents_num_ctx,
-            subagents_model_param = ?params.subagents_model,
-            num_ctx_param = ?params.num_ctx,
-            resolved_subagent_num_ctx = subagent_num_ctx,
-            parent_num_ctx = num_ctx,
-            drox_subagents_num_ctx_env = ?crate::jsonrpc::handlers::common::env_i64(
-                "DROX_SUBAGENTS_NUM_CTX"
-            ),
-            drox_num_ctx_env = ?crate::jsonrpc::handlers::common::env_i64("DROX_NUM_CTX"),
-            "agent.run — résolution contexte sous-agents"
-        );
-        let subagent_llm = resolve_subagent_llm(
-            params,
-            &llm,
-            subagent_num_ctx,
-            num_ctx as i64,
-        )?;
-        if let Some(m) = params
-            .subagents_model
-            .as_ref()
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty())
-        {
-            tracing::info!(
-                subagent_model = %m,
-                parent_model = ?params.model,
-                subagent_num_ctx,
-                parent_num_ctx = num_ctx,
-                "sous-agents — modèle dédié"
-            );
-        } else {
-            tracing::info!(
-                subagent_num_ctx,
-                parent_num_ctx = num_ctx,
-                "sous-agents — même modèle que le parent, fenêtre contexte dédiée"
-            );
-        }
-        let subagent_jobs = Arc::new(SubagentJobRegistry::new());
-        let executor = Arc::new(EngineSubagentExecutor::new(
-            subagent_llm,
-            chat_options.clone(),
-            subagent_settings.clone(),
-            run_spec.clone(),
-            subagent_num_ctx as usize,
-            subagent_jobs,
-        ));
-        ctx = ctx
-            .with_subagent_settings(subagent_settings)
-            .with_subagent_executor(executor);
-    }
 
     let tool_hooks = drox_hooks::load_merged(&workspace);
 
@@ -474,9 +353,6 @@ pub(crate) async fn build_agent_setup(
             .run_objective_override
             .clone()
             .or_else(|| params.run_objective.clone()),
-        delegate_task_id: None,
-        executor_deliverable_task_id: None,
-        executor_deliverable_plan_id: None,
         run_spec,
         engine_tuning,
         orchestration_run_id: Some(run_id.to_string()),
@@ -819,6 +695,26 @@ mod image_block_tests {
     }
 }
 
+#[cfg(test)]
+mod permission_policy_tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+
+    #[test]
+    fn professor_mode_in_params_is_rejected() {
+        let params = AgentRunParams {
+            prompt: "hi".into(),
+            mode: Some("professor".into()),
+            no_settings: Some(true),
+            ..Default::default()
+        };
+        let workspace = Utf8PathBuf::from(std::env::temp_dir().to_string_lossy().as_ref());
+        let err = build_permission_policy(&params, &workspace).unwrap_err();
+        assert_eq!(err.code, INVALID_PARAMS);
+        assert!(err.message.contains("professor"));
+    }
+}
+
 /// Bloc prompt indiquant au modèle quels outils ne sont pas disponibles.
 fn format_disabled_tools_notice(disabled: &[String]) -> Option<String> {
     const ALWAYS_ACTIVE: &[&str] = &["ask_user_question", "todo_write"];
@@ -899,6 +795,13 @@ fn build_permission_policy(
         || layered.effective_mode().unwrap_or(PermissionMode::Default),
         PermissionMode::from_str_lossy,
     );
+
+    if !crate::permission_guard::permission_mode_supported(mode) {
+        return Err(RpcError::new(
+            INVALID_PARAMS,
+            crate::permission_guard::PROFESSOR_MODE_REMOVED,
+        ));
+    }
 
     for unreachable in detect_unreachable_rules(&rules, &DetectUnreachableOptions::default()) {
         tracing::warn!(
@@ -1203,274 +1106,3 @@ impl UserAsker for RpcUserAsker {
         Ok(answers)
     }
 }
-
-/// Fenêtre Ollama par défaut des sous-agents (4b Explore) — plus basse que le parent
-/// pour limiter la VRAM quand deux modèles sont chargés côte à côte.
-const DEFAULT_SUBAGENT_NUM_CTX: i64 = 8192;
-
-fn resolve_subagent_num_ctx(params: &AgentRunParams) -> i64 {
-    params
-        .subagents_num_ctx
-        .map(|n| n as i64)
-        .or_else(|| crate::jsonrpc::handlers::common::env_i64("DROX_SUBAGENTS_NUM_CTX"))
-        .unwrap_or(DEFAULT_SUBAGENT_NUM_CTX)
-        .clamp(2048, 200_000)
-}
-
-fn effective_parent_model(params: &AgentRunParams) -> String {
-    params
-        .model
-        .as_deref()
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string)
-        .or_else(|| std::env::var("DROX_MODEL").ok())
-        .unwrap_or_else(|| "llama3.2".into())
-}
-
-fn effective_subagent_model(params: &AgentRunParams) -> String {
-    params
-        .subagents_model
-        .as_deref()
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string)
-        .unwrap_or_else(|| effective_parent_model(params))
-}
-
-/// Client LLM pour les sous-agents — jamais le parent si modèle ou `num_ctx` diffère.
-fn resolve_subagent_llm(
-    params: &AgentRunParams,
-    parent_llm: &Arc<OllamaClient>,
-    subagent_num_ctx: i64,
-    parent_num_ctx: i64,
-) -> Result<Arc<OllamaClient>, RpcError> {
-    let parent_model = effective_parent_model(params);
-    let subagent_model = effective_subagent_model(params);
-    if subagent_model == parent_model && subagent_num_ctx == parent_num_ctx {
-        tracing::debug!(
-            model = %subagent_model,
-            num_ctx = subagent_num_ctx,
-            "sous-agent — réutilisation du client LLM parent"
-        );
-        return Ok(parent_llm.clone());
-    }
-    tracing::info!(
-        subagent_model = %subagent_model,
-        parent_model = %parent_model,
-        subagent_num_ctx,
-        parent_num_ctx,
-        "sous-agent — client Ollama dédié (modèle ou num_ctx distinct)"
-    );
-    let llm_config = super::common::build_subagent_llm_config(
-        params.server.clone(),
-        Some(subagent_model.clone()),
-        params.api_key.clone(),
-        &params.headers,
-        subagent_num_ctx,
-    )?;
-    tracing::info!(
-        subagent_model = %subagent_model,
-        llm_config_num_ctx = llm_config.num_ctx,
-        "sous-agent — config LLM (num_ctx client Ollama)"
-    );
-    Ok(Arc::new(
-        OllamaClient::new(llm_config)
-            .map_err(|e| RpcError::new(CONFIG_ERROR, format!("subagent LLM init failed: {e}")))?,
-    ))
-}
-
-/// Dedicated LLM client for the orchestration executor (`role_split`).
-/// Parallélisme des tâches : `max_parallel_executors` + slots Ollama (`OLLAMA_NUM_PARALLEL`).
-pub(crate) async fn build_orchestration_executor_llm(
-    params: &AgentRunParams,
-    parent_llm: &Arc<OllamaClient>,
-    parent_num_ctx: i64,
-    executor_model: &str,
-) -> Result<Vec<Arc<dyn drox_llm::LlmClient>>, RpcError> {
-    let parent_model = effective_parent_model(params);
-    let executor_model = executor_model.trim();
-    let executor_model = if executor_model.is_empty() {
-        effective_subagent_model(params)
-    } else {
-        executor_model.to_string()
-    };
-    let executor_num_ctx = resolve_subagent_num_ctx(params);
-    // Même modèle → réutiliser le client parent (l'exécuteur passe `num_ctx` par requête
-    // dans `EngineOrchestrationDelegate`). Un second client forçait un rechargement Ollama
-    // (VRAM) et des 500 « model failed to load » alors que l'architecte tournait déjà.
-    if executor_model == parent_model && executor_num_ctx == parent_num_ctx {
-        tracing::info!(
-            executor_model = %executor_model,
-            executor_num_ctx,
-            parent_num_ctx,
-            "orchestration executor — reusing parent Ollama client (same model and num_ctx)"
-        );
-        return Ok(vec![parent_llm.clone()]);
-    }
-    tracing::info!(
-        executor_model = %executor_model,
-        parent_model = %parent_model,
-        executor_num_ctx,
-        parent_num_ctx,
-        "orchestration executor — dedicated Ollama client (different model)"
-    );
-    let llm_config = super::common::build_subagent_llm_config(
-        params.server.clone(),
-        Some(executor_model),
-        params.api_key.clone(),
-        &params.headers,
-        executor_num_ctx,
-    )?;
-    Ok(vec![Arc::new(
-        OllamaClient::new(llm_config).map_err(|e| {
-            RpcError::new(CONFIG_ERROR, format!("executor LLM init failed: {e}"))
-        })?,
-    )])
-}
-
-/// Relaye événements exécutant (RoleEnter, tools, texte) sur le run parent — FIFO.
-pub(crate) fn orchestration_delegate_hook(
-    server: &Server,
-    run_id: &str,
-) -> OrchestrationDelegateEventHook {
-    let server = server.clone();
-    let run_id = run_id.to_string();
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<(AgentEvent, Option<String>)>();
-    let server_consumer = server.clone();
-    let run_id_consumer = run_id.clone();
-    tokio::spawn(async move {
-        while let Some((event, job_id)) = rx.recv().await {
-            if server_consumer.is_run_cancelled(&run_id_consumer) {
-                continue;
-            }
-            server_consumer
-                .notify(
-                    "agent/event",
-                    AgentEventNotification {
-                        run_id: run_id_consumer.clone(),
-                        event,
-                        job_id,
-                    },
-                )
-                .await;
-        }
-    });
-    Arc::new(move |ev| {
-        let (event, relay_job_id) = match ev {
-            OrchestrationDelegateHookEvent::RoleEnter { role_id } => (
-                AgentEvent::RoleEnter { role_id },
-                None,
-            ),
-            OrchestrationDelegateHookEvent::ExecutorTaskStart {
-                task_id,
-                description,
-            } => (
-                AgentEvent::SubagentStart {
-                subagent_type: "executor".to_string(),
-                description,
-                job_id: Some(task_id),
-                background: false,
-            },
-                None,
-            ),
-            OrchestrationDelegateHookEvent::ExecutorTaskDone {
-                task_id,
-                status,
-                summary,
-                truncated,
-                iterations_used,
-                success,
-            } => (
-                AgentEvent::SubagentDone {
-                subagent_type: "executor".to_string(),
-                summary: if summary.is_empty() {
-                    format!("Task {task_id} — {status}")
-                } else {
-                    summary
-                },
-                truncated,
-                iterations_used,
-                job_id: Some(task_id.clone()),
-                success,
-                task_status: Some(status.clone()),
-                error_message: if success {
-                    None
-                } else {
-                    Some(format!("Executor {task_id} — {status}"))
-                },
-            },
-                None,
-            ),
-            OrchestrationDelegateHookEvent::AgentEventJson { mut payload } => {
-                let job_id = payload
-                    .get("job_id")
-                    .and_then(|v| v.as_str())
-                    .map(str::to_string);
-                if let Some(obj) = payload.as_object_mut() {
-                    obj.remove("job_id");
-                }
-                match serde_json::from_value::<AgentEvent>(payload) {
-                    Ok(e) if e.is_parent_context_gauge() => return,
-                    Ok(e) => (e, job_id),
-                    Err(_) => return,
-                }
-            }
-        };
-        let _ = tx.send((event, relay_job_id));
-    })
-}
-
-/// Notifications UI `subagent_start` / `subagent_done` sur le run parent (M5).
-fn subagent_event_hook(server: &Server, run_id: &str) -> SubagentEventHook {
-    let server = server.clone();
-    let run_id = run_id.to_string();
-    Arc::new(move |ev| {
-        let event = match ev {
-            SubagentHookEvent::Start {
-                subagent_type,
-                description,
-                job_id,
-                background,
-            } => AgentEvent::SubagentStart {
-                subagent_type,
-                description,
-                job_id,
-                background,
-            },
-            SubagentHookEvent::Done {
-                subagent_type,
-                summary,
-                truncated,
-                iterations_used,
-                job_id,
-                success,
-                error_message,
-            } => AgentEvent::SubagentDone {
-                subagent_type,
-                summary,
-                truncated,
-                iterations_used,
-                job_id,
-                success,
-                task_status: None,
-                error_message,
-            },
-        };
-        let server = server.clone();
-        let run_id = run_id.clone();
-        tokio::spawn(async move {
-            server
-                .notify(
-                    "agent/event",
-                    AgentEventNotification {
-                        run_id,
-                        event,
-                        job_id: None,
-                    },
-                )
-                .await;
-        });
-    })
-}
-

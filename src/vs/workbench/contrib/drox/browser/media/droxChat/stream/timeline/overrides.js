@@ -5,7 +5,7 @@
 
 // allow-any-unicode-comment-file
 
-// Fil linéaire : strip, outils, sous-agents. Routage texte → display/simple.js.
+// Fil linéaire : strip, outils. Routage texte → display/simple.js.
 
 (function (D) {
 	const fn = D.fn;
@@ -41,7 +41,7 @@
 		if (r === 'architect') {
 			D.state.discussionRunActive = false;
 		}
-		D.state.orchestrationRole = r === 'architect' || r === 'executor' ? r : null;
+		D.state.orchestrationRole = r === 'architect' || r === 'architect_discussion' ? r : null;
 		if (r === 'architect') {
 			fn.unlockArchitectEditRunPresentation?.();
 		}
@@ -51,7 +51,7 @@
 				const el = document.createElement('div');
 				el.className = 'msg-orchestration-role msg-orchestration-architect msg-orchestration-architect';
 				el.setAttribute('role', 'status');
-				el.textContent = 'Architect — planning and delegation';
+				el.textContent = 'Architect — edit run';
 				banner.appendChild(el);
 				fn.scrollLog();
 			}
@@ -61,41 +61,17 @@
 		_renderOrchestrationRole.call(this, role);
 	};
 
-	const _mountSubagentCard = fn.mountSubagentCard;
-	fn.mountSubagentCard = function (el) {
-		const work = fn.getRunSection('work');
-		if (work) {
-			let grid = work.querySelector('.drox-executor-grid');
-			if (!grid) {
-				grid = document.createElement('div');
-				grid.className = 'drox-executor-grid';
-				work.appendChild(grid);
-			}
-			grid.appendChild(el);
-			fn.scrollLog();
-			fn.touchArchitectRunTailActivity?.();
-			return;
-		}
-		_mountSubagentCard.call(this, el);
-	};
-
 	const _createToolBlock = fn.createToolBlock;
 	fn.createToolBlock = function (payload) {
-		if (!fn.isExecutorUiContext?.() && D.state.linearRunUi && D.state.orchestrationRole !== 'executor') {
+		if (D.state.linearRunUi) {
 			return fn.createLinearArchitectToolLine(payload);
 		}
 		return _createToolBlock.call(this, payload);
 	};
 
 	const _getLogMountParent = fn.getLogMountParent;
-	fn.getLogMountParent = function (jobId) {
-		if (fn.isExecutorCaptureActive?.()) {
-			const capture = fn.resolveExecutorCapture?.(jobId);
-			if (capture?.toolsEl?.isConnected) {
-				return capture.toolsEl;
-			}
-		}
-		if (D.state.linearRunUi && D.state.orchestrationRole === 'architect') {
+	fn.getLogMountParent = function () {
+		if (D.state.linearRunUi) {
 			const toolName = D.state.pendingToolName || '';
 			if (fn.isArchitectVerifyTool(toolName)) {
 				const verify = fn.ensureRunSection('verify');

@@ -8,7 +8,7 @@ use tokio::fs;
 
 use crate::context::ToolContext;
 use crate::error::ToolError;
-use crate::agent_output::resolve_write_path_for_agent;
+use crate::path_util::resolve_path_for_write;
 use crate::tool::Tool;
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -38,12 +38,7 @@ impl Tool for FileWriteTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: FileWriteInput = serde_json::from_value(input)?;
         let workspace = ctx.effective_workspace();
-        let (resolved, redirected) = resolve_write_path_for_agent(
-            &workspace,
-            &args.path,
-            ctx.agent_markdown_root.as_deref(),
-            ctx.agent_markdown_filename.as_deref(),
-        )?;
+        let resolved = resolve_path_for_write(&workspace, &args.path)?;
 
         if ctx.plan_mode {
             return Err(ToolError::plan_violation("file_write"));
@@ -58,28 +53,18 @@ impl Tool for FileWriteTool {
             fs::write(&resolved, args.content.as_bytes())
                 .await
                 .map_err(|e| ToolError::io(resolved.clone(), e))?;
-            let mut out = json!({
+            Ok(json!({
                 "applied": true,
                 "path": resolved.as_str(),
                 "bytes_written": args.content.len(),
-            });
-            if redirected {
-                out["agent_output_redirect"] = json!(true);
-                out["requested_path"] = json!(args.path);
-            }
-            Ok(out)
+            }))
         } else {
-            let mut out = json!({
+            Ok(json!({
                 "applied": false,
                 "proposed": true,
                 "path": resolved.as_str(),
                 "content": args.content,
-            });
-            if redirected {
-                out["agent_output_redirect"] = json!(true);
-                out["requested_path"] = json!(args.path);
-            }
-            Ok(out)
+            }))
         }
     }
 }
@@ -128,32 +113,5 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(text, "yo");
-    }
-
-    #[tokio::test]
-    async fn redirects_executor_markdown() {
-        let tmp = tempfile::tempdir().unwrap();
-        let root = camino::Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-        tokio::fs::create_dir_all(root.join(".drox")).await.unwrap();
-        let ctx = ToolContext::new(root.clone(), true)
-            .with_agent_markdown_root(crate::agent_output::agent_output_dir_for_segment("t2"));
-        let reg = ToolRegistry::with_simple_tools();
-        let out = reg
-            .execute_named(
-                "file_write",
-                &ctx,
-                json!({
-                    "path": "src/ANALYSIS.md",
-                    "content": "# Analysis"
-                }),
-            )
-            .await
-            .unwrap();
-        assert_eq!(out["applied"], true);
-        assert_eq!(out["agent_output_redirect"], true);
-        let dest = root.join(".drox/agent-output/t2/ANALYSIS.md");
-        assert!(dest.exists());
-        let text = tokio::fs::read_to_string(dest).await.unwrap();
-        assert_eq!(text, "# Analysis");
     }
 }

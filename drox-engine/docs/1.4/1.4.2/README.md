@@ -1,7 +1,8 @@
 # Drox 1.4.2 — UI chat & fil de discussion
 
-**Statut** : **planifié** (après [1.4.1](../1.4.1/README.md))  
-**Prérequis** : [1.4.0](../1.4.0/README.md) moteur rail clôturé · [1.4.1](../1.4.1/README.md) bugs session/moteur légers
+**Statut** : **planifié** (après squelette [1.4.0](../1.4.0/README.md) + [1.4.1](../1.4.1/README.md))  
+**Prérequis UI** : Phase **2d** ([FOI](../1.4.0/FOI-REFONTE.md#phase-2d--alignement-ui-fork-vs-code-p0)) faite  
+**Spéc** : [UI-CONDUCTEUR.md](../1.4.0/UI-CONDUCTEUR.md) § VI (conducteur station unique) + B-UI-*
 
 ---
 
@@ -11,7 +12,7 @@ Polish **interface chat Drox** : fil linéaire, replay session, questionnaire `a
 
 ---
 
-## Périmètre (depuis [SMOKE-BACKLOG](../1.4.0/SMOKE-BACKLOG.md))
+## Périmètre (depuis [SMOKE-BACKLOG](../archive/1.4.0/SMOKE-BACKLOG.md))
 
 | ID | Sujet |
 |----|-------|
@@ -27,7 +28,7 @@ Polish **interface chat Drox** : fil linéaire, replay session, questionnaire `a
 
 ## Hors scope
 
-- Moteur rail, pre_gate, segments → [1.4.0](../1.4.0/README.md)
+- Moteur rail, pre_gate, segments → [archive 1.4.0](../archive/1.4.0/README.md)
 - Stabilisation discuss / boucles / session RPC → [1.4.1](../1.4.1/README.md)
 - Index & graphe → [1.4.3](../1.4.3/PLAN-1.4.3.md)
 
@@ -36,4 +37,4 @@ Polish **interface chat Drox** : fil linéaire, replay session, questionnaire `a
 ## Liens
 
 - [Hub 1.4](../README.md)
-- [06-UI-BLOCKS](../1.4.0/06-UI-BLOCKS.md)
+- [06-UI-BLOCKS](../archive/1.4.0/06-UI-BLOCKS.md)

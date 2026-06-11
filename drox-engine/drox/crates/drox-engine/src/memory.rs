@@ -107,7 +107,7 @@ impl MemoryTracker {
     pub fn record_tool(&mut self, name: &str) {
         match name {
             "file_edit" | "file_write" | "notebook_edit" | "delete_path" | "bash" => self.mutating_count += 1,
-            "todo_write" | "course_plan_write" => self.todo_writes += 1,
+            "todo_write" => self.todo_writes += 1,
             "session_note" => self.session_notes += 1,
             _ => {}
         }

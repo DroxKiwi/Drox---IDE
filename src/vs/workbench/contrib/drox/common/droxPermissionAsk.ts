@@ -5,6 +5,7 @@
 
 // allow-any-unicode-comment-file
 
+import { localize } from '../../../../nls.js';
 import { IDroxUserAskPayload, IDroxUserAskQuestion } from './droxUserAsk.js';
 
 /** Modes de permission exposés dans le chat (alignés sur `PermissionMode` moteur). */
@@ -16,6 +17,9 @@ export const DROX_PERMISSION_MODES = [
 
 export type DroxPermissionMode = (typeof DROX_PERMISSION_MODES)[number];
 
+/** Valeur settings / replay retirée en 1.4.0 (FOI Phase 2c). */
+export const REMOVED_PROFESSOR_PERMISSION_MODE = 'professor';
+
 const LEGACY_MODE_MAP: Record<string, DroxPermissionMode> = {
 	default: 'imNotCrazy',
 	plan: 'analyze',
@@ -23,8 +27,36 @@ const LEGACY_MODE_MAP: Record<string, DroxPermissionMode> = {
 	bypassPermissions: 'trustEdit',
 };
 
+export interface IDroxPermissionModeResolution {
+	readonly mode: DroxPermissionMode;
+	readonly downgradedFromProfessor: boolean;
+}
+
+export function isRemovedProfessorPermissionMode(mode: string | undefined): boolean {
+	return mode?.trim().toLowerCase() === REMOVED_PROFESSOR_PERMISSION_MODE;
+}
+
+/** Message notification IDE quand un réglage legacy `professor` est rencontré. */
+export function getProfessorModeRemovedNotificationMessage(): string {
+	return localize(
+		'drox.professorModeRemoved',
+		'Professor mode was removed in Drox 1.4.0. Using "I\'m not crazy" (confirm each edit). See drox-engine/docs/1.4/REPORT/professor-2.0.md.',
+	);
+}
+
+export function resolveDroxPermissionMode(mode: string | undefined): IDroxPermissionModeResolution {
+	const downgradedFromProfessor = isRemovedProfessorPermissionMode(mode);
+	return {
+		mode: normalizeDroxPermissionMode(mode),
+		downgradedFromProfessor,
+	};
+}
+
 export function normalizeDroxPermissionMode(mode: string | undefined): DroxPermissionMode {
 	if (!mode) {
+		return 'imNotCrazy';
+	}
+	if (isRemovedProfessorPermissionMode(mode)) {
 		return 'imNotCrazy';
 	}
 	if (isValidDroxPermissionMode(mode)) {

@@ -19,7 +19,10 @@ import { ITerminalService } from '../../../terminal/browser/terminal.js';
 import { DroxCommands } from '../../common/drox.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { normalizeDroxArchitectInteractionMode } from '../../common/droxArchitectInteractionMode.js';
-import { normalizeDroxPermissionMode } from '../../common/droxPermissionAsk.js';
+import {
+	getProfessorModeRemovedNotificationMessage,
+	resolveDroxPermissionMode,
+} from '../../common/droxPermissionAsk.js';
 import { IDroxAttachmentPayload } from '../../common/droxAttachments.js';
 import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
@@ -33,9 +36,6 @@ import { refreshDroxChatLlmModels } from './droxChatLlmModels.js';
 import {
 	setDroxArchitectLlmParamsFromWebview,
 	setDroxArchitectModelFromWebview,
-	setDroxExecutorLlmParamsFromWebview,
-	setDroxExecutorModelFromWebview,
-	setDroxOrchestrationMaxParallelExecutorsFromWebview,
 } from './droxChatRoleModels.js';
 import { IDroxGeneralSettingsPatch, pushGeneralSettingsToWebview, setDroxGeneralSettingsFromWebview } from './droxChatGeneralSettings.js';
 import { IDroxLlmModelsService } from '../../common/droxLlmModelsService.js';
@@ -109,9 +109,6 @@ export async function routeDroxChatWebviewMessage(
 		case 'setArchitectModel':
 			await setDroxArchitectModelFromWebview(deps, raw.model);
 			break;
-		case 'setExecutorModel':
-			await setDroxExecutorModelFromWebview(deps, raw.model);
-			break;
 		case 'setArchitectLlmParams':
 			await setDroxArchitectLlmParamsFromWebview(deps, {
 				numCtx: raw.numCtx,
@@ -123,20 +120,6 @@ export async function routeDroxChatWebviewMessage(
 				temperature: raw.temperature,
 			});
 			break;
-		case 'setExecutorLlmParams':
-			await setDroxExecutorLlmParamsFromWebview(deps, {
-				numCtx: raw.numCtx,
-				topP: raw.topP,
-				topK: raw.topK,
-				repeatPenalty: raw.repeatPenalty,
-				minP: raw.minP,
-				seed: raw.seed,
-				temperature: raw.temperature,
-			});
-			break;
-		case 'setOrchestrationMaxParallelExecutors':
-			await setDroxOrchestrationMaxParallelExecutorsFromWebview(deps, raw.value);
-			break;
 		case 'setGeneralSettings':
 			await setDroxGeneralSettingsFromWebview(deps, raw.settings as IDroxGeneralSettingsPatch);
 			pushGeneralSettingsToWebview(host, deps.runSettingsService, deps.configurationService);
@@ -145,8 +128,12 @@ export async function routeDroxChatWebviewMessage(
 			await executeDroxChatSend(host, tabs, deps, raw.prompt, raw.mode, raw.attachments, raw.references, raw.pastes);
 			break;
 		case 'setPermissionMode': {
-			const mode = normalizeDroxPermissionMode(raw.permissionMode);
-			await deps.configurationService.updateValue(DroxSetting.PermissionMode, mode);
+			const resolved = resolveDroxPermissionMode(raw.permissionMode);
+			if (resolved.downgradedFromProfessor) {
+				deps.notificationService.warn(getProfessorModeRemovedNotificationMessage());
+			}
+			await deps.configurationService.updateValue(DroxSetting.PermissionMode, resolved.mode);
+			host.post({ kind: 'permissionMode', mode: resolved.mode });
 			break;
 		}
 		case 'setArchitectInteractionMode': {

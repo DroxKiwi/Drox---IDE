@@ -5,7 +5,7 @@ use crate::orchestration::prompts::system::blocks::{join_sections, render_md};
 use crate::orchestration::prompts::vars::PromptVars;
 
 const DISCUSS_CORE_RAW: &str = include_str!("../blocks/gates/discuss_core.md");
-const LITERAL_USER_RAW: &str = include_str!("../blocks/common/literal_user_message.md");
+const LITERAL_USER_RAW: &str = include_str!("../blocks/common/literal_user_message_discuss.md");
 const DISCUSS_TOOLS_RAW: &str = include_str!("../blocks/discuss/tools.md");
 const DISCUSS_CLOSURE_RAW: &str = include_str!("../blocks/discuss/closure.md");
 const READ_BUDGET_RAW: &str = include_str!("../blocks/discuss/read_budget.md");

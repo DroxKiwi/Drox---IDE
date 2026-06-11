@@ -36,7 +36,7 @@ Transcripts exportés utilisés pour analyser le conducteur pré–Run Rail :
 | [chat_qwen9b.txt](chat_qwen9b.txt) | Qwen 9B |
 | [chat_gemma426b.txt](chat_gemma426b.txt) | Gemma 4 26B |
 
-Le backlog smoke actif et les scénarios de validation vivent sous **[1.4.0](../1.4/1.4.0/SMOKE-BACKLOG.md)**.
+Le backlog smoke (archive) vit sous **[1.4.0](../1.4/archive/1.4.0/SMOKE-BACKLOG.md)** — chantier en pause juin 2026.
 
 ---
 
@@ -44,7 +44,7 @@ Le backlog smoke actif et les scénarios de validation vivent sous **[1.4.0](../
 
 | Version | Périmètre |
 |---------|-----------|
-| [1.4.0](../1.4/1.4.0/README.md) | Run Rail — moteur hold/advance, stations, segments ACT |
+| [archive 1.4.0](../1.4/archive/1.4.0/README.md) | Run Rail — pause dev, non clôturé |
 | [1.4.1](../1.4/1.4.1/README.md) | Stabilisation dogfood moteur / session |
 | [1.4.2](../1.4/1.4.2/README.md) | UI chat (B-UI-*) |
 | [1.4.3](../1.4/1.4.3/README.md) | Index, graphe, fast path, onboarding |

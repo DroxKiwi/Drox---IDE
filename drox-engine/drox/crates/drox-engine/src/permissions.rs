@@ -282,7 +282,6 @@ pub fn is_read_only_tool(tool_name: &str) -> bool {
             | b"ask_user_question"
             | b"exit_plan_mode"
             | b"todo_write"
-            | b"course_plan_write"
             | b"session_note"
             | b"memory_read"
             | b"memory_list"

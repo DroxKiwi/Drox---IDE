@@ -164,7 +164,7 @@ impl Tool for TodoWriteTool {
                  Expected format: {{\"todos\": [{{\"id\": \"1\", \"content\": \"…\", \"status\": \"pending|in_progress|completed|cancelled\"}}]}}."
             ))
         })?;
-        validate(&args.todos, ctx.max_todo_in_progress_allowed())?;
+        validate(&args.todos, 1)?;
         let counts = TodoCounts::from_items(&args.todos);
         let summary = counts.summary(args.todos.len());
         Ok(json!({
@@ -302,11 +302,6 @@ mod tests {
         ToolContext::new(Utf8PathBuf::from("/tmp"), false)
     }
 
-    fn ctx_parallel_slots(slots: usize) -> ToolContext {
-        ToolContext::new(Utf8PathBuf::from("/tmp"), false)
-            .with_orchestration_max_parallel_executors(slots)
-    }
-
     #[test]
     fn schema_lists_all_statuses() {
         let s = TodoWriteTool.input_schema().to_string();
@@ -384,41 +379,6 @@ mod tests {
         let err = TodoWriteTool.execute(&ctx(), payload).await.unwrap_err();
         assert!(
             matches!(err, ToolError::InvalidArgs(ref m) if m.contains("one item")),
-            "got {err:?}"
-        );
-    }
-
-    #[tokio::test]
-    async fn allows_two_in_progress_when_parallel_slots_two() {
-        let payload = json!({
-            "todos": [
-                { "id": "t1", "content": "Deps package.json", "status": "in_progress" },
-                { "id": "t3", "content": "Arborescence src/app", "status": "in_progress" },
-                { "id": "t2", "content": "Framework npm", "status": "pending" },
-            ]
-        });
-        let out = TodoWriteTool
-            .execute(&ctx_parallel_slots(2), payload)
-            .await
-            .unwrap();
-        assert_eq!(out["counts"]["in_progress"], 2);
-    }
-
-    #[tokio::test]
-    async fn rejects_three_in_progress_when_parallel_slots_two() {
-        let payload = json!({
-            "todos": [
-                { "id": "1", "content": "A", "status": "in_progress" },
-                { "id": "2", "content": "B", "status": "in_progress" },
-                { "id": "3", "content": "C", "status": "in_progress" },
-            ]
-        });
-        let err = TodoWriteTool
-            .execute(&ctx_parallel_slots(2), payload)
-            .await
-            .unwrap_err();
-        assert!(
-            matches!(err, ToolError::InvalidArgs(ref m) if m.contains("at most 2")),
             "got {err:?}"
         );
     }

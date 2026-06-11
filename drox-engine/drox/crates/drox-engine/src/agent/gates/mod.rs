@@ -1,0 +1,91 @@
+//! Gates moteur : blocages avant clôture `[phase: done]` ou exécution d'outil.
+//!
+//! Gates pré-exécution et clôture ; `RunSpec::gate_enabled` active/désactive par rôle.
+
+use serde_json::Value;
+
+use crate::event::Phase;
+use crate::EngineTuning;
+use crate::run_spec::{GateKind, RoleId, RunSpec};
+
+use crate::agent::state::ArchitectRunState;
+
+use super::phases::phase_from_name_token;
+
+mod todo_shape;
+pub(crate) use todo_shape::todo_payload_shape_guard;
+
+include!("done.rs");
+include!("record.rs");
+include!("tool_pre.rs");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::EngineTuning;
+    use serde_json::json;
+
+    #[test]
+    fn hallucinated_phase_tool_detects_common_variants() {
+        assert!(is_hallucinated_phase_tool_call("phase", &json!({ "done": "" })));
+        assert!(is_hallucinated_phase_tool_call("Phase:", &json!({ "done": "" })));
+        assert!(is_hallucinated_phase_tool_call("phase:done", &json!({})));
+        assert!(is_hallucinated_phase_tool_call("set_phase", &json!({})));
+        assert!(is_hallucinated_phase_tool_call("phase_transition", &json!({})));
+        assert!(is_hallucinated_phase_tool_call("done", &json!({ "done": "" })));
+        assert!(is_hallucinated_phase_tool_call("reading", &json!({})));
+    }
+
+    #[test]
+    fn parse_hallucinated_phase_from_reading_tool_name() {
+        use crate::event::Phase;
+        assert_eq!(
+            parse_hallucinated_phase_from_tool_call("reading", &json!({})),
+            Some(Phase::Reading)
+        );
+        assert_eq!(
+            parse_hallucinated_phase_from_tool_call("phase:", &json!({ "done": "" })),
+            Some(Phase::Done)
+        );
+    }
+
+    #[test]
+    fn architect_todo_write_has_no_item_cap() {
+        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
+        assert_eq!(spec.max_todo_items(), None);
+        let todos: Vec<_> = (1..=20)
+            .map(|i| json!({"id": i.to_string(), "content": "x", "status": "pending"}))
+            .collect();
+        let msg = tool_pre_gate_block(
+            &spec,
+            "todo_write",
+            &json!({ "todos": todos }),
+            false,
+            None,
+            None,
+            None,
+            &EngineTuning::default(),
+        );
+        assert!(msg.is_none());
+    }
+
+    #[test]
+    fn hallucinated_phase_tool_ignores_real_tools() {
+        assert!(!is_hallucinated_phase_tool_call(
+            "file_read",
+            &json!({ "path": "x" })
+        ));
+        assert!(!is_hallucinated_phase_tool_call(
+            "glob",
+            &json!({ "pattern": "**/*" })
+        ));
+        assert!(!is_hallucinated_phase_tool_call(
+            "todo_write",
+            &json!({ "todos": [] })
+        ));
+        assert!(!is_hallucinated_phase_tool_call(
+            "bash",
+            &json!({ "command": "ls" })
+        ));
+    }
+}

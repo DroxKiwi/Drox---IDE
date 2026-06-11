@@ -126,11 +126,6 @@ impl Server {
         self.runs.lock().insert(run_id, RunHandle { join });
     }
 
-    /// Drapeau d'annulation partagé pour un run actif (architecte + exécuteur inline).
-    pub fn run_cancel_flag(&self, run_id: &str) -> Option<Arc<AtomicBool>> {
-        self.run_cancel_flags.lock().get(run_id).cloned()
-    }
-
     pub fn is_run_cancelled(&self, run_id: &str) -> bool {
         self.run_cancel_flags
             .lock()

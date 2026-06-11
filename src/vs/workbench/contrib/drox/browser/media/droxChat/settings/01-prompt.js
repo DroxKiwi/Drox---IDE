@@ -36,6 +36,9 @@
 		if (D.const.VALID_MODES.has(raw)) {
 			return raw;
 		}
+		if (raw === 'professor') {
+			return D.const.DEFAULT_PERMISSION_MODE;
+		}
 		return D.const.LEGACY_MODE_MAP[raw] || D.const.DEFAULT_PERMISSION_MODE;
 	}
 

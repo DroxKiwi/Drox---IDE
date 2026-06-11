@@ -71,5 +71,15 @@ const migrations: ConfigurationMigration[] = ALL_DROX_SETTING_KEYS.map((newKey) 
 	migrateNexusDroxKey(`${LEGACY_NEXUS_PREFIX}${newKey.slice('drox.'.length)}`, newKey),
 );
 
+const professorPermissionModeMigration: ConfigurationMigration = {
+	key: DroxSetting.PermissionMode,
+	migrateFn: (value: unknown): ConfigurationKeyValuePairs => {
+		if (typeof value !== 'string' || value.trim().toLowerCase() !== 'professor') {
+			return [];
+		}
+		return [[DroxSetting.PermissionMode, { value: 'imNotCrazy' }]];
+	},
+};
+
 Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration)
-	.registerConfigurationMigrations(migrations);
+	.registerConfigurationMigrations([...migrations, professorPermissionModeMigration]);
