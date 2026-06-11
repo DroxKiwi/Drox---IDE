@@ -5,7 +5,7 @@ use crate::orchestration::sanitize_architect_user_prompt;
 
 /// Initial user message for an Architect edit run.
 ///
-/// Discovery vs task mode is chosen by the model (`[mode: discovery]` / `[mode: task]`) per `01_core.md`;
+/// Scope is tied to the user request per `01_core_rail_solo.md` (run rail owns progression).
 /// the engine does not scan the user message for mode.
 #[must_use]
 pub fn architect_user_message(user_prompt: &str) -> String {

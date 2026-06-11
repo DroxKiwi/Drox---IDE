@@ -7,7 +7,6 @@
 
 import { localize } from '../../../../nls.js';
 import { URI } from '../../../../base/common/uri.js';
-import { isDroxExploreToolName } from '../common/droxExploreTools.js';
 import {
 	isHallucinatedPhaseToolName,
 	isPhaseMarkerToolErrorOutput,
@@ -19,6 +18,22 @@ import { formatVisionChatError, isVisionRelatedLlmError } from '../common/droxVi
 import { DroxHostToWebviewMessage } from './droxChatBridge.js';
 
 const SKIP_TOOL_UI = new Set(['course_plan_write', 'scope_defer']);
+
+/** Outils lecture / explore — pas d'aperçu args/output verbeux dans le fil. */
+const SKIP_TOOL_PREVIEW_NAMES = new Set([
+	'file_read',
+	'glob',
+	'grep',
+	'lsp',
+	'web_search',
+	'web_fetch',
+	'workspace_map_read',
+	'memory_read',
+	'memory_list',
+	'bash',
+	'list_mcp_resources',
+	'read_mcp_resource',
+]);
 
 export interface IDroxPendingTool {
 	readonly name: string;
@@ -63,11 +78,6 @@ export interface IDroxChatAgentDoneHost extends IDroxChatAgentEventHost {
 	notifyRunCycleFinished(runId: string | undefined, status: string | undefined, error: string | undefined): void;
 }
 
-function executorJobIdFromEvent(ev: Record<string, unknown>): string | undefined {
-	const id = ev.job_id;
-	return typeof id === 'string' && id.length > 0 ? id : undefined;
-}
-
 export function extractAgentNotificationRunId(params: unknown): string | undefined {
 	const p = params as { runId?: string; run_id?: string } | undefined;
 	if (typeof p?.runId === 'string') {
@@ -90,28 +100,20 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 		return;
 	}
 
-	const notificationJobId =
-		typeof p?.jobId === 'string' && p.jobId.length > 0
-			? p.jobId
-			: typeof p?.job_id === 'string' && p.job_id.length > 0
-				? p.job_id
-				: undefined;
-	const executorJobId = executorJobIdFromEvent(ev) ?? notificationJobId;
-
 	switch (ev.kind) {
 		case 'phase_close':
-			host.post({ kind: 'phase', close: true, executorJobId });
+			host.post({ kind: 'phase', close: true });
 			return;
 
 		case 'phase_enter':
 			if (typeof ev.phase === 'string') {
-				host.post({ kind: 'phase', phase: ev.phase, executorJobId });
+				host.post({ kind: 'phase', phase: ev.phase });
 			}
 			return;
 
 		case 'text_delta':
 			if (typeof ev.text === 'string' && ev.text.length > 0) {
-				host.post({ kind: 'delta', text: ev.text, executorJobId });
+				host.post({ kind: 'delta', text: ev.text });
 			}
 			return;
 
@@ -123,7 +125,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 
 		case 'role_enter':
 			if (typeof ev.role_id === 'string') {
-				host.post({ kind: 'orchestrationRole', role: ev.role_id, executorJobId });
+				host.post({ kind: 'orchestrationRole', role: ev.role_id });
 			}
 			return;
 
@@ -142,12 +144,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			}
 			const { verb, target } = describeToolCall(name, args);
 			const isFileMutation = name === 'file_edit' || name === 'file_write' || name === 'notebook_edit';
-			const skipArgsPreview = isFileMutation || isDroxExploreToolName(name);
-			const taskBackground =
-				name === 'task' &&
-				args &&
-				typeof args === 'object' &&
-				(args as Record<string, unknown>).background === true;
+			const skipArgsPreview = isFileMutation || SKIP_TOOL_PREVIEW_NAMES.has(name);
 			host.post({
 				kind: 'tool',
 				phase: 'start',
@@ -156,8 +153,6 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				verb,
 				target,
 				argsPreview: skipArgsPreview ? '' : previewJson(args),
-				taskBackground: taskBackground === true ? true : undefined,
-				executorJobId,
 			});
 			return;
 		}
@@ -203,7 +198,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				pendingName === 'file_write' ||
 				pendingName === 'notebook_edit';
 			const skipOutputPreview =
-				(isFileMutationFinish && !isError) || isDroxExploreToolName(pendingName);
+				(isFileMutationFinish && !isError) || (pendingName && SKIP_TOOL_PREVIEW_NAMES.has(pendingName));
 			const outputPreview = skipOutputPreview ? '' : previewJson(output);
 			host.handleFileMutationAfterToolFinish(pendingName, output, isError, id, pending?.args);
 			host.post({
@@ -213,8 +208,6 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				name: pendingName,
 				isError,
 				outputPreview,
-				toolOutput: pendingName === 'task' ? output : undefined,
-				executorJobId,
 			});
 			return;
 		}
@@ -251,62 +244,6 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				host.post({
 					kind: 'railStationDone',
 					station: ev.station,
-				});
-			}
-			return;
-
-		case 'rail_segment_start':
-			if (typeof ev.task_id === 'string') {
-				host.post({
-					kind: 'railSegmentStart',
-					station: typeof ev.station === 'string' ? ev.station : 'act',
-					taskId: ev.task_id,
-					label: typeof ev.label === 'string' ? ev.label : undefined,
-					scope: Array.isArray(ev.scope) ? ev.scope.map(String) : [],
-				});
-			}
-			return;
-
-		case 'rail_segment_done':
-			if (typeof ev.task_id === 'string') {
-				host.post({
-					kind: 'railSegmentDone',
-					taskId: ev.task_id,
-					status: typeof ev.status === 'string' ? ev.status : 'partial',
-					summary: typeof ev.summary === 'string' ? ev.summary : undefined,
-					pathsTouched: Array.isArray(ev.paths_touched)
-						? ev.paths_touched.map(String)
-						: [],
-				});
-			}
-			return;
-
-		case 'subagent_start':
-			if (typeof ev.subagent_type === 'string') {
-				host.post({
-					kind: 'subagentStart',
-					subagentType: ev.subagent_type,
-					description: typeof ev.description === 'string' ? ev.description : '',
-					jobId: typeof ev.job_id === 'string' ? ev.job_id : undefined,
-					background: ev.background === true,
-				});
-			}
-			return;
-
-		case 'subagent_done':
-			if (typeof ev.subagent_type === 'string') {
-				host.post({
-					kind: 'subagentDone',
-					subagentType: ev.subagent_type,
-					summary: typeof ev.summary === 'string' ? ev.summary : '',
-					truncated: ev.truncated === true,
-					iterationsUsed: typeof ev.iterations_used === 'number' ? ev.iterations_used : undefined,
-					jobId: typeof ev.job_id === 'string' ? ev.job_id : undefined,
-					success: ev.success !== false,
-					taskStatus:
-						typeof ev.task_status === 'string' ? ev.task_status : undefined,
-					errorMessage:
-						typeof ev.error_message === 'string' ? ev.error_message : undefined,
 				});
 			}
 			return;

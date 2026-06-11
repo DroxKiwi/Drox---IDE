@@ -24,8 +24,6 @@
 			if (typeof fn.freezeCycleTimer === 'function') {
 				fn.freezeCycleTimer();
 			}
-			D.state.activeSubagentCount = 0;
-			D.state.activeExecutorJobIds.clear();
 			fn.hideActivity();
 			fn.hideArchitectRunTailActivity();
 			fn.clearPersistentActivityGrids(D.dom.logEl);

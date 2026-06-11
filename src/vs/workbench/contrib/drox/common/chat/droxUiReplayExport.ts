@@ -420,63 +420,6 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 					);
 				});
 				break;
-			case 'railSegmentStart':
-				flushDelta();
-				emit('RAIL SEGMENT START', () => {
-					const scope = Array.isArray(entry.scope) ? entry.scope.map(String) : [];
-					const lines = [
-						str(entry.station) ? `Station: ${str(entry.station)}` : '',
-						str(entry.taskId) ? `Task: ${str(entry.taskId)}` : '',
-						str(entry.label) ? `Label: ${str(entry.label)}` : '',
-						scope.length > 0 ? `Scope: ${scope.join(', ')}` : '',
-					].filter(Boolean);
-					pushSection(
-						out,
-						`### Rail · segment start · ${str(entry.taskId) || '?'}`,
-						lines.join('\n'),
-					);
-				});
-				break;
-			case 'railSegmentDone':
-				flushDelta();
-				emit('RAIL SEGMENT DONE', () => {
-					const paths = Array.isArray(entry.pathsTouched)
-						? entry.pathsTouched.map(String)
-						: [];
-					const lines = [
-						str(entry.status) ? `Status: ${str(entry.status)}` : '',
-						str(entry.summary) ? str(entry.summary) : '',
-						paths.length > 0 ? `Paths: ${paths.join(', ')}` : '',
-					].filter(Boolean);
-					pushSection(
-						out,
-						`### Rail · segment done · ${str(entry.taskId) || '?'}`,
-						lines.join('\n'),
-					);
-				});
-				break;
-			case 'subagentStart':
-				emit('SUBAGENT START', () => {
-					pushSection(
-						out,
-						`### Subagent · ${str(entry.subagentType)}`,
-						str(entry.description),
-					);
-				});
-				break;
-			case 'subagentDone':
-				emit('SUBAGENT DONE', () => {
-					const lines = [
-						str(entry.summary),
-						entry.truncated === true ? '(truncated)' : '',
-						entry.iterationsUsed !== undefined
-							? `Iterations: ${String(entry.iterationsUsed)}`
-							: '',
-						entry.errorMessage ? `Error: ${str(entry.errorMessage)}` : '',
-					].filter(Boolean);
-					pushSection(out, `### Subagent done · ${str(entry.subagentType)}`, lines.join('\n'));
-				});
-				break;
 			case 'fileChange':
 				emit('FILE CHANGE', () => formatFileChange(entry, out));
 				break;

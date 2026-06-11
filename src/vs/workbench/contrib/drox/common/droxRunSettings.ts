@@ -5,7 +5,7 @@
 // allow-any-unicode-comment-file
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { DROX_DEFAULT_SUBAGENT_NUM_CTX, DroxSetting, readArchitectModel, readExecutorModel } from './droxConfiguration.js';
+import { DroxSetting, readArchitectModel } from './droxConfiguration.js';
 import { IDroxAgentRunImage } from './droxAttachments.js';
 import { getDisabledToolNames } from './droxToolCatalog.js';
 import {
@@ -19,7 +19,6 @@ import {
 	wireEngineStrictnessForRpc,
 } from './droxEngineStrictness.js';
 import { wireEngineTuningForRpc } from './droxEngineTuning.js';
-import { isExecutorDelegationUiEnabled } from './droxOrchestrationUi.js';
 import { DroxPermissionMode, normalizeDroxPermissionMode } from './droxPermissionAsk.js';
 import { droxWorkspaceSessionsDir } from './droxWorkspacePaths.js';
 export interface IDroxLlmSettings {
@@ -42,16 +41,6 @@ export interface IDroxLlmSettings {
 	readonly keepAlive: string;
 	readonly nativeThinking: boolean;
 }
-export interface IDroxSubagentSettings {
-	readonly enabled: boolean;
-	readonly maxIterations: number;
-	readonly maxConcurrent: number;
-	/** Vide = même modèle que l'architecte (`drox.executor.model`). CSV accepté (`m1,m2,...`) pour un pool exécuteur. */
-	readonly model: string;
-	/** Fenêtre Ollama `num_ctx` du sous-modèle (≠ `drox.numCtx`). */
-	readonly numCtx: number;
-}
-export { DROX_DEFAULT_SUBAGENT_NUM_CTX };
 function readNumber(configService: IConfigurationService, key: string, resource: URI | undefined): number | undefined {
 	const v = configService.getValue<unknown>(key, { resource });
 	return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
@@ -139,27 +128,6 @@ export function llmSettingsToEnv(settings: IDroxLlmSettings): Record<string, str
 	}
 	return env;
 }
-/** Variables d'environnement pour les sous-agents (spawn moteur, secours si RPC absent). */
-export function subagentSettingsToEnv(subagents: IDroxSubagentSettings): Record<string, string> {
-	const env: Record<string, string> = {};
-	if (subagents.enabled && subagents.numCtx > 0) {
-		env.DROX_SUBAGENTS_NUM_CTX = String(Math.floor(subagents.numCtx));
-	}
-	return env;
-}
-export function readSubagentSettings(configService: IConfigurationService, resource?: URI): IDroxSubagentSettings {
-	const maxIterations = configService.getValue<number>(DroxSetting.SubagentsMaxIterations, { resource }) ?? 15;
-	const maxConcurrent = configService.getValue<number>(DroxSetting.SubagentsMaxConcurrent, { resource }) ?? 1;
-	const modelRaw = readExecutorModel(configService, resource);
-	const numCtxRaw = configService.getValue<number>(DroxSetting.SubagentsNumCtx, { resource }) ?? DROX_DEFAULT_SUBAGENT_NUM_CTX;
-	return {
-		enabled: configService.getValue<boolean>(DroxSetting.SubagentsEnabled, { resource }) === true,
-		maxIterations: Math.min(50, Math.max(1, maxIterations)),
-		maxConcurrent: Math.min(8, Math.max(1, maxConcurrent)),
-		model: modelRaw,
-		numCtx: Math.min(131_072, Math.max(2048, Math.floor(numCtxRaw))),
-	};
-}
 export function readDisabledToolsForRun(configService: IConfigurationService, resource?: URI): string[] {
 	const raw = configService.getValue<string[]>(DroxSetting.ToolsDisabled, { resource }) ?? [];
 	return [...getDisabledToolNames(raw)].sort();
@@ -174,21 +142,20 @@ export function buildAgentRunParams(opts: {
 	readonly sessionId: string;
 	readonly settings: IDroxLlmSettings;
 	readonly disabledTools: readonly string[];
-	readonly subagents: IDroxSubagentSettings;
 	readonly mcpToolsEnabled: boolean;
 	readonly images?: readonly IDroxAgentRunImage[];
 	readonly runObjective?: string;
-	readonly orchestrationMaxParallelExecutors?: number;
 	readonly architectInteractionMode?: DroxArchitectInteractionMode;
 	readonly engineStrictness?: DroxEngineStrictnessPreset;
 	readonly configService?: IConfigurationService;
 	readonly configResource?: URI;
 }): Record<string, unknown> {
+	const wireMode = normalizeDroxPermissionMode(opts.mode);
 	const params: Record<string, unknown> = {
 		prompt: opts.prompt,
 		workspace: opts.workspace,
-		mode: opts.mode,
-		applyEdits: opts.mode !== 'professor',
+		mode: wireMode,
+		applyEdits: wireMode !== 'analyze',
 		sessionId: opts.sessionId,
 		sessionDir: droxWorkspaceSessionsDir(opts.workspace),
 		maxIterations: opts.settings.maxIterations,
@@ -216,30 +183,6 @@ export function buildAgentRunParams(opts: {
 	if (opts.disabledTools.length > 0) {
 		params.disabledTools = [...opts.disabledTools];
 	}
-	const executorDelegationUi = isExecutorDelegationUiEnabled();
-	if (executorDelegationUi && opts.subagents.model) {
-		params.subagentsModel = opts.subagents.model;
-	}
-	const executorSameAsArchitect = !opts.subagents.model?.trim();
-	let executorNumCtx: number | undefined;
-	if (executorDelegationUi) {
-		executorNumCtx =
-			executorSameAsArchitect &&
-				opts.settings.numCtx !== undefined &&
-				opts.settings.numCtx > 0
-				? Math.floor(opts.settings.numCtx)
-				: opts.subagents.numCtx > 0
-					? Math.floor(opts.subagents.numCtx)
-					: undefined;
-	}
-	if (executorNumCtx !== undefined) {
-		params.subagentsNumCtx = executorNumCtx;
-	}
-	if (opts.subagents.enabled) {
-		params.subagentsEnabled = true;
-		params.subagentsMaxIterations = opts.subagents.maxIterations;
-		params.subagentsMaxConcurrent = opts.subagents.maxConcurrent;
-	}
 	if (opts.images && opts.images.length > 0) {
 		params.images = opts.images.map(img => {
 			const entry: Record<string, string> = { mime: img.mime, data: img.data };
@@ -255,15 +198,8 @@ export function buildAgentRunParams(opts: {
 	if (opts.runObjective) {
 		params.runObjective = opts.runObjective;
 	}
-	// Chemin produit final : orchestration architecte/executor unique.
 	params.orchestrationMode = 'role_split';
-	delete params.subagentsEnabled;
-	delete params.subagentsMaxIterations;
-	delete params.subagentsMaxConcurrent;
-	// Solo 1.3.4 : pas de sub-agents — le moteur force parallel_slots = 1.
-	params.orchestrationMaxParallelExecutors = executorDelegationUi
-		? (opts.orchestrationMaxParallelExecutors ?? 1)
-		: 1;
+	params.orchestrationMaxParallelExecutors = 1;
 	const architectGate = wireArchitectInteractionMode(
 		opts.architectInteractionMode ?? 'auto',
 	);
@@ -282,20 +218,13 @@ export function buildAgentRunParams(opts: {
 			params.engineTuning = tuning;
 		}
 	}
-	if (!executorDelegationUi && strictness === 'custom') {
-		const tuning = (params.engineTuning ?? {}) as Record<string, unknown>;
-		tuning.executorDelegationEnabled = false;
-		params.engineTuning = tuning;
-	}
 	return params;
 }
 /** Clés dont la modification exige un redémarrage du processus moteur. */
 export const DROX_ENGINE_RESPAWN_SETTINGS: readonly string[] = [
 	DroxSetting.Server,
 	DroxSetting.ArchitectModel,
-	DroxSetting.ExecutorModel,
 	DroxSetting.Model,
-	DroxSetting.SubagentsModel,
 	DroxSetting.ApiKey,
 	DroxSetting.PrimaryLanguage,
 	DroxSetting.ExecutablePath,
@@ -309,5 +238,4 @@ export const DROX_ENGINE_RESPAWN_SETTINGS: readonly string[] = [
 	DroxSetting.PresencePenalty,
 	DroxSetting.FrequencyPenalty,
 	DroxSetting.KeepAlive,
-	DroxSetting.SubagentsNumCtx,
 ];

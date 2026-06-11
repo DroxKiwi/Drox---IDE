@@ -352,7 +352,7 @@ npm run test-node -- --run "vs/workbench/contrib/drox/test/common/"
 
 
 
-[Hub](../../1.4/1.4.0/README.md) · [OPENING](../../1.4/1.4.0/finalisation/OPENING-1.4.0.md)
+[Hub](../../1.4/archive/1.4.0/README.md) · [OPENING](../../1.4/archive/1.4.0/finalisation/OPENING-1.4.0.md)
 
 
 
@@ -360,13 +360,13 @@ npm run test-node -- --run "vs/workbench/contrib/drox/test/common/"
 
 |-------|-----|
 
-| Vision + mode A | [01-VISION](../../1.4/1.4.0/01-VISION.md) |
+| Vision + mode A | [01-VISION](../../1.4/archive/1.4.0/01-VISION.md) |
 
-| hold / advance | [02-RAIL-PROTOCOL](../../1.4/1.4.0/02-RAIL-PROTOCOL.md) |
+| hold / advance | [02-RAIL-PROTOCOL](../../1.4/archive/1.4.0/02-RAIL-PROTOCOL.md) |
 
-| Modules Rust | [05-CODE-ARCHITECTURE](../../1.4/1.4.0/05-CODE-ARCHITECTURE.md) |
+| Modules Rust | [05-CODE-ARCHITECTURE](../../1.4/archive/1.4.0/05-CODE-ARCHITECTURE.md) |
 
-| Phases | [07-IMPLEMENTATION-PHASES](../../1.4/1.4.0/07-IMPLEMENTATION-PHASES.md) |
+| Phases | [07-IMPLEMENTATION-PHASES](../../1.4/archive/1.4.0/07-IMPLEMENTATION-PHASES.md) |
 
 
 

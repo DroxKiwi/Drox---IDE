@@ -24,6 +24,11 @@ import { IDroxAttachmentPayload } from '../common/droxAttachments.js';
 import { IDroxAttachmentsService } from '../common/droxAttachmentsService.js';
 import { IDroxClientToolsService } from '../common/droxClientToolsService.js';
 import { IDroxEngineService } from '../common/droxEngineService.js';
+import { DroxSetting } from '../common/droxConfiguration.js';
+import {
+	getProfessorModeRemovedNotificationMessage,
+	isRemovedProfessorPermissionMode,
+} from '../common/droxPermissionAsk.js';
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 import { IDroxChatSessionService } from '../common/droxChatSessionService.js';
 import { IDroxLongMemoryService } from '../common/droxLongMemoryService.js';
@@ -235,6 +240,7 @@ export class DroxChatController extends Disposable
 			this._tabs.postTabs();
 			this.post({ kind: 'state', busy: false });
 			this.postProductVersionToWebview();
+			this.migrateRemovedProfessorPermissionModeIfNeeded();
 			this.post({ kind: 'permissionMode', mode: this.runSettingsService.getPermissionMode() });
 			pushLlmModelsSnapshotToWebview(
 				this,
@@ -336,6 +342,16 @@ export class DroxChatController extends Disposable
 
 	takePendingToolForFileFinish(id: string, output: unknown): { name: string; args: unknown } | undefined {
 		return takePendingForFileFinish(this.pendingTools, id, output);
+	}
+
+	private migrateRemovedProfessorPermissionModeIfNeeded(): void {
+		const resource = this.workspaceUri();
+		const raw = this.configurationService.getValue<string>(DroxSetting.PermissionMode, { resource });
+		if (!isRemovedProfessorPermissionMode(raw)) {
+			return;
+		}
+		this.notificationService.warn(getProfessorModeRemovedNotificationMessage());
+		void this.configurationService.updateValue(DroxSetting.PermissionMode, 'imNotCrazy', { resource });
 	}
 
 	private _webviewRouterDeps(): IDroxChatWebviewRouterDeps {

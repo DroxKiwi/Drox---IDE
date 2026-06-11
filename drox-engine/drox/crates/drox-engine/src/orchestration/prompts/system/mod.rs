@@ -5,7 +5,7 @@
 //!   blocks/          # un .md par morceau injectable (+ rendu `{vars}`)
 //!     gates/         # discuss · edit assemblage
 //!     discuss/       # suppléments discuss (read_budget)
-//!     edit/          # G3 core + parallel_slots
+//!     edit/          # G3 core (rail solo)
 //!   gates/           # assemblage par RunSpec gate
 //! ```
 

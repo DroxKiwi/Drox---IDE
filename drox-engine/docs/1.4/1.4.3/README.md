@@ -1,7 +1,7 @@
 # Drox 1.4.3 — Index, graphe, fast path, onboarding
 
 **Statut** : **planifié** (après [1.4.2](../1.4.2/README.md))  
-**Prérequis** : [1.4.0](../1.4.0/README.md) clôturée · [1.4.1](../1.4.1/README.md) stabilisation · [1.4.2](../1.4.2/README.md) UI chat
+**Prérequis** : étape conducteur post-[archive 1.4.0](../archive/1.4.0/README.md) · [1.4.1](../1.4.1/README.md) · [1.4.2](../1.4.2/README.md)
 
 ---
 

@@ -380,7 +380,7 @@
 		}
 	};
 
-	fn.routeSimpleDisplayDelta = function (text, executorJobId) {
+	fn.routeSimpleDisplayDelta = function (text, _executorJobId) {
 		if (!text) {
 			return true;
 		}
@@ -390,32 +390,15 @@
 			const before = text.slice(0, doneMatch.index);
 			const after = text.slice(doneMatch.index + doneMatch[0].length);
 			if (before) {
-				fn.routeSimpleDisplayDelta(before, executorJobId);
+				fn.routeSimpleDisplayDelta(before, _executorJobId);
 			}
 			if (after.trim()) {
-				fn.routeSimpleDisplayDelta(after, executorJobId);
+				fn.routeSimpleDisplayDelta(after, _executorJobId);
 			}
 			return true;
 		}
 		if (typeof fn.commitRunStripAnchor === 'function') {
 			fn.commitRunStripAnchor();
-		}
-		if (fn.isExecutorUiContext?.()) {
-			const answeringMarker = /\[phase:\s*answering\]\s*/i;
-			const answerMatch = String(text).match(answeringMarker);
-			if (answerMatch && answerMatch.index !== undefined) {
-				const before = text.slice(0, answerMatch.index);
-				const after = text.slice(answerMatch.index + answerMatch[0].length);
-				if (before) {
-					fn.appendExecutorThinkingDelta?.(before, false, executorJobId);
-				}
-				if (after) {
-					fn.appendChatDelta(after);
-				}
-				return true;
-			}
-			fn.appendExecutorThinkingDelta?.(text, false, executorJobId);
-			return true;
 		}
 		const answeringMarker = /\[phase:\s*answering\]\s*/i;
 		const answerMatch = String(text).match(answeringMarker);

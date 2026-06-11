@@ -8,18 +8,6 @@
 (function (D) {
 	const fn = D.fn;
 
-	fn.appendSubagentBadge = function (parent, text, className) {
-		const b = document.createElement('span');
-		b.className = `subagent-badge ${className}`;
-		b.textContent = text;
-		parent.appendChild(b);
-	};
-
-	fn.mountSubagentCard = function (el) {
-		D.dom.logEl.appendChild(el);
-		fn.scrollLog();
-	};
-
 	fn.highlightTodoTask = function (taskId, statusHint) {
 		const id = String(taskId || '').trim();
 		if (!id || !D.state.currentTodoBlockEl) {
@@ -43,20 +31,13 @@
 			fn.ensureLinearThinkingShell?.();
 			return;
 		}
-		if (r !== 'architect' && r !== 'executor') {
-			return;
-		}
-		if (r === 'executor') {
+		if (r !== 'architect') {
 			return;
 		}
 		const el = document.createElement('div');
-		el.className = `msg-orchestration-role msg-orchestration-${r}`;
+		el.className = 'msg-orchestration-role msg-orchestration-architect';
 		el.setAttribute('role', 'status');
-		const label = r === 'architect' ? 'Architect' : 'Executor';
-		el.textContent =
-			r === 'architect'
-				? `${label} — planning and delegation`
-				: `${label} — running task`;
+		el.textContent = 'Architect — edit run';
 		D.dom.logEl.appendChild(el);
 		fn.scrollLog();
 	};

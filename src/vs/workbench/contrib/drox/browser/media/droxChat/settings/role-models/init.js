@@ -10,18 +10,12 @@
 		if (!D.dom.roleModelVignettesEl) {
 			return;
 		}
-		const onVignetteClick = (role) => {
-			return (e) => {
+		if (D.dom.architectModelVignetteEl) {
+			D.dom.architectModelVignetteEl.addEventListener('click', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
-				fn.toggleRoleModelPanel(role);
-			};
-		};
-		if (D.dom.architectModelVignetteEl) {
-			D.dom.architectModelVignetteEl.addEventListener('click', onVignetteClick('architect'));
-		}
-		if (D.dom.executorModelVignetteEl) {
-			D.dom.executorModelVignetteEl.addEventListener('click', onVignetteClick('executor'));
+				fn.toggleRoleModelPanel();
+			});
 		}
 		if (D.dom.roleModelPanelCloseEl) {
 			D.dom.roleModelPanelCloseEl.addEventListener('click', () => {
@@ -31,18 +25,10 @@
 		}
 		if (D.dom.roleModelPanelSelectEl) {
 			D.dom.roleModelPanelSelectEl.addEventListener('change', () => {
-				if (D.state.rolePanelOpen === 'executor' && D.dom.roleModelPanelSelectEl) {
-					D.state.executorModel = fn.normalizeExecutorModelSetting(
-						D.dom.roleModelPanelSelectEl.value,
-					);
+				if (D.dom.roleModelPanelSelectEl) {
+					D.state.architectModel = D.dom.roleModelPanelSelectEl.value.trim();
 				}
 				fn.persistRoleModelFromPanel();
-			});
-		}
-		if (D.dom.roleModelPanelSwitchDedicatedEl) {
-			D.dom.roleModelPanelSwitchDedicatedEl.addEventListener('click', (e) => {
-				e.preventDefault();
-				fn.revealExecutorDedicatedModelPicker();
 			});
 		}
 		const architectInputs = [
@@ -59,19 +45,6 @@
 				el.addEventListener('change', () => fn.persistRoleModelFromPanel());
 			}
 		}
-		for (const el of fn.executorLlmFieldEls()) {
-			if (el) {
-				el.addEventListener('change', () => {
-					if (fn.isExecutorSameAsArchitect()) {
-						return;
-					}
-					fn.persistRoleModelFromPanel();
-				});
-			}
-		}
-		if (D.dom.roleModelPanelMaxParallelEl) {
-			D.dom.roleModelPanelMaxParallelEl.addEventListener('change', () => fn.persistRoleModelFromPanel());
-		}
 		if (D.dom.roleModelPanelReloadEl) {
 			D.dom.roleModelPanelReloadEl.addEventListener('click', () => fn.refreshLlmModels());
 		}
@@ -87,9 +60,6 @@
 				return;
 			}
 			if (D.dom.architectModelVignetteEl?.contains(t)) {
-				return;
-			}
-			if (D.dom.executorModelVignetteEl?.contains(t)) {
 				return;
 			}
 			fn.persistRoleModelFromPanel();

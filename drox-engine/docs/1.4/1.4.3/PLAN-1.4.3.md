@@ -1,8 +1,8 @@
 # Plan 1.4.3 — Onboarding, index, graphe, fast path
 
 **Version** : juin 2026 — **ex-plan 1.4.1** (renuméroté après tri versions 1.4.0 / 1.4.1 / 1.4.2)  
-**Base** : moteur [1.4.0 Run Rail](../1.4.0/README.md) + `role_split` — voir [CONDUCTEUR-CODE.md](../../1.3/1.3.2/CONDUCTEUR-CODE.md)  
-**Prérequis** : [1.4.0](../1.4.0/README.md) clôturée · [1.4.1](../1.4.1/README.md) stabilisation · [1.4.2](../1.4.2/README.md) UI chat · [1.3.3](../../1.3/1.3.3/README.md) release fiable
+**Base** : archive [1.4.0 Run Rail](../archive/1.4.0/README.md) + `role_split` — voir [CONDUCTEUR-CODE.md](../../1.3/1.3.2/CONDUCTEUR-CODE.md)  
+**Prérequis** : replanification post-pause 1.4.0 · [1.4.1](../1.4.1/README.md) · [1.4.2](../1.4.2/README.md) · [1.3.3](../../1.3/1.3.3/README.md)
 
 ---
 

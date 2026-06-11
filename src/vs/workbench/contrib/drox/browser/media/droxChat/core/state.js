@@ -31,31 +31,10 @@
 	D.state.currentPhaseBodyEl = null;
 	D.state.logIssuesTray = null;
 	D.state.toolTraysByParent = null;
-	D.state.activeSubagentCount = 0;
-	/** job_id → carte sous-agent DOM (M5c async). */
-	D.state.subagentJobCards = new Map();
 	/** Fil linéaire — ancrage après le message user du tour. */
 	D.state.runStripAnchorEl = null;
 	/** Vrai dès le premier événement live (delta/tool/todo) — verrouille le strip en place. */
 	D.state.runStripCommitted = false;
-	/** Exécuteur orchestration — outils relayés dans la carte (P4). */
-	D.state.executorCaptures = new Map();
-	D.state.executorActiveJobId = null;
-	D.state.executorCaptureJobId = null;
-	D.state.executorCaptureStreamEl = null;
-	D.state.executorCaptureToolsEl = null;
-	D.state.executorCaptureThinkingEl = null;
-	D.state.executorCaptureReportEl = null;
-	/** Thinking exécuteur reçu avant `subagentStart` (RoleEnter précède la carte). */
-	D.state.pendingExecutorThinking = null;
-	/** job_id → chunks thinking en attente de carte (batch parallèle). */
-	D.state.pendingExecutorThinkingByJob = new Map();
-	/** Jobs exécuteur actifs (batch parallèle). */
-	D.state.activeExecutorJobIds = new Set();
-	D.state.executorActionRailEl = null;
-	D.state.executorActionRailSummaryEl = null;
-	D.state.executorActionRailListEl = null;
-	D.state.executorActionLineCount = 0;
 	D.state.planActionRailEl = null;
 	D.state.planActionRailSummaryEl = null;
 	D.state.planActionRailListEl = null;
@@ -67,9 +46,9 @@
 	/** Par host thinking : auto-scroll tant que l'utilisateur n'a pas remonté. */
 	D.state.thinkingScrollStick = new WeakMap();
 	D.state.pendingTodoUpdates = null;
-	/** `architect` | `executor` | null — linear role_split orchestration thread. */
+	/** `architect` | `architect_discussion` | null — run rail solo. */
 	D.state.orchestrationRole = null;
-	/** Rejeu journal UI — pas de post-traitement Exploring synthétique. */
+	/** Rejeu journal UI — pas de post-traitement legacy. */
 	D.state.uiReplayActive = false;
 	/** L2 — pagination scroll-back historique session. */
 	D.state.sessionHistoryHasOlder = false;

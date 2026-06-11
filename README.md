@@ -1,6 +1,48 @@
+<a id="statut-produit"></a>
+
+# ⚠️ STATUT PRODUIT — LIRE EN PREMIER
+
+> **Le moteur Drox 1.4.x n’est pas utilisable en production aujourd’hui.**  
+> Ne pas s’attendre à un IDE agent fiable tant que la **1.4.1** (stabilisation) n’est pas livrée.
+
+| | |
+|---|---|
+| **Code livré** | Squelette **1.4.0** — refonte run rail, architecte solo, reliquats 1.3 retirés du chemin IDE |
+| **Chantier actif** | **[1.4.1 — stabilisation dogfood](drox-engine/docs/1.4/1.4.1/PLAN-1.4.1.md)** — bugs session, UI busy, discuss, boucles, VERIFY Windows |
+| **Après** | [1.4.2 UI chat](drox-engine/docs/1.4/1.4.2/README.md) · [1.4.3 index/graphe](drox-engine/docs/1.4/1.4.3/README.md) |
+| **Clôture refonte** | [CLOSURE-1.4.0](drox-engine/docs/1.4/1.4.0/archive/finalisation/CLOSURE-1.4.0.md) |
+
+### Ce que la 1.4.0 a changé (et pourquoi on la clôture quand même)
+
+La refonte **1.4.0** remplace l’orchestration 1.3 (Executor, `delegate_executor`, segments ACT, Professor, Standard CLI, LoopDetector parallèle) par **un seul conducteur** : le **run rail** (stations intent → read → plan → act → verify → answer), un prompt edit (`01_core_rail_solo.md`), et une boucle agent découpée en modules courts.
+
+**Dogfood juin 2026** (Qwen 27b, runs réels) : le rail tient la route — runs structurés, rapides, sans boucles 1.3 visibles, exploration ciblée. Le squelette moteur est **suffisant pour figer la branche** et enchaîner la stabilisation en 1.4.1.
+
+### Pourquoi c’est globalement inutilisable en l’état
+
+La refonte a corrigé l’**architecture** ; elle n’a **pas** rendu le produit prêt pour un usage quotidien :
+
+- **UI chat** : journal bruyant (thinking, events rail), état `busy` parfois bloqué, replay session lent, export transcript incohérent — polish prévu en **1.4.2**, mais certains symptômes bloquent déjà l’usage (→ **1.4.1**).
+- **Discuss** : routage « salut » parfois suivi d’outils interdits (M-DISC-01).
+- **Runs longs** : préambules thinking répétés, double `answering`, clôtures sans mutation quand le code matche déjà le brief.
+- **VERIFY** : commandes bash inadaptées à Windows (`head`, etc.).
+- **Distribution** : pas de promesse de build installeur stable sur cette base ; `droxVersion` **1.4.0** = **code squelette**, pas release produit validée.
+
+**En résumé** : utile pour **développer et dogfooder le moteur** sur branche dev ; **pas** pour confier un repo client ou remplacer un IDE agent en prod.
+
+### Où lire la suite
+
+- Plan stabilisation : [`drox-engine/docs/1.4/1.4.1/PLAN-1.4.1.md`](drox-engine/docs/1.4/1.4.1/PLAN-1.4.1.md)
+- Référence refonte (archivée) : [`drox-engine/docs/1.4/1.4.0/FOI-REFONTE.md`](drox-engine/docs/1.4/1.4.0/FOI-REFONTE.md)
+- Journal smoke : [`drox-engine/docs/1.4/1.4.0/archive/SMOKE-BACKLOG.md`](drox-engine/docs/1.4/1.4.0/archive/SMOKE-BACKLOG.md)
+
+___
+
 Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--doc-moteur)
 
 ## Sommaire
+
+**[⚠️ Statut produit 1.4.1](#statut-produit)** · [Statut EN](#en-product-status)
 
 [Schéma 1.3 — prompts & outils](#schema-13)
 
@@ -251,6 +293,24 @@ ___
 `scope_disjoint_gate` — refus batch si chemins qui se chevauchent.
 `retry_per_task` — re-délégation ciblée après échec partiel.
 `architect_todo_guidance` — anti-boucle clôture plan.
+
+___
+
+<a id="en-product-status"></a>
+
+# ⚠️ PRODUCT STATUS — READ FIRST
+
+> **Drox engine 1.4.x is not production-ready.**  
+> Do not expect a reliable agent IDE until **1.4.1** (stabilization) ships.
+
+| | |
+|---|---|
+| **Shipped code** | **1.4.0** skeleton — run rail refactor, solo architect, 1.3 relics removed from IDE path |
+| **Active work** | **[1.4.1 dogfood stabilization](drox-engine/docs/1.4/1.4.1/PLAN-1.4.1.md)** — session, busy UI, discuss routing, loops, Windows VERIFY |
+| **Next** | [1.4.2 chat UI](drox-engine/docs/1.4/1.4.2/README.md) · [1.4.3 index/graph](drox-engine/docs/1.4/1.4.3/README.md) |
+| **Refactor closure** | [CLOSURE-1.4.0](drox-engine/docs/1.4/1.4.0/archive/finalisation/CLOSURE-1.4.0.md) |
+
+**1.4.0** fixed architecture (single run rail conductor). **Dogfood** shows the rail works for structured runs. The product is still **mostly unusable day-to-day** because of UI/session bugs, discuss edge cases, loop noise, and Windows verify — tracked in 1.4.1. Dev branch dogfood only; not a validated product release.
 
 ___
 

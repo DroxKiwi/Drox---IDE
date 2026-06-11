@@ -46,33 +46,6 @@ mod tests {
     use drox_tools::ToolRegistry;
 
     #[test]
-    fn task_background_is_parallel_safe() {
-        let mut reg = ToolRegistry::with_simple_tools();
-        reg.register_subagent_task();
-        let calls = [
-            ("task", &serde_json::json!({"description": "audit", "background": true})),
-            ("file_read", &serde_json::json!({"path": "a.rs"})),
-        ];
-        let batches = partition_tool_calls(&calls, &reg);
-        assert_eq!(batches, vec![ToolCallBatch::Parallel(vec![0, 1])]);
-    }
-
-    #[test]
-    fn task_sync_is_serial() {
-        let mut reg = ToolRegistry::with_simple_tools();
-        reg.register_subagent_task();
-        let calls = [
-            ("task", &serde_json::json!({"description": "audit", "background": false})),
-            ("file_read", &serde_json::json!({"path": "a.rs"})),
-        ];
-        let batches = partition_tool_calls(&calls, &reg);
-        assert_eq!(
-            batches,
-            vec![ToolCallBatch::Serial(vec![0]), ToolCallBatch::Parallel(vec![1])]
-        );
-    }
-
-    #[test]
     fn groups_consecutive_read_only_tools() {
         let reg = ToolRegistry::with_simple_tools();
         let empty = serde_json::json!({});

@@ -14,31 +14,15 @@ pub enum RunSnapshotProfile {
 #[derive(Debug, Clone, Copy, Default)]
 struct SectionFlags {
     focus_task: bool,
-    last_delegate: bool,
-    verified_ids: bool,
     workspace_paths: bool,
-    cycle_sanity: bool,
-    compaction_checkpoint: bool,
 }
 
 #[must_use]
 fn section_flags_for_profile(profile: RunSnapshotProfile) -> SectionFlags {
     match profile {
-        RunSnapshotProfile::PerTurn => SectionFlags {
+        RunSnapshotProfile::PerTurn | RunSnapshotProfile::PostCompaction => SectionFlags {
             focus_task: true,
-            last_delegate: true,
-            verified_ids: true,
             workspace_paths: true,
-            cycle_sanity: true,
-            compaction_checkpoint: false,
-        },
-        RunSnapshotProfile::PostCompaction => SectionFlags {
-            focus_task: true,
-            last_delegate: true,
-            verified_ids: true,
-            workspace_paths: true,
-            cycle_sanity: true,
-            compaction_checkpoint: true,
         },
     }
 }
@@ -48,7 +32,6 @@ pub fn architect_run_context_block(
     state: &ArchitectRunState,
     live_run_objective: Option<&str>,
     profile: RunSnapshotProfile,
-    executor_delegation_enabled: bool,
 ) -> String {
     let flags = section_flags_for_profile(profile);
 
@@ -76,14 +59,8 @@ pub fn architect_run_context_block(
         block.push('\n');
     }
 
-    if let Some(mode) = state.work_mode_anchor {
-        block.push_str("\n### Work mode\n> ");
-        block.push_str(mode.as_str());
-        block.push('\n');
-    }
-
     block.push_str("\n### Plan / todos\n");
-    block.push_str(&state.format_plan_snapshot_public(executor_delegation_enabled));
+    block.push_str(&state.format_plan_snapshot_public());
     block.push('\n');
 
     if flags.focus_task {
@@ -93,46 +70,10 @@ pub fn architect_run_context_block(
         }
     }
 
-    if flags.last_delegate
-        && executor_delegation_enabled
-        && state.last_delegate_task_id.is_some()
-    {
-        block.push_str("\n### Last delegate\n");
-        block.push_str(&state.format_last_delegate_snapshot());
-        block.push('\n');
-    }
-
-    if flags.verified_ids && !state.verified_task_ids.is_empty() {
-        let mut ids: Vec<_> = state.verified_task_ids.iter().collect();
-        ids.sort();
-        block.push_str("\n### Verified task ids\n> ");
-        block.push_str(
-            &ids.into_iter()
-                .map(|s| format!("`{s}`"))
-                .collect::<Vec<_>>()
-                .join(", "),
-        );
-        block.push('\n');
-    }
-
     if flags.workspace_paths && state.workspace_map_loaded && !state.workspace_paths.is_empty() {
         block.push_str("\n### Workspace paths (sample)\n");
         block.push_str(&format_top_workspace_paths(state));
         block.push('\n');
-    }
-
-    if flags.cycle_sanity {
-        block.push_str("\n### Cycle sanity\n> ");
-        block.push_str(state.cycle_sanity.as_str());
-        block.push('\n');
-        if let Some(note) = state.cycle_sanity_note.as_deref() {
-            block.push_str(&format!("> note: {note}\n"));
-        }
-    }
-
-    if flags.compaction_checkpoint {
-        block.push_str("\n\n");
-        block.push_str(&state.cycle_checkpoint_block(executor_delegation_enabled));
     }
 
     block
@@ -142,28 +83,16 @@ pub fn architect_run_context_block(
 pub fn architect_run_context_block_per_turn(
     state: &ArchitectRunState,
     live_run_objective: Option<&str>,
-    executor_delegation_enabled: bool,
 ) -> String {
-    architect_run_context_block(
-        state,
-        live_run_objective,
-        RunSnapshotProfile::PerTurn,
-        executor_delegation_enabled,
-    )
+    architect_run_context_block(state, live_run_objective, RunSnapshotProfile::PerTurn)
 }
 
 #[must_use]
 pub fn architect_run_context_block_compaction(
     state: &ArchitectRunState,
     live_run_objective: Option<&str>,
-    executor_delegation_enabled: bool,
 ) -> String {
-    architect_run_context_block(
-        state,
-        live_run_objective,
-        RunSnapshotProfile::PostCompaction,
-        executor_delegation_enabled,
-    )
+    architect_run_context_block(state, live_run_objective, RunSnapshotProfile::PostCompaction)
 }
 
 #[must_use]
@@ -185,43 +114,24 @@ fn format_top_workspace_paths(state: &ArchitectRunState) -> String {
 mod tests {
     use super::*;
     use crate::agent::ArchitectRunState;
-    use crate::orchestration::DelegateStatus;
 
     #[test]
-    fn per_turn_includes_delegate_when_present() {
+    fn per_turn_includes_user_request() {
         let mut st = ArchitectRunState::new();
         st.anchor_user_request("Fix login");
-        st.last_delegate_task_id = Some("t1".into());
-        st.last_delegate_status = Some(DelegateStatus::Completed);
-        let block = architect_run_context_block_per_turn(&st, None, true);
+        let block = architect_run_context_block_per_turn(&st, None);
         assert!(block.contains(ARCHITECT_RUN_SNAPSHOT_MARKER));
         assert!(block.contains("Fix login"));
-        assert!(block.contains("### Last delegate\n"));
-    }
-
-    #[test]
-    fn solo_hides_last_delegate_section() {
-        let mut st = ArchitectRunState::new();
-        st.last_delegate_task_id = Some("t1".into());
-        st.last_delegate_status = Some(DelegateStatus::Completed);
-        let block = architect_run_context_block_per_turn(&st, None, false);
         assert!(!block.contains("### Last delegate\n"));
     }
 
     #[test]
-    fn compaction_includes_checkpoint_table() {
+    fn compaction_profile_matches_per_turn_sections() {
         let mut st = ArchitectRunState::new();
         st.todo_statuses.insert("t1".into(), "pending".into());
-        let block = architect_run_context_block_compaction(&st, None, true);
-        assert!(block.contains("Architect cycle checkpoint"));
-    }
-
-    #[test]
-    fn solo_compaction_checkpoint_omits_delegate() {
-        let mut st = ArchitectRunState::new();
-        st.todo_statuses.insert("t1".into(), "pending".into());
-        let block = architect_run_context_block_compaction(&st, None, false);
-        assert!(block.contains("no sub-agents"));
+        let block = architect_run_context_block_compaction(&st, None);
+        assert!(block.contains("**t1** [pending]"));
+        assert!(!block.contains("Architect cycle checkpoint"));
         assert!(!block.contains("delegate_executor"));
     }
 }

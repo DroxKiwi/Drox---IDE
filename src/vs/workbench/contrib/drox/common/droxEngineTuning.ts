@@ -6,7 +6,6 @@
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { DroxSetting } from './droxConfiguration.js';
-import { DROX_EXECUTOR_DELEGATION_TUNING_SETTINGS, isExecutorDelegationUiEnabled } from './droxOrchestrationUi.js';
 import { DroxEngineStrictnessPreset } from './droxEngineStrictness.js';
 /** Objet partiel envoyé dans `agent.run` (`engineTuning`). */
 export type DroxEngineTuningOverrides = Record<string, number | boolean>;
@@ -16,13 +15,9 @@ interface EngineTuningRpcField {
 	readonly settingKey: string;
 	readonly kind: RpcFieldKind;
 }
-const ALL_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] = [
+/** Registre wire RPC ↔ settings IDE (solo architecte 1.4.0). */
+export const DROX_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] = [
 	{ rpcKey: 'readBudgetPercent', settingKey: DroxSetting.EngineTuningReadBudgetPercent, kind: 'number' },
-	{ rpcKey: 'maxReadsBeforeDelegate', settingKey: DroxSetting.EngineTuningMaxReadsBeforeDelegate, kind: 'number' },
-	{ rpcKey: 'maxMutationsBeforeDelegateNudge', settingKey: DroxSetting.EngineTuningMaxMutationsBeforeDelegateNudge, kind: 'number' },
-	{ rpcKey: 'minDelegateInstructionsLen', settingKey: DroxSetting.EngineTuningMinDelegateInstructionsLen, kind: 'number' },
-	{ rpcKey: 'maxDelegateScopePaths', settingKey: DroxSetting.EngineTuningMaxDelegateScopePaths, kind: 'number' },
-	{ rpcKey: 'delegateScopeMaxFiles', settingKey: DroxSetting.EngineTuningDelegateScopeMaxFiles, kind: 'number' },
 	{ rpcKey: 'promotableAnswerMinChars', settingKey: DroxSetting.EngineTuningPromotableAnswerMinChars, kind: 'number' },
 	{ rpcKey: 'discussionPromotableMinChars', settingKey: DroxSetting.EngineTuningDiscussionPromotableMinChars, kind: 'number' },
 	{ rpcKey: 'discussionAutoStopOnReply', settingKey: DroxSetting.EngineTuningDiscussionAutoStopOnReply, kind: 'boolean' },
@@ -33,16 +28,9 @@ const ALL_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] = [
 	{ rpcKey: 'maxToolsPerTurnArchitect', settingKey: DroxSetting.EngineTuningMaxToolsPerTurnArchitect, kind: 'number' },
 	{ rpcKey: 'maxToolsPerTurnDiscussion', settingKey: DroxSetting.EngineTuningMaxToolsPerTurnDiscussion, kind: 'number' },
 	{ rpcKey: 'maxToolsPerTurnIntent', settingKey: DroxSetting.EngineTuningMaxToolsPerTurnIntent, kind: 'number' },
-	{ rpcKey: 'maxToolsPerTurnExecutor', settingKey: DroxSetting.EngineTuningMaxToolsPerTurnExecutor, kind: 'number' },
 	{ rpcKey: 'maxParallelToolCalls', settingKey: DroxSetting.EngineTuningMaxParallelToolCalls, kind: 'number' },
 	{ rpcKey: 'maxTodoItems', settingKey: DroxSetting.EngineTuningMaxTodoItems, kind: 'number' },
 	{ rpcKey: 'memoryBudgetTokens', settingKey: DroxSetting.EngineTuningMemoryBudgetTokens, kind: 'number' },
-	{ rpcKey: 'maxDelegationsPerTask', settingKey: DroxSetting.EngineTuningMaxDelegationsPerTask, kind: 'number' },
-	{ rpcKey: 'requireDelegateBeforeTodoComplete', settingKey: DroxSetting.EngineTuningRequireDelegateBeforeTodoComplete, kind: 'boolean' },
-	{ rpcKey: 'requireWorkspaceMapBeforeDelegate', settingKey: DroxSetting.EngineTuningRequireWorkspaceMapBeforeDelegate, kind: 'boolean' },
-	{ rpcKey: 'minDeliverableBytes', settingKey: DroxSetting.EngineTuningMinDeliverableBytes, kind: 'number' },
-	{ rpcKey: 'executorDeliverableExcerptMaxChars', settingKey: DroxSetting.EngineTuningExecutorDeliverableExcerptMaxChars, kind: 'number' },
-	{ rpcKey: 'executorSubrunMaxIterations', settingKey: DroxSetting.EngineTuningExecutorSubrunMaxIterations, kind: 'number' },
 	{ rpcKey: 'liveCompactTailKeepMessages', settingKey: DroxSetting.EngineTuningLiveCompactTailKeepMessages, kind: 'number' },
 	{ rpcKey: 'liveCompactMaxTailRatio', settingKey: DroxSetting.EngineTuningLiveCompactMaxTailRatio, kind: 'number' },
 	{ rpcKey: 'liveCompactMinPrefixTokens', settingKey: DroxSetting.EngineTuningLiveCompactMinPrefixTokens, kind: 'number' },
@@ -53,29 +41,11 @@ const ALL_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] = [
 	{ rpcKey: 'summarizeToolResultTruncate', settingKey: DroxSetting.EngineTuningSummarizeToolResultTruncate, kind: 'number' },
 	{ rpcKey: 'reinjectToolResultTruncate', settingKey: DroxSetting.EngineTuningReinjectToolResultTruncate, kind: 'number' },
 	{ rpcKey: 'contextSnipEnabled', settingKey: DroxSetting.EngineTuningContextSnipEnabled, kind: 'boolean' },
-	{ rpcKey: 'executorGlobHeavyBlocked', settingKey: DroxSetting.EngineTuningExecutorGlobHeavyBlocked, kind: 'boolean' },
-	{ rpcKey: 'executorAskUserBlocked', settingKey: DroxSetting.EngineTuningExecutorAskUserBlocked, kind: 'boolean' },
-	{ rpcKey: 'executorTodoWriteBlocked', settingKey: DroxSetting.EngineTuningExecutorTodoWriteBlocked, kind: 'boolean' },
-	{ rpcKey: 'executorDeliverableMetBlocked', settingKey: DroxSetting.EngineTuningExecutorDeliverableMetBlocked, kind: 'boolean' },
 	{ rpcKey: 'gateDoneRequiresAnswering', settingKey: DroxSetting.EngineTuningGateDoneRequiresAnswering, kind: 'boolean' },
 	{ rpcKey: 'gateTestingAfterCodeMutation', settingKey: DroxSetting.EngineTuningGateTestingAfterCodeMutation, kind: 'boolean' },
 	{ rpcKey: 'gateTodoRecreationBlocked', settingKey: DroxSetting.EngineTuningGateTodoRecreationBlocked, kind: 'boolean' },
-	{ rpcKey: 'gateProfessorCoursePlan', settingKey: DroxSetting.EngineTuningGateProfessorCoursePlan, kind: 'boolean' },
 	{ rpcKey: 'gateTodoStaleBeforeDone', settingKey: DroxSetting.EngineTuningGateTodoStaleBeforeDone, kind: 'boolean' },
 ];
-
-const DELEGATION_RPC_KEYS = new Set(
-	DROX_EXECUTOR_DELEGATION_TUNING_SETTINGS.map((settingKey) => {
-		const field = ALL_ENGINE_TUNING_RPC_FIELDS.find((f) => f.settingKey === settingKey);
-		return field?.rpcKey;
-	}).filter((k): k is string => typeof k === 'string'),
-);
-
-/** Registre wire RPC ↔ settings IDE (hors délégation si UI désactivée). */
-export const DROX_ENGINE_TUNING_RPC_FIELDS: readonly EngineTuningRpcField[] =
-	isExecutorDelegationUiEnabled()
-		? ALL_ENGINE_TUNING_RPC_FIELDS
-		: ALL_ENGINE_TUNING_RPC_FIELDS.filter((f) => !DELEGATION_RPC_KEYS.has(f.rpcKey));
 function readOptionalNumber(
 	configService: IConfigurationService,
 	key: string,

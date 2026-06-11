@@ -125,7 +125,7 @@ pub struct AgentRunParams {
     pub system: Option<String>,
     #[serde(default)]
     pub apply_edits: Option<bool>,
-    /// `default | plan | acceptEdits | bypassPermissions | professor`.
+    /// `default | plan | acceptEdits | bypassPermissions` (`professor` rejeté en 1.4.0).
     #[serde(default)]
     pub mode: Option<String>,
     #[serde(default)]
@@ -179,28 +179,9 @@ pub struct AgentRunParams {
     /// Objectif verrouillé du run (§2.25) — heuristique côté client.
     #[serde(default)]
     pub run_objective: Option<String>,
-    /// Sous-agents (`task`, §2.10). `false` ou absent = désactivé (défaut).
-    #[serde(default)]
-    pub subagents_enabled: Option<bool>,
-    /// Plafond d'itérations LLM par sous-agent Explore.
-    #[serde(default)]
-    pub subagents_max_iterations: Option<usize>,
-    /// Nombre max de sous-agents en parallèle (file d'attente).
-    #[serde(default)]
-    pub subagents_max_concurrent: Option<usize>,
-    /// Modèle LLM des sous-agents. Vide ou absent → même modèle que le run parent.
-    #[serde(default)]
-    pub subagents_model: Option<String>,
-    /// Fenêtre Ollama `num_ctx` des sous-agents (indépendante du parent). Absent → 8192
-    /// (ou `DROX_SUBAGENTS_NUM_CTX`).
-    #[serde(default)]
-    pub subagents_num_ctx: Option<usize>,
     /// Orchestration pipeline: `role_split` (aliases `v1_2` / `v1_3` still accepted with deprecation warn).
     #[serde(default)]
     pub orchestration_mode: Option<String>,
-    /// Nombre max d'exécuteurs en parallèle (`delegate_executor` + `parallel_with`). Défaut 1.
-    #[serde(default)]
-    pub orchestration_max_parallel_executors: Option<usize>,
     /// Gate architecte : `discussion` | `action` | `auto` (défaut — tour modèle `[gate: …]`).
     #[serde(default)]
     pub architect_interaction_mode: Option<String>,
@@ -523,19 +504,15 @@ mod tests {
     }
 
     #[test]
-    fn agent_run_params_round_trips_subagents_num_ctx() {
+    fn agent_run_params_ignores_legacy_subagents_wire() {
         let raw = json!({
             "prompt": "explore",
             "subagentsEnabled": true,
             "subagentsModel": "qwen3.5:4b",
-            "subagentsNumCtx": 8192,
-            "numCtx": 98304
+            "orchestrationMaxParallelExecutors": 2
         });
         let p: AgentRunParams = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.subagents_enabled, Some(true));
-        assert_eq!(p.subagents_model.as_deref(), Some("qwen3.5:4b"));
-        assert_eq!(p.subagents_num_ctx, Some(8192));
-        assert_eq!(p.num_ctx, Some(98304));
+        assert_eq!(p.prompt, "explore");
     }
 
     #[test]
@@ -588,14 +565,14 @@ mod tests {
             "engineStrictness": "custom",
             "engineTuning": {
                 "discussionPromotableMinChars": 8,
-                "maxReadsBeforeDelegate": 6
+                "readBudgetPercent": 55
             }
         });
         let p: AgentRunParams = serde_json::from_value(raw).unwrap();
         assert_eq!(p.engine_strictness.as_deref(), Some("custom"));
         let t = p.engine_tuning.as_ref().unwrap();
         assert_eq!(t.discussion_promotable_min_chars, Some(8));
-        assert_eq!(t.max_reads_before_delegate, Some(6));
+        assert_eq!(t.read_budget_percent, Some(55));
     }
 
     #[test]

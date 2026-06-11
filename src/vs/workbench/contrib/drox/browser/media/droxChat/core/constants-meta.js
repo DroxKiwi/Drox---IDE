@@ -6,14 +6,6 @@
 // allow-any-unicode-comment-file
 
 (function (D) {
-	/** Aligné moteur `MAX_PARALLEL_EXECUTORS_CAP` + `drox.orchestration.maxParallelExecutors`. */
-	D.const.MAX_PARALLEL_EXECUTORS_CAP = 100;
-	D.const.ROLE_PANEL_SAME_AS_SUMMARY_WITH_MODEL =
-		document.getElementById('role-model-panel-same-as-summary')?.dataset?.withModel ??
-		'Same model and LLM settings as the architect ({0}). Only concurrent executors can be changed below.';
-	D.const.ROLE_PANEL_SAME_AS_SUMMARY_NO_MODEL =
-		document.getElementById('role-model-panel-same-as-summary')?.dataset?.noModel ??
-		'Same model and LLM settings as the architect. Only concurrent executors can be changed below.';
 	D.const.DEFAULT_SESSION_TAB_TITLE = 'New chat';
 	D.state.openTabs = [];
 	D.state.activeTabId = null;

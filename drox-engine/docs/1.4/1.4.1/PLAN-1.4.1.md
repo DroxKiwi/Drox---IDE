@@ -1,8 +1,8 @@
-﻿# Plan 1.4.1 — Stabilisation dogfood
+# Plan 1.4.1 — Stabilisation dogfood
 
 **Version** : juin 2026  
-**Prérequis** : [1.4.0](../1.4.0/README.md) **clôturée** (moteur rail validé — B-RAIL-01 résolu)  
-**Parent backlog** : [SMOKE-BACKLOG](../1.4.0/SMOKE-BACKLOG.md)  
+**Prérequis** : replanification post-[pause 1.4.0](../archive/1.4.0/README.md)  
+**Parent backlog** : [SMOKE-BACKLOG](../archive/1.4.0/SMOKE-BACKLOG.md)  
 **Hors scope** : polish UI chat → [1.4.2](../1.4.2/README.md) · index/graphe → [1.4.3](../1.4.3/PLAN-1.4.3.md)
 
 > **Note** : l’ancien plan « index & graphe » vit désormais en [PLAN-1.4.3.md](../1.4.3/PLAN-1.4.3.md).
@@ -98,7 +98,7 @@ Corriger les **bugs moteur et session** observés au smoke juin 2026, sans refon
 |----------|--------|
 | Matrice modèles | Qwen 27b = dogfood D3 ; Gemma 26b = hors scope edit |
 | Rejouer R16 | `runRailEnabled: false` sur relaxed/strict après 1.4.0 |
-| Mettre à jour TEST-PLAN sign-off | [09-TEST-PLAN](../1.4.0/09-TEST-PLAN.md) |
+| Mettre à jour TEST-PLAN sign-off | [09-TEST-PLAN](../archive/1.4.0/09-TEST-PLAN.md) |
 
 ---
 
@@ -121,7 +121,7 @@ S1 discuss (rapide, haute valeur R1)
 - [ ] B-UI-06 compaction livrée (affichage peut rester 1.4.2)
 - [ ] `cargo test -p drox-engine` vert
 - [ ] Smoke : salut + charte CSS rejoués sur qwen27b sans régression rail 1.4.0
-- [ ] [SMOKE-BACKLOG](../1.4.0/SMOKE-BACKLOG.md) journal mis à jour
+- [ ] [SMOKE-BACKLOG](../archive/1.4.0/SMOKE-BACKLOG.md) journal mis à jour
 
 ---
 

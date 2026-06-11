@@ -16,10 +16,6 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
 import { createDroxEngineTuningConfigurationProperties } from './droxEngineTuningConfiguration.js';
-import {
-	DROX_EXECUTOR_DELEGATION_TOP_LEVEL_SETTINGS,
-	isExecutorDelegationUiEnabled,
-} from './droxOrchestrationUi.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
 
@@ -187,23 +183,11 @@ export const enum DroxSetting {
 export const DROX_DEFAULT_UPDATE_MANIFEST_URL =
 	'https://raw.githubusercontent.com/DroxKiwi/Drox---IDE---OR/main/stable/latest.json';
 
-/** Défaut `num_ctx` sous-agents — plus bas que le parent (32k) pour limiter la VRAM à 2 modèles. */
-export const DROX_DEFAULT_SUBAGENT_NUM_CTX = 8192;
-
-/** Plafond `drox.orchestration.maxParallelExecutors` (aligné moteur `MAX_PARALLEL_EXECUTORS_CAP`). */
-export const DROX_MAX_PARALLEL_EXECUTORS_CAP = 100;
-
 /** Liste dynamique — modèle Architecte (chat + orchestration `role_split`). */
 export const droxArchitectModelEnumValues: string[] = [''];
 
-/** Liste dynamique — modèle Exécutant (orchestration `role_split` + `task` legacy). */
-export const droxExecutorModelEnumValues: string[] = [''];
-
 /** @deprecated Alias enum — garde la rétrocompat settings. */
 export const droxLlmModelEnumValues: string[] = droxArchitectModelEnumValues;
-
-/** @deprecated Alias enum. */
-export const droxSubagentModelEnumValues: string[] = droxExecutorModelEnumValues;
 
 const droxArchitectModelSettingSchema: IConfigurationPropertySchema = {
 	type: 'string',
@@ -216,17 +200,6 @@ const droxArchitectModelSettingSchema: IConfigurationPropertySchema = {
 	),
 };
 
-const droxExecutorModelSettingSchema: IConfigurationPropertySchema = {
-	type: 'string',
-	enum: droxExecutorModelEnumValues,
-	default: '',
-	scope: ConfigurationScope.RESOURCE,
-	markdownDescription: localize(
-		'drox.executor.model',
-		'**Executor** LLM for each `delegate_executor` sub-run (grep, `file_write`, …). Same list as the Architect model. **Empty** = reuse the Architect model. Parallel tasks share this model (see **Parallel executors** and `OLLAMA_NUM_PARALLEL`). Replaces `drox.subagents.model`.',
-	),
-};
-
 const droxLegacyModelSettingSchema: IConfigurationPropertySchema = {
 	type: 'string',
 	enum: droxArchitectModelEnumValues,
@@ -235,17 +208,6 @@ const droxLegacyModelSettingSchema: IConfigurationPropertySchema = {
 	markdownDescription: localize(
 		'drox.model.deprecated',
 		'**Deprecated** — use `drox.architect.model`. Kept for existing workspaces; read as fallback when architect model is empty.',
-	),
-};
-
-const droxLegacyExecutorModelSettingSchema: IConfigurationPropertySchema = {
-	type: 'string',
-	enum: droxExecutorModelEnumValues,
-	default: '',
-	scope: ConfigurationScope.RESOURCE,
-	markdownDescription: localize(
-		'drox.subagents.model.deprecated',
-		'**Deprecated** — use `drox.executor.model`. Kept for existing workspaces; read as fallback when executor model is empty.',
 	),
 };
 
@@ -268,31 +230,6 @@ export function readDroxConfigString(
 
 export function readArchitectModel(configService: IConfigurationService, resource?: URI): string {
 	return readDroxConfigString(configService, DroxSetting.ArchitectModel, DroxSetting.Model, resource);
-}
-
-export function readExecutorModel(configService: IConfigurationService, resource?: URI): string {
-	const raw = readDroxConfigString(configService, DroxSetting.ExecutorModel, DroxSetting.SubagentsModel, resource);
-	// Legacy pool CSV (`m1@ctx,m2@ctx`) → premier modèle uniquement.
-	const first = raw.split(',')[0]?.trim() ?? '';
-	const head = first.split(';')[0]?.trim() ?? first;
-	const at = head.lastIndexOf('@');
-	if (at > 0 && at < head.length - 1) {
-		const suffix = head.slice(at + 1).trim();
-		if (/^\d+$/.test(suffix)) {
-			return head.slice(0, at).trim();
-		}
-	}
-	return head;
-}
-
-/** Slots parallèles pour `delegate_executor` + `parallel_with` (défaut 1). */
-export function readOrchestrationMaxParallelExecutors(
-	configService: IConfigurationService,
-	resource?: URI,
-): number {
-	const raw = configService.getValue<number>(DroxSetting.OrchestrationMaxParallelExecutors, { resource });
-	const n = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : 1;
-	return Math.min(DROX_MAX_PARALLEL_EXECUTORS_CAP, Math.max(1, n));
 }
 
 export const droxConfigurationNode: IConfigurationNode = {
@@ -359,21 +296,6 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		[DroxSetting.ArchitectModel]: droxArchitectModelSettingSchema,
 
-		[DroxSetting.ExecutorModel]: droxExecutorModelSettingSchema,
-
-		[DroxSetting.OrchestrationMaxParallelExecutors]: {
-			type: 'number',
-			default: 1,
-			minimum: 1,
-			maximum: DROX_MAX_PARALLEL_EXECUTORS_CAP,
-			scope: ConfigurationScope.RESOURCE,
-			markdownDescription: localize(
-				'drox.orchestration.maxParallelExecutors',
-				'**Parallel executors** — Executor sub-runs started in parallel in one `delegate_executor` batch (`parallel_with`). Default **1** (sequential). Cap **{0}** — raise only with disjoint `scope` paths and enough LLM server capacity (`OLLAMA_NUM_PARALLEL`, VRAM).',
-				DROX_MAX_PARALLEL_EXECUTORS_CAP,
-			),
-		},
-
 		[DroxSetting.ArchitectInteractionMode]: {
 			type: 'string',
 			enum: ['auto', 'discussion', 'action'],
@@ -392,7 +314,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.engine.strictness',
-				'**Engine strictness** — preset bundles for orchestration prompts (`role_split`) and numeric limits (reads, loops, delegations, gates). **Relaxed** / **Normal** / **Strict** use fixed engine values; **Custom** applies `drox.engine.tuning.*` below (overrides Normal).',
+				'**Engine strictness** — preset bundles for orchestration prompts (`role_split`) and numeric limits (reads, loops, gates). **Relaxed** / **Normal** / **Strict** use fixed engine values; **Custom** applies `drox.engine.tuning.*` below (overrides Normal).',
 			),
 		},
 
@@ -882,74 +804,6 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		},
 
-		[DroxSetting.SubagentsEnabled]: {
-
-			type: 'boolean',
-
-			default: false,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.subagents.enabled', 'Legacy setting (ignored in final orchestration path).'),
-
-		},
-
-		[DroxSetting.SubagentsModel]: droxLegacyExecutorModelSettingSchema,
-
-		[DroxSetting.SubagentsMaxIterations]: {
-
-			type: 'number',
-
-			default: 15,
-
-			minimum: 1,
-
-			maximum: 50,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.subagents.maxIterations', 'Legacy setting (ignored in final orchestration path).'),
-
-		},
-
-		[DroxSetting.SubagentsMaxConcurrent]: {
-
-			type: 'number',
-
-			default: 1,
-
-			minimum: 1,
-
-			maximum: 8,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize(
-				'drox.subagents.maxConcurrent',
-				'Legacy setting (ignored in final orchestration path).',
-			),
-
-		},
-
-		[DroxSetting.SubagentsNumCtx]: {
-
-			type: 'number',
-
-			default: DROX_DEFAULT_SUBAGENT_NUM_CTX,
-
-			minimum: 2048,
-
-			maximum: 131072,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize(
-				'drox.subagents.numCtx',
-				'Legacy setting (ignored in final orchestration path).',
-			),
-
-		},
-
 	},
 
 };
@@ -958,25 +812,13 @@ export function updateDroxLlmModelEnum(models: readonly string[]): void {
 	const values = models.length > 0 ? [...models] : [''];
 	droxArchitectModelEnumValues.length = 0;
 	droxArchitectModelEnumValues.push(...values);
-	droxExecutorModelEnumValues.length = 0;
-	droxExecutorModelEnumValues.push(...values);
 	droxArchitectModelSettingSchema.enum = droxArchitectModelEnumValues;
-	droxExecutorModelSettingSchema.enum = droxExecutorModelEnumValues;
 	droxLegacyModelSettingSchema.enum = droxArchitectModelEnumValues;
-	droxLegacyExecutorModelSettingSchema.enum = droxExecutorModelEnumValues;
 
 	Registry.as<IConfigurationRegistry>(Extensions.Configuration).notifyConfigurationSchemaUpdated(droxConfigurationNode);
 }
 
 export function registerDroxConfiguration(): void {
-	if (!isExecutorDelegationUiEnabled()) {
-		const props = droxConfigurationNode.properties;
-		if (props) {
-			for (const key of DROX_EXECUTOR_DELEGATION_TOP_LEVEL_SETTINGS) {
-				delete props[key];
-			}
-		}
-	}
 	Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration(droxConfigurationNode);
 }
 

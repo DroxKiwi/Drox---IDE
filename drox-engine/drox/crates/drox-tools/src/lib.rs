@@ -12,7 +12,6 @@
 mod agent_output;
 mod asker;
 mod context;
-mod delegate_scope;
 mod error;
 mod path_util;
 pub mod git_worktree;
@@ -21,9 +20,6 @@ pub mod registry;
 pub mod scope_deferred;
 pub mod session_notes;
 mod simple;
-pub mod orchestration_delegate;
-pub mod subagent;
-pub mod subagent_report;
 mod tool;
 
 pub use agent_output::{
@@ -33,31 +29,16 @@ pub use agent_output::{
 };
 pub use asker::{UserAnswer, UserAsker, UserQuestion};
 pub use context::ToolContext;
-pub use delegate_scope::{
-    count_files_in_delegate_scope, DELEGATE_SCOPE_MAX_FILES,
-};
 pub use error::ToolError;
 pub use registry::ToolRegistry;
 pub use skills::{format_skills_listing_for_prompt, load_skills_catalog};
 pub use scope_deferred::{ScopeDeferredHandle, ScopeDeferredItem};
 pub use session_notes::{SessionNote, SessionNotesHandle};
-pub use orchestration_delegate::{
-    ExecutorTaskRequest, OrchestrationDelegateExecutor, OrchestrationDelegateHookEvent,
-    OrchestrationDelegateResult, OrchestrationDelegateEventHook,
-};
-pub use subagent::{
-    RunningExploreJobUi, SubagentCompletedJob, SubagentExecutor, SubagentEventHook, SubagentHookEvent,
-    SubagentSettings,
-};
-pub use subagent_report::{
-    SubagentExploreResult, structure_task_async_completed, structure_task_async_pending,
-    structure_task_output,
-};
 pub use simple::{
     ArchitectHelpSnapshot, ArchitectHelpTodoItem, ArchitectHelpTool, AskUserQuestionTool,
     BashTool, CANONICAL_ASK_JSON_EXAMPLE, ExitPlanModeTool, FileEditTool, FileReadTool, FileWriteTool,
-    DelegateExecutorTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool,
-    NotebookEditTool, ScopeDeferTool, SessionNoteTool, SkillListTool, SkillReadTool, TaskTool,
+    GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool,
+    NotebookEditTool, ScopeDeferTool, SessionNoteTool, SkillListTool, SkillReadTool,
     normalize_todo_write_payload, TodoWriteTool,
     WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool, register_mcp_tools,
 };

@@ -3,8 +3,10 @@
 //! Standard-agent bodies live in [`core_standard`](core_standard.rs).
 //! Orchestration prompts live in `drox_engine::orchestration::prompts`.
 //!
-//! Phase-protocol supplements for **Standard** agent runs (CLI / professor — not IDE chat).
+//! Phase-protocol supplements for **Standard** agent runs (CLI one-shot — not IDE chat).
 //! IDE chat uses `drox_engine::orchestration::prompts` (`role_split`).
+//!
+//! `PROFESSOR_MODE_SUPPLEMENT` retiré en 1.4.0 — voir `docs/1.4/REPORT/professor-2.0.md`.
 
 /// Ajouté au `system` lorsque le client active le raisonnement natif Ollama
 /// (`nativeThinking` / `think: true`). Le canal `thinking` porte déjà le
@@ -22,30 +24,7 @@ Hard rules for EVERY reply while this mode is active:
 
 mod core_standard;
 
-pub use core_standard::{CORE_SYSTEM_PROMPT, PROFESSOR_MODE_SUPPLEMENT};
-
-/// Language split (exploration vs user) — injected on every run (JSON-RPC + CLI).
-/// Supplément quand `drox.subagents.enabled` (explore async, M5).
-pub const SUBAGENTS_ORCHESTRATION_SUPPLEMENT: &str = r#"## Sub-agents — orchestration
-
-Sub-agents are **read-only** explorers (they use `file_read` with line ranges, `grep`, `glob` — not `file_edit`). You keep edits on the parent.
-
-### 1. Evaluate & split (you)
-- Call `todo_write` with **≤5 items** = **parts** of the user request (and sub-steps if needed).
-- Example parts: « Config & docs », « App sources », « Tests & scripts ».
-
-### 2. Delegate (you)
-- Per part: `task` with `subagent_type: explore`, `background: true`, `scope: ["path/"]`, `objective_fragment: "one line cap for this part"`.
-- If `maxConcurrent` ≥ 2: up to **two** `task` calls in the **same** turn when `scope` paths are **disjoint**.
-- While jobs run: optional short `workspace_map_read` or targeted `file_read` — **no** mutations.
-
-### 3. Synthesize (you — one turn only)
-- When reports inject (engine message), emit **`[phase: answering]`** + concise Markdown + **`[phase: done]`**.
-- Do **not** re-run analysis prose; do **not** loop on « I must answer ».
-
-**Sync** (`background: false`): only if you must block on one report before continuing.
-
-**One known file:** parent `file_read` with line range — no sub-agent."#;
+pub use core_standard::CORE_SYSTEM_PROMPT;
 
 pub const EXPLORATION_INTERNAL_ENGLISH_RULE: &str = r#"# Language split (exploration vs user)
 
@@ -65,7 +44,7 @@ pub fn append_system_supplement(base: Option<String>, supplement: &str) -> Optio
     }
 }
 
-// CORE_SYSTEM_PROMPT and PROFESSOR_MODE_SUPPLEMENT — see core_standard.rs
+// CORE_SYSTEM_PROMPT — see core_standard.rs
 
 /// System prompt for the compaction LLM turn only (`drox_engine::compaction::summarize_run`).
 /// English; fixed H2 sections parsed by `extract_metadata`. No tools exposed during compaction.
@@ -112,7 +91,6 @@ Produce **markdown** with the following sections, in this order, using `## ` hea
 7. If `## Pinned notes` (from the model's `session_note` calls) are present in the transcript, copy them **verbatim**. They were authored deliberately by the model that ran the session.
 "#;
 
-/// Supplément injecté uniquement en **mode Professeur** (`permissionMode: professor`).
 pub fn prepend_core_system_prompt(existing: Option<String>) -> String {
     match existing {
         Some(s) if !s.trim().is_empty() => format!("{CORE_SYSTEM_PROMPT}\n{s}"),
@@ -305,8 +283,8 @@ mod tests {
             "prompt must name batch-at-end anti-pattern"
         );
         assert!(
-            txt.contains("mutating tools without `todo_write`"),
-            "prompt must mention engine nudge after mutating tools without todo_write"
+            txt.contains("batch at the end"),
+            "prompt must name batch-at-end anti-pattern"
         );
     }
 
@@ -437,24 +415,21 @@ mod tests {
         assert!(out.contains(&custom));
     }
 
-    /// Sprint Hotfix « boucle édition/lecture » — anti-régression. Si on
-    /// supprime la règle anti-boucle ou la borne moteur, les modèles
-    /// reprennent l'habitude de répéter texte+outil à l'identique jusqu'à
-    /// `max_iterations`, ce qu'on a explicitement éliminé.
+    /// Rail 1.4 — anti-régression : le prompt doit mentionner le stall ACT.
     #[test]
-    fn core_prompt_describes_anti_loop_rule() {
+    fn core_prompt_describes_act_stall_rule() {
         let txt = CORE_SYSTEM_PROMPT;
         assert!(
-            txt.contains("Anti-loop"),
-            "prompt must name anti-loop rule"
+            txt.contains("Anti-stall"),
+            "prompt must name ACT stall rule"
         );
         assert!(
-            txt.contains("LoopDetected"),
-            "prompt must mention LoopDetected abort"
+            txt.contains("file_edit") && txt.contains("file_write"),
+            "prompt must steer toward mutation tools at ACT"
         );
         assert!(
-            txt.contains("Change angle"),
-            "prompt must suggest changing angle instead of repeating"
+            txt.contains("[phase: answering]"),
+            "prompt must mention concluding when blocked"
         );
     }
 
@@ -614,17 +589,6 @@ mod tests {
     /// Le prompt doit désormais :
     /// 1. Exiger `[phase: done]` APRÈS une question adressée à l'utilisateur.
     /// 2. Interdire explicitement d'interpréter un rappel moteur comme un accord.
-    #[test]
-    fn professor_mode_supplement_describes_course_plan() {
-        let txt = PROFESSOR_MODE_SUPPLEMENT;
-        assert!(txt.contains("HARD RULES"));
-        assert!(txt.contains("FORBIDDEN"));
-        assert!(txt.contains("course_plan_write"));
-        assert!(txt.contains("Course plan"));
-        assert!(txt.contains("todo_write") && txt.contains("forbidden"));
-        assert!(txt.contains("lesson") && txt.contains("exercise"));
-    }
-
     #[test]
     fn core_prompt_closes_with_done_when_asking_user_a_question() {
         let txt = CORE_SYSTEM_PROMPT;

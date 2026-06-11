@@ -22,7 +22,10 @@ import { IDroxUserAskService } from '../../common/droxUserAskService.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
-import { normalizeDroxPermissionMode } from '../../common/droxPermissionAsk.js';
+import {
+	getProfessorModeRemovedNotificationMessage,
+	resolveDroxPermissionMode,
+} from '../../common/droxPermissionAsk.js';
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
 
 export interface IDroxChatSendRunHost {
@@ -74,7 +77,11 @@ export async function executeDroxChatSend(
 		host.post({ kind: 'append', role: 'error', text: msg });
 		return;
 	}
-	const runMode = normalizeDroxPermissionMode(mode);
+	const resolved = resolveDroxPermissionMode(mode);
+	if (resolved.downgradedFromProfessor) {
+		deps.notificationService.warn(getProfessorModeRemovedNotificationMessage());
+	}
+	const runMode = resolved.mode;
 	deps.userAskService.setActivePermissionMode(runMode);
 	let finalPrompt = trimmed;
 	let displayed = trimmed;

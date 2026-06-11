@@ -126,9 +126,6 @@
 	};
 
 	fn.ensureLinearThinkingShell = function () {
-		if (fn.isExecutorUiContext?.()) {
-			return null;
-		}
 		if (D.state.runStripEl?.isConnected) {
 			fn.normalizeLinearThinkingLayout(D.state.runStripEl);
 		}
@@ -183,11 +180,7 @@
 		}
 		details.open = true;
 	};
-	fn.appendLinearThinkingDelta = function (text, executorJobId) {
-		if (fn.isExecutorUiContext?.()) {
-			fn.appendExecutorThinkingDelta?.(text, false, executorJobId);
-			return true;
-		}
+	fn.appendLinearThinkingDelta = function (text, _executorJobId) {
 		const host = fn.ensureLinearThinkingShell();
 		if (!host) {
 			return false;

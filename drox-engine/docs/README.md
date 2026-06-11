@@ -51,11 +51,11 @@ Archive pré-1.2.0 : dossier [`0.0/`](0.0/).
 | [`1.3/`](1.3/README.md) | Hub ligne 1.3 — **figée** ([CLOSURE-1.3](1.3/CLOSURE-1.3.md)) |
 | [`1.3/1.3.0/` … `1.3.4/`](1.3/README.md) | Parallélisme, distribution, moteur stabilisé, architecte seul — **livré / archivé** |
 
-## Version 1.4 (active)
+## Version 1.4 (1.4.0 squelette — table rase)
 
 | Dossier | Contenu |
 |---------|---------|
-| [`1.4/`](1.4/README.md) | **1.4.0** Run Rail · **1.4.1** stabilisation · **1.4.2** UI · **1.4.3** index/graphe |
+| [`1.4/`](1.4/README.md) | **[FOI-REFONTE](1.4/1.4.0/FOI-REFONTE.md)** · [1.4.0/](1.4/1.4.0/README.md) · [moteur/](1.4/moteur/README.md) |
 | [`feature-brainstorm/`](feature-brainstorm/README.md) | Idées / brainstorm (hors releases 1.3.x) |
 
 ---

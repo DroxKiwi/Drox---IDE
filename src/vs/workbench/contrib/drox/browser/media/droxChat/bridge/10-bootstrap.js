@@ -226,8 +226,12 @@
 	fn.initAgentVignettes();
 	try {
 		const legacy = localStorage.getItem(D.const.MODE_STORAGE_KEY);
-		if (legacy && D.const.VALID_MODES.has(legacy)) {
-			fn.setPermissionMode(legacy, true);
+		if (legacy) {
+			if (legacy === 'professor') {
+				D.vscode.postMessage({ type: 'setPermissionMode', permissionMode: 'professor' });
+			} else if (D.const.VALID_MODES.has(legacy)) {
+				fn.setPermissionMode(legacy, true);
+			}
 			localStorage.removeItem(D.const.MODE_STORAGE_KEY);
 		}
 	} catch {

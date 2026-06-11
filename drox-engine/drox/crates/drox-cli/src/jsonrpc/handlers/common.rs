@@ -68,20 +68,6 @@ pub(crate) fn build_llm_config(
     Ok(llm_config)
 }
 
-/// Config LLM sous-agent : **ne lit jamais** `DROX_NUM_CTX` (réservé au parent).
-pub(crate) fn build_subagent_llm_config(
-    server: Option<String>,
-    model: Option<String>,
-    api_key: Option<String>,
-    headers: &BTreeMap<String, String>,
-    num_ctx: i64,
-) -> Result<LlmConfig, RpcError> {
-    let mut llm_config = build_llm_config(server, model, api_key, headers, Some(num_ctx))?;
-    // Sécurité : `build_llm_config` ne doit pas relire `DROX_NUM_CTX` quand `Some` est passé.
-    llm_config = llm_config.with_num_ctx(num_ctx);
-    Ok(llm_config)
-}
-
 pub(crate) fn build_ollama_from_llm_connect_fields(
     server: Option<String>,
     model: Option<String>,

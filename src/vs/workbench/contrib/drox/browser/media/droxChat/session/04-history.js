@@ -241,15 +241,6 @@
 		fn.hidePathSuggestions();
 		fn.updatePromptPlaceholder();
 		fn.hideRunObjectiveSticky();
-		D.state.activeSubagentCount = 0;
-		D.state.subagentJobCards.clear();
-		D.state.executorCaptures?.clear();
-		D.state.executorActiveJobId = null;
-		D.state.executorCaptureJobId = null;
-		D.state.executorCaptureStreamEl = null;
-		D.state.pendingExecutorThinking = null;
-		D.state.pendingExecutorThinkingByJob?.clear();
-		D.state.activeExecutorJobIds.clear();
 		D.state.pendingTodoUpdates = null;
 		D.state.uiReplayActive = false;
 		fn.resetSessionLazyHistory?.();

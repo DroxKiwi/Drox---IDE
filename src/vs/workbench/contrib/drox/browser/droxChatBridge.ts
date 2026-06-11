@@ -30,8 +30,6 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'setArchitectModel'; readonly model: string }
 
-	| { readonly type: 'setExecutorModel'; readonly model: string }
-
 	| {
 		readonly type: 'setArchitectLlmParams';
 		readonly numCtx?: number;
@@ -42,19 +40,6 @@ export type DroxWebviewToHostMessage =
 		readonly seed?: number;
 		readonly temperature?: number;
 	}
-
-	| {
-		readonly type: 'setExecutorLlmParams';
-		readonly numCtx?: number;
-		readonly topP?: number;
-		readonly topK?: number;
-		readonly repeatPenalty?: number;
-		readonly minP?: number;
-		readonly seed?: number;
-		readonly temperature?: number;
-	}
-
-	| { readonly type: 'setOrchestrationMaxParallelExecutors'; readonly value?: number }
 
 	| { readonly type: 'setGeneralSettings'; readonly settings: Record<string, unknown> }
 
@@ -132,24 +117,15 @@ export type DroxHostToWebviewMessage =
 	| { readonly kind: 'userFacingReply'; readonly text: string }
 
 	| {
-		readonly kind: 'subagentStart';
-		readonly subagentType: string;
-		readonly description: string;
-		readonly jobId?: string;
-		readonly background?: boolean;
+		readonly kind: 'railStationEnter';
+		readonly station: string;
+		readonly label?: string;
+		readonly taskId?: string;
 	}
 
-	| {
-		readonly kind: 'subagentDone';
-		readonly subagentType: string;
-		readonly summary: string;
-		readonly truncated?: boolean;
-		readonly iterationsUsed?: number;
-		readonly jobId?: string;
-		readonly success?: boolean;
-		readonly taskStatus?: string;
-		readonly errorMessage?: string;
-	}
+	| { readonly kind: 'railStationHold'; readonly station: string }
+
+	| { readonly kind: 'railStationDone'; readonly station: string }
 
 	| { readonly kind: 'delta'; readonly text: string; readonly executorJobId?: string }
 
@@ -173,8 +149,6 @@ export type DroxHostToWebviewMessage =
 		readonly argsPreview?: string;
 		readonly isError?: boolean;
 		readonly outputPreview?: string;
-		readonly toolOutput?: unknown;
-		readonly taskBackground?: boolean;
 		readonly executorJobId?: string;
 	}
 
@@ -227,16 +201,13 @@ export type DroxHostToWebviewMessage =
 		readonly error?: string;
 		readonly listUrl?: string;
 		readonly architectModel?: string;
-		readonly executorModel?: string;
 		readonly architectNumCtx?: number;
-		readonly executorNumCtx?: number;
 		readonly architectTopP?: number;
 		readonly architectTopK?: number;
 		readonly architectRepeatPenalty?: number;
 		readonly architectMinP?: number;
 		readonly architectSeed?: number;
 		readonly architectTemperature?: number;
-		readonly orchestrationMaxParallelExecutors?: number;
 	}
 
 	| { readonly kind: 'generalSettings'; readonly settings: Record<string, unknown> }
@@ -273,15 +244,11 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 		return typeof (msg as { architectInteractionMode?: unknown }).architectInteractionMode === 'string';
 	}
 
-	if (t === 'setModel' || t === 'setArchitectModel' || t === 'setExecutorModel') {
+	if (t === 'setModel' || t === 'setArchitectModel') {
 		return typeof (msg as { model?: unknown }).model === 'string';
 	}
 
-	if (t === 'setArchitectLlmParams' || t === 'setExecutorLlmParams') {
-		return true;
-	}
-
-	if (t === 'setOrchestrationMaxParallelExecutors') {
+	if (t === 'setArchitectLlmParams') {
 		return true;
 	}
 

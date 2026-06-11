@@ -20,7 +20,7 @@ export function pushLlmModelsSnapshotToWebview(
 	configurationService?: IConfigurationService,
 ): void {
 	const role = runSettingsService
-		? readDroxRoleModelsForWebview({ runSettingsService, configurationService })
+		? readDroxRoleModelsForWebview({ runSettingsService })
 		: undefined;
 	host.post({
 		kind: 'llmModels',
@@ -31,16 +31,13 @@ export function pushLlmModelsSnapshotToWebview(
 		error: snapshot.error,
 		listUrl: snapshot.listUrl,
 		architectModel: role?.architectModel,
-		executorModel: role?.executorModel,
 		architectNumCtx: role?.architectNumCtx,
-		executorNumCtx: role?.executorNumCtx,
 		architectTopP: role?.architectTopP,
 		architectTopK: role?.architectTopK,
 		architectRepeatPenalty: role?.architectRepeatPenalty,
 		architectMinP: role?.architectMinP,
 		architectSeed: role?.architectSeed,
 		architectTemperature: role?.architectTemperature,
-		orchestrationMaxParallelExecutors: role?.orchestrationMaxParallelExecutors,
 	});
 }
 

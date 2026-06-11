@@ -9,7 +9,7 @@
 
 (function (D) {
 	const fn = D.fn;
-	const { EXPLORE_PHASES, EXPLORE_REASONING_PHASES } = D.streamLog;
+	const { EXPLORE_REASONING_PHASES } = D.streamLog;
 
 	const LINEAR_THINKING_PHASES = new Set([
 		'internal_reasoning',
@@ -24,9 +24,6 @@
 	]);
 
 	fn.closePhaseMarker = function () {
-		if (fn.isExecutorUiContext?.()) {
-			return;
-		}
 		if (D.state.currentPhase && EXPLORE_REASONING_PHASES.has(D.state.currentPhase)) {
 			const section = typeof fn.getRunSection === 'function' ? fn.getRunSection('thinking') : null;
 			if (section && typeof fn.consolidateLinearThinkingShells === 'function') {
@@ -44,10 +41,6 @@
 	};
 
 	fn.enterPhase = function (phase) {
-		if (fn.isExecutorUiContext?.() && EXPLORE_PHASES.has(phase)) {
-			D.state.currentPhase = phase;
-			return;
-		}
 		if (phase === 'answering') {
 			D.state.currentPhase = 'answering';
 			D.state.currentPhaseBodyEl =

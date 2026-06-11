@@ -5,8 +5,7 @@ use drox_engine::{architect_discussion_system_prompt, EngineTuning, RoleId};
 use crate::language::Language;
 use crate::prompts::{
     append_system_supplement, prepend_core_system_prompt, EXPLORATION_INTERNAL_ENGLISH_RULE,
-    SUBAGENTS_ORCHESTRATION_SUPPLEMENT, NATIVE_THINKING_REASONING_SUPPLEMENT,
-    PROFESSOR_MODE_SUPPLEMENT,
+    NATIVE_THINKING_REASONING_SUPPLEMENT,
 };
 
 /// Entrée d'assemblage — agent `Standard` ou rôle orchestration.
@@ -21,10 +20,7 @@ pub struct AssembleInput {
     pub workspace_map_block: Option<String>,
     pub language: Option<Language>,
     pub native_thinking: bool,
-    pub professor_mode: bool,
     pub disabled_tools_notice: Option<String>,
-    /// Sous-agents activés (`task` explore + supplément prompt M5).
-    pub subagents_enabled: bool,
     /// `agent.run` → tuning résolu (discussion read budget, etc.).
     pub engine_tuning: EngineTuning,
     /// `false` après gate `discuss_reply_only` — pas de carte workspace.
@@ -105,7 +101,7 @@ fn assemble_orchestration_support(input: AssembleInput) -> Option<String> {
     }
 }
 
-/// Chemin **Standard** (agent unique legacy).
+/// Chemin **Standard** — CLI one-shot uniquement (hors orchestration IDE 1.4.0).
 #[must_use]
 fn assemble_standard(input: AssembleInput) -> Option<String> {
     let base = merge_optional_system(input.cli_system, input.memdir_prefix);
@@ -137,23 +133,6 @@ fn assemble_standard(input: AssembleInput) -> Option<String> {
             NATIVE_THINKING_REASONING_SUPPLEMENT,
         );
     }
-    if input.professor_mode {
-        match &mut system_merged {
-            Some(s) => {
-                s.push_str("\n\n");
-                s.push_str(PROFESSOR_MODE_SUPPLEMENT);
-            }
-            None => {
-                system_merged = Some(PROFESSOR_MODE_SUPPLEMENT.to_string());
-            }
-        }
-    }
-    if input.subagents_enabled {
-        system_merged = append_system_supplement(
-            system_merged,
-            SUBAGENTS_ORCHESTRATION_SUPPLEMENT,
-        );
-    }
     if let Some(notice) = input.disabled_tools_notice {
         match &mut system_merged {
             Some(s) => s.push_str(&notice),
@@ -179,9 +158,7 @@ mod tests {
             workspace_map_block: None,
             language: None,
             native_thinking: false,
-            professor_mode: false,
             disabled_tools_notice: None,
-            subagents_enabled: false,
             engine_tuning: EngineTuning::default(),
             discussion_allow_reads: true,
         })

@@ -34,19 +34,3 @@ export interface IDroxRailStationDoneEvent {
 	readonly kind: 'rail_station_done';
 	readonly station: DroxRailStationId;
 }
-
-export interface IDroxRailSegmentStartEvent {
-	readonly kind: 'rail_segment_start';
-	readonly station: string;
-	readonly task_id: string;
-	readonly label?: string;
-	readonly scope: readonly string[];
-}
-
-export interface IDroxRailSegmentDoneEvent {
-	readonly kind: 'rail_segment_done';
-	readonly task_id: string;
-	readonly status: string;
-	readonly summary?: string;
-	readonly paths_touched: readonly string[];
-}

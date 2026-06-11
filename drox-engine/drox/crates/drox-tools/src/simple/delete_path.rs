@@ -289,7 +289,7 @@ mod tests {
             .await
             .unwrap_err();
         assert!(
-            matches!(err, ToolError::InvalidArgs(ref m) if m.contains("racine")),
+            matches!(err, ToolError::InvalidArgs(ref m) if m.contains("workspace root")),
             "got {err:?}"
         );
     }

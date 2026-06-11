@@ -28,12 +28,10 @@ Modules ordonnés par mécanique, chargés via `DROX_CHAT_SCRIPT_FILES` dans `dr
 | `discussion/` | `state.js` |
 | `answer/` | `helpers.js`, `presentation.js`, `stream.js` |
 | `messages/` | `viewer.js`, `scroll.js`, `user.js`, `orchestration.js` |
-| `executor/` | `capture.js`, `subagents.js` |
-| `dev/` | `gateTags.js` |
 | `tools/` | `logTools.js` — blocs outil dans le fil |
-| `timeline/` | `strip.js`, `thinking.js`, `phases.js`, `architect-rail.js`, `mount.js`, `overrides.js` — fil linéaire (**overrides en dernier**) |
+| `timeline/` | `strip.js`, `thinking.js`, `phases.js`, `run-rail-stations.js`, `mount.js`, `overrides.js` — fil linéaire (**overrides en dernier**) |
 
-Routage texte : `display/simple.js` (`appendDelta` → `routeSimpleDisplayDelta`). Les modules `timeline/overrides.js` gèrent strip, outils et sous-agents uniquement.
+Routage texte : `display/simple.js` (`appendDelta` → `routeSimpleDisplayDelta`). Solo architecte — pas de modules executor/subagent/segment (1.4.0 Phase 2d).
 
 ## Regénération
 

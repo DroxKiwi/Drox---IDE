@@ -9,7 +9,6 @@ import { URI } from '../../../../base/common/uri.js';
 
 import { localize } from '../../../../nls.js';
 
-import { isExecutorDelegationUiEnabled } from '../common/droxOrchestrationUi.js';
 import { webviewGenericCspSource } from '../../webview/common/webview.js';
 
 
@@ -64,15 +63,12 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/stream/messages/scroll.js',
 	'droxChat/stream/messages/user.js',
 	'droxChat/stream/messages/orchestration.js',
-	'droxChat/stream/executor/capture.js',
-	'droxChat/stream/executor/subagents.js',
 	'droxChat/stream/answer/stream.js',
 	'droxChat/stream/tools/logTools.js',
 	'droxChat/stream/timeline/strip.js',
 	'droxChat/stream/timeline/thinking.js',
 	'droxChat/stream/timeline/phases.js',
 	'droxChat/stream/timeline/run-rail-stations.js',
-	'droxChat/stream/timeline/architect-rail.js',
 	'droxChat/stream/timeline/mount.js',
 	'droxChat/stream/timeline/overrides.js',
 	'droxChat/tools/13-collapsibleTray.js',
@@ -140,39 +136,10 @@ export function getDroxChatHtml(
 		'Free reading. Each file edit or write requires your confirmation.',
 	);
 
-	const executorDelegationUi = isExecutorDelegationUiEnabled();
 	const architectVignetteName = localize('droxChatArchitectVignetteName', 'Architect');
-	const architectVignetteDesc = executorDelegationUi
-		? localize('droxChatArchitectVignetteDesc', 'Planning model — click to configure')
-		: localize('droxChatArchitectVignetteDescSolo', 'Agent model — click to configure');
-	const executorVignetteName = localize('droxChatExecutorVignetteName', 'Executor');
-	const executorVignetteDesc = localize('droxChatExecutorVignetteDesc', 'Execution model — click to configure');
-	const roleModelsPickerLabel = executorDelegationUi
-		? localize('droxChatRoleModels', 'Orchestration models')
-		: localize('droxChatArchitectModelPicker', 'Architect model');
-	const bodyClass = executorDelegationUi ? '' : 'drox-architect-solo-ui';
-	const executorVignetteHtml = executorDelegationUi
-		? `
-			<button type="button" id="executor-model-vignette" class="agent-vignette role-model-vignette" data-role="executor" aria-expanded="false" title="${executorVignetteName}">
-
-				<span class="vignette-peek" aria-hidden="true"><span class="vignette-peek-icon">⚙</span></span>
-
-				<span class="vignette-rise">
-
-					<span class="vignette-icon" aria-hidden="true">⚙</span>
-
-					<span class="vignette-copy">
-
-						<strong class="vignette-name">${executorVignetteName}</strong>
-
-						<span class="vignette-desc" id="executor-vignette-model-hint">${executorVignetteDesc}</span>
-
-					</span>
-
-				</span>
-
-			</button>`
-		: '';
+	const architectVignetteDesc = localize('droxChatArchitectVignetteDescSolo', 'Agent model — click to configure');
+	const roleModelsPickerLabel = localize('droxChatArchitectModelPicker', 'Architect model');
+	const bodyClass = 'drox-architect-solo-ui';
 	const rolePanelModelLabel = localize('droxChatRolePanelModel', 'Model');
 	const rolePanelNumCtxLabel = localize('droxChatRolePanelNumCtx', 'Context (num_ctx)');
 	const rolePanelTopPLabel = localize('droxChatRolePanelTopP', 'Top P');
@@ -181,12 +148,8 @@ export function getDroxChatHtml(
 	const rolePanelMinPLabel = localize('droxChatRolePanelMinP', 'Min P');
 	const rolePanelSeedLabel = localize('droxChatRolePanelSeed', 'Seed');
 	const rolePanelTempLabel = localize('droxChatRolePanelTemperature', 'Temperature');
-	const rolePanelParallelLabel = localize('droxChatRolePanelParallel', 'Concurrent executor requests');
 	const rolePanelReloadLabel = localize('droxChatRolePanelReload', 'Reload models');
 	const rolePanelApplyLabel = localize('droxChatRolePanelClose', 'Close');
-	const rolePanelExecutorHint = localize('droxChatRolePanelExecutorEmpty', 'Choose a dedicated model, or pick « same as architect » to reuse the architect model and all LLM parameters.');
-	const rolePanelSameAsSummary = localize('droxChatRolePanelSameAsSummary', 'Same model and LLM settings as the architect ({0}). Only concurrent executors can be changed below.');
-	const rolePanelSameAsSummaryNoModel = localize('droxChatRolePanelSameAsSummaryNoModel', 'Same model and LLM settings as the architect. Only concurrent executors can be changed below.');
 
 	const generalSettingsVignetteName = localize('droxChatGeneralSettingsVignetteName', 'Settings');
 	const generalSettingsVignetteDesc = localize('droxChatGeneralSettingsVignetteDesc', 'General Drox options');
@@ -221,39 +184,8 @@ export function getDroxChatHtml(
 	const generalSettingsEngineStrictnessCustom = localize('droxChatGeneralSettingsEngineStrictnessCustom', 'Custom');
 	const generalSettingsEngineTuningHint = localize('droxChatGeneralSettingsEngineTuningHint', 'Numeric overrides (base = normal). Full list in Drox settings.');
 	const generalSettingsReadBudgetPercent = localize('droxChatGeneralSettingsReadBudgetPercent', 'Read budget %');
-	const generalSettingsMaxReadsBeforeDelegate = localize('droxChatGeneralSettingsMaxReadsBeforeDelegate', 'Max reads before delegate nudge');
-	const generalSettingsMaxMutationsBeforeDelegateNudge = localize('droxChatGeneralSettingsMaxMutationsBeforeDelegateNudge', 'Max direct edits before delegate nudge');
 	const generalSettingsLoopStrikes = localize('droxChatGeneralSettingsLoopStrikes', 'Loop strikes before abort');
-	const generalSettingsRequireDelegate = localize('droxChatGeneralSettingsRequireDelegate', 'Require delegate before todo complete');
 	const generalSettingsContextSnip = localize('droxChatGeneralSettingsContextSnip', 'Context snip enabled');
-	const delegateTuningFieldsHtml = executorDelegationUi
-		? `
-				<label class="general-settings-field">
-
-					<span>${generalSettingsMaxReadsBeforeDelegate}</span>
-
-					<input type="number" id="general-settings-tuning-max-reads-before-delegate" class="general-settings-input" min="1" max="64" step="1" />
-
-				</label>
-
-				<label class="general-settings-field">
-
-					<span>${generalSettingsMaxMutationsBeforeDelegateNudge}</span>
-
-					<input type="number" id="general-settings-tuning-max-mutations-before-delegate-nudge" class="general-settings-input" min="1" max="16" step="1" />
-
-				</label>`
-		: '';
-	const requireDelegateFieldHtml = executorDelegationUi
-		? `
-				<label class="general-settings-field general-settings-field-check">
-
-					<input type="checkbox" id="general-settings-tuning-require-delegate" />
-
-					<span>${generalSettingsRequireDelegate}</span>
-
-				</label>`
-		: '';
 
 	const modelReloadLabel = localize('droxChatModelReload', 'Reload model list from server');
 
@@ -377,8 +309,6 @@ export function getDroxChatHtml(
 
 			</button>
 
-${executorVignetteHtml}
-
 		</div>
 
 		<div id="role-model-panel" class="role-model-panel" hidden role="dialog" aria-modal="false">
@@ -391,7 +321,7 @@ ${executorVignetteHtml}
 
 			</div>
 
-			<label id="role-model-panel-model-row" class="role-model-field role-model-field-executor-model-row">
+			<label class="role-model-field">
 
 				<span>${rolePanelModelLabel}</span>
 
@@ -399,140 +329,61 @@ ${executorVignetteHtml}
 
 			</label>
 
-			<p id="role-model-panel-same-as-summary" class="role-model-panel-same-as-block" hidden data-with-model="${rolePanelSameAsSummary}" data-no-model="${rolePanelSameAsSummaryNoModel}">
-				<span id="role-model-panel-same-as-summary-text" class="role-model-panel-hint"></span>
-				<button type="button" id="role-model-panel-switch-dedicated" class="role-model-panel-link-btn">${localize('droxChatRolePanelSwitchDedicated', 'Choose a dedicated model…')}</button>
-			</p>
+			<label class="role-model-field">
 
-			<p id="role-model-panel-executor-hint" class="role-model-panel-hint role-model-field-executor-dedicated-hint" hidden>${rolePanelExecutorHint}</p>
+				<span>${rolePanelNumCtxLabel}</span>
 
-			<div id="role-model-panel-architect-fields" class="role-model-panel-architect-fields">
+				<input type="number" id="role-model-panel-num-ctx" class="role-model-panel-input" min="2048" max="200000" step="512" />
 
-				<label class="role-model-field role-model-field-architect-only">
+			</label>
 
-					<span>${rolePanelNumCtxLabel}</span>
+			<label class="role-model-field">
 
-					<input type="number" id="role-model-panel-num-ctx" class="role-model-panel-input" min="2048" max="200000" step="512" />
+				<span>${rolePanelTopPLabel}</span>
 
-				</label>
+				<input type="number" id="role-model-panel-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" />
 
-				<label class="role-model-field role-model-field-architect-only">
+			</label>
 
-					<span>${rolePanelTopPLabel}</span>
+			<label class="role-model-field">
 
-					<input type="number" id="role-model-panel-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" />
+				<span>${rolePanelTopKLabel}</span>
 
-				</label>
+				<input type="number" id="role-model-panel-top-k" class="role-model-panel-input" min="1" max="1000" step="1" />
 
-				<label class="role-model-field role-model-field-architect-only">
+			</label>
 
-					<span>${rolePanelTopKLabel}</span>
+			<label class="role-model-field">
 
-					<input type="number" id="role-model-panel-top-k" class="role-model-panel-input" min="1" max="1000" step="1" />
+				<span>${rolePanelRepeatPenaltyLabel}</span>
 
-				</label>
+				<input type="number" id="role-model-panel-repeat-penalty" class="role-model-panel-input" min="0" max="3" step="0.05" />
 
-				<label class="role-model-field role-model-field-architect-only">
+			</label>
 
-					<span>${rolePanelRepeatPenaltyLabel}</span>
+			<label class="role-model-field">
 
-					<input type="number" id="role-model-panel-repeat-penalty" class="role-model-panel-input" min="0" max="3" step="0.05" />
+				<span>${rolePanelMinPLabel}</span>
 
-				</label>
+				<input type="number" id="role-model-panel-min-p" class="role-model-panel-input" min="0" max="1" step="0.01" />
 
-				<label class="role-model-field role-model-field-architect-only">
+			</label>
 
-					<span>${rolePanelMinPLabel}</span>
+			<label class="role-model-field">
 
-					<input type="number" id="role-model-panel-min-p" class="role-model-panel-input" min="0" max="1" step="0.01" />
+				<span>${rolePanelSeedLabel}</span>
 
-				</label>
+				<input type="number" id="role-model-panel-seed" class="role-model-panel-input" step="1" />
 
-				<label class="role-model-field role-model-field-architect-only">
+			</label>
 
-					<span>${rolePanelSeedLabel}</span>
+			<label class="role-model-field">
 
-					<input type="number" id="role-model-panel-seed" class="role-model-panel-input" step="1" />
+				<span>${rolePanelTempLabel}</span>
 
-				</label>
+				<input type="number" id="role-model-panel-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" />
 
-				<label class="role-model-field role-model-field-architect-only">
-
-					<span>${rolePanelTempLabel}</span>
-
-					<input type="number" id="role-model-panel-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" />
-
-				</label>
-
-			</div>
-
-			<div id="role-model-panel-executor-fields" class="role-model-panel-executor-fields">
-
-				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
-
-					<span>${rolePanelNumCtxLabel}</span>
-
-					<input type="number" id="role-model-panel-executor-num-ctx" class="role-model-panel-input" min="2048" max="200000" step="512" />
-
-				</label>
-
-				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
-
-					<span>${rolePanelTopPLabel}</span>
-
-					<input type="number" id="role-model-panel-executor-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" />
-
-				</label>
-
-				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
-
-					<span>${rolePanelTopKLabel}</span>
-
-					<input type="number" id="role-model-panel-executor-top-k" class="role-model-panel-input" min="1" max="1000" step="1" />
-
-				</label>
-
-				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
-
-					<span>${rolePanelRepeatPenaltyLabel}</span>
-
-					<input type="number" id="role-model-panel-executor-repeat-penalty" class="role-model-panel-input" min="0" max="3" step="0.05" />
-
-				</label>
-
-				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
-
-					<span>${rolePanelMinPLabel}</span>
-
-					<input type="number" id="role-model-panel-executor-min-p" class="role-model-panel-input" min="0" max="1" step="0.01" />
-
-				</label>
-
-				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
-
-					<span>${rolePanelSeedLabel}</span>
-
-					<input type="number" id="role-model-panel-executor-seed" class="role-model-panel-input" step="1" />
-
-				</label>
-
-				<label class="role-model-field role-model-field-executor-only role-model-field-executor-llm-only">
-
-					<span>${rolePanelTempLabel}</span>
-
-					<input type="number" id="role-model-panel-executor-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" />
-
-				</label>
-
-				<label class="role-model-field role-model-field-executor-only role-model-field-executor-concurrent-only">
-
-					<span>${rolePanelParallelLabel}</span>
-
-					<input type="number" id="role-model-panel-max-parallel" class="role-model-panel-input" min="1" max="100" step="1" />
-
-				</label>
-
-			</div>
+			</label>
 
 			<div class="role-model-panel-actions">
 
@@ -696,8 +547,6 @@ ${executorVignetteHtml}
 
 				</label>
 
-${delegateTuningFieldsHtml}
-
 				<label class="general-settings-field">
 
 					<span>${generalSettingsLoopStrikes}</span>
@@ -705,8 +554,6 @@ ${delegateTuningFieldsHtml}
 					<input type="number" id="general-settings-tuning-loop-strikes" class="general-settings-input" min="1" max="5" step="1" />
 
 				</label>
-
-${requireDelegateFieldHtml}
 
 				<label class="general-settings-field general-settings-field-check">
 
