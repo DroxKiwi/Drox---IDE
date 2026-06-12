@@ -80,7 +80,10 @@ pub fn station_action_hint(station: RunStation) -> &'static str {
         RunStation::Read => "Explore with file_read, glob, grep, lsp, or workspace_map_read.",
         RunStation::Propose => "Propose the approach; wait for the user if depth is complex.",
         RunStation::Plan => "Plan with todo_write; read tools are allowed to refine the plan.",
-        RunStation::Act => "Mutate files with file_edit, file_write, notebook_edit, or delete_path.",
+        RunStation::Act => {
+            "Mutate files with file_edit, file_write, notebook_edit, or delete_path. \
+             Update statuses with `todo_write` when a task is done."
+        }
         RunStation::Verify => {
             #[cfg(windows)]
             {
@@ -108,7 +111,9 @@ pub fn tool_allowed(station: RunStation, tool_name: &str) -> bool {
         RunStation::Read => READ_TOOLS.contains(&tool_name),
         RunStation::Plan => PLAN_TOOLS.contains(&tool_name) || READ_TOOLS.contains(&tool_name),
         RunStation::Act => {
-            MUTATION_TOOLS.contains(&tool_name) || READ_TOOLS.contains(&tool_name)
+            MUTATION_TOOLS.contains(&tool_name)
+                || READ_TOOLS.contains(&tool_name)
+                || tool_name == "todo_write"
         }
         RunStation::Verify => VERIFY_TOOLS.contains(&tool_name),
     }
@@ -127,6 +132,11 @@ mod tests {
     #[test]
     fn act_allows_file_edit() {
         assert!(tool_allowed(RunStation::Act, "file_edit"));
+    }
+
+    #[test]
+    fn act_allows_todo_write_for_status_updates() {
+        assert!(tool_allowed(RunStation::Act, "todo_write"));
     }
 
     #[test]

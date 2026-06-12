@@ -126,6 +126,41 @@ mod tests {
     }
 
     #[test]
+    fn todo_write_flat_item_passes_pre_gate_shape() {
+        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
+        let msg = tool_pre_gate_block(
+            &spec,
+            "todo_write",
+            &json!({ "id": "t3", "content": "README bilingue", "status": "completed" }),
+            false,
+            None,
+            None,
+            None,
+            &EngineTuning::default(),
+        );
+        assert!(msg.is_none(), "flat item must pass shape guard: {msg:?}");
+    }
+
+    #[test]
+    fn todo_write_bare_array_passes_pre_gate_shape() {
+        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
+        let msg = tool_pre_gate_block(
+            &spec,
+            "todo_write",
+            &json!([
+                { "id": "t1", "content": "A", "status": "completed" },
+                { "id": "t3", "content": "README", "status": "completed" },
+            ]),
+            false,
+            None,
+            None,
+            None,
+            &EngineTuning::default(),
+        );
+        assert!(msg.is_none(), "bare array must pass shape guard: {msg:?}");
+    }
+
+    #[test]
     fn bash_heredoc_precheck_on_windows() {
         let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
         let msg = tool_pre_gate_block(
