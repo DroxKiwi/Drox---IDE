@@ -46,10 +46,20 @@ pub struct GateChainResult {
 }
 
 impl GateChainResult {
+    /// Override RPC (`architectInteractionMode`) + affinage `start_run` sur le message courant.
+    ///
+    /// Mode `discussion` reste `Discuss`, mais un salut court → `DiscussReplyOnly`
+    /// (réutilise `looks_like_light_conversation`, pas de nouvelle heuristique).
     #[must_use]
-    pub fn from_rpc_override(gate: ArchitectGate) -> Self {
+    pub fn from_rpc_override(gate: ArchitectGate, prompt: &str) -> Self {
         let start_run = match gate {
-            ArchitectGate::Discuss => StartRunKind::DiscussWithReads,
+            ArchitectGate::Discuss => {
+                if looks_like_light_conversation(prompt) {
+                    StartRunKind::DiscussReplyOnly
+                } else {
+                    StartRunKind::DiscussWithReads
+                }
+            }
             ArchitectGate::Analyze => StartRunKind::Analyze,
             ArchitectGate::Edit => StartRunKind::Edit,
         };
@@ -109,6 +119,7 @@ mod tests {
     #[test]
     fn light_conversation_detects_salut() {
         assert!(looks_like_light_conversation("Salut !"));
+        assert!(looks_like_light_conversation("salut ! tu vas bien ?"));
         assert!(looks_like_light_conversation("bonjour"));
         assert!(!looks_like_light_conversation(
             "Supprime le spotlight du background"
@@ -123,5 +134,24 @@ mod tests {
         let r = GateChainResult::default_for_prompt("Salut !");
         assert_eq!(r.gate, ArchitectGate::Discuss);
         assert_eq!(r.start_run, StartRunKind::DiscussReplyOnly);
+    }
+
+    #[test]
+    fn rpc_discussion_routes_greeting_to_reply_only() {
+        let r = GateChainResult::from_rpc_override(
+            ArchitectGate::Discuss,
+            "salut ! tu vas bien ?",
+        );
+        assert_eq!(r.gate, ArchitectGate::Discuss);
+        assert_eq!(r.start_run, StartRunKind::DiscussReplyOnly);
+    }
+
+    #[test]
+    fn rpc_discussion_keeps_with_reads_for_repo_question() {
+        let r = GateChainResult::from_rpc_override(
+            ArchitectGate::Discuss,
+            "Où est défini le composant Header ?",
+        );
+        assert_eq!(r.start_run, StartRunKind::DiscussWithReads);
     }
 }

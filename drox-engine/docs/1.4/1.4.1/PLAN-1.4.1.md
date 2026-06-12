@@ -32,6 +32,24 @@
 | **Distribution** | Installeur 1.4.0 : suffixe version dev + réglages dogfood visibles en « prod » |
 | **Résidu rail** | Modèle n’émet presque jamais `[gate:]` — auto-advance moteur seulement (B-RAIL-01 résidu → doc / prompt, pas bloquant 1.4.1) |
 
+### Dogfood discuss Qwen 2.7B — transcripts de référence (juin 2026)
+
+Références : [`chat_qwen27b.txt`](../../chat_qwen27b.txt) · [`chat_qwen27b_2.txt`](../../chat_qwen27b_2.txt)
+
+| Cas | Message | Mode UI (supposé) | Résultat | Verdict |
+|-----|---------|-------------------|----------|---------|
+| **R1a** | `salut` | `auto` → `discuss_reply_only` | 7 steps UI, 0 outil, marqueurs `[discussion: reply/done]`, `userFacingReply` OK | **OK** — ne pas régresser |
+| **R1b** | `salut ca va ?` | `discussion` → `discuss_reply_only` (post-fix) | 7 steps UI, 0 outil, marqueurs OK | **OK** — juin 2026 post-P2 |
+
+**Mécanismes identifiés (R1b)** :
+
+1. **Routage** : `architectInteractionMode: discussion` force `DiscussWithReads` même sur salut → prompt contradictoire (`with_reads` dit « not a greeting-only turn » vs `literal_user_message` « no tools »).
+2. **Modèle** : à chaque tour, thinking dit « greeting-only, no tools » puis le canal action émet `phase: reading` + tool calls (découplage thinking / `tool_calls` Qwen).
+3. **Moteur** : pas de pre-gate exécution ; `discussion_auto_stop_on_reply` ne s’applique que si `tool_calls` vide ; erreurs `memory_read` ne coupent pas le run.
+4. **Extracteur** : sans marqueurs, fallback `last_user_facing_line` → affiche le 2ᵉ paragraphe au lieu de la salutation (B-DISC-03).
+
+**Ordre P2** : corriger routage + pre-gate **avant** de juger M-DISC-01 ; valider B-DISC-02 en F5 ; traiter B-DISC-03 si R1b affiche encore mal après pre-gate.
+
 ### Vision
 
 Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rail ni polish UI complet.
@@ -50,7 +68,9 @@ Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rai
 | ID | Sujet | Phase | Priorité |
 |----|-------|-------|----------|
 | **B-REL-01** | `droxSurface` + registre features dev ; version prod sans suffixe | P1 | P0 — visible installateurs |
-| **M-DISC-01** | Salut discuss → outils interdits quand même | P2 | P0 |
+| **B-DISC-02** | Extracteur `[discussion: reply]` : marqueurs inline dans thinking | P2 | P0 |
+| **M-DISC-01** | Salut discuss → outils interdits + routage `reply_only` | P2 | P0 |
+| **B-DISC-03** | Fallback `userFacingReply` sans marqueurs (salutation, pas dernière ligne) | P2 | P1 |
 | **B-UI-07** | Run `busy` stale après `done` / blur app | P3 | P0 |
 | **B-MOTOR-04** | Run edit sans mutation (`file_edit` absent) ou clôture prématurée | P4 | P0 |
 | **B-MOTOR-01** | Préambules thinking / re-plan à chaque micro-avancée | P4 | P1 |
@@ -73,11 +93,31 @@ Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rai
 
 **Critère** : `drox:ship` → header **`1.4.0`** seul ; watch garde le suffixe ; `drox-bundle-readiness` refuse surface ≠ release.
 
-### P2 — Discuss — M-DISC-01
+**État code (juin 2026)** : implémenté sur `1.4.1` (`b548b33`) — **clôture** après validation `drox:ship` installé (G-ship manuel).
 
-**Problème** : « Salut » → `architect_discussion` mais `file_read` + `memory_list` (transcript `ses_5f0a049a`).
+### P2 — Discuss — B-DISC-02 · M-DISC-01 · B-DISC-03
 
-**Critère** : R1 discuss — 0 outil, 1 tour, `[phase: done]` ; export < 50 events UI.
+**Problèmes** :
+
+| ID | Symptôme | Cause |
+|----|----------|-------|
+| **B-DISC-02** | `userFacingReply` = `, short answer, then ` | Extracteur prenait le 1ᵉʳ `[discussion: reply]` **inline** dans le thinking (citation des instructions) |
+| **M-DISC-01** | R1b : 11 tool calls sur salut | `discussion` → `with_reads` + pas de pre-gate exécution + boucle erreurs |
+| **B-DISC-03** | Salutation générée mais UI n’affiche que le 2ᵉ paragraphe | Réponse finale sans marqueurs → fallback `last_user_facing_line` |
+
+**Critères smoke discuss** (rejouer après chaque sous-étape P2) :
+
+| ID | Scénario | Critère clôture |
+|----|----------|-----------------|
+| **R1a** | `salut` · mode `auto` | 0 outil · ≤ 2 messages moteur · `userFacingReply` = salutation · export UI < 50 events |
+| **R1b** | `salut ! tu vas bien ?` · mode `discussion` | 0 outil · ≤ 2 messages moteur · `userFacingReply` contient la salutation · export UI < 50 events |
+| **R1c** | `salut ! tu vas bien ?` · mode `auto` | Idem R1b (routage `reply_only` déjà attendu) |
+
+**Clôture par item** :
+
+- **B-DISC-02** : ☑ si `cargo test` extracteur vert + R1a F5 OK (déjà le cas sur transcript) — committer le fix `architect_gate.rs`.
+- **M-DISC-01** : ☑ si R1a + R1b + R1c passent après 2.1–2.3 ; sinon garder ouvert et documenter échec dans SMOKE-BACKLOG.
+- **B-DISC-03** : ☑ si R1b (ou run sans marqueurs forcé) affiche la 1ʳᵉ réponse utilisateur ; sinon report 1.4.2 si pré-gate élimine le cas.
 
 ### P3 — Busy & sync session — B-UI-07
 
@@ -136,7 +176,7 @@ Faire les étapes **dans l’ordre**. Cocher `☐` → `☑`. Ne pas sauter une 
 | **G-test** | `cargo test -p drox-engine` vert |
 | **G-build** | `cargo build -p drox-cli` sans warning |
 | **G-ts** | `npm run compile-check-ts-native` OK |
-| **G-smoke-discuss** | « Salut » → 0 outil, 1 tour, `done` |
+| **G-smoke-discuss** | R1a `salut` + R1b `salut ! tu vas bien ?` (modes `auto` et `discussion`) → 0 outil, ≤ 2 tours moteur, `userFacingReply` salutation |
 | **G-smoke-edit** | Charte CSS qwen27b : rail visible, mutation si brief l’exige, pas de double answering |
 | **G-ship** | (P1 seulement) `drox:ship` dry-run / readiness : `droxSurface: release`, pas de `droxEngineDevBuild` packagé |
 
@@ -172,12 +212,20 @@ Faire les étapes **dans l’ordre**. Cocher `☐` → `☑`. Ne pas sauter une 
 
 ### Phase 2 — Discuss (P2)
 
-| # | ☐ | Action | Fichier / zone | ID |
-|---|-----|--------|----------------|-----|
-| 2.1 | ☐ | Pre-gate discuss : 0 outil si `DiscussReplyOnly` + message light | `start_run.rs`, `architect_gates.rs` | M-DISC-01 |
-| 2.2 | ☐ | Rejeter tool calls post-hoc si greeting-only | `gates/` ou `loop/drive/` | M-DISC-01 |
-| 2.3 | ☐ | Test `cargo test` scénario salut | `orchestration/start_run.rs` tests | M-DISC-01 |
-| | | | | **G-test** · **G-smoke-discuss** |
+> **Prochaine passe** : exécuter 2.0 → 2.1 → 2.2 → dogfood R1a/R1b/R1c → clôturer ou rouvrir selon résultat.
+
+| # | ☐ | Action | Fichier / zone | ID | Clôture si… |
+|---|-----|--------|----------------|-----|-------------|
+| 2.0 | ☑ | Extracteur : marqueurs `[discussion: …]` **ligne seule** ; dernier `[discussion: reply]` avant `[discussion: done]` | `architect_gate.rs` | B-DISC-02 | `cargo test` + R1a F5 OK |
+| 2.0b | ☑ | Committer fix B-DISC-02 (si 2.0 validé) | git `1.4.1` | B-DISC-02 | commit sur branche |
+| 2.1 | ☑ | Routage : `discussion` RPC + `looks_like_light_conversation` → `DiscussReplyOnly` (réutiliser heuristique existante, pas nouvelle liste) | `start_run.rs`, `orchestration_run.rs` | M-DISC-01 | test unitaire + logs `start_run=discuss_reply_only` sur R1b |
+| 2.2 | ☑ | Pre-gate exécution : bloquer tout tool si `!discussion_allow_reads` **ou** `DiscussReplyOnly` | `agent/gates/tool_pre.rs` | M-DISC-01 | tool call greeting → erreur gate, pas d’I/O |
+| 2.3 | ☐ | (Optionnel si 2.1–2.2 suffisent) Circuit-breaker discuss : N erreurs tool consécutives sur greeting → Stop | `loop/drive/outcome.rs` | M-DISC-01 | reporté — R1b OK sans |
+| 2.4 | ☑ | Fallback extracteur : prose sans marqueurs → bloc avant double saut de ligne / 1ʳᵉ phrase salutation | `architect_gate.rs` | B-DISC-03 | `userFacingReply` R1b = salutation |
+| 2.5 | ☑ | Tests `cargo` : routage `salut ! tu vas bien ?`, pre-gate reply_only, extracteur sans marqueurs | `start_run.rs`, `architect_gate.rs`, `gates/` | M-DISC-01, B-DISC-03 | **G-test** vert |
+| 2.6 | ☑ | Dogfood : exporter transcripts → `docs/chat_qwen27b*.txt` ; noter verdict R1a/R1b/R1c | manuel qwen27b | — | **G-smoke-discuss** |
+| 2.7 | ☐ | Journal SMOKE-BACKLOG : statut B-DISC-02 / M-DISC-01 / B-DISC-03 | `SMOKE-BACKLOG.md` | — | items ☑ ou report justifié |
+| | | | | | **G-test** · **G-smoke-discuss** |
 
 ---
 
@@ -246,6 +294,7 @@ Faire les étapes **dans l’ordre**. Cocher `☐` → `☑`. Ne pas sauter une 
 | # | ☐ | Action | ID | Gate |
 |---|-----|--------|-----|------|
 | 8.1 | ☐ | Matrice modèles : Qwen 27b = dogfood D3 ; Gemma 26b = hors scope edit | S6 | doc |
+| 8.1b | ☐ | Rejouer R1a + R1b + R1c discuss (transcripts archivés) | S6 | **G-smoke-discuss** |
 | 8.2 | ☐ | Rejouer R16 post-1.4.0 : charte CSS `runRailEnabled: true` | S6 | **G-smoke-edit** |
 | 8.3 | ☐ | Mettre à jour sign-off [09-TEST-PLAN](../1.4.0/archive/09-TEST-PLAN.md) | S6 | — |
 | 8.4 | ☐ | Journal [SMOKE-BACKLOG](../1.4.0/archive/SMOKE-BACKLOG.md) à jour | — | — |
@@ -272,11 +321,14 @@ P0  Phase 1  droxSurface (prod crédible)
 ## Critères de clôture 1.4.1
 
 - [x] **B-REL-01** : prod sans suffixe dev ; features dogfood coupées en release ; readiness OK (code — valider au prochain `drox:ship`)
-- [ ] **M-DISC-01** + **B-UI-07** + **B-MOTOR-01/02/03/04** fermés ou reportés en 1.4.2 **avec justification**
+- [x] **B-DISC-02** : extracteur validé — dogfood R1a/R1b qwen27b
+- [x] **M-DISC-01** : R1a + R1b + R1c verts (auto + discussion)
+- [x] **B-DISC-03** : fallback extracteur — non reproduit post-fix, code en place
+- [ ] **B-UI-07** + **B-MOTOR-01/02/03/04** fermés ou reportés en 1.4.2 **avec justification**
 - [ ] **B-UI-06** compaction livrée (polish affichage replay → 1.4.2)
 - [ ] **G-DEBT-01** ou report explicite
 - [ ] `cargo test -p drox-engine` vert ; `compile-check-ts-native` OK
-- [ ] Smoke : salut + charte CSS qwen27b sans régression rail 1.4.0
+- [ ] Smoke : R1a/R1b/R1c discuss + charte CSS qwen27b sans régression rail 1.4.0
 - [ ] SMOKE-BACKLOG journal à jour
 
 ---

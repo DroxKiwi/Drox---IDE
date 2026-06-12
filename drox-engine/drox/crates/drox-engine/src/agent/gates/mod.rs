@@ -70,6 +70,39 @@ mod tests {
     }
 
     #[test]
+    fn discussion_reply_only_blocks_tools() {
+        let spec = RunSpec::for_architect_discussion_with_reads(false);
+        let msg = tool_pre_gate_block(
+            &spec,
+            "file_read",
+            &json!({ "path": "README.md" }),
+            false,
+            None,
+            None,
+            None,
+            &EngineTuning::default(),
+        );
+        assert!(msg.is_some());
+        assert!(msg.unwrap().contains("reply-only"));
+    }
+
+    #[test]
+    fn discussion_with_reads_allows_file_read_pre_gate() {
+        let spec = RunSpec::for_architect_discussion_with_reads(true);
+        let msg = tool_pre_gate_block(
+            &spec,
+            "file_read",
+            &json!({ "path": "README.md" }),
+            false,
+            None,
+            None,
+            None,
+            &EngineTuning::default(),
+        );
+        assert!(msg.is_none());
+    }
+
+    #[test]
     fn hallucinated_phase_tool_ignores_real_tools() {
         assert!(!is_hallucinated_phase_tool_call(
             "file_read",

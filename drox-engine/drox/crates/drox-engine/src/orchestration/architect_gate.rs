@@ -106,15 +106,44 @@ fn strip_embedded_json_objects(mut text: String) -> String {
     text
 }
 
-/// Corps entre marqueurs reply → done (marqueurs ASCII).
+/// Fin de la **dernière** ligne seule `[discussion: reply]` (ignore les mentions inline dans le thinking).
+fn last_standalone_discussion_reply_line_end(text: &str) -> Option<usize> {
+    let mut last = None;
+    let mut offset = 0usize;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim_end_matches('\n').trim();
+        if parse_discussion_reply_marker(trimmed) {
+            last = Some(offset + line.len());
+        }
+        offset += line.len();
+    }
+    last
+}
+
+/// Début de la première ligne seule `[discussion: done]` dans `text`.
+fn first_standalone_discussion_done_line_start(text: &str) -> Option<usize> {
+    let mut offset = 0usize;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim_end_matches('\n').trim();
+        if parse_discussion_done_marker(trimmed) {
+            return Some(offset);
+        }
+        offset += line.len();
+    }
+    None
+}
+
+/// Corps entre la dernière ligne `[discussion: reply]` et la première `[discussion: done]` qui suit.
 fn slice_between_reply_and_done(text: &str) -> Option<&str> {
-    let lower = text.to_ascii_lowercase();
-    let start = lower.find(DISCUSSION_REPLY_NEEDLE)? + DISCUSSION_REPLY_NEEDLE.len();
-    let end = lower[start..]
-        .find(DISCUSSION_DONE_NEEDLE)
-        .map(|i| start + i)
-        .unwrap_or(text.len());
-    Some(text[start..end].trim())
+    let body_start = last_standalone_discussion_reply_line_end(text)?;
+    let slice = text[body_start..].trim_start();
+    let end = first_standalone_discussion_done_line_start(slice).unwrap_or(slice.len());
+    let body = slice[..end].trim();
+    if body.is_empty() {
+        None
+    } else {
+        Some(body)
+    }
 }
 
 /// Index d'une ligne contenant **uniquement** `[discussion: done]` (pas une mention dans un plan).
@@ -134,6 +163,25 @@ fn join_non_protocol_lines(text: &str) -> String {
         .filter(|l| !is_discussion_protocol_line(l))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn join_user_facing_lines(text: &str) -> String {
+    text.lines()
+        .map(str::trim)
+        .filter(|l| {
+            !l.is_empty() && !is_discussion_protocol_line(l) && !is_meta_discussion_line(l)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Bloc de monologue interne (thinking / plan) — pas une réponse utilisateur seule.
+fn block_looks_like_thinking(block: &str) -> bool {
+    block
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !is_discussion_protocol_line(l))
+        .any(is_meta_discussion_line)
 }
 
 /// Ligne de monologue interne (thinking) — pas une réponse utilisateur.
@@ -158,6 +206,29 @@ fn last_user_facing_line(text: &str) -> Option<String> {
         .rev()
         .find(|l| !l.is_empty() && !is_discussion_protocol_line(l) && !is_meta_discussion_line(l))
         .map(str::to_string)
+}
+
+/// Premier bloc de lignes non protocole (repli sans marqueur — salutation en tête).
+fn first_non_protocol_block(text: &str) -> String {
+    let mut blocks: Vec<Vec<&str>> = Vec::new();
+    let mut current: Vec<&str> = Vec::new();
+    for line in text.lines().map(str::trim).filter(|l| !l.is_empty()) {
+        if is_discussion_protocol_line(line) {
+            if !current.is_empty() {
+                blocks.push(current);
+                current = Vec::new();
+            }
+            continue;
+        }
+        current.push(line);
+    }
+    if !current.is_empty() {
+        blocks.push(current);
+    }
+    blocks
+        .first()
+        .map(|b| b.join("\n"))
+        .unwrap_or_default()
 }
 
 /// Dernier bloc de lignes non protocole (repli sans marqueur `reply`).
@@ -247,10 +318,27 @@ pub fn extract_discussion_user_facing_reply(text: &str) -> String {
 
     let end = find_discussion_done_line_start(&work).unwrap_or(work.len());
     let before_done = &work[..end];
+    let first_block = trim_discussion_reply_tail(&first_non_protocol_block(before_done));
+    if !first_block.trim().is_empty() && !block_looks_like_thinking(&first_block) {
+        return first_block;
+    }
+    if block_looks_like_thinking(&first_block) {
+        if let Some(line) = last_user_facing_line(before_done) {
+            return line;
+        }
+    }
+    let last_block = trim_discussion_reply_tail(&last_non_protocol_block(before_done));
+    let last_clean = join_user_facing_lines(&last_block);
+    if !last_clean.trim().is_empty() && !block_looks_like_thinking(&last_clean) {
+        return last_clean;
+    }
     if let Some(line) = last_user_facing_line(before_done) {
         return line;
     }
-    trim_discussion_reply_tail(&last_non_protocol_block(before_done))
+    if !last_clean.trim().is_empty() {
+        return last_clean;
+    }
+    first_block
 }
 
 /// `true` si le texte contient le marqueur de clôture discussion (`[discussion: done]`).
@@ -386,5 +474,32 @@ Salut ! Comment puis-je t'aider aujourd'hui ?
 [discussion: done]"#;
         let reply = extract_discussion_user_facing_reply(raw);
         assert_eq!(reply, "Salut ! Comment puis-je t'aider aujourd'hui ?");
+    }
+
+    #[test]
+    fn extracts_reply_skips_inline_discussion_markers_in_thinking() {
+        let raw = r#"The user said "salut" which is a French greeting.
+According to my instructions:
+- Greeting-only → no tools at all
+- Reply with `[discussion: reply]`, my short answer, then `[discussion: done]` — then stop.
+
+I should just greet back and close the turn.
+[discussion: reply]
+Salut ! Comment puis-je t'aider aujourd'hui ?
+[discussion: done]"#;
+        let reply = extract_discussion_user_facing_reply(raw);
+        assert_eq!(reply, "Salut ! Comment puis-je t'aider aujourd'hui ?");
+        assert!(!reply.contains("short answer"));
+    }
+
+    #[test]
+    fn fallback_prefers_first_block_without_discussion_markers() {
+        let raw = r#"Salut ! Ça va bien, merci ! Et toi ? 😊
+
+Si tu as une question sur le code ou un besoin précis sur ce projet, n'hésite pas."#;
+        let reply = extract_discussion_user_facing_reply(raw);
+        assert!(reply.starts_with("Salut !"));
+        assert!(reply.contains("Ça va bien"));
+        assert!(!reply.starts_with("Si tu as"));
     }
 }
