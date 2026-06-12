@@ -106,7 +106,7 @@ export function getDroxChatHtml(
 	const ready = localize('droxChatReady', 'Ready');
 
 	const historyLabel = localize('droxChatHistory', 'Sessions');
-	const exportTranscriptLabel = localize('droxChatExportTranscript', 'Export discussion to clipboard');
+	const exportTranscriptLabel = localize('droxChatExportTranscript', 'Export discussion (dev — fichier + presse-papiers)');
 	const resetWorkspaceLabel = localize(
 		'droxChatResetWorkspace',
 		'Réinitialiser les données Drox du workspace…',

@@ -603,3 +603,34 @@ export function formatDroxTranscriptExport(opts: IFormatDroxTranscriptExportOpti
 	out.push(`— end of export (${step.value} steps) —`);
 	return out.join('\n');
 }
+
+/** Index compact de tous les messages moteur (y compris role `tool`). */
+export function formatDroxEngineMessageRoster(messages: readonly IDroxTranscriptMessage[]): string {
+	const out: string[] = [];
+	out.push(`Messages moteur indexés: ${messages.length}`);
+	out.push(
+		'Les messages `tool` sont fusionnés dans la chronologie Partie B ; cet index liste tout le fichier session.',
+	);
+	out.push('');
+	for (let i = 0; i < messages.length; i++) {
+		const m = messages[i];
+		const blocks = Array.isArray(m.content) ? m.content : [];
+		const summary = blocks
+			.map(b => {
+				if (b.type === 'tool_use') {
+					return `tool_use:${typeof b.name === 'string' ? b.name : '?'}`;
+				}
+				if (b.type === 'tool_result') {
+					return `tool_result:${typeof b.tool_use_id === 'string' ? b.tool_use_id : '?'}`;
+				}
+				if (b.type === 'text' || b.type === 'thinking' || b.type === 'internal_reasoning') {
+					const t = typeof b.text === 'string' ? b.text : '';
+					return `${b.type}(${t.length}c)`;
+				}
+				return b.type;
+			})
+			.join(', ') || '(vide)';
+		out.push(`${String(i + 1).padStart(3)}. ${m.role.toUpperCase()} — ${summary}`);
+	}
+	return out.join('\n');
+}

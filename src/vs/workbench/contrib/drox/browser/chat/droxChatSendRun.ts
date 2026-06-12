@@ -33,6 +33,8 @@ export interface IDroxChatSendRunHost {
 	workspaceRoot(): string | undefined;
 	getCurrentRunId(): string | undefined;
 	setCurrentRunId(runId: string | undefined): void;
+	isRunActive(): boolean;
+	setPendingRunStart(pending: boolean): void;
 	syncChatSessionState(): void;
 	getSuppressedRunId(): string | undefined;
 	setSuppressedRunId(runId: string | undefined): void;
@@ -68,6 +70,15 @@ export async function executeDroxChatSend(
 		return;
 	}
 	if (deps.userAskService.hasPending) {
+		return;
+	}
+	if (host.isRunActive()) {
+		deps.logService.warn('[Drox] send ignored — run already active');
+		host.post({
+			kind: 'append',
+			role: 'system',
+			text: localize('drox.send.runActive', 'A run is already in progress. Stop it or wait until it finishes.'),
+		});
 		return;
 	}
 	const ws = host.workspaceRoot();
@@ -137,6 +148,7 @@ export async function executeDroxChatSend(
 		kind: 'userPromptSticky',
 		...buildUserPromptStickyPayload(displayed, trimmed, attachments.length),
 	});
+	host.setPendingRunStart(true);
 	host.post({ kind: 'state', busy: true });
 	host.post({ kind: 'clearAssistant' });
 	host.post({
@@ -166,13 +178,17 @@ export async function executeDroxChatSend(
 		});
 		const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 		if (typeof result?.runId === 'string') {
+			host.setPendingRunStart(false);
 			host.setCurrentRunId(result.runId);
 			host.syncChatSessionState();
 			deps.runRevertService.beginRun(result.runId, ws, tabs.currentSessionId);
 			deps.runRevertService.setRunFirstMessageId(result.runId, messageId);
 			deps.logService.info('[Drox] agent.run', result.runId);
+		} else {
+			host.setPendingRunStart(false);
 		}
 	} catch (e) {
+		host.setPendingRunStart(false);
 		host.setCurrentRunId(undefined);
 		host.syncChatSessionState();
 		const text = e instanceof Error ? e.message : String(e);
@@ -203,6 +219,7 @@ export function cancelDroxChatRun(
 		return;
 	}
 	host.setSuppressedRunId(runId);
+	host.setPendingRunStart(false);
 	void deps.droxEngineService.request('agent.cancel', { runId }).catch(e => {
 		deps.logService.warn('[Drox] agent.cancel', e);
 	});

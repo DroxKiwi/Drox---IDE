@@ -63,6 +63,7 @@ export class DroxChatController extends Disposable
 	private _webviewReady = false;
 	private _currentRunId?: string;
 	private _suppressedRunId?: string;
+	private _pendingRunStart = false;
 	private _uiReplayRecordingEnabled = true;
 	private readonly pendingTools = new Map<string, { name: string; args: unknown }>();
 	private _chatDragDrop?: DroxChatDragAndDrop;
@@ -142,6 +143,15 @@ export class DroxChatController extends Disposable
 				this.syncRunRevertState();
 			}
 		}));
+		this._register(this.hostService.onDidChangeFocus(focus => {
+			if (focus && this._webviewReady) {
+				this.reconcileChatBusyState();
+			}
+		}));
+	}
+
+	reconcileChatBusyState(): void {
+		this.post({ kind: 'state', busy: this.isRunActive() });
 	}
 
 	syncRunRevertState(): void {
@@ -238,7 +248,7 @@ export class DroxChatController extends Disposable
 				void this._tabs.activateChatTab(this._tabs.currentSessionId, { loadMessages: false });
 			}
 			this._tabs.postTabs();
-			this.post({ kind: 'state', busy: false });
+			this.reconcileChatBusyState();
 			this.postProductVersionToWebview();
 			this.migrateRemovedProfessorPermissionModeIfNeeded();
 			this.post({ kind: 'permissionMode', mode: this.runSettingsService.getPermissionMode() });
@@ -296,8 +306,17 @@ export class DroxChatController extends Disposable
 		this._currentRunId = runId;
 	}
 
+	isRunActive(): boolean {
+		return !!this._currentRunId || this._pendingRunStart;
+	}
+
+	setPendingRunStart(pending: boolean): void {
+		this._pendingRunStart = pending;
+	}
+
 	clearCurrentRunId(): void {
 		this._currentRunId = undefined;
+		this._pendingRunStart = false;
 	}
 
 	getSuppressedRunId(): string | undefined {
@@ -376,6 +395,7 @@ export class DroxChatController extends Disposable
 			sessionService: this.sessionService,
 			clipboardService: this.clipboardService,
 			workspaceContextService: this.workspaceContextService,
+			productService: this.productService,
 		};
 	}
 

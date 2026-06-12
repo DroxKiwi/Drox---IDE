@@ -9,6 +9,7 @@ import { previewJson } from './droxToolPreview.js';
 import { IDroxSessionUiStats } from '../droxSession.js';
 import { IDroxTranscriptMessage } from '../droxSession.js';
 import {
+	formatDroxEngineMessageRoster,
 	formatDroxTranscriptExport,
 	formatDroxPhaseAwareText,
 	pushDroxExportStepSeparator,
@@ -17,6 +18,8 @@ import {
 const DEFAULT_MAX_STREAM_CHARS = 200_000;
 const DEFAULT_MAX_TOOL_PREVIEW_CHARS = 80_000;
 const DEFAULT_MAX_GATE_RESPONSE_CHARS = 120_000;
+const DEFAULT_MAX_GENERIC_PAYLOAD_CHARS = 24_000;
+const EXPORT_SECTION_SEP = '\n\n' + '═'.repeat(72) + '\n\n';
 
 export interface IFormatDroxUiReplayExportOptions {
 	readonly sessionId: string;
@@ -184,6 +187,31 @@ function formatFileChange(entry: Record<string, unknown>, out: string[]): void {
 	pushSection(out, `### File ${op}`, path);
 }
 
+function formatGenericJournalPayload(
+	entry: Record<string, unknown>,
+	out: string[],
+	maxChars: number = DEFAULT_MAX_GENERIC_PAYLOAD_CHARS,
+): void {
+	const { kind: _kind, ...rest } = entry;
+	const json = JSON.stringify(rest, null, 2);
+	const body =
+		json.length <= maxChars
+			? json
+			: `${json.slice(0, maxChars)}\n… [payload truncated — ${json.length - maxChars} chars omitted]`;
+	pushSection(out, '### Payload', body);
+}
+
+/** Journal UI brut — une ligne JSON par événement (fidélité complète). */
+export function formatDroxRawJournalAppendix(journal: readonly Record<string, unknown>[]): string {
+	const out: string[] = [];
+	out.push(`Événements bruts: ${journal.length} (ordre chronologique, 1 ligne JSON / événement)`);
+	out.push('');
+	for (let i = 0; i < journal.length; i++) {
+		out.push(`#${i + 1}\t${JSON.stringify(journal[i])}`);
+	}
+	return out.join('\n');
+}
+
 /**
  * Export chronologique du journal UI (`.ui-replay.jsonl`) — ordre d'apparition à l'écran.
  */
@@ -257,7 +285,10 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 	}
 	out.push('');
 	out.push(
-		'Chaque step = un événement UI dans l\'ordre d\'affichage. Les THINKING STREAM = flux Ollama `internal_reasoning` ; ASSISTANT STREAM = canal content ; GATE = tours gate (réponse modèle complète).',
+		'Chaque step = un événement UI structuré dans l\'ordre d\'affichage. Les THINKING STREAM = flux `internal_reasoning` ; ASSISTANT STREAM = canal content ; USER-FACING REPLY = texte canonique moteur.',
+	);
+	out.push(
+		`Journal brut complet (${opts.journal.length} événements) → PARTIE C en fin d'export.`,
 	);
 
 	for (const entry of opts.journal) {
@@ -435,7 +466,144 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 					);
 				});
 				break;
+			case 'state':
+				emit('STATE', () => {
+					pushSection(out, '### UI state', `busy: ${entry.busy === true}`);
+				});
+				break;
+			case 'usage':
+				emit('USAGE', () => {
+					pushSection(
+						out,
+						'### Token usage',
+						`input: ${String(entry.inputTokens ?? 0)} · output: ${String(entry.outputTokens ?? 0)}`,
+					);
+				});
+				break;
+			case 'context':
+				emit('CONTEXT', () => {
+					pushSection(out, '### Context window', `tokens used: ${String(entry.tokensUsed ?? 0)}`);
+				});
+				break;
+			case 'session':
+				emit('SESSION', () => {
+					const stats = entry.uiStats as Record<string, unknown> | undefined;
+					const lines = [`id: ${str(entry.id)}`];
+					if (stats) {
+						lines.push(
+							`tokens in/out/ctx: ${String(stats.totalIn ?? 0)} / ${String(stats.totalOut ?? 0)} / ${String(stats.ctx ?? 0)}`,
+						);
+					}
+					pushSection(out, '### Session', lines.join('\n'));
+				});
+				break;
+			case 'compact':
+				emit('COMPACT', () => {
+					pushSection(out, '### Compact mode', `active: ${entry.active === true}`);
+				});
+				break;
+			case 'permissionMode':
+				emit('PERMISSION MODE', () => pushSection(out, '### Permission mode', str(entry.mode)));
+				break;
+			case 'architectInteractionMode':
+				emit('ARCHITECT MODE', () => pushSection(out, '### Architect interaction mode', str(entry.mode)));
+				break;
+			case 'runRevert':
+				emit('RUN REVERT', () => {
+					pushSection(
+						out,
+						'### Run revert state',
+						`canRevert: ${entry.canRevert === true} · files: ${String(entry.fileCount ?? 0)}`,
+					);
+				});
+				break;
+			case 'chatReset':
+				emit('CHAT RESET', () => {
+					out.push('(conversation webview réinitialisée)');
+					out.push('');
+				});
+				break;
+			case 'sessionReplayDone':
+				emit('SESSION REPLAY DONE', () => {
+					out.push('(replay session terminé)');
+					out.push('');
+				});
+				break;
+			case 'replayPrepare':
+				emit('REPLAY PREPARE', () => {
+					pushSection(out, '### Replay prepare', `prepend: ${entry.prepend === true}`);
+				});
+				break;
+			case 'sessionHistory':
+				emit('SESSION HISTORY', () => {
+					pushSection(
+						out,
+						'### Session history page',
+						`hasOlder: ${entry.hasOlder === true} · oldestLoadedIndex: ${String(entry.oldestLoadedIndex ?? 0)}`,
+					);
+				});
+				break;
+			case 'sessionHistoryPageDone':
+				emit('SESSION HISTORY PAGE DONE', () => {
+					out.push('(page historique chargée)');
+					out.push('');
+				});
+				break;
+			case 'sessions':
+				emit('SESSIONS LIST', () => formatGenericJournalPayload(entry, out));
+				break;
+			case 'tabs':
+				emit('TABS', () => formatGenericJournalPayload(entry, out));
+				break;
+			case 'productVersion':
+				emit('PRODUCT VERSION', () => {
+					pushSection(out, '### Product version', `${str(entry.label)}\n${str(entry.title)}`);
+				});
+				break;
+			case 'llmModels':
+				emit('LLM MODELS', () => formatGenericJournalPayload(entry, out));
+				break;
+			case 'generalSettings':
+				emit('GENERAL SETTINGS', () => formatGenericJournalPayload(entry, out));
+				break;
+			case 'prefillPrompt':
+				emit('PREFILL PROMPT', () => pushSection(out, '### Prefill', str(entry.text)));
+				break;
+			case 'pasteCandidate':
+				emit('PASTE CANDIDATE', () => formatGenericJournalPayload(entry, out));
+				break;
+			case 'pathCompleteResult':
+				emit('PATH COMPLETE', () => formatGenericJournalPayload(entry, out));
+				break;
+			case 'dropHighlight':
+				emit('DROP HIGHLIGHT', () => {
+					pushSection(out, '### Drop highlight', `active: ${entry.active === true}`);
+				});
+				break;
+			case 'appendReferences':
+				emit('APPEND REFERENCES', () => formatGenericJournalPayload(entry, out));
+				break;
+			case 'appendAttachments':
+				emit('APPEND ATTACHMENTS', () => formatGenericJournalPayload(entry, out));
+				break;
+			case 'userAsk':
+				emit('USER ASK', () => {
+					pushSection(
+						out,
+						`### User ask · ${str(entry.askId)}`,
+						`${str(entry.title)}\nrun: ${str(entry.runId)}`,
+					);
+					formatGenericJournalPayload(entry, out);
+				});
+				break;
+			case 'userAskClose':
+				emit('USER ASK CLOSE', () => {
+					out.push('(carte questions fermée)');
+					out.push('');
+				});
+				break;
 			default:
+				emit(kind.toUpperCase() || 'UNKNOWN', () => formatGenericJournalPayload(entry, out));
 				break;
 		}
 	}
@@ -443,7 +611,9 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 	flushDelta();
 
 	out.push('');
-	out.push(`— fin journal UI (${step} steps) —`);
+	out.push(
+		`— fin journal UI structuré (${step} steps · ${opts.journal.length} événements journal) —`,
+	);
 	return out.join('\n');
 }
 
@@ -455,21 +625,27 @@ export function formatDroxCombinedSessionExport(
 ): string {
 	const uiPart = formatDroxUiReplayExport(opts);
 	const messages = opts.transcriptMessages ?? [];
-	if (messages.length === 0) {
-		return uiPart;
+	const parts: string[] = [uiPart];
+
+	if (messages.length > 0) {
+		const enginePart = formatDroxTranscriptExport({
+			sessionId: opts.sessionId,
+			workspacePath: opts.workspacePath,
+			messages,
+			uiStats: opts.uiStats,
+			exportedAt: opts.exportedAt,
+		});
+		parts.push(
+			'PARTIE B — Transcript moteur (session persistée, tours complets avec tools)\n\n' + enginePart,
+		);
+		parts.push(
+			'PARTIE D — Index messages moteur\n\n' + formatDroxEngineMessageRoster(messages),
+		);
 	}
-	const enginePart = formatDroxTranscriptExport({
-		sessionId: opts.sessionId,
-		workspacePath: opts.workspacePath,
-		messages,
-		uiStats: opts.uiStats,
-		exportedAt: opts.exportedAt,
-	});
-	const sep = '\n\n' + '═'.repeat(72) + '\n\n';
-	return (
-		uiPart +
-		sep +
-		'PARTIE B — Transcript moteur (session persistée, tours complets avec tools)\n\n' +
-		enginePart
+
+	parts.push(
+		'PARTIE C — Journal UI brut (JSONL, fidélité complète)\n\n' + formatDroxRawJournalAppendix(opts.journal),
 	);
+
+	return parts.join(EXPORT_SECTION_SEP);
 }

@@ -45,6 +45,8 @@ export interface IDroxChatAgentBridgeHost extends IDroxChatFileActionsHost {
 		output: unknown,
 	): { name: string; args: unknown } | undefined;
 	clearPendingTools(): void;
+	/** Resync webview `busy` depuis `_currentRunId` (focus / attach). */
+	reconcileChatBusyState?(): void;
 }
 
 export function createDroxChatAgentEventHost(
@@ -124,12 +126,12 @@ export function handleDroxEngineNotification(
 	}
 	if (method === 'agent/done') {
 		const agentHost = createDroxChatAgentEventHost(host, tabs, agentDeps);
-		if (!webviewReady) {
-			const p = params as { status?: string; error?: string } | undefined;
-			agentHost.notifyRunCycleFinished(runId, p?.status, p?.error);
-			return;
-		}
+		// Toujours finaliser le run côté hôte (clear runId, busy:false) même si la webview
+		// n'a pas encore ack webviewReady — sinon busy stale au retour focus (B-UI-07).
 		dispatchAgentDone(agentHost, params);
+		if (!webviewReady) {
+			host.reconcileChatBusyState?.();
+		}
 		return;
 	}
 	if (!webviewReady) {
