@@ -146,6 +146,13 @@ pub(crate) fn tool_pre_gate_block(
     if call_name == "session_end" {
         return Some(SESSION_END_FORBIDDEN_FOR_MODEL.to_string());
     }
+    if call_name == "bash" {
+        if let Some(cmd) = call_arguments.get("command").and_then(|v| v.as_str()) {
+            if let Some(msg) = bash_windows::bash_windows_precheck(cmd) {
+                return Some(msg.to_string());
+            }
+        }
+    }
     if call_name == "todo_write" {
         let max_todo = spec
             .max_todo_items()

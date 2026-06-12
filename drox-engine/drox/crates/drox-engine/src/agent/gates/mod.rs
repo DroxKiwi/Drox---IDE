@@ -12,7 +12,9 @@ use crate::agent::state::ArchitectRunState;
 
 use super::phases::phase_from_name_token;
 
+mod bash_windows;
 mod todo_shape;
+pub(crate) use bash_windows::{verify_bash_failure_hint, VERIFY_WINDOWS_SHELL_REMINDER};
 pub(crate) use todo_shape::todo_payload_shape_guard;
 
 include!("done.rs");
@@ -121,6 +123,27 @@ mod tests {
             "The repo already matches — no file change needed."
         )
         .is_none());
+    }
+
+    #[test]
+    fn bash_heredoc_precheck_on_windows() {
+        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
+        let msg = tool_pre_gate_block(
+            &spec,
+            "bash",
+            &json!({ "command": "cat << 'EOF' > README.md" }),
+            false,
+            None,
+            None,
+            None,
+            &EngineTuning::default(),
+        );
+        if cfg!(windows) {
+            assert!(msg.is_some());
+            assert!(msg.unwrap().contains("heredoc"));
+        } else {
+            assert!(msg.is_none());
+        }
     }
 
     #[test]

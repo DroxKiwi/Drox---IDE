@@ -7,7 +7,9 @@ use drox_types::{Content, Message, Role};
 use super::policy;
 use super::propose_hold;
 use super::state::RunRailState;
+use super::station::RunStation;
 use super::transition::OpenTodoCounts;
+use crate::agent::gates::VERIFY_WINDOWS_SHELL_REMINDER;
 
 /// Marker for rail snapshot messages (distinct from architect run snapshot).
 pub const RUN_RAIL_SNAPSHOT_MARKER: &str = "## Run rail (engine)";
@@ -66,10 +68,26 @@ pub fn run_rail_snapshot_block(
     } else {
         "Declare `[gate: hold]` to answer now, or `[gate: advance]` when this station is done."
     };
-    let verify_block = if verify_line.is_empty() {
+    let windows_verify_line = if state.station == RunStation::Verify {
+        #[cfg(windows)]
+        {
+            format!("\n{VERIFY_WINDOWS_SHELL_REMINDER}")
+        }
+        #[cfg(not(windows))]
+        {
+            String::new()
+        }
+    } else {
+        String::new()
+    };
+    let verify_block = if verify_line.is_empty() && windows_verify_line.is_empty() {
         String::new()
     } else {
-        format!("\n{verify_line}")
+        format!("{windows_verify_line}{}", if verify_line.is_empty() {
+            String::new()
+        } else {
+            format!("\n{verify_line}")
+        })
     };
     format!(
         "{RUN_RAIL_SNAPSHOT_MARKER}\n\

@@ -263,9 +263,9 @@ Faire les étapes **dans l’ordre**. Cocher `☐` → `☑`. Ne pas sauter une 
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 5.1 | ☐ | Rappel OS Windows dans blocs VERIFY / nudges | `prompts/`, `nudges/` | B-MOTOR-02 |
-| 5.2 | ☐ | Suggestions PowerShell-compat (`Get-Content` vs `head`) | nudges verify | B-MOTOR-02 |
-| 5.3 | ☐ | (Optionnel) pre-check bash `head`/`tail` avant exec | permissions ou wrapper | B-MOTOR-02 |
+| 5.1 | ☑ | Rappel OS Windows dans blocs VERIFY / nudges | `prompts/`, `nudges/` | B-MOTOR-02 |
+| 5.2 | ☑ | Suggestions PowerShell-compat (`Get-Content` vs `head`) | nudges verify | B-MOTOR-02 |
+| 5.3 | ☑ | (Optionnel) pre-check bash `head`/`tail` avant exec | permissions ou wrapper | B-MOTOR-02 |
 | 5.4 | ☐ | Smoke VERIFY Next.js Windows | manuel | B-MOTOR-02 |
 | | | | | **G-test** · **G-smoke-edit** |
 

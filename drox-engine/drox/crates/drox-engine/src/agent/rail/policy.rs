@@ -81,7 +81,16 @@ pub fn station_action_hint(station: RunStation) -> &'static str {
         RunStation::Propose => "Propose the approach; wait for the user if depth is complex.",
         RunStation::Plan => "Plan with todo_write; read tools are allowed to refine the plan.",
         RunStation::Act => "Mutate files with file_edit, file_write, notebook_edit, or delete_path.",
-        RunStation::Verify => "Verify with bash or lsp.",
+        RunStation::Verify => {
+            #[cfg(windows)]
+            {
+                "Verify with bash or lsp. Shell is cmd.exe — no heredoc (`<<`); use npm/pnpm scripts, `lsp`, or PowerShell (`Get-Content`, not `head`/`tail`)."
+            }
+            #[cfg(not(windows))]
+            {
+                "Verify with bash or lsp."
+            }
+        }
         RunStation::Answer => {
             "Reply in [phase: answering], then [phase: done]. \
              With open todos you may call `todo_write` to update statuses; \
