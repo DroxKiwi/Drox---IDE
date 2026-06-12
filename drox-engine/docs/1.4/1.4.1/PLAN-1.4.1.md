@@ -119,11 +119,13 @@ Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rai
 - **M-DISC-01** : ☑ si R1a + R1b + R1c passent après 2.1–2.3 ; sinon garder ouvert et documenter échec dans SMOKE-BACKLOG.
 - **B-DISC-03** : ☑ si R1b (ou run sans marqueurs forcé) affiche la 1ʳᵉ réponse utilisateur ; sinon report 1.4.2 si pré-gate élimine le cas.
 
-### P3 — Busy & sync session — B-UI-07
+### P3 — Busy & sync session — B-UI-07 ☑
 
 **Problème** : modèle terminé mais UI `busy` ; events perdus au blur ; messages user triplés.
 
 **Critère** : run terminé → `busy: false` < 2 s après alt-tab ; pas de message user dupliqué.
+
+**Dogfood juin 2026** : validé (alt-tab fin de cycle, `ef58f637`).
 
 ### P4 — Boucles, answering, ACT — B-MOTOR-01/03/04
 
@@ -131,11 +133,13 @@ Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rai
 
 - Préambules thinking répétés ; snapshot redondant mid-run (B-MOTOR-01).
 - Double promotion `[phase: answering]` (B-MOTOR-03).
-- Brief edit → lecture seule ou `done` sans `file_edit` quand mutation attendue (B-MOTOR-04 — dogfood post-1.4.0).
+- Brief edit → lecture seule ou `done` sans `file_edit` quand mutation attendue (B-MOTOR-04 — dogfood post-1.4.0). **☑ corrigé** (`f8dd47a7` gate `done` + `looks_like_mutation_brief`).
 
 **Pistes** : `final_answer_guard.rs` ; fingerprint loop ; `stall_act` ; nudge ACT si station PLAN/READ trop longue sans mutation ; vérifier `pre_gate` + promotion VERIFY→ANSWER sans passage ACT.
 
 **Critère** : run charte < 80 steps moteur ; une réponse finale ; au moins une mutation si le brief l’exige explicitement.
+
+**Dogfood juin 2026** : README + LSP (`chat_qwen27b.txt`, session `ses_4792b6b9`) — `file_write` OK, rail VERIFY bloque mutation, réponse finale stable (`dcc24d320` UI).
 
 ### P5 — VERIFY Windows — B-MOTOR-02
 
@@ -233,10 +237,10 @@ Faire les étapes **dans l’ordre**. Cocher `☐` → `☑`. Ne pas sauter une 
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 3.1 | ☐ | Garantir `busy: false` sur Stop / erreur / cancel / `done` | `droxChatAgentEvents.ts`, `droxChatSendRun.ts` | B-UI-07 |
-| 3.2 | ☐ | Réconcilier runId au retour focus (heartbeat ou poll moteur) | `droxChatAgentHost.ts` | B-UI-07 |
-| 3.3 | ☐ | Bloquer double envoi user pendant `busy` stale | webview router / composer | B-UI-07 |
-| 3.4 | ☐ | Test manuel : alt-tab pendant run + après `done` | smoke | B-UI-07 |
+| 3.1 | ☑ | Garantir `busy: false` sur Stop / erreur / cancel / `done` | `droxChatAgentEvents.ts`, `droxChatSendRun.ts` | B-UI-07 |
+| 3.2 | ☑ | Réconcilier runId au retour focus (heartbeat ou poll moteur) | `droxChatAgentHost.ts` | B-UI-07 |
+| 3.3 | ☑ | Bloquer double envoi user pendant `busy` stale | webview router / composer | B-UI-07 |
+| 3.4 | ☑ | Test manuel : alt-tab pendant run + après `done` | smoke | B-UI-07 |
 | | | | | **G-ts** · **G-smoke-edit** (partiel) |
 
 ---
@@ -248,9 +252,9 @@ Faire les étapes **dans l’ordre**. Cocher `☐` → `☑`. Ne pas sauter une 
 | 4.1 | ☐ | Réduire réinjection snapshot redondante mid-run | `state/`, `run_snapshot.rs` | B-MOTOR-01 |
 | 4.2 | ☐ | `FinalAnswerGuard` : une seule promotion `answering` | `final_answer_guard.rs` | B-MOTOR-03 |
 | 4.3 | ☐ | Fingerprint loop : ignorer préambules stables | `stream/`, `phases.rs` | B-MOTOR-01 |
-| 4.4 | ☐ | Diagnostiquer runs 0 `file_edit` : log station + tool reject | dogfood transcript | B-MOTOR-04 |
-| 4.5 | ☐ | Nudge / gate : brief mutation explicite → forcer passage ACT ou refuser `done` sans mutation | `rail/`, `gates/done.rs`, `stall_act` | B-MOTOR-04 |
-| 4.6 | ☐ | Vérifier clôture « code déjà OK » : answering honnête sans faux `file_edit` | prompt / `done` gate | B-MOTOR-04 |
+| 4.4 | ☑ | Diagnostiquer runs 0 `file_edit` : log station + tool reject | dogfood transcript | B-MOTOR-04 |
+| 4.5 | ☑ | Nudge / gate : brief mutation explicite → forcer passage ACT ou refuser `done` sans mutation | `rail/`, `gates/done.rs`, `stall_act` | B-MOTOR-04 |
+| 4.6 | ☑ | Vérifier clôture « code déjà OK » : answering honnête sans faux `file_edit` | prompt / `done` gate | B-MOTOR-04 |
 | | | | | **G-test** · **G-smoke-edit** |
 
 ---
