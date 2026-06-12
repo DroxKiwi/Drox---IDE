@@ -184,6 +184,32 @@ fn block_looks_like_thinking(block: &str) -> bool {
         .any(is_meta_discussion_line)
 }
 
+/// Étape numérotée de plan interne EN (`1. Then read…`) — pas une liste markdown (`1. **Item**`).
+fn is_numbered_internal_plan_line(line: &str) -> bool {
+    let t = line.trim();
+    let Some((idx, rest)) = t.split_once('.') else {
+        return false;
+    };
+    if idx.is_empty() || !idx.chars().all(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    let rest = rest.trim();
+    if rest.starts_with('`') || rest.starts_with('*') || rest.starts_with('#') || rest.starts_with('|') {
+        return false;
+    }
+    rest.starts_with("Then ")
+        || rest.starts_with("Read ")
+        || rest.starts_with("Check ")
+        || rest.starts_with("Add ")
+        || rest.starts_with("Write ")
+        || rest.starts_with("Reply ")
+        || rest.starts_with("Not use")
+        || rest.starts_with("Stop")
+        || rest.starts_with("Let me")
+        || rest.starts_with("I ")
+        || rest.starts_with("We ")
+}
+
 /// Ligne de monologue interne (thinking) — pas une réponse utilisateur.
 fn is_meta_discussion_line(line: &str) -> bool {
     let t = line.trim();
@@ -196,7 +222,7 @@ fn is_meta_discussion_line(line: &str) -> bool {
         || t.starts_with("Let me ")
         || t.starts_with("No exploration")
         || t.starts_with("Plan:")
-        || (t.chars().next().is_some_and(|c| c.is_ascii_digit()) && t.contains('.'))
+        || is_numbered_internal_plan_line(t)
 }
 
 /// Dernière ligne non méta (repli discussion sans marqueur phase).
@@ -314,6 +340,20 @@ pub fn extract_discussion_user_facing_reply(text: &str) -> String {
 
     if let Some(block) = slice_after_last_phase_answering(text) {
         return block;
+    }
+
+    // Canal answering (deltas UI) : pas de marqueurs protocole — corps utilisateur direct.
+    if !work.trim().is_empty()
+        && !work
+            .lines()
+            .any(|line| is_discussion_protocol_line(line.trim()))
+        && !block_looks_like_thinking(&work)
+    {
+        let end = find_discussion_done_line_start(&work).unwrap_or(work.len());
+        let body = trim_discussion_reply_tail(work[..end].trim());
+        if !body.trim().is_empty() {
+            return body;
+        }
     }
 
     let end = find_discussion_done_line_start(&work).unwrap_or(work.len());
@@ -490,6 +530,22 @@ Salut ! Comment puis-je t'aider aujourd'hui ?
         let reply = extract_discussion_user_facing_reply(raw);
         assert_eq!(reply, "Salut ! Comment puis-je t'aider aujourd'hui ?");
         assert!(!reply.contains("short answer"));
+    }
+
+    #[test]
+    fn extracts_full_markdown_answer_with_numbered_lists() {
+        let raw = r#"## Fonctionnement
+
+### Section
+
+1. **Écoute `mousemove`** sur la fenêtre
+2. **Normalise** les coordonnées
+
+**En résumé** : le scrolling est géré par CSS."#;
+        let reply = extract_discussion_user_facing_reply(raw);
+        assert!(reply.contains("## Fonctionnement"), "reply: {reply:?}");
+        assert!(reply.contains("1. **Écoute"), "reply: {reply:?}");
+        assert_ne!(reply.trim(), "**En résumé** : le scrolling est géré par CSS.");
     }
 
     #[test]
