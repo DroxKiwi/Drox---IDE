@@ -285,6 +285,25 @@
 		return fn.sanitizeChatText(raw);
 	};
 
+	/** Le stream UI est plus complet que le `userFacingReply` moteur (extract tronqué). */
+	fn.shouldPreferStreamOverCanonicalReply = function (existingText, reply) {
+		const existing = String(existingText || '').trim();
+		const canon = String(reply || '').trim();
+		if (!existing || !canon) {
+			return false;
+		}
+		if (fn.isBrokenCanonicalReply(canon)) {
+			return existing.length > canon.length;
+		}
+		if (existing.length > canon.length && existing.includes(canon)) {
+			return true;
+		}
+		if (canon.length < existing.length * 0.6) {
+			return true;
+		}
+		return false;
+	};
+
 	/** Réponse canonique manifestement corrompue (fragments de thinking / backticks). */
 	fn.isBrokenCanonicalReply = function (text) {
 		const t = String(text || '').trim();
@@ -311,7 +330,7 @@
 			':scope > .drox-chat-stream, :scope > .msg.drox-chat-stream',
 		);
 		const existingText = String(existingStream?.dataset?.raw ?? existingStream?.textContent ?? '').trim();
-		if (fn.isBrokenCanonicalReply(reply) && existingText.length > reply.length) {
+		if (fn.shouldPreferStreamOverCanonicalReply(existingText, reply)) {
 			fn.promoteChatStreamToFinalAnswer?.();
 			return;
 		}
