@@ -13,6 +13,8 @@ pub(super) struct DriveSession {
     pub last_todo_pending: u64,
     pub last_todo_in_progress: u64,
     pub effective_run_objective: Option<String>,
+    /// Brief utilisateur qui exige une mutation (`file_edit` / `file_write`, …).
+    pub mutation_expected: bool,
     pub consecutive_ask_user_question_failures: u32,
     pub live_compaction_seq: u32,
     pub architect_state: ArchitectRunState,

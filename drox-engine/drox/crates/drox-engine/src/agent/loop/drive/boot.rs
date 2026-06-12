@@ -81,6 +81,10 @@
             }
         }
 
+        let mutation_expected = self.config.run_spec.role_id == crate::run_spec::RoleId::Architect
+            && crate::agent::last_user_text(&messages)
+                .is_some_and(|req| crate::orchestration::looks_like_mutation_brief(&req));
+
         Some(DriveSession {
             ctx,
             memory_tracker,
@@ -91,6 +95,7 @@
             last_todo_pending: 0,
             last_todo_in_progress: 0,
             effective_run_objective,
+            mutation_expected,
             consecutive_ask_user_question_failures: 0,
             live_compaction_seq: 0,
             architect_state,

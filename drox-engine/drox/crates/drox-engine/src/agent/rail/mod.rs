@@ -24,7 +24,9 @@ pub use loop_hooks::{
     after_assistant_turn, on_act_idle_turn, on_act_tool_failure, on_tool_success,
     on_turn_start, on_verify_tool_result, refresh_snapshot, AfterAssistantAction,
 };
-pub use transition::{reopen_work_station_if_needed, OpenTodoCounts};
+pub use transition::{
+    force_act_for_expected_mutation, reopen_work_station_if_needed, OpenTodoCounts,
+};
 pub use policy::filter_tool_specs_for_station;
 pub use pre_gate::tool_pre_gate_rail;
 pub use snapshot_block::refresh_run_rail_snapshot;
