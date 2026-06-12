@@ -13,6 +13,7 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IOutputService } from '../../../../services/output/common/output.js';
 import { ITerminalService } from '../../../terminal/browser/terminal.js';
@@ -85,6 +86,7 @@ export interface IDroxChatWebviewRouterDeps {
 	readonly sessionService: IDroxSessionService;
 	readonly clipboardService: IClipboardService;
 	readonly workspaceContextService: IWorkspaceContextService;
+	readonly productService: IProductService;
 }
 
 export async function routeDroxChatWebviewMessage(
@@ -170,6 +172,8 @@ export async function routeDroxChatWebviewMessage(
 				deps.workspaceContextService,
 				deps.clipboardService,
 				deps.notificationService,
+				deps.productService,
+				deps.fileService,
 			);
 			break;
 		case 'userAskAnswer':

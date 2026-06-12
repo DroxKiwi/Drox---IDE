@@ -14,7 +14,7 @@ import { isDroxWebviewToHostMessage } from '../../browser/droxChatBridge.js';
 import { droxLlmModelEnumValues, updateDroxLlmModelEnum } from '../../common/droxConfiguration.js';
 import { parseDroxEnvFileContent } from '../../common/droxEnvFile.js';
 import { formatDroxTranscriptExport } from '../../common/chat/droxTranscriptExport.js';
-import { formatDroxUiReplayExport } from '../../common/chat/droxUiReplayExport.js';
+import { formatDroxCombinedSessionExport, formatDroxUiReplayExport } from '../../common/chat/droxUiReplayExport.js';
 import {
 	buildLlmModelListUrl,
 	normalizeLlmServerBaseUrl,
@@ -748,6 +748,38 @@ suite('Drox — transcript export', () => {
 		const streamIdx = text.indexOf('THINKING STREAM');
 		const replyIdx = text.indexOf('USER-FACING REPLY');
 		assert.ok(userIdx < gateIdx && gateIdx < streamIdx && streamIdx < replyIdx);
+	});
+
+	test('formatDroxCombinedSessionExport includes raw journal and engine roster', () => {
+		const journal = [
+			{ kind: 'append', role: 'user', text: 'Hi' },
+			{ kind: 'state', busy: true },
+			{ kind: 'delta', text: 'Hello' },
+			{ kind: 'state', busy: false },
+		];
+		const messages: IDroxTranscriptMessage[] = [
+			{ role: 'user', content: [{ type: 'text', text: 'Hi' }] },
+			{
+				role: 'assistant',
+				content: [{ type: 'text', text: 'Hello' }],
+			},
+			{
+				role: 'tool',
+				content: [{ type: 'tool_result', tool_use_id: 'tu_x', content: 'ok', is_error: false }],
+			},
+		];
+		const text = formatDroxCombinedSessionExport({
+			sessionId: 'ses_combo',
+			journal,
+			transcriptMessages: messages,
+		});
+		assert.ok(text.includes('PARTIE B — Transcript moteur'));
+		assert.ok(text.includes('PARTIE C — Journal UI brut'));
+		assert.ok(text.includes('PARTIE D — Index messages moteur'));
+		assert.ok(text.includes('#1\t{"kind":"append"'));
+		assert.ok(text.includes('STATE'));
+		assert.ok(text.includes('busy: true'));
+		assert.ok(text.includes('3. TOOL — tool_result:tu_x'));
 	});
 
 	test('formatDroxUiReplayExport includes run rail station events', () => {
