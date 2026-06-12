@@ -167,12 +167,24 @@ fn build_guidance(topic: &str, s: &ArchitectHelpSnapshot) -> String {
 }
 
 fn guidance_verify() -> &'static str {
+  #[cfg(windows)]
+  {
+    "### Verify before close (Windows)\n\
+     At the VERIFY station, confirm the change still works:\n\
+     1. Prefer project scripts (`npm run lint`, `cargo check`, `pnpm typecheck`) — `bash` runs via **cmd.exe**.\n\
+     2. **Do not** use bash heredoc (`<<`) or Unix-only tools (`head`, `tail`) — use `file_read` line ranges, `lsp`, or PowerShell `Get-Content`.\n\
+     3. On pass → user summary in `[phase: answering]`. On fail → fix in ACT with `file_edit`/`file_write`, then verify again.\n\
+     4. Then `[phase: done]`."
+  }
+  #[cfg(not(windows))]
+  {
     "### Verify before close\n\
      At the VERIFY station, confirm the change still works:\n\
      1. Pick one command that matches the stack (`package.json` scripts, `Cargo.toml`, CI config).\n\
      2. Run it with **`bash`** (or targeted `file_read` / `grep` if no safe command).\n\
      3. On pass → user summary in `[phase: answering]`. On fail → report what broke and fix in ACT.\n\
      4. Then `[phase: done]`."
+  }
 }
 
 fn guidance_closure(s: &ArchitectHelpSnapshot) -> &'static str {

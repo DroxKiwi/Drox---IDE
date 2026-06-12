@@ -1,5 +1,7 @@
 //! VERIFY outcome — pass/fail from `bash` / `lsp` at station VERIFY.
 
+use crate::agent::gates::verify_bash_failure_hint;
+
 use serde_json::Value;
 
 use super::policy;
@@ -106,10 +108,15 @@ fn bash_failure_summary(output: &Value) -> String {
         .unwrap_or("")
         .trim();
     let head: String = stderr.chars().take(240).collect();
-    if head.is_empty() {
+    let base = if head.is_empty() {
         format!("bash exit_code={code}")
     } else {
         format!("bash exit_code={code}: {head}")
+    };
+    if let Some(hint) = verify_bash_failure_hint(stderr) {
+        format!("{base} — {hint}")
+    } else {
+        base
     }
 }
 
@@ -187,6 +194,16 @@ mod tests {
         let _ = on_verify_tool_result(&mut state, "bash", &json!({ "exit_code": 1 }), false);
         assert_eq!(state.station, RunStation::Act);
         assert!(state.verify_outcome.failed());
+    }
+
+    #[test]
+    fn bash_failure_summary_appends_windows_hint() {
+        if !cfg!(windows) {
+            return;
+        }
+        let out = json!({ "exit_code": 1, "stderr": "<< was unexpected at this time." });
+        let summary = bash_failure_summary(&out);
+        assert!(summary.contains("heredoc"));
     }
 
     #[test]
