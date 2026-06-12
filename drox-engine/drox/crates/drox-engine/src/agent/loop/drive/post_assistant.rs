@@ -26,6 +26,8 @@
                 session.last_todo_pending,
                 session.last_todo_in_progress,
                 session.effective_run_objective.as_deref(),
+                session.mutation_expected,
+                session.memory_tracker.mutation_count(),
             )
             .await
         {

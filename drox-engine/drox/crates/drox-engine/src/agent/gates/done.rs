@@ -1,3 +1,12 @@
+pub(crate) const MISSING_MUTATION_WHEN_EXPECTED_PROMPT: &str = "You emitted `[phase: done]` \
+    but this run requested a **workspace change** and no mutation tool succeeded yet \
+    (`file_edit`, `file_write`, `notebook_edit`, `delete_path`).\n\
+    \n\
+    - If the repo **already matches** the request: say so clearly in `[phase: answering]` \
+    (e.g. that no file change is needed), then `[phase: done]`.\n\
+    - Otherwise: move to **ACT** (`[gate: advance]` if needed), call `file_edit` or \
+    `file_write` on the target path, verify if useful, then answer and close.";
+
 pub(crate) const MISSING_ANSWERING_PROMPT: &str = "You emitted `[phase: done]` without \
     ever using `[phase: answering]` in this run. The engine cannot close yet: \
     your final user-facing reply MUST live inside `[phase: answering]`. Any \
@@ -33,6 +42,47 @@ pub(crate) fn unfinished_todos_prompt(pending: u64, in_progress: u64) -> String 
          \n\
          An open todo means the work is not finished."
     )
+}
+
+/// Réponse assistant qui affirme qu'aucune mutation n'est nécessaire (clôture honnête).
+#[must_use]
+pub(crate) fn answering_claims_no_mutation_needed(text: &str) -> bool {
+    let t = text.to_ascii_lowercase();
+    const PHRASES: &[&str] = &[
+        "already matches",
+        "already satisfied",
+        "no change needed",
+        "no file change",
+        "aucune modification",
+        "pas besoin de modifier",
+        "pas de modification",
+        "rien à changer",
+        "déjà conforme",
+        "deja conforme",
+        "already in place",
+        "déjà en place",
+        "deja en place",
+        "code already",
+    ];
+    PHRASES.iter().any(|p| t.contains(p))
+}
+
+/// Blocage `[phase: done]` sur run edit : brief mutation sans tool mutateur réussi.
+#[must_use]
+pub(crate) fn done_gate_missing_mutation_when_expected(
+    spec: &RunSpec,
+    mutation_expected: bool,
+    mutation_count: u32,
+    recent_assistant_text: &str,
+) -> Option<&'static str> {
+    if spec.role_id != crate::run_spec::RoleId::Architect
+        || !mutation_expected
+        || mutation_count > 0
+        || answering_claims_no_mutation_needed(recent_assistant_text)
+    {
+        return None;
+    }
+    Some(MISSING_MUTATION_WHEN_EXPECTED_PROMPT)
 }
 
 /// Blocage `[phase: done]` : message `system` à injecter, ou `None` si la gate

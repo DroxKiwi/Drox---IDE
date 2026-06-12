@@ -22,6 +22,16 @@ impl OpenTodoCounts {
     }
 }
 
+/// Run edit : brief mutation sans patch — forcer ACT avant nouvelle tentative de clôture.
+pub fn force_act_for_expected_mutation(state: &mut RunRailState) {
+    if matches!(
+        state.station,
+        RunStation::Intent | RunStation::Read | RunStation::Plan | RunStation::Propose | RunStation::Verify | RunStation::Answer
+    ) {
+        state.station = RunStation::Act;
+    }
+}
+
 /// When todos remain, VERIFY/ANSWER are premature — return to ACT so mutations work.
 pub fn reopen_work_station_if_needed(state: &mut RunRailState, open: OpenTodoCounts) {
     if !open.has_open() {

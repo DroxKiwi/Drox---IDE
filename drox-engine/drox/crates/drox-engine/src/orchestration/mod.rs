@@ -17,8 +17,8 @@ pub use architect_gate::{
 pub use json_response::{extract_first_json_object, looks_like_gate_json_response};
 pub use start_run::{GateChainResult, StartRunKind};
 pub use user_message_scope::{
-    initial_run_objective_for_concrete_edit, sanitize_architect_user_prompt,
-    sanitize_transcript_user_messages,
+    initial_run_objective_for_concrete_edit, looks_like_mutation_brief,
+    sanitize_architect_user_prompt, sanitize_transcript_user_messages,
 };
 pub use protocol_markers::{
     is_meta_synthesis_task, todo_declares_meta_task, DISCUSSION_DONE_LINE,

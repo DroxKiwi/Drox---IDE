@@ -7,6 +7,52 @@ pub(super) enum PostLlmStep {
 }
 
 impl Agent {
+    async fn inject_missing_mutation_gate(
+        &self,
+        outcome: &crate::agent::stream::TurnOutcome,
+        messages: &mut Vec<Message>,
+        transcript_cursor: &mut usize,
+        tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
+        architect_state: &mut ArchitectRunState,
+        mutation_expected: bool,
+        mutation_count: u32,
+        last_todo_pending: u64,
+        last_todo_in_progress: u64,
+    ) -> Option<PostLlmStep> {
+        if let Some(prompt) = done_gate_missing_mutation_when_expected(
+            &self.config.run_spec,
+            mutation_expected,
+            mutation_count,
+            &outcome.text,
+        ) {
+            debug!("[phase: done] mutation attendue mais aucun outil mutateur — nudge");
+            messages.push(Message::system(prompt));
+            if rail::run_rail_active(&self.config.engine_tuning, self.config.run_spec.role_id) {
+                rail::force_act_for_expected_mutation(&mut architect_state.rail);
+                let open_todos = rail::OpenTodoCounts {
+                    pending: last_todo_pending,
+                    in_progress: last_todo_in_progress,
+                };
+                let rail_focus = architect_state
+                    .current_focus_task_line()
+                    .map(|(id, label, _)| (id, label));
+                let focus = rail_focus
+                    .as_ref()
+                    .map(|(id, label)| (id.as_str(), label.as_str()));
+                rail::refresh_snapshot(messages, &architect_state.rail, focus, open_todos);
+            }
+            if let Err(e) = self
+                .flush_transcript(messages, transcript_cursor)
+                .await
+            {
+                let _ = tx.send(Err(e)).await;
+                return Some(PostLlmStep::Stop);
+            }
+            return Some(PostLlmStep::Continue);
+        }
+        None
+    }
+
     async fn drive_post_llm_outcome(
         &self,
         outcome: &crate::agent::stream::TurnOutcome,
@@ -20,6 +66,8 @@ impl Agent {
         last_todo_pending: u64,
         last_todo_in_progress: u64,
         _effective_run_objective: Option<&str>,
+        mutation_expected: bool,
+        mutation_count: u32,
     ) -> PostLlmStep {
             if outcome.final_phase == Some(Phase::Done) {
                 if !*seen_answering_in_run {
@@ -115,6 +163,22 @@ impl Agent {
                     }
                     return PostLlmStep::Continue;
                 }
+                if let Some(step) = self
+                    .inject_missing_mutation_gate(
+                        outcome,
+                        messages,
+                        transcript_cursor,
+                        tx,
+                        architect_state,
+                        mutation_expected,
+                        mutation_count,
+                        last_todo_pending,
+                        last_todo_in_progress,
+                    )
+                    .await
+                {
+                    return step;
+                }
                 debug!("[phase: done] aprÃƒÂ¨s answering + todo_write clÃƒÂ´turÃƒÂ© Ã¢â‚¬â€ clÃƒÂ´ture propre");
                 let _ = tx
                     .send(Ok(AgentEvent::Stop {
@@ -201,6 +265,22 @@ impl Agent {
                         {
                             let _ = tx.send(Err(e)).await;
                             return PostLlmStep::Stop;
+                        }
+                        if let Some(step) = self
+                            .inject_missing_mutation_gate(
+                                outcome,
+                                messages,
+                                transcript_cursor,
+                                tx,
+                                architect_state,
+                                mutation_expected,
+                                mutation_count,
+                                last_todo_pending,
+                                last_todo_in_progress,
+                            )
+                            .await
+                        {
+                            return step;
                         }
                         let _ = tx
                             .send(Ok(AgentEvent::Stop {

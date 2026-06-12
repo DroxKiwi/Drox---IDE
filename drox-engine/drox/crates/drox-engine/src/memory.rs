@@ -113,6 +113,12 @@ impl MemoryTracker {
         }
     }
 
+    /// Nombre de tools mutateurs exécutés avec succès ce run.
+    #[must_use]
+    pub const fn mutation_count(&self) -> u32 {
+        self.mutating_count
+    }
+
     /// Vrai si le run mérite une persistance.
     ///
     /// Borne basse : un `todo_write` seul suffit (le user a posé un plan,

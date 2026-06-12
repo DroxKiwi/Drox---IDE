@@ -103,6 +103,27 @@ mod tests {
     }
 
     #[test]
+    fn done_gate_blocks_edit_close_without_mutation() {
+        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
+        assert!(done_gate_missing_mutation_when_expected(
+            &spec,
+            true,
+            0,
+            "[phase: answering]\nPlan only.\n[phase: done]"
+        )
+        .is_some());
+        assert!(done_gate_missing_mutation_when_expected(&spec, true, 1, "done").is_none());
+        assert!(done_gate_missing_mutation_when_expected(&spec, false, 0, "done").is_none());
+        assert!(done_gate_missing_mutation_when_expected(
+            &spec,
+            true,
+            0,
+            "The repo already matches — no file change needed."
+        )
+        .is_none());
+    }
+
+    #[test]
     fn hallucinated_phase_tool_ignores_real_tools() {
         assert!(!is_hallucinated_phase_tool_call(
             "file_read",

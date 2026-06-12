@@ -5,11 +5,12 @@ async fn session_not_persisted_at_done_without_live_compaction() {
     let dir = tempfile::tempdir().unwrap();
     let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
 
-    // Trois scripts dans l'ordre : (1) reasoning + todo_write,
-    // (2) answering + done, (3) compaction.
+    // Scripts : (1) todo_write, (2) done sans mutation (gate B-MOTOR-04),
+    // (3) clôture honnête sans patch, (4) compaction live.
     let llm = Arc::new(ScriptedLlm::new(vec![
         read_then_one_todo_turn("On va faire X."),
         done_turn("Voici le rÃƒÂ©sultat."),
+        done_turn("Le code est dÃƒÂ©jÃƒÂ  conforme â€” aucune modification nÃƒÂ©cessaire."),
         compaction_turn("Refactorer le module X", &["src/x.rs", "src/y.rs"]),
     ]));
 
