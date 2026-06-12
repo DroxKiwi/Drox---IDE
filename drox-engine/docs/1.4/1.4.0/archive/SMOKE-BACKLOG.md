@@ -200,7 +200,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ---
 
-## B-UI-07 â€” Run Â« busy Â» aprÃ¨s fin modÃ¨le (focus app / fin de run)
+## B-UI-07 — RÉSOLU 1.4.1 — Run « busy » après fin modèle (focus app / fin de run)
 
 **Cible** : **1.4.1**
 
@@ -220,6 +220,8 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 **Pistes** : fenÃªtre Electron perd le dernier event SSE/JSON-RPC ; runId stale ; cancel utilisateur implicite au blur.
 
 **CritÃ¨re fix** : aprÃ¨s `done` ou cancel explicite, `busy: false` garanti mÃªme si lâ€™app a Ã©tÃ© en arriÃ¨re-plan.
+
+**Fix** : `ef58f637` (resync focus, garde double envoi, `busy` sur `done`). **Validation** : dogfood alt-tab fin de cycle juin 2026.
 
 ---
 
@@ -351,13 +353,15 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ---
 
-## B-MOTOR-04 â€” Run edit sans mutation (`file_edit` absent)
+## B-MOTOR-04 — RÉSOLU 1.4.1 — Run edit sans mutation (`file_edit` absent)
 
 **Cible** : **1.4.1**
 
 **SymptÃ´me** : brief edit explicite mais run terminÃ© avec **0 `file_edit`** ; ou clÃ´ture en `answering` sans mutation alors que le brief lâ€™exigeait (dogfood juin 2026 post-1.4.0).
 
 **Plan** : [PLAN-1.4.1](../../1.4.1/PLAN-1.4.1.md) phase P4.
+
+**Fix** : `looks_like_mutation_brief` + `done_gate_missing_mutation_when_expected` (`f8dd47a7`). **Validation** : dogfood README+LSP juin 2026 (`ses_4792b6b9`, `file_write` + rail VERIFY OK).
 
 **CritÃ¨re fix** : mutation explicite demandÃ©e â†’ au moins un `file_edit`/`file_write` rÃ©ussi ou answering honnÃªte expliquant lâ€™absence de patch.
 
@@ -403,6 +407,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 | 2026-06-09 | Tri versions 1.4.0 moteur / 1.4.1 bugs / 1.4.2 UI ; salut simple â†’ M-DISC-01 |
 | 2026-06-05 | Phase 4 VERIFY loop : `verify.rs`, transition gate, snapshot ; B-MOTOR-02 partiel |
 | 2026-06-05 | Clôture squelette 1.4.0 ; PLAN-1.4.1 réaligné post-dogfood ; B-MOTOR-04, B-REL-01 ajoutés |
+| 2026-06-12 | B-MOTOR-04 résolu (`f8dd47a7`) ; B-UI-07 validé dogfood ; P3/P4 plan cochés |
 
 ---
 
