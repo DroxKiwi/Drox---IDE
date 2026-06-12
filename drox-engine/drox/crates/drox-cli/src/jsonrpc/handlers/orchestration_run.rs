@@ -47,7 +47,7 @@ fn resolve_architect_gate(params: &AgentRunParams) -> GateChainResult {
                 source = "rpc_param",
                 "mode forcé"
             );
-            return GateChainResult::from_rpc_override(gate);
+            return GateChainResult::from_rpc_override(gate, &params.prompt);
         }
         tracing::warn!(
             architect_interaction_mode = %raw,

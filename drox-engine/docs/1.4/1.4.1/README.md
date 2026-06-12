@@ -8,7 +8,7 @@
 
 ## En une phrase
 
-Stabiliser le moteur et la session après la refonte rail **1.4.0** : surface prod (`droxSurface`), discuss, busy, mutations ACT, boucles, VERIFY Windows, replay — **sans** polish UI chat (→ 1.4.2).
+Stabiliser le moteur et la session après la refonte rail **1.4.0** : surface prod (`droxSurface`), discuss (R1a/R1b dogfood qwen27b), busy, mutations ACT, boucles, VERIFY Windows, replay — **sans** polish UI chat (→ 1.4.2).
 
 ---
 
@@ -25,7 +25,9 @@ L’ancien plan **index / graphe** est en **[1.4.3](../1.4.3/PLAN-1.4.3.md)**.
 | ID | Sujet | Phase |
 |----|-------|-------|
 | **B-REL-01** | `droxSurface` + features dev ; version prod sans suffixe | P1 |
-| **M-DISC-01** | Salut discuss → outils interdits | P2 |
+| **B-DISC-02** | Extracteur `[discussion: reply]` (marqueurs inline thinking) | P2 |
+| **M-DISC-01** | Salut discuss → routage `reply_only` + pre-gate outils | P2 |
+| **B-DISC-03** | Fallback `userFacingReply` sans marqueurs | P2 |
 | **B-UI-07** | Run `busy` stale | P3 |
 | **B-MOTOR-04** | Edit sans `file_edit` / clôture sans mutation | P4 |
 | **B-MOTOR-01** | Préambules thinking en boucle | P4 |

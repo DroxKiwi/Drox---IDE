@@ -99,6 +99,10 @@ pub(crate) fn is_hallucinated_phase_tool_call(name: &str, arguments: &Value) -> 
     false
 }
 
+pub(crate) const DISCUSSION_REPLY_ONLY_NO_TOOLS: &str =
+    "Blocked: discussion reply-only run — no tools on greeting-only turns. \
+     Reply with `[discussion: reply]`, your short answer, then `[discussion: done]` — then stop.";
+
 /// Gates pré-exécution (hors permissions). `Some(msg)` = bloquer avec erreur.
 #[must_use]
 pub(crate) fn tool_pre_gate_block(
@@ -111,6 +115,9 @@ pub(crate) fn tool_pre_gate_block(
     drox_ignore: Option<&drox_session::DroxIgnoreMatcher>,
     tuning: &EngineTuning,
 ) -> Option<String> {
+    if spec.role_id == RoleId::ArchitectDiscussion && !spec.discussion_allow_reads {
+        return Some(DISCUSSION_REPLY_ONLY_NO_TOOLS.to_string());
+    }
     if let Some(state) = architect_state {
         if let Some(msg) = architect_orchestration_pre_gate(
             spec,
