@@ -5,11 +5,13 @@
 mod act_failure;
 mod act_stall;
 mod boot;
+mod cycle_reopen;
 mod infer;
 mod loop_hooks;
 mod markers;
 mod nudges;
 mod policy;
+mod post_todos_close;
 mod pre_gate;
 mod propose_hold;
 mod snapshot_block;
@@ -20,12 +22,15 @@ mod transition;
 mod user_turn;
 mod verify;
 
+pub(crate) use post_todos_close::reset_post_todos_idle;
 pub use loop_hooks::{
-    after_assistant_turn, on_act_idle_turn, on_act_tool_failure, on_tool_success,
-    on_turn_start, on_verify_tool_result, refresh_snapshot, AfterAssistantAction,
+    after_assistant_turn, on_act_idle_turn, on_act_mutation_success, on_act_tool_failure,
+    on_post_todos_idle_turn, on_tool_success, on_turn_start, on_verify_tool_result,
+    refresh_snapshot, ActRailNudge, AfterAssistantAction,
 };
 pub use transition::{
     force_act_for_expected_mutation, reopen_work_station_if_needed, OpenTodoCounts,
+    RailTransitionContext,
 };
 pub use policy::filter_tool_specs_for_station;
 pub use pre_gate::tool_pre_gate_rail;
@@ -72,9 +77,12 @@ mod tests {
             &mut state,
             "[depth: complex]\n[gate: advance]",
             &[],
-            OpenTodoCounts::default(),
+            transition::RailTransitionContext::default(),
         );
-        transition::apply_advance(&mut state, OpenTodoCounts::default());
+        transition::apply_advance(
+            &mut state,
+            transition::RailTransitionContext::default(),
+        );
         assert_eq!(state.station, RunStation::Propose);
     }
 
@@ -85,7 +93,7 @@ mod tests {
             &mut state,
             "Let me inspect the repo.",
             &["file_read"],
-            OpenTodoCounts::default(),
+            transition::RailTransitionContext::default(),
         );
         assert_eq!(state.station, RunStation::Read);
     }

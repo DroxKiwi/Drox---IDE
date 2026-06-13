@@ -163,6 +163,43 @@ impl Agent {
                     }
                     return PostLlmStep::Continue;
                 }
+                if rail::run_rail_active(&self.config.engine_tuning, self.config.run_spec.role_id) {
+                    if let Some(prompt) = done_gate_verify_not_passed(
+                        &self.config.run_spec,
+                        mutation_expected,
+                        mutation_count,
+                        architect_state.rail.visited_verify,
+                        architect_state.rail.verify_outcome.passed(),
+                    ) {
+                        debug!("[phase: done] verify not passed — nudge");
+                        messages.push(Message::system(prompt));
+                        rail::force_act_for_expected_mutation(&mut architect_state.rail);
+                        let open_todos = rail::OpenTodoCounts {
+                            pending: last_todo_pending,
+                            in_progress: last_todo_in_progress,
+                        };
+                        let rail_focus = architect_state
+                            .current_focus_task_line()
+                            .map(|(id, label, _)| (id, label));
+                        let focus = rail_focus
+                            .as_ref()
+                            .map(|(id, label)| (id.as_str(), label.as_str()));
+                        rail::refresh_snapshot(
+                            messages,
+                            &architect_state.rail,
+                            focus,
+                            open_todos,
+                        );
+                        if let Err(e) = self
+                            .flush_transcript(&messages, transcript_cursor)
+                            .await
+                        {
+                            let _ = tx.send(Err(e)).await;
+                            return PostLlmStep::Stop;
+                        }
+                        return PostLlmStep::Continue;
+                    }
+                }
                 if let Some(step) = self
                     .inject_missing_mutation_gate(
                         outcome,
@@ -310,6 +347,44 @@ impl Agent {
                         self.config.run_spec.role_id,
                     )
                 {
+                    if !*seen_answering_in_run
+                        && last_todo_pending == 0
+                        && last_todo_in_progress == 0
+                        && mutation_count > 0
+                    {
+                        if let Some(nudge) = rail::on_post_todos_idle_turn(
+                            &mut architect_state.rail,
+                            true,
+                            mutation_count,
+                        ) {
+                            debug!("[run_rail] post-todos idle — nudge answering");
+                            messages.push(Message::system(nudge.to_string()));
+                            let rail_focus = architect_state
+                                .current_focus_task_line()
+                                .map(|(id, label, _)| (id, label));
+                            let focus = rail_focus
+                                .as_ref()
+                                .map(|(id, label)| (id.as_str(), label.as_str()));
+                            rail::refresh_snapshot(
+                                messages,
+                                &architect_state.rail,
+                                focus,
+                                rail::OpenTodoCounts {
+                                    pending: last_todo_pending,
+                                    in_progress: last_todo_in_progress,
+                                },
+                            );
+                            if let Err(e) = self
+                                .flush_transcript(messages, transcript_cursor)
+                                .await
+                            {
+                                let _ = tx.send(Err(e)).await;
+                                return PostLlmStep::Stop;
+                            }
+                            return PostLlmStep::Continue;
+                        }
+                    }
+
                     let has_open_task = last_todo_in_progress > 0
                         || architect_state.current_focus_task_line().is_some();
                     if let Some(nudge) =

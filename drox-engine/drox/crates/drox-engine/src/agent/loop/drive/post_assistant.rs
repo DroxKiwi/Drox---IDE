@@ -8,6 +8,7 @@
     ) -> bool {
         if outcome.saw_answering {
             session.seen_answering_in_run = true;
+            rail::reset_post_todos_idle(&mut session.architect_state.rail);
             if !outcome.text.trim().is_empty() {
                 session.final_answer_guard.mark_user_facing_answer_seen();
             }

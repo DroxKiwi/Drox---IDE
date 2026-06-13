@@ -4,7 +4,10 @@
 
 use drox_types::Message;
 
-use super::act_failure::{ActFailureOutcome, record_act_tool_failure, severe_nudge_message};
+use super::act_failure::{
+    record_act_mutation_attempt, record_act_tool_failure, severe_nudge_message,
+    spiral_nudge_message, ActMutationAttemptOutcome,
+};
 use super::station_events::{self, StationEvent};
 use super::transition::{apply_assistant_turn, reopen_work_station_if_needed, OpenTodoCounts};
 use super::boot;
@@ -58,10 +61,10 @@ pub fn after_assistant_turn(
     assistant_text: &str,
     tool_names: &[&str],
     focus: Option<(String, String)>,
-    open_todos: OpenTodoCounts,
+    ctx: super::transition::RailTransitionContext,
 ) -> RailAssistantTurn {
     let before = station_events::snapshot(state);
-    apply_assistant_turn(state, assistant_text, tool_names, open_todos);
+    apply_assistant_turn(state, assistant_text, tool_names, ctx);
     let station_events = station_events::diff_transitions(before, state, focus);
     let action = if propose_hold::should_pause_run(state) {
         AfterAssistantAction::PauseForUser
@@ -74,16 +77,42 @@ pub fn after_assistant_turn(
     }
 }
 
-/// Failed mutation at ACT — returns nudge text when the run must stop (C6).
+/// Nudge after repeated mutation attempts on the same path at ACT.
+pub enum ActRailNudge {
+    /// Inject system nudge and continue the run (B-TOOL-01 spiral).
+    InjectContinue(&'static str),
+    /// Inject system nudge and stop the run (C6 circuit breaker).
+    InjectStop(&'static str),
+}
+
+/// Failed mutation at ACT — returns nudge when spiral or circuit breaker triggers.
 #[must_use]
 pub fn on_act_tool_failure(
     state: &mut RunRailState,
     tool_name: &str,
     arguments: &Value,
+) -> Option<ActRailNudge> {
+    let outcome = record_act_tool_failure(state, tool_name, arguments)?;
+    Some(match outcome {
+        ActMutationAttemptOutcome::SevereNudgeAndStop => {
+            ActRailNudge::InjectStop(severe_nudge_message())
+        }
+        ActMutationAttemptOutcome::SpiralNudge => {
+            ActRailNudge::InjectContinue(spiral_nudge_message())
+        }
+    })
+}
+
+/// Successful mutation at ACT — count rewrites on the same path (B-TOOL-01).
+#[must_use]
+pub fn on_act_mutation_success(
+    state: &mut RunRailState,
+    tool_name: &str,
+    arguments: &Value,
 ) -> Option<&'static str> {
-    match record_act_tool_failure(state, tool_name, arguments)? {
-        ActFailureOutcome::Recorded => None,
-        ActFailureOutcome::SevereNudgeAndStop => Some(severe_nudge_message()),
+    match record_act_mutation_attempt(state, tool_name, arguments, false)? {
+        ActMutationAttemptOutcome::SpiralNudge => Some(spiral_nudge_message()),
+        ActMutationAttemptOutcome::SevereNudgeAndStop => Some(severe_nudge_message()),
     }
 }
 
@@ -92,6 +121,18 @@ pub fn on_tool_success(state: &mut RunRailState, tool_name: &str) {
     super::infer::on_tool_success(state, tool_name);
     super::act_stall::reset_on_mutation_success(state, tool_name);
     super::verify::reset_on_mutation_success(state, tool_name);
+    super::post_todos_close::reset_post_todos_idle(state);
+    super::cycle_reopen::reopen_work_on_late_mutation(state, tool_name);
+}
+
+/// Idle turn after todos terminal — nudge `[phase: answering]` (B-MOTOR-06).
+#[must_use]
+pub fn on_post_todos_idle_turn(
+    state: &mut RunRailState,
+    todos_closed: bool,
+    mutation_count: u32,
+) -> Option<&'static str> {
+    super::post_todos_close::on_post_todos_idle_turn(state, todos_closed, mutation_count)
 }
 
 /// Record verify tool output; may regress VERIFY → ACT on failure.

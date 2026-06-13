@@ -8,6 +8,9 @@ use crate::agent::stream::PendingToolCall;
 use crate::event::AgentEvent;
 use crate::error::EngineError;
 
+#[cfg(windows)]
+use crate::agent::gates::verify_bash_failure_hint;
+
 /// Pose une question oui/non Ã  l'humain via `UserAsker`. Retourne `false`
 /// si pas d'asker disponible (fallback : refus) ou si l'humain refuse.
 pub(crate) async fn confirm_with_user(
@@ -57,7 +60,67 @@ pub(crate) async fn push_tool_error_tracked(
     if call.name == "ask_user_question" {
         *ask_failure_streak = ask_failure_streak.saturating_add(1);
     }
-    push_tool_error(tx, messages, &call.id, message).await
+    push_tool_error(tx, messages, &call.id, enrich_tool_error_message(&call.name, &message)).await
+}
+
+/// Append schema hints for common tool failures (B-MOTOR-07).
+#[must_use]
+pub(crate) fn enrich_tool_error_message(tool_name: &str, message: &str) -> String {
+    let lower = message.to_ascii_lowercase();
+    let hint = match tool_name {
+        "file_edit" if lower.contains("old_string not found") => {
+            "\n\nHint: `file_read` the file first; match `old_string` exactly (including whitespace)."
+        }
+        "file_edit" if lower.contains("edits must not be empty") || lower.contains("requires") => {
+            "\n\nHint: use `{ \"path\": \"…\", \"edits\": [{ \"old_string\": \"…\", \"new_string\": \"…\" }] }`."
+        }
+        "file_write" if lower.contains("requires string fields") || lower.contains("path") => {
+            "\n\nHint: use `{ \"path\": \"relative/path\", \"content\": \"full file text\" }`. \
+             If the file is large, write a shorter version first, then extend with `file_edit`."
+        }
+        "todo_write" if lower.contains("todos") => {
+            "\n\nHint: `{ \"todos\": [{ \"id\": \"t1\", \"content\": \"…\", \"status\": \"pending\" }] }`."
+        }
+        "bash" => bash_tool_error_hint(message),
+        _ => "",
+    };
+    if hint.is_empty() {
+        message.to_string()
+    } else {
+        format!("{message}{hint}")
+    }
+}
+
+#[must_use]
+fn bash_tool_error_hint(message: &str) -> &'static str {
+    #[cfg(windows)]
+    {
+        if let Some(hint) = verify_bash_failure_hint(message) {
+            return hint;
+        }
+    }
+    let _ = message;
+    ""
+}
+
+#[cfg(test)]
+mod enrich_tests {
+    use super::*;
+
+    #[test]
+    fn file_edit_empty_edits_includes_example() {
+        let msg = enrich_tool_error_message("file_edit", "edits must not be empty");
+        assert!(msg.contains("old_string"));
+    }
+
+    #[test]
+    fn bash_windows_hint_when_stderr_matches() {
+        if !cfg!(windows) {
+            return;
+        }
+        let msg = enrich_tool_error_message("bash", "Select-Object : not recognized");
+        assert!(msg.contains("Select-Object") || msg.contains("PowerShell"));
+    }
 }
 
 /// Pousse un `ToolFinish { is_error: true }` cÃ´tÃ© stream + un `tool_result`

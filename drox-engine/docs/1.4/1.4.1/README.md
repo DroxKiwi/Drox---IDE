@@ -26,8 +26,8 @@ PLAN-1.4.1       base « 0 » — stabilisation dogfood (P1–P8)
 |------|-------|-------------------|
 | [PLAN-1.4.1](PLAN-1.4.1.md) | Stabilisation dogfood P1–P8 | Partiel — P1–P5 livrés |
 | [PLAN-1.4.1.1](PLAN-1.4.1.1.md) | Intent probe + anglais moteur | **Clôturé** — [CLOSURE](finalisation/CLOSURE-1.4.1.1.md) |
-| [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) | Context diet (B-CTX-02) | **En cours** |
-| [PLAN-1.4.1.2](PLAN-1.4.1.2.md) | Rail / clôture / outils | Après 2a |
+| [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) | Context diet (B-CTX-02) | **Code livré** — smoke reporté |
+| [PLAN-1.4.1.2](PLAN-1.4.1.2.md) | Rail / clôture / outils | **Code clôturé** — [CLOSURE](finalisation/CLOSURE-1.4.1.2.md) · smokes **debunk** |
 | [SMOKE-ses_2e0b2a5e](SMOKE-ses_2e0b2a5e.md) | Analyse dogfood Qwen 2.7B (juin 2026) | **Documenté** |
 
 → **[PLAN-1.4.1.md](PLAN-1.4.1.md)** — contexte post-1.4.0 + **[tableau d’exécution § XIV](PLAN-1.4.1.md#xiv--tableau-dexécution-ordonné)** (phases 0→8)

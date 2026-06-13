@@ -7,6 +7,11 @@ pub(crate) const MISSING_MUTATION_WHEN_EXPECTED_PROMPT: &str = "You emitted `[ph
     - Otherwise: move to **ACT** (`[gate: advance]` if needed), call `file_edit` or \
     `file_write` on the target path, verify if useful, then answer and close.";
 
+pub(crate) const VERIFY_NOT_PASSED_PROMPT: &str = "You emitted `[phase: done]` but verify has \
+    not passed yet (run `bash` with exit 0 or clean `lsp` diagnostics at VERIFY). Fix issues \
+    in ACT with `file_edit`/`file_write`, verify again, then `[phase: answering]` and \
+    `[phase: done]`.";
+
 pub(crate) const MISSING_ANSWERING_PROMPT: &str = "You emitted `[phase: done]` without \
     ever using `[phase: answering]` in this run. The engine cannot close yet: \
     your final user-facing reply MUST live inside `[phase: answering]`. Any \
@@ -80,4 +85,25 @@ pub(crate) fn done_gate_unfinished_todos(
     }
     spec.gate_enabled(GateKind::TodoStaleBeforeDone)
         .then(|| unfinished_todos_prompt(pending, in_progress))
+}
+
+/// Block `[phase: done]` when mutations ran but verify never passed (B-MOTOR-08).
+#[must_use]
+pub(crate) fn done_gate_verify_not_passed(
+    spec: &RunSpec,
+    mutation_expected: bool,
+    mutation_count: u32,
+    visited_verify: bool,
+    verify_passed: bool,
+) -> Option<&'static str> {
+    if spec.role_id != crate::run_spec::RoleId::Architect {
+        return None;
+    }
+    if !mutation_expected || mutation_count == 0 {
+        return None;
+    }
+    if !visited_verify || verify_passed {
+        return None;
+    }
+    Some(VERIFY_NOT_PASSED_PROMPT)
 }

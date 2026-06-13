@@ -18,6 +18,7 @@ import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js'
 import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePasteWire, toUserMessagePasteWire } from '../../common/droxPasteCandidates.js';
 import { formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
 import { buildUserPromptStickyPayload } from '../../common/droxUserPromptSticky.js';
+import { truncateUserPromptForEngine } from '../../common/droxUserPromptEngine.js';
 import { IDroxUserAskService } from '../../common/droxUserAskService.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
@@ -170,7 +171,7 @@ export async function executeDroxChatSend(
 			interactiveAsk: true,
 		});
 		const runParams = deps.runSettingsService.buildAgentRunParams({
-			prompt: finalPrompt,
+			prompt: truncateUserPromptForEngine(finalPrompt),
 			workspace: ws,
 			mode: runMode,
 			sessionId: tabs.currentSessionId!,

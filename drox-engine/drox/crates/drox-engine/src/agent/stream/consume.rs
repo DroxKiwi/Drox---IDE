@@ -111,7 +111,7 @@ pub(crate) async fn consume_stream(
                             return Err(());
                         }
                     }
-                    if phase == Phase::Answering {
+                    if phase == Phase::Answering && phase_visible_in_ui(phase, rail_active) {
                         saw_answering = true;
                     }
                     if final_phase == Some(phase) {
@@ -241,7 +241,7 @@ pub(crate) async fn consume_stream(
                 return Err(());
             }
         }
-        if phase == Phase::Answering {
+        if phase == Phase::Answering && phase_visible_in_ui(phase, rail_active) {
             saw_answering = true;
         }
         if final_phase == Some(phase) {

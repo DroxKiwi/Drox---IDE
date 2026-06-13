@@ -69,12 +69,17 @@
                 pending: session.last_todo_pending,
                 in_progress: session.last_todo_in_progress,
             };
+            let rail_ctx = crate::agent::rail::RailTransitionContext {
+                open_todos,
+                mutation_expected: session.mutation_expected,
+                mutation_count: session.memory_tracker.mutation_count(),
+            };
             let rail_turn = crate::agent::rail::after_assistant_turn(
                 &mut session.architect_state.rail,
                 &outcome.text,
                 &tool_names,
                 focus.clone(),
-                open_todos,
+                rail_ctx,
             );
             let snapshot_focus = focus
                 .as_ref()

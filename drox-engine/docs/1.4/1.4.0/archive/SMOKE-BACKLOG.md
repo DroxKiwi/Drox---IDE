@@ -397,6 +397,27 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ---
 
+## Patch 1.4.1.2 (juin 2026) — code livré, smokes reportés
+
+| ID | Sujet | Cible | Statut code |
+|----|-------|-------|-------------|
+| **B-RAIL-02** | Hold/advance vs brief plan | 1.4.1.2 | ☑ |
+| **B-PROPOSE-01** | Auto-validation plan sans réponse user | 1.4.1.2 | ☑ |
+| **B-CYCLE-01** | Reopen VERIFY/ANSWER→ACT mutation tardive | 1.4.1.2 | ☑ |
+| **B-MOTOR-05** | `todo_write` en VERIFY | 1.4.1.2 | ☑ |
+| **B-MOTOR-06** | Clôture sans `[phase: answering]` | 1.4.1.2 | ☑ |
+| **B-MOTOR-07** | Messages gate orientés schéma | 1.4.1.2 | ☑ |
+| **B-MOTOR-08** | `done` sans verify Pass | 1.4.1.2 | ☑ |
+| **B-MOTOR-02** | Bash Windows pre-check | 1.4.1.2 | ☑ |
+| **B-TOOL-01** | Spirale `file_write` | 1.4.1.2 | ☑ |
+| **B-RAIL-03** | Yo-yo ACT↔VERIFY | 1.4.1.2 | ☑ |
+| **G-CTX-01** | Troncature prompt user IDE | 1.4.1.2 | ☑ |
+| **B-CTX-02** | Context diet snapshots | 1.4.1.2a | ☑ |
+
+→ Smokes : [PLAN-1.4.1.2](../../1.4.1/PLAN-1.4.1.2.md) phase 9 · [CLOSURE-1.4.1.2](../../1.4.1/finalisation/CLOSURE-1.4.1.2.md)
+
+---
+
 ## Journal
 
 | Date | Note |
@@ -408,6 +429,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 | 2026-06-05 | Phase 4 VERIFY loop : `verify.rs`, transition gate, snapshot ; B-MOTOR-02 partiel |
 | 2026-06-05 | Clôture squelette 1.4.0 ; PLAN-1.4.1 réaligné post-dogfood ; B-MOTOR-04, B-REL-01 ajoutés |
 | 2026-06-12 | B-MOTOR-04 résolu (`f8dd47a7`) ; B-UI-07 validé dogfood ; P3/P4 plan cochés |
+| 2026-06-05 | **1.4.1.2 code clôturé** — B-RAIL-02…08, B-CYCLE-01, G-CTX-01 ; 265 tests ; smokes debunk reportés |
 
 ---
 

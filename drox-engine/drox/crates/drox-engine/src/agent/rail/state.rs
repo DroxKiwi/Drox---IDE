@@ -19,6 +19,8 @@ pub struct RunRailState {
     pub visited_verify: bool,
     /// Phase 4 — consecutive assistant turns at ACT without a mutation tool call.
     pub act_idle_turns: u32,
+    /// B-MOTOR-06 — idle turns after todos terminal with mutations but no answering UI.
+    pub post_todos_idle_turns: u32,
     /// Last verify result at station VERIFY (`bash` / `lsp` diagnostics).
     pub verify_outcome: VerifyOutcome,
 }
@@ -34,6 +36,7 @@ impl RunRailState {
             act_failure_last_path: None,
             visited_verify: false,
             act_idle_turns: 0,
+            post_todos_idle_turns: 0,
             verify_outcome: VerifyOutcome::Unknown,
         }
     }

@@ -23,9 +23,14 @@ pub fn try_enter_from_hold_marker(state: &mut RunRailState) -> bool {
     true
 }
 
-/// Set hold when assistant text at PROPOSE contains an open user question.
+/// Set hold when assistant text at PROPOSE/PLAN contains an open user question (B-PROPOSE-01).
 pub fn maybe_enter_from_assistant_text(state: &mut RunRailState, assistant_text: &str) {
-    if state.station != RunStation::Propose || state.depth != RunDepth::Complex {
+    let eligible = match state.station {
+        RunStation::Propose if state.depth == RunDepth::Complex => true,
+        RunStation::Plan => true,
+        _ => false,
+    };
+    if !eligible {
         return;
     }
     if detect_open_user_question(assistant_text) {
@@ -97,7 +102,12 @@ mod tests {
     }
 
     #[test]
-    fn question_mark_triggers_awaiting() {
-        assert!(detect_open_user_question("Palette A or B — which do you prefer?"));
+    fn question_at_plan_triggers_awaiting() {
+        let mut state = RunRailState {
+            station: RunStation::Plan,
+            ..RunRailState::new()
+        };
+        maybe_enter_from_assistant_text(&mut state, "Souhaites-tu que je procède ?");
+        assert!(state.propose_awaiting_user);
     }
 }

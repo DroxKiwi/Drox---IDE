@@ -287,7 +287,7 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 | # | ☐ | Action | ID |
 |---|-----|--------|-----|
 | 0.1 | ☑ | **CREATE** ce plan ; lien depuis [README 1.4.1](README.md) ; [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) extrait (context diet) | — |
-| 0.2 | ☐ | SMOKE-BACKLOG : entrées B-RAIL-02, B-MOTOR-05…08, G-CTX-01, B-CTX-02 | — |
+| 0.2 | ☑ | SMOKE-BACKLOG : entrées B-RAIL-02, B-MOTOR-05…08, G-CTX-01, B-CTX-02 | — |
 | 0.3 | ☑ | PLAN-1.4.1 : renvoi chaîne `1.4.1 → 1.4.1.1 → 1.4.1.2a → 1.4.1.2` | — |
 
 ---
@@ -296,9 +296,9 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 1.1 | ☐ | Hold READ/INTENT → PLAN ou READ (pas ANSWER) si todos / scope run l’exigent | `rail/transition.rs`, `propose_hold.rs` | B-RAIL-02 |
-| 1.2 | ☐ | Bloquer VERIFY si `mutation_count == 0` (+ flag `expects_workspace_mutation` si pertinent) | `rail/transition.rs` | B-RAIL-02 |
-| 1.3 | ☐ | Tests transition + hold sidebar scenario | `rail/transition.rs`, `tests/` | B-RAIL-02 |
+| 1.1 | ☑ | Hold READ/INTENT → PLAN ou READ (pas ANSWER) si todos / scope run l’exigent | `rail/transition.rs`, `propose_hold.rs` | B-RAIL-02 |
+| 1.2 | ☑ | Bloquer VERIFY si `mutation_count == 0` (+ flag `expects_workspace_mutation` si pertinent) | `rail/transition.rs` | B-RAIL-02 |
+| 1.3 | ☑ | Tests transition + hold sidebar scenario | `rail/transition.rs`, `tests/` | B-RAIL-02 |
 | | | | | **G-test** · **G-smoke-plan** (partiel) |
 
 ---
@@ -307,10 +307,10 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 2.1 | ☐ | Autoriser `todo_write` en VERIFY | `rail/policy.rs` | B-MOTOR-05 |
-| 2.2 | ☐ | Aligner texte snapshot todos | `rail/snapshot_block.rs` | B-MOTOR-05 |
-| 2.3 | ☐ | Gate message : payload tronqué si shape fail | `gates/todo_shape.rs` | B-MOTOR-05 |
-| 2.4 | ☐ | Tests pre-gate VERIFY + variantes payload | `gates/mod.rs`, `rail/policy.rs` | B-MOTOR-05 |
+| 2.1 | ☑ | Autoriser `todo_write` en VERIFY | `rail/policy.rs` | B-MOTOR-05 |
+| 2.2 | ☑ | Aligner texte snapshot todos | `rail/policy.rs` | B-MOTOR-05 |
+| 2.3 | ☑ | Gate message : payload tronqué si shape fail | `gates/todo_shape.rs` | B-MOTOR-05 |
+| 2.4 | ☑ | Tests pre-gate VERIFY + variantes payload | `rail/policy.rs` | B-MOTOR-05 |
 | | | | | **G-test** · **G-smoke-plan** |
 
 ---
@@ -319,9 +319,9 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 3.1 | ☐ | Nudge / auto-close si todos terminal + mutations sans answering | `loop/drive/outcome.rs` | B-MOTOR-06 |
-| 3.2 | ☐ | Nudge post-todos : « answer now, avoid cosmetic edits » | `nudges/` ou `stall_act.rs` | B-MOTOR-06 |
-| 3.3 | ☐ | Test drive : todos completed → force answering path | `agent/tests/` | B-MOTOR-06 |
+| 3.1 | ☑ | Nudge / auto-close si todos terminal + mutations sans answering | `loop/drive/outcome.rs` | B-MOTOR-06 |
+| 3.2 | ☑ | Nudge post-todos : « answer now, avoid cosmetic edits » | `nudges/post_todos_answer.rs`, `rail/post_todos_close.rs` | B-MOTOR-06 |
+| 3.3 | ☑ | Test drive : todos completed → force answering path | `rail/post_todos_close.rs` | B-MOTOR-06 |
 | | | | | **G-test** · **G-smoke-plan** |
 
 ---
@@ -330,10 +330,10 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 4.1 | ☐ | Messages `file_edit` avec exemple JSON minimal | `gates/tool_pre.rs` ou tool remote hint | B-MOTOR-07 |
-| 4.2 | ☐ | Distinction empty edits / missing path | idem + tests | B-MOTOR-07 |
-| 4.3 | ☐ | `todo_write` gate : rappel formats normalisés | `gates/todo_shape.rs`, `nudges/schema_error.rs` | B-MOTOR-07 |
-| 4.4 | ☐ | Bash fail hint chain (verify summary déjà partiel) | `bash_windows.rs`, `verify.rs` | B-MOTOR-07 |
+| 4.1 | ☑ | Messages `file_edit` avec exemple JSON minimal | `helpers/tool_errors.rs` | B-MOTOR-07 |
+| 4.2 | ☑ | Distinction empty edits / missing path | idem + tests | B-MOTOR-07 |
+| 4.3 | ☑ | `todo_write` gate : rappel formats normalisés | `helpers/tool_errors.rs` | B-MOTOR-07 |
+| 4.4 | ☑ | Bash fail hint chain (verify summary déjà partiel) | `bash_windows.rs`, `verify.rs`, `helpers/tool_errors.rs` | B-MOTOR-07 |
 | | | | | **G-test** |
 
 ---
@@ -342,10 +342,10 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 5.1 | ☐ | Audit chemins `done` / advance sans verify Pass | `outcome.rs`, `transition.rs`, `infer.rs` | B-MOTOR-08 |
-| 5.2 | ☐ | Gate `done` si verify requis et outcome Failed | `gates/done.rs` | B-MOTOR-08 |
-| 5.3 | ☐ | Pre-check bash `head`, `Select-Object`, pipes PS | `gates/bash_windows.rs` | B-MOTOR-02, B-MOTOR-08 |
-| 5.4 | ☐ | Tests verify block + bash pre-check | `verify.rs`, `bash_windows.rs` | B-MOTOR-08 |
+| 5.1 | ☑ | Audit chemins `done` / advance sans verify Pass | `outcome.rs`, `transition.rs`, `infer.rs` | B-MOTOR-08 |
+| 5.2 | ☑ | Gate `done` si verify requis et outcome Failed | `gates/done.rs` | B-MOTOR-08 |
+| 5.3 | ☑ | Pre-check bash `head`, `Select-Object`, pipes PS | `gates/bash_windows.rs` | B-MOTOR-02, B-MOTOR-08 |
+| 5.4 | ☑ | Tests verify block + bash pre-check | `verify.rs`, `bash_windows.rs`, `gates/done.rs` | B-MOTOR-08 |
 | | | | | **G-test** · **G-smoke-hydration** |
 
 ---
@@ -354,10 +354,10 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 6.1 | ☐ | Fingerprint préambule thinking stable | `stream/`, `compaction.rs` ou snapshot | B-MOTOR-01 |
-| 6.2 | ☐ | Réduire réinjection snapshot rail identique | `rail/snapshot_block.rs`, `refresh_snapshot` | B-MOTOR-01 |
-| 6.3 | ☐ | `FinalAnswerGuard` : answering thinking ≠ canal ; une promotion | `final_answer_guard.rs`, `stream/` | B-MOTOR-03 |
-| 6.4 | ☐ | Tests answering / dedup | `final_answer_guard.rs`, drive tests | B-MOTOR-01, B-MOTOR-03 |
+| 6.1 | ⏭ | Fingerprint préambule thinking stable | report **1.4.2** (6.2 couvert par 2a) | B-MOTOR-01 |
+| 6.2 | ☑ | Réduire réinjection snapshot rail identique | [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) B-CTX-02a | B-MOTOR-01 |
+| 6.3 | ☑ | `FinalAnswerGuard` : answering thinking ≠ canal ; une promotion | `stream/consume.rs`, `final_answer_guard.rs` | B-MOTOR-03 |
+| 6.4 | ☑ | Tests answering / dedup | `phases.rs`, `post_todos_close.rs` | B-MOTOR-01, B-MOTOR-03 |
 | | | | | **G-test** · **G-smoke-plan** |
 
 ---
@@ -366,8 +366,8 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 7.1 | ☐ | Pre-check patterns observés dogfood | `bash_windows.rs` | B-MOTOR-02 |
-| 7.2 | ☐ | Cocher PLAN-1.4.1 §5.4 smoke VERIFY si vert | manuel | B-MOTOR-02 |
+| 7.1 | ☑ | Pre-check patterns observés dogfood | `bash_windows.rs` | B-MOTOR-02 |
+| 7.2 | ☐ | Cocher PLAN-1.4.1 §5.4 smoke VERIFY si vert | manuel — **après debunk** | B-MOTOR-02 |
 | | | | | **G-test** |
 
 ---
@@ -376,8 +376,8 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 8.1 | ☐ | Tronquer erreurs / stack traces user > N lignes | `droxChatSendRun.ts` ou normalizer | G-CTX-01 |
-| 8.2 | ☐ | Test unit troncature | `droxCommon.test.ts` | G-CTX-01 |
+| 8.1 | ☑ | Tronquer erreurs / stack traces user > N lignes | `droxUserPromptEngine.ts`, `droxChatSendRun.ts` | G-CTX-01 |
+| 8.2 | ☑ | Test unit troncature | `droxCommon.test.ts` | G-CTX-01 |
 | | | | | **G-ts** |
 
 ---
@@ -386,10 +386,10 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Gate |
 |---|-----|--------|------|
-| 9.1 | ☐ | Dogfood **R-plan** : sidebar + plan (qwen27b) | **G-smoke-plan** |
-| 9.2 | ☐ | Dogfood **R-hydration** : erreur SSR (qwen27b) | **G-smoke-hydration** |
-| 9.3 | ☐ | Non-régression R1a/R1b discuss | **G-smoke-discuss** |
-| 9.4 | ☐ | Export transcript → `chat_qwen27b.txt` ; journal SMOKE-BACKLOG | doc |
+| 9.1 | ☐ | Dogfood **R-plan** : sidebar + plan (qwen27b) | **G-smoke-plan** — **debunk** |
+| 9.2 | ☐ | Dogfood **R-hydration** : erreur SSR (qwen27b) | **G-smoke-hydration** — **debunk** |
+| 9.3 | ☐ | Non-régression R1a/R1b discuss | **G-smoke-discuss** — **debunk** |
+| 9.4 | ☐ | Export transcript → `chat_qwen27b.txt` ; journal SMOKE-BACKLOG | doc — **debunk** |
 | 9.5 | ☐ | Tag git / note release « 1.4.1.2 patch » (sans bump semver obligatoire) | — |
 
 ---
@@ -420,14 +420,15 @@ P0 doc
 
 ## Critères de clôture 1.4.1.2
 
-- [ ] [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) clôturé (context diet)
-- [ ] **B-RAIL-02**, **B-MOTOR-05**, **B-MOTOR-06** : smoke plan sidebar vert
-- [ ] **B-MOTOR-07** : ≤ 2 boucles `file_edit` même erreur sur run référence
-- [ ] **B-MOTOR-08** : pas de `done` avec verify Failed sur brief code TS
-- [ ] **B-MOTOR-01/03** : fermés via [1.4.1.2a](PLAN-1.4.1.2a.md) ou report 1.4.2 **avec justification**
-- [ ] **G-CTX-01** : livré ou report explicite
-- [ ] `cargo test -p drox-engine` vert ; discuss R1a/R1b OK
-- [ ] SMOKE-BACKLOG + extrait PLAN-1.4.1 mis à jour
+- [x] [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) clôturé (context diet — code)
+- [ ] **B-RAIL-02**, **B-MOTOR-05**, **B-MOTOR-06** : smoke plan sidebar vert — **debunk**
+- [ ] **B-MOTOR-07** : ≤ 2 boucles `file_edit` même erreur sur run référence — **debunk**
+- [ ] **B-MOTOR-08** : pas de `done` avec verify Failed sur brief code TS — **debunk**
+- [x] **B-MOTOR-01/03** : 6.2 via 2a ; 6.3 livré ; 6.1 report 1.4.2
+- [x] **G-CTX-01** : livré
+- [x] `cargo test -p drox-engine` vert ; discuss R1a/R1b OK — **tests auto**
+- [x] SMOKE-BACKLOG + extrait PLAN-1.4.1 mis à jour
+- [x] [CLOSURE-1.4.1.2](finalisation/CLOSURE-1.4.1.2.md) — code sign-off
 
 ---
 
