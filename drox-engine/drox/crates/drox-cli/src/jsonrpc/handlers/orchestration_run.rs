@@ -4,13 +4,14 @@ use drox_engine::{
     architect_discussion_system_prompt_for_start_run, architect_discussion_user_message,
     architect_edit_system_prompt_core_for_run_vars, architect_user_message,
     initial_run_objective_for_concrete_edit, resolve_engine_tuning, AgentEvent, ArchitectGate,
-    GateChainResult, OrchestrationConfig, RoleId, RunSpec, StartRunKind,
+    OrchestrationConfig, RoleId, RunSpec, StartRunKind, resolve_run_intent,
+    RunIntentFlags,
 };
 use drox_types::Content;
 
 use crate::jsonrpc::handlers::agent_run::{
-    build_agent_setup, drive_role_run, notify_agent_event, notify_agent_run_completed,
-    AgentSetupOverrides, RunOutcome,
+    build_agent_setup, build_orchestration_llm, drive_role_run, notify_agent_event,
+    notify_agent_run_completed, AgentSetupOverrides, RunOutcome,
 };
 use crate::jsonrpc::protocol::AgentRunParams;
 use crate::jsonrpc::server::Server;
@@ -22,47 +23,76 @@ pub async fn drive_role_split_run(
     params: &AgentRunParams,
     _user_blocks: Vec<Content>,
 ) -> Result<RunOutcome, RunOutcome> {
-    let resolved = resolve_architect_gate(params);
+    let resolved = resolve_architect_gate(server, params).await?;
     tracing::info!(
         architect_gate = resolved.gate.as_str(),
         start_run = resolved.start_run.wire_id(),
+        greeting_only = resolved.intent_flags.greeting_only,
+        expects_workspace_mutation = resolved.intent_flags.expects_workspace_mutation,
+        intent_probe_source = ?resolved.intent_flags.source,
         "orchestration role_split — mode resolved"
     );
     match resolved.gate {
         ArchitectGate::Discuss | ArchitectGate::Analyze => {
-            drive_role_split_discuss(server, run_id, params, resolved.start_run).await
+            drive_role_split_discuss(server, run_id, params, resolved).await
         }
         ArchitectGate::Edit => {
-            drive_role_split_edit(server, run_id, params, resolved.start_run).await
+            drive_role_split_edit(server, run_id, params, resolved).await
         }
     }
 }
 
-/// Override RPC `architectInteractionMode` ou défaut edit.
-fn resolve_architect_gate(params: &AgentRunParams) -> GateChainResult {
-    if let Some(raw) = params.architect_interaction_mode.as_deref() {
-        if let Some(gate) = ArchitectGate::parse_param(raw) {
-            tracing::info!(
-                architect_gate = gate.as_str(),
-                source = "rpc_param",
-                "mode forcé"
-            );
-            return GateChainResult::from_rpc_override(gate, &params.prompt);
+/// Routage après intent probe (auto / discussion) ou défauts RPC edit/analyze.
+struct ResolvedOrchestration {
+    gate: ArchitectGate,
+    start_run: StartRunKind,
+    intent_flags: RunIntentFlags,
+}
+
+impl ResolvedOrchestration {
+    fn from_intent(resolved: drox_engine::ResolvedRunIntent) -> Self {
+        let chain = resolved.gate_chain();
+        Self {
+            gate: chain.gate,
+            start_run: chain.start_run,
+            intent_flags: resolved.flags,
         }
+    }
+}
+
+async fn resolve_architect_gate(
+    server: &Server,
+    params: &AgentRunParams,
+) -> Result<ResolvedOrchestration, RunOutcome> {
+    let raw_mode = params.architect_interaction_mode.as_deref();
+    let rpc_gate = raw_mode.and_then(ArchitectGate::parse_param);
+    if raw_mode.is_some() && rpc_gate.is_none() {
         tracing::warn!(
-            architect_interaction_mode = %raw,
-            "param mode inconnu — défaut edit"
+            architect_interaction_mode = ?raw_mode,
+            "unknown interaction mode — intent probe + auto routing"
+        );
+    } else if let Some(gate) = rpc_gate {
+        tracing::info!(
+            architect_gate = gate.as_str(),
+            source = "rpc_param",
+            "mode forced"
         );
     }
-    GateChainResult::default_for_prompt(&params.prompt)
+
+    let llm = build_orchestration_llm(server, params)
+        .await
+        .map_err(|_| RunOutcome::Errored)?;
+    let resolved = resolve_run_intent(llm, &params.prompt, rpc_gate).await;
+    Ok(ResolvedOrchestration::from_intent(resolved))
 }
 
 async fn drive_role_split_discuss(
     server: &Server,
     run_id: String,
     params: &AgentRunParams,
-    start_run: StartRunKind,
+    resolved: ResolvedOrchestration,
 ) -> Result<RunOutcome, RunOutcome> {
+    let start_run = resolved.start_run;
     let allow_reads = start_run.allows_discussion_reads();
     let tuning = drox_engine::resolve_engine_tuning(
         params.engine_strictness.as_deref(),
@@ -100,6 +130,7 @@ async fn drive_role_split_discuss(
             model_override: Some(orch_cfg.architect_model.clone()),
             system_override: Some(discussion_system),
             run_objective_override: None,
+            run_intent: Some(resolved.intent_flags),
         },
     )
     .await
@@ -136,8 +167,9 @@ async fn drive_role_split_edit(
     server: &Server,
     run_id: String,
     params: &AgentRunParams,
-    start_run: StartRunKind,
+    resolved: ResolvedOrchestration,
 ) -> Result<RunOutcome, RunOutcome> {
+    let start_run = resolved.start_run;
     let tuning = resolve_engine_tuning(
         params.engine_strictness.as_deref(),
         params.engine_tuning.as_ref(),
@@ -167,6 +199,7 @@ async fn drive_role_split_edit(
             model_override: Some(architect_model),
             system_override: Some(architect_edit_system_prompt_core_for_run_vars(&tuning)),
             run_objective_override,
+            run_intent: Some(resolved.intent_flags),
         },
     )
     .await

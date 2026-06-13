@@ -43,8 +43,6 @@ use crate::event::Phase;
 use super::json_response::{extract_first_json_object, looks_like_gate_json_response};
 use super::protocol_markers::{DISCUSSION_DONE_LINE, DISCUSSION_REPLY_LINE};
 
-const DISCUSSION_REPLY_NEEDLE: &str = "[discussion: reply]";
-const DISCUSSION_DONE_NEEDLE: &str = "[discussion: done]";
 /// Ligne de plan architecte (monologue modèle — pas la réponse utilisateur).
 fn is_discussion_plan_step_line(line: &str) -> bool {
     let t = line.trim();
@@ -388,7 +386,7 @@ pub fn extract_discussion_done_from_text(text: &str) -> bool {
         .any(|line| parse_discussion_done_marker(line.trim()))
         || text
             .to_ascii_lowercase()
-            .contains(DISCUSSION_DONE_NEEDLE)
+            .contains(DISCUSSION_DONE_LINE)
 }
 
 #[must_use]

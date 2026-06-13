@@ -62,7 +62,7 @@ impl Agent {
         seen_answering_in_run: &mut bool,
         final_answer_guard: &mut crate::agent::final_answer_guard::FinalAnswerGuard,
         architect_state: &mut ArchitectRunState,
-        saw_successful_todo_write_in_run: bool,
+        _saw_successful_todo_write_in_run: bool,
         last_todo_pending: u64,
         last_todo_in_progress: u64,
         _effective_run_objective: Option<&str>,
@@ -344,12 +344,9 @@ impl Agent {
                 }
 
                 debug!("tour sans tool_call et sans [phase: done] — schema_error continue");
-                let no_work_edit = self.config.run_spec.role_id == RoleId::Architect
-                    && architect_state.todo_statuses.is_empty()
-                    && !saw_successful_todo_write_in_run;
                 messages.push(Message::system(schema_error_continue_nudge(
                     &self.config.run_spec,
-                    no_work_edit,
+                    self.config.run_intent.as_ref(),
                 )));
                 if let Err(e) = self
                     .flush_transcript(&messages, transcript_cursor)

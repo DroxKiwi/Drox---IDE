@@ -101,8 +101,26 @@ pub fn run_rail_snapshot_block(
 
 /// Replace prior rail snapshot at end of transcript (each architect edit turn).
 pub fn refresh_run_rail_snapshot(messages: &mut Vec<Message>, snapshot: &str) {
+    if messages.iter().any(|m| {
+        is_run_rail_snapshot_message(m)
+            && m.content.iter().any(|block| {
+                matches!(block, Content::Text { text, .. } if text.as_str() == snapshot)
+            })
+    }) {
+        tracing::debug!(
+            target: "drox.context",
+            bytes = snapshot.len(),
+            "run_rail_snapshot_skip=unchanged"
+        );
+        return;
+    }
     messages.retain(|m| !is_run_rail_snapshot_message(m));
     messages.push(Message::system(snapshot.to_string()));
+    tracing::debug!(
+        target: "drox.context",
+        bytes = snapshot.len(),
+        "run_rail_snapshot_refresh"
+    );
 }
 
 #[must_use]
@@ -132,5 +150,21 @@ mod tests {
             OpenTodoCounts::default(),
         );
         assert!(focused.contains("focus task `t1`"));
+    }
+
+    #[test]
+    fn refresh_run_rail_snapshot_skips_unchanged() {
+        let block = run_rail_snapshot_block(&RunRailState::new(), None, OpenTodoCounts::default());
+        let mut messages = vec![Message::system(block.clone())];
+        refresh_run_rail_snapshot(&mut messages, &block);
+        assert_eq!(messages.len(), 1);
+        let changed = format!("{block}\nextra");
+        refresh_run_rail_snapshot(&mut messages, &changed);
+        assert_eq!(messages.len(), 1);
+        assert!(is_run_rail_snapshot_message(&messages[0]));
+        assert!(messages[0]
+            .content
+            .iter()
+            .any(|b| matches!(b, Content::Text { text, .. } if text.contains("extra"))));
     }
 }

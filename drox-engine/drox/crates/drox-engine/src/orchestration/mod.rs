@@ -2,6 +2,7 @@
 
 mod config;
 mod architect_gate;
+mod intent_probe;
 mod json_response;
 mod start_run;
 mod user_message_scope;
@@ -14,11 +15,15 @@ pub use architect_gate::{
     extract_discussion_done_from_text, extract_discussion_user_facing_reply,
     parse_discussion_reply_marker, ArchitectGate,
 };
+pub use intent_probe::{
+    gate_chain_for_auto, gate_chain_for_rpc, parse_run_intent_json, resolve_run_intent,
+    ProbeSource, ResolvedRunIntent, RunIntentFlags, run_intent_probe,
+};
 pub use json_response::{extract_first_json_object, looks_like_gate_json_response};
 pub use start_run::{GateChainResult, StartRunKind};
 pub use user_message_scope::{
-    initial_run_objective_for_concrete_edit, looks_like_mutation_brief,
-    sanitize_architect_user_prompt, sanitize_transcript_user_messages,
+    initial_run_objective_for_concrete_edit, sanitize_architect_user_prompt,
+    sanitize_transcript_user_messages,
 };
 pub use protocol_markers::{
     is_meta_synthesis_task, todo_declares_meta_task, DISCUSSION_DONE_LINE,
@@ -32,7 +37,7 @@ pub use prompts::{
     architect_user_message,
     architect_run_context_block, architect_run_context_block_compaction,
     architect_run_context_block_per_turn, architect_tool_short_description,
-    tool_supplements_all_architect,
+    tool_supplements_all_architect, tool_supplements_for_station,
     PromptBlockId, PromptVars,
     StrictnessPreset, ARCHITECT_DISCUSSION_CORE_PROMPT, ARCHITECT_DISCUSSION_SYSTEM_PROMPT,
 };

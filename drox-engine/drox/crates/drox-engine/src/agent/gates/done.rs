@@ -44,41 +44,17 @@ pub(crate) fn unfinished_todos_prompt(pending: u64, in_progress: u64) -> String 
     )
 }
 
-/// Réponse assistant qui affirme qu'aucune mutation n'est nécessaire (clôture honnête).
-#[must_use]
-pub(crate) fn answering_claims_no_mutation_needed(text: &str) -> bool {
-    let t = text.to_ascii_lowercase();
-    const PHRASES: &[&str] = &[
-        "already matches",
-        "already satisfied",
-        "no change needed",
-        "no file change",
-        "aucune modification",
-        "pas besoin de modifier",
-        "pas de modification",
-        "rien à changer",
-        "déjà conforme",
-        "deja conforme",
-        "already in place",
-        "déjà en place",
-        "deja en place",
-        "code already",
-    ];
-    PHRASES.iter().any(|p| t.contains(p))
-}
-
-/// Blocage `[phase: done]` sur run edit : brief mutation sans tool mutateur réussi.
+/// Block `[phase: done]` on edit runs that expected mutation but none succeeded.
 #[must_use]
 pub(crate) fn done_gate_missing_mutation_when_expected(
     spec: &RunSpec,
     mutation_expected: bool,
     mutation_count: u32,
-    recent_assistant_text: &str,
+    _recent_assistant_text: &str,
 ) -> Option<&'static str> {
     if spec.role_id != crate::run_spec::RoleId::Architect
         || !mutation_expected
         || mutation_count > 0
-        || answering_claims_no_mutation_needed(recent_assistant_text)
     {
         return None;
     }

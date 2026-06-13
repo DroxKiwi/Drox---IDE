@@ -82,8 +82,10 @@
         }
 
         let mutation_expected = self.config.run_spec.role_id == crate::run_spec::RoleId::Architect
-            && crate::agent::last_user_text(&messages)
-                .is_some_and(|req| crate::orchestration::looks_like_mutation_brief(&req));
+            && self
+                .config
+                .run_intent
+                .is_some_and(|f| f.expects_workspace_mutation);
 
         Some(DriveSession {
             ctx,

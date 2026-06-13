@@ -122,7 +122,7 @@ mod tests {
             0,
             "The repo already matches — no file change needed."
         )
-        .is_none());
+        .is_some());
     }
 
     #[test]

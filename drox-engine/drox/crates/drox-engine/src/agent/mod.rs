@@ -35,6 +35,7 @@ mod tests;
 
 pub(crate) use phases::{parse_phase_marker, strip_phase_protocol_lines};
 pub use state::{ArchitectRunState, ARCHITECT_RUN_SNAPSHOT_MARKER};
+pub use rail::RunStation;
 pub use edit_start::{apply_architect_edit_start, ArchitectEditStartOutcome};
 pub use core::{Agent, AgentConfig, AgentStream};
 

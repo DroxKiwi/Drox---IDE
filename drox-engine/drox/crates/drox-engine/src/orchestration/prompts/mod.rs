@@ -23,6 +23,7 @@ pub use system::{
     architect_run_context_block_per_turn,
     blocks::tools::{
         architect_tool_short_description, tool_supplements_all_architect,
+        tool_supplements_for_station,
     },
 };
 pub use architect_messages::architect_user_message;

@@ -12,7 +12,22 @@ Stabiliser le moteur et la session après la refonte rail **1.4.0** : surface pr
 
 ---
 
-## Plan
+## Plans (ordre d’exécution)
+
+```text
+PLAN-1.4.1       base « 0 » — stabilisation dogfood (P1–P8)
+  → PLAN-1.4.1.1   intent probes + English engine
+    → PLAN-1.4.1.2a  context diet (réduire bruit injection)
+      → PLAN-1.4.1.2   patch rail / clôture / VERIFY
+        → semver 1.4.1.x + 1.4.2 UI
+```
+
+| Plan | Focus | Statut (juin 2026) |
+|------|-------|-------------------|
+| [PLAN-1.4.1](PLAN-1.4.1.md) | Stabilisation dogfood P1–P8 | Partiel — P1–P5 livrés |
+| [PLAN-1.4.1.1](PLAN-1.4.1.1.md) | Intent probe + anglais moteur | **Clôturé** — [CLOSURE](finalisation/CLOSURE-1.4.1.1.md) |
+| [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) | Context diet (B-CTX-02) | **En cours** |
+| [PLAN-1.4.1.2](PLAN-1.4.1.2.md) | Rail / clôture / outils | Après 2a |
 
 → **[PLAN-1.4.1.md](PLAN-1.4.1.md)** — contexte post-1.4.0 + **[tableau d’exécution § XIV](PLAN-1.4.1.md#xiv--tableau-dexécution-ordonné)** (phases 0→8)
 
@@ -35,6 +50,12 @@ L’ancien plan **index / graphe** est en **[1.4.3](../1.4.3/PLAN-1.4.3.md)**.
 | **B-MOTOR-02** | Bash VERIFY Windows | P5 |
 | **B-UI-06** | Replay session lent | P6 |
 | **G-DEBT-01** | Split `loop/drive/tools.rs` (> 500 L) | P7 |
+
+**Refonte [1.4.1.1](PLAN-1.4.1.1.md)** : B-INTENT-01…07, B-I18N-01…04 (probes + anglais moteur)
+
+**Context [1.4.1.2a](PLAN-1.4.1.2a.md)** : B-CTX-02a…e (context diet — **avant rail**)
+
+**Patch rail [1.4.1.2](PLAN-1.4.1.2.md)** : B-RAIL-02, B-MOTOR-05…08, B-PROPOSE-01, B-CYCLE-01 (dogfood juin 2026 — **après 1.4.1.2a**)
 
 **1.4.2** : B-UI-01 à 05 · **reporté** : B-RAIL-01 résidu (`[gate:]` modèle)
 
