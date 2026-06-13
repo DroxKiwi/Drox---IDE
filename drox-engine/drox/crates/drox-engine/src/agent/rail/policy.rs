@@ -85,14 +85,8 @@ pub fn station_action_hint(station: RunStation) -> &'static str {
              Update statuses with `todo_write` when a task is done."
         }
         RunStation::Verify => {
-            #[cfg(windows)]
-            {
-                "Verify with bash or lsp. Shell is cmd.exe — no heredoc (`<<`); use npm/pnpm scripts, `lsp`, or PowerShell (`Get-Content`, not `head`/`tail`)."
-            }
-            #[cfg(not(windows))]
-            {
-                "Verify with bash or lsp."
-            }
+            "Verify with bash or lsp. Update todo statuses with `todo_write` when closing tasks. \
+             Do not mutate files here — return to ACT for file_edit/file_write."
         }
         RunStation::Answer => {
             "Reply in [phase: answering], then [phase: done]. \
@@ -115,7 +109,9 @@ pub fn tool_allowed(station: RunStation, tool_name: &str) -> bool {
                 || READ_TOOLS.contains(&tool_name)
                 || tool_name == "todo_write"
         }
-        RunStation::Verify => VERIFY_TOOLS.contains(&tool_name),
+        RunStation::Verify => {
+            VERIFY_TOOLS.contains(&tool_name) || tool_name == "todo_write"
+        }
     }
 }
 
@@ -168,6 +164,12 @@ mod tests {
     fn answer_allows_todo_write_only() {
         assert!(tool_allowed(RunStation::Answer, "todo_write"));
         assert!(!tool_allowed(RunStation::Answer, "file_write"));
+    }
+
+    #[test]
+    fn verify_allows_todo_write() {
+        assert!(tool_allowed(RunStation::Verify, "todo_write"));
+        assert!(!tool_allowed(RunStation::Verify, "file_write"));
     }
 
     #[test]

@@ -66,6 +66,11 @@ import {
 	pickActiveUserPromptStickyIndex,
 	truncateUserPromptStickyText,
 } from '../../common/droxUserPromptSticky.js';
+import {
+	truncateUserPromptForEngine,
+	USER_PROMPT_ENGINE_KEEP_LINES,
+	USER_PROMPT_ENGINE_MAX_LINES,
+} from '../../common/droxUserPromptEngine.js';
 import { IDroxTranscriptMessage } from '../../common/droxSession.js';
 import { replayTranscriptMessageRich } from '../../browser/droxSessionReplay.js';
 import { DroxHostToWebviewMessage } from '../../browser/droxChatBridge.js';
@@ -609,6 +614,24 @@ suite('Drox — user message wire', () => {
 		assert.ok(wire);
 		assert.strictEqual(wire.startLine, 2);
 		assert.strictEqual(wire.endLine, 5);
+	});
+});
+
+suite('Drox — user prompt engine truncation (G-CTX-01)', () => {
+	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('truncateUserPromptForEngine keeps short prompts', () => {
+		assert.strictEqual(truncateUserPromptForEngine('hello'), 'hello');
+	});
+
+	test('truncateUserPromptForEngine caps long stack traces', () => {
+		const lines = Array.from({ length: USER_PROMPT_ENGINE_MAX_LINES + 10 }, (_, i) => `line ${i}`);
+		const raw = lines.join('\n');
+		const out = truncateUserPromptForEngine(raw);
+		assert.ok(out.includes('… [truncated'));
+		assert.ok(out.split('\n').length < lines.length);
+		const head = lines.slice(0, USER_PROMPT_ENGINE_KEEP_LINES).join('\n');
+		assert.ok(out.startsWith(head));
 	});
 });
 

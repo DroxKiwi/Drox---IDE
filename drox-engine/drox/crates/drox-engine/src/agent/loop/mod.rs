@@ -21,6 +21,7 @@ use crate::agent::gates::{
     architect_orchestration_record_successful_tool,
     architect_record_read_only_tool_success, done_gate_missing_answering,
     done_gate_missing_mutation_when_expected, done_gate_unfinished_todos,
+    done_gate_verify_not_passed,
     parse_hallucinated_phase_from_tool_call,
     tool_pre_gate_block,
 };

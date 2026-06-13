@@ -182,6 +182,21 @@ mod tests {
     }
 
     #[test]
+    fn verify_gate_blocks_when_mutations_and_verify_not_passed() {
+        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
+        assert!(done_gate_verify_not_passed(&spec, true, 2, true, false).is_some());
+        assert!(done_gate_verify_not_passed(&spec, true, 2, true, true).is_none());
+        assert!(done_gate_verify_not_passed(&spec, false, 2, true, false).is_none());
+    }
+
+    #[test]
+    fn todo_shape_fail_includes_payload_preview() {
+        let msg = todo_payload_shape_guard(&json!({ "oops": "x".repeat(400) }))
+            .expect("shape fail");
+        assert!(msg.contains("Received payload"));
+    }
+
+    #[test]
     fn hallucinated_phase_tool_ignores_real_tools() {
         assert!(!is_hallucinated_phase_tool_call(
             "file_read",

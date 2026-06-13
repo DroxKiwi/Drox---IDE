@@ -88,13 +88,13 @@ pub fn to_agent_event(ev: &StationEvent) -> AgentEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agent::rail::transition::{apply_advance, OpenTodoCounts};
+    use crate::agent::rail::transition::{apply_advance, RailTransitionContext};
 
     #[test]
     fn advance_emits_done_and_enter() {
         let before = snapshot(&RunRailState::new());
         let mut after = RunRailState::new();
-        apply_advance(&mut after, OpenTodoCounts::default());
+        apply_advance(&mut after, RailTransitionContext::default());
         let events = diff_transitions(before, &after, None);
         assert_eq!(events.len(), 2);
         assert!(matches!(events[0], StationEvent::Done { .. }));

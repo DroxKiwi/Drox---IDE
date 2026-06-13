@@ -10,6 +10,12 @@ Use `powershell -Command \"Get-Content path -TotalCount N\"`, `file_read` with l
 const TAIL_BLOCKED: &str = "Blocked: `tail` is not available in Windows cmd.exe. \
 Use `powershell -Command \"Get-Content path -Tail N\"`, `file_read` with line ranges, or a project script from `package.json`.";
 
+const SELECT_OBJECT_BLOCKED: &str = "Blocked: `Select-Object` in a bash string runs under cmd.exe, not PowerShell. \
+Use `powershell -Command \"Get-Content path | Select-Object -First N\"` or `file_read` with line ranges.";
+
+const UNIX_PIPE_BLOCKED: &str = "Blocked: Unix-style pipes (`| head`, `| tail`, `| grep`) often fail under Windows cmd.exe. \
+Use npm/pnpm scripts, `powershell -Command`, or `file_read` / `grep` tools instead.";
+
 /// English reminder appended to VERIFY rail snapshots on Windows hosts.
 pub(crate) const VERIFY_WINDOWS_SHELL_REMINDER: &str = "Windows shell: `bash` runs via cmd.exe — no heredoc (`<<`); \
 prefer npm/pnpm scripts, `cargo check`, `lsp`, or PowerShell (`Get-Content` instead of `head`/`tail`).";
@@ -34,6 +40,14 @@ pub(crate) fn bash_windows_precheck(command: &str) -> Option<&'static str> {
         if mentions_command_token(command, "tail") {
             return Some(TAIL_BLOCKED);
         }
+        if mentions_command_token(command, "select-object")
+            || command.to_ascii_lowercase().contains("select-object")
+        {
+            return Some(SELECT_OBJECT_BLOCKED);
+        }
+        if unix_pipe_to_shell_utility(command) {
+            return Some(UNIX_PIPE_BLOCKED);
+        }
         None
     }
 }
@@ -56,6 +70,8 @@ pub(crate) fn looks_like_windows_shell_mismatch(stderr: &str) -> bool {
             || s.contains("'tail' is not recognized")
             || s.contains("head : the term")
             || s.contains("tail : the term")
+            || s.contains("select-object")
+            || s.contains("select object")
     }
 }
 
@@ -68,13 +84,32 @@ pub(crate) fn verify_bash_failure_hint(stderr: &str) -> Option<&'static str> {
     if stderr.contains("<<") {
         return Some(HEREDOC_BLOCKED);
     }
-    if stderr.to_ascii_lowercase().contains("head") {
+    let lower = stderr.to_ascii_lowercase();
+    if lower.contains("select-object") || lower.contains("select object") {
+        return Some(SELECT_OBJECT_BLOCKED);
+    }
+    if lower.contains("head") {
         return Some(HEAD_BLOCKED);
     }
-    if stderr.to_ascii_lowercase().contains("tail") {
+    if lower.contains("tail") {
         return Some(TAIL_BLOCKED);
     }
     Some(VERIFY_WINDOWS_SHELL_REMINDER)
+}
+
+fn unix_pipe_to_shell_utility(command: &str) -> bool {
+    let lower = command.to_ascii_lowercase();
+    for segment in lower.split('|').skip(1) {
+        let seg = segment.trim();
+        if seg.starts_with("head")
+            || seg.starts_with("tail")
+            || seg.starts_with("grep")
+            || seg.starts_with("select-object")
+        {
+            return true;
+        }
+    }
+    false
 }
 
 fn mentions_command_token(command: &str, name: &str) -> bool {
@@ -111,9 +146,28 @@ mod tests {
     }
 
     #[test]
+    fn select_object_and_pipe_blocked_on_windows() {
+        if cfg!(windows) {
+            assert!(bash_windows_precheck("Get-Content log | Select-Object -First 20").is_some());
+            assert!(bash_windows_precheck("type package.json | head -20").is_some());
+        }
+    }
+
+    #[test]
     fn windows_mismatch_stderr() {
         if cfg!(windows) {
             assert!(looks_like_windows_shell_mismatch("<< was unexpected at this time."));
+            assert!(looks_like_windows_shell_mismatch(
+                "Select-Object : The term 'Select-Object' is not recognized"
+            ));
+        }
+    }
+
+    #[test]
+    fn verify_hint_select_object() {
+        if cfg!(windows) {
+            let hint = verify_bash_failure_hint("Select-Object : not recognized");
+            assert_eq!(hint, Some(SELECT_OBJECT_BLOCKED));
         }
     }
 }

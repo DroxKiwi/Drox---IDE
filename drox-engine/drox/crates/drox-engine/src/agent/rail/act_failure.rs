@@ -7,12 +7,13 @@ use super::station::RunStation;
 use super::state::RunRailState;
 
 const MAX_STRIKES_SAME_PATH: u32 = 2;
+const MAX_SPIRAL_ATTEMPTS_SAME_PATH: u32 = 5;
 
-/// Outcome after recording a failed mutation tool at ACT.
+/// Outcome after recording a mutation attempt at ACT (success or failure).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ActFailureOutcome {
-    /// First failure on this path — tool error only.
-    Recorded,
+pub enum ActMutationAttemptOutcome {
+    /// Same path rewritten many times — suggest a different strategy (B-TOOL-01).
+    SpiralNudge,
     /// Second failure on same path — inject nudge and stop the run.
     SevereNudgeAndStop,
 }
@@ -23,7 +24,18 @@ pub fn record_act_tool_failure(
     state: &mut RunRailState,
     tool_name: &str,
     arguments: &Value,
-) -> Option<ActFailureOutcome> {
+) -> Option<ActMutationAttemptOutcome> {
+    record_act_mutation_attempt(state, tool_name, arguments, true)
+}
+
+/// Count mutation attempts at ACT on the same path (B-TOOL-01).
+#[must_use]
+pub fn record_act_mutation_attempt(
+    state: &mut RunRailState,
+    tool_name: &str,
+    arguments: &Value,
+    failed: bool,
+) -> Option<ActMutationAttemptOutcome> {
     if state.station != RunStation::Act {
         return None;
     }
@@ -34,11 +46,18 @@ pub fn record_act_tool_failure(
         state.act_failure_last_path = Some(path);
         state.act_failure_strikes = 1;
     }
-    if state.act_failure_strikes >= MAX_STRIKES_SAME_PATH {
-        Some(ActFailureOutcome::SevereNudgeAndStop)
-    } else {
-        Some(ActFailureOutcome::Recorded)
+    if failed && state.act_failure_strikes >= MAX_STRIKES_SAME_PATH {
+        return Some(ActMutationAttemptOutcome::SevereNudgeAndStop);
     }
+    if state.act_failure_strikes >= MAX_SPIRAL_ATTEMPTS_SAME_PATH {
+        return Some(ActMutationAttemptOutcome::SpiralNudge);
+    }
+    None
+}
+
+#[must_use]
+pub fn spiral_nudge_message() -> &'static str {
+    super::nudges::ACT_WRITE_SPIRAL_PROMPT
 }
 
 /// English severe nudge (engine contract).
@@ -73,11 +92,30 @@ mod tests {
         let args = json!({ "path": "src/a.css" });
         assert_eq!(
             record_act_tool_failure(&mut state, "file_edit", &args),
-            Some(ActFailureOutcome::Recorded)
+            None
         );
         assert_eq!(
             record_act_tool_failure(&mut state, "file_edit", &args),
-            Some(ActFailureOutcome::SevereNudgeAndStop)
+            Some(ActMutationAttemptOutcome::SevereNudgeAndStop)
+        );
+    }
+
+    #[test]
+    fn fifth_attempt_same_path_triggers_spiral_nudge() {
+        let mut state = RunRailState {
+            station: RunStation::Act,
+            ..RunRailState::new()
+        };
+        let args = json!({ "path": "src/a.tsx" });
+        for _ in 0..4 {
+            assert_eq!(
+                record_act_mutation_attempt(&mut state, "file_write", &args, false),
+                None
+            );
+        }
+        assert_eq!(
+            record_act_mutation_attempt(&mut state, "file_write", &args, false),
+            Some(ActMutationAttemptOutcome::SpiralNudge)
         );
     }
 }

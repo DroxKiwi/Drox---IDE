@@ -320,6 +320,13 @@ impl Agent {
                                             &mut architect_state.rail,
                                             &call.name,
                                         );
+                                        if let Some(nudge) = rail::on_act_mutation_success(
+                                            &mut architect_state.rail,
+                                            &call.name,
+                                            &call.arguments,
+                                        ) {
+                                            messages.push(Message::system(nudge.to_string()));
+                                        }
                                         let _ = rail::on_verify_tool_result(
                                             &mut architect_state.rail,
                                             &call.name,
@@ -489,11 +496,15 @@ impl Agent {
                                         );
                                     }
                                     if rail_active {
-                                        if let Some(nudge) = rail::on_act_tool_failure(
+                                        if let Some(action) = rail::on_act_tool_failure(
                                             &mut architect_state.rail,
                                             &call.name,
                                             &call.arguments,
                                         ) {
+                                            let (nudge, stop) = match action {
+                                                rail::ActRailNudge::InjectContinue(n) => (n, false),
+                                                rail::ActRailNudge::InjectStop(n) => (n, true),
+                                            };
                                             messages.push(Message::system(nudge.to_string()));
                                             let rail_focus = architect_state
                                                 .current_focus_task_line()
@@ -510,14 +521,16 @@ impl Agent {
                                                     in_progress: *last_todo_in_progress,
                                                 },
                                             );
-                                            debug!("[run_rail] ACT circuit breaker â€” stop run");
-                                            let _ = tx
-                                                .send(Ok(AgentEvent::Stop {
-                                                    reason: StopReason::EndTurn,
-                                                    usage: last_usage.clone(),
-                                                }))
-                                                .await;
-                                            return true;
+                                            if stop {
+                                                debug!("[run_rail] ACT circuit breaker — stop run");
+                                                let _ = tx
+                                                    .send(Ok(AgentEvent::Stop {
+                                                        reason: StopReason::EndTurn,
+                                                        usage: last_usage.clone(),
+                                                    }))
+                                                    .await;
+                                                return true;
+                                            }
                                         }
                                     }
                                 }

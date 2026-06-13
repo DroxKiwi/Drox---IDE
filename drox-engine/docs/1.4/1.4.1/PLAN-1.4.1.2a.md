@@ -135,8 +135,8 @@ Les **schemas** function-calling restent filtrés par `filter_tool_specs_for_sta
 | 3.1 | ☑ | `RunSnapshotProfile` par station | `run_snapshot.rs` | B-CTX-02c |
 | 3.2 | ☑ | Rail block mode compact | `snapshot_block.rs` | B-CTX-02d |
 | 4.1 | ☑ | Logs taille contexte par tour | `iteration_start.rs` | B-CTX-02e |
-| 5.1 | ☐ | Re-smoke R1c brief plan+SVG | `chat_qwen27b.txt` | gate |
-| 5.2 | ☐ | Comparer −30 % tokens in tours ACT (cible) | doc | gate |
+| 5.1 | ☐ | Re-smoke R1c brief plan+SVG | `chat_qwen27b.txt` | gate — **reporté** |
+| 5.2 | ☐ | Comparer −30 % tokens in tours ACT (cible) | doc | gate — **reporté** |
 
 ### Gates
 
@@ -155,8 +155,8 @@ Les **schemas** function-calling restent filtrés par `filter_tool_specs_for_sta
 - [x] Protocoles outil **scoped station** (pas 9 blocs au boot)
 - [x] Profil snapshot **plus court** en VERIFY / ANSWER qu’en READ
 - [x] Logs taille contexte par tour documentés
-- [ ] **G-diet-smoke** sur brief `site-kdds` plan+SVG
-- [ ] `cargo test -p drox-engine` vert
+- [ ] **G-diet-smoke** sur brief `site-kdds` plan+SVG *(reporté — enchaînement 1.4.1.2)*
+- [x] `cargo test -p drox-engine` vert
 
 **Ensuite seulement** : démarrer [PLAN-1.4.1.2](PLAN-1.4.1.2.md) (rail B-RAIL-02, B-MOTOR-05…).
 
