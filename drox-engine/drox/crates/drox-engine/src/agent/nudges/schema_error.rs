@@ -1,5 +1,6 @@
 //! Payloads outil malformés et relance quand le modèle termine sans outil ni `[phase: done]`.
 
+use crate::orchestration::RunIntentFlags;
 use crate::run_spec::{RoleId, RunSpec};
 
 pub(crate) const TODO_WRITE_MISSING_TODOS: &str = "\
@@ -20,19 +21,114 @@ const NO_WORK_PROMPT: &str = "\
 [NUDGE] This looks like a **light message**, not a repo task.\n\n\
 Reply in **`[phase: answering]`**, then **`[phase: done]`** — no `todo_write`, no exploration tools.";
 
+const DISCUSSION_GREETING_PROMPT: &str = "\
+[NUDGE] This looks like a **light message**, not a repo task.\n\n\
+Publish: line `[discussion: reply]`, your user-facing answer, then line `[discussion: done]` — no exploration tools.";
+
 const DISCUSSION_CONTINUE_PROMPT: &str = "\
 Discussion: you already answered. \
 Do not repeat, add tools, plan, or explore the workspace for a greeting-only message. \
 Publish: line `[discussion: reply]`, your user-facing answer, then line `[discussion: done]`.";
 
+/// Whether an idle assistant turn should get the « light message » nudge (no repo tools).
+#[must_use]
+pub(crate) fn should_use_no_work_nudge(
+    spec: &RunSpec,
+    run_intent: Option<&RunIntentFlags>,
+) -> bool {
+    if run_intent.is_some_and(|f| f.greeting_only) {
+        return true;
+    }
+    spec.role_id == RoleId::ArchitectDiscussion && !spec.discussion_allow_reads
+}
+
 /// Relance unique quand le tour assistant n'a ni outil ni `[phase: done]`.
 #[must_use]
-pub(crate) fn schema_error_continue_nudge(spec: &RunSpec, no_work_edit: bool) -> &'static str {
-    if no_work_edit {
+pub(crate) fn schema_error_continue_nudge(
+    spec: &RunSpec,
+    run_intent: Option<&RunIntentFlags>,
+) -> &'static str {
+    if should_use_no_work_nudge(spec, run_intent) {
+        if spec.role_id == RoleId::ArchitectDiscussion {
+            return DISCUSSION_GREETING_PROMPT;
+        }
         return NO_WORK_PROMPT;
     }
     if spec.role_id == RoleId::ArchitectDiscussion {
         return DISCUSSION_CONTINUE_PROMPT;
     }
     CONTINUE_PROMPT
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::orchestration::RunIntentFlags;
+    use crate::run_spec::{RoleId, RunSpec};
+
+    fn architect_edit_spec() -> RunSpec {
+        RunSpec::for_orchestration_role(RoleId::Architect)
+    }
+
+    fn discuss_reply_only_spec() -> RunSpec {
+        RunSpec::for_architect_discussion_with_reads(false)
+    }
+
+    fn discuss_with_reads_spec() -> RunSpec {
+        RunSpec::for_architect_discussion_with_reads(true)
+    }
+
+    fn compound_plan_flags() -> RunIntentFlags {
+        RunIntentFlags::from_llm(false, true)
+    }
+
+    #[test]
+    fn architect_edit_idle_uses_continue_not_light_message() {
+        assert!(!should_use_no_work_nudge(
+            &architect_edit_spec(),
+            Some(&compound_plan_flags()),
+        ));
+        assert_eq!(
+            schema_error_continue_nudge(&architect_edit_spec(), Some(&compound_plan_flags())),
+            CONTINUE_PROMPT
+        );
+    }
+
+    #[test]
+    fn architect_edit_without_todos_still_uses_continue() {
+        assert!(!should_use_no_work_nudge(&architect_edit_spec(), None));
+        assert_eq!(
+            schema_error_continue_nudge(&architect_edit_spec(), None),
+            CONTINUE_PROMPT
+        );
+    }
+
+    #[test]
+    fn discuss_reply_only_uses_greeting_nudge() {
+        let spec = discuss_reply_only_spec();
+        let flags = RunIntentFlags::from_llm(true, false);
+        assert!(should_use_no_work_nudge(&spec, Some(&flags)));
+        assert_eq!(
+            schema_error_continue_nudge(&spec, Some(&flags)),
+            DISCUSSION_GREETING_PROMPT
+        );
+    }
+
+    #[test]
+    fn discuss_with_reads_idle_uses_discussion_continue() {
+        let spec = discuss_with_reads_spec();
+        let flags = RunIntentFlags::from_llm(false, false);
+        assert!(!should_use_no_work_nudge(&spec, Some(&flags)));
+        assert_eq!(
+            schema_error_continue_nudge(&spec, Some(&flags)),
+            DISCUSSION_CONTINUE_PROMPT
+        );
+    }
+
+    #[test]
+    fn greeting_only_flag_triggers_no_work_even_with_reads() {
+        let spec = discuss_with_reads_spec();
+        let flags = RunIntentFlags::from_llm(true, false);
+        assert!(should_use_no_work_nudge(&spec, Some(&flags)));
+    }
 }

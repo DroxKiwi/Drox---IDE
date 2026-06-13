@@ -143,6 +143,27 @@ pub(crate) struct AgentSetupOverrides {
     pub system_override: Option<String>,
     /// Objectif verrouillé injecté avant le run.
     pub run_objective_override: Option<String>,
+    /// Boot intent probe flags for architect runs.
+    pub run_intent: Option<drox_engine::RunIntentFlags>,
+}
+
+/// Shared LLM client for orchestration probe + agent runs.
+pub(crate) async fn build_orchestration_llm(
+    _server: &Server,
+    params: &AgentRunParams,
+) -> Result<Arc<OllamaClient>, RpcError> {
+    let effective_model = params.model.clone();
+    let parent_num_ctx_override = params.num_ctx.map(|n| n as i64);
+    let llm_config = build_llm_config(
+        params.server.clone(),
+        effective_model,
+        params.api_key.clone(),
+        &params.headers,
+        parent_num_ctx_override,
+    )?;
+    OllamaClient::new(llm_config)
+        .map(Arc::new)
+        .map_err(|e| RpcError::new(CONFIG_ERROR, format!("LLM init failed: {e}")))
 }
 
 #[allow(clippy::too_many_lines)] // plomberie linéaire : workspace + memory + permissions + transcript + registry
@@ -356,6 +377,7 @@ pub(crate) async fn build_agent_setup(
         run_spec,
         engine_tuning,
         orchestration_run_id: Some(run_id.to_string()),
+        run_intent: overrides.run_intent,
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);

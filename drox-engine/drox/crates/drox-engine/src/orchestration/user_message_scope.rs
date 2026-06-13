@@ -1,81 +1,8 @@
-//! Assainissement des messages utilisateur (format legacy IDE) — pas d'interprétation du contenu.
+//! Assainissement des messages utilisateur (format legacy IDE) — pas d'interprétation NL du contenu.
 
 use drox_types::{Content, Message, Role};
 
 const LEGACY_USER_HEADERS: &[&str] = &["## User request", "## User"];
-
-/// `true` si le message utilisateur demande probablement une mutation workspace (run edit).
-#[must_use]
-pub fn looks_like_mutation_brief(user_prompt: &str) -> bool {
-    let t = sanitize_architect_user_prompt(user_prompt).to_ascii_lowercase();
-    if t.is_empty() {
-        return false;
-    }
-    const ANALYSIS_ONLY: &[&str] = &[
-        "analyse ",
-        "analyser ",
-        "explique",
-        "expliquer ",
-        "explain ",
-        "what does",
-        "how does",
-        "comment fonctionne",
-        "describe ",
-        "décris ",
-        "overview",
-        "résume ",
-        "summarize ",
-        "tu peux analyser",
-        "peux-tu analyser",
-    ];
-    const MUTATION_HINTS: &[&str] = &[
-        "modifie",
-        "modifier",
-        "change",
-        "changer",
-        "corrige",
-        "corriger",
-        "fix ",
-        "mets à jour",
-        "mettre à jour",
-        "update ",
-        "ajoute",
-        "ajouter",
-        "add ",
-        "supprime",
-        "supprimer",
-        "remove ",
-        "delete ",
-        "remplace",
-        "replace",
-        "implémente",
-        "implement",
-        "crée",
-        "create ",
-        "écris dans",
-        "write to",
-        "couleur",
-        "color",
-        "charte",
-        "theme",
-        "css",
-        "style",
-        "refactor",
-        "renomme",
-        "rename",
-        "déplace",
-        "move ",
-    ];
-    let wants_mutation = MUTATION_HINTS.iter().any(|k| t.contains(k));
-    if !wants_mutation {
-        return false;
-    }
-    if ANALYSIS_ONLY.iter().any(|k| t.contains(k)) && !t.contains(" et ") {
-        // « analyse X et change Y » reste mutation ; analyse seule non.
-        return false;
-    }
-    true
-}
 
 /// Objectif initial verrouillé quand le message user décrit une tâche concrète.
 #[must_use]
@@ -157,18 +84,6 @@ mod tests {
     #[test]
     fn sanitize_keeps_modern_user_header() {
         assert_eq!(sanitize_architect_user_prompt("## User\n\nSalut"), "Salut");
-    }
-
-    #[test]
-    fn mutation_brief_detects_edit_verbs() {
-        assert!(looks_like_mutation_brief("Change les couleurs des orbes en bleu foncé"));
-        assert!(looks_like_mutation_brief("Applique la charte CSS au hero"));
-    }
-
-    #[test]
-    fn mutation_brief_rejects_pure_analysis() {
-        assert!(!looks_like_mutation_brief("Tu peux analyser le répertoire ?"));
-        assert!(!looks_like_mutation_brief("Explique comment fonctionne le background"));
     }
 
     #[test]

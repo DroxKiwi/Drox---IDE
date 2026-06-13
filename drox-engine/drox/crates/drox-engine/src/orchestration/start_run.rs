@@ -1,6 +1,7 @@
-//! Kind de run après routage discuss / edit (RPC ou défaut moteur).
+//! Kind de run après routage discuss / edit (RPC ou intent probe).
 
 use super::ArchitectGate;
+use super::intent_probe::{gate_chain_for_auto, gate_chain_for_rpc, RunIntentFlags};
 
 /// Kind de run architecte après résolution du mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -46,112 +47,79 @@ pub struct GateChainResult {
 }
 
 impl GateChainResult {
-    /// Override RPC (`architectInteractionMode`) + affinage `start_run` sur le message courant.
-    ///
-    /// Mode `discussion` reste `Discuss`, mais un salut court → `DiscussReplyOnly`
-    /// (réutilise `looks_like_light_conversation`, pas de nouvelle heuristique).
+    /// Auto routing from intent probe flags.
     #[must_use]
-    pub fn from_rpc_override(gate: ArchitectGate, prompt: &str) -> Self {
-        let start_run = match gate {
-            ArchitectGate::Discuss => {
-                if looks_like_light_conversation(prompt) {
-                    StartRunKind::DiscussReplyOnly
-                } else {
-                    StartRunKind::DiscussWithReads
-                }
-            }
-            ArchitectGate::Analyze => StartRunKind::Analyze,
-            ArchitectGate::Edit => StartRunKind::Edit,
-        };
-        Self { gate, start_run }
+    pub fn from_auto_intent(flags: &RunIntentFlags) -> Self {
+        gate_chain_for_auto(flags)
     }
 
-    /// Défaut produit : salutations / small talk → discuss reply-only ; sinon edit.
+    /// RPC override + intent flags for discuss refinement.
     #[must_use]
-    pub fn default_for_prompt(prompt: &str) -> Self {
-        if looks_like_light_conversation(prompt) {
-            Self {
-                gate: ArchitectGate::Discuss,
-                start_run: StartRunKind::DiscussReplyOnly,
-            }
-        } else {
-            Self {
-                gate: ArchitectGate::Edit,
-                start_run: StartRunKind::Edit,
-            }
-        }
+    pub fn from_rpc_intent(gate: ArchitectGate, flags: &RunIntentFlags) -> Self {
+        gate_chain_for_rpc(gate, flags)
     }
-}
-
-/// Salutation ou remerciement court — pas de tâche repo (heuristique minimale, pas de gate chain).
-#[must_use]
-pub fn looks_like_light_conversation(prompt: &str) -> bool {
-    let t = prompt.trim();
-    if t.is_empty() || t.len() > 120 {
-        return false;
-    }
-    let lower = t.to_ascii_lowercase();
-    const ACTION_HINTS: &[&str] = &[
-        "fix", "bug", "ajout", "ajoute", "cré", "creer", "crée", "supprim", "refactor", "implement",
-        "modif", "fichier", "file ", "code ", "repo", "projet", "build", "test ", "erreur", "error",
-        "delegate", "todo", "patch", "merge", "commit", "deploy",
-    ];
-    if ACTION_HINTS.iter().any(|h| lower.contains(h)) {
-        return false;
-    }
-    const GREETINGS: &[&str] = &[
-        "salut", "bonjour", "bonsoir", "hello", "hi", "hey", "coucou", "yo", "hola", "thanks",
-        "thank you", "merci", "thx", "ça va", "ca va", "comment vas", "good morning", "good evening",
-    ];
-    GREETINGS.iter().any(|g| {
-        lower == *g
-            || lower.starts_with(&format!("{g} "))
-            || lower.starts_with(&format!("{g}!"))
-            || lower.starts_with(&format!("{g}?"))
-            || lower.starts_with(&format!("{g},"))
-    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::orchestration::intent_probe::ProbeSource;
 
-    #[test]
-    fn light_conversation_detects_salut() {
-        assert!(looks_like_light_conversation("Salut !"));
-        assert!(looks_like_light_conversation("salut ! tu vas bien ?"));
-        assert!(looks_like_light_conversation("bonjour"));
-        assert!(!looks_like_light_conversation(
-            "Supprime le spotlight du background"
-        ));
-        assert!(!looks_like_light_conversation(
-            "Peux-tu lire le fichier README et me résumer le projet ?"
-        ));
+    fn greeting_flags() -> RunIntentFlags {
+        RunIntentFlags::from_llm(true, false)
+    }
+
+    fn work_flags() -> RunIntentFlags {
+        RunIntentFlags::from_llm(false, true)
     }
 
     #[test]
-    fn default_for_prompt_routes_salut_to_discuss() {
-        let r = GateChainResult::default_for_prompt("Salut !");
+    fn auto_routes_greeting_to_discuss_reply_only() {
+        let r = GateChainResult::from_auto_intent(&greeting_flags());
         assert_eq!(r.gate, ArchitectGate::Discuss);
         assert_eq!(r.start_run, StartRunKind::DiscussReplyOnly);
     }
 
     #[test]
-    fn rpc_discussion_routes_greeting_to_reply_only() {
-        let r = GateChainResult::from_rpc_override(
-            ArchitectGate::Discuss,
-            "salut ! tu vas bien ?",
-        );
-        assert_eq!(r.gate, ArchitectGate::Discuss);
+    fn auto_routes_work_to_edit() {
+        let r = GateChainResult::from_auto_intent(&work_flags());
+        assert_eq!(r.gate, ArchitectGate::Edit);
+        assert_eq!(r.start_run, StartRunKind::Edit);
+    }
+
+    #[test]
+    fn rpc_discussion_greeting_reply_only() {
+        let r = GateChainResult::from_rpc_intent(ArchitectGate::Discuss, &greeting_flags());
         assert_eq!(r.start_run, StartRunKind::DiscussReplyOnly);
     }
 
     #[test]
-    fn rpc_discussion_keeps_with_reads_for_repo_question() {
-        let r = GateChainResult::from_rpc_override(
-            ArchitectGate::Discuss,
-            "Où est défini le composant Header ?",
-        );
+    fn rpc_discussion_repo_question_with_reads() {
+        let flags = RunIntentFlags {
+            greeting_only: false,
+            expects_workspace_mutation: false,
+            source: ProbeSource::Llm,
+        };
+        let r = GateChainResult::from_rpc_intent(ArchitectGate::Discuss, &flags);
         assert_eq!(r.start_run, StartRunKind::DiscussWithReads);
+    }
+
+    #[test]
+    fn rpc_edit_stays_edit() {
+        let r = GateChainResult::from_rpc_intent(ArchitectGate::Edit, &work_flags());
+        assert_eq!(r.start_run, StartRunKind::Edit);
+    }
+
+    /// Smoke `ses_3eb8a6d5` — compound plan + mutation brief must not route to discuss reply-only.
+    #[test]
+    fn auto_compound_plan_mutation_brief_routes_edit() {
+        let flags = RunIntentFlags {
+            greeting_only: false,
+            expects_workspace_mutation: true,
+            source: ProbeSource::Llm,
+        };
+        let r = GateChainResult::from_auto_intent(&flags);
+        assert_eq!(r.gate, ArchitectGate::Edit);
+        assert_eq!(r.start_run, StartRunKind::Edit);
     }
 }

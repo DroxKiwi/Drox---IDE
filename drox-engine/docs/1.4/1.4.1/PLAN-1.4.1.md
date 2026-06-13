@@ -54,12 +54,19 @@ Références : [`chat_qwen27b.txt`](../../chat_qwen27b.txt) · [`chat_qwen27b_2.
 
 Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rail ni polish UI complet.
 
+## Suite
+
 ```text
 1.4.0 squelette rail clôturé
-    → 1.4.1 surface prod + bugs smoke (discuss, busy, boucles, ACT, VERIFY, replay)
-        → 1.4.2 UI chat
-            → 1.4.3 index/graphe
+    → 1.4.1 stabilisation dogfood (base « 0 »)
+        → 1.4.1.1 intent probes + English engine
+            → 1.4.1.2a context diet (injection prompt)
+                → 1.4.1.2 patch rail / clôture / VERIFY
+                    → 1.4.2 UI chat
+                        → 1.4.3 index/graphe
 ```
+
+Voir [PLAN-1.4.1.1](PLAN-1.4.1.1.md) · [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) · [PLAN-1.4.1.2](PLAN-1.4.1.2.md).
 
 ---
 
@@ -140,6 +147,8 @@ Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rai
 **Critère** : run charte < 80 steps moteur ; une réponse finale ; au moins une mutation si le brief l’exige explicitement.
 
 **Dogfood juin 2026** : README + LSP (`chat_qwen27b.txt`, session `ses_4792b6b9`) — `file_write` OK, rail VERIFY bloque mutation, réponse finale stable (`dcc24d320` UI).
+
+**Suite dogfood (juin 2026)** : [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) (context diet) puis [PLAN-1.4.1.2](PLAN-1.4.1.2.md) — rail/plan, clôture answering (sessions `ses_9bd9b48c`, `ses_74e1766a`, `ses_3c6ec330`).
 
 ### P5 — VERIFY Windows — B-MOTOR-02
 

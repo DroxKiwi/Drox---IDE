@@ -62,20 +62,63 @@ pub fn render_tool_block(name: &str, vars: &PromptVars) -> Option<String> {
     Some(body)
 }
 
-/// Tous les blocs protocole outil architecte (injectés une fois au boot run).
+/// Marker header — must match [`crate::agent::state::TOOL_PROTOCOL_SNAPSHOT_MARKER`].
+pub const TOOL_PROTOCOL_HEADER: &str = "## Architect tool protocols (engine)";
+
+/// Tous les blocs protocole outil architecte (runs sans rail).
 #[must_use]
 pub fn tool_supplements_all_architect(vars: &PromptVars) -> String {
-    let sections: Vec<String> = ALL_ARCHITECT_TOOL_BLOCKS
+    tool_supplements_for_tool_names(vars, ALL_ARCHITECT_TOOL_BLOCKS)
+}
+
+/// Protocoles outil scoped à la station rail courante (context diet).
+#[must_use]
+pub fn tool_supplements_for_station(
+    vars: &PromptVars,
+    station: crate::RunStation,
+) -> String {
+    tool_supplements_for_tool_names(vars, station_tool_block_names(station))
+}
+
+#[must_use]
+fn station_tool_block_names(station: crate::RunStation) -> &'static [&'static str] {
+    use crate::RunStation;
+    match station {
+        RunStation::Intent | RunStation::Read => &[
+            TOOL_WORKSPACE_MAP_READ,
+            TOOL_FILE_READ,
+            TOOL_GREP,
+            TOOL_LSP,
+        ],
+        RunStation::Propose | RunStation::Plan => &[
+            TOOL_TODO_WRITE,
+            TOOL_ARCHITECT_HELP,
+            TOOL_ASK_USER_QUESTION,
+            TOOL_WORKSPACE_MAP_READ,
+            TOOL_FILE_READ,
+            TOOL_GREP,
+        ],
+        RunStation::Act => &[
+            TOOL_FILE_EDIT,
+            TOOL_FILE_WRITE,
+            TOOL_TODO_WRITE,
+            TOOL_FILE_READ,
+        ],
+        RunStation::Verify => &[TOOL_LSP, TOOL_GREP, TOOL_FILE_READ],
+        RunStation::Answer => &[TOOL_TODO_WRITE],
+    }
+}
+
+#[must_use]
+fn tool_supplements_for_tool_names(vars: &PromptVars, names: &[&str]) -> String {
+    let sections: Vec<String> = names
         .iter()
         .filter_map(|name| render_tool_block(name, vars))
         .collect();
     if sections.is_empty() {
         return String::new();
     }
-    format!(
-        "## Architect tool protocols (engine)\n\n{}",
-        join_sections(&sections)
-    )
+    format!("{TOOL_PROTOCOL_HEADER}\n\n{}", join_sections(&sections))
 }
 
 /// Description courte pour l'API LLM (architecte) — détail procédural dans les blocs `T-*`.
@@ -122,5 +165,17 @@ mod tests {
         let s = tool_supplements_all_architect(&PromptVars::default());
         assert!(!s.contains("sub-agent"));
         assert!(!s.contains("Executor sub-agent"));
+    }
+
+    #[test]
+    fn station_tool_supplements_read_smaller_than_act() {
+        use crate::RunStation;
+        let vars = PromptVars::default();
+        let read = tool_supplements_for_station(&vars, RunStation::Read);
+        let act = tool_supplements_for_station(&vars, RunStation::Act);
+        assert!(read.contains("file_read"));
+        assert!(!read.contains("Tool protocol: `file_edit`"));
+        assert!(act.contains("Tool protocol: `file_edit`"));
+        assert!(act.len() < tool_supplements_all_architect(&vars).len());
     }
 }

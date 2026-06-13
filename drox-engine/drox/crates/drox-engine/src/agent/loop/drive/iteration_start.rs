@@ -13,10 +13,23 @@
                     session.effective_run_objective.as_deref(),
                 ),
             );
-            if crate::agent::rail::run_rail_active(
+            let rail_active = crate::agent::rail::run_rail_active(
                 &self.config.engine_tuning,
                 self.config.run_spec.role_id,
-            ) {
+            );
+            let tool_protocols = if rail_active {
+                crate::tool_supplements_for_station(
+                    &self.config.engine_tuning,
+                    session.architect_state.rail.station,
+                )
+            } else {
+                crate::tool_supplements_all_architect(&self.config.engine_tuning)
+            };
+            crate::agent::state::refresh_tool_protocol_snapshot(
+                &mut session.messages,
+                &tool_protocols,
+            );
+            if rail_active {
                 let open_todos = crate::agent::rail::OpenTodoCounts {
                     pending: session.last_todo_pending,
                     in_progress: session.last_todo_in_progress,

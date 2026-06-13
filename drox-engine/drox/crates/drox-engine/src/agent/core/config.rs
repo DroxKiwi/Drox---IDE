@@ -47,6 +47,8 @@ pub struct AgentConfig {
     pub engine_tuning: crate::orchestration::EngineTuning,
     /// Id run orchestration (corrÃ©lation RPC / transcript).
     pub orchestration_run_id: Option<String>,
+    /// Boot intent probe flags (mutation expectation, greeting routing).
+    pub run_intent: Option<crate::orchestration::RunIntentFlags>,
 }
 
 impl Default for AgentConfig {
@@ -67,6 +69,7 @@ impl Default for AgentConfig {
             run_spec: RunSpec::default(),
             engine_tuning: crate::orchestration::EngineTuning::default(),
             orchestration_run_id: None,
+            run_intent: None,
         }
     }
 }

@@ -51,7 +51,7 @@ pub use tool_orchestration::{
     partition_tool_calls, ToolCallBatch, DEFAULT_MAX_PARALLEL_TOOL_CALLS,
 };
 
-pub use agent::{Agent, AgentConfig, AgentStream, apply_architect_edit_start, ArchitectEditStartOutcome};
+pub use agent::{Agent, AgentConfig, AgentStream, apply_architect_edit_start, ArchitectEditStartOutcome, RunStation};
 pub use run_spec::{
     GateKind, RoleId, RunLimits, RunSpec, RUN_SPEC_VERSION, ARCHITECT_TOOL_ALLOWLIST,
 };
@@ -67,10 +67,12 @@ pub use orchestration::{
     architect_discussion_system_prompt, architect_discussion_system_prompt_default,
     architect_discussion_system_prompt_for_start_run,
     architect_tool_short_description,
-    tool_supplements_all_architect,
+    tool_supplements_all_architect, tool_supplements_for_station,
     ARCHITECT_DISCUSSION_CORE_PROMPT, ARCHITECT_DISCUSSION_SYSTEM_PROMPT,
     initial_run_objective_for_concrete_edit, sanitize_architect_user_prompt,
     sanitize_transcript_user_messages,
+    RunIntentFlags, ResolvedRunIntent, resolve_run_intent, run_intent_probe,
+    ProbeSource, parse_run_intent_json,
     DEFAULT_ARCHITECT_MODEL,
 };
 pub use compaction::{
