@@ -40,7 +40,9 @@ fn last_rail_snapshot_text(messages: &[Message]) -> Option<String> {
 
 fn parse_station(text: &str) -> Option<RunStation> {
     let line = text.lines().find(|l| l.starts_with("Station: "))?;
-    match line.trim_start_matches("Station: ").trim() {
+    let value = line.trim_start_matches("Station: ").trim();
+    let station_token = value.split('·').next().unwrap_or(value).trim();
+    match station_token {
         "intent" => Some(RunStation::Intent),
         "read" => Some(RunStation::Read),
         "propose" => Some(RunStation::Propose),
@@ -53,12 +55,23 @@ fn parse_station(text: &str) -> Option<RunStation> {
 }
 
 fn parse_depth(text: &str) -> Option<RunDepth> {
-    let line = text.lines().find(|l| l.starts_with("Depth: "))?;
-    match line.trim_start_matches("Depth: ").trim() {
-        "complex" => Some(RunDepth::Complex),
-        "short" => Some(RunDepth::Short),
-        _ => None,
+    if let Some(line) = text.lines().find(|l| l.starts_with("Depth: ")) {
+        return match line.trim_start_matches("Depth: ").trim() {
+            "complex" => Some(RunDepth::Complex),
+            "short" => Some(RunDepth::Short),
+            _ => None,
+        };
     }
+    let line = text.lines().find(|l| l.starts_with("Station: "))?;
+    let parts: Vec<&str> = line.split('·').map(str::trim).collect();
+    if parts.len() >= 2 {
+        return match parts[1] {
+            "complex" => Some(RunDepth::Complex),
+            "short" => Some(RunDepth::Short),
+            _ => None,
+        };
+    }
+    None
 }
 
 fn parse_propose_hold(text: &str) -> bool {
@@ -86,5 +99,15 @@ mod tests {
         restore_from_transcript(&mut state, &messages);
         assert_eq!(state.station, RunStation::Read);
         assert_eq!(state.depth, RunDepth::Complex);
+    }
+
+    #[test]
+    fn restores_station_from_compact_snapshot() {
+        let snap = "## Run rail (engine)\nStation: act · short · apply edits";
+        let mut state = RunRailState::new();
+        let messages = vec![Message::system(snap.to_string())];
+        restore_from_transcript(&mut state, &messages);
+        assert_eq!(state.station, RunStation::Act);
+        assert_eq!(state.depth, RunDepth::Short);
     }
 }

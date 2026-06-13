@@ -72,6 +72,35 @@ impl ArchitectRunState {
         self.format_plan_snapshot()
     }
 
+    /// Résumé une ligne pour station ANSWER (context diet).
+    #[must_use]
+    pub(crate) fn format_todos_summary_one_line(&self) -> String {
+        if self.task_labels.is_empty() && self.todo_statuses.is_empty() {
+            return "*(no todos)*".to_string();
+        }
+        let mut ids: Vec<String> = self
+            .task_labels
+            .keys()
+            .chain(self.todo_statuses.keys())
+            .cloned()
+            .collect();
+        ids.sort();
+        ids.dedup();
+        let parts: Vec<String> = ids
+            .iter()
+            .take(self.anchor_plan_max_items)
+            .map(|id| {
+                let status = self
+                    .todo_statuses
+                    .get(id)
+                    .map(String::as_str)
+                    .unwrap_or("pending");
+                format!("{id}:{status}")
+            })
+            .collect();
+        parts.join(", ")
+    }
+
     /// Tâche courante : première `in_progress` hors meta.
     #[must_use]
     pub(crate) fn current_focus_task_line(&self) -> Option<(String, String, String)> {

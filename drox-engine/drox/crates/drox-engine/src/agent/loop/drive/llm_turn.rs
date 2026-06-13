@@ -121,12 +121,18 @@
                 }
             }
             if self.config.run_spec.role_id == crate::run_spec::RoleId::Architect {
+                let rail_active = crate::agent::rail::run_rail_active(
+                    &self.config.engine_tuning,
+                    self.config.run_spec.role_id,
+                );
+                let rail_station = rail_active.then_some(session.architect_state.rail.station);
                 session.architect_state.anchor_run_objective(obj);
                 crate::agent::state::refresh_architect_run_snapshot(
                     &mut session.messages,
                     &crate::orchestration::architect_run_context_block_per_turn(
                         &session.architect_state,
                         session.effective_run_objective.as_deref(),
+                        rail_station,
                     ),
                 );
             }

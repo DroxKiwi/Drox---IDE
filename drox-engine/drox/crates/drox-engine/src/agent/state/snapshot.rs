@@ -86,6 +86,41 @@ pub fn is_tool_protocol_snapshot_message(m: &Message) -> bool {
     system_message_text(m).contains(TOOL_PROTOCOL_SNAPSHOT_MARKER)
 }
 
+/// Bytes of injected context snapshots currently in `messages` (for observability).
+#[must_use]
+pub fn measure_context_snapshot_bytes(messages: &[Message]) -> (usize, usize, usize) {
+    let architect = messages
+        .iter()
+        .filter(|m| is_architect_run_snapshot_message(m))
+        .map(|m| system_message_text(m).len())
+        .sum();
+    let tool_protocol = messages
+        .iter()
+        .filter(|m| is_tool_protocol_snapshot_message(m))
+        .map(|m| system_message_text(m).len())
+        .sum();
+    let rail = messages
+        .iter()
+        .filter(|m| crate::agent::rail::is_run_rail_snapshot_message(m))
+        .map(|m| system_message_text(m).len())
+        .sum();
+    (architect, tool_protocol, rail)
+}
+
+/// Per-turn context diet metrics (filter `drox.context` in logs).
+pub fn log_context_turn_metrics(messages: &[Message]) {
+    let (architect_bytes, tool_protocol_bytes, rail_bytes) =
+        measure_context_snapshot_bytes(messages);
+    tracing::info!(
+        target: "drox.context",
+        architect_snapshot_bytes = architect_bytes,
+        tool_protocol_snapshot_bytes = tool_protocol_bytes,
+        rail_snapshot_bytes = rail_bytes,
+        messages_count = messages.len(),
+        "context_turn_metrics"
+    );
+}
+
 #[must_use]
 pub fn is_architect_run_snapshot_message(m: &Message) -> bool {
     if !matches!(m.role, Role::System) {

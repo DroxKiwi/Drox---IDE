@@ -6,16 +6,18 @@
         tx: &tokio::sync::mpsc::Sender<Result<crate::event::AgentEvent, crate::error::EngineError>>,
     ) -> bool {
         if self.config.run_spec.role_id == crate::run_spec::RoleId::Architect {
+            let rail_active = crate::agent::rail::run_rail_active(
+                &self.config.engine_tuning,
+                self.config.run_spec.role_id,
+            );
+            let rail_station = rail_active.then_some(session.architect_state.rail.station);
             crate::agent::state::refresh_architect_run_snapshot(
                 &mut session.messages,
                 &crate::orchestration::architect_run_context_block_per_turn(
                     &session.architect_state,
                     session.effective_run_objective.as_deref(),
+                    rail_station,
                 ),
-            );
-            let rail_active = crate::agent::rail::run_rail_active(
-                &self.config.engine_tuning,
-                self.config.run_spec.role_id,
             );
             let tool_protocols = if rail_active {
                 crate::tool_supplements_for_station(
@@ -54,6 +56,7 @@
                     open_todos,
                 );
             }
+            crate::agent::state::log_context_turn_metrics(&session.messages);
         }
 
         if self

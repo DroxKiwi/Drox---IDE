@@ -29,7 +29,7 @@ pub use transition::{
 };
 pub use policy::filter_tool_specs_for_station;
 pub use pre_gate::tool_pre_gate_rail;
-pub use snapshot_block::refresh_run_rail_snapshot;
+pub use snapshot_block::{is_run_rail_snapshot_message, refresh_run_rail_snapshot};
 pub use station::RunStation;
 pub use station_events::to_agent_event;
 pub use state::RunRailState;
