@@ -33,6 +33,56 @@ pub fn run_rail_snapshot_block(
     focus: RailFocus<'_>,
     open_todos: OpenTodoCounts,
 ) -> String {
+    if should_use_compact_rail_snapshot(state, focus, open_todos) {
+        return run_rail_snapshot_block_compact(state);
+    }
+    run_rail_snapshot_block_full(state, focus, open_todos)
+}
+
+#[must_use]
+fn should_use_compact_rail_snapshot(
+    state: &RunRailState,
+    focus: RailFocus<'_>,
+    open_todos: OpenTodoCounts,
+) -> bool {
+    if focus.is_some() {
+        return false;
+    }
+    if state.propose_awaiting_user {
+        return false;
+    }
+    if open_todos.has_open() {
+        return false;
+    }
+    if state.station == RunStation::Verify && !state.verify_outcome.passed() {
+        return false;
+    }
+    if matches!(state.verify_outcome, super::verify::VerifyOutcome::Fail(_)) {
+        return false;
+    }
+    true
+}
+
+#[must_use]
+fn run_rail_snapshot_block_compact(state: &RunRailState) -> String {
+    let station = state.station.as_str();
+    let depth = match state.depth {
+        super::station::RunDepth::Short => "short",
+        super::station::RunDepth::Complex => "complex",
+    };
+    let hint = policy::station_action_hint(state.station);
+    format!(
+        "{RUN_RAIL_SNAPSHOT_MARKER}\n\
+         Station: {station} · {depth} · {hint}"
+    )
+}
+
+#[must_use]
+fn run_rail_snapshot_block_full(
+    state: &RunRailState,
+    focus: RailFocus<'_>,
+    open_todos: OpenTodoCounts,
+) -> String {
     let station = state.station.as_str();
     let depth = match state.depth {
         super::station::RunDepth::Short => "short",
@@ -143,12 +193,13 @@ mod tests {
         let block = run_rail_snapshot_block(&RunRailState::new(), None, OpenTodoCounts::default());
         assert!(block.contains(RUN_RAIL_SNAPSHOT_MARKER));
         assert!(block.contains("Station: intent"));
-        assert!(block.contains("Current action:"));
+        assert!(block.lines().count() <= 2);
         let focused = run_rail_snapshot_block(
             &RunRailState::new(),
             Some(("t1", "Fix scroll snap")),
             OpenTodoCounts::default(),
         );
+        assert!(focused.contains("Current action:"));
         assert!(focused.contains("focus task `t1`"));
     }
 
@@ -166,5 +217,28 @@ mod tests {
             .content
             .iter()
             .any(|b| matches!(b, Content::Text { text, .. } if text.contains("extra"))));
+    }
+
+    #[test]
+    fn compact_rail_snapshot_shorter_when_stable() {
+        let state = RunRailState::new();
+        let full = run_rail_snapshot_block_full(&state, None, OpenTodoCounts::default());
+        let compact = run_rail_snapshot_block_compact(&state);
+        assert!(compact.contains("Station: intent"));
+        assert!(compact.lines().count() <= 2);
+        assert!(compact.len() < full.len());
+    }
+
+    #[test]
+    fn compact_rail_disabled_when_propose_hold() {
+        let state = RunRailState {
+            propose_awaiting_user: true,
+            ..RunRailState::new()
+        };
+        assert!(!should_use_compact_rail_snapshot(
+            &state,
+            None,
+            OpenTodoCounts::default()
+        ));
     }
 }

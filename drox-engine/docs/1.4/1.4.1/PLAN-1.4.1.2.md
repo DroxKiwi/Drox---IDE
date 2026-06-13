@@ -33,6 +33,7 @@
 | `ses_3eb8a6d5` | Plan+SVG (pre B-INTENT-06) | **KO** — faux « light message », spirale `file_write` | Boot intent ; confusion quota `file_write` |
 | `ses_3c6ec330` | Re-smoke R1c plan+SVG (post B-INTENT-06) | **Partiel** | Boot OK ; B-PROPOSE-01 ; B-CYCLE-01 ; ~78k tokens → 1.4.1.2a |
 | `ses_31b9a209` | **R1c clôture** plan+SVG (Qwen 3.6:27b) | **OK intent** — app fonctionnelle | Boot OK ; plan→user→act ; ~116k tokens → 1.4.1.2a |
+| `ses_2e0b2a5e` | Plan+SVG (Qwen 2.7B, build `340742`) | **KO** — spirale `file_write`, pas d'ANSWER | ~86k in ; yo-yo ACT↔VERIFY ; t2–t4 pending → [SMOKE-ses_2e0b2a5e](SMOKE-ses_2e0b2a5e.md) |
 
 ### Synthèse — six familles
 

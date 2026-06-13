@@ -55,9 +55,9 @@ F. Context diet        push excessif — snapshots + 9 protocoles outil + histor
 |----|-------|-------|----------|--------|
 | **B-CTX-02a** | Snapshots dédupliqués (fingerprint tour N−1) | P1 | P0 | ☑ code |
 | **B-CTX-02b** | Protocoles outil **par station** rail | P2 | P0 | ☑ code |
-| **B-CTX-02c** | Profils snapshot architecte par station | P3 | P1 | ☐ |
-| **B-CTX-02d** | Rail snapshot compact si état stable | P3 | P1 | ☐ |
-| **B-CTX-02e** | Observabilité : log taille snapshots / tour | P4 | P1 | ☐ |
+| **B-CTX-02c** | Profils snapshot architecte par station | P3 | P1 | ☑ code |
+| **B-CTX-02d** | Rail snapshot compact si état stable | P3 | P1 | ☑ code |
+| **B-CTX-02e** | Observabilité : log taille snapshots / tour | P4 | P1 | ☑ code |
 | **B-MOTOR-01** | (partiel) Préambules thinking — chevauche 02a/d | P1–P3 | P1 | ☐ |
 
 **Hors scope 2a** : allocator narrative/code 50k/70k · bulles TOML · GraphContext ([1.4.3](../1.4.3/PLAN-1.4.3.md)) · compaction transcript (déjà partiel en 1.4.0).
@@ -132,9 +132,9 @@ Les **schemas** function-calling restent filtrés par `filter_tool_specs_for_sta
 | 1.3 | ☑ | Tests unit skip / refresh | `state/`, `rail/` | B-CTX-02a |
 | 2.1 | ☑ | `tool_supplements_for_station(station)` | `tools/mod.rs` | B-CTX-02b |
 | 2.2 | ☑ | Boot edit : noyau seul ; protocoles par station à chaque tour | `gates/edit.rs`, `iteration_start.rs` | B-CTX-02b |
-| 3.1 | ☐ | `RunSnapshotProfile` par station | `run_snapshot.rs` | B-CTX-02c |
-| 3.2 | ☐ | Rail block mode compact | `snapshot_block.rs` | B-CTX-02d |
-| 4.1 | ☐ | Logs taille contexte par tour | `iteration_start.rs` | B-CTX-02e |
+| 3.1 | ☑ | `RunSnapshotProfile` par station | `run_snapshot.rs` | B-CTX-02c |
+| 3.2 | ☑ | Rail block mode compact | `snapshot_block.rs` | B-CTX-02d |
+| 4.1 | ☑ | Logs taille contexte par tour | `iteration_start.rs` | B-CTX-02e |
 | 5.1 | ☐ | Re-smoke R1c brief plan+SVG | `chat_qwen27b.txt` | gate |
 | 5.2 | ☐ | Comparer −30 % tokens in tours ACT (cible) | doc | gate |
 
@@ -151,10 +151,10 @@ Les **schemas** function-calling restent filtrés par `filter_tool_specs_for_sta
 
 ## Critères de clôture 1.4.1.2a
 
-- [ ] Snapshots architect + rail **non réinjectés** si fingerprint inchangé
-- [ ] Protocoles outil **scoped station** (pas 9 blocs au boot)
-- [ ] Profil snapshot **plus court** en VERIFY / ANSWER qu’en READ
-- [ ] Logs taille contexte par tour documentés
+- [x] Snapshots architect + rail **non réinjectés** si fingerprint inchangé
+- [x] Protocoles outil **scoped station** (pas 9 blocs au boot)
+- [x] Profil snapshot **plus court** en VERIFY / ANSWER qu’en READ
+- [x] Logs taille contexte par tour documentés
 - [ ] **G-diet-smoke** sur brief `site-kdds` plan+SVG
 - [ ] `cargo test -p drox-engine` vert
 
