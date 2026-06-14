@@ -430,6 +430,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 | 2026-06-05 | Clôture squelette 1.4.0 ; PLAN-1.4.1 réaligné post-dogfood ; B-MOTOR-04, B-REL-01 ajoutés |
 | 2026-06-12 | B-MOTOR-04 résolu (`f8dd47a7`) ; B-UI-07 validé dogfood ; P3/P4 plan cochés |
 | 2026-06-05 | **1.4.1.2 code clôturé** — B-RAIL-02…08, B-CYCLE-01, G-CTX-01 ; 265 tests ; smokes debunk reportés |
+| 2026-06-14 | **Debunk `ses_4b2c1d08`** — 25k in (−70 % vs 2e0b2a5e), 8 min, 1× file_write ; → [SMOKE-ses_4b2c1d08](../../1.4.1/SMOKE-ses_4b2c1d08.md) |
 
 ---
 

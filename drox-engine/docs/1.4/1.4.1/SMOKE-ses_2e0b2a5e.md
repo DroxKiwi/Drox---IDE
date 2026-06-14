@@ -4,7 +4,8 @@
 **Statut** : **analysé, non patché** — notes pour smoke post-1.4.1.2a puis [PLAN-1.4.1.2](PLAN-1.4.1.2.md)  
 **Transcript** : [`chat_qwen27b.txt`](../../chat_qwen27b.txt) · export complet `site-kdds\.drox\exports\transcript-ses_2e0b2a5e-…-2026-06-13T21-03-52-689Z.txt`
 
-> Brief identique au gate **R1c** (plan + mutation SVG scroll, site-kdds). Run **Qwen 2.7B** sur binaire **`1.4.0.340742`** — **sans** context diet 1.4.1.2a ni rebuild post-commit intent `2d72089`. À comparer au smoke R1c vert [`ses_31b9a209`](finalisation/CLOSURE-1.4.1.1.md) (Qwen 3.6:27b).
+> Brief identique au gate **R1c** (plan + mutation SVG scroll, site-kdds). Run **Qwen 2.7B** sur binaire **`1.4.0.340742`** — **sans** context diet 1.4.1.2a ni rebuild post-commit intent `2d72089`. À comparer au smoke R1c vert [`ses_31b9a209`](finalisation/CLOSURE-1.4.1.1.md) (Qwen 3.6:27b).  
+> **Re-smoke post-1.4.1.2** (brief réparation fichier) : [`ses_4b2c1d08`](SMOKE-ses_4b2c1d08.md) — −70 % tokens, 8 min, partiel vert.
 
 ---
 
@@ -253,6 +254,7 @@ Le modèle **ne pivote pas** vers une stratégie fiable (fichier plus court, `fi
 
 ## Liens
 
+- [SMOKE-ses_4b2c1d08](SMOKE-ses_4b2c1d08.md) — re-smoke post-1.4.1.2 (comparaison)
 - [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) — context diet
 - [PLAN-1.4.1.2](PLAN-1.4.1.2.md) — rail / clôture / VERIFY
 - [CLOSURE-1.4.1.1](finalisation/CLOSURE-1.4.1.1.md) — smoke R1c vert (`ses_31b9a209`)
