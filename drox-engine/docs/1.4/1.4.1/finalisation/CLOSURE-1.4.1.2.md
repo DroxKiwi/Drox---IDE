@@ -44,7 +44,9 @@ Patch **rail / clôture / VERIFY / messages outil** livré côté code. Les gate
 | **G-smoke-discuss** | R1a/R1b non-régression |
 | Export transcript / tag release | Après smokes |
 
-Analyse préparée : [SMOKE-ses_2e0b2a5e](../SMOKE-ses_2e0b2a5e.md)
+**Premier debunk** : [SMOKE-ses_4b2c1d08](../SMOKE-ses_4b2c1d08.md) — partiel vert (−70 % tokens, anti-spirale OK, clôture KO).
+
+Analyse baseline KO : [SMOKE-ses_2e0b2a5e](../SMOKE-ses_2e0b2a5e.md)
 
 ---
 
