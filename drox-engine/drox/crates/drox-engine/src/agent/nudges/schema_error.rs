@@ -3,6 +3,8 @@
 use crate::orchestration::RunIntentFlags;
 use crate::run_spec::{RoleId, RunSpec};
 
+use super::text_tool_marker::CONTINUE_NO_RESULTS_YET;
+
 pub(crate) const TODO_WRITE_MISSING_TODOS: &str = "\
 Blocked: `todo_write` payload must include `todos`.\n\
 Use exactly: {\"todos\":[{\"id\":\"t1\",\"content\":\"…\",\"status\":\"pending|in_progress|completed|cancelled\"}]}\n\
@@ -30,6 +32,20 @@ Discussion: you already answered. \
 Do not repeat, add tools, plan, or explore the workspace for a greeting-only message. \
 Publish: line `[discussion: reply]`, your user-facing answer, then line `[discussion: done]`.";
 
+/// Contexte pour choisir le nudge `schema_error` vs variante sans tool results.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SchemaErrorNudgeContext {
+    pub has_tool_results_since_user: bool,
+}
+
+impl Default for SchemaErrorNudgeContext {
+    fn default() -> Self {
+        Self {
+            has_tool_results_since_user: true,
+        }
+    }
+}
+
 /// Whether an idle assistant turn should get the « light message » nudge (no repo tools).
 #[must_use]
 pub(crate) fn should_use_no_work_nudge(
@@ -42,11 +58,12 @@ pub(crate) fn should_use_no_work_nudge(
     spec.role_id == RoleId::ArchitectDiscussion && !spec.discussion_allow_reads
 }
 
-/// Relance unique quand le tour assistant n'a ni outil ni `[phase: done]`.
+/// Relance quand le tour assistant n'a ni outil ni `[phase: done]`.
 #[must_use]
 pub(crate) fn schema_error_continue_nudge(
     spec: &RunSpec,
     run_intent: Option<&RunIntentFlags>,
+    ctx: SchemaErrorNudgeContext,
 ) -> &'static str {
     if should_use_no_work_nudge(spec, run_intent) {
         if spec.role_id == RoleId::ArchitectDiscussion {
@@ -56,6 +73,9 @@ pub(crate) fn schema_error_continue_nudge(
     }
     if spec.role_id == RoleId::ArchitectDiscussion {
         return DISCUSSION_CONTINUE_PROMPT;
+    }
+    if !ctx.has_tool_results_since_user {
+        return CONTINUE_NO_RESULTS_YET;
     }
     CONTINUE_PROMPT
 }
@@ -89,8 +109,26 @@ mod tests {
             Some(&compound_plan_flags()),
         ));
         assert_eq!(
-            schema_error_continue_nudge(&architect_edit_spec(), Some(&compound_plan_flags())),
+            schema_error_continue_nudge(
+                &architect_edit_spec(),
+                Some(&compound_plan_flags()),
+                SchemaErrorNudgeContext::default(),
+            ),
             CONTINUE_PROMPT
+        );
+    }
+
+    #[test]
+    fn architect_edit_without_tool_results_uses_no_results_variant() {
+        assert_eq!(
+            schema_error_continue_nudge(
+                &architect_edit_spec(),
+                None,
+                SchemaErrorNudgeContext {
+                    has_tool_results_since_user: false,
+                },
+            ),
+            CONTINUE_NO_RESULTS_YET,
         );
     }
 
@@ -98,7 +136,11 @@ mod tests {
     fn architect_edit_without_todos_still_uses_continue() {
         assert!(!should_use_no_work_nudge(&architect_edit_spec(), None));
         assert_eq!(
-            schema_error_continue_nudge(&architect_edit_spec(), None),
+            schema_error_continue_nudge(
+                &architect_edit_spec(),
+                None,
+                SchemaErrorNudgeContext::default(),
+            ),
             CONTINUE_PROMPT
         );
     }
@@ -109,7 +151,7 @@ mod tests {
         let flags = RunIntentFlags::from_llm(true, false);
         assert!(should_use_no_work_nudge(&spec, Some(&flags)));
         assert_eq!(
-            schema_error_continue_nudge(&spec, Some(&flags)),
+            schema_error_continue_nudge(&spec, Some(&flags), SchemaErrorNudgeContext::default()),
             DISCUSSION_GREETING_PROMPT
         );
     }
@@ -120,7 +162,7 @@ mod tests {
         let flags = RunIntentFlags::from_llm(false, false);
         assert!(!should_use_no_work_nudge(&spec, Some(&flags)));
         assert_eq!(
-            schema_error_continue_nudge(&spec, Some(&flags)),
+            schema_error_continue_nudge(&spec, Some(&flags), SchemaErrorNudgeContext::default()),
             DISCUSSION_CONTINUE_PROMPT
         );
     }

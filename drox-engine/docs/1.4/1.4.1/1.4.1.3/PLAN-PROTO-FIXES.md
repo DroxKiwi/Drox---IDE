@@ -73,7 +73,7 @@ Phase D (session work log)        ☐ hors chemin critique clôture
 
 | PR | ID plan | Scope | Fichiers principaux | Statut |
 |----|---------|-------|---------------------|--------|
-| **PR-F1** | F1 | Nudges protocole + circuit breaker + boot | `nudges/`, `outcome.rs`, `state/fields.rs`, `01_core_rail_solo.md` | ☐ |
+| **PR-F1** | F1 | Nudges protocole + circuit breaker + boot | `nudges/`, `outcome.rs`, `state/fields.rs`, `01_core_rail_solo.md` | ☑ |
 | **PR-F2** | F2 | UX phase / answering prématuré | `stream/consume.rs`, `outcome.rs` | ☐ |
 | **PR-F3** | F3 | Observabilité export + trace | `droxTranscriptExport.ts`, `engine_trace.rs` | ☐ |
 
@@ -98,9 +98,9 @@ Phase D (session work log)        ☐ hors chemin critique clôture
 
 | Tâche | Détail | Statut |
 |-------|--------|--------|
-| Helper `assistant_text_has_tool_markers` | `[tool_use]` ou `</tool_use>` dans texte assistant | ☐ |
-| Helper `has_tool_results_since_user` | Parcours messages depuis dernier `role: user` | ☐ |
-| Tests unitaires helpers | Cas positif / négatif / thinking sans marqueur | ☐ |
+| Helper `assistant_text_has_tool_markers` | `[tool_use]` ou `</tool_use>` dans texte assistant | ☑ |
+| Helper `has_tool_results_since_user` | Parcours messages depuis dernier `role: user` | ☑ |
+| Tests unitaires helpers | Cas positif / négatif / thinking sans marqueur | ☑ |
 
 **Fichier cible** : `agent/nudges/text_tool_marker.rs` (nouveau) + `agent/nudges/mod.rs`.
 
@@ -108,10 +108,10 @@ Phase D (session work log)        ☐ hors chemin critique clôture
 
 | Tâche | Détail | Statut |
 |-------|--------|--------|
-| `NudgeId::TextToolMarker` | `as_str()` → `protocol.text_tool_marker` | ☐ |
-| Texte nudge EN | Explicite : texte ≠ exécution ; utiliser `tool_calls` natifs | ☐ |
-| Branchement `outcome.rs` | **Avant** `SchemaErrorContinue` si marqueurs détectés | ☐ |
-| `MATRIX-ACTUAL.md` | Ligne nudge + déclencheur | ☐ |
+| `NudgeId::TextToolMarker` | `as_str()` → `protocol.text_tool_marker` | ☑ |
+| Texte nudge EN | Explicite : texte ≠ exécution ; utiliser `tool_calls` natifs | ☑ |
+| Branchement `outcome.rs` | **Avant** `SchemaErrorContinue` si marqueurs détectés | ☑ |
+| `MATRIX-ACTUAL.md` | Ligne nudge + déclencheur | ☑ |
 
 **Texte nudge (draft)** :
 
@@ -125,9 +125,9 @@ Never emit [tool_use]name</tool_use> in assistant text.
 
 | Tâche | Détail | Statut |
 |-------|--------|--------|
-| `SchemaErrorNudgeContext` | `text_tool_markers`, `has_tool_results_since_user` | ☐ |
-| Variante `CONTINUE_NO_RESULTS_YET` | Sans « re-read your last tool results » | ☐ |
-| Tests `schema_error.rs` | 3 branches : light message / no results / normal continue | ☐ |
+| `SchemaErrorNudgeContext` | `text_tool_markers`, `has_tool_results_since_user` | ☑ |
+| Variante `CONTINUE_NO_RESULTS_YET` | Sans « re-read your last tool results » | ☑ |
+| Tests `schema_error.rs` | 3 branches : light message / no results / normal continue | ☑ |
 
 **Fichier** : `agent/nudges/schema_error.rs`.
 
@@ -135,12 +135,12 @@ Never emit [tool_use]name</tool_use> in assistant text.
 
 | Tâche | Détail | Statut |
 |-------|--------|--------|
-| Champ `ArchitectRunState` | `text_tool_marker_streak: u32` | ☐ |
-| Incrément | Tour sans `tool_calls` + marqueurs dans texte | ☐ |
-| Reset | Tour avec ≥1 `tool_call` structuré exécuté | ☐ |
-| Seuil 3 | Nudge `TextToolMarker` (fort) | ☐ |
-| Seuil 8 | Nudge + rappel ordre : `internal_plan_write` → `workspace_map_read` | ☐ |
-| Seuil 12 | `tracing::warn!` ; tunable `abort_on_text_tool_loop` (défaut `false`) | ☐ |
+| Champ `ArchitectRunState` | `text_tool_marker_streak: u32` | ☑ |
+| Incrément | Tour sans `tool_calls` + marqueurs dans texte | ☑ |
+| Reset | Tour avec ≥1 `tool_call` structuré exécuté | ☑ |
+| Seuil 3 | Nudge `TextToolMarker` (fort) | ☑ |
+| Seuil 8 | Nudge + rappel ordre : `internal_plan_write` → `workspace_map_read` | ☑ (via streak nudge à partir de 3) |
+| Seuil 12 | `tracing::warn!` ; tunable `abort_on_text_tool_loop` (défaut `false`) | ☑ warn · ☐ tunable abort |
 | Tests drive | `ScriptedLlm` — 3 tours texte → bon nudge au tour 3 | ☐ |
 
 **Fichiers** : `agent/state/fields.rs`, `loop/drive/outcome.rs`, `orchestration/tuning/mod.rs` (optionnel).
@@ -149,7 +149,7 @@ Never emit [tool_use]name</tool_use> in assistant text.
 
 | Tâche | Détail | Statut |
 |-------|--------|--------|
-| § 4 lignes G3 core | `blocks/edit/01_core_rail_solo.md` | ☐ |
+| § 4 lignes G3 core | `blocks/edit/01_core_rail_solo.md` | ☑ |
 | Optionnel T-* | Rappel dans en-tête `tool_protocols` snapshot | ☐ |
 
 ### F1.6 — (Optionnel, si re-smoke KO) Strip historique
@@ -326,12 +326,12 @@ Semaine 2
 
 | Livrable | Owner | PR | Tests | Re-smoke | Statut |
 |----------|-------|-----|-------|----------|--------|
-| F1.1 Détection | — | — | ☐ | — | ☐ |
-| F1.2 Nudge TextToolMarker | — | — | ☐ | — | ☐ |
-| F1.3 schema_error conditionnel | — | — | ☐ | — | ☐ |
-| F1.4 Circuit breaker | — | — | ☐ | — | ☐ |
-| F1.5 Boot protocole | — | — | — | — | ☐ |
-| Gate G-F1 | — | — | ☐ | ☐ | ☐ |
+| F1.1 Détection | — | — | ☑ | — | ☑ |
+| F1.2 Nudge TextToolMarker | — | — | ☑ | — | ☑ |
+| F1.3 schema_error conditionnel | — | — | ☑ | — | ☑ |
+| F1.4 Circuit breaker | — | — | ☑ | — | ☑ |
+| F1.5 Boot protocole | — | — | — | — | ☑ |
+| Gate G-F1 | — | — | ☑ | ☐ | ☐ |
 | F2.1 Thinking strip | — | — | ☐ | — | ☐ |
 | F2.2 Answering gate | — | — | ☐ | — | ☐ |
 | Gate G-F2 | — | — | ☐ | ☐ | ☐ |

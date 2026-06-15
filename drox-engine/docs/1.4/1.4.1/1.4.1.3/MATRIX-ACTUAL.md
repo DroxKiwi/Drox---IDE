@@ -80,6 +80,10 @@ Ordre **strict** (code `iteration_start.rs` → Phase 2 `context_frame/apply/ite
 | `rail.post_todos_answering` | idle post-todos | `outcome.rs` |
 | `rail.act_stall` | stall ACT | `outcome.rs` |
 | `schema_error.continue` | tour sans tool ni done | `outcome.rs` |
+| `protocol.text_tool_marker` | texte `[tool_use]…` sans `tool_calls` | `outcome.rs` · `nudges/text_tool_marker.rs` |
+| `internal_plan.stale` | N outils sans MAJ plan L2 | `tools.rs` |
+| `internal_plan.pre_answering` | 1ère phase answering | `outcome.rs` |
+| `internal_plan.act_focus` | ACT sans étape in_progress | `llm_turn.rs` |
 | `rail.act_mutation_success` | mutation ACT OK | `tools.rs` |
 | `rail.act_tool_failure_*` | échec ACT | `tools.rs` |
 | `ask_user_question.loop` | anti-boucle JSON | `post_assistant.rs` |

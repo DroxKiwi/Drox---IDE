@@ -25,7 +25,10 @@ use crate::agent::gates::{
     parse_hallucinated_phase_from_tool_call,
     tool_pre_gate_block,
 };
-use crate::agent::nudges::{done_only_nudge_prompt, schema_error_continue_nudge};
+use crate::agent::nudges::{
+    assistant_text_has_tool_markers, done_only_nudge_prompt, has_tool_results_since_user,
+    schema_error_continue_nudge, text_tool_marker_nudge, SchemaErrorNudgeContext,
+};
 use crate::agent::rail;
 use crate::agent::{
     confirm_with_user, first_user_text, format_tool_result_for_llm,

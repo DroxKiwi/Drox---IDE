@@ -22,6 +22,8 @@ pub struct ArchitectRunState {
     pub expanded_tool_folders: HashSet<String>,
     /// L2 internal micro-plan (`internal_plan_write`) — engine-only.
     pub internal_plan: Option<internal_plan::InternalPlanState>,
+    /// Tours consécutifs avec marqueurs `[tool_use]` texte sans `tool_calls` (Phase F1).
+    pub text_tool_marker_streak: u32,
 }
 
 impl Default for ArchitectRunState {
@@ -50,6 +52,7 @@ impl ArchitectRunState {
             rail: RunRailState::new(),
             expanded_tool_folders: HashSet::new(),
             internal_plan: None,
+            text_tool_marker_streak: 0,
         }
     }
 
