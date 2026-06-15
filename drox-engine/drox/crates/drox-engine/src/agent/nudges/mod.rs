@@ -8,6 +8,7 @@ mod internal_plan;
 mod post_todos_answer;
 mod schema_error;
 mod stall_act;
+mod text_tool_marker;
 mod thinking_supplement;
 
 pub(crate) use done_only::done_only_nudge_prompt;
@@ -16,7 +17,11 @@ pub(crate) use internal_plan::{
     act_without_plan_focus_nudge, pre_answering_plan_nudge, stale_plan_nudge,
 };
 pub(crate) use schema_error::{
-    schema_error_continue_nudge, TODO_WRITE_EMPTY_TODOS, TODO_WRITE_MISSING_TODOS,
+    schema_error_continue_nudge, SchemaErrorNudgeContext, TODO_WRITE_EMPTY_TODOS,
+    TODO_WRITE_MISSING_TODOS,
+};
+pub(crate) use text_tool_marker::{
+    assistant_text_has_tool_markers, has_tool_results_since_user, text_tool_marker_nudge,
 };
 pub(crate) use stall_act::ACT_STALL_NUDGE_PROMPT;
 pub(crate) use post_todos_answer::POST_TODOS_ANSWER_NUDGE_PROMPT;

@@ -499,6 +499,33 @@ impl Agent {
                     }
                 }
 
+                let text_tool_markers = assistant_text_has_tool_markers(&outcome.text);
+                if text_tool_markers {
+                    architect_state.text_tool_marker_streak =
+                        architect_state.text_tool_marker_streak.saturating_add(1);
+                    if architect_state.text_tool_marker_streak >= 12 {
+                        warn!(
+                            streak = architect_state.text_tool_marker_streak,
+                            "text_tool_marker_streak high — model still emitting [tool_use] text tags"
+                        );
+                    }
+                    debug!("tour avec marqueurs [tool_use] texte — nudge protocol.text_tool_marker");
+                    append_gate_nudge(
+                        messages,
+                        NudgeId::TextToolMarker,
+                        text_tool_marker_nudge(architect_state.text_tool_marker_streak)
+                            .to_string(),
+                    );
+                    if let Err(e) = self
+                        .flush_transcript(messages, transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return PostLlmStep::Stop;
+                    }
+                    return PostLlmStep::Continue;
+                }
+
                 debug!("tour sans tool_call et sans [phase: done] — schema_error continue");
                 append_gate_nudge(
                     messages,
@@ -506,6 +533,9 @@ impl Agent {
                     schema_error_continue_nudge(
                         &self.config.run_spec,
                         self.config.run_intent.as_ref(),
+                        SchemaErrorNudgeContext {
+                            has_tool_results_since_user: has_tool_results_since_user(messages),
+                        },
                     ),
                 );
                 if let Err(e) = self
@@ -517,6 +547,10 @@ impl Agent {
                 }
                 return PostLlmStep::Continue;
             }
+
+        if !outcome.tool_calls.is_empty() {
+            architect_state.text_tool_marker_streak = 0;
+        }
 
         PostLlmStep::Tools
     }

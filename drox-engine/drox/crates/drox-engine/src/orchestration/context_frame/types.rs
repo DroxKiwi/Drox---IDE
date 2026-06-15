@@ -77,6 +77,7 @@ pub enum NudgeId {
     InternalPlanStale,
     InternalPlanPreAnswering,
     InternalPlanActFocus,
+    TextToolMarker,
 }
 
 impl NudgeId {
@@ -98,6 +99,7 @@ impl NudgeId {
             Self::InternalPlanStale => "internal_plan.stale",
             Self::InternalPlanPreAnswering => "internal_plan.pre_answering",
             Self::InternalPlanActFocus => "internal_plan.act_focus",
+            Self::TextToolMarker => "protocol.text_tool_marker",
         }
     }
 }
