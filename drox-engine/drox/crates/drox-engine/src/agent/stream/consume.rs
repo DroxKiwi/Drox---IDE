@@ -1,5 +1,6 @@
 use drox_types::{StopReason, StreamEvent, Usage};
 use futures::StreamExt;
+use std::cell::Cell;
 use tokio::sync::mpsc;
 use tracing::debug;
 
@@ -11,6 +12,61 @@ use super::super::phases::{
     PhaseLineBuffer,
 };
 use super::{PendingToolCall, TurnOutcome};
+
+/// Relais thinking Ollama : parse les marqueurs `[phase: …]` et coupe le flux
+/// texte après le premier marqueur (évite du code utilisateur dans thinking UI).
+struct NativeThinkingRelay {
+    buffer: PhaseLineBuffer,
+    suppress_relay: Cell<bool>,
+}
+
+impl NativeThinkingRelay {
+    fn new() -> Self {
+        Self {
+            buffer: PhaseLineBuffer::new(),
+            suppress_relay: Cell::new(false),
+        }
+    }
+
+    fn push_chunk(&mut self, delta: &str) -> (Vec<String>, Vec<Phase>) {
+        let mut text = Vec::new();
+        let mut phases = Vec::new();
+        let suppress = &self.suppress_relay;
+        self.buffer.push_chunk(
+            delta,
+            |line| {
+                if !suppress.get() {
+                    text.push(line);
+                }
+            },
+            |phase| {
+                suppress.set(true);
+                phases.push(phase);
+            },
+            |_| {},
+        );
+        (text, phases)
+    }
+
+    fn finish(self) -> (Vec<String>, Vec<Phase>) {
+        let mut text = Vec::new();
+        let mut phases = Vec::new();
+        let suppress = self.suppress_relay;
+        self.buffer.finish(
+            |line| {
+                if !suppress.get() {
+                    text.push(line);
+                }
+            },
+            |phase| {
+                suppress.set(true);
+                phases.push(phase);
+            },
+            |_| {},
+        );
+        (text, phases)
+    }
+}
 
 
 /// Marque la fin du sous-flux d'affichage `internal_reasoning` (pensÃ©e
@@ -53,6 +109,43 @@ pub(crate) async fn consume_stream(
     // `true` tant que des deltas `thinking` Ollama sont affichÃ©s dans
     // `internal_reasoning`.
     let mut native_thinking_open = false;
+    let mut thinking_relay = NativeThinkingRelay::new();
+
+    async fn apply_thinking_phases(
+        phases: Vec<Phase>,
+        tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
+        native_thinking_ui: bool,
+        native_thinking_open: &mut bool,
+        rail_active: bool,
+        final_phase: &mut Option<Phase>,
+        saw_answering: &mut bool,
+    ) -> Result<(), ()> {
+        for phase in phases {
+            let native_just_closed =
+                mark_native_thinking_closed(native_thinking_ui, native_thinking_open);
+            if native_just_closed && native_thinking_ui {
+                if tx.send(Ok(AgentEvent::PhaseClose)).await.is_err() {
+                    return Err(());
+                }
+            }
+            if phase == Phase::Answering && phase_visible_in_ui(phase, rail_active) {
+                *saw_answering = true;
+            }
+            if *final_phase == Some(phase) {
+                continue;
+            }
+            *final_phase = Some(phase);
+            if phase_visible_in_ui(phase, rail_active)
+                && tx
+                    .send(Ok(AgentEvent::PhaseEnter { phase }))
+                    .await
+                    .is_err()
+            {
+                return Err(());
+            }
+        }
+        Ok(())
+    }
 
     while let Some(event) = stream.next().await {
         match event {
@@ -76,12 +169,25 @@ pub(crate) async fn consume_stream(
                         }
                     }
                 }
-                if tx
-                    .send(Ok(AgentEvent::TextDelta { text: delta }))
-                    .await
-                    .is_err()
-                {
-                    return Err(());
+                let (thinking_text, thinking_phases) = thinking_relay.push_chunk(&delta);
+                apply_thinking_phases(
+                    thinking_phases,
+                    tx,
+                    native_thinking_ui,
+                    &mut native_thinking_open,
+                    rail_active,
+                    &mut final_phase,
+                    &mut saw_answering,
+                )
+                .await?;
+                for line in thinking_text {
+                    if tx
+                        .send(Ok(AgentEvent::TextDelta { text: line }))
+                        .await
+                        .is_err()
+                    {
+                        return Err(());
+                    }
                 }
             }
             Ok(StreamEvent::TextDelta { text: delta }) => {
@@ -212,6 +318,28 @@ pub(crate) async fn consume_stream(
         }
     }
 
+    // Flush du reliquat thinking (ligne sans `\n` final).
+    let (tail_thinking_text, tail_thinking_phases) = thinking_relay.finish();
+    apply_thinking_phases(
+        tail_thinking_phases,
+        tx,
+        native_thinking_ui,
+        &mut native_thinking_open,
+        rail_active,
+        &mut final_phase,
+        &mut saw_answering,
+    )
+    .await?;
+    for line in tail_thinking_text {
+        if tx
+            .send(Ok(AgentEvent::TextDelta { text: line }))
+            .await
+            .is_err()
+        {
+            return Err(());
+        }
+    }
+
     // Flush du reliquat (ligne sans `\n` final).
     let mut tail_text: Vec<String> = Vec::new();
     let mut tail_phases: Vec<Phase> = Vec::new();
@@ -284,5 +412,29 @@ pub(crate) async fn consume_stream(
         saw_answering,
         run_objective,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NativeThinkingRelay;
+    use crate::event::Phase;
+
+    #[test]
+    fn thinking_relay_suppresses_code_after_phase_marker() {
+        let mut relay = NativeThinkingRelay::new();
+        let (text, phases) = relay.push_chunk(
+            "[phase: answering]\nexport default function Foo() {}\n",
+        );
+        assert_eq!(phases, vec![Phase::Answering]);
+        assert!(text.is_empty());
+    }
+
+    #[test]
+    fn thinking_relay_keeps_preamble_before_phase_marker() {
+        let mut relay = NativeThinkingRelay::new();
+        let (text, phases) = relay.push_chunk("Let me check the layout\n[phase: reading]\n");
+        assert_eq!(phases, vec![Phase::Reading]);
+        assert_eq!(text, vec!["Let me check the layout\n".to_string()]);
+    }
 }
 

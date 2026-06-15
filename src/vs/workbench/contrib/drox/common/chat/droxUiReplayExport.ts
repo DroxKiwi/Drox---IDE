@@ -13,6 +13,9 @@ import {
 	formatDroxTranscriptExport,
 	formatDroxPhaseAwareText,
 	pushDroxExportStepSeparator,
+	computeDroxUiJournalToolStats,
+	findFirstStructuredToolMessageIndex,
+	formatDroxPartieASummaryBlock,
 } from './droxTranscriptExport.js';
 import {
 	formatDroxEngineTraceExport,
@@ -215,6 +218,20 @@ export function formatDroxRawJournalAppendix(journal: readonly Record<string, un
 		out.push(`#${i + 1}\t${JSON.stringify(journal[i])}`);
 	}
 	return out.join('\n');
+}
+
+function extractEngineRunSummary(
+	engineTrace: readonly IDroxEngineTraceRecord[] | undefined,
+): IDroxEngineTraceRecord | undefined {
+	if (!engineTrace?.length) {
+		return undefined;
+	}
+	for (let i = engineTrace.length - 1; i >= 0; i--) {
+		if (engineTrace[i].kind === 'run_summary') {
+			return engineTrace[i];
+		}
+	}
+	return undefined;
 }
 
 /**
@@ -648,6 +665,29 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 
 	flushDelta();
 
+	const journalStats = computeDroxUiJournalToolStats(opts.journal);
+	const transcriptFirstTool = opts.transcriptMessages?.length
+		? findFirstStructuredToolMessageIndex(opts.transcriptMessages)
+		: undefined;
+	const engineSummary = extractEngineRunSummary(opts.engineTrace);
+
+	out.push('');
+	out.push('═'.repeat(72));
+	out.push('RÉSUMÉ EXÉCUTION — diagnostic dogfood (fin PARTIE A)');
+	out.push('═'.repeat(72));
+	out.push('');
+	out.push(
+		formatDroxPartieASummaryBlock({
+			...journalStats,
+			firstStructuredToolMessageIndex:
+				engineSummary?.firstStructuredToolAtMessageIndex ?? transcriptFirstTool,
+			textToolMarkerStreak: engineSummary?.textToolMarkerStreak,
+			schemaErrorContinueCount: engineSummary?.schemaErrorContinueCount,
+			llmIterations: engineSummary?.llmIterations,
+		}),
+	);
+	out.push('');
+
 	out.push('');
 	out.push(
 		`— fin journal UI structuré (${step} steps · ${opts.journal.length} événements journal) —`,
@@ -663,7 +703,9 @@ export function formatDroxCombinedSessionExport(
 ): string {
 	const uiPart = formatDroxUiReplayExport(opts);
 	const messages = opts.transcriptMessages ?? [];
-	const parts: string[] = [uiPart];
+	const parts: string[] = [
+		'PARTIE A — Journal UI (ordre chronologique)\n\n' + uiPart,
+	];
 
 	if (messages.length > 0) {
 		const enginePart = formatDroxTranscriptExport({

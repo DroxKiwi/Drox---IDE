@@ -68,7 +68,31 @@ impl Agent {
         _effective_run_objective: Option<&str>,
         mutation_expected: bool,
         mutation_count: u32,
+        schema_error_continue_count: &mut u32,
     ) -> PostLlmStep {
+            if is_premature_answering_turn(
+                self.config.run_spec.role_id,
+                mutation_expected,
+                mutation_count,
+                messages,
+                outcome,
+            ) {
+                debug!("answering prématuré — aucun tool_result depuis le user, nudge explore");
+                *seen_answering_in_run = false;
+                append_gate_nudge(
+                    messages,
+                    NudgeId::AnsweringTooEarly,
+                    ANSWERING_TOO_EARLY_NUDGE.to_string(),
+                );
+                if let Err(e) = self
+                    .flush_transcript(messages, transcript_cursor)
+                    .await
+                {
+                    let _ = tx.send(Err(e)).await;
+                    return PostLlmStep::Stop;
+                }
+                return PostLlmStep::Continue;
+            }
             if self.config.run_spec.role_id == crate::run_spec::RoleId::Architect
                 && outcome.final_phase == Some(Phase::Answering)
                 && !*seen_answering_in_run
@@ -527,6 +551,7 @@ impl Agent {
                 }
 
                 debug!("tour sans tool_call et sans [phase: done] — schema_error continue");
+                *schema_error_continue_count = schema_error_continue_count.saturating_add(1);
                 append_gate_nudge(
                     messages,
                     NudgeId::SchemaErrorContinue,

@@ -821,6 +821,48 @@ suite('Drox — transcript export', () => {
 		assert.ok(text.includes('3. TOOL — tool_result:tu_x'));
 	});
 
+	test('formatDroxCombinedSessionExport includes partie A execution summary', () => {
+		const journal = [
+			{ kind: 'phase', phase: 'reading' },
+			{ kind: 'tool', phase: 'start', name: 'workspace_map_read', id: 'tu_1' },
+			{ kind: 'tool', phase: 'finish', name: 'workspace_map_read', id: 'tu_1', isError: false },
+			{ kind: 'phase', phase: 'done' },
+		];
+		const messages: IDroxTranscriptMessage[] = [
+			{ role: 'user', content: [{ type: 'text', text: 'fix page' }] },
+			{
+				role: 'assistant',
+				content: [
+					{ type: 'tool_use', id: 'tu_1', name: 'workspace_map_read', input: {} },
+				],
+			},
+		];
+		const text = formatDroxCombinedSessionExport({
+			sessionId: 'ses_summary',
+			journal,
+			transcriptMessages: messages,
+			engineTrace: [
+				{
+					kind: 'run_summary',
+					textToolMarkerStreak: 2,
+					firstStructuredToolAtMessageIndex: 1,
+					schemaErrorContinueCount: 5,
+					llmIterations: 3,
+					messagesCount: 4,
+					stopReason: 'EndTurn',
+				},
+			],
+		});
+		assert.ok(text.includes('PARTIE A — Journal UI'));
+		assert.ok(text.includes('RÉSUMÉ EXÉCUTION — diagnostic dogfood'));
+		assert.ok(text.includes('Tool calls (journal UI): 1'));
+		assert.ok(text.includes('Tool errors (journal UI): 0'));
+		assert.ok(text.includes('Phase finale (journal UI): done'));
+		assert.ok(text.includes('1er tool structuré (index message moteur): 1'));
+		assert.ok(text.includes('text_tool_marker_streak (engine): 2'));
+		assert.ok(text.includes('schema_error_continue_count (engine): 5'));
+	});
+
 	test('formatDroxCombinedSessionExport includes engine trace partie E', () => {
 		const journal = [{ kind: 'append', role: 'user', text: 'Hi' }];
 		const engineTrace = [
@@ -857,6 +899,27 @@ suite('Drox — transcript export', () => {
 		assert.ok(text.includes('LLM TURN PREPARED'));
 		assert.ok(text.includes('tool_protocols_1'));
 		assert.ok(text.includes('file_read, todo_write'));
+	});
+
+	test('formatDroxEngineTraceExport renders run summary', () => {
+		const text = formatDroxEngineTraceExport({
+			sessionId: 'ses_rs',
+			records: [
+				{
+					kind: 'run_summary',
+					textToolMarkerStreak: 3,
+					firstStructuredToolAtMessageIndex: 5,
+					schemaErrorContinueCount: 12,
+					llmIterations: 8,
+					messagesCount: 42,
+					stopReason: 'EndTurn',
+				},
+			],
+		});
+		assert.ok(text.includes('RUN SUMMARY'));
+		assert.ok(text.includes('text_tool_marker_streak: 3'));
+		assert.ok(text.includes('schema_error_continue_count: 12'));
+		assert.ok(text.includes('first_structured_tool_at_message_index: 5'));
 	});
 
 	test('formatDroxEngineTraceExport renders routing and system blocks', () => {

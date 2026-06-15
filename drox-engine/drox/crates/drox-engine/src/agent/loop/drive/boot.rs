@@ -107,6 +107,8 @@
             last_usage: Usage::default(),
             last_stop_reason: StopReason::EndTurn,
             base_tool_specs,
+            first_structured_tool_message_index: None,
+            schema_error_continue_count: 0,
         })
     }
 }

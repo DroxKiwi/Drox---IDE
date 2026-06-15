@@ -57,11 +57,26 @@ pub struct LlmTurnPreparedTrace {
     pub internal_plan_tools_since_touch: Option<u32>,
 }
 
+/// Métriques dogfood en fin de run (Phase F3).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunSummaryTrace {
+    pub text_tool_marker_streak: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_structured_tool_at_message_index: Option<usize>,
+    pub schema_error_continue_count: u32,
+    pub messages_count: usize,
+    pub llm_iterations: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EngineTracePayload {
     RunRouting(RunRoutingTrace),
     LlmTurnPrepared(LlmTurnPreparedTrace),
+    RunSummary(RunSummaryTrace),
 }
 
 /// Une ligne du fichier `*.engine-trace.jsonl`.
@@ -214,6 +229,28 @@ mod tests {
         assert!(matches!(
             loaded[0].payload,
             EngineTracePayload::RunRouting(_)
+        ));
+    }
+
+    #[tokio::test]
+    async fn append_and_roundtrip_run_summary() {
+        let dir = tempdir().unwrap();
+        let p = Utf8PathBuf::from_path_buf(dir.path().join("t.engine-trace.jsonl")).unwrap();
+        let sink = JsonlEngineTraceSink::new(p.clone());
+        let rec = EngineTraceRecord::new(EngineTracePayload::RunSummary(RunSummaryTrace {
+            text_tool_marker_streak: 2,
+            first_structured_tool_at_message_index: Some(3),
+            schema_error_continue_count: 7,
+            messages_count: 10,
+            llm_iterations: 4,
+            stop_reason: Some("EndTurn".into()),
+        }));
+        sink.append_record(&rec).await.unwrap();
+        let loaded = read_engine_trace(&p).await.unwrap();
+        assert_eq!(loaded.len(), 1);
+        assert!(matches!(
+            loaded[0].payload,
+            EngineTracePayload::RunSummary(ref s) if s.schema_error_continue_count == 7
         ));
     }
 }

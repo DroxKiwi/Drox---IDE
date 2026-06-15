@@ -130,6 +130,13 @@
 
         crate::agent::stream::push_assistant_message(&mut session.messages, &outcome);
 
+        if session.first_structured_tool_message_index.is_none()
+            && !outcome.tool_calls.is_empty()
+        {
+            session.first_structured_tool_message_index =
+                Some(session.messages.len().saturating_sub(1));
+        }
+
         if self.config.run_spec.role_id == crate::run_spec::RoleId::Architect && rail_active {
             let focus = session
                 .architect_state

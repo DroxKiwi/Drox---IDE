@@ -27,7 +27,8 @@ use crate::agent::gates::{
 };
 use crate::agent::nudges::{
     assistant_text_has_tool_markers, done_only_nudge_prompt, has_tool_results_since_user,
-    schema_error_continue_nudge, text_tool_marker_nudge, SchemaErrorNudgeContext,
+    is_premature_answering_turn, schema_error_continue_nudge, text_tool_marker_nudge,
+    ANSWERING_TOO_EARLY_NUDGE, SchemaErrorNudgeContext,
 };
 use crate::agent::rail;
 use crate::agent::{

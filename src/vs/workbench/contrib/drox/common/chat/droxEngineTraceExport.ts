@@ -18,7 +18,7 @@ export interface IDroxEngineSystemBlock {
 export interface IDroxEngineTraceRecord {
 	readonly schemaVersion?: number;
 	readonly timestamp?: string;
-	readonly kind: 'run_routing' | 'llm_turn_prepared';
+	readonly kind: 'run_routing' | 'llm_turn_prepared' | 'run_summary';
 	readonly architectGate?: string;
 	readonly startRun?: string;
 	readonly greetingOnly?: boolean;
@@ -35,6 +35,11 @@ export interface IDroxEngineTraceRecord {
 	readonly bootSystemBytes?: number;
 	readonly messagesCount?: number;
 	readonly systemBlocks?: readonly IDroxEngineSystemBlock[];
+	readonly textToolMarkerStreak?: number;
+	readonly firstStructuredToolAtMessageIndex?: number;
+	readonly schemaErrorContinueCount?: number;
+	readonly llmIterations?: number;
+	readonly stopReason?: string;
 }
 
 export function parseDroxEngineTraceRecord(raw: unknown): IDroxEngineTraceRecord | undefined {
@@ -43,7 +48,7 @@ export function parseDroxEngineTraceRecord(raw: unknown): IDroxEngineTraceRecord
 	}
 	const row = raw as Record<string, unknown>;
 	const kind = row.kind;
-	if (kind !== 'run_routing' && kind !== 'llm_turn_prepared') {
+	if (kind !== 'run_routing' && kind !== 'llm_turn_prepared' && kind !== 'run_summary') {
 		return undefined;
 	}
 	const systemBlocks = Array.isArray(row.systemBlocks)
@@ -82,6 +87,13 @@ export function parseDroxEngineTraceRecord(raw: unknown): IDroxEngineTraceRecord
 		bootSystemBytes: num(row.bootSystemBytes ?? row.boot_system_bytes),
 		messagesCount: num(row.messagesCount ?? row.messages_count),
 		systemBlocks,
+		textToolMarkerStreak: num(row.textToolMarkerStreak ?? row.text_tool_marker_streak),
+		firstStructuredToolAtMessageIndex: num(
+			row.firstStructuredToolAtMessageIndex ?? row.first_structured_tool_at_message_index,
+		),
+		schemaErrorContinueCount: num(row.schemaErrorContinueCount ?? row.schema_error_continue_count),
+		llmIterations: num(row.llmIterations ?? row.llm_iterations),
+		stopReason: str(row.stopReason ?? row.stop_reason),
 	};
 }
 
@@ -142,6 +154,26 @@ export function formatDroxEngineTraceExport(opts: IFormatDroxEngineTraceExportOp
 
 	for (const rec of opts.records) {
 		step += 1;
+		if (rec.kind === 'run_summary') {
+			pushDroxExportStepSeparator(out, step, 'RUN SUMMARY (fin de run — métriques dogfood)');
+			const firstToolIdx =
+				rec.firstStructuredToolAtMessageIndex !== undefined
+					? String(rec.firstStructuredToolAtMessageIndex)
+					: '(aucun)';
+			out.push(`text_tool_marker_streak: ${rec.textToolMarkerStreak ?? 0}`);
+			out.push(`first_structured_tool_at_message_index: ${firstToolIdx}`);
+			out.push(`schema_error_continue_count: ${rec.schemaErrorContinueCount ?? 0}`);
+			out.push(`messages_count: ${rec.messagesCount ?? '?'}`);
+			out.push(`llm_iterations: ${rec.llmIterations ?? '?'}`);
+			if (rec.stopReason) {
+				out.push(`stop_reason: ${rec.stopReason}`);
+			}
+			if (rec.timestamp) {
+				out.push(`Timestamp: ${rec.timestamp}`);
+			}
+			out.push('');
+			continue;
+		}
 		if (rec.kind === 'run_routing') {
 			pushDroxExportStepSeparator(out, step, 'RUN ROUTING (intent probe / gate)');
 			out.push(`Architect gate: ${rec.architectGate ?? '?'}`);
