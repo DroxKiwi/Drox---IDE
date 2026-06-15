@@ -1,6 +1,8 @@
 //! Couche C — orchestration multi-rôles (1.2.0).
 
 mod config;
+pub mod context_frame;
+pub mod tool_folders;
 mod architect_gate;
 mod intent_probe;
 mod json_response;
@@ -42,6 +44,9 @@ pub use prompts::{
     StrictnessPreset, ARCHITECT_DISCUSSION_CORE_PROMPT, ARCHITECT_DISCUSSION_SYSTEM_PROMPT,
 };
 pub use tuning::{resolve_engine_tuning, EngineTuning, EngineTuningOverrides};
+pub use context_frame::{
+    append_gate_nudge, apply_architect_iteration_start, ArchitectIterationInput, NudgeId,
+};
 
 /// Wire identifier for the product orchestration pipeline (`agent.run` / IDE chat).
 /// Single variant today; `parse` / `resolve` accept deprecated aliases (`v1_2`, …).

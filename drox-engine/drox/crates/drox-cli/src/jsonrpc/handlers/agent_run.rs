@@ -11,7 +11,8 @@ use std::sync::atomic::AtomicBool;
 use async_trait::async_trait;
 use camino::{Utf8Path, Utf8PathBuf};
 use drox_engine::{
-    Agent, AgentConfig, AgentEvent, CompactionConfig, ContextPolicy, JsonlTranscriptSink, Phase,
+    Agent, AgentConfig, AgentEvent, CompactionConfig, ContextPolicy, EngineTraceSessionConfig,
+    JsonlEngineTraceSink, JsonlTranscriptSink, Phase,
     LayeredConfig, MemoryRuntime,
     PermissionEngine, PermissionMode, PermissionPolicy, OrchestrationMode, RunSpec, SessionError,
     SessionNotesHandle, TranscriptSessionConfig,
@@ -19,6 +20,7 @@ use drox_engine::{
     apply_prompt_memory_budget, format_sessions_listing_for_prompt, load_memdir,
     load_sessions_listing, memdir_system_prefix, read_session_ui_stats,
     read_transcript, session_ui_stats_path, transcript_path, write_session_ui_stats,
+    engine_trace_path,
     DroxIgnoreMatcher,
 };
 use drox_llm::{ChatOptions, OllamaClient};
@@ -274,7 +276,7 @@ pub(crate) async fn build_agent_setup(
         })
     };
 
-    let (history, transcript, ui_stats_path) =
+    let (history, transcript, engine_trace, ui_stats_path) =
         build_transcript(params, system_merged.as_deref()).await?;
 
     let model_label = params
@@ -361,6 +363,7 @@ pub(crate) async fn build_agent_setup(
             &engine_tuning,
         )),
         transcript,
+        engine_trace,
         memory: Some(memory_runtime),
         transcript_session_id: params.session_id.clone(),
         workspace_fingerprint,
@@ -861,12 +864,13 @@ async fn build_transcript(
     (
         Vec<drox_types::Message>,
         Option<TranscriptSessionConfig>,
+        Option<EngineTraceSessionConfig>,
         Option<Utf8PathBuf>,
     ),
     RpcError,
 > {
     let Some(ref sid) = params.session_id else {
-        return Ok((Vec::new(), None, None));
+        return Ok((Vec::new(), None, None, None));
     };
     if !sid.starts_with("ses_") {
         return Err(RpcError::new(
@@ -892,11 +896,15 @@ async fn build_transcript(
     drox_engine::sanitize_transcript_user_messages(&mut history);
     let append_from = history.len() + usize::from(system_merged.is_some());
     let sink = JsonlTranscriptSink::arc(path);
+    let trace_sink = JsonlEngineTraceSink::arc(engine_trace_path(&dir, &id));
     Ok((
         history,
         Some(TranscriptSessionConfig {
             sink,
             append_from_message_index: append_from,
+        }),
+        Some(EngineTraceSessionConfig {
+            sink: trace_sink,
         }),
         Some(stats_path),
     ))

@@ -6,7 +6,7 @@ async fn tool_call_without_prior_phase_synthesizes_fallback_phase() {
     let tu_bad = ToolUseId::new();
     let tu_todo = ToolUseId::new();
     let tu_echo = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::ToolCall {
@@ -107,7 +107,7 @@ async fn run_completes_when_model_batches_mutating_tools_then_updates_todo() {
     let tu_bash_2 = ToolUseId::new();
     let tu_todo_close = ToolUseId::new();
 
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         // Tour 1 : reasoning + plan en 2 ÃƒÂ©tapes (in_progress + pending).
         vec![
             StreamEvent::Start,
@@ -256,7 +256,7 @@ async fn tool_call_after_explicit_phase_does_not_synthesize() {
     // phase synthÃƒÂ©tisÃƒÂ©e avant le tool. `todo_write` d'abord.
     let tu_todo = ToolUseId::new();
     let tu_echo = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -325,7 +325,7 @@ async fn synthesized_reading_for_glob_classifies_correctly() {
     // Tour 2 : todo. Tour 3 : glob sans marqueur Ã¢â€ â€™ synthÃƒÂ¨se Reading.
     let tu1 = ToolUseId::new();
     let tu3 = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::ToolCall {

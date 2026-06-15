@@ -26,6 +26,8 @@ pub struct AgentConfig {
     /// Persistance transcript JSONL (sprint 1.10). Si `None`, rien n'est
     /// Ã©crit sur disque.
     pub transcript: Option<drox_session::TranscriptSessionConfig>,
+    /// Trace injection contexte / routing (`*.engine-trace.jsonl`). Dev / dogfood.
+    pub engine_trace: Option<drox_session::EngineTraceSessionConfig>,
     /// Sprint M1 â€” mÃ©moire de session (compaction + persistance dans
     /// `.drox/memory/sessions/`). Si `None`, aucun rÃ©sumÃ© n'est produit et
     /// les tools `session_note` / `memory_*` ne sont pas branchÃ©s.
@@ -60,6 +62,7 @@ impl Default for AgentConfig {
             permissions: None,
             context: None,
             transcript: None,
+            engine_trace: None,
             memory: None,
             transcript_session_id: None,
             workspace_fingerprint: String::new(),

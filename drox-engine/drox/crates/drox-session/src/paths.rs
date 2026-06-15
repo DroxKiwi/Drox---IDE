@@ -30,3 +30,9 @@ pub fn transcript_path(sessions_dir: &camino::Utf8Path, session_id: &SessionId) 
 pub fn session_ui_stats_path(sessions_dir: &camino::Utf8Path, session_id: &SessionId) -> Utf8PathBuf {
     sessions_dir.join(format!("{session_id}.ui-stats.json"))
 }
+
+/// Trace moteur (injection system, routing, tools par tour LLM).
+#[must_use]
+pub fn engine_trace_path(sessions_dir: &camino::Utf8Path, session_id: &SessionId) -> Utf8PathBuf {
+    sessions_dir.join(format!("{session_id}.engine-trace.jsonl"))
+}

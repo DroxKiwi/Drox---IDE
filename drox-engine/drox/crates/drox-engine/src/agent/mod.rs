@@ -1,4 +1,4 @@
-﻿//! Boucle agent : orchestre `LlmClient` ↔ `ToolRegistry`.
+//! Boucle agent : orchestre `LlmClient` ↔ `ToolRegistry`.
 //!
 //! Sprint A (refonte 2026-05-13). Le moteur ne s'appuie plus sur des
 //! heuristiques de détection de « réponses paresseuses » (regex de phrases
@@ -38,6 +38,24 @@ pub use state::{ArchitectRunState, ARCHITECT_RUN_SNAPSHOT_MARKER};
 pub use rail::RunStation;
 pub use edit_start::{apply_architect_edit_start, ArchitectEditStartOutcome};
 pub use core::{Agent, AgentConfig, AgentStream};
+
+pub(crate) use state::internal_plan::{
+    has_internal_plan, has_in_progress_step, ingest_internal_plan, internal_plan_required_block,
+    internal_plan_shape_guard, internal_plan_trace_summary, record_internal_plan_tool_touch,
+    stale_internal_plan_nudge,
+};
+pub(crate) use rail::{on_turn_start, refresh_snapshot, OpenTodoCounts};
+pub(crate) use state::{
+    internal_plan_snapshot_for_station, log_context_turn_metrics, refresh_architect_run_snapshot,
+    refresh_internal_plan_snapshot, refresh_tool_protocol_snapshot,
+};
+
+#[cfg(test)]
+pub(crate) use rail::is_run_rail_snapshot_message;
+#[cfg(test)]
+pub(crate) use state::{
+    is_architect_run_snapshot_message, is_tool_protocol_snapshot_message,
+};
 
 pub(crate) use helpers::{
     build_tool_specs, confirm_with_user, first_user_text, last_user_text,

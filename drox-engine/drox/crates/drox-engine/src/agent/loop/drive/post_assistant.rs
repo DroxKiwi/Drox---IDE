@@ -1,4 +1,4 @@
-﻿impl Agent {
+impl Agent {
     /// Gates post-stream, exécution outils, nudges. `true` = arrêter `drive_inner`.
     async fn drive_post_assistant(
         &self,
@@ -77,9 +77,11 @@
                     session.consecutive_ask_user_question_failures,
                 "ask_user_question — anti-boucle JSON"
             );
-            session.messages.push(Message::system(
+            append_gate_nudge(
+                &mut session.messages,
+                NudgeId::AskUserQuestionLoop,
                 crate::agent::nudges::ask_user_question_loop_nudge(),
-            ));
+            );
             session.consecutive_ask_user_question_failures = 0;
             if let Err(e) = self
                 .flush_transcript(&session.messages, &mut session.transcript_cursor)

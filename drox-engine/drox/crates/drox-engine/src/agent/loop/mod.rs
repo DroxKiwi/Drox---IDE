@@ -1,4 +1,4 @@
-﻿//! Boucle principale agent — `drive_inner` et exécution des tools.
+//! Boucle principale agent — `drive_inner` et exécution des tools.
 //!
 //! Les sources sont `include!` dans ce module pour que tous les `impl Agent`
 //! partagent la même visibilité (champs privés, appels entre méthodes).
@@ -36,8 +36,13 @@ use crate::event::{AgentEvent, Phase};
 use crate::long_memory::ContextChunkSummaryV1;
 use crate::memory::{MemoryTracker, persist_compaction_result, persist_run};
 use crate::orchestration::{
-    architect_run_context_block_compaction, extract_discussion_done_from_text,
+    append_gate_nudge, architect_run_context_block_compaction, extract_discussion_done_from_text,
+    NudgeId,
 };
+use crate::agent::{
+    internal_plan_snapshot_for_station, refresh_internal_plan_snapshot,
+};
+use crate::orchestration::tool_folders::resolve_tool_name_alias;
 use crate::run_spec::RoleId;
 use crate::tool_orchestration::{ToolCallBatch, partition_tool_calls};
 use drox_tools::ToolContext;
@@ -45,6 +50,7 @@ use drox_tools::ToolContext;
 include!("todo_gate.rs");
 include!("closure.rs");
 include!("transcript.rs");
+include!("engine_trace.rs");
 include!("context.rs");
 include!("tool_execution.rs");
 include!("drive/mod.rs");

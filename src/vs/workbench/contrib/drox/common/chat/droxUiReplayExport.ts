@@ -14,6 +14,10 @@ import {
 	formatDroxPhaseAwareText,
 	pushDroxExportStepSeparator,
 } from './droxTranscriptExport.js';
+import {
+	formatDroxEngineTraceExport,
+	IDroxEngineTraceRecord,
+} from './droxEngineTraceExport.js';
 
 const DEFAULT_MAX_STREAM_CHARS = 200_000;
 const DEFAULT_MAX_TOOL_PREVIEW_CHARS = 80_000;
@@ -27,6 +31,7 @@ export interface IFormatDroxUiReplayExportOptions {
 	readonly journal: readonly Record<string, unknown>[];
 	readonly transcriptMessageCount?: number;
 	readonly transcriptMessages?: readonly IDroxTranscriptMessage[];
+	readonly engineTrace?: readonly IDroxEngineTraceRecord[];
 	readonly uiStats?: IDroxSessionUiStats;
 	readonly exportedAt?: Date;
 	readonly maxStreamChars?: number;
@@ -395,6 +400,53 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 					pushSection(out, '### Gate path', lines.join('\n'));
 				});
 				break;
+			case 'runRouting':
+				flushDelta();
+				emit('RUN ROUTING', () => {
+					const lines = [
+						str(entry.architectGate) ? `Architect gate: ${str(entry.architectGate)}` : '',
+						str(entry.startRun) ? `Start run: ${str(entry.startRun)}` : '',
+						entry.greetingOnly !== undefined ? `Greeting only: ${String(entry.greetingOnly)}` : '',
+						entry.expectsWorkspaceMutation !== undefined
+							? `Expects mutation: ${String(entry.expectsWorkspaceMutation)}`
+							: '',
+						str(entry.intentSource) ? `Intent source: ${str(entry.intentSource)}` : '',
+					].filter(Boolean);
+					pushSection(out, '### Run routing (moteur)', lines.join('\n'));
+				});
+				break;
+			case 'llmTurnPrepared':
+				flushDelta();
+				emit(`LLM TURN PREPARED · iter ${String(entry.iter ?? '?')}`, () => {
+					const lines = [
+						str(entry.frameId) ? `Frame: ${str(entry.frameId)}` : '',
+						str(entry.railStation) ? `Rail: ${str(entry.railStation)}` : '',
+						Array.isArray(entry.layersApplied)
+							? `Layers: ${entry.layersApplied.filter((x): x is string => typeof x === 'string').join(', ')}`
+							: '',
+						Array.isArray(entry.toolNames)
+							? `Tools: ${entry.toolNames.filter((x): x is string => typeof x === 'string').join(', ')}`
+							: '',
+						`Ctx bytes — boot ${String(entry.bootSystemBytes ?? 0)} · architect ${String(entry.architectSnapshotBytes ?? 0)} · protocols ${String(entry.toolProtocolBytes ?? 0)} · rail ${String(entry.railSnapshotBytes ?? 0)}`,
+						entry.messagesCount !== undefined ? `Messages: ${String(entry.messagesCount)}` : '',
+					].filter(Boolean);
+					pushSection(out, '### Contexte avant appel LLM', lines.join('\n'));
+				});
+				break;
+			case 'context':
+				emit('CONTEXT USAGE', () => {
+					pushSection(out, '### Context gauge', `tokensUsed: ${String(entry.tokensUsed ?? '?')}`);
+				});
+				break;
+			case 'usage':
+				emit('TOKEN USAGE', () => {
+					const lines = [
+						entry.inputTokens !== undefined ? `input: ${String(entry.inputTokens)}` : '',
+						entry.outputTokens !== undefined ? `output: ${String(entry.outputTokens)}` : '',
+					].filter(Boolean);
+					pushSection(out, '### Token usage', lines.join('\n'));
+				});
+				break;
 			case 'tool':
 				emit('TOOL', () => formatToolJournalEntry(entry, out));
 				break;
@@ -469,20 +521,6 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 			case 'state':
 				emit('STATE', () => {
 					pushSection(out, '### UI state', `busy: ${entry.busy === true}`);
-				});
-				break;
-			case 'usage':
-				emit('USAGE', () => {
-					pushSection(
-						out,
-						'### Token usage',
-						`input: ${String(entry.inputTokens ?? 0)} · output: ${String(entry.outputTokens ?? 0)}`,
-					);
-				});
-				break;
-			case 'context':
-				emit('CONTEXT', () => {
-					pushSection(out, '### Context window', `tokens used: ${String(entry.tokensUsed ?? 0)}`);
 				});
 				break;
 			case 'session':
@@ -634,12 +672,25 @@ export function formatDroxCombinedSessionExport(
 			messages,
 			uiStats: opts.uiStats,
 			exportedAt: opts.exportedAt,
+			includeEngineContext: true,
 		});
 		parts.push(
 			'PARTIE B — Transcript moteur (session persistée, tours complets avec tools)\n\n' + enginePart,
 		);
 		parts.push(
 			'PARTIE D — Index messages moteur\n\n' + formatDroxEngineMessageRoster(messages),
+		);
+	}
+
+	const engineTrace = opts.engineTrace ?? [];
+	if (engineTrace.length > 0) {
+		const tracePart = formatDroxEngineTraceExport({
+			sessionId: opts.sessionId,
+			records: engineTrace,
+			exportedAt: opts.exportedAt,
+		});
+		parts.push(
+			'PARTIE E — Engine trace (injection system + routing + tools par tour LLM)\n\n' + tracePart,
 		);
 	}
 

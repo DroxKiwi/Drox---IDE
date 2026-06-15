@@ -13,6 +13,7 @@ import { MarkerSeverity } from '../../../../../platform/markers/common/markers.j
 import { isDroxWebviewToHostMessage } from '../../browser/droxChatBridge.js';
 import { droxLlmModelEnumValues, updateDroxLlmModelEnum } from '../../common/droxConfiguration.js';
 import { parseDroxEnvFileContent } from '../../common/droxEnvFile.js';
+import { formatDroxEngineTraceExport } from '../../common/chat/droxEngineTraceExport.js';
 import { formatDroxTranscriptExport } from '../../common/chat/droxTranscriptExport.js';
 import { formatDroxCombinedSessionExport, formatDroxUiReplayExport } from '../../common/chat/droxUiReplayExport.js';
 import {
@@ -282,6 +283,21 @@ suite('Drox — tool input normalize', () => {
 		}) as { path: string; edits: { old_string: string; new_string: string }[] };
 		assert.strictEqual(out.path, 'theme.tsx');
 		assert.strictEqual(out.edits[0]!.old_string, 'foo');
+	});
+
+	test('normalizeFileEditToolInput accepts op/replace aliases and nested path', () => {
+		const out = normalizeFileEditToolInput({
+			edits: [{
+				op: 'replace',
+				path: 'src/home.tsx',
+				search: 'gradient',
+				replace: 'AnimatedBackground',
+			}],
+		}) as { path: string; edits: { old_string: string; new_string: string }[] };
+		assert.strictEqual(out.path, 'src/home.tsx');
+		assert.strictEqual(out.edits.length, 1);
+		assert.strictEqual(out.edits[0]!.old_string, 'gradient');
+		assert.strictEqual(out.edits[0]!.new_string, 'AnimatedBackground');
 	});
 
 	test('normalizeFileWriteToolInput accepts aliases', () => {
@@ -805,6 +821,62 @@ suite('Drox — transcript export', () => {
 		assert.ok(text.includes('3. TOOL — tool_result:tu_x'));
 	});
 
+	test('formatDroxCombinedSessionExport includes engine trace partie E', () => {
+		const journal = [{ kind: 'append', role: 'user', text: 'Hi' }];
+		const engineTrace = [
+			{
+				kind: 'run_routing' as const,
+				architectGate: 'architect_edit',
+				startRun: 'edit',
+				greetingOnly: false,
+				expectsWorkspaceMutation: true,
+				intentSource: 'llm',
+			},
+			{
+				kind: 'llm_turn_prepared' as const,
+				iter: 0,
+				frameId: 'architect.iteration_start',
+				layersApplied: ['ctx_run_snapshot', 'tool_protocols'],
+				toolNames: ['file_read', 'todo_write'],
+				systemBlocks: [
+					{
+						blockId: 'tool_protocols_1',
+						charCount: 42,
+						text: '## Architect tool protocols (engine)\n\nT-file_read',
+					},
+				],
+			},
+		];
+		const text = formatDroxCombinedSessionExport({
+			sessionId: 'ses_trace',
+			journal,
+			engineTrace,
+		});
+		assert.ok(text.includes('PARTIE E — Engine trace'));
+		assert.ok(text.includes('RUN ROUTING'));
+		assert.ok(text.includes('LLM TURN PREPARED'));
+		assert.ok(text.includes('tool_protocols_1'));
+		assert.ok(text.includes('file_read, todo_write'));
+	});
+
+	test('formatDroxEngineTraceExport renders routing and system blocks', () => {
+		const text = formatDroxEngineTraceExport({
+			sessionId: 'ses_et',
+			records: [
+				{
+					kind: 'run_routing',
+					architectGate: 'architect_discuss',
+					startRun: 'discuss_reply_only',
+					greetingOnly: true,
+					expectsWorkspaceMutation: false,
+					intentSource: 'llm',
+				},
+			],
+		});
+		assert.ok(text.includes('discuss_reply_only'));
+		assert.ok(text.includes('Intent source: llm'));
+	});
+
 	test('formatDroxUiReplayExport includes run rail station events', () => {
 		const journal = [
 			{ kind: 'append', role: 'user', text: 'Charte CSS' },
@@ -928,6 +1000,50 @@ suite('Drox — transcript export', () => {
 		const planIdx = text.indexOf('### Plan (todo_write)');
 		const delegateIdx = text.indexOf('### Delegate to Executor');
 		assert.ok(delegateIdx > planIdx);
+	});
+
+	test('formatDroxTranscriptExport formats internal_plan_write in dev export', () => {
+		const messages: IDroxTranscriptMessage[] = [
+			{
+				role: 'assistant',
+				content: [
+					{
+						type: 'tool_use',
+						id: 'tu_plan',
+						name: 'internal_plan_write',
+						input: {
+							steps: [{ id: 's1', action: 'Read page', status: 'in_progress' }],
+						},
+					},
+				],
+			},
+			{
+				role: 'tool',
+				content: [
+					{
+						type: 'tool_result',
+						tool_use_id: 'tu_plan',
+						content:
+							'{"ok":true,"mode":"replace","steps":[{"id":"s1","action":"Read page","status":"in_progress"}],"meta":{"tools_since_touch":0,"updated_at":"2026-06-05T12:00:00Z","step_count":1}}',
+						is_error: false,
+					},
+				],
+			},
+		];
+		const dev = formatDroxTranscriptExport({
+			sessionId: 'ses_plan',
+			messages,
+			includeEngineContext: true,
+		});
+		assert.ok(dev.includes('### Plan interne (internal_plan_write)'));
+		assert.ok(dev.includes('[~] s1: Read page'));
+
+		const user = formatDroxTranscriptExport({
+			sessionId: 'ses_plan',
+			messages,
+			includeEngineContext: false,
+		});
+		assert.ok(user.includes('plan interne mis à jour — détail masqué'));
 	});
 });
 

@@ -50,7 +50,7 @@ fn architect_state_carries_rail_conductor() {
 
 #[tokio::test]
 async fn architect_run_with_rail_completes() {
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("rail on"),
         done_turn("OK."),
     ]));

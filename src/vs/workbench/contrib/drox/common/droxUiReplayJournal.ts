@@ -15,8 +15,6 @@ export function droxSessionUiReplayPath(workspaceFsPath: string, sessionId: stri
 
 /** Kinds éphémères ou re-synchronisés à l’ouverture — pas rejoués depuis le journal. */
 const UI_REPLAY_EXCLUDED_KINDS = new Set<string>([
-	'context',
-	'usage',
 	'dropHighlight',
 	'compact',
 	'tabs',

@@ -48,12 +48,19 @@ function normalizeEditOp(raw: unknown): IDroxEditOp | undefined {
 		typeof e.old_string === 'string' ? e.old_string
 			: typeof e.old === 'string' ? e.old
 				: typeof e.oldString === 'string' ? e.oldString
-					: undefined;
+					: typeof e.search === 'string' ? e.search
+						: typeof e.find === 'string' ? e.find
+							: typeof e.match === 'string' ? e.match
+								: undefined;
 	const newStr =
 		typeof e.new_string === 'string' ? e.new_string
 			: typeof e.new === 'string' ? e.new
 				: typeof e.newString === 'string' ? e.newString
-					: undefined;
+					: typeof e.replace === 'string' ? e.replace
+						: typeof e.content === 'string' ? e.content
+							: typeof e.text === 'string' ? e.text
+								: typeof e.insert === 'string' ? e.insert
+									: undefined;
 	if (oldStr === undefined || newStr === undefined) {
 		return undefined;
 	}
@@ -77,7 +84,7 @@ export function normalizeFileEditToolInput(input: unknown): unknown {
 		o.path = path;
 	}
 
-	let editsRaw = o.edits ?? o.edit;
+	let editsRaw = o.edits ?? o.edit ?? o.changes;
 	if (!editsRaw && typeof o.old_string === 'string' && typeof o.new_string === 'string') {
 		editsRaw = [{
 			old_string: o.old_string,
@@ -96,10 +103,18 @@ export function normalizeFileEditToolInput(input: unknown): unknown {
 				edits.push(op);
 			}
 		}
+		if (!path) {
+			const first = asRecord(editsRaw[0]);
+			const nestedPath = first ? pickString(first, ['path', 'file_path', 'filePath', 'file']) : undefined;
+			if (nestedPath) {
+				o.path = nestedPath;
+			}
+		}
 		o.edits = edits;
 	}
 
 	delete o.edit;
+	delete o.changes;
 	delete o.file_path;
 	delete o.filePath;
 	delete o.file;

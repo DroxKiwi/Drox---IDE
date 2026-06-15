@@ -5,6 +5,10 @@
 
 // allow-any-unicode-comment-file
 
+import type { IDroxEngineTraceRecord } from './chat/droxEngineTraceExport.js';
+
+export type { IDroxEngineTraceRecord } from './chat/droxEngineTraceExport.js';
+
 export interface IDroxSessionListEntry {
 	readonly id: string;
 	readonly modifiedSecs: number;
@@ -68,6 +72,7 @@ export interface IDroxTranscriptMessage {
 export interface IDroxSessionReadResult {
 	readonly messages: IDroxTranscriptMessage[];
 	readonly uiStats?: IDroxSessionUiStats;
+	readonly engineTrace?: readonly IDroxEngineTraceRecord[];
 }
 
 export type DroxReplayAppend = {

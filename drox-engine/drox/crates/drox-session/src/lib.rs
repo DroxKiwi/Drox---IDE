@@ -10,6 +10,7 @@
 //! Voir `docs/INVENTAIRE-NOYAU-MOTEUR.md` § 2.8.
 
 pub mod drox_ignore;
+pub mod engine_trace;
 pub mod error;
 pub mod list;
 pub mod memdir;
@@ -39,7 +40,10 @@ pub use memory_sessions::{
     compute_session_path, format_sessions_listing_for_prompt, load_sessions_listing,
     read_session, reserve_session_path, slugify, write_session,
 };
-pub use paths::{default_sessions_dir, session_ui_stats_path, transcript_path, workspace_sessions_dir};
+pub use paths::{
+    default_sessions_dir, engine_trace_path, session_ui_stats_path, transcript_path,
+    workspace_sessions_dir,
+};
 pub use workspace_layout::{
     agent_output_task_dir, agent_output_task_dir_legacy, agent_output_task_has_markdown,
     ensure_agent_output_task_dir, ensure_workspace_layout, sanitize_task_segment,
@@ -47,10 +51,16 @@ pub use workspace_layout::{
 };
 pub use workspace_reset::{WorkspaceResetStats, reset_workspace_drox_data};
 pub use record::{ChatMessageRecord, TRANSCRIPT_SCHEMA_VERSION};
+pub use engine_trace::{
+    EngineSystemBlock, EngineTracePayload, EngineTraceRecord, EngineTraceSessionConfig,
+    EngineTraceSink, JsonlEngineTraceSink, LlmTurnPreparedTrace, RunRoutingTrace,
+    append_engine_trace_record, read_engine_trace, ENGINE_TRACE_SCHEMA_VERSION,
+};
 pub use transcript::{
     JsonlTranscriptSink, TranscriptSessionConfig, TranscriptSink, read_transcript,
 };
 pub use ui_stats::{SessionUiStats, read_session_ui_stats, write_session_ui_stats};
 pub use workspace_map::{
-    WorkspaceMapStore, WorkspaceMapV1, format_workspace_map_for_prompt, initial_snapshot,
+    WorkspaceMapStore, WorkspaceMapV1, format_workspace_map_for_prompt,
+    initial_snapshot, is_excluded_from_workspace_map,
 };

@@ -82,6 +82,30 @@ impl Agent {
                                 }
                                 continue;
                             }
+                            if let Some(stop) = self
+                                .try_execute_virtual_tool_call(
+                                    call,
+                                    architect_state,
+                                    rail_active,
+                                    &tx,
+                                    messages,
+                                    memory_tracker,
+                                    consecutive_ask_user_question_failures,
+                                )
+                                .await
+                            {
+                                if stop {
+                                    return true;
+                                }
+                                if let Err(e) = self
+                                    .flush_transcript(&messages, transcript_cursor)
+                                    .await
+                                {
+                                    let _ = tx.send(Err(e)).await;
+                                    return true;
+                                }
+                                continue;
+                            }
                             if let Some(denial) = self.check_permission(call).await {
                                 if push_tool_error_tracked(
                                     &tx,
@@ -116,9 +140,13 @@ impl Agent {
                                     let registry = registry.clone();
                                     let ctx_parallel = ctx_parallel.clone();
                                     async move {
+                                        let exec_name = resolve_tool_name_alias(
+                                            &call.name,
+                                            &call.arguments,
+                                        );
                                         let result = registry
                                             .execute_named(
-                                                &call.name,
+                                                exec_name,
                                                 &ctx_parallel,
                                                 call.arguments.clone(),
                                             )
@@ -237,6 +265,31 @@ impl Agent {
                                 continue;
                             }
 
+                            if let Some(stop) = self
+                                .try_execute_virtual_tool_call(
+                                    call,
+                                    architect_state,
+                                    rail_active,
+                                    &tx,
+                                    messages,
+                                    memory_tracker,
+                                    consecutive_ask_user_question_failures,
+                                )
+                                .await
+                            {
+                                if stop {
+                                    return true;
+                                }
+                                if let Err(e) = self
+                                    .flush_transcript(&messages, transcript_cursor)
+                                    .await
+                                {
+                                    let _ = tx.send(Err(e)).await;
+                                    return true;
+                                }
+                                continue;
+                            }
+
                             if let Some(denial) = self.check_permission(call).await {
                                 if push_tool_error_tracked(
                                     &tx,
@@ -309,9 +362,10 @@ impl Agent {
                                 );
                             }
 
+                            let exec_name = resolve_tool_name_alias(&call.name, &call.arguments);
                             let exec = self
                                 .registry
-                                .execute_named(&call.name, &ctx, call.arguments.clone())
+                                .execute_named(exec_name, &ctx, call.arguments.clone())
                                 .await;
                             match exec {
                                 Ok(mut value) => {
@@ -325,7 +379,11 @@ impl Agent {
                                             &call.name,
                                             &call.arguments,
                                         ) {
-                                            messages.push(Message::system(nudge.to_string()));
+                                            append_gate_nudge(
+                                                messages,
+                                                NudgeId::ActMutationSuccess,
+                                                nudge.to_string(),
+                                            );
                                         }
                                         let _ = rail::on_verify_tool_result(
                                             &mut architect_state.rail,
@@ -505,7 +563,16 @@ impl Agent {
                                                 rail::ActRailNudge::InjectContinue(n) => (n, false),
                                                 rail::ActRailNudge::InjectStop(n) => (n, true),
                                             };
-                                            messages.push(Message::system(nudge.to_string()));
+                                            let nudge_id = if stop {
+                                                NudgeId::ActToolFailureStop
+                                            } else {
+                                                NudgeId::ActToolFailureContinue
+                                            };
+                                            append_gate_nudge(
+                                                messages,
+                                                nudge_id,
+                                                nudge.to_string(),
+                                            );
                                             let rail_focus = architect_state
                                                 .current_focus_task_line()
                                                 .map(|(id, label, _)| (id, label));
@@ -544,8 +611,24 @@ impl Agent {
                             }
                         }
                     }
-                }
             }
+        }
+        if self.config.run_spec.role_id == crate::run_spec::RoleId::Architect
+            && let Some(nudge) = crate::agent::stale_internal_plan_nudge(
+                architect_state,
+                self.config.engine_tuning.internal_plan_stale_nudge_after_tools,
+            )
+        {
+            use crate::orchestration::{append_gate_nudge, NudgeId};
+            append_gate_nudge(messages, NudgeId::InternalPlanStale, nudge);
+            if let Err(e) = self
+                .flush_transcript(messages, transcript_cursor)
+                .await
+            {
+                let _ = tx.send(Err(e)).await;
+                return true;
+            }
+        }
         false
     }
 }

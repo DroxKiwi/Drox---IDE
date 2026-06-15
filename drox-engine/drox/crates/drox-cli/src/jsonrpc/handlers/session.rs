@@ -1,8 +1,9 @@
 //! Handlers `session.*`.
 
 use drox_engine::{
-    CompactionConfig, SessionError, list_sessions, read_transcript, read_session_ui_stats,
-    session_ui_stats_path, summarize_run, transcript_path, workspace_sessions_dir,
+    CompactionConfig, SessionError, engine_trace_path, list_sessions, read_engine_trace,
+    read_session_ui_stats, read_transcript, session_ui_stats_path, summarize_run, transcript_path,
+    workspace_sessions_dir,
 };
 use drox_types::SessionId;
 use serde_json::Value;
@@ -69,7 +70,21 @@ pub async fn session_read(params: Option<Value>) -> Result<Value, RpcError> {
     };
     let stats_path = session_ui_stats_path(&dir, &id);
     let ui_stats = read_session_ui_stats(&stats_path).await;
-    serde_json::to_value(SessionReadResult { messages, ui_stats }).map_err(internal)
+    let trace_path = engine_trace_path(&dir, &id);
+    let engine_trace = match read_engine_trace(&trace_path).await {
+        Ok(rows) => rows,
+        Err(SessionError::NotFound(_)) => Vec::new(),
+        Err(e) => {
+            tracing::warn!(error = %e, path = %trace_path, "session.read engine_trace failed");
+            Vec::new()
+        }
+    };
+    serde_json::to_value(SessionReadResult {
+        messages,
+        ui_stats,
+        engine_trace,
+    })
+    .map_err(internal)
 }
 
 pub async fn session_compact(params: Option<Value>) -> Result<Value, RpcError> {

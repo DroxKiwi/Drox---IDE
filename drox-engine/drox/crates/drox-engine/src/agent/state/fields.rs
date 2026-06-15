@@ -18,6 +18,10 @@ pub struct ArchitectRunState {
     pub run_objective_anchor: Option<String>,
     /// Run rail conductor (1.4.0) — inactive while `run_rail_enabled` is false.
     pub rail: RunRailState,
+    /// Tool folders expanded via `describe` (1.4.1.3).
+    pub expanded_tool_folders: HashSet<String>,
+    /// L2 internal micro-plan (`internal_plan_write`) — engine-only.
+    pub internal_plan: Option<internal_plan::InternalPlanState>,
 }
 
 impl Default for ArchitectRunState {
@@ -44,7 +48,18 @@ impl ArchitectRunState {
             user_request_anchor: None,
             run_objective_anchor: None,
             rail: RunRailState::new(),
+            expanded_tool_folders: HashSet::new(),
+            internal_plan: None,
         }
+    }
+
+    #[must_use]
+    pub fn is_tool_folder_expanded(&self, folder: &str) -> bool {
+        self.expanded_tool_folders.contains(folder)
+    }
+
+    pub fn expand_tool_folder(&mut self, folder: &str) {
+        self.expanded_tool_folders.insert(folder.to_string());
     }
 
     /// Mémorise la demande utilisateur initiale (idempotent — garde la première).

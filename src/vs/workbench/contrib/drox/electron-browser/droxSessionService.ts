@@ -15,6 +15,7 @@ import {
 } from '../common/droxSession.js';
 import { IDroxSessionService, IDroxUiReplayTailResult, IDroxWorkspaceResetResult } from '../common/droxSessionService.js';
 import { sliceUiReplayBeforeTurns, sliceUiReplayTailTurns } from '../common/droxUiReplayTail.js';
+import { parseDroxEngineTraceRecord } from '../common/chat/droxEngineTraceExport.js';
 import { droxWorkspaceSessionsDir } from '../common/droxWorkspacePaths.js';
 import {
 	droxSessionUiReplayPath,
@@ -70,8 +71,12 @@ export class DroxSessionService implements IDroxSessionService {
 		}) as {
 			messages?: unknown[];
 			uiStats?: { totalIn?: number; totalOut?: number; ctx?: number };
+			engineTrace?: unknown[];
 		};
 		const messages = (Array.isArray(res?.messages) ? res.messages : []).map(m => this.parseMessage(m));
+		const engineTrace = (Array.isArray(res?.engineTrace) ? res.engineTrace : [])
+			.map(r => parseDroxEngineTraceRecord(r))
+			.filter((r): r is NonNullable<typeof r> => Boolean(r));
 		let uiStats: IDroxSessionUiStats | undefined;
 		if (res?.uiStats && typeof res.uiStats === 'object') {
 			uiStats = {
@@ -80,7 +85,7 @@ export class DroxSessionService implements IDroxSessionService {
 				ctx: Number(res.uiStats.ctx ?? 0),
 			};
 		}
-		return { messages, uiStats };
+		return { messages, uiStats, engineTrace };
 	}
 
 	async readUiReplay(id: string, workspaceFsPath: string): Promise<DroxHostToWebviewMessage[]> {

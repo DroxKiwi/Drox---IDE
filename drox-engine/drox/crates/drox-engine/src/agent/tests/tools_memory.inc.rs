@@ -7,7 +7,7 @@ async fn session_not_persisted_at_done_without_live_compaction() {
 
     // Scripts : (1) todo_write, (2) done sans mutation (gate B-MOTOR-04),
     // (3) clôture honnête sans patch, (4) compaction live.
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("On va faire X."),
         done_turn("Voici le rÃƒÂ©sultat."),
         done_turn("Le code est dÃƒÂ©jÃƒÂ  conforme â€” aucune modification nÃƒÂ©cessaire."),
@@ -48,7 +48,7 @@ async fn memory_not_persisted_when_todo_plan_closes_before_done() {
     let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
 
     let close_tid = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn_with_status("Ouverture plan", "in_progress"),
         vec![
             StreamEvent::Start,
@@ -111,7 +111,7 @@ async fn session_end_tool_call_from_model_is_rejected() {
     let dir = tempfile::tempdir().unwrap();
     let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
     let tid = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -160,7 +160,7 @@ async fn trivial_run_does_not_persist_session() {
 
     // Un seul tour : answering + done, sans tool. Pas de script de
     // compaction nÃƒÂ©cessaire Ã¢â‚¬â€ il ne sera pas appelÃƒÂ©.
-    let llm = Arc::new(ScriptedLlm::new(vec![done_turn("Salut !")]));
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![done_turn("Salut !")]));
 
     let registry = Arc::new(ToolRegistry::new());
     let ctx = ToolContext::new(ws.clone(), false);
@@ -206,7 +206,7 @@ async fn pinned_session_note_alone_does_not_persist_without_live_compaction() {
     // Tour 1 : reasoning + session_note (note seule, pas de todo, pas
     // de mutation). Tour 2 : answering + done. Tour 3 : compaction.
     let note_tid = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -266,6 +266,7 @@ async fn live_compaction_emits_context_compacted_when_over_budget() {
 
     let llm = Arc::new(ScriptedLlm::new(vec![
         compaction_turn("RÃƒÂ©sumÃƒÂ© intermÃƒÂ©diaire", &["src/a.rs"]),
+        internal_plan_turn(),
         done_turn("TerminÃƒÂ©."),
     ]));
 

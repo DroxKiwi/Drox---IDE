@@ -4,7 +4,7 @@ pub(crate) fn architect_orchestration_pre_gate(
     spec: &RunSpec,
     call_name: &str,
     call_arguments: &Value,
-    _state: &ArchitectRunState,
+    state: &ArchitectRunState,
     _saw_successful_todo_write_in_run: bool,
     _workspace: Option<&camino::Utf8Path>,
     _drox_ignore: Option<&drox_session::DroxIgnoreMatcher>,
@@ -15,6 +15,12 @@ pub(crate) fn architect_orchestration_pre_gate(
     }
     if call_name == "todo_write" {
         return todo_payload_shape_guard(call_arguments);
+    }
+    if call_name == "internal_plan_write" {
+        return crate::agent::internal_plan_shape_guard(
+            state.internal_plan.as_ref(),
+            call_arguments,
+        );
     }
     None
 }
@@ -115,13 +121,20 @@ pub(crate) fn tool_pre_gate_block(
     drox_ignore: Option<&drox_session::DroxIgnoreMatcher>,
     tuning: &EngineTuning,
 ) -> Option<String> {
+    let resolved_name =
+        crate::orchestration::tool_folders::resolve_tool_name_alias(call_name, call_arguments);
     if spec.role_id == RoleId::ArchitectDiscussion && !spec.discussion_allow_reads {
         return Some(DISCUSSION_REPLY_ONLY_NO_TOOLS.to_string());
     }
     if let Some(state) = architect_state {
+        if let Some(msg) =
+            crate::agent::internal_plan_required_block(spec.role_id, state, resolved_name)
+        {
+            return Some(msg);
+        }
         if let Some(msg) = architect_orchestration_pre_gate(
             spec,
-            call_name,
+            resolved_name,
             call_arguments,
             state,
             saw_successful_todo_write_in_run,
@@ -132,28 +145,37 @@ pub(crate) fn tool_pre_gate_block(
             return Some(msg);
         }
         if tuning.run_rail_enabled && spec.role_id == RoleId::Architect {
-            if let Some(msg) = super::rail::tool_pre_gate_rail(&state.rail, call_name) {
+            if let Some(msg) = crate::orchestration::tool_folders::tool_folder_pre_gate(
+                tuning,
+                state,
+                state.rail.station,
+                resolved_name,
+                call_arguments,
+            ) {
+                return Some(msg);
+            }
+            if let Some(msg) = super::rail::tool_pre_gate_rail(&state.rail, resolved_name) {
                 return Some(msg);
             }
         }
     }
-    if is_hallucinated_phase_tool_call(call_name, call_arguments)
-        && parse_hallucinated_phase_from_tool_call(call_name, call_arguments).is_none()
+    if is_hallucinated_phase_tool_call(resolved_name, call_arguments)
+        && parse_hallucinated_phase_from_tool_call(resolved_name, call_arguments).is_none()
     {
         let msg = PHASE_MARKER_MUST_BE_TEXT_NOT_TOOL;
         return Some(msg.to_string());
     }
-    if call_name == "session_end" {
+    if resolved_name == "session_end" {
         return Some(SESSION_END_FORBIDDEN_FOR_MODEL.to_string());
     }
-    if call_name == "bash" {
+    if resolved_name == "bash" {
         if let Some(cmd) = call_arguments.get("command").and_then(|v| v.as_str()) {
             if let Some(msg) = bash_windows::bash_windows_precheck(cmd) {
                 return Some(msg.to_string());
             }
         }
     }
-    if call_name == "todo_write" {
+    if resolved_name == "todo_write" {
         let max_todo = spec
             .max_todo_items()
             .or(tuning.max_todo_items.map(|n| n as usize));

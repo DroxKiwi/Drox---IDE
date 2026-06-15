@@ -18,7 +18,9 @@ const RUN_OBJECTIVE_RE = /^\[run_objective:\s*(.+)\]\s*$/i;
 const DROX_TOOL_WRAPPER_RE = /^\[drox:[^\]]*\]\s*/i;
 const USER_REQUEST_RE = /^##\s*User request\s*$/im;
 const USER_REMINDER_RE = /^##\s*Reminder\s*$/im;
+const INTERNAL_WORK_PLAN_MARKER = '## Internal work plan (engine only)';
 const DEFAULT_MAX_SYSTEM_CHARS = 12_000;
+const DEFAULT_MAX_SYSTEM_CHARS_ENGINE = 200_000;
 const DEFAULT_MAX_TOOL_RESULT_CHARS = 80_000;
 const DEFAULT_MAX_DELEGATE_REPORT_CHARS = 120_000;
 
@@ -31,6 +33,8 @@ export interface IFormatDroxTranscriptExportOptions {
 	readonly maxSystemChars?: number;
 	readonly maxToolResultChars?: number;
 	readonly maxDelegateReportChars?: number;
+	/** Dev export — inclure le plan interne L2 et limites system plus larges. */
+	readonly includeEngineContext?: boolean;
 }
 
 interface IToolResultRef {
@@ -131,12 +135,35 @@ function parseJsonRecord(raw: string): Record<string, unknown> | null {
 	}
 }
 
-function formatSystemText(text: string, maxChars: number, out: string[]): void {
+function detectSystemBlockKind(text: string): string {
+	if (text.includes('## Architect run snapshot (engine)')) {
+		return 'ctx_run_snapshot';
+	}
+	if (text.includes('## Architect tool protocols (engine)')) {
+		return 'tool_protocols';
+	}
+	if (text.includes('## Run rail (engine)')) {
+		return 'rail_snapshot';
+	}
+	if (text.includes(INTERNAL_WORK_PLAN_MARKER)) {
+		return 'internal_plan';
+	}
+	if (text.includes('## Context compaction checkpoint')) {
+		return 'compaction_checkpoint';
+	}
+	return 'boot_or_other';
+}
+
+function formatSystemText(text: string, maxChars: number, out: string[], includeEngineContext: boolean): void {
 	const trimmed = text.trim();
 	if (!trimmed) {
 		out.push('(empty)');
 		out.push('');
 		return;
+	}
+	if (includeEngineContext) {
+		out.push(`### System · ${detectSystemBlockKind(trimmed)} (${trimmed.length} chars)`);
+		out.push('');
 	}
 	if (trimmed.length <= maxChars) {
 		out.push(trimmed);
@@ -190,6 +217,107 @@ function formatTodoPlan(todos: readonly { id: string; content: string; status: s
 	out.push(
 		`Summary: ${counts.pending} pending · ${counts.in_progress} in_progress · ${counts.completed} completed · ${counts.cancelled} cancelled`,
 	);
+	out.push('');
+}
+
+interface IInternalPlanStep {
+	readonly id: string;
+	readonly action: string;
+	readonly status: string;
+	readonly paths?: readonly string[];
+	readonly done_when?: string;
+}
+
+function extractInternalPlanFromToolOutput(raw: string): {
+	readonly steps: readonly IInternalPlanStep[];
+	readonly mode?: string;
+	readonly meta?: Record<string, unknown>;
+} | null {
+	const rec = parseJsonRecord(raw);
+	if (!rec) {
+		return null;
+	}
+	const stepsRaw = rec.steps;
+	if (!Array.isArray(stepsRaw) || stepsRaw.length === 0) {
+		return null;
+	}
+	const steps: IInternalPlanStep[] = [];
+	for (const s of stepsRaw) {
+		if (!s || typeof s !== 'object') {
+			continue;
+		}
+		const step = s as Record<string, unknown>;
+		const id = typeof step.id === 'string' ? step.id : '';
+		const action = typeof step.action === 'string' ? step.action : '';
+		const status = typeof step.status === 'string' ? step.status : 'pending';
+		if (!id || !action) {
+			continue;
+		}
+		const paths = Array.isArray(step.paths)
+			? step.paths.filter((p): p is string => typeof p === 'string')
+			: undefined;
+		const done_when = typeof step.done_when === 'string' ? step.done_when : undefined;
+		steps.push({ id, action, status, paths, done_when });
+	}
+	if (steps.length === 0) {
+		return null;
+	}
+	const mode = typeof rec.mode === 'string' ? rec.mode : undefined;
+	const meta =
+		rec.meta && typeof rec.meta === 'object' ? (rec.meta as Record<string, unknown>) : undefined;
+	return { steps, mode, meta };
+}
+
+function formatInternalPlan(
+	plan: {
+		readonly steps: readonly IInternalPlanStep[];
+		readonly mode?: string;
+		readonly meta?: Record<string, unknown>;
+	},
+	out: string[],
+	includeEngineContext: boolean,
+): void {
+	out.push('### Plan interne (internal_plan_write) — engine only');
+	out.push('');
+	for (const s of plan.steps) {
+		const paths =
+			s.paths && s.paths.length > 0 ? ` · \`${s.paths.join('`, `')}\`` : '';
+		const done =
+			s.done_when && s.done_when.trim().length > 0
+				? ` _(done when: ${s.done_when.trim()})_`
+				: '';
+		out.push(`${todoStatusGlyph(s.status)} ${s.id}: ${s.action}${paths} (${s.status})${done}`);
+	}
+	const counts = { pending: 0, in_progress: 0, completed: 0, cancelled: 0 };
+	for (const s of plan.steps) {
+		if (s.status in counts) {
+			counts[s.status as keyof typeof counts] += 1;
+		}
+	}
+	out.push('');
+	out.push(
+		`Summary: ${counts.pending} pending · ${counts.in_progress} in_progress · ${counts.completed} completed · ${counts.cancelled} cancelled`,
+	);
+	if (includeEngineContext) {
+		const metaParts: string[] = [];
+		if (plan.mode) {
+			metaParts.push(`mode=${plan.mode}`);
+		}
+		if (plan.meta) {
+			if (typeof plan.meta.updated_at === 'string') {
+				metaParts.push(`updated_at=${plan.meta.updated_at}`);
+			}
+			if (typeof plan.meta.tools_since_touch === 'number') {
+				metaParts.push(`tools_since_touch=${plan.meta.tools_since_touch}`);
+			}
+			if (typeof plan.meta.step_count === 'number') {
+				metaParts.push(`step_count=${plan.meta.step_count}`);
+			}
+		}
+		if (metaParts.length > 0) {
+			out.push(`Meta: ${metaParts.join(' · ')}`);
+		}
+	}
 	out.push('');
 }
 
@@ -381,6 +509,7 @@ function formatToolResultRich(
 	maxToolResult: number,
 	maxDelegateReport: number,
 	out: string[],
+	includeEngineContext: boolean,
 ): void {
 	const cleaned = stripDroxToolWrapper(raw);
 	const errPrefix = isError ? ' · ERROR' : '';
@@ -399,6 +528,30 @@ function formatToolResultRich(
 			formatTodoPlan(todos, out);
 			return;
 		}
+	}
+
+	if (toolName === 'internal_plan_write') {
+		out.push(`### Tool result${errPrefix} · internal_plan_write`);
+		out.push('');
+		if (isError) {
+			out.push(cleaned);
+			out.push('');
+			return;
+		}
+		if (!includeEngineContext) {
+			out.push('(plan interne mis à jour — détail masqué export utilisateur)');
+			out.push('');
+			return;
+		}
+		const plan = extractInternalPlanFromToolOutput(cleaned);
+		if (plan) {
+			formatInternalPlan(plan, out, true);
+			return;
+		}
+		out.push('(plan interne mis à jour — détail non structuré)');
+		out.push('');
+		formatTruncated(cleaned, maxToolResult, out, 'tool output');
+		return;
 	}
 
 	if (toolName === 'delegate_executor') {
@@ -427,6 +580,7 @@ function emitToolResult(
 	maxToolResult: number,
 	maxDelegateReport: number,
 	out: string[],
+	includeEngineContext: boolean,
 ): boolean {
 	const ref = toolResults.get(toolUseId);
 	if (!ref || consumed.has(toolUseId)) {
@@ -437,7 +591,15 @@ function emitToolResult(
 	consumed.add(toolUseId);
 	const block = ref.block;
 	const raw = typeof block.content === 'string' ? block.content : previewJson(block.content, maxToolResult);
-	formatToolResultRich(toolName, raw, Boolean(block.is_error), maxToolResult, maxDelegateReport, out);
+	formatToolResultRich(
+		toolName,
+		raw,
+		Boolean(block.is_error),
+		maxToolResult,
+		maxDelegateReport,
+		out,
+		includeEngineContext,
+	);
 	return true;
 }
 
@@ -448,6 +610,7 @@ function formatAssistantBlocksChronological(
 	maxToolResult: number,
 	maxDelegateReport: number,
 	out: string[],
+	includeEngineContext: boolean,
 ): void {
 	for (const block of blocks) {
 		if (block.type === 'text') {
@@ -495,7 +658,16 @@ function formatAssistantBlocksChronological(
 				out.push('');
 			}
 			if (id) {
-				emitToolResult(id, name, toolResults, consumed, maxToolResult, maxDelegateReport, out);
+				emitToolResult(
+					id,
+					name,
+					toolResults,
+					consumed,
+					maxToolResult,
+					maxDelegateReport,
+					out,
+					includeEngineContext,
+				);
 			}
 		}
 	}
@@ -508,6 +680,7 @@ function emitOrphanToolResults(
 	maxDelegateReport: number,
 	out: string[],
 	step: { value: number },
+	includeEngineContext: boolean,
 ): void {
 	for (const m of messages) {
 		if (m.role !== 'tool') {
@@ -526,7 +699,15 @@ function emitOrphanToolResults(
 			pushDroxExportStepSeparator(out, step.value, `TOOL RESULT (orphan${id ? ` · ${id}` : ''})`);
 			consumed.add(id);
 			const raw = typeof block.content === 'string' ? block.content : previewJson(block.content, maxToolResult);
-			formatToolResultRich(undefined, raw, Boolean(block.is_error), maxToolResult, maxDelegateReport, out);
+			formatToolResultRich(
+				undefined,
+				raw,
+				Boolean(block.is_error),
+				maxToolResult,
+				maxDelegateReport,
+				out,
+				includeEngineContext,
+			);
 		}
 	}
 }
@@ -534,7 +715,9 @@ function emitOrphanToolResults(
 /** Full session transcript as plain text in chronological execution order. */
 export function formatDroxTranscriptExport(opts: IFormatDroxTranscriptExportOptions): string {
 	const exportedAt = opts.exportedAt ?? new Date();
-	const maxSystem = opts.maxSystemChars ?? DEFAULT_MAX_SYSTEM_CHARS;
+	const maxSystem = opts.maxSystemChars
+		?? (opts.includeEngineContext !== false ? DEFAULT_MAX_SYSTEM_CHARS_ENGINE : DEFAULT_MAX_SYSTEM_CHARS);
+	const includeEngineContext = opts.includeEngineContext !== false;
 	const maxToolResult = opts.maxToolResultChars ?? DEFAULT_MAX_TOOL_RESULT_CHARS;
 	const maxDelegateReport = opts.maxDelegateReportChars ?? DEFAULT_MAX_DELEGATE_REPORT_CHARS;
 	const out: string[] = [];
@@ -561,8 +744,11 @@ export function formatDroxTranscriptExport(opts: IFormatDroxTranscriptExportOpti
 		'Chronological export: each assistant tool call is followed immediately by its result (execution order).',
 	);
 	out.push(
-		'Includes phases, reflections, plan updates (todo_write), executor delegations (delegate_executor), and gate errors when present.',
+		'Includes phases, reflections, plan updates (todo_write, internal_plan_write), executor delegations (delegate_executor), gate errors, and engine system blocks when present.',
 	);
+	if (includeEngineContext) {
+		out.push('Engine context mode: internal plan + full system blocks (dev export).');
+	}
 
 	for (const m of opts.messages) {
 		if (m.role === 'tool') {
@@ -577,7 +763,13 @@ export function formatDroxTranscriptExport(opts: IFormatDroxTranscriptExportOpti
 			continue;
 		}
 		if (m.role === 'system') {
-			formatSystemText(joinTextBlocks(blocks), maxSystem, out);
+			const text = joinTextBlocks(blocks);
+			if (!includeEngineContext && text.includes(INTERNAL_WORK_PLAN_MARKER)) {
+				out.push('(internal engine plan — omitted from user export)');
+				out.push('');
+				continue;
+			}
+			formatSystemText(text, maxSystem, out, includeEngineContext);
 			continue;
 		}
 		if (m.role === 'assistant') {
@@ -592,12 +784,21 @@ export function formatDroxTranscriptExport(opts: IFormatDroxTranscriptExportOpti
 					maxToolResult,
 					maxDelegateReport,
 					out,
+					includeEngineContext,
 				);
 			}
 		}
 	}
 
-	emitOrphanToolResults(opts.messages, consumed, maxToolResult, maxDelegateReport, out, step);
+	emitOrphanToolResults(
+		opts.messages,
+		consumed,
+		maxToolResult,
+		maxDelegateReport,
+		out,
+		step,
+		includeEngineContext,
+	);
 
 	out.push('');
 	out.push(`— end of export (${step.value} steps) —`);

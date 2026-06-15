@@ -92,6 +92,7 @@
             memory_tracker,
             messages,
             transcript_cursor,
+            llm_iter: 0,
             seen_answering_in_run: false,
             saw_successful_todo_write_in_run: false,
             last_todo_pending: 0,

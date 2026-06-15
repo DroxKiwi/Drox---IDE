@@ -21,9 +21,10 @@ pub(crate) fn architect_orchestration_record_successful_tool(
     role_id: RoleId,
     call_name: &str,
     _call_arguments: &Value,
-    _state: &mut ArchitectRunState,
+    state: &mut ArchitectRunState,
 ) {
-    if role_id != RoleId::Architect || call_name == "workspace_map_read" {
+    if role_id != RoleId::Architect {
         return;
     }
+    crate::agent::record_internal_plan_tool_touch(state, call_name);
 }

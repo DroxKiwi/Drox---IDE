@@ -15,7 +15,7 @@ use serde_json::json;
 async fn read_only_tool_before_todo_write_is_allowed() {
     let tid_echo = ToolUseId::new();
     let tid_todo = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         // Tour 1 : reasoning + echo SEUL (pas de todo_write).
         vec![
             StreamEvent::Start,
@@ -99,7 +99,7 @@ async fn read_only_tool_before_todo_write_is_allowed() {
 #[tokio::test]
 async fn mutating_tool_before_todo_write_is_allowed() {
     let tid_bash = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         // Tour 1 : reasoning + bash SEUL (mutateur, pas de todo_write).
         vec![
             StreamEvent::Start,
@@ -185,7 +185,7 @@ async fn mutating_tool_before_todo_write_is_allowed() {
 async fn todo_write_promoted_when_batched_with_other_tool() {
     let tid_echo = ToolUseId::new();
     let tid_todo = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -265,7 +265,7 @@ async fn todo_write_promoted_when_batched_with_other_tool() {
 async fn todo_write_not_promoted_once_gate_already_satisfied() {
     let tid_echo = ToolUseId::new();
     let tid_todo2 = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         // Tour 1 : todo_write seul (satisfait la gate).
         read_then_one_todo_turn("Premier plan."),
         // Tour 2 : modÃ¨le bat che [echo, todo_write] dans un ordre
@@ -352,7 +352,7 @@ async fn hallucinated_phase_tool_skips_permission_ask_and_surfaces_engine_hint()
         RuleValue,
     };
 
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("Plan minimal."),
         answering_turn_with_hallucinated_phase_tool(),
         done_turn("OK."),

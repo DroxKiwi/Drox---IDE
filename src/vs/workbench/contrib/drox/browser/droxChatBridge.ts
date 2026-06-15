@@ -127,6 +127,29 @@ export type DroxHostToWebviewMessage =
 
 	| { readonly kind: 'railStationDone'; readonly station: string }
 
+	| {
+		readonly kind: 'runRouting';
+		readonly architectGate: string;
+		readonly startRun: string;
+		readonly greetingOnly: boolean;
+		readonly expectsWorkspaceMutation: boolean;
+		readonly intentSource: string;
+	}
+
+	| {
+		readonly kind: 'llmTurnPrepared';
+		readonly iter: number;
+		readonly frameId: string;
+		readonly layersApplied: readonly string[];
+		readonly railStation?: string;
+		readonly toolNames: readonly string[];
+		readonly architectSnapshotBytes: number;
+		readonly toolProtocolBytes: number;
+		readonly railSnapshotBytes: number;
+		readonly bootSystemBytes: number;
+		readonly messagesCount: number;
+	}
+
 	| { readonly kind: 'delta'; readonly text: string; readonly executorJobId?: string }
 
 	| { readonly kind: 'clearAssistant' }
