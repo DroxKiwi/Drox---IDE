@@ -805,6 +805,85 @@ export function formatDroxTranscriptExport(opts: IFormatDroxTranscriptExportOpti
 	return out.join('\n');
 }
 
+export interface IDroxExecutionSummary {
+	readonly toolCallCount: number;
+	readonly toolErrorCount: number;
+	readonly finalPhase: string | undefined;
+	readonly firstStructuredToolMessageIndex: number | undefined;
+}
+
+/** Compteurs outils / phase depuis le journal UI (PARTIE A). */
+export function computeDroxUiJournalToolStats(
+	journal: readonly Record<string, unknown>[],
+): Pick<IDroxExecutionSummary, 'toolCallCount' | 'toolErrorCount' | 'finalPhase'> {
+	let toolCallCount = 0;
+	let toolErrorCount = 0;
+	let finalPhase: string | undefined;
+	for (const entry of journal) {
+		const kind = typeof entry.kind === 'string' ? entry.kind : '';
+		if (kind === 'tool') {
+			const phase = typeof entry.phase === 'string' ? entry.phase : '';
+			if (phase === 'start') {
+				toolCallCount += 1;
+			} else if (phase === 'finish' && entry.isError === true) {
+				toolErrorCount += 1;
+			}
+		} else if (kind === 'phase' && entry.close !== true) {
+			const phase = typeof entry.phase === 'string' ? entry.phase : '';
+			if (phase) {
+				finalPhase = phase;
+			}
+		}
+	}
+	return { toolCallCount, toolErrorCount, finalPhase };
+}
+
+/** Index 0-based du premier message assistant avec `tool_use` structuré. */
+export function findFirstStructuredToolMessageIndex(
+	messages: readonly IDroxTranscriptMessage[],
+): number | undefined {
+	for (let i = 0; i < messages.length; i++) {
+		const m = messages[i];
+		if (m.role !== 'assistant') {
+			continue;
+		}
+		const blocks = Array.isArray(m.content) ? m.content : [];
+		if (blocks.some(b => b.type === 'tool_use')) {
+			return i;
+		}
+	}
+	return undefined;
+}
+
+export function formatDroxPartieASummaryBlock(
+	summary: IDroxExecutionSummary & {
+		readonly textToolMarkerStreak?: number;
+		readonly schemaErrorContinueCount?: number;
+		readonly llmIterations?: number;
+	},
+): string {
+	const firstToolIdx =
+		summary.firstStructuredToolMessageIndex !== undefined
+			? String(summary.firstStructuredToolMessageIndex)
+			: '(aucun)';
+	const lines = [
+		`Tool calls (journal UI): ${summary.toolCallCount}`,
+		`Tool errors (journal UI): ${summary.toolErrorCount}`,
+		`Phase finale (journal UI): ${summary.finalPhase ?? '(aucune)'}`,
+		`1er tool structuré (index message moteur): ${firstToolIdx}`,
+	];
+	if (summary.textToolMarkerStreak !== undefined) {
+		lines.push(`text_tool_marker_streak (engine): ${summary.textToolMarkerStreak}`);
+	}
+	if (summary.schemaErrorContinueCount !== undefined) {
+		lines.push(`schema_error_continue_count (engine): ${summary.schemaErrorContinueCount}`);
+	}
+	if (summary.llmIterations !== undefined) {
+		lines.push(`LLM iterations (engine): ${summary.llmIterations}`);
+	}
+	return lines.join('\n');
+}
+
 /** Index compact de tous les messages moteur (y compris role `tool`). */
 export function formatDroxEngineMessageRoster(messages: readonly IDroxTranscriptMessage[]): string {
 	const out: string[] = [];

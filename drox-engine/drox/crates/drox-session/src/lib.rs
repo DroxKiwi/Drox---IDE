@@ -53,7 +53,7 @@ pub use workspace_reset::{WorkspaceResetStats, reset_workspace_drox_data};
 pub use record::{ChatMessageRecord, TRANSCRIPT_SCHEMA_VERSION};
 pub use engine_trace::{
     EngineSystemBlock, EngineTracePayload, EngineTraceRecord, EngineTraceSessionConfig,
-    EngineTraceSink, JsonlEngineTraceSink, LlmTurnPreparedTrace, RunRoutingTrace,
+    EngineTraceSink, JsonlEngineTraceSink, LlmTurnPreparedTrace, RunRoutingTrace, RunSummaryTrace,
     append_engine_trace_record, read_engine_trace, ENGINE_TRACE_SCHEMA_VERSION,
 };
 pub use transcript::{

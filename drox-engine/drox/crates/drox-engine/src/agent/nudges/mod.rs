@@ -2,6 +2,7 @@
 //!
 //! ≤ 3 active paths in the drive loop: `stall_act`, `schema_error`, `done_only`.
 
+mod answering_too_early;
 mod done_only;
 mod helpers;
 mod internal_plan;
@@ -11,6 +12,9 @@ mod stall_act;
 mod text_tool_marker;
 mod thinking_supplement;
 
+pub(crate) use answering_too_early::{
+    is_premature_answering_turn, ANSWERING_TOO_EARLY_NUDGE,
+};
 pub(crate) use done_only::done_only_nudge_prompt;
 pub(crate) use helpers::{ask_user_question_loop_nudge, run_objective_system_block};
 pub(crate) use internal_plan::{

@@ -6,7 +6,16 @@ impl Agent {
         outcome: &mut crate::agent::stream::TurnOutcome,
         tx: &tokio::sync::mpsc::Sender<Result<crate::event::AgentEvent, crate::error::EngineError>>,
     ) -> bool {
-        if outcome.saw_answering {
+        let premature_answering = outcome.saw_answering
+            && crate::agent::nudges::is_premature_answering_turn(
+                self.config.run_spec.role_id,
+                session.mutation_expected,
+                session.memory_tracker.mutation_count(),
+                &session.messages,
+                outcome,
+            );
+
+        if outcome.saw_answering && !premature_answering {
             session.seen_answering_in_run = true;
             rail::reset_post_todos_idle(&mut session.architect_state.rail);
             if !outcome.text.trim().is_empty() {
@@ -29,6 +38,7 @@ impl Agent {
                 session.effective_run_objective.as_deref(),
                 session.mutation_expected,
                 session.memory_tracker.mutation_count(),
+                &mut session.schema_error_continue_count,
             )
             .await
         {

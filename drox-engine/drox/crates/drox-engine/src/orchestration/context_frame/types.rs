@@ -78,6 +78,7 @@ pub enum NudgeId {
     InternalPlanPreAnswering,
     InternalPlanActFocus,
     TextToolMarker,
+    AnsweringTooEarly,
 }
 
 impl NudgeId {
@@ -100,6 +101,7 @@ impl NudgeId {
             Self::InternalPlanPreAnswering => "internal_plan.pre_answering",
             Self::InternalPlanActFocus => "internal_plan.act_focus",
             Self::TextToolMarker => "protocol.text_tool_marker",
+            Self::AnsweringTooEarly => "protocol.answering_too_early",
         }
     }
 }
