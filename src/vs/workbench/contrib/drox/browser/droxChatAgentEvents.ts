@@ -313,6 +313,48 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			return;
 		}
 
+		case 'run_routing': {
+			host.post({
+				kind: 'runRouting',
+				architectGate: String(ev.architect_gate ?? ev.architectGate ?? ''),
+				startRun: String(ev.start_run ?? ev.startRun ?? ''),
+				greetingOnly: Boolean(ev.greeting_only ?? ev.greetingOnly),
+				expectsWorkspaceMutation: Boolean(
+					ev.expects_workspace_mutation ?? ev.expectsWorkspaceMutation,
+				),
+				intentSource: String(ev.intent_source ?? ev.intentSource ?? ''),
+			});
+			return;
+		}
+
+		case 'llm_turn_prepared': {
+			const layersRaw = ev.layers_applied ?? ev.layersApplied;
+			const toolsRaw = ev.tool_names ?? ev.toolNames;
+			const layersApplied = Array.isArray(layersRaw)
+				? layersRaw.filter((x: unknown): x is string => typeof x === 'string')
+				: [];
+			const toolNames = Array.isArray(toolsRaw)
+				? toolsRaw.filter((x: unknown): x is string => typeof x === 'string')
+				: [];
+			host.post({
+				kind: 'llmTurnPrepared',
+				iter: Number(ev.iter ?? 0),
+				frameId: String(ev.frame_id ?? ev.frameId ?? ''),
+				layersApplied,
+				railStation:
+					typeof (ev.rail_station ?? ev.railStation) === 'string'
+						? String(ev.rail_station ?? ev.railStation)
+						: undefined,
+				toolNames,
+				architectSnapshotBytes: Number(ev.architect_snapshot_bytes ?? ev.architectSnapshotBytes ?? 0),
+				toolProtocolBytes: Number(ev.tool_protocol_bytes ?? ev.toolProtocolBytes ?? 0),
+				railSnapshotBytes: Number(ev.rail_snapshot_bytes ?? ev.railSnapshotBytes ?? 0),
+				bootSystemBytes: Number(ev.boot_system_bytes ?? ev.bootSystemBytes ?? 0),
+				messagesCount: Number(ev.messages_count ?? ev.messagesCount ?? 0),
+			});
+			return;
+		}
+
 		case 'context_compacted': {
 			const before = Number(ev.tokens_before ?? ev.tokensBefore ?? 0);
 			const after = Number(ev.tokens_after ?? ev.tokensAfter ?? 0);

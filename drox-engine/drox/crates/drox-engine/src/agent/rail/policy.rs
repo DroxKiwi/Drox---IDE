@@ -42,6 +42,9 @@ const MUTATION_TOOLS: &[&str] = &[
 /// Minimum station on the linear rail that allows `tool_name` (auto-advance C12).
 #[must_use]
 pub fn minimum_station_for_tool(tool_name: &str) -> RunStation {
+    if tool_name == crate::orchestration::tool_folders::TOOL_INTERNAL_PLAN_WRITE {
+        return RunStation::Intent;
+    }
     if PLAN_TOOLS.contains(&tool_name) {
         return RunStation::Plan;
     }
@@ -99,6 +102,9 @@ pub fn station_action_hint(station: RunStation) -> &'static str {
 /// Whether `tool_name` may run in `station`.
 #[must_use]
 pub fn tool_allowed(station: RunStation, tool_name: &str) -> bool {
+    if tool_name == crate::orchestration::tool_folders::TOOL_INTERNAL_PLAN_WRITE {
+        return true;
+    }
     match station {
         RunStation::Intent | RunStation::Propose => false,
         RunStation::Answer => tool_name == "todo_write",

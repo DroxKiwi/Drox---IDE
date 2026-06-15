@@ -66,6 +66,7 @@ export async function handleDroxExportTranscript(
 				journal,
 				transcriptMessageCount: read.messages.length,
 				transcriptMessages: read.messages,
+				engineTrace: read.engineTrace,
 				uiStats: read.uiStats,
 				exportedAt,
 			})
@@ -75,6 +76,7 @@ export async function handleDroxExportTranscript(
 				messages: read.messages,
 				uiStats: read.uiStats,
 				exportedAt,
+				includeEngineContext: true,
 			});
 
 		const exportDir = join(ws, '.drox', 'exports');
@@ -94,10 +96,11 @@ export async function handleDroxExportTranscript(
 			notificationService.info(
 				localize(
 					'drox.export.doneUiJournal',
-					'Export saved to {0} ({1} steps, {2} UI events, {3} chars) — UI journal + moteur + JSONL brut.',
+					'Export saved to {0} ({1} steps, {2} UI events, {3} engine trace records, {4} chars) — UI journal + moteur + engine trace + JSONL brut.',
 					filePath,
 					stepCount,
 					journal.length,
+					read.engineTrace?.length ?? 0,
 					text.length,
 				),
 			);

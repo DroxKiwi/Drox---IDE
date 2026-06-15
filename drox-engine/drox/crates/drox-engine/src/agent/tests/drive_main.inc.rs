@@ -1,6 +1,6 @@
 ﻿#[tokio::test]
 async fn done_allowed_after_code_edit_completes_run() {
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         todo_then_code_edit_turn("src/lib.rs"),
         done_turn("rÃ©ponse sans phase testing"),
     ]));
@@ -24,7 +24,7 @@ async fn done_allowed_after_code_edit_completes_run() {
 
 #[tokio::test]
 async fn done_allowed_when_only_markdown_edited() {
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         todo_then_code_edit_turn("docs/README.md"),
         done_turn("doc mise ÃƒÂ  jour"),
     ]));
@@ -59,7 +59,7 @@ async fn done_blocked_when_todos_still_open() {
     // ce `done` (todo non clÃƒÂ´turÃƒÂ©e) et nudger. Le tour 3 met ÃƒÂ  jour la
     // to-do en `completed` et seulement lÃƒÂ  le moteur accepte de fermer.
     let tid_close = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         // Tour 1 : ouverture de la to-do (in_progress).
         read_then_one_todo_turn_with_status(
             "Je vais traiter la demande.",
@@ -157,7 +157,7 @@ async fn done_blocked_when_todos_still_open() {
 #[tokio::test]
 async fn done_marker_terminates_turn() {
     // `todo_write` obligatoire + `answering` avant `done` : deux tours.
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("Alignement sur le message utilisateur."),
         vec![
             StreamEvent::Start,
@@ -210,7 +210,7 @@ async fn context_snip_event_emitted_when_history_exceeds_threshold() {
 
     // Tour 1 : modÃƒÂ¨le conclut (pas de tool call). On veut juste que le
     // snip prÃƒÂ©-tour se dÃƒÂ©clenche sur l'historique initial.
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("Contexte pour le snip."),
         done_turn("ok"),
     ]));
@@ -309,7 +309,7 @@ async fn max_iterations_yields_error() {
             },
         ]
     };
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         make_opening_turn(),
         make_echo_turn(),
         make_echo_turn(),
@@ -336,7 +336,7 @@ async fn consecutive_same_phase_markers_are_deduplicated() {
     // rÃƒÂ©pÃƒÂ©tition. Le consommateur ne doit voir QU'UN seul `PhaseEnter`
     // tant que la phase ne change pas effectivement. Tour 2 : texte
     // riche puis `answering` + `done` (todo dÃƒÂ©jÃƒÂ  posÃƒÂ© au tour 1).
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("PrÃƒÂ©ambule."),
         vec![
             StreamEvent::Start,
@@ -394,7 +394,7 @@ async fn silent_turn_triggers_one_nudge_then_done() {
     // Tour 1 : lecture / prose sans outil Ã¢â€ â€™ nudge gÃƒÂ©nÃƒÂ©rique.
     // Tour 2 : todo obligatoire.
     // Tour 3 : answering + done.
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -442,7 +442,7 @@ async fn nudge_loops_until_max_iterations_when_done_never_emitted() {
     // `max_iterations: 3` pour rester rapide, et fournit assez de tours
     // muets pour couvrir cette borne sans paniquer (`ScriptedLlm` panic
     // si on dÃƒÂ©passe).
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -477,7 +477,7 @@ async fn nudge_loops_until_max_iterations_when_done_never_emitted() {
     let registry = Arc::new(ToolRegistry::new());
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let cfg = AgentConfig {
-        max_iterations: 3,
+        max_iterations: 4,
         ..test_agent_config()
     };
     let agent = Agent::new(llm, registry, ctx, cfg);
@@ -505,8 +505,8 @@ async fn nudge_loops_until_max_iterations_when_done_never_emitted() {
         "aucun `[phase: done]` n'a ÃƒÂ©tÃƒÂ© ÃƒÂ©mis, donc aucun PhaseEnter Done"
     );
     assert!(
-        matches!(raw.last(), Some(Err(EngineError::MaxIterations(3)))),
-        "le stream doit se terminer par MaxIterations(3), got {:?}",
+        matches!(raw.last(), Some(Err(EngineError::MaxIterations(4)))),
+        "le stream doit se terminer par MaxIterations(4), got {:?}",
         raw.last()
     );
 }

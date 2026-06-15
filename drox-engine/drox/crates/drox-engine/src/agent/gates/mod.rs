@@ -25,6 +25,7 @@ include!("tool_pre.rs");
 mod tests {
     use super::*;
     use crate::EngineTuning;
+    use crate::agent::ArchitectRunState;
     use serde_json::json;
 
     #[test]
@@ -158,6 +159,42 @@ mod tests {
             &EngineTuning::default(),
         );
         assert!(msg.is_none(), "bare array must pass shape guard: {msg:?}");
+    }
+
+    #[test]
+    fn internal_plan_required_blocks_reads_until_plan_exists() {
+        use crate::agent::state::internal_plan::ingest_internal_plan;
+        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
+        let mut st = ArchitectRunState::new();
+        let msg = tool_pre_gate_block(
+            &spec,
+            "file_read",
+            &json!({ "path": "README.md" }),
+            false,
+            Some(&st),
+            None,
+            None,
+            &EngineTuning::default(),
+        );
+        assert!(msg.is_some());
+        assert!(msg.unwrap().contains("internal_plan_write"));
+        let _ = ingest_internal_plan(
+            &mut st.internal_plan,
+            json!({"steps":[{"id":"s1","action":"read","status":"pending"}]}),
+        );
+        let mut tuning = EngineTuning::default();
+        tuning.run_rail_enabled = false;
+        let msg = tool_pre_gate_block(
+            &spec,
+            "file_read",
+            &json!({ "path": "README.md" }),
+            false,
+            Some(&st),
+            None,
+            None,
+            &tuning,
+        );
+        assert!(msg.is_none());
     }
 
     #[test]

@@ -19,7 +19,8 @@ PLAN-1.4.1       base « 0 » — stabilisation dogfood (P1–P8)
   → PLAN-1.4.1.1   intent probes + English engine
     → PLAN-1.4.1.2a  context diet (réduire bruit injection)
       → PLAN-1.4.1.2   patch rail / clôture / VERIFY
-        → semver 1.4.1.x + 1.4.2 UI
+        → PLAN-1.4.1.3   Context Frame · outils dossiers · plan interne
+          → semver 1.4.1.x + 1.4.2 UI
 ```
 
 | Plan | Focus | Statut (juin 2026) |
@@ -28,6 +29,7 @@ PLAN-1.4.1       base « 0 » — stabilisation dogfood (P1–P8)
 | [PLAN-1.4.1.1](PLAN-1.4.1.1.md) | Intent probe + anglais moteur | **Clôturé** — [CLOSURE](finalisation/CLOSURE-1.4.1.1.md) |
 | [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) | Context diet (B-CTX-02) | **Code livré** — smoke reporté |
 | [PLAN-1.4.1.2](PLAN-1.4.1.2.md) | Rail / clôture / outils | **Code clôturé** — [CLOSURE](finalisation/CLOSURE-1.4.1.2.md) · smokes **debunk** |
+| [PLAN-1.4.1.3](PLAN-1.4.1.3.md) | Context Frame · dossiers outils · plan interne | **Phase 1–2 en cours** |
 | [SMOKE-ses_2e0b2a5e](SMOKE-ses_2e0b2a5e.md) | Analyse dogfood Qwen 2.7B — **pré-patch** | **Documenté** |
 | [SMOKE-ses_4b2c1d08](SMOKE-ses_4b2c1d08.md) | Re-smoke post-1.4.1.2 — **partiel vert** | **Documenté** |
 

@@ -556,6 +556,7 @@ async fn main() -> anyhow::Result<()> {
         permissions: Some(policy),
         context: Some(ContextPolicy::for_model_context_window(num_ctx)),
         transcript,
+        engine_trace: None,
         memory: Some(memory_runtime),
         transcript_session_id: cli.session.clone(),
         workspace_fingerprint,

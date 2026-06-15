@@ -68,6 +68,10 @@ pub struct EngineTuningOverrides {
     pub gate_todo_stale_before_done: Option<bool>,
     /// Active le conducteur run rail (1.4.0) sur les runs architecte edit.
     pub run_rail_enabled: Option<bool>,
+    /// Dossiers d'outils virtuels (1.4.1.3).
+    pub tool_folders_enabled: Option<bool>,
+    /// L2 — nudge après N outils sans MAJ plan interne (0 = désactivé).
+    pub internal_plan_stale_nudge_after_tools: Option<u32>,
 }
 
 /// Paramètres moteur résolus (prompts + gates + limites).
@@ -105,6 +109,10 @@ pub struct EngineTuning {
     pub gate_todo_stale_before_done: bool,
     /// `false` (Phase 0) : run rail documenté mais inactif jusqu'à Phase 1+.
     pub run_rail_enabled: bool,
+    /// Virtual tool folders (1.4.1.3) — collapse wire tools per station.
+    pub tool_folders_enabled: bool,
+    /// L2 internal plan — soft nudge when notebook stale (0 = disabled).
+    pub internal_plan_stale_nudge_after_tools: u32,
 }
 
 /// Alias historique — prompts additifs 1.3.2 phase 3a.
@@ -155,6 +163,8 @@ impl EngineTuning {
                 gate_done_requires_answering: true,
                 gate_todo_stale_before_done: true,
                 run_rail_enabled: false,
+                tool_folders_enabled: false,
+                internal_plan_stale_nudge_after_tools: 8,
             },
             StrictnessPreset::Strict => Self {
                 strictness,
@@ -185,6 +195,8 @@ impl EngineTuning {
                 gate_done_requires_answering: true,
                 gate_todo_stale_before_done: true,
                 run_rail_enabled: false,
+                tool_folders_enabled: false,
+                internal_plan_stale_nudge_after_tools: 5,
             },
             StrictnessPreset::Normal | StrictnessPreset::Custom => Self {
                 strictness,
@@ -215,6 +227,8 @@ impl EngineTuning {
                 gate_done_requires_answering: true,
                 gate_todo_stale_before_done: true,
                 run_rail_enabled: false,
+                tool_folders_enabled: false,
+                internal_plan_stale_nudge_after_tools: 6,
             },
         };
         if strictness == StrictnessPreset::Custom {
@@ -222,6 +236,7 @@ impl EngineTuning {
         }
         if strictness == StrictnessPreset::Normal {
             t.run_rail_enabled = true;
+            t.tool_folders_enabled = true;
         }
         t
     }
@@ -300,6 +315,11 @@ impl EngineTuning {
             o.gate_todo_stale_before_done,
         );
         apply_opt(&mut self.run_rail_enabled, o.run_rail_enabled);
+        apply_opt(&mut self.tool_folders_enabled, o.tool_folders_enabled);
+        apply_opt(
+            &mut self.internal_plan_stale_nudge_after_tools,
+            o.internal_plan_stale_nudge_after_tools,
+        );
     }
 
     pub fn clamp_to_bounds(&mut self) {
@@ -323,6 +343,8 @@ impl EngineTuning {
         self.checkpoint_max_chars = self.checkpoint_max_chars.clamp(500, 10_000);
         self.anchor_user_request_max_chars = self.anchor_user_request_max_chars.clamp(200, 4_000);
         self.anchor_plan_max_items = self.anchor_plan_max_items.clamp(4, 64);
+        self.internal_plan_stale_nudge_after_tools =
+            self.internal_plan_stale_nudge_after_tools.clamp(0, 32);
         self.summarize_tool_result_truncate = self.summarize_tool_result_truncate.clamp(80, 2_000);
         self.reinject_tool_result_truncate = self.reinject_tool_result_truncate.clamp(200, 4_000);
     }

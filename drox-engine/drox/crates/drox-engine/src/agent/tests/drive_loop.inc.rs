@@ -1,6 +1,6 @@
 ﻿#[tokio::test]
 async fn short_run_completes_normally() {
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("ok"),
         done_turn("OK."),
     ]));
@@ -19,7 +19,7 @@ async fn answering_phase_alone_does_not_terminate_loop() {
     // Important : `[phase: answering]` ne termine pas la boucle. Seul
     // `[phase: done]` ferme. Tour 1 : reasoning + answering sans done.
     // Tour 2 : todo obligatoire. Tour 3 : conforme.
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -68,7 +68,7 @@ async fn done_without_answering_promotes_substantial_text_without_second_llm_tur
     let long_analysis = "Voici l'analyse complÃƒÂ¨te du projet avec suffisamment \
         de dÃƒÂ©tails techniques pour dÃƒÂ©passer le seuil de promotion automatique \
         cÃƒÂ´tÃƒÂ© moteur sans second tour LLM ni rÃƒÂ©pÃƒÂ©tition visible pour l'utilisateur.";
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("Analyse demandÃƒÂ©e."),
         premature_done_turn(long_analysis),
     ]));
@@ -100,7 +100,7 @@ async fn done_without_answering_promotes_substantial_text_without_second_llm_tur
 
 #[tokio::test]
 async fn done_without_answering_still_nudges_when_text_too_short() {
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("Analyse demandÃƒÂ©e."),
         premature_done_turn("OK."),
         done_turn(
@@ -136,7 +136,7 @@ async fn done_without_answering_still_nudges_when_text_too_short() {
 #[tokio::test]
 async fn opening_todo_write_without_marker_injects_reading_not_blocked() {
     let tid = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::ToolCall {
@@ -210,7 +210,7 @@ async fn opening_todo_write_without_marker_injects_reading_not_blocked() {
 #[allow(clippy::too_many_lines)]
 #[tokio::test]
 async fn forgotten_done_after_answering_uses_minimal_nudge() {
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         // Tour 1 : reasoning + answering, mais PAS de [phase: done].
         vec![
             StreamEvent::Start,
@@ -280,7 +280,7 @@ async fn forgotten_done_after_answering_uses_minimal_nudge() {
 /// nudge `MISSING_TODO_WRITE_PROMPT`). Voir issue conversationnelle 2026-05-13.
 #[tokio::test]
 async fn done_accepted_for_pure_conversation_without_todo_write() {
-    let llm = Arc::new(ScriptedLlm::new(vec![vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![vec![
         StreamEvent::Start,
         StreamEvent::TextDelta {
             text: "[phase: reading]\nSalutation triviale.\n\
@@ -336,7 +336,7 @@ async fn silent_turn_after_tool_call_still_nudges_to_done() {
     // AprÃƒÂ¨s todo obligatoire : tours muets avec reasoning, puis echo,
     // puis encore muet, puis done.
     let tid_echo = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         read_then_one_todo_turn("DÃƒÂ©marrage."),
         vec![
             StreamEvent::Start,

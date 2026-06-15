@@ -1,4 +1,4 @@
-﻿impl Agent {
+impl Agent {
     /// Préparation d'un tour avant appel LLM. `true` = arrêter `drive_inner`.
     async fn drive_iteration_start(
         &self,
@@ -10,53 +10,17 @@
                 &self.config.engine_tuning,
                 self.config.run_spec.role_id,
             );
-            let rail_station = rail_active.then_some(session.architect_state.rail.station);
-            crate::agent::state::refresh_architect_run_snapshot(
-                &mut session.messages,
-                &crate::orchestration::architect_run_context_block_per_turn(
-                    &session.architect_state,
-                    session.effective_run_objective.as_deref(),
-                    rail_station,
-                ),
+            crate::orchestration::apply_architect_iteration_start(
+                &mut crate::orchestration::ArchitectIterationInput {
+                    messages: &mut session.messages,
+                    architect_state: &mut session.architect_state,
+                    effective_run_objective: session.effective_run_objective.as_deref(),
+                    last_todo_pending: session.last_todo_pending,
+                    last_todo_in_progress: session.last_todo_in_progress,
+                    engine_tuning: &self.config.engine_tuning,
+                    rail_active,
+                },
             );
-            let tool_protocols = if rail_active {
-                crate::tool_supplements_for_station(
-                    &self.config.engine_tuning,
-                    session.architect_state.rail.station,
-                )
-            } else {
-                crate::tool_supplements_all_architect(&self.config.engine_tuning)
-            };
-            crate::agent::state::refresh_tool_protocol_snapshot(
-                &mut session.messages,
-                &tool_protocols,
-            );
-            if rail_active {
-                let open_todos = crate::agent::rail::OpenTodoCounts {
-                    pending: session.last_todo_pending,
-                    in_progress: session.last_todo_in_progress,
-                };
-                crate::agent::rail::on_turn_start(
-                    &mut session.architect_state.rail,
-                    &session.messages,
-                    false,
-                    open_todos,
-                );
-                let rail_focus = session
-                    .architect_state
-                    .current_focus_task_line()
-                    .map(|(id, label, _)| (id, label));
-                let focus = rail_focus
-                    .as_ref()
-                    .map(|(id, label)| (id.as_str(), label.as_str()));
-                crate::agent::rail::refresh_snapshot(
-                    &mut session.messages,
-                    &session.architect_state.rail,
-                    focus,
-                    open_todos,
-                );
-            }
-            crate::agent::state::log_context_turn_metrics(&session.messages);
         }
 
         if self

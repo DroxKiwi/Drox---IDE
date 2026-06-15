@@ -3,9 +3,14 @@
 use super::policy;
 use super::state::RunRailState;
 
+use crate::orchestration::tool_folders::TOOL_INTERNAL_PLAN_WRITE;
+
 /// Block tool when disallowed for the current station. Message is English (engine contract).
 #[must_use]
 pub fn tool_pre_gate_rail(state: &RunRailState, tool_name: &str) -> Option<String> {
+    if tool_name == TOOL_INTERNAL_PLAN_WRITE {
+        return None;
+    }
     if policy::tool_allowed(state.station, tool_name) {
         return None;
     }
@@ -20,6 +25,12 @@ pub fn tool_pre_gate_rail(state: &RunRailState, tool_name: &str) -> Option<Strin
 mod tests {
     use super::*;
     use crate::agent::rail::station::RunStation;
+
+    #[test]
+    fn internal_plan_write_allowed_at_intent() {
+        let state = RunRailState::new();
+        assert!(tool_pre_gate_rail(&state, "internal_plan_write").is_none());
+    }
 
     #[test]
     fn blocks_mutation_in_read() {

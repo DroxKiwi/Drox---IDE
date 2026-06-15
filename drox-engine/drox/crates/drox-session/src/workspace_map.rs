@@ -269,7 +269,17 @@ impl WorkspaceMapStore {
 /// Chemins exclus de la carte (artefacts Drox — pas le projet).
 #[must_use]
 fn is_excluded_from_map_scan(rel: &str) -> bool {
-    rel == ".droxignore" || rel == ".drox" || rel.starts_with(".drox/")
+    rel == ".droxignore"
+        || rel == ".drox"
+        || rel.starts_with(".drox/")
+        || rel == ".git"
+        || rel.starts_with(".git/")
+}
+
+/// Paths omitted from workspace map scan and `workspace_map_read` payloads.
+#[must_use]
+pub fn is_excluded_from_workspace_map(rel: &str) -> bool {
+    is_excluded_from_map_scan(rel)
 }
 
 /// Scan initial : arborescence complète (profondeur illimitée), `.gitignore` + `.droxignore`.
@@ -555,6 +565,8 @@ mod tests {
         assert!(is_excluded_from_map_scan(".droxignore"));
         assert!(is_excluded_from_map_scan(".drox"));
         assert!(is_excluded_from_map_scan(".drox/sessions/foo.json"));
+        assert!(is_excluded_from_map_scan(".git"));
+        assert!(is_excluded_from_map_scan(".git/HEAD"));
         assert!(!is_excluded_from_map_scan("src/main.rs"));
     }
 

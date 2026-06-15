@@ -5,6 +5,8 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
+use drox_session::is_excluded_from_workspace_map;
+
 use crate::context::ToolContext;
 use crate::error::ToolError;
 use crate::tool::Tool;
@@ -26,7 +28,7 @@ impl Tool for WorkspaceMapReadTool {
 
     fn description(&self) -> &str {
         "Read the workspace structure map (`.drox/workspace-map.json`): \
-         full project tree (excludes `.drox/`). Use before a broad `glob` when the system prompt \
+         full project tree (excludes `.drox/` and `.git/`). Use before a broad `glob` when the system prompt \
          mentions a fresh version."
     }
 
@@ -55,11 +57,18 @@ impl Tool for WorkspaceMapReadTool {
         let nodes: Vec<_> = if let Some(ref p) = prefix {
             map.nodes
                 .iter()
-                .filter(|n| n.path == *p || n.path.starts_with(&format!("{p}/")))
+                .filter(|n| {
+                    !is_excluded_from_workspace_map(&n.path)
+                        && (n.path == *p || n.path.starts_with(&format!("{p}/")))
+                })
                 .cloned()
                 .collect()
         } else {
-            map.nodes.clone()
+            map.nodes
+                .iter()
+                .filter(|n| !is_excluded_from_workspace_map(&n.path))
+                .cloned()
+                .collect()
         };
         Ok(json!({
             "version": map.version,

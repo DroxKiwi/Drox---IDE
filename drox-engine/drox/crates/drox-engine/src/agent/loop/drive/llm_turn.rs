@@ -5,17 +5,92 @@
         session: &mut DriveSession,
         tx: &tokio::sync::mpsc::Sender<Result<crate::event::AgentEvent, crate::error::EngineError>>,
     ) -> Option<crate::agent::stream::TurnOutcome> {
+        use crate::agent::has_internal_plan;
+        use crate::agent::state::measure_context_snapshot_bytes;
+        use crate::event::AgentEvent;
+        use crate::orchestration::context_frame::{
+            architect_iteration_start_layer_names, frame_id_for_iteration_start,
+        };
+        use crate::orchestration::tool_folders::{apply_tool_folder_specs, internal_plan_write_spec};
+        use crate::run_spec::RoleId;
+
         let rail_active = crate::agent::rail::run_rail_active(
             &self.config.engine_tuning,
             self.config.run_spec.role_id,
         );
         let mut tour_tool_specs = session.base_tool_specs.clone();
-        if rail_active {
+        if self.config.run_spec.role_id == RoleId::Architect
+            && !has_internal_plan(&session.architect_state)
+        {
+            tour_tool_specs = vec![internal_plan_write_spec()];
+        } else if rail_active {
             tour_tool_specs = crate::agent::rail::filter_tool_specs_for_station(
                 tour_tool_specs,
                 session.architect_state.rail.station,
             );
+            tour_tool_specs = apply_tool_folder_specs(
+                tour_tool_specs,
+                session.architect_state.rail.station,
+                &self.config.engine_tuning,
+                &session.architect_state,
+            );
         }
+
+        let tool_names: Vec<String> = tour_tool_specs.iter().map(|t| t.name.clone()).collect();
+        let (frame_id, layers): (&str, &[&str]) =
+            if self.config.run_spec.role_id == RoleId::Architect {
+                (
+                    frame_id_for_iteration_start().as_str(),
+                    architect_iteration_start_layer_names(),
+                )
+            } else {
+                ("run.iteration_start", &[])
+            };
+        let rail_station = rail_active.then_some(session.architect_state.rail.station);
+        let (architect_bytes, tool_protocol_bytes, rail_bytes) =
+            measure_context_snapshot_bytes(&session.messages);
+        let boot_system_bytes = boot_system_byte_count(&session.messages);
+
+        let internal_plan_summary =
+            if self.config.run_spec.role_id == RoleId::Architect {
+                let (count, in_progress, touch) =
+                    crate::agent::internal_plan_trace_summary(&session.architect_state);
+                Some((count, in_progress, touch))
+            } else {
+                None
+            };
+
+        if let Err(e) = self
+            .trace_llm_turn_prepared(
+                session.llm_iter,
+                &session.messages,
+                &tool_names,
+                frame_id,
+                layers,
+                rail_station,
+                internal_plan_summary,
+            )
+            .await
+        {
+            let _ = tx.send(Err(e)).await;
+            return None;
+        }
+
+        let _ = tx
+            .send(Ok(AgentEvent::LlmTurnPrepared {
+                iter: session.llm_iter,
+                frame_id: frame_id.to_string(),
+                layers_applied: layers.iter().map(|s| (*s).to_string()).collect(),
+                rail_station: rail_station.map(|s| s.as_str().to_string()),
+                tool_names: tool_names.clone(),
+                architect_snapshot_bytes: architect_bytes,
+                tool_protocol_bytes,
+                rail_snapshot_bytes: rail_bytes,
+                boot_system_bytes,
+                messages_count: session.messages.len(),
+            }))
+            .await;
+        session.llm_iter += 1;
 
         let options = self
             .config
@@ -94,6 +169,22 @@
                 let _ = tx
                     .send(Ok(crate::agent::rail::to_agent_event(ev)))
                     .await;
+                if let crate::agent::rail::StationEvent::Enter {
+                    station: crate::agent::rail::RunStation::Act,
+                    ..
+                } = ev
+                {
+                    if let Some(plan) = session.architect_state.internal_plan.as_ref() {
+                        if !crate::agent::has_in_progress_step(plan) {
+                            crate::orchestration::append_gate_nudge(
+                                &mut session.messages,
+                                crate::orchestration::NudgeId::InternalPlanActFocus,
+                                crate::agent::nudges::act_without_plan_focus_nudge()
+                                    .to_string(),
+                            );
+                        }
+                    }
+                }
             }
             if rail_turn.action == crate::agent::rail::AfterAssistantAction::PauseForUser
                 && outcome.tool_calls.is_empty()

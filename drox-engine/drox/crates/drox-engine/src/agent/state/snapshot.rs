@@ -108,7 +108,11 @@ pub fn measure_context_snapshot_bytes(messages: &[Message]) -> (usize, usize, us
 }
 
 /// Per-turn context diet metrics (filter `drox.context` in logs).
-pub fn log_context_turn_metrics(messages: &[Message]) {
+pub fn log_context_turn_metrics(
+    messages: &[Message],
+    frame_id: &str,
+    layers_applied: &[&str],
+) {
     let (architect_bytes, tool_protocol_bytes, rail_bytes) =
         measure_context_snapshot_bytes(messages);
     tracing::info!(
@@ -117,6 +121,8 @@ pub fn log_context_turn_metrics(messages: &[Message]) {
         tool_protocol_snapshot_bytes = tool_protocol_bytes,
         rail_snapshot_bytes = rail_bytes,
         messages_count = messages.len(),
+        frame_id = frame_id,
+        layers_applied = ?layers_applied,
         "context_turn_metrics"
     );
 }

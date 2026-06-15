@@ -225,6 +225,28 @@ pub enum AgentEvent {
         summary: Option<String>,
         paths_touched: Vec<String>,
     },
+    /// Orchestration — résolution discuss/edit après intent probe (dev trace + UI).
+    RunRouting {
+        architect_gate: String,
+        start_run: String,
+        greeting_only: bool,
+        expects_workspace_mutation: bool,
+        intent_source: String,
+    },
+    /// Context Frame — résumé juste avant appel LLM (détail dans `*.engine-trace.jsonl`).
+    LlmTurnPrepared {
+        iter: u32,
+        frame_id: String,
+        layers_applied: Vec<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        rail_station: Option<String>,
+        tool_names: Vec<String>,
+        architect_snapshot_bytes: usize,
+        tool_protocol_bytes: usize,
+        rail_snapshot_bytes: usize,
+        boot_system_bytes: usize,
+        messages_count: usize,
+    },
 }
 
 impl AgentEvent {

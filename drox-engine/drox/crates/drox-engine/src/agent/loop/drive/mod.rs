@@ -8,6 +8,8 @@ pub(super) struct DriveSession {
     pub memory_tracker: MemoryTracker,
     pub messages: Vec<Message>,
     pub transcript_cursor: usize,
+    /// Index du tour LLM courant (engine-trace).
+    pub llm_iter: u32,
     pub seen_answering_in_run: bool,
     pub saw_successful_todo_write_in_run: bool,
     pub last_todo_pending: u64,

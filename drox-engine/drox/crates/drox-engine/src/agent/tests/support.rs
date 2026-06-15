@@ -5,7 +5,7 @@ use drox_tools::{Tool, ToolContext};
 use drox_types::{Message, StopReason, StreamEvent, ToolUseId, Usage};
 use futures::stream;
 use futures::StreamExt;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 
 use crate::memory::MemoryRuntime;
@@ -24,6 +24,45 @@ pub(crate) fn test_agent_config_with_rail() -> AgentConfig {
     config
 }
 
+/// Payload minimal valide pour `internal_plan_write` (gate obligatoire architecte).
+pub(crate) fn test_internal_plan_payload() -> Value {
+    json!({
+        "steps": [{
+            "id": "s1",
+            "action": "Executer le scenario de test",
+            "paths": ["."],
+            "done_when": "objectif atteint",
+            "status": "in_progress"
+        }]
+    })
+}
+
+/// Premier tour architecte : plan interne obligatoire avant tout autre outil.
+pub(crate) fn internal_plan_turn() -> Vec<StreamEvent> {
+    let tid = ToolUseId::new();
+    vec![
+        StreamEvent::Start,
+        StreamEvent::TextDelta {
+            text: "[phase: reading]\nPlan interne.\n".into(),
+        },
+        StreamEvent::ToolCall {
+            id: tid,
+            name: "internal_plan_write".into(),
+            arguments: test_internal_plan_payload(),
+        },
+        StreamEvent::Stop {
+            reason: StopReason::ToolUse,
+            usage: Usage::default(),
+        },
+    ]
+}
+
+/// Prefixe chaque run architecte de tests avec le tour `internal_plan_write` obligatoire.
+pub(crate) fn architect_scripts(mut scripts: Vec<Vec<StreamEvent>>) -> Vec<Vec<StreamEvent>> {
+    scripts.insert(0, internal_plan_turn());
+    scripts
+}
+
 /// Client LLM en mÃ©moire : retourne des scripts d'Ã©vÃ©nements prÃ©-dÃ©finis,
 /// un par appel `stream_chat`.
 pub(crate) struct ScriptedLlm {
@@ -35,6 +74,11 @@ impl ScriptedLlm {
         Self {
             scripts: Mutex::new(scripts),
         }
+    }
+
+    /// Run architecte : préfixe automatiquement le plan interne obligatoire.
+    pub(crate) fn new_architect(scripts: Vec<Vec<StreamEvent>>) -> Self {
+        Self::new(architect_scripts(scripts))
     }
 }
 

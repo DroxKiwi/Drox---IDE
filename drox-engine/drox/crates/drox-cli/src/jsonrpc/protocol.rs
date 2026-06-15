@@ -7,7 +7,7 @@
 use std::collections::BTreeMap;
 
 use camino::Utf8PathBuf;
-use drox_engine::{AgentEvent, SessionUiStats};
+use drox_engine::{AgentEvent, EngineTraceRecord, SessionUiStats};
 use drox_types::Message;
 use serde::{Deserialize, Serialize};
 
@@ -264,6 +264,9 @@ pub struct SessionReadResult {
     /// Derniers compteurs barre de statut (persistés à côté du `.jsonl`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ui_stats: Option<SessionUiStats>,
+    /// Trace moteur (`*.engine-trace.jsonl`) — injection system / routing / tools.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub engine_trace: Vec<EngineTraceRecord>,
 }
 
 /// `session.compact` — tour LLM de compaction sur le transcript d'une session

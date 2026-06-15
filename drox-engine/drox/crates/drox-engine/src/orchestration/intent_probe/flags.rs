@@ -21,6 +21,18 @@ pub struct RunIntentFlags {
     pub source: ProbeSource,
 }
 
+impl ProbeSource {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Llm => "llm",
+            Self::RpcEditDefault => "rpc_edit_default",
+            Self::RpcAnalyzeDefault => "rpc_analyze_default",
+            Self::FallbackDefault => "fallback_default",
+        }
+    }
+}
+
 impl RunIntentFlags {
     #[must_use]
     pub const fn with_source(mut self, source: ProbeSource) -> Self {

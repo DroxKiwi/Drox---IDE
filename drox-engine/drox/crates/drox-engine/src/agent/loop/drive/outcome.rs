@@ -26,7 +26,7 @@ impl Agent {
             &outcome.text,
         ) {
             debug!("[phase: done] mutation attendue mais aucun outil mutateur — nudge");
-            messages.push(Message::system(prompt));
+            append_gate_nudge(messages, NudgeId::DoneMissingMutation, prompt);
             if rail::run_rail_active(&self.config.engine_tuning, self.config.run_spec.role_id) {
                 rail::force_act_for_expected_mutation(&mut architect_state.rail);
                 let open_todos = rail::OpenTodoCounts {
@@ -69,6 +69,22 @@ impl Agent {
         mutation_expected: bool,
         mutation_count: u32,
     ) -> PostLlmStep {
+            if self.config.run_spec.role_id == crate::run_spec::RoleId::Architect
+                && outcome.final_phase == Some(Phase::Answering)
+                && !*seen_answering_in_run
+                && crate::agent::has_internal_plan(architect_state)
+            {
+                let touch = architect_state
+                    .internal_plan
+                    .as_ref()
+                    .map(|p| p.meta.tools_since_touch)
+                    .unwrap_or(0);
+                append_gate_nudge(
+                    messages,
+                    NudgeId::InternalPlanPreAnswering,
+                    crate::agent::nudges::pre_answering_plan_nudge(touch),
+                );
+            }
             if outcome.final_phase == Some(Phase::Done) {
                 if !*seen_answering_in_run {
                     if run_has_promotable_user_facing_text(
@@ -107,7 +123,7 @@ impl Agent {
                         done_gate_missing_answering(&self.config.run_spec)
                     {
                         debug!("[phase: done] prÃƒÂ©maturÃƒÂ© (answering absent) Ã¢â‚¬â€ nudge");
-                        messages.push(Message::system(prompt));
+                        append_gate_nudge(messages, NudgeId::DoneMissingAnswering, prompt);
                         if let Err(e) = self
                             .flush_transcript(&messages, transcript_cursor)
                             .await
@@ -128,7 +144,7 @@ impl Agent {
                         last_todo_in_progress,
                         "[phase: done] avec to-do ouverte Ã¢â‚¬â€ nudge"
                     );
-                    messages.push(Message::system(prompt));
+                    append_gate_nudge(messages, NudgeId::DoneUnfinishedTodos, prompt);
                     if rail::run_rail_active(
                         &self.config.engine_tuning,
                         self.config.run_spec.role_id,
@@ -172,7 +188,7 @@ impl Agent {
                         architect_state.rail.verify_outcome.passed(),
                     ) {
                         debug!("[phase: done] verify not passed — nudge");
-                        messages.push(Message::system(prompt));
+                        append_gate_nudge(messages, NudgeId::DoneVerifyNotPassed, prompt);
                         rail::force_act_for_expected_mutation(&mut architect_state.rail);
                         let open_todos = rail::OpenTodoCounts {
                             pending: last_todo_pending,
@@ -266,6 +282,65 @@ impl Agent {
                         .await;
                     return PostLlmStep::Stop;
                 }
+                if self.config.run_spec.role_id == RoleId::Architect
+                    && rail::run_rail_active(
+                        &self.config.engine_tuning,
+                        self.config.run_spec.role_id,
+                    )
+                    && !*seen_answering_in_run
+                    && last_todo_pending == 0
+                    && last_todo_in_progress == 0
+                    && mutation_count > 0
+                    && outcome.final_phase.is_none()
+                    && run_has_promotable_user_facing_text(
+                        &outcome,
+                        &messages,
+                        self.config.run_spec.role_id,
+                        &self.config.engine_tuning,
+                    )
+                {
+                    final_answer_guard.mark_user_facing_answer_seen();
+                    debug!(
+                        "architect rail — réponse utilisateur déjà dans le canal content, \
+                         promotion answering/done sans second tour LLM"
+                    );
+                    let _ = tx.send(Ok(AgentEvent::PhaseClose)).await;
+                    if tx
+                        .send(Ok(AgentEvent::PhaseEnter {
+                            phase: Phase::Answering,
+                        }))
+                        .await
+                        .is_err()
+                    {
+                        return PostLlmStep::Stop;
+                    }
+                    *seen_answering_in_run = true;
+                    let _ = tx.send(Ok(AgentEvent::PhaseClose)).await;
+                    if tx
+                        .send(Ok(AgentEvent::PhaseEnter {
+                            phase: Phase::Done,
+                        }))
+                        .await
+                        .is_err()
+                    {
+                        return PostLlmStep::Stop;
+                    }
+                    messages.push(Message::assistant("[phase: answering]\n[phase: done]"));
+                    if let Err(e) = self
+                        .flush_transcript(&messages, transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return PostLlmStep::Stop;
+                    }
+                    let _ = tx
+                        .send(Ok(AgentEvent::Stop {
+                            reason: outcome.reason,
+                            usage: outcome.usage.clone(),
+                        }))
+                        .await;
+                    return PostLlmStep::Stop;
+                }
                 // Cas typique GLM-4.7-Flash : le modÃƒÂ¨le a dÃƒÂ©jÃƒÂ  ÃƒÂ©mis sa
                 // rÃƒÂ©ponse en `answering` mais a omis le `[phase: done]`
                 // final. Le nudge gÃƒÂ©nÃƒÂ©rique le fait rÃƒÂ©-ÃƒÂ©crire toute la
@@ -328,9 +403,11 @@ impl Agent {
                         return PostLlmStep::Stop;
                     }
                     debug!("answering sans done + todo clÃƒÂ´turÃƒÂ©e Ã¢â‚¬â€ nudge minimal (done seul)");
-                    messages.push(Message::system(done_only_nudge_prompt(
-                        &self.config.run_spec,
-                    )));
+                    append_gate_nudge(
+                        messages,
+                        NudgeId::DoneOnlyMarker,
+                        done_only_nudge_prompt(&self.config.run_spec),
+                    );
                     if let Err(e) = self
                         .flush_transcript(&messages, transcript_cursor)
                         .await
@@ -358,7 +435,11 @@ impl Agent {
                             mutation_count,
                         ) {
                             debug!("[run_rail] post-todos idle — nudge answering");
-                            messages.push(Message::system(nudge.to_string()));
+                            append_gate_nudge(
+                                messages,
+                                NudgeId::PostTodosAnswering,
+                                nudge.to_string(),
+                            );
                             let rail_focus = architect_state
                                 .current_focus_task_line()
                                 .map(|(id, label, _)| (id, label));
@@ -391,7 +472,7 @@ impl Agent {
                         rail::on_act_idle_turn(&mut architect_state.rail, has_open_task)
                     {
                         debug!("[run_rail] ACT stall — nudge mutation");
-                        messages.push(Message::system(nudge.to_string()));
+                        append_gate_nudge(messages, NudgeId::ActStall, nudge.to_string());
                         let rail_focus = architect_state
                             .current_focus_task_line()
                             .map(|(id, label, _)| (id, label));
@@ -419,10 +500,14 @@ impl Agent {
                 }
 
                 debug!("tour sans tool_call et sans [phase: done] — schema_error continue");
-                messages.push(Message::system(schema_error_continue_nudge(
-                    &self.config.run_spec,
-                    self.config.run_intent.as_ref(),
-                )));
+                append_gate_nudge(
+                    messages,
+                    NudgeId::SchemaErrorContinue,
+                    schema_error_continue_nudge(
+                        &self.config.run_spec,
+                        self.config.run_intent.as_ref(),
+                    ),
+                );
                 if let Err(e) = self
                     .flush_transcript(&messages, transcript_cursor)
                     .await

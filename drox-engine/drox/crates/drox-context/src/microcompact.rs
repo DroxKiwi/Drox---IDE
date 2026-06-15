@@ -17,6 +17,7 @@ const COMPACTABLE_TOOLS: &[&str] = &[
     "bash",
     "grep",
     "glob",
+    "workspace_map_read",
     "web_search",
     "web_fetch",
     "file_edit",

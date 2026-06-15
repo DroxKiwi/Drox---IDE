@@ -2,7 +2,7 @@
 async fn tool_call_triggers_execute_and_second_turn() {
     let tid_todo = ToolUseId::new();
     let tid_echo = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -73,7 +73,7 @@ async fn tool_call_triggers_execute_and_second_turn() {
 async fn unknown_tool_yields_is_error_finish() {
     let tid_todo = ToolUseId::new();
     let tid_bad = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -140,7 +140,7 @@ async fn permission_deny_skips_execution() {
 
     let tid_todo = ToolUseId::new();
     let tid_echo = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -216,7 +216,7 @@ async fn permission_deny_skips_execution() {
 async fn todo_extension_with_kept_ids_is_allowed_even_when_previous_was_completed() {
     let tu1 = ToolUseId::new();
     let tu2 = ToolUseId::new();
-    let llm = Arc::new(ScriptedLlm::new(vec![
+    let llm = Arc::new(ScriptedLlm::new_architect(vec![
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
