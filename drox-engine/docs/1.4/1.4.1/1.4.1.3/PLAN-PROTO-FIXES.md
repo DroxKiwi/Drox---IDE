@@ -1,9 +1,9 @@
 # Plan de suivi — Correctifs protocole outil (Phase F)
 
 **Version** : juin 2026 — branche `1.4.1` · chantier **1.4.1.3**  
-**Statut** : **ouvert** — spec validée · code **non démarré**  
+**Statut** : **clôturé** — F1–F3 + F4 (tool folders) livrés · Phase E smoke [`ses_733093c6`](../SMOKE-ses_733093c6.md) vert  
 **Parent** : [INTEGRATION-internal-plan.md](INTEGRATION-internal-plan.md) · [PLAN.md](PLAN.md)  
-**Déclencheur** : smoke [`ses_7d5db0f1`](../SMOKE-ses_7d5db0f1.md) (Qwen 27B · build `1.4.0.340742`)
+**Déclencheur initial** : smoke [`ses_7d5db0f1`](../SMOKE-ses_7d5db0f1.md) · **re-smoke post-fix** : [`ses_3948a285`](../SMOKE-ses_3948a285.md) → [`ses_733093c6`](../SMOKE-ses_733093c6.md)
 
 > Objectif : éliminer la **boucle fantôme** `[tool_use]` en texte (~39 tours, ~25k tokens gaspillés) et les **nudges trompeurs** associés, puis valider la clôture **1.4.1.3** (Phase E) sur un dogfood `site-kdds` reproductible.
 
@@ -20,9 +20,9 @@ Après livraison du plan interne L2 (Phases A–C), corriger la **friction proto
 ```text
 Phases A–C (L2 internal_plan)     ☑ livré
         ↓
-Phase F (ce plan)                 ☐ protocole outil + UX + observabilité
+Phase F (ce plan)                 ☑ protocole + F4 folders
         ↓
-Phase E (closure)                 ☐ smoke + CLOSURE-1.4.1.3.md
+Phase E (closure)                 ☑ smoke ses_733093c6 + CLOSURE-1.4.1.3.md
         ↓
 Phase D (session work log)        ☐ hors chemin critique clôture
 ```
@@ -32,8 +32,8 @@ Phase D (session work log)        ☐ hors chemin critique clôture
 | **A** | Gate `internal_plan_write` obligatoire | ☑ |
 | **B** | Nudges L2, merge, meta, touch | ☑ |
 | **C** | Export transcript + engine trace L2 | ☑ |
-| **F** | Correctifs protocole (ce document) | ☐ |
-| **E** | Smoke dogfood + doc closure | ☐ |
+| **F** | Correctifs protocole (ce document) + F4 tool folders | ☑ |
+| **E** | Smoke dogfood + doc closure | ☑ |
 | **D** | Journal session inter-runs | ☐ (P2) |
 
 ---
@@ -74,8 +74,9 @@ Phase D (session work log)        ☐ hors chemin critique clôture
 | PR | ID plan | Scope | Fichiers principaux | Statut |
 |----|---------|-------|---------------------|--------|
 | **PR-F1** | F1 | Nudges protocole + circuit breaker + boot | `nudges/`, `outcome.rs`, `state/fields.rs`, `01_core_rail_solo.md` | ☑ |
-| **PR-F2** | F2 | UX phase / answering prématuré | `stream/consume.rs`, `outcome.rs` | ☐ |
-| **PR-F3** | F3 | Observabilité export + trace | `droxTranscriptExport.ts`, `engine_trace.rs` | ☐ |
+| **PR-F2** | F2 | UX phase / answering prématuré | `stream/consume.rs`, `outcome.rs` | ☑ |
+| **PR-F3** | F3 | Observabilité export + trace | `droxTranscriptExport.ts`, `engine_trace.rs` | ☑ |
+| **PR-F4** | F4 | Tool folders × rail (post `ses_3948a285`) | `rail/policy.rs`, `pre_gate.rs`, `01_core_rail_solo.md` | ☑ |
 
 ---
 
@@ -263,29 +264,44 @@ Never emit [tool_use]name</tool_use> in assistant text.
 
 ---
 
+## Phase F4 — Tool folders × rail (post `ses_3948a285`)
+
+**Objectif** : débloquer `read_workspace` / `edit_file describe` et aligner rail + hints avec les wire tools repliés.
+
+| Tâche | Détail | Statut |
+|-------|--------|--------|
+| `virtual_folder_allowed` + `minimum_station_for_virtual_folder` | `policy.rs` | ☑ |
+| `tool_allowed(Act)` inclut `edit_file` folder | fin deadlock mutation | ☑ |
+| `read_workspace` aligne INTENT→READ (pas ACT) | via `minimum_station_for_tool` | ☑ |
+| Boot prompt `01_core_rail_solo.md` | discipline par station + folders | ☑ |
+| Tests régression | `policy`, `pre_gate`, `tool_folders` | ☑ |
+| Doc smoke | [SMOKE-ses_3948a285.md](../SMOKE-ses_3948a285.md) · re-smoke [ses_733093c6](../SMOKE-ses_733093c6.md) | ☑ |
+
+---
+
 ## Phase E — Closure 1.4.1.3 (après F)
 
 **Objectif** : documenter la clôture chantier L2 + protocole sur preuve dogfood.
 
 | Tâche | Détail | Statut |
 |-------|--------|--------|
-| Re-smoke `site-kdds` | Brief SVG Framer Motion · build courant | ☐ |
-| Nouveau `SMOKE-ses_<id>.md` | Avant/après vs `ses_7d5db0f1` | ☐ |
-| `finalisation/CLOSURE-1.4.1.3.md` | Livrables A–F + métriques | ☐ |
-| Checkboxes `INTEGRATION-internal-plan.md` § closure | Remplir | ☐ |
-| `MATRIX-ACTUAL.md` | Nudges F1/F2 | ☐ |
+| Re-smoke `site-kdds` | SVG simplifié · build courant | ☑ [`ses_733093c6`](../SMOKE-ses_733093c6.md) |
+| `SMOKE-ses_733093c6.md` | Avant/après vs `ses_3948a285` / `ses_7d5db0f1` | ☑ |
+| `finalisation/CLOSURE-1.4.1.3.md` | Livrables A–F + métriques | ☑ |
+| Checkboxes `INTEGRATION-internal-plan.md` § closure | Remplir | ☑ |
+| `MATRIX-ACTUAL.md` | Nudges F1/F2 | ⏳ (optionnel) |
 
 ### Critères de clôture globaux (R1–R7)
 
-| ID | Critère | Seuil | Smoke `7d5db0f1` | Cible post-F |
-|----|---------|-------|------------------|--------------|
-| **R1** | 1er `tool_call` structuré | ≤ **3** tours LLM | ❌ (tour ~40) | ☐ |
-| **R2** | Texte `[tool_use]` persistant | **0** | ❌ (~38) | ☐ |
-| **R3** | Thinking « cannot read / simulation » après T5 | **0** | ❌ | ☐ |
-| **R4** | `internal_plan_write` avant autre outil | obligatoire | ⏭️ build ancien | ☐ |
-| **R5** | Tokens `in` | < **25 000** | ❌ (~51k) | ☐ |
-| **R6** | `phase: done` + mutation vérifiée | oui | ✅ | ☐ |
-| **R7** | Export archivé A+B+C | oui | ⚠️ tronqué | ☐ |
+| ID | Critère | Seuil | Smoke `7d5db0f1` | `ses_733093c6` |
+|----|---------|-------|------------------|----------------|
+| **R1** | 1er `tool_call` structuré | ≤ **3** tours LLM | ❌ (tour ~40) | ✅ (index 6) |
+| **R2** | Texte `[tool_use]` persistant | **0** | ❌ (~38) | ✅ (streak 0) |
+| **R3** | Thinking « cannot read / simulation » après T5 | **0** | ❌ | ✅ |
+| **R4** | `internal_plan_write` avant autre outil | obligatoire | ⏭️ build ancien | ✅ |
+| **R5** | Tokens `in` | < **25 000** | ❌ (~51k) | ⚠️ **25 760** |
+| **R6** | `phase: done` + mutation vérifiée | oui | ✅ | ✅ |
+| **R7** | Export archivé A+B+C | oui | ⚠️ tronqué | ✅ |
 
 **Référence baseline tokens** : `ses_4b2c1d08` — 25 622 in (post-1.4.1.2, même friction protocole early-run).
 
@@ -331,12 +347,13 @@ Semaine 2
 | F1.3 schema_error conditionnel | — | — | ☑ | — | ☑ |
 | F1.4 Circuit breaker | — | — | ☑ | — | ☑ |
 | F1.5 Boot protocole | — | — | — | — | ☑ |
-| Gate G-F1 | — | — | ☑ | ☐ | ☐ |
-| F2.1 Thinking strip | — | — | ☐ | — | ☐ |
-| F2.2 Answering gate | — | — | ☐ | — | ☐ |
-| Gate G-F2 | — | — | ☐ | ☐ | ☐ |
-| F3 Export + trace | — | — | ☐ | — | ☐ |
-| Phase E closure | — | — | — | ☐ | ☐ |
+| Gate G-F1 | — | — | ☑ | ☑ | ☑ |
+| F2.1 Thinking strip | — | — | ☑ | — | ☑ |
+| F2.2 Answering gate | — | — | ☑ | — | ☑ |
+| Gate G-F2 | — | — | ☑ | ☑ | ☑ |
+| F3 Export + trace | — | — | ☑ | — | ☑ |
+| F4 Tool folders × rail | — | — | ☑ | ☑ | ☑ |
+| Phase E closure | — | — | — | ☑ | ☑ |
 
 *Mettre à jour les colonnes PR / Owner lors de l’ouverture des branches.*
 
@@ -358,6 +375,8 @@ Semaine 2
 | Document | Rôle |
 |----------|------|
 | [SMOKE-ses_7d5db0f1.md](../SMOKE-ses_7d5db0f1.md) | Analyse détaillée · preuves |
+| [SMOKE-ses_3948a285.md](../SMOKE-ses_3948a285.md) | Deadlock tool folders (pré-fix) |
+| [SMOKE-ses_733093c6.md](../SMOKE-ses_733093c6.md) | Phase E vert (~3 min) |
 | [SMOKE-ses_4b2c1d08.md](../SMOKE-ses_4b2c1d08.md) | Même symptôme · baseline tokens |
 | [INTEGRATION-internal-plan.md](INTEGRATION-internal-plan.md) | Phases A–E L2 |
 | `agent/nudges/schema_error.rs` | Nudge actuel à faire évoluer |
@@ -366,4 +385,4 @@ Semaine 2
 
 ---
 
-*Dernière mise à jour : juin 2026 — création plan Phase F post-analyse `ses_7d5db0f1`.*
+*Dernière mise à jour : juin 2026 — clôture Phase E smoke `ses_733093c6`.*

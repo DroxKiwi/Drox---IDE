@@ -2,6 +2,10 @@
 
 use drox_llm::ToolSpec;
 
+use crate::orchestration::tool_folders::{
+    FOLDER_EDIT_FILE, FOLDER_READ_WORKSPACE, FOLDER_VERIFY_PROJECT,
+};
+
 use super::station::RunStation;
 
 const READ_TOOLS: &[&str] = &[
@@ -39,9 +43,36 @@ const MUTATION_TOOLS: &[&str] = &[
     "git_worktree_exit",
 ];
 
+/// Virtual tool-folder surface → station (must match [`virtual_folder_allowed`]).
+#[must_use]
+pub fn minimum_station_for_virtual_folder(tool_name: &str) -> Option<RunStation> {
+    match tool_name {
+        FOLDER_READ_WORKSPACE => Some(RunStation::Read),
+        FOLDER_EDIT_FILE => Some(RunStation::Act),
+        FOLDER_VERIFY_PROJECT => Some(RunStation::Verify),
+        _ => None,
+    }
+}
+
+/// Whether a collapsed virtual folder may run at `station` (describe / expand).
+#[must_use]
+pub fn virtual_folder_allowed(station: RunStation, tool_name: &str) -> bool {
+    match tool_name {
+        FOLDER_READ_WORKSPACE => {
+            matches!(station, RunStation::Intent | RunStation::Read)
+        }
+        FOLDER_EDIT_FILE => station == RunStation::Act,
+        FOLDER_VERIFY_PROJECT => station == RunStation::Verify,
+        _ => false,
+    }
+}
+
 /// Minimum station on the linear rail that allows `tool_name` (auto-advance C12).
 #[must_use]
 pub fn minimum_station_for_tool(tool_name: &str) -> RunStation {
+    if let Some(st) = minimum_station_for_virtual_folder(tool_name) {
+        return st;
+    }
     if tool_name == crate::orchestration::tool_folders::TOOL_INTERNAL_PLAN_WRITE {
         return RunStation::Intent;
     }
@@ -84,8 +115,9 @@ pub fn station_action_hint(station: RunStation) -> &'static str {
         RunStation::Propose => "Propose the approach; wait for the user if depth is complex.",
         RunStation::Plan => "Plan with todo_write; read tools are allowed to refine the plan.",
         RunStation::Act => {
-            "Mutate files with file_edit, file_write, notebook_edit, or delete_path. \
-             Update statuses with `todo_write` when a task is done."
+            "Mutate files: if `file_edit`/`file_write` are folded, call `edit_file` \
+             with {\"action\":\"describe\"} once, then use the unlocked wire tools; \
+             or use notebook_edit / delete_path. Update statuses with `todo_write` when done."
         }
         RunStation::Verify => {
             "Verify with bash or lsp. Update todo statuses with `todo_write` when closing tasks. \
@@ -106,17 +138,26 @@ pub fn tool_allowed(station: RunStation, tool_name: &str) -> bool {
         return true;
     }
     match station {
-        RunStation::Intent | RunStation::Propose => false,
+        RunStation::Intent => {
+            tool_name == crate::orchestration::tool_folders::TOOL_INTERNAL_PLAN_WRITE
+                || virtual_folder_allowed(station, tool_name)
+        }
+        RunStation::Propose => false,
         RunStation::Answer => tool_name == "todo_write",
-        RunStation::Read => READ_TOOLS.contains(&tool_name),
+        RunStation::Read => {
+            READ_TOOLS.contains(&tool_name) || virtual_folder_allowed(station, tool_name)
+        }
         RunStation::Plan => PLAN_TOOLS.contains(&tool_name) || READ_TOOLS.contains(&tool_name),
         RunStation::Act => {
             MUTATION_TOOLS.contains(&tool_name)
                 || READ_TOOLS.contains(&tool_name)
                 || tool_name == "todo_write"
+                || virtual_folder_allowed(station, tool_name)
         }
         RunStation::Verify => {
-            VERIFY_TOOLS.contains(&tool_name) || tool_name == "todo_write"
+            VERIFY_TOOLS.contains(&tool_name)
+                || tool_name == "todo_write"
+                || virtual_folder_allowed(station, tool_name)
         }
     }
 }
@@ -124,6 +165,8 @@ pub fn tool_allowed(station: RunStation, tool_name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent::rail::state::RunRailState;
+    use crate::agent::rail::station::RunStation;
 
     #[test]
     fn read_station_blocks_file_edit() {
@@ -184,5 +227,36 @@ mod tests {
         assert_eq!(minimum_station_for_tool("todo_write"), RunStation::Plan);
         assert_eq!(minimum_station_for_tool("file_edit"), RunStation::Act);
         assert_eq!(minimum_station_for_tool("bash"), RunStation::Verify);
+        assert_eq!(minimum_station_for_tool(FOLDER_READ_WORKSPACE), RunStation::Read);
+        assert_eq!(minimum_station_for_tool(FOLDER_EDIT_FILE), RunStation::Act);
+        assert_eq!(minimum_station_for_tool(FOLDER_VERIFY_PROJECT), RunStation::Verify);
+    }
+
+    #[test]
+    fn virtual_folder_edit_file_allowed_at_act() {
+        assert!(virtual_folder_allowed(RunStation::Act, FOLDER_EDIT_FILE));
+        assert!(tool_allowed(RunStation::Act, FOLDER_EDIT_FILE));
+        assert!(!tool_allowed(RunStation::Read, FOLDER_EDIT_FILE));
+    }
+
+    #[test]
+    fn virtual_folder_read_workspace_allowed_at_intent_and_read() {
+        assert!(virtual_folder_allowed(RunStation::Intent, FOLDER_READ_WORKSPACE));
+        assert!(virtual_folder_allowed(RunStation::Read, FOLDER_READ_WORKSPACE));
+        assert!(tool_allowed(RunStation::Intent, FOLDER_READ_WORKSPACE));
+        assert!(!tool_allowed(RunStation::Act, FOLDER_READ_WORKSPACE));
+    }
+
+    #[test]
+    fn align_read_workspace_from_intent_targets_read_not_act() {
+        use super::super::infer::align_station_from_tools;
+        use super::super::transition::OpenTodoCounts;
+        let mut state = RunRailState::new();
+        align_station_from_tools(
+            &mut state,
+            &[FOLDER_READ_WORKSPACE],
+            OpenTodoCounts::default(),
+        );
+        assert_eq!(state.station, RunStation::Read);
     }
 }

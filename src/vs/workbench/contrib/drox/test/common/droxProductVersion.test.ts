@@ -7,6 +7,7 @@ import assert from 'assert';
 import {
 	formatDroxChatVersionLabel,
 	formatDroxChatVersionTitle,
+	formatDroxDevBuildEpoch,
 	getDroxEngineDevBuildFromProduct,
 	resolveDroxEngineDevBuild,
 } from '../../common/droxProductVersion.js';
@@ -14,15 +15,15 @@ import {
 suite('droxProductVersion', () => {
 	test('formatDroxChatVersionLabel prefers compiled engine build', () => {
 		assert.strictEqual(
-			formatDroxChatVersionLabel({ droxVersion: '1.3.2', version: '1.122.0', droxEngineDevBuild: 27 }, 482901),
-			'1.3.2.482901',
+			formatDroxChatVersionLabel({ droxVersion: '1.3.2', version: '1.122.0', droxEngineDevBuild: 27 }, 1_749_984_769),
+			'1.3.2.1749984769',
 		);
 	});
 
-	test('formatDroxChatVersionLabel falls back to package.json', () => {
+	test('formatDroxChatVersionLabel does not fall back to package.json on dev surface', () => {
 		assert.strictEqual(
 			formatDroxChatVersionLabel({ droxVersion: '1.3.2', version: '1.122.0', droxEngineDevBuild: 27 }),
-			'1.3.2.27',
+			'1.3.2',
 		);
 	});
 
@@ -35,7 +36,7 @@ suite('droxProductVersion', () => {
 
 	test('formatDroxChatVersionLabel release surface ignores engine build', () => {
 		assert.strictEqual(
-			formatDroxChatVersionLabel({ droxVersion: '1.4.0', version: '1.122.0', droxSurface: 'release', droxEngineDevBuild: 27 }, 482901),
+			formatDroxChatVersionLabel({ droxVersion: '1.4.0', version: '1.122.0', droxSurface: 'release', droxEngineDevBuild: 27 }, 1_749_984_769),
 			'1.4.0',
 		);
 	});
@@ -47,12 +48,21 @@ suite('droxProductVersion', () => {
 
 	test('resolveDroxEngineDevBuild prefers engine', () => {
 		assert.strictEqual(resolveDroxEngineDevBuild({ droxEngineDevBuild: 27 }, 99), 99);
-		assert.strictEqual(resolveDroxEngineDevBuild({ droxEngineDevBuild: 27 }), 27);
+		assert.strictEqual(resolveDroxEngineDevBuild({ droxVersion: '1.3.2', droxSurface: 'release', droxEngineDevBuild: 27 }), 27);
+		assert.strictEqual(resolveDroxEngineDevBuild({ droxEngineDevBuild: 27 }), undefined);
 	});
 
-	test('formatDroxChatVersionTitle mentions rust stamp when from engine', () => {
-		const t = formatDroxChatVersionTitle({ droxVersion: '1.3.2', version: '1.122.0' }, 482901);
-		assert.ok(t.includes('482901'));
+	test('formatDroxDevBuildEpoch formats unix seconds', () => {
+		assert.strictEqual(formatDroxDevBuildEpoch(1_749_984_769), '2025-06-15T10:52:49.000Z');
+	});
+
+	test('formatDroxChatVersionTitle mentions git and executable when from engine', () => {
+		const t = formatDroxChatVersionTitle(
+			{ droxVersion: '1.3.2', version: '1.122.0' },
+			{ devBuild: 1_749_984_769, gitSha: 'd0beafd', executablePath: 'C:\\drox\\target\\debug\\drox.exe' },
+		);
+		assert.ok(t.includes('1749984769'));
+		assert.ok(t.includes('d0beafd'));
 		assert.ok(t.includes('drox.exe'));
 	});
 });

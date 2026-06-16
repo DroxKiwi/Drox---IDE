@@ -21,7 +21,7 @@ export interface IDroxSurfaceProductInfo {
 /** Registre des capacités visibles uniquement en surface `dev`. */
 export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly description: string }>> = {
 	chatVersionDevSuffix: {
-		description: 'Suffixe build dev dans le header chat (package.json / stamp moteur).',
+		description: 'Suffixe build moteur (epoch Unix + git) dans le header chat après handshake.',
 	},
 	updateSimulateLatest: {
 		description: 'Réglage drox.update.simulateLatestVersion (preview notification MAJ).',

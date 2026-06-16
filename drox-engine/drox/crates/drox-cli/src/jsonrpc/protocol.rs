@@ -57,9 +57,17 @@ pub struct InitializeResult {
     pub protocol_version: &'static str,
     /// Wire pipeline id (1.3.2+). Absent on legacy bundled engines.
     pub orchestration_pipeline: &'static str,
-    /// Compteur injecté à la compilation (`build.rs`) — affiché dans le header chat IDE.
+    /// Compteur injecté à la compilation (`build.rs`) — epoch Unix (s) du dernier build `drox-cli`.
     pub dev_build: u32,
+    /// Revision git courte au moment de la compilation (`unknown` si indisponible).
+    #[serde(default, skip_serializing_if = "str_is_empty")]
+    pub engine_git_sha: &'static str,
     pub capabilities: ServerCapabilities,
+}
+
+#[must_use]
+fn str_is_empty(s: &str) -> bool {
+    s.is_empty()
 }
 
 #[must_use]
@@ -67,6 +75,11 @@ fn dev_build_from_compile_env() -> u32 {
     option_env!("DROX_DEV_BUILD")
         .and_then(|s| s.parse().ok())
         .unwrap_or(0)
+}
+
+#[must_use]
+fn engine_git_sha_from_compile_env() -> &'static str {
+    option_env!("DROX_ENGINE_GIT_SHA").unwrap_or("")
 }
 
 impl InitializeResult {
@@ -78,6 +91,7 @@ impl InitializeResult {
             protocol_version: PROTOCOL_VERSION,
             orchestration_pipeline: "role_split",
             dev_build: dev_build_from_compile_env(),
+            engine_git_sha: engine_git_sha_from_compile_env(),
             capabilities: ServerCapabilities::CURRENT,
         }
     }
@@ -450,8 +464,10 @@ mod tests {
             .unwrap_or(0);
         if compile_dev_build == 0 {
             assert_eq!(r.dev_build, 0, "release build omits dev stamp");
+            assert!(r.engine_git_sha.is_empty());
         } else {
-            assert!(r.dev_build > 0, "dev_build must be set by build.rs");
+            assert!(r.dev_build > 1_000_000_000, "dev_build must be unix epoch seconds");
+            assert!(!r.engine_git_sha.is_empty());
         }
         assert!(r.capabilities.run_streaming_events);
         // Sprint Questions bloquantes (§2.13) — le serveur sait poser des

@@ -3,12 +3,19 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { getWindowId } from '../../../../base/browser/dom.js';
+import { mainWindow } from '../../../../base/browser/window.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { Memento } from '../../../common/memento.js';
 
 export const DROX_CHAT_LAYOUT_STORAGE_KEY = 'drox.chat.layout';
 
 export const DROX_CHAT_LAYOUT_VERSION = 1;
+
+/** Clé memento : layout par fenêtre (évite de reprendre le chat d'une autre fenêtre sur le même workspace). */
+export function droxChatLayoutMementoId(windowId: number): string {
+	return `${DROX_CHAT_LAYOUT_STORAGE_KEY}.w${windowId}`;
+}
 
 export interface IDroxPersistedChatTab {
 	readonly sessionId: string;
@@ -31,8 +38,11 @@ export class DroxChatLayoutStore {
 
 	private readonly _memento: Memento<IDroxChatLayoutMemento>;
 
-	constructor(@IStorageService storageService: IStorageService) {
-		this._memento = new Memento(DROX_CHAT_LAYOUT_STORAGE_KEY, storageService);
+	constructor(
+		@IStorageService storageService: IStorageService,
+		windowId: number = getWindowId(mainWindow),
+	) {
+		this._memento = new Memento(droxChatLayoutMementoId(windowId), storageService);
 	}
 
 	load(): IDroxChatLayoutSnapshot | undefined {

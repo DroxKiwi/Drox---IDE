@@ -37,6 +37,8 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 	private _started = false;
 	private _initialized = false;
 	private _engineDevBuild: number | undefined;
+	private _engineGitSha: string | undefined;
+	private _resolvedExecutable: string | undefined;
 	private _initializePromise: Promise<unknown> | undefined;
 	private readonly _clientCapabilities = {
 		executableTools: [] as string[],
@@ -68,6 +70,14 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 
 	get engineDevBuild(): number | undefined {
 		return this._engineDevBuild;
+	}
+
+	get engineGitSha(): string | undefined {
+		return this._engineGitSha;
+	}
+
+	get resolvedExecutable(): string | undefined {
+		return this._resolvedExecutable;
 	}
 
 	private readonly _onDidInitialize = this._register(new Emitter<DroxEngineInitializeResult>());
@@ -117,6 +127,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		}
 
 		const executable = await this.executableService.resolve();
+		this._resolvedExecutable = executable;
 		const folders = this.workspaceContextService.getWorkspace().folders;
 		const cwd = folders[0]?.uri.fsPath ?? this.environmentService.userHome.fsPath;
 
@@ -171,8 +182,15 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		const devBuild = typeof init?.devBuild === 'number' && Number.isFinite(init.devBuild) && init.devBuild > 0
 			? Math.floor(init.devBuild)
 			: undefined;
+		const gitSha = typeof init?.engineGitSha === 'string' && init.engineGitSha.trim().length > 0
+			? init.engineGitSha.trim()
+			: undefined;
 		this._engineDevBuild = devBuild;
-		this.appendEngineLog(`[engine] version=${version} devBuild=${devBuild ?? '—'} pipeline=${pipeline}\n`);
+		this._engineGitSha = gitSha;
+		const builtAt = devBuild !== undefined ? new Date(devBuild * 1000).toISOString() : '—';
+		this.appendEngineLog(
+			`[engine] version=${version} devBuild=${devBuild ?? '—'} git=${gitSha ?? '—'} builtAt=${builtAt} pipeline=${pipeline}\n`,
+		);
 		if (pipeline !== 'role_split') {
 			this.appendEngineLog('[warn] Legacy engine — rebuild drox-cli in drox-engine/drox, then set drox.executablePath to target/debug/drox.exe\n');
 		}
@@ -215,6 +233,8 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		this._started = false;
 		this._initialized = false;
 		this._engineDevBuild = undefined;
+		this._engineGitSha = undefined;
+		this._resolvedExecutable = undefined;
 		this._initializePromise = undefined;
 		this._clientCapabilities.executableTools = [];
 		this._clientCapabilities.interactiveAsk = true;

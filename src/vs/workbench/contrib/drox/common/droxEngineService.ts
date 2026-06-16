@@ -12,6 +12,7 @@ export type DroxEngineInitializeResult = {
 	readonly serverVersion?: string;
 	readonly orchestrationPipeline?: string;
 	readonly devBuild?: number;
+	readonly engineGitSha?: string;
 };
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IDroxEngineErrorPayload, IDroxEngineExitPayload, IDroxEngineLogPayload, IDroxEngineNotificationPayload, IDroxEngineServerRequestPayload } from './droxIpc.js';
@@ -35,6 +36,12 @@ export interface IDroxEngineService {
 
 	/** Stamp compilé dans `drox.exe` (`build.rs`), lu à `initialize`. */
 	readonly engineDevBuild: number | undefined;
+
+	/** Revision git courte compilée dans `drox.exe` (`build.rs`). */
+	readonly engineGitSha: string | undefined;
+
+	/** Chemin `drox.exe` résolu pour cette fenêtre (dernier `start`). */
+	readonly resolvedExecutable: string | undefined;
 
 	/** Émis après chaque `initialize` réussi (warm start ou premier run). */
 	readonly onDidInitialize: Event<DroxEngineInitializeResult>;
