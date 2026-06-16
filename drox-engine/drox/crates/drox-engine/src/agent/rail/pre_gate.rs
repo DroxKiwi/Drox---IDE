@@ -24,7 +24,9 @@ pub fn tool_pre_gate_rail(state: &RunRailState, tool_name: &str) -> Option<Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent::rail::state::RunRailState;
     use crate::agent::rail::station::RunStation;
+    use crate::orchestration::tool_folders::{FOLDER_EDIT_FILE, FOLDER_READ_WORKSPACE};
 
     #[test]
     fn internal_plan_write_allowed_at_intent() {
@@ -55,5 +57,30 @@ mod tests {
         assert!(msg.contains("station `plan`"));
         assert!(msg.contains("todo_write"));
         assert!(!msg.contains("[gate: hold]"));
+    }
+
+    #[test]
+    fn allows_virtual_edit_file_folder_at_act() {
+        let state = RunRailState {
+            station: RunStation::Act,
+            ..RunRailState::new()
+        };
+        assert!(tool_pre_gate_rail(&state, FOLDER_EDIT_FILE).is_none());
+    }
+
+    #[test]
+    fn allows_virtual_read_workspace_at_intent() {
+        let state = RunRailState::new();
+        assert!(tool_pre_gate_rail(&state, FOLDER_READ_WORKSPACE).is_none());
+    }
+
+    #[test]
+    fn blocks_read_workspace_at_act() {
+        let state = RunRailState {
+            station: RunStation::Act,
+            ..RunRailState::new()
+        };
+        let msg = tool_pre_gate_rail(&state, FOLDER_READ_WORKSPACE).expect("blocked");
+        assert!(msg.contains("station `act`"));
     }
 }

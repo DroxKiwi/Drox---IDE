@@ -201,7 +201,11 @@ export class DroxChatController extends Disposable
 		this.post({
 			kind: 'productVersion',
 			label: formatDroxChatVersionLabel(this.productService, build),
-			title: formatDroxChatVersionTitle(this.productService, build),
+			title: formatDroxChatVersionTitle(this.productService, {
+				devBuild: build,
+				gitSha: this.droxEngineService.engineGitSha,
+				executablePath: this.droxEngineService.resolvedExecutable,
+			}),
 		});
 	}
 

@@ -258,8 +258,8 @@ Emplacement futur : frame boot `iteration_start` ou layer dédié `session_work_
 | **B** | Fraîcheur + nudges + merge mode + meta état | P0 | ☑ |
 | **C** | Export transcript structuré + engine trace enrichi | P1 | ☑ |
 | **D** | Session work log inter-runs + compaction | P2 | ☐ |
-| **F** | Correctifs protocole `[tool_use]` (nudges, circuit breaker, UX) | P0 | ☐ — voir [PLAN-PROTO-FIXES.md](PLAN-PROTO-FIXES.md) |
-| **E** | Smoke dogfood + doc closure 1.4.1.3 | P1 | ☐ |
+| **F** | Correctifs protocole `[tool_use]` + tool folders × rail | P0 | ☑ — voir [PLAN-PROTO-FIXES.md](PLAN-PROTO-FIXES.md) |
+| **E** | Smoke dogfood + doc closure 1.4.1.3 | P1 | ☑ — [SMOKE-ses_733093c6](../SMOKE-ses_733093c6.md) |
 
 ### Ordre recommandé
 
@@ -316,11 +316,11 @@ Ne pas attendre D pour livrer B+C : la valeur dogfood est surtout en B+C.
 
 ## Critères de clôture chantier (1.4.1.3 + L2)
 
-- [ ] Dogfood même scénario SVG (`site-kdds`) sur build avec Phase A+B
-- [ ] Transcript montre ≥ 1 `internal_plan_write` initial + ≥ 1 mise à jour en run long
-- [ ] Export dev permet audit complet sans lire le JSONL brut
-- [ ] Aucune régression tests `cargo test -p drox-engine --lib`
-- [ ] Matrice [MATRIX-ACTUAL.md](MATRIX-ACTUAL.md) mise à jour (layer `internal_plan_snapshot` + nudges)
+- [x] Dogfood scénario SVG (`site-kdds`) sur build avec Phase A+B+F — [`ses_733093c6`](../SMOKE-ses_733093c6.md)
+- [x] Transcript montre ≥ 1 `internal_plan_write` initial + mise à jour en run
+- [x] Export dev permet audit complet (résumé PARTIE A + trace)
+- [x] Aucune régression tests `cargo test -p drox-engine --lib` (300 tests)
+- [ ] Matrice [MATRIX-ACTUAL.md](MATRIX-ACTUAL.md) mise à jour (nudges F1/F2) — optionnel
 
 ---
 

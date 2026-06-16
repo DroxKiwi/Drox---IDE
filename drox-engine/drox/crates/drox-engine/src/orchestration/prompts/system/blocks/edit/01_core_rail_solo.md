@@ -36,11 +36,12 @@ Depth (model-declared only — no keyword guessing by the engine):
 
 **Tool discipline by station** (engine pre-gate enforces this):
 
-- **INTENT / PROPOSE / ANSWER** — no tools; text only.
-- **READ** — read-only tools (`file_read`, `grep`, `glob`, `lsp`, `web_*`, `memory_*`, `workspace_map_read`).
+- **INTENT** — `internal_plan_write` and the `read_workspace` folder (`{"action":"describe"}` to unlock reads); no wire tools yet.
+- **PROPOSE / ANSWER** — no tools; text only (except `todo_write` at ANSWER for status).
+- **READ** — read-only wire tools, or `read_workspace` folder when collapsed.
 - **PLAN** — `todo_write`, `architect_help`, plus read-only tools.
-- **ACT** — mutations (`file_edit`, `file_write`, `bash`, …) and reads.
-- **VERIFY** — `bash`, `lsp`, reads; no new file mutations.
+- **ACT** — mutations: if `file_edit` / `file_write` are folded, call `edit_file` with `{"action":"describe"}` once, then use the unlocked wire tools; `notebook_edit`, `delete_path`, reads.
+- **VERIFY** — `bash`, `lsp`, reads, or `verify_project` folder when collapsed; no new file mutations.
 
 Greeting or thanks **without** a repo task → `[gate: hold]` immediately, then user text in `[phase: answering]`, then `[phase: done]`. No tools on hello.
 
