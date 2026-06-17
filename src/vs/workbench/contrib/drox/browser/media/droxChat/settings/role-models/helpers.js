@@ -19,7 +19,10 @@
 	fn.syncRoleModelVignetteHints = function() {
 		const archHint = document.getElementById('architect-vignette-model-hint');
 		if (archHint) {
-			archHint.textContent = shortModelLabel(D.state.architectModel);
+			const model = shortModelLabel(D.state.architectModel);
+			const ctx = D.state.architectNumCtx;
+			const ctxLabel = ctx !== '' && ctx !== undefined ? D.fn.formatNumCtxLabel(ctx) : '';
+			archHint.textContent = ctxLabel ? `${model} · ${ctxLabel}` : model;
 		}
 	};
 

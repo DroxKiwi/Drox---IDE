@@ -16,6 +16,8 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
 import { createDroxDevConfigurationProperties } from './droxDevConfiguration.js';
+import { DROX_DEFAULT_NUM_CTX } from './droxProductDefaults.js';
+import { DROX_NUM_CTX_CHOICES } from './droxNumCtx.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
 
@@ -287,6 +289,17 @@ export const droxConfigurationNode: IConfigurationNode = {
 			markdownDescription: localize(
 				'drox.architect.interactionMode',
 				'**Architect mode** (`role_split`) per message: **Auto** — intent probe picks discuss vs action (`[gate: architect_discuss|architect_edit]`); **Discussion** — direct reply, limited read tools; **Action** — full workspace tools (edit, bash, reads, …). Synced with composer vignettes.',
+			),
+		},
+
+		[DroxSetting.NumCtx]: {
+			type: 'number',
+			enum: [...DROX_NUM_CTX_CHOICES],
+			default: DROX_DEFAULT_NUM_CTX,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.numCtx',
+				'**Context window** — Ollama `num_ctx` for the Architect run. Choose from 16k to 1M; larger values use more VRAM.',
 			),
 		},
 

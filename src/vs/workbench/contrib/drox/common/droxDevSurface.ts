@@ -38,7 +38,7 @@ export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly des
 		description: 'Réglage drox.executablePath (Settings IDE — dogfood binaire local, hors vignette chat).',
 	},
 	advancedLlmSettings: {
-		description: 'Réglages LLM avancés (sampling, num_ctx, max_iterations, keep_alive) — registre Settings + panneaux chat.',
+		description: 'Réglages LLM avancés (sampling, max_iterations, keep_alive) — registre Settings + panneau architecte dev.',
 	},
 };
 
