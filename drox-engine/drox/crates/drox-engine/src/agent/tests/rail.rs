@@ -17,7 +17,7 @@ fn run_rail_active_on_normal_preset_only() {
     assert!(run_rail_active(&normal, RoleId::Architect));
     assert!(!run_rail_active(&normal, RoleId::ArchitectDiscussion));
 
-    let relaxed = crate::orchestration::tuning::resolve_engine_tuning(Some("relaxed"), None);
+    let relaxed = crate::EngineTuning::from_preset(crate::orchestration::StrictnessPreset::Relaxed);
     assert!(!run_rail_active(&relaxed, RoleId::Architect));
 }
 

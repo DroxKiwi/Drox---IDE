@@ -7,6 +7,7 @@ use super::policy;
 use super::station::RunStation;
 use super::state::RunRailState;
 use super::transition::OpenTodoCounts;
+use super::verify::VerifyOutcome;
 
 /// Raise `state.station` to at least `target` on the linear order.
 pub fn set_station_at_least(state: &mut RunRailState, target: RunStation) {
@@ -16,6 +17,9 @@ pub fn set_station_at_least(state: &mut RunRailState, target: RunStation) {
     state.station = target;
     if target == RunStation::Verify {
         state.visited_verify = true;
+        if state.verify_outcome.failed() {
+            state.verify_outcome = VerifyOutcome::Unknown;
+        }
     }
 }
 

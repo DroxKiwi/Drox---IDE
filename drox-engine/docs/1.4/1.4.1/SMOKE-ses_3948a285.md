@@ -45,6 +45,8 @@ Adoucir / simplifier le système d'animation de la page principale.
 3. ≥1 mutation réussie sur `home-content.tsx` ou `globals.css`.
 4. Clôture `[phase: answering]` + `[phase: done]`, tokens in &lt; 25k.
 
-## Re-smoke validé
+## Re-smoke validé (run 1 seul)
 
 [`SMOKE-ses_733093c6.md`](SMOKE-ses_733093c6.md) — ~3 min, `file_write` OK, `done`, R5 à 25 760 tokens (+3 % vs seuil).
+
+**Session multi-runs** (runs 2–3, même session) : échec — [`SMOKE-ses_733093c6-SESSION.md`](SMOKE-ses_733093c6-SESSION.md).

@@ -79,6 +79,7 @@ Ordre **strict** (code `iteration_start.rs` → Phase 2 `context_frame/apply/ite
 | `done.only_marker` | answering sans done | `outcome.rs` |
 | `rail.post_todos_answering` | idle post-todos | `outcome.rs` |
 | `rail.act_stall` | stall ACT | `outcome.rs` |
+| `rail.read_stall` | stall READ (mutation brief) — compte tours read-only **et** thinking sans outil ; seuil 4 si diagnostic/fix step | `post_assistant.rs` |
 | `schema_error.continue` | tour sans tool ni done | `outcome.rs` |
 | `protocol.text_tool_marker` | texte `[tool_use]…` sans `tool_calls` | `outcome.rs` · `nudges/text_tool_marker.rs` |
 | `internal_plan.stale` | N outils sans MAJ plan L2 | `tools.rs` |

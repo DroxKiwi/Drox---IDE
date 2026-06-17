@@ -789,6 +789,24 @@ suite('Drox — transcript export', () => {
 		assert.ok(userIdx < gateIdx && gateIdx < streamIdx && streamIdx < replyIdx);
 	});
 
+	test('formatDroxUiReplayExport labels multi-turn user runs', () => {
+		const journal = [
+			{ kind: 'append', role: 'user', text: 'Fix hero text' },
+			{ kind: 'phase', phase: 'done' },
+			{ kind: 'append', role: 'user', text: 'Refine background animation' },
+		];
+		const text = formatDroxUiReplayExport({
+			sessionId: 'ses_multi',
+			journal,
+		});
+		assert.ok(text.includes('User runs in session: 2'));
+		assert.ok(text.includes('run 1: Fix hero text'));
+		assert.ok(text.includes('run 2: Refine background animation'));
+		assert.ok(text.includes('Step 1 — USER'));
+		assert.ok(text.includes('Step 2 — USER RUN 2'));
+		assert.ok(text.includes('tour 2 de 2 dans cette session'));
+	});
+
 	test('formatDroxCombinedSessionExport includes raw journal and engine roster', () => {
 		const journal = [
 			{ kind: 'append', role: 'user', text: 'Hi' },
@@ -1186,8 +1204,8 @@ suite('Drox — orchestration model params', () => {
 		assert.strictEqual(params.architectInteractionMode, 'action');
 	});
 
-	test('buildAgentRunParams always forwards engineStrictness', () => {
-		const defaultParams = buildAgentRunParams({
+	test('buildAgentRunParams omits deprecated engineStrictness and engineTuning', () => {
+		const params = buildAgentRunParams({
 			prompt: 'hi',
 			workspace: WS,
 			mode: 'acceptEdits',
@@ -1196,19 +1214,8 @@ suite('Drox — orchestration model params', () => {
 			disabledTools: [],
 			mcpToolsEnabled: true,
 		});
-		assert.strictEqual(defaultParams.engineStrictness, 'normal');
-
-		const strictParams = buildAgentRunParams({
-			prompt: 'hi',
-			workspace: WS,
-			mode: 'acceptEdits',
-			sessionId: 's1',
-			settings: mockLlmSettings(),
-			disabledTools: [],
-			mcpToolsEnabled: true,
-			engineStrictness: 'strict',
-		});
-		assert.strictEqual(strictParams.engineStrictness, 'strict');
+		assert.strictEqual('engineStrictness' in params, false);
+		assert.strictEqual('engineTuning' in params, false);
 	});
 
 	test('normalizeLlmServerBaseUrl strips trailing slash', () => {

@@ -17,16 +17,6 @@
 		return Number.isFinite(n) ? n : undefined;
 	}
 
-	fn.syncEngineTuningPanelVisibility = function() {
-		const panel = document.getElementById('general-settings-engine-tuning');
-		const strictness = document.getElementById('general-settings-engine-strictness');
-		if (!panel || !strictness) {
-			return;
-		}
-		const custom = String(strictness.value || 'normal') === 'custom';
-		panel.hidden = !custom;
-	}
-
 	fn.syncGeneralSettingsVignetteHint = function() {
 		const hint = document.getElementById('general-settings-vignette-hint');
 		if (!hint) {
@@ -37,11 +27,8 @@
 		if (s.server) {
 			parts.push(String(s.server).replace(/^https?:\/\//, '').slice(0, 18));
 		}
-		if (s.maxIterations) {
+		if (s.maxIterations && document.getElementById('general-settings-max-iterations')) {
 			parts.push(`×${s.maxIterations}`);
-		}
-		if (s.engineStrictness && s.engineStrictness !== 'normal') {
-			parts.push(s.engineStrictness);
 		}
 		hint.textContent = parts.length ? parts.join(' · ') : '—';
 	}

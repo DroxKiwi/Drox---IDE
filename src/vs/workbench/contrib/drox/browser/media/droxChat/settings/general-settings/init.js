@@ -30,9 +30,6 @@
 		if (panel) {
 			for (const el of panel.querySelectorAll('input, select')) {
 				el.addEventListener('change', () => {
-					if (el.id === 'general-settings-engine-strictness') {
-						fn.syncEngineTuningPanelVisibility();
-					}
 					fn.persistGeneralSettingsFromPanel();
 				});
 			}

@@ -259,7 +259,7 @@ Emplacement futur : frame boot `iteration_start` ou layer dédié `session_work_
 | **C** | Export transcript structuré + engine trace enrichi | P1 | ☑ |
 | **D** | Session work log inter-runs + compaction | P2 | ☐ |
 | **F** | Correctifs protocole `[tool_use]` + tool folders × rail | P0 | ☑ — voir [PLAN-PROTO-FIXES.md](PLAN-PROTO-FIXES.md) |
-| **E** | Smoke dogfood + doc closure 1.4.1.3 | P1 | ☑ — [SMOKE-ses_733093c6](../SMOKE-ses_733093c6.md) |
+| **E** | Smoke dogfood + doc closure 1.4.1.3 | P1 | ⚠️ run 1 OK · session multi-runs KO — [SESSION](../SMOKE-ses_733093c6-SESSION.md) |
 
 ### Ordre recommandé
 

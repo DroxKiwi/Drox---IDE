@@ -1,4 +1,63 @@
 impl Agent {
+    async fn maybe_inject_read_stall_nudge(
+        &self,
+        session: &mut DriveSession,
+        outcome: &crate::agent::stream::TurnOutcome,
+        tx: &tokio::sync::mpsc::Sender<Result<crate::event::AgentEvent, crate::error::EngineError>>,
+    ) -> bool {
+        let rail_active = crate::agent::rail::run_rail_active(
+            &self.config.engine_tuning,
+            self.config.run_spec.role_id,
+        );
+        if !rail_active || !session.mutation_expected {
+            return false;
+        }
+        let tool_names: Vec<&str> = outcome
+            .tool_calls
+            .iter()
+            .map(|call| call.name.as_str())
+            .collect();
+        let Some(nudge) = rail::on_read_idle_turn(
+            &mut session.architect_state.rail,
+            session.mutation_expected,
+            &tool_names,
+            session.architect_state.internal_plan.as_ref(),
+        ) else {
+            return false;
+        };
+        debug!("[run_rail] READ stall — nudge advance to ACT");
+        append_gate_nudge(
+            &mut session.messages,
+            NudgeId::ReadStall,
+            nudge.to_string(),
+        );
+        let open_todos = rail::OpenTodoCounts {
+            pending: session.last_todo_pending,
+            in_progress: session.last_todo_in_progress,
+        };
+        let rail_focus = session
+            .architect_state
+            .current_focus_task_line()
+            .map(|(id, label, _)| (id, label));
+        let focus = rail_focus
+            .as_ref()
+            .map(|(id, label)| (id.as_str(), label.as_str()));
+        rail::refresh_snapshot(
+            &mut session.messages,
+            &session.architect_state.rail,
+            focus,
+            open_todos,
+        );
+        if let Err(e) = self
+            .flush_transcript(&mut session.messages, &mut session.transcript_cursor)
+            .await
+        {
+            let _ = tx.send(Err(e)).await;
+            return true;
+        }
+        false
+    }
+
     /// Gates post-stream, exécution outils, nudges. `true` = arrêter `drive_inner`.
     async fn drive_post_assistant(
         &self,
@@ -23,7 +82,7 @@ impl Agent {
             }
         }
 
-        match self
+        let post_step = self
             .drive_post_llm_outcome(
                 outcome,
                 &mut session.messages,
@@ -40,10 +99,20 @@ impl Agent {
                 session.memory_tracker.mutation_count(),
                 &mut session.schema_error_continue_count,
             )
-            .await
-        {
+            .await;
+
+        match post_step {
             PostLlmStep::Stop => return true,
-            PostLlmStep::Continue => return false,
+            PostLlmStep::Continue => {
+                // READ stall only on tool-less turns (schema_error / thinking). Do not
+                // double-count after a tool batch on the same iteration.
+                if outcome.tool_calls.is_empty()
+                    && self.maybe_inject_read_stall_nudge(session, outcome, tx).await
+                {
+                    return true;
+                }
+                return false;
+            }
             PostLlmStep::Tools => {}
         }
 
@@ -72,6 +141,10 @@ impl Agent {
             )
             .await
         {
+            return true;
+        }
+
+        if self.maybe_inject_read_stall_nudge(session, outcome, tx).await {
             return true;
         }
 

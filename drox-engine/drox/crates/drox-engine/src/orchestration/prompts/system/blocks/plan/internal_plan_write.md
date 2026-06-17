@@ -18,11 +18,14 @@ This is your **L2 notebook** (fil d'Ariane). Keep it updated as you discover the
 ```json
 {
   "mode": "merge",
-  "steps": [{"id":"s1","action":"…","status":"completed"}],
+  "steps": [{"id":"s1","status":"completed"}],
   "append_steps": [{"id":"s4","action":"…","status":"pending"}],
   "remove_step_ids": ["s3"]
 }
 ```
+
+For existing steps, merge patches may send **only** `id` + `status` (or other changed fields) —
+omitted `action` / `paths` / `done_when` are inherited from the current plan.
 
 **Rules**
 

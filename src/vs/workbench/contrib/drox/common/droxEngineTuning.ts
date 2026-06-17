@@ -7,7 +7,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { DroxSetting } from './droxConfiguration.js';
 import { DroxEngineStrictnessPreset } from './droxEngineStrictness.js';
-/** Objet partiel envoyé dans `agent.run` (`engineTuning`). */
+/** Objet partiel legacy `engineTuning` — plus envoyé sur `agent.run`. */
 export type DroxEngineTuningOverrides = Record<string, number | boolean>;
 type RpcFieldKind = 'number' | 'boolean';
 interface EngineTuningRpcField {
@@ -90,6 +90,7 @@ export function buildEngineTuningOverridesForRpc(
 	}
 	return Object.keys(out).length > 0 ? out : undefined;
 }
+/** @deprecated No longer sent on `agent.run`. */
 export function wireEngineTuningForRpc(
 	strictness: DroxEngineStrictnessPreset,
 	configService: IConfigurationService,

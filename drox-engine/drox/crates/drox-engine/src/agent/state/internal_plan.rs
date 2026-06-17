@@ -180,13 +180,7 @@ fn write_mode(arguments: &Value) -> &'static str {
 }
 
 fn parse_step(step: &Value) -> Result<InternalPlanStep, String> {
-    let id = step
-        .get("id")
-        .and_then(|v| v.as_str())
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .ok_or_else(|| "Each step needs a non-empty `id`.".to_string())?
-        .to_string();
+    let id = parse_step_id(step)?;
     let action = step
         .get("action")
         .and_then(|v| v.as_str())
@@ -194,10 +188,24 @@ fn parse_step(step: &Value) -> Result<InternalPlanStep, String> {
         .filter(|s| !s.is_empty())
         .ok_or_else(|| format!("Step `{id}` needs non-empty `action`."))?
         .to_string();
+    Ok(parse_step_fields(step, id, action)?)
+}
+
+fn parse_step_id(step: &Value) -> Result<String, String> {
+    step
+        .get("id")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| "Each step needs a non-empty `id`.".to_string())
+        .map(str::to_string)
+}
+
+fn parse_step_status(step: &Value, id: &str, default: &str) -> Result<String, String> {
     let status = step
         .get("status")
         .and_then(|v| v.as_str())
-        .unwrap_or("pending")
+        .unwrap_or(default)
         .trim()
         .to_ascii_lowercase();
     if !matches!(
@@ -208,7 +216,11 @@ fn parse_step(step: &Value) -> Result<InternalPlanStep, String> {
             "Step `{id}` has invalid status `{status}` — use pending|in_progress|completed|cancelled."
         ));
     }
-    let paths: Vec<String> = step
+    Ok(status)
+}
+
+fn parse_step_paths(step: &Value) -> Vec<String> {
+    step
         .get("paths")
         .and_then(|v| v.as_array())
         .map(|arr| {
@@ -218,13 +230,67 @@ fn parse_step(step: &Value) -> Result<InternalPlanStep, String> {
                 .map(str::to_string)
                 .collect()
         })
-        .unwrap_or_default();
+        .unwrap_or_default()
+}
+
+fn parse_step_fields(
+    step: &Value,
+    id: String,
+    action: String,
+) -> Result<InternalPlanStep, String> {
+    let status = parse_step_status(step, &id, "pending")?;
+    let paths = parse_step_paths(step);
     let done_when = step
         .get("done_when")
         .and_then(|v| v.as_str())
         .map(str::trim)
         .unwrap_or("")
         .to_string();
+    Ok(InternalPlanStep {
+        id,
+        action,
+        paths,
+        done_when,
+        status,
+    })
+}
+
+/// Merge patch — `action` / `paths` / `done_when` optional; inherit from existing step.
+fn parse_merge_step_patch(step: &Value, existing: &InternalPlanStep) -> Result<InternalPlanStep, String> {
+    let id = parse_step_id(step)?;
+    if id != existing.id {
+        return Err(format!(
+            "Merge patch id mismatch: payload `{id}` vs existing `{}`.",
+            existing.id
+        ));
+    }
+    let action = step
+        .get("action")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| existing.action.clone());
+    let status = if step.get("status").is_some() {
+        parse_step_status(step, &id, &existing.status)?
+    } else {
+        existing.status.clone()
+    };
+    let paths = if step.get("paths").is_some() {
+        parse_step_paths(step)
+    } else {
+        existing.paths.clone()
+    };
+    let done_when = if step.get("done_when").is_some() {
+        step
+            .get("done_when")
+            .and_then(|v| v.as_str())
+            .map(str::trim)
+            .unwrap_or("")
+            .to_string()
+    } else {
+        existing.done_when.clone()
+    };
     Ok(InternalPlanStep {
         id,
         action,
@@ -293,7 +359,12 @@ fn merge_plan_steps(
     let mut updates: HashMap<String, InternalPlanStep> = HashMap::new();
     if let Some(arr) = arguments.get("steps").and_then(|v| v.as_array()) {
         for step in arr {
-            let parsed = parse_step(step)?;
+            let id = parse_step_id(step)?;
+            let parsed = if let Some(existing_step) = existing.steps.iter().find(|s| s.id == id) {
+                parse_merge_step_patch(step, existing_step)?
+            } else {
+                parse_step(step)?
+            };
             updates.insert(parsed.id.clone(), parsed);
         }
     }
@@ -460,6 +531,31 @@ mod tests {
             }]
         });
         assert!(internal_plan_shape_guard(None, &args).is_none());
+    }
+
+    #[test]
+    fn merge_status_only_inherits_action() {
+        let existing = InternalPlanState {
+            steps: vec![InternalPlanStep {
+                id: "s1".into(),
+                action: "Explore workspace".into(),
+                paths: vec!["src/a.ts".into()],
+                done_when: "map read".into(),
+                status: "in_progress".into(),
+            }],
+            meta: InternalPlanMeta::default(),
+        };
+        let args = json!({
+            "mode": "merge",
+            "steps": [{ "id": "s1", "status": "completed" }]
+        });
+        assert!(internal_plan_shape_guard(Some(&existing), &args).is_none());
+        let (steps, mode) = resolve_internal_plan_write(Some(&existing), args).unwrap();
+        assert_eq!(mode, "merge");
+        assert_eq!(steps[0].action, "Explore workspace");
+        assert_eq!(steps[0].paths, vec!["src/a.ts"]);
+        assert_eq!(steps[0].done_when, "map read");
+        assert_eq!(steps[0].status, "completed");
     }
 
     #[test]

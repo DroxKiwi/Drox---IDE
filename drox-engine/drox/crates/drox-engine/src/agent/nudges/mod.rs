@@ -6,9 +6,11 @@ mod answering_too_early;
 mod done_only;
 mod helpers;
 mod internal_plan;
+mod mutation_since_user;
 mod post_todos_answer;
 mod schema_error;
 mod stall_act;
+mod stall_read;
 mod text_tool_marker;
 mod thinking_supplement;
 
@@ -27,6 +29,8 @@ pub(crate) use schema_error::{
 pub(crate) use text_tool_marker::{
     assistant_text_has_tool_markers, has_tool_results_since_user, text_tool_marker_nudge,
 };
+pub(crate) use mutation_since_user::successful_mutation_count_since_user;
 pub(crate) use stall_act::ACT_STALL_NUDGE_PROMPT;
+pub(crate) use stall_read::{READ_STALL_NUDGE_PROMPT, READ_STALL_STRONG_NUDGE_PROMPT};
 pub(crate) use post_todos_answer::POST_TODOS_ANSWER_NUDGE_PROMPT;
 pub(crate) use thinking_supplement::NATIVE_THINKING_UI_SUPPLEMENT;

@@ -14,14 +14,35 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
-import { formatDroxTranscriptExport } from '../../common/chat/droxTranscriptExport.js';
+import { extractDroxUserRunsFromJournal, formatDroxTranscriptExport } from '../../common/chat/droxTranscriptExport.js';
 import { formatDroxCombinedSessionExport } from '../../common/chat/droxUiReplayExport.js';
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
 
-/** Au-delà de ce seuil, le presse-papiers reçoit un aperçu + le fichier complet sur disque. */
-const CLIPBOARD_PREVIEW_CHARS = 120_000;
+/** Presse-papiers : texte intégral jusqu'à ce seuil ; au-delà, pointeur fichier uniquement (pas d'aperçu tronqué). */
+const CLIPBOARD_MAX_FULL_CHARS = 2_000_000;
+const LATEST_EXPORT_FILENAME = 'latest-transcript.txt';
+
+function formatExportClipboardPointer(opts: {
+	readonly sessionId: string;
+	readonly filePath: string;
+	readonly latestPath: string;
+	readonly charCount: number;
+	readonly stepCount: number;
+	readonly userRunCount: number;
+}): string {
+	return [
+		'Drox transcript export — presse-papiers = pointeur uniquement (export trop volumineux pour le clipboard).',
+		`Session: ${opts.sessionId}`,
+		`Taille: ${opts.charCount} caractères · ${opts.stepCount} steps · ${opts.userRunCount} user run(s)`,
+		'',
+		`Fichier horodaté: ${opts.filePath}`,
+		`Copie stable: ${opts.latestPath}`,
+		'',
+		'Ouvrez le fichier sur disque pour PARTIE A + B + C + D + E complètes (tous les cycles utilisateur).',
+	].join('\n');
+}
 
 export async function handleDroxExportTranscript(
 	tabs: DroxChatTabsManager,
@@ -83,36 +104,59 @@ export async function handleDroxExportTranscript(
 		await fileService.createFolder(URI.file(exportDir));
 		const stamp = exportedAt.toISOString().replace(/[:.]/g, '-');
 		const filePath = join(exportDir, `transcript-${sessionId}-${stamp}.txt`);
-		await fileService.writeFile(URI.file(filePath), VSBuffer.fromString(text));
-
-		const clipboardText =
-			text.length <= CLIPBOARD_PREVIEW_CHARS
-				? text
-				: `${text.slice(0, CLIPBOARD_PREVIEW_CHARS)}\n\n… [clipboard preview truncated — full export: ${filePath} (${text.length} chars)]`;
-		await clipboardService.writeText(clipboardText);
+		const latestPath = join(exportDir, LATEST_EXPORT_FILENAME);
+		const fileBuffer = VSBuffer.fromString(text);
+		await fileService.writeFile(URI.file(filePath), fileBuffer);
+		await fileService.writeFile(URI.file(latestPath), fileBuffer);
 
 		const stepCount = (text.match(/^Step \d+ —/gm) ?? []).length;
+		const userRunCount = fromUiJournal
+			? extractDroxUserRunsFromJournal(journal).length
+			: (read.messages.filter(m => m.role === 'user').length || 1);
+		const clipboardText =
+			text.length <= CLIPBOARD_MAX_FULL_CHARS
+				? text
+				: formatExportClipboardPointer({
+					sessionId,
+					filePath,
+					latestPath,
+					charCount: text.length,
+					stepCount,
+					userRunCount,
+				});
+		await clipboardService.writeText(clipboardText);
+
+		const clipboardNote =
+			text.length <= CLIPBOARD_MAX_FULL_CHARS
+				? localize('drox.export.clipboardFull', 'presse-papiers = export complet')
+				: localize('drox.export.clipboardPointer', 'presse-papiers = pointeur fichier (export {0} chars)', text.length);
+
 		if (fromUiJournal) {
 			notificationService.info(
 				localize(
 					'drox.export.doneUiJournal',
-					'Export saved to {0} ({1} steps, {2} UI events, {3} engine trace records, {4} chars) — UI journal + moteur + engine trace + JSONL brut.',
+					'Export saved to {0} and {1} ({2} steps, {3} UI events, {4} engine trace records, {5} user runs, {6} chars) — {7}.',
 					filePath,
+					latestPath,
 					stepCount,
 					journal.length,
 					read.engineTrace?.length ?? 0,
+					userRunCount,
 					text.length,
+					clipboardNote,
 				),
 			);
 		} else {
 			notificationService.info(
 				localize(
 					'drox.export.done',
-					'Export saved to {0} ({1} steps, {2} transcript messages, {3} chars).',
+					'Export saved to {0} and {1} ({2} steps, {3} transcript messages, {4} chars) — {5}.',
 					filePath,
+					latestPath,
 					stepCount,
 					read.messages.length,
 					text.length,
+					clipboardNote,
 				),
 			);
 		}

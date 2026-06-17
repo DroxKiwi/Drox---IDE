@@ -28,7 +28,7 @@ suite('Drox engine strictness', () => {
 
 	test('default preset is normal', () => {
 		assert.strictEqual(DROX_DEFAULT_ENGINE_STRICTNESS, 'normal');
-		assert.deepStrictEqual([...DROX_ENGINE_STRICTNESS_PRESETS], ['relaxed', 'normal', 'strict']);
+		assert.deepStrictEqual([...DROX_ENGINE_STRICTNESS_PRESETS], ['relaxed', 'normal', 'strict', 'custom']);
 	});
 
 	test('normalizeDroxEngineStrictnessPreset maps legacy aliases', () => {

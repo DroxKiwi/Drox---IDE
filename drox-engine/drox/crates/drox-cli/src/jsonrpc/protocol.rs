@@ -199,10 +199,12 @@ pub struct AgentRunParams {
     /// Gate architecte : `discussion` | `action` | `auto` (défaut — tour modèle `[gate: …]`).
     #[serde(default)]
     pub architect_interaction_mode: Option<String>,
-    /// Sévérité moteur : `relaxed` | `normal` | `strict` | `custom` (défaut `normal` si absent).
+    /// **Deprecated** — wire legacy `relaxed` | `normal` | `strict` | `custom`.
+    /// Désérialisé pour rétrocompat ; ignoré à l'exécution (profil produit unique).
     #[serde(default)]
     pub engine_strictness: Option<String>,
-    /// Surcharges unitaires — appliquées **uniquement** si `engineStrictness` = `custom`.
+    /// **Deprecated** — surcharges unitaires legacy (`engineTuning`).
+    /// Désérialisé pour rétrocompat ; ignoré à l'exécution.
     #[serde(default)]
     pub engine_tuning: Option<drox_engine::EngineTuningOverrides>,
 }

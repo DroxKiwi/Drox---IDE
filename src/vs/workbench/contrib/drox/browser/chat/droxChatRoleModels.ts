@@ -6,7 +6,9 @@
 // allow-any-unicode-comment-file
 
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import product from '../../../../../platform/product/common/product.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
+import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 
 export async function setDroxArchitectModelFromWebview(
@@ -33,6 +35,9 @@ export async function setDroxArchitectLlmParamsFromWebview(
 		temperature?: number;
 	},
 ): Promise<void> {
+	if (!isDroxDevFeatureEnabled('advancedLlmSettings', product)) {
+		return;
+	}
 	const resource = deps.runSettingsService.getWorkspaceResource();
 	if (params.numCtx !== undefined && Number.isFinite(params.numCtx)) {
 		await deps.configurationService.updateValue(DroxSetting.NumCtx, params.numCtx, { resource });
@@ -71,14 +76,17 @@ export function readDroxRoleModelsForWebview(
 } {
 	const resource = deps.runSettingsService.getWorkspaceResource();
 	const llm = deps.runSettingsService.getLlmSettings(resource);
+	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 	return {
 		architectModel: llm.model,
-		architectNumCtx: llm.numCtx,
-		architectTopP: llm.topP,
-		architectTopK: llm.topK,
-		architectRepeatPenalty: llm.repeatPenalty,
-		architectMinP: llm.minP,
-		architectSeed: llm.seed,
-		architectTemperature: llm.temperature,
+		...(advanced ? {
+			architectNumCtx: llm.numCtx,
+			architectTopP: llm.topP,
+			architectTopK: llm.topK,
+			architectRepeatPenalty: llm.repeatPenalty,
+			architectMinP: llm.minP,
+			architectSeed: llm.seed,
+			architectTemperature: llm.temperature,
+		} : {}),
 	};
 }

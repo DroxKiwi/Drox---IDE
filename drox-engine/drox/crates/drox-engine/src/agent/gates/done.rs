@@ -1,11 +1,15 @@
 pub(crate) const MISSING_MUTATION_WHEN_EXPECTED_PROMPT: &str = "You emitted `[phase: done]` \
-    but this run requested a **workspace change** and no mutation tool succeeded yet \
-    (`file_edit`, `file_write`, `notebook_edit`, `delete_path`).\n\
+    but this run requested a **workspace change** and no mutation tool succeeded on **this user \
+    request** yet (`file_edit`, `file_write`, `notebook_edit`, `delete_path`).\n\
+    \n\
+    Pasting fix instructions in Markdown does **not** count — the engine needs a successful \
+    mutation tool result after the latest user message.\n\
     \n\
     - If the repo **already matches** the request: say so clearly in `[phase: answering]` \
     (e.g. that no file change is needed), then `[phase: done]`.\n\
-    - Otherwise: move to **ACT** (`[gate: advance]` if needed), call `file_edit` or \
-    `file_write` on the target path, verify if useful, then answer and close.";
+    - Otherwise: move to **ACT** (`[gate: advance]` if needed), call `edit_file` describe if \
+    folders are folded, then `file_edit` or `file_write` on the target path, verify if useful, \
+    then answer and close.";
 
 pub(crate) const VERIFY_NOT_PASSED_PROMPT: &str = "You emitted `[phase: done]` but verify has \
     not passed yet (run `bash` with exit 0 or clean `lsp` diagnostics at VERIFY). Fix issues \
@@ -54,13 +58,12 @@ pub(crate) fn unfinished_todos_prompt(pending: u64, in_progress: u64) -> String 
 pub(crate) fn done_gate_missing_mutation_when_expected(
     spec: &RunSpec,
     mutation_expected: bool,
-    mutation_count: u32,
-    _recent_assistant_text: &str,
+    messages: &[drox_types::Message],
 ) -> Option<&'static str> {
-    if spec.role_id != crate::run_spec::RoleId::Architect
-        || !mutation_expected
-        || mutation_count > 0
-    {
+    if spec.role_id != crate::run_spec::RoleId::Architect || !mutation_expected {
+        return None;
+    }
+    if crate::agent::nudges::successful_mutation_count_since_user(messages) > 0 {
         return None;
     }
     Some(MISSING_MUTATION_WHEN_EXPECTED_PROMPT)

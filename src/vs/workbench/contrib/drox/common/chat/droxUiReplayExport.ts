@@ -16,6 +16,8 @@ import {
 	computeDroxUiJournalToolStats,
 	findFirstStructuredToolMessageIndex,
 	formatDroxPartieASummaryBlock,
+	extractDroxUserRunsFromJournal,
+	formatDroxUserRunsHeaderLines,
 } from './droxTranscriptExport.js';
 import {
 	formatDroxEngineTraceExport,
@@ -243,6 +245,7 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 	const maxGateResponse = opts.maxGateResponseChars ?? DEFAULT_MAX_GATE_RESPONSE_CHARS;
 	const out: string[] = [];
 	let step = 0;
+	let userRunCount = 0;
 	let deltaBuf = '';
 	let currentRole = '';
 	let currentPhase = '';
@@ -305,10 +308,20 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 			`Tokens (in/out/ctx): ${opts.uiStats.totalIn} / ${opts.uiStats.totalOut} / ${opts.uiStats.ctx}`,
 		);
 	}
+	const userRuns = extractDroxUserRunsFromJournal(opts.journal);
+	const userRunHeader = formatDroxUserRunsHeaderLines(userRuns);
+	if (userRunHeader.length > 0) {
+		out.push(...userRunHeader);
+	}
 	out.push('');
 	out.push(
 		'Chaque step = un événement UI structuré dans l\'ordre d\'affichage. Les THINKING STREAM = flux `internal_reasoning` ; ASSISTANT STREAM = canal content ; USER-FACING REPLY = texte canonique moteur.',
 	);
+	if (userRuns.length > 1) {
+		out.push(
+			'Session multi-tours : chaque `USER RUN N` (N>1) marque une nouvelle demande dans le même chat.',
+		);
+	}
 	out.push(
 		`Journal brut complet (${opts.journal.length} événements) → PARTIE C en fin d'export.`,
 	);
@@ -365,13 +378,21 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 			case 'append': {
 				const role = str(entry.role) || 'assistant';
 				const text = str(entry.text);
-				emit(role.toUpperCase(), () => {
-					if (role === 'user') {
+				if (role === 'user') {
+					userRunCount += 1;
+					const title = userRunCount === 1 ? 'USER' : `USER RUN ${userRunCount}`;
+					emit(title, () => {
+						if (userRunCount > 1) {
+							out.push(`(nouvelle demande — tour ${userRunCount} de ${userRuns.length} dans cette session)`);
+							out.push('');
+						}
 						pushSection(out, '## User', text);
-					} else {
+					});
+				} else {
+					emit(role.toUpperCase(), () => {
 						formatDroxPhaseAwareText(text, out);
-					}
-				});
+					});
+				}
 				break;
 			}
 			case 'userFacingReply':
