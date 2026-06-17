@@ -41,7 +41,8 @@ use tracing::warn;
 use crate::system_prompt::{AssembleInput, RegistryBuildInput, assemble_system_prompt, build_registry_for_run};
 
 use crate::jsonrpc::handlers::common::{
-    build_llm_config, decode_required, internal, resolve_workspace,
+    build_llm_config, decode_required, internal, resolve_agent_run_engine_tuning,
+    resolve_workspace,
 };
 use crate::jsonrpc::protocol::{
     AgentCancelParams, AgentCancelResult, AgentDoneNotification, AgentEventNotification,
@@ -176,10 +177,7 @@ pub(crate) async fn build_agent_setup(
     mut run_spec: RunSpec,
     overrides: AgentSetupOverrides,
 ) -> Result<AgentSetup, RpcError> {
-    let engine_tuning = drox_engine::resolve_engine_tuning(
-        params.engine_strictness.as_deref(),
-        params.engine_tuning.as_ref(),
-    );
+    let engine_tuning = resolve_agent_run_engine_tuning(params);
     if run_spec.is_orchestration_role() {
         run_spec =
             RunSpec::for_orchestration_role_with_tuning(run_spec.role_id, &engine_tuning);

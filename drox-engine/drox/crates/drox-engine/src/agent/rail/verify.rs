@@ -41,7 +41,7 @@ pub fn reset_on_mutation_success(state: &mut RunRailState, tool_name: &str) {
     }
 }
 
-/// Record verify tool output at VERIFY; regress to ACT on failure.
+/// Record verify tool output at VERIFY (or ACT after VERIFY was visited); regress to ACT on failure.
 /// Returns `true` when VERIFY failed and station regressed to ACT.
 #[must_use]
 pub fn on_verify_tool_result(
@@ -50,7 +50,7 @@ pub fn on_verify_tool_result(
     output: &Value,
     is_error: bool,
 ) -> bool {
-    if state.station != RunStation::Verify {
+    if !verify_tool_counts_at_station(state) {
         return false;
     }
     if is_error {
@@ -77,6 +77,16 @@ pub fn on_verify_tool_result(
         _ => return false,
     }
     false
+}
+
+/// `bash` / `lsp` diagnostics count at VERIFY, or at ACT once VERIFY was already visited
+/// (models often re-run checks after `force_act` from the done gate).
+#[must_use]
+fn verify_tool_counts_at_station(state: &RunRailState) -> bool {
+    if state.station == RunStation::Verify {
+        return true;
+    }
+    state.station == RunStation::Act && state.visited_verify
 }
 
 fn fail_verify(state: &mut RunRailState, message: String) {
@@ -167,6 +177,33 @@ fn lsp_failure_summary(output: &Value) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn lsp_clean_at_verify_passes() {
+        let mut state = RunRailState {
+            station: RunStation::Verify,
+            visited_verify: true,
+            ..RunRailState::new()
+        };
+        let out = json!({
+            "op": "diagnostics",
+            "total": 0,
+            "results": []
+        });
+        assert!(!on_verify_tool_result(&mut state, "lsp", &out, false));
+        assert!(state.verify_outcome.passed());
+    }
+
+    #[test]
+    fn bash_clean_at_act_after_verify_passes() {
+        let mut state = RunRailState {
+            station: RunStation::Act,
+            visited_verify: true,
+            ..RunRailState::new()
+        };
+        assert!(!on_verify_tool_result(&mut state, "bash", &json!({ "exit_code": 0 }), false));
+        assert!(state.verify_outcome.passed());
+    }
 
     #[test]
     fn bash_nonzero_fails_verify() {

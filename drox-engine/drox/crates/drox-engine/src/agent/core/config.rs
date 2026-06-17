@@ -45,7 +45,7 @@ pub struct AgentConfig {
     pub run_objective: Option<String>,
     /// SpÃ©cification d'exÃ©cution du run (couche B). Voir `run_spec`.
     pub run_spec: RunSpec,
-    /// ParamÃ¨tres strictness / gates rÃ©solus (`resolve_engine_tuning`).
+    /// Profil moteur produit résolu (`EngineTuning::product_default` / `resolve_engine_tuning`).
     pub engine_tuning: crate::orchestration::EngineTuning,
     /// Id run orchestration (corrÃ©lation RPC / transcript).
     pub orchestration_run_id: Option<String>,

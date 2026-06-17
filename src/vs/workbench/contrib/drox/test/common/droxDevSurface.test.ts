@@ -23,5 +23,9 @@ suite('droxDevSurface', () => {
 		assert.strictEqual(isDroxDevFeatureEnabled('exportTranscript', dev), true);
 		assert.strictEqual(isDroxDevFeatureEnabled('exportTranscript', release), false);
 		assert.strictEqual(isDroxDevFeatureEnabled('chatVersionDevSuffix', release), false);
+		assert.strictEqual(isDroxDevFeatureEnabled('executablePath', dev), true);
+		assert.strictEqual(isDroxDevFeatureEnabled('executablePath', release), false);
+		assert.strictEqual(isDroxDevFeatureEnabled('advancedLlmSettings', dev), true);
+		assert.strictEqual(isDroxDevFeatureEnabled('advancedLlmSettings', release), false);
 	});
 });

@@ -1,10 +1,12 @@
-//! Résolution unique `EngineTuning` — presets + overrides `custom`.
+//! Profil moteur unique (`EngineTuning::product_default`) — rail + tool folders actifs.
 //!
-//! Registre : `docs/1.3/1.3.2/PLAN-PROMPTS-ADDITIFS-1.3.2.md` §9–§10.
+//! `resolve_engine_tuning` ignore `strictness` / overrides RPC (rétrocompat wire).
+//! [`StrictnessPreset`] et [`EngineTuningOverrides`] restent pour tests unitaires internes.
 
 use serde::{Deserialize, Serialize};
 
-/// Preset produit `drox.engine.strictness`.
+/// Presets historiques — **non exposés produit** ; tests / construction interne uniquement.
+#[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StrictnessPreset {
     Relaxed,
@@ -36,7 +38,8 @@ impl StrictnessPreset {
     }
 }
 
-/// Surcharges partielles (RPC `engineTuning` — ignoré si preset ≠ `custom`).
+/// Surcharges partielles — désérialisation RPC legacy ; ignorées par `resolve_engine_tuning`.
+#[doc(hidden)]
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct EngineTuningOverrides {
@@ -120,16 +123,24 @@ pub type PromptVars = EngineTuning;
 
 impl Default for EngineTuning {
     fn default() -> Self {
-        Self::from_preset(StrictnessPreset::Normal)
+        Self::product_default()
     }
 }
 
 impl EngineTuning {
+    /// Profil produit unique — ancien preset `normal` avec run rail et tool folders.
     #[must_use]
-    pub fn from_engine_strictness_param(value: Option<&str>) -> Self {
-        resolve_engine_tuning(value, None)
+    pub fn product_default() -> Self {
+        Self::from_preset(StrictnessPreset::Normal)
     }
 
+    #[must_use]
+    pub fn from_engine_strictness_param(_value: Option<&str>) -> Self {
+        resolve_engine_tuning(None, None)
+    }
+
+    /// Construction interne / tests — pas le chemin wire produit.
+    #[doc(hidden)]
     #[must_use]
     pub fn from_preset(strictness: StrictnessPreset) -> Self {
         let base = strictness.base_preset();
@@ -241,6 +252,7 @@ impl EngineTuning {
         t
     }
 
+    #[doc(hidden)]
     pub fn apply_overrides(&mut self, o: &EngineTuningOverrides) {
         apply_opt(&mut self.read_budget_percent, o.read_budget_percent);
         apply_opt(&mut self.promotable_answer_min_chars, o.promotable_answer_min_chars);
@@ -369,21 +381,13 @@ impl EngineTuning {
     }
 }
 
-/// Point d'entrée unique (RPC / settings).
+/// Point d'entrée unique (RPC / settings) — toujours le profil produit.
 #[must_use]
 pub fn resolve_engine_tuning(
-    strictness: Option<&str>,
-    overrides: Option<&EngineTuningOverrides>,
+    _strictness: Option<&str>,
+    _overrides: Option<&EngineTuningOverrides>,
 ) -> EngineTuning {
-    let preset = strictness
-        .and_then(StrictnessPreset::parse)
-        .unwrap_or(StrictnessPreset::Normal);
-    let mut tuning = EngineTuning::from_preset(preset);
-    if preset == StrictnessPreset::Custom {
-        if let Some(o) = overrides {
-            tuning.apply_overrides(o);
-        }
-    }
+    let mut tuning = EngineTuning::product_default();
     tuning.clamp_to_bounds();
     tuning
 }
@@ -399,53 +403,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn run_rail_enabled_only_on_normal_preset() {
-        assert!(!resolve_engine_tuning(Some("relaxed"), None).run_rail_enabled);
-        assert!(resolve_engine_tuning(Some("normal"), None).run_rail_enabled);
-        assert!(!resolve_engine_tuning(Some("strict"), None).run_rail_enabled);
-        assert!(!resolve_engine_tuning(Some("custom"), None).run_rail_enabled);
-    }
-
-    #[test]
-    fn custom_can_enable_run_rail() {
-        let t = resolve_engine_tuning(
-            Some("custom"),
-            Some(&EngineTuningOverrides {
-                run_rail_enabled: Some(true),
-                ..Default::default()
-            }),
-        );
+    fn product_default_enables_run_rail_and_tool_folders() {
+        let t = EngineTuning::product_default();
         assert!(t.run_rail_enabled);
-    }
-
-    #[test]
-    fn resolve_strict_preset() {
-        let t = resolve_engine_tuning(Some("strict"), None);
-        assert_eq!(t.read_budget_percent, 45);
-        assert_eq!(t.loop_strikes_before_abort, 2);
-    }
-
-    #[test]
-    fn custom_override_ignored_when_not_custom() {
-        let t = resolve_engine_tuning(
-            Some("normal"),
-            Some(&EngineTuningOverrides {
-                read_budget_percent: Some(99),
-                ..Default::default()
-            }),
-        );
+        assert!(t.tool_folders_enabled);
+        assert_eq!(t.strictness, StrictnessPreset::Normal);
         assert_eq!(t.read_budget_percent, 70);
     }
 
     #[test]
-    fn custom_applies_override() {
+    fn resolve_engine_tuning_ignores_strictness_and_overrides() {
+        let base = EngineTuning::product_default();
+        for strictness in ["relaxed", "normal", "strict", "custom"] {
+            let t = resolve_engine_tuning(Some(strictness), None);
+            assert_eq!(t, base, "strictness {strictness}");
+        }
         let t = resolve_engine_tuning(
-            Some("custom"),
+            Some("strict"),
             Some(&EngineTuningOverrides {
-                discussion_promotable_min_chars: Some(8),
+                read_budget_percent: Some(99),
+                run_rail_enabled: Some(false),
                 ..Default::default()
             }),
         );
+        assert_eq!(t, base);
+    }
+
+    #[test]
+    fn from_preset_relaxed_disables_run_rail_for_internal_tests() {
+        let t = EngineTuning::from_preset(StrictnessPreset::Relaxed);
+        assert!(!t.run_rail_enabled);
+        assert_eq!(t.read_budget_percent, 85);
+    }
+
+    #[test]
+    fn from_preset_custom_applies_overrides_internally() {
+        let mut t = EngineTuning::from_preset(StrictnessPreset::Custom);
+        t.apply_overrides(&EngineTuningOverrides {
+            discussion_promotable_min_chars: Some(8),
+            ..Default::default()
+        });
         assert_eq!(t.strictness, StrictnessPreset::Custom);
         assert_eq!(t.discussion_promotable_min_chars, 8);
         assert_eq!(t.read_budget_percent, 70);
@@ -462,14 +459,9 @@ mod tests {
     }
 
     #[test]
-    fn live_compact_settings_from_custom_override() {
-        let t = resolve_engine_tuning(
-            Some("custom"),
-            Some(&EngineTuningOverrides {
-                checkpoint_max_chars: Some(1500),
-                ..Default::default()
-            }),
-        );
+    fn live_compact_settings_from_internal_override() {
+        let mut t = EngineTuning::product_default();
+        t.checkpoint_max_chars = 1500;
         let live = crate::compaction::LiveCompactSettings::from_tuning(&t);
         assert_eq!(live.checkpoint_max_chars, 1500);
     }

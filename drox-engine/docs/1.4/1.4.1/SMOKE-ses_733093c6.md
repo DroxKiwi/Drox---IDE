@@ -1,10 +1,13 @@
-# Smoke — `ses_733093c6` (Qwen 27B · Phase E vert)
+# Smoke — `ses_733093c6` run 1 (Qwen 3.6 27B · protocole folders OK)
 
 **Date** : 2026-06-16 · durée **~3 min 08**  
-**Session** : `ses_733093c6-b23e-4fda-bd14-5c84595f27bd`  
+**Session** : `ses_733093c6-b23e-4fda-bd14-5c84595f27bd` *(run 1 seul — voir session complète)*  
+**Modèle** : **Qwen 3.6 27B**  
 **Workspace** : `site-kdds`  
 **Build** : `1.4.0.1781632229` · git `d0beafd` · `target/debug/drox.exe`  
 **Export** : `drox-engine/docs/chat_qwen27b.txt` · archive `site-kdds/.drox/exports/transcript-ses_733093c6-*.txt`
+
+> **⚠ Session multi-runs** : les runs 2 et 3 (follow-up hero text) ont échoué — boucle READ, faux positif, `done` sans mutation. Analyse complète : [`SMOKE-ses_733093c6-SESSION.md`](SMOKE-ses_733093c6-SESSION.md).
 
 ## Demande utilisateur
 
@@ -22,7 +25,7 @@ Simplifier le SVG animé du site (`animated-background.tsx`) — moins chargé, 
 | **R6** `phase: done` + mutation | oui | ✅ `file_write` + LSP 0 erreur |
 | **R7** Export A+B+C archivé | oui | ✅ résumé fin PARTIE A |
 
-**Conclusion** : smoke **Phase E validé** après correctifs tool folders × rail ([`SMOKE-ses_3948a285.md`](SMOKE-ses_3948a285.md)).
+**Conclusion run 1** : protocole tool folders × rail **OK** sur tâche simple isolée ([`SMOKE-ses_3948a285.md`](SMOKE-ses_3948a285.md)). Ce n'est **pas** une validation Phase E complète — voir [`SMOKE-ses_733093c6-SESSION.md`](SMOKE-ses_733093c6-SESSION.md).
 
 ## Métriques run
 
@@ -66,6 +69,7 @@ Simplifier le SVG animé du site (`animated-background.tsx`) — moins chargé, 
 
 ## Références
 
+- Session complète (runs 2–3 échec) : [SMOKE-ses_733093c6-SESSION.md](SMOKE-ses_733093c6-SESSION.md)
 - Échec pré-fix : [SMOKE-ses_3948a285.md](SMOKE-ses_3948a285.md)
 - Baseline protocole texte : [SMOKE-ses_7d5db0f1.md](SMOKE-ses_7d5db0f1.md)
 - Clôture : [finalisation/CLOSURE-1.4.1.3.md](finalisation/CLOSURE-1.4.1.3.md)

@@ -5,7 +5,7 @@ use drox_engine::{
     architect_discussion_user_message,
     architect_edit_system_prompt_core_for_run_vars, architect_user_message,
     engine_trace_path,
-    initial_run_objective_for_concrete_edit, resolve_engine_tuning, AgentEvent, ArchitectGate,
+    initial_run_objective_for_concrete_edit, AgentEvent, ArchitectGate,
     EngineTracePayload, EngineTraceRecord, OrchestrationConfig, RoleId, RunRoutingTrace, RunSpec,
     StartRunKind, resolve_run_intent, RunIntentFlags,
 };
@@ -15,6 +15,7 @@ use crate::jsonrpc::handlers::agent_run::{
     build_agent_setup, build_orchestration_llm, drive_role_run, notify_agent_event,
     notify_agent_run_completed, AgentSetupOverrides, RunOutcome,
 };
+use crate::jsonrpc::handlers::common::resolve_agent_run_engine_tuning;
 use crate::jsonrpc::handlers::common::resolve_workspace;
 use crate::jsonrpc::protocol::AgentRunParams;
 use crate::jsonrpc::server::Server;
@@ -142,10 +143,7 @@ async fn drive_role_split_discuss(
 ) -> Result<RunOutcome, RunOutcome> {
     let start_run = resolved.start_run;
     let allow_reads = start_run.allows_discussion_reads();
-    let tuning = drox_engine::resolve_engine_tuning(
-        params.engine_strictness.as_deref(),
-        params.engine_tuning.as_ref(),
-    );
+    let tuning = resolve_agent_run_engine_tuning(params);
     let mut discussion_params = params.clone();
     let discuss_max = tuning.discussion_max_iterations.clamp(1, 25);
     discussion_params.max_iterations = Some(
@@ -218,10 +216,7 @@ async fn drive_role_split_edit(
     resolved: ResolvedOrchestration,
 ) -> Result<RunOutcome, RunOutcome> {
     let start_run = resolved.start_run;
-    let tuning = resolve_engine_tuning(
-        params.engine_strictness.as_deref(),
-        params.engine_tuning.as_ref(),
-    );
+    let tuning = resolve_agent_run_engine_tuning(params);
     let orch_cfg = OrchestrationConfig::from_agent_run(params.model.as_deref());
 
     let run_objective_override = initial_run_objective_for_concrete_edit(&params.prompt);

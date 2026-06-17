@@ -21,7 +21,8 @@ Centraliser **l’ordre et le contenu** des injections system (Context Frame), i
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | Découpage Rust / TS · limite 500 L |
 | **[INTEGRATION-internal-plan.md](INTEGRATION-internal-plan.md)** | **Plan L2** — fil d'Ariane moteur, transcript, phases B–E |
 | **[PLAN-PROTO-FIXES.md](PLAN-PROTO-FIXES.md)** | **Phase F** — correctifs protocole · F4 tool folders · closure E ☑ |
-| [SMOKE-ses_733093c6.md](../SMOKE-ses_733093c6.md) | Smoke Phase E vert (~3 min) |
+| [SMOKE-ses_733093c6.md](../SMOKE-ses_733093c6.md) | Smoke run 1 (~3 min, folders OK) |
+| [SMOKE-ses_733093c6-SESSION.md](../SMOKE-ses_733093c6-SESSION.md) | **Session complète** — échec multi-runs Qwen 3.6 27B |
 | [CLOSURE-1.4.1.3.md](../finalisation/CLOSURE-1.4.1.3.md) | Clôture chantier |
 | [PLAN-1.4.1.3](../PLAN-1.4.1.3.md) | Entrée plan depuis hub 1.4.1 |
 

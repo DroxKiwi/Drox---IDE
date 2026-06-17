@@ -6,6 +6,9 @@
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { DroxSetting, readArchitectModel } from './droxConfiguration.js';
+import { isDroxDevFeatureEnabled } from './droxDevSurface.js';
+import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX, DROX_DEFAULT_NUM_PREDICT } from './droxProductDefaults.js';
+import product from '../../../../platform/product/common/product.js';
 import { IDroxAgentRunImage } from './droxAttachments.js';
 import { getDisabledToolNames } from './droxToolCatalog.js';
 import {
@@ -13,12 +16,6 @@ import {
 	normalizeDroxArchitectInteractionMode,
 	wireArchitectInteractionMode,
 } from './droxArchitectInteractionMode.js';
-import {
-	DROX_DEFAULT_ENGINE_STRICTNESS,
-	DroxEngineStrictnessPreset,
-	wireEngineStrictnessForRpc,
-} from './droxEngineStrictness.js';
-import { wireEngineTuningForRpc } from './droxEngineTuning.js';
 import { DroxPermissionMode, normalizeDroxPermissionMode } from './droxPermissionAsk.js';
 import { droxWorkspaceSessionsDir } from './droxWorkspacePaths.js';
 export interface IDroxLlmSettings {
@@ -56,29 +53,46 @@ export function readArchitectInteractionMode(
 	const v = configService.getValue<string>(DroxSetting.ArchitectInteractionMode, { resource });
 	return normalizeDroxArchitectInteractionMode(v);
 }
+function readOptionalNumber(
+	configService: IConfigurationService,
+	key: string,
+	resource: URI | undefined,
+): number | undefined {
+	if (!isDroxDevFeatureEnabled('advancedLlmSettings', product)) {
+		return undefined;
+	}
+	return readNumber(configService, key, resource);
+}
 export function readLlmSettings(configService: IConfigurationService, resource?: URI): IDroxLlmSettings {
 	const str = (key: string): string => {
 		const v = configService.getValue<string>(key, { resource });
 		return typeof v === 'string' ? v.trim() : '';
 	};
+	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 	return {
 		server: str(DroxSetting.Server),
 		model: readArchitectModel(configService, resource),
 		apiKey: str(DroxSetting.ApiKey),
 		primaryLanguage: str(DroxSetting.PrimaryLanguage),
-		maxIterations: configService.getValue<number>(DroxSetting.MaxIterations, { resource }) ?? 12,
-		temperature: readNumber(configService, DroxSetting.Temperature, resource),
-		maxTokens: readNumber(configService, DroxSetting.MaxTokens, resource),
-		numPredict: readNumber(configService, DroxSetting.NumPredict, resource),
-		numCtx: readNumber(configService, DroxSetting.NumCtx, resource),
-		topP: readNumber(configService, DroxSetting.TopP, resource),
-		topK: readNumber(configService, DroxSetting.TopK, resource),
-		repeatPenalty: readNumber(configService, DroxSetting.RepeatPenalty, resource),
-		seed: readNumber(configService, DroxSetting.Seed, resource),
-		minP: readNumber(configService, DroxSetting.MinP, resource),
-		presencePenalty: readNumber(configService, DroxSetting.PresencePenalty, resource),
-		frequencyPenalty: readNumber(configService, DroxSetting.FrequencyPenalty, resource),
-		keepAlive: str(DroxSetting.KeepAlive),
+		maxIterations: advanced
+			? (configService.getValue<number>(DroxSetting.MaxIterations, { resource }) ?? DROX_DEFAULT_MAX_ITERATIONS)
+			: DROX_DEFAULT_MAX_ITERATIONS,
+		temperature: readOptionalNumber(configService, DroxSetting.Temperature, resource),
+		maxTokens: readOptionalNumber(configService, DroxSetting.MaxTokens, resource),
+		numPredict: advanced
+			? (readNumber(configService, DroxSetting.NumPredict, resource) ?? DROX_DEFAULT_NUM_PREDICT)
+			: DROX_DEFAULT_NUM_PREDICT,
+		numCtx: advanced
+			? (readNumber(configService, DroxSetting.NumCtx, resource) ?? DROX_DEFAULT_NUM_CTX)
+			: DROX_DEFAULT_NUM_CTX,
+		topP: readOptionalNumber(configService, DroxSetting.TopP, resource),
+		topK: readOptionalNumber(configService, DroxSetting.TopK, resource),
+		repeatPenalty: readOptionalNumber(configService, DroxSetting.RepeatPenalty, resource),
+		seed: readOptionalNumber(configService, DroxSetting.Seed, resource),
+		minP: readOptionalNumber(configService, DroxSetting.MinP, resource),
+		presencePenalty: readOptionalNumber(configService, DroxSetting.PresencePenalty, resource),
+		frequencyPenalty: readOptionalNumber(configService, DroxSetting.FrequencyPenalty, resource),
+		keepAlive: advanced ? str(DroxSetting.KeepAlive) : '',
 		nativeThinking: configService.getValue<boolean>(DroxSetting.NativeThinking, { resource }) ?? false,
 	};
 }
@@ -146,9 +160,6 @@ export function buildAgentRunParams(opts: {
 	readonly images?: readonly IDroxAgentRunImage[];
 	readonly runObjective?: string;
 	readonly architectInteractionMode?: DroxArchitectInteractionMode;
-	readonly engineStrictness?: DroxEngineStrictnessPreset;
-	readonly configService?: IConfigurationService;
-	readonly configResource?: URI;
 }): Record<string, unknown> {
 	const wireMode = normalizeDroxPermissionMode(opts.mode);
 	const params: Record<string, unknown> = {
@@ -205,18 +216,6 @@ export function buildAgentRunParams(opts: {
 	);
 	if (architectGate) {
 		params.architectInteractionMode = architectGate;
-	}
-	const strictness = opts.engineStrictness ?? DROX_DEFAULT_ENGINE_STRICTNESS;
-	params.engineStrictness = wireEngineStrictnessForRpc(strictness);
-	if (opts.configService) {
-		const tuning = wireEngineTuningForRpc(
-			strictness,
-			opts.configService,
-			opts.configResource,
-		);
-		if (tuning) {
-			params.engineTuning = tuning;
-		}
 	}
 	return params;
 }

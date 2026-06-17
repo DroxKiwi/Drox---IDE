@@ -9,21 +9,20 @@ pub(super) enum PostLlmStep {
 impl Agent {
     async fn inject_missing_mutation_gate(
         &self,
-        outcome: &crate::agent::stream::TurnOutcome,
+        _outcome: &crate::agent::stream::TurnOutcome,
         messages: &mut Vec<Message>,
         transcript_cursor: &mut usize,
         tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
         architect_state: &mut ArchitectRunState,
         mutation_expected: bool,
-        mutation_count: u32,
+        _mutation_count: u32,
         last_todo_pending: u64,
         last_todo_in_progress: u64,
     ) -> Option<PostLlmStep> {
         if let Some(prompt) = done_gate_missing_mutation_when_expected(
             &self.config.run_spec,
             mutation_expected,
-            mutation_count,
-            &outcome.text,
+            messages,
         ) {
             debug!("[phase: done] mutation attendue mais aucun outil mutateur — nudge");
             append_gate_nudge(messages, NudgeId::DoneMissingMutation, prompt);

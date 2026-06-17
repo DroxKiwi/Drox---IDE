@@ -22,7 +22,6 @@
 		setVal('general-settings-llm-provider', s.llmProvider || 'ollama');
 		setVal('general-settings-server', s.server || '');
 		setVal('general-settings-api-key', s.apiKey || '');
-		setVal('general-settings-executable-path', s.executablePath || '');
 		setVal('general-settings-keep-alive', s.keepAlive || '');
 		setVal('general-settings-max-iterations', s.maxIterations ?? 12);
 		setVal('general-settings-native-thinking', s.nativeThinking);
@@ -35,12 +34,6 @@
 		setVal('general-settings-add-diagnostic-on-hover', s.addDiagnosticOnHover);
 		setVal('general-settings-mcp-tools-enabled', s.mcpToolsEnabled !== false);
 		setVal('general-settings-show-chat-errors-warnings', s.showChatErrorsAndWarnings !== false);
-		setVal('general-settings-engine-strictness', s.engineStrictness || 'normal');
-		const tuning = s.engineTuning && typeof s.engineTuning === 'object' ? s.engineTuning : {};
-		setVal('general-settings-tuning-read-budget-percent', tuning.readBudgetPercent ?? 70);
-		setVal('general-settings-tuning-loop-strikes', tuning.loopStrikesBeforeAbort ?? 4);
-		setVal('general-settings-tuning-context-snip', tuning.contextSnipEnabled !== false);
-		fn.syncEngineTuningPanelVisibility();
 		const disabled = D.state.busy;
 		const panel = D.dom.generalSettingsPanelEl;
 		if (panel) {
@@ -63,33 +56,30 @@
 			const el = document.getElementById(id);
 			return el && el.type === 'checkbox' ? el.checked : false;
 		};
-		const strictness = str('general-settings-engine-strictness') || 'normal';
 		const patch = {
 			llmProvider: str('general-settings-llm-provider') || 'ollama',
 			server: str('general-settings-server'),
 			apiKey: str('general-settings-api-key'),
-			executablePath: str('general-settings-executable-path'),
-			keepAlive: str('general-settings-keep-alive'),
-			maxIterations: num('general-settings-max-iterations') ?? 12,
 			nativeThinking: bool('general-settings-native-thinking'),
 			primaryLanguage: str('general-settings-primary-language'),
-			maxTokens: num('general-settings-max-tokens'),
-			numPredict: num('general-settings-num-predict'),
 			warmStart: bool('general-settings-warm-start'),
 			confirmFileWrites: bool('general-settings-confirm-file-writes'),
 			openModifiedFiles: bool('general-settings-open-modified-files'),
 			addDiagnosticOnHover: bool('general-settings-add-diagnostic-on-hover'),
 			mcpToolsEnabled: bool('general-settings-mcp-tools-enabled'),
 			showChatErrorsAndWarnings: bool('general-settings-show-chat-errors-warnings'),
-			engineStrictness: strictness,
 		};
-		if (strictness === 'custom') {
-			const tuning = {
-				readBudgetPercent: num('general-settings-tuning-read-budget-percent'),
-				loopStrikesBeforeAbort: num('general-settings-tuning-loop-strikes'),
-				contextSnipEnabled: bool('general-settings-tuning-context-snip'),
-			};
-			patch.engineTuning = tuning;
+		if (document.getElementById('general-settings-keep-alive')) {
+			patch.keepAlive = str('general-settings-keep-alive');
+		}
+		if (document.getElementById('general-settings-max-iterations')) {
+			patch.maxIterations = num('general-settings-max-iterations') ?? 12;
+		}
+		if (document.getElementById('general-settings-max-tokens')) {
+			patch.maxTokens = num('general-settings-max-tokens');
+		}
+		if (document.getElementById('general-settings-num-predict')) {
+			patch.numPredict = num('general-settings-num-predict');
 		}
 		return patch;
 	};

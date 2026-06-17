@@ -15,9 +15,7 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
-import product from '../../../../platform/product/common/product.js';
-import { createDroxEngineTuningConfigurationProperties } from './droxEngineTuningConfiguration.js';
-import { isDroxDevFeatureEnabled } from './droxDevSurface.js';
+import { createDroxDevConfigurationProperties } from './droxDevConfiguration.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
 
@@ -47,12 +45,11 @@ export const enum DroxSetting {
 	ArchitectInteractionMode = 'drox.architect.interactionMode',
 
 	/**
-	 * Sévérité orchestration (prompts additifs + gates numériques).
-	 * Wire RPC `engineStrictness` → `PromptVars` moteur.
+	 * @deprecated Legacy setting — ignored by the engine (single product profile).
 	 */
 	EngineStrictness = 'drox.engine.strictness',
 
-	/** Surcharges unitaires (visibles si strictness = `custom`). Wire RPC `engineTuning`. */
+	/** @deprecated Legacy overrides — ignored by the engine. */
 	EngineTuningReadBudgetPercent = 'drox.engine.tuning.readBudgetPercent',
 	EngineTuningMaxReadsBeforeDelegate = 'drox.engine.tuning.maxReadsBeforeDelegate',
 	EngineTuningMaxMutationsBeforeDelegateNudge = 'drox.engine.tuning.maxMutationsBeforeDelegateNudge',
@@ -234,53 +231,13 @@ export function readArchitectModel(configService: IConfigurationService, resourc
 	return readDroxConfigString(configService, DroxSetting.ArchitectModel, DroxSetting.Model, resource);
 }
 
-const droxDevOnlyUpdateSimulateProperties: Record<string, IConfigurationPropertySchema> =
-	isDroxDevFeatureEnabled('updateSimulateLatest', product)
-		? {
-			[DroxSetting.UpdateSimulateLatestVersion]: {
-				type: 'string',
-				default: '',
-				scope: ConfigurationScope.APPLICATION,
-				markdownDescription: localize(
-					'drox.update.simulateLatestVersion',
-					'**Dev/test:** if set (e.g. `99.0.0`), skips the remote manifest and uses this as the latest version. Use with **Drox: Check for Updates** to preview the update notification without publishing a release.',
-				),
-			},
-			[DroxSetting.UpdateSimulateInstallerUrl]: {
-				type: 'string',
-				default: 'https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest',
-				scope: ConfigurationScope.APPLICATION,
-				markdownDescription: localize(
-					'drox.update.simulateInstallerUrl',
-					'**Dev/test:** URL used when `drox.update.simulateLatestVersion` is set and you click **Installer maintenant**.',
-				),
-			},
-		}
-		: {};
+const droxDevConfigurationProperties = createDroxDevConfigurationProperties();
 
 export const droxConfigurationNode: IConfigurationNode = {
 	id: 'drox',
 	title: localize('droxConfigurationTitle', 'Drox'),
 	type: 'object',
 	properties: {
-
-		[DroxSetting.ExecutablePath]: {
-
-			type: 'string',
-
-			default: '',
-
-			markdownDescription: localize(
-
-				'drox.executablePath',
-
-				'Path to the `drox` executable. When empty, probes `drox-engine/drox/target/{debug,release}/` then `drox` on `PATH`.',
-
-			),
-
-			scope: ConfigurationScope.MACHINE_OVERRIDABLE,
-
-		},
 
 		[DroxSetting.LlmProvider]: {
 
@@ -332,19 +289,6 @@ export const droxConfigurationNode: IConfigurationNode = {
 				'**Architect mode** (`role_split`) per message: **Auto** — intent probe picks discuss vs action (`[gate: architect_discuss|architect_edit]`); **Discussion** — direct reply, limited read tools; **Action** — full workspace tools (edit, bash, reads, …). Synced with composer vignettes.',
 			),
 		},
-
-		[DroxSetting.EngineStrictness]: {
-			type: 'string',
-			enum: ['relaxed', 'normal', 'strict', 'custom'],
-			default: 'normal',
-			scope: ConfigurationScope.RESOURCE,
-			markdownDescription: localize(
-				'drox.engine.strictness',
-				'**Engine strictness** — preset bundles for orchestration prompts (`role_split`) and numeric limits (reads, loops, gates). **Relaxed** / **Normal** / **Strict** use fixed engine values; **Custom** applies `drox.engine.tuning.*` below (overrides Normal).',
-			),
-		},
-
-		...createDroxEngineTuningConfigurationProperties(),
 
 		[DroxSetting.Model]: droxLegacyModelSettingSchema,
 
@@ -400,25 +344,6 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		},
 
-		[DroxSetting.MaxIterations]: {
-
-			type: 'number',
-
-			default: 12,
-
-			minimum: 1,
-
-			maximum: 200,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			markdownDescription: localize(
-				'drox.maxIterations',
-				'**Parent agent iterations** — maximum LLM ↔ tool turns per `agent.run` (main Architect). Distinct from `drox.engine.tuning.executorSubrunMaxIterations` (Executor sub-runs).',
-			),
-
-		},
-
 		[DroxSetting.NativeThinking]: {
 
 			type: 'boolean',
@@ -428,191 +353,6 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 
 			description: localize('drox.nativeThinking', 'Enable Ollama native thinking (`internal_reasoning` phase).'),
-
-		},
-
-		[DroxSetting.Temperature]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			minimum: 0,
-
-			maximum: 2,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.temperature', 'Sampling temperature. Leave unset for server default.'),
-
-		},
-
-		[DroxSetting.MaxTokens]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			minimum: 1,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.maxTokens', 'Max response tokens per turn.'),
-
-		},
-
-		[DroxSetting.NumPredict]: {
-
-			type: 'number',
-
-			default: 4096,
-
-			minimum: 1,
-
-			maximum: 65536,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.numPredict', 'Ollama `num_predict` (generated tokens cap).'),
-
-		},
-
-		[DroxSetting.NumCtx]: {
-
-			type: 'number',
-
-			default: 32768,
-
-			minimum: 2048,
-
-			maximum: 200000,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			markdownDescription: localize(
-				'drox.numCtx',
-				'**Parent context window** — Ollama `num_ctx` for the Architect and main run. Executors may use a different window via server/model profile.',
-			),
-
-		},
-
-		[DroxSetting.TopP]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			minimum: 0,
-
-			maximum: 1,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.topP', 'Ollama `top_p`.'),
-
-		},
-
-		[DroxSetting.TopK]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			minimum: 1,
-
-			maximum: 200,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.topK', 'Ollama `top_k`.'),
-
-		},
-
-		[DroxSetting.RepeatPenalty]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			minimum: 0.5,
-
-			maximum: 2,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.repeatPenalty', 'Ollama `repeat_penalty`.'),
-
-		},
-
-		[DroxSetting.Seed]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.seed', 'Ollama `seed` for reproducible sampling.'),
-
-		},
-
-		[DroxSetting.MinP]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			minimum: 0,
-
-			maximum: 1,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.minP', 'Ollama `min_p`.'),
-
-		},
-
-		[DroxSetting.PresencePenalty]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			minimum: -2,
-
-			maximum: 2,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.presencePenalty', 'Ollama `presence_penalty`.'),
-
-		},
-
-		[DroxSetting.FrequencyPenalty]: {
-
-			type: 'number',
-
-			default: undefined,
-
-			minimum: -2,
-
-			maximum: 2,
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.frequencyPenalty', 'Ollama `frequency_penalty`.'),
-
-		},
-
-		[DroxSetting.KeepAlive]: {
-
-			type: 'string',
-
-			default: '',
-
-			scope: ConfigurationScope.RESOURCE,
-
-			description: localize('drox.keepAlive', 'Ollama `keep_alive` (e.g. `30m`, `0`, `-1`).'),
 
 		},
 
@@ -718,8 +458,6 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		},
 
-		...droxDevOnlyUpdateSimulateProperties,
-
 		[DroxSetting.CycleDoneWindowsNotification]: {
 
 			type: 'boolean',
@@ -801,6 +539,8 @@ export const droxConfigurationNode: IConfigurationNode = {
 			description: localize('drox.tools.mcp.enabled', 'Expose MCP tools (`mcp__…`) to the model.'),
 
 		},
+
+		...droxDevConfigurationProperties,
 
 	},
 

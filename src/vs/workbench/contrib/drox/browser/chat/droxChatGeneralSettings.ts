@@ -6,13 +6,10 @@
 // allow-any-unicode-comment-file
 
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import product from '../../../../../platform/product/common/product.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
-import { DROX_ENGINE_TUNING_RPC_FIELDS } from '../../common/droxEngineTuning.js';
-import {
-	DroxEngineStrictnessPreset,
-	normalizeDroxEngineStrictnessPreset,
-	readDroxEngineStrictness,
-} from '../../common/droxEngineStrictness.js';
+import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
+import { DROX_DEFAULT_MAX_ITERATIONS } from '../../common/droxProductDefaults.js';
 import { isMcpToolsEnabled, readLlmSettings } from '../../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
@@ -21,7 +18,6 @@ export interface IDroxGeneralSettingsWire {
 	readonly llmProvider: string;
 	readonly server: string;
 	readonly apiKey: string;
-	readonly executablePath: string;
 	readonly maxIterations: number;
 	readonly nativeThinking: boolean;
 	readonly primaryLanguage: string;
@@ -34,16 +30,12 @@ export interface IDroxGeneralSettingsWire {
 	readonly addDiagnosticOnHover: boolean;
 	readonly mcpToolsEnabled: boolean;
 	readonly showChatErrorsAndWarnings: boolean;
-	readonly engineStrictness: DroxEngineStrictnessPreset;
-	/** Surcharges affichées/éditables uniquement si `engineStrictness === 'custom'`. */
-	readonly engineTuning?: Record<string, number | boolean>;
 }
 
 export interface IDroxGeneralSettingsPatch {
 	readonly llmProvider?: string;
 	readonly server?: string;
 	readonly apiKey?: string;
-	readonly executablePath?: string;
 	readonly maxIterations?: number;
 	readonly nativeThinking?: boolean;
 	readonly primaryLanguage?: string;
@@ -56,8 +48,6 @@ export interface IDroxGeneralSettingsPatch {
 	readonly addDiagnosticOnHover?: boolean;
 	readonly mcpToolsEnabled?: boolean;
 	readonly showChatErrorsAndWarnings?: boolean;
-	readonly engineStrictness?: DroxEngineStrictnessPreset;
-	readonly engineTuning?: Record<string, number | boolean>;
 }
 
 export interface IDroxChatGeneralSettingsHost {
@@ -81,48 +71,25 @@ export function readDroxGeneralSettingsForWebview(
 ): IDroxGeneralSettingsWire {
 	const resource = deps.runSettingsService.getWorkspaceResource();
 	const llm = readLlmSettings(deps.configurationService, resource);
-	const str = (key: string): string => {
-		const v = deps.configurationService.getValue<string>(key, { resource });
-		return typeof v === 'string' ? v.trim() : '';
-	};
 	const provider = deps.configurationService.getValue<string>(DroxSetting.LlmProvider, { resource });
-	const engineStrictness = readDroxEngineStrictness(deps.configurationService, resource);
-	const engineTuning: Record<string, number | boolean> = {};
-	if (engineStrictness === 'custom') {
-		for (const { rpcKey, settingKey, kind } of DROX_ENGINE_TUNING_RPC_FIELDS) {
-			const v = deps.configurationService.getValue<number | boolean>(settingKey, { resource });
-			if (kind === 'boolean') {
-				if (typeof v === 'boolean') {
-					engineTuning[rpcKey] = v;
-				}
-			} else if (typeof v === 'number' && !Number.isNaN(v)) {
-				if ((rpcKey === 'maxTodoItems' || rpcKey === 'memoryBudgetTokens') && v <= 0) {
-					continue;
-				}
-				engineTuning[rpcKey] = v;
-			}
-		}
-	}
+	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 
 	return {
 		llmProvider: typeof provider === 'string' && provider ? provider : 'ollama',
 		server: llm.server,
 		apiKey: llm.apiKey,
-		executablePath: str(DroxSetting.ExecutablePath),
-		maxIterations: llm.maxIterations,
+		maxIterations: advanced ? llm.maxIterations : DROX_DEFAULT_MAX_ITERATIONS,
 		nativeThinking: llm.nativeThinking,
 		primaryLanguage: llm.primaryLanguage,
-		maxTokens: llm.maxTokens,
-		numPredict: llm.numPredict,
-		keepAlive: llm.keepAlive,
+		maxTokens: advanced ? llm.maxTokens : undefined,
+		numPredict: advanced ? llm.numPredict : undefined,
+		keepAlive: advanced ? llm.keepAlive : '',
 		warmStart: readBool(deps.configurationService, DroxSetting.WarmStart, resource, true),
 		confirmFileWrites: readBool(deps.configurationService, DroxSetting.ConfirmFileWrites, resource, false),
 		openModifiedFiles: readBool(deps.configurationService, DroxSetting.OpenModifiedFiles, resource, true),
 		addDiagnosticOnHover: readBool(deps.configurationService, DroxSetting.AddDiagnosticOnHover, resource, false),
 		mcpToolsEnabled: isMcpToolsEnabled(deps.configurationService, resource),
 		showChatErrorsAndWarnings: readBool(deps.configurationService, DroxSetting.ChatShowErrorsAndWarnings, resource, true),
-		engineStrictness,
-		engineTuning: Object.keys(engineTuning).length > 0 ? engineTuning : undefined,
 	};
 }
 
@@ -144,6 +111,7 @@ export async function setDroxGeneralSettingsFromWebview(
 	patch: IDroxGeneralSettingsPatch,
 ): Promise<void> {
 	const resource = deps.runSettingsService.getWorkspaceResource();
+	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 	const update = async (key: string, value: unknown): Promise<void> => {
 		await deps.configurationService.updateValue(key, value, { resource });
 	};
@@ -156,10 +124,7 @@ export async function setDroxGeneralSettingsFromWebview(
 	if (patch.apiKey !== undefined) {
 		await update(DroxSetting.ApiKey, String(patch.apiKey).trim());
 	}
-	if (patch.executablePath !== undefined) {
-		await update(DroxSetting.ExecutablePath, String(patch.executablePath).trim());
-	}
-	if (patch.maxIterations !== undefined && Number.isFinite(patch.maxIterations)) {
+	if (patch.maxIterations !== undefined && advanced && Number.isFinite(patch.maxIterations)) {
 		await update(DroxSetting.MaxIterations, Math.min(200, Math.max(1, Math.floor(patch.maxIterations))));
 	}
 	if (patch.nativeThinking !== undefined) {
@@ -168,15 +133,15 @@ export async function setDroxGeneralSettingsFromWebview(
 	if (patch.primaryLanguage !== undefined) {
 		await update(DroxSetting.PrimaryLanguage, String(patch.primaryLanguage).trim());
 	}
-	if (patch.maxTokens !== undefined) {
+	if (patch.maxTokens !== undefined && advanced) {
 		const n = patch.maxTokens;
 		await update(DroxSetting.MaxTokens, n === undefined || !Number.isFinite(n) ? undefined : Math.max(1, Math.floor(n)));
 	}
-	if (patch.numPredict !== undefined) {
+	if (patch.numPredict !== undefined && advanced) {
 		const n = patch.numPredict;
 		await update(DroxSetting.NumPredict, n === undefined || !Number.isFinite(n) ? undefined : Math.max(1, Math.floor(n)));
 	}
-	if (patch.keepAlive !== undefined) {
+	if (patch.keepAlive !== undefined && advanced) {
 		await update(DroxSetting.KeepAlive, String(patch.keepAlive).trim());
 	}
 	if (patch.warmStart !== undefined) {
@@ -196,21 +161,5 @@ export async function setDroxGeneralSettingsFromWebview(
 	}
 	if (patch.showChatErrorsAndWarnings !== undefined) {
 		await update(DroxSetting.ChatShowErrorsAndWarnings, Boolean(patch.showChatErrorsAndWarnings));
-	}
-	if (patch.engineStrictness !== undefined) {
-		await update(DroxSetting.EngineStrictness, normalizeDroxEngineStrictnessPreset(patch.engineStrictness));
-	}
-	if (patch.engineTuning && typeof patch.engineTuning === 'object') {
-		for (const { rpcKey, settingKey, kind } of DROX_ENGINE_TUNING_RPC_FIELDS) {
-			if (!(rpcKey in patch.engineTuning)) {
-				continue;
-			}
-			const raw = patch.engineTuning[rpcKey];
-			if (kind === 'boolean') {
-				await update(settingKey, Boolean(raw));
-			} else if (typeof raw === 'number' && Number.isFinite(raw)) {
-				await update(settingKey, raw);
-			}
-		}
 	}
 }

@@ -12,6 +12,9 @@ import { isWindows } from '../../../../base/common/platform.js';
 import { URI } from '../../../../base/common/uri.js';
 
 import { IFileService } from '../../../../platform/files/common/files.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { DroxSetting } from './droxConfiguration.js';
+import { IDroxSurfaceProductInfo, isDroxDevFeatureEnabled } from './droxDevSurface.js';
 
 
 
@@ -158,6 +161,18 @@ export function enumerateDroxExecutableCandidates(options: IDroxExecutableResolv
 	}
 
 	return candidates;
+}
+
+/** Chemin `drox.executablePath` — ignoré en surface `release` (binaire embarqué / probe). */
+export function readDroxExecutableConfiguredPath(
+	configService: IConfigurationService,
+	product: IDroxSurfaceProductInfo,
+): string {
+	if (!isDroxDevFeatureEnabled('executablePath', product)) {
+		return '';
+	}
+	const v = configService.getValue<string>(DroxSetting.ExecutablePath);
+	return typeof v === 'string' ? v.trim() : '';
 }
 
 export async function resolveDroxExecutablePath(

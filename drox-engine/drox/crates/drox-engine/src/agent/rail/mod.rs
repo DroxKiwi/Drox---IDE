@@ -3,6 +3,7 @@
 //! Design: `drox-engine/docs/1.4/archive/1.4.0/README.md`
 
 mod act_failure;
+mod read_stall;
 mod act_stall;
 mod boot;
 mod cycle_reopen;
@@ -25,7 +26,7 @@ mod verify;
 pub(crate) use post_todos_close::reset_post_todos_idle;
 pub use loop_hooks::{
     after_assistant_turn, on_act_idle_turn, on_act_mutation_success, on_act_tool_failure,
-    on_post_todos_idle_turn, on_tool_success, on_turn_start, on_verify_tool_result,
+    on_post_todos_idle_turn, on_read_idle_turn, on_tool_success, on_turn_start, on_verify_tool_result,
     refresh_snapshot, ActRailNudge, AfterAssistantAction,
 };
 pub use transition::{
@@ -33,6 +34,7 @@ pub use transition::{
     RailTransitionContext,
 };
 pub use policy::filter_tool_specs_for_station;
+pub use policy::is_mutation_tool;
 pub use pre_gate::tool_pre_gate_rail;
 pub use snapshot_block::{is_run_rail_snapshot_message, refresh_run_rail_snapshot};
 pub use station::RunStation;
@@ -57,8 +59,9 @@ mod tests {
         assert!(run_rail_active(&normal, RoleId::Architect));
         assert!(!run_rail_active(&normal, RoleId::ArchitectDiscussion));
 
-        let relaxed =
-            crate::orchestration::tuning::resolve_engine_tuning(Some("relaxed"), None);
+        let relaxed = crate::EngineTuning::from_preset(
+            crate::orchestration::StrictnessPreset::Relaxed,
+        );
         assert!(!run_rail_active(&relaxed, RoleId::Architect));
     }
 

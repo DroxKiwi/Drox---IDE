@@ -87,6 +87,7 @@ export function getDroxChatHtml(
 	versionLabel: string,
 	versionTitle: string,
 	showExportTranscript = true,
+	showAdvancedSettings = true,
 ): string {
 
 	const css = cssUri.toString(true);
@@ -106,7 +107,7 @@ export function getDroxChatHtml(
 	const ready = localize('droxChatReady', 'Ready');
 
 	const historyLabel = localize('droxChatHistory', 'Sessions');
-	const exportTranscriptLabel = localize('droxChatExportTranscript', 'Export discussion (dev — fichier + presse-papiers)');
+	const exportTranscriptLabel = localize('droxChatExportTranscript', 'Export discussion (dev — fichier complet + latest-transcript.txt)');
 	const resetWorkspaceLabel = localize(
 		'droxChatResetWorkspace',
 		'Réinitialiser les données Drox du workspace…',
@@ -162,7 +163,6 @@ export function getDroxChatHtml(
 	const generalSettingsLlmProvider = localize('droxChatGeneralSettingsLlmProvider', 'LLM provider');
 	const generalSettingsServer = localize('droxChatGeneralSettingsServer', 'Server URL');
 	const generalSettingsApiKey = localize('droxChatGeneralSettingsApiKey', 'API key');
-	const generalSettingsExecutablePath = localize('droxChatGeneralSettingsExecutablePath', 'Drox executable path');
 	const generalSettingsKeepAlive = localize('droxChatGeneralSettingsKeepAlive', 'Keep alive');
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const generalSettingsNativeThinking = localize('droxChatGeneralSettingsNativeThinking', 'Native thinking');
@@ -177,16 +177,6 @@ export function getDroxChatHtml(
 	const generalSettingsShowChatErrorsAndWarnings = localize('droxChatGeneralSettingsShowChatErrorsAndWarnings', 'Show errors and warnings');
 	const generalSettingsOpenAll = localize('droxChatGeneralSettingsOpenAll', 'Open all Drox settings…');
 	const generalSettingsPanelClose = localize('droxChatGeneralSettingsPanelClose', 'Close');
-	const generalSettingsSectionEngine = localize('droxChatGeneralSettingsSectionEngine', 'Engine strictness');
-	const generalSettingsEngineStrictness = localize('droxChatGeneralSettingsEngineStrictness', 'Strictness preset');
-	const generalSettingsEngineStrictnessRelaxed = localize('droxChatGeneralSettingsEngineStrictnessRelaxed', 'Relaxed');
-	const generalSettingsEngineStrictnessNormal = localize('droxChatGeneralSettingsEngineStrictnessNormal', 'Normal');
-	const generalSettingsEngineStrictnessStrict = localize('droxChatGeneralSettingsEngineStrictnessStrict', 'Strict');
-	const generalSettingsEngineStrictnessCustom = localize('droxChatGeneralSettingsEngineStrictnessCustom', 'Custom');
-	const generalSettingsEngineTuningHint = localize('droxChatGeneralSettingsEngineTuningHint', 'Numeric overrides (base = normal). Full list in Drox settings.');
-	const generalSettingsReadBudgetPercent = localize('droxChatGeneralSettingsReadBudgetPercent', 'Read budget %');
-	const generalSettingsLoopStrikes = localize('droxChatGeneralSettingsLoopStrikes', 'Loop strikes before abort');
-	const generalSettingsContextSnip = localize('droxChatGeneralSettingsContextSnip', 'Context snip enabled');
 
 	const modelReloadLabel = localize('droxChatModelReload', 'Reload model list from server');
 
@@ -202,6 +192,137 @@ export function getDroxChatHtml(
 	const iconReload = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" d="M8 2.5v2M8 2.5A5.5 5.5 0 1 0 3.2 11.8M3.2 11.8v-2.2M3.2 11.8h2.2"/>');
 	const iconSend = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M8 11V4.5M8 4.5 5.25 7.25 8 4.5l2.75 2.75"/>');
 	const iconStop = droxIcon('<rect x="5" y="5" width="6" height="6" rx="1" fill="currentColor"/>');
+
+	const devKeepAliveField = showAdvancedSettings ? `
+			<label class="general-settings-field">
+
+				<span>${generalSettingsKeepAlive}</span>
+
+				<input type="text" id="general-settings-keep-alive" class="general-settings-input" spellcheck="false" />
+
+			</label>
+` : '';
+
+	const devAgentSectionLabel = showAdvancedSettings ? `
+			<p class="general-settings-section-label">${generalSettingsSectionAgent}</p>
+` : '';
+
+	const devAgentFields = showAdvancedSettings ? `
+			<label class="general-settings-field">
+
+				<span>${generalSettingsMaxIterations}</span>
+
+				<input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="200" step="1" />
+
+			</label>
+
+			<label class="general-settings-field general-settings-field-check">
+
+				<input type="checkbox" id="general-settings-native-thinking" />
+
+				<span>${generalSettingsNativeThinking}</span>
+
+			</label>
+
+			<label class="general-settings-field">
+
+				<span>${generalSettingsPrimaryLanguage}</span>
+
+				<input type="text" id="general-settings-primary-language" class="general-settings-input" spellcheck="false" />
+
+			</label>
+
+			<label class="general-settings-field">
+
+				<span>${generalSettingsMaxTokens}</span>
+
+				<input type="number" id="general-settings-max-tokens" class="general-settings-input" min="1" step="1" placeholder="—" />
+
+			</label>
+
+			<label class="general-settings-field">
+
+				<span>${generalSettingsNumPredict}</span>
+
+				<input type="number" id="general-settings-num-predict" class="general-settings-input" min="1" step="1" placeholder="—" />
+
+			</label>
+` : `
+			<label class="general-settings-field general-settings-field-check">
+
+				<input type="checkbox" id="general-settings-native-thinking" />
+
+				<span>${generalSettingsNativeThinking}</span>
+
+			</label>
+
+			<label class="general-settings-field">
+
+				<span>${generalSettingsPrimaryLanguage}</span>
+
+				<input type="text" id="general-settings-primary-language" class="general-settings-input" spellcheck="false" />
+
+			</label>
+`;
+
+	const devRoleModelAdvancedFields = showAdvancedSettings ? `
+			<label class="role-model-field">
+
+				<span>${rolePanelNumCtxLabel}</span>
+
+				<input type="number" id="role-model-panel-num-ctx" class="role-model-panel-input" min="2048" max="200000" step="512" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelTopPLabel}</span>
+
+				<input type="number" id="role-model-panel-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelTopKLabel}</span>
+
+				<input type="number" id="role-model-panel-top-k" class="role-model-panel-input" min="1" max="1000" step="1" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelRepeatPenaltyLabel}</span>
+
+				<input type="number" id="role-model-panel-repeat-penalty" class="role-model-panel-input" min="0" max="3" step="0.05" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelMinPLabel}</span>
+
+				<input type="number" id="role-model-panel-min-p" class="role-model-panel-input" min="0" max="1" step="0.01" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelSeedLabel}</span>
+
+				<input type="number" id="role-model-panel-seed" class="role-model-panel-input" step="1" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelTempLabel}</span>
+
+				<input type="number" id="role-model-panel-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" />
+
+			</label>
+` : '';
+
 	return `<!DOCTYPE html>
 
 <html lang="en">
@@ -330,61 +451,7 @@ export function getDroxChatHtml(
 
 			</label>
 
-			<label class="role-model-field">
-
-				<span>${rolePanelNumCtxLabel}</span>
-
-				<input type="number" id="role-model-panel-num-ctx" class="role-model-panel-input" min="2048" max="200000" step="512" />
-
-			</label>
-
-			<label class="role-model-field">
-
-				<span>${rolePanelTopPLabel}</span>
-
-				<input type="number" id="role-model-panel-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" />
-
-			</label>
-
-			<label class="role-model-field">
-
-				<span>${rolePanelTopKLabel}</span>
-
-				<input type="number" id="role-model-panel-top-k" class="role-model-panel-input" min="1" max="1000" step="1" />
-
-			</label>
-
-			<label class="role-model-field">
-
-				<span>${rolePanelRepeatPenaltyLabel}</span>
-
-				<input type="number" id="role-model-panel-repeat-penalty" class="role-model-panel-input" min="0" max="3" step="0.05" />
-
-			</label>
-
-			<label class="role-model-field">
-
-				<span>${rolePanelMinPLabel}</span>
-
-				<input type="number" id="role-model-panel-min-p" class="role-model-panel-input" min="0" max="1" step="0.01" />
-
-			</label>
-
-			<label class="role-model-field">
-
-				<span>${rolePanelSeedLabel}</span>
-
-				<input type="number" id="role-model-panel-seed" class="role-model-panel-input" step="1" />
-
-			</label>
-
-			<label class="role-model-field">
-
-				<span>${rolePanelTempLabel}</span>
-
-				<input type="number" id="role-model-panel-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" />
-
-			</label>
+			${devRoleModelAdvancedFields}
 
 			<div class="role-model-panel-actions">
 
@@ -458,113 +525,11 @@ export function getDroxChatHtml(
 
 			</label>
 
-			<label class="general-settings-field">
+			${devKeepAliveField}
 
-				<span>${generalSettingsExecutablePath}</span>
+			${devAgentSectionLabel}
 
-				<input type="text" id="general-settings-executable-path" class="general-settings-input" spellcheck="false" />
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsKeepAlive}</span>
-
-				<input type="text" id="general-settings-keep-alive" class="general-settings-input" spellcheck="false" />
-
-			</label>
-
-			<p class="general-settings-section-label">${generalSettingsSectionAgent}</p>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsMaxIterations}</span>
-
-				<input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="200" step="1" />
-
-			</label>
-
-			<label class="general-settings-field general-settings-field-check">
-
-				<input type="checkbox" id="general-settings-native-thinking" />
-
-				<span>${generalSettingsNativeThinking}</span>
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsPrimaryLanguage}</span>
-
-				<input type="text" id="general-settings-primary-language" class="general-settings-input" spellcheck="false" />
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsMaxTokens}</span>
-
-				<input type="number" id="general-settings-max-tokens" class="general-settings-input" min="1" step="1" placeholder="—" />
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsNumPredict}</span>
-
-				<input type="number" id="general-settings-num-predict" class="general-settings-input" min="1" step="1" placeholder="—" />
-
-			</label>
-
-			<p class="general-settings-section-label">${generalSettingsSectionEngine}</p>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsEngineStrictness}</span>
-
-				<select id="general-settings-engine-strictness" class="general-settings-input">
-
-					<option value="relaxed">${generalSettingsEngineStrictnessRelaxed}</option>
-
-					<option value="normal" selected>${generalSettingsEngineStrictnessNormal}</option>
-
-					<option value="strict">${generalSettingsEngineStrictnessStrict}</option>
-
-					<option value="custom">${generalSettingsEngineStrictnessCustom}</option>
-
-				</select>
-
-			</label>
-
-			<div id="general-settings-engine-tuning" class="general-settings-engine-tuning" hidden>
-
-				<p class="general-settings-hint">${generalSettingsEngineTuningHint}</p>
-
-				<label class="general-settings-field">
-
-					<span>${generalSettingsReadBudgetPercent}</span>
-
-					<input type="number" id="general-settings-tuning-read-budget-percent" class="general-settings-input" min="5" max="100" step="1" />
-
-				</label>
-
-				<label class="general-settings-field">
-
-					<span>${generalSettingsLoopStrikes}</span>
-
-					<input type="number" id="general-settings-tuning-loop-strikes" class="general-settings-input" min="1" max="5" step="1" />
-
-				</label>
-
-				<label class="general-settings-field general-settings-field-check">
-
-					<input type="checkbox" id="general-settings-tuning-context-snip" />
-
-					<span>${generalSettingsContextSnip}</span>
-
-				</label>
-
-			</div>
+			${devAgentFields}
 
 			<p class="general-settings-section-label">${generalSettingsSectionBehavior}</p>
 

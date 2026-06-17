@@ -12,7 +12,9 @@ export type DroxDevFeatureId =
 	| 'chatVersionDevSuffix'
 	| 'updateSimulateLatest'
 	| 'updateSimulateInstallerUrl'
-	| 'exportTranscript';
+	| 'exportTranscript'
+	| 'executablePath'
+	| 'advancedLlmSettings';
 
 export interface IDroxSurfaceProductInfo {
 	readonly droxSurface?: string;
@@ -31,6 +33,12 @@ export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly des
 	},
 	exportTranscript: {
 		description: 'Bouton export transcript dans le header Drox Chat.',
+	},
+	executablePath: {
+		description: 'Réglage drox.executablePath (Settings IDE — dogfood binaire local, hors vignette chat).',
+	},
+	advancedLlmSettings: {
+		description: 'Réglages LLM avancés (sampling, num_ctx, max_iterations, keep_alive) — registre Settings + panneaux chat.',
 	},
 };
 

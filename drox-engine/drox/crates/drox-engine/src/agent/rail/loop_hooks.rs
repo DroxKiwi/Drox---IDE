@@ -152,3 +152,14 @@ pub fn on_act_idle_turn(state: &mut RunRailState, has_in_progress_task: bool) ->
     super::act_stall::on_act_idle_turn(state, has_in_progress_task)
 }
 
+/// Read-only turns at READ on a mutation brief — gentle advance-to-ACT nudge.
+#[must_use]
+pub fn on_read_idle_turn(
+    state: &mut RunRailState,
+    mutation_expected: bool,
+    tool_names: &[&str],
+    plan: Option<&crate::agent::state::internal_plan::InternalPlanState>,
+) -> Option<&'static str> {
+    super::read_stall::on_read_idle_turn(state, mutation_expected, tool_names, plan)
+}
+

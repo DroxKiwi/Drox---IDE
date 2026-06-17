@@ -20,8 +20,9 @@ import {
 	IDroxEngineNotificationPayload,
 	IDroxEngineServerRequestPayload,
 } from '../common/droxIpc.js';
-import { DroxSetting } from '../common/droxConfiguration.js';
+import { readDroxExecutableConfiguredPath } from '../common/droxExecutable.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IDroxExecutableService } from '../common/droxExecutableService.js';
 import { DroxEngineInitializeResult, IDroxEngineService, InitializeOptions, RpcRequestHandler } from '../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
@@ -90,6 +91,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		@IDroxExecutableService private readonly executableService: IDroxExecutableService,
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
+		@IProductService private readonly productService: IProductService,
 		@IOutputService private readonly outputService: IOutputService,
 	) {
 		super();
@@ -134,7 +136,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		const env = this.runSettingsService.getEnvOverrides();
 		this.appendEngineLog(`[start] ${executable}\n[cwd] ${cwd}\n`);
 		await this.ipc.start(executable, cwd, env, {
-			configuredPath: this.configurationService.getValue<string>(DroxSetting.ExecutablePath) ?? '',
+			configuredPath: readDroxExecutableConfiguredPath(this.configurationService, this.productService),
 			appRoot: this.environmentService.appRoot,
 			workspaceFolderPaths: folders.map(f => f.uri.fsPath),
 		});

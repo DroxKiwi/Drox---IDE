@@ -1,6 +1,6 @@
 # Drox 1.4.1 — Stabilisation dogfood
 
-**Statut** : **chantier actif** — au-dessus du squelette **[1.4.0](../1.4.0/archive/finalisation/CLOSURE-1.4.0.md)** clôturé  
+**Statut** : **clôturée** (juin 2026) — fusionnée sur `main` · [CLOSURE](finalisation/CLOSURE-1.4.1.md)  
 **Branche** : `1.4.1`  
 **Prérequis** : [OPENING-1.4.1](finalisation/OPENING-1.4.1.md) · [README racine](../../../../README.md#statut-produit)
 

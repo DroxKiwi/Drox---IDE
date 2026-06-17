@@ -8,9 +8,9 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { INativeWorkbenchEnvironmentService } from '../../../services/environment/electron-browser/environmentService.js';
-import { DroxSetting } from '../common/droxConfiguration.js';
-import { resolveDroxExecutablePath } from '../common/droxExecutable.js';
+import { readDroxExecutableConfiguredPath, resolveDroxExecutablePath } from '../common/droxExecutable.js';
 import { IDroxExecutableService } from '../common/droxExecutableService.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 
 export class DroxExecutableService implements IDroxExecutableService {
 	declare readonly _serviceBrand: undefined;
@@ -20,10 +20,11 @@ export class DroxExecutableService implements IDroxExecutableService {
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IFileService private readonly fileService: IFileService,
 		@INativeWorkbenchEnvironmentService private readonly environmentService: INativeWorkbenchEnvironmentService,
+		@IProductService private readonly productService: IProductService,
 	) { }
 
 	resolve(): Promise<string> {
-		const configuredPath = this.configurationService.getValue<string>(DroxSetting.ExecutablePath) ?? '';
+		const configuredPath = readDroxExecutableConfiguredPath(this.configurationService, this.productService);
 		const workspaceFolderPaths = this.workspaceContextService.getWorkspace().folders.map(f => f.uri.fsPath);
 		return resolveDroxExecutablePath(this.fileService, {
 			configuredPath,

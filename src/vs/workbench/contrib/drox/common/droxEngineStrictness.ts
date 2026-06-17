@@ -6,11 +6,8 @@
 // allow-any-unicode-comment-file
 
 /**
- * Sévérité moteur Drox (`drox.engine.strictness`) — presets alignés sur
- * `drox-engine` (`StrictnessPreset` / `PromptVars::from_preset`).
- *
- * Responsabilité : types UI, normalisation settings, valeur wire RPC `engineStrictness`.
- * Pas de lecture `IConfigurationService` ici (voir `readDroxEngineStrictness` dans ce fichier).
+ * Legacy `drox.engine.strictness` — settings registry only; not sent on `agent.run`.
+ * The engine uses a single product profile (`EngineTuning::product_default`).
  */
 
 import { URI } from '../../../../base/common/uri.js';
@@ -65,8 +62,7 @@ export function readDroxEngineStrictness(
 }
 
 /**
- * Valeur envoyée dans `agent.run` (`engineStrictness`).
- * Toujours présent pour que le moteur n’ait pas à deviner le défaut.
+ * @deprecated No longer sent on `agent.run` — kept for legacy settings normalization.
  */
 export function wireEngineStrictnessForRpc(
 	preset: DroxEngineStrictnessPreset,

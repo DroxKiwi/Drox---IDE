@@ -138,3 +138,77 @@ pub(crate) fn decode_required<T: serde::de::DeserializeOwned>(
 pub(crate) fn internal<E: std::fmt::Display>(e: E) -> RpcError {
     RpcError::new(INTERNAL_ERROR, e.to_string())
 }
+
+/// Résout le profil moteur produit pour `agent.run`.
+///
+/// `engineStrictness` / `engineTuning` restent au wire pour rétrocompat mais sont ignorés.
+pub(crate) fn resolve_agent_run_engine_tuning(
+    params: &crate::jsonrpc::protocol::AgentRunParams,
+) -> drox_engine::EngineTuning {
+    warn_if_deprecated_engine_tuning_params(params);
+    drox_engine::resolve_engine_tuning(
+        params.engine_strictness.as_deref(),
+        params.engine_tuning.as_ref(),
+    )
+}
+
+fn warn_if_deprecated_engine_tuning_params(
+    params: &crate::jsonrpc::protocol::AgentRunParams,
+) {
+    let mut deprecated = false;
+    if let Some(s) = params.engine_strictness.as_deref() {
+        let n = s.trim().to_ascii_lowercase();
+        if !matches!(n.as_str(), "normal" | "default" | "standard") {
+            deprecated = true;
+        }
+    }
+    if params.engine_tuning.is_some() {
+        deprecated = true;
+    }
+    if deprecated {
+        tracing::warn!(
+            "agent.run: engineStrictness/engineTuning are deprecated and ignored (single product profile)"
+        );
+    }
+}
+
+#[cfg(test)]
+mod engine_tuning_tests {
+    use super::resolve_agent_run_engine_tuning;
+    use crate::jsonrpc::protocol::AgentRunParams;
+    use drox_engine::EngineTuning;
+    use serde_json::json;
+
+    #[test]
+    fn absent_params_yield_product_default() {
+        let p: AgentRunParams = serde_json::from_value(json!({ "prompt": "hi" })).unwrap();
+        assert_eq!(
+            resolve_agent_run_engine_tuning(&p),
+            EngineTuning::product_default()
+        );
+    }
+
+    #[test]
+    fn wire_strictness_and_tuning_resolve_to_product_default() {
+        let expected = EngineTuning::product_default();
+        for strictness in ["relaxed", "normal", "strict", "custom"] {
+            let p: AgentRunParams = serde_json::from_value(json!({
+                "prompt": "hi",
+                "engineStrictness": strictness
+            }))
+            .unwrap();
+            assert_eq!(
+                resolve_agent_run_engine_tuning(&p),
+                expected,
+                "strictness={strictness}"
+            );
+        }
+        let p: AgentRunParams = serde_json::from_value(json!({
+            "prompt": "hi",
+            "engineStrictness": "strict",
+            "engineTuning": { "readBudgetPercent": 12 }
+        }))
+        .unwrap();
+        assert_eq!(resolve_agent_run_engine_tuning(&p), expected);
+    }
+}

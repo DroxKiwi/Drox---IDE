@@ -8,7 +8,6 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { DroxArchitectInteractionMode } from '../common/droxArchitectInteractionMode.js';
 import { IDroxAgentRunImage } from '../common/droxAttachments.js';
-import { readDroxEngineStrictness } from '../common/droxEngineStrictness.js';
 import { DroxPermissionMode } from '../common/droxPermissionAsk.js';
 import {
 	buildAgentRunParams,
@@ -79,9 +78,6 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 			disabledTools: this.getDisabledToolsForRun(resource),
 			mcpToolsEnabled: this.isMcpToolsEnabled(resource),
 			architectInteractionMode: readArchitectInteractionMode(this.configurationService, resource),
-			engineStrictness: readDroxEngineStrictness(this.configurationService, resource),
-			configService: this.configurationService,
-			configResource: resource,
 		});
 	}
 }

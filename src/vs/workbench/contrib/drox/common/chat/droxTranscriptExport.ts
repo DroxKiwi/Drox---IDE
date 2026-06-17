@@ -855,6 +855,43 @@ export function findFirstStructuredToolMessageIndex(
 	return undefined;
 }
 
+export interface IDroxUserRunPreview {
+	readonly index: number;
+	readonly preview: string;
+}
+
+/** Chaque `append` role `user` dans le journal UI = un cycle utilisateur distinct. */
+export function extractDroxUserRunsFromJournal(
+	journal: readonly Record<string, unknown>[],
+): IDroxUserRunPreview[] {
+	const runs: IDroxUserRunPreview[] = [];
+	for (const entry of journal) {
+		if (entry.kind !== 'append' || entry.role !== 'user') {
+			continue;
+		}
+		const text = typeof entry.text === 'string' ? entry.text : '';
+		const oneLine = text.replace(/\s+/g, ' ').trim();
+		runs.push({
+			index: runs.length + 1,
+			preview: oneLine.length <= 140 ? oneLine : `${oneLine.slice(0, 137)}…`,
+		});
+	}
+	return runs;
+}
+
+export function formatDroxUserRunsHeaderLines(
+	runs: readonly IDroxUserRunPreview[],
+): string[] {
+	if (runs.length === 0) {
+		return [];
+	}
+	const lines = [`User runs in session: ${runs.length}`];
+	for (const run of runs) {
+		lines.push(`  run ${run.index}: ${run.preview}`);
+	}
+	return lines;
+}
+
 export function formatDroxPartieASummaryBlock(
 	summary: IDroxExecutionSummary & {
 		readonly textToolMarkerStreak?: number;

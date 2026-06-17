@@ -259,6 +259,7 @@ export class DroxChatViewPane extends ViewPane {
 			formatDroxChatVersionLabel(this.productService),
 			formatDroxChatVersionTitle(this.productService),
 			isDroxDevFeatureEnabled('exportTranscript', this.productService),
+			isDroxDevFeatureEnabled('advancedLlmSettings', this.productService),
 		));
 
 		this._chatController.attachWebview(webview, getWindow(this.element), this._container);
