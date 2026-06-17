@@ -189,8 +189,18 @@ Les reglages ont des **valeurs par defaut** (`drox.update.manifestUrl`, `drox.up
 
 ---
 
+## Signature Authenticode (prévu 1.4.2)
+
+Les releases **1.4.1** et antérieures : installeur **non signé** → SmartScreen « Éditeur inconnu » au premier lancement (normal).
+
+À partir de **1.4.2** : pipeline `sign-drox-win32.ps1` + certificat Code Signing (EV recommandé). Détail : [PLAN-1.4.2 § P1](../1.4/1.4.2/PLAN-1.4.2.md#p1--signature-de-code-windows-smartscreen).
+
+En attendant : télécharger uniquement depuis [Releases officielles](https://github.com/DroxKiwi/Drox---IDE---OR/releases) ; si SmartScreen bloque, **Exécuter quand même**.
+
+---
+
 ## Voir aussi
 
 - [RULES.md](../../../../RULES.md) — build, git, releases
 - [PLAN-DISTRIBUTION-LAUNCHER.md](../1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md) — architecture F3–F5
-- [CLOSURE-1.3.1.md](../1.3/1.3.1/finalisation/CLOSURE-1.3.1.md) — checklist release 1.3.1
+- [PLAN-1.4.2.md](../1.4/1.4.2/PLAN-1.4.2.md) — signature Windows + UI chat

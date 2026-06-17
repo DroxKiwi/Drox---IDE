@@ -10,6 +10,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 
 import { webviewGenericCspSource } from '../../webview/common/webview.js';
+import { DROX_NUM_CTX_CHOICES, formatDroxNumCtxLabel } from '../common/droxNumCtx.js';
 
 
 
@@ -18,6 +19,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/core/00-bootstrap.js',
 	'droxChat/core/dom.js',
 	'droxChat/core/constants-modes.js',
+	'droxChat/core/constants-num-ctx.js',
 	'droxChat/core/state.js',
 	'droxChat/core/warmup-phrases.js',
 	'droxChat/core/constants-meta.js',
@@ -143,7 +145,7 @@ export function getDroxChatHtml(
 	const roleModelsPickerLabel = localize('droxChatArchitectModelPicker', 'Architect model');
 	const bodyClass = 'drox-architect-solo-ui';
 	const rolePanelModelLabel = localize('droxChatRolePanelModel', 'Model');
-	const rolePanelNumCtxLabel = localize('droxChatRolePanelNumCtx', 'Context (num_ctx)');
+	const rolePanelNumCtxLabel = localize('droxChatRolePanelNumCtx', 'Context window');
 	const rolePanelTopPLabel = localize('droxChatRolePanelTopP', 'Top P');
 	const rolePanelTopKLabel = localize('droxChatRolePanelTopK', 'Top K');
 	const rolePanelRepeatPenaltyLabel = localize('droxChatRolePanelRepeatPenalty', 'Repeat penalty');
@@ -265,15 +267,19 @@ export function getDroxChatHtml(
 			</label>
 `;
 
-	const devRoleModelAdvancedFields = showAdvancedSettings ? `
+	const architectContextField = `
 			<label class="role-model-field">
 
 				<span>${rolePanelNumCtxLabel}</span>
 
-				<input type="number" id="role-model-panel-num-ctx" class="role-model-panel-input" min="2048" max="200000" step="512" />
+				<select id="role-model-panel-num-ctx" class="role-model-panel-select">
+${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t<option value="${v}">${formatDroxNumCtxLabel(v)}</option>`).join('\n')}
+				</select>
 
 			</label>
+`;
 
+	const devRoleModelAdvancedFields = showAdvancedSettings ? `
 			<label class="role-model-field">
 
 				<span>${rolePanelTopPLabel}</span>
@@ -450,6 +456,8 @@ export function getDroxChatHtml(
 				<select id="role-model-panel-select" class="role-model-panel-select"></select>
 
 			</label>
+
+			${architectContextField}
 
 			${devRoleModelAdvancedFields}
 

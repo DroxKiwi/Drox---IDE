@@ -15,7 +15,7 @@
 		D.state.architectModel = model;
 		D.vscode.postMessage({ type: 'setArchitectModel', model });
 		const numCtxRaw = D.dom.roleModelPanelNumCtxEl?.value.trim() ?? '';
-		const numCtx = numCtxRaw === '' ? undefined : Number(numCtxRaw);
+		const numCtx = numCtxRaw === '' ? undefined : D.fn.normalizeArchitectNumCtx(Number(numCtxRaw));
 		const topPRaw = D.dom.roleModelPanelTopPEl?.value.trim() ?? '';
 		const topP = topPRaw === '' ? undefined : Number(topPRaw);
 		const topKRaw = D.dom.roleModelPanelTopKEl?.value.trim() ?? '';
@@ -28,7 +28,7 @@
 		const seed = seedRaw === '' ? undefined : Number(seedRaw);
 		const tempRaw = D.dom.roleModelPanelTemperatureEl?.value.trim() ?? '';
 		const temperature = tempRaw === '' ? undefined : Number(tempRaw);
-		if (numCtx !== undefined && Number.isFinite(numCtx)) {
+		if (numCtx !== undefined) {
 			D.state.architectNumCtx = numCtx;
 		}
 		if (topP !== undefined && Number.isFinite(topP)) {
@@ -51,7 +51,7 @@
 		}
 		D.vscode.postMessage({
 			type: 'setArchitectLlmParams',
-			numCtx: Number.isFinite(numCtx) ? numCtx : undefined,
+			numCtx,
 			topP: Number.isFinite(topP) ? topP : undefined,
 			topK: Number.isFinite(topK) ? topK : undefined,
 			repeatPenalty: Number.isFinite(repeatPenalty) ? repeatPenalty : undefined,

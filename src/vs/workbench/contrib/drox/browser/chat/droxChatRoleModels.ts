@@ -9,6 +9,7 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import product from '../../../../../platform/product/common/product.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
+import { normalizeDroxNumCtx } from '../../common/droxNumCtx.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 
 export async function setDroxArchitectModelFromWebview(
@@ -35,12 +36,17 @@ export async function setDroxArchitectLlmParamsFromWebview(
 		temperature?: number;
 	},
 ): Promise<void> {
-	if (!isDroxDevFeatureEnabled('advancedLlmSettings', product)) {
-		return;
-	}
 	const resource = deps.runSettingsService.getWorkspaceResource();
+	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 	if (params.numCtx !== undefined && Number.isFinite(params.numCtx)) {
-		await deps.configurationService.updateValue(DroxSetting.NumCtx, params.numCtx, { resource });
+		await deps.configurationService.updateValue(
+			DroxSetting.NumCtx,
+			normalizeDroxNumCtx(params.numCtx),
+			{ resource },
+		);
+	}
+	if (!advanced) {
+		return;
 	}
 	if (params.topP !== undefined && Number.isFinite(params.topP)) {
 		await deps.configurationService.updateValue(DroxSetting.TopP, params.topP, { resource });
@@ -79,8 +85,8 @@ export function readDroxRoleModelsForWebview(
 	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 	return {
 		architectModel: llm.model,
+		architectNumCtx: llm.numCtx,
 		...(advanced ? {
-			architectNumCtx: llm.numCtx,
 			architectTopP: llm.topP,
 			architectTopK: llm.topK,
 			architectRepeatPenalty: llm.repeatPenalty,

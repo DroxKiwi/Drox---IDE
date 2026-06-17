@@ -10,7 +10,7 @@ import { ConfigurationScope, IConfigurationPropertySchema } from '../../../../pl
 import product from '../../../../platform/product/common/product.js';
 import { DroxSetting } from './droxConfiguration.js';
 import { isDroxDevFeatureEnabled } from './droxDevSurface.js';
-import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX, DROX_DEFAULT_NUM_PREDICT } from './droxProductDefaults.js';
+import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_PREDICT } from './droxProductDefaults.js';
 
 const DEV_ONLY = localize(
 	'drox.settings.devOnly',
@@ -106,19 +106,6 @@ function createDroxDevAdvancedLlmProperties(): Record<string, IConfigurationProp
 			maximum: 65536,
 			scope: ConfigurationScope.RESOURCE,
 			description: devDescription(localize('drox.numPredict', 'Ollama `num_predict` (generated tokens cap).')),
-		},
-		[DroxSetting.NumCtx]: {
-			type: 'number',
-			default: DROX_DEFAULT_NUM_CTX,
-			minimum: 2048,
-			maximum: 200000,
-			scope: ConfigurationScope.RESOURCE,
-			markdownDescription: devDescription(
-				localize(
-					'drox.numCtx',
-					'**Context window** — Ollama `num_ctx` for the Architect run.',
-				),
-			),
 		},
 		[DroxSetting.TopP]: {
 			type: 'number',

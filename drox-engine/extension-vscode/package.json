@@ -184,10 +184,9 @@
         "drox.numCtx": {
           "type": "integer",
           "default": 32768,
-          "minimum": 2048,
-          "maximum": 200000,
+          "enum": [16384, 32768, 65536, 131072, 262144, 524288, 1000000],
           "scope": "resource",
-          "markdownDescription": "**Ollama `num_ctx`** — taille de la fenêtre de contexte. Par défaut Ollama : 2048 (trop petit pour Drox). Drox force **32768**. Plus c'est grand, plus c'est gourmand en VRAM. Mappé sur `DROX_NUM_CTX`."
+          "markdownDescription": "**Ollama `num_ctx`** — fenêtre de contexte de l'architecte. Choix : 16k à 1M. Plus c'est grand, plus c'est gourmand en VRAM. Mappé sur `DROX_NUM_CTX`."
         },
         "drox.topP": {
           "type": "number",
