@@ -17,7 +17,7 @@ import { Registry } from '../../../../platform/registry/common/platform.js';
 
 import { createDroxDevConfigurationProperties } from './droxDevConfiguration.js';
 import { DROX_DEFAULT_NUM_CTX } from './droxProductDefaults.js';
-import { DROX_NUM_CTX_CHOICES } from './droxNumCtx.js';
+import { DROX_NUM_CTX_MAX, DROX_NUM_CTX_MIN, formatDroxNumCtxLabel } from './droxNumCtx.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
 
@@ -294,12 +294,15 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		[DroxSetting.NumCtx]: {
 			type: 'number',
-			enum: [...DROX_NUM_CTX_CHOICES],
 			default: DROX_DEFAULT_NUM_CTX,
+			minimum: DROX_NUM_CTX_MIN,
+			maximum: DROX_NUM_CTX_MAX,
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.numCtx',
-				'**Context window** — Ollama `num_ctx` for the Architect run. Choose from 16k to 1M; larger values use more VRAM.',
+				'**Context window** — Ollama `num_ctx` for the Architect run. Presets 16k–1M or a custom value ({0}–{1} tokens); larger values use more VRAM.',
+				formatDroxNumCtxLabel(DROX_NUM_CTX_MIN),
+				formatDroxNumCtxLabel(DROX_NUM_CTX_MAX),
 			),
 		},
 

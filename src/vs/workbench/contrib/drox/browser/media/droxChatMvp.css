@@ -2408,6 +2408,23 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	color: var(--vscode-descriptionForeground);
 }
 
+.role-model-num-ctx-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+}
+
+.role-model-num-ctx-row .role-model-panel-select {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.role-model-num-ctx-custom {
+	flex: 0 0 5.5rem;
+	width: 5.5rem;
+}
+
 .role-model-field[hidden],
 .role-model-panel-architect-fields[hidden],
 .role-model-panel-hint[hidden] {

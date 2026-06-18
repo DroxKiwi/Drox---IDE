@@ -9,7 +9,7 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import product from '../../../../../platform/product/common/product.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
-import { normalizeDroxNumCtx } from '../../common/droxNumCtx.js';
+import { clampDroxNumCtx } from '../../common/droxNumCtx.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 
 export async function setDroxArchitectModelFromWebview(
@@ -41,7 +41,7 @@ export async function setDroxArchitectLlmParamsFromWebview(
 	if (params.numCtx !== undefined && Number.isFinite(params.numCtx)) {
 		await deps.configurationService.updateValue(
 			DroxSetting.NumCtx,
-			normalizeDroxNumCtx(params.numCtx),
+			clampDroxNumCtx(params.numCtx),
 			{ resource },
 		);
 	}

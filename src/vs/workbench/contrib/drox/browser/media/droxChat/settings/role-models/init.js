@@ -31,8 +31,17 @@
 				fn.persistRoleModelFromPanel();
 			});
 		}
+		if (D.dom.roleModelPanelNumCtxEl) {
+			D.dom.roleModelPanelNumCtxEl.addEventListener('change', () => {
+				fn.onArchitectNumCtxPresetChange();
+				fn.persistRoleModelFromPanel();
+			});
+		}
+		if (D.dom.roleModelPanelNumCtxCustomEl) {
+			D.dom.roleModelPanelNumCtxCustomEl.addEventListener('change', () => fn.persistRoleModelFromPanel());
+			D.dom.roleModelPanelNumCtxCustomEl.addEventListener('input', () => fn.persistRoleModelFromPanel());
+		}
 		const architectInputs = [
-			D.dom.roleModelPanelNumCtxEl,
 			D.dom.roleModelPanelTopPEl,
 			D.dom.roleModelPanelTopKEl,
 			D.dom.roleModelPanelRepeatPenaltyEl,

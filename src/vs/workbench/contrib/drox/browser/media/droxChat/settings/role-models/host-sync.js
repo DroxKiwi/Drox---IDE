@@ -11,7 +11,7 @@
 			D.state.architectModel = payload.architectModel.trim();
 		}
 		if (payload.architectNumCtx !== undefined && payload.architectNumCtx !== null) {
-			D.state.architectNumCtx = D.fn.normalizeArchitectNumCtx(payload.architectNumCtx);
+			D.state.architectNumCtx = D.fn.clampArchitectNumCtx(payload.architectNumCtx);
 		}
 		if (payload.architectTopP !== undefined && payload.architectTopP !== null) {
 			D.state.architectTopP = payload.architectTopP;

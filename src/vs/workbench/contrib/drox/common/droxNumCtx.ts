@@ -20,6 +20,16 @@ export const DROX_NUM_CTX_CHOICES = [
 
 export type DroxNumCtxChoice = (typeof DROX_NUM_CTX_CHOICES)[number];
 
+export const DROX_NUM_CTX_MIN = 2048;
+export const DROX_NUM_CTX_MAX = 1_000_000;
+
+/** Valeur du `<select>` pour la saisie libre (aligné webview). */
+export const DROX_NUM_CTX_CUSTOM_SELECT = '__custom__';
+
+export function isDroxNumCtxPreset(value: number): boolean {
+	return (DROX_NUM_CTX_CHOICES as readonly number[]).includes(value);
+}
+
 export function formatDroxNumCtxLabel(tokens: number): string {
 	if (tokens >= 1_000_000) {
 		return '1M';
@@ -31,12 +41,16 @@ export function formatDroxNumCtxLabel(tokens: number): string {
 	return String(tokens);
 }
 
-export function normalizeDroxNumCtx(value: unknown): DroxNumCtxChoice {
+export function clampDroxNumCtx(value: unknown): number {
 	const n = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : DROX_DEFAULT_NUM_CTX;
-	for (const choice of DROX_NUM_CTX_CHOICES) {
-		if (choice === n) {
-			return choice;
-		}
+	return Math.min(DROX_NUM_CTX_MAX, Math.max(DROX_NUM_CTX_MIN, n));
+}
+
+/** @deprecated Préférer {@link clampDroxNumCtx} — conserve le snap preset pour migrations. */
+export function normalizeDroxNumCtx(value: unknown): DroxNumCtxChoice {
+	const n = clampDroxNumCtx(value);
+	if (isDroxNumCtxPreset(n)) {
+		return n as DroxNumCtxChoice;
 	}
 	let best: DroxNumCtxChoice = DROX_DEFAULT_NUM_CTX;
 	let bestDist = Infinity;

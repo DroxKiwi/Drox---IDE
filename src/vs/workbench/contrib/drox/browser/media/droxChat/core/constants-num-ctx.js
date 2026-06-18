@@ -9,6 +9,14 @@
 (function (D) {
 	D.const.ARCHITECT_NUM_CTX_CHOICES = [16384, 32768, 65536, 131072, 262144, 524288, 1000000];
 	D.const.ARCHITECT_NUM_CTX_DEFAULT = 32768;
+	D.const.ARCHITECT_NUM_CTX_MIN = 2048;
+	D.const.ARCHITECT_NUM_CTX_MAX = 1000000;
+	D.const.ARCHITECT_NUM_CTX_CUSTOM = '__custom__';
+
+	D.fn.isArchitectNumCtxPreset = function (value) {
+		const n = Math.floor(Number(value));
+		return Number.isFinite(n) && D.const.ARCHITECT_NUM_CTX_CHOICES.includes(n);
+	};
 
 	D.fn.formatNumCtxLabel = function (tokens) {
 		const n = Number(tokens);
@@ -25,22 +33,9 @@
 		return String(n);
 	};
 
-	D.fn.normalizeArchitectNumCtx = function (raw) {
+	D.fn.clampArchitectNumCtx = function (raw) {
 		const fallback = D.const.ARCHITECT_NUM_CTX_DEFAULT;
 		const n = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : fallback;
-		const choices = D.const.ARCHITECT_NUM_CTX_CHOICES;
-		if (choices.includes(n)) {
-			return n;
-		}
-		let best = fallback;
-		let bestDist = Infinity;
-		for (const choice of choices) {
-			const dist = Math.abs(choice - n);
-			if (dist < bestDist) {
-				bestDist = dist;
-				best = choice;
-			}
-		}
-		return best;
+		return Math.min(D.const.ARCHITECT_NUM_CTX_MAX, Math.max(D.const.ARCHITECT_NUM_CTX_MIN, n));
 	};
 })(globalThis.DroxChat);

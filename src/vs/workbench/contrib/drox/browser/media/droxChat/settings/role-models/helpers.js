@@ -21,7 +21,13 @@
 		if (archHint) {
 			const model = shortModelLabel(D.state.architectModel);
 			const ctx = D.state.architectNumCtx;
-			const ctxLabel = ctx !== '' && ctx !== undefined ? D.fn.formatNumCtxLabel(ctx) : '';
+			let ctxLabel = '';
+			if (ctx !== '' && ctx !== undefined) {
+				const n = D.fn.clampArchitectNumCtx(ctx);
+				ctxLabel = D.fn.isArchitectNumCtxPreset(n)
+					? D.fn.formatNumCtxLabel(n)
+					: String(n);
+			}
 			archHint.textContent = ctxLabel ? `${model} · ${ctxLabel}` : model;
 		}
 	};
