@@ -8,7 +8,7 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { DroxSetting, readArchitectModel } from './droxConfiguration.js';
 import { isDroxDevFeatureEnabled } from './droxDevSurface.js';
 import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX, DROX_DEFAULT_NUM_PREDICT } from './droxProductDefaults.js';
-import { normalizeDroxNumCtx } from './droxNumCtx.js';
+import { clampDroxNumCtx } from './droxNumCtx.js';
 import product from '../../../../platform/product/common/product.js';
 import { IDroxAgentRunImage } from './droxAttachments.js';
 import { getDisabledToolNames } from './droxToolCatalog.js';
@@ -83,7 +83,7 @@ export function readLlmSettings(configService: IConfigurationService, resource?:
 		numPredict: advanced
 			? (readNumber(configService, DroxSetting.NumPredict, resource) ?? DROX_DEFAULT_NUM_PREDICT)
 			: DROX_DEFAULT_NUM_PREDICT,
-		numCtx: normalizeDroxNumCtx(readNumber(configService, DroxSetting.NumCtx, resource) ?? DROX_DEFAULT_NUM_CTX),
+		numCtx: clampDroxNumCtx(readNumber(configService, DroxSetting.NumCtx, resource) ?? DROX_DEFAULT_NUM_CTX),
 		topP: readOptionalNumber(configService, DroxSetting.TopP, resource),
 		topK: readOptionalNumber(configService, DroxSetting.TopK, resource),
 		repeatPenalty: readOptionalNumber(configService, DroxSetting.RepeatPenalty, resource),

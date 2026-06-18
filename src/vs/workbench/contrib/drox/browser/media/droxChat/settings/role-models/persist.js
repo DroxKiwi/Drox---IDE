@@ -14,8 +14,7 @@
 		const model = select ? select.value.trim() : '';
 		D.state.architectModel = model;
 		D.vscode.postMessage({ type: 'setArchitectModel', model });
-		const numCtxRaw = D.dom.roleModelPanelNumCtxEl?.value.trim() ?? '';
-		const numCtx = numCtxRaw === '' ? undefined : D.fn.normalizeArchitectNumCtx(Number(numCtxRaw));
+		const numCtx = fn.readArchitectNumCtxFromPanel();
 		const topPRaw = D.dom.roleModelPanelTopPEl?.value.trim() ?? '';
 		const topP = topPRaw === '' ? undefined : Number(topPRaw);
 		const topKRaw = D.dom.roleModelPanelTopKEl?.value.trim() ?? '';

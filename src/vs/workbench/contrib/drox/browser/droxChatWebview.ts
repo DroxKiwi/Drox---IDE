@@ -10,7 +10,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 
 import { webviewGenericCspSource } from '../../webview/common/webview.js';
-import { DROX_NUM_CTX_CHOICES, formatDroxNumCtxLabel } from '../common/droxNumCtx.js';
+import { DROX_NUM_CTX_CHOICES, DROX_NUM_CTX_CUSTOM_SELECT, DROX_NUM_CTX_MAX, DROX_NUM_CTX_MIN, formatDroxNumCtxLabel } from '../common/droxNumCtx.js';
 
 
 
@@ -27,6 +27,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/settings/01b-models.js',
 	'droxChat/settings/role-models/state.js',
 	'droxChat/settings/role-models/helpers.js',
+	'droxChat/settings/role-models/num-ctx.js',
 	'droxChat/settings/role-models/panel.js',
 	'droxChat/settings/role-models/persist.js',
 	'droxChat/settings/role-models/host-sync.js',
@@ -146,6 +147,7 @@ export function getDroxChatHtml(
 	const bodyClass = 'drox-architect-solo-ui';
 	const rolePanelModelLabel = localize('droxChatRolePanelModel', 'Model');
 	const rolePanelNumCtxLabel = localize('droxChatRolePanelNumCtx', 'Context window');
+	const rolePanelNumCtxCustomLabel = localize('droxChatRolePanelNumCtxCustom', 'Définir');
 	const rolePanelTopPLabel = localize('droxChatRolePanelTopP', 'Top P');
 	const rolePanelTopKLabel = localize('droxChatRolePanelTopK', 'Top K');
 	const rolePanelRepeatPenaltyLabel = localize('droxChatRolePanelRepeatPenalty', 'Repeat penalty');
@@ -272,9 +274,16 @@ export function getDroxChatHtml(
 
 				<span>${rolePanelNumCtxLabel}</span>
 
-				<select id="role-model-panel-num-ctx" class="role-model-panel-select">
-${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t<option value="${v}">${formatDroxNumCtxLabel(v)}</option>`).join('\n')}
-				</select>
+				<div class="role-model-num-ctx-row">
+
+					<select id="role-model-panel-num-ctx" class="role-model-panel-select">
+${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNumCtxLabel(v)}</option>`).join('\n')}
+						<option value="${DROX_NUM_CTX_CUSTOM_SELECT}">${rolePanelNumCtxCustomLabel}</option>
+					</select>
+
+					<input type="number" id="role-model-panel-num-ctx-custom" class="role-model-panel-input role-model-num-ctx-custom" hidden min="${DROX_NUM_CTX_MIN}" max="${DROX_NUM_CTX_MAX}" step="1024" />
+
+				</div>
 
 			</label>
 `;

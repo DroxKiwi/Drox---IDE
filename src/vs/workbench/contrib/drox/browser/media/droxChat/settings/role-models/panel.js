@@ -22,8 +22,7 @@
 		panel.classList.remove('role-model-executor-mode');
 		fn.fillRoleModelPanelSelect();
 		if (D.dom.roleModelPanelNumCtxEl) {
-			const v = D.fn.normalizeArchitectNumCtx(D.state.architectNumCtx);
-			D.dom.roleModelPanelNumCtxEl.value = String(v);
+			fn.syncArchitectNumCtxPanelFromState();
 		}
 		if (D.dom.roleModelPanelTopPEl) {
 			D.dom.roleModelPanelTopPEl.value =
