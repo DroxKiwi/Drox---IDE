@@ -2,39 +2,43 @@
 
 # ⚠️ STATUT PRODUIT — LIRE EN PREMIER
 
-> **Le moteur Drox 1.4.x n’est pas utilisable en production aujourd’hui.**  
-> Ne pas s’attendre à un IDE agent fiable tant que la **1.4.1** (stabilisation) n’est pas livrée.
+> **Le moteur Drox 1.4.2 est obsolète — il va complètement changer.**  
+> Branche **1.4.2** clôturée et mergée sur `main` (juin 2026). Ce n’est **pas** une base stable : c’est un **point d’arrêt** avant une refonte majeure du moteur.
 
 | | |
 |---|---|
-| **Code livré** | Squelette **1.4.0** — refonte run rail, architecte solo, reliquats 1.3 retirés du chemin IDE |
-| **Chantier actif** | **[1.4.1 — stabilisation dogfood](drox-engine/docs/1.4/1.4.1/PLAN-1.4.1.md)** — bugs session, UI busy, discuss, boucles, VERIFY Windows |
-| **Après** | [1.4.2 UI chat](drox-engine/docs/1.4/1.4.2/README.md) · [1.4.3 index/graphe](drox-engine/docs/1.4/1.4.3/README.md) |
-| **Clôture refonte** | [CLOSURE-1.4.0](drox-engine/docs/1.4/1.4.0/archive/finalisation/CLOSURE-1.4.0.md) |
+| **Code sur `main`** | **1.4.2** — rail **observateur**, contexte **4 couches**, reliquats prescriptifs retirés (`tool_folders`, ACL station, `todo_write`, intent probe LLM) |
+| **Utilisable en prod ?** | **Non.** Phase **expérimentale agressive** — dogfood uniquement. |
+| **Tester quand même ?** | **Option pour les curieux** : compiler `drox.exe`, brancher Ollama, accepter bugs / régressions / changements cassants sans préavis. |
+| **Suite moteur** | Refonte **profonde** (pas un polish 1.4.3) — voir plans 1.4.3+ dans le dépôt ; l’architecture actuelle ne sera **pas** prolongée telle quelle. |
 
-### Ce que la 1.4.0 a changé (et pourquoi on la clôture quand même)
+### Ce que la 1.4.2 a changé (gros morceaux)
 
-La refonte **1.4.0** remplace l’orchestration 1.3 (Executor, `delegate_executor`, segments ACT, Professor, Standard CLI, LoopDetector parallèle) par **un seul conducteur** : le **run rail** (stations intent → read → plan → act → verify → answer), un prompt edit (`01_core_rail_solo.md`), et une boucle agent découpée en modules courts.
+Après la stabilisation **1.4.1** (session, UI busy, discuss, VERIFY Windows), la **1.4.2** abandonne le rail **prescriptif** au profit d’une culture **observateur + contexte** :
 
-**Dogfood juin 2026** (Qwen 27b, runs réels) : le rail tient la route — runs structurés, rapides, sans boucles 1.3 visibles, exploration ciblée. Le squelette moteur est **suffisant pour figer la branche** et enchaîner la stabilisation en 1.4.1.
+| Avant | Après 1.4.2 |
+|-------|-------------|
+| Outils filtrés par **station** (READ ≠ ACT) | Palette **plate et stable** tout le run EDIT |
+| **Tool folders** (`read_workspace`, `edit_file`, …) | Supprimés — outils réels uniquement (`file_read`, `file_edit`, …) |
+| Gates + nudges coercitifs (`stall_read`, `stall_act`, `force_act`, mutation sur `done`) | Rail **observateur** : snapshot + inférence station, **pas** de blocage advance |
+| **Intent probe** LLM au boot | Routage **statique** : `discuss` / `analyze` / `edit` (mode IDE ou RPC) |
+| `todo_write` + gates todo | **`internal_plan_write`** seul (plan moteur, pas todo utilisateur) |
+| Mémoire éclatée (listing boot skills/sessions) | **`DROX.md` seul** · checkpoint compaction court → snapshot réinjecté |
+| Prompt boot avec `[gate:]` obligatoire | `01_core_rail_solo.md` **observateur** — rail = hint dans le snapshot |
 
-### Pourquoi c’est globalement inutilisable en l’état
+**4 couches de contexte** (complémentaires, pas substituts) : (1) cadre boot + hint rail, (2) outils wire + protocole compact, (3) snapshot run + plan interne, (4) transcript chaud/froid + compaction.
 
-La refonte a corrigé l’**architecture** ; elle n’a **pas** rendu le produit prêt pour un usage quotidien :
+### Pourquoi c’est obsolète malgré la clôture
 
-- **UI chat** : journal bruyant (thinking, events rail), état `busy` parfois bloqué, replay session lent, export transcript incohérent — polish prévu en **1.4.2**, mais certains symptômes bloquent déjà l’usage (→ **1.4.1**).
-- **Discuss** : routage « salut » parfois suivi d’outils interdits (M-DISC-01).
-- **Runs longs** : préambules thinking répétés, double `answering`, clôtures sans mutation quand le code matche déjà le brief.
-- **VERIFY** : commandes bash inadaptées à Windows (`head`, etc.).
-- **Distribution** : pas de promesse de build installeur stable sur cette base ; `droxVersion` **1.4.0** = **code squelette**, pas release produit validée.
+La 1.4.2 **nettoie** l’expérience 1.4.x (moins de forcing, outils libres, mémoire unifiée) mais **ne fige pas** le design final. Le chantier suivant **remplace** le modèle actuel (rail, orchestration, injection de contexte) — pas une itération douce. Tout ce qui est sur `main` aujourd’hui sert surtout de **laboratoire** et de **référence de ce qu’on ne veut plus**.
 
-**En résumé** : utile pour **développer et dogfooder le moteur** sur branche dev ; **pas** pour confier un repo client ou remplacer un IDE agent en prod.
+**En résumé** : OK pour **explorer et casser** en local ; **pas** pour un usage quotidien, un client, ou une extension long terme sur cette stack.
 
-### Où lire la suite
+### Où lire la suite (dépôt)
 
-- Plan stabilisation : [`drox-engine/docs/1.4/1.4.1/PLAN-1.4.1.md`](drox-engine/docs/1.4/1.4.1/PLAN-1.4.1.md)
-- Référence refonte (archivée) : [`drox-engine/docs/1.4/1.4.0/FOI-REFONTE.md`](drox-engine/docs/1.4/1.4.0/FOI-REFONTE.md)
-- Journal smoke : [`drox-engine/docs/1.4/1.4.0/archive/SMOKE-BACKLOG.md`](drox-engine/docs/1.4/1.4.0/archive/SMOKE-BACKLOG.md)
+- Clôture 1.4.2 : `drox-engine/docs/1.4/1.4.2/PLAN-1.4.2.md`
+- Stabilisation 1.4.1 : `drox-engine/docs/1.4/1.4.1/finalisation/CLOSURE-1.4.1.md`
+- Refonte initiale 1.4.0 : `drox-engine/docs/1.4/1.4.0/archive/finalisation/CLOSURE-1.4.0.md`
 
 ___
 
@@ -42,7 +46,7 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 ## Sommaire
 
-**[⚠️ Statut produit 1.4.1](#statut-produit)** · [Statut EN](#en-product-status)
+**[⚠️ Statut produit 1.4.2](#statut-produit)** · [Product status EN](#en-product-status)
 
 [Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.4 — run rail](#schema-rail)
 
@@ -50,13 +54,13 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 [Moteur Drox](#fr) · [Invariants](#fr-invariants) · [Chronologie](#fr-chronologie)
 
-[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14)
+[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14) · [2026-06 v1_4_2](#fr-2026-06-v142)
 
 **EN**
 
 [Drox Engine](#en) · [Invariants](#en-invariants) · [Timeline](#en-timeline)
 
-[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14)
+[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14) · [2026-06 v1_4_2](#en-2026-06-v142)
 
 ___
 
@@ -108,7 +112,7 @@ flowchart TB
 | Brique | Rôle |
 |--------|------|
 | **Ollama** | Inférence : un modèle, ta machine, pas de compte cloud imposé |
-| **drox.exe** | Boucle agent, run rail, permissions, session, filtre des outils |
+| **drox.exe** | Boucle agent, run rail observateur, permissions, session, palette outils stable |
 | **Drox IDE** | UI chat, éditeur, exécution LSP/diff/bash côté workspace |
 | **Toi** | Repo, modèle choisi, mode permission (default / plan / acceptEdits…) |
 
@@ -164,7 +168,7 @@ flowchart TB
 | Piece | Role |
 |-------|------|
 | **Ollama** | Inference: one model, your machine, no mandated cloud account |
-| **drox.exe** | Agent loop, run rail, permissions, session, tool filtering |
+| **drox.exe** | Agent loop, observer run rail, permissions, session, stable tool palette |
 | **Drox IDE** | Chat UI, editor, LSP/diff/bash execution in the workspace |
 | **You** | Repo, chosen model, permission mode (default / plan / acceptEdits…) |
 
@@ -174,27 +178,29 @@ ___
 
 <a id="schema-rail"></a>
 
-## Schéma — 1.4 (run rail)
+## Schéma — 1.4.2 (rail observateur)
 
-Run `agent.run` · **deux chemins IDE** : **edit** (Architect + run rail) et **discuss** (ArchitectDiscussion, court) · lot **1.4** : un conducteur, stations, filtre outils par station, prompt boot unique `01_core_rail_solo.md` · `delegate_executor`, Executor, segments ACT, Professor, Standard CLI **retirés**.
+Run `agent.run` · **deux chemins IDE** : **edit** (Architect + run rail) et **discuss** (ArchitectDiscussion, court) · lot **1.4.2** : rail **observateur**, outils **stables** tout le run, contexte **4 couches**, plus d’ACL par station ni `tool_folders` · routage `discuss` / `analyze` / `edit` **statique** (plus d’intent probe LLM).
 
 **Vue d’ensemble**
 
 ```mermaid
 flowchart LR
   IDE(["Client IDE"])
-  MOT(("Moteur Rust 1.4"))
+  MOT(("Moteur Rust 1.4.2"))
   ARC[["Architecte solo"]]
-  RAIL[["Run rail"]]
+  RAIL[["Run rail observateur"]]
   DISC[["Discuss court"]]
+  CTX[["4 couches contexte"]]
 
   IDE <-->|NDJSON stdio| MOT
   MOT --- ARC
-  ARC -->|edit run_rail_enabled| RAIL
+  ARC -->|edit| RAIL
   ARC -->|discuss| DISC
+  RAIL --- CTX
 ```
 
-**Stations edit (chemin long vs court)**
+**Stations edit (inférées, pas bloquantes)**
 
 ```mermaid
 flowchart LR
@@ -215,21 +221,18 @@ sequenceDiagram
   autonumber
   participant IDE as Client
   participant DRV as loop/drive
-  participant RAIL as rail/policy
+  participant RAIL as rail/infer
   participant LLM as LLM
 
   IDE->>DRV: agent.run
-  DRV->>RAIL: station courante
-  RAIL->>RAIL: filtre tool_specs par station
-  DRV->>LLM: boot 01_core_rail_solo + snapshot tour
-  Note over LLM: gate hold/advance depth answering done
+  DRV->>RAIL: inférence station + snapshot hint
+  Note over RAIL: palette outils stable — pas de filtre ACL
+  DRV->>LLM: boot 01_core_rail_solo + 4 couches contexte
+  Note over LLM: phase answering done — sans forcing mutation
   LLM-->>DRV: tool_calls et/ou marqueurs
   opt outil client
     DRV->>IDE: tool/exec lsp diff
     IDE-->>DRV: resultat
-  end
-  opt stall ACT
-    DRV->>LLM: nudge stall_act
   end
   LLM-->>DRV: phase answering puis done
   DRV-->>IDE: agent/done
@@ -237,15 +240,14 @@ sequenceDiagram
 
 | Identifiant | Fonction |
 |-------------|----------|
-| `run_rail_enabled` | Active le rail sur le chemin edit (preset normal IDE) |
-| `rail/policy.rs` | Allowlist outils **par station** avant envoi au LLM |
-| `01_core_rail_solo.md` | Seul boot system edit ; marqueurs `[gate:]` `[depth:]` `[phase:]` |
-| `pre_gate` | Orientation action ; rejet outil hors station |
-| `[gate: hold]` / `[gate: advance]` | Stop → ANSWER ou acceptation station candidate |
-| `[depth: short]` / `[depth: complex]` | Après READ ; PROPOSE si complex + hold user |
-| `stall_act` | Nudge si ACT sans mutation après N tours |
-| `final_answer_guard` | Une seule promotion `[phase: answering]` par run |
-| `ArchitectDiscussion` | Réponse légère sans rail complet (intent discuss) |
+| `run_rail_enabled` | Active le rail sur le chemin edit |
+| `rail/infer.rs` | Inférence station depuis outils + marqueurs — **observation** |
+| `rail_snapshot_block` | Hint informatif dans le snapshot — pas prescriptif |
+| `01_core_rail_solo.md` | Boot edit observateur ; marqueurs `[phase:]` `[depth:]` |
+| `routing.rs` | Routage statique discuss / analyze / edit |
+| `internal_plan_write` | Plan interne moteur — remplace `todo_write` |
+| `tool_supplements_architect_compact` | Protocole outil unique tout le run |
+| `ArchitectDiscussion` | Réponse légère sans rail complet |
 
 ___
 
@@ -261,16 +263,16 @@ ___
 
 ## Invariants
 
-`moteur_seul` — stations, gates, filtre outils et orchestration vivent dans Rust ; le client stream et exécute LSP/diff, il ne conduit pas le run.
-`rail_seul_guide` — chemin edit : le **run rail** est le seul conducteur ; pas de LoopDetector 1.3, `cycle_sanity`, ni second guide parallèle.
-`architecte_solo` — un seul agent edit ; pas de `delegate_executor`, pas de `RoleId::Executor`, mutations **inline** en station ACT.
-`deux_chemins` — **edit** (rail complet) vs **discuss** (`ArchitectDiscussion`, court) ; routage via `architectInteractionMode` / intent modèle, pas de heuristique message côté moteur.
-`outils_par_station` — le moteur filtre `tool_specs` avant chaque tour LLM (READ ≠ ACT ≠ VERIFY).
-`gate_hold_advance` — transitions de station via `[gate: hold]` (→ ANSWER) ou `[gate: advance]` ; pas de `[phase: reading|acting|planning|testing]` comme langage de conduite.
-`depth_apres_read` — `[depth: short|complex]` après READ ; PROPOSE seulement si complex + hold utilisateur.
-`done_obligatoire` — fin de run uniquement sur `[phase: done]` ; pas de « plus d’outil donc on arrête ».
-`answering_avant_done` — `done` refusé ou nudgé si `[phase: answering]` n’a pas été vu ; seul le texte sous `answering` est la réponse utilisateur.
-`nudges_minces` — post-refonte : `stall_act`, `schema_error`, `done_only` seulement.
+`moteur_seul` — orchestration, gates souples et injection contexte vivent dans Rust ; le client stream et exécute LSP/diff, il ne conduit pas le run.
+`rail_observateur` — chemin edit : le **run rail** infère et affiche la station ; **pas** d’ACL outils par station, **pas** de `tool_folders`, **pas** de nudges coercitifs (`stall_read`, `stall_act`, `force_act`).
+`architecte_solo` — un seul agent edit ; pas de `delegate_executor`, pas de `RoleId::Executor` ; mutations **inline**.
+`deux_chemins` — **edit** (rail complet) vs **discuss** (`ArchitectDiscussion`, court) ; routage **statique** (`routing.rs`), plus d’intent probe LLM au boot.
+`outils_stables` — palette `tool_specs` **plate** tout le run EDIT ; protocole compact unique `tool_supplements_architect_compact`.
+`contexte_4_couches` — cadre boot + hint rail · outils wire · snapshot run + `internal_plan_write` · transcript + compaction checkpoint.
+`plan_interne` — `internal_plan_write` remplace `todo_write` ; pas de gate todo sur `done`.
+`memoire_drox_seule` — `DROX.md` seul pour la mémoire projet ; boot sans listing skills/sessions.
+`done_souple` — fin sur `[phase: done]` ; verify et mutation **non** forcés par défaut (preset strict optionnel).
+`obsolete_142` — **1.4.2 clôturée** sur `main` mais le moteur **va changer entièrement** — ne pas bâtir dessus.
 
 ___
 
@@ -412,21 +414,37 @@ ___
 
 ___
 
+<a id="fr-2026-06-v142"></a>
+
+### 2026-06 — `v1_4_2` (rail observateur — **clôture, moteur obsolète**)
+
+`v1_4_1_stable` — session, UI busy, discuss, VERIFY Windows ; base avant refonte contexte.
+`rail_observateur` — fin ACL station, `pre_gate`, `read_stall`, `act_stall`, `force_act`, gates mutation sur `done`.
+`tool_folders_del` — module `orchestration/tool_folders/` supprimé ; palette plate (`file_read`, `file_edit`, …).
+`intent_probe_del` — plus de probe LLM au boot ; `routing.rs` statique discuss / analyze / edit.
+`todo_write_del` — `internal_plan_write` seul ; gates todo retirées.
+`memoire_unifiee` — `DROX.md` seul ; boot teaser ; checkpoint compaction → snapshot `## Run context (engine)`.
+`contexte_4_couches` — boot + hint rail · outils stables · snapshot run · transcript + compaction.
+`prompt_observateur` — `01_core_rail_solo.md` réécrit sans `[gate:]` prescriptif.
+`obsolete_annonce` — branche **1.4.2** mergée sur `main` ; **refonte moteur complète** annoncée — phase expérimentale agressive, test optionnel pour curieux.
+
+___
+
 <a id="en-product-status"></a>
 
 # ⚠️ PRODUCT STATUS — READ FIRST
 
-> **Drox engine 1.4.x is not production-ready.**  
-> Do not expect a reliable agent IDE until **1.4.1** (stabilization) ships.
+> **Drox engine 1.4.2 is obsolete — it will change completely.**  
+> Branch **1.4.2** closed and merged to `main` (June 2026). This is **not** a stable foundation: a **checkpoint** before a major engine rewrite.
 
 | | |
 |---|---|
-| **Shipped code** | **1.4.0** skeleton — run rail refactor, solo architect, 1.3 relics removed from IDE path |
-| **Active work** | **[1.4.1 dogfood stabilization](drox-engine/docs/1.4/1.4.1/PLAN-1.4.1.md)** — session, busy UI, discuss routing, loops, Windows VERIFY |
-| **Next** | [1.4.2 chat UI](drox-engine/docs/1.4/1.4.2/README.md) · [1.4.3 index/graph](drox-engine/docs/1.4/1.4.3/README.md) |
-| **Refactor closure** | [CLOSURE-1.4.0](drox-engine/docs/1.4/1.4.0/archive/finalisation/CLOSURE-1.4.0.md) |
+| **Code on `main`** | **1.4.2** — **observer** rail, **4-layer** context, prescriptive relics removed (`tool_folders`, per-station ACL, `todo_write`, LLM intent probe) |
+| **Production-ready?** | **No.** **Aggressive experimental** phase — dogfood only. |
+| **Still want to try?** | **Optional for the curious**: build `drox.exe`, hook up Ollama, expect bugs / regressions / breaking changes without notice. |
+| **Next engine work** | **Deep rewrite** (not a 1.4.3 polish) — current architecture will **not** be extended as-is. |
 
-**1.4.0** fixed architecture (single run rail conductor). **Dogfood** shows the rail works for structured runs. The product is still **mostly unusable day-to-day** because of UI/session bugs, discuss edge cases, loop noise, and Windows verify — tracked in 1.4.1. Dev branch dogfood only; not a validated product release.
+**1.4.2** cleans the 1.4.x experience (less forcing, free tools, unified memory) but **does not** freeze final design. What ships on `main` today is mainly a **lab** and a record of what we are moving away from.
 
 ___
 
@@ -442,16 +460,16 @@ ___
 
 ## Invariants
 
-`moteur_seul` — stations, gates, tool filtering, and orchestration live in Rust; the client streams and runs LSP/diff, it does not drive the run.
-`rail_seul_guide` — edit path: **run rail** is the only conductor; no 1.3 LoopDetector, `cycle_sanity`, or parallel guide.
-`architecte_solo` — single edit agent; no `delegate_executor`, no `RoleId::Executor`; mutations **inline** in ACT station.
-`deux_chemins` — **edit** (full rail) vs **discuss** (`ArchitectDiscussion`, short); routing via `architectInteractionMode` / model intent, no message heuristics in the engine.
-`outils_par_station` — engine filters `tool_specs` before each LLM turn (READ ≠ ACT ≠ VERIFY).
-`gate_hold_advance` — station transitions via `[gate: hold]` (→ ANSWER) or `[gate: advance]`; no `[phase: reading|acting|planning|testing]` as drive language.
-`depth_apres_read` — `[depth: short|complex]` after READ; PROPOSE only if complex + user hold.
-`done_obligatoire` — run ends only on `[phase: done]`; no “no more tools so we stop”.
-`answering_avant_done` — `done` blocked or nudged if `[phase: answering]` was not seen; only text under `answering` is the user-facing reply.
-`nudges_minces` — post-refactor: `stall_act`, `schema_error`, `done_only` only.
+`moteur_seul` — orchestration, soft gates, and context injection live in Rust; the client streams and runs LSP/diff, it does not drive the run.
+`rail_observateur` — edit path: **run rail** infers and surfaces station; **no** per-station tool ACL, **no** `tool_folders`, **no** coercive nudges (`stall_read`, `stall_act`, `force_act`).
+`architecte_solo` — single edit agent; no `delegate_executor`, no `RoleId::Executor`; mutations **inline**.
+`deux_chemins` — **edit** (full rail) vs **discuss** (`ArchitectDiscussion`, short); **static** routing (`routing.rs`), no LLM intent probe at boot.
+`outils_stables` — flat `tool_specs` palette for the whole EDIT run; single compact protocol `tool_supplements_architect_compact`.
+`contexte_4_couches` — boot frame + rail hint · wire tools · run snapshot + `internal_plan_write` · transcript + compaction checkpoint.
+`plan_interne` — `internal_plan_write` replaces `todo_write`; no todo gate on `done`.
+`memoire_drox_seule` — `DROX.md` only for project memory; boot without skills/sessions listing.
+`done_souple` — ends on `[phase: done]`; verify and mutation **not** forced by default (strict preset optional).
+`obsolete_142` — **1.4.2 closed** on `main` but engine **will change entirely** — do not build on this stack.
 
 ___
 
@@ -590,3 +608,19 @@ ___
 `final_answer_guard` — single `[phase: answering]` promotion; no double final reply.
 `agent_split_v2` — `loop/drive/`, `state/`, `gates/`, `rail/`, `nudges/`; ~500 L/file cap.
 `ui_2d` — multi-model / executor UI removed on IDE side (settings, webview); conductor polish → 1.4.2.
+
+___
+
+<a id="en-2026-06-v142"></a>
+
+### 2026-06 — `v1_4_2` (observer rail — **closed, engine obsolete**)
+
+`v1_4_1_stable` — session, busy UI, discuss, Windows VERIFY; base before context refactor.
+`rail_observateur` — end of per-station ACL, `pre_gate`, `read_stall`, `act_stall`, `force_act`, mutation gates on `done`.
+`tool_folders_del` — `orchestration/tool_folders/` removed; flat palette (`file_read`, `file_edit`, …).
+`intent_probe_del` — no LLM probe at boot; static `routing.rs` discuss / analyze / edit.
+`todo_write_del` — `internal_plan_write` only; todo gates removed.
+`memoire_unifiee` — `DROX.md` only; boot teaser; compaction checkpoint → `## Run context (engine)` snapshot.
+`contexte_4_couches` — boot + rail hint · stable tools · run snapshot · transcript + compaction.
+`prompt_observateur` — `01_core_rail_solo.md` rewritten without prescriptive `[gate:]`.
+`obsolete_annonce` — branch **1.4.2** merged to `main`; **full engine rewrite** announced — aggressive experimental phase, testing optional for the curious.
