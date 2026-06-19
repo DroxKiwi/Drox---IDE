@@ -15,8 +15,6 @@ impl Agent {
                     messages: &mut session.messages,
                     architect_state: &mut session.architect_state,
                     effective_run_objective: session.effective_run_objective.as_deref(),
-                    last_todo_pending: session.last_todo_pending,
-                    last_todo_in_progress: session.last_todo_in_progress,
                     engine_tuning: &self.config.engine_tuning,
                     rail_active,
                 },

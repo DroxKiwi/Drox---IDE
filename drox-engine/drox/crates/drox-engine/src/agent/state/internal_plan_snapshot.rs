@@ -3,8 +3,7 @@
 use drox_types::{Content, Message, Role};
 
 use super::internal_plan::{
-    format_internal_plan_required_block, format_internal_plan_snapshot_block,
-    INTERNAL_WORK_PLAN_MARKER,
+    format_internal_plan_snapshot_block, INTERNAL_WORK_PLAN_MARKER,
 };
 use crate::agent::ArchitectRunState;
 use crate::RunStation;
@@ -17,7 +16,7 @@ pub fn internal_plan_snapshot_for_station(
     if let Some(plan) = state.internal_plan.as_ref() {
         return Some(format_internal_plan_snapshot_block(plan));
     }
-    Some(format_internal_plan_required_block())
+    None
 }
 
 pub fn refresh_internal_plan_snapshot(messages: &mut Vec<Message>, snapshot: Option<&str>) {
@@ -66,11 +65,10 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn missing_plan_emits_required_block() {
+    fn missing_plan_emits_nothing() {
         let st = ArchitectRunState::new();
-        let snap = internal_plan_snapshot_for_station(&st, Some(RunStation::Intent)).unwrap();
-        assert!(snap.contains("Required"));
-        assert!(snap.contains("internal_plan_write"));
+        let snap = internal_plan_snapshot_for_station(&st, Some(RunStation::Intent));
+        assert!(snap.is_none());
     }
 
     #[test]

@@ -8,7 +8,8 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GateKind {
     DoneRequiresAnswering,
-    TodoStaleBeforeDone,
+    /// Block `[phase: done]` until verify passes or is waived (strict profile only).
+    DoneRequiresVerify,
 }
 
 /// Allowlist **discussion** — lecture / navigation (pas de plan).
@@ -30,9 +31,6 @@ pub const ARCHITECT_TOOL_ALLOWLIST: &[&str] = &[
     "copy_path",
     "delete_path",
     "file_edit",
-    "edit_file",
-    "read_workspace",
-    "verify_project",
     "internal_plan_write",
     "file_read",
     "file_write",
@@ -50,7 +48,6 @@ pub const ARCHITECT_TOOL_ALLOWLIST: &[&str] = &[
     "session_search",
     "skill_list",
     "skill_read",
-    "todo_write",
     "web_fetch",
     "web_search",
     "workspace_map_note",
@@ -77,7 +74,7 @@ pub enum RoleId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GateFlags {
     pub done_requires_answering: bool,
-    pub todo_stale_before_done: bool,
+    pub done_requires_verify: bool,
 }
 
 impl GateFlags {
@@ -85,7 +82,7 @@ impl GateFlags {
     pub const fn all_enabled() -> Self {
         Self {
             done_requires_answering: true,
-            todo_stale_before_done: true,
+            done_requires_verify: false,
         }
     }
 
@@ -93,7 +90,7 @@ impl GateFlags {
     pub fn from_tuning(tuning: &crate::orchestration::EngineTuning) -> Self {
         Self {
             done_requires_answering: tuning.gate_done_requires_answering,
-            todo_stale_before_done: tuning.gate_todo_stale_before_done,
+            done_requires_verify: tuning.gate_done_requires_verify,
         }
     }
 }
@@ -205,7 +202,7 @@ impl RunSpec {
     pub fn gate_enabled(&self, kind: GateKind) -> bool {
         match kind {
             GateKind::DoneRequiresAnswering => self.gates.done_requires_answering,
-            GateKind::TodoStaleBeforeDone => self.gates.todo_stale_before_done,
+            GateKind::DoneRequiresVerify => self.gates.done_requires_verify,
         }
     }
 
@@ -303,7 +300,6 @@ mod tests {
         assert!(!spec.tool_visible("bash"));
         assert!(!spec.tool_visible("web_search"));
         assert!(!spec.tool_visible("todo_write"));
-        assert!(!spec.tool_visible("ask_user_question"));
     }
 
     #[test]
@@ -332,7 +328,6 @@ mod tests {
         tuning.gate_done_requires_answering = false;
         let spec = RunSpec::for_orchestration_role_with_tuning(RoleId::Architect, &tuning);
         assert!(!spec.gate_enabled(GateKind::DoneRequiresAnswering));
-        assert!(spec.gate_enabled(GateKind::TodoStaleBeforeDone));
     }
 
     #[test]

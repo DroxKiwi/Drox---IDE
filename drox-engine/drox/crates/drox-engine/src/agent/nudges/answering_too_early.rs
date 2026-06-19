@@ -3,10 +3,7 @@
 use drox_types::Message;
 
 use crate::agent::stream::TurnOutcome;
-use crate::event::Phase;
 use crate::run_spec::RoleId;
-
-use super::text_tool_marker::has_tool_results_since_user;
 
 pub(crate) const ANSWERING_TOO_EARLY_NUDGE: &str = "\
 Blocked: `[phase: answering]` is too early — no tools have run on this request yet.\n\
@@ -14,25 +11,22 @@ Explore first with **native `tool_calls`**: `internal_plan_write` (if required),
 Do not paste implementation code in thinking or answering until you have tool results.";
 
 /// Brief mutation sans aucun `tool_result` depuis le dernier message utilisateur.
+///
+/// Disabled — observational rail; the model may answer without prior tools.
 #[must_use]
 pub(crate) fn is_premature_answering_turn(
-    role_id: RoleId,
-    mutation_expected: bool,
-    mutation_count: u32,
-    messages: &[Message],
-    outcome: &TurnOutcome,
+    _role_id: RoleId,
+    _mutation_count: u32,
+    _messages: &[Message],
+    _outcome: &TurnOutcome,
 ) -> bool {
-    role_id == RoleId::Architect
-        && mutation_expected
-        && mutation_count == 0
-        && !has_tool_results_since_user(messages)
-        && outcome.tool_calls.is_empty()
-        && (outcome.saw_answering || outcome.final_phase == Some(Phase::Answering))
+    false
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::event::Phase;
     use drox_types::{Content, Role, ToolUseId};
 
     fn mutation_outcome(saw_answering: bool) -> TurnOutcome {
@@ -52,14 +46,13 @@ mod tests {
     }
 
     #[test]
-    fn premature_when_answering_without_tools() {
+    fn never_premature_observational_rail() {
         let messages = vec![
             Message::user("rewrite section-transition.tsx"),
             Message::assistant("[phase: answering]\nHere is the code"),
         ];
-        assert!(is_premature_answering_turn(
+        assert!(!is_premature_answering_turn(
             RoleId::Architect,
-            true,
             0,
             &messages,
             &mutation_outcome(true),
@@ -82,7 +75,6 @@ mod tests {
         ];
         assert!(!is_premature_answering_turn(
             RoleId::Architect,
-            true,
             0,
             &messages,
             &mutation_outcome(true),
@@ -90,11 +82,10 @@ mod tests {
     }
 
     #[test]
-    fn not_premature_when_mutation_not_expected() {
+    fn observational_allows_answering_without_tools() {
         let messages = vec![Message::user("hello")];
         assert!(!is_premature_answering_turn(
             RoleId::Architect,
-            false,
             0,
             &messages,
             &mutation_outcome(true),

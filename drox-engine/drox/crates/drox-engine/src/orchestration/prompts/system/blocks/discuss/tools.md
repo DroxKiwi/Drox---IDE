@@ -7,6 +7,6 @@ You may use **read-only** tools **only** when the user message requires facts fr
 - Otherwise `workspace_map_read` — at most once if orientation is required by the question (never for a simple hello).
 - `file_read`, `grep`, `glob`, `lsp` — inspect paths implicated by the question.
 
-Do **not** use `todo_write`, `delegate_executor`, or mutating tools. Do not publish a multi-step orchestration plan.
+Do **not** use `internal_plan_write`, `delegate_executor`, or mutating tools. Do not publish a multi-step orchestration plan.
 
 After exploration, answer the user, then close with `[discussion: done]` (see above).

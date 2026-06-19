@@ -6,7 +6,7 @@ use super::support::*;
 use crate::agent::*;
 use crate::error::EngineError;
 use crate::event::{AgentEvent, Phase};
-use drox_tools::{TodoWriteTool, ToolContext, ToolRegistry};
+use drox_tools::{ToolContext, ToolRegistry};
 use drox_types::{StopReason, StreamEvent, ToolUseId, Usage};
 use futures::StreamExt;
 use serde_json::json;

@@ -299,6 +299,15 @@ pub fn format_sessions_listing_for_prompt(entries: &[MemorySessionEntry]) -> Opt
     Some(out)
 }
 
+/// Rappel minimal au boot — pas de listing auto des archives (M.7 / M.10).
+#[must_use]
+pub fn memory_tools_boot_teaser() -> &'static str {
+    "[Project memory — Drox workspace]\n\
+     Persistent project notes may live in `DROX.md` at the workspace root.\n\
+     Past session archives live under `.drox/memory/sessions/` — call `memory_list` and \
+     `memory_read` on demand (not listed at boot).\n"
+}
+
 // ---------------------------------------------------------------------------
 // Helpers internes : sérialisation / parsing du front-matter YAML simplifié.
 // ---------------------------------------------------------------------------

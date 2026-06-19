@@ -128,7 +128,7 @@ Le prompt système probe (fichier dédié, ex. `prompts/system/blocks/intent/run
 - `architect_gate` meta-lines (extracteur thinking EN) → hors intent
 - Probe « plan puis work » / « verify brief » → **interdit** en 1.4.1.1 ; 1.4.1.2 = règles rail structurelles
 - Resurrection `GateEngine` / TOML / `RoleId::ArchitectIntent`
-- Bump semver `1.4.2`
+- Bump semver `1.4.3`
 
 ---
 

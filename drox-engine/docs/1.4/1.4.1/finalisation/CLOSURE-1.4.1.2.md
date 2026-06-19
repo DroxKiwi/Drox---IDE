@@ -29,7 +29,7 @@ Patch **rail / clôture / VERIFY / messages outil** livré côté code. Les gate
 | **B-TOOL-01** | Anti-spirale `file_write` (5× path, 2× échec) | ✅ |
 | **B-RAIL-03** | Bash@ACT n’aligne plus VERIFY ; todos ouverts bloquent | ✅ |
 | **G-CTX-01** | Troncature prompt user > 80 lignes (IDE) | ✅ |
-| **B-MOTOR-01** (6.1 fingerprint thinking) | Report **1.4.2** — 6.2 couvert par 1.4.1.2a | ⏭ |
+| **B-MOTOR-01** (6.1 fingerprint thinking) | Report **1.4.3** — 6.2 couvert par 1.4.1.2a | ⏭ |
 
 **Tests** : `cargo test -p drox-engine` — **265** tests verts · `cargo build -p drox-cli` ✅ · `npm run compile-check-ts-native` ✅
 

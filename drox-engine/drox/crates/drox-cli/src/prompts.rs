@@ -20,7 +20,7 @@ Hard rules for EVERY reply while this mode is active:
 1. Use `content` for protocol markers (`[phase: …]` on their own line), short telegraphic notes inside internal phases, micro-announcements, and the final answer in `[phase: answering]`. Put long free-form reasoning only in the native `thinking` stream.
 2. The chat UI shows your native `thinking` in the **Raisonnement natif** fold. There is **no** separate Drox `[phase: reasoning]` phase anymore — that marker is ignored if present.
 3. Write the native `thinking` stream **in English only** (telegraphic). User-facing `[phase: answering]` follows the primary response language when configured.
-4. All other phase rules (`reading`, `planning`, `acting`, `[phase: done]`, `todo_write` gates, micro-cycles around edits, …) stay unchanged."#;
+4. All other phase rules (`reading`, `planning`, `acting`, `[phase: done]`, micro-cycles around edits, …) stay unchanged."#;
 
 mod core_standard;
 
@@ -84,7 +84,7 @@ Produce **markdown** with the following sections, in this order, using `## ` hea
 
 1. **Do not** invent files, decisions, or facts that are not visible in the transcript. If the transcript is shallow, the summary is short. Better empty than wrong.
 2. **`## Objective` must restate the user's original ask** (faithful one-line paraphrase). Never use generic meta-phrases ("continue the architect cycle", "analyze the project") when the transcript has a concrete user request. Other sections capture *outcomes*, not a copy-paste of the whole prompt.
-3. For **Architect orchestration**, list active `todo_write` items (ids + labels + status) under **What's in progress** when the plan is not finished.
+3. For **Architect orchestration**, list active internal plan steps (ids + actions + status) under **What's in progress** when the plan is not finished.
 4. **Do not** include code blocks or diffs. The summary is a *map*, not a reproduction.
 5. **Do not** apologize, explain your reasoning, or address the user. Output the markdown sections and nothing else.
 6. Language: write the `## Objective` line in the language the user used (typically French or English). Other sections can stay in English — they are technical notes for future LLM consumption.
@@ -244,47 +244,26 @@ mod tests {
             "prompt must note legacy reasoning marker is ignored"
         );
         assert!(
-            txt.contains("todo_write") && txt.contains("strongly recommended"),
-            "prompt must recommend todo_write before mutations when there is real work"
+            txt.contains("read-only tools allowed before mutations"),
+            "prompt must allow read-only exploration before mutations"
         );
     }
 
-    /// Sprint A.7 — relax de la gate aux read-only. Le prompt doit refléter
-    /// que `glob`/`file_read`/`grep`/`lsp`/`web_*` peuvent être appelés
-    /// AVANT `todo_write` pour explorer, et que seules les mutations
-    /// Les mutations ne sont plus bloquées sans `todo_write` ; le prompt
-    /// recommande fortement le plan avant d'agir.
     #[test]
-    fn core_prompt_allows_read_only_exploration_before_todo_write() {
+    fn core_prompt_allows_read_only_exploration_before_mutations() {
         let txt = CORE_SYSTEM_PROMPT;
         assert!(
-            txt.contains("read-only tools allowed **before** `todo_write`"),
-            "prompt must allow read-only exploration before todo_write"
-        );
-        assert!(
-            txt.contains("strongly recommended"),
-            "prompt must recommend todo_write before mutations (soft nudge)"
+            txt.contains("read-only tools allowed before mutations"),
+            "prompt must allow read-only exploration before mutations"
         );
     }
 
-    /// Anti-régression : le modèle (GLM-4.7-Flash) batchait tous ses
-    /// `todo_write` à la fin du run au lieu de cocher chaque étape en temps
-    /// réel. Le prompt doit nommer explicitement l'anti-pattern et imposer
-    /// la mise à jour au fil de l'eau.
     #[test]
-    fn core_prompt_requires_step_by_step_todo_updates() {
+    fn core_prompt_mentions_durable_delivery_memory() {
         let txt = CORE_SYSTEM_PROMPT;
         assert!(
-            txt.contains("AS YOU GO"),
-            "prompt must require todo updates as you go"
-        );
-        assert!(
-            txt.contains("Anti-pattern"),
-            "prompt must name batch-at-end anti-pattern"
-        );
-        assert!(
-            txt.contains("batch at the end"),
-            "prompt must name batch-at-end anti-pattern"
+            txt.contains("DROX.md") || txt.contains("memory_list"),
+            "prompt must mention durable project memory path"
         );
     }
 
@@ -320,10 +299,6 @@ mod tests {
             txt.contains("simulate") && txt.contains("JSON"),
             "prompt must forbid simulating tools via inline JSON"
         );
-        assert!(
-            txt.contains("`todo_write`") && txt.contains("is a tool, not a phase"),
-            "prompt must state todo_write is a tool not a phase"
-        );
     }
 
     /// Anti-régression : la boucle infinie sur « Salut » venait d'un gate
@@ -337,12 +312,8 @@ mod tests {
             "prompt must name pure conversational case"
         );
         assert!(
-            txt.contains("optional for pure chat"),
-            "prompt must say todo_write is optional for pure chat"
-        );
-        assert!(
             txt.contains("`answering` → `done`"),
-            "le prompt doit montrer la chaîne courte sans todo_write"
+            "le prompt doit montrer la chaîne courte sans plan tool"
         );
     }
 
@@ -358,7 +329,6 @@ mod tests {
             "delete_path",
             "bash",
             "lsp",
-            "todo_write",
             "ask_user_question",
             "web_search",
             "session_compact",
@@ -517,17 +487,17 @@ mod tests {
         );
     }
 
-    /// Après clôture complète du plan, le modèle doit pousser une trace dans MEMORY.md.
+    /// Boot rappelle `memory_list` / `memory_read` — pas de listing auto au boot.
     #[test]
-    fn core_prompt_nudges_project_memory_md_after_plan_closure() {
+    fn core_prompt_mentions_memory_tools_not_memory_md() {
         let txt = CORE_SYSTEM_PROMPT;
         assert!(
-            txt.contains("7quater") && txt.contains("MEMORY.md"),
-            "le prompt doit nommer la règle 7quater (mémoire projet)"
+            txt.contains("memory_list") && txt.contains("DROX.md"),
+            "le prompt doit nommer memory_list et DROX.md"
         );
         assert!(
-            txt.contains("full plan closure"),
-            "rule must tie MEMORY.md to full plan closure"
+            !txt.contains("MEMORY.md"),
+            "MEMORY.md ne doit plus être référencé"
         );
     }
 

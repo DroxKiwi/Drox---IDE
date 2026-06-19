@@ -5,21 +5,16 @@ pub const ARCHITECT_RUN_SNAPSHOT_MARKER: &str = "## Architect run snapshot (engi
 #[derive(Debug)]
 pub struct ArchitectRunState {
     pub(super) anchor_user_request_max_chars: usize,
-    pub(super) anchor_plan_max_items: usize,
     pub workspace_paths: HashSet<String>,
     pub workspace_map_loaded: bool,
-    /// Libellés todo (`t1` → contenu) pour le snapshot.
-    pub task_labels: HashMap<String, String>,
-    /// Statuts du dernier `todo_write` réussi (`id` → `pending` | `in_progress` | …).
-    pub todo_statuses: HashMap<String, String>,
+    /// Fichier/ligne résolus depuis un diagnostic build collé (P0 chemins).
+    pub diagnostic_target: Option<crate::agent::diagnostic_target::DiagnosticTarget>,
     /// Demande utilisateur du run (premier message `user`, non écrasable par compaction).
     pub user_request_anchor: Option<String>,
     /// Objectif verrouillé (`[run_objective: …]` ou config run).
     pub run_objective_anchor: Option<String>,
     /// Run rail conductor (1.4.0) — inactive while `run_rail_enabled` is false.
     pub rail: RunRailState,
-    /// Tool folders expanded via `describe` (1.4.1.3).
-    pub expanded_tool_folders: HashSet<String>,
     /// L2 internal micro-plan (`internal_plan_write`) — engine-only.
     pub internal_plan: Option<internal_plan::InternalPlanState>,
     /// Tours consécutifs avec marqueurs `[tool_use]` texte sans `tool_calls` (Phase F1).
@@ -42,28 +37,17 @@ impl ArchitectRunState {
     pub fn with_engine_tuning(tuning: &crate::EngineTuning) -> Self {
         Self {
             anchor_user_request_max_chars: tuning.anchor_user_request_max_chars as usize,
-            anchor_plan_max_items: tuning.anchor_plan_max_items as usize,
             workspace_paths: HashSet::new(),
             workspace_map_loaded: false,
-            task_labels: HashMap::new(),
-            todo_statuses: HashMap::new(),
+            diagnostic_target: None,
             user_request_anchor: None,
             run_objective_anchor: None,
             rail: RunRailState::new(),
-            expanded_tool_folders: HashSet::new(),
             internal_plan: None,
             text_tool_marker_streak: 0,
         }
     }
 
-    #[must_use]
-    pub fn is_tool_folder_expanded(&self, folder: &str) -> bool {
-        self.expanded_tool_folders.contains(folder)
-    }
-
-    pub fn expand_tool_folder(&mut self, folder: &str) {
-        self.expanded_tool_folders.insert(folder.to_string());
-    }
 
     /// Mémorise la demande utilisateur initiale (idempotent — garde la première).
     pub fn anchor_user_request(&mut self, text: &str) {

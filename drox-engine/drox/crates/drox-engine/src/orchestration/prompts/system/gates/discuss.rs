@@ -52,7 +52,7 @@ pub fn architect_discussion_system_prompt_for_start_run(
             understanding** (structure, files, symbols) — not edits yet.\n\
             1. Call `workspace_map_read` once to load the workspace map.\n\
             2. Use `file_read`, `glob`, `grep`, and `lsp` as needed to explore.\n\
-            3. Do **not** call `todo_write` or `delegate_executor`.\n\
+            3. Do **not** call `internal_plan_write` or `delegate_executor`.\n\
             4. Emit `[discussion: reply]` with a concise synthesis for the user, then \
             `[discussion: done]`.\n",
         _ => "",

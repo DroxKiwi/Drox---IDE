@@ -14,6 +14,8 @@ pub enum VerifyOutcome {
     Unknown,
     Pass,
     Fail(String),
+    /// Model documented in `[phase: answering]` that no runnable check exists.
+    Waived(String),
 }
 
 impl VerifyOutcome {
@@ -26,6 +28,12 @@ impl VerifyOutcome {
     pub fn failed(&self) -> bool {
         matches!(self, Self::Fail(_))
     }
+
+    /// Pass or explicit waive — enough to close a mutation run.
+    #[must_use]
+    pub fn satisfied(&self) -> bool {
+        matches!(self, Self::Pass | Self::Waived(_))
+    }
 }
 
 impl Default for VerifyOutcome {
@@ -34,10 +42,11 @@ impl Default for VerifyOutcome {
     }
 }
 
-/// After a successful mutation at ACT, clear a prior verify failure.
+/// After a successful mutation at ACT, clear a prior verify failure and allow post-edit checks.
 pub fn reset_on_mutation_success(state: &mut RunRailState, tool_name: &str) {
     if state.station == RunStation::Act && policy::is_mutation_tool(tool_name) {
         state.verify_outcome = VerifyOutcome::Unknown;
+        state.visited_verify = true;
     }
 }
 
@@ -65,6 +74,7 @@ pub fn on_verify_tool_result(
                 return true;
             }
             state.verify_outcome = VerifyOutcome::Pass;
+            super::post_work_idle::reset_post_work_idle(state);
         }
         "lsp" if output.get("op").and_then(|v| v.as_str()) == Some("diagnostics") => {
             if lsp_diagnostics_failed(output) {
@@ -73,6 +83,7 @@ pub fn on_verify_tool_result(
                 return true;
             }
             state.verify_outcome = VerifyOutcome::Pass;
+            super::post_work_idle::reset_post_work_idle(state);
         }
         _ => return false,
     }
@@ -92,6 +103,53 @@ fn verify_tool_counts_at_station(state: &RunRailState) -> bool {
 fn fail_verify(state: &mut RunRailState, message: String) {
     state.verify_outcome = VerifyOutcome::Fail(message);
     state.station = RunStation::Act;
+}
+
+/// Parse `[verify: waived]` (optional reason on the same line) from answering text.
+#[must_use]
+pub fn parse_verify_waived_from_text(text: &str) -> Option<String> {
+    for line in text.lines() {
+        let trimmed = line.trim();
+        let lower = trimmed.to_ascii_lowercase();
+        if !lower.starts_with("[verify:") || !lower.contains("waived") {
+            continue;
+        }
+        let reason = trimmed
+            .find(']')
+            .map(|idx| trimmed[idx + 1..].trim())
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+            .unwrap_or_else(|| "no runnable check found".into());
+        return Some(reason);
+    }
+    None
+}
+
+/// Apply waive marker from `[phase: answering]` body.
+pub fn apply_verify_waived_marker(state: &mut RunRailState, text: &str) {
+    let Some(reason) = parse_verify_waived_from_text(text) else {
+        return;
+    };
+    state.verify_outcome = VerifyOutcome::Waived(reason);
+    state.visited_verify = true;
+}
+
+/// Apply pass marker from `[verify: passed]` in assistant text (tool or prose).
+pub fn apply_verify_passed_marker(state: &mut RunRailState, text: &str) {
+    if !parse_verify_passed_from_text(text) {
+        return;
+    }
+    state.verify_outcome = VerifyOutcome::Pass;
+    state.visited_verify = true;
+    super::post_work_idle::reset_post_work_idle(state);
+}
+
+#[must_use]
+pub fn parse_verify_passed_from_text(text: &str) -> bool {
+    text.lines().any(|line| {
+        let lower = line.trim().to_ascii_lowercase();
+        lower.starts_with("[verify:") && lower.contains("passed")
+    })
 }
 
 #[must_use]
@@ -244,7 +302,35 @@ mod tests {
     }
 
     #[test]
-    fn mutation_clears_verify_outcome() {
+    fn parse_verify_waived_marker() {
+        let text = "[phase: answering]\n[verify: waived] Read package.json — no test script.\nDone.";
+        assert_eq!(
+            parse_verify_waived_from_text(text).as_deref(),
+            Some("Read package.json — no test script.")
+        );
+    }
+
+    #[test]
+    fn apply_waived_sets_satisfied() {
+        let mut state = RunRailState::new();
+        apply_verify_waived_marker(
+            &mut state,
+            "[verify: waived] no runnable check",
+        );
+        assert!(state.verify_outcome.satisfied());
+        assert!(state.visited_verify);
+    }
+
+    #[test]
+    fn apply_passed_sets_satisfied() {
+        let mut state = RunRailState::new();
+        apply_verify_passed_marker(&mut state, "[verify: passed] lsp clean");
+        assert!(state.verify_outcome.satisfied());
+        assert!(state.visited_verify);
+    }
+
+    #[test]
+    fn mutation_clears_verify_outcome_and_enables_act_checks() {
         let mut state = RunRailState {
             station: RunStation::Act,
             verify_outcome: VerifyOutcome::Fail("x".into()),
@@ -252,5 +338,6 @@ mod tests {
         };
         reset_on_mutation_success(&mut state, "file_write");
         assert_eq!(state.verify_outcome, VerifyOutcome::Unknown);
+        assert!(state.visited_verify);
     }
 }

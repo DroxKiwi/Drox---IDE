@@ -25,7 +25,7 @@ pub struct ToolContext {
     pub scope_deferred: Option<ScopeDeferredHandle>,
     pub workspace_map: Option<WorkspaceMapStore>,
     pub drox_ignore: Option<DroxIgnoreMatcher>,
-    /// Autorise `todo_write` avec liste vide quand le run architecte est closable.
+    /// Autorise clôture run architecte sans plan interne ouvert.
     pub orchestration_run_closable: bool,
     /// Snapshot pour `architect_help` (rôle Architecte uniquement).
     pub architect_help_snapshot: Option<ArchitectHelpSnapshot>,

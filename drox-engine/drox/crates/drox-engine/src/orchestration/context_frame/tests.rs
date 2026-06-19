@@ -35,8 +35,6 @@ fn apply_iteration_start_injects_three_marked_blocks_when_rail_active() {
         messages: &mut messages,
         architect_state: &mut architect_state,
         effective_run_objective: None,
-        last_todo_pending: 0,
-        last_todo_in_progress: 0,
         engine_tuning: &tuning,
         rail_active: tuning.run_rail_enabled,
     };
@@ -79,8 +77,6 @@ fn apply_iteration_start_skips_unchanged_snapshot() {
         messages: &mut messages,
         architect_state: &mut architect_state,
         effective_run_objective: None,
-        last_todo_pending: 0,
-        last_todo_in_progress: 0,
         engine_tuning: &tuning,
         rail_active: false,
     };

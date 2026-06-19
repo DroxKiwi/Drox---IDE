@@ -3,8 +3,6 @@
 //! Design: `drox-engine/docs/1.4/archive/1.4.0/README.md`
 
 mod act_failure;
-mod read_stall;
-mod act_stall;
 mod boot;
 mod cycle_reopen;
 mod infer;
@@ -12,8 +10,7 @@ mod loop_hooks;
 mod markers;
 mod nudges;
 mod policy;
-mod post_todos_close;
-mod pre_gate;
+mod post_work_idle;
 mod propose_hold;
 mod snapshot_block;
 mod station;
@@ -23,23 +20,21 @@ mod transition;
 mod user_turn;
 mod verify;
 
-pub(crate) use post_todos_close::reset_post_todos_idle;
+pub(crate) use post_work_idle::reset_post_work_idle;
 pub use loop_hooks::{
-    after_assistant_turn, on_act_idle_turn, on_act_mutation_success, on_act_tool_failure,
-    on_post_todos_idle_turn, on_read_idle_turn, on_tool_success, on_turn_start, on_verify_tool_result,
-    refresh_snapshot, ActRailNudge, AfterAssistantAction,
+    after_assistant_turn, on_act_mutation_success, on_act_tool_failure, on_tool_success,
+    on_turn_start, on_verify_tool_result, refresh_snapshot, ActRailNudge, AfterAssistantAction,
 };
-pub use transition::{
-    force_act_for_expected_mutation, reopen_work_station_if_needed, OpenTodoCounts,
-    RailTransitionContext,
-};
-pub use policy::filter_tool_specs_for_station;
+pub use transition::RailTransitionContext;
+pub(crate) use verify::{apply_verify_passed_marker, apply_verify_waived_marker};
+pub use crate::agent::state::internal_plan::OpenWorkCounts;
+#[cfg(test)]
 pub use policy::is_mutation_tool;
-pub use pre_gate::tool_pre_gate_rail;
 pub use snapshot_block::{is_run_rail_snapshot_message, refresh_run_rail_snapshot};
 pub use station::RunStation;
-pub use station_events::{to_agent_event, StationEvent};
+pub use station_events::to_agent_event;
 pub use state::RunRailState;
+pub use verify::VerifyOutcome;
 
 /// Whether the run rail conductor is active for this run (architect **edit** only).
 #[must_use]

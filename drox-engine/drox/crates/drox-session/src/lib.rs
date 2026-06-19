@@ -4,8 +4,7 @@
 //! - Transcript append-only JSONL : [`ChatMessageRecord`], [`read_transcript`],
 //!   [`JsonlTranscriptSink`] + trait [`TranscriptSink`] pour le moteur.
 //! - Listing : [`list_sessions`].
-//! - Memdir : [`load_memdir`] + [`memdir_system_prefix`] pour `MEMORY.md` /
-//!   `DROX.md` à la racine du workspace.
+//! - Memdir : [`load_memdir`] + [`memdir_system_prefix`] pour `DROX.md` à la racine du workspace.
 //!
 //! Voir `docs/INVENTAIRE-NOYAU-MOTEUR.md` § 2.8.
 
@@ -38,6 +37,7 @@ pub use memory_budget::{
 pub use memory_sessions::{
     DEFAULT_LISTING_LIMIT, MemorySessionEntry, SessionFrontMatter,
     compute_session_path, format_sessions_listing_for_prompt, load_sessions_listing,
+    memory_tools_boot_teaser,
     read_session, reserve_session_path, slugify, write_session,
 };
 pub use paths::{

@@ -1,4 +1,4 @@
-//! Orchestration `role_split` — routage simple puis run discuss ou edit.
+//! Orchestration `role_split` — routage statique puis run discuss ou edit.
 
 use drox_engine::{
     append_engine_trace_record, architect_discussion_system_prompt_for_start_run,
@@ -7,12 +7,12 @@ use drox_engine::{
     engine_trace_path,
     initial_run_objective_for_concrete_edit, AgentEvent, ArchitectGate,
     EngineTracePayload, EngineTraceRecord, OrchestrationConfig, RoleId, RunRoutingTrace, RunSpec,
-    StartRunKind, resolve_run_intent, RunIntentFlags,
+    StartRunKind, resolve_gate_chain,
 };
 use drox_types::Content;
 
 use crate::jsonrpc::handlers::agent_run::{
-    build_agent_setup, build_orchestration_llm, drive_role_run, notify_agent_event,
+    build_agent_setup, drive_role_run, notify_agent_event,
     notify_agent_run_completed, AgentSetupOverrides, RunOutcome,
 };
 use crate::jsonrpc::handlers::common::resolve_agent_run_engine_tuning;
@@ -27,13 +27,11 @@ pub async fn drive_role_split_run(
     params: &AgentRunParams,
     _user_blocks: Vec<Content>,
 ) -> Result<RunOutcome, RunOutcome> {
-    let resolved = resolve_architect_gate(server, params).await?;
+    let resolved = resolve_architect_gate(params);
     tracing::info!(
         architect_gate = resolved.gate.as_str(),
         start_run = resolved.start_run.wire_id(),
-        greeting_only = resolved.intent_flags.greeting_only,
-        expects_workspace_mutation = resolved.intent_flags.expects_workspace_mutation,
-        intent_probe_source = ?resolved.intent_flags.source,
+        routing_source = "static",
         "orchestration role_split — mode resolved"
     );
     record_run_routing_trace(server, &run_id, params, &resolved).await;
@@ -41,40 +39,23 @@ pub async fn drive_role_split_run(
         ArchitectGate::Discuss | ArchitectGate::Analyze => {
             drive_role_split_discuss(server, run_id, params, resolved).await
         }
-        ArchitectGate::Edit => {
-            drive_role_split_edit(server, run_id, params, resolved).await
-        }
+        ArchitectGate::Edit => drive_role_split_edit(server, run_id, params, resolved).await,
     }
 }
 
-/// Routage après intent probe (auto / discussion) ou défauts RPC edit/analyze.
+/// Routage statique (RPC mode ou auto → edit).
 struct ResolvedOrchestration {
     gate: ArchitectGate,
     start_run: StartRunKind,
-    intent_flags: RunIntentFlags,
 }
 
-impl ResolvedOrchestration {
-    fn from_intent(resolved: drox_engine::ResolvedRunIntent) -> Self {
-        let chain = resolved.gate_chain();
-        Self {
-            gate: chain.gate,
-            start_run: chain.start_run,
-            intent_flags: resolved.flags,
-        }
-    }
-}
-
-async fn resolve_architect_gate(
-    server: &Server,
-    params: &AgentRunParams,
-) -> Result<ResolvedOrchestration, RunOutcome> {
+fn resolve_architect_gate(params: &AgentRunParams) -> ResolvedOrchestration {
     let raw_mode = params.architect_interaction_mode.as_deref();
     let rpc_gate = raw_mode.and_then(ArchitectGate::parse_param);
     if raw_mode.is_some() && rpc_gate.is_none() {
         tracing::warn!(
             architect_interaction_mode = ?raw_mode,
-            "unknown interaction mode — intent probe + auto routing"
+            "unknown interaction mode — defaulting to architect edit"
         );
     } else if let Some(gate) = rpc_gate {
         tracing::info!(
@@ -84,11 +65,11 @@ async fn resolve_architect_gate(
         );
     }
 
-    let llm = build_orchestration_llm(server, params)
-        .await
-        .map_err(|_| RunOutcome::Errored)?;
-    let resolved = resolve_run_intent(llm, &params.prompt, rpc_gate).await;
-    Ok(ResolvedOrchestration::from_intent(resolved))
+    let chain = resolve_gate_chain(rpc_gate);
+    ResolvedOrchestration {
+        gate: chain.gate,
+        start_run: chain.start_run,
+    }
 }
 
 async fn record_run_routing_trace(
@@ -97,13 +78,12 @@ async fn record_run_routing_trace(
     params: &AgentRunParams,
     resolved: &ResolvedOrchestration,
 ) {
-    let flags = &resolved.intent_flags;
     let event = AgentEvent::RunRouting {
         architect_gate: resolved.gate.as_str().to_string(),
         start_run: resolved.start_run.wire_id().to_string(),
-        greeting_only: flags.greeting_only,
-        expects_workspace_mutation: flags.expects_workspace_mutation,
-        intent_source: flags.source.as_str().to_string(),
+        greeting_only: false,
+        expects_workspace_mutation: false,
+        intent_source: "routing".to_string(),
     };
     notify_agent_event(server, run_id, event.clone()).await;
 
@@ -126,9 +106,9 @@ async fn record_run_routing_trace(
     let record = EngineTraceRecord::new(EngineTracePayload::RunRouting(RunRoutingTrace {
         architect_gate: resolved.gate.as_str().to_string(),
         start_run: resolved.start_run.wire_id().to_string(),
-        greeting_only: flags.greeting_only,
-        expects_workspace_mutation: flags.expects_workspace_mutation,
-        intent_source: flags.source.as_str().to_string(),
+        greeting_only: false,
+        expects_workspace_mutation: false,
+        intent_source: "routing".to_string(),
     }));
     if let Err(err) = append_engine_trace_record(&path, &record).await {
         tracing::warn!(error = %err, path = %path, "engine_trace run_routing append failed");
@@ -176,7 +156,6 @@ async fn drive_role_split_discuss(
             model_override: Some(orch_cfg.architect_model.clone()),
             system_override: Some(discussion_system),
             run_objective_override: None,
-            run_intent: Some(resolved.intent_flags),
         },
     )
     .await
@@ -242,7 +221,6 @@ async fn drive_role_split_edit(
             model_override: Some(architect_model),
             system_override: Some(architect_edit_system_prompt_core_for_run_vars(&tuning)),
             run_objective_override,
-            run_intent: Some(resolved.intent_flags),
         },
     )
     .await

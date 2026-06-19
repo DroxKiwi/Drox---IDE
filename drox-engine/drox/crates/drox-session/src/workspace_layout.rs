@@ -22,7 +22,7 @@ Les **exécuteurs éphemères** enregistrent leurs rapports `.md` **uniquement**
 
 Exemple : `.drox/agent-output/plan_1748301234/t2/analyse.md`
 
-Chaque `todo_write` (plan architecte) reçoit un **plan_id** ; les tâches `t1`, `t2`, … vivent sous ce dossier. Un nouveau plan ne réutilise pas l'ancien `plan_id`.
+Chaque plan interne architecte reçoit un **plan_id** ; les tâches `t1`, `t2`, … vivent sous ce dossier. Un nouveau plan ne réutilise pas l'ancien `plan_id`.
 
 Le moteur crée `<plan_id>/<task_id>/` à chaque `delegate_executor` et redirige les `file_write` `.md` hors de ce dossier.
 

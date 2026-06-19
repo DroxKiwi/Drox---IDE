@@ -21,8 +21,10 @@ pub struct RunRailState {
     pub act_idle_turns: u32,
     /// Mutation brief — consecutive read-only turns at READ without advancing to ACT.
     pub read_idle_turns: u32,
-    /// B-MOTOR-06 — idle turns after todos terminal with mutations but no answering UI.
+    /// B-MOTOR-06 — idle turns after work closed with mutations but no answering UI.
     pub post_todos_idle_turns: u32,
+    /// B-MOTOR-06 — one soft verify invitation per run (not a hard loop).
+    pub verify_invitation_sent: bool,
     /// Last verify result at station VERIFY (`bash` / `lsp` diagnostics).
     pub verify_outcome: VerifyOutcome,
 }
@@ -40,6 +42,7 @@ impl RunRailState {
             act_idle_turns: 0,
             read_idle_turns: 0,
             post_todos_idle_turns: 0,
+            verify_invitation_sent: false,
             verify_outcome: VerifyOutcome::Unknown,
         }
     }

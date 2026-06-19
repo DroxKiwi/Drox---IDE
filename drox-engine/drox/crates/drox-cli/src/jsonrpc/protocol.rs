@@ -184,7 +184,7 @@ pub struct AgentRunParams {
     pub native_thinking: Option<bool>,
     /// Outils retirés du registre pour ce run (paramètres workspace §2.17).
     /// Le modèle ne reçoit pas leurs `ToolSpec`. `ask_user_question` et
-    /// `todo_write` sont ignorés s'ils apparaissent ici.
+    /// `internal_plan_write` sont ignorés s'ils apparaissent ici.
     #[serde(default)]
     pub disabled_tools: Vec<String>,
     /// Si `false`, les outils MCP (`mcp__…`) ne sont pas enregistrés pour ce run.

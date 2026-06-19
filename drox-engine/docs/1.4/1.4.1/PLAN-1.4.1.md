@@ -4,7 +4,7 @@
 **Branche** : `1.4.1`  
 **Parent backlog** : [SMOKE-BACKLOG](../1.4.0/archive/SMOKE-BACKLOG.md)  
 **Ouverture** : [OPENING-1.4.1](finalisation/OPENING-1.4.1.md)  
-**Hors scope** : polish UI chat → [1.4.2](../1.4.2/README.md) · index/graphe → [1.4.3](../1.4.3/PLAN-1.4.3.md)
+**Hors scope** : polish UI chat → [1.4.3](../1.4.3/README.md) · index/graphe → [1.4.4](../1.4.4/PLAN-1.4.4.md)
 
 > Ce plan a été rédigé **avant** la livraison squelette 1.4.0. Il est **réaligné** sur le dogfood juin 2026 (Qwen 27b, installeur 1.4.0) et sur ce que la refonte a **réellement** changé.
 
@@ -62,8 +62,8 @@ Rendre le moteur et la session **fiables au dogfood quotidien** sans refonte rai
         → 1.4.1.1 intent probes + English engine
             → 1.4.1.2a context diet (injection prompt)
                 → 1.4.1.2 patch rail / clôture / VERIFY
-                    → 1.4.2 UI chat
-                        → 1.4.3 index/graphe
+                    → 1.4.3 UI chat
+                        → 1.4.4 index/graphe
 ```
 
 Voir [PLAN-1.4.1.1](PLAN-1.4.1.1.md) · [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) · [PLAN-1.4.1.2](PLAN-1.4.1.2.md).
@@ -85,8 +85,8 @@ Voir [PLAN-1.4.1.1](PLAN-1.4.1.1.md) · [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) · [PL
 | **B-MOTOR-02** | Spirale bash VERIFY Windows (`head`, quoting, timeout) | P5 | P1 |
 | **B-UI-06** | Replay session lent (compaction journal / cold start) | P6 | P1 |
 | **G-DEBT-01** | `loop/drive/tools.rs` ~530 L (> plafond FOI 500) | P7 | P2 |
-| **B-UI-01…05** | Trays, plan sticky, ask_user markdown, ordre thinking | — | **1.4.2** |
-| **B-RAIL-01 résidu** | Pas de `[gate:]` modèle | — | doc / 1.4.2 prompt |
+| **B-UI-01…05** | Trays, plan sticky, ask_user markdown, ordre thinking | — | **1.4.3** |
+| **B-RAIL-01 résidu** | Pas de `[gate:]` modèle | — | doc / 1.4.3 prompt |
 
 ---
 
@@ -124,7 +124,7 @@ Voir [PLAN-1.4.1.1](PLAN-1.4.1.1.md) · [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) · [PL
 
 - **B-DISC-02** : ☑ si `cargo test` extracteur vert + R1a F5 OK (déjà le cas sur transcript) — committer le fix `architect_gate.rs`.
 - **M-DISC-01** : ☑ si R1a + R1b + R1c passent après 2.1–2.3 ; sinon garder ouvert et documenter échec dans SMOKE-BACKLOG.
-- **B-DISC-03** : ☑ si R1b (ou run sans marqueurs forcé) affiche la 1ʳᵉ réponse utilisateur ; sinon report 1.4.2 si pré-gate élimine le cas.
+- **B-DISC-03** : ☑ si R1b (ou run sans marqueurs forcé) affiche la 1ʳᵉ réponse utilisateur ; sinon report 1.4.3 si pré-gate élimine le cas.
 
 ### P3 — Busy & sync session — B-UI-07 ☑
 
@@ -164,7 +164,7 @@ Voir [PLAN-1.4.1.1](PLAN-1.4.1.1.md) · [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) · [PL
 
 **Pistes** : fusion `delta` à l’écriture ; cold-start transcript moteur + UI lazy.
 
-**Critère** : session 5k events → chargement perçu < 2 s (affichage fin → 1.4.2).
+**Critère** : session 5k events → chargement perçu < 2 s (affichage fin → 1.4.3).
 
 ### P7 — Dette structure — G-DEBT-01
 
@@ -337,8 +337,8 @@ P0  Phase 1  droxSurface (prod crédible)
 - [x] **B-DISC-02** : extracteur validé — dogfood R1a/R1b qwen27b
 - [x] **M-DISC-01** : R1a + R1b + R1c verts (auto + discussion)
 - [x] **B-DISC-03** : fallback extracteur — non reproduit post-fix, code en place
-- [ ] **B-UI-07** + **B-MOTOR-01/02/03/04** fermés ou reportés en 1.4.2 **avec justification**
-- [ ] **B-UI-06** compaction livrée (polish affichage replay → 1.4.2)
+- [ ] **B-UI-07** + **B-MOTOR-01/02/03/04** fermés ou reportés en 1.4.3 **avec justification**
+- [ ] **B-UI-06** compaction livrée (polish affichage replay → 1.4.3)
 - [ ] **G-DEBT-01** ou report explicite
 - [ ] `cargo test -p drox-engine` vert ; `compile-check-ts-native` OK
 - [ ] Smoke : R1a/R1b/R1c discuss + charte CSS qwen27b sans régression rail 1.4.0
@@ -348,9 +348,9 @@ P0  Phase 1  droxSurface (prod crédible)
 
 ## Non-objectifs 1.4.1
 
-- B-UI-01 à 05 (layout trays, plan sticky, ask_user markdown, ordre thinking) → **1.4.2**
-- Conducteur UI stations complet → **1.4.2** ([UI-CONDUCTEUR](../1.4.0/UI-CONDUCTEUR.md))
-- Index / graphe / fast path / onboarding → **1.4.3**
+- B-UI-01 à 05 (layout trays, plan sticky, ask_user markdown, ordre thinking) → **1.4.3**
+- Conducteur UI stations complet → **1.4.3** ([UI-CONDUCTEUR](../1.4.0/UI-CONDUCTEUR.md))
+- Index / graphe / fast path / onboarding → **1.4.4**
 - Nouveau paradigme rail ou retour Executor / segments → interdit (figé 1.4.0)
 - Listes heuristiques message pour routage discuss/edit → interdit ([RULES.md](../../../../RULES.md) §6)
 
@@ -361,5 +361,5 @@ P0  Phase 1  droxSurface (prod crédible)
 - [README 1.4.1](README.md)
 - [CLOSURE 1.4.0](../1.4.0/archive/finalisation/CLOSURE-1.4.0.md)
 - [FOI-REFONTE](../1.4.0/FOI-REFONTE.md)
-- [1.4.2 UI](../1.4.2/README.md)
-- [1.4.3 index](../1.4.3/PLAN-1.4.3.md)
+- [1.4.3 UI](../1.4.3/README.md)
+- [1.4.4 index](../1.4.4/PLAN-1.4.4.md)

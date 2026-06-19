@@ -1,12 +1,10 @@
 ﻿#[tokio::test]
 async fn done_allowed_after_code_edit_completes_run() {
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        todo_then_code_edit_turn("src/lib.rs"),
+        plan_then_code_edit_turn("src/lib.rs"),
         done_turn("rÃ©ponse sans phase testing"),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(FakeFileEditTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(FakeFileEditTool));
     let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
@@ -25,12 +23,10 @@ async fn done_allowed_after_code_edit_completes_run() {
 #[tokio::test]
 async fn done_allowed_when_only_markdown_edited() {
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        todo_then_code_edit_turn("docs/README.md"),
+        plan_then_code_edit_turn("docs/README.md"),
         done_turn("doc mise ÃƒÂ  jour"),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(FakeFileEditTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(FakeFileEditTool));
     let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
@@ -53,57 +49,16 @@ async fn done_allowed_when_only_markdown_edited() {
 }
 
 #[tokio::test]
-async fn done_blocked_when_todos_still_open() {
-    // ScÃƒÂ©nario : le modÃƒÂ¨le ouvre la to-do en `in_progress` puis tente de
-    // clÃƒÂ´turer directement (rÃƒÂ©ponse + done). La nouvelle gate doit refuser
-    // ce `done` (todo non clÃƒÂ´turÃƒÂ©e) et nudger. Le tour 3 met ÃƒÂ  jour la
-    // to-do en `completed` et seulement lÃƒÂ  le moteur accepte de fermer.
-    let tid_close = ToolUseId::new();
+async fn done_allowed_with_open_plan_steps() {
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        // Tour 1 : ouverture de la to-do (in_progress).
-        read_then_one_todo_turn_with_status(
+        read_then_plan_turn_with_status(
             "Je vais traiter la demande.",
             "in_progress",
         ),
-        // Tour 2 : answering + done, mais la to-do est toujours ouverte
-        // Ã¢â€ â€™ la gate doit nudger et NE PAS clÃƒÂ´turer.
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
-                text: "[phase: answering]\nrÃƒÂ©ponse hÃƒÂ¢tive\n[phase: done]".into(),
-            },
-            StreamEvent::Stop {
-                reason: StopReason::EndTurn,
-                usage: Usage::default(),
-            },
-        ],
-        // Tour 3 : le modÃƒÂ¨le clÃƒÂ´ture la to-do puis re-tente.
-        vec![
-            StreamEvent::Start,
-            StreamEvent::TextDelta {
-                text: "[phase: verifying]\nJe ferme la to-do.\n".into(),
-            },
-            StreamEvent::ToolCall {
-                id: tid_close,
-                name: "todo_write".into(),
-                arguments: json!({
-                    "todos": [{
-                        "id": "1",
-                        "content": "Ãƒâ€°tape de test",
-                        "status": "completed",
-                    }]
-                }),
-            },
-            StreamEvent::Stop {
-                reason: StopReason::ToolUse,
-                usage: Usage::default(),
-            },
-        ],
-        // Tour 4 : answering + done. Tout est OK, on doit fermer.
-        vec![
-            StreamEvent::Start,
-            StreamEvent::TextDelta {
-                text: "[phase: answering]\nrÃƒÂ©ponse finale\n[phase: done]".into(),
+                text: "[phase: answering]\nreponse\n[phase: done]".into(),
             },
             StreamEvent::Stop {
                 reason: StopReason::EndTurn,
@@ -111,9 +66,7 @@ async fn done_blocked_when_todos_still_open() {
             },
         ],
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let registry = Arc::new(ToolRegistry::new());
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -125,32 +78,11 @@ async fn done_blocked_when_todos_still_open() {
         .collect::<Result<_, _>>()
         .unwrap();
 
-    // On exige qu'on ait vu DEUX appels todo_write (ouverture + clÃƒÂ´ture).
-    let todo_finishes = events
-        .iter()
-        .filter(|e| matches!(e, AgentEvent::ToolFinish { is_error: false, .. }))
-        .count();
-    assert!(
-        todo_finishes >= 2,
-        "expected at least 2 successful todo_write tool finishes (open + close), got {todo_finishes} Ã¢â‚¬â€ events: {events:?}",
-    );
-
-    // Le run doit se clÃƒÂ´turer normalement (Stop final) : la gate finit
-    // par accepter `done` une fois la to-do passÃƒÂ©e en `completed`.
+    assert!(matches!(events.last(), Some(AgentEvent::Stop { .. })));
     assert!(
         events
             .iter()
             .any(|e| matches!(e, AgentEvent::PhaseEnter { phase: Phase::Done })),
-        "expected PhaseEnter(Done) eventually, got {events:?}",
-    );
-    assert!(matches!(events.last(), Some(AgentEvent::Stop { .. })));
-
-    // La rÃƒÂ©ponse finale doit ÃƒÂªtre celle du tour 4, pas la hÃƒÂ¢tive du tour 2.
-    assert!(
-        events
-            .iter()
-            .any(|e| matches!(e, AgentEvent::TextDelta { text } if text.contains("rÃƒÂ©ponse finale"))),
-        "expected final answer to come from the post-close turn, got {events:?}",
     );
 }
 
@@ -158,7 +90,7 @@ async fn done_blocked_when_todos_still_open() {
 async fn done_marker_terminates_turn() {
     // `todo_write` obligatoire + `answering` avant `done` : deux tours.
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("Alignement sur le message utilisateur."),
+        read_then_plan_complete_turn("Alignement sur le message utilisateur."),
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -173,9 +105,7 @@ async fn done_marker_terminates_turn() {
             },
         ],
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -211,13 +141,11 @@ async fn context_snip_event_emitted_when_history_exceeds_threshold() {
     // Tour 1 : modÃƒÂ¨le conclut (pas de tool call). On veut juste que le
     // snip prÃƒÂ©-tour se dÃƒÂ©clenche sur l'historique initial.
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("Contexte pour le snip."),
+        read_then_plan_complete_turn("Contexte pour le snip."),
         done_turn("ok"),
     ]));
 
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
 
     // Budget minuscule (1k window, 0 reserved, 0 autocompact buffer) Ã¢â€ â€™
@@ -275,11 +203,11 @@ async fn max_iterations_yields_error() {
             },
             StreamEvent::ToolCall {
                 id: ToolUseId::new(),
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [{
+                    "steps": [{
                         "id": "1",
-                        "content": "Echo",
+                        "action": "Echo",
                         "status": "completed"
                     }]
                 }),
@@ -314,9 +242,7 @@ async fn max_iterations_yields_error() {
         make_echo_turn(),
         make_echo_turn(),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(EchoTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(EchoTool));
     let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let cfg = AgentConfig {
@@ -337,7 +263,7 @@ async fn consecutive_same_phase_markers_are_deduplicated() {
     // tant que la phase ne change pas effectivement. Tour 2 : texte
     // riche puis `answering` + `done` (todo dÃƒÂ©jÃƒÂ  posÃƒÂ© au tour 1).
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("PrÃƒÂ©ambule."),
+        read_then_plan_complete_turn("PrÃƒÂ©ambule."),
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -353,9 +279,7 @@ async fn consecutive_same_phase_markers_are_deduplicated() {
             },
         ],
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -405,12 +329,10 @@ async fn silent_turn_triggers_one_nudge_then_done() {
                 usage: Usage::default(),
             },
         ],
-        read_then_one_todo_turn("Je pose la liste."),
+        read_then_plan_complete_turn("Je pose la liste."),
         done_turn("voici la rÃƒÂ©ponse"),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 

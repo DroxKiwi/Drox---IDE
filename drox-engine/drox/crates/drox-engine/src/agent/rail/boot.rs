@@ -86,14 +86,14 @@ fn parse_propose_hold(text: &str) -> bool {
 mod tests {
     use super::*;
     use super::super::snapshot_block::run_rail_snapshot_block;
-    use crate::agent::rail::OpenTodoCounts;
+    use crate::agent::rail::OpenWorkCounts;
 
     #[test]
     fn restores_station_from_snapshot() {
         let mut state = RunRailState::new();
         state.station = RunStation::Read;
         state.depth = RunDepth::Complex;
-        let snap = run_rail_snapshot_block(&state, None, OpenTodoCounts::default());
+        let snap = run_rail_snapshot_block(&state, None, OpenWorkCounts::default());
         let messages = vec![Message::system(snap)];
         state.station = RunStation::Intent;
         restore_from_transcript(&mut state, &messages);

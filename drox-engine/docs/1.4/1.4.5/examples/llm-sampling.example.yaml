@@ -1,7 +1,7 @@
-# Exemple — profils de sampling Drox 1.4.4 (dev / dogfood)
+# Exemple — profils de sampling Drox 1.4.5 (dev / dogfood)
 # Copier vers <workspace>/.drox/llm-sampling.yaml et ajuster.
 #
-# Référence : ../PLAN-1.4.4.md
+# Référence : ../PLAN-1.4.5.md
 
 version: 1
 

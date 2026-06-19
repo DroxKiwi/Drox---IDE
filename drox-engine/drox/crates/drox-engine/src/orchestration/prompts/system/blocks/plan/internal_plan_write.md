@@ -1,7 +1,7 @@
 ### Tool protocol: `internal_plan_write` (engine-only, **mandatory first**)
 
 **Every architect run must start here.** Call `internal_plan_write` before any other tool —
-`workspace_map_read`, `file_read`, `todo_write`, mutations, and rail work are blocked until
+`workspace_map_read`, `file_read`, mutations, and rail work are blocked until
 this plan exists. Independent of `[gate: hold]` / `[gate: advance]`.
 
 Write a **dense micro-plan** (5–20 steps) for yourself — **not** shown in the user todo UI.
@@ -30,7 +30,7 @@ omitted `action` / `paths` / `done_when` are inherited from the current plan.
 **Rules**
 
 - One `in_progress` step at a time (convention — not a hard gate on other tools).
-- Distinct from `todo_write` (L1 user UI). Use L2 for your private step-by-step map.
+- Engine-only L2 notebook — not shown in the user UI.
 - Keep steps concrete: file paths, line ranges, verification criteria.
 - **Update the notebook** when your understanding changes — the engine nudges if you skip too many tools without refreshing it.
 - Do not batch all status updates at the very end.

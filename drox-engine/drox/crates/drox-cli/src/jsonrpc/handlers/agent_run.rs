@@ -14,11 +14,11 @@ use drox_engine::{
     Agent, AgentConfig, AgentEvent, CompactionConfig, ContextPolicy, EngineTraceSessionConfig,
     JsonlEngineTraceSink, JsonlTranscriptSink, Phase,
     LayeredConfig, MemoryRuntime,
-    PermissionEngine, PermissionMode, PermissionPolicy, OrchestrationMode, RunSpec, SessionError,
+    PermissionEngine, PermissionMode, PermissionPolicy, OrchestrationMode, RoleId, RunSpec, SessionError,
     SessionNotesHandle, TranscriptSessionConfig,
     WorkspaceMapStore,
-    apply_prompt_memory_budget, format_sessions_listing_for_prompt, load_memdir,
-    load_sessions_listing, memdir_system_prefix, read_session_ui_stats,
+    apply_prompt_memory_budget, load_memdir,
+    memdir_system_prefix, read_session_ui_stats,
     read_transcript, session_ui_stats_path, transcript_path, write_session_ui_stats,
     engine_trace_path,
     DroxIgnoreMatcher,
@@ -146,27 +146,6 @@ pub(crate) struct AgentSetupOverrides {
     pub system_override: Option<String>,
     /// Objectif verrouillé injecté avant le run.
     pub run_objective_override: Option<String>,
-    /// Boot intent probe flags for architect runs.
-    pub run_intent: Option<drox_engine::RunIntentFlags>,
-}
-
-/// Shared LLM client for orchestration probe + agent runs.
-pub(crate) async fn build_orchestration_llm(
-    _server: &Server,
-    params: &AgentRunParams,
-) -> Result<Arc<OllamaClient>, RpcError> {
-    let effective_model = params.model.clone();
-    let parent_num_ctx_override = params.num_ctx.map(|n| n as i64);
-    let llm_config = build_llm_config(
-        params.server.clone(),
-        effective_model,
-        params.api_key.clone(),
-        &params.headers,
-        parent_num_ctx_override,
-    )?;
-    OllamaClient::new(llm_config)
-        .map(Arc::new)
-        .map_err(|e| RpcError::new(CONFIG_ERROR, format!("LLM init failed: {e}")))
 }
 
 #[allow(clippy::too_many_lines)] // plomberie linéaire : workspace + memory + permissions + transcript + registry
@@ -211,21 +190,6 @@ pub(crate) async fn build_agent_setup(
     let mem = load_memdir(workspace.as_path())
         .await
         .map_err(|e| RpcError::new(ENGINE_ERROR, format!("memdir: {e}")))?;
-    let memory_listing = load_sessions_listing(
-        workspace.as_path(),
-        drox_engine::DEFAULT_LISTING_LIMIT,
-    )
-    .await
-    .unwrap_or_else(|e| {
-        warn!(error = %e, "memory: failed to load sessions listing — ignoring");
-        Vec::new()
-    });
-    let skills_listing = drox_engine::load_skills_catalog(workspace.as_path())
-        .await
-        .unwrap_or_else(|e| {
-            warn!(error = %e, "skills: failed to load catalog — ignoring");
-            Vec::new()
-        });
     drox_engine::ensure_workspace_layout(&workspace)
         .await
         .map_err(|e| RpcError::new(ENGINE_ERROR, format!("workspace layout: {e}")))?;
@@ -249,9 +213,9 @@ pub(crate) async fn build_agent_setup(
 
     let apply = params.apply_edits.unwrap_or(false);
 
-    let (memdir_prefix, memory_sessions_block) = apply_prompt_memory_budget(
+    let (memdir_prefix, _) = apply_prompt_memory_budget(
         memdir_system_prefix(&mem),
-        format_sessions_listing_for_prompt(&memory_listing),
+        None,
         run_spec.memory_budget_tokens(),
     );
 
@@ -262,8 +226,10 @@ pub(crate) async fn build_agent_setup(
             role_id: run_spec.role_id,
             cli_system: params.system.clone(),
             memdir_prefix,
-            memory_sessions_block,
-            skills_block: drox_engine::format_skills_listing_for_prompt(&skills_listing),
+            memory_boot_teaser: matches!(
+                run_spec.role_id,
+                RoleId::Architect | RoleId::Executor | RoleId::Standard
+            ),
             drox_ignore_block: drox_ignore.format_for_prompt(),
             workspace_map_block: workspace_map.format_for_prompt(),
             language: lang,
@@ -378,7 +344,6 @@ pub(crate) async fn build_agent_setup(
         run_spec,
         engine_tuning,
         orchestration_run_id: Some(run_id.to_string()),
-        run_intent: overrides.run_intent,
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);
@@ -740,7 +705,7 @@ mod permission_policy_tests {
 
 /// Bloc prompt indiquant au modèle quels outils ne sont pas disponibles.
 fn format_disabled_tools_notice(disabled: &[String]) -> Option<String> {
-    const ALWAYS_ACTIVE: &[&str] = &["ask_user_question", "todo_write"];
+    const ALWAYS_ACTIVE: &[&str] = &["ask_user_question", "internal_plan_write"];
     let names: Vec<&str> = disabled
         .iter()
         .map(|s| s.trim())

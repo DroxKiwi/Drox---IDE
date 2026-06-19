@@ -59,7 +59,21 @@
                 req.as_deref(),
                 effective_run_objective.as_deref(),
                 &mut architect_state,
+                Some(ctx.effective_workspace().as_path()),
             );
+            if let Some(map) = ctx.workspace_map.as_ref() {
+                let snapshot = map.snapshot();
+                let nodes: Vec<serde_json::Value> = snapshot
+                    .nodes
+                    .iter()
+                    .map(|n| serde_json::json!({ "path": n.path }))
+                    .collect();
+                architect_state.ingest_workspace_map_output(&serde_json::json!({ "nodes": nodes }));
+                crate::agent::diagnostic_target::refresh_diagnostic_resolution(
+                    &mut architect_state,
+                    ctx.effective_workspace().as_path(),
+                );
+            }
             if let Some(obj) = start_outcome.run_objective {
                 effective_run_objective = Some(obj);
             } else if let Some(req) = req {
@@ -76,16 +90,10 @@
                     &mut architect_state.rail,
                     &messages,
                     true,
-                    crate::agent::rail::OpenTodoCounts::default(),
+                    OpenWorkCounts::default(),
                 );
             }
         }
-
-        let mutation_expected = self.config.run_spec.role_id == crate::run_spec::RoleId::Architect
-            && self
-                .config
-                .run_intent
-                .is_some_and(|f| f.expects_workspace_mutation);
 
         Some(DriveSession {
             ctx,
@@ -94,16 +102,11 @@
             transcript_cursor,
             llm_iter: 0,
             seen_answering_in_run: false,
-            saw_successful_todo_write_in_run: false,
-            last_todo_pending: 0,
-            last_todo_in_progress: 0,
             effective_run_objective,
-            mutation_expected,
             consecutive_ask_user_question_failures: 0,
             live_compaction_seq: 0,
             architect_state,
             final_answer_guard: FinalAnswerGuard::default(),
-            consecutive_todo_completion_gate_failures: 0,
             last_usage: Usage::default(),
             last_stop_reason: StopReason::EndTurn,
             base_tool_specs,

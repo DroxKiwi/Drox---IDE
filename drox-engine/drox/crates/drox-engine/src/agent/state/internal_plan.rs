@@ -4,16 +4,94 @@ use std::collections::{HashMap, HashSet};
 
 use serde_json::{json, Value};
 
+use drox_tools::{ArchitectHelpSnapshot, ArchitectHelpTodoItem};
+
 use super::ArchitectRunState;
 
 pub const INTERNAL_WORK_PLAN_MARKER: &str = "## Internal work plan (engine only)";
 
-pub const INTERNAL_PLAN_REQUIRED_BEFORE_WORK: &str =
-    "Blocked: `internal_plan_write` is **mandatory** before any other tool on this run. \
-     Call it first with `{\"steps\":[{\"id\":\"s1\",\"action\":\"…\",\"paths\":[\"…\"],\
-     \"done_when\":\"…\",\"status\":\"in_progress|pending|completed\"}]}` (5–20 concrete steps). \
-     This internal micro-plan is engine-only (not the user todo UI). \
-     No `workspace_map_read`, `file_read`, `todo_write`, or mutations until the plan exists.";
+/// Open internal plan step counts (pending + in_progress) for rail advance / hold gates.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct OpenWorkCounts {
+    pub pending: u64,
+    pub in_progress: u64,
+}
+
+impl OpenWorkCounts {
+    #[must_use]
+    pub const fn has_open(self) -> bool {
+        self.pending > 0 || self.in_progress > 0
+    }
+
+    #[must_use]
+    pub fn from_state(state: &ArchitectRunState) -> Self {
+        let Some(plan) = state.internal_plan.as_ref() else {
+            return Self::default();
+        };
+        let mut pending = 0u64;
+        let mut in_progress = 0u64;
+        for step in &plan.steps {
+            match step.status.as_str() {
+                "pending" => pending += 1,
+                "in_progress" => in_progress += 1,
+                _ => {}
+            }
+        }
+        Self {
+            pending,
+            in_progress,
+        }
+    }
+
+    /// True when no plan exists or all steps are terminal (no pending/in_progress).
+    #[must_use]
+    pub fn work_closed(state: &ArchitectRunState) -> bool {
+        !Self::from_state(state).has_open()
+    }
+}
+
+impl ArchitectRunState {
+    /// Current focus: first `in_progress` internal plan step.
+    #[must_use]
+    pub fn current_focus_step_line(&self) -> Option<(String, String, String)> {
+        let plan = self.internal_plan.as_ref()?;
+        for step in &plan.steps {
+            if step.status == "in_progress" {
+                return Some((step.id.clone(), step.action.clone(), step.status.clone()));
+            }
+        }
+        None
+    }
+
+    /// Snapshot for `architect_help` (current run state).
+    #[must_use]
+    pub fn architect_help_snapshot(&self, live_run_objective: Option<&str>) -> ArchitectHelpSnapshot {
+        let todo_items = self
+            .internal_plan
+            .as_ref()
+            .map(|plan| {
+                plan.steps
+                    .iter()
+                    .map(|s| ArchitectHelpTodoItem {
+                        id: s.id.clone(),
+                        label: s.action.clone(),
+                        status: s.status.clone(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        ArchitectHelpSnapshot {
+            user_request: self.user_request_anchor.clone(),
+            run_objective: live_run_objective
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+                .or_else(|| self.run_objective_anchor.clone()),
+            todo_items,
+            workspace_map_loaded: self.workspace_map_loaded,
+        }
+    }
+}
 
 /// Whether the architect has committed an internal L2 plan this run.
 #[must_use]
@@ -22,37 +100,6 @@ pub fn has_internal_plan(state: &ArchitectRunState) -> bool {
         .internal_plan
         .as_ref()
         .is_some_and(|p| !p.steps.is_empty())
-}
-
-/// Pre-execution gate: every architect tool except `internal_plan_write` until a plan exists.
-#[must_use]
-pub fn internal_plan_required_block(
-    role_id: crate::run_spec::RoleId,
-    state: &ArchitectRunState,
-    tool_name: &str,
-) -> Option<String> {
-    if role_id != crate::run_spec::RoleId::Architect {
-        return None;
-    }
-    if tool_name == crate::orchestration::tool_folders::TOOL_INTERNAL_PLAN_WRITE {
-        return None;
-    }
-    if has_internal_plan(state) {
-        return None;
-    }
-    Some(INTERNAL_PLAN_REQUIRED_BEFORE_WORK.to_string())
-}
-
-#[must_use]
-pub fn format_internal_plan_required_block() -> String {
-    format!(
-        "{INTERNAL_WORK_PLAN_MARKER}\n\n\
-         **Required — first action on every architect run.** Before `workspace_map_read`, \
-         `file_read`, `todo_write`, mutations, or `[gate: advance]` work, call \
-         `internal_plan_write` once with 5–20 concrete steps (`id`, `action`, `paths`, \
-         `done_when`, `status`). Engine-only — not shown in the user todo UI. \
-         Update the notebook as you learn (`mode: merge` optional).\n"
-    )
 }
 
 #[derive(Debug, Clone)]
@@ -124,14 +171,9 @@ pub fn in_progress_step_id(plan: &InternalPlanState) -> Option<String> {
         .map(|s| s.id.clone())
 }
 
-#[must_use]
-pub fn has_in_progress_step(plan: &InternalPlanState) -> bool {
-    in_progress_step_id(plan).is_some()
-}
-
 /// Increment freshness counter after a successful non-L2 tool.
 pub fn record_internal_plan_tool_touch(state: &mut ArchitectRunState, tool_name: &str) {
-    if tool_name == crate::orchestration::tool_folders::TOOL_INTERNAL_PLAN_WRITE {
+    if tool_name == crate::orchestration::internal_plan_tool::TOOL_INTERNAL_PLAN_WRITE {
         return;
     }
     if let Some(plan) = state.internal_plan.as_mut() {

@@ -60,10 +60,10 @@ mod tests {
     #[test]
     fn apply_disabled_tools_removes_bash_keeps_file_read() {
         let mut reg = default_tool_registry();
-        apply_disabled_tools(&mut reg, &["bash".into(), "todo_write".into()]);
+        apply_disabled_tools(&mut reg, &["bash".into(), "ask_user_question".into()]);
         assert!(reg.get("bash").is_none());
         assert!(reg.get("file_read").is_some());
-        assert!(reg.get("todo_write").is_some());
+        assert!(reg.get("ask_user_question").is_some());
     }
 
     #[tokio::test]

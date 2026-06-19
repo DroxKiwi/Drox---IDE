@@ -10,7 +10,6 @@ pub enum PromptBlockId {
     G3EditUserFacing,
     G3EditClosure,
     // Tool protocol blocks (T-*)
-    TTodoWrite,
     TWorkspaceMapRead,
     TFileEdit,
     TFileWrite,
@@ -32,7 +31,6 @@ impl PromptBlockId {
             Self::G3EditCore => "g3_edit_core",
             Self::G3EditUserFacing => "g3_edit_user_facing",
             Self::G3EditClosure => "g3_edit_closure",
-            Self::TTodoWrite => "t_todo_write",
             Self::TWorkspaceMapRead => "t_workspace_map_read",
             Self::TFileEdit => "t_file_edit",
             Self::TFileWrite => "t_file_write",

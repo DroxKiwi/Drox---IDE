@@ -92,8 +92,6 @@
 
         ctx: &ToolContext,
 
-        saw_successful_todo_write_in_run: bool,
-
         architect_state: &mut ArchitectRunState,
 
     ) -> Option<String> {
@@ -105,8 +103,6 @@
             &call.name,
 
             &call.arguments,
-
-            saw_successful_todo_write_in_run,
 
             Some(architect_state),
 
@@ -233,7 +229,7 @@
         }
     }
 
-    /// Virtual engine tools (`edit_file`, `internal_plan_write`, …) — no registry wire.
+    /// Virtual engine tool `internal_plan_write` — no registry wire.
     async fn try_execute_virtual_tool_call(
         &self,
         call: &PendingToolCall,
@@ -244,14 +240,15 @@
         memory_tracker: &mut MemoryTracker,
         consecutive_ask_user_question_failures: &mut u32,
     ) -> Option<bool> {
+        use crate::orchestration::internal_plan_tool::{
+            try_execute_internal_plan_write, TOOL_INTERNAL_PLAN_WRITE,
+        };
+
+        if call.name != TOOL_INTERNAL_PLAN_WRITE {
+            return None;
+        }
         let station = rail_active.then_some(architect_state.rail.station);
-        match crate::orchestration::tool_folders::try_execute_virtual_tool(
-            &self.config.engine_tuning,
-            station,
-            architect_state,
-            &call.name,
-            &call.arguments,
-        ) {
+        match try_execute_internal_plan_write(architect_state, &call.arguments) {
             Ok(value) => {
                 memory_tracker.record_tool(&call.name);
                 let for_llm = format_tool_result_for_llm(&call.name, &value);
@@ -267,19 +264,18 @@
                     return Some(true);
                 }
                 messages.push(Message::tool_result(call.id.clone(), for_llm, false));
-                if call.name == crate::orchestration::tool_folders::TOOL_INTERNAL_PLAN_WRITE {
-                    let snap = internal_plan_snapshot_for_station(architect_state, station);
-                    refresh_internal_plan_snapshot(messages, snap.as_deref());
-                }
+                let snap = internal_plan_snapshot_for_station(architect_state, station);
+                refresh_internal_plan_snapshot(messages, snap.as_deref());
                 Some(false)
             }
-            Err(Some(msg)) => {
+            Err(msg) => {
                 if push_tool_error_tracked(
                     tx,
                     messages,
                     call,
                     msg,
                     consecutive_ask_user_question_failures,
+                    Some(architect_state),
                 )
                 .await
                 .is_err()
@@ -288,7 +284,6 @@
                 }
                 Some(false)
             }
-            Err(None) => None,
         }
     }
 }

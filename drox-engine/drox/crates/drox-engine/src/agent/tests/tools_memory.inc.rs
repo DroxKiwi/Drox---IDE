@@ -8,15 +8,13 @@ async fn session_not_persisted_at_done_without_live_compaction() {
     // Scripts : (1) todo_write, (2) done sans mutation (gate B-MOTOR-04),
     // (3) clôture honnête sans patch, (4) compaction live.
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("On va faire X."),
+        read_then_plan_complete_turn("On va faire X."),
         done_turn("Voici le rÃƒÂ©sultat."),
         done_turn("Le code est dÃƒÂ©jÃƒÂ  conforme â€” aucune modification nÃƒÂ©cessaire."),
         compaction_turn("Refactorer le module X", &["src/x.rs", "src/y.rs"]),
     ]));
 
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(ws.clone(), false);
     let cfg = AgentConfig {
         memory: Some(memory_runtime_for_test(&ws, llm.clone())),
@@ -49,7 +47,7 @@ async fn memory_not_persisted_when_todo_plan_closes_before_done() {
 
     let close_tid = ToolUseId::new();
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn_with_status("Ouverture plan", "in_progress"),
+        read_then_plan_turn_with_status("Ouverture plan", "in_progress"),
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -57,11 +55,11 @@ async fn memory_not_persisted_when_todo_plan_closes_before_done() {
             },
             StreamEvent::ToolCall {
                 id: close_tid,
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [{
+                    "steps": [{
                         "id": "1",
-                        "content": "Ãƒâ€°tape de test",
+                        "action": "Ãƒâ€°tape de test",
                         "status": "completed"
                     }]
                 }),
@@ -76,9 +74,7 @@ async fn memory_not_persisted_when_todo_plan_closes_before_done() {
         compaction_turn("Run terminÃƒÂ©", &["src/b.rs"]),
     ]));
 
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(ws.clone(), false);
     let cfg = AgentConfig {
         memory: Some(memory_runtime_for_test(&ws, llm.clone())),
@@ -215,7 +211,7 @@ async fn pinned_session_note_alone_does_not_persist_without_live_compaction() {
             StreamEvent::ToolCall {
                 id: note_tid,
                 name: "session_note".into(),
-                arguments: json!({ "content": "HypothÃƒÂ¨se: revoir la stratÃƒÂ©gie de cache" }),
+                arguments: json!({ "action": "HypothÃƒÂ¨se: revoir la stratÃƒÂ©gie de cache" }),
             },
             StreamEvent::Stop {
                 reason: StopReason::ToolUse,

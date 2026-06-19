@@ -314,60 +314,15 @@ pub fn choose_live_compact_split_idx(
     Some(split)
 }
 
-/// Construit un checkpoint court à partir du markdown de compaction (sections structurées).
+/// Construit un checkpoint court — renvoie au snapshot moteur réinjecté chaque tour (M.5b).
 #[must_use]
-pub fn format_compact_checkpoint(summary_md: &str, checkpoint_max_chars: usize) -> String {
-    let (objective, files) = extract_metadata(summary_md);
-    let mut body = String::new();
-    if !objective.is_empty() {
-        let _ = writeln!(body, "## Objective\n{objective}");
-    }
-    append_section_excerpt(summary_md, "decision", "## Decisions", &mut body, 400);
-    append_section_excerpt(summary_md, "en cours", "## En cours", &mut body, 300);
-    if !files.is_empty() {
-        let _ = writeln!(body, "## Files touched");
-        for path in files.iter().take(15) {
-            let _ = writeln!(body, "- {path}");
-        }
-    }
-    if body.trim().is_empty() {
-        body = truncate_chars(summary_md, 800);
-    }
+pub fn format_compact_checkpoint(_summary_md: &str, checkpoint_max_chars: usize) -> String {
+    let body = "Earlier messages were compressed by the engine.\n\n\
+        **Authoritative run state** (user request, objective, internal plan focus, files touched) \
+        is in the `## Run context (engine)` snapshot re-injected every turn after this checkpoint.\n\n\
+        For archived session digests use `memory_list` / `memory_read`.\n";
     let full = format!("{CHECKPOINT_PREAMBLE}{body}");
     truncate_chars(&full, checkpoint_max_chars)
-}
-
-fn append_section_excerpt(
-    markdown: &str,
-    heading_contains: &str,
-    heading_out: &str,
-    out: &mut String,
-    max_body_chars: usize,
-) {
-    let lines: Vec<&str> = markdown.lines().collect();
-    let mut in_section = false;
-    let mut section_body = String::new();
-    for line in lines {
-        let trimmed = line.trim();
-        if trimmed.starts_with("## ") {
-            if in_section {
-                break;
-            }
-            if trimmed[3..].to_ascii_lowercase().contains(&heading_contains.to_ascii_lowercase()) {
-                in_section = true;
-                continue;
-            }
-        } else if in_section {
-            if !trimmed.is_empty() {
-                let _ = writeln!(section_body, "{trimmed}");
-            }
-        }
-    }
-    if in_section && !section_body.trim().is_empty() {
-        let _ = writeln!(out, "{heading_out}");
-        out.push_str(&truncate_chars(section_body.trim(), max_body_chars));
-        out.push('\n');
-    }
 }
 
 /// Compaction proactive : résume `messages[..split]` via [`summarize_run`],
@@ -813,9 +768,10 @@ Refactorer la couche auth
             "x".repeat(8_000)
         );
         let cp = format_compact_checkpoint(&verbose, CHECKPOINT_MAX_CHARS);
-        assert!(cp.contains("Short goal"));
+        assert!(cp.contains("Run context (engine)"));
         assert!(cp.len() <= CHECKPOINT_MAX_CHARS + 4);
         assert!(!cp.contains(&"x".repeat(1000)));
+        assert!(!cp.contains("Short goal"));
     }
 
     #[test]

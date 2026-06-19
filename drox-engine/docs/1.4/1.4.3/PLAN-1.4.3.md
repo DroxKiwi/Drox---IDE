@@ -1,193 +1,156 @@
-# Plan 1.4.3 — Onboarding, index, graphe, fast path
+# Plan 1.4.3 — UI chat & distribution Windows
 
-**Version** : juin 2026 — **ex-plan 1.4.1** (renuméroté après tri versions 1.4.0 / 1.4.1 / 1.4.2)  
-**Base** : archive [1.4.0 Run Rail](../archive/1.4.0/README.md) + `role_split` — voir [CONDUCTEUR-CODE.md](../../1.3/1.3.2/CONDUCTEUR-CODE.md)  
-**Prérequis** : replanification post-pause 1.4.0 · [1.4.1](../1.4.1/README.md) · [1.4.2](../1.4.2/README.md) · [1.3.3](../../1.3/1.3.3/README.md)
+**Version** : juin 2026  
+**Prérequis** : [1.4.1](../1.4.1/README.md) livrée (release **1.4.1** publiée) · Phase **2d** FOI faite  
+**Base** : [SMOKE-BACKLOG](../1.4.0/archive/SMOKE-BACKLOG.md) B-UI-* · [GUIDE-PUBLICATION-WIN32](../../operations/GUIDE-PUBLICATION-WIN32.md)
 
 ---
 
 ## Vision
 
-```text
-Premier lancement
-  → Onboarding Drox (assistant paramétrage, pas Copilot)
-       ├─► Détection Ollama / drox.exe / workspace
-       ├─► Choix modèle + benchmark (P4) → preset conseillé
-       └─► Tour rapide Chat + réglages essentiels
+Trois piliers pour la **1.4.3** (ordre recommandé) :
 
-IDE (curseur, LSP, buffer)
-  → Index local (.drox/index/)
-  → ContextPack (≤5 fichiers + extraits)
-  → GraphContext (voisins typés)
-       ├─► Fast path (complétion, petit modèle, <100ms perceived)
-       └─► Architecte chat (run existant, pack injecté au boot)
+0. **Routage Auto / boucle analyse** — brief « analyser le répertoire » sans rail EDIT ni `run stopped` ([PLAN dédié](PLAN-1.4.3-ROUTING-ANALYZE-LOOP.md)) **P0**
+1. **UI chat** — polish fil de discussion, replay, `ask_user`, blocs rail (backlog B-UI-*).
+2. **Distribution Windows** — installeur **signé Authenticode** pour supprimer l’alerte SmartScreen « Éditeur inconnu » observée sur `Drox-IDE-Setup-1.4.1-win32-x64.exe`.
+
+---
+
+## P0 — Routage Auto (voir plan dédié)
+
+Analyse dogfood : [`chat_north-mini-code`](../chat_north-mini-code). Décision fix **en discussion** — [PLAN-1.4.3-ROUTING-ANALYZE-LOOP.md](PLAN-1.4.3-ROUTING-ANALYZE-LOOP.md).
+
+---
+
+## P1 — Signature de code Windows (SmartScreen)
+
+### Problème (1.4.1)
+
+Lors du premier lancement de l’installeur, **Microsoft Defender SmartScreen** affiche :
+
+- *« Éditeur inconnu »*
+- blocage jusqu’à **Exécuter quand même**
+
+**Cause** : l’exe publié sur GitHub Releases n’est **pas signé** Authenticode. `AppPublisher=KDDS` dans Inno Setup (`build/win32/code.iss`) ne suffit pas — Windows exige une **signature cryptographique** d’une AC de confiance.
+
+Le hook Inno `#ifdef Sign` + `SignTool=esrp` est le pipeline **Microsoft interne** (VS Code) ; il n’est **pas** actif dans `npm run drox:ship` KDDS.
+
+### Objectif 1.4.3
+
+Chaque release Windows (`Drox-IDE-Setup-<ver>-win32-x64.exe`) publiée sur `Drox---IDE---OR` est :
+
+1. Signée **Authenticode** (SHA-256 + horodatage RFC 3161)
+2. Vérifiable : `signtool verify /pa setup.exe` → réussite
+3. Accompagnée d’une note README OR si l’alerte persiste encore (certificat OV en montée de réputation)
+
+### Choix certificat (décision produit)
+
+| Option | SmartScreen | Notes |
+|--------|-------------|--------|
+| **EV Code Signing** (token USB) | Réputation **immédiate** en règle générale | Recommandé si budget ~400–600 €/an |
+| **OV Code Signing** | Alerte possible les **premières** semaines | Moins cher ; réputation à construire |
+| **[Azure Trusted Signing](https://learn.microsoft.com/azure/trusted-signing/)** | Équivalent pro, facturation à l’usage | À évaluer si entité + abonnement Azure OK |
+
+**Prérequis administratif** : entité identifiable (KDDS / société / auto-entrepreneur) validée par la CA.
+
+### Fichiers à signer (ordre)
+
+| Artefact | Priorité |
+|----------|----------|
+| `Drox-IDE-Setup-*-win32-x64.exe` | **P0** — ce que l’utilisateur télécharge |
+| `Drox IDE.exe` (dans le package) | P1 |
+| `resources/drox/win32-x64/drox.exe` | P1 |
+
+### Intégration pipeline
+
+```text
+npm run drox:ship
+  → build-release-win32.ps1 (-WithSetup)
+  → release-publish-win32.ps1 (manifestes OR)
+  → [NOUVEAU] sign-drox-win32.ps1
+        signtool sign /fd sha256 /tr <timestamp-url> /td sha256 …
+        signtool verify /pa setup.exe
+  → gh release create (exe signé uniquement)
+```
+
+**Emplacement script** : `scripts/sign-drox-win32.ps1` (à créer en 1.4.3).
+
+**Variables d’environnement** (local + CI, jamais en git) :
+
+| Variable | Usage |
+|----------|--------|
+| `DROX_CODESIGN_PFX` | Chemin `.pfx` ou secret CI |
+| `DROX_CODESIGN_PASSWORD` | Mot de passe certificat |
+| `DROX_CODESIGN_TIMESTAMP_URL` | ex. `http://timestamp.digicert.com` |
+
+**Option Inno** : `SignTool` custom dans `code.iss` (remplacer `esrp`) — ou signature **post-build** du setup uniquement (plus simple en P0).
+
+### Doc utilisateur (README OR)
+
+Paragraphe **Installation Windows** :
+
+- Si SmartScreen s’affiche **avant** signature livrée : lien Releases officiel + « Exécuter quand même » pour early adopters.
+- **Après** signature EV : mentionner que l’éditeur affiché doit être **KDDS** (nom du certificat).
+
+### Livrables
+
+| # | Livrable | Critère |
+|---|----------|---------|
+| S1 | Certificat acheté + stockage sécurisé | PFX ou Azure Trusted Signing configuré |
+| S2 | `scripts/sign-drox-win32.ps1` | Signe setup ; échoue proprement si cert absent |
+| S3 | `drox:ship` appelle la signature si env présents | Build non signé OK en dev sans cert |
+| S4 | `GUIDE-PUBLICATION-WIN32.md` § signature | Procédure complète |
+| S5 | Release **1.4.3** GitHub | `signtool verify` OK ; smoke install sans « Éditeur inconnu » (EV) |
+
+### Non-objectifs
+
+- Signature **macOS** / Linux (hors scope 1.4.3)
+- Contournement SmartScreen sans certificat (impossible de façon légitime)
+
+---
+
+## P2 — UI chat (B-UI-*)
+
+Polish interface — périmètre inchangé depuis le README :
+
+| ID | Sujet |
+|----|-------|
+| B-UI-01 | Fichiers édités repliés |
+| B-UI-02 | Lignes Ran / layout tray |
+| B-UI-03 | Plan du run précédent non scellé |
+| B-UI-04 | `ask_user` markdown + scroll ~8 lignes |
+| B-UI-05 | Phase thinking active en tête vs chronologique |
+| B-UI-06 | Chargement session à la réouverture (replay journal) |
+| B-UI-07 | Run `busy` stale après fin / blur app |
+
+Spéc : [UI-CONDUCTEUR](../1.4.0/archive/UI-CONDUCTEUR.md) § VI · [06-UI-BLOCKS](../1.4.0/archive/06-UI-BLOCKS.md)
+
+---
+
+## Séquence recommandée
+
+```text
+1.4.1 publiée
+  → 1.4.3a : fix routage Auto (boucle analyse) — voir PLAN-ROUTING
+  → 1.4.3b : certificat + sign-drox-win32
+  → 1.4.3c : B-UI-*
+  → tag v1.4.3 + OR latest.json
 ```
 
 ---
 
-## P1 — Indexation intelligente (RAG local)
+## Critères d’acceptation release 1.4.3
 
-**Problème** : `workspace_map_read` donne l'arbre ; le modèle doit encore deviner quoi lire.
-
-**Cible** : à la position du curseur, assembler **~5 fichiers** sans tour LLM de recherche.
-
-### Couches
-
-| Couche | Source | Latence |
-|--------|--------|---------|
-| A | Fichier ouvert, sélection, diagnostics LSP | 0 ms |
-| B | Graphe import / call / tests (index disque) | ms |
-| C | Embeddings chunks locaux (optionnel) | 10–50 ms |
-
-### Livrables
-
-| Phase | Livrable | Priorité |
-|-------|----------|----------|
-| P1.0 | Contrat RPC `ContextPack` (IDE → moteur) | P0 |
-| P1.1 | Heuristique A+B sans embeddings | P0 |
-| P1.2 | Persistance `.drox/index/symbols.jsonl` + `edges.jsonl` | P1 |
-| P1.3 | Chunks + embeddings (sqlite-vec ou équivalent) | P2 |
-
-### Critère d'acceptation
-
-Run edit sur une fonction : le boot system contient un bloc **Context pack** avec ≤5 chemins et extraits bornés ; l'architecte n'appelle pas `workspace_map_read` pour « comprendre » le voisinage immédiat.
+- [ ] Installeur Windows signé et publié
+- [ ] README OR : section installation / SmartScreen
+- [ ] Au moins **B-UI-06** + **B-UI-07** fermés (session replay + busy stale)
+- [ ] `droxVersion` → **1.4.3** dans `package.json` au ship
 
 ---
 
-## P2 — Contexte par graphe
+## Liens
 
-**Problème** : l'arbre plat ne dit pas *pourquoi* les fichiers sont liés.
-
-**Cible** : injecter une **Graph View** condensée :
-
-```text
-### Graph context (focus: src/auth/login.ts::validateToken)
-  imports → jwt.ts, user.ts
-  called_by → middleware.ts
-  tests → login.test.ts
-```
-
-### Livrables
-
-| Phase | Livrable |
-|-------|----------|
-| P2.0 | Format markdown `GraphContext` + injection boot edit |
-| P2.1 | Builder depuis index P1.2 (arêtes typées) |
-| P2.2 | Remplacement progressif de la carte workspace complète en discuss |
-
-### Impact orchestration
-
-- `scope` delegate dérivé du pack (moins d'erreurs)
-- Cap `max_reads_before_delegate` moins souvent atteint
-
----
-
-## P3 — Fast path (latence / workflow)
-
-**Problème** : la boucle architecte (plan, delegate, phases) est trop lente pour Tab / complétion inline.
-
-**Cible** : **deux chemins** distincts :
-
-| Chemin | Modèle | Usage |
-|--------|--------|-------|
-| **Fast** | Petit, local, quantisé | Complétion, multi-ligne, refactor local |
-| **Slow** | Architecte actuel | Chat, delegate, verify |
-
-### Livrables
-
-| Phase | Livrable |
-|-------|----------|
-| P3.0 | Spec RPC `completion.run` (hors `agent.run` orchestration) |
-| P3.1 | ContextPack seul (pas de `todo_write` / delegate) |
-| P3.2 | Modèle + settings dédiés IDE (`drox.completionModel`) |
-| P3.3 | (Optionnel) LoRA / adapter workflow Drox |
-
-### Critère d'acceptation
-
-Complétion inline : premier token visible < 100 ms perceived sur machine dogfood ; **aucun** event `architect` / `delegate_executor`.
-
----
-
-## P4 — Benchmark local & config recommandée (par modèle)
-
-**Problème** : l'utilisateur choisit un modèle mais ne sait pas quels réglages (`num_ctx`, parallélisme, strictness…) ni quelles **capacités** (vision, tools, long run) sont viables sur **son** hardware.
-
-**Cible** : benchmark du **modèle choisi** → profil de capacités + **config fortement conseillée**.
-
-### Sorties
-
-| Artefact | Contenu |
-|----------|---------|
-| `ModelCapabilityProfile` | ctx max, vision, cohérence court/long, fiabilité outils, débit, parallélisme |
-| `RecommendedConfig` | `num_ctx`, exécuteurs, `engine.strictness`, compaction… |
-
-### Livrables
-
-| Phase | Livrable |
-|-------|----------|
-| P4.0 | Spec profil + reco + mapping settings |
-| P4.1 | `hardware.detect` + B1–B3 (TTFT, débit, ctx max) |
-| P4.2 | B5–B7 cohérence court/long + tool calling |
-| P4.3 | UI détail + preset bundle + `recommendedConfig.apply` |
-| P4.4 | B8 vision, B4 parallèle, B9 fast path |
-
-Stockage : `.drox/models/<model-id>/profile.json`.
-
-**Fiche** : [12-presets-globaux-benchmark-hardware.md](../../feature-brainstorm/12-presets-globaux-benchmark-hardware.md)
-
----
-
-## P5 — Onboarding & premier lancement
-
-**Problème** : pas d’alternative Drox au welcome VS Code — utilisateur perdu sans config Ollama / modèles.
-
-**Cible** : interface d’accueil Drox au premier lancement (réouvrable depuis Aide).
-
-### Parcours proposé (v1)
-
-| Étape | Contenu | Sortie |
-|-------|---------|--------|
-| O0 | Bienvenue Drox | — |
-| O1 | Vérif `drox.exe` + Ollama | lien install si KO |
-| O2 | Choix modèle architecte / exécuteur | `drox.architect.model` |
-| O3 | Benchmark optionnel (P4) → preset bundle | `drox.engine.strictness` |
-| O4 | Permissions outils | `drox.tools.*` |
-| O5 | Mini tour Chat | ouvre Chat |
-| O6 | Terminé | `drox.onboarding.completed = true` |
-
-### Critère d'acceptation
-
-Install fraîche **1.4.3** → onboarding → premier Chat OK → ne réapparaît pas au redémarrage.
-
----
-
-## Ordre recommandé
-
-```text
-P5.0–P5.2 onboarding shell + Ollama/modèle
-  ∥ P1.0 ContextPack RPC
-  → P1.1 heuristique IDE+LSP
-  → P2.0 GraphContext format + injection
-  → P1.2 index persistant
-  → P4.0–P4.2 presets + benchmark
-  → P5.3 benchmark dans onboarding (O3)
-  → P3.0 fast path RPC
-  → P4.3 apply preset + P5.4 fin parcours
-  → P1.3 embeddings (si besoin réel)
-```
-
----
-
-## Références brainstorm
-
-- [08-performance-traitement-rapide.md](../../feature-brainstorm/08-performance-traitement-rapide.md)
-- [09-roles-specialises-comprehension-code.md](../../feature-brainstorm/09-roles-specialises-comprehension-code.md)
-- [12-presets-globaux-benchmark-hardware.md](../../feature-brainstorm/12-presets-globaux-benchmark-hardware.md)
-
----
-
-## Non-objectifs
-
-- Gate chain TOML
-- Backpack `.drox/backpack/`
-- Palier `EditTier` moteur
+- [README 1.4.3](README.md)
+- [GUIDE-PUBLICATION-WIN32](../../operations/GUIDE-PUBLICATION-WIN32.md)
+- `build/win32/code.iss` (Inno, `AppPublisher=KDDS`)
+- `scripts/release-publish-win32.ps1`

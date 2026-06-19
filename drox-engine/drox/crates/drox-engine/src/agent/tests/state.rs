@@ -37,7 +37,7 @@ fn inject_architect_run_snapshot_after_checkpoint_replaces_previous() {
     ];
     inject_architect_run_snapshot_after_checkpoint(
         &mut msgs,
-        &architect_run_context_block_compaction(&st, None),
+        &architect_run_context_block_compaction(&st, None, None, &[]),
     );
     assert_eq!(
         msgs.iter()
@@ -51,7 +51,7 @@ fn inject_architect_run_snapshot_after_checkpoint_replaces_previous() {
     st.anchor_user_request("Demande B");
     inject_architect_run_snapshot_after_checkpoint(
         &mut msgs,
-        &architect_run_context_block_compaction(&st, None),
+        &architect_run_context_block_compaction(&st, None, None, &[]),
     );
     assert_eq!(
         msgs.iter()

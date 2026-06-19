@@ -63,7 +63,7 @@ Phase D (session work log)        ☐ hors chemin critique clôture
 ### Non-objectifs (Phase F)
 
 - Parser automatique `[tool_use]file_read{path:…}</tool_use>` → `PendingToolCall`.
-- Alias `glob` → `grep` (backlog 1.4.2 / dossiers outils).
+- Alias `glob` → `grep` (backlog 1.4.3 / dossiers outils).
 - Changement provider Ollama / template Qwen (hors scope moteur).
 - Bump semver 1.5.
 

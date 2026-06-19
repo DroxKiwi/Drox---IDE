@@ -181,7 +181,7 @@ Rédiger `finalisation/CLOSURE-1.4.0.md` (nouveau, pas l’archive) :
 
 - Livrables squelette
 - Ce qui a été **retiré** (liste Tier 2)
-- Report 1.4.1 (bugs UI/session) · 1.4.2 (UI) · outils d’aide (post-squelette)
+- Report 1.4.1 (bugs UI/session) · 1.4.3 (UI) · outils d’aide (post-squelette)
 
 ---
 
@@ -189,7 +189,7 @@ Rédiger `finalisation/CLOSURE-1.4.0.md` (nouveau, pas l’archive) :
 
 | Hors scope | Pourquoi |
 |------------|----------|
-| Refonte UI chat | 1.4.2 |
+| Refonte UI chat | 1.4.3 |
 | Index / graphe / ContextPack | Après squelette |
 | Nouveaux outils d’aide | Après squelette validé |
 | Supprimer permissions / compaction / session | Autres axes — stables |

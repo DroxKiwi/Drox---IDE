@@ -204,7 +204,7 @@ Phases 0–4 (livré)
                             └── Étape E (prompts)
                                     └── Étape G (dogfood parent — partiel)
                                             └── Phase 5b [12-SEGMENT-ACT-FIXES.md](12-SEGMENT-ACT-FIXES.md) → CLOSURE 1.4.0
-                                                    └── 1.4.1 stabilisation · 1.4.2 UI · 1.4.3 index
+                                                    └── 1.4.1 stabilisation · 1.4.3 UI · 1.4.4 index
 ```
 
 **Étape F** (UI) : seulement si G2 échoue après B.

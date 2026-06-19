@@ -3,8 +3,6 @@
 use super::{join_sections, render_md};
 use crate::orchestration::prompts::vars::PromptVars;
 
-/// Noms d'outils allowlist architecte (wire = nom tool).
-pub const TOOL_TODO_WRITE: &str = "todo_write";
 pub const TOOL_WORKSPACE_MAP_READ: &str = "workspace_map_read";
 pub const TOOL_FILE_EDIT: &str = "file_edit";
 pub const TOOL_FILE_WRITE: &str = "file_write";
@@ -14,8 +12,10 @@ pub const TOOL_LSP: &str = "lsp";
 pub const TOOL_ARCHITECT_HELP: &str = "architect_help";
 pub const TOOL_ASK_USER_QUESTION: &str = "ask_user_question";
 
-const ALL_ARCHITECT_TOOL_BLOCKS: &[&str] = &[
-    TOOL_TODO_WRITE,
+const ALL_ARCHITECT_TOOL_BLOCKS: &[&str] = ARCHITECT_EDIT_CORE_BLOCKS;
+
+/// Noyau protocole architecte EDIT — palette stable tout le run (1.4.2).
+pub const ARCHITECT_EDIT_CORE_BLOCKS: &[&str] = &[
     TOOL_WORKSPACE_MAP_READ,
     TOOL_FILE_EDIT,
     TOOL_FILE_WRITE,
@@ -35,7 +35,6 @@ macro_rules! tool_block {
     };
 }
 
-tool_block!(todo_write, "todo_write.md");
 tool_block!(workspace_map_read, "workspace_map_read.md");
 tool_block!(file_edit, "file_edit.md");
 tool_block!(file_write, "file_write.md");
@@ -48,7 +47,6 @@ tool_block!(ask_user_question, "ask_user_question.md");
 #[must_use]
 pub fn render_tool_block(name: &str, vars: &PromptVars) -> Option<String> {
     let body = match name {
-        TOOL_TODO_WRITE => todo_write(vars),
         TOOL_WORKSPACE_MAP_READ => workspace_map_read(vars),
         TOOL_FILE_EDIT => file_edit(vars),
         TOOL_FILE_WRITE => file_write(vars),
@@ -71,42 +69,10 @@ pub fn tool_supplements_all_architect(vars: &PromptVars) -> String {
     tool_supplements_for_tool_names(vars, ALL_ARCHITECT_TOOL_BLOCKS)
 }
 
-/// Protocoles outil scoped à la station rail courante (context diet).
+/// Protocole outil compact unique — palette plate stable tout le run (1.4.2).
 #[must_use]
-pub fn tool_supplements_for_station(
-    vars: &PromptVars,
-    station: crate::RunStation,
-) -> String {
-    tool_supplements_for_tool_names(vars, station_tool_block_names(station))
-}
-
-#[must_use]
-fn station_tool_block_names(station: crate::RunStation) -> &'static [&'static str] {
-    use crate::RunStation;
-    match station {
-        RunStation::Intent | RunStation::Read => &[
-            TOOL_WORKSPACE_MAP_READ,
-            TOOL_FILE_READ,
-            TOOL_GREP,
-            TOOL_LSP,
-        ],
-        RunStation::Propose | RunStation::Plan => &[
-            TOOL_TODO_WRITE,
-            TOOL_ARCHITECT_HELP,
-            TOOL_ASK_USER_QUESTION,
-            TOOL_WORKSPACE_MAP_READ,
-            TOOL_FILE_READ,
-            TOOL_GREP,
-        ],
-        RunStation::Act => &[
-            TOOL_FILE_EDIT,
-            TOOL_FILE_WRITE,
-            TOOL_TODO_WRITE,
-            TOOL_FILE_READ,
-        ],
-        RunStation::Verify => &[TOOL_LSP, TOOL_GREP, TOOL_FILE_READ],
-        RunStation::Answer => &[TOOL_TODO_WRITE],
-    }
+pub fn tool_supplements_architect_compact(vars: &PromptVars) -> String {
+    tool_supplements_all_architect(vars)
 }
 
 #[must_use]
@@ -125,13 +91,12 @@ fn tool_supplements_for_tool_names(vars: &PromptVars, names: &[&str]) -> String 
 #[must_use]
 pub fn architect_tool_short_description(name: &str) -> Option<&'static str> {
     Some(match name {
-        TOOL_TODO_WRITE => {
-            "Session todo list (full replace). Shape: {\"todos\":[{\"id\",\"content\",\"status\"}]}. See system tool protocols."
-        }
         TOOL_WORKSPACE_MAP_READ => {
             "Workspace structure map once before planning. Optional path_prefix. See system tool protocols."
         }
-        TOOL_FILE_EDIT => "Apply targeted edits to workspace files. See system tool protocols.",
+        TOOL_FILE_EDIT => {
+            "Apply targeted edits: {\"path\":\"file.ts\",\"edits\":[{\"old_string\":\"…\",\"new_string\":\"…\"}]}. See system tool protocols."
+        }
         TOOL_FILE_WRITE => "Create or replace a workspace file. See system tool protocols.",
         TOOL_FILE_READ => "Read workspace files. See system tool protocols.",
         TOOL_GREP => "Targeted grep on scope for verify. See system tool protocols.",
@@ -153,7 +118,7 @@ mod tests {
     #[test]
     fn architect_tool_supplements_include_core_protocols() {
         let s = tool_supplements_all_architect(&PromptVars::default());
-        assert!(s.contains("Tool protocol: `todo_write`"));
+        assert!(!s.contains("Tool protocol: `todo_write`"));
         assert!(s.contains("Tool protocol: `file_edit`"));
         assert!(s.contains("Tool protocol: `file_write`"));
         assert!(!s.contains("delegate_executor"));
@@ -168,14 +133,11 @@ mod tests {
     }
 
     #[test]
-    fn station_tool_supplements_read_smaller_than_act() {
-        use crate::RunStation;
+    fn compact_protocol_matches_full_architect_palette() {
         let vars = PromptVars::default();
-        let read = tool_supplements_for_station(&vars, RunStation::Read);
-        let act = tool_supplements_for_station(&vars, RunStation::Act);
-        assert!(read.contains("file_read"));
-        assert!(!read.contains("Tool protocol: `file_edit`"));
-        assert!(act.contains("Tool protocol: `file_edit`"));
-        assert!(act.len() < tool_supplements_all_architect(&vars).len());
+        let compact = tool_supplements_architect_compact(&vars);
+        let full = tool_supplements_all_architect(&vars);
+        assert_eq!(compact, full);
+        assert!(compact.contains("Tool protocol: `file_edit`"));
     }
 }

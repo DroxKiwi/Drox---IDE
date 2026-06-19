@@ -1,20 +1,13 @@
-pub(crate) const MISSING_MUTATION_WHEN_EXPECTED_PROMPT: &str = "You emitted `[phase: done]` \
-    but this run requested a **workspace change** and no mutation tool succeeded on **this user \
-    request** yet (`file_edit`, `file_write`, `notebook_edit`, `delete_path`).\n\
+pub(crate) const VERIFY_NOT_PASSED_PROMPT: &str = "You emitted `[phase: done]` but verification \
+    is not complete for this mutation run.\n\
     \n\
-    Pasting fix instructions in Markdown does **not** count — the engine needs a successful \
-    mutation tool result after the latest user message.\n\
+    Before closing:\n\
+    1. Discover how the repo validates changes (manifests, README, CI configs).\n\
+    2. Run the narrowest `bash` or `lsp` check that would catch a regression from your edits.\n\
+    3. Or document in `[phase: answering]` with `[verify: waived]` and what you looked at.\n\
     \n\
-    - If the repo **already matches** the request: say so clearly in `[phase: answering]` \
-    (e.g. that no file change is needed), then `[phase: done]`.\n\
-    - Otherwise: move to **ACT** (`[gate: advance]` if needed), call `edit_file` describe if \
-    folders are folded, then `file_edit` or `file_write` on the target path, verify if useful, \
-    then answer and close.";
-
-pub(crate) const VERIFY_NOT_PASSED_PROMPT: &str = "You emitted `[phase: done]` but verify has \
-    not passed yet (run `bash` with exit 0 or clean `lsp` diagnostics at VERIFY). Fix issues \
-    in ACT with `file_edit`/`file_write`, verify again, then `[phase: answering]` and \
-    `[phase: done]`.";
+    Fix failures in ACT with `file_edit`/`file_write`, verify again, then `[phase: answering]` \
+    and `[phase: done]`.";
 
 pub(crate) const MISSING_ANSWERING_PROMPT: &str = "You emitted `[phase: done]` without \
     ever using `[phase: answering]` in this run. The engine cannot close yet: \
@@ -32,43 +25,6 @@ pub(crate) const MISSING_ANSWERING_PROMPT: &str = "You emitted `[phase: done]` w
     Otherwise, move your answer into `[phase: answering]` **once** — no \
     duplicate sections.";
 
-#[must_use]
-pub(crate) fn unfinished_todos_prompt(pending: u64, in_progress: u64) -> String {
-    format!(
-        "You emitted `[phase: done]` but your most recent `todo_write` still has \
-         {pending} item(s) in `pending` and {in_progress} item(s) in `in_progress`. \
-         The engine cannot close yet — the todo list must mirror reality before you \
-         end the turn.\n\
-         \n\
-         Decide which case you're in, then act:\n\
-         \n\
-         - If the remaining items are ACTUALLY done (you just forgot to update them): \
-         call `todo_write` again with the SAME items, but flip their `status` to \
-         `completed` (or `cancelled` if no longer relevant). Then emit \
-         `[phase: answering]` + your final reply + `[phase: done]`.\n\
-         - If something is still left to do: do NOT close. Declare `[gate: advance]` to the \
-         work station (ACT) if needed, then call the appropriate tool in the SAME reply.\n\
-         \n\
-         An open todo means the work is not finished."
-    )
-}
-
-/// Block `[phase: done]` on edit runs that expected mutation but none succeeded.
-#[must_use]
-pub(crate) fn done_gate_missing_mutation_when_expected(
-    spec: &RunSpec,
-    mutation_expected: bool,
-    messages: &[drox_types::Message],
-) -> Option<&'static str> {
-    if spec.role_id != crate::run_spec::RoleId::Architect || !mutation_expected {
-        return None;
-    }
-    if crate::agent::nudges::successful_mutation_count_since_user(messages) > 0 {
-        return None;
-    }
-    Some(MISSING_MUTATION_WHEN_EXPECTED_PROMPT)
-}
-
 /// Blocage `[phase: done]` : message `system` à injecter, ou `None` si la gate
 /// est désactivée par profil ou la condition n'est pas remplie.
 #[must_use]
@@ -77,35 +33,23 @@ pub(crate) fn done_gate_missing_answering(spec: &RunSpec) -> Option<&'static str
         .then_some(MISSING_ANSWERING_PROMPT)
 }
 
-#[must_use]
-pub(crate) fn done_gate_unfinished_todos(
-    spec: &RunSpec,
-    pending: u64,
-    in_progress: u64,
-) -> Option<String> {
-    if pending == 0 && in_progress == 0 {
-        return None;
-    }
-    spec.gate_enabled(GateKind::TodoStaleBeforeDone)
-        .then(|| unfinished_todos_prompt(pending, in_progress))
-}
-
-/// Block `[phase: done]` when mutations ran but verify never passed (B-MOTOR-08).
+/// Block `[phase: done]` when mutations ran but verify is not satisfied (B-MOTOR-08).
 #[must_use]
 pub(crate) fn done_gate_verify_not_passed(
     spec: &RunSpec,
-    mutation_expected: bool,
     mutation_count: u32,
-    visited_verify: bool,
-    verify_passed: bool,
+    verify_outcome: &crate::agent::rail::VerifyOutcome,
 ) -> Option<&'static str> {
+    if !spec.gate_enabled(crate::run_spec::GateKind::DoneRequiresVerify) {
+        return None;
+    }
     if spec.role_id != crate::run_spec::RoleId::Architect {
         return None;
     }
-    if !mutation_expected || mutation_count == 0 {
+    if mutation_count == 0 {
         return None;
     }
-    if !visited_verify || verify_passed {
+    if verify_outcome.satisfied() {
         return None;
     }
     Some(VERIFY_NOT_PASSED_PROMPT)
