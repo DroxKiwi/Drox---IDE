@@ -2,10 +2,11 @@
 
 mod config;
 pub mod context_frame;
-pub mod tool_folders;
+pub mod internal_plan_tool;
+pub mod tool_aliases;
 mod architect_gate;
-mod intent_probe;
 mod json_response;
+mod routing;
 mod start_run;
 mod user_message_scope;
 mod protocol_markers;
@@ -17,10 +18,7 @@ pub use architect_gate::{
     extract_discussion_done_from_text, extract_discussion_user_facing_reply,
     parse_discussion_reply_marker, ArchitectGate,
 };
-pub use intent_probe::{
-    gate_chain_for_auto, gate_chain_for_rpc, parse_run_intent_json, resolve_run_intent,
-    ProbeSource, ResolvedRunIntent, RunIntentFlags, run_intent_probe,
-};
+pub use routing::resolve_gate_chain;
 pub use json_response::{extract_first_json_object, looks_like_gate_json_response};
 pub use start_run::{GateChainResult, StartRunKind};
 pub use user_message_scope::{
@@ -39,7 +37,7 @@ pub use prompts::{
     architect_user_message,
     architect_run_context_block, architect_run_context_block_compaction,
     architect_run_context_block_per_turn, architect_tool_short_description,
-    tool_supplements_all_architect, tool_supplements_for_station,
+    tool_supplements_all_architect, tool_supplements_architect_compact,
     PromptBlockId, PromptVars,
     StrictnessPreset, ARCHITECT_DISCUSSION_CORE_PROMPT, ARCHITECT_DISCUSSION_SYSTEM_PROMPT,
 };

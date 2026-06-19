@@ -1,12 +1,11 @@
 //! Station alignment after assistant turns (C12/C17).
 //!
-//! Complements upstream `filter_tool_specs_for_station` (pre-LLM tool visibility) —
-//! updates `RunRailState.station` from tool names when `[gate:]` is absent.
+//! Observateur rail — infers `RunRailState.station` from tool names when `[gate:]` is absent.
 
 use super::policy;
 use super::station::RunStation;
 use super::state::RunRailState;
-use super::transition::OpenTodoCounts;
+use crate::agent::state::internal_plan::OpenWorkCounts;
 use super::verify::VerifyOutcome;
 
 /// Raise `state.station` to at least `target` on the linear order.
@@ -25,17 +24,17 @@ pub fn set_station_at_least(state: &mut RunRailState, target: RunStation) {
 
 /// Align station from pending tool calls on this assistant turn (no explicit `[gate:]`).
 ///
-/// C17/C19: do not pre-advance to ACT when the turn mixes `todo_write` with mutations —
+/// C17/C19: do not pre-advance to ACT when the turn mixes `internal_plan_write` with mutations —
 /// `pre_gate` must still see PLAN for `file_edit` in that turn.
 pub fn align_station_from_tools(
     state: &mut RunRailState,
     tool_names: &[&str],
-    open_todos: OpenTodoCounts,
+    open_work: OpenWorkCounts,
 ) {
     if state.propose_awaiting_user || tool_names.is_empty() {
         return;
     }
-    if open_todos.has_open() && state.station == RunStation::Act {
+    if open_work.has_open() && state.station == RunStation::Act {
         return;
     }
     let Some(target) = infer_align_target(state.station, tool_names) else {
@@ -52,7 +51,13 @@ fn infer_align_target(current: RunStation, tool_names: &[&str]) -> Option<RunSta
     let max_min = max_minimum_station(tool_names)?;
     let has_plan_tool = tool_names
         .iter()
-        .any(|name| matches!(*name, "todo_write" | "architect_help"));
+        .any(|name| {
+            matches!(
+                *name,
+                crate::orchestration::internal_plan_tool::TOOL_INTERNAL_PLAN_WRITE
+                    | "architect_help"
+            )
+        });
     let wants_act_or_verify = matches!(max_min, RunStation::Act | RunStation::Verify);
 
     if has_plan_tool
@@ -91,7 +96,7 @@ mod tests {
     #[test]
     fn align_read_tools_from_intent() {
         let mut state = RunRailState::new();
-        align_station_from_tools(&mut state, &["file_read", "grep"], OpenTodoCounts::default());
+        align_station_from_tools(&mut state, &["file_read", "grep"], OpenWorkCounts::default());
         assert_eq!(state.station, RunStation::Read);
     }
 
@@ -99,7 +104,7 @@ mod tests {
     fn explicit_gate_not_applied_here() {
         let mut state = RunRailState::new();
         set_station_at_least(&mut state, RunStation::Read);
-        align_station_from_tools(&mut state, &["file_edit"], OpenTodoCounts::default());
+        align_station_from_tools(&mut state, &["file_edit"], OpenWorkCounts::default());
         assert_eq!(state.station, RunStation::Act);
     }
 
@@ -109,7 +114,7 @@ mod tests {
             station: RunStation::Act,
             ..RunRailState::new()
         };
-        align_station_from_tools(&mut state, &["bash"], OpenTodoCounts::default());
+        align_station_from_tools(&mut state, &["bash"], OpenWorkCounts::default());
         assert_eq!(state.station, RunStation::Act);
     }
 
@@ -135,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn open_todos_block_verify_align_from_act() {
+    fn open_work_block_verify_align_from_act() {
         let mut state = RunRailState {
             station: RunStation::Act,
             ..RunRailState::new()
@@ -143,7 +148,7 @@ mod tests {
         align_station_from_tools(
             &mut state,
             &["bash"],
-            OpenTodoCounts {
+            OpenWorkCounts {
                 pending: 0,
                 in_progress: 1,
             },
@@ -157,7 +162,7 @@ mod tests {
             station: RunStation::Plan,
             ..RunRailState::new()
         };
-        align_station_from_tools(&mut state, &["todo_write", "file_edit"], OpenTodoCounts::default());
+        align_station_from_tools(&mut state, &["internal_plan_write", "file_edit"], OpenWorkCounts::default());
         assert_eq!(state.station, RunStation::Plan);
     }
 
@@ -167,7 +172,7 @@ mod tests {
             station: RunStation::Plan,
             ..RunRailState::new()
         };
-        align_station_from_tools(&mut state, &["file_edit"], OpenTodoCounts::default());
+        align_station_from_tools(&mut state, &["file_edit"], OpenWorkCounts::default());
         assert_eq!(state.station, RunStation::Act);
     }
 
@@ -188,7 +193,7 @@ mod tests {
             propose_awaiting_user: true,
             ..RunRailState::new()
         };
-        align_station_from_tools(&mut state, &["file_read"], OpenTodoCounts::default());
+        align_station_from_tools(&mut state, &["file_read"], OpenWorkCounts::default());
         assert_eq!(state.station, RunStation::Propose);
     }
 }

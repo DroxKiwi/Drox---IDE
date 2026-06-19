@@ -67,12 +67,11 @@ pub use orchestration::{
     architect_discussion_system_prompt, architect_discussion_system_prompt_default,
     architect_discussion_system_prompt_for_start_run,
     architect_tool_short_description,
-    tool_supplements_all_architect, tool_supplements_for_station,
+    tool_supplements_all_architect, tool_supplements_architect_compact,
     ARCHITECT_DISCUSSION_CORE_PROMPT, ARCHITECT_DISCUSSION_SYSTEM_PROMPT,
     initial_run_objective_for_concrete_edit, sanitize_architect_user_prompt,
     sanitize_transcript_user_messages,
-    RunIntentFlags, ResolvedRunIntent, resolve_run_intent, run_intent_probe,
-    ProbeSource, parse_run_intent_json,
+    resolve_gate_chain,
     DEFAULT_ARCHITECT_MODEL,
 };
 pub use compaction::{
@@ -98,6 +97,7 @@ pub use drox_session::{
     RunRoutingTrace, SessionError, SessionFrontMatter, SessionListEntry, SessionUiStats,
     TranscriptSessionConfig, TranscriptSink, compute_session_path, default_sessions_dir,
     engine_trace_path, format_sessions_listing_for_prompt, apply_prompt_memory_budget,
+    memory_tools_boot_teaser,
     estimate_tokens, list_sessions, load_memdir, load_sessions_listing, memdir_system_prefix,
     read_engine_trace, read_session, truncate_to_token_budget, read_session_ui_stats,
     read_transcript, reserve_session_path, reset_workspace_drox_data, session_ui_stats_path,

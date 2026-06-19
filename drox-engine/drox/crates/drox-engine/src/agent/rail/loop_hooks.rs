@@ -8,8 +8,12 @@ use super::act_failure::{
     record_act_mutation_attempt, record_act_tool_failure, severe_nudge_message,
     spiral_nudge_message, ActMutationAttemptOutcome,
 };
+use super::policy;
+use super::station::RunStation;
 use super::station_events::{self, StationEvent};
-use super::transition::{apply_assistant_turn, reopen_work_station_if_needed, OpenTodoCounts};
+use crate::agent::state::internal_plan::OpenWorkCounts;
+
+use super::transition::{apply_assistant_turn, reopen_work_station_if_needed};
 use super::boot;
 use super::propose_hold;
 use super::refresh_run_rail_snapshot;
@@ -38,22 +42,22 @@ pub fn on_turn_start(
     state: &mut RunRailState,
     messages: &[Message],
     is_boot: bool,
-    open_todos: OpenTodoCounts,
+    open_work: OpenWorkCounts,
 ) {
     if is_boot {
         boot::restore_from_transcript(state, messages);
     }
     user_turn::release_propose_hold_if_user_replied(state, messages);
-    reopen_work_station_if_needed(state, open_todos);
+    reopen_work_station_if_needed(state, open_work);
 }
 
 pub fn refresh_snapshot(
     messages: &mut Vec<Message>,
     state: &RunRailState,
     focus: RailFocus<'_>,
-    open_todos: OpenTodoCounts,
+    open_work: OpenWorkCounts,
 ) {
-    refresh_run_rail_snapshot(messages, &run_rail_snapshot_block(state, focus, open_todos));
+    refresh_run_rail_snapshot(messages, &run_rail_snapshot_block(state, focus, open_work));
 }
 
 pub fn after_assistant_turn(
@@ -119,20 +123,12 @@ pub fn on_act_mutation_success(
 /// Refine rail station after a successful parent tool call (C12).
 pub fn on_tool_success(state: &mut RunRailState, tool_name: &str) {
     super::infer::on_tool_success(state, tool_name);
-    super::act_stall::reset_on_mutation_success(state, tool_name);
+    if state.station == RunStation::Act && policy::is_mutation_tool(tool_name) {
+        state.act_idle_turns = 0;
+    }
     super::verify::reset_on_mutation_success(state, tool_name);
-    super::post_todos_close::reset_post_todos_idle(state);
+    super::post_work_idle::reset_post_work_idle(state);
     super::cycle_reopen::reopen_work_on_late_mutation(state, tool_name);
-}
-
-/// Idle turn after todos terminal — nudge `[phase: answering]` (B-MOTOR-06).
-#[must_use]
-pub fn on_post_todos_idle_turn(
-    state: &mut RunRailState,
-    todos_closed: bool,
-    mutation_count: u32,
-) -> Option<&'static str> {
-    super::post_todos_close::on_post_todos_idle_turn(state, todos_closed, mutation_count)
 }
 
 /// Record verify tool output; may regress VERIFY → ACT on failure.
@@ -145,21 +141,3 @@ pub fn on_verify_tool_result(
 ) -> bool {
     super::verify::on_verify_tool_result(state, tool_name, output, is_error)
 }
-
-/// Idle assistant turn at ACT with open task — returns stall nudge when threshold hit.
-#[must_use]
-pub fn on_act_idle_turn(state: &mut RunRailState, has_in_progress_task: bool) -> Option<&'static str> {
-    super::act_stall::on_act_idle_turn(state, has_in_progress_task)
-}
-
-/// Read-only turns at READ on a mutation brief — gentle advance-to-ACT nudge.
-#[must_use]
-pub fn on_read_idle_turn(
-    state: &mut RunRailState,
-    mutation_expected: bool,
-    tool_names: &[&str],
-    plan: Option<&crate::agent::state::internal_plan::InternalPlanState>,
-) -> Option<&'static str> {
-    super::read_stall::on_read_idle_turn(state, mutation_expected, tool_names, plan)
-}
-

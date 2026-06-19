@@ -69,7 +69,7 @@ pub async fn build_registry_for_run(input: RegistryBuildInput) -> ToolRegistry {
 }
 
 pub(crate) fn apply_disabled_tools(registry: &mut ToolRegistry, disabled: &[String]) {
-    const ALWAYS_ACTIVE: &[&str] = &["ask_user_question", "todo_write"];
+    const ALWAYS_ACTIVE: &[&str] = &["ask_user_question"];
     for name in disabled {
         let trimmed = name.trim();
         if trimmed.is_empty() || ALWAYS_ACTIVE.contains(&trimmed) {

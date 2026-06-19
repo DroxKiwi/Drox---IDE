@@ -6,7 +6,7 @@
 **Suite** : [PLAN-1.4.1.2](PLAN-1.4.1.2.md) (rail / clôture / VERIFY) — **après** ce plan  
 **Transcripts** : [`chat_qwen27b.txt`](../../chat_qwen27b.txt) (`ses_3c6ec330`, `ses_3eb8a6d5`)
 
-> Réduire le **bruit d’injection** à chaque tour LLM : moins de snapshots redondants, moins de manuel outil inutile, profils compacts par station rail. **Pas** la refonte complète [CONTEXT-BUBBLES](../../1.3/1.3.2/gates/CONTEXT-BUBBLES.md) (→ 1.4.2 / 1.4.3).
+> Réduire le **bruit d’injection** à chaque tour LLM : moins de snapshots redondants, moins de manuel outil inutile, profils compacts par station rail. **Pas** la refonte complète [CONTEXT-BUBBLES](../../1.3/1.3.2/gates/CONTEXT-BUBBLES.md) (→ 1.4.3 / 1.4.4).
 
 ---
 
@@ -60,7 +60,7 @@ F. Context diet        push excessif — snapshots + 9 protocoles outil + histor
 | **B-CTX-02e** | Observabilité : log taille snapshots / tour | P4 | P1 | ☑ code |
 | **B-MOTOR-01** | (partiel) Préambules thinking — chevauche 02a/d | P1–P3 | P1 | ☐ |
 
-**Hors scope 2a** : allocator narrative/code 50k/70k · bulles TOML · GraphContext ([1.4.3](../1.4.3/PLAN-1.4.3.md)) · compaction transcript (déjà partiel en 1.4.0).
+**Hors scope 2a** : allocator narrative/code 50k/70k · bulles TOML · GraphContext ([1.4.4](../1.4.4/PLAN-1.4.4.md)) · compaction transcript (déjà partiel en 1.4.0).
 
 ---
 

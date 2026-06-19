@@ -75,7 +75,7 @@ Module `run_rail/` dédié, fichiers courts, commentaires en tête de module. **
 |---------|-----------|
 | **1.3.4** | Solo (clôturée anticipé) — base code conservée |
 | **1.4.0** | Run rail + segments + UI blocs |
-| **1.4.3** | Index RAG, ContextPack, graphe — **complémentaire** (injecté au boot READ) |
+| **1.4.4** | Index RAG, ContextPack, graphe — **complémentaire** (injecté au boot READ) |
 
 ---
 

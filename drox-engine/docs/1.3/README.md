@@ -10,7 +10,7 @@
 | [**1.3.3/**](1.3.3/README.md) | Release fiable : garde-fous build, package aligné, MAJ | Livré · archivé |
 | [**1.3.4/**](1.3.4/README.md) | Architecte seul — sub-agents désactivés | Clôturée anticipé · archivé |
 
-**Suite produit** : ligne **[1.4](../1.4/README.md)** (`1.4.0` Run Rail · `1.4.1` stabilisation · `1.4.2` UI · `1.4.3` index/graphe).
+**Suite produit** : ligne **[1.4](../1.4/README.md)** (`1.4.0` Run Rail · `1.4.1` stabilisation · `1.4.2` alignement modèles · `1.4.3` UI · `1.4.4` index/graphe).
 
 ---
 

@@ -1,12 +1,10 @@
 ﻿#[tokio::test]
 async fn short_run_completes_normally() {
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("ok"),
+        read_then_plan_complete_turn("ok"),
         done_turn("OK."),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -32,12 +30,10 @@ async fn answering_phase_alone_does_not_terminate_loop() {
                 usage: Usage::default(),
             },
         ],
-        read_then_one_todo_turn("Liste minimale."),
+        read_then_plan_complete_turn("Liste minimale."),
         done_turn("Voici la rÃƒÂ©ponse (confirmÃƒÂ©e)."),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -69,12 +65,10 @@ async fn done_without_answering_promotes_substantial_text_without_second_llm_tur
         de dÃƒÂ©tails techniques pour dÃƒÂ©passer le seuil de promotion automatique \
         cÃƒÂ´tÃƒÂ© moteur sans second tour LLM ni rÃƒÂ©pÃƒÂ©tition visible pour l'utilisateur.";
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("Analyse demandÃƒÂ©e."),
+        read_then_plan_complete_turn("Analyse demandÃƒÂ©e."),
         premature_done_turn(long_analysis),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -101,16 +95,14 @@ async fn done_without_answering_promotes_substantial_text_without_second_llm_tur
 #[tokio::test]
 async fn done_without_answering_still_nudges_when_text_too_short() {
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("Analyse demandÃƒÂ©e."),
+        read_then_plan_complete_turn("Analyse demandÃƒÂ©e."),
         premature_done_turn("OK."),
         done_turn(
             "Voici l'analyse complÃƒÂ¨te du projet avec assez de contenu pour \
              clÃƒÂ´turer proprement dans la phase answering sans ambiguÃƒÂ¯tÃƒÂ©.",
         ),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -141,11 +133,11 @@ async fn opening_todo_write_without_marker_injects_reading_not_blocked() {
             StreamEvent::Start,
             StreamEvent::ToolCall {
                 id: tid.clone(),
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [{
+                    "steps": [{
                         "id": "1",
-                        "content": "Saluer l'utilisateur",
+                        "action": "Saluer l'utilisateur",
                         "status": "completed"
                     }]
                 }),
@@ -166,9 +158,7 @@ async fn opening_todo_write_without_marker_injects_reading_not_blocked() {
             },
         ],
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -191,7 +181,7 @@ async fn opening_todo_write_without_marker_injects_reading_not_blocked() {
         matches!(e, AgentEvent::PhaseEnter { phase } if *phase == Phase::Reading)
     });
     let idx_todo = events.iter().position(|e| {
-        matches!(e, AgentEvent::ToolStart { name, .. } if name == "todo_write")
+        matches!(e, AgentEvent::ToolStart { name, .. } if name == "internal_plan_write")
     });
     assert!(
         idx_reading.is_some() && idx_todo.is_some() && idx_reading < idx_todo,
@@ -236,9 +226,7 @@ async fn forgotten_done_after_answering_uses_minimal_nudge() {
             },
         ],
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -279,8 +267,8 @@ async fn forgotten_done_after_answering_uses_minimal_nudge() {
 /// une boucle infinie (le modÃƒÂ¨le rÃƒÂ©-ÃƒÂ©crivait sa salutation ÃƒÂ  chaque
 /// nudge `MISSING_TODO_WRITE_PROMPT`). Voir issue conversationnelle 2026-05-13.
 #[tokio::test]
-async fn done_accepted_for_pure_conversation_without_todo_write() {
-    let llm = Arc::new(ScriptedLlm::new_architect(vec![vec![
+async fn done_accepted_for_pure_conversation_without_plan() {
+    let llm = Arc::new(ScriptedLlm::new(vec![vec![
         StreamEvent::Start,
         StreamEvent::TextDelta {
             text: "[phase: reading]\nSalutation triviale.\n\
@@ -293,9 +281,7 @@ async fn done_accepted_for_pure_conversation_without_todo_write() {
             usage: Usage::default(),
         },
     ]]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -307,14 +293,13 @@ async fn done_accepted_for_pure_conversation_without_todo_write() {
         .collect::<Result<_, _>>()
         .unwrap();
 
-    let todo_starts = events
+    let plan_starts = events
         .iter()
-        .filter(|e| matches!(e, AgentEvent::ToolStart { name, .. } if name == "todo_write"))
+        .filter(|e| matches!(e, AgentEvent::ToolStart { name, .. } if name == "internal_plan_write"))
         .count();
     assert_eq!(
-        todo_starts, 0,
-        "aucun todo_write ne doit ÃƒÂªtre dÃƒÂ©clenchÃƒÂ© pour une conversation triviale ; \
-         events={events:?}",
+        plan_starts, 0,
+        "aucun internal_plan_write pour une conversation triviale ; events={events:?}",
     );
     let stops = events
         .iter()
@@ -337,7 +322,7 @@ async fn silent_turn_after_tool_call_still_nudges_to_done() {
     // puis encore muet, puis done.
     let tid_echo = ToolUseId::new();
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("DÃƒÂ©marrage."),
+        read_then_plan_complete_turn("DÃƒÂ©marrage."),
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -376,9 +361,7 @@ async fn silent_turn_after_tool_call_still_nudges_to_done() {
         done_turn("rÃƒÂ©sultat final"),
     ]));
 
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(EchoTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(EchoTool));
     let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());

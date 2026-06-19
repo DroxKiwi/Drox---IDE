@@ -79,7 +79,7 @@ impl std::fmt::Debug for MemoryRuntime {
 /// au moins un de ces signaux :
 ///
 /// - tool **mutateur** (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, `bash`) exécuté avec succès ;
-/// - `todo_write` réussi (indique au minimum une intention de travail) ;
+/// - `internal_plan_write` réussi (indique au minimum une intention de travail) ;
 /// - au moins une `session_note` épinglée par le modèle.
 ///
 /// Pour les runs purement conversationnels (salut, merci, question triviale)
@@ -88,7 +88,7 @@ impl std::fmt::Debug for MemoryRuntime {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MemoryTracker {
     mutating_count: u32,
-    todo_writes: u32,
+    internal_plan_writes: u32,
     session_notes: u32,
 }
 
@@ -98,7 +98,7 @@ impl MemoryTracker {
     pub const fn new() -> Self {
         Self {
             mutating_count: 0,
-            todo_writes: 0,
+            internal_plan_writes: 0,
             session_notes: 0,
         }
     }
@@ -107,7 +107,9 @@ impl MemoryTracker {
     pub fn record_tool(&mut self, name: &str) {
         match name {
             "file_edit" | "file_write" | "notebook_edit" | "delete_path" | "bash" => self.mutating_count += 1,
-            "todo_write" => self.todo_writes += 1,
+            crate::orchestration::internal_plan_tool::TOOL_INTERNAL_PLAN_WRITE => {
+                self.internal_plan_writes += 1
+            }
             "session_note" => self.session_notes += 1,
             _ => {}
         }
@@ -121,12 +123,12 @@ impl MemoryTracker {
 
     /// Vrai si le run mérite une persistance.
     ///
-    /// Borne basse : un `todo_write` seul suffit (le user a posé un plan,
+    /// Borne basse : un `internal_plan_write` seul suffit (le user a posé un plan,
     /// même s'il n'a pas (encore) muté → la session a une valeur d'archive
     /// si elle aboutit à `[phase: done]`).
     #[must_use]
     pub const fn is_non_trivial(&self) -> bool {
-        self.mutating_count > 0 || self.todo_writes > 0 || self.session_notes > 0
+        self.mutating_count > 0 || self.internal_plan_writes > 0 || self.session_notes > 0
     }
 }
 
@@ -252,9 +254,9 @@ mod tests {
     }
 
     #[test]
-    fn tracker_marks_run_non_trivial_after_todo_write_only() {
+    fn tracker_marks_run_non_trivial_after_internal_plan_write_only() {
         let mut t = MemoryTracker::new();
-        t.record_tool("todo_write");
+        t.record_tool(crate::orchestration::internal_plan_tool::TOOL_INTERNAL_PLAN_WRITE);
         assert!(t.is_non_trivial());
     }
 

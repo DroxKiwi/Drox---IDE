@@ -3,7 +3,7 @@
 /// Gate empruntée après résolution d'intention.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArchitectGate {
-    /// Orchestration — plan, `todo_write`, `delegate_executor` (`gate_architect_edit`).
+    /// Orchestration — `internal_plan_write`, `delegate_executor` (`gate_architect_edit`).
     Edit,
     /// Discussion — réponse directe ; lecture repo autorisée, pas de plan ni sous-agents.
     Discuss,

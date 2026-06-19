@@ -1,4 +1,4 @@
-﻿# Smoke backlog â€” journal dogfood 1.4.0
+# Smoke backlog â€” journal dogfood 1.4.0
 
 **Parent** : [README](README.md) Â· **Plan** : [PLAN-ATTAQUE](PLAN-ATTAQUE.md) Â· **Tests** : [09-TEST-PLAN](09-TEST-PLAN.md)
 
@@ -10,7 +10,7 @@
 |---------|-----------|
 | **1.4.0** | Moteur rail (B-RAIL-02, B-SEG-01/02) â€” **bloque la clÃ´ture** Â· B-RAIL-01 partiel |
 | **[1.4.1](../../1.4.1/README.md)** | Surface prod (`droxSurface`), bugs moteur/session dogfood post-1.4.0 |
-| **[1.4.2](../../1.4.2/README.md)** | Bugs UI chat (B-UI-*) |
+| **[1.4.3](../../1.4.3/README.md)** | Bugs UI chat (B-UI-*) |
 
 Source : transcripts [`chat_qwen27b.txt`](../../../1.3/chat_qwen27b.txt), `chat_qwen9b.txt`, `chat_gemma426b.txt`.
 
@@ -35,7 +35,7 @@ Source : transcripts [`chat_qwen27b.txt`](../../../1.3/chat_qwen27b.txt), `chat_
 | `npm run compile-check-ts-native` | â˜‘ |
 | G-contrat Â§ III.5 (`agent/`) | â˜‘ 0 reliquat |
 | G-lignes (`agent/` prod) | âš  `loop/drive/tools.rs` ~530 L â†’ 1.4.1 |
-| G-ui Â§ VIII | âš  classes CSS `executor-action-rail` dans `logTools.js` (cosmÃ©tique â†’ 1.4.2) |
+| G-ui Â§ VIII | âš  classes CSS `executor-action-rail` dans `logTools.js` (cosmÃ©tique â†’ 1.4.3) |
 | T1â€“T3 smoke manuel | â˜ en attente dogfood site-kdds |
 
 Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_path` test alignÃ© message EN.
@@ -44,7 +44,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ## B-UI-01 â€” Fichiers Ã©ditÃ©s repliÃ©s par dÃ©faut
 
-**Cible** : **1.4.2**
+**Cible** : **1.4.3**
 
 **SymptÃ´me** : les cartes `file_edit` / `file_write` apparaissent **repliÃ©es** alors que lâ€™attendu produit est **ouvert** (diff visible).
 
@@ -71,7 +71,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ## B-UI-02 â€” Lignes Â« Ran Â» consÃ©cutives Ã©crasent le layout
 
-**Cible** : **1.4.2**
+**Cible** : **1.4.3**
 
 **SymptÃ´me** : plus il y a de lignes **Ran** (bash) Ã  la suite, plus le bloc suivant (thinking / texte / file change) est **verticalement compressÃ©** / illisible (voir capture).
 
@@ -98,7 +98,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ## B-UI-03 â€” Plan du run prÃ©cÃ©dent rattachÃ© au nouveau message
 
-**Cible** : **1.4.2**
+**Cible** : **1.4.3**
 
 **SymptÃ´me** : un plan **terminÃ©** (ex. 3/3 barrÃ©) du run dâ€™avant rÃ©apparaÃ®t **sous le nouveau message** utilisateur et dans le **sticky header** (Â« Architect â€” planning and delegation Â»). Il disparaÃ®t seulement quand le modÃ¨le Ã©met un **nouveau** `todo_write`.
 
@@ -126,7 +126,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ## B-UI-04 â€” Questionnaire `ask_user` : markdown brut + trop haut
 
-**Cible** : **1.4.2**
+**Cible** : **1.4.3**
 
 **SymptÃ´me** : dans la carte **Questions**, le prompt affiche le markdown **brut** (`**gras**`, listes, tableaux) via `textContent`. Le bloc question occupe toute la hauteur disponible.
 
@@ -146,7 +146,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ## B-UI-05 â€” Phase thinking active toujours en tÃªte du fil
 
-**Cible** : **1.4.2**
+**Cible** : **1.4.3**
 
 **SymptÃ´me** : pendant tout le run, la section **thinking** reste **en haut** du strip linÃ©aire (`work` â†’ `thinking` â†’ `verify` â†’ `answer` ordre fixe). Seul le contenu thinking est mis Ã  jour ; les phases ultÃ©rieures (lecture, plan, rÃ©ponse) sâ€™affichent **en dessous**, alors que lâ€™utilisateur attend que **la phase en cours** soit la **derniÃ¨re** visible (ordre chronologique).
 
@@ -175,7 +175,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 
 ## B-UI-06 â€” Chargement session Ã  la rÃ©ouverture de Drox
 
-**Cible** : **1.4.1** (compaction / API) Â· affichage **1.4.2**
+**Cible** : **1.4.1** (compaction / API) Â· affichage **1.4.3**
 
 **SymptÃ´me** : Ã  la rÃ©ouverture de lâ€™app, le fil dâ€™une session existante **ne charge pas** ou sâ€™affiche **incorrectement** ; dÃ©lai trÃ¨s long.
 
@@ -425,7 +425,7 @@ Corrections Phase 5 : tests `todo_write` parallel slots retirÃ©s ; `delete_pat
 | 2026-06-08 | CrÃ©ation backlog depuis smoke test utilisateur (pre-commit Phase 3 local) |
 | 2026-06-05 | Smoke Phase 4 : B-UI-03 plan orphelin, B-UI-04 ask_user markdown, B-UI-05 ordre thinking |
 | 2026-06-09 | Smoke qwen27b complet : B-UI-06/07, B-RAIL-01 ; bench modÃ¨les gemma/qwen9b/qwen27b |
-| 2026-06-09 | Tri versions 1.4.0 moteur / 1.4.1 bugs / 1.4.2 UI ; salut simple â†’ M-DISC-01 |
+| 2026-06-09 | Tri versions 1.4.0 moteur / 1.4.1 bugs / 1.4.3 UI ; salut simple â†’ M-DISC-01 |
 | 2026-06-05 | Phase 4 VERIFY loop : `verify.rs`, transition gate, snapshot ; B-MOTOR-02 partiel |
 | 2026-06-05 | Clôture squelette 1.4.0 ; PLAN-1.4.1 réaligné post-dogfood ; B-MOTOR-04, B-REL-01 ajoutés |
 | 2026-06-12 | B-MOTOR-04 résolu (`f8dd47a7`) ; B-UI-07 validé dogfood ; P3/P4 plan cochés |

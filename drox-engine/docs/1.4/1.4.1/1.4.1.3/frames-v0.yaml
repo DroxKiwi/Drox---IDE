@@ -1,4 +1,4 @@
-# Context Frame manifest v0 — parité comportementale 1.4.1.3
+# Context Frame manifest v0 — 1.4.2 culture unique (rail observateur + protocole compact)
 # Source de vérité spec ; le moteur embarque l'équivalent dans orchestration/context_frame/manifest.rs
 
 version: 0
@@ -32,15 +32,22 @@ frames:
         source: dynamic_fn
         fn: architect_run_context_block_per_turn
 
+      - layer_id: internal_plan_snapshot
+        block_id: InternalPlanSnapshot
+        mode: replace_marked
+        marker: "## Internal work plan (engine only)"
+        skip_if_unchanged: true
+        source: dynamic_fn
+        fn: internal_plan_snapshot_for_station
+        when: internal_plan_present
+
       - layer_id: tool_protocols
         block_id: ToolProtocols
         mode: replace_marked
         marker: "## Architect tool protocols (engine)"
         skip_if_unchanged: true
         source: dynamic_fn
-        fn: tool_supplements_for_station
-        fallback_fn: tool_supplements_all_architect
-        when_no_rail: use fallback_fn
+        fn: tool_supplements_architect_compact
 
       - layer_id: rail_turn_hooks
         mode: state_only
@@ -83,36 +90,29 @@ frames:
       - rail.post_todos_answering
       - rail.act_stall
       - schema_error.continue
+      - schema_error.forced_answering
       - rail.act_mutation_success
       - rail.act_tool_failure_continue
       - rail.act_tool_failure_stop
       - ask_user_question.loop
 
-# Stations → protocoles (layer tool_protocols)
-station_tool_protocols:
-  intent: [workspace_map_read, file_read, grep, lsp]
-  read: [workspace_map_read, file_read, grep, lsp]
-  propose: [todo_write, architect_help, ask_user_question, workspace_map_read, file_read, grep]
-  plan: [todo_write, architect_help, ask_user_question, workspace_map_read, file_read, grep]
-  act: [file_edit, file_write, todo_write, file_read]
-  verify: [lsp, grep, file_read]
-  answer: [todo_write]
+# Protocole outil : palette plate stable (1.4.2) — voir ARCHITECT_EDIT_CORE_BLOCKS
+tool_protocols:
+  fn: tool_supplements_architect_compact
+  blocks:
+    - todo_write
+    - workspace_map_read
+    - file_edit
+    - file_write
+    - file_read
+    - grep
+    - lsp
+    - architect_help
+    - ask_user_question
 
-# Futur Phase 3 — non actif en v0
-tool_folders:
-  edit_file:
-    expands_to: [file_edit, file_write]
-    visible_at: [act]
-  read_workspace:
-    expands_to: [file_read, grep, workspace_map_read]
-    visible_at: [read, intent]
-  verify_project:
-    expands_to: [lsp, grep, file_read, bash]
-    visible_at: [verify]
-
-# Futur Phase 4 — non actif en v0
+# Plan interne optionnel (L2)
 internal_plan:
   tool: internal_plan_write
   marker: "## Internal work plan (engine only)"
   visible_ui: false
-  stations: [plan, act, verify]
+  optional: true

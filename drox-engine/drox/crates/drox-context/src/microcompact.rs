@@ -186,7 +186,7 @@ mod tests {
         let id = ToolUseId::new();
         let big = "y".repeat(2_000);
         let mut messages = vec![
-            assistant_tool_call("todo_write", id.clone()),
+            assistant_tool_call("internal_plan_write", id.clone()),
             tool_result(id.clone(), &big),
         ];
         let out = microcompact_messages(&mut messages, &MicrocompactConfig::default());

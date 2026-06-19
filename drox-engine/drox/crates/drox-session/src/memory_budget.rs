@@ -56,7 +56,7 @@ pub fn apply_prompt_memory_budget(
         (Some(m), None) => (Some(truncate_to_token_budget(&m, budget)), None),
         (None, Some(s)) => (None, Some(truncate_to_token_budget(&s, budget))),
         (Some(m), Some(s)) => {
-            // Memdir prioritaire (MEMORY.md / DROX.md), reste pour le listing compact.
+            // Memdir prioritaire (DROX.md), reste pour le listing compact.
             let mem_share = (budget * 40) / 100;
             let mem_share = mem_share.max(32).min(budget);
             let mem_out = truncate_to_token_budget(&m, mem_share);

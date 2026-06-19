@@ -1,6 +1,11 @@
 ﻿//! Apply `hold` / `advance` and depth markers to [`RunRailState`].
 //!
 //! PROPOSE hold semantics: `propose_hold.rs`. Do not inline station rules here.
+//!
+//! Observational rail: stations follow model markers and tool inference only —
+//! no mutation or verify blocking on advance.
+
+use crate::agent::state::internal_plan::OpenWorkCounts;
 
 use super::markers::{GateTransition, ParsedRailMarkers};
 use super::propose_hold;
@@ -8,70 +13,20 @@ use super::station::RunStation;
 use super::state::RunRailState;
 use super::verify::VerifyOutcome;
 
-/// Open architect todo counts (pending + in_progress) for advance / hold gates.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct OpenTodoCounts {
-    pub pending: u64,
-    pub in_progress: u64,
-}
-
-impl OpenTodoCounts {
-    #[must_use]
-    pub const fn has_open(self) -> bool {
-        self.pending > 0 || self.in_progress > 0
-    }
-}
-
-/// Workspace + todo context for hold / advance (B-RAIL-02).
+/// Open-work context for hold / advance.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RailTransitionContext {
-    pub open_todos: OpenTodoCounts,
-    pub mutation_expected: bool,
-    pub mutation_count: u32,
+    pub open_work: OpenWorkCounts,
 }
 
-/// Run edit : brief mutation sans patch — forcer ACT avant nouvelle tentative de clôture.
-pub fn force_act_for_expected_mutation(state: &mut RunRailState) {
-    if matches!(
-        state.station,
-        RunStation::Intent | RunStation::Read | RunStation::Plan | RunStation::Propose | RunStation::Verify | RunStation::Answer
-    ) {
-        state.station = RunStation::Act;
-    }
-}
-
-/// When todos remain, VERIFY/ANSWER are premature — return to ACT so mutations work.
-pub fn reopen_work_station_if_needed(state: &mut RunRailState, open: OpenTodoCounts) {
-    if !open.has_open() {
-        return;
-    }
-    if matches!(state.station, RunStation::Verify | RunStation::Answer) {
-        state.station = RunStation::Act;
-    }
+/// When open plan steps remain, VERIFY/ANSWER are premature — return to ACT so mutations work.
+pub fn reopen_work_station_if_needed(_state: &mut RunRailState, _open: OpenWorkCounts) {
+    // Observational rail — station is not overridden from open-work counts.
 }
 
 #[must_use]
-fn advance_blocked_by_open_todos(next: RunStation, open: OpenTodoCounts) -> bool {
+fn advance_blocked_by_open_work(next: RunStation, open: OpenWorkCounts) -> bool {
     open.has_open() && matches!(next, RunStation::Verify | RunStation::Answer)
-}
-
-#[must_use]
-fn advance_blocked_without_workspace_mutation(
-    state: &RunRailState,
-    next: RunStation,
-    ctx: RailTransitionContext,
-) -> bool {
-    ctx.mutation_expected
-        && ctx.mutation_count == 0
-        && state.station == RunStation::Act
-        && next == RunStation::Verify
-}
-
-#[must_use]
-fn advance_blocked_until_verify_passed(state: &RunRailState, next: RunStation) -> bool {
-    state.station == RunStation::Verify
-        && next == RunStation::Answer
-        && !state.verify_outcome.passed()
 }
 
 /// Apply parsed markers from one assistant turn.
@@ -102,26 +57,22 @@ pub fn apply_assistant_turn(
     let had_gate = parsed.gate.is_some();
     apply_parsed_markers(state, parsed, ctx);
     if !had_gate {
-        super::infer::align_station_from_tools(state, tool_names, ctx.open_todos);
+        super::infer::align_station_from_tools(state, tool_names, ctx.open_work);
     }
 }
 
-/// `hold` — PROPOSE complex stays at PROPOSE (C4); READ/INTENT + mutation brief → PLAN (B-RAIL-02).
+/// `hold` — PROPOSE complex stays at PROPOSE (C4); otherwise jump to Answer when work is closed.
 pub fn apply_hold(state: &mut RunRailState, ctx: RailTransitionContext) {
     if propose_hold::try_enter_from_hold_marker(state) {
         return;
     }
-    if ctx.open_todos.has_open() {
-        return;
-    }
-    if matches!(state.station, RunStation::Intent | RunStation::Read) && ctx.mutation_expected {
-        state.station = RunStation::Plan;
+    if ctx.open_work.has_open() {
         return;
     }
     state.station = RunStation::Answer;
 }
 
-/// `advance` — enter next linear candidate (mode A); blocked during PROPOSE hold or open todos.
+/// `advance` — enter next linear candidate (mode A); blocked during PROPOSE hold or open work.
 pub fn apply_advance(state: &mut RunRailState, ctx: RailTransitionContext) {
     if propose_hold::blocks_advance(state) {
         return;
@@ -129,13 +80,7 @@ pub fn apply_advance(state: &mut RunRailState, ctx: RailTransitionContext) {
     let Some(next) = state.next_candidate_mode_a() else {
         return;
     };
-    if advance_blocked_by_open_todos(next, ctx.open_todos) {
-        return;
-    }
-    if advance_blocked_without_workspace_mutation(state, next, ctx) {
-        return;
-    }
-    if advance_blocked_until_verify_passed(state, next) {
+    if advance_blocked_by_open_work(next, ctx.open_work) {
         return;
     }
     state.station = next;
@@ -151,18 +96,14 @@ mod tests {
     use crate::agent::rail::station::RunDepth;
     use crate::agent::rail::verify::VerifyOutcome;
 
-    fn ctx(open: OpenTodoCounts) -> RailTransitionContext {
-        RailTransitionContext {
-            open_todos: open,
-            mutation_expected: false,
-            mutation_count: 0,
-        }
+    fn ctx(open: OpenWorkCounts) -> RailTransitionContext {
+        RailTransitionContext { open_work: open }
     }
 
     #[test]
     fn advance_intent_to_read() {
         let mut state = RunRailState::new();
-        apply_advance(&mut state, ctx(OpenTodoCounts::default()));
+        apply_advance(&mut state, ctx(OpenWorkCounts::default()));
         assert_eq!(state.station, RunStation::Read);
     }
 
@@ -170,47 +111,17 @@ mod tests {
     fn hold_jumps_to_answer_from_read() {
         let mut state = RunRailState::new();
         state.station = RunStation::Read;
-        apply_hold(&mut state, ctx(OpenTodoCounts::default()));
+        apply_hold(&mut state, ctx(OpenWorkCounts::default()));
         assert_eq!(state.station, RunStation::Answer);
     }
 
     #[test]
-    fn hold_mutation_brief_from_read_goes_to_plan() {
-        let mut state = RunRailState::new();
-        state.station = RunStation::Read;
-        apply_hold(
-            &mut state,
-            RailTransitionContext {
-                open_todos: OpenTodoCounts::default(),
-                mutation_expected: true,
-                mutation_count: 0,
-            },
-        );
-        assert_eq!(state.station, RunStation::Plan);
-    }
-
-    #[test]
-    fn advance_act_blocked_without_mutation_when_expected() {
-        let mut state = RunRailState::new();
-        state.station = RunStation::Act;
-        apply_advance(
-            &mut state,
-            RailTransitionContext {
-                open_todos: OpenTodoCounts::default(),
-                mutation_expected: true,
-                mutation_count: 0,
-            },
-        );
-        assert_eq!(state.station, RunStation::Act);
-    }
-
-    #[test]
-    fn hold_stays_when_todos_open() {
+    fn hold_stays_when_work_open() {
         let mut state = RunRailState::new();
         state.station = RunStation::Act;
         apply_hold(
             &mut state,
-            ctx(OpenTodoCounts {
+            ctx(OpenWorkCounts {
                 pending: 1,
                 in_progress: 0,
             }),
@@ -219,12 +130,12 @@ mod tests {
     }
 
     #[test]
-    fn advance_act_blocked_with_open_todos() {
+    fn advance_act_blocked_with_open_work() {
         let mut state = RunRailState::new();
         state.station = RunStation::Act;
         apply_advance(
             &mut state,
-            ctx(OpenTodoCounts {
+            ctx(OpenWorkCounts {
                 pending: 1,
                 in_progress: 1,
             }),
@@ -233,26 +144,26 @@ mod tests {
     }
 
     #[test]
-    fn advance_act_to_verify_when_todos_closed() {
+    fn advance_act_to_verify_when_work_closed() {
         let mut state = RunRailState::new();
         state.station = RunStation::Act;
-        apply_advance(&mut state, ctx(OpenTodoCounts::default()));
+        apply_advance(&mut state, ctx(OpenWorkCounts::default()));
         assert_eq!(state.station, RunStation::Verify);
         assert!(state.visited_verify);
     }
 
     #[test]
-    fn reopen_work_from_answer_with_open_todos() {
+    fn reopen_work_is_observational_noop() {
         let mut state = RunRailState::new();
         state.station = RunStation::Answer;
         reopen_work_station_if_needed(
             &mut state,
-            OpenTodoCounts {
+            OpenWorkCounts {
                 pending: 0,
                 in_progress: 1,
             },
         );
-        assert_eq!(state.station, RunStation::Act);
+        assert_eq!(state.station, RunStation::Answer);
     }
 
     #[test]
@@ -262,25 +173,22 @@ mod tests {
             &mut state,
             "[depth: complex]\n[gate: advance]",
             &[],
-            ctx(OpenTodoCounts::default()),
+            ctx(OpenWorkCounts::default()),
         );
         assert_eq!(state.depth, RunDepth::Complex);
         assert_eq!(state.station, RunStation::Read);
-        apply_advance(&mut state, ctx(OpenTodoCounts::default()));
+        apply_advance(&mut state, ctx(OpenWorkCounts::default()));
         assert_eq!(state.station, RunStation::Propose);
     }
 
     #[test]
-    fn advance_verify_to_answer_blocked_without_pass() {
+    fn advance_verify_to_answer_without_verify_gate() {
         let mut state = RunRailState {
             station: RunStation::Verify,
             verify_outcome: VerifyOutcome::Unknown,
             ..RunRailState::new()
         };
-        apply_advance(&mut state, ctx(OpenTodoCounts::default()));
-        assert_eq!(state.station, RunStation::Verify);
-        state.verify_outcome = VerifyOutcome::Pass;
-        apply_advance(&mut state, ctx(OpenTodoCounts::default()));
+        apply_advance(&mut state, ctx(OpenWorkCounts::default()));
         assert_eq!(state.station, RunStation::Answer);
     }
 
@@ -292,7 +200,7 @@ mod tests {
             propose_awaiting_user: true,
             ..RunRailState::new()
         };
-        apply_advance(&mut state, ctx(OpenTodoCounts::default()));
+        apply_advance(&mut state, ctx(OpenWorkCounts::default()));
         assert_eq!(state.station, RunStation::Propose);
     }
 }

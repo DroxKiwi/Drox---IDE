@@ -131,6 +131,8 @@ impl Agent {
                     &architect_run_context_block_compaction(
                         architect_state,
                         effective_run_objective,
+                        Some(architect_state.rail.station),
+                        report.files_touched(),
                     ),
                 );
             }

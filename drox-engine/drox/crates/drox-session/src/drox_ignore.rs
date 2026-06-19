@@ -30,6 +30,16 @@ pub const DEFAULT_DROXIGNORE_TEMPLATE: &str = r"# Drox — chemins interdits à 
 **/*.sql
 **/*.dump
 **/backups/
+
+# Exports transcript volumineux (canonique = JSONL sous .drox/sessions/)
+.drox/exports/**
+";
+
+/// Motifs ajoutés aux `.droxignore` existants s'ils ne mentionnent pas encore `exports/`.
+const EXPORTS_IGNORE_MARKER: &str = ".drox/exports";
+const EXPORTS_IGNORE_APPEND: &str = r"
+# Exports transcript volumineux (ajouté par Drox — canonique = .drox/sessions/*.jsonl)
+.drox/exports/**
 ";
 
 const ALWAYS_ALLOW: &[&str] = &[".droxignore", ".gitignore"];
@@ -49,6 +59,8 @@ impl DroxIgnoreMatcher {
         let droxignore_path = workspace.join(DROXIGNORE_FILENAME);
         if !droxignore_path.is_file() {
             tokio::fs::write(droxignore_path.as_std_path(), DEFAULT_DROXIGNORE_TEMPLATE).await?;
+        } else {
+            ensure_exports_ignore_patterns(&droxignore_path).await?;
         }
         Self::load(workspace).await
     }
@@ -184,6 +196,21 @@ fn build_matcher(
     Ok((matcher, pattern_lines))
 }
 
+/// Ajoute les motifs `exports/` aux workspaces déjà dotés d'un `.droxignore` (M.8 migration).
+async fn ensure_exports_ignore_patterns(droxignore_path: &Utf8Path) -> Result<(), SessionError> {
+    let content = tokio::fs::read_to_string(droxignore_path.as_std_path()).await?;
+    if content.contains(EXPORTS_IGNORE_MARKER) {
+        return Ok(());
+    }
+    let mut out = content;
+    if !out.ends_with('\n') {
+        out.push('\n');
+    }
+    out.push_str(EXPORTS_IGNORE_APPEND);
+    tokio::fs::write(droxignore_path.as_std_path(), out).await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,6 +242,30 @@ mod tests {
         assert_eq!(kept.len(), 1);
         assert!(kept[0].contains("main.rs"));
         assert!(sample[0].contains(".env"));
+    }
+
+    #[tokio::test]
+    async fn load_or_create_appends_exports_patterns_to_existing_file() {
+        let dir = tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        std::fs::write(root.join(DROXIGNORE_FILENAME).as_std_path(), ".env\n").unwrap();
+        std::fs::create_dir_all(root.join(".drox/exports").as_std_path()).unwrap();
+        std::fs::write(root.join(".drox/exports/dump.txt").as_std_path(), "x").unwrap();
+        let m = DroxIgnoreMatcher::load_or_create(root.clone()).await.unwrap();
+        let content = std::fs::read_to_string(root.join(DROXIGNORE_FILENAME).as_std_path()).unwrap();
+        assert!(content.contains(".drox/exports"));
+        assert!(m.is_ignored(root.join(".drox/exports/dump.txt").as_std_path()));
+    }
+
+    #[tokio::test]
+    async fn blocks_exports_under_drox() {
+        let dir = tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        std::fs::create_dir_all(root.join(".drox/exports")).unwrap();
+        std::fs::write(root.join(".drox/exports/dump.jsonl"), "[]").unwrap();
+        let m = DroxIgnoreMatcher::load_or_create(root.clone()).await.unwrap();
+        assert!(m.is_ignored(root.join(".drox/exports/dump.jsonl").as_std_path()));
+        assert!(!m.is_ignored(root.join("src/main.rs").as_std_path()));
     }
 
     #[tokio::test]

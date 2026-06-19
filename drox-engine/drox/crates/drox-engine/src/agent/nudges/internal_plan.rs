@@ -6,8 +6,7 @@ pub fn stale_plan_nudge(tools_since_touch: u32) -> String {
     format!(
         "Your **internal work plan** (L2 engine notebook) has not been updated for \
          {tools_since_touch} tool calls. Call `internal_plan_write` to refresh statuses, \
-         add discoveries, or revise steps — keep it aligned with what you learned. \
-         This is engine-only (not `todo_write`)."
+         add discoveries, or revise steps — keep it aligned with what you learned."
     )
 }
 
@@ -24,12 +23,4 @@ pub fn pre_answering_plan_nudge(tools_since_touch: u32) -> String {
     "Before `[phase: answering]`: confirm your internal work plan (L2) reflects what you \
      actually did — call `internal_plan_write` with status updates if needed, then answer."
         .to_string()
-}
-
-/// Entering ACT without a focused step in the L2 notebook.
-#[must_use]
-pub fn act_without_plan_focus_nudge() -> &'static str {
-    "You are entering **ACT**. Consider marking one step `in_progress` in \
-     `internal_plan_write` (your L2 notebook) so you track what you are doing — \
-     optional but recommended. This does not replace `todo_write` (user UI)."
 }

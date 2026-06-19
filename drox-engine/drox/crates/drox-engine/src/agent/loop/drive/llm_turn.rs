@@ -5,36 +5,18 @@
         session: &mut DriveSession,
         tx: &tokio::sync::mpsc::Sender<Result<crate::event::AgentEvent, crate::error::EngineError>>,
     ) -> Option<crate::agent::stream::TurnOutcome> {
-        use crate::agent::has_internal_plan;
         use crate::agent::state::measure_context_snapshot_bytes;
         use crate::event::AgentEvent;
         use crate::orchestration::context_frame::{
             architect_iteration_start_layer_names, frame_id_for_iteration_start,
         };
-        use crate::orchestration::tool_folders::{apply_tool_folder_specs, internal_plan_write_spec};
         use crate::run_spec::RoleId;
 
         let rail_active = crate::agent::rail::run_rail_active(
             &self.config.engine_tuning,
             self.config.run_spec.role_id,
         );
-        let mut tour_tool_specs = session.base_tool_specs.clone();
-        if self.config.run_spec.role_id == RoleId::Architect
-            && !has_internal_plan(&session.architect_state)
-        {
-            tour_tool_specs = vec![internal_plan_write_spec()];
-        } else if rail_active {
-            tour_tool_specs = crate::agent::rail::filter_tool_specs_for_station(
-                tour_tool_specs,
-                session.architect_state.rail.station,
-            );
-            tour_tool_specs = apply_tool_folder_specs(
-                tour_tool_specs,
-                session.architect_state.rail.station,
-                &self.config.engine_tuning,
-                &session.architect_state,
-            );
-        }
+        let tour_tool_specs = session.base_tool_specs.clone();
 
         let tool_names: Vec<String> = tour_tool_specs.iter().map(|t| t.name.clone()).collect();
         let (frame_id, layers): (&str, &[&str]) =
@@ -140,22 +122,15 @@
         if self.config.run_spec.role_id == crate::run_spec::RoleId::Architect && rail_active {
             let focus = session
                 .architect_state
-                .current_focus_task_line()
-                .map(|(id, label, _)| (id, label));
+                .current_focus_step_line()
+                .map(|(id, action, _)| (id, action));
             let tool_names: Vec<&str> = outcome
                 .tool_calls
                 .iter()
                 .map(|c| c.name.as_str())
                 .collect();
-            let open_todos = crate::agent::rail::OpenTodoCounts {
-                pending: session.last_todo_pending,
-                in_progress: session.last_todo_in_progress,
-            };
-            let rail_ctx = crate::agent::rail::RailTransitionContext {
-                open_todos,
-                mutation_expected: session.mutation_expected,
-                mutation_count: session.memory_tracker.mutation_count(),
-            };
+            let open_work = crate::agent::OpenWorkCounts::from_state(&session.architect_state);
+            let rail_ctx = crate::agent::rail::RailTransitionContext { open_work };
             let rail_turn = crate::agent::rail::after_assistant_turn(
                 &mut session.architect_state.rail,
                 &outcome.text,
@@ -165,33 +140,17 @@
             );
             let snapshot_focus = focus
                 .as_ref()
-                .map(|(id, label)| (id.as_str(), label.as_str()));
+                .map(|(id, action)| (id.as_str(), action.as_str()));
             crate::agent::rail::refresh_snapshot(
                 &mut session.messages,
                 &session.architect_state.rail,
                 snapshot_focus,
-                open_todos,
+                open_work,
             );
             for ev in &rail_turn.station_events {
                 let _ = tx
                     .send(Ok(crate::agent::rail::to_agent_event(ev)))
                     .await;
-                if let crate::agent::rail::StationEvent::Enter {
-                    station: crate::agent::rail::RunStation::Act,
-                    ..
-                } = ev
-                {
-                    if let Some(plan) = session.architect_state.internal_plan.as_ref() {
-                        if !crate::agent::has_in_progress_step(plan) {
-                            crate::orchestration::append_gate_nudge(
-                                &mut session.messages,
-                                crate::orchestration::NudgeId::InternalPlanActFocus,
-                                crate::agent::nudges::act_without_plan_focus_nudge()
-                                    .to_string(),
-                            );
-                        }
-                    }
-                }
             }
             if rail_turn.action == crate::agent::rail::AfterAssistantAction::PauseForUser
                 && outcome.tool_calls.is_empty()

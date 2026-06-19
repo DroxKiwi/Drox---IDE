@@ -1,58 +1,92 @@
-# Drox 1.4.2 — UI chat & distribution Windows
+# Drox 1.4.2 — Rail observateur & contexte en 4 couches
 
-**Statut** : **planifié** (après [1.4.1](../1.4.1/README.md) publiée)  
-**Prérequis** : Phase **2d** ([FOI](../1.4.0/FOI-REFONTE.md#phase-2d--alignement-ui-fork-vs-code-p0)) · release **1.4.1** sur `Drox---IDE---OR`
+**Statut** : **implémentation clôturée** (juin 2026) — **dogfood M.9** + gate Acceptation en cours  
+**Prérequis** : [1.4.1](../1.4.1/README.md) livrée
 
 ---
 
 ## En une phrase
 
-Polish **interface chat Drox** (B-UI-*) **et** installeur Windows **signé Authenticode** pour éliminer l’alerte SmartScreen « Éditeur inconnu » au premier lancement.
+**Remplacer** le rail prescriptif (ACL par station, tool folders, gates) par un rail **observateur** et **4 couches de contexte** — culture unique livrée en code ; **dogfood 3-tours** obligatoire avant 1.4.3.
 
 ---
 
-## Piliers
+## Décision (juin 2026)
 
-| Pilier | Contenu | Doc |
-|--------|---------|-----|
-| **Distribution** | Certificat Code Signing (EV recommandé) · `signtool` · intégration `drox:ship` · README OR installation | [PLAN § P1](PLAN-1.4.2.md#p1--signature-de-code-windows-smartscreen) |
-| **UI chat** | Fil linéaire, replay, `ask_user`, blocs rail, busy stale | [PLAN § P2](PLAN-1.4.2.md#p2--ui-chat-b-ui-) |
+- **Une seule culture moteur** après 1.4.2 — pas de flag Soft/Strict, pas de legacy.
+- **R-NOLEGACY** : table rase — **zéro dossier dépliant** + ACL rail supprimés.
+- **R-MEMORY** : `DROX.md` seul · plan = `internal_plan_write` · archives via `memory_list`/`memory_read`.
+- **R-TEST** : `cargo test` vert + session 3-tours ([template dogfood M.9](SMOKE-M-memory-TEMPLATE.md)).
 
----
-
-## Contexte SmartScreen (1.4.1)
-
-Sur Windows 10/11, l’installeur non signé affiche **Microsoft Defender SmartScreen** avec **Éditeur inconnu**. Ce n’est pas un défaut du binaire — il manque une **signature Authenticode** KDDS. La 1.4.2 livre le pipeline de signature + la doc utilisateur.
+L’ancien backlog UI/signature : **[1.4.3](../1.4.3/README.md)**. Conduct utilisateur : **Phase 6** (post-dogfood).
 
 ---
 
-## Périmètre UI (B-UI-*)
+## Les 4 couches
 
-| ID | Sujet |
-|----|-------|
-| B-UI-01 | Fichiers édités repliés |
-| B-UI-02 | Lignes Ran / layout tray |
-| B-UI-03 | Plan du run précédent non scellé |
-| B-UI-04 | `ask_user` markdown + scroll ~8 lignes |
-| B-UI-05 | Phase thinking active en tête vs chronologique |
-| B-UI-06 | Chargement session à la réouverture (replay journal) |
-| B-UI-07 | Run `busy` stale après fin / blur app |
-| B-UI-08 | Panneau architecte : sélecteur contexte 16k→1M (`drox.numCtx`) | Livré (1.4.2 prep) |
+| Couche | Rôle | Chez Drox |
+|--------|------|-----------|
+| **1 — Cadre** | Règles, objectif, hint rail | Boot `01_core_rail_solo.md` + `rail_snapshot` |
+| **2 — Outils** | Palette API stable tout le run | `ToolSpec` wire + protocole compact unique |
+| **3 — Mémoire** | Où en est le run | `ctx_run_snapshot` + plan interne |
+| **4 — Historique** | Tours récents + résumé | Transcript + checkpoint court → snapshot réinjecté |
 
 ---
 
-## Hors scope
+## Plan & checklist
 
-- Moteur rail / gates (figé 1.4.1)
-- Index & graphe → [1.4.3](../1.4.3/PLAN-1.4.3.md)
-- Profils sampling → [1.4.4](../1.4.4/README.md)
-- Signature macOS / Linux
+**[PLAN-1.4.2.md](PLAN-1.4.2.md)** — phases **T**, **P**, **1–4**, **M** cochées · **6** et dogfood en cours.
+
+| Phase | Contenu | État |
+|-------|---------|------|
+| **T** | Inventaire outils plats | ✅ |
+| **P** | Purge `tool_folders` + ACL | ✅ |
+| 1–2 | Outils libres + protocoles unifiés | ✅ |
+| 3–4 | Rail observateur + closure | ✅ |
+| **M** | Mémoire unifiée (CUT MEMORY/todo) | ✅ code · M.9 dogfood |
+| 5 | Dogfood 3-tours + rapports smoke | ⏳ |
+| 6 | Conduct utilisateur | ⏳ post-dogfood |
+
+---
+
+## Règles de chantier
+
+| Règle | Détail |
+|-------|--------|
+| **R-FILE** | Fichiers &lt; ~500 lignes si possible |
+| **R-DOC** | Documenter code + plan à chaque phase |
+| **R-NOLEGACY** | Supprimer l’ancien — pas de double chemin |
+| **R-TEST** | Tests verts + dogfood complet avant 1.4.3 |
+| **R-MEMORY** | Un canal par question (pas de listing boot doublon) |
+
+---
+
+## Livrables
+
+- [x] Inventaire outils plats + code sans dépliants
+- [x] Phase M (memdir, boot, snapshot, checkpoint, `.droxignore` exports)
+- [ ] `SMOKE-M-memory-*.md` (dogfood post-M)
+- [ ] `SMOKE-1.4.2-*.md` rejeu vert (mutation run 3)
+- [ ] FOI mis à jour (rail prescriptif retiré) — D.3
+- [ ] Gate 1.4.3 **uniquement** si checklist Acceptation (A.*) verte
+
+---
+
+## Dogfood (prochaine étape)
+
+1. Recompiler `drox.exe` debug (`drox-engine/drox`).
+2. Workspace recommandé : `site-kdds` (même scénario que [chat_north-mini-code](../chat_north-mini-code)).
+3. Suivre **[SMOKE-M-memory-TEMPLATE.md](SMOKE-M-memory-TEMPLATE.md)** — 3 tours + critères post-compaction.
+4. Renommer le rapport en `SMOKE-M-memory-ses_<id>.md` après export.
+
+Smoke **pré-M** (référence) : [SMOKE-1.4.2-ses_7b34fd1d.md](SMOKE-1.4.2-ses_7b34fd1d.md).
 
 ---
 
 ## Liens
 
-- [Plan détaillé](PLAN-1.4.2.md)
+- [Plan détaillé + checklist](PLAN-1.4.2.md#checklist-davancement)
+- [Inventaire outils](INVENTAIRE-OUTILS-1.4.2.md)
 - [Hub 1.4](../README.md)
-- [06-UI-BLOCKS](../1.4.0/archive/06-UI-BLOCKS.md)
-- [GUIDE-PUBLICATION-WIN32](../../operations/GUIDE-PUBLICATION-WIN32.md)
+- [Smoke F1 référence](../1.4.3/SMOKE-ses_7df5045c.md)
+- [FOI-REFONTE](../1.4.0/FOI-REFONTE.md)

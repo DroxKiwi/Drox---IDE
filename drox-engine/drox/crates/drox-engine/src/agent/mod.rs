@@ -23,6 +23,7 @@ mod helpers;
 mod rail;
 mod state;
 mod edit_start;
+mod diagnostic_target;
 mod gates;
 mod r#loop;
 mod nudges;
@@ -37,14 +38,15 @@ pub(crate) use phases::{parse_phase_marker, strip_phase_protocol_lines};
 pub use state::{ArchitectRunState, ARCHITECT_RUN_SNAPSHOT_MARKER};
 pub use rail::RunStation;
 pub use edit_start::{apply_architect_edit_start, ArchitectEditStartOutcome};
+pub use diagnostic_target::DiagnosticTarget;
 pub use core::{Agent, AgentConfig, AgentStream};
 
 pub(crate) use state::internal_plan::{
-    has_internal_plan, has_in_progress_step, ingest_internal_plan, internal_plan_required_block,
+    has_internal_plan, ingest_internal_plan,
     internal_plan_shape_guard, internal_plan_trace_summary, record_internal_plan_tool_touch,
     stale_internal_plan_nudge,
 };
-pub(crate) use rail::{on_turn_start, refresh_snapshot, OpenTodoCounts};
+pub(crate) use rail::{on_turn_start, refresh_snapshot, OpenWorkCounts};
 pub(crate) use state::{
     internal_plan_snapshot_for_station, log_context_turn_metrics, refresh_architect_run_snapshot,
     refresh_internal_plan_snapshot, refresh_tool_protocol_snapshot,

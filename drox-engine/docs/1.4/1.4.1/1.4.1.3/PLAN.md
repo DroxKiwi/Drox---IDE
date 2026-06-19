@@ -31,7 +31,7 @@
 - Remplacer le rail (stations hold/advance restent).
 - Remplacer l’intent probe boot.
 - Bump semver 1.5 — rester patch 1.4.x jusqu’à validation smokes.
-- Fusionner avec 1.4.3 index/graphe (seulement **brancher** un futur bloc `ContextPack` dans une frame).
+- Fusionner avec 1.4.4 index/graphe (seulement **brancher** un futur bloc `ContextPack` dans une frame).
 
 ---
 
@@ -373,7 +373,7 @@ struct FrameLayer {
 | Réduire G3-core par station | Frame permet A/B |
 | Dossiers `read_file`, `verify_project` | Pilote edit_file vert |
 | Fusion L1/L2 optionnelle | Seulement si modèle confond — pas par défaut |
-| Intégration 1.4.3 ContextPack | Bloc `CtxGraphPack` en frame boot READ |
+| Intégration 1.4.4 ContextPack | Bloc `CtxGraphPack` en frame boot READ |
 
 ---
 
@@ -446,7 +446,7 @@ docs/1.4/1.4.1/1.4.1.3/
   ARCHITECTURE.md             découpage Rust / TS
 ```
 
-**Hors scope** : `drox-tools` handlers (sauf nouveau tool internal_plan), IDE UI 1.4.2.
+**Hors scope** : `drox-tools` handlers (sauf nouveau tool internal_plan), IDE UI 1.4.3.
 
 ---
 
@@ -469,7 +469,7 @@ docs/1.4/1.4.1/1.4.1.3/
 | Q2 | `bash` dans dossier `verify_project` ou interdit ? | Scripts package.json only |
 | Q3 | L1 todo obligatoire si L2 > 10 steps ? | Soft nudge frame PLAN |
 | Q4 | Renommer wire `file_edit` → `edit_file.replace` ? | Breaking — éviter Phase 3 |
-| Q5 | Numéro version doc : rester sous 1.4.x ou **1.4.4** dédié ? | 1.4.4 si parallèle 1.4.3 |
+| Q5 | Numéro version doc : rester sous 1.4.x ou **1.4.5** dédié ? | 1.4.5 si parallèle 1.4.4 |
 
 ---
 
@@ -477,6 +477,6 @@ docs/1.4/1.4.1/1.4.1.3/
 
 - [Debunk ses_4b2c1d08](../1.4.1/SMOKE-ses_4b2c1d08.md)
 - [CLOSURE 1.4.1.2](../1.4.1/finalisation/CLOSURE-1.4.1.2.md)
-- [PLAN 1.4.3 index/graphe](../1.4.3/PLAN-1.4.3.md)
+- [PLAN 1.4.4 index/graphe](../1.4.4/PLAN-1.4.4.md)
 - [Registry prompts](../../1.3/1.3.2/PROMPTS-ADDITIFS-1.3.2.md)
 - [tool supplements](../../drox/crates/drox-engine/src/orchestration/prompts/system/blocks/tools/mod.rs)

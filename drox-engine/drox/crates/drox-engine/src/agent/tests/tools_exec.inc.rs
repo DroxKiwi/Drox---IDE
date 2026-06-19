@@ -10,11 +10,11 @@ async fn tool_call_triggers_execute_and_second_turn() {
             },
             StreamEvent::ToolCall {
                 id: tid_todo,
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [{
+                    "steps": [{
                         "id": "1",
-                        "content": "Ping echo",
+                        "action": "Ping echo",
                         "status": "completed"
                     }]
                 }),
@@ -33,9 +33,7 @@ async fn tool_call_triggers_execute_and_second_turn() {
         done_turn("fini"),
     ]));
 
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(EchoTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(EchoTool));
     let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
@@ -81,11 +79,11 @@ async fn unknown_tool_yields_is_error_finish() {
             },
             StreamEvent::ToolCall {
                 id: tid_todo,
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [{
+                    "steps": [{
                         "id": "1",
-                        "content": "Ãƒâ€°tape",
+                        "action": "Ãƒâ€°tape",
                         "status": "completed"
                     }]
                 }),
@@ -109,9 +107,7 @@ async fn unknown_tool_yields_is_error_finish() {
         ],
         done_turn(""),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 
@@ -148,11 +144,11 @@ async fn permission_deny_skips_execution() {
             },
             StreamEvent::ToolCall {
                 id: tid_todo,
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [{
+                    "steps": [{
                         "id": "1",
-                        "content": "Echo",
+                        "action": "Echo",
                         "status": "completed"
                     }]
                 }),
@@ -170,9 +166,7 @@ async fn permission_deny_skips_execution() {
         done_turn("ok"),
     ]));
 
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(EchoTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(EchoTool));
     let registry = Arc::new(registry);
 
     let mut rules = RuleSet::new();
@@ -224,10 +218,10 @@ async fn todo_extension_with_kept_ids_is_allowed_even_when_previous_was_complete
             },
             StreamEvent::ToolCall {
                 id: tu1.clone(),
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [
-                        { "id": "1", "content": "ÃƒÂ©tape A", "status": "completed" }
+                    "steps": [
+                        { "id": "1", "action": "etape A", "status": "completed" }
                     ]
                 }),
             },
@@ -245,11 +239,11 @@ async fn todo_extension_with_kept_ids_is_allowed_even_when_previous_was_complete
             },
             StreamEvent::ToolCall {
                 id: tu2.clone(),
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [
-                        { "id": "1", "content": "ÃƒÂ©tape A", "status": "completed" },
-                        { "id": "2", "content": "ÃƒÂ©tape B", "status": "completed" }
+                    "steps": [
+                        { "id": "1", "action": "etape A", "status": "completed" },
+                        { "id": "2", "action": "etape B", "status": "completed" }
                     ]
                 }),
             },
@@ -260,9 +254,7 @@ async fn todo_extension_with_kept_ids_is_allowed_even_when_previous_was_complete
         ],
         done_turn("OK"),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 

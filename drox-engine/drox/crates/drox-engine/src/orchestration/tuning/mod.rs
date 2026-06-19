@@ -68,11 +68,10 @@ pub struct EngineTuningOverrides {
     pub reinject_tool_result_truncate: Option<u32>,
     pub context_snip_enabled: Option<bool>,
     pub gate_done_requires_answering: Option<bool>,
-    pub gate_todo_stale_before_done: Option<bool>,
+    /// Block `[phase: done]` until verify passes or is waived (default off — strong invitation only).
+    pub gate_done_requires_verify: Option<bool>,
     /// Active le conducteur run rail (1.4.0) sur les runs architecte edit.
     pub run_rail_enabled: Option<bool>,
-    /// Dossiers d'outils virtuels (1.4.1.3).
-    pub tool_folders_enabled: Option<bool>,
     /// L2 — nudge après N outils sans MAJ plan interne (0 = désactivé).
     pub internal_plan_stale_nudge_after_tools: Option<u32>,
 }
@@ -108,12 +107,10 @@ pub struct EngineTuning {
     pub context_snip_enabled: bool,
     /// L1 — gate `done` sans réponse utilisateur.
     pub gate_done_requires_answering: bool,
-    /// L5 — gate todo stale avant `done`.
-    pub gate_todo_stale_before_done: bool,
+    /// L1 — gate `done` sans verify (bash/lsp ou `[verify: waived]`). Off by default.
+    pub gate_done_requires_verify: bool,
     /// `false` (Phase 0) : run rail documenté mais inactif jusqu'à Phase 1+.
     pub run_rail_enabled: bool,
-    /// Virtual tool folders (1.4.1.3) — collapse wire tools per station.
-    pub tool_folders_enabled: bool,
     /// L2 internal plan — soft nudge when notebook stale (0 = disabled).
     pub internal_plan_stale_nudge_after_tools: u32,
 }
@@ -172,9 +169,8 @@ impl EngineTuning {
                 reinject_tool_result_truncate: 1600,
                 context_snip_enabled: true,
                 gate_done_requires_answering: true,
-                gate_todo_stale_before_done: true,
+                gate_done_requires_verify: false,
                 run_rail_enabled: false,
-                tool_folders_enabled: false,
                 internal_plan_stale_nudge_after_tools: 8,
             },
             StrictnessPreset::Strict => Self {
@@ -204,9 +200,8 @@ impl EngineTuning {
                 reinject_tool_result_truncate: 800,
                 context_snip_enabled: true,
                 gate_done_requires_answering: true,
-                gate_todo_stale_before_done: true,
+                gate_done_requires_verify: true,
                 run_rail_enabled: false,
-                tool_folders_enabled: false,
                 internal_plan_stale_nudge_after_tools: 5,
             },
             StrictnessPreset::Normal | StrictnessPreset::Custom => Self {
@@ -236,9 +231,8 @@ impl EngineTuning {
                 reinject_tool_result_truncate: 1200,
                 context_snip_enabled: true,
                 gate_done_requires_answering: true,
-                gate_todo_stale_before_done: true,
+                gate_done_requires_verify: false,
                 run_rail_enabled: false,
-                tool_folders_enabled: false,
                 internal_plan_stale_nudge_after_tools: 6,
             },
         };
@@ -247,7 +241,6 @@ impl EngineTuning {
         }
         if strictness == StrictnessPreset::Normal {
             t.run_rail_enabled = true;
-            t.tool_folders_enabled = true;
         }
         t
     }
@@ -323,11 +316,10 @@ impl EngineTuning {
             o.gate_done_requires_answering,
         );
         apply_opt(
-            &mut self.gate_todo_stale_before_done,
-            o.gate_todo_stale_before_done,
+            &mut self.gate_done_requires_verify,
+            o.gate_done_requires_verify,
         );
         apply_opt(&mut self.run_rail_enabled, o.run_rail_enabled);
-        apply_opt(&mut self.tool_folders_enabled, o.tool_folders_enabled);
         apply_opt(
             &mut self.internal_plan_stale_nudge_after_tools,
             o.internal_plan_stale_nudge_after_tools,
@@ -403,10 +395,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn product_default_enables_run_rail_and_tool_folders() {
+    fn product_default_enables_run_rail() {
         let t = EngineTuning::product_default();
         assert!(t.run_rail_enabled);
-        assert!(t.tool_folders_enabled);
         assert_eq!(t.strictness, StrictnessPreset::Normal);
         assert_eq!(t.read_budget_percent, 70);
     }

@@ -1,9 +1,9 @@
-﻿# Idée 12 — Benchmark local & config recommandée par modèle
+# Idée 12 — Benchmark local & config recommandée par modèle
 
 **Statut** : idée brute  
 **Date** : 2026-06-06 (rev. 2)  
 **Priorité** : haute produit — onboarding local + éviter les runs impossibles  
-**Cible** : [1.4.3](../1.4/1.4.3/PLAN-1.4.3.md) § P4  
+**Cible** : [1.4.4](../1.4/1.4.4/PLAN-1.4.4.md) § P4  
 **Liens** : [08-performance](08-performance-traitement-rapide.md) · [10-parametrage](10-parametrage-prompts-strictesse.md) · `EngineTuning` (`orchestration/tuning/mod.rs`)
 
 ---
@@ -201,5 +201,5 @@ suggestion « utilisez un modèle plus petit »  ← message séparé, pas prese
 
 ## Liens
 
-- [Plan 1.4.3 § P4](../1.4/1.4.3/PLAN-1.4.3.md)
+- [Plan 1.4.4 § P4](../1.4/1.4.4/PLAN-1.4.4.md)
 - [Hub brainstorm](README.md)

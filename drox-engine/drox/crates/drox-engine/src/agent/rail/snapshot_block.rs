@@ -8,7 +8,7 @@ use super::policy;
 use super::propose_hold;
 use super::state::RunRailState;
 use super::station::RunStation;
-use super::transition::OpenTodoCounts;
+use crate::agent::state::internal_plan::OpenWorkCounts;
 use crate::agent::gates::VERIFY_WINDOWS_SHELL_REMINDER;
 
 /// Marker for rail snapshot messages (distinct from architect run snapshot).
@@ -31,19 +31,19 @@ fn current_action_line(state: &RunRailState, focus: RailFocus<'_>) -> String {
 pub fn run_rail_snapshot_block(
     state: &RunRailState,
     focus: RailFocus<'_>,
-    open_todos: OpenTodoCounts,
+    open_work: OpenWorkCounts,
 ) -> String {
-    if should_use_compact_rail_snapshot(state, focus, open_todos) {
+    if should_use_compact_rail_snapshot(state, focus, open_work) {
         return run_rail_snapshot_block_compact(state);
     }
-    run_rail_snapshot_block_full(state, focus, open_todos)
+    run_rail_snapshot_block_full(state, focus, open_work)
 }
 
 #[must_use]
 fn should_use_compact_rail_snapshot(
     state: &RunRailState,
     focus: RailFocus<'_>,
-    open_todos: OpenTodoCounts,
+    open_work: OpenWorkCounts,
 ) -> bool {
     if focus.is_some() {
         return false;
@@ -51,10 +51,18 @@ fn should_use_compact_rail_snapshot(
     if state.propose_awaiting_user {
         return false;
     }
-    if open_todos.has_open() {
+    if open_work.has_open() {
         return false;
     }
-    if state.station == RunStation::Verify && !state.verify_outcome.passed() {
+    if state.station == RunStation::Verify && !state.verify_outcome.satisfied() {
+        return false;
+    }
+    if !state.verify_outcome.satisfied()
+        && matches!(
+            state.station,
+            RunStation::Act | RunStation::Verify | RunStation::Answer
+        )
+    {
         return false;
     }
     if matches!(state.verify_outcome, super::verify::VerifyOutcome::Fail(_)) {
@@ -81,7 +89,7 @@ fn run_rail_snapshot_block_compact(state: &RunRailState) -> String {
 fn run_rail_snapshot_block_full(
     state: &RunRailState,
     focus: RailFocus<'_>,
-    open_todos: OpenTodoCounts,
+    open_work: OpenWorkCounts,
 ) -> String {
     let station = state.station.as_str();
     let depth = match state.depth {
@@ -98,25 +106,37 @@ fn run_rail_snapshot_block_full(
         super::verify::VerifyOutcome::Fail(msg) => {
             format!("Verify failed: {msg} — station regressed to ACT; fix with file_edit/file_write, then verify again.")
         }
+        super::verify::VerifyOutcome::Waived(reason) => {
+            format!("Verify waived: {reason} — you may answer and close with `[phase: answering]` + `[phase: done]`.")
+        }
         super::verify::VerifyOutcome::Unknown if state.station == super::station::RunStation::Verify => {
-            "Verify: run bash or lsp diagnostics; advance to ANSWER only after a passing check.".into()
+            "Verify: discover how this repo validates changes, then run `bash` or `lsp`; advance to ANSWER only after pass or `[verify: waived]`.".into()
+        }
+        super::verify::VerifyOutcome::Unknown
+            if matches!(
+                state.station,
+                super::station::RunStation::Act
+                    | super::station::RunStation::Verify
+                    | super::station::RunStation::Answer
+            ) =>
+        {
+            "Verify pending: after mutations, run a check that would catch regressions, or document `[verify: waived]` in answering.".into()
         }
         super::verify::VerifyOutcome::Pass if state.station == super::station::RunStation::Verify => {
-            "Verify passed — you may `[gate: advance]` to ANSWER.".into()
+            "Verify passed — you may answer and close with `[phase: answering]` + `[phase: done]`.".into()
         }
         _ => String::new(),
     };
     let advance_hint = if propose_hold::blocks_advance(state) {
-        "Advance is blocked — wait for the user message, then declare `[gate: advance]`."
-    } else if open_todos.has_open() {
-        "Open todos: do not `[gate: advance]` to verify/answer until every item is \
-         `completed` or `cancelled`. Finish work on ACT, update `todo_write`, then advance."
+        "Propose hold: waiting for the user — reply in `[phase: answering]` when ready."
+    } else if open_work.has_open() {
+        "Open plan steps remain — finish work, update `internal_plan_write`, then answer when ready."
     } else if state.station == super::station::RunStation::Verify
-        && !state.verify_outcome.passed()
+        && !state.verify_outcome.satisfied()
     {
-        "Advance to ANSWER is blocked until verify passes (bash exit 0 or lsp diagnostics clean)."
+        "Verify is pending — discover a project check, run `bash` or `lsp`, or document `[verify: waived]`."
     } else {
-        "Declare `[gate: hold]` to answer now, or `[gate: advance]` when this station is done."
+        "Optional: `[gate: hold]` to answer now, or `[gate: advance]` when this station feels complete."
     };
     let windows_verify_line = if state.station == RunStation::Verify {
         #[cfg(windows)]
@@ -190,14 +210,14 @@ mod tests {
 
     #[test]
     fn snapshot_lists_station_and_candidate() {
-        let block = run_rail_snapshot_block(&RunRailState::new(), None, OpenTodoCounts::default());
+        let block = run_rail_snapshot_block(&RunRailState::new(), None, OpenWorkCounts::default());
         assert!(block.contains(RUN_RAIL_SNAPSHOT_MARKER));
         assert!(block.contains("Station: intent"));
         assert!(block.lines().count() <= 2);
         let focused = run_rail_snapshot_block(
             &RunRailState::new(),
             Some(("t1", "Fix scroll snap")),
-            OpenTodoCounts::default(),
+            OpenWorkCounts::default(),
         );
         assert!(focused.contains("Current action:"));
         assert!(focused.contains("focus task `t1`"));
@@ -205,7 +225,7 @@ mod tests {
 
     #[test]
     fn refresh_run_rail_snapshot_skips_unchanged() {
-        let block = run_rail_snapshot_block(&RunRailState::new(), None, OpenTodoCounts::default());
+        let block = run_rail_snapshot_block(&RunRailState::new(), None, OpenWorkCounts::default());
         let mut messages = vec![Message::system(block.clone())];
         refresh_run_rail_snapshot(&mut messages, &block);
         assert_eq!(messages.len(), 1);
@@ -222,7 +242,7 @@ mod tests {
     #[test]
     fn compact_rail_snapshot_shorter_when_stable() {
         let state = RunRailState::new();
-        let full = run_rail_snapshot_block_full(&state, None, OpenTodoCounts::default());
+        let full = run_rail_snapshot_block_full(&state, None, OpenWorkCounts::default());
         let compact = run_rail_snapshot_block_compact(&state);
         assert!(compact.contains("Station: intent"));
         assert!(compact.lines().count() <= 2);
@@ -238,7 +258,7 @@ mod tests {
         assert!(!should_use_compact_rail_snapshot(
             &state,
             None,
-            OpenTodoCounts::default()
+            OpenWorkCounts::default()
         ));
     }
 }

@@ -158,7 +158,7 @@ fn build_guidance(topic: &str, s: &ArchitectHelpSnapshot) -> String {
     out.push('\n');
     match topic {
         "closure" => out.push_str(guidance_closure(s)),
-        "verify" => out.push_str(guidance_verify()),
+        "verify" => out.push_str(&guidance_verify()),
         "plan" => out.push_str(guidance_plan()),
         "phases" => out.push_str(guidance_phases()),
         _ => out.push_str(guidance_general(s)),
@@ -166,25 +166,23 @@ fn build_guidance(topic: &str, s: &ArchitectHelpSnapshot) -> String {
     out
 }
 
-fn guidance_verify() -> &'static str {
-  #[cfg(windows)]
-  {
-    "### Verify before close (Windows)\n\
-     At the VERIFY station, confirm the change still works:\n\
-     1. Prefer project scripts (`npm run lint`, `cargo check`, `pnpm typecheck`) — `bash` runs via **cmd.exe**.\n\
-     2. **Do not** use bash heredoc (`<<`) or Unix-only tools (`head`, `tail`) — use `file_read` line ranges, `lsp`, or PowerShell `Get-Content`.\n\
-     3. On pass → user summary in `[phase: answering]`. On fail → fix in ACT with `file_edit`/`file_write`, then verify again.\n\
-     4. Then `[phase: done]`."
-  }
-  #[cfg(not(windows))]
-  {
-    "### Verify before close\n\
-     At the VERIFY station, confirm the change still works:\n\
-     1. Pick one command that matches the stack (`package.json` scripts, `Cargo.toml`, CI config).\n\
-     2. Run it with **`bash`** (or targeted `file_read` / `grep` if no safe command).\n\
-     3. On pass → user summary in `[phase: answering]`. On fail → report what broke and fix in ACT.\n\
-     4. Then `[phase: done]`."
-  }
+fn guidance_verify() -> String {
+    let mut out = String::from(
+        "### Verify before close\n\
+         After workspace mutations:\n\
+         1. Discover how this repo validates changes — read manifests, README, or CI configs (`file_read`, `grep`).\n\
+         2. Run the **narrowest** check that would catch a regression from your edits (`bash`, `lsp` diagnostics on touched files).\n\
+         3. On pass → summary in `[phase: answering]`, then `[phase: done]`.\n\
+         4. On fail → fix in ACT with `file_edit`/`file_write`, verify again.\n\
+         5. If no runnable check exists after looking, include `[verify: waived]` in `[phase: answering]` with what you inspected.",
+    );
+    #[cfg(windows)]
+    {
+        out.push_str(
+            "\n\n**Windows:** `bash` runs via cmd.exe — avoid Unix-only pipes (`head`, `tail`) and heredocs; use project scripts or PowerShell.",
+        );
+    }
+    out
 }
 
 fn guidance_closure(s: &ArchitectHelpSnapshot) -> &'static str {
@@ -197,23 +195,23 @@ fn guidance_closure(s: &ArchitectHelpSnapshot) -> &'static str {
     }
     if s.todo_items.is_empty() {
         return "### Closure — light run (no plan)\n\
-             No `todo_write` yet. If the user only greeted or asked something simple:\n\
+             No `internal_plan_write` yet. If the user only greeted or asked something simple:\n\
              1. **Stop** calling tools.\n\
              2. **`[phase: answering]`** — short reply visible in chat.\n\
              3. **`[phase: done]`** on the next line.\n\
-             If they asked for real repo work, act directly — optional `todo_write`.";
+             If they asked for real repo work, act directly — optional `internal_plan_write`.";
     }
     "### Closure — not yet\n\
-     Open todos remain. Finish work in ACT, update `todo_write`, optional VERIFY, then \
+     Open plan steps remain. Finish work in ACT, update `internal_plan_write`, optional VERIFY, then \
      `[phase: answering]` + `[phase: done]`."
 }
 
 fn guidance_plan() -> &'static str {
-    "### Plan (`todo_write` — optional)\n\
-     - Split the **user request** into small steps.\n\
-     - Keep one task `in_progress` at a time when tracking work.\n\
+    "### Plan (`internal_plan_write` — engine-only)\n\
+     - Split the **user request** into small steps in your L2 notebook.\n\
+     - Keep one step `in_progress` at a time.\n\
      - Execute each step with `file_edit`, `bash`, `grep`, `file_read`.\n\
-     - Skip `todo_write` for one-shot fixes."
+     - Skip `internal_plan_write` for one-shot fixes."
 }
 
 fn guidance_phases() -> &'static str {
@@ -231,7 +229,7 @@ fn guidance_general(s: &ArchitectHelpSnapshot) -> &'static str {
     "### General cycle\n\
      1. Anchor on the **user request**.\n\
      2. **Act** — `file_edit` / `bash` / reads at the current rail station.\n\
-     3. Optional `todo_write` to track steps.\n\
+     3. Optional `internal_plan_write` to track steps.\n\
      4. VERIFY when the rail asks for it.\n\
      5. User summary in `[phase: answering]`, then `[phase: done]`.\n\
      Topics: `plan`, `verify`, `closure`."
@@ -270,6 +268,7 @@ mod tests {
     fn verify_guidance_uses_bash() {
         let g = guidance_verify();
         assert!(g.contains("bash"));
+        assert!(g.contains("[verify: waived]"));
     }
 
     #[tokio::test]

@@ -39,7 +39,6 @@ pub use simple::{
     BashTool, CANONICAL_ASK_JSON_EXAMPLE, ExitPlanModeTool, FileEditTool, FileReadTool, FileWriteTool,
     GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool,
     NotebookEditTool, ScopeDeferTool, SessionNoteTool, SkillListTool, SkillReadTool,
-    normalize_todo_write_payload, TodoWriteTool,
     WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool, register_mcp_tools,
 };
 pub use tool::{DynTool, Tool};

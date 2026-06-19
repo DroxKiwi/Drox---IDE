@@ -11,17 +11,11 @@ pub(super) struct DriveSession {
     /// Index du tour LLM courant (engine-trace).
     pub llm_iter: u32,
     pub seen_answering_in_run: bool,
-    pub saw_successful_todo_write_in_run: bool,
-    pub last_todo_pending: u64,
-    pub last_todo_in_progress: u64,
     pub effective_run_objective: Option<String>,
-    /// Brief utilisateur qui exige une mutation (`file_edit` / `file_write`, …).
-    pub mutation_expected: bool,
     pub consecutive_ask_user_question_failures: u32,
     pub live_compaction_seq: u32,
     pub architect_state: ArchitectRunState,
     pub final_answer_guard: FinalAnswerGuard,
-    pub consecutive_todo_completion_gate_failures: u32,
     pub last_usage: Usage,
     pub last_stop_reason: StopReason,
     pub base_tool_specs: Vec<ToolSpec>,
@@ -46,9 +40,6 @@ impl Agent {
             tracing::debug!(
                 iter,
                 seen_answering_in_run = session.seen_answering_in_run,
-                saw_successful_todo_write_in_run = session.saw_successful_todo_write_in_run,
-                last_todo_pending = session.last_todo_pending,
-                last_todo_in_progress = session.last_todo_in_progress,
                 "tour LLM"
             );
 

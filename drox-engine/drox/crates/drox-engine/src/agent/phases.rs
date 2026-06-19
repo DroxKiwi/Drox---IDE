@@ -117,7 +117,7 @@ pub(crate) fn phase_for_tool(tool_name: &str, active_phase: Option<Phase>) -> Ph
         "glob" | "file_read" | "grep" | "lsp" | "web_search" | "web_fetch"
         | "list_mcp_resources" | "read_mcp_resource" | "workspace_map_read"
         | "memory_read" | "memory_list" | "task"
-        | "todo_write" | "ask_user_question" => exploration_default,
+        | "internal_plan_write" | "ask_user_question" => exploration_default,
         _ => Phase::Acting,
     }
 }
@@ -377,7 +377,7 @@ mod tests {
             "lsp",
             "web_search",
             "web_fetch",
-            "todo_write",
+            "internal_plan_write",
             "ask_user_question",
         ] {
             assert_eq!(

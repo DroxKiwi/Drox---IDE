@@ -23,7 +23,7 @@ pub use system::{
     architect_run_context_block_per_turn,
     blocks::tools::{
         architect_tool_short_description, tool_supplements_all_architect,
-        tool_supplements_for_station,
+        tool_supplements_architect_compact,
     },
 };
 pub use architect_messages::architect_user_message;
@@ -32,4 +32,4 @@ pub use vars::{PromptVars, StrictnessPreset};
 
 /// Liste outils affichée dans les rappels architecte (wire ≠ registre complet).
 pub(crate) const ARCHITECT_TOOLS: &str =
-    "ask_user_question, file_read, glob, grep, lsp, memory_list, memory_read, todo_write, workspace_map_read";
+    "ask_user_question, file_read, glob, grep, internal_plan_write, lsp, memory_list, memory_read, workspace_map_read";

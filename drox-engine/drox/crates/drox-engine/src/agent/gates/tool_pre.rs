@@ -1,11 +1,10 @@
-﻿/// Gates pré-exécution architecte : payload `todo_write` malformé seulement.
+﻿/// Gates pré-exécution architecte : payload `internal_plan_write` malformé seulement.
 #[must_use]
 pub(crate) fn architect_orchestration_pre_gate(
     spec: &RunSpec,
     call_name: &str,
     call_arguments: &Value,
     state: &ArchitectRunState,
-    _saw_successful_todo_write_in_run: bool,
     _workspace: Option<&camino::Utf8Path>,
     _drox_ignore: Option<&drox_session::DroxIgnoreMatcher>,
     _tuning: &EngineTuning,
@@ -13,10 +12,7 @@ pub(crate) fn architect_orchestration_pre_gate(
     if spec.role_id != RoleId::Architect {
         return None;
     }
-    if call_name == "todo_write" {
-        return todo_payload_shape_guard(call_arguments);
-    }
-    if call_name == "internal_plan_write" {
+    if call_name == crate::orchestration::internal_plan_tool::TOOL_INTERNAL_PLAN_WRITE {
         return crate::agent::internal_plan_shape_guard(
             state.internal_plan.as_ref(),
             call_arguments,
@@ -34,16 +30,10 @@ pub(crate) const PHASE_MARKER_MUST_BE_TEXT_NOT_TOOL: &str = "You tried to invoke
     `[phase: done]` (no function call for it). Do NOT rewrite your whole answer \
     unless you still have real work left.";
 
-#[must_use]
-fn todo_item_count(args: &Value) -> Option<usize> {
-    let todos = args.get("todos")?.as_array()?;
-    Some(todos.len())
-}
-
 pub(crate) const SESSION_END_FORBIDDEN_FOR_MODEL: &str =
     "session_end: this tool is not available from the model. Session closure \
      (new chat thread + long memory on the client) is reserved for the user-triggered \
-     `/session_end` command. To archive work: finish the to-do then `[phase: answering]` + \
+     `/session_end` command. To archive work: finish the plan then `[phase: answering]` + \
      `[phase: done]` — the engine already writes `.drox/memory/sessions/` automatically.";
 
 /// Infère la phase visée quand le modèle appelle un pseudo-outil `phase` / `reading` / etc.
@@ -115,48 +105,27 @@ pub(crate) fn tool_pre_gate_block(
     spec: &RunSpec,
     call_name: &str,
     call_arguments: &Value,
-    saw_successful_todo_write_in_run: bool,
     architect_state: Option<&ArchitectRunState>,
     workspace: Option<&camino::Utf8Path>,
     drox_ignore: Option<&drox_session::DroxIgnoreMatcher>,
     tuning: &EngineTuning,
 ) -> Option<String> {
     let resolved_name =
-        crate::orchestration::tool_folders::resolve_tool_name_alias(call_name, call_arguments);
+        crate::orchestration::tool_aliases::resolve_tool_name_alias(call_name, call_arguments);
     if spec.role_id == RoleId::ArchitectDiscussion && !spec.discussion_allow_reads {
         return Some(DISCUSSION_REPLY_ONLY_NO_TOOLS.to_string());
     }
     if let Some(state) = architect_state {
-        if let Some(msg) =
-            crate::agent::internal_plan_required_block(spec.role_id, state, resolved_name)
-        {
-            return Some(msg);
-        }
         if let Some(msg) = architect_orchestration_pre_gate(
             spec,
             resolved_name,
             call_arguments,
             state,
-            saw_successful_todo_write_in_run,
             workspace,
             drox_ignore,
             tuning,
         ) {
             return Some(msg);
-        }
-        if tuning.run_rail_enabled && spec.role_id == RoleId::Architect {
-            if let Some(msg) = crate::orchestration::tool_folders::tool_folder_pre_gate(
-                tuning,
-                state,
-                state.rail.station,
-                resolved_name,
-                call_arguments,
-            ) {
-                return Some(msg);
-            }
-            if let Some(msg) = super::rail::tool_pre_gate_rail(&state.rail, resolved_name) {
-                return Some(msg);
-            }
         }
     }
     if is_hallucinated_phase_tool_call(resolved_name, call_arguments)
@@ -172,21 +141,6 @@ pub(crate) fn tool_pre_gate_block(
         if let Some(cmd) = call_arguments.get("command").and_then(|v| v.as_str()) {
             if let Some(msg) = bash_windows::bash_windows_precheck(cmd) {
                 return Some(msg.to_string());
-            }
-        }
-    }
-    if resolved_name == "todo_write" {
-        let max_todo = spec
-            .max_todo_items()
-            .or(tuning.max_todo_items.map(|n| n as usize));
-        if let Some(max) = max_todo {
-            if let Some(count) = todo_item_count(call_arguments) {
-                if count > max {
-                    return Some(format!(
-                        "Blocked: at most {max} `todo_write` items per call \
-                        (you sent {count}). Complete or cancel existing items before adding more."
-                    ));
-                }
             }
         }
     }

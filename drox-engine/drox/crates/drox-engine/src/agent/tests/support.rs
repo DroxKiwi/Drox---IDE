@@ -208,13 +208,13 @@ pub(crate) fn premature_done_turn(text: &str) -> Vec<StreamEvent> {
 /// Protocole test : `[phase: reading]` puis un `todo_write` Ã  1 item
 /// directement `completed`. Pour les tests qui veulent un cycle minimal
 /// qui passe **toutes** les gates moteur (todo clÃ´turÃ©e avant `done`).
-pub(crate) fn read_then_one_todo_turn(note: &str) -> Vec<StreamEvent> {
-    read_then_one_todo_turn_with_status(note, "completed")
+pub(crate) fn read_then_plan_complete_turn(note: &str) -> Vec<StreamEvent> {
+    read_then_plan_turn_with_status(note, "completed")
 }
 
 /// Variante paramÃ©trable : permet d'ouvrir une to-do en `in_progress`
 /// pour tester la gate Â« to-do non clÃ´turÃ©e â†’ refus `done` Â».
-pub(crate) fn read_then_one_todo_turn_with_status(
+pub(crate) fn read_then_plan_turn_with_status(
     note: &str,
     status: &str,
 ) -> Vec<StreamEvent> {
@@ -226,11 +226,11 @@ pub(crate) fn read_then_one_todo_turn_with_status(
         },
         StreamEvent::ToolCall {
             id: tid,
-            name: "todo_write".into(),
+            name: "internal_plan_write".into(),
             arguments: json!({
-                "todos": [{
+                "steps": [{
                     "id": "1",
-                    "content": "Ã‰tape de test",
+                    "action": "Ã‰tape de test",
                     "status": status,
                 }]
             }),
@@ -261,7 +261,7 @@ pub(crate) fn answering_turn_with_hallucinated_phase_tool() -> Vec<StreamEvent> 
         },
     ]
 }
-pub(crate) fn todo_then_code_edit_turn(path: &str) -> Vec<StreamEvent> {
+pub(crate) fn plan_then_code_edit_turn(path: &str) -> Vec<StreamEvent> {
     let tid_todo = ToolUseId::new();
     let tid_edit = ToolUseId::new();
     vec![
@@ -271,11 +271,11 @@ pub(crate) fn todo_then_code_edit_turn(path: &str) -> Vec<StreamEvent> {
         },
         StreamEvent::ToolCall {
             id: tid_todo,
-            name: "todo_write".into(),
+            name: "internal_plan_write".into(),
             arguments: json!({
-                "todos": [{
+                "steps": [{
                     "id": "1",
-                    "content": "Modifier le code",
+                    "action": "Modifier le code",
                     "status": "completed",
                 }]
             }),

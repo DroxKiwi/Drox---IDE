@@ -14,7 +14,7 @@ pub const DEFAULT_MAX_PARALLEL_TOOL_CALLS: usize = 8;
 pub enum ToolCallBatch {
     /// Exécution parallèle (reads, grep, glob, …).
     Parallel(Vec<usize>),
-    /// Exécution strictement série (writes, bash, todo_write, …).
+    /// Exécution strictement série (writes, bash, internal_plan_write, …).
     Serial(Vec<usize>),
 }
 
@@ -66,10 +66,10 @@ mod tests {
     }
 
     #[test]
-    fn bash_and_todo_are_serial() {
+    fn internal_plan_write_and_bash_are_serial() {
         let reg = ToolRegistry::with_simple_tools();
         let empty = serde_json::json!({});
-        let names = ["bash", "todo_write", "file_read"];
+        let names = ["bash", "session_note", "file_read"];
         let calls: Vec<(&str, &Value)> = names
             .iter()
             .map(|n| (*n, &empty))

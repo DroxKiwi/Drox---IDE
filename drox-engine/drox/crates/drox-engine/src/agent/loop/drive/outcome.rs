@@ -7,51 +7,6 @@ pub(super) enum PostLlmStep {
 }
 
 impl Agent {
-    async fn inject_missing_mutation_gate(
-        &self,
-        _outcome: &crate::agent::stream::TurnOutcome,
-        messages: &mut Vec<Message>,
-        transcript_cursor: &mut usize,
-        tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
-        architect_state: &mut ArchitectRunState,
-        mutation_expected: bool,
-        _mutation_count: u32,
-        last_todo_pending: u64,
-        last_todo_in_progress: u64,
-    ) -> Option<PostLlmStep> {
-        if let Some(prompt) = done_gate_missing_mutation_when_expected(
-            &self.config.run_spec,
-            mutation_expected,
-            messages,
-        ) {
-            debug!("[phase: done] mutation attendue mais aucun outil mutateur — nudge");
-            append_gate_nudge(messages, NudgeId::DoneMissingMutation, prompt);
-            if rail::run_rail_active(&self.config.engine_tuning, self.config.run_spec.role_id) {
-                rail::force_act_for_expected_mutation(&mut architect_state.rail);
-                let open_todos = rail::OpenTodoCounts {
-                    pending: last_todo_pending,
-                    in_progress: last_todo_in_progress,
-                };
-                let rail_focus = architect_state
-                    .current_focus_task_line()
-                    .map(|(id, label, _)| (id, label));
-                let focus = rail_focus
-                    .as_ref()
-                    .map(|(id, label)| (id.as_str(), label.as_str()));
-                rail::refresh_snapshot(messages, &architect_state.rail, focus, open_todos);
-            }
-            if let Err(e) = self
-                .flush_transcript(messages, transcript_cursor)
-                .await
-            {
-                let _ = tx.send(Err(e)).await;
-                return Some(PostLlmStep::Stop);
-            }
-            return Some(PostLlmStep::Continue);
-        }
-        None
-    }
-
     async fn drive_post_llm_outcome(
         &self,
         outcome: &crate::agent::stream::TurnOutcome,
@@ -61,17 +16,14 @@ impl Agent {
         seen_answering_in_run: &mut bool,
         final_answer_guard: &mut crate::agent::final_answer_guard::FinalAnswerGuard,
         architect_state: &mut ArchitectRunState,
-        _saw_successful_todo_write_in_run: bool,
-        last_todo_pending: u64,
-        last_todo_in_progress: u64,
         _effective_run_objective: Option<&str>,
-        mutation_expected: bool,
         mutation_count: u32,
         schema_error_continue_count: &mut u32,
     ) -> PostLlmStep {
+            let work_closed = crate::agent::OpenWorkCounts::work_closed(architect_state);
+            let open_work = crate::agent::OpenWorkCounts::from_state(architect_state);
             if is_premature_answering_turn(
                 self.config.run_spec.role_id,
-                mutation_expected,
                 mutation_count,
                 messages,
                 outcome,
@@ -157,77 +109,25 @@ impl Agent {
                         return PostLlmStep::Continue;
                     }
                 }
-                if let Some(prompt) = done_gate_unfinished_todos(
-                    &self.config.run_spec,
-                    last_todo_pending,
-                    last_todo_in_progress,
-                ) {
-                    debug!(
-                        last_todo_pending,
-                        last_todo_in_progress,
-                        "[phase: done] avec to-do ouverte Ã¢â‚¬â€ nudge"
-                    );
-                    append_gate_nudge(messages, NudgeId::DoneUnfinishedTodos, prompt);
-                    if rail::run_rail_active(
-                        &self.config.engine_tuning,
-                        self.config.run_spec.role_id,
-                    ) {
-                        let open_todos = rail::OpenTodoCounts {
-                            pending: last_todo_pending,
-                            in_progress: last_todo_in_progress,
-                        };
-                        rail::reopen_work_station_if_needed(
-                            &mut architect_state.rail,
-                            open_todos,
-                        );
-                        let rail_focus = architect_state
-                            .current_focus_task_line()
-                            .map(|(id, label, _)| (id, label));
-                        let focus = rail_focus
-                            .as_ref()
-                            .map(|(id, label)| (id.as_str(), label.as_str()));
-                        rail::refresh_snapshot(
-                            messages,
-                            &architect_state.rail,
-                            focus,
-                            open_todos,
-                        );
-                    }
-                    if let Err(e) = self
-                        .flush_transcript(&messages, transcript_cursor)
-                        .await
-                    {
-                        let _ = tx.send(Err(e)).await;
-                        return PostLlmStep::Stop;
-                    }
-                    return PostLlmStep::Continue;
-                }
                 if rail::run_rail_active(&self.config.engine_tuning, self.config.run_spec.role_id) {
                     if let Some(prompt) = done_gate_verify_not_passed(
                         &self.config.run_spec,
-                        mutation_expected,
                         mutation_count,
-                        architect_state.rail.visited_verify,
-                        architect_state.rail.verify_outcome.passed(),
+                        &architect_state.rail.verify_outcome,
                     ) {
                         debug!("[phase: done] verify not passed — nudge");
                         append_gate_nudge(messages, NudgeId::DoneVerifyNotPassed, prompt);
-                        rail::force_act_for_expected_mutation(&mut architect_state.rail);
-                        let open_todos = rail::OpenTodoCounts {
-                            pending: last_todo_pending,
-                            in_progress: last_todo_in_progress,
-                        };
                         let rail_focus = architect_state
-                            .current_focus_task_line()
-                            .map(|(id, label, _)| (id, label));
+                            .current_focus_step_line()
+                            .map(|(id, action, _)| (id, action));
                         let focus = rail_focus
                             .as_ref()
-                            .map(|(id, label)| (id.as_str(), label.as_str()));
+                            .map(|(id, action)| (id.as_str(), action.as_str()));
                         rail::refresh_snapshot(
                             messages,
                             &architect_state.rail,
                             focus,
-                            open_todos,
+                            open_work,
                         );
                         if let Err(e) = self
                             .flush_transcript(&messages, transcript_cursor)
@@ -239,23 +139,7 @@ impl Agent {
                         return PostLlmStep::Continue;
                     }
                 }
-                if let Some(step) = self
-                    .inject_missing_mutation_gate(
-                        outcome,
-                        messages,
-                        transcript_cursor,
-                        tx,
-                        architect_state,
-                        mutation_expected,
-                        mutation_count,
-                        last_todo_pending,
-                        last_todo_in_progress,
-                    )
-                    .await
-                {
-                    return step;
-                }
-                debug!("[phase: done] aprÃƒÂ¨s answering + todo_write clÃƒÂ´turÃƒÂ© Ã¢â‚¬â€ clÃƒÂ´ture propre");
+                debug!("[phase: done] après answering + plan clôturé — clôture propre");
                 let _ = tx
                     .send(Ok(AgentEvent::Stop {
                         reason: outcome.reason,
@@ -310,69 +194,50 @@ impl Agent {
                         &self.config.engine_tuning,
                         self.config.run_spec.role_id,
                     )
-                    && !*seen_answering_in_run
-                    && last_todo_pending == 0
-                    && last_todo_in_progress == 0
-                    && mutation_count > 0
-                    && outcome.final_phase.is_none()
-                    && run_has_promotable_user_facing_text(
-                        &outcome,
+                {
+                    let closure_ctx = EngineClosureCtx {
+                        mutation_count,
+                        work_closed,
+                        seen_answering_in_run: *seen_answering_in_run,
+                        verify_satisfied: architect_state.rail.verify_outcome.satisfied(),
+                        verify_gate_required: self
+                            .config
+                            .run_spec
+                            .gate_enabled(crate::run_spec::GateKind::DoneRequiresVerify),
+                    };
+                    if should_engine_auto_close_with_promotable_reply(
+                        &closure_ctx,
+                        outcome,
                         &messages,
                         self.config.run_spec.role_id,
                         &self.config.engine_tuning,
-                    )
-                {
-                    final_answer_guard.mark_user_facing_answer_seen();
-                    debug!(
-                        "architect rail — réponse utilisateur déjà dans le canal content, \
-                         promotion answering/done sans second tour LLM"
-                    );
-                    let _ = tx.send(Ok(AgentEvent::PhaseClose)).await;
-                    if tx
-                        .send(Ok(AgentEvent::PhaseEnter {
-                            phase: Phase::Answering,
-                        }))
-                        .await
-                        .is_err()
-                    {
-                        return PostLlmStep::Stop;
+                        true,
+                    ) {
+                        debug!(
+                            "architect rail — promotion answering/done sans second tour LLM \
+                             (mutation_count={mutation_count})"
+                        );
+                        return self
+                            .engine_promote_user_reply_closure(
+                                outcome,
+                                messages,
+                                transcript_cursor,
+                                tx,
+                                seen_answering_in_run,
+                                final_answer_guard,
+                                reply_closure_mode_for_promotion(*seen_answering_in_run),
+                            )
+                            .await;
                     }
-                    *seen_answering_in_run = true;
-                    let _ = tx.send(Ok(AgentEvent::PhaseClose)).await;
-                    if tx
-                        .send(Ok(AgentEvent::PhaseEnter {
-                            phase: Phase::Done,
-                        }))
-                        .await
-                        .is_err()
-                    {
-                        return PostLlmStep::Stop;
-                    }
-                    messages.push(Message::assistant("[phase: answering]\n[phase: done]"));
-                    if let Err(e) = self
-                        .flush_transcript(&messages, transcript_cursor)
-                        .await
-                    {
-                        let _ = tx.send(Err(e)).await;
-                        return PostLlmStep::Stop;
-                    }
-                    let _ = tx
-                        .send(Ok(AgentEvent::Stop {
-                            reason: outcome.reason,
-                            usage: outcome.usage.clone(),
-                        }))
-                        .await;
-                    return PostLlmStep::Stop;
                 }
-                // Cas typique GLM-4.7-Flash : le modÃƒÂ¨le a dÃƒÂ©jÃƒÂ  ÃƒÂ©mis sa
-                // rÃƒÂ©ponse en `answering` mais a omis le `[phase: done]`
-                // final. Le nudge gÃƒÂ©nÃƒÂ©rique le fait rÃƒÂ©-ÃƒÂ©crire toute la
-                // rÃƒÂ©ponse (Ã‚Â« ÃƒÂ©cris ta rÃƒÂ©ponse finale Ã‚Â») Ã¢â€ â€™ affichage en
-                // double cÃƒÂ´tÃƒÂ© UI. On lui demande juste le marqueur.
+                // Cas typique GLM-4.7-Flash : le modèle a déjà émis sa
+                // réponse en `answering` mais a omis le `[phase: done]`
+                // final. Le nudge générique le fait ré-écrire toute la
+                // réponse (« écris ta réponse finale ») → affichage en
+                // double côté UI. On lui demande juste le marqueur.
                 if outcome.final_phase == Some(Phase::Answering)
                     && *seen_answering_in_run
-                    && last_todo_pending == 0
-                    && last_todo_in_progress == 0
+                    && work_closed
                 {
                     if run_has_promotable_user_facing_text(
                         &outcome,
@@ -381,49 +246,19 @@ impl Agent {
                         &self.config.engine_tuning,
                     ) {
                         debug!(
-                            "answering without done, text already published â€” auto close (done UI)"
+                            "answering without done, text already published — auto close (done UI)"
                         );
-                        let _ = tx.send(Ok(AgentEvent::PhaseClose)).await;
-                        if tx
-                            .send(Ok(AgentEvent::PhaseEnter {
-                                phase: Phase::Done,
-                            }))
-                            .await
-                            .is_err()
-                        {
-                            return PostLlmStep::Stop;
-                        }
-                        messages.push(Message::assistant("[phase: done]"));
-                        if let Err(e) = self
-                            .flush_transcript(&messages, transcript_cursor)
-                            .await
-                        {
-                            let _ = tx.send(Err(e)).await;
-                            return PostLlmStep::Stop;
-                        }
-                        if let Some(step) = self
-                            .inject_missing_mutation_gate(
+                        return self
+                            .engine_promote_user_reply_closure(
                                 outcome,
                                 messages,
                                 transcript_cursor,
                                 tx,
-                                architect_state,
-                                mutation_expected,
-                                mutation_count,
-                                last_todo_pending,
-                                last_todo_in_progress,
+                                seen_answering_in_run,
+                                final_answer_guard,
+                                EngineReplyClosureMode::DoneOnly,
                             )
-                            .await
-                        {
-                            return step;
-                        }
-                        let _ = tx
-                            .send(Ok(AgentEvent::Stop {
-                                reason: outcome.reason,
-                                usage: outcome.usage,
-                            }))
                             .await;
-                        return PostLlmStep::Stop;
                     }
                     debug!("answering sans done + todo clÃƒÂ´turÃƒÂ©e Ã¢â‚¬â€ nudge minimal (done seul)");
                     append_gate_nudge(
@@ -439,87 +274,6 @@ impl Agent {
                         return PostLlmStep::Stop;
                     }
                     return PostLlmStep::Continue;
-                }
-
-                if self.config.run_spec.role_id == RoleId::Architect
-                    && rail::run_rail_active(
-                        &self.config.engine_tuning,
-                        self.config.run_spec.role_id,
-                    )
-                {
-                    if !*seen_answering_in_run
-                        && last_todo_pending == 0
-                        && last_todo_in_progress == 0
-                        && mutation_count > 0
-                    {
-                        if let Some(nudge) = rail::on_post_todos_idle_turn(
-                            &mut architect_state.rail,
-                            true,
-                            mutation_count,
-                        ) {
-                            debug!("[run_rail] post-todos idle — nudge answering");
-                            append_gate_nudge(
-                                messages,
-                                NudgeId::PostTodosAnswering,
-                                nudge.to_string(),
-                            );
-                            let rail_focus = architect_state
-                                .current_focus_task_line()
-                                .map(|(id, label, _)| (id, label));
-                            let focus = rail_focus
-                                .as_ref()
-                                .map(|(id, label)| (id.as_str(), label.as_str()));
-                            rail::refresh_snapshot(
-                                messages,
-                                &architect_state.rail,
-                                focus,
-                                rail::OpenTodoCounts {
-                                    pending: last_todo_pending,
-                                    in_progress: last_todo_in_progress,
-                                },
-                            );
-                            if let Err(e) = self
-                                .flush_transcript(messages, transcript_cursor)
-                                .await
-                            {
-                                let _ = tx.send(Err(e)).await;
-                                return PostLlmStep::Stop;
-                            }
-                            return PostLlmStep::Continue;
-                        }
-                    }
-
-                    let has_open_task = last_todo_in_progress > 0
-                        || architect_state.current_focus_task_line().is_some();
-                    if let Some(nudge) =
-                        rail::on_act_idle_turn(&mut architect_state.rail, has_open_task)
-                    {
-                        debug!("[run_rail] ACT stall — nudge mutation");
-                        append_gate_nudge(messages, NudgeId::ActStall, nudge.to_string());
-                        let rail_focus = architect_state
-                            .current_focus_task_line()
-                            .map(|(id, label, _)| (id, label));
-                        let focus = rail_focus
-                            .as_ref()
-                            .map(|(id, label)| (id.as_str(), label.as_str()));
-                        rail::refresh_snapshot(
-                            messages,
-                            &architect_state.rail,
-                            focus,
-                            rail::OpenTodoCounts {
-                                pending: last_todo_pending,
-                                in_progress: last_todo_in_progress,
-                            },
-                        );
-                        if let Err(e) = self
-                            .flush_transcript(messages, transcript_cursor)
-                            .await
-                        {
-                            let _ = tx.send(Err(e)).await;
-                            return PostLlmStep::Stop;
-                        }
-                        return PostLlmStep::Continue;
-                    }
                 }
 
                 let text_tool_markers = assistant_text_has_tool_markers(&outcome.text);
@@ -551,16 +305,67 @@ impl Agent {
 
                 debug!("tour sans tool_call et sans [phase: done] — schema_error continue");
                 *schema_error_continue_count = schema_error_continue_count.saturating_add(1);
+
+                if *schema_error_continue_count > SCHEMA_ERROR_CONTINUE_MAX {
+                    warn!(
+                        count = *schema_error_continue_count,
+                        "schema_error_continue max — forced stop"
+                    );
+                    if self.config.run_spec.role_id == crate::run_spec::RoleId::Architect
+                        && run_has_promotable_user_facing_text(
+                            outcome,
+                            messages,
+                            self.config.run_spec.role_id,
+                            &self.config.engine_tuning,
+                        )
+                    {
+                        return self
+                            .engine_promote_user_reply_closure(
+                                outcome,
+                                messages,
+                                transcript_cursor,
+                                tx,
+                                seen_answering_in_run,
+                                final_answer_guard,
+                                reply_closure_mode_for_promotion(*seen_answering_in_run),
+                            )
+                            .await;
+                    }
+                    let _ = tx
+                        .send(Ok(AgentEvent::Stop {
+                            reason: outcome.reason,
+                            usage: outcome.usage.clone(),
+                        }))
+                        .await;
+                    return PostLlmStep::Stop;
+                }
+
+                if *schema_error_continue_count == SCHEMA_ERROR_CONTINUE_MAX {
+                    append_gate_nudge(
+                        messages,
+                        NudgeId::SchemaErrorForcedAnswering,
+                        schema_error_forced_answering_nudge().to_string(),
+                    );
+                    if let Err(e) = self
+                        .flush_transcript(messages, transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return PostLlmStep::Stop;
+                    }
+                    return PostLlmStep::Continue;
+                }
+
                 append_gate_nudge(
                     messages,
                     NudgeId::SchemaErrorContinue,
                     schema_error_continue_nudge(
                         &self.config.run_spec,
-                        self.config.run_intent.as_ref(),
                         SchemaErrorNudgeContext {
                             has_tool_results_since_user: has_tool_results_since_user(messages),
                         },
-                    ),
+                    )
+                    .to_string(),
                 );
                 if let Err(e) = self
                     .flush_transcript(&messages, transcript_cursor)

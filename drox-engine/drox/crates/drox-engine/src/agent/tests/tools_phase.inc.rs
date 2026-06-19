@@ -26,11 +26,11 @@ async fn tool_call_without_prior_phase_synthesizes_fallback_phase() {
             },
             StreamEvent::ToolCall {
                 id: tu_todo,
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [{
+                    "steps": [{
                         "id": "1",
-                        "content": "Echo",
+                        "action": "Echo",
                         "status": "completed"
                     }]
                 }),
@@ -47,9 +47,7 @@ async fn tool_call_without_prior_phase_synthesizes_fallback_phase() {
         ],
         done_turn("ok"),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(EchoTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(EchoTool));
     let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
@@ -116,11 +114,11 @@ async fn run_completes_when_model_batches_mutating_tools_then_updates_todo() {
             },
             StreamEvent::ToolCall {
                 id: tu_todo_open.clone(),
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [
-                        { "id": "1", "content": "Ãƒâ€°tape 1", "status": "in_progress" },
-                        { "id": "2", "content": "Ãƒâ€°tape 2", "status": "pending" }
+                    "steps": [
+                        { "id": "1", "action": "Etape 1", "status": "in_progress" },
+                        { "id": "2", "action": "Etape 2", "status": "pending" }
                     ]
                 }),
             },
@@ -160,11 +158,11 @@ async fn run_completes_when_model_batches_mutating_tools_then_updates_todo() {
             },
             StreamEvent::ToolCall {
                 id: tu_todo_close.clone(),
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [
-                        { "id": "1", "content": "Ãƒâ€°tape 1", "status": "completed" },
-                        { "id": "2", "content": "Ãƒâ€°tape 2", "status": "completed" }
+                    "steps": [
+                        { "id": "1", "action": "Etape 1", "status": "completed" },
+                        { "id": "2", "action": "Etape 2", "status": "completed" }
                     ]
                 }),
             },
@@ -185,9 +183,7 @@ async fn run_completes_when_model_batches_mutating_tools_then_updates_todo() {
             },
         ],
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(FakeBashTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(FakeBashTool));
     let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
@@ -265,11 +261,11 @@ async fn tool_call_after_explicit_phase_does_not_synthesize() {
             },
             StreamEvent::ToolCall {
                 id: tu_todo,
-                name: "todo_write".into(),
+                name: "internal_plan_write".into(),
                 arguments: json!({
-                    "todos": [{
+                    "steps": [{
                         "id": "1",
-                        "content": "Echo test",
+                        "action": "Echo test",
                         "status": "completed"
                     }]
                 }),
@@ -286,9 +282,7 @@ async fn tool_call_after_explicit_phase_does_not_synthesize() {
         ],
         done_turn("ok"),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    registry.register(Arc::new(EchoTool));
+    let mut registry = ToolRegistry::new();    registry.register(Arc::new(EchoTool));
     let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
@@ -338,7 +332,7 @@ async fn synthesized_reading_for_glob_classifies_correctly() {
                 usage: Usage::default(),
             },
         ],
-        read_then_one_todo_turn("Lister le repo."),
+        read_then_plan_complete_turn("Lister le repo."),
         vec![
             StreamEvent::Start,
             StreamEvent::ToolCall {
@@ -353,9 +347,7 @@ async fn synthesized_reading_for_glob_classifies_correctly() {
         ],
         done_turn("vu"),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let mut registry = ToolRegistry::new();    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config());
 

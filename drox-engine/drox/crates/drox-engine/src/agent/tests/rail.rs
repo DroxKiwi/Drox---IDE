@@ -1,14 +1,13 @@
-﻿//! Run rail — intégration boucle agent avec `run_rail_enabled`.
+//! Run rail - integration boucle agent avec run_rail_enabled.
 
 use std::sync::Arc;
 
 use super::support::*;
 use crate::agent::*;
-use crate::agent::rail::{filter_tool_specs_for_station, run_rail_active, RunStation};
-use drox_llm::ToolSpec;
+use crate::agent::rail::{is_mutation_tool, run_rail_active};
 use crate::event::AgentEvent;
 use crate::run_spec::RoleId;
-use drox_tools::{TodoWriteTool, ToolContext, ToolRegistry};
+use drox_tools::{ToolContext, ToolRegistry};
 use futures::StreamExt;
 
 #[test]
@@ -22,22 +21,10 @@ fn run_rail_active_on_normal_preset_only() {
 }
 
 #[test]
-fn act_station_tool_specs_hide_skill_list() {
-    let specs = vec![
-        ToolSpec {
-            name: "file_edit".into(),
-            description: String::new(),
-            parameters: serde_json::json!({}),
-        },
-        ToolSpec {
-            name: "skill_list".into(),
-            description: String::new(),
-            parameters: serde_json::json!({}),
-        },
-    ];
-    let filtered = filter_tool_specs_for_station(specs, RunStation::Act);
-    assert_eq!(filtered.len(), 1);
-    assert_eq!(filtered[0].name, "file_edit");
+fn mutation_tool_classification() {
+    assert!(is_mutation_tool("file_edit"));
+    assert!(!is_mutation_tool("file_read"));
+    assert!(!is_mutation_tool("skill_list"));
 }
 
 #[test]
@@ -51,12 +38,10 @@ fn architect_state_carries_rail_conductor() {
 #[tokio::test]
 async fn architect_run_with_rail_completes() {
     let llm = Arc::new(ScriptedLlm::new_architect(vec![
-        read_then_one_todo_turn("rail on"),
+        read_then_plan_complete_turn("rail on"),
         done_turn("OK."),
     ]));
-    let mut registry = ToolRegistry::new();
-    registry.register(Arc::new(TodoWriteTool));
-    let registry = Arc::new(registry);
+    let registry = Arc::new(ToolRegistry::new());
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let agent = Agent::new(llm, registry, ctx, test_agent_config_with_rail());
 

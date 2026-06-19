@@ -32,7 +32,7 @@ Le moteur porte la complexité en interne (filtrage outils, snapshot, stall). Le
 | **D5** | **Valider avant d’étendre** — smoke → tests → ancrage ; outils d’aide après squelette |
 | **D6** | **≤ 500 lignes / fichier** — dossiers = domaines ; `mod.rs` = wiring seulement (~80 L max) |
 | **D7** | **Une seule vérité runtime** — seuls les chemins **canoniques** IDE restent ; tout le reste **DEL ou REPORT** (pas de flags off + code fantôme) |
-| **D8** | **UI alignée sur le contrat** — Phase **2d** supprime l’UI multi-modèle / double fil (P0) ; conducteur station complet en **1.4.2** ([UI-CONDUCTEUR](UI-CONDUCTEUR.md)) |
+| **D8** | **UI alignée sur le contrat** — Phase **2d** supprime l’UI multi-modèle / double fil (P0) ; conducteur station complet en **1.4.3** ([UI-CONDUCTEUR](UI-CONDUCTEUR.md)) |
 
 ---
 
@@ -132,7 +132,7 @@ Critère : **0 fichier** dans `agent/` (hors `tests/` archive) sauf liste d’ex
 | `compaction`, `memory`, `session` | Axe contexte — pas de 2ᵉ conducteur |
 | `permissions` / hooks | Autorisation outil — orthogonal au rail |
 | `drox-llm`, wire JSON-RPC | Transport |
-| UI chat (1.4.2) | Affichage — pas la logique guide |
+| UI chat (1.4.3) | Affichage — pas la logique guide |
 
 Dette structure (`compaction` 811 L) = **1.4.1**, pas une 2ᵉ vérité runtime.
 
@@ -468,7 +468,7 @@ apply_rail_segment_report
 | `phases.rs` | guide via phases intermédiaires dans prompts |
 | `architect_todo_gate.rs` | `complete_gate_for_task` noop |
 | `agent_stream.rs` | cap subagent tool calls |
-| `event.rs` | `SubagentStart/Done`, `RailSegmentStart/Done` (ou KEEP wire UI 1.4.2) |
+| `event.rs` | `SubagentStart/Done`, `RailSegmentStart/Done` (ou KEEP wire UI 1.4.3) |
 | `tool_execution.rs` | `executor_deliverable_met`, segment branches |
 | `closure.rs` | `finish_rail_segment_on_scope`, deliverable notice |
 | `final_answer_guard.rs` | param `running_subagent_jobs` → retirer après Phase 2 |
@@ -564,14 +564,14 @@ apply_rail_segment_report
 
 | Élément | Report |
 |---------|--------|
-| Refonte UI chat / blocs rail | 1.4.2 |
+| Refonte UI chat / blocs rail | 1.4.3 |
 | Index, graphe, ContextPack | Post-squelette |
 | Nouveaux outils d’aide | Post-squelette validé |
 | Split `compaction.rs` (811 L) | 1.4.1 |
-| Polish events UI segment/subagent | 1.4.2 |
+| Polish events UI segment/subagent | 1.4.3 |
 | **Professor 2.0** (pédagogie) | REPORT — réécriture hors moteur IDE |
 | **CLI Standard** one-shot | REPORT — binaire ou crate dédié si besoin |
-| **Conducteur UI complet** (strip → timeline stations, B-UI-*) | [1.4.2](../1.4.2/README.md) — après Phase **2d** P0 |
+| **Conducteur UI complet** (strip → timeline stations, B-UI-*) | [1.4.3](../1.4.3/README.md) — après Phase **2d** P0 |
 
 ---
 
@@ -682,7 +682,7 @@ Faire les étapes **dans l’ordre**. Ne pas sauter une gate **G**. Cocher `☐`
 
 **Code** : `src/vs/workbench/contrib/drox/` · **Spec** : [UI-CONDUCTEUR.md](UI-CONDUCTEUR.md) § III–IV
 
-Objectif : même vérité que le moteur côté affichage — retirer modules morts et réglages fantômes **avant** dogfood Phase 4–5. Ne pas attendre 1.4.2 pour le nettoyage P0.
+Objectif : même vérité que le moteur côté affichage — retirer modules morts et réglages fantômes **avant** dogfood Phase 4–5. Ne pas attendre 1.4.3 pour le nettoyage P0.
 
 | # | ☐ | Action | Type | Réf |
 |---|-----|--------|------|-----|
@@ -702,7 +702,7 @@ Objectif : même vérité que le moteur côté affichage — retirer modules mor
 | 2d.14 | ☐ | Smoke UI manuel : edit trivial — **cartes station** visibles, pas de carte subagent/segment | — | UI § VIII |
 | | | | | **G-ui** · Reload Window |
 
-**Hors Phase 2d** (report **1.4.2**) : fusion `strip.js` → conducteur station unique § UI-VI, B-UI-01…07, CSS tray/layout.
+**Hors Phase 2d** (report **1.4.3**) : fusion `strip.js` → conducteur station unique § UI-VI, B-UI-01…07, CSS tray/layout.
 
 ---
 
@@ -779,7 +779,7 @@ Objectif : même vérité que le moteur côté affichage — retirer modules mor
 ```text
 0 Doc ✓  →  1 Prompt ✓  →  2a Segments ✓  →  2b Multi-modèle ✓  →  2c Professor/Standard ✓
      →  2d UI fork P0 ~  →  3 Élagage+Split …  →  4 Rail interne ~  →  5 Validation  →  6 CLOSURE
-                                        └─ 1.4.2 : conducteur UI complet (UI-2)
+                                        └─ 1.4.3 : conducteur UI complet (UI-2)
 ```
 
 **Règles d’or** :

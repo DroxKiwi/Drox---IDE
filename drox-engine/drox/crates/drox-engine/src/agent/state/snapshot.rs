@@ -18,7 +18,7 @@ pub fn refresh_architect_run_snapshot(messages: &mut Vec<Message>, snapshot: &st
     );
 }
 
-/// Post-compaction / `todo_write` : une seule copie du snapshot après le checkpoint.
+/// Post-compaction / `internal_plan_write` : une seule copie du snapshot après le checkpoint.
 pub fn inject_architect_run_snapshot_after_checkpoint(
     messages: &mut Vec<Message>,
     snapshot: &str,
@@ -162,7 +162,17 @@ mod tests {
     }
 
     #[test]
-    fn refresh_tool_protocol_snapshot_replaces_on_station_change() {
+    fn refresh_tool_protocol_snapshot_skips_unchanged_two_turns() {
+        let block = "## Architect tool protocols (engine)\n\ncompact";
+        let mut messages = Vec::new();
+        refresh_tool_protocol_snapshot(&mut messages, block);
+        assert_eq!(messages.len(), 1);
+        refresh_tool_protocol_snapshot(&mut messages, block);
+        assert_eq!(messages.len(), 1);
+    }
+
+    #[test]
+    fn refresh_tool_protocol_snapshot_replaces_on_change() {
         let read_block = "## Architect tool protocols (engine)\n\nread";
         let act_block = "## Architect tool protocols (engine)\n\nact";
         let mut messages = vec![Message::system(read_block.to_string())];

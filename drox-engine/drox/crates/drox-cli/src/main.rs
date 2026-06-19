@@ -438,35 +438,16 @@ async fn main() -> anyhow::Result<()> {
 
     let mem = load_memdir(workspace.as_path())
         .await
-        .context("lecture MEMORY.md / DROX.md")?;
-    let base_system = merge_optional_system(cli.system.clone(), memdir_system_prefix(&mem));
+        .context("lecture DROX.md")?;
+    let (memdir_prefix, _) = drox_engine::apply_prompt_memory_budget(
+        memdir_system_prefix(&mem),
+        None,
+        None,
+    );
+    let base_system = merge_optional_system(cli.system.clone(), memdir_prefix);
     let mut base_system = prompts::prepend_core_system_prompt(base_system);
-    // Sprint M1 — listing des sessions archivées injecté en début de prompt.
-    // Échec silencieux : un dossier .drox/memory/sessions/ illisible ne
-    // doit pas casser le démarrage CLI.
-    let memory_listing = drox_engine::load_sessions_listing(
-        workspace.as_path(),
-        drox_engine::DEFAULT_LISTING_LIMIT,
-    )
-    .await
-    .unwrap_or_else(|e| {
-        tracing::warn!(error = %e, "memory: failed to load sessions listing");
-        Vec::new()
-    });
-    if let Some(block) = drox_engine::format_sessions_listing_for_prompt(&memory_listing) {
-        base_system.push_str("\n\n");
-        base_system.push_str(&block);
-    }
-    let skills_listing = drox_engine::load_skills_catalog(workspace.as_path())
-        .await
-        .unwrap_or_else(|e| {
-            tracing::warn!(error = %e, "skills: failed to load catalog");
-            Vec::new()
-        });
-    if let Some(block) = drox_engine::format_skills_listing_for_prompt(&skills_listing) {
-        base_system.push_str("\n\n");
-        base_system.push_str(&block);
-    }
+    base_system.push_str("\n\n");
+    base_system.push_str(drox_engine::memory_tools_boot_teaser());
     let base_system = Some(base_system);
     let lang = language::from_env();
     if let Some(ref l) = lang {
@@ -570,7 +551,6 @@ async fn main() -> anyhow::Result<()> {
         run_spec: drox_engine::RunSpec::for_standard_agent(),
         engine_tuning: drox_engine::EngineTuning::default(),
         orchestration_run_id: None,
-        run_intent: None,
     };
     let agent = Agent::new(llm, registry, ctx, agent_config);
 

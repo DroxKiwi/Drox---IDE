@@ -1,27 +1,17 @@
 //! Payloads outil malformés et relance quand le modèle termine sans outil ni `[phase: done]`.
 
-use crate::orchestration::RunIntentFlags;
 use crate::run_spec::{RoleId, RunSpec};
 
 use super::text_tool_marker::CONTINUE_NO_RESULTS_YET;
 
-pub(crate) const TODO_WRITE_MISSING_TODOS: &str = "\
-Blocked: `todo_write` payload must include `todos`.\n\
-Use exactly: {\"todos\":[{\"id\":\"t1\",\"content\":\"…\",\"status\":\"pending|in_progress|completed|cancelled\"}]}\n\
-Do not send `{}` or legacy payloads.";
-
-pub(crate) const TODO_WRITE_EMPTY_TODOS: &str = "\
-Blocked: `todo_write.todos` is empty. Keep existing tasks and update statuses; \
-do not clear the plan.";
-
 const CONTINUE_PROMPT: &str = "\
 Continue as **Architect**: re-read the **user request** and your last tool results.\n\n\
-You have **full workspace tools** (`file_edit`, `bash`, `grep`, `file_read`, `lsp`, …) — work directly; optional `todo_write` for multi-step work.\n\n\
+You have **full workspace tools** (`file_edit`, `bash`, `grep`, `file_read`, `lsp`, …) — work directly; optional `internal_plan_write` for multi-step work.\n\n\
 When the user-facing answer is ready: `[phase: answering]` then `[phase: done]`. Do not repeat the same verification checklist.";
 
 const NO_WORK_PROMPT: &str = "\
 [NUDGE] This looks like a **light message**, not a repo task.\n\n\
-Reply in **`[phase: answering]`**, then **`[phase: done]`** — no `todo_write`, no exploration tools.";
+Reply in **`[phase: answering]`**, then **`[phase: done]`** — no `internal_plan_write`, no exploration tools.";
 
 const DISCUSSION_GREETING_PROMPT: &str = "\
 [NUDGE] This looks like a **light message**, not a repo task.\n\n\
@@ -32,6 +22,19 @@ Discussion: you already answered. \
 Do not repeat, add tools, plan, or explore the workspace for a greeting-only message. \
 Publish: line `[discussion: reply]`, your user-facing answer, then line `[discussion: done]`.";
 
+/// Max idle turns (no tool, no `[phase: done]`) before forced closure escalation (1.4.2).
+pub(crate) const SCHEMA_ERROR_CONTINUE_MAX: u32 = 3;
+
+const FORCED_ANSWERING_PROMPT: &str = "\
+[NUDGE — forced closure] You have spent several turns without tools or `[phase: done]`.\n\n\
+Publish your **user-facing answer now**: line `[phase: answering]`, then your Markdown reply, \
+then line `[phase: done]`. Do not call more tools unless a blocking error remains.";
+
+/// Relance escaladée après `SCHEMA_ERROR_CONTINUE_MAX` tours stériles.
+#[must_use]
+pub(crate) fn schema_error_forced_answering_nudge() -> &'static str {
+    FORCED_ANSWERING_PROMPT
+}
 /// Contexte pour choisir le nudge `schema_error` vs variante sans tool results.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct SchemaErrorNudgeContext {
@@ -48,13 +51,7 @@ impl Default for SchemaErrorNudgeContext {
 
 /// Whether an idle assistant turn should get the « light message » nudge (no repo tools).
 #[must_use]
-pub(crate) fn should_use_no_work_nudge(
-    spec: &RunSpec,
-    run_intent: Option<&RunIntentFlags>,
-) -> bool {
-    if run_intent.is_some_and(|f| f.greeting_only) {
-        return true;
-    }
+pub(crate) fn should_use_no_work_nudge(spec: &RunSpec) -> bool {
     spec.role_id == RoleId::ArchitectDiscussion && !spec.discussion_allow_reads
 }
 
@@ -62,10 +59,9 @@ pub(crate) fn should_use_no_work_nudge(
 #[must_use]
 pub(crate) fn schema_error_continue_nudge(
     spec: &RunSpec,
-    run_intent: Option<&RunIntentFlags>,
     ctx: SchemaErrorNudgeContext,
 ) -> &'static str {
-    if should_use_no_work_nudge(spec, run_intent) {
+    if should_use_no_work_nudge(spec) {
         if spec.role_id == RoleId::ArchitectDiscussion {
             return DISCUSSION_GREETING_PROMPT;
         }
@@ -83,7 +79,6 @@ pub(crate) fn schema_error_continue_nudge(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::orchestration::RunIntentFlags;
     use crate::run_spec::{RoleId, RunSpec};
 
     fn architect_edit_spec() -> RunSpec {
@@ -98,20 +93,24 @@ mod tests {
         RunSpec::for_architect_discussion_with_reads(true)
     }
 
-    fn compound_plan_flags() -> RunIntentFlags {
-        RunIntentFlags::from_llm(false, true)
+    #[test]
+    fn schema_error_continue_max_is_three() {
+        assert_eq!(super::SCHEMA_ERROR_CONTINUE_MAX, 3);
+    }
+
+    #[test]
+    fn forced_answering_nudge_mentions_phase_markers() {
+        let n = super::schema_error_forced_answering_nudge();
+        assert!(n.contains("[phase: answering]"));
+        assert!(n.contains("[phase: done]"));
     }
 
     #[test]
     fn architect_edit_idle_uses_continue_not_light_message() {
-        assert!(!should_use_no_work_nudge(
-            &architect_edit_spec(),
-            Some(&compound_plan_flags()),
-        ));
+        assert!(!should_use_no_work_nudge(&architect_edit_spec()));
         assert_eq!(
             schema_error_continue_nudge(
                 &architect_edit_spec(),
-                Some(&compound_plan_flags()),
                 SchemaErrorNudgeContext::default(),
             ),
             CONTINUE_PROMPT
@@ -123,7 +122,6 @@ mod tests {
         assert_eq!(
             schema_error_continue_nudge(
                 &architect_edit_spec(),
-                None,
                 SchemaErrorNudgeContext {
                     has_tool_results_since_user: false,
                 },
@@ -133,25 +131,11 @@ mod tests {
     }
 
     #[test]
-    fn architect_edit_without_todos_still_uses_continue() {
-        assert!(!should_use_no_work_nudge(&architect_edit_spec(), None));
-        assert_eq!(
-            schema_error_continue_nudge(
-                &architect_edit_spec(),
-                None,
-                SchemaErrorNudgeContext::default(),
-            ),
-            CONTINUE_PROMPT
-        );
-    }
-
-    #[test]
     fn discuss_reply_only_uses_greeting_nudge() {
         let spec = discuss_reply_only_spec();
-        let flags = RunIntentFlags::from_llm(true, false);
-        assert!(should_use_no_work_nudge(&spec, Some(&flags)));
+        assert!(should_use_no_work_nudge(&spec));
         assert_eq!(
-            schema_error_continue_nudge(&spec, Some(&flags), SchemaErrorNudgeContext::default()),
+            schema_error_continue_nudge(&spec, SchemaErrorNudgeContext::default()),
             DISCUSSION_GREETING_PROMPT
         );
     }
@@ -159,18 +143,10 @@ mod tests {
     #[test]
     fn discuss_with_reads_idle_uses_discussion_continue() {
         let spec = discuss_with_reads_spec();
-        let flags = RunIntentFlags::from_llm(false, false);
-        assert!(!should_use_no_work_nudge(&spec, Some(&flags)));
+        assert!(!should_use_no_work_nudge(&spec));
         assert_eq!(
-            schema_error_continue_nudge(&spec, Some(&flags), SchemaErrorNudgeContext::default()),
+            schema_error_continue_nudge(&spec, SchemaErrorNudgeContext::default()),
             DISCUSSION_CONTINUE_PROMPT
         );
-    }
-
-    #[test]
-    fn greeting_only_flag_triggers_no_work_even_with_reads() {
-        let spec = discuss_with_reads_spec();
-        let flags = RunIntentFlags::from_llm(true, false);
-        assert!(should_use_no_work_nudge(&spec, Some(&flags)));
     }
 }

@@ -1,7 +1,7 @@
-//! Kind de run après routage discuss / edit (RPC ou intent probe).
+//! Kind de run après routage discuss / edit (RPC ou auto → edit).
 
-use super::ArchitectGate;
-use super::intent_probe::{gate_chain_for_auto, gate_chain_for_rpc, RunIntentFlags};
+use super::architect_gate::ArchitectGate;
+use super::routing::resolve_gate_chain;
 
 /// Kind de run architecte après résolution du mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,79 +47,46 @@ pub struct GateChainResult {
 }
 
 impl GateChainResult {
-    /// Auto routing from intent probe flags.
+    /// Auto routing — always architect edit.
     #[must_use]
-    pub fn from_auto_intent(flags: &RunIntentFlags) -> Self {
-        gate_chain_for_auto(flags)
+    pub fn auto() -> Self {
+        resolve_gate_chain(None)
     }
 
-    /// RPC override + intent flags for discuss refinement.
+    /// RPC mode override.
     #[must_use]
-    pub fn from_rpc_intent(gate: ArchitectGate, flags: &RunIntentFlags) -> Self {
-        gate_chain_for_rpc(gate, flags)
+    pub fn from_rpc(gate: ArchitectGate) -> Self {
+        resolve_gate_chain(Some(gate))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::orchestration::intent_probe::ProbeSource;
-
-    fn greeting_flags() -> RunIntentFlags {
-        RunIntentFlags::from_llm(true, false)
-    }
-
-    fn work_flags() -> RunIntentFlags {
-        RunIntentFlags::from_llm(false, true)
-    }
 
     #[test]
-    fn auto_routes_greeting_to_discuss_reply_only() {
-        let r = GateChainResult::from_auto_intent(&greeting_flags());
-        assert_eq!(r.gate, ArchitectGate::Discuss);
-        assert_eq!(r.start_run, StartRunKind::DiscussReplyOnly);
-    }
-
-    #[test]
-    fn auto_routes_work_to_edit() {
-        let r = GateChainResult::from_auto_intent(&work_flags());
+    fn auto_routes_edit() {
+        let r = GateChainResult::auto();
         assert_eq!(r.gate, ArchitectGate::Edit);
         assert_eq!(r.start_run, StartRunKind::Edit);
     }
 
     #[test]
-    fn rpc_discussion_greeting_reply_only() {
-        let r = GateChainResult::from_rpc_intent(ArchitectGate::Discuss, &greeting_flags());
-        assert_eq!(r.start_run, StartRunKind::DiscussReplyOnly);
-    }
-
-    #[test]
-    fn rpc_discussion_repo_question_with_reads() {
-        let flags = RunIntentFlags {
-            greeting_only: false,
-            expects_workspace_mutation: false,
-            source: ProbeSource::Llm,
-        };
-        let r = GateChainResult::from_rpc_intent(ArchitectGate::Discuss, &flags);
+    fn rpc_discussion_with_reads() {
+        let r = GateChainResult::from_rpc(ArchitectGate::Discuss);
+        assert_eq!(r.gate, ArchitectGate::Discuss);
         assert_eq!(r.start_run, StartRunKind::DiscussWithReads);
     }
 
     #[test]
-    fn rpc_edit_stays_edit() {
-        let r = GateChainResult::from_rpc_intent(ArchitectGate::Edit, &work_flags());
-        assert_eq!(r.start_run, StartRunKind::Edit);
+    fn rpc_analyze() {
+        let r = GateChainResult::from_rpc(ArchitectGate::Analyze);
+        assert_eq!(r.start_run, StartRunKind::Analyze);
     }
 
-    /// Smoke `ses_3eb8a6d5` — compound plan + mutation brief must not route to discuss reply-only.
     #[test]
-    fn auto_compound_plan_mutation_brief_routes_edit() {
-        let flags = RunIntentFlags {
-            greeting_only: false,
-            expects_workspace_mutation: true,
-            source: ProbeSource::Llm,
-        };
-        let r = GateChainResult::from_auto_intent(&flags);
-        assert_eq!(r.gate, ArchitectGate::Edit);
+    fn rpc_edit_stays_edit() {
+        let r = GateChainResult::from_rpc(ArchitectGate::Edit);
         assert_eq!(r.start_run, StartRunKind::Edit);
     }
 }

@@ -1,6 +1,6 @@
 //! Construction du `system_prompt` fusionné pour un run agent.
 
-use drox_engine::{architect_discussion_system_prompt, EngineTuning, RoleId};
+use drox_engine::{architect_discussion_system_prompt, EngineTuning, RoleId, memory_tools_boot_teaser};
 
 use crate::language::Language;
 use crate::prompts::{
@@ -14,8 +14,8 @@ pub struct AssembleInput {
     pub role_id: RoleId,
     pub cli_system: Option<String>,
     pub memdir_prefix: Option<String>,
-    pub memory_sessions_block: Option<String>,
-    pub skills_block: Option<String>,
+    /// Rappel `memory_list` / `memory_read` au boot (pas de listing auto).
+    pub memory_boot_teaser: bool,
     pub drox_ignore_block: String,
     pub workspace_map_block: Option<String>,
     pub language: Option<Language>,
@@ -86,11 +86,11 @@ fn assemble_orchestration_support(input: AssembleInput) -> Option<String> {
     if let Some(b) = base {
         parts.push_str(&b);
     }
-    if let Some(block) = input.memory_sessions_block {
+    if input.memory_boot_teaser {
         if !parts.is_empty() {
             parts.push_str("\n\n");
         }
-        parts.push_str(&block);
+        parts.push_str(memory_tools_boot_teaser());
     }
     parts.push_str("\n\n");
     parts.push_str(&input.drox_ignore_block);
@@ -106,13 +106,9 @@ fn assemble_orchestration_support(input: AssembleInput) -> Option<String> {
 fn assemble_standard(input: AssembleInput) -> Option<String> {
     let base = merge_optional_system(input.cli_system, input.memdir_prefix);
     let mut base_system = prepend_core_system_prompt(base);
-    if let Some(block) = input.memory_sessions_block {
+    if input.memory_boot_teaser {
         base_system.push_str("\n\n");
-        base_system.push_str(&block);
-    }
-    if let Some(block) = input.skills_block {
-        base_system.push_str("\n\n");
-        base_system.push_str(&block);
+        base_system.push_str(memory_tools_boot_teaser());
     }
     base_system.push_str("\n\n");
     base_system.push_str(&input.drox_ignore_block);
@@ -147,13 +143,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn standard_assemble_keeps_memory_listing() {
+    fn standard_assemble_includes_memory_teaser_not_skills() {
         let merged = assemble_system_prompt(AssembleInput {
             role_id: RoleId::Standard,
             cli_system: None,
             memdir_prefix: None,
-            memory_sessions_block: Some("## MEMORY SESSIONS\nblock".into()),
-            skills_block: None,
+            memory_boot_teaser: true,
             drox_ignore_block: "droxignore".into(),
             workspace_map_block: None,
             language: None,
@@ -163,7 +158,8 @@ mod tests {
             discussion_allow_reads: true,
         })
         .unwrap();
-        assert!(merged.contains("MEMORY SESSIONS"));
+        assert!(merged.contains("memory_list"));
+        assert!(!merged.contains("MEMORY SESSIONS"));
         assert!(!merged.contains("Small-model execution profile"));
     }
 }

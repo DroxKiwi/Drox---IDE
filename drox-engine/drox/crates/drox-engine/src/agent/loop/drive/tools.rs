@@ -8,10 +8,6 @@ impl Agent {
         messages: &mut Vec<drox_types::Message>,
         transcript_cursor: &mut usize,
         tx: &tokio::sync::mpsc::Sender<Result<crate::event::AgentEvent, crate::error::EngineError>>,
-        saw_successful_todo_write_in_run: &mut bool,
-        last_todo_pending: &mut u64,
-        last_todo_in_progress: &mut u64,
-        consecutive_todo_completion_gate_failures: &mut u32,
         consecutive_ask_user_question_failures: &mut u32,
         effective_run_objective: &Option<String>,
         rail_active: bool,
@@ -49,24 +45,15 @@ impl Agent {
                             if let Some(msg) = self.run_tool_pre_gates(
                                 call,
                                 &ctx,
-                                *saw_successful_todo_write_in_run,
                                 architect_state,
                             ) {
-                                let gate_message = if call.name == "todo_write" {
-                                    escalate_todo_completion_gate_message(
-                                        &msg,
-                                        consecutive_todo_completion_gate_failures,
-                                    )
-                                } else {
-                                    *consecutive_todo_completion_gate_failures = 0;
-                                    msg
-                                };
                                 if push_tool_error_tracked(
                                     &tx,
                                     messages,
                                     call,
-                                    gate_message,
+                                    msg,
                                     consecutive_ask_user_question_failures,
+                                    Some(architect_state),
                                 )
                                 .await
                                 .is_err()
@@ -113,6 +100,7 @@ impl Agent {
                                     call,
                                     denial,
                                     consecutive_ask_user_question_failures,
+                                    Some(architect_state),
                                 )
                                     .await
                                     .is_err()
@@ -195,6 +183,7 @@ impl Agent {
                                         call,
                                         err.to_string(),
                                         consecutive_ask_user_question_failures,
+                                        Some(architect_state),
                                     )
                                     .await
                                     .is_err()
@@ -231,24 +220,15 @@ impl Agent {
                             if let Some(msg) = self.run_tool_pre_gates(
                                 call,
                                 &ctx,
-                                *saw_successful_todo_write_in_run,
                                 architect_state,
                             ) {
-                                let gate_message = if call.name == "todo_write" {
-                                    escalate_todo_completion_gate_message(
-                                        &msg,
-                                        consecutive_todo_completion_gate_failures,
-                                    )
-                                } else {
-                                    *consecutive_todo_completion_gate_failures = 0;
-                                    msg
-                                };
                                 if push_tool_error_tracked(
                                     &tx,
                                     messages,
                                     call,
-                                    gate_message,
+                                    msg,
                                     consecutive_ask_user_question_failures,
+                                    Some(architect_state),
                                 )
                                 .await
                                 .is_err()
@@ -297,6 +277,7 @@ impl Agent {
                                     call,
                                     denial,
                                     consecutive_ask_user_question_failures,
+                                    Some(architect_state),
                                 )
                                 .await
                                 .is_err()
@@ -335,6 +316,7 @@ impl Agent {
                                         call,
                                         message,
                                         consecutive_ask_user_question_failures,
+                                        Some(architect_state),
                                     )
                                     .await
                                     .is_err()
@@ -353,8 +335,10 @@ impl Agent {
                             }
 
                             if self.config.run_spec.role_id == RoleId::Architect {
-                                ctx.orchestration_run_closable = *last_todo_pending == 0
-                                    && *last_todo_in_progress == 0;
+                                ctx.orchestration_run_closable =
+                                    crate::agent::state::internal_plan::OpenWorkCounts::work_closed(
+                                        architect_state,
+                                    );
                                 *ctx = ctx.clone().with_architect_help_snapshot(
                                     architect_state.architect_help_snapshot(
                                         effective_run_objective.as_deref(),
@@ -391,51 +375,33 @@ impl Agent {
                                             &value,
                                             false,
                                         );
+                                        let open_work =
+                                            crate::agent::state::internal_plan::OpenWorkCounts::from_state(
+                                                architect_state,
+                                            );
                                         let rail_focus = architect_state
-                                            .current_focus_task_line()
-                                            .map(|(id, label, _)| (id, label));
-                                        let focus = rail_focus.as_ref().map(|(id, label)| {
-                                            (id.as_str(), label.as_str())
+                                            .current_focus_step_line()
+                                            .map(|(id, action, _)| (id, action));
+                                        let focus = rail_focus.as_ref().map(|(id, action)| {
+                                            (id.as_str(), action.as_str())
                                         });
                                         rail::refresh_snapshot(
                                             messages,
                                             &architect_state.rail,
                                             focus,
-                                            rail::OpenTodoCounts {
-                                                pending: *last_todo_pending,
-                                                in_progress: *last_todo_in_progress,
-                                            },
+                                            open_work,
                                         );
                                     }
                                     memory_tracker.record_tool(&call.name);
-                                    let _todo_prev_had_open_items = if call.name == "todo_write" {
-                                        *last_todo_pending > 0 || *last_todo_in_progress > 0
-                                    } else {
-                                        false
-                                    };
-                                    if call.name == "todo_write" {
-                                        *consecutive_todo_completion_gate_failures = 0;
-                                        *saw_successful_todo_write_in_run = true;
-                                        if self.config.run_spec.role_id == RoleId::Architect {
-                                            architect_state.ingest_todo_labels(&value);
-                                            inject_architect_run_snapshot_after_checkpoint(
-                                                messages,
-                                                &architect_run_context_block_compaction(
-                                                    &architect_state,
-                                                    effective_run_objective.as_deref(),
-                                                ),
-                                            );
-                                        }
-                                        *last_todo_pending =
-                                            value["counts"]["pending"].as_u64().unwrap_or(0);
-                                        *last_todo_in_progress =
-                                            value["counts"]["in_progress"].as_u64().unwrap_or(0);
-                                    }
                                     if call.name == "ask_user_question" {
                                         *consecutive_ask_user_question_failures = 0;
                                     }
                                     if call.name == "workspace_map_read" {
                                         architect_state.ingest_workspace_map_output(&value);
+                                        crate::agent::diagnostic_target::refresh_diagnostic_resolution(
+                                            architect_state,
+                                            ctx.effective_workspace().as_path(),
+                                        );
                                     }
                                     if self.config.run_spec.role_id == RoleId::Architect {
                                         architect_orchestration_record_successful_tool(
@@ -530,6 +496,7 @@ impl Agent {
                                         call,
                                         msg,
                                         consecutive_ask_user_question_failures,
+                                        Some(architect_state),
                                     )
                                     .await
                                     .is_err()
@@ -537,20 +504,29 @@ impl Agent {
                                         return true;
                                     }
                                     if rail_active && verify_regressed {
+                                        if call.name == "bash" {
+                                            append_gate_nudge(
+                                                messages,
+                                                NudgeId::VerifyBashRetry,
+                                                crate::agent::nudges::VERIFY_BASH_RETRY_NUDGE_PROMPT
+                                                    .to_string(),
+                                            );
+                                        }
+                                        let open_work =
+                                            crate::agent::state::internal_plan::OpenWorkCounts::from_state(
+                                                architect_state,
+                                            );
                                         let rail_focus = architect_state
-                                            .current_focus_task_line()
-                                            .map(|(id, label, _)| (id, label));
-                                        let focus = rail_focus.as_ref().map(|(id, label)| {
-                                            (id.as_str(), label.as_str())
+                                            .current_focus_step_line()
+                                            .map(|(id, action, _)| (id, action));
+                                        let focus = rail_focus.as_ref().map(|(id, action)| {
+                                            (id.as_str(), action.as_str())
                                         });
                                         rail::refresh_snapshot(
                                             messages,
                                             &architect_state.rail,
                                             focus,
-                                            rail::OpenTodoCounts {
-                                                pending: *last_todo_pending,
-                                                in_progress: *last_todo_in_progress,
-                                            },
+                                            open_work,
                                         );
                                     }
                                     if rail_active {
@@ -573,20 +549,21 @@ impl Agent {
                                                 nudge_id,
                                                 nudge.to_string(),
                                             );
+                                            let open_work =
+                                                crate::agent::state::internal_plan::OpenWorkCounts::from_state(
+                                                    architect_state,
+                                                );
                                             let rail_focus = architect_state
-                                                .current_focus_task_line()
-                                                .map(|(id, label, _)| (id, label));
-                                            let focus = rail_focus.as_ref().map(|(id, label)| {
-                                                (id.as_str(), label.as_str())
+                                                .current_focus_step_line()
+                                                .map(|(id, action, _)| (id, action));
+                                            let focus = rail_focus.as_ref().map(|(id, action)| {
+                                                (id.as_str(), action.as_str())
                                             });
                                             rail::refresh_snapshot(
                                                 messages,
                                                 &architect_state.rail,
                                                 focus,
-                                                rail::OpenTodoCounts {
-                                                    pending: *last_todo_pending,
-                                                    in_progress: *last_todo_in_progress,
-                                                },
+                                                open_work,
                                             );
                                             if stop {
                                                 debug!("[run_rail] ACT circuit breaker — stop run");

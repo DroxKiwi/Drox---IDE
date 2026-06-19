@@ -118,7 +118,7 @@ Pas de nudge générique « continue » en parallèle.
 | Gates L1–L5 réactives 1.3 | **Réduites** (voir SUPPRESSIONS) |
 | ~15 nudges | **Réduits** à 2–3 |
 | `LoopDetector` empreinte | **Remplacé** par stall station |
-| UI blocs rail polish | Reporté 1.4.2 |
+| UI blocs rail polish | Reporté 1.4.3 |
 | Outils d’aide avancés (index, graphe…) | Reporté post-squelette validé |
 
 ---

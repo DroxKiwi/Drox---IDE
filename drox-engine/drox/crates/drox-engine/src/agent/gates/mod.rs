@@ -13,9 +13,7 @@ use crate::agent::state::ArchitectRunState;
 use super::phases::phase_from_name_token;
 
 mod bash_windows;
-mod todo_shape;
 pub(crate) use bash_windows::{verify_bash_failure_hint, VERIFY_WINDOWS_SHELL_REMINDER};
-pub(crate) use todo_shape::todo_payload_shape_guard;
 
 include!("done.rs");
 include!("record.rs");
@@ -53,33 +51,12 @@ mod tests {
     }
 
     #[test]
-    fn architect_todo_write_has_no_item_cap() {
-        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
-        assert_eq!(spec.max_todo_items(), None);
-        let todos: Vec<_> = (1..=20)
-            .map(|i| json!({"id": i.to_string(), "content": "x", "status": "pending"}))
-            .collect();
-        let msg = tool_pre_gate_block(
-            &spec,
-            "todo_write",
-            &json!({ "todos": todos }),
-            false,
-            None,
-            None,
-            None,
-            &EngineTuning::default(),
-        );
-        assert!(msg.is_none());
-    }
-
-    #[test]
     fn discussion_reply_only_blocks_tools() {
         let spec = RunSpec::for_architect_discussion_with_reads(false);
         let msg = tool_pre_gate_block(
             &spec,
             "file_read",
             &json!({ "path": "README.md" }),
-            false,
             None,
             None,
             None,
@@ -96,7 +73,6 @@ mod tests {
             &spec,
             "file_read",
             &json!({ "path": "README.md" }),
-            false,
             None,
             None,
             None,
@@ -106,122 +82,17 @@ mod tests {
     }
 
     #[test]
-    fn done_gate_blocks_edit_close_without_mutation() {
-        use drox_types::Message;
+    fn file_read_allowed_without_internal_plan() {
         let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
-        let messages = vec![Message::user("fix the hero")];
-        assert!(done_gate_missing_mutation_when_expected(&spec, true, &messages).is_some());
-        assert!(done_gate_missing_mutation_when_expected(&spec, false, &messages).is_none());
-    }
-
-    #[test]
-    fn done_gate_ignores_prior_user_mutations() {
-        use drox_types::{Content, Message, Role, ToolUseId};
-        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
-        let old = ToolUseId::new();
-        let messages = vec![
-            Message::user("first"),
-            Message::new(
-                Role::Assistant,
-                vec![Content::ToolUse {
-                    id: old.clone(),
-                    name: "file_write".into(),
-                    input: serde_json::json!({}),
-                }],
-            ),
-            Message::tool_result(old, "{}", false),
-            Message::user("second — still broken"),
-        ];
-        assert!(done_gate_missing_mutation_when_expected(&spec, true, &messages).is_some());
-    }
-
-    #[test]
-    fn done_gate_allows_after_mutation_on_current_user() {
-        use drox_types::{Content, Message, Role, ToolUseId};
-        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
-        let tu = ToolUseId::new();
-        let messages = vec![
-            Message::user("fix css"),
-            Message::new(
-                Role::Assistant,
-                vec![Content::ToolUse {
-                    id: tu.clone(),
-                    name: "file_edit".into(),
-                    input: serde_json::json!({}),
-                }],
-            ),
-            Message::tool_result(tu, "{}", false),
-        ];
-        assert!(done_gate_missing_mutation_when_expected(&spec, true, &messages).is_none());
-    }
-
-    #[test]
-    fn todo_write_flat_item_passes_pre_gate_shape() {
-        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
-        let msg = tool_pre_gate_block(
-            &spec,
-            "todo_write",
-            &json!({ "id": "t3", "content": "README bilingue", "status": "completed" }),
-            false,
-            None,
-            None,
-            None,
-            &EngineTuning::default(),
-        );
-        assert!(msg.is_none(), "flat item must pass shape guard: {msg:?}");
-    }
-
-    #[test]
-    fn todo_write_bare_array_passes_pre_gate_shape() {
-        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
-        let msg = tool_pre_gate_block(
-            &spec,
-            "todo_write",
-            &json!([
-                { "id": "t1", "content": "A", "status": "completed" },
-                { "id": "t3", "content": "README", "status": "completed" },
-            ]),
-            false,
-            None,
-            None,
-            None,
-            &EngineTuning::default(),
-        );
-        assert!(msg.is_none(), "bare array must pass shape guard: {msg:?}");
-    }
-
-    #[test]
-    fn internal_plan_required_blocks_reads_until_plan_exists() {
-        use crate::agent::state::internal_plan::ingest_internal_plan;
-        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
-        let mut st = ArchitectRunState::new();
+        let st = ArchitectRunState::new();
         let msg = tool_pre_gate_block(
             &spec,
             "file_read",
             &json!({ "path": "README.md" }),
-            false,
             Some(&st),
             None,
             None,
             &EngineTuning::default(),
-        );
-        assert!(msg.is_some());
-        assert!(msg.unwrap().contains("internal_plan_write"));
-        let _ = ingest_internal_plan(
-            &mut st.internal_plan,
-            json!({"steps":[{"id":"s1","action":"read","status":"pending"}]}),
-        );
-        let mut tuning = EngineTuning::default();
-        tuning.run_rail_enabled = false;
-        let msg = tool_pre_gate_block(
-            &spec,
-            "file_read",
-            &json!({ "path": "README.md" }),
-            false,
-            Some(&st),
-            None,
-            None,
-            &tuning,
         );
         assert!(msg.is_none());
     }
@@ -233,7 +104,6 @@ mod tests {
             &spec,
             "bash",
             &json!({ "command": "cat << 'EOF' > README.md" }),
-            false,
             None,
             None,
             None,
@@ -248,18 +118,32 @@ mod tests {
     }
 
     #[test]
-    fn verify_gate_blocks_when_mutations_and_verify_not_passed() {
-        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
-        assert!(done_gate_verify_not_passed(&spec, true, 2, true, false).is_some());
-        assert!(done_gate_verify_not_passed(&spec, true, 2, true, true).is_none());
-        assert!(done_gate_verify_not_passed(&spec, false, 2, true, false).is_none());
-    }
+    fn verify_gate_blocks_only_when_gate_enabled() {
+        use crate::agent::rail::VerifyOutcome;
+        use crate::orchestration::EngineTuning;
 
-    #[test]
-    fn todo_shape_fail_includes_payload_preview() {
-        let msg = todo_payload_shape_guard(&json!({ "oops": "x".repeat(400) }))
-            .expect("shape fail");
-        assert!(msg.contains("Received payload"));
+        let spec = RunSpec::for_orchestration_role(crate::run_spec::RoleId::Architect);
+        assert!(done_gate_verify_not_passed(&spec, 2, &VerifyOutcome::Unknown).is_none());
+
+        let mut tuning = EngineTuning::product_default();
+        tuning.gate_done_requires_verify = true;
+        let strict =
+            RunSpec::for_orchestration_role_with_tuning(crate::run_spec::RoleId::Architect, &tuning);
+        assert!(done_gate_verify_not_passed(&strict, 2, &VerifyOutcome::Unknown).is_some());
+        assert!(done_gate_verify_not_passed(
+            &strict,
+            2,
+            &VerifyOutcome::Fail("bash".into())
+        )
+        .is_some());
+        assert!(done_gate_verify_not_passed(&strict, 2, &VerifyOutcome::Pass).is_none());
+        assert!(done_gate_verify_not_passed(
+            &strict,
+            2,
+            &VerifyOutcome::Waived("no scripts".into())
+        )
+        .is_none());
+        assert!(done_gate_verify_not_passed(&strict, 0, &VerifyOutcome::Unknown).is_none());
     }
 
     #[test]
@@ -273,8 +157,8 @@ mod tests {
             &json!({ "pattern": "**/*" })
         ));
         assert!(!is_hallucinated_phase_tool_call(
-            "todo_write",
-            &json!({ "todos": [] })
+            "internal_plan_write",
+            &json!({ "steps": [] })
         ));
         assert!(!is_hallucinated_phase_tool_call(
             "bash",
