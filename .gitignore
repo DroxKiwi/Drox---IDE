@@ -39,6 +39,9 @@ resources/drox/**/drox.exe
 !resources/drox/README.md
 .playwright-cli
 .playwright-mcp
+# Artefacts dogfood locaux (exports TUI / transcripts) — ne pas versionner
+drox-engine/docs/from_TUI/
+drox-engine/docs/exports/
 .claude/
 .agents/agents/*.local.md
 .github/agents/*.local.md
