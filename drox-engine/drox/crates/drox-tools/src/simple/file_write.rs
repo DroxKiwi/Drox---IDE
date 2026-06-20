@@ -1,6 +1,7 @@
 //! Tool `file_write` — écrit un fichier sous le workspace.
 
 use async_trait::async_trait;
+use camino::Utf8Path;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -21,6 +22,18 @@ pub struct FileWriteInput {
 
 pub struct FileWriteTool;
 
+/// Produit un diff unifié pour une proposition `file_write` (lecture disque sync).
+pub fn preview_file_write_diff(workspace: &Utf8Path, input: &Value) -> Result<String, ToolError> {
+    let args: FileWriteInput = serde_json::from_value(input.clone())?;
+    let resolved = resolve_path_for_write(workspace, &args.path)?;
+    let before = std::fs::read_to_string(&resolved).unwrap_or_default();
+    Ok(crate::diff_util::unified_line_diff(
+        resolved.as_str(),
+        &before,
+        &args.content,
+    ))
+}
+
 #[async_trait]
 impl Tool for FileWriteTool {
     fn name(&self) -> &str {
@@ -28,7 +41,7 @@ impl Tool for FileWriteTool {
     }
 
     fn description(&self) -> &str {
-        "Write a text file under the workspace. In `apply_fs_writes` mode, writes to disk; otherwise returns a JSON proposal."
+        "Écrit un fichier texte sous le workspace. En mode `apply_fs_writes`, écrit sur disque ; sinon retourne une proposition JSON."
     }
 
     fn input_schema(&self) -> Value {
@@ -37,8 +50,7 @@ impl Tool for FileWriteTool {
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: FileWriteInput = serde_json::from_value(input)?;
-        let workspace = ctx.effective_workspace();
-        let resolved = resolve_path_for_write(&workspace, &args.path)?;
+        let resolved = resolve_path_for_write(&ctx.effective_workspace(), &args.path)?;
 
         if ctx.plan_mode {
             return Err(ToolError::plan_violation("file_write"));

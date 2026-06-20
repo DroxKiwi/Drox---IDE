@@ -176,7 +176,7 @@ Ces éléments **existent encore** ; le plan les cible correctement.
 | **`lib.rs` L40–51, 118–119** | `pub mod orchestration_delegate`, `subagent`, exports `EngineOrchestrationDelegate`, `SubagentExecutor` | **CUT** API publique |
 | **`lib.rs` L67–85** | `executor_user_message_from_delegate`, `EXECUTOR_SYSTEM_PROMPT`, `is_architect_read_tool_for_delegate_cap`, `DEFAULT_EXECUTOR_MODEL` | **CUT** |
 | **`run_spec/mod.rs`** | `EXECUTOR_TOOL_ALLOWLIST`, `subagents_enabled`, `delegate_executor` dans allowlist | **CUT** |
-| **`event.rs` L160–221** | `SubagentStart/Done`, `RailSegmentStart/Done`, champs delegate | **CUT** events ou KEEP UI 1.4.3 |
+| **`event.rs` L160–221** | `SubagentStart/Done`, `RailSegmentStart/Done`, champs delegate | **CUT** events ou KEEP UI 1.5.1 |
 | **`agent_stream.rs` L29–59** | Cap tool calls subagent | **CUT** |
 
 ### B7 — drox-tools (P2 — hors scope engine mais couplé)
@@ -213,7 +213,7 @@ Ces éléments **existent encore** ; le plan les cible correctement.
 | **`professor.rs` + gates** | Hors IDE | **KEEP** minimal (tier 1) |
 | **`user_message_scope.rs`** | Headers legacy IDE | **KEEP** — compat transcript |
 | **`registry.rs` G3Edit\*** | Catalogue sans fichiers MD | **CUT** IDs non chargés — éviter fausse carte doc |
-| **Events UI segment/subagent** | Masquer ou supprimer wire | **KEEP** wire Phase 2–5 ; polish UI 1.4.3 |
+| **Events UI segment/subagent** | Masquer ou supprimer wire | **KEEP** wire Phase 2–5 ; polish UI 1.5.1 |
 
 ---
 

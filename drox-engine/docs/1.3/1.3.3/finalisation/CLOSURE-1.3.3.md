@@ -20,7 +20,7 @@
 ## Hors scope 1.3.3
 
 - TEST-PLAN T1–T10, presets P8–P13 → [1.3.4](../../1.3.4/PLAN-1.3.4.md)
-- Index / graphe / fast path → [1.4.4](../../../1.4/1.4.4/PLAN-1.4.4.md) (ex-1.3.5)
+- Index / graphe / fast path → [1.5.2](../../../1.5/1.5.2/PLAN-1.5.2.md) (ex-1.3.5)
 - Agents Window KDDS
 
 ---

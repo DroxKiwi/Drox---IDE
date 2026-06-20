@@ -4,7 +4,7 @@
 **Statut** : **implémentation clôturée** (Phases **T**, **P**, **1–4**, **M**) — **dogfood M.9 + gate Acceptation** en cours · Phase **6** conduct → post-dogfood  
 **Dernière mise à jour** : 5 juin 2026 — Phase **M** livrée · checkpoint compaction court · boot mémoire minimal  
 **Prérequis** : [1.4.1](../1.4.1/README.md) livrée · [Context Frame](../1.4.1/1.4.1.3/ARCHITECTURE.md) Phase 2 en place  
-**Suite** : [1.4.3](../1.4.3/README.md) (UI, signature) **après** dogfood vert (A.*)
+**Suite** : [1.5.1](../1.5/1.5.1/README.md) (UI, signature) **après** dogfood vert (A.*)
 
 ---
 
@@ -34,7 +34,7 @@ Ces règles s’appliquent à **tout** le code et la doc produits pendant la 1.4
 | **R-FILE** | **Pas de fichier > ~500 lignes** si possible | Au-delà : extraire sous-module (`apply/`, `layers/`, `rail/infer/`, etc.). Avant d’agrandir un fichier existant (`outcome.rs`, `tool_pre.rs`), vérifier la taille et scinder. |
 | **R-DOC** | **Documenter code + plan** | Chaque module touché : doc rust (`//!` / `///`) sur la surface publique. Chaque phase livrée : cocher la checklist + mettre à jour ce plan, [README](README.md), [MATRIX-ACTUAL](../1.4.1/1.4.1.3/MATRIX-ACTUAL.md), FOI, [09-run-rail](../moteur/09-run-rail/README.md). |
 | **R-NOLEGACY** | **Zéro reliquat** | Supprimer le code remplacé (pas de `if legacy`, pas de `RailMode`, pas de `tool_folders_enabled`). Pas de « deprecated » qui traîne : **grep** + **cargo test** = preuve de table rase. Voir [inventaire suppression](#supprimer-du-dépôt). |
-| **R-TEST** | **Tester jusqu’au bout** | Chaque phase : `cargo test -p drox-engine` + `cargo test -p drox-cli` verts **sur la culture unique**. Dogfood session 3-tours **obligatoire** avant gate 1.4.3 — pas de merge « à moitié ». |
+| **R-TEST** | **Tester jusqu’au bout** | Chaque phase : `cargo test -p drox-engine` + `cargo test -p drox-cli` verts **sur la culture unique**. Dogfood session 3-tours **obligatoire** avant gate 1.5.1 — pas de merge « à moitié ». |
 | **R-CONDUCT** | **Zéro heuristique sur le texte user** | Toute détection de règle de conduite = **probe LLM → JSON typé** uniquement. Le moteur Rust valide le schéma, persiste et réinjecte — **jamais** regex / mots-clés multilingues sur le message brut. Dédoublonnage par `id` + `scope` enum, pas par similarité de chaînes traduites. |
 | **R-MEMORY** | **Une vérité par question** | Pas de second canal pour la même info (listing boot vs outil, todo vs plan interne, MEMORY vs conduct). Voir [Phase M](#phase-m--mémoire-unifiée-triage). |
 
@@ -71,7 +71,7 @@ Voir aussi [README § approche](README.md).
 | **3** | Mémoire de travail | Fil du run + conduct session (Phase 6) | `ctx_run_snapshot` + **plan interne seul** (plus de `todo_write`) |
 | **4** | Historique chaud/froid | Détail récent + ancien résumé | Transcript + `ContextCompacted` + checkpoint ; conduct session **recopié** post-compaction |
 
-Le **code du repo** reste hors contexte par défaut (`file_read`, `grep`, `workspace_map_read`, index 1.4.4).
+Le **code du repo** reste hors contexte par défaut (`file_read`, `grep`, `workspace_map_read`, index 1.5.2).
 
 ---
 
@@ -312,11 +312,11 @@ Si une demande **globale** (nouvelle convention, méthode non documentée) n’e
 | **6.8** | Gate `coverage: unknown` → `ask_user_question` avant mutation | `agent/gates/` ou `outcome.rs` |
 | **6.9** | Distinction doc : conduct ≠ plan interne ; pas de doublon intent | ce plan, `ARCHITECTURE.md` |
 | **6.10** | Tests : message FR « mets à jour la doc… » → `add_session` sans regex ; compaction conserve conduct | `conduct_probe` tests, `run_snapshot` tests |
-| **6.11** | (P2 UI) Panneau règles actives session/projet — peut glisser en 1.4.3 | extension-vscode |
+| **6.11** | (P2 UI) Panneau règles actives session/projet — peut glisser en 1.5.1 | extension-vscode |
 
 **Critère** : probe seul classifie ; grep `conduct` sans `regex`/`heuristic` sur message user ; conduct session visible dans export après compaction simulée.
 
-**Ordre** : Phase 6 **après** [Phase M](#phase-m--mémoire-unifiée-triage) (au minimum **M.1**, **M.2**, **M.10**) et Phase 4 ; **non bloquant** gate 1.4.3 si 5.x pas vert.
+**Ordre** : Phase 6 **après** [Phase M](#phase-m--mémoire-unifiée-triage) (au minimum **M.1**, **M.2**, **M.10**) et Phase 4 ; **non bloquant** gate 1.5.1 si 5.x pas vert.
 
 ---
 
@@ -331,7 +331,7 @@ Si une demande **globale** (nouvelle convention, méthode non documentée) n’e
 | # | Sujet | Décision actuelle | Cible proposée | Statut |
 |---|--------|-------------------|----------------|--------|
 | **M-1** | Mémoire projet fichiers | `sessions/*.jsonl` = historique chat UI/reprise ; `memory/sessions/*.md` = archive compaction (à revoir plus tard) ; **`MEMORY.md` inutile** | **CUT** `MEMORY.md` + `load_memdir` branche MEMORY + injections associées. Conserver `DROX.md` (humain) jusqu’à fusion avec `conduct.md` (Phase 6). | **Tranché — CUT** |
-| **M-2** | Plans | `todo_write` obsolète (affichage user) ; ne doit pas rivaliser `internal_plan_write` | **CUT** `todo_write` + gates `DoneUnfinishedTodos`, nudges post-todos, snapshot `### Plan / todos`, rail `post_todos_close`, compteurs `last_todo_*`, bloc protocole `T-todo_write`. Plan unique = **`internal_plan_write`** (+ snapshot plan interne). UI tâches → **1.4.3** si besoin (hors moteur). | **Tranché — CUT** |
+| **M-2** | Plans | `todo_write` obsolète (affichage user) ; ne doit pas rivaliser `internal_plan_write` | **CUT** `todo_write` + gates `DoneUnfinishedTodos`, nudges post-todos, snapshot `### Plan / todos`, rail `post_todos_close`, compteurs `last_todo_*`, bloc protocole `T-todo_write`. Plan unique = **`internal_plan_write`** (+ snapshot plan interne). UI tâches → **1.5.1** si besoin (hors moteur). | **Tranché — CUT** |
 | **M-3** | Triple résumé historique | Snapshot = vérité run ; tester **snapshot à chaque `iteration_start`** (replace) comme canal principal | Vérité = **snapshot couche 3** (réinjecté chaque tour). Checkpoint compaction = **renvoi court** vers le snapshot (« ancres dans le snapshot ci-dessous »), pas de 3ᵉ récit détaillé. Archive `.md` = **hors** prompt auto (`memory_read` seulement). **Dogfood** pour valider. | **Tranché — expérimental** |
 | **M-4** | Ancres objectif / demande | Aligné M-3 | `user_request_anchor` + `run_objective_anchor` **uniquement** dans snapshot ; checkpoint **ne duplique pas** les ancres. | **Tranché** |
 | **M-5** | Carte repo | **Oui** — une seule source structure | **CUT** `### Workspace paths (sample)` du snapshot. Structure repo = **`workspace_map_read`** uniquement (`.drox/workspace-map.json`). Snapshot peut garder **chemins touchés** (mutations/lectures récentes) si utile — pas l’arbre. | **Tranché** |
@@ -369,7 +369,7 @@ Code             → outils file_* / grep (hors .drox/ exports)
 | **M.8** | `.droxignore` : exclure `.drox/exports/` ; test `grep` | `drox_ignore`, `grep` tool, smoke S-CTX-01 |
 | **M.9** | Dogfood M-3 : snapshot replace chaque tour suffit-il post-compaction ? Rapport smoke dédié | `SMOKE-M-memory-*.md` |
 | **M.10** | **CUT** skills au boot ; garder `skill_list` / `skill_read` seulement ; audit doublons core | `assemble.rs`, `agent_run.rs`, `core_standard.rs` |
-| **M.11** | UI historique : spec cache applicatif sessions JSONL (1.4.3) | doc extension |
+| **M.11** | UI historique : spec cache applicatif sessions JSONL (1.5.1) | doc extension |
 | **M.12** | `rg` + tests verts post-CUT ; réécrire tests `gates.rs`, `drive_*`, rail | R-NOLEGACY |
 
 **Ordre d’exécution recommandé** : **M.1 → M.2 → M.3 → M.4 → M.5 → M.5b** → **M.6 + M.7 + M.8 + M.10** → **M.9** (dogfood snapshot) → **Phase 6** (conduct).
@@ -380,7 +380,7 @@ Code             → outils file_* / grep (hors .drox/ exports)
 
 ### Phase 5 — Profils contexte & dogfood bout en bout (P0 gate)
 
-**Objectif** : valider la **culture unique** en conditions réelles — **bloquant** pour 1.4.3.
+**Objectif** : valider la **culture unique** en conditions réelles — **bloquant** pour 1.5.1.
 
 | ID | Tâche | Détail |
 |----|-------|--------|
@@ -487,7 +487,7 @@ Voir la [checklist d’avancement](#checklist-davancement) (section **Acceptatio
 | Edits prématurés | Snapshot hint + VERIFY optionnel ; permissions inchangées |
 | Contexte plus gros | Protocole compact ; compaction plus tôt petit ctx |
 | Régression tests 1.4.1 | **Réécrire** les tests sur la culture unique — pas de double baseline |
-| Merge à moitié | R-TEST : pas de gate 1.4.3 sans dogfood 3-tours vert |
+| Merge à moitié | R-TEST : pas de gate 1.5.1 sans dogfood 3-tours vert |
 
 ---
 
@@ -495,14 +495,14 @@ Voir la [checklist d’avancement](#checklist-davancement) (section **Acceptatio
 
 | Sujet | Version |
 |-------|---------|
-| UI chat B-UI-*, replay polish | 1.4.3 |
-| UI panneau règles conduct (6.11) | 1.4.3 |
-| Signature Windows | 1.4.3 |
+| UI chat B-UI-*, replay polish | 1.5.1 |
+| UI panneau règles conduct (6.11) | 1.5.1 |
+| Signature Windows | 1.5.1 |
 | Concurrence mémoire / `todo_write` / MEMORY.md | [Phase M](#phase-m--mémoire-unifiée-triage) — **dans** 1.4.2 |
-| Index / graphe (couche 4 enrichie) | 1.4.4 |
-| Cache UI historique sessions (révision) | 1.4.3 (M.11) |
-| `llm-sampling.yaml` par profil modèle | 1.4.5 |
-| Adaptateurs protocole par famille LLM | 1.4.5+ si nécessaire |
+| Index / graphe (couche 4 enrichie) | 1.5.2 |
+| Cache UI historique sessions (révision) | 1.5.1 (M.11) |
+| `llm-sampling.yaml` par profil modèle | 1.5.3 |
+| Adaptateurs protocole par famille LLM | 1.5.3+ si nécessaire |
 
 ---
 
@@ -596,7 +596,7 @@ Voir la [checklist d’avancement](#checklist-davancement) (section **Acceptatio
 - [ ] **6.8** — Gate `coverage: unknown` → `ask_user_question`
 - [ ] **6.9** — Doc conduct ≠ plan interne
 - [ ] **6.10** — Tests probe + compaction conduct
-- [ ] **6.11** — (P2 → 1.4.3) UI règles actives
+- [ ] **6.11** — (P2 → 1.5.1) UI règles actives
 
 ### Phase M — Mémoire unifiée (triage — R-MEMORY)
 
@@ -611,7 +611,7 @@ Voir la [checklist d’avancement](#checklist-davancement) (section **Acceptatio
 - [x] **M.8** — `.droxignore` + grep : exclure `exports/`
 - [ ] **M.9** — Dogfood snapshot post-compaction → [SMOKE-M-memory-TEMPLATE.md](SMOKE-M-memory-TEMPLATE.md)
 - [x] **M.10** — Skills **invocation seule** (CUT listing boot) + audit doublons
-- [ ] **M.11** — Spec cache UI historique JSONL (1.4.3)
+- [ ] **M.11** — Spec cache UI historique JSONL (1.5.1)
 - [x] **M.12** — `rg` + tests verts post-triage (reliquats = commentaires tests + assertions négatives)
 
 ### Documentation (transversal R-DOC)
@@ -620,9 +620,9 @@ Voir la [checklist d’avancement](#checklist-davancement) (section **Acceptatio
 - [x] **D.2** — Ce plan : checklist cochée, statut « implémentation clôturée »
 - [ ] **D.3** — FOI : ancien rail prescriptif **retiré**, pas « deprecated »
 - [x] **D.4** — MATRIX-ACTUAL parité injection unique
-- [ ] **D.5** — Re-estimation [1.4.3](../1.4.3/README.md) post-dogfood
+- [ ] **D.5** — Re-estimation [1.5.1](../1.5/1.5.1/README.md) post-dogfood
 
-### Acceptation (gate 1.4.2 → 1.4.3 — R-TEST)
+### Acceptation (gate 1.4.2 → 1.5.1 — R-TEST)
 
 - [x] **A.1** — **Une seule** culture moteur (grep reliquats `drox/crates/` + **0 dossier dépliant** dans API)
 - [ ] **A.2** — Run analyse : OK vs smoke F1 — ✅ (smoke `ses_7b34fd1d`)
@@ -644,7 +644,7 @@ Voir la [checklist d’avancement](#checklist-davancement) (section **Acceptatio
     → 1.4.2 implémentation livrée (T, P, 1–4, M)
         → dogfood M.9 + gate Acceptation (A.*)
             → Phase 6 conduct (probe, .drox/conduct.md)
-                → 1.4.3 UI + signature (si A.* verts)
+                → 1.5.1 UI + signature (si A.* verts)
 ```
 
 ---
@@ -655,5 +655,5 @@ Voir la [checklist d’avancement](#checklist-davancement) (section **Acceptatio
 - [Inventaire outils](INVENTAIRE-OUTILS-1.4.2.md)
 - [Matrice injection actuelle](../1.4.1/1.4.1.3/MATRIX-ACTUAL.md)
 - [Run rail](../moteur/09-run-rail/README.md)
-- [Smoke F1](../1.4.3/SMOKE-ses_7df5045c.md)
+- [Smoke F1](../1.5/1.5.1/SMOKE-ses_7df5045c.md)
 - [Hub 1.4](../README.md)

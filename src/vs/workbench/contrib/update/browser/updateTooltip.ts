@@ -13,7 +13,6 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IMeteredConnectionService } from '../../../../platform/meteredConnection/common/meteredConnection.js';
-import { getProductDisplayVersion } from '../../../../base/common/product.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { AvailableForDownload, Disabled, DisablementReason, Downloaded, Downloading, Idle, IUpdate, Overwriting, Ready, Restarting, State, StateType, Updating } from '../../../../platform/update/common/update.js';
 import { ShowCurrentReleaseNotesActionId } from '../common/update.js';
@@ -138,7 +137,7 @@ export class UpdateTooltip extends Disposable {
 	}
 
 	private updateCurrentVersion() {
-		const productVersion = getProductDisplayVersion(this.productService);
+		const productVersion = this.productService.version;
 		if (productVersion) {
 			const currentCommitId = this.productService.commit?.substring(0, 7);
 			this.currentVersionNode.textContent = currentCommitId

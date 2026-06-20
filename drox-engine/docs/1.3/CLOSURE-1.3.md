@@ -2,7 +2,7 @@
 
 **Période** : 1.3.0 → 1.3.4 (mai–juin 2026)  
 **Statut** : **archivée** — aucun chantier actif sur cette ligne  
-**Développement courant** : **[1.4](../1.4/README.md)** (`1.4.0` → `1.4.4`)
+**Développement courant** : **[1.4](../1.4/README.md)** (`1.4.0` → `1.5.2`)
 
 ---
 
@@ -46,8 +46,8 @@ Le backlog smoke (archive) vit sous **[1.4.0](../1.4/archive/1.4.0/SMOKE-BACKLOG
 |---------|-----------|
 | [archive 1.4.0](../1.4/archive/1.4.0/README.md) | Run Rail — pause dev, non clôturé |
 | [1.4.1](../1.4/1.4.1/README.md) | Stabilisation dogfood moteur / session |
-| [1.4.3](../1.4/1.4.3/README.md) | UI chat (B-UI-*) |
-| [1.4.4](../1.4/1.4.4/README.md) | Index, graphe, fast path, onboarding |
+| [1.5.1](../1.5/1.5.1/README.md) | UI chat (B-UI-*) |
+| [1.5.2](../1.5/1.5.2/README.md) | Index, graphe, fast path, onboarding |
 
 ---
 

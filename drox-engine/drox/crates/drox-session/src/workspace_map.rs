@@ -14,10 +14,13 @@ use crate::drox_ignore::DroxIgnoreMatcher;
 use crate::error::SessionError;
 
 const MAP_FILE: &str = "workspace-map.json";
-const MAP_VERSION: u32 = 2;
-/// Plafond runtime pour les listes `pivots` / injection prompt (pas le JSON complet).
+const MAP_VERSION: u32 = 1;
+const MAX_NODES: usize = 120;
+const MAX_CHILDREN_PER_NODE: usize = 15;
 const MAX_PIVOTS_PER_NODE: usize = 8;
 const MAX_SUMMARY_LEN: usize = 200;
+const SCAN_MAX_DEPTH: usize = 2;
+const SCAN_MAX_ENTRIES: usize = 80;
 const PROMPT_MAX_LINES: usize = 28;
 
 /// Nœud de la carte (répertoire ou fichier pivot).
@@ -69,7 +72,7 @@ pub struct WorkspaceMapStore {
 }
 
 impl WorkspaceMapStore {
-    /// Charge la carte ou en crée une (scan complet si absente / empreinte ou version obsolète).
+    /// Charge la carte ou en crée une (scan léger si absente / empreinte différente).
     pub async fn load_or_create(
         workspace: Utf8PathBuf,
         fingerprint: String,
@@ -90,7 +93,7 @@ impl WorkspaceMapStore {
             map.workspace_fingerprint = fingerprint.clone();
         }
 
-        let needs_scan = map.nodes.is_empty() || map.version != MAP_VERSION || map.stale;
+        let needs_scan = map.nodes.is_empty() || map.version != MAP_VERSION;
         if needs_scan {
             map.version = MAP_VERSION;
             map.workspace_fingerprint = fingerprint.clone();
@@ -233,11 +236,6 @@ impl WorkspaceMapStore {
     }
 
     fn is_path_ignored_for_map(&self, path: &str) -> bool {
-        if let Ok(rel) = normalize_rel_path(path, &self.workspace) {
-            if is_excluded_from_map_scan(&rel) {
-                return true;
-            }
-        }
         self.drox_ignore
             .as_ref()
             .is_some_and(|m| m.is_ignored(Path::new(path)))
@@ -266,62 +264,33 @@ impl WorkspaceMapStore {
     }
 }
 
-/// Chemins exclus de la carte (artefacts Drox — pas le projet).
-#[must_use]
-fn is_excluded_from_map_scan(rel: &str) -> bool {
-    rel == ".droxignore"
-        || rel == ".drox"
-        || rel.starts_with(".drox/")
-        || rel == ".git"
-        || rel.starts_with(".git/")
-}
-
-/// Paths omitted from workspace map scan and `workspace_map_read` payloads.
-#[must_use]
-pub fn is_excluded_from_workspace_map(rel: &str) -> bool {
-    is_excluded_from_map_scan(rel)
-}
-
-/// Scan initial : arborescence complète (profondeur illimitée), `.gitignore` + `.droxignore`.
-/// Exclut `.drox/` et `.droxignore` du JSON.
+/// Scan initial : 1–2 niveaux, respect `.gitignore` + `.droxignore`.
 #[must_use]
 pub fn initial_snapshot(workspace: &Utf8Path, drox_ignore: Option<&DroxIgnoreMatcher>) -> Vec<MapNode> {
     let mut nodes: Vec<MapNode> = Vec::new();
     let mut seen = HashMap::new();
-    let workspace_std = workspace.as_std_path();
 
-    let workspace_root = workspace_std.to_path_buf();
-
-    let mut binding = WalkBuilder::new(workspace_std);
-    let mut walker = binding.hidden(false);
+    let mut binding = WalkBuilder::new(workspace.as_std_path());
+    let mut walker = binding
+        .hidden(false)
+        .max_depth(Some(SCAN_MAX_DEPTH));
     if let Some(drox) = drox_ignore {
         drox.configure_walk(&mut walker);
     } else {
         walker.git_ignore(true);
     }
-    walker.filter_entry(move |entry| {
-        let path = entry.path();
-        let Ok(rel) = path.strip_prefix(&workspace_root) else {
-            return true;
-        };
-        let rel_str = rel.to_string_lossy().replace('\\', "/");
-        if rel_str.is_empty() {
-            return true;
-        }
-        !is_excluded_from_map_scan(&rel_str)
-    });
     let walker = walker.build();
 
     for entry in walker.flatten() {
+        if nodes.len() >= SCAN_MAX_ENTRIES {
+            break;
+        }
         let path = entry.path();
-        let Ok(rel) = path.strip_prefix(workspace_std) else {
+        let Ok(rel) = path.strip_prefix(workspace.as_std_path()) else {
             continue;
         };
         let rel_str = rel.to_string_lossy().replace('\\', "/");
         if rel_str.is_empty() {
-            continue;
-        }
-        if is_excluded_from_map_scan(&rel_str) {
             continue;
         }
         if drox_ignore.is_some_and(|d| d.is_ignored(path)) {
@@ -335,18 +304,28 @@ pub fn initial_snapshot(workspace: &Utf8Path, drox_ignore: Option<&DroxIgnoreMat
         if seen.insert(rel_str.clone(), ()).is_some() {
             continue;
         }
+        let depth = rel_str.matches('/').count();
+        let is_pivot_file = kind == "file" && is_notable_root_file(Path::new(&rel_str));
         nodes.push(MapNode {
             path: rel_str,
             kind: kind.to_string(),
             summary: None,
-            explored: true,
+            explored: kind == "dir" && depth == 0,
             pivots: Vec::new(),
             children: Vec::new(),
         });
+        if is_pivot_file {
+            if let Some(last) = nodes.last_mut() {
+                last.explored = true;
+            }
+        }
     }
 
     attach_children_lists(&mut nodes);
     nodes.sort_by(|a, b| a.path.cmp(&b.path));
+    if nodes.len() > MAX_NODES {
+        nodes.truncate(MAX_NODES);
+    }
     nodes
 }
 
@@ -365,8 +344,8 @@ pub fn format_workspace_map_for_prompt(map: &WorkspaceMapV1) -> Option<String> {
         );
     } else {
         lines.push(
-            "[Workspace map] (fresh — arborescence complète via `workspace_map_read` ; \
-             ne refais pas un `glob` racine si les chemins dont tu as besoin y sont déjà)"
+            "[Workspace map] (fresh — ne refais pas un inventaire racine complet ; \
+             cible les pivots listés ou workspace_map_read pour le détail)"
                 .to_string(),
         );
     }
@@ -429,8 +408,20 @@ fn attach_children_lists(nodes: &mut [MapNode]) {
             .cloned()
             .collect();
         kids.sort();
+        if kids.len() > MAX_CHILDREN_PER_NODE {
+            kids.truncate(MAX_CHILDREN_PER_NODE);
+        }
         nodes[i].children = kids;
     }
+}
+
+fn is_notable_root_file(path: &Path) -> bool {
+    let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "readme.md" | "readme" | "package.json" | "cargo.toml" | "pyproject.toml" | "go.mod"
+    ) || name.eq_ignore_ascii_case("MEMORY.md")
+        || name.eq_ignore_ascii_case("DROX.md")
 }
 
 fn infer_kind(rel: &str) -> &'static str {
@@ -467,6 +458,9 @@ fn upsert_node<'a>(nodes: &'a mut Vec<MapNode>, path: &str, kind: &str) -> &'a m
             nodes[idx].kind = kind.to_string();
         }
         return &mut nodes[idx];
+    }
+    if nodes.len() >= MAX_NODES {
+        nodes.remove(0);
     }
     nodes.push(MapNode {
         path: path.to_string(),
@@ -523,51 +517,11 @@ mod tests {
     fn initial_snapshot_lists_top_level() {
         let dir = tempdir().unwrap();
         let root = Utf8Path::from_path(dir.path()).unwrap();
-        std::fs::create_dir(root.join("src").as_std_path()).unwrap();
+        std::fs::create_dir(root.join("drox").as_std_path()).unwrap();
         std::fs::write(root.join("README.md").as_std_path(), "hi").unwrap();
         let nodes = initial_snapshot(root, None);
-        assert!(nodes.iter().any(|n| n.path == "src"));
+        assert!(nodes.iter().any(|n| n.path == "drox"));
         assert!(nodes.iter().any(|n| n.path == "README.md"));
-    }
-
-    #[test]
-    fn initial_snapshot_includes_deep_paths() {
-        let dir = tempdir().unwrap();
-        let root = Utf8Path::from_path(dir.path()).unwrap();
-        std::fs::create_dir_all(root.join("app/src/components").as_std_path()).unwrap();
-        std::fs::write(
-            root.join("app/src/components/Button.tsx").as_std_path(),
-            "export {}",
-        )
-        .unwrap();
-        let nodes = initial_snapshot(root, None);
-        assert!(nodes.iter().any(|n| n.path == "app/src/components/Button.tsx"));
-        let app = nodes.iter().find(|n| n.path == "app").expect("app dir");
-        assert!(app.children.iter().any(|c| c == "app/src"));
-    }
-
-    #[test]
-    fn initial_snapshot_excludes_drox_artifacts() {
-        let dir = tempdir().unwrap();
-        let root = Utf8Path::from_path(dir.path()).unwrap();
-        std::fs::create_dir_all(root.join(".drox/sessions").as_std_path()).unwrap();
-        std::fs::write(root.join(".droxignore").as_std_path(), "# ignore").unwrap();
-        std::fs::write(root.join("README.md").as_std_path(), "hi").unwrap();
-        let nodes = initial_snapshot(root, None);
-        assert!(!nodes.iter().any(|n| n.path == ".droxignore"));
-        assert!(!nodes.iter().any(|n| n.path.starts_with(".drox/")));
-        assert!(!nodes.iter().any(|n| n.path == ".drox"));
-        assert!(nodes.iter().any(|n| n.path == "README.md"));
-    }
-
-    #[test]
-    fn excluded_paths_helper() {
-        assert!(is_excluded_from_map_scan(".droxignore"));
-        assert!(is_excluded_from_map_scan(".drox"));
-        assert!(is_excluded_from_map_scan(".drox/sessions/foo.json"));
-        assert!(is_excluded_from_map_scan(".git"));
-        assert!(is_excluded_from_map_scan(".git/HEAD"));
-        assert!(!is_excluded_from_map_scan("src/main.rs"));
     }
 
     #[test]
@@ -620,11 +574,10 @@ mod tests {
         };
         store.ingest_glob(&serde_json::json!({
             "files": ["README.md"],
-            "directories": ["src", "extension-vscode"]
+            "directories": ["drox", "extension-vscode"]
         }));
         let snap = store.snapshot();
-        assert!(snap.nodes.iter().any(|n| n.path == "src" && n.explored));
+        assert!(snap.nodes.iter().any(|n| n.path == "drox" && n.explored));
         assert!(snap.nodes.iter().any(|n| n.path == "README.md"));
-        assert!(!snap.nodes.iter().any(|n| n.path.starts_with(".drox/")));
     }
 }

@@ -62,7 +62,7 @@ class DroxEngineConfigContribution extends Disposable implements IWorkbenchContr
 
 	private warnLegacyEngine(init: DroxEngineInitializeResult): void {
 		const pipeline = typeof init?.orchestrationPipeline === 'string' ? init.orchestrationPipeline : '';
-		if (pipeline === 'role_split') {
+		if (pipeline === 'role_split' || pipeline === 'tui_mono') {
 			return;
 		}
 		this.notificationService.notify({

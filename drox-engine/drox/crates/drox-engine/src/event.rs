@@ -71,10 +71,6 @@ impl Phase {
 #[serde(tag = "kind", rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum AgentEvent {
-    /// Orchestration 1.2.0 — un rôle (architect, executor, …) démarre.
-    RoleEnter {
-        role_id: String,
-    },
     /// Le modèle entre dans une phase (cf. protocole §`Phase`). Émis dès qu'un
     /// marqueur `[phase: ...]` est détecté en début de ligne dans le stream
     /// texte. L'UI s'en sert pour ouvrir un bloc collapsible dédié.
@@ -84,8 +80,6 @@ pub enum AgentEvent {
     PhaseClose,
     /// Token(s) de texte produits par l'assistant.
     TextDelta { text: String },
-    /// Réponse finale destinée à l'utilisateur (tour discussion — source canonique UI).
-    UserFacingReply { text: String },
     /// Le modèle a décidé d'invoquer un tool. Émis dès la réception de la
     /// décision, avant exécution.
     ToolStart {
@@ -100,6 +94,16 @@ pub enum AgentEvent {
         #[serde(default)]
         is_error: bool,
     },
+    /// Progression partielle d'un tool long (ex. bash stream stdout/stderr).
+    ToolProgress {
+        id: ToolUseId,
+        name: String,
+        /// Dernières lignes affichables.
+        output: String,
+        full_output: String,
+        elapsed_ms: u64,
+        total_lines: usize,
+    },
     /// Fin du tour agent (succès final, plus aucun tool call à exécuter).
     Stop { reason: StopReason, usage: Usage },
     /// Une passe de snip a été appliquée à l'historique pour libérer du
@@ -109,13 +113,6 @@ pub enum AgentEvent {
         tokens_freed: usize,
         blocks_snipped: usize,
         tokens_used_after: usize,
-    },
-    /// Estimation jetons de l'historique **parent** (compteur moteur), émis à
-    /// chaque tour pour mettre à jour la jauge IDE quasi en temps réel.
-    ContextUsage {
-        parent_tokens: usize,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        parent_budget: Option<usize>,
     },
     /// Compaction LLM **en cours de run** : une portion ancienne de
     /// l'historique a été résumée et remplacée par un message `system`
@@ -157,110 +154,11 @@ pub enum AgentEvent {
     RunObjective { text: String },
     /// Sprint §2.25 — mise à jour du parking hors scope (`scope_defer`).
     ScopeParkingUpdate { items: Vec<ScopeDeferredItem> },
-    /// M5 — début d'un sous-agent (`task` explore).
-    SubagentStart {
-        subagent_type: String,
-        description: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        job_id: Option<String>,
-        #[serde(default)]
-        background: bool,
+    /// Exécution hook Pre/Post tool en cours (`HookProgressMessage` leak).
+    HookProgress {
+        tool_use_id: ToolUseId,
+        hook_event: String,
+        /// Nombre de hooks encore en cours (0 = terminé pour cette phase).
+        in_progress: usize,
     },
-    /// M5 — fin d'un sous-agent (résumé synthétique pour l'UI).
-    SubagentDone {
-        subagent_type: String,
-        summary: String,
-        #[serde(default)]
-        truncated: bool,
-        #[serde(default)]
-        iterations_used: usize,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        job_id: Option<String>,
-        #[serde(default = "default_true")]
-        success: bool,
-        /// Orchestration 1.2.0 — `completed` | `partial` | `failed` (executor delegate).
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        task_status: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        error_message: Option<String>,
-    },
-    /// Anti-boucle — message utilisateur (`warn` | `reroute` | `abort`).
-    LoopIntervention {
-        level: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        loop_kind: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        turns: Option<u32>,
-        user_message: String,
-    },
-    /// Run rail 1.4 — entered a new station (`advance`).
-    RailStationEnter {
-        station: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        label: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        task_id: Option<String>,
-    },
-    /// Run rail 1.4 — `hold` (PROPOSE user wait or jump to ANSWER).
-    RailStationHold {
-        station: String,
-    },
-    /// Run rail 1.4 — left a station (`advance` or `hold` follow-up).
-    RailStationDone {
-        station: String,
-    },
-    /// Run rail 1.4 — ACT segment spawned (isolated executor slice).
-    RailSegmentStart {
-        station: String,
-        task_id: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        label: Option<String>,
-        scope: Vec<String>,
-    },
-    /// Run rail 1.4 — ACT segment report integrated.
-    RailSegmentDone {
-        task_id: String,
-        status: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        summary: Option<String>,
-        paths_touched: Vec<String>,
-    },
-    /// Orchestration — résolution discuss/edit après intent probe (dev trace + UI).
-    RunRouting {
-        architect_gate: String,
-        start_run: String,
-        greeting_only: bool,
-        expects_workspace_mutation: bool,
-        intent_source: String,
-    },
-    /// Context Frame — résumé juste avant appel LLM (détail dans `*.engine-trace.jsonl`).
-    LlmTurnPrepared {
-        iter: u32,
-        frame_id: String,
-        layers_applied: Vec<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        rail_station: Option<String>,
-        tool_names: Vec<String>,
-        architect_snapshot_bytes: usize,
-        tool_protocol_bytes: usize,
-        rail_snapshot_bytes: usize,
-        boot_system_bytes: usize,
-        messages_count: usize,
-    },
-}
-
-impl AgentEvent {
-    /// Événements qui mettent à jour la jauge `#ctx` IDE — réservés au run **parent** (architecte).
-    #[must_use]
-    pub fn is_parent_context_gauge(&self) -> bool {
-        matches!(
-            self,
-            Self::ContextUsage { .. } | Self::ContextSnip { .. } | Self::ContextCompacted { .. }
-        )
-    }
-}
-
-#[must_use]
-fn default_true() -> bool {
-    true
 }

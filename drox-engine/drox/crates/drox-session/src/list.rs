@@ -4,7 +4,6 @@ use camino::Utf8PathBuf;
 use drox_types::SessionId;
 
 use crate::error::SessionError;
-use crate::title::peek_session_display_title;
 
 /// Métadonnées légères pour affichage / CLI (`drox --list-sessions`).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,8 +13,6 @@ pub struct SessionListEntry {
     /// `mtime` du fichier en secondes depuis l'UNIX epoch (best-effort).
     pub modified_secs: u64,
     pub size_bytes: u64,
-    /// Premier message utilisateur du transcript (best-effort).
-    pub display_title: Option<String>,
 }
 
 /// Liste les fichiers `ses_*.jsonl` dans `sessions_dir`, triés du plus récent au plus ancien.
@@ -55,17 +52,11 @@ pub async fn list_sessions(
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map_or(0, |d| d.as_secs());
         let size = meta.len();
-        let display_title = if size > 0 {
-            peek_session_display_title(&path, None).await.ok().flatten()
-        } else {
-            None
-        };
         out.push(SessionListEntry {
             id,
             path,
             modified_secs: modified,
             size_bytes: size,
-            display_title,
         });
     }
 

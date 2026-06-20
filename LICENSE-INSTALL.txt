@@ -1,19 +1,19 @@
-Drox IDE — Licence d'installation
+﻿Drox IDE ÔÇö Licence d'installation
 ===================================
 
-Drox IDE est distribué par KDDS.
+Drox IDE est distribu├® par KDDS.
 
 Ce logiciel inclut Visual Studio Code - Open Source ("Code OSS"),
-Copyright (c) 2015–présent Microsoft Corporation, sous licence MIT.
+Copyright (c) 2015ÔÇôpr├®sent Microsoft Corporation, sous licence MIT.
 
-Des portions supplémentaires (moteur Drox, intégration workbench, branding)
-sont Copyright (c) KDDS, également sous licence MIT sauf mention contraire.
+Des portions suppl├®mentaires (moteur Drox, int├®gration workbench, branding)
+sont Copyright (c) KDDS, ├®galement sous licence MIT sauf mention contraire.
 
-Des composants tiers (fish-shell, zsh, etc.) sont listés dans
-ThirdPartyNotices.txt dans le répertoire d'installation.
+Des composants tiers (fish-shell, zsh, etc.) sont list├®s dans
+ThirdPartyNotices.txt dans le r├®pertoire d'installation.
 
 ----------------------------------------------------------------------
-Licence MIT — Code OSS (base)
+Licence MIT ÔÇö Code OSS (base)
 ----------------------------------------------------------------------
 
 Copyright (c) 2015 - present Microsoft Corporation
@@ -40,6 +40,6 @@ SOFTWARE.
 Portions Drox (KDDS)
 ----------------------------------------------------------------------
 
-Copyright (c) KDDS — drox-engine, contrib/drox, assets Drox IDE.
+Copyright (c) KDDS ÔÇö drox-engine, contrib/drox, assets Drox IDE.
 
-Distribuées sous MIT. Voir NOTICE-DROX.txt et ThirdPartyNotices.txt.
+Distribu├®es sous MIT. Voir NOTICE-DROX.txt et ThirdPartyNotices.txt.

@@ -32,12 +32,12 @@ impl Tool for SessionEndTool {
     }
 
     fn description(&self) -> &str {
-        "Explicitly close the current work session when \
-         the user signaled they are done (e.g. \"stopping for today\"). \
-         After success: a short farewell / summary in `answering`, \
-         then `[phase: done]`. **In the Drox client (VS Code)** this call runs \
-         in the IDE (indexed archive); outside a delegated client, the tool \
-         is unavailable. Format: `{ \"farewell_hint\"?: \"…\" }`."
+        "Clôture explicitement la session de travail courante lorsque \
+         l’utilisateur a signalé la fin (ex. « on s’arrête pour aujourd’hui »). \
+         Après succès : une brève phrase d’au revoir / synthèse dans `answering`, \
+         puis `[phase: done]`. **Dans le client Drox (VS Code)** cet appel est \
+         exécuté côté IDE (archivage indexé) ; hors client délégué, le tool \
+         n’est pas disponible. Format : `{ \"farewell_hint\"?: \"…\" }`."
     }
 
     fn input_schema(&self) -> Value {
@@ -49,12 +49,12 @@ impl Tool for SessionEndTool {
             farewell_hint: _hint,
         } = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "session_end: invalid JSON ({e}). Expected: {{ \"farewell_hint\"?: \"…\" }}."
+                "session_end: JSON invalide ({e}). Attendu : {{ \"farewell_hint\"?: \"…\" }}."
             ))
         })?;
         Err(ToolError::invalid_args(
-            "session_end: only available when the IDE client runs this tool \
-             via tool/exec (Drox VS Code extension).",
+            "session_end: disponible uniquement lorsque le client IDE exécute cet outil \
+             via tool/exec (extension VS Code Drox).",
         ))
     }
 }

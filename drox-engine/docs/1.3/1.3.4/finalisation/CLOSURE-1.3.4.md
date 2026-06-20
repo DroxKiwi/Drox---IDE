@@ -37,7 +37,7 @@ Le chantier **stabilisation solo** (Phase S/U) est interrompu au profit de la re
 
 ## Hors scope (renuméroté)
 
-- Index / graphe / fast path : **[1.4.4](../../../1.4/1.4.4/README.md)** (ex-1.3.5)
+- Index / graphe / fast path : **[1.5.2](../../../1.5/1.5.2/README.md)** (ex-1.3.5)
 
 ---
 

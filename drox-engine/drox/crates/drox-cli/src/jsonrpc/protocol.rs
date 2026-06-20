@@ -7,9 +7,10 @@
 use std::collections::BTreeMap;
 
 use camino::Utf8PathBuf;
-use drox_engine::{AgentEvent, EngineTraceRecord, SessionUiStats};
+use drox_engine::SessionUiStats;
 use drox_types::Message;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::PROTOCOL_VERSION;
 
@@ -55,44 +56,20 @@ pub struct InitializeResult {
     pub server_name: &'static str,
     pub server_version: &'static str,
     pub protocol_version: &'static str,
-    /// Wire pipeline id (1.3.2+). Absent on legacy bundled engines.
-    pub orchestration_pipeline: &'static str,
-    /// Compteur injecté à la compilation (`build.rs`) — epoch Unix (s) du dernier build `drox-cli`.
-    pub dev_build: u32,
-    /// Revision git courte au moment de la compilation (`unknown` si indisponible).
-    #[serde(default, skip_serializing_if = "str_is_empty")]
-    pub engine_git_sha: &'static str,
     pub capabilities: ServerCapabilities,
-}
-
-#[must_use]
-fn str_is_empty(s: &str) -> bool {
-    s.is_empty()
-}
-
-#[must_use]
-fn dev_build_from_compile_env() -> u32 {
-    option_env!("DROX_DEV_BUILD")
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0)
-}
-
-#[must_use]
-fn engine_git_sha_from_compile_env() -> &'static str {
-    option_env!("DROX_ENGINE_GIT_SHA").unwrap_or("")
+    /// Pipeline agent annoncé à l'IDE (`droxEngineService` / warm start).
+    /// `tui_mono` = boucle unique TUI 1.5 (plus d'orchestration `role_split`).
+    pub orchestration_pipeline: &'static str,
 }
 
 impl InitializeResult {
-    #[must_use]
-    pub fn current() -> Self {
+    pub const fn current() -> Self {
         Self {
             server_name: "drox",
             server_version: env!("CARGO_PKG_VERSION"),
             protocol_version: PROTOCOL_VERSION,
-            orchestration_pipeline: "role_split",
-            dev_build: dev_build_from_compile_env(),
-            engine_git_sha: engine_git_sha_from_compile_env(),
             capabilities: ServerCapabilities::CURRENT,
+            orchestration_pipeline: "tui_mono",
         }
     }
 }
@@ -139,7 +116,7 @@ pub struct AgentRunParams {
     pub system: Option<String>,
     #[serde(default)]
     pub apply_edits: Option<bool>,
-    /// `default | plan | acceptEdits | bypassPermissions` (`professor` rejeté en 1.4.0).
+    /// `default | plan | acceptEdits | bypassPermissions | professor`.
     #[serde(default)]
     pub mode: Option<String>,
     #[serde(default)]
@@ -156,9 +133,6 @@ pub struct AgentRunParams {
     pub temperature: Option<f32>,
     #[serde(default)]
     pub max_tokens: Option<u32>,
-    /// Fenêtre Ollama `num_ctx` du run parent (indépendante de `DROX_NUM_CTX` si fourni).
-    #[serde(default)]
-    pub num_ctx: Option<usize>,
     #[serde(default)]
     pub session_id: Option<String>,
     #[serde(default)]
@@ -184,7 +158,7 @@ pub struct AgentRunParams {
     pub native_thinking: Option<bool>,
     /// Outils retirés du registre pour ce run (paramètres workspace §2.17).
     /// Le modèle ne reçoit pas leurs `ToolSpec`. `ask_user_question` et
-    /// `internal_plan_write` sont ignorés s'ils apparaissent ici.
+    /// `todo_write` sont ignorés s'ils apparaissent ici.
     #[serde(default)]
     pub disabled_tools: Vec<String>,
     /// Si `false`, les outils MCP (`mcp__…`) ne sont pas enregistrés pour ce run.
@@ -193,20 +167,43 @@ pub struct AgentRunParams {
     /// Objectif verrouillé du run (§2.25) — heuristique côté client.
     #[serde(default)]
     pub run_objective: Option<String>,
-    /// Orchestration pipeline: `role_split` (aliases `v1_2` / `v1_3` still accepted with deprecation warn).
+    /// Sous-agents (`task`, §2.10). `false` ou absent = désactivé (défaut).
+    #[serde(default)]
+    pub subagents_enabled: Option<bool>,
+    /// Plafond d'itérations LLM par sous-agent Explore.
+    #[serde(default)]
+    pub subagents_max_iterations: Option<usize>,
+    /// Nombre max de sous-agents en parallèle (file d'attente).
+    #[serde(default)]
+    pub subagents_max_concurrent: Option<usize>,
+    /// Fenêtre de contexte Ollama (`num_ctx`) — vignette Architecte IDE.
+    #[serde(default)]
+    pub num_ctx: Option<i64>,
+    /// Sampling Ollama — vignette Architecte (prioritaire sur env spawn).
+    #[serde(default)]
+    pub top_p: Option<f32>,
+    #[serde(default)]
+    pub top_k: Option<i64>,
+    #[serde(default)]
+    pub repeat_penalty: Option<f32>,
+    #[serde(default)]
+    pub min_p: Option<f32>,
+    #[serde(default)]
+    pub seed: Option<i64>,
+    #[serde(default)]
+    pub presence_penalty: Option<f32>,
+    #[serde(default)]
+    pub frequency_penalty: Option<f32>,
+    #[serde(default)]
+    pub keep_alive: Option<String>,
+    /// Champs envoyés par l'IDE 1.4 — désérialisés puis **ignorés** (pas de
+    /// rail `role_split` dans le moteur TUI).
     #[serde(default)]
     pub orchestration_mode: Option<String>,
-    /// Gate architecte : `discussion` | `action` | `auto` (défaut — tour modèle `[gate: …]`).
+    #[serde(default)]
+    pub orchestration_max_parallel_executors: Option<usize>,
     #[serde(default)]
     pub architect_interaction_mode: Option<String>,
-    /// **Deprecated** — wire legacy `relaxed` | `normal` | `strict` | `custom`.
-    /// Désérialisé pour rétrocompat ; ignoré à l'exécution (profil produit unique).
-    #[serde(default)]
-    pub engine_strictness: Option<String>,
-    /// **Deprecated** — surcharges unitaires legacy (`engineTuning`).
-    /// Désérialisé pour rétrocompat ; ignoré à l'exécution.
-    #[serde(default)]
-    pub engine_tuning: Option<drox_engine::EngineTuningOverrides>,
 }
 
 /// Image attachée à un `agent.run`. `data` est la base64 brute (sans préfixe
@@ -216,10 +213,6 @@ pub struct AgentRunParams {
 pub struct AgentRunImage {
     pub mime: String,
     pub data: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rel_path: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub abs_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -247,9 +240,6 @@ pub struct AgentCancelResult {
 pub struct SessionListParams {
     #[serde(default)]
     pub dir: Option<Utf8PathBuf>,
-    /// Si `dir` absent : `<workspace>/.drox/sessions`.
-    #[serde(default)]
-    pub workspace: Option<Utf8PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -258,8 +248,6 @@ pub struct SessionListEntryDto {
     pub id: String,
     pub modified_secs: u64,
     pub size_bytes: u64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
 }
 
 /// `session.read`.
@@ -269,8 +257,6 @@ pub struct SessionReadParams {
     pub id: String,
     #[serde(default)]
     pub dir: Option<Utf8PathBuf>,
-    #[serde(default)]
-    pub workspace: Option<Utf8PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -280,9 +266,6 @@ pub struct SessionReadResult {
     /// Derniers compteurs barre de statut (persistés à côté du `.jsonl`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ui_stats: Option<SessionUiStats>,
-    /// Trace moteur (`*.engine-trace.jsonl`) — injection system / routing / tools.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub engine_trace: Vec<EngineTraceRecord>,
 }
 
 /// `session.compact` — tour LLM de compaction sur le transcript d'une session
@@ -293,8 +276,6 @@ pub struct SessionCompactParams {
     pub id: String,
     #[serde(default)]
     pub dir: Option<Utf8PathBuf>,
-    #[serde(default)]
-    pub workspace: Option<Utf8PathBuf>,
     #[serde(default)]
     pub server: Option<String>,
     #[serde(default)]
@@ -323,15 +304,13 @@ pub struct SessionCompactResult {
     pub usage: Option<SessionCompactUsageDto>,
 }
 
-/// Notification `agent/event`.
+/// Notification `agent/event` — `event` peut être un [`AgentEvent`] ou un
+/// événement synthétique IDE (`rail_station_*`, …).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentEventNotification {
     pub run_id: String,
-    pub event: AgentEvent,
-    /// Exécuteur parallèle — identifiant tâche quand l'événement ne porte pas `job_id` (ex. `text_delta`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub job_id: Option<String>,
+    pub event: Value,
 }
 
 /// Paramètres de la requête serveur→client `tool/exec`.
@@ -461,16 +440,7 @@ mod tests {
         let r = InitializeResult::current();
         assert_eq!(r.server_name, "drox");
         assert_eq!(r.protocol_version, PROTOCOL_VERSION);
-        let compile_dev_build = option_env!("DROX_DEV_BUILD")
-            .and_then(|s| s.parse::<u32>().ok())
-            .unwrap_or(0);
-        if compile_dev_build == 0 {
-            assert_eq!(r.dev_build, 0, "release build omits dev stamp");
-            assert!(r.engine_git_sha.is_empty());
-        } else {
-            assert!(r.dev_build > 1_000_000_000, "dev_build must be unix epoch seconds");
-            assert!(!r.engine_git_sha.is_empty());
-        }
+        assert_eq!(r.orchestration_pipeline, "tui_mono");
         assert!(r.capabilities.run_streaming_events);
         // Sprint Questions bloquantes (§2.13) — le serveur sait poser des
         // questions interactives via `user/ask`, indépendamment de la
@@ -532,75 +502,70 @@ mod tests {
     }
 
     #[test]
-    fn agent_run_params_ignores_legacy_subagents_wire() {
+    fn tool_exec_params_round_trip_camel_case() {
         let raw = json!({
-            "prompt": "explore",
-            "subagentsEnabled": true,
-            "subagentsModel": "qwen3.5:4b",
-            "orchestrationMaxParallelExecutors": 2
+            "runId": "run_1",
+            "callId": "c1",
+            "toolName": "file_write",
+            "input": { "path": "a.txt", "content": "x" },
+            "workspace": "/ws",
+            "planMode": true,
+            "applyFsWrites": false
         });
-        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.prompt, "explore");
+        let p: ToolExecParams = serde_json::from_value(raw.clone()).unwrap();
+        assert_eq!(p.run_id, "run_1");
+        assert_eq!(p.tool_name, "file_write");
+        assert!(p.plan_mode);
+        assert!(!p.apply_fs_writes);
+        let back = serde_json::to_value(&p).unwrap();
+        assert_eq!(back["planMode"], json!(true));
+        assert_eq!(back["applyFsWrites"], json!(false));
     }
 
     #[test]
-    fn agent_run_params_ignores_legacy_model_tier() {
+    fn user_ask_params_round_trip_camel_case() {
         let raw = json!({
-            "prompt": "hi",
-            "modelTier": "low"
+            "runId": "run_2",
+            "askId": "ask_1",
+            "title": "Choix",
+            "questions": [{
+                "id": "q1",
+                "prompt": "Continuer ?",
+                "options": [{ "id": "opt1", "label": "Oui" }],
+                "allowMultiple": false,
+                "allowFreeText": true
+            }]
         });
-        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.prompt, "hi");
+        let p: UserAskParams = serde_json::from_value(raw).unwrap();
+        assert_eq!(p.run_id, "run_2");
+        assert_eq!(p.questions[0].allow_free_text, true);
+        let result = UserAskResult {
+            answers: vec![UserAskAnswer {
+                id: "q1".into(),
+                option_ids: vec!["opt1".into()],
+                free_text: String::new(),
+                skipped: false,
+            }],
+        };
+        let j = serde_json::to_value(&result).unwrap();
+        assert_eq!(j["answers"][0]["optionIds"], json!(["opt1"]));
     }
 
     #[test]
-    fn agent_run_params_round_trips_orchestration_mode() {
+    fn agent_run_params_round_trips_ide_vignette_fields() {
         let raw = json!({
             "prompt": "hi",
-            "orchestrationMode": "role_split"
+            "numCtx": 32768,
+            "orchestrationMode": "role_split",
+            "orchestrationMaxParallelExecutors": 1,
+            "architectInteractionMode": "action",
+            "mode": "trustEdit"
         });
         let p: AgentRunParams = serde_json::from_value(raw).unwrap();
+        assert_eq!(p.num_ctx, Some(32_768));
         assert_eq!(p.orchestration_mode.as_deref(), Some("role_split"));
-    }
-
-    #[test]
-    fn agent_run_params_round_trips_architect_interaction_mode() {
-        let raw = json!({
-            "prompt": "hi",
-            "architectInteractionMode": "discussion"
-        });
-        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
-        assert_eq!(
-            p.architect_interaction_mode.as_deref(),
-            Some("discussion")
-        );
-    }
-
-    #[test]
-    fn agent_run_params_round_trips_engine_strictness() {
-        let raw = json!({
-            "prompt": "hi",
-            "engineStrictness": "strict"
-        });
-        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.engine_strictness.as_deref(), Some("strict"));
-    }
-
-    #[test]
-    fn agent_run_params_round_trips_engine_tuning_custom() {
-        let raw = json!({
-            "prompt": "hi",
-            "engineStrictness": "custom",
-            "engineTuning": {
-                "discussionPromotableMinChars": 8,
-                "readBudgetPercent": 55
-            }
-        });
-        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.engine_strictness.as_deref(), Some("custom"));
-        let t = p.engine_tuning.as_ref().unwrap();
-        assert_eq!(t.discussion_promotable_min_chars, Some(8));
-        assert_eq!(t.read_budget_percent, Some(55));
+        assert_eq!(p.architect_interaction_mode.as_deref(), Some("action"));
+        assert_eq!(p.mode.as_deref(), Some("trustEdit"));
     }
 
     #[test]

@@ -27,9 +27,9 @@ impl Tool for WorkspaceMapNoteTool {
     }
 
     fn description(&self) -> &str {
-        "Add or update a **semantic note** on the workspace map (zone, role, \
-         pivot). Use after exploration to record what a folder is for without \
-         re-listing the whole repo."
+        "Ajoute ou met à jour une **note sémantique** sur la carte workspace (zone, rôle, \
+         pivot). À utiliser après exploration pour figer « à quoi sert ce dossier » sans \
+         relister tout le repo."
     }
 
     fn input_schema(&self) -> Value {
@@ -39,8 +39,8 @@ impl Tool for WorkspaceMapNoteTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: WorkspaceMapNoteInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "workspace_map_note: invalid JSON ({e}). Expected: \
-                 {{\"path\": \"drox/\", \"summary\": \"agent engine\"}}."
+                "workspace_map_note: JSON invalide ({e}). Attendu : \
+                 {{\"path\": \"drox/\", \"summary\": \"moteur agent\"}}."
             ))
         })?;
         let store = ctx.workspace_map.as_ref().ok_or_else(|| {

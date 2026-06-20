@@ -8,7 +8,7 @@
 
 ## En une phrase
 
-Stabiliser le moteur et la session après la refonte rail **1.4.0** : surface prod (`droxSurface`), discuss (R1a/R1b dogfood qwen27b), busy, mutations ACT, boucles, VERIFY Windows, replay — **sans** polish UI chat (→ 1.4.3).
+Stabiliser le moteur et la session après la refonte rail **1.4.0** : surface prod (`droxSurface`), discuss (R1a/R1b dogfood qwen27b), busy, mutations ACT, boucles, VERIFY Windows, replay — **sans** polish UI chat (→ 1.5.1).
 
 ---
 
@@ -20,7 +20,7 @@ PLAN-1.4.1       base « 0 » — stabilisation dogfood (P1–P8)
     → PLAN-1.4.1.2a  context diet (réduire bruit injection)
       → PLAN-1.4.1.2   patch rail / clôture / VERIFY
         → PLAN-1.4.1.3   Context Frame · outils dossiers · plan interne
-          → semver 1.4.1.x + 1.4.3 UI
+          → semver 1.4.1.x + 1.5.1 UI
 ```
 
 | Plan | Focus | Statut (juin 2026) |
@@ -35,7 +35,7 @@ PLAN-1.4.1       base « 0 » — stabilisation dogfood (P1–P8)
 
 → **[PLAN-1.4.1.md](PLAN-1.4.1.md)** — contexte post-1.4.0 + **[tableau d’exécution § XIV](PLAN-1.4.1.md#xiv--tableau-dexécution-ordonné)** (phases 0→8)
 
-L’ancien plan **index / graphe** est en **[1.4.4](../1.4.4/PLAN-1.4.4.md)**.
+L’ancien plan **index / graphe** est en **[1.5.2](../1.5/1.5.2/PLAN-1.5.2.md)**.
 
 ---
 
@@ -61,7 +61,7 @@ L’ancien plan **index / graphe** est en **[1.4.4](../1.4.4/PLAN-1.4.4.md)**.
 
 **Patch rail [1.4.1.2](PLAN-1.4.1.2.md)** : B-RAIL-02, B-MOTOR-05…08, B-PROPOSE-01, B-CYCLE-01 (dogfood juin 2026 — **après 1.4.1.2a**)
 
-**1.4.3** : B-UI-01 à 05 · **reporté** : B-RAIL-01 résidu (`[gate:]` modèle)
+**1.5.1** : B-UI-01 à 05 · **reporté** : B-RAIL-01 résidu (`[gate:]` modèle)
 
 Détail : [SMOKE-BACKLOG](../1.4.0/archive/SMOKE-BACKLOG.md)
 
@@ -78,6 +78,6 @@ P1 droxSurface → P2 discuss → P3 busy → P4 boucles/ACT
 
 ## Suite
 
-- [1.4.3 — UI chat](../1.4.3/README.md)
-- [1.4.4 — Index & graphe](../1.4.4/README.md)
+- [1.5.1 — UI chat](../1.5/1.5.1/README.md)
+- [1.5.2 — Index & graphe](../1.5/1.5.2/README.md)
 - [Hub 1.4](../README.md)

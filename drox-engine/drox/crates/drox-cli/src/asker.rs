@@ -110,7 +110,6 @@ mod tests {
             id: None,
             prompt: prompt.into(),
             choices: choices.iter().map(|c| (*c).to_string()).collect(),
-            structured_options: vec![],
             allow_multiple,
             allow_free_text: false,
         }

@@ -78,7 +78,7 @@ Compaction passes (run 3): ___
 | **ORANGE** | M9-1…M9-6 OK mais mutation / schema_error encore rouges |
 | **ROUGE** | M9-4 ou M9-5 échoue (régression contexte exports) |
 
-**Actions si ROUGE** : rouvrir backlog S-CTX-01/02/03 dans [SMOKE-1.4.2](SMOKE-1.4.2-ses_7b34fd1d.md) — ne pas gate 1.4.3.
+**Actions si ROUGE** : rouvrir backlog S-CTX-01/02/03 dans [SMOKE-1.4.2](SMOKE-1.4.2-ses_7b34fd1d.md) — ne pas gate 1.5.1.
 
 ---
 

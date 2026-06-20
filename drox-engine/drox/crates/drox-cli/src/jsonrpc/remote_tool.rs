@@ -1,4 +1,4 @@
-﻿//! Wrapper `Tool` qui délègue l'exécution au client connecté en JSON-RPC.
+//! Wrapper `Tool` qui délègue l'exécution au client connecté en JSON-RPC.
 //!
 //! Pour chaque tool listé dans `clientCapabilities.executableTools`, le serveur
 //! remplace l'implémentation locale par un [`RemoteTool`] qui envoie une
@@ -12,7 +12,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use drox_tools::{DynTool, Tool, ToolContext, ToolError};
 use serde_json::Value;
-use tracing::warn;
 use uuid::Uuid;
 
 use super::protocol::{ToolExecParams, ToolExecResult};
@@ -64,7 +63,6 @@ impl Tool for RemoteTool {
     }
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
-        log_malformed_client_tool_input(self.name.as_ref(), &input);
         let params = ToolExecParams {
             run_id: self.run_id.clone(),
             call_id: Uuid::new_v4().to_string(),
@@ -97,43 +95,87 @@ impl Tool for RemoteTool {
     }
 }
 
-/// Diagnostic C9 — `file_edit` with empty payload before `tool/exec` (see docs/1.4/archive/1.4.0/INVESTIGATION-file-edit.md).
-fn log_malformed_client_tool_input(tool_name: &str, input: &Value) {
-    if tool_name != "file_edit" {
-        return;
-    }
-    let Some(obj) = input.as_object() else {
-        warn!(
-            tool = tool_name,
-            input_preview = %truncate_json_preview(input),
-            "file_edit: tool/exec input is not a JSON object"
-        );
-        return;
-    };
-    let has_path = obj
-        .get("path")
-        .or_else(|| obj.get("file_path"))
-        .and_then(|v| v.as_str())
-        .is_some_and(|s| !s.trim().is_empty());
-    let edits = obj.get("edits").and_then(|v| v.as_array());
-    let has_edits = edits.is_some_and(|a| !a.is_empty());
-    if !has_path || !has_edits {
-        warn!(
-            tool = tool_name,
-            has_path,
-            edits_len = edits.map(|a| a.len()).unwrap_or(0),
-            input_preview = %truncate_json_preview(input),
-            "file_edit: tool/exec input missing path or non-empty edits array"
-        );
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use camino::Utf8PathBuf;
+    use drox_engine::default_tool_registry;
+    use drox_tools::ToolContext;
+    use serde_json::{Value, json};
+    use tokio::sync::mpsc;
 
-fn truncate_json_preview(value: &Value) -> String {
-    let s = value.to_string();
-    const MAX: usize = 400;
-    if s.len() <= MAX {
-        s
-    } else {
-        format!("{}…", &s[..MAX])
+    #[tokio::test]
+    async fn remote_tool_sends_tool_exec_and_maps_result() {
+        let (tx, mut rx) = mpsc::channel::<String>(8);
+        let server = Server::new(tx);
+        server.set_executable_tools(["bash".to_string()]);
+
+        let inner = default_tool_registry().get("bash").expect("bash in registry");
+        let remote = RemoteTool::wrap(server.clone(), &inner, "run_42".to_string());
+        let ctx = ToolContext::new(Utf8PathBuf::from("/workspace"), true)
+            .with_plan_mode(false);
+
+        let pending = tokio::spawn(async move {
+            remote
+                .execute(&ctx, json!({ "command": "echo hi" }))
+                .await
+        });
+
+        let line = rx.recv().await.expect("server should emit tool/exec");
+        let parsed: Value = serde_json::from_str(&line).unwrap();
+        assert_eq!(parsed["method"], json!("tool/exec"));
+        assert_eq!(parsed["params"]["runId"], json!("run_42"));
+        assert_eq!(parsed["params"]["toolName"], json!("bash"));
+        assert_eq!(parsed["params"]["workspace"], json!("/workspace"));
+        assert_eq!(parsed["params"]["applyFsWrites"], json!(true));
+        assert!(!parsed["params"]["planMode"].as_bool().unwrap_or(true));
+
+        let id = parsed["id"].as_i64().expect("numeric json-rpc id");
+        server
+            .handle_line(&format!(
+                r#"{{"jsonrpc":"2.0","id":{id},"result":{{"output":{{"stdout":"hi"}},"isError":false}}}}"#
+            ))
+            .await;
+
+        let out = pending.await.expect("join").expect("tool ok");
+        assert_eq!(out["stdout"], json!("hi"));
+    }
+
+    #[tokio::test]
+    async fn remote_tool_surfaces_client_is_error() {
+        let (tx, mut rx) = mpsc::channel::<String>(8);
+        let server = Server::new(tx);
+        server.set_executable_tools(["file_write".to_string()]);
+
+        let inner = default_tool_registry()
+            .get("file_write")
+            .expect("file_write in registry");
+        let remote = RemoteTool::wrap(server.clone(), &inner, "run_1".to_string());
+        let ctx = ToolContext::new(Utf8PathBuf::from("/ws"), false).with_plan_mode(true);
+
+        let pending = tokio::spawn(async move {
+            remote
+                .execute(
+                    &ctx,
+                    json!({ "path": "x.txt", "content": "y" }),
+                )
+                .await
+        });
+
+        let line = rx.recv().await.unwrap();
+        let parsed: Value = serde_json::from_str(&line).unwrap();
+        let id = parsed["id"].as_i64().unwrap();
+        assert_eq!(parsed["params"]["planMode"], json!(true));
+
+        server
+            .handle_line(&format!(
+                r#"{{"jsonrpc":"2.0","id":{id},"result":{{"output":{{"error":"plan mode"}},"isError":true}}}}"#
+            ))
+            .await;
+
+        let err = pending.await.unwrap().unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("file_write"), "got: {msg}");
+        assert!(msg.contains("plan mode"), "got: {msg}");
     }
 }

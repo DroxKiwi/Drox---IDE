@@ -1,4 +1,5 @@
 /target
+*.log
 **/*.rs.bk
 Cargo.lock.bak
 .cargo-ok
@@ -19,8 +20,5 @@ tarpaulin-report.html
 # Drox env files (peuvent contenir des secrets, ex. DROX_API_KEY)
 .drox/.env
 .drox/env
-
-# Journaux gate de dev / tests unitaires (RunJournal)
-**/.drox/runs/
 .env
 .env.local

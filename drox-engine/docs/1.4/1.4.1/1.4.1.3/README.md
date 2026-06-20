@@ -33,8 +33,8 @@ Centraliser **l’ordre et le contenu** des injections system (Context Frame), i
 | Version | Lien |
 |---------|------|
 | **1.4.1** | Stabilisation rail / gates — base actuelle |
-| **1.4.3** | UI chat — pas de conflit |
-| **1.4.4** | Index / graphe / ContextPack — **complémentaire** (bloc injectable dans une frame boot READ) |
+| **1.5.1** | UI chat — pas de conflit |
+| **1.5.2** | Index / graphe / ContextPack — **complémentaire** (bloc injectable dans une frame boot READ) |
 
 Ce chantier est **transversal** : il réorganise l’orchestration prompt + surface outil ; il ne remplace pas le rail ni l’intent probe.
 

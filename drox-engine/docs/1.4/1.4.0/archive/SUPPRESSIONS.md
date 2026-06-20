@@ -157,7 +157,7 @@ Complément [AUDIT-RELIQUATS.md](AUDIT-RELIQUATS.md) — absents du plan initial
 |-------|--------|
 | `agent/tests/_all.txt` | DEL immédiat |
 | `lib.rs` — `pub mod orchestration_delegate`, `subagent`, exports Executor/Subagent | CUT |
-| `event.rs` — `SubagentStart/Done` (segment events = tier 2) | CUT ou KEEP UI 1.4.3 |
+| `event.rs` — `SubagentStart/Done` (segment events = tier 2) | CUT ou KEEP UI 1.5.1 |
 | `agent_stream.rs` — cap subagent tool calls | CUT |
 
 ### drox-tools (Phase 2b)

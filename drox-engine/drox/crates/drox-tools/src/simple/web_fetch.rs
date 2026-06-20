@@ -40,8 +40,8 @@ impl Tool for WebFetchTool {
     }
 
     fn description(&self) -> &str {
-        "Download an HTTP(S) URL and extract text. HTML: script/style tags stripped. \
-         Max size: 2 MiB, returned text truncated at 32 KiB."
+        "Télécharge une URL HTTP(S) et extrait le texte. HTML : balises script/style filtrées. \
+         Taille max : 2 MiB, texte renvoyé tronqué à 32 KiB."
     }
 
     fn input_schema(&self) -> Value {

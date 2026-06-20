@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-title Drox IDE Web
+title VSCode Web Serverless
 
 pushd %~dp0\..
 

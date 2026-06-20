@@ -19,8 +19,6 @@ use drox_context::{
 };
 use drox_types::Message;
 
-use crate::orchestration::EngineTuning;
-
 /// Politique de contexte (cheap to clone).
 #[derive(Clone)]
 pub struct ContextPolicy {
@@ -51,25 +49,15 @@ impl Default for ContextPolicy {
 
 impl ContextPolicy {
     /// Budget aligné sur la fenêtre Ollama réelle (`num_ctx`), pour que l'autocompact
-    /// se déclenche vers ~75 % de la fenêtre configurée (pas dès les premiers milliers de tokens).
+    /// se déclenche avant saturation côté serveur (ex. 41k affichés dans l'UI).
     #[must_use]
     pub fn for_model_context_window(num_ctx: usize) -> Self {
-        Self::for_model_context_window_with_tuning(num_ctx, &EngineTuning::default())
-    }
-
-    /// Fenêtre `num_ctx` + snip activé/désactivé via [`EngineTuning::context_snip_enabled`] (F11).
-    #[must_use]
-    pub fn for_model_context_window_with_tuning(num_ctx: usize, tuning: &EngineTuning) -> Self {
         let window = num_ctx.max(2048);
-        let mut policy = Self {
+        Self {
             counter: Arc::new(RoughTokenCounter::default()),
-            budget: ContextBudget::for_model_context_window(window),
+            budget: ContextBudget::with_window(window),
             snip: Some(SnipConfig::default()),
-        };
-        if !tuning.context_snip_enabled {
-            policy = policy.without_snip();
         }
-        policy
     }
 
     #[must_use]
@@ -220,14 +208,5 @@ mod tests {
         let big = "x".repeat(8_000);
         let mut msgs = vec![tool_msg(&big), tool_msg(&big)];
         assert!(policy.maybe_snip(&mut msgs).is_none());
-    }
-
-    #[test]
-    fn for_model_context_window_32k_autocompact_threshold_is_high() {
-        let policy = ContextPolicy::for_model_context_window(32_768);
-        let threshold = policy.budget().autocompact_threshold();
-        assert_eq!(threshold, 24_576);
-        assert!(!policy.budget().evaluate(5_441).above_autocompact);
-        assert!(policy.budget().evaluate(25_000).above_autocompact);
     }
 }

@@ -67,7 +67,7 @@ F. Surcharge contexte   push snapshots + manuel outil — voir PLAN-1.4.1.2a
 
 → **B-CTX-02** (context diet) : plan dédié **[PLAN-1.4.1.2a](PLAN-1.4.1.2a.md)** — **prérequis de ce plan**.
 
-**Hors scope 1.4.1.2** : B-UI-01…06 polish · B-RAIL-01 résidu `[gate:]` modèle (prompt 1.4.3) · G-DEBT-01 split `tools.rs`.
+**Hors scope 1.4.1.2** : B-UI-01…06 polish · B-RAIL-01 résidu `[gate:]` modèle (prompt 1.5.1) · G-DEBT-01 split `tools.rs`.
 
 ---
 
@@ -355,7 +355,7 @@ Cocher `☐` → `☑`. Gates **G** après chaque phase.
 
 | # | ☐ | Action | Fichier / zone | ID |
 |---|-----|--------|----------------|-----|
-| 6.1 | ⏭ | Fingerprint préambule thinking stable | report **1.4.3** (6.2 couvert par 2a) | B-MOTOR-01 |
+| 6.1 | ⏭ | Fingerprint préambule thinking stable | report **1.5.1** (6.2 couvert par 2a) | B-MOTOR-01 |
 | 6.2 | ☑ | Réduire réinjection snapshot rail identique | [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) B-CTX-02a | B-MOTOR-01 |
 | 6.3 | ☑ | `FinalAnswerGuard` : answering thinking ≠ canal ; une promotion | `stream/consume.rs`, `final_answer_guard.rs` | B-MOTOR-03 |
 | 6.4 | ☑ | Tests answering / dedup | `phases.rs`, `post_todos_close.rs` | B-MOTOR-01, B-MOTOR-03 |
@@ -426,7 +426,7 @@ P0 doc
 - [ ] **B-RAIL-02**, **B-MOTOR-05**, **B-MOTOR-06** : smoke plan sidebar vert — **debunk**
 - [ ] **B-MOTOR-07** : ≤ 2 boucles `file_edit` même erreur sur run référence — **debunk**
 - [ ] **B-MOTOR-08** : pas de `done` avec verify Failed sur brief code TS — **debunk**
-- [x] **B-MOTOR-01/03** : 6.2 via 2a ; 6.3 livré ; 6.1 report 1.4.3
+- [x] **B-MOTOR-01/03** : 6.2 via 2a ; 6.3 livré ; 6.1 report 1.5.1
 - [x] **G-CTX-01** : livré
 - [x] `cargo test -p drox-engine` vert ; discuss R1a/R1b OK — **tests auto**
 - [x] SMOKE-BACKLOG + extrait PLAN-1.4.1 mis à jour
@@ -437,10 +437,10 @@ P0 doc
 ## Non-objectifs 1.4.1.2
 
 - Nouveau paradigme rail ou stations supplémentaires
-- Forcer le modèle à émettre `[gate:]` (B-RAIL-01 → 1.4.3 prompt)
-- Polish UI trays / replay affichage (1.4.3)
+- Forcer le modèle à émettre `[gate:]` (B-RAIL-01 → 1.5.1 prompt)
+- Polish UI trays / replay affichage (1.5.1)
 - Garantir Qwen 2.7B 100 % JSON outils parfait — **atténuation** seulement
-- Bump semver **1.4.3** — rester patch **1.4.1.x** jusqu’à clôture PLAN-1.4.1 §8
+- Bump semver **1.5.1** — rester patch **1.4.1.x** jusqu’à clôture PLAN-1.4.1 §8
 
 ---
 
@@ -451,4 +451,4 @@ P0 doc
 - [PLAN-1.4.1.2a](PLAN-1.4.1.2a.md) — prérequis context diet
 - [README 1.4.1](README.md)
 - [SMOKE-BACKLOG](../1.4.0/archive/SMOKE-BACKLOG.md)
-- [1.4.3 UI](../1.4.3/README.md)
+- [1.5.1 UI](../1.5/1.5.1/README.md)

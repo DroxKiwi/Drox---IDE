@@ -98,14 +98,14 @@ fn apply_fanout_limit(
             }
             let omitted = total - max_per_parent;
             let parent_display = if parent.is_empty() {
-                "(unknown parent)"
+                "(parent indéterminé)"
             } else {
                 parent.as_str()
             };
             let hint = format!(
-                "Under `{parent_display}`, {total} entries (files + directories) matched the pattern; \
-                 only the first {max_per_parent} (lexicographic order) are listed. \
-                 {omitted} additional entries are omitted — refine the glob (subdirectory or narrower pattern, e.g. `*.ts`) to see the rest."
+                "Sous «{parent_display}», {total} entrées (fichiers + dossiers) correspondaient au motif ; \
+                 seules les {max_per_parent} premières (ordre lexicographique) sont listées. \
+                 {omitted} entrée(s) supplémentaire(s) non listées — affine le glob (sous-dossier ou motif plus étroit, ex. `*.ts`) pour voir la suite."
             );
             notes.push(json!({
                 "parent_directory": parent_display,
@@ -147,10 +147,10 @@ impl Tool for GlobTool {
     }
 
     fn description(&self) -> &str {
-        "List paths (files AND directories) matching a glob pattern under the workspace. \
-         Indirectly respects `.gitignore` via post-filter **`.droxignore`** (omitted paths in `droxignore_omitted`). \
-         Output: `files`, `directories`, `truncated`, `directory_fanout_caps`, `droxignore_omitted`. \
-         Use `*` for one level, `**/*.ext` for an extension."
+        "Liste les chemins (fichiers ET dossiers) qui correspondent à un motif glob sous le workspace. \
+         Respecte `.gitignore` indirectement via post-filtre **`.droxignore`** (chemins omis dans `droxignore_omitted`). \
+         Sortie : `files`, `directories`, `truncated`, `directory_fanout_caps`, `droxignore_omitted`. \
+         Utilise `*` pour le premier niveau, `**/*.ext` pour une extension."
     }
 
     fn input_schema(&self) -> Value {
@@ -308,7 +308,7 @@ mod tests {
         assert_eq!(caps[0]["entries_total"], 25);
         assert_eq!(caps[0]["entries_listed"], MAX_CHILDREN_PER_PARENT);
         assert_eq!(caps[0]["entries_omitted"], 5);
-        assert!(caps[0]["hint"].as_str().unwrap().contains("are omitted"));
+        assert!(caps[0]["hint"].as_str().unwrap().contains("non listées"));
     }
 
     #[tokio::test]

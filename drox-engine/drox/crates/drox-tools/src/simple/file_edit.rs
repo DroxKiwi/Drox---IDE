@@ -10,11 +10,10 @@
 //! - Le fichier doit exister.
 
 use async_trait::async_trait;
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use similar::TextDiff;
 use tokio::fs;
 
 use crate::context::ToolContext;
@@ -49,6 +48,37 @@ pub struct EditOp {
 
 pub struct FileEditTool;
 
+/// Produit un diff unifié pour une proposition `file_edit` (lecture disque sync).
+pub fn preview_file_edit_diff(workspace: &Utf8Path, input: &Value) -> Result<String, ToolError> {
+    let args: FileEditInput = serde_json::from_value(input.clone())?;
+    if args.edits.is_empty() {
+        return Err(ToolError::invalid_args("edits must not be empty"));
+    }
+
+    let resolved = resolve_under_workspace(workspace, &args.path)?;
+    let meta = std::fs::metadata(&resolved).map_err(|e| ToolError::io(resolved.clone(), e))?;
+    if !meta.is_file() {
+        return Err(ToolError::invalid_args(format!(
+            "not a regular file: {resolved}"
+        )));
+    }
+    if meta.len() > MAX_FILE_SIZE {
+        return Err(ToolError::edit_failed(format!(
+            "file too large ({} bytes > {} bytes limit)",
+            meta.len(),
+            MAX_FILE_SIZE
+        )));
+    }
+
+    let bytes = std::fs::read(&resolved).map_err(|e| ToolError::io(resolved.clone(), e))?;
+    let original = String::from_utf8_lossy(&bytes).into_owned();
+    let updated = apply_edits(&original, &args.edits)?;
+    if updated == original {
+        return Err(ToolError::edit_failed("edits produced no change"));
+    }
+    Ok(unified_diff(&resolved, &original, &updated))
+}
+
 #[async_trait]
 impl Tool for FileEditTool {
     fn name(&self) -> &str {
@@ -56,10 +86,9 @@ impl Tool for FileEditTool {
     }
 
     fn description(&self) -> &str {
-        "Edit a file via **targeted** replacement (old_string → new_string). Copy **exactly** \
-         the lines to change from the file (via `file_read` + start_line/end_line if needed) — \
-         never the whole file. `old_string` must be unique unless `replace_all=true`. \
-         Apply mode: writes to disk; otherwise proposes content+diff."
+        "Édite un fichier texte par couples (old_string, new_string). \
+         old_string doit être présent une seule fois sauf si replace_all=true. \
+         En mode apply, écrit sur disque ; sinon retourne contenu+diff."
     }
 
     fn input_schema(&self) -> Value {
@@ -93,9 +122,6 @@ impl Tool for FileEditTool {
             .await
             .map_err(|e| ToolError::io(resolved.clone(), e))?;
         let original = String::from_utf8_lossy(&bytes).into_owned();
-        if let Some(msg) = validate_edit_scope(&original, &args.edits) {
-            return Err(ToolError::edit_failed(msg));
-        }
         let updated = apply_edits(&original, &args.edits)?;
 
         if updated == original {
@@ -130,39 +156,6 @@ impl Tool for FileEditTool {
             }))
         }
     }
-}
-
-/// Rejette les réécritures quasi complètes (L-014 — aligné IDE `validateFileEditScope`).
-fn validate_edit_scope(original: &str, edits: &[EditOp]) -> Option<String> {
-    if original.len() < 80 {
-        return None;
-    }
-    let orig_trim = original.trim();
-    let orig_len = orig_trim.len();
-    let mut total_old = 0usize;
-    for edit in edits {
-        total_old += edit.old_string.len();
-        if edit.replace_all {
-            return Some(
-                "file_edit: replace_all on a large file is discouraged — use a unique old_string hunk"
-                    .to_string(),
-            );
-        }
-        let old_trim = edit.old_string.trim();
-        if orig_len > 0 && old_trim.len() * 100 >= orig_len * 85 {
-            return Some(
-                "file_edit: old_string covers almost the entire file — target a smaller hunk (few lines)"
-                    .to_string(),
-            );
-        }
-    }
-    if original.len() > 0 && total_old * 100 > original.len() * 55 {
-        return Some(
-            "file_edit: combined old_string spans more than half the file — split into smaller edits"
-                .to_string(),
-        );
-    }
-    None
 }
 
 /// Applique les éditions séquentiellement. Erreur si une `old_string` est
@@ -213,12 +206,7 @@ pub(super) fn apply_edits(original: &str, edits: &[EditOp]) -> Result<String, To
 
 /// Produit un diff unifié court (`--unified=3`) entre deux contenus.
 fn unified_diff(path: &Utf8PathBuf, before: &str, after: &str) -> String {
-    let diff = TextDiff::from_lines(before, after);
-    let label = path.as_str();
-    diff.unified_diff()
-        .context_radius(3)
-        .header(label, label)
-        .to_string()
+    crate::diff_util::unified_line_diff(path.as_str(), before, after)
 }
 
 #[cfg(test)]
@@ -355,35 +343,6 @@ mod tests {
         assert_eq!(after, "Z\nZ\n");
     }
 
-    #[test]
-    fn validate_edit_scope_rejects_whole_file_hunk() {
-        let big = "line one\n".repeat(20) + "line tail\n";
-        let msg = validate_edit_scope(
-            &big,
-            &[EditOp {
-                old_string: big.trim().to_string(),
-                new_string: "all new".to_string(),
-                replace_all: false,
-            }],
-        );
-        assert!(msg.is_some());
-        assert!(msg.unwrap().contains("almost the entire file"));
-    }
-
-    #[test]
-    fn validate_edit_scope_allows_small_hunk() {
-        let big = "line one\n".repeat(20) + "line tail\n";
-        assert!(validate_edit_scope(
-            &big,
-            &[EditOp {
-                old_string: "line one\n".to_string(),
-                new_string: "line TWO\n".to_string(),
-                replace_all: false,
-            }],
-        )
-        .is_none());
-    }
-
     #[tokio::test]
     async fn plan_mode_blocks_edit() {
         let tmp = tempfile::tempdir().unwrap();
@@ -403,5 +362,22 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, ToolError::PlanModeViolation(_)));
+    }
+
+    #[test]
+    fn preview_diff_shows_changes() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = camino::Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+        std::fs::write(root.join("p.txt"), "alpha\nbeta\n").unwrap();
+        let diff = preview_file_edit_diff(
+            &root,
+            &json!({
+                "path": "p.txt",
+                "edits": [{ "old_string": "beta", "new_string": "gamma" }],
+            }),
+        )
+        .unwrap();
+        assert!(diff.contains("-beta"));
+        assert!(diff.contains("+gamma"));
     }
 }

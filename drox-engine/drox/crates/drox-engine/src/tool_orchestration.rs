@@ -4,7 +4,6 @@
 //! - Mutations et outils non sûrs → lots séquentiels (un appel par lot).
 
 use drox_tools::ToolRegistry;
-use serde_json::Value;
 
 /// Plafond par défaut de tool calls read-only en parallèle.
 pub const DEFAULT_MAX_PARALLEL_TOOL_CALLS: usize = 8;
@@ -14,19 +13,16 @@ pub const DEFAULT_MAX_PARALLEL_TOOL_CALLS: usize = 8;
 pub enum ToolCallBatch {
     /// Exécution parallèle (reads, grep, glob, …).
     Parallel(Vec<usize>),
-    /// Exécution strictement série (writes, bash, internal_plan_write, …).
+    /// Exécution strictement série (writes, bash, todo_write, …).
     Serial(Vec<usize>),
 }
 
 /// Partitionne les tool calls comme `partitionToolCalls` côté leak.
 #[must_use]
-pub fn partition_tool_calls(
-    tool_calls: &[(&str, &Value)],
-    registry: &ToolRegistry,
-) -> Vec<ToolCallBatch> {
+pub fn partition_tool_calls(tool_names: &[&str], registry: &ToolRegistry) -> Vec<ToolCallBatch> {
     let mut batches: Vec<ToolCallBatch> = Vec::new();
-    for (idx, (name, input)) in tool_calls.iter().enumerate() {
-        let safe = registry.is_concurrency_safe_for_input(name, input);
+    for (idx, name) in tool_names.iter().enumerate() {
+        let safe = registry.is_concurrency_safe(name);
         if safe {
             if let Some(ToolCallBatch::Parallel(indices)) = batches.last_mut() {
                 indices.push(idx);
@@ -48,13 +44,9 @@ mod tests {
     #[test]
     fn groups_consecutive_read_only_tools() {
         let reg = ToolRegistry::with_simple_tools();
-        let empty = serde_json::json!({});
         let names = ["file_read", "grep", "glob", "file_edit", "file_read"];
-        let calls: Vec<(&str, &Value)> = names
-            .iter()
-            .map(|n| (*n, &empty))
-            .collect();
-        let batches = partition_tool_calls(&calls, &reg);
+        let refs: Vec<&str> = names.iter().copied().collect();
+        let batches = partition_tool_calls(&refs, &reg);
         assert_eq!(
             batches,
             vec![
@@ -66,15 +58,11 @@ mod tests {
     }
 
     #[test]
-    fn internal_plan_write_and_bash_are_serial() {
+    fn bash_and_todo_are_serial() {
         let reg = ToolRegistry::with_simple_tools();
-        let empty = serde_json::json!({});
-        let names = ["bash", "session_note", "file_read"];
-        let calls: Vec<(&str, &Value)> = names
-            .iter()
-            .map(|n| (*n, &empty))
-            .collect();
-        let batches = partition_tool_calls(&calls, &reg);
+        let names = ["bash", "todo_write", "file_read"];
+        let refs: Vec<&str> = names.iter().copied().collect();
+        let batches = partition_tool_calls(&refs, &reg);
         assert_eq!(
             batches,
             vec![

@@ -55,10 +55,10 @@ impl Tool for FileReadTool {
     }
 
     fn description(&self) -> &str {
-        "Read UTF-8 file content under the workspace root. Without `start_line`/`end_line`: \
-         read from the start (truncated beyond 512 KiB). With both: **line window** \
-         1-based inclusive (max 400 lines, ~128 KiB output) — ideal after `grep` to avoid \
-         loading the whole file."
+        "Lit le contenu UTF-8 d'un fichier sous la racine workspace. Sans `start_line`/`end_line` : \
+         lecture depuis le début (tronquée au-delà de 512 KiB). Avec les deux : **fenêtre de lignes** \
+         1-based inclusive (max 400 lignes, sortie max ~128 KiB) — idéal après un `grep` pour ne pas \
+         charger tout le fichier."
     }
 
     fn input_schema(&self) -> Value {
@@ -88,25 +88,25 @@ impl Tool for FileReadTool {
             (Some(start), Some(end)) => {
                 if start == 0 {
                     return Err(ToolError::invalid_args(
-                        "file_read: `start_line` must be >= 1 (1-based indexing).",
+                        "file_read: `start_line` doit être ≥ 1 (numérotation 1-based).",
                     ));
                 }
                 if end < start {
                     return Err(ToolError::invalid_args(
-                        "file_read: `end_line` must be >= `start_line`.",
+                        "file_read: `end_line` doit être ≥ `start_line`.",
                     ));
                 }
                 let n_lines = end - start + 1;
                 if n_lines > MAX_RANGE_LINES {
                     return Err(ToolError::invalid_args(format!(
-                        "file_read: range too large ({n_lines} lines, max {MAX_RANGE_LINES}). \
-                         Narrow the range or split into multiple calls.",
+                        "file_read: fenêtre trop large ({n_lines} lignes, max {MAX_RANGE_LINES}). \
+                         Réduis la plage ou découpe en plusieurs appels.",
                     )));
                 }
                 read_line_range(&resolved, len, start, end).await
             }
             _ => Err(ToolError::invalid_args(
-                "file_read: provide **both** `start_line` and `end_line`, or neither.",
+                "file_read: fournir **les deux** `start_line` et `end_line`, ou aucun des deux.",
             )),
         }
     }
@@ -173,7 +173,7 @@ async fn read_line_range(
 
     if current < start {
         return Err(ToolError::invalid_args(format!(
-            "file_read: `start_line` ({start}) is past end of file ({current} lines).",
+            "file_read: `start_line` ({start}) dépasse la fin du fichier ({current} lignes).",
         )));
     }
 

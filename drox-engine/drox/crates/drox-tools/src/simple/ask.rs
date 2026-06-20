@@ -111,20 +111,17 @@ impl Tool for AskUserQuestionTool {
     }
 
     fn description(&self) -> &str {
-        "Ask the human one or more questions and wait for answers — \
-         **only to fill missing context** before using tools \
-         (ambiguous goal, unknown scope, blocking choice). \
-         **Forbidden** after a code mutation in the run, for \"what do you want next?\" polls \
-         when the goal is already clear, or instead of `glob`/`file_read`. \
-         Call via native tool_calls (no JSON in assistant text). \
-         Recommended shape (minimal example): \
-         `{\"questions\":[{\"prompt\":\"What homepage copy?\",\
-         \"options\":[{\"id\":\"a\",\"label\":\"Short\"},{\"id\":\"b\",\"label\":\"Long\"}],\
+        "Pose une ou plusieurs questions à l'humain et attend ses réponses. \
+         Appelle via tool_calls natifs (pas de JSON dans le texte assistant). \
+         Forme recommandée (exemple minimal) : \
+         `{\"questions\":[{\"prompt\":\"Quel texte sur la page d'accueil ?\",\
+         \"options\":[{\"id\":\"a\",\"label\":\"Court\"},{\"id\":\"b\",\"label\":\"Long\"}],\
          \"allowFreeText\":true}]}`. \
-         **Do not stringify** the `questions` array into `prompt`. \
-         Legacy single: `{\"question\":\"…\",\"choices\":[\"A\",\"B\"]}`. \
-         The run pauses until answered; the user may skip \
-         a question (`skipped: true` in the matching response)."
+         Legacy mono : `{\"question\":\"…\",\"choices\":[\"A\",\"B\"]}`. \
+         À utiliser dès qu'un doute non trivial change les actions à venir \
+         (architecture, périmètre, choix de techno) avant toute mutation. \
+         Le run est mis en pause jusqu'à réponse ; l'utilisateur peut skipper \
+         une question (champ `skipped: true` dans la réponse correspondante)."
     }
 
     fn input_schema(&self) -> Value {
@@ -135,7 +132,7 @@ impl Tool for AskUserQuestionTool {
         let normalized = normalize_input(input);
         let args: AskUserQuestionInput = serde_json::from_value(normalized).map_err(|e| {
             ToolError::invalid_args(invalid_payload_message(&format!(
-                "invalid JSON payload ({e})"
+                "payload JSON invalide ({e})"
             )))
         })?;
         let Some(asker) = ctx.user_asker.clone() else {
@@ -171,14 +168,6 @@ impl Tool for AskUserQuestionTool {
                                 .options
                                 .iter()
                                 .map(|o| o.label.clone())
-                                .collect(),
-                            structured_options: q
-                                .options
-                                .iter()
-                                .map(|o| crate::asker::UserQuestionOption {
-                                    id: o.id.clone(),
-                                    label: o.label.clone(),
-                                })
                                 .collect(),
                             allow_multiple: q.allow_multiple,
                             allow_free_text: q.allow_free_text,
@@ -223,16 +212,7 @@ impl Tool for AskUserQuestionTool {
                     .ask(UserQuestion {
                         id: None,
                         prompt: mono.question,
-                        choices: mono.choices.clone(),
-                        structured_options: mono
-                            .choices
-                            .iter()
-                            .enumerate()
-                            .map(|(i, label)| crate::asker::UserQuestionOption {
-                                id: format!("opt{}", i + 1),
-                                label: label.clone(),
-                            })
-                            .collect(),
+                        choices: mono.choices,
                         allow_multiple: mono.allow_multiple,
                         // Le schéma legacy n'expose pas le toggle ; on garde
                         // le comportement historique (texte libre toujours
@@ -264,17 +244,11 @@ fn normalize_input(input: Value) -> Value {
                     other => other,
                 })
                 .collect();
-            let mut out = Map::new();
-            out.insert(
-                "questions".into(),
-                expand_embedded_questions(Value::Array(questions)),
-            );
-            return Value::Object(out);
+            json!({ "questions": questions })
         }
         Value::Object(mut obj) => {
             remap_snake_keys(&mut obj);
             normalize_questions_field(&mut obj);
-            expand_embedded_questions_in_object(&mut obj);
 
             if obj.contains_key("questions") {
                 return Value::Object(obj);
@@ -323,16 +297,13 @@ fn normalize_questions_field(obj: &mut serde_json::Map<String, Value>) {
         return;
     };
     let questions = match raw {
-        Value::String(s) => questions_from_string_field(&s),
+        Value::String(s) => json!([{ "prompt": s }]),
         Value::Object(m) => Value::Array(vec![normalize_question_item(m)]),
         Value::Array(arr) => Value::Array(
             arr.into_iter()
                 .map(|item| match item {
                     Value::Object(m) => normalize_question_item(m),
-                    Value::String(s) => questions_from_string_field(&s)
-                        .as_array()
-                        .and_then(|a| a.first().cloned())
-                        .unwrap_or_else(|| json!({ "prompt": s })),
+                    Value::String(s) => json!({ "prompt": s }),
                     other => other,
                 })
                 .collect(),
@@ -340,89 +311,6 @@ fn normalize_questions_field(obj: &mut serde_json::Map<String, Value>) {
         other => Value::Array(vec![other]),
     };
     obj.insert("questions".into(), questions);
-}
-
-/// Parse une chaîne `questions` : texte simple ou JSON array/object (LLM locaux).
-fn questions_from_string_field(s: &str) -> Value {
-    if let Some(parsed) = try_parse_json_text(s) {
-        return match parsed {
-            Value::Array(arr) => Value::Array(
-                arr.into_iter()
-                    .map(|item| match item {
-                        Value::Object(m) => normalize_question_item(m),
-                        Value::String(text) => json!({ "prompt": text }),
-                        other => other,
-                    })
-                    .collect(),
-            ),
-            Value::Object(m) => Value::Array(vec![normalize_question_item(m)]),
-            Value::String(text) => json!([{ "prompt": text }]),
-            other => Value::Array(vec![other]),
-        };
-    }
-    json!([{ "prompt": s }])
-}
-
-fn try_parse_json_text(s: &str) -> Option<Value> {
-    let t = s.trim();
-    if !t.starts_with('[') && !t.starts_with('{') {
-        return None;
-    }
-    serde_json::from_str(t).ok()
-}
-
-fn expand_embedded_questions_in_object(obj: &mut serde_json::Map<String, Value>) {
-    let Some(raw) = obj.remove("questions") else {
-        return;
-    };
-    obj.insert("questions".into(), expand_embedded_questions(raw));
-}
-
-/// Déplie les `prompt` qui contiennent un JSON de questions (bug fréquent petits modèles).
-fn expand_embedded_questions(questions: Value) -> Value {
-    let Value::Array(arr) = questions else {
-        return questions;
-    };
-    let mut out: Vec<Value> = Vec::new();
-    for item in arr {
-        match item {
-            Value::Object(m) => {
-                if let Some(prompt) = m.get("prompt").and_then(|v| v.as_str()) {
-                    if let Some(parsed) = try_parse_json_text(prompt) {
-                        push_expanded_question_values(&mut out, parsed);
-                        continue;
-                    }
-                }
-                out.push(normalize_question_item(m));
-            }
-            Value::String(s) => {
-                if let Some(parsed) = try_parse_json_text(&s) {
-                    push_expanded_question_values(&mut out, parsed);
-                } else {
-                    out.push(json!({ "prompt": s }));
-                }
-            }
-            other => out.push(other),
-        }
-    }
-    Value::Array(out)
-}
-
-fn push_expanded_question_values(out: &mut Vec<Value>, parsed: Value) {
-    match parsed {
-        Value::Array(items) => {
-            for sub in items {
-                match sub {
-                    Value::Object(m) => out.push(normalize_question_item(m)),
-                    Value::String(text) => out.push(json!({ "prompt": text })),
-                    other => out.push(other),
-                }
-            }
-        }
-        Value::Object(m) => out.push(normalize_question_item(m)),
-        Value::String(text) => out.push(json!({ "prompt": text })),
-        other => out.push(other),
-    }
 }
 
 fn remap_snake_keys(obj: &mut serde_json::Map<String, Value>) {
@@ -895,59 +783,6 @@ mod tests {
             .await
             .expect("questions object");
         assert!(out.get("answers").is_some());
-    }
-
-    #[tokio::test]
-    async fn unwraps_json_blob_embedded_in_prompt() {
-        let asker = ScriptedAsker {
-            received: Arc::new(Mutex::new(Vec::new())),
-            scripted: vec![UserAnswer {
-                id: Some("q1".into()),
-                text: "Voir l'état du projet".into(),
-                indices: vec![0],
-                skipped: false,
-            }],
-        };
-        let (ctx, received) = ctx_with_asker(asker);
-        let tool = AskUserQuestionTool;
-        let blob = r#"[{"prompt":"Que souhaitez-vous faire avec le projet site-kdds ?","options":[{"id":"a","label":"Voir l'état du projet"},{"id":"b","label":"Ajouter une fonctionnalité"}],"allowFreeText":true}]"#;
-        tool.execute(
-            &ctx,
-            json!({ "questions": [{ "prompt": blob }] }),
-        )
-        .await
-        .expect("unwrap prompt json");
-
-        let q = received.lock().unwrap();
-        assert_eq!(q.len(), 1);
-        assert_eq!(q[0].prompt, "Que souhaitez-vous faire avec le projet site-kdds ?");
-        assert_eq!(q[0].choices.len(), 2);
-        assert_eq!(q[0].structured_options[0].id, "a");
-    }
-
-    #[tokio::test]
-    async fn normalizes_questions_field_as_stringified_json_array() {
-        let asker = ScriptedAsker {
-            received: Arc::new(Mutex::new(Vec::new())),
-            scripted: vec![UserAnswer {
-                id: Some("q1".into()),
-                text: String::new(),
-                indices: vec![0],
-                skipped: false,
-            }],
-        };
-        let (ctx, received) = ctx_with_asker(asker);
-        let tool = AskUserQuestionTool;
-        tool.execute(
-            &ctx,
-            json!({
-                "questions": r#"[{"prompt":"Choix ?","options":[{"id":"a","label":"A"}]}]"#
-            }),
-        )
-        .await
-        .expect("stringified questions array");
-
-        assert_eq!(received.lock().unwrap()[0].prompt, "Choix ?");
     }
 
     #[tokio::test]

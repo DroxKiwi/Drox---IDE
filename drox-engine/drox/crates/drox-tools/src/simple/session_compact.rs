@@ -31,12 +31,12 @@ impl Tool for SessionCompactTool {
     }
 
     fn description(&self) -> &str {
-        "Force an **LLM compaction** on the current session JSONL transcript \
-         (`session.compact`) — same pipeline as `/compact`. \
-         Shrinks persisted history and returns a structured summary (goal, \
-         files, markdown body). **Execution**: IDE client (Drox extension); \
-         unavailable outside delegation. Prefer when the transcript is not \
-         under heavy concurrent writes. Format: `{ \"reason\"?: \"…\" }`."
+        "Force une **compaction LLM** sur le transcript JSONL de la session \
+         courante (`session.compact`) — même pipeline que la commande `/compact`. \
+         Réduit l'historique persisté et renvoie un résumé structuré (objectif, \
+         fichiers, corps markdown). **Exécution** : client IDE (extension Drox) ; \
+         hors délégation, indisponible. Préférez un moment où le transcript n'est \
+         pas en écriture concurrente intense. Format : `{ \"reason\"?: \"…\" }`."
     }
 
     fn input_schema(&self) -> Value {
@@ -47,13 +47,13 @@ impl Tool for SessionCompactTool {
         let SessionCompactInput { reason: _reason } = serde_json::from_value(input).map_err(
             |e| {
                 ToolError::invalid_args(format!(
-                    "session_compact: invalid JSON ({e}). Expected: {{ \"reason\"?: \"…\" }}."
+                    "session_compact: JSON invalide ({e}). Attendu : {{ \"reason\"?: \"…\" }}."
                 ))
             },
         )?;
         Err(ToolError::invalid_args(
-            "session_compact: only available when the IDE client runs this tool \
-             via tool/exec (Drox VS Code extension).",
+            "session_compact: disponible uniquement lorsque le client IDE exécute cet outil \
+             via tool/exec (extension VS Code Drox).",
         ))
     }
 }

@@ -64,18 +64,35 @@ export type ExtensionVirtualWorkspaceSupport = {
 	readonly override?: boolean;
 };
 
+/**
+ * Per-SDK configuration for downloading an agent SDK on demand. The
+ * runtime substitutes `{sdkTarget}` in `urlTemplate` against the host's
+ * `(platform, arch, libc)` triple via `resolveSdkTarget()` in the agent
+ * SDK downloader.
+ *
+ * `urlTemplate` uses `format2()`-style named placeholders. Today only
+ * `{sdkTarget}` is recognised; the build emits e.g.
+ * `https://main.vscode-cdn.net/agent-sdk/claude/0.3.168/{sdkTarget}.tgz`
+ * and the runtime substitutes `darwin-arm64`, `linux-x64-musl`, etc.
+ *
+ * See `src/vs/platform/agentHost/node/claude/roadmap.md` Phase 15 for
+ * the rationale (macOS Universal compatibility, trust model).
+ */
+export interface IAgentSdkProductConfig {
+	readonly version: string;
+	readonly urlTemplate: string;
+}
+
 export interface IProductConfiguration {
 	readonly version: string;
 	/** Drox product release (semver). `version` stays the VS Code API base for extensions. */
 	readonly droxVersion?: string;
 	/**
 	 * When `false` (default release), Microsoft Agents Window / VS Code chat surfaces are hidden.
-	 * See `drox-engine/docs/1.3/1.3.2/finalisation/D1-DESACTIVATION-MICROSOFT-AGENTS-1.3.2.md`.
 	 */
 	readonly droxMicrosoftAgentsSurfaceEnabled?: boolean;
 	/**
 	 * Surface produit : `dev` (suffixe build, outils dogfood) ou `release` (ship).
-	 * Fixe en `release` dans le package `drox:ship`.
 	 */
 	readonly droxSurface?: 'dev' | 'release';
 	/** Dev-only: engine / gates iteration counter (shown as droxVersion.N in chat). */
@@ -131,6 +148,8 @@ export interface IProductConfiguration {
 		readonly nlsBaseUrl: string;
 		readonly accessSKUs?: string[];
 	};
+
+	readonly agentSdks?: { readonly [packageId: string]: IAgentSdkProductConfig };
 
 	readonly mcpGallery?: {
 		readonly serviceUrl: string;
@@ -216,7 +235,6 @@ export interface IProductConfiguration {
 	readonly extensionPointExtensionKind?: { readonly [extensionPointId: string]: ('ui' | 'workspace' | 'web')[] };
 	readonly extensionSyncedKeys?: { readonly [extensionId: string]: string[] };
 
-	readonly extensionsEnabledWithApiProposalVersion?: string[];
 	readonly extensionEnabledApiProposals?: { readonly [extensionId: string]: string[] };
 	readonly extensionUntrustedWorkspaceSupport?: { readonly [extensionId: string]: ExtensionUntrustedWorkspaceSupport };
 	readonly extensionVirtualWorkspacesSupport?: { readonly [extensionId: string]: ExtensionVirtualWorkspaceSupport };
@@ -244,14 +262,12 @@ export interface IProductConfiguration {
 	readonly aiGeneratedWorkspaceTrust?: IAiGeneratedWorkspaceTrust;
 
 	readonly defaultChatAgent: IDefaultChatAgent;
-	/**
-	 * When true, the workbench treats chat as entitled without a GitHub/Copilot account
-	 * (setup completed, Copilot Free-equivalent). For product forks using a local or custom LLM backend.
-	 */
+	/** Skip GitHub Copilot sign-in (local/custom LLM backends). */
 	readonly skipCopilotGitHubSignIn?: boolean;
 	readonly chatParticipantRegistry?: string;
 	readonly chatSessionRecommendations?: IChatSessionRecommendation[];
 	readonly emergencyAlertUrl?: string;
+	readonly voiceWsUrl?: string;
 
 	readonly remoteDefaultExtensionsIfInstalledLocally?: string[];
 
@@ -420,6 +436,7 @@ export interface IDefaultChatAgent {
 	readonly entitlementSignupLimitedUrl: string;
 	readonly tokenEntitlementUrl: string;
 	readonly mcpRegistryDataUrl: string;
+	readonly managedSettingsUrl: string;
 
 	readonly chatQuotaExceededContext: string;
 	readonly completionsQuotaExceededContext: string;
@@ -434,28 +451,10 @@ export interface IDefaultChatAgent {
 	readonly completionsEnablementSetting: string;
 	readonly nextEditSuggestionsSetting: string;
 
-	/**
-	 * When set, merged into the extension host environment as `COPILOT_PROVIDER_BASE_URL` if not already defined.
-	 * Use an OpenAI-compatible root including `/v1`, e.g. `http://localhost:11434/v1` for Ollama.
-	 */
+	/** Optional OpenAI-compatible provider root (includes `/v1`), e.g. Ollama. */
 	readonly openAiCompatibleProviderBaseUrl?: string;
-	/** Optional: forwarded as `COPILOT_PROVIDER_TYPE` (`openai`, `azure`, or `anthropic`). */
+	/** Optional: forwarded as `COPILOT_PROVIDER_TYPE`. */
 	readonly openAiCompatibleProviderType?: string;
 	/** Optional: forwarded as `COPILOT_MODEL` for BYOK / local providers. */
 	readonly openAiCompatibleDefaultModel?: string;
-}
-
-type IProductDisplayVersionInfo = Pick<IProductConfiguration, 'version' | 'droxVersion' | 'target' | 'darwinUniversalAssetId'>;
-
-/** User-facing version line (About, issue reporter). Keeps `version` as VS Code API base when `droxVersion` is set. */
-export function getProductDisplayVersion(product: IProductDisplayVersionInfo): string {
-	let display = product.droxVersion
-		? `${product.droxVersion} (base VS Code ${product.version})`
-		: product.version;
-	if (product.target) {
-		display = `${display} (${product.target} setup)`;
-	} else if (product.darwinUniversalAssetId) {
-		display = `${display} (Universal)`;
-	}
-	return display;
 }

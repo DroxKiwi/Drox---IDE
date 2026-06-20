@@ -12,6 +12,7 @@ members = [
     "crates/drox-engine",
     "crates/drox-hooks",
     "crates/drox-cli",
+    "crates/drox-tui",
 ]
 
 [workspace.package]
@@ -52,6 +53,11 @@ drox-context = { path = "crates/drox-context", version = "0.1.0" }
 drox-session = { path = "crates/drox-session", version = "0.1.0" }
 drox-engine = { path = "crates/drox-engine", version = "0.1.0" }
 drox-hooks = { path = "crates/drox-hooks", version = "0.1.0" }
+drox-tui = { path = "crates/drox-tui", version = "0.1.0" }
+
+# TUI
+crossterm = "0.28"
+ratatui = "0.29"
 
 # MCP (Model Context Protocol)
 rmcp = { version = "1.6.0", default-features = false, features = [
@@ -74,7 +80,6 @@ futures-util = "0.3"
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
-toml = "0.8"
 serde_with = "3.11"
 schemars = { version = "0.8", features = ["derive"] }
 
@@ -112,6 +117,7 @@ ignore = "0.4"
 # Text / patterns
 regex = "1.11"
 globset = "0.4"
+pulldown-cmark = "0.12"
 similar = "2.6"
 scraper = "0.21"
 

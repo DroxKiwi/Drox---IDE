@@ -8,12 +8,11 @@ use serde_json::Value;
 use crate::context::ToolContext;
 use crate::error::ToolError;
 use crate::simple::{
-    AskUserQuestionTool,
-    BashTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
+    AskUserQuestionTool, BashTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
     FileWriteTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
     SkillListTool, SkillReadTool, GitWorktreeEnterTool, GitWorktreeExitTool, CopyPathTool,
-    ScopeDeferTool, SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool,
-    WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool,
+    CoursePlanWriteTool,     ScopeDeferTool, SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool,
+    TaskTool, TodoWriteTool, WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool,
 };
 use crate::tool::{DynTool, Tool};
 
@@ -68,6 +67,8 @@ impl ToolRegistry {
         reg.register(coerce_tool(AskUserQuestionTool));
         reg.register(coerce_tool(ExitPlanModeTool));
         reg.register(coerce_tool(BashTool));
+        reg.register(coerce_tool(TodoWriteTool));
+        reg.register(coerce_tool(CoursePlanWriteTool));
         reg.register(coerce_tool(ScopeDeferTool));
         reg.register(coerce_tool(WorkspaceMapReadTool));
         reg.register(coerce_tool(WorkspaceMapNoteTool));
@@ -82,6 +83,12 @@ impl ToolRegistry {
         reg.register(coerce_tool(SessionEndTool));
         reg.register(coerce_tool(SessionSearchTool));
         reg
+    }
+
+    /// Enregistre `task` (sous-agent Explore, §2.10). À appeler uniquement si
+    /// `SubagentSettings::enabled` est vrai.
+    pub fn register_subagent_task(&mut self) {
+        self.register(coerce_tool(TaskTool));
     }
 
     /// Enregistre un tool (écrase si le nom existe déjà).
@@ -111,13 +118,6 @@ impl ToolRegistry {
     pub fn is_concurrency_safe(&self, name: &str) -> bool {
         self.get(name)
             .is_some_and(|t| t.is_concurrency_safe())
-    }
-
-    /// `true` si cet appel précis peut s'exécuter en parallèle (M5c `task` async).
-    #[must_use]
-    pub fn is_concurrency_safe_for_input(&self, name: &str, input: &Value) -> bool {
-        self.get(name)
-            .is_some_and(|t| t.is_concurrency_safe_for_input(input))
     }
 
     /// Exécute un tool par nom.

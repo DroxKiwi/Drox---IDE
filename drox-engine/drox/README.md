@@ -22,6 +22,8 @@ drox-cli  →  drox-engine
               ├── drox-context
               └── drox-session
 
+drox-tui  →  drox-engine   (client terminal — en cours)
+
 (drox-types est consommé par toutes les autres crates)
 ```
 
@@ -37,6 +39,7 @@ drox-cli  →  drox-engine
 | `drox-session` | Storage JSONL, transcript, resume, mémoire fichier |
 | `drox-engine` | Boucle agent, orchestration tools, streaming |
 | `drox-cli` | Binaire principal, parsing CLI, JSON-RPC |
+| `drox-tui` | Interface terminal (TUI) propriétaire — `ratatui` |
 
 ## Build
 

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-title Drox IDE CLI
+title VSCode Dev
 
 pushd %~dp0..
 

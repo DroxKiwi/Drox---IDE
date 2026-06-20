@@ -31,6 +31,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
+# Upstream 1.126 : .npmrc cible Electron 42.3.0 avant mise a jour de build/checksums/electron.txt.
+if (-not $env:DROX_SKIP_ELECTRON_CHECKSUM) { $env:DROX_SKIP_ELECTRON_CHECKSUM = '1' }
+
 . (Join-Path $PSScriptRoot 'lib\drox-bundle-readiness.ps1')
 Initialize-DroxBundleReadiness -RepoRoot $repoRoot
 

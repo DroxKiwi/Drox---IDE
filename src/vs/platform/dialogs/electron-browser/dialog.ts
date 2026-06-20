@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { fromNow } from '../../../base/common/date.js';
-import { getProductDisplayVersion } from '../../../base/common/product.js';
 import { isLinuxSnap } from '../../../base/common/platform.js';
 import { localize } from '../../../nls.js';
 import { IOSProperties } from '../../native/common/native.js';
@@ -12,7 +11,12 @@ import { IProductService } from '../../product/common/productService.js';
 import { process } from '../../../base/parts/sandbox/electron-browser/globals.js';
 
 export function createNativeAboutDialogDetails(productService: IProductService, osProps: IOSProperties): { title: string; details: string; detailsToCopy: string } {
-	const version = getProductDisplayVersion(productService);
+	let version = productService.version;
+	if (productService.target) {
+		version = `${version} (${productService.target} setup)`;
+	} else if (productService.darwinUniversalAssetId) {
+		version = `${version} (Universal)`;
+	}
 
 	const getDetails = (useAgo: boolean): string => {
 		return localize({ key: 'aboutDetail', comment: ['Electron, Chromium, Node.js and V8 are product names that need no translation'] },

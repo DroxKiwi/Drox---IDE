@@ -3,7 +3,7 @@
 **Version** : juin 2026 — chantier **1.4.2**  
 **Statut** : **analysé (pré-Phase M)** — correctifs M livrés · **rejeu dogfood requis** ([SMOKE-M-memory-TEMPLATE](SMOKE-M-memory-TEMPLATE.md))  
 **Export** : [`chat_north-mini-code`](../chat_north-mini-code) (4 927 lignes · session du 2026-06-19)  
-**Plan** : [PLAN-1.4.2.md](PLAN-1.4.2.md) · comparer [SMOKE F1](../1.4.3/SMOKE-ses_7df5045c.md)
+**Plan** : [PLAN-1.4.2.md](PLAN-1.4.2.md) · comparer [SMOKE F1](../1.5/1.5.1/SMOKE-ses_7df5045c.md)
 
 > **Règle de chantier** : ce document **ne déclenche pas** de correctif immédiat. Les items ci-dessous alimentent la **backlog post-plan** (couche 4, compaction, grep scope, closure).
 
@@ -87,7 +87,7 @@ Chaque match embarque des **lignes JSON énormes** (contenu README, historiques 
 
 ## Runs 1–2 (régression F1)
 
-Non régressés par rapport au smoke F1 [`ses_7df5045c`](../1.4.3/SMOKE-ses_7df5045c.md) :
+Non régressés par rapport au smoke F1 [`ses_7df5045c`](../1.5/1.5.1/SMOKE-ses_7df5045c.md) :
 
 - Run 1 : `discuss_reply_only`, 1 iter, pas d’outils.
 - Run 2 : `discuss_with_reads`, exploration légère, réponse structurée livrée.
@@ -121,7 +121,7 @@ Non régressés par rapport au smoke F1 [`ses_7df5045c`](../1.4.3/SMOKE-ses_7df5
 | **S-EDIT-01** | P1 | Dump code dans content sans `tool_calls` (`[object Object]`, pas de `file_write`) | Closure + nudges · Phase 4.1–4.2 |
 | **S-EDIT-02** | P1 | Pas de `USER-FACING REPLY` malgré `phase: answering` | `architect_gate` / promotion texte · Phase 4.2 |
 | **S-EDIT-03** | P2 | `schema_error_continue_count: 4` (> plafond cible 3) | Vérifier escalade 4.3 en conditions réelles |
-| **S-UI-01** | P2 | Fuite thinking run 1 (`Thus I will…`) | 1.4.3 |
+| **S-UI-01** | P2 | Fuite thinking run 1 (`Thus I will…`) | 1.5.1 |
 
 ---
 
@@ -151,4 +151,4 @@ Non régressés par rapport au smoke F1 [`ses_7df5045c`](../1.4.3/SMOKE-ses_7df5
 
 - [PLAN-1.4.2](PLAN-1.4.2.md)
 - [Export brut](../chat_north-mini-code)
-- [Smoke F1 (référence routage)](../1.4.3/SMOKE-ses_7df5045c.md)
+- [Smoke F1 (référence routage)](../1.5/1.5.1/SMOKE-ses_7df5045c.md)

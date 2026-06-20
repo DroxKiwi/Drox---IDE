@@ -18,7 +18,7 @@ const MAX_RESULT_CHARS: usize = 100_000;
 fn require_hub(ctx: &ToolContext) -> Result<&McpHub, ToolError> {
     let Some(hub) = ctx.mcp_hub.as_deref() else {
         return Err(ToolError::mcp(
-            "no MCP server configured (add `.mcp.json` or `mcp.json` at workspace root)",
+            "aucun serveur MCP configuré (ajouter `.mcp.json` ou `mcp.json` à la racine du workspace)",
         ));
     };
     Ok(hub)
@@ -135,8 +135,8 @@ impl Tool for McpCallTool {
     }
 
     fn description(&self) -> &str {
-        "Invoke a tool on a configured MCP server (`.mcp.json`). \
-         Fallback when `mcp__*` stubs could not be loaded."
+        "Invoque un tool sur un serveur MCP configuré (`.mcp.json`). \
+         Utilisé en secours si les stubs `mcp__*` n'ont pas pu être chargés."
     }
 
     fn input_schema(&self) -> Value {
@@ -173,7 +173,7 @@ impl Tool for ListMcpResourcesTool {
     }
 
     fn description(&self) -> &str {
-        "List available MCP resources. Each entry includes a `server` field."
+        "Liste les ressources MCP disponibles. Chaque entrée inclut un champ `server`."
     }
 
     fn input_schema(&self) -> Value {
@@ -210,7 +210,7 @@ impl Tool for ReadMcpResourceTool {
     }
 
     fn description(&self) -> &str {
-        "Read an MCP resource by URI on the given server."
+        "Lit une ressource MCP par URI sur le serveur indiqué."
     }
 
     fn input_schema(&self) -> Value {

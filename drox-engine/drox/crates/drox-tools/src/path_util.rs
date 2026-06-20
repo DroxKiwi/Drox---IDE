@@ -7,18 +7,6 @@ use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::error::ToolError;
 
-/// Retire les préfixes hallucinés (`/workspace/…`) et normalise les séparateurs.
-#[must_use]
-pub fn preprocess_user_path(user_path: &str) -> String {
-    let trimmed = user_path.trim().trim_matches(|c| c == '"' || c == '\'');
-    let fwd = trimmed.replace('\\', "/");
-    let stripped = fwd
-        .strip_prefix("/workspace/")
-        .or_else(|| fwd.strip_prefix("workspace/"))
-        .unwrap_or(&fwd);
-    stripped.trim_start_matches('/').to_string()
-}
-
 fn utf8_path_buf_from_std(path: std::path::PathBuf) -> Result<Utf8PathBuf, ToolError> {
     Utf8PathBuf::from_path_buf(path).map_err(|_| ToolError::invalid_args("path is not valid UTF-8"))
 }
@@ -28,25 +16,15 @@ pub fn resolve_under_workspace(
     workspace_root: &Utf8Path,
     user_path: &str,
 ) -> Result<Utf8PathBuf, ToolError> {
-    let trimmed = preprocess_user_path(user_path);
+    let trimmed = user_path.trim();
     if trimmed.is_empty() {
         return Err(ToolError::invalid_args("path must not be empty"));
     }
 
-    let joined = if Path::new(&trimmed).is_absolute() {
-        if let Ok(root_canon) = fs::canonicalize(workspace_root.as_std_path()) {
-            if let Ok(target_canon) = fs::canonicalize(&trimmed) {
-                if let Ok(rel) = target_canon.strip_prefix(&root_canon) {
-                    return resolve_under_workspace(
-                        workspace_root,
-                        &rel.to_string_lossy().replace('\\', "/"),
-                    );
-                }
-            }
-        }
-        Utf8PathBuf::from(&trimmed)
+    let joined = if Path::new(trimmed).is_absolute() {
+        Utf8PathBuf::from(trimmed)
     } else {
-        workspace_root.join(&trimmed)
+        workspace_root.join(trimmed)
     };
 
     let root_canon = fs::canonicalize(workspace_root.as_std_path())
@@ -69,25 +47,15 @@ pub fn resolve_path_for_write(
     workspace_root: &Utf8Path,
     user_path: &str,
 ) -> Result<Utf8PathBuf, ToolError> {
-    let trimmed = preprocess_user_path(user_path);
+    let trimmed = user_path.trim();
     if trimmed.is_empty() {
         return Err(ToolError::invalid_args("path must not be empty"));
     }
 
-    let joined: Utf8PathBuf = if Path::new(&trimmed).is_absolute() {
-        if let Ok(root_canon) = fs::canonicalize(workspace_root.as_std_path()) {
-            if let Ok(target_canon) = fs::canonicalize(&trimmed) {
-                if let Ok(rel) = target_canon.strip_prefix(&root_canon) {
-                    return resolve_path_for_write(
-                        workspace_root,
-                        &rel.to_string_lossy().replace('\\', "/"),
-                    );
-                }
-            }
-        }
-        Utf8PathBuf::from(&trimmed)
+    let joined: Utf8PathBuf = if Path::new(trimmed).is_absolute() {
+        Utf8PathBuf::from(trimmed)
     } else {
-        workspace_root.join(&trimmed)
+        workspace_root.join(trimmed)
     };
 
     let root_canon = fs::canonicalize(workspace_root.as_std_path())
@@ -216,25 +184,6 @@ mod tests {
         assert!(is_protected_workspace_entry(".git"));
         assert!(is_protected_workspace_entry(".git/objects"));
         assert!(!is_protected_workspace_entry("src/main.rs"));
-    }
-
-    #[test]
-    fn workspace_prefix_resolves_relative() {
-        let tmp = tempfile::tempdir().unwrap();
-        let root = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-        fs::create_dir_all(root.join("app/src")).unwrap();
-        let f = root.join("app/src/main.ts");
-        fs::File::create(&f).unwrap().write_all(b"x").unwrap();
-        let resolved = resolve_under_workspace(&root, "/workspace/app/src/main.ts").unwrap();
-        assert!(resolved.as_str().contains("main.ts"));
-    }
-
-    #[test]
-    fn preprocess_strips_workspace_prefix() {
-        assert_eq!(
-            preprocess_user_path("/workspace/foo/bar.ts"),
-            "foo/bar.ts"
-        );
     }
 
     #[test]

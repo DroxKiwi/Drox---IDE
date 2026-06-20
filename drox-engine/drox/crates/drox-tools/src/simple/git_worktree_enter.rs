@@ -27,9 +27,10 @@ impl Tool for GitWorktreeEnterTool {
     }
 
     fn description(&self) -> &str {
-        "Create (or resume) a git worktree under `.drox/worktrees/<name>/` with branch \
-         `worktree-<name>`, then route file/bash tools to that worktree for the rest of the run. \
-         Only when the user explicitly asks for a worktree. Format: {\"name\": \"feature-x\"} (optional)."
+        "Crée (ou reprend) un git worktree sous `.drox/worktrees/<name>/` avec une \
+         branche `worktree-<name>`, puis bascule les tools fichier/bash vers ce \
+         worktree pour le reste du run. À n'utiliser que si l'utilisateur demande \
+         explicitement un worktree. Format : {\"name\": \"feature-x\"} (optionnel)."
     }
 
     fn input_schema(&self) -> Value {

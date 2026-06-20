@@ -303,6 +303,10 @@ function createMockAgentFeedbackService(): IAgentFeedbackService {
 	return new class extends mock<IAgentFeedbackService>() {
 		override readonly onDidChangeFeedback = Event.None;
 		override readonly onDidChangeNavigation = Event.None;
+		override readonly onDidAddFeedback = Event.None;
+		override readonly onDidConvertFeedback = Event.None;
+		override readonly onDidAddReply = Event.None;
+		override readonly onDidSubmitFeedback = Event.None;
 		override getFeedback() { return []; }
 		override getMostRecentSessionForResource() { return undefined; }
 		override async revealFeedback(): Promise<void> { }
@@ -526,7 +530,6 @@ async function renderEditor(ctx: ComponentFixtureContext, options: IRenderEditor
 		AICustomizationManagementSection.Prompts,
 		AICustomizationManagementSection.McpServers,
 		AICustomizationManagementSection.Plugins,
-		AICustomizationManagementSection.LlmBackend,
 	];
 	const availableHarnesses = options.availableHarnesses ?? [
 		createVSCodeHarnessDescriptor([PromptsStorage.extension, BUILTIN_STORAGE]),
@@ -1261,7 +1264,6 @@ export default defineThemedFixtureGroup({ path: 'chat/aiCustomizations/' }, {
 				AICustomizationManagementSection.Hooks,
 				AICustomizationManagementSection.McpServers,
 				AICustomizationManagementSection.Plugins,
-				AICustomizationManagementSection.LlmBackend,
 			],
 		}),
 	}),
@@ -1284,7 +1286,6 @@ export default defineThemedFixtureGroup({ path: 'chat/aiCustomizations/' }, {
 				AICustomizationManagementSection.Hooks,
 				AICustomizationManagementSection.McpServers,
 				AICustomizationManagementSection.Plugins,
-				AICustomizationManagementSection.LlmBackend,
 			],
 			skillUIIntegrations: new Map([
 				['act-on-feedback', 'Used by the Submit Feedback button in the Changes toolbar'],

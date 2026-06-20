@@ -1,10 +1,10 @@
-Drox IDE — additional copyright notice
+﻿Drox IDE ÔÇö additional copyright notice
 =======================================
 
 This product is based on Visual Studio Code - Open Source ("Code OSS"),
 Copyright (c) 2015-present Microsoft Corporation, licensed under the MIT License.
 
-Additional portions — Copyright (c) KDDS — Drox engine, Drox workbench integration, and branding.
+Additional portions ÔÇö Copyright (c) KDDS ÔÇö Drox engine, Drox workbench integration, and branding.
 
 The installed application also includes ThirdPartyNotices.txt listing
 licenses for bundled open-source components.

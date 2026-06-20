@@ -36,6 +36,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 pub mod handlers;
+pub mod ide_event_shim;
 pub mod protocol;
 pub mod remote_tool;
 pub mod server;

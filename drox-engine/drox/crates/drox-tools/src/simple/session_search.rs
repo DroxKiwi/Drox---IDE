@@ -33,10 +33,10 @@ impl Tool for SessionSearchTool {
     }
 
     fn description(&self) -> &str {
-        "Search workspace **long memory** (indexed compaction summaries \
-         + session closures). Returns the most relevant excerpts \
-         to enrich context. **Execution**: IDE client (Drox extension); \
-         unavailable outside delegation. Format: `{ \"query\": \"…\", \"limit\"?: N }`."
+        "Recherche dans la **mémoire longue** du workspace (résumés de compactions \
+         indexés + clôtures de session). Retourne les extraits les plus pertinents \
+         pour enrichir le contexte. **Exécution** : client IDE (extension Drox) ; \
+         hors client délégué, indisponible. Format : `{ \"query\": \"…\", \"limit\"?: N }`."
     }
 
     fn input_schema(&self) -> Value {
@@ -49,15 +49,15 @@ impl Tool for SessionSearchTool {
             limit: _limit,
         } = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "session_search: invalid JSON ({e}). Expected: {{ \"query\": \"…\", \"limit\"?: N }}."
+                "session_search: JSON invalide ({e}). Attendu : {{ \"query\": \"…\", \"limit\"?: N }}."
             ))
         })?;
         if query.trim().is_empty() {
-            return Err(ToolError::invalid_args("session_search: `query` cannot be empty."));
+            return Err(ToolError::invalid_args("session_search: `query` ne peut pas être vide."));
         }
         Err(ToolError::invalid_args(
-            "session_search: only available when the IDE client runs this tool \
-             via tool/exec (Drox VS Code extension).",
+            "session_search: disponible uniquement lorsque le client IDE exécute cet outil \
+             via tool/exec (extension VS Code Drox).",
         ))
     }
 }

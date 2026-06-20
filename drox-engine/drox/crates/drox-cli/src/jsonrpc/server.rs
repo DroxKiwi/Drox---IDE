@@ -36,8 +36,6 @@ type PendingSlot = oneshot::Sender<Result<Value, RpcError>>;
 pub struct Server {
     out: mpsc::Sender<String>,
     runs: Arc<Mutex<HashMap<String, RunHandle>>>,
-    /// Drapeaux d'annulation — survivent à `cancel_run` jusqu'à `forget_run`.
-    run_cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     next_run_id: Arc<AtomicU64>,
     shutdown: Arc<AtomicBool>,
     pending_outbound: Arc<Mutex<HashMap<i64, PendingSlot>>>,
@@ -56,7 +54,6 @@ impl Server {
         Self {
             out,
             runs: Arc::new(Mutex::new(HashMap::new())),
-            run_cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             next_run_id: Arc::new(AtomicU64::new(1)),
             shutdown: Arc::new(AtomicBool::new(false)),
             pending_outbound: Arc::new(Mutex::new(HashMap::new())),
@@ -114,62 +111,21 @@ impl Server {
         format!("run_{n}")
     }
 
-    pub fn register_run(
-        &self,
-        run_id: String,
-        join: JoinHandle<RunOutcome>,
-        cancel: Arc<AtomicBool>,
-    ) {
-        self.run_cancel_flags
-            .lock()
-            .insert(run_id.clone(), Arc::clone(&cancel));
+    pub fn register_run(&self, run_id: String, join: JoinHandle<RunOutcome>) {
         self.runs.lock().insert(run_id, RunHandle { join });
     }
 
-    pub fn is_run_cancelled(&self, run_id: &str) -> bool {
-        self.run_cancel_flags
-            .lock()
-            .get(run_id)
-            .is_some_and(|f| f.load(Ordering::SeqCst))
-    }
-
     /// Tente d'annuler un run. Renvoie `true` si le run était présent.
-    ///
-    /// Pose le drapeau d'annulation (boucles exécuteur / architecte), envoie
-    /// `agent/done` `cancelled`, puis abort la tâche.
     pub fn cancel_run(&self, run_id: &str) -> bool {
-        use super::protocol::{AgentDoneNotification, RunStatus};
-
-        if let Some(flag) = self.run_cancel_flags.lock().get(run_id) {
-            flag.store(true, Ordering::SeqCst);
-        }
-
         let maybe = self.runs.lock().remove(run_id);
-        if let Some(handle) = maybe {
-            let server = self.clone();
-            let rid = run_id.to_string();
-            tokio::spawn(async move {
-                server
-                    .notify(
-                        "agent/done",
-                        AgentDoneNotification {
-                            run_id: rid,
-                            status: RunStatus::Cancelled,
-                            error: None,
-                        },
-                    )
-                    .await;
-            });
+        maybe.is_some_and(|handle| {
             handle.join.abort();
             true
-        } else {
-            false
-        }
+        })
     }
 
     pub fn forget_run(&self, run_id: &str) {
         self.runs.lock().remove(run_id);
-        self.run_cancel_flags.lock().remove(run_id);
     }
 
     /// Attend la fin de tous les runs encore actifs. Appelé après EOF stdin
@@ -313,10 +269,6 @@ impl Server {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,
             },
-            "workspace.reset" => match handlers::workspace_reset(req.params).await {
-                Ok(v) => self.respond(Response::success(id, v)).await,
-                Err(e) => self.respond(Response::error(id, e)).await,
-            },
             "agent.run" => match handlers::agent_run(self.clone(), req.params).await {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,
@@ -340,11 +292,6 @@ impl Server {
 ///
 /// Lit NDJSON sur stdin, écrit NDJSON sur stdout, jusqu'à EOF ou `shutdown`.
 pub async fn serve_stdio() -> anyhow::Result<()> {
-    tracing::info!(
-        version = env!("CARGO_PKG_VERSION"),
-        orchestration_pipeline = "role_split",
-        "drox engine ready (--serve)"
-    );
     let (out_tx, mut out_rx) = mpsc::channel::<String>(64);
 
     let writer_task = tokio::spawn(async move {

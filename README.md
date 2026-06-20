@@ -1,44 +1,44 @@
+<a id="souverainete"></a>
+
+## But du projet — souveraineté
+
+Drox vise la **souveraineté numérique** : IDE, moteur agent, inférence (Ollama ou endpoint que **tu** configures), sessions et mémoire dans **`.drox/`** sur ton disque — pas de compte cloud KDDS imposé, pas de télémétrie Microsoft dans le package distribué.
+
+**Seul trafic réseau prévu côté produit** : la **vérification de version** (lecture du manifeste release, ex. `stable/latest.json`) pour indiquer qu’une MAJ plus récente existe. Le reste du travail agent tourne en local.
+
+___
+
 <a id="statut-produit"></a>
 
 # ⚠️ STATUT PRODUIT — LIRE EN PREMIER
 
-> **Le moteur Drox 1.4.2 est obsolète — il va complètement changer.**  
-> Branche **1.4.2** clôturée et mergée sur `main` (juin 2026). Ce n’est **pas** une base stable : c’est un **point d’arrêt** avant une refonte majeure du moteur.
+> **Drox 1.5.0 remplace entièrement le moteur 1.4.x.**  
+> Branche **`1.5.0`** · upstream VS Code **1.126.0** · mono-boucle TUI (`tui_mono`) + shim RPC IDE. Toujours **expérimental** — pas de prod — mais **nettement plus stable** qu’en 1.4.2.
 
 | | |
 |---|---|
-| **Code sur `main`** | **1.4.2** — rail **observateur**, contexte **4 couches**, reliquats prescriptifs retirés (`tool_folders`, ACL station, `todo_write`, intent probe LLM) |
-| **Utilisable en prod ?** | **Non.** Phase **expérimentale agressive** — dogfood uniquement. |
-| **Tester quand même ?** | **Option pour les curieux** : compiler `drox.exe`, brancher Ollama, accepter bugs / régressions / changements cassants sans préavis. |
-| **Suite moteur** | Refonte **profonde** (pas un polish 1.4.3) — voir plans 1.4.3+ dans le dépôt ; l’architecture actuelle ne sera **pas** prolongée telle quelle. |
+| **Code sur `1.5.0`** | **1.5.0** — cœur TUI (`agent.rs`), `drox-cli` JSON-RPC, `ide_event_shim`, pipeline `tui_mono` |
+| **Utilisable en prod ?** | **Non.** Phase expérimentale — dogfood / early adopters. |
+| **Tester ?** | **Oui pour les curieux** : installeur OR, Ollama, bugs possibles mais stack refondue et dogfood validé. |
+| **1.4.x** | **Obsolète** — rail observateur, `role_split`, orchestration IDE abandonnés · archivé `drox-engine/docs/1.4/` |
 
-### Ce que la 1.4.2 a changé (gros morceaux)
+### Ce que la 1.5.0 change (gros morceaux)
 
-Après la stabilisation **1.4.1** (session, UI busy, discuss, VERIFY Windows), la **1.4.2** abandonne le rail **prescriptif** au profit d’une culture **observateur + contexte** :
+| 1.4.2 (obsolète) | 1.5.0 |
+|------------------|-------|
+| Run rail observateur + 7 stations inférées | Protocole **phases TUI** `[phase: …]` — `done`-driven |
+| Orchestration `role_split` / architecte solo 1.4 | **Mono-boucle** `tui_mono` — un seul agent |
+| Conducteur `rail/infer.rs` + snapshot prescriptif | Shim **`ide_event_shim`** — stations rail **synthétiques** pour l’UI seulement |
+| Workspace moteur 1.4 (`loop/drive/`, `rail/`) | Workspace **TUI** copié in-place dans `drox-engine/drox/` |
+| Routage discuss / edit / intent probe | **Un run** par message ; vignettes Config + Architecte + permission conservées |
 
-| Avant | Après 1.4.2 |
-|-------|-------------|
-| Outils filtrés par **station** (READ ≠ ACT) | Palette **plate et stable** tout le run EDIT |
-| **Tool folders** (`read_workspace`, `edit_file`, …) | Supprimés — outils réels uniquement (`file_read`, `file_edit`, …) |
-| Gates + nudges coercitifs (`stall_read`, `stall_act`, `force_act`, mutation sur `done`) | Rail **observateur** : snapshot + inférence station, **pas** de blocage advance |
-| **Intent probe** LLM au boot | Routage **statique** : `discuss` / `analyze` / `edit` (mode IDE ou RPC) |
-| `todo_write` + gates todo | **`internal_plan_write`** seul (plan moteur, pas todo utilisateur) |
-| Mémoire éclatée (listing boot skills/sessions) | **`DROX.md` seul** · checkpoint compaction court → snapshot réinjecté |
-| Prompt boot avec `[gate:]` obligatoire | `01_core_rail_solo.md` **observateur** — rail = hint dans le snapshot |
-
-**4 couches de contexte** (complémentaires, pas substituts) : (1) cadre boot + hint rail, (2) outils wire + protocole compact, (3) snapshot run + plan interne, (4) transcript chaud/froid + compaction.
-
-### Pourquoi c’est obsolète malgré la clôture
-
-La 1.4.2 **nettoie** l’expérience 1.4.x (moins de forcing, outils libres, mémoire unifiée) mais **ne fige pas** le design final. Le chantier suivant **remplace** le modèle actuel (rail, orchestration, injection de contexte) — pas une itération douce. Tout ce qui est sur `main` aujourd’hui sert surtout de **laboratoire** et de **référence de ce qu’on ne veut plus**.
-
-**En résumé** : OK pour **explorer et casser** en local ; **pas** pour un usage quotidien, un client, ou une extension long terme sur cette stack.
+**En résumé** : toujours pas pour la prod ; OK pour **dogfood sérieux** sur la nouvelle base — ne plus partir du rail 1.4.
 
 ### Où lire la suite (dépôt)
 
-- Clôture 1.4.2 : `drox-engine/docs/1.4/1.4.2/PLAN-1.4.2.md`
-- Stabilisation 1.4.1 : `drox-engine/docs/1.4/1.4.1/finalisation/CLOSURE-1.4.1.md`
-- Refonte initiale 1.4.0 : `drox-engine/docs/1.4/1.4.0/archive/finalisation/CLOSURE-1.4.0.md`
+- Clôture 1.5.0 : `drox-engine/docs/1.5/1.5.0/CLOSURE-1.5.0.md`
+- Shim IDE : `drox-engine/docs/1.5/1.5.0/SHIM-MOTEUR-IDE.md`
+- 1.4.x archivé : `drox-engine/docs/1.4/`
 
 ___
 
@@ -46,21 +46,21 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 ## Sommaire
 
-**[⚠️ Statut produit 1.4.2](#statut-produit)** · [Product status EN](#en-product-status)
+**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · [Product status EN](#en-product-status) · [Sovereignty EN](#en-sovereignty)
 
-[Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.4 — run rail](#schema-rail)
+[Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.5 — tui_mono](#schema-tui-mono)
 
 **FR**
 
 [Moteur Drox](#fr) · [Invariants](#fr-invariants) · [Chronologie](#fr-chronologie)
 
-[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14) · [2026-06 v1_4_2](#fr-2026-06-v142)
+[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14) · [2026-06 v1_4_2](#fr-2026-06-v142) · [2026-06 v1_5](#fr-2026-06-v15)
 
 **EN**
 
 [Drox Engine](#en) · [Invariants](#en-invariants) · [Timeline](#en-timeline)
 
-[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14) · [2026-06 v1_4_2](#en-2026-06-v142)
+[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14) · [2026-06 v1_4_2](#en-2026-06-v142) · [2026-06 v1_5](#en-2026-06-v15)
 
 ___
 
@@ -68,7 +68,7 @@ ___
 
 ## Vue globale
 
-Tu codes dans un repo. **Drox IDE** est l’éditeur. **Ollama** fait tourner le modèle en local (Qwen, Gemma, etc. — celui que tu choisis dans les réglages). Entre les deux : **`drox.exe`**, le moteur Rust : il enchaîne les tours LLM, décide quels outils appeler, et demande à l’IDE ce qu’il ne peut pas faire seul (LSP, diff, questions).
+Tu codes dans un repo. **Drox IDE** est l’éditeur. **Ollama** fait tourner le modèle en local (Qwen, Gemma, etc. — celui que tu choisis dans les réglages). Entre les deux : **`drox.exe`**, le moteur Rust : mono-boucle agent TUI, shim RPC vers l’IDE, outils locaux + délégation client (LSP, diff, écriture fichier).
 
 **La pile (grossier)**
 
@@ -92,18 +92,20 @@ flowchart LR
 flowchart TB
   U(["Tu envoies un message"])
   I(["Drox IDE"])
-  M(["Moteur Drox"])
+  S(["Shim RPC"])
+  M(["Boucle TUI"])
   L(["LLM via Ollama"])
-  O(["Outils : lire ecrire bash grep..."])
+  O(["Outils + tool/exec"])
 
   U --> I
-  I -->|agent.run| M
+  I -->|agent.run| S
+  S --> M
   M -->|prompt + historique| L
-  L -->|texte + appels outil| M
-  M -->|file_read bash...| O
-  O -->|resultats| I
-  I -->|tool/exec| M
-  M -->|reponse finale| I
+  L -->|texte + tool_calls| M
+  M --> O
+  O -->|client| I
+  I --> S
+  S --> I
   I --> U
 ```
 
@@ -112,11 +114,11 @@ flowchart TB
 | Brique | Rôle |
 |--------|------|
 | **Ollama** | Inférence : un modèle, ta machine, pas de compte cloud imposé |
-| **drox.exe** | Boucle agent, run rail observateur, permissions, session, palette outils stable |
-| **Drox IDE** | UI chat, éditeur, exécution LSP/diff/bash côté workspace |
-| **Toi** | Repo, modèle choisi, mode permission (default / plan / acceptEdits…) |
+| **drox.exe** | Boucle agent TUI, shim JSON-RPC, permissions, session, outils |
+| **Drox IDE** | UI chat, exécution LSP/diff/bash côté workspace |
+| **Toi** | Repo, modèle, vignettes Config / Architecte, mode permission |
 
-Le détail du conducteur (stations, marqueurs, prompts) est dans [Schéma 1.4 — run rail](#schema-rail) plus bas.
+Le détail (phases, shim, params) est dans [Schéma 1.5 — tui_mono](#schema-tui-mono).
 
 ___
 
@@ -124,130 +126,120 @@ ___
 
 ## Overview
 
-You work in a repo. **Drox IDE** is the editor. **Ollama** runs the model locally (Qwen, Gemma, etc. — whichever you pick in settings). In between: **`drox.exe`**, the Rust engine: it runs LLM turns, decides which tools to call, and asks the IDE for what it cannot do itself (LSP, diff, prompts).
+You work in a repo. **Drox IDE** is the editor. **Ollama** runs the model locally. In between: **`drox.exe`**, the Rust engine: TUI mono-loop, RPC shim to the IDE, local tools + client delegation (LSP, diff, file writes).
 
-**The stack (coarse)**
+**The stack (coarse)** — same diagram as FR.
 
-```mermaid
-flowchart LR
-  DEV(["You + your repo"])
-  IDE(["Drox IDE"])
-  MOT(["drox.exe"])
-  OLL(["Ollama"])
-  MDL(["Your model"])
-
-  DEV <-->|files terminal| IDE
-  IDE <-->|stdio NDJSON| MOT
-  MOT <-->|HTTP localhost| OLL
-  OLL --- MDL
-```
-
-**One chat message (coarse)**
-
-```mermaid
-flowchart TB
-  U(["You send a message"])
-  I(["Drox IDE"])
-  M(["Drox engine"])
-  L(["LLM via Ollama"])
-  O(["Tools: read write bash grep..."])
-
-  U --> I
-  I -->|agent.run| M
-  M -->|prompt + history| L
-  L -->|text + tool calls| M
-  M -->|file_read bash...| O
-  O -->|results| I
-  I -->|tool/exec| M
-  M -->|final reply| I
-  I --> U
-```
+**One chat message (coarse)** — IDE → shim → TUI loop → LLM → tools / `tool/exec` → IDE.
 
 **Who does what**
 
 | Piece | Role |
 |-------|------|
-| **Ollama** | Inference: one model, your machine, no mandated cloud account |
-| **drox.exe** | Agent loop, observer run rail, permissions, session, stable tool palette |
-| **Drox IDE** | Chat UI, editor, LSP/diff/bash execution in the workspace |
-| **You** | Repo, chosen model, permission mode (default / plan / acceptEdits…) |
+| **Ollama** | Inference: your machine, no mandated cloud |
+| **drox.exe** | TUI agent loop, JSON-RPC shim, permissions, session, tools |
+| **Drox IDE** | Chat UI, LSP/diff/bash in workspace |
+| **You** | Repo, model, Config / Architect vignettes, permission mode |
 
-Conductor detail (stations, markers, prompts) is in [Schema 1.4 — run rail](#schema-rail) below.
+Detail in [Schema 1.5 — tui_mono](#schema-tui-mono).
 
 ___
 
-<a id="schema-rail"></a>
+<a id="schema-tui-mono"></a>
 
-## Schéma — 1.4.2 (rail observateur)
+## Schéma — 1.5.0 (`tui_mono` + shim IDE)
 
-Run `agent.run` · **deux chemins IDE** : **edit** (Architect + run rail) et **discuss** (ArchitectDiscussion, court) · lot **1.4.2** : rail **observateur**, outils **stables** tout le run, contexte **4 couches**, plus d’ACL par station ni `tool_folders` · routage `discuss` / `analyze` / `edit` **statique** (plus d’intent probe LLM).
+Run `agent.run` · pipeline **`tui_mono`** (`initialize`) · **une** boucle `agent.rs` · shim `drox-cli/jsonrpc` traduit params vignettes et events · stations rail IDE = **synthèse** `ide_event_shim`, pas conducteur moteur.
 
-**Vue d’ensemble**
+**Trois couches**
+
+```mermaid
+flowchart TB
+  subgraph IDE["Client IDE"]
+    VIG["Vignettes Config + Architecte + permission"]
+    CHAT["Chat stream + timeline rail"]
+  end
+
+  subgraph SHIM["drox-cli/jsonrpc"]
+    H["handlers.rs — agent.run"]
+    E["ide_event_shim.rs"]
+  end
+
+  subgraph CORE["drox-engine — agent.rs"]
+    LOOP["Mono-boucle LLM + outils"]
+  end
+
+  VIG --> H
+  H --> LOOP
+  LOOP --> E
+  E --> CHAT
+  LOOP <-->|tool/exec| IDE
+```
+
+**Phases TUI (moteur réel)**
 
 ```mermaid
 flowchart LR
-  IDE(["Client IDE"])
-  MOT(("Moteur Rust 1.4.2"))
-  ARC[["Architecte solo"]]
-  RAIL[["Run rail observateur"]]
-  DISC[["Discuss court"]]
-  CTX[["4 couches contexte"]]
-
-  IDE <-->|NDJSON stdio| MOT
-  MOT --- ARC
-  ARC -->|edit| RAIL
-  ARC -->|discuss| DISC
-  RAIL --- CTX
+  A[analyzing] --> R[reading]
+  R --> C[clarifying]
+  C --> P[planning]
+  P --> X[acting]
+  R --> X
+  X --> T[testing]
+  T --> V[verifying]
+  V --> AN[answering]
+  AN --> D[done]
 ```
 
-**Stations edit (inférées, pas bloquantes)**
+Phases optionnelles · boucles `acting`/`verifying` possibles · seul **`done`** clôt le run.
 
-```mermaid
-flowchart LR
-  I[INTENT] --> R[READ]
-  R -->|depth complex| P[PROPOSE]
-  R --> PL[PLAN]
-  P --> PL
-  PL --> A[ACT]
-  R -->|chemin court| A
-  A --> V[VERIFY]
-  V --> AN[ANSWER]
-```
-
-**Tour LLM sur le rail**
+**Tour LLM — séquence**
 
 ```mermaid
 sequenceDiagram
   autonumber
   participant IDE as Client
-  participant DRV as loop/drive
-  participant RAIL as rail/infer
+  participant SH as handlers
+  participant AG as agent.rs
   participant LLM as LLM
 
-  IDE->>DRV: agent.run
-  DRV->>RAIL: inférence station + snapshot hint
-  Note over RAIL: palette outils stable — pas de filtre ACL
-  DRV->>LLM: boot 01_core_rail_solo + 4 couches contexte
-  Note over LLM: phase answering done — sans forcing mutation
-  LLM-->>DRV: tool_calls et/ou marqueurs
-  opt outil client
-    DRV->>IDE: tool/exec lsp diff
-    IDE-->>DRV: resultat
+  IDE->>SH: agent.run + LlmConfig + PermissionMode
+  SH->>AG: run mono-boucle
+  loop Chaque tour
+    AG->>LLM: prompt + outils + transcript
+    LLM-->>AG: phase: + texte + tool_calls
+    AG->>SH: AgentEvent
+    SH->>IDE: phase_enter + rail_station synthetique
+    opt outil client
+      AG->>IDE: tool/exec
+      IDE-->>AG: resultat
+    end
   end
-  LLM-->>DRV: phase answering puis done
-  DRV-->>IDE: agent/done
+  AG->>SH: Stop phase done
+  SH-->>IDE: agent/done
 ```
 
 | Identifiant | Fonction |
 |-------------|----------|
-| `run_rail_enabled` | Active le rail sur le chemin edit |
-| `rail/infer.rs` | Inférence station depuis outils + marqueurs — **observation** |
-| `rail_snapshot_block` | Hint informatif dans le snapshot — pas prescriptif |
-| `01_core_rail_solo.md` | Boot edit observateur ; marqueurs `[phase:]` `[depth:]` |
-| `routing.rs` | Routage statique discuss / analyze / edit |
-| `internal_plan_write` | Plan interne moteur — remplace `todo_write` |
-| `tool_supplements_architect_compact` | Protocole outil unique tout le run |
-| `ArchitectDiscussion` | Réponse légère sans rail complet |
+| `tui_mono` | Pipeline unique — plus de `role_split` |
+| `agent.rs` | Cœur boucle LLM + outils + permissions |
+| `ide_event_shim.rs` | Phase TUI → `rail_station_*` (UI seulement) |
+| `handlers.rs` | `agent.run`, map vignettes → `LlmConfig` |
+| `PermissionMode` | `plan` / `acceptEdits` / `default` (+ `bypass` si activé) |
+| `Phase` | `analyzing` … `done` via marqueurs `[phase: …]` |
+| `RemoteTool` | Outils client via `tool/exec` |
+
+**Map phases → stations rail (shim, affichage IDE)**
+
+| Phase TUI | Station rail synthétique |
+|-----------|--------------------------|
+| `analyzing`, `reading` | `read` |
+| `clarifying` | `propose` |
+| `planning` | `plan` |
+| `acting` | `act` |
+| `testing`, `verifying` | `verify` |
+| `answering`, `done` | `answer` |
+| `internal_reasoning` | *(aucune)* |
 
 ___
 
@@ -255,7 +247,7 @@ ___
 
 # Moteur Drox
 
-Binaire Rust (`drox-engine/drox/`) qui fait tourner une boucle LLM + outils en local. Le client (IDE) lance `drox --serve`, lit du NDJSON sur stdio, et exécute ce qui ne peut pas tourner dans le moteur (LSP, diff, questions UI). Inférence via Ollama ou API compatible. Produit KDDS — pas de cloud propriétaire imposé.
+Binaire Rust (`drox-engine/drox/`, crate `drox-cli`) : mono-boucle agent TUI + JSON-RPC stdio. Le client lance `drox --serve`, exécute LSP/diff/questions via `tool/exec` et `user/ask`. Inférence Ollama ou API compatible. Produit KDDS.
 
 ___
 
@@ -263,16 +255,16 @@ ___
 
 ## Invariants
 
-`moteur_seul` — orchestration, gates souples et injection contexte vivent dans Rust ; le client stream et exécute LSP/diff, il ne conduit pas le run.
-`rail_observateur` — chemin edit : le **run rail** infère et affiche la station ; **pas** d’ACL outils par station, **pas** de `tool_folders`, **pas** de nudges coercitifs (`stall_read`, `stall_act`, `force_act`).
-`architecte_solo` — un seul agent edit ; pas de `delegate_executor`, pas de `RoleId::Executor` ; mutations **inline**.
-`deux_chemins` — **edit** (rail complet) vs **discuss** (`ArchitectDiscussion`, court) ; routage **statique** (`routing.rs`), plus d’intent probe LLM au boot.
-`outils_stables` — palette `tool_specs` **plate** tout le run EDIT ; protocole compact unique `tool_supplements_architect_compact`.
-`contexte_4_couches` — cadre boot + hint rail · outils wire · snapshot run + `internal_plan_write` · transcript + compaction checkpoint.
-`plan_interne` — `internal_plan_write` remplace `todo_write` ; pas de gate todo sur `done`.
-`memoire_drox_seule` — `DROX.md` seul pour la mémoire projet ; boot sans listing skills/sessions.
-`done_souple` — fin sur `[phase: done]` ; verify et mutation **non** forcés par défaut (preset strict optionnel).
-`obsolete_142` — **1.4.2 clôturée** sur `main` mais le moteur **va changer entièrement** — ne pas bâtir dessus.
+`moteur_seul` — orchestration, phases et injection contexte vivent dans `agent.rs` ; le client stream et exécute les outils client, il ne conduit pas le run.
+`tui_mono` — une boucle, un agent ; plus de `role_split`, `delegate_executor`, rail 1.4.
+`shim_rpc` — `drox-cli/jsonrpc` traduit le contrat IDE sans refondre la webview.
+`phases_done_driven` — protocole `[phase: …]` ; seul `done` clôt ; `answering` = réponse chat visible.
+`permission_modes` — `plan` / `acceptEdits` / `default` ; vignettes IDE mappées au boot du run.
+`remote_tools` — mutations workspace et LSP via `tool/exec` côté IDE quand requis.
+`rail_synthese` — `rail_station_*` émis par le shim pour la timeline ; **pas** un conducteur moteur.
+`vignettes_llm` — Config + Architecte : `server`, `model`, `numCtx`, sampling → `LlmConfig`.
+`obsolete_14x` — code rail 1.4 retiré du workspace ; archivé `docs/1.4/`.
+`experimental_150` — 1.5.0 dogfoodable ; toujours pas prod.
 
 ___
 
@@ -397,36 +389,51 @@ ___
 
 <a id="fr-2026-06-v14"></a>
 
-### 2026-06 — `v1_4` (run rail)
+### 2026-06 — `v1_4` (run rail) — *archivé*
 
 `run_rail_solo` — refonte 1.4.0 : un conducteur edit, reliquats 1.3 retirés du chemin IDE.
-`stations_rail` — INTENT → READ → [PROPOSE] → PLAN → ACT → VERIFY → ANSWER ; chemin court sans PLAN/PROPOSE.
-`01_core_rail_solo` — seul prompt boot edit ; suppression `01_core.md`, `parallel_slots`, `delegate_executor` prompts.
-`rail_policy` — filtre outils par station dans `rail/policy.rs` avant LLM.
-`segment_act_del` — plus de shards Executor ; `file_edit` / `file_write` / `bash` en station ACT.
-`delegate_executor_del` — Executor, `FailurePacket`, batch parallèle hors contrat runtime.
-`professor_standard_del` — modes Professor et Standard CLI coupés du `drive`.
-`discuss_path` — `ArchitectDiscussion` : réponse légère, pas rail complet.
-`nudges_rail` — `stall_act`, `schema_error`, `done_only` ; fin nudges 1.3 (`cycle_sanity`, `step_by_step`, etc.).
-`final_answer_guard` — une promotion `[phase: answering]` ; anti double réponse finale.
-`agent_split_v2` — `loop/drive/`, `state/`, `gates/`, `rail/`, `nudges/` ; plafond ~500 L/fichier.
-`ui_2d` — retrait UI multi-modèle / executor côté IDE (settings, webview) ; polish conducteur → 1.4.2.
+`stations_rail` — INTENT → READ → [PROPOSE] → PLAN → ACT → VERIFY → ANSWER.
+`rail_policy` — filtre outils par station (retiré en 1.4.2).
+`discuss_path` — `ArchitectDiscussion`.
+`agent_split_v2` — `loop/drive/`, `rail/`, `nudges/`.
 
 ___
 
 <a id="fr-2026-06-v142"></a>
 
-### 2026-06 — `v1_4_2` (rail observateur — **clôture, moteur obsolète**)
+### 2026-06 — `v1_4_2` (rail observateur) — *obsolète, remplacé par 1.5*
 
-`v1_4_1_stable` — session, UI busy, discuss, VERIFY Windows ; base avant refonte contexte.
-`rail_observateur` — fin ACL station, `pre_gate`, `read_stall`, `act_stall`, `force_act`, gates mutation sur `done`.
-`tool_folders_del` — module `orchestration/tool_folders/` supprimé ; palette plate (`file_read`, `file_edit`, …).
-`intent_probe_del` — plus de probe LLM au boot ; `routing.rs` statique discuss / analyze / edit.
-`todo_write_del` — `internal_plan_write` seul ; gates todo retirées.
-`memoire_unifiee` — `DROX.md` seul ; boot teaser ; checkpoint compaction → snapshot `## Run context (engine)`.
-`contexte_4_couches` — boot + hint rail · outils stables · snapshot run · transcript + compaction.
-`prompt_observateur` — `01_core_rail_solo.md` réécrit sans `[gate:]` prescriptif.
-`obsolete_annonce` — branche **1.4.2** mergée sur `main` ; **refonte moteur complète** annoncée — phase expérimentale agressive, test optionnel pour curieux.
+`rail_observateur` — fin ACL station, tool folders, intent probe.
+`contexte_4_couches` — boot + hint rail · outils stables · snapshot · transcript.
+`obsolete_142` — clôture 1.4.x ; **ne plus utiliser** — remplacé par swap TUI 1.5.0.
+
+___
+
+<a id="fr-2026-06-v15"></a>
+
+### 2026-06 — `v1_5` (TUI + shim IDE — **actuel**)
+
+`tui_swap` — `drox-engine/drox/` entièrement remplacé par workspace TUI ; fin du code rail 1.4.
+`jsonrpc_shim` — `handlers.rs`, `protocol.rs` : `agent.run`, sessions, `tool/exec`, `user/ask`.
+`ide_event_shim` — projection `AgentEvent` → wire IDE + `rail_station_*` synthétique.
+`orchestration_tui_mono` — `initialize.orchestrationPipeline` = `tui_mono`.
+`vignettes_llm` — Config + Architecte : params RPC → `LlmConfig` (`numCtx`, sampling, …).
+`permission_map_ide` — `analyze` / `trustEdit` / `imNotCrazy` → `plan` / `acceptEdits` / `default`.
+`rpc_legacy_ignore` — `orchestrationMode`, `architectInteractionMode` ignorés côté moteur.
+`remote_tool` — outils workspace délégués IDE via `tool/exec` (`file_write` dogfood validé).
+`drox_tui_member` — crate `drox-tui` conservée pour dogfood terminal ; hors installeur.
+`upstream_1126` — intégration VS Code 1.126.0 sur branche `1.5.0`.
+`release_150` — `droxVersion` 1.5.0, installeur Windows, release OR.
+
+___
+
+<a id="en-sovereignty"></a>
+
+## Project goal — sovereignty
+
+Drox aims for **digital sovereignty**: IDE, agent engine, inference (Ollama or an endpoint **you** configure), sessions and memory in **`.drox/`** on your disk — no mandatory KDDS cloud account, no Microsoft telemetry in the distributed package.
+
+**Only expected product network traffic**: **version check** (reading the release manifest, e.g. `stable/latest.json`) to tell you a newer update exists. Everything else in the agent workflow runs locally.
 
 ___
 
@@ -434,17 +441,15 @@ ___
 
 # ⚠️ PRODUCT STATUS — READ FIRST
 
-> **Drox engine 1.4.2 is obsolete — it will change completely.**  
-> Branch **1.4.2** closed and merged to `main` (June 2026). This is **not** a stable foundation: a **checkpoint** before a major engine rewrite.
+> **Drox 1.5.0 fully replaces the 1.4.x engine.**  
+> Branch **`1.5.0`** · VS Code upstream **1.126.0** · TUI mono-loop (`tui_mono`) + IDE RPC shim. Still **experimental** — not production — but **much more stable** than 1.4.2.
 
 | | |
 |---|---|
-| **Code on `main`** | **1.4.2** — **observer** rail, **4-layer** context, prescriptive relics removed (`tool_folders`, per-station ACL, `todo_write`, LLM intent probe) |
-| **Production-ready?** | **No.** **Aggressive experimental** phase — dogfood only. |
-| **Still want to try?** | **Optional for the curious**: build `drox.exe`, hook up Ollama, expect bugs / regressions / breaking changes without notice. |
-| **Next engine work** | **Deep rewrite** (not a 1.4.3 polish) — current architecture will **not** be extended as-is. |
-
-**1.4.2** cleans the 1.4.x experience (less forcing, free tools, unified memory) but **does not** freeze final design. What ships on `main` today is mainly a **lab** and a record of what we are moving away from.
+| **Code on `1.5.0`** | **1.5.0** — TUI core (`agent.rs`), `drox-cli` JSON-RPC, `ide_event_shim`, `tui_mono` pipeline |
+| **Production-ready?** | **No.** Experimental — dogfood / early adopters. |
+| **Try it?** | **Yes for the curious**: OR installer, Ollama, bugs possible but rewritten stack, dogfood validated. |
+| **1.4.x** | **Obsolete** — observer rail, `role_split`, IDE orchestration dropped · archived `drox-engine/docs/1.4/` |
 
 ___
 
@@ -452,7 +457,7 @@ ___
 
 # Drox Engine
 
-Rust binary (`drox-engine/drox/`) that runs a local LLM + tools loop. The client (IDE) starts `drox --serve`, reads NDJSON on stdio, and runs what cannot live in the engine (LSP, diff, UI prompts). Inference via Ollama or compatible API. KDDS product — no mandated proprietary cloud.
+Rust binary (`drox-engine/drox/`, `drox-cli` crate): TUI mono-loop agent + stdio JSON-RPC. Client runs `drox --serve`, executes LSP/diff/prompts via `tool/exec` and `user/ask`. Ollama or compatible API. KDDS product.
 
 ___
 
@@ -460,16 +465,16 @@ ___
 
 ## Invariants
 
-`moteur_seul` — orchestration, soft gates, and context injection live in Rust; the client streams and runs LSP/diff, it does not drive the run.
-`rail_observateur` — edit path: **run rail** infers and surfaces station; **no** per-station tool ACL, **no** `tool_folders`, **no** coercive nudges (`stall_read`, `stall_act`, `force_act`).
-`architecte_solo` — single edit agent; no `delegate_executor`, no `RoleId::Executor`; mutations **inline**.
-`deux_chemins` — **edit** (full rail) vs **discuss** (`ArchitectDiscussion`, short); **static** routing (`routing.rs`), no LLM intent probe at boot.
-`outils_stables` — flat `tool_specs` palette for the whole EDIT run; single compact protocol `tool_supplements_architect_compact`.
-`contexte_4_couches` — boot frame + rail hint · wire tools · run snapshot + `internal_plan_write` · transcript + compaction checkpoint.
-`plan_interne` — `internal_plan_write` replaces `todo_write`; no todo gate on `done`.
-`memoire_drox_seule` — `DROX.md` only for project memory; boot without skills/sessions listing.
-`done_souple` — ends on `[phase: done]`; verify and mutation **not** forced by default (strict preset optional).
-`obsolete_142` — **1.4.2 closed** on `main` but engine **will change entirely** — do not build on this stack.
+`moteur_seul` — orchestration, phases, context injection live in `agent.rs`; client streams and runs client tools, it does not drive the run.
+`tui_mono` — one loop, one agent; no `role_split`, `delegate_executor`, 1.4 rail.
+`shim_rpc` — `drox-cli/jsonrpc` translates IDE contract without webview rewrite.
+`phases_done_driven` — `[phase: …]` protocol; only `done` closes; `answering` = visible chat reply.
+`permission_modes` — `plan` / `acceptEdits` / `default`; IDE vignettes mapped at run start.
+`remote_tools` — workspace mutations and LSP via IDE `tool/exec` when required.
+`rail_synthese` — `rail_station_*` from shim for timeline; **not** an engine conductor.
+`vignettes_llm` — Config + Architect: `server`, `model`, `numCtx`, sampling → `LlmConfig`.
+`obsolete_14x` — 1.4 rail code removed from workspace; archived `docs/1.4/`.
+`experimental_150` — 1.5.0 dogfoodable; still not prod.
 
 ___
 
@@ -594,33 +599,38 @@ ___
 
 <a id="en-2026-06-v14"></a>
 
-### 2026-06 — `v1_4` (run rail)
+### 2026-06 — `v1_4` (run rail) — *archived*
 
 `run_rail_solo` — 1.4.0 refactor: single edit conductor; 1.3 relics removed from IDE path.
-`stations_rail` — INTENT → READ → [PROPOSE] → PLAN → ACT → VERIFY → ANSWER; short path skips PLAN/PROPOSE.
-`01_core_rail_solo` — sole edit boot prompt; dropped `01_core.md`, `parallel_slots`, `delegate_executor` prompts.
-`rail_policy` — per-station tool filter in `rail/policy.rs` before LLM.
-`segment_act_del` — no Executor shards; `file_edit` / `file_write` / `bash` in ACT station.
-`delegate_executor_del` — Executor, `FailurePacket`, parallel batch out of runtime contract.
-`professor_standard_del` — Professor and Standard CLI modes cut from `drive`.
-`discuss_path` — `ArchitectDiscussion`: light reply, no full rail.
-`nudges_rail` — `stall_act`, `schema_error`, `done_only`; end of 1.3 nudges (`cycle_sanity`, `step_by_step`, etc.).
-`final_answer_guard` — single `[phase: answering]` promotion; no double final reply.
-`agent_split_v2` — `loop/drive/`, `state/`, `gates/`, `rail/`, `nudges/`; ~500 L/file cap.
-`ui_2d` — multi-model / executor UI removed on IDE side (settings, webview); conductor polish → 1.4.2.
+`stations_rail` — INTENT → READ → [PROPOSE] → PLAN → ACT → VERIFY → ANSWER.
+`rail_policy` — per-station tool filter (removed in 1.4.2).
+`discuss_path` — `ArchitectDiscussion`.
+`agent_split_v2` — `loop/drive/`, `rail/`, `nudges/`.
 
 ___
 
 <a id="en-2026-06-v142"></a>
 
-### 2026-06 — `v1_4_2` (observer rail — **closed, engine obsolete**)
+### 2026-06 — `v1_4_2` (observer rail) — *obsolete, replaced by 1.5*
 
-`v1_4_1_stable` — session, busy UI, discuss, Windows VERIFY; base before context refactor.
-`rail_observateur` — end of per-station ACL, `pre_gate`, `read_stall`, `act_stall`, `force_act`, mutation gates on `done`.
-`tool_folders_del` — `orchestration/tool_folders/` removed; flat palette (`file_read`, `file_edit`, …).
-`intent_probe_del` — no LLM probe at boot; static `routing.rs` discuss / analyze / edit.
-`todo_write_del` — `internal_plan_write` only; todo gates removed.
-`memoire_unifiee` — `DROX.md` only; boot teaser; compaction checkpoint → `## Run context (engine)` snapshot.
-`contexte_4_couches` — boot + rail hint · stable tools · run snapshot · transcript + compaction.
-`prompt_observateur` — `01_core_rail_solo.md` rewritten without prescriptive `[gate:]`.
-`obsolete_annonce` — branch **1.4.2** merged to `main`; **full engine rewrite** announced — aggressive experimental phase, testing optional for the curious.
+`rail_observateur` — end of per-station ACL, tool folders, intent probe.
+`contexte_4_couches` — boot + rail hint · stable tools · snapshot · transcript.
+`obsolete_142` — 1.4.x closed; **do not use** — replaced by TUI swap 1.5.0.
+
+___
+
+<a id="en-2026-06-v15"></a>
+
+### 2026-06 — `v1_5` (TUI + IDE shim — **current**)
+
+`tui_swap` — `drox-engine/drox/` fully replaced by TUI workspace; 1.4 rail code gone.
+`jsonrpc_shim` — `handlers.rs`, `protocol.rs`: `agent.run`, sessions, `tool/exec`, `user/ask`.
+`ide_event_shim` — `AgentEvent` → IDE wire + synthetic `rail_station_*`.
+`orchestration_tui_mono` — `initialize.orchestrationPipeline` = `tui_mono`.
+`vignettes_llm` — Config + Architect: RPC params → `LlmConfig` (`numCtx`, sampling, …).
+`permission_map_ide` — `analyze` / `trustEdit` / `imNotCrazy` → `plan` / `acceptEdits` / `default`.
+`rpc_legacy_ignore` — `orchestrationMode`, `architectInteractionMode` ignored by engine.
+`remote_tool` — workspace tools delegated to IDE via `tool/exec` (`file_write` dogfood validated).
+`drox_tui_member` — `drox-tui` crate kept for terminal dogfood; not in installer.
+`upstream_1126` — VS Code 1.126.0 integration on branch `1.5.0`.
+`release_150` — `droxVersion` 1.5.0, Windows installer, OR release.

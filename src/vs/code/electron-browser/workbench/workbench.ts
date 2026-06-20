@@ -296,11 +296,6 @@
 		// Dev only: CSS import map tricks
 		setupCSSImportMaps<T>(configuration, baseUrl);
 
-		// Dev: prefer relative ESM imports (same as build/vite/setup-dev.ts) — more reliable than vscode-file:// on Windows.
-		if (!!safeProcess.env['VSCODE_DEV'] && globalThis._VSCODE_USE_RELATIVE_IMPORTS !== false) {
-			globalThis._VSCODE_USE_RELATIVE_IMPORTS = true;
-		}
-
 		// ESM Import
 		try {
 			let workbenchUrl: string;

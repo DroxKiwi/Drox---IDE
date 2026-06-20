@@ -14,13 +14,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::ToolError;
 
-/// Option `{ id, label }` pour l'UI interactive (carte Questions).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UserQuestionOption {
-    pub id: String,
-    pub label: String,
-}
-
 /// Question posée à l'humain par un tool.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserQuestion {
@@ -31,12 +24,9 @@ pub struct UserQuestion {
     pub id: Option<String>,
     /// Texte de la question, en clair.
     pub prompt: String,
-    /// Si non vide, l'humain doit choisir parmi cette liste (labels).
+    /// Si non vide, l'humain doit choisir parmi cette liste.
     #[serde(default)]
     pub choices: Vec<String>,
-    /// Options structurées `{ id, label }` quand le tool les fournit (UI + mapping réponse).
-    #[serde(default)]
-    pub structured_options: Vec<UserQuestionOption>,
     /// Permet de sélectionner plusieurs choix (séparés par virgule côté CLI).
     #[serde(default)]
     pub allow_multiple: bool,

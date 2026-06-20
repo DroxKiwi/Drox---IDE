@@ -231,7 +231,8 @@ function Test-DroxEngineFingerprintModern {
 	if (-not (Test-Path -LiteralPath $ExePath)) { return $false }
 	$bytes = [System.IO.File]::ReadAllBytes($ExePath)
 	$text = [System.Text.Encoding]::UTF8.GetString($bytes)
-	return ($text -match 'orchestration role_split') -and -not ($text -match 'gate chain step')
+	# Moteur TUI 1.5+ : tui_mono / client drox-ide ; rejeter l'ancien rail role_split 1.4.
+	return ($text -match 'tui_mono|clientName:"drox-ide"') -and -not ($text -match 'orchestration role_split')
 }
 
 function Get-PackagedReleaseIntegrityIssues {
@@ -295,7 +296,7 @@ function Get-PackagedReleaseIntegrityIssues {
 	if (-not $droxBin) {
 		$issues.Add('drox.exe embarque introuvable')
 	} elseif (-not (Test-DroxEngineFingerprintModern -ExePath $droxBin)) {
-		$issues.Add("drox.exe embarque n'est pas MODERN (role_split) : $droxBin")
+		$issues.Add("drox.exe embarque n'est pas TUI 1.5+ (tui_mono) : $droxBin")
 	}
 
 	return $issues

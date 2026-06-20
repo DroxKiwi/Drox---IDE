@@ -52,7 +52,7 @@ Code conservé et réutilisé :
 
 ## Hors scope 1.4.0
 
-- Index RAG / ContextPack → [1.4.4](../../../1.4.4/README.md)
+- Index RAG / ContextPack → [1.5.2](../../../1.5/1.5.2/README.md)
 - Réactivation UI `delegate_executor`
 - `GateEngine` TOML / paliers `E-*`
 

@@ -15,7 +15,7 @@ import { CancellationError } from '../../../../base/common/errors.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { isLinuxSnap, isMacintosh } from '../../../../base/common/platform.js';
-import { IProductConfiguration, getProductDisplayVersion } from '../../../../base/common/product.js';
+import { IProductConfiguration } from '../../../../base/common/product.js';
 import { joinPath } from '../../../../base/common/resources.js';
 import { escape } from '../../../../base/common/strings.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
@@ -100,7 +100,7 @@ export class BaseIssueReporterService extends Disposable {
 			...data,
 			issueType: data.issueType || IssueType.Bug,
 			versionInfo: {
-				vscodeVersion: `${product.nameShort} ${getProductDisplayVersion(product)} (${product.commit || 'Commit unknown'}, ${product.date || 'Date unknown'})`,
+				vscodeVersion: `${product.nameShort} ${!!product.darwinUniversalAssetId ? `${product.version} (Universal)` : product.version} (${product.commit || 'Commit unknown'}, ${product.date || 'Date unknown'})`,
 				os: `${this.os.type} ${this.os.arch} ${this.os.release}${isLinuxSnap ? ' snap' : ''}`
 			},
 			extensionsDisabled: !!this.disableExtensions,
