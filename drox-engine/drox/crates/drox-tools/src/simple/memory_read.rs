@@ -41,12 +41,12 @@ impl Tool for MemoryReadTool {
     }
 
     fn description(&self) -> &str {
-        "Load full content (front-matter + markdown body) of an \
-         archived workspace session by short slug (front-matter \
-         `slug` field — **without** the date-time filename prefix). \
-         Read-only. Returns raw text — \
-         extract what matters for the current task. \
-         Format: {\"slug\": \"…\"}."
+        "Recharge le contenu complet (front-matter + body markdown) d'une \
+         session archivée du workspace, à partir de son slug court (champ \
+         `slug` du front-matter — **sans** le préfixe date-heure du nom de \
+         fichier). Lecture seule. Renvoie le texte tel quel — \
+         à toi d'en extraire ce qui est pertinent pour la tâche courante. \
+         Format : {\"slug\": \"…\"}."
     }
 
     fn input_schema(&self) -> Value {
@@ -60,7 +60,7 @@ impl Tool for MemoryReadTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: MemoryReadInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "memory_read: invalid JSON payload ({e}). Expected format: {{\"slug\": \"…\"}}.",
+                "memory_read: payload JSON invalide ({e}). Format attendu : {{\"slug\": \"…\"}}.",
             ))
         })?;
         let slug = args.slug.trim();

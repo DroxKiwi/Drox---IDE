@@ -123,33 +123,16 @@ impl PermissionPolicy {
                 }
                 acc
             }
-            Err(BashError::TooManySubcommands(n)) => {
-                if self.mode.skips_permission_asks() {
-                    PermissionDecision::Allow {
-                        reason: DecisionReason::Mode(self.mode),
-                    }
-                } else {
-                    PermissionDecision::Ask {
-                        reason: DecisionReason::Default,
-                        message: format!(
-                            "Bash command is too fragmented ({n} segments); human approval is required."
-                        ),
-                    }
-                }
-            }
-            Err(_) => {
-                if self.mode.skips_permission_asks() {
-                    PermissionDecision::Allow {
-                        reason: DecisionReason::Mode(self.mode),
-                    }
-                } else {
-                    PermissionDecision::Ask {
-                        reason: DecisionReason::Default,
-                        message: "Bash analysis unavailable; human approval is required."
-                            .to_string(),
-                    }
-                }
-            }
+            Err(BashError::TooManySubcommands(n)) => PermissionDecision::Ask {
+                reason: DecisionReason::Default,
+                message: format!(
+                    "La commande Bash est trop fragmentée ({n} segments) ; validation humaine requise."
+                ),
+            },
+            Err(_) => PermissionDecision::Ask {
+                reason: DecisionReason::Default,
+                message: "Analyse Bash indisponible ; validation humaine requise.".to_string(),
+            },
         }
     }
 
@@ -179,11 +162,11 @@ impl PermissionPolicy {
                     ..
                 }
             );
-            if !allowed_by_rule && !self.mode.trust_level_full() {
+            if !allowed_by_rule && !matches!(self.mode, PermissionMode::BypassPermissions) {
                 decision = PermissionDecision::Deny {
                     reason: DecisionReason::Default,
                     message: format!(
-                        "Bash command denied ({hint}). To allow it explicitly, add an `Allow` rule for `bash({trimmed})`."
+                        "Commande Bash refusée ({hint}). Pour autoriser explicitement, ajoutez une règle `Allow` pour `bash({trimmed})`."
                     ),
                 };
             }
@@ -259,7 +242,7 @@ const fn is_write_tool(tool_name: &str) -> bool {
             | b"git_worktree_enter"
             | b"git_worktree_exit"
             | b"session_compact"
-    ) || is_workspace_map_write_tool(tool_name)
+    )
 }
 
 /// `true` si le tool ne fait que lire / observer.
@@ -281,7 +264,8 @@ pub fn is_read_only_tool(tool_name: &str) -> bool {
             | b"lsp"
             | b"ask_user_question"
             | b"exit_plan_mode"
-            | b"internal_plan_write"
+            | b"todo_write"
+            | b"course_plan_write"
             | b"session_note"
             | b"memory_read"
             | b"memory_list"
@@ -291,12 +275,7 @@ pub fn is_read_only_tool(tool_name: &str) -> bool {
             | b"session_search"
             | b"list_mcp_resources"
             | b"read_mcp_resource"
-            | b"workspace_map_read"
     )
-}
-
-const fn is_workspace_map_write_tool(tool_name: &str) -> bool {
-    matches!(tool_name.as_bytes(), b"workspace_map_note")
 }
 
 #[cfg(test)]
@@ -362,25 +341,6 @@ mod tests {
         let policy = PermissionPolicy::new(engine_with(vec![]), PermissionMode::Default);
         let decision = policy.evaluate("file_write", &json!({ "path": "/tmp/x", "content": "" }));
         assert!(decision.is_ask(), "got {decision:?}");
-    }
-
-    #[test]
-    fn workspace_map_read_auto_allowed_default_and_accept_edits() {
-        for mode in [PermissionMode::Default, PermissionMode::AcceptEdits] {
-            let policy = PermissionPolicy::new(engine_with(vec![]), mode);
-            let decision = policy.evaluate("workspace_map_read", &json!({ "path_prefix": "src" }));
-            assert!(decision.is_allow(), "mode {mode:?}: {decision:?}");
-        }
-    }
-
-    #[test]
-    fn workspace_map_note_allowed_in_accept_edits() {
-        let policy = PermissionPolicy::new(engine_with(vec![]), PermissionMode::AcceptEdits);
-        let decision = policy.evaluate(
-            "workspace_map_note",
-            &json!({ "path": "drox", "summary": "agent core" }),
-        );
-        assert!(decision.is_allow(), "got {decision:?}");
     }
 
     #[test]
@@ -460,11 +420,7 @@ mod tests {
         let decision = policy.evaluate("bash", &json!({ "command": "rm -rf /tmp/z" }));
         assert!(decision.is_deny(), "got {decision:?}");
         if let PermissionDecision::Deny { message, .. } = decision {
-            assert!(
-                message.contains("denied")
-                    || message.contains("refusée")
-                    || message.contains("refused")
-            );
+            assert!(message.contains("refusée") || message.contains("refused"));
         }
     }
 

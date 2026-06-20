@@ -49,6 +49,39 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 - Tag de release : format **`v1.3.0`** (pas d’espaces, pas le titre marketing comme tag).
 - Publication : `npm run drox:ship` (ou `drox:publish` si l’installeur est déjà buildé), puis commit des manifestes, puis upload de l’exe via Releases (web ou `gh`).
 
+### Intégration upstream VS Code (fork à historique produit)
+
+Le dépôt **`origin`** (GitHub) porte un historique **produit Drox** court (commits squashés). Il **n’est pas** un miroir git de `microsoft/vscode` : pas d’ancêtre commun avec `upstream/main`.
+
+| Où | Rôle |
+|----|------|
+| **Local** — branche `1.5.0` / `integrate/vscode-*` | Développement avec **`upstream`** fetché : reset ou merge local, arbre VS Code complet, résolution couche Drox |
+| **GitHub** — `main` / `1.5.0` | **Publication squash** : un commit par release (ou intégration majeure) = arbre validé, push léger |
+
+**Workflow intégration upstream (règle)**
+
+1. Taguer l’état courant : `nexus-pre-upstream-YYYYMMDD` ou branche `1.5.0-pre-upstream`.
+2. Intégrer en **local** sur `integrate/vscode-<version>` (ex. `reset --hard upstream/main` + réappliquer couche Drox, ou merge selon le chantier).
+3. Valider : `npm install`, `npm run compile`, `cargo test --workspace`, smoke F5 / `drox:ship` si release.
+4. **Publier** vers GitHub (squash — ne pas pousser les ~160k commits upstream) :
+
+```powershell
+git fetch origin upstream
+git checkout -B 1.5.0-publish origin/main
+git read-tree -u --reset refs/heads/1.5.0   # ou la branche integrate validée
+git commit -m "Release 1.5.0: VS Code 1.126.0 + couche Drox."
+git push origin refs/heads/1.5.0-publish:refs/heads/1.5.0
+git push origin refs/heads/1.5.0-publish:refs/heads/main
+git tag -f v1.5.0
+git push origin refs/tags/v1.5.0:refs/tags/v1.5.0
+```
+
+5. Conserver la branche locale **full** (`1.5.0`, `integrate/*`) pour le prochain bump upstream.
+
+**Interdit** sans décision explicite : `git push` de la branche locale full rebasée sur `upstream/main` vers `origin` (transfert ~1 Go+, coupures SSH fréquentes).
+
+**Réf.** : [ARCHITECTURE-DECOUPLAGE-UPSTREAM.md](drox-engine/docs/1.2/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md) §7 (merge régulier côté contenu ; publication squash côté GitHub).
+
 ---
 
 ## 2. Produit & branding
@@ -65,7 +98,7 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 | Champ | Exemple | Usage |
 |-------|---------|--------|
 | **`version`** | `1.122.0` | Base VS Code / API extensions (Copilot, marketplace) — ne pas remplacer par la version Drox |
-| **`droxVersion`** | `1.4.0` | Release produit : installeur, `latest.json`, dialogue **À propos** |
+| **`droxVersion`** | `1.5.0` | Release produit : installeur, `latest.json`, dialogue **À propos** |
 | **`droxSurface`** | `dev` | `dev` en sources / watch ; `release` injecté au package via `DROX_PRODUCT_SURFACE` (`build-release-win32.ps1`) |
 
 Pour une nouvelle release Drox : modifier **`droxVersion`** uniquement (sauf rebase upstream majeur → mettre à jour **`version`** aussi). Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.

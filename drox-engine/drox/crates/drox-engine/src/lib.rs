@@ -36,8 +36,6 @@
 //! ```
 
 pub mod agent;
-pub mod orchestration;
-pub mod run_spec;
 pub mod compaction;
 pub mod context;
 pub mod error;
@@ -45,43 +43,23 @@ pub mod event;
 pub mod memory;
 pub mod long_memory;
 pub mod permissions;
+pub mod professor;
+pub mod subagent;
 pub mod tool_hooks;
 pub mod tool_orchestration;
+pub mod tool_progress;
 pub use tool_orchestration::{
     partition_tool_calls, ToolCallBatch, DEFAULT_MAX_PARALLEL_TOOL_CALLS,
 };
 
-pub use agent::{Agent, AgentConfig, AgentStream, apply_architect_edit_start, ArchitectEditStartOutcome, RunStation};
-pub use run_spec::{
-    GateKind, RoleId, RunLimits, RunSpec, RUN_SPEC_VERSION, ARCHITECT_TOOL_ALLOWLIST,
-};
-pub use orchestration::{
-    extract_first_json_object, looks_like_gate_json_response, GateChainResult, StartRunKind,
-    architect_discussion_user_message,
-    architect_edit_system_prompt_core_for_run, architect_edit_system_prompt_core_for_run_vars,
-    architect_user_message,
-    extract_discussion_done_from_text, extract_discussion_user_facing_reply,
-    ArchitectGate,
-    EngineTuning, EngineTuningOverrides, OrchestrationConfig, OrchestrationMode, PromptBlockId,
-    PromptVars, StrictnessPreset, resolve_engine_tuning,
-    architect_discussion_system_prompt, architect_discussion_system_prompt_default,
-    architect_discussion_system_prompt_for_start_run,
-    architect_tool_short_description,
-    tool_supplements_all_architect, tool_supplements_architect_compact,
-    ARCHITECT_DISCUSSION_CORE_PROMPT, ARCHITECT_DISCUSSION_SYSTEM_PROMPT,
-    initial_run_objective_for_concrete_edit, sanitize_architect_user_prompt,
-    sanitize_transcript_user_messages,
-    resolve_gate_chain,
-    DEFAULT_ARCHITECT_MODEL,
-};
+pub use agent::{Agent, AgentConfig, AgentStream};
 pub use compaction::{
     choose_live_compact_split_idx, compact_until_budget, format_compact_checkpoint, summarize_run,
-    try_live_compact, CompactionConfig, LiveCompactSettings, CHECKPOINT_MAX_CHARS,
-    LIVE_COMPACT_MAX_PASSES,
+    try_live_compact, CompactionConfig, CHECKPOINT_MAX_CHARS, LIVE_COMPACT_MAX_PASSES,
     LIVE_COMPACT_MAX_TAIL_RATIO, LIVE_COMPACT_TAIL_KEEP_MESSAGES,
     CompactionResult, LiveCompactReport, LIVE_COMPACT_MIN_PREFIX_TOKENS,
 };
-pub use memory::{MemoryRuntime, MemoryTracker, PersistedRun, persist_compaction_result, persist_run};
+pub use memory::{MemoryRuntime, MemoryTracker, PersistedRun, persist_run};
 pub use context::{ContextPolicy, SnipReport};
 pub use drox_context::{
     ContextBudget, RoughTokenCounter, SnipConfig, TiktokenCounter, TokenCounter,
@@ -91,25 +69,19 @@ pub use drox_permissions::{
     PermissionTarget, Rule, RuleSet, RuleSource, RuleValue, SettingsFile, format_rule, parse_rule,
 };
 pub use drox_session::{
-    append_engine_trace_record, ChatMessageRecord, DEFAULT_LISTING_LIMIT, EngineSystemBlock,
-    EngineTracePayload, EngineTraceRecord, EngineTraceSessionConfig, EngineTraceSink,
-    JsonlEngineTraceSink, JsonlTranscriptSink, LlmTurnPreparedTrace, MemorySessionEntry,
-    RunRoutingTrace, SessionError, SessionFrontMatter, SessionListEntry, SessionUiStats,
-    TranscriptSessionConfig, TranscriptSink, compute_session_path, default_sessions_dir,
-    engine_trace_path, format_sessions_listing_for_prompt, apply_prompt_memory_budget,
-    memory_tools_boot_teaser,
-    estimate_tokens, list_sessions, load_memdir, load_sessions_listing, memdir_system_prefix,
-    read_engine_trace, read_session, truncate_to_token_budget, read_session_ui_stats,
-    read_transcript, reserve_session_path, reset_workspace_drox_data, session_ui_stats_path,
-    slugify, transcript_path, workspace_sessions_dir, write_session, write_session_ui_stats,
-    DroxIgnoreMatcher, WorkspaceLayoutBootstrap, WorkspaceMapStore, WorkspaceResetStats,
-    agent_output_task_dir, agent_output_task_has_markdown, ensure_agent_output_task_dir,
-    ensure_workspace_layout, ENGINE_TRACE_SCHEMA_VERSION,
+    ChatMessageRecord, DEFAULT_LISTING_LIMIT, JsonlTranscriptSink, MemorySessionEntry,
+    SessionError, SessionFrontMatter, SessionListEntry, SessionUiStats, TranscriptSessionConfig,
+    TranscriptSink, compute_session_path, default_sessions_dir, format_sessions_listing_for_prompt,
+    list_sessions, load_memdir, load_sessions_listing, memdir_system_prefix, read_session,
+    read_session_ui_stats, read_transcript, reserve_session_path, session_meta_path,
+    session_ui_stats_path, slugify, display_title, read_session_meta, write_session_meta,
+    SessionMeta, transcript_path, write_session, write_session_ui_stats, DroxIgnoreMatcher, WorkspaceMapStore,
 };
 pub use drox_tools::{
     format_skills_listing_for_prompt, load_skills_catalog, SessionNote, SessionNotesHandle,
-    ToolContext, ToolRegistry,
+    SubagentExecutor, SubagentSettings, ToolContext, ToolRegistry,
 };
+pub use subagent::{EngineSubagentExecutor, explore_tool_registry};
 pub use error::EngineError;
 pub use event::{AgentEvent, Phase};
 pub use long_memory::{ContextChunkSummaryV1, SessionClosureV1};

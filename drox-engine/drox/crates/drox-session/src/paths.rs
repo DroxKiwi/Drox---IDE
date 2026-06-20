@@ -6,12 +6,6 @@ use drox_types::SessionId;
 
 use crate::error::SessionError;
 
-/// Transcripts chat du workspace : `<workspace>/.drox/sessions/`.
-#[must_use]
-pub fn workspace_sessions_dir(workspace: &camino::Utf8Path) -> Utf8PathBuf {
-    workspace.join(".drox").join("sessions")
-}
-
 /// Répertoire par défaut : `~/.drox/sessions` (créé à la demande par les writers).
 pub fn default_sessions_dir() -> Result<Utf8PathBuf, SessionError> {
     let home = dirs::home_dir().ok_or(SessionError::NoHomeDir)?;
@@ -31,8 +25,8 @@ pub fn session_ui_stats_path(sessions_dir: &camino::Utf8Path, session_id: &Sessi
     sessions_dir.join(format!("{session_id}.ui-stats.json"))
 }
 
-/// Trace moteur (injection system, routing, tools par tour LLM).
+/// Fichier auxiliaire : titre personnalisé et métadonnées session.
 #[must_use]
-pub fn engine_trace_path(sessions_dir: &camino::Utf8Path, session_id: &SessionId) -> Utf8PathBuf {
-    sessions_dir.join(format!("{session_id}.engine-trace.jsonl"))
+pub fn session_meta_path(sessions_dir: &camino::Utf8Path, session_id: &SessionId) -> Utf8PathBuf {
+    sessions_dir.join(format!("{session_id}.meta.json"))
 }

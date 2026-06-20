@@ -182,6 +182,12 @@ import './contrib/remoteTunnel/electron-browser/remoteTunnel.contribution.js';
 // Chat
 import './contrib/chat/electron-browser/chat.contribution.js';
 
+// DROX-NEXUS - Drox agent (electron)
+import './contrib/drox/electron-browser/drox.contribution.js';
+
+// Copilot Voice
+import './contrib/agentsVoice/electron-browser/agentsVoiceNativeCommands.js';
+
 // Encryption
 import './contrib/encryption/electron-browser/encryption.contribution.js';
 
@@ -196,9 +202,6 @@ import './contrib/policyExport/electron-browser/policyExport.contribution.js';
 
 // Keybindings Export
 import './contrib/keybindingsExport/electron-browser/keybindingsExport.contribution.js';
-
-// DROX-NEXUS - Drox agent (electron)
-import './contrib/drox/electron-browser/drox.contribution.js';
 
 //#endregion
 

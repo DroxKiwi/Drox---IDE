@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-title Drox IDE Server
+title VSCode Server
 
 set ROOT_DIR=%~dp0..
 

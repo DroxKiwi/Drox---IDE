@@ -24,9 +24,9 @@ impl Tool for SkillListTool {
     }
 
     fn description(&self) -> &str {
-        "List local workspace skills (`.drox/skills/*/SKILL.md`), \
-         sorted by name. Read-only. Returns name, description, when_to_use \
-         — not the body (use `skill_read`). Format: {{}}."
+        "Liste les skills locaux du workspace (`.drox/skills/*/SKILL.md`), \
+         triés par nom. Lecture seule. Renvoie name, description, when_to_use \
+         — pas le body (utilise `skill_read`). Format : {{}}."
     }
 
     fn input_schema(&self) -> Value {
@@ -41,7 +41,7 @@ impl Tool for SkillListTool {
         if !input.is_null() && !input.as_object().is_some_and(|o| o.is_empty()) {
             let _: SkillListInput = serde_json::from_value(input).map_err(|e| {
                 ToolError::invalid_args(format!(
-                    "skill_list: invalid JSON payload ({e}). Expected format: {{}}."
+                    "skill_list: payload JSON invalide ({e}). Format attendu : {{}}."
                 ))
             })?;
         }

@@ -109,7 +109,7 @@ INTENT → READ (longue) → fausse ANSWER+done → gate mutation → READ/ACT r
 
 | # | ID / thème | Problème | Gravité | Suite |
 |---|------------|----------|---------|-------|
-| 1 | **—** | Hallucination outils **`read_file`** / **`glob`** (noms invalides) — ~85 steps sans exécution | P1 | Prompt outil · alias ? · 1.4.3 |
+| 1 | **—** | Hallucination outils **`read_file`** / **`glob`** (noms invalides) — ~85 steps sans exécution | P1 | Prompt outil · alias ? · 1.5.1 |
 | 2 | **B-MOTOR-03 / UX** | **Double réponse** : ANSWER markdown générique (React vanilla) **avant** vrai travail — visible user | P1 | Gate answering prématuré · masquer promotion ? |
 | 3 | **B-MOTOR-06** | Pas de synthèse finale après mutation + LSP OK | P0 | Nudge non atteint ; retry après 1× `file_edit` fail |
 | 4 | **B-MOTOR-07** | `file_edit` JSON vide — modèle n’applique pas le hint | P1 | Pre-gate reject + nudge schema_error |
@@ -196,7 +196,7 @@ INTENT → READ (longue) → fausse ANSWER+done → gate mutation → READ/ACT r
 1. Valider côté user si section-transition.tsx compile / anime après le file_write seul
 2. Re-run court : « corrige useMotionTemplate sur le path d » (t4 seul)
 3. Mesurer si post-todos nudge (B-MOTOR-06) se déclenche quand file_edit fail 1×
-4. Traiter alias read_file → file_read (backlog 1.4.3 ou nudge READ)
+4. Traiter alias read_file → file_read (backlog 1.5.1 ou nudge READ)
 5. Phase 9 PLAN-1.4.1.2 : R-plan sidebar complet (brief 4 fichiers) pour comparer scope
 ```
 

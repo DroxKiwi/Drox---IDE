@@ -9,9 +9,10 @@
 //!
 //! Voir `docs/INVENTAIRE-NOYAU-MOTEUR.md` § 2.3.
 
-mod agent_output;
 mod asker;
+mod progress;
 mod context;
+mod diff_util;
 mod error;
 mod path_util;
 pub mod git_worktree;
@@ -20,25 +21,24 @@ pub mod registry;
 pub mod scope_deferred;
 pub mod session_notes;
 mod simple;
+pub mod subagent;
 mod tool;
 
-pub use agent_output::{
-    agent_output_deliverable_path, agent_output_dir_for_plan_task, agent_output_dir_for_segment,
-    new_orchestration_plan_id, sanitize_deliverable_filename, sanitize_output_segment,
-    DEFAULT_DELIVERABLE_FILENAME, AGENT_OUTPUT_DIR,
-};
 pub use asker::{UserAnswer, UserAsker, UserQuestion};
+pub use progress::{ShellProgressUpdate, ToolProgressSink};
 pub use context::ToolContext;
 pub use error::ToolError;
 pub use registry::ToolRegistry;
 pub use skills::{format_skills_listing_for_prompt, load_skills_catalog};
 pub use scope_deferred::{ScopeDeferredHandle, ScopeDeferredItem};
 pub use session_notes::{SessionNote, SessionNotesHandle};
+pub use subagent::{SubagentExecutor, SubagentSettings};
 pub use simple::{
-    ArchitectHelpSnapshot, ArchitectHelpTodoItem, ArchitectHelpTool, AskUserQuestionTool,
-    BashTool, CANONICAL_ASK_JSON_EXAMPLE, ExitPlanModeTool, FileEditTool, FileReadTool, FileWriteTool,
-    GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool,
-    NotebookEditTool, ScopeDeferTool, SessionNoteTool, SkillListTool, SkillReadTool,
+    AskUserQuestionTool, BashTool, CANONICAL_ASK_JSON_EXAMPLE, ExitPlanModeTool, FileEditTool,
+    FileReadTool, FileWriteTool, preview_file_edit_diff, preview_file_write_diff,
+    GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
+    ScopeDeferTool, SessionNoteTool, SkillListTool, SkillReadTool, TaskTool, TodoWriteTool,
     WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool, register_mcp_tools,
+    preview_notebook_edit_diff,
 };
 pub use tool::{DynTool, Tool};

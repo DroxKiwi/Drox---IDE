@@ -5,7 +5,6 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 description = "Drox — binaire CLI (point d'entrée du moteur)"
-build = "build.rs"
 
 [lints]
 workspace = true
@@ -13,6 +12,10 @@ workspace = true
 [[bin]]
 name = "drox"
 path = "src/main.rs"
+
+[lib]
+name = "drox_cli"
+path = "src/lib.rs"
 
 [dependencies]
 drox-types.workspace = true

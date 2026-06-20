@@ -31,8 +31,8 @@ impl Tool for ExitPlanModeTool {
     }
 
     fn description(&self) -> &str {
-        "Present a finalized plan to the human and ask for approval to \
-         leave plan mode and start execution."
+        "Présente un plan finalisé à l'humain et demande son accord pour \
+         quitter le mode plan et passer à l'exécution."
     }
 
     fn input_schema(&self) -> Value {
@@ -59,7 +59,6 @@ impl Tool for ExitPlanModeTool {
                     "Oui, exécuter".to_string(),
                     "Non, rester en plan".to_string(),
                 ],
-                structured_options: vec![],
                 allow_multiple: false,
                 allow_free_text: false,
             })

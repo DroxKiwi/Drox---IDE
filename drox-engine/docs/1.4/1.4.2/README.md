@@ -7,7 +7,7 @@
 
 ## En une phrase
 
-**Remplacer** le rail prescriptif (ACL par station, tool folders, gates) par un rail **observateur** et **4 couches de contexte** — culture unique livrée en code ; **dogfood 3-tours** obligatoire avant 1.4.3.
+**Remplacer** le rail prescriptif (ACL par station, tool folders, gates) par un rail **observateur** et **4 couches de contexte** — culture unique livrée en code ; **dogfood 3-tours** obligatoire avant 1.5.1.
 
 ---
 
@@ -18,7 +18,7 @@
 - **R-MEMORY** : `DROX.md` seul · plan = `internal_plan_write` · archives via `memory_list`/`memory_read`.
 - **R-TEST** : `cargo test` vert + session 3-tours ([template dogfood M.9](SMOKE-M-memory-TEMPLATE.md)).
 
-L’ancien backlog UI/signature : **[1.4.3](../1.4.3/README.md)**. Conduct utilisateur : **Phase 6** (post-dogfood).
+L’ancien backlog UI/signature : **[1.5.1](../../1.5/1.5.1/README.md)**. Conduct utilisateur : **Phase 6** (post-dogfood).
 
 ---
 
@@ -56,7 +56,7 @@ L’ancien backlog UI/signature : **[1.4.3](../1.4.3/README.md)**. Conduct utili
 | **R-FILE** | Fichiers &lt; ~500 lignes si possible |
 | **R-DOC** | Documenter code + plan à chaque phase |
 | **R-NOLEGACY** | Supprimer l’ancien — pas de double chemin |
-| **R-TEST** | Tests verts + dogfood complet avant 1.4.3 |
+| **R-TEST** | Tests verts + dogfood complet avant 1.5.1 |
 | **R-MEMORY** | Un canal par question (pas de listing boot doublon) |
 
 ---
@@ -68,7 +68,7 @@ L’ancien backlog UI/signature : **[1.4.3](../1.4.3/README.md)**. Conduct utili
 - [ ] `SMOKE-M-memory-*.md` (dogfood post-M)
 - [ ] `SMOKE-1.4.2-*.md` rejeu vert (mutation run 3)
 - [ ] FOI mis à jour (rail prescriptif retiré) — D.3
-- [ ] Gate 1.4.3 **uniquement** si checklist Acceptation (A.*) verte
+- [ ] Gate 1.5.1 **uniquement** si checklist Acceptation (A.*) verte
 
 ---
 
@@ -88,5 +88,5 @@ Smoke **pré-M** (référence) : [SMOKE-1.4.2-ses_7b34fd1d.md](SMOKE-1.4.2-ses_7
 - [Plan détaillé + checklist](PLAN-1.4.2.md#checklist-davancement)
 - [Inventaire outils](INVENTAIRE-OUTILS-1.4.2.md)
 - [Hub 1.4](../README.md)
-- [Smoke F1 référence](../1.4.3/SMOKE-ses_7df5045c.md)
+- [Smoke F1 référence](../../1.5/1.5.1/SMOKE-ses_7df5045c.md)
 - [FOI-REFONTE](../1.4.0/FOI-REFONTE.md)

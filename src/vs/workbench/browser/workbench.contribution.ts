@@ -650,7 +650,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 			[LayoutSettings.ACTIVITY_BAR_LOCATION]: {
 				'type': 'string',
 				'enum': ['default', 'top', 'bottom', 'hidden'],
-				'default': 'bottom',
+				'default': 'default',
 				'markdownDescription': localize({ comment: ['This is the description for a setting'], key: 'activityBarLocation' }, "Controls the location of the Activity Bar relative to the Primary and Secondary Side Bars."),
 				'enumDescriptions': [
 					localize('workbench.activityBar.location.default', "Show the Activity Bar on the side of the Primary Side Bar and on top of the Secondary Side Bar."),
@@ -662,7 +662,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 			},
 			[LayoutSettings.ACTIVITY_BAR_AUTO_HIDE]: {
 				'type': 'boolean',
-				'default': true,
+				'default': false,
 				'markdownDescription': localize({ comment: ['This is the description for a setting'], key: 'activityBarAutoHide' }, "Controls whether the Activity Bar is automatically hidden when there is only one view container to show. This applies to the Primary and Secondary Side Bars when {0} is set to {1} or {2}.", '`#workbench.activityBar.location#`', '`top`', '`bottom`'),
 				agentsWindow: { default: false, readOnly: true },
 			},
@@ -806,6 +806,12 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 				'type': 'boolean',
 				'default': true,
 				'description': localize('shadows', "Controls whether shadow effects are shown around the side panels and other workbench elements.")
+			},
+			[LayoutSettings.MODERN_UI]: {
+				'type': 'boolean',
+				'default': false,
+				'tags': ['experimental'],
+				'description': localize('modernUI', "Controls whether the experimental Modern UI Update is enabled. When on, the side bars and bottom panel are shown as floating cards with rounded corners and gaps, and a set of refreshed workbench styles is applied, matching the Agents window design."),
 			},
 		}
 	});
@@ -1023,6 +1029,29 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration)
 			const result: ConfigurationKeyValuePairs = [['zenMode.hideTabs', { value: undefined }]];
 			if (value === true) {
 				result.push(['zenMode.showTabs', { value: 'single' }]);
+			}
+			return result;
+		}
+	}]);
+
+// Migrate the previous standalone experiments (`workbench.experimental.floatingPanels`
+// and `workbench.experimental.styleOverrides`) onto the consolidated
+// `workbench.experimental.modernUI` toggle. Either of the old settings being on
+// enables the unified Modern UI Update experiment.
+Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration)
+	.registerConfigurationMigrations([{
+		key: 'workbench.experimental.floatingPanels', migrateFn: (value: unknown, valueAccessor) => {
+			const result: ConfigurationKeyValuePairs = [['workbench.experimental.floatingPanels', { value: undefined }]];
+			if (value === true && valueAccessor(LayoutSettings.MODERN_UI) === undefined) {
+				result.push([LayoutSettings.MODERN_UI, { value: true }]);
+			}
+			return result;
+		}
+	}, {
+		key: 'workbench.experimental.styleOverrides', migrateFn: (value: unknown, valueAccessor) => {
+			const result: ConfigurationKeyValuePairs = [['workbench.experimental.styleOverrides', { value: undefined }]];
+			if (Array.isArray(value) && value.length > 0 && valueAccessor(LayoutSettings.MODERN_UI) === undefined) {
+				result.push([LayoutSettings.MODERN_UI, { value: true }]);
 			}
 			return result;
 		}

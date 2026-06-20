@@ -28,10 +28,10 @@ impl Tool for GitWorktreeExitTool {
     }
 
     fn description(&self) -> &str {
-        "Leave the worktree session opened by git_worktree_enter. \
-         action=keep keeps the folder; action=remove destroys it (discard_changes: \
-         true required if there are unmerged files/commits). \
-         Format: {\"action\": \"keep\"} or {\"action\": \"remove\", \"discard_changes\": true}."
+        "Quitte la session worktree ouverte par git_worktree_enter. \
+         action=keep conserve le dossier ; action=remove le détruit (discard_changes: \
+         true requis s'il y a des fichiers/commits non intégrés). \
+         Format : {\"action\": \"keep\"} ou {\"action\": \"remove\", \"discard_changes\": true}."
     }
 
     fn input_schema(&self) -> Value {
@@ -54,12 +54,12 @@ impl Tool for GitWorktreeExitTool {
             .map_err(|e| ToolError::invalid_args(e.to_string()))?;
         let msg = if action == "keep" {
             format!(
-                "Worktree session closed. Changes kept in {} (branch {}).",
+                "Session worktree fermée. Travail conservé dans {} (branche {}).",
                 session.worktree_path, session.worktree_branch
             )
         } else {
             format!(
-                "Worktree {} removed (branch {}). Switched back to main repository.",
+                "Worktree {} supprimé (branche {}). Retour au dépôt principal.",
                 session.worktree_path, session.worktree_branch
             )
         };

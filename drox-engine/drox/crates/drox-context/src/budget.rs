@@ -60,31 +60,14 @@ impl Default for ContextBudget {
 }
 
 impl ContextBudget {
-    /// Budget aligné sur la fenêtre Ollama réelle (`num_ctx`).
-    ///
-    /// Les valeurs [`Default`] (20k réservés, 13k marge autocompact) visent Claude ~200k.
-    /// Sur 32k, elles donneraient un seuil d'autocompact ≈ 0 et une compaction immédiate.
-    /// Ici les marges sont ~12,5 % de la fenêtre chacune (plafonnées), compact ~75 % de `num_ctx`.
-    #[must_use]
-    pub fn for_model_context_window(window_size: usize) -> Self {
-        let window = window_size.max(2048);
-        let margin = (window / 8).clamp(512, 12_288);
-        let half_margin = (margin / 2).max(256);
-        let quarter_margin = (margin / 4).max(128);
-        Self {
-            window_size: window,
-            reserved_output: margin,
-            autocompact_buffer: margin,
-            warning_buffer: half_margin,
-            error_buffer: quarter_margin,
-            manual_compact_buffer: quarter_margin,
-        }
-    }
-
-    /// Alias de [`Self::for_model_context_window`] (même sémantique depuis 1.2.0).
+    /// Construit un budget pour une fenêtre donnée, avec les buffers par
+    /// défaut. Pratique pour tester d'autres modèles (Ollama llama 8k, etc.).
     #[must_use]
     pub fn with_window(window_size: usize) -> Self {
-        Self::for_model_context_window(window_size)
+        Self {
+            window_size,
+            ..Self::default()
+        }
     }
 
     /// Fenêtre disponible une fois la réserve de sortie soustraite.
@@ -190,27 +173,5 @@ mod tests {
         assert_eq!(b.effective_window(), 7_000);
         assert_eq!(b.autocompact_threshold(), 6_000);
         assert_eq!(b.blocking_limit(), 6_800);
-    }
-
-    #[test]
-    fn for_model_context_window_32k_does_not_compact_at_5k() {
-        let b = ContextBudget::for_model_context_window(32_768);
-        assert_eq!(b.window_size, 32_768);
-        assert_eq!(b.reserved_output, 4_096);
-        assert_eq!(b.autocompact_buffer, 4_096);
-        assert_eq!(b.effective_window(), 28_672);
-        assert_eq!(b.autocompact_threshold(), 24_576);
-        let s = b.evaluate(5_441);
-        assert!(!s.above_autocompact, "5k tokens must stay below 32k architect threshold");
-    }
-
-    #[test]
-    fn for_model_context_window_legacy_default_was_broken_at_32k() {
-        let legacy_style = ContextBudget {
-            window_size: 32_768,
-            ..ContextBudget::default()
-        };
-        assert_eq!(legacy_style.autocompact_threshold(), 0);
-        assert!(legacy_style.evaluate(100).above_autocompact);
     }
 }

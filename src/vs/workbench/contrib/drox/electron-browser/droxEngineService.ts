@@ -193,7 +193,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		this.appendEngineLog(
 			`[engine] version=${version} devBuild=${devBuild ?? '—'} git=${gitSha ?? '—'} builtAt=${builtAt} pipeline=${pipeline}\n`,
 		);
-		if (pipeline !== 'role_split') {
+		if (pipeline !== 'role_split' && pipeline !== 'tui_mono') {
 			this.appendEngineLog('[warn] Legacy engine — rebuild drox-cli in drox-engine/drox, then set drox.executablePath to target/debug/drox.exe\n');
 		}
 		this._onDidInitialize.fire(init ?? {});

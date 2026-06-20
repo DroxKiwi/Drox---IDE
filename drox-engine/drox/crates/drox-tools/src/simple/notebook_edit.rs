@@ -338,11 +338,11 @@ impl Tool for NotebookEditTool {
     }
 
     fn description(&self) -> &str {
-        "Edit a Jupyter notebook (.ipynb). Each `edits` entry targets one cell by \
-         `cell_index` (0-based). Mode `replace` (default): old_string → new_string in source \
-         (like file_edit; empty old_string = replace entire source). Mode `insert`: \
-         new cell at index (`new_string`, `cell_type` code|markdown). Mode `delete`: \
-         removes the cell. Example: \
+        "Édite un notebook Jupyter (.ipynb). Chaque entrée de `edits` cible une cellule par \
+         `cell_index` (0-based). Mode `replace` (défaut) : old_string → new_string dans la source \
+         (comme file_edit ; old_string vide = remplacer toute la source). Mode `insert` : \
+         nouvelle cellule à l’index (`new_string`, `cell_type` code|markdown). Mode `delete` : \
+         supprime la cellule. Exemple : \
          {\"path\":\"nb.ipynb\",\"edits\":[{\"cell_index\":1,\"old_string\":\"a\",\"new_string\":\"b\"}]}"
     }
 
@@ -442,6 +442,58 @@ impl Tool for NotebookEditTool {
             }))
         }
     }
+}
+
+/// Diff unifié pour preview permission TUI (lecture disque sync).
+pub fn preview_notebook_edit_diff(workspace: &camino::Utf8Path, input: &Value) -> Result<String, ToolError> {
+    let input = normalize_input(input.clone())?;
+    let args: NotebookEditInput = serde_json::from_value(input).map_err(|e| {
+        ToolError::invalid_args(format!("notebook_edit preview: invalid schema — {e}"))
+    })?;
+    if args.edits.is_empty() {
+        return Err(ToolError::invalid_args("edits must not be empty"));
+    }
+
+    let resolved = resolve_under_workspace(workspace, &args.path)?;
+    if !resolved.as_str().to_ascii_lowercase().ends_with(".ipynb") {
+        return Err(ToolError::invalid_args(
+            "notebook_edit: path must end with .ipynb",
+        ));
+    }
+
+    let meta = std::fs::metadata(&resolved).map_err(|e| ToolError::io(resolved.clone(), e))?;
+    if !meta.is_file() {
+        return Err(ToolError::invalid_args(format!(
+            "not a regular file: {resolved}"
+        )));
+    }
+    if meta.len() > MAX_FILE_SIZE {
+        return Err(ToolError::edit_failed(format!(
+            "file too large ({} bytes > {} bytes limit)",
+            meta.len(),
+            MAX_FILE_SIZE
+        )));
+    }
+
+    let bytes = std::fs::read(&resolved).map_err(|e| ToolError::io(resolved.clone(), e))?;
+    let original = String::from_utf8_lossy(&bytes).into_owned();
+    let mut nb: Value = serde_json::from_str(&original).map_err(|e| {
+        ToolError::edit_failed(format!("invalid JSON (not a notebook?): {e}"))
+    })?;
+    let cells = nb
+        .get_mut("cells")
+        .and_then(|c| c.as_array_mut())
+        .ok_or_else(|| ToolError::edit_failed("notebook missing top-level \"cells\" array"))?;
+
+    apply_cell_edits(cells, &args.edits)?;
+    let updated = serde_json::to_string_pretty(&nb).map_err(|e| {
+        ToolError::edit_failed(format!("serialize notebook failed: {e}"))
+    })?;
+    let updated = format!("{updated}\n");
+    if updated == original {
+        return Err(ToolError::edit_failed("edits produced no change"));
+    }
+    Ok(unified_diff(&resolved, &original, &updated))
 }
 
 fn unified_diff(path: &Utf8PathBuf, before: &str, after: &str) -> String {

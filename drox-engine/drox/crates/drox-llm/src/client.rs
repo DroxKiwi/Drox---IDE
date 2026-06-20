@@ -35,9 +35,6 @@ pub struct ChatOptions {
     /// `None` = ne pas envoyer la clé (défaut serveur / modèle).
     #[serde(default)]
     pub think: Option<bool>,
-    /// Ollama `num_ctx` pour **ce tour** (prime sur les defaults du client LLM).
-    #[serde(default)]
-    pub num_ctx: Option<i64>,
 }
 
 impl ChatOptions {
@@ -62,12 +59,6 @@ impl ChatOptions {
     #[must_use]
     pub const fn with_think(mut self, think: Option<bool>) -> Self {
         self.think = think;
-        self
-    }
-
-    #[must_use]
-    pub const fn with_num_ctx(mut self, n: i64) -> Self {
-        self.num_ctx = Some(n);
         self
     }
 }

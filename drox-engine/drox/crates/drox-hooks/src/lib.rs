@@ -9,7 +9,7 @@ mod exec;
 mod matcher;
 mod runner;
 
-pub use config::{CommandHook, HookMatcherEntry, HooksFile, ToolHooksConfig};
+pub use config::{CommandHook, HookMatcherEntry, HooksFile, ToolHooksConfig, load_hooks_file};
 pub use runner::{PostHookOutcome, PreHookOutcome, ToolHookContext};
 
 /// Charge et fusionne les hooks projet + utilisateur (si présents).

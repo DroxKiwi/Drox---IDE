@@ -29,10 +29,10 @@ impl Tool for SkillReadTool {
     }
 
     fn description(&self) -> &str {
-        "Load the full SKILL.md of a local workspace skill \
-         (`.drox/skills/<name>/SKILL.md`). Read-only. Call before \
-         applying instructions from a skill listed at run start. \
-         Format: {\"name\": \"…\"}."
+        "Charge le fichier SKILL.md complet d'un skill local du workspace \
+         (`.drox/skills/<name>/SKILL.md`). Lecture seule. À appeler avant \
+         d'appliquer les instructions d'un skill listé au démarrage du run. \
+         Format : {\"name\": \"…\"}."
     }
 
     fn input_schema(&self) -> Value {
@@ -46,7 +46,7 @@ impl Tool for SkillReadTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: SkillReadInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "skill_read: invalid JSON payload ({e}). Expected format: {{\"name\": \"…\"}}.",
+                "skill_read: payload JSON invalide ({e}). Format attendu : {{\"name\": \"…\"}}.",
             ))
         })?;
         let name = args.name.trim();

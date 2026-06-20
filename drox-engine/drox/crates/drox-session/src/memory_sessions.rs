@@ -80,6 +80,18 @@ pub struct MemorySessionEntry {
     pub model: String,
 }
 
+/// Résultat de [`search_sessions`] — session archivée pertinente.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemorySearchHit {
+    pub slug: String,
+    pub path: Utf8PathBuf,
+    /// Score heuristique (plus = plus pertinent).
+    pub score: u32,
+    pub objective: String,
+    /// Extrait du corps (1–2 lignes).
+    pub snippet: String,
+}
+
 /// Normalise un titre libre en slug ASCII court.
 ///
 /// Règles :
@@ -258,6 +270,88 @@ pub async fn load_sessions_listing(
     Ok(entries)
 }
 
+/// Recherche textuelle dans les sessions archivées (slug, objectif, fichiers, corps).
+///
+/// Alternative locale au tool `session_search` (client IDE). Insensible à la casse ;
+/// score par nombre de mots-clés trouvés.
+pub async fn search_sessions(
+    workspace: &Utf8Path,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<MemorySearchHit>, SessionError> {
+    let terms: Vec<String> = query
+        .split_whitespace()
+        .map(|w| w.to_ascii_lowercase())
+        .filter(|w| !w.is_empty())
+        .collect();
+    if terms.is_empty() {
+        return Ok(Vec::new());
+    }
+    let limit = limit.clamp(1, 30);
+    let entries = load_sessions_listing(workspace, 0).await?;
+    let mut hits: Vec<MemorySearchHit> = Vec::new();
+    for entry in entries {
+        let raw = match read_session(&entry.path).await {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+        let body_lower = raw.to_ascii_lowercase();
+        let slug_l = entry.slug.to_ascii_lowercase();
+        let obj_l = entry.objective.to_ascii_lowercase();
+        let files_l = entry
+            .files_touched
+            .iter()
+            .map(|f| f.to_ascii_lowercase())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let mut score = 0u32;
+        for term in &terms {
+            if slug_l.contains(term) {
+                score += 12;
+            }
+            if obj_l.contains(term) {
+                score += 8;
+            }
+            if files_l.contains(term) {
+                score += 5;
+            }
+            if body_lower.contains(term) {
+                score += 2;
+            }
+        }
+        if score == 0 {
+            continue;
+        }
+        let snippet = extract_snippet(&raw, &terms).unwrap_or_else(|| entry.objective.clone());
+        hits.push(MemorySearchHit {
+            slug: entry.slug,
+            path: entry.path,
+            score,
+            objective: entry.objective,
+            snippet,
+        });
+    }
+    hits.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.slug.cmp(&b.slug)));
+    hits.truncate(limit);
+    Ok(hits)
+}
+
+fn extract_snippet(raw: &str, terms: &[String]) -> Option<String> {
+    let body = raw.split("---\n").nth(2).unwrap_or(raw);
+    for line in body.lines().map(str::trim).filter(|l| !l.is_empty()) {
+        let lower = line.to_ascii_lowercase();
+        if terms.iter().any(|t| lower.contains(t)) {
+            let s = if line.len() > 120 {
+                format!("{}…", &line[..117])
+            } else {
+                line.to_string()
+            };
+            return Some(s);
+        }
+    }
+    None
+}
+
 /// Convertit un listing en bloc texte prêt à coller dans le system prompt.
 ///
 /// Renvoie `None` si la liste est vide — l'appelant ne doit alors PAS
@@ -297,15 +391,6 @@ pub fn format_sessions_listing_for_prompt(entries: &[MemorySessionEntry]) -> Opt
         "Use `memory_read { slug: \"…\" }` to recall the full content of a past session.\n",
     );
     Some(out)
-}
-
-/// Rappel minimal au boot — pas de listing auto des archives (M.7 / M.10).
-#[must_use]
-pub fn memory_tools_boot_teaser() -> &'static str {
-    "[Project memory — Drox workspace]\n\
-     Persistent project notes may live in `DROX.md` at the workspace root.\n\
-     Past session archives live under `.drox/memory/sessions/` — call `memory_list` and \
-     `memory_read` on demand (not listed at boot).\n"
 }
 
 // ---------------------------------------------------------------------------
@@ -589,6 +674,31 @@ mod tests {
         assert!(s.contains("sessions récentes"));
         assert!(s.contains("2026-05-13 18:00:00 UTC — test : Une session test"));
         assert!(s.contains("memory_read"));
+    }
+
+    #[tokio::test]
+    async fn search_sessions_finds_keyword_in_body() {
+        let dir = tempdir().unwrap();
+        let ws = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        let date = Utc.with_ymd_and_hms(2026, 5, 13, 18, 0, 0).unwrap();
+        write_session(
+            &compute_session_path(&ws, date, "auth-bug"),
+            &SessionFrontMatter {
+                slug: "auth-bug".into(),
+                objective: "corriger login".into(),
+                date,
+                model: "m".into(),
+                files_touched: vec!["src/auth.rs".into()],
+            },
+            "## Décisions\n- JWT refresh token invalidé côté serveur\n",
+        )
+        .await
+        .unwrap();
+
+        let hits = search_sessions(&ws, "refresh token", 5).await.unwrap();
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].slug, "auth-bug");
+        assert!(hits[0].snippet.contains("refresh"));
     }
 
     #[test]

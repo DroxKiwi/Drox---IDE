@@ -13,23 +13,6 @@ use crate::tool::Tool;
 
 const MAX_MATCHES: usize = 300;
 const MAX_FILE_BYTES: u64 = 512 * 1024;
-/// Lignes de match au-delà de cette taille sont tronquées (évite explosion contexte).
-const MAX_MATCH_LINE_CHARS: usize = 400;
-/// Taille max du JSON renvoyé au LLM pour un seul appel `grep`.
-const MAX_GREP_RESULT_JSON_CHARS: usize = 32_000;
-
-fn truncate_match_line(line: &str) -> String {
-    if line.chars().count() <= MAX_MATCH_LINE_CHARS {
-        return line.to_string();
-    }
-    let truncated: String = line.chars().take(MAX_MATCH_LINE_CHARS).collect();
-    format!("{truncated}… [line truncated]")
-}
-
-fn is_exports_transcript_path(rel: &str) -> bool {
-    let norm = rel.replace('\\', "/");
-    norm.contains(".drox/exports/")
-}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GrepInput {
@@ -53,9 +36,9 @@ impl Tool for GrepTool {
     }
 
     fn description(&self) -> &str {
-        "Search a regex across workspace files (respects `.gitignore` and **`.droxignore`**, cap 300 matches). \
-         Permissive UTF-8 reads (partially binary files are skipped without failing the whole search). \
-         Optional `glob`: limit to relative paths that match (e.g. `**/*.ts`)."
+        "Recherche une regex dans les fichiers du workspace (respecte `.gitignore` et **`.droxignore`**, limite 300 occurrences). \
+         Lecture UTF-8 **permissive** (fichiers partiellement binaires ignorés sans faire échouer toute la recherche). \
+         Option `glob` : limite aux chemins relatifs qui matchent (ex. `**/*.ts`)."
     }
 
     fn input_schema(&self) -> Value {
@@ -91,7 +74,7 @@ impl Tool for GrepTool {
                 } else {
                     Some(
                         glob::Pattern::new(trimmed).map_err(|e| {
-                            ToolError::invalid_args(format!("grep: invalid `glob` ({e})"))
+                            ToolError::invalid_args(format!("grep: `glob` invalide ({e})"))
                         })?,
                     )
                 }
@@ -128,19 +111,6 @@ impl Tool for GrepTool {
                 continue;
             };
 
-            if let Some(ref ignore) = ctx.drox_ignore {
-                if ignore.is_ignored(path) {
-                    continue;
-                }
-            }
-            let rel = utf8_path
-                .strip_prefix(&ws)
-                .map(|p| p.as_str())
-                .unwrap_or(utf8_path.as_str());
-            if is_exports_transcript_path(rel) {
-                continue;
-            }
-
             if let Some(ref pat) = glob_pat {
                 let rel_std = match path.strip_prefix(ws.as_std_path()) {
                     Ok(r) => r,
@@ -165,7 +135,7 @@ impl Tool for GrepTool {
                     matches.push(json!({
                         "path": utf8_path.as_str(),
                         "line_number": line_no,
-                        "line": truncate_match_line(line),
+                        "line": line,
                     }));
                     if matches.len() >= MAX_MATCHES {
                         truncated = true;
@@ -175,23 +145,7 @@ impl Tool for GrepTool {
             }
         }
 
-        let mut out = json!({ "matches": matches, "truncated": truncated });
-        let mut serialized = serde_json::to_string(&out).unwrap_or_default();
-        if serialized.len() > MAX_GREP_RESULT_JSON_CHARS {
-            while serialized.len() > MAX_GREP_RESULT_JSON_CHARS && !matches.is_empty() {
-                matches.pop();
-                out = json!({ "matches": matches, "truncated": true });
-                serialized = serde_json::to_string(&out).unwrap_or_default();
-            }
-            if serialized.len() > MAX_GREP_RESULT_JSON_CHARS {
-                out = json!({
-                    "matches": [],
-                    "truncated": true,
-                    "error": "grep result too large for context — narrow pattern, path, or glob"
-                });
-            }
-        }
-        Ok(out)
+        Ok(json!({ "matches": matches, "truncated": truncated }))
     }
 }
 
@@ -243,29 +197,6 @@ mod tests {
         let arr = out["matches"].as_array().unwrap();
         assert_eq!(arr.len(), 1);
         assert!(arr[0]["path"].as_str().unwrap().ends_with("a.rs"));
-    }
-
-    #[tokio::test]
-    async fn skips_drox_exports_even_when_not_in_ignore_file() {
-        let tmp = tempfile::tempdir().unwrap();
-        let root = camino::Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
-        let export_dir = root.join(".drox/exports");
-        tokio::fs::create_dir_all(export_dir.as_std_path()).await.unwrap();
-        tokio::fs::write(export_dir.join("latest-transcript.txt"), "aurora-blob noise-overlay\n")
-            .await
-            .unwrap();
-        tokio::fs::write(root.join("src.rs"), "aurora-blob in source\n")
-            .await
-            .unwrap();
-        let ctx = ToolContext::new(root.clone(), false);
-        let reg = ToolRegistry::with_simple_tools();
-        let out = reg
-            .execute_named("grep", &ctx, json!({ "pattern": "aurora-blob", "path": "." }))
-            .await
-            .unwrap();
-        let arr = out["matches"].as_array().unwrap();
-        assert_eq!(arr.len(), 1);
-        assert!(arr[0]["path"].as_str().unwrap().ends_with("src.rs"));
     }
 
     #[tokio::test]

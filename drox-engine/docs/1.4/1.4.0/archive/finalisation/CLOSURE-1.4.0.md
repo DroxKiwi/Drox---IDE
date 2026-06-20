@@ -17,7 +17,7 @@ La refonte **1.4.0** (FOI-REFONTE) est **figée** :
 - Boucle agent **splittée** (`loop/drive/`, `rail/`, `gates/`, `state/`, `stream/`, tests fragmentés).
 - **201** tests `drox-engine` verts ; dogfood Qwen 27b : runs rapides et structurés (rail visible, pas de régression 1.3 flagrante).
 
-**Non-objectif atteint** : produit utilisable en prod. Le moteur reste **globalement inutilisable** côté utilisateur final tant que **1.4.1** (bugs session/busy/discuss/boucles) et **1.4.3** (UI chat) ne sont pas livrés.
+**Non-objectif atteint** : produit utilisable en prod. Le moteur reste **globalement inutilisable** côté utilisateur final tant que **1.4.1** (bugs session/busy/discuss/boucles) et **1.5.1** (UI chat) ne sont pas livrés.
 
 → Avertissement public : [README racine](../../../../../../README.md#statut-produit).
 
@@ -40,8 +40,8 @@ La refonte **1.4.0** (FOI-REFONTE) est **figée** :
 | Version | Périmètre |
 |---------|-----------|
 | **[1.4.1](../../1.4.1/README.md)** | M-DISC-01, B-UI-07, B-UI-06, B-MOTOR-01/02/03 — [PLAN-1.4.1](../../1.4.1/PLAN-1.4.1.md) |
-| **[1.4.3](../../1.4.3/README.md)** | Polish UI chat (plan sticky, thinking, trays, blocs rail) |
-| **[1.4.4](../../1.4.4/PLAN-1.4.4.md)** | Index local, graphe, fast path |
+| **[1.5.1](../../1.5/1.5.1/README.md)** | Polish UI chat (plan sticky, thinking, trays, blocs rail) |
+| **[1.5.2](../../1.5/1.5.2/PLAN-1.5.2.md)** | Index local, graphe, fast path |
 
 **Règle** : pas de nouvelle refonte moteur sur la branche 1.4.0 ; patches **uniquement** via 1.4.1+.
 

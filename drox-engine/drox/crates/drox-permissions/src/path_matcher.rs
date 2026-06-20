@@ -170,17 +170,6 @@ fn relative_path_posix(base: &Path, target: &Path) -> Option<String> {
     Some(trimmed.to_string())
 }
 
-/// `true` si `path` pointe vers le répertoire `.drox/` du workspace (mémoire, analyses).
-#[must_use]
-pub fn is_under_workspace_drox(path: &str, ctx: &PathMatchContext) -> bool {
-    let abs = normalize_separators(&expand_path(path, ctx));
-    let cwd = normalize_separators(&ctx.cwd);
-    let Some(rel) = relative_path_posix(&cwd, &abs) else {
-        return false;
-    };
-    rel == ".drox" || rel.starts_with(".drox/")
-}
-
 /// Fichiers / répertoires sensibles — auto-refus sans règle `Allow` explicite (V1).
 #[must_use]
 pub fn dangerous_path_reason(path: &str, ctx: &PathMatchContext) -> Option<&'static str> {

@@ -17,8 +17,8 @@ Fiabiliser le moteur et la session **sans** nouvelle refonte rail. La **1.4.0** 
 ## Non-objectifs
 
 - Refonte rail ou split moteur (figé en 1.4.0)
-- Polish UI chat complet (→ 1.4.3)
-- Index / graphe (→ 1.4.4)
+- Polish UI chat complet (→ 1.5.1)
+- Index / graphe (→ 1.5.2)
 
 ---
 

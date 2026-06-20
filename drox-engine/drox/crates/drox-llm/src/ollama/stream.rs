@@ -79,15 +79,54 @@ impl OllamaClient {
         })
     }
 
-    fn chat_endpoint(&self) -> Result<Url, LlmError> {
+    fn api_url(&self, suffix: &str) -> Result<Url, LlmError> {
         let mut url = self.base_url.clone();
         if !url.path().ends_with('/') {
             let mut path = url.path().to_owned();
             path.push('/');
             url.set_path(&path);
         }
-        Ok(url.join("api/chat")?)
+        Ok(url.join(suffix)?)
     }
+
+    fn chat_endpoint(&self) -> Result<Url, LlmError> {
+        self.api_url("api/chat")
+    }
+
+    /// Modèle configuré pour les requêtes chat.
+    #[must_use]
+    pub fn configured_model(&self) -> &str {
+        &self.model
+    }
+
+    /// URL de base du serveur LLM.
+    #[must_use]
+    pub fn server_url(&self) -> &Url {
+        &self.base_url
+    }
+
+    /// Liste les modèles installés (`GET /api/tags`, format Ollama).
+    pub async fn list_installed_models(&self) -> Result<Vec<String>, LlmError> {
+        let url = self.api_url("api/tags")?;
+        let resp = self.http.get(url).send().await?;
+        if !resp.status().is_success() {
+            let status = resp.status().as_u16();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(LlmError::Api { status, body });
+        }
+        let parsed: TagsResponse = resp.json().await?;
+        Ok(parsed.models.into_iter().map(|m| m.name).collect())
+    }
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct TagsResponse {
+    models: Vec<TagEntry>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct TagEntry {
+    name: String,
 }
 
 #[async_trait]
@@ -146,9 +185,7 @@ fn build_request<'a>(
         .max_tokens
         .map(i64::from)
         .or_else(|| (defaults.num_predict > 0).then_some(defaults.num_predict));
-    let num_ctx = options
-        .num_ctx
-        .or_else(|| (defaults.num_ctx > 0).then_some(defaults.num_ctx));
+    let num_ctx = (defaults.num_ctx > 0).then_some(defaults.num_ctx);
 
     let has_any_option = options.temperature.is_some()
         || num_predict.is_some()
@@ -432,15 +469,6 @@ mod tests {
         assert_eq!(req.messages.len(), 1);
         assert_eq!(req.messages[0].role, "user");
         assert_eq!(req.messages[0].content, "hello");
-    }
-
-    #[test]
-    fn build_request_chat_options_num_ctx_overrides_client_default() {
-        let messages = vec![Message::user("x")];
-        let opts = ChatOptions::default().with_num_ctx(8192);
-        let req = build_request("m", &messages, &opts, test_defaults(), None);
-        let opt = req.options.expect("options should be Some");
-        assert_eq!(opt.num_ctx, Some(8192));
     }
 
     #[test]

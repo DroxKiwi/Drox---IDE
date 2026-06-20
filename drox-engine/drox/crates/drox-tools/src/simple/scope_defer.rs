@@ -29,10 +29,10 @@ impl Tool for ScopeDeferTool {
     }
 
     fn description(&self) -> &str {
-        "Defer a finding **out of scope** of the user request (inconsistency, debt, \
-         parallel lead) without acting on it. Use when exploration surfaces something \
-         interesting but **not requested** — then continue toward the locked objective. \
-         Format: {\"finding\": \"…\", \"reason\": \"…\"}."
+        "Reporte une découverte **hors scope** de la demande utilisateur (incohérence, dette, \
+         piste parallèle) sans la traiter. Utilise-le quand tu explores et trouves quelque chose \
+         d'intéressant mais **non demandé** — puis continue vers l'objectif verrouillé. \
+         Format : {\"finding\": \"…\", \"reason\": \"…\"}."
     }
 
     fn input_schema(&self) -> Value {
@@ -42,24 +42,24 @@ impl Tool for ScopeDeferTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: ScopeDeferInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "scope_defer: invalid JSON ({e}). Expected: {{\"finding\": \"…\", \"reason\": \"…\"}}."
+                "scope_defer: JSON invalide ({e}). Attendu : {{\"finding\": \"…\", \"reason\": \"…\"}}."
             ))
         })?;
         let finding = args.finding.trim().to_string();
         let reason = args.reason.trim().to_string();
         if finding.is_empty() || reason.is_empty() {
             return Err(ToolError::invalid_args(
-                "scope_defer: `finding` and `reason` are required (non-empty).",
+                "scope_defer: `finding` et `reason` sont obligatoires (non vides).",
             ));
         }
         if finding.len() > MAX_FINDING_LEN {
             return Err(ToolError::invalid_args(format!(
-                "scope_defer: `finding` is too long (max {MAX_FINDING_LEN} chars)."
+                "scope_defer: `finding` trop long (max {MAX_FINDING_LEN} caractères)."
             )));
         }
         if reason.len() > MAX_REASON_LEN {
             return Err(ToolError::invalid_args(format!(
-                "scope_defer: `reason` is too long (max {MAX_REASON_LEN} chars)."
+                "scope_defer: `reason` trop long (max {MAX_REASON_LEN} caractères)."
             )));
         }
         let Some(handle) = ctx.scope_deferred.as_ref() else {

@@ -14,10 +14,8 @@
 //!   tokens), et le workspace de destination.
 //! - [`MemoryTracker`] : compteur d'éligibilité maintenu pendant le run.
 //!   Le moteur l'incrémente à chaque tool mutateur réussi.
-//! - [`persist_run`] : compaction + écriture `.md` — déclenchée par l'agent
-//!   **uniquement** après compaction live (contexte au-dessus du seuil
-//!   `autocompact`), pas à `[phase: done]`. La commande utilisateur
-//!   `/session_end` reste gérée côté IDE.
+//! - [`persist_run`] : la fonction appelée par l'agent à `[phase: done]`
+//!   accepté, qui orchestre la compaction et l'écriture du `.md`.
 
 use std::sync::Arc;
 
@@ -79,7 +77,7 @@ impl std::fmt::Debug for MemoryRuntime {
 /// au moins un de ces signaux :
 ///
 /// - tool **mutateur** (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, `bash`) exécuté avec succès ;
-/// - `internal_plan_write` réussi (indique au minimum une intention de travail) ;
+/// - `todo_write` réussi (indique au minimum une intention de travail) ;
 /// - au moins une `session_note` épinglée par le modèle.
 ///
 /// Pour les runs purement conversationnels (salut, merci, question triviale)
@@ -88,7 +86,7 @@ impl std::fmt::Debug for MemoryRuntime {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MemoryTracker {
     mutating_count: u32,
-    internal_plan_writes: u32,
+    todo_writes: u32,
     session_notes: u32,
 }
 
@@ -98,7 +96,7 @@ impl MemoryTracker {
     pub const fn new() -> Self {
         Self {
             mutating_count: 0,
-            internal_plan_writes: 0,
+            todo_writes: 0,
             session_notes: 0,
         }
     }
@@ -107,28 +105,20 @@ impl MemoryTracker {
     pub fn record_tool(&mut self, name: &str) {
         match name {
             "file_edit" | "file_write" | "notebook_edit" | "delete_path" | "bash" => self.mutating_count += 1,
-            crate::orchestration::internal_plan_tool::TOOL_INTERNAL_PLAN_WRITE => {
-                self.internal_plan_writes += 1
-            }
+            "todo_write" | "course_plan_write" => self.todo_writes += 1,
             "session_note" => self.session_notes += 1,
             _ => {}
         }
     }
 
-    /// Nombre de tools mutateurs exécutés avec succès ce run.
-    #[must_use]
-    pub const fn mutation_count(&self) -> u32 {
-        self.mutating_count
-    }
-
     /// Vrai si le run mérite une persistance.
     ///
-    /// Borne basse : un `internal_plan_write` seul suffit (le user a posé un plan,
+    /// Borne basse : un `todo_write` seul suffit (le user a posé un plan,
     /// même s'il n'a pas (encore) muté → la session a une valeur d'archive
     /// si elle aboutit à `[phase: done]`).
     #[must_use]
     pub const fn is_non_trivial(&self) -> bool {
-        self.mutating_count > 0 || self.internal_plan_writes > 0 || self.session_notes > 0
+        self.mutating_count > 0 || self.todo_writes > 0 || self.session_notes > 0
     }
 }
 
@@ -158,23 +148,6 @@ pub struct PersistedRun {
 /// …), on log et on renvoie `Err`. L'agent décide alors s'il propage
 /// l'erreur ou la swallow (V1 : swallow + log, on ne casse pas le run
 /// pour un problème d'archivage).
-/// Écrit une session à partir d'un résumé déjà produit (ex. compaction live).
-///
-/// Évite un second tour LLM sur l'historique **déjà** checkpointé, qui
-/// aboutissait souvent à un `.md` vide (front-matter seul).
-pub async fn persist_compaction_result(
-    runtime: &MemoryRuntime,
-    result: &CompactionResult,
-    objective_fallback: &str,
-) -> Result<PersistedRun, EngineError> {
-    if result.summary.trim().is_empty() {
-        return Err(EngineError::Memory(
-            "compaction summary is empty — refusing to write session file".into(),
-        ));
-    }
-    write_session_from_compaction(runtime, result, objective_fallback).await
-}
-
 pub async fn persist_run(
     runtime: &MemoryRuntime,
     messages: &[Message],
@@ -196,19 +169,6 @@ pub async fn persist_run(
     )
     .await?;
 
-    write_session_from_compaction(runtime, &result, objective_fallback).await
-}
-
-async fn write_session_from_compaction(
-    runtime: &MemoryRuntime,
-    result: &CompactionResult,
-    objective_fallback: &str,
-) -> Result<PersistedRun, EngineError> {
-    if result.summary.trim().is_empty() {
-        return Err(EngineError::Memory(
-            "compaction summary is empty — refusing to write session file".into(),
-        ));
-    }
     let objective_for_slug = if result.objective.is_empty() {
         objective_fallback
     } else {
@@ -219,11 +179,7 @@ async fn write_session_from_compaction(
     let path = reserve_session_path(&runtime.workspace_root, now, &slug);
     let front = SessionFrontMatter {
         slug: slug.clone(),
-        objective: if result.objective.is_empty() {
-            objective_fallback.to_string()
-        } else {
-            result.objective.clone()
-        },
+        objective: result.objective.clone(),
         date: now,
         model: runtime.model_label.clone(),
         files_touched: result.files_touched.clone(),
@@ -235,11 +191,7 @@ async fn write_session_from_compaction(
         )));
     }
     debug!(slug = %slug, path = %path, "memory: session persisted");
-    Ok(PersistedRun {
-        slug,
-        path,
-        result: result.clone(),
-    })
+    Ok(PersistedRun { slug, path, result })
 }
 
 #[cfg(test)]
@@ -254,9 +206,9 @@ mod tests {
     }
 
     #[test]
-    fn tracker_marks_run_non_trivial_after_internal_plan_write_only() {
+    fn tracker_marks_run_non_trivial_after_todo_write_only() {
         let mut t = MemoryTracker::new();
-        t.record_tool(crate::orchestration::internal_plan_tool::TOOL_INTERNAL_PLAN_WRITE);
+        t.record_tool("todo_write");
         assert!(t.is_non_trivial());
     }
 

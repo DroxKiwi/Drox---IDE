@@ -90,7 +90,7 @@ Pas de big-bang sur `loop.rs`.
 
 **État juin 2026** : code phases 0–4 ✅ · dogfood ⚠️ · **bloquant** [B-RAIL-01](SMOKE-BACKLOG.md) (rail invisible en usage réel).
 
-**Suite versions** : moteur [1.4.0 CLOSURE](finalisation/CLOSURE-1.4.0.md) → bugs [1.4.1](../../1.4.1/README.md) → UI [1.4.3](../../1.4.3/README.md).
+**Suite versions** : moteur [1.4.0 CLOSURE](finalisation/CLOSURE-1.4.0.md) → bugs [1.4.1](../../1.4.1/README.md) → UI [1.5.1](../../1.5/1.5.1/README.md).
 
 **Critère tag 1.4.0** : events `railStation*` + pre_gate observables sur smoke charte qwen27b — **après Phase 5** — pas le polish UI chat.
 
@@ -149,7 +149,7 @@ Pas de big-bang sur `loop.rs`.
                     └── 1.4 Phase 4
                             └── 1.4 Phase 5 (convergence)
                                     └── 1.4 Phase 5b (segments + pre_gate) + CLOSURE + tag
-                                            └── 1.4.4 index (inject READ boot)
+                                            └── 1.5.2 index (inject READ boot)
 ```
 
 ---

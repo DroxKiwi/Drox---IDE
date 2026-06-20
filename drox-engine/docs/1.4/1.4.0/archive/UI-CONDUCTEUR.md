@@ -1,7 +1,7 @@
 # UI chat — conducteur d’affichage & alignement moteur 1.4.0
 
 **Référence moteur** : [FOI-REFONTE.md](FOI-REFONTE.md) · **Code** : `src/vs/workbench/contrib/drox/`  
-**Polish détaillé** : [1.4.3](../1.4.3/README.md) (B-UI-*) · **Journal** : [SMOKE-BACKLOG.md](SMOKE-BACKLOG.md)
+**Polish détaillé** : [1.5.1](../1.5/1.5.1/README.md) (B-UI-*) · **Journal** : [SMOKE-BACKLOG.md](SMOKE-BACKLOG.md)
 
 Document de **review** : impact fork VS Code, liste obsolète / à garder, conducteur d’affichage cible.
 
@@ -64,7 +64,7 @@ L’UI consomme des **événements** (`droxChatAgentEvents.ts` → webview). Si 
 | `logTools.js` — badges Sync/Async `task` | Idem |
 | Replay / export segment-subagent (`droxUiReplayExport.ts`, tests) | ADAPT |
 
-### Priorité P1 — Phase UI 1.4.3 (conducteur)
+### Priorité P1 — Phase UI 1.5.1 (conducteur)
 
 | Module | Raison |
 |--------|--------|
@@ -88,7 +88,7 @@ L’UI consomme des **événements** (`droxChatAgentEvents.ts` → webview). Si 
 | **Stations rail** enter/hold/done | `run-rail-stations.js`, `droxChatAgentEvents.ts` | Conducteur principal edit |
 | **Outils** Ran / Read | `stream/tools/logTools.js`, `bridge/tool-events.js` | READ / VERIFY / PLAN |
 | **Mutations** | `tools/12-fileChange.js` | ACT |
-| **Tray** (si gardé) | `tools/13-collapsibleTray.js` | Densité outils — fix B-UI-01/02 en 1.4.3 |
+| **Tray** (si gardé) | `tools/13-collapsibleTray.js` | Densité outils — fix B-UI-01/02 en 1.5.1 |
 | **Todos** | `chrome/todos.js` | PLAN |
 | **Thinking + réponse** | `thinking.js`, `display/simple.js`, `stream/answer/*` | ANSWER / stream |
 | **Phases stream** (badges) | `phases.js` | Legacy stream — optionnel, pas conducteur |
@@ -170,7 +170,7 @@ READ minimal → ACT → VERIFY → ANSWER (mêmes règles de montage).
 | **UI-0** | Ce document + lien FOI | Fait |
 | **2d** | **UI P0** — DEL § III (executor/, segment UI, settings, architect-rail…) | Après moteur **2b** ; avant smoke **5** |
 | **1–5** | Squelette moteur | [FOI-REFONTE](FOI-REFONTE.md) § XIV |
-| **UI-2** (1.4.3) | Conducteur cible § VI — fusion strip → timeline stations | B-UI-01…07 |
+| **UI-2** (1.5.1) | Conducteur cible § VI — fusion strip → timeline stations | B-UI-01…07 |
 | **UI-3** (1.4.1/2) | Polish CSS, replay allégé | Backlog |
 
 **Étapes détaillées Phase 2d** : [FOI-REFONTE § Phase 2d](FOI-REFONTE.md#phase-2d--alignement-ui-fork-vs-code-p0).

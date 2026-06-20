@@ -31,12 +31,6 @@ pub trait Tool: Send + Sync {
         self.is_read_only()
     }
 
-    /// Variante tenant compte des arguments (ex. `task` + `background: true`).
-    fn is_concurrency_safe_for_input(&self, input: &Value) -> bool {
-        let _ = input;
-        self.is_concurrency_safe()
-    }
-
     /// Exécute le tool avec le contexte session et l'entrée JSON brute.
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError>;
 }

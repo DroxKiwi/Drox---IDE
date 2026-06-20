@@ -7,12 +7,9 @@
 //! (extension VS Code) au sprint 1.11.
 
 mod asker;
-mod env_file;
 mod jsonrpc;
-mod language;
-mod permission_guard;
-mod prompts;
-mod system_prompt;
+
+use drox_cli::{env_file, language, prompts};
 
 use std::collections::BTreeMap;
 use std::io::Write;
@@ -204,10 +201,6 @@ fn build_permission_policy(
     } else {
         PermissionMode::Default
     };
-
-    if !crate::permission_guard::permission_mode_supported(mode) {
-        anyhow::bail!(crate::permission_guard::PROFESSOR_MODE_REMOVED);
-    }
 
     for unreachable in detect_unreachable_rules(&rules, &DetectUnreachableOptions::default()) {
         tracing::warn!(
@@ -438,26 +431,41 @@ async fn main() -> anyhow::Result<()> {
 
     let mem = load_memdir(workspace.as_path())
         .await
-        .context("lecture DROX.md")?;
-    let (memdir_prefix, _) = drox_engine::apply_prompt_memory_budget(
-        memdir_system_prefix(&mem),
-        None,
-        None,
-    );
-    let base_system = merge_optional_system(cli.system.clone(), memdir_prefix);
+        .context("lecture MEMORY.md / DROX.md")?;
+    let base_system = merge_optional_system(cli.system.clone(), memdir_system_prefix(&mem));
     let mut base_system = prompts::prepend_core_system_prompt(base_system);
-    base_system.push_str("\n\n");
-    base_system.push_str(drox_engine::memory_tools_boot_teaser());
+    // Sprint M1 — listing des sessions archivées injecté en début de prompt.
+    // Échec silencieux : un dossier .drox/memory/sessions/ illisible ne
+    // doit pas casser le démarrage CLI.
+    let memory_listing = drox_engine::load_sessions_listing(
+        workspace.as_path(),
+        drox_engine::DEFAULT_LISTING_LIMIT,
+    )
+    .await
+    .unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "memory: failed to load sessions listing");
+        Vec::new()
+    });
+    if let Some(block) = drox_engine::format_sessions_listing_for_prompt(&memory_listing) {
+        base_system.push_str("\n\n");
+        base_system.push_str(&block);
+    }
+    let skills_listing = drox_engine::load_skills_catalog(workspace.as_path())
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "skills: failed to load catalog");
+            Vec::new()
+        });
+    if let Some(block) = drox_engine::format_skills_listing_for_prompt(&skills_listing) {
+        base_system.push_str("\n\n");
+        base_system.push_str(&block);
+    }
     let base_system = Some(base_system);
     let lang = language::from_env();
     if let Some(ref l) = lang {
         tracing::info!(language = %l.display, "langue principale appliquée");
     }
     let mut system_merged = language::merge_into_system(base_system, lang.as_ref());
-    system_merged = crate::prompts::append_system_supplement(
-        system_merged,
-        crate::prompts::EXPLORATION_INTERNAL_ENGLISH_RULE,
-    );
 
     let sessions_dir = cli
         .session_dir
@@ -490,8 +498,6 @@ async fn main() -> anyhow::Result<()> {
 
     let (mode, policy) = build_permission_policy(&cli, &workspace)?;
     tracing::info!(mode = mode.short_title(), "mode permission");
-
-    drox_engine::ensure_workspace_layout(&workspace).await?;
 
     let drox_ignore = drox_engine::DroxIgnoreMatcher::load_or_create(workspace.clone()).await?;
     let workspace_map = drox_engine::WorkspaceMapStore::load_or_create(
@@ -537,7 +543,6 @@ async fn main() -> anyhow::Result<()> {
         permissions: Some(policy),
         context: Some(ContextPolicy::for_model_context_window(num_ctx)),
         transcript,
-        engine_trace: None,
         memory: Some(memory_runtime),
         transcript_session_id: cli.session.clone(),
         workspace_fingerprint,
@@ -548,9 +553,6 @@ async fn main() -> anyhow::Result<()> {
             None
         },
         run_objective: None,
-        run_spec: drox_engine::RunSpec::for_standard_agent(),
-        engine_tuning: drox_engine::EngineTuning::default(),
-        orchestration_run_id: None,
     };
     let agent = Agent::new(llm, registry, ctx, agent_config);
 

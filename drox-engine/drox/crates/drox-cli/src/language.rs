@@ -26,13 +26,9 @@ pub struct Language {
 impl Language {
     fn known(code: &str, display: &str) -> Self {
         let system_instruction = format!(
-            "Primary language ({code}) — **two channels** :\n\
-             1. **User-facing** : in `[phase: answering]` only (final reply and short \
-             visible micro-announcements), write in {display} unless the user explicitly \
-             switches language.\n\
-             2. **Internal exploration** : in `analyzing`, `reading`, `planning`, \
-             `acting`, `testing`, `verifying`, `clarifying` and in native `thinking` \
-             when active — telegraphic notes **in English only**."
+            "Répondez systématiquement en {display} (sauf si l'utilisateur \
+             change explicitement de langue ou demande du code dans un \
+             autre langage de programmation). Langue principale : {code}."
         );
         Self {
             display: display.into(),
@@ -151,15 +147,7 @@ mod tests {
     fn merge_into_system_keeps_order() {
         let lang = parse("fr").unwrap();
         let merged = merge_into_system(Some("Mem rules".into()), Some(&lang)).unwrap();
-        assert!(merged.starts_with("Primary language"));
-        assert!(merged.contains("English only"));
+        assert!(merged.starts_with("Répondez"));
         assert!(merged.contains("Mem rules"));
-    }
-
-    #[test]
-    fn french_primary_splits_user_and_exploration_language() {
-        let l = parse("fr").unwrap();
-        assert!(l.system_instruction.contains("[phase: answering]"));
-        assert!(l.system_instruction.contains("English only"));
     }
 }

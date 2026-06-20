@@ -58,12 +58,12 @@ impl Tool for SessionNoteTool {
     }
 
     fn description(&self) -> &str {
-        "Pin a work note (≤ 500 chars) merged into the \
-         session's persistent summary at run end. Use for \
-         non-trivial technical decisions, hypotheses to \
-         verify, or blockers — NOT to narrate the previous tool \
-         or announce a plan. Effect: in-memory append, no I/O. \
-         Format: {\"content\": \"…\"}."
+        "Épingle une note de travail (≤ 500 chars) qui sera intégrée au \
+         résumé persistant de la session à la fin du run. À utiliser pour \
+         fixer une décision technique non triviale, une hypothèse à \
+         vérifier, ou un point bloquant — PAS pour narrer le tool précédent \
+         ni pour annoncer un plan. Effet : append en mémoire, zéro I/O. \
+         Format : {\"content\": \"…\"}."
     }
 
     fn input_schema(&self) -> Value {
@@ -73,8 +73,8 @@ impl Tool for SessionNoteTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: SessionNoteInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "session_note: invalid JSON payload ({e}). \
-                 Expected format: {{\"content\": \"…\"}}.",
+                "session_note: payload JSON invalide ({e}). \
+                 Format attendu : {{\"content\": \"…\"}}.",
             ))
         })?;
         let content = args.content.trim().to_string();

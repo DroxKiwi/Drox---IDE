@@ -29,7 +29,8 @@ import minimist from 'minimist';
 import { compileBuildWithoutManglingTask, compileBuildWithManglingTask } from './gulpfile.compile.ts';
 import { compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, compileAllExtensionsBuildTask, compileExtensionMediaBuildTask, cleanExtensionsBuildTask, compileCopilotExtensionBuildTask } from './gulpfile.extensions.ts';
 import { copyCodiconsTask } from './lib/compilation.ts';
-import { getCopilotExcludeFilter, getCopilotRuntimePrebuildFiles, getRipgrepExcludeFilter, prepareBuiltInCopilotRipgrepShim, shouldPatchPeFileForPlatform } from './lib/copilot.ts';
+import { getCopilotExcludeFilter, getCopilotRuntimePrebuildFiles, getCopilotTgrepExcludeFilter, getRipgrepExcludeFilter, prepareBuiltInCopilotRipgrepShim } from './lib/copilot.ts';
+import { readAgentSdkResults } from './agent-sdk/common.ts';
 import { useEsbuildTranspile } from './buildConfig.ts';
 import { promisify } from 'util';
 import globCallback from 'glob';
@@ -188,9 +189,7 @@ const coreCiPreamble = [
 	compileNonNativeExtensionsBuildTask,
 	compileExtensionMediaBuildTask,
 	writeISODate('out-build'),
-	// Type-check with tsgo (no emit)
 	task.define('tsgo-typecheck', () => spawnTsgo(path.join(root, 'src', 'tsconfig.json'), { taskName: 'tsgo-typecheck', noEmit: true })),
-	// Transpile individual files to out-build first (for unit tests)
 	task.define('esbuild-out-build', () => runEsbuildTranspile('out-build', false)),
 ] as const;
 
@@ -198,7 +197,6 @@ const esbuildVscodeMinDesktop = task.define('esbuild-vscode-min', () => runEsbui
 
 task.task(task.define('core-ci', task.series(
 	...coreCiPreamble,
-	// Then bundle for shipping (bundles also write NLS files to out-build)
 	task.parallel(
 		esbuildVscodeMinDesktop,
 		task.define('esbuild-vscode-reh-min', () => runEsbuildBundle('out-vscode-reh-min', true, true, 'server', `${sourceMappingURLBase}/core`)),
@@ -317,6 +315,13 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				json.date = readISODate(out);
 				json.checksums = checksums;
 				json.version = version;
+				// Stamp agentSdks from the per-platform results file produced
+				// by `build/agent-sdk/produce.ts` (an earlier pipeline step).
+				// Local dev: file absent → empty → not stamped.
+				const agentSdks = readAgentSdkResults();
+				if (Object.keys(agentSdks).length > 0) {
+					json.agentSdks = agentSdks;
+				}
 				const droxVersion = getPackageDroxVersion();
 				if (droxVersion) {
 					json.droxVersion = droxVersion;
@@ -362,6 +367,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 		const copilotRuntimePrebuilds = gulp.src(getCopilotRuntimePrebuildFiles(platform, arch), { base: '.', dot: true, allowEmpty: true });
 		const deps = es.merge(cleanedDeps, copilotRuntimePrebuilds)
 			.pipe(filter(getCopilotExcludeFilter(platform, arch)))
+			.pipe(filter(getCopilotTgrepExcludeFilter(platform, arch)))
 			.pipe(filter(getRipgrepExcludeFilter(platform, arch)))
 			.pipe(jsFilter)
 			.pipe(util.rewriteSourceMappingURL(sourceMappingURLBase))
@@ -589,16 +595,17 @@ async function stripAuthenticodeSignature(filePath: string): Promise<void> {
 	});
 }
 
-function patchWin32DependenciesTask(platform: string, arch: string, destinationFolderName: string) {
+function patchWin32DependenciesTask(destinationFolderName: string) {
 	const cwd = path.join(path.dirname(root), destinationFolderName);
 
 	return async () => {
-		const versionedResourcesFolder = util.getVersionedResourcesFolder(platform, commit!);
+		const versionedResourcesFolder = util.getVersionedResourcesFolder('win32', commit!);
 		const deps = (await Promise.all([
 			glob('**/*.node', { cwd, ignore: 'extensions/node_modules/@parcel/watcher/**' }),
 			glob('**/rg.exe', { cwd }),
+			glob('**/tgrep.exe', { cwd }),
 			glob('**/*explorer_command*.dll', { cwd }),
-		])).flatMap(o => o).filter(dep => shouldPatchPeFileForPlatform(platform, arch, dep));
+		])).flatMap(o => o);
 		const packageJson = JSON.parse(await fs.promises.readFile(path.join(cwd, versionedResourcesFolder, 'resources', 'app', 'package.json'), 'utf8'));
 		const product = JSON.parse(await fs.promises.readFile(path.join(cwd, versionedResourcesFolder, 'resources', 'app', 'product.json'), 'utf8'));
 		const baseVersion = packageJson.version.replace(/-.*$/, '');
@@ -677,7 +684,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 		];
 
 		if (platform === 'win32') {
-			packageTasks.push(patchWin32DependenciesTask(platform, arch, destinationFolderName));
+			packageTasks.push(patchWin32DependenciesTask(destinationFolderName));
 		}
 
 		const vscodeTaskCI = task.define(`vscode${dashed(platform)}${dashed(arch)}${dashed(minified)}-ci`, task.series(...packageTasks));

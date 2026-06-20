@@ -45,11 +45,11 @@ impl Tool for MemoryListTool {
     }
 
     fn description(&self) -> &str {
-        "List archived workspace sessions (`.drox/memory/sessions/`), \
-         newest first. Read-only. Returns \
-         {slug, date, objective, files_touched, model} per entry, \
-         not the body — use `memory_read` to reload one session. \
-         Format: {\"limit\": 10} (optional, default 10, max 50)."
+        "Liste les sessions archivées du workspace (`.drox/memory/sessions/`), \
+         triées du plus récent au plus ancien. Lecture seule. Renvoie \
+         {slug, date, objective, files_touched, model} pour chaque entrée, \
+         pas le body — utilise `memory_read` pour recharger une session \
+         précise. Format : {\"limit\": 10} (optionnel, défaut 10, max 50)."
     }
 
     fn input_schema(&self) -> Value {
@@ -66,8 +66,8 @@ impl Tool for MemoryListTool {
         } else {
             serde_json::from_value(input).map_err(|e| {
                 ToolError::invalid_args(format!(
-                    "memory_list: invalid JSON payload ({e}). Expected format: \
-                     {{\"limit\": 10}} (or {{}})."
+                    "memory_list: payload JSON invalide ({e}). Format attendu : \
+                     {{\"limit\": 10}} (ou {{}})."
                 ))
             })?
         };

@@ -45,8 +45,6 @@ export const AICustomizationManagementSection = {
 	McpServers: 'mcpServers',
 	Plugins: 'plugins',
 	Models: 'models',
-	/** Nexus: OpenAI-compatible LLM endpoint (Ollama, etc.) for extension host / harness routing. */
-	LlmBackend: 'llmBackend',
 } as const;
 
 export type AICustomizationManagementSection = typeof AICustomizationManagementSection[keyof typeof AICustomizationManagementSection];

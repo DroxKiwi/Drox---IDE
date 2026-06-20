@@ -5,8 +5,6 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use drox_session::is_excluded_from_workspace_map;
-
 use crate::context::ToolContext;
 use crate::error::ToolError;
 use crate::tool::Tool;
@@ -27,9 +25,9 @@ impl Tool for WorkspaceMapReadTool {
     }
 
     fn description(&self) -> &str {
-        "Read the workspace structure map (`.drox/workspace-map.json`): \
-         full project tree (excludes `.drox/` and `.git/`). Use before a broad `glob` when the system prompt \
-         mentions a fresh version."
+        "Lit la carte structure persistante du workspace (`.drox/workspace-map.json`) : \
+         zones, rôles, pivots. Utilise-la avant un `glob` large si le system prompt en \
+         mentionne une version fresh."
     }
 
     fn input_schema(&self) -> Value {
@@ -39,7 +37,7 @@ impl Tool for WorkspaceMapReadTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: WorkspaceMapReadInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "workspace_map_read: invalid JSON ({e}). Expected: {{\"path_prefix\": \"drox/\"}} (optional)."
+                "workspace_map_read: JSON invalide ({e}). Attendu : {{\"path_prefix\": \"drox/\"}} (optionnel)."
             ))
         })?;
         let store = ctx.workspace_map.as_ref().ok_or_else(|| {
@@ -57,18 +55,11 @@ impl Tool for WorkspaceMapReadTool {
         let nodes: Vec<_> = if let Some(ref p) = prefix {
             map.nodes
                 .iter()
-                .filter(|n| {
-                    !is_excluded_from_workspace_map(&n.path)
-                        && (n.path == *p || n.path.starts_with(&format!("{p}/")))
-                })
+                .filter(|n| n.path == *p || n.path.starts_with(&format!("{p}/")))
                 .cloned()
                 .collect()
         } else {
-            map.nodes
-                .iter()
-                .filter(|n| !is_excluded_from_workspace_map(&n.path))
-                .cloned()
-                .collect()
+            map.nodes.clone()
         };
         Ok(json!({
             "version": map.version,

@@ -42,35 +42,29 @@ else if (globalThis._VSCODE_PRODUCT_JSON && globalThis._VSCODE_PACKAGE_JSON) {
 	// Version is added during built time, but we still
 	// want to have it running out of sources so we
 	// read it from package.json only when we need it.
-	const pkg = globalThis._VSCODE_PACKAGE_JSON as {
-		version: string;
-		droxVersion?: string;
-		droxSurface?: 'dev' | 'release';
-		droxEngineDevBuild?: number;
-	};
-
 	if (!product.version) {
+		const pkg = globalThis._VSCODE_PACKAGE_JSON as {
+			version: string;
+			droxVersion?: string;
+			droxSurface?: 'dev' | 'release';
+			droxEngineDevBuild?: number;
+		};
+
 		Object.assign(product, {
 			version: pkg.version
 		});
-	}
 
-	if (!product.droxVersion && pkg.droxVersion) {
-		Object.assign(product, {
-			droxVersion: pkg.droxVersion
-		});
-	}
+		if (!product.droxVersion && pkg.droxVersion) {
+			Object.assign(product, { droxVersion: pkg.droxVersion });
+		}
 
-	if (!product.droxSurface && (pkg.droxSurface === 'dev' || pkg.droxSurface === 'release')) {
-		Object.assign(product, {
-			droxSurface: pkg.droxSurface
-		});
-	}
+		if (!product.droxSurface && (pkg.droxSurface === 'dev' || pkg.droxSurface === 'release')) {
+			Object.assign(product, { droxSurface: pkg.droxSurface });
+		}
 
-	if (product.droxEngineDevBuild === undefined && typeof pkg.droxEngineDevBuild === 'number') {
-		Object.assign(product, {
-			droxEngineDevBuild: pkg.droxEngineDevBuild
-		});
+		if (product.droxEngineDevBuild === undefined && typeof pkg.droxEngineDevBuild === 'number') {
+			Object.assign(product, { droxEngineDevBuild: pkg.droxEngineDevBuild });
+		}
 	}
 }
 
@@ -95,8 +89,8 @@ else {
 			licenseUrl: 'https://github.com/microsoft/vscode/blob/main/LICENSE.txt',
 			serverLicenseUrl: 'https://github.com/microsoft/vscode/blob/main/LICENSE.txt',
 			defaultChatAgent: {
-				extensionId: 'github.copilot-chat',
-				chatExtensionId: 'github.copilot-chat',
+				extensionId: 'GitHub.copilot',
+				chatExtensionId: 'GitHub.copilot-chat',
 				provider: {
 					default: {
 						id: 'github',
@@ -105,15 +99,7 @@ else {
 					enterprise: {
 						id: 'github-enterprise',
 						name: 'GitHub Enterprise',
-					},
-					google: {
-						id: 'google',
-						name: 'Google',
-					},
-					apple: {
-						id: 'apple',
-						name: 'Apple',
-					},
+					}
 				},
 				providerScopes: []
 			}

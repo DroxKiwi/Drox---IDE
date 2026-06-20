@@ -5,7 +5,6 @@ Thumbs.db
 node_modules/
 .tmp/
 .build/
-build/win32/inno-setup-6/
 .vscode/extensions/**/out/
 extensions/**/dist/
 src/vs/base/browser/ui/codicons/codicon/codicon.ttf
@@ -33,15 +32,8 @@ test-output.json
 test/componentFixtures/.screenshots/*
 !test/componentFixtures/.screenshots/baseline/
 dist
-# Drox packaged binaries (built via npm run package-drox)
-resources/drox/**/drox
-resources/drox/**/drox.exe
-!resources/drox/README.md
 .playwright-cli
 .playwright-mcp
-# Artefacts dogfood locaux (exports TUI / transcripts) — ne pas versionner
-drox-engine/docs/from_TUI/
-drox-engine/docs/exports/
 .claude/
 .agents/agents/*.local.md
 .github/agents/*.local.md

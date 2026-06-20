@@ -224,7 +224,7 @@ Rejouer sur `site-kdds` avec Qwen 27B, prompt lentille (session propre) :
 ## Hors scope ce chantier
 
 - Erreurs HTTP Ollama (infra)
-- Polish UI trays / repliables ([1.4.3](../../1.4.3/README.md))
+- Polish UI trays / repliables ([1.5.1](../../1.5/1.5.1/README.md))
 - B-MOTOR-01 thinking répétitif ([1.4.1](../../1.4.1/README.md))
 - Désactivation complète segments sur tous presets (sauf C20 option)
 

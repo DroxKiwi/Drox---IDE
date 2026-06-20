@@ -5,19 +5,16 @@
 //!
 //! 1. Si une règle `Deny` matche (tool-wide ou contenu) → `Deny`.
 //! 2. Mode `Plan` + tool d'écriture → `Deny` (l'agent doit `exit_plan_mode`).
-//! 3. Si une règle `Ask` matche (tool-wide ou contenu) → `Ask` (sauf modes
-//!    `AcceptEdits` / `BypassPermissions` qui ignorent les règles Ask).
+//! 3. Si une règle `Ask` matche (tool-wide ou contenu) → `Ask`.
 //! 4. Si une règle `Allow` matche (tool-wide ou contenu) → `Allow`.
 //! 5. Mode `BypassPermissions` → `Allow` (sauf si déjà Deny en étape 1).
-//! 6. Mode `AcceptEdits` + tool d'écriture → `Allow`.
+//! 6. Mode `AcceptEdits` + tool d'écriture fichier → `Allow`.
 //! 7. Tool considéré comme "lecture seule" (`is_read_only`) → `Allow`.
-//! 8. Sinon → `Ask` en `Default` ; `Allow` en `AcceptEdits` / `BypassPermissions`.
+//! 8. Sinon → `Ask` (à l'humain de trancher).
 
 use crate::matcher::ShellPattern;
 use crate::mode::PermissionMode;
-use crate::path_matcher::{
-    PathMatchContext, dangerous_path_reason, is_under_workspace_drox, path_rule_matches,
-};
+use crate::path_matcher::{PathMatchContext, dangerous_path_reason, path_rule_matches};
 use crate::rule::{PermissionBehavior, Rule, RuleSet, format_rule};
 use crate::tool_names::{primary_rule_tool_name, uses_path_patterns};
 
@@ -221,14 +218,10 @@ impl PermissionEngine {
             }
         }
 
-        // 1c. Chemins sensibles (auto-deny) pour outils fichier, sauf Allow explicite / bypass / `.drox/`.
+        // 1c. Chemins sensibles (auto-deny) pour outils fichier, sauf Allow explicite / bypass.
         if target.is_write {
             if let (Some(path), Some(ctx)) = (target.content, self.path_ctx.as_ref()) {
-                let drox_storage = is_under_workspace_drox(path, ctx);
                 if let Some(hint) = dangerous_path_reason(path, ctx) {
-                    if drox_storage && mode.blocks_writes_outside_drox() {
-                        // Analyze : autoriser la mémoire / analyses sous `.drox/`.
-                    } else {
                     let allowed = find_content_rule(
                         &self.rules,
                         target.tool_name,
@@ -243,7 +236,7 @@ impl PermissionEngine {
                             PermissionBehavior::Allow,
                         )
                         .is_some();
-                    if !allowed && !mode.trust_level_full() {
+                    if !allowed && !matches!(mode, PermissionMode::BypassPermissions) {
                         return PermissionDecision::Deny {
                             reason: DecisionReason::Default,
                             message: format!(
@@ -251,13 +244,12 @@ impl PermissionEngine {
                             ),
                         };
                     }
-                    }
                 }
             }
         }
 
-        // 2. Legacy Plan : bloque toute écriture (tools `plan_mode`).
-        if mode.enables_plan_mode_on_tools() && target.is_write {
+        // 2. Plan mode bloque les écritures
+        if mode.blocks_writes() && target.is_write {
             return PermissionDecision::Deny {
                 reason: DecisionReason::Mode(mode),
                 message: format!(
@@ -267,58 +259,33 @@ impl PermissionEngine {
             };
         }
 
-        // 2b. Analyze : écritures uniquement sous `.drox/`.
-        if mode.blocks_writes_outside_drox() && target.is_write {
-            let allowed_drox = target.content.is_some_and(|path| {
-                self.path_ctx
-                    .as_ref()
-                    .is_some_and(|ctx| is_under_workspace_drox(path, ctx))
-            });
-            if !allowed_drox {
-                return PermissionDecision::Deny {
-                    reason: DecisionReason::Mode(mode),
-                    message: format!(
-                        "Analyze mode: `{}` cannot modify paths outside `.drox/` (workspace memory and analyses only).",
-                        target.tool_name
-                    ),
-                };
-            }
-            return PermissionDecision::Allow {
-                reason: DecisionReason::Mode(mode),
+        // 3. Ask rules (tool-wide d'abord, puis content)
+        if let Some(rule) = find_tool_wide(&self.rules, target.tool_name, PermissionBehavior::Ask) {
+            return PermissionDecision::Ask {
+                reason: rule_reason(rule),
+                message: format!(
+                    "Permission rule `{}` requires approval to use {}.",
+                    format_rule(&rule.value),
+                    target.tool_name
+                ),
             };
         }
-
-        // 3. Ask rules — ignorées en TrustEdit ; lectures libres en Analyze / ImNotCrazy
-        if !mode_skips_permission_asks_for(mode, target) {
-            if let Some(rule) =
-                find_tool_wide(&self.rules, target.tool_name, PermissionBehavior::Ask)
-            {
+        if let Some(content) = target.content {
+            if let Some(rule) = find_content_rule(
+                &self.rules,
+                target.tool_name,
+                content,
+                PermissionBehavior::Ask,
+                self.path_ctx.as_ref(),
+            ) {
                 return PermissionDecision::Ask {
                     reason: rule_reason(rule),
                     message: format!(
-                        "Permission rule `{}` requires approval to use {}.",
+                        "Rule `{}` requires approval for this {} command.",
                         format_rule(&rule.value),
                         target.tool_name
                     ),
                 };
-            }
-            if let Some(content) = target.content {
-                if let Some(rule) = find_content_rule(
-                    &self.rules,
-                    target.tool_name,
-                    content,
-                    PermissionBehavior::Ask,
-                    self.path_ctx.as_ref(),
-                ) {
-                    return PermissionDecision::Ask {
-                        reason: rule_reason(rule),
-                        message: format!(
-                            "Rule `{}` requires approval for this {} command.",
-                            format_rule(&rule.value),
-                            target.tool_name
-                        ),
-                    };
-                }
             }
         }
 
@@ -343,14 +310,14 @@ impl PermissionEngine {
             }
         }
 
-        // 5. TrustEdit / legacy bypass — auto-allow
-        if mode.trust_level_full() {
+        // 5. Bypass mode auto-allow
+        if matches!(mode, PermissionMode::BypassPermissions) {
             return PermissionDecision::Allow {
                 reason: DecisionReason::Mode(mode),
             };
         }
 
-        // 6. TrustEdit / legacy acceptEdits — auto-allow les écritures
+        // 6. AcceptEdits auto-allow les écritures
         if target.is_write && mode.auto_allows_writes() {
             return PermissionDecision::Allow {
                 reason: DecisionReason::Mode(mode),
@@ -364,26 +331,11 @@ impl PermissionEngine {
             };
         }
 
-        // 8. Défaut : TrustEdit déjà géré ; ImNotCrazy → Ask sur écritures / tools inconnus
-        if mode_skips_permission_asks_for(mode, target) {
-            return PermissionDecision::Allow {
-                reason: DecisionReason::Mode(mode),
-            };
-        }
+        // 8. Défaut : demander à l'humain
         PermissionDecision::Ask {
             reason: DecisionReason::Default,
             message: format!("Drox requests permission to use {}.", target.tool_name),
         }
-    }
-}
-
-#[must_use]
-fn mode_skips_permission_asks_for(mode: PermissionMode, target: &PermissionTarget<'_>) -> bool {
-    let m = mode.effective();
-    match m {
-        PermissionMode::TrustEdit => true,
-        PermissionMode::Analyze | PermissionMode::ImNotCrazy if target.is_read_only => true,
-        _ => false,
     }
 }
 
@@ -540,64 +492,6 @@ mod tests {
     }
 
     #[test]
-    fn analyze_mode_allows_drox_writes_only() {
-        let engine = PermissionEngine::with_rules(RuleSet::new()).with_path_context(PathMatchContext::new(
-            std::path::Path::new("/proj"),
-            "/home",
-        ));
-        let deny = engine.evaluate(
-            &PermissionTarget::tool("FileWrite")
-                .with_content("src/main.ts")
-                .with_write(true),
-            PermissionMode::Analyze,
-        );
-        assert!(deny.is_deny(), "got {deny:?}");
-        let allow = engine.evaluate(
-            &PermissionTarget::tool("FileWrite")
-                .with_content(".drox/memory/note.md")
-                .with_write(true),
-            PermissionMode::Analyze,
-        );
-        assert!(allow.is_allow(), "got {allow:?}");
-    }
-
-    #[test]
-    fn im_not_crazy_asks_on_writes() {
-        let engine = engine_with(vec![]);
-        let decision = engine.evaluate(
-            &PermissionTarget::tool("FileWrite")
-                .with_content("src/foo.ts")
-                .with_write(true),
-            PermissionMode::ImNotCrazy,
-        );
-        assert!(decision.is_ask(), "got {decision:?}");
-    }
-
-    #[test]
-    fn im_not_crazy_allows_reads() {
-        let engine = engine_with(vec![]);
-        let decision = engine.evaluate(
-            &PermissionTarget::tool("FileRead")
-                .with_content("README.md")
-                .with_read_only(true),
-            PermissionMode::ImNotCrazy,
-        );
-        assert!(decision.is_allow(), "got {decision:?}");
-    }
-
-    #[test]
-    fn trust_edit_auto_allows_writes() {
-        let engine = engine_with(vec![]);
-        let decision = engine.evaluate(
-            &PermissionTarget::tool("FileWrite")
-                .with_content("src/foo.ts")
-                .with_write(true),
-            PermissionMode::TrustEdit,
-        );
-        assert!(decision.is_allow(), "got {decision:?}");
-    }
-
-    #[test]
     fn plan_mode_allows_reads() {
         let engine = engine_with(vec![]);
         let decision = engine.evaluate(
@@ -654,31 +548,6 @@ mod tests {
             PermissionMode::Default,
         );
         assert!(decision.is_ask(), "got {decision:?}");
-    }
-
-    #[test]
-    fn accept_edits_auto_allows_unknown_tool() {
-        let engine = engine_with(vec![]);
-        let decision = engine.evaluate(
-            &PermissionTarget::tool("MysteryTool"),
-            PermissionMode::AcceptEdits,
-        );
-        assert!(decision.is_allow(), "got {decision:?}");
-    }
-
-    #[test]
-    fn accept_edits_ignores_ask_rules() {
-        let engine = engine_with(vec![rule(
-            "Bash",
-            None,
-            PermissionBehavior::Ask,
-            RuleSource::UserSettings,
-        )]);
-        let decision = engine.evaluate(
-            &PermissionTarget::tool("Bash").with_content("npm test"),
-            PermissionMode::AcceptEdits,
-        );
-        assert!(decision.is_allow(), "got {decision:?}");
     }
 
     #[test]

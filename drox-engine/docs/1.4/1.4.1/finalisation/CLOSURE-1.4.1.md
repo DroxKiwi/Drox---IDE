@@ -8,9 +8,9 @@
 
 ## Verdict
 
-Branche **1.4.1** clôturée : stabilisation moteur post-rail 1.4.0 (plans 1.4.1.1 → 1.4.1.3), **profil produit unique** (fin `engine.strictness` / `engine.tuning.*` utilisateur), **Settings IDE** scindés dev/release, doc **1.4.5** (sampling par contexte) ouverte.
+Branche **1.4.1** clôturée : stabilisation moteur post-rail 1.4.0 (plans 1.4.1.1 → 1.4.1.3), **profil produit unique** (fin `engine.strictness` / `engine.tuning.*` utilisateur), **Settings IDE** scindés dev/release, doc **1.5.3** (sampling par contexte) ouverte.
 
-La **1.4.x** reste dogfood — alignement modèles → [1.4.2](../../1.4.2/README.md), polish UI → [1.4.3](../../1.4.3/README.md), index → [1.4.4](../../1.4.4/README.md).
+La **1.4.x** reste dogfood — alignement modèles → [1.4.2](../../1.4.2/README.md), polish UI → [1.5.1](../../1.5/1.5.1/README.md), index → [1.5.2](../../1.5/1.5.2/README.md).
 
 ---
 
@@ -23,7 +23,7 @@ La **1.4.x** reste dogfood — alignement modèles → [1.4.2](../../1.4.2/READM
 | **1.4.1.3** | Context frame · tool folders · plan interne L2 | [CLOSURE-1.4.1.3](CLOSURE-1.4.1.3.md) |
 | **Profil unique** | `EngineTuning::product_default()`, RPC legacy ignoré | `orchestration/tuning/mod.rs` |
 | **Settings** | Catalogue prod ~15 clés ; LLM avancé + `executablePath` dev-only (Settings IDE, pas vignette chat) | `droxDevConfiguration.ts` |
-| **1.4.5** | Spec profils sampling YAML (planifié) | [1.4.5](../../1.4.5/README.md) |
+| **1.5.3** | Spec profils sampling YAML (planifié) | [1.5.3](../../1.5/1.5.3/README.md) |
 
 ---
 
@@ -40,7 +40,7 @@ La **1.4.x** reste dogfood — alignement modèles → [1.4.2](../../1.4.2/READM
 ## Suite sur `main`
 
 1. [1.4.2](../../1.4.2/README.md) — alignement protocole × modèles IA  
-2. [1.4.3](../../1.4.3/README.md) — routage / UI chat / signature  
-3. [1.4.4](../../1.4.4/README.md) — index / graphe  
-4. [1.4.5](../../1.4.5/PLAN-1.4.5.md) — `llm-sampling.yaml` (dev)  
+2. [1.5.1](../../1.5/1.5.1/README.md) — routage / UI chat / signature  
+3. [1.5.2](../../1.5/1.5.2/README.md) — index / graphe  
+4. [1.5.3](../../1.5/1.5.3/PLAN-1.5.3.md) — `llm-sampling.yaml` (dev)  
 5. Smokes multi-runs Qwen 27B — voir [SMOKE-ses_733093c6-SESSION.md](../SMOKE-ses_733093c6-SESSION.md)
