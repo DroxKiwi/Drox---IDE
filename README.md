@@ -1,10 +1,35 @@
 <a id="souverainete"></a>
 
-## But du projet — souveraineté
+## But du projet — souveraineté et feuille de route
+
+### Où en est Drox (1.5.x)
+
+Le projet est en phase de **construction et de stabilisation de la base moteur** : mono-boucle TUI (`tui_mono`), shim RPC IDE, chat aligné sur le fil agent, wizard de connexion LLM. Les releases **1.5.1+** consolident cette fondation avant d’empiler les couches produit ci-dessous. Toujours **expérimental** — pas un IDE agent de production — mais la stack 1.4.x est **derrière nous**.
+
+### Souveraineté
 
 Drox vise la **souveraineté numérique** : IDE, moteur agent, inférence (Ollama ou endpoint que **tu** configures), sessions et mémoire dans **`.drox/`** sur ton disque — pas de compte cloud KDDS imposé, pas de télémétrie Microsoft dans le package distribué.
 
 **Seul trafic réseau prévu côté produit** : la **vérification de version** (lecture du manifeste release, ex. `stable/latest.json`) pour indiquer qu’une MAJ plus récente existe. Le reste du travail agent tourne en local.
+
+### Vision produit
+
+Permettre de **maîtriser des projets volumineux** en s’aidant d’une **IA légère** (modèles locaux ou petits modèles distants) — donc **peu consommatrice** en RAM/VRAM et en tokens — plutôt qu’un unique gros modèle « tout-en-un ». Comprendre d’abord (carte du repo, parcours des fichiers), agir ensuite, avec **observabilité locale** pour rester maître du système.
+
+### Mises à jour prévues (brainstorm)
+
+Fiches d’intention non engagées — détail et statut dans [`drox-engine/docs/feature-brainstorm/README.md`](drox-engine/docs/feature-brainstorm/README.md) :
+
+| Thème | Fiches | Objectif |
+|-------|--------|----------|
+| **Télémétrie locale** | [05](drox-engine/docs/feature-brainstorm/05-stats-perf-par-cycle.md) · [11](drox-engine/docs/feature-brainstorm/11-telemetry-ide-locale-apis.md) | KPI par run/cycle, dashboards **100 % locaux** (`.drox/`), APIs `telemetry.*` — aucun cloud |
+| **Cartographie & parcours fichiers** | [02](drox-engine/docs/feature-brainstorm/02-onglet-parcours-modeles.md) · [09](drox-engine/docs/feature-brainstorm/09-roles-specialises-comprehension-code.md) | Vue graphe + diffs du parcours modèle ; rôles « compréhension » (cartographe, analyste…) avant mutation |
+| **IA légère & perf** | [07](drox-engine/docs/feature-brainstorm/07-reponses-legere-sans-plan.md) · [08](drox-engine/docs/feature-brainstorm/08-performance-traitement-rapide.md) · [01](drox-engine/docs/feature-brainstorm/01-serveurs-inference-par-role.md) | Réponses rapides sans sur-planifier ; tuning ; backends distincts par rôle |
+| **Sessions & long run** | [04](drox-engine/docs/feature-brainstorm/04-mode-long-run.md) · [06](drox-engine/docs/feature-brainstorm/06-chargement-sessions-segmente.md) | Gros chantiers multi-heures ; reprise historique progressive |
+| **Réglages & confiance** | [10](drox-engine/docs/feature-brainstorm/10-parametrage-prompts-strictesse.md) · [12](drox-engine/docs/feature-brainstorm/12-presets-globaux-benchmark-hardware.md) · [14](drox-engine/docs/feature-brainstorm/14-persona-premiere-activation.md) | Strictesse prompts, benchmark matériel/modèle, persona onboarding |
+| **IDE & transparence** | [03](drox-engine/docs/feature-brainstorm/03-preview-web-outils-navigateur.md) · [13](drox-engine/docs/feature-brainstorm/13-agents-window-kdds-drox.md) · [15](drox-engine/docs/feature-brainstorm/15-shell-live-view.md) | Preview web, chassis Agents Window Drox, sortie shell live |
+
+Ces pistes **ne bloquent pas** les releases courantes (1.5.2, 1.5.3) ; elles nourrissent la ligne **1.5.x+** et au-delà.
 
 ___
 
@@ -429,11 +454,36 @@ ___
 
 <a id="en-sovereignty"></a>
 
-## Project goal — sovereignty
+## Project goal — sovereignty and roadmap
+
+### Where Drox stands (1.5.x)
+
+The project is in **build and stabilization** of the **engine foundation**: TUI mono-loop (`tui_mono`), IDE RPC shim, chat stream aligned with the agent, LLM connection wizard. Releases **1.5.1+** consolidate this base before stacking the product layers below. Still **experimental** — not a production agent IDE — but the 1.4.x stack is **behind us**.
+
+### Sovereignty
 
 Drox aims for **digital sovereignty**: IDE, agent engine, inference (Ollama or an endpoint **you** configure), sessions and memory in **`.drox/`** on your disk — no mandatory KDDS cloud account, no Microsoft telemetry in the distributed package.
 
 **Only expected product network traffic**: **version check** (reading the release manifest, e.g. `stable/latest.json`) to tell you a newer update exists. Everything else in the agent workflow runs locally.
+
+### Product vision
+
+Help you **master large codebases** with **lightweight AI** (local or small remote models) — **low** RAM/VRAM and token cost — instead of one huge all-in-one model. Understand first (repo map, file traversal), act second, with **local observability** so you stay in control.
+
+### Planned updates (brainstorm)
+
+Non-committed intent docs — details in [`drox-engine/docs/feature-brainstorm/README.md`](drox-engine/docs/feature-brainstorm/README.md):
+
+| Theme | Docs | Goal |
+|-------|------|------|
+| **Local telemetry** | [05](drox-engine/docs/feature-brainstorm/05-stats-perf-par-cycle.md) · [11](drox-engine/docs/feature-brainstorm/11-telemetry-ide-locale-apis.md) | Per-run/cycle KPIs, **fully local** dashboards (`.drox/`), `telemetry.*` APIs — no cloud |
+| **Mapping & file traversal** | [02](drox-engine/docs/feature-brainstorm/02-onglet-parcours-modeles.md) · [09](drox-engine/docs/feature-brainstorm/09-roles-specialises-comprehension-code.md) | Live graph + diff trail; comprehension roles (mapper, analyst…) before edits |
+| **Lightweight AI & perf** | [07](drox-engine/docs/feature-brainstorm/07-reponses-legere-sans-plan.md) · [08](drox-engine/docs/feature-brainstorm/08-performance-traitement-rapide.md) · [01](drox-engine/docs/feature-brainstorm/01-serveurs-inference-par-role.md) | Quick replies without over-planning; tuning; per-role inference backends |
+| **Sessions & long run** | [04](drox-engine/docs/feature-brainstorm/04-mode-long-run.md) · [06](drox-engine/docs/feature-brainstorm/06-chargement-sessions-segmente.md) | Multi-hour tasks; progressive session history load |
+| **Tuning & trust** | [10](drox-engine/docs/feature-brainstorm/10-parametrage-prompts-strictesse.md) · [12](drox-engine/docs/feature-brainstorm/12-presets-globaux-benchmark-hardware.md) · [14](drox-engine/docs/feature-brainstorm/14-persona-premiere-activation.md) | Prompt strictness, hardware/model benchmark, onboarding persona |
+| **IDE & transparency** | [03](drox-engine/docs/feature-brainstorm/03-preview-web-outils-navigateur.md) · [13](drox-engine/docs/feature-brainstorm/13-agents-window-kdds-drox.md) · [15](drox-engine/docs/feature-brainstorm/15-shell-live-view.md) | Web preview, Drox Agents Window, live shell output |
+
+These tracks **do not block** current releases (1.5.2, 1.5.3); they feed **1.5.x+** and beyond.
 
 ___
 
