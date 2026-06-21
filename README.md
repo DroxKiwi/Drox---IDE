@@ -71,12 +71,27 @@ ___
 
 ## Guide débutant — installer et s’en servir
 
-**Drox IDE** reprend l’ergonomie de **[Visual Studio Code](https://code.visualstudio.com/)** (éditeur, terminal, extensions familières) avec un **chat agent** branché sur un modèle **local** via Ollama. Tu n’as **pas** besoin de compiler ce dépôt pour l’utiliser.
+**Drox IDE** reprend l’ergonomie de **[Visual Studio Code](https://code.visualstudio.com/)** (éditeur, terminal, extensions familières) avec un **chat agent** branché sur un **moteur d’inférence de ton choix** (Ollama par défaut pour débuter). Tu n’as **pas** besoin de compiler ce dépôt pour l’utiliser.
 
 ### Prérequis
 
 - **Windows** (installeur ; Linux prévu en **1.5.3**)
-- **[Ollama](https://ollama.com/)** installé, avec au moins un modèle — ex. `ollama pull qwen2.5-coder`
+- Un **serveur LLM** accessible — le plus simple en local : **[Ollama](https://ollama.com/)** + un modèle, ex. `ollama pull qwen2.5-coder`
+
+### Moteurs d’inférence (local ou cloud)
+
+Drox ne fournit pas le modèle : il se connecte à **ton** endpoint via le wizard **« Connect your AI »** (vignette **Général**). Tu choisis l’**hébergement**, puis le **fournisseur**.
+
+| Hébergement | Moteurs (liens officiels) | Usage typique |
+|-------------|---------------------------|---------------|
+| **Local / perso** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [API OpenAI-compatible](https://platform.openai.com/docs/api-reference) | Modèle sur ton PC, ton NAS ou ton réseau — les prompts partent vers **ta** machine (ou celle que tu configures). |
+| **Cloud** | [Hugging Face Inference](https://huggingface.co/inference) · [Mistral AI](https://mistral.ai/) · Ollama distant · endpoint compatible | Inférence hébergée chez le prestataire — pratique sans gros GPU ; confidentialité **selon leurs engagements** (offres privées, entreprise, CGU — à lire côté fournisseur). |
+
+**Démarrage rapide** : Ollama local → wizard → URL `http://127.0.0.1:11434` + nom du modèle.  
+**vLLM / LM Studio** : lance le serveur, puis indique son URL dans le wizard (ex. `http://127.0.0.1:8000` pour vLLM).  
+**Cloud** : URL + clé API du fournisseur dans le wizard.
+
+Drox n’impose aucun cloud KDDS : seul l’**endpoint que tu configures** reçoit les requêtes d’inférence (hors vérification de version de l’IDE).
 
 ### Installation (utilisateur)
 
@@ -87,7 +102,7 @@ ___
 ### Premiers pas
 
 1. **Fichier → Ouvrir un dossier…** — ton projet (comme dans VS Code).
-2. Ouvre **Drox Chat** ; au besoin, le wizard **« Connect your AI »** configure l’URL Ollama (`http://127.0.0.1:11434` en local) et le modèle.
+2. Ouvre **Drox Chat** ; au besoin, le wizard **« Connect your AI »** configure hébergement, fournisseur, URL du serveur et modèle.
 3. Pose une question sur ton code ; l’agent lit des fichiers et peut proposer des modifications selon le **mode permission** (Analyser / Édition / Confiance).
 
 ### L’essentiel à retenir
@@ -543,12 +558,27 @@ ___
 
 ## Getting started — install and use
 
-**Drox IDE** feels like **[Visual Studio Code](https://code.visualstudio.com/)** plus a **local agent chat** backed by **Ollama**. You do **not** need to build this repo to try the product.
+**Drox IDE** feels like **[Visual Studio Code](https://code.visualstudio.com/)** plus a **local agent chat** backed by an **inference engine you choose** (Ollama is the simplest local default). You do **not** need to build this repo to try the product.
 
 ### Requirements
 
 - **Windows** installer (Linux planned in **1.5.3**)
-- **[Ollama](https://ollama.com/)** with at least one model — e.g. `ollama pull qwen2.5-coder`
+- An **LLM server** — easiest locally: **[Ollama](https://ollama.com/)** with a model, e.g. `ollama pull qwen2.5-coder`
+
+### Inference backends (local or cloud)
+
+Drox does not ship a model: it connects to **your** endpoint via **« Connect your AI »** ( **General** vignette). Pick **hosting**, then **provider**.
+
+| Hosting | Backends (official links) | Typical use |
+|---------|---------------------------|-------------|
+| **Local / personal** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [OpenAI-compatible API](https://platform.openai.com/docs/api-reference) | Model on your PC, NAS, or LAN — prompts go to **your** hardware (or the URL you set). |
+| **Cloud** | [Hugging Face Inference](https://huggingface.co/inference) · [Mistral AI](https://mistral.ai/) · remote Ollama · compatible endpoint | Provider-hosted inference — handy without a big GPU; privacy **per the vendor’s terms** (private/enterprise tiers, ToS — read on their side). |
+
+**Quick start**: local Ollama → wizard → `http://127.0.0.1:11434` + model name.  
+**vLLM / LM Studio**: start the server, paste its URL in the wizard (e.g. `http://127.0.0.1:8000` for vLLM).  
+**Cloud**: provider URL + API key in the wizard.
+
+No mandatory KDDS cloud: only the **endpoint you configure** receives inference traffic (aside from IDE version check).
 
 ### Install (end user)
 
@@ -559,7 +589,7 @@ ___
 ### First steps
 
 1. **File → Open Folder…** — your project (same as VS Code).
-2. Open **Drox Chat**; the **« Connect your AI »** wizard sets Ollama URL (`http://127.0.0.1:11434` locally) and model if needed.
+2. Open **Drox Chat**; the **« Connect your AI »** wizard sets hosting, provider, server URL, and model if needed.
 3. Ask about your code; the agent reads files and may suggest edits depending on the **permission mode** (Analyze / Trust edit / I'm not crazy).
 
 ### Essentials
