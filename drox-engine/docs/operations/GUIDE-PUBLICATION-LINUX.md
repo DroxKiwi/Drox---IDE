@@ -7,6 +7,29 @@ Checklist pour produire le **.deb amd64** et l’ajouter au repo releases **`Dro
 
 ---
 
+## WSL Ubuntu (Windows)
+
+Depuis PowerShell a la racine du repo :
+
+```powershell
+.\scripts\wsl-linux-build.ps1
+```
+
+Ou ouvrir **Windows Terminal > Ubuntu** puis :
+
+```bash
+cd /mnt/c/Users/coren/Desktop/GitHub/Drox---IDE
+bash ./scripts/wsl-linux-build.sh
+```
+
+Le script installe les deps apt, Node (nvm), Rust si besoin, puis lance `build-release-linux.sh` et `release-publish-linux.sh`. Log : `.build/wsl-linux-build.log`.
+
+**Note** : le premier build sur `/mnt/c/` est lent (1-3 h). Pour aller plus vite, cloner le repo dans `~/Drox---IDE` sous WSL.
+
+Si `wsl` ne repond pas : `wsl --set-default Ubuntu` puis `wsl --shutdown` et relancer.
+
+---
+
 ## Prérequis machine (Ubuntu 22.04+ recommandé)
 
 ```bash

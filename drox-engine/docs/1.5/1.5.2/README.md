@@ -1,20 +1,35 @@
-# Drox 1.5.2 — Index, graphe, fast path, onboarding
+# Drox 1.5.2 — Diffs fil + UX chat + paramètres moteur
 
-**Statut** : **planifié** (après [1.5.1](../1.5.1/README.md))  
-**Prérequis** : étape conducteur post-[archive 1.4.0](../../1.4/1.4.0/archive/README.md) · [1.4.1](../../1.4/1.4.1/README.md) · [1.5.1](../1.5.1/README.md)
+**Statut** : **planifié** (juin 2026)  
+**Prérequis** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) clôturée (release Windows + merge `main`)
 
 ---
 
 ## En une phrase
 
-Trois piliers **contexte & latence** : index local au curseur, graphe typé injecté au boot READ, fast path complétion — plus onboarding premier lancement.
+Enrichir le **fil de discussion** (diffs fichier, undo/redo), moderniser l’**UX messages utilisateur** et le **composer**, et **réaligner les paramètres moteur** IDE sur le TUI — **sans** release Linux (→ [1.5.3](../1.5.3/README.md)).
 
-**Historique** : anciennement planifié en **1.4.1** puis **1.4.4** (juin 2026) ; renuméroté **1.5.2** dans la ligne **1.5** (refonte moteur post-1.4.2).
+---
+
+## Piliers
+
+| Pilier | Sujet |
+|--------|--------|
+| **D1** | Diffs fichier dans le fil + undo/redo |
+| **U1** | Messages utilisateur (copie, style) |
+| **U2** | Composer : textarea auto-grow |
+| **M1** | Paramètres moteur (sampling, `max_iterations` 50, nettoyage legacy) |
+| **P2** | Polish trays (optionnel) |
+
+---
+
+## Docs
+
+- [PLAN-1.5.2.md](PLAN-1.5.2.md)
 
 ---
 
 ## Liens
 
-- [Plan détaillé](PLAN-1.5.2.md)
 - [Hub 1.5](../README.md)
-- [1.4.1 stabilisation](../../1.4/1.4.1/README.md)
+- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md) — release Linux
