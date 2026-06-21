@@ -2,7 +2,7 @@
 
 **Date** : juin 2026  
 **Version** : `droxVersion` **1.5.1**  
-**Statut** : **clôture en cours**
+**Statut** : **livré**
 
 ---
 
@@ -17,15 +17,17 @@
 
 ---
 
-## Clôture release (à finaliser)
+## Release OR
 
 | # | Étape | Statut |
 |---|--------|--------|
-| R1 | `npm run drox:ship` Windows | en cours |
-| R2 | `gh release` `v1.5.1` + `.exe` | à faire |
-| R3 | Ce document + [PLAN-1.5.1.md](PLAN-1.5.1.md) | en cours |
-| R4 | Merge squash `main` + tag `v1.5.1` | ✅ |
+| R1 | `npm run drox:ship` Windows | ✅ |
+| R2 | [Release `v1.5.1`](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.1) | ✅ |
+| R3 | Manifeste `stable/latest.json` + README OR | ✅ |
+| R4 | Tag sources `v1.5.1` sur `main` | ✅ |
 | R5 | Branche **`1.5.2`** ouverte | ✅ |
+
+**Installeur** : `Drox-IDE-Setup-1.5.1-win32-x64.exe` (~257 Mo)
 
 ---
 

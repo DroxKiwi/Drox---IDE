@@ -1,6 +1,6 @@
 # Drox 1.5.1 — Fil chat = fil TUI
 
-**Statut** : **clôture en cours** (juin 2026) — sources taguées `v1.5.1` · ship Windows restant  
+**Statut** : **livrée** (juin 2026) — [release OR](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.1)  
 **Prérequis** : [1.5.0](../1.5.0/CLOSURE-1.5.0.md) livrée · moteur `tui_mono` · shim RPC
 
 ---
