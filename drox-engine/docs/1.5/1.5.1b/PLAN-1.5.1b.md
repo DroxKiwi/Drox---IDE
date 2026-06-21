@@ -14,7 +14,7 @@
 | **L3** Smoke Linux | **0 %** | oui |
 | **L4** Doc + RULES | **fait** | non |
 
-**Prochaine étape** : valider `build-release-linux.sh` sur Ubuntu 22.04+ · merger manifeste après ship Windows.
+**Prochaine étape** : ship effectif → [1.5.3](../1.5.3/PLAN-1.5.3.md).
 
 ---
 
@@ -106,4 +106,4 @@ flowchart LR
 
 - [README 1.5.1b](README.md)
 - [GUIDE-PUBLICATION-LINUX.md](../../operations/GUIDE-PUBLICATION-LINUX.md)
-- [PLAN 1.5.1](../1.5.1/PLAN-1.5.1.md)
+- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md) — ship Linux
