@@ -39,6 +39,23 @@
 			if (D.state.busy) {
 				fn.showActivityOnCurrentPhaseSummary();
 			}
+			return;
+		}
+		if (payload.phase === 'progress') {
+			const existing = id ? D.state.toolBlocks.get(id) : undefined;
+			if (!existing) {
+				return;
+			}
+			const summary = existing.querySelector('summary');
+			if (summary) {
+				const name = String(payload.name ?? D.state.pendingToolName ?? 'tool');
+				const elapsed = Number(payload.elapsedMs ?? 0);
+				const sec = elapsed > 0 ? ` · ${(elapsed / 1000).toFixed(1)}s` : '';
+				const tail = String(payload.outputPreview ?? '').trim();
+				const preview = tail ? ` — ${tail.split('\n').pop()}` : '';
+				summary.textContent = `▶ ${name}${sec}${preview}`;
+			}
+			return;
 		}
 	}
 })(globalThis.DroxChat);

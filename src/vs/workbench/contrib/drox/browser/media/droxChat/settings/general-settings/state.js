@@ -8,4 +8,14 @@
 
 	D.state.generalSettings = {};
 	D.state.generalSettingsPanelOpen = false;
+	D.state.connectionWizard = {
+		open: false,
+		step: 1,
+		hosting: null,
+		provider: null,
+		server: '',
+		apiKey: '',
+		formValues: {},
+		headers: [{ name: '', value: '' }],
+	};
 })(globalThis.DroxChat);

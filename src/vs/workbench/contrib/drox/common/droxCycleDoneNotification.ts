@@ -34,16 +34,16 @@ export function buildDroxCycleDoneNotificationLabels(
 	error: string | undefined,
 ): IDroxCycleDoneNotificationLabels {
 	const title = status === 'error'
-		? localize('drox.cycle.failed.title', 'Cycle arrêté')
-		: localize('drox.cycle.done.title', 'Cycle terminé');
+		? localize('drox.cycle.failed.title', 'Cycle stopped')
+		: localize('drox.cycle.done.title', 'Cycle complete');
 	const body = status === 'error'
 		? localize(
 			'drox.cycle.failed.body',
-			'{0} s\'est arrêté ({1}).',
+			'{0} stopped ({1}).',
 			runLabel,
-			error && error.trim().length > 0 ? error.trim() : localize('drox.cycle.failed.generic', 'erreur'),
+			error && error.trim().length > 0 ? error.trim() : localize('drox.cycle.failed.generic', 'error'),
 		)
-		: localize('drox.cycle.done.body', '{0} est terminé.', runLabel);
+		: localize('drox.cycle.done.body', '{0} is complete.', runLabel);
 	return { title, body };
 }
 

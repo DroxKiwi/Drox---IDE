@@ -48,10 +48,20 @@
 			if (D.dom.generalSettingsVignetteEl?.contains(t)) {
 				return;
 			}
+			const wizard = document.getElementById('drox-connection-wizard');
+			if (wizard && !wizard.hidden && wizard.contains(t)) {
+				return;
+			}
+			if (D.state.connectionWizard?.open) {
+				return;
+			}
 			fn.persistGeneralSettingsFromPanel();
 			fn.closeGeneralSettingsPanel();
 		});
 		fn.syncGeneralSettingsVignetteHint();
+		if (typeof fn.initConnectionWizard === 'function') {
+			fn.initConnectionWizard();
+		}
 	};
 
 	const prevOpenRole = fn.openRoleModelPanel;

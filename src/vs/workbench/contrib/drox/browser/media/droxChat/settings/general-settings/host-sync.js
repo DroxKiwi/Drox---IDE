@@ -19,5 +19,8 @@
 		if (typeof fn.syncChatErrorsWarningsVisibility === 'function') {
 			fn.syncChatErrorsWarningsVisibility();
 		}
+		if (typeof fn.syncConnectionSummaryInPanel === 'function') {
+			fn.syncConnectionSummaryInPanel();
+		}
 	};
 })(globalThis.DroxChat);

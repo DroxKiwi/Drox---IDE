@@ -18,29 +18,31 @@
 			return;
 		}
 		el.dataset.thinkingScrollBound = '1';
-		D.state.thinkingScrollStick.set(el, true);
-		el.addEventListener(
-			'scroll',
-			() => {
-				D.state.thinkingScrollStick.set(el, fn.isLogNearBottom(el, 28));
-			},
-			{ passive: true },
-		);
 	};
 
-	fn.scrollThinkingEl = function (el, force) {
-		if (!el) {
-			return;
-		}
+	/** Pas de suivi auto pendant un run — l'utilisateur garde la main sur le fil. */
+	fn.shouldAutoScrollLog = function () {
+		return !D.state.busy;
+	};
+
+	/** Scroll explicite (ex. message user envoyé) — ignore `busy`. */
+	fn.scrollLogToEnd = function () {
 		requestAnimationFrame(() => {
-			const stick = D.state.thinkingScrollStick.get(el);
-			if (force === true || stick !== false) {
+			const el = D.dom.logEl;
+			if (el) {
 				el.scrollTop = el.scrollHeight;
 			}
 		});
 	};
 
+	fn.scrollThinkingEl = function (_el, _force) {
+		// no-op — pas de suivi auto du panneau thinking
+	};
+
 	fn.scrollLog = function (force) {
+		if (!fn.shouldAutoScrollLog()) {
+			return;
+		}
 		requestAnimationFrame(() => {
 			const el = D.dom.logEl;
 			if (!el) {
@@ -50,6 +52,9 @@
 				el.scrollTop = el.scrollHeight;
 			}
 		});
-	}
+	};
 
+	fn.scrollToRunLiveTarget = function (_force) {
+		// no-op — remplacé par scroll manuel utilisateur pendant les runs
+	};
 })(globalThis.DroxChat);

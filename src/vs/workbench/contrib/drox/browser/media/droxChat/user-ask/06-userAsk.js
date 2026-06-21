@@ -124,8 +124,13 @@
 		D.dom.userAskEl.appendChild(header);
 
 		const promptLine = document.createElement('div');
-		promptLine.className = 'user-ask-prompt';
-		promptLine.textContent = `${idx + 1}. ${q.prompt}`;
+		promptLine.className = 'user-ask-prompt markdown';
+		const promptMd = `${idx + 1}. ${q.prompt}`;
+		if (typeof fn.setAssistantMarkdown === 'function') {
+			fn.setAssistantMarkdown(promptLine, promptMd);
+		} else {
+			promptLine.textContent = promptMd;
+		}
 		D.dom.userAskEl.appendChild(promptLine);
 
 		if (q.options.length > 0) {

@@ -9,20 +9,8 @@
 
 (function (D) {
 	const fn = D.fn;
-	/** Outils read-only architecte (verify / carte) — section `plan`, pas `work`. */
-	const ARCHITECT_VERIFY_TOOLS = new Set([
-		'file_read',
-		'grep',
-		'lsp',
-		'glob',
-		'workspace_map_read',
-	]);
 
-	fn.isArchitectVerifyTool = function (name) {
-		return ARCHITECT_VERIFY_TOOLS.has(String(name || '').trim());
-	};
-
-	D.state.linearRunUi = false;
+	/** Hauteur cumulée des bandeaux chrome (onglets + objectif) pour la pile sticky du fil. */
 	D.state.runStripEl = null;
 	/** Dernier message user du run — le strip agent est inséré juste après. */
 	D.state.runStripAnchorEl = null;
@@ -189,6 +177,7 @@
 		fn.archivePlanIntoStrip(strip);
 		fn.parkAllLinearFinalAnswers();
 		fn.compactLinearThinkingSection?.(strip);
+		fn.collapseRunWorkSection?.(strip);
 	};
 
 	fn.sealAllOpenRunStrips = function () {
@@ -211,20 +200,13 @@
 		D.state.discussionRunActive = false;
 		D.state.discussionAwaitingCanonicalReply = false;
 		fn.resetChatStreamForTurn?.();
+		fn.resetStreamChronology?.();
 		D.state.linearRunUi = true;
 		document.body.classList.add('drox-linear-run-active');
 		fn.syncStickyStackLayout();
 		D.state.runStripEl = null;
 		D.state.runStripAnchorEl = null;
 		D.state.runStripCommitted = false;
-		D.state.planActionRailEl = null;
-		D.state.planActionRailSummaryEl = null;
-		D.state.planActionRailListEl = null;
-		D.state.planActionLineCount = 0;
-		D.state.architectActionRailEl = null;
-		D.state.architectActionRailSummaryEl = null;
-		D.state.architectActionRailListEl = null;
-		D.state.architectActionLineCount = 0;
 		D.state.assistantEl = null;
 	};
 
@@ -312,6 +294,13 @@
 		if (!strip?.isConnected) {
 			return false;
 		}
+		for (const name of ['chronology', 'answer']) {
+			const sec = strip.querySelector(`[data-section="${name}"]`);
+			if (sec && sec.childElementCount > 0) {
+				return true;
+			}
+		}
+		// Strips legacy pré-1.5.1
 		for (const name of ['plan', 'work', 'thinking', 'verify', 'answer']) {
 			const sec = strip.querySelector(`[data-section="${name}"]`);
 			if (sec && sec.childElementCount > 0) {
@@ -324,14 +313,6 @@
 	fn.resetLinearRunStripPointers = function () {
 		D.state.runStripEl = null;
 		D.state.runStripCommitted = false;
-		D.state.planActionRailEl = null;
-		D.state.planActionRailSummaryEl = null;
-		D.state.planActionRailListEl = null;
-		D.state.planActionLineCount = 0;
-		D.state.architectActionRailEl = null;
-		D.state.architectActionRailSummaryEl = null;
-		D.state.architectActionRailListEl = null;
-		D.state.architectActionLineCount = 0;
 	};
 
 	fn.ensureRunStrip = function () {
@@ -342,7 +323,6 @@
 				return fn.ensureRunStrip();
 			}
 			fn.ensureRunStripConnected(strip);
-			fn.syncAgentActivityStickyToLinearHead?.();
 			fn.syncStickyStackLayout();
 			return strip;
 		}
@@ -354,7 +334,6 @@
 			if (adopted) {
 				D.state.runStripEl = adopted;
 				fn.ensureRunStripConnected(adopted);
-				fn.syncAgentActivityStickyToLinearHead?.();
 				fn.syncStickyStackLayout();
 				return adopted;
 			}
@@ -363,28 +342,25 @@
 		strip.className = 'drox-run-strip';
 		strip.dataset.stripId = fn.nextRunStripId();
 		strip.setAttribute('role', 'log');
-		const stickyHead = document.createElement('div');
-		stickyHead.className = 'drox-run-sticky-head';
-		for (const name of ['banner', 'plan']) {
-			const section = document.createElement('div');
-			section.className = `drox-run-section drox-run-${name}`;
-			section.dataset.section = name;
-			stickyHead.appendChild(section);
-		}
-		strip.appendChild(stickyHead);
-		for (const name of ['work', 'thinking', 'verify', 'answer']) {
-			const section = document.createElement('div');
-			section.className = `drox-run-section drox-run-${name}`;
-			section.dataset.section = name;
-			if (name === 'verify') {
-				section.classList.add('drox-run-verify');
-			}
-			strip.appendChild(section);
-		}
+		const work = document.createElement('details');
+		work.className = 'drox-run-work-collapsible drox-run-section';
+		work.open = true;
+		const workSummary = document.createElement('summary');
+		workSummary.className = 'drox-run-work-summary';
+		workSummary.textContent = 'Work';
+		work.appendChild(workSummary);
+		const chronology = document.createElement('div');
+		chronology.className = 'drox-run-section drox-run-chronology';
+		chronology.dataset.section = 'chronology';
+		work.appendChild(chronology);
+		strip.appendChild(work);
+		const answer = document.createElement('div');
+		answer.className = 'drox-run-section drox-run-answer';
+		answer.dataset.section = 'answer';
+		strip.appendChild(answer);
 		D.state.runStripEl = strip;
 		fn.ensureRunStripConnected(strip);
 		fn.touchArchitectRunTailActivity?.();
-		fn.syncAgentActivityStickyToLinearHead?.();
 		fn.syncStickyStackLayout();
 		return strip;
 	};
@@ -392,16 +368,11 @@
 	/** Déplace le bloc Plan dans la section sticky (évite un plan orphelin dans #log). */
 	fn.reparentTodoBlockToPlan = function () {
 		const block = D.state.currentTodoBlockEl;
-		const plan = fn.getRunSection('plan');
-		if (!block || !plan || block.parentElement === plan) {
+		const mount = fn.getChronologyMount?.() || fn.getRunSection('plan');
+		if (!block || !mount || block.parentElement === mount) {
 			return;
 		}
-		const rail = plan.querySelector('.plan-action-rail');
-		if (rail) {
-			plan.insertBefore(block, rail);
-		} else {
-			plan.appendChild(block);
-		}
+		mount.insertBefore(block, mount.firstChild);
 	};
 
 	fn.getRunSection = function (name) {
@@ -409,7 +380,14 @@
 			return null;
 		}
 		const strip = fn.ensureRunStrip();
-		return strip.querySelector(`[data-section="${name}"]`);
+		const direct = strip.querySelector(`[data-section="${name}"]`);
+		if (direct) {
+			return direct;
+		}
+		if (name === 'thinking' || name === 'work' || name === 'verify' || name === 'plan') {
+			return fn.ensureChronologySection(strip);
+		}
+		return null;
 	};
 
 	/** Rétro-compat : strips créés avant la section `verify`. */
@@ -418,16 +396,7 @@
 		if (sec || name !== 'verify') {
 			return sec;
 		}
-		const strip = D.state.runStripEl;
-		const answer = strip?.querySelector('[data-section="answer"]');
-		if (!strip || !answer?.parentElement) {
-			return null;
-		}
-		sec = document.createElement('div');
-		sec.className = 'drox-run-section drox-run-verify';
-		sec.dataset.section = 'verify';
-		answer.parentElement.insertBefore(sec, answer);
-		return sec;
+		return fn.ensureChronologySection(D.state.runStripEl);
 	};
 
 	fn.getLinearMountParent = function (section) {

@@ -238,7 +238,7 @@
 			return;
 		}
 		el.hidden = false;
-		el.textContent = 'Run en cours';
+		el.textContent = 'Run in progress';
 		el.title = 'Architect run in progress';
 	}
 

@@ -25,6 +25,10 @@
 
 	fn.hideActivity = function() {
 		fn.hideInlineActivityOnly();
+		const root = D.dom.logEl || document;
+		for (const summary of root.querySelectorAll('.phase-summary.has-activity-grid')) {
+			summary.classList.remove('has-activity-grid');
+		}
 		if (fn.shouldUseArchitectRunTailActivity()) {
 			fn.ensureArchitectRunTailActivity();
 			return;

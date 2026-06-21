@@ -84,6 +84,7 @@ function mockLlmSettings(overrides: Partial<IDroxLlmSettings> = {}): IDroxLlmSet
 		server: '',
 		model: 'test-model',
 		apiKey: '',
+		llmHeaders: {},
 		primaryLanguage: 'fr',
 		maxIterations: 12,
 		temperature: undefined,
@@ -1243,6 +1244,12 @@ suite('Drox — orchestration model params', () => {
 
 	test('isDroxWebviewToHostMessage accepts setModel and refreshLlmModels', () => {
 		assert.ok(isDroxWebviewToHostMessage({ type: 'refreshLlmModels' }));
+		assert.ok(isDroxWebviewToHostMessage({ type: 'resetLlmConnection' }));
+		assert.ok(isDroxWebviewToHostMessage({
+			type: 'testLlmConnection',
+			requestId: 'r1',
+			settings: { server: 'http://127.0.0.1:11434' },
+		}));
 		assert.ok(isDroxWebviewToHostMessage({ type: 'setModel', model: 'qwen2.5:7b' }));
 	});
 

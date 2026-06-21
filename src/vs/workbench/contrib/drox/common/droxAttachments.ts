@@ -127,14 +127,14 @@ export async function prepareImageAttachmentsForRun(input: IDroxPrepareImageRunI
 	}
 	const withData = input.attachments.filter(a => typeof a.dataUrl === 'string' && a.dataUrl.trim().length > 0);
 	if (withData.length === 0) {
-		throw new Error('Pièce jointe image sans données (dataUrl manquant).');
+		throw new Error('Image attachment has no data (missing dataUrl).');
 	}
 	const persisted = await input.persist(withData);
 	if (persisted.length === 0) {
-		throw new Error('Aucune image n\'a pu être décodée. Utilisez PNG, JPEG, WebP ou GIF.');
+		throw new Error('No images could be decoded. Use PNG, JPEG, WebP, or GIF.');
 	}
 	if (persisted.length < withData.length) {
-		throw new Error(`Seulement ${persisted.length} image(s) sur ${withData.length} ont pu être enregistrées.`);
+		throw new Error(`Only ${persisted.length} of ${withData.length} image(s) could be saved.`);
 	}
 	const images = persistedToAgentRunImages(persisted, input.workspaceRoot);
 	const savedPaths = persisted.map(p => p.relPath);

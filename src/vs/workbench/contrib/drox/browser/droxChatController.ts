@@ -8,6 +8,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { IRequestService } from '../../../../platform/request/common/request.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
@@ -93,6 +94,7 @@ export class DroxChatController extends Disposable
 		@INotificationService private readonly notificationService: INotificationService,
 		@ILogService private readonly logService: ILogService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
+		@IRequestService private readonly requestService: IRequestService,
 		@IOutputService private readonly outputService: IOutputService,
 		@IDroxLlmModelsService private readonly llmModelsService: IDroxLlmModelsService,
 		@IDroxRunRevertService private readonly runRevertService: IDroxRunRevertService,
@@ -393,6 +395,7 @@ export class DroxChatController extends Disposable
 			editorService: this.editorService,
 			terminalService: this.terminalService,
 			configurationService: this.configurationService,
+			requestService: this.requestService,
 			outputService: this.outputService,
 			llmModelsService: this.llmModelsService,
 			runRevertService: this.runRevertService,

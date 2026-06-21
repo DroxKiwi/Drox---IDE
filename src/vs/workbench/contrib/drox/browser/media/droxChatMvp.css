@@ -907,6 +907,85 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	scroll-margin-top: 10px;
 }
 
+details.drox-run-work-collapsible {
+	border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 55%, transparent);
+	border-radius: 10px;
+	padding: 0 10px 8px;
+	background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--drox-ui-green, #3d7a3d) 8%);
+}
+
+details.drox-run-work-collapsible > summary.drox-run-work-summary {
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--vscode-descriptionForeground);
+	padding: 8px 2px 6px;
+	list-style: none;
+}
+
+details.drox-run-work-collapsible > summary.drox-run-work-summary::-webkit-details-marker {
+	display: none;
+}
+
+.drox-run-chronology {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.drox-run-chronology .phase-block {
+	margin: 2px 0;
+}
+
+.drox-run-chronology .phase-block.drox-phase-block--done > .phase-summary {
+	cursor: pointer;
+}
+
+.drox-run-chronology .phase-block[open] > .phase-body {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 0 0 6px 4px;
+}
+
+.drox-phase-marker {
+	font-family: var(--vscode-editor-font-family, monospace);
+	font-size: 12px;
+	color: var(--vscode-descriptionForeground);
+	padding: 2px 0;
+}
+
+.drox-phase-line {
+	margin: 0;
+	padding-left: 8px;
+	border-left: 2px solid color-mix(in srgb, var(--vscode-panel-border) 70%, transparent);
+}
+
+.drox-chronology-assistant {
+	margin: 0;
+	opacity: 0.92;
+}
+
+.drox-run-chronology .msg-tool {
+	margin: 0;
+}
+
+.drox-run-chronology .msg-todos {
+	margin: 0 0 6px;
+}
+
+.drox-run-section[data-section='answer'] {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.drox-run-strip-sealed details.drox-run-work-collapsible:not([open]) {
+	opacity: 0.92;
+}
+
 #log > .msg.user + .drox-run-strip {
 	margin-top: 10px;
 }
@@ -2213,6 +2292,56 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	height: 34px;
 }
 
+@keyframes drox-connection-vignette-attention {
+	0%,
+	100% {
+		transform: translateY(0);
+		box-shadow:
+			0 0 5px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 30%, transparent),
+			inset 0 -1px 0 color-mix(in srgb, var(--drox-ui-green, #3dd68c) 25%, transparent);
+	}
+	50% {
+		transform: translateY(-5px);
+		box-shadow:
+			0 0 16px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 70%, transparent),
+			0 0 28px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 35%, transparent),
+			inset 0 0 10px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 22%, transparent);
+	}
+}
+
+.general-settings-vignette.connection-attention .vignette-peek {
+	animation: drox-connection-vignette-attention 2.5s ease-in-out infinite;
+	border-color: var(--drox-ui-green, var(--vscode-focusBorder));
+	background: color-mix(in srgb, var(--drox-ui-green, #3dd68c) 14%, var(--vscode-input-background, #1e1e1e));
+}
+
+.general-settings-vignette.connection-attention:hover .vignette-peek,
+.general-settings-vignette.connection-attention:focus-visible .vignette-peek,
+.general-settings-vignette.connection-attention.panel-open .vignette-peek {
+	animation: none;
+	transform: none;
+}
+
+.general-settings-vignette.connection-attention .vignette-peek-icon {
+	filter: drop-shadow(0 0 4px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 55%, transparent));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.general-settings-vignette.connection-attention .vignette-peek {
+		animation: drox-connection-vignette-glow-only 2.5s ease-in-out infinite;
+	}
+
+	@keyframes drox-connection-vignette-glow-only {
+		0%,
+		100% {
+			box-shadow: 0 0 4px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 25%, transparent);
+		}
+		50% {
+			box-shadow: 0 0 14px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 60%, transparent);
+		}
+	}
+}
+
 #agent-vignettes.mode-vignettes {
 	left: 56%;
 	right: 12px;
@@ -2250,6 +2379,27 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	height: 34px;
 	background: transparent;
 	box-shadow: none;
+}
+
+.role-model-vignette.connection-blocked {
+	opacity: 0.42;
+	cursor: not-allowed;
+}
+
+.role-model-vignette.connection-blocked .vignette-peek {
+	border-color: var(--vscode-widget-border);
+	background: color-mix(in srgb, var(--vscode-widget-border) 25%, var(--vscode-input-background));
+	box-shadow: none;
+	filter: grayscale(0.65);
+}
+
+.role-model-vignette.connection-blocked .vignette-peek-icon {
+	opacity: 0.7;
+}
+
+.role-model-vignette.connection-blocked:hover .vignette-rise,
+.role-model-vignette.connection-blocked:focus-visible .vignette-rise {
+	transform: translateY(6px);
 }
 
 .role-model-panel {
@@ -2379,6 +2529,269 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .general-settings-panel-btn:hover:not(:disabled) {
 	background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.general-settings-connection {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.general-settings-connection-summary {
+	margin: 0;
+	font-size: 11px;
+	line-height: 1.35;
+	color: var(--vscode-descriptionForeground);
+	word-break: break-word;
+}
+
+.general-settings-connect-btn {
+	margin-top: 2px;
+}
+
+@keyframes drox-connection-btn-attention {
+	0%,
+	100% {
+		transform: translateY(0);
+		box-shadow:
+			0 0 5px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 30%, transparent),
+			inset 0 0 0 1px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 35%, transparent);
+	}
+	50% {
+		transform: translateY(-2px);
+		box-shadow:
+			0 0 14px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 65%, transparent),
+			0 0 24px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 35%, transparent),
+			inset 0 0 0 1px color-mix(in srgb, var(--drox-ui-green, #3dd68c) 80%, transparent);
+	}
+}
+
+.general-settings-connect-btn.connection-attention {
+	animation: drox-connection-btn-attention 2.5s ease-in-out infinite;
+	border-color: var(--drox-ui-green, var(--vscode-focusBorder));
+	background: color-mix(in srgb, var(--drox-ui-green, #3dd68c) 16%, var(--vscode-button-secondaryBackground, var(--vscode-input-background)));
+	color: var(--vscode-foreground);
+}
+
+.general-settings-connect-btn.connection-attention:hover:not(:disabled),
+.general-settings-connect-btn.connection-attention:focus-visible:not(:disabled) {
+	animation: none;
+	transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.general-settings-connect-btn.connection-attention {
+		animation: drox-connection-vignette-glow-only 2.5s ease-in-out infinite;
+	}
+}
+
+.drox-connection-wizard {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+}
+
+.drox-connection-wizard[hidden] {
+	display: none !important;
+}
+
+.drox-connection-wizard-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+}
+
+.drox-connection-wizard-card {
+	position: relative;
+	z-index: 1;
+	width: min(420px, calc(100vw - 24px));
+	max-height: min(82vh, 560px);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 14px 14px;
+	border-radius: 10px;
+	border: 1px solid var(--drox-ui-green, var(--vscode-widget-border));
+	background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+	overflow: hidden;
+}
+
+.drox-connection-wizard-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.drox-connection-wizard-step-label {
+	margin: 0 0 2px;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-connection-wizard-head strong {
+	font-size: 13px;
+}
+
+.drox-connection-wizard-body {
+	flex: 1;
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-height: 120px;
+}
+
+.drox-wizard-lead {
+	margin: 0 0 4px;
+	font-size: 11px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-wizard-error {
+	margin: 0 0 6px;
+	font-size: 11px;
+	color: var(--vscode-errorForeground);
+}
+
+.drox-wizard-choice-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 8px;
+}
+
+.drox-wizard-hosting-card,
+.drox-wizard-provider-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	border: 1px solid var(--vscode-widget-border);
+	background: var(--vscode-input-background);
+	color: inherit;
+	cursor: pointer;
+	text-align: left;
+}
+
+.drox-wizard-hosting-card strong,
+.drox-wizard-provider-card strong {
+	font-size: 12px;
+}
+
+.drox-wizard-hosting-card span,
+.drox-wizard-provider-card span {
+	font-size: 10.5px;
+	color: var(--vscode-descriptionForeground);
+	line-height: 1.35;
+}
+
+.drox-wizard-hosting-card:hover,
+.drox-wizard-provider-card:hover {
+	border-color: var(--drox-ui-green, var(--vscode-focusBorder));
+}
+
+.drox-wizard-hosting-card.selected,
+.drox-wizard-provider-card.selected {
+	border-width: 2px;
+	border-color: var(--drox-ui-green, var(--vscode-focusBorder));
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--drox-ui-green, var(--vscode-focusBorder)) 40%, transparent);
+	background: color-mix(in srgb, var(--drox-ui-green, var(--vscode-focusBorder)) 8%, var(--vscode-input-background));
+}
+
+.drox-wizard-next-hint {
+	margin: 0 0 8px;
+	font-size: 11px;
+	color: var(--drox-ui-green, var(--vscode-foreground));
+}
+
+.drox-wizard-next-hint-muted {
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-connection-wizard-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.drox-connection-wizard-actions-spacer {
+	flex: 1;
+	min-width: 8px;
+}
+
+.drox-wizard-reset {
+	margin-right: auto;
+	border-color: var(--vscode-errorForeground);
+	color: var(--vscode-errorForeground);
+}
+
+.drox-wizard-hint {
+	margin: 0 0 6px;
+	font-size: 10.5px;
+	color: var(--vscode-descriptionForeground);
+	font-style: italic;
+}
+
+.drox-wizard-test-status {
+	margin: 0 0 8px;
+	font-size: 11px;
+	line-height: 1.35;
+}
+
+.drox-wizard-test-pending {
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-wizard-test-ok {
+	color: var(--drox-ui-green, var(--vscode-testing-iconPassed));
+}
+
+.drox-wizard-test-error {
+	color: var(--vscode-errorForeground);
+}
+
+.drox-connection-wizard-actions .general-settings-panel-btn {
+	width: auto;
+	min-width: 88px;
+}
+
+.drox-wizard-primary {
+	background: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+}
+
+.drox-wizard-primary:hover:not(:disabled) {
+	background: var(--vscode-button-hoverBackground);
+}
+
+.drox-wizard-headers {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.drox-wizard-header-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr auto;
+	gap: 6px;
+	align-items: center;
+}
+
+.drox-wizard-add-header {
+	width: auto;
+	align-self: flex-start;
 }
 
 .role-model-panel-head {
@@ -3181,6 +3594,8 @@ button:disabled {
 	flex: 0 0 auto;
 	flex-shrink: 0;
 	z-index: 6;
+	max-height: min(45vh, 320px);
+	overflow-y: auto;
 }
 
 #user-ask[hidden] {
@@ -3205,6 +3620,8 @@ button:disabled {
 
 .user-ask-prompt {
 	line-height: 1.4;
+	max-height: 10em;
+	overflow-y: auto;
 }
 
 .user-ask-options {

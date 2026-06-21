@@ -198,8 +198,6 @@
 		} else {
 			host.textContent = host.dataset.raw;
 		}
-		fn.scrollThinkingEl?.(host);
-		fn.scrollLog();
 		fn.touchArchitectRunTailActivity?.();
 		return true;
 	};

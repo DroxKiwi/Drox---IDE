@@ -13,6 +13,7 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { IRequestService } from '../../../../../platform/request/common/request.js';
 import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IOutputService } from '../../../../services/output/common/output.js';
@@ -39,6 +40,12 @@ import {
 	setDroxArchitectModelFromWebview,
 } from './droxChatRoleModels.js';
 import { IDroxGeneralSettingsPatch, pushGeneralSettingsToWebview, setDroxGeneralSettingsFromWebview } from './droxChatGeneralSettings.js';
+import {
+	confirmAndResetLlmConnection,
+	postConnectionResetResult,
+	postConnectionTestResult,
+	testDroxLlmConnectionDraft,
+} from './droxChatConnectionTest.js';
 import { IDroxLlmModelsService } from '../../common/droxLlmModelsService.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
@@ -80,6 +87,7 @@ export interface IDroxChatWebviewRouterDeps {
 	readonly editorService: IEditorService;
 	readonly terminalService: ITerminalService;
 	readonly configurationService: IConfigurationService;
+	readonly requestService: IRequestService;
 	readonly outputService: IOutputService;
 	readonly llmModelsService: IDroxLlmModelsService;
 	readonly runRevertService: IDroxRunRevertService;
@@ -107,6 +115,28 @@ export async function routeDroxChatWebviewMessage(
 				deps.configurationService,
 			);
 			break;
+		case 'testLlmConnection': {
+			await deps.droxEngineService.initialize();
+			const result = await testDroxLlmConnectionDraft(
+				{
+					droxEngineService: deps.droxEngineService,
+					requestService: deps.requestService,
+				},
+				raw.settings as IDroxGeneralSettingsPatch,
+			);
+			postConnectionTestResult(host, raw.requestId, result);
+			break;
+		}
+		case 'resetLlmConnection': {
+			const ok = await confirmAndResetLlmConnection(host, {
+				dialogService: deps.dialogService,
+				runSettingsService: deps.runSettingsService,
+				configurationService: deps.configurationService,
+				llmModelsService: deps.llmModelsService,
+			});
+			postConnectionResetResult(host, ok);
+			break;
+		}
 		case 'setModel':
 		case 'setArchitectModel':
 			await setDroxArchitectModelFromWebview(deps, raw.model);

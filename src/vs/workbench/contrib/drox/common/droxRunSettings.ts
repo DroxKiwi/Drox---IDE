@@ -7,6 +7,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { DroxSetting, readArchitectModel } from './droxConfiguration.js';
 import { isDroxDevFeatureEnabled } from './droxDevSurface.js';
+import { llmHeadersForRpc, readLlmHeadersMap } from './droxLlmHeaders.js';
 import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX, DROX_DEFAULT_NUM_PREDICT } from './droxProductDefaults.js';
 import { clampDroxNumCtx } from './droxNumCtx.js';
 import product from '../../../../platform/product/common/product.js';
@@ -23,6 +24,7 @@ export interface IDroxLlmSettings {
 	readonly server: string;
 	readonly model: string;
 	readonly apiKey: string;
+	readonly llmHeaders: Readonly<Record<string, string>>;
 	readonly primaryLanguage: string;
 	readonly maxIterations: number;
 	readonly temperature: number | undefined;
@@ -74,6 +76,7 @@ export function readLlmSettings(configService: IConfigurationService, resource?:
 		server: str(DroxSetting.Server),
 		model: readArchitectModel(configService, resource),
 		apiKey: str(DroxSetting.ApiKey),
+		llmHeaders: readLlmHeadersMap(configService, resource),
 		primaryLanguage: str(DroxSetting.PrimaryLanguage),
 		maxIterations: advanced
 			? (configService.getValue<number>(DroxSetting.MaxIterations, { resource }) ?? DROX_DEFAULT_MAX_ITERATIONS)
@@ -181,6 +184,10 @@ export function buildAgentRunParams(opts: {
 	if (opts.settings.apiKey) {
 		params.apiKey = opts.settings.apiKey;
 	}
+	const headers = llmHeadersForRpc(opts.settings.apiKey, opts.settings.llmHeaders);
+	if (headers) {
+		params.headers = headers;
+	}
 	if (opts.settings.temperature !== undefined) {
 		params.temperature = opts.settings.temperature;
 	}
@@ -224,6 +231,8 @@ export const DROX_ENGINE_RESPAWN_SETTINGS: readonly string[] = [
 	DroxSetting.ArchitectModel,
 	DroxSetting.Model,
 	DroxSetting.ApiKey,
+	DroxSetting.LlmHeaders,
+	DroxSetting.LlmHosting,
 	DroxSetting.PrimaryLanguage,
 	DroxSetting.ExecutablePath,
 	DroxSetting.NumPredict,

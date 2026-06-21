@@ -108,7 +108,7 @@ export async function executeDroxChatSend(
 				persist: atts => deps.attachmentsService.persistAttachments(ws, atts),
 			});
 			if (!prepared) {
-				const msg = localize('drox.attachmentsEmpty', 'Aucune image valide à envoyer.');
+				const msg = localize('drox.attachmentsEmpty', 'No valid images to send.');
 				host.post({ kind: 'append', role: 'error', text: msg });
 				return;
 			}
@@ -119,7 +119,7 @@ export async function executeDroxChatSend(
 			deps.logService.info(`[Drox] Sending ${imagesPayload.length} image(s) to engine`);
 		} catch (e) {
 			const text = e instanceof Error ? e.message : String(e);
-			const msg = localize('drox.attachmentsFailed', 'Échec de préparation des images : {0}', text);
+			const msg = localize('drox.attachmentsFailed', 'Failed to prepare images: {0}', text);
 			deps.notificationService.error(msg);
 			host.post({ kind: 'append', role: 'error', text: msg });
 			return;

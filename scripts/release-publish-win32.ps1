@@ -98,25 +98,21 @@ $sizeBytes = (Get-Item $SetupExe).Length
 $released = (Get-Date -Format 'yyyy-MM-dd')
 $downloadBase = "https://github.com/$GitHubOrg/$GitHubRepo/releases/download/v$ProductVersion"
 
-$manifest = [ordered]@{
-	version        = $ProductVersion
-	released       = $released
-	productVersion = $ProductVersion
-	platforms      = [ordered]@{
-		'win32-x64' = [ordered]@{
-			installerUrl = "$downloadBase/$setupName"
-			sha256       = $hash
-			sizeBytes    = $sizeBytes
-		}
-	}
-	mandatory      = $false
-	notesUrl       = "https://github.com/$GitHubOrg/$GitHubRepo/blob/main/stable/$ProductVersion/RELEASE_NOTES.md"
-}
+$downloadBase = "https://github.com/$GitHubOrg/$GitHubRepo/releases/download/v$ProductVersion"
+$installerUrl = "$downloadBase/$setupName"
 
 if ($DryRun) {
 	Write-Host '[dry-run] SHA256:' $hash
 	Write-Host '[dry-run] Size:' $sizeBytes
-	$manifest | ConvertTo-Json -Depth 5 | Write-Host
+	& node (Join-Path $PSScriptRoot 'lib\drox-release-manifest.mjs') merge `
+		--releases-repo $ReleasesRepo `
+		--version $ProductVersion `
+		--released $released `
+		--platform win32-x64 `
+		--installer-url $installerUrl `
+		--sha256 $hash `
+		--size-bytes $sizeBytes `
+		--dry-run
 	return
 }
 
@@ -147,8 +143,15 @@ if (-not (Test-Path $releaseNotes)) {
 	Write-Host "RELEASE_NOTES cree -> $releaseNotes"
 }
 
-Write-Utf8NoBomFile $latestJson ($manifest | ConvertTo-Json -Depth 5)
-Write-Host "latest.json -> $latestJson"
+	& node (Join-Path $PSScriptRoot 'lib\drox-release-manifest.mjs') merge `
+		--releases-repo $ReleasesRepo `
+		--version $ProductVersion `
+		--released $released `
+		--platform win32-x64 `
+		--installer-url $installerUrl `
+		--sha256 $hash `
+		--size-bytes $sizeBytes
+	Write-Host "latest.json -> $latestJson (win32-x64 merged; linux-x64 preserved if present)"
 
 Write-Host ''
 Write-Host 'Manifestes prepares (versionnes dans git).' -ForegroundColor Green
@@ -160,3 +163,4 @@ Write-Host '  2. git add .gitignore stable/ NOTICE.md README.md'
 Write-Host "  3. git commit -m `"Release v$ProductVersion win32-x64 (manifest)`""
 Write-Host '  4. git push'
 Write-Host "  5. gh release create v$ProductVersion `"$destSetup`" --title `"Drox IDE $ProductVersion`" --notes-file `"$releaseNotes`""
+Write-Host "     # Linux (1.5.1b) : gh release upload v$ProductVersion ..\Drox---IDE---OR\_upload\Drox-IDE-$ProductVersion-linux-x64.deb"

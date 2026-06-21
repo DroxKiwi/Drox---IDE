@@ -34,6 +34,8 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/settings/role-models/init.js',
 	'droxChat/settings/general-settings/state.js',
 	'droxChat/settings/general-settings/chat-issues.js',
+	'droxChat/settings/general-settings/connection-catalog.js',
+	'droxChat/settings/general-settings/connection-wizard.js',
 	'droxChat/settings/general-settings/helpers.js',
 	'droxChat/settings/general-settings/panel.js',
 	'droxChat/settings/general-settings/host-sync.js',
@@ -69,9 +71,9 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/stream/answer/stream.js',
 	'droxChat/stream/tools/logTools.js',
 	'droxChat/stream/timeline/strip.js',
+	'droxChat/stream/timeline/chronology.js',
 	'droxChat/stream/timeline/thinking.js',
 	'droxChat/stream/timeline/phases.js',
-	'droxChat/stream/timeline/run-rail-stations.js',
 	'droxChat/stream/timeline/mount.js',
 	'droxChat/stream/timeline/overrides.js',
 	'droxChat/tools/13-collapsibleTray.js',
@@ -110,10 +112,10 @@ export function getDroxChatHtml(
 	const ready = localize('droxChatReady', 'Ready');
 
 	const historyLabel = localize('droxChatHistory', 'Sessions');
-	const exportTranscriptLabel = localize('droxChatExportTranscript', 'Export discussion (dev — fichier complet + latest-transcript.txt)');
+	const exportTranscriptLabel = localize('droxChatExportTranscript', 'Export discussion (dev — full file + latest-transcript.txt)');
 	const resetWorkspaceLabel = localize(
 		'droxChatResetWorkspace',
-		'Réinitialiser les données Drox du workspace…',
+		'Reset workspace Drox data…',
 	);
 
 	const newChatLabel = localize('droxChatNew', 'New chat');
@@ -147,7 +149,7 @@ export function getDroxChatHtml(
 	const bodyClass = 'drox-architect-solo-ui';
 	const rolePanelModelLabel = localize('droxChatRolePanelModel', 'Model');
 	const rolePanelNumCtxLabel = localize('droxChatRolePanelNumCtx', 'Context window');
-	const rolePanelNumCtxCustomLabel = localize('droxChatRolePanelNumCtxCustom', 'Définir');
+	const rolePanelNumCtxCustomLabel = localize('droxChatRolePanelNumCtxCustom', 'Custom');
 	const rolePanelTopPLabel = localize('droxChatRolePanelTopP', 'Top P');
 	const rolePanelTopKLabel = localize('droxChatRolePanelTopK', 'Top K');
 	const rolePanelRepeatPenaltyLabel = localize('droxChatRolePanelRepeatPenalty', 'Repeat penalty');
@@ -162,11 +164,10 @@ export function getDroxChatHtml(
 	const generalSettingsPickerLabel = localize('droxChatGeneralSettingsPicker', 'General settings');
 	const generalSettingsPanelTitle = localize('droxChatGeneralSettingsPanelTitle', 'General settings');
 	const generalSettingsSectionConnection = localize('droxChatGeneralSettingsSectionConnection', 'Connection');
+	const generalSettingsConnectIa = localize('droxChatGeneralSettingsConnectIa', 'Connect your AI');
+	const generalSettingsConnectionNotConfigured = localize('droxChatGeneralSettingsConnectionNotConfigured', 'Not configured');
 	const generalSettingsSectionAgent = localize('droxChatGeneralSettingsSectionAgent', 'Agent');
 	const generalSettingsSectionBehavior = localize('droxChatGeneralSettingsSectionBehavior', 'Behavior');
-	const generalSettingsLlmProvider = localize('droxChatGeneralSettingsLlmProvider', 'LLM provider');
-	const generalSettingsServer = localize('droxChatGeneralSettingsServer', 'Server URL');
-	const generalSettingsApiKey = localize('droxChatGeneralSettingsApiKey', 'API key');
 	const generalSettingsKeepAlive = localize('droxChatGeneralSettingsKeepAlive', 'Keep alive');
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const generalSettingsNativeThinking = localize('droxChatGeneralSettingsNativeThinking', 'Native thinking');
@@ -514,33 +515,10 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 
 			<p class="general-settings-section-label">${generalSettingsSectionConnection}</p>
 
-			<label class="general-settings-field">
-
-				<span>${generalSettingsLlmProvider}</span>
-
-				<select id="general-settings-llm-provider" class="general-settings-input">
-
-					<option value="ollama">Ollama</option>
-
-				</select>
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsServer}</span>
-
-				<input type="text" id="general-settings-server" class="general-settings-input" spellcheck="false" />
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsApiKey}</span>
-
-				<input type="password" id="general-settings-api-key" class="general-settings-input" autocomplete="off" />
-
-			</label>
+			<div class="general-settings-connection">
+				<p id="general-settings-connection-summary" class="general-settings-connection-summary">${generalSettingsConnectionNotConfigured}</p>
+				<button type="button" id="general-settings-connect-ia" class="general-settings-panel-btn general-settings-connect-btn">${generalSettingsConnectIa}</button>
+			</div>
 
 			${devKeepAliveField}
 
@@ -604,6 +582,27 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 
 			</div>
 
+		</div>
+
+		<div id="drox-connection-wizard" class="drox-connection-wizard" hidden role="dialog" aria-modal="true" aria-labelledby="drox-connection-wizard-title">
+			<div class="drox-connection-wizard-backdrop"></div>
+			<div class="drox-connection-wizard-card">
+				<div class="drox-connection-wizard-head">
+					<div>
+						<p id="drox-connection-wizard-step-label" class="drox-connection-wizard-step-label">Step 1 / 3</p>
+						<strong id="drox-connection-wizard-title">${generalSettingsConnectIa}</strong>
+					</div>
+					<button type="button" id="drox-connection-wizard-cancel" class="icon-btn" aria-label="${generalSettingsPanelClose}">×</button>
+				</div>
+				<div id="drox-connection-wizard-body" class="drox-connection-wizard-body"></div>
+				<div class="drox-connection-wizard-actions">
+					<button type="button" id="drox-connection-wizard-reset" class="general-settings-panel-btn drox-wizard-reset" hidden>Reset…</button>
+					<span class="drox-connection-wizard-actions-spacer"></span>
+					<button type="button" id="drox-connection-wizard-back" class="general-settings-panel-btn" hidden>Back</button>
+					<button type="button" id="drox-connection-wizard-next" class="general-settings-panel-btn">Next</button>
+					<button type="button" id="drox-connection-wizard-finish" class="general-settings-panel-btn drox-wizard-primary" hidden>Test and save</button>
+				</div>
+			</div>
 		</div>
 
 		<div id="agent-vignettes" class="agent-vignettes mode-vignettes" role="radiogroup" aria-label="${modePickerLabel}">

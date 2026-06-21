@@ -202,12 +202,15 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/session/08-tabs.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/session/lazy-history.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/01-prompt.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/01b-models.js
+scripts/lib/drox-release-manifest.mjs
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/chat-issues.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/helpers.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/host-sync.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/init.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/panel.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/state.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/connection-catalog.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/connection-wizard.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/helpers.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/host-sync.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/init.js
@@ -228,7 +231,7 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/stream/messages/viewer.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/mount.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/overrides.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/phases.js
-src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/run-rail-stations.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/chronology.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/strip.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/thinking.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/tools/logTools.js

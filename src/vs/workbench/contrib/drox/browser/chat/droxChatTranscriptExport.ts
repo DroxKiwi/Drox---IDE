@@ -33,14 +33,14 @@ function formatExportClipboardPointer(opts: {
 	readonly userRunCount: number;
 }): string {
 	return [
-		'Drox transcript export — presse-papiers = pointeur uniquement (export trop volumineux pour le clipboard).',
+		'Drox transcript export — clipboard pointer only (export too large for the clipboard).',
 		`Session: ${opts.sessionId}`,
-		`Taille: ${opts.charCount} caractères · ${opts.stepCount} steps · ${opts.userRunCount} user run(s)`,
+		`Size: ${opts.charCount} characters · ${opts.stepCount} steps · ${opts.userRunCount} user run(s)`,
 		'',
-		`Fichier horodaté: ${opts.filePath}`,
-		`Copie stable: ${opts.latestPath}`,
+		`Timestamped file: ${opts.filePath}`,
+		`Stable copy: ${opts.latestPath}`,
 		'',
-		'Ouvrez le fichier sur disque pour PARTIE A + B + C + D + E complètes (tous les cycles utilisateur).',
+		'Open the file on disk for full PART A + B + C + D + E (all user cycles).',
 	].join('\n');
 }
 

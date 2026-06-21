@@ -15,16 +15,16 @@ export async function confirmAndResetWorkspaceDroxData(
 ): Promise<void> {
 	const { confirmed } = await dialogService.confirm({
 		type: 'warning',
-		message: localize('drox.resetWorkspace.title', 'Réinitialiser les données Drox de ce workspace ?'),
+		message: localize('drox.resetWorkspace.title', 'Reset Drox data for this workspace?'),
 		detail: localize(
 			'drox.resetWorkspace.detail',
-			'Tout le contenu de `.drox/` sera supprimé définitivement.\n\nConservé : `.drox/.env` uniquement.',
+			'All contents of `.drox/` will be permanently deleted.\n\nKept: `.drox/.env` only.',
 		),
 		primaryButton: localize(
 			{ key: 'drox.resetWorkspace.confirm', comment: ['&& denotes a mnemonic'] },
-			'&&Réinitialiser',
+			'&&Reset',
 		),
-		cancelButton: localize('drox.resetWorkspace.cancel', 'Annuler'),
+		cancelButton: localize('drox.resetWorkspace.cancel', 'Cancel'),
 	});
 	if (!confirmed) {
 		return;

@@ -7,6 +7,12 @@
 	const fn = D.fn;
 
 	fn.openRoleModelPanel = function() {
+		if (typeof fn.isArchitectVignetteBlocked === 'function' && fn.isArchitectVignetteBlocked()) {
+			if (typeof fn.redirectToConnectionSetup === 'function') {
+				fn.redirectToConnectionSetup();
+			}
+			return;
+		}
 		const panel = D.dom.roleModelPanelEl;
 		const vignette = D.dom.architectModelVignetteEl;
 		if (!panel || !vignette) {
