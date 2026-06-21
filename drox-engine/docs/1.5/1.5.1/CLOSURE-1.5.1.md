@@ -21,11 +21,11 @@
 
 | # | Étape | Statut |
 |---|--------|--------|
-| R1 | `npm run drox:ship` Windows | à faire |
+| R1 | `npm run drox:ship` Windows | en cours |
 | R2 | `gh release` `v1.5.1` + `.exe` | à faire |
 | R3 | Ce document + [PLAN-1.5.1.md](PLAN-1.5.1.md) | en cours |
-| R4 | Merge squash `main` + tag `v1.5.1` | sources fait |
-| R5 | Ouvrir branche **`1.5.2`** | à faire |
+| R4 | Merge squash `main` + tag `v1.5.1` | ✅ |
+| R5 | Branche **`1.5.2`** ouverte | ✅ |
 
 ---
 

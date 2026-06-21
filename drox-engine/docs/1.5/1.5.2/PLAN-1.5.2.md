@@ -2,7 +2,7 @@
 
 **Version** : juin 2026  
 **Base** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) · moteur `tui_mono` · shim RPC  
-**Branche** : `1.5.2` (ouverte depuis `main` après clôture 1.5.1)
+**Branche** : `1.5.2` (ouverte depuis `main`, juin 2026)
 
 ### État d'avancement
 

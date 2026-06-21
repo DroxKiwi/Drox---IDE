@@ -126,11 +126,11 @@ Remplace dans **General settings** les champs bruts *LLM provider* / *Server URL
 
 ### Reste avant clôture 1.5.1
 
-- [ ] **R1** — `npm run drox:ship` Windows · installeur sur `Drox---IDE---OR`
+- [ ] **R1** — `npm run drox:ship` Windows · installeur sur `Drox---IDE---OR` *(en cours)*
 - [ ] **R2** — `gh release create` / upload `v1.5.1` avec `.exe` win32-x64
 - [ ] **R3** — Finaliser [CLOSURE-1.5.1.md](CLOSURE-1.5.1.md)
-- [ ] **R4** — Publication squash sur `main` + tag `v1.5.1` (si pas déjà fait)
-- [ ] **R5** — Ouvrir branche **`1.5.2`** depuis `main`
+- [x] **R4** — Publication squash sur `main` + tag `v1.5.1`
+- [x] **R5** — Ouvrir branche **`1.5.2`** depuis `main`
 
 **Reporté** :
 - [1.5.2](../1.5.2/PLAN-1.5.2.md) — diffs fil, UX messages, composer, paramètres moteur
