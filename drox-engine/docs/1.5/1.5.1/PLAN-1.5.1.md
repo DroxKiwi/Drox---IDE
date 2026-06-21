@@ -11,10 +11,10 @@
 | **P0** Fil chronologique | **fait** | — |
 | **P1** Session & chrome | **fait** | — |
 | **P1-C** Connexion moteur (wizard) | **fait** | — |
-| **P2** Polish trays | 0 % | reporté **1.5.2** |
+| **P2** Polish trays | 0 % | reporté **1.5.3** |
 | **Release** | code **fait** · clôture : ship Windows + merge `main` + branche **1.5.2** | oui (OR) |
 
-**Clôture** : [Reste avant clôture](#reste-avant-clôture-151) ci-dessous · suite UX/moteur → [1.5.2](../1.5.2/PLAN-1.5.2.md) · Linux ship → [1.5.3](../1.5.3/PLAN-1.5.3.md).
+**Clôture** : [Reste avant clôture](#reste-avant-clôture-151) ci-dessous · config moteur → [1.5.2](../1.5.2/PLAN-1.5.2.md) · UX/diffs → [1.5.3](../1.5.3/PLAN-1.5.3.md) · Linux ship → [1.5.4](../1.5.4/PLAN-1.5.4.md).
 
 ---
 
@@ -133,8 +133,9 @@ Remplace dans **General settings** les champs bruts *LLM provider* / *Server URL
 - [x] **R5** — Ouvrir branche **`1.5.2`** depuis `main`
 
 **Reporté** :
-- [1.5.2](../1.5.2/PLAN-1.5.2.md) — diffs fil, UX messages, composer, paramètres moteur
-- [1.5.3](../1.5.3/PLAN-1.5.3.md) — release Linux `.deb`
+- [1.5.2](../1.5.2/PLAN-1.5.2.md) — configuration moteur IDE
+- [1.5.3](../1.5.3/PLAN-1.5.3.md) — diffs fil, UX messages, composer, splash
+- [1.5.4](../1.5.4/PLAN-1.5.4.md) — release Linux `.deb` + Authenticode
 
 ### Critères d'acceptation release 1.5.1
 
@@ -283,17 +284,18 @@ Le shim émet encore `rail_station_*` pour compat — l’UI **1.5.1** peut les 
 
 | Sujet | Version |
 |-------|---------|
-| Diffs fichier dans le fil + undo/redo | **1.5.2** D1 |
-| UX messages utilisateur (copie, style) | **1.5.2** U1 |
-| Composer textarea auto-grow | **1.5.2** U2 |
+| Diffs fichier dans le fil + undo/redo | **1.5.3** D1 |
+| UX messages utilisateur (copie, style) | **1.5.3** U1 |
+| Composer textarea auto-grow | **1.5.3** U2 |
+| Splash phosphore lancement IDE | **1.5.3** A1 |
 | Paramètres moteur (`max_iterations` 50, sampling…) | **1.5.2** M1 |
-| Polish trays P2 (B-UI-*) | **1.5.2** P2 |
-| Release Linux `.deb` (ship OR) | **1.5.3** |
-| Signature Authenticode Windows | ultérieur |
+| Polish trays P2 (B-UI-*) | **1.5.3** P2 |
+| Release Linux `.deb` (ship OR) | **1.5.4** |
+| Signature Authenticode Windows | **1.5.4** W1 |
 | Routage Auto / boucle analyse 1.4 | **Abandonné** |
 | Refonte interface VS Code | post-1.5.x |
 
-→ [PLAN-1.5.2.md](../1.5.2/PLAN-1.5.2.md) · [PLAN-1.5.3.md](../1.5.3/PLAN-1.5.3.md)
+→ [PLAN-1.5.2.md](../1.5.2/PLAN-1.5.2.md) · [PLAN-1.5.3.md](../1.5.3/PLAN-1.5.3.md) · [PLAN-1.5.4.md](../1.5.4/PLAN-1.5.4.md)
 
 ---
 
@@ -304,7 +306,7 @@ Le shim émet encore `rail_station_*` pour compat — l’UI **1.5.1** peut les 
 | Dev | Branche `1.5.1`, `npm run watch`, F5 |
 | Moteur | `cargo test -p drox-cli` si touché shim |
 | Release Windows | `npm run drox:ship` · [GUIDE-PUBLICATION-WIN32](../../operations/GUIDE-PUBLICATION-WIN32.md) |
-| Release Linux | reportée **1.5.3** · scripts prêts [1.5.1b](../1.5.1b/PLAN-1.5.1b.md) |
+| Release Linux | reportée **1.5.4** · scripts prêts [1.5.1b](../1.5.1b/PLAN-1.5.1b.md) |
 | Git publish | [RULES.md § Intégration upstream](../../../../RULES.md) — squash sur `main` |
 
 Pas de changement moteur requis pour P0 — **webview + mapping events** seulement. P1-C peut nécessiter d’exposer **headers HTTP** côté shim si absent.
@@ -369,7 +371,7 @@ Les cartes rail (`read`, `act`, …) restent **optionnelles** en marge — pas l
 | L2 | Replay session (S1) | Réouverture app = même fil qu’en fin de run |
 | L3 | `droxVersion` **1.5.1** au ship | `package.json` |
 | L4 | Smoke 1.5.1 | `SMOKE-1.5.1-*.md` (template [SMOKE-M-memory-TEMPLATE](../../1.4/1.4.2/SMOKE-M-memory-TEMPLATE.md)) |
-| L5 | Suite | [1.5.2](../1.5.2/PLAN-1.5.2.md) UX/moteur · [1.5.3](../1.5.3/PLAN-1.5.3.md) Linux |
+| L5 | Suite | [1.5.2](../1.5.2/PLAN-1.5.2.md) moteur · [1.5.3](../1.5.3/PLAN-1.5.3.md) UX · [1.5.4](../1.5.4/PLAN-1.5.4.md) Linux |
 
 ---
 

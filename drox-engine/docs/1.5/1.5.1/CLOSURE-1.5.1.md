@@ -35,8 +35,9 @@
 
 | Sujet | Version |
 |-------|---------|
-| Diffs fil, UX user, composer, paramètres moteur | [1.5.2](../1.5.2/PLAN-1.5.2.md) |
-| Release Linux `.deb` | [1.5.3](../1.5.3/PLAN-1.5.3.md) |
+| Configuration moteur depuis l’IDE | [1.5.2](../1.5.2/PLAN-1.5.2.md) |
+| Diffs fil, UX user, composer, splash | [1.5.3](../1.5.3/PLAN-1.5.3.md) |
+| Release Linux `.deb` + Authenticode | [1.5.4](../1.5.4/PLAN-1.5.4.md) |
 
 ---
 

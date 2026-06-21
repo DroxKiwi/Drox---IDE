@@ -1,26 +1,31 @@
-# Drox 1.5.2 — Diffs fil + UX chat + paramètres moteur
+# Drox 1.5.2 — Configuration moteur depuis l’IDE
 
-**Statut** : **planifié** (juin 2026)  
-**Prérequis** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) clôturée (release Windows + merge `main`)
+**Statut** : **en cours** (juin 2026)  
+**Prérequis** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) livrée  
+**Branche** : `1.5.2`
 
 ---
 
 ## En une phrase
 
-Enrichir le **fil de discussion** (diffs fichier, undo/redo), moderniser l’**UX messages utilisateur** et le **composer**, **réaligner les paramètres moteur** IDE sur le TUI, et — si faisable — le **splash phosphore** au lancement (spec → [animation-start](../../animation-start/README.md)) — **sans** release Linux (→ [1.5.3](../1.5.3/README.md)).
+Rendre la **configuration du moteur Drox** utilisable depuis l’IDE : réglages alignés sur `agent.run` / TUI, sans legacy 1.4 ni panneau trompeur.
 
 ---
 
-## Piliers
+## Pilier
 
 | Pilier | Sujet |
 |--------|--------|
-| **D1** | Diffs fichier dans le fil + undo/redo |
-| **U1** | Messages utilisateur (copie, style) |
-| **U2** | Composer : textarea auto-grow |
 | **M1** | Paramètres moteur (sampling, `max_iterations` 50, nettoyage legacy) |
-| **A1** | Splash lancement IDE (phosphore TUI — `drox-splash-spec.ts`) |
-| **P2** | Polish trays (optionnel) |
+
+---
+
+## Suite (reportée)
+
+| Version | Périmètre |
+|---------|-----------|
+| [1.5.3](../1.5.3/README.md) | Diffs fil, UX chat, splash phosphore |
+| [1.5.4](../1.5.4/README.md) | Release Linux + Authenticode |
 
 ---
 
@@ -33,4 +38,4 @@ Enrichir le **fil de discussion** (diffs fichier, undo/redo), moderniser l’**U
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md) — release Linux
+- [SHIM-MOTEUR-IDE](../1.5.0/SHIM-MOTEUR-IDE.md)
