@@ -4,17 +4,17 @@
 
 ### Où en est Drox (1.5.x)
 
-Le projet est en phase de **construction et de stabilisation de la base moteur** : mono-boucle TUI (`tui_mono`), shim RPC IDE, chat aligné sur le fil agent, wizard de connexion LLM. Les releases **1.5.1+** consolident cette fondation avant d’empiler les couches produit ci-dessous. Toujours **expérimental** — pas un IDE agent de production — mais la stack 1.4.x est **derrière nous**.
+Je suis en phase de **construction et de stabilisation de la base moteur** : mono-boucle TUI (`tui_mono`), shim RPC IDE, chat aligné sur le fil agent, wizard de connexion LLM. Les releases **1.5.1+** consolident cette fondation avant que j’empile les couches produit ci-dessous. Toujours **expérimental** — pas un IDE agent de production — mais j’ai la stack 1.4.x **derrière moi**.
 
 ### Souveraineté
 
-Drox vise la **souveraineté numérique** : IDE, moteur agent, inférence (Ollama ou endpoint que **tu** configures), sessions et mémoire dans **`.drox/`** sur ton disque — pas de compte cloud KDDS imposé, pas de télémétrie Microsoft dans le package distribué.
+Je conçois Drox pour la **souveraineté numérique** : IDE, moteur agent, inférence (Ollama ou endpoint que **tu** configures), sessions et mémoire dans **`.drox/`** sur ton disque — pas de compte cloud KDDS imposé, pas de télémétrie Microsoft dans le package distribué.
 
 **Seul trafic réseau prévu côté produit** : la **vérification de version** (lecture du manifeste release, ex. `stable/latest.json`) pour indiquer qu’une MAJ plus récente existe. Le reste du travail agent tourne en local.
 
 ### Vision produit
 
-Permettre de **maîtriser des projets volumineux** en s’aidant d’une **IA légère** (modèles locaux ou petits modèles distants) — donc **peu consommatrice** en RAM/VRAM et en tokens — plutôt qu’un unique gros modèle « tout-en-un ». Comprendre d’abord (carte du repo, parcours des fichiers), agir ensuite, avec **observabilité locale** pour rester maître du système.
+Je veux permettre de **maîtriser des projets volumineux** en s’aidant d’une **IA légère** (modèles locaux ou petits modèles distants) — donc **peu consommatrice** en RAM/VRAM et en tokens — plutôt qu’un unique gros modèle « tout-en-un ». Comprendre d’abord (carte du repo, parcours des fichiers), agir ensuite, avec **observabilité locale** pour rester maître du système.
 
 ### Mises à jour prévues (brainstorm)
 
@@ -44,7 +44,7 @@ ___
 |---|---|
 | **Code sur `1.5.0`** | **1.5.0** — cœur TUI (`agent.rs`), `drox-cli` JSON-RPC, `ide_event_shim`, pipeline `tui_mono` |
 | **Utilisable en prod ?** | **Non.** Phase expérimentale — dogfood / early adopters. |
-| **Tester ?** | **Oui pour les curieux** : installeur OR, Ollama, bugs possibles mais stack refondue et dogfood validé. |
+| **Tester ?** | **Oui pour les curieux** : installeur OR, Ollama, bugs possibles mais stack refondue — **je l’ai validée** en dogfood. |
 | **1.4.x** | **Obsolète** — rail observateur, `role_split`, orchestration IDE abandonnés · archivé `drox-engine/docs/1.4/` |
 
 ### Ce que la 1.5.0 change (gros morceaux)
@@ -120,12 +120,12 @@ Drox n’impose aucun cloud KDDS : seul l’**endpoint que tu configures** reço
 
 **Drox IDE** se comporte comme VS Code côté éditeur (RAM pour l’interface, le moteur `drox.exe`, le language service). Ce qui pèse vraiment, c’est le **modèle** que tu fais tourner en local : VRAM GPU (idéalement) + RAM système selon la taille du modèle et la fenêtre de contexte (`num_ctx`).
 
-Drox ne publie pas encore de grille officielle minimale — voici les machines **réellement utilisées** pour le dogfood 1.5.x :
+Je n’ai pas encore publié de grille minimale officielle — voici les machines sur lesquelles **j’ai testé** Drox 1.5.x :
 
 | Machine | GPU | RAM | Remarque |
 |---------|-----|-----|----------|
-| **Station de travail** | NVIDIA **RTX 3090** · 24 Go VRAM | **96 Go** | Grosse config — confortable pour des modèles plus larges et des contextes élevés. |
-| **Portable gaming** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 Go VRAM | *(config laptop)* | Config plus modeste mais **validée** — privilégier des modèles adaptés à 12 Go (quantization, contexte raisonnable). |
+| **Station de travail** | NVIDIA **RTX 3090** · 24 Go VRAM | **96 Go** | Ma grosse config — confortable pour des modèles plus larges et des contextes élevés. |
+| **Portable gaming** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 Go VRAM | *(mon laptop)* | Je l’**ai aussi testé** ici — je privilégie des modèles adaptés à 12 Go (quantization, contexte raisonnable). |
 
 **En pratique** : sans GPU dédié ou avec peu de VRAM, préfère un **petit modèle** quantifié (Ollama) ou bascule sur l’**inférence cloud** (section ci-dessus). Plus de VRAM = modèles plus gros et réponses plus fluides ; plus de RAM aide l’IDE + le chargement des poids quand une partie tourne en CPU.
 
@@ -545,17 +545,17 @@ ___
 
 ### Where Drox stands (1.5.x)
 
-The project is in **build and stabilization** of the **engine foundation**: TUI mono-loop (`tui_mono`), IDE RPC shim, chat stream aligned with the agent, LLM connection wizard. Releases **1.5.1+** consolidate this base before stacking the product layers below. Still **experimental** — not a production agent IDE — but the 1.4.x stack is **behind us**.
+I'm in a **build and stabilization** phase on the **engine foundation**: TUI mono-loop (`tui_mono`), IDE RPC shim, chat stream aligned with the agent, LLM connection wizard. Releases **1.5.1+** consolidate this base before I stack the product layers below. Still **experimental** — not a production agent IDE — but I've left the 1.4.x stack **behind me**.
 
 ### Sovereignty
 
-Drox aims for **digital sovereignty**: IDE, agent engine, inference (Ollama or an endpoint **you** configure), sessions and memory in **`.drox/`** on your disk — no mandatory KDDS cloud account, no Microsoft telemetry in the distributed package.
+I design Drox for **digital sovereignty**: IDE, agent engine, inference (Ollama or an endpoint **you** configure), sessions and memory in **`.drox/`** on your disk — no mandatory KDDS cloud account, no Microsoft telemetry in the distributed package.
 
 **Only expected product network traffic**: **version check** (reading the release manifest, e.g. `stable/latest.json`) to tell you a newer update exists. Everything else in the agent workflow runs locally.
 
 ### Product vision
 
-Help you **master large codebases** with **lightweight AI** (local or small remote models) — **low** RAM/VRAM and token cost — instead of one huge all-in-one model. Understand first (repo map, file traversal), act second, with **local observability** so you stay in control.
+I want to help you **master large codebases** with **lightweight AI** (local or small remote models) — **low** RAM/VRAM and token cost — instead of one huge all-in-one model. Understand first (repo map, file traversal), act second, with **local observability** so you stay in control.
 
 ### Planned updates (brainstorm)
 
@@ -585,7 +585,7 @@ ___
 |---|---|
 | **Code on `1.5.0`** | **1.5.0** — TUI core (`agent.rs`), `drox-cli` JSON-RPC, `ide_event_shim`, `tui_mono` pipeline |
 | **Production-ready?** | **No.** Experimental — dogfood / early adopters. |
-| **Try it?** | **Yes for the curious**: OR installer, Ollama, bugs possible but rewritten stack, dogfood validated. |
+| **Try it?** | **Yes for the curious**: OR installer, Ollama, bugs possible but rewritten stack — **I’ve dogfooded it**. |
 | **1.4.x** | **Obsolete** — observer rail, `role_split`, IDE orchestration dropped · archived `drox-engine/docs/1.4/` |
 
 ___
@@ -643,12 +643,12 @@ No mandatory KDDS cloud: only the **endpoint you configure** receives inference 
 
 **Drox IDE** itself is VS Code–like (RAM for UI, `drox.exe`, language services). The heavy part is your **local model**: GPU VRAM (ideal) + system RAM depending on model size and context window (`num_ctx`).
 
-No official minimum spec yet — machines **actually used** for 1.5.x dogfood:
+I haven’t published an official minimum spec yet — machines **I’ve tested** Drox 1.5.x on:
 
 | Machine | GPU | RAM | Notes |
 |---------|-----|-----|-------|
-| **Workstation** | NVIDIA **RTX 3090** · 24 GB VRAM | **96 GB** | High-end — comfortable for larger models and wide context. |
-| **Gaming laptop** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 GB VRAM | *(laptop config)* | More modest but **validated** — pick models that fit 12 GB (quantization, sensible context). |
+| **Workstation** | NVIDIA **RTX 3090** · 24 GB VRAM | **96 GB** | My main rig — comfortable for larger models and wide context. |
+| **Gaming laptop** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 GB VRAM | *(my laptop)* | **I’ve tested here too** — I stick to models that fit 12 GB (quantization, sensible context). |
 
 **Rule of thumb**: little or no VRAM → smaller quantized models (Ollama) or **cloud inference** (above). More VRAM → bigger models; more RAM helps the IDE + CPU offload when needed.
 
