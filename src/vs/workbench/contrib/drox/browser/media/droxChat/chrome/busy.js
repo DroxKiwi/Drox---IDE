@@ -11,7 +11,7 @@
 	fn.setBusy = function(next) {
 		D.state.busy = next;
 		if (next) {
-			D.state.logStickToBottom = true;
+			D.state.logStickToBottom = false;
 		}
 		D.dom.progressEl.classList.toggle('busy', next);
 		fn.updateComposerChrome();
@@ -37,6 +37,9 @@
 		}
 		if (next) {
 			fn.refreshActivityIndicator();
+		}
+		if (typeof fn.syncConnectionVignetteAttention === 'function') {
+			fn.syncConnectionVignetteAttention();
 		}
 	}
 })(globalThis.DroxChat);

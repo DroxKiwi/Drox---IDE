@@ -70,6 +70,7 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 				e.affectsConfiguration(DroxSetting.Server)
 				|| e.affectsConfiguration(DroxSetting.LlmProvider)
 				|| e.affectsConfiguration(DroxSetting.ApiKey)
+				|| e.affectsConfiguration(DroxSetting.LlmHeaders)
 			) {
 				void this.refresh();
 			}
@@ -80,7 +81,7 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 		const generation = ++this._refreshGeneration;
 		this._setSnapshot({ ...this._snapshot, loading: true, error: undefined });
 		const resource = this.workspaceResource();
-		const { provider, server: configuredServer, apiKey } = await resolveLlmCatalogConnection(
+		const { provider, server: configuredServer, apiKey, headers } = await resolveLlmCatalogConnection(
 			this.configurationService,
 			this.fileService,
 			resource,
@@ -89,9 +90,10 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 		const selected = this.readSelectedModel();
 		const listTarget = buildLlmModelListUrl(provider, configuredServer);
 		const httpGet = createDroxLlmHttpGet(
-			(url, headers) => this.droxEngineService.fetchHttp(url, headers),
+			(url, hdrs) => this.droxEngineService.fetchHttp(url, hdrs),
 			this.requestService,
 			apiKey,
+			headers,
 		);
 
 		let models: string[] = [];

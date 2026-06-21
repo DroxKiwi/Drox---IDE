@@ -47,15 +47,15 @@
 		if (models.length === 0) {
 			const opt = document.createElement('option');
 			opt.value = '';
-			opt.textContent = err ? '— liste indisponible —' : '— cliquer ↻ —';
+			opt.textContent = err ? '— list unavailable —' : '— click ↻ —';
 			select.appendChild(opt);
 			select.disabled = true;
 			wrap.hidden = false;
-			const serverHint = D.state.llmServer ? `Serveur: ${D.state.llmServer}\n` : 'Renseignez drox.server (ou DROX_SERVER), puis ↻\n';
-			const modelHint = selected ? `Sélection (drox.architect.model): ${selected}\n` : '';
+			const serverHint = D.state.llmServer ? `Server: ${D.state.llmServer}\n` : 'Set drox.server (or DROX_SERVER), then ↻\n';
+			const modelHint = selected ? `Selection (drox.architect.model): ${selected}\n` : '';
 			select.title = err
 				? `${serverHint}${modelHint}${err}${D.state.llmListUrl ? `\nGET ${D.state.llmListUrl}` : ''}`
-				: `${serverHint}${modelHint}Cliquez ↻ pour charger les modèles depuis le serveur.`;
+				: `${serverHint}${modelHint}Click ↻ to load models from the server.`;
 			return;
 		}
 
@@ -80,7 +80,7 @@
 		const hint = D.state.llmListUrl ? `\n${D.state.llmListUrl}` : '';
 		select.title = err
 			? `${err}${hint}`
-			: `${models.length} modèle(s) — ${D.state.llmServer || 'serveur'}${hint}`;
+			: `${models.length} model(s) — ${D.state.llmServer || 'server'}${hint}`;
 	};
 
 	fn.applyLlmModelsFromHost = function(payload) {

@@ -5,7 +5,7 @@
 
 // allow-any-unicode-comment-file
 
-// Fil linéaire : strip, outils. Routage texte → display/simple.js.
+// Fil linéaire : outils inline dans la chronologie (parité TUI).
 
 (function (D) {
 	const fn = D.fn;
@@ -18,6 +18,7 @@
 			fn.hideArchitectRunTailActivity?.();
 		}
 		if (!next && D.state.linearRunUi) {
+			fn.flushStreamBuffer?.({ asAnswer: true });
 			fn.sealAllOpenRunStrips?.();
 			if (typeof fn.shouldPreserveDiscussionStripOnBusyEnd === 'function' && fn.shouldPreserveDiscussionStripOnBusyEnd()) {
 				fn.parkAllLinearFinalAnswers?.();
@@ -36,7 +37,6 @@
 		const r = String(role || '').trim().toLowerCase();
 		if (r === 'architect_discussion') {
 			fn.beginDiscussionRunPresentation?.();
-			fn.ensureLinearThinkingShell?.();
 		}
 		if (r === 'architect') {
 			D.state.discussionRunActive = false;
@@ -45,44 +45,22 @@
 		if (r === 'architect') {
 			fn.unlockArchitectEditRunPresentation?.();
 		}
-		if (r === 'architect' && D.state.linearRunUi) {
-			const banner = fn.getRunSection('banner');
-			if (banner && !banner.querySelector('.msg-orchestration-architect')) {
-				const el = document.createElement('div');
-				el.className = 'msg-orchestration-role msg-orchestration-architect msg-orchestration-architect';
-				el.setAttribute('role', 'status');
-				el.textContent = 'Architect — edit run';
-				banner.appendChild(el);
-				fn.scrollLog();
-			}
-			fn.touchArchitectRunTailActivity?.({ rotatePhrase: true });
-			return;
-		}
 		_renderOrchestrationRole.call(this, role);
 	};
 
 	const _createToolBlock = fn.createToolBlock;
 	fn.createToolBlock = function (payload) {
 		if (D.state.linearRunUi) {
-			return fn.createLinearArchitectToolLine(payload);
+			fn.flushStreamBuffer?.({ asAnswer: false });
 		}
 		return _createToolBlock.call(this, payload);
 	};
 
 	const _getLogMountParent = fn.getLogMountParent;
 	fn.getLogMountParent = function () {
-		if (D.state.linearRunUi) {
-			const toolName = D.state.pendingToolName || '';
-			if (fn.isArchitectVerifyTool(toolName)) {
-				const verify = fn.ensureRunSection('verify');
-				if (verify) {
-					return verify;
-				}
-			}
-		}
-		const work = fn.getRunSection('work');
-		if (work && D.state.linearRunUi) {
-			return work;
+		const chrono = typeof fn.getChronologyMount === 'function' ? fn.getChronologyMount() : null;
+		if (chrono && D.state.linearRunUi) {
+			return chrono;
 		}
 		return _getLogMountParent.call(this);
 	};
@@ -95,44 +73,8 @@
 		_finalizeRunPresentation?.call(this);
 	};
 
-	fn.syncAgentActivityStickyToLinearHead = function () {
-		const chrome = D.dom.agentActivityStickyEl;
-		if (!chrome || !D.state.linearRunUi) {
-			document.querySelector('.drox-agent-activity-inline')?.remove();
-			return;
-		}
-		const stickyHead = D.state.runStripEl?.querySelector('.drox-run-sticky-head');
-		if (!stickyHead) {
-			return;
-		}
-		let inline = stickyHead.querySelector('.drox-agent-activity-inline');
-		if (chrome.hidden) {
-			inline?.remove();
-			return;
-		}
-		if (!inline) {
-			inline = document.createElement('div');
-			inline.className = 'drox-agent-activity-inline agent-activity-sticky';
-			inline.setAttribute('role', 'status');
-			inline.setAttribute('aria-live', 'polite');
-			stickyHead.insertBefore(inline, stickyHead.firstChild);
-		}
-		inline.textContent = chrome.textContent;
-		inline.title = chrome.title || '';
-		inline.hidden = false;
-		chrome.hidden = true;
-		fn.syncStickyStackLayout();
-	};
-
 	const _updateAgentActivitySticky = fn.updateAgentActivitySticky;
 	fn.updateAgentActivitySticky = function () {
 		_updateAgentActivitySticky.call(this);
-		fn.syncAgentActivityStickyToLinearHead?.();
-	};
-
-	const _hideAgentActivitySticky = fn.hideAgentActivitySticky;
-	fn.hideAgentActivitySticky = function () {
-		_hideAgentActivitySticky.call(this);
-		document.querySelector('.drox-agent-activity-inline')?.remove();
 	};
 })(globalThis.DroxChat);

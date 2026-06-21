@@ -19,9 +19,9 @@
 				el.value = value === undefined || value === null ? '' : String(value);
 			}
 		};
-		setVal('general-settings-llm-provider', s.llmProvider || 'ollama');
-		setVal('general-settings-server', s.server || '');
-		setVal('general-settings-api-key', s.apiKey || '');
+		if (typeof fn.syncConnectionSummaryInPanel === 'function') {
+			fn.syncConnectionSummaryInPanel();
+		}
 		setVal('general-settings-keep-alive', s.keepAlive || '');
 		setVal('general-settings-max-iterations', s.maxIterations ?? 12);
 		setVal('general-settings-native-thinking', s.nativeThinking);
@@ -38,10 +38,14 @@
 		const panel = D.dom.generalSettingsPanelEl;
 		if (panel) {
 			for (const input of panel.querySelectorAll('input, select, button.general-settings-panel-btn')) {
-				if (input.id === 'general-settings-open-all') {
+				if (input.id === 'general-settings-open-all' || input.id === 'general-settings-connect-ia') {
 					continue;
 				}
 				input.disabled = disabled;
+			}
+			const connectBtn = document.getElementById('general-settings-connect-ia');
+			if (connectBtn) {
+				connectBtn.disabled = disabled;
 			}
 		}
 	};
@@ -57,9 +61,6 @@
 			return el && el.type === 'checkbox' ? el.checked : false;
 		};
 		const patch = {
-			llmProvider: str('general-settings-llm-provider') || 'ollama',
-			server: str('general-settings-server'),
-			apiKey: str('general-settings-api-key'),
 			nativeThinking: bool('general-settings-native-thinking'),
 			primaryLanguage: str('general-settings-primary-language'),
 			warmStart: bool('general-settings-warm-start'),
@@ -100,6 +101,9 @@
 		if (!panel || !vignette) {
 			return;
 		}
+		if (typeof fn.closeConnectionWizard === 'function') {
+			fn.closeConnectionWizard();
+		}
 		if (typeof fn.closeRoleModelPanel === 'function') {
 			fn.closeRoleModelPanel();
 		}
@@ -111,10 +115,16 @@
 		panel.style.left = `${Math.max(8, rect.left + rect.width / 2 - 170)}px`;
 		panel.style.bottom = `${window.innerHeight - rect.top + 6}px`;
 		panel.hidden = false;
+		if (typeof fn.syncConnectionVignetteAttention === 'function') {
+			fn.syncConnectionVignetteAttention();
+		}
 	};
 
 	fn.closeGeneralSettingsPanel = function() {
 		const panel = D.dom.generalSettingsPanelEl;
+		if (typeof fn.closeConnectionWizard === 'function') {
+			fn.closeConnectionWizard();
+		}
 		if (D.dom.generalSettingsVignetteEl) {
 			D.dom.generalSettingsVignetteEl.classList.remove('panel-open');
 			D.dom.generalSettingsVignetteEl.setAttribute('aria-expanded', 'false');
@@ -123,6 +133,9 @@
 			panel.hidden = true;
 		}
 		D.state.generalSettingsPanelOpen = false;
+		if (typeof fn.syncConnectionVignetteAttention === 'function') {
+			fn.syncConnectionVignetteAttention();
+		}
 	};
 
 	fn.toggleGeneralSettingsPanel = function() {

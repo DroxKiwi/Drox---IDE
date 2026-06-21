@@ -35,14 +35,6 @@
 	D.state.runStripAnchorEl = null;
 	/** Vrai dès le premier événement live (delta/tool/todo) — verrouille le strip en place. */
 	D.state.runStripCommitted = false;
-	D.state.planActionRailEl = null;
-	D.state.planActionRailSummaryEl = null;
-	D.state.planActionRailListEl = null;
-	D.state.planActionLineCount = 0;
-	D.state.architectActionRailEl = null;
-	D.state.architectActionRailSummaryEl = null;
-	D.state.architectActionRailListEl = null;
-	D.state.architectActionLineCount = 0;
 	/** Par host thinking : auto-scroll tant que l'utilisateur n'a pas remonté. */
 	D.state.thinkingScrollStick = new WeakMap();
 	D.state.pendingTodoUpdates = null;

@@ -14,6 +14,12 @@
 			D.dom.architectModelVignetteEl.addEventListener('click', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
+				if (typeof fn.isArchitectVignetteBlocked === 'function' && fn.isArchitectVignetteBlocked()) {
+					if (typeof fn.redirectToConnectionSetup === 'function') {
+						fn.redirectToConnectionSetup();
+					}
+					return;
+				}
 				fn.toggleRoleModelPanel();
 			});
 		}

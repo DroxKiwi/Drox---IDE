@@ -283,11 +283,35 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 		}
 
 		case 'context_snip': {
+			const freed = Number(ev.tokens_freed ?? ev.tokensFreed ?? 0);
+			const snipped = Number(ev.blocks_snipped ?? ev.blocksSnipped ?? 0);
 			const after = Number(ev.tokens_used_after ?? ev.tokensUsedAfter ?? 0);
 			if (after > 0) {
 				host.trackContextForActiveTab(after);
 				host.post({ kind: 'context', tokensUsed: after });
 			}
+			if (freed > 0 || snipped > 0) {
+				host.post({
+					kind: 'append',
+					role: 'system',
+					text: `· context snip (~${freed} tok, ${snipped} blocks)`,
+				});
+			}
+			return;
+		}
+
+		case 'tool_progress': {
+			const id = ev.id != null ? String(ev.id) : '?';
+			const output = typeof ev.output === 'string' ? ev.output : '';
+			const elapsedMs = Number(ev.elapsed_ms ?? ev.elapsedMs ?? 0);
+			host.post({
+				kind: 'tool',
+				phase: 'progress',
+				id,
+				name: typeof ev.name === 'string' ? ev.name : undefined,
+				outputPreview: output,
+				elapsedMs,
+			});
 			return;
 		}
 
@@ -298,6 +322,11 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			if (inputTokens > 0 || outputTokens > 0) {
 				host.trackUsageForActiveTab(inputTokens, outputTokens);
 				host.post({ kind: 'usage', inputTokens, outputTokens });
+			}
+			// Parité TUI (`usage.rs`) : ctx = dernier `usage.input_tokens` du tour.
+			if (inputTokens > 0) {
+				host.trackContextForActiveTab(inputTokens);
+				host.post({ kind: 'context', tokensUsed: inputTokens });
 			}
 			return;
 		}
@@ -375,7 +404,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			host.post({
 				kind: 'append',
 				role: 'system',
-				text: `[context] proactive compaction: ~${before} → ~${after} tokens, ${removed} message(s) summarized`,
+				text: `[context] compaction live ${before}→${after} tok (${removed} msgs)`,
 			});
 			const ccs = ev.context_chunk_summary ?? ev.contextChunkSummary;
 			const wsUri = host.getWorkspaceUri();
@@ -410,14 +439,14 @@ export function dispatchAgentDone(host: IDroxChatAgentDoneHost, params: unknown)
 				role: 'system',
 				text: localize(
 					'drox.loop.abort.hint',
-					'Le run s\'est arrêté : le modèle tournait en rond malgré les recadrages automatiques. Relisez les messages « Re-perspective » ci-dessus, puis reformulez ou envoyez une nouvelle consigne.',
+					'The run stopped: the model kept looping despite automatic re-framing. Read the “Re-perspective” messages above, then rephrase or send a new instruction.',
 				),
 			});
 		}
 		const errText = /loop detected/i.test(raw)
 			? localize(
 				'drox.loop.abort.error',
-				'Run interrompu — boucle non résolue (voir le message système juste au-dessus).',
+				'Run stopped — unresolved loop (see the system message just above).',
 			)
 			: isVisionRelatedLlmError(raw)
 				? formatVisionChatError(host.getLlmModel(), raw)

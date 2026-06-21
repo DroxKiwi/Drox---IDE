@@ -1,7 +1,7 @@
 {
   "name": "drox-ide-dev",
   "version": "1.126.0",
-  "droxVersion": "1.5.0",
+  "droxVersion": "1.5.1",
   "droxSurface": "dev",
   "droxEngineDevBuild": 33,
   "distro": "e6b302180cc8fecde16d482d0f2add78b067b6bf",
@@ -23,6 +23,8 @@
     "sync-drox-inno-wizard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-drox-inno-wizard.ps1",
     "release-publish-win32": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-publish-win32.ps1",
     "build-release-win32": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-release-win32.ps1",
+    "build-release-linux": "bash ./scripts/build-release-linux.sh",
+    "release-publish-linux": "bash ./scripts/release-publish-linux.sh",
     "drox:build": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/drox-release.ps1 -Action build",
     "drox:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/drox-release.ps1 -Action publish",
     "drox:ship": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/drox-release.ps1 -Action ship",

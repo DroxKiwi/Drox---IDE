@@ -1,0 +1,65 @@
+# Build Drox IDE linux-x64 .deb and upload as workflow artifact.
+# Trigger: manual (workflow_dispatch) or tag v* after Windows ship prep.
+#
+# See: drox-engine/docs/operations/GUIDE-PUBLICATION-LINUX.md
+
+name: Drox Linux release build
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_compile:
+        description: 'Rebundle out-vscode-min (slow)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  build-linux-x64:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libx11-dev libxkbfile-dev \
+            libsecret-1-dev libkrb5-dev fakeroot rpm lintian
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release linux-x64 + .deb
+        run: |
+          chmod +x scripts/build-release-linux.sh scripts/package-drox.sh scripts/verify-packaged-linux.sh
+          ARGS=''
+          if [ "${{ inputs.force_compile }}" = 'true' ]; then ARGS='--force-compile'; fi
+          ./scripts/build-release-linux.sh $ARGS
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: drox-ide-linux-x64-deb
+          path: .build/linux/deb/amd64/deb/*.deb
+          if-no-files-found: error
+
+      - name: Upload packaged app (smoke)
+        uses: actions/upload-artifact@v4
+        with:
+          name: drox-ide-linux-x64-app
+          path: ../VSCode-linux-x64
+          retention-days: 7

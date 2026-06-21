@@ -61,7 +61,7 @@
 	fn.appendFileChange = function (payload) {
 		const filePath = String(payload.path ?? '');
 		const relPath = String(payload.relPath ?? payload.path ?? '?');
-		const op = payload.op === 'write' ? 'écrit' : 'édité';
+		const op = payload.op === 'write' ? 'written' : 'edited';
 		const added = Number(payload.added ?? 0);
 		const removed = Number(payload.removed ?? 0);
 		const language = String(payload.language ?? 'plaintext');
@@ -73,13 +73,13 @@
 
 		const header = document.createElement('div');
 		header.className = 'fc-summary';
-		header.title = 'Ouvrir dans l\'éditeur';
+		header.title = 'Open in editor';
 
 		const toggleBtn = document.createElement('button');
 		toggleBtn.type = 'button';
 		toggleBtn.className = 'fc-toggle';
 		toggleBtn.setAttribute('aria-expanded', 'true');
-		toggleBtn.title = 'Replier / déplier le diff';
+		toggleBtn.title = 'Expand / collapse diff';
 		toggleBtn.innerHTML =
 			'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
 			'<path d="M4 6l4 4 4-4"></path></svg>';
@@ -121,7 +121,7 @@
 		const openBtn = document.createElement('button');
 		openBtn.type = 'button';
 		openBtn.className = 'fc-open';
-		openBtn.title = 'Ouvrir dans l\'éditeur';
+		openBtn.title = 'Open in editor';
 		openBtn.innerHTML =
 			'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
 			'<path d="M5 11l6-6"></path>' +

@@ -10,14 +10,20 @@ import product from '../../../../../platform/product/common/product.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
 import { DROX_DEFAULT_MAX_ITERATIONS } from '../../common/droxProductDefaults.js';
+import { readLlmProvider } from '../../common/droxLlmCatalog.js';
+import { readLlmHeadersMap } from '../../common/droxLlmHeaders.js';
 import { isMcpToolsEnabled, readLlmSettings } from '../../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
+import { formatDroxConnectionSummary, normalizeDroxLlmHosting } from './droxConnectionCatalog.js';
 
 export interface IDroxGeneralSettingsWire {
+	readonly llmHosting: string;
 	readonly llmProvider: string;
 	readonly server: string;
 	readonly apiKey: string;
+	readonly llmHeaders: Record<string, string>;
+	readonly connectionSummary: string;
 	readonly maxIterations: number;
 	readonly nativeThinking: boolean;
 	readonly primaryLanguage: string;
@@ -33,9 +39,11 @@ export interface IDroxGeneralSettingsWire {
 }
 
 export interface IDroxGeneralSettingsPatch {
+	readonly llmHosting?: string;
 	readonly llmProvider?: string;
 	readonly server?: string;
 	readonly apiKey?: string;
+	readonly llmHeaders?: Record<string, string>;
 	readonly maxIterations?: number;
 	readonly nativeThinking?: boolean;
 	readonly primaryLanguage?: string;
@@ -71,13 +79,17 @@ export function readDroxGeneralSettingsForWebview(
 ): IDroxGeneralSettingsWire {
 	const resource = deps.runSettingsService.getWorkspaceResource();
 	const llm = readLlmSettings(deps.configurationService, resource);
-	const provider = deps.configurationService.getValue<string>(DroxSetting.LlmProvider, { resource });
+	const provider = readLlmProvider(deps.configurationService, resource);
+	const hosting = normalizeDroxLlmHosting(deps.configurationService.getValue<string>(DroxSetting.LlmHosting, { resource }));
+	const llmHeaders = readLlmHeadersMap(deps.configurationService, resource);
 	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 
-	return {
-		llmProvider: typeof provider === 'string' && provider ? provider : 'ollama',
+	const wire: Omit<IDroxGeneralSettingsWire, 'connectionSummary'> = {
+		llmHosting: hosting,
+		llmProvider: provider,
 		server: llm.server,
 		apiKey: llm.apiKey,
+		llmHeaders,
 		maxIterations: advanced ? llm.maxIterations : DROX_DEFAULT_MAX_ITERATIONS,
 		nativeThinking: llm.nativeThinking,
 		primaryLanguage: llm.primaryLanguage,
@@ -90,6 +102,11 @@ export function readDroxGeneralSettingsForWebview(
 		addDiagnosticOnHover: readBool(deps.configurationService, DroxSetting.AddDiagnosticOnHover, resource, false),
 		mcpToolsEnabled: isMcpToolsEnabled(deps.configurationService, resource),
 		showChatErrorsAndWarnings: readBool(deps.configurationService, DroxSetting.ChatShowErrorsAndWarnings, resource, true),
+	};
+
+	return {
+		...wire,
+		connectionSummary: formatDroxConnectionSummary(wire),
 	};
 }
 
@@ -115,6 +132,10 @@ export async function setDroxGeneralSettingsFromWebview(
 	const update = async (key: string, value: unknown): Promise<void> => {
 		await deps.configurationService.updateValue(key, value, { resource });
 	};
+	if (patch.llmHosting !== undefined) {
+		const h = normalizeDroxLlmHosting(patch.llmHosting);
+		await update(DroxSetting.LlmHosting, h);
+	}
 	if (patch.llmProvider !== undefined) {
 		await update(DroxSetting.LlmProvider, String(patch.llmProvider).trim() || 'ollama');
 	}
@@ -123,6 +144,17 @@ export async function setDroxGeneralSettingsFromWebview(
 	}
 	if (patch.apiKey !== undefined) {
 		await update(DroxSetting.ApiKey, String(patch.apiKey).trim());
+	}
+	if (patch.llmHeaders !== undefined && patch.llmHeaders && typeof patch.llmHeaders === 'object') {
+		const cleaned: Record<string, string> = {};
+		for (const [key, value] of Object.entries(patch.llmHeaders)) {
+			const name = String(key).trim();
+			if (!name) {
+				continue;
+			}
+			cleaned[name] = String(value ?? '').trim();
+		}
+		await update(DroxSetting.LlmHeaders, cleaned);
 	}
 	if (patch.maxIterations !== undefined && advanced && Number.isFinite(patch.maxIterations)) {
 		await update(DroxSetting.MaxIterations, Math.min(200, Math.max(1, Math.floor(patch.maxIterations))));

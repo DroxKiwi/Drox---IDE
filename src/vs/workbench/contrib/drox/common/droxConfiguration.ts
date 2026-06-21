@@ -31,6 +31,12 @@ export const enum DroxSetting {
 	/** Type de serveur LLM local (Ollama pour l'instant). */
 	LlmProvider = 'drox.llmProvider',
 
+	/** Hébergement LLM choisi via l'assistant connexion : cloud ou personnel. */
+	LlmHosting = 'drox.llmHosting',
+
+	/** Headers HTTP additionnels pour le serveur LLM (paires nom → valeur). */
+	LlmHeaders = 'drox.llmHeaders',
+
 	/** Modèle Architecte (plan) — ex-modèle principal chat. */
 	ArchitectModel = 'drox.architect.model',
 
@@ -245,7 +251,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			type: 'string',
 
-			enum: ['ollama', 'vllm', 'lmstudio'],
+			enum: ['ollama', 'vllm', 'lmstudio', 'huggingface', 'mistral', 'openai_compatible'],
 
 			default: 'ollama',
 
@@ -259,6 +265,17 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			),
 
+		},
+
+		[DroxSetting.LlmHosting]: {
+			type: 'string',
+			enum: ['', 'cloud', 'personal'],
+			default: '',
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.llmHosting',
+				'LLM hosting mode set by the **Connect your AI** wizard: **cloud** (managed provider) or **personal** (self-hosted server).',
+			),
 		},
 
 		[DroxSetting.Server]: {
@@ -277,6 +294,17 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			),
 
+		},
+
+		[DroxSetting.LlmHeaders]: {
+			type: 'object',
+			default: {},
+			additionalProperties: { type: 'string' },
+			scope: ConfigurationScope.MACHINE_OVERRIDABLE,
+			markdownDescription: localize(
+				'drox.llmHeaders',
+				'Additional HTTP headers for the LLM server (e.g. `Authorization`, custom API keys). Set via the connection wizard.',
+			),
 		},
 
 		[DroxSetting.ArchitectModel]: droxArchitectModelSettingSchema,

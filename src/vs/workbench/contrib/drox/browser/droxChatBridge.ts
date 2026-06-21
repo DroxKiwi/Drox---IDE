@@ -45,6 +45,10 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'refreshLlmModels' }
 
+	| { readonly type: 'testLlmConnection'; readonly requestId: string; readonly settings: Record<string, unknown> }
+
+	| { readonly type: 'resetLlmConnection' }
+
 	| { readonly type: 'cancelRun' }
 
 	| { readonly type: 'slash'; readonly command?: string; readonly args?: string; readonly slashInvalid?: string }
@@ -164,7 +168,7 @@ export type DroxHostToWebviewMessage =
 
 	| {
 		readonly kind: 'tool';
-		readonly phase: 'start' | 'finish';
+		readonly phase: 'start' | 'finish' | 'progress';
 		readonly id: string;
 		readonly name?: string;
 		readonly verb?: string;
@@ -172,6 +176,7 @@ export type DroxHostToWebviewMessage =
 		readonly argsPreview?: string;
 		readonly isError?: boolean;
 		readonly outputPreview?: string;
+		readonly elapsedMs?: number;
 		readonly executorJobId?: string;
 	}
 
@@ -235,6 +240,17 @@ export type DroxHostToWebviewMessage =
 
 	| { readonly kind: 'generalSettings'; readonly settings: Record<string, unknown> }
 
+	| {
+		readonly kind: 'connectionTestResult';
+		readonly requestId: string;
+		readonly ok: boolean;
+		readonly error?: string;
+		readonly modelCount?: number;
+		readonly listUrl?: string;
+	}
+
+	| { readonly kind: 'connectionResetResult'; readonly ok: boolean }
+
 	| DroxUserAskHostMessage;
 
 
@@ -249,10 +265,15 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 	const t = (msg as { type?: unknown }).type;
 
-	if (t === 'webviewReady' || t === 'cancelRun' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings') {
+	if (t === 'webviewReady' || t === 'cancelRun' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings' || t === 'resetLlmConnection') {
 
 		return true;
 
+	}
+
+	if (t === 'testLlmConnection') {
+		const m = msg as { requestId?: unknown; settings?: unknown };
+		return typeof m.requestId === 'string' && m.settings !== undefined && typeof m.settings === 'object';
 	}
 
 	if (t === 'revertToMessage') {

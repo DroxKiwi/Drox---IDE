@@ -63,10 +63,15 @@ function shouldSkipTranscriptSystem(text: string): boolean {
 function replayAssistantTextWithPhases(host: IDroxChatAgentEventHost, text: string): void {
 	const lines = text.split(/\r?\n/);
 	let buffer: string[] = [];
+	let replayPhase: string | null = null;
 	const flush = () => {
 		const chunk = buffer.join('\n').trim();
 		if (chunk) {
-			host.post({ kind: 'append', role: 'assistant', text: chunk });
+			if (replayPhase === 'answering') {
+				host.post({ kind: 'delta', text: chunk });
+			} else {
+				host.post({ kind: 'append', role: 'assistant', text: chunk });
+			}
 		}
 		buffer = [];
 	};
@@ -75,12 +80,17 @@ function replayAssistantTextWithPhases(host: IDroxChatAgentEventHost, text: stri
 		if (m) {
 			flush();
 			const phase = m[1].trim().toLowerCase();
-			if (phase === 'done' || phase === 'answering') {
+			if (phase === 'done') {
+				replayPhase = null;
 				host.post({ kind: 'phase', close: true });
-				if (phase === 'answering') {
-					host.post({ kind: 'phase', phase: 'answering' });
-				}
+				host.post({ kind: 'phase', phase: 'done' });
+			} else if (phase === 'answering') {
+				replayPhase = 'answering';
+				host.post({ kind: 'phase', close: true });
+				host.post({ kind: 'phase', phase: 'answering' });
 			} else if (!IGNORED_PHASES.has(phase)) {
+				replayPhase = phase;
+				host.post({ kind: 'phase', close: true });
 				host.post({ kind: 'phase', phase });
 			}
 			continue;

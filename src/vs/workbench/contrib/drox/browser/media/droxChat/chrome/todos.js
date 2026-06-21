@@ -60,14 +60,13 @@
 			const list = document.createElement('ul');
 			list.className = 'todos-list';
 			block.appendChild(list);
-			const planMount = typeof fn.getRunSection === 'function' ? fn.getRunSection('plan') : null;
-			const mount = planMount || D.dom.logEl;
-			const planRail = planMount?.querySelector('.plan-action-rail');
-			if (planRail) {
-				planMount.insertBefore(block, planRail);
-			} else {
-				mount.appendChild(block);
-			}
+			const mount =
+				typeof fn.ensureChronologySection === 'function'
+					? fn.ensureChronologySection(D.state.runStripEl)
+					: typeof fn.getChronologyMount === 'function'
+						? fn.getChronologyMount()
+						: null;
+			mount.appendChild(block);
 			D.state.currentTodoBlockEl = block;
 		}
 		if (typeof fn.reparentTodoBlockToPlan === 'function') {

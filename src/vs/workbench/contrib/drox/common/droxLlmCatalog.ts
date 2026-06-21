@@ -12,15 +12,21 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { asText, IRequestService } from '../../../../platform/request/common/request.js';
 import { DroxSetting } from './droxConfiguration.js';
 import { readWorkspaceDroxEnv } from './droxEnvFile.js';
+import { mergeLlmHttpHeaders, readLlmHeadersMap } from './droxLlmHeaders.js';
 
-export type DroxLlmProviderId = 'ollama' | 'vllm' | 'lmstudio';
+export type DroxLlmProviderId = 'ollama' | 'vllm' | 'lmstudio' | 'huggingface' | 'mistral' | 'openai_compatible';
 
-export const DROX_LLM_PROVIDERS: readonly DroxLlmProviderId[] = ['ollama', 'vllm', 'lmstudio'];
+export const DROX_LLM_PROVIDERS: readonly DroxLlmProviderId[] = [
+	'ollama', 'vllm', 'lmstudio', 'huggingface', 'mistral', 'openai_compatible',
+];
 
 export const DROX_DEFAULT_LLM_SERVER: Record<DroxLlmProviderId, string> = {
 	ollama: 'http://127.0.0.1:11434',
 	vllm: 'http://127.0.0.1:8000',
 	lmstudio: 'http://127.0.0.1:1234',
+	huggingface: 'https://router.huggingface.co/v1',
+	mistral: 'https://api.mistral.ai/v1',
+	openai_compatible: '',
 };
 
 /** @deprecated use DROX_DEFAULT_LLM_SERVER.ollama */
@@ -35,12 +41,20 @@ export interface IDroxLlmCatalogConnection {
 	readonly provider: DroxLlmProviderId;
 	readonly server: string;
 	readonly apiKey: string;
+	readonly headers: Readonly<Record<string, string>>;
 }
 
 export type DroxHttpGetFn = (url: string) => Promise<{ statusCode: number; body: string }>;
 
 export function parseLlmProvider(value: unknown): DroxLlmProviderId {
-	if (value === 'vllm' || value === 'lmstudio' || value === 'ollama') {
+	if (
+		value === 'vllm'
+		|| value === 'lmstudio'
+		|| value === 'ollama'
+		|| value === 'huggingface'
+		|| value === 'mistral'
+		|| value === 'openai_compatible'
+	) {
 		return value;
 	}
 	return 'ollama';
@@ -81,7 +95,7 @@ export function buildLlmModelListUrl(
 	const base = normalizeLlmServerBaseUrl(configured);
 	if (!base) {
 		return {
-			error: 'URL serveur non configurée — renseignez drox.server (ou DROX_SERVER dans .drox/.env), puis Reload.',
+			error: 'Server URL not configured — set drox.server (or DROX_SERVER in .drox/.env), then Reload.',
 		};
 	}
 	switch (provider) {
@@ -89,6 +103,9 @@ export function buildLlmModelListUrl(
 			return { url: `${base}/api/tags` };
 		case 'vllm':
 		case 'lmstudio':
+		case 'huggingface':
+		case 'mistral':
+		case 'openai_compatible':
 			return { url: base.endsWith('/v1') ? `${base}/models` : `${base}/v1/models` };
 	}
 }
@@ -111,6 +128,7 @@ export async function resolveLlmCatalogConnection(
 	};
 	let server = read(DroxSetting.Server);
 	let apiKey = read(DroxSetting.ApiKey);
+	const headers = readLlmHeadersMap(configService, workspaceUri);
 	const env = await readWorkspaceDroxEnv(fileService, workspaceUri);
 	if (!server && env.DROX_SERVER) {
 		server = env.DROX_SERVER.trim();
@@ -118,7 +136,7 @@ export async function resolveLlmCatalogConnection(
 	if (!apiKey && env.DROX_API_KEY) {
 		apiKey = env.DROX_API_KEY.trim();
 	}
-	return { provider, server, apiKey };
+	return { provider, server, apiKey, headers };
 }
 
 function sortUniqueModelNames(names: string[]): string[] {
@@ -207,7 +225,7 @@ async function fetchModelsFromListUrl(
 			if (models.length > 0) {
 				return { models };
 			}
-			lastError = body ? 'Réponse Ollama sans modèle' : 'Réponse Ollama vide';
+			lastError = body ? 'Ollama response had no models' : 'Empty Ollama response';
 		} else {
 			const body = parseJsonBody<IOpenAiModelsResponse>(res.body);
 			const names = (body?.data ?? []).map(m => (typeof m?.id === 'string' ? m.id : ''));
@@ -215,10 +233,10 @@ async function fetchModelsFromListUrl(
 			if (models.length > 0) {
 				return { models };
 			}
-			lastError = body ? 'Réponse sans modèle' : 'Réponse vide';
+			lastError = body ? 'Response had no models' : 'Empty response';
 		}
 	}
-	return { models: [], error: lastError || `Impossible de joindre ${listUrl}` };
+	return { models: [], error: lastError || `Could not reach ${listUrl}` };
 }
 
 export async function fetchLlmModelNames(
@@ -254,12 +272,14 @@ export function createDroxLlmHttpGet(
 	mainFetchHttp: (url: string, headers?: Record<string, string>) => Promise<{ statusCode: number; body: string }>,
 	requestService: IRequestService,
 	apiKey: string,
+	customHeaders?: Readonly<Record<string, string>>,
 ): DroxHttpGetFn {
-	const authHeaders = apiKey.trim() ? { 'x-api-key': apiKey.trim() } : undefined;
-	const fallback = createRequestServiceHttpGet(requestService, authHeaders);
+	const authHeaders = mergeLlmHttpHeaders(apiKey, customHeaders ?? {});
+	const hasHeaders = Object.keys(authHeaders).length > 0;
+	const fallback = createRequestServiceHttpGet(requestService, hasHeaders ? authHeaders : undefined);
 	return async (url: string) => {
 		try {
-			return await mainFetchHttp(url, authHeaders);
+			return await mainFetchHttp(url, hasHeaders ? authHeaders : undefined);
 		} catch {
 			return fallback(url);
 		}

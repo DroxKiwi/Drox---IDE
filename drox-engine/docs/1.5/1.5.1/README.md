@@ -1,69 +1,60 @@
-# Drox 1.5.1 — Routage Auto, UI chat & distribution Windows
+# Drox 1.5.1 — Fil chat = fil TUI
 
-**Statut** : **reporté** — après [1.4.2](../../1.4/1.4.2/README.md) (alignement modèles)  
-**Prérequis** : [1.4.2](../../1.4/1.4.2/README.md) · Phase **2d** ([FOI](../../1.4/1.4.0/FOI-REFONTE.md#phase-2d--alignement-ui-fork-vs-code-p0)) · release **1.4.1** sur `Drox---IDE---OR`
+**Statut** : **livrée** (juin 2026) — tag `v1.5.1` · Windows + Linux sur `Drox---IDE---OR`  
+**Prérequis** : [1.5.0](../1.5.0/CLOSURE-1.5.0.md) livrée · moteur `tui_mono` · shim RPC
 
 ---
 
 ## En une phrase
 
-Corriger la **boucle analyse en mode Auto**, puis polish **interface chat** (B-UI-*) et installeur Windows **signé Authenticode**.
+Faire en sorte que **Drox Chat** affiche un run **dans le même ordre** que le **TUI** (`drox-tui`) : fil chronologique, phases, outils, réponse — sans reprendre le conducteur rail **1.4**.
 
 ---
 
-## Piliers
+## Pourquoi réécrire le plan
 
-| Pilier | Contenu | Doc |
-|--------|---------|-----|
-| **Routage / boucle** | « Analyser le répertoire » en Auto → pas de rail EDIT + closure | [PLAN ROUTING](PLAN-1.5.1-ROUTING-ANALYZE-LOOP.md) **P0** |
-| **Distribution** | Certificat Code Signing · `signtool` · `drox:ship` | [PLAN § P1](PLAN-1.5.1.md#p1--signature-de-code-windows-smartscreen) |
-| **UI chat** | Fil, replay, `ask_user`, blocs rail, busy stale | [PLAN § P2](PLAN-1.5.1.md#p2--ui-chat-b-ui-) |
+L’ancien plan 1.5.1 visait encore la **1.4** (routage Auto/discuss, blocs station rail, B-UI-* liés à l’orchestration abandonnée). Depuis **1.5.0** :
 
----
+- le moteur est la **mono-boucle TUI** ;
+- les events passent par le **shim** (`phase_enter`, `tool_*`, `text_delta`, …) ;
+- release, upstream et git sont documentés dans [RULES.md](../../../../RULES.md) et [CLOSURE 1.5.0](../1.5.0/CLOSURE-1.5.0.md).
 
-## Contexte — boucle analyse (dogfood 2026-06-18)
-
-Brief **« Salut, tu peux analyser le répertoire ? »** en **Auto** : run `architect_edit`, 16 itérations READ, pas de `[phase: answering]`, `run stopped`. Reproductible sur plusieurs modèles → **bug routage moteur**, pas LLM.
-
-Analyse complète + pistes de fix : [PLAN-1.5.1-ROUTING-ANALYZE-LOOP.md](PLAN-1.5.1-ROUTING-ANALYZE-LOOP.md).  
-Export : [`chat_north-mini-code`](../../chat_north-mini-code).  
-Smoke post-F1 (2026-06-18) : [SMOKE-ses_7df5045c](SMOKE-ses_7df5045c.md) — **F1 validé** run 2 ; échec EDIT run 3.
+Il ne reste plus qu’à aligner **l’UI discussion** sur ce que le TUI fait déjà bien.
 
 ---
 
-## Contexte SmartScreen (1.4.1)
+## Périmètre 1.5.1
 
-Sur Windows 10/11, l’installeur non signé affiche **Microsoft Defender SmartScreen** avec **Éditeur inconnu**. Ce n’est pas un défaut du binaire — il manque une **signature Authenticode** KDDS. La 1.5.1 livre le pipeline de signature + la doc utilisateur.
-
----
-
-## Périmètre UI (B-UI-*)
-
-| ID | Sujet |
-|----|-------|
-| B-UI-01 | Fichiers édités repliés |
-| B-UI-02 | Lignes Ran / layout tray |
-| B-UI-03 | Plan du run précédent non scellé |
-| B-UI-04 | `ask_user` markdown + scroll ~8 lignes |
-| B-UI-05 | Phase thinking active en tête vs chronologique |
-| B-UI-06 | Chargement session à la réouverture (replay journal) |
-| B-UI-07 | Run `busy` stale après fin / blur app |
-| B-UI-08 | Panneau architecte : sélecteur contexte 16k→1M (`drox.numCtx`) | Livré (1.5.1 prep) |
+| In | Hors scope (plus tard) |
+|----|----------------------|
+| Fil de discussion chronologique (parité TUI) | Refonte globale du workbench VS Code |
+| Replay session / réouverture app | Index, graphe → [1.5.2](../1.5.2/README.md) |
+| **Wizard connexion IA** (cloud / perso, headers) | Profils sampling avancés → [1.5.3](../1.5.3/README.md) |
+| `ask_user`, busy, trays outils (polish) | Routage 1.4 (discuss/edit, intent probe) |
+| Signature Authenticode Windows | |
 
 ---
 
-## Hors scope
+## Référence vérité
 
-- Index & graphe → [1.5.2](../1.5.2/PLAN-1.5.2.md)
-- Profils sampling → [1.5.3](../1.5.3/README.md)
-- Signature macOS / Linux
+| Couche | Où regarder |
+|--------|-------------|
+| **Ordre des events** | `drox-engine/.../engine/bootstrap.rs` — `apply_agent_event` |
+| **Lignes affichées** | `drox-tui/.../view/log_entry.rs` — `LogEntry` |
+| **Wire IDE** | [SHIM-MOTEUR-IDE.md](../1.5.0/SHIM-MOTEUR-IDE.md) |
+| **Webview actuelle** | `contrib/drox/browser/media/droxChat/stream/` |
+
+---
+
+## Docs
+
+- [PLAN-1.5.1.md](PLAN-1.5.1.md) — chantier détaillé
+- [CLOSURE-1.5.1.md](CLOSURE-1.5.1.md) — livrables + release win32/linux
+- [PLAN 1.5.1b](../1.5.1b/README.md) — pipeline `.deb` linux-x64
 
 ---
 
 ## Liens
 
-- [Plan routage / boucle analyse](PLAN-1.5.1-ROUTING-ANALYZE-LOOP.md)
-- [Plan détaillé UI + signature](PLAN-1.5.1.md)
 - [Hub 1.5](../README.md)
-- [06-UI-BLOCKS](../../1.4/1.4.0/archive/06-UI-BLOCKS.md)
-- [GUIDE-PUBLICATION-WIN32](../../operations/GUIDE-PUBLICATION-WIN32.md)
+- [06-UI-BLOCKS](../../1.4/1.4.0/archive/06-UI-BLOCKS.md) — archive rail 1.4 (ne pas prolonger)

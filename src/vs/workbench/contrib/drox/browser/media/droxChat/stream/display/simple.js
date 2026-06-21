@@ -153,6 +153,10 @@
 		if (!text) {
 			return;
 		}
+		if (D.state.linearRunUi && typeof fn.appendStreamBufferDelta === 'function') {
+			fn.appendStreamBufferDelta(text);
+			return;
+		}
 		fn.appendLinearThinkingDelta?.(text);
 	};
 
@@ -206,6 +210,10 @@
 		if (!chunk) {
 			return;
 		}
+		if (D.state.linearRunUi && D.state.currentPhase !== 'answering') {
+			fn.appendThinkingDelta(chunk);
+			return;
+		}
 		const parent = fn.getChatAnswerSection();
 		if (!parent) {
 			return;
@@ -219,7 +227,6 @@
 		if (D.state.busy && typeof fn.showActivityBeforeNode === 'function') {
 			fn.showActivityBeforeNode(el);
 		}
-		fn.scrollLog?.(true);
 	};
 
 	/** Stream answer sans événement `userFacingReply` → réponse finale visible. */
@@ -418,6 +425,11 @@
 		}
 		if (typeof fn.commitRunStripAnchor === 'function') {
 			fn.commitRunStripAnchor();
+		}
+		// Fil linéaire : tout hors `answering` reste dans la chronologie (Travail).
+		if (D.state.linearRunUi && D.state.currentPhase !== 'answering') {
+			fn.appendThinkingDelta(text);
+			return true;
 		}
 		const answeringMarker = /\[phase:\s*answering\]\s*/i;
 		const answerMatch = String(text).match(answeringMarker);

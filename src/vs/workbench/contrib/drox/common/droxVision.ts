@@ -52,11 +52,11 @@ export function isVisionRelatedLlmError(message: string): boolean {
 
 export function formatVisionChatError(model: string, rawError: string): string {
 	const hint = modelLikelySupportsVision(model) === false && model
-		? ` Le modèle « ${model} » ne semble pas prendre en charge les images.`
+		? ` Model "${model}" does not appear to support images.`
 		: '';
 	return (
-		`Le modèle n'a pas pu lire l'image jointe.${hint} ` +
-		`Choisissez un modèle vision (ex. llava, gemma3, qwen2-vl) ou retirez l'image. ` +
-		`Détail : ${rawError}`
+		`The model could not read the attached image.${hint} ` +
+		`Choose a vision model (e.g. llava, gemma3, qwen2-vl) or remove the image. ` +
+		`Detail: ${rawError}`
 	);
 }

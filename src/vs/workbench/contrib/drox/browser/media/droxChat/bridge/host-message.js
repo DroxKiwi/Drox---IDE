@@ -42,6 +42,9 @@
 						fn.finalizeRunPresentation();
 					}
 					fn.closeCurrentPhase();
+					fn.closeActivePhaseBlock?.();
+					fn.collapseRunWorkSection?.();
+					fn.hideAgentActivitySticky?.();
 					D.state.toolBlocks.clear();
 					fn.flushPendingPromptQueue();
 				}
@@ -81,6 +84,16 @@
 			case 'generalSettings':
 				fn.applyGeneralSettingsFromHost(m);
 				break;
+			case 'connectionTestResult':
+				if (typeof fn.handleConnectionTestResult === 'function') {
+					fn.handleConnectionTestResult(m);
+				}
+				break;
+			case 'connectionResetResult':
+				if (typeof fn.handleConnectionResetResult === 'function') {
+					fn.handleConnectionResetResult(m);
+				}
+				break;
 			case 'runObjective':
 				fn.setRunObjectiveSticky(m);
 				break;
@@ -93,25 +106,13 @@
 					D.state.orchestrationRole = role;
 					if (role === 'architect_discussion') {
 						fn.beginDiscussionRunPresentation?.();
-						fn.ensureLinearThinkingShell?.();
 					}
 					if (role === 'architect') {
 						D.state.discussionRunActive = false;
-					}
-					if (role === 'architect') {
 						fn.unlockArchitectEditRunPresentation?.();
 					}
 					fn.renderOrchestrationRole(m.role);
 				}
-				break;
-			case 'railStationEnter':
-				fn.renderRailStationEnter?.(m);
-				break;
-			case 'railStationHold':
-				fn.renderRailStationHold?.(m);
-				break;
-			case 'railStationDone':
-				fn.renderRailStationDone?.(m);
 				break;
 			case 'tabs':
 				D.state.openTabs = Array.isArray(m.tabs)
@@ -135,7 +136,11 @@
 					}
 					break;
 				}
-				fn.finalizeAssistant();
+				const skipFinalizeForReplayAssistant =
+					D.state.uiReplayActive && m.role === 'assistant';
+				if (!skipFinalizeForReplayAssistant) {
+					fn.finalizeAssistant();
+				}
 				if (m.role === 'user') {
 					const userText = m.text || '';
 					const userEl = fn.renderUserMessage(
@@ -157,14 +162,26 @@
 					if (D.state.linearRunUi && typeof fn.anchorRunStripAfterUser === 'function') {
 						fn.anchorRunStripAfterUser(userEl);
 					}
-					D.state.logStickToBottom = true;
-					fn.scrollLog(true);
+					fn.scrollLogToEnd?.();
 				} else if (m.role === 'assistant') {
-					D.state.assistantEl = fn.appendMessage('assistant', m.text || '');
-					if (D.state.assistantEl) {
-						D.state.assistantEl.dataset.msgId =
+					const text = String(m.text || '').trim();
+					let createdEl = null;
+					if (D.state.uiReplayActive && D.state.linearRunUi && text) {
+						if (D.state.currentPhase === 'answering') {
+							fn.appendDelta(text);
+						} else if (typeof fn.mountStreamPhaseLine === 'function') {
+							fn.mountStreamPhaseLine(text, { variant: 'phase' });
+						} else {
+							createdEl = fn.appendMessage('assistant', text);
+						}
+					} else {
+						createdEl = fn.appendMessage('assistant', m.text || '');
+					}
+					if (createdEl) {
+						D.state.assistantEl = createdEl;
+						createdEl.dataset.msgId =
 							typeof m.messageId === 'string' ? m.messageId : fn.randomId();
-						fn.attachMessageRevertAction?.(D.state.assistantEl);
+						fn.attachMessageRevertAction?.(createdEl);
 					}
 				} else {
 					const el = fn.appendMessage(m.role || 'system', m.text || '');
