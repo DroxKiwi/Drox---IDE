@@ -1,13 +1,22 @@
-# Drox 1.5.3 — Release Linux
+# Drox 1.5.3 — Release Linux + confiance Windows
 
 **Statut** : **planifié** (juin 2026)  
-**Prérequis** : [1.5.2](../1.5.2/PLAN-1.5.2.md) livrée (ou en parallèle si urgent)
+**Prérequis** : [1.5.2](../1.5.2/PLAN-1.5.2.md) livrée
 
 ---
 
 ## En une phrase
 
-Publier **Drox IDE** sur Linux (`.deb` amd64) sur `Drox---IDE---OR` — pipeline préparé en [1.5.1b](../1.5.1b/PLAN-1.5.1b.md).
+Publier **Drox IDE** sur Linux (`.deb` amd64) et lever l’alerte Windows **« Éditeur inconnu »** sur l’installeur via signature **Authenticode**.
+
+---
+
+## Piliers
+
+| Pilier | Sujet |
+|--------|--------|
+| **L0–L3** | Release Linux sur `Drox---IDE---OR` |
+| **W1** | Signature installeur Windows (SmartScreen) |
 
 ---
 
@@ -15,6 +24,7 @@ Publier **Drox IDE** sur Linux (`.deb` amd64) sur `Drox---IDE---OR` — pipeline
 
 - [PLAN-1.5.3.md](PLAN-1.5.3.md)
 - [GUIDE publication Linux](../../operations/GUIDE-PUBLICATION-LINUX.md)
+- [GUIDE publication Windows](../../operations/GUIDE-PUBLICATION-WIN32.md) (§ Authenticode)
 
 ---
 

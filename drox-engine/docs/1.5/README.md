@@ -12,7 +12,7 @@
 | [**1.5.1/**](1.5.1/README.md) | Fil chat / TUI + wizard connexion | **Livré** · `v1.5.1` |
 | [**1.5.1b/**](1.5.1b/README.md) | Scripts pipeline Linux | **Préparé** · ship → **1.5.3** |
 | [**1.5.2/**](1.5.2/README.md) | Diffs fil + UX user + paramètres moteur | **En cours** · branche `1.5.2` |
-| [**1.5.3/**](1.5.3/README.md) | Release Linux `.deb` | **Planifié** |
+| [**1.5.3/**](1.5.3/README.md) | Release Linux `.deb` + signature Windows (SmartScreen) | **Planifié** |
 
 ---
 
