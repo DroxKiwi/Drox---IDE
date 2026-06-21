@@ -1,3 +1,11 @@
+<a id="avertissement"></a>
+
+> ⚠️ **Avertissement** — Drox est **potentiellement instable** : le projet est en **développement actif et exigeant**, encore **expérimental** (pas un IDE agent de production). De **nombreuses mises à jour** sont prévues sur la ligne **1.5.x** (configuration moteur, UX chat, distribution Linux, etc.). Il est conseillé de suivre les [releases officielles](https://github.com/DroxKiwi/Drox---IDE---OR/releases) plutôt que de compter sur une version figée.
+>
+> ⚠️ **Warning** — Drox may be **unstable**: **active, demanding development** — still **experimental** (not a production agent IDE). **Many updates** are planned on the **1.5.x** line. Prefer [official releases](https://github.com/DroxKiwi/Drox---IDE---OR/releases) over expecting a frozen build.
+
+___
+
 <a id="souverainete"></a>
 
 ## But du projet — souveraineté et feuille de route
@@ -171,7 +179,7 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 ## Sommaire
 
-**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Drox TUI](#drox-tui)** · **[Guide débutant IDE](#guide-debutant)** · [Matériel](#materiel) · [Modèles](#modeles-conseilles) · [Product status EN](#en-product-status) · [Drox TUI EN](#en-drox-tui) · [Getting started EN](#en-getting-started) · [Hardware EN](#en-hardware) · [Models EN](#en-recommended-models) · [Sovereignty EN](#en-sovereignty)
+**[⚠️ Avertissement](#avertissement)** · **[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Drox TUI](#drox-tui)** · **[Guide débutant IDE](#guide-debutant)** · [Matériel](#materiel) · [Modèles](#modeles-conseilles) · [Product status EN](#en-product-status) · [Drox TUI EN](#en-drox-tui) · [Getting started EN](#en-getting-started) · [Hardware EN](#en-hardware) · [Models EN](#en-recommended-models) · [Sovereignty EN](#en-sovereignty)
 
 [Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.5 — tui_mono](#schema-tui-mono)
 
