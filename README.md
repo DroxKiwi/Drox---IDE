@@ -67,9 +67,30 @@ ___
 
 ___
 
+<a id="drox-tui"></a>
+
+## Drox TUI — plus simple pour débuter
+
+Tu découvres l’écosystème Drox ? Commence par le **terminal** : **[Drox TUI — releases officielles](https://github.com/DroxKiwi/Drox---TUI---OR)**.
+
+| | **Drox TUI** | **Drox IDE** (ce dépôt) |
+|---|--------------|-------------------------|
+| **Interface** | Terminal (`drox-tui`) | Éditeur type VS Code + chat |
+| **Prise en main** | **Plus légère** — pas d’installeur lourd, pas de webview | Plus riche (LSP, diff dans l’éditeur, wizard connexion) |
+| **Moteur** | Même boucle **`tui_mono`** (`agent.rs`) | Même moteur via `drox.exe` + shim RPC |
+| **Inférence** | Ollama, vLLM, LM Studio, cloud… | Idem — voir [guide IDE](#guide-debutant) |
+
+Le TUI est le **cœur agent d’origine** : une session, un fil, des outils fichiers/bash, permissions explicites. L’IDE ajoute la couche éditeur autour du même moteur — utile quand tu veux coder **dans** l’UI, pas seulement piloter depuis le shell.
+
+**Démarrage TUI** : installeur sur [Drox---TUI---OR/releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) → terminal dans ton repo → `Ctrl+Shift+L` ou `/server` pour Ollama → envoie un message. Guide complet sur le README du dépôt TUI.
+
+___
+
 <a id="guide-debutant"></a>
 
 ## Guide débutant — installer et s’en servir
+
+> **Pas encore prêt pour l’IDE ?** Commence par **[Drox TUI](https://github.com/DroxKiwi/Drox---TUI---OR)** — même moteur, interface terminal plus simple ([détails](#drox-tui)).
 
 **Drox IDE** reprend l’ergonomie de **[Visual Studio Code](https://code.visualstudio.com/)** (éditeur, terminal, extensions familières) avec un **chat agent** branché sur un **moteur d’inférence de ton choix** (Ollama par défaut pour débuter). Tu n’as **pas** besoin de compiler ce dépôt pour l’utiliser.
 
@@ -137,7 +158,7 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 ## Sommaire
 
-**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Guide débutant](#guide-debutant)** · [Matériel](#materiel) · [Product status EN](#en-product-status) · [Getting started EN](#en-getting-started) · [Hardware EN](#en-hardware) · [Sovereignty EN](#en-sovereignty)
+**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Drox TUI](#drox-tui)** · **[Guide débutant IDE](#guide-debutant)** · [Matériel](#materiel) · [Product status EN](#en-product-status) · [Drox TUI EN](#en-drox-tui) · [Getting started EN](#en-getting-started) · [Hardware EN](#en-hardware) · [Sovereignty EN](#en-sovereignty)
 
 [Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.5 — tui_mono](#schema-tui-mono)
 
@@ -569,9 +590,30 @@ ___
 
 ___
 
+<a id="en-drox-tui"></a>
+
+## Drox TUI — easier way to start
+
+New to Drox? Start in the **terminal**: **[Drox TUI — official releases](https://github.com/DroxKiwi/Drox---TUI---OR)**.
+
+| | **Drox TUI** | **Drox IDE** (this repo) |
+|---|--------------|--------------------------|
+| **UI** | Terminal (`drox-tui`) | VS Code–like editor + chat |
+| **Onboarding** | **Lighter** — no heavy installer, no webview | Richer (LSP, in-editor diffs, connection wizard) |
+| **Engine** | Same **`tui_mono`** loop (`agent.rs`) | Same engine via `drox.exe` + RPC shim |
+| **Inference** | Ollama, vLLM, LM Studio, cloud… | Same — see [IDE guide](#en-getting-started) |
+
+The TUI is the **original agent core**: one session, one stream, file/bash tools, explicit permissions. The IDE wraps the same engine with an editor — when you want to work **inside** the UI, not only from the shell.
+
+**TUI quick start**: installer from [Drox---TUI---OR/releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) → terminal in your repo → `Ctrl+Shift+L` or `/server` for Ollama → send a message. Full guide on the TUI repo README.
+
+___
+
 <a id="en-getting-started"></a>
 
 ## Getting started — install and use
+
+> **Not ready for the IDE yet?** Try **[Drox TUI](https://github.com/DroxKiwi/Drox---TUI---OR)** first — same engine, simpler terminal UI ([details](#en-drox-tui)).
 
 **Drox IDE** feels like **[Visual Studio Code](https://code.visualstudio.com/)** plus a **local agent chat** backed by an **inference engine you choose** (Ollama is the simplest local default). You do **not** need to build this repo to try the product.
 
