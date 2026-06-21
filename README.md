@@ -67,11 +67,47 @@ ___
 
 ___
 
+<a id="guide-debutant"></a>
+
+## Guide débutant — installer et s’en servir
+
+**Drox IDE** reprend l’ergonomie de **[Visual Studio Code](https://code.visualstudio.com/)** (éditeur, terminal, extensions familières) avec un **chat agent** branché sur un modèle **local** via Ollama. Tu n’as **pas** besoin de compiler ce dépôt pour l’utiliser.
+
+### Prérequis
+
+- **Windows** (installeur ; Linux prévu en **1.5.3**)
+- **[Ollama](https://ollama.com/)** installé, avec au moins un modèle — ex. `ollama pull qwen2.5-coder`
+
+### Installation (utilisateur)
+
+1. Télécharge le Setup sur les **[releases officielles](https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest)** — dépôt public **[Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR)**.
+2. Lance l’installeur. Si Windows affiche « Éditeur inconnu », c’est normal (non signé pour l’instant) : **Exécuter quand même**.
+3. Ouvre **Drox IDE** depuis le menu Démarrer.
+
+### Premiers pas
+
+1. **Fichier → Ouvrir un dossier…** — ton projet (comme dans VS Code).
+2. Ouvre **Drox Chat** ; au besoin, le wizard **« Connect your AI »** configure l’URL Ollama (`http://127.0.0.1:11434` en local) et le modèle.
+3. Pose une question sur ton code ; l’agent lit des fichiers et peut proposer des modifications selon le **mode permission** (Analyser / Édition / Confiance).
+
+### L’essentiel à retenir
+
+| Élément | Rôle |
+|---------|------|
+| **Chat Drox** | Tu décris l’objectif ; le moteur `drox.exe` tourne en local et délègue à l’IDE ce qu’il ne peut pas faire seul (LSP, diff, écriture fichier). |
+| **Vignettes** | **Général** (connexion, outils) · **Architecte** (modèle, contexte) · **Composer** (niveau de confiance sur les éditions). |
+| **`.drox/`** | Sessions et mémoire du projet sur **ton disque** — pas de compte cloud obligatoire. |
+| **Raccourcis éditeur** | Identiques ou proches de VS Code — **[documentation VS Code](https://code.visualstudio.com/docs)**. |
+
+**Ce dépôt** (`Drox---IDE`) = **sources** pour contribuer ou builder. **Utilisation simple** → installeur OR ci-dessus. Détail moteur et architecture → sections suivantes.
+
+___
+
 Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--doc-moteur)
 
 ## Sommaire
 
-**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · [Product status EN](#en-product-status) · [Sovereignty EN](#en-sovereignty)
+**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Guide débutant](#guide-debutant)** · [Product status EN](#en-product-status) · [Getting started EN](#en-getting-started) · [Sovereignty EN](#en-sovereignty)
 
 [Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.5 — tui_mono](#schema-tui-mono)
 
@@ -500,6 +536,42 @@ ___
 | **Production-ready?** | **No.** Experimental — dogfood / early adopters. |
 | **Try it?** | **Yes for the curious**: OR installer, Ollama, bugs possible but rewritten stack, dogfood validated. |
 | **1.4.x** | **Obsolete** — observer rail, `role_split`, IDE orchestration dropped · archived `drox-engine/docs/1.4/` |
+
+___
+
+<a id="en-getting-started"></a>
+
+## Getting started — install and use
+
+**Drox IDE** feels like **[Visual Studio Code](https://code.visualstudio.com/)** plus a **local agent chat** backed by **Ollama**. You do **not** need to build this repo to try the product.
+
+### Requirements
+
+- **Windows** installer (Linux planned in **1.5.3**)
+- **[Ollama](https://ollama.com/)** with at least one model — e.g. `ollama pull qwen2.5-coder`
+
+### Install (end user)
+
+1. Download the Setup from **[official releases](https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest)** — public repo **[Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR)**.
+2. Run the installer. Windows may warn about an unknown publisher (unsigned for now): choose **Run anyway**.
+3. Launch **Drox IDE** from the Start menu.
+
+### First steps
+
+1. **File → Open Folder…** — your project (same as VS Code).
+2. Open **Drox Chat**; the **« Connect your AI »** wizard sets Ollama URL (`http://127.0.0.1:11434` locally) and model if needed.
+3. Ask about your code; the agent reads files and may suggest edits depending on the **permission mode** (Analyze / Trust edit / I'm not crazy).
+
+### Essentials
+
+| Piece | Role |
+|-------|------|
+| **Drox Chat** | You state the goal; local `drox.exe` delegates IDE-side work (LSP, diffs, file writes). |
+| **Vignettes** | **General** (connection, tools) · **Architect** (model, context) · **Composer** (edit trust level). |
+| **`.drox/`** | Session data on **your disk** — no mandatory cloud account. |
+| **Editor shortcuts** | Same family as VS Code — **[VS Code docs](https://code.visualstudio.com/docs)**. |
+
+**This repo** (`Drox---IDE`) = **source** for contributors. **Easy install** → OR releases above. Engine detail → sections below.
 
 ___
 
