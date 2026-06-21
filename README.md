@@ -84,14 +84,29 @@ Drox ne fournit pas le modèle : il se connecte à **ton** endpoint via le wizar
 
 | Hébergement | Moteurs (liens officiels) | Usage typique |
 |-------------|---------------------------|---------------|
-| **Local / perso** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [API OpenAI-compatible](https://platform.openai.com/docs/api-reference) | Modèle sur ton PC, ton NAS ou ton réseau — les prompts partent vers **ta** machine (ou celle que tu configures). |
+| **Local / perso** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [API OpenAI-compatible](https://platform.openai.com/docs/api-reference) | Modèle sur ton PC, ton NAS ou ton réseau — les prompts partent vers **ta** machine (ou celle que tu configures). Voir **[matériel recommandé](#materiel)** pour l’inférence locale. |
 | **Cloud** | [Hugging Face Inference](https://huggingface.co/inference) · [Mistral AI](https://mistral.ai/) · Ollama distant · endpoint compatible | Inférence hébergée chez le prestataire — pratique sans gros GPU ; confidentialité **selon leurs engagements** (offres privées, entreprise, CGU — à lire côté fournisseur). |
 
-**Démarrage rapide** : Ollama local → wizard → URL `http://127.0.0.1:11434` + nom du modèle.  
+**Démarrage rapide** : Ollama local → wizard → URL `http://127.0.0.1:11434` + nom du modèle ([matériel](#materiel)).  
 **vLLM / LM Studio** : lance le serveur, puis indique son URL dans le wizard (ex. `http://127.0.0.1:8000` pour vLLM).  
 **Cloud** : URL + clé API du fournisseur dans le wizard.
 
 Drox n’impose aucun cloud KDDS : seul l’**endpoint que tu configures** reçoit les requêtes d’inférence (hors vérification de version de l’IDE).
+
+<a id="materiel"></a>
+
+### Matériel (inférence locale)
+
+**Drox IDE** se comporte comme VS Code côté éditeur (RAM pour l’interface, le moteur `drox.exe`, le language service). Ce qui pèse vraiment, c’est le **modèle** que tu fais tourner en local : VRAM GPU (idéalement) + RAM système selon la taille du modèle et la fenêtre de contexte (`num_ctx`).
+
+Drox ne publie pas encore de grille officielle minimale — voici les machines **réellement utilisées** pour le dogfood 1.5.x :
+
+| Machine | GPU | RAM | Remarque |
+|---------|-----|-----|----------|
+| **Station de travail** | NVIDIA **RTX 3090** · 24 Go VRAM | **96 Go** | Grosse config — confortable pour des modèles plus larges et des contextes élevés. |
+| **Portable gaming** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 Go VRAM | *(config laptop)* | Config plus modeste mais **validée** — privilégier des modèles adaptés à 12 Go (quantization, contexte raisonnable). |
+
+**En pratique** : sans GPU dédié ou avec peu de VRAM, préfère un **petit modèle** quantifié (Ollama) ou bascule sur l’**inférence cloud** (section ci-dessus). Plus de VRAM = modèles plus gros et réponses plus fluides ; plus de RAM aide l’IDE + le chargement des poids quand une partie tourne en CPU.
 
 ### Installation (utilisateur)
 
@@ -122,7 +137,7 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 ## Sommaire
 
-**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Guide débutant](#guide-debutant)** · [Product status EN](#en-product-status) · [Getting started EN](#en-getting-started) · [Sovereignty EN](#en-sovereignty)
+**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Guide débutant](#guide-debutant)** · [Matériel](#materiel) · [Product status EN](#en-product-status) · [Getting started EN](#en-getting-started) · [Hardware EN](#en-hardware) · [Sovereignty EN](#en-sovereignty)
 
 [Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.5 — tui_mono](#schema-tui-mono)
 
@@ -571,14 +586,29 @@ Drox does not ship a model: it connects to **your** endpoint via **« Connect yo
 
 | Hosting | Backends (official links) | Typical use |
 |---------|---------------------------|-------------|
-| **Local / personal** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [OpenAI-compatible API](https://platform.openai.com/docs/api-reference) | Model on your PC, NAS, or LAN — prompts go to **your** hardware (or the URL you set). |
+| **Local / personal** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [OpenAI-compatible API](https://platform.openai.com/docs/api-reference) | Model on your PC, NAS, or LAN — prompts go to **your** hardware (or the URL you set). See **[hardware notes](#en-hardware)** for local inference. |
 | **Cloud** | [Hugging Face Inference](https://huggingface.co/inference) · [Mistral AI](https://mistral.ai/) · remote Ollama · compatible endpoint | Provider-hosted inference — handy without a big GPU; privacy **per the vendor’s terms** (private/enterprise tiers, ToS — read on their side). |
 
-**Quick start**: local Ollama → wizard → `http://127.0.0.1:11434` + model name.  
+**Quick start**: local Ollama → wizard → `http://127.0.0.1:11434` + model name ([hardware](#en-hardware)).  
 **vLLM / LM Studio**: start the server, paste its URL in the wizard (e.g. `http://127.0.0.1:8000` for vLLM).  
 **Cloud**: provider URL + API key in the wizard.
 
 No mandatory KDDS cloud: only the **endpoint you configure** receives inference traffic (aside from IDE version check).
+
+<a id="en-hardware"></a>
+
+### Hardware (local inference)
+
+**Drox IDE** itself is VS Code–like (RAM for UI, `drox.exe`, language services). The heavy part is your **local model**: GPU VRAM (ideal) + system RAM depending on model size and context window (`num_ctx`).
+
+No official minimum spec yet — machines **actually used** for 1.5.x dogfood:
+
+| Machine | GPU | RAM | Notes |
+|---------|-----|-----|-------|
+| **Workstation** | NVIDIA **RTX 3090** · 24 GB VRAM | **96 GB** | High-end — comfortable for larger models and wide context. |
+| **Gaming laptop** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 GB VRAM | *(laptop config)* | More modest but **validated** — pick models that fit 12 GB (quantization, sensible context). |
+
+**Rule of thumb**: little or no VRAM → smaller quantized models (Ollama) or **cloud inference** (above). More VRAM → bigger models; more RAM helps the IDE + CPU offload when needed.
 
 ### Install (end user)
 
