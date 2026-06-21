@@ -1,6 +1,6 @@
 # Drox 1.5.2 — Configuration moteur depuis l’IDE
 
-**Statut** : **en cours** (juin 2026)  
+**Statut** : **spec en cours** (juin 2026)  
 **Prérequis** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) livrée  
 **Branche** : `1.5.2`
 
@@ -8,7 +8,19 @@
 
 ## En une phrase
 
-Rendre la **configuration du moteur Drox** utilisable depuis l’IDE : réglages alignés sur `agent.run` / TUI, sans legacy 1.4 ni panneau trompeur.
+Aligner l’IDE sur le **contrat moteur `tui_mono`** (`agent.run`) : sampling complet dans l’onglet **Architecte**, run agent dans **Général**, **purge** du legacy 1.4 — sans réintroduire l’orchestration `role_split`.
+
+---
+
+## Principe
+
+**Moteur d’abord** — l’UI reflète [`AgentRunParams`](../../../drox/crates/drox-cli/src/jsonrpc/protocol.rs), pas l’inverse.
+
+| Zone UI | Contenu |
+|---------|---------|
+| **Architecte** 🏛 | Modèle, `num_ctx`, **tout le sampling**, `keep_alive` |
+| **Général** ⚙ | Connexion, `max_iterations` (50), thinking, langue, outils, comportement IDE |
+| **Settings Drox** | Miroir + MAJ — **sans** `engine.tuning.*` ni modes 1.4 |
 
 ---
 
@@ -16,7 +28,7 @@ Rendre la **configuration du moteur Drox** utilisable depuis l’IDE : réglages
 
 | Pilier | Sujet |
 |--------|--------|
-| **M1** | Paramètres moteur (sampling, `max_iterations` 50, nettoyage legacy) |
+| **M1** | Config moteur : wire RPC, panneaux, purge legacy |
 
 ---
 
@@ -31,7 +43,7 @@ Rendre la **configuration du moteur Drox** utilisable depuis l’IDE : réglages
 
 ## Docs
 
-- [PLAN-1.5.2.md](PLAN-1.5.2.md)
+- [PLAN-1.5.2.md](PLAN-1.5.2.md) — spec détaillée (cartographie, purge, critères)
 
 ---
 
