@@ -7,7 +7,7 @@
 
 ## En une phrase
 
-Enrichir le **fil de discussion** (diffs fichier, undo/redo), moderniser l’**UX messages utilisateur** et le **composer**, et **réaligner les paramètres moteur** IDE sur le TUI — **sans** release Linux (→ [1.5.3](../1.5.3/README.md)).
+Enrichir le **fil de discussion** (diffs fichier, undo/redo), moderniser l’**UX messages utilisateur** et le **composer**, **réaligner les paramètres moteur** IDE sur le TUI, et — si faisable — le **splash phosphore** au lancement (spec → [animation-start](../../animation-start/README.md)) — **sans** release Linux (→ [1.5.3](../1.5.3/README.md)).
 
 ---
 
@@ -19,6 +19,7 @@ Enrichir le **fil de discussion** (diffs fichier, undo/redo), moderniser l’**U
 | **U1** | Messages utilisateur (copie, style) |
 | **U2** | Composer : textarea auto-grow |
 | **M1** | Paramètres moteur (sampling, `max_iterations` 50, nettoyage legacy) |
+| **A1** | Splash lancement IDE (phosphore TUI — `drox-splash-spec.ts`) |
 | **P2** | Polish trays (optionnel) |
 
 ---
