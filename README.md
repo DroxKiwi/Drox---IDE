@@ -108,7 +108,7 @@ Drox ne fournit pas le modèle : il se connecte à **ton** endpoint via le wizar
 | **Local / perso** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [API OpenAI-compatible](https://platform.openai.com/docs/api-reference) | Modèle sur ton PC, ton NAS ou ton réseau — les prompts partent vers **ta** machine (ou celle que tu configures). Voir **[matériel recommandé](#materiel)** pour l’inférence locale. |
 | **Cloud** | [Hugging Face Inference](https://huggingface.co/inference) · [Mistral AI](https://mistral.ai/) · Ollama distant · endpoint compatible | Inférence hébergée chez le prestataire — pratique sans gros GPU ; confidentialité **selon leurs engagements** (offres privées, entreprise, CGU — à lire côté fournisseur). |
 
-**Démarrage rapide** : Ollama local → wizard → URL `http://127.0.0.1:11434` + nom du modèle ([matériel](#materiel)).  
+**Démarrage rapide** : Ollama local → wizard → URL `http://127.0.0.1:11434` + nom du modèle ([matériel](#materiel) · [modèles testés](#modeles-conseilles)).  
 **vLLM / LM Studio** : lance le serveur, puis indique son URL dans le wizard (ex. `http://127.0.0.1:8000` pour vLLM).  
 **Cloud** : URL + clé API du fournisseur dans le wizard.
 
@@ -126,6 +126,19 @@ Je n’ai pas encore publié de grille minimale officielle — voici les machine
 |---------|-----|-----|----------|
 | **Station de travail** | NVIDIA **RTX 3090** · 24 Go VRAM | **96 Go** | Ma grosse config — confortable pour des modèles plus larges et des contextes élevés. |
 | **Portable gaming** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 Go VRAM | *(mon laptop)* | Je l’**ai aussi testé** ici — je privilégie des modèles adaptés à 12 Go (quantization, contexte raisonnable). |
+
+<a id="modeles-conseilles"></a>
+
+### Modèles conseillés (mes tests dev)
+
+Pendant le développement de Drox 1.5.x, j’ai surtout fait tourner :
+
+| Modèle (tag Ollama) | Quantization | Format que je préfère |
+|---------------------|--------------|------------------------|
+| **`qwen3.6:27b`** | **`q4_K_M`** | **`mtp`** (de préférence) |
+| **`gemma4:26b`** | **`q4_K_M`** | **`it-qat`** |
+
+À **essayer** aussi : des modèles **plus petits**, orientés **code** (variantes Qwen Coder, Gemma code, Devstral, etc.) — pratique sur 12 Go VRAM ou pour des runs agent plus rapides. Je n’ai pas encore figé une short-list : part du tag Ollama qui correspond à ta quantification.
 
 **En pratique** : sans GPU dédié ou avec peu de VRAM, préfère un **petit modèle** quantifié (Ollama) ou bascule sur l’**inférence cloud** (section ci-dessus). Plus de VRAM = modèles plus gros et réponses plus fluides ; plus de RAM aide l’IDE + le chargement des poids quand une partie tourne en CPU.
 
@@ -158,7 +171,7 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 ## Sommaire
 
-**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Drox TUI](#drox-tui)** · **[Guide débutant IDE](#guide-debutant)** · [Matériel](#materiel) · [Product status EN](#en-product-status) · [Drox TUI EN](#en-drox-tui) · [Getting started EN](#en-getting-started) · [Hardware EN](#en-hardware) · [Sovereignty EN](#en-sovereignty)
+**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Drox TUI](#drox-tui)** · **[Guide débutant IDE](#guide-debutant)** · [Matériel](#materiel) · [Modèles](#modeles-conseilles) · [Product status EN](#en-product-status) · [Drox TUI EN](#en-drox-tui) · [Getting started EN](#en-getting-started) · [Hardware EN](#en-hardware) · [Models EN](#en-recommended-models) · [Sovereignty EN](#en-sovereignty)
 
 [Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.5 — tui_mono](#schema-tui-mono)
 
@@ -649,6 +662,19 @@ I haven’t published an official minimum spec yet — machines **I’ve tested*
 |---------|-----|-----|-------|
 | **Workstation** | NVIDIA **RTX 3090** · 24 GB VRAM | **96 GB** | My main rig — comfortable for larger models and wide context. |
 | **Gaming laptop** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 GB VRAM | *(my laptop)* | **I’ve tested here too** — I stick to models that fit 12 GB (quantization, sensible context). |
+
+<a id="en-recommended-models"></a>
+
+### Recommended models (my dev testing)
+
+While building Drox 1.5.x, I mostly ran:
+
+| Model (Ollama tag) | Quantization | Preferred format |
+|--------------------|--------------|------------------|
+| **`qwen3.6:27b`** | **`q4_K_M`** | **`mtp`** (preferred) |
+| **`gemma4:26b`** | **`q4_K_M`** | **`it-qat`** |
+
+Also **worth trying**: **smaller code-oriented** models (Qwen Coder variants, Gemma code, Devstral, etc.) — handy on 12 GB VRAM or for faster agent loops. I haven’t locked a short list yet: pick the Ollama tag that matches your quant build.
 
 **Rule of thumb**: little or no VRAM → smaller quantized models (Ollama) or **cloud inference** (above). More VRAM → bigger models; more RAM helps the IDE + CPU offload when needed.
 
