@@ -13,6 +13,7 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 import { IRequestService } from '../../../../platform/request/common/request.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { DroxSetting, readArchitectModel, updateDroxLlmModelEnum } from '../common/droxConfiguration.js';
+import { droxConfigChangeAffectsArchitectSettings } from '../common/droxChatConfigSync.js';
 import {
 	buildLlmModelListUrl,
 	createDroxLlmHttpGet,
@@ -55,13 +56,7 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 		super();
 
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (
-				e.affectsConfiguration(DroxSetting.ArchitectModel)
-				|| e.affectsConfiguration(DroxSetting.Model)
-				|| e.affectsConfiguration(DroxSetting.NumCtx)
-				|| e.affectsConfiguration(DroxSetting.TopP)
-				|| e.affectsConfiguration(DroxSetting.Temperature)
-			) {
+			if (droxConfigChangeAffectsArchitectSettings(e)) {
 				this._snapshot = { ...this._snapshot, selected: this.readSelectedModel() };
 				this._onDidChange.fire(this._snapshot);
 				return;

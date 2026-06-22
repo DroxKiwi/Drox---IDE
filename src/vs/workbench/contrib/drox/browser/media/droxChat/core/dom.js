@@ -62,6 +62,10 @@
 	D.dom.roleModelPanelMinPEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-min-p'));
 	D.dom.roleModelPanelSeedEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-seed'));
 	D.dom.roleModelPanelTemperatureEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-temperature'));
+	D.dom.roleModelPanelPresencePenaltyEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-presence-penalty'));
+	D.dom.roleModelPanelFrequencyPenaltyEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-frequency-penalty'));
+	D.dom.roleModelPanelMaxTokensEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-max-tokens'));
+	D.dom.roleModelPanelKeepAliveEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-keep-alive'));
 	D.dom.roleModelPanelReloadEl = document.getElementById('role-model-panel-reload');
 	D.dom.llmModelPickerWrapEl = document.getElementById('llm-model-picker-wrap');
 	D.dom.llmModelPickerEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('llm-model-picker'));

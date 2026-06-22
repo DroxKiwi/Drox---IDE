@@ -32,12 +32,16 @@ export function pushLlmModelsSnapshotToWebview(
 		listUrl: snapshot.listUrl,
 		architectModel: role?.architectModel,
 		architectNumCtx: role?.architectNumCtx,
+		architectTemperature: role?.architectTemperature,
 		architectTopP: role?.architectTopP,
 		architectTopK: role?.architectTopK,
 		architectRepeatPenalty: role?.architectRepeatPenalty,
 		architectMinP: role?.architectMinP,
 		architectSeed: role?.architectSeed,
-		architectTemperature: role?.architectTemperature,
+		architectPresencePenalty: role?.architectPresencePenalty,
+		architectFrequencyPenalty: role?.architectFrequencyPenalty,
+		architectMaxTokens: role?.architectMaxTokens,
+		architectKeepAlive: role?.architectKeepAlive,
 	});
 }
 

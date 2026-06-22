@@ -24,8 +24,6 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'setPermissionMode'; readonly permissionMode: string }
 
-	| { readonly type: 'setArchitectInteractionMode'; readonly architectInteractionMode: string }
-
 	| { readonly type: 'setModel'; readonly model: string }
 
 	| { readonly type: 'setArchitectModel'; readonly model: string }
@@ -33,12 +31,16 @@ export type DroxWebviewToHostMessage =
 	| {
 		readonly type: 'setArchitectLlmParams';
 		readonly numCtx?: number;
-		readonly topP?: number;
-		readonly topK?: number;
-		readonly repeatPenalty?: number;
-		readonly minP?: number;
-		readonly seed?: number;
-		readonly temperature?: number;
+		readonly temperature?: number | null;
+		readonly topP?: number | null;
+		readonly topK?: number | null;
+		readonly repeatPenalty?: number | null;
+		readonly minP?: number | null;
+		readonly seed?: number | null;
+		readonly presencePenalty?: number | null;
+		readonly frequencyPenalty?: number | null;
+		readonly maxTokens?: number | null;
+		readonly keepAlive?: string | null;
 	}
 
 	| { readonly type: 'setGeneralSettings'; readonly settings: Record<string, unknown> }
@@ -83,6 +85,8 @@ export type DroxWebviewToHostMessage =
 	| { readonly type: 'revertToMessage'; readonly messageId: string }
 
 	| { readonly type: 'exportTranscript' }
+
+	| { readonly type: 'showReleaseNotes' }
 
 	| IDroxUserAskAnswerMessage;
 
@@ -216,8 +220,6 @@ export type DroxHostToWebviewMessage =
 
 	| { readonly kind: 'permissionMode'; readonly mode: string }
 
-	| { readonly kind: 'architectInteractionMode'; readonly mode: string }
-
 	| { readonly kind: 'runRevert'; readonly canRevert: boolean; readonly fileCount: number }
 
 	| {
@@ -230,12 +232,16 @@ export type DroxHostToWebviewMessage =
 		readonly listUrl?: string;
 		readonly architectModel?: string;
 		readonly architectNumCtx?: number;
+		readonly architectTemperature?: number;
 		readonly architectTopP?: number;
 		readonly architectTopK?: number;
 		readonly architectRepeatPenalty?: number;
 		readonly architectMinP?: number;
 		readonly architectSeed?: number;
-		readonly architectTemperature?: number;
+		readonly architectPresencePenalty?: number;
+		readonly architectFrequencyPenalty?: number;
+		readonly architectMaxTokens?: number;
+		readonly architectKeepAlive?: string;
 	}
 
 	| { readonly kind: 'generalSettings'; readonly settings: Record<string, unknown> }
@@ -265,7 +271,7 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 	const t = (msg as { type?: unknown }).type;
 
-	if (t === 'webviewReady' || t === 'cancelRun' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings' || t === 'resetLlmConnection') {
+	if (t === 'webviewReady' || t === 'cancelRun' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings' || t === 'resetLlmConnection') {
 
 		return true;
 
@@ -282,10 +288,6 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 	if (t === 'setPermissionMode') {
 		return typeof (msg as { permissionMode?: unknown }).permissionMode === 'string';
-	}
-
-	if (t === 'setArchitectInteractionMode') {
-		return typeof (msg as { architectInteractionMode?: unknown }).architectInteractionMode === 'string';
 	}
 
 	if (t === 'setModel' || t === 'setArchitectModel') {

@@ -6,6 +6,12 @@
 (function (D) {
 	const fn = D.fn;
 
+	function applyArchitectNumber(stateKey, value) {
+		if (value !== undefined && value !== null) {
+			D.state[stateKey] = value;
+		}
+	}
+
 	fn.applyRoleModelsFromHost = function(payload) {
 		if (typeof payload.architectModel === 'string') {
 			D.state.architectModel = payload.architectModel.trim();
@@ -13,23 +19,17 @@
 		if (payload.architectNumCtx !== undefined && payload.architectNumCtx !== null) {
 			D.state.architectNumCtx = D.fn.clampArchitectNumCtx(payload.architectNumCtx);
 		}
-		if (payload.architectTopP !== undefined && payload.architectTopP !== null) {
-			D.state.architectTopP = payload.architectTopP;
-		}
-		if (payload.architectTopK !== undefined && payload.architectTopK !== null) {
-			D.state.architectTopK = payload.architectTopK;
-		}
-		if (payload.architectRepeatPenalty !== undefined && payload.architectRepeatPenalty !== null) {
-			D.state.architectRepeatPenalty = payload.architectRepeatPenalty;
-		}
-		if (payload.architectMinP !== undefined && payload.architectMinP !== null) {
-			D.state.architectMinP = payload.architectMinP;
-		}
-		if (payload.architectSeed !== undefined && payload.architectSeed !== null) {
-			D.state.architectSeed = payload.architectSeed;
-		}
-		if (payload.architectTemperature !== undefined && payload.architectTemperature !== null) {
-			D.state.architectTemperature = payload.architectTemperature;
+		applyArchitectNumber('architectTemperature', payload.architectTemperature);
+		applyArchitectNumber('architectTopP', payload.architectTopP);
+		applyArchitectNumber('architectTopK', payload.architectTopK);
+		applyArchitectNumber('architectRepeatPenalty', payload.architectRepeatPenalty);
+		applyArchitectNumber('architectMinP', payload.architectMinP);
+		applyArchitectNumber('architectSeed', payload.architectSeed);
+		applyArchitectNumber('architectPresencePenalty', payload.architectPresencePenalty);
+		applyArchitectNumber('architectFrequencyPenalty', payload.architectFrequencyPenalty);
+		applyArchitectNumber('architectMaxTokens', payload.architectMaxTokens);
+		if (typeof payload.architectKeepAlive === 'string') {
+			D.state.architectKeepAlive = payload.architectKeepAlive;
 		}
 		fn.syncRoleModelVignetteHints();
 		if (D.state.rolePanelOpen === 'architect') {

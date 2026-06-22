@@ -1,35 +1,54 @@
-# Drox 1.5.2 — Diffs fil + UX chat + paramètres moteur
+# Drox 1.5.2 — Configuration moteur depuis l’IDE
 
-**Statut** : **planifié** (juin 2026)  
-**Prérequis** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) clôturée (release Windows + merge `main`)
+**Statut** : **M1 + U1 + L3 livrés** (juin 2026) — smoke manuel avant tag `v1.5.2`  
+**Prérequis** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) livrée  
+**Branche** : `1.5.2`
 
 ---
 
 ## En une phrase
 
-Enrichir le **fil de discussion** (diffs fichier, undo/redo), moderniser l’**UX messages utilisateur** et le **composer**, et **réaligner les paramètres moteur** IDE sur le TUI — **sans** release Linux (→ [1.5.3](../1.5.3/README.md)).
+Aligner l’IDE sur le **contrat moteur `tui_mono`** (`agent.run`) : sampling complet dans l’onglet **Architecte**, run agent dans **Général**, **purge** du legacy 1.4 — sans réintroduire l’orchestration `role_split`.
 
 ---
 
-## Piliers
+## Principe
+
+**Moteur d’abord** — l’UI reflète [`AgentRunParams`](../../../drox/crates/drox-cli/src/jsonrpc/protocol.rs), pas l’inverse.
+
+| Zone UI | Contenu |
+|---------|---------|
+| **Architecte** 🏛 | Modèle, `num_ctx`, **tout le sampling**, `keep_alive` |
+| **Général** ⚙ | Connexion, `max_iterations` (50), thinking, langue, outils, comportement IDE |
+| **Settings Drox** | Miroir + MAJ — **sans** `engine.tuning.*` ni modes 1.4 |
+
+---
+
+## Pilier
 
 | Pilier | Sujet |
 |--------|--------|
-| **D1** | Diffs fichier dans le fil + undo/redo |
-| **U1** | Messages utilisateur (copie, style) |
-| **U2** | Composer : textarea auto-grow |
-| **M1** | Paramètres moteur (sampling, `max_iterations` 50, nettoyage legacy) |
-| **P2** | Polish trays (optionnel) |
+| **M1** | Config moteur : wire RPC, panneaux, purge legacy |
+
+---
+
+## Suite (reportée)
+
+| Version | Périmètre |
+|---------|-----------|
+| [1.5.3](../1.5.3/README.md) | Diffs fil, UX chat, splash phosphore |
+| [1.5.4](../1.5.4/README.md) | Release Linux + Authenticode |
 
 ---
 
 ## Docs
 
-- [PLAN-1.5.2.md](PLAN-1.5.2.md)
+- [PLAN-1.5.2.md](PLAN-1.5.2.md) — spec détaillée (cartographie, purge, critères)
+- [SMOKE-1.5.2-CONFIG-MOTEUR.md](SMOKE-1.5.2-CONFIG-MOTEUR.md) — smoke manuel wire `agent.run`
 
 ---
 
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md) — release Linux
+- [SHIM-MOTEUR-IDE](../1.5.0/SHIM-MOTEUR-IDE.md)

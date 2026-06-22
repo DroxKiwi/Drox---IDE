@@ -1,6 +1,6 @@
 # Drox 1.5.1 — Fil chat = fil TUI
 
-**Statut** : **clôture en cours** (juin 2026) — sources taguées `v1.5.1` · ship Windows restant  
+**Statut** : **livrée** (juin 2026) — [release OR](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.1)  
 **Prérequis** : [1.5.0](../1.5.0/CLOSURE-1.5.0.md) livrée · moteur `tui_mono` · shim RPC
 
 ---
@@ -28,7 +28,7 @@ Il ne reste plus qu’à aligner **l’UI discussion** sur ce que le TUI fait d�
 | In | Hors scope (plus tard) |
 |----|----------------------|
 | Fil de discussion chronologique (parité TUI) | Refonte globale du workbench VS Code |
-| Replay session / réouverture app | Diffs fil + undo → [1.5.2](../1.5.2/README.md) |
+| Replay session / réouverture app | Diffs fil + undo → [1.5.3](../1.5.3/README.md) |
 | **Wizard connexion IA** (cloud / perso, headers) | Paramètres moteur sampling → [1.5.2](../1.5.2/README.md) |
 | `ask_user`, busy, trays outils (polish) | Routage 1.4 (discuss/edit, intent probe) |
 | Signature Authenticode Windows | |
@@ -50,8 +50,9 @@ Il ne reste plus qu’à aligner **l’UI discussion** sur ce que le TUI fait d�
 
 - [PLAN-1.5.1.md](PLAN-1.5.1.md) — chantier détaillé
 - [CLOSURE-1.5.1.md](CLOSURE-1.5.1.md) — clôture (ship Windows en cours)
-- [PLAN 1.5.2](../1.5.2/PLAN-1.5.2.md) — diffs, UX, paramètres moteur
-- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md) — release Linux
+- [PLAN 1.5.2](../1.5.2/PLAN-1.5.2.md) — configuration moteur IDE
+- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md) — diffs, UX, splash
+- [PLAN 1.5.4](../1.5.4/PLAN-1.5.4.md) — release Linux + Authenticode
 
 ---
 

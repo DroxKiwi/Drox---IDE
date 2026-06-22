@@ -9,10 +9,11 @@
 | Dossier | Périmètre | Statut |
 |---------|-----------|--------|
 | [**1.5.0/**](1.5.0/README.md) | Moteur TUI + shim IDE | **Clôturé** · `v1.5.0` |
-| [**1.5.1/**](1.5.1/README.md) | Fil chat / TUI + wizard connexion | **Clôture** · ship Windows + merge `main` |
-| [**1.5.1b/**](1.5.1b/README.md) | Scripts pipeline Linux | **Préparé** · ship → **1.5.3** |
-| [**1.5.2/**](1.5.2/README.md) | Diffs fil + UX user + paramètres moteur | **Planifié** |
-| [**1.5.3/**](1.5.3/README.md) | Release Linux `.deb` | **Planifié** |
+| [**1.5.1/**](1.5.1/README.md) | Fil chat / TUI + wizard connexion | **Livré** · `v1.5.1` |
+| [**1.5.1b/**](1.5.1b/README.md) | Scripts pipeline Linux | **Préparé** · ship → **1.5.4** |
+| [**1.5.2/**](1.5.2/README.md) | Configuration moteur depuis l’IDE | **En cours** · branche `1.5.2` |
+| [**1.5.3/**](1.5.3/README.md) | Diffs fil + UX chat + splash phosphore | **Planifié** |
+| [**1.5.4/**](1.5.4/README.md) | Release Linux `.deb` + signature Windows (SmartScreen) | **Planifié** |
 
 ---
 
@@ -20,8 +21,9 @@
 
 ```text
 1.5.1  fil + wizard  →  clôture (release win, merge main, branche 1.5.2)
-1.5.2  diffs + UX + paramètres moteur
-1.5.3  release Linux
+1.5.2  configuration moteur IDE
+1.5.3  diffs + UX + splash
+1.5.4  release Linux + Authenticode
 ```
 
 ---
@@ -31,5 +33,6 @@
 - [PLAN 1.5.1](1.5.1/PLAN-1.5.1.md)
 - [PLAN 1.5.2](1.5.2/PLAN-1.5.2.md)
 - [PLAN 1.5.3](1.5.3/PLAN-1.5.3.md)
+- [PLAN 1.5.4](1.5.4/PLAN-1.5.4.md)
 - [GUIDE publication Windows](../operations/GUIDE-PUBLICATION-WIN32.md)
 - [GUIDE publication Linux](../operations/GUIDE-PUBLICATION-LINUX.md)
