@@ -10,7 +10,6 @@ import {
 	TelemetryConfiguration,
 } from '../../../../platform/telemetry/common/telemetry.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
-
 /**
  * D1.5 — Opt-out total de la télémétrie Microsoft (niveau produit + réglages utilisateur).
  * L'issue reporter Drox reste disponible via `telemetry.feedback.enabled` (défaut upstream).

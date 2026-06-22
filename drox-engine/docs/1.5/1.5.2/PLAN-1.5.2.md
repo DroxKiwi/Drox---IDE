@@ -8,9 +8,11 @@
 
 | Pilier | Avancement | Bloquant |
 |--------|------------|----------|
-| **M1** Paramètres moteur IDE | 0 % (spec) | config agent |
+| **M1** Paramètres moteur IDE | 100 % (M1-7 tests + smoke doc) | — |
+| **U1** Notes de version 1.5.2 | 100 % | popup lancement + version chat cliquable |
+| **L3** `droxVersion` 1.5.2 | 100 % | `package.json` |
 
-**Hors scope** : diffs fil, UX chat, splash, release Linux → [1.5.3](../1.5.3/PLAN-1.5.3.md) · [1.5.4](../1.5.4/PLAN-1.5.4.md).
+**Hors scope** : diffs fil, splash animé, release Linux → [1.5.3](../1.5.3/PLAN-1.5.3.md) · [1.5.4](../1.5.4/PLAN-1.5.4.md).
 
 ---
 
@@ -186,14 +188,34 @@ Fichiers concernés (implémentation future) : `droxEngineTuning.ts`, `droxEngin
 ## Checklist M1 (après validation spec)
 
 - [x] **M1-1** — Valider cette spec (pas de code avant accord)
-- [ ] **M1-2** — Panneau Architecte : sampling complet + `keep_alive` en release
-- [ ] **M1-3** — Panneau Général : `max_iterations` 50, sans sampling
-- [ ] **M1-4** — `buildAgentRunParams` : wire complet sampling + `keepAlive` ; retirer champs 1.4
-- [ ] **M1-5** — Purge registre Settings + code `engine.tuning` / orchestration 1.4
-- [ ] **M1-6** — `droxConfiguration.ts` : descriptions alignées `tui_mono` (plus de `role_split`)
-- [ ] **M1-7** — Tests + smoke release : changer `top_p` + `max_iterations` → prochain run conforme
+- [x] **M1-2** — Panneau Architecte : sampling complet + `keep_alive` en release
+- [x] **M1-3** — Panneau Général : `max_iterations` 50, sans sampling
+- [x] **M1-4** — `buildAgentRunParams` : wire complet sampling + `keepAlive` ; retirer champs 1.4
+- [x] **M1-5** — Purge registre Settings + code `engine.tuning` / orchestration 1.4
+- [x] **M1-6** — `droxConfiguration.ts` : descriptions alignées `tui_mono` (plus de `role_split`)
+- [x] **M1-7** — Tests + smoke release : changer `top_p` + `max_iterations` → prochain run conforme
 
-**Critère d’acceptation** : installeur release → Architecte expose tout le sampling + keep_alive → Général expose max iterations 50 → Settings Drox sans entrée `engine.tuning` ni `interactionMode` → `agent.run` JSON contient les valeurs modifiées.
+## Checklist U1 — popup nouveautés (fin 1.5.2)
+
+Informer l'utilisateur des changements de la version installée, sans bloquer le démarrage.
+
+| # | Exigence | Détail |
+|---|----------|--------|
+| U1-1 | **Affichage au lancement** | Après restauration du workbench, si `droxVersion` n'a pas été « comprise », modale centrée avec les nouveautés **1.5.2**. |
+| U1-2 | **Bouton Understood** | Enregistre `drox.releaseNotes.seenVersion` (storage application) ; la popup ne réapparaît plus pour cette version. |
+| U1-3 | **Version chat cliquable** | `#drox-chat-version` interactif ; clic rouvre la modale sans réinitialiser le flag « seen ». |
+| U1-4 | **Contenu** | Liste structurée : config moteur (Architecte, max iterations 50, wire `agent.run`), purge legacy 1.4 ; ton neutre. |
+| U1-5 | **Hors modale native** | Overlay workbench Drox (`droxReleaseNotes.css`) — pas de splash plein écran (1.5.3) ; pas de `dialogService` Windows. |
+
+**Fichiers cibles** : `droxReleaseNotesContribution.ts`, `droxReleaseNotes.ts`, bridge webview (clic version), CSS modale.
+
+- [x] **U1-1** — Modale + storage `seenVersion`
+- [x] **U1-2** — Clic version header chat → modale
+- [x] **U1-3** — Contenu 1.5.2 rédigé + i18n
+
+**Critère d’acceptation M1** : installeur release → Architecte expose tout le sampling + keep_alive → Général expose max iterations 50 → Settings Drox sans entrée `engine.tuning` ni `interactionMode` → `agent.run` JSON contient les valeurs modifiées.
+
+**Critère d’acceptation U1** : première ouverture 1.5.2 → popup → Understood → plus de popup au relaunch → clic version chat rouvre la popup.
 
 ---
 
@@ -202,7 +224,12 @@ Fichiers concernés (implémentation future) : `droxEngineTuning.ts`, `droxEngin
 | # | Livrable | Critère |
 |---|----------|---------|
 | M1 | Config moteur IDE | spec ci-dessus implémentée |
-| L3 | `droxVersion` **1.5.2** au ship | `package.json` |
+| U1 | Notes de version 1.5.2 | popup lancement + version chat cliquable |
+| L3 | `droxVersion` **1.5.2** au ship | `package.json` — [x] fait |
+
+**Checklist L3**
+
+- [x] **`droxVersion` `1.5.2`** dans `package.json` (idéalement dès l’ouverture de la branche release)
 
 ---
 
@@ -210,7 +237,7 @@ Fichiers concernés (implémentation future) : `droxEngineTuning.ts`, `droxEngin
 
 ```text
 1.5.1 livrée
-    → 1.5.2 spec config (ce document) → implémentation M1 → tag v1.5.2
+    → 1.5.2 spec config (ce document) → M1 (config moteur) → U1 (popup nouveautés) → tag v1.5.2
         → 1.5.3 diffs + UX + splash
             → 1.5.4 Linux + Authenticode
 ```

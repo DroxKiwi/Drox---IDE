@@ -1,6 +1,6 @@
 # Drox 1.5.2 — Configuration moteur depuis l’IDE
 
-**Statut** : **spec en cours** (juin 2026)  
+**Statut** : **M1 + U1 + L3 livrés** (juin 2026) — smoke manuel avant tag `v1.5.2`  
 **Prérequis** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) livrée  
 **Branche** : `1.5.2`
 
@@ -44,6 +44,7 @@ Aligner l’IDE sur le **contrat moteur `tui_mono`** (`agent.run`) : sampling co
 ## Docs
 
 - [PLAN-1.5.2.md](PLAN-1.5.2.md) — spec détaillée (cartographie, purge, critères)
+- [SMOKE-1.5.2-CONFIG-MOTEUR.md](SMOKE-1.5.2-CONFIG-MOTEUR.md) — smoke manuel wire `agent.run`
 
 ---
 

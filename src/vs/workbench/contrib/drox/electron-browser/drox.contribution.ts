@@ -36,6 +36,8 @@ import { IDroxLlmModelsService } from '../common/droxLlmModelsService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
 import { DroxRunRevertService } from './droxRunRevertService.js';
 import { DroxLlmModelsService } from './droxLlmModelsService.js';
+import { IDroxReleaseNotesService } from '../common/droxReleaseNotesService.js';
+import { DroxReleaseNotesService } from '../browser/droxReleaseNotesService.js';
 import './droxEngineConfigContribution.js';
 import './droxEngineWarmStartContribution.js';
 import './droxEngineWorkbenchContribution.js';
@@ -62,3 +64,4 @@ registerSingleton(IDroxSessionCompactService, DroxSessionCompactService, Instant
 registerSingleton(IDroxLongMemoryService, DroxLongMemoryService, InstantiationType.Delayed);
 registerSingleton(IDroxLlmModelsService, DroxLlmModelsService, InstantiationType.Eager);
 registerSingleton(IDroxRunRevertService, DroxRunRevertService, InstantiationType.Eager);
+registerSingleton(IDroxReleaseNotesService, DroxReleaseNotesService, InstantiationType.Eager);
