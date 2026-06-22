@@ -14,7 +14,7 @@
 | **L3** Smoke Linux | **0 %** | oui |
 | **L4** Doc + RULES | **fait** | non |
 
-**Prochaine étape** : ship effectif → [1.5.3](../1.5.3/PLAN-1.5.3.md).
+**Prochaine étape** : ship effectif → [1.5.4](../1.5.4/PLAN-1.5.4.md).
 
 ---
 
@@ -106,4 +106,4 @@ flowchart LR
 
 - [README 1.5.1b](README.md)
 - [GUIDE-PUBLICATION-LINUX.md](../../operations/GUIDE-PUBLICATION-LINUX.md)
-- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md) — ship Linux
+- [PLAN 1.5.4](../1.5.4/PLAN-1.5.4.md) — ship Linux + Authenticode

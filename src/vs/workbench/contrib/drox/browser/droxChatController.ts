@@ -26,6 +26,7 @@ import { IDroxAttachmentsService } from '../common/droxAttachmentsService.js';
 import { IDroxClientToolsService } from '../common/droxClientToolsService.js';
 import { IDroxEngineService } from '../common/droxEngineService.js';
 import { DroxSetting } from '../common/droxConfiguration.js';
+import { droxConfigChangeAffectsGeneralSettings } from '../common/droxChatConfigSync.js';
 import {
 	getProfessorModeRemovedNotificationMessage,
 	isRemovedProfessorPermissionMode,
@@ -54,6 +55,7 @@ import { pushLlmModelsSnapshotToWebview } from './chat/droxChatLlmModels.js';
 import { IDroxChatWebviewRouterDeps, IDroxChatWebviewRouterHost, routeDroxChatWebviewMessage } from './chat/droxChatWebviewRouter.js';
 import { IDroxLlmModelsService } from '../common/droxLlmModelsService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
+import { IDroxReleaseNotesService } from '../common/droxReleaseNotesService.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { formatDroxChatVersionLabel, formatDroxChatVersionTitle } from '../common/droxProductVersion.js';
 
@@ -99,12 +101,13 @@ export class DroxChatController extends Disposable
 		@IDroxLlmModelsService private readonly llmModelsService: IDroxLlmModelsService,
 		@IDroxRunRevertService private readonly runRevertService: IDroxRunRevertService,
 		@IClipboardService private readonly clipboardService: IClipboardService,
-		@IStorageService storageService: IStorageService,
+		@IStorageService private readonly storageService: IStorageService,
 		@IHostService private readonly hostService: IHostService,
 		@IProductService private readonly productService: IProductService,
+		@IDroxReleaseNotesService private readonly releaseNotesService: IDroxReleaseNotesService,
 	) {
 		super();
-		this._layoutStore = new DroxChatLayoutStore(storageService);
+		this._layoutStore = new DroxChatLayoutStore(this.storageService);
 		this._register(this.droxEngineService.onDidInitialize(() => this.postProductVersionToWebview()));
 		this._tabs = new DroxChatTabsManager(
 			this,
@@ -139,6 +142,12 @@ export class DroxChatController extends Disposable
 				this.runSettingsService,
 				this.configurationService,
 			);
+		}));
+		this._register(this.configurationService.onDidChangeConfiguration(e => {
+			if (!this._webviewReady || !droxConfigChangeAffectsGeneralSettings(e)) {
+				return;
+			}
+			pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService);
 		}));
 		this._register(this.runRevertService.onDidChangeRevertable(() => {
 			if (this._webviewReady) {
@@ -403,6 +412,7 @@ export class DroxChatController extends Disposable
 			clipboardService: this.clipboardService,
 			workspaceContextService: this.workspaceContextService,
 			productService: this.productService,
+			releaseNotesService: this.releaseNotesService,
 		};
 	}
 

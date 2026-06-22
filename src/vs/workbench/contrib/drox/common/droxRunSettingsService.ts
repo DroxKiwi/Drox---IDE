@@ -6,7 +6,6 @@
 import { URI } from '../../../../base/common/uri.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IDroxAgentRunImage } from './droxAttachments.js';
-import { DroxArchitectInteractionMode } from './droxArchitectInteractionMode.js';
 import { DroxPermissionMode } from './droxPermissionAsk.js';
 import { IDroxLlmSettings } from './droxRunSettings.js';
 
@@ -21,7 +20,6 @@ export interface IDroxRunSettingsService {
 	getDisabledToolsForRun(resource?: URI): string[];
 	isMcpToolsEnabled(resource?: URI): boolean;
 	getPermissionMode(resource?: URI): DroxPermissionMode;
-	getArchitectInteractionMode(resource?: URI): DroxArchitectInteractionMode;
 	filterExecutableTools(toolNames: readonly string[], resource?: URI): string[];
 	buildAgentRunParams(opts: {
 		prompt: string;

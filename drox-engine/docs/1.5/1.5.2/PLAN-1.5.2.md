@@ -1,122 +1,221 @@
-# Plan 1.5.2 — Diffs fil + UX utilisateur + paramètres moteur
+# Plan 1.5.2 — Configuration moteur Drox depuis l’IDE
 
 **Version** : juin 2026  
 **Base** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) · moteur `tui_mono` · shim RPC  
-**Branche** : `1.5.2` (ouverte depuis `main` après clôture 1.5.1)
+**Branche** : `1.5.2`
 
 ### État d'avancement
 
 | Pilier | Avancement | Bloquant |
 |--------|------------|----------|
-| **D1** Diffs fil + undo/redo | 0 % | UX mutation |
-| **U1** Messages utilisateur | 0 % | polish |
-| **U2** Composer auto-grow | 0 % | polish |
-| **M1** Paramètres moteur | 0 % | config agent |
-| **P2** Polish trays | 0 % | non |
+| **M1** Paramètres moteur IDE | 100 % (M1-7 tests + smoke doc) | — |
+| **U1** Notes de version 1.5.2 | 100 % | popup lancement + version chat cliquable |
+| **L3** `droxVersion` 1.5.2 | 100 % | `package.json` |
 
-**Hors scope** : release Linux → [1.5.3](../1.5.3/PLAN-1.5.3.md).
+**Hors scope** : diffs fil, splash animé, release Linux → [1.5.3](../1.5.3/PLAN-1.5.3.md) · [1.5.4](../1.5.4/PLAN-1.5.4.md).
 
 ---
 
-## Objectif
+## Principe directeur — moteur d’abord
 
-| In | Hors scope 1.5.2 |
-|----|-------------------|
-| Diffs fichier visibles dans le fil chronologique | Release Linux `.deb` (**1.5.3**) |
-| Undo / redo des edits agent dans le fil | Index / graphe repo |
-| Copie rapide + style messages user | Refonte workbench VS Code |
-| Composer qui grandit avec le texte | Nouveaux champs RPC moteur |
-| Paramètres LLM alignés shim (`agent.run`) | Signature Authenticode |
+> **L’IDE s’adapte au contrat moteur 1.5 (`tui_mono` + `agent.run`). On ne réintroduit pas de surface 1.4.**
 
----
+| Règle | Détail |
+|-------|--------|
+| **Source de vérité** | [`AgentRunParams`](../../../drox/crates/drox-cli/src/jsonrpc/protocol.rs) + application dans [`handlers.rs`](../../../drox/crates/drox-cli/src/jsonrpc/handlers.rs) |
+| **Référence UX** | TUI / CLI — pas le registre Settings historique IDE |
+| **Interdit** | Réexposer orchestration `role_split`, `engine.tuning.*` 1.4, champs RPC **ignorés** par le moteur |
+| **Wire** | Tout paramètre modèle / sampling utile part dans **`agent.run` à chaque message** (pas seulement env au spawn) |
 
-## D1 — Diffs fichier dans le fil
+Référence shim : [SHIM-MOTEUR-IDE](../1.5.0/SHIM-MOTEUR-IDE.md).
 
-Le moteur et les outils IDE produisent déjà des diffs (`unifiedDiff`, event `fileChange`, `12-fileChange.js`). Il manque l’**intégration chronologique** et l’**annulation**.
+### Champs RPC explicitement ignorés par le moteur (ne plus envoyer depuis l’IDE)
 
-### État actuel
-
-| Couche | Fichiers | État |
-|--------|----------|------|
-| Outil `file_write` | `droxFileWriteTool.ts` | diff généré |
-| Event webview | `host-message.js` → `fileChange` | handler existant |
-| Rendu carte | `12-fileChange.js`, CSS `.msg-file-change` | hors fil P0 chronologie |
-| Replay | `droxUiReplayExport.ts` | type `fileChange` |
-
-### Checklist
-
-- [ ] **D1-1** — Monter `fileChange` dans `chronology.js` / fil P0 (ordre TUI)
-- [ ] **D1-2** — Afficher diff unifié repliable inline (`renderDiffLines`)
-- [ ] **D1-3** — Lier `applied: true/false` du `tool_finish` à l’état visuel
-- [ ] **D1-4** — **Undo** : revert fichier depuis la carte diff
-- [ ] **D1-5** — **Redo** : réappliquer le patch
-- [ ] **D1-6** — Persistance undo stack par session · smoke mutation fichier
-
-**Critère** : run « modifie README » → diff dans le fil → undo restaure → redo réapplique.
+| Champ | Statut |
+|-------|--------|
+| `orchestrationMode` | Ignoré — log debug |
+| `orchestrationMaxParallelExecutors` | Ignoré |
+| `architectInteractionMode` | Ignoré |
+| Objet `engineTuning` (legacy wire 1.4) | Non consommé — **ne pas recâbler** |
 
 ---
 
-## U1 — Interaction & style messages utilisateur
+## Problème utilisateur (1.5.1 → 1.5.2)
 
-| # | Tâche | Détail |
-|---|--------|--------|
-| U1-1 | Icône **copier** sur chaque message user | clic → clipboard |
-| U1-2 | Refonte CSS bulle user | typo, padding, contraste |
-| U1-3 | Hover / focus accessibles | `droxChatMvp.css`, `stream/messages/user.js` |
-
-**Fichiers** : `stream/messages/user.js`, `droxChatMvp.css`, `host-message.js`.
-
----
-
-## U2 — Composer auto-grow
-
-| # | Tâche | Détail |
-|---|--------|--------|
-| U2-1 | Textarea composer : hauteur auto | min 1–2 lignes, max ~8–12 puis scroll interne |
-| U2-2 | Recalcul saisie / paste / reset après envoi | |
-| U2-3 | Layout sticky footer intact | |
-
-**Fichiers** : `droxChatWebview.ts`, JS composer, `droxChatMvp.css`.
+| Constat | Cause |
+|---------|--------|
+| Wizard connexion OK | 1.5.1 livré |
+| Sampling invisible en release | Gate `advancedLlmSettings` + champs HTML masqués |
+| `max_iterations` bloqué à **12** | Défaut produit + non exposé en release |
+| Settings VS Code trompeurs | Clés 1.4 (`interactionMode`, `engine.tuning.*`) encore présentes ou documentées |
+| Sampling partiellement inactif | `buildAgentRunParams` n’envoie pas `topP`, `repeatPenalty`, etc. dans le JSON RPC |
 
 ---
 
-## M1 — Paramètres moteur Drox (alignement TUI)
+## Cartographie UI cible
 
-Réglages `drox.engine.tuning.*` et orchestration 1.4 **ignorés** par le moteur TUI. L’UI doit refléter `agent.run` ([`protocol.rs`](../../../drox/crates/drox-cli/src/jsonrpc/protocol.rs)).
+### Onglet **Architecte** (vignette 🏛) — « comment tourne le modèle »
 
-### Defaults produit
+Tout le **sampling** + **`keep_alive`** vit ici. Visible en **release** (fin du gate dev-only sur ces champs).
 
-| Paramètre | Aujourd’hui | Cible 1.5.2 |
-|-----------|-------------|-------------|
-| `max_iterations` | **12** | **50** |
-| `top_p`, `repeat_penalty`, `top_k`, `min_p` | partiel / dev | exposés utilisateur |
-| `drox.engine.tuning.*` | visible | **deprecated** / masqué |
+| # | Paramètre | Clé settings | Champ `agent.run` | Notes |
+|---|-----------|--------------|-------------------|--------|
+| A1 | Modèle | `drox.architect.model` | `model` | Liste depuis `drox.server` |
+| A2 | Fenêtre de contexte | `drox.numCtx` | `numCtx` | Presets + custom (déjà en place) |
+| A3 | Température | `drox.temperature` | `temperature` | Optionnel — défaut serveur si vide |
+| A4 | Top-p | `drox.topP` | `topP` | Ollama / compatible |
+| A5 | Top-k | `drox.topK` | `topK` | |
+| A6 | Repeat penalty | `drox.repeatPenalty` | `repeatPenalty` | Important pour le code |
+| A7 | Min-p | `drox.minP` | `minP` | Modèles récents |
+| A8 | Seed | `drox.seed` | `seed` | Reproductibilité |
+| A9 | Presence penalty | `drox.presencePenalty` | `presencePenalty` | Si backend supporte |
+| A10 | Frequency penalty | `drox.frequencyPenalty` | `frequencyPenalty` | Si backend supporte |
+| A11 | Max tokens (tour) | `drox.maxTokens` | `maxTokens` | **Seul** plafond de sortie — moteur mappe vers `num_predict` Ollama |
+| A12 | **Keep alive** | `drox.keepAlive` | `keepAlive` | Ex. `30m`, `0`, `-1` — modèle reste chargé Ollama |
 
-### Paramètres à exposer
+**Organisation panneau (spec UX)**
 
-- `max_iterations`, `temperature`, `max_tokens`, `num_ctx`
-- `top_p`, `top_k`, `repeat_penalty`, `min_p`
-- `presence_penalty`, `frequency_penalty`, `native_thinking`
-- `disabled_tools`, `mcp_tools_enabled`, `subagents_*`
+1. Modèle + recharger la liste  
+2. Contexte (`num_ctx`)  
+3. Sampling (température, top_p, repeat_penalty, min_p, top_k, seed, pénalités)  
+4. Sortie — **max tokens** (un seul champ ; pas de `drox.numPredict` séparé)  
+5. Keep alive  
 
-### Checklist
+Champs vides = **ne pas envoyer** la clé RPC (défaut serveur / modèle), pas `0` arbitraire.
 
-- [ ] **M1-1** — Audit settings IDE vs `AgentRunParams`
-- [ ] **M1-2** — `DROX_DEFAULT_MAX_ITERATIONS = 50`
-- [ ] **M1-3** — Panneau General settings : section Engine / Sampling
-- [ ] **M1-4** — Masquer legacy 1.4 (`engine.tuning`, orchestration ignorés)
-- [ ] **M1-5** — `droxConfiguration.ts` descriptions à jour
-- [ ] **M1-6** — Tests + smoke avec `top_p` / `repeat_penalty` modifiés
+### Panneau **Général** (vignette ⚙) — « comment tourne le run / l’IDE »
 
-**Fichiers** : `droxProductDefaults.ts`, `droxRunSettings.ts`, `droxChatGeneralSettings.ts`, `panel.js`, `droxConfiguration.ts`.
+Pas de sampling ici (déplacé Architecte).
+
+| # | Paramètre | Clé settings | Champ `agent.run` / effet |
+|---|-----------|--------------|---------------------------|
+| G1 | Connexion LLM | wizard + `drox.server`, `drox.apiKey`, `drox.llmHeaders`, `drox.llmProvider`, `drox.llmHosting` | `server`, `apiKey`, `headers` |
+| G2 | **Max iterations** | `drox.maxIterations` | `maxIterations` — défaut **50** |
+| G3 | Native thinking | `drox.nativeThinking` | `nativeThinking` |
+| G4 | Langue | `drox.primaryLanguage` | env / prompt (comme aujourd’hui) |
+| G5 | Outils désactivés | `drox.tools.disabled` | `disabledTools` |
+| G6 | MCP | `drox.tools.mcp.enabled` | `mcpToolsEnabled` |
+| G7 | Warm start | `drox.warmStart` | IDE seulement |
+| G8 | Confirm file writes | `drox.confirmFileWrites` | IDE seulement |
+| G9 | Open modified files | `drox.openModifiedFiles` | IDE seulement |
+| G10 | Diagnostics hover | `drox.addDiagnosticOnHover` | IDE seulement |
+| G11 | Erreurs dans le fil | `drox.chat.showErrorsAndWarnings` | IDE seulement |
+
+### Composer (vignettes mode) — inchangé
+
+| Paramètre | Clé | `agent.run` |
+|-----------|-----|-------------|
+| Analyze / Trust edit / I'm not crazy | `drox.permissionMode` | `mode` + `applyEdits` |
+
+Pas de doublon dans Settings pour un mode « architecte discuss/action » 1.4.
+
+### Settings VS Code — onglet **Drox**
+
+Miroir des clés ci-dessus + MAJ / notifications. **Même périmètre** que les panneaux chat — pas de section tuning 1.4.
 
 ---
 
-## P2 — Polish trays (optionnel)
+## Paramètres moteur valides mais hors UI 1.5.2
 
-- [ ] **P2-1** — Fichiers édités repliés dans le tray
-- [ ] **P2-2** — Lignes « Ran » / layout outils
-- [ ] **P2-3** — Questionnaire `ask_user`
+Présents dans `AgentRunParams`, utilisables plus tard — **pas** dans Settings ni panneaux cette version :
+
+| Champ | Raison report |
+|-------|----------------|
+| `subagentsEnabled`, `subagentsMaxIterations`, `subagentsMaxConcurrent` | Feature `task` — pas prioritaire config utilisateur 1.5.2 |
+| `runObjective` | Heuristique client interne |
+| `allow` / `ask` / `deny` | Permissions CLI — `.drox/settings.json` |
+
+---
+
+## Purge — legacy 1.4 et faux réglages
+
+### À retirer du registre Settings (et ne plus documenter)
+
+| Clé | Motif |
+|-----|--------|
+| `drox.architect.interactionMode` | Orchestration 1.4 — RPC ignoré |
+| `drox.executor.model` | Rôle exécuteur 1.4 |
+| `drox.orchestration.maxParallelExecutors` | Orchestration 1.4 |
+| `drox.subagents.*` (toute la famille) | Hors UI 1.5.2 ; pas de réglage orphelin dans Settings |
+| `drox.engine.strictness` | Jamais wire moteur TUI |
+| `drox.numPredict` | Doublon de `drox.maxTokens` — **supprimer** ; migration lecture → `maxTokens` |
+| **`drox.engine.tuning.*`** (≈ 45 clés) | Profil moteur 1.4 — `wireEngineTuningForRpc` mort |
+
+### `drox.engine.tuning.*` — liste complète à purger
+
+Non enregistrées aujourd’hui dans le registre VS Code, mais clés et schémas encore dans le code — **supprimer** (enum, fichiers config, tests) :
+
+- `readBudgetPercent`, `maxReadsBeforeDelegate`, `maxMutationsBeforeDelegateNudge`, `minDelegateInstructionsLen`, `maxDelegateScopePaths`, `delegateScopeMaxFiles`
+- `promotableAnswerMinChars`, `discussionPromotableMinChars`, `discussionAutoStopOnReply`
+- `intentMaxIterations`, `discussionMaxIterations`, `loopStrikesBeforeAbort`, `maxDelegationsPerTask`
+- `maxToolsPerTurnArchitect`, `maxToolsPerTurnDiscussion`, `maxToolsPerTurnIntent`, `maxToolsPerTurnExecutor`, `maxParallelToolCalls`, `maxConsecutiveAskUserFailures`
+- `maxTodoItems`, `memoryBudgetTokens`, `requireDelegateBeforeTodoComplete`, `requireWorkspaceMapBeforeDelegate`
+- `minDeliverableBytes`, `executorDeliverableExcerptMaxChars`, `executorSubrunMaxIterations`
+- `liveCompactTailKeepMessages`, `liveCompactMaxTailRatio`, `liveCompactMinPrefixTokens`, `liveCompactMaxPasses`
+- `checkpointMaxChars`, `anchorUserRequestMaxChars`, `anchorPlanMaxItems`
+- `summarizeToolResultTruncate`, `reinjectToolResultTruncate`, `contextSnipEnabled`
+- `executorGlobHeavyBlocked`, `executorAskUserBlocked`, `executorTodoWriteBlocked`, `executorDeliverableMetBlocked`
+- `gateDoneRequiresAnswering`, `gateTestingAfterCodeMutation`, `gateTodoRecreationBlocked`, `gateProfessorCoursePlan`, `gateTodoStaleBeforeDone`
+
+Fichiers concernés (implémentation future) : `droxEngineTuning.ts`, `droxEngineTuningConfiguration.ts`, entrées `DroxSetting.EngineTuning*` dans `droxConfiguration.ts`.
+
+### Dépréciation douce (lecture seule)
+
+| Clé | Traitement |
+|-----|------------|
+| `drox.model` | Conserver **lecture** repli → `drox.architect.model` ; retirer du registre UI |
+
+### Code IDE à nettoyer (implémentation future)
+
+- Supprimer envoi `orchestrationMode: 'role_split'` dans `buildAgentRunParams`
+- Supprimer gate `advancedLlmSettings` pour les clés **Architecte** et **max_iterations** (release = même surface qu’en dev)
+- Passer **tous** les champs Architecte dans `buildAgentRunParams` (pas uniquement `llmSettingsToEnv` au spawn)
+- Fusionner `drox.numPredict` → `drox.maxTokens` (wire RPC `maxTokens` uniquement)
+
+---
+
+## Defaults produit 1.5.2
+
+| Paramètre | Aujourd’hui | Cible |
+|-----------|-------------|--------|
+| `max_iterations` | 12 | **50** |
+| Sampling Architecte | dev-only / non wire | **release**, wire RPC |
+| `keep_alive` | dev-only General | **Architecte**, release |
+| Moteur défaut interne (`handlers` `unwrap_or(12)`) | 12 | **Aligner doc** ; l’IDE envoie 50 — évolution moteur optionnelle hors 1.5.2 |
+
+---
+
+## Checklist M1 (après validation spec)
+
+- [x] **M1-1** — Valider cette spec (pas de code avant accord)
+- [x] **M1-2** — Panneau Architecte : sampling complet + `keep_alive` en release
+- [x] **M1-3** — Panneau Général : `max_iterations` 50, sans sampling
+- [x] **M1-4** — `buildAgentRunParams` : wire complet sampling + `keepAlive` ; retirer champs 1.4
+- [x] **M1-5** — Purge registre Settings + code `engine.tuning` / orchestration 1.4
+- [x] **M1-6** — `droxConfiguration.ts` : descriptions alignées `tui_mono` (plus de `role_split`)
+- [x] **M1-7** — Tests + smoke release : changer `top_p` + `max_iterations` → prochain run conforme
+
+## Checklist U1 — popup nouveautés (fin 1.5.2)
+
+Informer l'utilisateur des changements de la version installée, sans bloquer le démarrage.
+
+| # | Exigence | Détail |
+|---|----------|--------|
+| U1-1 | **Affichage au lancement** | Après restauration du workbench, si `droxVersion` n'a pas été « comprise », modale centrée avec les nouveautés **1.5.2**. |
+| U1-2 | **Bouton Understood** | Enregistre `drox.releaseNotes.seenVersion` (storage application) ; la popup ne réapparaît plus pour cette version. |
+| U1-3 | **Version chat cliquable** | `#drox-chat-version` interactif ; clic rouvre la modale sans réinitialiser le flag « seen ». |
+| U1-4 | **Contenu** | Liste structurée : config moteur (Architecte, max iterations 50, wire `agent.run`), purge legacy 1.4 ; ton neutre. |
+| U1-5 | **Hors modale native** | Overlay workbench Drox (`droxReleaseNotes.css`) — pas de splash plein écran (1.5.3) ; pas de `dialogService` Windows. |
+
+**Fichiers cibles** : `droxReleaseNotesContribution.ts`, `droxReleaseNotes.ts`, bridge webview (clic version), CSS modale.
+
+- [x] **U1-1** — Modale + storage `seenVersion`
+- [x] **U1-2** — Clic version header chat → modale
+- [x] **U1-3** — Contenu 1.5.2 rédigé + i18n
+
+**Critère d’acceptation M1** : installeur release → Architecte expose tout le sampling + keep_alive → Général expose max iterations 50 → Settings Drox sans entrée `engine.tuning` ni `interactionMode` → `agent.run` JSON contient les valeurs modifiées.
+
+**Critère d’acceptation U1** : première ouverture 1.5.2 → popup → Understood → plus de popup au relaunch → clic version chat rouvre la popup.
 
 ---
 
@@ -124,22 +223,23 @@ Réglages `drox.engine.tuning.*` et orchestration 1.4 **ignorés** par le moteur
 
 | # | Livrable | Critère |
 |---|----------|---------|
-| D1 | Diffs + undo/redo | smoke mutation + revert |
-| U1 | UX user messages | copie 1 clic + style modernisé |
-| U2 | Composer | long message sans scroll textarea |
-| M1 | Paramètres moteur | 50 iter · sampling exposé |
-| L3 | `droxVersion` **1.5.2** au ship | `package.json` |
+| M1 | Config moteur IDE | spec ci-dessus implémentée |
+| U1 | Notes de version 1.5.2 | popup lancement + version chat cliquable |
+| L3 | `droxVersion` **1.5.2** au ship | `package.json` — [x] fait |
+
+**Checklist L3**
+
+- [x] **`droxVersion` `1.5.2`** dans `package.json` (idéalement dès l’ouverture de la branche release)
 
 ---
 
 ## Séquence
 
 ```text
-1.5.1 clôture (ship win + merge main)
-    → branche 1.5.2
-        → D1 + U1 + U2 + M1
-        → tag v1.5.2
-            → 1.5.3 Linux
+1.5.1 livrée
+    → 1.5.2 spec config (ce document) → M1 (config moteur) → U1 (popup nouveautés) → tag v1.5.2
+        → 1.5.3 diffs + UX + splash
+            → 1.5.4 Linux + Authenticode
 ```
 
 ---
@@ -147,5 +247,6 @@ Réglages `drox.engine.tuning.*` et orchestration 1.4 **ignorés** par le moteur
 ## Liens
 
 - [README 1.5.2](README.md)
-- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md)
 - [SHIM-MOTEUR-IDE](../1.5.0/SHIM-MOTEUR-IDE.md)
+- [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md)
+- [PLAN 1.5.4](../1.5.4/PLAN-1.5.4.md)

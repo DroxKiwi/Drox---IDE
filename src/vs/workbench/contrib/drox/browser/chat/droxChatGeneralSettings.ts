@@ -2,21 +2,15 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-
 // allow-any-unicode-comment-file
-
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
-import product from '../../../../../platform/product/common/product.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
-import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
-import { DROX_DEFAULT_MAX_ITERATIONS } from '../../common/droxProductDefaults.js';
 import { readLlmProvider } from '../../common/droxLlmCatalog.js';
 import { readLlmHeadersMap } from '../../common/droxLlmHeaders.js';
 import { isMcpToolsEnabled, readLlmSettings } from '../../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { formatDroxConnectionSummary, normalizeDroxLlmHosting } from './droxConnectionCatalog.js';
-
 export interface IDroxGeneralSettingsWire {
 	readonly llmHosting: string;
 	readonly llmProvider: string;
@@ -27,9 +21,6 @@ export interface IDroxGeneralSettingsWire {
 	readonly maxIterations: number;
 	readonly nativeThinking: boolean;
 	readonly primaryLanguage: string;
-	readonly maxTokens?: number;
-	readonly numPredict?: number;
-	readonly keepAlive: string;
 	readonly warmStart: boolean;
 	readonly confirmFileWrites: boolean;
 	readonly openModifiedFiles: boolean;
@@ -37,7 +28,6 @@ export interface IDroxGeneralSettingsWire {
 	readonly mcpToolsEnabled: boolean;
 	readonly showChatErrorsAndWarnings: boolean;
 }
-
 export interface IDroxGeneralSettingsPatch {
 	readonly llmHosting?: string;
 	readonly llmProvider?: string;
@@ -47,9 +37,6 @@ export interface IDroxGeneralSettingsPatch {
 	readonly maxIterations?: number;
 	readonly nativeThinking?: boolean;
 	readonly primaryLanguage?: string;
-	readonly maxTokens?: number;
-	readonly numPredict?: number;
-	readonly keepAlive?: string;
 	readonly warmStart?: boolean;
 	readonly confirmFileWrites?: boolean;
 	readonly openModifiedFiles?: boolean;
@@ -57,11 +44,9 @@ export interface IDroxGeneralSettingsPatch {
 	readonly mcpToolsEnabled?: boolean;
 	readonly showChatErrorsAndWarnings?: boolean;
 }
-
 export interface IDroxChatGeneralSettingsHost {
 	post(message: DroxHostToWebviewMessage): void;
 }
-
 function readBool(
 	configService: IConfigurationService,
 	key: string,
@@ -71,7 +56,6 @@ function readBool(
 	const v = configService.getValue<boolean>(key, { resource });
 	return typeof v === 'boolean' ? v : defaultValue;
 }
-
 export function readDroxGeneralSettingsForWebview(
 	deps: Pick<{ runSettingsService: IDroxRunSettingsService }, 'runSettingsService'> & {
 		configurationService: IConfigurationService;
@@ -82,20 +66,15 @@ export function readDroxGeneralSettingsForWebview(
 	const provider = readLlmProvider(deps.configurationService, resource);
 	const hosting = normalizeDroxLlmHosting(deps.configurationService.getValue<string>(DroxSetting.LlmHosting, { resource }));
 	const llmHeaders = readLlmHeadersMap(deps.configurationService, resource);
-	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
-
 	const wire: Omit<IDroxGeneralSettingsWire, 'connectionSummary'> = {
 		llmHosting: hosting,
 		llmProvider: provider,
 		server: llm.server,
 		apiKey: llm.apiKey,
 		llmHeaders,
-		maxIterations: advanced ? llm.maxIterations : DROX_DEFAULT_MAX_ITERATIONS,
+		maxIterations: llm.maxIterations,
 		nativeThinking: llm.nativeThinking,
 		primaryLanguage: llm.primaryLanguage,
-		maxTokens: advanced ? llm.maxTokens : undefined,
-		numPredict: advanced ? llm.numPredict : undefined,
-		keepAlive: advanced ? llm.keepAlive : '',
 		warmStart: readBool(deps.configurationService, DroxSetting.WarmStart, resource, true),
 		confirmFileWrites: readBool(deps.configurationService, DroxSetting.ConfirmFileWrites, resource, false),
 		openModifiedFiles: readBool(deps.configurationService, DroxSetting.OpenModifiedFiles, resource, true),
@@ -103,13 +82,11 @@ export function readDroxGeneralSettingsForWebview(
 		mcpToolsEnabled: isMcpToolsEnabled(deps.configurationService, resource),
 		showChatErrorsAndWarnings: readBool(deps.configurationService, DroxSetting.ChatShowErrorsAndWarnings, resource, true),
 	};
-
 	return {
 		...wire,
 		connectionSummary: formatDroxConnectionSummary(wire),
 	};
 }
-
 export function pushGeneralSettingsToWebview(
 	host: IDroxChatGeneralSettingsHost,
 	runSettingsService: IDroxRunSettingsService,
@@ -120,7 +97,6 @@ export function pushGeneralSettingsToWebview(
 		settings: readDroxGeneralSettingsForWebview({ runSettingsService, configurationService }) as unknown as Record<string, unknown>,
 	});
 }
-
 export async function setDroxGeneralSettingsFromWebview(
 	deps: Pick<{ runSettingsService: IDroxRunSettingsService }, 'runSettingsService'> & {
 		configurationService: IConfigurationService;
@@ -128,7 +104,6 @@ export async function setDroxGeneralSettingsFromWebview(
 	patch: IDroxGeneralSettingsPatch,
 ): Promise<void> {
 	const resource = deps.runSettingsService.getWorkspaceResource();
-	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 	const update = async (key: string, value: unknown): Promise<void> => {
 		await deps.configurationService.updateValue(key, value, { resource });
 	};
@@ -156,7 +131,7 @@ export async function setDroxGeneralSettingsFromWebview(
 		}
 		await update(DroxSetting.LlmHeaders, cleaned);
 	}
-	if (patch.maxIterations !== undefined && advanced && Number.isFinite(patch.maxIterations)) {
+	if (patch.maxIterations !== undefined && Number.isFinite(patch.maxIterations)) {
 		await update(DroxSetting.MaxIterations, Math.min(200, Math.max(1, Math.floor(patch.maxIterations))));
 	}
 	if (patch.nativeThinking !== undefined) {
@@ -164,17 +139,6 @@ export async function setDroxGeneralSettingsFromWebview(
 	}
 	if (patch.primaryLanguage !== undefined) {
 		await update(DroxSetting.PrimaryLanguage, String(patch.primaryLanguage).trim());
-	}
-	if (patch.maxTokens !== undefined && advanced) {
-		const n = patch.maxTokens;
-		await update(DroxSetting.MaxTokens, n === undefined || !Number.isFinite(n) ? undefined : Math.max(1, Math.floor(n)));
-	}
-	if (patch.numPredict !== undefined && advanced) {
-		const n = patch.numPredict;
-		await update(DroxSetting.NumPredict, n === undefined || !Number.isFinite(n) ? undefined : Math.max(1, Math.floor(n)));
-	}
-	if (patch.keepAlive !== undefined && advanced) {
-		await update(DroxSetting.KeepAlive, String(patch.keepAlive).trim());
 	}
 	if (patch.warmStart !== undefined) {
 		await update(DroxSetting.WarmStart, Boolean(patch.warmStart));

@@ -6,6 +6,10 @@
 (function (D) {
 	const fn = D.fn;
 
+	function formatPanelNumber(value) {
+		return value !== '' && value !== undefined && value !== null ? String(value) : '';
+	}
+
 	fn.openRoleModelPanel = function() {
 		if (typeof fn.isArchitectVignetteBlocked === 'function' && fn.isArchitectVignetteBlocked()) {
 			if (typeof fn.redirectToConnectionSetup === 'function') {
@@ -30,41 +34,35 @@
 		if (D.dom.roleModelPanelNumCtxEl) {
 			fn.syncArchitectNumCtxPanelFromState();
 		}
-		if (D.dom.roleModelPanelTopPEl) {
-			D.dom.roleModelPanelTopPEl.value =
-				D.state.architectTopP !== '' && D.state.architectTopP !== undefined
-					? String(D.state.architectTopP)
-					: '';
+		if (D.dom.roleModelPanelTemperatureEl) {
+			D.dom.roleModelPanelTemperatureEl.value = formatPanelNumber(D.state.architectTemperature);
 		}
-		if (D.dom.roleModelPanelTopKEl) {
-			D.dom.roleModelPanelTopKEl.value =
-				D.state.architectTopK !== '' && D.state.architectTopK !== undefined
-					? String(D.state.architectTopK)
-					: '';
+		if (D.dom.roleModelPanelTopPEl) {
+			D.dom.roleModelPanelTopPEl.value = formatPanelNumber(D.state.architectTopP);
 		}
 		if (D.dom.roleModelPanelRepeatPenaltyEl) {
-			D.dom.roleModelPanelRepeatPenaltyEl.value =
-				D.state.architectRepeatPenalty !== '' && D.state.architectRepeatPenalty !== undefined
-					? String(D.state.architectRepeatPenalty)
-					: '';
+			D.dom.roleModelPanelRepeatPenaltyEl.value = formatPanelNumber(D.state.architectRepeatPenalty);
 		}
 		if (D.dom.roleModelPanelMinPEl) {
-			D.dom.roleModelPanelMinPEl.value =
-				D.state.architectMinP !== '' && D.state.architectMinP !== undefined
-					? String(D.state.architectMinP)
-					: '';
+			D.dom.roleModelPanelMinPEl.value = formatPanelNumber(D.state.architectMinP);
+		}
+		if (D.dom.roleModelPanelTopKEl) {
+			D.dom.roleModelPanelTopKEl.value = formatPanelNumber(D.state.architectTopK);
 		}
 		if (D.dom.roleModelPanelSeedEl) {
-			D.dom.roleModelPanelSeedEl.value =
-				D.state.architectSeed !== '' && D.state.architectSeed !== undefined
-					? String(D.state.architectSeed)
-					: '';
+			D.dom.roleModelPanelSeedEl.value = formatPanelNumber(D.state.architectSeed);
 		}
-		if (D.dom.roleModelPanelTemperatureEl) {
-			D.dom.roleModelPanelTemperatureEl.value =
-				D.state.architectTemperature !== '' && D.state.architectTemperature !== undefined
-					? String(D.state.architectTemperature)
-					: '';
+		if (D.dom.roleModelPanelPresencePenaltyEl) {
+			D.dom.roleModelPanelPresencePenaltyEl.value = formatPanelNumber(D.state.architectPresencePenalty);
+		}
+		if (D.dom.roleModelPanelFrequencyPenaltyEl) {
+			D.dom.roleModelPanelFrequencyPenaltyEl.value = formatPanelNumber(D.state.architectFrequencyPenalty);
+		}
+		if (D.dom.roleModelPanelMaxTokensEl) {
+			D.dom.roleModelPanelMaxTokensEl.value = formatPanelNumber(D.state.architectMaxTokens);
+		}
+		if (D.dom.roleModelPanelKeepAliveEl) {
+			D.dom.roleModelPanelKeepAliveEl.value = D.state.architectKeepAlive ? String(D.state.architectKeepAlive) : '';
 		}
 		const rect = vignette.getBoundingClientRect();
 		panel.style.left = `${Math.max(8, rect.left - 8)}px`;
