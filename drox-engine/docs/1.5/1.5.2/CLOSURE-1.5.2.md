@@ -27,6 +27,7 @@
 | R3 | Manifeste `stable/latest.json` + `RELEASE_NOTES.md` | ✅ |
 | R4 | Tag sources `v1.5.2` sur `main` | ✅ |
 | R5 | PR [#2](https://github.com/DroxKiwi/Drox---IDE/pull/2) mergée (`main`) | ✅ |
+| R6 | Branche **`1.5.3`** ouverte | ✅ |
 
 **Installeur** : `Drox-IDE-Setup-1.5.2-win32-x64.exe` (~269 Mo)
 

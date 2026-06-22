@@ -1,7 +1,7 @@
 # Drox 1.5.3 — Diffs fil + UX chat + splash phosphore
 
-**Statut** : **planifié** (juin 2026)  
-**Prérequis** : [1.5.2](../1.5.2/PLAN-1.5.2.md) livrée (configuration moteur IDE)
+**Statut** : **en cours** (juin 2026) · branche `1.5.3`  
+**Prérequis** : [1.5.2](../1.5.2/CLOSURE-1.5.2.md) livrée (configuration moteur IDE)
 
 ---
 

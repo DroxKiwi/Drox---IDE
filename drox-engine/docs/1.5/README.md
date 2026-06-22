@@ -11,8 +11,8 @@
 | [**1.5.0/**](1.5.0/README.md) | Moteur TUI + shim IDE | **Clôturé** · `v1.5.0` |
 | [**1.5.1/**](1.5.1/README.md) | Fil chat / TUI + wizard connexion | **Livré** · `v1.5.1` |
 | [**1.5.1b/**](1.5.1b/README.md) | Scripts pipeline Linux | **Préparé** · ship → **1.5.4** |
-| [**1.5.2/**](1.5.2/README.md) | Configuration moteur depuis l’IDE | **En cours** · branche `1.5.2` |
-| [**1.5.3/**](1.5.3/README.md) | Diffs fil + UX chat + splash phosphore | **Planifié** |
+| [**1.5.2/**](1.5.2/README.md) | Configuration moteur depuis l’IDE | **Livré** · `v1.5.2` |
+| [**1.5.3/**](1.5.3/README.md) | Diffs fil + UX chat + splash phosphore | **En cours** · branche `1.5.3` |
 | [**1.5.4/**](1.5.4/README.md) | Release Linux `.deb` + signature Windows (SmartScreen) | **Planifié** |
 
 ---
@@ -21,7 +21,7 @@
 
 ```text
 1.5.1  fil + wizard  →  clôture (release win, merge main, branche 1.5.2)
-1.5.2  configuration moteur IDE
+1.5.2  configuration moteur IDE  →  clôture (release win, merge main, branche 1.5.3)
 1.5.3  diffs + UX + splash
 1.5.4  release Linux + Authenticode
 ```
