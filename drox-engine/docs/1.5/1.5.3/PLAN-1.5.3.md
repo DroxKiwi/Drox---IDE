@@ -1,90 +1,185 @@
-# Plan 1.5.3 — Release Linux (repo OR)
+# Plan 1.5.3 — Diffs fil + UX utilisateur + splash phosphore
 
 **Version** : juin 2026  
-**Base** : [1.5.2](../1.5.2/PLAN-1.5.2.md) · pipeline préparé [1.5.1b](../1.5.1b/PLAN-1.5.1b.md)  
-**Branche** : `1.5.3` · tag **`v1.5.3`** sur `Drox---IDE---OR`
+**Base** : [1.5.2](../1.5.2/PLAN-1.5.2.md) · moteur `tui_mono` · shim RPC  
+**Branche** : `1.5.3`
 
 ### État d'avancement
 
 | Pilier | Avancement | Bloquant |
 |--------|------------|----------|
-| **L0** Scripts build Linux | **~90 %** — hérité 1.5.1b | validation Ubuntu |
-| **L1** Publish manifest multi-plateforme | **~95 %** — merge `latest.json` | non |
-| **L2** CI GitHub Actions | **~80 %** — workflow manuel | premier run |
-| **L3** Smoke Linux | 0 % | oui |
+| **D1** Diffs fil + undo/redo | 0 % | UX mutation |
+| **U1** Messages utilisateur | 0 % | polish |
+| **U2** Composer auto-grow | 0 % | polish |
+| **A1** Animation lancement IDE | ~15 % (spec) | non (si faisable) |
+| **P2** Polish trays | 0 % | non |
 
-**Prochaine étape** : build `.deb` (WSL / Ubuntu / Actions) · ship OR.
+**Hors scope** : release Linux → [1.5.4](../1.5.4/PLAN-1.5.4.md).
 
 ---
 
 ## Objectif
 
-| In | Hors scope |
-|----|------------|
-| `.deb` **linux-x64** (amd64) sur `Drox---IDE---OR` | macOS |
-| `platforms.linux-x64` dans `stable/latest.json` | Snap, Flatpak, AppImage |
-| `resources/drox/linux-x64/drox` embarqué | ARM64 Linux |
-| Tag **`v1.5.3`** (+ `.deb` sur release GitHub) | Signature GPG repo |
+| In | Hors scope 1.5.3 |
+|----|-------------------|
+| Diffs fichier visibles dans le fil chronologique | Release Linux `.deb` (**1.5.4**) |
+| Undo / redo des edits agent dans le fil | Index / graphe repo |
+| Copie rapide + style messages user | Refonte workbench VS Code |
+| Composer qui grandit avec le texte | Nouveaux champs RPC moteur |
+| Animation de lancement IDE (splash phosphore TUI, spec `animation-start/`) | Signature Authenticode (**1.5.4**) |
+| Configuration moteur sampling | — (livré **1.5.2** M1) |
 
 ---
 
-## Checklist
+## D1 — Diffs fichier dans le fil
 
-### Fondations (fait — 1.5.1b)
+Le moteur et les outils IDE produisent déjà des diffs (`unifiedDiff`, event `fileChange`, `12-fileChange.js`). Il manque l’**intégration chronologique** et l’**annulation**.
 
-- [x] `build-release-linux.sh`, `release-publish-linux.sh`, `verify-packaged-linux.sh`
-- [x] `drox-release-manifest.mjs` (merge win32 + linux)
-- [x] `wsl-linux-build.ps1` / `.sh`
-- [x] Workflow `.github/workflows/drox-release-linux.yml`
-- [x] [GUIDE-PUBLICATION-LINUX.md](../../operations/GUIDE-PUBLICATION-LINUX.md)
+### État actuel
 
-### Ship 1.5.3
+| Couche | Fichiers | État |
+|--------|----------|------|
+| Outil `file_write` | `droxFileWriteTool.ts` | diff généré |
+| Event webview | `host-message.js` → `fileChange` | handler existant |
+| Rendu carte | `12-fileChange.js`, CSS `.msg-file-change` | hors fil P0 chronologie |
+| Replay | `droxUiReplayExport.ts` | type `fileChange` |
 
-- [ ] `droxVersion` **1.5.3** dans `package.json`
-- [ ] Build `.deb` (Ubuntu / WSL / CI)
-- [ ] `release-publish-linux.sh` → merge `linux-x64`
-- [ ] Commit manifeste `Drox---IDE---OR` · `git push`
-- [ ] `gh release create v1.5.3` + upload `.deb` (win32 si ship couplé)
-- [ ] Smoke Ubuntu : install · `drox-ide` · run agent · MAJ auto
+### Checklist
 
-### Critères d'acceptation
+- [ ] **D1-1** — Monter `fileChange` dans `chronology.js` / fil P0 (ordre TUI)
+- [ ] **D1-2** — Afficher diff unifié repliable inline (`renderDiffLines`)
+- [ ] **D1-3** — Lier `applied: true/false` du `tool_finish` à l’état visuel
+- [ ] **D1-4** — **Undo** : revert fichier depuis la carte diff
+- [ ] **D1-5** — **Redo** : réappliquer le patch
+- [ ] **D1-6** — Persistance undo stack par session · smoke mutation fichier
 
-- [ ] `latest.json` : **win32-x64** + **linux-x64** même `version`
-- [ ] `.deb` installable sans Rust préinstallé
-- [ ] Moteur embarqué TUI 1.5+ (`tui_mono`)
+**Critère** : run « modifie README » → diff dans le fil → undo restaure → redo réapplique.
 
 ---
 
-## Pipeline
+## U1 — Interaction & style messages utilisateur
 
-```mermaid
-flowchart LR
-  B["build-release-linux.sh"]
-  P["release-publish-linux.sh"]
-  M["stable/latest.json"]
-  R["gh release v1.5.3"]
-  B --> P --> M --> R
+| # | Tâche | Détail |
+|---|--------|--------|
+| U1-1 | Icône **copier** sur chaque message user | clic → clipboard |
+| U1-2 | Refonte CSS bulle user | typo, padding, contraste |
+| U1-3 | Hover / focus accessibles | `droxChatMvp.css`, `stream/messages/user.js` |
+
+**Fichiers** : `stream/messages/user.js`, `droxChatMvp.css`, `host-message.js`.
+
+---
+
+## U2 — Composer auto-grow
+
+| # | Tâche | Détail |
+|---|--------|--------|
+| U2-1 | Textarea composer : hauteur auto | min 1–2 lignes, max ~8–12 puis scroll interne |
+| U2-2 | Recalcul saisie / paste / reset après envoi | |
+| U2-3 | Layout sticky footer intact | |
+
+**Fichiers** : `droxChatWebview.ts`, JS composer, `droxChatMvp.css`.
+
+---
+
+## A1 — Animation de lancement IDE (splash phosphore TUI)
+
+Reproduire à l’ouverture de l’IDE le **même splash** que le TUI au boot : halo phosphore vert, logo ASCII **DROX** (6 lignes), taglines, fond `#030704` — **52 frames × 50 ms ≈ 2,6 s** (source TUI : `drox-tui/src/ui/boot_splash.rs`).
+
+**Spec livrée** : [`drox-engine/docs/animation-start/`](../../animation-start/) — prête à intégrer.
+
+| Fichier | Rôle |
+|---------|------|
+| [drox-splash-spec.ts](../../animation-start/drox-splash-spec.ts) | `createDroxSplashController()` — DOM autonome, sans dépendance npm |
+| [drox-phosphor-theme.json](../../animation-start/drox-phosphor-theme.json) | Couleurs + timing (miroir `boot_splash.rs`) |
+| [drox-logo.ascii.txt](../../animation-start/drox-logo.ascii.txt) | Logo block ASCII |
+| [VSCODE-FORK.md](../../animation-start/VSCODE-FORK.md) | Points d’accroche fork VS Code |
+| [extract-splash-from-ide.ps1](../../animation-start/extract-splash-from-ide.ps1) | Scan splash existant → `reports/` |
+
+### Comportement (aligné TUI)
+
+| Phase | Progression | Effet |
+|-------|-------------|--------|
+| Apparition | 0 → 48 % | Dissolve entrant, halo radial vert |
+| Palier | 48 → 68 % | Logo plein phosphore, tagline |
+| Sortie | 68 → 100 % | Fade out, suppression overlay |
+
+- **Taglines** : « Initialisation… » puis « Agent local · terminal » (i18n FR/EN — voir `drox-phosphor-theme.json`)
+- **Compact** : fenêtre &lt; 480 px → texte `DROX` au lieu du block ASCII
+- **Workbench en parallèle** : splash décoratif ; `stop()` si session prête avant la fin
+
+### État actuel
+
+| Couche | Fichiers | État |
+|--------|----------|------|
+| TUI | `boot_splash.rs` | ✅ référence implémentée |
+| Spec portage | `animation-start/*` | ✅ doc + TS + tokens JSON |
+| IDE workbench | `partsSplash.ts`, `splash.contribution.ts` | splash VS Code natif (`monaco-parts-splash`) — à remplacer / court-circuiter |
+| IDE Drox | `droxMicrosoftAgentsSurfaceContribution.ts` | `workbench.startupEditor: none` — pas de welcome Microsoft |
+| Intégration | — | ❌ `drox-splash-spec.ts` pas encore branché dans `src/vs/` |
+
+### Intégration cible (option A — workbench part)
+
+Voir [VSCODE-FORK.md](../../animation-start/VSCODE-FORK.md) :
+
+1. Copier / adapter `drox-splash-spec.ts` → `src/vs/workbench/browser/parts/droxSplash/` (chemin indicatif)
+2. Hook `Workbench` startup : `div#drox-splash-root` + `createDroxSplashController(root)`
+3. Désactiver ou conditionner le splash Microsoft si conflit
+4. i18n : `nls.localize` pour `taglineBoot` / `taglineProduct` (clés TUI `boot.init` / `boot.tagline`)
+5. Setting `drox.ui.launchAnimation` (défaut on) · `prefers-reduced-motion` → skip ou durée réduite
+
+**Hors scope A1** : webview plein écran (latence), framer-motion, prototype site `AnimatedBackground`.
+
+### Checklist
+
+- [x] **A1-1** — Spec `animation-start/` : frames, palette phosphore, logo ASCII, TS portage
+- [ ] **A1-2** — Audit fork : `extract-splash-from-ide.ps1` + points listés dans VSCODE-FORK.md
+- [ ] **A1-3** — Intégrer `drox-splash-spec.ts` dans le bundler workbench (`parts/droxSplash/`)
+- [ ] **A1-4** — Hook startup Workbench + désactivation splash natif · setting `drox.ui.launchAnimation`
+- [ ] **A1-5** — Smoke visuel : fond `#030704`, halo, logo 6 lignes, mode compact &lt; 480 px · comparaison TUI côte à côte
+- [ ] **A1-6** — Sync doc : toute modif `boot_splash.rs` → `drox-phosphor-theme.json` + `drox-splash-spec.ts`
+
+**Critère** : lancement IDE → splash phosphore DROX ~2,6 s → workbench sans flash welcome VS Code · désactivable · taglines i18n.
+
+**Fichiers cibles** : `src/vs/workbench/browser/parts/droxSplash/`, `workbench.ts`, `droxConfiguration.ts`, `product.json` (branding `nameShort: Drox`).
+
+---
+
+## P2 — Polish trays (optionnel)
+
+- [ ] **P2-1** — Fichiers édités repliés dans le tray
+- [ ] **P2-2** — Lignes « Ran » / layout outils
+- [ ] **P2-3** — Questionnaire `ask_user`
+
+---
+
+## Livrables
+
+| # | Livrable | Critère |
+|---|----------|---------|
+| D1 | Diffs + undo/redo | smoke mutation + revert |
+| U1 | UX user messages | copie 1 clic + style modernisé |
+| U2 | Composer | long message sans scroll textarea |
+| A1 | Animation lancement | splash phosphore TUI · `createDroxSplashController` · i18n |
+| L3 | `droxVersion` **1.5.3** au ship | `package.json` |
+
+---
+
+## Séquence
+
+```text
+1.5.2 configuration moteur IDE (tag v1.5.2)
+    → branche 1.5.3
+        → D1 + U1 + U2 (+ A1 si faisable)
+        → tag v1.5.3
+            → 1.5.4 Linux + Authenticode
 ```
-
----
-
-## Commandes
-
-```bash
-export DROX_PRODUCT_SURFACE=release
-./scripts/build-release-linux.sh
-./scripts/release-publish-linux.sh
-gh release upload v1.5.3 ../Drox---IDE---OR/_upload/Drox-IDE-1.5.3-linux-x64.deb --repo DroxKiwi/Drox---IDE---OR
-```
-
-Depuis Windows (WSL) : `.\scripts\wsl-linux-build.ps1`
-
-CI : **Actions → Drox Linux release build → Run workflow**
 
 ---
 
 ## Liens
 
 - [README 1.5.3](README.md)
-- [PLAN 1.5.1b](../1.5.1b/PLAN-1.5.1b.md) — préparation scripts
-- [GUIDE publication Linux](../../operations/GUIDE-PUBLICATION-LINUX.md)
+- [PLAN 1.5.2](../1.5.2/PLAN-1.5.2.md)
+- [Animation lancement — spec](../../animation-start/README.md)
+- [PLAN 1.5.4](../1.5.4/PLAN-1.5.4.md)
+- [SHIM-MOTEUR-IDE](../1.5.0/SHIM-MOTEUR-IDE.md)

@@ -62,14 +62,17 @@ function fixSplitMjs(filePath) {
 }
 
 const droxFiles = [
+	'src/vs/workbench/contrib/drox/browser/chat/droxChatGeneralSettings.ts',
+	'src/vs/workbench/contrib/drox/browser/chat/droxChatRoleModels.ts',
 	'src/vs/workbench/contrib/drox/browser/droxTelemetryContribution.ts',
 	'src/vs/workbench/contrib/drox/browser/droxHelpMenuContribution.ts',
 	'src/vs/workbench/contrib/drox/browser/droxExternalUrlRemapContribution.ts',
 	'src/vs/workbench/contrib/drox/common/droxExternalUrlRemap.ts',
 	'src/vs/workbench/contrib/drox/common/droxProductUrls.ts',
-	'src/vs/workbench/contrib/drox/common/droxEngineTuning.ts',
-	'src/vs/workbench/contrib/drox/common/droxEngineTuningConfiguration.ts',
+	'src/vs/workbench/contrib/drox/common/droxDevConfiguration.ts',
+	'src/vs/workbench/contrib/drox/common/droxDevSurface.ts',
 	'src/vs/workbench/contrib/drox/common/droxRunSettings.ts',
+	'src/vs/workbench/contrib/drox/electron-browser/droxRunSettingsService.ts',
 	'src/vs/workbench/contrib/drox/test/common/droxExternalUrlRemap.test.ts',
 	'src/vs/workbench/contrib/drox/browser/media/droxChat/stream/discussion/state.js',
 ];

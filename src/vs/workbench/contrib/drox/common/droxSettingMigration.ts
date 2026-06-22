@@ -17,9 +17,6 @@ const ALL_DROX_SETTING_KEYS: string[] = [
 	DroxSetting.Server,
 	DroxSetting.LlmProvider,
 	DroxSetting.ArchitectModel,
-	DroxSetting.ExecutorModel,
-	DroxSetting.OrchestrationMaxParallelExecutors,
-	DroxSetting.ArchitectInteractionMode,
 	DroxSetting.Model,
 	DroxSetting.PermissionMode,
 	DroxSetting.ApiKey,
@@ -45,11 +42,6 @@ const ALL_DROX_SETTING_KEYS: string[] = [
 	DroxSetting.ChatShowErrorsAndWarnings,
 	DroxSetting.ToolsDisabled,
 	DroxSetting.ToolsMcpEnabled,
-	DroxSetting.SubagentsEnabled,
-	DroxSetting.SubagentsMaxIterations,
-	DroxSetting.SubagentsMaxConcurrent,
-	DroxSetting.SubagentsModel,
-	DroxSetting.SubagentsNumCtx,
 ];
 
 function migrateNexusDroxKey(legacyKey: string, newKey: string): ConfigurationMigration {

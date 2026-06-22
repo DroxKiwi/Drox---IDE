@@ -5,6 +5,26 @@
 
 (function (D) {
 	const fn = D.fn;
+
+	fn.bindChatVersionReleaseNotes = function () {
+		const el = D.dom.chatVersionEl;
+		if (!el || el.dataset.droxReleaseNotesBound === '1') {
+			return;
+		}
+		el.dataset.droxReleaseNotesBound = '1';
+		el.classList.add('drox-chat-brand-version--interactive');
+		el.setAttribute('role', 'button');
+		el.tabIndex = 0;
+		const open = () => D.vscode.postMessage({ type: 'showReleaseNotes' });
+		el.addEventListener('click', open);
+		el.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				open();
+			}
+		});
+	};
+
 	if (D.dom.attachBtn && D.dom.fileInput) {
 		D.dom.attachBtn.addEventListener('click', () => D.dom.fileInput.click());
 		D.dom.fileInput.addEventListener('change', () => {
@@ -245,6 +265,9 @@
 	fn.renderRefs();
 	fn.renderSessionTabs();
 	fn.initSessionLazyHistory?.();
+	if (typeof fn.bindChatVersionReleaseNotes === 'function') {
+		fn.bindChatVersionReleaseNotes();
+	}
 
 	D.vscode.postMessage({ type: 'webviewReady' });
 })(globalThis.DroxChat);

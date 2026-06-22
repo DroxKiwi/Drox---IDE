@@ -1,10 +1,43 @@
+<a id="avertissement"></a>
+
+> ⚠️ **Avertissement** — Drox est **potentiellement instable** : le projet est en **développement actif et exigeant**, encore **expérimental** (pas un IDE agent de production). De **nombreuses mises à jour** sont prévues sur la ligne **1.5.x** (configuration moteur, UX chat, distribution Linux, etc.). Il est conseillé de suivre les [releases officielles](https://github.com/DroxKiwi/Drox---IDE---OR/releases) plutôt que de compter sur une version figée.
+>
+> ⚠️ **Warning** — Drox may be **unstable**: **active, demanding development** — still **experimental** (not a production agent IDE). **Many updates** are planned on the **1.5.x** line. Prefer [official releases](https://github.com/DroxKiwi/Drox---IDE---OR/releases) over expecting a frozen build.
+
+___
+
 <a id="souverainete"></a>
 
-## But du projet — souveraineté
+## But du projet — souveraineté et feuille de route
+
+### Où en est Drox (1.5.x)
+
+Le projet est en phase de **construction et de stabilisation de la base moteur** : mono-boucle TUI (`tui_mono`), shim RPC IDE, chat aligné sur le fil agent, wizard de connexion LLM. Les releases **1.5.1+** consolident cette fondation avant d’empiler les couches produit ci-dessous. Toujours **expérimental** — pas un IDE agent de production — mais la stack 1.4.x est **derrière nous**.
+
+### Souveraineté
 
 Drox vise la **souveraineté numérique** : IDE, moteur agent, inférence (Ollama ou endpoint que **tu** configures), sessions et mémoire dans **`.drox/`** sur ton disque — pas de compte cloud KDDS imposé, pas de télémétrie Microsoft dans le package distribué.
 
 **Seul trafic réseau prévu côté produit** : la **vérification de version** (lecture du manifeste release, ex. `stable/latest.json`) pour indiquer qu’une MAJ plus récente existe. Le reste du travail agent tourne en local.
+
+### Vision produit
+
+L’objectif est de **maîtriser des projets volumineux** en s’aidant d’une **IA légère** (modèles locaux ou petits modèles distants) — donc **peu consommatrice** en RAM/VRAM et en tokens — plutôt qu’un unique gros modèle « tout-en-un ». Le moteur privilégie la compréhension d’abord (carte du repo, parcours des fichiers), l’action ensuite, avec **observabilité locale** pour garder la main sur le système.
+
+### Mises à jour prévues (brainstorm)
+
+Fiches d’intention non engagées — détail et statut dans [`drox-engine/docs/feature-brainstorm/README.md`](drox-engine/docs/feature-brainstorm/README.md) :
+
+| Thème | Fiches | Objectif |
+|-------|--------|----------|
+| **Télémétrie locale** | [05](drox-engine/docs/feature-brainstorm/05-stats-perf-par-cycle.md) · [11](drox-engine/docs/feature-brainstorm/11-telemetry-ide-locale-apis.md) | KPI par run/cycle, dashboards **100 % locaux** (`.drox/`), APIs `telemetry.*` — aucun cloud |
+| **Cartographie & parcours fichiers** | [02](drox-engine/docs/feature-brainstorm/02-onglet-parcours-modeles.md) · [09](drox-engine/docs/feature-brainstorm/09-roles-specialises-comprehension-code.md) | Vue graphe + diffs du parcours modèle ; rôles « compréhension » (cartographe, analyste…) avant mutation |
+| **IA légère & perf** | [07](drox-engine/docs/feature-brainstorm/07-reponses-legere-sans-plan.md) · [08](drox-engine/docs/feature-brainstorm/08-performance-traitement-rapide.md) · [01](drox-engine/docs/feature-brainstorm/01-serveurs-inference-par-role.md) | Réponses rapides sans sur-planifier ; tuning ; backends distincts par rôle |
+| **Sessions & long run** | [04](drox-engine/docs/feature-brainstorm/04-mode-long-run.md) · [06](drox-engine/docs/feature-brainstorm/06-chargement-sessions-segmente.md) | Gros chantiers multi-heures ; reprise historique progressive |
+| **Réglages & confiance** | [10](drox-engine/docs/feature-brainstorm/10-parametrage-prompts-strictesse.md) · [12](drox-engine/docs/feature-brainstorm/12-presets-globaux-benchmark-hardware.md) · [14](drox-engine/docs/feature-brainstorm/14-persona-premiere-activation.md) | Strictesse prompts, benchmark matériel/modèle, persona onboarding |
+| **IDE & transparence** | [03](drox-engine/docs/feature-brainstorm/03-preview-web-outils-navigateur.md) · [13](drox-engine/docs/feature-brainstorm/13-agents-window-kdds-drox.md) · [15](drox-engine/docs/feature-brainstorm/15-shell-live-view.md) | Preview web, chassis Agents Window Drox, sortie shell live |
+
+Ces pistes **ne bloquent pas** les releases courantes (1.5.2, 1.5.3) ; elles nourrissent la ligne **1.5.x+** et au-delà.
 
 ___
 
@@ -19,7 +52,7 @@ ___
 |---|---|
 | **Code sur `1.5.0`** | **1.5.0** — cœur TUI (`agent.rs`), `drox-cli` JSON-RPC, `ide_event_shim`, pipeline `tui_mono` |
 | **Utilisable en prod ?** | **Non.** Phase expérimentale — dogfood / early adopters. |
-| **Tester ?** | **Oui pour les curieux** : installeur OR, Ollama, bugs possibles mais stack refondue et dogfood validé. |
+| **Tester ?** | **Oui pour les curieux** : installeur OR, Ollama, bugs possibles mais stack refondue et **dogfood validé**. |
 | **1.4.x** | **Obsolète** — rail observateur, `role_split`, orchestration IDE abandonnés · archivé `drox-engine/docs/1.4/` |
 
 ### Ce que la 1.5.0 change (gros morceaux)
@@ -42,11 +75,111 @@ ___
 
 ___
 
+<a id="drox-tui"></a>
+
+## Drox TUI — plus simple pour débuter
+
+Tu découvres l’écosystème Drox ? Commence par le **terminal** : **[Drox TUI — releases officielles](https://github.com/DroxKiwi/Drox---TUI---OR)**.
+
+| | **Drox TUI** | **Drox IDE** (ce dépôt) |
+|---|--------------|-------------------------|
+| **Interface** | Terminal (`drox-tui`) | Éditeur type VS Code + chat |
+| **Prise en main** | **Plus légère** — pas d’installeur lourd, pas de webview | Plus riche (LSP, diff dans l’éditeur, wizard connexion) |
+| **Moteur** | Même boucle **`tui_mono`** (`agent.rs`) | Même moteur via `drox.exe` + shim RPC |
+| **Inférence** | Ollama, vLLM, LM Studio, cloud… | Idem — voir [guide IDE](#guide-debutant) |
+
+Le TUI est le **cœur agent d’origine** : une session, un fil, des outils fichiers/bash, permissions explicites. L’IDE ajoute la couche éditeur autour du même moteur — utile quand tu veux coder **dans** l’UI, pas seulement piloter depuis le shell.
+
+**Démarrage TUI** : installeur sur [Drox---TUI---OR/releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) → terminal dans ton repo → `Ctrl+Shift+L` ou `/server` pour Ollama → envoie un message. Guide complet sur le README du dépôt TUI.
+
+___
+
+<a id="guide-debutant"></a>
+
+## Guide débutant — installer et s’en servir
+
+> **Pas encore prêt pour l’IDE ?** Commence par **[Drox TUI](https://github.com/DroxKiwi/Drox---TUI---OR)** — même moteur, interface terminal plus simple ([détails](#drox-tui)).
+
+**Drox IDE** reprend l’ergonomie de **[Visual Studio Code](https://code.visualstudio.com/)** (éditeur, terminal, extensions familières) avec un **chat agent** branché sur un **moteur d’inférence de ton choix** (Ollama par défaut pour débuter). Tu n’as **pas** besoin de compiler ce dépôt pour l’utiliser.
+
+### Prérequis
+
+- **Windows** (installeur ; Linux prévu en **1.5.3**)
+- Un **serveur LLM** accessible — le plus simple en local : **[Ollama](https://ollama.com/)** + un modèle, ex. `ollama pull qwen2.5-coder`
+
+### Moteurs d’inférence (local ou cloud)
+
+Drox ne fournit pas le modèle : il se connecte à **ton** endpoint via le wizard **« Connect your AI »** (vignette **Général**). Tu choisis l’**hébergement**, puis le **fournisseur**.
+
+| Hébergement | Moteurs (liens officiels) | Usage typique |
+|-------------|---------------------------|---------------|
+| **Local / perso** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [API OpenAI-compatible](https://platform.openai.com/docs/api-reference) | Modèle sur ton PC, ton NAS ou ton réseau — les prompts partent vers **ta** machine (ou celle que tu configures). Voir **[matériel recommandé](#materiel)** pour l’inférence locale. |
+| **Cloud** | [Hugging Face Inference](https://huggingface.co/inference) · [Mistral AI](https://mistral.ai/) · Ollama distant · endpoint compatible | Inférence hébergée chez le prestataire — pratique sans gros GPU ; confidentialité **selon leurs engagements** (offres privées, entreprise, CGU — à lire côté fournisseur). |
+
+**Démarrage rapide** : Ollama local → wizard → URL `http://127.0.0.1:11434` + nom du modèle ([matériel](#materiel) · [modèles testés](#modeles-conseilles)).  
+**vLLM / LM Studio** : lance le serveur, puis indique son URL dans le wizard (ex. `http://127.0.0.1:8000` pour vLLM).  
+**Cloud** : URL + clé API du fournisseur dans le wizard.
+
+Drox n’impose aucun cloud KDDS : seul l’**endpoint que tu configures** reçoit les requêtes d’inférence (hors vérification de version de l’IDE).
+
+<a id="materiel"></a>
+
+### Matériel (inférence locale)
+
+**Drox IDE** se comporte comme VS Code côté éditeur (RAM pour l’interface, le moteur `drox.exe`, le language service). Ce qui pèse vraiment, c’est le **modèle** que tu fais tourner en local : VRAM GPU (idéalement) + RAM système selon la taille du modèle et la fenêtre de contexte (`num_ctx`).
+
+Il n’existe pas encore de grille minimale officielle — voici les configurations **utilisées pour le dogfood** Drox 1.5.x :
+
+| Machine | GPU | RAM | Remarque |
+|---------|-----|-----|----------|
+| **Station de travail** | NVIDIA **RTX 3090** · 24 Go VRAM | **96 Go** | Configuration haute — adaptée aux modèles plus larges et aux contextes élevés. |
+| **Portable gaming** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 Go VRAM | *(laptop)* | Également **validée** — il est conseillé de privilégier des modèles adaptés à 12 Go (quantization, contexte raisonnable). |
+
+<a id="modeles-conseilles"></a>
+
+### Modèles conseillés (dogfood 1.5.x)
+
+Pendant le développement de Drox 1.5.x, les combinaisons **principalement utilisées** sont :
+
+| Modèle (tag Ollama) | Quantization | Format recommandé |
+|---------------------|--------------|-------------------|
+| **`qwen3.6:27b`** | **`q4_K_M`** | **`mtp`** (de préférence) |
+| **`gemma4:26b`** | **`q4_K_M`** | **`it-qat`** |
+
+Il est également **recommandé d’essayer** des modèles **plus petits**, orientés **code** (variantes Qwen Coder, Gemma code, Devstral, etc.) — pratique sur 12 Go VRAM ou pour des runs agent plus rapides. Aucune short-list officielle pour l’instant : choisir le tag Ollama qui correspond à la quantification disponible.
+
+**En pratique** : sans GPU dédié ou avec peu de VRAM, il est conseillé de privilégier un **petit modèle** quantifié (Ollama) ou de basculer sur l’**inférence cloud** (section ci-dessus). Plus de VRAM permet des modèles plus gros et des réponses plus fluides ; plus de RAM aide l’IDE et le chargement des poids quand une partie tourne en CPU.
+
+### Installation (utilisateur)
+
+1. Télécharge le Setup sur les **[releases officielles](https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest)** — dépôt public **[Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR)**.
+2. Lance l’installeur. Si Windows affiche « Éditeur inconnu », c’est normal (non signé pour l’instant) : **Exécuter quand même**.
+3. Ouvre **Drox IDE** depuis le menu Démarrer.
+
+### Premiers pas
+
+1. **Fichier → Ouvrir un dossier…** — ton projet (comme dans VS Code).
+2. Ouvre **Drox Chat** ; au besoin, le wizard **« Connect your AI »** configure hébergement, fournisseur, URL du serveur et modèle.
+3. Pose une question sur ton code ; l’agent lit des fichiers et peut proposer des modifications selon le **mode permission** (Analyser / Édition / Confiance).
+
+### L’essentiel à retenir
+
+| Élément | Rôle |
+|---------|------|
+| **Chat Drox** | Tu décris l’objectif ; le moteur `drox.exe` tourne en local et délègue à l’IDE ce qu’il ne peut pas faire seul (LSP, diff, écriture fichier). |
+| **Vignettes** | **Général** (connexion, outils) · **Architecte** (modèle, contexte) · **Composer** (niveau de confiance sur les éditions). |
+| **`.drox/`** | Sessions et mémoire du projet sur **ton disque** — pas de compte cloud obligatoire. |
+| **Raccourcis éditeur** | Identiques ou proches de VS Code — **[documentation VS Code](https://code.visualstudio.com/docs)**. |
+
+**Ce dépôt** (`Drox---IDE`) = **sources** pour contribuer ou builder. **Utilisation simple** → installeur OR ci-dessus. Détail moteur et architecture → sections suivantes.
+
+___
+
 Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--doc-moteur)
 
 ## Sommaire
 
-**[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · [Product status EN](#en-product-status) · [Sovereignty EN](#en-sovereignty)
+**[⚠️ Avertissement](#avertissement)** · **[Souveraineté](#souverainete)** · **[⚠️ Statut produit 1.5.0](#statut-produit)** · **[Drox TUI](#drox-tui)** · **[Guide débutant IDE](#guide-debutant)** · [Matériel](#materiel) · [Modèles](#modeles-conseilles) · [Product status EN](#en-product-status) · [Drox TUI EN](#en-drox-tui) · [Getting started EN](#en-getting-started) · [Hardware EN](#en-hardware) · [Models EN](#en-recommended-models) · [Sovereignty EN](#en-sovereignty)
 
 [Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.5 — tui_mono](#schema-tui-mono)
 
@@ -429,11 +562,36 @@ ___
 
 <a id="en-sovereignty"></a>
 
-## Project goal — sovereignty
+## Project goal — sovereignty and roadmap
+
+### Where Drox stands (1.5.x)
+
+The project is in **build and stabilization** of the **engine foundation**: TUI mono-loop (`tui_mono`), IDE RPC shim, chat stream aligned with the agent, LLM connection wizard. Releases **1.5.1+** consolidate this base before stacking the product layers below. Still **experimental** — not a production agent IDE — but the 1.4.x stack is **behind us**.
+
+### Sovereignty
 
 Drox aims for **digital sovereignty**: IDE, agent engine, inference (Ollama or an endpoint **you** configure), sessions and memory in **`.drox/`** on your disk — no mandatory KDDS cloud account, no Microsoft telemetry in the distributed package.
 
 **Only expected product network traffic**: **version check** (reading the release manifest, e.g. `stable/latest.json`) to tell you a newer update exists. Everything else in the agent workflow runs locally.
+
+### Product vision
+
+The goal is to **master large codebases** with **lightweight AI** (local or small remote models) — **low** RAM/VRAM and token cost — instead of one huge all-in-one model. The engine favors understanding first (repo map, file traversal), then action, with **local observability** to keep the system under control.
+
+### Planned updates (brainstorm)
+
+Non-committed intent docs — details in [`drox-engine/docs/feature-brainstorm/README.md`](drox-engine/docs/feature-brainstorm/README.md):
+
+| Theme | Docs | Goal |
+|-------|------|------|
+| **Local telemetry** | [05](drox-engine/docs/feature-brainstorm/05-stats-perf-par-cycle.md) · [11](drox-engine/docs/feature-brainstorm/11-telemetry-ide-locale-apis.md) | Per-run/cycle KPIs, **fully local** dashboards (`.drox/`), `telemetry.*` APIs — no cloud |
+| **Mapping & file traversal** | [02](drox-engine/docs/feature-brainstorm/02-onglet-parcours-modeles.md) · [09](drox-engine/docs/feature-brainstorm/09-roles-specialises-comprehension-code.md) | Live graph + diff trail; comprehension roles (mapper, analyst…) before edits |
+| **Lightweight AI & perf** | [07](drox-engine/docs/feature-brainstorm/07-reponses-legere-sans-plan.md) · [08](drox-engine/docs/feature-brainstorm/08-performance-traitement-rapide.md) · [01](drox-engine/docs/feature-brainstorm/01-serveurs-inference-par-role.md) | Quick replies without over-planning; tuning; per-role inference backends |
+| **Sessions & long run** | [04](drox-engine/docs/feature-brainstorm/04-mode-long-run.md) · [06](drox-engine/docs/feature-brainstorm/06-chargement-sessions-segmente.md) | Multi-hour tasks; progressive session history load |
+| **Tuning & trust** | [10](drox-engine/docs/feature-brainstorm/10-parametrage-prompts-strictesse.md) · [12](drox-engine/docs/feature-brainstorm/12-presets-globaux-benchmark-hardware.md) · [14](drox-engine/docs/feature-brainstorm/14-persona-premiere-activation.md) | Prompt strictness, hardware/model benchmark, onboarding persona |
+| **IDE & transparency** | [03](drox-engine/docs/feature-brainstorm/03-preview-web-outils-navigateur.md) · [13](drox-engine/docs/feature-brainstorm/13-agents-window-kdds-drox.md) · [15](drox-engine/docs/feature-brainstorm/15-shell-live-view.md) | Web preview, Drox Agents Window, live shell output |
+
+These tracks **do not block** current releases (1.5.2, 1.5.3); they feed **1.5.x+** and beyond.
 
 ___
 
@@ -448,8 +606,108 @@ ___
 |---|---|
 | **Code on `1.5.0`** | **1.5.0** — TUI core (`agent.rs`), `drox-cli` JSON-RPC, `ide_event_shim`, `tui_mono` pipeline |
 | **Production-ready?** | **No.** Experimental — dogfood / early adopters. |
-| **Try it?** | **Yes for the curious**: OR installer, Ollama, bugs possible but rewritten stack, dogfood validated. |
+| **Try it?** | **Yes for the curious**: OR installer, Ollama, bugs possible but rewritten stack, **dogfood validated**. |
 | **1.4.x** | **Obsolete** — observer rail, `role_split`, IDE orchestration dropped · archived `drox-engine/docs/1.4/` |
+
+___
+
+<a id="en-drox-tui"></a>
+
+## Drox TUI — easier way to start
+
+New to Drox? Start in the **terminal**: **[Drox TUI — official releases](https://github.com/DroxKiwi/Drox---TUI---OR)**.
+
+| | **Drox TUI** | **Drox IDE** (this repo) |
+|---|--------------|--------------------------|
+| **UI** | Terminal (`drox-tui`) | VS Code–like editor + chat |
+| **Onboarding** | **Lighter** — no heavy installer, no webview | Richer (LSP, in-editor diffs, connection wizard) |
+| **Engine** | Same **`tui_mono`** loop (`agent.rs`) | Same engine via `drox.exe` + RPC shim |
+| **Inference** | Ollama, vLLM, LM Studio, cloud… | Same — see [IDE guide](#en-getting-started) |
+
+The TUI is the **original agent core**: one session, one stream, file/bash tools, explicit permissions. The IDE wraps the same engine with an editor — when you want to work **inside** the UI, not only from the shell.
+
+**TUI quick start**: installer from [Drox---TUI---OR/releases](https://github.com/DroxKiwi/Drox---TUI---OR/releases/latest) → terminal in your repo → `Ctrl+Shift+L` or `/server` for Ollama → send a message. Full guide on the TUI repo README.
+
+___
+
+<a id="en-getting-started"></a>
+
+## Getting started — install and use
+
+> **Not ready for the IDE yet?** Try **[Drox TUI](https://github.com/DroxKiwi/Drox---TUI---OR)** first — same engine, simpler terminal UI ([details](#en-drox-tui)).
+
+**Drox IDE** feels like **[Visual Studio Code](https://code.visualstudio.com/)** plus a **local agent chat** backed by an **inference engine you choose** (Ollama is the simplest local default). You do **not** need to build this repo to try the product.
+
+### Requirements
+
+- **Windows** installer (Linux planned in **1.5.3**)
+- An **LLM server** — easiest locally: **[Ollama](https://ollama.com/)** with a model, e.g. `ollama pull qwen2.5-coder`
+
+### Inference backends (local or cloud)
+
+Drox does not ship a model: it connects to **your** endpoint via **« Connect your AI »** ( **General** vignette). Pick **hosting**, then **provider**.
+
+| Hosting | Backends (official links) | Typical use |
+|---------|---------------------------|-------------|
+| **Local / personal** | [Ollama](https://ollama.com/) · [vLLM](https://docs.vllm.ai/) · [LM Studio](https://lmstudio.ai/) · [OpenAI-compatible API](https://platform.openai.com/docs/api-reference) | Model on your PC, NAS, or LAN — prompts go to **your** hardware (or the URL you set). See **[hardware notes](#en-hardware)** for local inference. |
+| **Cloud** | [Hugging Face Inference](https://huggingface.co/inference) · [Mistral AI](https://mistral.ai/) · remote Ollama · compatible endpoint | Provider-hosted inference — handy without a big GPU; privacy **per the vendor’s terms** (private/enterprise tiers, ToS — read on their side). |
+
+**Quick start**: local Ollama → wizard → `http://127.0.0.1:11434` + model name ([hardware](#en-hardware)).  
+**vLLM / LM Studio**: start the server, paste its URL in the wizard (e.g. `http://127.0.0.1:8000` for vLLM).  
+**Cloud**: provider URL + API key in the wizard.
+
+No mandatory KDDS cloud: only the **endpoint you configure** receives inference traffic (aside from IDE version check).
+
+<a id="en-hardware"></a>
+
+### Hardware (local inference)
+
+**Drox IDE** itself is VS Code–like (RAM for UI, `drox.exe`, language services). The heavy part is your **local model**: GPU VRAM (ideal) + system RAM depending on model size and context window (`num_ctx`).
+
+No official minimum spec yet — configurations **used for Drox 1.5.x dogfood**:
+
+| Machine | GPU | RAM | Notes |
+|---------|-----|-----|-------|
+| **Workstation** | NVIDIA **RTX 3090** · 24 GB VRAM | **96 GB** | High-end setup — suited to larger models and wide context. |
+| **Gaming laptop** | Acer **Helios AI 16** · **RTX 5070 Ti** · 12 GB VRAM | *(laptop)* | Also **validated** — smaller models that fit 12 GB are recommended (quantization, sensible context). |
+
+<a id="en-recommended-models"></a>
+
+### Recommended models (1.5.x dogfood)
+
+During Drox 1.5.x development, the **main combinations used** are:
+
+| Model (Ollama tag) | Quantization | Recommended format |
+|--------------------|--------------|-------------------|
+| **`qwen3.6:27b`** | **`q4_K_M`** | **`mtp`** (preferred) |
+| **`gemma4:26b`** | **`q4_K_M`** | **`it-qat`** |
+
+**Smaller code-oriented** models (Qwen Coder variants, Gemma code, Devstral, etc.) are also worth trying — useful on 12 GB VRAM or for faster agent loops. No official short list yet: pick the Ollama tag that matches your quant build.
+
+**Rule of thumb**: little or no VRAM → smaller quantized models (Ollama) or **cloud inference** (above). More VRAM allows bigger models; more RAM helps the IDE and CPU offload when needed.
+
+### Install (end user)
+
+1. Download the Setup from **[official releases](https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest)** — public repo **[Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR)**.
+2. Run the installer. Windows may warn about an unknown publisher (unsigned for now): choose **Run anyway**.
+3. Launch **Drox IDE** from the Start menu.
+
+### First steps
+
+1. **File → Open Folder…** — your project (same as VS Code).
+2. Open **Drox Chat**; the **« Connect your AI »** wizard sets hosting, provider, server URL, and model if needed.
+3. Ask about your code; the agent reads files and may suggest edits depending on the **permission mode** (Analyze / Trust edit / I'm not crazy).
+
+### Essentials
+
+| Piece | Role |
+|-------|------|
+| **Drox Chat** | You state the goal; local `drox.exe` delegates IDE-side work (LSP, diffs, file writes). |
+| **Vignettes** | **General** (connection, tools) · **Architect** (model, context) · **Composer** (edit trust level). |
+| **`.drox/`** | Session data on **your disk** — no mandatory cloud account. |
+| **Editor shortcuts** | Same family as VS Code — **[VS Code docs](https://code.visualstudio.com/docs)**. |
+
+**This repo** (`Drox---IDE`) = **source** for contributors. **Easy install** → OR releases above. Engine detail → sections below.
 
 ___
 

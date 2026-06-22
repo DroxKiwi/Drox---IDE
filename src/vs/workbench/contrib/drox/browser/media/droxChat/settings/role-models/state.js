@@ -14,5 +14,9 @@
 	D.state.architectMinP = '';
 	D.state.architectSeed = '';
 	D.state.architectTemperature = '';
+	D.state.architectPresencePenalty = '';
+	D.state.architectFrequencyPenalty = '';
+	D.state.architectMaxTokens = '';
+	D.state.architectKeepAlive = '';
 	D.state.rolePanelOpen = null;
 })(globalThis.DroxChat);

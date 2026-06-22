@@ -22,12 +22,9 @@
 		if (typeof fn.syncConnectionSummaryInPanel === 'function') {
 			fn.syncConnectionSummaryInPanel();
 		}
-		setVal('general-settings-keep-alive', s.keepAlive || '');
-		setVal('general-settings-max-iterations', s.maxIterations ?? 12);
+		setVal('general-settings-max-iterations', s.maxIterations ?? 50);
 		setVal('general-settings-native-thinking', s.nativeThinking);
 		setVal('general-settings-primary-language', s.primaryLanguage || '');
-		setVal('general-settings-max-tokens', s.maxTokens ?? '');
-		setVal('general-settings-num-predict', s.numPredict ?? '');
 		setVal('general-settings-warm-start', s.warmStart !== false);
 		setVal('general-settings-confirm-file-writes', s.confirmFileWrites);
 		setVal('general-settings-open-modified-files', s.openModifiedFiles !== false);
@@ -70,17 +67,8 @@
 			mcpToolsEnabled: bool('general-settings-mcp-tools-enabled'),
 			showChatErrorsAndWarnings: bool('general-settings-show-chat-errors-warnings'),
 		};
-		if (document.getElementById('general-settings-keep-alive')) {
-			patch.keepAlive = str('general-settings-keep-alive');
-		}
 		if (document.getElementById('general-settings-max-iterations')) {
-			patch.maxIterations = num('general-settings-max-iterations') ?? 12;
-		}
-		if (document.getElementById('general-settings-max-tokens')) {
-			patch.maxTokens = num('general-settings-max-tokens');
-		}
-		if (document.getElementById('general-settings-num-predict')) {
-			patch.numPredict = num('general-settings-num-predict');
+			patch.maxIterations = num('general-settings-max-iterations') ?? 50;
 		}
 		return patch;
 	};

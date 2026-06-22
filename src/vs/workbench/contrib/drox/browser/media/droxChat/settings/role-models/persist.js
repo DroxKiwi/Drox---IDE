@@ -6,6 +6,24 @@
 (function (D) {
 	const fn = D.fn;
 
+	function readPatchNumber(raw) {
+		if (raw === '') {
+			return null;
+		}
+		const n = Number(raw);
+		return Number.isFinite(n) ? n : undefined;
+	}
+
+	function assignStateNumber(stateKey, value) {
+		if (value === null) {
+			D.state[stateKey] = '';
+			return;
+		}
+		if (value !== undefined && Number.isFinite(value)) {
+			D.state[stateKey] = value;
+		}
+	}
+
 	fn.persistRoleModelFromPanel = function() {
 		if (D.state.rolePanelOpen !== 'architect') {
 			return;
@@ -15,48 +33,43 @@
 		D.state.architectModel = model;
 		D.vscode.postMessage({ type: 'setArchitectModel', model });
 		const numCtx = fn.readArchitectNumCtxFromPanel();
-		const topPRaw = D.dom.roleModelPanelTopPEl?.value.trim() ?? '';
-		const topP = topPRaw === '' ? undefined : Number(topPRaw);
-		const topKRaw = D.dom.roleModelPanelTopKEl?.value.trim() ?? '';
-		const topK = topKRaw === '' ? undefined : Number(topKRaw);
-		const repeatPenaltyRaw = D.dom.roleModelPanelRepeatPenaltyEl?.value.trim() ?? '';
-		const repeatPenalty = repeatPenaltyRaw === '' ? undefined : Number(repeatPenaltyRaw);
-		const minPRaw = D.dom.roleModelPanelMinPEl?.value.trim() ?? '';
-		const minP = minPRaw === '' ? undefined : Number(minPRaw);
-		const seedRaw = D.dom.roleModelPanelSeedEl?.value.trim() ?? '';
-		const seed = seedRaw === '' ? undefined : Number(seedRaw);
-		const tempRaw = D.dom.roleModelPanelTemperatureEl?.value.trim() ?? '';
-		const temperature = tempRaw === '' ? undefined : Number(tempRaw);
+		const temperature = readPatchNumber(D.dom.roleModelPanelTemperatureEl?.value.trim() ?? '');
+		const topP = readPatchNumber(D.dom.roleModelPanelTopPEl?.value.trim() ?? '');
+		const topK = readPatchNumber(D.dom.roleModelPanelTopKEl?.value.trim() ?? '');
+		const repeatPenalty = readPatchNumber(D.dom.roleModelPanelRepeatPenaltyEl?.value.trim() ?? '');
+		const minP = readPatchNumber(D.dom.roleModelPanelMinPEl?.value.trim() ?? '');
+		const seed = readPatchNumber(D.dom.roleModelPanelSeedEl?.value.trim() ?? '');
+		const presencePenalty = readPatchNumber(D.dom.roleModelPanelPresencePenaltyEl?.value.trim() ?? '');
+		const frequencyPenalty = readPatchNumber(D.dom.roleModelPanelFrequencyPenaltyEl?.value.trim() ?? '');
+		const maxTokens = readPatchNumber(D.dom.roleModelPanelMaxTokensEl?.value.trim() ?? '');
+		const keepAliveRaw = D.dom.roleModelPanelKeepAliveEl?.value.trim() ?? '';
+		const keepAlive = keepAliveRaw === '' ? null : keepAliveRaw;
 		if (numCtx !== undefined) {
 			D.state.architectNumCtx = numCtx;
 		}
-		if (topP !== undefined && Number.isFinite(topP)) {
-			D.state.architectTopP = topP;
-		}
-		if (topK !== undefined && Number.isFinite(topK)) {
-			D.state.architectTopK = topK;
-		}
-		if (repeatPenalty !== undefined && Number.isFinite(repeatPenalty)) {
-			D.state.architectRepeatPenalty = repeatPenalty;
-		}
-		if (minP !== undefined && Number.isFinite(minP)) {
-			D.state.architectMinP = minP;
-		}
-		if (seed !== undefined && Number.isFinite(seed)) {
-			D.state.architectSeed = seed;
-		}
-		if (temperature !== undefined && Number.isFinite(temperature)) {
-			D.state.architectTemperature = temperature;
-		}
+		assignStateNumber('architectTemperature', temperature);
+		assignStateNumber('architectTopP', topP);
+		assignStateNumber('architectTopK', topK);
+		assignStateNumber('architectRepeatPenalty', repeatPenalty);
+		assignStateNumber('architectMinP', minP);
+		assignStateNumber('architectSeed', seed);
+		assignStateNumber('architectPresencePenalty', presencePenalty);
+		assignStateNumber('architectFrequencyPenalty', frequencyPenalty);
+		assignStateNumber('architectMaxTokens', maxTokens);
+		D.state.architectKeepAlive = keepAlive === null ? '' : keepAlive;
 		D.vscode.postMessage({
 			type: 'setArchitectLlmParams',
 			numCtx,
-			topP: Number.isFinite(topP) ? topP : undefined,
-			topK: Number.isFinite(topK) ? topK : undefined,
-			repeatPenalty: Number.isFinite(repeatPenalty) ? repeatPenalty : undefined,
-			minP: Number.isFinite(minP) ? minP : undefined,
-			seed: Number.isFinite(seed) ? seed : undefined,
-			temperature: Number.isFinite(temperature) ? temperature : undefined,
+			temperature,
+			topP,
+			topK,
+			repeatPenalty,
+			minP,
+			seed,
+			presencePenalty,
+			frequencyPenalty,
+			maxTokens,
+			keepAlive,
 		});
 		fn.syncRoleModelVignetteHints();
 		if (D.dom.llmModelPickerEl) {

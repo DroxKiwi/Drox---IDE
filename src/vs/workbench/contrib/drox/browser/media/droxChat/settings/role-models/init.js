@@ -48,12 +48,16 @@
 			D.dom.roleModelPanelNumCtxCustomEl.addEventListener('input', () => fn.persistRoleModelFromPanel());
 		}
 		const architectInputs = [
+			D.dom.roleModelPanelTemperatureEl,
 			D.dom.roleModelPanelTopPEl,
-			D.dom.roleModelPanelTopKEl,
 			D.dom.roleModelPanelRepeatPenaltyEl,
 			D.dom.roleModelPanelMinPEl,
+			D.dom.roleModelPanelTopKEl,
 			D.dom.roleModelPanelSeedEl,
-			D.dom.roleModelPanelTemperatureEl,
+			D.dom.roleModelPanelPresencePenaltyEl,
+			D.dom.roleModelPanelFrequencyPenaltyEl,
+			D.dom.roleModelPanelMaxTokensEl,
+			D.dom.roleModelPanelKeepAliveEl,
 		];
 		for (const el of architectInputs) {
 			if (el) {

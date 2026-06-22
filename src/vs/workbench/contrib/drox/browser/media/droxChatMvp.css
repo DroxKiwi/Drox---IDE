@@ -249,6 +249,19 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	white-space: nowrap;
 }
 
+.drox-chat-brand-version--interactive {
+	cursor: pointer;
+	text-decoration: underline;
+	text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+	text-underline-offset: 2px;
+}
+
+.drox-chat-brand-version--interactive:hover,
+.drox-chat-brand-version--interactive:focus-visible {
+	opacity: 0.95;
+	outline: none;
+}
+
 .session-tabs-list {
 	flex: 1 1 auto;
 	min-width: 0;
@@ -2792,6 +2805,20 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .drox-wizard-add-header {
 	width: auto;
 	align-self: flex-start;
+}
+
+.role-model-panel-section-label {
+	margin: 8px 0 0;
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--vscode-descriptionForeground);
+	opacity: 0.9;
+}
+
+.role-model-panel-section-label:first-of-type {
+	margin-top: 4px;
 }
 
 .role-model-panel-head {

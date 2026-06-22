@@ -92,7 +92,6 @@ export function getDroxChatHtml(
 	versionLabel: string,
 	versionTitle: string,
 	showExportTranscript = true,
-	showAdvancedSettings = true,
 ): string {
 
 	const css = cssUri.toString(true);
@@ -156,6 +155,12 @@ export function getDroxChatHtml(
 	const rolePanelMinPLabel = localize('droxChatRolePanelMinP', 'Min P');
 	const rolePanelSeedLabel = localize('droxChatRolePanelSeed', 'Seed');
 	const rolePanelTempLabel = localize('droxChatRolePanelTemperature', 'Temperature');
+	const rolePanelSectionSampling = localize('droxChatRolePanelSectionSampling', 'Sampling');
+	const rolePanelSectionOutput = localize('droxChatRolePanelSectionOutput', 'Output');
+	const rolePanelPresencePenaltyLabel = localize('droxChatRolePanelPresencePenalty', 'Presence penalty');
+	const rolePanelFrequencyPenaltyLabel = localize('droxChatRolePanelFrequencyPenalty', 'Frequency penalty');
+	const rolePanelMaxTokensLabel = localize('droxChatRolePanelMaxTokens', 'Max tokens');
+	const rolePanelKeepAliveLabel = localize('droxChatRolePanelKeepAlive', 'Keep alive');
 	const rolePanelReloadLabel = localize('droxChatRolePanelReload', 'Reload models');
 	const rolePanelApplyLabel = localize('droxChatRolePanelClose', 'Close');
 
@@ -168,12 +173,9 @@ export function getDroxChatHtml(
 	const generalSettingsConnectionNotConfigured = localize('droxChatGeneralSettingsConnectionNotConfigured', 'Not configured');
 	const generalSettingsSectionAgent = localize('droxChatGeneralSettingsSectionAgent', 'Agent');
 	const generalSettingsSectionBehavior = localize('droxChatGeneralSettingsSectionBehavior', 'Behavior');
-	const generalSettingsKeepAlive = localize('droxChatGeneralSettingsKeepAlive', 'Keep alive');
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const generalSettingsNativeThinking = localize('droxChatGeneralSettingsNativeThinking', 'Native thinking');
 	const generalSettingsPrimaryLanguage = localize('droxChatGeneralSettingsPrimaryLanguage', 'Primary language');
-	const generalSettingsMaxTokens = localize('droxChatGeneralSettingsMaxTokens', 'Max tokens');
-	const generalSettingsNumPredict = localize('droxChatGeneralSettingsNumPredict', 'Num predict');
 	const generalSettingsWarmStart = localize('droxChatGeneralSettingsWarmStart', 'Warm start');
 	const generalSettingsConfirmFileWrites = localize('droxChatGeneralSettingsConfirmFileWrites', 'Confirm file writes');
 	const generalSettingsOpenModifiedFiles = localize('droxChatGeneralSettingsOpenModifiedFiles', 'Open modified files');
@@ -198,21 +200,11 @@ export function getDroxChatHtml(
 	const iconSend = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M8 11V4.5M8 4.5 5.25 7.25 8 4.5l2.75 2.75"/>');
 	const iconStop = droxIcon('<rect x="5" y="5" width="6" height="6" rx="1" fill="currentColor"/>');
 
-	const devKeepAliveField = showAdvancedSettings ? `
-			<label class="general-settings-field">
-
-				<span>${generalSettingsKeepAlive}</span>
-
-				<input type="text" id="general-settings-keep-alive" class="general-settings-input" spellcheck="false" />
-
-			</label>
-` : '';
-
-	const devAgentSectionLabel = showAdvancedSettings ? `
+	const agentSectionLabel = `
 			<p class="general-settings-section-label">${generalSettingsSectionAgent}</p>
-` : '';
+`;
 
-	const devAgentFields = showAdvancedSettings ? `
+	const agentFields = `
 			<label class="general-settings-field">
 
 				<span>${generalSettingsMaxIterations}</span>
@@ -221,38 +213,6 @@ export function getDroxChatHtml(
 
 			</label>
 
-			<label class="general-settings-field general-settings-field-check">
-
-				<input type="checkbox" id="general-settings-native-thinking" />
-
-				<span>${generalSettingsNativeThinking}</span>
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsPrimaryLanguage}</span>
-
-				<input type="text" id="general-settings-primary-language" class="general-settings-input" spellcheck="false" />
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsMaxTokens}</span>
-
-				<input type="number" id="general-settings-max-tokens" class="general-settings-input" min="1" step="1" placeholder="—" />
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsNumPredict}</span>
-
-				<input type="number" id="general-settings-num-predict" class="general-settings-input" min="1" step="1" placeholder="—" />
-
-			</label>
-` : `
 			<label class="general-settings-field general-settings-field-check">
 
 				<input type="checkbox" id="general-settings-native-thinking" />
@@ -289,20 +249,22 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 			</label>
 `;
 
-	const devRoleModelAdvancedFields = showAdvancedSettings ? `
+	const architectSamplingFields = `
+			<p class="role-model-panel-section-label">${rolePanelSectionSampling}</p>
+
 			<label class="role-model-field">
 
-				<span>${rolePanelTopPLabel}</span>
+				<span>${rolePanelTempLabel}</span>
 
-				<input type="number" id="role-model-panel-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" />
+				<input type="number" id="role-model-panel-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" placeholder="—" />
 
 			</label>
 
 			<label class="role-model-field">
 
-				<span>${rolePanelTopKLabel}</span>
+				<span>${rolePanelTopPLabel}</span>
 
-				<input type="number" id="role-model-panel-top-k" class="role-model-panel-input" min="1" max="1000" step="1" />
+				<input type="number" id="role-model-panel-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" placeholder="—" />
 
 			</label>
 
@@ -310,7 +272,7 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 
 				<span>${rolePanelRepeatPenaltyLabel}</span>
 
-				<input type="number" id="role-model-panel-repeat-penalty" class="role-model-panel-input" min="0" max="3" step="0.05" />
+				<input type="number" id="role-model-panel-repeat-penalty" class="role-model-panel-input" min="0" max="3" step="0.05" placeholder="—" />
 
 			</label>
 
@@ -318,7 +280,15 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 
 				<span>${rolePanelMinPLabel}</span>
 
-				<input type="number" id="role-model-panel-min-p" class="role-model-panel-input" min="0" max="1" step="0.01" />
+				<input type="number" id="role-model-panel-min-p" class="role-model-panel-input" min="0" max="1" step="0.01" placeholder="—" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelTopKLabel}</span>
+
+				<input type="number" id="role-model-panel-top-k" class="role-model-panel-input" min="1" max="1000" step="1" placeholder="—" />
 
 			</label>
 
@@ -326,18 +296,44 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 
 				<span>${rolePanelSeedLabel}</span>
 
-				<input type="number" id="role-model-panel-seed" class="role-model-panel-input" step="1" />
+				<input type="number" id="role-model-panel-seed" class="role-model-panel-input" step="1" placeholder="—" />
 
 			</label>
 
 			<label class="role-model-field">
 
-				<span>${rolePanelTempLabel}</span>
+				<span>${rolePanelPresencePenaltyLabel}</span>
 
-				<input type="number" id="role-model-panel-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" />
+				<input type="number" id="role-model-panel-presence-penalty" class="role-model-panel-input" min="-2" max="2" step="0.05" placeholder="—" />
 
 			</label>
-` : '';
+
+			<label class="role-model-field">
+
+				<span>${rolePanelFrequencyPenaltyLabel}</span>
+
+				<input type="number" id="role-model-panel-frequency-penalty" class="role-model-panel-input" min="-2" max="2" step="0.05" placeholder="—" />
+
+			</label>
+
+			<p class="role-model-panel-section-label">${rolePanelSectionOutput}</p>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelMaxTokensLabel}</span>
+
+				<input type="number" id="role-model-panel-max-tokens" class="role-model-panel-input" min="1" step="1" placeholder="—" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelKeepAliveLabel}</span>
+
+				<input type="text" id="role-model-panel-keep-alive" class="role-model-panel-input" spellcheck="false" placeholder="30m" />
+
+			</label>
+`;
 
 	return `<!DOCTYPE html>
 
@@ -469,7 +465,7 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 
 			${architectContextField}
 
-			${devRoleModelAdvancedFields}
+			${architectSamplingFields}
 
 			<div class="role-model-panel-actions">
 
@@ -520,11 +516,9 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 				<button type="button" id="general-settings-connect-ia" class="general-settings-panel-btn general-settings-connect-btn">${generalSettingsConnectIa}</button>
 			</div>
 
-			${devKeepAliveField}
+			${agentSectionLabel}
 
-			${devAgentSectionLabel}
-
-			${devAgentFields}
+			${agentFields}
 
 			<p class="general-settings-section-label">${generalSettingsSectionBehavior}</p>
 

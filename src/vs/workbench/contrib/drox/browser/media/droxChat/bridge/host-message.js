@@ -20,6 +20,9 @@
 				if (D.dom.chatBrandEl) {
 					D.dom.chatBrandEl.title = title || label || 'Drox';
 				}
+				if (typeof fn.bindChatVersionReleaseNotes === 'function') {
+					fn.bindChatVersionReleaseNotes();
+				}
 				break;
 			}
 			case 'state':

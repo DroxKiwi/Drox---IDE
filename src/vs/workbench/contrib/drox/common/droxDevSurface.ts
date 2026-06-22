@@ -2,54 +2,77 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-
 // allow-any-unicode-comment-file
-
 /** Surface produit : `dev` (watch / F5) ou `release` (`drox:ship`). */
+
 export type DroxProductSurface = 'dev' | 'release';
-
 export type DroxDevFeatureId =
+
 	| 'chatVersionDevSuffix'
+
 	| 'updateSimulateLatest'
+
 	| 'updateSimulateInstallerUrl'
+
 	| 'exportTranscript'
-	| 'executablePath'
-	| 'advancedLlmSettings';
 
+	| 'executablePath';
 export interface IDroxSurfaceProductInfo {
+
 	readonly droxSurface?: string;
-}
 
+}
 /** Registre des capacités visibles uniquement en surface `dev`. */
+
 export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly description: string }>> = {
+
 	chatVersionDevSuffix: {
+
 		description: 'Suffixe build moteur (epoch Unix + git) dans le header chat après handshake.',
+
 	},
+
 	updateSimulateLatest: {
+
 		description: 'Réglage drox.update.simulateLatestVersion (preview notification MAJ).',
+
 	},
+
 	updateSimulateInstallerUrl: {
+
 		description: 'Réglage drox.update.simulateInstallerUrl.',
+
 	},
+
 	exportTranscript: {
+
 		description: 'Bouton export transcript dans le header Drox Chat.',
+
 	},
+
 	executablePath: {
+
 		description: 'Réglage drox.executablePath (Settings IDE — dogfood binaire local, hors vignette chat).',
+
 	},
-	advancedLlmSettings: {
-		description: 'Réglages LLM avancés (sampling, max_iterations, keep_alive) — registre Settings + panneau architecte dev.',
-	},
+
 };
-
 export function getDroxSurface(product: IDroxSurfaceProductInfo): DroxProductSurface {
+
 	return product.droxSurface === 'release' ? 'release' : 'dev';
+
+}
+export function isDroxDevFeatureEnabled(
+
+	feature: DroxDevFeatureId,
+
+	product: IDroxSurfaceProductInfo,
+
+): boolean {
+
+	void DROX_DEV_FEATURES[feature];
+
+	return getDroxSurface(product) === 'dev';
+
 }
 
-export function isDroxDevFeatureEnabled(
-	feature: DroxDevFeatureId,
-	product: IDroxSurfaceProductInfo,
-): boolean {
-	void DROX_DEV_FEATURES[feature];
-	return getDroxSurface(product) === 'dev';
-}

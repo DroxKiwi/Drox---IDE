@@ -16,7 +16,7 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
 import { createDroxDevConfigurationProperties } from './droxDevConfiguration.js';
-import { DROX_DEFAULT_NUM_CTX } from './droxProductDefaults.js';
+import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX } from './droxProductDefaults.js';
 import { DROX_NUM_CTX_MAX, DROX_NUM_CTX_MIN, formatDroxNumCtxLabel } from './droxNumCtx.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
@@ -40,70 +40,6 @@ export const enum DroxSetting {
 	/** Modèle Architecte (plan) — ex-modèle principal chat. */
 	ArchitectModel = 'drox.architect.model',
 
-	/** Modèle Exécutant (mutations) — ex-modèle sous-agents `task`. */
-	ExecutorModel = 'drox.executor.model',
-
-	/** Nombre max d'exécuteurs orchestration en parallèle (`parallel_with`). */
-	OrchestrationMaxParallelExecutors = 'drox.orchestration.maxParallelExecutors',
-
-	/**
-	 * Gate architecte : `auto` (tour intent LLM), `discussion` (sans outils), `action` (plan + délégation).
-	 * Wire RPC `architectInteractionMode`.
-	 */
-	ArchitectInteractionMode = 'drox.architect.interactionMode',
-
-	/**
-	 * @deprecated Legacy setting — ignored by the engine (single product profile).
-	 */
-	EngineStrictness = 'drox.engine.strictness',
-
-	/** @deprecated Legacy overrides — ignored by the engine. */
-	EngineTuningReadBudgetPercent = 'drox.engine.tuning.readBudgetPercent',
-	EngineTuningMaxReadsBeforeDelegate = 'drox.engine.tuning.maxReadsBeforeDelegate',
-	EngineTuningMaxMutationsBeforeDelegateNudge = 'drox.engine.tuning.maxMutationsBeforeDelegateNudge',
-	EngineTuningMinDelegateInstructionsLen = 'drox.engine.tuning.minDelegateInstructionsLen',
-	EngineTuningMaxDelegateScopePaths = 'drox.engine.tuning.maxDelegateScopePaths',
-	EngineTuningDelegateScopeMaxFiles = 'drox.engine.tuning.delegateScopeMaxFiles',
-	EngineTuningPromotableAnswerMinChars = 'drox.engine.tuning.promotableAnswerMinChars',
-	EngineTuningDiscussionPromotableMinChars = 'drox.engine.tuning.discussionPromotableMinChars',
-	EngineTuningDiscussionAutoStopOnReply = 'drox.engine.tuning.discussionAutoStopOnReply',
-	EngineTuningIntentMaxIterations = 'drox.engine.tuning.intentMaxIterations',
-	EngineTuningDiscussionMaxIterations = 'drox.engine.tuning.discussionMaxIterations',
-	EngineTuningLoopStrikesBeforeAbort = 'drox.engine.tuning.loopStrikesBeforeAbort',
-	EngineTuningMaxDelegationsPerTask = 'drox.engine.tuning.maxDelegationsPerTask',
-	EngineTuningMaxToolsPerTurnArchitect = 'drox.engine.tuning.maxToolsPerTurnArchitect',
-	EngineTuningMaxToolsPerTurnDiscussion = 'drox.engine.tuning.maxToolsPerTurnDiscussion',
-	EngineTuningMaxConsecutiveAskUserFailures = 'drox.engine.tuning.maxConsecutiveAskUserFailures',
-	EngineTuningMaxToolsPerTurnIntent = 'drox.engine.tuning.maxToolsPerTurnIntent',
-	EngineTuningMaxToolsPerTurnExecutor = 'drox.engine.tuning.maxToolsPerTurnExecutor',
-	EngineTuningMaxParallelToolCalls = 'drox.engine.tuning.maxParallelToolCalls',
-	EngineTuningMaxTodoItems = 'drox.engine.tuning.maxTodoItems',
-	EngineTuningMemoryBudgetTokens = 'drox.engine.tuning.memoryBudgetTokens',
-	EngineTuningRequireDelegateBeforeTodoComplete = 'drox.engine.tuning.requireDelegateBeforeTodoComplete',
-	EngineTuningRequireWorkspaceMapBeforeDelegate = 'drox.engine.tuning.requireWorkspaceMapBeforeDelegate',
-	EngineTuningMinDeliverableBytes = 'drox.engine.tuning.minDeliverableBytes',
-	EngineTuningExecutorDeliverableExcerptMaxChars = 'drox.engine.tuning.executorDeliverableExcerptMaxChars',
-	EngineTuningExecutorSubrunMaxIterations = 'drox.engine.tuning.executorSubrunMaxIterations',
-	EngineTuningLiveCompactTailKeepMessages = 'drox.engine.tuning.liveCompactTailKeepMessages',
-	EngineTuningLiveCompactMaxTailRatio = 'drox.engine.tuning.liveCompactMaxTailRatio',
-	EngineTuningLiveCompactMinPrefixTokens = 'drox.engine.tuning.liveCompactMinPrefixTokens',
-	EngineTuningLiveCompactMaxPasses = 'drox.engine.tuning.liveCompactMaxPasses',
-	EngineTuningCheckpointMaxChars = 'drox.engine.tuning.checkpointMaxChars',
-	EngineTuningAnchorUserRequestMaxChars = 'drox.engine.tuning.anchorUserRequestMaxChars',
-	EngineTuningAnchorPlanMaxItems = 'drox.engine.tuning.anchorPlanMaxItems',
-	EngineTuningSummarizeToolResultTruncate = 'drox.engine.tuning.summarizeToolResultTruncate',
-	EngineTuningReinjectToolResultTruncate = 'drox.engine.tuning.reinjectToolResultTruncate',
-	EngineTuningContextSnipEnabled = 'drox.engine.tuning.contextSnipEnabled',
-	EngineTuningExecutorGlobHeavyBlocked = 'drox.engine.tuning.executorGlobHeavyBlocked',
-	EngineTuningExecutorAskUserBlocked = 'drox.engine.tuning.executorAskUserBlocked',
-	EngineTuningExecutorTodoWriteBlocked = 'drox.engine.tuning.executorTodoWriteBlocked',
-	EngineTuningExecutorDeliverableMetBlocked = 'drox.engine.tuning.executorDeliverableMetBlocked',
-	EngineTuningGateDoneRequiresAnswering = 'drox.engine.tuning.gateDoneRequiresAnswering',
-	EngineTuningGateTestingAfterCodeMutation = 'drox.engine.tuning.gateTestingAfterCodeMutation',
-	EngineTuningGateTodoRecreationBlocked = 'drox.engine.tuning.gateTodoRecreationBlocked',
-	EngineTuningGateProfessorCoursePlan = 'drox.engine.tuning.gateProfessorCoursePlan',
-	EngineTuningGateTodoStaleBeforeDone = 'drox.engine.tuning.gateTodoStaleBeforeDone',
-
 	/** @deprecated Utiliser {@link DroxSetting.ArchitectModel}. */
 	Model = 'drox.model',
 
@@ -122,6 +58,7 @@ export const enum DroxSetting {
 
 	MaxTokens = 'drox.maxTokens',
 
+	/** @deprecated Lecture seule — repli vers {@link DroxSetting.MaxTokens}. */
 	NumPredict = 'drox.numPredict',
 
 	NumCtx = 'drox.numCtx',
@@ -172,25 +109,13 @@ export const enum DroxSetting {
 
 	ToolsMcpEnabled = 'drox.tools.mcp.enabled',
 
-	SubagentsEnabled = 'drox.subagents.enabled',
-
-	SubagentsMaxIterations = 'drox.subagents.maxIterations',
-
-	SubagentsMaxConcurrent = 'drox.subagents.maxConcurrent',
-
-	/** @deprecated Utiliser {@link DroxSetting.ExecutorModel}. */
-	SubagentsModel = 'drox.subagents.model',
-
-	/** Fenêtre Ollama `num_ctx` des sous-agents (indépendante du modèle principal). */
-	SubagentsNumCtx = 'drox.subagents.numCtx',
-
 }
 
 /** Default `latest.json` URL (also used when user settings clear the manifest URL). */
 export const DROX_DEFAULT_UPDATE_MANIFEST_URL =
 	'https://raw.githubusercontent.com/DroxKiwi/Drox---IDE---OR/main/stable/latest.json';
 
-/** Liste dynamique — modèle Architecte (chat + orchestration `role_split`). */
+/** Liste dynamique — modèle Architecte (`agent.run` / moteur `tui_mono`). */
 export const droxArchitectModelEnumValues: string[] = [''];
 
 /** @deprecated Alias enum — garde la rétrocompat settings. */
@@ -203,7 +128,7 @@ const droxArchitectModelSettingSchema: IConfigurationPropertySchema = {
 	scope: ConfigurationScope.RESOURCE,
 	markdownDescription: localize(
 		'drox.architect.model',
-		'**Architect** LLM for planning, gates, and workspace tools (`role_split` orchestration). Same list as the chat picker (↻ reloads from `drox.server`). Replaces legacy `drox.model`.',
+		'**Architect** LLM for each `agent.run` (`tui_mono` engine). Same list as the chat picker (↻ reloads from `drox.server`). Replaces legacy `drox.model`.',
 	),
 };
 
@@ -309,17 +234,6 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		[DroxSetting.ArchitectModel]: droxArchitectModelSettingSchema,
 
-		[DroxSetting.ArchitectInteractionMode]: {
-			type: 'string',
-			enum: ['auto', 'discussion', 'action'],
-			default: 'auto',
-			scope: ConfigurationScope.RESOURCE,
-			markdownDescription: localize(
-				'drox.architect.interactionMode',
-				'**Architect mode** (`role_split`) per message: **Auto** — intent probe picks discuss vs action (`[gate: architect_discuss|architect_edit]`); **Discussion** — direct reply, limited read tools; **Action** — full workspace tools (edit, bash, reads, …). Synced with composer vignettes.',
-			),
-		},
-
 		[DroxSetting.NumCtx]: {
 			type: 'number',
 			default: DROX_DEFAULT_NUM_CTX,
@@ -328,9 +242,97 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.numCtx',
-				'**Context window** — Ollama `num_ctx` for the Architect run. Presets 16k–1M or a custom value ({0}–{1} tokens); larger values use more VRAM.',
+				'**Context window** — `numCtx` in `agent.run` (Ollama `num_ctx`). Presets 16k–1M or a custom value ({0}–{1} tokens); larger values use more VRAM.',
 				formatDroxNumCtxLabel(DROX_NUM_CTX_MIN),
 				formatDroxNumCtxLabel(DROX_NUM_CTX_MAX),
+			),
+		},
+
+		[DroxSetting.Temperature]: {
+			type: 'number',
+			default: undefined,
+			minimum: 0,
+			maximum: 2,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.temperature', 'Sampling temperature (`temperature` in `agent.run`). Leave unset for server default.'),
+		},
+		[DroxSetting.TopP]: {
+			type: 'number',
+			default: undefined,
+			minimum: 0,
+			maximum: 1,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.topP', 'Top-p (`topP` in `agent.run`). Leave unset for server default.'),
+		},
+		[DroxSetting.TopK]: {
+			type: 'number',
+			default: undefined,
+			minimum: 1,
+			maximum: 200,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.topK', 'Top-k (`topK` in `agent.run`). Leave unset for server default.'),
+		},
+		[DroxSetting.RepeatPenalty]: {
+			type: 'number',
+			default: undefined,
+			minimum: 0.5,
+			maximum: 2,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.repeatPenalty', 'Repeat penalty (`repeatPenalty` in `agent.run`). Leave unset for server default.'),
+		},
+		[DroxSetting.MinP]: {
+			type: 'number',
+			default: undefined,
+			minimum: 0,
+			maximum: 1,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.minP', 'Min-p (`minP` in `agent.run`). Leave unset for server default.'),
+		},
+		[DroxSetting.Seed]: {
+			type: 'number',
+			default: undefined,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.seed', 'Sampling seed (`seed` in `agent.run`). Leave unset for server default.'),
+		},
+		[DroxSetting.PresencePenalty]: {
+			type: 'number',
+			default: undefined,
+			minimum: -2,
+			maximum: 2,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.presencePenalty', 'Presence penalty (`presencePenalty` in `agent.run`) when supported by the backend.'),
+		},
+		[DroxSetting.FrequencyPenalty]: {
+			type: 'number',
+			default: undefined,
+			minimum: -2,
+			maximum: 2,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.frequencyPenalty', 'Frequency penalty (`frequencyPenalty` in `agent.run`) when supported by the backend.'),
+		},
+		[DroxSetting.MaxTokens]: {
+			type: 'number',
+			default: undefined,
+			minimum: 1,
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.maxTokens', 'Max response tokens per turn (`maxTokens` in `agent.run`).'),
+		},
+		[DroxSetting.KeepAlive]: {
+			type: 'string',
+			default: '',
+			scope: ConfigurationScope.RESOURCE,
+			description: localize('drox.keepAlive', 'Ollama `keepAlive` in `agent.run` (e.g. `30m`, `0`, `-1`). Leave empty for server default.'),
+		},
+
+		[DroxSetting.MaxIterations]: {
+			type: 'number',
+			default: DROX_DEFAULT_MAX_ITERATIONS,
+			minimum: 1,
+			maximum: 200,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.maxIterations',
+				'**Max iterations** — maximum LLM ↔ tool turns per `agent.run`.',
 			),
 		},
 
@@ -396,7 +398,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			scope: ConfigurationScope.RESOURCE,
 
-			description: localize('drox.nativeThinking', 'Enable Ollama native thinking (`internal_reasoning` phase).'),
+			description: localize('drox.nativeThinking', 'Enable native thinking (`nativeThinking` in `agent.run`, Ollama `internal_reasoning` phase).'),
 
 		},
 
@@ -445,11 +447,8 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 
 			description: localize(
-
 				'drox.openModifiedFiles',
-
-				'Automatically open files in the editor after a successful `file_edit`, `file_write`, or `notebook_edit`. Does not apply to executor deliverables under `.drox/agent-output/` (open them manually from the chat).',
-
+				'Automatically open files in the editor after a successful `file_edit`, `file_write`, or `notebook_edit`.',
 			),
 
 		},
@@ -512,7 +511,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			markdownDescription: localize(
 				'drox.notifications.cycleDone.windows',
-				'Notify when a Drox orchestration cycle finishes (`agent/done`). Uses a workbench banner and, when the window is inactive, a system toast (Windows).',
+				'Notify when an `agent.run` finishes (`agent/done`). Uses a workbench banner and, when the window is inactive, a system toast (Windows).',
 			),
 
 		},
@@ -541,11 +540,8 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 
 			markdownDescription: localize(
-
 				'drox.chat.showErrorsAndWarnings',
-
-				'Show **engine errors and warnings** in the Drox chat log (gate blocks, `todo_write` notices, loop interventions, failed tools).',
-
+				'Show **engine errors and warnings** in the Drox chat log (gate blocks, tool notices, loop interventions, failed tools).',
 			),
 
 		},

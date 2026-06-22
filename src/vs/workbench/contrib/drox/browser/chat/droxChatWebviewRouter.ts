@@ -20,7 +20,6 @@ import { IOutputService } from '../../../../services/output/common/output.js';
 import { ITerminalService } from '../../../terminal/browser/terminal.js';
 import { DroxCommands } from '../../common/drox.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
-import { normalizeDroxArchitectInteractionMode } from '../../common/droxArchitectInteractionMode.js';
 import {
 	getProfessorModeRemovedNotificationMessage,
 	resolveDroxPermissionMode,
@@ -32,6 +31,7 @@ import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxSlashHostMessage, IDroxSlashCommandService } from '../../common/droxSlashCommandService.js';
 import { IDroxUserAskService } from '../../common/droxUserAskService.js';
+import { IDroxReleaseNotesService } from '../../common/droxReleaseNotesService.js';
 import { DroxWebviewToHostMessage } from '../droxChatBridge.js';
 import { DroxChatDragAndDrop } from '../droxChatDragAndDrop.js';
 import { refreshDroxChatLlmModels } from './droxChatLlmModels.js';
@@ -95,6 +95,7 @@ export interface IDroxChatWebviewRouterDeps {
 	readonly clipboardService: IClipboardService;
 	readonly workspaceContextService: IWorkspaceContextService;
 	readonly productService: IProductService;
+	readonly releaseNotesService: IDroxReleaseNotesService;
 }
 
 export async function routeDroxChatWebviewMessage(
@@ -144,12 +145,16 @@ export async function routeDroxChatWebviewMessage(
 		case 'setArchitectLlmParams':
 			await setDroxArchitectLlmParamsFromWebview(deps, {
 				numCtx: raw.numCtx,
+				temperature: raw.temperature,
 				topP: raw.topP,
 				topK: raw.topK,
 				repeatPenalty: raw.repeatPenalty,
 				minP: raw.minP,
 				seed: raw.seed,
-				temperature: raw.temperature,
+				presencePenalty: raw.presencePenalty,
+				frequencyPenalty: raw.frequencyPenalty,
+				maxTokens: raw.maxTokens,
+				keepAlive: raw.keepAlive,
 			});
 			break;
 		case 'setGeneralSettings':
@@ -166,11 +171,6 @@ export async function routeDroxChatWebviewMessage(
 			}
 			await deps.configurationService.updateValue(DroxSetting.PermissionMode, resolved.mode);
 			host.post({ kind: 'permissionMode', mode: resolved.mode });
-			break;
-		}
-		case 'setArchitectInteractionMode': {
-			const mode = normalizeDroxArchitectInteractionMode(raw.architectInteractionMode);
-			await deps.configurationService.updateValue(DroxSetting.ArchitectInteractionMode, mode);
 			break;
 		}
 		case 'cancelRun':
@@ -205,6 +205,9 @@ export async function routeDroxChatWebviewMessage(
 				deps.productService,
 				deps.fileService,
 			);
+			break;
+		case 'showReleaseNotes':
+			await deps.releaseNotesService.showReleaseNotes();
 			break;
 		case 'userAskAnswer':
 			deps.userAskService.handleWebviewAnswer(raw);

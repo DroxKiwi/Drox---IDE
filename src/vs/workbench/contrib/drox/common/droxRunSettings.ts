@@ -6,18 +6,11 @@
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { DroxSetting, readArchitectModel } from './droxConfiguration.js';
-import { isDroxDevFeatureEnabled } from './droxDevSurface.js';
 import { llmHeadersForRpc, readLlmHeadersMap } from './droxLlmHeaders.js';
-import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX, DROX_DEFAULT_NUM_PREDICT } from './droxProductDefaults.js';
+import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX } from './droxProductDefaults.js';
 import { clampDroxNumCtx } from './droxNumCtx.js';
-import product from '../../../../platform/product/common/product.js';
 import { IDroxAgentRunImage } from './droxAttachments.js';
 import { getDisabledToolNames } from './droxToolCatalog.js';
-import {
-	DroxArchitectInteractionMode,
-	normalizeDroxArchitectInteractionMode,
-	wireArchitectInteractionMode,
-} from './droxArchitectInteractionMode.js';
 import { DroxPermissionMode, normalizeDroxPermissionMode } from './droxPermissionAsk.js';
 import { droxWorkspaceSessionsDir } from './droxWorkspacePaths.js';
 export interface IDroxLlmSettings {
@@ -49,52 +42,40 @@ export function readPermissionMode(configService: IConfigurationService, resourc
 	const v = configService.getValue<string>(DroxSetting.PermissionMode, { resource });
 	return normalizeDroxPermissionMode(v);
 }
-export function readArchitectInteractionMode(
-	configService: IConfigurationService,
-	resource?: URI,
-): DroxArchitectInteractionMode {
-	const v = configService.getValue<string>(DroxSetting.ArchitectInteractionMode, { resource });
-	return normalizeDroxArchitectInteractionMode(v);
-}
-function readOptionalNumber(
-	configService: IConfigurationService,
-	key: string,
-	resource: URI | undefined,
-): number | undefined {
-	if (!isDroxDevFeatureEnabled('advancedLlmSettings', product)) {
-		return undefined;
+/** Plafond de sortie RPC : `maxTokens` prioritaire, repli lecture `numPredict` (legacy). */
+export function effectiveMaxTokensForRun(settings: IDroxLlmSettings): number | undefined {
+	if (settings.maxTokens !== undefined && settings.maxTokens > 0) {
+		return Math.floor(settings.maxTokens);
 	}
-	return readNumber(configService, key, resource);
+	if (settings.numPredict !== undefined && settings.numPredict > 0) {
+		return Math.floor(settings.numPredict);
+	}
+	return undefined;
 }
 export function readLlmSettings(configService: IConfigurationService, resource?: URI): IDroxLlmSettings {
 	const str = (key: string): string => {
 		const v = configService.getValue<string>(key, { resource });
 		return typeof v === 'string' ? v.trim() : '';
 	};
-	const advanced = isDroxDevFeatureEnabled('advancedLlmSettings', product);
 	return {
 		server: str(DroxSetting.Server),
 		model: readArchitectModel(configService, resource),
 		apiKey: str(DroxSetting.ApiKey),
 		llmHeaders: readLlmHeadersMap(configService, resource),
 		primaryLanguage: str(DroxSetting.PrimaryLanguage),
-		maxIterations: advanced
-			? (configService.getValue<number>(DroxSetting.MaxIterations, { resource }) ?? DROX_DEFAULT_MAX_ITERATIONS)
-			: DROX_DEFAULT_MAX_ITERATIONS,
-		temperature: readOptionalNumber(configService, DroxSetting.Temperature, resource),
-		maxTokens: readOptionalNumber(configService, DroxSetting.MaxTokens, resource),
-		numPredict: advanced
-			? (readNumber(configService, DroxSetting.NumPredict, resource) ?? DROX_DEFAULT_NUM_PREDICT)
-			: DROX_DEFAULT_NUM_PREDICT,
+		maxIterations: configService.getValue<number>(DroxSetting.MaxIterations, { resource }) ?? DROX_DEFAULT_MAX_ITERATIONS,
+		temperature: readNumber(configService, DroxSetting.Temperature, resource),
+		maxTokens: readNumber(configService, DroxSetting.MaxTokens, resource),
+		numPredict: readNumber(configService, DroxSetting.NumPredict, resource),
 		numCtx: clampDroxNumCtx(readNumber(configService, DroxSetting.NumCtx, resource) ?? DROX_DEFAULT_NUM_CTX),
-		topP: readOptionalNumber(configService, DroxSetting.TopP, resource),
-		topK: readOptionalNumber(configService, DroxSetting.TopK, resource),
-		repeatPenalty: readOptionalNumber(configService, DroxSetting.RepeatPenalty, resource),
-		seed: readOptionalNumber(configService, DroxSetting.Seed, resource),
-		minP: readOptionalNumber(configService, DroxSetting.MinP, resource),
-		presencePenalty: readOptionalNumber(configService, DroxSetting.PresencePenalty, resource),
-		frequencyPenalty: readOptionalNumber(configService, DroxSetting.FrequencyPenalty, resource),
-		keepAlive: advanced ? str(DroxSetting.KeepAlive) : '',
+		topP: readNumber(configService, DroxSetting.TopP, resource),
+		topK: readNumber(configService, DroxSetting.TopK, resource),
+		repeatPenalty: readNumber(configService, DroxSetting.RepeatPenalty, resource),
+		seed: readNumber(configService, DroxSetting.Seed, resource),
+		minP: readNumber(configService, DroxSetting.MinP, resource),
+		presencePenalty: readNumber(configService, DroxSetting.PresencePenalty, resource),
+		frequencyPenalty: readNumber(configService, DroxSetting.FrequencyPenalty, resource),
+		keepAlive: str(DroxSetting.KeepAlive),
 		nativeThinking: configService.getValue<boolean>(DroxSetting.NativeThinking, { resource }) ?? false,
 	};
 }
@@ -112,8 +93,9 @@ export function llmSettingsToEnv(settings: IDroxLlmSettings): Record<string, str
 	if (settings.primaryLanguage) {
 		env.DROX_PRIMARY_LANGUAGE = settings.primaryLanguage;
 	}
-	if (settings.numPredict !== undefined && settings.numPredict > 0) {
-		env.DROX_NUM_PREDICT = String(Math.floor(settings.numPredict));
+	const maxOut = effectiveMaxTokensForRun(settings);
+	if (maxOut !== undefined) {
+		env.DROX_NUM_PREDICT = String(maxOut);
 	}
 	if (settings.numCtx !== undefined && settings.numCtx > 0) {
 		env.DROX_NUM_CTX = String(Math.floor(settings.numCtx));
@@ -151,6 +133,16 @@ export function readDisabledToolsForRun(configService: IConfigurationService, re
 export function isMcpToolsEnabled(configService: IConfigurationService, resource?: URI): boolean {
 	return configService.getValue<boolean>(DroxSetting.ToolsMcpEnabled, { resource }) !== false;
 }
+function wireOptionalNumber(params: Record<string, unknown>, key: string, value: number | undefined): void {
+	if (value !== undefined && Number.isFinite(value)) {
+		params[key] = value;
+	}
+}
+function wireOptionalPositiveInt(params: Record<string, unknown>, key: string, value: number | undefined): void {
+	if (value !== undefined && value > 0) {
+		params[key] = Math.floor(value);
+	}
+}
 export function buildAgentRunParams(opts: {
 	readonly prompt: string;
 	readonly workspace: string;
@@ -161,7 +153,6 @@ export function buildAgentRunParams(opts: {
 	readonly mcpToolsEnabled: boolean;
 	readonly images?: readonly IDroxAgentRunImage[];
 	readonly runObjective?: string;
-	readonly architectInteractionMode?: DroxArchitectInteractionMode;
 }): Record<string, unknown> {
 	const wireMode = normalizeDroxPermissionMode(opts.mode);
 	const params: Record<string, unknown> = {
@@ -188,14 +179,21 @@ export function buildAgentRunParams(opts: {
 	if (headers) {
 		params.headers = headers;
 	}
-	if (opts.settings.temperature !== undefined) {
-		params.temperature = opts.settings.temperature;
+	wireOptionalNumber(params, 'temperature', opts.settings.temperature);
+	const maxTokens = effectiveMaxTokensForRun(opts.settings);
+	wireOptionalPositiveInt(params, 'maxTokens', maxTokens);
+	wireOptionalPositiveInt(params, 'numCtx', opts.settings.numCtx);
+	wireOptionalNumber(params, 'topP', opts.settings.topP);
+	wireOptionalPositiveInt(params, 'topK', opts.settings.topK);
+	wireOptionalNumber(params, 'repeatPenalty', opts.settings.repeatPenalty);
+	wireOptionalNumber(params, 'minP', opts.settings.minP);
+	if (opts.settings.seed !== undefined) {
+		params.seed = Math.floor(opts.settings.seed);
 	}
-	if (opts.settings.maxTokens !== undefined) {
-		params.maxTokens = opts.settings.maxTokens;
-	}
-	if (opts.settings.numCtx !== undefined && opts.settings.numCtx > 0) {
-		params.numCtx = Math.floor(opts.settings.numCtx);
+	wireOptionalNumber(params, 'presencePenalty', opts.settings.presencePenalty);
+	wireOptionalNumber(params, 'frequencyPenalty', opts.settings.frequencyPenalty);
+	if (opts.settings.keepAlive) {
+		params.keepAlive = opts.settings.keepAlive;
 	}
 	if (opts.disabledTools.length > 0) {
 		params.disabledTools = [...opts.disabledTools];
@@ -215,14 +213,6 @@ export function buildAgentRunParams(opts: {
 	if (opts.runObjective) {
 		params.runObjective = opts.runObjective;
 	}
-	params.orchestrationMode = 'role_split';
-	params.orchestrationMaxParallelExecutors = 1;
-	const architectGate = wireArchitectInteractionMode(
-		opts.architectInteractionMode ?? 'auto',
-	);
-	if (architectGate) {
-		params.architectInteractionMode = architectGate;
-	}
 	return params;
 }
 /** Clés dont la modification exige un redémarrage du processus moteur. */
@@ -235,7 +225,6 @@ export const DROX_ENGINE_RESPAWN_SETTINGS: readonly string[] = [
 	DroxSetting.LlmHosting,
 	DroxSetting.PrimaryLanguage,
 	DroxSetting.ExecutablePath,
-	DroxSetting.NumPredict,
 	DroxSetting.NumCtx,
 	DroxSetting.TopP,
 	DroxSetting.TopK,
@@ -245,4 +234,5 @@ export const DROX_ENGINE_RESPAWN_SETTINGS: readonly string[] = [
 	DroxSetting.PresencePenalty,
 	DroxSetting.FrequencyPenalty,
 	DroxSetting.KeepAlive,
+	DroxSetting.MaxTokens,
 ];

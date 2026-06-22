@@ -67,9 +67,10 @@ L’historique Microsoft (~160k commits, ~1,3 Go) vit **en local** via le remote
 git fetch origin
 git checkout main
 git pull origin main
-git checkout -b 1.5.1          # branche feature / release
+git checkout -b 1.5.2          # branche feature / release
+# Dès l’ouverture de branche : bump `droxVersion` dans package.json (ex. 1.5.2)
 # … commits UI, moteur, etc. sur la lignée main (pas besoin d’historique MS)
-git push -u origin 1.5.1       # pushes légers
+git push -u origin 1.5.2       # pushes légers
 ```
 
 Les commits **sur la lignée `main`** (sans reset `upstream/main` sur la branche) se poussent normalement — quelques Mo.
@@ -88,7 +89,7 @@ Quand la branche de dev ou `integrate/vscode-*` est validée, **publier** sur Gi
 
 ```powershell
 git fetch origin
-$ver = '1.5.1'                                    # droxVersion
+$ver = '1.5.2'                                    # droxVersion
 $src = 'refs/heads/1.5.1'                         # branche validée (ou integrate/vscode-*)
 
 git checkout -B "publish/$ver" origin/main
@@ -138,10 +139,10 @@ git pull origin main
 | Champ | Exemple | Usage |
 |-------|---------|--------|
 | **`version`** | `1.122.0` | Base VS Code / API extensions (Copilot, marketplace) — ne pas remplacer par la version Drox |
-| **`droxVersion`** | `1.5.0` | Release produit : installeur, `latest.json`, dialogue **À propos** |
+| **`droxVersion`** | `1.5.2` | Release produit : installeur, `latest.json`, dialogue **À propos**, header chat |
 | **`droxSurface`** | `dev` | `dev` en sources / watch ; `release` injecté au package via `DROX_PRODUCT_SURFACE` (`build-release-win32.ps1`) |
 
-Pour une nouvelle release Drox : modifier **`droxVersion`** uniquement (sauf rebase upstream majeur → mettre à jour **`version`** aussi). Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.
+Pour une nouvelle release Drox : modifier **`droxVersion`** dans `package.json` **dès l’ouverture de la branche** (ex. `git checkout -b 1.5.3` → passer à `1.5.3`), pas seulement au ship. Sauf rebase upstream majeur → mettre à jour **`version`** aussi. Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.
 
 Affichage utilisateur : `1.3.1 (base VS Code 1.122.0)` via `getProductDisplayVersion()` dans le code. Build : `build/lib/droxVersion.ts`.
 

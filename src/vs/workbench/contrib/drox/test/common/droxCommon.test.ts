@@ -76,7 +76,7 @@ import { IDroxTranscriptMessage } from '../../common/droxSession.js';
 import { replayTranscriptMessageRich } from '../../browser/droxSessionReplay.js';
 import { DroxHostToWebviewMessage } from '../../browser/droxChatBridge.js';
 import { IDroxChatAgentEventHost } from '../../browser/droxChatAgentEvents.js';
-import { buildAgentRunParams, IDroxLlmSettings } from '../../common/droxRunSettings.js';
+import { buildAgentRunParams, effectiveMaxTokensForRun, IDroxLlmSettings, llmSettingsToEnv } from '../../common/droxRunSettings.js';
 import { DroxRunRevertService } from '../../electron-browser/droxRunRevertService.js';
 
 function mockLlmSettings(overrides: Partial<IDroxLlmSettings> = {}): IDroxLlmSettings {
@@ -86,7 +86,7 @@ function mockLlmSettings(overrides: Partial<IDroxLlmSettings> = {}): IDroxLlmSet
 		apiKey: '',
 		llmHeaders: {},
 		primaryLanguage: 'fr',
-		maxIterations: 12,
+		maxIterations: 50,
 		temperature: undefined,
 		maxTokens: undefined,
 		numPredict: undefined,
@@ -1129,7 +1129,7 @@ suite('Drox — transcript export', () => {
 	});
 });
 
-suite('Drox — orchestration model params', () => {
+suite('Drox — agent.run params', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('buildAgentRunParams omits modelTier', () => {
@@ -1145,7 +1145,7 @@ suite('Drox — orchestration model params', () => {
 		assert.strictEqual(params.modelTier, undefined);
 	});
 
-	test('buildAgentRunParams solo UI omits executor RPC fields', () => {
+	test('buildAgentRunParams omits legacy orchestration RPC fields', () => {
 		const params = buildAgentRunParams({
 			prompt: 'v1_2',
 			workspace: WS,
@@ -1155,15 +1155,50 @@ suite('Drox — orchestration model params', () => {
 			disabledTools: [],
 			mcpToolsEnabled: true,
 		});
-		assert.strictEqual(params.orchestrationMode, 'role_split');
 		assert.strictEqual(params.model, 'qwen3.5:9b');
+		assert.strictEqual(params.numCtx, 32768);
 		assert.strictEqual(params.subagentsModel, undefined);
 		assert.strictEqual(params.subagentsNumCtx, undefined);
 		assert.strictEqual(params.subagentsEnabled, undefined);
-		assert.strictEqual(params.orchestrationMaxParallelExecutors, 1);
+		assert.strictEqual(params.orchestrationMode, undefined);
+		assert.strictEqual(params.orchestrationMaxParallelExecutors, undefined);
+		assert.strictEqual(params.architectInteractionMode, undefined);
 	});
 
-	test('buildAgentRunParams omits architectInteractionMode when auto', () => {
+	test('buildAgentRunParams wires sampling and keepAlive when set', () => {
+		const params = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings({
+				temperature: 0.7,
+				maxTokens: 4096,
+				topP: 0.9,
+				topK: 40,
+				repeatPenalty: 1.1,
+				minP: 0.05,
+				seed: 42,
+				presencePenalty: 0.1,
+				frequencyPenalty: 0.2,
+				keepAlive: '5m',
+			}),
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(params.temperature, 0.7);
+		assert.strictEqual(params.maxTokens, 4096);
+		assert.strictEqual(params.topP, 0.9);
+		assert.strictEqual(params.topK, 40);
+		assert.strictEqual(params.repeatPenalty, 1.1);
+		assert.strictEqual(params.minP, 0.05);
+		assert.strictEqual(params.seed, 42);
+		assert.strictEqual(params.presencePenalty, 0.1);
+		assert.strictEqual(params.frequencyPenalty, 0.2);
+		assert.strictEqual(params.keepAlive, '5m');
+	});
+
+	test('buildAgentRunParams omits unset sampling keys', () => {
 		const params = buildAgentRunParams({
 			prompt: 'hi',
 			workspace: WS,
@@ -1172,37 +1207,38 @@ suite('Drox — orchestration model params', () => {
 			settings: mockLlmSettings(),
 			disabledTools: [],
 			mcpToolsEnabled: true,
-			architectInteractionMode: 'auto',
 		});
-		assert.strictEqual(params.architectInteractionMode, undefined);
+		assert.strictEqual(params.topP, undefined);
+		assert.strictEqual(params.topK, undefined);
+		assert.strictEqual(params.repeatPenalty, undefined);
+		assert.strictEqual(params.minP, undefined);
+		assert.strictEqual(params.seed, undefined);
+		assert.strictEqual(params.presencePenalty, undefined);
+		assert.strictEqual(params.frequencyPenalty, undefined);
+		assert.strictEqual(params.keepAlive, undefined);
 	});
 
-	test('buildAgentRunParams forwards architectInteractionMode discussion', () => {
+	test('effectiveMaxTokensForRun prefers maxTokens over numPredict', () => {
+		const settings = mockLlmSettings({ maxTokens: 2048, numPredict: 8192 });
+		assert.strictEqual(effectiveMaxTokensForRun(settings), 2048);
+	});
+
+	test('buildAgentRunParams falls back to numPredict for maxTokens', () => {
 		const params = buildAgentRunParams({
-			prompt: 'explain',
+			prompt: 'hi',
 			workspace: WS,
 			mode: 'acceptEdits',
 			sessionId: 's1',
-			settings: mockLlmSettings(),
+			settings: mockLlmSettings({ numPredict: 8192 }),
 			disabledTools: [],
 			mcpToolsEnabled: true,
-			architectInteractionMode: 'discussion',
 		});
-		assert.strictEqual(params.architectInteractionMode, 'discussion');
+		assert.strictEqual(params.maxTokens, 8192);
 	});
 
-	test('buildAgentRunParams forwards architectInteractionMode action', () => {
-		const params = buildAgentRunParams({
-			prompt: 'fix bug',
-			workspace: WS,
-			mode: 'acceptEdits',
-			sessionId: 's1',
-			settings: mockLlmSettings(),
-			disabledTools: [],
-			mcpToolsEnabled: true,
-			architectInteractionMode: 'action',
-		});
-		assert.strictEqual(params.architectInteractionMode, 'action');
+	test('llmSettingsToEnv uses effective max output tokens', () => {
+		const env = llmSettingsToEnv(mockLlmSettings({ maxTokens: 2048, numPredict: 8192 }));
+		assert.strictEqual(env.DROX_NUM_PREDICT, '2048');
 	});
 
 	test('buildAgentRunParams omits deprecated engineStrictness and engineTuning', () => {
@@ -1244,6 +1280,7 @@ suite('Drox — orchestration model params', () => {
 
 	test('isDroxWebviewToHostMessage accepts setModel and refreshLlmModels', () => {
 		assert.ok(isDroxWebviewToHostMessage({ type: 'refreshLlmModels' }));
+		assert.ok(isDroxWebviewToHostMessage({ type: 'showReleaseNotes' }));
 		assert.ok(isDroxWebviewToHostMessage({ type: 'resetLlmConnection' }));
 		assert.ok(isDroxWebviewToHostMessage({
 			type: 'testLlmConnection',

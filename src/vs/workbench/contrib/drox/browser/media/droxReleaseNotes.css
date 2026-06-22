@@ -1,0 +1,137 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-release-notes-overlay {
+	--drox-ui-green: var(--vscode-panel-border, #3d7a3d);
+	--drox-ui-fg-muted: color-mix(in srgb, var(--vscode-foreground) 62%, transparent);
+
+	position: fixed;
+	inset: 0;
+	z-index: 2575;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+}
+
+.drox-release-notes-overlay[hidden] {
+	display: none !important;
+	pointer-events: none !important;
+}
+
+.drox-release-notes-backdrop {
+	position: absolute;
+	inset: 0;
+	background: color-mix(in srgb, var(--vscode-editor-background) 30%, rgba(0, 0, 0, 0.68));
+}
+
+.drox-release-notes-card {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	width: min(480px, calc(100vw - 32px));
+	max-height: min(78vh, 560px);
+	border-radius: 10px;
+	border: 1px solid var(--drox-ui-green, var(--vscode-widget-border));
+	background: var(--vscode-editorWidget-background, var(--vscode-input-background));
+	color: var(--vscode-foreground);
+	box-shadow:
+		0 16px 48px rgba(0, 0, 0, 0.42),
+		inset 0 1px 0 color-mix(in srgb, var(--drox-ui-green) 28%, transparent);
+	overflow: hidden;
+}
+
+.drox-release-notes-head {
+	flex: 0 0 auto;
+	padding: 16px 18px 12px;
+	border-bottom: 1px solid color-mix(in srgb, var(--drox-ui-green) 22%, transparent);
+	background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--drox-ui-green) 8%);
+}
+
+.drox-release-notes-brand {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin: 0 0 8px;
+}
+
+.drox-release-notes-brand-name {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	opacity: 0.92;
+}
+
+.drox-release-notes-brand-version {
+	font-size: 10px;
+	font-variant-numeric: tabular-nums;
+	opacity: 0.72;
+}
+
+.drox-release-notes-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.drox-release-notes-lead {
+	margin: 8px 0 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--drox-ui-fg-muted);
+}
+
+.drox-release-notes-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+	padding: 14px 18px 6px;
+}
+
+.drox-release-notes-list {
+	margin: 0;
+	padding: 0 0 0 1.1em;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.drox-release-notes-list li::marker {
+	color: var(--drox-ui-green, var(--vscode-focusBorder));
+}
+
+.drox-release-notes-actions {
+	flex: 0 0 auto;
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 18px 16px;
+	border-top: 1px solid color-mix(in srgb, var(--drox-ui-green) 18%, transparent);
+}
+
+.drox-release-notes-primary {
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green) 55%, transparent);
+	background: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--drox-ui-green) 18%);
+	color: var(--vscode-button-foreground, var(--vscode-foreground));
+	border-radius: 6px;
+	padding: 7px 16px;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.drox-release-notes-primary:hover {
+	background: color-mix(in srgb, var(--vscode-editor-background) 74%, var(--drox-ui-green) 26%);
+}
+
+.drox-release-notes-primary:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}
