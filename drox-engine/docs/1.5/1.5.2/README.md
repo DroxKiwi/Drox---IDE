@@ -1,8 +1,8 @@
 # Drox 1.5.2 — Configuration moteur depuis l’IDE
 
-**Statut** : **M1 + U1 + L3 livrés** (juin 2026) — smoke manuel avant tag `v1.5.2`  
+**Statut** : **Livré** (juin 2026) · [`v1.5.2`](CLOSURE-1.5.2.md)  
 **Prérequis** : [1.5.1](../1.5.1/CLOSURE-1.5.1.md) livrée  
-**Branche** : `1.5.2`
+**Branche** : `1.5.2` (mergée → `main`, clôturée)
 
 ---
 
