@@ -49,80 +49,6 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 - Tag de release : format **`v1.3.0`** (pas d’espaces, pas le titre marketing comme tag).
 - Publication : `npm run drox:ship` (ou `drox:publish` si l’installeur est déjà buildé), puis commit des manifestes, puis upload de l’exe via Releases (web ou `gh`).
 
-### Intégration upstream VS Code (fork à historique produit)
-
-Le dépôt **`origin`** (GitHub) porte un historique **produit Drox** court (~40 commits). Il **n’est pas** un miroir git de `microsoft/vscode` : **pas d’ancêtre commun** avec `upstream/main`.
-
-L’historique Microsoft (~160k commits, ~1,3 Go) vit **en local** via le remote `upstream` — **on ne le pousse pas** sur GitHub. On pousse uniquement le **code** (arbre de fichiers), en **un commit squash** par release ou bump VS Code majeur.
-
-| Où | Rôle |
-|----|------|
-| **Local** — `1.5.x-dev`, `integrate/vscode-*` | Dev + intégration upstream (`git fetch upstream`, reset/merge **local**) |
-| **GitHub** — `main` | Ligne produit : commits Drox + **1 commit squash** par release |
-| **GitHub** — tag `v1.x.x` | Pointe le commit squash publié |
-
-#### Développement au quotidien (1.5.1, 1.5.2, 1.5.3, …)
-
-```powershell
-git fetch origin
-git checkout main
-git pull origin main
-git checkout -b 1.5.3          # branche feature / release
-# Dès l’ouverture de branche : bump `droxVersion` dans package.json (ex. 1.5.3)
-# … commits UI, moteur, etc. sur la lignée main (pas besoin d’historique MS)
-git push -u origin refs/heads/1.5.3   # pushes légers (refs explicite si tag homonyme)
-```
-
-Les commits **sur la lignée `main`** (sans reset `upstream/main` sur la branche) se poussent normalement — quelques Mo.
-
-#### Intégrer un nouveau VS Code (local seulement)
-
-1. Sauvegarder : `git branch 1.5.x-pre-upstream` ou tag `pre-upstream-YYYYMMDD`.
-2. Branche dédiée : `integrate/vscode-<version>` depuis `main` ou la branche release.
-3. **Local** : `git fetch upstream` puis `reset --hard upstream/main` + réappliquer couche Drox (`contrib/drox`, `drox-engine`, `product.json`, patches §5 de [ARCHITECTURE-DECOUPLAGE-UPSTREAM](drox-engine/docs/1.2/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md)).
-4. Valider : `npm install`, `npm run compile`, `cargo test -p drox-cli`, F5, `drox:ship` si release.
-5. **Ne pas** `git push` cette branche full vers `origin` (transfert ~1 Go+).
-
-#### Merger une release sur `main` (publication squash)
-
-Quand la branche de dev ou `integrate/vscode-*` est validée, **publier** sur GitHub sans historique Microsoft :
-
-```powershell
-git fetch origin
-$ver = '1.5.2'                                    # droxVersion
-$src = 'refs/heads/1.5.1'                         # branche validée (ou integrate/vscode-*)
-
-git checkout -B "publish/$ver" origin/main
-git read-tree -u --reset $src
-
-# Si le push LFS échoue (caches tests Copilot) :
-# git rm -r -f extensions/copilot/test/simulation/cache
-
-git commit --no-verify -m "Release ${ver}: …"     # pre-commit hygiene massif upstream → --no-verify OK si arbre déjà validé
-
-git push origin "refs/heads/publish/${ver}:refs/heads/main"
-git tag -f "v${ver}"
-git push origin "refs/tags/v${ver}:refs/tags/v${ver}" --force
-
-git checkout main
-git pull origin main
-```
-
-**Après publication** : `main` local = `origin/main` (un commit squash de plus). Conserver la branche dev / `integrate/*` en local pour le prochain cycle.
-
-**Ce que « merge 1.5.x sur main » veut dire ici** : pas `git merge 1.5.x` (historiques incompatibles si reset upstream) — c’est **`read-tree` + 1 commit** = le produit de la branche validée devient le nouveau `main`.
-
-#### Erreurs fréquentes
-
-| Symptôme | Cause | Fix |
-|----------|--------|-----|
-| Push bloqué ~15 min puis SSH coupé | Push de la branche full post-`reset --hard upstream` | Publication squash (ci-dessus) |
-| `src refspec 1.5.0 matches more than one` | Tag et branche même nom | `refs/heads/…` / `refs/tags/v…` explicites |
-| LFS `copilot/test/simulation/cache` manquant | Blobs LFS non fetchés | Retirer ce dossier du commit publish (tests Copilot, hors produit Drox) |
-| `main` local diverge de GitHub | Ancienne lignée locale | `git checkout main && git reset --hard origin/main` |
-
-**Réf.** : [ARCHITECTURE-DECOUPLAGE-UPSTREAM.md](drox-engine/docs/1.2/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md) §7.
-
 ---
 
 ## 2. Produit & branding
@@ -139,10 +65,10 @@ git pull origin main
 | Champ | Exemple | Usage |
 |-------|---------|--------|
 | **`version`** | `1.122.0` | Base VS Code / API extensions (Copilot, marketplace) — ne pas remplacer par la version Drox |
-| **`droxVersion`** | `1.5.3` | Release produit : installeur, `latest.json`, dialogue **À propos**, header chat |
+| **`droxVersion`** | `1.5.0` | Release produit : installeur, `latest.json`, dialogue **À propos** |
 | **`droxSurface`** | `dev` | `dev` en sources / watch ; `release` injecté au package via `DROX_PRODUCT_SURFACE` (`build-release-win32.ps1`) |
 
-Pour une nouvelle release Drox : modifier **`droxVersion`** dans `package.json` **dès l’ouverture de la branche** (ex. `git checkout -b 1.5.3` → passer à `1.5.3`), pas seulement au ship. Sauf rebase upstream majeur → mettre à jour **`version`** aussi. Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.
+Pour une nouvelle release Drox : modifier **`droxVersion`** uniquement (sauf rebase upstream majeur → mettre à jour **`version`** aussi). Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.
 
 Affichage utilisateur : `1.3.1 (base VS Code 1.122.0)` via `getProductDisplayVersion()` dans le code. Build : `build/lib/droxVersion.ts`.
 
@@ -197,39 +123,6 @@ npm run release-publish-win32
 - BMP latéraux : `npm run sync-drox-inno-wizard` — fond **#1E1E1E**, logo + barre verte **opaque** (pas d’alpha dans le BMP → évite trait magenta).
 - Chrome live : `build/win32/drox-wizard-theme.inc.iss` — faisceau vert animé, grille 3×3 (style chat), masque logo haut-droite + bevels.
 - Par défaut beta : **PATH** et **associations de fichiers** décochés dans l’installeur.
-
----
-
-## 3b. Build & release Linux (1.5.1b)
-
-**Guide** : [drox-engine/docs/operations/GUIDE-PUBLICATION-LINUX.md](drox-engine/docs/operations/GUIDE-PUBLICATION-LINUX.md) · [PLAN-1.5.1b](drox-engine/docs/1.5/1.5.1b/PLAN-1.5.1b.md)
-
-### Commandes usuelles (Ubuntu 22.04+ ou CI)
-
-```bash
-export DROX_PRODUCT_SURFACE=release
-./scripts/build-release-linux.sh
-./scripts/release-publish-linux.sh
-```
-
-### Manifeste multi-plateforme
-
-`stable/latest.json` dans `Drox---IDE---OR` est **fusionné** par plateforme (`scripts/lib/drox-release-manifest.mjs`) :
-
-- Windows : `release-publish-win32.ps1` → `platforms.win32-x64`
-- Linux : `release-publish-linux.sh` → `platforms.linux-x64`
-
-Ne pas écraser `latest.json` à la main — chaque ship **préserve** les autres plateformes déjà publiées.
-
-| Sortie | Chemin |
-|--------|--------|
-| App packagée F1 | `../VSCode-linux-x64/` |
-| Binaire IDE | `../VSCode-linux-x64/drox-ide` |
-| Moteur embarqué | `../VSCode-linux-x64/resources/drox/linux-x64/drox` |
-| Paquet .deb | `.build/linux/deb/amd64/deb/*.deb` |
-| Upload GitHub | `_upload/Drox-IDE-<droxVersion>-linux-x64.deb` sur tag **`v<droxVersion>`** (même release que Windows) |
-
-CI : workflow `.github/workflows/drox-release-linux.yml` (manuel, artefacts `.deb`).
 
 ---
 
