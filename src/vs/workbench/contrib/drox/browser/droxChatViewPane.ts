@@ -219,7 +219,10 @@ export class DroxChatViewPane extends ViewPane {
 
 		const mediaRoot = FileAccess.asFileUri('vs/workbench/contrib/drox/browser/media/');
 
-		const cssUri = asWebviewUri(URI.joinPath(mediaRoot, 'droxChatMvp.css'));
+		const cssUris = [
+			asWebviewUri(URI.joinPath(mediaRoot, 'droxChatMvp.css')),
+			asWebviewUri(URI.joinPath(mediaRoot, 'droxChatThreadTui.css')),
+		];
 
 		const scriptUris = DROX_CHAT_SCRIPT_FILES.map((f) => asWebviewUri(URI.joinPath(mediaRoot, f)));
 
@@ -254,7 +257,7 @@ export class DroxChatViewPane extends ViewPane {
 
 
 		webview.setHtml(getDroxChatHtml(
-			cssUri,
+			cssUris,
 			scriptUris,
 			formatDroxChatVersionLabel(this.productService),
 			formatDroxChatVersionTitle(this.productService),

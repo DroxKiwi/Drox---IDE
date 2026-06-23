@@ -15,7 +15,13 @@ pub struct SessionListEntry {
     pub size_bytes: u64,
 }
 
-/// Liste les fichiers `ses_*.jsonl` dans `sessions_dir`, triés du plus récent au plus ancien.
+/// Fichiers auxiliaires (`ses_….ui-replay.jsonl`, etc.) : stem avec un `.` après l’id.
+fn is_transcript_session_stem(stem: &str) -> bool {
+    stem.starts_with("ses_") && !stem.contains('.')
+}
+
+/// Liste les fichiers `ses_*.jsonl` (transcripts moteur) dans `sessions_dir`, triés du plus récent au plus ancien.
+/// Exclut les journaux auxiliaires (`*.ui-replay.jsonl`, etc.).
 pub async fn list_sessions(
     sessions_dir: &camino::Utf8Path,
 ) -> Result<Vec<SessionListEntry>, SessionError> {
@@ -44,6 +50,9 @@ pub async fn list_sessions(
         let Some(stem) = path.file_stem() else {
             continue;
         };
+        if !is_transcript_session_stem(stem) {
+            continue;
+        }
         let id = SessionId::from_string(stem.into());
         let meta = tokio::fs::metadata(&path).await?;
         let modified = meta
@@ -77,6 +86,22 @@ mod tests {
         let id = SessionId::new();
         let p = crate::paths::transcript_path(&udir, &id);
         tokio::fs::write(&p, b"").await.unwrap();
+
+        let list = list_sessions(&udir).await.unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].id, id);
+    }
+
+    #[tokio::test]
+    async fn skips_ui_replay_auxiliary_jsonl() {
+        let dir = tempdir().unwrap();
+        let udir = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        tokio::fs::create_dir_all(&udir).await.unwrap();
+        let id = SessionId::new();
+        let transcript = crate::paths::transcript_path(&udir, &id);
+        tokio::fs::write(&transcript, b"{}\n").await.unwrap();
+        let replay = udir.join(format!("{id}.ui-replay.jsonl"));
+        tokio::fs::write(&replay, b"{}\n").await.unwrap();
 
         let list = list_sessions(&udir).await.unwrap();
         assert_eq!(list.len(), 1);

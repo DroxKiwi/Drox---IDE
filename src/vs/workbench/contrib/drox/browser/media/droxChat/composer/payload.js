@@ -24,6 +24,7 @@
 		}
 		D.dom.promptEl.focus();
 		fn.updatePromptPlaceholder();
+		fn.syncPromptInputHeight?.();
 	}
 
 	fn.restoreComposerFromPayload = function(item) {
@@ -54,6 +55,7 @@
 		fn.renderAttachments();
 		fn.renderRefs();
 		fn.updatePromptPlaceholder();
+		fn.syncPromptInputHeight?.();
 	}
 
 	fn.fileUriToPath = function(uri) {
@@ -142,5 +144,6 @@
 		fn.renderAttachments();
 		fn.renderRefs();
 		fn.updatePromptPlaceholder();
+		fn.syncPromptInputHeight?.();
 	}
 })(globalThis.DroxChat);

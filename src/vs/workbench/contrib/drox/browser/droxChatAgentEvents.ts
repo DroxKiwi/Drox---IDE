@@ -13,6 +13,8 @@ import {
 	isRecoveredPhaseToolOutput,
 } from '../common/droxPhaseToolUi.js';
 import { describeToolCall, previewJson } from '../common/droxToolPreview.js';
+import { isFileMutationToolName } from '../common/droxFileMutation.js';
+import { buildShellToolFinishWire, buildShellToolStartWire } from '../common/chat/droxShellToolWire.js';
 import { extractTodoErrorMessage, extractTodosFromToolOutput, isTodoWriteOutput } from '../common/droxTodoExtract.js';
 import { formatVisionChatError, isVisionRelatedLlmError } from '../common/droxVision.js';
 import { DroxHostToWebviewMessage } from './droxChatBridge.js';
@@ -142,9 +144,13 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			if (name === 'todo_write' || SKIP_TOOL_UI.has(name) || isHallucinatedPhaseToolName(name)) {
 				return;
 			}
+			const isFileMutation = isFileMutationToolName(name);
+			if (isFileMutation) {
+				return;
+			}
+			const skipArgsPreview = SKIP_TOOL_PREVIEW_NAMES.has(name);
+			const shellStart = buildShellToolStartWire(name, args);
 			const { verb, target } = describeToolCall(name, args);
-			const isFileMutation = name === 'file_edit' || name === 'file_write' || name === 'notebook_edit';
-			const skipArgsPreview = isFileMutation || SKIP_TOOL_PREVIEW_NAMES.has(name);
 			host.post({
 				kind: 'tool',
 				phase: 'start',
@@ -153,6 +159,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				verb,
 				target,
 				argsPreview: skipArgsPreview ? '' : previewJson(args),
+				...shellStart,
 			});
 			return;
 		}
@@ -197,10 +204,14 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				pendingName === 'file_edit' ||
 				pendingName === 'file_write' ||
 				pendingName === 'notebook_edit';
-			const skipOutputPreview =
-				(isFileMutationFinish && !isError) || (pendingName && SKIP_TOOL_PREVIEW_NAMES.has(pendingName));
-			const outputPreview = skipOutputPreview ? '' : previewJson(output);
 			host.handleFileMutationAfterToolFinish(pendingName, output, isError, id, pending?.args);
+			if (isFileMutationFinish) {
+				return;
+			}
+			const skipOutputPreview =
+				(pendingName && SKIP_TOOL_PREVIEW_NAMES.has(pendingName));
+			const outputPreview = skipOutputPreview ? '' : previewJson(output);
+			const shellOutput = buildShellToolFinishWire(pendingName, output, isError);
 			host.post({
 				kind: 'tool',
 				phase: 'finish',
@@ -208,6 +219,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				name: pendingName,
 				isError,
 				outputPreview,
+				shellOutput,
 			});
 			return;
 		}

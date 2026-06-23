@@ -8,6 +8,99 @@
 (function (D) {
 	const fn = D.fn;
 
+	if (!D.state.fileChangeCards) {
+		D.state.fileChangeCards = new Map();
+	}
+
+	fn.formatFileChangeOpLabel = function (payload) {
+		const op = String(payload?.op ?? 'edit');
+		if (!payload?.applied && payload?.cancelled) {
+			return 'cancelled';
+		}
+		if (!payload?.applied) {
+			return 'skipped';
+		}
+		if (op === 'write') {
+			return 'written';
+		}
+		if (op === 'delete') {
+			return 'deleted';
+		}
+		return 'edited';
+	};
+
+	fn.enableFileChangeUndo = function (toolId) {
+		const card = D.state.fileChangeCards.get(String(toolId || ''));
+		if (!card) {
+			return;
+		}
+		card.dataset.undoState = 'applied';
+		const undoBtn = card.querySelector('.fc-undo');
+		if (undoBtn) {
+			undoBtn.hidden = false;
+		}
+	};
+
+	fn.resolveFileChangeMount = function (toolId) {
+		if (D.state.linearRunUi) {
+			const strip =
+				typeof fn.ensureRunStrip === 'function' ? fn.ensureRunStrip() : D.state.runStripEl;
+			if (strip && typeof fn.ensureRunWorkOpen === 'function') {
+				fn.ensureRunWorkOpen(strip);
+			}
+			const chrono =
+				typeof fn.ensureChronologySection === 'function'
+					? fn.ensureChronologySection(strip)
+					: null;
+			if (chrono) {
+				return chrono;
+			}
+		}
+		const toolBlock = toolId ? D.state.toolBlocks.get(toolId) : undefined;
+		if (toolBlock?.isConnected) {
+			return { after: toolBlock };
+		}
+		if (typeof fn.getRunSection === 'function' && fn.getRunSection('work')) {
+			return fn.getRunSection('work');
+		}
+		return D.dom.logEl;
+	};
+
+	fn.mountFileChangeCard = function (card, toolId) {
+		if (D.state.linearRunUi && typeof fn.closeActivePhaseBlock === 'function') {
+			fn.closeActivePhaseBlock();
+		}
+		const mount = fn.resolveFileChangeMount(toolId);
+		if (mount && typeof mount === 'object' && mount.after) {
+			mount.after.insertAdjacentElement('afterend', card);
+		} else {
+			(mount || D.dom.logEl).appendChild(card);
+		}
+		D.state.logStickToBottom = true;
+		fn.scrollLogToEnd?.();
+	};
+
+	fn.updateFileChangeUndoState = function (toolId, undoState) {
+		const card = D.state.fileChangeCards.get(String(toolId || ''));
+		if (!card) {
+			return;
+		}
+		card.dataset.undoState = undoState;
+		const undoBtn = card.querySelector('.fc-undo');
+		const redoBtn = card.querySelector('.fc-redo');
+		if (undoBtn) {
+			undoBtn.hidden = undoState !== 'applied';
+		}
+		if (redoBtn) {
+			redoBtn.hidden = undoState !== 'reverted';
+		}
+		if (undoState === 'reverted') {
+			card.classList.add('is-reverted');
+		} else {
+			card.classList.remove('is-reverted');
+		}
+	};
+
 	fn.renderDiffLines = function (diff, content) {
 		const frag = document.createDocumentFragment();
 		if (diff && diff.length > 0) {
@@ -59,17 +152,47 @@
 	};
 
 	fn.appendFileChange = function (payload) {
+		if (D.state.linearRunUi && typeof fn.flushStreamBuffer === 'function') {
+			fn.flushStreamBuffer({ asAnswer: false });
+		}
+
+		const toolId = String(payload.toolId ?? '');
+		if (toolId && D.state.fileChangeCards.has(toolId)) {
+			const old = D.state.fileChangeCards.get(toolId);
+			old?.remove();
+			D.state.fileChangeCards.delete(toolId);
+		}
+
 		const filePath = String(payload.path ?? '');
 		const relPath = String(payload.relPath ?? payload.path ?? '?');
-		const op = payload.op === 'write' ? 'written' : 'edited';
 		const added = Number(payload.added ?? 0);
 		const removed = Number(payload.removed ?? 0);
 		const language = String(payload.language ?? 'plaintext');
-		const toolId = String(payload.toolId ?? '');
+		const applied = payload.applied !== false;
+		const cancelled = payload.cancelled === true;
+		const canUndo = payload.canUndo === true && applied;
+		const diffText = typeof payload.diff === 'string' ? payload.diff : '';
+		const contentText = typeof payload.content === 'string' ? payload.content : '';
+		const hasVisibleDiff =
+			applied || diffText.length > 0 || contentText.length > 0 || Boolean(filePath);
 
 		const card = document.createElement('div');
 		card.className = 'msg-file-change drox-log-indent msg-ai-frame';
+		if (!applied) {
+			card.classList.add('is-not-applied');
+		}
+		if (cancelled) {
+			card.classList.add('is-cancelled');
+		}
+		if (!hasVisibleDiff) {
+			card.classList.add('is-collapsed');
+		}
 		card.dataset.path = filePath;
+		if (toolId) {
+			card.dataset.toolId = toolId;
+			D.state.fileChangeCards.set(toolId, card);
+		}
+		card.dataset.undoState = canUndo ? 'applied' : '';
 
 		const header = document.createElement('div');
 		header.className = 'fc-summary';
@@ -78,7 +201,7 @@
 		const toggleBtn = document.createElement('button');
 		toggleBtn.type = 'button';
 		toggleBtn.className = 'fc-toggle';
-		toggleBtn.setAttribute('aria-expanded', 'true');
+		toggleBtn.setAttribute('aria-expanded', hasVisibleDiff ? 'true' : 'false');
 		toggleBtn.title = 'Expand / collapse diff';
 		toggleBtn.innerHTML =
 			'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
@@ -93,7 +216,11 @@
 
 		const opLabel = document.createElement('span');
 		opLabel.className = 'fc-op';
-		opLabel.textContent = op;
+		opLabel.textContent = fn.formatFileChangeOpLabel({
+			op: payload.op,
+			applied,
+			cancelled,
+		});
 
 		const name = document.createElement('span');
 		name.className = 'fc-path';
@@ -118,6 +245,34 @@
 		const spacer = document.createElement('span');
 		spacer.className = 'fc-spacer';
 
+		const undoBtn = document.createElement('button');
+		undoBtn.type = 'button';
+		undoBtn.className = 'fc-undo';
+		undoBtn.title = 'Undo this change';
+		undoBtn.textContent = 'Undo';
+		undoBtn.hidden = !canUndo;
+		undoBtn.addEventListener('click', (ev) => {
+			ev.preventDefault();
+			ev.stopPropagation();
+			if (toolId) {
+				D.vscode.postMessage({ type: 'undoFileChange', toolId });
+			}
+		});
+
+		const redoBtn = document.createElement('button');
+		redoBtn.type = 'button';
+		redoBtn.className = 'fc-redo';
+		redoBtn.title = 'Redo this change';
+		redoBtn.textContent = 'Redo';
+		redoBtn.hidden = true;
+		redoBtn.addEventListener('click', (ev) => {
+			ev.preventDefault();
+			ev.stopPropagation();
+			if (toolId) {
+				D.vscode.postMessage({ type: 'redoFileChange', toolId });
+			}
+		});
+
 		const openBtn = document.createElement('button');
 		openBtn.type = 'button';
 		openBtn.className = 'fc-open';
@@ -136,7 +291,7 @@
 		};
 
 		header.addEventListener('click', (ev) => {
-			if (ev.target.closest('.fc-toggle, .fc-open')) {
+			if (ev.target.closest('.fc-toggle, .fc-open, .fc-undo, .fc-redo')) {
 				return;
 			}
 			openInEditor(ev);
@@ -147,12 +302,7 @@
 		body.className = 'fc-body';
 		const pre = document.createElement('pre');
 		pre.className = `fc-diff lang-${language}`;
-		pre.appendChild(
-			fn.renderDiffLines(
-				typeof payload.diff === 'string' ? payload.diff : '',
-				typeof payload.content === 'string' ? payload.content : '',
-			),
-		);
+		pre.appendChild(fn.renderDiffLines(diffText, contentText));
 		body.appendChild(pre);
 
 		toggleBtn.addEventListener('click', (ev) => {
@@ -170,26 +320,13 @@
 			header.appendChild(stats);
 		}
 		header.appendChild(spacer);
+		header.appendChild(undoBtn);
+		header.appendChild(redoBtn);
 		header.appendChild(openBtn);
 		card.appendChild(header);
 		card.appendChild(body);
 
-		const toolBlock = toolId ? D.state.toolBlocks.get(toolId) : undefined;
-		const executorTools =
-			typeof fn.resolveExecutorStreamToolsMount === 'function'
-				? fn.resolveExecutorStreamToolsMount(toolBlock)
-				: null;
-		// Exécuteur : la ligne outil vit dans un rail replié — monter le diff dans .executor-stream-tools.
-		if (executorTools) {
-			executorTools.appendChild(card);
-		} else if (toolBlock?.isConnected) {
-			toolBlock.insertAdjacentElement('afterend', card);
-		} else if (typeof fn.getRunSection === 'function' && fn.getRunSection('work')) {
-			fn.getRunSection('work').appendChild(card);
-		} else {
-			D.dom.logEl.appendChild(card);
-		}
-		D.state.logStickToBottom = true;
-		fn.scrollLog(true);
+		fn.mountFileChangeCard(card, toolId);
+		fn.syncWorkSummaryStats?.(D.state.runStripEl);
 	};
 })(globalThis.DroxChat);

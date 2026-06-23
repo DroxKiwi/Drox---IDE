@@ -42,6 +42,17 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.3':
+			return [
+				localize('drox.releaseNotes.153.diffs', 'File edits appear inline in the chat thread with unified diffs, undo, and redo on each card.'),
+				localize('drox.releaseNotes.153.shell', 'Shell commands (bash / PowerShell) use dedicated cards with command, stdout/stderr, and exit code — no raw JSON.'),
+				localize('drox.releaseNotes.153.user', 'User messages: copy button, inline expand for long text, and a discreet commit reminder above each bubble.'),
+				localize('drox.releaseNotes.153.composer', 'Composer textarea grows automatically from 2 to 12 lines and uses the full panel width.'),
+				localize('drox.releaseNotes.153.tui', 'Chat thread retro TUI look: VT323 font, phosphor greens, sharp corners, flush to the panel edge.'),
+				localize('drox.releaseNotes.153.work', 'WORK strip fixes: stable plan, reasoning counters, no duplicate text, activity grid cleared after runs.'),
+				localize('drox.releaseNotes.153.sessions', 'Session history: cleaner list (no ui-replay duplicates) and full UI replay when reopening a session.'),
+				localize('drox.releaseNotes.153.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.2':
 			return [
 				localize('drox.releaseNotes.152.engine', 'Engine configuration is aligned with the TUI contract (tui_mono / agent.run).'),
@@ -62,6 +73,27 @@ export function getDroxReleaseNotesDetail(version: string): string {
 	return getDroxReleaseNotesItems(version).join('\n\n');
 }
 
+export function getDroxReleaseNotesLeadMessage(version: string): string {
+	switch (version) {
+		case '1.5.3':
+			return localize(
+				'drox.releaseNotes.153.message',
+				'Richer agent thread: inline file diffs, shell cards, user-message polish, retro TUI styling, and session replay fixes.',
+			);
+		case '1.5.2':
+			return localize(
+				'drox.releaseNotes.152.message',
+				'This update adjusts engine configuration and removes obsolete 1.4 settings.',
+			);
+		default:
+			return localize(
+				'drox.releaseNotes.genericMessage',
+				'Welcome to Drox {0}.',
+				version,
+			);
+	}
+}
+
 export function buildDroxReleaseNotesContent(version: string): DroxReleaseNotesContent | undefined {
 	if (!version) {
 		return undefined;
@@ -69,10 +101,7 @@ export function buildDroxReleaseNotesContent(version: string): DroxReleaseNotesC
 	return {
 		version,
 		title: localize('drox.releaseNotes.title', "What's new in Drox {0}", version),
-		message: localize(
-			'drox.releaseNotes.message',
-			'This update adjusts engine configuration and removes obsolete 1.4 settings.',
-		),
+		message: getDroxReleaseNotesLeadMessage(version),
 		items: getDroxReleaseNotesItems(version),
 		understoodLabel: localize('drox.releaseNotes.understood', 'Understood'),
 	};

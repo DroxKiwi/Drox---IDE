@@ -12,6 +12,7 @@ import {
 	IDroxSessionReadResult,
 	IDroxSessionUiStats,
 	IDroxTranscriptMessage,
+	isListableDroxSessionId,
 } from '../common/droxSession.js';
 import { IDroxSessionService, IDroxUiReplayTailResult, IDroxWorkspaceResetResult } from '../common/droxSessionService.js';
 import { sliceUiReplayBeforeTurns, sliceUiReplayTailTurns } from '../common/droxUiReplayTail.js';
@@ -23,6 +24,7 @@ import {
 	shouldRecordDroxUiReplayMessage,
 } from '../common/droxUiReplayJournal.js';
 import { DroxHostToWebviewMessage } from '../browser/droxChatBridge.js';
+import { resetDroxWorkspaceOnDisk } from '../common/droxWorkspaceResetFs.js';
 
 export class DroxSessionService implements IDroxSessionService {
 
@@ -60,7 +62,7 @@ export class DroxSessionService implements IDroxSessionService {
 				sizeBytes: Number(row.sizeBytes ?? row.size_bytes ?? 0),
 				title: title.length > 0 ? title : undefined,
 			};
-		}).filter(e => e.id.startsWith('ses_'));
+		}).filter(e => isListableDroxSessionId(e.id));
 	}
 
 	async readSession(id: string, workspaceFsPath: string): Promise<IDroxSessionReadResult> {
@@ -169,19 +171,7 @@ export class DroxSessionService implements IDroxSessionService {
 	}
 
 	async resetWorkspace(workspaceFsPath: string): Promise<IDroxWorkspaceResetResult> {
-		await this.droxEngineService.initialize();
-		const res = await this.droxEngineService.request('workspace.reset', {
-			workspace: workspaceFsPath,
-		}) as Record<string, unknown>;
-		return {
-			sessionsFilesRemoved: Number(res.sessionsFilesRemoved ?? res.sessions_files_removed ?? 0),
-			workspaceMapRemoved: Boolean(res.workspaceMapRemoved ?? res.workspace_map_removed),
-			longMemoryCleared: Boolean(res.longMemoryCleared ?? res.long_memory_cleared),
-			memorySessionsFilesRemoved: Number(res.memorySessionsFilesRemoved ?? res.memory_sessions_files_removed ?? 0),
-			attachmentsCleared: Boolean(res.attachmentsCleared ?? res.attachments_cleared),
-			courseCyclesCleared: Boolean(res.courseCyclesCleared ?? res.course_cycles_cleared),
-			agentOutputCleared: Boolean(res.agentOutputCleared ?? res.agent_output_cleared),
-		};
+		return resetDroxWorkspaceOnDisk(this.fileService, workspaceFsPath);
 	}
 
 	private parseMessage(raw: unknown): IDroxTranscriptMessage {

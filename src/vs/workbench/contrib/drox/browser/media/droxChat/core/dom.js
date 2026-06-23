@@ -21,6 +21,7 @@
 	D.dom.revertLastRunBtn = document.getElementById('revert-last-run');
 	D.dom.progressEl = document.getElementById('progress');
 	D.dom.userAskEl = document.getElementById('user-ask');
+	D.dom.planStickyFooterEl = document.getElementById('plan-sticky-footer');
 	D.dom.composerEl = document.getElementById('composer');
 	D.dom.pendingPromptsEl = document.getElementById('pending-prompts');
 	D.dom.sendQueueBadge = document.getElementById('send-queue-badge');

@@ -65,4 +65,13 @@ suite('Drox release notes', () => {
 		assert.ok(joined.includes('max_iterations'));
 		assert.ok(joined.includes('engine.tuning'));
 	});
+
+	test('getDroxReleaseNotesItems includes 1.5.3 highlights', () => {
+		const items = getDroxReleaseNotesItems('1.5.3');
+		const joined = items.join('\n');
+		assert.ok(joined.includes('undo'));
+		assert.ok(joined.includes('shell'));
+		assert.ok(joined.includes('VT323'));
+		assert.ok(joined.includes('replay'));
+	});
 });

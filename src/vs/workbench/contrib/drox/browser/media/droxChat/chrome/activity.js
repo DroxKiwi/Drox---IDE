@@ -23,12 +23,31 @@
 		return pending ? pending.content : '';
 	}
 
-	fn.hideActivity = function() {
+	fn.stripActivityGridsFromElement = function (el) {
+		if (!el?.querySelectorAll) {
+			return;
+		}
+		for (const grid of [...el.querySelectorAll('.activity-grid')]) {
+			grid.remove();
+		}
+	};
+
+	/** Retire toutes les grilles 3×3 (inline + persistantes) d’un sous-arbre DOM. */
+	fn.clearAllActivityGrids = function (rootEl) {
+		const root = rootEl || document;
 		fn.hideInlineActivityOnly();
-		const root = D.dom.logEl || document;
-		for (const summary of root.querySelectorAll('.phase-summary.has-activity-grid')) {
+		for (const summary of root.querySelectorAll(
+			'.phase-summary.has-activity-grid, .msg-tool summary.has-activity-grid',
+		)) {
 			summary.classList.remove('has-activity-grid');
 		}
+		for (const grid of [...root.querySelectorAll('.activity-grid')]) {
+			grid.remove();
+		}
+	};
+
+	fn.hideActivity = function() {
+		fn.clearAllActivityGrids(D.dom.logEl || document);
 		if (fn.shouldUseArchitectRunTailActivity()) {
 			fn.ensureArchitectRunTailActivity();
 			return;
@@ -57,7 +76,8 @@
 			return null;
 		}
 		const users = D.dom.logEl.querySelectorAll('.msg-row-user, .msg.user.msg-user-bubble');
-		return users.length > 0 ? users[users.length - 1] : null;
+		const lastRow = users.length > 0 ? users[users.length - 1] : null;
+		return fn.resolveUserMessageAnchor?.(lastRow) ?? lastRow;
 	}
 
 	fn.showWarmupActivity = function() {
@@ -119,12 +139,9 @@
 		return grid;
 	}
 
-	fn.clearPersistentActivityGrids = function(rootEl) {
-		const root = rootEl || document;
-		for (const el of root.querySelectorAll('.activity-grid.activity-grid-persistent')) {
-			el.remove();
-		}
-	}
+	fn.clearPersistentActivityGrids = function (rootEl) {
+		fn.clearAllActivityGrids(rootEl);
+	};
 
 	fn.showActivityOnSummary = function(summaryEl) {
 		if (!D.state.busy || !summaryEl) {
