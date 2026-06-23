@@ -23,6 +23,7 @@ const UI_REPLAY_EXCLUDED_KINDS = new Set<string>([
 	'modelsLoading',
 	'permissionMode',
 	'chatReset',
+	'state',
 	'sessionReplayDone',
 	'replayPrepare',
 	'sessionHistory',

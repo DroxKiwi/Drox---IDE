@@ -36,24 +36,15 @@ import { IDroxChatSessionService } from '../common/droxChatSessionService.js';
 import { IDroxLongMemoryService } from '../common/droxLongMemoryService.js';
 import { IDroxSessionCompactService } from '../common/droxSessionCompactService.js';
 
-
-
 export class DroxClientToolsService extends Disposable implements IDroxClientToolsService {
 
-
-
 	declare readonly _serviceBrand: undefined;
-
-
 
 	private readonly registry = new DroxClientToolRegistry();
 
 	readonly executableToolNames: readonly string[];
 
-
-
 	constructor(
-
 		@IDroxEngineService droxEngineService: IDroxEngineService,
 		@IMainProcessService mainProcessService: IMainProcessService,
 		@IFileService fileService: IFileService,
@@ -65,23 +56,14 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 		@ICommandService commandService: ICommandService,
 		@IMarkerService markerService: IMarkerService,
 		@ITextModelService textModelService: ITextModelService,
-
 	) {
-
 		super();
-
-
 
 		const fileHost = instantiationService.createInstance(DroxFileToolHost);
 
-
-
 		this.registry.register('bash', createDroxBashToolHandler(mainProcessService, outputService));
-
 		this.registry.register('file_write', createDroxFileWriteToolHandler(fileHost, fileService));
-
 		this.registry.register('file_edit', createDroxFileEditToolHandler(fileHost, fileService));
-
 		this.registry.register('notebook_edit', createDroxNotebookEditToolHandler(fileHost, fileService));
 
 		this.registry.register(
@@ -106,12 +88,6 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 
 		this.executableToolNames = this.registry.executableToolNames();
 
-
-
 		droxEngineService.setRequestHandler('tool/exec', this.registry.toRequestHandler(() => chatSessionService.getRunId()));
-
 	}
-
 }
-
-

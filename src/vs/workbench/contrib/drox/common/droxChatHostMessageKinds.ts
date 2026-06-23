@@ -21,6 +21,8 @@ export const DROX_HOST_TO_WEBVIEW_MESSAGE_KINDS = [
 	'dropHighlight',
 	'exploreNotice',
 	'fileChange',
+	'fileChangeState',
+	'fileChangeUndoReady',
 	'generalSettings',
 	'llmModels',
 	'loopIntervention',

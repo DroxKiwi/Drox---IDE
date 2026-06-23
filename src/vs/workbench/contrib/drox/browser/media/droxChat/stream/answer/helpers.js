@@ -11,7 +11,9 @@
 		if (!D.dom.logEl) {
 			return;
 		}
-		const rows = [...D.dom.logEl.querySelectorAll(':scope > .msg-row-user')];
+		const rows = fn.queryUserMessageRows?.(D.dom.logEl) ?? [
+			...D.dom.logEl.querySelectorAll(':scope > .msg-row-user'),
+		];
 		for (const row of rows) {
 			row.classList.remove('is-last-user-sticky');
 		}

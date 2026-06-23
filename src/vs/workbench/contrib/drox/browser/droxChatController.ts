@@ -48,7 +48,7 @@ import { CodeWindow } from '../../../../base/browser/window.js';
 import { IOverlayWebview } from '../../webview/browser/webview.js';
 import { createDroxChatAgentEventHost, handleDroxEngineNotification, IDroxChatAgentBridgeHost } from './chat/droxChatAgentHost.js';
 import { IDroxChatAgentDoneHost } from './droxChatAgentEvents.js';
-import { DroxChatTabsManager, IDroxChatTabsDelegate } from './chat/droxChatTabsManager.js';
+import { DroxChatTabsManager, DROX_CHAT_TAB_LOAD_FULL, IDroxChatTabsDelegate } from './chat/droxChatTabsManager.js';
 import { IDroxChatSendRunHost } from './chat/droxChatSendRun.js';
 import { pushGeneralSettingsToWebview } from './chat/droxChatGeneralSettings.js';
 import { pushLlmModelsSnapshotToWebview } from './chat/droxChatLlmModels.js';
@@ -64,6 +64,8 @@ export class DroxChatController extends Disposable
 
 	private _webview?: IOverlayWebview;
 	private _webviewReady = false;
+	/** Rejeu du fil après attach webview (évite messages perdus avant `webviewReady`). */
+	private _needsChatReplayOnReady = false;
 	private _currentRunId?: string;
 	private _suppressedRunId?: string;
 	private _pendingRunStart = false;
@@ -176,11 +178,12 @@ export class DroxChatController extends Disposable
 
 	attachWebview(webview: IOverlayWebview, targetWindow: CodeWindow, hitTestElement?: HTMLElement): void {
 		this._webview = webview;
+		this._webviewReady = false;
+		this._needsChatReplayOnReady = true;
 		this.userAskService.attachWebview(msg => this.post(msg));
 		this._register(webview.onMessage(e => {
 			void this.onWebviewMessage(e.message);
 		}));
-		this.syncWebviewAfterAttach();
 		const hitTest = hitTestElement ?? webview.container;
 		this._chatDragDrop?.dispose();
 		this._chatDragDrop = this._register(new DroxChatDragAndDrop(
@@ -255,12 +258,19 @@ export class DroxChatController extends Disposable
 
 	syncWebviewAfterAttach(): void {
 		this._webviewReady = true;
-		void this._tabs.ensureTabsReady().then(mode => {
+		void this._tabs.ensureTabsReady().then(async mode => {
 			if (!this._webviewReady) {
 				return;
 			}
-			if (mode === 'initial' && this._tabs.currentSessionId) {
-				void this._tabs.activateChatTab(this._tabs.currentSessionId, { loadMessages: false });
+			const sessionId = this._tabs.currentSessionId;
+			const shouldReplay = this._needsChatReplayOnReady;
+			this._needsChatReplayOnReady = false;
+			if (sessionId && shouldReplay) {
+				if (mode === 'restored' || mode === 'unchanged') {
+					await this._tabs.activateChatTab(sessionId, DROX_CHAT_TAB_LOAD_FULL);
+				} else if (mode === 'initial') {
+					await this._tabs.activateChatTab(sessionId, { loadMessages: false });
+				}
 			}
 			this._tabs.postTabs();
 			this.reconcileChatBusyState();
@@ -362,6 +372,11 @@ export class DroxChatController extends Disposable
 		return createDroxChatAgentEventHost(this, this._tabs, this._agentHostDeps());
 	}
 
+	resetRunRevertUiState(): void {
+		this.runRevertService.resetWorkspaceUiState();
+		this.syncRunRevertState();
+	}
+
 	getPendingTool(id: string): { name: string; args: unknown } | undefined {
 		return this.pendingTools.get(id);
 	}
@@ -428,6 +443,7 @@ export class DroxChatController extends Disposable
 			runSettingsService: this.runSettingsService,
 			runRevertService: this.runRevertService,
 			hostService: this.hostService,
+			fileService: this.fileService,
 		};
 	}
 

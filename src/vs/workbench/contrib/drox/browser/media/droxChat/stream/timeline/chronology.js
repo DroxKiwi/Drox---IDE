@@ -87,14 +87,21 @@
 		if (!D.state.linearRunUi) {
 			return null;
 		}
+		const strip =
+			typeof fn.ensureRunStrip === 'function' ? fn.ensureRunStrip() : D.state.runStripEl;
+		const inStrip = (el) => Boolean(strip && el && strip.contains(el));
 		if (D.state.streamPhaseBlockBodyEl?.isConnected) {
-			return D.state.streamPhaseBlockBodyEl;
+			if (inStrip(D.state.streamPhaseBlockBodyEl)) {
+				return D.state.streamPhaseBlockBodyEl;
+			}
+			D.state.streamPhaseBlockBodyEl = null;
+			D.state.streamPhaseBlockEl = null;
+			D.state.streamPhaseLineEl = null;
 		}
 		const phase = D.state.currentPhase;
 		if (phase && phase !== 'answering' && phase !== 'done') {
 			return fn.ensurePhaseBlock(phase);
 		}
-		const strip = typeof fn.ensureRunStrip === 'function' ? fn.ensureRunStrip() : D.state.runStripEl;
 		return fn.ensureChronologySection(strip);
 	};
 
@@ -121,6 +128,35 @@
 		label.textContent = fn.formatPhaseMarkerLabel(marker, countHint);
 	};
 
+	const REASONING_PHASES = new Set(['internal_reasoning', 'reasoning']);
+
+	fn.phaseBlockHasShellTools = function (block) {
+		const body = block?.querySelector('.phase-body');
+		if (!body) {
+			return false;
+		}
+		return Boolean(body.querySelector('.drox-shell-card'));
+	};
+
+	fn.phaseBlockHasFileChanges = function (block) {
+		const body = block?.querySelector('.phase-body');
+		if (!body) {
+			return false;
+		}
+		return Boolean(body.querySelector('.msg-file-change'));
+	};
+
+	fn.shouldKeepReasoningPhaseOpen = function (block) {
+		if (!block?.dataset?.phase) {
+			return false;
+		}
+		return REASONING_PHASES.has(block.dataset.phase) && fn.phaseBlockHasShellTools(block);
+	};
+
+	fn.shouldKeepPhaseOpen = function (block) {
+		return fn.phaseBlockHasFileChanges(block) || fn.shouldKeepReasoningPhaseOpen(block);
+	};
+
 	fn.closeActivePhaseBlock = function () {
 		const block = D.state.streamPhaseBlockEl;
 		if (!block?.isConnected) {
@@ -130,7 +166,9 @@
 		}
 		block.classList.remove('streaming', 'drox-phase-block--active');
 		block.classList.add('drox-phase-block--done');
-		block.open = false;
+		const pinOpen = fn.shouldKeepPhaseOpen(block);
+		block.open = pinOpen;
+		block.classList.toggle('drox-phase-block--pinned-open', pinOpen);
 		fn.syncPhaseBlockSummary(block);
 		if (D.state.streamPhaseLineEl?.closest('.phase-block') === block) {
 			D.state.streamPhaseLineEl = null;
@@ -178,6 +216,7 @@
 		D.state.streamPhaseBlockBodyEl = body;
 		D.state.streamPhaseLineEl = null;
 		D.state.currentPhaseEl = details;
+		fn.syncWorkSummaryStats?.(strip);
 		return body;
 	};
 
@@ -200,6 +239,7 @@
 				mount.appendChild(el);
 			}
 			D.state.currentPhaseEl = null;
+			fn.syncWorkSummaryStats?.(D.state.runStripEl);
 			return;
 		}
 		fn.ensurePhaseBlock(p);
@@ -237,14 +277,28 @@
 		const tuiAssistant = opts?.asAnswer === true;
 		const raw = String(D.state.streamTextBuffer || '');
 		D.state.streamTextBuffer = '';
-		if (D.state.streamPhaseLineEl?.isConnected) {
-			D.state.streamPhaseLineEl.classList.remove('streaming');
-			if (!raw.trim()) {
-				D.state.streamPhaseLineEl.remove();
+		const text = raw.trim();
+		const liveLine = D.state.streamPhaseLineEl;
+		if (liveLine?.isConnected) {
+			liveLine.classList.remove('streaming');
+			if (text) {
+				if (typeof fn.setAssistantMarkdown === 'function') {
+					fn.setAssistantMarkdown(liveLine, text);
+				} else {
+					liveLine.textContent = text;
+				}
+				D.state.streamPhaseLineEl = null;
+				fn.syncPhaseBlockSummary(D.state.streamPhaseBlockEl);
+				if (tuiAssistant && D.state.currentPhase === 'answering') {
+					liveLine.remove();
+					fn.appendChatDelta(text);
+					return;
+				}
+				return;
 			}
+			liveLine.remove();
 		}
 		D.state.streamPhaseLineEl = null;
-		const text = raw.trim();
 		if (!text) {
 			return;
 		}
@@ -254,7 +308,7 @@
 		}
 		fn.mountStreamPhaseLine(text, {
 			streaming: false,
-			variant: tuiAssistant ? 'assistant' : 'phase',
+			variant: 'phase',
 		});
 	};
 
@@ -291,7 +345,7 @@
 		fn.syncPhaseBlockSummary(D.state.streamPhaseBlockEl);
 	};
 
-	fn.collapseRunWorkSection = function (strip) {
+	fn.collapseRunWorkSection = function (strip, opts) {
 		strip = strip || D.state.runStripEl;
 		fn.closeActivePhaseBlock();
 		if (!strip) {
@@ -299,7 +353,10 @@
 		}
 		const work = strip.querySelector('details.drox-run-work-collapsible');
 		if (work) {
-			work.open = false;
+			const keepOpen =
+				opts?.keepOpen === true ||
+				(opts?.keepOpen !== false && D.state.busy && strip.dataset.sealed !== '1');
+			work.open = keepOpen;
 		}
 		for (const line of strip.querySelectorAll('.drox-phase-line.streaming')) {
 			line.classList.remove('streaming');
@@ -307,5 +364,6 @@
 		for (const block of strip.querySelectorAll('.phase-block.streaming')) {
 			block.classList.remove('streaming');
 		}
+		fn.clearAllActivityGrids?.(strip);
 	};
 })(globalThis.DroxChat);

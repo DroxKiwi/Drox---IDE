@@ -5,12 +5,36 @@
 
 (function (D) {
 	const fn = D.fn;
+
+	const PROMPT_MIN_LINES = 2;
+	const PROMPT_MAX_LINES = 12;
+
+	fn.syncPromptInputHeight = function () {
+		const el = D.dom.promptEl;
+		if (!el) {
+			return;
+		}
+		const style = getComputedStyle(el);
+		const lineHeight = Number.parseFloat(style.lineHeight) || 20;
+		const padY =
+			(Number.parseFloat(style.paddingTop) || 0) +
+			(Number.parseFloat(style.paddingBottom) || 0);
+		const minH = lineHeight * PROMPT_MIN_LINES + padY;
+		const maxH = lineHeight * PROMPT_MAX_LINES + padY;
+		el.style.height = 'auto';
+		const contentH = el.scrollHeight;
+		const next = Math.min(maxH, Math.max(minH, contentH));
+		el.style.height = `${next}px`;
+		el.style.overflowY = contentH > maxH ? 'auto' : 'hidden';
+	};
+
 	fn.getPromptText = function() {
 		return D.dom.promptEl.value;
 	}
 
 	fn.setPromptText = function(value) {
 		D.dom.promptEl.value = value;
+		fn.syncPromptInputHeight();
 	}
 
 	fn.clearPromptText = function() {

@@ -104,6 +104,7 @@
 	});
 
 	D.dom.promptEl.addEventListener('input', () => {
+		fn.syncPromptInputHeight();
 		fn.updatePromptPlaceholder();
 		fn.schedulePathComplete();
 	});
@@ -231,6 +232,7 @@
 			ro.observe(chrome);
 		}
 		window.addEventListener('resize', () => fn.syncStickyStackLayout());
+		window.addEventListener('resize', () => fn.syncPromptInputHeight?.());
 	}
 
 	if (D.dom.logEl) {
@@ -262,6 +264,7 @@
 	fn.initGeneralSettingsVignettes();
 	fn.updateComposerChrome();
 	fn.updatePromptPlaceholder();
+	fn.syncPromptInputHeight?.();
 	fn.renderRefs();
 	fn.renderSessionTabs();
 	fn.initSessionLazyHistory?.();
