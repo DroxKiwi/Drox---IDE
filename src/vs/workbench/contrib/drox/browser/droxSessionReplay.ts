@@ -8,6 +8,7 @@
 import { isFileMutationToolName } from '../common/droxFileMutation.js';
 import { IDroxTranscriptContentBlock, IDroxTranscriptMessage, transcriptMessageToReplayAppends } from '../common/droxSession.js';
 import { describeToolCall, previewJson } from '../common/droxToolPreview.js';
+import { buildShellToolFinishWire, buildShellToolStartWire } from '../common/chat/droxShellToolWire.js';
 import { extractTodoErrorMessage, extractTodosFromToolOutput, isTodoWriteOutput } from '../common/droxTodoExtract.js';
 import { DroxHostToWebviewMessage } from './droxChatBridge.js';
 import { IDroxChatAgentEventHost } from './droxChatAgentEvents.js';
@@ -115,9 +116,13 @@ function replayToolStart(host: IDroxChatAgentEventHost, id: string, name: string
 	if (toolName === 'todo_write' || SKIP_TOOL_UI.has(toolName)) {
 		return;
 	}
-	const { verb, target } = describeToolCall(toolName, args);
 	const isFileMutation = isFileMutationToolName(toolName);
-	const skipArgsPreview = isFileMutation || SKIP_TOOL_PREVIEW_NAMES.has(toolName);
+	if (isFileMutation) {
+		return;
+	}
+	const skipArgsPreview = SKIP_TOOL_PREVIEW_NAMES.has(toolName);
+	const shellStart = buildShellToolStartWire(toolName, args);
+	const { verb, target } = describeToolCall(toolName, args);
 	host.post({
 		kind: 'tool',
 		phase: 'start',
@@ -126,6 +131,7 @@ function replayToolStart(host: IDroxChatAgentEventHost, id: string, name: string
 		verb,
 		target,
 		argsPreview: skipArgsPreview ? '' : previewJson(args),
+		...shellStart,
 	});
 }
 
@@ -165,8 +171,11 @@ function replayToolFinish(host: IDroxChatAgentEventHost, toolUseId: string, rawC
 		pendingName === 'file_edit' ||
 		pendingName === 'file_write' ||
 		pendingName === 'notebook_edit';
+	host.handleFileMutationAfterToolFinish(pendingName, output, isError, id, pending?.args);
+	if (isFileMutationFinish) {
+		return;
+	}
 	const skipOutputPreview =
-		(isFileMutationFinish && !isError) ||
 		(pendingName && SKIP_TOOL_PREVIEW_NAMES.has(pendingName)) ||
 		pendingName === 'delegate_executor' ||
 		pendingName === 'file_read' ||
@@ -175,13 +184,15 @@ function replayToolFinish(host: IDroxChatAgentEventHost, toolUseId: string, rawC
 		pendingName === 'lsp' ||
 		pendingName === 'workspace_map_read';
 	const outputPreview = skipOutputPreview ? '' : previewJson(output);
-	host.handleFileMutationAfterToolFinish(pendingName, output, isError, id, pending?.args);
+	const shellOutput = buildShellToolFinishWire(pendingName, output, isError);
 	host.post({
 		kind: 'tool',
 		phase: 'finish',
 		id,
+		name: pendingName,
 		isError,
 		outputPreview,
+		shellOutput,
 	});
 }
 

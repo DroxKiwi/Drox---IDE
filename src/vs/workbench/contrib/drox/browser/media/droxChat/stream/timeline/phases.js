@@ -42,8 +42,8 @@
 	};
 
 	fn.enterPhase = function (phase) {
-		// Parité TUI : `PhaseEnter` flush le buffer courant puis ouvre la phase.
-		fn.flushStreamBuffer?.({ asAnswer: true });
+		// Parité TUI : flush le buffer courant puis ouvre la phase.
+		fn.flushStreamBuffer?.({ asAnswer: phase === 'answering' });
 		if (phase === 'answering') {
 			fn.appendPhaseMarker?.('answering');
 			D.state.currentPhase = 'answering';
@@ -56,7 +56,9 @@
 			D.state.currentPhase = null;
 			fn.finalizeAssistant?.();
 			fn.finalizeRunPresentation?.();
-			fn.collapseRunWorkSection?.();
+			if (!D.state.busy) {
+				fn.collapseRunWorkSection?.();
+			}
 			if (D.state.runStripEl?.isConnected && typeof fn.normalizeLinearThinkingLayout === 'function') {
 				fn.normalizeLinearThinkingLayout(D.state.runStripEl);
 			}

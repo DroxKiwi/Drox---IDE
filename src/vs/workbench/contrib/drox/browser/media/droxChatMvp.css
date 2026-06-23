@@ -948,12 +948,38 @@ details.drox-run-work-collapsible > summary.drox-run-work-summary::-webkit-detai
 	gap: 6px;
 }
 
+/* Run actif : pas de scroll sur toute la chronologie (sinon les étapes passées « disparaissent »). */
+.drox-run-strip:not(.drox-run-strip-sealed) .drox-run-chronology {
+	max-height: none;
+	overflow: visible;
+	overflow-anchor: none;
+}
+
+.drox-run-strip-sealed .drox-run-chronology {
+	max-height: none;
+	overflow: visible;
+}
+
 .drox-run-chronology .phase-block {
 	margin: 2px 0;
+	flex-shrink: 0;
+}
+
+.drox-run-chronology .phase-block.drox-phase-block--done {
+	flex-shrink: 0;
 }
 
 .drox-run-chronology .phase-block.drox-phase-block--done > .phase-summary {
 	cursor: pointer;
+}
+
+.drox-run-chronology .phase-block.drox-phase-block--pinned-open > .phase-summary {
+	cursor: pointer;
+}
+
+.drox-run-chronology .phase-block.drox-phase-block--pinned-open[open] > .phase-body {
+	max-height: none;
+	overflow: visible;
 }
 
 .drox-run-chronology .phase-block[open] > .phase-body {
@@ -999,6 +1025,30 @@ details.drox-run-work-collapsible > summary.drox-run-work-summary::-webkit-detai
 	opacity: 0.92;
 }
 
+.drox-run-strip-sealed .activity-grid {
+	display: none !important;
+}
+
+.drox-run-strip > .drox-run-plan-slot {
+	flex-shrink: 0;
+}
+
+.drox-run-strip:not(.drox-run-strip-sealed) > .drox-run-plan-slot:empty {
+	display: none;
+}
+
+.drox-run-strip > .drox-run-plan-slot .msg-todos {
+	margin: 0 0 8px;
+	padding: 8px 10px 10px;
+}
+
+.drox-run-work-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 8px;
+}
+
 #log > .msg.user + .drox-run-strip {
 	margin-top: 10px;
 }
@@ -1027,6 +1077,7 @@ body.drox-linear-run-active #log {
 }
 
 /* Pendant un cycle linéaire, seul le header de cycle est sticky (pas la bulle user). */
+body.drox-linear-run-active .msg-user-block,
 body.drox-linear-run-active .msg-row-user.msg-user-bubble,
 body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	position: relative;
@@ -1483,63 +1534,186 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .msg.user,
 .msg-user-bubble {
-	background: rgba(20, 58, 28, 0.92);
-	border: 1px solid var(--drox-ui-green);
+	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 16%, var(--vscode-editor-background, #1e1e1e));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 48%, transparent);
+	color: var(--vscode-foreground);
 	align-self: flex-end;
 	max-width: 92%;
+}
+
+.msg-user-block {
+	align-self: flex-end;
+	max-width: min(92%, 42rem);
+	margin-left: auto;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 5px;
+	width: 100%;
+}
+
+.msg-user-commit-hint {
+	margin: 0;
+	padding: 4px 10px;
+	font-size: 11px;
+	line-height: 1.35;
+	font-style: italic;
+	text-align: right;
+	color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, var(--drox-ui-green, #3d7a3d));
+	background: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--drox-ui-green, #3d7a3d) 10%);
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 28%, transparent);
+	border-radius: 6px;
+	opacity: 0.95;
+}
+
+.msg-user-block > .msg-row-user.msg-user-bubble {
+	align-self: stretch;
+	max-width: 100%;
+	margin-left: 0;
+	width: 100%;
 }
 
 .msg-row-user.msg-user-bubble {
 	align-self: flex-end;
-	max-width: 92%;
+	max-width: min(92%, 42rem);
 	margin-left: auto;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	padding: 8px 10px;
+	padding: 10px 12px 10px 14px;
+	padding-top: 30px;
 	position: relative;
 	top: auto;
 	z-index: 1;
-	box-shadow: none;
+	border-radius: 14px 14px 4px 14px;
+	font-size: 13.5px;
+	line-height: 1.5;
+	box-shadow: 0 1px 0 color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 18%, transparent);
+	transition:
+		border-color 0.12s ease,
+		box-shadow 0.12s ease,
+		background-color 0.12s ease;
+}
+
+.msg-row-user.msg-user-bubble:hover {
+	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 72%, transparent);
+	box-shadow: 0 4px 14px color-mix(in srgb, #000 28%, transparent);
+}
+
+.msg-row-user.msg-user-bubble:focus-within {
+	outline: none;
+	border-color: color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 65%, var(--drox-ui-green, #3d7a3d) 35%);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 55%, transparent),
+		0 4px 14px color-mix(in srgb, #000 22%, transparent);
 }
 
 /* Un seul sticky user visible : le dernier message utilisateur du fil. */
-.msg-row-user.msg-user-bubble.is-last-user-sticky {
+.msg-user-block:has(> .msg-row-user.is-last-user-sticky) {
+	position: sticky;
+	top: 0;
+	z-index: 4;
+}
+
+.msg-user-block:has(> .msg-row-user.is-last-user-sticky) > .msg-row-user {
+	position: relative;
+	top: auto;
+	z-index: 1;
+	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+}
+
+#log > .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	position: sticky;
 	top: 0;
 	z-index: 4;
 	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
 }
 
+/* Ne pas figer le user quand le strip agent suit — le fil défile ensemble. */
+.msg-user-block:has(> .msg-row-user.is-last-user-sticky):has(+ .drox-run-strip) {
+	position: relative;
+	top: auto;
+	z-index: 1;
+}
+
+.msg-user-block:has(> .msg-row-user.is-last-user-sticky):has(+ .drox-run-strip) > .msg-row-user {
+	box-shadow: none;
+}
+
+.msg-row-user.msg-user-bubble.is-last-user-sticky:has(+ .drox-run-strip) {
+	position: relative;
+	top: auto;
+	z-index: 1;
+	box-shadow: none;
+}
+
 .msg-user-body {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
-	gap: 4px 6px;
-	line-height: 1.5;
+	gap: 6px 8px;
+	line-height: 1.55;
+	padding-right: 2px;
 }
 
-.msg-revert-to-here {
-	align-self: flex-end;
-	margin-top: 4px;
-	padding: 2px 8px;
-	font-size: 11px;
-	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-	border-radius: 8px;
-	background: transparent;
-	color: var(--vscode-descriptionForeground, var(--vscode-foreground));
-	cursor: pointer;
-	opacity: 0.85;
+.msg-user-toolbar {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.12s ease;
 }
 
-.msg-revert-to-here:hover {
+.msg-row-user.msg-user-bubble:hover .msg-user-toolbar,
+.msg-row-user.msg-user-bubble:focus-within .msg-user-toolbar {
 	opacity: 1;
-	border-color: var(--vscode-focusBorder, var(--vscode-textLink-foreground));
+	pointer-events: auto;
+}
+
+.msg-user-copy {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 1px solid color-mix(in srgb, var(--vscode-panel-border, #444) 70%, transparent);
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
+	color: var(--vscode-foreground);
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.msg-user-copy svg {
+	width: 14px;
+	height: 14px;
+	display: block;
+}
+
+.msg-user-copy:hover {
+	background: color-mix(in srgb, var(--vscode-toolbar-hoverBackground, #fff) 14%, var(--vscode-editor-background));
+	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 55%, transparent);
+}
+
+.msg-user-copy:focus-visible {
+	outline: 2px solid var(--vscode-focusBorder, #3794ff);
+	outline-offset: 1px;
+}
+
+.msg-user-copy.is-copied {
+	color: var(--drox-ui-green, #3d7a3d);
+	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 65%, transparent);
 }
 
 .msg-user-text {
 	white-space: pre-wrap;
 	word-break: break-word;
+	color: color-mix(in srgb, var(--vscode-foreground) 96%, var(--drox-ui-green, #3d7a3d) 4%);
 }
 
 .msg-user-text.is-clamped {
@@ -1551,83 +1725,34 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	text-overflow: ellipsis;
 }
 
-.msg-row-user.msg-user-expandable {
+.msg-user-text.is-expanded {
+	display: block;
+	overflow: visible;
+	-webkit-line-clamp: unset;
+	line-clamp: unset;
+	max-height: none;
+}
+
+.msg-row-user.msg-user-expanded {
+	max-width: min(96%, 48rem);
+}
+
+.msg-user-text.msg-user-text-expandable {
 	cursor: pointer;
+}
+
+.msg-user-text.msg-user-text-expandable:hover {
+	color: var(--vscode-foreground);
+}
+
+.msg-user-text.msg-user-text-expandable:focus-visible {
+	outline: 2px solid var(--vscode-focusBorder, #3794ff);
+	outline-offset: 2px;
+	border-radius: 4px;
 }
 
 .msg-row-user.msg-user-expandable .msg-user-text.is-clamped:hover {
-	opacity: 0.92;
-}
-
-.drox-user-msg-viewer-overlay {
-	position: fixed;
-	inset: 0;
-	z-index: 200;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 20px;
-	background: color-mix(in srgb, var(--vscode-editor-background) 35%, rgba(0, 0, 0, 0.72));
-}
-
-.drox-user-msg-viewer-overlay[hidden] {
-	display: none !important;
-}
-
-.drox-user-msg-viewer-panel {
-	display: flex;
-	flex-direction: column;
-	max-width: min(720px, 94vw);
-	max-height: min(72vh, 560px);
-	width: 100%;
-	background: var(--vscode-editor-background);
-	color: var(--vscode-foreground);
-	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-	border-radius: 8px;
-	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-	overflow: hidden;
-}
-
-.drox-user-msg-viewer-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 10px 14px;
-	border-bottom: 1px solid var(--vscode-panel-border, transparent);
-	flex-shrink: 0;
-}
-
-.drox-user-msg-viewer-title {
-	font-weight: 600;
-	font-size: 13px;
-}
-
-.drox-user-msg-viewer-close {
-	flex-shrink: 0;
-	border: 1px solid var(--vscode-button-border, transparent);
-	background: var(--vscode-button-secondaryBackground, rgba(127, 127, 127, 0.2));
-	color: var(--vscode-button-secondaryForeground, inherit);
-	border-radius: 4px;
-	padding: 4px 10px;
-	font: inherit;
-	font-size: 12px;
-	cursor: pointer;
-}
-
-.drox-user-msg-viewer-close:hover {
-	background: var(--vscode-button-secondaryHoverBackground, rgba(127, 127, 127, 0.35));
-}
-
-.drox-user-msg-viewer-content {
-	flex: 1 1 auto;
-	min-height: 0;
-	overflow: auto;
-	padding: 14px 16px;
-	white-space: pre-wrap;
-	word-break: break-word;
-	line-height: 1.55;
-	font-size: 13px;
+	opacity: 0.96;
 }
 
 /* Liens fichier inline dans le fil (style Cursor) */
@@ -1891,7 +2016,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .phase-block.msg-ai-frame {
 	padding: 0;
-	overflow: hidden;
+	overflow: visible;
 }
 
 .phase-block.msg-ai-frame > .phase-body {
@@ -2221,6 +2346,177 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	color: var(--vscode-errorForeground);
 }
 
+/* Shell command cards (outil bash — type Cursor) */
+.drox-shell-card {
+	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+	border-radius: 8px;
+	background: var(--vscode-editor-background);
+	overflow: hidden;
+}
+
+.drox-shell-card.running {
+	border-color: var(--vscode-focusBorder, var(--drox-ui-green));
+}
+
+.drox-shell-card.error {
+	border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+}
+
+.drox-shell-card > summary {
+	cursor: pointer;
+	padding: 0;
+	list-style: none;
+}
+
+.drox-shell-card > summary::-webkit-details-marker {
+	display: none;
+}
+
+.drox-shell-card-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	min-height: 34px;
+}
+
+.drox-shell-card-icon::before {
+	content: '>';
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	font-weight: 700;
+	color: var(--drox-ui-green, var(--vscode-terminal-ansiGreen));
+}
+
+.drox-shell-card-title {
+	flex: 1 1 auto;
+	font-weight: 600;
+	font-size: 12px;
+	color: var(--vscode-foreground);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.drox-shell-card-kind {
+	font-size: 11px;
+	color: var(--vscode-descriptionForeground);
+	padding: 1px 6px;
+	border-radius: 4px;
+	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+}
+
+.drox-shell-card-status {
+	font-size: 11px;
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-shell-card-status.running {
+	color: var(--vscode-terminal-ansiYellow, #dcdcaa);
+}
+
+.drox-shell-card-status.is-error {
+	color: var(--vscode-errorForeground);
+}
+
+.drox-shell-card-actions {
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+.drox-shell-card-copy {
+	font-size: 11px;
+	padding: 2px 8px;
+	border-radius: 4px;
+	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+	background: transparent;
+	color: var(--vscode-foreground);
+	cursor: pointer;
+}
+
+.drox-shell-card-copy:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+}
+
+.drox-shell-card-body {
+	padding: 0 10px 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.drox-shell-cmd {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	padding: 8px 10px;
+	border-radius: 6px;
+	background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.12));
+	border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.2));
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.drox-shell-prompt {
+	color: var(--drox-ui-green, var(--vscode-terminal-ansiGreen));
+	flex-shrink: 0;
+	user-select: none;
+}
+
+.drox-shell-cmd-text {
+	white-space: pre-wrap;
+	word-break: break-word;
+	color: var(--vscode-foreground);
+}
+
+.drox-shell-output {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.drox-shell-output-block {
+	margin: 0;
+	padding: 8px 10px;
+	border-radius: 6px;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	font-size: 11.5px;
+	line-height: 1.4;
+	max-height: 280px;
+	overflow: auto;
+}
+
+.drox-shell-card[open] .drox-shell-output-block {
+	max-height: 480px;
+}
+
+.drox-shell-output-stdout {
+	background: rgba(127, 127, 127, 0.08);
+	border: 1px solid var(--vscode-panel-border, transparent);
+	color: var(--vscode-foreground);
+}
+
+.drox-shell-output-stderr {
+	background: rgba(255, 80, 80, 0.08);
+	border: 1px solid var(--vscode-inputValidation-errorBorder, rgba(255, 80, 80, 0.35));
+	color: var(--vscode-errorForeground);
+}
+
+.drox-shell-meta {
+	font-size: 11px;
+	color: var(--vscode-descriptionForeground);
+	padding-left: 2px;
+}
+
+.drox-run-chronology .drox-shell-card,
+#log > .drox-shell-card {
+	margin: 4px 0 6px;
+	max-width: 100%;
+}
+
 .drox-run-section[data-section='plan'] .msg-tool.verify-line,
 .drox-run-section[data-section='verify'] .msg-tool.verify-line {
 	margin-top: 6px;
@@ -2256,6 +2552,44 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	gap: 8px;
 	background: var(--vscode-sideBar-background, var(--vscode-editor-background));
 	transition: box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+/* Plan agent — dock sticky au-dessus du composer (run linéaire actif). */
+.drox-plan-sticky-footer {
+	flex: 0 0 auto;
+	z-index: 5;
+	padding: 6px 12px 4px;
+	background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+	border-top: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 45%, transparent);
+	box-shadow: 0 -6px 16px color-mix(in srgb, var(--vscode-widget-shadow, #000) 18%, transparent);
+}
+
+.drox-plan-sticky-footer[hidden] {
+	display: none !important;
+}
+
+.drox-plan-sticky-footer .msg-todos {
+	margin: 0;
+	padding: 8px 10px 10px;
+	border-radius: 10px;
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 55%, transparent);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
+}
+
+.drox-plan-sticky-footer .msg-todos .todos-head {
+	margin-bottom: 6px;
+	cursor: default;
+}
+
+.drox-plan-sticky-footer .msg-todos .todos-list {
+	max-height: min(30vh, 220px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.drox-plan-sticky-footer .todo-item.todo-active {
+	background: color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 14%, transparent);
+	border-radius: 6px;
 }
 
 #composer[hidden] {
@@ -3305,6 +3639,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	display: flex;
 	align-items: flex-end;
 	gap: 8px;
+	width: 100%;
 	padding: 6px 6px 6px 10px;
 	border: 1px solid var(--drox-ui-green, var(--vscode-input-border));
 	border-radius: 8px;
@@ -3322,12 +3657,15 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .composer-input-frame .prompt-input {
 	flex: 1 1 auto;
 	min-width: 0;
-	min-height: 72px;
+	width: 100%;
+	min-height: 0;
 	padding: 4px 0;
 	border: none;
 	outline: none;
 	background: transparent;
-	resize: vertical;
+	resize: none;
+	overflow-y: hidden;
+	line-height: 1.5;
 }
 
 #actions {
@@ -4110,6 +4448,47 @@ button:disabled {
 }
 
 /* --- Carte fichier modifié (diff repliable) --- */
+
+.msg-file-change.is-not-applied {
+	opacity: 0.82;
+	border-style: dashed;
+}
+
+.msg-file-change.is-not-applied .fc-op {
+	color: var(--vscode-descriptionForeground);
+}
+
+.msg-file-change.is-cancelled .fc-op {
+	color: var(--vscode-errorForeground);
+}
+
+.msg-file-change.is-reverted .fc-path {
+	text-decoration: line-through;
+	opacity: 0.75;
+}
+
+.msg-file-change .fc-undo,
+.msg-file-change .fc-redo {
+	font-size: 11px;
+	padding: 2px 8px;
+	border-radius: 4px;
+	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+	background: transparent;
+	color: var(--vscode-foreground);
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.msg-file-change .fc-undo:hover,
+.msg-file-change .fc-redo:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+}
+
+.drox-run-chronology .msg-file-change,
+#log > .msg-file-change {
+	margin: 4px 0 6px;
+	max-width: 100%;
+}
 
 .msg-file-change {
 	align-self: stretch;

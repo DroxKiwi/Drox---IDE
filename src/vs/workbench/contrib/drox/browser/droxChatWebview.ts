@@ -70,6 +70,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/stream/messages/orchestration.js',
 	'droxChat/stream/answer/stream.js',
 	'droxChat/stream/tools/logTools.js',
+	'droxChat/stream/tools/shellCard.js',
 	'droxChat/stream/timeline/strip.js',
 	'droxChat/stream/timeline/chronology.js',
 	'droxChat/stream/timeline/thinking.js',
@@ -87,14 +88,16 @@ export const DROX_CHAT_SCRIPT_FILES = [
 ] as const;
 
 export function getDroxChatHtml(
-	cssUri: URI,
+	cssUris: readonly URI[],
 	scriptUris: readonly URI[],
 	versionLabel: string,
 	versionTitle: string,
 	showExportTranscript = true,
 ): string {
 
-	const css = cssUri.toString(true);
+	const cssLinks = cssUris
+		.map((u) => `\t<link rel="stylesheet" href="${u.toString(true)}" />`)
+		.join('\n');
 
 	const scriptTags = scriptUris
 		.map((u) => `\t<script src="${u.toString(true)}"></script>`)
@@ -343,13 +346,13 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 
 	<meta charset="UTF-8" />
 
-	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob: ${webviewGenericCspSource}; style-src ${webviewGenericCspSource} 'unsafe-inline'; script-src ${webviewGenericCspSource};" />
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob: ${webviewGenericCspSource}; font-src ${webviewGenericCspSource}; style-src ${webviewGenericCspSource} 'unsafe-inline'; script-src ${webviewGenericCspSource};" />
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 	<title>${title}</title>
 
-	<link rel="stylesheet" href="${css}" />
+${cssLinks}
 
 </head>
 
@@ -416,6 +419,8 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 	</div>
 
 	<div id="log" role="log" aria-live="polite"></div>
+
+	<div id="plan-sticky-footer" class="drox-plan-sticky-footer" hidden role="region" aria-label="Plan"></div>
 
 	<div id="user-ask" hidden></div>
 
@@ -673,7 +678,7 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 
 		<div class="composer-input-frame">
 
-			<textarea id="prompt" class="prompt-input" rows="3" placeholder="${placeholder}" aria-label="${placeholder}"></textarea>
+			<textarea id="prompt" class="prompt-input" rows="1" placeholder="${placeholder}" aria-label="${placeholder}"></textarea>
 
 			<span class="send-wrap">
 

@@ -75,7 +75,6 @@
 	}
 
 	fn.resetWorkspace = function() {
-		fn.closeHistory();
 		D.vscode.postMessage({ type: 'resetWorkspace' });
 	}
 
@@ -226,6 +225,9 @@
 		D.state.currentPhaseBodyEl = null;
 		fn.resetCollapsibleTrayState?.();
 		D.state.toolBlocks.clear();
+		if (D.state.fileChangeCards) {
+			D.state.fileChangeCards.clear();
+		}
 		D.state.currentTodoBlockEl = null;
 		D.state.todoSnapshot = [];
 		fn.hideActivity();
@@ -252,6 +254,7 @@
 		D.state.chatStreamEl = null;
 		D.state.chatStreamStripId = '';
 		fn.hideAgentActivitySticky();
+		fn.syncPlanStickyFooter?.();
 		D.state.logStickToBottom = true;
 		if (D.state.pendingUserAsk) {
 			fn.closeUserAskCard();

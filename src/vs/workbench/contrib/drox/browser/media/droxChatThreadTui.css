@@ -1,0 +1,356 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Fil de discussion — esthétique TUI rétro (phosphore terne + brun). */
+
+@font-face {
+	font-family: 'Drox VT323';
+	src: url('fonts/VT323-Regular.ttf') format('truetype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+#log {
+	--drox-thread-radius: 0;
+	--drox-thread-brown: #4a3f2e;
+	--drox-thread-brown-deep: #2e281c;
+	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 58%, var(--drox-thread-brown) 42%);
+	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 38%, var(--vscode-editor-background));
+	--drox-thread-green-border: color-mix(in srgb, var(--drox-thread-green) 52%, var(--drox-thread-brown-deep) 48%);
+	--drox-thread-fg: color-mix(in srgb, var(--vscode-foreground) 72%, #9aa88a 28%);
+	--drox-thread-fg-muted: color-mix(in srgb, var(--drox-thread-fg) 52%, var(--drox-thread-brown) 48%);
+	--drox-thread-font: 'Drox VT323', 'Courier New', Courier, 'Lucida Console', monospace;
+	--drox-thread-glow: 0 0 1px color-mix(in srgb, var(--drox-thread-green) 35%, transparent);
+	--drox-thread-pad-x: 8px;
+	--drox-thread-pad-y: 6px;
+
+	font-family: var(--drox-thread-font);
+	font-size: 15px;
+	line-height: 1.42;
+	letter-spacing: 0.03em;
+	color: var(--drox-thread-fg);
+	/* Flush au sash VS Code (gauche) — marge uniquement à droite */
+	padding: var(--drox-thread-pad-y) var(--drox-thread-pad-x) var(--drox-thread-pad-y) 0;
+	background:
+		repeating-linear-gradient(
+			180deg,
+			color-mix(in srgb, transparent 96%, #000 4%) 0,
+			color-mix(in srgb, transparent 96%, #000 4%) 1px,
+			transparent 1px,
+			transparent 3px
+		),
+		color-mix(in srgb, var(--vscode-editor-background) 90%, var(--drox-thread-brown-deep) 10%);
+	box-shadow: none;
+	border-left: none;
+}
+
+#log .msg,
+#log .msg-row-user,
+#log .msg-user-block,
+#log .phase-block,
+#log .msg-tool,
+#log .drox-shell-card,
+#log .msg-file-change,
+#log .drox-run-strip,
+#log .msg-todos,
+#log .activity-warmup,
+#log .drox-architect-tail-activity,
+#log .msg-subagent-card,
+#log .drox-final-answer,
+#log .drox-user-facing-reply,
+#log .msg-orchestration-role,
+#log .drox-shell-card,
+#log .msg-memory-chip {
+	font-family: var(--drox-thread-font);
+}
+
+/* --- Bulles utilisateur --- */
+
+#log .msg-user-commit-hint {
+	border-radius: var(--drox-thread-radius);
+	font-size: 13px;
+	font-style: normal;
+	letter-spacing: 0.04em;
+	color: var(--drox-thread-fg-muted);
+	background: color-mix(in srgb, var(--vscode-editor-background) 78%, var(--drox-thread-brown) 22%);
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border) 55%, var(--drox-thread-brown) 45%);
+	opacity: 0.88;
+	text-shadow: none;
+}
+
+#log .msg-row-user.msg-user-bubble {
+	border-radius: var(--drox-thread-radius);
+	background: color-mix(in srgb, var(--drox-thread-green-dim) 55%, var(--vscode-editor-background) 45%);
+	border: 1px solid var(--drox-thread-green-border);
+	color: var(--drox-thread-fg);
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 12%, transparent),
+		var(--drox-thread-glow);
+	text-shadow: var(--drox-thread-glow);
+}
+
+#log .msg-row-user.msg-user-bubble:hover {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 65%, #8a7350 35%);
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 18%, transparent),
+		0 0 6px color-mix(in srgb, var(--drox-thread-green) 22%, transparent);
+}
+
+#log .msg-row-user.msg-user-bubble.is-last-user-sticky,
+#log .msg-user-block:has(> .msg-row-user.is-last-user-sticky) > .msg-row-user {
+	box-shadow:
+		inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 12%, transparent),
+		var(--drox-thread-glow);
+}
+
+#log .msg-user-copy,
+#log .msg-file-change .fc-undo,
+#log .msg-file-change .fc-redo {
+	border-radius: var(--drox-thread-radius);
+	border-color: var(--drox-thread-green-border);
+	opacity: 0.9;
+}
+
+/* --- Assistant / système / erreur --- */
+
+#log .msg.assistant,
+#log .msg.assistant.markdown,
+#log .drox-final-answer,
+#log .drox-user-facing-reply {
+	border-radius: var(--drox-thread-radius);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-thread-brown) 12%);
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border) 35%, transparent);
+	color: var(--drox-thread-fg);
+	box-shadow: inset 2px 0 0 color-mix(in srgb, var(--drox-thread-green) 45%, var(--drox-thread-brown) 55%);
+	padding: 8px 10px;
+}
+
+#log .msg.system {
+	border-left: 2px solid color-mix(in srgb, var(--drox-thread-brown) 70%, var(--drox-thread-green) 30%);
+	padding-left: 10px;
+	opacity: 0.72;
+	color: var(--drox-thread-fg-muted);
+}
+
+#log .msg.error {
+	border-left: 2px solid color-mix(in srgb, var(--vscode-errorForeground) 65%, var(--drox-thread-brown) 35%);
+	background: color-mix(in srgb, var(--vscode-inputValidation-errorBackground, #5a2020) 18%, transparent);
+	border-radius: var(--drox-thread-radius);
+}
+
+/* --- Phases / outils --- */
+
+#log .phase-block:not(.msg-ai-frame) {
+	border-radius: var(--drox-thread-radius);
+	border-color: var(--drox-thread-green-border);
+	background: color-mix(in srgb, var(--vscode-editor-background) 86%, var(--drox-thread-brown) 14%);
+}
+
+#log .phase-block.msg-ai-frame {
+	border-radius: var(--drox-thread-radius);
+}
+
+#log .phase-summary {
+	color: var(--drox-thread-fg);
+	font-weight: 400;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	font-size: 0.92em;
+}
+
+#log .phase-body {
+	border-top-color: color-mix(in srgb, var(--drox-thread-green-border) 40%, var(--drox-thread-brown) 60%);
+}
+
+#log .msg-tool,
+#log details.msg-tool {
+	border-radius: var(--drox-thread-radius);
+	border-color: var(--drox-thread-green-border);
+	background: color-mix(in srgb, var(--vscode-editor-background) 84%, var(--drox-thread-brown) 16%);
+}
+
+#log .msg-tool > summary,
+#log .msg-tool summary {
+	color: var(--drox-thread-fg-muted);
+	letter-spacing: 0.04em;
+}
+
+#log .msg-tool pre,
+#log .msg-tool .tool-preview {
+	border-radius: var(--drox-thread-radius);
+	background: color-mix(in srgb, var(--vscode-editor-background) 80%, var(--drox-thread-brown-deep) 20%);
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border) 30%, transparent);
+}
+
+/* --- Cartes shell --- */
+
+#log .drox-shell-card {
+	border-radius: var(--drox-thread-radius);
+	border-color: var(--drox-thread-green-border);
+	background: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--drox-thread-brown) 18%);
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--drox-thread-green) 10%, transparent);
+}
+
+#log .drox-shell-card .drox-shell-cmd,
+#log .drox-shell-card .drox-shell-output,
+#log .drox-shell-card .drox-shell-output-block,
+#log .drox-shell-card pre {
+	font-family: var(--drox-thread-font);
+	letter-spacing: 0.02em;
+}
+
+#log .drox-shell-card-header,
+#log .drox-shell-card-title {
+	border-bottom-color: color-mix(in srgb, var(--drox-thread-green-border) 45%, var(--drox-thread-brown) 55%);
+	color: var(--drox-thread-fg-muted);
+}
+
+/* --- Diffs fichier --- */
+
+#log .msg-file-change {
+	border-radius: var(--drox-thread-radius);
+	border-color: var(--drox-thread-green-border);
+	background: color-mix(in srgb, var(--vscode-editor-background) 85%, var(--drox-thread-brown) 15%);
+}
+
+#log .msg-file-change > .fc-summary {
+	background: color-mix(in srgb, var(--vscode-editor-background) 78%, var(--drox-thread-brown) 22%);
+	border-bottom-color: color-mix(in srgb, var(--drox-thread-green-border) 40%, var(--drox-thread-brown) 60%);
+}
+
+#log .msg-file-change .fc-diff pre,
+#log .msg-file-change .fc-diff code {
+	font-family: var(--drox-thread-font);
+	font-size: 14px;
+}
+
+/* --- Strip agent / plan / todos --- */
+
+#log .drox-run-strip {
+	border-radius: var(--drox-thread-radius);
+}
+
+#log .drox-run-sticky-head {
+	border-radius: var(--drox-thread-radius);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-thread-brown) 12%);
+	box-shadow: 0 1px 0 color-mix(in srgb, var(--drox-thread-green-border) 35%, transparent);
+	margin-left: 0;
+	margin-right: calc(-1 * var(--drox-thread-pad-x, 8px));
+	padding: 4px var(--drox-thread-pad-x, 8px) 6px 0;
+}
+
+#log .drox-run-sticky-head .msg-todos {
+	border-radius: var(--drox-thread-radius);
+	border-color: var(--drox-thread-green-border);
+	background: color-mix(in srgb, var(--vscode-editor-background) 80%, var(--drox-thread-brown) 20%);
+}
+
+#log .msg-todos .todo-item {
+	border-radius: var(--drox-thread-radius);
+}
+
+#log .msg-todos .todo-item.todo-active {
+	background: color-mix(in srgb, var(--drox-thread-green) 14%, var(--drox-thread-brown) 10%);
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border) 50%, transparent);
+}
+
+/* --- Liens & chips --- */
+
+#log .msg-ref-link,
+#log .msg-paste-link,
+#log .msg-paste-terminal,
+#log .prompt-ref-chip {
+	border-radius: var(--drox-thread-radius);
+	border-color: color-mix(in srgb, var(--drox-thread-green-border) 55%, var(--drox-thread-brown) 45%);
+	background: color-mix(in srgb, var(--drox-thread-green-dim) 40%, transparent);
+	color: color-mix(in srgb, var(--drox-thread-fg) 88%, var(--drox-thread-green) 12%);
+}
+
+/* --- Activité / warmup --- */
+
+#log .activity-warmup-label {
+	color: var(--drox-thread-fg-muted);
+	font-style: normal;
+	letter-spacing: 0.05em;
+}
+
+#log .activity-grid > span {
+	border-radius: 0;
+	background: color-mix(in srgb, var(--drox-thread-green) 55%, var(--drox-thread-brown) 45%);
+}
+
+/* --- Markdown assistant --- */
+
+#log .msg.assistant.markdown pre.md-code {
+	border-radius: var(--drox-thread-radius);
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border) 28%, transparent);
+	background: color-mix(in srgb, var(--vscode-editor-background) 75%, var(--drox-thread-brown-deep) 25%);
+}
+
+#log .msg.assistant.markdown code {
+	font-family: var(--drox-thread-font);
+}
+
+/* --- Mémoire --- */
+
+#log .msg-memory-chip {
+	border-left-color: color-mix(in srgb, var(--drox-thread-green) 50%, var(--drox-thread-brown) 50%);
+	opacity: 0.78;
+}
+
+#log .msg-memory-chip .memory-chip-icon {
+	border-radius: 0;
+}
+
+/* --- Composer : bordures alignées avec le fil (pas de coin « flottant ») --- */
+
+#composer {
+	padding-left: 0;
+	padding-right: 0;
+	padding-bottom: 8px;
+	border-top-color: var(--drox-thread-green-border, var(--vscode-panel-border));
+	border-left: none;
+}
+
+#composer .composer-input-frame {
+	margin: 0;
+	border-radius: var(--drox-thread-radius, 0);
+	border-left: none;
+	border-right: none;
+	border-bottom: none;
+	border-top: none;
+	padding-left: 0;
+	padding-right: var(--drox-thread-pad-x, 8px);
+	background: transparent;
+}
+
+#composer #pending-prompts,
+#composer #attachments,
+#composer #refs,
+#composer #prompt-suggestions,
+#composer #actions {
+	padding-left: 0;
+	padding-right: var(--drox-thread-pad-x, 8px);
+}
+
+#composer .agent-vignettes {
+	left: 0;
+}
+
+#composer .role-model-vignettes {
+	left: 0;
+}
+
+.drox-plan-sticky-footer {
+	padding-left: 0;
+	padding-right: var(--drox-thread-pad-x, 8px);
+	border-left: none;
+}
+
+/* En-tête onglets : aligné sur le sash (pas de retrait gauche) */
+.chat-chrome .session-tab-bar {
+	padding-left: 0;
+}

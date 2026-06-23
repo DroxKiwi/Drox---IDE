@@ -14,19 +14,25 @@ import { INotificationService } from '../../../../../platform/notification/commo
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IOutputService } from '../../../../services/output/common/output.js';
 import { ITerminalService } from '../../../terminal/browser/terminal.js';
-import { asFileChangeHostMessage, buildFileChangePayload } from '../../common/droxFileChange.js';
+import {
+	asFileChangeHostMessage,
+	extractOutputPath,
+	resolveFileChangePayload,
+} from '../../common/droxFileChange.js';
 import {
 	inferFileToolName,
 	isFileMutationToolName,
 	normalizeToolFinishOutput,
 	toolOutputIndicatesApplied,
 } from '../../common/droxFileMutation.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
+import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { shouldAutoOpenModifiedFilePath } from '../../common/droxOpenModified.js';
 import { DROX_TERMINAL_SMART_PASTE_ABS_SENTINEL } from '../../common/droxPasteCandidates.js';
 import { completeWorkspacePaths } from '../../common/droxPromptCompletion.js';
 import { sanitizePathForEditor } from '../../common/droxPathUtil.js';
 import { droxUiLogLine } from '../../common/droxUiLog.js';
-import { IFileService } from '../../../../../platform/files/common/files.js';
+import { resolveAfterContentForFileChange } from './droxChatFileChangeUndo.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 
 export interface IDroxChatFileActionsHost {
@@ -148,6 +154,8 @@ export function handleDroxFileMutationAfterToolFinish(
 		readonly editorService: IEditorService;
 		readonly notificationService: INotificationService;
 		readonly logService: ILogService;
+		readonly fileService: IFileService;
+		readonly runRevertService: IDroxRunRevertService;
 	},
 	pendingName: string | undefined,
 	output: unknown,
@@ -158,56 +166,102 @@ export function handleDroxFileMutationAfterToolFinish(
 	if (isError) {
 		return;
 	}
+
 	const out = normalizeToolFinishOutput(output);
 	if (!out) {
 		return;
 	}
+
 	let name = isFileMutationToolName(pendingName) ? pendingName : inferFileToolName(out);
 	if (!name) {
 		return;
 	}
+
 	if (!isFileMutationToolName(pendingName)) {
 		droxUiLogLine(
 			deps.outputService,
 			`file_change: id=${toolId} inferred name=${name} (no matching pending)`,
 		);
 	}
-	if (!toolOutputIndicatesApplied(name, out)) {
-		droxUiLogLine(
-			deps.outputService,
-			`file_change: skip (${name} not applied, id=${toolId})`,
-		);
-		return;
-	}
-	const filePath = typeof out.path === 'string' ? out.path : null;
+
+	const applied = toolOutputIndicatesApplied(name, out);
+	const filePath = extractOutputPath(out);
 	if (!filePath) {
 		droxUiLogLine(deps.outputService, `file_change: skip (${name} missing path, id=${toolId})`);
 		return;
 	}
-	const change = buildFileChangePayload(host.workspaceRoot(), name, out, pendingArgs);
-	if (change) {
-		host.post(asFileChangeHostMessage(change, toolId));
-	}
-	if (shouldAutoOpenModifiedFilePath(
-		deps.configurationService,
-		filePath,
-		host.workspaceRoot(),
-		host.workspaceUri(),
-	)) {
-		droxUiLogLine(deps.outputService, `file_change: open ${name} → ${filePath}`);
-		void openDroxWorkspaceFile(
-			host,
-			deps.editorService,
-			deps.notificationService,
-			deps.outputService,
-			deps.logService,
-			filePath,
-			{ preserveFocus: true },
+
+	const tid = String(toolId || '').trim();
+
+	void (async () => {
+		const captured = deps.runRevertService.getCapturedBefore(filePath);
+		const changeBase = await resolveFileChangePayload(
+			host.workspaceRoot(),
+			name,
+			out,
+			pendingArgs,
+			{
+				applied,
+				cancelled: out.cancelled === true,
+				proposed: out.proposed === true,
+			},
+			async (absPath) => resolveAfterContentForFileChange(deps.fileService, absPath, out),
+			captured?.beforeContent ?? '',
 		);
-	} else {
+		if (!changeBase) {
+			if (!applied) {
+				droxUiLogLine(
+					deps.outputService,
+					`file_change: skip (${name} not applied, no preview, id=${toolId})`,
+				);
+			}
+			return;
+		}
+
 		droxUiLogLine(
 			deps.outputService,
-			`file_change: skip auto-open (${name} under .drox/agent-output or setting off, id=${toolId})`,
+			`file_change: post ${name} ${changeBase.relPath} +${changeBase.added}/-${changeBase.removed} diff=${changeBase.diff.length} content=${changeBase.content.length} id=${toolId}`,
 		);
-	}
+
+		let canUndo = false;
+		if (applied && tid && tid !== '?') {
+			const afterContent = await resolveAfterContentForFileChange(deps.fileService, filePath, out);
+			if (captured && afterContent.length > 0) {
+				deps.runRevertService.trackFileChange({
+					toolId: tid,
+					absPath: filePath,
+					beforeContent: captured.beforeContent,
+					afterContent,
+					hadFile: captured.hadFile,
+				});
+				canUndo = true;
+			}
+		}
+
+		const change = { ...changeBase, toolId: tid || undefined, canUndo };
+		host.post(asFileChangeHostMessage(change, tid || undefined));
+
+		if (applied && shouldAutoOpenModifiedFilePath(
+			deps.configurationService,
+			filePath,
+			host.workspaceRoot(),
+			host.workspaceUri(),
+		)) {
+			droxUiLogLine(deps.outputService, `file_change: open ${name} → ${filePath}`);
+			void openDroxWorkspaceFile(
+				host,
+				deps.editorService,
+				deps.notificationService,
+				deps.outputService,
+				deps.logService,
+				filePath,
+				{ preserveFocus: true },
+			);
+		} else if (applied) {
+			droxUiLogLine(
+				deps.outputService,
+				`file_change: skip auto-open (${name} under .drox/agent-output or setting off, id=${toolId})`,
+			);
+		}
+	})();
 }
