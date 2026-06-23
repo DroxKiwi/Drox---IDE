@@ -38,6 +38,16 @@ export interface IDroxRunRevertResult {
 	readonly errors: readonly string[];
 }
 
+export interface IDroxFileChangeUndoEntry {
+	readonly toolId: string;
+	readonly absPath: string;
+	readonly beforeContent: string;
+	readonly afterContent: string;
+	readonly hadFile: boolean;
+}
+
+export type DroxFileChangeUndoState = 'applied' | 'reverted';
+
 export interface IDroxRunRevertService {
 	readonly _serviceBrand: undefined;
 	readonly onDidChangeRevertable: Event<void>;
@@ -48,10 +58,19 @@ export interface IDroxRunRevertService {
 	recordRunMessage(runId: string, messageId: string): void;
 	/** Enregistre l'état disque avant la première écriture du run sur ce fichier. */
 	captureBeforeWrite(workspaceRoot: string, absPath: string): Promise<void>;
+	/** Snapshot avant/après pour undo/redo depuis une carte diff (`toolId`). */
+	/** Lecture best-effort du snapshot « avant » capturé pour ce fichier (run actif). */
+	getCapturedBefore(absPath: string): IDroxRunRevertFileEntry | undefined;
+	trackFileChange(entry: IDroxFileChangeUndoEntry): void;
+	getFileChangeUndoState(toolId: string): DroxFileChangeUndoState | undefined;
+	undoFileChange(toolId: string): Promise<IDroxRunRevertResult>;
+	redoFileChange(toolId: string): Promise<IDroxRunRevertResult>;
 	/** Clôture le run courant comme « dernier run annulable » (V1 : un seul niveau). */
 	finalizeRun(runId: string): void;
 	/** Abandonne le run courant sans remplacer le snapshot annulable. */
 	discardActiveRun(): void;
+	/** Après purge `.drox/` — état UI revert sans relire l’historique supprimé. */
+	resetWorkspaceUiState(): void;
 	getLastRevertable(): IDroxRunRevertSnapshot | undefined;
 	hasRevertable(): boolean;
 	revertLastRun(): Promise<IDroxRunRevertResult>;

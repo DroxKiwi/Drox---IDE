@@ -5,6 +5,8 @@
 
 // allow-any-unicode-comment-file
 
+import { normalizeToolArguments } from '../droxFileMutation.js';
+
 const MAX_JSON_CHARS = 1800;
 
 
@@ -51,7 +53,7 @@ export function describeToolCall(
 
 ): { verb: string; target: string } {
 
-	const a = (args && typeof args === 'object' ? args : {}) as Record<string, unknown>;
+	const a = normalizeToolArguments(args) ?? {};
 
 	const asStr = (v: unknown): string => (typeof v === 'string' ? v : '');
 

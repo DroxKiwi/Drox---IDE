@@ -83,6 +83,8 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'revertLastRun' }
 	| { readonly type: 'revertToMessage'; readonly messageId: string }
+	| { readonly type: 'undoFileChange'; readonly toolId: string }
+	| { readonly type: 'redoFileChange'; readonly toolId: string }
 
 	| { readonly type: 'exportTranscript' }
 
@@ -177,14 +179,29 @@ export type DroxHostToWebviewMessage =
 		readonly name?: string;
 		readonly verb?: string;
 		readonly target?: string;
+		readonly mutationPath?: string;
 		readonly argsPreview?: string;
 		readonly isError?: boolean;
 		readonly outputPreview?: string;
 		readonly elapsedMs?: number;
 		readonly executorJobId?: string;
+		readonly shellKind?: 'powershell' | 'bash';
+		readonly shellCommand?: string;
+		readonly shellDescription?: string;
+		readonly shellOutput?: {
+			readonly stdout?: string;
+			readonly stderr?: string;
+			readonly exit_code?: number | null;
+			readonly timed_out?: boolean;
+			readonly duration_ms?: number;
+			readonly error?: string;
+		};
 	}
 
 	| DroxFileChangeHostMessage
+
+	| { readonly kind: 'fileChangeState'; readonly toolId: string; readonly undoState: 'applied' | 'reverted' }
+	| { readonly kind: 'fileChangeUndoReady'; readonly toolId: string }
 
 	| { readonly kind: 'usage'; readonly inputTokens: number; readonly outputTokens: number }
 
@@ -284,6 +301,10 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 	if (t === 'revertToMessage') {
 		return typeof (msg as { messageId?: unknown }).messageId === 'string';
+	}
+
+	if (t === 'undoFileChange' || t === 'redoFileChange') {
+		return typeof (msg as { toolId?: unknown }).toolId === 'string';
 	}
 
 	if (t === 'setPermissionMode') {

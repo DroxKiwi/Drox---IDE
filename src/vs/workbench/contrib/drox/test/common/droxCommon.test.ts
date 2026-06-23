@@ -6,6 +6,7 @@
 // allow-any-unicode-comment-file
 
 import assert from 'assert';
+import { join } from '../../../../../base/common/path.js';
 import { VSBuffer } from '../../../../../base/common/buffer.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
@@ -33,6 +34,7 @@ import {
 	isFileMutationToolName,
 	normalizeToolFinishOutput,
 	takePendingForFileFinish,
+	toolArgPath,
 	toolOutputIndicatesApplied,
 } from '../../common/droxFileMutation.js';
 import {
@@ -49,7 +51,15 @@ import {
 	applyNotebookCellEdits,
 	normalizeNotebookEditInput,
 } from '../../common/droxNotebookEdit.js';
-import { countDiffLines } from '../../common/droxFileChange.js';
+import {
+	buildFileChangePayload,
+	buildProposedFileChangeFromToolArgs,
+	countDiffLines,
+	enrichFileChangePayload,
+	resolveFileChangePayload,
+} from '../../common/droxFileChange.js';
+import { isListableDroxSessionId } from '../../common/droxSession.js';
+import { resetDroxWorkspaceOnDisk } from '../../common/droxWorkspaceResetFs.js';
 import { normalizeWindowsFsPath } from '../../common/droxPathUtil.js';
 import { parsePartialPath } from '../../common/droxPromptCompletion.js';
 import {
@@ -218,9 +228,78 @@ suite('Drox — file mutation helpers', () => {
 });
 
 suite('Drox — file change diff', () => {
+	ensureNoDisposablesAreLeakedInTestSuite();
+
 	test('countDiffLines ignores headers', () => {
 		const d = '--- a\n+++ b\n@@ -1 +1 @@\n-old\n+new\n';
 		assert.deepStrictEqual(countDiffLines(d), { added: 1, removed: 1 });
+	});
+
+	test('enrichFileChangePayload builds unified diff for file_write without engine diff', () => {
+		const base = buildFileChangePayload(
+			'/ws',
+			'file_write',
+			{ applied: true, path: '/ws/src/new.ts', bytes_written: 11 },
+			{ path: 'src/new.ts', content: 'hello\nworld' },
+			{ applied: true },
+		);
+		assert.ok(base);
+		const enriched = enrichFileChangePayload(base!, '', 'hello\nworld');
+		assert.ok(enriched.diff.includes('+hello'));
+		assert.ok(enriched.diff.includes('+world'));
+		assert.strictEqual(enriched.op, 'write');
+		assert.ok(enriched.added >= 2);
+	});
+
+	test('resolveFileChangePayload reads disk when args and diff are missing', async () => {
+		const payload = await resolveFileChangePayload(
+			'/ws',
+			'file_write',
+			{ applied: true, path: '/ws/src/new.ts', bytes_written: 5 },
+			undefined,
+			{ applied: true },
+			async () => 'alpha',
+			'',
+		);
+		assert.ok(payload);
+		assert.ok(payload!.diff.includes('+alpha'));
+		assert.strictEqual(payload!.op, 'write');
+	});
+
+	test('toolArgPath parses JSON string arguments', () => {
+		assert.strictEqual(
+			toolArgPath('{"path":"src/foo.ts","content":"x"}'),
+			'src/foo.ts',
+		);
+	});
+
+	test('buildProposedFileChangeFromToolArgs previews file_write before disk', async () => {
+		const proposed = await buildProposedFileChangeFromToolArgs(
+			'C:/ws',
+			'file_write',
+			{ path: 'src/new.ts', content: 'hello\nworld' },
+		);
+		assert.ok(proposed);
+		assert.strictEqual(proposed!.applied, false);
+		assert.strictEqual(proposed!.proposed, true);
+		assert.ok(proposed!.diff.includes('+hello'));
+		assert.strictEqual(proposed!.relPath, 'src/new.ts');
+	});
+
+	test('buildProposedFileChangeFromToolArgs previews file_edit from args', async () => {
+		const proposed = await buildProposedFileChangeFromToolArgs(
+			'C:/ws',
+			'file_edit',
+			{
+				path: 'src/a.ts',
+				edits: [{ old_string: 'foo', new_string: 'bar' }],
+			},
+			async () => 'const foo = 1;',
+		);
+		assert.ok(proposed);
+		assert.strictEqual(proposed!.proposed, true);
+		assert.ok(proposed!.diff.length > 0);
+		assert.ok(proposed!.added >= 1);
 	});
 });
 
@@ -1315,6 +1394,15 @@ suite('Drox — agent.run params', () => {
 
 });
 
+suite('Drox — session list ids', () => {
+	test('isListableDroxSessionId accepts transcript ids only', () => {
+		assert.strictEqual(isListableDroxSessionId('ses_01932f8a-0000-7000-8000-000000000001'), true);
+		assert.strictEqual(isListableDroxSessionId('ses_abc.ui-replay'), false);
+		assert.strictEqual(isListableDroxSessionId('msg_abc'), false);
+		assert.strictEqual(isListableDroxSessionId(''), false);
+	});
+});
+
 suite('Drox — run revert history', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
@@ -1354,6 +1442,108 @@ suite('Drox — run revert history', () => {
 		}
 	}
 
+	test('resetDroxWorkspaceOnDisk purges .drox except .env', async () => {
+		class ResetFakeFileService {
+			readonly files = new Map<string, string>();
+			readonly dirs = new Set<string>();
+
+			private norm(p: string): string {
+				let s = p.replace(/\\/g, '/');
+				if (process.platform === 'win32' && /^[a-zA-Z]:/.test(s)) {
+					s = s[0].toLowerCase() + s.slice(1);
+				}
+				return s;
+			}
+
+			async exists(uri: URI): Promise<boolean> {
+				const key = this.norm(uri.fsPath);
+				return this.files.has(key) || this.dirs.has(key);
+			}
+
+			async resolve(uri: URI): Promise<{ children: Array<{ name: string; isDirectory: boolean; resource: URI }> }> {
+				const prefix = this.norm(uri.fsPath);
+				const children: Array<{ name: string; isDirectory: boolean; resource: URI }> = [];
+				const seen = new Set<string>();
+				for (const d of this.dirs) {
+					if (d === prefix || !d.startsWith(prefix + '/')) {
+						continue;
+					}
+					const rest = d.slice(prefix.length + 1);
+					const name = rest.split('/')[0];
+					if (!name || seen.has(name)) {
+						continue;
+					}
+					seen.add(name);
+					children.push({
+						name,
+						isDirectory: true,
+						resource: URI.file(join(prefix, name)),
+					});
+				}
+				for (const f of this.files.keys()) {
+					if (!f.startsWith(prefix + '/')) {
+						continue;
+					}
+					const rest = f.slice(prefix.length + 1);
+					if (!rest.includes('/')) {
+						children.push({ name: rest, isDirectory: false, resource: URI.file(f) });
+					}
+				}
+				return { children };
+			}
+
+			async del(uri: URI, opts?: { recursive?: boolean }): Promise<void> {
+				const key = this.norm(uri.fsPath);
+				this.files.delete(key);
+				if (opts?.recursive) {
+					for (const f of [...this.files.keys()]) {
+						if (f.startsWith(key + '/')) {
+							this.files.delete(f);
+						}
+					}
+					for (const d of [...this.dirs]) {
+						if (d === key || d.startsWith(key + '/')) {
+							this.dirs.delete(d);
+						}
+					}
+				}
+				this.dirs.delete(key);
+			}
+
+			seed(path: string, content = ''): void {
+				const norm = this.norm(path);
+				const lastSlash = norm.lastIndexOf('/');
+				if (lastSlash > 0) {
+					const dirPath = norm.slice(0, lastSlash);
+					const parts = dirPath.split('/');
+					let acc = parts[0] ?? '';
+					for (let i = 1; i < parts.length; i++) {
+						acc = `${acc}/${parts[i]}`;
+						this.dirs.add(acc);
+					}
+				}
+				if (!norm.endsWith('/')) {
+					this.files.set(norm, content);
+				}
+			}
+		}
+
+		const ws = process.platform === 'win32' ? 'C:/tmp/ws-reset' : '/tmp/ws-reset';
+		const fs = new ResetFakeFileService();
+		fs.seed(join(ws, '.drox', '.env'), 'DROX_SERVER=http://localhost');
+		fs.seed(join(ws, '.drox', 'sessions', 'ses_a.jsonl'), '{}');
+		fs.seed(join(ws, '.drox', 'sessions', 'ses_a.ui-replay.jsonl'), '{}');
+		fs.seed(join(ws, '.drox', 'workspace-map.json'), '{}');
+		fs.seed(join(ws, '.drox', 'long-memory', 'db.json'), '{}');
+
+		const result = await resetDroxWorkspaceOnDisk(fs as never, ws);
+		assert.strictEqual(result.sessionsFilesRemoved, 2);
+		assert.strictEqual(result.workspaceMapRemoved, true);
+		assert.strictEqual(result.longMemoryCleared, true);
+		assert.ok(await fs.exists(URI.file(join(ws, '.drox', '.env'))));
+		assert.ok(!(await fs.exists(URI.file(join(ws, '.drox', 'sessions', 'ses_a.jsonl')))));
+	});
+
 	test('revertToMessage restores before-content snapshot', async () => {
 		const fs = new FakeFileService();
 		const svc = new DroxRunRevertService(fs as never);
@@ -1373,6 +1563,33 @@ suite('Drox — run revert history', () => {
 		assert.strictEqual(out.revertedPaths.length, 1);
 		const restored = await fs.readFile(URI.file(file));
 		assert.strictEqual(restored.value.toString(), 'before');
+		svc.dispose();
+	});
+
+	test('undoFileChange and redoFileChange toggle file content', async () => {
+		const fs = new FakeFileService();
+		const svc = new DroxRunRevertService(fs as never);
+		const ws = process.platform === 'win32' ? 'C:\\tmp\\ws3' : '/tmp/ws3';
+		const file = process.platform === 'win32' ? 'C:\\tmp\\ws3\\c.txt' : '/tmp/ws3/c.txt';
+		await fs.writeFile(URI.file(file), VSBuffer.fromString('before'));
+		svc.beginRun('r4', ws, 'ses_undo');
+		await svc.captureBeforeWrite(ws, file);
+		await fs.writeFile(URI.file(file), VSBuffer.fromString('after'));
+		svc.trackFileChange({
+			toolId: 'tool_1',
+			absPath: file,
+			beforeContent: 'before',
+			afterContent: 'after',
+			hadFile: true,
+		});
+		const undo = await svc.undoFileChange('tool_1');
+		assert.strictEqual(undo.errors.length, 0);
+		assert.strictEqual((await fs.readFile(URI.file(file))).value.toString(), 'before');
+		assert.strictEqual(svc.getFileChangeUndoState('tool_1'), 'reverted');
+		const redo = await svc.redoFileChange('tool_1');
+		assert.strictEqual(redo.errors.length, 0);
+		assert.strictEqual((await fs.readFile(URI.file(file))).value.toString(), 'after');
+		assert.strictEqual(svc.getFileChangeUndoState('tool_1'), 'applied');
 		svc.dispose();
 	});
 

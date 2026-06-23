@@ -47,6 +47,7 @@
 					fn.closeCurrentPhase();
 					fn.closeActivePhaseBlock?.();
 					fn.collapseRunWorkSection?.();
+					fn.syncWorkSummaryStats?.(D.state.runStripEl);
 					fn.hideAgentActivitySticky?.();
 					D.state.toolBlocks.clear();
 					fn.flushPendingPromptQueue();
@@ -57,6 +58,11 @@
 					fn.commitRunStripAnchor();
 				}
 				fn.renderTodos(Array.isArray(m.todos) ? m.todos : []);
+				break;
+			case 'railStationEnter':
+				if (m.taskId && typeof fn.highlightTodoTask === 'function') {
+					fn.highlightTodoTask(m.taskId, 'running');
+				}
 				break;
 			case 'clearAssistant':
 				fn.resetChatStreamForTurn?.();
@@ -71,6 +77,7 @@
 					fn.closePhaseMarker();
 				} else if (typeof m.phase === 'string') {
 					fn.enterPhase(m.phase);
+					fn.syncWorkSummaryStats?.(D.state.runStripEl);
 				}
 				break;
 			case 'userPromptSticky':
@@ -146,24 +153,27 @@
 				}
 				if (m.role === 'user') {
 					const userText = m.text || '';
-					const userEl = fn.renderUserMessage(
+					const userBlock = fn.renderUserMessage(
 						userText,
 						Array.isArray(m.references) ? m.references : [],
 						Array.isArray(m.pastes) ? m.pastes : [],
 						Array.isArray(m.images) ? m.images : [],
 					);
-					userEl.dataset.msgId = typeof m.messageId === 'string' ? m.messageId : fn.randomId();
-					fn.attachMessageRevertAction?.(userEl);
-					if (D.state.userPromptStickyPendingLink) {
-						fn.linkUserPromptStickyToMessage(userEl.dataset.msgId);
+					const userRow = fn.resolveUserMessageRow(userBlock);
+					const messageId = typeof m.messageId === 'string' ? m.messageId : fn.randomId();
+					if (userRow) {
+						userRow.dataset.msgId = messageId;
 					}
-					D.dom.logEl.appendChild(userEl);
+					if (D.state.userPromptStickyPendingLink) {
+						fn.linkUserPromptStickyToMessage(messageId);
+					}
+					D.dom.logEl.appendChild(userBlock);
 					fn.refreshLastUserStickyRow?.();
 					if (D.state.busy && !D.state.currentPhaseEl) {
 						fn.showWarmupActivity();
 					}
-					if (D.state.linearRunUi && typeof fn.anchorRunStripAfterUser === 'function') {
-						fn.anchorRunStripAfterUser(userEl);
+					if (D.state.linearRunUi && typeof fn.anchorRunStripAfterUser === 'function' && userRow) {
+						fn.anchorRunStripAfterUser(userRow);
 					}
 					fn.scrollLogToEnd?.();
 				} else if (m.role === 'assistant') {
@@ -184,13 +194,11 @@
 						D.state.assistantEl = createdEl;
 						createdEl.dataset.msgId =
 							typeof m.messageId === 'string' ? m.messageId : fn.randomId();
-						fn.attachMessageRevertAction?.(createdEl);
 					}
 				} else {
 					const el = fn.appendMessage(m.role || 'system', m.text || '');
 					if (el) {
 						el.dataset.msgId = typeof m.messageId === 'string' ? m.messageId : fn.randomId();
-						fn.attachMessageRevertAction?.(el);
 					}
 				}
 				break;
@@ -207,8 +215,17 @@
 				fn.handleToolEvent(m);
 				break;
 			case 'fileChange':
+				if (typeof fn.commitRunStripAnchor === 'function') {
+					fn.commitRunStripAnchor();
+				}
 				fn.finalizeAssistant();
 				fn.appendFileChange(m);
+				break;
+			case 'fileChangeState':
+				fn.updateFileChangeUndoState?.(m.toolId, m.undoState);
+				break;
+			case 'fileChangeUndoReady':
+				fn.enableFileChangeUndo?.(m.toolId);
 				break;
 			case 'usage':
 				if (typeof m.inputTokens === 'number') {

@@ -61,6 +61,7 @@ import {
 	openDroxPasteSource,
 	openDroxWorkspaceFile,
 } from './droxChatFileActions.js';
+import { handleDroxRedoFileChange, handleDroxUndoFileChange } from './droxChatFileChangeUndo.js';
 
 export interface IDroxChatWebviewRouterHost extends IDroxChatSendRunHost, IDroxChatFileActionsHost {
 	syncWebviewAfterAttach(): void;
@@ -194,6 +195,20 @@ export async function routeDroxChatWebviewMessage(
 				break;
 			}
 			await handleDroxRevertToMessage(host, deps, raw.messageId);
+			break;
+		case 'undoFileChange':
+			await handleDroxUndoFileChange(host, {
+				runRevertService: deps.runRevertService,
+				notificationService: deps.notificationService,
+				logService: deps.logService,
+			}, raw.toolId);
+			break;
+		case 'redoFileChange':
+			await handleDroxRedoFileChange(host, {
+				runRevertService: deps.runRevertService,
+				notificationService: deps.notificationService,
+				logService: deps.logService,
+			}, raw.toolId);
 			break;
 		case 'exportTranscript':
 			await handleDroxExportTranscript(
