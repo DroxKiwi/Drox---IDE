@@ -5,68 +5,50 @@
 
 (function (D) {
 	const fn = D.fn;
-	fn.ensureUserMessageViewer = function () {
-		if (D.dom.userMsgViewerOverlay) {
+
+	function isUserMessageExpandBlocked(target) {
+		return Boolean(
+			target?.closest?.(
+				'.msg-ref-link, .msg-paste-link, .msg-paste-terminal, .msg-user-copy, .msg-user-toolbar',
+			),
+		);
+	}
+
+	fn.setUserMessageExpanded = function (row, textSpan, expanded) {
+		if (!row || !textSpan) {
 			return;
 		}
-		const overlay = document.createElement('div');
-		overlay.className = 'drox-user-msg-viewer-overlay';
-		overlay.hidden = true;
-		const panel = document.createElement('div');
-		panel.className = 'drox-user-msg-viewer-panel';
-		panel.setAttribute('role', 'dialog');
-		panel.setAttribute('aria-modal', 'true');
-		panel.setAttribute('aria-label', 'Message utilisateur');
-		const header = document.createElement('div');
-		header.className = 'drox-user-msg-viewer-header';
-		const title = document.createElement('span');
-		title.className = 'drox-user-msg-viewer-title';
-		title.textContent = 'Votre message';
-		const closeBtn = document.createElement('button');
-		closeBtn.type = 'button';
-		closeBtn.className = 'drox-user-msg-viewer-close';
-		closeBtn.textContent = 'Fermer';
-		closeBtn.setAttribute('aria-label', 'Fermer');
-		header.appendChild(title);
-		header.appendChild(closeBtn);
-		const content = document.createElement('div');
-		content.className = 'drox-user-msg-viewer-content';
-		panel.appendChild(header);
-		panel.appendChild(content);
-		overlay.appendChild(panel);
-		overlay.addEventListener('click', (e) => {
-			if (e.target === overlay) {
-				fn.closeUserMessageViewer();
-			}
-		});
-		closeBtn.addEventListener('click', () => fn.closeUserMessageViewer());
-		panel.addEventListener('click', (e) => e.stopPropagation());
-		if (!D.state.userMsgViewerEscapeBound) {
-			D.state.userMsgViewerEscapeBound = true;
-			document.addEventListener('keydown', (e) => {
-				if (e.key === 'Escape' && D.dom.userMsgViewerOverlay && !D.dom.userMsgViewerOverlay.hidden) {
-					fn.closeUserMessageViewer();
-				}
+		if (expanded) {
+			textSpan.classList.remove('is-clamped');
+			textSpan.classList.add('is-expanded');
+			row.classList.add('msg-user-expanded');
+			textSpan.setAttribute('aria-expanded', 'true');
+			textSpan.setAttribute('title', 'Cliquer pour réduire');
+			textSpan.setAttribute('aria-label', 'Réduire le message');
+		} else {
+			textSpan.classList.add('is-clamped');
+			textSpan.classList.remove('is-expanded');
+			row.classList.remove('msg-user-expanded');
+			textSpan.setAttribute('aria-expanded', 'false');
+			textSpan.setAttribute('title', 'Cliquer pour voir le message complet');
+			textSpan.setAttribute('aria-label', 'Voir le message complet');
+		}
+	};
+
+	fn.toggleUserMessageExpand = function (row, textSpan) {
+		if (!row?.classList?.contains('msg-user-expandable') || !textSpan) {
+			return;
+		}
+		const next = !textSpan.classList.contains('is-expanded');
+		fn.setUserMessageExpanded(row, textSpan, next);
+		if (next) {
+			requestAnimationFrame(() => {
+				row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 			});
 		}
-		document.body.appendChild(overlay);
-		D.dom.userMsgViewerOverlay = overlay;
-		D.dom.userMsgViewerContent = content;
 	};
 
-	fn.openUserMessageViewer = function (text) {
-		fn.ensureUserMessageViewer();
-		D.dom.userMsgViewerContent.textContent = String(text || '');
-		D.dom.userMsgViewerOverlay.hidden = false;
-	};
-
-	fn.closeUserMessageViewer = function () {
-		if (D.dom.userMsgViewerOverlay) {
-			D.dom.userMsgViewerOverlay.hidden = true;
-		}
-	};
-
-	fn.bindUserMessageExpand = function (row, textSpan, fullText) {
+	fn.bindUserMessageExpand = function (row, textSpan, _fullText) {
 		const markExpandable = () => {
 			if (!textSpan.classList.contains('is-clamped')) {
 				return;
@@ -74,33 +56,44 @@
 			const overflows = textSpan.scrollHeight > textSpan.clientHeight + 2;
 			if (overflows) {
 				row.classList.add('msg-user-expandable');
-				row.setAttribute('title', 'Cliquer pour voir le message complet');
-				row.setAttribute('tabindex', '0');
-				row.setAttribute('role', 'button');
+				textSpan.classList.add('msg-user-text-expandable');
+				textSpan.setAttribute('aria-expanded', 'false');
+				textSpan.setAttribute('title', 'Cliquer pour voir le message complet');
+				textSpan.setAttribute('tabindex', '0');
+				textSpan.setAttribute('role', 'button');
+				textSpan.setAttribute('aria-label', 'Voir le message complet');
 			}
 		};
 		requestAnimationFrame(() => requestAnimationFrame(markExpandable));
-		const onOpen = (e) => {
+
+		const onToggle = (e) => {
 			if (!row.classList.contains('msg-user-expandable')) {
 				return;
 			}
-			if (e.target.closest('.msg-ref-link, .msg-paste-link, .msg-paste-terminal')) {
+			if (isUserMessageExpandBlocked(e.target)) {
 				return;
 			}
 			e.preventDefault();
 			e.stopPropagation();
-			fn.openUserMessageViewer(fullText);
+			fn.toggleUserMessageExpand(row, textSpan);
 		};
-		row.addEventListener('click', onOpen);
-		row.addEventListener('keydown', (e) => {
+
+		textSpan.addEventListener('click', onToggle);
+		textSpan.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && textSpan.classList.contains('is-expanded')) {
+				e.preventDefault();
+				e.stopPropagation();
+				fn.setUserMessageExpanded(row, textSpan, false);
+				return;
+			}
 			if (
 				(e.key === 'Enter' || e.key === ' ') &&
 				row.classList.contains('msg-user-expandable')
 			) {
 				e.preventDefault();
-				fn.openUserMessageViewer(fullText);
+				e.stopPropagation();
+				fn.toggleUserMessageExpand(row, textSpan);
 			}
 		});
 	};
-
 })(globalThis.DroxChat);

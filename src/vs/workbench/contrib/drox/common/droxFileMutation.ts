@@ -61,12 +61,31 @@ export function toolOutputIndicatesApplied(
 	return false;
 }
 
+/** Arguments outil : objet ou chaîne JSON (certains providers / Ollama). */
+export function normalizeToolArguments(args: unknown): Record<string, unknown> | null {
+	if (!args) {
+		return null;
+	}
+	if (typeof args === 'string') {
+		try {
+			const v = JSON.parse(args) as unknown;
+			return typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : null;
+		} catch {
+			return null;
+		}
+	}
+	if (typeof args === 'object') {
+		return args as Record<string, unknown>;
+	}
+	return null;
+}
+
 /** `path` ou `file_path` dans les arguments d'un tool fichier. */
 export function toolArgPath(args: unknown): string {
-	if (!args || typeof args !== 'object') {
+	const o = normalizeToolArguments(args);
+	if (!o) {
 		return '';
 	}
-	const o = args as Record<string, unknown>;
 	const p = o.path ?? o.file_path;
 	return typeof p === 'string' ? p.replace(/\\/g, '/') : '';
 }

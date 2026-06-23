@@ -61,16 +61,16 @@ L’historique Microsoft (~160k commits, ~1,3 Go) vit **en local** via le remote
 | **GitHub** — `main` | Ligne produit : commits Drox + **1 commit squash** par release |
 | **GitHub** — tag `v1.x.x` | Pointe le commit squash publié |
 
-#### Développement au quotidien (1.5.1, 1.5.2, …)
+#### Développement au quotidien (1.5.1, 1.5.2, 1.5.3, …)
 
 ```powershell
 git fetch origin
 git checkout main
 git pull origin main
-git checkout -b 1.5.2          # branche feature / release
-# Dès l’ouverture de branche : bump `droxVersion` dans package.json (ex. 1.5.2)
+git checkout -b 1.5.3          # branche feature / release
+# Dès l’ouverture de branche : bump `droxVersion` dans package.json (ex. 1.5.3)
 # … commits UI, moteur, etc. sur la lignée main (pas besoin d’historique MS)
-git push -u origin 1.5.2       # pushes légers
+git push -u origin refs/heads/1.5.3   # pushes légers (refs explicite si tag homonyme)
 ```
 
 Les commits **sur la lignée `main`** (sans reset `upstream/main` sur la branche) se poussent normalement — quelques Mo.
@@ -139,7 +139,7 @@ git pull origin main
 | Champ | Exemple | Usage |
 |-------|---------|--------|
 | **`version`** | `1.122.0` | Base VS Code / API extensions (Copilot, marketplace) — ne pas remplacer par la version Drox |
-| **`droxVersion`** | `1.5.2` | Release produit : installeur, `latest.json`, dialogue **À propos**, header chat |
+| **`droxVersion`** | `1.5.3` | Release produit : installeur, `latest.json`, dialogue **À propos**, header chat |
 | **`droxSurface`** | `dev` | `dev` en sources / watch ; `release` injecté au package via `DROX_PRODUCT_SURFACE` (`build-release-win32.ps1`) |
 
 Pour une nouvelle release Drox : modifier **`droxVersion`** dans `package.json` **dès l’ouverture de la branche** (ex. `git checkout -b 1.5.3` → passer à `1.5.3`), pas seulement au ship. Sauf rebase upstream majeur → mettre à jour **`version`** aussi. Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.

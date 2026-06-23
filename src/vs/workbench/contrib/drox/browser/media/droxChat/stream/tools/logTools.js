@@ -61,6 +61,7 @@
 			if (trayDetails) {
 				const traySummary = trayDetails.querySelector(':scope > summary');
 				if (traySummary) {
+					fn.stripActivityGridsFromElement?.(toolSummary);
 					traySummary.innerHTML = toolSummary.innerHTML;
 					const n = trayInner.childElementCount;
 					traySummary.title =

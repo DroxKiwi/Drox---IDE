@@ -7,7 +7,7 @@
 
 import { localize } from '../../../../../nls.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
-import { deriveTitleFromTranscriptMessages, IDroxTranscriptMessage } from '../../common/droxSession.js';
+import { deriveTitleFromTranscriptMessages, IDroxTranscriptMessage, isListableDroxSessionId } from '../../common/droxSession.js';
 import { deriveSessionTabTitle } from '../../common/droxUserPromptSticky.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
@@ -34,11 +34,17 @@ export interface DroxChatTabLoadOptions {
 	readonly maxTurns?: number;
 }
 
-/** L1 — restore / switch session : dernier tour uniquement. */
+/** L1 — restore / switch session : dernier tour uniquement (perf changement d’onglet). */
 export const DROX_CHAT_TAB_LOAD_TAIL: DroxChatTabLoadOptions = {
 	loadMessages: true,
 	uiReplayMode: 'tail',
 	maxTurns: 1,
+};
+
+/** Restauration fidèle — journal UI complet (redémarrage IDE, historique). */
+export const DROX_CHAT_TAB_LOAD_FULL: DroxChatTabLoadOptions = {
+	loadMessages: true,
+	uiReplayMode: 'full',
 };
 
 /** L2 — tours chargés par scroll-back (un tour par requête). */
@@ -63,6 +69,8 @@ export interface IDroxChatTabsDelegate {
 	resolveUserAskSkipped(): void;
 	clearPendingTools(): void;
 	agentEventHost(): IDroxChatAgentDoneHost;
+	/** Vide l’état revert en mémoire après purge `.drox/`. */
+	resetRunRevertUiState(): void;
 }
 
 export class DroxChatTabsManager {
@@ -121,7 +129,7 @@ export class DroxChatTabsManager {
 		this.openTabs.length = 0;
 		this.currentSessionId = undefined;
 		this.delegate.syncChatSessionState();
-		if (await this.tryRestoreChatLayout()) {
+		if (this.tryRestoreChatLayout()) {
 			return 'restored';
 		}
 		this.ensureInitialTab();
@@ -137,22 +145,18 @@ export class DroxChatTabsManager {
 		if (mode === 'unchanged') {
 			return;
 		}
-		if (mode === 'initial' && this.currentSessionId) {
-			await this.activateChatTab(this.currentSessionId, { loadMessages: false });
+		if (this.currentSessionId) {
+			if (mode === 'restored') {
+				await this.activateChatTab(this.currentSessionId, DROX_CHAT_TAB_LOAD_FULL);
+			} else {
+				await this.activateChatTab(this.currentSessionId, { loadMessages: false });
+			}
 			return;
 		}
 		this.postTabs();
-		if (this.currentSessionId) {
-			const tab = this.getActiveTab();
-			this.delegate.post({
-				kind: 'session',
-				id: this.currentSessionId,
-				uiStats: tab?.uiStats,
-			});
-		}
 	}
 
-	private async tryRestoreChatLayout(): Promise<boolean> {
+	private tryRestoreChatLayout(): boolean {
 		const snap = this.layoutStore.load();
 		if (!snap) {
 			return false;
@@ -179,7 +183,8 @@ export class DroxChatTabsManager {
 			this.openTabs.length = 0;
 			return false;
 		}
-		await this.activateChatTab(activeId, DROX_CHAT_TAB_LOAD_TAIL);
+		this.currentSessionId = activeId;
+		this.delegate.syncChatSessionState();
 		return true;
 	}
 
@@ -306,7 +311,7 @@ export class DroxChatTabsManager {
 		if (!this.openTabs.some(t => t.sessionId === sessionId)) {
 			return;
 		}
-		await this.activateChatTab(sessionId, DROX_CHAT_TAB_LOAD_TAIL);
+		await this.activateChatTab(sessionId, DROX_CHAT_TAB_LOAD_FULL);
 	}
 
 	async closeChatTab(sessionId: string): Promise<void> {
@@ -332,7 +337,7 @@ export class DroxChatTabsManager {
 		}
 		const next = this.openTabs[idx] ?? this.openTabs[idx - 1];
 		if (next) {
-			await this.activateChatTab(next.sessionId, DROX_CHAT_TAB_LOAD_TAIL);
+			await this.activateChatTab(next.sessionId, DROX_CHAT_TAB_LOAD_FULL);
 		} else {
 			this.ensureInitialTab();
 			await this.activateChatTab(this.currentSessionId!, { loadMessages: false });
@@ -367,7 +372,11 @@ export class DroxChatTabsManager {
 			id: sessionId,
 			uiStats: { ...tab.uiStats },
 		});
-		this.delegate.post({ kind: 'state', busy: false });
+		const skipBusyStateUntilReplay =
+			opts.loadMessages && (opts.uiReplayMode ?? 'tail') === 'full';
+		if (!skipBusyStateUntilReplay) {
+			this.delegate.post({ kind: 'state', busy: false });
+		}
 		if (!opts.loadMessages) {
 			return;
 		}
@@ -403,22 +412,8 @@ export class DroxChatTabsManager {
 				if (replayMode === 'full') {
 					const uiReplay = await this.sessionService.readUiReplay(sessionId, ws);
 					if (uiReplay.length > 0) {
-						this.delegate.post({
-							kind: 'append',
-							role: 'system',
-							text: localize(
-								'drox.sessions.loadingUiReplay',
-								'Restoring session UI ({0} events)…',
-								uiReplay.length,
-							),
-						});
 						await replayUiJournalMessages(this.delegate, uiReplay);
 					} else if (read.messages.length > 0) {
-						this.delegate.post({
-							kind: 'append',
-							role: 'system',
-							text: localize('drox.sessions.loading', 'Loading {0} message(s) from session…', read.messages.length),
-						});
 						await replayTranscriptMessages(this.delegate.agentEventHost(), read.messages);
 					}
 				} else {
@@ -467,6 +462,9 @@ export class DroxChatTabsManager {
 							transcriptMessages: read.messages,
 						});
 					}
+				}
+				if (skipBusyStateUntilReplay) {
+					this.delegate.post({ kind: 'state', busy: false });
 				}
 				this.delegate.post({ kind: 'sessionReplayDone' });
 			} finally {
@@ -536,7 +534,21 @@ export class DroxChatTabsManager {
 			});
 			return;
 		}
-		await this.sessionService.resetWorkspace(ws);
+		try {
+			await this.sessionService.resetWorkspace(ws);
+		} catch (e) {
+			this.delegate.post({
+				kind: 'append',
+				role: 'error',
+				text: localize(
+					'drox.workspace.resetFailed',
+					'Failed to reset workspace Drox data: {0}',
+					e instanceof Error ? e.message : String(e),
+				),
+			});
+			return;
+		}
+		this.sessionHistoryMeta.clear();
 		this.layoutStore.clear();
 		this.layoutWorkspaceId = undefined;
 		this.openTabs.length = 0;
@@ -545,6 +557,7 @@ export class DroxChatTabsManager {
 		this.delegate.clearCurrentRunId();
 		this.delegate.syncChatSessionState();
 		this.delegate.clearPendingTools();
+		this.delegate.resetRunRevertUiState();
 		this.ensureInitialTab();
 		this.delegate.post({ kind: 'chatReset' });
 		this.delegate.post({
@@ -576,7 +589,8 @@ export class DroxChatTabsManager {
 			return;
 		}
 		try {
-			const items = await this.sessionService.listSessions(ws);
+			const items = (await this.sessionService.listSessions(ws))
+				.filter(it => isListableDroxSessionId(it.id));
 			items.sort((a, b) => b.modifiedSecs - a.modifiedSecs);
 			const titlesById = new Map(this.openTabs.map(t => [t.sessionId, t.title]));
 			const itemsWithTitles = items.map(it => ({
@@ -674,7 +688,7 @@ export class DroxChatTabsManager {
 	}
 
 	async loadSession(id: string): Promise<void> {
-		if (!id.startsWith('ses_')) {
+		if (!isListableDroxSessionId(id)) {
 			this.delegate.post({
 				kind: 'append',
 				role: 'error',
@@ -698,7 +712,7 @@ export class DroxChatTabsManager {
 				uiStats: emptyTabUiStats(),
 			});
 		}
-		await this.activateChatTab(id, DROX_CHAT_TAB_LOAD_TAIL);
+		await this.activateChatTab(id, DROX_CHAT_TAB_LOAD_FULL);
 	}
 
 	ensureSessionForSend(): void {

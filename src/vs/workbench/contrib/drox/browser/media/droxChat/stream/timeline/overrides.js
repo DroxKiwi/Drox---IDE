@@ -16,6 +16,7 @@
 			fn.resetChatStreamForTurn?.();
 		} else {
 			fn.hideArchitectRunTailActivity?.();
+			document.body.classList.remove('drox-linear-run-active');
 		}
 		if (!next && D.state.linearRunUi) {
 			fn.flushStreamBuffer?.({ asAnswer: true });
