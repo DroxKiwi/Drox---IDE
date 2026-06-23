@@ -30,6 +30,7 @@ Fil agent enrichi (**diffs fichier**, **undo/redo**, **cadres shell**), **UX mes
 ## Docs
 
 - [PLAN-1.5.3.md](PLAN-1.5.3.md)
+- [CLOSURE-1.5.3.md](CLOSURE-1.5.3.md)
 - [PATCH-WORK-UI-1.5.3.md](PATCH-WORK-UI-1.5.3.md) — audit smoke + correctifs W1–W6
 
 ---
