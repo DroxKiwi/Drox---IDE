@@ -8,15 +8,17 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
-import { join } from '../../../../base/common/path.js';
+import { join, dirname } from '../../../../base/common/path.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { normalizeWindowsFsPath } from '../common/droxPathUtil.js';
 import {
+	IDroxFileChangeUndoEntry,
 	IDroxRunRevertCommit,
 	IDroxRunRevertFileEntry,
 	IDroxRunRevertResult,
 	IDroxRunRevertService,
 	IDroxRunRevertSnapshot,
+	DroxFileChangeUndoState,
 } from '../common/droxRunRevertService.js';
 
 interface IActiveRunAccumulator {
@@ -38,6 +40,10 @@ interface IRunHistoryWire {
 const MAX_HISTORY_COMMITS = 250;
 const MAX_HISTORY_BYTES = 32 * 1024 * 1024;
 
+interface ITrackedFileChange extends IDroxFileChangeUndoEntry {
+	state: DroxFileChangeUndoState;
+}
+
 export class DroxRunRevertService extends Disposable implements IDroxRunRevertService {
 
 	declare readonly _serviceBrand: undefined;
@@ -45,6 +51,7 @@ export class DroxRunRevertService extends Disposable implements IDroxRunRevertSe
 	private _active: IActiveRunAccumulator | undefined;
 	private _lastRevertable: IDroxRunRevertSnapshot | undefined;
 	private _historyFlush: Promise<void> = Promise.resolve();
+	private readonly _fileChanges = new Map<string, ITrackedFileChange>();
 
 	private readonly _onDidChangeRevertable = this._register(new Emitter<void>());
 	readonly onDidChangeRevertable: Event<void> = this._onDidChangeRevertable.event;
@@ -148,6 +155,59 @@ export class DroxRunRevertService extends Disposable implements IDroxRunRevertSe
 		this._active = undefined;
 	}
 
+	/** Après purge `.drox/` — état UI revert sans relire l’historique supprimé. */
+	resetWorkspaceUiState(): void {
+		this._active = undefined;
+		this._lastRevertable = undefined;
+		this._fileChanges.clear();
+		this._onDidChangeRevertable.fire();
+	}
+
+	getCapturedBefore(absPath: string): IDroxRunRevertFileEntry | undefined {
+		const key = normalizeWindowsFsPath(absPath);
+		return this._active?.files.get(key);
+	}
+
+	trackFileChange(entry: IDroxFileChangeUndoEntry): void {
+		const toolId = String(entry.toolId || '').trim();
+		if (!toolId) {
+			return;
+		}
+		this._fileChanges.set(toolId, {
+			...entry,
+			absPath: normalizeWindowsFsPath(entry.absPath),
+			state: 'applied',
+		});
+	}
+
+	getFileChangeUndoState(toolId: string): DroxFileChangeUndoState | undefined {
+		return this._fileChanges.get(String(toolId || '').trim())?.state;
+	}
+
+	async undoFileChange(toolId: string): Promise<IDroxRunRevertResult> {
+		const entry = this._fileChanges.get(String(toolId || '').trim());
+		if (!entry || entry.state !== 'applied') {
+			return { revertedPaths: [], errors: ['No undoable file change for this card.'] };
+		}
+		const res = await this.applyFileChangeEntry(entry, 'before');
+		if (res.errors.length === 0) {
+			entry.state = 'reverted';
+		}
+		return res;
+	}
+
+	async redoFileChange(toolId: string): Promise<IDroxRunRevertResult> {
+		const entry = this._fileChanges.get(String(toolId || '').trim());
+		if (!entry || entry.state !== 'reverted') {
+			return { revertedPaths: [], errors: ['No redoable file change for this card.'] };
+		}
+		const res = await this.applyFileChangeEntry(entry, 'after');
+		if (res.errors.length === 0) {
+			entry.state = 'applied';
+		}
+		return res;
+	}
+
 	getLastRevertable(): IDroxRunRevertSnapshot | undefined {
 		return this._lastRevertable;
 	}
@@ -201,6 +261,31 @@ export class DroxRunRevertService extends Disposable implements IDroxRunRevertSe
 		this._lastRevertable = undefined;
 		this._onDidChangeRevertable.fire();
 		return res;
+	}
+
+	private async applyFileChangeEntry(
+		entry: IDroxFileChangeUndoEntry,
+		target: 'before' | 'after',
+	): Promise<IDroxRunRevertResult> {
+		const revertedPaths: string[] = [];
+		const errors: string[] = [];
+		try {
+			const uri = URI.file(entry.absPath);
+			if (target === 'before') {
+				if (entry.hadFile) {
+					await this.fileService.writeFile(uri, VSBuffer.fromString(entry.beforeContent));
+				} else if (await this.fileService.exists(uri)) {
+					await this.fileService.del(uri, { recursive: false });
+				}
+			} else {
+				await this.fileService.createFolder(URI.file(dirname(entry.absPath)));
+				await this.fileService.writeFile(uri, VSBuffer.fromString(entry.afterContent));
+			}
+			revertedPaths.push(entry.absPath);
+		} catch (e) {
+			errors.push(`${entry.absPath}: ${e instanceof Error ? e.message : String(e)}`);
+		}
+		return { revertedPaths, errors };
 	}
 
 	private async applySnapshot(snap: IDroxRunRevertSnapshot): Promise<IDroxRunRevertResult> {

@@ -12,6 +12,7 @@
 		if (!Array.isArray(items) || items.length === 0) {
 			D.state.todoSnapshot = [];
 			D.state.currentTodoBlockEl = null;
+			fn.syncPlanStickyFooter?.();
 			return;
 		}
 		if (
@@ -29,8 +30,16 @@
 		fn.finalizeAssistant();
 
 		let block = D.state.currentTodoBlockEl;
+		const strip = D.state.runStripEl;
+		if (strip?.isConnected) {
+			for (const old of [...strip.querySelectorAll('.msg-todos')]) {
+				if (old !== block) {
+					old.remove();
+				}
+			}
+		}
 		for (const old of [...D.dom.logEl.querySelectorAll('.msg-todos')]) {
-			if (old !== block) {
+			if (old !== block && !old.closest('.drox-run-strip')) {
 				old.remove();
 			}
 		}
@@ -61,17 +70,31 @@
 			list.className = 'todos-list';
 			block.appendChild(list);
 			const mount =
-				typeof fn.ensureChronologySection === 'function'
-					? fn.ensureChronologySection(D.state.runStripEl)
-					: typeof fn.getChronologyMount === 'function'
-						? fn.getChronologyMount()
-						: null;
-			mount.appendChild(block);
+				typeof fn.ensurePlanMount === 'function'
+					? fn.ensurePlanMount(D.state.runStripEl)
+					: typeof fn.ensureChronologySection === 'function'
+						? fn.ensureChronologySection(D.state.runStripEl)
+						: typeof fn.getChronologyMount === 'function'
+							? fn.getChronologyMount()
+							: null;
+			if (mount) {
+				mount.appendChild(block);
+			}
 			D.state.currentTodoBlockEl = block;
+			fn.syncPlanStickyFooter?.();
+		}
+		const headLeft = block.querySelector('.todos-head-left');
+		if (headLeft) {
+			if (D.state.busy) {
+				fn.ensurePersistentActivityGrid(headLeft);
+			} else {
+				fn.stripActivityGridsFromElement?.(headLeft);
+			}
 		}
 		if (typeof fn.reparentTodoBlockToPlan === 'function') {
 			fn.reparentTodoBlockToPlan();
 		}
+		fn.syncPlanStickyFooter?.();
 		if (typeof fn.ensureRunStripConnected === 'function' && D.state.runStripEl) {
 			fn.ensureRunStripConnected(D.state.runStripEl);
 		}
@@ -106,6 +129,7 @@
 			}
 		}
 		fn.syncStickyStackLayout?.();
+		fn.syncWorkSummaryStats?.(D.state.runStripEl);
 		fn.scrollLog();
 		if (D.state.busy) {
 			fn.showActivityOnCurrentPhaseSummary();

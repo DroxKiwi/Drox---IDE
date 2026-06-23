@@ -13,6 +13,7 @@
 | **L2** CI GitHub Actions | **~80 %** | premier run |
 | **L3** Smoke Linux | 0 % | oui |
 | **W1** Confiance Windows (Authenticode) | 0 % | UX install Windows |
+| **E1** Marketplace extensions (Open VSX) | 0 % | adoption IDE |
 
 **Prochaine étape** : build `.deb` · ship OR · traiter SmartScreen « Éditeur inconnu ».
 
@@ -26,6 +27,7 @@
 | `platforms.linux-x64` dans `stable/latest.json` | Snap, Flatpak, AppImage |
 | `resources/drox/linux-x64/drox` embarqué | ARM64 Linux |
 | **Installeur Windows signé** (Authenticode) — fin alerte « Éditeur inconnu » / SmartScreen | Signature GPG repo Linux |
+| **Marketplace extensions** — installer ESLint, Git Graph, thèmes, etc. depuis la vue Extensions | Marketplace Microsoft officiel (ToS) · Copilot / extensions 1P Microsoft |
 | Tag **`v1.5.4`** (`.deb` + setup `.exe` signé si W1 livré) | Notarization macOS |
 
 ---
@@ -66,12 +68,58 @@ Aujourd’hui l’installeur Inno (`Drox-IDE-Setup-*-win32-x64.exe`) est **non s
 
 **Critère** : installeur `v1.5.4` publié sur OR avec signature Authenticode valide ; install testée sans contournement manuel SmartScreen.
 
+### E1 — Marketplace extensions (vue Extensions / Open VSX)
+
+Aujourd’hui le fork **n’expose pas** de galerie dans `product.json` (`extensionsGallery` absent — choix dé-branding 1.3.x). Les utilisateurs ne peuvent pas parcourir ni installer d’extensions tierces (linters, Git Graph, formatters, thèmes…) depuis l’UI, alors que c’est un attendu standard d’un IDE basé Code OSS.
+
+**Cible produit** : reconnecter Drox IDE à un **registre d’extensions compatible VS Code**, accessible depuis la vue **Extensions** (recherche, install, update, désinstall).
+
+| Option | Usage fork | Note |
+|--------|------------|------|
+| **[Open VSX](https://open-vsx.org)** (recommandé) | Galerie publique Eclipse — modèle VSCodium / Gitpod | Pas de ToS Microsoft Marketplace · couverture large (ESLint, Prettier, Git Graph…) |
+| Marketplace Microsoft (`marketplace.visualstudio.com`) | **Hors scope** sauf accord explicite | Conditions d’usage réservées aux produits Microsoft · non adapté à un fork distribué |
+
+#### État actuel
+
+| Couche | Fichiers | État |
+|--------|----------|------|
+| `product.json` | pas de `extensionsGallery` | galerie désactivée |
+| Extensions embarquées build | `builtInExtensions` (js-debug…) | ✅ via build |
+| Gardes fork marketplace cloud | dé-branding / `officialMarketplaceStartupCheck` | à auditer si blocage résiduel |
+| UI Extensions | workbench VS Code natif | prête si `extensionsGallery` renseigné |
+
+#### Checklist
+
+- [ ] **E1-1** — Ajouter `extensionsGallery` dans `product.json` (URLs Open VSX — aligner sur [VSCodium `product.json`](https://github.com/VSCodium/vscodium/blob/master/product.json) ou doc Eclipse)
+- [ ] **E1-2** — `extensionAllowedBadgeProviders` / `linkProtectionTrustedDomains` si requis par la version VS Code de base
+- [ ] **E1-3** — Audit : retirer ou assouplir les gardes qui court-circuitent l’install marketplace au démarrage (si encore actives sur la lignée Drox)
+- [ ] **E1-4** — Smoke : vue Extensions → recherche `Git Graph` · install · reload → extension active
+- [ ] **E1-5** — Smoke : `ESLint` (ou équivalent) sur workspace TypeScript — diagnostics visibles
+- [ ] **E1-6** — Doc utilisateur : extensions supportées via Open VSX ; limites (extensions Microsoft-only / Copilot non garanties) · [README 1.5.4](README.md) + notice OR
+
+**Exemple `extensionsGallery` (indicatif — valider URLs à jour au ship)** :
+
+```json
+"extensionsGallery": {
+  "serviceUrl": "https://open-vsx.org/vscode/gallery",
+  "itemUrl": "https://open-vsx.org/vscode/item",
+  "extensionUrlTemplate": "https://open-vsx.org/vscode/gallery/{publisher}/{name}/latest",
+  "controlUrl": "",
+  "resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}"
+}
+```
+
+**Critère** : utilisateur frais installe **au moins deux** extensions populaires (ex. linter + Git Graph) sans VSIX manuel · MAJ auto ou réinstall documentée.
+
+**Hors scope E1** : publier des extensions Drox sur Open VSX · marketplace Copilot · synchronisation compte Microsoft.
+
 ### Critères d'acceptation
 
 - [ ] `latest.json` : **win32-x64** + **linux-x64** même `version`
 - [ ] `.deb` installable sans Rust préinstallé
 - [ ] Moteur embarqué TUI 1.5+ (`tui_mono`)
 - [ ] Installeur Windows **signé** (W1) ou décision documentée si reporté
+- [ ] Vue **Extensions** fonctionnelle · install depuis Open VSX (E1)
 
 ---
 
@@ -86,10 +134,14 @@ flowchart LR
   subgraph WIN["Windows W1"]
     S["sign-drox-win32.ps1"]
   end
+  subgraph EXT["Extensions E1"]
+    X["product.json extensionsGallery"]
+  end
   M["stable/latest.json"]
   R["gh release v1.5.4"]
   B --> P --> M
   S --> M
+  X --> R
   M --> R
 ```
 

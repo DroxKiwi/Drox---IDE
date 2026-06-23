@@ -35,22 +35,48 @@
 	};
 
 	fn.ensureRunStripConnected = function (strip) {
-		if (!strip || strip.isConnected) {
+		if (!strip) {
 			return;
 		}
 		const anchor = D.state.runStripAnchorEl;
 		if (anchor?.isConnected) {
-			anchor.insertAdjacentElement('afterend', strip);
+			if (strip.previousElementSibling !== anchor) {
+				anchor.insertAdjacentElement('afterend', strip);
+			}
 			return;
 		}
-		const users = D.dom.logEl?.querySelectorAll(':scope > .msg-row-user');
+		if (strip.isConnected) {
+			return;
+		}
+		const users = fn.queryUserMessageRows?.(D.dom.logEl) ?? [
+			...D.dom.logEl.querySelectorAll(':scope > .msg-row-user'),
+		];
 		const lastUser = users?.length ? users[users.length - 1] : null;
 		if (lastUser?.isConnected) {
-			lastUser.insertAdjacentElement('afterend', strip);
-			D.state.runStripAnchorEl = lastUser;
+			const anchor = fn.resolveUserMessageAnchor?.(lastUser) ?? lastUser;
+			anchor.insertAdjacentElement('afterend', strip);
+			D.state.runStripAnchorEl = anchor;
 			return;
 		}
 		D.dom.logEl?.appendChild(strip);
+	};
+
+	fn.pruneExtraOpenRunStrips = function (keepStrip) {
+		if (!D.dom.logEl) {
+			return;
+		}
+		for (const strip of D.dom.logEl.querySelectorAll(
+			':scope > .drox-run-strip:not([data-sealed="1"])',
+		)) {
+			if (strip === keepStrip) {
+				continue;
+			}
+			if (fn.runStripHasContent(strip)) {
+				fn.sealRunStrip(strip);
+			} else {
+				strip.remove();
+			}
+		}
 	};
 
 	fn.hasLinearRunStripsOnLog = function () {
@@ -134,17 +160,14 @@
 				answer.insertAdjacentElement('afterend', archiveEl);
 			}
 		};
-		const plan = strip.querySelector('.drox-run-sticky-head [data-section="plan"]');
-		if (!plan || plan.childElementCount === 0) {
+		const planBlock =
+			D.dom.planStickyFooterEl?.querySelector('.msg-todos') ||
+			strip.querySelector(':scope > .drox-run-plan-slot .msg-todos') ||
+			strip.querySelector('.drox-run-chronology .msg-todos');
+		if (!planBlock) {
 			const existing = strip.querySelector('.drox-run-plan-archive');
 			ensureArchiveAfterAnswer(existing);
 			return;
-		}
-		const verify = fn.ensureRunSection('verify');
-		if (verify) {
-			for (const tool of [...plan.querySelectorAll('.msg-tool.verify-line')]) {
-				verify.appendChild(tool);
-			}
 		}
 		let archive = strip.querySelector('.drox-run-plan-archive');
 		if (!archive) {
@@ -157,15 +180,144 @@
 				strip.appendChild(archive);
 			}
 		}
-		while (plan.firstChild) {
-			archive.appendChild(plan.firstChild);
-		}
+		archive.appendChild(planBlock);
 		ensureArchiveAfterAnswer(archive);
+		if (
+			D.state.currentTodoBlockEl === planBlock &&
+			strip.dataset.sealed === '1' &&
+			strip !== D.state.runStripEl
+		) {
+			D.state.currentTodoBlockEl = null;
+		}
+		fn.syncPlanStickyFooter?.();
+	};
+
+	const WORK_STATS_REASONING_PHASES = new Set([
+		'internal_reasoning',
+		'reasoning',
+		'reading',
+		'analyzing',
+		'planning',
+		'clarifying',
+	]);
+
+	fn.ensureRunWorkOpen = function (strip) {
+		strip = strip || D.state.runStripEl;
+		if (!strip?.isConnected) {
+			return;
+		}
+		const work = strip.querySelector('details.drox-run-work-collapsible');
+		if (work) {
+			work.open = true;
+		}
+	};
+
+	fn.syncWorkSummaryStats = function (strip) {
+		strip = strip || D.state.runStripEl;
+		if (!strip?.isConnected) {
+			return;
+		}
+		const summary = strip.querySelector('.drox-run-work-summary');
+		const chronology = fn.ensureChronologySection(strip);
+		if (!summary || !chronology) {
+			return;
+		}
+		let reasoning = 0;
+		let acting = 0;
+		for (const block of chronology.querySelectorAll('.phase-block')) {
+			const phase = block.dataset.phase || '';
+			if (WORK_STATS_REASONING_PHASES.has(phase)) {
+				reasoning += 1;
+			} else if (phase === 'acting') {
+				acting += 1;
+			}
+		}
+		const shellCount = chronology.querySelectorAll('.drox-shell-card').length;
+		const genericTools = chronology.querySelectorAll('.msg-tool:not(.drox-shell-card)').length;
+		const fileChanges =
+			chronology.querySelectorAll('.msg-file-change').length;
+		const parts = [];
+		if (reasoning > 0) {
+			parts.push(`${reasoning} reasoning`);
+		}
+		if (acting > 0) {
+			parts.push(`${acting} acting`);
+		}
+		if (shellCount > 0) {
+			parts.push(`${shellCount} shell`);
+		}
+		if (genericTools > 0) {
+			parts.push(`${genericTools} tool`);
+		}
+		if (fileChanges > 0) {
+			parts.push(`${fileChanges} edit`);
+		}
+		summary.textContent = parts.length > 0 ? `Work · ${parts.join(' · ')}` : 'Work';
+	};
+
+	fn.resetPlanStateForTurn = function () {
+		D.state.currentTodoBlockEl = null;
+		D.state.todoSnapshot = [];
+		fn.syncPlanStickyFooter?.();
+	};
+
+	fn.shouldMountPlanInStickyFooter = function (strip) {
+		if (!D.dom.planStickyFooterEl || !D.state.linearRunUi) {
+			return false;
+		}
+		strip = strip || D.state.runStripEl;
+		if (strip && strip.dataset.sealed === '1') {
+			return false;
+		}
+		return true;
+	};
+
+	fn.syncPlanStickyFooter = function () {
+		const footer = D.dom.planStickyFooterEl;
+		if (!footer) {
+			return;
+		}
+		const hasPlan = Boolean(footer.querySelector('.msg-todos'));
+		footer.hidden = !hasPlan;
+	};
+
+	fn.ensurePlanMount = function (strip) {
+		strip = strip || D.state.runStripEl;
+		if (fn.shouldMountPlanInStickyFooter(strip)) {
+			return D.dom.planStickyFooterEl;
+		}
+		if (!strip) {
+			return null;
+		}
+		let slot = strip.querySelector(':scope > .drox-run-plan-slot');
+		if (!slot) {
+			slot = document.createElement('div');
+			slot.className = 'drox-run-plan-slot drox-run-section';
+			slot.dataset.section = 'plan';
+			const work = strip.querySelector('details.drox-run-work-collapsible');
+			if (work) {
+				strip.insertBefore(slot, work);
+			} else {
+				strip.prepend(slot);
+			}
+		}
+		return slot;
+	};
+
+	fn.isUserMessageRow = function (el) {
+		return Boolean(
+			el?.classList?.contains('msg-row-user') ||
+				el?.classList?.contains('msg-user-bubble') ||
+				el?.classList?.contains('msg-user-block'),
+		);
 	};
 
 	fn.sealRunStrip = function (strip) {
 		if (!strip?.isConnected || strip.dataset.sealed === '1') {
 			return;
+		}
+		if (D.state.streamPhaseBlockEl && strip.contains(D.state.streamPhaseBlockEl)) {
+			fn.resetStreamChronology?.();
 		}
 		strip.dataset.sealed = '1';
 		strip.classList.add('drox-run-strip-sealed');
@@ -177,7 +329,9 @@
 		fn.archivePlanIntoStrip(strip);
 		fn.parkAllLinearFinalAnswers();
 		fn.compactLinearThinkingSection?.(strip);
-		fn.collapseRunWorkSection?.(strip);
+		fn.clearAllActivityGrids?.(strip);
+		fn.syncWorkSummaryStats?.(strip);
+		fn.collapseRunWorkSection?.(strip, { keepOpen: false });
 	};
 
 	fn.sealAllOpenRunStrips = function () {
@@ -201,6 +355,7 @@
 		D.state.discussionAwaitingCanonicalReply = false;
 		fn.resetChatStreamForTurn?.();
 		fn.resetStreamChronology?.();
+		fn.resetPlanStateForTurn?.();
 		D.state.linearRunUi = true;
 		document.body.classList.add('drox-linear-run-active');
 		fn.syncStickyStackLayout();
@@ -236,10 +391,11 @@
 		if (D.state.runStripCommitted) {
 			return;
 		}
-		D.state.runStripAnchorEl = anchorEl;
+		const anchor = fn.resolveUserMessageAnchor?.(anchorEl) ?? anchorEl;
+		D.state.runStripAnchorEl = anchor;
 		const strip = fn.ensureRunStrip();
-		if (!strip.isConnected || strip.previousElementSibling !== anchorEl) {
-			anchorEl.insertAdjacentElement('afterend', strip);
+		if (!strip.isConnected || strip.previousElementSibling !== anchor) {
+			anchor.insertAdjacentElement('afterend', strip);
 		}
 		fn.scrollLog(true);
 	};
@@ -248,14 +404,38 @@
 		if (!D.state.linearRunUi || !userEl?.isConnected) {
 			return;
 		}
+		const userAnchor = fn.resolveUserMessageAnchor?.(userEl) ?? userEl;
 		const current = D.state.runStripEl;
-		if (current?.isConnected && current.previousElementSibling !== userEl) {
+		if (current?.isConnected && current.previousElementSibling !== userAnchor) {
 			// Nouveau message user => nouveau cycle. L'ancien strip reste sous le user précédent.
 			const hasAnswer = Boolean(
 				current.querySelector(
 					'[data-section="answer"] .drox-final-answer, [data-section="answer"] .drox-user-facing-reply, [data-section="answer"] .drox-chat-stream',
 				),
 			);
+			const prevIsUser = fn.isUserMessageRow(current.previousElementSibling);
+			// Les events tool/delta peuvent créer le strip avant l'écho user — repositionner, pas sceller.
+			if (
+				current.dataset.sealed !== '1' &&
+				D.state.busy &&
+				!hasAnswer &&
+				!D.state.runStripCommitted &&
+				fn.runStripHasContent(current) &&
+				!prevIsUser
+			) {
+				userAnchor.insertAdjacentElement('afterend', current);
+				D.state.runStripEl = current;
+				D.state.runStripAnchorEl = userAnchor;
+				const work = current.querySelector('details.drox-run-work-collapsible');
+				if (work) {
+					work.open = true;
+				}
+				fn.reparentTodoBlockToPlan?.();
+				fn.syncWorkSummaryStats?.(current);
+				fn.syncStickyStackLayout();
+				fn.scrollLog(true);
+				return;
+			}
 			if (
 				current.dataset.sealed !== '1' &&
 				(hasAnswer || D.state.runStripCommitted || fn.runStripHasContent(current))
@@ -267,17 +447,24 @@
 			}
 			fn.resetLinearRunStripPointers();
 			fn.resetChatStreamForTurn?.();
+			fn.resetPlanStateForTurn?.();
+			fn.resetStreamChronology?.();
 		}
 		// Met à jour le candidat d'ancrage à chaque message user reçu pendant
 		// le run (historique replay + message live). Le strip est déplacé à chaque
 		// appel jusqu'à ce que commitRunStripAnchor() le verrouille.
-		D.state.runStripAnchorEl = userEl;
+		D.state.runStripAnchorEl = userAnchor;
 		const strip = fn.ensureRunStrip();
 		// Repositionne le strip après le dernier user reçu.
-		if (strip.previousElementSibling !== userEl) {
-			userEl.insertAdjacentElement('afterend', strip);
+		if (strip.previousElementSibling !== userAnchor) {
+			userAnchor.insertAdjacentElement('afterend', strip);
+		}
+		const work = strip.querySelector('details.drox-run-work-collapsible');
+		if (work && D.state.busy) {
+			work.open = true;
 		}
 		fn.reparentTodoBlockToPlan?.();
+		fn.syncWorkSummaryStats?.(strip);
 		fn.syncStickyStackLayout();
 		fn.scrollLog(true);
 	};
@@ -299,6 +486,10 @@
 			if (sec && sec.childElementCount > 0) {
 				return true;
 			}
+		}
+		const planSlot = strip.querySelector(':scope > .drox-run-plan-slot');
+		if (planSlot?.querySelector('.msg-todos')) {
+			return true;
 		}
 		// Strips legacy pré-1.5.1
 		for (const name of ['plan', 'work', 'thinking', 'verify', 'answer']) {
@@ -333,15 +524,21 @@
 			const adopted = open.length > 0 ? open[open.length - 1] : null;
 			if (adopted) {
 				D.state.runStripEl = adopted;
+				fn.pruneExtraOpenRunStrips(adopted);
 				fn.ensureRunStripConnected(adopted);
 				fn.syncStickyStackLayout();
 				return adopted;
 			}
 		}
+		fn.pruneExtraOpenRunStrips(null);
 		const strip = document.createElement('div');
 		strip.className = 'drox-run-strip';
 		strip.dataset.stripId = fn.nextRunStripId();
 		strip.setAttribute('role', 'log');
+		const planSlot = document.createElement('div');
+		planSlot.className = 'drox-run-plan-slot drox-run-section';
+		planSlot.dataset.section = 'plan';
+		strip.appendChild(planSlot);
 		const work = document.createElement('details');
 		work.className = 'drox-run-work-collapsible drox-run-section';
 		work.open = true;
@@ -359,20 +556,34 @@
 		answer.dataset.section = 'answer';
 		strip.appendChild(answer);
 		D.state.runStripEl = strip;
+		fn.pruneExtraOpenRunStrips(strip);
 		fn.ensureRunStripConnected(strip);
 		fn.touchArchitectRunTailActivity?.();
 		fn.syncStickyStackLayout();
 		return strip;
 	};
 
-	/** Déplace le bloc Plan dans la section sticky (évite un plan orphelin dans #log). */
+	/** Déplace le bloc Plan dans l'emplacement dédié (hors panneau WORK repliable). */
 	fn.reparentTodoBlockToPlan = function () {
 		const block = D.state.currentTodoBlockEl;
-		const mount = fn.getChronologyMount?.() || fn.getRunSection('plan');
-		if (!block || !mount || block.parentElement === mount) {
+		if (!block?.isConnected) {
 			return;
 		}
-		mount.insertBefore(block, mount.firstChild);
+		const ownerStrip = block.closest('.drox-run-strip');
+		if (ownerStrip?.dataset?.sealed === '1') {
+			return;
+		}
+		const strip = D.state.runStripEl || ownerStrip;
+		if (ownerStrip && strip && ownerStrip !== strip) {
+			return;
+		}
+		const mount = fn.ensurePlanMount(strip);
+		if (!mount || block.parentElement === mount) {
+			fn.syncPlanStickyFooter?.();
+			return;
+		}
+		mount.appendChild(block);
+		fn.syncPlanStickyFooter?.();
 	};
 
 	fn.getRunSection = function (name) {
@@ -380,6 +591,9 @@
 			return null;
 		}
 		const strip = fn.ensureRunStrip();
+		if (name === 'plan') {
+			return fn.ensurePlanMount(strip);
+		}
 		const direct = strip.querySelector(`[data-section="${name}"]`);
 		if (direct) {
 			return direct;

@@ -25,10 +25,12 @@
 			if (id) {
 				D.state.toolBlocks.set(id, details);
 			}
+			fn.syncWorkSummaryStats?.(D.state.runStripEl);
 			fn.scrollLog();
 			return;
 		}
 		if (payload.phase === 'finish') {
+			const finishName = String(payload.name ?? D.state.pendingToolName ?? '');
 			D.state.pendingToolName = '';
 			fn.finalizeAssistant();
 			const existing = id ? D.state.toolBlocks.get(id) : undefined;
@@ -39,11 +41,16 @@
 			if (D.state.busy) {
 				fn.showActivityOnCurrentPhaseSummary();
 			}
+			fn.syncWorkSummaryStats?.(D.state.runStripEl);
 			return;
 		}
 		if (payload.phase === 'progress') {
 			const existing = id ? D.state.toolBlocks.get(id) : undefined;
 			if (!existing) {
+				return;
+			}
+			if (fn.isShellCommandCard?.(existing)) {
+				fn.appendShellProgress(existing, payload);
 				return;
 			}
 			const summary = existing.querySelector('summary');

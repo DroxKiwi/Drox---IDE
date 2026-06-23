@@ -7,7 +7,7 @@
 
 ## En une phrase
 
-Publier **Drox IDE** sur Linux (`.deb` amd64) et lever l’alerte Windows **« Éditeur inconnu »** sur l’installeur via signature **Authenticode**.
+Publier **Drox IDE** sur Linux (`.deb` amd64), lever l’alerte Windows **« Éditeur inconnu »** (Authenticode), et **reconnecter la vue Extensions** au registre **Open VSX** (ESLint, Git Graph, thèmes…).
 
 ---
 
@@ -17,6 +17,7 @@ Publier **Drox IDE** sur Linux (`.deb` amd64) et lever l’alerte Windows **« �
 |--------|--------|
 | **L0–L3** | Release Linux sur `Drox---IDE---OR` |
 | **W1** | Signature installeur Windows (SmartScreen) |
+| **E1** | Marketplace extensions (Open VSX — ESLint, Git Graph, …) |
 
 ---
 

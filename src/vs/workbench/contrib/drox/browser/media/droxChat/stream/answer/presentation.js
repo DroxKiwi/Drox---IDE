@@ -8,27 +8,6 @@
 (function (D) {
 	const fn = D.fn;
 
-	fn.attachMessageRevertAction = function (rowEl) {
-		if (!rowEl || rowEl.querySelector('.msg-revert-to-here')) {
-			return;
-		}
-		const msgId = String(rowEl.dataset?.msgId || '').trim();
-		if (!msgId) {
-			return;
-		}
-		const btn = document.createElement('button');
-		btn.type = 'button';
-		btn.className = 'msg-revert-to-here';
-		btn.textContent = 'Restore here';
-		btn.title = 'Restore workspace to this message';
-		btn.addEventListener('click', (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			D.vscode.postMessage({ type: 'revertToMessage', messageId: msgId });
-		});
-		rowEl.appendChild(btn);
-	};
-
 	/** Fin de run : ranger les réponses dans le strip du tour. */
 	fn.finalizeRunPresentation = function () {
 		const preserveDiscussion =

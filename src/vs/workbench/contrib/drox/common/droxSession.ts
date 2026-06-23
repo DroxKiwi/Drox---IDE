@@ -17,6 +17,12 @@ export interface IDroxSessionListEntry {
 	readonly title?: string;
 }
 
+/** Id de transcript moteur listable (`ses_<uuid>`) — exclut `ses_….ui-replay`, etc. */
+export function isListableDroxSessionId(id: string): boolean {
+	const trimmed = String(id || '').trim();
+	return trimmed.startsWith('ses_') && !trimmed.includes('.');
+}
+
 /** Titre d’onglet / historique à partir du transcript chargé. */
 export function deriveTitleFromTranscriptMessages(
 	messages: readonly IDroxTranscriptMessage[],
