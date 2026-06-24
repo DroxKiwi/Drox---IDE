@@ -2,38 +2,43 @@
 
 # ⚠️ STATUT PRODUIT — LIRE EN PREMIER
 
-> **`main` = release Drox IDE 1.5.3** (juin 2026) — moteur **`tui_mono`** (socle **1.5.0**), base VS Code **1.126.0**.  
-> La ligne **1.5.x** est la référence actuelle. **1.4.x** est **archivée** — ne plus bâtir dessus.
+> **Le moteur Drox 1.4.2 est obsolète — il va complètement changer.**  
+> Branche **1.4.2** clôturée et mergée sur `main` (juin 2026). Ce n’est **pas** une base stable : c’est un **point d’arrêt** avant une refonte majeure du moteur.
 
 | | |
 |---|---|
-| **Code sur `main`** | **1.5.3** — shim RPC IDE, boucle TUI, chat aligné fil agent, config moteur depuis l’IDE (1.5.2+) |
-| **Release Windows** | Publiée — [Drox---IDE---OR `v1.5.3`](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.3) |
-| **Utilisable en prod ?** | **Non** — toujours **expérimental** / dogfood. |
-| **Tester ?** | Installeur ou build local ; Ollama (ou API compatible) ; accepter bugs et MAJ fréquentes. |
-| **Suite** | **1.5.4** — Linux `.deb`, signature Authenticode, marketplace extensions ([plan](drox-engine/docs/1.5/1.5.4/PLAN-1.5.4.md)). |
+| **Code sur `main`** | **1.4.2** — rail **observateur**, contexte **4 couches**, reliquats prescriptifs retirés (`tool_folders`, ACL station, `todo_write`, intent probe LLM) |
+| **Utilisable en prod ?** | **Non.** Phase **expérimentale agressive** — dogfood uniquement. |
+| **Tester quand même ?** | **Option pour les curieux** : compiler `drox.exe`, brancher Ollama, accepter bugs / régressions / changements cassants sans préavis. |
+| **Suite moteur** | Refonte **profonde** (pas un polish 1.4.3) — voir plans 1.4.3+ dans le dépôt ; l’architecture actuelle ne sera **pas** prolongée telle quelle. |
 
-### Ce que la 1.5.3 apporte (IDE — pas le cœur Rust)
+### Ce que la 1.4.2 a changé (gros morceaux)
 
-Principalement **UX chat** : diffs fichier inline + undo/redo, cartes shell, polish messages user, composer auto-grow, style fil VT323, historique sessions + rejeu, correctifs WORK. Le **moteur** reste la boucle **1.5.0** (`tui_mono`) avec le shim JSON-RPC.
+Après la stabilisation **1.4.1** (session, UI busy, discuss, VERIFY Windows), la **1.4.2** abandonne le rail **prescriptif** au profit d’une culture **observateur + contexte** :
 
-### Lignée moteur (rappel)
+| Avant | Après 1.4.2 |
+|-------|-------------|
+| Outils filtrés par **station** (READ ≠ ACT) | Palette **plate et stable** tout le run EDIT |
+| **Tool folders** (`read_workspace`, `edit_file`, …) | Supprimés — outils réels uniquement (`file_read`, `file_edit`, …) |
+| Gates + nudges coercitifs (`stall_read`, `stall_act`, `force_act`, mutation sur `done`) | Rail **observateur** : snapshot + inférence station, **pas** de blocage advance |
+| **Intent probe** LLM au boot | Routage **statique** : `discuss` / `analyze` / `edit` (mode IDE ou RPC) |
+| `todo_write` + gates todo | **`internal_plan_write`** seul (plan moteur, pas todo utilisateur) |
+| Mémoire éclatée (listing boot skills/sessions) | **`DROX.md` seul** · checkpoint compaction court → snapshot réinjecté |
+| Prompt boot avec `[gate:]` obligatoire | `01_core_rail_solo.md` **observateur** — rail = hint dans le snapshot |
 
-| Version | Moteur |
-|---------|--------|
-| **1.4.x** | Rail observateur — **obsolète** |
-| **1.5.0** | Retour **`tui_mono`** + shim IDE — **base actuelle** |
-| **1.5.2** | Config / sampling moteur exposée dans l’IDE (contrat TUI) |
-| **1.5.3** | Pas de rupture moteur — livrable IDE |
+**4 couches de contexte** (complémentaires, pas substituts) : (1) cadre boot + hint rail, (2) outils wire + protocole compact, (3) snapshot run + plan interne, (4) transcript chaud/froid + compaction.
 
-**En résumé** : la **1.5.x** est la ligne à suivre ; la **1.4.x** sert d’archive historique uniquement.
+### Pourquoi c’est obsolète malgré la clôture
+
+La 1.4.2 **nettoie** l’expérience 1.4.x (moins de forcing, outils libres, mémoire unifiée) mais **ne fige pas** le design final. Le chantier suivant **remplace** le modèle actuel (rail, orchestration, injection de contexte) — pas une itération douce. Tout ce qui est sur `main` aujourd’hui sert surtout de **laboratoire** et de **référence de ce qu’on ne veut plus**.
+
+**En résumé** : OK pour **explorer et casser** en local ; **pas** pour un usage quotidien, un client, ou une extension long terme sur cette stack.
 
 ### Où lire la suite (dépôt)
 
-- Release & upstream : [`drox-engine/docs/GUIDE-RELEASE-ET-UPSTREAM.md`](drox-engine/docs/GUIDE-RELEASE-ET-UPSTREAM.md)
-- Clôture 1.5.3 : `drox-engine/docs/1.5/1.5.3/CLOSURE-1.5.3.md`
-- Moteur 1.5.0 : `drox-engine/docs/1.5/1.5.0/CLOSURE-1.5.0.md`
-- Archive 1.4.2 : `drox-engine/docs/1.4/1.4.2/PLAN-1.4.2.md`
+- Clôture 1.4.2 : `drox-engine/docs/1.4/1.4.2/PLAN-1.4.2.md`
+- Stabilisation 1.4.1 : `drox-engine/docs/1.4/1.4.1/finalisation/CLOSURE-1.4.1.md`
+- Refonte initiale 1.4.0 : `drox-engine/docs/1.4/1.4.0/archive/finalisation/CLOSURE-1.4.0.md`
 
 ___
 
@@ -49,13 +54,13 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 [Moteur Drox](#fr) · [Invariants](#fr-invariants) · [Chronologie](#fr-chronologie)
 
-[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14) · [2026-06 v1_4_2](#fr-2026-06-v142) · [2026-06 v1_5](#fr-2026-06-v15)
+[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14) · [2026-06 v1_4_2](#fr-2026-06-v142)
 
 **EN**
 
 [Drox Engine](#en) · [Invariants](#en-invariants) · [Timeline](#en-timeline)
 
-[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14) · [2026-06 v1_4_2](#en-2026-06-v142) · [2026-06 v1_5](#en-2026-06-v15)
+[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14) · [2026-06 v1_4_2](#en-2026-06-v142)
 
 ___
 
@@ -425,44 +430,21 @@ ___
 
 ___
 
-<a id="fr-2026-06-v15"></a>
-
-### 2026-06 — `v1_5` (TUI mono + ligne IDE **1.5.x** — **courant**)
-
-`tui_mono` — abandon rail 1.4 ; boucle agent TUI d’origine (`agent.rs`), protocole `[phase: …]`.
-`shim_rpc_ide` — `drox-cli/jsonrpc` : `agent.run`, `tool/exec`, events `agent/event` ; stations rail **synthétiques** (affichage).
-`permission_modes` — vignettes IDE → `plan` / `acceptEdits` / `default` côté moteur.
-`v1_5_0_ship` — moteur embarqué Windows, intégration upstream VS Code **1.126.0** (squash produit).
-`v1_5_2_config` — paramètres sampling / `max_iterations` / `keep_alive` alignés contrat TUI depuis l’IDE.
-`v1_5_3_ide` — pas de rupture moteur ; diffs fil, cartes shell, rejeu session (couche IDE).
-
-___
-
 <a id="en-product-status"></a>
 
 # ⚠️ PRODUCT STATUS — READ FIRST
 
-> **`main` = Drox IDE release 1.5.3** (June 2026) — **`tui_mono`** engine (since **1.5.0**), VS Code base **1.126.0**.  
-> **1.5.x** is the current line. **1.4.x** is **archived** — do not build on it.
+> **Drox engine 1.4.2 is obsolete — it will change completely.**  
+> Branch **1.4.2** closed and merged to `main` (June 2026). This is **not** a stable foundation: a **checkpoint** before a major engine rewrite.
 
 | | |
 |---|---|
-| **Code on `main`** | **1.5.3** — IDE RPC shim, TUI loop, agent-stream chat, engine config from IDE (1.5.2+) |
-| **Windows release** | Published — [Drox---IDE---OR `v1.5.3`](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.3) |
-| **Production-ready?** | **No** — still **experimental** / dogfood. |
-| **Want to try?** | Installer or local build; Ollama (or compatible API); expect bugs and frequent updates. |
-| **Next** | **1.5.4** — Linux `.deb`, Authenticode signing, extension marketplace ([plan](drox-engine/docs/1.5/1.5.4/PLAN-1.5.4.md)). |
+| **Code on `main`** | **1.4.2** — **observer** rail, **4-layer** context, prescriptive relics removed (`tool_folders`, per-station ACL, `todo_write`, LLM intent probe) |
+| **Production-ready?** | **No.** **Aggressive experimental** phase — dogfood only. |
+| **Still want to try?** | **Optional for the curious**: build `drox.exe`, hook up Ollama, expect bugs / regressions / breaking changes without notice. |
+| **Next engine work** | **Deep rewrite** (not a 1.4.3 polish) — current architecture will **not** be extended as-is. |
 
-**1.5.3** is mostly **chat UX** (inline diffs, shell cards, session replay, VT323 thread styling). The **engine** stays the **1.5.0** `tui_mono` loop with the JSON-RPC shim.
-
-| Version | Engine |
-|---------|--------|
-| **1.4.x** | Observer rail — **obsolete** |
-| **1.5.0** | **`tui_mono`** + IDE shim — **current base** |
-| **1.5.2** | Engine / sampling config exposed in IDE |
-| **1.5.3** | No engine break — IDE deliverable |
-
-**In short**: follow **1.5.x**; **1.4.x** is historical archive only.
+**1.4.2** cleans the 1.4.x experience (less forcing, free tools, unified memory) but **does not** freeze final design. What ships on `main` today is mainly a **lab** and a record of what we are moving away from.
 
 ___
 
@@ -642,16 +624,3 @@ ___
 `contexte_4_couches` — boot + rail hint · stable tools · run snapshot · transcript + compaction.
 `prompt_observateur` — `01_core_rail_solo.md` rewritten without prescriptive `[gate:]`.
 `obsolete_annonce` — branch **1.4.2** merged to `main`; **full engine rewrite** announced — aggressive experimental phase, testing optional for the curious.
-
-___
-
-<a id="en-2026-06-v15"></a>
-
-### 2026-06 — `v1_5` (TUI mono + IDE line **1.5.x** — **current**)
-
-`tui_mono` — 1.4 rail dropped; original TUI agent loop (`agent.rs`), `[phase: …]` protocol.
-`shim_rpc_ide` — `drox-cli/jsonrpc`: `agent.run`, `tool/exec`, `agent/event`; **synthetic** rail stations (display only).
-`permission_modes` — IDE vignettes → engine `plan` / `acceptEdits` / `default`.
-`v1_5_0_ship` — bundled engine on Windows, VS Code **1.126.0** upstream (product squash).
-`v1_5_2_config` — sampling / `max_iterations` / `keep_alive` aligned with TUI contract from IDE.
-`v1_5_3_ide` — no engine break; thread diffs, shell cards, session replay (IDE layer).

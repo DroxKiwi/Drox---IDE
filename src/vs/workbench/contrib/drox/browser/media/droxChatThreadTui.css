@@ -13,7 +13,7 @@
 	font-display: swap;
 }
 
-#log {
+body {
 	--drox-thread-radius: 0;
 	--drox-thread-brown: #4a3f2e;
 	--drox-thread-brown-deep: #2e281c;
@@ -26,7 +26,10 @@
 	--drox-thread-glow: 0 0 1px color-mix(in srgb, var(--drox-thread-green) 35%, transparent);
 	--drox-thread-pad-x: 8px;
 	--drox-thread-pad-y: 6px;
+	--drox-thread-panel-bg: color-mix(in srgb, var(--vscode-editor-background) 86%, var(--drox-thread-brown) 14%);
+}
 
+#log {
 	font-family: var(--drox-thread-font);
 	font-size: 15px;
 	line-height: 1.42;
@@ -210,21 +213,74 @@
 
 /* --- Diffs fichier --- */
 
-#log .msg-file-change {
+#log .msg-file-change,
+.drox-run-chronology .msg-file-change,
+.drox-run-answer .msg-file-change {
 	border-radius: var(--drox-thread-radius);
 	border-color: var(--drox-thread-green-border);
 	background: color-mix(in srgb, var(--vscode-editor-background) 85%, var(--drox-thread-brown) 15%);
 }
 
-#log .msg-file-change > .fc-summary {
+#log .msg-file-change > .fc-summary,
+.drox-run-chronology .msg-file-change > .fc-summary,
+.drox-run-answer .msg-file-change > .fc-summary {
 	background: color-mix(in srgb, var(--vscode-editor-background) 78%, var(--drox-thread-brown) 22%);
 	border-bottom-color: color-mix(in srgb, var(--drox-thread-green-border) 40%, var(--drox-thread-brown) 60%);
 }
 
-#log .msg-file-change .fc-diff pre,
-#log .msg-file-change .fc-diff code {
+#log .msg-file-change > .fc-body,
+.drox-run-chronology .msg-file-change > .fc-body,
+.drox-run-answer .msg-file-change > .fc-body {
+	display: block;
+	background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--drox-thread-brown-deep) 8%);
+}
+
+#log .msg-file-change .fc-diff,
+.drox-run-chronology .msg-file-change .fc-diff,
+.drox-run-answer .msg-file-change .fc-diff,
+#log .msg-file-change .fc-diff .diff-line,
+.drox-run-chronology .msg-file-change .fc-diff .diff-line,
+.drox-run-answer .msg-file-change .fc-diff .diff-line {
+	display: block;
 	font-family: var(--drox-thread-font);
 	font-size: 14px;
+	line-height: 1.45;
+	letter-spacing: 0.02em;
+}
+
+#log .msg-file-change .diff-line,
+.drox-run-chronology .msg-file-change .diff-line,
+.drox-run-answer .msg-file-change .diff-line {
+	min-height: 1.35em;
+	white-space: pre;
+}
+
+#log .msg-file-change .diff-line.diff-add,
+.drox-run-chronology .msg-file-change .diff-line.diff-add,
+.drox-run-answer .msg-file-change .diff-line.diff-add {
+	background: color-mix(in srgb, var(--drox-thread-green) 28%, transparent);
+	color: var(--drox-thread-fg);
+}
+
+#log .msg-file-change .diff-line.diff-rem,
+.drox-run-chronology .msg-file-change .diff-line.diff-rem,
+.drox-run-answer .msg-file-change .diff-line.diff-rem {
+	background: color-mix(in srgb, var(--vscode-errorForeground) 22%, transparent);
+	color: var(--drox-thread-fg);
+}
+
+#log .msg-file-change .diff-line.diff-hunk,
+.drox-run-chronology .msg-file-change .diff-line.diff-hunk,
+.drox-run-answer .msg-file-change .diff-line.diff-hunk {
+	background: color-mix(in srgb, var(--drox-thread-brown) 24%, transparent);
+	color: var(--drox-thread-fg-muted);
+	font-style: italic;
+}
+
+#log .msg-file-change .diff-line.diff-ctx,
+.drox-run-chronology .msg-file-change .diff-line.diff-ctx,
+.drox-run-answer .msg-file-change .diff-line.diff-ctx {
+	color: var(--drox-thread-fg-muted);
 }
 
 /* --- Strip agent / plan / todos --- */
@@ -348,9 +404,172 @@
 	padding-left: 0;
 	padding-right: var(--drox-thread-pad-x, 8px);
 	border-left: none;
+	border-top-color: var(--drox-thread-green-border);
+	background: color-mix(in srgb, var(--vscode-sideBar-background, var(--vscode-editor-background)) 92%, var(--drox-thread-brown-deep) 8%);
 }
 
 /* En-tête onglets : aligné sur le sash (pas de retrait gauche) */
 .chat-chrome .session-tab-bar {
 	padding-left: 0;
+}
+
+.chat-chrome .session-tab-peek {
+	border-radius: var(--drox-thread-radius);
+}
+
+#log details.drox-run-work-collapsible {
+	border-radius: var(--drox-thread-radius);
+}
+
+#log .msg-ai-frame {
+	border-radius: var(--drox-thread-radius);
+}
+
+/* --- Questionnaire (composer) — même pâte TUI que le fil --- */
+
+#user-ask {
+	margin: 0 0 6px;
+	padding: 10px var(--drox-thread-pad-x, 8px) 10px 0;
+	font-family: var(--drox-thread-font);
+	font-size: 15px;
+	line-height: 1.42;
+	letter-spacing: 0.03em;
+	color: var(--drox-thread-fg);
+	border: 1px solid var(--drox-thread-green-border);
+	border-radius: var(--drox-thread-radius);
+	background: var(--drox-thread-panel-bg);
+	box-shadow: inset 2px 0 0 color-mix(in srgb, var(--drox-thread-green) 45%, var(--drox-thread-brown) 55%);
+	max-height: min(45vh, 360px);
+}
+
+#user-ask .user-ask-title,
+#user-ask .user-ask-prompt,
+#user-ask .user-ask-option,
+#user-ask .user-ask-free-input,
+#user-ask .user-ask-action {
+	font-family: var(--drox-thread-font);
+}
+
+#user-ask .user-ask-title {
+	color: var(--drox-thread-fg);
+}
+
+#user-ask .user-ask-counter {
+	color: var(--drox-thread-fg-muted);
+}
+
+#user-ask .user-ask-prompt {
+	color: var(--drox-thread-fg);
+}
+
+#user-ask .user-ask-option {
+	border-color: var(--drox-thread-green-border);
+	background: color-mix(in srgb, var(--vscode-editor-background) 84%, var(--drox-thread-brown) 16%);
+	color: var(--drox-thread-fg);
+	border-radius: var(--drox-thread-radius);
+}
+
+#user-ask .user-ask-option:hover {
+	background: color-mix(in srgb, var(--vscode-editor-background) 76%, var(--drox-thread-brown) 24%);
+}
+
+#user-ask .user-ask-option.selected {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 65%, var(--drox-thread-brown-deep) 35%);
+	background: color-mix(in srgb, var(--drox-thread-green) 12%, var(--drox-thread-brown) 8%);
+}
+
+#user-ask .user-ask-option-letter {
+	border-color: var(--drox-thread-green-border);
+	border-radius: var(--drox-thread-radius);
+	color: var(--drox-thread-fg-muted);
+}
+
+#user-ask .user-ask-option.selected .user-ask-option-letter {
+	background: color-mix(in srgb, var(--drox-thread-green) 72%, var(--drox-thread-brown-deep) 28%);
+	border-color: var(--drox-thread-green-border);
+	color: var(--vscode-editor-background);
+}
+
+#user-ask .user-ask-free-input {
+	border-color: var(--drox-thread-green-border);
+	border-radius: var(--drox-thread-radius);
+	background: color-mix(in srgb, var(--vscode-editor-background) 80%, var(--drox-thread-brown-deep) 20%);
+	color: var(--drox-thread-fg);
+}
+
+#user-ask .user-ask-free-input::placeholder {
+	color: var(--drox-thread-fg-muted);
+	opacity: 0.85;
+}
+
+#user-ask .user-ask-action {
+	color: var(--drox-thread-fg-muted);
+	border-radius: var(--drox-thread-radius);
+	text-transform: uppercase;
+	font-size: 14px;
+	letter-spacing: 0.05em;
+}
+
+#user-ask .user-ask-action:hover {
+	background: color-mix(in srgb, var(--drox-thread-green) 10%, var(--drox-thread-brown) 6%);
+	color: var(--drox-thread-fg);
+}
+
+#user-ask .user-ask-action.next {
+	background: color-mix(in srgb, var(--drox-thread-green) 72%, var(--drox-thread-brown-deep) 28%);
+	border-color: var(--drox-thread-green-border);
+	color: var(--vscode-editor-background);
+}
+
+#user-ask .user-ask-action.next:hover {
+	background: color-mix(in srgb, var(--drox-thread-green) 82%, var(--drox-thread-brown-deep) 18%);
+}
+
+/* --- Plans / todos — cadre TUI unifié --- */
+
+#log .msg-todos,
+.drox-plan-sticky-footer .msg-todos,
+#log .drox-run-strip > .drox-run-plan-slot .msg-todos {
+	font-family: var(--drox-thread-font);
+	font-size: 15px;
+	line-height: 1.42;
+	letter-spacing: 0.03em;
+	color: var(--drox-thread-fg);
+	border: 1px solid var(--drox-thread-green-border);
+	border-radius: var(--drox-thread-radius);
+	background: var(--drox-thread-panel-bg);
+	box-shadow: inset 2px 0 0 color-mix(in srgb, var(--drox-thread-green) 40%, var(--drox-thread-brown) 60%);
+}
+
+#log .msg-todos .todos-title,
+.drox-plan-sticky-footer .msg-todos .todos-title {
+	color: var(--drox-thread-fg);
+	font-weight: 400;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+#log .msg-todos .todos-counter,
+.drox-plan-sticky-footer .msg-todos .todos-counter,
+#log .msg-todos .todos-head,
+.drox-plan-sticky-footer .msg-todos .todos-head {
+	color: var(--drox-thread-fg-muted);
+}
+
+#log .msg-todos .todos-list-icon,
+.drox-plan-sticky-footer .msg-todos .todos-list-icon {
+	background-color: color-mix(in srgb, var(--drox-thread-fg) 82%, var(--drox-thread-green) 18%);
+}
+
+#log .msg-todos .todo-item,
+.drox-plan-sticky-footer .msg-todos .todo-item {
+	color: var(--drox-thread-fg);
+}
+
+#log .msg-todos .todo-item.todo-active,
+.drox-plan-sticky-footer .msg-todos .todo-item.todo-active {
+	background: color-mix(in srgb, var(--drox-thread-green) 14%, var(--drox-thread-brown) 10%);
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border) 50%, transparent);
+	border-radius: var(--drox-thread-radius);
+	outline: none;
 }

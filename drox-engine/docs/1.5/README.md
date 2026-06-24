@@ -35,5 +35,4 @@
 - [PLAN 1.5.3](1.5.3/PLAN-1.5.3.md)
 - [PLAN 1.5.4](1.5.4/PLAN-1.5.4.md)
 - [GUIDE release & upstream](../GUIDE-RELEASE-ET-UPSTREAM.md)
-- [GUIDE publication Windows](../operations/GUIDE-PUBLICATION-WIN32.md)
-- [GUIDE publication Linux](../operations/GUIDE-PUBLICATION-LINUX.md)
+- [Opérations release (index)](../operations/README.md)

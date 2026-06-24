@@ -17,15 +17,17 @@ Publier **Drox IDE** sur Linux (`.deb` amd64), lever l’alerte Windows **« Éd
 |--------|--------|
 | **L0–L3** | Release Linux sur `Drox---IDE---OR` |
 | **W1** | Signature installeur Windows (SmartScreen) |
-| **E1** | Marketplace extensions (Open VSX — ESLint, Git Graph, …) |
+| **E1** | Marketplace extensions (Open VSX — ESLint, Git Graph, …) | ✅ livré |
 
 ---
 
 ## Docs
 
 - [PLAN-1.5.4.md](PLAN-1.5.4.md)
-- [GUIDE publication Linux](../../operations/GUIDE-PUBLICATION-LINUX.md)
-- [GUIDE publication Windows](../../operations/GUIDE-PUBLICATION-WIN32.md) (§ Authenticode)
+- [Opérations release (index)](../../operations/README.md)
+- [Release Windows](../../operations/03-RELEASE-WINDOWS.md)
+- [Release Linux](../../operations/04-RELEASE-LINUX.md)
+- [Open VSX](../../operations/05-OPEN-VSX.md)
 
 ---
 

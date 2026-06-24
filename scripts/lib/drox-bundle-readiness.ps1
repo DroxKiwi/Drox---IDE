@@ -257,6 +257,12 @@ function Get-PackagedReleaseIntegrityIssues {
 		if ($null -ne $product.PSObject.Properties['droxEngineDevBuild']) {
 			$issues.Add('product.json package contient droxEngineDevBuild (interdit en release)')
 		}
+		$galleryUrl = [string]$product.extensionsGallery.serviceUrl
+		if ([string]::IsNullOrWhiteSpace($galleryUrl)) {
+			$issues.Add('product.json package sans extensionsGallery.serviceUrl (relancer merge-product-gallery)')
+		} elseif ($galleryUrl -notmatch 'open-vsx\.org') {
+			$issues.Add("product.json extensionsGallery.serviceUrl inattendu: $galleryUrl")
+		}
 	}
 
 	$stamp = Read-DroxBundleStamp -BaseDir $appOut

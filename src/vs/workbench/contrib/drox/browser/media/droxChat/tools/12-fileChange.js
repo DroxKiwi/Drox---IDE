@@ -41,43 +41,69 @@
 		}
 	};
 
-	fn.resolveFileChangeMount = function (toolId) {
-		if (D.state.linearRunUi) {
-			const strip =
-				typeof fn.ensureRunStrip === 'function' ? fn.ensureRunStrip() : D.state.runStripEl;
-			if (strip && typeof fn.ensureRunWorkOpen === 'function') {
-				fn.ensureRunWorkOpen(strip);
-			}
-			const chrono =
-				typeof fn.ensureChronologySection === 'function'
-					? fn.ensureChronologySection(strip)
-					: null;
-			if (chrono) {
-				return chrono;
-			}
+	fn.findRunStripForFileChange = function () {
+		if (D.state.runStripEl?.isConnected) {
+			return D.state.runStripEl;
 		}
-		const toolBlock = toolId ? D.state.toolBlocks.get(toolId) : undefined;
-		if (toolBlock?.isConnected) {
-			return { after: toolBlock };
+		if (!D.dom.logEl) {
+			return null;
 		}
-		if (typeof fn.getRunSection === 'function' && fn.getRunSection('work')) {
-			return fn.getRunSection('work');
-		}
-		return D.dom.logEl;
+		const strips = [...D.dom.logEl.querySelectorAll(':scope > .drox-run-strip')];
+		return strips.length > 0 ? strips[strips.length - 1] : null;
 	};
 
+	/** Montage 1.5.2 : work strip → chronologie, sinon #log (late async). */
 	fn.mountFileChangeCard = function (card, toolId) {
-		if (D.state.linearRunUi && typeof fn.closeActivePhaseBlock === 'function') {
-			fn.closeActivePhaseBlock();
+		const toolBlock = toolId ? D.state.toolBlocks.get(toolId) : undefined;
+		let mounted = false;
+
+		if (toolBlock?.isConnected) {
+			toolBlock.insertAdjacentElement('afterend', card);
+			mounted = true;
+		} else if (typeof fn.getRunSection === 'function') {
+			const work = fn.getRunSection('work');
+			if (work) {
+				work.appendChild(card);
+				mounted = true;
+			}
 		}
-		const mount = fn.resolveFileChangeMount(toolId);
-		if (mount && typeof mount === 'object' && mount.after) {
-			mount.after.insertAdjacentElement('afterend', card);
-		} else {
-			(mount || D.dom.logEl).appendChild(card);
+
+		if (!mounted) {
+			const strip = fn.findRunStripForFileChange();
+			if (strip) {
+				if (typeof fn.ensureRunStripConnected === 'function') {
+					fn.ensureRunStripConnected(strip);
+				}
+				if (typeof fn.ensureRunWorkOpen === 'function') {
+					fn.ensureRunWorkOpen(strip);
+				}
+				const chrono =
+					typeof fn.ensureChronologySection === 'function'
+						? fn.ensureChronologySection(strip)
+						: null;
+				if (chrono) {
+					chrono.appendChild(card);
+					mounted = true;
+				}
+			}
+		}
+
+		if (!mounted) {
+			D.dom.logEl.appendChild(card);
+		}
+
+		const strip = fn.findRunStripForFileChange();
+		if (strip && typeof fn.ensureRunWorkOpen === 'function') {
+			fn.ensureRunWorkOpen(strip);
+		}
+		card.classList.remove('is-collapsed');
+		const toggleBtn = card.querySelector('.fc-toggle');
+		if (toggleBtn) {
+			toggleBtn.setAttribute('aria-expanded', 'true');
 		}
 		D.state.logStickToBottom = true;
 		fn.scrollLogToEnd?.();
+		fn.syncWorkSummaryStats?.(strip || D.state.runStripEl);
 	};
 
 	fn.updateFileChangeUndoState = function (toolId, undoState) {
@@ -146,16 +172,12 @@
 		}
 		const empty = document.createElement('div');
 		empty.className = 'diff-line diff-ctx';
-		empty.textContent = '(aucun changement visible)';
+		empty.textContent = '(no visible diff)';
 		frag.appendChild(empty);
 		return frag;
 	};
 
 	fn.appendFileChange = function (payload) {
-		if (D.state.linearRunUi && typeof fn.flushStreamBuffer === 'function') {
-			fn.flushStreamBuffer({ asAnswer: false });
-		}
-
 		const toolId = String(payload.toolId ?? '');
 		if (toolId && D.state.fileChangeCards.has(toolId)) {
 			const old = D.state.fileChangeCards.get(toolId);
@@ -174,7 +196,11 @@
 		const diffText = typeof payload.diff === 'string' ? payload.diff : '';
 		const contentText = typeof payload.content === 'string' ? payload.content : '';
 		const hasVisibleDiff =
-			applied || diffText.length > 0 || contentText.length > 0 || Boolean(filePath);
+			diffText.length > 0 ||
+			contentText.length > 0 ||
+			added > 0 ||
+			removed > 0 ||
+			(applied && Boolean(filePath));
 
 		const card = document.createElement('div');
 		card.className = 'msg-file-change drox-log-indent msg-ai-frame';
@@ -183,9 +209,6 @@
 		}
 		if (cancelled) {
 			card.classList.add('is-cancelled');
-		}
-		if (!hasVisibleDiff) {
-			card.classList.add('is-collapsed');
 		}
 		card.dataset.path = filePath;
 		if (toolId) {
@@ -300,10 +323,10 @@
 
 		const body = document.createElement('div');
 		body.className = 'fc-body';
-		const pre = document.createElement('pre');
-		pre.className = `fc-diff lang-${language}`;
-		pre.appendChild(fn.renderDiffLines(diffText, contentText));
-		body.appendChild(pre);
+		const diffRoot = document.createElement('div');
+		diffRoot.className = `fc-diff lang-${language}`;
+		diffRoot.appendChild(fn.renderDiffLines(diffText, contentText));
+		body.appendChild(diffRoot);
 
 		toggleBtn.addEventListener('click', (ev) => {
 			ev.preventDefault();

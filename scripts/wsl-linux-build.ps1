@@ -8,10 +8,22 @@
 
 [CmdletBinding()]
 param(
-	[string]$Distro = 'Ubuntu'
+	# Prefer Ubuntu-24.04 when installed: default "Ubuntu" is often Ubuntu 26.04 (nvm / dpkg-shlibdeps fail there).
+	[string]$Distro = ''
 )
 
 $ErrorActionPreference = 'Stop'
+
+if (-not $Distro) {
+	$installed = @(wsl -l -q | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+	if ($installed -contains 'Ubuntu-24.04') {
+		$Distro = 'Ubuntu-24.04'
+	} elseif ($installed -contains 'Ubuntu') {
+		$Distro = 'Ubuntu'
+	} else {
+		$Distro = $installed[0]
+	}
+}
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $wslScript = '/mnt/c/Users/coren/Desktop/GitHub/Drox---IDE/scripts/wsl-linux-build.sh'
 

@@ -17,6 +17,8 @@ import { recommendedDeps as rpmRecommendedDependencies } from './linux/rpm/dep-l
 import * as path from 'path';
 import * as cp from 'child_process';
 import { promisify } from 'util';
+import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'fs';
+import { tmpdir } from 'os';
 
 const exec = promisify(cp.exec);
 const root = path.dirname(import.meta.dirname);
@@ -127,9 +129,45 @@ function buildDebPackage(arch: string) {
 	const cwd = `.build/linux/deb/${debArch}`;
 
 	return async () => {
-		await exec(`chmod 755 ${product.applicationName}-${debArch}/DEBIAN/postinst ${product.applicationName}-${debArch}/DEBIAN/prerm ${product.applicationName}-${debArch}/DEBIAN/postrm`, { cwd });
-		await exec('mkdir -p deb', { cwd });
-		await exec(`fakeroot dpkg-deb -Zxz -b ${product.applicationName}-${debArch} deb`, { cwd });
+		const pkgName = `${product.applicationName}-${debArch}`;
+		const debianDir = path.join(cwd, pkgName, 'DEBIAN');
+		let buildCwd = cwd;
+		const buildPkg = pkgName;
+		let tmpRoot: string | undefined;
+
+		// drvfs (/mnt/c) reports 0777 and ignores chmod — dpkg-deb rejects that.
+		try {
+			if (existsSync(debianDir) && (statSync(debianDir).mode & 0o777) === 0o777) {
+				tmpRoot = path.join(tmpdir(), `drox-deb-${debArch}-${Date.now()}`);
+				const tmpPkg = path.join(tmpRoot, pkgName);
+				cpSync(path.join(cwd, pkgName), tmpPkg, { recursive: true });
+				chmodSync(path.join(tmpPkg, 'DEBIAN'), 0o755);
+				for (const name of readdirSync(path.join(tmpPkg, 'DEBIAN'))) {
+					const file = path.join(tmpPkg, 'DEBIAN', name);
+					if (statSync(file).isFile()) {
+						chmodSync(file, 0o755);
+					}
+				}
+				buildCwd = tmpRoot;
+			}
+		} catch {
+			// fall back to in-tree build
+		}
+
+		await exec(`chmod 755 ${buildPkg}/DEBIAN`, { cwd: buildCwd });
+		await exec(`chmod 755 ${buildPkg}/DEBIAN/postinst ${buildPkg}/DEBIAN/prerm ${buildPkg}/DEBIAN/postrm`, { cwd: buildCwd });
+		await exec('mkdir -p deb', { cwd: buildCwd });
+		await exec(`fakeroot dpkg-deb -Zxz -b ${buildPkg} deb`, { cwd: buildCwd });
+
+		if (tmpRoot) {
+			mkdirSync(path.join(cwd, 'deb'), { recursive: true });
+			for (const name of readdirSync(path.join(buildCwd, 'deb'))) {
+				if (name.endsWith('.deb')) {
+					cpSync(path.join(buildCwd, 'deb', name), path.join(cwd, 'deb', name));
+				}
+			}
+			rmSync(tmpRoot, { recursive: true, force: true });
+		}
 	};
 }
 

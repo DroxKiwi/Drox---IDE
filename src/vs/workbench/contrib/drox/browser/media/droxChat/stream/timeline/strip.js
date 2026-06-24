@@ -234,8 +234,7 @@
 		}
 		const shellCount = chronology.querySelectorAll('.drox-shell-card').length;
 		const genericTools = chronology.querySelectorAll('.msg-tool:not(.drox-shell-card)').length;
-		const fileChanges =
-			chronology.querySelectorAll('.msg-file-change').length;
+		const fileChanges = strip.querySelectorAll('.msg-file-change').length;
 		const parts = [];
 		if (reasoning > 0) {
 			parts.push(`${reasoning} reasoning`);

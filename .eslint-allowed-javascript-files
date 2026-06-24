@@ -203,6 +203,7 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/session/lazy-history.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/01-prompt.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/01b-models.js
 scripts/lib/drox-release-manifest.mjs
+scripts/lib/merge-product-gallery.mjs
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/chat-issues.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/helpers.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/host-sync.js

@@ -10,6 +10,11 @@ if [[ "$(uname -s)" != "Linux" ]]; then
 	exit 1
 fi
 
+# WSL launched from Windows may inherit a broken HOME (e.g. C:Userscoren).
+if [[ -z "${HOME:-}" || "$HOME" == /mnt/* || "$HOME" == *:* ]]; then
+	export HOME="/home/$(whoami)"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_FILE="${REPO_ROOT}/.build/wsl-linux-build.log"
