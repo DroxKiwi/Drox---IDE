@@ -13,6 +13,7 @@
 | **L2** CI GitHub Actions | **~80 %** | premier run |
 | **L3** Smoke Linux | 0 % | oui |
 | **W1** Confiance Windows (Authenticode) | 0 % | UX install Windows |
+| **O1** « Ouvrir avec Drox » (Win + Linux) | **~90 %** | adoption IDE |
 | **E1** Marketplace extensions (Open VSX) | 0 % | adoption IDE |
 
 **Prochaine étape** : build `.deb` · ship OR · traiter SmartScreen « Éditeur inconnu ».
@@ -27,7 +28,7 @@
 | `platforms.linux-x64` dans `stable/latest.json` | Snap, Flatpak, AppImage |
 | `resources/drox/linux-x64/drox` embarqué | ARM64 Linux |
 | **Installeur Windows signé** (Authenticode) — fin alerte « Éditeur inconnu » / SmartScreen | Signature GPG repo Linux |
-| **Marketplace extensions** — installer ESLint, Git Graph, thèmes, etc. depuis la vue Extensions | Marketplace Microsoft officiel (ToS) · Copilot / extensions 1P Microsoft |
+| **« Ouvrir avec Drox »** — menu contextuel Explorateur (fichiers + dossiers) et gestionnaires Linux (`inode/directory`) | Marketplace Microsoft officiel (ToS) · Copilot / extensions 1P Microsoft |
 | Tag **`v1.5.4`** (`.deb` + setup `.exe` signé si W1 livré) | Notarization macOS |
 
 ---
@@ -44,7 +45,7 @@
 
 ### Ship 1.5.4
 
-- [ ] `droxVersion` **1.5.4** dans `package.json`
+- [x] `droxVersion` **1.5.4** dans `package.json`
 - [ ] Build `.deb` (Ubuntu / WSL / CI)
 - [ ] `release-publish-linux.sh` → merge `linux-x64`
 - [ ] Commit manifeste `Drox---IDE---OR` · `git push`
@@ -67,6 +68,21 @@ Aujourd’hui l’installeur Inno (`Drox-IDE-Setup-*-win32-x64.exe`) est **non s
 **Références** : `build-release-win32.ps1` (`Add-WindowsSdkSignToolToPath`) · [RULES.md § Installeur](../../../../RULES.md) · [GUIDE WIN32 § Authenticode](../../operations/GUIDE-PUBLICATION-WIN32.md).
 
 **Critère** : installeur `v1.5.4` publié sur OR avec signature Authenticode valide ; install testée sans contournement manuel SmartScreen.
+
+### O1 — « Ouvrir avec Drox » (Windows + Linux)
+
+Aujourd’hui l’installeur propose les tâches menu contextuel mais elles étaient **décochées par défaut** ; sous **Windows 11** sans paquet appx, les entrées legacy n’étaient pas posées ; sous **Linux**, aucun `.desktop` `inode/directory` n’était embarqué.
+
+| # | Tâche | Détail |
+|---|--------|--------|
+| O1-1 | Inno `code.iss` | ✅ Tâches cochées par défaut |
+| O1-2 | Win11 sans appx | ✅ Legacy file + dossier si pas de paquet COM |
+| O1-3 | Win11 avec appx | ✅ `quality` + CLSID + DLL + `makeappx` dans release win32 |
+| O1-4 | Libellé | ✅ `win32ShellNameShort` → **Drox** |
+| O1-5 | Linux `.deb`/`.rpm` | ✅ `drox-ide-open-folder.desktop` |
+| O1-6 | Smoke | Win : clic droit dossier/fichier → ouvre le workspace ; Linux : Nautilus/Dolphin « Ouvrir avec » → Drox |
+
+**Critère** : install fraîche **1.5.4** · clic droit sur un dossier projet → **Ouvrir avec Drox** · Drox IDE s’ouvre sur ce dossier (Windows + Ubuntu).
 
 ### E1 — Marketplace extensions (vue Extensions / Open VSX)
 
@@ -120,6 +136,7 @@ Aujourd’hui le fork **n’expose pas** de galerie dans `product.json` (`extens
 - [ ] Moteur embarqué TUI 1.5+ (`tui_mono`)
 - [ ] Installeur Windows **signé** (W1) ou décision documentée si reporté
 - [ ] Vue **Extensions** fonctionnelle · install depuis Open VSX (E1)
+- [ ] **Ouvrir avec Drox** fonctionnel Win + Linux (O1)
 
 ---
 

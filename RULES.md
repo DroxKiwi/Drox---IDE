@@ -122,7 +122,7 @@ npm run release-publish-win32
 - Thème : **Inno 6.6+ dark natif** uniquement — `WizardStyle=modern dark hidebevels includetitlebar`, `WizardBackColor=$1E1E1E`. Pas de dessin Pascal custom (évite les artefacts sur le wizard).
 - BMP latéraux : `npm run sync-drox-inno-wizard` — fond **#1E1E1E**, logo + barre verte **opaque** (pas d’alpha dans le BMP → évite trait magenta).
 - Chrome live : `build/win32/drox-wizard-theme.inc.iss` — faisceau vert animé, grille 3×3 (style chat), masque logo haut-droite + bevels.
-- Par défaut beta : **PATH** et **associations de fichiers** décochés dans l’installeur.
+- Par défaut beta : **PATH** et **associations de fichiers** décochés dans l’installeur ; **« Ouvrir avec Drox »** (fichiers + dossiers) coché par défaut depuis **1.5.4**.
 
 ---
 
