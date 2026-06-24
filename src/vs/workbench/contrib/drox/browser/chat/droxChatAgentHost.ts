@@ -70,6 +70,7 @@ export function createDroxChatAgentEventHost(
 	return {
 		post: (message) => host.post(message),
 		getLlmModel: () => deps.runSettingsService.getLlmSettings().model,
+		getCurrentRunId: () => host.getCurrentRunId(),
 		getCurrentSessionId: () => tabs.currentSessionId,
 		setTabTitleFromModel: (sessionId, text) => tabs.setTabTitleFromModel(sessionId, text),
 		trackUsageForActiveTab: (input, output) => tabs.trackUsageForActiveTab(input, output),
