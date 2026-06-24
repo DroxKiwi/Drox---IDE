@@ -68,4 +68,66 @@ suite('DroxChatAgentHost', () => {
 		assert.ok(posts.some(p => p.kind === 'state' && p.busy === false));
 		assert.strictEqual(reconcileCalls, 1);
 	});
+
+	test('agent/done ignores stale runId while another run is active', () => {
+		const posts: DroxHostToWebviewMessage[] = [];
+		let currentRunId: string | undefined = 'run_active';
+		let askSkipped = 0;
+		let finalized: string | undefined;
+		const host = {
+			post: (m: DroxHostToWebviewMessage) => posts.push(m),
+			syncChatSessionState: () => { /* noop */ },
+			syncRunRevertState: () => { /* noop */ },
+			resolveUserAskSkipped: () => { askSkipped++; },
+			clearActivePermissionMode: () => { /* noop */ },
+			getCurrentRunId: () => currentRunId,
+			clearCurrentRunId: () => { currentRunId = undefined; },
+			getSuppressedRunId: () => undefined,
+			clearSuppressedRunId: () => { /* noop */ },
+			getPendingTool: () => undefined,
+			setPendingTool: () => { /* noop */ },
+			deletePendingTool: () => { /* noop */ },
+			takePendingToolForFileFinish: () => undefined,
+			clearPendingTools: () => { /* noop */ },
+			workspaceUri: () => undefined,
+			workspaceRoot: () => undefined,
+			openModifiedFile: async () => { /* noop */ },
+			reconcileChatBusyState: () => { /* noop */ },
+			finalizeRunRevert: (runId: string) => { finalized = runId; },
+		};
+		const tabs = {
+			currentSessionId: 'ses_test',
+			setTabTitleFromModel: () => { /* noop */ },
+			trackUsageForActiveTab: () => { /* noop */ },
+			trackContextForActiveTab: () => { /* noop */ },
+			getActiveTab: () => undefined,
+			resetActiveTabConversation: () => { /* noop */ },
+		};
+		const agentDeps = {
+			chatSessionService: { getPendingSessionReset: () => false, setPendingSessionReset: () => { /* noop */ } },
+			longMemoryService: { ingestContextChunkSummary: async () => { /* noop */ } },
+			configurationService: { getValue: () => undefined },
+			outputService: { showChannel: () => { /* noop */ } },
+			editorService: {},
+			notificationService: { notify: () => ({ close: () => { /* noop */ } }) },
+			logService: { info: () => { /* noop */ }, warn: () => { /* noop */ }, error: () => { /* noop */ } },
+			runSettingsService: { getLlmSettings: () => ({ model: 'test' }) },
+			runRevertService: { finalizeRun: (runId: string) => { finalized = runId; } },
+			hostService: { hasFocus: () => true, onDidChangeFocus: () => ({ dispose: () => { /* noop */ } }) },
+			fileService: {},
+		};
+
+		handleDroxEngineNotification(
+			true,
+			host as never,
+			tabs as never,
+			agentDeps as never,
+			{ windowId: 1, method: 'agent/done', params: { runId: 'run_stale', status: 'completed' } },
+		);
+
+		assert.strictEqual(currentRunId, 'run_active');
+		assert.strictEqual(askSkipped, 0);
+		assert.strictEqual(finalized, 'run_stale');
+		assert.ok(!posts.some(p => p.kind === 'state' && p.busy === false));
+	});
 });

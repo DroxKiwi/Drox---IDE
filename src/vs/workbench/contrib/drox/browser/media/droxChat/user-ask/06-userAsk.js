@@ -221,8 +221,41 @@
 		D.dom.userAskEl.appendChild(actions);
 	}
 
+	fn.syncUserAskTextarea = function(q, state) {
+		const ta = D.dom.userAskEl.querySelector('.user-ask-free-input');
+		if (ta) {
+			state.freeText = ta.value;
+			if (state.freeText) {
+				state.skipped = false;
+			}
+		}
+	};
+
+	fn.userAskQuestionAnswered = function(q, state) {
+		if (state.skipped) {
+			return true;
+		}
+		const hasOptions = state.optionIds && state.optionIds.size > 0;
+		const hasText = Boolean(state.freeText && String(state.freeText).trim());
+		if (q.options.length === 0) {
+			return hasText;
+		}
+		if (q.allowFreeText) {
+			return hasOptions || hasText;
+		}
+		return hasOptions;
+	};
+
 	fn.advanceOrSubmitUserAsk = function() {
 		if (!D.state.pendingUserAsk) {
+			return;
+		}
+		const idx = D.state.pendingUserAsk.currentIndex;
+		const q = D.state.pendingUserAsk.questions[idx];
+		const state = D.state.pendingUserAsk.answers.get(q.id);
+		fn.syncUserAskTextarea(q, state);
+		if (!fn.userAskQuestionAnswered(q, state)) {
+			D.dom.statusEl.textContent = 'Select an option or type an answer before continuing.';
 			return;
 		}
 		if (D.state.pendingUserAsk.currentIndex < D.state.pendingUserAsk.questions.length - 1) {
@@ -240,6 +273,19 @@
 	fn.submitUserAsk = function(skipped) {
 		if (!D.state.pendingUserAsk) {
 			return;
+		}
+		if (!skipped) {
+			const idx = D.state.pendingUserAsk.currentIndex;
+			const q = D.state.pendingUserAsk.questions[idx];
+			const state = D.state.pendingUserAsk.answers.get(q.id);
+			fn.syncUserAskTextarea(q, state);
+			for (const question of D.state.pendingUserAsk.questions) {
+				const s = D.state.pendingUserAsk.answers.get(question.id);
+				if (!fn.userAskQuestionAnswered(question, s)) {
+					D.dom.statusEl.textContent = 'Answer each question or use Skip.';
+					return;
+				}
+			}
 		}
 		const answers = D.state.pendingUserAsk.questions.map((q) => {
 			const s = D.state.pendingUserAsk.answers.get(q.id);

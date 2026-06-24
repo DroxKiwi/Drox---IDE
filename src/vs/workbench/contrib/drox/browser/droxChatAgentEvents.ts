@@ -67,6 +67,7 @@ export interface IDroxChatAgentEventHost {
 
 export interface IDroxChatAgentDoneHost extends IDroxChatAgentEventHost {
 	getLlmModel(): string;
+	getCurrentRunId(): string | undefined;
 	getSuppressedRunId(): string | undefined;
 	clearSuppressedRunId(): void;
 	resolveUserAskSkipped(): void;
@@ -435,6 +436,14 @@ export function dispatchAgentDone(host: IDroxChatAgentDoneHost, params: unknown)
 	const doneRunId = extractAgentNotificationRunId(params);
 	if (doneRunId && doneRunId === host.getSuppressedRunId()) {
 		host.clearSuppressedRunId();
+		return;
+	}
+
+	const activeRunId = host.getCurrentRunId();
+	// Notification `agent/done` d'un run précédent : ne pas skipper une carte
+	// `ask_user_question` du run encore actif (réponses perdues → « pas répondu »).
+	if (doneRunId && activeRunId && doneRunId !== activeRunId) {
+		host.finalizeRunRevert(doneRunId);
 		return;
 	}
 
