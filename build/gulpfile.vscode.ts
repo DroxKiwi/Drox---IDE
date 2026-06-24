@@ -563,9 +563,10 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 }
 
 function hasAuthenticodeSignature(filePath: string): Promise<boolean> {
-	return new Promise((resolve, reject) => {
+	return new Promise(resolve => {
 		const proc = cp.spawn('signtool.exe', ['verify', '/pa', filePath]);
-		proc.on('error', reject);
+		// Local OSS builds often lack Windows SDK / signtool on PATH — treat as unsigned.
+		proc.on('error', () => resolve(false));
 		proc.on('exit', code => resolve(code === 0));
 	});
 }
@@ -582,7 +583,7 @@ async function stripAuthenticodeSignature(filePath: string): Promise<void> {
 		let out = '';
 		proc.stdout?.on('data', chunk => out += chunk.toString());
 		proc.stderr?.on('data', chunk => out += chunk.toString());
-		proc.on('error', reject);
+		proc.on('error', () => resolve());
 		proc.on('exit', code => {
 			if (code === 0) {
 				resolve();
@@ -613,20 +614,24 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 			const basename = path.basename(dep);
 			const fullPath = path.join(cwd, dep);
 
-			await stripAuthenticodeSignature(fullPath);
-			await rcedit(fullPath, {
-				'file-version': baseVersion,
-				'version-string': {
-					'CompanyName': 'Microsoft Corporation',
-					'FileDescription': product.nameLong,
-					'FileVersion': packageJson.version,
-					'InternalName': basename,
-					'LegalCopyright': 'Copyright (C) 2026 Microsoft. All rights reserved',
-					'OriginalFilename': basename,
-					'ProductName': product.nameLong,
-					'ProductVersion': packageJson.version,
-				}
-			});
+			try {
+				await stripAuthenticodeSignature(fullPath);
+				await rcedit(fullPath, {
+					'file-version': baseVersion,
+					'version-string': {
+						'CompanyName': 'Microsoft Corporation',
+						'FileDescription': product.nameLong,
+						'FileVersion': packageJson.version,
+						'InternalName': basename,
+						'LegalCopyright': 'Copyright (C) 2026 Microsoft. All rights reserved',
+						'OriginalFilename': basename,
+						'ProductName': product.nameLong,
+						'ProductVersion': packageJson.version,
+					}
+				});
+			} catch (err) {
+				console.warn(`[patchWin32Dependencies] skip ${dep}: ${err}`);
+			}
 		});
 
 		await Promise.all(patchPromises);
