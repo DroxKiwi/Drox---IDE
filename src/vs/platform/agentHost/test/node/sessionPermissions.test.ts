@@ -12,7 +12,7 @@ import { isWindows } from '../../../../base/common/platform.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { NullLogService } from '../../../log/common/log.js';
-import { platformSessionSchema } from '../../common/agentHostSchema.js';
+import { AgentHostTerminalAutoApproveEnabledConfigKey, platformSessionSchema } from '../../common/agentHostSchema.js';
 import { SessionConfigKey } from '../../common/sessionConfigKeys.js';
 import { SessionStatus, ToolCallConfirmationReason, type SessionSummary } from '../../common/state/sessionState.js';
 import { AgentConfigurationService } from '../../node/agentConfigurationService.js';
@@ -23,6 +23,7 @@ suite('SessionPermissionManager', () => {
 
 	const disposables = new DisposableStore();
 	let manager: AgentHostStateManager;
+	let configService: AgentConfigurationService;
 	let permissions: SessionPermissionManager;
 
 	// Real (symlink-resolved) temp directories so that the symlink-resolution
@@ -49,18 +50,26 @@ suite('SessionPermissionManager', () => {
 		return { toolCallId: 'tc-1', session: URI.parse(sessionUri), permissionKind: 'write', permissionPath };
 	}
 
+	function shellEvent(commandLine: string): IToolApprovalEvent {
+		return { toolCallId: 'tc-shell', session: URI.parse(sessionUri), permissionKind: 'shell', toolInput: commandLine };
+	}
+
 	setup(async () => {
 		// Prefer the CI runner temp dir (a plain long path) over `os.tmpdir()`,
 		// which on Windows CI is an 8.3 short path (`C:\Users\RUNNER~1\...`) that
 		// `assertPathIsSafe` rejects for its `~1` segment — which would make every
-		// auto-approval fail. `realpathSync` keeps macOS `/var` -> `/private/var`
-		// consistent so the symlink-resolution checks compare like-for-like.
-		const baseTmp = process.env.RUNNER_TEMP || tmpdir();
+		// write auto-approval fail. `AGENT_TEMPDIRECTORY` is set by Azure DevOps
+		// (VS Code's CI) and `RUNNER_TEMP` by GitHub Actions. Note that the JS
+		// `fs.realpathSync` does not expand 8.3 short names to their long form, so
+		// the short-path fallback can't be repaired afterwards. `realpathSync`
+		// keeps macOS `/var` -> `/private/var` consistent so the symlink-resolution
+		// checks compare like-for-like.
+		const baseTmp = process.env.AGENT_TEMPDIRECTORY || process.env.RUNNER_TEMP || tmpdir();
 		workDir = realpathSync(mkdtempSync(join(baseTmp, 'sesperm-work-')));
 		outsideDir = realpathSync(mkdtempSync(join(baseTmp, 'sesperm-out-')));
 
 		manager = disposables.add(new AgentHostStateManager(new NullLogService()));
-		const configService = disposables.add(new AgentConfigurationService(manager, new NullLogService()));
+		configService = disposables.add(new AgentConfigurationService(manager, new NullLogService()));
 		permissions = disposables.add(new SessionPermissionManager(manager, configService, new NullLogService()));
 		await permissions.initialize();
 
@@ -138,5 +147,28 @@ suite('SessionPermissionManager', () => {
 			sessionUri,
 		);
 		assert.deepStrictEqual([inside, outside], [ToolCallConfirmationReason.NotNeeded, undefined]);
+	});
+
+	test('auto-approves shell commands in default permission mode when terminal auto-approve is enabled', async () => {
+		const result = await permissions.getAutoApproval(shellEvent('echo hello'), sessionUri);
+		assert.strictEqual(result, ToolCallConfirmationReason.NotNeeded);
+	});
+
+	test('requires confirmation for shell commands in default permission mode when terminal auto-approve is disabled', async () => {
+		configService.updateRootConfig({ [AgentHostTerminalAutoApproveEnabledConfigKey]: false });
+
+		const result = await permissions.getAutoApproval(shellEvent('echo hello'), sessionUri);
+		assert.strictEqual(result, undefined);
+	});
+
+	test('does not affect session bypass permission mode when terminal auto-approve is disabled', async () => {
+		configService.updateRootConfig({ [AgentHostTerminalAutoApproveEnabledConfigKey]: false });
+		manager.setSessionConfig(sessionUri, {
+			schema: platformSessionSchema.toProtocol(),
+			values: { [SessionConfigKey.AutoApprove]: 'autoApprove' },
+		});
+
+		const result = await permissions.getAutoApproval(shellEvent('echo hello'), sessionUri);
+		assert.strictEqual(result, ToolCallConfirmationReason.Setting);
 	});
 });

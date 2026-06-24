@@ -81,7 +81,7 @@ Archive pré-1.2.0 : dossier [`0.0/`](0.0/).
 | [DROX.md](../../DROX.md) | Build, watch, Ollama, premier chat |
 | [guides/GUIDE-MOTEUR-DROX.md](guides/GUIDE-MOTEUR-DROX.md) | Phases, tools, permissions, JSON-RPC — **§18 = fork Nexus** |
 | [architecture/PROTOCOLE-JSONRPC.md](architecture/PROTOCOLE-JSONRPC.md) | Contrat wire NDJSON (`drox --serve`) |
-| [operations/GUIDE-PUBLICATION-WIN32.md](operations/GUIDE-PUBLICATION-WIN32.md) | **Publication release** Windows + clôture branche |
+| [operations/README.md](operations/README.md) | **Index opérations** — branche, upstream, release win/linux |
 | [operations/SMOKE-RPC.md](operations/SMOKE-RPC.md) | Smoke RPC manuel |
 | [operations/PATCHNOTE-STABILISATION-PROFILS.md](operations/PATCHNOTE-STABILISATION-PROFILS.md) | **Actif** — carnet bugs Low → Medium (campagnes de test) |
 

@@ -20,6 +20,7 @@ body {
 	--drox-ai-indent: 18px;
 	--drox-chrome-h: 0px;
 	--drox-log-sticky-user-h: 0px;
+	--drox-chat-frame-radius: 0;
 }
 
 * {
@@ -325,7 +326,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	min-width: 0;
 	margin: 0;
 	padding: 0 2px 1px 6px;
-	border-radius: 10px 10px 0 0;
+	border-radius: var(--drox-chat-frame-radius);
 	border: 1px solid var(--drox-ui-green, var(--vscode-panel-border));
 	border-bottom: none;
 	box-sizing: border-box;
@@ -922,7 +923,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 
 details.drox-run-work-collapsible {
 	border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 55%, transparent);
-	border-radius: 10px;
+	border-radius: var(--drox-chat-frame-radius);
 	padding: 0 10px 8px;
 	background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--drox-ui-green, #3d7a3d) 8%);
 }
@@ -1129,7 +1130,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .drox-run-sticky-head .msg-todos {
 	margin: 0;
 	padding: 10px 12px;
-	border-radius: 10px;
+	border-radius: var(--drox-chat-frame-radius);
 	border: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 55%, transparent);
 	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
 }
@@ -1854,7 +1855,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 /* Cadre commun pour réponses / phases / outils IA (sans bordure verte) */
 .msg-ai-frame {
 	border: none;
-	border-radius: 8px;
+	border-radius: var(--drox-chat-frame-radius);
 	background: transparent;
 }
 
@@ -2038,7 +2039,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .phase-block:not(.msg-ai-frame) {
 	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-	border-radius: 6px;
+	border-radius: var(--drox-chat-frame-radius);
 	padding: 0;
 	overflow: hidden;
 }
@@ -2296,7 +2297,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .msg-tool:not(.msg-ai-frame) {
 	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-	border-radius: 6px;
+	border-radius: var(--drox-chat-frame-radius);
 }
 
 .msg-tool.running summary .spin::before {
@@ -2349,7 +2350,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 /* Shell command cards (outil bash — type Cursor) */
 .drox-shell-card {
 	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-	border-radius: 8px;
+	border-radius: var(--drox-chat-frame-radius);
 	background: var(--vscode-editor-background);
 	overflow: hidden;
 }
@@ -2571,7 +2572,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .drox-plan-sticky-footer .msg-todos {
 	margin: 0;
 	padding: 8px 10px 10px;
-	border-radius: 10px;
+	border-radius: var(--drox-chat-frame-radius);
 	border: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 55%, transparent);
 	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
 }
@@ -2588,8 +2589,8 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .drox-plan-sticky-footer .todo-item.todo-active {
-	background: color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 14%, transparent);
-	border-radius: 6px;
+	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 14%, transparent);
+	border-radius: var(--drox-chat-frame-radius);
 }
 
 #composer[hidden] {
@@ -3952,9 +3953,9 @@ button:disabled {
 	gap: 8px;
 	padding: 10px 12px;
 	margin: 0 10px 6px;
-	border: 1px solid var(--vscode-focusBorder);
-	border-radius: 8px;
-	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 55%, var(--vscode-panel-border));
+	border-radius: var(--drox-chat-frame-radius);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-panel-border) 12%);
 	font-size: 12px;
 	flex: 0 0 auto;
 	flex-shrink: 0;
@@ -3976,11 +3977,14 @@ button:disabled {
 
 .user-ask-title {
 	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
 }
 
 .user-ask-counter {
 	color: var(--vscode-descriptionForeground);
 	font-size: 11px;
+	font-variant-numeric: tabular-nums;
 }
 
 .user-ask-prompt {
@@ -4000,8 +4004,8 @@ button:disabled {
 	align-items: flex-start;
 	gap: 8px;
 	padding: 6px 8px;
-	border: 1px solid var(--vscode-panel-border);
-	border-radius: 6px;
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 40%, var(--vscode-panel-border));
+	border-radius: var(--drox-chat-frame-radius);
 	background: transparent;
 	color: var(--vscode-foreground);
 	font: inherit;
@@ -4014,8 +4018,8 @@ button:disabled {
 }
 
 .user-ask-option.selected {
-	border-color: var(--vscode-focusBorder);
-	background: var(--vscode-button-secondaryBackground, var(--vscode-toolbar-hoverBackground));
+	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 72%, transparent);
+	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 12%, var(--vscode-editor-background));
 }
 
 .user-ask-option-letter {
@@ -4025,16 +4029,16 @@ button:disabled {
 	width: 18px;
 	height: 18px;
 	flex: 0 0 18px;
-	border: 1px solid var(--vscode-panel-border);
-	border-radius: 3px;
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 45%, var(--vscode-panel-border));
+	border-radius: var(--drox-chat-frame-radius);
 	font-size: 11px;
 	font-weight: 600;
 }
 
 .user-ask-option.selected .user-ask-option-letter {
-	background: var(--vscode-focusBorder);
+	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 78%, var(--drox-thread-brown-deep, #2e281c) 22%);
 	color: var(--vscode-editor-background);
-	border-color: var(--vscode-focusBorder);
+	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 72%, transparent);
 }
 
 .user-ask-free-input {
@@ -4042,9 +4046,9 @@ button:disabled {
 	resize: vertical;
 	min-height: 26px;
 	padding: 5px 8px;
-	border: 1px solid var(--vscode-panel-border);
-	border-radius: 6px;
-	background: var(--vscode-input-background);
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 40%, var(--vscode-panel-border));
+	border-radius: var(--drox-chat-frame-radius);
+	background: color-mix(in srgb, var(--vscode-input-background) 92%, var(--vscode-editor-background) 8%);
 	color: var(--vscode-input-foreground);
 	font: inherit;
 }
@@ -4058,12 +4062,13 @@ button:disabled {
 
 .user-ask-action {
 	padding: 4px 10px;
-	border-radius: 6px;
+	border-radius: var(--drox-chat-frame-radius);
 	border: 1px solid transparent;
 	background: transparent;
 	color: var(--vscode-foreground);
 	font: inherit;
 	cursor: pointer;
+	letter-spacing: 0.03em;
 }
 
 .user-ask-action:hover {
@@ -4076,12 +4081,13 @@ button:disabled {
 }
 
 .user-ask-action.next {
-	background: var(--vscode-button-background);
-	color: var(--vscode-button-foreground);
+	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 78%, var(--drox-thread-brown-deep, #2e281c) 22%);
+	color: var(--vscode-editor-background);
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 65%, transparent);
 }
 
 .user-ask-action.next:hover {
-	background: var(--vscode-button-hoverBackground);
+	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 88%, var(--drox-thread-brown-deep, #2e281c) 12%);
 }
 
 /* --- Références fichier/dossier --- */
@@ -4218,9 +4224,9 @@ button:disabled {
 .msg-todos {
 	margin: 10px 0 14px;
 	padding: 12px 14px;
-	border: none;
-	border-radius: 12px;
-	background: transparent;
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 45%, var(--vscode-panel-border));
+	border-radius: var(--drox-chat-frame-radius);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-panel-border) 12%);
 }
 
 .todos-head {
@@ -4449,6 +4455,12 @@ button:disabled {
 
 /* --- Carte fichier modifié (diff repliable) --- */
 
+.msg-file-change.msg-ai-frame {
+	border: 1px solid var(--vscode-panel-border);
+	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	overflow: hidden;
+}
+
 .msg-file-change.is-not-applied {
 	opacity: 0.82;
 	border-style: dashed;
@@ -4485,6 +4497,7 @@ button:disabled {
 }
 
 .drox-run-chronology .msg-file-change,
+.drox-run-answer .msg-file-change,
 #log > .msg-file-change {
 	margin: 4px 0 6px;
 	max-width: 100%;
@@ -4635,24 +4648,27 @@ button:disabled {
 }
 
 .msg-file-change .fc-body {
+	display: block;
 	max-height: 360px;
 	overflow: auto;
 	background: var(--vscode-editor-background);
 }
 
 .msg-file-change .fc-diff {
+	display: block;
 	margin: 0;
 	padding: 6px 0;
 	background: transparent;
 	font-family: var(--vscode-editor-font-family);
 	font-size: 11.5px;
 	line-height: 1.45;
-	white-space: pre;
+	white-space: normal;
 	tab-size: 4;
 }
 
 .msg-file-change .diff-line {
 	display: block;
+	min-height: 1.35em;
 	padding: 0 10px;
 	white-space: pre;
 	font-family: inherit;

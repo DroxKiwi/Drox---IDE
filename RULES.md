@@ -76,7 +76,7 @@ Affichage utilisateur : `1.3.1 (base VS Code 1.122.0)` via `getProductDisplayVer
 
 ## 3. Build & release Windows
 
-**Guide publication + clôture branche** : [drox-engine/docs/operations/GUIDE-PUBLICATION-WIN32.md](drox-engine/docs/operations/GUIDE-PUBLICATION-WIN32.md)
+**Guide publication + clôture branche** : [drox-engine/docs/operations/README.md](drox-engine/docs/operations/README.md)
 
 ### Commandes usuelles
 
@@ -122,7 +122,7 @@ npm run release-publish-win32
 - Thème : **Inno 6.6+ dark natif** uniquement — `WizardStyle=modern dark hidebevels includetitlebar`, `WizardBackColor=$1E1E1E`. Pas de dessin Pascal custom (évite les artefacts sur le wizard).
 - BMP latéraux : `npm run sync-drox-inno-wizard` — fond **#1E1E1E**, logo + barre verte **opaque** (pas d’alpha dans le BMP → évite trait magenta).
 - Chrome live : `build/win32/drox-wizard-theme.inc.iss` — faisceau vert animé, grille 3×3 (style chat), masque logo haut-droite + bevels.
-- Par défaut beta : **PATH** et **associations de fichiers** décochés dans l’installeur ; **« Ouvrir avec Drox »** (fichiers + dossiers) coché par défaut depuis **1.5.4**.
+- Par défaut beta : **PATH** et **associations de fichiers** décochés dans l’installeur.
 
 ---
 

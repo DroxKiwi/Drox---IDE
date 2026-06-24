@@ -42,6 +42,18 @@ OUT_DIR="$PARENT_ROOT/VSCode-linux-x64"
 PRODUCT_SHORT='drox-ide'
 
 export DROX_PRODUCT_SURFACE=release
+# .npmrc cible Electron 42.3.0 ; checksums electron.txt encore en 42.2.0 (cf. drox-release.ps1)
+export DROX_SKIP_ELECTRON_CHECKSUM="${DROX_SKIP_ELECTRON_CHECKSUM:-1}"
+
+# One-time: fetch OpenSSL prebuilt for VS Code CLI (tunnel). Idempotent after first gulp compile-cli.
+ensure_cli_openssl_prebuilt() {
+	local openssl_lib="$REPO_ROOT/cli/openssl/package/out/x64-linux/lib"
+	if [[ -d "$openssl_lib" ]]; then
+		return 0
+	fi
+	step 'gulp compile-cli (openssl prebuilt for tunnel)'
+	run_npm run gulp -- compile-cli
+}
 
 step() {
 	echo ""
@@ -110,6 +122,16 @@ fi
 
 step 'gulp vscode-linux-x64-min-ci'
 run_npm run gulp -- vscode-linux-x64-min-ci
+
+step 'merge-product-gallery (Open VSX)'
+node "$SCRIPT_DIR/lib/merge-product-gallery.mjs" "$OUT_DIR"
+
+if [[ "$WITH_DEB" -eq 1 ]]; then
+	ensure_cli_openssl_prebuilt
+	step 'stage-linux-cli-tunnel (drox-ide-tunnel)'
+	chmod +x "$SCRIPT_DIR/stage-linux-cli-tunnel.sh"
+	"$SCRIPT_DIR/stage-linux-cli-tunnel.sh" "$OUT_DIR"
+fi
 
 if [[ "$WITH_DEB" -eq 1 ]]; then
 	step 'gulp vscode-linux-x64-prepare-deb + build-deb'

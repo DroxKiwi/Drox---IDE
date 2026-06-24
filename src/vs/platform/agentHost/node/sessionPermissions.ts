@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { realpath } from 'fs/promises';
 import { homedir } from 'os';
 import { match as globMatch, parse as globParse, type ParsedPattern } from '../../../base/common/glob.js';
 import { untildify } from '../../../base/common/labels.js';
@@ -13,9 +12,10 @@ import { isMacintosh, isWindows } from '../../../base/common/platform.js';
 import { extUriBiasedIgnorePathCase, normalizePath } from '../../../base/common/resources.js';
 import { isDefined } from '../../../base/common/types.js';
 import { URI } from '../../../base/common/uri.js';
+import { Promises } from '../../../base/node/pfs.js';
 import { localize } from '../../../nls.js';
 import { ILogService } from '../../log/common/log.js';
-import { platformSessionSchema } from '../common/agentHostSchema.js';
+import { AgentHostTerminalAutoApproveEnabledConfigKey, platformRootSchema, platformSessionSchema } from '../common/agentHostSchema.js';
 import type { IAgentToolPendingConfirmationSignal } from '../common/agentService.js';
 import { SessionConfigKey } from '../common/sessionConfigKeys.js';
 import { ConfirmationOptionKind, type ConfirmationOption } from '../common/state/protocol/state.js';
@@ -150,7 +150,7 @@ function assertPathIsSafe(fsPath: string, _isWindows = isWindows): void {
  */
 async function resolveRealPathForNonexistent(fsPath: string): Promise<string> {
 	try {
-		return await realpath(fsPath);
+		return await Promises.realpath(fsPath);
 	} catch (e) {
 		if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
 			throw e;
@@ -166,7 +166,7 @@ async function resolveRealPathForNonexistent(fsPath: string): Promise<string> {
 			return fsPath;
 		}
 		try {
-			const resolved = await realpath(current);
+			const resolved = await Promises.realpath(current);
 			return path.join(resolved, ...tail);
 		} catch (e) {
 			const code = (e as NodeJS.ErrnoException).code;
@@ -272,6 +272,9 @@ export class SessionPermissionManager extends Disposable {
 
 		// 5. Shell auto-approval
 		if (e.permissionKind === 'shell' && e.toolInput) {
+			if (this._configService.getRootValue(platformRootSchema, AgentHostTerminalAutoApproveEnabledConfigKey) === false) {
+				return undefined;
+			}
 			const result = this._commandAutoApprover.shouldAutoApprove(e.toolInput, {
 				isWriteDestApproved: (dest) => this._isShellWriteDestApproved(dest, workDir),
 			});
