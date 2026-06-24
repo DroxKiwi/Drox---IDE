@@ -47,7 +47,10 @@ function prepareDebPackage(arch: string) {
 		const desktopUrlHandler = gulp.src('resources/linux/code-url-handler.desktop', { base: '.' })
 			.pipe(rename('usr/share/applications/' + product.applicationName + '-url-handler.desktop'));
 
-		const desktops = es.merge(desktop, desktopUrlHandler)
+		const desktopOpenFolder = gulp.src('resources/linux/code-open-folder.desktop', { base: '.' })
+			.pipe(rename('usr/share/applications/' + product.applicationName + '-open-folder.desktop'));
+
+		const desktops = es.merge(desktop, desktopUrlHandler, desktopOpenFolder)
 			.pipe(replace('@@NAME_LONG@@', product.nameLong))
 			.pipe(replace('@@NAME_SHORT@@', product.nameShort))
 			.pipe(replace('@@NAME@@', product.applicationName))
@@ -157,7 +160,10 @@ function prepareRpmPackage(arch: string) {
 		const desktopUrlHandler = gulp.src('resources/linux/code-url-handler.desktop', { base: '.' })
 			.pipe(rename('BUILD/usr/share/applications/' + product.applicationName + '-url-handler.desktop'));
 
-		const desktops = es.merge(desktop, desktopUrlHandler)
+		const desktopOpenFolder = gulp.src('resources/linux/code-open-folder.desktop', { base: '.' })
+			.pipe(rename('BUILD/usr/share/applications/' + product.applicationName + '-open-folder.desktop'));
+
+		const desktops = es.merge(desktop, desktopUrlHandler, desktopOpenFolder)
 			.pipe(replace('@@NAME_LONG@@', product.nameLong))
 			.pipe(replace('@@NAME_SHORT@@', product.nameShort))
 			.pipe(replace('@@NAME@@', product.applicationName))
@@ -244,7 +250,10 @@ function prepareSnapPackage(arch: string) {
 		const desktopUrlHandler = gulp.src('resources/linux/code-url-handler.desktop', { base: '.' })
 			.pipe(rename(`snap/gui/${product.applicationName}-url-handler.desktop`));
 
-		const desktops = es.merge(desktop, desktopUrlHandler)
+		const desktopOpenFolder = gulp.src('resources/linux/code-open-folder.desktop', { base: '.' })
+			.pipe(rename(`snap/gui/${product.applicationName}-open-folder.desktop`));
+
+		const desktops = es.merge(desktop, desktopUrlHandler, desktopOpenFolder)
 			.pipe(replace('@@NAME_LONG@@', product.nameLong))
 			.pipe(replace('@@NAME_SHORT@@', product.nameShort))
 			.pipe(replace('@@NAME@@', product.applicationName))

@@ -54,16 +54,45 @@ function Invoke-Npm([string[]]$NpmArgs) {
 
 function Add-WindowsSdkSignToolToPath {
 	$kitsBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
-	if (-not (Test-Path $kitsBin)) { return }
+	if (-not (Test-Path $kitsBin)) { return $null }
 	$verDir = Get-ChildItem $kitsBin -Directory -ErrorAction SilentlyContinue |
 		Sort-Object Name -Descending |
 		Select-Object -First 1
-	if (-not $verDir) { return }
+	if (-not $verDir) { return $null }
 	$toolDir = Join-Path $verDir.FullName 'x64'
 	if (Test-Path (Join-Path $toolDir 'signtool.exe')) {
 		$env:PATH = "$toolDir;$env:PATH"
-		Write-Host "[build-release] signtool: $toolDir"
+		Write-Host "[build-release] Windows SDK tools: $toolDir"
 	}
+	return $toolDir
+}
+
+function Ensure-Win32ExplorerDll {
+	$appxDir = Join-Path $repoRoot '.build\win32\appx'
+	$dll = Join-Path $appxDir 'code_explorer_command_x64.dll'
+	if (Test-Path $dll) { return }
+	Write-Step 'Explorer context-menu DLL (Win11)'
+	New-Item -ItemType Directory -Force -Path $appxDir | Out-Null
+	& node (Join-Path $repoRoot 'build\win32\explorer-dll-fetcher.ts') $appxDir
+	if ($LASTEXITCODE -ne 0) { throw 'explorer-dll-fetcher a echoue' }
+}
+
+function Invoke-Win32AppxPack([string]$PackagedDir) {
+	$manifestDir = Join-Path $PackagedDir 'appx\manifest'
+	if (-not (Test-Path (Join-Path $manifestDir 'AppxManifest.xml'))) {
+		Write-Host '[build-release] Pas de manifest appx — menus contextuels legacy uniquement.' -ForegroundColor Yellow
+		return
+	}
+	$makeappx = Get-Command makeappx.exe -ErrorAction SilentlyContinue
+	if (-not $makeappx) {
+		Write-Host '[build-release] makeappx.exe introuvable — Win11 utilisera le menu contextuel classique.' -ForegroundColor Yellow
+		return
+	}
+	$appxOut = Join-Path $PackagedDir 'appx\code_x64.appx'
+	Write-Step "makeappx pack -> $appxOut"
+	& $makeappx.Source pack /d $manifestDir /p $appxOut /nv
+	if ($LASTEXITCODE -ne 0) { throw "makeappx pack a echoue (code $LASTEXITCODE)" }
+	Remove-Item -Path $manifestDir -Recurse -Force
 }
 
 function Invoke-Gulp([string]$TaskName) {
@@ -153,7 +182,9 @@ if (-not (Test-Path $copilotSdk)) {
 }
 
 Write-Step 'gulp vscode-win32-x64-min-ci - package Electron'
+Ensure-Win32ExplorerDll
 Invoke-Gulp 'vscode-win32-x64-min-ci'
+Invoke-Win32AppxPack $outDir
 
 Write-Step 'gulp vscode-win32-x64-inno-updater'
 Invoke-Gulp 'vscode-win32-x64-inno-updater'
