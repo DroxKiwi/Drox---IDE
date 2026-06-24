@@ -12,7 +12,7 @@
 | [**1.5.1/**](1.5.1/README.md) | Fil chat / TUI + wizard connexion | **Livré** · `v1.5.1` |
 | [**1.5.1b/**](1.5.1b/README.md) | Scripts pipeline Linux | **Préparé** · ship → **1.5.4** |
 | [**1.5.2/**](1.5.2/README.md) | Configuration moteur depuis l’IDE | **Livré** · `v1.5.2` |
-| [**1.5.3/**](1.5.3/README.md) | Diffs fil + UX chat + splash phosphore | **En cours** · branche `1.5.3` |
+| [**1.5.3/**](1.5.3/README.md) | Diffs fil + UX chat + splash | **Livré** · `v1.5.3` |
 | [**1.5.4/**](1.5.4/README.md) | Release Linux `.deb` + Authenticode + marketplace extensions | **Planifié** |
 
 ---
@@ -34,5 +34,6 @@
 - [PLAN 1.5.2](1.5.2/PLAN-1.5.2.md)
 - [PLAN 1.5.3](1.5.3/PLAN-1.5.3.md)
 - [PLAN 1.5.4](1.5.4/PLAN-1.5.4.md)
+- [GUIDE release & upstream](../GUIDE-RELEASE-ET-UPSTREAM.md)
 - [GUIDE publication Windows](../operations/GUIDE-PUBLICATION-WIN32.md)
 - [GUIDE publication Linux](../operations/GUIDE-PUBLICATION-LINUX.md)
