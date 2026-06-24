@@ -204,7 +204,7 @@ export const config = {
 	winIcon: 'resources/win32/drox.ico',
 	token: process.env['GITHUB_TOKEN'],
 	repo: product.electronRepository || undefined,
-	validateChecksum: true,
+	validateChecksum: process.env['DROX_SKIP_ELECTRON_CHECKSUM'] === '1' ? false : true,
 	checksumFile: path.join(root, 'build', 'checksums', 'electron.txt'),
 	createVersionedResources: useVersionedUpdate,
 	productVersionString: versionedResourcesFolder,
