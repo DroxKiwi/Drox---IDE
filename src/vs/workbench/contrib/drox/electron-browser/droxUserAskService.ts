@@ -28,6 +28,7 @@ import { RpcRequestResult } from '../common/droxRpc.js';
 
 interface IPendingUserAsk {
 	readonly askId: string;
+	readonly runId: string;
 	readonly questions: Array<{ id: string; options: Array<{ id: string }> }>;
 	readonly resolve: (answers: IDroxUserAskAnswer[]) => void;
 }
@@ -196,6 +197,7 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 		const answers = await new Promise<IDroxUserAskAnswer[]>(resolve => {
 			this._pending = {
 				askId: parsed.askId,
+				runId: parsed.runId,
 				questions: parsed.questions.map(q => ({
 					id: q.id,
 					options: q.options.map(o => ({ id: o.id })),
