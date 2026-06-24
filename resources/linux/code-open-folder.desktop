@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Open with @@NAME_LONG@@
+Name[fr]=Ouvrir avec Drox
+Comment=Open folder in @@NAME_LONG@@
+Comment[fr]=Ouvrir le dossier dans @@NAME_LONG@@
+Exec=@@EXEC@@ %F
+Icon=@@ICON@@
+Type=Application
+NoDisplay=true
+StartupNotify=true
+StartupWMClass=@@NAME_SHORT@@
+MimeType=inode/directory;

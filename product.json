@@ -23,7 +23,16 @@
 	"win32x64UserAppId": "{{4F0C13D6-7E50-6F4C-B1A3-9D8E7F6A5B4C}",
 	"win32arm64UserAppId": "{{5A1D24E7-8F61-7A5D-C2B4-AE9F807B6C5D}",
 	"win32AppUserModelId": "KDDS.DroxIDE",
-	"win32ShellNameShort": "Drox &IDE",
+	"win32ShellNameShort": "Drox",
+	"quality": "stable",
+	"win32ContextMenu": {
+		"x64": {
+			"clsid": "A7B3C4D5-E6F7-4890-A1B2-C3D4E5F60718"
+		},
+		"arm64": {
+			"clsid": "B8C4D5E6-F708-4911-B2C3-D4E5F6071829"
+		}
+	},
 	"win32TunnelServiceMutex": "droxide-tunnelservice",
 	"win32TunnelMutex": "droxide-tunnel",
 	"darwinBundleIdentifier": "com.kdds.droxide",
