@@ -116,12 +116,17 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		};
 
 		if (quality === 'stable' || quality === 'insider') {
-			definitions['AppxPackage'] = `${quality === 'stable' ? 'code' : 'code_insider'}_${arch}.appx`;
-			definitions['AppxPackageDll'] = `${quality === 'stable' ? 'code' : 'code_insider'}_explorer_command_${arch}.dll`;
-			definitions['AppxPackageName'] = `${product.win32AppUserModelId}`;
-			const ctxMenu = (product as { win32ContextMenu?: Record<string, { clsid: string }> }).win32ContextMenu;
-			if (ctxMenu && ctxMenu[arch]) {
-				definitions['FileExplorerContextMenuCLSID'] = ctxMenu[arch].clsid;
+			const appxFile = `${quality === 'stable' ? 'code' : 'code_insider'}_${arch}.appx`;
+			const appxDll = `${quality === 'stable' ? 'code' : 'code_insider'}_explorer_command_${arch}.dll`;
+			// Local OSS builds often lack makeappx — only wire appx into Inno when the package exists.
+			if (fs.existsSync(path.join(sourcePath, 'appx', appxFile))) {
+				definitions['AppxPackage'] = appxFile;
+				definitions['AppxPackageDll'] = appxDll;
+				definitions['AppxPackageName'] = `${product.win32AppUserModelId}`;
+				const ctxMenu = (product as { win32ContextMenu?: Record<string, { clsid: string }> }).win32ContextMenu;
+				if (ctxMenu && ctxMenu[arch]) {
+					definitions['FileExplorerContextMenuCLSID'] = ctxMenu[arch].clsid;
+				}
 			}
 		}
 

@@ -14,9 +14,9 @@
 | **L3** Smoke Linux | 0 % | oui |
 | **W1** Confiance Windows (Authenticode) | 0 % | UX install Windows |
 | **O1** « Ouvrir avec Drox » (Win + Linux) | **~90 %** | adoption IDE |
-| **E1** Marketplace extensions (Open VSX) | 0 % | adoption IDE |
+| **E1** Marketplace extensions (Open VSX) | **✅ livré** — merge build + dev + smoke | — |
 
-**Prochaine étape** : build `.deb` · ship OR · traiter SmartScreen « Éditeur inconnu ».
+**Prochaine étape** : **W1 Authenticode** (signature installeur Windows) · build `.deb` · ship OR.
 
 ---
 
@@ -99,21 +99,23 @@ Aujourd’hui le fork **n’expose pas** de galerie dans `product.json` (`extens
 
 | Couche | Fichiers | État |
 |--------|----------|------|
-| `product.json` | pas de `extensionsGallery` | galerie désactivée |
+| `product.json` source | pas de `extensionsGallery` | ✅ hygiene OSS |
+| `product.gallery.json` | URLs Open VSX | ✅ source de vérité |
+| Merge release | `merge-product-gallery.mjs` (win32 + linux) | ✅ |
+| Dev | `bootstrap-meta.ts` | ✅ |
 | Extensions embarquées build | `builtInExtensions` (js-debug…) | ✅ via build |
-| Gardes fork marketplace cloud | dé-branding / `officialMarketplaceStartupCheck` | à auditer si blocage résiduel |
-| UI Extensions | workbench VS Code natif | prête si `extensionsGallery` renseigné |
+| UI Extensions | workbench VS Code natif | ✅ smoke validé |
 
 #### Checklist
 
-- [ ] **E1-1** — Ajouter `extensionsGallery` dans `product.json` (URLs Open VSX — aligner sur [VSCodium `product.json`](https://github.com/VSCodium/vscodium/blob/master/product.json) ou doc Eclipse)
-- [ ] **E1-2** — `extensionAllowedBadgeProviders` / `linkProtectionTrustedDomains` si requis par la version VS Code de base
-- [ ] **E1-3** — Audit : retirer ou assouplir les gardes qui court-circuitent l’install marketplace au démarrage (si encore actives sur la lignée Drox)
-- [ ] **E1-4** — Smoke : vue Extensions → recherche `Git Graph` · install · reload → extension active
-- [ ] **E1-5** — Smoke : `ESLint` (ou équivalent) sur workspace TypeScript — diagnostics visibles
-- [ ] **E1-6** — Doc utilisateur : extensions supportées via Open VSX ; limites (extensions Microsoft-only / Copilot non garanties) · [README 1.5.4](README.md) + notice OR
+- [x] **E1-1** — `product.gallery.json` mergé dans `product.json` **packagé** via `scripts/lib/merge-product-gallery.mjs` ; dev via `bootstrap-meta.ts`
+- [x] **E1-2** — `linkProtectionTrustedDomains` + `controlUrl` Eclipse dans `product.gallery.json`
+- [x] **E1-3** — Audit : aucune garde Drox spécifique ne bloque la galerie (workbench natif)
+- [x] **E1-4** — Smoke : vue Extensions → install extension → reload OK
+- [x] **E1-5** — Smoke : linter (ESLint ou équivalent) fonctionnel
+- [x] **E1-6** — Doc : [GUIDE-MARKETPLACE-OPEN-VSX.md](../../operations/GUIDE-MARKETPLACE-OPEN-VSX.md)
 
-**Exemple `extensionsGallery` (indicatif — valider URLs à jour au ship)** :
+**Exemple `extensionsGallery` (source : `product.gallery.json` à la racine — mergé au build, pas dans `product.json` OSS)** :
 
 ```json
 "extensionsGallery": {
@@ -135,7 +137,7 @@ Aujourd’hui le fork **n’expose pas** de galerie dans `product.json` (`extens
 - [ ] `.deb` installable sans Rust préinstallé
 - [ ] Moteur embarqué TUI 1.5+ (`tui_mono`)
 - [ ] Installeur Windows **signé** (W1) ou décision documentée si reporté
-- [ ] Vue **Extensions** fonctionnelle · install depuis Open VSX (E1)
+- [x] Vue **Extensions** fonctionnelle · install depuis Open VSX (E1)
 - [ ] **Ouvrir avec Drox** fonctionnel Win + Linux (O1)
 
 ---
@@ -151,8 +153,8 @@ flowchart LR
   subgraph WIN["Windows W1"]
     S["sign-drox-win32.ps1"]
   end
-  subgraph EXT["Extensions E1"]
-    X["product.json extensionsGallery"]
+  subgraph EXT["Extensions E1 ✅"]
+    X["product.gallery.json → merge build"]
   end
   M["stable/latest.json"]
   R["gh release v1.5.4"]
@@ -182,6 +184,7 @@ CI : **Actions → Drox Linux release build → Run workflow**
 ## Liens
 
 - [README 1.5.4](README.md)
+- [GUIDE marketplace Open VSX](../../operations/GUIDE-MARKETPLACE-OPEN-VSX.md)
 - [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md)
 - [PLAN 1.5.1b](../1.5.1b/PLAN-1.5.1b.md) — préparation scripts
 - [GUIDE publication Linux](../../operations/GUIDE-PUBLICATION-LINUX.md)

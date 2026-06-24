@@ -12,7 +12,6 @@ import type { IObservable } from '../../../base/common/observable.js';
 import { URI } from '../../../base/common/uri.js';
 import type { IConfigurationService } from '../../configuration/common/configuration.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
-import type { ISyncedCustomization } from './agentPluginManager.js';
 import type { IAgentServerToolHost } from './agentServerTools.js';
 import type { IActiveSubscriptionInfo, IAgentSubscription } from './state/agentSubscription.js';
 import type { IRemoteWatchHandle } from './agentHostFileSystemProvider.js';
@@ -21,7 +20,7 @@ import type { InvokeChangesetOperationParams, InvokeChangesetOperationResult } f
 import { ProtectedResourceMetadata, type Changeset, type ConfigSchema, type MessageAttachment, type ModelSelection, type AgentSelection, type SessionActiveClient, type ToolCallPendingConfirmationState, type ToolDefinition, ChangesSummary } from './state/protocol/state.js';
 import type { ActionEnvelope, INotification, IRootConfigChangedAction, SessionAction, ChatAction, TerminalAction, ClientAnnotationsAction } from './state/sessionActions.js';
 import type { ResourceCopyParams, ResourceCopyResult, ResourceDeleteParams, ResourceDeleteResult, ResourceListResult, ResourceMkdirParams, ResourceMkdirResult, ResourceMoveParams, ResourceMoveResult, ResourceReadResult, ResourceResolveParams, ResourceResolveResult, ResourceWatchState, ResourceWriteParams, ResourceWriteResult, CreateResourceWatchParams, CreateResourceWatchResult, IStateSnapshot } from './state/sessionProtocol.js';
-import { ComponentToState, ChatInputResponseKind, SessionStatus, StateComponents, type ClientPluginCustomization, type Customization, type PendingMessage, type RootState, type ChatInputAnswer, type SessionMeta, type ToolCallResult, type Turn, type PolicyState } from './state/sessionState.js';
+import { ComponentToState, ChatInputResponseKind, SessionStatus, StateComponents, type ClientPluginCustomization, type Customization, type PendingMessage, type RootState, type ChatInputAnswer, type SessionMeta, type ToolCallResult, type Turn, type PolicyState, SessionSummaryMeta } from './state/sessionState.js';
 
 // IPC contract between the renderer and the agent host utility process.
 // Defines all serializable event types, the IAgent provider interface,
@@ -55,6 +54,14 @@ export const AgentHostAhpJsonlLoggingSettingId = 'chat.agentHost.ahpJsonlLogging
 
 /** Configuration key that controls whether Agent Host uses its terminal tool override for Copilot SDK sessions. */
 export const AgentHostCustomTerminalToolEnabledSettingId = 'chat.agentHost.customTerminalTool.enabled';
+
+/**
+ * Configuration key that controls whether Copilot SDK sessions running a Claude
+ * Opus 4.8 model apply the Opus 4.8-tuned system-prompt section overrides.
+ * Forwarded into the agent host's root config (`opus48Prompt`) by
+ * `AgentHostCopilotPromptContribution`.
+ */
+export const AgentHostOpus48PromptEnabledSettingId = 'chat.agentHost.opus48Prompt.enabled';
 
 /**
  * Configuration key controlling whether the Claude provider is registered in
@@ -481,6 +488,14 @@ export interface IAgentSessionMetadata {
 	 */
 	readonly changesets?: readonly Changeset[];
 	/**
+	 * Side-channel metadata for the session summary, propagated
+	 * to clients via per-session state subscriptions.
+	 * Producers SHOULD use namespaced keys; consumers MUST ignore unknown
+	 * keys. Use the typed accessors in `sessionState.ts` (e.g.
+	 * `readSessionGitHubState`) for well-known slots.
+	 */
+	readonly _summaryMeta?: SessionSummaryMeta;
+	/**
 	 * Side-channel metadata mirroring {@link SessionState._meta}, propagated
 	 * to clients via per-session state subscriptions.
 	 * Producers SHOULD use namespaced keys; consumers MUST ignore unknown
@@ -620,7 +635,7 @@ export interface IAgentCreateSessionConfig {
 	/**
 	 * Eagerly claim the active client role for the new session. When provided,
 	 * the server initializes the session with this client as the active
-	 * client, equivalent to dispatching a `session/activeClientChanged`
+	 * client, equivalent to dispatching a `session/activeClientSet`
 	 * action immediately after creation. The `clientId` MUST match the
 	 * connection's own `clientId`.
 	 */
@@ -826,6 +841,30 @@ export interface IMcpNotification {
 }
 
 /**
+ * A per-session handle for one active client's contributions (tools and
+ * plugin customizations) to an agent session, obtained via
+ * {@link IAgent.getOrCreateActiveClient}.
+ *
+ * `tools` and `customizations` are mutable accessor properties: assigning a
+ * new array replaces this client's contribution wholesale and triggers the
+ * agent's internal reaction (refreshing the merged tool set exposed to the
+ * model, or kicking off an asynchronous customization sync). The arrays are
+ * `readonly` so callers cannot mutate them in place and silently bypass the
+ * setter. The agent merges the contributions of all active clients on a
+ * session, deduplicating as needed.
+ */
+export interface IActiveClient {
+	/** Client identifier (matches `clientId` from `initialize`). */
+	readonly clientId: string;
+	/** Human-readable client name (e.g. `"VS Code"`), if provided. */
+	readonly displayName: string | undefined;
+	/** This client's tools. Assigning replaces the set (full replacement). */
+	tools: readonly ToolDefinition[];
+	/** This client's plugin customizations. Assigning replaces the set and starts an internal sync. */
+	customizations: readonly ClientPluginCustomization[];
+}
+
+/**
  * Implemented by each agent backend (e.g. Copilot SDK).
  * The {@link IAgentService} dispatches to the appropriate agent based on
  * the agent id.
@@ -920,16 +959,20 @@ export interface IAgent {
 	 * is provided, only that chat's in-flight turn is aborted. */
 	abortSession(session: URI, chat?: URI): Promise<void>;
 
-	/** Change the model for an existing session. */
-	changeModel(session: URI, model: ModelSelection): Promise<void>;
+	/** Change the model for an existing session. When `chat` is provided (an
+	 * additional peer chat's URI), the change targets that chat's conversation
+	 * rather than the session's default chat. */
+	changeModel(session: URI, model: ModelSelection, chat?: URI): Promise<void>;
 
 	/**
 	 * Change (or clear) the selected custom agent for an existing session.
 	 * Passing `undefined` clears the selection and resets the session to no
 	 * selected custom agent (provider default behavior). Optional so non-
-	 * Copilot agents can opt out.
+	 * Copilot agents can opt out. When `chat` is provided (an additional peer
+	 * chat's URI), the change targets that chat's conversation rather than the
+	 * session's default chat.
 	 */
-	changeAgent?(session: URI, agent: AgentSelection | undefined): Promise<void>;
+	changeAgent?(session: URI, agent: AgentSelection | undefined, chat?: URI): Promise<void>;
 
 	/** Respond to a pending permission request from the SDK. */
 	respondToPermissionRequest(requestId: string, approved: boolean): void;
@@ -996,27 +1039,26 @@ export interface IAgent {
 	onArchivedChanged?(session: URI, isArchived: boolean): Promise<void>;
 
 	/**
-	 * Receives client-provided customization refs for a session and syncs them
-	 * (e.g. copies plugin files to local storage). The agent publishes
-	 * customization state actions as the sync progresses.
+	 * Get (or lazily create) the per-session handle for an active client,
+	 * identified by `clientId`. Mutating the returned {@link IActiveClient}'s
+	 * `tools` / `customizations` updates only that client's contribution; the
+	 * agent merges the contributions of all active clients when exposing them
+	 * to the model. A session MAY have several active clients at once.
 	 *
-	 * The agent MAY defer a client restart until all active sessions are idle.
+	 * @param session The session URI this client contributes to.
+	 * @param client The client's `clientId` and optional human-readable name.
 	 */
-	setClientCustomizations(session: URI, clientId: string, customizations: ClientPluginCustomization[]): Promise<ISyncedCustomization[]>;
+	getOrCreateActiveClient(session: URI, client: { readonly clientId: string; readonly displayName?: string }): IActiveClient;
 
 	/**
-	 * Receives client-provided tool definitions to make available in a
-	 * specific session. The agent registers these as custom tools so the
-	 * LLM can call them; execution is routed back to the owning client.
+	 * Remove an active client from a session, clearing its tool and
+	 * customization contributions. No-op when no active client matches
+	 * `clientId`.
 	 *
-	 * Always called on `activeClientChanged`, even with an empty array,
-	 * to clear a previous client's tools.
-	 *
-	 * @param session The session URI this tool set applies to.
-	 * @param clientId The client that owns these tools.
-	 * @param tools The tool definitions (full replacement).
+	 * @param session The session the client is leaving.
+	 * @param clientId The client to remove.
 	 */
-	setClientTools(session: URI, clientId: string | undefined, tools: ToolDefinition[]): void;
+	removeActiveClient(session: URI, clientId: string): void;
 
 	/**
 	 * Called when a client completes a client-provided tool call.

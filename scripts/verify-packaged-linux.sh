@@ -41,10 +41,21 @@ if [[ -f "$PRODUCT_JSON" ]]; then
 	if grep -q 'droxEngineDevBuild' "$PRODUCT_JSON" 2>/dev/null; then
 		fail 'product.json contains droxEngineDevBuild (rebuild with DROX_PRODUCT_SURFACE=release)'
 	fi
+	GALLERY_URL="$(node -e "const p=require('$PRODUCT_JSON'); console.log((p.extensionsGallery&&p.extensionsGallery.serviceUrl)||'')" )"
+	if [[ -z "$GALLERY_URL" ]]; then
+		fail 'product.json missing extensionsGallery.serviceUrl (run merge-product-gallery)'
+	fi
+	if [[ "$GALLERY_URL" != *open-vsx.org* ]]; then
+		fail "product.json extensionsGallery.serviceUrl unexpected: $GALLERY_URL"
+	fi
 fi
 
-if ! strings "$DROX_BIN" | grep -qE 'tui_mono|clientName:"drox-ide"'; then
+# Moteur TUI 1.5+ : recherche binaire directe (strings|grep echoue sur lignes tres longues).
+if ! grep -aqF 'tui_mono' "$DROX_BIN" 2>/dev/null; then
 	fail "bundled drox does not look like TUI 1.5+: $DROX_BIN"
+fi
+if grep -aqF 'orchestration role_split' "$DROX_BIN" 2>/dev/null; then
+	fail "bundled drox still contains legacy role_split rail: $DROX_BIN"
 fi
 
 echo "[verify-packaged-linux] OK - $IDE_BIN + $DROX_BIN"
