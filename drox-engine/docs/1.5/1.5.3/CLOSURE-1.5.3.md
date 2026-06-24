@@ -2,7 +2,7 @@
 
 **Date** : juin 2026  
 **Version** : `droxVersion` **1.5.3**  
-**Statut** : **en cours** (code livré · publication à faire)
+**Statut** : **livré** (juin 2026)
 
 ---
 
@@ -26,11 +26,13 @@
 
 | # | Étape | Statut |
 |---|--------|--------|
-| R1 | Merge `1.5.3` → `main` (squash publish) | en attente |
-| R2 | Intégration VS Code branche `integrate/vscode-*` sur `main` | en attente |
-| R3 | `npm run drox:ship` Windows | en attente |
-| R4 | Release `v1.5.3` + `stable/latest.json` | en attente |
-| R5 | Tag sources `v1.5.3` sur `main` | en attente |
+| R1 | Merge `1.5.3` → `main` (squash publish) | ✅ |
+| R2 | Intégration VS Code branche `integrate/vscode-*` sur `main` | ✅ |
+| R3 | `npm run drox:ship` Windows | ✅ |
+| R4 | Release `v1.5.3` + `stable/latest.json` | ✅ |
+| R5 | Tag sources `v1.5.3` sur `main` | ✅ |
+
+**Statut global** : **livré** (juin 2026).
 
 ---
 
