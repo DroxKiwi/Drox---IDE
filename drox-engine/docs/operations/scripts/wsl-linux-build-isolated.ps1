@@ -42,13 +42,15 @@ Working tree non vide et -SkipCommit actif.
 Commitez ou stash vos changements, ou relancez sans -SkipCommit (commit auto).
 "@
 		}
-		return (git -C $winRepo rev-parse HEAD).Trim()
+		return (git -C $winRepo rev-parse HEAD 2>$null | Select-Object -Last 1).Trim()
 	}
 
 	$dirty = git -C $winRepo status --porcelain
 	if (-not $dirty) {
 		Write-Host 'Git Windows : working tree propre.' -ForegroundColor DarkGray
-		return (git -C $winRepo rev-parse HEAD).Trim()
+		$hash = (& git -C $winRepo rev-parse HEAD 2>$null | Select-Object -Last 1).Trim()
+		if ($hash -notmatch '^[0-9a-f]{40}$') { throw "HEAD git invalide: '$hash'" }
+		return $hash
 	}
 
 	Write-Host '==> Commit auto des changements locaux (avant sync clone Linux)' -ForegroundColor Yellow
@@ -56,7 +58,7 @@ Commitez ou stash vos changements, ou relancez sans -SkipCommit (commit auto).
 	git -C $winRepo reset -- 'build/node_modules.win.bak.*' 2>$null | Out-Null
 	$stillDirty = git -C $winRepo status --porcelain
 	if (-not $stillDirty) {
-		return (git -C $winRepo rev-parse HEAD).Trim()
+		return (git -C $winRepo rev-parse HEAD 2>$null | Select-Object -Last 1).Trim()
 	}
 
 	$branch = (git -C $winRepo rev-parse --abbrev-ref HEAD).Trim()
@@ -65,8 +67,12 @@ Commitez ou stash vos changements, ou relancez sans -SkipCommit (commit auto).
 	if ($LASTEXITCODE -ne 0) {
 		throw 'git commit a echoue avant le build Linux.'
 	}
-	Write-Host "    commit $(git -C $winRepo rev-parse --short HEAD)" -ForegroundColor DarkGray
-	return (git -C $winRepo rev-parse HEAD).Trim()
+	$hash = (& git -C $winRepo rev-parse HEAD 2>$null | Select-Object -Last 1).Trim()
+	if ($hash -notmatch '^[0-9a-f]{40}$') {
+		throw "HEAD git invalide apres commit: '$hash'"
+	}
+	Write-Host "    commit $($hash.Substring(0, 12))" -ForegroundColor DarkGray
+	return $hash
 }
 
 $branch = (git -C $winRepo rev-parse --abbrev-ref HEAD).Trim()
@@ -102,12 +108,8 @@ echo "==> Linux clone:    $LINUX_REPO"
 
 sync_clone() {
 	if [[ ! -d "$LINUX_REPO/.git" ]]; then
-		echo "==> First-time clone to $LINUX_REPO"
-		if [[ -n "$REMOTE_URL" ]]; then
-			git clone --origin origin "$REMOTE_URL" "$LINUX_REPO"
-		else
-			git clone "$WIN_REPO" "$LINUX_REPO"
-		fi
+		echo "==> First-time clone from Windows repo (local, includes commit non pousse)"
+		git clone "$WIN_REPO" "$LINUX_REPO"
 	fi
 	cd "$LINUX_REPO"
 	git fetch --all --prune || true
