@@ -147,8 +147,17 @@ if (-not (Test-Path $releaseNotes)) {
 	Write-Host "RELEASE_NOTES cree -> $releaseNotes"
 }
 
-Write-Utf8NoBomFile $latestJson ($manifest | ConvertTo-Json -Depth 5)
-Write-Host "latest.json -> $latestJson"
+$mergeManifest = Join-Path $repoRoot 'scripts\lib\drox-release-manifest.mjs'
+& node $mergeManifest merge `
+	--releases-repo $ReleasesRepo `
+	--version $ProductVersion `
+	--platform win32-x64 `
+	--installer-url "$downloadBase/$setupName" `
+	--sha256 $hash `
+	--size-bytes $sizeBytes `
+	--released $released
+if ($LASTEXITCODE -ne 0) { throw 'drox-release-manifest merge failed' }
+Write-Host "latest.json -> $latestJson (merge win32-x64)"
 
 Write-Host ''
 Write-Host 'Manifestes prepares (versionnes dans git).' -ForegroundColor Green

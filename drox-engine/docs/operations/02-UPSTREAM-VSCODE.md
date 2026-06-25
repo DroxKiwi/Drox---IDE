@@ -54,7 +54,13 @@ git checkout main -- `
   scripts/templates/NOTICE.md `
   src/vs/workbench/browser/media/kdds-code-icon.png `
   scripts/build-release-linux.sh scripts/release-publish-linux.sh `
-  scripts/verify-packaged-linux.sh scripts/wsl-linux-build.ps1 scripts/wsl-linux-build.sh
+  scripts/verify-packaged-linux.sh `
+  drox-engine/docs/operations/scripts/wsl-linux-build.ps1 `
+  drox-engine/docs/operations/scripts/wsl-linux-build.sh `
+  drox-engine/docs/operations/scripts/restore-windows-dev.ps1 `
+  drox-engine/docs/operations/scripts/restore-windows-dev-deps.ps1 `
+  scripts/wsl-linux-build.ps1 scripts/wsl-linux-build.sh `
+  scripts/restore-windows-dev.ps1 scripts/restore-windows-dev-deps.ps1
 ```
 
 Supprimer les fichiers morts (présents sur integrate, absents de `main`) :

@@ -499,6 +499,23 @@ suite('Drox — diagnostics → chat', () => {
 		assert.ok(!isPermissionToolAsk(blocking));
 	});
 
+	test('parseUserAskParams unwraps stringified questions JSON array', () => {
+		const parsed = parseUserAskParams({
+			askId: 'a1',
+			questions: JSON.stringify([
+				{ id: 'q1', prompt: 'First?', options: [{ id: 'a', label: 'A' }] },
+				{ id: 'q2', prompt: 'Second?', allowFreeText: true, options: [] },
+			]),
+		});
+		assert.ok(!('error' in parsed));
+		if ('error' in parsed) {
+			return;
+		}
+		assert.strictEqual(parsed.questions.length, 2);
+		assert.strictEqual(parsed.questions[0].id, 'q1');
+		assert.strictEqual(parsed.questions[1].id, 'q2');
+	});
+
 	test('shouldAutoAllowPermissionAsk for trustEdit only', () => {
 		assert.ok(shouldAutoAllowPermissionAsk('trustEdit'));
 		assert.ok(shouldAutoAllowPermissionAsk('acceptEdits'));

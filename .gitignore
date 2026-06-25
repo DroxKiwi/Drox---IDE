@@ -12,6 +12,7 @@ src/vs/base/browser/ui/codicons/codicon/codicon.ttf
 /out*/
 /extensions/**/out/
 build/node_modules
+**/node_modules.win.bak.*
 build/darwin/.dmgbuild
 coverage/
 test_data/

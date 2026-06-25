@@ -98,5 +98,6 @@ Merger sur `main` **n’est pas obligatoire** pour shipper : tu peux builder dep
 | Symptôme | Action |
 |----------|--------|
 | Pre-commit hygiene échoue | `npm run precommit` · corriger ou mettre à jour `build/lib/stylelint/vscode-known-variables.json` |
-| `npm run watch` plante après build WSL | Arrêter watch · `.\scripts\restore-windows-dev-deps.ps1` |
+| `npm run watch` / `code.bat` plante après build WSL | Arrêter watch · fermer code.bat · `.\drox-engine\docs\operations\scripts\restore-windows-dev.ps1` |
+| Correctif après publication OR | [06-HOTFIX-LATEST.md](06-HOTFIX-LATEST.md) |
 | Branche supprimée sur GitHub par erreur | `git push origin <commit>:refs/heads/<BRANCH>` |

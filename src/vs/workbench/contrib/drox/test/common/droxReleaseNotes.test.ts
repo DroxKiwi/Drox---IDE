@@ -66,6 +66,15 @@ suite('Drox release notes', () => {
 		assert.ok(joined.includes('engine.tuning'));
 	});
 
+	test('getDroxReleaseNotesItems includes 1.5.4 highlights', () => {
+		const items = getDroxReleaseNotesItems('1.5.4');
+		const joined = items.join('\n');
+		assert.ok(joined.includes('Linux'));
+		assert.ok(joined.includes('Open VSX'));
+		assert.ok(joined.includes('ask_user_question'));
+		assert.ok(joined.includes('1.127'));
+	});
+
 	test('getDroxReleaseNotesItems includes 1.5.3 highlights', () => {
 		const items = getDroxReleaseNotesItems('1.5.3');
 		const joined = items.join('\n');

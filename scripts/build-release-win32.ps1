@@ -155,6 +155,13 @@ if (-not (Test-Path $copilotSdk)) {
 Write-Step 'gulp vscode-win32-x64-min-ci - package Electron'
 Invoke-Gulp 'vscode-win32-x64-min-ci'
 
+$mergeGallery = Join-Path $repoRoot 'scripts\lib\merge-product-gallery.mjs'
+if (Test-Path $mergeGallery) {
+	Write-Step 'merge-product-gallery (Open VSX)'
+	& node $mergeGallery $outDir
+	if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
 Write-Step 'gulp vscode-win32-x64-inno-updater'
 Invoke-Gulp 'vscode-win32-x64-inno-updater'
 
