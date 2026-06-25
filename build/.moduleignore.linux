@@ -15,3 +15,10 @@
 @vscode/windows-registry/*.txt
 @vscode/windows-registry/package.json
 !@vscode/windows-registry/dist/index.d.ts
+
+# Optional @parcel/watcher platform packages — core @parcel/watcher/build/Release/*.node is shipped instead
+@parcel/watcher-linux-*/**
+@parcel/watcher-darwin*/**
+@parcel/watcher-win32*/**
+@parcel/watcher-android*/**
+@parcel/watcher-freebsd*/**

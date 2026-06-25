@@ -111,6 +111,8 @@ Si `watch` / `code.bat` sont cassés (erreur passée : `npm install` WSL sur `/m
 | Symptôme | Action |
 |----------|--------|
 | `nvm` / `dpkg-shlibdeps` échoue | WSL **24.04**, pas 26.04 |
+| `dpkg-shlibdeps` + `libc.musl` | Relancer build isolé (strip `@parcel/watcher-*` auto) |
+| `code-open-folder.desktop` manquant | Restaurer fichier Drox — [02 § Checklist](02-UPSTREAM-VSCODE.md#checklist-post-merge-fichiers-drox) |
 | `node: command not found` | `source ~/.nvm/nvm.sh` |
 | `sudo` bloqué depuis PowerShell | apt dans WSL interactif ([scripts/README](scripts/README.md)) |
 | `ETIMEDOUT` npm | Relancer le script isolé |
