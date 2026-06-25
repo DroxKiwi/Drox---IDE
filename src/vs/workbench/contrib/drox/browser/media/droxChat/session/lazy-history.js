@@ -9,35 +9,39 @@
 	const DEBOUNCE_MS = 300;
 	let debounceTimer = null;
 
-	fn.restoreLogAppendChild = function (opts) {
+	fn.mergePrependFragment = function () {
 		const log = D.dom.logEl;
-		if (!log) {
-			return;
-		}
-		const insertFragment = opts?.insertFragment !== false;
-		const discardFragment = opts?.discardFragment === true;
-		if (D.state._prependOrigAppendChild) {
-			log.appendChild = D.state._prependOrigAppendChild;
-			D.state._prependOrigAppendChild = null;
-		} else if (log.dataset.prependPatched === '1') {
-			const nativeAppend = HTMLElement.prototype.appendChild;
-			log.appendChild = function (node) {
-				return nativeAppend.call(log, node);
-			};
-		}
-		delete log.dataset.prependPatched;
 		const fragment = D.state._prependFragment;
-		if (fragment && fragment.childNodes.length > 0) {
-			if (insertFragment && !discardFragment) {
-				log.insertBefore(fragment, log.firstChild);
-			}
+		if (log && fragment && fragment.childNodes.length > 0) {
+			log.insertBefore(fragment, log.firstChild);
 		}
 		D.state._prependFragment = null;
 		D.state.sessionHistoryPrependActive = false;
 	};
 
+	/** Garantit que tout le fil est dans #log (pas de buffer prepend / patch appendChild). */
+	fn.ensureLogScrollReady = function () {
+		fn.mergePrependFragment();
+	};
+
+	/** Point d'entrée unique pour les nœuds racine du fil. */
+	fn.appendToLog = function (node) {
+		const log = D.dom.logEl;
+		if (!log || !node) {
+			return node;
+		}
+		const fragment = D.state._prependFragment;
+		if (D.state.sessionHistoryPrependActive && fragment) {
+			fragment.appendChild(node);
+			return node;
+		}
+		log.appendChild(node);
+		return node;
+	};
+
 	fn.resetSessionLazyHistory = function () {
-		fn.restoreLogAppendChild({ insertFragment: false, discardFragment: true });
+		D.state._prependFragment = null;
+		D.state.sessionHistoryPrependActive = false;
 		D.state.sessionHistoryHasOlder = false;
 		D.state.sessionHistoryOldestIndex = 0;
 		D.state.sessionHistoryLoading = false;
@@ -58,20 +62,12 @@
 		if (!log) {
 			return;
 		}
-		fn.restoreLogAppendChild({ insertFragment: true, discardFragment: false });
+		fn.mergePrependFragment();
 		D.state.sessionHistoryPrependActive = true;
 		D.state.uiReplayActive = true;
 		D.state._prependScrollHeight = log.scrollHeight;
 		D.state._prependScrollTop = log.scrollTop;
 		D.state._prependFragment = document.createDocumentFragment();
-		const fragment = D.state._prependFragment;
-		const origAppend = log.appendChild.bind(log);
-		D.state._prependOrigAppendChild = origAppend;
-		log.dataset.prependPatched = '1';
-		log.appendChild = function (node) {
-			fragment.appendChild(node);
-			return node;
-		};
 		if (typeof fn.beginLinearRunStrip === 'function') {
 			fn.beginLinearRunStrip();
 		}
@@ -81,7 +77,7 @@
 		const log = D.dom.logEl;
 		const hadPrepend = Boolean(D.state.sessionHistoryPrependActive && log);
 		if (hadPrepend) {
-			fn.restoreLogAppendChild({ insertFragment: true, discardFragment: false });
+			fn.mergePrependFragment();
 			const prevHeight = D.state._prependScrollHeight || 0;
 			const prevTop = D.state._prependScrollTop || 0;
 			D.state.uiReplayActive = false;
@@ -141,7 +137,7 @@
 	};
 
 	fn.initSessionLazyHistory = function () {
-		fn.restoreLogAppendChild({ insertFragment: true, discardFragment: false });
+		fn.ensureLogScrollReady();
 		if (!D.dom.logEl || D.dom.logEl.dataset.lazyHistoryBound === '1') {
 			return;
 		}

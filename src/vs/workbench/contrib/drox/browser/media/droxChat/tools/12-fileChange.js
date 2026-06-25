@@ -89,7 +89,7 @@
 		}
 
 		if (!mounted) {
-			D.dom.logEl.appendChild(card);
+			fn.appendToLog?.(card);
 		}
 
 		const strip = fn.findRunStripForFileChange();
