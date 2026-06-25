@@ -16,7 +16,6 @@
 			fn.resetChatStreamForTurn?.();
 		} else {
 			fn.hideArchitectRunTailActivity?.();
-			document.body.classList.remove('drox-linear-run-active');
 		}
 		if (!next && D.state.linearRunUi) {
 			fn.flushStreamBuffer?.({ asAnswer: true });
@@ -29,6 +28,13 @@
 				fn.endLinearRunStrip?.();
 				fn.resetChatStreamForTurn?.();
 			}
+		} else if (!next) {
+			fn.sealAllOpenRunStrips?.();
+			document.body.classList.remove('drox-linear-run-active');
+		}
+		if (!next) {
+			fn.refreshLastUserStickyRow?.();
+			fn.syncStickyStackLayout?.();
 		}
 		_setBusy.call(this, next);
 	};
