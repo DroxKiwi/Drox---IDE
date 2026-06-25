@@ -28,9 +28,19 @@
 
 	/** Fin rejeu session — appelé par `sessionReplayDone`. */
 	fn.finalizeSessionReplayUi = function () {
+		fn.restoreLogAppendChild?.({ insertFragment: true, discardFragment: false });
 		fn.promoteChatStreamToFinalAnswer?.();
 		fn.parkAllLinearFinalAnswers?.();
 		fn.sealAllOpenRunStrips?.();
-		fn.scrollLog?.(true);
+		fn.endLinearRunStrip?.();
+		fn.hidePlanActivitySticky?.();
+		fn.refreshLastUserStickyRow?.();
+		document.body.classList.remove('drox-linear-run-active');
+		D.state.linearRunUi = false;
+		fn.nudgeLogScrollLayout?.();
+		requestAnimationFrame(() => {
+			fn.scrollLogToEnd?.();
+			fn.nudgeLogScrollLayout?.();
+		});
 	};
 })(globalThis.DroxChat);

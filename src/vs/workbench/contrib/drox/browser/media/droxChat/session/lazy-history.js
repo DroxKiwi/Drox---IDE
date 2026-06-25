@@ -9,13 +9,38 @@
 	const DEBOUNCE_MS = 300;
 	let debounceTimer = null;
 
+	fn.restoreLogAppendChild = function (opts) {
+		const log = D.dom.logEl;
+		if (!log) {
+			return;
+		}
+		const insertFragment = opts?.insertFragment !== false;
+		const discardFragment = opts?.discardFragment === true;
+		if (D.state._prependOrigAppendChild) {
+			log.appendChild = D.state._prependOrigAppendChild;
+			D.state._prependOrigAppendChild = null;
+		} else if (log.dataset.prependPatched === '1') {
+			const nativeAppend = HTMLElement.prototype.appendChild;
+			log.appendChild = function (node) {
+				return nativeAppend.call(log, node);
+			};
+		}
+		delete log.dataset.prependPatched;
+		const fragment = D.state._prependFragment;
+		if (fragment && fragment.childNodes.length > 0) {
+			if (insertFragment && !discardFragment) {
+				log.insertBefore(fragment, log.firstChild);
+			}
+		}
+		D.state._prependFragment = null;
+		D.state.sessionHistoryPrependActive = false;
+	};
+
 	fn.resetSessionLazyHistory = function () {
+		fn.restoreLogAppendChild({ insertFragment: false, discardFragment: true });
 		D.state.sessionHistoryHasOlder = false;
 		D.state.sessionHistoryOldestIndex = 0;
 		D.state.sessionHistoryLoading = false;
-		D.state.sessionHistoryPrependActive = false;
-		D.state._prependFragment = null;
-		D.state._prependOrigAppendChild = null;
 		D.state._prependScrollHeight = 0;
 		D.state._prependScrollTop = 0;
 	};
@@ -33,6 +58,7 @@
 		if (!log) {
 			return;
 		}
+		fn.restoreLogAppendChild({ insertFragment: true, discardFragment: false });
 		D.state.sessionHistoryPrependActive = true;
 		D.state.uiReplayActive = true;
 		D.state._prependScrollHeight = log.scrollHeight;
@@ -41,6 +67,7 @@
 		const fragment = D.state._prependFragment;
 		const origAppend = log.appendChild.bind(log);
 		D.state._prependOrigAppendChild = origAppend;
+		log.dataset.prependPatched = '1';
 		log.appendChild = function (node) {
 			fragment.appendChild(node);
 			return node;
@@ -54,18 +81,9 @@
 		const log = D.dom.logEl;
 		const hadPrepend = Boolean(D.state.sessionHistoryPrependActive && log);
 		if (hadPrepend) {
-			if (D.state._prependOrigAppendChild) {
-				log.appendChild = D.state._prependOrigAppendChild;
-				D.state._prependOrigAppendChild = null;
-			}
-			const fragment = D.state._prependFragment;
+			fn.restoreLogAppendChild({ insertFragment: true, discardFragment: false });
 			const prevHeight = D.state._prependScrollHeight || 0;
 			const prevTop = D.state._prependScrollTop || 0;
-			if (fragment && fragment.childNodes.length > 0) {
-				log.insertBefore(fragment, log.firstChild);
-			}
-			D.state._prependFragment = null;
-			D.state.sessionHistoryPrependActive = false;
 			D.state.uiReplayActive = false;
 			requestAnimationFrame(() => {
 				const newHeight = log.scrollHeight;
@@ -76,6 +94,18 @@
 			return;
 		}
 		D.state.sessionHistoryLoading = false;
+	};
+
+	fn.nudgeLogScrollLayout = function () {
+		const log = D.dom.logEl;
+		if (!log) {
+			return;
+		}
+		const top = log.scrollTop;
+		log.style.overflowY = 'hidden';
+		void log.offsetHeight;
+		log.style.overflowY = '';
+		log.scrollTop = top;
 	};
 
 	fn.maybeLoadOlderSessionHistory = function () {
@@ -109,6 +139,7 @@
 	};
 
 	fn.initSessionLazyHistory = function () {
+		fn.restoreLogAppendChild({ insertFragment: true, discardFragment: false });
 		if (!D.dom.logEl || D.dom.logEl.dataset.lazyHistoryBound === '1') {
 			return;
 		}

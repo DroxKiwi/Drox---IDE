@@ -1471,8 +1471,8 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 		0 4px 14px color-mix(in srgb, #000 22%, transparent);
 }
 
-/* Un seul sticky user visible : le dernier message utilisateur du fil. */
-.msg-user-block:has(> .msg-row-user.is-last-user-sticky) {
+/* Un seul sticky user visible : le dernier message utilisateur du fil (hors run linéaire actif). */
+body:not(.drox-linear-run-active) .msg-user-block:has(> .msg-row-user.is-last-user-sticky) {
 	position: sticky;
 	top: 0;
 	z-index: 4;
@@ -1485,7 +1485,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
 }
 
-#log > .msg-row-user.msg-user-bubble.is-last-user-sticky {
+body:not(.drox-linear-run-active) #log > .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	position: sticky;
 	top: 0;
 	z-index: 4;
@@ -2432,9 +2432,6 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .drox-plan-activity-sticky {
 	flex: 0 0 auto;
-	position: sticky;
-	top: 0;
-	z-index: 2;
 	display: flex;
 	align-items: center;
 	gap: 8px;

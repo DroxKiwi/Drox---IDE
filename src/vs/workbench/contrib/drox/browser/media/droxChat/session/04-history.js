@@ -254,6 +254,8 @@
 		D.state.chatStreamEl = null;
 		D.state.chatStreamStripId = '';
 		fn.hideAgentActivitySticky();
+		fn.hidePlanActivitySticky?.();
+		document.body.classList.remove('drox-linear-run-active');
 		fn.syncPlanStickyFooter?.();
 		D.state.logStickToBottom = true;
 		if (D.state.pendingUserAsk) {
