@@ -1328,15 +1328,15 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	overflow-x: hidden;
 	overflow-y: auto;
 	padding: 12px 14px;
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	align-items: stretch;
+	display: block;
 }
 
-/* Ne pas comprimer les messages : le fil défile dans #log */
 #log > * {
-	flex-shrink: 0;
+	margin-bottom: 8px;
+}
+
+#log > *:last-child {
+	margin-bottom: 0;
 }
 
 .msg-memory-chip {

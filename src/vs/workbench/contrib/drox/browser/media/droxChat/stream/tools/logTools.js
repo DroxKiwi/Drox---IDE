@@ -33,6 +33,8 @@
 		const preview = summary.innerHTML;
 		if (fn.shouldUseCollapsibleToolTray?.(parent)) {
 			fn.mountToolBlockInTray?.(parent, details, preview);
+		} else if (parent === D.dom.logEl) {
+			fn.appendToLog?.(details);
 		} else {
 			parent.appendChild(details);
 		}

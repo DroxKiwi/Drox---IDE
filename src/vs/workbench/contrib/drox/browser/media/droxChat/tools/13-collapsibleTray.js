@@ -90,7 +90,7 @@
 			return D.state.logIssuesTray;
 		}
 		const tray = fn.createCollapsibleTray('drox-log-issues-tray', 'Notice');
-		D.dom.logEl.appendChild(tray.trayEl);
+		fn.appendToLog?.(tray.trayEl);
 		D.state.logIssuesTray = tray;
 		return tray;
 	};

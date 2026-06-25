@@ -34,7 +34,7 @@
 			D.state.runStripAnchorEl = anchor;
 			return;
 		}
-		D.dom.logEl?.appendChild(strip);
+		fn.appendToLog?.(strip);
 	};
 
 	fn.pruneExtraOpenRunStrips = function (keepStrip) {
@@ -252,6 +252,10 @@
 		if (!footer) {
 			return;
 		}
+		if (!D.state.busy && !D.state.linearRunUi && footer.querySelector('.msg-todos')) {
+			fn.releasePlanStickyFooter?.();
+			return;
+		}
 		const hasPlan = Boolean(footer.querySelector('.msg-todos'));
 		const activity = D.dom.planActivityStickyEl;
 		const hasActivity = Boolean(activity && !activity.hidden);
@@ -276,7 +280,7 @@
 		if (lastStrip) {
 			fn.archivePlanIntoStrip(lastStrip);
 		} else {
-			log.appendChild(planBlock);
+			fn.appendToLog?.(planBlock);
 		}
 		if (D.state.currentTodoBlockEl === planBlock && footer.contains(planBlock)) {
 			D.state.currentTodoBlockEl = null;
