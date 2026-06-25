@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # One-shot WSL Ubuntu setup + Drox IDE linux-x64 release build.
-# Run from Windows:  .\drox-engine\docs\operations\scripts\wsl-linux-build.ps1
-# Or inside WSL:    bash ./drox-engine/docs/operations/scripts/wsl-linux-build.sh
+# Called by wsl-linux-build-isolated.ps1 on ~/Drox---IDE (ext4).
+# Manual: cd ~/Drox---IDE && bash drox-engine/docs/operations/scripts/wsl-linux-build.sh
 # Doc: ../04-RELEASE-LINUX.md
 
 set -euo pipefail
 
 if [[ "$(uname -s)" != "Linux" ]]; then
-	echo "[wsl-linux-build] Run inside WSL Ubuntu (or via wsl-linux-build.ps1)." >&2
+	echo "[wsl-linux-build] Run inside WSL Ubuntu (~/Drox---IDE or via wsl-linux-build-isolated.ps1)." >&2
 	exit 1
 fi
 
@@ -119,5 +119,7 @@ else
 	echo "  ./scripts/release-publish-linux.sh"
 fi
 
-echo ""
-echo "==> Windows dev: run .\\${RESTORE_PS1} from PowerShell before npm run watch."
+if [[ "$REPO_ROOT" == /mnt/* ]]; then
+	echo ""
+	echo "==> Windows dev: run .\\${RESTORE_PS1} from PowerShell before npm run watch."
+fi

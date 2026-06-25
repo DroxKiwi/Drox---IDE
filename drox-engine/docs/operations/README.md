@@ -1,10 +1,13 @@
 # Opérations Drox IDE
 
+**Build Windows / Linux en 2 min** → **[00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)**.
+
 Guides **linéaires** — suivre dans l’ordre selon le besoin.
 
 | # | Guide | Quand |
 |---|--------|--------|
-| 0 | Ci-dessous § Setup | Une fois par machine |
+| **0** | **[00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)** | **Quelle commande lancer ?** (dev, release win/linux) |
+| 0b | Ci-dessous § Setup | Une fois par machine |
 | 1 | [01-BRANCHE.md](01-BRANCHE.md) | Ouvrir une release, dev, merger sur `main` |
 | 2 | [02-UPSTREAM-VSCODE.md](02-UPSTREAM-VSCODE.md) | Rattraper une nouvelle base VS Code (Microsoft) |
 | 3 | [03-RELEASE-WINDOWS.md](03-RELEASE-WINDOWS.md) | Installeur `.exe` + publication OR |
@@ -17,7 +20,7 @@ Scripts release Linux / restauration dev Windows : [scripts/](scripts/README.md)
 **Parcours release typique** : `00` (référence) → `01` → `02` (si bump VS Code) → `03` → `04`.  
 **Hotfix** sur version déjà en ligne : `06`.
 
-**Linux** : toujours `wsl-linux-build-isolated.ps1` — pas `wsl-linux-build.ps1` (legacy `/mnt/c`).
+**Linux** : `wsl-linux-build-isolated.ps1` (ou `scripts\wsl-linux-build.ps1`).
 
 ---
 
