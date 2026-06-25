@@ -258,6 +258,32 @@
 		footer.hidden = !hasPlan && !hasActivity;
 	};
 
+	/** Après rejeu : le plan ne doit plus rester hors du fil scrollable (#log). */
+	fn.releasePlanStickyFooter = function () {
+		const footer = D.dom.planStickyFooterEl;
+		const log = D.dom.logEl;
+		if (!footer || !log) {
+			fn.syncPlanStickyFooter?.();
+			return;
+		}
+		const planBlock = footer.querySelector('.msg-todos');
+		if (!planBlock) {
+			fn.syncPlanStickyFooter?.();
+			return;
+		}
+		const strips = [...log.querySelectorAll(':scope > .drox-run-strip')];
+		const lastStrip = strips.length > 0 ? strips[strips.length - 1] : null;
+		if (lastStrip) {
+			fn.archivePlanIntoStrip(lastStrip);
+		} else {
+			log.appendChild(planBlock);
+		}
+		if (D.state.currentTodoBlockEl === planBlock && footer.contains(planBlock)) {
+			D.state.currentTodoBlockEl = null;
+		}
+		fn.syncPlanStickyFooter?.();
+	};
+
 	fn.ensurePlanMount = function (strip) {
 		strip = strip || D.state.runStripEl;
 		if (fn.shouldMountPlanInStickyFooter(strip)) {
@@ -340,8 +366,9 @@
 		D.state.assistantEl = null;
 	};
 
-	fn.endLinearRunStrip = function () {
+	fn.endLinearRunStrip = function (opts) {
 		if (
+			!opts?.force &&
 			typeof fn.shouldPreserveDiscussionStripOnBusyEnd === 'function' &&
 			fn.shouldPreserveDiscussionStripOnBusyEnd()
 		) {
