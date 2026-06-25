@@ -42,6 +42,16 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.4':
+			return [
+				localize('drox.releaseNotes.154.linux', 'Official Linux amd64 `.deb` alongside the Windows installer.'),
+				localize('drox.releaseNotes.154.openvsx', 'Extension gallery via Open VSX — search and install from the Extensions view.'),
+				localize('drox.releaseNotes.154.openwith', '“Open with Drox” context menu on Windows and Linux (files and folders).'),
+				localize('drox.releaseNotes.154.vscode', 'VS Code base updated to **1.127.0**.'),
+				localize('drox.releaseNotes.154.ask', 'Blocking questionnaire (`ask_user_question`): multi-question forms keep all answers, including when the model sends JSON as a string.'),
+				localize('drox.releaseNotes.154.tui', 'Chat TUI polish: square frames for questionnaires and plan cards.'),
+				localize('drox.releaseNotes.154.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.3':
 			return [
 				localize('drox.releaseNotes.153.diffs', 'File edits appear inline in the chat thread with unified diffs, undo, and redo on each card.'),
@@ -75,6 +85,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.4':
+			return localize(
+				'drox.releaseNotes.154.message',
+				'Linux release, Open VSX, “Open with Drox”, VS Code 1.127 — and a fix for multi-question forms in chat.',
+			);
 		case '1.5.3':
 			return localize(
 				'drox.releaseNotes.153.message',

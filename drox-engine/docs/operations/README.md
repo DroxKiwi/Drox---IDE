@@ -10,8 +10,12 @@ Guides **linéaires** — suivre dans l’ordre selon le besoin.
 | 3 | [03-RELEASE-WINDOWS.md](03-RELEASE-WINDOWS.md) | Installeur `.exe` + publication OR |
 | 4 | [04-RELEASE-LINUX.md](04-RELEASE-LINUX.md) | Paquet `.deb` + publication OR |
 | 5 | [05-OPEN-VSX.md](05-OPEN-VSX.md) | Galerie extensions (optionnel) |
+| 6 | [06-HOTFIX-LATEST.md](06-HOTFIX-LATEST.md) | Correctif sur la release déjà publiée (`latest`) |
 
-**Parcours release typique** : `01` (finir le produit) → `02` (si bump VS Code) → `03` (Windows) → `04` (Linux).
+Scripts release Linux / restauration dev Windows : [scripts/](scripts/README.md).
+
+**Parcours release typique** : `01` → `02` (si bump VS Code) → `03` → `04`.  
+**Hotfix** sur version déjà en ligne : `06`.
 
 ---
 

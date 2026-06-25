@@ -37,6 +37,8 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=lib/linux-npm-install.sh
+source "$SCRIPT_DIR/lib/linux-npm-install.sh"
 PARENT_ROOT="$(cd "$REPO_ROOT/.." && pwd)"
 OUT_DIR="$PARENT_ROOT/VSCode-linux-x64"
 PRODUCT_SHORT='drox-ide'
@@ -73,7 +75,7 @@ echo "Sortie attendue : $OUT_DIR"
 
 if [[ "$SKIP_NPM_INSTALL" -eq 0 ]]; then
 	step 'npm install'
-	run_npm install
+	linux_npm_install "$REPO_ROOT"
 fi
 
 step 'package-drox (release)'
