@@ -167,7 +167,7 @@
 					if (D.state.userPromptStickyPendingLink) {
 						fn.linkUserPromptStickyToMessage(messageId);
 					}
-					D.dom.logEl.appendChild(userBlock);
+					fn.appendToLog?.(userBlock);
 					fn.refreshLastUserStickyRow?.();
 					if (D.state.busy && !D.state.currentPhaseEl) {
 						fn.showWarmupActivity();

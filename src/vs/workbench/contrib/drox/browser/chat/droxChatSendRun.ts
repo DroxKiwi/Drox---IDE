@@ -187,6 +187,7 @@ export async function executeDroxChatSend(
 			deps.logService.info('[Drox] agent.run', result.runId);
 		} else {
 			host.setPendingRunStart(false);
+			host.post({ kind: 'state', busy: false });
 		}
 	} catch (e) {
 		host.setPendingRunStart(false);
