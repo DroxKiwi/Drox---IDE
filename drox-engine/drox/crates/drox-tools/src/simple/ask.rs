@@ -297,13 +297,13 @@ fn normalize_questions_field(obj: &mut serde_json::Map<String, Value>) {
         return;
     };
     let questions = match raw {
-        Value::String(s) => json!([{ "prompt": s }]),
+        Value::String(s) => questions_value_from_string(s),
         Value::Object(m) => Value::Array(vec![normalize_question_item(m)]),
         Value::Array(arr) => Value::Array(
             arr.into_iter()
                 .map(|item| match item {
                     Value::Object(m) => normalize_question_item(m),
-                    Value::String(s) => json!({ "prompt": s }),
+                    Value::String(s) => questions_value_from_string(s),
                     other => other,
                 })
                 .collect(),
@@ -311,6 +311,31 @@ fn normalize_questions_field(obj: &mut serde_json::Map<String, Value>) {
         other => Value::Array(vec![other]),
     };
     obj.insert("questions".into(), questions);
+}
+
+/// LLMs often send `questions` as a JSON-stringified array/object instead of a
+/// native array — parse it so engine + UI agree on the question count.
+fn questions_value_from_string(s: String) -> Value {
+    let trimmed = s.trim();
+    if trimmed.starts_with('[') {
+        if let Ok(Value::Array(arr)) = serde_json::from_str(trimmed) {
+            return Value::Array(
+                arr.into_iter()
+                    .map(|item| match item {
+                        Value::Object(m) => normalize_question_item(m),
+                        Value::String(inner) => json!({ "prompt": inner }),
+                        other => other,
+                    })
+                    .collect(),
+            );
+        }
+    }
+    if trimmed.starts_with('{') {
+        if let Ok(Value::Object(m)) = serde_json::from_str(trimmed) {
+            return Value::Array(vec![normalize_question_item(m)]);
+        }
+    }
+    json!([{ "prompt": s }])
 }
 
 fn remap_snake_keys(obj: &mut serde_json::Map<String, Value>) {
@@ -721,6 +746,88 @@ mod tests {
             received.lock().unwrap()[0].prompt,
             "Quelle méthode d'authentification ?"
         );
+    }
+
+    #[tokio::test]
+    async fn normalizes_questions_as_stringified_json_array() {
+        let asker = ScriptedAsker {
+            received: Arc::new(Mutex::new(Vec::new())),
+            scripted: vec![
+                UserAnswer {
+                    id: Some("q1".into()),
+                    text: "oui".into(),
+                    indices: vec![0],
+                    skipped: false,
+                },
+                UserAnswer {
+                    id: Some("q2".into()),
+                    text: "TypeScript".into(),
+                    indices: vec![0],
+                    skipped: false,
+                },
+                UserAnswer {
+                    id: Some("q3".into()),
+                    text: "Bien".into(),
+                    indices: vec![],
+                    skipped: false,
+                },
+                UserAnswer {
+                    id: Some("q4".into()),
+                    text: "Parfait".into(),
+                    indices: vec![0],
+                    skipped: false,
+                },
+            ],
+        };
+        let (ctx, received) = ctx_with_asker(asker);
+        let tool = AskUserQuestionTool;
+        let stringified = serde_json::to_string(&json!([
+            {
+                "allowFreeText": true,
+                "id": "q1",
+                "options": [{"id": "a", "label": "oui"}, {"id": "b", "label": "non"}],
+                "prompt": "Question 1 — options cliquables ?"
+            },
+            {
+                "allowMultiple": true,
+                "allowFreeText": false,
+                "id": "q2",
+                "options": [
+                    {"id": "ts", "label": "TypeScript"},
+                    {"id": "rs", "label": "Rust"}
+                ],
+                "prompt": "Question 2 — langages ?"
+            },
+            {
+                "allowFreeText": true,
+                "id": "q3",
+                "options": [],
+                "prompt": "Question 3 — texte libre ?"
+            },
+            {
+                "allowFreeText": false,
+                "id": "q4",
+                "options": [{"id": "a", "label": "Parfait"}, {"id": "b", "label": "Mieux"}],
+                "prompt": "Question 4 — concluant ?"
+            }
+        ]))
+        .expect("stringify");
+        let out = tool
+            .execute(&ctx, json!({ "questions": stringified }))
+            .await
+            .expect("stringified array");
+
+        let answers = out["answers"].as_array().expect("answers array");
+        assert_eq!(answers.len(), 4);
+
+        let q = received.lock().unwrap();
+        assert_eq!(q.len(), 4);
+        assert_eq!(q[0].id.as_deref(), Some("q1"));
+        assert_eq!(q[1].id.as_deref(), Some("q2"));
+        assert_eq!(q[2].id.as_deref(), Some("q3"));
+        assert_eq!(q[3].id.as_deref(), Some("q4"));
+        assert_eq!(answers[0]["optionIds"], json!(["a"]));
+        assert_eq!(answers[3]["optionIds"], json!(["a"]));
     }
 
     #[tokio::test]

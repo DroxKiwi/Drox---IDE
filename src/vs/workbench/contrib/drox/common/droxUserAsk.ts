@@ -90,7 +90,7 @@ export function parseUserAskParams(params: unknown): IDroxUserAskPayload | { err
 
 		title?: string;
 
-		questions?: Array<{
+		questions?: string | Array<{
 
 			id?: string;
 
@@ -108,7 +108,7 @@ export function parseUserAskParams(params: unknown): IDroxUserAskPayload | { err
 
 	const askId = typeof p.askId === 'string' ? p.askId : '';
 
-	const rawQuestions = Array.isArray(p.questions) ? p.questions : [];
+	const rawQuestions = normalizeRawUserAskQuestions(p.questions);
 
 	if (!askId || rawQuestions.length === 0) {
 
@@ -164,6 +164,34 @@ function tryParseJsonText(s: string): unknown | undefined {
 	} catch {
 		return undefined;
 	}
+}
+
+type RawUserAskQuestionInput = {
+	id?: string;
+	prompt?: string;
+	options?: Array<{ id?: string; label?: string }>;
+	allowMultiple?: boolean;
+	allowFreeText?: boolean;
+};
+
+/** Aligné avec `questions_value_from_string` côté moteur Rust. */
+export function normalizeRawUserAskQuestions(
+	questions: string | RawUserAskQuestionInput[] | undefined
+): RawUserAskQuestionInput[] {
+	if (Array.isArray(questions)) {
+		return questions;
+	}
+	if (typeof questions !== 'string') {
+		return [];
+	}
+	const parsed = tryParseJsonText(questions);
+	if (Array.isArray(parsed)) {
+		return parsed.filter((item): item is RawUserAskQuestionInput => !!item && typeof item === 'object');
+	}
+	if (parsed && typeof parsed === 'object') {
+		return [parsed as RawUserAskQuestionInput];
+	}
+	return [{ prompt: questions }];
 }
 
 function coerceQuestionItem(raw: {
