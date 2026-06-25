@@ -420,7 +420,11 @@ ${cssLinks}
 
 	<div id="log" role="log" aria-live="polite"></div>
 
-	<div id="plan-sticky-footer" class="drox-plan-sticky-footer" hidden role="region" aria-label="Plan"></div>
+	<div id="plan-sticky-footer" class="drox-plan-sticky-footer" hidden role="region" aria-label="Plan">
+		<div id="plan-activity-sticky" class="drox-plan-activity-sticky activity-warmup" hidden role="status" aria-live="polite">
+			<span class="activity-warmup-label"></span>
+		</div>
+	</div>
 
 	<div id="user-ask" hidden></div>
 

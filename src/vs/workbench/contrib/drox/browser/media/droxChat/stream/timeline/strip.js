@@ -253,7 +253,9 @@
 			return;
 		}
 		const hasPlan = Boolean(footer.querySelector('.msg-todos'));
-		footer.hidden = !hasPlan;
+		const activity = D.dom.planActivityStickyEl;
+		const hasActivity = Boolean(activity && !activity.hidden);
+		footer.hidden = !hasPlan && !hasActivity;
 	};
 
 	fn.ensurePlanMount = function (strip) {
@@ -329,6 +331,9 @@
 		fn.resetPlanStateForTurn?.();
 		D.state.linearRunUi = true;
 		document.body.classList.add('drox-linear-run-active');
+		if (D.state.busy) {
+			fn.ensurePlanActivitySticky?.({ rotatePhrase: true });
+		}
 		D.state.runStripEl = null;
 		D.state.runStripAnchorEl = null;
 		D.state.runStripCommitted = false;
@@ -351,6 +356,7 @@
 		D.state.runStripAnchorEl = null;
 		fn.resetChatStreamForTurn?.();
 		document.body.classList.remove('drox-linear-run-active');
+		fn.hidePlanActivitySticky?.();
 	};
 
 	fn.anchorRunStripAfterUser = function (userEl) {
