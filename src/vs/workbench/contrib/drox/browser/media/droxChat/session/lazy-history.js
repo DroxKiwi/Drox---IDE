@@ -90,6 +90,8 @@
 				log.scrollTop = prevTop + (newHeight - prevHeight);
 				D.state.logStickToBottom = fn.isLogNearBottom(log);
 				D.state.sessionHistoryLoading = false;
+				fn.finalizeReplayThreadUi?.();
+				fn.nudgeLogScrollLayout?.();
 			});
 			return;
 		}

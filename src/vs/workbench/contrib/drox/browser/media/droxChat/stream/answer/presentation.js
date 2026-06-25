@@ -26,21 +26,44 @@
 		D.state.assistantEl = null;
 	};
 
-	/** Fin rejeu session — appelé par `sessionReplayDone`. */
-	fn.finalizeSessionReplayUi = function () {
+	fn.removeReplayLayoutOrphans = function () {
+		const log = D.dom.logEl;
+		if (!log) {
+			return;
+		}
+		for (const el of log.querySelectorAll(':scope > .activity-warmup')) {
+			el.remove();
+		}
+	};
+
+	/** Fin rejeu / prepend historique — remettre le fil dans un état scrollable unique. */
+	fn.finalizeReplayThreadUi = function (opts) {
 		fn.restoreLogAppendChild?.({ insertFragment: true, discardFragment: false });
+		fn.removeReplayLayoutOrphans?.();
 		fn.promoteChatStreamToFinalAnswer?.();
 		fn.parkAllLinearFinalAnswers?.();
 		fn.sealAllOpenRunStrips?.();
-		fn.endLinearRunStrip?.();
+		fn.releasePlanStickyFooter?.();
+		fn.endLinearRunStrip?.({ force: true });
 		fn.hidePlanActivitySticky?.();
-		fn.refreshLastUserStickyRow?.();
+		fn.clearLastUserStickyRow?.();
 		document.body.classList.remove('drox-linear-run-active');
 		D.state.linearRunUi = false;
 		fn.nudgeLogScrollLayout?.();
-		requestAnimationFrame(() => {
-			fn.scrollLogToEnd?.();
-			fn.nudgeLogScrollLayout?.();
-		});
+		if (opts?.scrollToEnd) {
+			requestAnimationFrame(() => {
+				fn.scrollLogToEnd?.();
+				fn.nudgeLogScrollLayout?.();
+			});
+		}
+	};
+
+	/** Fin rejeu session — appelé par `sessionReplayDone`. */
+	fn.finalizeSessionReplayUi = function () {
+		fn.finalizeReplayThreadUi({ scrollToEnd: true });
+		D.state.uiReplayActive = false;
+		if (D.state.busy) {
+			fn.setBusy(false);
+		}
 	};
 })(globalThis.DroxChat);

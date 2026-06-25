@@ -509,7 +509,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	height: 28px;
 }
 
-/* Bandeau chrome user masqué — le fil utilise is-last-user-sticky sur .msg-row-user. */
+/* Bandeau chrome user masqué — pas de sticky user dans #log (conflit scroll flex). */
 #user-prompt-sticky,
 .chat-chrome .user-prompt-sticky,
 .user-prompt-sticky {
@@ -1469,45 +1469,6 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	box-shadow:
 		0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 55%, transparent),
 		0 4px 14px color-mix(in srgb, #000 22%, transparent);
-}
-
-/* Un seul sticky user visible : le dernier message utilisateur du fil (hors run linéaire actif). */
-body:not(.drox-linear-run-active) .msg-user-block:has(> .msg-row-user.is-last-user-sticky) {
-	position: sticky;
-	top: 0;
-	z-index: 4;
-}
-
-.msg-user-block:has(> .msg-row-user.is-last-user-sticky) > .msg-row-user {
-	position: relative;
-	top: auto;
-	z-index: 1;
-	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
-}
-
-body:not(.drox-linear-run-active) #log > .msg-row-user.msg-user-bubble.is-last-user-sticky {
-	position: sticky;
-	top: 0;
-	z-index: 4;
-	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
-}
-
-/* Ne pas figer le user quand le strip agent suit — le fil défile ensemble. */
-.msg-user-block:has(> .msg-row-user.is-last-user-sticky):has(+ .drox-run-strip) {
-	position: relative;
-	top: auto;
-	z-index: 1;
-}
-
-.msg-user-block:has(> .msg-row-user.is-last-user-sticky):has(+ .drox-run-strip) > .msg-row-user {
-	box-shadow: none;
-}
-
-.msg-row-user.msg-user-bubble.is-last-user-sticky:has(+ .drox-run-strip) {
-	position: relative;
-	top: auto;
-	z-index: 1;
-	box-shadow: none;
 }
 
 .msg-user-body {
