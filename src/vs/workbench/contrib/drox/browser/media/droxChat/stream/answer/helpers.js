@@ -6,8 +6,8 @@
 (function (D) {
 	const fn = D.fn;
 
-	/** Un seul sticky user : le dernier message utilisateur du fil. */
-	fn.refreshLastUserStickyRow = function () {
+	/** Retire le marqueur sticky user (le positionnement sticky est désactivé — conflit flex/#log). */
+	fn.clearLastUserStickyRow = function () {
 		if (!D.dom.logEl) {
 			return;
 		}
@@ -17,9 +17,7 @@
 		for (const row of rows) {
 			row.classList.remove('is-last-user-sticky');
 		}
-		const last = rows.length > 0 ? rows[rows.length - 1] : null;
-		if (last) {
-			last.classList.add('is-last-user-sticky');
-		}
 	};
+
+	fn.refreshLastUserStickyRow = fn.clearLastUserStickyRow;
 })(globalThis.DroxChat);
