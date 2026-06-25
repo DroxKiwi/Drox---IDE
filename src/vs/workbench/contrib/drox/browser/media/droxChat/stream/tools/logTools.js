@@ -15,11 +15,14 @@
 	fn.createToolBlock = function (payload) {
 		const details = document.createElement('details');
 		details.className = 'msg-tool msg-ai-frame running drox-log-indent';
-		details.open = false;
+		details.open = true;
 		const summary = document.createElement('summary');
+		const label = document.createElement('span');
+		label.className = 'msg-tool-summary-label';
 		const verb = String(payload.verb ?? 'Ran');
 		const target = String(payload.target ?? '');
-		summary.innerHTML = `<strong>${verb}</strong>${target ? ` <span class="tool-target">${target}</span>` : ''}`;
+		label.innerHTML = `<strong>${verb}</strong>${target ? ` <span class="tool-target">${target}</span>` : ''}`;
+		summary.appendChild(label);
 		const body = document.createElement('div');
 		body.className = 'msg-tool-body';
 		if (payload.argsPreview) {
@@ -29,12 +32,10 @@
 		}
 		details.appendChild(summary);
 		details.appendChild(body);
-		const parent = fn.getLogMountParent();
-		const preview = summary.innerHTML;
-		if (fn.shouldUseCollapsibleToolTray?.(parent)) {
-			fn.mountToolBlockInTray?.(parent, details, preview);
-		} else if (parent === D.dom.logEl) {
-			fn.appendToLog?.(details);
+		fn.enhanceDetailsDisclosure?.(details);
+		const parent = fn.getLogMountParent() || D.dom.logEl;
+		if (parent === D.dom.logEl) {
+			fn.mountLinearLogNode?.(details);
 		} else {
 			parent.appendChild(details);
 		}
@@ -45,7 +46,7 @@
 
 	fn.finishToolBlock = function (block, payload) {
 		block.classList.remove('running');
-		block.open = false;
+		block.open = true;
 		if (payload.isError) {
 			block.classList.add('error');
 			fn.markChatIssueElement?.(block);

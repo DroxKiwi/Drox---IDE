@@ -23,6 +23,20 @@
 		return pending ? pending.content : '';
 	}
 
+	fn.hideInlineActivityOnly = function () {
+		if (D.state.currentWarmupRowEl) {
+			D.state.currentWarmupRowEl.remove();
+			D.state.currentWarmupRowEl = null;
+		}
+		if (
+			D.state.currentActivityGridEl?.isConnected &&
+			D.state.currentActivityGridEl.classList.contains('activity-grid-inline')
+		) {
+			D.state.currentActivityGridEl.remove();
+			D.state.currentActivityGridEl = null;
+		}
+	};
+
 	fn.stripActivityGridsFromElement = function (el) {
 		if (!el?.querySelectorAll) {
 			return;
@@ -47,6 +61,7 @@
 	};
 
 	fn.hideActivity = function() {
+		D.state.pendingRunWarmup = false;
 		fn.clearAllActivityGrids(D.dom.logEl || document);
 		fn.hidePlanActivitySticky?.();
 		fn.hideArchitectRunTailActivity();
@@ -77,8 +92,55 @@
 		return fn.resolveUserMessageAnchor?.(lastRow) ?? lastRow;
 	}
 
+	fn.repositionWarmupAfterUser = function () {
+		const row = D.state.currentWarmupRowEl;
+		if (!row?.isConnected) {
+			return;
+		}
+		const anchor = fn.getLastUserMessageEl();
+		if (anchor && row.previousElementSibling !== anchor) {
+			anchor.insertAdjacentElement('afterend', row);
+			fn.scrollLog?.();
+		}
+	};
+
+	fn.showWarmupActivityOptimistic = function () {
+		if (!D.dom.logEl || D.state.uiReplayActive) {
+			return;
+		}
+		if (D.state.currentWarmupRowEl?.isConnected) {
+			fn.repositionWarmupAfterUser();
+			return;
+		}
+		fn.hideInlineActivityOnly();
+		const row = document.createElement('div');
+		row.className = 'activity-warmup activity-warmup-optimistic';
+		row.setAttribute('role', 'status');
+		row.setAttribute('aria-live', 'polite');
+
+		D.state.currentActivityGridEl = fn.buildActivityGrid();
+		const label = document.createElement('span');
+		label.className = 'activity-warmup-label';
+		label.textContent = fn.pickWarmupPhrase();
+
+		row.appendChild(D.state.currentActivityGridEl);
+		row.appendChild(label);
+		D.state.currentWarmupRowEl = row;
+		D.state.pendingRunWarmup = true;
+
+		if (typeof fn.appendToLog === 'function') {
+			fn.appendToLog(row);
+		} else {
+			D.dom.logEl.appendChild(row);
+		}
+		fn.scrollLogToEnd?.() || fn.scrollLog?.();
+	};
+
 	fn.showWarmupActivity = function() {
-		if (!D.state.busy || !D.dom.logEl) {
+		if (!D.dom.logEl) {
+			return;
+		}
+		if (!D.state.busy && !D.state.pendingRunWarmup) {
 			return;
 		}
 		if (fn.shouldUsePlanActivitySticky?.()) {
@@ -86,7 +148,14 @@
 			return;
 		}
 		const anchor = fn.getLastUserMessageEl();
+		if (D.state.currentWarmupRowEl?.isConnected) {
+			if (anchor) {
+				fn.repositionWarmupAfterUser();
+			}
+			return;
+		}
 		if (!anchor) {
+			fn.showWarmupActivityOptimistic();
 			return;
 		}
 		fn.hideInlineActivityOnly();
@@ -141,7 +210,7 @@
 	};
 
 	fn.showActivityOnSummary = function(summaryEl) {
-		if (!D.state.busy || !summaryEl) {
+		if ((!D.state.busy && !D.state.pendingRunWarmup) || !summaryEl) {
 			return;
 		}
 		if (fn.shouldUsePlanActivitySticky?.()) {
@@ -161,13 +230,13 @@
 		const summary = D.state.currentPhaseEl?.querySelector('.phase-summary');
 		if (summary) {
 			fn.showActivityOnSummary(summary);
-		} else if (D.state.busy) {
+		} else if (D.state.busy || D.state.pendingRunWarmup) {
 			fn.showWarmupActivity();
 		}
 	}
 
 	fn.showActivityBeforeNode = function(node) {
-		if (!D.state.busy || !node?.parentElement) {
+		if ((!D.state.busy && !D.state.pendingRunWarmup) || !node?.parentElement) {
 			return;
 		}
 		if (fn.shouldUsePlanActivitySticky?.()) {
@@ -180,7 +249,12 @@
 	}
 
 	fn.shouldUsePlanActivitySticky = function () {
-		return Boolean(D.state.busy && D.state.linearRunUi && D.dom.planStickyFooterEl);
+		return Boolean(
+			!D.state.uiReplayActive &&
+				D.state.busy &&
+				D.state.linearRunUi &&
+				D.dom.planStickyFooterEl,
+		);
 	};
 
 	fn.hidePlanActivitySticky = function () {

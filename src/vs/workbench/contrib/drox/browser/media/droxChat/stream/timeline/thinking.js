@@ -152,6 +152,7 @@
 			details.appendChild(summary);
 			details.appendChild(host);
 			section.appendChild(details);
+			fn.enhanceDetailsDisclosure?.(details);
 		} else {
 			details.open = true;
 		}

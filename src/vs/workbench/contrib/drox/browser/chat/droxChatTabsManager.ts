@@ -18,9 +18,7 @@ import { emptyTabUiStats, IDroxChatTab, newSessionId } from '../droxChatTabs.js'
 import { sliceTranscriptBeforeTurns, sliceTranscriptTailTurns } from '../../common/droxUiReplayTail.js';
 import {
 	replayTranscriptMessages,
-	replayTranscriptMessagesPrepend,
 	replayUiJournalMessages,
-	replayUiJournalMessagesPrepend,
 } from '../droxSessionReplay.js';
 
 const DEFAULT_TAB_TITLE = localize('droxChatSessionNew', 'New chat');
@@ -640,24 +638,40 @@ export class DroxChatTabsManager {
 		if (!ws) {
 			return;
 		}
-		this.loadingOlderSessionId = sessionId;
-		let prepended = false;
+		const loadSessionId = sessionId;
+		const tab = this.openTabs.find(t => t.sessionId === loadSessionId);
+		this.loadingOlderSessionId = loadSessionId;
 		try {
 			this.delegate.setUiReplayRecordingEnabled(false);
 			if (meta.source === 'ui') {
-				const page = await this.sessionService.readUiReplayOlder(sessionId, ws, {
+				const page = await this.sessionService.readUiReplayOlder(loadSessionId, ws, {
 					beforeIndex: cursor,
 					maxTurns: DROX_CHAT_HISTORY_PAGE_TURNS,
 				});
+				if (loadSessionId !== this.currentSessionId) {
+					return;
+				}
 				if (page.messages.length === 0) {
 					meta.hasOlder = false;
 					this.publishSessionHistory(sessionId);
 					return;
 				}
-				await replayUiJournalMessagesPrepend(this.delegate, page.messages);
-				prepended = true;
-				meta.oldestLoadedIndex = page.oldestLoadedIndex;
+				const full = await this.sessionService.readUiReplay(loadSessionId, ws);
+				if (loadSessionId !== this.currentSessionId) {
+					return;
+				}
+				const newOldest = page.oldestLoadedIndex;
+				meta.oldestLoadedIndex = newOldest;
 				meta.hasOlder = page.hasOlder;
+				this.delegate.post({ kind: 'chatReset' });
+				if (tab) {
+					this.delegate.post({
+						kind: 'session',
+						id: loadSessionId,
+						uiStats: { ...tab.uiStats },
+					});
+				}
+				await replayUiJournalMessages(this.delegate, full.slice(newOldest));
 			} else {
 				const transcript = meta.transcriptMessages;
 				if (!transcript) {
@@ -666,23 +680,39 @@ export class DroxChatTabsManager {
 					return;
 				}
 				const page = sliceTranscriptBeforeTurns(transcript, cursor, DROX_CHAT_HISTORY_PAGE_TURNS);
+				if (loadSessionId !== this.currentSessionId) {
+					return;
+				}
 				if (page.messages.length === 0) {
 					meta.hasOlder = false;
 					this.publishSessionHistory(sessionId);
 					return;
 				}
-				await replayTranscriptMessagesPrepend(this.delegate.agentEventHost(), page.messages);
-				prepended = true;
-				meta.oldestLoadedIndex = page.oldestLoadedIndex;
+				const newOldest = page.oldestLoadedIndex;
+				meta.oldestLoadedIndex = newOldest;
 				meta.hasOlder = page.hasOlder;
+				this.delegate.post({ kind: 'chatReset' });
+				if (tab) {
+					this.delegate.post({
+						kind: 'session',
+						id: loadSessionId,
+						uiStats: { ...tab.uiStats },
+					});
+				}
+				await replayTranscriptMessages(
+					this.delegate.agentEventHost(),
+					transcript.slice(newOldest),
+				);
 			}
+			if (loadSessionId !== this.currentSessionId) {
+				return;
+			}
+			this.delegate.post({ kind: 'sessionReplayDone', scrollToEnd: false });
+			this.delegate.post({ kind: 'state', busy: false });
 			this.publishSessionHistory(sessionId);
 		} finally {
 			this.delegate.setUiReplayRecordingEnabled(true);
-			if (!prepended) {
-				this.delegate.post({ kind: 'sessionHistoryPageDone' });
-			}
-			if (this.loadingOlderSessionId === sessionId) {
+			if (this.loadingOlderSessionId === loadSessionId) {
 				this.loadingOlderSessionId = undefined;
 			}
 		}

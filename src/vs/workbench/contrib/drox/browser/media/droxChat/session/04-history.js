@@ -245,6 +245,8 @@
 		fn.hideRunObjectiveSticky();
 		D.state.pendingTodoUpdates = null;
 		D.state.uiReplayActive = false;
+		fn.resetLinearTurnAnchors?.();
+		fn.resetHistoryReplayStream?.();
 		fn.resetSessionLazyHistory?.();
 		D.state.linearRunUi = false;
 		D.state.discussionRunActive = false;

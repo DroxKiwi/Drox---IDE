@@ -74,6 +74,7 @@
 			})),
 		});
 		fn.clearComposerAfterSend();
+		fn.showWarmupActivityOptimistic?.();
 	}
 
 	fn.flushPendingPromptQueue = function() {

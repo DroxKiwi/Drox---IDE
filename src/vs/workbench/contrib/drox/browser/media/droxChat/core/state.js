@@ -48,7 +48,8 @@
 	D.state.sessionHistoryHasOlder = false;
 	D.state.sessionHistoryOldestIndex = 0;
 	D.state.sessionHistoryLoading = false;
-	D.state.sessionHistoryPrependActive = false;
+	D.state._historyStreamEl = null;
+	D.state._turnFinalAssistantEl = null;
 	/** Nom outil en cours (mount section plan vs work). */
 	D.state.pendingToolName = '';
 	/** Auto-scroll du fil tant que l'utilisateur n'a pas remonté manuellement. */
@@ -58,6 +59,8 @@
 	D.state.todoSnapshot = [];
 	D.state.currentActivityGridEl = null;
 	D.state.currentWarmupRowEl = null;
+	/** Warmup affiché avant `state busy` de l'hôte (juste après envoi). */
+	D.state.pendingRunWarmup = false;
 	/** Indicateur « ça tourne » en bas du fil architecte (run linéaire). */
 	D.state.architectTailActivityEl = null;
 	D.state.lastWarmupPhraseIdx = -1;

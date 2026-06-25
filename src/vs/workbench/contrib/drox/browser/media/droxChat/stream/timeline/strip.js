@@ -237,7 +237,7 @@
 	};
 
 	fn.shouldMountPlanInStickyFooter = function (strip) {
-		if (!D.dom.planStickyFooterEl || !D.state.linearRunUi) {
+		if (D.state.uiReplayActive || !D.dom.planStickyFooterEl || !D.state.linearRunUi) {
 			return false;
 		}
 		strip = strip || D.state.runStripEl;
@@ -334,7 +334,7 @@
 		fn.compactLinearThinkingSection?.(strip);
 		fn.clearAllActivityGrids?.(strip);
 		fn.syncWorkSummaryStats?.(strip);
-		fn.collapseRunWorkSection?.(strip, { keepOpen: false });
+		fn.collapseRunWorkSection?.(strip, { keepOpen: true });
 	};
 
 	fn.sealAllOpenRunStrips = function () {
@@ -530,6 +530,7 @@
 		workSummary.className = 'drox-run-work-summary';
 		workSummary.textContent = 'Work';
 		work.appendChild(workSummary);
+		fn.enhanceDetailsDisclosure?.(work);
 		const chronology = document.createElement('div');
 		chronology.className = 'drox-run-section drox-run-chronology';
 		chronology.dataset.section = 'chronology';
