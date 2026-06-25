@@ -9,7 +9,7 @@ linux_npm_install() {
 		# Nested node_modules (build/, remote/) must be removed from Windows before WSL npm
 		# (prepare-wsl-linux-build.ps1). WSL unlink on .exe under /mnt/c → EIO.
 		if [[ -d node_modules ]]; then
-			echo "[linux-npm] node_modules partage Windows/WSL — npm install --force"
+			echo "[linux-npm] node_modules partage Windows/WSL - npm install --force"
 			npm install --force
 		else
 			npm install
