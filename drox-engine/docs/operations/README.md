@@ -1,12 +1,14 @@
 # Opérations Drox IDE
 
-**Build Windows / Linux en 2 min** → **[00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)**.
+**Build Windows / Linux en 2 min** → **[00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)**  
+**Agents IA** → **[AGENTS.md](AGENTS.md)** (règles, dépannage, chemins scripts)
 
 Guides **linéaires** — suivre dans l’ordre selon le besoin.
 
 | # | Guide | Quand |
 |---|--------|--------|
 | **0** | **[00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)** | **Quelle commande lancer ?** (dev, release win/linux) |
+| **0a** | **[AGENTS.md](AGENTS.md)** | Instructions courtes pour agent IA |
 | 0b | Ci-dessous § Setup | Une fois par machine |
 | 1 | [01-BRANCHE.md](01-BRANCHE.md) | Ouvrir une release, dev, merger sur `main` |
 | 2 | [02-UPSTREAM-VSCODE.md](02-UPSTREAM-VSCODE.md) | Rattraper une nouvelle base VS Code (Microsoft) |

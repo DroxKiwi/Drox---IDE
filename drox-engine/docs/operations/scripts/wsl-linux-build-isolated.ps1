@@ -130,7 +130,7 @@ export DROX_PRODUCT_SURFACE=release
 chmod +x drox-engine/docs/operations/scripts/wsl-linux-build.sh \
 	scripts/build-release-linux.sh scripts/package-drox.sh \
 	scripts/verify-packaged-linux.sh scripts/release-publish-linux.sh \
-	scripts/lib/linux-npm-install.sh
+	scripts/lib/linux-npm-install.sh scripts/lib/linux-strip-packaged-natives.sh
 
 bash ./drox-engine/docs/operations/scripts/wsl-linux-build.sh
 

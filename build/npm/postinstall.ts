@@ -316,6 +316,11 @@ async function main() {
 	child_process.execSync('git config pull.rebase merges');
 	child_process.execSync('git config blame.ignoreRevsFile .git-blame-ignore-revs');
 
+	// extensions/remote installs can hoist @parcel/watcher-* back into node_modules after root strip.
+	for (const dir of dirs) {
+		removeParcelWatcherPrebuild(dir);
+	}
+
 	fs.writeFileSync(stateFile, JSON.stringify(_state));
 	fs.writeFileSync(stateContentsFile, JSON.stringify(computeContents()));
 

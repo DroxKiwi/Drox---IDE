@@ -39,6 +39,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=lib/linux-npm-install.sh
 source "$SCRIPT_DIR/lib/linux-npm-install.sh"
+# shellcheck source=lib/linux-strip-packaged-natives.sh
+source "$SCRIPT_DIR/lib/linux-strip-packaged-natives.sh"
 PARENT_ROOT="$(cd "$REPO_ROOT/.." && pwd)"
 OUT_DIR="$PARENT_ROOT/VSCode-linux-x64"
 PRODUCT_SHORT='drox-ide'
@@ -136,6 +138,8 @@ if [[ "$WITH_DEB" -eq 1 ]]; then
 fi
 
 if [[ "$WITH_DEB" -eq 1 ]]; then
+	step 'strip non-glibc natives (prepare-deb)'
+	linux_strip_packaged_non_glibc "$OUT_DIR"
 	step 'gulp vscode-linux-x64-prepare-deb + build-deb'
 	run_npm run gulp -- vscode-linux-x64-prepare-deb
 	run_npm run gulp -- vscode-linux-x64-build-deb

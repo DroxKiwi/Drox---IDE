@@ -53,7 +53,9 @@ cd ~/Drox---IDE
 bash drox-engine/docs/operations/scripts/wsl-linux-build.sh
 ```
 
-Installe deps système (si besoin), nvm, rust, `npm install --force`, compile, `.deb`.
+Installe deps système (si besoin), nvm, rust, `npm install --force`, compile, strip natives musl, `.deb`.
+
+Scripts utilitaires : `scripts/lib/linux-npm-install.sh`, `scripts/lib/linux-strip-packaged-natives.sh`
 
 ---
 
