@@ -34,7 +34,6 @@
 		}
 		if (!next) {
 			fn.refreshLastUserStickyRow?.();
-			fn.syncStickyStackLayout?.();
 		}
 		_setBusy.call(this, next);
 	};
@@ -78,10 +77,5 @@
 			fn.parkAllLinearFinalAnswers();
 		}
 		_finalizeRunPresentation?.call(this);
-	};
-
-	const _updateAgentActivitySticky = fn.updateAgentActivitySticky;
-	fn.updateAgentActivitySticky = function () {
-		_updateAgentActivitySticky.call(this);
 	};
 })(globalThis.DroxChat);

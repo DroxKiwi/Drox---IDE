@@ -128,7 +128,6 @@
 				list.appendChild(li);
 			}
 		}
-		fn.syncStickyStackLayout?.();
 		fn.syncWorkSummaryStats?.(D.state.runStripEl);
 		fn.scrollLog();
 		if (D.state.busy) {
