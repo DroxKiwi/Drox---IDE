@@ -5,7 +5,7 @@
 
 // allow-any-unicode-comment-file
 
-/** Dernier message utilisateur — bandeau sticky (un seul visible). */
+/** Dernier prompt user — état pour liaison messageId (bandeau chrome masqué en CSS). */
 
 (function (D) {
 	const fn = D.fn;
@@ -33,7 +33,6 @@
 			messageId: D.state.userPromptStickySnapshot?.messageId,
 		};
 		D.state.userPromptStickyPendingLink = true;
-		fn.renderUserPromptSticky();
 	};
 
 	fn.linkUserPromptStickyToMessage = function (messageId) {
@@ -42,55 +41,9 @@
 		}
 		D.state.userPromptStickySnapshot.messageId = messageId;
 		D.state.userPromptStickyPendingLink = false;
-		fn.renderUserPromptSticky();
-	};
-
-	fn.renderUserPromptSticky = function () {
-		if (!D.dom.stickyUserPromptEl || !D.state.userPromptStickySnapshot) {
-			return;
-		}
-		const { text, meta, fullText } = D.state.userPromptStickySnapshot;
-		D.dom.stickyUserPromptEl.replaceChildren();
-		D.dom.stickyUserPromptEl.title = fullText || text;
-
-		const ic = document.createElement('span');
-		ic.className = 'sticky-ic';
-		ic.textContent = '▸';
-		ic.setAttribute('aria-hidden', 'true');
-
-		const body = document.createElement('div');
-		body.className = 'sticky-body';
-
-		const txt = document.createElement('span');
-		txt.className = 'sticky-text';
-		txt.textContent = text;
-		body.appendChild(txt);
-
-		if (meta) {
-			const metaEl = document.createElement('span');
-			metaEl.className = 'sticky-meta';
-			metaEl.textContent = meta;
-			body.appendChild(metaEl);
-		}
-
-		const jump = document.createElement('span');
-		jump.className = 'sticky-jump';
-		jump.textContent = '↗';
-		jump.title = 'Voir dans le fil';
-
-		D.dom.stickyUserPromptEl.appendChild(ic);
-		D.dom.stickyUserPromptEl.appendChild(body);
-		D.dom.stickyUserPromptEl.appendChild(jump);
-		D.dom.stickyUserPromptEl.hidden = false;
 	};
 
 	fn.hideUserPromptSticky = function () {
-		if (!D.dom.stickyUserPromptEl) {
-			return;
-		}
-		D.dom.stickyUserPromptEl.hidden = true;
-		D.dom.stickyUserPromptEl.replaceChildren();
-		D.dom.stickyUserPromptEl.removeAttribute('title');
 		D.state.userPromptStickySnapshot = null;
 		D.state.userPromptStickyPendingLink = false;
 	};

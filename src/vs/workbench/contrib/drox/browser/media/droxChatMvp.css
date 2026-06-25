@@ -18,8 +18,6 @@ body {
 	--drox-ui-fg: #ffffff;
 	--drox-ui-fg-muted: rgba(255, 255, 255, 0.62);
 	--drox-ai-indent: 18px;
-	--drox-chrome-h: 0px;
-	--drox-log-sticky-user-h: 0px;
 	--drox-chat-frame-radius: 0;
 }
 
@@ -511,7 +509,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	height: 28px;
 }
 
-/* Ancienne barre résumé — remplacée par sticky natif sur .msg-row-user */
+/* Bandeau chrome user masqué — le fil utilise is-last-user-sticky sur .msg-row-user. */
 #user-prompt-sticky,
 .chat-chrome .user-prompt-sticky,
 .user-prompt-sticky {
@@ -520,54 +518,6 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 
 .chat-chrome .run-objective-sticky {
 	margin: 0 10px 6px;
-}
-
-.user-prompt-sticky {
-	flex: 0 0 auto;
-	display: flex;
-	align-items: flex-start;
-	gap: 8px;
-	margin: 6px 12px 4px;
-	padding: 6px 10px;
-	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-	border-left: 3px solid var(--vscode-charts-green, var(--vscode-textLink-foreground));
-	border-radius: 4px;
-	background: var(--vscode-input-background, var(--vscode-editorWidget-background));
-	font-size: 11px;
-	line-height: 1.35;
-	cursor: pointer;
-	user-select: none;
-}
-
-.user-prompt-sticky[hidden],
-.run-objective-sticky[hidden] {
-	display: none;
-}
-
-.user-prompt-sticky:hover {
-	background: var(--vscode-list-hoverBackground, var(--vscode-input-background));
-}
-
-.user-prompt-sticky:focus-visible {
-	outline: 1px solid var(--vscode-focusBorder);
-	outline-offset: 1px;
-}
-
-.user-prompt-sticky .sticky-ic {
-	flex: 0 0 14px;
-	width: 14px;
-	height: 14px;
-	color: var(--drox-ui-icon);
-}
-
-.sticky-ic-user::before {
-	content: '';
-	display: block;
-	width: 14px;
-	height: 14px;
-	background-color: var(--drox-ui-icon);
-	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4 3l6 5-6 5V3z'/%3E%3C/svg%3E") center / contain no-repeat;
-	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4 3l6 5-6 5V3z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 .sticky-ic-objective::before {
@@ -580,37 +530,8 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	box-sizing: border-box;
 }
 
-.user-prompt-sticky .sticky-body {
-	flex: 1 1 auto;
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.user-prompt-sticky .sticky-text {
-	overflow: hidden;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	line-clamp: 2;
-	word-break: break-word;
-}
-
-.user-prompt-sticky .sticky-meta {
-	font-size: 10px;
-	color: var(--vscode-descriptionForeground);
-}
-
-.user-prompt-sticky .sticky-jump {
-	flex: 0 0 auto;
-	align-self: center;
-	width: 14px;
-	height: 14px;
-	opacity: 0.85;
-	background-color: var(--drox-ui-icon);
-	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4 10V3h7v1.5H7.2L12 9.2 10.8 10.5 6 5.7V10H4z'/%3E%3C/svg%3E") center / contain no-repeat;
-	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4 10V3h7v1.5H7.2L12 9.2 10.8 10.5 6 5.7V10H4z'/%3E%3C/svg%3E") center / contain no-repeat;
+.run-objective-sticky[hidden] {
+	display: none;
 }
 
 .run-objective-sticky {
@@ -1064,48 +985,10 @@ body.drox-linear-run-active #log {
 	gap: 4px;
 }
 
-.drox-run-sticky-head {
-	position: sticky;
-	top: 0;
-	z-index: 6;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	margin: 0 -14px 4px;
-	padding: 4px 14px 6px;
-	background: var(--vscode-editor-background, var(--vscode-sideBar-background));
-	box-shadow: 0 1px 0 color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 40%, transparent);
-}
-
-/* Pendant un cycle linéaire, seul le header de cycle est sticky (pas la bulle user). */
+/* Pendant un cycle linéaire, pas de sticky sur la bulle user. */
 body.drox-linear-run-active .msg-user-block,
 body.drox-linear-run-active .msg-row-user.msg-user-bubble,
 body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
-	position: relative;
-	top: auto;
-	z-index: 1;
-	box-shadow: none;
-}
-
-.drox-run-sticky-head .drox-agent-activity-inline {
-	margin: 0;
-	padding: 0 0 2px;
-}
-
-.drox-run-sticky-head .msg-orchestration-role {
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.drox-run-sticky-head .drox-run-section[data-section='plan'] {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	min-height: 0;
-}
-
-.drox-run-strip-sealed .drox-run-sticky-head,
-.drox-run-sticky-head--sealed {
 	position: relative;
 	top: auto;
 	z-index: 1;
@@ -1121,27 +1004,6 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .drox-run-plan-archive .msg-todos .todos-list {
 	max-height: none;
 	overflow: visible;
-}
-
-.drox-run-sticky-head .drox-run-section:empty {
-	display: none;
-}
-
-.drox-run-sticky-head .msg-todos {
-	margin: 0;
-	padding: 10px 12px;
-	border-radius: var(--drox-chat-frame-radius);
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 55%, transparent);
-	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
-}
-
-.drox-run-sticky-head .msg-todos .todos-head {
-	margin-bottom: 8px;
-}
-
-.drox-run-sticky-head .msg-todos .todos-list {
-	max-height: min(42vh, 280px);
-	overflow-y: auto;
 }
 
 .drox-run-section:empty {
