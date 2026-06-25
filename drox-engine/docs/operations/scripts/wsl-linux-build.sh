@@ -91,7 +91,7 @@ fi
 export DROX_PRODUCT_SURFACE=release
 cd "$REPO_ROOT"
 
-step "npm install for Linux (shared /mnt/c node_modules)"
+step "npm install for Linux"
 linux_npm_install "$REPO_ROOT"
 mkdir -p "${REPO_ROOT}/.build"
 date -Iseconds > "${REPO_ROOT}/.build/linux-npm-touch"
