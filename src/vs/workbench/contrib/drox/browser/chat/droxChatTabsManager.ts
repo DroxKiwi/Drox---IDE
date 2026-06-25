@@ -467,6 +467,7 @@ export class DroxChatTabsManager {
 					this.delegate.post({ kind: 'state', busy: false });
 				}
 				this.delegate.post({ kind: 'sessionReplayDone' });
+				this.delegate.post({ kind: 'state', busy: false });
 			} finally {
 				this.delegate.setUiReplayRecordingEnabled(true);
 			}

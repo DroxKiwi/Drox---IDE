@@ -47,12 +47,21 @@
 		return true;
 	}
 
+	fn.appendToLog = function (node) {
+		const log = D.dom.logEl;
+		if (!log || !node) {
+			return node;
+		}
+		fn.restoreLogAppendChild?.({ insertFragment: true, discardFragment: false });
+		log.appendChild(node);
+		return node;
+	};
+
 	fn.performSend = function(payload) {
 		if (typeof fn.resetCycleTimer === 'function') {
 			fn.resetCycleTimer();
 		}
-		fn.setBusy(true);
-		fn.showWarmupActivity();
+		fn.restoreLogAppendChild?.({ insertFragment: true, discardFragment: false });
 		D.vscode.postMessage({
 			type: 'send',
 			prompt: payload.prompt || '',
