@@ -54,16 +54,18 @@ Commitez ou stash vos changements, ou relancez sans -SkipCommit (commit auto).
 	}
 
 	Write-Host '==> Commit auto des changements locaux (avant sync clone Linux)' -ForegroundColor Yellow
-	git -C $winRepo add -A
+	git -C $winRepo add -A | Out-Null
 	git -C $winRepo reset -- 'build/node_modules.win.bak.*' 2>$null | Out-Null
 	$stillDirty = git -C $winRepo status --porcelain
 	if (-not $stillDirty) {
-		return (git -C $winRepo rev-parse HEAD 2>$null | Select-Object -Last 1).Trim()
+		$hash = (& git -C $winRepo rev-parse HEAD 2>$null | Select-Object -Last 1).Trim()
+		if ($hash -notmatch '^[0-9a-f]{40}$') { throw "HEAD git invalide: '$hash'" }
+		return $hash
 	}
 
 	$branch = (git -C $winRepo rev-parse --abbrev-ref HEAD).Trim()
 	$msg = "chore(release): sync before linux build ($branch)"
-	git -C $winRepo commit -m $msg
+	git -C $winRepo commit -m $msg | Out-Null
 	if ($LASTEXITCODE -ne 0) {
 		throw 'git commit a echoue avant le build Linux.'
 	}
@@ -103,7 +105,7 @@ mkdir -p "$(dirname "$LOG")"
 exec > >(tee -a "$LOG") 2>&1
 
 echo "==> Drox IDE linux build (isolated) - $(date -Iseconds)"
-echo "==> Windows source: $WIN_REPO @ $WIN_HEAD"
+echo "==> Windows HEAD: $WIN_HEAD"
 echo "==> Linux clone:    $LINUX_REPO"
 
 sync_clone() {
