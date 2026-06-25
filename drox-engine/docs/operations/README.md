@@ -14,8 +14,10 @@ Guides **linéaires** — suivre dans l’ordre selon le besoin.
 
 Scripts release Linux / restauration dev Windows : [scripts/](scripts/README.md).
 
-**Parcours release typique** : `01` → `02` (si bump VS Code) → `03` → `04`.  
+**Parcours release typique** : `00` (référence) → `01` → `02` (si bump VS Code) → `03` → `04`.  
 **Hotfix** sur version déjà en ligne : `06`.
+
+**Linux** : toujours `wsl-linux-build-isolated.ps1` — pas `wsl-linux-build.ps1` (legacy `/mnt/c`).
 
 ---
 
