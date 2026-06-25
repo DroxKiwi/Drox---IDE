@@ -1,4 +1,4 @@
-# Guide — Connexions MCP (spec 1.5.5)
+# Guide — Connexions MCP (spec 1.5.6)
 
 **Statut** : brouillon produit — à promouvoir vers `drox-engine/docs/operations/07-MCP-CONNEXIONS.md` à la livraison.
 
@@ -18,7 +18,7 @@ Drox transforme les outils MCP en appels `mcp__<serveur>__<outil>` pour le modè
 
 ---
 
-## Où configurer (cible 1.5.5)
+## Où configurer (cible 1.5.6)
 
 | Emplacement | Rôle |
 |-------------|------|
@@ -26,7 +26,7 @@ Drox transforme les outils MCP en appels `mcp__<serveur>__<outil>` pour le modè
 | **Fichier workspace** | `.mcp.json` ou `mcp.json` à la racine du projet |
 | **Réglage** | `drox.tools.mcp.enabled` — expose ou non les outils au LLM |
 
-Aujourd’hui (avant 1.5.5) : seul le toggle MCP existe dans les réglages généraux du chat ; la gestion des serveurs passe par le fichier JSON ou la vue MCP VS Code (Extensions), peu visible.
+Aujourd’hui (avant 1.5.6) : seul le toggle MCP existe dans les réglages généraux du chat ; la gestion des serveurs passe par le fichier JSON ou la vue MCP VS Code (Extensions), peu visible.
 
 ---
 
@@ -46,7 +46,7 @@ Aujourd’hui (avant 1.5.5) : seul le toggle MCP existe dans les réglages gén�
 }
 ```
 
-Transports supportés par le moteur (objectif 1.5.5) : **`stdio`** (local) ; **SSE/HTTP** si déjà géré par `drox-mcp` / workbench.
+Transports supportés par le moteur (objectif 1.5.6) : **`stdio`** (local) ; **SSE/HTTP** si déjà géré par `drox-mcp` / workbench.
 
 ---
 
@@ -84,7 +84,7 @@ Liste officielle : [modelcontextprotocol.io](https://modelcontextprotocol.io/).
 
 ## Relation avec VS Code
 
-Le fork embarque `contrib/mcp` (vue **MCP Servers**). La 1.5.5 **adapte** cette brique (rebrand, sans galerie Copilot) plutôt que de la dupliquer. Une seule config `.mcp.json` doit alimenter **workbench** et **moteur Drox**.
+Le fork embarque `contrib/mcp` (vue **MCP Servers**). La 1.5.6 **adapte** cette brique (rebrand, sans galerie Copilot) plutôt que de la dupliquer. Une seule config `.mcp.json` doit alimenter **workbench** et **moteur Drox**.
 
 ---
 
@@ -92,4 +92,4 @@ Le fork embarque `contrib/mcp` (vue **MCP Servers**). La 1.5.5 **adapte** cette 
 
 - Ne pas confondre MCP workbench (chat Microsoft) et **`drox.tools.mcp.enabled`** (moteur Rust).
 - Config : racine workspace, pas `~/Drox---IDE` clone isolé.
-- Plan technique : [PLAN-1.5.5.md](PLAN-1.5.5.md).
+- Plan technique : [PLAN-1.5.6.md](PLAN-1.5.6.md).
