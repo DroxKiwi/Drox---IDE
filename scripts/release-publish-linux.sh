@@ -7,11 +7,13 @@
 #   ./scripts/release-publish-linux.sh
 #   ./scripts/release-publish-linux.sh --dry-run
 #   ./scripts/release-publish-linux.sh --deb /path/to/package.deb
+#   DROX_RELEASES_REPO=/mnt/c/.../Drox---IDE---OR ./scripts/release-publish-linux.sh
 
 set -euo pipefail
 
 DRY_RUN=0
 DEB_FILE=''
+RELEASES_REPO="${DROX_RELEASES_REPO:-}"
 GITHUB_ORG='DroxKiwi'
 GITHUB_REPO='Drox---IDE---OR'
 
@@ -19,10 +21,13 @@ while [[ $# -gt 0 ]]; do
 	case "$1" in
 		--dry-run) DRY_RUN=1; shift ;;
 		--deb) DEB_FILE="$2"; shift 2 ;;
+		--releases-repo) RELEASES_REPO="$2"; shift 2 ;;
 		--org) GITHUB_ORG="$2"; shift 2 ;;
 		--repo) GITHUB_REPO="$2"; shift 2 ;;
 		-h|--help)
-			echo "Usage: $0 [--dry-run] [--deb PATH]"
+			echo "Usage: $0 [--dry-run] [--deb PATH] [--releases-repo PATH]"
+			echo ""
+			echo "OR repo: env DROX_RELEASES_REPO ou voisin de <REPO> (pas ~/Drox---IDE---OR du clone isole)."
 			exit 0
 			;;
 		*) echo "Option inconnue: $1" >&2; exit 1 ;;
@@ -31,7 +36,15 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-RELEASES_REPO="$(cd "$REPO_ROOT/.." && pwd)/Drox---IDE---OR"
+if [[ -z "$RELEASES_REPO" ]]; then
+	RELEASES_REPO="$(cd "$REPO_ROOT/.." && pwd)/Drox---IDE---OR"
+fi
+if [[ ! -d "$RELEASES_REPO/.git" ]]; then
+	echo "[release-publish-linux] Repo OR introuvable ou sans .git: $RELEASES_REPO" >&2
+	echo "  Depuis un build isole (~/Drox---IDE), passer --releases-repo ou DROX_RELEASES_REPO" >&2
+	echo "  vers Desktop/GitHub/Drox---IDE---OR (voir 04-RELEASE-LINUX.md)." >&2
+	exit 1
+fi
 PRODUCT_VERSION="$(node "$SCRIPT_DIR/lib/drox-release-manifest.mjs" version)"
 RELEASED="$(date +%Y-%m-%d)"
 

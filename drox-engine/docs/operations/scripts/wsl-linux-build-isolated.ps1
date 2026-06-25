@@ -28,9 +28,13 @@ if (-not $Distro) {
 }
 
 $winRepo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
+$winOr = (Join-Path (Split-Path -Parent $winRepo) 'Drox---IDE---OR')
 $drive = $winRepo.Substring(0, 1).ToLowerInvariant()
 $winRest = ($winRepo.Substring(2) -replace '\\', '/').TrimStart('/')
 $winRepoWsl = "/mnt/$drive/$winRest"
+$orDrive = $winOr.Substring(0, 1).ToLowerInvariant()
+$orRest = ($winOr.Substring(2) -replace '\\', '/').TrimStart('/')
+$winOrWsl = "/mnt/$orDrive/$orRest"
 $logFile = Join-Path $winRepo '.build\wsl-linux-build-isolated.log'
 
 function Ensure-WindowsRepoCommitted {
@@ -99,6 +103,7 @@ LINUX_REPO="$HOME/__LINUX_REPO__"
 BRANCH='__BRANCH__'
 WIN_HEAD='__WIN_HEAD__'
 REMOTE_URL='__REMOTE_URL__'
+DROX_RELEASES_REPO='__WIN_OR_WSL__'
 LOG='__LOG__'
 
 mkdir -p "$(dirname "$LOG")"
@@ -127,6 +132,7 @@ sync_clone() {
 sync_clone
 
 export DROX_PRODUCT_SURFACE=release
+export DROX_RELEASES_REPO="$DROX_RELEASES_REPO"
 chmod +x drox-engine/docs/operations/scripts/wsl-linux-build.sh \
 	scripts/build-release-linux.sh scripts/package-drox.sh \
 	scripts/verify-packaged-linux.sh scripts/release-publish-linux.sh \
@@ -143,6 +149,7 @@ $bashScript = $bashScript.Replace('__LINUX_REPO__', $LinuxRepoName)
 $bashScript = $bashScript.Replace('__BRANCH__', $branch)
 $bashScript = $bashScript.Replace('__WIN_HEAD__', $winHead)
 $bashScript = $bashScript.Replace('__REMOTE_URL__', $remoteUrl.Replace("'", "'\''"))
+$bashScript = $bashScript.Replace('__WIN_OR_WSL__', $winOrWsl.Replace("'", "'\''"))
 $bashScript = $bashScript.Replace('__LOG__', ($winRepoWsl + '/.build/wsl-linux-build-isolated.log'))
 
 $tempSh = Join-Path $env:TEMP "drox-wsl-linux-build-isolated-$PID.sh"
