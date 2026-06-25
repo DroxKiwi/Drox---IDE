@@ -60,15 +60,7 @@
 		if (toolBlock?.isConnected) {
 			toolBlock.insertAdjacentElement('afterend', card);
 			mounted = true;
-		} else if (typeof fn.getRunSection === 'function') {
-			const work = fn.getRunSection('work');
-			if (work) {
-				work.appendChild(card);
-				mounted = true;
-			}
-		}
-
-		if (!mounted) {
+		} else {
 			const strip = fn.findRunStripForFileChange();
 			if (strip) {
 				if (typeof fn.ensureRunStripConnected === 'function') {
@@ -96,10 +88,14 @@
 		if (strip && typeof fn.ensureRunWorkOpen === 'function') {
 			fn.ensureRunWorkOpen(strip);
 		}
-		card.classList.remove('is-collapsed');
+		const body = card.querySelector('.fc-body');
+		const hasDiffPayload = body && !body.classList.contains('fc-body-empty');
+		if (hasDiffPayload) {
+			card.classList.remove('is-collapsed');
+		}
 		const toggleBtn = card.querySelector('.fc-toggle');
 		if (toggleBtn) {
-			toggleBtn.setAttribute('aria-expanded', 'true');
+			toggleBtn.setAttribute('aria-expanded', hasDiffPayload ? 'true' : 'false');
 		}
 		D.state.logStickToBottom = true;
 		fn.scrollLogToEnd?.();
@@ -224,7 +220,7 @@
 		const toggleBtn = document.createElement('button');
 		toggleBtn.type = 'button';
 		toggleBtn.className = 'fc-toggle';
-		toggleBtn.setAttribute('aria-expanded', hasVisibleDiff ? 'true' : 'false');
+		toggleBtn.setAttribute('aria-expanded', hasVisibleDiff && hasDiffPayload ? 'true' : 'false');
 		toggleBtn.title = 'Expand / collapse diff';
 		toggleBtn.innerHTML =
 			'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
@@ -327,6 +323,11 @@
 		diffRoot.className = `fc-diff lang-${language}`;
 		diffRoot.appendChild(fn.renderDiffLines(diffText, contentText));
 		body.appendChild(diffRoot);
+		const hasDiffPayload = diffText.length > 0 || contentText.length > 0;
+		if (!hasDiffPayload) {
+			body.classList.add('fc-body-empty');
+			card.classList.add('is-collapsed');
+		}
 
 		toggleBtn.addEventListener('click', (ev) => {
 			ev.preventDefault();
