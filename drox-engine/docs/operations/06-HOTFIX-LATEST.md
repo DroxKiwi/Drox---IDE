@@ -94,15 +94,10 @@ Arrêter `npm run watch` et fermer `code.bat` sur Windows.
 
 ```powershell
 cd <REPO>
-.\drox-engine\docs\operations\scripts\wsl-linux-build.ps1
+.\drox-engine\docs\operations\scripts\wsl-linux-build-isolated.ps1
 ```
 
-Le wrapper :
-1. `npm install --force` une fois (deps Linux sur `node_modules` partagé `/mnt/c`)
-2. `build-release-linux.sh --skip-npm-install` (évite un second `npm install` win32 qui échoue en `EBADPLATFORM`)
-3. `restore-windows-dev.ps1` à la fin
-
-Log : `.build\wsl-linux-build.log` · Scripts : [scripts/README.md](scripts/README.md)
+Commit auto + clone `~/Drox---IDE`. Log : `.build\wsl-linux-build-isolated.log` · [00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)
 
 Manifeste :
 
@@ -154,8 +149,8 @@ Voir [scripts/README.md](scripts/README.md) pour le détail (shims `.cmd` vs add
 |----------|--------|--------|
 | `'npm-run-all2' n'est pas reconnu` après WSL | shims Windows remplacés | `restore-windows-dev.ps1` |
 | `*.node n'est pas une application Win32 valide` | binaires natifs Linux dans `node_modules` | Idem (rebuild Win32) |
-| `EBADPLATFORM` `@*-win32-*` pendant build WSL | Second `npm install` sans `--force` | `wsl-linux-build.ps1` (utilise `linux-npm-install.sh`) |
-| `postinstall.ts` / `EIO` `esbuild.exe` | WSL ne peut pas supprimer des `.exe` sous `/mnt/c` | Fermer watch + `code.bat` ; `prepare-wsl-linux-build.ps1` (auto dans le wrapper) |
+| `EBADPLATFORM` `@*-win32-*` | `npm install` sur `/mnt/c/` au lieu du clone isolé | `wsl-linux-build-isolated.ps1` |
+| `postinstall.ts` / `EIO` `esbuild.exe` | idem | clone isolé ; `restore-windows-dev.ps1` si dev Windows cassé |
 | `bash\r: No such file or directory` (WSL) | script `.sh` en CRLF | LF sur les `.sh` (`.gitattributes` : `eol=lf`) |
 | `EACCES` pendant `drox:ship` | `node_modules` verrouillé / artefact WSL | Arrêter watch · `restore-windows-dev.ps1` · supprimer dossiers `node_modules` imbriqués cassés |
 | `latest.json` sans `linux-x64` | publish win32 ancien (écrasement) | `node scripts/lib/drox-release-manifest.mjs merge --platform linux-x64 …` |
@@ -168,8 +163,8 @@ Voir [scripts/README.md](scripts/README.md) pour le détail (shims `.cmd` vs add
 ```text
 Correctif sources → notes (splash + RELEASE_NOTES.md)
     → hotfix Windows (ship + OR + gh upload --clobber)
-    → hotfix Linux (wsl-linux-build + publish + gh upload --clobber)
-    → restore-windows-dev.ps1
+    → hotfix Linux (wsl-linux-build-isolated + publish + gh upload --clobber)
+    → restore-windows-dev.ps1 (seulement si dev Windows casse)
     → smoke
 ```
 
