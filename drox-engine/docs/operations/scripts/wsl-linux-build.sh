@@ -31,10 +31,38 @@ echo "==> Log:  $LOG_FILE"
 
 step() { echo ""; echo "==> $*"; }
 
-step "System packages (sudo may prompt for password)"
-sudo apt-get update
-sudo apt-get install -y build-essential pkg-config libx11-dev libxkbfile-dev \
-	libsecret-1-dev libkrb5-dev fakeroot rpm lintian curl git ca-certificates
+ensure_system_packages() {
+	local pkgs=(build-essential pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev fakeroot rpm lintian curl git ca-certificates)
+	local missing=()
+	for p in "${pkgs[@]}"; do
+		if ! dpkg -s "$p" >/dev/null 2>&1; then
+			missing+=("$p")
+		fi
+	done
+	if [[ ${#missing[@]} -eq 0 ]]; then
+		step "System packages OK (deja installes)"
+		return 0
+	fi
+	if ! sudo -n true 2>/dev/null; then
+		echo "" >&2
+		echo "[wsl-linux-build] sudo demande votre mot de passe Ubuntu (une fois)." >&2
+		echo "  Ouvrez un terminal WSL interactif et lancez :" >&2
+		echo "    wsl -d Ubuntu-24.04" >&2
+		echo "    sudo apt-get update && sudo apt-get install -y ${pkgs[*]}" >&2
+		echo "  Puis relancez le build depuis PowerShell." >&2
+		echo "" >&2
+		echo "  Ou lancez tout le build depuis WSL (mot de passe demande ici) :" >&2
+		echo "    cd ~/Drox---IDE && bash drox-engine/docs/operations/scripts/wsl-linux-build.sh" >&2
+		echo "" >&2
+		exit 1
+	fi
+	step "System packages (apt install)"
+	sudo apt-get update
+	sudo apt-get install -y "${pkgs[@]}"
+}
+
+step "System packages"
+ensure_system_packages
 
 if ! command -v node >/dev/null 2>&1; then
 	step "Install Node via nvm (.nvmrc)"

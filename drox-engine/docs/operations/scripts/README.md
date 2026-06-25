@@ -4,6 +4,43 @@ Guides : [04-RELEASE-LINUX.md](../04-RELEASE-LINUX.md) · [01-BRANCHE.md](../01-
 
 ---
 
+## Mot de passe sudo WSL (premiere fois)
+
+Le build Linux appelle `sudo apt-get` **une seule fois** pour installer les paquets systeme. Depuis PowerShell en arriere-plan, **le mot de passe ne peut pas etre saisi**.
+
+**Option A — une fois dans WSL (recommande)** :
+
+```powershell
+wsl -d Ubuntu-24.04
+```
+
+Puis dans le shell Ubuntu (mot de passe demande ici) :
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential pkg-config libx11-dev libxkbfile-dev \
+  libsecret-1-dev libkrb5-dev fakeroot rpm lintian curl git ca-certificates
+exit
+```
+
+Ensuite relancez depuis PowerShell :
+
+```powershell
+.\drox-engine\docs\operations\scripts\wsl-linux-build-isolated.ps1
+```
+
+Les prochains builds **sautent apt** si les paquets sont deja la.
+
+**Option B — tout lancer dans WSL** (mot de passe sudo interactif) :
+
+```bash
+wsl -d Ubuntu-24.04
+cd ~/Drox---IDE
+bash drox-engine/docs/operations/scripts/wsl-linux-build.sh
+```
+
+---
+
 ## Recommandation : deux répertoires
 
 | Rôle | Chemin | Usage |
