@@ -48,10 +48,7 @@
 
 	fn.hideActivity = function() {
 		fn.clearAllActivityGrids(D.dom.logEl || document);
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.ensureArchitectRunTailActivity();
-			return;
-		}
+		fn.hidePlanActivitySticky?.();
 		fn.hideArchitectRunTailActivity();
 	}
 
@@ -84,8 +81,8 @@
 		if (!D.state.busy || !D.dom.logEl) {
 			return;
 		}
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.ensureArchitectRunTailActivity({ rotatePhrase: true });
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky({ rotatePhrase: true });
 			return;
 		}
 		const anchor = fn.getLastUserMessageEl();
@@ -122,8 +119,8 @@
 
 	/** Grille persistante : ne remplace pas les autres indicateurs en cours. */
 	fn.ensurePersistentActivityGrid = function(hostEl) {
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.touchArchitectRunTailActivity();
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky();
 			return null;
 		}
 		if (!hostEl?.isConnected) {
@@ -147,8 +144,8 @@
 		if (!D.state.busy || !summaryEl) {
 			return;
 		}
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.touchArchitectRunTailActivity({ rotatePhrase: true });
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky({ rotatePhrase: true });
 			return;
 		}
 		fn.hideInlineActivityOnly();
@@ -173,12 +170,65 @@
 		if (!D.state.busy || !node?.parentElement) {
 			return;
 		}
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.touchArchitectRunTailActivity();
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky({ rotatePhrase: true });
 			return;
 		}
 		fn.hideInlineActivityOnly();
 		D.state.currentActivityGridEl = fn.buildActivityGrid();
 		node.parentElement.insertBefore(D.state.currentActivityGridEl, node);
 	}
+
+	fn.shouldUsePlanActivitySticky = function () {
+		return Boolean(D.state.busy && D.state.linearRunUi && D.dom.planStickyFooterEl);
+	};
+
+	fn.hidePlanActivitySticky = function () {
+		const row = D.dom.planActivityStickyEl;
+		if (row) {
+			row.hidden = true;
+		}
+		fn.syncPlanStickyFooter?.();
+	};
+
+	fn.ensurePlanActivitySticky = function (opts) {
+		if (!fn.shouldUsePlanActivitySticky()) {
+			fn.hidePlanActivitySticky();
+			return;
+		}
+		const footer = D.dom.planStickyFooterEl;
+		const row = D.dom.planActivityStickyEl;
+		if (!footer || !row) {
+			return;
+		}
+		fn.hideInlineActivityOnly();
+		if (D.state.architectTailActivityEl) {
+			D.state.architectTailActivityEl.remove();
+			D.state.architectTailActivityEl = null;
+		}
+		const rotatePhrase = opts?.rotatePhrase === true;
+		let label = row.querySelector('.activity-warmup-label');
+		if (!label) {
+			label = document.createElement('span');
+			label.className = 'activity-warmup-label';
+			row.appendChild(label);
+		}
+		let grid = row.querySelector('.activity-grid');
+		if (!grid) {
+			grid = fn.buildActivityGrid();
+			grid.classList.add('activity-grid-persistent');
+			row.insertBefore(grid, label);
+		}
+		if (rotatePhrase || !label.textContent) {
+			label.textContent = fn.pickWarmupPhrase();
+		}
+		row.hidden = false;
+		if (row.parentElement !== footer) {
+			footer.prepend(row);
+		} else if (footer.firstElementChild !== row) {
+			footer.prepend(row);
+		}
+		footer.hidden = false;
+		fn.syncPlanStickyFooter?.();
+	};
 })(globalThis.DroxChat);

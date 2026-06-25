@@ -393,6 +393,18 @@ body {
 	background: color-mix(in srgb, var(--vscode-sideBar-background, var(--vscode-editor-background)) 92%, var(--drox-thread-brown-deep) 8%);
 }
 
+.drox-plan-activity-sticky {
+	padding-left: 0;
+	border-bottom-color: color-mix(in srgb, var(--drox-thread-green-border) 40%, transparent);
+	background: color-mix(in srgb, var(--vscode-sideBar-background, var(--vscode-editor-background)) 92%, var(--drox-thread-brown-deep) 8%);
+}
+
+.drox-plan-activity-sticky .activity-warmup-label {
+	color: var(--drox-thread-fg-muted);
+	font-style: normal;
+	letter-spacing: 0.05em;
+}
+
 /* En-tête onglets : aligné sur le sash (pas de retrait gauche) */
 .chat-chrome .session-tab-bar {
 	padding-left: 0;
