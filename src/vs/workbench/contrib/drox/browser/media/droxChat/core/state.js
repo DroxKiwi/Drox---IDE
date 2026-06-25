@@ -31,12 +31,14 @@
 	D.state.currentPhaseBodyEl = null;
 	D.state.logIssuesTray = null;
 	D.state.toolTraysByParent = null;
+	/** Fil linéaire — strip agent du tour en cours. */
+	D.state.runStripEl = null;
 	/** Fil linéaire — ancrage après le message user du tour. */
 	D.state.runStripAnchorEl = null;
 	/** Vrai dès le premier événement live (delta/tool/todo) — verrouille le strip en place. */
 	D.state.runStripCommitted = false;
-	/** Par host thinking : auto-scroll tant que l'utilisateur n'a pas remonté. */
-	D.state.thinkingScrollStick = new WeakMap();
+	/** Mode fil linéaire actif (run ou replay). */
+	D.state.linearRunUi = false;
 	D.state.pendingTodoUpdates = null;
 	/** `architect` | `architect_discussion` | null — run rail solo. */
 	D.state.orchestrationRole = null;

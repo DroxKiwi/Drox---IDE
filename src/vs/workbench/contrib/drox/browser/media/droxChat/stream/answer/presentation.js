@@ -24,7 +24,6 @@
 		fn.promoteChatStreamToFinalAnswer?.();
 		fn.parkAllLinearFinalAnswers?.();
 		D.state.assistantEl = null;
-		fn.scrollLog(true);
 	};
 
 	/** Fin rejeu session — appelé par `sessionReplayDone`. */

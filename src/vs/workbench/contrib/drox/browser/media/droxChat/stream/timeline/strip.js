@@ -10,30 +10,6 @@
 (function (D) {
 	const fn = D.fn;
 
-	/** Hauteur cumulée des bandeaux chrome (onglets + objectif) pour la pile sticky du fil. */
-	D.state.runStripEl = null;
-	/** Dernier message user du run — le strip agent est inséré juste après. */
-	D.state.runStripAnchorEl = null;
-
-	/** Hauteur cumulée des bandeaux chrome (onglets + objectif) pour la pile sticky du fil. */
-	fn.syncStickyStackLayout = function () {
-		const chrome = document.getElementById('chat-chrome');
-		const log = D.dom.logEl;
-		if (!log) {
-			return;
-		}
-		let chromeH = 0;
-		if (chrome) {
-			chromeH = Math.ceil(chrome.getBoundingClientRect().height);
-		}
-		document.documentElement.style.setProperty('--drox-chrome-h', `${chromeH}px`);
-		let userH = 0;
-		if (D.state.linearRunUi && D.state.runStripAnchorEl?.isConnected) {
-			userH = Math.ceil(D.state.runStripAnchorEl.getBoundingClientRect().height);
-		}
-		log.style.setProperty('--drox-log-sticky-user-h', `${userH}px`);
-	};
-
 	fn.ensureRunStripConnected = function (strip) {
 		if (!strip) {
 			return;
@@ -321,10 +297,6 @@
 		strip.dataset.sealed = '1';
 		strip.classList.add('drox-run-strip-sealed');
 		fn.parkAllLinearFinalAnswers();
-		const stickyHead = strip.querySelector('.drox-run-sticky-head');
-		if (stickyHead) {
-			stickyHead.classList.add('drox-run-sticky-head--sealed');
-		}
 		fn.archivePlanIntoStrip(strip);
 		fn.parkAllLinearFinalAnswers();
 		fn.compactLinearThinkingSection?.(strip);
@@ -357,7 +329,6 @@
 		fn.resetPlanStateForTurn?.();
 		D.state.linearRunUi = true;
 		document.body.classList.add('drox-linear-run-active');
-		fn.syncStickyStackLayout();
 		D.state.runStripEl = null;
 		D.state.runStripAnchorEl = null;
 		D.state.runStripCommitted = false;
@@ -380,23 +351,6 @@
 		D.state.runStripAnchorEl = null;
 		fn.resetChatStreamForTurn?.();
 		document.body.classList.remove('drox-linear-run-active');
-		fn.syncStickyStackLayout();
-	};
-
-	fn.mountRunStripAfter = function (anchorEl) {
-		if (!anchorEl?.isConnected) {
-			return;
-		}
-		if (D.state.runStripCommitted) {
-			return;
-		}
-		const anchor = fn.resolveUserMessageAnchor?.(anchorEl) ?? anchorEl;
-		D.state.runStripAnchorEl = anchor;
-		const strip = fn.ensureRunStrip();
-		if (!strip.isConnected || strip.previousElementSibling !== anchor) {
-			anchor.insertAdjacentElement('afterend', strip);
-		}
-		fn.scrollLog(true);
 	};
 
 	fn.anchorRunStripAfterUser = function (userEl) {
@@ -431,8 +385,6 @@
 				}
 				fn.reparentTodoBlockToPlan?.();
 				fn.syncWorkSummaryStats?.(current);
-				fn.syncStickyStackLayout();
-				fn.scrollLog(true);
 				return;
 			}
 			if (
@@ -464,8 +416,6 @@
 		}
 		fn.reparentTodoBlockToPlan?.();
 		fn.syncWorkSummaryStats?.(strip);
-		fn.syncStickyStackLayout();
-		fn.scrollLog(true);
 	};
 
 	fn.commitRunStripAnchor = function () {
@@ -513,7 +463,6 @@
 				return fn.ensureRunStrip();
 			}
 			fn.ensureRunStripConnected(strip);
-			fn.syncStickyStackLayout();
 			return strip;
 		}
 		if (D.dom.logEl) {
@@ -525,7 +474,6 @@
 				D.state.runStripEl = adopted;
 				fn.pruneExtraOpenRunStrips(adopted);
 				fn.ensureRunStripConnected(adopted);
-				fn.syncStickyStackLayout();
 				return adopted;
 			}
 		}
@@ -558,7 +506,6 @@
 		fn.pruneExtraOpenRunStrips(strip);
 		fn.ensureRunStripConnected(strip);
 		fn.touchArchitectRunTailActivity?.();
-		fn.syncStickyStackLayout();
 		return strip;
 	};
 

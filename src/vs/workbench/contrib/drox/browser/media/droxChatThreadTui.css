@@ -289,21 +289,6 @@ body {
 	border-radius: var(--drox-thread-radius);
 }
 
-#log .drox-run-sticky-head {
-	border-radius: var(--drox-thread-radius);
-	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-thread-brown) 12%);
-	box-shadow: 0 1px 0 color-mix(in srgb, var(--drox-thread-green-border) 35%, transparent);
-	margin-left: 0;
-	margin-right: calc(-1 * var(--drox-thread-pad-x, 8px));
-	padding: 4px var(--drox-thread-pad-x, 8px) 6px 0;
-}
-
-#log .drox-run-sticky-head .msg-todos {
-	border-radius: var(--drox-thread-radius);
-	border-color: var(--drox-thread-green-border);
-	background: color-mix(in srgb, var(--vscode-editor-background) 80%, var(--drox-thread-brown) 20%);
-}
-
 #log .msg-todos .todo-item {
 	border-radius: var(--drox-thread-radius);
 }
