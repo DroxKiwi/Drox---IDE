@@ -13,7 +13,9 @@
 | [**1.5.1b/**](1.5.1b/README.md) | Scripts pipeline Linux | **Préparé** · ship → **1.5.4** |
 | [**1.5.2/**](1.5.2/README.md) | Configuration moteur depuis l’IDE | **Livré** · `v1.5.2` |
 | [**1.5.3/**](1.5.3/README.md) | Diffs fil + UX chat + splash | **Livré** · `v1.5.3` |
-| [**1.5.4/**](1.5.4/README.md) | Release Linux `.deb` + Authenticode + marketplace extensions | **Planifié** |
+| [**1.5.4/**](1.5.4/README.md) | Release Linux `.deb` + Authenticode + marketplace extensions | **Livré** · `v1.5.4` |
+| [**1.5.5/**](1.5.5/README.md) | Connexions MCP (UI + moteur) | **Planifié** |
+| [**1.5.6/**](1.5.6/README.md) | Agents Window rebrandée + moteur Drox | **Planifié** · [impl.](1.5.6/IMPLEMENTATION-1.5.6.md) |
 
 ---
 
@@ -23,7 +25,9 @@
 1.5.1  fil + wizard  →  clôture (release win, merge main, branche 1.5.2)
 1.5.2  configuration moteur IDE  →  clôture (release win, merge main, branche 1.5.3)
 1.5.3  diffs + UX + splash
-1.5.4  release Linux + Authenticode + Open VSX
+1.5.4  release Linux + Open VSX + Ouvrir avec Drox
+1.5.5  connexions MCP (section dédiée, pont moteur)
+1.5.6  Agents Window adaptée Drox (réactivation contrôlée)
 ```
 
 ---
@@ -34,5 +38,7 @@
 - [PLAN 1.5.2](1.5.2/PLAN-1.5.2.md)
 - [PLAN 1.5.3](1.5.3/PLAN-1.5.3.md)
 - [PLAN 1.5.4](1.5.4/PLAN-1.5.4.md)
+- [PLAN 1.5.5](1.5.5/PLAN-1.5.5.md)
+- [PLAN 1.5.6](1.5.6/PLAN-1.5.6.md)
 - [GUIDE release & upstream](../GUIDE-RELEASE-ET-UPSTREAM.md)
 - [Opérations release (index)](../operations/README.md)

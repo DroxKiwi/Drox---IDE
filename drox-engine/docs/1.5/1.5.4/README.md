@@ -1,6 +1,6 @@
 # Drox 1.5.4 — Release Linux + confiance Windows
 
-**Statut** : **planifié** (juin 2026)  
+**Statut** : **livré** (juin 2026) — win + linux `v1.5.4`  
 **Prérequis** : [1.5.3](../1.5.3/PLAN-1.5.3.md) livrée
 
 ---
