@@ -38,7 +38,7 @@
 
 	/** Fin rejeu / prepend historique — remettre le fil dans un état scrollable unique. */
 	fn.finalizeReplayThreadUi = function (opts) {
-		fn.restoreLogAppendChild?.({ insertFragment: true, discardFragment: false });
+		fn.ensureLogScrollReady?.();
 		fn.removeReplayLayoutOrphans?.();
 		fn.promoteChatStreamToFinalAnswer?.();
 		fn.parkAllLinearFinalAnswers?.();
