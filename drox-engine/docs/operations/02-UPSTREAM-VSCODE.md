@@ -55,7 +55,7 @@ git checkout main -- `
   src/vs/workbench/browser/media/kdds-code-icon.png `
   scripts/build-release-linux.sh scripts/release-publish-linux.sh `
   scripts/verify-packaged-linux.sh `
-  drox-engine/docs/operations/scripts/wsl-linux-build.ps1 `
+  drox-engine/docs/operations/scripts/wsl-linux-build-isolated.ps1 `
   drox-engine/docs/operations/scripts/wsl-linux-build.sh `
   drox-engine/docs/operations/scripts/restore-windows-dev.ps1 `
   drox-engine/docs/operations/scripts/restore-windows-dev-deps.ps1 `
