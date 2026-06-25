@@ -36,7 +36,8 @@ body {
 	letter-spacing: 0.03em;
 	color: var(--drox-thread-fg);
 	/* Flush au sash VS Code (gauche) — marge uniquement à droite */
-	padding: var(--drox-thread-pad-y) var(--drox-thread-pad-x) var(--drox-thread-pad-y) 0;
+	padding: var(--drox-thread-pad-y) var(--drox-thread-pad-x) calc(var(--drox-thread-pad-y) + var(--drox-log-bottom-reserve, 36px)) 0;
+	scroll-padding-bottom: var(--drox-log-bottom-reserve, 36px);
 	background:
 		repeating-linear-gradient(
 			180deg,
@@ -195,6 +196,18 @@ body {
 	border-color: var(--drox-thread-green-border);
 	background: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--drox-thread-brown) 18%);
 	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--drox-thread-green) 10%, transparent);
+}
+
+#log .drox-shell-card > summary {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+}
+
+#log .drox-shell-card .drox-shell-card-header {
+	padding: 0;
+	min-height: 22px;
 }
 
 #log .drox-shell-card .drox-shell-cmd,

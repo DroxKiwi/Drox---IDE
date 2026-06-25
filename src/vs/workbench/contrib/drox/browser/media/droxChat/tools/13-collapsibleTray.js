@@ -13,7 +13,7 @@
 	fn.createCollapsibleTray = function (className, defaultSummary) {
 		const tray = document.createElement('details');
 		tray.className = className;
-		tray.open = false;
+		tray.open = true;
 		tray.hidden = true;
 		const summary = document.createElement('summary');
 		summary.textContent = defaultSummary;
@@ -95,17 +95,12 @@
 		return tray;
 	};
 
-	fn.appendChatIssue = function (el, previewHtml) {
+	fn.appendChatIssue = function (el, _previewHtml) {
 		if (!el) {
 			return;
 		}
 		fn.markChatIssueElement?.(el);
-		const preview =
-			previewHtml ||
-			fn.previewTextFromElement(el) ||
-			'Notice';
-		const tray = fn.ensureLogIssuesTray();
-		fn.pushCollapsibleTrayItem(tray, el, preview);
+		fn.appendToLog?.(el);
 	};
 
 	fn.ensureParentToolTray = function (parentEl, trayClass) {
@@ -144,19 +139,7 @@
 		fn.pushCollapsibleTrayItem(tray, details, previewHtml);
 	};
 
-	fn.shouldUseCollapsibleToolTray = function (parentEl) {
-		if (!parentEl) {
-			return false;
-		}
-		if (parentEl.classList?.contains('executor-action-rail-list')) {
-			return false;
-		}
-		if (parentEl.classList?.contains('executor-stream-tools')) {
-			return false;
-		}
-		if (parentEl === D.dom.logEl || parentEl.classList?.contains('drox-run-section')) {
-			return true;
-		}
+	fn.shouldUseCollapsibleToolTray = function () {
 		return false;
 	};
 })(globalThis.DroxChat);

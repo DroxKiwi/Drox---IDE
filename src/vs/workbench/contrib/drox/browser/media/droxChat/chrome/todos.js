@@ -15,13 +15,6 @@
 			fn.syncPlanStickyFooter?.();
 			return;
 		}
-		if (
-			D.state.busy &&
-			typeof fn.beginLinearRunStrip === 'function' &&
-			!D.state.linearRunUi
-		) {
-			fn.beginLinearRunStrip();
-		}
 		D.state.todoSnapshot = items.map((t) => ({
 			id: String(t.id ?? ''),
 			content: String(t.content ?? ''),
@@ -79,6 +72,8 @@
 							: null;
 			if (mount) {
 				mount.appendChild(block);
+			} else {
+				fn.mountLinearLogNode?.(block);
 			}
 			D.state.currentTodoBlockEl = block;
 			fn.syncPlanStickyFooter?.();

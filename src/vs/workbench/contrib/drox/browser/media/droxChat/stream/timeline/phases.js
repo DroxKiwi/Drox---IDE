@@ -54,13 +54,15 @@
 		if (phase === 'done') {
 			fn.appendPhaseMarker?.('done');
 			D.state.currentPhase = null;
-			fn.finalizeAssistant?.();
-			fn.finalizeRunPresentation?.();
-			if (!D.state.busy) {
-				fn.collapseRunWorkSection?.();
-			}
-			if (D.state.runStripEl?.isConnected && typeof fn.normalizeLinearThinkingLayout === 'function') {
-				fn.normalizeLinearThinkingLayout(D.state.runStripEl);
+			if (!D.state.uiReplayActive) {
+				fn.finalizeAssistant?.();
+				fn.finalizeRunPresentation?.();
+				if (!D.state.busy) {
+					fn.collapseRunWorkSection?.();
+				}
+				if (D.state.runStripEl?.isConnected && typeof fn.normalizeLinearThinkingLayout === 'function') {
+					fn.normalizeLinearThinkingLayout(D.state.runStripEl);
+				}
 			}
 			return;
 		}

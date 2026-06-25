@@ -19,6 +19,7 @@ body {
 	--drox-ui-fg-muted: rgba(255, 255, 255, 0.62);
 	--drox-ai-indent: 18px;
 	--drox-chat-frame-radius: 0;
+	--drox-log-bottom-reserve: 36px;
 }
 
 * {
@@ -876,7 +877,8 @@ details.drox-run-work-collapsible > summary.drox-run-work-summary::-webkit-detai
 }
 
 .msg-file-change .fc-body.fc-body-empty {
-	display: none;
+	min-height: 0;
+	opacity: 0.72;
 }
 
 .msg-file-change .fc-body {
@@ -1347,7 +1349,8 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	min-height: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
-	padding: 12px 14px;
+	padding: 12px 14px calc(12px + var(--drox-log-bottom-reserve));
+	scroll-padding-bottom: var(--drox-log-bottom-reserve);
 	display: block;
 }
 
@@ -1853,9 +1856,24 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 /* Même alignement visuel du libellé (Native reasoning ≈ Read path) */
-#log > .drox-log-indent.phase-block > .phase-summary,
-#log > .drox-log-indent.msg-tool > summary {
+#log > .drox-log-indent.phase-block > .phase-summary {
 	padding: 6px 0;
+}
+
+#log > .drox-log-indent.msg-tool:not(.drox-shell-card) > summary {
+	padding: 6px 0;
+}
+
+#log > .drox-shell-card > summary {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+}
+
+#log > .drox-log-indent.msg-tool > summary .msg-tool-summary-label {
+	flex: 1;
+	min-width: 0;
 }
 
 .phase-block.msg-ai-frame {
@@ -2208,8 +2226,11 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .drox-shell-card > summary {
 	cursor: pointer;
-	padding: 0;
+	padding: 6px 8px;
 	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .drox-shell-card > summary::-webkit-details-marker {
@@ -2220,8 +2241,10 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 8px 10px;
-	min-height: 34px;
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 0;
+	min-height: 22px;
 }
 
 .drox-shell-card-icon::before {
@@ -4412,10 +4435,17 @@ button:disabled {
 	display: none;
 }
 
+#log .msg-file-change.is-collapsed > .fc-body,
+.drox-run-chronology .msg-file-change.is-collapsed > .fc-body,
+.drox-run-answer .msg-file-change.is-collapsed > .fc-body {
+	display: none;
+}
+
 .msg-file-change.is-collapsed > .fc-summary {
 	border-bottom-color: transparent;
 }
 
+.drox-disclosure-toggle,
 .msg-file-change .fc-toggle {
 	width: 22px;
 	height: 22px;
@@ -4431,19 +4461,36 @@ button:disabled {
 	padding: 0;
 }
 
+.drox-disclosure-toggle:hover,
 .msg-file-change .fc-toggle:hover {
 	background: var(--vscode-toolbar-hoverBackground);
 	color: var(--vscode-foreground);
 }
 
+.drox-disclosure-toggle svg,
 .msg-file-change .fc-toggle svg {
 	width: 14px;
 	height: 14px;
 	transition: transform 0.15s ease;
 }
 
+details:not([open]) > summary .drox-disclosure-toggle svg,
+.msg-file-change.is-collapsed .drox-disclosure-toggle svg,
 .msg-file-change.is-collapsed .fc-toggle svg {
 	transform: rotate(-90deg);
+}
+
+#log details > summary:has(.drox-disclosure-toggle),
+.drox-run-chronology details > summary:has(.drox-disclosure-toggle),
+.drox-run-answer details > summary:has(.drox-disclosure-toggle) {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.phase-summary:has(.drox-disclosure-toggle)::before,
+.drox-run-work-summary:has(.drox-disclosure-toggle)::before {
+	display: none;
 }
 
 .msg-file-change .fc-icon {

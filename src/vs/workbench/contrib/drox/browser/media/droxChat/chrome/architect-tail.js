@@ -33,7 +33,7 @@
 
 	/** Réaffiche la grille 3×3 au bon endroit pendant un run actif. */
 	fn.refreshActivityIndicator = function () {
-		if (!D.state.busy) {
+		if (!D.state.busy && !D.state.pendingRunWarmup) {
 			return;
 		}
 		if (fn.shouldUsePlanActivitySticky?.()) {

@@ -52,54 +52,23 @@
 		return strips.length > 0 ? strips[strips.length - 1] : null;
 	};
 
-	/** Montage 1.5.2 : work strip → chronologie, sinon #log (late async). */
+	/** Montage linéaire : après le bloc outil lié, sinon ordre chronologique dans #log. */
 	fn.mountFileChangeCard = function (card, toolId) {
 		const toolBlock = toolId ? D.state.toolBlocks.get(toolId) : undefined;
-		let mounted = false;
-
 		if (toolBlock?.isConnected) {
 			toolBlock.insertAdjacentElement('afterend', card);
-			mounted = true;
 		} else {
-			const strip = fn.findRunStripForFileChange();
-			if (strip) {
-				if (typeof fn.ensureRunStripConnected === 'function') {
-					fn.ensureRunStripConnected(strip);
-				}
-				if (typeof fn.ensureRunWorkOpen === 'function') {
-					fn.ensureRunWorkOpen(strip);
-				}
-				const chrono =
-					typeof fn.ensureChronologySection === 'function'
-						? fn.ensureChronologySection(strip)
-						: null;
-				if (chrono) {
-					chrono.appendChild(card);
-					mounted = true;
-				}
+			const parent = fn.getLogMountParent?.() || D.dom.logEl;
+			if (parent === D.dom.logEl) {
+				fn.mountLinearLogNode?.(card);
+			} else {
+				parent.appendChild(card);
 			}
 		}
 
-		if (!mounted) {
-			fn.appendToLog?.(card);
-		}
-
-		const strip = fn.findRunStripForFileChange();
-		if (strip && typeof fn.ensureRunWorkOpen === 'function') {
-			fn.ensureRunWorkOpen(strip);
-		}
-		const body = card.querySelector('.fc-body');
-		const hasDiffPayload = body && !body.classList.contains('fc-body-empty');
-		if (hasDiffPayload) {
-			card.classList.remove('is-collapsed');
-		}
-		const toggleBtn = card.querySelector('.fc-toggle');
-		if (toggleBtn) {
-			toggleBtn.setAttribute('aria-expanded', hasDiffPayload ? 'true' : 'false');
-		}
 		D.state.logStickToBottom = true;
 		fn.scrollLogToEnd?.();
-		fn.syncWorkSummaryStats?.(strip || D.state.runStripEl);
+		fn.syncWorkSummaryStats?.(D.state.runStripEl);
 	};
 
 	fn.updateFileChangeUndoState = function (toolId, undoState) {
@@ -191,9 +160,9 @@
 		const canUndo = payload.canUndo === true && applied;
 		const diffText = typeof payload.diff === 'string' ? payload.diff : '';
 		const contentText = typeof payload.content === 'string' ? payload.content : '';
+		const hasDiffPayload = diffText.length > 0 || contentText.length > 0;
 		const hasVisibleDiff =
-			diffText.length > 0 ||
-			contentText.length > 0 ||
+			hasDiffPayload ||
 			added > 0 ||
 			removed > 0 ||
 			(applied && Boolean(filePath));
@@ -217,14 +186,11 @@
 		header.className = 'fc-summary';
 		header.title = 'Open in editor';
 
-		const toggleBtn = document.createElement('button');
-		toggleBtn.type = 'button';
-		toggleBtn.className = 'fc-toggle';
-		toggleBtn.setAttribute('aria-expanded', hasVisibleDiff && hasDiffPayload ? 'true' : 'false');
-		toggleBtn.title = 'Expand / collapse diff';
-		toggleBtn.innerHTML =
-			'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
-			'<path d="M4 6l4 4 4-4"></path></svg>';
+		const toggleBtn = fn.createDisclosureToggle({
+			expanded: true,
+			extraClass: 'fc-toggle',
+			title: 'Expand / collapse diff',
+		});
 
 		const icon = document.createElement('span');
 		icon.className = 'fc-icon';
@@ -323,17 +289,12 @@
 		diffRoot.className = `fc-diff lang-${language}`;
 		diffRoot.appendChild(fn.renderDiffLines(diffText, contentText));
 		body.appendChild(diffRoot);
-		const hasDiffPayload = diffText.length > 0 || contentText.length > 0;
-		if (!hasDiffPayload) {
-			body.classList.add('fc-body-empty');
-			card.classList.add('is-collapsed');
-		}
 
 		toggleBtn.addEventListener('click', (ev) => {
 			ev.preventDefault();
 			ev.stopPropagation();
 			const collapsed = card.classList.toggle('is-collapsed');
-			toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+			fn.syncDisclosureToggle(toggleBtn, !collapsed);
 		});
 
 		header.appendChild(toggleBtn);
