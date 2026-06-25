@@ -99,10 +99,10 @@ cd <REPO>
 
 Commit auto + clone `~/Drox---IDE`. Log : `.build\wsl-linux-build-isolated.log` · [00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)
 
-Manifeste :
+Manifeste (repo OR Windows — voir [04 §4](04-RELEASE-LINUX.md#4-manifeste-or)) :
 
-```bash
-./scripts/release-publish-linux.sh
+```powershell
+wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && DROX_RELEASES_REPO=/mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR ./scripts/release-publish-linux.sh"
 ```
 
 ```powershell

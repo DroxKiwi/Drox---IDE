@@ -55,7 +55,11 @@ bash drox-engine/docs/operations/scripts/wsl-linux-build.sh
 
 Installe deps système (si besoin), nvm, rust, `npm install --force`, compile, strip natives musl, `.deb`.
 
+Si `<OR>` existe sur Windows, publie le manifeste via `DROX_RELEASES_REPO` (passé par le script isolé).
+
 Scripts utilitaires : `scripts/lib/linux-npm-install.sh`, `scripts/lib/linux-strip-packaged-natives.sh`
+
+**Publication manuelle** : [04-RELEASE-LINUX.md §4](../04-RELEASE-LINUX.md#4-manifeste-or) — ne pas utiliser `~/Drox---IDE---OR`.
 
 ---
 

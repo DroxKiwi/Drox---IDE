@@ -69,16 +69,25 @@ Attendu : `[verify-packaged-linux] OK`
 
 ## 4. Manifeste OR
 
-```bash
-cd ~/Drox---IDE
-./scripts/release-publish-linux.sh
+Le repo **`<OR>`** est à côté des sources **Windows** (`Desktop\GitHub\Drox---IDE---OR`), **pas** à côté du clone isolé `~/Drox---IDE`.
+
+Le script isolé exporte `DROX_RELEASES_REPO` automatiquement. Sinon, publier depuis le chemin Windows :
+
+```powershell
+wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && DROX_RELEASES_REPO=/mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR ./scripts/release-publish-linux.sh"
 ```
 
-Copie `.deb` → `<OR>\_upload\` · fusionne `platforms.linux-x64` dans `latest.json`.
+Ou avec le `.deb` du clone isolé :
 
-```bash
-cd ../Drox---IDE---OR
-git add stable/ .gitignore NOTICE.md README.md
+```powershell
+wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && ./scripts/release-publish-linux.sh --releases-repo /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR --deb /home/<vous>/Drox---IDE/.build/linux/deb/amd64/deb/*.deb"
+```
+
+Copie `.deb` → `<OR>\_upload\` · fusionne `platforms.linux-x64` dans `latest.json` (win32 conservé).
+
+```powershell
+cd <OR>
+git add stable/
 git commit -m "Release v<DROX_VER> linux-x64 (manifest)."
 git push origin main
 ```
@@ -89,7 +98,7 @@ git push origin main
 
 ```powershell
 cd <OR>
-gh release upload <TAG> ".\_upload\Drox-IDE-<DROX_VER>-linux-x64.deb" --repo DroxKiwi/Drox---IDE---OR
+gh release upload <TAG> ".\_upload\Drox-IDE-<DROX_VER>-linux-x64.deb" --repo DroxKiwi/Drox---IDE---OR --clobber
 ```
 
 ---
