@@ -5,34 +5,25 @@
 
 // allow-any-unicode-comment-file
 
-// Fil linéaire : outils inline dans la chronologie (parité TUI).
+// Fil #log strictement chronologique — pas de réorganisation strip.
 
 (function (D) {
 	const fn = D.fn;
 	const _setBusy = fn.setBusy;
 	fn.setBusy = function (next) {
+		if (D.state.uiReplayActive) {
+			_setBusy.call(this, next);
+			return;
+		}
 		if (next) {
-			fn.beginLinearRunStrip?.();
 			fn.resetChatStreamForTurn?.();
+			fn.resetLinearTurnAnchors?.();
 		} else {
 			fn.hideArchitectRunTailActivity?.();
-		}
-		if (!next && D.state.linearRunUi) {
 			fn.flushStreamBuffer?.({ asAnswer: true });
-			fn.sealAllOpenRunStrips?.();
-			if (typeof fn.shouldPreserveDiscussionStripOnBusyEnd === 'function' && fn.shouldPreserveDiscussionStripOnBusyEnd()) {
-				fn.parkAllLinearFinalAnswers?.();
-			} else {
-				fn.parkAllLinearFinalAnswers?.();
-				fn.finalizeRunPresentation?.();
-				fn.endLinearRunStrip?.();
-				fn.resetChatStreamForTurn?.();
-			}
-		} else if (!next) {
-			fn.sealAllOpenRunStrips?.();
+			fn.finalizeAssistant?.();
 			document.body.classList.remove('drox-linear-run-active');
-		}
-		if (!next) {
+			D.state.linearRunUi = false;
 			fn.refreshLastUserStickyRow?.();
 		}
 		_setBusy.call(this, next);
@@ -54,28 +45,13 @@
 		_renderOrchestrationRole.call(this, role);
 	};
 
-	const _createToolBlock = fn.createToolBlock;
-	fn.createToolBlock = function (payload) {
-		if (D.state.linearRunUi) {
-			fn.flushStreamBuffer?.({ asAnswer: false });
-		}
-		return _createToolBlock.call(this, payload);
-	};
-
 	const _getLogMountParent = fn.getLogMountParent;
 	fn.getLogMountParent = function () {
-		const chrono = typeof fn.getChronologyMount === 'function' ? fn.getChronologyMount() : null;
-		if (chrono && D.state.linearRunUi) {
-			return chrono;
-		}
-		return _getLogMountParent.call(this);
+		return D.dom.logEl || _getLogMountParent.call(this);
 	};
 
 	const _finalizeRunPresentation = fn.finalizeRunPresentation;
 	fn.finalizeRunPresentation = function () {
-		if (D.state.linearRunUi || fn.hasLinearRunStripsOnLog()) {
-			fn.parkAllLinearFinalAnswers();
-		}
 		_finalizeRunPresentation?.call(this);
 	};
 })(globalThis.DroxChat);

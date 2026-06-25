@@ -3,50 +3,18 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// Pagination historique : l'hôte recharge tout le fil (pas de prepend DOM).
+
 (function (D) {
 	const fn = D.fn;
 	const SCROLL_TOP_THRESHOLD_PX = 80;
 	const DEBOUNCE_MS = 300;
 	let debounceTimer = null;
 
-	fn.mergePrependFragment = function () {
-		const log = D.dom.logEl;
-		const fragment = D.state._prependFragment;
-		if (log && fragment && fragment.childNodes.length > 0) {
-			log.insertBefore(fragment, log.firstChild);
-		}
-		D.state._prependFragment = null;
-		D.state.sessionHistoryPrependActive = false;
-	};
-
-	/** Garantit que tout le fil est dans #log (pas de buffer prepend / patch appendChild). */
-	fn.ensureLogScrollReady = function () {
-		fn.mergePrependFragment();
-	};
-
-	/** Point d'entrée unique pour les nœuds racine du fil. */
-	fn.appendToLog = function (node) {
-		const log = D.dom.logEl;
-		if (!log || !node) {
-			return node;
-		}
-		const fragment = D.state._prependFragment;
-		if (D.state.sessionHistoryPrependActive && fragment) {
-			fragment.appendChild(node);
-			return node;
-		}
-		log.appendChild(node);
-		return node;
-	};
-
 	fn.resetSessionLazyHistory = function () {
-		D.state._prependFragment = null;
-		D.state.sessionHistoryPrependActive = false;
 		D.state.sessionHistoryHasOlder = false;
 		D.state.sessionHistoryOldestIndex = 0;
 		D.state.sessionHistoryLoading = false;
-		D.state._prependScrollHeight = 0;
-		D.state._prependScrollTop = 0;
 	};
 
 	fn.applySessionHistoryMeta = function (m) {
@@ -57,60 +25,19 @@
 				: 0;
 	};
 
-	fn.beginSessionHistoryPrepend = function () {
-		const log = D.dom.logEl;
-		if (!log) {
-			return;
-		}
-		fn.mergePrependFragment();
-		D.state.sessionHistoryPrependActive = true;
-		D.state.uiReplayActive = true;
-		D.state._prependScrollHeight = log.scrollHeight;
-		D.state._prependScrollTop = log.scrollTop;
-		D.state._prependFragment = document.createDocumentFragment();
-		if (typeof fn.beginLinearRunStrip === 'function') {
-			fn.beginLinearRunStrip();
-		}
-	};
-
-	fn.finishSessionHistoryPrepend = function () {
-		const log = D.dom.logEl;
-		const hadPrepend = Boolean(D.state.sessionHistoryPrependActive && log);
-		if (hadPrepend) {
-			fn.mergePrependFragment();
-			const prevHeight = D.state._prependScrollHeight || 0;
-			const prevTop = D.state._prependScrollTop || 0;
-			D.state.uiReplayActive = false;
-			requestAnimationFrame(() => {
-				const newHeight = log.scrollHeight;
-				log.scrollTop = prevTop + (newHeight - prevHeight);
-				D.state.logStickToBottom = fn.isLogNearBottom(log);
-				D.state.sessionHistoryLoading = false;
-				fn.finalizeReplayThreadUi?.();
-				fn.nudgeLogScrollLayout?.();
-			});
-			return;
-		}
-		D.state.sessionHistoryLoading = false;
-	};
-
 	fn.nudgeLogScrollLayout = function () {
 		const log = D.dom.logEl;
 		if (!log) {
 			return;
 		}
-		// Ne pas toggler overflow — provoque des calques figés dans la webview Electron.
 		void log.scrollHeight;
 	};
 
 	fn.maybeLoadOlderSessionHistory = function () {
-		if (D.state.busy) {
+		if (D.state.busy || D.state.uiReplayActive || D.state.sessionHistoryLoading) {
 			return;
 		}
-		if (D.state.uiReplayActive && !D.state.sessionHistoryPrependActive) {
-			return;
-		}
-		if (!D.state.sessionHistoryHasOlder || D.state.sessionHistoryLoading) {
+		if (!D.state.sessionHistoryHasOlder) {
 			return;
 		}
 		const sessionId = D.state.currentSessionId;
@@ -134,7 +61,6 @@
 	};
 
 	fn.initSessionLazyHistory = function () {
-		fn.ensureLogScrollReady();
 		if (!D.dom.logEl || D.dom.logEl.dataset.lazyHistoryBound === '1') {
 			return;
 		}
