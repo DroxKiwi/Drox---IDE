@@ -1,26 +1,25 @@
-# Drox 1.5.6 — Agents Window (surface Drox)
+# Drox 1.5.6 — Connexions MCP
 
 **Statut** : planifié  
-**Prérequis** : [1.5.5](../1.5.5/README.md) (MCP recommandé avant customizations Agents)
+**Prérequis** : [1.5.5](../1.5.5/README.md) livrée (correctif fil chat)
 
 ---
 
 ## En une phrase
 
-**Réactiver** la fenêtre **Agents** de VS Code (masquée depuis 1.3.2), la **rebrancher sur `drox.exe`**, rebrandre **Drox** — sans écran login Copilot.
+Exposer une **section Connexions MCP** claire dans Drox : réutiliser le chassis VS Code (`contrib/mcp`), le rebrandre, et le **relier au moteur** `drox-mcp` (outils `mcp__*`).
 
 ---
 
 ## Docs
 
-- [PLAN-1.5.6.md](PLAN-1.5.6.md) — checklist release
-- **[IMPLEMENTATION-1.5.6.md](IMPLEMENTATION-1.5.6.md)** — analyse difficulté, architecture, phases P0–P4, fichiers, tests
-- Brainstorm source : [13-agents-window-kdds-drox.md](../../feature-brainstorm/13-agents-window-kdds-drox.md)
-- Désactivation actuelle : [PLAN-DESACTIVATION-AGENTS 1.3.2](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATION-AGENTS-VSCODE-1.3.2.md)
+- [PLAN-1.5.6.md](PLAN-1.5.6.md) — chantier technique
+- [GUIDE-MCP-CONNEXIONS.md](GUIDE-MCP-CONNEXIONS.md) — spec UX + utilisateur (brouillon → `operations/07` à la livraison)
 
 ---
 
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [SESSIONS.md](../../../../src/vs/sessions/SESSIONS.md) (upstream)
+- [GUIDE moteur § MCP](../../0.0/guides/GUIDE-MOTEUR-DROX.md#613-mcp-228)
+- [Brainstorm Agents + MCP](../../feature-brainstorm/13-agents-window-kdds-drox.md)
