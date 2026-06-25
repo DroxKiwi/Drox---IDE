@@ -99,7 +99,7 @@ date -Iseconds > "${REPO_ROOT}/.build/linux-npm-touch"
 step "build-release-linux.sh"
 chmod +x scripts/build-release-linux.sh scripts/package-drox.sh \
 	scripts/verify-packaged-linux.sh scripts/release-publish-linux.sh \
-	scripts/lib/linux-npm-install.sh
+	scripts/lib/linux-npm-install.sh scripts/lib/linux-strip-packaged-natives.sh
 ./scripts/build-release-linux.sh --force-compile --skip-npm-install
 
 if [[ -d "$(dirname "$REPO_ROOT")/Drox---IDE---OR" ]]; then

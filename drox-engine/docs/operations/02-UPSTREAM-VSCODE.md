@@ -127,6 +127,26 @@ La branche `integrate/*` peut rester **locale**.
 
 ---
 
+## Checklist post-merge (fichiers Drox)
+
+Après intégration VS Code, vérifier que ces éléments **Drox** n’ont pas été écrasés :
+
+| Fichier / zone | Pourquoi |
+|----------------|----------|
+| `resources/linux/code-open-folder.desktop` | Menu « Ouvrir avec Drox » + build `.deb` |
+| `resources/linux/code.png` | Icône paquet Linux |
+| `product.json` (`linuxIconName`, `applicationName`, `nameLong`) | Desktop + `.deb` |
+| `build/win32/code.iss` | Installeur Windows + menus contextuels |
+| `drox-engine/`, `resources/drox/` | Moteur bundlé |
+
+```powershell
+git diff integrate/vscode-* -- resources/linux/code-open-folder.desktop product.json
+```
+
+Si `code-open-folder.desktop` manque : `git checkout <commit-avant-merge> -- resources/linux/code-open-folder.desktop`
+
+---
+
 ## Problèmes
 
 | Symptôme | Action |
