@@ -62,8 +62,6 @@
 	fn.finalizeSessionReplayUi = function () {
 		fn.finalizeReplayThreadUi({ scrollToEnd: true });
 		D.state.uiReplayActive = false;
-		if (D.state.busy) {
-			fn.setBusy(false);
-		}
+		fn.setBusy(false);
 	};
 })(globalThis.DroxChat);
