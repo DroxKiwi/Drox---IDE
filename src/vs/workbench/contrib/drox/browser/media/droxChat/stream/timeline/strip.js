@@ -577,12 +577,12 @@
 		if (name === 'plan') {
 			return fn.ensurePlanMount(strip);
 		}
+		if (name === 'work' || name === 'thinking' || name === 'verify') {
+			return fn.ensureChronologySection(strip);
+		}
 		const direct = strip.querySelector(`[data-section="${name}"]`);
 		if (direct) {
 			return direct;
-		}
-		if (name === 'thinking' || name === 'work' || name === 'verify' || name === 'plan') {
-			return fn.ensureChronologySection(strip);
 		}
 		return null;
 	};

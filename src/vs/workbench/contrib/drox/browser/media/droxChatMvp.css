@@ -835,9 +835,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 }
 
 .drox-run-strip {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
+	display: block;
 	margin: 12px 0 14px;
 	scroll-margin-top: 10px;
 }
@@ -865,9 +863,31 @@ details.drox-run-work-collapsible > summary.drox-run-work-summary::-webkit-detai
 }
 
 .drox-run-chronology {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
+	display: block;
+}
+
+/* Un seul scroll : #log — pas de sous-fenêtres défilantes dans le fil. */
+#log .fc-body,
+#log .drox-shell-output-block,
+.drox-run-chronology .fc-body,
+.drox-run-answer .fc-body {
+	max-height: none;
+	overflow: visible;
+}
+
+.msg-file-change .fc-body.fc-body-empty {
+	display: none;
+}
+
+.msg-file-change .fc-body {
+	display: block;
+	max-height: none;
+	overflow: visible;
+	background: var(--vscode-editor-background);
+}
+
+.drox-run-chronology > * + * {
+	margin-top: 6px;
 }
 
 /* Run actif : pas de scroll sur toute la chronologie (sinon les étapes passées « disparaissent »). */
@@ -4499,13 +4519,6 @@ button:disabled {
 .msg-file-change .fc-open svg {
 	width: 14px;
 	height: 14px;
-}
-
-.msg-file-change .fc-body {
-	display: block;
-	max-height: 360px;
-	overflow: auto;
-	background: var(--vscode-editor-background);
 }
 
 .msg-file-change .fc-diff {

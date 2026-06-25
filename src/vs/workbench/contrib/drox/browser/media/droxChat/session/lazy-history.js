@@ -99,11 +99,8 @@
 		if (!log) {
 			return;
 		}
-		const top = log.scrollTop;
-		log.style.overflowY = 'hidden';
-		void log.offsetHeight;
-		log.style.overflowY = '';
-		log.scrollTop = top;
+		// Ne pas toggler overflow — provoque des calques figés dans la webview Electron.
+		void log.scrollHeight;
 	};
 
 	fn.maybeLoadOlderSessionHistory = function () {
