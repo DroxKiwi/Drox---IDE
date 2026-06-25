@@ -51,14 +51,14 @@ jobs:
           ./scripts/build-release-linux.sh $ARGS
 
       - name: Upload .deb artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: drox-ide-linux-x64-deb
           path: .build/linux/deb/amd64/deb/*.deb
           if-no-files-found: error
 
       - name: Upload packaged app (smoke)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: drox-ide-linux-x64-app
           path: ../VSCode-linux-x64
