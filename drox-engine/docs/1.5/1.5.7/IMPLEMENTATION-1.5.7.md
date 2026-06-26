@@ -1,6 +1,6 @@
-# Implémentation 1.5.6 — Agents Window + moteur Drox
+# Implémentation 1.5.7 — Agents Window + moteur Drox
 
-**Complément du** [PLAN-1.5.6.md](PLAN-1.5.6.md)  
+**Complément du** [PLAN-1.5.7.md](PLAN-1.5.7.md)  
 **Public** : développeurs, agents IA  
 **Date** : juin 2026
 
@@ -213,7 +213,7 @@ Services partagés (inchangés) :
 
 **Option C — Convergence progressive**
 
-| Surface | Rôle 1.5.6 |
+| Surface | Rôle 1.5.7 |
 |---------|------------|
 | **Drox Chat** (webview) | Canal principal ; zéro régression |
 | **Drox Agents** (fenêtre) | Expérience « power user » ; parité fonctionnelle **progressive** |
@@ -261,7 +261,7 @@ Ne pas supprimer le webview avant parité UX prouvée (phases P3–P4).
 | P2-3 | `Open in Agents` titlebar |
 | P2-4 | Doc utilisateur + [AGENTS.md](../../operations/AGENTS.md) |
 
-### Phase P3 — Changes & parité (3–4 semaines, optionnel 1.5.6)
+### Phase P3 — Changes & parité (3–4 semaines, optionnel 1.5.7)
 
 | # | Tâche |
 |---|--------|
@@ -269,13 +269,13 @@ Ne pas supprimer le webview avant parité UX prouvée (phases P3–P4).
 | P3-2 | Panneau Changes alimenté |
 | P3-3 | Intégration `IDroxRunRevertService` |
 
-Peut être reporté en **1.5.7** si la release 1.5.6 doit rester courte.
+Peut être reporté en **1.5.8** si la release 1.5.7 doit rester courte.
 
-### Phase P4 — Customizations (après 1.5.5 MCP)
+### Phase P4 — Customizations (après 1.5.6 MCP)
 
 | # | Tâche |
 |---|--------|
-| P4-1 | Lien panneau MCP → [1.5.5](../1.5.5/PLAN-1.5.5.md) |
+| P4-1 | Lien panneau MCP → [1.5.6](../1.5.6/PLAN-1.5.6.md) |
 | P4-2 | Skills / instructions Drox dans panneau latéral |
 
 ---
@@ -409,9 +409,9 @@ Ordre recommandé :
 | P3 Changes | 3–4 sem. | 11 sem. |
 | P4 Customizations | 2 sem. | 13 sem. |
 
-**Release 1.5.6 réaliste** : P0 + P1 + P2 (**~5–7 sem.**). P3 peut passer en 1.5.7.
+**Release 1.5.7 réaliste** : P0 + P1 + P2 (**~5–7 sem.**). P3 peut passer en 1.5.8.
 
-Comparatif : [1.5.5 MCP](../1.5.5/PLAN-1.5.5.md) ~★★☆ — **2–4 sem.** — moins risqué, à livrer avant ou en parallèle début P0.
+Comparatif : [1.5.6 MCP](../1.5.6/PLAN-1.5.6.md) ~★★☆ — **2–4 sem.** — moins risqué, à livrer avant ou en parallèle début P0.
 
 ---
 
@@ -432,9 +432,9 @@ Comparatif : [1.5.5 MCP](../1.5.5/PLAN-1.5.5.md) ~★★☆ — **2–4 sem.** �
 
 ## 13. Liens
 
-- [PLAN-1.5.6.md](PLAN-1.5.6.md) — checklist release
-- [README 1.5.6](README.md)
+- [PLAN-1.5.7.md](PLAN-1.5.7.md) — checklist release
+- [README 1.5.7](README.md)
 - [13-agents-window-kdds-drox.md](../../feature-brainstorm/13-agents-window-kdds-drox.md)
 - [PLAN désactivation 1.3.2](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATION-AGENTS-VSCODE-1.3.2.md)
-- [PLAN 1.5.5 MCP](../1.5.5/PLAN-1.5.5.md)
+- [PLAN 1.5.6 MCP](../1.5.6/PLAN-1.5.6.md)
 - [SESSIONS.md](../../../../src/vs/sessions/SESSIONS.md)

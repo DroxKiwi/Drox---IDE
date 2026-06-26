@@ -152,7 +152,7 @@
 			details.appendChild(summary);
 			details.appendChild(host);
 			section.appendChild(details);
-			fn.bindThinkingScrollEl?.(host);
+			fn.enhanceDetailsDisclosure?.(details);
 		} else {
 			details.open = true;
 		}

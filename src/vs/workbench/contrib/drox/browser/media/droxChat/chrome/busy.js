@@ -12,6 +12,7 @@
 		D.state.busy = next;
 		if (next) {
 			D.state.logStickToBottom = false;
+			D.state.pendingRunWarmup = false;
 		}
 		D.dom.progressEl.classList.toggle('busy', next);
 		fn.updateComposerChrome();

@@ -225,15 +225,7 @@
 	};
 	syncViewportHeight();
 	window.addEventListener('resize', syncViewportHeight);
-	if (typeof fn.syncStickyStackLayout === 'function') {
-		const chrome = document.getElementById('chat-chrome');
-		if (chrome && typeof ResizeObserver !== 'undefined') {
-			const ro = new ResizeObserver(() => fn.syncStickyStackLayout());
-			ro.observe(chrome);
-		}
-		window.addEventListener('resize', () => fn.syncStickyStackLayout());
-		window.addEventListener('resize', () => fn.syncPromptInputHeight?.());
-	}
+	window.addEventListener('resize', () => fn.syncPromptInputHeight?.());
 
 	if (D.dom.logEl) {
 		D.dom.logEl.addEventListener(

@@ -36,7 +36,8 @@ body {
 	letter-spacing: 0.03em;
 	color: var(--drox-thread-fg);
 	/* Flush au sash VS Code (gauche) — marge uniquement à droite */
-	padding: var(--drox-thread-pad-y) var(--drox-thread-pad-x) var(--drox-thread-pad-y) 0;
+	padding: var(--drox-thread-pad-y) var(--drox-thread-pad-x) calc(var(--drox-thread-pad-y) + var(--drox-log-bottom-reserve, 36px)) 0;
+	scroll-padding-bottom: var(--drox-log-bottom-reserve, 36px);
 	background:
 		repeating-linear-gradient(
 			180deg,
@@ -197,6 +198,18 @@ body {
 	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--drox-thread-green) 10%, transparent);
 }
 
+#log .drox-shell-card > summary {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+}
+
+#log .drox-shell-card .drox-shell-card-header {
+	padding: 0;
+	min-height: 22px;
+}
+
 #log .drox-shell-card .drox-shell-cmd,
 #log .drox-shell-card .drox-shell-output,
 #log .drox-shell-card .drox-shell-output-block,
@@ -287,21 +300,6 @@ body {
 
 #log .drox-run-strip {
 	border-radius: var(--drox-thread-radius);
-}
-
-#log .drox-run-sticky-head {
-	border-radius: var(--drox-thread-radius);
-	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-thread-brown) 12%);
-	box-shadow: 0 1px 0 color-mix(in srgb, var(--drox-thread-green-border) 35%, transparent);
-	margin-left: 0;
-	margin-right: calc(-1 * var(--drox-thread-pad-x, 8px));
-	padding: 4px var(--drox-thread-pad-x, 8px) 6px 0;
-}
-
-#log .drox-run-sticky-head .msg-todos {
-	border-radius: var(--drox-thread-radius);
-	border-color: var(--drox-thread-green-border);
-	background: color-mix(in srgb, var(--vscode-editor-background) 80%, var(--drox-thread-brown) 20%);
 }
 
 #log .msg-todos .todo-item {
@@ -406,6 +404,18 @@ body {
 	border-left: none;
 	border-top-color: var(--drox-thread-green-border);
 	background: color-mix(in srgb, var(--vscode-sideBar-background, var(--vscode-editor-background)) 92%, var(--drox-thread-brown-deep) 8%);
+}
+
+.drox-plan-activity-sticky {
+	padding-left: 0;
+	border-bottom-color: color-mix(in srgb, var(--drox-thread-green-border) 40%, transparent);
+	background: color-mix(in srgb, var(--vscode-sideBar-background, var(--vscode-editor-background)) 92%, var(--drox-thread-brown-deep) 8%);
+}
+
+.drox-plan-activity-sticky .activity-warmup-label {
+	color: var(--drox-thread-fg-muted);
+	font-style: normal;
+	letter-spacing: 0.05em;
 }
 
 /* En-tête onglets : aligné sur le sash (pas de retrait gauche) */

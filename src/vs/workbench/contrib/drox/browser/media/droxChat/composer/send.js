@@ -51,8 +51,7 @@
 		if (typeof fn.resetCycleTimer === 'function') {
 			fn.resetCycleTimer();
 		}
-		fn.setBusy(true);
-		fn.showWarmupActivity();
+		fn.ensureLogScrollReady?.();
 		D.vscode.postMessage({
 			type: 'send',
 			prompt: payload.prompt || '',
@@ -75,6 +74,7 @@
 			})),
 		});
 		fn.clearComposerAfterSend();
+		fn.showWarmupActivityOptimistic?.();
 	}
 
 	fn.flushPendingPromptQueue = function() {

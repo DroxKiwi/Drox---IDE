@@ -26,6 +26,9 @@
 				break;
 			}
 			case 'state':
+				if (D.state.uiReplayActive) {
+					break;
+				}
 				fn.setBusy(Boolean(m.busy));
 				if (m.busy) {
 					fn.hideRunObjectiveSticky();
@@ -54,6 +57,9 @@
 				}
 				break;
 			case 'todoUpdate':
+				if (D.state.uiReplayActive) {
+					break;
+				}
 				if (typeof fn.commitRunStripAnchor === 'function') {
 					fn.commitRunStripAnchor();
 				}
@@ -65,6 +71,9 @@
 				}
 				break;
 			case 'clearAssistant':
+				if (D.state.uiReplayActive) {
+					break;
+				}
 				fn.resetChatStreamForTurn?.();
 				fn.finalizeAssistant();
 				fn.closeCurrentPhase();
@@ -73,6 +82,9 @@
 				}
 				break;
 			case 'phase':
+				if (D.state.uiReplayActive) {
+					break;
+				}
 				if (m.close === true) {
 					fn.closePhaseMarker();
 				} else if (typeof m.phase === 'string') {
@@ -111,6 +123,9 @@
 				fn.renderLoopIntervention(m);
 				break;
 			case 'orchestrationRole':
+				if (D.state.uiReplayActive) {
+					break;
+				}
 				if (typeof m.role === 'string') {
 					const role = String(m.role).trim().toLowerCase();
 					D.state.orchestrationRole = role;
@@ -167,19 +182,30 @@
 					if (D.state.userPromptStickyPendingLink) {
 						fn.linkUserPromptStickyToMessage(messageId);
 					}
-					D.dom.logEl.appendChild(userBlock);
+					fn.appendToLog?.(userBlock);
+					fn.resetLinearTurnAnchors?.();
+					fn.resetHistoryReplayStream?.();
 					fn.refreshLastUserStickyRow?.();
-					if (D.state.busy && !D.state.currentPhaseEl) {
+					fn.repositionWarmupAfterUser?.();
+					if ((D.state.busy || D.state.pendingRunWarmup) && !D.state.currentPhaseEl) {
 						fn.showWarmupActivity();
 					}
 					if (D.state.linearRunUi && typeof fn.anchorRunStripAfterUser === 'function' && userRow) {
 						fn.anchorRunStripAfterUser(userRow);
 					}
-					fn.scrollLogToEnd?.();
+					if (!D.state.uiReplayActive) {
+						fn.scrollLogToEnd?.();
+					}
 				} else if (m.role === 'assistant') {
 					const text = String(m.text || '').trim();
 					let createdEl = null;
-					if (D.state.uiReplayActive && D.state.linearRunUi && text) {
+					if (D.state.uiReplayActive) {
+						if (text) {
+							fn.resetHistoryReplayStream?.();
+							createdEl = fn.appendMessage('assistant', m.text || '');
+							fn.markTurnFinalAssistant?.(createdEl);
+						}
+					} else if (D.state.linearRunUi && text) {
 						if (D.state.currentPhase === 'answering') {
 							fn.appendDelta(text);
 						} else if (typeof fn.mountStreamPhaseLine === 'function') {
@@ -203,22 +229,32 @@
 				}
 				break;
 			case 'userFacingReply':
+				if (D.state.uiReplayActive) {
+					fn.historyReplayUserFacingReply?.(m.text || '');
+					break;
+				}
 				fn.applyUserFacingReply?.(m.text || '');
 				break;
 			case 'delta':
+				if (D.state.uiReplayActive) {
+					fn.historyReplayDelta?.(m.text || '');
+					break;
+				}
 				fn.appendDelta(m.text || '');
 				break;
 			case 'tool':
-				if (typeof fn.commitRunStripAnchor === 'function') {
+				if (!D.state.uiReplayActive && typeof fn.commitRunStripAnchor === 'function') {
 					fn.commitRunStripAnchor();
 				}
 				fn.handleToolEvent(m);
 				break;
 			case 'fileChange':
-				if (typeof fn.commitRunStripAnchor === 'function') {
-					fn.commitRunStripAnchor();
+				if (!D.state.uiReplayActive) {
+					if (typeof fn.commitRunStripAnchor === 'function') {
+						fn.commitRunStripAnchor();
+					}
+					fn.finalizeAssistant();
 				}
-				fn.finalizeAssistant();
 				fn.appendFileChange(m);
 				break;
 			case 'fileChangeState':
@@ -357,24 +393,14 @@
 				fn.refreshLastUserStickyRow?.();
 				break;
 			case 'replayPrepare':
-				if (m.prepend === true) {
-					fn.beginSessionHistoryPrepend?.();
-				} else {
-					D.state.uiReplayActive = true;
-					if (typeof fn.beginLinearRunStrip === 'function') {
-						fn.beginLinearRunStrip();
-					}
-				}
+				fn.beginHistoryReplay?.();
 				break;
 			case 'sessionHistory':
 				fn.applySessionHistoryMeta?.(m);
-				break;
-			case 'sessionHistoryPageDone':
-				fn.finishSessionHistoryPrepend?.();
+				D.state.sessionHistoryLoading = false;
 				break;
 			case 'sessionReplayDone':
-				fn.finalizeSessionReplayUi?.();
-				D.state.uiReplayActive = false;
+				fn.finalizeSessionReplayUi?.(m);
 				break;
 			case 'runRevert':
 				D.state.runRevertAvailable = Boolean(m.canRevert);

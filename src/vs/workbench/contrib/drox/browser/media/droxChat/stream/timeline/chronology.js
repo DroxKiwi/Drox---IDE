@@ -166,7 +166,7 @@
 		}
 		block.classList.remove('streaming', 'drox-phase-block--active');
 		block.classList.add('drox-phase-block--done');
-		const pinOpen = fn.shouldKeepPhaseOpen(block);
+		const pinOpen = true;
 		block.open = pinOpen;
 		block.classList.toggle('drox-phase-block--pinned-open', pinOpen);
 		fn.syncPhaseBlockSummary(block);
@@ -209,6 +209,7 @@
 		details.appendChild(summary);
 		details.appendChild(body);
 		chronology.appendChild(details);
+		fn.enhanceDetailsDisclosure?.(details);
 		details.addEventListener('toggle', () => {
 			fn.syncPhaseBlockSummary(details);
 		});
@@ -353,10 +354,7 @@
 		}
 		const work = strip.querySelector('details.drox-run-work-collapsible');
 		if (work) {
-			const keepOpen =
-				opts?.keepOpen === true ||
-				(opts?.keepOpen !== false && D.state.busy && strip.dataset.sealed !== '1');
-			work.open = keepOpen;
+			work.open = opts?.keepOpen !== false;
 		}
 		for (const line of strip.querySelectorAll('.drox-phase-line.streaming')) {
 			line.classList.remove('streaming');

@@ -207,7 +207,7 @@ export type DroxHostToWebviewMessage =
 
 	| { readonly kind: 'chatReset' }
 
-	| { readonly kind: 'sessionReplayDone' }
+	| { readonly kind: 'sessionReplayDone'; readonly scrollToEnd?: boolean }
 
 	| { readonly kind: 'replayPrepare'; readonly prepend?: boolean }
 

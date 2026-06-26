@@ -31,15 +31,19 @@
 			fn.setAssistantMarkdown(el, text || '');
 			const answer =
 				typeof fn.getRunSection === 'function' ? fn.getRunSection('answer') : null;
-			const parent = answer || D.dom.logEl;
+		const parent = answer || D.dom.logEl;
+		if (parent === D.dom.logEl) {
+			fn.appendToLog?.(el);
+		} else {
 			parent.appendChild(el);
+		}
 			D.state.assistantEl = el;
 			fn.scrollLog();
 			return el;
 		}
 		if (role === 'user') {
 			const userEl = fn.renderUserMessage(text || '', [], [], []);
-			D.dom.logEl.appendChild(userEl);
+			fn.appendToLog?.(userEl);
 			fn.scrollLog();
 			return userEl;
 		}
@@ -50,7 +54,7 @@
 			fn.scrollLog();
 			return el;
 		}
-		D.dom.logEl.appendChild(el);
+		fn.appendToLog?.(el);
 		fn.scrollLog();
 		return el;
 	};

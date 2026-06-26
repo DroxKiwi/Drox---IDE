@@ -38,7 +38,7 @@
 		el.className = 'msg-orchestration-role msg-orchestration-architect';
 		el.setAttribute('role', 'status');
 		el.textContent = 'Architect — edit run';
-		D.dom.logEl.appendChild(el);
+		fn.appendToLog?.(el);
 		fn.scrollLog();
 	};
 })(globalThis.DroxChat);

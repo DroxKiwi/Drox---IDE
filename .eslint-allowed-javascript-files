@@ -179,6 +179,7 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/chrome/activity.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/chrome/architect-tail.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/chrome/busy.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/chrome/composer-chrome.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/chrome/disclosure-toggle.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/chrome/phase-labels.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/chrome/todos.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/chrome/util.js
@@ -199,6 +200,7 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/core/warmup-phrases.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/markdown/11-markdown.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/session/04-history.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/session/08-tabs.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/session/history-replay.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/session/lazy-history.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/01-prompt.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/01b-models.js
