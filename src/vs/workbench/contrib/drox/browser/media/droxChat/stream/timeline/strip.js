@@ -10,30 +10,6 @@
 (function (D) {
 	const fn = D.fn;
 
-	/** Hauteur cumulée des bandeaux chrome (onglets + objectif) pour la pile sticky du fil. */
-	D.state.runStripEl = null;
-	/** Dernier message user du run — le strip agent est inséré juste après. */
-	D.state.runStripAnchorEl = null;
-
-	/** Hauteur cumulée des bandeaux chrome (onglets + objectif) pour la pile sticky du fil. */
-	fn.syncStickyStackLayout = function () {
-		const chrome = document.getElementById('chat-chrome');
-		const log = D.dom.logEl;
-		if (!log) {
-			return;
-		}
-		let chromeH = 0;
-		if (chrome) {
-			chromeH = Math.ceil(chrome.getBoundingClientRect().height);
-		}
-		document.documentElement.style.setProperty('--drox-chrome-h', `${chromeH}px`);
-		let userH = 0;
-		if (D.state.linearRunUi && D.state.runStripAnchorEl?.isConnected) {
-			userH = Math.ceil(D.state.runStripAnchorEl.getBoundingClientRect().height);
-		}
-		log.style.setProperty('--drox-log-sticky-user-h', `${userH}px`);
-	};
-
 	fn.ensureRunStripConnected = function (strip) {
 		if (!strip) {
 			return;
@@ -58,7 +34,7 @@
 			D.state.runStripAnchorEl = anchor;
 			return;
 		}
-		D.dom.logEl?.appendChild(strip);
+		fn.appendToLog?.(strip);
 	};
 
 	fn.pruneExtraOpenRunStrips = function (keepStrip) {
@@ -261,7 +237,7 @@
 	};
 
 	fn.shouldMountPlanInStickyFooter = function (strip) {
-		if (!D.dom.planStickyFooterEl || !D.state.linearRunUi) {
+		if (D.state.uiReplayActive || !D.dom.planStickyFooterEl || !D.state.linearRunUi) {
 			return false;
 		}
 		strip = strip || D.state.runStripEl;
@@ -276,8 +252,40 @@
 		if (!footer) {
 			return;
 		}
+		if (!D.state.busy && !D.state.linearRunUi && footer.querySelector('.msg-todos')) {
+			fn.releasePlanStickyFooter?.();
+			return;
+		}
 		const hasPlan = Boolean(footer.querySelector('.msg-todos'));
-		footer.hidden = !hasPlan;
+		const activity = D.dom.planActivityStickyEl;
+		const hasActivity = Boolean(activity && !activity.hidden);
+		footer.hidden = !hasPlan && !hasActivity;
+	};
+
+	/** Après rejeu : le plan ne doit plus rester hors du fil scrollable (#log). */
+	fn.releasePlanStickyFooter = function () {
+		const footer = D.dom.planStickyFooterEl;
+		const log = D.dom.logEl;
+		if (!footer || !log) {
+			fn.syncPlanStickyFooter?.();
+			return;
+		}
+		const planBlock = footer.querySelector('.msg-todos');
+		if (!planBlock) {
+			fn.syncPlanStickyFooter?.();
+			return;
+		}
+		const strips = [...log.querySelectorAll(':scope > .drox-run-strip')];
+		const lastStrip = strips.length > 0 ? strips[strips.length - 1] : null;
+		if (lastStrip) {
+			fn.archivePlanIntoStrip(lastStrip);
+		} else {
+			fn.appendToLog?.(planBlock);
+		}
+		if (D.state.currentTodoBlockEl === planBlock && footer.contains(planBlock)) {
+			D.state.currentTodoBlockEl = null;
+		}
+		fn.syncPlanStickyFooter?.();
 	};
 
 	fn.ensurePlanMount = function (strip) {
@@ -321,16 +329,12 @@
 		strip.dataset.sealed = '1';
 		strip.classList.add('drox-run-strip-sealed');
 		fn.parkAllLinearFinalAnswers();
-		const stickyHead = strip.querySelector('.drox-run-sticky-head');
-		if (stickyHead) {
-			stickyHead.classList.add('drox-run-sticky-head--sealed');
-		}
 		fn.archivePlanIntoStrip(strip);
 		fn.parkAllLinearFinalAnswers();
 		fn.compactLinearThinkingSection?.(strip);
 		fn.clearAllActivityGrids?.(strip);
 		fn.syncWorkSummaryStats?.(strip);
-		fn.collapseRunWorkSection?.(strip, { keepOpen: false });
+		fn.collapseRunWorkSection?.(strip, { keepOpen: true });
 	};
 
 	fn.sealAllOpenRunStrips = function () {
@@ -357,15 +361,18 @@
 		fn.resetPlanStateForTurn?.();
 		D.state.linearRunUi = true;
 		document.body.classList.add('drox-linear-run-active');
-		fn.syncStickyStackLayout();
+		if (D.state.busy) {
+			fn.ensurePlanActivitySticky?.({ rotatePhrase: true });
+		}
 		D.state.runStripEl = null;
 		D.state.runStripAnchorEl = null;
 		D.state.runStripCommitted = false;
 		D.state.assistantEl = null;
 	};
 
-	fn.endLinearRunStrip = function () {
+	fn.endLinearRunStrip = function (opts) {
 		if (
+			!opts?.force &&
 			typeof fn.shouldPreserveDiscussionStripOnBusyEnd === 'function' &&
 			fn.shouldPreserveDiscussionStripOnBusyEnd()
 		) {
@@ -380,23 +387,7 @@
 		D.state.runStripAnchorEl = null;
 		fn.resetChatStreamForTurn?.();
 		document.body.classList.remove('drox-linear-run-active');
-		fn.syncStickyStackLayout();
-	};
-
-	fn.mountRunStripAfter = function (anchorEl) {
-		if (!anchorEl?.isConnected) {
-			return;
-		}
-		if (D.state.runStripCommitted) {
-			return;
-		}
-		const anchor = fn.resolveUserMessageAnchor?.(anchorEl) ?? anchorEl;
-		D.state.runStripAnchorEl = anchor;
-		const strip = fn.ensureRunStrip();
-		if (!strip.isConnected || strip.previousElementSibling !== anchor) {
-			anchor.insertAdjacentElement('afterend', strip);
-		}
-		fn.scrollLog(true);
+		fn.hidePlanActivitySticky?.();
 	};
 
 	fn.anchorRunStripAfterUser = function (userEl) {
@@ -431,8 +422,6 @@
 				}
 				fn.reparentTodoBlockToPlan?.();
 				fn.syncWorkSummaryStats?.(current);
-				fn.syncStickyStackLayout();
-				fn.scrollLog(true);
 				return;
 			}
 			if (
@@ -464,8 +453,6 @@
 		}
 		fn.reparentTodoBlockToPlan?.();
 		fn.syncWorkSummaryStats?.(strip);
-		fn.syncStickyStackLayout();
-		fn.scrollLog(true);
 	};
 
 	fn.commitRunStripAnchor = function () {
@@ -513,7 +500,6 @@
 				return fn.ensureRunStrip();
 			}
 			fn.ensureRunStripConnected(strip);
-			fn.syncStickyStackLayout();
 			return strip;
 		}
 		if (D.dom.logEl) {
@@ -525,7 +511,6 @@
 				D.state.runStripEl = adopted;
 				fn.pruneExtraOpenRunStrips(adopted);
 				fn.ensureRunStripConnected(adopted);
-				fn.syncStickyStackLayout();
 				return adopted;
 			}
 		}
@@ -545,6 +530,7 @@
 		workSummary.className = 'drox-run-work-summary';
 		workSummary.textContent = 'Work';
 		work.appendChild(workSummary);
+		fn.enhanceDetailsDisclosure?.(work);
 		const chronology = document.createElement('div');
 		chronology.className = 'drox-run-section drox-run-chronology';
 		chronology.dataset.section = 'chronology';
@@ -558,7 +544,6 @@
 		fn.pruneExtraOpenRunStrips(strip);
 		fn.ensureRunStripConnected(strip);
 		fn.touchArchitectRunTailActivity?.();
-		fn.syncStickyStackLayout();
 		return strip;
 	};
 
@@ -593,12 +578,12 @@
 		if (name === 'plan') {
 			return fn.ensurePlanMount(strip);
 		}
+		if (name === 'work' || name === 'thinking' || name === 'verify') {
+			return fn.ensureChronologySection(strip);
+		}
 		const direct = strip.querySelector(`[data-section="${name}"]`);
 		if (direct) {
 			return direct;
-		}
-		if (name === 'thinking' || name === 'work' || name === 'verify' || name === 'plan') {
-			return fn.ensureChronologySection(strip);
 		}
 		return null;
 	};

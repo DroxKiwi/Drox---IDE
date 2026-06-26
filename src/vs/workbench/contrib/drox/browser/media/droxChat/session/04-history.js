@@ -245,6 +245,8 @@
 		fn.hideRunObjectiveSticky();
 		D.state.pendingTodoUpdates = null;
 		D.state.uiReplayActive = false;
+		fn.resetLinearTurnAnchors?.();
+		fn.resetHistoryReplayStream?.();
 		fn.resetSessionLazyHistory?.();
 		D.state.linearRunUi = false;
 		D.state.discussionRunActive = false;
@@ -254,6 +256,8 @@
 		D.state.chatStreamEl = null;
 		D.state.chatStreamStripId = '';
 		fn.hideAgentActivitySticky();
+		fn.hidePlanActivitySticky?.();
+		document.body.classList.remove('drox-linear-run-active');
 		fn.syncPlanStickyFooter?.();
 		D.state.logStickToBottom = true;
 		if (D.state.pendingUserAsk) {

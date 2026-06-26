@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// Pagination historique : l'hôte recharge tout le fil (pas de prepend DOM).
+
 (function (D) {
 	const fn = D.fn;
 	const SCROLL_TOP_THRESHOLD_PX = 80;
@@ -13,11 +15,6 @@
 		D.state.sessionHistoryHasOlder = false;
 		D.state.sessionHistoryOldestIndex = 0;
 		D.state.sessionHistoryLoading = false;
-		D.state.sessionHistoryPrependActive = false;
-		D.state._prependFragment = null;
-		D.state._prependOrigAppendChild = null;
-		D.state._prependScrollHeight = 0;
-		D.state._prependScrollTop = 0;
 	};
 
 	fn.applySessionHistoryMeta = function (m) {
@@ -28,64 +25,19 @@
 				: 0;
 	};
 
-	fn.beginSessionHistoryPrepend = function () {
+	fn.nudgeLogScrollLayout = function () {
 		const log = D.dom.logEl;
 		if (!log) {
 			return;
 		}
-		D.state.sessionHistoryPrependActive = true;
-		D.state.uiReplayActive = true;
-		D.state._prependScrollHeight = log.scrollHeight;
-		D.state._prependScrollTop = log.scrollTop;
-		D.state._prependFragment = document.createDocumentFragment();
-		const fragment = D.state._prependFragment;
-		const origAppend = log.appendChild.bind(log);
-		D.state._prependOrigAppendChild = origAppend;
-		log.appendChild = function (node) {
-			fragment.appendChild(node);
-			return node;
-		};
-		if (typeof fn.beginLinearRunStrip === 'function') {
-			fn.beginLinearRunStrip();
-		}
-	};
-
-	fn.finishSessionHistoryPrepend = function () {
-		const log = D.dom.logEl;
-		const hadPrepend = Boolean(D.state.sessionHistoryPrependActive && log);
-		if (hadPrepend) {
-			if (D.state._prependOrigAppendChild) {
-				log.appendChild = D.state._prependOrigAppendChild;
-				D.state._prependOrigAppendChild = null;
-			}
-			const fragment = D.state._prependFragment;
-			const prevHeight = D.state._prependScrollHeight || 0;
-			const prevTop = D.state._prependScrollTop || 0;
-			if (fragment && fragment.childNodes.length > 0) {
-				log.insertBefore(fragment, log.firstChild);
-			}
-			D.state._prependFragment = null;
-			D.state.sessionHistoryPrependActive = false;
-			D.state.uiReplayActive = false;
-			requestAnimationFrame(() => {
-				const newHeight = log.scrollHeight;
-				log.scrollTop = prevTop + (newHeight - prevHeight);
-				D.state.logStickToBottom = fn.isLogNearBottom(log);
-				D.state.sessionHistoryLoading = false;
-			});
-			return;
-		}
-		D.state.sessionHistoryLoading = false;
+		void log.scrollHeight;
 	};
 
 	fn.maybeLoadOlderSessionHistory = function () {
-		if (D.state.busy) {
+		if (D.state.busy || D.state.uiReplayActive || D.state.sessionHistoryLoading) {
 			return;
 		}
-		if (D.state.uiReplayActive && !D.state.sessionHistoryPrependActive) {
-			return;
-		}
-		if (!D.state.sessionHistoryHasOlder || D.state.sessionHistoryLoading) {
+		if (!D.state.sessionHistoryHasOlder) {
 			return;
 		}
 		const sessionId = D.state.currentSessionId;

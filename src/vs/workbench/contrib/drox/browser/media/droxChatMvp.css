@@ -18,9 +18,8 @@ body {
 	--drox-ui-fg: #ffffff;
 	--drox-ui-fg-muted: rgba(255, 255, 255, 0.62);
 	--drox-ai-indent: 18px;
-	--drox-chrome-h: 0px;
-	--drox-log-sticky-user-h: 0px;
 	--drox-chat-frame-radius: 0;
+	--drox-log-bottom-reserve: 36px;
 }
 
 * {
@@ -511,7 +510,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	height: 28px;
 }
 
-/* Ancienne barre résumé — remplacée par sticky natif sur .msg-row-user */
+/* Bandeau chrome user masqué — pas de sticky user dans #log (conflit scroll flex). */
 #user-prompt-sticky,
 .chat-chrome .user-prompt-sticky,
 .user-prompt-sticky {
@@ -520,54 +519,6 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 
 .chat-chrome .run-objective-sticky {
 	margin: 0 10px 6px;
-}
-
-.user-prompt-sticky {
-	flex: 0 0 auto;
-	display: flex;
-	align-items: flex-start;
-	gap: 8px;
-	margin: 6px 12px 4px;
-	padding: 6px 10px;
-	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-	border-left: 3px solid var(--vscode-charts-green, var(--vscode-textLink-foreground));
-	border-radius: 4px;
-	background: var(--vscode-input-background, var(--vscode-editorWidget-background));
-	font-size: 11px;
-	line-height: 1.35;
-	cursor: pointer;
-	user-select: none;
-}
-
-.user-prompt-sticky[hidden],
-.run-objective-sticky[hidden] {
-	display: none;
-}
-
-.user-prompt-sticky:hover {
-	background: var(--vscode-list-hoverBackground, var(--vscode-input-background));
-}
-
-.user-prompt-sticky:focus-visible {
-	outline: 1px solid var(--vscode-focusBorder);
-	outline-offset: 1px;
-}
-
-.user-prompt-sticky .sticky-ic {
-	flex: 0 0 14px;
-	width: 14px;
-	height: 14px;
-	color: var(--drox-ui-icon);
-}
-
-.sticky-ic-user::before {
-	content: '';
-	display: block;
-	width: 14px;
-	height: 14px;
-	background-color: var(--drox-ui-icon);
-	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4 3l6 5-6 5V3z'/%3E%3C/svg%3E") center / contain no-repeat;
-	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4 3l6 5-6 5V3z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 .sticky-ic-objective::before {
@@ -580,37 +531,8 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	box-sizing: border-box;
 }
 
-.user-prompt-sticky .sticky-body {
-	flex: 1 1 auto;
-	min-width: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.user-prompt-sticky .sticky-text {
-	overflow: hidden;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	line-clamp: 2;
-	word-break: break-word;
-}
-
-.user-prompt-sticky .sticky-meta {
-	font-size: 10px;
-	color: var(--vscode-descriptionForeground);
-}
-
-.user-prompt-sticky .sticky-jump {
-	flex: 0 0 auto;
-	align-self: center;
-	width: 14px;
-	height: 14px;
-	opacity: 0.85;
-	background-color: var(--drox-ui-icon);
-	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4 10V3h7v1.5H7.2L12 9.2 10.8 10.5 6 5.7V10H4z'/%3E%3C/svg%3E") center / contain no-repeat;
-	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M4 10V3h7v1.5H7.2L12 9.2 10.8 10.5 6 5.7V10H4z'/%3E%3C/svg%3E") center / contain no-repeat;
+.run-objective-sticky[hidden] {
+	display: none;
 }
 
 .run-objective-sticky {
@@ -914,9 +836,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 }
 
 .drox-run-strip {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
+	display: block;
 	margin: 12px 0 14px;
 	scroll-margin-top: 10px;
 }
@@ -944,9 +864,32 @@ details.drox-run-work-collapsible > summary.drox-run-work-summary::-webkit-detai
 }
 
 .drox-run-chronology {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
+	display: block;
+}
+
+/* Un seul scroll : #log — pas de sous-fenêtres défilantes dans le fil. */
+#log .fc-body,
+#log .drox-shell-output-block,
+.drox-run-chronology .fc-body,
+.drox-run-answer .fc-body {
+	max-height: none;
+	overflow: visible;
+}
+
+.msg-file-change .fc-body.fc-body-empty {
+	min-height: 0;
+	opacity: 0.72;
+}
+
+.msg-file-change .fc-body {
+	display: block;
+	max-height: none;
+	overflow: visible;
+	background: var(--vscode-editor-background);
+}
+
+.drox-run-chronology > * + * {
+	margin-top: 6px;
 }
 
 /* Run actif : pas de scroll sur toute la chronologie (sinon les étapes passées « disparaissent »). */
@@ -1064,48 +1007,10 @@ body.drox-linear-run-active #log {
 	gap: 4px;
 }
 
-.drox-run-sticky-head {
-	position: sticky;
-	top: 0;
-	z-index: 6;
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	margin: 0 -14px 4px;
-	padding: 4px 14px 6px;
-	background: var(--vscode-editor-background, var(--vscode-sideBar-background));
-	box-shadow: 0 1px 0 color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 40%, transparent);
-}
-
-/* Pendant un cycle linéaire, seul le header de cycle est sticky (pas la bulle user). */
+/* Pendant un cycle linéaire, pas de sticky sur la bulle user. */
 body.drox-linear-run-active .msg-user-block,
 body.drox-linear-run-active .msg-row-user.msg-user-bubble,
 body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
-	position: relative;
-	top: auto;
-	z-index: 1;
-	box-shadow: none;
-}
-
-.drox-run-sticky-head .drox-agent-activity-inline {
-	margin: 0;
-	padding: 0 0 2px;
-}
-
-.drox-run-sticky-head .msg-orchestration-role {
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.drox-run-sticky-head .drox-run-section[data-section='plan'] {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	min-height: 0;
-}
-
-.drox-run-strip-sealed .drox-run-sticky-head,
-.drox-run-sticky-head--sealed {
 	position: relative;
 	top: auto;
 	z-index: 1;
@@ -1121,27 +1026,6 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .drox-run-plan-archive .msg-todos .todos-list {
 	max-height: none;
 	overflow: visible;
-}
-
-.drox-run-sticky-head .drox-run-section:empty {
-	display: none;
-}
-
-.drox-run-sticky-head .msg-todos {
-	margin: 0;
-	padding: 10px 12px;
-	border-radius: var(--drox-chat-frame-radius);
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 55%, transparent);
-	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
-}
-
-.drox-run-sticky-head .msg-todos .todos-head {
-	margin-bottom: 8px;
-}
-
-.drox-run-sticky-head .msg-todos .todos-list {
-	max-height: min(42vh, 280px);
-	overflow-y: auto;
 }
 
 .drox-run-section:empty {
@@ -1465,16 +1349,17 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	min-height: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
-	padding: 12px 14px;
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	align-items: stretch;
+	padding: 12px 14px calc(12px + var(--drox-log-bottom-reserve));
+	scroll-padding-bottom: var(--drox-log-bottom-reserve);
+	display: block;
 }
 
-/* Ne pas comprimer les messages : le fil défile dans #log */
 #log > * {
-	flex-shrink: 0;
+	margin-bottom: 8px;
+}
+
+#log > *:last-child {
+	margin-bottom: 0;
 }
 
 .msg-memory-chip {
@@ -1607,45 +1492,6 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	box-shadow:
 		0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 55%, transparent),
 		0 4px 14px color-mix(in srgb, #000 22%, transparent);
-}
-
-/* Un seul sticky user visible : le dernier message utilisateur du fil. */
-.msg-user-block:has(> .msg-row-user.is-last-user-sticky) {
-	position: sticky;
-	top: 0;
-	z-index: 4;
-}
-
-.msg-user-block:has(> .msg-row-user.is-last-user-sticky) > .msg-row-user {
-	position: relative;
-	top: auto;
-	z-index: 1;
-	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
-}
-
-#log > .msg-row-user.msg-user-bubble.is-last-user-sticky {
-	position: sticky;
-	top: 0;
-	z-index: 4;
-	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
-}
-
-/* Ne pas figer le user quand le strip agent suit — le fil défile ensemble. */
-.msg-user-block:has(> .msg-row-user.is-last-user-sticky):has(+ .drox-run-strip) {
-	position: relative;
-	top: auto;
-	z-index: 1;
-}
-
-.msg-user-block:has(> .msg-row-user.is-last-user-sticky):has(+ .drox-run-strip) > .msg-row-user {
-	box-shadow: none;
-}
-
-.msg-row-user.msg-user-bubble.is-last-user-sticky:has(+ .drox-run-strip) {
-	position: relative;
-	top: auto;
-	z-index: 1;
-	box-shadow: none;
 }
 
 .msg-user-body {
@@ -2010,9 +1856,24 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 /* Même alignement visuel du libellé (Native reasoning ≈ Read path) */
-#log > .drox-log-indent.phase-block > .phase-summary,
-#log > .drox-log-indent.msg-tool > summary {
+#log > .drox-log-indent.phase-block > .phase-summary {
 	padding: 6px 0;
+}
+
+#log > .drox-log-indent.msg-tool:not(.drox-shell-card) > summary {
+	padding: 6px 0;
+}
+
+#log > .drox-shell-card > summary {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+}
+
+#log > .drox-log-indent.msg-tool > summary .msg-tool-summary-label {
+	flex: 1;
+	min-width: 0;
 }
 
 .phase-block.msg-ai-frame {
@@ -2365,8 +2226,11 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .drox-shell-card > summary {
 	cursor: pointer;
-	padding: 0;
+	padding: 6px 8px;
 	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .drox-shell-card > summary::-webkit-details-marker {
@@ -2377,8 +2241,10 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 8px 10px;
-	min-height: 34px;
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 0;
+	min-height: 22px;
 }
 
 .drox-shell-card-icon::before {
@@ -2559,10 +2425,41 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .drox-plan-sticky-footer {
 	flex: 0 0 auto;
 	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 	padding: 6px 12px 4px;
 	background: var(--vscode-sideBar-background, var(--vscode-editor-background));
 	border-top: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 45%, transparent);
 	box-shadow: 0 -6px 16px color-mix(in srgb, var(--vscode-widget-shadow, #000) 18%, transparent);
+}
+
+.drox-plan-activity-sticky {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 4px 2px 6px;
+	background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+	border-bottom: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 28%, transparent);
+}
+
+.drox-plan-activity-sticky[hidden] {
+	display: none !important;
+}
+
+.drox-plan-activity-sticky .activity-warmup-label {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--vscode-descriptionForeground);
+	font-style: italic;
+}
+
+.drox-plan-activity-sticky .activity-grid {
+	flex-shrink: 0;
 }
 
 .drox-plan-sticky-footer[hidden] {
@@ -4538,10 +4435,17 @@ button:disabled {
 	display: none;
 }
 
+#log .msg-file-change.is-collapsed > .fc-body,
+.drox-run-chronology .msg-file-change.is-collapsed > .fc-body,
+.drox-run-answer .msg-file-change.is-collapsed > .fc-body {
+	display: none;
+}
+
 .msg-file-change.is-collapsed > .fc-summary {
 	border-bottom-color: transparent;
 }
 
+.drox-disclosure-toggle,
 .msg-file-change .fc-toggle {
 	width: 22px;
 	height: 22px;
@@ -4557,19 +4461,36 @@ button:disabled {
 	padding: 0;
 }
 
+.drox-disclosure-toggle:hover,
 .msg-file-change .fc-toggle:hover {
 	background: var(--vscode-toolbar-hoverBackground);
 	color: var(--vscode-foreground);
 }
 
+.drox-disclosure-toggle svg,
 .msg-file-change .fc-toggle svg {
 	width: 14px;
 	height: 14px;
 	transition: transform 0.15s ease;
 }
 
+details:not([open]) > summary .drox-disclosure-toggle svg,
+.msg-file-change.is-collapsed .drox-disclosure-toggle svg,
 .msg-file-change.is-collapsed .fc-toggle svg {
 	transform: rotate(-90deg);
+}
+
+#log details > summary:has(.drox-disclosure-toggle),
+.drox-run-chronology details > summary:has(.drox-disclosure-toggle),
+.drox-run-answer details > summary:has(.drox-disclosure-toggle) {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.phase-summary:has(.drox-disclosure-toggle)::before,
+.drox-run-work-summary:has(.drox-disclosure-toggle)::before {
+	display: none;
 }
 
 .msg-file-change .fc-icon {
@@ -4645,13 +4566,6 @@ button:disabled {
 .msg-file-change .fc-open svg {
 	width: 14px;
 	height: 14px;
-}
-
-.msg-file-change .fc-body {
-	display: block;
-	max-height: 360px;
-	overflow: auto;
-	background: var(--vscode-editor-background);
 }
 
 .msg-file-change .fc-diff {

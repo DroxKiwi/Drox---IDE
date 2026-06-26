@@ -8,77 +8,36 @@
 (function (D) {
 	const fn = D.fn;
 
-	fn.shouldUseArchitectRunTailActivity = function() {
-		return Boolean(
-			D.state.busy &&
-			D.state.linearRunUi &&
-			D.state.orchestrationRole === 'architect' &&
-			D.state.runStripEl?.isConnected,
-		);
+	fn.shouldUseArchitectRunTailActivity = function () {
+		return fn.shouldUsePlanActivitySticky?.() ?? false;
 	};
 
-	fn.hideInlineActivityOnly = function() {
-		if (D.state.currentWarmupRowEl) {
-			D.state.currentWarmupRowEl.remove();
-			D.state.currentWarmupRowEl = null;
-		}
-		if (D.state.currentActivityGridEl) {
-			D.state.currentActivityGridEl.remove();
-			D.state.currentActivityGridEl = null;
-		}
-	};
-
-	fn.hideArchitectRunTailActivity = function() {
+	fn.hideArchitectRunTailActivity = function () {
 		if (D.state.architectTailActivityEl) {
 			D.state.architectTailActivityEl.remove();
 			D.state.architectTailActivityEl = null;
 		}
+		fn.hidePlanActivitySticky?.();
 	};
 
-	fn.ensureArchitectRunTailActivity = function(opts) {
-		if (!fn.shouldUseArchitectRunTailActivity()) {
-			fn.hideArchitectRunTailActivity();
-			return;
-		}
-		const strip = D.state.runStripEl;
-		fn.hideInlineActivityOnly();
-		let row = D.state.architectTailActivityEl;
-		const rotatePhrase = opts?.rotatePhrase === true;
-		if (!row || !row.isConnected) {
-			row = document.createElement('div');
-			row.className = 'activity-warmup drox-architect-tail-activity';
-			row.setAttribute('role', 'status');
-			row.setAttribute('aria-live', 'polite');
-			row.appendChild(fn.buildActivityGrid());
-			const label = document.createElement('span');
-			label.className = 'activity-warmup-label';
-			label.textContent = fn.pickWarmupPhrase();
-			row.appendChild(label);
-			D.state.architectTailActivityEl = row;
-		} else if (rotatePhrase) {
-			const label = row.querySelector('.activity-warmup-label');
-			if (label) {
-				label.textContent = fn.pickWarmupPhrase();
-			}
-		}
-		strip.appendChild(row);
-		fn.scrollLog();
+	fn.ensureArchitectRunTailActivity = function (opts) {
+		fn.ensurePlanActivitySticky?.(opts);
 	};
 
-	fn.touchArchitectRunTailActivity = function(opts) {
-		if (!fn.shouldUseArchitectRunTailActivity()) {
+	fn.touchArchitectRunTailActivity = function (opts) {
+		if (!fn.shouldUsePlanActivitySticky?.()) {
 			return;
 		}
-		fn.ensureArchitectRunTailActivity(opts);
+		fn.ensurePlanActivitySticky?.(opts);
 	};
 
 	/** Réaffiche la grille 3×3 au bon endroit pendant un run actif. */
-	fn.refreshActivityIndicator = function() {
-		if (!D.state.busy) {
+	fn.refreshActivityIndicator = function () {
+		if (!D.state.busy && !D.state.pendingRunWarmup) {
 			return;
 		}
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.ensureArchitectRunTailActivity();
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky();
 			return;
 		}
 		if (D.state.currentPhaseEl) {
@@ -90,5 +49,5 @@
 			return;
 		}
 		fn.showWarmupActivity();
-	}
+	};
 })(globalThis.DroxChat);
