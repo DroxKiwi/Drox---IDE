@@ -21,23 +21,19 @@
 	};
 
 	fn.ensureArchitectRunTailActivity = function (opts) {
-		fn.ensurePlanActivitySticky?.(opts);
+		fn.ensureTailWarmupActivity?.(opts);
 	};
 
 	fn.touchArchitectRunTailActivity = function (opts) {
-		if (!fn.shouldUsePlanActivitySticky?.()) {
+		if (!fn.isRunCycleActive()) {
 			return;
 		}
-		fn.ensurePlanActivitySticky?.(opts);
+		fn.ensureTailWarmupActivity?.(opts);
 	};
 
 	/** Réaffiche la ligne warmup (grille + phrase) pendant un run actif. */
 	fn.refreshActivityIndicator = function () {
 		if (!fn.isRunCycleActive()) {
-			return;
-		}
-		if (fn.shouldUsePlanActivitySticky?.()) {
-			fn.ensurePlanActivitySticky();
 			return;
 		}
 		fn.ensureTailWarmupActivity?.();
