@@ -1,6 +1,6 @@
 # Drox 1.5.5 — Fil de discussion (layout multi-tours)
 
-**Statut** : en cours  
+**Statut** : **livré** (juin 2026) — win + linux `v1.5.5`  
 **Prérequis** : [1.5.4](../1.5.4/README.md) livrée (win + linux)
 
 ---

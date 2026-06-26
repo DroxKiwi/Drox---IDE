@@ -126,9 +126,9 @@ Un seul `.is-last-user-sticky` est géré, mais si la classe body et le voisin `
 
 | Ancien | Nouveau |
 |--------|---------|
-| 1.5.5 MCP | **1.5.6** |
-| 1.5.6 Agents Window | **1.5.7** |
-| — | **1.5.5** ce correctif fil |
+| 1.5.6 MCP | **1.5.7** |
+| 1.5.7 Agents Window | **1.5.8** |
+| — | **1.5.5** ce correctif fil · **1.5.6** correctifs post-release |
 
 ---
 
