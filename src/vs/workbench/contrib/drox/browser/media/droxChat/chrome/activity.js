@@ -206,7 +206,7 @@
 		fn.repositionWarmupAfterUser();
 		if (row.parentElement === log && row !== log.lastElementChild) {
 			log.appendChild(row);
-			fn.scrollLogToEnd?.() || fn.scrollLog?.();
+			fn.scrollLog?.();
 		}
 		fn.updateComposerChrome?.();
 	};
@@ -241,7 +241,7 @@
 		}
 		fn.startRunActivityWatchdog();
 		fn.updateComposerChrome?.();
-		fn.scrollLogToEnd?.() || fn.scrollLog?.();
+		fn.scrollLog?.();
 	};
 
 	fn.showWarmupActivity = function() {

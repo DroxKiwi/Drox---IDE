@@ -83,4 +83,12 @@ suite('Drox release notes', () => {
 		assert.ok(joined.includes('Smart paste'));
 		assert.ok(joined.includes('truncateAfterLastUser'));
 	});
+
+	test('getDroxReleaseNotesItems includes 1.5.9 highlights', () => {
+		const items = getDroxReleaseNotesItems('1.5.9');
+		const joined = items.join('\n');
+		assert.ok(joined.includes('Smarter scroll'));
+		assert.ok(joined.includes('MEMORY.md'));
+		assert.ok(joined.includes('Cleaner composer'));
+	});
 });

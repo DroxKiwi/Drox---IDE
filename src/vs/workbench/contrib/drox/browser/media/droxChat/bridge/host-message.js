@@ -198,7 +198,7 @@
 						fn.anchorRunStripAfterUser(liveUserRow);
 					}
 					if (!D.state.uiReplayActive) {
-						fn.scrollLogToEnd?.();
+						fn.pinLogToBottom?.();
 					}
 				} else if (m.role === 'assistant') {
 					const text = String(m.text || '').trim();

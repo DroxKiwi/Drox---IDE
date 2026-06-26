@@ -111,8 +111,6 @@ export function getDroxChatHtml(
 
 	const sendLabel = localize('droxChatSend', 'Send');
 
-	const attachLabel = localize('droxChatAttach', 'Attach image');
-
 	const placeholder = localize('droxChatPlaceholder', 'Ask Drox… (drop files here · @ path · /help · Enter to send)');
 
 	const ready = localize('droxChatReady', 'Ready');
@@ -125,8 +123,6 @@ export function getDroxChatHtml(
 	);
 
 	const newChatLabel = localize('droxChatNew', 'New chat');
-
-	const settingsLabel = localize('droxChatSettings', 'Drox settings');
 
 	const addRefsLabel = localize('droxChatAddRefs', 'Add file/folder references');
 
@@ -192,18 +188,12 @@ export function getDroxChatHtml(
 	const generalSettingsOpenAll = localize('droxChatGeneralSettingsOpenAll', 'Open all Drox settings…');
 	const generalSettingsPanelClose = localize('droxChatGeneralSettingsPanelClose', 'Close');
 
-	const modelReloadLabel = localize('droxChatModelReload', 'Reload model list from server');
-
 	const droxIcon = (body: string) =>
 		`<svg class="drox-icon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${body}</svg>`;
 	const iconAdd = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" d="M8 3v10M3 8h10"/>');
-	const iconGear = droxIcon('<circle cx="8" cy="8" r="2.5" fill="none" stroke="currentColor" stroke-width="1.15"/><path fill="currentColor" d="M8 1.2v2.3M8 12.5v2.3M1.2 8h2.3M12.5 8h2.3M3.2 3.2l1.6 1.6M11.2 11.2l1.6 1.6M3.2 12.8l1.6-1.6M11.2 4.8l1.6-1.6"/>');
-	const iconFolder = droxIcon('<path fill="currentColor" d="M2.5 4.2h4.9l1.3 2H13.2v7.3H2.5V4.2z"/>');
-	const iconAttach = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" d="M6.2 8.8l2.8-2.8a2 2 0 113 3L6.5 11.5a3 3 0 11-4.2-4.2l3.8-3.8"/>');
 	const iconClose = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" d="M4.2 4.2l7.6 7.6M11.8 4.2 4.2 11.8"/>');
 	const iconHistory = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" d="M2.5 8a5.5 5.5 0 1 0 1.2-3.4M2.5 4.5V8h3.5"/>');
 	const iconExport = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" d="M4.5 2.5h7v9h-7zM6 11.5h4M8 11.5V14M5.5 5.5h5M5.5 7.5h5M5.5 9.5h3"/>');
-	const iconReload = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" d="M8 2.5v2M8 2.5A5.5 5.5 0 1 0 3.2 11.8M3.2 11.8v-2.2M3.2 11.8h2.2"/>');
 	const iconSend = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M8 11V4.5M8 4.5 5.25 7.25 8 4.5l2.75 2.75"/>');
 	const iconStop = droxIcon('<rect x="5" y="5" width="6" height="6" rx="1" fill="currentColor"/>');
 
@@ -706,19 +696,11 @@ ${cssLinks}
 
 		<div id="actions">
 
-			<button type="button" id="open-settings" class="icon-btn" title="${settingsLabel}" aria-label="${settingsLabel}">${iconGear}</button>
-
-			<button type="button" id="add-refs" class="icon-btn" title="${addRefsLabel}" aria-label="${addRefsLabel}">${iconFolder}</button>
-
-			<button type="button" id="attach" class="icon-btn" title="${attachLabel}" aria-label="${attachLabel}">${iconAttach}</button>
-
 			<input id="file-input" type="file" accept="image/*" multiple hidden />
 
 			<div id="llm-model-picker-wrap" class="drox-model-picker-wrap" hidden>
 
 				<select id="llm-model-picker" class="drox-model-picker" hidden></select>
-
-				<button type="button" id="llm-model-reload" class="icon-btn drox-model-reload-btn" hidden title="${modelReloadLabel}">${iconReload}</button>
 
 			</div>
 

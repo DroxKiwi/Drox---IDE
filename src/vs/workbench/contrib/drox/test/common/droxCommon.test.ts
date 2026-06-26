@@ -1552,13 +1552,16 @@ suite('Drox — run revert history', () => {
 		fs.seed(join(ws, '.drox', 'sessions', 'ses_a.ui-replay.jsonl'), '{}');
 		fs.seed(join(ws, '.drox', 'workspace-map.json'), '{}');
 		fs.seed(join(ws, '.drox', 'long-memory', 'db.json'), '{}');
+		fs.seed(join(ws, 'MEMORY.md'), '# project memory');
 
 		const result = await resetDroxWorkspaceOnDisk(fs as never, ws);
 		assert.strictEqual(result.sessionsFilesRemoved, 2);
 		assert.strictEqual(result.workspaceMapRemoved, true);
 		assert.strictEqual(result.longMemoryCleared, true);
+		assert.strictEqual(result.memoryMdRemoved, true);
 		assert.ok(await fs.exists(URI.file(join(ws, '.drox', '.env'))));
 		assert.ok(!(await fs.exists(URI.file(join(ws, '.drox', 'sessions', 'ses_a.jsonl')))));
+		assert.ok(!(await fs.exists(URI.file(join(ws, 'MEMORY.md')))));
 	});
 
 	test('revertToMessage restores before-content snapshot', async () => {

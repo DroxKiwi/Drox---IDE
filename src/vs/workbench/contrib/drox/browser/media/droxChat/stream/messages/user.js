@@ -268,7 +268,7 @@
 		D.state.pendingOptimisticUserSendId = sendId;
 		fn.appendToLog?.(userBlock);
 		fn.refreshLastUserStickyRow?.();
-		fn.scrollLogToEnd?.() || fn.scrollLog?.();
+		fn.pinLogToBottom?.();
 		return userBlock;
 	};
 

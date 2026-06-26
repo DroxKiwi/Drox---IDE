@@ -19,7 +19,7 @@
 | In | Hors scope |
 |----|------------|
 | Bugs bloquants ou gênants sur **1.5.5** (chat, fil, UI, install) | Connexions MCP → [1.5.8](../1.5.8/README.md) |
-| Correctifs webview / host `contrib/drox` | Agents Window → [1.5.9](../1.5.9/README.md) |
+| Correctifs webview / host `contrib/drox` | Agents Window → [1.5.x+1/1.5.9](../1.5.x+1/1.5.9/README.md) |
 | Release OR `v1.5.6` | Refonte moteur |
 
 ---
@@ -62,7 +62,7 @@
 | Ancien | Nouveau |
 |--------|---------|
 | 1.5.6 MCP | **1.5.8** |
-| 1.5.7 Agents Window | **1.5.9** |
+| 1.5.7 Agents Window | **1.5.x+1** (ex-1.5.9) |
 | — | **1.5.6** ce slot correctifs post-1.5.5 |
 | — | **1.5.7** correctifs post-1.5.6 (branche courante) |
 
@@ -73,4 +73,4 @@
 - [README 1.5.6](README.md)
 - [PLAN 1.5.7](../1.5.7/PLAN-1.5.7.md)
 - [PLAN 1.5.8 MCP](../1.5.8/PLAN-1.5.8.md)
-- [PLAN 1.5.9 Agents](../1.5.9/PLAN-1.5.9.md)
+- [PLAN 1.5.9 Agents](../1.5.x+1/1.5.9/PLAN-1.5.9.md)

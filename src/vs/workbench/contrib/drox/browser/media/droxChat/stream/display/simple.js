@@ -237,6 +237,7 @@
 		if (D.state.busy && typeof fn.ensureTailWarmupActivity === 'function') {
 			fn.ensureTailWarmupActivity();
 		}
+		fn.scrollLog?.();
 	};
 
 	/** Stream answer sans événement `userFacingReply` → réponse finale visible. */
@@ -397,7 +398,7 @@
 		if (strip?.isConnected && typeof fn.sealRunStrip === 'function' && strip.dataset.sealed !== '1') {
 			fn.sealRunStrip(strip);
 		}
-		fn.scrollLog?.(true);
+		fn.scrollLog?.();
 	};
 
 	fn.scheduleGateThinkingDelta = function (text) {

@@ -27,6 +27,7 @@ export interface IDroxWorkspaceResetResult {
 	readonly attachmentsCleared: boolean;
 	readonly courseCyclesCleared: boolean;
 	readonly agentOutputCleared: boolean;
+	readonly memoryMdRemoved: boolean;
 }
 
 export interface IDroxSessionService {
