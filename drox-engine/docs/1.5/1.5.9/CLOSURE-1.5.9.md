@@ -32,7 +32,7 @@
 | R1 | Merge `1.5.9` → `main` | ✅ |
 | R2 | `npm run drox:ship` Windows | ✅ |
 | R3 | Release `v1.5.9` + `stable/latest.json` | ✅ |
-| R4 | Linux `.deb` **1.5.9** | reporté (`.deb` reste **1.5.8** dans `latest.json`) |
+| R4 | Linux `.deb` **1.5.9** | ✅ |
 
 ---
 
