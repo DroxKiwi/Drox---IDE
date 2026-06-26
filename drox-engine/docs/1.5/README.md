@@ -15,9 +15,10 @@
 | [**1.5.3/**](1.5.3/README.md) | Diffs fil + UX chat + splash | **Livré** · `v1.5.3` |
 | [**1.5.4/**](1.5.4/README.md) | Release Linux `.deb` + Authenticode + marketplace extensions | **Livré** · `v1.5.4` |
 | [**1.5.5/**](1.5.5/README.md) | Fil chat — layout multi-tours (superposition) | **Livré** · `v1.5.5` |
-| [**1.5.6/**](1.5.6/README.md) | Correctifs post-release 1.5.5 | **En cours** |
-| [**1.5.7/**](1.5.7/README.md) | Connexions MCP (UI + moteur) | **Planifié** |
-| [**1.5.8/**](1.5.8/README.md) | Agents Window rebrandée + moteur Drox | **Planifié** · [impl.](1.5.8/IMPLEMENTATION-1.5.8.md) |
+| [**1.5.6/**](1.5.6/README.md) | Correctifs post-release 1.5.5 | **Livré** · `v1.5.6` |
+| [**1.5.7/**](1.5.7/README.md) | Correctifs post-release 1.5.6 | **En cours** |
+| [**1.5.8/**](1.5.8/README.md) | Connexions MCP (UI + moteur) | **Planifié** |
+| [**1.5.9/**](1.5.9/README.md) | Agents Window rebrandée + moteur Drox | **Planifié** · [impl.](1.5.9/IMPLEMENTATION-1.5.9.md) |
 
 ---
 
@@ -29,9 +30,10 @@
 1.5.3  diffs + UX + splash
 1.5.4  release Linux + Open VSX + Ouvrir avec Drox
 1.5.5  correctif fil chat (layout multi-tours)  →  livré
-1.5.6  correctifs post-release 1.5.5
-1.5.7  connexions MCP (section dédiée, pont moteur)
-1.5.8  Agents Window adaptée Drox (réactivation contrôlée)
+1.5.6  correctifs post-release 1.5.5  →  livré
+1.5.7  correctifs post-release 1.5.6
+1.5.8  connexions MCP (section dédiée, pont moteur)
+1.5.9  Agents Window adaptée Drox (réactivation contrôlée)
 ```
 
 ---
@@ -46,5 +48,6 @@
 - [PLAN 1.5.6](1.5.6/PLAN-1.5.6.md)
 - [PLAN 1.5.7](1.5.7/PLAN-1.5.7.md)
 - [PLAN 1.5.8](1.5.8/PLAN-1.5.8.md)
+- [PLAN 1.5.9](1.5.9/PLAN-1.5.9.md)
 - [GUIDE release & upstream](../GUIDE-RELEASE-ET-UPSTREAM.md)
 - [Opérations release (index)](../operations/README.md)
