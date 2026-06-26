@@ -1,7 +1,7 @@
 {
   "name": "drox-ide-dev",
   "version": "1.127.0",
-  "droxVersion": "1.5.7",
+  "droxVersion": "1.5.8",
   "droxSurface": "dev",
   "droxEngineDevBuild": 33,
   "distro": "0d726028b9bf2f38975a035474182955e771bccd",
