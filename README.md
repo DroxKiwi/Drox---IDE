@@ -1,13 +1,18 @@
 <a id="statut-produit"></a>
 
-# ⚠️ STATUT PRODUIT — LIRE EN PREMIER
+> **Produit IDE** : release [**1.5.6**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.6) (juin 2026) — binaires & MAJ sur [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Moteur courant : pipeline **`tui_mono`** (depuis 1.5.0). Ce README documente l’**historique moteur** ; le rail **1.4.2** ci-dessous est **archivé**.
+>
+> **IDE product** : [**1.5.6**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.6) release (June 2026) — binaries & updates on [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Current engine: **`tui_mono`** pipeline (since 1.5.0). This README is **engine history**; **1.4.2** rail below is **archived**.
+
+# ⚠️ STATUT PRODUIT — LIRE EN PREMIER (archive 1.4.2)
 
 > **Le moteur Drox 1.4.2 est obsolète — il va complètement changer.**  
 > Branche **1.4.2** clôturée et mergée sur `main` (juin 2026). Ce n’est **pas** une base stable : c’est un **point d’arrêt** avant une refonte majeure du moteur.
 
 | | |
 |---|---|
-| **Code sur `main`** | **1.4.2** — rail **observateur**, contexte **4 couches**, reliquats prescriptifs retirés (`tool_folders`, ACL station, `todo_write`, intent probe LLM) |
+| **Code produit courant** | **1.5.6** — moteur **`tui_mono`** + shim IDE ; rail 1.4 **retiré** |
+| **Code sur `main` (archive)** | **1.4.2** — rail **observateur** (section historique ci-dessous) |
 | **Utilisable en prod ?** | **Non.** Phase **expérimentale agressive** — dogfood uniquement. |
 | **Tester quand même ?** | **Option pour les curieux** : compiler `drox.exe`, brancher Ollama, accepter bugs / régressions / changements cassants sans préavis. |
 | **Suite moteur** | Refonte **profonde** (pas un polish 1.4.3) — voir plans 1.4.3+ dans le dépôt ; l’architecture actuelle ne sera **pas** prolongée telle quelle. |
@@ -54,13 +59,13 @@ Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--do
 
 [Moteur Drox](#fr) · [Invariants](#fr-invariants) · [Chronologie](#fr-chronologie)
 
-[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14) · [2026-06 v1_4_2](#fr-2026-06-v142)
+[2025-12](#fr-2025-12) · [2026-02](#fr-2026-02) · [2026-02-fin](#fr-2026-02-fin) · [2026-03](#fr-2026-03) · [2026-04](#fr-2026-04) · [2026-05 v1_2](#fr-2026-05-v12) · [2026-05 v1_3](#fr-2026-05-v13) · [2026-06 v1_4](#fr-2026-06-v14) · [2026-06 v1_4_2](#fr-2026-06-v142) · [2026-06 v1_5](#fr-2026-06-v15)
 
 **EN**
 
 [Drox Engine](#en) · [Invariants](#en-invariants) · [Timeline](#en-timeline)
 
-[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14) · [2026-06 v1_4_2](#en-2026-06-v142)
+[2025-12](#en-2025-12) · [2026-02](#en-2026-02) · [2026-02-end](#en-2026-02-end) · [2026-03](#en-2026-03) · [2026-04](#en-2026-04) · [2026-05 v1_2](#en-2026-05-v12) · [2026-05 v1_3](#en-2026-05-v13) · [2026-06 v1_4](#en-2026-06-v14) · [2026-06 v1_4_2](#en-2026-06-v142) · [2026-06 v1_5](#en-2026-06-v15)
 
 ___
 
@@ -430,6 +435,20 @@ ___
 
 ___
 
+<a id="fr-2026-06-v15"></a>
+
+### 2026-06 — `v1_5` (moteur TUI + produit IDE)
+
+`v1_5_0` — remplacement rail 1.4 par boucle **`tui_mono`** + shim RPC `drox-cli` ; `role_split` / intent probe / ACL station **retirés**.
+`v1_5_1` — fil chat aligné TUI ; wizard connexion IA.
+`v1_5_2` — `LlmConfig` / sampling depuis vignettes IDE.
+`v1_5_3` — diffs fil, cartes shell, style VT323, rejeu session (webview).
+`v1_5_4` — release Linux `.deb` + Open VSX ; pipeline build isolé WSL.
+`v1_5_5` — fil linéaire multi-tours ; layout superposition corrigé (webview).
+`v1_5_6` — correctifs post-1.5.5 : bulle user optimiste, scroll diffs, warmup run, bouton envoyer TUI — **release courante** win + linux.
+
+___
+
 <a id="en-product-status"></a>
 
 # ⚠️ PRODUCT STATUS — READ FIRST
@@ -439,7 +458,8 @@ ___
 
 | | |
 |---|---|
-| **Code on `main`** | **1.4.2** — **observer** rail, **4-layer** context, prescriptive relics removed (`tool_folders`, per-station ACL, `todo_write`, LLM intent probe) |
+| **Current product code** | **1.5.6** — **`tui_mono`** engine + IDE shim; 1.4 rail **removed** |
+| **Code on `main` (archive)** | **1.4.2** — **observer** rail (historical section below) |
 | **Production-ready?** | **No.** **Aggressive experimental** phase — dogfood only. |
 | **Still want to try?** | **Optional for the curious**: build `drox.exe`, hook up Ollama, expect bugs / regressions / breaking changes without notice. |
 | **Next engine work** | **Deep rewrite** (not a 1.4.3 polish) — current architecture will **not** be extended as-is. |
@@ -624,3 +644,17 @@ ___
 `contexte_4_couches` — boot + rail hint · stable tools · run snapshot · transcript + compaction.
 `prompt_observateur` — `01_core_rail_solo.md` rewritten without prescriptive `[gate:]`.
 `obsolete_annonce` — branch **1.4.2** merged to `main`; **full engine rewrite** announced — aggressive experimental phase, testing optional for the curious.
+
+___
+
+<a id="en-2026-06-v15"></a>
+
+### 2026-06 — `v1_5` (TUI engine + IDE product)
+
+`v1_5_0` — 1.4 rail replaced by **`tui_mono`** loop + `drox-cli` RPC shim; `role_split` / intent probe / per-station ACL **removed**.
+`v1_5_1` — chat thread aligned with TUI; AI connection wizard.
+`v1_5_2` — `LlmConfig` / sampling from IDE vignettes.
+`v1_5_3` — thread diffs, shell cards, VT323 styling, session replay (webview).
+`v1_5_4` — Linux `.deb` release + Open VSX; isolated WSL build pipeline.
+`v1_5_5` — linear multi-turn thread; layout overlap fix (webview).
+`v1_5_6` — post-1.5.5 fixes: optimistic user bubble, diff scroll, run warmup, TUI send button — **current** win + linux release.
