@@ -42,6 +42,25 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.7':
+			return [
+				localize('drox.releaseNotes.157.recovery', 'When an LLM error cuts a run short, **Resume** and **Restart** appear on your last user message.'),
+				localize('drox.releaseNotes.157.resume', '**Resume** continues from the last checkpoint (partial model output kept).'),
+				localize('drox.releaseNotes.157.restart', '**Restart** clears everything the model said since that message and tries again.'),
+				localize('drox.releaseNotes.157.paste', '**Smart paste** — send messages with linked code snippets again (composer chips).'),
+				localize('drox.releaseNotes.157.chat', 'Session reload and history replay no longer block sending new messages.'),
+				localize('drox.releaseNotes.157.engine', 'Engine: `skipUserTurn` resume path and `session.truncateAfterLastUser` for a clean retry.'),
+				localize('drox.releaseNotes.157.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
+		case '1.5.6':
+			return [
+				localize('drox.releaseNotes.156.user', 'User bubble shows immediately on send — including after a network error or session resume.'),
+				localize('drox.releaseNotes.156.diffs', 'File diff cards scroll internally again instead of stretching the whole thread.'),
+				localize('drox.releaseNotes.156.routing', 'Assistant replies are no longer lost after the optimistic user bubble.'),
+				localize('drox.releaseNotes.156.warmup', 'Warmup grid + phrase stay visible for the whole run; grid reserved for that line only.'),
+				localize('drox.releaseNotes.156.send', 'Square TUI send button with pulse animation while a run is active.'),
+				localize('drox.releaseNotes.156.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.4':
 			return [
 				localize('drox.releaseNotes.154.linux', 'Official Linux amd64 `.deb` alongside the Windows installer.'),
@@ -85,6 +104,16 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.7':
+			return localize(
+				'drox.releaseNotes.157.message',
+				'Recover interrupted runs: resume from the cutoff or restart cleanly after an LLM error.',
+			);
+		case '1.5.6':
+			return localize(
+				'drox.releaseNotes.156.message',
+				'Chat polish: instant user bubbles, scrollable diffs, reliable assistant routing, and a clearer run indicator.',
+			);
 		case '1.5.4':
 			return localize(
 				'drox.releaseNotes.154.message',
