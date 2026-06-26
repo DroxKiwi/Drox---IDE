@@ -42,6 +42,13 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.9':
+			return [
+				localize('drox.releaseNotes.159.scroll', '**Smarter scroll** — while the model streams, the thread stays put if you scroll up to read; it follows new output again when you return to the bottom.'),
+				localize('drox.releaseNotes.159.reset', '**Workspace reset** (Sessions panel) now also deletes root `MEMORY.md` along with `.drox/sessions` and other workspace Drox data.'),
+				localize('drox.releaseNotes.159.composer', '**Cleaner composer** — removed the four redundant icons under the input (settings, folder, attach, reload). Use the Settings vignette, `@` paths, and drag-and-drop instead.'),
+				localize('drox.releaseNotes.159.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.7':
 			return [
 				localize('drox.releaseNotes.157.recovery', 'When an LLM error cuts a run short, **Resume** and **Restart** appear on your last user message.'),
@@ -104,6 +111,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.9':
+			return localize(
+				'drox.releaseNotes.159.message',
+				'Read the thread at your own pace: scroll no longer jumps to the bottom during a run unless you are already there.',
+			);
 		case '1.5.7':
 			return localize(
 				'drox.releaseNotes.157.message',

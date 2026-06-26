@@ -21,6 +21,7 @@ function emptyResetResult(): IDroxWorkspaceResetResult {
 		attachmentsCleared: false,
 		courseCyclesCleared: false,
 		agentOutputCleared: false,
+		memoryMdRemoved: false,
 	};
 }
 
@@ -41,27 +42,26 @@ async function countFilesRecursive(fileService: IFileService, root: URI): Promis
 }
 
 /**
- * Purge `.drox/` du workspace (conserve uniquement `.drox/.env`).
+ * Purge `.drox/` du workspace (conserve uniquement `.drox/.env`) et `MEMORY.md` à la racine.
  * Remplace l’ancien RPC moteur `workspace.reset` (non implémenté côté `drox-cli`).
  */
 export async function resetDroxWorkspaceOnDisk(
 	fileService: IFileService,
 	workspaceFsPath: string,
 ): Promise<IDroxWorkspaceResetResult> {
-	const droxUri = URI.file(join(workspaceFsPath, '.drox'));
-	if (!(await fileService.exists(droxUri))) {
-		return emptyResetResult();
+	const result = { ...emptyResetResult() };
+
+	const memoryMdUri = URI.file(join(workspaceFsPath, 'MEMORY.md'));
+	if (await fileService.exists(memoryMdUri)) {
+		await fileService.del(memoryMdUri, { recursive: false, useTrash: false });
+		result.memoryMdRemoved = true;
 	}
 
-	const result: {
-		sessionsFilesRemoved: number;
-		workspaceMapRemoved: boolean;
-		longMemoryCleared: boolean;
-		memorySessionsFilesRemoved: number;
-		attachmentsCleared: boolean;
-		courseCyclesCleared: boolean;
-		agentOutputCleared: boolean;
-	} = { ...emptyResetResult() };
+	const droxUri = URI.file(join(workspaceFsPath, '.drox'));
+	if (!(await fileService.exists(droxUri))) {
+		return result;
+	}
+
 	const resolved = await fileService.resolve(droxUri);
 	for (const child of resolved.children ?? []) {
 		const name = child.name;

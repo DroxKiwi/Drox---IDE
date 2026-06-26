@@ -1,0 +1,25 @@
+# Drox 1.5.9 — Connexions MCP *(reporté)*
+
+**Statut** : **reporté** — voir [hub 1.5.x+1](../README.md)  
+**Prérequis** : [1.5.8](../../1.5.8/README.md) livrée (polish post-1.5.7)
+
+---
+
+## En une phrase
+
+Exposer une **section Connexions MCP** claire dans Drox : réutiliser le chassis VS Code (`contrib/mcp`), le rebrandre, et le **relier au moteur** `drox-mcp` (outils `mcp__*`). Clarifier les **modes de permission** (Ask natif, Analyse read-only vs Planifier).
+
+---
+
+## Docs
+
+- [PLAN-1.5.9.md](PLAN-1.5.9.md) — chantier technique
+- [GUIDE-MCP-CONNEXIONS.md](GUIDE-MCP-CONNEXIONS.md) — spec UX + utilisateur (brouillon → `operations/07` à la livraison)
+
+---
+
+## Liens
+
+- [Hub 1.5](../../README.md)
+- [GUIDE moteur § MCP](../../0.0/guides/GUIDE-MOTEUR-DROX.md#613-mcp-228)
+- [Brainstorm Agents + MCP](../../feature-brainstorm/13-agents-window-kdds-drox.md)

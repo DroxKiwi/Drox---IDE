@@ -55,8 +55,8 @@
 		}
 
 		fn.appendToLog?.(div);
-		if (stick && typeof fn.scrollLogToEnd === 'function') {
-			fn.scrollLogToEnd();
+		if (stick) {
+			fn.scrollLog?.();
 		}
 		return div;
 	};
