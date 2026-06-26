@@ -44,6 +44,8 @@
 	D.state.orchestrationRole = null;
 	/** Rejeu journal UI — pas de post-traitement legacy. */
 	D.state.uiReplayActive = false;
+	/** Envoi en cours — bulle user optimiste affichée avant l'append host. */
+	D.state.pendingOptimisticUserSendId = null;
 	/** L2 — pagination scroll-back historique session. */
 	D.state.sessionHistoryHasOlder = false;
 	D.state.sessionHistoryOldestIndex = 0;
@@ -59,6 +61,8 @@
 	D.state.todoSnapshot = [];
 	D.state.currentActivityGridEl = null;
 	D.state.currentWarmupRowEl = null;
+	/** Intervalle — garantit un indicateur visible pendant tout le cycle. */
+	D.state.runActivityWatchdogTimer = null;
 	/** Warmup affiché avant `state busy` de l'hôte (juste après envoi). */
 	D.state.pendingRunWarmup = false;
 	/** Indicateur « ça tourne » en bas du fil architecte (run linéaire). */

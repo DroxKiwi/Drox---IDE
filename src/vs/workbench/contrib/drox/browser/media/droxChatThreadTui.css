@@ -245,6 +245,10 @@ body {
 .drox-run-chronology .msg-file-change > .fc-body,
 .drox-run-answer .msg-file-change > .fc-body {
 	display: block;
+	max-height: min(52vh, 360px);
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--drox-thread-brown-deep) 8%);
 }
 
@@ -331,6 +335,16 @@ body {
 	letter-spacing: 0.05em;
 }
 
+#log .activity-warmup {
+	margin-left: 0;
+	padding: 4px 0 6px;
+	max-width: 100%;
+}
+
+#log .activity-warmup.activity-warmup-tail {
+	opacity: 0.92;
+}
+
 #log .activity-grid > span {
 	border-radius: 0;
 	background: color-mix(in srgb, var(--drox-thread-green) 55%, var(--drox-thread-brown) 45%);
@@ -396,6 +410,17 @@ body {
 
 #composer .role-model-vignettes {
 	left: 0;
+}
+
+#composer .composer-send-btn {
+	border-radius: var(--drox-thread-radius, 0);
+	font-family: var(--drox-thread-font);
+	color: var(--drox-thread-fg);
+}
+
+#composer .composer-send-btn .drox-icon {
+	width: 15px;
+	height: 15px;
 }
 
 .drox-plan-sticky-footer {

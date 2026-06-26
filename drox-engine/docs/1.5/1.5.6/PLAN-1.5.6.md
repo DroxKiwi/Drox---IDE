@@ -8,8 +8,8 @@
 
 | Pilier | Avancement | Bloquant |
 |--------|------------|----------|
-| **F1** Repro & diagnostic | 0 % | oui |
-| **F2** Correctif(s) | 0 % | oui |
+| **F1** Repro & diagnostic | 100 % | non |
+| **F2** Correctif(s) | en cours | oui |
 | **F3** Smoke + release win + linux | 0 % | oui |
 
 ---
@@ -24,16 +24,35 @@
 
 ---
 
-## Symptômes (à compléter)
+## Symptômes
 
-_Décrire ici le ou les problèmes constatés après ship 1.5.5._
+### B1 — Bulle utilisateur absente après erreur / reprise
+
+- **Repro** : reprendre une session → coupure réseau → erreur LLM affichée → renvoyer le même message → la bulle user n'apparaît pas (warmup / outils / erreur sans séparateur).
+- **Règle** : le message utilisateur doit être la **première** chose visible du tour, quel que soit le scénario (retry, erreur host, reprise).
+
+### B2 — Diffs sans scroll interne
+
+- **Repro** : gros diffs multi-fichiers → le fil `#log` s'étire sur des centaines de lignes ; plus de barre de défilement dans le bloc diff (régression 1.5.5 : `max-height: none` sur `.fc-body`).
+
+---
+
+## Correctifs (1.5.6)
+
+| Bug | Fichiers | Approche |
+|-----|----------|----------|
+| B1 | `composer/send.js`, `stream/messages/user.js`, `bridge/host-message.js` | Bulle user **optimiste** à l'envoi ; à l'`append` host : retirer l'optimiste puis **toujours** `appendToLog` (pas de `replaceWith` qui pouvait avaler le tour) |
+| B1b | `history-replay.js`, `display/simple.js` | `getLinearInsertBefore` : ne plus insérer avant une réponse passée ; `resolveUserReplyMount` → `#log` hors mode strip |
+| B2 | `droxChatMvp.css`, `droxChatThreadTui.css` | `max-height: min(52vh, 360px)` + `overflow-y: auto` sur `.msg-file-change > .fc-body` uniquement |
 
 ---
 
 ## Critères d'acceptation
 
-- [ ] Repro documentée + correctif validé en dev (`npm run watch` / build packagé)
-- [ ] Smoke chat : envoi, fil, reprise session, scroll
+- [x] Repro documentée
+- [ ] Correctif validé en dev (`npm run watch` / build packagé)
+- [ ] Smoke chat : envoi, fil, reprise session → erreur → retry → bulle user visible
+- [ ] Smoke diff : gros patch repliable avec scroll interne, fil `#log` raisonnable
 - [ ] `droxVersion` **1.5.6** · ship win puis linux
 
 ---

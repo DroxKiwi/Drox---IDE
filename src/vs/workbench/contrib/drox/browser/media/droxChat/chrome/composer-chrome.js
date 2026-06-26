@@ -12,12 +12,13 @@
 		if (!D.dom.sendBtn) {
 			return;
 		}
-		D.dom.sendBtn.classList.toggle('is-run-active', D.state.busy);
+		const runActive = D.state.busy || D.state.pendingRunWarmup;
+		D.dom.sendBtn.classList.toggle('is-run-active', runActive);
 		if (D.dom.sendActionIconSend) {
-			D.dom.sendActionIconSend.hidden = D.state.busy;
+			D.dom.sendActionIconSend.hidden = runActive;
 		}
 		if (D.dom.sendActionIconStop) {
-			D.dom.sendActionIconStop.hidden = !D.state.busy;
+			D.dom.sendActionIconStop.hidden = !runActive;
 		}
 		if (D.state.userAskPending && !D.state.busy) {
 			D.dom.sendBtn.disabled = true;
@@ -27,7 +28,7 @@
 			D.dom.sendBtn.disabled = true;
 			D.dom.sendBtn.title = 'Compacting transcript…';
 			D.dom.sendBtn.setAttribute('aria-label', D.dom.sendBtn.title);
-		} else if (D.state.busy) {
+		} else if (runActive) {
 			D.dom.sendBtn.disabled = false;
 			D.dom.sendBtn.title = 'Stop conversation';
 			D.dom.sendBtn.setAttribute('aria-label', 'Stop conversation');
@@ -62,14 +63,9 @@
 		if (!D.state.userAskPending && !D.state.busy) {
 			D.dom.statusEl.textContent = active ? 'Compacting…' : 'Ready';
 		}
-		// Indicateur persistant : ne pas donner l'impression d'un arrêt pendant la compaction.
+		// Indicateur persistant : texte seul (grille réservée à la phrase warmup du fil).
 		if (active && D.dom.statusEl) {
-			fn.ensurePersistentActivityGrid(D.dom.statusEl);
-		} else if (!active && D.dom.statusEl) {
-			const grid = D.dom.statusEl.querySelector(':scope > .activity-grid.activity-grid-persistent');
-			if (grid) {
-				grid.remove();
-			}
+			fn.ensureTailWarmupActivity?.();
 		}
 	}
 
