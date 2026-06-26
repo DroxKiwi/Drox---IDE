@@ -199,6 +199,7 @@
 			host.textContent = host.dataset.raw;
 		}
 		fn.touchArchitectRunTailActivity?.();
+		fn.scrollLog?.();
 		return true;
 	};
 

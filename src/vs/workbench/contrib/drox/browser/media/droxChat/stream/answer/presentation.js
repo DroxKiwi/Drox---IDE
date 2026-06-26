@@ -67,7 +67,7 @@
 		fn.nudgeLogScrollLayout?.();
 		if (opts?.scrollToEnd === true) {
 			requestAnimationFrame(() => {
-				fn.scrollLogToEnd?.();
+				fn.pinLogToBottom?.();
 				fn.nudgeLogScrollLayout?.();
 			});
 		} else if (opts?.scrollToEnd === false) {

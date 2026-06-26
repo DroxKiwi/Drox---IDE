@@ -17,9 +17,9 @@
 | [**1.5.5/**](1.5.5/README.md) | Fil chat — layout multi-tours (superposition) | **Livré** · `v1.5.5` |
 | [**1.5.6/**](1.5.6/README.md) | Correctifs post-release 1.5.5 | **Livré** · `v1.5.6` |
 | [**1.5.7/**](1.5.7/README.md) | Correctifs post-release 1.5.6 | **Livré** · `v1.5.7` |
-| [**1.5.8/**](1.5.8/README.md) | Polish UX post-release 1.5.7 | **En cours** |
-| [**1.5.9/**](1.5.9/README.md) | Connexions MCP (UI + moteur) + modes Ask / Analyse | **Planifié** |
-| [**1.5.10/**](1.5.10/README.md) | Agents Window rebrandée + moteur Drox | **Planifié** · [impl.](1.5.10/IMPLEMENTATION-1.5.10.md) |
+| [**1.5.8/**](1.5.8/README.md) | Polish UX post-release 1.5.7 | **Livré** · `v1.5.8` |
+| [**1.5.9/**](1.5.9/README.md) | Scroll fil, reset `MEMORY.md`, composer épuré | **Livré** · `v1.5.9` |
+| [**1.5.x+1/**](1.5.x+1/README.md) | MCP + Agents Window (plans reportés) | **Reporté** |
 
 ---
 
@@ -33,9 +33,9 @@
 1.5.5  correctif fil chat (layout multi-tours)  →  livré
 1.5.6  correctifs post-release 1.5.5  →  livré
 1.5.7  correctifs post-release 1.5.6  →  livré
-1.5.8  polish UX post-1.5.7
-1.5.9  connexions MCP (section dédiée, pont moteur) + modes permission Ask / Analyse
-1.5.10  Agents Window adaptée Drox (réactivation contrôlée)
+1.5.8  polish UX post-1.5.7  →  livré
+1.5.9  scroll fil + reset MEMORY.md + composer épuré  →  livré
+1.5.x+1  MCP + Agents Window — reportés depuis l’ancienne roadmap
 ```
 
 ---
@@ -51,6 +51,6 @@
 - [PLAN 1.5.7](1.5.7/PLAN-1.5.7.md)
 - [PLAN 1.5.8](1.5.8/PLAN-1.5.8.md)
 - [PLAN 1.5.9](1.5.9/PLAN-1.5.9.md)
-- [PLAN 1.5.10](1.5.10/PLAN-1.5.10.md)
+- [Chantiers reportés (ex-1.5.9 / ex-1.5.10)](1.5.x+1/README.md)
 - [GUIDE release & upstream](../GUIDE-RELEASE-ET-UPSTREAM.md)
 - [Opérations release (index)](../operations/README.md)

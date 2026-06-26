@@ -14,7 +14,7 @@
 | P8-2 | Padding questionnaire `user-ask` | ✅ |
 | P8-3 | Flux **native thinking** dans blocs Reasoning + outils inline chronologie | ✅ |
 | P8-4 | Warmup phrase dans le fil `#log` (pas sticky composer) | ✅ |
-| — | Décalage roadmap MCP → 1.5.9, Agents Window → 1.5.10 | ✅ |
+| — | Décalage roadmap MCP + Agents Window → [1.5.x+1](../1.5.x+1/README.md) | ✅ |
 
 ---
 
@@ -30,10 +30,10 @@
 
 | # | Étape | Statut |
 |---|--------|--------|
-| R1 | Merge `1.5.8` → `main` | en cours |
-| R2 | `npm run drox:ship` Windows | en cours |
-| R3 | Release `v1.5.8` + `stable/latest.json` | en cours |
-| R4 | Linux `.deb` | en cours |
+| R1 | Merge `1.5.8` → `main` | ✅ |
+| R2 | `npm run drox:ship` Windows | ✅ |
+| R3 | Release `v1.5.8` + `stable/latest.json` | ✅ |
+| R4 | Linux `.deb` | ✅ |
 
 ---
 
