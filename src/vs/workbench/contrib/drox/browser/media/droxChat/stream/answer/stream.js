@@ -44,7 +44,7 @@
 		if (role === 'user') {
 			const userEl = fn.renderUserMessage(text || '', [], [], []);
 			fn.appendToLog?.(userEl);
-			fn.scrollLog();
+			fn.pinLogToBottom?.();
 			return userEl;
 		}
 		el.className = `msg ${role}`;
