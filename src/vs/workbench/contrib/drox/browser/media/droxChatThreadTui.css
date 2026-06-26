@@ -464,7 +464,7 @@ body {
 
 #user-ask {
 	margin: 0 0 6px;
-	padding: 10px var(--drox-thread-pad-x, 8px) 10px 0;
+	padding: 10px var(--drox-thread-pad-x, 8px);
 	font-family: var(--drox-thread-font);
 	font-size: 15px;
 	line-height: 1.42;
@@ -495,9 +495,30 @@ body {
 
 #user-ask .user-ask-prompt {
 	color: var(--drox-thread-fg);
+	max-height: none;
+	overflow-y: visible;
+	padding-bottom: 2px;
 }
 
-#user-ask .user-ask-option {
+#user-ask .user-ask-prompt.markdown > * {
+	margin: 0;
+}
+
+#user-ask .user-ask-prompt.markdown > * + * {
+	margin-top: 6px;
+}
+
+#user-ask .user-ask-prompt.markdown ol,
+#user-ask .user-ask-prompt.markdown ul {
+	margin: 0;
+	padding-left: 1.35em;
+}
+
+#user-ask .user-ask-prompt.markdown li {
+	line-height: 1.42;
+}
+
+#user-ask .user-ask-options {
 	border-color: var(--drox-thread-green-border);
 	background: color-mix(in srgb, var(--vscode-editor-background) 84%, var(--drox-thread-brown) 16%);
 	color: var(--drox-thread-fg);

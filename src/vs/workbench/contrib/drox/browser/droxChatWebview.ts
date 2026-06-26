@@ -133,10 +133,10 @@ export function getDroxChatHtml(
 	const pathSuggestionsLabel = localize('droxChatPathSuggestions', 'Path completion');
 
 	const modePickerLabel = localize('droxChatPermissionMode', 'Request mode');
-	const modeAnalyzeName = localize('droxChatModeAnalyzeName', 'Analyze');
+	const modeAnalyzeName = localize('droxChatModeAnalyzeName', 'Planifier');
 	const modeAnalyzeDesc = localize(
 		'droxChatModeAnalyzeDesc',
-		'Read and explore freely. Writes only under `.drox/` (analyses and memory).',
+		'Plan before acting: read-only exploration, then present a plan for approval before any writes.',
 	);
 	const modeTrustEditName = localize('droxChatModeTrustEditName', 'Trust Edit');
 	const modeTrustEditDesc = localize(
