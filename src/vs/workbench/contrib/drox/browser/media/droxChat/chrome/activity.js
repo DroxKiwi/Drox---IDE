@@ -186,10 +186,7 @@
 		if (!fn.isRunCycleActive() || !D.dom.logEl || D.state.uiReplayActive) {
 			return;
 		}
-		if (fn.shouldUsePlanActivitySticky?.()) {
-			fn.ensurePlanActivitySticky(opts);
-			return;
-		}
+		fn.hidePlanActivitySticky?.();
 		const log = D.dom.logEl;
 		let row = D.state.currentWarmupRowEl;
 		if (!row?.isConnected) {
@@ -254,10 +251,7 @@
 		if (!fn.isRunCycleActive()) {
 			return;
 		}
-		if (fn.shouldUsePlanActivitySticky?.()) {
-			fn.ensurePlanActivitySticky({ rotatePhrase: true });
-			return;
-		}
+		fn.hidePlanActivitySticky?.();
 		const anchor = fn.getLastUserMessageEl();
 		if (D.state.currentWarmupRowEl?.isConnected) {
 			fn.ensureTailWarmupActivity();
@@ -311,10 +305,6 @@
 		if (!fn.isRunCycleActive()) {
 			return;
 		}
-		if (fn.shouldUsePlanActivitySticky?.()) {
-			fn.ensurePlanActivitySticky({ rotatePhrase: true });
-			return;
-		}
 		fn.ensureTailWarmupActivity();
 	};
 
@@ -326,20 +316,12 @@
 		if (!fn.isRunCycleActive()) {
 			return;
 		}
-		if (fn.shouldUsePlanActivitySticky?.()) {
-			fn.ensurePlanActivitySticky({ rotatePhrase: true });
-			return;
-		}
 		fn.ensureTailWarmupActivity();
 	};
 
+	/** Sticky plan footer : réservé au bloc todos — pas la phrase warmup (reste dans #log). */
 	fn.shouldUsePlanActivitySticky = function () {
-		return Boolean(
-			!D.state.uiReplayActive &&
-				D.state.busy &&
-				D.state.linearRunUi &&
-				D.dom.planStickyFooterEl,
-		);
+		return false;
 	};
 
 	fn.hidePlanActivitySticky = function () {
