@@ -405,6 +405,19 @@
 			case 'sessionReplayDone':
 				fn.finalizeSessionReplayUi?.(m);
 				break;
+			case 'runRecoveryOffer':
+				if (typeof m.messageId === 'string') {
+					fn.offerRunRecoveryOnUserMessage?.(m.messageId);
+				}
+				break;
+			case 'runRecoveryDismiss':
+				fn.dismissRunRecoveryActions?.();
+				break;
+			case 'runRecoveryClearAfter':
+				if (typeof m.messageId === 'string') {
+					fn.clearLogAfterUserMessage?.(m.messageId);
+				}
+				break;
 			case 'runRevert':
 				D.state.runRevertAvailable = Boolean(m.canRevert);
 				D.state.runRevertFileCount = typeof m.fileCount === 'number' ? m.fileCount : 0;
