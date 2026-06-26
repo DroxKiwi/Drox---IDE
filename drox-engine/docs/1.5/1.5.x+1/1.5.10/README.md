@@ -1,7 +1,7 @@
-# Drox 1.5.10 — Agents Window (surface Drox)
+# Drox 1.5.10 — Agents Window (surface Drox) *(reporté)*
 
-**Statut** : planifié  
-**Prérequis** : [1.5.9](../1.5.9/README.md) (MCP recommandé avant customizations Agents)
+**Statut** : **reporté** — voir [hub 1.5.x+1](../README.md)  
+**Prérequis** : MCP ([ex-1.5.9](1.5.9/README.md)) recommandé avant customizations Agents
 
 ---
 
@@ -22,5 +22,5 @@
 
 ## Liens
 
-- [Hub 1.5](../README.md)
+- [Hub 1.5](../../README.md)
 - [SESSIONS.md](../../../../src/vs/sessions/SESSIONS.md) (upstream)

@@ -1,8 +1,8 @@
 <a id="statut-produit"></a>
 
-> **Produit IDE** : release [**1.5.7**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.7) (juin 2026) — branche dev **1.5.8**. Binaires & MAJ sur [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Moteur courant : pipeline **`tui_mono`** (depuis 1.5.0). Ce README documente l’**historique moteur** ; le rail **1.4.2** ci-dessous est **archivé**.
+> **Produit IDE** : release [**1.5.9**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.9) (juin 2026) — branche dev **1.5.10**. Binaires & MAJ sur [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Moteur courant : pipeline **`tui_mono`** (depuis 1.5.0). Ce README documente l’**historique moteur** ; le rail **1.4.2** ci-dessous est **archivé**.
 >
-> **IDE product** : [**1.5.7**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.7) release (June 2026) — dev branch **1.5.8**. Binaries & updates on [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Current engine: **`tui_mono`** pipeline (since 1.5.0). This README is **engine history**; **1.4.2** rail below is **archived**.
+> **IDE product** : [**1.5.9**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.9) release (June 2026) — dev branch **1.5.10**. Binaries & updates on [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Current engine: **`tui_mono`** pipeline (since 1.5.0). This README is **engine history**; **1.4.2** rail below is **archived**.
 
 # ⚠️ STATUT PRODUIT — LIRE EN PREMIER (archive 1.4.2)
 
@@ -11,7 +11,7 @@
 
 | | |
 |---|---|
-| **Code produit courant** | **1.5.8** (dev) · release **1.5.7** — moteur **`tui_mono`** + shim IDE |
+| **Code produit courant** | **1.5.10** (dev) · release **1.5.9** — moteur **`tui_mono`** + shim IDE |
 | **Code sur `main` (archive)** | **1.4.2** — rail **observateur** (section historique ci-dessous) |
 | **Utilisable en prod ?** | **Non.** Phase **expérimentale agressive** — dogfood uniquement. |
 | **Tester quand même ?** | **Option pour les curieux** : compiler `drox.exe`, brancher Ollama, accepter bugs / régressions / changements cassants sans préavis. |
@@ -447,7 +447,9 @@ ___
 `v1_5_5` — fil linéaire multi-tours ; layout superposition corrigé (webview).
 `v1_5_6` — correctifs post-1.5.5 : bulle user optimiste, scroll diffs, warmup run, bouton envoyer TUI — **livré** win + linux.
 `v1_5_7` — correctifs post-1.5.6 : smart paste, rejeu session, recovery LLM — **livré** win + linux.
-`v1_5_8` — connexions MCP (UI + moteur) — **branche dev courante**.
+`v1_5_8` — polish fil Reasoning/Work (native thinking, outils inline, Planifier, warmup fil) — **livré** win + linux.
+`v1_5_9` — scroll stick-to-bottom, reset `MEMORY.md` + `.drox/`, composer épuré — **livré** win (linux `.deb` encore 1.5.8).
+`v1_5_10` — **branche dev courante** (MCP / Agents Window reportés — voir `drox-engine/docs/1.5/1.5.x+1/`).
 
 ___
 
@@ -460,7 +462,7 @@ ___
 
 | | |
 |---|---|
-| **Current product code** | **1.5.8** (dev) · release **1.5.7** — **`tui_mono`** engine + IDE shim |
+| **Current product code** | **1.5.10** (dev) · release **1.5.9** — **`tui_mono`** engine + IDE shim |
 | **Code on `main` (archive)** | **1.4.2** — **observer** rail (historical section below) |
 | **Production-ready?** | **No.** **Aggressive experimental** phase — dogfood only. |
 | **Still want to try?** | **Optional for the curious**: build `drox.exe`, hook up Ollama, expect bugs / regressions / breaking changes without notice. |
@@ -661,4 +663,6 @@ ___
 `v1_5_5` — linear multi-turn thread; layout overlap fix (webview).
 `v1_5_6` — post-1.5.5 fixes: optimistic user bubble, diff scroll, run warmup, TUI send button — **released** win + linux.
 `v1_5_7` — post-1.5.6 fixes: smart paste, session replay, LLM recovery — **released** win + linux.
-`v1_5_8` — MCP connections (UI + engine) — **current dev branch**.
+`v1_5_8` — Reasoning/Work thread polish (native thinking, inline tools, Plan vignette, warmup in log) — **released** win + linux.
+`v1_5_9` — stick-to-bottom scroll, `MEMORY.md` + `.drox/` reset, lean composer — **released** win (linux `.deb` still 1.5.8).
+`v1_5_10` — **current dev branch** (MCP / Agents Window deferred — see `drox-engine/docs/1.5/1.5.x+1/`).

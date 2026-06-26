@@ -66,8 +66,7 @@
 			}
 		}
 
-		D.state.logStickToBottom = true;
-		fn.scrollLogToEnd?.();
+		fn.scrollLog?.();
 		fn.syncWorkSummaryStats?.(D.state.runStripEl);
 	};
 

@@ -5,21 +5,37 @@
 
 (function (D) {
 	const fn = D.fn;
+	const DEFAULT_NEAR_BOTTOM_PX = 56;
+
 	fn.isLogNearBottom = function (el, thresholdPx) {
 		if (!el) {
 			return true;
 		}
-		const threshold = typeof thresholdPx === 'number' ? thresholdPx : 56;
+		const threshold = typeof thresholdPx === 'number' ? thresholdPx : DEFAULT_NEAR_BOTTOM_PX;
 		return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 	};
 
-	/** Pas de suivi auto pendant un run — l'utilisateur garde la main sur le fil. */
-	fn.shouldAutoScrollLog = function () {
-		return !D.state.busy;
+	fn.syncLogStickToBottom = function () {
+		D.state.logStickToBottom = fn.isLogNearBottom(D.dom.logEl);
 	};
 
-	/** Scroll explicite (ex. message user envoyé) — ignore `busy`. */
-	fn.scrollLogToEnd = function () {
+	/** Suit le fil uniquement si l'utilisateur est en bas (ou proche). */
+	fn.scrollLog = function () {
+		if (!D.state.logStickToBottom) {
+			return;
+		}
+		requestAnimationFrame(() => {
+			const el = D.dom.logEl;
+			if (!el) {
+				return;
+			}
+			el.scrollTop = el.scrollHeight;
+		});
+	};
+
+	/** Scroll forcé en bas + ancrage « stick » (envoi user, rejeu session, etc.). */
+	fn.pinLogToBottom = function () {
+		D.state.logStickToBottom = true;
 		requestAnimationFrame(() => {
 			const el = D.dom.logEl;
 			if (el) {
@@ -28,18 +44,16 @@
 		});
 	};
 
-	fn.scrollLog = function (force) {
-		if (!fn.shouldAutoScrollLog()) {
+	/**
+	 * @param {boolean | { force?: boolean }} [opts]
+	 * Sans `force` : respecte `logStickToBottom`. Avec `force` : équivaut à `pinLogToBottom`.
+	 */
+	fn.scrollLogToEnd = function (opts) {
+		const force = opts === true || (opts && opts.force === true);
+		if (force) {
+			fn.pinLogToBottom();
 			return;
 		}
-		requestAnimationFrame(() => {
-			const el = D.dom.logEl;
-			if (!el) {
-				return;
-			}
-			if (force === true || D.state.logStickToBottom) {
-				el.scrollTop = el.scrollHeight;
-			}
-		});
+		fn.scrollLog();
 	};
 })(globalThis.DroxChat);

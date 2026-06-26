@@ -18,9 +18,9 @@
 
 | In | Hors scope |
 |----|------------|
-| Correctifs UX chat (fil, phases, questionnaire, vignettes) | Connexions MCP → [1.5.9](../1.5.9/README.md) |
-| Alignement libellés modes (**Planifier**, etc.) | Modes Ask / Analyse moteur → [1.5.9](../1.5.9/PLAN-1.5.9.md) M6 |
-| Release OR `v1.5.8` | Agents Window → [1.5.10](../1.5.10/README.md) |
+| Correctifs UX chat (fil, phases, questionnaire, vignettes) | Connexions MCP → [1.5.x+1/1.5.9](../1.5.x+1/1.5.9/README.md) |
+| Alignement libellés modes (**Planifier**, etc.) | Modes Ask / Analyse moteur → [1.5.x+1/1.5.9](../1.5.x+1/1.5.9/PLAN-1.5.9.md) M6 |
+| Release OR `v1.5.8` | Agents Window → [1.5.x+1/1.5.10](../1.5.x+1/1.5.10/README.md) |
 
 ---
 
@@ -47,8 +47,8 @@
 
 | Ancien | Nouveau |
 |--------|---------|
-| 1.5.8 MCP + modes | **1.5.9** |
-| 1.5.9 Agents Window | **1.5.10** |
+| 1.5.8 MCP + modes | **1.5.x+1** (ex-1.5.9) |
+| 1.5.9 Agents Window | **1.5.x+1** (ex-1.5.10) |
 | — | **1.5.8** ce slot polish post-1.5.7 |
 
 ---
@@ -56,5 +56,5 @@
 ## Liens
 
 - [README 1.5.8](README.md)
-- [PLAN 1.5.9 MCP](../1.5.9/PLAN-1.5.9.md)
-- [PLAN 1.5.10 Agents](../1.5.10/PLAN-1.5.10.md)
+- [PLAN 1.5.9 MCP](../1.5.x+1/1.5.9/PLAN-1.5.9.md)
+- [PLAN 1.5.10 Agents](../1.5.x+1/1.5.10/PLAN-1.5.10.md)

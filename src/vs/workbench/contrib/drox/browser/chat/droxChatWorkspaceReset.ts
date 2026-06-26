@@ -18,7 +18,7 @@ export async function confirmAndResetWorkspaceDroxData(
 		message: localize('drox.resetWorkspace.title', 'Reset Drox data for this workspace?'),
 		detail: localize(
 			'drox.resetWorkspace.detail',
-			'All contents of `.drox/` will be permanently deleted.\n\nKept: `.drox/.env` only.',
+			'Permanently deletes:\n• all of `.drox/` (sessions, memory, attachments, …)\n• `MEMORY.md` at the workspace root\n\nKept: `.drox/.env` only.',
 		),
 		primaryButton: localize(
 			{ key: 'drox.resetWorkspace.confirm', comment: ['&& denotes a mnemonic'] },
