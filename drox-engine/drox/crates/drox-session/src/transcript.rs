@@ -98,6 +98,40 @@ pub async fn read_transcript(path: &camino::Utf8Path) -> Result<Vec<Message>, Se
     Ok(out)
 }
 
+/// Réécrit le transcript (remplace le fichier).
+pub async fn write_transcript(
+    path: &camino::Utf8Path,
+    messages: &[Message],
+) -> Result<(), SessionError> {
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent.as_std_path()).await?;
+    }
+    let mut buf = String::new();
+    for msg in messages {
+        let record = ChatMessageRecord::new(msg);
+        buf.push_str(&serde_json::to_string(&record)?);
+        buf.push('\n');
+    }
+    tokio::fs::write(path.as_std_path(), buf).await?;
+    Ok(())
+}
+
+/// Conserve les messages jusqu'au dernier `user` inclus ; retire la suite.
+#[must_use]
+pub fn truncate_after_last_user(messages: &[Message]) -> Vec<Message> {
+    use drox_types::Role;
+    let mut last_user = None;
+    for (i, msg) in messages.iter().enumerate() {
+        if msg.role == Role::User {
+            last_user = Some(i);
+        }
+    }
+    match last_user {
+        Some(i) => messages[..=i].to_vec(),
+        None => messages.to_vec(),
+    }
+}
+
 /// Configuration passée au moteur : où écrire + à partir de quel index de
 /// message ignorer (reprise : ne pas ré-écrire l'historique déjà sur disque).
 #[derive(Clone)]
@@ -133,5 +167,19 @@ mod tests {
         assert_eq!(loaded.len(), 1);
         assert_eq!(loaded[0].role, Role::User);
         assert_eq!(Content::collapse_text(&loaded[0].content), "hello");
+    }
+
+    #[test]
+    fn truncate_after_last_user_keeps_prefix() {
+        let messages = vec![
+            Message::user("a"),
+            Message::assistant("b"),
+            Message::user("c"),
+            Message::assistant("d"),
+        ];
+        let truncated = truncate_after_last_user(&messages);
+        assert_eq!(truncated.len(), 3);
+        assert_eq!(truncated[2].role, Role::User);
+        assert_eq!(Content::collapse_text(&truncated[2].content), "c");
     }
 }

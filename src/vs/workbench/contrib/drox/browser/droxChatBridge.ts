@@ -83,6 +83,8 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'revertLastRun' }
 	| { readonly type: 'revertToMessage'; readonly messageId: string }
+	| { readonly type: 'resumeRunAfterError'; readonly messageId: string }
+	| { readonly type: 'restartRunAfterError'; readonly messageId: string }
 	| { readonly type: 'undoFileChange'; readonly toolId: string }
 	| { readonly type: 'redoFileChange'; readonly toolId: string }
 
@@ -239,6 +241,12 @@ export type DroxHostToWebviewMessage =
 
 	| { readonly kind: 'runRevert'; readonly canRevert: boolean; readonly fileCount: number }
 
+	| { readonly kind: 'runRecoveryOffer'; readonly messageId: string }
+
+	| { readonly kind: 'runRecoveryDismiss' }
+
+	| { readonly kind: 'runRecoveryClearAfter'; readonly messageId: string }
+
 	| {
 		readonly kind: 'llmModels';
 		readonly provider: string;
@@ -300,6 +308,10 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 	}
 
 	if (t === 'revertToMessage') {
+		return typeof (msg as { messageId?: unknown }).messageId === 'string';
+	}
+
+	if (t === 'resumeRunAfterError' || t === 'restartRunAfterError') {
 		return typeof (msg as { messageId?: unknown }).messageId === 'string';
 	}
 

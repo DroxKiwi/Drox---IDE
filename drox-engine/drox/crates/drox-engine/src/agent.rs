@@ -754,10 +754,27 @@ impl Agent {
         history: Vec<Message>,
         user_blocks: Vec<Content>,
     ) -> AgentStream {
+        self.run_with_history_blocks_inner(history, user_blocks, false)
+    }
+
+    /// Reprend un run depuis le transcript courant sans ajouter de tour `user`.
+    #[instrument(skip(self, history), fields(max_iter = self.config.max_iterations))]
+    pub fn continue_from_history(&self, history: Vec<Message>) -> AgentStream {
+        self.run_with_history_blocks_inner(history, Vec::new(), true)
+    }
+
+    fn run_with_history_blocks_inner(
+        &self,
+        history: Vec<Message>,
+        user_blocks: Vec<Content>,
+        skip_new_user_turn: bool,
+    ) -> AgentStream {
         let (tx, rx) = mpsc::channel::<Result<AgentEvent, EngineError>>(32);
         let agent = self.clone();
         tokio::spawn(async move {
-            agent.drive_inner(history, user_blocks, tx).await;
+            agent
+                .drive_inner(history, user_blocks, tx, skip_new_user_turn)
+                .await;
         });
         ReceiverStream::new(rx).boxed()
     }
@@ -768,6 +785,7 @@ impl Agent {
         history: Vec<Message>,
         user_blocks: Vec<Content>,
         tx: mpsc::Sender<Result<AgentEvent, EngineError>>,
+        skip_new_user_turn: bool,
     ) {
         let professor = is_professor_run(self.config.permissions.as_ref());
         let tool_specs = build_tool_specs(&self.registry, professor);
@@ -795,16 +813,41 @@ impl Agent {
                 .await;
         }
         messages.extend(history);
-        // Garantit qu'il y a toujours au moins un bloc texte pour les
-        // providers strictement text-only et pour la cohérence du transcript.
-        let user_blocks = if user_blocks.is_empty() {
-            vec![Content::text(String::new())]
+        let user_analysis_intent = if skip_new_user_turn {
+            use drox_types::Role;
+            messages
+                .iter()
+                .rev()
+                .find(|m| m.role == Role::User)
+                .map(|m| {
+                    user_prompt_suggests_workspace_analysis(&Content::collapse_text(&m.content))
+                })
+                .unwrap_or(false)
         } else {
-            user_blocks
+            user_prompt_suggests_workspace_analysis(&user_blocks_plain_text(&user_blocks))
         };
-        let user_analysis_intent =
-            user_prompt_suggests_workspace_analysis(&user_blocks_plain_text(&user_blocks));
-        messages.push(Message::user_with_blocks(user_blocks));
+        if !skip_new_user_turn {
+            // Garantit qu'il y a toujours au moins un bloc texte pour les
+            // providers strictement text-only et pour la cohérence du transcript.
+            let user_blocks = if user_blocks.is_empty() {
+                vec![Content::text(String::new())]
+            } else {
+                user_blocks
+            };
+            messages.push(Message::user_with_blocks(user_blocks));
+        } else if messages
+            .iter()
+            .rev()
+            .find(|m| m.role == drox_types::Role::User)
+            .is_none()
+        {
+            let _ = tx
+                .send(Err(EngineError::Memory(
+                    "continue_from_history requires a user message in transcript".into(),
+                )))
+                .await;
+            return;
+        }
 
         let mut transcript_cursor = self
             .config

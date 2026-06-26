@@ -75,7 +75,8 @@ pub use drox_session::{
     list_sessions, load_memdir, load_sessions_listing, memdir_system_prefix, read_session,
     read_session_ui_stats, read_transcript, reserve_session_path, session_meta_path,
     session_ui_stats_path, slugify, display_title, read_session_meta, write_session_meta,
-    SessionMeta, transcript_path, write_session, write_session_ui_stats, DroxIgnoreMatcher, WorkspaceMapStore,
+    SessionMeta, transcript_path, truncate_after_last_user, write_session, write_session_ui_stats,
+    write_transcript, DroxIgnoreMatcher, WorkspaceMapStore,
 };
 pub use drox_tools::{
     format_skills_listing_for_prompt, load_skills_catalog, SessionNote, SessionNotesHandle,

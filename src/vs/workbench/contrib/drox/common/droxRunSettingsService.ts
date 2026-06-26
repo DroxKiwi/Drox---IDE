@@ -28,5 +28,6 @@ export interface IDroxRunSettingsService {
 		sessionId: string;
 		images?: readonly IDroxAgentRunImage[];
 		runObjective?: string;
+		skipUserTurn?: boolean;
 	}): Record<string, unknown>;
 }

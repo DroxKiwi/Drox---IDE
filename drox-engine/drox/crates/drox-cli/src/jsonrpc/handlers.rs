@@ -17,7 +17,8 @@ use drox_engine::{
     default_tool_registry, EngineSubagentExecutor, SubagentSettings,
     format_sessions_listing_for_prompt, list_sessions, load_memdir, load_sessions_listing,
     memdir_system_prefix, read_session_ui_stats, read_transcript, session_ui_stats_path,
-    summarize_run, transcript_path, write_session_ui_stats, DroxIgnoreMatcher,
+    summarize_run, transcript_path, truncate_after_last_user, write_session_ui_stats,
+    write_transcript, DroxIgnoreMatcher,
 };
 use drox_llm::{ChatOptions, LlmConfig, OllamaClient};
 use drox_mcp::McpHub;
@@ -39,7 +40,8 @@ use super::protocol::{
     AgentCancelParams, AgentCancelResult, AgentDoneNotification, AgentEventNotification,
     AgentRunParams, AgentRunResult, InitializeParams, InitializeResult, RunStatus,
     SessionCompactParams, SessionCompactResult, SessionCompactUsageDto, SessionListEntryDto,
-    SessionListParams, SessionReadParams, SessionReadResult, UserAskParams, UserAskQuestion,
+    SessionListParams, SessionReadParams, SessionReadResult, SessionTruncateAfterLastUserParams,
+    SessionTruncateAfterLastUserResult, UserAskParams, UserAskQuestion,
     UserAskOption, UserAskResult,
 };
 use super::remote_tool::RemoteTool;
@@ -117,6 +119,42 @@ pub async fn session_read(params: Option<Value>) -> Result<Value, RpcError> {
     serde_json::to_value(SessionReadResult { messages, ui_stats }).map_err(internal)
 }
 
+pub async fn session_truncate_after_last_user(params: Option<Value>) -> Result<Value, RpcError> {
+    let params: SessionTruncateAfterLastUserParams = decode_required(
+        params,
+        "session.truncateAfterLastUser requires { id, dir? }",
+    )?;
+    if !params.id.starts_with("ses_") {
+        return Err(RpcError::new(INVALID_PARAMS, "id must start with `ses_`"));
+    }
+    let dir = resolve_session_dir(params.dir)?;
+    let id = SessionId::from_string(params.id);
+    let path = transcript_path(&dir, &id);
+    let messages = match read_transcript(&path).await {
+        Ok(m) => m,
+        Err(SessionError::NotFound(_)) => Vec::new(),
+        Err(e) => {
+            return Err(RpcError::new(
+                ENGINE_ERROR,
+                format!("session.truncateAfterLastUser read failed: {e}"),
+            ));
+        }
+    };
+    let truncated = truncate_after_last_user(&messages);
+    write_transcript(&path, &truncated)
+        .await
+        .map_err(|e| {
+            RpcError::new(
+                ENGINE_ERROR,
+                format!("session.truncateAfterLastUser write failed: {e}"),
+            )
+        })?;
+    serde_json::to_value(SessionTruncateAfterLastUserResult {
+        message_count: truncated.len(),
+    })
+    .map_err(internal)
+}
+
 pub async fn session_compact(params: Option<Value>) -> Result<Value, RpcError> {
     let p: SessionCompactParams = decode_required(
         params,
@@ -179,7 +217,8 @@ pub async fn session_compact(params: Option<Value>) -> Result<Value, RpcError> {
 
 pub async fn agent_run(server: Server, params: Option<Value>) -> Result<Value, RpcError> {
     let params: AgentRunParams = decode_required(params, "agent.run requires `prompt`")?;
-    if params.prompt.is_empty() {
+    let skip_user_turn = params.skip_user_turn.unwrap_or(false);
+    if !skip_user_turn && params.prompt.is_empty() {
         return Err(RpcError::new(INVALID_PARAMS, "prompt must not be empty"));
     }
 
@@ -190,7 +229,11 @@ pub async fn agent_run(server: Server, params: Option<Value>) -> Result<Value, R
 
     let server_for_task = server.clone();
     let run_id_for_task = run_id.clone();
-    let user_blocks = build_user_blocks(&params);
+    let user_blocks = if skip_user_turn {
+        Vec::new()
+    } else {
+        build_user_blocks(&params)
+    };
     let image_count = params.images.len();
     if image_count > 0 {
         tracing::info!(
@@ -206,6 +249,7 @@ pub async fn agent_run(server: Server, params: Option<Value>) -> Result<Value, R
             run_id_for_task.clone(),
             agent_setup,
             user_blocks,
+            skip_user_turn,
         )
         .await
         .unwrap_or_else(|status| status);
@@ -611,13 +655,18 @@ async fn drive_run(
     run_id: String,
     setup: AgentSetup,
     user_blocks: Vec<Content>,
+    skip_user_turn: bool,
 ) -> Result<RunOutcome, RunOutcome> {
     let AgentSetup {
         agent,
         history,
         ui_stats_path,
     } = setup;
-    let mut stream = agent.run_with_history_blocks(history, user_blocks);
+    let mut stream = if skip_user_turn {
+        agent.continue_from_history(history)
+    } else {
+        agent.run_with_history_blocks(history, user_blocks)
+    };
     let mut errored = false;
     let mut ide_shim = IdeEventShimState::default();
 

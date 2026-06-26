@@ -24,6 +24,10 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import {
+	clearPendingRunRecovery,
+	setPendingRunRecovery,
+} from './droxChatRunRecovery.js';
+import {
 	getProfessorModeRemovedNotificationMessage,
 	resolveDroxPermissionMode,
 } from '../../common/droxPermissionAsk.js';
@@ -184,6 +188,12 @@ export async function executeDroxChatSend(
 			host.syncChatSessionState();
 			deps.runRevertService.beginRun(result.runId, ws, tabs.currentSessionId);
 			deps.runRevertService.setRunFirstMessageId(result.runId, messageId);
+			setPendingRunRecovery(tabs.currentSessionId!, {
+				messageId,
+				mode: runMode,
+				enginePrompt: finalPrompt,
+				images: imagesPayload.length > 0 ? imagesPayload : undefined,
+			});
 			deps.logService.info('[Drox] agent.run', result.runId);
 		} else {
 			host.setPendingRunStart(false);
@@ -201,6 +211,7 @@ export async function executeDroxChatSend(
 			: text;
 		host.post({ kind: 'append', role: 'error', text: errText });
 		host.post({ kind: 'state', busy: false });
+		clearPendingRunRecovery(tabs.currentSessionId);
 	}
 }
 

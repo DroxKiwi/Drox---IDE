@@ -75,12 +75,12 @@ suite('Drox release notes', () => {
 		assert.ok(joined.includes('1.127'));
 	});
 
-	test('getDroxReleaseNotesItems includes 1.5.3 highlights', () => {
-		const items = getDroxReleaseNotesItems('1.5.3');
+	test('getDroxReleaseNotesItems includes 1.5.7 highlights', () => {
+		const items = getDroxReleaseNotesItems('1.5.7');
 		const joined = items.join('\n');
-		assert.ok(joined.includes('undo'));
-		assert.ok(joined.includes('shell'));
-		assert.ok(joined.includes('VT323'));
-		assert.ok(joined.includes('replay'));
+		assert.ok(joined.includes('Resume'));
+		assert.ok(joined.includes('Restart'));
+		assert.ok(joined.includes('Smart paste'));
+		assert.ok(joined.includes('truncateAfterLastUser'));
 	});
 });
