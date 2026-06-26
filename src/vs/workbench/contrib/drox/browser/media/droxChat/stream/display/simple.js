@@ -131,6 +131,9 @@
 	};
 
 	fn.resolveUserReplyMount = function () {
+		if (!D.state.linearRunUi) {
+			return D.dom.logEl;
+		}
 		const strip = fn.findStripAwaitingUserReply?.();
 		if (strip) {
 			if (typeof fn.ensureRunStripConnected === 'function') {
@@ -231,8 +234,8 @@
 		const el = fn.ensureChatStreamElement(parent);
 		const nextRaw = (el.dataset.raw || '') + chunk;
 		fn.paintAssistantMarkdown(el, nextRaw, { streaming: true });
-		if (D.state.busy && typeof fn.showActivityBeforeNode === 'function') {
-			fn.showActivityBeforeNode(el);
+		if (D.state.busy && typeof fn.ensureTailWarmupActivity === 'function') {
+			fn.ensureTailWarmupActivity();
 		}
 	};
 

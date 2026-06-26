@@ -867,11 +867,10 @@ details.drox-run-work-collapsible > summary.drox-run-work-summary::-webkit-detai
 	display: block;
 }
 
-/* Un seul scroll : #log — pas de sous-fenêtres défilantes dans le fil. */
-#log .fc-body,
+/* Un seul scroll : #log — pas de sous-fenêtres défilantes (sauf diffs fichier). */
 #log .drox-shell-output-block,
-.drox-run-chronology .fc-body,
-.drox-run-answer .fc-body {
+.drox-run-chronology .drox-shell-output-block,
+.drox-run-answer .drox-shell-output-block {
 	max-height: none;
 	overflow: visible;
 }
@@ -881,10 +880,16 @@ details.drox-run-work-collapsible > summary.drox-run-work-summary::-webkit-detai
 	opacity: 0.72;
 }
 
+/* Diffs fichier : scroll interne pour ne pas étirer tout le fil. */
+#log .msg-file-change > .fc-body,
+.drox-run-chronology .msg-file-change > .fc-body,
+.drox-run-answer .msg-file-change > .fc-body,
 .msg-file-change .fc-body {
 	display: block;
-	max-height: none;
-	overflow: visible;
+	max-height: min(52vh, 360px);
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	background: var(--vscode-editor-background);
 }
 
@@ -3759,64 +3764,109 @@ button:disabled {
 	cursor: default;
 }
 
-/* Bouton envoyer / arrêter — fond plein, distinct des icon-btn transparents */
+/* Bouton envoyer / arrêter — carré TUI, fade, pulse en run */
 .composer-send-btn {
 	position: relative;
 	flex-shrink: 0;
-	width: 36px;
-	height: 36px;
-	min-width: 36px;
-	min-height: 36px;
+	width: 34px;
+	height: 34px;
+	min-width: 34px;
+	min-height: 34px;
 	padding: 0;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 8px;
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 55%, var(--vscode-button-border, transparent));
+	border-radius: var(--drox-thread-radius, 0);
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border, var(--drox-ui-green, #3d7a3d)) 65%, var(--vscode-panel-border, transparent));
 	background: color-mix(
 		in srgb,
-		var(--vscode-button-background, #0e639c) 78%,
-		var(--drox-ui-green, #3d7a3d) 22%
+		var(--drox-thread-green-dim, var(--drox-ui-green, #3d7a3d)) 48%,
+		var(--vscode-editor-background) 52%
 	);
-	color: var(--vscode-button-foreground, var(--drox-ui-icon, #fff));
+	color: color-mix(in srgb, var(--drox-thread-fg, var(--vscode-button-foreground)) 92%, var(--drox-ui-green, #3d7a3d) 8%);
 	cursor: pointer;
-	box-shadow: 0 1px 2px color-mix(in srgb, #000 28%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 10%, transparent);
 	transition:
-		background 0.15s ease,
-		border-color 0.15s ease,
-		box-shadow 0.15s ease,
-		opacity 0.15s ease,
+		background 0.2s ease,
+		border-color 0.2s ease,
+		box-shadow 0.2s ease,
+		opacity 0.2s ease,
 		transform 0.12s ease;
 }
 
 .composer-send-btn:hover:not(:disabled) {
-	background: var(--vscode-button-hoverBackground, color-mix(in srgb, var(--vscode-button-background, #0e639c) 65%, #fff 35%));
-	border-color: var(--drox-ui-green, #5a9e5a);
+	background: color-mix(
+		in srgb,
+		var(--drox-thread-green-dim, var(--drox-ui-green, #3d7a3d)) 58%,
+		var(--vscode-editor-background) 42%
+	);
+	border-color: color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 70%, var(--drox-thread-brown, #4a3f2e) 30%);
 	box-shadow:
-		0 2px 6px color-mix(in srgb, #000 22%, transparent),
-		0 0 0 1px color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 40%, transparent);
+		inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 18%, transparent),
+		0 0 5px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 16%, transparent);
 }
 
 .composer-send-btn:active:not(:disabled) {
-	transform: scale(0.96);
+	transform: scale(0.97);
 }
 
 .composer-send-btn.is-run-active {
+	border-color: color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 55%, var(--vscode-inputValidation-errorBorder, #be1100) 45%);
 	background: color-mix(
 		in srgb,
-		var(--vscode-inputValidation-errorBackground, #5a1d1d) 35%,
-		var(--vscode-button-background, #0e639c) 65%
+		var(--vscode-inputValidation-errorBackground, #5a1d1d) 22%,
+		var(--drox-thread-green-dim, #3d7a3d) 38%,
+		var(--vscode-editor-background) 40%
 	);
+	animation: drox-send-run-pulse 1.35s ease-in-out infinite;
+}
+
+.composer-send-btn.is-run-active::before {
+	content: '';
+	position: absolute;
+	inset: 3px;
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 35%, transparent);
+	opacity: 0.55;
+	animation: drox-send-run-ring 2.4s linear infinite;
+	pointer-events: none;
 }
 
 .composer-send-btn.is-run-active:hover:not(:disabled) {
 	background: color-mix(
 		in srgb,
-		var(--vscode-inputValidation-errorBackground, #5a1d1d) 45%,
-		var(--vscode-button-hoverBackground, #1177bb) 55%
+		var(--vscode-inputValidation-errorBackground, #5a1d1d) 30%,
+		var(--drox-thread-green-dim, #3d7a3d) 42%,
+		var(--vscode-editor-background) 28%
 	);
-	border-color: color-mix(in srgb, var(--vscode-inputValidation-errorBorder, #be1100) 70%, var(--drox-ui-green, #4ade80) 30%);
-	box-shadow: 0 0 8px color-mix(in srgb, var(--vscode-inputValidation-errorBorder, #be1100) 25%, transparent);
+	border-color: color-mix(in srgb, var(--vscode-inputValidation-errorBorder, #be1100) 55%, var(--drox-thread-green, #3d7a3d) 45%);
+}
+
+@keyframes drox-send-run-pulse {
+	0%, 100% {
+		opacity: 0.88;
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 12%, transparent);
+	}
+	50% {
+		opacity: 1;
+		box-shadow:
+			inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 28%, transparent),
+			0 0 7px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 22%, transparent);
+	}
+}
+
+@keyframes drox-send-run-ring {
+	0% {
+		transform: scale(1);
+		opacity: 0.5;
+	}
+	70% {
+		transform: scale(1.12);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1.12);
+		opacity: 0;
+	}
 }
 
 .composer-send-btn:disabled {
@@ -4263,6 +4313,14 @@ button:disabled {
 /* --- Grille 3×3 devant phases / outils (plus de barre « Démarrage… ») --- */
 
 .msg-activity {
+	display: none !important;
+}
+
+/* Grille 3×3 : uniquement dans `.activity-warmup` (phrase de statut). */
+.msg-tool summary > .activity-grid,
+.phase-summary > .activity-grid,
+.todos-head-left > .activity-grid,
+#log > .activity-grid-inline {
 	display: none !important;
 }
 

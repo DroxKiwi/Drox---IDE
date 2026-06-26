@@ -38,6 +38,7 @@
 		}
 		if (next) {
 			fn.refreshActivityIndicator();
+			fn.startRunActivityWatchdog?.();
 		}
 		if (typeof fn.syncConnectionVignetteAttention === 'function') {
 			fn.syncConnectionVignetteAttention();

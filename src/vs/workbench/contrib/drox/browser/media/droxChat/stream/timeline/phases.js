@@ -32,7 +32,11 @@
 			}
 		}
 		D.state.currentPhase = null;
-		fn.hideActivity?.();
+		if (D.state.busy || D.state.pendingRunWarmup) {
+			fn.refreshActivityIndicator?.();
+		} else {
+			fn.hideActivity?.();
+		}
 	};
 
 	fn.closeCurrentPhase = function () {
@@ -49,6 +53,9 @@
 			D.state.currentPhase = 'answering';
 			D.state.currentPhaseBodyEl =
 				typeof fn.getRunSection === 'function' ? fn.getRunSection('answer') : D.dom.logEl;
+			if (D.state.busy || D.state.pendingRunWarmup) {
+				fn.refreshActivityIndicator?.();
+			}
 			return;
 		}
 		if (phase === 'done') {
@@ -76,6 +83,9 @@
 			D.state.currentPhase = phase;
 			D.state.currentPhaseBodyEl =
 				typeof fn.getRunSection === 'function' ? fn.getRunSection('thinking') : null;
+		}
+		if (D.state.busy || D.state.pendingRunWarmup) {
+			fn.refreshActivityIndicator?.();
 		}
 	};
 })(globalThis.DroxChat);

@@ -40,6 +40,8 @@
 			}
 			if (D.state.busy) {
 				fn.showActivityOnCurrentPhaseSummary();
+			} else if (D.state.pendingRunWarmup) {
+				fn.ensureTailWarmupActivity?.();
 			}
 			fn.syncWorkSummaryStats?.(D.state.runStripEl);
 			return;
