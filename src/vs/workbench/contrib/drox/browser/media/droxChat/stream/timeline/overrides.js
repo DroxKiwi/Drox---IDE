@@ -5,7 +5,7 @@
 
 // allow-any-unicode-comment-file
 
-// Fil #log strictement chronologique — pas de réorganisation strip.
+// Fil linéaire : thinking + outils inline dans la chronologie du strip (parité TUI).
 
 (function (D) {
 	const fn = D.fn;
@@ -16,8 +16,9 @@
 			return;
 		}
 		if (next) {
-			fn.resetChatStreamForTurn?.();
+			// Parité performSend + `state busy:true` — active le routage chronologie (thinking → phase-block).
 			fn.resetLinearTurnAnchors?.();
+			fn.beginLinearRunStrip?.();
 		} else {
 			fn.hideArchitectRunTailActivity?.();
 			fn.flushStreamBuffer?.({ asAnswer: true });
@@ -45,8 +46,20 @@
 		_renderOrchestrationRole.call(this, role);
 	};
 
+	const _createToolBlock = fn.createToolBlock;
+	fn.createToolBlock = function (payload) {
+		if (D.state.linearRunUi) {
+			fn.flushStreamBuffer?.({ asAnswer: false });
+		}
+		return _createToolBlock.call(this, payload);
+	};
+
 	const _getLogMountParent = fn.getLogMountParent;
 	fn.getLogMountParent = function () {
+		const chrono = typeof fn.getChronologyMount === 'function' ? fn.getChronologyMount() : null;
+		if (chrono && D.state.linearRunUi) {
+			return chrono;
+		}
 		return D.dom.logEl || _getLogMountParent.call(this);
 	};
 
