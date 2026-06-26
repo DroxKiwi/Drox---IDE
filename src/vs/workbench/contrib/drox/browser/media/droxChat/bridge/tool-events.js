@@ -60,7 +60,15 @@
 				const sec = elapsed > 0 ? ` · ${(elapsed / 1000).toFixed(1)}s` : '';
 				const tail = String(payload.outputPreview ?? '').trim();
 				const preview = tail ? ` — ${tail.split('\n').pop()}` : '';
-				summary.textContent = `▶ ${name}${sec}${preview}`;
+				const label =
+					summary.querySelector('.msg-tool-summary-label') ||
+					summary.querySelector('.drox-shell-card-header');
+				const text = `▶ ${name}${sec}${preview}`;
+				if (label) {
+					label.textContent = text;
+				} else {
+					summary.textContent = text;
+				}
 			}
 			return;
 		}

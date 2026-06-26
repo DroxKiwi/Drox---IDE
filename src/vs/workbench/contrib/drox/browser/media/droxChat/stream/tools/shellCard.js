@@ -60,10 +60,10 @@
 		return isError ? 'error' : 'done';
 	}
 
-	function mountShellCard(card, summaryHtml) {
-		const parent = fn.getLogMountParent();
-		if (fn.shouldUseCollapsibleToolTray?.(parent)) {
-			fn.mountToolBlockInTray?.(parent, card, summaryHtml);
+	function mountShellCard(card) {
+		const parent = fn.getLogMountParent() || D.dom.logEl;
+		if (parent === D.dom.logEl) {
+			fn.mountLinearLogNode?.(card);
 		} else {
 			parent.appendChild(card);
 		}
@@ -152,9 +152,9 @@
 		body.appendChild(outputHost);
 		card.appendChild(summary);
 		card.appendChild(body);
+		fn.enhanceDetailsDisclosure?.(card);
 
-		const summaryHtml = `<strong>${title.textContent}</strong> <span class="tool-target">${shellKindLabel(payload.shellKind)}</span>`;
-		mountShellCard(card, summaryHtml);
+		mountShellCard(card);
 		return card;
 	};
 

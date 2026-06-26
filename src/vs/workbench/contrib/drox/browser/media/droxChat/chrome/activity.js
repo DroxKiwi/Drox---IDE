@@ -23,6 +23,20 @@
 		return pending ? pending.content : '';
 	}
 
+	fn.hideInlineActivityOnly = function () {
+		if (D.state.currentWarmupRowEl) {
+			D.state.currentWarmupRowEl.remove();
+			D.state.currentWarmupRowEl = null;
+		}
+		if (
+			D.state.currentActivityGridEl?.isConnected &&
+			D.state.currentActivityGridEl.classList.contains('activity-grid-inline')
+		) {
+			D.state.currentActivityGridEl.remove();
+			D.state.currentActivityGridEl = null;
+		}
+	};
+
 	fn.stripActivityGridsFromElement = function (el) {
 		if (!el?.querySelectorAll) {
 			return;
@@ -47,11 +61,9 @@
 	};
 
 	fn.hideActivity = function() {
+		D.state.pendingRunWarmup = false;
 		fn.clearAllActivityGrids(D.dom.logEl || document);
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.ensureArchitectRunTailActivity();
-			return;
-		}
+		fn.hidePlanActivitySticky?.();
 		fn.hideArchitectRunTailActivity();
 	}
 
@@ -80,16 +92,70 @@
 		return fn.resolveUserMessageAnchor?.(lastRow) ?? lastRow;
 	}
 
-	fn.showWarmupActivity = function() {
-		if (!D.state.busy || !D.dom.logEl) {
-			return;
-		}
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.ensureArchitectRunTailActivity({ rotatePhrase: true });
+	fn.repositionWarmupAfterUser = function () {
+		const row = D.state.currentWarmupRowEl;
+		if (!row?.isConnected) {
 			return;
 		}
 		const anchor = fn.getLastUserMessageEl();
+		if (anchor && row.previousElementSibling !== anchor) {
+			anchor.insertAdjacentElement('afterend', row);
+			fn.scrollLog?.();
+		}
+	};
+
+	fn.showWarmupActivityOptimistic = function () {
+		if (!D.dom.logEl || D.state.uiReplayActive) {
+			return;
+		}
+		if (D.state.currentWarmupRowEl?.isConnected) {
+			fn.repositionWarmupAfterUser();
+			return;
+		}
+		fn.hideInlineActivityOnly();
+		const row = document.createElement('div');
+		row.className = 'activity-warmup activity-warmup-optimistic';
+		row.setAttribute('role', 'status');
+		row.setAttribute('aria-live', 'polite');
+
+		D.state.currentActivityGridEl = fn.buildActivityGrid();
+		const label = document.createElement('span');
+		label.className = 'activity-warmup-label';
+		label.textContent = fn.pickWarmupPhrase();
+
+		row.appendChild(D.state.currentActivityGridEl);
+		row.appendChild(label);
+		D.state.currentWarmupRowEl = row;
+		D.state.pendingRunWarmup = true;
+
+		if (typeof fn.appendToLog === 'function') {
+			fn.appendToLog(row);
+		} else {
+			D.dom.logEl.appendChild(row);
+		}
+		fn.scrollLogToEnd?.() || fn.scrollLog?.();
+	};
+
+	fn.showWarmupActivity = function() {
+		if (!D.dom.logEl) {
+			return;
+		}
+		if (!D.state.busy && !D.state.pendingRunWarmup) {
+			return;
+		}
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky({ rotatePhrase: true });
+			return;
+		}
+		const anchor = fn.getLastUserMessageEl();
+		if (D.state.currentWarmupRowEl?.isConnected) {
+			if (anchor) {
+				fn.repositionWarmupAfterUser();
+			}
+			return;
+		}
 		if (!anchor) {
+			fn.showWarmupActivityOptimistic();
 			return;
 		}
 		fn.hideInlineActivityOnly();
@@ -122,8 +188,8 @@
 
 	/** Grille persistante : ne remplace pas les autres indicateurs en cours. */
 	fn.ensurePersistentActivityGrid = function(hostEl) {
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.touchArchitectRunTailActivity();
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky();
 			return null;
 		}
 		if (!hostEl?.isConnected) {
@@ -144,11 +210,11 @@
 	};
 
 	fn.showActivityOnSummary = function(summaryEl) {
-		if (!D.state.busy || !summaryEl) {
+		if ((!D.state.busy && !D.state.pendingRunWarmup) || !summaryEl) {
 			return;
 		}
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.touchArchitectRunTailActivity({ rotatePhrase: true });
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky({ rotatePhrase: true });
 			return;
 		}
 		fn.hideInlineActivityOnly();
@@ -164,21 +230,79 @@
 		const summary = D.state.currentPhaseEl?.querySelector('.phase-summary');
 		if (summary) {
 			fn.showActivityOnSummary(summary);
-		} else if (D.state.busy) {
+		} else if (D.state.busy || D.state.pendingRunWarmup) {
 			fn.showWarmupActivity();
 		}
 	}
 
 	fn.showActivityBeforeNode = function(node) {
-		if (!D.state.busy || !node?.parentElement) {
+		if ((!D.state.busy && !D.state.pendingRunWarmup) || !node?.parentElement) {
 			return;
 		}
-		if (fn.shouldUseArchitectRunTailActivity()) {
-			fn.touchArchitectRunTailActivity();
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky({ rotatePhrase: true });
 			return;
 		}
 		fn.hideInlineActivityOnly();
 		D.state.currentActivityGridEl = fn.buildActivityGrid();
 		node.parentElement.insertBefore(D.state.currentActivityGridEl, node);
 	}
+
+	fn.shouldUsePlanActivitySticky = function () {
+		return Boolean(
+			!D.state.uiReplayActive &&
+				D.state.busy &&
+				D.state.linearRunUi &&
+				D.dom.planStickyFooterEl,
+		);
+	};
+
+	fn.hidePlanActivitySticky = function () {
+		const row = D.dom.planActivityStickyEl;
+		if (row) {
+			row.hidden = true;
+		}
+		fn.syncPlanStickyFooter?.();
+	};
+
+	fn.ensurePlanActivitySticky = function (opts) {
+		if (!fn.shouldUsePlanActivitySticky()) {
+			fn.hidePlanActivitySticky();
+			return;
+		}
+		const footer = D.dom.planStickyFooterEl;
+		const row = D.dom.planActivityStickyEl;
+		if (!footer || !row) {
+			return;
+		}
+		fn.hideInlineActivityOnly();
+		if (D.state.architectTailActivityEl) {
+			D.state.architectTailActivityEl.remove();
+			D.state.architectTailActivityEl = null;
+		}
+		const rotatePhrase = opts?.rotatePhrase === true;
+		let label = row.querySelector('.activity-warmup-label');
+		if (!label) {
+			label = document.createElement('span');
+			label.className = 'activity-warmup-label';
+			row.appendChild(label);
+		}
+		let grid = row.querySelector('.activity-grid');
+		if (!grid) {
+			grid = fn.buildActivityGrid();
+			grid.classList.add('activity-grid-persistent');
+			row.insertBefore(grid, label);
+		}
+		if (rotatePhrase || !label.textContent) {
+			label.textContent = fn.pickWarmupPhrase();
+		}
+		row.hidden = false;
+		if (row.parentElement !== footer) {
+			footer.prepend(row);
+		} else if (footer.firstElementChild !== row) {
+			footer.prepend(row);
+		}
+		footer.hidden = false;
+		fn.syncPlanStickyFooter?.();
+	};
 })(globalThis.DroxChat);

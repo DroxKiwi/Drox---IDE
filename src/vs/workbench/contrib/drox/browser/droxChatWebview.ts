@@ -41,6 +41,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/settings/general-settings/host-sync.js',
 	'droxChat/settings/general-settings/init.js',
 	'droxChat/chrome/util.js',
+	'droxChat/chrome/disclosure-toggle.js',
 	'droxChat/chrome/composer-chrome.js',
 	'droxChat/chrome/phase-labels.js',
 	'droxChat/chrome/architect-tail.js',
@@ -55,6 +56,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/composer/send.js',
 	'droxChat/composer/03b-userPromptSticky.js',
 	'droxChat/session/04-history.js',
+	'droxChat/session/history-replay.js',
 	'droxChat/session/lazy-history.js',
 	'droxChat/attachments/05-attachments.js',
 	'droxChat/user-ask/06-userAsk.js',
@@ -420,7 +422,11 @@ ${cssLinks}
 
 	<div id="log" role="log" aria-live="polite"></div>
 
-	<div id="plan-sticky-footer" class="drox-plan-sticky-footer" hidden role="region" aria-label="Plan"></div>
+	<div id="plan-sticky-footer" class="drox-plan-sticky-footer" hidden role="region" aria-label="Plan">
+		<div id="plan-activity-sticky" class="drox-plan-activity-sticky activity-warmup" hidden role="status" aria-live="polite">
+			<span class="activity-warmup-label"></span>
+		</div>
+	</div>
 
 	<div id="user-ask" hidden></div>
 

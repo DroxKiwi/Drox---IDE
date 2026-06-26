@@ -106,8 +106,11 @@
 	};
 
 	fn.getChatAnswerSection = function () {
-		if (typeof fn.getRunSection === 'function') {
-			return fn.getRunSection('answer');
+		if (D.state.linearRunUi && typeof fn.getRunSection === 'function') {
+			const sec = fn.getRunSection('answer');
+			if (sec) {
+				return sec;
+			}
 		}
 		return D.dom.logEl;
 	};
@@ -201,7 +204,11 @@
 		}
 		D.state.chatStreamEl = el;
 		D.state.chatStreamStripId = stripId;
-		parent.appendChild(el);
+		if (parent === D.dom.logEl) {
+			fn.appendToLog?.(el);
+		} else {
+			parent.appendChild(el);
+		}
 		return el;
 	};
 
@@ -379,15 +386,13 @@
 		fn.resetChatStreamForTurn();
 		D.state.discussionAwaitingCanonicalReply = false;
 		D.state.discussionRunActive = false;
+		fn.markTurnFinalAssistant?.(el);
 		if (typeof fn.finalizeAssistant === 'function') {
 			fn.finalizeAssistant();
 		}
 		const strip = D.state.runStripEl;
 		if (strip?.isConnected && typeof fn.sealRunStrip === 'function' && strip.dataset.sealed !== '1') {
 			fn.sealRunStrip(strip);
-		}
-		if (typeof fn.parkAllLinearFinalAnswers === 'function') {
-			fn.parkAllLinearFinalAnswers();
 		}
 		fn.scrollLog?.(true);
 	};
