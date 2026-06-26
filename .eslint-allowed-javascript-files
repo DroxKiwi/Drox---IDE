@@ -230,6 +230,8 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/stream/log/00-constants.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/messages/orchestration.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/messages/scroll.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/messages/user.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/stream/messages/run-recovery.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/stream/messages/memory-chip.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/messages/viewer.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/mount.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/overrides.js

@@ -269,6 +269,12 @@ impl Server {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,
             },
+            "session.truncateAfterLastUser" => {
+                match handlers::session_truncate_after_last_user(req.params).await {
+                    Ok(v) => self.respond(Response::success(id, v)).await,
+                    Err(e) => self.respond(Response::error(id, e)).await,
+                }
+            }
             "agent.run" => match handlers::agent_run(self.clone(), req.params).await {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,

@@ -471,6 +471,8 @@ export class DroxChatTabsManager {
 			}
 		} catch (e) {
 			this.delegate.post({ kind: 'append', role: 'error', text: e instanceof Error ? e.message : String(e) });
+			this.delegate.post({ kind: 'sessionReplayDone' });
+			this.delegate.post({ kind: 'state', busy: false });
 		}
 	}
 

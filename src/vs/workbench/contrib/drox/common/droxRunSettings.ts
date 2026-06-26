@@ -153,6 +153,7 @@ export function buildAgentRunParams(opts: {
 	readonly mcpToolsEnabled: boolean;
 	readonly images?: readonly IDroxAgentRunImage[];
 	readonly runObjective?: string;
+	readonly skipUserTurn?: boolean;
 }): Record<string, unknown> {
 	const wireMode = normalizeDroxPermissionMode(opts.mode);
 	const params: Record<string, unknown> = {
@@ -212,6 +213,9 @@ export function buildAgentRunParams(opts: {
 	}
 	if (opts.runObjective) {
 		params.runObjective = opts.runObjective;
+	}
+	if (opts.skipUserTurn) {
+		params.skipUserTurn = true;
 	}
 	return params;
 }
