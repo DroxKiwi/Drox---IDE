@@ -233,7 +233,7 @@
 		D.dom.logEl.addEventListener(
 			'scroll',
 			() => {
-				D.state.logStickToBottom = fn.isLogNearBottom(D.dom.logEl);
+				fn.syncLogStickToBottom?.();
 			},
 			{ passive: true },
 		);

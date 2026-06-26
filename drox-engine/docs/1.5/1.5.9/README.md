@@ -1,25 +1,23 @@
-# Drox 1.5.9 — Connexions MCP
+# Drox 1.5.9 — UX chat : scroll, reset workspace, composer épuré
 
-**Statut** : planifié  
-**Prérequis** : [1.5.8](../1.5.8/README.md) livrée (polish post-1.5.7)
+**Statut** : **livré** (branche `1.5.9` clôturée)  
+**Prérequis** : [1.5.8](../1.5.8/README.md) livrée (`v1.5.8`)
 
 ---
 
 ## En une phrase
 
-Exposer une **section Connexions MCP** claire dans Drox : réutiliser le chassis VS Code (`contrib/mcp`), le rebrandre, et le **relier au moteur** `drox-mcp` (outils `mcp__*`). Clarifier les **modes de permission** (Ask natif, Analyse read-only vs Planifier).
+Correctifs **frustrants** du fil de discussion : scroll non forcé pendant la lecture, reset workspace qui purge aussi **`MEMORY.md`**, barre d’actions du composer allégée.
 
 ---
 
 ## Docs
 
-- [PLAN-1.5.9.md](PLAN-1.5.9.md) — chantier technique
-- [GUIDE-MCP-CONNEXIONS.md](GUIDE-MCP-CONNEXIONS.md) — spec UX + utilisateur (brouillon → `operations/07` à la livraison)
+- [PLAN-1.5.9.md](PLAN-1.5.9.md) — périmètre, fichiers touchés, critères de clôture
 
 ---
 
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [GUIDE moteur § MCP](../../0.0/guides/GUIDE-MOTEUR-DROX.md#613-mcp-228)
-- [Brainstorm Agents + MCP](../../feature-brainstorm/13-agents-window-kdds-drox.md)
+- [Chantiers reportés MCP / Agents](../1.5.x+1/README.md) *(si présent sur la branche)*

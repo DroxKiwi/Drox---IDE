@@ -566,7 +566,7 @@ export class DroxChatTabsManager {
 			role: 'system',
 			text: localize(
 				'drox.workspace.resetDone',
-				'Workspace Drox data reset: conversations, project map, long memory, memory archives, attachments, and professor cycles removed.',
+				'Workspace Drox data reset: `.drox/sessions`, project memory (`MEMORY.md`), workspace map, long memory, attachments, and professor cycles removed.',
 			),
 		});
 		this.delegate.post({
