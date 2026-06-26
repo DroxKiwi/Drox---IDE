@@ -1,13 +1,13 @@
 # Drox 1.5.6 — Correctifs post-release 1.5.5
 
-**Statut** : en cours  
+**Statut** : **livré** (juin 2026) — win + linux `v1.5.6`  
 **Prérequis** : [1.5.5](../1.5.5/README.md) livrée (win + linux · `v1.5.5`)
 
 ---
 
 ## En une phrase
 
-Corriger les **régressions ou défauts** observés sur la **1.5.5** en usage réel, avant les chantiers MCP et Agents Window.
+Corriger les **régressions ou défauts** observés sur la **1.5.5** en usage réel (bulle user, scroll diffs, warmup, bouton envoyer).
 
 ---
 
@@ -20,4 +20,4 @@ Corriger les **régressions ou défauts** observés sur la **1.5.5** en usage r�
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [Release 1.5.5](../../../operations/README.md) — win + linux publiés
+- [Release 1.5.6](../../../operations/README.md) — win + linux publiés
