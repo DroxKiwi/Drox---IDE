@@ -99,9 +99,11 @@
 		D.dom.promptEl.addEventListener('drop', fn.handleComposerDrop);
 	}
 
-	D.dom.sendBtn.addEventListener('click', () => {
-		fn.handleSendButtonClick();
-	});
+	if (D.dom.sendBtn) {
+		D.dom.sendBtn.addEventListener('click', () => {
+			fn.handleSendButtonClick();
+		});
+	}
 
 	D.dom.promptEl.addEventListener('input', () => {
 		fn.syncPromptInputHeight();

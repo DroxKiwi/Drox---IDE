@@ -80,6 +80,7 @@ suite('Drox release notes', () => {
 		const joined = items.join('\n');
 		assert.ok(joined.includes('Resume'));
 		assert.ok(joined.includes('Restart'));
+		assert.ok(joined.includes('Smart paste'));
 		assert.ok(joined.includes('truncateAfterLastUser'));
 	});
 });

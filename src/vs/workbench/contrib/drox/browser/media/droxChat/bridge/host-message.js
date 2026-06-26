@@ -10,6 +10,7 @@
 	if (!m || typeof m.kind !== 'string') {
 			return;
 		}
+		try {
 		switch (m.kind) {
 			case 'productVersion': {
 				const label = String(m.label ?? '').trim();
@@ -308,7 +309,9 @@
 				fn.setCompactBusy(Boolean(m.active));
 				break;
 			case 'memory':
-				fn.appendMemoryChip(m);
+				if (typeof fn.appendMemoryChip === 'function') {
+					fn.appendMemoryChip(m);
+				}
 				break;
 			case 'appendReferences':
 				if (Array.isArray(m.uris)) {
@@ -425,6 +428,9 @@
 				break;
 			default:
 				break;
+		}
+		} catch (err) {
+			console.error('[DroxChat] host message failed', m?.kind, err);
 		}
 	};
 })(globalThis.DroxChat);

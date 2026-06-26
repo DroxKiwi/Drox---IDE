@@ -47,6 +47,8 @@ export function getDroxReleaseNotesItems(version: string): readonly string[] {
 				localize('drox.releaseNotes.157.recovery', 'When an LLM error cuts a run short, **Resume** and **Restart** appear on your last user message.'),
 				localize('drox.releaseNotes.157.resume', '**Resume** continues from the last checkpoint (partial model output kept).'),
 				localize('drox.releaseNotes.157.restart', '**Restart** clears everything the model said since that message and tries again.'),
+				localize('drox.releaseNotes.157.paste', '**Smart paste** — send messages with linked code snippets again (composer chips).'),
+				localize('drox.releaseNotes.157.chat', 'Session reload and history replay no longer block sending new messages.'),
 				localize('drox.releaseNotes.157.engine', 'Engine: `skipUserTurn` resume path and `session.truncateAfterLastUser` for a clean retry.'),
 				localize('drox.releaseNotes.157.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
 			];

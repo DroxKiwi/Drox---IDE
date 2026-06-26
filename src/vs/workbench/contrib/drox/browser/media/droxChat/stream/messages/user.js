@@ -153,7 +153,7 @@
 			link.type = 'button';
 			link.className = 'msg-ref-link';
 			const path = ref.rel || ref.abs || ref.uri || '';
-			const name = ref.label || fn.basenameForRef(path);
+			const name = ref.label || fn.labelFor(path);
 			const label = document.createElement('span');
 			label.className = 'msg-ref-link-label';
 			label.textContent = ref.kind === 'directory' ? `${name}/` : name;
@@ -180,7 +180,7 @@
 			label.className = 'msg-ref-link-label';
 			label.textContent = isTerminal
 				? `${refPath || 'Terminal'} · ${lineRef}`
-				: `${fn.basenameForRef(refPath)} · ${lineRef}`;
+				: `${fn.labelFor(refPath)} · ${lineRef}`;
 			link.title = isTerminal
 				? `Terminal — ${lineRef}`
 				: `${refPath} — ${lineRef}`;
