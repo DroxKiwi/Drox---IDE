@@ -131,7 +131,7 @@ Suppression des boutons dans `#actions` de `droxChatWebview.ts`. Accès conserv�
 - [x] Smoke P1–P3 validé
 - [x] `droxVersion` **1.5.9** · ship win
 - [x] Notes release OR + merge `1.5.9` → `main`
-- [ ] Linux `.deb` 1.5.9 (reporté)
+- [x] Linux `.deb` 1.5.9
 
 ---
 
