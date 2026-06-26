@@ -1,6 +1,6 @@
 # Drox 1.5.7 — Correctifs post-release 1.5.6
 
-**Statut** : **en cours**  
+**Statut** : **livré** · `v1.5.7`  
 **Prérequis** : [1.5.6](../1.5.6/README.md) livrée (win + linux · `v1.5.6`)
 
 ---

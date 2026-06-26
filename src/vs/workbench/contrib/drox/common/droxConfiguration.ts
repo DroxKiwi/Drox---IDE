@@ -43,7 +43,7 @@ export const enum DroxSetting {
 	/** @deprecated Utiliser {@link DroxSetting.ArchitectModel}. */
 	Model = 'drox.model',
 
-	/** Mode de permission du chat (Analyze / Trust edit / I'm not crazy). */
+	/** Mode de permission du chat (Planifier / Trust edit / I'm not crazy). */
 	PermissionMode = 'drox.permissionMode',
 
 	ApiKey = 'drox.apiKey',
@@ -352,7 +352,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 				'drox.permissionMode',
 
-				'Default Drox chat request mode: **Analyze** (read-only), **Trust edit** (auto-allow edits), or **I\'m not crazy** (confirm each tool). Synced with the vignettes above the composer.',
+				'Default Drox chat request mode: **Planifier** (plan mode, no writes until approved), **Trust edit** (auto-allow edits), or **I\'m not crazy** (confirm each mutating tool). Synced with the vignettes above the composer.',
 
 			),
 

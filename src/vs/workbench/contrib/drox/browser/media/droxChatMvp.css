@@ -3969,6 +3969,24 @@ button:disabled {
 	overflow-y: auto;
 }
 
+.user-ask-prompt.markdown > * {
+	margin: 0;
+}
+
+.user-ask-prompt.markdown > * + * {
+	margin-top: 6px;
+}
+
+.user-ask-prompt.markdown ol,
+.user-ask-prompt.markdown ul {
+	margin: 0;
+	padding-left: 1.35em;
+}
+
+.user-ask-prompt.markdown li {
+	line-height: 1.45;
+}
+
 .user-ask-options {
 	display: flex;
 	flex-direction: column;
