@@ -1,25 +1,23 @@
-# Drox 1.5.6 — Connexions MCP
+# Drox 1.5.6 — Correctifs post-release 1.5.5
 
-**Statut** : planifié  
-**Prérequis** : [1.5.5](../1.5.5/README.md) livrée (correctif fil chat)
+**Statut** : en cours  
+**Prérequis** : [1.5.5](../1.5.5/README.md) livrée (win + linux · `v1.5.5`)
 
 ---
 
 ## En une phrase
 
-Exposer une **section Connexions MCP** claire dans Drox : réutiliser le chassis VS Code (`contrib/mcp`), le rebrandre, et le **relier au moteur** `drox-mcp` (outils `mcp__*`).
+Corriger les **régressions ou défauts** observés sur la **1.5.5** en usage réel, avant les chantiers MCP et Agents Window.
 
 ---
 
 ## Docs
 
-- [PLAN-1.5.6.md](PLAN-1.5.6.md) — chantier technique
-- [GUIDE-MCP-CONNEXIONS.md](GUIDE-MCP-CONNEXIONS.md) — spec UX + utilisateur (brouillon → `operations/07` à la livraison)
+- [PLAN-1.5.6.md](PLAN-1.5.6.md) — périmètre, diagnostic, critères de clôture
 
 ---
 
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [GUIDE moteur § MCP](../../0.0/guides/GUIDE-MOTEUR-DROX.md#613-mcp-228)
-- [Brainstorm Agents + MCP](../../feature-brainstorm/13-agents-window-kdds-drox.md)
+- [Release 1.5.5](../../../operations/README.md) — win + linux publiés
