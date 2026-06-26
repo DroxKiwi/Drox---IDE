@@ -1,8 +1,8 @@
 <a id="statut-produit"></a>
 
-> **Produit IDE** : release [**1.5.6**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.6) (juin 2026) — binaires & MAJ sur [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Moteur courant : pipeline **`tui_mono`** (depuis 1.5.0). Ce README documente l’**historique moteur** ; le rail **1.4.2** ci-dessous est **archivé**.
+> **Produit IDE** : release [**1.5.6**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.6) (juin 2026) — branche dev **1.5.7**. Binaires & MAJ sur [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Moteur courant : pipeline **`tui_mono`** (depuis 1.5.0). Ce README documente l’**historique moteur** ; le rail **1.4.2** ci-dessous est **archivé**.
 >
-> **IDE product** : [**1.5.6**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.6) release (June 2026) — binaries & updates on [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Current engine: **`tui_mono`** pipeline (since 1.5.0). This README is **engine history**; **1.4.2** rail below is **archived**.
+> **IDE product** : [**1.5.6**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.6) release (June 2026) — dev branch **1.5.7**. Binaries & updates on [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Current engine: **`tui_mono`** pipeline (since 1.5.0). This README is **engine history**; **1.4.2** rail below is **archived**.
 
 # ⚠️ STATUT PRODUIT — LIRE EN PREMIER (archive 1.4.2)
 
@@ -11,7 +11,7 @@
 
 | | |
 |---|---|
-| **Code produit courant** | **1.5.6** — moteur **`tui_mono`** + shim IDE ; rail 1.4 **retiré** |
+| **Code produit courant** | **1.5.7** (dev) · release **1.5.6** — moteur **`tui_mono`** + shim IDE |
 | **Code sur `main` (archive)** | **1.4.2** — rail **observateur** (section historique ci-dessous) |
 | **Utilisable en prod ?** | **Non.** Phase **expérimentale agressive** — dogfood uniquement. |
 | **Tester quand même ?** | **Option pour les curieux** : compiler `drox.exe`, brancher Ollama, accepter bugs / régressions / changements cassants sans préavis. |
@@ -445,7 +445,8 @@ ___
 `v1_5_3` — diffs fil, cartes shell, style VT323, rejeu session (webview).
 `v1_5_4` — release Linux `.deb` + Open VSX ; pipeline build isolé WSL.
 `v1_5_5` — fil linéaire multi-tours ; layout superposition corrigé (webview).
-`v1_5_6` — correctifs post-1.5.5 : bulle user optimiste, scroll diffs, warmup run, bouton envoyer TUI — **release courante** win + linux.
+`v1_5_6` — correctifs post-1.5.5 : bulle user optimiste, scroll diffs, warmup run, bouton envoyer TUI — **livré** win + linux.
+`v1_5_7` — correctifs post-1.5.6 — **branche dev courante**.
 
 ___
 
@@ -458,7 +459,7 @@ ___
 
 | | |
 |---|---|
-| **Current product code** | **1.5.6** — **`tui_mono`** engine + IDE shim; 1.4 rail **removed** |
+| **Current product code** | **1.5.7** (dev) · release **1.5.6** — **`tui_mono`** engine + IDE shim |
 | **Code on `main` (archive)** | **1.4.2** — **observer** rail (historical section below) |
 | **Production-ready?** | **No.** **Aggressive experimental** phase — dogfood only. |
 | **Still want to try?** | **Optional for the curious**: build `drox.exe`, hook up Ollama, expect bugs / regressions / breaking changes without notice. |
@@ -657,4 +658,5 @@ ___
 `v1_5_3` — thread diffs, shell cards, VT323 styling, session replay (webview).
 `v1_5_4` — Linux `.deb` release + Open VSX; isolated WSL build pipeline.
 `v1_5_5` — linear multi-turn thread; layout overlap fix (webview).
-`v1_5_6` — post-1.5.5 fixes: optimistic user bubble, diff scroll, run warmup, TUI send button — **current** win + linux release.
+`v1_5_6` — post-1.5.5 fixes: optimistic user bubble, diff scroll, run warmup, TUI send button — **released** win + linux.
+`v1_5_7` — post-1.5.6 small fixes — **current dev branch**.
