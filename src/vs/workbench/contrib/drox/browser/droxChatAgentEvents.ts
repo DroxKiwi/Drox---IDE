@@ -18,6 +18,10 @@ import { buildShellToolFinishWire, buildShellToolStartWire } from '../common/cha
 import { extractTodoErrorMessage, extractTodosFromToolOutput, isTodoWriteOutput } from '../common/droxTodoExtract.js';
 import { formatVisionChatError, isVisionRelatedLlmError } from '../common/droxVision.js';
 import { DroxHostToWebviewMessage } from './droxChatBridge.js';
+import {
+	clearPendingRunRecovery,
+	offerRunRecoveryAfterError,
+} from './chat/droxChatRunRecovery.js';
 
 const SKIP_TOOL_UI = new Set(['course_plan_write', 'scope_defer']);
 
@@ -473,6 +477,11 @@ export function dispatchAgentDone(host: IDroxChatAgentDoneHost, params: unknown)
 				? formatVisionChatError(host.getLlmModel(), raw)
 				: raw;
 		host.post({ kind: 'append', role: 'error', text: errText });
+		offerRunRecoveryAfterError(host.post.bind(host), host.getCurrentSessionId());
+	}
+
+	if (doneRunId && p?.status !== 'error') {
+		clearPendingRunRecovery(host.getCurrentSessionId());
 	}
 
 	if (doneRunId) {

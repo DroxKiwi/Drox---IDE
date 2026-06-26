@@ -69,6 +69,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/stream/messages/viewer.js',
 	'droxChat/stream/messages/scroll.js',
 	'droxChat/stream/messages/user.js',
+	'droxChat/stream/messages/run-recovery.js',
 	'droxChat/stream/messages/orchestration.js',
 	'droxChat/stream/answer/stream.js',
 	'droxChat/stream/tools/logTools.js',

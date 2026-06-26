@@ -36,6 +36,7 @@ pub use paths::{default_sessions_dir, session_meta_path, session_ui_stats_path, 
 pub use record::{ChatMessageRecord, TRANSCRIPT_SCHEMA_VERSION};
 pub use transcript::{
     JsonlTranscriptSink, TranscriptSessionConfig, TranscriptSink, read_transcript,
+    truncate_after_last_user, write_transcript,
 };
 pub use ui_stats::{SessionUiStats, read_session_ui_stats, write_session_ui_stats};
 pub use session_meta::{

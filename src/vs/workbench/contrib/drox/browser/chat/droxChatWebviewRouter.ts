@@ -51,6 +51,7 @@ import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import { handleDroxRevertLastRun, handleDroxRevertToMessage } from './droxChatRunRevert.js';
+import { handleDroxResumeRunAfterError, handleDroxRestartRunAfterError } from './droxChatRunRecovery.js';
 import { handleDroxExportTranscript } from './droxChatTranscriptExport.js';
 import { cancelDroxChatRun, executeDroxChatSend, IDroxChatSendRunHost } from './droxChatSendRun.js';
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
@@ -195,6 +196,28 @@ export async function routeDroxChatWebviewMessage(
 				break;
 			}
 			await handleDroxRevertToMessage(host, deps, raw.messageId);
+			break;
+		case 'resumeRunAfterError':
+			await handleDroxResumeRunAfterError(host, tabs, {
+				userAskService: deps.userAskService,
+				notificationService: deps.notificationService,
+				clientToolsService: deps.clientToolsService,
+				runSettingsService: deps.runSettingsService,
+				droxEngineService: deps.droxEngineService,
+				logService: deps.logService,
+				runRevertService: deps.runRevertService,
+			}, raw.messageId);
+			break;
+		case 'restartRunAfterError':
+			await handleDroxRestartRunAfterError(host, tabs, {
+				userAskService: deps.userAskService,
+				notificationService: deps.notificationService,
+				clientToolsService: deps.clientToolsService,
+				runSettingsService: deps.runSettingsService,
+				droxEngineService: deps.droxEngineService,
+				logService: deps.logService,
+				runRevertService: deps.runRevertService,
+			}, raw.messageId);
 			break;
 		case 'undoFileChange':
 			await handleDroxUndoFileChange(host, {

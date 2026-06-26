@@ -1521,9 +1521,38 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .msg-row-user.msg-user-bubble:hover .msg-user-toolbar,
-.msg-row-user.msg-user-bubble:focus-within .msg-user-toolbar {
+.msg-row-user.msg-user-bubble:focus-within .msg-user-toolbar,
+.msg-row-user.msg-user-bubble[data-run-recovery-active="1"] .msg-user-toolbar {
 	opacity: 1;
 	pointer-events: auto;
+}
+
+.msg-user-recovery {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 26px;
+	padding: 0 8px;
+	border: 1px solid color-mix(in srgb, var(--vscode-panel-border, #444) 70%, transparent);
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
+	color: var(--vscode-foreground);
+	cursor: pointer;
+	flex-shrink: 0;
+	font: inherit;
+	font-size: 11px;
+	line-height: 1;
+	letter-spacing: 0.02em;
+}
+
+.msg-user-recovery:hover {
+	border-color: var(--drox-ui-green, #3d7a3d);
+	color: var(--drox-ui-green, #3d7a3d);
+}
+
+.msg-user-recovery:focus-visible {
+	outline: 1px solid var(--drox-ui-green, #3d7a3d);
+	outline-offset: 1px;
 }
 
 .msg-user-copy {

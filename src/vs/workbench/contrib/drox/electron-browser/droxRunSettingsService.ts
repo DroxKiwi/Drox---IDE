@@ -89,11 +89,9 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 		mode: string;
 
 		sessionId: string;
-
 		images?: readonly IDroxAgentRunImage[];
-
 		runObjective?: string;
-
+		skipUserTurn?: boolean;
 	}): Record<string, unknown> {
 
 		const resource = this.getWorkspaceResource();

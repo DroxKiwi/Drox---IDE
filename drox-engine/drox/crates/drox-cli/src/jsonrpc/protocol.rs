@@ -204,6 +204,9 @@ pub struct AgentRunParams {
     pub orchestration_max_parallel_executors: Option<usize>,
     #[serde(default)]
     pub architect_interaction_mode: Option<String>,
+    /// Si `true`, reprend depuis le transcript sans nouveau tour user.
+    #[serde(default)]
+    pub skip_user_turn: Option<bool>,
 }
 
 /// Image attachée à un `agent.run`. `data` est la base64 brute (sans préfixe
@@ -266,6 +269,21 @@ pub struct SessionReadResult {
     /// Derniers compteurs barre de statut (persistés à côté du `.jsonl`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ui_stats: Option<SessionUiStats>,
+}
+
+/// `session.truncateAfterLastUser` — garde le transcript jusqu'au dernier `user` inclus.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionTruncateAfterLastUserParams {
+    pub id: String,
+    #[serde(default)]
+    pub dir: Option<Utf8PathBuf>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionTruncateAfterLastUserResult {
+    pub message_count: usize,
 }
 
 /// `session.compact` — tour LLM de compaction sur le transcript d'une session
