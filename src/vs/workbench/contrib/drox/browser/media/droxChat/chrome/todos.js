@@ -52,7 +52,7 @@
 			headLeft.appendChild(listIcon);
 			headLeft.appendChild(title);
 			if (D.state.busy) {
-				fn.ensurePersistentActivityGrid(headLeft);
+				fn.ensureTailWarmupActivity?.();
 			}
 			head.appendChild(headLeft);
 			const counter = document.createElement('span');
@@ -81,7 +81,7 @@
 		const headLeft = block.querySelector('.todos-head-left');
 		if (headLeft) {
 			if (D.state.busy) {
-				fn.ensurePersistentActivityGrid(headLeft);
+				fn.ensureTailWarmupActivity?.();
 			} else {
 				fn.stripActivityGridsFromElement?.(headLeft);
 			}

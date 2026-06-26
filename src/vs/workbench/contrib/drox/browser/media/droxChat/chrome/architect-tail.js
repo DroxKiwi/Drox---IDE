@@ -31,23 +31,15 @@
 		fn.ensurePlanActivitySticky?.(opts);
 	};
 
-	/** Réaffiche la grille 3×3 au bon endroit pendant un run actif. */
+	/** Réaffiche la ligne warmup (grille + phrase) pendant un run actif. */
 	fn.refreshActivityIndicator = function () {
-		if (!D.state.busy && !D.state.pendingRunWarmup) {
+		if (!fn.isRunCycleActive()) {
 			return;
 		}
 		if (fn.shouldUsePlanActivitySticky?.()) {
 			fn.ensurePlanActivitySticky();
 			return;
 		}
-		if (D.state.currentPhaseEl) {
-			fn.showActivityOnCurrentPhaseSummary();
-			return;
-		}
-		if (D.state.assistantEl?.classList.contains('streaming') && D.state.assistantEl.isConnected) {
-			fn.showActivityBeforeNode(D.state.assistantEl);
-			return;
-		}
-		fn.showWarmupActivity();
+		fn.ensureTailWarmupActivity?.();
 	};
 })(globalThis.DroxChat);

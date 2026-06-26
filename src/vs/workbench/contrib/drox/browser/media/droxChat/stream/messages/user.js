@@ -227,4 +227,66 @@
 		return block;
 	};
 
+	fn.optimisticUserImagesFromPayload = function (attachments) {
+		const out = [];
+		for (const a of attachments || []) {
+			const dataUrl = String(a?.dataUrl || '').trim();
+			if (!dataUrl) {
+				continue;
+			}
+			out.push({
+				relPath: String(a.name || 'image'),
+				dataUrl,
+			});
+		}
+		return out;
+	};
+
+	/** Bulle utilisateur immédiate à l'envoi — séparateur de tour, avant warmup / host. */
+	fn.showOptimisticUserMessage = function (payload) {
+		if (D.state.uiReplayActive || !D.dom.logEl) {
+			return null;
+		}
+		fn.resetLinearTurnAnchors?.();
+		fn.resetChatStreamForTurn?.();
+		fn.clearOptimisticUserMessages?.();
+		const prompt = String(payload?.prompt || '').trim();
+		const refs = Array.isArray(payload?.references) ? payload.references : [];
+		const pastes = Array.isArray(payload?.pastes) ? payload.pastes : [];
+		const images = fn.optimisticUserImagesFromPayload(payload?.attachments);
+		if (!prompt && refs.length === 0 && pastes.length === 0 && images.length === 0) {
+			return null;
+		}
+		const sendId = String(payload?.clientSendId || fn.randomId());
+		const userBlock = fn.renderUserMessage(prompt, refs, pastes, images);
+		const userRow = fn.resolveUserMessageRow(userBlock);
+		if (userRow) {
+			userRow.dataset.msgId = `optimistic_${sendId}`;
+			userRow.dataset.optimisticUser = '1';
+			userRow.dataset.clientSendId = sendId;
+		}
+		D.state.pendingOptimisticUserSendId = sendId;
+		fn.appendToLog?.(userBlock);
+		fn.refreshLastUserStickyRow?.();
+		fn.scrollLogToEnd?.() || fn.scrollLog?.();
+		return userBlock;
+	};
+
+	fn.clearOptimisticUserMessages = function () {
+		const log = D.dom.logEl;
+		if (!log) {
+			return;
+		}
+		for (const row of [...log.querySelectorAll('.msg-row-user[data-optimistic-user="1"]')]) {
+			row.closest('.msg-user-block')?.remove();
+		}
+		D.state.pendingOptimisticUserSendId = null;
+	};
+
+	/** Retire la bulle optimiste ; le message host est toujours ajouté ensuite. */
+	fn.reconcileOptimisticUserMessage = function () {
+		fn.clearOptimisticUserMessages?.();
+		return false;
+	};
+
 })(globalThis.DroxChat);

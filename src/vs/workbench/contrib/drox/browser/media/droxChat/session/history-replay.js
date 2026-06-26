@@ -27,7 +27,7 @@
 		return node;
 	};
 
-	/** Outils / diffs : avant le stream ou la réponse finale si déjà montés trop tôt. */
+	/** Outils / diffs : avant le stream du tour en cours uniquement (pas une réponse passée). */
 	fn.getLinearInsertBefore = function () {
 		const log = D.dom.logEl;
 		if (!log) {
@@ -40,14 +40,6 @@
 		const chatStream = D.state.chatStreamEl;
 		if (chatStream?.isConnected && chatStream.parentElement === log) {
 			return chatStream;
-		}
-		const fin = D.state._turnFinalAssistantEl;
-		if (fin?.isConnected && fin.parentElement === log) {
-			return fin;
-		}
-		const assistant = D.state.assistantEl;
-		if (assistant?.isConnected && assistant.parentElement === log) {
-			return assistant;
 		}
 		return null;
 	};

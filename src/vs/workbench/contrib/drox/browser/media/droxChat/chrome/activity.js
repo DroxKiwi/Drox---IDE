@@ -8,6 +8,8 @@
 (function (D) {
 	const fn = D.fn;
 
+	const RUN_ACTIVITY_WATCHDOG_MS = 3500;
+
 	fn.getModeBadgeLabel = function() {
 		const nameEl = D.dom.agentVignettesEl?.querySelector('.agent-vignette.selected .vignette-name');
 		const label = nameEl?.textContent?.trim();
@@ -23,18 +25,74 @@
 		return pending ? pending.content : '';
 	}
 
-	fn.hideInlineActivityOnly = function () {
-		if (D.state.currentWarmupRowEl) {
-			D.state.currentWarmupRowEl.remove();
-			D.state.currentWarmupRowEl = null;
+	fn.isRunCycleActive = function () {
+		return Boolean(D.state.busy || D.state.pendingRunWarmup);
+	};
+
+	fn.stopRunActivityWatchdog = function () {
+		if (D.state.runActivityWatchdogTimer) {
+			window.clearInterval(D.state.runActivityWatchdogTimer);
+			D.state.runActivityWatchdogTimer = null;
 		}
-		if (
-			D.state.currentActivityGridEl?.isConnected &&
-			D.state.currentActivityGridEl.classList.contains('activity-grid-inline')
-		) {
-			D.state.currentActivityGridEl.remove();
+	};
+
+	fn.startRunActivityWatchdog = function () {
+		fn.stopRunActivityWatchdog();
+		if (!fn.isRunCycleActive() || D.state.uiReplayActive) {
+			return;
+		}
+		D.state.runActivityWatchdogTimer = window.setInterval(() => {
+			if (!fn.isRunCycleActive()) {
+				fn.stopRunActivityWatchdog();
+				return;
+			}
+			fn.ensureTailWarmupActivity?.();
+		}, RUN_ACTIVITY_WATCHDOG_MS);
+	};
+
+	fn.removeOrphanRootActivityGrids = function () {
+		const log = D.dom.logEl;
+		if (!log) {
+			return;
+		}
+		for (const grid of [...log.querySelectorAll(':scope > .activity-grid-inline')]) {
+			grid.remove();
+		}
+	};
+
+	/** Grille 3×3 uniquement dans `.activity-warmup` (phrase de statut). */
+	fn.clearStrayActivityGrids = function (rootEl) {
+		const root = rootEl || D.dom.logEl || document;
+		for (const grid of [...root.querySelectorAll('.activity-grid')]) {
+			if (!grid.closest('.activity-warmup')) {
+				grid.remove();
+			}
+		}
+		for (const summary of root.querySelectorAll(
+			'.phase-summary.has-activity-grid, .msg-tool summary.has-activity-grid',
+		)) {
+			summary.classList.remove('has-activity-grid');
+		}
+		fn.removeOrphanRootActivityGrids();
+	};
+
+	/** Retire grilles flottantes ; conserve la ligne warmup pendant un cycle actif. */
+	fn.hideInlineActivityOnly = function () {
+		const cycleActive = fn.isRunCycleActive();
+		if (!cycleActive) {
+			if (D.state.currentWarmupRowEl) {
+				D.state.currentWarmupRowEl.remove();
+				D.state.currentWarmupRowEl = null;
+			}
+		}
+		if (D.state.currentActivityGridEl?.isConnected) {
+			const inWarmup = D.state.currentWarmupRowEl?.contains(D.state.currentActivityGridEl);
+			if (!inWarmup) {
+				D.state.currentActivityGridEl.remove();
+			}
 			D.state.currentActivityGridEl = null;
 		}
+		fn.clearStrayActivityGrids();
 	};
 
 	fn.stripActivityGridsFromElement = function (el) {
@@ -61,10 +119,16 @@
 	};
 
 	fn.hideActivity = function() {
+		fn.stopRunActivityWatchdog();
 		D.state.pendingRunWarmup = false;
+		if (D.state.currentWarmupRowEl) {
+			D.state.currentWarmupRowEl.remove();
+			D.state.currentWarmupRowEl = null;
+		}
 		fn.clearAllActivityGrids(D.dom.logEl || document);
 		fn.hidePlanActivitySticky?.();
 		fn.hideArchitectRunTailActivity();
+		fn.updateComposerChrome?.();
 	}
 
 	fn.pickWarmupPhrase = function() {
@@ -104,35 +168,82 @@
 		}
 	};
 
+	fn.ensureWarmupRowGrid = function (row) {
+		if (!row) {
+			return null;
+		}
+		let grid = row.querySelector(':scope > .activity-grid');
+		if (!grid) {
+			grid = fn.buildActivityGrid();
+			row.insertBefore(grid, row.firstChild);
+		}
+		D.state.currentActivityGridEl = grid;
+		return grid;
+	};
+
+	/** Ligne warmup + phrase — toujours visible en bas du tour pendant un cycle. */
+	fn.ensureTailWarmupActivity = function (opts) {
+		if (!fn.isRunCycleActive() || !D.dom.logEl || D.state.uiReplayActive) {
+			return;
+		}
+		if (fn.shouldUsePlanActivitySticky?.()) {
+			fn.ensurePlanActivitySticky(opts);
+			return;
+		}
+		const log = D.dom.logEl;
+		let row = D.state.currentWarmupRowEl;
+		if (!row?.isConnected) {
+			fn.showWarmupActivity();
+			row = D.state.currentWarmupRowEl;
+		}
+		if (!row?.isConnected) {
+			return;
+		}
+		fn.clearStrayActivityGrids();
+		fn.ensureWarmupRowGrid(row);
+		const rotatePhrase = opts?.rotatePhrase === true;
+		const label = row.querySelector('.activity-warmup-label');
+		if (label && (rotatePhrase || !String(label.textContent || '').trim())) {
+			label.textContent = fn.pickWarmupPhrase();
+		}
+		fn.repositionWarmupAfterUser();
+		if (row.parentElement === log && row !== log.lastElementChild) {
+			log.appendChild(row);
+			fn.scrollLogToEnd?.() || fn.scrollLog?.();
+		}
+		fn.updateComposerChrome?.();
+	};
+
 	fn.showWarmupActivityOptimistic = function () {
 		if (!D.dom.logEl || D.state.uiReplayActive) {
 			return;
 		}
 		if (D.state.currentWarmupRowEl?.isConnected) {
-			fn.repositionWarmupAfterUser();
+			fn.ensureTailWarmupActivity();
 			return;
 		}
-		fn.hideInlineActivityOnly();
+		fn.removeOrphanRootActivityGrids();
 		const row = document.createElement('div');
-		row.className = 'activity-warmup activity-warmup-optimistic';
+		row.className = 'activity-warmup activity-warmup-optimistic activity-warmup-tail';
 		row.setAttribute('role', 'status');
 		row.setAttribute('aria-live', 'polite');
 
-		D.state.currentActivityGridEl = fn.buildActivityGrid();
 		const label = document.createElement('span');
 		label.className = 'activity-warmup-label';
 		label.textContent = fn.pickWarmupPhrase();
 
-		row.appendChild(D.state.currentActivityGridEl);
 		row.appendChild(label);
 		D.state.currentWarmupRowEl = row;
 		D.state.pendingRunWarmup = true;
+		fn.ensureWarmupRowGrid(row);
 
 		if (typeof fn.appendToLog === 'function') {
 			fn.appendToLog(row);
 		} else {
 			D.dom.logEl.appendChild(row);
 		}
+		fn.startRunActivityWatchdog();
+		fn.updateComposerChrome?.();
 		fn.scrollLogToEnd?.() || fn.scrollLog?.();
 	};
 
@@ -140,7 +251,7 @@
 		if (!D.dom.logEl) {
 			return;
 		}
-		if (!D.state.busy && !D.state.pendingRunWarmup) {
+		if (!fn.isRunCycleActive()) {
 			return;
 		}
 		if (fn.shouldUsePlanActivitySticky?.()) {
@@ -149,32 +260,30 @@
 		}
 		const anchor = fn.getLastUserMessageEl();
 		if (D.state.currentWarmupRowEl?.isConnected) {
-			if (anchor) {
-				fn.repositionWarmupAfterUser();
-			}
+			fn.ensureTailWarmupActivity();
 			return;
 		}
 		if (!anchor) {
 			fn.showWarmupActivityOptimistic();
 			return;
 		}
-		fn.hideInlineActivityOnly();
+		fn.removeOrphanRootActivityGrids();
 		const row = document.createElement('div');
-		row.className = 'activity-warmup';
+		row.className = 'activity-warmup activity-warmup-tail';
 		row.setAttribute('role', 'status');
 		row.setAttribute('aria-live', 'polite');
 
-		D.state.currentActivityGridEl = fn.buildActivityGrid();
 		const label = document.createElement('span');
 		label.className = 'activity-warmup-label';
 		label.textContent = fn.pickWarmupPhrase();
 
-		row.appendChild(D.state.currentActivityGridEl);
 		row.appendChild(label);
 		D.state.currentWarmupRowEl = row;
+		fn.ensureWarmupRowGrid(row);
 		anchor.insertAdjacentElement('afterend', row);
+		fn.startRunActivityWatchdog();
 		fn.scrollLog();
-	}
+	};
 
 	fn.buildActivityGrid = function() {
 		const grid = document.createElement('div');
@@ -186,67 +295,43 @@
 		return grid;
 	}
 
-	/** Grille persistante : ne remplace pas les autres indicateurs en cours. */
-	fn.ensurePersistentActivityGrid = function(hostEl) {
-		if (fn.shouldUsePlanActivitySticky?.()) {
-			fn.ensurePlanActivitySticky();
-			return null;
+	/** Grille réservée à la ligne warmup — pas sur outils / phases / todos. */
+	fn.ensurePersistentActivityGrid = function (_hostEl) {
+		if (fn.isRunCycleActive()) {
+			fn.ensureTailWarmupActivity();
 		}
-		if (!hostEl?.isConnected) {
-			return null;
-		}
-		let grid = hostEl.querySelector(':scope > .activity-grid.activity-grid-persistent');
-		if (grid) {
-			return grid;
-		}
-		grid = fn.buildActivityGrid();
-		grid.classList.add('activity-grid-persistent');
-		hostEl.prepend(grid);
-		return grid;
+		return null;
 	}
 
 	fn.clearPersistentActivityGrids = function (rootEl) {
 		fn.clearAllActivityGrids(rootEl);
 	};
 
-	fn.showActivityOnSummary = function(summaryEl) {
-		if ((!D.state.busy && !D.state.pendingRunWarmup) || !summaryEl) {
+	fn.showActivityOnSummary = function (_summaryEl) {
+		if (!fn.isRunCycleActive()) {
 			return;
 		}
 		if (fn.shouldUsePlanActivitySticky?.()) {
 			fn.ensurePlanActivitySticky({ rotatePhrase: true });
 			return;
 		}
-		fn.hideInlineActivityOnly();
-		if (summaryEl.classList.contains('phase-summary')) {
-			fn.ensurePhaseSummaryLabel(summaryEl);
-		}
-		D.state.currentActivityGridEl = fn.buildActivityGrid();
-		summaryEl.prepend(D.state.currentActivityGridEl);
-		summaryEl.classList.add('has-activity-grid');
-	}
+		fn.ensureTailWarmupActivity();
+	};
 
-	fn.showActivityOnCurrentPhaseSummary = function() {
-		const summary = D.state.currentPhaseEl?.querySelector('.phase-summary');
-		if (summary) {
-			fn.showActivityOnSummary(summary);
-		} else if (D.state.busy || D.state.pendingRunWarmup) {
-			fn.showWarmupActivity();
-		}
-	}
+	fn.showActivityOnCurrentPhaseSummary = function () {
+		fn.ensureTailWarmupActivity();
+	};
 
-	fn.showActivityBeforeNode = function(node) {
-		if ((!D.state.busy && !D.state.pendingRunWarmup) || !node?.parentElement) {
+	fn.showActivityBeforeNode = function (_node) {
+		if (!fn.isRunCycleActive()) {
 			return;
 		}
 		if (fn.shouldUsePlanActivitySticky?.()) {
 			fn.ensurePlanActivitySticky({ rotatePhrase: true });
 			return;
 		}
-		fn.hideInlineActivityOnly();
-		D.state.currentActivityGridEl = fn.buildActivityGrid();
-		node.parentElement.insertBefore(D.state.currentActivityGridEl, node);
-	}
+		fn.ensureTailWarmupActivity();
+	};
 
 	fn.shouldUsePlanActivitySticky = function () {
 		return Boolean(
@@ -275,7 +360,10 @@
 		if (!footer || !row) {
 			return;
 		}
-		fn.hideInlineActivityOnly();
+		if (D.state.currentWarmupRowEl) {
+			D.state.currentWarmupRowEl.remove();
+			D.state.currentWarmupRowEl = null;
+		}
 		if (D.state.architectTailActivityEl) {
 			D.state.architectTailActivityEl.remove();
 			D.state.architectTailActivityEl = null;
@@ -304,5 +392,6 @@
 		}
 		footer.hidden = false;
 		fn.syncPlanStickyFooter?.();
+		fn.startRunActivityWatchdog();
 	};
 })(globalThis.DroxChat);

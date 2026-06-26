@@ -182,7 +182,9 @@
 					if (D.state.userPromptStickyPendingLink) {
 						fn.linkUserPromptStickyToMessage(messageId);
 					}
+					fn.reconcileOptimisticUserMessage?.();
 					fn.appendToLog?.(userBlock);
+					const liveUserRow = fn.resolveUserMessageRow(userBlock);
 					fn.resetLinearTurnAnchors?.();
 					fn.resetHistoryReplayStream?.();
 					fn.refreshLastUserStickyRow?.();
@@ -190,8 +192,9 @@
 					if ((D.state.busy || D.state.pendingRunWarmup) && !D.state.currentPhaseEl) {
 						fn.showWarmupActivity();
 					}
-					if (D.state.linearRunUi && typeof fn.anchorRunStripAfterUser === 'function' && userRow) {
-						fn.anchorRunStripAfterUser(userRow);
+					fn.ensureTailWarmupActivity?.();
+					if (D.state.linearRunUi && typeof fn.anchorRunStripAfterUser === 'function' && liveUserRow) {
+						fn.anchorRunStripAfterUser(liveUserRow);
 					}
 					if (!D.state.uiReplayActive) {
 						fn.scrollLogToEnd?.();

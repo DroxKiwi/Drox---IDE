@@ -52,17 +52,22 @@
 			fn.resetCycleTimer();
 		}
 		fn.ensureLogScrollReady?.();
+		const outbound = {
+			...payload,
+			clientSendId: fn.randomId(),
+		};
+		fn.showOptimisticUserMessage?.(outbound);
 		D.vscode.postMessage({
 			type: 'send',
-			prompt: payload.prompt || '',
-			mode: payload.mode || fn.getPermissionMode(),
-			attachments: (payload.attachments || []).map((a) => ({
+			prompt: outbound.prompt || '',
+			mode: outbound.mode || fn.getPermissionMode(),
+			attachments: (outbound.attachments || []).map((a) => ({
 				name: a.name,
 				mime: a.mime,
 				dataUrl: a.dataUrl,
 			})),
-			references: (payload.references || []).map((r) => ({ uri: r.uri })),
-			pastes: (payload.pastes || []).map((p) => ({
+			references: (outbound.references || []).map((r) => ({ uri: r.uri })),
+			pastes: (outbound.pastes || []).map((p) => ({
 				kind: p.kind,
 				absPath: p.absPath,
 				relPath: p.relPath,
