@@ -1,6 +1,6 @@
 # Drox 1.5.8 — Connexions MCP
 
-**Statut** : planifié  
+**Statut** : **en cours**  
 **Prérequis** : [1.5.7](../1.5.7/README.md) livrée (correctifs post-1.5.6)
 
 ---
