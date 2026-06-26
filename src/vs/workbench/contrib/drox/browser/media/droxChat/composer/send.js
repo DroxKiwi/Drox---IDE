@@ -56,7 +56,11 @@
 			...payload,
 			clientSendId: fn.randomId(),
 		};
-		fn.showOptimisticUserMessage?.(outbound);
+		try {
+			fn.showOptimisticUserMessage?.(outbound);
+		} catch (err) {
+			console.error('[DroxChat] optimistic user message failed', err);
+		}
 		D.vscode.postMessage({
 			type: 'send',
 			prompt: outbound.prompt || '',
@@ -93,6 +97,9 @@
 	}
 
 	fn.doSend = function() {
+		if (D.state.uiReplayActive && typeof fn.endHistoryReplay === 'function') {
+			fn.endHistoryReplay({ scrollToEnd: false });
+		}
 		if (D.state.userAskPending && !D.state.busy) {
 			return;
 		}
