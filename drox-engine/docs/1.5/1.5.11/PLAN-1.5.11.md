@@ -1,8 +1,8 @@
 # Plan 1.5.11 — Connexions MCP (UI + moteur)
 
 **Version** : juin 2026  
-**Base** : [1.5.9](../1.5.9/PLAN-1.5.9.md) livrée  
-**Branche** : `1.5.11` · tag **`v1.5.11`** sur `Drox---IDE---OR` *(reporté)*
+**Base** : [1.5.10](../1.5.10/PLAN-1.5.10.md) livrée  
+**Branche** : `1.5.11` · tag cible **`v1.5.11`** sur `Drox---IDE---OR`
 
 ### État d'avancement
 
