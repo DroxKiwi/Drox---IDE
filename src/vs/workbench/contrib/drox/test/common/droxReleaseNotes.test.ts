@@ -84,6 +84,15 @@ suite('Drox release notes', () => {
 		assert.ok(joined.includes('truncateAfterLastUser'));
 	});
 
+	test('getDroxReleaseNotesItems includes 1.5.10 highlights', () => {
+		const items = getDroxReleaseNotesItems('1.5.10');
+		const joined = items.join('\n');
+		assert.ok(joined.includes('Run recovery always on'));
+		assert.ok(joined.includes('Recovery after reload'));
+		assert.ok(joined.includes('drox client closed'));
+		assert.ok(joined.includes('Live token metrics'));
+	});
+
 	test('getDroxReleaseNotesItems includes 1.5.9 highlights', () => {
 		const items = getDroxReleaseNotesItems('1.5.9');
 		const joined = items.join('\n');

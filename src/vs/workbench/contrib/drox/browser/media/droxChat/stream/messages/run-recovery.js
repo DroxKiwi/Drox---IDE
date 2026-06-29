@@ -8,6 +8,8 @@
 (function (D) {
 	const fn = D.fn;
 
+	let activeRecoveryMessageId = null;
+
 	fn.findUserRowByMessageId = function (messageId) {
 		const id = String(messageId || '').trim();
 		if (!id || !D.dom.logEl) {
@@ -21,7 +23,28 @@
 		return null;
 	};
 
+	fn.syncRunRecoveryButtonState = function () {
+		const log = D.dom.logEl;
+		if (!log) {
+			return;
+		}
+		const busy = Boolean(D.state.busy);
+		for (const resumeBtn of log.querySelectorAll('.msg-user-recovery-resume')) {
+			resumeBtn.disabled = busy;
+			resumeBtn.title = busy
+				? 'Attendre la fin du run ou utiliser Recommencer'
+				: 'Reprendre depuis la dernière coupure';
+		}
+		for (const restartBtn of log.querySelectorAll('.msg-user-recovery-restart')) {
+			restartBtn.disabled = false;
+			restartBtn.title = busy
+				? 'Arrêter le run en cours et relancer depuis ce message'
+				: 'Effacer la réponse du modèle et relancer';
+		}
+	};
+
 	fn.dismissRunRecoveryActions = function () {
+		activeRecoveryMessageId = null;
 		const log = D.dom.logEl;
 		if (!log) {
 			return;
@@ -38,7 +61,17 @@
 		if (!row) {
 			return;
 		}
+		const id = String(messageId || '').trim();
+		if (
+			activeRecoveryMessageId === id
+			&& row.dataset.runRecoveryActive === '1'
+			&& row.querySelector('.msg-user-recovery')
+		) {
+			fn.syncRunRecoveryButtonState();
+			return;
+		}
 		fn.dismissRunRecoveryActions();
+		activeRecoveryMessageId = id || null;
 		row.dataset.runRecoveryActive = '1';
 
 		let toolbar = row.querySelector('.msg-user-toolbar');
@@ -60,7 +93,9 @@
 		resumeBtn.addEventListener('click', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
-			fn.dismissRunRecoveryActions();
+			if (D.state.busy) {
+				return;
+			}
 			D.vscode.postMessage({ type: 'resumeRunAfterError', messageId });
 		});
 
@@ -72,12 +107,12 @@
 		restartBtn.addEventListener('click', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
-			fn.dismissRunRecoveryActions();
 			D.vscode.postMessage({ type: 'restartRunAfterError', messageId });
 		});
 
 		toolbar.appendChild(resumeBtn);
 		toolbar.appendChild(restartBtn);
+		fn.syncRunRecoveryButtonState();
 	};
 
 	fn.clearLogAfterUserMessage = function (messageId) {
@@ -104,13 +139,47 @@
 		D.state.toolBlocks?.clear?.();
 	};
 
+	fn.findLastUserMessageRow = function () {
+		const rows = fn.queryUserMessageRows(D.dom.logEl);
+		return rows.length > 0 ? rows[rows.length - 1] : null;
+	};
+
 	fn.offerRunRecoveryOnUserMessage = function (messageId) {
 		if (D.state.uiReplayActive) {
 			return;
 		}
-		const row = fn.findUserRowByMessageId(messageId);
+		const id = String(messageId || '').trim();
+		let row = fn.findUserRowByMessageId(id);
+		if (!row) {
+			row = fn.findLastUserMessageRow();
+			if (row && id) {
+				row.dataset.msgId = id;
+			}
+		}
 		if (row) {
-			fn.attachRunRecoveryActions(row, messageId);
+			fn.attachRunRecoveryActions(row, id || row.dataset.msgId);
+			return;
+		}
+		if (id) {
+			activeRecoveryMessageId = id;
+		}
+	};
+
+	fn.reapplyRunRecoveryActionsIfNeeded = function () {
+		if (!activeRecoveryMessageId || D.state.uiReplayActive) {
+			return;
+		}
+		let row = fn.findUserRowByMessageId(activeRecoveryMessageId);
+		if (!row) {
+			row = fn.findLastUserMessageRow();
+			if (row) {
+				row.dataset.msgId = activeRecoveryMessageId;
+			}
+		}
+		if (row && !row.querySelector('.msg-user-recovery')) {
+			fn.attachRunRecoveryActions(row, activeRecoveryMessageId);
+		} else {
+			fn.syncRunRecoveryButtonState();
 		}
 	};
 

@@ -181,7 +181,7 @@ export async function routeDroxChatWebviewMessage(
 				droxEngineService: deps.droxEngineService,
 				logService: deps.logService,
 				runRevertService: deps.runRevertService,
-			});
+			}, tabs.currentSessionId);
 			break;
 		case 'revertLastRun':
 			await handleDroxRevertLastRun(host, deps);

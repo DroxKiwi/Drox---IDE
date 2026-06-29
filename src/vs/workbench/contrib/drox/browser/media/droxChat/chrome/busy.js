@@ -17,6 +17,7 @@
 		D.dom.progressEl.classList.toggle('busy', next);
 		fn.updateComposerChrome();
 		fn.updateRunRevertButton();
+		fn.reapplyRunRecoveryActionsIfNeeded?.();
 		fn.updateAgentActivitySticky();
 		if (D.dom.llmModelPickerEl && !D.state.llmModelsLoading) {
 			fn.renderLlmModelPicker();

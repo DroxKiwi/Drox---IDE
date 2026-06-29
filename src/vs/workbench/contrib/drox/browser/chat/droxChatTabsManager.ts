@@ -69,6 +69,11 @@ export interface IDroxChatTabsDelegate {
 	agentEventHost(): IDroxChatAgentDoneHost;
 	/** Vide l’état revert en mémoire après purge `.drox/`. */
 	resetRunRevertUiState(): void;
+	/** Restaure Reprendre/Recommencer après rejeu d’historique (reload IDE, changement d’onglet). */
+	onSessionReplayDone?(
+		sessionId: string,
+		ctx: { readonly transcriptMessages: readonly IDroxTranscriptMessage[]; readonly uiReplayMessages?: readonly DroxHostToWebviewMessage[] },
+	): Promise<void>;
 }
 
 export class DroxChatTabsManager {
@@ -407,8 +412,10 @@ export class DroxChatTabsManager {
 			try {
 				const replayMode = opts.uiReplayMode ?? 'tail';
 				const maxTurns = opts.maxTurns ?? 1;
+				let uiReplayMessages: DroxHostToWebviewMessage[] | undefined;
 				if (replayMode === 'full') {
 					const uiReplay = await this.sessionService.readUiReplay(sessionId, ws);
+					uiReplayMessages = uiReplay;
 					if (uiReplay.length > 0) {
 						await replayUiJournalMessages(this.delegate, uiReplay);
 					} else if (read.messages.length > 0) {
@@ -416,6 +423,7 @@ export class DroxChatTabsManager {
 					}
 				} else {
 					const tail = await this.sessionService.readUiReplayTail(sessionId, ws, { maxTurns });
+					uiReplayMessages = tail.messages.length > 0 ? tail.messages : undefined;
 					if (tail.messages.length > 0) {
 						if (tail.hasOlder) {
 							this.delegate.post({
@@ -465,6 +473,10 @@ export class DroxChatTabsManager {
 					this.delegate.post({ kind: 'state', busy: false });
 				}
 				this.delegate.post({ kind: 'sessionReplayDone' });
+				await this.delegate.onSessionReplayDone?.(sessionId, {
+					transcriptMessages: read.messages,
+					uiReplayMessages,
+				});
 				this.delegate.post({ kind: 'state', busy: false });
 			} finally {
 				this.delegate.setUiReplayRecordingEnabled(true);
@@ -472,6 +484,7 @@ export class DroxChatTabsManager {
 		} catch (e) {
 			this.delegate.post({ kind: 'append', role: 'error', text: e instanceof Error ? e.message : String(e) });
 			this.delegate.post({ kind: 'sessionReplayDone' });
+			await this.delegate.onSessionReplayDone?.(sessionId, { transcriptMessages: [] });
 			this.delegate.post({ kind: 'state', busy: false });
 		}
 	}
@@ -645,6 +658,7 @@ export class DroxChatTabsManager {
 		this.loadingOlderSessionId = loadSessionId;
 		try {
 			this.delegate.setUiReplayRecordingEnabled(false);
+			let uiReplayMessages: DroxHostToWebviewMessage[] | undefined;
 			if (meta.source === 'ui') {
 				const page = await this.sessionService.readUiReplayOlder(loadSessionId, ws, {
 					beforeIndex: cursor,
@@ -674,6 +688,7 @@ export class DroxChatTabsManager {
 					});
 				}
 				await replayUiJournalMessages(this.delegate, full.slice(newOldest));
+				uiReplayMessages = full.slice(newOldest);
 			} else {
 				const transcript = meta.transcriptMessages;
 				if (!transcript) {
@@ -710,6 +725,10 @@ export class DroxChatTabsManager {
 				return;
 			}
 			this.delegate.post({ kind: 'sessionReplayDone', scrollToEnd: false });
+			await this.delegate.onSessionReplayDone?.(sessionId, {
+				transcriptMessages: meta.transcriptMessages ?? [],
+				uiReplayMessages,
+			});
 			this.delegate.post({ kind: 'state', busy: false });
 			this.publishSessionHistory(sessionId);
 		} finally {

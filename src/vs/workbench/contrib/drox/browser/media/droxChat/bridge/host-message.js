@@ -200,6 +200,9 @@
 					if (!D.state.uiReplayActive) {
 						fn.pinLogToBottom?.();
 					}
+					if (typeof fn.reapplyRunRecoveryActionsIfNeeded === 'function') {
+						fn.reapplyRunRecoveryActionsIfNeeded();
+					}
 				} else if (m.role === 'assistant') {
 					const text = String(m.text || '').trim();
 					let createdEl = null;
@@ -270,6 +273,9 @@
 			case 'usage':
 				if (typeof m.inputTokens === 'number') {
 					D.state.totalIn += m.inputTokens;
+					if (m.inputTokens > 0) {
+						D.state.ctxTokens = m.inputTokens;
+					}
 				}
 				if (typeof m.outputTokens === 'number') {
 					D.state.totalOut += m.outputTokens;
@@ -395,6 +401,7 @@
 				fn.closeUserAskCard();
 				break;
 			case 'chatReset':
+				fn.dismissRunRecoveryActions?.();
 				fn.resetChatUi();
 				fn.refreshLastUserStickyRow?.();
 				break;

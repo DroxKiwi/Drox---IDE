@@ -42,6 +42,15 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.10':
+			return [
+				localize('drox.releaseNotes.1510.recovery', '**Run recovery always on** — **Resume** and **Restart** stay on your last user message during a run, after cancel, or after an LLM error. **Restart** works even while busy (stop + clean retry).'),
+				localize('drox.releaseNotes.1510.persist', '**Recovery after reload** — reopening a session restores the buttons on the last user message (saved under `.drox/sessions/`).'),
+				localize('drox.releaseNotes.1510.respawn', '**Model change mid-run** — engine respawn is deferred until the run finishes (no more `drox client closed`).'),
+				localize('drox.releaseNotes.1510.metrics', '**Live token metrics** — the `↑ ↓ ctx` bar updates during the run, not only at the end.'),
+				localize('drox.releaseNotes.1510.composer', '**Composer padding** — placeholder and text are no longer flush against the input border.'),
+				localize('drox.releaseNotes.1510.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.9':
 			return [
 				localize('drox.releaseNotes.159.scroll', '**Smarter scroll** — while the model streams, the thread stays put if you scroll up to read; it follows new output again when you return to the bottom.'),
@@ -111,6 +120,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.10':
+			return localize(
+				'drox.releaseNotes.1510.message',
+				'Recover runs without hunting for errors: Resume or Restart stays on your last message, even after you restart the app.',
+			);
 		case '1.5.9':
 			return localize(
 				'drox.releaseNotes.159.message',

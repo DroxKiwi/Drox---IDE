@@ -23,8 +23,10 @@ import { IDroxUserAskService } from '../../common/droxUserAskService.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
+import { IDroxSessionService } from '../../common/droxSessionService.js';
 import {
-	clearPendingRunRecovery,
+	offerRunRecovery,
+	persistPendingRunRecovery,
 	setPendingRunRecovery,
 } from './droxChatRunRecovery.js';
 import {
@@ -60,6 +62,7 @@ export async function executeDroxChatSend(
 		readonly droxEngineService: IDroxEngineService;
 		readonly logService: ILogService;
 		readonly runRevertService: IDroxRunRevertService;
+		readonly sessionService: IDroxSessionService;
 	},
 	prompt: string,
 	mode: string,
@@ -165,6 +168,15 @@ export async function executeDroxChatSend(
 		pastes: userMessagePastes.length > 0 ? userMessagePastes : undefined,
 		images: userMessageImages.length > 0 ? userMessageImages : undefined,
 	});
+	const sessionId = tabs.currentSessionId!;
+	setPendingRunRecovery(sessionId, {
+		messageId,
+		mode: runMode,
+		enginePrompt: finalPrompt,
+		images: imagesPayload.length > 0 ? imagesPayload : undefined,
+	});
+	void persistPendingRunRecovery(deps.sessionService, ws, sessionId);
+	offerRunRecovery(host.post.bind(host), sessionId);
 	tabs.setTabTitleFromUserPrompt(tabs.currentSessionId, displayed || trimmed);
 	tabs.ensureSessionForSend();
 	try {
@@ -188,16 +200,11 @@ export async function executeDroxChatSend(
 			host.syncChatSessionState();
 			deps.runRevertService.beginRun(result.runId, ws, tabs.currentSessionId);
 			deps.runRevertService.setRunFirstMessageId(result.runId, messageId);
-			setPendingRunRecovery(tabs.currentSessionId!, {
-				messageId,
-				mode: runMode,
-				enginePrompt: finalPrompt,
-				images: imagesPayload.length > 0 ? imagesPayload : undefined,
-			});
 			deps.logService.info('[Drox] agent.run', result.runId);
 		} else {
 			host.setPendingRunStart(false);
 			host.post({ kind: 'state', busy: false });
+			offerRunRecovery(host.post.bind(host), tabs.currentSessionId);
 		}
 	} catch (e) {
 		host.setPendingRunStart(false);
@@ -211,7 +218,7 @@ export async function executeDroxChatSend(
 			: text;
 		host.post({ kind: 'append', role: 'error', text: errText });
 		host.post({ kind: 'state', busy: false });
-		clearPendingRunRecovery(tabs.currentSessionId);
+		offerRunRecovery(host.post.bind(host), tabs.currentSessionId);
 	}
 }
 
@@ -223,6 +230,7 @@ export function cancelDroxChatRun(
 		readonly logService: ILogService;
 		readonly runRevertService: IDroxRunRevertService;
 	},
+	sessionId: string | undefined,
 ): void {
 	deps.userAskService.resolvePendingAsSkipped();
 	deps.userAskService.setActivePermissionMode(undefined);
@@ -244,4 +252,5 @@ export function cancelDroxChatRun(
 	host.post({ kind: 'phase', close: true });
 	host.post({ kind: 'append', role: 'system', text: localize('drox.run.cancelled', 'Drox: run stopped.') });
 	host.post({ kind: 'state', busy: false });
+	offerRunRecovery(host.post.bind(host), sessionId);
 }
