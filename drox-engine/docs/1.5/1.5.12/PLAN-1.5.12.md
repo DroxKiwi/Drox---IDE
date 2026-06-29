@@ -57,7 +57,7 @@ Depuis [PLAN-DESACTIVATION-AGENTS](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATI
 │ Customizations    ├───────────────────────────────────────┤
 │ · Instructions    │  Changes │ Files                       │
 │ · Skills Drox     │  (workspace réel)                     │
-│ · MCP (1.5.9)     │                                       │
+│ · MCP (1.5.11)    │                                       │
 └───────────────────┴───────────────────────────────────────┘
 ```
 
@@ -114,13 +114,13 @@ Référence upstream : [SESSIONS.md](../../../../src/vs/sessions/SESSIONS.md).
 | A3-2 | Welcome Agents | Écran onboarding Drox local (modèle, workspace) |
 | A3-3 | Icônes / titlebar | Aligner `resources/drox/` |
 
-### A4 — Customizations (après 1.5.9 MCP)
+### A4 — Customizations (après 1.5.11 MCP)
 
 | Concept Agents VS Code | Équivalent Drox |
 |------------------------|-----------------|
 | Instructions | prompts `drox-cli`, `EngineTuning` |
 | Skills | `skill_list` / `.drox/skills/` |
-| MCP Servers | section [1.5.9](../1.5.9/PLAN-1.5.12.md) |
+| MCP Servers | section [1.5.11](../1.5.11/PLAN-1.5.11.md) |
 | Hooks / Plugins Copilot | hors scope |
 
 ### A5 — Release & tests
@@ -144,7 +144,7 @@ Voir détail technique : [IMPLEMENTATION-1.5.12.md §5](IMPLEMENTATION-1.5.12.md
 ```text
 Sprint 1 : A0 + A1 + P0 spike (MVP run texte)
 Sprint 2 : P1 (tools, ask, sessions, models)
-Sprint 3 : P2 rebrand + P4 lien MCP 1.5.9 + A5 smoke
+Sprint 3 : P2 rebrand + P4 lien MCP 1.5.11 + A5 smoke
 (Option 1.5.12 : P3 Changes / Files)
 ```
 
