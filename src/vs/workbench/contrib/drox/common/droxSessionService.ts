@@ -7,6 +7,7 @@
 
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { DroxHostToWebviewMessage } from '../browser/droxChatBridge.js';
+import { IDroxPersistedRunRecovery } from './droxRunRecoveryPersist.js';
 import { IDroxSessionListEntry, IDroxSessionReadResult } from './droxSession.js';
 
 export const IDroxSessionService = createDecorator<IDroxSessionService>('droxSessionService');
@@ -54,6 +55,12 @@ export interface IDroxSessionService {
 	): Promise<IDroxUiReplayTailResult>;
 
 	appendUiReplayMessage(id: string, workspaceFsPath: string, message: DroxHostToWebviewMessage): Promise<void>;
+
+	readRunRecovery(id: string, workspaceFsPath: string): Promise<IDroxPersistedRunRecovery | undefined>;
+
+	writeRunRecovery(id: string, workspaceFsPath: string, ctx: IDroxPersistedRunRecovery): Promise<void>;
+
+	clearRunRecovery(id: string, workspaceFsPath: string): Promise<void>;
 
 	resetWorkspace(workspaceFsPath: string): Promise<IDroxWorkspaceResetResult>;
 }

@@ -104,6 +104,10 @@ pub enum AgentEvent {
         elapsed_ms: u64,
         total_lines: usize,
     },
+    /// Estimation live de la fenêtre de contexte (jetons historique) avant un tour LLM.
+    ContextUsage { parent_tokens: usize },
+    /// Usage provider remonté à la fin d'un tour LLM (le run continue).
+    TurnUsage { usage: Usage },
     /// Fin du tour agent (succès final, plus aucun tool call à exécuter).
     Stop { reason: StopReason, usage: Usage },
     /// Une passe de snip a été appliquée à l'historique pour libérer du

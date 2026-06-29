@@ -392,6 +392,8 @@ body {
 	border-top: none;
 	padding-left: 0;
 	padding-right: var(--drox-thread-pad-x, 8px);
+	padding-top: var(--drox-thread-pad-y, 6px);
+	padding-bottom: var(--drox-thread-pad-y, 6px);
 	background: transparent;
 }
 

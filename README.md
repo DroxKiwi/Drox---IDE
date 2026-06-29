@@ -449,7 +449,7 @@ ___
 `v1_5_7` — correctifs post-1.5.6 : smart paste, rejeu session, recovery LLM — **livré** win + linux.
 `v1_5_8` — polish fil Reasoning/Work (native thinking, outils inline, Planifier, warmup fil) — **livré** win + linux.
 `v1_5_9` — scroll stick-to-bottom, reset `MEMORY.md` + `.drox/`, composer épuré — **livré** win + linux.
-`v1_5_10` — **branche dev courante** (MCP / Agents Window reportés — voir `drox-engine/docs/1.5/1.5.x+1/`).
+`v1_5_10` — **branche dev courante** — périmètre à définir (MCP → `1.5.11/`, Agents → `1.5.12/`).
 
 ___
 
@@ -665,4 +665,4 @@ ___
 `v1_5_7` — post-1.5.6 fixes: smart paste, session replay, LLM recovery — **released** win + linux.
 `v1_5_8` — Reasoning/Work thread polish (native thinking, inline tools, Plan vignette, warmup in log) — **released** win + linux.
 `v1_5_9` — stick-to-bottom scroll, `MEMORY.md` + `.drox/` reset, lean composer — **released** win + linux.
-`v1_5_10` — **current dev branch** (MCP / Agents Window deferred — see `drox-engine/docs/1.5/1.5.x+1/`).
+`v1_5_10` — **current dev branch** — scope TBD (MCP → `1.5.11/`, Agents → `1.5.12/`).
