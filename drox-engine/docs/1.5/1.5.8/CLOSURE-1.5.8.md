@@ -14,7 +14,7 @@
 | P8-2 | Padding questionnaire `user-ask` | ✅ |
 | P8-3 | Flux **native thinking** dans blocs Reasoning + outils inline chronologie | ✅ |
 | P8-4 | Warmup phrase dans le fil `#log` (pas sticky composer) | ✅ |
-| — | Décalage roadmap MCP + Agents Window → [1.5.x+1](../1.5.x+1/README.md) | ✅ |
+| — | Décalage roadmap MCP + Agents Window → [1.5.11](../1.5.11/README.md) / [1.5.12](../1.5.12/README.md) | ✅ |
 
 ---
 
