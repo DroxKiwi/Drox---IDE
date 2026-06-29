@@ -20,7 +20,7 @@
 | [**1.5.8/**](1.5.8/README.md) | Polish UX post-release 1.5.7 | **Livré** · `v1.5.8` |
 | [**1.5.9/**](1.5.9/README.md) | Scroll fil, reset `MEMORY.md`, composer épuré | **Livré** · `v1.5.9` |
 | [**1.5.10/**](1.5.10/README.md) | Run recovery toujours dispo + respawn moteur différé | **Livré** · `v1.5.10` |
-| [**1.5.11/**](1.5.11/README.md) | Connexions MCP | **Reporté** |
+| [**1.5.11/**](1.5.11/README.md) | Connexions MCP | **En cours** |
 | [**1.5.12/**](1.5.12/README.md) | Agents Window | **Reporté** |
 
 ---
@@ -38,7 +38,7 @@
 1.5.8  polish UX post-1.5.7  →  livré
 1.5.9  scroll fil + reset MEMORY.md + composer épuré  →  livré
 1.5.10  run recovery toujours dispo + respawn moteur différé  →  livré
-1.5.11  MCP — reporté
+1.5.11  connexions MCP  →  en cours
 1.5.12  Agents Window — reporté
 ```
 

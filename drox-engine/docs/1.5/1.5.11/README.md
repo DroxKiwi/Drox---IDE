@@ -1,7 +1,7 @@
-# Drox 1.5.11 — Connexions MCP *(reporté)*
+# Drox 1.5.11 — Connexions MCP
 
-**Statut** : **reporté**  
-**Prérequis** : [1.5.9](../1.5.9/README.md) livrée
+**Statut** : **en cours** (branche `1.5.11`)  
+**Prérequis** : [1.5.10](../1.5.10/README.md) livrée (`v1.5.10`)
 
 ---
 
