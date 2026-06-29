@@ -20,8 +20,8 @@
 | [**1.5.8/**](1.5.8/README.md) | Polish UX post-release 1.5.7 | **Livré** · `v1.5.8` |
 | [**1.5.9/**](1.5.9/README.md) | Scroll fil, reset `MEMORY.md`, composer épuré | **Livré** · `v1.5.9` |
 | [**1.5.10/**](1.5.10/README.md) | Run recovery toujours dispo + respawn moteur différé | **Livré** · `v1.5.10` |
-| [**1.5.11/**](1.5.11/README.md) | Connexions MCP | **En cours** |
-| [**1.5.12/**](1.5.12/README.md) | Agents Window | **Reporté** |
+| [**1.5.11/**](1.5.11/README.md) | Agents Window (mode agent VS Code natif) | **En cours** |
+| [**1.5.12/**](1.5.12/README.md) | *(déplacé — voir 1.5.11 + brainstorm #16)* | — |
 
 ---
 
@@ -37,9 +37,9 @@
 1.5.7  correctifs post-release 1.5.6  →  livré
 1.5.8  polish UX post-1.5.7  →  livré
 1.5.9  scroll fil + reset MEMORY.md + composer épuré  →  livré
-1.5.10  run recovery toujours dispo + respawn moteur différé  →  livré
-1.5.11  connexions MCP  →  en cours
-1.5.12  Agents Window — reporté
+1.5.10  run recovery + respawn différé  →  livré
+1.5.11  Agents Window native + drox.exe  →  en cours
+MCP  →  brainstorm #16 (reporté)
 ```
 
 ---
@@ -56,7 +56,7 @@
 - [PLAN 1.5.8](1.5.8/PLAN-1.5.8.md)
 - [PLAN 1.5.9](1.5.9/PLAN-1.5.9.md)
 - [PLAN 1.5.10](1.5.10/PLAN-1.5.10.md)
-- [PLAN 1.5.11 MCP](1.5.11/PLAN-1.5.11.md)
-- [PLAN 1.5.12 Agents](1.5.12/PLAN-1.5.12.md)
+- [PLAN 1.5.11 Agents](1.5.11/PLAN-1.5.11.md)
+- [Brainstorm MCP #16](../feature-brainstorm/16-connexions-mcp-ui-moteur.md)
 - [GUIDE release & upstream](../GUIDE-RELEASE-ET-UPSTREAM.md)
 - [Opérations release (index)](../operations/README.md)
