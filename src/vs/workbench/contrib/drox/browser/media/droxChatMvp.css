@@ -1555,6 +1555,17 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	outline-offset: 1px;
 }
 
+.msg-user-recovery:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.msg-user-recovery:disabled:hover {
+	border-color: color-mix(in srgb, var(--vscode-panel-border, #444) 70%, transparent);
+	color: var(--vscode-foreground);
+}
+
 .msg-user-copy {
 	display: inline-flex;
 	align-items: center;
@@ -3591,7 +3602,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	min-width: 0;
 	width: 100%;
 	min-height: 0;
-	padding: 4px 0;
+	padding: 6px 10px;
 	border: none;
 	outline: none;
 	background: transparent;

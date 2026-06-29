@@ -19,6 +19,12 @@ import { sliceUiReplayBeforeTurns, sliceUiReplayTailTurns } from '../common/drox
 import { parseDroxEngineTraceRecord } from '../common/chat/droxEngineTraceExport.js';
 import { droxWorkspaceSessionsDir } from '../common/droxWorkspacePaths.js';
 import {
+	clearPersistedRunRecovery,
+	IDroxPersistedRunRecovery,
+	readPersistedRunRecovery,
+	writePersistedRunRecovery,
+} from '../common/droxRunRecoveryPersist.js';
+import {
 	droxSessionUiReplayPath,
 	parseDroxUiReplayLine,
 	shouldRecordDroxUiReplayMessage,
@@ -168,6 +174,18 @@ export class DroxSessionService implements IDroxSessionService {
 		} catch {
 			/* best-effort */
 		}
+	}
+
+	async readRunRecovery(id: string, workspaceFsPath: string): Promise<IDroxPersistedRunRecovery | undefined> {
+		return readPersistedRunRecovery(this.fileService, workspaceFsPath, id);
+	}
+
+	async writeRunRecovery(id: string, workspaceFsPath: string, ctx: IDroxPersistedRunRecovery): Promise<void> {
+		await writePersistedRunRecovery(this.fileService, workspaceFsPath, id, ctx);
+	}
+
+	async clearRunRecovery(id: string, workspaceFsPath: string): Promise<void> {
+		await clearPersistedRunRecovery(this.fileService, workspaceFsPath, id);
 	}
 
 	async resetWorkspace(workspaceFsPath: string): Promise<IDroxWorkspaceResetResult> {

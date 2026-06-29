@@ -85,11 +85,12 @@
 		const scrollToEnd = opts?.scrollToEnd !== false;
 		if (typeof fn.endHistoryReplay === 'function') {
 			fn.endHistoryReplay({ scrollToEnd });
-			return;
+		} else {
+			fn.finalizeReplayThreadUi({ scrollToEnd });
+			D.state.uiReplayActive = false;
+			D.state.sessionHistoryLoading = false;
+			fn.setBusy(false);
 		}
-		fn.finalizeReplayThreadUi({ scrollToEnd });
-		D.state.uiReplayActive = false;
-		D.state.sessionHistoryLoading = false;
-		fn.setBusy(false);
+		fn.reapplyRunRecoveryActionsIfNeeded?.();
 	};
 })(globalThis.DroxChat);

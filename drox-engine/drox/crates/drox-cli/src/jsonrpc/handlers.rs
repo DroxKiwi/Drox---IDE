@@ -967,7 +967,7 @@ async fn merge_ui_stats_from_agent_event(
     let mut s = read_session_ui_stats(path).await.unwrap_or_default();
     let mut dirty = false;
     match ev {
-        AgentEvent::Stop { usage, .. } => {
+        AgentEvent::Stop { usage, .. } | AgentEvent::TurnUsage { usage } => {
             if usage.input_tokens > 0 || usage.output_tokens > 0 {
                 s.total_in = s.total_in.saturating_add(u64::from(usage.input_tokens));
                 s.total_out = s.total_out.saturating_add(u64::from(usage.output_tokens));
@@ -976,6 +976,10 @@ async fn merge_ui_stats_from_agent_event(
                 }
                 dirty = true;
             }
+        }
+        AgentEvent::ContextUsage { parent_tokens } => {
+            s.ctx = usize_to_u32_saturated(*parent_tokens);
+            dirty = true;
         }
         AgentEvent::ContextSnip {
             tokens_used_after, ..

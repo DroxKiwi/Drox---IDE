@@ -19,7 +19,7 @@ import { extractTodoErrorMessage, extractTodosFromToolOutput, isTodoWriteOutput 
 import { formatVisionChatError, isVisionRelatedLlmError } from '../common/droxVision.js';
 import { DroxHostToWebviewMessage } from './droxChatBridge.js';
 import {
-	clearPendingRunRecovery,
+	offerRunRecovery,
 	offerRunRecoveryAfterError,
 } from './chat/droxChatRunRecovery.js';
 
@@ -332,6 +332,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			return;
 		}
 
+		case 'turn_usage':
 		case 'stop': {
 			const usage = (ev.usage ?? {}) as Record<string, unknown>;
 			const inputTokens = Number(usage.input_tokens ?? usage.inputTokens ?? 0);
@@ -477,11 +478,12 @@ export function dispatchAgentDone(host: IDroxChatAgentDoneHost, params: unknown)
 				? formatVisionChatError(host.getLlmModel(), raw)
 				: raw;
 		host.post({ kind: 'append', role: 'error', text: errText });
-		offerRunRecoveryAfterError(host.post.bind(host), host.getCurrentSessionId());
 	}
 
-	if (doneRunId && p?.status !== 'error') {
-		clearPendingRunRecovery(host.getCurrentSessionId());
+	if (doneRunId && p?.status === 'error') {
+		offerRunRecoveryAfterError(host.post.bind(host), host.getCurrentSessionId());
+	} else if (doneRunId) {
+		offerRunRecovery(host.post.bind(host), host.getCurrentSessionId());
 	}
 
 	if (doneRunId) {
