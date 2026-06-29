@@ -1686,7 +1686,7 @@ export class DroxChatViewProvider implements vscode.WebviewViewProvider {
             this.post("memory", { slug, path, objective });
             return;
           }
-          if (kind === "stop") {
+          if (kind === "turn_usage" || kind === "stop") {
             const usage = (ev.usage ?? {}) as Record<string, unknown>;
             const inputTokens = Number(usage.input_tokens ?? 0);
             const outputTokens = Number(usage.output_tokens ?? 0);

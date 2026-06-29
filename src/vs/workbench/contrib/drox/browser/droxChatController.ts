@@ -41,12 +41,14 @@ import { IDroxPasteCandidateService } from '../common/droxPasteCandidateService.
 import { takePendingForFileFinish } from '../common/droxFileMutation.js';
 import { IDroxComposerBridgeService } from '../common/droxComposerBridgeService.js';
 import { DroxHostToWebviewMessage, isDroxWebviewToHostMessage } from './droxChatBridge.js';
+import { IDroxTranscriptMessage } from '../common/droxSession.js';
 import { DroxChatDragAndDrop } from './droxChatDragAndDrop.js';
 import { DroxChatLayoutStore } from './droxChatLayoutStore.js';
 import { IDroxSessionService } from '../common/droxSessionService.js';
 import { CodeWindow } from '../../../../base/browser/window.js';
 import { IOverlayWebview } from '../../webview/browser/webview.js';
 import { createDroxChatAgentEventHost, handleDroxEngineNotification, IDroxChatAgentBridgeHost } from './chat/droxChatAgentHost.js';
+import { offerRunRecovery, getPendingRunRecovery, restoreRunRecoveryForSession } from './chat/droxChatRunRecovery.js';
 import { IDroxChatAgentDoneHost } from './droxChatAgentEvents.js';
 import { DroxChatTabsManager, DROX_CHAT_TAB_LOAD_FULL, IDroxChatTabsDelegate } from './chat/droxChatTabsManager.js';
 import { IDroxChatSendRunHost } from './chat/droxChatSendRun.js';
@@ -294,6 +296,10 @@ export class DroxChatController extends Disposable
 			}
 			this.pasteCandidateService.resync();
 			this.syncRunRevertState();
+			const recoverySessionId = this._tabs.currentSessionId;
+			if (recoverySessionId && getPendingRunRecovery(recoverySessionId)) {
+				offerRunRecovery(this.post.bind(this), recoverySessionId);
+			}
 		});
 	}
 
@@ -375,6 +381,26 @@ export class DroxChatController extends Disposable
 	resetRunRevertUiState(): void {
 		this.runRevertService.resetWorkspaceUiState();
 		this.syncRunRevertState();
+	}
+
+	async onSessionReplayDone(
+		sessionId: string,
+		ctx: { readonly transcriptMessages: readonly IDroxTranscriptMessage[]; readonly uiReplayMessages?: readonly DroxHostToWebviewMessage[] },
+	): Promise<void> {
+		const ws = this.workspaceRoot();
+		if (!ws || sessionId !== this._tabs.currentSessionId) {
+			return;
+		}
+		const restored = await restoreRunRecoveryForSession(
+			this.sessionService,
+			this.runSettingsService,
+			ws,
+			sessionId,
+			ctx,
+		);
+		if (restored) {
+			offerRunRecovery(this.post.bind(this), sessionId);
+		}
 	}
 
 	getPendingTool(id: string): { name: string; args: unknown } | undefined {

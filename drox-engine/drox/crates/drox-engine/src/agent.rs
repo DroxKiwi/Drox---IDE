@@ -931,6 +931,18 @@ impl Agent {
                 return;
             }
 
+            if let Some(policy) = self.config.context.as_ref() {
+                let parent_tokens = policy.count_tokens(&messages);
+                if parent_tokens > 0
+                    && tx
+                        .send(Ok(AgentEvent::ContextUsage { parent_tokens }))
+                        .await
+                        .is_err()
+                {
+                    return;
+                }
+            }
+
             let options = self
                 .config
                 .chat_options
@@ -950,6 +962,17 @@ impl Agent {
             let Ok(mut outcome) = consume_stream(stream, &tx, native_thinking_ui).await else {
                 return; // canal consommateur fermé
             };
+
+            if (outcome.usage.input_tokens > 0 || outcome.usage.output_tokens > 0)
+                && tx
+                    .send(Ok(AgentEvent::TurnUsage {
+                        usage: outcome.usage.clone(),
+                    }))
+                    .await
+                    .is_err()
+            {
+                return;
+            }
 
             push_assistant_message(&mut messages, &outcome);
             if let Err(e) = self
@@ -1123,7 +1146,8 @@ impl Agent {
                 let _ = tx
                     .send(Ok(AgentEvent::Stop {
                         reason: outcome.reason,
-                        usage: outcome.usage,
+                        // `TurnUsage` déjà émis après `consume_stream` pour ce tour.
+                        usage: Usage::default(),
                     }))
                     .await;
                 return;
