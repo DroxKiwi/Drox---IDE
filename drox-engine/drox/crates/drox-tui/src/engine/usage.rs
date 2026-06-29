@@ -51,7 +51,7 @@ async fn update_session_ui_stats(path: &Utf8Path, ev: &AgentEvent) -> Result<(),
     let mut s = read_session_ui_stats(path).await.unwrap_or_default();
     let mut dirty = false;
     match ev {
-        AgentEvent::Stop { usage, .. } => {
+        AgentEvent::Stop { usage, .. } | AgentEvent::TurnUsage { usage } => {
             if usage.input_tokens > 0 || usage.output_tokens > 0 {
                 s.total_in = s.total_in.saturating_add(u64::from(usage.input_tokens));
                 s.total_out = s.total_out.saturating_add(u64::from(usage.output_tokens));
@@ -60,6 +60,10 @@ async fn update_session_ui_stats(path: &Utf8Path, ev: &AgentEvent) -> Result<(),
                 }
                 dirty = true;
             }
+        }
+        AgentEvent::ContextUsage { parent_tokens } => {
+            s.ctx = usize_to_u32(*parent_tokens);
+            dirty = true;
         }
         AgentEvent::ContextSnip { tokens_used_after, .. } => {
             s.ctx = usize_to_u32(*tokens_used_after);
