@@ -21,8 +21,8 @@
 | In | Hors scope |
 |----|------------|
 | Boutons **Reprendre** / **Recommencer** visibles sur le message user du run courant (y compris pendant `busy` pour Recommencer) | Durcissement anti-boucle Rust (`LoopDetector`, gates `todo_write`, etc.) |
-| **Recommencer** = cancel + `truncateAfterLastUser` + `skipUserTurn` (reset « urgence » sans nouveau bouton) | Connexions MCP → [1.5.11](../1.5.11/README.md) |
-| Respawn processus moteur **reporté** tant qu’un run est actif | Agents Window → [1.5.12](../1.5.12/README.md) |
+| **Recommencer** = cancel + `truncateAfterLastUser` + `skipUserTurn` (reset « urgence » sans nouveau bouton) | Connexions MCP → [brainstorm #16](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md) |
+| Respawn processus moteur **reporté** tant qu’un run est actif | Agents Window → [1.5.11](../1.5.11/README.md) |
 | Doc incident [`chat.txt`](../../chat.txt) + [GUIDE-RUN-RECOVERY.md](GUIDE-RUN-RECOVERY.md) | Revert disque automatique sur Recommencer (v1) |
 
 ---
@@ -110,5 +110,5 @@ Correctif déjà amorcé en dev : `ContextUsage` + `TurnUsage` côté moteur, re
 
 - [README 1.5.10](README.md)
 - [GUIDE run recovery](GUIDE-RUN-RECOVERY.md)
-- [MCP reporté 1.5.11](../1.5.11/README.md)
-- [Agents reportés 1.5.12](../1.5.12/README.md)
+- [MCP reporté brainstorm #16](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md)
+- [Agents Window 1.5.11](../1.5.11/README.md)

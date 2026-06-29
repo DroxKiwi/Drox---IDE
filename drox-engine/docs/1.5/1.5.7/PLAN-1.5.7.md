@@ -18,8 +18,8 @@
 
 | In | Hors scope |
 |----|------------|
-| Bugs bloquants ou gênants sur **1.5.6** (chat, fil, UI, install) | Connexions MCP → [1.5.11](../1.5.11/README.md) |
-| Correctifs webview / host `contrib/drox` | Agents Window → [1.5.12](../1.5.12/README.md) |
+| Bugs bloquants ou gênants sur **1.5.6** (chat, fil, UI, install) | Connexions MCP → [brainstorm #16](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md) |
+| Correctifs webview / host `contrib/drox` | Agents Window → [1.5.11](../1.5.11/README.md) |
 | Release OR `v1.5.7` | Refonte moteur |
 
 ---
@@ -54,5 +54,5 @@
 ## Liens
 
 - [README 1.5.7](README.md)
-- [PLAN 1.5.11 MCP](../1.5.11/PLAN-1.5.11.md)
-- [PLAN 1.5.12 Agents](../1.5.12/PLAN-1.5.12.md)
+- [PLAN 1.5.11 Agents](../1.5.11/PLAN-1.5.11.md)
+- [Brainstorm MCP #16](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md)

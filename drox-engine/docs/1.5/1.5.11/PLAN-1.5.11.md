@@ -1,4 +1,4 @@
-# Plan 1.5.11 — Connexions MCP (UI + moteur)
+# Plan 1.5.11 — Agents Window adaptée Drox (mode agent VS Code natif)
 
 **Version** : juin 2026  
 **Base** : [1.5.10](../1.5.10/PLAN-1.5.10.md) livrée  
@@ -8,12 +8,12 @@
 
 | Pilier | Avancement | Bloquant |
 |--------|------------|----------|
-| **M1** Inventaire & spec UX | 0 % | oui |
-| **M2** UI Connexions MCP (adapt VS Code) | 0 % | oui |
-| **M3** Pont moteur `drox-mcp` | 0 % | oui |
-| **M4** Doc utilisateur + agent | 0 % | non |
-| **M5** Smoke & release | 0 % | oui |
-| **M6** Modes permission natifs (Ask + Analyse) | 0 % | non |
+| **A0** Décision produit (webview vs Agents) | 0 % | oui |
+| **A1** Réactivation contrôlée UI | 0 % | oui |
+| **A2** `DroxSessionsProvider` | 0 % | oui |
+| **A3** Rebrand & onboarding Drox | 0 % | non |
+| **A4** Customizations (skills, instructions, MCP) | 0 % | non |
+| **A5** Smoke & release | 0 % | oui |
 
 ---
 
@@ -21,179 +21,159 @@
 
 | In | Hors scope |
 |----|------------|
-| Section **Connexions MCP** visible et documentée (ajout, état, erreurs) | Marketplace MCP Copilot (`api.github.com/copilot/mcp_registry`) |
-| Config workspace `.mcp.json` / `mcp.json` alignée moteur + workbench | Réécrire le protocole MCP |
-| Toggle `drox.tools.mcp.enabled` intégré à cette section | Serveurs MCP « cloud » Microsoft obligatoires |
-| Guide opérations + agent ([GUIDE-MCP-CONNEXIONS.md](GUIDE-MCP-CONNEXIONS.md)) | TUI standalone hors IDE |
-| Clarifier / compléter les **modes de permission** moteur (Ask explicite, Analyse read-only) | Réécrire tout le pipeline permissions TS d’origine |
+| Fenêtre **Agents** utilisable avec **moteur Drox** (Ollama / API locale) | Login GitHub Copilot obligatoire |
+| Bouton **Open in Agents** / entrée menu cohérents | Marketplace Plugins Copilot |
+| Sessions, Changes, Files (chassis `vs/sessions/`) | Parité 100 % UX webview Drox dès v1 |
+| Coexistence documentée avec **Drox Chat** (webview) | Suppression du webview chat (décision A0) |
+| **Réactiver** `chat.agent.enabled` **uniquement** pour le provider Drox | Réouverture Copilot / Language Model API MS |
 
 ---
 
-## Contexte — ce qui existe déjà
+## Contexte — masquage actuel (1.3.2 → aujourd’hui)
 
-### VS Code (upstream, dans le fork)
+Depuis [PLAN-DESACTIVATION-AGENTS](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATION-AGENTS-VSCODE-1.3.2.md) :
 
-| Couche | Emplacement | Rôle |
-|--------|-------------|------|
-| Vue **MCP Servers** | `src/vs/workbench/contrib/mcp/browser/mcpServersView.ts` | Liste, install, état, actions |
-| Découverte | `workspaceDotMcpDiscovery`, `extensionMcpDiscovery` | Lit `mcp.json` / `.mcp.json` |
-| Éditeur serveur | `mcpServerEditor.ts` | Détail outils / ressources |
-| Customizations | `aiCustomization/embeddedMcpServerDetail.ts` | Lien chat / agent host |
+| Levier | Valeur Drox | Fichier |
+|--------|-------------|---------|
+| `chat.agent.enabled` | `false` | `droxProductDefaultsConfiguration.ts` |
+| `chat.disableAIFeatures` | `true` | idem |
+| `chat.titleBar.openInAgentsWindow` | masqué via agent off | upstream |
+| `product.sessionsWindowAllowedExtensions` | `[]` | `product.json` |
+| Welcome Agents / Copilot | off | `droxMicrosoftAgentsSurfaceContribution.ts` |
 
-La vue est aujourd’hui dans le **conteneur Extensions**, avec des chemins vers la galerie Copilot (`product.json` → `mcpRegistryDataUrl`).
+**Pourquoi c’était masqué** : Agents Window = Copilot + GitHub, **sans lien** `drox.exe` → fausse porte d’entrée.
 
-### Drox (moteur)
-
-| Couche | Emplacement | Rôle |
-|--------|-------------|------|
-| Hub MCP | `drox-mcp` (crate) | Client MCP, stubs dynamiques |
-| Outils | `mcp__<server>__<tool>`, `list_mcp_resources`, `read_mcp_resource` | [GUIDE §6.13](../../0.0/guides/GUIDE-MOTEUR-DROX.md) |
-| Setting | `drox.tools.mcp.enabled` | Active l’exposition au LLM |
-| Chat settings | toggle « MCP tools » dans réglages généraux webview | On/off seulement, pas de gestion serveurs |
-
-**Écart produit** : l’utilisateur ne voit pas **où** brancher GitHub, Postgres, browser, etc. — seulement un booléen.
-
-### Modes de permission — écart actuel (juin 2026)
-
-Le moteur embarque `drox-permissions` (`PermissionMode`) mais l’alignement IDE ↔ moteur est incomplet :
-
-| Vignette IDE (1.5.9) | Valeur RPC | `PermissionMode` moteur | Comportement réel |
-|----------------------|------------|-------------------------|-------------------|
-| **Planifier** | `analyze` | `Plan` | Écritures **refusées** ; sortie via `exit_plan_mode` + validation utilisateur |
-| **Trust Edit** | `trustEdit` | `AcceptEdits` | Écritures fichier auto-autorisées dans le workspace |
-| **I'm not crazy** | `imNotCrazy` | `Default` | Outils read-only auto ; mutateurs → **`Ask`** (dialogue IDE) |
-
-**Problèmes observés en dogfood :**
-
-1. **Pas de variante `Ask` nommée** dans l’enum moteur — `Default` fait bien `Ask` sur les mutateurs, mais l’API / la doc parlent de « default », pas de « ask ». Les modes TS d’origine (`dontAsk`, `auto`, `bubble`) ne sont **pas portés** (`mode.rs`).
-2. **Plan ≠ Analyse** — `Plan` bloque les écritures mais le system prompt reste « agent qui modifie » ; le modèle propose encore d’implémenter et appelle `exit_plan_mode`. Il n’existe **pas** de mode « audit / lecture seule » distinct (phase `[phase: analyzing]` = guidance prompt seulement, pas garde-fou permissions).
-3. **Libellés UI** (corrigé en 1.5.8 polish : « Analyze » → **Planifier**) — la valeur wire `analyze` reste un alias historique vers `Plan`.
-
-**Cible M6** : rendre ces comportements **explicites** côté moteur + vignettes, sans dupliquer la logique IDE.
+**Pourquoi réactiver en 1.5.11** : le chassis UX natif (sessions, panneau Changes, layout chat-first) est riche ; [brainstorm 13](../../feature-brainstorm/13-agents-window-kdds-drox.md) propose de le **réapproprier** plutôt que tout réécrire.
 
 ---
 
-## Vision 1.5.9
+## Vision
 
 ```text
-Réglages Drox / barre latérale
-└─ Connexions MCP          ← section dédiée (rebrand)
-   ├─ Serveurs du workspace (.mcp.json)
-   ├─ État : démarré / erreur / outils découverts
-   ├─ Lien « Ouvrir la config »
-   └─ Activer pour le moteur Drox (drox.tools.mcp.enabled)
-
-Workbench VS Code (contrib/mcp)
-└─ même registre de serveurs — pas deux vérités
+┌─ Drox Agents ─────────────────────────────────────────────┐
+│ Sessions          │  Fil agent (phases, tools, réponse)   │
+│ · workspace A     │  Moteur : drox.exe (JSON-RPC)         │
+│ · workspace B     │  LLM    : réglages Drox / Ollama      │
+│                   │                                       │
+│ Customizations    ├───────────────────────────────────────┤
+│ · Instructions    │  Changes │ Files                       │
+│ · Skills Drox     │  (workspace réel)                     │
+│ · MCP (brainstorm │                                       │
+│   #16, post-MVP)  │                                       │
+└───────────────────┴───────────────────────────────────────┘
 ```
+
+- **Pas** d’écran « Sign in to GitHub » au chemin nominal.
+- **Provider** : `DroxSessionsProvider` (`id`: `drox`), pas `default-copilot`.
+
+---
+
+## Décision produit A0 (à trancher en début de chantier)
+
+| Option | Description | Risque |
+|--------|-------------|--------|
+| **C — Convergence progressive** (recommandé brainstorm) | Agents = surface avancée ; webview chat conservé | Deux UIs temporaires |
+| **A — Remplacement** | Agents = principale ; webview secondaire | Régression utilisateurs webview |
+| **B — Parité stricte** | Les deux miroirs complets | Coût double |
+
+**Livrable A0** : décision signée dans ce plan ou [README](README.md).
+
+**Analyse détaillée** : [IMPLEMENTATION-1.5.11.md](IMPLEMENTATION-1.5.11.md) (difficulté, architecture `droxAgentRunBridge`, phases P0–P4, fichiers, tests).
 
 ---
 
 ## Piliers
 
-### M1 — Spec & cartographie
+### A1 — Réactivation contrôlée (sans rouvrir Copilot)
 
 | # | Tâche | Détail |
 |---|--------|--------|
-| M1-1 | Audit UI MCP visible aujourd’hui | Menu Extensions → MCP : visible ou masqué par `chat.agent.enabled` / `AIDisabled` ? |
-| M1-2 | Décider **emplacement** | Option A : entrée **Réglages Drox** · B : vue latérale « Connexions » · C : les deux (lien) |
-| M1-3 | Rédiger [GUIDE-MCP-CONNEXIONS.md](GUIDE-MCP-CONNEXIONS.md) | Parcours utilisateur + exemples serveurs |
-| M1-4 | Matrice transports | `stdio`, SSE/HTTP — ce que Drox supporte en 1.5.9 |
+| A1-1 | Activer **uniquement** ce qui sert Drox | `chat.agent.enabled` = true **si** provider Drox enregistré |
+| A1-2 | Garder `github.copilot.enable` = false | Pas de complétion Copilot par défaut |
+| A1-3 | Afficher **Open in Agents** | `chat.titleBar.openInAgentsWindow.enabled` = true quand provider Drox prêt |
+| A1-4 | `sessionsWindowAllowedExtensions` | Whitelist minimale (vide ou extensions Drox seulement) |
+| A1-5 | Smoke sans réseau GitHub | Install frais → Agents → pas de login MS |
 
-**Critère** : maquette texte validée (pas de dev sans emplacement fixé).
+**Fichiers** : `droxProductDefaultsConfiguration.ts`, `product.json`, contributions `agentSessions`.
 
-### M2 — Adapter l’UI VS Code (pas réinventer)
-
-| # | Tâche | Détail |
-|---|--------|--------|
-| M2-1 | **Rebrand visuel** | Titres, icônes, couleurs Drox — retirer libellés « Copilot » / galerie MS si affichés |
-| M2-2 | **Désactiver ou remplacer** galerie registry Copilot | `product.json` `mcpRegistryDataUrl` → vide ou doc « ajouter manuellement » |
-| M2-3 | **Rendre la section atteignable** | Commande palette `Drox: Open MCP Connections` · entrée menu Réglages Drox |
-| M2-4 | Préconditions Drox | Ne pas réactiver tout `chat.agent.enabled` — seulement la couche MCP |
-| M2-5 | Cohérence avec `drox.tools.mcp.enabled` | Toggle dans la même section ; état « outils masqués au modèle » explicite |
-
-**Fichiers probables** : `contrib/mcp/browser/*`, `contrib/drox/browser/…`, `droxProductDefaultsConfiguration.ts` (ciblé).
-
-### M3 — Pont moteur
+### A2 — `DroxSessionsProvider` (cœur)
 
 | # | Tâche | Détail |
 |---|--------|--------|
-| M3-1 | Source de vérité config | `.mcp.json` racine workspace — même format que VS Code |
-| M3-2 | Démarrage serveurs | Au `agent.run`, `drox-mcp` connecte les serveurs listés |
-| M3-3 | Feedback UI | Erreur spawn / timeout remontée dans la section Connexions |
-| M3-4 | Tests | Serveur MCP minimal (ex. `everything` ou fixture) · stubs `mcp__*` visibles dans un run |
+| A2-1 | Spike `ISessionsProvider` | `src/vs/sessions/contrib/providers/drox/` (nouveau) |
+| A2-2 | Lier `IDroxEngineService` | `agent.run`, events `agent/event`, annulation |
+| A2-3 | Persistance sessions | `.drox/sessions/*.jsonl` + modèle sessions existant IDE |
+| A2-4 | MVP | 1 session · 1 prompt · fil affiché · 1 tool call |
+| A2-5 | Ne pas enregistrer `CopilotChatSessionsProvider` en build Drox nominal | Ou precondition blocked |
 
-**Critère** : un serveur ajouté via UI → visible dans un run Drox Chat sans éditer JSON à la main.
+Référence upstream : [SESSIONS.md](../../../../src/vs/sessions/SESSIONS.md).
 
-### M6 — Modes permission natifs (Ask + Analyse)
-
-> **Non bloquant** pour la release MCP si le chantier dépasse le créneau — mais à traiter dans la branche 1.5.9 si le temps le permet.
-
-| # | Tâche | Détail |
-|---|--------|--------|
-| M6-1 | **Cartographier l’existant** | `drox-permissions/src/mode.rs`, `engine.rs` (pipeline Deny → Ask → Allow), `permission_mode_from_rpc` dans `handlers.rs`, vignettes `droxChatWebview.ts` |
-| M6-2 | **Mode `Ask` explicite** | Option A (minimale) : documenter que `Default` = mode Ask · Option B (recommandée) : alias `Ask` dans `PermissionMode` + RPC (`imNotCrazy` → `ask` ou conserver les deux clés) · exposer `short_title()` / JSON cohérents |
-| M6-3 | **Mode `Analyze` read-only** (nouveau) | `PermissionMode` dédié **ou** flag `interactionMode` : bloquer mutateurs comme `Plan`, **sans** workflow `exit_plan_mode` obligatoire ; injecter `ANALYZE_MODE_SUPPLEMENT` au system prompt (audit, pas d’implémentation) |
-| M6-4 | **Séparer Planifier vs Analyser** | UI : 3e vignette ou remplacement — **Planifier** (`Plan` + `exit_plan_mode`) vs **Analyser** (read-only pur) ; éviter la confusion `analyze` → `Plan` |
-| M6-5 | **Tests moteur** | `write_tools_ask_in_ask_mode`, `write_tools_denied_in_analyze_mode`, mapping RPC, régression `applyEdits: false` côté IDE |
-| M6-6 | **Doc** | Table modes dans [GUIDE-MOTEUR-DROX](../../0.0/guides/GUIDE-MOTEUR-DROX.md) · settings `drox.permissionMode` · tooltips vignettes |
-
-**Critères d’acceptation M6** :
-
-- [ ] Un mode **Ask** est identifiable dans l’API moteur (nom + comportement documentés), pas seulement « default ».
-- [ ] Un mode **Analyse** (read-only) existe et se distingue de **Plan** (plan-then-execute).
-- [ ] Les vignettes IDE reflètent les noms moteur (fini l’alias trompeur `analyze` = plan, ou documenté + migré).
-- [ ] Smoke : run en Analyse → aucun `file_edit` exécuté ; run en Ask → dialogue permission sur mutateurs.
-
-**Fichiers probables** : `drox-permissions/src/mode.rs`, `drox-engine/src/permissions.rs`, `drox-cli/src/jsonrpc/handlers.rs`, `drox-cli/src/prompts.rs` (supplément Analyse), `droxRunSettings.ts`, `droxPermissionAsk.ts`, `droxChatWebview.ts`.
-
-### M4 — Documentation
+### A3 — Rebrand Drox
 
 | # | Tâche | Détail |
 |---|--------|--------|
-| M4-1 | Promouvoir guide → `drox-engine/docs/operations/07-MCP-CONNEXIONS.md` | À la livraison |
-| M4-2 | Mettre à jour [AGENTS.md](../../operations/AGENTS.md) | § MCP + dépannage |
-| M4-3 | [00-BUILD-REFERENCE](../../operations/00-BUILD-REFERENCE.md) | Lien si pertinent |
+| A3-1 | Chaînes utilisateur | Remplacer « Copilot » / « Build with AI Agents » visibles |
+| A3-2 | Welcome Agents | Écran onboarding Drox local (modèle, workspace) |
+| A3-3 | Icônes / titlebar | Aligner `resources/drox/` |
 
-### M5 — Release
+### A4 — Customizations (post-MVP ou parallèle)
 
-- [ ] `droxVersion` **1.5.9**
-- [ ] Smoke : ajout serveur · run agent · outil MCP appelé
-- [ ] Notes release OR · ship win puis linux ([operations](../../operations/README.md))
+| Concept Agents VS Code | Équivalent Drox |
+|------------------------|-----------------|
+| Instructions | prompts `drox-cli`, `EngineTuning` |
+| Skills | `skill_list` / `.drox/skills/` |
+| MCP Servers | [brainstorm #16 MCP](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md) |
+| Hooks / Plugins Copilot | hors scope |
+
+### A5 — Release & tests
+
+| # | Test | Attendu |
+|---|------|---------|
+| T1 | Open in Agents | Fenêtre s’ouvre, provider Drox actif |
+| T2 | Run sans GitHub | Réponse LLM locale OK |
+| T3 | Drox Chat webview | Inchangé ou doc si déprécié (selon A0) |
+| T4 | `drox.subagents` | Non régressé |
+
+- [ ] `droxVersion` **1.5.11**
+- [ ] Ship OR ([operations](../../operations/README.md))
 
 ---
 
-## Exemple config (référence)
+## Phasage suggéré
 
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "<token>" }
-    }
-  }
-}
+Voir détail technique : [IMPLEMENTATION-1.5.11.md §5](IMPLEMENTATION-1.5.11.md#5-plan-dimplémentation-par-phases).
+
+```text
+Sprint 1 : A0 + A1 + P0 spike (MVP run texte)
+Sprint 2 : P1 (tools, ask, sessions, models)
+Sprint 3 : P2 rebrand + P4 lien MCP brainstorm #16 + A5 smoke
+(Option : P3 Changes / Files → 1.5.12+)
 ```
-
-Fichier : `<workspace>/.mcp.json` ou `mcp.json`.
 
 ---
 
 ## Critères d'acceptation
 
-- [ ] Section **Connexions MCP** accessible sans login GitHub
-- [ ] Au moins **un** serveur MCP ajouté depuis l’UI ou doc guidée
-- [ ] Outils exposés au modèle quand `drox.tools.mcp.enabled` = true
-- [ ] Aucune dépendance à la galerie Copilot pour le parcours nominal
-- [ ] Doc utilisateur + agent à jour
-- [ ] *(M6, si livré)* Modes Ask et Analyse documentés et testés (voir pilier M6)
+- [ ] **Open in Agents** visible et fonctionnel **sans** login Copilot
+- [ ] Au moins une session Agents exécute un run via **drox.exe**
+- [ ] Aucune mention Copilot sur le chemin nominal
+- [ ] Stratégie webview vs Agents **documentée** (A0)
+- [ ] Tests A1–A4 passent
+
+---
+
+## Reporté (brainstorm)
+
+| Chantier | Fiche |
+|----------|--------|
+| Connexions MCP UI + moteur | [16-connexions-mcp-ui-moteur.md](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md) |
 
 ---
 
 ## Liens
 
 - [README 1.5.11](README.md)
-- [PLAN 1.5.4](../1.5.4/PLAN-1.5.4.md)
-- [PLAN 1.5.12](../1.5.12/PLAN-1.5.12.md) — Agents Window (chantier suivant)
+- [IMPLEMENTATION-1.5.11.md](IMPLEMENTATION-1.5.11.md)
+- [13-agents-window-kdds-drox.md](../../feature-brainstorm/13-agents-window-kdds-drox.md)
+- [PLAN désactivation Agents 1.3.2](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATION-AGENTS-VSCODE-1.3.2.md)
+- [CLOSURE 1.5.10](../1.5.10/CLOSURE-1.5.10.md)

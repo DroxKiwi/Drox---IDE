@@ -1,4 +1,4 @@
-# Drox 1.5.11 — Connexions MCP
+# Drox 1.5.11 — Agents Window (mode agent VS Code natif)
 
 **Statut** : **en cours** (branche `1.5.11`)  
 **Prérequis** : [1.5.10](../1.5.10/README.md) livrée (`v1.5.10`)
@@ -7,20 +7,26 @@
 
 ## En une phrase
 
-Exposer une **section Connexions MCP** claire dans Drox : réutiliser le chassis VS Code (`contrib/mcp`), le rebrandre, et le **relier au moteur** `drox-mcp` (outils `mcp__*`). Clarifier les **modes de permission** (Ask natif, Analyse read-only vs Planifier).
+**Réactiver** la fenêtre **Agents** de VS Code (masquée depuis 1.3.2), la **rebrancher sur `drox.exe`**, rebrandre **Drox** — sans écran login Copilot. Le chat webview Drox reste le canal principal jusqu’à décision produit A0.
 
 ---
 
 ## Docs
 
-- [PLAN-1.5.11.md](PLAN-1.5.11.md) — chantier technique
-- [GUIDE-MCP-CONNEXIONS.md](GUIDE-MCP-CONNEXIONS.md) — spec UX + utilisateur (brouillon → `operations/07` à la livraison)
+- [PLAN-1.5.11.md](PLAN-1.5.11.md) — checklist release
+- **[IMPLEMENTATION-1.5.11.md](IMPLEMENTATION-1.5.11.md)** — analyse difficulté, architecture, phases P0–P4, fichiers, tests
+- Brainstorm source : [13-agents-window-kdds-drox.md](../../feature-brainstorm/13-agents-window-kdds-drox.md)
+- Désactivation actuelle : [PLAN-DESACTIVATION-AGENTS 1.3.2](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATION-AGENTS-VSCODE-1.3.2.md)
+
+---
+
+## Reporté (brainstorm)
+
+- **Connexions MCP** → [16-connexions-mcp-ui-moteur.md](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md)
 
 ---
 
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [GUIDE moteur § MCP](../../0.0/guides/GUIDE-MOTEUR-DROX.md#613-mcp-228)
-- [Brainstorm Agents + MCP](../../feature-brainstorm/13-agents-window-kdds-drox.md)
-- [Agents Window (1.5.12)](../1.5.12/README.md)
+- [SESSIONS.md](../../../../src/vs/sessions/SESSIONS.md) (upstream)

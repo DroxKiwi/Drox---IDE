@@ -18,9 +18,9 @@
 
 | In | Hors scope |
 |----|------------|
-| Correctifs UX chat (fil, phases, questionnaire, vignettes) | Connexions MCP → [1.5.11](../1.5.11/README.md) |
-| Alignement libellés modes (**Planifier**, etc.) | Modes Ask / Analyse moteur → [1.5.11](../1.5.11/PLAN-1.5.11.md) M6 |
-| Release OR `v1.5.8` | Agents Window → [1.5.12](../1.5.12/README.md) |
+| Correctifs UX chat (fil, phases, questionnaire, vignettes) | Connexions MCP → [brainstorm #16](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md) |
+| Alignement libellés modes (**Planifier**, etc.) | Modes Ask / Analyse moteur → [brainstorm #16](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md) M6 |
+| Release OR `v1.5.8` | Agents Window → [1.5.11](../1.5.11/README.md) |
 
 ---
 
@@ -56,5 +56,5 @@
 ## Liens
 
 - [README 1.5.8](README.md)
-- [PLAN 1.5.11 MCP](../1.5.11/PLAN-1.5.11.md)
-- [PLAN 1.5.12 Agents](../1.5.12/PLAN-1.5.12.md)
+- [PLAN 1.5.11 Agents](../1.5.11/PLAN-1.5.11.md)
+- [Brainstorm MCP #16](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md)

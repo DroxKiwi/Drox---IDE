@@ -1,7 +1,6 @@
 ﻿# Idée 13 — S’approprier l’Agents Window VS Code (marque KDDS / Drox)
 
-**Statut** : idée brute (brainstorm)  
-**Date** : 2026-06-07  
+**Statut** : **promu** → chantier [1.5.11](../1.5/1.5.11/README.md) (juin 2026)  
 **Auteur** : produit / confusion marque
 
 ---
