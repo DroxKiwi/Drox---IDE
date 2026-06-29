@@ -1,8 +1,8 @@
-# Plan 1.5.10 — Agents Window adaptée Drox
+# Plan 1.5.12 — Agents Window adaptée Drox
 
 **Version** : juin 2026  
-**Base** : [1.5.9](../1.5.9/PLAN-1.5.9.md) (MCP — customizations Agents)  
-**Branche** : `1.5.10` · tag **`v1.5.10`** sur `Drox---IDE---OR`
+**Base** : [1.5.11](../1.5.11/PLAN-1.5.11.md) (MCP — customizations Agents)  
+**Branche** : `1.5.12` · tag **`v1.5.12`** sur `Drox---IDE---OR` *(reporté)*
 
 ### État d'avancement
 
@@ -42,7 +42,7 @@ Depuis [PLAN-DESACTIVATION-AGENTS](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATI
 
 **Pourquoi c’était masqué** : Agents Window = Copilot + GitHub, **sans lien** `drox.exe` → fausse porte d’entrée.
 
-**Pourquoi réactiver en 1.5.10** : le chassis UX (sessions, panneau Changes, layout chat-first) est riche ; [brainstorm 13](../../feature-brainstorm/13-agents-window-kdds-drox.md) propose de le **réapproprier** plutôt que tout réécrire.
+**Pourquoi réactiver en 1.5.12** : le chassis UX (sessions, panneau Changes, layout chat-first) est riche ; [brainstorm 13](../../feature-brainstorm/13-agents-window-kdds-drox.md) propose de le **réapproprier** plutôt que tout réécrire.
 
 ---
 
@@ -57,7 +57,7 @@ Depuis [PLAN-DESACTIVATION-AGENTS](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATI
 │ Customizations    ├───────────────────────────────────────┤
 │ · Instructions    │  Changes │ Files                       │
 │ · Skills Drox     │  (workspace réel)                     │
-│ · MCP (1.5.9)     │                                       │
+│ · MCP (1.5.11)    │                                       │
 └───────────────────┴───────────────────────────────────────┘
 ```
 
@@ -74,9 +74,9 @@ Depuis [PLAN-DESACTIVATION-AGENTS](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATI
 | **A — Remplacement** | Agents = principale ; webview secondaire | Régression utilisateurs webview |
 | **B — Parité stricte** | Les deux miroirs complets | Coût double |
 
-**Livrable A0** : une page dans ce plan ou README 1.5.10 avec décision signée.
+**Livrable A0** : une page dans ce plan ou README 1.5.12 avec décision signée.
 
-**Analyse détaillée** : [IMPLEMENTATION-1.5.10.md](IMPLEMENTATION-1.5.10.md) (difficulté, architecture `droxAgentRunBridge`, phases P0–P4, fichiers, tests).
+**Analyse détaillée** : [IMPLEMENTATION-1.5.12.md](IMPLEMENTATION-1.5.12.md) (difficulté, architecture `droxAgentRunBridge`, phases P0–P4, fichiers, tests).
 
 ---
 
@@ -114,13 +114,13 @@ Référence upstream : [SESSIONS.md](../../../../src/vs/sessions/SESSIONS.md).
 | A3-2 | Welcome Agents | Écran onboarding Drox local (modèle, workspace) |
 | A3-3 | Icônes / titlebar | Aligner `resources/drox/` |
 
-### A4 — Customizations (après 1.5.9 MCP)
+### A4 — Customizations (après 1.5.11 MCP)
 
 | Concept Agents VS Code | Équivalent Drox |
 |------------------------|-----------------|
 | Instructions | prompts `drox-cli`, `EngineTuning` |
 | Skills | `skill_list` / `.drox/skills/` |
-| MCP Servers | section [1.5.9](../1.5.9/PLAN-1.5.10.md) |
+| MCP Servers | section [1.5.11](../1.5.11/PLAN-1.5.11.md) |
 | Hooks / Plugins Copilot | hors scope |
 
 ### A5 — Release & tests
@@ -132,20 +132,20 @@ Référence upstream : [SESSIONS.md](../../../../src/vs/sessions/SESSIONS.md).
 | T3 | Drox Chat webview | Inchangé ou doc si déprécié (selon A0) |
 | T4 | `drox.subagents` | Non régressé |
 
-- [ ] `droxVersion` **1.5.10**
+- [ ] `droxVersion` **1.5.12**
 - [ ] Ship OR ([operations](../../operations/README.md))
 
 ---
 
 ## Phasage suggéré (dans la release)
 
-Voir détail technique : [IMPLEMENTATION-1.5.10.md §5](IMPLEMENTATION-1.5.10.md#5-plan-dimplémentation-par-phases).
+Voir détail technique : [IMPLEMENTATION-1.5.12.md §5](IMPLEMENTATION-1.5.12.md#5-plan-dimplémentation-par-phases).
 
 ```text
 Sprint 1 : A0 + A1 + P0 spike (MVP run texte)
 Sprint 2 : P1 (tools, ask, sessions, models)
-Sprint 3 : P2 rebrand + P4 lien MCP 1.5.9 + A5 smoke
-(Option 1.5.10 : P3 Changes / Files)
+Sprint 3 : P2 rebrand + P4 lien MCP 1.5.11 + A5 smoke
+(Option 1.5.12 : P3 Changes / Files)
 ```
 
 ---
@@ -162,8 +162,8 @@ Sprint 3 : P2 rebrand + P4 lien MCP 1.5.9 + A5 smoke
 
 ## Liens
 
-- [README 1.5.10](README.md)
-- [IMPLEMENTATION-1.5.10.md](IMPLEMENTATION-1.5.10.md)
-- [PLAN 1.5.9 MCP](../1.5.9/PLAN-1.5.9.md)
+- [README 1.5.12](README.md)
+- [IMPLEMENTATION-1.5.12.md](IMPLEMENTATION-1.5.12.md)
+- [PLAN 1.5.11 MCP](../1.5.11/PLAN-1.5.11.md)
 - [13-agents-window-kdds-drox.md](../../feature-brainstorm/13-agents-window-kdds-drox.md)
 - [PLAN désactivation Agents 1.3.2](../../1.3/1.3.2/finalisation/PLAN-DESACTIVATION-AGENTS-VSCODE-1.3.2.md)
