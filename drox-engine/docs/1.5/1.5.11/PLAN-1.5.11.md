@@ -1,8 +1,8 @@
-# Plan 1.5.9 — Connexions MCP (UI + moteur)
+# Plan 1.5.11 — Connexions MCP (UI + moteur)
 
 **Version** : juin 2026  
-**Base** : [1.5.8](../1.5.8/PLAN-1.5.8.md) livrée  
-**Branche** : `1.5.9` · tag **`v1.5.9`** sur `Drox---IDE---OR`
+**Base** : [1.5.9](../1.5.9/PLAN-1.5.9.md) livrée  
+**Branche** : `1.5.11` · tag **`v1.5.11`** sur `Drox---IDE---OR` *(reporté)*
 
 ### État d'avancement
 
@@ -194,6 +194,6 @@ Fichier : `<workspace>/.mcp.json` ou `mcp.json`.
 
 ## Liens
 
-- [README 1.5.9](README.md)
+- [README 1.5.11](README.md)
 - [PLAN 1.5.4](../1.5.4/PLAN-1.5.4.md)
-- [PLAN 1.5.10](../1.5.10/PLAN-1.5.10.md) — Agents Window (chantier suivant)
+- [PLAN 1.5.12](../1.5.12/PLAN-1.5.12.md) — Agents Window (chantier suivant)

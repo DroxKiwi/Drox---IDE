@@ -20,4 +20,4 @@ Correctifs **frustrants** du fil de discussion : scroll non forcé pendant la le
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [Chantiers reportés MCP / Agents](../1.5.x+1/README.md) *(si présent sur la branche)*
+- [MCP reporté 1.5.11](../1.5.11/README.md) · [Agents reportés 1.5.12](../1.5.12/README.md)

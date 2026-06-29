@@ -20,8 +20,8 @@
 
 | In | Hors scope |
 |----|------------|
-| Scroll intelligent pendant un run (ne pas arracher l’utilisateur en haut du fil) | Connexions MCP → [1.5.x+1](../1.5.x+1/1.5.9/README.md) |
-| Reset historique workspace : `.drox/` + `MEMORY.md` racine | Agents Window → [1.5.x+1](../1.5.x+1/1.5.10/README.md) |
+| Scroll intelligent pendant un run (ne pas arracher l’utilisateur en haut du fil) | Connexions MCP → [1.5.11](../1.5.11/README.md) |
+| Reset historique workspace : `.drox/` + `MEMORY.md` racine | Agents Window → [1.5.12](../1.5.12/README.md) |
 | Retrait des 4 icônes redondantes sous le champ de saisie | Nouveaux modes Ask / Analyse moteur |
 
 ---
