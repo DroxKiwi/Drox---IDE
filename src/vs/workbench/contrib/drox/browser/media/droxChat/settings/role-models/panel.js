@@ -10,26 +10,7 @@
 		return value !== '' && value !== undefined && value !== null ? String(value) : '';
 	}
 
-	fn.openRoleModelPanel = function() {
-		if (typeof fn.isArchitectVignetteBlocked === 'function' && fn.isArchitectVignetteBlocked()) {
-			if (typeof fn.redirectToConnectionSetup === 'function') {
-				fn.redirectToConnectionSetup();
-			}
-			return;
-		}
-		const panel = D.dom.roleModelPanelEl;
-		const vignette = D.dom.architectModelVignetteEl;
-		if (!panel || !vignette) {
-			return;
-		}
-		D.state.rolePanelOpen = 'architect';
-		vignette.classList.add('panel-open');
-		vignette.setAttribute('aria-expanded', 'true');
-		if (D.dom.roleModelPanelTitleEl) {
-			D.dom.roleModelPanelTitleEl.textContent = 'Architect';
-		}
-		panel.classList.add('role-model-architect-mode');
-		panel.classList.remove('role-model-executor-mode');
+	fn.syncRoleModelPanelFieldsFromState = function () {
 		fn.fillRoleModelPanelSelect();
 		if (D.dom.roleModelPanelNumCtxEl) {
 			fn.syncArchitectNumCtxPanelFromState();
@@ -64,6 +45,30 @@
 		if (D.dom.roleModelPanelKeepAliveEl) {
 			D.dom.roleModelPanelKeepAliveEl.value = D.state.architectKeepAlive ? String(D.state.architectKeepAlive) : '';
 		}
+	};
+
+	fn.openRoleModelPanel = function() {
+		if (typeof fn.isArchitectVignetteBlocked === 'function' && fn.isArchitectVignetteBlocked()) {
+			if (typeof fn.redirectToConnectionSetup === 'function') {
+				fn.redirectToConnectionSetup();
+			}
+			return;
+		}
+		const panel = D.dom.roleModelPanelEl;
+		const vignette = D.dom.architectModelVignetteEl;
+		if (!panel || !vignette) {
+			return;
+		}
+		D.state.rolePanelOpen = 'architect';
+		vignette.classList.add('panel-open');
+		vignette.setAttribute('aria-expanded', 'true');
+		if (D.dom.roleModelPanelTitleEl) {
+			const isAgentsComposer = Boolean(panel.closest('.drox-agents-composer-panels-mount'));
+			D.dom.roleModelPanelTitleEl.textContent = isAgentsComposer ? 'Model settings' : 'Architect';
+		}
+		panel.classList.add('role-model-architect-mode');
+		panel.classList.remove('role-model-executor-mode');
+		fn.syncRoleModelPanelFieldsFromState();
 		const rect = vignette.getBoundingClientRect();
 		panel.style.left = `${Math.max(8, rect.left - 8)}px`;
 		panel.style.bottom = `${window.innerHeight - rect.top + 6}px`;

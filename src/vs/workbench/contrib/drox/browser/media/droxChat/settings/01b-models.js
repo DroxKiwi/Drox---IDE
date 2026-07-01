@@ -32,7 +32,7 @@
 			reloadBtn.disabled = loading || D.state.busy;
 		}
 
-		select.innerHTML = '';
+		fn.clearInnerHtml(select);
 		if (loading) {
 			const opt = document.createElement('option');
 			opt.value = '';

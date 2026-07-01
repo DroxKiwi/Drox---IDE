@@ -24,16 +24,42 @@
 		const value = raw !== '' && raw !== undefined
 			? D.fn.clampArchitectNumCtx(raw)
 			: D.const.ARCHITECT_NUM_CTX_DEFAULT;
-		if (D.fn.isArchitectNumCtxPreset(value)) {
-			select.value = String(value);
-			fn.setArchitectNumCtxCustomVisible(false);
-		} else {
+		if (D.state.architectNumCtxCustomMode) {
 			select.value = D.const.ARCHITECT_NUM_CTX_CUSTOM;
 			if (custom) {
 				custom.value = String(value);
 			}
 			fn.setArchitectNumCtxCustomVisible(true);
+			return;
 		}
+		if (D.fn.isArchitectNumCtxPreset(value)) {
+			select.value = String(value);
+			fn.setArchitectNumCtxCustomVisible(false);
+		} else {
+			select.value = D.const.ARCHITECT_NUM_CTX_CUSTOM;
+			D.state.architectNumCtxCustomMode = true;
+			if (custom) {
+				custom.value = String(value);
+			}
+			fn.setArchitectNumCtxCustomVisible(true);
+		}
+	};
+
+	fn.focusArchitectNumCtxCustomInput = function () {
+		const customEl = D.dom.roleModelPanelNumCtxCustomEl;
+		if (!customEl || customEl.hidden) {
+			return;
+		}
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				try {
+					customEl.focus({ preventScroll: true });
+					customEl.select();
+				} catch {
+					customEl.focus();
+				}
+			});
+		});
 	};
 
 	fn.onArchitectNumCtxPresetChange = function () {
@@ -42,15 +68,30 @@
 			return;
 		}
 		const isCustom = select.value === D.const.ARCHITECT_NUM_CTX_CUSTOM;
+		D.state.architectNumCtxCustomMode = isCustom;
 		fn.setArchitectNumCtxCustomVisible(isCustom);
 		if (isCustom && D.dom.roleModelPanelNumCtxCustomEl) {
+			const customEl = D.dom.roleModelPanelNumCtxCustomEl;
 			const current = D.state.architectNumCtx;
-			if (current !== '' && current !== undefined && !D.fn.isArchitectNumCtxPreset(current)) {
-				D.dom.roleModelPanelNumCtxCustomEl.value = String(D.fn.clampArchitectNumCtx(current));
-			} else if (!D.dom.roleModelPanelNumCtxCustomEl.value.trim()) {
-				D.dom.roleModelPanelNumCtxCustomEl.value = String(D.const.ARCHITECT_NUM_CTX_DEFAULT);
+			let seed;
+			if (current !== '' && current !== undefined) {
+				seed = D.fn.clampArchitectNumCtx(current);
+			} else if (customEl.value.trim()) {
+				const n = Number(customEl.value.trim());
+				seed = Number.isFinite(n)
+					? D.fn.clampArchitectNumCtx(n)
+					: D.const.ARCHITECT_NUM_CTX_DEFAULT;
+			} else {
+				seed = D.const.ARCHITECT_NUM_CTX_DEFAULT;
 			}
-			D.dom.roleModelPanelNumCtxCustomEl.focus();
+			customEl.value = String(seed);
+			D.state.architectNumCtx = seed;
+			fn.focusArchitectNumCtxCustomInput();
+			return;
+		}
+		const preset = Number(select.value);
+		if (Number.isFinite(preset)) {
+			D.state.architectNumCtx = D.fn.clampArchitectNumCtx(preset);
 		}
 	};
 

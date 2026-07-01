@@ -9,7 +9,9 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ThemeIcon, themeColorFromId } from '../../../../base/common/themables.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
+import { isDroxAgentsProduct } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { ISession, SessionStatus } from '../common/session.js';
 import { ISessionsManagementService } from '../common/sessionsManagement.js';
 import { ISessionsService } from './sessionsService.js';
@@ -125,6 +127,7 @@ export class SessionsListModelService extends Disposable implements ISessionsLis
 		@IStorageService private readonly storageService: IStorageService,
 		@ISessionsManagementService private readonly sessionsManagementService: ISessionsManagementService,
 		@ISessionsService private readonly sessionsService: ISessionsService,
+		@IProductService private readonly productService: IProductService,
 	) {
 		super();
 
@@ -270,9 +273,12 @@ export class SessionsListModelService extends Disposable implements ISessionsLis
 	// -- Status icon --
 
 	getStatusIcon(status: SessionStatus, isRead: boolean, isArchived: boolean, completedStateIcon?: ThemeIcon): ThemeIcon {
+		const statusAccent = isDroxAgentsProduct(this.productService)
+			? themeColorFromId('drox.agentsStatusAccent')
+			: themeColorFromId('textLink.foreground');
 		switch (status) {
 			case SessionStatus.InProgress:
-				return { ...Codicon.sessionInProgress, color: themeColorFromId('textLink.foreground') };
+				return { ...Codicon.sessionInProgress, color: statusAccent };
 			case SessionStatus.NeedsInput:
 				return { ...Codicon.circleFilled, color: themeColorFromId('list.warningForeground') };
 			case SessionStatus.Error:
@@ -285,7 +291,7 @@ export class SessionsListModelService extends Disposable implements ISessionsLis
 					return completedStateIcon;
 				}
 				if (!isRead) {
-					return { ...Codicon.circleFilled, color: themeColorFromId('textLink.foreground') };
+					return { ...Codicon.circleFilled, color: statusAccent };
 				}
 				return { ...Codicon.circleSmallFilled, color: themeColorFromId('agentSessionReadIndicator.foreground') };
 		}

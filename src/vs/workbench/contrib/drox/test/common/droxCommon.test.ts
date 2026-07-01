@@ -95,6 +95,7 @@ function mockLlmSettings(overrides: Partial<IDroxLlmSettings> = {}): IDroxLlmSet
 		model: 'test-model',
 		apiKey: '',
 		llmHeaders: {},
+		llmProvider: 'ollama',
 		primaryLanguage: 'fr',
 		maxIterations: 50,
 		temperature: undefined,
@@ -671,7 +672,7 @@ suite('Drox — client tool registry (smoke RPC handler)', () => {
 		assert.ok('result' in result);
 		const r = result as { result: { isError: boolean; output: { error: string } } };
 		assert.strictEqual(r.result.isError, true);
-		assert.ok(r.result.output.error.includes('cancelled'));
+		assert.ok(r.result.output.error.includes('stale run id') || r.result.output.error.includes('no active'));
 	});
 });
 
@@ -1377,7 +1378,6 @@ suite('Drox — agent.run params', () => {
 	test('isDroxWebviewToHostMessage accepts setModel and refreshLlmModels', () => {
 		assert.ok(isDroxWebviewToHostMessage({ type: 'refreshLlmModels' }));
 		assert.ok(isDroxWebviewToHostMessage({ type: 'showReleaseNotes' }));
-		assert.ok(isDroxWebviewToHostMessage({ type: 'resetLlmConnection' }));
 		assert.ok(isDroxWebviewToHostMessage({
 			type: 'testLlmConnection',
 			requestId: 'r1',

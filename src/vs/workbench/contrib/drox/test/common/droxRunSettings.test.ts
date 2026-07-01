@@ -47,6 +47,7 @@ function createMockRunSettingsService(
 		model: 'test-model',
 		apiKey: '',
 		llmHeaders: {},
+		llmProvider: 'ollama',
 		primaryLanguage: 'fr',
 		maxIterations: DROX_DEFAULT_MAX_ITERATIONS,
 		temperature: undefined,
@@ -171,6 +172,47 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 		});
 		assert.strictEqual(params.topP, 0.88);
 		assert.strictEqual(params.maxTokens, 4096);
+	});
+
+	test('Ollama Cloud sends Bearer in headers without duplicate apiKey param', () => {
+		const params = buildAgentRunParams({
+			prompt: 'ping',
+			workspace: WS.fsPath,
+			mode: 'acceptEdits',
+			sessionId: 'ses_cloud',
+			settings: {
+				...createMockRunSettingsService(createMockConfigurationService()).getLlmSettings(),
+				server: 'https://ollama.com',
+				apiKey: 'ollama-cloud-key',
+				llmProvider: 'ollama',
+			},
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		const headers = params.headers as Record<string, string>;
+		assert.strictEqual(headers.Authorization, 'Bearer ollama-cloud-key');
+		assert.strictEqual(params.apiKey, undefined);
+	});
+
+	test('local self-hosted uses custom headers only, no apiKey RPC param', () => {
+		const params = buildAgentRunParams({
+			prompt: 'ping',
+			workspace: WS.fsPath,
+			mode: 'acceptEdits',
+			sessionId: 'ses_local',
+			settings: {
+				...createMockRunSettingsService(createMockConfigurationService()).getLlmSettings(),
+				server: 'http://127.0.0.1:11434',
+				apiKey: 'legacy-key-should-not-auto-apply',
+				llmHeaders: { 'x-api-key': 'my-personal-gateway-key' },
+				llmProvider: 'ollama',
+			},
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		const headers = params.headers as Record<string, string>;
+		assert.strictEqual(headers['x-api-key'], 'my-personal-gateway-key');
+		assert.strictEqual(params.apiKey, undefined);
 	});
 
 	test('droxConfigurationNode excludes legacy 1.4 settings keys', () => {

@@ -5,19 +5,26 @@
 // allow-any-unicode-comment-file
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { DroxSetting, readArchitectModel } from './droxConfiguration.js';
-import { llmHeadersForRpc, readLlmHeadersMap } from './droxLlmHeaders.js';
+import { DroxSetting } from './droxConfiguration.js';
+import { llmHeadersForRpc, readLlmHeadersMap, shouldSendApiKeyRpcParam } from './droxLlmHeaders.js';
+import { parseLlmProvider, type DroxLlmProviderId } from './droxLlmCatalog.js';
 import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX } from './droxProductDefaults.js';
 import { clampDroxNumCtx } from './droxNumCtx.js';
 import { IDroxAgentRunImage } from './droxAttachments.js';
 import { getDisabledToolNames } from './droxToolCatalog.js';
 import { DroxPermissionMode, normalizeDroxPermissionMode } from './droxPermissionAsk.js';
 import { droxWorkspaceSessionsDir } from './droxWorkspacePaths.js';
+import {
+	readDroxChatConfigurationValue,
+	readDroxChatConfigurationString,
+	readDroxArchitectModelForContext,
+} from './droxAgentsConfiguration.js';
 export interface IDroxLlmSettings {
 	readonly server: string;
 	readonly model: string;
 	readonly apiKey: string;
 	readonly llmHeaders: Readonly<Record<string, string>>;
+	readonly llmProvider: DroxLlmProviderId;
 	readonly primaryLanguage: string;
 	readonly maxIterations: number;
 	readonly temperature: number | undefined;
@@ -34,12 +41,8 @@ export interface IDroxLlmSettings {
 	readonly keepAlive: string;
 	readonly nativeThinking: boolean;
 }
-function readNumber(configService: IConfigurationService, key: string, resource: URI | undefined): number | undefined {
-	const v = configService.getValue<unknown>(key, { resource });
-	return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
-}
 export function readPermissionMode(configService: IConfigurationService, resource?: URI): DroxPermissionMode {
-	const v = configService.getValue<string>(DroxSetting.PermissionMode, { resource });
+	const v = readDroxChatConfigurationValue<string>(configService, DroxSetting.PermissionMode, resource);
 	return normalizeDroxPermissionMode(v);
 }
 /** Plafond de sortie RPC : `maxTokens` prioritaire, repli lecture `numPredict` (legacy). */
@@ -53,30 +56,36 @@ export function effectiveMaxTokensForRun(settings: IDroxLlmSettings): number | u
 	return undefined;
 }
 export function readLlmSettings(configService: IConfigurationService, resource?: URI): IDroxLlmSettings {
-	const str = (key: string): string => {
-		const v = configService.getValue<string>(key, { resource });
-		return typeof v === 'string' ? v.trim() : '';
+	const str = (key: string): string => readDroxChatConfigurationString(configService, key, resource);
+	const num = (key: string): number | undefined => {
+		const v = readDroxChatConfigurationValue<number>(configService, key, resource);
+		return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+	};
+	const bool = (key: string, defaultValue: boolean): boolean => {
+		const v = readDroxChatConfigurationValue<boolean>(configService, key, resource);
+		return typeof v === 'boolean' ? v : defaultValue;
 	};
 	return {
 		server: str(DroxSetting.Server),
-		model: readArchitectModel(configService, resource),
+		model: readDroxArchitectModelForContext(configService, resource),
 		apiKey: str(DroxSetting.ApiKey),
 		llmHeaders: readLlmHeadersMap(configService, resource),
+		llmProvider: parseLlmProvider(readDroxChatConfigurationValue<string>(configService, DroxSetting.LlmProvider, resource)),
 		primaryLanguage: str(DroxSetting.PrimaryLanguage),
-		maxIterations: configService.getValue<number>(DroxSetting.MaxIterations, { resource }) ?? DROX_DEFAULT_MAX_ITERATIONS,
-		temperature: readNumber(configService, DroxSetting.Temperature, resource),
-		maxTokens: readNumber(configService, DroxSetting.MaxTokens, resource),
-		numPredict: readNumber(configService, DroxSetting.NumPredict, resource),
-		numCtx: clampDroxNumCtx(readNumber(configService, DroxSetting.NumCtx, resource) ?? DROX_DEFAULT_NUM_CTX),
-		topP: readNumber(configService, DroxSetting.TopP, resource),
-		topK: readNumber(configService, DroxSetting.TopK, resource),
-		repeatPenalty: readNumber(configService, DroxSetting.RepeatPenalty, resource),
-		seed: readNumber(configService, DroxSetting.Seed, resource),
-		minP: readNumber(configService, DroxSetting.MinP, resource),
-		presencePenalty: readNumber(configService, DroxSetting.PresencePenalty, resource),
-		frequencyPenalty: readNumber(configService, DroxSetting.FrequencyPenalty, resource),
+		maxIterations: readDroxChatConfigurationValue<number>(configService, DroxSetting.MaxIterations, resource) ?? DROX_DEFAULT_MAX_ITERATIONS,
+		temperature: num(DroxSetting.Temperature),
+		maxTokens: num(DroxSetting.MaxTokens),
+		numPredict: num(DroxSetting.NumPredict),
+		numCtx: clampDroxNumCtx(num(DroxSetting.NumCtx) ?? DROX_DEFAULT_NUM_CTX),
+		topP: num(DroxSetting.TopP),
+		topK: num(DroxSetting.TopK),
+		repeatPenalty: num(DroxSetting.RepeatPenalty),
+		seed: num(DroxSetting.Seed),
+		minP: num(DroxSetting.MinP),
+		presencePenalty: num(DroxSetting.PresencePenalty),
+		frequencyPenalty: num(DroxSetting.FrequencyPenalty),
 		keepAlive: str(DroxSetting.KeepAlive),
-		nativeThinking: configService.getValue<boolean>(DroxSetting.NativeThinking, { resource }) ?? false,
+		nativeThinking: bool(DroxSetting.NativeThinking, false),
 	};
 }
 export function llmSettingsToEnv(settings: IDroxLlmSettings): Record<string, string> {
@@ -127,11 +136,11 @@ export function llmSettingsToEnv(settings: IDroxLlmSettings): Record<string, str
 	return env;
 }
 export function readDisabledToolsForRun(configService: IConfigurationService, resource?: URI): string[] {
-	const raw = configService.getValue<string[]>(DroxSetting.ToolsDisabled, { resource }) ?? [];
+	const raw = readDroxChatConfigurationValue<string[]>(configService, DroxSetting.ToolsDisabled, resource) ?? [];
 	return [...getDisabledToolNames(raw)].sort();
 }
 export function isMcpToolsEnabled(configService: IConfigurationService, resource?: URI): boolean {
-	return configService.getValue<boolean>(DroxSetting.ToolsMcpEnabled, { resource }) !== false;
+	return readDroxChatConfigurationValue<boolean>(configService, DroxSetting.ToolsMcpEnabled, resource) !== false;
 }
 function wireOptionalNumber(params: Record<string, unknown>, key: string, value: number | undefined): void {
 	if (value !== undefined && Number.isFinite(value)) {
@@ -173,12 +182,16 @@ export function buildAgentRunParams(opts: {
 	if (opts.settings.model) {
 		params.model = opts.settings.model;
 	}
-	if (opts.settings.apiKey) {
-		params.apiKey = opts.settings.apiKey;
-	}
-	const headers = llmHeadersForRpc(opts.settings.apiKey, opts.settings.llmHeaders);
+	const authContext = {
+		provider: opts.settings.llmProvider,
+		server: opts.settings.server,
+	};
+	const headers = llmHeadersForRpc(opts.settings.apiKey, opts.settings.llmHeaders, authContext);
 	if (headers) {
 		params.headers = headers;
+	}
+	if (shouldSendApiKeyRpcParam(opts.settings.apiKey, headers ?? {})) {
+		params.apiKey = opts.settings.apiKey;
 	}
 	wireOptionalNumber(params, 'temperature', opts.settings.temperature);
 	const maxTokens = effectiveMaxTokensForRun(opts.settings);

@@ -6,15 +6,13 @@
 (function (D) {
 	const fn = D.fn;
 
-	fn.initGeneralSettingsVignettes = function() {
-		if (!D.dom.generalSettingsVignetteEl) {
+	/** Panneau flottant + wizard connexion (sans la vignette toolbar). */
+	fn.initGeneralSettingsPanelShell = function() {
+		if (D.state._generalSettingsPanelShellInit) {
 			return;
 		}
-		D.dom.generalSettingsVignetteEl.addEventListener('click', (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			fn.toggleGeneralSettingsPanel();
-		});
+
+		const panel = D.dom.generalSettingsPanelEl || document.getElementById('general-settings-panel');
 		if (D.dom.generalSettingsPanelCloseEl) {
 			D.dom.generalSettingsPanelCloseEl.addEventListener('click', () => {
 				fn.persistGeneralSettingsFromPanel();
@@ -23,10 +21,11 @@
 		}
 		if (D.dom.generalSettingsOpenAllEl) {
 			D.dom.generalSettingsOpenAllEl.addEventListener('click', () => {
+				fn.persistGeneralSettingsFromPanel();
+				fn.closeGeneralSettingsPanel();
 				D.vscode.postMessage({ type: 'openSettings' });
 			});
 		}
-		const panel = D.dom.generalSettingsPanelEl;
 		if (panel) {
 			for (const el of panel.querySelectorAll('input, select')) {
 				el.addEventListener('change', () => {
@@ -58,10 +57,32 @@
 			fn.persistGeneralSettingsFromPanel();
 			fn.closeGeneralSettingsPanel();
 		});
-		fn.syncGeneralSettingsVignetteHint();
 		if (typeof fn.initConnectionWizard === 'function') {
 			fn.initConnectionWizard();
 		}
+		if (typeof fn.syncGeneralSettingsVignetteHint === 'function') {
+			fn.syncGeneralSettingsVignetteHint();
+		}
+		D.state._generalSettingsPanelShellInit = true;
+	};
+
+	fn.initGeneralSettingsVignettes = function() {
+		fn.initGeneralSettingsPanelShell();
+		if (!D.dom.generalSettingsVignetteEl) {
+			return;
+		}
+		if (D.dom.generalSettingsVignetteEl.dataset.droxVignetteWired === '1') {
+			return;
+		}
+		if (D.dom.generalSettingsVignetteEl.classList.contains('drox-agents-panel-picker-trigger')) {
+			return;
+		}
+		D.dom.generalSettingsVignetteEl.dataset.droxVignetteWired = '1';
+		D.dom.generalSettingsVignetteEl.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			fn.toggleGeneralSettingsPanel();
+		});
 	};
 
 	const prevOpenRole = fn.openRoleModelPanel;

@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Dimension, findParentWithClass, getWindow } from '../../../../base/browser/dom.js';
+import * as dom from '../../../../base/browser/dom.js';
 import { WebviewWindowDragMonitor } from '../../webview/browser/webviewWindowDragMonitor.js';
 
 import { FileAccess } from '../../../../base/common/network.js';
@@ -46,6 +47,7 @@ import { DroxViews } from '../common/drox.js';
 import { DroxChatController } from './droxChatController.js';
 
 import { DROX_CHAT_SCRIPT_FILES, getDroxChatHtml } from './droxChatWebview.js';
+import { DroxIdeChatComposerToolbar } from './chat/droxIdeChatComposer.js';
 
 
 
@@ -64,6 +66,12 @@ export class DroxChatViewPane extends ViewPane {
 
 
 	private _container?: HTMLElement;
+
+	private _root?: HTMLElement;
+
+	private _webviewSlot?: HTMLElement;
+
+	private _nativeToolbar?: DroxIdeChatComposerToolbar;
 
 	private _resizeObserver?: ResizeObserver;
 
@@ -146,6 +154,13 @@ export class DroxChatViewPane extends ViewPane {
 		super.renderBody(container);
 
 		this._container = container;
+
+		if (!this._root) {
+			this._root = dom.append(container, dom.$('.drox-ide-chat-view'));
+			this._webviewSlot = dom.append(this._root, dom.$('.drox-ide-chat-webview-slot'));
+			this._nativeToolbar = this._register(this.instantiationService.createInstance(DroxIdeChatComposerToolbar));
+			this._root.appendChild(this._nativeToolbar.domNode);
+		}
 
 
 
@@ -262,9 +277,10 @@ export class DroxChatViewPane extends ViewPane {
 			formatDroxChatVersionLabel(this.productService),
 			formatDroxChatVersionTitle(this.productService),
 			isDroxDevFeatureEnabled('exportTranscript', this.productService),
+			true,
 		));
 
-		this._chatController.attachWebview(webview, getWindow(this.element), this._container);
+		this._chatController.attachWebview(webview, getWindow(this.element), this._webviewSlot ?? this._container);
 
 		this._webview.value = webview;
 
@@ -287,14 +303,14 @@ export class DroxChatViewPane extends ViewPane {
 
 		const webview = this._webview.value;
 
-		if (!this._container || !webview) {
+		if (!this._webviewSlot || !webview) {
 
 			return;
 
 		}
 
-		const rootContainer = findParentWithClass(this._container, 'monaco-scrollable-element') ?? undefined;
-		webview.setAnchorElement(this._container, rootContainer);
+		const rootContainer = findParentWithClass(this._webviewSlot, 'monaco-scrollable-element') ?? undefined;
+		webview.setAnchorElement(this._webviewSlot, rootContainer);
 
 	}
 

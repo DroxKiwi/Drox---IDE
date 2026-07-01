@@ -12,7 +12,7 @@
 
 import { localize } from '../../nls.js';
 import { registerColor, transparent } from '../../platform/theme/common/colorUtils.js';
-import { contrastBorder, focusBorder } from '../../platform/theme/common/colorRegistry.js';
+import { contrastBorder } from '../../platform/theme/common/colorRegistry.js';
 import { editorWidgetBorder, editorBackground, toolbarHoverBackground } from '../../platform/theme/common/colors/editorColors.js';
 import { foreground } from '../../platform/theme/common/colors/baseColors.js';
 import { buttonBackground, buttonSecondaryBorder, inputBackground, inputBorder, inputForeground, inputPlaceholderForeground } from '../../platform/theme/common/colors/inputColors.js';
@@ -24,7 +24,7 @@ import { ACTIVITY_BAR_BADGE_BACKGROUND, ACTIVITY_BAR_BADGE_FOREGROUND, SIDE_BAR_
 
 export const agentsBackground = registerColor(
 	'agents.background',
-	{ dark: editorBackground, light: SIDE_BAR_BACKGROUND, hcDark: editorBackground, hcLight: editorBackground },
+	{ dark: '#000000', light: SIDE_BAR_BACKGROUND, hcDark: '#000000', hcLight: editorBackground },
 	localize('agents.background', 'Background color of the agent sessions window shell and gradient base.')
 );
 
@@ -34,7 +34,7 @@ export const agentsBackground = registerColor(
 
 export const agentsPanelBackground = registerColor(
 	'agentsPanel.background',
-	{ dark: SIDE_BAR_BACKGROUND, light: editorBackground, hcDark: SIDE_BAR_BACKGROUND, hcLight: SIDE_BAR_BACKGROUND },
+	{ dark: '#000000', light: editorBackground, hcDark: '#000000', hcLight: SIDE_BAR_BACKGROUND },
 	localize('agentsPanel.background', 'Background color of the card panels (chat, files, terminal) in the agent sessions window.')
 );
 
@@ -102,7 +102,13 @@ export const agentsChatInputBorder = registerColor(
 );
 
 export const agentsChatInputFocusBorder = registerColor(
-	'agentsChatInput.focusBorder', focusBorder,
+	'agentsChatInput.focusBorder',
+	{
+		dark: '#5f8f5f',
+		light: '#3d7a3d',
+		hcDark: '#9aa88a',
+		hcLight: '#2d5a2d',
+	},
 	localize('agentsChatInput.focusBorder', 'Border color of the chat input field when focused in the agent sessions window.')
 );
 

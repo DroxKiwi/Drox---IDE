@@ -1,0 +1,223 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Barre native sous la webview — alignée Agents, fond noir, responsive. */
+
+.drox-ide-chat-view {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+}
+
+.drox-ide-chat-webview-slot {
+	flex: 1 1 auto;
+	min-height: 0;
+	position: relative;
+}
+
+.drox-ide-chat-composer-toolbar-host {
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	background: var(--vscode-editor-background, #000000);
+	border-top: 1px solid color-mix(in srgb, #3d7a3d 38%, #1a1a1a 62%);
+	--drox-ui-green: #3d7a3d;
+	--drox-thread-brown: #4a3f2e;
+	--drox-thread-brown-deep: #2e281c;
+	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green) 58%, var(--drox-thread-brown) 42%);
+	--drox-agents-control-bg: color-mix(in srgb, var(--drox-thread-green) 12%, var(--drox-thread-brown-deep) 88%);
+	--drox-agents-control-bg-hover: color-mix(in srgb, var(--drox-thread-green) 20%, var(--drox-thread-brown-deep) 80%);
+	--drox-agents-control-border: color-mix(in srgb, var(--drox-thread-green) 52%, var(--drox-thread-brown-deep) 48%);
+	--vscode-cornerRadius-small: 0;
+}
+
+.drox-ide-chat-composer-toolbar {
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	padding: 5px 8px 6px;
+	gap: 4px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	overscroll-behavior-x: contain;
+	scrollbar-width: thin;
+	-webkit-overflow-scrolling: touch;
+}
+
+.drox-ide-chat-composer-toolbar::-webkit-scrollbar {
+	height: 4px;
+}
+
+.drox-ide-chat-composer-toolbar::-webkit-scrollbar-thumb {
+	background: color-mix(in srgb, var(--drox-ui-green) 35%, transparent);
+	border-radius: 0;
+}
+
+/* Rangée unique : modèle + chips (même ligne que Agents). */
+.drox-ide-chat-composer-toolbar .sessions-chat-config-toolbar {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	flex: 1 1 auto;
+	min-width: min-content;
+	gap: 4px;
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	flex: 0 0 auto;
+	min-width: 0;
+	gap: 4px;
+	margin-left: 0;
+}
+
+.drox-ide-chat-composer-toolbar-host .sessions-chat-picker-slot {
+	display: flex;
+	flex: 0 1 auto;
+	align-items: center;
+	min-width: 0;
+	max-width: min(200px, 42vw);
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-ide-model-picker {
+	flex: 0 1 auto;
+	max-width: min(220px, 48vw);
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-agents-panel-picker {
+	flex: 0 1 auto;
+	max-width: min(160px, 34vw);
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-agents-permission-picker {
+	flex: 0 0 auto;
+	max-width: min(140px, 30vw);
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-ide-model-picker .action-label,
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger,
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label {
+	display: inline-flex;
+	align-items: center;
+	height: 16px;
+	padding: 3px 7px;
+	border-radius: 0;
+	cursor: pointer;
+	touch-action: manipulation;
+	color: var(--vscode-icon-foreground, #cccccc);
+	white-space: nowrap;
+	min-width: 30px;
+	width: 100%;
+	max-width: 100%;
+	overflow: hidden;
+	text-decoration: none;
+	box-sizing: border-box;
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-ide-model-picker .action-label:hover,
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger:hover,
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label:hover {
+	background-color: var(--vscode-toolbar-hoverBackground);
+	color: var(--vscode-foreground);
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger.panel-open {
+	background-color: var(--drox-agents-control-bg);
+	border: 1px solid var(--drox-agents-control-border);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 14%, transparent);
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger.connection-attention:not(:hover) {
+	box-shadow: 0 0 0 1px var(--drox-ui-green);
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger.connection-blocked {
+	opacity: 0.55;
+}
+
+.drox-ide-chat-composer-toolbar-host .sessions-chat-dropdown-label {
+	margin-left: 6px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+	flex: 1 1 auto;
+	font-size: 11px;
+	line-height: 16px;
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger > .codicon,
+.drox-ide-chat-composer-toolbar-host .drox-ide-model-picker .action-label > .codicon,
+.drox-ide-chat-composer-toolbar-host .drox-agents-permission-picker .action-label > .codicon {
+	font-size: 12px;
+	flex-shrink: 0;
+	width: auto;
+	height: auto;
+	line-height: 1;
+}
+
+.drox-ide-chat-composer-toolbar-host .drox-agents-permission-picker .action-label > .codicon-chevron-down {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 10px;
+	margin-left: 2px;
+	width: 12px;
+	height: 12px;
+}
+
+/* Fenêtre étroite : labels plus courts, scroll horizontal si besoin. */
+@media (max-width: 520px) {
+	.drox-ide-chat-composer-toolbar-host .sessions-chat-picker-slot {
+		max-width: min(160px, 40vw);
+	}
+
+	.drox-ide-chat-composer-toolbar-host .drox-agents-panel-picker {
+		max-width: min(120px, 28vw);
+	}
+}
+
+@media (max-width: 380px) {
+	.drox-ide-chat-composer-toolbar {
+		padding-inline: 4px;
+	}
+
+	.drox-ide-chat-composer-toolbar-host .sessions-chat-picker-slot {
+		max-width: min(130px, 36vw);
+	}
+
+	.drox-ide-chat-composer-toolbar-host .drox-agents-panel-picker {
+		max-width: min(100px, 26vw);
+	}
+
+	.drox-ide-chat-composer-toolbar-host .drox-agents-permission-picker {
+		max-width: min(110px, 28vw);
+	}
+}
+
+/* Menus picker modèle / mode (IDE) — même chrome que fenêtre Agents */
+.monaco-workbench:not(.agent-sessions-workbench) .action-widget {
+	border-radius: 0 !important;
+	border: 1px solid color-mix(in srgb, #3d7a3d 52%, #2e281c 48%);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, #3d7a3d 16%, transparent),
+		0 10px 28px rgba(0, 0, 0, 0.68);
+}
+
+.monaco-workbench:not(.agent-sessions-workbench) .action-widget .monaco-list .monaco-list-row.action:hover:not(.option-disabled) {
+	background-color: color-mix(in srgb, #3d7a3d 12%, #2e281c 88%) !important;
+}
+
+.monaco-workbench:not(.agent-sessions-workbench) .action-widget .monaco-list .monaco-list-row.action.focused:not(.option-disabled) {
+	background-color: color-mix(in srgb, #3d7a3d 20%, #2e281c 80%) !important;
+	outline: 1px solid color-mix(in srgb, #3d7a3d 35%, transparent);
+	outline-offset: -1px;
+}

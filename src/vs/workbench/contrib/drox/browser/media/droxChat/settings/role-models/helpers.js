@@ -24,9 +24,9 @@
 			let ctxLabel = '';
 			if (ctx !== '' && ctx !== undefined) {
 				const n = D.fn.clampArchitectNumCtx(ctx);
-				ctxLabel = D.fn.isArchitectNumCtxPreset(n)
-					? D.fn.formatNumCtxLabel(n)
-					: String(n);
+				ctxLabel = D.state.architectNumCtxCustomMode || !D.fn.isArchitectNumCtxPreset(n)
+					? String(n)
+					: D.fn.formatNumCtxLabel(n);
 			}
 			archHint.textContent = ctxLabel ? `${model} · ${ctxLabel}` : model;
 		}
@@ -39,7 +39,7 @@
 		}
 		const models = Array.isArray(D.state.llmModels) ? D.state.llmModels : [];
 		const current = String(D.state.architectModel || '').trim();
-		select.innerHTML = '';
+		fn.clearInnerHtml(select);
 		for (const name of models) {
 			const opt = document.createElement('option');
 			opt.value = name;

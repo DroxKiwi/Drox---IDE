@@ -31,6 +31,8 @@ import { IProductService } from '../../../../../../platform/product/common/produ
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
 import { TelemetryTrustedValue } from '../../../../../../platform/telemetry/common/telemetryUtils.js';
 import { MANAGE_CHAT_COMMAND_ID } from '../../../common/constants.js';
+import product from '../../../../../../platform/product/common/product.js';
+import { DroxCommands } from '../../../../drox/common/drox.js';
 import { IModelControlEntry, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService, IModelsControlManifest } from '../../../common/languageModels.js';
 import { ChatEntitlement, IChatEntitlementService, isProUser } from '../../../../../services/chat/common/chatEntitlementService.js';
 import * as semver from '../../../../../../base/common/semver/semver.js';
@@ -421,14 +423,21 @@ function shouldShowManageModelsAction(chatEntitlementService: IChatEntitlementSe
 }
 
 function createManageModelsAction(commandService: ICommandService): IActionWidgetDropdownAction {
+	const openDroxSettings = product.droxMicrosoftAgentsSurfaceEnabled !== true;
 	return {
 		id: 'manageModels',
 		enabled: true,
 		checked: false,
 		class: ThemeIcon.asClassName(Codicon.gear),
-		tooltip: localize('chat.manageModels.tooltip', "Manage Language Models"),
-		label: localize('chat.manageModels', "Manage Models..."),
-		run: () => { commandService.executeCommand(MANAGE_CHAT_COMMAND_ID); }
+		tooltip: openDroxSettings
+			? localize('drox.manageModels.tooltip', "Open Drox model settings")
+			: localize('chat.manageModels.tooltip', "Manage Language Models"),
+		label: openDroxSettings
+			? localize('drox.manageModels', "Drox Settings…")
+			: localize('chat.manageModels', "Manage Models..."),
+		run: () => {
+			commandService.executeCommand(openDroxSettings ? DroxCommands.OpenSettings : MANAGE_CHAT_COMMAND_ID);
+		}
 	};
 }
 

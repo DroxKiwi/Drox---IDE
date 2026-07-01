@@ -15,6 +15,7 @@ import { IViewContainersRegistry, IViewsRegistry, IViewDescriptorService, ViewCo
 import { Extensions as WorkbenchExtensions, IWorkbenchContributionsRegistry, IWorkbenchContribution } from '../../../common/contributions.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { DroxViews } from '../common/drox.js';
+import { DroxIdeLegacyWebviewChatEnabledContext } from '../common/droxAgentsConfiguration.js';
 import '../common/droxSettingMigration.js';
 import { registerDroxConfiguration } from '../common/droxConfiguration.js';
 import { registerDroxProductDefaultsConfiguration } from '../common/droxProductDefaultsConfiguration.js';
@@ -22,6 +23,8 @@ import { DroxChatViewPane } from './droxChatViewPane.js';
 import { registerDroxActions } from './droxActions.js';
 import { DroxDiagnosticContribution } from './droxDiagnosticContribution.js';
 import './droxMicrosoftAgentsSurfaceContribution.js';
+import './agents/droxAgentsComposerDroxChatHost.js';
+import './droxCopilotSignInContextContribution.js';
 import './droxTelemetryContribution.js';
 import './droxExternalUrlRemapContribution.js';
 import './droxHelpMenuContribution.js';
@@ -44,13 +47,15 @@ export const droxViewContainer: ViewContainer = Registry.as<IViewContainersRegis
 
 Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([{
 	id: DroxViews.ChatViewId,
-	name: localize2('drox.chatView.label', 'Drox'),
+	name: localize2('drox.legacyChatView.label', 'Webview'),
 	containerIcon: droxViewIcon,
 	containerTitle: droxViewContainer.title.value,
 	singleViewPaneContainerTitle: droxViewContainer.title.value,
 	canToggleVisibility: true,
 	canMoveView: true,
+	order: 1,
 	ctorDescriptor: new SyncDescriptor(DroxChatViewPane),
+	when: DroxIdeLegacyWebviewChatEnabledContext,
 }], droxViewContainer);
 
 Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench).registerWorkbenchContribution(

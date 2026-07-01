@@ -12,13 +12,13 @@ import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IDroxAgentRunImage, IDroxAttachmentPayload, prepareImageAttachmentsForRun } from '../../common/droxAttachments.js';
 import { isVisionRelatedLlmError, formatVisionChatError } from '../../common/droxVision.js';
 import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js';
+import { cancelDroxAgentRun, IDroxAgentRunBridgeDeps, startDroxAgentRun } from '../../common/droxAgentRunBridge.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePasteWire, toUserMessagePasteWire } from '../../common/droxPasteCandidates.js';
 import { formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
 import { buildUserPromptStickyPayload } from '../../common/droxUserPromptSticky.js';
-import { truncateUserPromptForEngine } from '../../common/droxUserPromptEngine.js';
 import { IDroxUserAskService } from '../../common/droxUserAskService.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
@@ -180,27 +180,25 @@ export async function executeDroxChatSend(
 	tabs.setTabTitleFromUserPrompt(tabs.currentSessionId, displayed || trimmed);
 	tabs.ensureSessionForSend();
 	try {
-		const allTools = deps.clientToolsService.executableToolNames;
-		const executableTools = deps.runSettingsService.filterExecutableTools(allTools);
-		await deps.droxEngineService.initialize({
-			executableTools: [...executableTools],
-			interactiveAsk: true,
-		});
-		const runParams = deps.runSettingsService.buildAgentRunParams({
-			prompt: truncateUserPromptForEngine(finalPrompt),
+		const bridgeDeps: IDroxAgentRunBridgeDeps = {
+			clientToolsService: deps.clientToolsService,
+			runSettingsService: deps.runSettingsService,
+			droxEngineService: deps.droxEngineService,
+			logService: deps.logService,
+		};
+		const runId = await startDroxAgentRun(bridgeDeps, {
+			prompt: finalPrompt,
 			workspace: ws,
 			mode: runMode,
 			sessionId: tabs.currentSessionId!,
 			images: imagesPayload.length > 0 ? imagesPayload : undefined,
 		});
-		const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
-		if (typeof result?.runId === 'string') {
+		if (runId) {
 			host.setPendingRunStart(false);
-			host.setCurrentRunId(result.runId);
+			host.setCurrentRunId(runId);
 			host.syncChatSessionState();
-			deps.runRevertService.beginRun(result.runId, ws, tabs.currentSessionId);
-			deps.runRevertService.setRunFirstMessageId(result.runId, messageId);
-			deps.logService.info('[Drox] agent.run', result.runId);
+			deps.runRevertService.beginRun(runId, ws, tabs.currentSessionId);
+			deps.runRevertService.setRunFirstMessageId(runId, messageId);
 		} else {
 			host.setPendingRunStart(false);
 			host.post({ kind: 'state', busy: false });
@@ -241,9 +239,10 @@ export function cancelDroxChatRun(
 	}
 	host.setSuppressedRunId(runId);
 	host.setPendingRunStart(false);
-	void deps.droxEngineService.request('agent.cancel', { runId }).catch(e => {
-		deps.logService.warn('[Drox] agent.cancel', e);
-	});
+	void cancelDroxAgentRun(
+		{ droxEngineService: deps.droxEngineService, logService: deps.logService },
+		runId,
+	);
 	deps.runRevertService.discardActiveRun();
 	host.setCurrentRunId(undefined);
 	host.syncChatSessionState();

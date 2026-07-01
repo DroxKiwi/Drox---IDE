@@ -100,7 +100,11 @@ export class DroxClientToolRegistry {
 
 					result: {
 
-						output: { error: 'run cancelled by user' },
+						output: {
+							error: activeRunId
+								? `stale run id (active=${activeRunId}, requested=${p.runId})`
+								: 'no active Drox run (tool/exec rejected)',
+						},
 
 						isError: true,
 

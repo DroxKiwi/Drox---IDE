@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IDroxLlmModelsService, IDroxLlmModelsSnapshot } from '../../common/droxLlmModelsService.js';
+import { isDroxEmbeddingModelId } from '../../common/droxAgentsModels.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
@@ -26,7 +27,7 @@ export function pushLlmModelsSnapshotToWebview(
 		kind: 'llmModels',
 		provider: snapshot.provider,
 		server: snapshot.server,
-		models: [...snapshot.models],
+		models: snapshot.models.filter(model => !isDroxEmbeddingModelId(model)),
 		selected: snapshot.selected,
 		error: snapshot.error,
 		listUrl: snapshot.listUrl,

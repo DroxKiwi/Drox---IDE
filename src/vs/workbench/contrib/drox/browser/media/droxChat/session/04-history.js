@@ -144,7 +144,19 @@
 			return String(n);
 		}
 		return (n / 1000).toFixed(n < 10000 ? 1 : 0) + 'k';
-	}
+	};
+
+	fn.formatCtxUsageDisplay = function(used) {
+		const usedN = Math.max(0, Math.floor(Number(used) || 0));
+		const rawMax = D.state.architectNumCtx;
+		const maxN = D.fn.clampArchitectNumCtx(
+			rawMax !== '' && rawMax !== undefined && rawMax !== null ? rawMax : D.const.ARCHITECT_NUM_CTX_DEFAULT,
+		);
+		const usedLabel = D.fn.formatNumCtxLabel(usedN) || '0';
+		const maxLabel = D.fn.formatNumCtxLabel(maxN);
+		const pct = maxN > 0 ? Math.round((usedN / maxN) * 100) : 0;
+		return `${usedLabel} / ${maxLabel} (${pct}%)`;
+	};
 
 	fn.formatCycleElapsed = function (ms) {
 		const totalSec = Math.max(0, Math.floor(Number(ms) / 1000));
@@ -207,7 +219,7 @@
 			D.dom.statTokensOut.textContent = String(D.state.totalOut);
 		}
 		if (D.dom.statCtx) {
-			D.dom.statCtx.textContent = fn.formatTokens(D.state.ctxTokens);
+			D.dom.statCtx.textContent = fn.formatCtxUsageDisplay(D.state.ctxTokens);
 		}
 	}
 

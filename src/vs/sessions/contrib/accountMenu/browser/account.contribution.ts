@@ -34,6 +34,7 @@ import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js'
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { getAccountProfileImageUrl, getAccountTitleBarBadgeKey, getAccountTitleBarState, resolveAccountInfo } from '../../../browser/accountTitleBarState.js';
 import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
+import { DroxCopilotSignInHiddenContext } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
 import { IAuthenticationAccessService } from '../../../../workbench/services/authentication/browser/authenticationAccessService.js';
 import { IAuthenticationUsageService } from '../../../../workbench/services/authentication/browser/authenticationUsageService.js';
@@ -72,7 +73,10 @@ registerAction2(class extends Action2 {
 			icon: Codicon.signIn,
 			menu: {
 				id: AccountMenu,
-				when: ContextKeyExpr.notEquals('defaultAccountStatus', 'available'),
+				when: ContextKeyExpr.and(
+					ContextKeyExpr.notEquals('defaultAccountStatus', 'available'),
+					DroxCopilotSignInHiddenContext.negate(),
+				),
 				group: '1_account',
 				order: 1,
 			}
@@ -93,7 +97,10 @@ registerAction2(class extends Action2 {
 			icon: Codicon.signOut,
 			menu: {
 				id: AccountMenu,
-				when: ContextKeyExpr.equals('defaultAccountStatus', 'available'),
+				when: ContextKeyExpr.and(
+					ContextKeyExpr.equals('defaultAccountStatus', 'available'),
+					DroxCopilotSignInHiddenContext.negate(),
+				),
 				group: '1_account',
 				order: 1,
 			}
@@ -606,7 +613,10 @@ registerAction2(class extends Action2 {
 				id: Menus.TitleBarRightLayout,
 				group: 'navigation',
 				order: 100,
-				when: IsAuxiliaryWindowContext.toNegated(),
+				when: ContextKeyExpr.and(
+					IsAuxiliaryWindowContext.toNegated(),
+					DroxCopilotSignInHiddenContext.negate(),
+				),
 			}
 		});
 	}

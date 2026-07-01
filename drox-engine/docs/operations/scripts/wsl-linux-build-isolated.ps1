@@ -41,12 +41,13 @@ function Ensure-WindowsRepoCommitted {
 	if ($SkipCommit) {
 		$dirty = git -C $winRepo status --porcelain
 		if ($dirty) {
-			throw @"
-Working tree non vide et -SkipCommit actif.
-Commitez ou stash vos changements, ou relancez sans -SkipCommit (commit auto).
-"@
+			Write-Host 'Git Windows : working tree avec changements locaux (overlay rsync sur clone Linux).' -ForegroundColor Yellow
+		} else {
+			Write-Host 'Git Windows : working tree propre.' -ForegroundColor DarkGray
 		}
-		return (git -C $winRepo rev-parse HEAD 2>$null | Select-Object -Last 1).Trim()
+		$hash = (& git -C $winRepo rev-parse HEAD 2>$null | Select-Object -Last 1).Trim()
+		if ($hash -notmatch '^[0-9a-f]{40}$') { throw "HEAD git invalide: '$hash'" }
+		return $hash
 	}
 
 	$dirty = git -C $winRepo status --porcelain
@@ -58,7 +59,7 @@ Commitez ou stash vos changements, ou relancez sans -SkipCommit (commit auto).
 	}
 
 	Write-Host '==> Commit auto des changements locaux (avant sync clone Linux)' -ForegroundColor Yellow
-	git -C $winRepo add -A | Out-Null
+	git -C $winRepo add -A 2>$null | Out-Null
 	git -C $winRepo reset -- 'build/node_modules.win.bak.*' 2>$null | Out-Null
 	$stillDirty = git -C $winRepo status --porcelain
 	if (-not $stillDirty) {
@@ -127,6 +128,16 @@ sync_clone() {
 	fi
 	echo "==> Sync clone Linux sur HEAD Windows ($WIN_HEAD)"
 	git reset --hard "$WIN_HEAD"
+	echo "==> Overlay working tree Windows (changements non commités inclus)"
+	rsync -a --delete \
+		--exclude '.git/' \
+		--exclude 'node_modules/' \
+		--exclude 'out/' \
+		--exclude '.build/' \
+		"$WIN_REPO/" "$LINUX_REPO/"
+	echo "==> Normaliser fins de ligne scripts shell (LF)"
+	find "$LINUX_REPO/scripts" "$LINUX_REPO/drox-engine/docs/operations/scripts" -name '*.sh' -print0 2>/dev/null \
+		| xargs -0 -r sed -i 's/\r$//' || true
 }
 
 sync_clone

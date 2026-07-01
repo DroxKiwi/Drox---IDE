@@ -7,10 +7,10 @@
 	const fn = D.fn;
 
 	fn.initRoleModelVignettes = function() {
-		if (!D.dom.roleModelVignettesEl) {
+		if (!D.dom.architectModelVignetteEl && !D.dom.roleModelVignettesEl) {
 			return;
 		}
-		if (D.dom.architectModelVignetteEl) {
+		if (D.dom.architectModelVignetteEl && !D.dom.architectModelVignetteEl.classList.contains('drox-agents-panel-picker-trigger')) {
 			D.dom.architectModelVignetteEl.addEventListener('click', (e) => {
 				e.preventDefault();
 				e.stopPropagation();
@@ -40,12 +40,24 @@
 		if (D.dom.roleModelPanelNumCtxEl) {
 			D.dom.roleModelPanelNumCtxEl.addEventListener('change', () => {
 				fn.onArchitectNumCtxPresetChange();
-				fn.persistRoleModelFromPanel();
+				const isCustom = D.dom.roleModelPanelNumCtxEl?.value === D.const.ARCHITECT_NUM_CTX_CUSTOM;
+				if (!isCustom) {
+					fn.persistRoleModelFromPanel();
+				} else {
+					fn.syncRoleModelVignetteHints();
+				}
 			});
 		}
 		if (D.dom.roleModelPanelNumCtxCustomEl) {
+			D.dom.roleModelPanelNumCtxCustomEl.addEventListener('input', () => {
+				const numCtx = fn.readArchitectNumCtxFromPanel();
+				if (numCtx !== undefined) {
+					D.state.architectNumCtx = numCtx;
+				}
+				fn.syncRoleModelVignetteHints();
+			});
 			D.dom.roleModelPanelNumCtxCustomEl.addEventListener('change', () => fn.persistRoleModelFromPanel());
-			D.dom.roleModelPanelNumCtxCustomEl.addEventListener('input', () => fn.persistRoleModelFromPanel());
+			D.dom.roleModelPanelNumCtxCustomEl.addEventListener('blur', () => fn.persistRoleModelFromPanel());
 		}
 		const architectInputs = [
 			D.dom.roleModelPanelTemperatureEl,

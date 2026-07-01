@@ -302,6 +302,9 @@ export interface IChatWidgetViewOptions {
 	 * When true, the secondary toolbar (permissions picker) is hidden.
 	 */
 	isSessionsWindow?: boolean;
+
+	/** Drox IDE native chat tab — show composer toolbar (server, model params, permission mode). */
+	droxNativeComposer?: boolean;
 }
 
 export interface IChatViewViewContext {

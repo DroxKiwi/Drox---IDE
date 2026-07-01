@@ -9,34 +9,32 @@ import { localize, localize2 } from '../../../../nls.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { IPreferencesService } from '../../../services/preferences/common/preferences.js';
 import { IFileDialogService } from '../../../../platform/dialogs/common/dialogs.js';
-import { IViewsService } from '../../../services/views/common/viewsService.js';
-import { IWorkbenchLayoutService, Parts } from '../../../services/layout/browser/layoutService.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { URI } from '../../../../base/common/uri.js';
 import { DroxCommands, DroxViews } from '../common/drox.js';
+import { isDroxIdeNativeChatTabEnabled } from '../common/droxAgentsConfiguration.js';
+import { openDroxIdeChatView, startDroxIdeNewChat } from './chat/droxIdeChatViewRoute.js';
 import { IDroxRefsBridgeService } from '../common/droxRefsBridgeService.js';
 import { IDroxComposerBridgeService } from '../common/droxComposerBridgeService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
+import { ILogService } from '../../../../platform/log/common/log.js';
 
 /** Search query for the Settings UI — all `drox.*` keys. */
 export const DROX_SETTINGS_SEARCH_QUERY = 'drox';
 
 const DROX_CATEGORY = localize2('drox.category', 'Drox');
 
-async function openDroxChatPanel(accessor: ServicesAccessor): Promise<void> {
-	const layoutService = accessor.get(IWorkbenchLayoutService);
-	const viewsService = accessor.get(IViewsService);
-	if (!layoutService.isVisible(Parts.AUXILIARYBAR_PART)) {
-		layoutService.setPartHidden(false, Parts.AUXILIARYBAR_PART);
-	}
-	await viewsService.openView(DroxViews.ChatViewId, true);
-}
+const DroxChatViewTitleContext = ContextKeyExpr.or(
+	ContextKeyExpr.equals('view', DroxViews.NativeChatViewId),
+	ContextKeyExpr.equals('view', DroxViews.ChatViewId),
+);
 
 export function registerDroxActions(): void {
 	registerAction2(class OpenDroxChatAction extends Action2 {
@@ -54,7 +52,7 @@ export function registerDroxActions(): void {
 		}
 
 		override async run(accessor: ServicesAccessor): Promise<void> {
-			await openDroxChatPanel(accessor);
+			await openDroxIdeChatView(accessor, true);
 		}
 	});
 
@@ -82,8 +80,13 @@ export function registerDroxActions(): void {
 		}
 
 		override async run(accessor: ServicesAccessor): Promise<void> {
+			const configurationService = accessor.get(IConfigurationService);
+			if (isDroxIdeNativeChatTabEnabled(configurationService)) {
+				await startDroxIdeNewChat(accessor);
+				return;
+			}
 			const bridge = accessor.get(IDroxComposerBridgeService);
-			await openDroxChatPanel(accessor);
+			await openDroxIdeChatView(accessor, true);
 			bridge.requestNewChat();
 		}
 	});
@@ -99,7 +102,7 @@ export function registerDroxActions(): void {
 				f1: true,
 				menu: [{
 					id: MenuId.ViewTitle,
-					when: ContextKeyExpr.equals('view', DroxViews.ChatViewId),
+					when: DroxChatViewTitleContext,
 					order: 20,
 					group: 'navigation',
 				}],
@@ -123,13 +126,12 @@ export function registerDroxActions(): void {
 		}
 
 		override async run(accessor: ServicesAccessor): Promise<void> {
-			const viewsService = accessor.get(IViewsService);
 			const workspaceContext = accessor.get(IWorkspaceContextService);
 			const fileDialogService = accessor.get(IFileDialogService);
 			const refsBridge = accessor.get(IDroxRefsBridgeService);
 			const notificationService = accessor.get(INotificationService);
 
-			await viewsService.openView(DroxViews.ChatViewId, true);
+			await openDroxIdeChatView(accessor, true);
 
 			const folders = workspaceContext.getWorkspace().folders;
 			const defaultUri = folders[0]?.uri;
@@ -165,7 +167,7 @@ export function registerDroxActions(): void {
 		async run(accessor: ServicesAccessor): Promise<void> {
 			const runRevertService = accessor.get(IDroxRunRevertService);
 			const notificationService = accessor.get(INotificationService);
-			await openDroxChatPanel(accessor);
+			await openDroxIdeChatView(accessor, true);
 			if (!runRevertService.hasRevertable()) {
 				notificationService.info(localize('drox.revert.none', 'No run to revert.'));
 				return;
@@ -182,6 +184,58 @@ export function registerDroxActions(): void {
 			}
 			if (res.errors.length > 0) {
 				notificationService.warn(localize('drox.revert.partial', 'Some files could not be reverted.'));
+			}
+		}
+	});
+
+	registerAction2(class DroxUndoFileChangeAction extends Action2 {
+		constructor() {
+			super({
+				id: DroxCommands.UndoFileChange,
+				title: localize2('drox.undoFileChange', 'Drox: Undo File Change'),
+				category: DROX_CATEGORY,
+				f1: false,
+			});
+		}
+
+		override async run(accessor: ServicesAccessor, toolId?: string): Promise<void> {
+			const id = String(toolId || '').trim();
+			if (!id) {
+				return;
+			}
+			const runRevertService = accessor.get(IDroxRunRevertService);
+			const notificationService = accessor.get(INotificationService);
+			const logService = accessor.get(ILogService);
+			const res = await runRevertService.undoFileChange(id);
+			if (res.errors.length > 0) {
+				notificationService.warn(localize('drox.fileChange.undoFailed', 'Could not undo this file change.'));
+				logService.warn(`[Drox] undoFileChange ${id}: ${res.errors.join('; ')}`);
+			}
+		}
+	});
+
+	registerAction2(class DroxRedoFileChangeAction extends Action2 {
+		constructor() {
+			super({
+				id: DroxCommands.RedoFileChange,
+				title: localize2('drox.redoFileChange', 'Drox: Redo File Change'),
+				category: DROX_CATEGORY,
+				f1: false,
+			});
+		}
+
+		override async run(accessor: ServicesAccessor, toolId?: string): Promise<void> {
+			const id = String(toolId || '').trim();
+			if (!id) {
+				return;
+			}
+			const runRevertService = accessor.get(IDroxRunRevertService);
+			const notificationService = accessor.get(INotificationService);
+			const logService = accessor.get(ILogService);
+			const res = await runRevertService.redoFileChange(id);
+			if (res.errors.length > 0) {
+				notificationService.warn(localize('drox.fileChange.redoFailed', 'Could not redo this file change.'));
+				logService.warn(`[Drox] redoFileChange ${id}: ${res.errors.join('; ')}`);
 			}
 		}
 	});
