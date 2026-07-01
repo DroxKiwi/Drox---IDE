@@ -9,6 +9,7 @@ import { localize } from '../../../../../nls.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IDroxAgentRunImage } from '../../common/droxAttachments.js';
+import { cancelDroxAgentRun, IDroxAgentRunBridgeDeps, startDroxAgentRun } from '../../common/droxAgentRunBridge.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import {
@@ -19,7 +20,6 @@ import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js'
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { IDroxTranscriptMessage } from '../../common/droxSession.js';
 import { IDroxUserAskService } from '../../common/droxUserAskService.js';
-import { truncateUserPromptForEngine } from '../../common/droxUserPromptEngine.js';
 import { droxWorkspaceSessionsDir } from '../../common/droxWorkspacePaths.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
@@ -135,9 +135,11 @@ function cancelActiveRunForRecovery(host: IDroxChatSendRunHost, deps: IRunRecove
 	}
 	host.setSuppressedRunId(runId);
 	host.setPendingRunStart(false);
-	void deps.droxEngineService.request('agent.cancel', { runId }).catch(e => {
-		deps.logService.warn('[Drox] agent.cancel (recovery)', e);
-	});
+	void cancelDroxAgentRun(
+		{ droxEngineService: deps.droxEngineService, logService: deps.logService },
+		runId,
+		'agent.cancel (recovery)',
+	);
 	deps.runRevertService.discardActiveRun();
 	host.setCurrentRunId(undefined);
 	host.syncChatSessionState();
@@ -193,28 +195,27 @@ async function startRecoveryRun(
 			host.post({ kind: 'runRecoveryClearAfter', messageId: ctx.messageId });
 		}
 
-		const allTools = deps.clientToolsService.executableToolNames;
-		const executableTools = deps.runSettingsService.filterExecutableTools(allTools);
-		await deps.droxEngineService.initialize({
-			executableTools: [...executableTools],
-			interactiveAsk: true,
-		});
-		const runParams = deps.runSettingsService.buildAgentRunParams({
-			prompt: truncateUserPromptForEngine(ctx.enginePrompt) || '.',
+		const bridgeDeps: IDroxAgentRunBridgeDeps = {
+			clientToolsService: deps.clientToolsService,
+			runSettingsService: deps.runSettingsService,
+			droxEngineService: deps.droxEngineService,
+			logService: deps.logService,
+		};
+		const runId = await startDroxAgentRun(bridgeDeps, {
+			prompt: ctx.enginePrompt || '.',
 			workspace: ws,
 			mode: ctx.mode,
 			sessionId,
 			images: ctx.images && ctx.images.length > 0 ? [...ctx.images] : undefined,
 			skipUserTurn: true,
 		});
-		const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
-		if (typeof result?.runId === 'string') {
+		if (runId) {
 			host.setPendingRunStart(false);
-			host.setCurrentRunId(result.runId);
+			host.setCurrentRunId(runId);
 			host.syncChatSessionState();
-			deps.runRevertService.beginRun(result.runId, ws, sessionId);
-			deps.runRevertService.setRunFirstMessageId(result.runId, ctx.messageId);
-			deps.logService.info(`[Drox] agent.run recovery (${restart ? 'restart' : 'resume'})`, result.runId);
+			deps.runRevertService.beginRun(runId, ws, sessionId);
+			deps.runRevertService.setRunFirstMessageId(runId, ctx.messageId);
+			deps.logService.info(`[Drox] agent.run recovery (${restart ? 'restart' : 'resume'})`, runId);
 			offerRunRecovery(host.post.bind(host), sessionId);
 		} else {
 			host.setPendingRunStart(false);

@@ -1,0 +1,489 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Fenêtre Agents — thème rétro Drox (phosphore vert / brun, aligné sur Drox Chat TUI). */
+
+.monaco-workbench.agent-sessions-workbench,
+.agent-sessions-workbench {	--drox-ui-green: #3d7a3d;
+	--drox-thread-brown: #4a3f2e;
+	--drox-thread-brown-deep: #2e281c;
+	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green) 58%, var(--drox-thread-brown) 42%);
+	--drox-thread-green-bright: color-mix(in srgb, var(--drox-thread-green) 72%, #9aa88a 28%);
+	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 38%, var(--vscode-editor-background));
+	--drox-thread-fg-muted: color-mix(in srgb, var(--vscode-foreground) 52%, var(--drox-thread-brown) 48%);
+	--drox-agents-font: var(--vscode-font-family);
+	--drox-agents-chat-font: var(--vscode-editor-font-family, var(--vscode-font-family));
+
+	/* Cubique — angles 90° dans toute la fenêtre Agents */
+	--vscode-cornerRadius-xSmall: 0;
+	--vscode-cornerRadius-small: 0;
+	--vscode-cornerRadius-medium: 0;
+	--vscode-cornerRadius-large: 0;
+	--vscode-cornerRadius-xLarge: 0;
+
+	/* Surfaces noires (accents verts sur bordures / focus uniquement) */
+	--drox-agents-surface: #000000;
+	--drox-agents-surface-raised: #0a0a0a;
+	--vscode-agents-background: #000000 !important;
+	--vscode-agentsPanel-background: #000000 !important;
+	--vscode-sideBar-background: #000000 !important;
+	--vscode-editor-background: #000000;
+	--vscode-agentsPanel-border: color-mix(in srgb, var(--drox-thread-green) 22%, #1a1a1a 78%) !important;
+
+	/* Remplace les bleus Copilot / VS Code Agents */
+	--vscode-textLink-foreground: var(--drox-thread-green-bright);
+	--vscode-textLink-activeForeground: var(--drox-thread-green);
+	--vscode-button-background: color-mix(in srgb, #3d5a3d 88%, var(--drox-thread-brown) 12%);
+	--vscode-button-hoverBackground: color-mix(in srgb, #4a6b4a 90%, var(--drox-thread-brown) 10%);
+	--vscode-button-foreground: color-mix(in srgb, #e8efe0 92%, var(--drox-thread-brown) 8%);
+	--vscode-focusBorder: color-mix(in srgb, var(--drox-thread-green) 55%, transparent) !important;
+	--vscode-list-activeSelectionBackground: color-mix(in srgb, var(--drox-thread-green) 16%, var(--drox-agents-surface) 84%);
+	--vscode-list-activeSelectionForeground: color-mix(in srgb, #e8efe0 90%, var(--drox-agents-surface) 10%);
+	--vscode-list-focusBackground: color-mix(in srgb, var(--drox-thread-green) 10%, var(--drox-agents-surface) 90%);
+	--vscode-list-hoverBackground: color-mix(in srgb, #ffffff 6%, transparent);
+	--vscode-menu-selectionBackground: color-mix(in srgb, var(--drox-thread-green) 20%, var(--drox-agents-surface) 80%);
+	--vscode-menu-selectionForeground: var(--drox-thread-green-bright);
+	--vscode-progressBar-background: var(--drox-thread-green);
+	--vscode-icon-foreground: color-mix(in srgb, var(--drox-thread-green-bright) 85%, var(--vscode-foreground) 15%);
+	--vscode-agentsGradient-tintColor: var(--drox-thread-green);
+	--vscode-agentsChatInput-border: color-mix(in srgb, var(--drox-thread-green) 42%, var(--drox-thread-brown-deep) 58%) !important;
+	--vscode-agentsChatInput-focusBorder: color-mix(in srgb, var(--drox-thread-green) 70%, transparent) !important;
+	--vscode-agentsBadge-background: color-mix(in srgb, #4a6b4a 90%, var(--drox-thread-brown-deep) 10%);
+	--vscode-agentsBadge-foreground: #e8efe0;
+	--vscode-agentsNewSessionButton-foreground: var(--drox-thread-green-bright);
+	--vscode-agentsNewSessionButton-border: color-mix(in srgb, var(--drox-thread-green) 38%, var(--drox-thread-brown-deep) 62%);
+	--vscode-agentsNewSessionButton-hoverBackground: color-mix(in srgb, var(--drox-thread-green) 12%, var(--drox-thread-brown-deep) 88%);
+	--vscode-agentsUnreadBadge-background: color-mix(in srgb, var(--drox-thread-green) 72%, var(--drox-thread-brown-deep) 28%);
+	--vscode-agentsUnreadBadge-foreground: #e8efe0;
+	--vscode-chat-requestBubbleBackground: color-mix(in srgb, #ffffff 8%, var(--drox-agents-surface) 92%);
+	--vscode-chat-requestBubbleHoverBackground: color-mix(in srgb, #ffffff 12%, var(--drox-agents-surface) 88%);
+	--vscode-chat-inputWorkingBorderColor1: var(--drox-thread-green) !important;
+	--vscode-chat-inputWorkingBorderColor2: color-mix(in srgb, var(--drox-thread-green) 65%, var(--drox-thread-brown-deep)) !important;
+	--vscode-chat-inputWorkingBorderColor3: color-mix(in srgb, var(--drox-thread-green) 45%, #9aa88a) !important;
+	--vscode-chat-thinkingShimmer: #9aa88a;
+	--vscode-chat-slashCommandForeground: var(--drox-thread-green-bright);
+	--vscode-chat-slashCommandBackground: color-mix(in srgb, var(--drox-thread-green-dim) 55%, transparent);
+	--vscode-drox-agentsStatusAccent: var(--drox-thread-green-bright);
+
+	font-family: var(--drox-agents-font);
+}
+
+/* Pas de dégradé cuivré / teinté sur le shell — fond noir uniforme */
+.monaco-workbench.agent-sessions-workbench.shell-gradient-background::before,
+.agent-sessions-workbench.shell-gradient-background::before {
+	background: #000000 !important;
+}
+
+@supports (background: color-mix(in srgb, black 0%, white)) {
+	.monaco-workbench.vs.agent-sessions-workbench.shell-gradient-background::before,
+	.monaco-workbench.vs-dark.agent-sessions-workbench.shell-gradient-background::before {
+		background: #000000 !important;
+	}
+}
+
+/* Panneaux / cartes — noir (évite le cuivre du shell entre les marges) */
+.agent-sessions-workbench .part.sessionspart,
+.agent-sessions-workbench .part.auxiliarybar,
+.agent-sessions-workbench .part.panel,
+.agent-sessions-workbench .part.sessionspart > .content,
+.agent-sessions-workbench .part.auxiliarybar > .content,
+.agent-sessions-workbench .part.panel > .content {
+	--part-background: #000000 !important;
+	background-color: #000000 !important;
+}
+
+.agent-sessions-workbench > .monaco-grid-view,
+.agent-sessions-workbench .part.sidebar,
+.agent-sessions-workbench .part.sidebar > .content {
+	background-color: #000000 !important;
+}
+
+/* ---- Typographie IDE ---- */
+
+.agent-sessions-workbench .sessions-list .session-title,
+.agent-sessions-workbench .agent-sessions-header-label,
+.agent-sessions-workbench .ai-customization-toolbar .customization-link-button,
+.agent-sessions-workbench .chat-composite-bar-session-title,
+.agent-sessions-workbench .chat-composite-bar-meta-row {
+	font-family: var(--drox-agents-font);
+}
+
+.agent-sessions-workbench .interactive-session .rendered-markdown,
+.agent-sessions-workbench .interactive-session .monaco-editor .view-lines {
+	font-family: var(--drox-agents-chat-font);
+}
+
+/* ---- Cubique : pastilles carrées, bulles, cartes ---- */
+
+.agent-sessions-workbench .sessions-list-control .monaco-list-row:has(.session-item) {
+	border-radius: 0 !important;
+}
+
+.agent-sessions-workbench .new-chat-input-area,
+.agent-sessions-workbench .interactive-session .chat-input-container,
+.agent-sessions-workbench .part.auxiliarybar,
+.agent-sessions-workbench .part.panel,
+.agent-sessions-workbench .agent-sessions-compact-new-button.monaco-button,
+.agent-sessions-workbench .ai-customization-toolbar .ai-customization-header .customization-link-button-container,
+.agent-sessions-workbench .ai-customization-toolbar .ai-customization-header .customization-link-button,
+.agent-sessions-workbench .monaco-action-bar .action-label,
+.agent-sessions-workbench .sessions-chat-send-button .monaco-button {
+	border-radius: 0 !important;
+}
+
+.agent-sessions-workbench .interactive-item-container.interactive-request .value .rendered-markdown {
+	border-radius: 0 !important;
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green) 22%, var(--drox-thread-brown-deep) 78%);
+}
+
+/* Pastilles unread — carré vert (liste + onglets + header) */
+.agent-sessions-workbench .session-icon > .codicon.codicon-circle-filled,
+.agent-sessions-workbench .chat-composite-bar-session-icon > .codicon.codicon-circle-filled {
+	color: var(--drox-thread-green-bright) !important;
+}
+
+.agent-sessions-workbench .chat-composite-bar-tab.unread .chat-composite-bar-tab-indicator-icon::before,
+.agent-sessions-workbench .chat-composite-bar-tab.needs-input .chat-composite-bar-tab-indicator-icon::before {
+	border-radius: 0;
+	width: 5px;
+	height: 5px;
+}
+
+.agent-sessions-workbench .chat-composite-bar-tab.needs-input .chat-composite-bar-tab-indicator-icon::before {
+	background-color: var(--vscode-list-warningForeground);
+}
+
+.agent-sessions-workbench .chat-composite-bar-tab.in-progress .chat-composite-bar-tab-indicator-icon {
+	color: var(--drox-thread-green) !important;
+}
+
+/* Bouton New + focus Customizations — contour vert */
+.agent-sessions-workbench .agent-sessions-compact-new-button.monaco-button:focus-visible,
+.agent-sessions-workbench .ai-customization-toolbar .customization-link-button:focus-visible {
+	outline: 1px solid color-mix(in srgb, var(--drox-thread-green) 65%, transparent) !important;
+	outline-offset: -1px;
+}
+
+.agent-sessions-workbench .agent-sessions-header:focus {
+	outline-color: color-mix(in srgb, var(--drox-thread-green) 55%, transparent);
+}
+
+/* Badges / compteurs customizations */
+.agent-sessions-workbench .ai-customization-toolbar .source-count-num {
+	color: var(--drox-thread-fg-muted);
+}
+
+/* Liens et accents résiduels */
+.agent-sessions-workbench a,
+.agent-sessions-workbench .monaco-link {
+	color: var(--drox-thread-green-bright);
+}
+
+.agent-sessions-workbench .codicon.codicon-loading,
+.agent-sessions-workbench .codicon-modifier-spin {
+	color: var(--drox-thread-green) !important;
+}
+
+/* Thinking / shimmer fil chat */
+.agent-sessions-workbench .chat-thinking-box,
+.agent-sessions-workbench .chat-used-context-list {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 25%, var(--drox-thread-brown-deep) 75%);
+}
+
+/* ---- Grille 3×3 (Drox Chat) ---- */
+
+.agent-sessions-workbench .activity-grid {
+	flex: 0 0 auto;
+	display: grid;
+	grid-template-columns: repeat(3, 3px);
+	grid-template-rows: repeat(3, 3px);
+	gap: 1.5px;
+}
+
+.agent-sessions-workbench .activity-grid > span {
+	display: block;
+	width: 3px;
+	height: 3px;
+	border-radius: 0.5px;
+	background: color-mix(in srgb, var(--drox-thread-green) 55%, var(--drox-thread-brown) 45%);
+	animation: drox-agents-grid-pulse 1.35s ease-in-out infinite;
+}
+
+.agent-sessions-workbench .activity-grid > span:nth-child(1) { animation-delay: 0s; }
+.agent-sessions-workbench .activity-grid > span:nth-child(2) { animation-delay: 0.12s; }
+.agent-sessions-workbench .activity-grid > span:nth-child(3) { animation-delay: 0.24s; }
+.agent-sessions-workbench .activity-grid > span:nth-child(4) { animation-delay: 0.36s; }
+.agent-sessions-workbench .activity-grid > span:nth-child(5) { animation-delay: 0.48s; }
+.agent-sessions-workbench .activity-grid > span:nth-child(6) { animation-delay: 0.6s; }
+.agent-sessions-workbench .activity-grid > span:nth-child(7) { animation-delay: 0.72s; }
+.agent-sessions-workbench .activity-grid > span:nth-child(8) { animation-delay: 0.84s; }
+.agent-sessions-workbench .activity-grid > span:nth-child(9) { animation-delay: 0.96s; }
+
+@keyframes drox-agents-grid-pulse {
+	0%, 55%, 100% {
+		opacity: 0.22;
+		transform: scale(0.82);
+	}
+	28% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.monaco-reduce-motion .agent-sessions-workbench .activity-grid > span {
+	animation: none;
+	opacity: 0.65;
+}
+
+/* Overlay démarrage */
+.agent-sessions-workbench .sessions-loading-overlay .sessions-loading-grid {
+	transform: scale(2.2);
+}
+
+.agent-sessions-workbench .sessions-loading-overlay .sessions-loading-icon.codicon {
+	display: none;
+}
+
+/* Spinner toolbar input → grille */
+.agent-sessions-workbench .sessions-chat-loading-spinner .codicon {
+	display: none !important;
+}
+
+.agent-sessions-workbench .sessions-chat-loading-spinner .activity-grid {
+	margin-right: 2px;
+}
+
+/* Liste sessions — grille 3×3 (remplace le pixel-spinner bleu) */
+.agent-sessions-workbench .session-icon > .activity-grid,
+.agent-sessions-workbench .chat-composite-bar-session-icon > .activity-grid {
+	flex-shrink: 0;
+	width: 12px;
+	height: 12px;
+	margin-top: 2px;
+}
+
+/* Pastilles unread / onglets — vert au lieu du bleu textLink */
+.agent-sessions-workbench .chat-composite-bar-tab.unread .chat-composite-bar-tab-indicator-icon::before {
+	background-color: var(--drox-thread-green-bright);
+}
+
+.agent-sessions-workbench .new-chat-input-area:focus-within,
+.agent-sessions-workbench .new-chat-input-container .chat-input-container.focused,
+.agent-sessions-workbench .interactive-session .chat-input-container.focused {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 70%, transparent) !important;
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 32%, transparent);
+}
+
+.agent-sessions-workbench .sessions-chat-editor .monaco-editor.focused,
+.agent-sessions-workbench .interactive-session .interactive-input-editor .monaco-editor.focused {
+	outline-color: color-mix(in srgb, var(--drox-thread-green) 50%, transparent) !important;
+}
+
+.agent-sessions-workbench .sessions-chat-attach-button:focus-visible,
+.agent-sessions-workbench .sessions-chat-send-button:has(.monaco-button:not(.disabled):focus-visible) {
+	outline-color: color-mix(in srgb, var(--drox-thread-green) 55%, transparent) !important;
+}
+
+/* ---- Input chat (contour vert repos + focus) ---- */
+
+.agent-sessions-workbench .new-chat-input-area,
+.agent-sessions-workbench .new-chat-input-container .chat-input-container {
+	border-color: var(--drox-thread-green-dim) !important;
+}
+
+.agent-sessions-workbench .new-chat-input-area:focus-within,
+.agent-sessions-workbench .new-chat-input-container .chat-input-container.focused {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 70%, transparent) !important;
+}
+
+.agent-sessions-workbench .interactive-session .chat-input-container {
+	border-color: var(--drox-thread-green-dim) !important;
+}
+
+/* ---- Animation comète (envoi / agent en cours) ---- */
+
+.agent-sessions-workbench .interactive-session .chat-input-container {
+	--chat-input-working-border-color1: var(--drox-thread-green);
+	--chat-input-working-border-color2: color-mix(in srgb, var(--drox-thread-green) 65%, var(--drox-thread-brown-deep));
+	--chat-input-working-border-color3: color-mix(in srgb, var(--drox-thread-green) 45%, #9aa88a);
+}
+
+.agent-sessions-workbench .interactive-session .chat-input-container.working::before {
+	background: conic-gradient(from var(--chat-input-anim-angle),
+			transparent 0deg,
+			color-mix(in srgb, var(--drox-thread-green) 90%, transparent) 20deg,
+			var(--drox-thread-green) 30deg,
+			color-mix(in srgb, var(--drox-thread-green) 60%, transparent) 50deg,
+			transparent 90deg,
+			transparent 360deg);
+}
+
+.agent-sessions-workbench .interactive-session .chat-input-container.working::after {
+	background: conic-gradient(from var(--chat-input-anim-angle),
+			transparent 0deg,
+			color-mix(in srgb, var(--drox-thread-green) 60%, transparent) 25deg,
+			color-mix(in srgb, var(--drox-thread-green) 35%, transparent) 50deg,
+			transparent 90deg,
+			transparent 360deg);
+}
+
+/* Liste sessions — pixel spinner (fallback reduced-motion) */
+.agent-sessions-workbench .monaco-pixel-spinner {
+	color: var(--drox-thread-green);
+}
+
+/* Model picker — carré vert au lieu du cercle bleu */
+.agent-sessions-workbench .sessions-chat-picker-slot.loading .action-label::after {
+	border: none;
+	border-radius: 0;
+	width: 14px;
+	height: 14px;
+	background:
+		linear-gradient(90deg, var(--drox-thread-green) 33%, transparent 33%, transparent 66%, var(--drox-thread-green) 66%) 0 0 / 100% 33%,
+		linear-gradient(90deg, transparent 33%, var(--drox-thread-green) 33%, var(--drox-thread-green) 66%, transparent 66%) 0 50% / 100% 33%,
+		linear-gradient(90deg, var(--drox-thread-green) 33%, transparent 33%, transparent 66%, var(--drox-thread-green) 66%) 0 100% / 100% 33%;
+	opacity: 0.55;
+	animation: drox-agents-picker-pulse 1.35s ease-in-out infinite;
+}
+
+@keyframes drox-agents-picker-pulse {
+	0%, 100% { opacity: 0.35; }
+	50% { opacity: 1; }
+}
+
+/* Bordure animée input (comète) — teinte verte */
+.agent-sessions-workbench .interactive-session .chat-input-container.working.focused {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 45%, transparent) !important;
+}
+
+/* ChatInputPart (après 1er message) — focus / comète : battre chat.css + thème VS Code */
+.monaco-workbench.agent-sessions-workbench .interactive-session .chat-input-container.focused {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 70%, transparent) !important;
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 28%, transparent) !important;
+}
+
+.monaco-workbench.agent-sessions-workbench .interactive-session .chat-input-container.working.focused {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 45%, transparent) !important;
+	box-shadow: none !important;
+}
+
+.monaco-workbench.agent-sessions-workbench .interactive-session .chat-input-container.working::before {
+	background: conic-gradient(from var(--chat-input-anim-angle),
+			transparent 0deg,
+			color-mix(in srgb, var(--drox-thread-green) 90%, transparent) 20deg,
+			var(--drox-thread-green) 30deg,
+			color-mix(in srgb, var(--drox-thread-green) 60%, transparent) 50deg,
+			transparent 90deg,
+			transparent 360deg) !important;
+}
+
+.monaco-workbench.agent-sessions-workbench .interactive-session .chat-input-container.working::after {
+	background: conic-gradient(from var(--chat-input-anim-angle),
+			transparent 0deg,
+			color-mix(in srgb, var(--drox-thread-green) 60%, transparent) 25deg,
+			color-mix(in srgb, var(--drox-thread-green) 35%, transparent) 50deg,
+			transparent 90deg,
+			transparent 360deg) !important;
+}
+
+.monaco-workbench.agent-sessions-workbench .interactive-session .interactive-input-part .interactive-input-editor .monaco-editor.focused {
+	outline-color: color-mix(in srgb, var(--drox-thread-green) 55%, transparent) !important;
+}
+
+.monaco-workbench.agent-sessions-workbench .interactive-session .chat-input-toolbars > .chat-execute-toolbar .monaco-action-bar .action-item:not(.disabled):has(> .action-label.codicon-arrow-up:focus-visible) {
+	outline-color: color-mix(in srgb, var(--drox-thread-green) 55%, transparent) !important;
+}
+
+.monaco-workbench.agent-sessions-workbench .interactive-session .chat-secondary-toolbar .action-item:focus-visible,
+.monaco-workbench.agent-sessions-workbench .interactive-session .chat-secondary-toolbar .action-label:focus-visible {
+	outline-color: color-mix(in srgb, var(--drox-thread-green) 55%, transparent) !important;
+}
+
+/* Fil chat — shimmer / liens */
+.agent-sessions-workbench .interactive-item-container .chat-animated-ellipsis::after {
+	color: var(--drox-thread-green-bright);
+}
+
+.agent-sessions-workbench .rendered-markdown a {
+	color: var(--drox-thread-green-bright);
+}
+
+/* Welcome Drox */
+.chat-setup-dialog.sessions-drox-welcome-dialog .dialog-icon.codicon-sparkle {
+	color: var(--drox-thread-green);
+}
+
+.chat-setup-dialog.sessions-drox-welcome-dialog .dialog-message {
+	font-family: var(--drox-agents-font);
+	letter-spacing: normal;
+}
+
+.chat-setup-dialog.sessions-drox-welcome-dialog .dialog-message-detail {
+	color: var(--drox-thread-fg-muted);
+	font-family: var(--drox-agents-font);
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.chat-setup-dialog.sessions-drox-welcome-dialog .monaco-button {
+	background: color-mix(in srgb, #3d5a3d 92%, var(--drox-thread-brown) 8%) !important;
+	border-radius: 0;
+	font-family: var(--drox-agents-font);
+}
+
+/* Sidebar sessions */
+.agent-sessions-workbench .sessions-list .session-title {
+	letter-spacing: normal;
+}
+
+.agent-sessions-workbench .session-item.in-progress .session-title {
+	background-image: linear-gradient(
+		90deg,
+		var(--vscode-foreground) 0%,
+		var(--drox-thread-green-bright) 50%,
+		var(--vscode-foreground) 100%
+	);
+}
+
+.monaco-workbench.agent-sessions-workbench .sessions-chat-send-button:has(.monaco-button:not(.disabled):focus-visible),
+.monaco-workbench.agent-sessions-workbench .sessions-chat-attach-button:focus-visible {
+	outline-color: color-mix(in srgb, var(--drox-thread-green) 55%, transparent) !important;
+}
+
+.monaco-workbench.agent-sessions-workbench .drox-agents-panel-picker-trigger:focus-visible,
+.monaco-workbench.agent-sessions-workbench .drox-agents-permission-picker .action-label:focus-visible,
+.monaco-workbench.agent-sessions-workbench .drox-agents-composer-toolbar .action-label:focus-visible {
+	outline-color: color-mix(in srgb, var(--drox-thread-green) 55%, transparent) !important;
+}
+
+/* Bouton send */
+.agent-sessions-workbench .sessions-chat-send-button .monaco-button:not(.disabled) {
+	border-radius: 0;
+}
+
+/* Policy / progress fallback */
+.agent-sessions-workbench .sessions-policy-blocked-progress {
+	background: var(--drox-thread-green) !important;
+}
+
+/* ---- Menus flottants (picker modèle, Trust edit, etc.) — cubique vert ---- */
+
+.agent-sessions-workbench .action-widget {
+	border-radius: 0 !important;
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green) 52%, var(--drox-thread-brown-deep) 48%);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 16%, transparent),
+		0 10px 28px rgba(0, 0, 0, 0.68);
+}
+
+.agent-sessions-workbench .action-widget .monaco-list .monaco-list-row.action:hover:not(.option-disabled) {
+	background-color: color-mix(in srgb, var(--drox-thread-green) 12%, var(--drox-thread-brown-deep) 88%) !important;
+}
+
+.agent-sessions-workbench .action-widget .monaco-list .monaco-list-row.action.focused:not(.option-disabled) {
+	background-color: color-mix(in srgb, var(--drox-thread-green) 20%, var(--drox-thread-brown-deep) 80%) !important;
+	outline: 1px solid color-mix(in srgb, var(--drox-thread-green) 35%, transparent);
+	outline-offset: -1px;
+}

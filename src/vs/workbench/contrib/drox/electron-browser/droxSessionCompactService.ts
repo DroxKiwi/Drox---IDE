@@ -24,7 +24,7 @@ import {
 } from '../common/droxSessionCompactService.js';
 
 import { IDroxSessionCompactResult, parseSessionCompactRpcResult } from '../common/droxSessionCompact.js';
-import { llmHeadersForRpc } from '../common/droxLlmHeaders.js';
+import { llmHeadersForRpc, shouldSendApiKeyRpcParam } from '../common/droxLlmHeaders.js';
 
 
 
@@ -95,15 +95,13 @@ export class DroxSessionCompactService implements IDroxSessionCompactService {
 
 				}
 
-				if (settings.apiKey) {
-
-					params.apiKey = settings.apiKey;
-
-				}
-
-				const headers = llmHeadersForRpc(settings.apiKey, settings.llmHeaders);
+				const authContext = { provider: settings.llmProvider, server: settings.server };
+				const headers = llmHeadersForRpc(settings.apiKey, settings.llmHeaders, authContext);
 				if (headers) {
 					params.headers = headers;
+				}
+				if (shouldSendApiKeyRpcParam(settings.apiKey, headers ?? {})) {
+					params.apiKey = settings.apiKey;
 				}
 
 				setActive(true);

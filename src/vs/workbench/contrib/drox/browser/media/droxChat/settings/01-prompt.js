@@ -74,12 +74,12 @@
 		if (!D.dom.agentVignettesEl) {
 			return;
 		}
-		for (const btn of D.dom.agentVignettesEl.querySelectorAll('.agent-vignette')) {
+		for (const btn of D.dom.agentVignettesEl.querySelectorAll('.agent-vignette[data-mode]')) {
 			if (!(btn instanceof HTMLButtonElement)) {
 				continue;
 			}
 			const mode = btn.dataset.mode || '';
-			const on = mode === D.state.selectedPermissionMode;
+			const on = fn.normalizePermissionMode(mode) === fn.getPermissionMode();
 			btn.classList.toggle('selected', on);
 			btn.setAttribute('aria-pressed', on ? 'true' : 'false');
 		}
@@ -101,7 +101,7 @@
 			return;
 		}
 		fn.syncAgentVignetteUi();
-		for (const btn of D.dom.agentVignettesEl.querySelectorAll('.agent-vignette')) {
+		for (const btn of D.dom.agentVignettesEl.querySelectorAll('.agent-vignette[data-mode]')) {
 			if (!(btn instanceof HTMLButtonElement)) {
 				continue;
 			}

@@ -49,8 +49,6 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'testLlmConnection'; readonly requestId: string; readonly settings: Record<string, unknown> }
 
-	| { readonly type: 'resetLlmConnection' }
-
 	| { readonly type: 'cancelRun' }
 
 	| { readonly type: 'slash'; readonly command?: string; readonly args?: string; readonly slashInvalid?: string }
@@ -280,8 +278,6 @@ export type DroxHostToWebviewMessage =
 		readonly listUrl?: string;
 	}
 
-	| { readonly kind: 'connectionResetResult'; readonly ok: boolean }
-
 	| DroxUserAskHostMessage;
 
 
@@ -296,7 +292,7 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 	const t = (msg as { type?: unknown }).type;
 
-	if (t === 'webviewReady' || t === 'cancelRun' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings' || t === 'resetLlmConnection') {
+	if (t === 'webviewReady' || t === 'cancelRun' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings') {
 
 		return true;
 

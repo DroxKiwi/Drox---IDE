@@ -34,6 +34,10 @@ import { Dialog, DialogContentsAlignment } from '../../base/browser/ui/dialog/di
 import { createWorkbenchDialogOptions } from '../../workbench/browser/parts/dialogs/dialog.js';
 import { MarkdownString } from '../../base/common/htmlContent.js';
 import { localize } from '../../nls.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox agents window welcome
+import { shouldSkipDroxSessionsSignIn } from '../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox agents window welcome
+import { appendDroxActivityGrid } from '../../workbench/contrib/drox/browser/droxActivityGrid.js';
 
 const AIDisabledConfig = 'chat.disableAIFeatures';
 
@@ -93,13 +97,30 @@ class SessionsSetUpWidget extends Disposable {
 		this._start();
 	}
 
+	private _completeSessionsSetupWithoutAuth(): void {
+		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
+		this.serviceMarkDone();
+		this.onCompleted();
+	}
+
 	private _start(): void {
-		if (!this.productService.defaultChatAgent?.chatExtensionId) {
+		if (shouldSkipSessionsWelcome(this.environmentService)) {
 			this.onCompleted();
 			return;
 		}
 
-		if (shouldSkipSessionsWelcome(this.environmentService)) {
+		if (shouldSkipDroxSessionsSignIn(this.productService)) {
+			this.logService.info('[sessions welcome] Drox agents window');
+			const isFirstLaunch = !this.storageService.getBoolean(WELCOME_COMPLETE_KEY, StorageScope.APPLICATION, false);
+			if (isFirstLaunch) {
+				void this._showDroxWelcomeDialog();
+			} else {
+				this._completeSessionsSetupWithoutAuth();
+			}
+			return;
+		}
+
+		if (!this.productService.defaultChatAgent?.chatExtensionId) {
 			this.onCompleted();
 			return;
 		}
@@ -245,6 +266,11 @@ class SessionsSetUpWidget extends Disposable {
 			return;
 		}
 
+		if (shouldSkipDroxSessionsSignIn(this.productService)) {
+			this._completeSessionsSetupWithoutAuth();
+			return;
+		}
+
 		this.watcherRef.clear();
 		this.dialogRef.value = new DisposableStore();
 
@@ -295,11 +321,20 @@ class SessionsSetUpWidget extends Disposable {
 		overlay.setAttribute('role', 'status');
 		overlay.setAttribute('aria-busy', 'true');
 		overlay.setAttribute('aria-label', localize('loading', "Loading"));
-		append(overlay, $('div.sessions-loading-icon.codicon.codicon-agent'));
+		if (shouldSkipDroxSessionsSignIn(this.productService)) {
+			appendDroxActivityGrid(overlay, 'activity-grid activity-grid-inline sessions-loading-grid');
+		} else {
+			append(overlay, $('div.sessions-loading-icon.codicon.codicon-agent'));
+		}
 		return { element: overlay, dispose: () => overlay.remove() };
 	}
 
 	private async _showSignInDialog(): Promise<void> {
+		if (shouldSkipDroxSessionsSignIn(this.productService)) {
+			this._completeSessionsSetupWithoutAuth();
+			return;
+		}
+
 		this.logService.info('[sessions welcome] Showing sign-in dialog');
 
 		const signingInDialogRef = new MutableDisposable<DisposableStore>();
@@ -369,6 +404,46 @@ class SessionsSetUpWidget extends Disposable {
 
 		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
 		this.serviceMarkDone();
+	}
+
+	private async _showDroxWelcomeDialog(): Promise<void> {
+		if (this.dialogRef.value) {
+			return;
+		}
+
+		this.logService.info('[sessions welcome] Showing Drox welcome dialog');
+
+		const disposables = new DisposableStore();
+		this.dialogRef.value = disposables;
+
+		const welcomeVisibleKey = SessionsWelcomeVisibleContext.bindTo(this.contextKeyService);
+		welcomeVisibleKey.set(true);
+		disposables.add(toDisposable(() => welcomeVisibleKey.reset()));
+
+		const productName = this.productService.nameLong || 'Drox';
+		const dialog = disposables.add(new Dialog(
+			this.layoutService.activeContainer,
+			localize('sessions.droxWelcome.title', "Welcome to {0} Agents", productName),
+			[localize('sessions.droxWelcome.getStarted', "Get Started")],
+			createWorkbenchDialogOptions({
+				type: 'none',
+				extraClasses: ['chat-setup-dialog', 'sessions-welcome-dialog', 'sessions-main-welcome-dialog', 'sessions-drox-welcome-dialog'],
+				detail: localize(
+					'sessions.droxWelcome.detail',
+					"Local agent powered by drox.exe. Open a workspace folder, choose a model in Drox Settings, and start building — no GitHub account required.",
+				),
+				icon: Codicon.sparkle,
+				alignment: DialogContentsAlignment.Vertical,
+				cancelId: 1,
+				disableCloseButton: true,
+			}, this.keybindingService, this.layoutService, this.hostService)
+		));
+
+		await dialog.show();
+		disposables.dispose();
+		this.dialogRef.clear();
+
+		this._completeSessionsSetupWithoutAuth();
 	}
 
 	private _createWelcomeFooter(disposables: DisposableStore): HTMLElement {

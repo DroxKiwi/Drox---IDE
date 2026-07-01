@@ -13,7 +13,8 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { IProgressService, ProgressLocation } from '../../../../platform/progress/common/progress.js';
-import { DroxSetting, readArchitectModel } from '../common/droxConfiguration.js';
+import { applyDroxConfigurationUpdate, readDroxArchitectModelForContext } from '../common/droxAgentsConfiguration.js';
+import { DroxSetting } from '../common/droxConfiguration.js';
 import { IDroxLongMemoryService } from '../common/droxLongMemoryService.js';
 import { IDroxSessionCompactService } from '../common/droxSessionCompactService.js';
 import { formatSessionCompactChatMessage } from '../common/droxSessionCompact.js';
@@ -85,20 +86,20 @@ export class DroxSlashCommandService implements IDroxSlashCommandService {
 
 			case 'model': {
 				if (args.length > 0) {
-					await this.configurationService.updateValue(DroxSetting.ArchitectModel, args, { resource: wsUri });
+					await applyDroxConfigurationUpdate(this.configurationService, DroxSetting.ArchitectModel, args, wsUri);
 					ctx.post({
 						kind: 'append',
 						role: 'system',
-						text: localize('drox.slash.modelSet', 'Workspace model set to `{0}`.', args),
+						text: localize('drox.slash.modelSet', 'Model set to `{0}`.', args),
 					});
 				} else {
-					const cur = readArchitectModel(this.configurationService, wsUri);
+					const cur = readDroxArchitectModelForContext(this.configurationService, wsUri);
 					ctx.post({
 						kind: 'append',
 						role: 'system',
 						text: cur
-							? localize('drox.slash.modelCurrent', 'Current model (workspace): `{0}`. Use `/model <name>` to change.', cur)
-							: localize('drox.slash.modelUnset', 'No `drox.architect.model` for this workspace — defaults / `.drox/env`.'),
+							? localize('drox.slash.modelCurrent', 'Current model: `{0}`. Use `/model <name>` to change.', cur)
+							: localize('drox.slash.modelUnset', 'No `drox.architect.model` configured — defaults / `.drox/env`.'),
 					});
 				}
 				return;

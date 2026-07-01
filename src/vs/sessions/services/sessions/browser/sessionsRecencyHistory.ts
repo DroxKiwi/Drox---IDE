@@ -89,6 +89,24 @@ export class SessionsRecencyHistory extends Disposable {
 		this._bumpVersion();
 	}
 
+	/** Re-read persisted recency (e.g. after another window updated storage). */
+	reloadFromStorage(): void {
+		const loaded = this._load();
+		const prev = JSON.stringify(this._entries.map(e => ({
+			session: e.sessionResource.toString(),
+			chat: e.chatResource?.toString(),
+		})));
+		const next = JSON.stringify(loaded.map(e => ({
+			session: e.sessionResource.toString(),
+			chat: e.chatResource?.toString(),
+		})));
+		if (prev === next) {
+			return;
+		}
+		this._entries = loaded;
+		this._bumpVersion();
+	}
+
 	/** Remove every entry matching the given predicate. */
 	remove(predicate: (entry: IRecencyEntry) => boolean): void {
 		const next = this._entries.filter(e => !predicate(e));

@@ -29,6 +29,7 @@ import { IContextKeyService } from '../../../../../platform/contextkey/common/co
 import { isWeb } from '../../../../../base/common/platform.js';
 import { InEditorZenModeContext } from '../../../../common/contextkeys.js';
 import { ChatConfiguration } from '../../common/constants.js';
+import { DroxCopilotSignInHiddenContextKey } from '../../../drox/common/droxAgentsConfiguration.js';
 
 /**
  * Tracks whether Copilot is currently blocked by a reached quota limit, has
@@ -165,6 +166,12 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 	}
 
 	private update(): void {
+		if (DroxCopilotSignInHiddenContextKey.getValue(this.contextKeyService)) {
+			this.entry?.dispose();
+			this.entry = undefined;
+			return;
+		}
+
 		const sentiment = this.chatEntitlementService.sentiment;
 		if (!sentiment.hidden) {
 			const props = this.getEntryProps();
@@ -185,7 +192,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 		this._register(this.chatEntitlementService.onDidChangeSentiment(() => this.update()));
 		this._register(this.chatEntitlementService.onDidChangeEntitlement(() => this.onQuotaChanged()));
 		this._register(this.contextKeyService.onDidChangeContext(e => {
-			if (e.affectsSome(ChatStatusBarEntry.TITLE_BAR_CONTEXT_KEYS)) {
+			if (e.affectsSome(ChatStatusBarEntry.TITLE_BAR_CONTEXT_KEYS) || e.affectsSome(new Set([DroxCopilotSignInHiddenContextKey.key]))) {
 				this.update();
 			}
 		}));

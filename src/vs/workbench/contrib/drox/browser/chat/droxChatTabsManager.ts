@@ -7,10 +7,13 @@
 
 import { localize } from '../../../../../nls.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import { IStorageService } from '../../../../../platform/storage/common/storage.js';
 import { deriveTitleFromTranscriptMessages, IDroxTranscriptMessage, isListableDroxSessionId } from '../../common/droxSession.js';
 import { deriveSessionTabTitle } from '../../common/droxUserPromptSticky.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
+import { enrichDroxSessionListEntries } from '../../common/droxNativeChatSessionResolver.js';
+import { readDroxEngineSessionRecency, sortDroxSessionEntriesByRecency, markDroxEngineSessionOpened } from '../../common/droxSharedChatSessionHistory.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { IDroxChatAgentDoneHost } from '../droxChatAgentEvents.js';
 import { DroxChatLayoutStore, DROX_CHAT_LAYOUT_VERSION } from '../droxChatLayoutStore.js';
@@ -89,6 +92,7 @@ export class DroxChatTabsManager {
 		private readonly workspaceContextService: IWorkspaceContextService,
 		private readonly sessionService: IDroxSessionService,
 		private readonly chatSessionService: IDroxChatSessionService,
+		private readonly storageService: IStorageService,
 	) { }
 
 	getActiveTab(): IDroxChatTab | undefined {
@@ -366,6 +370,10 @@ export class DroxChatTabsManager {
 		this.chatSessionService.setPendingSessionReset(false);
 		this.delegate.syncChatSessionState();
 		this.delegate.clearPendingTools();
+		const ws = this.getWorkspaceFsPath();
+		if (ws && isListableDroxSessionId(sessionId)) {
+			markDroxEngineSessionOpened(this.storageService, ws, sessionId);
+		}
 		this.postTabs();
 		this.sessionHistoryMeta.delete(sessionId);
 		this.loadingOlderSessionId = undefined;
@@ -603,9 +611,13 @@ export class DroxChatTabsManager {
 			return;
 		}
 		try {
-			const items = (await this.sessionService.listSessions(ws))
-				.filter(it => isListableDroxSessionId(it.id));
-			items.sort((a, b) => b.modifiedSecs - a.modifiedSecs);
+			const recency = readDroxEngineSessionRecency(this.storageService, ws);
+			const listed = sortDroxSessionEntriesByRecency(
+				(await this.sessionService.listSessions(ws))
+					.filter(it => isListableDroxSessionId(it.id)),
+				recency,
+			);
+			const items = await enrichDroxSessionListEntries(this.sessionService, ws, listed);
 			const titlesById = new Map(this.openTabs.map(t => [t.sessionId, t.title]));
 			const itemsWithTitles = items.map(it => ({
 				...it,

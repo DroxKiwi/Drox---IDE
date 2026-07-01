@@ -6,6 +6,7 @@
 export namespace DroxViews {
 	export const ViewContainerId = 'workbench.view.drox';
 	export const ChatViewId = 'workbench.view.drox.chat';
+	export const NativeChatViewId = 'workbench.view.drox.nativeChat';
 }
 
 export namespace DroxCommands {
@@ -15,4 +16,6 @@ export namespace DroxCommands {
 	export const AddReferences = 'workbench.action.droxAddReferences';
 	export const AddDiagnosticToChat = 'workbench.action.droxAddDiagnosticToChat';
 	export const RevertLastRun = 'workbench.action.droxRevertLastRun';
+	export const UndoFileChange = 'workbench.action.droxUndoFileChange';
+	export const RedoFileChange = 'workbench.action.droxRedoFileChange';
 }

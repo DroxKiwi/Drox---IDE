@@ -12,8 +12,11 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IRequestService } from '../../../../platform/request/common/request.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { DroxSetting, readArchitectModel, updateDroxLlmModelEnum } from '../common/droxConfiguration.js';
-import { droxConfigChangeAffectsArchitectSettings } from '../common/droxChatConfigSync.js';
+import { IHostService } from '../../../services/host/browser/host.js';
+import { DroxSetting, updateDroxLlmModelEnum } from '../common/droxConfiguration.js';
+import { isDroxEmbeddingModelId } from '../common/droxAgentsModels.js';
+import { readDroxArchitectModelUser } from '../common/droxAgentsConfiguration.js';
+import { droxConfigChangeAffectsArchitectSettings, droxLlmSnapshotDiffersFromConfiguration } from '../common/droxChatConfigSync.js';
 import {
 	buildLlmModelListUrl,
 	createDroxLlmHttpGet,
@@ -52,6 +55,7 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 		@IRequestService private readonly requestService: IRequestService,
 		@IDroxEngineService private readonly droxEngineService: IDroxEngineService,
 		@ILogService private readonly logService: ILogService,
+		@IHostService private readonly hostService: IHostService,
 	) {
 		super();
 
@@ -67,6 +71,15 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 				|| e.affectsConfiguration(DroxSetting.ApiKey)
 				|| e.affectsConfiguration(DroxSetting.LlmHeaders)
 			) {
+				void this.refresh();
+			}
+		}));
+		this._register(this.hostService.onDidChangeFocus(focus => {
+			if (!focus) {
+				return;
+			}
+			const workspaceResource = this.workspaceResource();
+			if (droxLlmSnapshotDiffersFromConfiguration(this._snapshot, this.configurationService, workspaceResource)) {
 				void this.refresh();
 			}
 		}));
@@ -89,6 +102,7 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 			this.requestService,
 			apiKey,
 			headers,
+			{ provider, server: configuredServer },
 		);
 
 		let models: string[] = [];
@@ -113,7 +127,7 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 			return;
 		}
 
-		updateDroxLlmModelEnum(models);
+		updateDroxLlmModelEnum(models.filter(model => !isDroxEmbeddingModelId(model)));
 
 		this._setSnapshot({
 			provider,
@@ -131,8 +145,7 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 	}
 
 	private readSelectedModel(): string {
-		const resource = this.workspaceResource();
-		return readArchitectModel(this.configurationService, resource ?? undefined);
+		return readDroxArchitectModelUser(this.configurationService);
 	}
 
 	private _setSnapshot(next: IDroxLlmModelsSnapshot): void {

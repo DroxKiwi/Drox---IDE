@@ -12,11 +12,13 @@ import { IProductService } from '../../../../platform/product/common/productServ
 import { IChatEntitlementService } from '../../../services/chat/common/chatEntitlementService.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
+import { isDroxAgentsWindowEnabled } from '../common/droxAgentsConfiguration.js';
 import { isDroxMicrosoftAgentsSurfaceEnabled } from '../common/droxMicrosoftAgentsSurface.js';
 
 /**
- * Masque les surfaces Agents / chat VS Code quand `droxMicrosoftAgentsSurfaceEnabled` ≠ true.
- * Réactivation : voir D1-DESACTIVATION-MICROSOFT-AGENTS-1.3.2.md
+ * Masque les surfaces Agents / chat Microsoft quand `droxMicrosoftAgentsSurfaceEnabled` ≠ true.
+ * La fenêtre Agents Drox (`drox.exe`) reste activée par défaut (A1).
+ * Réactivation surfaces MS : voir D1-DESACTIVATION-MICROSOFT-AGENTS-1.3.2.md
  */
 class DroxMicrosoftAgentsSurfaceContribution implements IWorkbenchContribution {
 	static readonly ID = 'workbench.contrib.droxMicrosoftAgentsSurface';
@@ -33,17 +35,19 @@ class DroxMicrosoftAgentsSurfaceContribution implements IWorkbenchContribution {
 		const apply = (key: string, value: unknown) => {
 			configurationService.updateValue(key, value, ConfigurationTarget.APPLICATION);
 		};
-		// D1 — Agents / chat VS Code off
+		const droxAgentsWindow = isDroxAgentsWindowEnabled(configurationService);
+		// D1 — Copilot / entitlement Microsoft off ; fenêtre Agents Drox on par défaut
 		chatEntitlementService.setForceHidden(true);
-		apply(ChatConfiguration.AgentEnabled, false);
+		apply(ChatConfiguration.AgentEnabled, droxAgentsWindow);
 		apply(ChatConfiguration.GeneralPurposeAgentEnabled, false);
 		apply(ChatConfiguration.AgentStatusEnabled, 'hidden');
 		apply(ChatConfiguration.UnifiedAgentsBar, false);
 		apply(ChatConfiguration.ChatViewSessionsEnabled, false);
 		apply('workbench.startupEditor', 'none');
 		apply('github.copilot.enable', false);
-		// D1.3 — Welcome sans Copilot (walkthrough steps, onboarding overlay, agents banner)
-		apply(ChatConfiguration.AIDisabled, true);
+		apply(ChatConfiguration.TitleBarSignInEnabled, false);
+		// D1.3 — Welcome sans Copilot ; ne pas bloquer la fenêtre Agents Drox
+		apply(ChatConfiguration.AIDisabled, !droxAgentsWindow);
 		apply('workbench.welcomePage.experimentalOnboarding', false);
 		apply('workbench.welcomePage.walkthroughs.openOnInstall', false);
 		apply('settingsSync.enable', false);

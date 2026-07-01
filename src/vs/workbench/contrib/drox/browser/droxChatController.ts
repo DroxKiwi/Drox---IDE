@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Disposable } from '../../../../base/common/lifecycle.js';
+import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
@@ -17,7 +17,7 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { IOutputService } from '../../../services/output/common/output.js';
-import { IStorageService } from '../../../../platform/storage/common/storage.js';
+import { IStorageService, StorageScope } from '../../../../platform/storage/common/storage.js';
 import { IHostService } from '../../../services/host/browser/host.js';
 import { ITerminalService } from '../../terminal/browser/terminal.js';
 import { IDroxEngineNotificationPayload } from '../common/droxIpc.js';
@@ -25,8 +25,14 @@ import { IDroxAttachmentPayload } from '../common/droxAttachments.js';
 import { IDroxAttachmentsService } from '../common/droxAttachmentsService.js';
 import { IDroxClientToolsService } from '../common/droxClientToolsService.js';
 import { IDroxEngineService } from '../common/droxEngineService.js';
+import { applyDroxConfigurationUpdate } from '../common/droxAgentsConfiguration.js';
 import { DroxSetting } from '../common/droxConfiguration.js';
-import { droxConfigChangeAffectsGeneralSettings } from '../common/droxChatConfigSync.js';
+import {
+	DROX_AGENT_SESSIONS_RECENCY_STORAGE_KEY,
+	DROX_WORKSPACE_SESSION_RECENCY_STORAGE_KEY,
+} from '../common/droxSharedChatSessionHistory.js';
+import { readPermissionMode } from '../common/droxRunSettings.js';
+import { droxConfigChangeAffectsArchitectSettings, droxConfigChangeAffectsGeneralSettings, droxConfigChangeAffectsPermissionMode, droxLlmSnapshotDiffersFromConfiguration } from '../common/droxChatConfigSync.js';
 import {
 	getProfessorModeRemovedNotificationMessage,
 	isRemovedProfessorPermissionMode,
@@ -53,7 +59,7 @@ import { IDroxChatAgentDoneHost } from './droxChatAgentEvents.js';
 import { DroxChatTabsManager, DROX_CHAT_TAB_LOAD_FULL, IDroxChatTabsDelegate } from './chat/droxChatTabsManager.js';
 import { IDroxChatSendRunHost } from './chat/droxChatSendRun.js';
 import { pushGeneralSettingsToWebview } from './chat/droxChatGeneralSettings.js';
-import { pushLlmModelsSnapshotToWebview } from './chat/droxChatLlmModels.js';
+import { pushLlmModelsSnapshotToWebview, refreshDroxChatLlmModels } from './chat/droxChatLlmModels.js';
 import { IDroxChatWebviewRouterDeps, IDroxChatWebviewRouterHost, routeDroxChatWebviewMessage } from './chat/droxChatWebviewRouter.js';
 import { IDroxLlmModelsService } from '../common/droxLlmModelsService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
@@ -113,12 +119,14 @@ export class DroxChatController extends Disposable
 		super();
 		this._layoutStore = new DroxChatLayoutStore(this.storageService);
 		this._register(this.droxEngineService.onDidInitialize(() => this.postProductVersionToWebview()));
+		const recencyListenerStore = this._register(new DisposableStore());
 		this._tabs = new DroxChatTabsManager(
 			this,
 			this._layoutStore,
 			this.workspaceContextService,
 			this.sessionService,
 			this.chatSessionService,
+			this.storageService,
 		);
 		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
 			void this._tabs.reloadTabsForWorkspace(this._webviewReady, this._currentRunId);
@@ -136,6 +144,16 @@ export class DroxChatController extends Disposable
 		this._register(this.composerBridgeService.onRequestNewChat(() => {
 			this._tabs.openNewChatTab();
 		}));
+		this._register(this.storageService.onDidChangeValue(StorageScope.WORKSPACE, DROX_AGENT_SESSIONS_RECENCY_STORAGE_KEY, recencyListenerStore)(() => {
+			if (this._webviewReady) {
+				void this._tabs.sendSessionsList();
+			}
+		}));
+		this._register(this.storageService.onDidChangeValue(StorageScope.PROFILE, DROX_WORKSPACE_SESSION_RECENCY_STORAGE_KEY, recencyListenerStore)(() => {
+			if (this._webviewReady) {
+				void this._tabs.sendSessionsList();
+			}
+		}));
 		this._register(this.llmModelsService.onDidChange(snapshot => {
 			if (!this._webviewReady) {
 				return;
@@ -148,10 +166,18 @@ export class DroxChatController extends Disposable
 			);
 		}));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (!this._webviewReady || !droxConfigChangeAffectsGeneralSettings(e)) {
+			if (!this._webviewReady) {
 				return;
 			}
-			pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService);
+			if (droxConfigChangeAffectsPermissionMode(e)) {
+				this.post({ kind: 'permissionMode', mode: this.runSettingsService.getPermissionMode() });
+			}
+			if (droxConfigChangeAffectsGeneralSettings(e)) {
+				pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService);
+			}
+			if (droxConfigChangeAffectsArchitectSettings(e)) {
+				void refreshDroxChatLlmModels(this, this.llmModelsService, this.runSettingsService, this.configurationService);
+			}
 		}));
 		this._register(this.runRevertService.onDidChangeRevertable(() => {
 			if (this._webviewReady) {
@@ -159,8 +185,15 @@ export class DroxChatController extends Disposable
 			}
 		}));
 		this._register(this.hostService.onDidChangeFocus(focus => {
-			if (focus && this._webviewReady) {
-				this.reconcileChatBusyState();
+			if (!focus || !this._webviewReady) {
+				return;
+			}
+			this.reconcileChatBusyState();
+			this.post({ kind: 'permissionMode', mode: this.runSettingsService.getPermissionMode() });
+			pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService);
+			const workspaceResource = this.workspaceContextService.getWorkspace().folders[0]?.uri;
+			if (droxLlmSnapshotDiffersFromConfiguration(this.llmModelsService.snapshot, this.configurationService, workspaceResource)) {
+				void refreshDroxChatLlmModels(this, this.llmModelsService, this.runSettingsService, this.configurationService);
 			}
 		}));
 	}
@@ -421,12 +454,12 @@ export class DroxChatController extends Disposable
 
 	private migrateRemovedProfessorPermissionModeIfNeeded(): void {
 		const resource = this.workspaceUri();
-		const raw = this.configurationService.getValue<string>(DroxSetting.PermissionMode, { resource });
+		const raw = readPermissionMode(this.configurationService, resource);
 		if (!isRemovedProfessorPermissionMode(raw)) {
 			return;
 		}
 		this.notificationService.warn(getProfessorModeRemovedNotificationMessage());
-		void this.configurationService.updateValue(DroxSetting.PermissionMode, 'imNotCrazy', { resource });
+		void applyDroxConfigurationUpdate(this.configurationService, DroxSetting.PermissionMode, 'imNotCrazy', resource);
 	}
 
 	private _webviewRouterDeps(): IDroxChatWebviewRouterDeps {

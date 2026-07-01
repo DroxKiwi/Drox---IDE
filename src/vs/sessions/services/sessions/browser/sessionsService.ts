@@ -122,6 +122,9 @@ export interface ISessionsService {
 	 */
 	getRecentlyOpenedSessions(): IRecentlyOpenedSessions;
 
+	/** Recharge l'historique MRU depuis le stockage (sync inter-fenetres). */
+	reloadRecencyFromStorage(): void;
+
 	/**
 	 * Select an existing session as the active session and show it in the grid.
 	 * When `options.preserveFocus` is set, the session is shown without moving
@@ -478,6 +481,10 @@ export class SessionsService extends Disposable implements ISessionsService {
 			}
 		}));
 		this._sendFollow.value = store;
+	}
+
+	reloadRecencyFromStorage(): void {
+		this._recencyHistory.reloadFromStorage();
 	}
 
 	getRecentlyOpenedSessions(): IRecentlyOpenedSessions {

@@ -15,10 +15,11 @@ import {
 	TelemetryConfiguration,
 } from '../../../../platform/telemetry/common/telemetry.js';
 import { ChatConfiguration } from '../../chat/common/constants.js';
+import { DROX_THINKING_PHRASES } from './droxThinkingPhrases.js';
 
 /**
  * Overrides de défauts produit Drox (chargé après `chat.shared.contribution`).
- * Désactive l'écosystème Agents / Copilot VS Code — Drox Chat reste le canal agent.
+ * Active la fenêtre Agents Drox (`drox.exe`) ; garde Copilot / surfaces Microsoft désactivées.
  */
 export function registerDroxProductDefaultsConfiguration(): void {
 	Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration({
@@ -27,10 +28,10 @@ export function registerDroxProductDefaultsConfiguration(): void {
 		properties: {
 			[ChatConfiguration.AgentEnabled]: {
 				type: 'boolean',
-				default: false,
+				default: true,
 				description: localize(
 					'drox.product.chatAgentEnabled',
-					'When enabled, VS Code Agent mode and the separate Agents window are available. Drox IDE disables this by default; use Drox Chat instead.',
+					'When enabled, VS Code Agent mode and the separate Agents window are available. Enabled by default in Drox IDE (Drox engine, not GitHub Copilot).',
 				),
 				scope: ConfigurationScope.APPLICATION,
 			},
@@ -84,12 +85,39 @@ export function registerDroxProductDefaultsConfiguration(): void {
 				),
 				scope: ConfigurationScope.APPLICATION,
 			},
-			[ChatConfiguration.AIDisabled]: {
+			[ChatConfiguration.TitleBarSignInEnabled]: {
+				type: 'boolean',
+				default: false,
+				description: localize(
+					'drox.product.titleBarSignIn',
+					'Copilot Sign In button in the title bar. Hidden by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			[ChatConfiguration.TitleBarOpenInAgentsWindowEnabled]: {
 				type: 'boolean',
 				default: true,
 				description: localize(
+					'drox.product.openInAgentsWindow',
+					'Show the Open in Agents Window button in the title bar. Enabled by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			'sessions.chat.localAgent.enabled': {
+				type: 'boolean',
+				default: false,
+				description: localize(
+					'drox.product.sessionsLocalAgent',
+					'Enable Local VS Code chat sessions (Copilot) in the Agents window. Off by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			[ChatConfiguration.AIDisabled]: {
+				type: 'boolean',
+				default: false,
+				description: localize(
 					'drox.product.disableAIFeatures',
-					'Disable and hide built-in GitHub Copilot AI features (chat setup, walkthrough steps, agents banner). Drox Chat remains available.',
+					'Disable and hide built-in GitHub Copilot AI features (chat setup, walkthrough steps, agents banner). Off by default so the Drox Agents window works without extra setup.',
 				),
 				scope: ConfigurationScope.APPLICATION,
 			},
@@ -145,6 +173,18 @@ export function registerDroxProductDefaultsConfiguration(): void {
 				description: localize(
 					'drox.product.enableCrashReporter',
 					'Microsoft crash reporter. Disabled by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			[ChatConfiguration.ThinkingPhrases]: {
+				type: 'object',
+				default: {
+					mode: 'replace',
+					phrases: [...DROX_THINKING_PHRASES],
+				},
+				description: localize(
+					'drox.product.thinkingPhrases',
+					'Drox loading phrases during agent thinking and tool progress (replaces Copilot defaults).',
 				),
 				scope: ConfigurationScope.APPLICATION,
 			},

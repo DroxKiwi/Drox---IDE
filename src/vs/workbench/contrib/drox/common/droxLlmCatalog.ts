@@ -10,14 +10,23 @@ import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { asText, IRequestService } from '../../../../platform/request/common/request.js';
+import { readDroxChatConfigurationString, readDroxChatConfigurationValue } from './droxAgentsConfiguration.js';
 import { DroxSetting } from './droxConfiguration.js';
 import { readWorkspaceDroxEnv } from './droxEnvFile.js';
-import { mergeLlmHttpHeaders, readLlmHeadersMap } from './droxLlmHeaders.js';
+import { mergeLlmHttpHeaders, readLlmHeadersMap, type IDroxLlmAuthContext } from './droxLlmHeaders.js';
 
-export type DroxLlmProviderId = 'ollama' | 'vllm' | 'lmstudio' | 'huggingface' | 'mistral' | 'openai_compatible';
+export type DroxLlmProviderId =
+	| 'ollama'
+	| 'vllm'
+	| 'lmstudio'
+	| 'huggingface'
+	| 'mistral'
+	| 'scaleway'
+	| 'ovhcloud'
+	| 'openai_compatible';
 
 export const DROX_LLM_PROVIDERS: readonly DroxLlmProviderId[] = [
-	'ollama', 'vllm', 'lmstudio', 'huggingface', 'mistral', 'openai_compatible',
+	'ollama', 'vllm', 'lmstudio', 'huggingface', 'mistral', 'scaleway', 'ovhcloud', 'openai_compatible',
 ];
 
 export const DROX_DEFAULT_LLM_SERVER: Record<DroxLlmProviderId, string> = {
@@ -26,6 +35,8 @@ export const DROX_DEFAULT_LLM_SERVER: Record<DroxLlmProviderId, string> = {
 	lmstudio: 'http://127.0.0.1:1234',
 	huggingface: 'https://router.huggingface.co/v1',
 	mistral: 'https://api.mistral.ai/v1',
+	scaleway: 'https://api.scaleway.ai/v1',
+	ovhcloud: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1',
 	openai_compatible: '',
 };
 
@@ -53,6 +64,8 @@ export function parseLlmProvider(value: unknown): DroxLlmProviderId {
 		|| value === 'ollama'
 		|| value === 'huggingface'
 		|| value === 'mistral'
+		|| value === 'scaleway'
+		|| value === 'ovhcloud'
 		|| value === 'openai_compatible'
 	) {
 		return value;
@@ -61,7 +74,7 @@ export function parseLlmProvider(value: unknown): DroxLlmProviderId {
 }
 
 export function readLlmProvider(configService: IConfigurationService, resource?: URI): DroxLlmProviderId {
-	return parseLlmProvider(configService.getValue<string>(DroxSetting.LlmProvider, { resource }));
+	return parseLlmProvider(readDroxChatConfigurationValue<string>(configService, DroxSetting.LlmProvider, resource));
 }
 
 /** Normalise une URL de base (sans slash final). */
@@ -105,6 +118,8 @@ export function buildLlmModelListUrl(
 		case 'lmstudio':
 		case 'huggingface':
 		case 'mistral':
+		case 'scaleway':
+		case 'ovhcloud':
 		case 'openai_compatible':
 			return { url: base.endsWith('/v1') ? `${base}/models` : `${base}/v1/models` };
 	}
@@ -121,11 +136,7 @@ export async function resolveLlmCatalogConnection(
 	workspaceUri: URI | undefined,
 ): Promise<IDroxLlmCatalogConnection> {
 	const provider = readLlmProvider(configService, workspaceUri);
-	const resourceOpts = workspaceUri ? { resource: workspaceUri } : {};
-	const read = (key: string): string => {
-		const v = configService.getValue<string>(key, resourceOpts);
-		return typeof v === 'string' ? v.trim() : '';
-	};
+	const read = (key: string): string => readDroxChatConfigurationString(configService, key, workspaceUri);
 	let server = read(DroxSetting.Server);
 	let apiKey = read(DroxSetting.ApiKey);
 	const headers = readLlmHeadersMap(configService, workspaceUri);
@@ -273,8 +284,9 @@ export function createDroxLlmHttpGet(
 	requestService: IRequestService,
 	apiKey: string,
 	customHeaders?: Readonly<Record<string, string>>,
+	authContext?: IDroxLlmAuthContext,
 ): DroxHttpGetFn {
-	const authHeaders = mergeLlmHttpHeaders(apiKey, customHeaders ?? {});
+	const authHeaders = mergeLlmHttpHeaders(apiKey, customHeaders ?? {}, authContext);
 	const hasHeaders = Object.keys(authHeaders).length > 0;
 	const fallback = createRequestServiceHttpGet(requestService, hasHeaders ? authHeaders : undefined);
 	return async (url: string) => {

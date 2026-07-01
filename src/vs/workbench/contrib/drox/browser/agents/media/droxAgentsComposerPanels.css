@@ -1,0 +1,30 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Panneaux montés sur document.body — hors .agent-sessions-workbench */
+.drox-agents-composer-panels-mount {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	pointer-events: none;
+}
+
+.drox-agents-composer-panels-mount .role-model-panel,
+.drox-agents-composer-panels-mount .general-settings-panel,
+.drox-agents-composer-panels-mount .drox-connection-wizard {
+	z-index: 100001;
+	pointer-events: auto;
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-backdrop {
+	pointer-events: auto;
+}
+
+.drox-agents-composer-panels-mount .role-model-panel[hidden],
+.drox-agents-composer-panels-mount .general-settings-panel[hidden],
+.drox-agents-composer-panels-mount .drox-connection-wizard[hidden] {
+	display: none !important;
+	pointer-events: none;
+}

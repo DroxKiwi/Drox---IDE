@@ -3,10 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 // allow-any-unicode-comment-file
+
 import { URI } from '../../../../../base/common/uri.js';
 
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 
+import { applyDroxConfigurationUpdate } from '../../common/droxAgentsConfiguration.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 
 import { clampDroxNumCtx } from '../../common/droxNumCtx.js';
@@ -72,7 +74,7 @@ async function patchOptionalNumber(
 
 	key: string,
 
-	resource: URI | undefined,
+	workspaceResource: URI | undefined,
 
 	value: number | null | undefined,
 
@@ -82,7 +84,7 @@ async function patchOptionalNumber(
 
 	if (value === null) {
 
-		await configService.updateValue(key, undefined, { resource });
+		await applyDroxConfigurationUpdate(configService, key, undefined, workspaceResource);
 
 		return;
 
@@ -92,7 +94,7 @@ async function patchOptionalNumber(
 
 		const n = transform ? transform(value) : value;
 
-		await configService.updateValue(key, n, { resource });
+		await applyDroxConfigurationUpdate(configService, key, n, workspaceResource);
 
 	}
 
@@ -114,9 +116,9 @@ export async function setDroxArchitectModelFromWebview(
 
 ): Promise<void> {
 
-	const resource = deps.runSettingsService.getWorkspaceResource();
+	const workspaceResource = deps.runSettingsService.getWorkspaceResource();
 
-	await deps.configurationService.updateValue(DroxSetting.ArchitectModel, model.trim(), { resource });
+	await applyDroxConfigurationUpdate(deps.configurationService, DroxSetting.ArchitectModel, model.trim(), workspaceResource);
 
 }
 export async function setDroxArchitectLlmParamsFromWebview(
@@ -131,39 +133,41 @@ export async function setDroxArchitectLlmParamsFromWebview(
 
 ): Promise<void> {
 
-	const resource = deps.runSettingsService.getWorkspaceResource();
+	const workspaceResource = deps.runSettingsService.getWorkspaceResource();
 
 	const { configurationService } = deps;
 
 	if (params.numCtx !== undefined && Number.isFinite(params.numCtx)) {
 
-		await configurationService.updateValue(
+		await applyDroxConfigurationUpdate(
+
+			configurationService,
 
 			DroxSetting.NumCtx,
 
 			clampDroxNumCtx(params.numCtx),
 
-			{ resource },
+			workspaceResource,
 
 		);
 
 	}
 
-	await patchOptionalNumber(configurationService, DroxSetting.Temperature, resource, params.temperature);
+	await patchOptionalNumber(configurationService, DroxSetting.Temperature, workspaceResource, params.temperature);
 
-	await patchOptionalNumber(configurationService, DroxSetting.TopP, resource, params.topP);
+	await patchOptionalNumber(configurationService, DroxSetting.TopP, workspaceResource, params.topP);
 
-	await patchOptionalNumber(configurationService, DroxSetting.TopK, resource, params.topK, n => Math.floor(n));
+	await patchOptionalNumber(configurationService, DroxSetting.TopK, workspaceResource, params.topK, n => Math.floor(n));
 
-	await patchOptionalNumber(configurationService, DroxSetting.RepeatPenalty, resource, params.repeatPenalty);
+	await patchOptionalNumber(configurationService, DroxSetting.RepeatPenalty, workspaceResource, params.repeatPenalty);
 
-	await patchOptionalNumber(configurationService, DroxSetting.MinP, resource, params.minP);
+	await patchOptionalNumber(configurationService, DroxSetting.MinP, workspaceResource, params.minP);
 
-	await patchOptionalNumber(configurationService, DroxSetting.Seed, resource, params.seed, n => Math.floor(n));
+	await patchOptionalNumber(configurationService, DroxSetting.Seed, workspaceResource, params.seed, n => Math.floor(n));
 
-	await patchOptionalNumber(configurationService, DroxSetting.PresencePenalty, resource, params.presencePenalty);
+	await patchOptionalNumber(configurationService, DroxSetting.PresencePenalty, workspaceResource, params.presencePenalty);
 
-	await patchOptionalNumber(configurationService, DroxSetting.FrequencyPenalty, resource, params.frequencyPenalty);
+	await patchOptionalNumber(configurationService, DroxSetting.FrequencyPenalty, workspaceResource, params.frequencyPenalty);
 
 	await patchOptionalNumber(
 
@@ -171,7 +175,7 @@ export async function setDroxArchitectLlmParamsFromWebview(
 
 		DroxSetting.MaxTokens,
 
-		resource,
+		workspaceResource,
 
 		params.maxTokens,
 
@@ -183,7 +187,7 @@ export async function setDroxArchitectLlmParamsFromWebview(
 
 		const trimmed = params.keepAlive === null ? '' : String(params.keepAlive).trim();
 
-		await configurationService.updateValue(DroxSetting.KeepAlive, trimmed || undefined, { resource });
+		await applyDroxConfigurationUpdate(configurationService, DroxSetting.KeepAlive, trimmed || undefined, workspaceResource);
 
 	}
 
@@ -194,9 +198,7 @@ export function readDroxRoleModelsForWebview(
 
 ): IDroxArchitectRoleModelsWire {
 
-	const resource = deps.runSettingsService.getWorkspaceResource();
-
-	const llm = deps.runSettingsService.getLlmSettings(resource);
+	const llm = deps.runSettingsService.getLlmSettings();
 
 	const maxTokens = effectiveMaxTokensForRun(llm);
 

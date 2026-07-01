@@ -145,6 +145,7 @@ class MockSessionStore implements ISessionsManagementService {
 	getSessions(): ISession[] { return [...this._sessions.values()]; }
 
 	getRecentlyOpenedSessions(): IRecentlyOpenedSessions { return { recent: [...this._sessions.values()], other: [] }; }
+	reloadRecencyFromStorage(): void { }
 
 	getSession(resource: URI): ISession | undefined {
 		return this._sessions.get(resource.toString());

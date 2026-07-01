@@ -89,6 +89,11 @@
 		if (!panel || !vignette) {
 			return;
 		}
+		const isAgentsComposer = Boolean(panel.closest('.drox-agents-composer-panels-mount'));
+		const titleEl = panel.querySelector('.general-settings-panel-head strong');
+		if (titleEl) {
+			titleEl.textContent = isAgentsComposer ? 'Server settings' : 'General settings';
+		}
 		if (typeof fn.closeConnectionWizard === 'function') {
 			fn.closeConnectionWizard();
 		}

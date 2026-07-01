@@ -51,6 +51,18 @@ export const VALID_SKILL_NAME_REGEX = /^[a-z0-9-]+$/;
  */
 export const AGENT_MD_FILENAME = 'AGENTS.md';
 
+/** Drox workspace memory / project brief at repository root. */
+export const DROX_MD_FILENAME = 'DROX.md';
+
+/** Drox long-term memory file at repository root. */
+export const MEMORY_MD_FILENAME = 'MEMORY.md';
+
+/** Drox workspace configuration folder (skills, rules, sessions, …). */
+export const DROX_CONFIG_FOLDER = '.drox';
+
+/** Instruction rules folder under {@link DROX_CONFIG_FOLDER}. */
+export const DROX_RULES_SOURCE_FOLDER = '.drox/rules';
+
 /**
  * Claude file name.
  */
@@ -160,9 +172,11 @@ export interface IResolvedPromptSourceFolder {
  * All default skill source folders (both workspace and user home).
  */
 export const DEFAULT_SKILL_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
+	{ path: '.drox/skills', source: PromptFileSource.DroxWorkspace, storage: PromptsStorage.local },
 	{ path: '.agents/skills', source: PromptFileSource.AgentsWorkspace, storage: PromptsStorage.local },
 	{ path: '.github/skills', source: PromptFileSource.GitHubWorkspace, storage: PromptsStorage.local },
 	{ path: '.claude/skills', source: PromptFileSource.ClaudeWorkspace, storage: PromptsStorage.local },
+	{ path: '~/.drox/skills', source: PromptFileSource.DroxPersonal, storage: PromptsStorage.user },
 	{ path: '~/.agents/skills', source: PromptFileSource.AgentsPersonal, storage: PromptsStorage.user },
 	{ path: '~/.copilot/skills', source: PromptFileSource.CopilotPersonal, storage: PromptsStorage.user },
 	{ path: '~/.claude/skills', source: PromptFileSource.ClaudePersonal, storage: PromptsStorage.user },
@@ -172,6 +186,7 @@ export const DEFAULT_SKILL_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
  * Default instructions source folders.
  */
 export const DEFAULT_INSTRUCTIONS_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
+	{ path: DROX_RULES_SOURCE_FOLDER, source: PromptFileSource.DroxWorkspace, storage: PromptsStorage.local },
 	{ path: INSTRUCTIONS_DEFAULT_SOURCE_FOLDER, source: PromptFileSource.GitHubWorkspace, storage: PromptsStorage.local },
 	{ path: CLAUDE_RULES_SOURCE_FOLDER, source: PromptFileSource.ClaudeWorkspace, storage: PromptsStorage.local },
 	{ path: '~/.copilot/instructions', source: PromptFileSource.CopilotPersonal, storage: PromptsStorage.user },

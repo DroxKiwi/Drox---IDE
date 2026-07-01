@@ -41,6 +41,17 @@ export function formatDroxNumCtxLabel(tokens: number): string {
 	return String(tokens);
 }
 
+/** Affichage barre de stats : `14k / 32k (43%)`. */
+export function formatDroxContextUsageStat(usedTokens: number, maxCtx: number): string {
+	const used = Math.max(0, Math.floor(Number.isFinite(usedTokens) ? usedTokens : 0));
+	const max = clampDroxNumCtx(maxCtx);
+	if (max <= 0) {
+		return formatDroxNumCtxLabel(used) || '0';
+	}
+	const pct = Math.round((used / max) * 100);
+	return `${formatDroxNumCtxLabel(used)} / ${formatDroxNumCtxLabel(max)} (${pct}%)`;
+}
+
 export function clampDroxNumCtx(value: unknown): number {
 	const n = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : DROX_DEFAULT_NUM_CTX;
 	return Math.min(DROX_NUM_CTX_MAX, Math.max(DROX_NUM_CTX_MIN, n));

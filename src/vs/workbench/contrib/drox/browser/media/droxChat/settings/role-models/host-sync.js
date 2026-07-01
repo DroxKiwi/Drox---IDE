@@ -17,7 +17,11 @@
 			D.state.architectModel = payload.architectModel.trim();
 		}
 		if (payload.architectNumCtx !== undefined && payload.architectNumCtx !== null) {
-			D.state.architectNumCtx = D.fn.clampArchitectNumCtx(payload.architectNumCtx);
+			const n = D.fn.clampArchitectNumCtx(payload.architectNumCtx);
+			D.state.architectNumCtx = n;
+			if (D.state.rolePanelOpen !== 'architect') {
+				D.state.architectNumCtxCustomMode = !D.fn.isArchitectNumCtxPreset(n);
+			}
 		}
 		applyArchitectNumber('architectTemperature', payload.architectTemperature);
 		applyArchitectNumber('architectTopP', payload.architectTopP);
@@ -32,8 +36,11 @@
 			D.state.architectKeepAlive = payload.architectKeepAlive;
 		}
 		fn.syncRoleModelVignetteHints();
-		if (D.state.rolePanelOpen === 'architect') {
-			fn.openRoleModelPanel();
+		if (typeof fn.renderStatus === 'function') {
+			fn.renderStatus();
+		}
+		if (D.state.rolePanelOpen === 'architect' && typeof fn.syncRoleModelPanelFieldsFromState === 'function') {
+			fn.syncRoleModelPanelFieldsFromState();
 		}
 	};
 

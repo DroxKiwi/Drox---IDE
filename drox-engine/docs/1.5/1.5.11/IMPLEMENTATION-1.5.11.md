@@ -271,12 +271,49 @@ Ne pas supprimer le webview avant parité UX prouvée (phases P3–P4).
 
 Peut être reporté en **1.5.12** si la release 1.5.11 doit rester courte.
 
-### Phase P4 — Customizations (après 1.5.9 MCP)
+### Phase P4 — Customizations Drox (2–3 semaines) — **bloquant release 1.5.11**
+
+**Objectif** : réapproprier le panneau **Customizations** de la fenêtre Agents via un harness **`drox`**, sans Copilot — fichiers locaux + MCP au choix de l’utilisateur (local ou cloud).
+
+Références : [AI_CUSTOMIZATIONS.md](../../../../src/vs/sessions/AI_CUSTOMIZATIONS.md) · [PLAN §A4](PLAN-1.5.11.md#a4--customizations-drox-harness-drox-découplage-copilot) · [#16 MCP](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md).
+
+#### P4-a — Harness `drox` (≈ 3–5 j)
 
 | # | Tâche |
 |---|--------|
-| P4-1 | Lien panneau MCP → [brainstorm #16](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md) |
-| P4-2 | Skills / instructions Drox dans panneau latéral |
+| P4-a-1 | Créer `droxCustomizationHarness.ts` — `createDroxHarnessDescriptor()` : `id: 'drox'`, label « Drox », `hiddenSections: [Plugins, Tools]` |
+| P4-a-2 | Enregistrer via `ICustomizationHarnessService.registerExternalHarness` quand `drox.agentsWindow.enabled` |
+| P4-a-3 | Étendre `findHarnessIdForSession` / `ActiveSessionHarnessSyncContribution` pour session type `drox` |
+| P4-a-4 | `getStorageSourceFilter` : sources `[local, user, builtin]` ; racines `workspace/.drox`, optionnel `~/.drox` |
+| P4-a-5 | Smoke : sidebar sans Plugins, sans badge Tools `copilotcli` |
+
+#### P4-b — Instructions & Skills (≈ 5–8 j)
+
+| # | Tâche |
+|---|--------|
+| P4-b-1 | Convention fichiers : `.drox/skills/<name>/SKILL.md`, `DROX.md`, `MEMORY.md` à la racine workspace |
+| P4-b-2 | Adapter scan `IPromptsService` / `AgenticPromptsService` ou `ICustomizationItemProvider` Drox |
+| P4-b-3 | Raccourcis éditeur : « New skill », « Open DROX.md » via `sectionOverrides` |
+| P4-b-4 | Test : skill créé dans UI → `skill_list` le voit au run suivant |
+
+#### P4-c — MCP de base (≈ 5–8 j)
+
+| # | Tâche |
+|---|--------|
+| P4-c-1 | Section **MCP Servers** : réutiliser `IMcpService` existant (pas de galerie Copilot) |
+| P4-c-2 | Documenter lien `drox.tools.mcp.enabled` ↔ outils `mcp__*` au run |
+| P4-c-3 | Smoke : `.mcp.json` workspace → serveur visible ; run avec MCP si setting on |
+| P4-c-4 | (Optionnel 1.5.11) Pont spawn erreurs moteur — sinon report #16 phase 2 |
+
+#### P4-d — Polish sidebar (≈ 2–3 j)
+
+| # | Tâche |
+|---|--------|
+| P4-d-1 | Compteurs Agents/Skills/Instructions/MCP alignés harness `drox` |
+| P4-d-2 | Retirer lecture compteur Tools sur `AGENT_HOST_COPILOT_CLI_SESSION_TYPE` quand harness actif = `drox` |
+| P4-d-3 | Thème rétro : `droxAgentsRetroTheme.css` sur panneau Customizations (déjà partiel) |
+
+**Hors P4-1.5.11** : Hooks Copilot · Plugins marketplace · section Tools Drox (groupes `drox.tools.*`) · doc ops `07-MCP-CONNEXIONS.md` complète.
 
 ---
 
@@ -287,11 +324,13 @@ Peut être reporté en **1.5.12** si la release 1.5.11 doit rester courte.
 ```text
 src/vs/sessions/contrib/providers/drox/
   browser/
-    droxSessionsProvider.ts          # ISessionsProvider
-    droxSession.ts                     # état session + chats
-    droxSessionsProvider.contribution.ts  # enregistrement
+    droxSessionsProvider.ts
+    droxSessionsProvider.contribution.ts
+    droxCustomizationHarness.ts       # P4 — harness ICustomizationHarnessService
+    droxCustomizationHarness.contribution.ts
   test/browser/
     droxSessionsProvider.test.ts
+    droxCustomizationHarness.test.ts   # P4 — filtres + hiddenSections
 
 src/vs/workbench/contrib/drox/common/
   droxAgentRunBridge.ts                # logique run partagée
@@ -299,7 +338,7 @@ src/vs/workbench/contrib/drox/common/
   droxAgentsConfiguration.ts           # drox.agentsWindow.enabled
 
 src/vs/workbench/contrib/drox/browser/agents/
-  droxAgentsChatSink.ts                # mapping → UI Agents
+  droxAgentsChatSink.ts                # mapping → UI Agents (deltas, thinking, phases)
 ```
 
 ### 6.2 Modifications existantes
@@ -309,6 +348,7 @@ src/vs/workbench/contrib/drox/browser/agents/
 | `droxChatSendRun.ts` | déléguer à `droxAgentRunBridge` |
 | `droxProductDefaultsConfiguration.ts` | réactivation **conditionnelle** `chat.agent.enabled` |
 | `drox.contribution.ts` | enregistrer contribution Agents si electron |
+| `customizationsToolbar.contribution.ts` | P4-d — compteurs sidebar harness `drox` |
 | `product.json` | optionnel : métadonnées sessions Drox |
 | Build Drox | exclure ou `when: false` sur `CopilotChatSessionsProvider` nominal |
 
@@ -325,8 +365,9 @@ Référence moteur : [GUIDE-MOTEUR-DROX § événements](../../0.0/guides/GUIDE-
 
 | `event.kind` | Action sink Agents (MVP) | Post-MVP |
 |--------------|--------------------------|----------|
-| `text_delta` | append assistant text | — |
-| `user_facing_reply` | replace / append bloc dédié | — |
+| `text_delta` | append delta (`markdownContent` ou `thinking` selon phase) | — |
+| `user_facing_reply` | réponse canonique (suffixe si stream partiel) | — |
+| `phase_enter` / `phase_close` | routage thinking vs answering | — |
 | `tool_start` | afficher carte tool (nom + args résumé) | progress |
 | `tool_finish` | résultat / erreur | lien fichier si mutation |
 | `phase_enter` | ignoré ou badge discret | rail phases |
@@ -363,7 +404,8 @@ Ordre recommandé :
 |------|---------|
 | Provider : create + sendRequest mock engine | `droxSessionsProvider.test.ts` |
 | Bridge : params identiques webview / Agents | `droxAgentRunBridge.test.ts` |
-| Mapping événement → sink | reprendre patterns `droxChatAgentEvents` tests |
+| Mapping événement → sink | `droxAgentsChatSink.test.ts` |
+| Harness Customizations Drox | `droxCustomizationHarness.test.ts` |
 
 ### 9.2 Manuels release
 
@@ -377,6 +419,14 @@ Ordre recommandé :
 | M6 | Stop run | Annulation propre |
 | M7 | Drox Chat webview | Inchangé (non-régression) |
 | M8 | Sans réseau | Run local OK |
+
+### 9.3 Smoke Customizations (M9–M11)
+
+| # | Scénario | Attendu |
+|---|----------|---------|
+| M9 | Session Drox active → sidebar Customizations | Harness « Drox » ; **pas** Plugins ni Tools (6) Copilot |
+| M10 | Créer un skill via éditeur Customizations | Fichier `.drox/skills/.../SKILL.md` ; run suivant : `skill_list` OK |
+| M11 | Ajouter serveur MCP workspace | Visible dans MCP Servers ; `mcp__*` au run si `drox.tools.mcp.enabled` |
 
 ---
 
@@ -406,10 +456,10 @@ Ordre recommandé :
 | P0 Spike | 1–2 sem. | 2 sem. |
 | P1 Run utilisable | 2–3 sem. | 5 sem. |
 | P2 Rebrand | 1–2 sem. | 7 sem. |
-| P3 Changes | 3–4 sem. | 11 sem. |
-| P4 Customizations | 2 sem. | 13 sem. |
+| P4 Customizations Drox | 2–3 sem. | **9–10 sem.** |
+| P3 Changes (1.5.12) | 3–4 sem. | hors ship 1.5.11 |
 
-**Release 1.5.11 réaliste** : P0 + P1 + P2 (**~5–7 sem.**). P3 peut passer en 1.5.12.
+**Release 1.5.11 réaliste** : P0 + P1 + P2 + **P4** (**~6–8 sem.**). P3 → 1.5.12.
 
 Comparatif : [16-connexions-mcp](../feature-brainstorm/16-connexions-mcp-ui-moteur.md) ~★★☆ — **2–4 sem.** — moins risqué, à livrer avant ou en parallèle début P0.
 
@@ -425,7 +475,9 @@ Comparatif : [16-connexions-mcp](../feature-brainstorm/16-connexions-mcp-ui-mote
 5. Feature flag + réactivation conditionnelle (A1)
 6. P1 tools + ask + models
 7. P2 rebrand
-8. Doc operations + notes release OR
+8. P4 harness Customizations `drox` (P4-a → P4-d)
+9. Doc operations + notes release OR
+10. Smoke M1–M11
 ```
 
 ---

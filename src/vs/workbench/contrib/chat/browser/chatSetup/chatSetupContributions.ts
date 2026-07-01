@@ -23,6 +23,7 @@ import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../../p
 import { CommandsRegistry, ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { ContextKeyExpr, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
+import { DroxCopilotSignInHiddenContext } from '../../../drox/common/droxAgentsConfiguration.js';
 import { IsWebContext } from '../../../../../platform/contextkey/common/contextkeys.js';
 import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { IEnvironmentService } from '../../../../../platform/environment/common/environment.js';
@@ -406,6 +407,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 							ChatContextKeys.Setup.hidden.negate(),
 							ChatContextKeys.Setup.disabledInWorkspace.negate(),
 							ContextKeyExpr.equals(`config.${ChatConfiguration.TitleBarSignInEnabled}`, true),
+							DroxCopilotSignInHiddenContext.negate(),
 							ContextKeyExpr.has('updateTitleBar').negate(),
 							InEditorZenModeContext.negate(),
 						),

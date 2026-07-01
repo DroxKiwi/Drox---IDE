@@ -1,0 +1,54 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.agent-sessions-workbench .drox-agents-chat-status-host {
+	flex: 0 0 auto;
+	width: 100%;
+}
+
+.agent-sessions-workbench .drox-agents-chat-status.status {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	box-sizing: border-box;
+	width: 100%;
+	padding: 4px 12px 6px;
+	border-top: 1px solid var(--drox-ui-green, #3d7a3d);
+	background: var(--vscode-editor-background, #000000);
+	color: var(--vscode-descriptionForeground, #9d9d9d);
+	font-size: 11px;
+	user-select: none;
+}
+
+.agent-sessions-workbench .drox-agents-chat-status .spacer {
+	flex: 1 1 auto;
+}
+
+.agent-sessions-workbench .drox-agents-chat-status .stat {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+}
+
+.agent-sessions-workbench .drox-agents-chat-status .stat-cycle strong {
+	font-variant-numeric: tabular-nums;
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	letter-spacing: 0.02em;
+}
+
+.agent-sessions-workbench .drox-agents-chat-status .stat strong {
+	color: var(--vscode-foreground, #cccccc);
+	font-weight: 500;
+}
+
+.agent-sessions-workbench .drox-agents-chat-status .stat-ctx {
+	min-width: 0;
+	flex: 0 1 auto;
+}
+
+.agent-sessions-workbench .drox-agents-chat-status .stat-ctx strong {
+	font-variant-numeric: tabular-nums;
+}

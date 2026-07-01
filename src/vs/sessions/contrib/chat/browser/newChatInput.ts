@@ -8,6 +8,7 @@ import './media/chatInputMobile.css';
 import * as dom from '../../../../base/browser/dom.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Emitter } from '../../../../base/common/event.js';
+import { onUnexpectedError } from '../../../../base/common/errors.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { Disposable, DisposableStore, MutableDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -34,7 +35,9 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { getDefaultHoverDelegate } from '../../../../base/browser/ui/hover/hoverDelegateFactory.js';
 import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
-import { ThemeIcon } from '../../../../base/common/themables.js';
+import { appendDroxActivityGrid } from '../../../../workbench/contrib/drox/browser/droxActivityGrid.js';
+import { DroxAgentsComposerToolbar } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsComposerToolbar.js';
+import { isDroxAgentsWindowEnabled } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { localize } from '../../../../nls.js';
 import * as aria from '../../../../base/browser/ui/aria/aria.js';
 import { ContextMenuController } from '../../../../editor/contrib/contextmenu/browser/contextmenu.js';
@@ -370,7 +373,15 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		this._contextAttachments.registerPasteHandler(inputArea);
 
 		this._createEditor(inputArea, editorOverflowWidgetsDomNode);
-		this._createInputToolbar(inputArea);
+		let droxComposerToolbar: DroxAgentsComposerToolbar | undefined;
+		if (isDroxAgentsWindowEnabled(this.configurationService)) {
+			try {
+				droxComposerToolbar = this._register(this.instantiationService.createInstance(DroxAgentsComposerToolbar));
+			} catch (err) {
+				onUnexpectedError(err);
+			}
+		}
+		this._createInputToolbar(inputArea, droxComposerToolbar);
 
 		const newChatBottomContainer = dom.append(parent, dom.$('.new-chat-bottom-container'));
 		const newChatControlsContainer = dom.append(newChatBottomContainer, dom.$('.new-chat-controls-container'));
@@ -603,7 +614,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		}));
 	}
 
-	private _createInputToolbar(container: HTMLElement): void {
+	private _createInputToolbar(container: HTMLElement, droxComposerToolbar?: DroxAgentsComposerToolbar): void {
 		const toolbar = dom.append(container, dom.$('.sessions-chat-toolbar'));
 
 		this._createAttachButton(toolbar);
@@ -621,12 +632,14 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 				return undefined;
 			},
 		}));
+		if (droxComposerToolbar) {
+			configContainer.appendChild(droxComposerToolbar.domNode);
+		}
 
 		dom.append(toolbar, dom.$('.sessions-chat-toolbar-spacer'));
 
 		this._loadingSpinner = dom.append(toolbar, dom.$('.sessions-chat-loading-spinner'));
-		const loadingIcon = dom.append(this._loadingSpinner, renderIcon(ThemeIcon.modify(Codicon.loading, 'spin')));
-		loadingIcon.setAttribute('aria-hidden', 'true');
+		appendDroxActivityGrid(this._loadingSpinner);
 		this._register(this.hoverService.setupManagedHover(getDefaultHoverDelegate('mouse'), this._loadingSpinner, localize('loading', "Loading...")));
 		this._loadingSpinner.classList.toggle('visible', this.options.loading.get());
 

@@ -12,6 +12,7 @@ import { IOutputService } from '../../../../services/output/common/output.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxLongMemoryService } from '../../common/droxLongMemoryService.js';
 import { IDroxEngineNotificationPayload } from '../../common/droxIpc.js';
+import { isDroxAgentsWindowRun } from '../../common/droxAgentsActiveRuns.js';
 import {
 	dispatchAgentDone,
 	dispatchAgentEvent,
@@ -121,6 +122,9 @@ export function handleDroxEngineNotification(
 ): void {
 	const { method, params } = payload;
 	const runId = extractAgentNotificationRunId(params);
+	if (isDroxAgentsWindowRun(runId)) {
+		return;
+	}
 	if (runId && runId === host.getSuppressedRunId()) {
 		if (method === 'agent/done') {
 			host.clearSuppressedRunId();

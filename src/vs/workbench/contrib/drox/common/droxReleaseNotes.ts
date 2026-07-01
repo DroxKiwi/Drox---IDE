@@ -42,6 +42,15 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.11':
+			return [
+				localize('drox.releaseNotes.1511.native', '**Native chat** — the IDE **Drox** panel and the **Agents window** use the same `drox.exe` stack (legacy webview tab hidden by default; enable with `drox.ideLegacyWebviewChat.enabled`). Streamed replies, tools, cancel, and blocking questions — no Copilot account.'),
+				localize('drox.releaseNotes.1511.cfg', '**Shared settings** — server, model, and permission mode are stored once (user scope) and stay in sync between the IDE and the Agents window.'),
+				localize('drox.releaseNotes.1511.history', '**Session history** — reopen `.drox/sessions` from the IDE Native tab or the Agents sidebar; picks stay aligned across both surfaces.'),
+				localize('drox.releaseNotes.1511.diffs', '**File changes in the native thread** — inline diff cards with undo/redo (same engine path as Drox Chat).'),
+				localize('drox.releaseNotes.1511.open', '**Open in Agents** — title bar shortcut to jump from the editor to the Agents window with the same project.'),
+				localize('drox.releaseNotes.1511.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.10':
 			return [
 				localize('drox.releaseNotes.1510.recovery', '**Run recovery always on** — **Resume** and **Restart** stay on your last user message during a run, after cancel, or after an LLM error. **Restart** works even while busy (stop + clean retry).'),
@@ -120,6 +129,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.11':
+			return localize(
+				'drox.releaseNotes.1511.message',
+				'Native Drox chat in the IDE and Agents window — one local engine, one model setting, shared session history.',
+			);
 		case '1.5.10':
 			return localize(
 				'drox.releaseNotes.1510.message',

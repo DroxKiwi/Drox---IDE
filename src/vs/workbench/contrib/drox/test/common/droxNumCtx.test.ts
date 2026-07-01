@@ -9,6 +9,7 @@ import {
 	DROX_NUM_CTX_CHOICES,
 	DROX_NUM_CTX_MAX,
 	DROX_NUM_CTX_MIN,
+	formatDroxContextUsageStat,
 	formatDroxNumCtxLabel,
 	isDroxNumCtxPreset,
 	normalizeDroxNumCtx,
@@ -20,6 +21,12 @@ suite('droxNumCtx', () => {
 		assert.strictEqual(formatDroxNumCtxLabel(32_768), '32k');
 		assert.strictEqual(formatDroxNumCtxLabel(1_000_000), '1M');
 		assert.strictEqual(formatDroxNumCtxLabel(48_000), '47k');
+	});
+
+	test('formatDroxContextUsageStat', () => {
+		assert.strictEqual(formatDroxContextUsageStat(14_336, 32_768), '14k / 32k (44%)');
+		assert.strictEqual(formatDroxContextUsageStat(0, 32_768), '0 / 32k (0%)');
+		assert.strictEqual(formatDroxContextUsageStat(32_768, 32_768), '32k / 32k (100%)');
 	});
 
 	test('isDroxNumCtxPreset', () => {

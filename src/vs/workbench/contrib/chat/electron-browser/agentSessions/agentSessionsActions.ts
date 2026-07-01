@@ -38,6 +38,10 @@ import { OPEN_WORKSPACE_IN_AGENTS_WINDOW_COMMAND_ID, OPEN_AGENTS_WINDOW_PRECONDI
 import { CommandsRegistry, ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { IStorageService } from '../../../../../platform/storage/common/storage.js';
+import { DroxChatSessionUri } from '../../../drox/common/droxAgentsSession.js';
+import { isDroxAgentsWindowEnabled } from '../../../drox/common/droxAgentsConfiguration.js';
+import { readLastDroxEngineSessionId } from '../../../drox/common/droxSharedChatSessionHistory.js';
 
 export class OpenWorkspaceInAgentsWindowAction extends Action2 {
 	constructor() {
@@ -67,8 +71,22 @@ export class OpenWorkspaceInAgentsWindowAction extends Action2 {
 	async run(accessor: ServicesAccessor) {
 		const nativeHostService = accessor.get(INativeHostService);
 		const workspaceContextService = accessor.get(IWorkspaceContextService);
+		const configurationService = accessor.get(IConfigurationService);
 		const folderUri = workspaceContextService.getWorkspace().folders[0]?.uri;
-		await nativeHostService.openAgentsWindow({ folderUri: folderUri?.scheme === Schemas.file ? folderUri : undefined });
+		const fileFolderUri = folderUri?.scheme === Schemas.file ? folderUri : undefined;
+
+		let sessionResource: URI | undefined;
+		if (isDroxAgentsWindowEnabled(configurationService) && fileFolderUri) {
+			const lastSessionId = readLastDroxEngineSessionId(accessor.get(IStorageService), fileFolderUri.fsPath);
+			if (lastSessionId) {
+				sessionResource = DroxChatSessionUri.forSession(lastSessionId);
+			}
+		}
+
+		await nativeHostService.openAgentsWindow({
+			folderUri: fileFolderUri,
+			sessionResource: sessionResource?.toJSON(),
+		});
 	}
 }
 

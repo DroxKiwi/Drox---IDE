@@ -39,10 +39,6 @@
 		return document.getElementById('drox-connection-wizard-finish');
 	}
 
-	function wizardResetBtn() {
-		return document.getElementById('drox-connection-wizard-reset');
-	}
-
 	function emptyHeadersRow() {
 		return { name: '', value: '' };
 	}
@@ -135,11 +131,6 @@
 			wizardFinishBtn().disabled = testing;
 			wizardFinishBtn().textContent = testing ? 'Testing…' : 'Test and save';
 		}
-		if (wizardResetBtn()) {
-			const showReset = step === WIZARD_STEPS && (wiz.wasConfigured || fn.isConnectionConfigured());
-			wizardResetBtn().hidden = !showReset;
-			wizardResetBtn().disabled = testing;
-		}
 	}
 
 	function renderTestStatus(wiz) {
@@ -205,19 +196,19 @@
 		syncWizardActionButtons();
 
 		if (step === 1) {
-			body.innerHTML = `
+			fn.setInnerHtml(body, `
 				<p class="drox-wizard-lead">Select how your model is hosted.</p>
 				${stepSelectionHint(wiz)}
 				<div class="drox-wizard-choice-grid" role="radiogroup" aria-label="Hosting">
 					<button type="button" class="drox-wizard-hosting-card${wiz.hosting === 'cloud' ? ' selected' : ''}" data-hosting="cloud" aria-pressed="${wiz.hosting === 'cloud'}">
 						<strong>Cloud</strong>
-						<span>Managed provider (Hugging Face, Mistral, …)</span>
+						<span>Prestataire géré (open-weight &amp; EU : Ollama, HF, Mistral, Scaleway, OVH…)</span>
 					</button>
 					<button type="button" class="drox-wizard-hosting-card${wiz.hosting === 'personal' ? ' selected' : ''}" data-hosting="personal" aria-pressed="${wiz.hosting === 'personal'}">
 						<strong>Self-hosted</strong>
 						<span>Your own server (Ollama, vLLM, …)</span>
 					</button>
-				</div>`;
+				</div>`);
 			for (const btn of body.querySelectorAll('.drox-wizard-hosting-card')) {
 				btn.addEventListener('click', (e) => {
 					e.preventDefault();
@@ -245,15 +236,27 @@
 
 		if (step === 2) {
 			const providers = fn.getConnectionProvidersForHosting(wiz.hosting);
-			const cards = providers.map(p => `
-				<button type="button" class="drox-wizard-provider-card${wiz.provider === p.id ? ' selected' : ''}" data-provider="${p.id}" aria-pressed="${wiz.provider === p.id}">
-					<strong>${p.label}</strong>
+			const cards = providers.map(p => {
+				const gdprBadge = wiz.hosting === 'cloud' && p.euHosted === false
+					? `<span class="drox-wizard-provider-gdpr-badge" title="${fn.escapeHtmlAttr('Outside the European framework, GDPR compliance cannot be guaranteed.')}">&#9888;</span>`
+					: '';
+				return `
+				<button type="button" class="drox-wizard-provider-card${wiz.provider === p.id ? ' selected' : ''}${wiz.hosting === 'cloud' && p.euHosted === false ? ' drox-wizard-provider-card--gdpr' : ''}" data-provider="${p.id}" aria-pressed="${wiz.provider === p.id}">
+					<strong>${p.label}${gdprBadge}</strong>
 					<span>${p.description}</span>
-				</button>`).join('');
-			body.innerHTML = `
+				</button>`;
+			}).join('');
+			const selectedCloud = wiz.hosting === 'cloud' && wiz.provider
+				? fn.findConnectionProviderDef('cloud', wiz.provider)
+				: null;
+			const gdprBanner = typeof fn.cloudGdprWarningHtml === 'function'
+				? fn.cloudGdprWarningHtml(selectedCloud)
+				: '';
+			fn.setInnerHtml(body, `
 				<p class="drox-wizard-lead">${wiz.hosting === 'cloud' ? 'Cloud provider' : 'Self-hosted server'} — Drox engine compatible.</p>
+				${gdprBanner}
 				${stepSelectionHint(wiz)}
-				<div class="drox-wizard-choice-grid drox-wizard-provider-grid" role="radiogroup" aria-label="Provider">${cards}</div>`;
+				<div class="drox-wizard-choice-grid drox-wizard-provider-grid" role="radiogroup" aria-label="Provider">${cards}</div>`);
 			for (const btn of body.querySelectorAll('.drox-wizard-provider-card')) {
 				btn.addEventListener('click', (e) => {
 					e.preventDefault();
@@ -282,25 +285,39 @@
 		if (wiz.hosting === 'cloud') {
 			const def = fn.findConnectionProviderDef('cloud', wiz.provider);
 			if (!def || !def.fields) {
-				body.innerHTML = '<p class="drox-wizard-error">Unknown cloud provider.</p>';
+				fn.setInnerHtml(body, '<p class="drox-wizard-error">Unknown cloud provider.</p>');
 				return;
 			}
 			const fieldsHtml = def.fields.map(field => {
 				const val = wiz.formValues[field.id] ?? '';
 				const inputType = field.type === 'password' ? 'password' : field.type === 'url' ? 'url' : 'text';
 				const placeholder = field.placeholder || (field.type === 'password' && wiz.usingSavedSecrets ? '•••••• (unchanged)' : '');
+				const helpHtml = field.help
+					? `<span class="drox-wizard-field-help">${fn.escapeHtmlAttr(field.help)}</span>`
+					: '';
 				return `
 					<label class="general-settings-field">
 						<span>${field.label}${field.required ? ' *' : ''}</span>
 						<input type="${inputType}" class="general-settings-input drox-wizard-field" data-field-id="${field.id}"
 							placeholder="${fn.escapeHtmlAttr(placeholder)}" value="${fn.escapeHtmlAttr(val)}" autocomplete="off" />
+						${helpHtml}
 					</label>`;
 			}).join('');
-			body.innerHTML = `
+			const docHtml = def.docUrl
+				? `<p class="drox-wizard-hint"><a href="${fn.escapeHtmlAttr(def.docUrl)}" target="_blank" rel="noopener noreferrer">Documentation officielle</a></p>`
+				: '';
+			const setupHtml = def.setupHint
+				? `<p class="drox-wizard-hint">${fn.escapeHtmlAttr(def.setupHint)}</p>`
+				: '';
+			const gdprHtml = typeof fn.cloudGdprWarningHtml === 'function' ? fn.cloudGdprWarningHtml(def) : '';
+			fn.setInnerHtml(body, `
 				${testBlock}
-				<p class="drox-wizard-lead">${def.label} — test the connection before saving.</p>
+				<p class="drox-wizard-lead">${def.label} — testez la connexion avant d’enregistrer.</p>
+				${gdprHtml}
+				${docHtml}
+				${setupHtml}
 				${hintBlock}
-				${fieldsHtml}`;
+				${fieldsHtml}`);
 			for (const input of body.querySelectorAll('.drox-wizard-field')) {
 				input.addEventListener('input', () => {
 					const id = input.getAttribute('data-field-id');
@@ -323,9 +340,10 @@
 				<input type="password" class="general-settings-input drox-wizard-header-value" placeholder="Value" value="${fn.escapeHtmlAttr(row.value)}" autocomplete="off" />
 				<button type="button" class="icon-btn drox-wizard-header-remove" aria-label="Remove" title="Remove">×</button>
 			</div>`).join('');
-		body.innerHTML = `
+		fn.setInnerHtml(body, `
 			${testBlock}
-			<p class="drox-wizard-lead">Your server URL — test before saving.</p>
+			<p class="drox-wizard-lead">URL de votre serveur — auth via headers personnalisés ci-dessous.</p>
+			<p class="drox-wizard-hint">Ex. reverse-proxy : ajoutez <code>x-api-key</code>, <code>Authorization</code>, etc. — rien n’est injecté automatiquement.</p>
 			<label class="general-settings-field">
 				<span>Server URL *</span>
 				<input type="url" id="drox-wizard-personal-server" class="general-settings-input" spellcheck="false"
@@ -334,7 +352,7 @@
 			</label>
 			<p class="general-settings-section-label">Custom headers</p>
 			<div class="drox-wizard-headers">${headerRows}</div>
-			<button type="button" id="drox-wizard-add-header" class="general-settings-panel-btn drox-wizard-add-header">+ Add header</button>`;
+			<button type="button" id="drox-wizard-add-header" class="general-settings-panel-btn drox-wizard-add-header">+ Add header</button>`);
 
 		const serverInput = document.getElementById('drox-wizard-personal-server');
 		if (serverInput) {
@@ -455,7 +473,7 @@
 			}
 		} else {
 			patch.server = String(wiz.server ?? '').trim();
-			patch.apiKey = String(wiz.apiKey ?? '').trim();
+			patch.apiKey = '';
 			const headers = {};
 			for (const row of wiz.headers || []) {
 				const name = String(row.name ?? '').trim();
@@ -468,7 +486,7 @@
 		}
 		if (wiz.usingSavedSecrets && wiz.savedBaseline) {
 			const base = wiz.savedBaseline;
-			if (!patch.apiKey && base.apiKey) {
+			if (wiz.hosting === 'cloud' && !patch.apiKey && base.apiKey) {
 				patch.apiKey = base.apiKey;
 			}
 			patch.llmHeaders = { ...base.llmHeaders, ...patch.llmHeaders };
@@ -569,33 +587,6 @@
 		fn.renderConnectionWizard();
 	};
 
-	fn.requestConnectionReset = function() {
-		if (D.state.busy) {
-			return;
-		}
-		D.vscode.postMessage({ type: 'resetLlmConnection' });
-	};
-
-	fn.handleConnectionResetResult = function(payload) {
-		if (!payload?.ok) {
-			return;
-		}
-		fn.connectionWizardResetDraft({
-			llmHosting: '',
-			llmProvider: 'ollama',
-			server: '',
-			apiKey: '',
-			llmHeaders: {},
-		}, { step: 1 });
-		D.state.connectionWizard.wasConfigured = false;
-		D.state.connectionWizard.usingSavedSecrets = false;
-		D.state.connectionWizard.savedBaseline = null;
-		if (D.state.connectionWizard.open) {
-			fn.renderConnectionWizard();
-		}
-		fn.syncConnectionSummaryInPanel();
-	};
-
 	fn.connectionWizardBack = function() {
 		const wiz = D.state.connectionWizard;
 		if (!wiz || wiz.step <= 1 || wiz.testStatus === 'testing') {
@@ -647,10 +638,6 @@
 		const finish = wizardFinishBtn();
 		if (finish) {
 			finish.addEventListener('click', () => fn.persistConnectionWizard());
-		}
-		const reset = wizardResetBtn();
-		if (reset) {
-			reset.addEventListener('click', () => fn.requestConnectionReset());
 		}
 		const cancel = document.getElementById('drox-connection-wizard-cancel');
 		if (cancel) {

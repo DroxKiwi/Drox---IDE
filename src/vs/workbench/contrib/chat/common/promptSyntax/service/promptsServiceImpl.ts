@@ -29,7 +29,7 @@ import { ITelemetryService } from '../../../../../../platform/telemetry/common/t
 import { IUserDataProfileService } from '../../../../../services/userDataProfile/common/userDataProfile.js';
 import { IVariableReference } from '../../chatModes.js';
 import { PromptsConfig } from '../config/config.js';
-import { AGENT_MD_FILENAME, CLAUDE_CONFIG_FOLDER, CLAUDE_LOCAL_MD_FILENAME, CLAUDE_MD_FILENAME, COPILOT_CONFIG_FOLDER, COPILOT_CUSTOM_INSTRUCTIONS_FILENAME, getCleanPromptName, getSkillFolderName, GITHUB_CONFIG_FOLDER, IResolvedPromptSourceFolder, isInClaudeRulesFolder } from '../config/promptFileLocations.js';
+import { AGENT_MD_FILENAME, CLAUDE_CONFIG_FOLDER, CLAUDE_LOCAL_MD_FILENAME, CLAUDE_MD_FILENAME, COPILOT_CONFIG_FOLDER, COPILOT_CUSTOM_INSTRUCTIONS_FILENAME, DROX_MD_FILENAME, getCleanPromptName, getSkillFolderName, GITHUB_CONFIG_FOLDER, IResolvedPromptSourceFolder, isInClaudeRulesFolder, MEMORY_MD_FILENAME } from '../config/promptFileLocations.js';
 import { PROMPT_LANGUAGE_ID, PromptFileSource, PromptsType, Target, getPromptsTypeForLanguageId } from '../promptTypes.js';
 import { IWorkspaceInstructionFile, PromptFilesLocator } from '../utils/promptFilesLocator.js';
 import { evaluateApplyToPattern, PromptFileParser, ParsedPromptFile, PromptHeaderAttributes } from '../promptFileParser.js';
@@ -740,6 +740,10 @@ export class PromptsService extends Disposable implements IPromptsService {
 		} else {
 			rootFiles.push({ fileName: AGENT_MD_FILENAME, type: AgentInstructionFileType.agentsMd });
 		}
+		rootFiles.push(
+			{ fileName: DROX_MD_FILENAME, type: AgentInstructionFileType.droxMd },
+			{ fileName: MEMORY_MD_FILENAME, type: AgentInstructionFileType.droxMd },
+		);
 		const useClaudeMD = this.configurationService.getValue(PromptsConfig.USE_CLAUDE_MD);
 		if (!useClaudeMD) {
 			logger?.logInfo('Claude MD files are disabled via configuration.');

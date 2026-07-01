@@ -6,7 +6,6 @@
 // allow-any-unicode-comment-file
 
 import { localize } from '../../../../../nls.js';
-import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { IRequestService } from '../../../../../platform/request/common/request.js';
 import {
 	buildLlmModelListUrl,
@@ -16,11 +15,7 @@ import {
 } from '../../common/droxLlmCatalog.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { mergeLlmHttpHeaders } from '../../common/droxLlmHeaders.js';
-import { IDroxGeneralSettingsPatch, IDroxChatGeneralSettingsHost, pushGeneralSettingsToWebview, setDroxGeneralSettingsFromWebview } from './droxChatGeneralSettings.js';
-import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
-import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
-import { refreshDroxChatLlmModels } from './droxChatLlmModels.js';
-import { IDroxLlmModelsService } from '../../common/droxLlmModelsService.js';
+import { IDroxGeneralSettingsPatch } from './droxChatGeneralSettings.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 
 export interface IDroxConnectionTestResult {
@@ -46,7 +41,8 @@ export async function testDroxLlmConnectionDraft(
 	}
 	const apiKey = String(draft.apiKey ?? '').trim();
 	const customHeaders = draft.llmHeaders && typeof draft.llmHeaders === 'object' ? draft.llmHeaders : {};
-	const merged = mergeLlmHttpHeaders(apiKey, customHeaders);
+	const authContext = { provider, server };
+	const merged = mergeLlmHttpHeaders(apiKey, customHeaders, authContext);
 	if (provider !== 'ollama' && !merged['Authorization'] && !merged['authorization'] && !merged['x-api-key'] && !apiKey) {
 		// OpenAI-compatible cloud endpoints usually need auth — still try (local vLLM may not).
 	}
@@ -59,6 +55,7 @@ export async function testDroxLlmConnectionDraft(
 		deps.requestService,
 		apiKey,
 		customHeaders,
+		authContext,
 	);
 	const result = await fetchLlmModelNames(httpGet, provider, server);
 	if (result.error) {
@@ -74,43 +71,6 @@ export async function testDroxLlmConnectionDraft(
 	return { ok: true, modelCount: result.models.length, listUrl: result.listUrl };
 }
 
-export async function confirmAndResetLlmConnection(
-	host: IDroxChatGeneralSettingsHost,
-	deps: {
-		readonly dialogService: IDialogService;
-		readonly runSettingsService: IDroxRunSettingsService;
-		readonly configurationService: IConfigurationService;
-		readonly llmModelsService: IDroxLlmModelsService;
-	},
-): Promise<boolean> {
-	const { confirmed } = await deps.dialogService.confirm({
-		type: 'warning',
-		message: localize('drox.connection.reset.title', 'Reset AI connection?'),
-		detail: localize(
-			'drox.connection.reset.detail',
-			'Hosting, provider, server URL, API keys and custom headers will be cleared. You will need to run the connection wizard again.',
-		),
-		primaryButton: localize(
-			{ key: 'drox.connection.reset.confirm', comment: ['&& denotes a mnemonic'] },
-			'&&Reset',
-		),
-		cancelButton: localize('drox.connection.reset.cancel', 'Cancel'),
-	});
-	if (!confirmed) {
-		return false;
-	}
-	await setDroxGeneralSettingsFromWebview(deps, {
-		llmHosting: '',
-		llmProvider: 'ollama',
-		server: '',
-		apiKey: '',
-		llmHeaders: {},
-	});
-	pushGeneralSettingsToWebview(host, deps.runSettingsService, deps.configurationService);
-	await refreshDroxChatLlmModels(host, deps.llmModelsService, deps.runSettingsService, deps.configurationService);
-	return true;
-}
-
 export function postConnectionTestResult(
 	host: { post(message: DroxHostToWebviewMessage): void },
 	requestId: string,
@@ -124,11 +84,4 @@ export function postConnectionTestResult(
 		modelCount: result.modelCount,
 		listUrl: result.listUrl,
 	});
-}
-
-export function postConnectionResetResult(
-	host: { post(message: DroxHostToWebviewMessage): void },
-	ok: boolean,
-): void {
-	host.post({ kind: 'connectionResetResult', ok });
 }

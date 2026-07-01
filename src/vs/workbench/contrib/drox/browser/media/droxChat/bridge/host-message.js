@@ -112,11 +112,6 @@
 					fn.handleConnectionTestResult(m);
 				}
 				break;
-			case 'connectionResetResult':
-				if (typeof fn.handleConnectionResetResult === 'function') {
-					fn.handleConnectionResetResult(m);
-				}
-				break;
 			case 'runObjective':
 				fn.setRunObjectiveSticky(m);
 				break;

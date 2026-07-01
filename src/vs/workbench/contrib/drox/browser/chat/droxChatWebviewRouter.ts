@@ -19,7 +19,7 @@ import { IEditorService } from '../../../../services/editor/common/editorService
 import { IOutputService } from '../../../../services/output/common/output.js';
 import { ITerminalService } from '../../../terminal/browser/terminal.js';
 import { DroxCommands } from '../../common/drox.js';
-import { DroxSetting } from '../../common/droxConfiguration.js';
+import { setDroxPermissionModeConfiguration } from '../../common/droxAgentsConfiguration.js';
 import {
 	getProfessorModeRemovedNotificationMessage,
 	resolveDroxPermissionMode,
@@ -41,8 +41,6 @@ import {
 } from './droxChatRoleModels.js';
 import { IDroxGeneralSettingsPatch, pushGeneralSettingsToWebview, setDroxGeneralSettingsFromWebview } from './droxChatGeneralSettings.js';
 import {
-	confirmAndResetLlmConnection,
-	postConnectionResetResult,
 	postConnectionTestResult,
 	testDroxLlmConnectionDraft,
 } from './droxChatConnectionTest.js';
@@ -130,16 +128,6 @@ export async function routeDroxChatWebviewMessage(
 			postConnectionTestResult(host, raw.requestId, result);
 			break;
 		}
-		case 'resetLlmConnection': {
-			const ok = await confirmAndResetLlmConnection(host, {
-				dialogService: deps.dialogService,
-				runSettingsService: deps.runSettingsService,
-				configurationService: deps.configurationService,
-				llmModelsService: deps.llmModelsService,
-			});
-			postConnectionResetResult(host, ok);
-			break;
-		}
 		case 'setModel':
 		case 'setArchitectModel':
 			await setDroxArchitectModelFromWebview(deps, raw.model);
@@ -171,7 +159,8 @@ export async function routeDroxChatWebviewMessage(
 			if (resolved.downgradedFromProfessor) {
 				deps.notificationService.warn(getProfessorModeRemovedNotificationMessage());
 			}
-			await deps.configurationService.updateValue(DroxSetting.PermissionMode, resolved.mode);
+			const workspaceResource = deps.runSettingsService.getWorkspaceResource();
+			await setDroxPermissionModeConfiguration(deps.configurationService, resolved.mode, workspaceResource);
 			host.post({ kind: 'permissionMode', mode: resolved.mode });
 			break;
 		}

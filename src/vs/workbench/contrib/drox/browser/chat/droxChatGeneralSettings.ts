@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 // allow-any-unicode-comment-file
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { applyDroxConfigurationUpdate, droxConfigurationResourceForRead, readDroxChatConfigurationValue, readDroxChatConfigurationString } from '../../common/droxAgentsConfiguration.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { readLlmProvider } from '../../common/droxLlmCatalog.js';
 import { readLlmHeadersMap } from '../../common/droxLlmHeaders.js';
@@ -53,7 +54,7 @@ function readBool(
 	resource: ReturnType<IDroxRunSettingsService['getWorkspaceResource']>,
 	defaultValue: boolean,
 ): boolean {
-	const v = configService.getValue<boolean>(key, { resource });
+	const v = readDroxChatConfigurationValue<boolean>(configService, key, resource);
 	return typeof v === 'boolean' ? v : defaultValue;
 }
 export function readDroxGeneralSettingsForWebview(
@@ -61,10 +62,11 @@ export function readDroxGeneralSettingsForWebview(
 		configurationService: IConfigurationService;
 	},
 ): IDroxGeneralSettingsWire {
-	const resource = deps.runSettingsService.getWorkspaceResource();
+	const workspaceResource = deps.runSettingsService.getWorkspaceResource();
+	const resource = droxConfigurationResourceForRead(deps.configurationService, workspaceResource);
 	const llm = readLlmSettings(deps.configurationService, resource);
 	const provider = readLlmProvider(deps.configurationService, resource);
-	const hosting = normalizeDroxLlmHosting(deps.configurationService.getValue<string>(DroxSetting.LlmHosting, { resource }));
+	const hosting = normalizeDroxLlmHosting(readDroxChatConfigurationString(deps.configurationService, DroxSetting.LlmHosting, workspaceResource));
 	const llmHeaders = readLlmHeadersMap(deps.configurationService, resource);
 	const wire: Omit<IDroxGeneralSettingsWire, 'connectionSummary'> = {
 		llmHosting: hosting,
@@ -103,9 +105,9 @@ export async function setDroxGeneralSettingsFromWebview(
 	},
 	patch: IDroxGeneralSettingsPatch,
 ): Promise<void> {
-	const resource = deps.runSettingsService.getWorkspaceResource();
+	const workspaceResource = deps.runSettingsService.getWorkspaceResource();
 	const update = async (key: string, value: unknown): Promise<void> => {
-		await deps.configurationService.updateValue(key, value, { resource });
+		await applyDroxConfigurationUpdate(deps.configurationService, key, value, workspaceResource);
 	};
 	if (patch.llmHosting !== undefined) {
 		const h = normalizeDroxLlmHosting(patch.llmHosting);

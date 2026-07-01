@@ -8,6 +8,8 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 
+import { droxConfigurationResourceForRead } from '../common/droxAgentsConfiguration.js';
+
 import { IDroxAgentRunImage } from '../common/droxAttachments.js';
 
 import { DroxPermissionMode } from '../common/droxPermissionAsk.js';
@@ -48,29 +50,32 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 		return this.workspaceContextService.getWorkspace().folders[0]?.uri;
 
 	}
+	private _llmConfigurationResource(explicit?: URI): URI | undefined {
+		return droxConfigurationResourceForRead(this.configurationService, explicit ?? this.getWorkspaceResource());
+	}
 	getLlmSettings(resource?: URI): IDroxLlmSettings {
 
-		return readLlmSettings(this.configurationService, resource ?? this.getWorkspaceResource());
+		return readLlmSettings(this.configurationService, this._llmConfigurationResource(resource));
 
 	}
 	getEnvOverrides(resource?: URI): Record<string, string> {
 
-		return llmSettingsToEnv(this.getLlmSettings(resource ?? this.getWorkspaceResource()));
+		return llmSettingsToEnv(this.getLlmSettings(resource));
 
 	}
 	getDisabledToolsForRun(resource?: URI): string[] {
 
-		return readDisabledToolsForRun(this.configurationService, resource ?? this.getWorkspaceResource());
+		return readDisabledToolsForRun(this.configurationService, this._llmConfigurationResource(resource));
 
 	}
 	isMcpToolsEnabled(resource?: URI): boolean {
 
-		return isMcpToolsEnabled(this.configurationService, resource ?? this.getWorkspaceResource());
+		return isMcpToolsEnabled(this.configurationService, this._llmConfigurationResource(resource));
 
 	}
 	getPermissionMode(resource?: URI): DroxPermissionMode {
 
-		return readPermissionMode(this.configurationService, resource);
+		return readPermissionMode(this.configurationService, resource ?? this.getWorkspaceResource());
 
 	}
 	filterExecutableTools(toolNames: readonly string[], resource?: URI): string[] {
@@ -94,7 +99,7 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 		skipUserTurn?: boolean;
 	}): Record<string, unknown> {
 
-		const resource = this.getWorkspaceResource();
+		const resource = this._llmConfigurationResource();
 
 		return buildAgentRunParams({
 

@@ -1,0 +1,29 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+// allow-any-unicode-comment-file
+
+import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
+import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+import { DroxCopilotSignInHiddenContextKey, shouldSkipDroxSessionsSignIn } from '../common/droxAgentsConfiguration.js';
+
+/** Lie `droxCopilotSignInHidden` tôt pour masquer les menus / widgets Sign In Copilot. */
+class DroxCopilotSignInContextContribution implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.droxCopilotSignInContext';
+
+	constructor(
+		@IContextKeyService contextKeyService: IContextKeyService,
+		@IProductService productService: IProductService,
+	) {
+		DroxCopilotSignInHiddenContextKey.bindTo(contextKeyService).set(shouldSkipDroxSessionsSignIn(productService));
+	}
+}
+
+registerWorkbenchContribution2(
+	DroxCopilotSignInContextContribution.ID,
+	DroxCopilotSignInContextContribution,
+	WorkbenchPhase.BlockStartup,
+);

@@ -31,6 +31,9 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IWorkbenchContribution } from '../../../common/contributions.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { DroxCommands, DroxViews } from '../common/drox.js';
+import { isDroxIdeNativeChatTabEnabled } from '../common/droxAgentsConfiguration.js';
+import { openDroxIdeChatView } from './chat/droxIdeChatViewRoute.js';
+import { DroxNativeChatViewPane } from './chat/droxNativeChatViewPane.js';
 import { DroxSetting } from '../common/droxConfiguration.js';
 import { IDroxComposerBridgeService } from '../common/droxComposerBridgeService.js';
 import {
@@ -152,14 +155,20 @@ async function runAddDiagnosticToChat(
 	}
 	const viewsService = accessor.get(IViewsService);
 	const workspaceContext = accessor.get(IWorkspaceContextService);
+	const configurationService = accessor.get(IConfigurationService);
 	const composerBridge = accessor.get(IDroxComposerBridgeService);
 
-	await viewsService.openView(DroxViews.ChatViewId, true);
+	await openDroxIdeChatView(accessor, true);
 
 	const uri = URI.parse(payload.uri);
 	const ws = workspaceContext.getWorkspaceFolder(uri)?.uri.fsPath;
 	const text = formatDiagnosticForComposer(uri, payload, ws);
-	composerBridge.prefillPrompt(text, false);
+	if (isDroxIdeNativeChatTabEnabled(configurationService)) {
+		const pane = viewsService.getViewWithId<DroxNativeChatViewPane>(DroxViews.NativeChatViewId);
+		pane?.prefillPrompt(text, false);
+	} else {
+		composerBridge.prefillPrompt(text, false);
+	}
 }
 
 export function registerDroxDiagnosticToChat(): void {
