@@ -10,6 +10,11 @@ import { ThemeIcon } from '../../base/common/themables.js';
 import { createPixelSpinner } from '../../base/browser/ui/pixelSpinner/pixelSpinner.js';
 import { asCssVariable } from '../../platform/theme/common/colorUtils.js';
 import { IAccessibilityService } from '../../platform/accessibility/common/accessibility.js';
+import { IProductService } from '../../platform/product/common/productService.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox agents window status icon
+import { isDroxAgentsProduct } from '../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox agents window status icon
+import { createDroxActivityGridElement } from '../../workbench/contrib/drox/browser/droxActivityGrid.js';
 import { SessionStatus } from '../services/sessions/common/session.js';
 import { ISessionsListModelService } from '../services/sessions/browser/sessionsListModelService.js';
 
@@ -28,6 +33,7 @@ const ICON_FADING_OUT_ATTR = 'iconFadingOut';
 // restarting the CSS animation.
 const PIXEL_SPINNER_GRID_KEY = '__pixel_spinner_grid__';
 const PIXEL_SPINNER_RING_KEY = '__pixel_spinner_ring__';
+const DROX_ACTIVITY_GRID_KEY = '__drox_activity_grid__';
 
 interface ISessionStatusInputs {
 	readonly status: SessionStatus;
@@ -65,6 +71,7 @@ export class SessionStatusIcon extends Disposable {
 		private readonly _container: HTMLElement,
 		@IAccessibilityService private readonly _accessibilityService: IAccessibilityService,
 		@ISessionsListModelService private readonly _sessionsListModelService: ISessionsListModelService,
+		@IProductService private readonly _productService: IProductService,
 	) {
 		super();
 
@@ -110,10 +117,16 @@ export class SessionStatusIcon extends Disposable {
 		let createIcon: () => HTMLElement;
 		if (isSpinner) {
 			const isNeedsInput = status === SessionStatus.NeedsInput;
-			const variant: 'grid' | 'ring' = isNeedsInput ? 'ring' : 'grid';
-			cacheKey = isNeedsInput ? PIXEL_SPINNER_RING_KEY : PIXEL_SPINNER_GRID_KEY;
-			color = isNeedsInput ? asCssVariable('list.warningForeground') : asCssVariable('textLink.foreground');
-			createIcon = () => createPixelSpinner(undefined, { variant });
+			if (!isNeedsInput && isDroxAgentsProduct(this._productService)) {
+				cacheKey = DROX_ACTIVITY_GRID_KEY;
+				color = '';
+				createIcon = () => createDroxActivityGridElement('activity-grid activity-grid-inline drox-session-status-grid');
+			} else {
+				const variant: 'grid' | 'ring' = isNeedsInput ? 'ring' : 'grid';
+				cacheKey = isNeedsInput ? PIXEL_SPINNER_RING_KEY : PIXEL_SPINNER_GRID_KEY;
+				color = isNeedsInput ? asCssVariable('list.warningForeground') : asCssVariable(isDroxAgentsProduct(this._productService) ? 'drox.agentsStatusAccent' : 'textLink.foreground');
+				createIcon = () => createPixelSpinner(undefined, { variant });
+			}
 		} else {
 			const icon = this._sessionsListModelService.getStatusIcon(status, isRead, isArchived, completedStateIcon);
 			cacheKey = ThemeIcon.asCSSSelector(icon);

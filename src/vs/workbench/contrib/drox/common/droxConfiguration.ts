@@ -109,6 +109,14 @@ export const enum DroxSetting {
 
 	ToolsMcpEnabled = 'drox.tools.mcp.enabled',
 
+	AgentsWindowEnabled = 'drox.agentsWindow.enabled',
+
+	/** Fil chat natif `ChatWidget` + moteur `drox.exe` (canal nominal IDE). */
+	IdeNativeChatTabEnabled = 'drox.ideNativeChatTab.enabled',
+
+	/** Onglet webview legacy (référence / dev) — masqué par défaut depuis 1.5.11. */
+	IdeLegacyWebviewChatEnabled = 'drox.ideLegacyWebviewChat.enabled',
+
 }
 
 /** Default `latest.json` URL (also used when user settings clear the manifest URL). */
@@ -176,7 +184,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			type: 'string',
 
-			enum: ['ollama', 'vllm', 'lmstudio', 'huggingface', 'mistral', 'openai_compatible'],
+			enum: ['ollama', 'vllm', 'lmstudio', 'huggingface', 'mistral', 'scaleway', 'ovhcloud', 'openai_compatible'],
 
 			default: 'ollama',
 
@@ -577,6 +585,51 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 
 			description: localize('drox.tools.mcp.enabled', 'Expose MCP tools (`mcp__…`) to the model.'),
+
+		},
+
+		[DroxSetting.AgentsWindowEnabled]: {
+
+			type: 'boolean',
+
+			default: true,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			description: localize(
+				'drox.agentsWindow.enabled',
+				'Enable the native VS Code Agents window backed by the Drox engine (`drox.exe`). Reload the window after changing.',
+			),
+
+		},
+
+		[DroxSetting.IdeNativeChatTabEnabled]: {
+
+			type: 'boolean',
+
+			default: true,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			description: localize(
+				'drox.ideNativeChatTab.enabled',
+				'Show the **native** Drox chat tab in the side panel (`ChatWidget` + `drox.exe`). Enabled by default in Drox IDE. Reload after changing.',
+			),
+
+		},
+
+		[DroxSetting.IdeLegacyWebviewChatEnabled]: {
+
+			type: 'boolean',
+
+			default: false,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			description: localize(
+				'drox.ideLegacyWebviewChat.enabled',
+				'Show the legacy **webview** Drox chat tab (frozen reference UI). For comparison and non-regression only — reload after changing.',
+			),
 
 		},
 

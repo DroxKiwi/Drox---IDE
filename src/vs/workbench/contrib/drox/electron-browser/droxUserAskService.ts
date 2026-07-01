@@ -9,6 +9,9 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { localize } from '../../../../nls.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
+import { ILogService } from '../../../../platform/log/common/log.js';
+import { IChatProgress, IChatQuestionAnswers } from '../../chat/common/chatService/chatService.js';
+import { droxUserAskToQuestionCarousel, questionCarouselAnswersToDroxUserAsk } from '../common/droxAgentsAskBridge.js';
 import {
 	formatPermissionDialogContent,
 	isPermissionToolAsk,
@@ -30,6 +33,7 @@ interface IPendingUserAsk {
 	readonly askId: string;
 	readonly runId: string;
 	readonly questions: Array<{ id: string; options: Array<{ id: string }> }>;
+	readonly rawQuestions: IDroxUserAskPayload['questions'];
 	readonly resolve: (answers: IDroxUserAskAnswer[]) => void;
 }
 
@@ -40,6 +44,7 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 	declare readonly _serviceBrand: undefined;
 
 	private _post?: (message: DroxUserAskHostMessage) => void;
+	private _agentsProgress?: (parts: IChatProgress[]) => void;
 	private _pending?: IPendingUserAsk;
 	private _activePermissionMode: string | undefined;
 
@@ -53,6 +58,7 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 	constructor(
 		@IDroxEngineService droxEngineService: IDroxEngineService,
 		@IDialogService private readonly dialogService: IDialogService,
+		@ILogService private readonly logService: ILogService,
 	) {
 		super();
 		droxEngineService.setRequestHandler('user/ask', params => this.handleUserAsk(params));
@@ -60,6 +66,10 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 
 	attachWebview(post: (message: DroxUserAskHostMessage) => void): void {
 		this._post = post;
+	}
+
+	attachAgentsProgress(progress: ((parts: IChatProgress[]) => void) | undefined): void {
+		this._agentsProgress = progress;
 	}
 
 	handleWebviewAnswer(raw: unknown): void {
@@ -89,6 +99,16 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 		});
 		this.clearPending();
 		pending.resolve(answers);
+	}
+
+	handleQuestionCarouselAnswer(resolveId: string, answers: IChatQuestionAnswers | undefined): void {
+		const pending = this._pending;
+		if (!pending || pending.askId !== resolveId) {
+			return;
+		}
+		const droxAnswers = questionCarouselAnswersToDroxUserAsk(pending.rawQuestions, answers);
+		this.clearPending();
+		pending.resolve(droxAnswers);
 	}
 
 	resolvePendingAsSkipped(): void {
@@ -183,15 +203,31 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 		}
 	}
 
-	/** Carte webview multi-questions (`ask_user_question`). */
+	/** Carte multi-questions (`ask_user_question`) — webview ou carousel Agents. */
 	private async handleBlockingAsk(parsed: IDroxUserAskPayload): Promise<RpcRequestResult> {
-		this._post?.({
-			kind: 'userAsk',
-			askId: parsed.askId,
-			runId: parsed.runId,
-			title: parsed.title,
-			questions: parsed.questions,
-		});
+		if (this._agentsProgress) {
+			this._agentsProgress([droxUserAskToQuestionCarousel(parsed)]);
+		} else if (this._post) {
+			this._post({
+				kind: 'userAsk',
+				askId: parsed.askId,
+				runId: parsed.runId,
+				title: parsed.title,
+				questions: parsed.questions,
+			});
+		} else {
+			this.logService.warn('[Drox] blocking ask without UI — auto-skipping');
+			return {
+				result: {
+					answers: parsed.questions.map(q => ({
+						id: q.id,
+						optionIds: [],
+						freeText: '',
+						skipped: true,
+					})),
+				},
+			};
+		}
 		this._onDidChangePending.fire(true);
 
 		const answers = await new Promise<IDroxUserAskAnswer[]>(resolve => {
@@ -202,6 +238,7 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 					id: q.id,
 					options: q.options.map(o => ({ id: o.id })),
 				})),
+				rawQuestions: parsed.questions,
 				resolve,
 			};
 		});

@@ -1907,6 +1907,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			sessionTypePickerDelegate: this.viewOptions.sessionTypePickerDelegate,
 			workspacePickerDelegate: this.viewOptions.workspacePickerDelegate,
 			isSessionsWindow: this.viewOptions.isSessionsWindow,
+			droxNativeComposer: this.viewOptions.droxNativeComposer,
 		};
 
 		if (this.viewModel?.editing) {

@@ -12,6 +12,10 @@ import {
 	DROX_DEFAULT_LLM_SERVER,
 	DroxLlmProviderId,
 } from "../../common/droxLlmCatalog.js";
+import {
+	DROX_CLOUD_PROVIDER_SPECS,
+	type IDroxCloudProviderSpec,
+} from "../../common/droxCloudConnectionRegistry.js";
 
 export type DroxLlmHosting = "" | "cloud" | "personal";
 
@@ -22,31 +26,14 @@ export interface IDroxConnectionProviderDef {
 	readonly defaultServer: string;
 }
 
-export interface IDroxCloudProviderFormField {
-	readonly id: string;
-	readonly label: string;
-	readonly type: "text" | "password" | "url";
-	readonly placeholder?: string;
-	readonly required?: boolean;
-	/** Stocke dans `apiKey` plutôt que dans les headers. */
-	readonly mapsToApiKey?: boolean;
-	/** Stocke dans `server`. */
-	readonly mapsToServer?: boolean;
-	/** Stocke dans `llmHeaders[headerName]` ; `headerPrefix` est préfixé à la valeur. */
-	readonly mapsToHeader?: string;
-	readonly headerPrefix?: string;
-}
-
-export interface IDroxCloudProviderDef extends IDroxConnectionProviderDef {
-	readonly fields: readonly IDroxCloudProviderFormField[];
-}
+export type IDroxCloudProviderDef = IDroxCloudProviderSpec;
 
 export const DROX_PERSONAL_CONNECTION_PROVIDERS: readonly IDroxConnectionProviderDef[] =
 	[
 		{
 			id: "ollama",
 			label: "Ollama",
-			description: "Local or remote Ollama server",
+			description: "Serveur Ollama local ou distant",
 			defaultServer: DROX_DEFAULT_LLM_SERVER.ollama,
 		},
 		{
@@ -58,75 +45,20 @@ export const DROX_PERSONAL_CONNECTION_PROVIDERS: readonly IDroxConnectionProvide
 		{
 			id: "lmstudio",
 			label: "LM Studio",
-			description: "Local LM Studio server",
+			description: "Serveur LM Studio local",
 			defaultServer: DROX_DEFAULT_LLM_SERVER.lmstudio,
 		},
 		{
 			id: "openai_compatible",
 			label: "API OpenAI-compatible",
-			description: "Any server exposing /v1/chat/completions",
+			description: "Tout serveur exposant /v1/chat/completions",
 			defaultServer: "",
 		},
 	];
 
-export const DROX_CLOUD_CONNECTION_PROVIDERS: readonly IDroxCloudProviderDef[] =
-	[
-		{
-			id: "huggingface",
-			label: "Hugging Face",
-			description: "Inference API (router OpenAI-compatible)",
-			defaultServer: DROX_DEFAULT_LLM_SERVER.huggingface,
-			fields: [
-				{
-					id: "hfToken",
-					label: "Token Hugging Face",
-					type: "password",
-					placeholder: "hf_…",
-					required: true,
-					mapsToHeader: "Authorization",
-					headerPrefix: "Bearer ",
-				},
-			],
-		},
-		{
-			id: "mistral",
-			label: "Mistral AI",
-			description: "Mistral cloud API",
-			defaultServer: DROX_DEFAULT_LLM_SERVER.mistral,
-			fields: [
-				{
-					id: "mistralKey",
-					label: "Mistral API key",
-					type: "password",
-					required: true,
-					mapsToHeader: "Authorization",
-					headerPrefix: "Bearer ",
-				},
-			],
-		},
-		{
-			id: "ollama",
-			label: "Ollama (distant)",
-			description: "Hosted Ollama instance (URL + optional key)",
-			defaultServer: "",
-			fields: [
-				{
-					id: "remoteUrl",
-					label: "Server URL",
-					type: "url",
-					placeholder: "https://ollama.example.com",
-					required: true,
-					mapsToServer: true,
-				},
-				{
-					id: "remoteKey",
-					label: "API key (optional)",
-					type: "password",
-					mapsToApiKey: true,
-				},
-			],
-		},
-	];
+/** Catalogue cloud — voir `droxCloudConnectionRegistry.ts` (source unique). */
+export const DROX_CLOUD_CONNECTION_PROVIDERS: readonly IDroxCloudProviderSpec[] =
+	DROX_CLOUD_PROVIDER_SPECS;
 
 export function normalizeDroxLlmHosting(value: unknown): DroxLlmHosting {
 	if (value === "cloud" || value === "personal") {

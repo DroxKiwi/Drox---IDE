@@ -1,0 +1,364 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+
+
+.drox-ide-native-chat {
+
+	display: flex;
+
+	flex-direction: column;
+
+	height: 100%;
+
+	min-height: 0;
+
+}
+
+
+
+.drox-ide-native-chat-widget {
+
+	flex: 1;
+
+	min-height: 0;
+
+	display: flex;
+
+	flex-direction: column;
+
+}
+
+
+
+/* Tokens verts — scope panneau IDE Native uniquement. */
+
+.drox-ide-native-chat-active .drox-ide-native-chat {
+
+	--drox-ui-green: #3d7a3d;
+
+	--drox-thread-green: #4ec94e;
+
+	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 55%, var(--vscode-input-background));
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session {
+
+	font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
+
+}
+
+
+
+/* Pas de contour vert sur l'éditeur Monaco — seule la boîte input porte la bordure. */
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .interactive-input-editor .monaco-editor.focused {
+
+	outline: none !important;
+
+}
+
+
+
+/* Bordure verte sur le conteneur input (remplace le bleu VS Code). */
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-input-container {
+
+	border-color: var(--drox-thread-green-dim) !important;
+
+	--chat-input-working-border-color1: var(--drox-thread-green);
+
+	--chat-input-working-border-color2: color-mix(in srgb, var(--drox-thread-green) 65%, #1e1e1e);
+
+	--chat-input-working-border-color3: color-mix(in srgb, var(--drox-thread-green) 45%, #9aa88a);
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-input-container.focused {
+
+	border-color: color-mix(in srgb, var(--drox-thread-green) 70%, transparent) !important;
+
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 28%, transparent) !important;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-input-container.working.focused {
+
+	border-color: color-mix(in srgb, var(--drox-thread-green) 45%, transparent) !important;
+
+	box-shadow: none !important;
+
+}
+
+
+
+/* Toolbar Drox — chips Server / Model / mode sur une ligne propre. */
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-secondary-toolbar {
+
+	display: flex;
+
+	align-items: center;
+
+	flex-wrap: wrap;
+
+	gap: 6px;
+
+	padding: 4px 8px 0;
+
+	min-width: 0;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-input-toolbar-host {
+
+	display: flex;
+
+	align-items: center;
+
+	flex: 1 1 auto;
+
+	min-width: 0;
+
+	margin-left: auto;
+
+	justify-content: flex-end;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar {
+
+	display: flex;
+
+	align-items: center;
+
+	flex: 0 1 auto;
+
+	min-width: 0;
+
+	gap: 6px;
+
+	flex-wrap: nowrap;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .sessions-chat-picker-slot {
+
+	flex-shrink: 0;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger {
+
+	display: inline-flex;
+
+	align-items: center;
+
+	height: 22px;
+
+	padding: 2px 8px;
+
+	border-radius: var(--vscode-cornerRadius-small);
+
+	cursor: pointer;
+
+	color: var(--vscode-foreground);
+
+	white-space: nowrap;
+
+	max-width: 160px;
+
+	overflow: hidden;
+
+	border: 1px solid transparent;
+
+	font-size: 11px;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger:hover {
+
+	background-color: var(--vscode-toolbar-hoverBackground);
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger .sessions-chat-dropdown-label {
+
+	margin-left: 6px;
+
+	overflow: hidden;
+
+	text-overflow: ellipsis;
+
+	white-space: nowrap;
+
+	min-width: 0;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger.panel-open {
+
+	background-color: color-mix(in srgb, var(--drox-thread-green) 12%, var(--vscode-input-background) 88%);
+
+	border-color: color-mix(in srgb, var(--drox-thread-green) 52%, transparent);
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label {
+
+	display: inline-flex;
+
+	align-items: center;
+
+	gap: 4px;
+
+	height: 22px;
+
+	padding: 2px 8px;
+
+	font-size: 11px;
+
+}
+
+
+
+/* Barre stats tokens — alignée, espacement entre métriques. */
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status-host {
+
+	flex: 0 0 auto;
+
+	width: 100%;
+
+	order: 10;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status.status {
+
+	display: flex;
+
+	align-items: center;
+
+	gap: 14px;
+
+	box-sizing: border-box;
+
+	width: 100%;
+
+	padding: 6px 12px 8px;
+
+	margin-top: 2px;
+
+	border-top: 1px solid var(--drox-ui-green);
+
+	background: var(--vscode-editor-background);
+
+	color: var(--vscode-descriptionForeground);
+
+	font-size: 11px;
+
+	user-select: none;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status .spacer {
+
+	flex: 1 1 auto;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status .stat {
+
+	display: inline-flex;
+
+	align-items: center;
+
+	gap: 4px;
+
+	white-space: nowrap;
+
+	padding: 0 2px;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status .stat + .stat {
+
+	margin-left: 2px;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status .stat-cycle strong {
+
+	font-variant-numeric: tabular-nums;
+
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+
+	letter-spacing: 0.02em;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status .stat strong {
+
+	color: var(--vscode-foreground);
+
+	font-weight: 500;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status .stat-ctx {
+
+	min-width: 0;
+
+	flex: 0 1 auto;
+
+}
+
+
+
+.drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-status .stat-ctx strong {
+
+	font-variant-numeric: tabular-nums;
+
+}
+
+

@@ -220,6 +220,15 @@ import '../workbench/contrib/speech/browser/speech.contribution.js';
 
 // Chat
 import '../workbench/contrib/chat/browser/chat.shared.contribution.js';
+import { registerDroxConfiguration } from '../workbench/contrib/drox/common/droxConfiguration.js';
+import { registerDroxProductDefaultsConfiguration } from '../workbench/contrib/drox/common/droxProductDefaultsConfiguration.js';
+import '../workbench/contrib/drox/browser/droxMicrosoftAgentsSurfaceContribution.js';
+import '../workbench/contrib/drox/browser/droxCopilotSignInContextContribution.js';
+
+registerDroxConfiguration();
+registerDroxProductDefaultsConfiguration();
+
+import './contrib/drox/browser/droxSessionsBootstrap.js';
 //import '../workbench/contrib/inlineChat/browser/inlineChat.contribution.js';
 import '../workbench/contrib/mcp/browser/mcp.contribution.js';
 import '../workbench/contrib/chat/browser/chatSessions/chatSessions.contribution.js';
@@ -461,6 +470,8 @@ import './contrib/providers/agentHost/browser/agentHostSessionConfigPicker.js';
 import './contrib/chat/browser/customizationsDebugLog.contribution.js';
 import './contrib/providers/copilotChatSessions/browser/copilotChatSessions.contribution.js';
 import './contrib/providers/localChatSessions/browser/localChatSessions.contribution.js';
+import './contrib/providers/drox/browser/droxSessions.contribution.js';
+import './contrib/providers/drox/browser/droxCustomizationHarness.contribution.js';
 import './contrib/sessions/browser/sessions.contribution.js';
 import './services/sessions/browser/sessionsListModelService.js';
 import './services/sessions/browser/sessionGroupsService.js';

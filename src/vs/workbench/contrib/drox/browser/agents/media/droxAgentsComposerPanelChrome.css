@@ -1,0 +1,449 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Panneaux flottants — cubique, fond noir, contrôles alignés chips / action-widget (picker modèle & mode). */
+
+.drox-agents-composer-panels-mount {
+	--drox-ui-green: #3d7a3d;
+	--drox-thread-brown: #4a3f2e;
+	--drox-thread-brown-deep: #2e281c;
+	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green) 58%, var(--drox-thread-brown) 42%);
+	--drox-thread-green-bright: color-mix(in srgb, var(--drox-thread-green) 72%, #9aa88a 28%);
+	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 38%, #080808);
+	--drox-thread-green-border: color-mix(in srgb, var(--drox-thread-green) 52%, var(--drox-thread-brown-deep) 48%);
+	--drox-thread-fg: color-mix(in srgb, #e8efe0 72%, #9aa88a 28%);
+	--drox-thread-fg-muted: color-mix(in srgb, var(--drox-thread-fg) 52%, var(--drox-thread-brown) 48%);
+	--drox-agents-surface: #000000;
+	--drox-agents-panel-bg: var(--drox-agents-surface);
+	--drox-agents-panel-input-bg: var(--drox-agents-surface);
+	/* Même recette que .action-widget / chips toolbar (droxAgentsRetroTheme.css) */
+	--drox-agents-control-bg: color-mix(in srgb, var(--drox-thread-green) 12%, var(--drox-thread-brown-deep) 88%);
+	--drox-agents-control-bg-hover: color-mix(in srgb, var(--drox-thread-green) 20%, var(--drox-thread-brown-deep) 80%);
+	--drox-agents-control-bg-active: color-mix(in srgb, var(--drox-thread-green) 14%, transparent);
+	--drox-agents-control-border: var(--drox-thread-green-border);
+	--drox-agents-control-border-hover: color-mix(in srgb, var(--drox-thread-green) 65%, var(--drox-thread-brown) 35%);
+	--drox-agents-btn-primary-bg: color-mix(in srgb, #3d5a3d 88%, var(--drox-thread-brown) 12%);
+	--drox-agents-btn-primary-fg: color-mix(in srgb, #e8efe0 92%, var(--drox-thread-brown) 8%);
+	--drox-agents-btn-primary-hover: color-mix(in srgb, #4a6b4a 90%, var(--drox-thread-brown) 10%);
+	--drox-agents-panel-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 16%, transparent),
+		0 10px 28px rgba(0, 0, 0, 0.68);
+	font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
+	box-sizing: border-box;
+	color: var(--drox-thread-fg);
+}
+
+.drox-agents-composer-panels-mount *,
+.drox-agents-composer-panels-mount *::before,
+.drox-agents-composer-panels-mount *::after {
+	box-sizing: border-box;
+}
+
+.drox-agents-composer-panels-mount .role-model-panel,
+.drox-agents-composer-panels-mount .general-settings-panel {
+	position: fixed;
+	z-index: 20;
+	min-width: 220px;
+	max-width: min(300px, calc(100vw - 16px));
+	max-height: min(70vh, 520px);
+	overflow-y: auto;
+	padding: 8px 10px 10px;
+	border-radius: 0;
+	border: 1px solid var(--drox-thread-green-border);
+	background: var(--drox-agents-panel-bg);
+	box-shadow: var(--drox-agents-panel-shadow);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	pointer-events: auto;
+	color: var(--drox-thread-fg);
+}
+
+.drox-agents-composer-panels-mount .general-settings-panel {
+	min-width: 260px;
+	max-width: min(340px, calc(100vw - 16px));
+}
+
+.drox-agents-composer-panels-mount .general-settings-panel-head,
+.drox-agents-composer-panels-mount .role-model-panel-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-bottom: 4px;
+	border-bottom: 1px solid color-mix(in srgb, var(--drox-thread-green) 18%, transparent);
+}
+
+.drox-agents-composer-panels-mount .general-settings-panel-head strong,
+.drox-agents-composer-panels-mount .role-model-panel-head strong {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--drox-thread-green-bright);
+	font-weight: 600;
+}
+
+.drox-agents-composer-panels-mount .general-settings-section-label,
+.drox-agents-composer-panels-mount .role-model-panel-section-label {
+	margin: 4px 0 0;
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--drox-thread-fg-muted);
+}
+
+.drox-agents-composer-panels-mount .role-model-panel-section-label:first-of-type {
+	margin-top: 4px;
+}
+
+.drox-agents-composer-panels-mount .general-settings-field,
+.drox-agents-composer-panels-mount .role-model-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 10.5px;
+	color: var(--drox-thread-fg-muted);
+}
+
+.drox-agents-composer-panels-mount .general-settings-field-check {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.drox-agents-composer-panels-mount .general-settings-field-check input[type='checkbox'] {
+	margin: 0;
+	accent-color: var(--drox-thread-green);
+}
+
+.drox-agents-composer-panels-mount .general-settings-input,
+.drox-agents-composer-panels-mount .role-model-panel-select,
+.drox-agents-composer-panels-mount .role-model-panel-input {
+	font-size: 11px;
+	padding: 4px 6px;
+	border-radius: 0;
+	border: 1px solid var(--drox-agents-control-border);
+	background: var(--drox-agents-panel-input-bg);
+	color: var(--drox-thread-fg);
+}
+
+.drox-agents-composer-panels-mount .general-settings-input:focus,
+.drox-agents-composer-panels-mount .role-model-panel-select:focus,
+.drox-agents-composer-panels-mount .role-model-panel-input:focus {
+	outline: none;
+	border-color: color-mix(in srgb, var(--drox-thread-green) 70%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 35%, transparent);
+}
+
+.drox-agents-composer-panels-mount .general-settings-panel-actions {
+	margin-top: 4px;
+}
+
+.drox-agents-composer-panels-mount .general-settings-panel-btn,
+.drox-agents-composer-panels-mount .role-model-panel-btn {
+	width: 100%;
+	font-size: 10.5px;
+	padding: 5px 8px;
+	border-radius: 0;
+	border: 1px solid var(--drox-agents-control-border);
+	background: var(--drox-agents-control-bg);
+	color: var(--drox-thread-fg);
+	cursor: pointer;
+	transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.drox-agents-composer-panels-mount .general-settings-panel-btn:hover:not(:disabled),
+.drox-agents-composer-panels-mount .role-model-panel-btn:hover:not(:disabled) {
+	background: var(--drox-agents-control-bg-hover);
+	border-color: var(--drox-agents-control-border-hover);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 14%, transparent);
+}
+
+.drox-agents-composer-panels-mount .general-settings-panel-btn:focus-visible,
+.drox-agents-composer-panels-mount .role-model-panel-btn:focus-visible {
+	outline: 1px solid color-mix(in srgb, var(--drox-thread-green) 35%, transparent);
+	outline-offset: -1px;
+	background: var(--drox-agents-control-bg-hover);
+}
+
+.drox-agents-composer-panels-mount .role-model-panel-btn {
+	width: auto;
+}
+
+.drox-agents-composer-panels-mount .general-settings-connection {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.drox-agents-composer-panels-mount .general-settings-connection-summary {
+	margin: 0;
+	font-size: 11px;
+	line-height: 1.35;
+	color: var(--drox-thread-fg-muted);
+	word-break: break-word;
+}
+
+.drox-agents-composer-panels-mount .role-model-num-ctx-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+}
+
+.drox-agents-composer-panels-mount .role-model-num-ctx-row .role-model-panel-select {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.drox-agents-composer-panels-mount .role-model-num-ctx-custom {
+	flex: 0 0 5.5rem;
+	width: 5.5rem;
+}
+
+.drox-agents-composer-panels-mount .role-model-panel-actions {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.drox-agents-composer-panels-mount .icon-btn {
+	font: inherit;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 22px;
+	min-height: 22px;
+	padding: 0 4px;
+	border-radius: 0;
+	cursor: pointer;
+	border: 1px solid var(--drox-agents-control-border);
+	background: transparent;
+	color: var(--drox-thread-green-bright);
+	font-size: 14px;
+	line-height: 1;
+}
+
+.drox-agents-composer-panels-mount .icon-btn:hover {
+	background: var(--drox-agents-control-bg);
+	border-color: var(--drox-agents-control-border-hover);
+}
+
+.drox-agents-composer-panels-mount .icon-btn:focus-visible {
+	outline: 1px solid color-mix(in srgb, var(--drox-thread-green) 65%, transparent);
+	outline-offset: 1px;
+}
+
+/* Wizard connexion — même chrome cubique */
+.drox-agents-composer-panels-mount .drox-connection-wizard {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.62);
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-card {
+	position: relative;
+	z-index: 1;
+	width: min(420px, calc(100vw - 24px));
+	max-height: min(82vh, 560px);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 10px 12px 12px;
+	border-radius: 0;
+	border: 1px solid var(--drox-thread-green-border);
+	background: var(--drox-agents-panel-bg);
+	box-shadow: var(--drox-agents-panel-shadow);
+	overflow: hidden;
+	color: var(--drox-thread-fg);
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 10px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid color-mix(in srgb, var(--drox-thread-green) 18%, transparent);
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-step-label {
+	margin: 0 0 2px;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--drox-thread-fg-muted);
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-head strong {
+	color: var(--drox-thread-green-bright);
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-body {
+	flex: 1;
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-height: 120px;
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-actions-spacer {
+	flex: 1;
+	min-width: 8px;
+}
+
+.drox-agents-composer-panels-mount .drox-connection-wizard-actions .general-settings-panel-btn {
+	width: auto;
+	min-width: 88px;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-primary {
+	background: var(--drox-agents-btn-primary-bg);
+	color: var(--drox-agents-btn-primary-fg);
+	border-color: var(--drox-agents-control-border-hover);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-primary:hover:not(:disabled) {
+	background: var(--drox-agents-btn-primary-hover);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-lead,
+.drox-agents-composer-panels-mount .drox-wizard-hint {
+	margin: 0 0 6px;
+	font-size: 11px;
+	color: var(--drox-thread-fg-muted);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-error {
+	color: #f48771;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-choice-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 8px;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-hosting-card,
+.drox-agents-composer-panels-mount .drox-wizard-provider-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	padding: 8px 10px;
+	border-radius: 0;
+	border: 1px solid var(--drox-agents-control-border);
+	background: var(--drox-agents-panel-input-bg);
+	color: inherit;
+	cursor: pointer;
+	text-align: left;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-hosting-card span,
+.drox-agents-composer-panels-mount .drox-wizard-provider-card span {
+	font-size: 10.5px;
+	color: var(--drox-thread-fg-muted);
+	line-height: 1.35;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-hosting-card:hover,
+.drox-agents-composer-panels-mount .drox-wizard-provider-card:hover {
+	border-color: var(--drox-agents-control-border-hover);
+	background: var(--drox-agents-control-bg);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-hosting-card.selected,
+.drox-agents-composer-panels-mount .drox-wizard-provider-card.selected {
+	border-width: 1px;
+	border-color: var(--drox-agents-control-border-hover);
+	background: var(--drox-agents-control-bg-hover);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 22%, transparent);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-provider-card--gdpr {
+	border-color: color-mix(in srgb, #cca700 55%, var(--drox-agents-control-border));
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-provider-gdpr-badge {
+	color: #cca700;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-gdpr-warning {
+	border-color: color-mix(in srgb, #cca700 45%, transparent);
+	background: color-mix(in srgb, #cca700 12%, transparent);
+	color: var(--drox-thread-fg);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-gdpr-warning-icon {
+	color: #cca700;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-header-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr auto;
+	gap: 6px;
+	align-items: center;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-test-status {
+	margin: 0 0 8px;
+	font-size: 11px;
+	line-height: 1.35;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-test-pending {
+	color: var(--drox-thread-fg-muted);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-test-ok {
+	color: var(--drox-thread-green-bright);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-test-error {
+	color: #f48771;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-next-hint {
+	margin: 0 0 8px;
+	font-size: 11px;
+	color: var(--drox-thread-green-bright);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-next-hint-muted {
+	color: var(--drox-thread-fg-muted);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-add-header {
+	width: auto;
+	align-self: flex-start;
+}

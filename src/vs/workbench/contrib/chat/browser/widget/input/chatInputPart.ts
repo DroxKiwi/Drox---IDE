@@ -143,6 +143,16 @@ import { Target } from '../../../common/promptSyntax/promptTypes.js';
 import { findLast } from '../../../../../../base/common/arraysFind.js';
 import { ConfigureToolsAction } from '../../actions/chatToolActions.js';
 import { InlineCompletionsController } from '../../../../../../editor/contrib/inlineCompletions/browser/controller/inlineCompletionsController.js';
+import {
+	createDroxAgentsChatInputToolbarHost,
+	createDroxAgentsChatStatusBarHost,
+	DroxAgentsChatInputToolbarHost,
+	DroxAgentsChatStatusBarHost,
+	findDroxArchitectLanguageModel,
+	isDroxAgentsChatSessionType,
+	syncDroxArchitectModelFromChatPicker,
+} from '../../../../drox/browser/agents/droxAgentsChatInputIntegration.js';
+import { DroxSetting } from '../../../../drox/common/droxConfiguration.js';
 
 const $ = dom.$;
 
@@ -192,6 +202,8 @@ export interface IChatInputPartOptions {
 	 * When true, the secondary toolbar (permissions picker) is hidden.
 	 */
 	isSessionsWindow?: boolean;
+	/** Drox IDE native chat — composer chips (server, modes, model settings). */
+	droxNativeComposer?: boolean;
 }
 
 export interface IWorkingSetEntry {
@@ -315,6 +327,8 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 	private inputSideToolbarContainer?: HTMLElement;
 	private secondaryToolbarContainer!: HTMLElement;
+	private _droxAgentsChatInputToolbarHost: DroxAgentsChatInputToolbarHost | undefined;
+	private _droxAgentsChatStatusBarHost: DroxAgentsChatStatusBarHost | undefined;
 	private secondaryToolbar!: MenuWorkbenchToolBar;
 	private statusToolbarContainer!: HTMLElement;
 	private statusToolbar!: MenuWorkbenchToolBar;
@@ -429,6 +443,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private _lastSessionPickerAction: MenuItemAction | undefined;
 	private _lastSessionPickerOptions: IChatInputPickerOptions | undefined;
 	private readonly _waitForPersistedLanguageModel: MutableDisposable<IDisposable> = this._register(new MutableDisposable<IDisposable>());
+	private readonly _droxArchitectModelRetry: MutableDisposable<IDisposable> = this._register(new MutableDisposable<IDisposable>());
 	private readonly _waitForSessionHistoryLanguageModel: MutableDisposable<IDisposable> = this._register(new MutableDisposable<IDisposable>());
 	private readonly _chatSessionOptionEmitters = this._register(new DisposableMap<string, Emitter<IChatSessionProviderOptionItem>>());
 
@@ -742,6 +757,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				// from the main process, so `initSelectedModel` may have read an empty
 				// value at startup. Re-apply it to a fresh empty session when it lands.
 				this._applyConfiguredDefaultForEmptySession();
+			}
+			if (e.affectsConfiguration(DroxSetting.ArchitectModel) || e.affectsConfiguration(DroxSetting.Model)) {
+				this._preferDroxArchitectModel();
 			}
 			if (e.affectsConfiguration(AccessibilityVerbositySettingId.Chat)) {
 				newOptions.ariaLabel = this._getAriaLabel();
@@ -1553,6 +1571,10 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		logChangesToStateModel(this._inputModel, `setCurrentLanguageModel to ${model.identifier} in ${this._currentSessionKey}, storageKey=${selectedModelStorageKey}, isDefaultKey=${selectedModelIsDefaultStorageKey}, currentSessionType=${this._currentSessionType}, getCurrentSessionType=${this.getCurrentSessionType()}, boundInputModelSession=${this._inputModelSessionResource?.toString()}, modelDetials = ${modelDetails}`, undefined, undefined, this.logService);
 		this._currentLanguageModel.set(model, undefined);
 
+		if (this._usesDroxNativeComposer() && isDroxAgentsChatSessionType(this.getCurrentSessionType()) && isUserAction) {
+			syncDroxArchitectModelFromChatPicker(this.configurationService, this.workspaceContextService, model.identifier);
+		}
+
 		if (this.cachedWidth) {
 			// For quick chat and editor chat, relayout because the input may need to shrink to accomodate the model name
 			this.layout(this.cachedWidth);
@@ -1699,6 +1721,44 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			return getChatSessionType(sessionResource);
 		}
 		return this.options.sessionTypePickerDelegate?.getActiveSessionProvider?.();
+	}
+
+	private _usesDroxNativeComposer(): boolean {
+		return !!(this.options.isSessionsWindow || this.options.droxNativeComposer);
+	}
+
+	private _syncDroxAgentsFollowUpInput(): void {
+		if (!this._usesDroxNativeComposer()) {
+			return;
+		}
+		this._droxAgentsChatInputToolbarHost?.mountIfNeeded(this.getCurrentSessionType());
+		this._droxAgentsChatStatusBarHost?.mountIfNeeded(this.getCurrentSessionType());
+	}
+
+	private _preferDroxArchitectModel(): void {
+		if (!this._usesDroxNativeComposer() || !isDroxAgentsChatSessionType(this.getCurrentSessionType())) {
+			return;
+		}
+		const preferred = findDroxArchitectLanguageModel(this.getModels(), this.configurationService, this.workspaceContextService);
+		if (!preferred) {
+			if (!this._droxArchitectModelRetry.value) {
+				this._droxArchitectModelRetry.value = this.languageModelsService.onDidChangeLanguageModels(() => {
+					const late = findDroxArchitectLanguageModel(this.getModels(), this.configurationService, this.workspaceContextService);
+					if (late) {
+						this._droxArchitectModelRetry.clear();
+						this.setCurrentLanguageModel(late, false);
+					}
+				});
+			}
+			return;
+		}
+		this._droxArchitectModelRetry.clear();
+		const current = this._currentLanguageModel.get();
+		if (current?.identifier === preferred.identifier) {
+			return;
+		}
+		// `drox.architect.model` (USER) is the source of truth — keep picker in sync after restart.
+		this.setCurrentLanguageModel(preferred, false);
 	}
 
 	private getNotificationSessionType(): string | undefined {
@@ -2753,6 +2813,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				this.initSelectedModel();
 				this.checkModelInSessionPool();
 				this.checkModeInSessionPool();
+				this._preferDroxArchitectModel();
 				this._notificationWidget.value?.rerender();
 			} else if (e.currentSessionResource) {
 				logChangesToStateModel(this._inputModel, `[CVVM].2 onDidChangeViewModel -> session change: ${this._currentSessionType} -> ${newSessionType} in ${this._currentSessionKey}, ${e.currentSessionResource.toString()}`, undefined, this._inputModel?.state.get(), this.logService);
@@ -2762,6 +2823,8 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			// For contributed sessions with history, pre-select the model
 			// from the last request so the user resumes with the same model.
 			this.preselectModelFromSessionHistory();
+			this._preferDroxArchitectModel();
+			this._syncDroxAgentsFollowUpInput();
 		}));
 
 		let elements;
@@ -3283,7 +3346,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 						|| action.id === OpenAgentHostPermissionModePickerAction.ID)
 					&& action instanceof MenuItemAction
 				) {
-					if (this.options.isSessionsWindow) {
+					if (this._usesDroxNativeComposer()) {
 						return new HiddenActionViewItem(action);
 					}
 					const property = action.id === OpenAgentHostAutoApprovePickerAction.ID
@@ -3294,7 +3357,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					const picker = this.instantiationService.createInstance(AgentHostChatInputPicker, widget, property);
 					return new AgentHostChatInputPickerActionViewItem(action, picker);
 				} else if (action.id === OpenAgentHostFolderPickerAction.ID && action instanceof MenuItemAction) {
-					if (this.options.isSessionsWindow) {
+					if (this._usesDroxNativeComposer()) {
 						return new HiddenActionViewItem(action);
 					}
 					return this.instantiationService.createInstance(AgentHostFolderPickerActionItem, action, widget, secondaryPickerOptions);
@@ -3313,6 +3376,28 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this.secondaryToolbar.getElement().classList.add('chat-secondary-input-toolbar');
 		this.secondaryToolbar.context = { widget } satisfies IChatExecuteActionContext;
 		dom.append(this.secondaryToolbarContainer, genericChipsContainer);
+		if (this._usesDroxNativeComposer()) {
+			const host = createDroxAgentsChatInputToolbarHost(
+				this.instantiationService,
+				this.configurationService,
+				this.secondaryToolbarContainer,
+			);
+			if (host) {
+				this._register(host);
+				this._droxAgentsChatInputToolbarHost = host;
+				this._syncDroxAgentsFollowUpInput();
+			}
+			const statusHost = createDroxAgentsChatStatusBarHost(
+				this.instantiationService,
+				this.configurationService,
+				this.container,
+			);
+			if (statusHost) {
+				this._register(statusHost);
+				this._droxAgentsChatStatusBarHost = statusHost;
+				this._syncDroxAgentsFollowUpInput();
+			}
+		}
 		this._register(this.secondaryToolbar.onDidChangeMenuItems(() => {
 			// Update container reference for the pickers when the secondary toolbar hosts one.
 			// Only assign when found so we don't overwrite a valid primary container reference
@@ -4422,7 +4507,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			// content cards. The editor width is computed here, so it must account
 			// for the same 64px total horizontal gutter or the editor overflows its
 			// container and renders wider than the message content above it.
-			inputPartHorizontalPadding: this.options.renderStyle === 'compact' ? 16 : (this.options.isSessionsWindow ? 64 : 24),
+			inputPartHorizontalPadding: this.options.renderStyle === 'compact' ? 16 : (this._usesDroxNativeComposer() ? 64 : 24),
 			inputPartHorizontalPaddingInside: this.options.renderStyle === 'compact' ? 12 : 10,
 			toolbarsWidth: this.options.renderStyle === 'compact' ? getToolbarsWidthCompact() : 0,
 			sideToolbarWidth: inputSideToolbarWidth > 0 ? inputSideToolbarWidth + 4 /*gap*/ : 0,

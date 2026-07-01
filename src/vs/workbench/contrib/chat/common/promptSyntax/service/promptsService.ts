@@ -457,6 +457,7 @@ export enum AgentInstructionFileType {
 	agentsMd = 'agentsMd',
 	claudeMd = 'claudeMd',
 	copilotInstructionsMd = 'copilotInstructionsMd',
+	droxMd = 'droxMd',
 }
 
 /**

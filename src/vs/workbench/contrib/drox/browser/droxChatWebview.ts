@@ -17,6 +17,7 @@ import { DROX_NUM_CTX_CHOICES, DROX_NUM_CTX_CUSTOM_SELECT, DROX_NUM_CTX_MAX, DRO
 /** Chat webview scripts (order matters — see `droxChat/README.md`). */
 export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/core/00-bootstrap.js',
+	'droxChat/core/inner-html.js',
 	'droxChat/core/dom.js',
 	'droxChat/core/constants-modes.js',
 	'droxChat/core/constants-num-ctx.js',
@@ -97,6 +98,7 @@ export function getDroxChatHtml(
 	versionLabel: string,
 	versionTitle: string,
 	showExportTranscript = true,
+	nativeToolbarChrome = true,
 ): string {
 
 	const cssLinks = cssUris
@@ -148,7 +150,7 @@ export function getDroxChatHtml(
 	const architectVignetteName = localize('droxChatArchitectVignetteName', 'Architect');
 	const architectVignetteDesc = localize('droxChatArchitectVignetteDescSolo', 'Agent model — click to configure');
 	const roleModelsPickerLabel = localize('droxChatArchitectModelPicker', 'Architect model');
-	const bodyClass = 'drox-architect-solo-ui';
+	const bodyClass = nativeToolbarChrome ? 'drox-architect-solo-ui drox-native-toolbar-chrome' : 'drox-architect-solo-ui';
 	const rolePanelModelLabel = localize('droxChatRolePanelModel', 'Model');
 	const rolePanelNumCtxLabel = localize('droxChatRolePanelNumCtx', 'Context window');
 	const rolePanelNumCtxCustomLabel = localize('droxChatRolePanelNumCtxCustom', 'Custom');
@@ -593,7 +595,6 @@ ${cssLinks}
 				</div>
 				<div id="drox-connection-wizard-body" class="drox-connection-wizard-body"></div>
 				<div class="drox-connection-wizard-actions">
-					<button type="button" id="drox-connection-wizard-reset" class="general-settings-panel-btn drox-wizard-reset" hidden>Reset…</button>
 					<span class="drox-connection-wizard-actions-spacer"></span>
 					<button type="button" id="drox-connection-wizard-back" class="general-settings-panel-btn" hidden>Back</button>
 					<button type="button" id="drox-connection-wizard-next" class="general-settings-panel-btn">Next</button>
@@ -722,7 +723,7 @@ ${cssLinks}
 
 		<span class="stat stat-cycle" title="${localize('droxChatCycleTime', 'Cycle time since your last message')}"><strong id="cycle-elapsed">00:00:00</strong></span>
 
-		<span class="stat" title="${localize('droxChatCtx', 'Estimated tokens in the current context window')}">ctx <strong id="ctx">0</strong></span>
+		<span class="stat stat-ctx" title="${localize('droxChatCtxUsage', 'Context window usage (used / max)')}">ctx <strong id="ctx">0</strong></span>
 
 	</footer>
 

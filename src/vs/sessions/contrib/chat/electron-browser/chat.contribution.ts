@@ -16,7 +16,6 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 import { SessionsView, SessionsViewId as SessionsListViewId } from '../../sessions/browser/views/sessionsView.js';
 import { ISessionsSetUpService } from '../../../browser/sessionsSetUpService.js';
 import { ISessionsPartService } from '../../../services/sessions/browser/sessionsPartService.js';
-import { SessionStatus } from '../../../services/sessions/common/session.js';
 
 class SelectAgentsFolderContribution extends Disposable implements IWorkbenchContribution {
 
@@ -51,6 +50,10 @@ class SelectAgentsFolderContribution extends Disposable implements IWorkbenchCon
 		// session to restore).
 		if (sessionResource) {
 			await this.openExistingSession(sessionResource);
+			if (!this.sessionsManagementService.getSession(sessionResource) && folderUri) {
+				this.logService.warn(`[AgentsHandoff] session not found after open; falling back to folder handoff`);
+				await this.selectFolder(folderUri);
+			}
 			return;
 		}
 		if (folderUri) {
@@ -118,40 +121,59 @@ class SelectAgentsFolderContribution extends Disposable implements IWorkbenchCon
 	}
 
 	private async selectFolder(folderUri: URI): Promise<void> {
-		// Wait for the welcome/setup flow to complete before selecting the folder
 		await this.sessionsSetUpService.whenWelcomeDone();
+		await this.lifecycleService.when(LifecyclePhase.Eventually);
 
-		this.sessionsService.openNewSession();
-
-		// Tell the sessions list this folder is the open-window source folder
-		// so it ranks the matching folder section first. Get the view if it
-		// already exists — do not open it just for this side-effect.
 		const sessionsView = this.viewsService.getViewWithId<SessionsView>(SessionsListViewId);
 		sessionsView?.sessionsControl?.setOpenWindowSourceFolder(folderUri);
 
-		if (this.tryResolveAndSelect(folderUri)) {
+		const resolved = await this.waitForWorkspaceResolution(folderUri);
+		if (!resolved) {
+			this.logService.warn(`[AgentsHandoff] no provider can resolve folder ${folderUri.toString()}`);
 			return;
 		}
 
-		// Provider not registered yet — wait for it, but give up at Eventually phase
-		const disposable = this.sessionsProvidersService.onDidChangeProviders(() => {
-			if (this.tryResolveAndSelect(folderUri)) {
-				disposable.dispose();
-			}
+		// Create a concrete draft session for the folder. This cancels any
+		// in-flight grid restore and wins the race against a stale active slot.
+		const session = this.sessionsService.openNewSession({
+			folderUri,
+			providerId: resolved.providerId,
 		});
-		this.lifecycleService.when(LifecyclePhase.Eventually).then(() => disposable.dispose());
+		if (session) {
+			this.logService.info(`[AgentsHandoff] opened new session for folder provider=${resolved.providerId}`);
+			return;
+		}
+
+		// Fallback: composer view + workspace picker when createNewSession failed.
+		this.sessionsService.openNewSession();
+		const activeSession = this.sessionsService.activeSession.get();
+		this.sessionsPartService.getSessionView(activeSession?.sessionId)?.selectWorkspace(folderUri, resolved.providerId);
 	}
 
-	private tryResolveAndSelect(folderUri: URI): boolean {
-		const resolved = this.sessionsManagementService.resolveWorkspace(folderUri);
-		if (!resolved) {
-			return false;
+	private waitForWorkspaceResolution(folderUri: URI): Promise<{ providerId: string } | undefined> {
+		const immediate = this.sessionsManagementService.resolveWorkspace(folderUri);
+		if (immediate) {
+			return Promise.resolve(immediate);
 		}
-		const activeSession = this.sessionsService.activeSession.get();
-		if (activeSession === undefined || activeSession.status.get() === SessionStatus.Untitled) {
-			this.sessionsPartService.getSessionView(activeSession?.sessionId)?.selectWorkspace(folderUri, resolved.providerId);
-		}
-		return true;
+
+		return new Promise(resolve => {
+			const store = new DisposableStore();
+			const done = (result: { providerId: string } | undefined) => {
+				store.dispose();
+				resolve(result);
+			};
+			const timer = setTimeout(() => done(this.sessionsManagementService.resolveWorkspace(folderUri)), 15_000);
+			store.add({ dispose: () => clearTimeout(timer) });
+			store.add(this.sessionsProvidersService.onDidChangeProviders(() => {
+				const resolved = this.sessionsManagementService.resolveWorkspace(folderUri);
+				if (resolved) {
+					done(resolved);
+				}
+			}));
+			void this.lifecycleService.when(LifecyclePhase.Eventually).then(() => {
+				done(this.sessionsManagementService.resolveWorkspace(folderUri));
+			});
+		});
 	}
 }
 
