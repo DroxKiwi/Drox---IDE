@@ -23,6 +23,13 @@ import { BrowserViewCommandId } from '../../../../platform/browserView/common/br
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
 import { Parts, IWorkbenchLayoutService } from '../../../../workbench/services/layout/browser/layoutService.js';
+import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
+import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
+import { KeybindingsRegistry, KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
+import { IQuickInputButton, IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../../../platform/quickinput/common/quickInput.js';
+import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
+import { IWorkbenchContribution } from '../../../../workbench/common/contributions.js';
+import { logSessionsInteraction } from '../../../common/sessionsTelemetry.js';
 import { SessionsCategories } from '../../../common/categories.js';
 import { ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
 import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
