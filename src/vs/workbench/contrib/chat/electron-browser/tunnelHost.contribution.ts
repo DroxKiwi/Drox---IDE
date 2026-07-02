@@ -12,6 +12,7 @@ import { ConfigurationScope, Extensions as ConfigurationExtensions, IConfigurati
 import { ContextKeyExpr, IContextKey, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IsSessionsWindowContext, RemoteNameContext } from '../../../common/contextkeys.js';
@@ -22,6 +23,9 @@ import { ITunnelHostService } from '../common/tunnelHost.js';
 import { CONFIGURATION_KEY_MICROSOFT_AUTH, SHOW_TUNNEL_HOST_OUTPUT_ID, TunnelHostService } from './tunnelHostService.js';
 import { TUNNEL_HOST_LOG_ID } from '../../../../platform/agentHost/common/tunnelAgentHost.js';
 import { ToggleRemoteConnectionsActionViewItem } from './toggleRemoteConnectionsActionViewItem.js';
+
+/** When false, hides tunnel-host UI and blocks inbound remote session sharing (Copilot dev tunnels). */
+export const TUNNEL_HOST_ENABLED_SETTING = 'chat.tunnelHost.enabled';
 
 export const TUNNEL_HOST_SHARING_KEY = 'tunnelHostSharing';
 export const TUNNEL_HOST_SHARING_CONTEXT = new RawContextKey<boolean>(TUNNEL_HOST_SHARING_KEY, false);
@@ -75,12 +79,18 @@ registerAction2(class ToggleRemoteConnectionsAction extends Action2 {
 					IsSessionsWindowContext.toNegated(),
 					RemoteNameContext.isEqualTo(''),
 					ChatContextKeyExprs.isAgentHostSession,
+					ContextKeyExpr.equals(`config.${TUNNEL_HOST_ENABLED_SETTING}`, true),
 				)
 			}
 		});
 	}
 
 	async run(accessor: ServicesAccessor): Promise<void> {
+		const configurationService = accessor.get(IConfigurationService);
+		if (!configurationService.getValue<boolean>(TUNNEL_HOST_ENABLED_SETTING)) {
+			return;
+		}
+
 		const tunnelHostService = accessor.get(ITunnelHostService);
 		const notificationService = accessor.get(INotificationService);
 
@@ -119,6 +129,13 @@ registerWorkbenchContribution2(TunnelHostContribution.ID, TunnelHostContribution
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).registerConfiguration({
 	type: 'object',
 	properties: {
+		[TUNNEL_HOST_ENABLED_SETTING]: {
+			description: localize('tunnelHost.enabled', "Allow remote access to agent sessions from other machines via a dev tunnel. Requires signing in with GitHub or Microsoft."),
+			type: 'boolean',
+			scope: ConfigurationScope.APPLICATION,
+			default: true,
+			tags: ['usesOnlineServices'],
+		},
 		[CONFIGURATION_KEY_MICROSOFT_AUTH]: {
 			description: localize('tunnelHost.enableMicrosoftAuth', "Enable Microsoft account authentication for agent host tunnels. When disabled, only GitHub authentication is used."),
 			type: 'boolean',

@@ -19,15 +19,10 @@ import { ActionWidgetDropdownActionViewItem } from '../../../../platform/actions
 import { MenuId, registerAction2, Action2, MenuRegistry, SubmenuItemAction } from '../../../../platform/actions/common/actions.js';
 import { IActionWidgetService } from '../../../../platform/actionWidget/browser/actionWidget.js';
 import { IActionWidgetDropdownAction } from '../../../../platform/actionWidget/browser/actionWidgetDropdown.js';
+import { BrowserViewCommandId } from '../../../../platform/browserView/common/browserView.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
-import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
-import { KeybindingsRegistry, KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
-import { IQuickInputButton, IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../../../platform/quickinput/common/quickInput.js';
-import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
-import { IWorkbenchContribution } from '../../../../workbench/common/contributions.js';
-import { logSessionsInteraction } from '../../../common/sessionsTelemetry.js';
-import { IWorkbenchLayoutService } from '../../../../workbench/services/layout/browser/layoutService.js';
+import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
+import { Parts, IWorkbenchLayoutService } from '../../../../workbench/services/layout/browser/layoutService.js';
 import { SessionsCategories } from '../../../common/categories.js';
 import { ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
 import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
@@ -907,11 +902,18 @@ class OpenSessionInBrowserAction extends Action2 {
 		const sessionsService = accessor.get(ISessionsService);
 		const sessionsTasksService = accessor.get(ISessionsTasksService);
 		const commandService = accessor.get(ICommandService);
+		const layoutService = accessor.get(IAgentWorkbenchLayoutService);
 
 		const activeSession = sessionsService.activeSession.get();
 		const folder = activeSession?.workspace.get()?.folders[0];
 		const browserUrl = sessionsTasksService.getBrowserUrl(folder?.root).get();
-		await commandService.executeCommand('simpleBrowser.show', browserUrl);
+
+		layoutService.setPartHidden(false, Parts.EDITOR_PART);
+		if (browserUrl) {
+			await commandService.executeCommand(BrowserViewCommandId.Open, browserUrl);
+		} else {
+			await commandService.executeCommand(BrowserViewCommandId.NewTab);
+		}
 	}
 }
 

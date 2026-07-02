@@ -61,6 +61,7 @@ import { ISessionsService } from '../../../services/sessions/browser/sessionsSer
 import { CIStatusWidget } from './checksWidget.js';
 import { GITHUB_REMOTE_FILE_SCHEME, ISessionChangesetOperation, SessionChangesetOperationScope, SessionChangesetOperationStatus, SessionStatus } from '../../../services/sessions/common/session.js';
 import { isAgentHostProviderId } from '../../../common/agentHostSessionsProvider.js';
+import { SessionProviderIdContext } from '../../../common/contextkeys.js';
 import { Orientation } from '../../../../base/browser/ui/sash/sash.js';
 import { IView, Sizing, SplitView } from '../../../../base/browser/ui/splitview/splitview.js';
 import { Color } from '../../../../base/common/color.js';
@@ -79,6 +80,10 @@ import { structuralEquals } from '../../../../base/common/equals.js';
 import { compareFileNames, comparePaths } from '../../../../base/common/comparers.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
 import { ServiceCollection } from '../../../../platform/instantiation/common/serviceCollection.js';
+import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+import { DROX_SESSION_COMMIT_ACTION_ID, DROX_SESSION_COMMIT_AND_PUSH_ACTION_ID, DROX_SESSION_CREATE_PR_ACTION_ID } from '../../../../workbench/contrib/drox/browser/droxSessionGitComposerActions.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox inline diff in Changes view
+import { DroxChangesInlineDiffWidget } from '../../providers/drox/browser/droxChangesInlineDiffWidget.js';
 import { IMarkdownString } from '../../../../base/common/htmlContent.js';
 
 const $ = dom.$;
@@ -148,6 +153,20 @@ class ChangesMenuWorkbenchButtonBarWidget extends Disposable {
 	}
 
 	private _getButtonConfiguration(action: IAction, outgoingChanges: number, hasGitOperationInProgress: boolean, runningLabelObs: IObservable<string | IMarkdownString | undefined>): { showIcon: boolean; showLabel: boolean; isSecondary?: boolean; customLabel?: string | IMarkdownString; customLabelObs?: IObservable<string | IMarkdownString | undefined>; customClass?: string } | undefined {
+		if (
+			action.id === DROX_SESSION_COMMIT_ACTION_ID ||
+			action.id === DROX_SESSION_COMMIT_AND_PUSH_ACTION_ID ||
+			action.id === DROX_SESSION_CREATE_PR_ACTION_ID
+		) {
+			if (!hasGitOperationInProgress) {
+				return { showIcon: true, showLabel: true, isSecondary: false };
+			}
+			const customLabelObs = derived(reader => {
+				const running = runningLabelObs.read(reader);
+				return `$(loading) ${running ?? action.label}`;
+			});
+			return { showIcon: false, showLabel: true, isSecondary: false, customLabelObs };
+		}
 		if (
 			action.id === 'github.copilot.sessions.commit' ||
 			action.id === 'github.copilot.chat.createPullRequestCopilotCLIAgentSession.createPR'
@@ -352,6 +371,8 @@ export class ChangesViewPane extends ViewPane {
 	private fileHeaderToolbarContainer: HTMLElement | undefined;
 	private contentContainer: HTMLElement | undefined;
 	private listContainer: HTMLElement | undefined;
+	private droxInlineContainer: HTMLElement | undefined;
+	private droxInlineDiffWidget: DroxChangesInlineDiffWidget | undefined;
 	// Actions container is positioned outside the card for this layout experiment
 	private actionsContainer: HTMLElement | undefined;
 
@@ -436,6 +457,10 @@ export class ChangesViewPane extends ViewPane {
 		// changes.
 		this._register(bindContextKey(ChatContextKeys.agentSessionType, this.scopedContextKeyService, reader => {
 			return this.viewModel.activeSessionTypeObs.read(reader) ?? '';
+		}));
+
+		this._register(bindContextKey(SessionProviderIdContext, this.scopedContextKeyService, reader => {
+			return this.sessionsService.activeSession.read(reader)?.providerId ?? '';
 		}));
 
 		// Git operation in progress set in the global context key service by the extension
@@ -527,6 +552,8 @@ export class ChangesViewPane extends ViewPane {
 
 		// List container
 		this.listContainer = dom.append(this.contentContainer, $('.changes-file-list'));
+		this.droxInlineContainer = dom.append(this.contentContainer, $('.drox-changes-inline-host'));
+		this.droxInlineContainer.style.display = 'none';
 
 		// Welcome message for empty state (hidden by default, shown when no changes)
 		this.welcomeContainer = dom.append(this.contentContainer, $('.changes-welcome'));
@@ -625,6 +652,10 @@ export class ChangesViewPane extends ViewPane {
 				this.onVisible();
 			} else {
 				this.renderDisposables.clear();
+				this.droxInlineDiffWidget = undefined;
+				if (this.droxInlineContainer) {
+					dom.clearNode(this.droxInlineContainer);
+				}
 			}
 		}));
 
@@ -716,7 +747,9 @@ export class ChangesViewPane extends ViewPane {
 			}
 
 			// Hide the actions toolbar for untitled sessions.
+			const activeSession = this.sessionsService.activeSession.read(reader);
 			const activeSessionStatus = activeSessionStatusObs.read(reader);
+			const isDroxSession = activeSession?.providerId === DROX_SESSIONS_PROVIDER_ID;
 			const isUntitled = activeSessionStatus === SessionStatus.Untitled;
 			if (this.actionsContainer) {
 				dom.setVisibility(!isUntitled, this.actionsContainer);
@@ -727,17 +760,16 @@ export class ChangesViewPane extends ViewPane {
 			const stats = topLevelStats.read(reader);
 			const hasEntries = stats !== undefined && stats.files > 0;
 
-			// Show the files header whenever the session is git-backed (so users
-			// can switch version modes) or there are session-provided entries to
-			// count (for non-git sessions like the local agent host).
-			dom.setVisibility(!isUntitled && (hasGitRepository || hasEntries), this.filesHeaderNode!);
+			// Drox: inline widget manages its own header and empty state.
+			const showMsFilesHeader = !isUntitled && !isDroxSession && (hasGitRepository || hasEntries);
+			dom.setVisibility(showMsFilesHeader, this.filesHeaderNode!);
 
 			if (this.fileHeaderToolbarContainer) {
-				dom.setVisibility(hasEntries, this.fileHeaderToolbarContainer);
+				dom.setVisibility(hasEntries && !isDroxSession, this.fileHeaderToolbarContainer);
 			}
 
-			dom.setVisibility(hasEntries, this.listContainer!);
-			dom.setVisibility(!hasEntries, this.welcomeContainer!);
+			dom.setVisibility(hasEntries && !isDroxSession, this.listContainer!);
+			dom.setVisibility(!hasEntries && !isDroxSession, this.welcomeContainer!);
 
 			this.layoutSplitView();
 		}));
@@ -792,11 +824,36 @@ export class ChangesViewPane extends ViewPane {
 			const changes = changesObs.read(reader);
 			const viewMode = this.viewModel.viewModeObs.read(reader);
 			const isLoading = this.viewModel.activeSessionIsLoadingObs.read(reader);
+			const activeSession = this.sessionsService.activeSession.read(reader);
+			const isDroxSession = activeSession?.providerId === DROX_SESSIONS_PROVIDER_ID;
 			// Read session state so this autorun re-runs when git state (e.g. branch name)
 			// arrives asynchronously, since the tree root label depends on it.
 			this.viewModel.activeSessionStateObs.read(reader);
 
-			if (!this.tree || isLoading) {
+			if (isLoading) {
+				return;
+			}
+
+			if (isDroxSession) {
+				this.listContainer?.style.setProperty('display', 'none');
+				this.welcomeContainer?.style.setProperty('display', 'none');
+				this.droxInlineContainer?.style.removeProperty('display');
+				if (this.droxInlineContainer && !this.droxInlineDiffWidget) {
+					dom.clearNode(this.droxInlineContainer);
+					this.droxInlineDiffWidget = this.renderDisposables.add(this.scopedInstantiationService.createInstance(
+						DroxChangesInlineDiffWidget,
+						this.droxInlineContainer,
+						this.viewModel.activeSessionResourceObs,
+					));
+				}
+				this.layoutSplitView();
+				return;
+			}
+
+			this.droxInlineContainer?.style.setProperty('display', 'none');
+			this.listContainer?.style.removeProperty('display');
+
+			if (!this.tree) {
 				return;
 			}
 
@@ -862,13 +919,18 @@ export class ChangesViewPane extends ViewPane {
 
 	/** Layout the tree within its SplitView pane. */
 	private _layoutTreeInPane(paneHeight: number): void {
+		const filesHeaderHeight = this.filesHeaderNode?.offsetHeight ?? 0;
+		const treeHeight = Math.max(0, paneHeight - filesHeaderHeight);
+
+		if (this.droxInlineContainer?.style.display !== 'none' && this.droxInlineDiffWidget) {
+			this.droxInlineDiffWidget.layout(treeHeight, this.currentBodyWidth);
+			return;
+		}
+
 		if (!this.tree) {
 			return;
 		}
 
-		// Subtract the files header height within the content container
-		const filesHeaderHeight = this.filesHeaderNode?.offsetHeight ?? 0;
-		const treeHeight = Math.max(0, paneHeight - filesHeaderHeight);
 		this.tree.layout(treeHeight, this.currentBodyWidth);
 		this.tree.getHTMLElement().style.height = `${treeHeight}px`;
 	}
@@ -1364,7 +1426,8 @@ class SetChangesListViewModeAction extends ViewAction<ChangesViewPane> {
 			menu: {
 				id: MenuId.ChatEditingSessionTitleToolbar,
 				group: '1_viewmode',
-				order: 1
+				order: 1,
+				when: SessionProviderIdContext.notEqualsTo(DROX_SESSIONS_PROVIDER_ID),
 			}
 		});
 	}
@@ -1387,7 +1450,8 @@ class SetChangesTreeViewModeAction extends ViewAction<ChangesViewPane> {
 			menu: {
 				id: MenuId.ChatEditingSessionTitleToolbar,
 				group: '1_viewmode',
-				order: 2
+				order: 2,
+				when: SessionProviderIdContext.notEqualsTo(DROX_SESSIONS_PROVIDER_ID),
 			}
 		});
 	}

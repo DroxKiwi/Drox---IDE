@@ -21,6 +21,8 @@ import { isDroxEmbeddingModelId, parseDroxAgentsModelIdentifier, toDroxAgentsMod
 import { DroxAgentsComposerToolbar } from './droxAgentsComposerToolbar.js';
 import { createDroxAgentsChatStatusBarHost, DroxAgentsChatStatusBarHost } from './droxAgentsChatStatusBar.js';
 
+export { createDroxAgentsComposerQuickActionsHost } from './droxAgentsComposerQuickActions.js';
+export type { DroxAgentsComposerQuickActionsHost } from './droxAgentsComposerQuickActions.js';
 export { createDroxAgentsChatStatusBarHost, DroxAgentsChatStatusBarHost };
 
 export function isDroxAgentsChatSessionType(sessionType: string | undefined): boolean {

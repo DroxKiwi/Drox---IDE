@@ -1,7 +1,7 @@
 # Marketplace MCP Drox — spec (curated · open source)
 
-**Version** : juin 2026 · **1.5.12** (cadrage) · impl cible **1.5.13+**  
-**PLAN** : [PLAN-1.5.12.md](PLAN-1.5.12.md) § P7  
+**Version** : juin 2026 · **1.5.12**  
+**PLAN** : [PLAN-1.5.12.md](PLAN-1.5.12.md) § P4  
 **Brainstorm moteur** : [#16 Connexions MCP](../../feature-brainstorm/16-connexions-mcp-ui-moteur.md)
 
 ---
@@ -104,14 +104,21 @@ Le workbench implémente déjà le protocole **MCP Gallery** :
 | Découverte locale | `workspaceDotMcpDiscovery.ts` |
 | Accès global | `mcpAccessConfig` · `IAllowedMcpServersService` |
 
-**Action Drox (1.5.13)** :
+**Action Drox (1.5.12)** :
 
 ```json
 // product.json (extrait cible)
 "mcpGallery": {
-  "serviceUrl": "https://…/drox-mcp-registry"
+  "serviceUrl": "https://raw.githubusercontent.com/DroxKiwi/Drox---IDE/1.5.12/drox-engine/mcp-registry",
+  "itemWebUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/1.5.12/drox-engine/mcp-registry/README.md",
+  "supportUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/issues/new",
+  "privacyPolicyUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+  "termsOfServiceUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+  "reportUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/issues/new"
 }
 ```
+
+Manifest statique : `drox-engine/mcp-registry/v0.1/servers` (5 entrées OSS épinglées).
 
 + defaults dans `droxProductDefaultsConfiguration.ts` :
 
@@ -145,7 +152,7 @@ Une seule vérité disque — pas deux registres parallèles.
 | `fetch` | Fetch | serveur fetch OSS épinglé | MIT | HTTP read-only |
 | `memory` | Memory | serveur memory OSS | MIT | Optionnel · données locales |
 
-Liste à valider en review — objectif **5–10** entrées pour 1.5.13, pas centaines.
+Liste à valider en review — objectif **5–10** entrées pour 1.5.12, pas centaines.
 
 ---
 
@@ -162,11 +169,11 @@ Liste à valider en review — objectif **5–10** entrées pour 1.5.13, pas cen
 
 | Phase | Done quand |
 |-------|------------|
-| **P7-0** (1.5.12) | Ce doc + PLAN P7 validés |
-| **P7-1** | Manifest hébergé + `product.mcpGallery` |
-| **P7-2** | Marketplace non vide · install smoke |
-| **P7-3** | Run Drox voit outils `mcp__*` |
-| **P7-4** | Process gouvernance documenté ops |
+| **P4-0** | Ce doc + PLAN P4 validés |
+| **P4-1** | Manifest hébergé + `product.mcpGallery` |
+| **P4-2** | Marketplace non vide · install smoke |
+| **P4-3** | Run Drox voit outils `mcp__*` |
+| **P4-4** | Process gouvernance documenté ops |
 
 ---
 

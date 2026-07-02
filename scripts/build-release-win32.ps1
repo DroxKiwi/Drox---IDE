@@ -146,10 +146,14 @@ if ($WithInnoUpdaterOnly) {
 
 Ensure-OutVscodeMin
 
-$copilotSdk = Join-Path $repoRoot '.build\extensions\copilot\node_modules\@github\copilot\sdk'
-if (-not (Test-Path $copilotSdk)) {
-	Write-Step 'gulp compile-copilot-extension-build (requis pour package win32)'
-	Invoke-Gulp 'compile-copilot-extension-build'
+if (Test-DroxCopilotExtensionBundled) {
+	$copilotSdk = Join-Path $repoRoot '.build\extensions\copilot\node_modules\@github\copilot\sdk'
+	if (-not (Test-Path $copilotSdk)) {
+		Write-Step 'gulp compile-copilot-extension-build (requis pour package win32)'
+		Invoke-Gulp 'compile-copilot-extension-build'
+	}
+} else {
+	Write-Host '[build-release] extensions/copilot non bundle (droxMicrosoftAgentsSurfaceEnabled=false) — compile copilot ignore.' -ForegroundColor Green
 }
 
 Write-Step 'gulp vscode-win32-x64-min-ci - package Electron'

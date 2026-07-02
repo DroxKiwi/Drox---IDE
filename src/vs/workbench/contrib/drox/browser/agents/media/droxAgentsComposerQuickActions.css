@@ -1,0 +1,28 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Cursor-style quick actions row above the chat composer input. */
+.agent-sessions-workbench .drox-composer-quick-actions-host {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	padding: 0 0 8px;
+	box-sizing: border-box;
+}
+
+.agent-sessions-workbench .drox-composer-quick-actions-host .monaco-toolbar {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.agent-sessions-workbench .drox-composer-quick-actions-host .monaco-action-bar .actions-container {
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.agent-sessions-workbench .drox-composer-quick-actions-host .chat-composite-bar-meta-item-button {
+	border-radius: 999px;
+}

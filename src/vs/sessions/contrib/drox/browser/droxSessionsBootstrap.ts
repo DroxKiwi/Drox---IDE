@@ -13,10 +13,12 @@
  */
 
 import { registerDroxActions } from '../../../../workbench/contrib/drox/browser/droxActions.js';
+import { registerDroxAgentsResetActions } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsResetActions.js';
 import { registerDroxCoreSingletons } from '../../../../workbench/contrib/drox/electron-browser/droxCoreSingletons.js';
 
 registerDroxCoreSingletons();
 registerDroxActions();
+registerDroxAgentsResetActions();
 
 import '../../../../workbench/contrib/drox/electron-browser/droxEngineConfigContribution.js';
 import '../../../../workbench/contrib/drox/electron-browser/droxEngineWarmStartContribution.js';

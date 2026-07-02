@@ -11,6 +11,10 @@ export interface IGitPullOptions {
 	readonly allowHardResetOnDivergence?: boolean;
 }
 
+export interface IGitPushOptions {
+	readonly setUpstream?: boolean;
+}
+
 /**
  * Low-level service for executing git commands on the local machine.
  * Used in the shared process where Node.js APIs are available.
@@ -26,4 +30,10 @@ export interface ILocalGitService {
 	fetch(operationId: string, repoPath: string): Promise<void>;
 	revListCount(repoPath: string, fromRef: string, toRef: string): Promise<number>;
 	cancel(operationId: string): Promise<void>;
+
+	hasUncommittedChanges(repoPath: string): Promise<boolean>;
+	getCurrentBranch(repoPath: string): Promise<string | undefined>;
+	hasUpstream(repoPath: string, branchName: string): Promise<boolean>;
+	commitAll(repoPath: string, message: string): Promise<void>;
+	push(repoPath: string, options?: IGitPushOptions): Promise<void>;
 }

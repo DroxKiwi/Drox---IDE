@@ -449,7 +449,7 @@ class SessionsSetUpWidget extends Disposable {
 	private _createWelcomeFooter(disposables: DisposableStore): HTMLElement {
 		const element = $('.chat-setup-dialog-footer');
 		const defaultChatAgent = this.productService.defaultChatAgent;
-		const providerName = defaultChatAgent?.provider?.default?.name ?? 'GitHub';
+		const providerName = defaultChatAgent?.provider?.default?.name ?? 'Drox';
 		const termsUrl = defaultChatAgent?.termsStatementUrl ?? '';
 		const privacyUrl = defaultChatAgent?.privacyStatementUrl ?? '';
 		const publicCodeUrl = defaultChatAgent?.publicCodeMatchesUrl ?? '';
@@ -457,7 +457,7 @@ class SessionsSetUpWidget extends Disposable {
 
 		const footer = localize(
 			{ key: 'welcomeFooter', comment: ['{Locked="["}', '{Locked="]({1})"}', '{Locked="]({2})"}', '{Locked="]({4})"}', '{Locked="]({5})"}'] },
-			"By continuing, you agree to {0}'s [Terms]({1}) and [Privacy Statement]({2}). {3} Copilot may show [public code]({4}) suggestions and use your data to improve the product. You can change these [settings]({5}) anytime.",
+			"By continuing, you agree to {0}'s [Terms]({1}) and [Privacy Statement]({2}). {3} may show [public code]({4}) suggestions and use your data to improve the product. You can change these [settings]({5}) anytime.",
 			providerName, termsUrl, privacyUrl, providerName, publicCodeUrl, settingsUrl
 		);
 		element.appendChild($('p', undefined, disposables.add(this.markdownRendererService.render(new MarkdownString(footer, { isTrusted: true }))).element));

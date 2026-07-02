@@ -14,6 +14,9 @@ import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
 import { isDroxAgentsWindowEnabled } from '../common/droxAgentsConfiguration.js';
 import { isDroxMicrosoftAgentsSurfaceEnabled } from '../common/droxMicrosoftAgentsSurface.js';
+import { RemoteAgentHostAutoConnectSettingId, RemoteAgentHostsEnabledSettingId } from '../../../../platform/agentHost/common/remoteAgentHostService.js';
+import { TUNNEL_HOST_ENABLED_SETTING } from '../../chat/electron-browser/tunnelHost.contribution.js';
+import { ITunnelHostService } from '../../chat/common/tunnelHost.js';
 
 /**
  * Masque les surfaces Agents / chat Microsoft quand `droxMicrosoftAgentsSurfaceEnabled` ≠ true.
@@ -51,9 +54,39 @@ class DroxMicrosoftAgentsSurfaceContribution implements IWorkbenchContribution {
 		apply('workbench.welcomePage.experimentalOnboarding', false);
 		apply('workbench.welcomePage.walkthroughs.openOnInstall', false);
 		apply('settingsSync.enable', false);
+		apply(RemoteAgentHostsEnabledSettingId, false);
+		apply(RemoteAgentHostAutoConnectSettingId, false);
+		apply(TUNNEL_HOST_ENABLED_SETTING, false);
 		void viewsService.closeViewContainer(ChatViewContainerId);
 	}
 }
+
+/** Stops any restored Copilot tunnel-host sharing when Drox has remote session access off. */
+class DroxTunnelHostShutdownContribution implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.droxTunnelHostShutdown';
+
+	constructor(
+		@IProductService productService: IProductService,
+		@IConfigurationService configurationService: IConfigurationService,
+		@ITunnelHostService tunnelHostService: ITunnelHostService,
+	) {
+		if (isDroxMicrosoftAgentsSurfaceEnabled(productService)) {
+			return;
+		}
+		if (configurationService.getValue<boolean>(TUNNEL_HOST_ENABLED_SETTING) !== false) {
+			return;
+		}
+		if (tunnelHostService.isSharing) {
+			void tunnelHostService.stopSharing();
+		}
+	}
+}
+
+registerWorkbenchContribution2(
+	DroxTunnelHostShutdownContribution.ID,
+	DroxTunnelHostShutdownContribution,
+	WorkbenchPhase.AfterRestored,
+);
 
 registerWorkbenchContribution2(
 	DroxMicrosoftAgentsSurfaceContribution.ID,
