@@ -1,0 +1,383 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-changes-inline-host .drox-changes-inline {
+	display: flex;
+	flex-direction: column;
+	height: auto;
+	min-height: 0;
+	overflow: visible;
+	gap: 8px;
+	padding: 2px 0 8px;
+	box-sizing: border-box;
+	min-width: 0;
+	max-width: 100%;
+	flex: 1;
+}
+
+.drox-changes-inline-host .drox-changes-inline-summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 2px 0 6px;
+	font-size: var(--vscode-agents-fontSize-label1);
+	font-weight: var(--vscode-agents-fontWeight-semiBold);
+	color: var(--vscode-foreground);
+	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.drox-changes-inline-host .drox-changes-inline-summary > span:first-child {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-changes-inline-host .drox-changes-inline-summary-stats {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: var(--vscode-agents-fontWeight-regular);
+	font-variant-numeric: tabular-nums;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+.drox-changes-inline-host .drox-changes-inline-files {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.drox-changes-inline-host .drox-changes-inline.is-empty .drox-changes-inline-summary {
+	justify-content: center;
+}
+
+.drox-changes-inline-host .drox-changes-inline.is-empty .drox-changes-inline-summary > span:first-child {
+	flex: 0 1 auto;
+	text-align: center;
+}
+
+.drox-changes-inline-host .drox-changes-inline-empty {
+	display: none;
+	flex: 1;
+	align-items: center;
+	justify-content: center;
+	padding: 32px 16px;
+	text-align: center;
+	color: var(--vscode-descriptionForeground);
+	font-size: var(--vscode-agents-fontSize-label1);
+	line-height: 1.45;
+	box-sizing: border-box;
+}
+
+.drox-changes-inline-host .drox-changes-inline.is-empty {
+	flex: 1;
+	min-height: 100%;
+}
+
+.drox-changes-inline-host .drox-changes-inline.is-empty .drox-changes-inline-empty {
+	display: flex;
+}
+
+.drox-changes-inline-host .drox-changes-inline-summary-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+	padding-right: 8px;
+}
+
+.drox-changes-inline-host .drox-changes-clean-btn,
+.drox-changes-inline-host .drox-changes-dismiss-selected-btn,
+.drox-changes-inline-host .drox-changes-open-all-btn {
+	font-size: 11px;
+	padding: 2px 8px;
+	border-radius: 4px;
+	border: 1px solid var(--vscode-panel-border);
+	background: transparent;
+	color: var(--vscode-foreground);
+	cursor: pointer;
+}
+
+.drox-changes-inline-host .drox-changes-clean-btn:hover,
+.drox-changes-inline-host .drox-changes-dismiss-selected-btn:hover,
+.drox-changes-inline-host .drox-changes-open-all-btn:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 0 0 8px;
+	border-bottom: 1px solid var(--vscode-panel-border);
+	margin-bottom: 4px;
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-list-header {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--vscode-descriptionForeground);
+	padding: 0 2px 4px;
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-list-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 6px;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 12px;
+	min-width: 0;
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-row:hover {
+	background: var(--vscode-list-hoverBackground);
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-row-label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-row-stats {
+	display: inline-flex;
+	gap: 6px;
+	font-variant-numeric: tabular-nums;
+	flex-shrink: 0;
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-row-stats .fc-add {
+	color: var(--drox-thread-green, var(--vscode-charts-green));
+}
+
+.drox-changes-inline-host .drox-changes-inline-file-row-stats .fc-rem {
+	color: var(--vscode-errorForeground);
+}
+
+.drox-changes-inline-host .changes-decoration-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	min-width: 16px;
+	font-size: var(--vscode-agents-fontSize-body2);
+	font-weight: var(--vscode-agents-fontWeight-semiBold);
+	flex-shrink: 0;
+	opacity: 0.9;
+}
+
+.drox-changes-inline-host .changes-decoration-badge.added {
+	color: var(--vscode-gitDecoration-addedResourceForeground);
+}
+
+.drox-changes-inline-host .changes-decoration-badge.modified {
+	color: var(--vscode-gitDecoration-modifiedResourceForeground);
+}
+
+.drox-changes-inline-host .changes-decoration-badge.deleted {
+	color: var(--vscode-gitDecoration-deletedResourceForeground);
+}
+
+/* File diff cards (same render as chat stream, scoped to Changes panel) */
+.drox-changes-inline-host .drox-native-file-change.msg-file-change {
+	align-self: stretch;
+	margin: 0;
+	border: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
+	border-radius: 8px;
+	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	overflow: hidden;
+	font-family: var(--vscode-editor-font-family);
+	font-size: 12px;
+	color: var(--vscode-foreground);
+	max-width: 100%;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.drox-changes-inline-host .drox-native-file-change > .fc-summary {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 10px;
+	user-select: none;
+	background: color-mix(in srgb, var(--drox-thread-green, #4ec94e) 8%, var(--vscode-editorWidget-background));
+	border-bottom: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
+	min-width: 0;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-op {
+	font-weight: 600;
+	text-transform: lowercase;
+	color: var(--drox-thread-green, var(--vscode-charts-green));
+	flex-shrink: 0;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-path {
+	font-family: var(--vscode-editor-font-family);
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--vscode-textLink-foreground);
+	text-decoration: none;
+	cursor: pointer;
+	flex: 1;
+	min-width: 0;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-path:hover {
+	text-decoration: underline;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-stats {
+	display: inline-flex;
+	gap: 6px;
+	font-variant-numeric: tabular-nums;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-add {
+	color: var(--drox-thread-green, var(--vscode-charts-green));
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-rem {
+	color: var(--vscode-errorForeground);
+}
+
+.drox-changes-inline-host .drox-native-file-change > .fc-body {
+	padding: 0;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-diff {
+	overflow: visible;
+	max-height: none;
+	padding: 4px 0;
+	font-family: var(--vscode-editor-font-family);
+	font-size: 11px;
+	line-height: 1.45;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line {
+	display: block;
+	min-height: 1.35em;
+	padding: 0 10px;
+	white-space: pre-wrap;
+	word-break: break-word;
+	overflow-wrap: anywhere;
+	font-family: inherit;
+	color: var(--vscode-editor-foreground);
+	box-sizing: border-box;
+	max-width: 100%;
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-add {
+	background: color-mix(in srgb, var(--drox-thread-green, #4ec94e) 18%, transparent);
+	color: var(--vscode-editor-foreground);
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-rem {
+	background: color-mix(in srgb, var(--vscode-errorForeground) 14%, transparent);
+	color: var(--vscode-editor-foreground);
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-hunk,
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-fold {
+	color: var(--vscode-descriptionForeground);
+	font-style: italic;
+	background: var(--vscode-editorIndentGuide-background, rgba(127, 127, 127, 0.08));
+	cursor: pointer;
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-fold {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 4px 10px;
+	font-style: normal;
+	cursor: default;
+	pointer-events: none;
+	user-select: none;
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-ctx {
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-changes-inline-host .drox-native-file-change.is-not-applied {
+	opacity: 0.85;
+	border-style: dashed;
+}
+
+.drox-changes-inline-host .drox-native-file-change.is-cancelled .fc-op {
+	color: var(--vscode-errorForeground);
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-select {
+	width: 14px;
+	height: 14px;
+	margin: 0;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-dismiss {
+	width: 22px;
+	height: 22px;
+	border: none;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	flex-shrink: 0;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-dismiss:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+	color: var(--vscode-foreground);
+}
+
+.drox-changes-inline-host .drox-changes-inline-missing {
+	padding: 8px 10px;
+	color: var(--vscode-descriptionForeground);
+	font-size: 12px;
+}

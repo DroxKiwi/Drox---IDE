@@ -55,7 +55,7 @@ export function createDroxHarnessDescriptor(userHome: URI): IHarnessDescriptor {
 			AICustomizationManagementSection.Hooks,
 		],
 		hideGenerateButton: true,
-		workspaceSubpaths: [DROX_CONFIG_FOLDER, '.github'],
+		workspaceSubpaths: [DROX_CONFIG_FOLDER],
 		instructionFileFilter: [
 			DROX_MD_FILENAME,
 			MEMORY_MD_FILENAME,

@@ -137,8 +137,7 @@ Autres champs session déjà alimentés : titre, workspace, modèle, statut, lis
 
 | Version | Items |
 |---------|-------|
-| **1.5.12** | P1 reset · P2 phrases · P3 Copilot→Drox · P4 MCP spec · P5 browser ✅ |
-| **1.5.13+** | **P6 Workspace Cursor** (phases A–E : changes, tree+diff, onglets unifiés, git composer) · MCP registry |
+| **1.5.12** | P1 reset · P2 phrases · P3 Copilot→Drox · P4 MCP registry · P5 browser ✅ · **P6 Workspace Cursor** (phases A–E : changes, tree+diff, onglets unifiés, git composer) |
 
 > Anciens libellés fusionnés dans **P6** : ex-P3 données, ex-P9 Changes enrichi, ex-P10 Commit composer, ex-P11 tree+diff, **onglets unifiés** (Phase E).
 | **Long terme** | Parité COMPARE E1–E12 · retrait webview |
