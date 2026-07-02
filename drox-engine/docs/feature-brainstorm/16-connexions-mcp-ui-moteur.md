@@ -98,15 +98,16 @@ Fichier : `<workspace>/.mcp.json` ou `mcp.json`.
 
 ## Hors scope
 
-- Marketplace MCP Copilot (`api.github.com/copilot/mcp_registry`)
+- ~~Marketplace MCP Copilot~~ → remplacé par **registre Drox curated OSS** ([P4](../1.5/1.5.12/MCP-MARKETPLACE-DROX.md))
 - Réécrire le protocole MCP
 - Serveurs cloud Microsoft obligatoires
+- Connexion MCP remote arbitraire depuis la galerie
 
 ---
 
 ## Lien avec Agents Window (1.5.11)
 
-Le panneau **Customizations → MCP Servers** de la fenêtre Agents natif pourra consommer la **même** config `.mcp.json` une fois ce chantier livré. Voir [PLAN 1.5.11 Agents](../1.5/1.5.11/PLAN-1.5.11.md) phase P4.
+Le panneau **Customizations → MCP Servers** de la fenêtre Agents consommera un **registre Drox curated OSS** ([MCP-MARKETPLACE-DROX](../1.5/1.5.12/MCP-MARKETPLACE-DROX.md)) une fois **P4** livré. Voir [PLAN 1.5.12 § P4](../1.5/1.5.12/PLAN-1.5.12.md#p4--marketplace-mcp).
 
 ---
 

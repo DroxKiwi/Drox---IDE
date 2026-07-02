@@ -31,13 +31,14 @@ import { IWorkbenchLayoutService } from '../../../../workbench/services/layout/b
 import { SessionsCategories } from '../../../common/categories.js';
 import { ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
 import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
-import { SessionWorkspaceIsVirtualContext, SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
+import { SessionWorkspaceIsVirtualContext, SessionsWelcomeVisibleContext, IsPhoneLayoutContext } from '../../../common/contextkeys.js';
 import { ISession } from '../../../services/sessions/common/session.js';
 import { IChatWidgetService } from '../../../../workbench/contrib/chat/browser/chat.js';
 import { Menus } from '../../../browser/menus.js';
 import { INonSessionTaskEntry, ISessionsTasksService, ISessionTaskWithTarget, ITaskEntry, TaskStorageTarget } from './sessionsTasksService.js';
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
 import { IRunScriptCustomTaskWidgetResult, RunScriptCustomTaskWidget } from './runScriptCustomTaskWidget.js';
+import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 
 
 // Menu IDs - exported for use in auxiliary bar part
@@ -874,6 +875,47 @@ class RunScriptNotAvailableAction extends Action2 {
 }
 
 registerAction2(RunScriptNotAvailableAction);
+
+/** Title bar shortcut for integrated browser (alongside terminal toggle). */
+export const OPEN_SESSION_IN_BROWSER_ACTION_ID = 'agentSession.openInBrowser';
+
+class OpenSessionInBrowserAction extends Action2 {
+
+	constructor() {
+		super({
+			id: OPEN_SESSION_IN_BROWSER_ACTION_ID,
+			title: localize2('openInBrowser', "Open in Browser"),
+			tooltip: localize('openInBrowserTitleBarTooltip', "Open in the integrated browser"),
+			icon: Codicon.globe,
+			menu: [{
+				id: Menus.TitleBarSessionMenu,
+				group: 'navigation',
+				order: 11,
+				when: ContextKeyExpr.and(
+					IsAuxiliaryWindowContext.toNegated(),
+					SessionsWelcomeVisibleContext.toNegated(),
+					IsPhoneLayoutContext.negate(),
+				),
+			}],
+		});
+	}
+
+	override async run(accessor: ServicesAccessor): Promise<void> {
+		const telemetryService = accessor.get(ITelemetryService);
+		logSessionsInteraction(telemetryService, 'openBrowser', 'titleBar');
+
+		const sessionsService = accessor.get(ISessionsService);
+		const sessionsTasksService = accessor.get(ISessionsTasksService);
+		const commandService = accessor.get(ICommandService);
+
+		const activeSession = sessionsService.activeSession.get();
+		const folder = activeSession?.workspace.get()?.folders[0];
+		const browserUrl = sessionsTasksService.getBrowserUrl(folder?.root).get();
+		await commandService.executeCommand('simpleBrowser.show', browserUrl);
+	}
+}
+
+registerAction2(OpenSessionInBrowserAction);
 
 // Register F5 keybinding at module level to ensure it's in the registry
 // before the keybinding resolver is cached. The command handler is

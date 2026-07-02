@@ -13,6 +13,7 @@ export type SessionsInteractionButton =
 	| 'addTask'
 	| 'generateNewTask'
 	| 'openTerminal'
+	| 'openBrowser'
 	| 'openInVSCode';
 
 export type SessionsInteractionSource = 'menu' | 'actionWidget' | 'titleBar' | 'sidebar';
