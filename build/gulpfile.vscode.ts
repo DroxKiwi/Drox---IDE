@@ -22,6 +22,7 @@ import * as crypto from 'crypto';
 import * as cp from 'child_process';
 import * as i18n from './lib/i18n.ts';
 import { getProductionDependencies } from './lib/dependencies.ts';
+import { getDroxCopilotExtensionPackagingExclusions, shouldBundleDroxCopilotExtension } from './lib/droxBundle.ts';
 import { getPackageDroxEngineDevBuild, getPackageDroxVersion, resolveDroxProductSurfaceForPackaging } from './lib/droxVersion.ts';
 import { config } from './lib/electron.ts';
 import { createAsar } from './lib/asar.ts';
@@ -278,7 +279,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			return !set.has(platform);
 		}).map(ext => `!.build/extensions/${ext.name}/**`);
 
-		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true });
+		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions, ...getDroxCopilotExtensionPackagingExclusions()], { base: '.build', dot: true });
 
 		const sourceFilterPattern = stripSourceMapsInPackagingTasks
 			? ['**', '!**/*.{js,css}.map']
@@ -551,6 +552,9 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				'resources/drox/win32-*/drox.exe',
 			])));
 
+		// Drox curated MCP registry (product.mcpGallery + offline fallback)
+		result = es.merge(result, gulp.src('drox-engine/mcp-registry/**', { base: '.', dot: true }));
+
 		result = inlineMeta(result, {
 			targetPaths: bootstrapEntryPoints,
 			packageJsonFn: () => packageJsonContents,
@@ -643,6 +647,9 @@ function prepareCopilotRipgrepShimTask(platform: string, arch: string, destinati
 	const outputDir = path.join(path.dirname(root), destinationFolderName);
 
 	return async () => {
+		if (!shouldBundleDroxCopilotExtension()) {
+			return;
+		}
 		// On Windows with win32VersionedUpdate, app resources live under a
 		// commit-hash prefix: {output}/{commitHash}/resources/app/
 		const versionedResourcesFolder = util.getVersionedResourcesFolder(platform, commit!);
@@ -654,6 +661,12 @@ function prepareCopilotRipgrepShimTask(platform: string, arch: string, destinati
 		const builtInCopilotExtensionDir = path.join(appBase, 'extensions', 'copilot');
 		prepareBuiltInCopilotRipgrepShim(platform, arch, builtInCopilotExtensionDir, appNodeModulesDir);
 	};
+}
+
+const skipCopilotExtensionCompileBuildTask = task.define('compile-copilot-extension-build-skipped', () => Promise.resolve());
+
+function getCopilotExtensionCompileBuildTask(): task.Task {
+	return shouldBundleDroxCopilotExtension() ? compileCopilotExtensionBuildTask : skipCopilotExtensionCompileBuildTask;
 }
 
 const buildRoot = path.dirname(root);
@@ -707,7 +720,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 				copyCodiconsTask,
 				cleanExtensionsBuildTask,
 				compileNonNativeExtensionsBuildTask,
-				compileCopilotExtensionBuildTask,
+				getCopilotExtensionCompileBuildTask(),
 				compileExtensionMediaBuildTask,
 				writeISODate('out-build'),
 				esbuildBundleTask,
@@ -718,7 +731,7 @@ BUILD_TARGETS.forEach(buildTarget => {
 				minified ? compileBuildWithManglingTask : compileBuildWithoutManglingTask,
 				cleanExtensionsBuildTask,
 				compileNonNativeExtensionsBuildTask,
-				compileCopilotExtensionBuildTask,
+				getCopilotExtensionCompileBuildTask(),
 				compileExtensionMediaBuildTask,
 				minified ? minifyVSCodeTask : bundleVSCodeTask,
 				vscodeTaskCI

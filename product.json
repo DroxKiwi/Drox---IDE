@@ -101,6 +101,15 @@
 		}
 	],
 	"droxMicrosoftAgentsSurfaceEnabled": false,
+	"mcpGallery": {
+		"serviceUrl": "https://raw.githubusercontent.com/DroxKiwi/Drox---IDE/1.5.12/drox-engine/mcp-registry",
+		"itemWebUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/1.5.12/drox-engine/mcp-registry/README.md",
+		"publisherUrl": "https://github.com/modelcontextprotocol",
+		"supportUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/issues/new",
+		"privacyPolicyUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"termsOfServiceUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/NOTICE.md",
+		"reportUrl": "https://github.com/DroxKiwi/Drox---IDE---OR/issues/new"
+	},
 	"defaultChatAgent": {
 		"extensionId": "drox.agents",
 		"chatExtensionId": "",

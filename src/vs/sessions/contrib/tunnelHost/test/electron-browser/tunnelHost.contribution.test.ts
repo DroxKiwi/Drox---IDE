@@ -10,6 +10,7 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { isIMenuItem, MenuId, MenuRegistry } from '../../../../../platform/actions/common/actions.js';
 import type { ContextKeyExpression, ContextKeyValue } from '../../../../../platform/contextkey/common/contextkey.js';
 import { ChatContextKeys } from '../../../../../workbench/contrib/chat/common/actions/chatContextKeys.js';
+import { TUNNEL_HOST_ENABLED_SETTING } from '../../../../../workbench/contrib/chat/electron-browser/tunnelHost.contribution.js';
 import { IsAuxiliaryWindowContext, IsSessionsWindowContext, RemoteNameContext } from '../../../../../workbench/common/contextkeys.js';
 import { Menus } from '../../../../browser/menus.js';
 
@@ -55,16 +56,19 @@ suite('Sessions - Tunnel Host Contribution', () => {
 			[ChatContextKeys.chatIsAgentHostSession.key]: true,
 			[IsAuxiliaryWindowContext.key]: false,
 			[RemoteNameContext.key]: '',
+			[`config.${TUNNEL_HOST_ENABLED_SETTING}`]: true,
 		};
 
 		assert.deepStrictEqual({
 			agentsTitlebar: evalWhen(titlebarToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: true }),
+			agentsTitlebarDisabled: evalWhen(titlebarToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: true, [`config.${TUNNEL_HOST_ENABLED_SETTING}`]: false }),
 			editorTitlebar: evalWhen(titlebarToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: false }),
 			agentsChatInput: evalWhen(chatInputToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: true }),
 			editorChatInput: evalWhen(chatInputToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: false }),
 			remoteEditorChatInput: evalWhen(chatInputToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: false, [RemoteNameContext.key]: 'ssh-remote' }),
 		}, {
 			agentsTitlebar: true,
+			agentsTitlebarDisabled: false,
 			editorTitlebar: false,
 			agentsChatInput: false,
 			editorChatInput: true,

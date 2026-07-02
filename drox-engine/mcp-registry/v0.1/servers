@@ -1,0 +1,253 @@
+{
+	"metadata": {
+		"count": 5
+	},
+	"servers": [
+		{
+			"server": {
+				"$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+				"name": "io.github.modelcontextprotocol/server-filesystem",
+				"title": "Filesystem",
+				"description": "Secure file operations with configurable access controls for workspace paths.",
+				"version": "2026.1.14",
+				"repository": {
+					"url": "https://github.com/modelcontextprotocol/servers",
+					"source": "github",
+					"subfolder": "src/filesystem"
+				},
+				"packages": [
+					{
+						"registryType": "npm",
+						"registryBaseUrl": "https://registry.npmjs.org",
+						"identifier": "@modelcontextprotocol/server-filesystem",
+						"version": "2026.1.14",
+						"runtimeHint": "npx",
+						"transport": {
+							"type": "stdio"
+						},
+						"runtimeArguments": [
+							{
+								"type": "positional",
+								"value": "-y"
+							}
+						],
+						"packageArguments": [
+							{
+								"type": "positional",
+								"valueHint": "allowed-directory",
+								"description": "Directory the server may read and write. Repeat for multiple paths.",
+								"isRequired": true,
+								"isRepeated": true,
+								"format": "string"
+							}
+						]
+					}
+				]
+			},
+			"_meta": {
+				"io.modelcontextprotocol.registry/official": {
+					"status": "active",
+					"publishedAt": "2026-01-14T00:00:00.000Z",
+					"updatedAt": "2026-01-14T00:00:00.000Z",
+					"isLatest": true
+				},
+				"io.modelcontextprotocol.registry/publisher-provided": {
+					"github": {
+						"name": "servers",
+						"name_with_owner": "modelcontextprotocol/servers",
+						"license": "MIT",
+						"primary_language": "TypeScript"
+					}
+				}
+			}
+		},
+		{
+			"server": {
+				"$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+				"name": "io.github.modelcontextprotocol/server-memory",
+				"title": "Memory",
+				"description": "Knowledge graph-based persistent memory stored locally.",
+				"version": "2026.1.26",
+				"repository": {
+					"url": "https://github.com/modelcontextprotocol/servers",
+					"source": "github",
+					"subfolder": "src/memory"
+				},
+				"packages": [
+					{
+						"registryType": "npm",
+						"registryBaseUrl": "https://registry.npmjs.org",
+						"identifier": "@modelcontextprotocol/server-memory",
+						"version": "2026.1.26",
+						"runtimeHint": "npx",
+						"transport": {
+							"type": "stdio"
+						},
+						"runtimeArguments": [
+							{
+								"type": "positional",
+								"value": "-y"
+							}
+						]
+					}
+				]
+			},
+			"_meta": {
+				"io.modelcontextprotocol.registry/official": {
+					"status": "active",
+					"publishedAt": "2026-01-26T00:00:00.000Z",
+					"updatedAt": "2026-01-26T00:00:00.000Z",
+					"isLatest": true
+				},
+				"io.modelcontextprotocol.registry/publisher-provided": {
+					"github": {
+						"name": "servers",
+						"name_with_owner": "modelcontextprotocol/servers",
+						"license": "MIT",
+						"primary_language": "TypeScript"
+					}
+				}
+			}
+		},
+		{
+			"server": {
+				"$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+				"name": "io.github.modelcontextprotocol/server-fetch",
+				"title": "Fetch",
+				"description": "Fetch web content and convert it for efficient LLM usage (read-only HTTP).",
+				"version": "2026.6.4",
+				"repository": {
+					"url": "https://github.com/modelcontextprotocol/servers",
+					"source": "github",
+					"subfolder": "src/fetch"
+				},
+				"packages": [
+					{
+						"registryType": "pypi",
+						"registryBaseUrl": "https://pypi.org",
+						"identifier": "mcp-server-fetch",
+						"version": "2026.6.4",
+						"runtimeHint": "uvx",
+						"transport": {
+							"type": "stdio"
+						}
+					}
+				]
+			},
+			"_meta": {
+				"io.modelcontextprotocol.registry/official": {
+					"status": "active",
+					"publishedAt": "2026-06-04T00:00:00.000Z",
+					"updatedAt": "2026-06-04T00:00:00.000Z",
+					"isLatest": true
+				},
+				"io.modelcontextprotocol.registry/publisher-provided": {
+					"github": {
+						"name": "servers",
+						"name_with_owner": "modelcontextprotocol/servers",
+						"license": "MIT",
+						"primary_language": "Python"
+					}
+				}
+			}
+		},
+		{
+			"server": {
+				"$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+				"name": "io.github.modelcontextprotocol/server-git",
+				"title": "Git",
+				"description": "Read and search Git repositories. Does not push without explicit user consent.",
+				"version": "2026.6.16",
+				"repository": {
+					"url": "https://github.com/modelcontextprotocol/servers",
+					"source": "github",
+					"subfolder": "src/git"
+				},
+				"packages": [
+					{
+						"registryType": "pypi",
+						"registryBaseUrl": "https://pypi.org",
+						"identifier": "mcp-server-git",
+						"version": "2026.6.16",
+						"runtimeHint": "uvx",
+						"transport": {
+							"type": "stdio"
+						},
+						"packageArguments": [
+							{
+								"type": "named",
+								"name": "--repository",
+								"description": "Path to the Git repository to operate on.",
+								"format": "string"
+							}
+						]
+					}
+				]
+			},
+			"_meta": {
+				"io.modelcontextprotocol.registry/official": {
+					"status": "active",
+					"publishedAt": "2026-06-16T00:00:00.000Z",
+					"updatedAt": "2026-06-16T00:00:00.000Z",
+					"isLatest": true
+				},
+				"io.modelcontextprotocol.registry/publisher-provided": {
+					"github": {
+						"name": "servers",
+						"name_with_owner": "modelcontextprotocol/servers",
+						"license": "MIT",
+						"primary_language": "Python"
+					}
+				}
+			}
+		},
+		{
+			"server": {
+				"$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+				"name": "io.github.modelcontextprotocol/server-sequential-thinking",
+				"title": "Sequential Thinking",
+				"description": "Dynamic problem-solving through structured thought sequences.",
+				"version": "2025.12.18",
+				"repository": {
+					"url": "https://github.com/modelcontextprotocol/servers",
+					"source": "github",
+					"subfolder": "src/sequentialthinking"
+				},
+				"packages": [
+					{
+						"registryType": "npm",
+						"registryBaseUrl": "https://registry.npmjs.org",
+						"identifier": "@modelcontextprotocol/server-sequential-thinking",
+						"version": "2025.12.18",
+						"runtimeHint": "npx",
+						"transport": {
+							"type": "stdio"
+						},
+						"runtimeArguments": [
+							{
+								"type": "positional",
+								"value": "-y"
+							}
+						]
+					}
+				]
+			},
+			"_meta": {
+				"io.modelcontextprotocol.registry/official": {
+					"status": "active",
+					"publishedAt": "2025-12-18T00:00:00.000Z",
+					"updatedAt": "2025-12-18T00:00:00.000Z",
+					"isLatest": true
+				},
+				"io.modelcontextprotocol.registry/publisher-provided": {
+					"github": {
+						"name": "servers",
+						"name_with_owner": "modelcontextprotocol/servers",
+						"license": "MIT",
+						"primary_language": "TypeScript"
+					}
+				}
+			}
+		}
+	]
+}

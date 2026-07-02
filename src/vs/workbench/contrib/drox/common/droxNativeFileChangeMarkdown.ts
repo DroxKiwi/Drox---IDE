@@ -6,7 +6,6 @@
 // allow-any-unicode-comment-file
 
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
-import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 import { IChatProgress } from '../../chat/common/chatService/chatService.js';
 import { DroxCommands } from './drox.js';
@@ -108,7 +107,7 @@ export function buildDroxNativeFileChangeMarkdown(change: IDroxFileChangePayload
 		: '';
 
 	const openHref = filePath
-		? encodeCommandLink('vscode.open', [URI.file(filePath).toString()])
+		? encodeCommandLink(DroxCommands.OpenSessionFile, [filePath, toolId])
 		: undefined;
 	const pathHtml = openHref
 		? `<a class="fc-path" href="${openHref}" title="${escapeHtml(filePath)}">${relPath}</a>`
@@ -140,7 +139,7 @@ export function buildDroxNativeFileChangeMarkdown(change: IDroxFileChangePayload
 			enabledCommands: [
 				DroxCommands.UndoFileChange,
 				DroxCommands.RedoFileChange,
-				'vscode.open',
+				DroxCommands.OpenSessionFile,
 			],
 		},
 		supportHtml: true,

@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Codicon } from '../../../../base/common/codicons.js';
+import { mainWindow } from '../../../../base/browser/window.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { autorun, derived, IReader } from '../../../../base/common/observable.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -15,8 +16,8 @@ import { IInstantiationService } from '../../../../platform/instantiation/common
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IWorkbenchContribution, getWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
 import { IAgentHostTerminalService } from '../../../../workbench/contrib/terminal/browser/agentHostTerminalService.js';
-import { ITerminalInstance, ITerminalService } from '../../../../workbench/contrib/terminal/browser/terminal.js';
-import { TerminalCapability } from '../../../../platform/terminal/common/capabilities/capabilities.js';
+import { ITerminalInstance, ITerminalEditorService, ITerminalService } from '../../../../workbench/contrib/terminal/browser/terminal.js';
+import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
 import { IPathService } from '../../../../workbench/services/path/common/pathService.js';
 import { Menus } from '../../../browser/menus.js';
 import { isAgentHostProvider, LOCAL_AGENT_HOST_PROVIDER_ID } from '../../../common/agentHostSessionsProvider.js';
@@ -29,13 +30,16 @@ import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextke
 import { ContextKeyExpr, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { logSessionsInteraction } from '../../../common/sessionsTelemetry.js';
-import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
-import { ITerminalProfileService, TERMINAL_VIEW_ID } from '../../../../workbench/contrib/terminal/common/terminal.js';
-import { IWorkbenchLayoutService, Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
+import { ITerminalProfileService } from '../../../../workbench/contrib/terminal/common/terminal.js';
+import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
+import { ACTIVE_GROUP } from '../../../../workbench/services/editor/common/editorService.js';
+import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
 import { ISessionTaskRunnerRegistry } from '../../chat/browser/sessionTaskRunner.js';
 import { AgentHostSessionTaskRunner } from './agentHostSessionTaskRunner.js';
 
-const SessionsTerminalViewVisibleContext = new RawContextKey<boolean>('sessionsTerminalViewVisible', false);
+const SessionsTerminalEditorVisibleContext = new RawContextKey<boolean>('sessionsTerminalEditorVisible', false);
+/** @deprecated Use {@link SessionsTerminalEditorVisibleContext} — kept for action id compatibility. */
+const SessionsTerminalViewVisibleContext = SessionsTerminalEditorVisibleContext;
 
 interface ISessionTerminalInfo {
 	/** The cwd to use for terminal matching/creation. For agent host sessions this is the unwrapped file URI. */
@@ -103,7 +107,8 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		@ILogService private readonly _logService: ILogService,
 		@IPathService private readonly _pathService: IPathService,
 		@ITerminalProfileService private readonly _terminalProfileService: ITerminalProfileService,
-		@IViewsService viewsService: IViewsService,
+		@ITerminalEditorService private readonly _terminalEditorService: ITerminalEditorService,
+		@IAgentWorkbenchLayoutService private readonly _layoutService: IAgentWorkbenchLayoutService,
 		@IContextKeyService contextKeyService: IContextKeyService,
 	) {
 		super();
@@ -154,15 +159,25 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 			this._agentHostTerminalService.setDefaultCwd(info?.cwd);
 		}));
 
-		// Track whether the terminal view is visible so the titlebar toggle
-		// button shows the correct checked state.
-		const terminalViewVisible = SessionsTerminalViewVisibleContext.bindTo(contextKeyService);
-		terminalViewVisible.set(viewsService.isViewVisible(TERMINAL_VIEW_ID));
-		this._register(viewsService.onDidChangeViewVisibility(e => {
-			if (e.id === TERMINAL_VIEW_ID) {
-				terminalViewVisible.set(e.visible);
+		// Track whether a session terminal tab is open in the editor part (P6-E3).
+		const terminalEditorVisible = SessionsTerminalEditorVisibleContext.bindTo(contextKeyService);
+		const updateTerminalEditorVisible = () => {
+			const activeSessionId = this._activeSessionId;
+			const hasActiveSessionTerminal = activeSessionId !== undefined
+				&& this._getTrackedTerminalsForSession(activeSessionId).some(instance =>
+					instance.target === TerminalLocation.Editor
+					&& this._terminalEditorService.instances.includes(instance));
+			terminalEditorVisible.set(
+				this._layoutService.isVisible(Parts.EDITOR_PART, mainWindow) && hasActiveSessionTerminal,
+			);
+		};
+		updateTerminalEditorVisible();
+		this._register(this._layoutService.onDidChangePartVisibility(e => {
+			if (e.partId === Parts.EDITOR_PART) {
+				updateTerminalEditorVisible();
 			}
 		}));
+		this._register(this._terminalEditorService.onDidChangeInstances(() => updateTerminalEditorVisible()));
 
 		// React to active session changes — use worktree/repo for background sessions, home dir otherwise
 		this._register(autorun(reader => {
@@ -209,13 +224,13 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 				return;
 			}
 			if (instance.shellLaunchConfig.attachPersistentProcess && this._activeKey) {
-				instance.getInitialCwd().then(cwd => {
+				void instance.getInitialCwd().then(async cwd => {
 					if (cwd.toLowerCase() !== this._activeKey) {
 						const availableInstance = this._getAvailableTerminal(instance, `hide restored terminal for ${cwd}`);
 						if (!availableInstance) {
 							return;
 						}
-						this._terminalService.moveToBackground(availableInstance);
+						await this._hideTerminalInstance(availableInstance);
 						this._logService.trace(`[SessionsTerminal] Hid restored terminal ${availableInstance.instanceId} (cwd: ${cwd})`);
 					}
 				});
@@ -292,6 +307,34 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 	 * When {@link session} is provided and the session is backed by an agent
 	 * host, the terminal is created on the agent host instead of locally.
 	 */
+	/**
+	 * Always creates a new terminal for the session cwd (or user home) and opens
+	 * it as an editor tab. Unlike {@link ensureTerminal}, existing terminals are
+	 * not reused — used by the editor "+" menu for multiple terminal tabs.
+	 */
+	async openNewTerminal(session?: ISession): Promise<ITerminalInstance | undefined> {
+		const info = getSessionTerminalInfo(session);
+		const cwd = info?.cwd ?? await this._pathService.userHome();
+		try {
+			const instance = await this._createTerminalForSession(cwd, session);
+			const createdInstance = this._getAvailableTerminal(instance, `open new terminal for ${cwd.fsPath}`);
+			if (!createdInstance) {
+				return undefined;
+			}
+			if (session) {
+				this._trackTerminalsForSession(session.sessionId, [createdInstance]);
+			}
+			this._terminalService.setActiveInstance(createdInstance);
+			await this._openTerminalInEditor(createdInstance, true);
+			await this._terminalService.focusActiveInstance();
+			this._logService.trace(`[SessionsTerminal] Opened new terminal ${createdInstance.instanceId} for ${cwd.fsPath}`);
+			return createdInstance;
+		} catch (e) {
+			this._logService.trace(`[SessionsTerminal] Cannot create new terminal for ${cwd.fsPath}: ${e}`);
+			return undefined;
+		}
+	}
+
 	async ensureTerminal(cwd: URI, focus: boolean, session?: ISession): Promise<ITerminalInstance[]> {
 		const key = cwd.fsPath.toLowerCase();
 		let existing = session ? this._getTrackedTerminalsForSession(session.sessionId) : [];
@@ -319,11 +362,48 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 			this._trackTerminalsForSession(session.sessionId, existing);
 		}
 
+		for (const instance of existing) {
+			await this._openTerminalInEditor(instance, focus && instance === existing[0]);
+		}
+
 		if (focus) {
 			await this._terminalService.focusActiveInstance();
 		}
 
 		return existing;
+	}
+
+	getTrackedEditorTerminals(sessionId: string): ITerminalInstance[] {
+		return this._getTrackedTerminalsForSession(sessionId)
+			.filter(instance => instance.target === TerminalLocation.Editor);
+	}
+
+	/**
+	 * Associates a terminal editor tab with the active session (or the given session).
+	 * Used when tabs are restored from a session working set or opened outside
+	 * {@link ensureTerminal} / {@link openNewTerminal}.
+	 */
+	attachTerminalToSession(instance: ITerminalInstance, session?: ISession): void {
+		if (instance.shellLaunchConfig.hideFromUser) {
+			return;
+		}
+		const targetSession = session ?? this._sessionsService.activeSession.get();
+		if (!targetSession) {
+			return;
+		}
+		this._trackTerminalsForSession(targetSession.sessionId, [instance]);
+	}
+
+	private async _openTerminalInEditor(instance: ITerminalInstance, focus: boolean): Promise<void> {
+		const availableInstance = this._getAvailableTerminal(instance, 'open terminal in editor');
+		if (!availableInstance) {
+			return;
+		}
+		if (availableInstance.target !== TerminalLocation.Editor) {
+			this._terminalService.moveToEditor(availableInstance);
+		}
+		await this._terminalEditorService.openEditor(availableInstance, { viewColumn: ACTIVE_GROUP, preserveFocus: !focus });
+		this._layoutService.setPartHidden(false, Parts.EDITOR_PART);
 	}
 
 	/**
@@ -479,77 +559,27 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 	}
 
 	/**
-	 * Shows background terminals that belong to the active session and hides
-	 * foreground terminals that belong to other sessions. When the active
-	 * session has no tracked terminals yet, falls back to initial cwd matching
-	 * for compatibility with restored terminals from previous sessions.
+	 * Ensures the active session's primary terminal is open in the editor part.
+	 * Cross-session tab visibility is handled by per-session editor working sets.
 	 */
-	private async _updateTerminalVisibility(activeSession: ISession, activeKey: string, forceForegroundTerminalIds: number[]): Promise<void> {
-		const toShow: ITerminalInstance[] = [];
-		const toHide: ITerminalInstance[] = [];
-		const trackedTerminalIds = new Set(this._getTrackedTerminalsForSession(activeSession.sessionId).map(instance => instance.instanceId));
+	private async _updateTerminalVisibility(_activeSession: ISession, _activeKey: string, forceForegroundTerminalIds: number[]): Promise<void> {
+		const primaryId = forceForegroundTerminalIds[0];
+		if (primaryId === undefined) {
+			return;
+		}
+		const instance = this._terminalService.getInstanceFromId(primaryId);
+		if (!instance) {
+			return;
+		}
+		await this._openTerminalInEditor(instance, false);
+	}
 
-		for (const instance of [...this._terminalService.instances]) {
-			// Skip hidden tool terminals — managed by the chat tool lifecycle
-			if (instance.shellLaunchConfig.hideFromUser) {
-				continue;
-			}
-			let cwd: string | undefined;
-			const currentInstance = this._getAvailableTerminal(instance, 'update terminal visibility');
-			if (!currentInstance) {
-				continue;
-			}
-
-			const isForeground = this._terminalService.foregroundInstances.includes(currentInstance);
-			const isForceVisible = forceForegroundTerminalIds.includes(currentInstance.instanceId);
-			let belongsToActiveSession = trackedTerminalIds.has(currentInstance.instanceId);
-			if (!belongsToActiveSession && !this._isTerminalTracked(currentInstance.instanceId)) {
-				// Untracked terminal (e.g. restored from a previous window) — fall
-				// back to cwd matching so it is shown alongside the session's tracked
-				// terminals rather than incorrectly hidden.
-				try {
-					cwd = (await currentInstance.getInitialCwd()).toLowerCase();
-				} catch {
-					continue;
-				}
-				belongsToActiveSession = cwd === activeKey;
-			}
-			if ((belongsToActiveSession || isForceVisible) && !isForeground) {
-				toShow.push(currentInstance);
-			} else if (!belongsToActiveSession && !isForceVisible && isForeground) {
-				toHide.push(currentInstance);
-			}
+	private async _hideTerminalInstance(instance: ITerminalInstance): Promise<void> {
+		if (instance.target === TerminalLocation.Editor) {
+			this._terminalEditorService.detachInstance(instance);
+			return;
 		}
-
-		for (const instance of toShow) {
-			const availableInstance = this._getAvailableTerminal(instance, 'show background terminal');
-			if (availableInstance) {
-				await this._terminalService.showBackgroundTerminal(availableInstance, true);
-			}
-		}
-		for (const instance of toHide) {
-			const availableInstance = this._getAvailableTerminal(instance, 'move terminal to background');
-			if (availableInstance) {
-				this._logService.debug(`[SessionsTerminal] Hiding terminal ${availableInstance.instanceId} (does not belong to active key ${activeKey})`);
-				this._terminalService.moveToBackground(availableInstance);
-			}
-		}
-
-		// Set the terminal with the most recent command as active
-		const foreground = this._terminalService.foregroundInstances;
-		let mostRecent: ITerminalInstance | undefined;
-		let mostRecentTimestamp = -1;
-		for (const instance of foreground) {
-			const cmdDetection = instance.capabilities.get(TerminalCapability.CommandDetection);
-			const lastCmd = cmdDetection?.commands.at(-1);
-			if (lastCmd && lastCmd.timestamp > mostRecentTimestamp) {
-				mostRecentTimestamp = lastCmd.timestamp;
-				mostRecent = instance;
-			}
-		}
-		if (mostRecent) {
-			this._terminalService.setActiveInstance(mostRecent);
-		}
+		this._terminalService.moveToBackground(instance);
 	}
 
 	/**
@@ -607,7 +637,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 				continue;
 			}
 			this._logService.info(`[SessionsTerminal] Hiding terminal ${availableInstance.instanceId} (session: ${sessionId}, reason: ${reason})`);
-			this._terminalService.moveToBackground(availableInstance);
+			await this._hideTerminalInstance(availableInstance);
 		}
 	}
 
@@ -625,10 +655,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 
 	async showAllTerminals(): Promise<void> {
 		for (const instance of this._terminalService.instances) {
-			if (!this._terminalService.foregroundInstances.includes(instance)) {
-				await this._terminalService.showBackgroundTerminal(instance, true);
-				this._logService.trace(`[SessionsTerminal] Moved terminal ${instance.instanceId} to foreground`);
-			}
+			await this._openTerminalInEditor(instance, false);
 		}
 	}
 }
@@ -681,27 +708,31 @@ class OpenSessionInTerminalAction extends Action2 {
 		const telemetryService = _accessor.get(ITelemetryService);
 		logSessionsInteraction(telemetryService, 'openTerminal');
 
-		const layoutService = _accessor.get(IWorkbenchLayoutService);
-		const viewsService = _accessor.get(IViewsService);
-
-		// Toggle: if panel is visible and the terminal view is active, hide it.
-		// If the panel is visible but showing another view, open the terminal instead.
-		if (layoutService.isVisible(Parts.PANEL_PART)) {
-			if (viewsService.isViewVisible(TERMINAL_VIEW_ID)) {
-				layoutService.setPartHidden(true, Parts.PANEL_PART);
-				return;
-			}
-		}
-
+		const layoutService = _accessor.get(IAgentWorkbenchLayoutService);
 		const contribution = getWorkbenchContribution<SessionsTerminalContribution>(SessionsTerminalContribution.ID);
 		const sessionsService = _accessor.get(ISessionsService);
 		const pathService = _accessor.get(IPathService);
+		const terminalEditorService = _accessor.get(ITerminalEditorService);
 
 		const activeSession = sessionsService.activeSession.get();
+		const activeSessionId = activeSession?.sessionId;
+		const hasSessionTerminalInEditor = activeSessionId !== undefined
+			&& contribution.getTrackedEditorTerminals(activeSessionId).length > 0;
+
+		// Toggle: hide the editor part when the session terminal tab is already open.
+		if (layoutService.isVisible(Parts.EDITOR_PART, mainWindow) && hasSessionTerminalInEditor) {
+			layoutService.setPartHidden(true, Parts.EDITOR_PART);
+			return;
+		}
+
 		const info = getSessionTerminalInfo(activeSession);
 		const cwd = info?.cwd ?? await pathService.userHome();
 		await contribution.ensureTerminal(cwd, true, activeSession);
-		viewsService.openView(TERMINAL_VIEW_ID);
+
+		// Focus the terminal editor tab if it was already open but not focused.
+		if (hasSessionTerminalInEditor) {
+			await terminalEditorService.revealActiveEditor(false);
+		}
 	}
 }
 

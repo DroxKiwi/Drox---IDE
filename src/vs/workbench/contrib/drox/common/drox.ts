@@ -18,4 +18,5 @@ export namespace DroxCommands {
 	export const RevertLastRun = 'workbench.action.droxRevertLastRun';
 	export const UndoFileChange = 'workbench.action.droxUndoFileChange';
 	export const RedoFileChange = 'workbench.action.droxRedoFileChange';
+	export const OpenSessionFile = 'workbench.action.droxOpenSessionFile';
 }

@@ -146,8 +146,10 @@ import { InlineCompletionsController } from '../../../../../../editor/contrib/in
 import {
 	createDroxAgentsChatInputToolbarHost,
 	createDroxAgentsChatStatusBarHost,
+	createDroxAgentsComposerQuickActionsHost,
 	DroxAgentsChatInputToolbarHost,
 	DroxAgentsChatStatusBarHost,
+	DroxAgentsComposerQuickActionsHost,
 	findDroxArchitectLanguageModel,
 	isDroxAgentsChatSessionType,
 	syncDroxArchitectModelFromChatPicker,
@@ -328,6 +330,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private inputSideToolbarContainer?: HTMLElement;
 	private secondaryToolbarContainer!: HTMLElement;
 	private _droxAgentsChatInputToolbarHost: DroxAgentsChatInputToolbarHost | undefined;
+	private _droxAgentsComposerQuickActionsHost: DroxAgentsComposerQuickActionsHost | undefined;
 	private _droxAgentsChatStatusBarHost: DroxAgentsChatStatusBarHost | undefined;
 	private secondaryToolbar!: MenuWorkbenchToolBar;
 	private statusToolbarContainer!: HTMLElement;
@@ -1731,8 +1734,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		if (!this._usesDroxNativeComposer()) {
 			return;
 		}
-		this._droxAgentsChatInputToolbarHost?.mountIfNeeded(this.getCurrentSessionType());
-		this._droxAgentsChatStatusBarHost?.mountIfNeeded(this.getCurrentSessionType());
+		const sessionType = this.getCurrentSessionType();
+		const sessionResource = this.getCurrentSessionResource();
+		this._droxAgentsChatInputToolbarHost?.mountIfNeeded(sessionType);
+		this._droxAgentsComposerQuickActionsHost?.mountIfNeeded(sessionType, sessionResource);
+		this._droxAgentsChatStatusBarHost?.mountIfNeeded(sessionType);
 	}
 
 	private _preferDroxArchitectModel(): void {
@@ -3377,6 +3383,17 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this.secondaryToolbar.context = { widget } satisfies IChatExecuteActionContext;
 		dom.append(this.secondaryToolbarContainer, genericChipsContainer);
 		if (this._usesDroxNativeComposer()) {
+			const quickActionsHost = createDroxAgentsComposerQuickActionsHost(
+				this.instantiationService,
+				this.configurationService,
+				inputContainer,
+				editorContainer,
+			);
+			if (quickActionsHost) {
+				this._register(quickActionsHost);
+				this._droxAgentsComposerQuickActionsHost = quickActionsHost;
+				this._syncDroxAgentsFollowUpInput();
+			}
 			const host = createDroxAgentsChatInputToolbarHost(
 				this.instantiationService,
 				this.configurationService,

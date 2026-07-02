@@ -29,7 +29,7 @@ export class McpGalleryManifestService extends Disposable implements IMcpGallery
 	}
 
 	constructor(
-		@IProductService private readonly productService: IProductService,
+		@IProductService protected readonly productService: IProductService,
 		@IRequestService private readonly requestService: IRequestService,
 		@ILogService protected readonly logService: ILogService,
 	) {

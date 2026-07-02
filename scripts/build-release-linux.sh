@@ -119,9 +119,12 @@ fs.writeFileSync('out-vscode-min/drox-bundle-stamp.json', JSON.stringify(stamp))
 fi
 
 COPILOT_SDK="$REPO_ROOT/.build/extensions/copilot/node_modules/@github/copilot/sdk"
-if [[ ! -d "$COPILOT_SDK" ]]; then
+DROX_MS_SURFACE="$(node -p "require('./product.json').droxMicrosoftAgentsSurfaceEnabled === true")"
+if [[ "$DROX_MS_SURFACE" == "true" && ! -d "$COPILOT_SDK" ]]; then
 	step 'gulp compile-copilot-extension-build'
 	run_npm run gulp -- compile-copilot-extension-build
+elif [[ "$DROX_MS_SURFACE" != "true" ]]; then
+	echo '[build-release] extensions/copilot non bundle (droxMicrosoftAgentsSurfaceEnabled=false)'
 fi
 
 step 'gulp vscode-linux-x64-min-ci'

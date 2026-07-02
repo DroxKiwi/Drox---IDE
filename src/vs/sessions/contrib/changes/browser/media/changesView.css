@@ -203,9 +203,25 @@
 	color: var(--vscode-button-secondaryForeground);
 }
 
-/* List container */
-.changes-file-list {
-	overflow: hidden;
+.drox-changes-inline-host {
+	overflow-x: hidden;
+	overflow-y: auto;
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+}
+
+.drox-changes-inline-host .drox-changes-inline {
+	min-width: 0;
+}
+
+.drox-changes-inline-host .drox-changes-inline-files {
+	min-width: 0;
+	max-width: 100%;
 }
 
 /* Make the vertical scrollbar overlay on top of content instead of shifting it */

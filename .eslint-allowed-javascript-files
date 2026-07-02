@@ -195,6 +195,7 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/core/constants-meta.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/core/constants-modes.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/core/constants-num-ctx.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/core/dom.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/core/inner-html.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/core/state.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/core/warmup-phrases.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/markdown/11-markdown.js

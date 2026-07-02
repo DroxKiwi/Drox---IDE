@@ -62,4 +62,27 @@ export function registerDroxNativeChatViewActions(): void {
 			await pane?.pickSession();
 		}
 	});
+
+	registerAction2(class DroxNativeResetWorkspaceAction extends Action2 {
+		constructor() {
+			super({
+				id: 'drox.nativeChat.resetWorkspace',
+				title: localize2('drox.nativeChat.resetWorkspace', 'Reset Drox Data for This Workspace'),
+				icon: Codicon.trash,
+				f1: true,
+				precondition: DroxIdeNativeChatTabEnabledContext,
+				menu: [{
+					id: MenuId.ViewTitle,
+					when: ContextKeyExpr.equals('view', DroxViews.NativeChatViewId),
+					group: 'navigation',
+					order: 20,
+				}],
+			});
+		}
+
+		override async run(accessor: ServicesAccessor): Promise<void> {
+			const pane = accessor.get(IViewsService).getViewWithId<DroxNativeChatViewPane>(DroxViews.NativeChatViewId);
+			await pane?.resetWorkspaceDroxData();
+		}
+	});
 }

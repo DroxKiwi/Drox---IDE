@@ -10,6 +10,7 @@ import { CancellationError, isCancellationError } from '../../../../../base/comm
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { Emitter } from '../../../../../base/common/event.js';
 import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
+import { observableValue } from '../../../../../base/common/observable.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { localize } from '../../../../../nls.js';
 import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
@@ -51,12 +52,17 @@ import { generateUuid } from '../../../../../base/common/uuid.js';
 import { createDroxAgentsChatSink, shouldHandleDroxAgentsEngineNotification } from './droxAgentsChatSink.js';
 import { DroxNativeUiReplayRecorder } from './droxNativeUiReplayRecorder.js';
 import { IDroxAgentsChatUiStatsService } from './droxAgentsChatUiStatsService.js';
+import { IDroxSessionChangesBridge } from '../../common/droxSessionChangesBridge.js';
 import { buildDroxAgentsHistoryFromTranscript, buildDroxAgentsHistoryFromUiReplay } from './droxAgentsUiReplayHistory.js';
+import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
 
 class DroxAgentsChatSession implements IChatSession {
 
 	private readonly _onWillDispose = new Emitter<void>();
 	readonly onWillDispose = this._onWillDispose.event;
+
+	/** Historique rechargé depuis disque : les réponses doivent être marquées complètes (cf. AgentHost). */
+	readonly isCompleteObs = observableValue<boolean>('droxAgentsComplete', true);
 
 	constructor(
 		readonly sessionResource: URI,
@@ -87,6 +93,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxChatSessionService private readonly chatSessionService: IDroxChatSessionService,
 		@IDroxAttachmentsService private readonly attachmentsService: IDroxAttachmentsService,
 		@INotificationService private readonly notificationService: INotificationService,
+		@IDroxSessionChangesBridge private readonly sessionChangesBridge: IDroxSessionChangesBridge,
 	) {
 		super();
 		this._registerAgent();
@@ -97,9 +104,14 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		return new DroxAgentsChatSession(sessionResource, history);
 	}
 
+	private async _resolveWorkspacePath(sessionResource: URI): Promise<string | undefined> {
+		return getDroxSessionsProviderInstance()?.ensureSessionWorkspacePath(sessionResource)
+			?? this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath;
+	}
+
 	private async _loadSessionHistory(sessionResource: URI): Promise<IChatSessionHistoryItem[]> {
 		const engineSessionId = DroxChatSessionUri.parseSessionId(sessionResource);
-		const workspacePath = this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath;
+		const workspacePath = await this._resolveWorkspacePath(sessionResource);
 		if (!engineSessionId || !workspacePath || !isListableDroxSessionId(engineSessionId)) {
 			return [];
 		}
@@ -150,7 +162,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		token: CancellationToken,
 	): Promise<IChatAgentResult> {
 		const workspacePath = request.workingDirectory?.fsPath
-			?? this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath;
+			?? await this._resolveWorkspacePath(request.sessionResource);
 		if (!workspacePath) {
 			return {
 				errorDetails: {
@@ -214,6 +226,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			fileService: this.fileService,
 			runRevertService: this.runRevertService,
 			recordUiReplay: message => uiReplayRecorder.record(message),
+			onFileChangeApplied: change => this.sessionChangesBridge.notifyFileChange(request.sessionResource, change),
 		});
 		this.agentsUiStatsService.resetCycleTimer();
 		const bridgeDeps: IDroxAgentRunBridgeDeps = {

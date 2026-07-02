@@ -23,6 +23,8 @@ import { PromptsType } from '../../common/promptSyntax/promptTypes.js';
 import { agentIcon, instructionsIcon, promptIcon, skillIcon, hookIcon, userIcon, workspaceIcon, extensionIcon, pluginIcon, builtinIcon } from './aiCustomizationIcons.js';
 import { AI_CUSTOMIZATION_ITEM_STORAGE_KEY, AI_CUSTOMIZATION_ITEM_TYPE_KEY, AI_CUSTOMIZATION_ITEM_URI_KEY, AI_CUSTOMIZATION_ITEM_PLUGIN_URI_KEY, AICustomizationManagementItemMenuId, AICustomizationManagementCreateMenuId, AICustomizationManagementSection, BUILTIN_STORAGE, AI_CUSTOMIZATION_ITEM_DISABLED_KEY, sectionToPromptType } from './aiCustomizationManagement.js';
 import { IAgentPluginService } from '../../common/plugins/agentPluginService.js';
+import { IProductService } from '../../../../../platform/product/common/productService.js';
+import { getDefaultChatAgentDisplayName } from '../../../drox/common/droxChatAgentBranding.js';
 import { InputBox } from '../../../../../base/browser/ui/inputbox/inputBox.js';
 import { defaultButtonStyles, defaultInputBoxStyles } from '../../../../../platform/theme/browser/defaultStyles.js';
 import { Delayer } from '../../../../../base/common/async.js';
@@ -637,6 +639,7 @@ export class AICustomizationListWidget extends Disposable {
 		@ICommandService private readonly commandService: ICommandService,
 		@IAICustomizationItemsModel private readonly itemsModel: IAICustomizationItemsModel,
 		@IAgentPluginService private readonly agentPluginService: IAgentPluginService,
+		@IProductService private readonly productService: IProductService,
 	) {
 		super();
 		this.element = $('.ai-customization-list-widget');
@@ -947,6 +950,7 @@ export class AICustomizationListWidget extends Disposable {
 	 * Updates the section header based on the current section.
 	 */
 	private updateSectionHeader(): void {
+		const agentName = getDefaultChatAgentDisplayName(this.productService);
 		let title: string;
 		let description: string;
 		let docsUrl: string;
@@ -960,7 +964,7 @@ export class AICustomizationListWidget extends Disposable {
 				break;
 			case AICustomizationManagementSection.Skills:
 				title = localize('skills', "Skills");
-				description = localize('skillsDescription', "Folders of instructions, scripts, and resources that Copilot loads when relevant to perform specialized tasks.");
+				description = localize('skillsDescription', "Folders of instructions, scripts, and resources that {0} loads when relevant to perform specialized tasks.", agentName);
 				docsUrl = 'https://code.visualstudio.com/docs/agent-customization/agent-skills?referrer=in-product';
 				learnMoreLabel = localize('learnMoreSkills', "Learn more about agent skills");
 				break;
@@ -1455,6 +1459,7 @@ export class AICustomizationListWidget extends Disposable {
 	}
 
 	private getEmptyStateInfo(): { title: string; description: string } {
+		const agentName = getDefaultChatAgentDisplayName(this.productService);
 		switch (this.currentSection) {
 			case AICustomizationManagementSection.Agents:
 				return {
@@ -1469,7 +1474,7 @@ export class AICustomizationListWidget extends Disposable {
 			case AICustomizationManagementSection.Instructions:
 				return {
 					title: localize('noInstructions', "No instructions yet"),
-					description: localize('createFirstInstructions', "Add instructions to teach Copilot about your codebase"),
+					description: localize('createFirstInstructions', "Add instructions to teach {0} about your codebase", agentName),
 				};
 			case AICustomizationManagementSection.Hooks:
 				return {
