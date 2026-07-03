@@ -447,7 +447,8 @@ export class ChatService extends Disposable implements IChatService {
 	}
 
 	async removeHistoryEntry(sessionResource: URI): Promise<void> {
-		await this._chatSessionStore.deleteSession(this.toLocalSessionId(sessionResource));
+		const localSessionId = LocalChatSessionUri.parseLocalSessionId(sessionResource);
+		await this._chatSessionStore.deleteSession(localSessionId ?? sessionResource.toString());
 		const model = this._sessionModels.get(sessionResource);
 		if (model) {
 			model.markDeleted();
@@ -1963,14 +1964,6 @@ export class ChatService extends Disposable implements IChatService {
 		}
 
 		model?.acceptResponseProgress(request, progress);
-	}
-
-	private toLocalSessionId(sessionResource: URI) {
-		const localSessionId = LocalChatSessionUri.parseLocalSessionId(sessionResource);
-		if (!localSessionId) {
-			throw new Error(`Invalid local chat session resource: ${sessionResource}`);
-		}
-		return localSessionId;
 	}
 }
 

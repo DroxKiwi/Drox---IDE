@@ -408,4 +408,21 @@ export function markDroxEngineSessionOpened(
 
 }
 
+/** Efface l'historique MRU Drox (profil + workspace) pour un workspace donné. */
+export function clearDroxEngineSessionRecency(
+	storageService: IStorageService,
+	workspaceFsPath: string,
+): void {
+	const key = normalizeWorkspaceKey(workspaceFsPath);
+
+	const memento = readWorkspaceRecencyMemento(storageService);
+	if (memento.byWorkspace && key in memento.byWorkspace) {
+		const nextByWorkspace = { ...memento.byWorkspace };
+		delete nextByWorkspace[key];
+		writeWorkspaceRecencyMemento(storageService, { byWorkspace: nextByWorkspace });
+	}
+
+	writeWorkspaceRecencyEntries(storageService, []);
+}
+
 

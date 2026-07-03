@@ -45,6 +45,7 @@ import { DroxChatLayoutStore } from '../droxChatLayoutStore.js';
 import { newSessionId } from '../droxChatTabs.js';
 import { DroxViews } from '../../common/drox.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { DroxNativeChatSessionStore } from './droxNativeChatSessionStore.js';
 import { DroxAgentSessionsPicker } from './droxAgentSessionsPicker.js';
 import {
@@ -53,6 +54,7 @@ import {
 	sortDroxSessionEntriesByRecency,
 	DROX_AGENT_SESSIONS_RECENCY_STORAGE_KEY,
 	DROX_WORKSPACE_SESSION_RECENCY_STORAGE_KEY,
+	clearDroxEngineSessionRecency,
 } from '../../common/droxSharedChatSessionHistory.js';
 
 export class DroxNativeChatViewPane extends ViewPane {
@@ -82,6 +84,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 		@IChatSessionsService private readonly chatSessionsService: IChatSessionsService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IStorageService private readonly storageService: IStorageService,
+		@IDialogService private readonly dialogService: IDialogService,
 		@IDroxSessionService private readonly sessionService: IDroxSessionService,
 		@IDroxChatSessionService private readonly chatSessionService: IDroxChatSessionService,
 	) {
@@ -192,6 +195,50 @@ export class DroxNativeChatViewPane extends ViewPane {
 			return;
 		}
 		await this._openDroxSession(newSessionId());
+	}
+
+	async resetWorkspaceDroxData(): Promise<void> {
+		if (this.chatSessionService.getRunId()) {
+			this.notificationService.warn(localize('drox.nativeChat.busy.reset', 'Stop the current run before resetting workspace Drox data.'));
+			return;
+		}
+
+		const ws = this._workspacePath();
+		if (!ws) {
+			this.notificationService.warn(localize('drox.nativeChat.noWorkspace', 'No workspace folder is open.'));
+			return;
+		}
+
+		const { confirmed } = await this.dialogService.confirm({
+			type: 'warning',
+			message: localize('drox.nativeChat.reset.title', 'Reset Drox data for this workspace?'),
+			detail: localize(
+				'drox.nativeChat.reset.detail',
+				'Permanently deletes:\n• all of `.drox/` (sessions, memory, attachments, …)\n• `MEMORY.md` at the workspace root\n\nKept: `.drox/.env` only.',
+			),
+			primaryButton: localize({ key: 'drox.nativeChat.reset.confirm', comment: ['&& denotes a mnemonic'] }, '&&Reset'),
+			cancelButton: localize('drox.nativeChat.reset.cancel', 'Cancel'),
+		});
+		if (!confirmed) {
+			return;
+		}
+
+		try {
+			await this.sessionService.resetWorkspace(ws);
+			clearDroxEngineSessionRecency(this.storageService, ws);
+			await this._openDroxSession(newSessionId());
+			await this._refreshSessionList();
+			this.notificationService.info(localize(
+				'drox.nativeChat.reset.done',
+				'Workspace Drox data reset: `.drox/sessions`, project memory (`MEMORY.md`), workspace map, long memory, attachments, and professor cycles removed.',
+			));
+		} catch (e) {
+			this.notificationService.error(localize(
+				'drox.nativeChat.reset.failed',
+				'Failed to reset workspace Drox data: {0}',
+				e instanceof Error ? e.message : String(e),
+			));
+		}
 	}
 
 	prefillPrompt(text: string, replace = false): void {

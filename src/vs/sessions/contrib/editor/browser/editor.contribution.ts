@@ -25,6 +25,7 @@ import { MultiDiffEditorInput } from '../../../../workbench/contrib/multiDiffEdi
 import { CHANGES_VIEW_ID } from '../../changes/common/changes.js';
 import { ChangesViewPane } from '../../changes/browser/changesView.js';
 import { prepareMoveCopyEditors } from '../../../../workbench/browser/parts/editor/editor.js';
+import './sessionEditorNewTabActions.js';
 import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
 import { MOVE_MODAL_EDITOR_TO_MAIN_COMMAND_ID } from '../../../../workbench/browser/parts/editor/editorCommands.js';
 import { TERMINAL_VIEW_ID } from '../../../../workbench/contrib/terminal/common/terminal.js';

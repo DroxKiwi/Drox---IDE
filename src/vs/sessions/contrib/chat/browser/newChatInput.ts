@@ -37,6 +37,7 @@ import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js'
 import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
 import { appendDroxActivityGrid } from '../../../../workbench/contrib/drox/browser/droxActivityGrid.js';
 import { DroxAgentsComposerToolbar } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsComposerToolbar.js';
+import { createDroxAgentsComposerQuickActionsHost, DroxAgentsComposerQuickActionsHost } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatInputIntegration.js';
 import { isDroxAgentsWindowEnabled } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { localize } from '../../../../nls.js';
 import * as aria from '../../../../base/browser/ui/aria/aria.js';
@@ -265,6 +266,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 	// Slash commands
 	private _slashCommandHandler: SlashCommandHandler | undefined;
 	private _agentHostInputCompletionHandler: AgentHostInputCompletionHandler | undefined;
+	private _droxAgentsComposerQuickActionsHost: DroxAgentsComposerQuickActionsHost | undefined;
 	private readonly _scopedInstantiationService: IInstantiationService;
 
 	// Input state
@@ -322,6 +324,11 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		// avoids a class-mismatch when the user resizes across the
 		// phone breakpoint after the chat input mounted.
 		this.sessionTypePicker = this._register(this.instantiationService.createInstance(MobileSessionTypePicker, this.options.session));
+		this._register(this.sessionTypePicker.onDidSelectSessionType(() => {
+			const session = this.options.session.get();
+			const sessionType = session?.sessionType ?? this.sessionTypePicker.selectedPick?.sessionTypeId;
+			this._droxAgentsComposerQuickActionsHost?.mountIfNeeded(sessionType, session?.resource);
+		}));
 		this._register(this._contextAttachments.onDidChangeContext(() => {
 			this._updateDraftState();
 			this._updateSendButtonState();
@@ -332,6 +339,11 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			const isLoading = this.options.loading.read(reader);
 			this._loadingSpinner?.classList.toggle('visible', isLoading);
 			this._updateSendButtonState();
+		}));
+		this._register(autorun(reader => {
+			const session = this.options.session.read(reader);
+			const sessionType = session?.sessionType ?? this.sessionTypePicker.selectedPick?.sessionTypeId;
+			this._droxAgentsComposerQuickActionsHost?.mountIfNeeded(sessionType, session?.resource);
 		}));
 	}
 
@@ -364,6 +376,18 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 		// Input area inside the input slot
 		const inputArea = dom.append(chatInputContainer, dom.$('.new-chat-input-area'));
+
+		if (isDroxAgentsWindowEnabled(this.configurationService)) {
+			const quickActionsHost = createDroxAgentsComposerQuickActionsHost(
+				this.instantiationService,
+				this.configurationService,
+				inputArea,
+			);
+			if (quickActionsHost) {
+				this._register(quickActionsHost);
+				this._droxAgentsComposerQuickActionsHost = quickActionsHost;
+			}
+		}
 
 		// Attachments row (pills only) inside input area, above editor
 		const attachRow = dom.append(inputArea, dom.$('.sessions-chat-attach-row'));
@@ -408,16 +432,20 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 		// Generic extension point for status indicators in the new-session view.
 		const statusContainer = dom.append(repoConfigContainer, dom.$('.new-chat-status-toolbar'));
-		this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, statusContainer, MenuId.ChatInputStatus, {
-			hiddenItemStrategy: HiddenItemStrategy.NoHide,
-			toolbarOptions: { primaryGroup: () => true },
-			actionViewItemProvider: (action, options) => {
-				if (action.id === OTEL_STATUS_COMMAND && action instanceof MenuItemAction) {
-					return this.instantiationService.createInstance(NewChatInputStatusActionViewItem, action, options);
-				}
-				return undefined;
-			},
-		}));
+		if (this.configurationService.getValue<boolean>('github.copilot.chat.otel.enabled') === true) {
+			this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, statusContainer, MenuId.ChatInputStatus, {
+				hiddenItemStrategy: HiddenItemStrategy.NoHide,
+				toolbarOptions: { primaryGroup: () => true },
+				actionViewItemProvider: (action, options) => {
+					if (action.id === OTEL_STATUS_COMMAND && action instanceof MenuItemAction) {
+						return this.instantiationService.createInstance(NewChatInputStatusActionViewItem, action, options);
+					}
+					return undefined;
+				},
+			}));
+		} else {
+			statusContainer.style.display = 'none';
+		}
 
 		// Restore draft input state from storage
 		this._restoreState();

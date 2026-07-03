@@ -14,7 +14,7 @@ import { IsAuxiliaryWindowContext, IsSessionsWindowContext } from '../../../../w
 import { ChatContextKeys } from '../../../../workbench/contrib/chat/common/actions/chatContextKeys.js';
 import { ITunnelHostService } from '../../../../workbench/contrib/chat/common/tunnelHost.js';
 import { ToggleRemoteConnectionsActionViewItem } from '../../../../workbench/contrib/chat/electron-browser/toggleRemoteConnectionsActionViewItem.js';
-import { TOGGLE_SHARING_ID, TUNNEL_HOST_SHARING_KEY } from '../../../../workbench/contrib/chat/electron-browser/tunnelHost.contribution.js';
+import { TOGGLE_SHARING_ID, TUNNEL_HOST_SHARING_KEY, TUNNEL_HOST_ENABLED_SETTING } from '../../../../workbench/contrib/chat/electron-browser/tunnelHost.contribution.js';
 import { Menus } from '../../../browser/menus.js';
 
 MenuRegistry.appendMenuItem(Menus.TitleBarRightLayout, {
@@ -26,7 +26,12 @@ MenuRegistry.appendMenuItem(Menus.TitleBarRightLayout, {
 	},
 	group: 'navigation',
 	order: 90,
-	when: ContextKeyExpr.and(ChatContextKeys.enabled, IsSessionsWindowContext, IsAuxiliaryWindowContext.toNegated())
+	when: ContextKeyExpr.and(
+		ChatContextKeys.enabled,
+		IsSessionsWindowContext,
+		IsAuxiliaryWindowContext.toNegated(),
+		ContextKeyExpr.equals(`config.${TUNNEL_HOST_ENABLED_SETTING}`, true),
+	)
 });
 
 class SessionsTunnelHostTitlebarContribution extends Disposable implements IWorkbenchContribution {

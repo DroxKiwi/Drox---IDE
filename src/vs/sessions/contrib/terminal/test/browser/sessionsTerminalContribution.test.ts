@@ -528,6 +528,15 @@ suite('SessionsTerminalContribution', () => {
 		assert.strictEqual(activeInstanceSet.length, 1, 'should only set active instance on creation');
 	});
 
+	test('openNewTerminal always creates a new terminal', async () => {
+		const cwd = URI.file('/test-cwd');
+		await contribution.ensureTerminal(cwd, false);
+		await contribution.openNewTerminal();
+
+		assert.strictEqual(createdTerminals.length, 2, 'should create a second terminal');
+		assert.strictEqual(focusCalls, 1);
+	});
+
 	test('ensureTerminal creates new terminal for different path', async () => {
 		await contribution.ensureTerminal(URI.file('/cwd1'), false);
 		await contribution.ensureTerminal(URI.file('/cwd2'), false);

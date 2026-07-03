@@ -23,6 +23,7 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IAuthenticationService } from '../../../services/authentication/common/authentication.js';
 import { ITunnelHostService } from '../common/tunnelHost.js';
+import { TUNNEL_HOST_ENABLED_SETTING } from './tunnelHost.contribution.js';
 
 export const CONFIGURATION_KEY_MICROSOFT_AUTH = 'remote.tunnels.access.enableMicrosoftAuth';
 export const SHOW_TUNNEL_HOST_OUTPUT_ID = 'sessions.tunnelHost.showOutput';
@@ -91,6 +92,10 @@ export class TunnelHostService extends Disposable implements ITunnelHostService 
 	}
 
 	async startSharing(): Promise<void> {
+		if (!this._configurationService.getValue<boolean>(TUNNEL_HOST_ENABLED_SETTING)) {
+			return;
+		}
+
 		this._isConnecting = true;
 		this._onDidChangeStatus.fire();
 

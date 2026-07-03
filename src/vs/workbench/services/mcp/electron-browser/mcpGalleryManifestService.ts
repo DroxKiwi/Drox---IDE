@@ -11,9 +11,13 @@ import { IRemoteAgentService } from '../../remote/common/remoteAgentService.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IRequestService } from '../../../../platform/request/common/request.js';
 import { IMcpGalleryManifestService } from '../../../../platform/mcp/common/mcpGalleryManifest.js';
-import { WorkbenchMcpGalleryManifestService } from '../browser/mcpGalleryManifestService.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
+import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
+import { INativeWorkbenchEnvironmentService } from '../../environment/electron-browser/environmentService.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox curated MCP gallery in workbench service
+import { DroxMcpGalleryManifestService } from '../../../contrib/drox/browser/droxMcpGalleryManifestService.js';
 
-export class McpGalleryManifestService extends WorkbenchMcpGalleryManifestService implements IMcpGalleryManifestService {
+export class McpGalleryManifestService extends DroxMcpGalleryManifestService implements IMcpGalleryManifestService {
 
 	constructor(
 		@IProductService productService: IProductService,
@@ -22,8 +26,11 @@ export class McpGalleryManifestService extends WorkbenchMcpGalleryManifestServic
 		@ILogService logService: ILogService,
 		@ISharedProcessService sharedProcessService: ISharedProcessService,
 		@IConfigurationService configurationService: IConfigurationService,
+		@IFileService fileService: IFileService,
+		@INativeWorkbenchEnvironmentService environmentService: INativeWorkbenchEnvironmentService,
+		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 	) {
-		super(productService, remoteAgentService, requestService, logService, configurationService);
+		super(productService, remoteAgentService, requestService, logService, configurationService, fileService, environmentService, workspaceContextService);
 
 		const channel = sharedProcessService.getChannel('mcpGalleryManifest');
 		this.getMcpGalleryManifest().then(manifest => {

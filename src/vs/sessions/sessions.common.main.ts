@@ -488,6 +488,7 @@ import './contrib/browserView/browser/sessionBrowserView.contribution.js';
 import './contrib/editor/browser/editor.contribution.js';
 
 import './contrib/terminal/browser/sessionsTerminalContribution.js';
+import './contrib/terminal/browser/sessionTerminalViewController.contribution.js';
 import './contrib/chatDebug/browser/chatDebug.contribution.js';
 import './contrib/workspace/browser/workspace.contribution.js';
 import './contrib/aquarium/browser/aquarium.contribution.js';
