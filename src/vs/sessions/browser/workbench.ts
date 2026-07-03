@@ -77,6 +77,15 @@ import { autorun } from '../../base/common/observable.js';
 import { ISessionsService } from '../services/sessions/browser/sessionsService.js';
 import { ISessionsPartService } from '../services/sessions/browser/sessionsPartService.js';
 import { ISessionsSetUpService } from './sessionsSetUpService.js';
+import { IWorkspaceContextService } from '../../platform/workspace/common/workspace.js';
+import {
+	ISessionsLayoutByWorkspaceMemento,
+	ISessionsWorkspaceLayoutSnapshot,
+	loadSessionsLayoutByWorkspaceMemento,
+	resolveSessionsWorkspaceLayoutSnapshot,
+	saveSessionsLayoutByWorkspaceMemento,
+	SESSIONS_AGENTS_WINDOW_LAYOUT_KEY,
+} from './sessionsWorkspaceLayoutStore.js';
 
 //#region Workbench Options
 
@@ -316,11 +325,11 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	readonly openedDefaultEditors = false;
 
 	private _savedPartSizes: IPartSizesState = {};
+	private _layoutByWorkspaceMemento: ISessionsLayoutByWorkspaceMemento = {};
+	private _layoutWorkspaceKey: string | undefined;
+	private _restoringWorkspaceLayout = false;
 
 	//#endregion
-
-	private static readonly _PART_VISIBILITY_KEY = 'workbench.sessions.partVisibility';
-	private static readonly _PART_SIZES_KEY = 'workbench.sessions.partSizes';
 
 	//#region Services
 
@@ -332,6 +341,8 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	private sessionsPartService!: ISessionsPartService;
 	private instantiationService!: IInstantiationService;
 	private storageService!: IStorageService;
+	private workspaceContextService!: IWorkspaceContextService;
+	private configurationService!: IConfigurationService;
 
 	//#endregion
 
@@ -564,8 +575,11 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 			this._register(lifecycleService.onWillShutdown(() => this.storeFontInfo(storageService)));
 		}
 
-		// Part Sizes — persist current grid sizes so they are restored on reload
-		this._register(storageService.onWillSaveState(() => this._savePartSizes()));
+		// Per-project layout — persist grid sizes/visibility when flushing storage
+		this._register(storageService.onWillSaveState(() => this._persistWorkspaceLayout()));
+		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
+			this._onWorkspaceFoldersChanged();
+		}));
 
 		// Lifecycle
 		this._register(lifecycleService.onWillShutdown(event => this._onWillShutdown.fire(event)));
@@ -638,21 +652,20 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		}
 	}
 
-	private _loadPartVisibility(storageService: IStorageService): { editor?: boolean; auxiliaryBar?: boolean; sidebar?: boolean } {
-		if (this.layoutPolicy.viewportClass.get() === 'phone') {
-			return {};
-		}
+	private _getWorkspaceLayoutKey(): string | undefined {
+		return SESSIONS_AGENTS_WINDOW_LAYOUT_KEY;
+	}
 
-		const raw = storageService.get(Workbench._PART_VISIBILITY_KEY, StorageScope.WORKSPACE);
-		if (raw) {
-			try {
-				return JSON.parse(raw);
-			} catch {
-				// Corrupted data — remove the bad key so we don't keep warning on every startup
-				storageService.remove(Workbench._PART_VISIBILITY_KEY, StorageScope.WORKSPACE);
-			}
+	private _initWorkspaceLayoutStorage(): void {
+		this._layoutByWorkspaceMemento = loadSessionsLayoutByWorkspaceMemento(this.storageService);
+		this._layoutWorkspaceKey = this._getWorkspaceLayoutKey();
+		const snapshot = resolveSessionsWorkspaceLayoutSnapshot(this._layoutByWorkspaceMemento, this._layoutWorkspaceKey);
+		if (snapshot?.partSizes) {
+			this._savedPartSizes = { ...snapshot.partSizes };
 		}
-		return {};
+		if (this._layoutWorkspaceKey && snapshot) {
+			saveSessionsLayoutByWorkspaceMemento(this.storageService, this._layoutByWorkspaceMemento);
+		}
 	}
 
 	/**
@@ -663,40 +676,20 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	 * reload rather than the hardcoded defaults.
 	 */
 	private _applyPersistedPartVisibility(): void {
-		const savedPartVisibility = this._loadPartVisibility(this.storageService);
+		if (this.layoutPolicy.viewportClass.get() === 'phone') {
+			return;
+		}
+
+		const snapshot = resolveSessionsWorkspaceLayoutSnapshot(this._layoutByWorkspaceMemento, this._layoutWorkspaceKey);
+		const savedPartVisibility = snapshot?.partVisibility ?? {};
 		this.partVisibility.editor = savedPartVisibility.editor ?? this.partVisibility.editor;
 		this.partVisibility.auxiliaryBar = savedPartVisibility.auxiliaryBar ?? this.partVisibility.auxiliaryBar;
 		this.partVisibility.sidebar = savedPartVisibility.sidebar ?? this.partVisibility.sidebar;
 	}
 
-	private _savePartVisibility(): void {
-		if (this.layoutPolicy.viewportClass.get() === 'phone') {
-			return;
-		}
-
-		this.storageService.store(Workbench._PART_VISIBILITY_KEY, JSON.stringify({
-			editor: this.partVisibility.editor,
-			auxiliaryBar: this.partVisibility.auxiliaryBar,
-			sidebar: this.partVisibility.sidebar,
-		}), StorageScope.WORKSPACE, StorageTarget.MACHINE);
-	}
-
-	private _loadPartSizes(storageService: IStorageService): IPartSizesState {
-		const raw = storageService.get(Workbench._PART_SIZES_KEY, StorageScope.WORKSPACE);
-		if (raw) {
-			try {
-				return JSON.parse(raw);
-			} catch {
-				// Corrupted data — remove the bad key so we don't keep warning on every startup
-				storageService.remove(Workbench._PART_SIZES_KEY, StorageScope.WORKSPACE);
-			}
-		}
-		return {};
-	}
-
-	private _savePartSizes(): void {
+	private _captureCurrentPartSizes(): IPartSizesState {
 		if (!this.workbenchGrid) {
-			return;
+			return { ...this._savedPartSizes };
 		}
 
 		// For visible parts, read the current grid view size. For hidden parts,
@@ -710,15 +703,106 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 			return this.workbenchGrid.getViewCachedVisibleSize(view);
 		};
 
-		const sizes: IPartSizesState = {
+		return {
 			sidebar: getSize(this.sideBarPartView, 'width', this.partVisibility.sidebar),
 			auxiliaryBar: getSize(this.auxiliaryBarPartView, 'width', this.partVisibility.auxiliaryBar),
 			sessions: getSize(this.sessionsPartView, 'width', this.partVisibility.sessions),
 			editor: getSize(this.editorPartView, 'width', this.partVisibility.editor),
 			panel: getSize(this.panelPartView, 'height', this.partVisibility.panel),
 		};
+	}
 
-		this.storageService.store(Workbench._PART_SIZES_KEY, JSON.stringify(sizes), StorageScope.WORKSPACE, StorageTarget.MACHINE);
+	private _persistWorkspaceLayout(): void {
+		if (this.layoutPolicy.viewportClass.get() === 'phone') {
+			return;
+		}
+
+		const key = this._layoutWorkspaceKey ?? SESSIONS_AGENTS_WINDOW_LAYOUT_KEY;
+		if (!key) {
+			return;
+		}
+
+		this._layoutByWorkspaceMemento[key] = {
+			partVisibility: {
+				editor: this.partVisibility.editor,
+				auxiliaryBar: this.partVisibility.auxiliaryBar,
+				sidebar: this.partVisibility.sidebar,
+			},
+			partSizes: this._captureCurrentPartSizes(),
+		};
+		saveSessionsLayoutByWorkspaceMemento(this.storageService, this._layoutByWorkspaceMemento);
+	}
+
+	private _savePartVisibility(): void {
+		if (this._restoringWorkspaceLayout) {
+			return;
+		}
+		this._persistWorkspaceLayout();
+	}
+
+	private _onWorkspaceFoldersChanged(): void {
+		const newKey = this._getWorkspaceLayoutKey();
+		if (newKey === this._layoutWorkspaceKey) {
+			return;
+		}
+
+		this._persistWorkspaceLayout();
+		this._layoutWorkspaceKey = newKey;
+		const snapshot = resolveSessionsWorkspaceLayoutSnapshot(this._layoutByWorkspaceMemento, newKey);
+		this._savedPartSizes = snapshot?.partSizes ? { ...snapshot.partSizes } : {};
+		if (newKey && snapshot) {
+			saveSessionsLayoutByWorkspaceMemento(this.storageService, this._layoutByWorkspaceMemento);
+		}
+		this._applyLayoutSnapshot(snapshot);
+	}
+
+	private _applyLayoutSnapshot(snapshot: ISessionsWorkspaceLayoutSnapshot | undefined): void {
+		if (!this.workbenchGrid) {
+			return;
+		}
+
+		this._restoringWorkspaceLayout = true;
+		try {
+			const savedPartVisibility = snapshot?.partVisibility;
+			if (savedPartVisibility?.sidebar !== undefined) {
+				this.setSideBarHidden(!savedPartVisibility.sidebar);
+			}
+			if (savedPartVisibility?.auxiliaryBar !== undefined) {
+				this.setAuxiliaryBarHidden(!savedPartVisibility.auxiliaryBar);
+			}
+			if (savedPartVisibility?.editor !== undefined) {
+				this.setEditorHidden(!savedPartVisibility.editor);
+			}
+			this._applyPartSizesFromSaved();
+			this.layout();
+		} finally {
+			this._restoringWorkspaceLayout = false;
+		}
+	}
+
+	private _applyPartSizesFromSaved(): void {
+		if (!this.workbenchGrid) {
+			return;
+		}
+
+		const policySizes = this.layoutPolicy.getPartSizes(this._mainContainerDimension.width, this._mainContainerDimension.height);
+		const resize = (part: Parts, visible: boolean, width?: number, height?: number): void => {
+			const view = this.getPartView(part);
+			if (!view || !visible) {
+				return;
+			}
+			const current = this.workbenchGrid.getViewSize(view);
+			this.workbenchGrid.resizeView(view, {
+				width: width ?? current.width,
+				height: height ?? current.height,
+			});
+		};
+
+		resize(Parts.SIDEBAR_PART, this.partVisibility.sidebar, this._savedPartSizes.sidebar ?? policySizes.sideBarSize);
+		resize(Parts.AUXILIARYBAR_PART, this.partVisibility.auxiliaryBar, this._savedPartSizes.auxiliaryBar ?? policySizes.auxiliaryBarSize);
+		resize(Parts.SESSIONS_PART, this.partVisibility.sessions, this._savedPartSizes.sessions);
+		resize(Parts.EDITOR_PART, this.partVisibility.editor, this._savedPartSizes.editor);
+		resize(Parts.PANEL_PART, this.partVisibility.panel, undefined, this._savedPartSizes.panel ?? policySizes.panelSize);
 	}
 
 	//#endregion
@@ -741,10 +825,7 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.partVisibility.editor = visibilityDefaults.editor;
 		this._applyPersistedPartVisibility();
 
-		// Load saved grid part sizes — these will be consumed when building the
-		// grid descriptor so editor/sidebar/auxbar/panel restore to their previous
-		// dimensions across reloads.
-		this._savedPartSizes = this._loadPartSizes(storageService);
+		// `_savedPartSizes` was loaded in `initLayout` for the active project folder.
 
 		// State specific classes
 		const platformClass = isWindows ? 'windows' : isLinux ? 'linux' : 'mac';
@@ -1023,6 +1104,9 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.sessionsPartService = accessor.get(ISessionsPartService);
 		this.instantiationService = accessor.get(IInstantiationService);
 		this.storageService = accessor.get(IStorageService);
+		this.workspaceContextService = accessor.get(IWorkspaceContextService);
+		this.configurationService = accessor.get(IConfigurationService);
+		this._initWorkspaceLayoutStorage();
 		accessor.get(ITitleService);
 
 		// Register layout listeners

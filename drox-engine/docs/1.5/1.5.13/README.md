@@ -1,29 +1,37 @@
-# Drox 1.5.13 — Suite post-workspace Cursor
+# Drox 1.5.13 — Stabilisation fenêtre Agents
 
-**Statut** : **ouvert** (`droxVersion` **1.5.13**)  
-**Prérequis** : [1.5.12](../1.5.12/README.md) livrée · OR [`v1.5.12`](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.12)
+**Statut** : **livré** · branche `1.5.13` · tag **`v1.5.13`**  
+**Base** : [1.5.12](../1.5.12/README.md) livrée (`v1.5.12`)
 
 ---
 
 ## En une phrase
 
-Consolider la **1.5.12** (MCP au run, smokes, polish workspace) et poursuivre la **purge Copilot / MS** (P8) sans régression sur le chemin nominal Drox.
+Rendre l’app **fiable en prod** : fil visible au switch session/dossier, moins de lenteur et de crashs — le reste en second.
 
 ---
 
-## Périmètre initial
+## Doc
 
-| # | Item | Version |
-|---|------|---------|
-| **P4-3** | Outils `mcp__*` au run Drox | 1.5.13 |
-| **P8** | Purge strings / surfaces Copilot restantes | 1.5.13 |
-| **QA** | Smokes install upgrade + parcours Agents | 1.5.13 |
+| Fichier | Rôle |
+|---------|------|
+| **[PLAN-1.5.13.md](PLAN-1.5.13.md)** | Checklist S1–S18 |
+| [SMOKE-1.5.13.md](SMOKE-1.5.13.md) | Retours terrain |
+| [DEBUG-1.5.13.md](DEBUG-1.5.13.md) | Freeze / crash — comment débugger |
+| [NOTES-CHARGEMENT-FIL.md](NOTES-CHARGEMENT-FIL.md) | Détail flux chargement |
 
-Détail : [PLAN-1.5.13.md](PLAN-1.5.13.md)
+---
+
+## Ordre d’attaque (rapide)
+
+1. **S1–S4** — fil vide + replay tail → smoke → ship possible  
+2. **S5–S8** — perf + validation install  
+3. **S9–S11** — reports 1.5.12 si marge  
+4. **S12–S16** — nettoyage sans impact runtime (quand CI verte)
 
 ---
 
 ## Liens
 
-- [CLOSURE 1.5.12](../1.5.12/CLOSURE-1.5.12.md)
 - [Hub 1.5](../README.md)
+- [PLAN 1.5.12](../1.5.12/PLAN-1.5.12.md)

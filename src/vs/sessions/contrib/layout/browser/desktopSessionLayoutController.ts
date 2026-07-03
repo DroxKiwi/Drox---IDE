@@ -14,6 +14,7 @@ import { Parts } from '../../../../workbench/services/layout/browser/layoutServi
 import { SessionStatus } from '../../../services/sessions/common/session.js';
 import { CHANGES_VIEW_CONTAINER_ID, CHANGES_VIEW_ID } from '../../changes/common/changes.js';
 import { SESSIONS_FILES_CONTAINER_ID } from '../../files/browser/files.contribution.js';
+import { isDroxAgentsStableWindowLayout } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { BaseLayoutController } from './baseSessionLayoutController.js';
 
 /**
@@ -48,6 +49,10 @@ export class LayoutController extends BaseLayoutController {
 	private _newSessionViewState: INewSessionViewState | undefined;
 
 	protected override _registerViewStateManagement(): void {
+		if (isDroxAgentsStableWindowLayout(this._configurationService)) {
+			return;
+		}
+
 		this._loadNewSessionViewState();
 
 		const activeSessionHasChangesObs = derived<boolean>(reader => {
