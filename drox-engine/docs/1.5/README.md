@@ -22,7 +22,7 @@
 | [**1.5.10/**](1.5.10/README.md) | Run recovery toujours dispo + respawn moteur différé | **Livré** · `v1.5.10` |
 | [**1.5.11/**](1.5.11/README.md) | Chat natif Drox + CFG IDE ↔ Agents + historique partagé | **Livré** · `v1.5.11` |
 | [**1.5.12/**](1.5.12/README.md) | Polish + workspace Cursor + MCP marketplace | **Livré** · `v1.5.12` |
-| [**1.5.13/**](1.5.13/README.md) | Stabilisation Agents (fil · perf · crash) | **Ouvert** — [PLAN](1.5.13/PLAN-1.5.13.md) |
+| [**1.5.13/**](1.5.13/README.md) | Stabilisation Agents (fil · perf · crash) | **Livré** · `v1.5.13` |
 
 ---
 
