@@ -1,7 +1,7 @@
 # Drox 1.5.12 — Polish natif + workspace Cursor
 
-**Statut** : **ouvert** (`droxVersion` **1.5.12**)  
-**Prérequis** : [1.5.11](../1.5.11/README.md) livrée
+**Statut** : **livré** · release OR [**v1.5.12**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.12)  
+**Branche** : `1.5.12` (mergée → `main`, conservée)
 
 ---
 
@@ -23,7 +23,11 @@
 | **P6** | **Workspace Cursor** (changes · onglets · tree · git) | 1.5.12 |
 | **P7** | Fiabilisation installateur Windows (artefacts télémétrie/Copilot) | 1.5.12 |
 
-Détail : [PLAN-1.5.12.md](PLAN-1.5.12.md) · [AUDIT](AUDIT-COPILOT-AGENTS-WINDOW.md)
+## Docs
+
+- [PLAN-1.5.12.md](PLAN-1.5.12.md)
+- [CLOSURE-1.5.12.md](CLOSURE-1.5.12.md)
+- [AUDIT](AUDIT-COPILOT-AGENTS-WINDOW.md)
 
 ---
 

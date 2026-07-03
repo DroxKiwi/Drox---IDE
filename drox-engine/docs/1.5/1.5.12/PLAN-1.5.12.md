@@ -1,7 +1,7 @@
 # Plan 1.5.12 — Polish natif + workspace Cursor
 
 **Version** : juin 2026 · **Base** : [1.5.11](../1.5.11/PLAN-1.5.11.md) livrée  
-**Branche** : `1.5.12` · tag **`v1.5.12`**
+**Branche** : `1.5.12` · tag **`v1.5.12`** · **clôturée** (merge `main`, branche conservée)
 
 ---
 
