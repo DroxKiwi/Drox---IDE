@@ -7,7 +7,7 @@
 
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
-import { Disposable, DisposableMap, DisposableStore } from '../../../../../base/common/lifecycle.js';
+import { Disposable, DisposableMap, DisposableStore, MutableDisposable } from '../../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../../base/common/network.js';
 import {
 	autorun,
@@ -32,6 +32,7 @@ import {
 	IChatSendRequestOptions,
 	IChatService,
 } from '../../../../../workbench/contrib/chat/common/chatService/chatService.js';
+import { IChatModel } from '../../../../../workbench/contrib/chat/common/model/chatModel.js';
 import { ILanguageModelChatMetadataAndIdentifier } from '../../../../../workbench/contrib/chat/common/languageModels.js';
 import {
 	ChatAgentLocation,
@@ -248,6 +249,30 @@ class DroxSession extends Disposable implements ISession {
 	updateWorkspace(workspace: ISessionWorkspace): void {
 		this._workspaceData.set(workspace, undefined);
 	}
+
+	private readonly _modelTracker = this._register(new MutableDisposable());
+
+	/**
+	 * Subscribe to live chat model status (streaming, tool wait, completion).
+	 * Replaces any prior subscription; disposed with the session.
+	 */
+	trackModel(model: IChatModel, onChange: () => void): void {
+		this._modelTracker.value = autorun(reader => {
+			const needsInput = model.requestNeedsInput.read(reader);
+			const inProgress = model.requestInProgress.read(reader);
+			const hasActive = model.hasActiveRequest.read(reader);
+			let status: SessionStatus;
+			if (needsInput) {
+				status = SessionStatus.NeedsInput;
+			} else if (inProgress || hasActive) {
+				status = SessionStatus.InProgress;
+			} else {
+				status = SessionStatus.Completed;
+			}
+			this._status.set(status, undefined);
+			onChange();
+		});
+	}
 }
 
 export class DroxSessionsProvider extends Disposable implements ISessionsProvider {
@@ -297,6 +322,12 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		@IFileService private readonly fileService: IFileService,
 	) {
 		super();
+		this._register(this.chatService.onDidSubmitRequest(e => {
+			const session = this._findSessionByResource(e.chatSessionResource);
+			if (session) {
+				this._syncSessionFromModel(session);
+			}
+		}));
 		this._register(this.sessionChangesBridge.onDidApplyFileChange(e => {
 			this.sessionChangesDetailService.appendFileChange(e.sessionResource, e.change);
 			const session = this._findSessionByResource(e.sessionResource);
@@ -438,21 +469,32 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		if (result.kind !== 'sent') {
 			return;
 		}
+		this._syncSessionFromModel(session, iSession);
 		const complete = result.data.responseCompletePromise;
 		if (!complete) {
-			session.setStatus(SessionStatus.Completed);
-			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
 			return;
 		}
 		void complete.then(() => {
-			session.setStatus(SessionStatus.Completed);
-			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
 			void this._loadPersistedSessions(true);
 		}, err => {
 			this.logService.error('[DroxSessionsProvider] response failed', err);
-			session.setStatus(SessionStatus.Completed);
 			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
 		});
+	}
+
+	private _syncSessionFromModel(session: DroxSession, iSession?: ISession): void {
+		const model = this.chatService.getSession(session.resource);
+		if (!model) {
+			return;
+		}
+		const notify = (): void => {
+			this._onDidChangeSessions.fire({
+				added: [],
+				removed: [],
+				changed: [iSession ?? this._toISession(session)],
+			});
+		};
+		session.trackModel(model, notify);
 	}
 
 	private _readRecentWorkspaceUris(): URI[] {

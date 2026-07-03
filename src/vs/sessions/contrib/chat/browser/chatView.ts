@@ -18,7 +18,7 @@ import { ChatAgentLocation, ChatModeKind } from '../../../../workbench/contrib/c
 import { getChatSessionType } from '../../../../workbench/contrib/chat/common/model/chatUri.js';
 import { IChatSessionsService, localChatSessionType } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
 import { DROX_CHAT_SESSION_TYPE } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
-import { evictDroxAgentsChatSessionForReload } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatSessionCache.js';
+import { droxAgentsChatSessionHasLiveRun, evictDroxAgentsChatSessionForReload } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatSessionCache.js';
 import { finalizeDroxNativeChatHistoryModel } from '../../../../workbench/contrib/drox/common/droxNativeChatHistoryFinalize.js';
 import { AbstractChatView, ChatViewKind, IChatViewOptions } from '../../../browser/parts/chatView.js';
 import { IChat } from '../../../services/sessions/common/session.js';
@@ -224,10 +224,10 @@ export class ChatView extends AbstractChatView {
 
 		this._loadCts.value?.cancel();
 		if (switchingChat) {
-			this._clearCurrentChat();
-			evictDroxAgentsChatSessionForReload(resource, this.chatSessionsService, this.chatService);
-		} else if (!this._modelRef.value) {
-			// First bind or stale rebind for the same chat — refresh disk cache once.
+			this._detachWidgetFromModel();
+		}
+		if (switchingChat || !this._modelRef.value) {
+			// Refresh disk-backed session content when idle; skip while a live run keeps the model hot.
 			evictDroxAgentsChatSessionForReload(resource, this.chatSessionsService, this.chatService);
 		}
 		const cts = new CancellationTokenSource();
@@ -242,7 +242,10 @@ export class ChatView extends AbstractChatView {
 			this._modelRef.value = ref;
 			this._updateWidgetLockState(getChatSessionType(ref.object.sessionResource));
 			if (getChatSessionType(ref.object.sessionResource) === DROX_CHAT_SESSION_TYPE) {
-				finalizeDroxNativeChatHistoryModel(ref.object);
+				// History finalize marks open responses complete — never on a live background run.
+				if (!droxAgentsChatSessionHasLiveRun(ref.object)) {
+					finalizeDroxNativeChatHistoryModel(ref.object);
+				}
 			}
 			this._widget.setModel(ref.object);
 			// Expose the bound chat resource on the DOM so test automation
@@ -265,7 +268,8 @@ export class ChatView extends AbstractChatView {
 		this.showProgressWhile(loadPromise, 800);
 	}
 
-	private _clearCurrentChat(): void {
+	/** Detaches the chat widget without cancelling an in-flight agent run on the model. */
+	private _detachWidgetFromModel(): void {
 		this._widget.clear().catch(err => this.logService.error('[ChatView] Failed to clear chat widget', err));
 		this._widget.setModel(undefined);
 		this._modelRef.clear();
