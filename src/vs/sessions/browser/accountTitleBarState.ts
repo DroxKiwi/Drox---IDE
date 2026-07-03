@@ -58,6 +58,7 @@ export interface IAccountTitleBarStateContext {
 	readonly isAccountLoading: boolean;
 	readonly accountName?: string;
 	readonly accountProviderLabel?: string;
+	readonly chatAgentDisplayName?: string;
 	readonly entitlement: ChatEntitlement;
 	readonly sentiment: IChatSentiment;
 	readonly quotas: {
@@ -105,7 +106,7 @@ export function getAccountTitleBarState(context: IAccountTitleBarStateContext): 
 		};
 	}
 
-	const copilotState = getCopilotPresentation(context.entitlement, context.sentiment, context.quotas);
+	const copilotState = getCopilotPresentation(context.entitlement, context.sentiment, context.quotas, getChatAgentDisplayName(context));
 	if (copilotState) {
 		return copilotState;
 	}
@@ -132,10 +133,15 @@ export function getAccountTitleBarState(context: IAccountTitleBarStateContext): 
 	};
 }
 
+function getChatAgentDisplayName(context: IAccountTitleBarStateContext): string {
+	return context.chatAgentDisplayName?.trim() || 'Drox';
+}
+
 function getCopilotPresentation(
 	entitlement: ChatEntitlement,
 	sentiment: IChatSentiment,
-	quotas: { readonly chat?: IQuotaSnapshot; readonly completions?: IQuotaSnapshot }
+	quotas: { readonly chat?: IQuotaSnapshot; readonly completions?: IQuotaSnapshot },
+	agentName: string,
 ): IAccountTitleBarState | undefined {
 	if (sentiment.hidden) {
 		return undefined;
@@ -156,10 +162,10 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: 'warning',
 			icon: Codicon.account,
-			label: localize('copilotUnavailable', "Copilot Unavailable"),
+			label: localize('agentsUnavailable', "{0} Unavailable", agentName),
 			ariaLabel: sentiment.untrusted
-				? localize('copilotUnavailableUntrustedAria', "GitHub Copilot is unavailable in untrusted workspaces")
-				: localize('copilotUnavailableDisabledAria', "GitHub Copilot is disabled"),
+				? localize('agentsUnavailableUntrustedAria', "{0} is unavailable in untrusted workspaces", agentName)
+				: localize('agentsUnavailableDisabledAria', "{0} is disabled", agentName),
 		};
 	}
 
@@ -170,9 +176,9 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: 'warning',
 			icon: Codicon.account,
-			label: localize('copilotQuotaReached', "Quota Reached"),
+			label: localize('agentsQuotaReached', "Quota Reached"),
 			dotBadge: 'error',
-			ariaLabel: getQuotaReachedAriaLabel(chatQuotaExceeded, completionsQuotaExceeded),
+			ariaLabel: getQuotaReachedAriaLabel(chatQuotaExceeded, completionsQuotaExceeded, agentName),
 		};
 	}
 
@@ -182,10 +188,10 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: remainingPercent <= 10 ? 'warning' : 'accent',
 			icon: Codicon.account,
-			label: localize('copilotTokensRemaining', "Tokens Remaining"),
+			label: localize('agentsTokensRemaining', "Tokens Remaining"),
 			badge: `${remainingPercent}%`,
 			dotBadge: remainingPercent <= 10 ? 'error' : 'warning',
-			ariaLabel: localize('copilotTokensRemainingAria', "{0}% GitHub Copilot tokens remaining", remainingPercent),
+			ariaLabel: localize('agentsTokensRemainingAria', "{0}% {1} tokens remaining", remainingPercent, agentName),
 		};
 	}
 
@@ -207,14 +213,14 @@ function getLowestPositivePercent(...quotas: Array<IQuotaSnapshot | undefined>):
 	return lowest;
 }
 
-function getQuotaReachedAriaLabel(chatQuotaExceeded: boolean, completionsQuotaExceeded: boolean): string {
+function getQuotaReachedAriaLabel(chatQuotaExceeded: boolean, completionsQuotaExceeded: boolean, agentName: string): string {
 	if (chatQuotaExceeded && completionsQuotaExceeded) {
-		return localize('copilotAllQuotaReachedAria', "GitHub Copilot chat and inline suggestion quota reached");
+		return localize('agentsAllQuotaReachedAria', "{0} chat and inline suggestion quota reached", agentName);
 	}
 
 	if (chatQuotaExceeded) {
-		return localize('copilotChatQuotaReachedAria', "GitHub Copilot chat quota reached");
+		return localize('agentsChatQuotaReachedAria', "{0} chat quota reached", agentName);
 	}
 
-	return localize('copilotCompletionsQuotaReachedAria', "GitHub Copilot inline suggestion quota reached");
+	return localize('agentsCompletionsQuotaReachedAria', "{0} inline suggestion quota reached", agentName);
 }

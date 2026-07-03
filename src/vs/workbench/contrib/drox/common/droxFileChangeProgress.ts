@@ -201,8 +201,45 @@ export async function resolveDroxFileChangeAfterToolFinish(
 		}
 	}
 	return {
-		change: { ...changeBase, toolId: tid || undefined, canUndo },
+		change: {
+			...changeBase,
+			toolId: tid || undefined,
+			canUndo,
+			beforeSnapshotUri: beforeSnapshotUri?.toString(),
+		},
 		canUndo,
 		beforeSnapshotUri,
 	};
+}
+
+/** URI snapshot « avant » si le fichier existe sur disque (replay / reopen). */
+export function resolveDroxBeforeSnapshotUri(workspaceRoot: string | undefined, toolId: string | undefined): URI | undefined {
+	if (!workspaceRoot || !toolId) {
+		return undefined;
+	}
+	const safeId = sanitizeSnapshotToolId(toolId);
+	return URI.file(join(workspaceRoot, '.drox', 'diff-snapshots', `${safeId}.before`));
+}
+
+export function enrichDroxFileChangeSnapshot(
+	change: IDroxFileChangePayload,
+	_workspaceRoot: string | undefined,
+): IDroxFileChangePayload {
+	return change;
+}
+
+/** Enrichit le replay uniquement si le snapshot « avant » existe réellement sur disque. */
+export async function enrichDroxFileChangeSnapshotAsync(
+	change: IDroxFileChangePayload,
+	workspaceRoot: string | undefined,
+	fileService: IFileService,
+): Promise<IDroxFileChangePayload> {
+	if (change.beforeSnapshotUri) {
+		return change;
+	}
+	const uri = resolveDroxBeforeSnapshotUri(workspaceRoot, change.toolId);
+	if (!uri || !(await fileService.exists(uri))) {
+		return change;
+	}
+	return { ...change, beforeSnapshotUri: uri.toString() };
 }

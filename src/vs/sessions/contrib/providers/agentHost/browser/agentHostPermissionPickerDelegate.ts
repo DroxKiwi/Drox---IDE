@@ -15,6 +15,8 @@ import { IAgentHostSessionsProvider, isAgentHostProvider } from '../../../../com
 import { ISessionsProvider } from '../../../../services/sessions/common/sessionsProvider.js';
 import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
 import { IActiveSession } from '../../../../services/sessions/common/sessionsManagement.js';
+import { IProductService } from '../../../../../platform/product/common/productService.js';
+import { getDefaultChatAgentDisplayName } from '../../../../../workbench/contrib/drox/common/droxChatAgentBranding.js';
 
 const REQUIRED_AUTO_APPROVE_VALUE = 'default';
 const REQUIRED_MODE_VALUE = 'interactive';
@@ -77,11 +79,15 @@ export class AgentHostPermissionPickerDelegate extends Disposable implements IPe
 	/** Agent-host sessions seed their default approval level from this setting. */
 	readonly defaultSettingKey = ChatConfiguration.DefaultConfiguration;
 
+	private readonly _agentDisplayName: string;
+
 	constructor(
 		private readonly _session: IObservable<IActiveSession | undefined>,
 		@ISessionsProvidersService private readonly _sessionsProvidersService: ISessionsProvidersService,
+		@IProductService productService: IProductService,
 	) {
 		super();
+		this._agentDisplayName = getDefaultChatAgentDisplayName(productService);
 
 		this._watchProviders(this._sessionsProvidersService.getProviders());
 		this._register(this._sessionsProvidersService.onDidChangeProviders(e => {
@@ -117,11 +123,11 @@ export class AgentHostPermissionPickerDelegate extends Disposable implements IPe
 	getPermissionLevelHover(level: ChatPermissionLevel, _meta: IPermissionLevelMeta): string {
 		switch (level) {
 			case ChatPermissionLevel.Default:
-				return localize('agentHostPermissionPicker.defaultApprovalsHover', "Copilot asks before running tools unless your configured settings allow the tool.");
+				return localize('agentHostPermissionPicker.defaultApprovalsHover', "{0} asks before running tools unless your configured settings allow the tool.", this._agentDisplayName);
 			case ChatPermissionLevel.AutoApprove:
-				return localize('agentHostPermissionPicker.autoApproveHover', "Copilot runs all tools without asking for approval.");
+				return localize('agentHostPermissionPicker.autoApproveHover', "{0} runs all tools without asking for approval.", this._agentDisplayName);
 			case ChatPermissionLevel.Autopilot:
-				return localize('agentHostPermissionPicker.autopilotApprovalsHover', "Copilot runs tools without asking for approval and continues until the task is done.");
+				return localize('agentHostPermissionPicker.autopilotApprovalsHover', "{0} runs tools without asking for approval and continues until the task is done.", this._agentDisplayName);
 		}
 	}
 

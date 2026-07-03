@@ -145,6 +145,13 @@ function Get-DroxBundleBuiltAtUtc {
 	return $null
 }
 
+function Test-DroxCopilotExtensionBundled {
+	$productPath = Join-Path $script:DroxRepoRoot 'product.json'
+	if (-not (Test-Path $productPath)) { return $true }
+	$product = Get-Content -Raw -Path $productPath | ConvertFrom-Json
+	return $product.droxMicrosoftAgentsSurfaceEnabled -eq $true
+}
+
 function Get-DroxBundleReadinessIssues {
 	param([string]$BaseDir = $script:DroxMinDir)
 
@@ -291,6 +298,19 @@ function Get-PackagedReleaseIntegrityIssues {
 	foreach ($rel in $script:DroxStaleBundleArtifacts) {
 		if (Test-Path (Join-Path $appOut $rel)) {
 			$issues.Add("package : artefact obsolete $rel")
+		}
+	}
+
+	if (-not (Test-DroxCopilotExtensionBundled)) {
+		$copilotExtCandidates = @(
+			Join-Path $PackagedDir 'resources\app\extensions\copilot'
+		)
+		Get-ChildItem -Path $PackagedDir -Directory -ErrorAction SilentlyContinue |
+			ForEach-Object { Join-Path $_.FullName 'resources\app\extensions\copilot' } |
+			ForEach-Object { $copilotExtCandidates += $_ }
+		$foundCopilot = $copilotExtCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+		if ($foundCopilot) {
+			$issues.Add("package : extensions/copilot present alors que droxMicrosoftAgentsSurfaceEnabled=false ($foundCopilot)")
 		}
 	}
 

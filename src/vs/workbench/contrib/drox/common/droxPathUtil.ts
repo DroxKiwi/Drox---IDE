@@ -70,3 +70,9 @@ export function sanitizePathForEditor(raw: string): string | null {
 	return p;
 
 }
+
+/** Clé canonique pour indexer les fichiers modifiés d'une session (panneau Changes). */
+export function droxSessionChangePathKey(filePath: string): string {
+	return normalizeWindowsFsPath(filePath).replace(/\\/g, '/').toLowerCase();
+}
+

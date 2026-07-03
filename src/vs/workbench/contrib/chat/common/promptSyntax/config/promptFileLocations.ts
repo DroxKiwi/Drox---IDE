@@ -114,6 +114,11 @@ export const LEGACY_MODE_DEFAULT_SOURCE_FOLDER = '.github/chatmodes';
 export const AGENTS_SOURCE_FOLDER = '.github/agents';
 
 /**
+ * Drox agents folder.
+ */
+export const DROX_AGENTS_SOURCE_FOLDER = '.drox/agents';
+
+/**
  * Claude agents folder.
  */
 export const CLAUDE_AGENTS_SOURCE_FOLDER = '.claude/agents';
@@ -204,7 +209,7 @@ export const DEFAULT_PROMPT_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
  * Default agent source folders.
  */
 export const DEFAULT_AGENT_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
-	{ path: AGENTS_SOURCE_FOLDER, source: PromptFileSource.GitHubWorkspace, storage: PromptsStorage.local },
+	{ path: DROX_AGENTS_SOURCE_FOLDER, source: PromptFileSource.DroxWorkspace, storage: PromptsStorage.local },
 	{ path: CLAUDE_AGENTS_SOURCE_FOLDER, source: PromptFileSource.ClaudeWorkspace, storage: PromptsStorage.local },
 	{ path: COPILOT_USER_AGENTS_SOURCE_FOLDER, source: PromptFileSource.CopilotPersonal, storage: PromptsStorage.user },
 	{ path: '~/' + CLAUDE_AGENTS_SOURCE_FOLDER, source: PromptFileSource.ClaudePersonal, storage: PromptsStorage.user },
@@ -227,7 +232,10 @@ export const DEFAULT_HOOK_FILE_PATHS: readonly IPromptSourceFolder[] = [
  */
 function isInAgentsFolder(fileUri: URI): boolean {
 	const dir = dirname(fileUri).path;
-	return dir.endsWith('/' + AGENTS_SOURCE_FOLDER) || dir.endsWith('/' + CLAUDE_AGENTS_SOURCE_FOLDER) || isInCopilotAgentsFolder(fileUri);
+	return dir.endsWith('/' + DROX_AGENTS_SOURCE_FOLDER)
+		|| dir.endsWith('/' + AGENTS_SOURCE_FOLDER)
+		|| dir.endsWith('/' + CLAUDE_AGENTS_SOURCE_FOLDER)
+		|| isInCopilotAgentsFolder(fileUri);
 }
 
 /**
