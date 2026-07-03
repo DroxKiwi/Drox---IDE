@@ -238,7 +238,7 @@ Ce ne sont **pas** les seules étapes utiles — ce sont les seules où **aucune
 - [x] Pas de crash OOM sur 10 switches (session réelle)
 - [x] **S8** smoke install OK (T1–T3 + layout)
 - [x] Pas de régression E2E 1.5.12
-- [ ] Ship OR `v1.5.13` (en cours)
+- [x] Ship OR `v1.5.13`
 
 *(S9–S11 et S12–S16 non bloquants si deadline serrée.)*
 

@@ -33,14 +33,12 @@
 | # | Étape | Statut |
 |---|--------|--------|
 | R1 | Commit branche `1.5.13` | ✅ |
-| R2 | `npm run drox:ship -- -Force` Windows | ⏳ |
-| R3 | Release `v1.5.13` + `stable/latest.json` | ⏳ |
+| R2 | `npm run drox:ship -- -Force` Windows | ✅ |
+| R3 | Release `v1.5.13` + `stable/latest.json` | ✅ |
 
 ---
 
-## Liens
-
-- [PLAN-1.5.13.md](PLAN-1.5.13.md)
+- [Release OR v1.5.13](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.13)
 - [SMOKE-1.5.13.md](SMOKE-1.5.13.md)
 - [README 1.5.13](README.md)
 - [Hub 1.5](../README.md)
