@@ -25,6 +25,7 @@ import {
 } from '../../common/droxAgentsSession.js';
 import { DroxAgentsLanguageModelProvider, droxAgentsLanguageModelVendorDescriptor } from './droxAgentsLanguageModelProvider.js';
 import { DroxAgentsSessionHandler } from './droxAgentsSessionHandler.js';
+import { registerDroxAgentsFileOpenActions } from './droxAgentsFileOpenActions.js';
 import './droxAgentsChatUiStatsService.js';
 import './droxNativeFileChangeScrollContribution.js';
 
@@ -71,6 +72,8 @@ class DroxAgentsChatContribution extends Disposable implements IWorkbenchContrib
 
 		const sessionHandler = store.add(instantiationService.createInstance(DroxAgentsSessionHandler));
 		store.add(chatSessionsService.registerChatSessionContentProvider(DROX_CHAT_SESSION_TYPE, sessionHandler));
+
+		registerDroxAgentsFileOpenActions();
 
 		const vendor = droxAgentsLanguageModelVendorDescriptor();
 		languageModelsService.deltaLanguageModelChatProviderDescriptors([vendor], []);

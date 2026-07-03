@@ -29,5 +29,6 @@ suite('droxNativeFileChangeMarkdown', () => {
 		assert.ok(html.includes('diff-add'));
 		assert.ok(html.includes('diff-rem'));
 		assert.ok(html.includes('workbench.action.droxUndoFileChange'));
+		assert.ok(html.includes('workbench.action.droxOpenSessionFile'));
 	});
 });

@@ -7,9 +7,10 @@
 
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
-import { Disposable, DisposableMap } from '../../../../../base/common/lifecycle.js';
+import { Disposable, DisposableMap, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../../base/common/network.js';
 import {
+	autorun,
 	constObservable,
 	derived,
 	IObservable,
@@ -21,6 +22,7 @@ import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI, UriComponents } from '../../../../../base/common/uri.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
 import { localize } from '../../../../../nls.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IStorageService, StorageScope } from '../../../../../platform/storage/common/storage.js';
@@ -58,8 +60,12 @@ import { IDroxEngineService } from '../../../../../workbench/contrib/drox/common
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import {
 	IChat,
+	ISessionChangesSummary,
+	ISessionFileChange,
 	ISession,
+	ISessionChangeset,
 	ISessionFolder,
+	ISessionGitRepository,
 	ISessionType,
 	ISessionWorkspace,
 	SessionStatus,
@@ -72,9 +78,28 @@ import {
 	ISessionModelPickerOptions,
 	ISessionsProvider,
 } from '../../../../services/sessions/common/sessionsProvider.js';
+import { IChatSessionFileChange2 } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
+import { normalizeWindowsFsPath } from '../../../../../workbench/contrib/drox/common/droxPathUtil.js';
+import { IDroxFileChangePayload } from '../../../../../workbench/contrib/drox/common/droxFileChange.js';
+import { enrichDroxFileChangeSnapshotAsync } from '../../../../../workbench/contrib/drox/common/droxFileChangeProgress.js';
+import { IDroxSessionChangesBridge } from '../../../../../workbench/contrib/drox/common/droxSessionChangesBridge.js';
+import { IDroxSessionChangesDetailService } from '../../../../../workbench/contrib/drox/common/droxSessionChangesDetailService.js';
+import { IDroxSessionChangesPanelService } from '../../../../../workbench/contrib/drox/common/droxSessionChangesPanelService.js';
+import { buildAggregatedSessionFileChanges } from '../../../../../workbench/contrib/drox/common/droxSessionChangesAggregate.js';
+import {
+	loadDroxGitUncommittedChanges,
+	mergeDroxSessionFileChanges,
+} from '../../../../../workbench/contrib/drox/common/droxSessionGitChanges.js';
+import { IGitService } from '../../../../../workbench/contrib/git/common/gitService.js';
+import { createDroxSessionChangesets } from './droxSessionChangesets.js';
 
 /** Same key as {@link sessionWorkspacePicker.ts} — recent project folders in the Agents window. */
 const SESSIONS_RECENT_WORKSPACES_STORAGE_KEY = 'sessions.recentlyPickedWorkspaces';
+
+function sessionFileChangeUri(change: ISessionFileChange): URI {
+	const uri = (change as IChatSessionFileChange2).uri;
+	return uri ?? change.modifiedUri;
+}
 
 function buildChat(session: DroxSession): IChat {
 	return {
@@ -83,7 +108,7 @@ function buildChat(session: DroxSession): IChat {
 		title: session.title,
 		updatedAt: session.updatedAt,
 		status: session.status,
-		changes: constObservable([]),
+		changes: session.changes,
 		checkpoints: observableValue(session, undefined),
 		modelId: session.modelId,
 		mode: constObservable(undefined),
@@ -124,8 +149,12 @@ class DroxSession extends Disposable implements ISession {
 	readonly description = constObservable(undefined);
 	readonly lastTurnEnd = constObservable(undefined);
 	readonly mode = constObservable(undefined);
-	readonly changes = constObservable([]);
-	readonly changesets = constObservable([]);
+	private readonly _changes = observableValue<readonly ISessionFileChange[]>(this, []);
+	readonly changes = this._changes;
+	private readonly _changesSummary = observableValue<ISessionChangesSummary | undefined>(this, undefined);
+	readonly changesSummary = this._changesSummary;
+	private readonly _changesets: readonly ISessionChangeset[];
+	readonly changesets: IObservable<readonly ISessionChangeset[]>;
 	readonly mainChat: ISettableObservable<IChat>;
 	readonly chats: IObservable<readonly IChat[]>;
 
@@ -152,6 +181,8 @@ class DroxSession extends Disposable implements ISession {
 		this._workspaceData.set(workspace, undefined);
 		this.mainChat = observableValue<IChat>(this, buildChat(this));
 		this.chats = derived(this, reader => [this.mainChat.read(reader)]);
+		this._changesets = createDroxSessionChangesets(this.chats);
+		this.changesets = constObservable(this._changesets);
 	}
 
 	setTitle(title: string): void {
@@ -173,6 +204,47 @@ class DroxSession extends Disposable implements ISession {
 
 	get workingDirectory(): URI | undefined {
 		return this._workspaceData.get()?.folders[0]?.workingDirectory;
+	}
+
+	applyFileChangeLive(change: IDroxFileChangePayload): void {
+		if (!change.applied) {
+			return;
+		}
+		const uri = URI.file(normalizeWindowsFsPath(change.path));
+		const current = [...this._changes.get()];
+		const index = current.findIndex(c => sessionFileChangeUri(c).toString() === uri.toString());
+		const previous = index >= 0 ? current[index] : undefined;
+		const entry: IChatSessionFileChange2 = {
+			uri,
+			insertions: (previous?.insertions ?? 0) + change.added,
+			deletions: (previous?.deletions ?? 0) + change.removed,
+		};
+		if (index >= 0) {
+			current[index] = entry;
+		} else {
+			current.push(entry);
+		}
+		this.setChanges(current);
+	}
+
+	setChanges(changes: readonly ISessionFileChange[]): void {
+		this._changes.set(changes, undefined);
+		let additions = 0;
+		let deletions = 0;
+		for (const change of changes) {
+			additions += change.insertions;
+			deletions += change.deletions;
+		}
+		this._changesSummary.set(
+			changes.length > 0
+				? { files: changes.length, additions, deletions }
+				: undefined,
+			undefined,
+		);
+	}
+
+	updateWorkspace(workspace: ISessionWorkspace): void {
+		this._workspaceData.set(workspace, undefined);
 	}
 }
 
@@ -196,6 +268,8 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 	private readonly _onDidChangeModels = this._register(new Emitter<void>());
 	private _persistLoadStarted = false;
 	private _persistLoadPromise: Promise<void> | undefined;
+	private readonly _syncGeneration = new Map<string, number>();
+	private readonly _gitWatchStores = new Map<string, DisposableStore>();
 
 	constructor(
 		@IChatService private readonly chatService: IChatService,
@@ -208,8 +282,21 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		@IWorkspaceContextService private readonly workspaceService: IWorkspaceContextService,
 		@IStorageService private readonly storageService: IStorageService,
 		@ILifecycleService private readonly lifecycleService: ILifecycleService,
+		@IDroxSessionChangesBridge private readonly sessionChangesBridge: IDroxSessionChangesBridge,
+		@IDroxSessionChangesDetailService private readonly sessionChangesDetailService: IDroxSessionChangesDetailService,
+		@IDroxSessionChangesPanelService private readonly sessionChangesPanelService: IDroxSessionChangesPanelService,
+		@IGitService private readonly gitService: IGitService,
+		@IFileService private readonly fileService: IFileService,
 	) {
 		super();
+		this._register(this.sessionChangesBridge.onDidApplyFileChange(e => {
+			this.sessionChangesDetailService.appendFileChange(e.sessionResource, e.change);
+			const session = this._findSessionByResource(e.sessionResource);
+			if (!session) {
+				return;
+			}
+			void this._syncSessionFileChangesSummary(session, true);
+		}));
 		this._register(this.llmModelsService.onDidChange(() => this._onDidChangeModels.fire()));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(DroxSetting.ArchitectModel) || e.affectsConfiguration(DroxSetting.Model)) {
@@ -324,8 +411,10 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 					if (entry.title?.trim()) {
 						session.setTitle(entry.title.trim());
 					}
+					void this._hydrateSessionChanges(session, entry.id, workspacePath);
 					void this._enrichPersistedSessionTitle(session, entry, workspacePath);
 					this._sessionCache.set(key, session);
+					this._ensureGitWatch(session);
 					added.push(this._toISession(session));
 				}
 			}
@@ -336,6 +425,151 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 		if (added.length > 0) {
 			this._onDidChangeSessions.fire({ added, removed: [], changed: [] });
+		}
+	}
+
+	private async _syncSessionFileChangesSummary(session: DroxSession, fireEvent = false): Promise<void> {
+		const key = session.resource.toString();
+		const generation = (this._syncGeneration.get(key) ?? 0) + 1;
+		this._syncGeneration.set(key, generation);
+
+		const workspace = session.workspace.get();
+		const events = this.sessionChangesDetailService.getSessionChangeEvents(session.resource);
+		const sessionChanges = buildAggregatedSessionFileChanges(events);
+
+		let merged = sessionChanges;
+		try {
+			const gitChanges = await loadDroxGitUncommittedChanges(this.gitService, workspace);
+			if (this._syncGeneration.get(key) !== generation) {
+				return;
+			}
+			merged = mergeDroxSessionFileChanges(sessionChanges, gitChanges);
+		} catch (e) {
+			this.logService.warn('[DroxSessionsProvider] failed to load git uncommitted changes', e);
+		}
+
+		if (this._syncGeneration.get(key) !== generation) {
+			return;
+		}
+		session.setChanges(merged);
+		if (fireEvent) {
+			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [this._toISession(session)] });
+		}
+	}
+
+	syncSessionChangesFromDetail(sessionResource: URI): void {
+		const session = this._findSessionByResource(sessionResource);
+		if (!session) {
+			return;
+		}
+		void this._syncSessionFileChangesSummary(session, true);
+	}
+
+	getSessionMergedFileChanges(sessionResource: URI): readonly ISessionFileChange[] {
+		return this._findSessionByResource(sessionResource)?.changes.get() ?? [];
+	}
+
+	private _ensureGitWatch(session: DroxSession): void {
+		const key = session.resource.toString();
+		if (this._gitWatchStores.has(key)) {
+			return;
+		}
+		const store = new DisposableStore();
+		void this._attachGitRepositoryState(session, store);
+		store.add(autorun(reader => {
+			const workspace = session.workspace.read(reader);
+			workspace?.folders[0]?.gitRepository?.uncommittedChanges;
+			void this._syncSessionFileChangesSummary(session, true);
+		}));
+		this._gitWatchStores.set(key, store);
+		this._register(store);
+	}
+
+	private async _attachGitRepositoryState(session: DroxSession, store: DisposableStore): Promise<void> {
+		const workspace = session.workspace.get();
+		const repoUri = workspace?.folders[0]?.root;
+		if (!repoUri) {
+			return;
+		}
+
+		try {
+			const repo = await this.gitService.openRepository(repoUri);
+			if (!repo) {
+				return;
+			}
+
+			const folder = workspace.folders[0];
+			const baseGitRepo: ISessionGitRepository = folder.gitRepository ?? {
+				uri: folder.root,
+				workTreeUri: undefined,
+				baseBranchName: undefined,
+				gitHubInfo: constObservable(undefined),
+			};
+
+			store.add(autorun(reader => {
+				const state = repo.state.read(reader);
+				const head = state.HEAD;
+				const branchName = head?.commit ? head.name : undefined;
+				const upstreamBranchName = head?.upstream
+					? `${head.upstream.remote}/${head.upstream.name}`
+					: undefined;
+				const uncommittedChanges = state.workingTreeChanges.length + state.untrackedChanges.length + state.indexChanges.length;
+
+				const currentWorkspace = session.workspace.read(reader);
+				if (!currentWorkspace) {
+					return;
+				}
+				const currentFolder = currentWorkspace.folders[0];
+				session.updateWorkspace({
+					...currentWorkspace,
+					folders: [{
+						...currentFolder,
+						gitRepository: {
+							...baseGitRepo,
+							branchName,
+							upstreamBranchName,
+							uncommittedChanges,
+						},
+					}],
+				});
+			}));
+		} catch (e) {
+			this.logService.warn('[DroxSessionsProvider] failed to resolve git state', e);
+		}
+	}
+
+	getSessionWorkspacePath(sessionResource: URI): string | undefined {
+		return this._findSessionByResource(sessionResource)?.workspace.get()?.folders[0]?.root.fsPath;
+	}
+
+	/** Workspace path for replay I/O — waits for persisted session scan when needed. */
+	async ensureSessionWorkspacePath(sessionResource: URI): Promise<string | undefined> {
+		const cached = this.getSessionWorkspacePath(sessionResource);
+		if (cached) {
+			return cached;
+		}
+		await this._loadPersistedSessions(false);
+		return this.getSessionWorkspacePath(sessionResource)
+			?? this.workspaceService.getWorkspace().folders[0]?.uri.fsPath;
+	}
+
+	private async _hydrateSessionChanges(session: DroxSession, engineSessionId: string, workspacePath: string): Promise<void> {
+		try {
+			const replay = await this.sessionService.readUiReplay(engineSessionId, workspacePath);
+			const replayEvents: IDroxFileChangePayload[] = [];
+			for (const message of replay) {
+				if (message.kind !== 'fileChange' || message.applied === false) {
+					continue;
+				}
+				replayEvents.push(await enrichDroxFileChangeSnapshotAsync(message, workspacePath, this.fileService));
+			}
+			this.sessionChangesDetailService.mergeSessionChangeEvents(session.resource, replayEvents);
+			await this.sessionChangesPanelService.applyPersistedDismissals(session.resource, engineSessionId, workspacePath);
+			void this._syncSessionFileChangesSummary(session, true);
+			const iSession = this._toISession(session);
+			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
+		} catch {
+			// ignore missing replay history and keep live changes
 		}
 	}
 
@@ -400,6 +634,7 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 			session.setModelId(preferredId);
 		}
 		this._newSessions.set(session.sessionId, session);
+		this._ensureGitWatch(session);
 		return this._toISession(session);
 	}
 
@@ -559,6 +794,20 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 	}
 
+	private _findSessionByResource(sessionResource: URI): DroxSession | undefined {
+		const key = sessionResource.toString();
+		const cached = this._sessionCache.get(key);
+		if (cached) {
+			return cached;
+		}
+		for (const session of this._newSessions.values()) {
+			if (session.resource.toString() === key) {
+				return session;
+			}
+		}
+		return undefined;
+	}
+
 	private _findSession(sessionId: string): DroxSession | undefined {
 		for (const session of this._sessionCache.values()) {
 			if (session.sessionId === sessionId) {
@@ -570,6 +819,48 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 
 	private _toISession(session: DroxSession): ISession {
 		return session;
+	}
+
+	async purgeWorkspaceSessions(workspaceFolder: URI): Promise<void> {
+		const workspaceKey = workspaceFolder.toString();
+		const removed: ISession[] = [];
+
+		for (const session of [...this._sessionCache.values()]) {
+			if (session.workingDirectory?.toString() !== workspaceKey) {
+				continue;
+			}
+			await this._evictChatSession(session.resource);
+			this.sessionChangesDetailService.clearSession(session.resource);
+			this.sessionChangesPanelService.clearSession(session.resource);
+			this._sessionCache.delete(session.resource.toString());
+			removed.push(this._toISession(session));
+			session.dispose();
+		}
+
+		for (const session of this._newSessions.values()) {
+			if (session.workingDirectory?.toString() !== workspaceKey) {
+				continue;
+			}
+			await this._evictChatSession(session.resource);
+			this.sessionChangesDetailService.clearSession(session.resource);
+			this.sessionChangesPanelService.clearSession(session.resource);
+			this._newSessions.deleteAndDispose(session.sessionId);
+			removed.push(this._toISession(session));
+		}
+
+		this._persistLoadStarted = false;
+		if (removed.length > 0) {
+			this._onDidChangeSessions.fire({ added: [], removed, changed: [] });
+		}
+	}
+
+	private async _evictChatSession(sessionResource: URI): Promise<void> {
+		const modelRef = this.chatService.acquireExistingSession(sessionResource, 'DroxSessionsProvider#evictChatSession');
+		try {
+			await this.chatService.removeHistoryEntry(sessionResource);
+		} finally {
+			modelRef?.dispose();
+		}
 	}
 
 	async renameChat(_sessionId: string, _chatUri: URI, _title: string): Promise<void> { }
@@ -585,7 +876,7 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		if (!session) {
 			return;
 		}
-		await this.chatService.removeHistoryEntry(session.resource);
+		await this._evictChatSession(session.resource);
 		this._sessionCache.delete(session.resource.toString());
 		this._onDidChangeSessions.fire({ added: [], removed: [this._toISession(session)], changed: [] });
 		session.dispose();

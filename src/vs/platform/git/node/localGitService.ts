@@ -6,7 +6,7 @@
 import * as cp from 'child_process';
 import { CancellationError } from '../../../base/common/errors.js';
 import { generateUuid } from '../../../base/common/uuid.js';
-import { IGitPullOptions, ILocalGitService } from '../common/localGitService.js';
+import { IGitPullOptions, IGitPushOptions, ILocalGitService } from '../common/localGitService.js';
 import { ILogService } from '../../log/common/log.js';
 
 export class LocalGitService implements ILocalGitService {
@@ -156,5 +156,41 @@ export class LocalGitService implements ILocalGitService {
 			this._runningProcesses.delete(operationId);
 			proc.kill();
 		}
+	}
+
+	async hasUncommittedChanges(repoPath: string): Promise<boolean> {
+		const output = (await this._exec(generateUuid(), ['status', '--porcelain'], repoPath)).trim();
+		return output.length > 0;
+	}
+
+	async getCurrentBranch(repoPath: string): Promise<string | undefined> {
+		try {
+			const branch = (await this._exec(generateUuid(), ['rev-parse', '--abbrev-ref', 'HEAD'], repoPath)).trim();
+			return branch && branch !== 'HEAD' ? branch : undefined;
+		} catch {
+			return undefined;
+		}
+	}
+
+	async hasUpstream(repoPath: string, branchName: string): Promise<boolean> {
+		try {
+			const upstream = (await this._exec(generateUuid(), ['rev-parse', '--abbrev-ref', `${branchName}@{upstream}`], repoPath)).trim();
+			return upstream.length > 0;
+		} catch {
+			return false;
+		}
+	}
+
+	async commitAll(repoPath: string, message: string): Promise<void> {
+		await this._exec(generateUuid(), ['add', '-A', '--', ':/'], repoPath);
+		await this._exec(generateUuid(), ['commit', '--no-verify', '--no-gpg-sign', '-m', message], repoPath);
+	}
+
+	async push(repoPath: string, options?: IGitPushOptions): Promise<void> {
+		const args = ['push'];
+		if (options?.setUpstream) {
+			args.push('--set-upstream');
+		}
+		await this._exec(generateUuid(), args, repoPath);
 	}
 }

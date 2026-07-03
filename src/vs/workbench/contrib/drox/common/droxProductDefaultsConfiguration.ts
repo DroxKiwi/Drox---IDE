@@ -15,7 +15,14 @@ import {
 	TelemetryConfiguration,
 } from '../../../../platform/telemetry/common/telemetry.js';
 import { ChatConfiguration } from '../../chat/common/constants.js';
+import { RemoteAgentHostAutoConnectSettingId, RemoteAgentHostsEnabledSettingId } from '../../../../platform/agentHost/common/remoteAgentHostService.js';
+import { TUNNEL_HOST_ENABLED_SETTING } from '../../chat/electron-browser/tunnelHost.contribution.js';
 import { DROX_THINKING_PHRASES } from './droxThinkingPhrases.js';
+
+const DROX_THINKING_PHRASES_DEFAULT = {
+	mode: 'replace' as const,
+	phrases: [...DROX_THINKING_PHRASES],
+};
 
 /**
  * Overrides de défauts produit Drox (chargé après `chat.shared.contribution`).
@@ -76,12 +83,75 @@ export function registerDroxProductDefaultsConfiguration(): void {
 				),
 				scope: ConfigurationScope.APPLICATION,
 			},
+			'chat.mcp.gallery.enabled': {
+				type: 'boolean',
+				default: true,
+				description: localize(
+					'drox.product.mcpGalleryEnabled',
+					'Enable the MCP marketplace in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			'chat.mcp.gallery.version': {
+				type: 'string',
+				default: 'v0.1',
+				description: localize(
+					'drox.product.mcpGalleryVersion',
+					'MCP gallery API version for custom registry URLs.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			[RemoteAgentHostsEnabledSettingId]: {
+				type: 'boolean',
+				default: false,
+				description: localize(
+					'drox.product.remoteAgentHostsEnabled',
+					'Enable connecting to remote agent hosts. Disabled by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			[RemoteAgentHostAutoConnectSettingId]: {
+				type: 'boolean',
+				default: false,
+				description: localize(
+					'drox.product.remoteAgentHostsAutoConnect',
+					'Automatically connect to remote agent hosts on startup. Disabled by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			[TUNNEL_HOST_ENABLED_SETTING]: {
+				type: 'boolean',
+				default: false,
+				description: localize(
+					'drox.product.tunnelHostEnabled',
+					'Allow remote access to local agent sessions via dev tunnels (Copilot). Disabled by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
 			'github.copilot.enable': {
 				type: 'boolean',
 				default: false,
 				description: localize(
 					'drox.product.copilotEnable',
 					'GitHub Copilot extension completions. Disabled by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			'github.copilot.chat.otel.enabled': {
+				type: 'boolean',
+				default: false,
+				description: localize(
+					'drox.product.copilotOtelEnabled',
+					'OpenTelemetry export from the Copilot extension. Disabled by default in Drox IDE.',
+				),
+				scope: ConfigurationScope.APPLICATION,
+			},
+			'workbench.enableExperiments': {
+				type: 'boolean',
+				default: false,
+				description: localize(
+					'drox.product.enableExperiments',
+					'Microsoft experimentation service for feature rollouts. Disabled by default in Drox IDE.',
 				),
 				scope: ConfigurationScope.APPLICATION,
 			},
@@ -178,9 +248,9 @@ export function registerDroxProductDefaultsConfiguration(): void {
 			},
 			[ChatConfiguration.ThinkingPhrases]: {
 				type: 'object',
-				default: {
-					mode: 'replace',
-					phrases: [...DROX_THINKING_PHRASES],
+				default: DROX_THINKING_PHRASES_DEFAULT,
+				agentsWindow: {
+					default: DROX_THINKING_PHRASES_DEFAULT,
 				},
 				description: localize(
 					'drox.product.thinkingPhrases',
@@ -190,6 +260,16 @@ export function registerDroxProductDefaultsConfiguration(): void {
 			},
 		},
 	});
+
+	// Garantit le mode replace même si un profil Copilot a laissé mode: append.
+	Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerDefaultConfigurations([{
+		overrides: {
+			[ChatConfiguration.ThinkingPhrases]: DROX_THINKING_PHRASES_DEFAULT,
+		},
+		donotCache: true,
+		preventExperimentOverride: true,
+		source: 'droxProductDefaults',
+	}]);
 }
 
 /** Doc D1 — URL de remplacement des liens aka.ms dans product.json. */

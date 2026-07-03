@@ -157,3 +157,185 @@
 .drox-agents-retro-active .drox-native-file-change.is-cancelled .fc-op {
 	color: var(--vscode-errorForeground);
 }
+
+/* Panneau Changes Agents — même carte que le fil chat */
+.drox-changes-inline-host .drox-native-file-change.msg-file-change {
+	align-self: stretch;
+	margin: 0;
+	border: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
+	border-radius: 8px;
+	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	overflow: hidden;
+	font-family: var(--vscode-editor-font-family);
+	font-size: 12px;
+	color: var(--vscode-foreground);
+	max-width: 100%;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.drox-changes-inline-host .drox-native-file-change > .fc-summary {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 10px;
+	user-select: none;
+	background: color-mix(in srgb, var(--drox-thread-green, #4ec94e) 8%, var(--vscode-editorWidget-background));
+	border-bottom: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
+	min-width: 0;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-op {
+	font-weight: 600;
+	text-transform: lowercase;
+	color: var(--drox-thread-green, var(--vscode-charts-green));
+	flex-shrink: 0;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-path {
+	font-family: var(--vscode-editor-font-family);
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--vscode-textLink-foreground);
+	text-decoration: none;
+	cursor: pointer;
+	flex: 1;
+	min-width: 0;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-path:hover {
+	text-decoration: underline;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-stats {
+	display: inline-flex;
+	gap: 6px;
+	font-variant-numeric: tabular-nums;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-add {
+	color: var(--drox-thread-green, var(--vscode-charts-green));
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-rem {
+	color: var(--vscode-errorForeground);
+}
+
+.drox-changes-inline-host .drox-native-file-change > .fc-body {
+	padding: 0;
+}
+
+.drox-changes-inline-host .drox-native-file-change .fc-diff {
+	overflow: visible;
+	max-height: none;
+	padding: 4px 0;
+	font-family: var(--vscode-editor-font-family);
+	font-size: 11px;
+	line-height: 1.45;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line {
+	display: block;
+	min-height: 1.35em;
+	padding: 0 10px;
+	white-space: pre-wrap;
+	word-break: break-word;
+	overflow-wrap: anywhere;
+	font-family: inherit;
+	color: var(--vscode-editor-foreground);
+	box-sizing: border-box;
+	max-width: 100%;
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-add {
+	background: color-mix(in srgb, var(--drox-thread-green, #4ec94e) 18%, transparent);
+	color: var(--vscode-editor-foreground);
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-rem {
+	background: color-mix(in srgb, var(--vscode-errorForeground) 14%, transparent);
+	color: var(--vscode-editor-foreground);
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-hunk,
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-fold {
+	color: var(--vscode-descriptionForeground);
+	font-style: italic;
+	background: var(--vscode-editorIndentGuide-background, rgba(127, 127, 127, 0.08));
+	cursor: pointer;
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-fold {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 4px 10px;
+	font-style: normal;
+	cursor: default;
+	pointer-events: none;
+	user-select: none;
+}
+
+.drox-changes-inline-host .drox-native-file-change .diff-line.diff-ctx {
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-changes-inline-host .drox-native-file-change.is-not-applied {
+	opacity: 0.85;
+	border-style: dashed;
+}
+
+.drox-changes-inline-host .drox-native-file-change.is-cancelled .fc-op {
+	color: var(--vscode-errorForeground);
+}
+
+/* Sidebar session Changes (modal éditeur P6-C) */
+.drox-session-changes-sidebar-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 4px 0;
+}
+
+.drox-session-changes-sidebar-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 10px;
+	cursor: pointer;
+	border-radius: 4px;
+}
+
+.drox-session-changes-sidebar-row:hover,
+.drox-session-changes-sidebar-row.active {
+	background: var(--vscode-list-hoverBackground);
+}
+
+.drox-session-changes-sidebar-row.active {
+	background: var(--vscode-list-activeSelectionBackground);
+	color: var(--vscode-list-activeSelectionForeground);
+}
+
+.drox-session-changes-sidebar-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1;
+	min-width: 0;
+	font-size: 12px;
+}
+
+.changes-sidebar-count {
+	margin-left: 6px;
+	opacity: 0.7;
+	font-size: 11px;
+}

@@ -11,7 +11,10 @@ import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { isDroxAgentsWindowEnabled } from '../../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { DroxSessionsProvider } from './droxSessionsProvider.js';
+import { registerDroxSessionsProviderInstance } from './droxSessionsProviderAccessor.js';
 import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
+import '../../../../../workbench/contrib/drox/browser/droxSessionGitComposerActions.js';
+import './droxSessionExplorerDecorations.js';
 
 class DroxSessionsProviderContribution extends Disposable implements IWorkbenchContribution {
 
@@ -29,6 +32,7 @@ class DroxSessionsProviderContribution extends Disposable implements IWorkbenchC
 		}
 
 		const provider = this._register(instantiationService.createInstance(DroxSessionsProvider));
+		registerDroxSessionsProviderInstance(provider);
 		this._register(sessionsProvidersService.registerProvider(provider));
 	}
 }

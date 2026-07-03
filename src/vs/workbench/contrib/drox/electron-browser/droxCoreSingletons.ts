@@ -21,6 +21,10 @@ import { IDroxLongMemoryService } from '../common/droxLongMemoryService.js';
 import { IDroxPasteCandidateService } from '../common/droxPasteCandidateService.js';
 import { IDroxRefsBridgeService } from '../common/droxRefsBridgeService.js';
 import { IDroxReleaseNotesService } from '../common/droxReleaseNotesService.js';
+import { IDroxSessionGitService } from '../common/droxSessionGitService.js';
+import { IDroxSessionChangesDetailService, DroxSessionChangesDetailService } from '../common/droxSessionChangesDetailService.js';
+import { IDroxSessionChangesBridge, DroxSessionChangesBridge } from '../common/droxSessionChangesBridge.js';
+import { IDroxSessionChangesPanelService, DroxSessionChangesPanelService } from '../common/droxSessionChangesPanelService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 import { IDroxSessionCompactService } from '../common/droxSessionCompactService.js';
@@ -40,6 +44,7 @@ import { DroxSessionCompactService } from './droxSessionCompactService.js';
 import { DroxSessionService } from './droxSessionService.js';
 import { DroxSlashCommandService } from './droxSlashCommandService.js';
 import { DroxUserAskService } from './droxUserAskService.js';
+import { DroxSessionGitService } from './droxSessionGitService.js';
 
 /** Singletons moteur Drox partagés entre l’IDE principal et la fenêtre Agents. */
 export function registerDroxCoreSingletons(): void {
@@ -59,5 +64,9 @@ export function registerDroxCoreSingletons(): void {
 	registerSingleton(IDroxLongMemoryService, DroxLongMemoryService, InstantiationType.Delayed);
 	registerSingleton(IDroxLlmModelsService, DroxLlmModelsService, InstantiationType.Eager);
 	registerSingleton(IDroxRunRevertService, DroxRunRevertService, InstantiationType.Eager);
+	registerSingleton(IDroxSessionChangesBridge, DroxSessionChangesBridge, InstantiationType.Eager);
+	registerSingleton(IDroxSessionChangesDetailService, DroxSessionChangesDetailService, InstantiationType.Eager);
+	registerSingleton(IDroxSessionChangesPanelService, DroxSessionChangesPanelService, InstantiationType.Eager);
 	registerSingleton(IDroxReleaseNotesService, DroxReleaseNotesService, InstantiationType.Eager);
+	registerSingleton(IDroxSessionGitService, DroxSessionGitService, InstantiationType.Delayed);
 }

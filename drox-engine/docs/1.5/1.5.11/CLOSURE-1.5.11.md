@@ -49,7 +49,7 @@
 
 | # | Étape | Statut |
 |---|--------|--------|
-| R1 | Merge `1.5.11` → `main` | à faire |
+| R1 | Merge `1.5.11` → `main` | ✅ |
 | R2 | `npm run drox:ship` Windows | ✅ |
 | R3 | Release `v1.5.11` + `stable/latest.json` | ✅ |
 | R4 | Linux `.deb` **1.5.11** | ✅ |

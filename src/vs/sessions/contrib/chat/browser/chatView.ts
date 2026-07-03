@@ -17,6 +17,8 @@ import { IChatModelReference, IChatService } from '../../../../workbench/contrib
 import { ChatAgentLocation, ChatModeKind } from '../../../../workbench/contrib/chat/common/constants.js';
 import { getChatSessionType } from '../../../../workbench/contrib/chat/common/model/chatUri.js';
 import { IChatSessionsService, localChatSessionType } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
+import { DROX_CHAT_SESSION_TYPE } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+import { finalizeDroxNativeChatHistoryModel } from '../../../../workbench/contrib/drox/common/droxNativeChatHistoryFinalize.js';
 import { AbstractChatView, ChatViewKind, IChatViewOptions } from '../../../browser/parts/chatView.js';
 import { IChat } from '../../../services/sessions/common/session.js';
 import { IChatViewFactory } from '../../../services/chatView/browser/chatViewFactory.js';
@@ -219,6 +221,9 @@ export class ChatView extends AbstractChatView {
 			}
 			this._modelRef.value = ref;
 			this._updateWidgetLockState(getChatSessionType(ref.object.sessionResource));
+			if (getChatSessionType(ref.object.sessionResource) === DROX_CHAT_SESSION_TYPE) {
+				finalizeDroxNativeChatHistoryModel(ref.object);
+			}
 			this._widget.setModel(ref.object);
 			// Expose the bound chat resource on the DOM so test automation
 			// can synchronize with the post-rebind state without polling timeouts.

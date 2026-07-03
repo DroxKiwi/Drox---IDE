@@ -207,6 +207,12 @@ const toolMessages = [
 	localize('chat.thinking.tool.5', 'Evaluating'),
 ];
 
+function isGenericCopilotThinkingLabel(label: string): boolean {
+	const normalized = label.trim().toLowerCase();
+	return [...defaultThinkingMessages, ...toolMessages, ...terminalMessages]
+		.some(message => message.trim().toLowerCase() === normalized);
+}
+
 /** Easter-egg loading messages, used ~1 in {@link FUN_WORKING_MESSAGE_RATE} picks. */
 const funWorkingMessages = [
 	// Generic
@@ -239,6 +245,10 @@ function getCustomThinkingPhrases(configurationService: IConfigurationService): 
 		customPhrases,
 		replaceDefaults: config?.mode === 'replace' && customPhrases.length > 0,
 	};
+}
+
+function usesReplaceThinkingPhrases(configurationService: IConfigurationService): boolean {
+	return getCustomThinkingPhrases(configurationService).replaceDefaults;
 }
 
 /** Returns an easter-egg message ~1 in {@link FUN_WORKING_MESSAGE_RATE}, else `undefined`. */
@@ -286,7 +296,7 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 	private currentThinkingValue: string;
 	private currentTitle: string;
 	private defaultTitle = localize('chat.thinking.header', 'Thinking');
-	private readonly workingTitle = localize('chat.thinking.header.working', 'Working');
+	private readonly workingTitle: string;
 	private textContainer!: HTMLElement;
 	private readonly _markdownResult = this._register(new MutableDisposable<IRenderedMarkdown>());
 	private wrapper!: HTMLElement;
@@ -381,6 +391,10 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 			?? localize('chat.thinking.header.initial', 'Thinking');
 
 		super(extractedTitle, context, undefined, hoverService, configurationService);
+
+		this.workingTitle = usesReplaceThinkingPhrases(this.configurationService)
+			? localize('chat.thinking.header.active', 'Thinking')
+			: localize('chat.thinking.header.working', 'Working');
 
 		this.id = content.id;
 		this.content = content;
@@ -1001,7 +1015,13 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 			return;
 		}
 
-		const label = this.lastExtractedTitle ?? '';
+		const label = (() => {
+			const extracted = this.lastExtractedTitle ?? '';
+			if (usesReplaceThinkingPhrases(this.configurationService) && isGenericCopilotThinkingLabel(extracted)) {
+				return this.getRandomWorkingMessage(WorkingMessageCategory.Thinking);
+			}
+			return extracted;
+		})();
 		if (!this.fixedScrollingMode && !this._isExpanded.get()) {
 			this.setTitle(label);
 		}
@@ -1473,7 +1493,9 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			? this.appendedItemCount === 1
 				? localize('chat.thinking.finished.withStepsSingular', 'Finished with 1 step')
 				: localize('chat.thinking.finished.withStepsPlural', 'Finished with {0} steps', this.appendedItemCount)
-			: localize('chat.thinking.finished', 'Finished Working');
+			: usesReplaceThinkingPhrases(this.configurationService)
+				? localize('chat.thinking.finished.generic', 'Finished')
+				: localize('chat.thinking.finished', 'Finished Working');
 
 		this.currentTitle = finalLabel;
 		// With lazy rendering, wrapper may not be created yet if content hasn't been expanded

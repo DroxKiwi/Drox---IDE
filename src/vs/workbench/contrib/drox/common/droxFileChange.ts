@@ -33,6 +33,8 @@ export interface IDroxFileChangePayload {
 	/** Undo / redo depuis la carte (run appliqué uniquement). */
 	readonly toolId?: string;
 	readonly canUndo?: boolean;
+	/** Snapshot disque `.drox/diff-snapshots/{toolId}.before` pour diff éditeur. */
+	readonly beforeSnapshotUri?: string;
 }
 
 /** Message hôte → webview : carte diff fichier dans le fil de chat. */

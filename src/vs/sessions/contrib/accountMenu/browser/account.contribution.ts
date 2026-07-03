@@ -33,6 +33,8 @@ import { ChatStatusDashboard, IChatStatusDashboardOptions } from '../../../../wo
 import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { getAccountProfileImageUrl, getAccountTitleBarBadgeKey, getAccountTitleBarState, resolveAccountInfo } from '../../../browser/accountTitleBarState.js';
+import { getDefaultChatAgentDisplayName } from '../../../../workbench/contrib/drox/common/droxChatAgentBranding.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
 import { DroxCopilotSignInHiddenContext } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
@@ -186,10 +188,12 @@ class TitleBarAccountWidget extends BaseActionViewItem {
 		@IHoverService private readonly hoverService: IHoverService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IChatEntitlementService private readonly chatEntitlementService: ChatEntitlementService,
+		@IProductService private readonly productService: IProductService,
 	) {
 		super(undefined, action, options);
 		this.lastState = getAccountTitleBarState({
 			isAccountLoading: true,
+			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
 			entitlement: this.chatEntitlementService.entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,
@@ -268,6 +272,7 @@ class TitleBarAccountWidget extends BaseActionViewItem {
 			isAccountLoading: this.isAccountLoading,
 			accountName: this.accountName,
 			accountProviderLabel: this.accountProviderLabel,
+			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
 			entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,

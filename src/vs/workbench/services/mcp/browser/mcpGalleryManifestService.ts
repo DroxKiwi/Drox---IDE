@@ -64,11 +64,23 @@ export class WorkbenchMcpGalleryManifestService extends McpGalleryManifestServic
 
 	private async getAndUpdateMcpGalleryManifest(): Promise<void> {
 		const mcpGalleryConfig = this.configurationService.getValue<IMcpGalleryConfig | undefined>('chat.mcp.gallery');
-		if (mcpGalleryConfig?.serviceUrl) {
-			this.update(await this.createMcpGalleryManifest(mcpGalleryConfig.serviceUrl, mcpGalleryConfig.version));
+		const serviceUrl = await this.getConfiguredGalleryServiceUrl(mcpGalleryConfig);
+		if (serviceUrl) {
+			const version = mcpGalleryConfig?.serviceUrl ? mcpGalleryConfig.version : 'v0.1';
+			this.update(await this.createMcpGalleryManifest(serviceUrl, version));
 		} else {
-			this.update(await super.getMcpGalleryManifest());
+			this.update(null);
 		}
+	}
+
+	/**
+	 * Gallery base URL before version suffix (`/v0.1/servers`). Subclasses may override (e.g. Drox bundled registry).
+	 */
+	protected async getConfiguredGalleryServiceUrl(mcpGalleryConfig: IMcpGalleryConfig | undefined): Promise<string | undefined> {
+		if (mcpGalleryConfig?.serviceUrl) {
+			return mcpGalleryConfig.serviceUrl;
+		}
+		return this.productService.mcpGallery?.serviceUrl;
 	}
 
 	private update(manifest: IMcpGalleryManifest | null): void {

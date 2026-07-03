@@ -7,6 +7,9 @@ import assert from 'assert';
 import { mock } from '../../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { CommandsRegistry } from '../../../../../platform/commands/common/commands.js';
+import { isIMenuItem, isISubmenuItem, MenuId, MenuRegistry } from '../../../../../platform/actions/common/actions.js';
+import { Codicon } from '../../../../../base/common/codicons.js';
+import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { Parts } from '../../../../../workbench/services/layout/browser/layoutService.js';
 import { IViewsService } from '../../../../../workbench/services/views/common/viewsService.js';
@@ -15,6 +18,7 @@ import { IAgentWorkbenchLayoutService } from '../../../../browser/workbench.js';
 
 // Import editor contribution to trigger action registration.
 import '../../browser/editor.contribution.js';
+import { SessionEditorNewTabMenu } from '../../browser/sessionEditorNewTabActions.js';
 
 suite('Sessions - Editor Contribution', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
@@ -195,5 +199,28 @@ suite('Sessions - Editor Contribution', () => {
 		assert.deepStrictEqual(layoutService.shownParts, []);
 		assert.deepStrictEqual(layoutService.maximizedStates, [true, false]);
 		assert.strictEqual(layoutService.panelVisible, true);
+	});
+
+	test('registers the session editor new-tab submenu on EditorTitleLayout', () => {
+		const submenuEntry = MenuRegistry.getMenuItems(MenuId.EditorTitleLayout)
+			.filter(isISubmenuItem)
+			.find(item => item.submenu === SessionEditorNewTabMenu);
+
+		assert.ok(submenuEntry, 'expected SessionEditorNewTabMenu on EditorTitleLayout');
+		assert.strictEqual(submenuEntry.group, 'navigation');
+		assert.strictEqual(submenuEntry.order, 0);
+		assert.strictEqual(ThemeIcon.isThemeIcon(submenuEntry.icon) ? submenuEntry.icon.id : undefined, Codicon.add.id);
+
+		const submenuItems = MenuRegistry.getMenuItems(SessionEditorNewTabMenu)
+			.filter(isIMenuItem)
+			.map(item => item.command.id)
+			.sort();
+
+		assert.deepStrictEqual(submenuItems, [
+			'workbench.action.agentSessions.newEditorTab.browser',
+			'workbench.action.agentSessions.newEditorTab.changes',
+			'workbench.action.agentSessions.newEditorTab.file',
+			'workbench.action.agentSessions.newEditorTab.terminal',
+		]);
 	});
 });

@@ -27,6 +27,9 @@ import { SideBarVisibleContext } from '../../../../workbench/common/contextkeys.
 import { Menus } from '../../menus.js';
 import { ChatEntitlement, ChatEntitlementService, IChatEntitlementService } from '../../../../workbench/services/chat/common/chatEntitlementService.js';
 import { getAccountTitleBarState, getAccountProfileImageUrl, getAccountTitleBarBadgeKey, resolveAccountInfo } from '../../accountTitleBarState.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox branding in sessions mobile title bar
+import { getDefaultChatAgentDisplayName } from '../../../../workbench/contrib/drox/common/droxChatAgentBranding.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IChatDashboardService } from '../../chatDashboardService.js';
 import { MOBILE_OPEN_CHANGES_VIEW_COMMAND_ID } from './contributions/mobileChangesView.js';
 
@@ -109,6 +112,7 @@ export class MobileTitlebarPart extends Disposable {
 		@IMenuService private readonly menuService: IMenuService,
 		@IChatDashboardService private readonly chatDashboardService: IChatDashboardService,
 		@ICommandService private readonly commandService: ICommandService,
+		@IProductService private readonly productService: IProductService,
 	) {
 		super();
 
@@ -340,6 +344,7 @@ export class MobileTitlebarPart extends Disposable {
 			isAccountLoading: this.isAccountLoading,
 			accountName: this.accountName,
 			accountProviderLabel: this.accountProviderLabel,
+			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
 			entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,
@@ -426,6 +431,7 @@ export class MobileTitlebarPart extends Disposable {
 			isAccountLoading: this.isAccountLoading,
 			accountName: this.accountName,
 			accountProviderLabel: this.accountProviderLabel,
+			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
 			entitlement: this.chatEntitlementService.entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,

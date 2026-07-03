@@ -15,6 +15,7 @@ import {
 	fileChangeResolutionToChatProgress,
 	resolveDroxFileChangeAfterToolFinish,
 } from '../../common/droxFileChangeProgress.js';
+import { IDroxFileChangePayload } from '../../common/droxFileChange.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { describeToolCall, previewJson } from '../../common/droxToolPreview.js';
@@ -137,6 +138,7 @@ export interface IDroxAgentsChatSinkContext {
 	readonly fileService?: IFileService;
 	readonly runRevertService?: IDroxRunRevertService;
 	readonly recordUiReplay?: (message: DroxHostToWebviewMessage) => void;
+	readonly onFileChangeApplied?: (change: IDroxFileChangePayload) => void;
 }
 
 export function createDroxAgentsChatSink(
@@ -284,6 +286,7 @@ export function createDroxAgentsChatSink(
 			push(fileChangeResolutionToChatProgress(resolution));
 			const tid = String(resolution.change.toolId || id).trim();
 			recordWire(asFileChangeHostMessage(resolution.change, tid || undefined));
+			context?.onFileChangeApplied?.(resolution.change);
 		})();
 	};
 

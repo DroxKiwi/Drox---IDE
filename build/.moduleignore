@@ -255,3 +255,8 @@ zone.js/dist/**
 # in websocket's browser.js inside a try/catch with a globalThis fallback,
 # so it is unnecessary in the browsers/runtimes VS Code supports.
 es5-ext/**
+
+# @opentelemetry — excluded from Drox release bundles (OTel disabled via settings;
+# Copilot uses InMemoryOTelService when off). Prevents NSIS rename errors on upgrade
+# when partial @opentelemetry trees linger under extensions/copilot/node_modules.
+@opentelemetry/**

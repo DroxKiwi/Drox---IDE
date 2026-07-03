@@ -37,5 +37,6 @@ export const Menus = {
 	SessionWorkspaceManage: new MenuId('Sessions.SessionWorkspaceManage'),
 	SessionBarToolbar: new MenuId('SessionsSessionBarToolbar'),
 	SessionHeaderMeta: new MenuId('SessionsSessionHeaderMeta'),
+	SessionComposerQuickActions: new MenuId('SessionsSessionComposerQuickActions'),
 	SessionHeaderContext: MenuId.SessionHeaderContext,
 } as const;

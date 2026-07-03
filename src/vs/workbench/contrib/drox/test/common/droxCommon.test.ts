@@ -67,6 +67,7 @@ import {
 	enumerateDroxExecutableCandidates,
 	isBareDroxExecutableName,
 } from '../../common/droxExecutable.js';
+import { enumerateDroxMcpRegistryCandidates } from '../../common/droxMcpRegistry.js';
 import { isUnderDroxAgentOutputPath } from '../../common/droxWorkspacePaths.js';
 import { parseUserAskParams } from '../../common/droxUserAsk.js';
 import { extractTodosFromToolOutput, isTodoWriteOutput } from '../../common/droxTodoExtract.js';
@@ -180,6 +181,16 @@ suite('Drox — executable packaging folder', () => {
 		assert.ok(cargoIdx >= 0, 'appRoot cargo debug candidate');
 		assert.ok(bundledIdx >= 0, 'bundled candidate');
 		assert.ok(cargoIdx < bundledIdx, 'cargo must be probed before bundled snapshot');
+	});
+
+	test('enumerateDroxMcpRegistryCandidates probes workspace and packaged app paths', () => {
+		const list = enumerateDroxMcpRegistryCandidates({
+			workspaceFolderPaths: ['/ws'],
+			appRoot: '/DroxIDE/resources/app',
+			installDir: '/DroxIDE',
+		});
+		assert.ok(list.some(p => p.replace(/\\/g, '/').endsWith('/ws/drox-engine/mcp-registry')));
+		assert.ok(list.some(p => p.replace(/\\/g, '/').endsWith('/DroxIDE/resources/app/drox-engine/mcp-registry')));
 	});
 });
 
