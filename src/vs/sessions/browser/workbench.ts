@@ -342,7 +342,6 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	private instantiationService!: IInstantiationService;
 	private storageService!: IStorageService;
 	private workspaceContextService!: IWorkspaceContextService;
-	private configurationService!: IConfigurationService;
 
 	//#endregion
 
@@ -1105,7 +1104,6 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.instantiationService = accessor.get(IInstantiationService);
 		this.storageService = accessor.get(IStorageService);
 		this.workspaceContextService = accessor.get(IWorkspaceContextService);
-		this.configurationService = accessor.get(IConfigurationService);
 		this._initWorkspaceLayoutStorage();
 		accessor.get(ITitleService);
 
