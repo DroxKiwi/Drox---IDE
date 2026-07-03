@@ -49,6 +49,11 @@ export interface IOpenNewSessionOptions extends ICreateNewSessionOptions {
 	 * (restoring any pending draft).
 	 */
 	readonly folderUri?: URI;
+	/**
+	 * When true, discard any in-progress draft and clear the workspace picker so
+	 * the user can choose a different project folder.
+	 */
+	readonly resetComposer?: boolean;
 }
 
 /**
@@ -610,6 +615,7 @@ export class SessionsService extends Disposable implements ISessionsService {
 
 	openNewSession(options?: IOpenNewSessionOptions): ISession | undefined {
 		const folderUri = options?.folderUri;
+		const resetComposer = options?.resetComposer === true;
 		if (folderUri) {
 			this._startOpenSession();
 			try {
@@ -624,10 +630,15 @@ export class SessionsService extends Disposable implements ISessionsService {
 			}
 		}
 
+		if (resetComposer) {
+			this.sessionsManagementService.discardNewSession();
+		}
+
 		// Without a folder (or when folder resolution failed above): switch to
 		// the new-session composer view.
-		// No-op when no session is active (empty new-session placeholder showing).
-		if (this._visibility.activeSession.get() === undefined) {
+		// No-op when no session is active (empty new-session placeholder showing),
+		// unless the caller asked to reset the composer (e.g. sidebar "New").
+		if (this._visibility.activeSession.get() === undefined && !resetComposer) {
 			return undefined;
 		}
 		if (!folderUri) {
@@ -637,9 +648,17 @@ export class SessionsService extends Disposable implements ISessionsService {
 		// Restore the in-progress new session if one exists, so pickers re-derive
 		// their state from the still-alive session object. Otherwise clear the
 		// active session (first time / after send).
-		const newSession = this.sessionsManagementService.newSession.get();
+		const newSession = resetComposer ? undefined : this.sessionsManagementService.newSession.get();
 		this._activate(newSession ?? undefined);
+		if (resetComposer) {
+			this._resetNewSessionComposer();
+		}
 		return newSession ?? undefined;
+	}
+
+	private _resetNewSessionComposer(): void {
+		this.sessionsPartService.getSessionView(undefined)?.clearWorkspaceSelection();
+		this.sessionsPartService.focusSession(undefined);
 	}
 
 	async openNewChatInSession(session: ISession, options?: ICreateNewChatInSessionOptions): Promise<void> {

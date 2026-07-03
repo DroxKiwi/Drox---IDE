@@ -14,6 +14,8 @@ import { Action2, registerAction2 } from '../../../../platform/actions/common/ac
 import { AGENT_HOST_SCHEME, fromAgentHostUri } from '../../../../platform/agentHost/common/agentHostUri.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { isDroxAgentsStableWindowLayout } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IWorkbenchContribution, getWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
 import { IAgentHostTerminalService } from '../../../../workbench/contrib/terminal/browser/agentHostTerminalService.js';
 import { ITerminalInstance, ITerminalEditorService, ITerminalService } from '../../../../workbench/contrib/terminal/browser/terminal.js';
@@ -110,6 +112,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		@ITerminalEditorService private readonly _terminalEditorService: ITerminalEditorService,
 		@IAgentWorkbenchLayoutService private readonly _layoutService: IAgentWorkbenchLayoutService,
 		@IContextKeyService contextKeyService: IContextKeyService,
+		@IConfigurationService private readonly _configurationService: IConfigurationService,
 	) {
 		super();
 
@@ -449,6 +452,11 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		}
 		this._activeKey = targetKey;
 		this._activeSessionId = session.sessionId;
+
+		// Drox: never auto-create/reopen a terminal when switching discussions.
+		if (isDroxAgentsStableWindowLayout(this._configurationService)) {
+			return;
+		}
 
 		const instances = await this.ensureTerminal(targetPath, false, session);
 
