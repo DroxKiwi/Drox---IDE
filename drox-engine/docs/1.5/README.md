@@ -21,7 +21,7 @@
 | [**1.5.9/**](1.5.9/README.md) | Scroll fil, reset `MEMORY.md`, composer épuré | **Livré** · `v1.5.9` |
 | [**1.5.10/**](1.5.10/README.md) | Run recovery toujours dispo + respawn moteur différé | **Livré** · `v1.5.10` |
 | [**1.5.11/**](1.5.11/README.md) | Chat natif Drox + CFG IDE ↔ Agents + historique partagé | **Livré** · `v1.5.11` |
-| [**1.5.12/**](1.5.12/README.md) | Polish + workspace Cursor + MCP marketplace | **Ouvert** |
+| [**1.5.12/**](1.5.12/README.md) | Polish + workspace Cursor + MCP marketplace | **Livré** · `v1.5.12` |
 
 ---
 
@@ -39,7 +39,7 @@
 1.5.9  scroll fil + reset MEMORY.md + composer épuré  →  livré
 1.5.10  run recovery + respawn différé  →  livré
 1.5.11  chat natif + CFG + historique partagé  →  livré
-1.5.12  polish + workspace Cursor (changes, onglets, MCP)  →  ouvert
+1.5.12  polish + workspace Cursor (changes, onglets, MCP)  →  livré
 MCP  →  brainstorm #16
 ```
 
