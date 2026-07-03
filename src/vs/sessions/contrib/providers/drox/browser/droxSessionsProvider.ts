@@ -429,9 +429,9 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 
 	private _attachSendCompletionHandlers(session: DroxSession, iSession: ISession, result: ChatSendResult): void {
 		if (result.kind === 'queued') {
-			void result.data.processedPromise.then(
-				processed => this._attachSendCompletionHandlers(session, iSession, processed),
-				err => this.logService.error('[DroxSessionsProvider] queued send failed', err),
+			void result.deferred.then(
+				(processed: ChatSendResult) => this._attachSendCompletionHandlers(session, iSession, processed),
+				(err: unknown) => this.logService.error('[DroxSessionsProvider] queued send failed', err),
 			);
 			return;
 		}
@@ -879,10 +879,8 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 			this._attachSendCompletionHandlers(session, iSession, result);
 			return iSession;
 		} catch (e) {
-			if (!session.isDisposed) {
-				this._onDidChangeSessions.fire({ added: [], removed: [iSession], changed: [] });
-				session.dispose();
-			}
+			this._onDidChangeSessions.fire({ added: [], removed: [iSession], changed: [] });
+			session.dispose();
 			throw e;
 		}
 	}
