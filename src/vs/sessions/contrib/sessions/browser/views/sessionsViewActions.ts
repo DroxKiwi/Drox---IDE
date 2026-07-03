@@ -451,7 +451,7 @@ registerAction2(class NewSessionForWorkspaceAction extends Action2 {
 		const sessionsPartService = accessor.get(ISessionsPartService);
 		const commandService = accessor.get(ICommandService);
 
-		sessionsService.openNewSession();
+		sessionsService.openNewSession({ resetComposer: true });
 
 		const session = context.sessions[0];
 		const workspace = session.workspace.get();

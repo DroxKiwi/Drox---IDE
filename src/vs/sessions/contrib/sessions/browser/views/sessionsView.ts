@@ -155,9 +155,10 @@ export class SessionsView extends ViewPane {
 		// Sessions content container
 		const sessionsContent = DOM.append(sessionsSection, $('.agent-sessions-content'));
 
-		// Header row: "Sessions" label (left) + compact "New" button (right)
-		const headerRow = this.headerRow = DOM.append(sessionsContent, $('.agent-sessions-header-row'));
-		const headerLabel = this.headerLabel = DOM.append(headerRow, $('.agent-sessions-header-label'));
+		// Minimal header: new discussion + filter/find (container title already shows "Sessions").
+		const headerRow = this.headerRow = DOM.append(sessionsContent, $('.agent-sessions-header-row.minimal'));
+		this.headerLabel = DOM.append(headerRow, $('.agent-sessions-header-label'));
+		this.headerLabel.style.display = 'none';
 
 		const headerActions = this.headerActions = DOM.append(headerRow, $('.agent-sessions-header-actions'));
 
@@ -167,8 +168,6 @@ export class SessionsView extends ViewPane {
 		// widget mounts inside it.
 		const phoneLayout = isPhoneLayout(this.layoutService);
 		if (!phoneLayout) {
-			headerLabel.textContent = localize('sessionsHeader', "Sessions");
-
 			// Header actions (visual order: New, Filter, Search). The "New" button is
 			// contributed to Menus.SidebarSessionsHeader and rendered as a compact pill
 			// by NewSessionActionViewItem.
@@ -217,6 +216,12 @@ export class SessionsView extends ViewPane {
 			},
 		}));
 		this._register(this.onDidChangeBodyVisibility(visible => sessionsControl.setVisible(visible)));
+		sessionsControl.setVisible(this.isBodyVisible());
+
+		const listSizeObserver = this._register(new DOM.DisposableResizeObserver('SessionsView.list', () => {
+			this._layoutSessionsList();
+		}));
+		listSizeObserver.observe(this.sessionsControlContainer);
 
 		// Toggle header label/actions visibility when find widget opens/closes
 		this._register(sessionsControl.onDidChangeFindOpenState(open => {
@@ -478,12 +483,18 @@ export class SessionsView extends ViewPane {
 		super.layoutBody(height, width);
 
 		this.updateHeaderLayout();
+		this._layoutSessionsList(width);
+	}
 
+	private _layoutSessionsList(width?: number): void {
 		if (!this.sessionsControl || !this.sessionsControlContainer) {
 			return;
 		}
-
-		this.sessionsControl.layout(this.sessionsControlContainer.offsetHeight, width);
+		const listWidth = width ?? this.sessionsControlContainer.clientWidth;
+		const listHeight = this.sessionsControlContainer.clientHeight;
+		if (listHeight > 0 && listWidth > 0) {
+			this.sessionsControl.layout(listHeight, listWidth);
+		}
 	}
 
 	override focus(): void {
@@ -524,7 +535,7 @@ export class SessionsView extends ViewPane {
 			return;
 		}
 
-		this.headerLabel.style.display = '';
+		this.headerLabel.style.display = 'none';
 		this.headerActions.style.display = '';
 	}
 

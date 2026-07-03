@@ -14,6 +14,7 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { observableConfigValue } from '../../../../platform/observable/common/platformObservableUtils.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
+import { isDroxAgentsStableWindowLayout } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IEditorGroupsService, IEditorWorkingSet } from '../../../../workbench/services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../../workbench/services/editor/common/editorService.js';
 import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
@@ -78,18 +79,24 @@ export abstract class BaseLayoutController extends Disposable {
 		@IViewsService protected readonly _viewsService: IViewsService,
 		@IPaneCompositePartService protected readonly _paneCompositePartService: IPaneCompositePartService,
 		@IStorageService protected readonly _storageService: IStorageService,
-		@IConfigurationService private readonly _configurationService: IConfigurationService,
+		@IConfigurationService protected readonly _configurationService: IConfigurationService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IEditorGroupsService private readonly _editorGroupsService: IEditorGroupsService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 	) {
 		super();
 
+		const stableWindowLayout = isDroxAgentsStableWindowLayout(this._configurationService);
+
 		// [B3] Restore persisted state (with one-time legacy migration).
-		this._loadState();
+		if (!stableWindowLayout) {
+			this._loadState();
+		}
 
 		// [B4] Persist on shutdown.
-		this._register(this._storageService.onWillSaveState(() => this._saveState()));
+		if (!stableWindowLayout) {
+			this._register(this._storageService.onWillSaveState(() => this._saveState()));
+		}
 
 		// All session-switch logic is observable-driven.
 		this.activeSessionResourceObs = derivedOpts<URI | undefined>({
@@ -102,6 +109,13 @@ export abstract class BaseLayoutController extends Disposable {
 		this.multipleSessionsVisibleObs = derived<boolean>(reader => {
 			return this._sessionsService.visibleSessions.read(reader).length > 1;
 		});
+
+		this._useModalConfigObs = observableConfigValue<'off' | 'some' | 'all'>('workbench.editor.useModal', 'all', this._configurationService);
+
+		if (stableWindowLayout) {
+			this._registerViewStateManagement();
+			return;
+		}
 
 		// [B5] When multiple sessions are visible, drop per-session view/panel state
 		// for each visible session (editor working sets are preserved). This ensures
@@ -144,8 +158,6 @@ export abstract class BaseLayoutController extends Disposable {
 		}));
 
 		// [B2] Editor working sets
-
-		this._useModalConfigObs = observableConfigValue<'off' | 'some' | 'all'>('workbench.editor.useModal', 'all', this._configurationService);
 
 		// Workspace folders — used to defer session switch until workspace is ready
 		const workspaceFoldersObs = observableFromEvent(

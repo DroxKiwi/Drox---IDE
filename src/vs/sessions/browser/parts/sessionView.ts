@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import './media/sessionView.css';
-import { $, size } from '../../../base/browser/dom.js';
+import { $, size, DisposableResizeObserver } from '../../../base/browser/dom.js';
 import { ISerializableView, IViewSize } from '../../../base/browser/ui/grid/grid.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../base/common/lifecycle.js';
@@ -132,10 +132,17 @@ export class SessionView extends Disposable implements ISerializableView {
 		this._register(this._header.onDidChangeHeight(() => this._layoutChildren()));
 		this._register(this._compositeBar.onDidChangeVisibility(() => this._layoutChildren()));
 		this._register(this._compositeBar.onDidChangeHeight(() => this._layoutChildren()));
+
+		// Re-layout when the grid leaf first receives dimensions. openSession can
+		// mount the new-session widget before SessionsPart.layout runs; rAF alone
+		// does not fire until the next paint (often triggered by user interaction).
+		const sizeObserver = this._register(new DisposableResizeObserver('SessionView.size', () => this._layoutChildren()));
+		sizeObserver.observe(this.element);
 	}
 
 	openSession(session: IActiveSession | undefined, options: ISessionViewOptions): void {
 		if (this._hasOpenedSession && this._currentSession === session) {
+			this._layoutChildren();
 			return;
 		}
 		this._hasOpenedSession = true;
@@ -164,6 +171,7 @@ export class SessionView extends Disposable implements ISerializableView {
 				this._contentContainer.replaceChildren(view.element);
 				this._currentView.value = view;
 				view.setActive(this._isActive);
+				this._layoutChildren();
 			}
 
 			if (session) {
@@ -193,10 +201,21 @@ export class SessionView extends Disposable implements ISerializableView {
 	}
 
 	private _layoutChildren(): void {
-		if (!this._lastLayout) {
-			return;
+		let width: number;
+		let height: number;
+		let top: number;
+		let left: number;
+		if (this._lastLayout) {
+			({ width, height, top, left } = this._lastLayout);
+		} else {
+			width = this.element.clientWidth;
+			height = this.element.clientHeight;
+			if (width <= 0 || height <= 0) {
+				return;
+			}
+			top = 0;
+			left = 0;
 		}
-		const { width, height, top, left } = this._lastLayout;
 
 		// Apply the centered band's width first so the header and tabs wrap to
 		// their final layout before we measure their combined height. Measuring
@@ -232,6 +251,10 @@ export class SessionView extends Disposable implements ISerializableView {
 
 	selectWorkspace(folderUri: URI, providerId?: string): void {
 		this._currentView.value?.selectWorkspace(folderUri, providerId);
+	}
+
+	clearWorkspaceSelection(): void {
+		this._currentView.value?.clearWorkspaceSelection();
 	}
 
 	prefillInput(text: string): void {

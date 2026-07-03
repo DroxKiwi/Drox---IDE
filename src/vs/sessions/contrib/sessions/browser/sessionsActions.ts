@@ -144,7 +144,7 @@ registerAction2(class ShowSessionsPickerAction extends Action2 {
 
 		const openSelected = (selected: ISessionPickItem, inBackground: boolean, toSide: boolean): void => {
 			if (!selected.session) {
-				sessionsService.openNewSession();
+				sessionsService.openNewSession({ resetComposer: true });
 				sessionsPartService.focusSession(sessionsService.activeSession.get());
 				return;
 			}

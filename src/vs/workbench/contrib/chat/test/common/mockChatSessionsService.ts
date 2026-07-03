@@ -159,6 +159,10 @@ export class MockChatSessionsService implements IChatSessionsService {
 		return provider.provideChatSessionContent(sessionResource, token);
 	}
 
+	evictCachedChatSession(_sessionResource: URI): void {
+		// no in-memory contributed-session cache in tests
+	}
+
 	async canResolveChatSession(sessionType: string): Promise<boolean> {
 		return this.contentProviders.has(sessionType);
 	}

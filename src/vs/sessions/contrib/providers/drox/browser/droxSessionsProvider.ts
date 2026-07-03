@@ -25,10 +25,10 @@ import { localize } from '../../../../../nls.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
-import { IStorageService, StorageScope } from '../../../../../platform/storage/common/storage.js';
-import { ILifecycleService, LifecyclePhase } from '../../../../../workbench/services/lifecycle/common/lifecycle.js';
+import { IStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import {
+	ChatSendResult,
 	IChatSendRequestOptions,
 	IChatService,
 } from '../../../../../workbench/contrib/chat/common/chatService/chatService.js';
@@ -57,6 +57,7 @@ import { isListableDroxSessionId, deriveTitleFromTranscriptMessages, IDroxSessio
 import { formatDroxSessionListLabel } from '../../../../../workbench/contrib/drox/common/droxNativeChatSessionResolver.js';
 import { IDroxSessionService } from '../../../../../workbench/contrib/drox/common/droxSessionService.js';
 import { IDroxEngineService } from '../../../../../workbench/contrib/drox/common/droxEngineService.js';
+import { markDroxEngineSessionOpened } from '../../../../../workbench/contrib/drox/common/droxSharedChatSessionHistory.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import {
 	IChat,
@@ -95,6 +96,7 @@ import { createDroxSessionChangesets } from './droxSessionChangesets.js';
 
 /** Same key as {@link sessionWorkspacePicker.ts} — recent project folders in the Agents window. */
 const SESSIONS_RECENT_WORKSPACES_STORAGE_KEY = 'sessions.recentlyPickedWorkspaces';
+const MAX_RECENT_WORKSPACES = 20;
 
 function sessionFileChangeUri(change: ISessionFileChange): URI {
 	const uri = (change as IChatSessionFileChange2).uri;
@@ -250,6 +252,10 @@ class DroxSession extends Disposable implements ISession {
 
 export class DroxSessionsProvider extends Disposable implements ISessionsProvider {
 
+	private static _isEngineNotStartedError(e: unknown): boolean {
+		return e instanceof Error && e.message === 'Drox engine not started for this window';
+	}
+
 	readonly id = DROX_SESSIONS_PROVIDER_ID;
 	readonly label = localize('droxSessionsProvider', 'Drox');
 	readonly icon = Codicon.sparkle;
@@ -268,8 +274,11 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 	private readonly _onDidChangeModels = this._register(new Emitter<void>());
 	private _persistLoadStarted = false;
 	private _persistLoadPromise: Promise<void> | undefined;
+	private _persistRefreshPending = false;
 	private readonly _syncGeneration = new Map<string, number>();
 	private readonly _gitWatchStores = new Map<string, DisposableStore>();
+	/** Sessions for which git watch + changes replay have been started (lazy — not at boot). */
+	private readonly _activatedSessionKeys = new Set<string>();
 
 	constructor(
 		@IChatService private readonly chatService: IChatService,
@@ -281,7 +290,6 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		@IDroxEngineService private readonly droxEngineService: IDroxEngineService,
 		@IWorkspaceContextService private readonly workspaceService: IWorkspaceContextService,
 		@IStorageService private readonly storageService: IStorageService,
-		@ILifecycleService private readonly lifecycleService: ILifecycleService,
 		@IDroxSessionChangesBridge private readonly sessionChangesBridge: IDroxSessionChangesBridge,
 		@IDroxSessionChangesDetailService private readonly sessionChangesDetailService: IDroxSessionChangesDetailService,
 		@IDroxSessionChangesPanelService private readonly sessionChangesPanelService: IDroxSessionChangesPanelService,
@@ -309,22 +317,30 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		this._register(this.droxEngineService.onDidInitialize(() => {
 			void this._loadPersistedSessions(true);
 		}));
-		void this.lifecycleService.when(LifecyclePhase.Restored).then(() => {
-			void this._loadPersistedSessions(true);
-		});
-		void this.lifecycleService.when(LifecyclePhase.Eventually).then(() => {
-			void this._loadPersistedSessions(true);
-		});
-		this._startPersistedSessionLoad();
 	}
 
 	getSessions(): ISession[] {
-		this._startPersistedSessionLoad();
-		return [...this._sessionCache.values()].map(s => this._toISession(s));
-	}
-
-	private _startPersistedSessionLoad(): void {
-		void this._loadPersistedSessions(false);
+		if (this.droxEngineService.isInitialized) {
+			void this._loadPersistedSessions(false);
+		}
+		const seen = new Set<string>();
+		const sessions: ISession[] = [];
+		const push = (session: DroxSession): void => {
+			const key = session.resource.toString();
+			if (seen.has(key)) {
+				return;
+			}
+			seen.add(key);
+			sessions.push(this._toISession(session));
+		};
+		for (const session of this._sessionCache.values()) {
+			push(session);
+		}
+		// In-flight first sends still live in _newSessions until promoted; include both.
+		for (const session of this._newSessions.values()) {
+			push(session);
+		}
+		return sessions;
 	}
 
 	private async _loadPersistedSessions(refresh = false): Promise<void> {
@@ -335,17 +351,25 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 			// merged in _getPersistScanRoots once the user has used a project.
 			return;
 		}
+		if (!this.droxEngineService.isInitialized) {
+			// listSessions RPC needs a started engine; onDidInitialize retriggers.
+			return;
+		}
 		if (!refresh && this._persistLoadStarted) {
 			return;
 		}
 		if (this._persistLoadPromise) {
-			if (!refresh) {
-				return this._persistLoadPromise;
+			if (refresh) {
+				this._persistRefreshPending = true;
 			}
-			await this._persistLoadPromise;
+			return this._persistLoadPromise;
 		}
 		this._persistLoadPromise = this._doLoadPersistedSessions(roots).finally(() => {
 			this._persistLoadPromise = undefined;
+			if (this._persistRefreshPending) {
+				this._persistRefreshPending = false;
+				void this._loadPersistedSessions(true);
+			}
 		});
 		return this._persistLoadPromise;
 	}
@@ -359,6 +383,76 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 			roots.set(uri.toString(), uri);
 		}
 		return [...roots.values()];
+	}
+
+	private _touchRecentWorkspace(folderUri: URI): void {
+		type StoredRecent = { readonly uri: UriComponents; readonly providerId?: string };
+		let stored: StoredRecent[] = [];
+		const raw = this.storageService.get(SESSIONS_RECENT_WORKSPACES_STORAGE_KEY, StorageScope.PROFILE);
+		if (raw) {
+			try {
+				stored = JSON.parse(raw) as StoredRecent[];
+			} catch {
+				stored = [];
+			}
+		}
+		const folderKey = folderUri.toString();
+		const filtered = stored.filter(entry => URI.revive(entry.uri).toString() !== folderKey);
+		const updated: StoredRecent[] = [
+			{ uri: folderUri.toJSON(), providerId: this.id },
+			...filtered,
+		].slice(0, MAX_RECENT_WORKSPACES);
+		this.storageService.store(
+			SESSIONS_RECENT_WORKSPACES_STORAGE_KEY,
+			JSON.stringify(updated),
+			StorageScope.PROFILE,
+			StorageTarget.MACHINE,
+		);
+	}
+
+	private _commitSessionToCache(session: DroxSession): void {
+		const key = session.resource.toString();
+		if (!this._sessionCache.has(key)) {
+			this._sessionCache.set(key, session);
+		}
+		if (this._newSessions.has(session.sessionId)) {
+			this._newSessions.deleteAndLeak(session.sessionId);
+		}
+		const folder = session.workingDirectory;
+		if (folder) {
+			const engineId = DroxChatSessionUri.parseSessionId(session.resource);
+			if (engineId) {
+				markDroxEngineSessionOpened(this.storageService, folder.fsPath, engineId);
+			}
+		}
+	}
+
+	private _attachSendCompletionHandlers(session: DroxSession, iSession: ISession, result: ChatSendResult): void {
+		if (result.kind === 'queued') {
+			void result.data.processedPromise.then(
+				processed => this._attachSendCompletionHandlers(session, iSession, processed),
+				err => this.logService.error('[DroxSessionsProvider] queued send failed', err),
+			);
+			return;
+		}
+		if (result.kind !== 'sent') {
+			return;
+		}
+		const complete = result.data.responseCompletePromise;
+		if (!complete) {
+			session.setStatus(SessionStatus.Completed);
+			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
+			return;
+		}
+		void complete.then(() => {
+			session.setStatus(SessionStatus.Completed);
+			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
+			void this._loadPersistedSessions(true);
+		}, err => {
+			this.logService.error('[DroxSessionsProvider] response failed', err);
+			session.setStatus(SessionStatus.Completed);
+			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
+		});
 	}
 
 	private _readRecentWorkspaceUris(): URI[] {
@@ -411,16 +505,16 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 					if (entry.title?.trim()) {
 						session.setTitle(entry.title.trim());
 					}
-					void this._hydrateSessionChanges(session, entry.id, workspacePath);
 					void this._enrichPersistedSessionTitle(session, entry, workspacePath);
 					this._sessionCache.set(key, session);
-					this._ensureGitWatch(session);
 					added.push(this._toISession(session));
 				}
 			}
 			this._persistLoadStarted = true;
 		} catch (e) {
-			this.logService.warn('[DroxSessionsProvider] failed to load persisted sessions', e);
+			if (!DroxSessionsProvider._isEngineNotStartedError(e)) {
+				this.logService.warn('[DroxSessionsProvider] failed to load persisted sessions', e);
+			}
 			return;
 		}
 		if (added.length > 0) {
@@ -451,6 +545,9 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		if (this._syncGeneration.get(key) !== generation) {
 			return;
 		}
+		if (!this._sessionFileChangesDiffer(session.changes.get(), merged)) {
+			return;
+		}
 		session.setChanges(merged);
 		if (fireEvent) {
 			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [this._toISession(session)] });
@@ -465,8 +562,33 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		void this._syncSessionFileChangesSummary(session, true);
 	}
 
+	private _sessionFileChangesDiffer(
+		before: readonly ISessionFileChange[],
+		after: readonly ISessionFileChange[],
+	): boolean {
+		if (before.length !== after.length) {
+			return true;
+		}
+		for (let i = 0; i < before.length; i++) {
+			const a = before[i]!;
+			const b = after[i]!;
+			if (
+				sessionFileChangeUri(a).toString() !== sessionFileChangeUri(b).toString()
+				|| a.insertions !== b.insertions
+				|| a.deletions !== b.deletions
+			) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	getSessionMergedFileChanges(sessionResource: URI): readonly ISessionFileChange[] {
-		return this._findSessionByResource(sessionResource)?.changes.get() ?? [];
+		const session = this._findSessionByResource(sessionResource);
+		if (session) {
+			this._ensureSessionActivated(session);
+		}
+		return session?.changes.get() ?? [];
 	}
 
 	private _ensureGitWatch(session: DroxSession): void {
@@ -476,11 +598,6 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 		const store = new DisposableStore();
 		void this._attachGitRepositoryState(session, store);
-		store.add(autorun(reader => {
-			const workspace = session.workspace.read(reader);
-			workspace?.folders[0]?.gitRepository?.uncommittedChanges;
-			void this._syncSessionFileChangesSummary(session, true);
-		}));
 		this._gitWatchStores.set(key, store);
 		this._register(store);
 	}
@@ -520,6 +637,15 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 					return;
 				}
 				const currentFolder = currentWorkspace.folders[0];
+				const currentGit = currentFolder.gitRepository;
+				if (
+					currentGit?.branchName === branchName
+					&& currentGit?.upstreamBranchName === upstreamBranchName
+					&& currentGit?.uncommittedChanges === uncommittedChanges
+				) {
+					return;
+				}
+
 				session.updateWorkspace({
 					...currentWorkspace,
 					folders: [{
@@ -532,6 +658,7 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 						},
 					}],
 				});
+				void this._syncSessionFileChangesSummary(session, true);
 			}));
 		} catch (e) {
 			this.logService.warn('[DroxSessionsProvider] failed to resolve git state', e);
@@ -546,11 +673,34 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 	async ensureSessionWorkspacePath(sessionResource: URI): Promise<string | undefined> {
 		const cached = this.getSessionWorkspacePath(sessionResource);
 		if (cached) {
+			const session = this._findSessionByResource(sessionResource);
+			if (session) {
+				this._ensureSessionActivated(session);
+			}
 			return cached;
 		}
 		await this._loadPersistedSessions(false);
-		return this.getSessionWorkspacePath(sessionResource)
-			?? this.workspaceService.getWorkspace().folders[0]?.uri.fsPath;
+		const path = this.getSessionWorkspacePath(sessionResource);
+		const session = this._findSessionByResource(sessionResource);
+		if (session) {
+			this._ensureSessionActivated(session);
+		}
+		return path;
+	}
+
+	/** Git watch + changes replay — only when a session is actually opened (not for every MRU entry at boot). */
+	private _ensureSessionActivated(session: DroxSession): void {
+		const key = session.resource.toString();
+		if (this._activatedSessionKeys.has(key)) {
+			return;
+		}
+		this._activatedSessionKeys.add(key);
+		this._ensureGitWatch(session);
+		const engineSessionId = DroxChatSessionUri.parseSessionId(session.resource);
+		const workspacePath = session.workspace.get()?.folders[0]?.root.fsPath;
+		if (engineSessionId && workspacePath) {
+			void this._hydrateSessionChanges(session, engineSessionId, workspacePath);
+		}
 	}
 
 	private async _hydrateSessionChanges(session: DroxSession, engineSessionId: string, workspacePath: string): Promise<void> {
@@ -710,21 +860,29 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 		session.setTitle(options.query.split('\n')[0].substring(0, 100) || localize('droxAgents.newSession', 'New Session'));
 		session.setStatus(SessionStatus.InProgress);
+		const folder = session.workingDirectory;
+		if (folder) {
+			this._touchRecentWorkspace(folder);
+		}
 		const iSession = this._toISession(session);
 		this._onDidChangeSessions.fire({ added: [iSession], removed: [], changed: [] });
 
 		try {
-			await this._dispatchSend(session, chatResource, options);
-			this._sessionCache.set(session.resource.toString(), session);
-			this._newSessions.deleteAndLeak(session.sessionId);
-			session.setStatus(SessionStatus.Completed);
+			const result = await this._dispatchSend(session, chatResource, options);
+			if (result.kind === 'rejected') {
+				this._onDidChangeSessions.fire({ added: [], removed: [iSession], changed: [] });
+				session.dispose();
+				throw new Error(`[DroxSessionsProvider] sendRequest rejected: ${result.reason}`);
+			}
+			this._commitSessionToCache(session);
 			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
-			void this._loadPersistedSessions(true);
+			this._attachSendCompletionHandlers(session, iSession, result);
 			return iSession;
 		} catch (e) {
-			this._newSessions.deleteAndLeak(session.sessionId);
-			this._onDidChangeSessions.fire({ added: [], removed: [iSession], changed: [] });
-			session.dispose();
+			if (!session.isDisposed) {
+				this._onDidChangeSessions.fire({ added: [], removed: [iSession], changed: [] });
+				session.dispose();
+			}
 			throw e;
 		}
 	}
@@ -737,9 +895,13 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		session.setStatus(SessionStatus.InProgress);
 		const iSession = this._toISession(session);
 		this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
-		await this._dispatchSend(session, chatResource, options);
-		session.setStatus(SessionStatus.Completed);
-		this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
+		const result = await this._dispatchSend(session, chatResource, options);
+		if (result.kind === 'rejected') {
+			session.setStatus(SessionStatus.Completed);
+			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
+			throw new Error(`[DroxSessionsProvider] sendRequest rejected: ${result.reason}`);
+		}
+		this._attachSendCompletionHandlers(session, iSession, result);
 		return iSession;
 	}
 
@@ -747,7 +909,7 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		session: DroxSession,
 		chatResource: URI,
 		options: ISendRequestOptions,
-	): Promise<void> {
+	): ReturnType<IChatService['sendRequest']> {
 		const architect = readDroxArchitectModelUser(this.configurationService);
 		const modelId = architect && !isDroxEmbeddingModelId(architect)
 			? toDroxAgentsModelIdentifier(architect)
@@ -786,12 +948,7 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 
 		this.logService.info(`[DroxSessionsProvider] sendRequest ${session.sessionId}`);
 		const result = await this.chatService.sendRequest(chatResource, options.query, sendOptions);
-		if (result.kind === 'rejected') {
-			throw new Error(`[DroxSessionsProvider] sendRequest rejected: ${result.reason}`);
-		}
-		if (result.kind === 'sent') {
-			await result.data.responseCompletePromise;
-		}
+		return result;
 	}
 
 	private _findSessionByResource(sessionResource: URI): DroxSession | undefined {
@@ -814,7 +971,7 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 				return session;
 			}
 		}
-		return undefined;
+		return this._newSessions.get(sessionId);
 	}
 
 	private _toISession(session: DroxSession): ISession {

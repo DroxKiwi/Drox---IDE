@@ -18,6 +18,7 @@ import { ChatAgentLocation, ChatModeKind } from '../../../../workbench/contrib/c
 import { getChatSessionType } from '../../../../workbench/contrib/chat/common/model/chatUri.js';
 import { IChatSessionsService, localChatSessionType } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
 import { DROX_CHAT_SESSION_TYPE } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+import { evictDroxAgentsChatSessionForReload } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatSessionCache.js';
 import { finalizeDroxNativeChatHistoryModel } from '../../../../workbench/contrib/drox/common/droxNativeChatHistoryFinalize.js';
 import { AbstractChatView, ChatViewKind, IChatViewOptions } from '../../../browser/parts/chatView.js';
 import { IChat } from '../../../services/sessions/common/session.js';
@@ -72,6 +73,12 @@ export class NewChatView extends AbstractChatView {
 	override selectWorkspace(folderUri: URI, providerId?: string): void {
 		if (this._widget instanceof NewChatWidget) {
 			this._widget.selectWorkspace(folderUri, providerId);
+		}
+	}
+
+	override clearWorkspaceSelection(): void {
+		if (this._widget instanceof NewChatWidget) {
+			this._widget.clearWorkspaceSelection();
 		}
 	}
 
@@ -197,18 +204,31 @@ export class ChatView extends AbstractChatView {
 		this._historyKey = historyKey;
 		this._applyHistoryKey();
 
-		// Skip loading if we're already showing this chat
-		if (isEqual(this._currentChatResource, resource)) {
-			return;
+		const sameResource = isEqual(this._currentChatResource, resource);
+
+		// SessionView autorun may call setChat on every observable tick — never
+		// restart a bind that is already complete or in flight for this resource.
+		if (sameResource) {
+			if (this._modelRef.value && this._widget.viewModel) {
+				return;
+			}
+			const inFlight = this._loadCts.value;
+			if (inFlight && !inFlight.token.isCancellationRequested) {
+				return;
+			}
 		}
 
 		const previousChatResource = this._currentChatResource;
+		const switchingChat = previousChatResource !== undefined && !isEqual(previousChatResource, resource);
 		this._currentChatResource = resource;
 
-		// Cancel any in-flight load for the previous chat and start a fresh one.
 		this._loadCts.value?.cancel();
-		if (previousChatResource) {
+		if (switchingChat) {
 			this._clearCurrentChat();
+			evictDroxAgentsChatSessionForReload(resource, this.chatSessionsService, this.chatService);
+		} else if (!this._modelRef.value) {
+			// First bind or stale rebind for the same chat — refresh disk cache once.
+			evictDroxAgentsChatSessionForReload(resource, this.chatSessionsService, this.chatService);
 		}
 		const cts = new CancellationTokenSource();
 		this._loadCts.value = cts;

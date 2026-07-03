@@ -35,7 +35,7 @@
 
 .new-chat-widget-container.revealed .new-chat-input-container {
 	display: block;
-	animation: chat-full-welcome-fade-in 0.35s ease 0.15s both;
+	opacity: 1;
 }
 
 /* Option group pickers container (above the input) */
@@ -49,7 +49,7 @@
 
 .new-chat-widget-container.revealed .new-session-workspace-picker-container {
 	display: block;
-	animation: chat-full-welcome-fade-in 0.35s ease 0.1s both;
+	opacity: 1;
 }
 
 @keyframes chat-full-welcome-fade-in {

@@ -1245,7 +1245,7 @@ export class SessionsList extends Disposable implements ISessionsList {
 	private readonly listContainer: HTMLElement;
 	private readonly tree: WorkbenchObjectTree<SessionListItem, FuzzyScore>;
 	private sessions: ISession[] = [];
-	private visible = true;
+	private visible = false;
 	private readonly excludedSessionTypes: Set<string>;
 	private readonly excludedStatuses: Set<SessionStatus>;
 	private _excludeArchived: boolean;
@@ -1856,6 +1856,7 @@ export class SessionsList extends Disposable implements ISessionsList {
 		}
 
 		this.tree.setChildren(null, children);
+		this._layoutTreeIfSized();
 		this._onDidUpdate.fire();
 	}
 
@@ -1927,6 +1928,18 @@ export class SessionsList extends Disposable implements ISessionsList {
 
 	layout(height: number, width: number): void {
 		this.tree.layout(height, width);
+	}
+
+	private _layoutTreeIfSized(): void {
+		const parent = this.listContainer.parentElement;
+		if (!parent) {
+			return;
+		}
+		const height = parent.clientHeight;
+		const width = parent.clientWidth;
+		if (height > 0 && width > 0) {
+			this.tree.layout(height, width);
+		}
 	}
 
 	focus(): void {

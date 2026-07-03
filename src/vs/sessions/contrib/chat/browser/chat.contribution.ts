@@ -86,13 +86,13 @@ class NewChatInSessionsWindowAction extends Action2 {
 
 	override run(accessor: ServicesAccessor): void {
 		const sessionsService = accessor.get(ISessionsService);
-		// Inherit the active session's provider and session type so the new
-		// session defaults to the same kind the user is currently working in.
 		const activeSession = sessionsService.activeSession.get();
+		// Open a blank composer so the user can pick any project folder — do not
+		// inherit the active session's workspace.
 		sessionsService.openNewSession({
-			folderUri: activeSession?.workspace.get()?.uri,
 			providerId: activeSession?.providerId,
 			sessionTypeId: activeSession?.sessionType,
+			resetComposer: true,
 		});
 	}
 }
