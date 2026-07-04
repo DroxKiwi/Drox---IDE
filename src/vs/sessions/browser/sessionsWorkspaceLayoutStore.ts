@@ -20,6 +20,7 @@ export interface ISessionsPartVisibilitySnapshot {
 	readonly editor?: boolean;
 	readonly auxiliaryBar?: boolean;
 	readonly sidebar?: boolean;
+	readonly panel?: boolean;
 }
 
 export interface ISessionsPartSizesSnapshot {

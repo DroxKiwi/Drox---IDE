@@ -215,13 +215,33 @@ export class SessionsView extends ViewPane {
 				this.sessionsService.openSession(resource, { preserveFocus }).then(onOpened).catch(onUnexpectedError);
 			},
 		}));
-		this._register(this.onDidChangeBodyVisibility(visible => sessionsControl.setVisible(visible)));
+		this._register(this.onDidChangeBodyVisibility(visible => {
+			sessionsControl.setVisible(visible);
+			if (visible) {
+				const targetWindow = DOM.getWindow(this.element);
+				const relayout = () => this._layoutSessionsList();
+				relayout();
+				DOM.scheduleAtNextAnimationFrame(targetWindow, () => {
+					relayout();
+					DOM.scheduleAtNextAnimationFrame(targetWindow, relayout);
+				});
+			}
+		}));
 		sessionsControl.setVisible(this.isBodyVisible());
 
 		const listSizeObserver = this._register(new DOM.DisposableResizeObserver('SessionsView.list', () => {
 			this._layoutSessionsList();
 		}));
 		listSizeObserver.observe(this.sessionsControlContainer);
+
+		this._register(this.sessionsManagementService.onDidChangeSessions(() => {
+			const targetWindow = DOM.getWindow(this.element);
+			DOM.scheduleAtNextAnimationFrame(targetWindow, () => {
+				if (this.isBodyVisible()) {
+					this._layoutSessionsList();
+				}
+			});
+		}));
 
 		// Toggle header label/actions visibility when find widget opens/closes
 		this._register(sessionsControl.onDidChangeFindOpenState(open => {

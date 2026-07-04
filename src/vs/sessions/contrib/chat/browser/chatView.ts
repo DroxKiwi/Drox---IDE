@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
+import { getWindow, scheduleAtNextAnimationFrame } from '../../../../base/browser/dom.js';
 import { MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
@@ -248,6 +249,15 @@ export class ChatView extends AbstractChatView {
 				}
 			}
 			this._widget.setModel(ref.object);
+			// Cold start: the grid may not have laid out yet when the model arrives.
+			const targetWindow = getWindow(this.element);
+			scheduleAtNextAnimationFrame(targetWindow, () => {
+				const h = this.element.clientHeight;
+				const w = this.element.clientWidth;
+				if (h > 0 && w > 0) {
+					this._widget.layout(h, w);
+				}
+			});
 			// Expose the bound chat resource on the DOM so test automation
 			// can synchronize with the post-rebind state without polling timeouts.
 			// Set AFTER `setModel` so observers see the attribute only once the
