@@ -15,7 +15,7 @@ import { LayoutPriority } from '../../../base/browser/ui/splitview/splitview.js'
 import { Direction, SerializableGrid, Sizing } from '../../../base/browser/ui/grid/grid.js';
 import { Part } from '../../../workbench/browser/part.js';
 import { ActiveSessionsContext, MultipleSessionsVisibleContext, SessionsFocusContext } from '../../common/contextkeys.js';
-import { $, addDisposableGenericMouseDownListener, addDisposableListener, EventType, isAncestor, trackFocus } from '../../../base/browser/dom.js';
+import { $, addDisposableGenericMouseDownListener, addDisposableListener, EventType, getWindow, isAncestor, scheduleAtNextAnimationFrame, trackFocus } from '../../../base/browser/dom.js';
 import { IActiveSession } from '../../services/sessions/common/sessionsManagement.js';
 import { SessionView } from './sessionView.js';
 import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js';
@@ -290,7 +290,13 @@ export class SessionsPart extends Part {
 	}
 
 	private _scheduleRelayoutAfterBind(): void {
-		this._relayoutGridIfNeeded();
+		const run = () => this._relayoutGridIfNeeded();
+		run();
+		const targetWindow = getWindow(this.element);
+		scheduleAtNextAnimationFrame(targetWindow, () => {
+			run();
+			scheduleAtNextAnimationFrame(targetWindow, run);
+		});
 	}
 
 	private _updateContextKeys(visible: readonly (IActiveSession | undefined)[]): void {

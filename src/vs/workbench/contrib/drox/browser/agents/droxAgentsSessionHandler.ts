@@ -211,7 +211,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		const modelName = request.userSelectedModelId
 			? parseDroxAgentsModelIdentifier(request.userSelectedModelId)
 			: undefined;
-		const preparedPrompt = await prepareDroxNativeChatRunPrompt(this.attachmentsService, {
+		const preparedPrompt = await prepareDroxNativeChatRunPrompt(this.attachmentsService, this.fileService, {
 			message: request.message,
 			variables: request.variables,
 			workspaceRoot: workspacePath,

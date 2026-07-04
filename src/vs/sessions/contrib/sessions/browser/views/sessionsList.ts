@@ -1246,6 +1246,8 @@ export class SessionsList extends Disposable implements ISessionsList {
 	private readonly tree: WorkbenchObjectTree<SessionListItem, FuzzyScore>;
 	private sessions: ISession[] = [];
 	private visible = false;
+	/** Session data changed while hidden or before the list had dimensions. */
+	private _stale = false;
 	private readonly excludedSessionTypes: Set<string>;
 	private readonly excludedStatuses: Set<SessionStatus>;
 	private _excludeArchived: boolean;
@@ -1520,8 +1522,11 @@ export class SessionsList extends Disposable implements ISessionsList {
 		}));
 
 		this._register(this._sessionsManagementService.onDidChangeSessions(() => {
+			this.sessions = this._sessionsManagementService.getSessions();
 			if (this.visible) {
 				this.refresh();
+			} else {
+				this._stale = true;
 			}
 		}));
 
@@ -1927,18 +1932,29 @@ export class SessionsList extends Disposable implements ISessionsList {
 	}
 
 	layout(height: number, width: number): void {
+		if (height <= 0 || width <= 0) {
+			this._stale = true;
+			return;
+		}
 		this.tree.layout(height, width);
+		if (this._stale) {
+			this._stale = false;
+			this.update();
+		}
 	}
 
 	private _layoutTreeIfSized(): void {
 		const parent = this.listContainer.parentElement;
 		if (!parent) {
+			this._stale = true;
 			return;
 		}
 		const height = parent.clientHeight;
 		const width = parent.clientWidth;
 		if (height > 0 && width > 0) {
 			this.tree.layout(height, width);
+		} else {
+			this._stale = true;
 		}
 	}
 

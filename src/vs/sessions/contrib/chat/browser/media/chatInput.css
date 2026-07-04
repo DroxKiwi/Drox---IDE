@@ -378,14 +378,90 @@
 /* Attached context container */
 .sessions-chat-attached-context {
 	display: flex;
-	flex-wrap: wrap;
+	flex-direction: column;
+	flex-wrap: nowrap;
 	gap: 4px;
-	align-items: center;
+	align-items: flex-end;
 }
 
 .sessions-chat-attached-context:empty,
 .sessions-chat-attached-context[style*="display: none"] {
 	display: none !important;
+}
+
+.sessions-chat-paste-context {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	align-items: center;
+}
+
+.sessions-chat-paste-context:empty,
+.sessions-chat-paste-context[style*="display: none"] {
+	display: none !important;
+}
+
+.sessions-chat-paste-chip {
+	display: inline-flex;
+	align-items: center;
+	overflow: hidden;
+	font-size: var(--vscode-agents-fontSize-body2, 11px);
+	padding: 0 4px 0 0;
+	border: 1px solid var(--vscode-chat-requestBorder, var(--vscode-input-background, transparent));
+	border-radius: var(--vscode-cornerRadius-small);
+	height: 18px;
+	max-width: 240px;
+	width: fit-content;
+	background-color: var(--vscode-editor-inactiveSelectionBackground, transparent);
+}
+
+.sessions-chat-paste-chip-terminal {
+	border-color: var(--vscode-terminal-ansiGreen, var(--vscode-chat-requestBorder));
+}
+
+.sessions-chat-paste-chip-icon .codicon {
+	font-size: 14px;
+	flex-shrink: 0;
+	padding: 0 3px;
+}
+
+.sessions-chat-paste-chip-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	border: none;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	padding: 0;
+}
+
+.sessions-chat-paste-chip-label:hover {
+	text-decoration: underline;
+}
+
+.sessions-chat-paste-chip-remove {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	flex-shrink: 0;
+	color: var(--vscode-descriptionForeground);
+	margin-left: 4px;
+}
+
+.sessions-chat-paste-chip-remove .codicon {
+	font-size: var(--vscode-codiconFontSize-compact, 12px);
+	padding: 0;
+}
+
+.sessions-chat-paste-chip-remove:hover {
+	color: var(--vscode-foreground);
+}
+
+.sessions-chat-paste-chip:hover {
+	background-color: var(--vscode-toolbar-hoverBackground);
 }
 
 /* Attachment pills */

@@ -58,6 +58,7 @@ import { ChatQuestionCarouselData } from '../../common/model/chatProgressTypes/c
 import { localChatSessionType, SessionType } from '../../common/chatSessionsService.js';
 import { getChatSessionType } from '../../common/model/chatUri.js';
 import { getExplicitFileOrImageAttachmentSummary, IChatRequestVariableEntry, isExplicitFileOrImageVariableEntry, isPasteVariableEntry } from '../../common/attachments/chatVariableEntries.js';
+import { isDroxSmartPasteVariableEntry } from '../../../drox/common/droxNativeChatRequestAttachments.js';
 import { IChatChangesSummaryPart, IChatCodeCitations, IChatErrorDetailsPart, IChatReferences, IChatRendererContent, IChatRequestViewModel, IChatResponseViewModel, IChatViewModel, IChatWorkingProgress, isRequestVM, isResponseVM, IChatPendingDividerViewModel, isPendingDividerVM } from '../../common/model/chatViewModel.js';
 import { getNWords } from '../../common/model/chatWordCounter.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, CollapsedToolsDisplayMode, ThinkingDisplayMode } from '../../common/constants.js';
@@ -1512,8 +1513,17 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		let content: IChatRendererContent[] = [];
 		const explicitFileOrImageVariables = element.variables.filter(isExplicitFileOrImageVariableEntry);
 		const explicitImageVariables = explicitFileOrImageVariables.filter(variable => variable.kind === 'image');
-		const explicitFileOrDirectoryVariables = element.variables.filter(variable => variable.kind === 'file' || variable.kind === 'directory' || isPasteVariableEntry(variable));
-		const otherVariables = element.variables.filter(variable => !isExplicitFileOrImageVariableEntry(variable) && !isPasteVariableEntry(variable));
+		const explicitFileOrDirectoryVariables = element.variables.filter(variable =>
+			variable.kind === 'file'
+			|| variable.kind === 'directory'
+			|| isPasteVariableEntry(variable)
+			|| isDroxSmartPasteVariableEntry(variable),
+		);
+		const otherVariables = element.variables.filter(variable =>
+			!isExplicitFileOrImageVariableEntry(variable)
+			&& !isPasteVariableEntry(variable)
+			&& !isDroxSmartPasteVariableEntry(variable),
+		);
 		if (!element.confirmation) {
 			const markdown = isChatFollowup(element.message) ?
 				element.message.message :
