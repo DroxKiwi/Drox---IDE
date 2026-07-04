@@ -58,7 +58,7 @@ import { isListableDroxSessionId, deriveTitleFromTranscriptMessages, IDroxSessio
 import { formatDroxSessionListLabel } from '../../../../../workbench/contrib/drox/common/droxNativeChatSessionResolver.js';
 import { IDroxSessionService } from '../../../../../workbench/contrib/drox/common/droxSessionService.js';
 import { IDroxEngineService } from '../../../../../workbench/contrib/drox/common/droxEngineService.js';
-import { markDroxEngineSessionOpened } from '../../../../../workbench/contrib/drox/common/droxSharedChatSessionHistory.js';
+import { markDroxEngineSessionOpened, removeDroxEngineSessionFromRecency } from '../../../../../workbench/contrib/drox/common/droxSharedChatSessionHistory.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import {
 	IChat,
@@ -87,6 +87,7 @@ import { enrichDroxFileChangeSnapshotAsync } from '../../../../../workbench/cont
 import { IDroxSessionChangesBridge } from '../../../../../workbench/contrib/drox/common/droxSessionChangesBridge.js';
 import { IDroxSessionChangesDetailService } from '../../../../../workbench/contrib/drox/common/droxSessionChangesDetailService.js';
 import { IDroxSessionChangesPanelService } from '../../../../../workbench/contrib/drox/common/droxSessionChangesPanelService.js';
+import { readDroxSessionMeta, writeDroxSessionMeta } from '../../../../../workbench/contrib/drox/common/droxSessionMetaFs.js';
 import { buildAggregatedSessionFileChanges } from '../../../../../workbench/contrib/drox/common/droxSessionChangesAggregate.js';
 import {
 	loadDroxGitUncommittedChanges,
@@ -544,10 +545,15 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 						new Date(entry.modifiedSecs * 1000),
 					);
 					session.setStatus(SessionStatus.Completed);
-					if (entry.title?.trim()) {
+					const metaTitle = await readDroxSessionMeta(this.fileService, workspacePath, entry.id);
+					if (metaTitle?.customTitle) {
+						session.setTitle(metaTitle.customTitle);
+					} else if (entry.title?.trim()) {
 						session.setTitle(entry.title.trim());
 					}
-					void this._enrichPersistedSessionTitle(session, entry, workspacePath);
+					if (!metaTitle?.customTitle && !entry.title?.trim()) {
+						void this._enrichPersistedSessionTitle(session, entry, workspacePath);
+					}
 					this._sessionCache.set(key, session);
 					added.push(this._toISession(session));
 				}
@@ -775,6 +781,12 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 	}
 
 	private async _enrichPersistedSessionTitle(session: DroxSession, entry: IDroxSessionListEntry, workspacePath: string): Promise<void> {
+		const metaTitle = await readDroxSessionMeta(this.fileService, workspacePath, entry.id);
+		if (metaTitle?.customTitle) {
+			session.setTitle(metaTitle.customTitle);
+			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [this._toISession(session)] });
+			return;
+		}
 		if (entry.title?.trim()) {
 			return;
 		}
@@ -1060,9 +1072,31 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 	}
 
-	async renameChat(_sessionId: string, _chatUri: URI, _title: string): Promise<void> { }
+	async renameChat(sessionId: string, _chatUri: URI, title: string): Promise<void> {
+		await this.renameSession(sessionId, title);
+	}
 
-	async renameSession(_sessionId: string, _title: string): Promise<void> { }
+	async renameSession(sessionId: string, title: string): Promise<void> {
+		const session = this._findSession(sessionId);
+		if (!session) {
+			return;
+		}
+		const trimmed = title.trim();
+		if (!trimmed) {
+			return;
+		}
+		session.setTitle(trimmed);
+		const engineSessionId = DroxChatSessionUri.parseSessionId(session.resource);
+		const workspacePath = session.workingDirectory?.fsPath;
+		if (engineSessionId && workspacePath) {
+			try {
+				await writeDroxSessionMeta(this.fileService, workspacePath, engineSessionId, { customTitle: trimmed });
+			} catch (e) {
+				this.logService.warn('[DroxSessionsProvider] failed to persist session title', e);
+			}
+		}
+		this._onDidChangeSessions.fire({ added: [], removed: [], changed: [this._toISession(session)] });
+	}
 
 	async archiveSession(_sessionId: string): Promise<void> { }
 
@@ -1073,8 +1107,33 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		if (!session) {
 			return;
 		}
+
+		const key = session.resource.toString();
+		const engineSessionId = DroxChatSessionUri.parseSessionId(session.resource);
+		const workspacePath = session.workingDirectory?.fsPath;
+
 		await this._evictChatSession(session.resource);
-		this._sessionCache.delete(session.resource.toString());
+		this.sessionChangesDetailService.clearSession(session.resource);
+		this.sessionChangesPanelService.clearSession(session.resource);
+
+		if (engineSessionId && workspacePath) {
+			try {
+				await this.sessionService.deleteSession(engineSessionId, workspacePath);
+			} catch (e) {
+				this.logService.warn('[DroxSessionsProvider] failed to delete session on disk', e);
+			}
+			removeDroxEngineSessionFromRecency(this.storageService, workspacePath, engineSessionId);
+		}
+
+		this._gitWatchStores.get(key)?.dispose();
+		this._gitWatchStores.delete(key);
+		this._activatedSessionKeys.delete(key);
+		this._syncGeneration.delete(key);
+		this._sessionCache.delete(key);
+		if (this._newSessions.has(sessionId)) {
+			this._newSessions.deleteAndDispose(sessionId);
+		}
+
 		this._onDidChangeSessions.fire({ added: [], removed: [this._toISession(session)], changed: [] });
 		session.dispose();
 	}

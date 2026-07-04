@@ -7,7 +7,7 @@ import '../../workbench/browser/style.js';
 import './media/style.css';
 import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../base/common/lifecycle.js';
 import { Emitter, Event, setGlobalLeakWarningThreshold } from '../../base/common/event.js';
-import { getActiveDocument, getActiveElement, getClientArea, getWindowId, getWindows, IDimension, isAncestorUsingFlowTo, isHTMLElement, size, Dimension, runWhenWindowIdle } from '../../base/browser/dom.js';
+import { getActiveDocument, getActiveElement, getClientArea, getWindowId, getWindows, IDimension, isAncestorUsingFlowTo, isHTMLElement, size, Dimension, runWhenWindowIdle, scheduleAtNextAnimationFrame } from '../../base/browser/dom.js';
 import { DeferredPromise, RunOnceScheduler } from '../../base/common/async.js';
 import { isFullscreen, onDidChangeFullscreen, isChrome, isFirefox, isSafari } from '../../base/browser/browser.js';
 import { mark } from '../../base/common/performance.js';
@@ -75,6 +75,7 @@ import { MobileTitlebarPart } from './parts/mobile/mobileTitlebarPart.js';
 import { IMobileVisualViewport } from './parts/mobile/mobileVisualViewport.js';
 import { autorun } from '../../base/common/observable.js';
 import { ISessionsService } from '../services/sessions/browser/sessionsService.js';
+import { ISessionsManagementService } from '../services/sessions/common/sessionsManagement.js';
 import { ISessionsPartService } from '../services/sessions/browser/sessionsPartService.js';
 import { ISessionsSetUpService } from './sessionsSetUpService.js';
 import { IWorkspaceContextService } from '../../platform/workspace/common/workspace.js';
@@ -338,6 +339,7 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	private paneCompositeService!: IPaneCompositePartService;
 	private viewDescriptorService!: IViewDescriptorService;
 	private sessionsService!: ISessionsService;
+	private sessionsManagementService!: ISessionsManagementService;
 	private sessionsPartService!: ISessionsPartService;
 	private instantiationService!: IInstantiationService;
 	private storageService!: IStorageService;
@@ -684,6 +686,7 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.partVisibility.editor = savedPartVisibility.editor ?? this.partVisibility.editor;
 		this.partVisibility.auxiliaryBar = savedPartVisibility.auxiliaryBar ?? this.partVisibility.auxiliaryBar;
 		this.partVisibility.sidebar = savedPartVisibility.sidebar ?? this.partVisibility.sidebar;
+		this.partVisibility.panel = savedPartVisibility.panel ?? this.partVisibility.panel;
 	}
 
 	private _captureCurrentPartSizes(): IPartSizesState {
@@ -726,6 +729,7 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 				editor: this.partVisibility.editor,
 				auxiliaryBar: this.partVisibility.auxiliaryBar,
 				sidebar: this.partVisibility.sidebar,
+				panel: this.partVisibility.panel,
 			},
 			partSizes: this._captureCurrentPartSizes(),
 		};
@@ -771,6 +775,9 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 			}
 			if (savedPartVisibility?.editor !== undefined) {
 				this.setEditorHidden(!savedPartVisibility.editor);
+			}
+			if (savedPartVisibility?.panel !== undefined) {
+				this.setPanelHidden(!savedPartVisibility.panel);
 			}
 			this._applyPartSizesFromSaved();
 			this.layout();
@@ -1051,9 +1058,22 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.restoreParts();
 
 		// Restore the sessions that were visible in the grid.
-		void this.sessionsService.restoreVisibleSessions().catch(e => {
-			this.logService.error('[Workbench] restoreVisibleSessions failed', e);
-		});
+		void this.sessionsService.restoreVisibleSessions()
+			.catch(e => {
+				this.logService.error('[Workbench] restoreVisibleSessions failed', e);
+			})
+			.finally(() => {
+				// Session views mount before the first reliable layout pass; re-run
+				// workbench layout so chat / sidebar content is not blank until interaction.
+				if (!this._store.isDisposed) {
+					this.layout();
+					scheduleAtNextAnimationFrame(mainWindow, () => {
+						if (!this._store.isDisposed) {
+							this.layout();
+						}
+					});
+				}
+			});
 
 		// Set lifecycle phase to `Restored`
 		lifecycleService.phase = LifecyclePhase.Restored;
@@ -1098,6 +1118,7 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.paneCompositeService = accessor.get(IPaneCompositePartService);
 		this.viewDescriptorService = accessor.get(IViewDescriptorService);
 		this.sessionsService = accessor.get(ISessionsService);
+		this.sessionsManagementService = accessor.get(ISessionsManagementService);
 		// Forces eager creation of the sessions part so it registers itself with the
 		// layout service before renderWorkbench() looks it up via getPart().
 		this.sessionsPartService = accessor.get(ISessionsPartService);
@@ -1208,6 +1229,24 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		const onWindowResize = () => this.layout();
 		mainWindow.addEventListener('resize', onWindowResize);
 		this._register({ dispose: () => mainWindow.removeEventListener('resize', onWindowResize) });
+
+		// Sessions loaded after the first restore pass (e.g. Drox engine init) need
+		// another layout so the grid and sidebar render without user interaction.
+		this._register(this.sessionsManagementService.onDidChangeSessions(e => {
+			if (e.added.length === 0) {
+				return;
+			}
+			scheduleAtNextAnimationFrame(mainWindow, () => {
+				if (!this._store.isDisposed) {
+					this.layout();
+					scheduleAtNextAnimationFrame(mainWindow, () => {
+						if (!this._store.isDisposed) {
+							this.layout();
+						}
+					});
+				}
+			});
+		}));
 	}
 
 	private updateFullscreenClass(): void {

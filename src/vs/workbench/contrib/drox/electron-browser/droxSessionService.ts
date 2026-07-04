@@ -31,6 +31,7 @@ import {
 } from '../common/droxUiReplayJournal.js';
 import { DroxHostToWebviewMessage } from '../browser/droxChatBridge.js';
 import { resetDroxWorkspaceOnDisk } from '../common/droxWorkspaceResetFs.js';
+import { deleteDroxSessionOnDisk } from '../common/droxSessionDeleteFs.js';
 
 export class DroxSessionService implements IDroxSessionService {
 
@@ -190,6 +191,10 @@ export class DroxSessionService implements IDroxSessionService {
 
 	async resetWorkspace(workspaceFsPath: string): Promise<IDroxWorkspaceResetResult> {
 		return resetDroxWorkspaceOnDisk(this.fileService, workspaceFsPath);
+	}
+
+	async deleteSession(id: string, workspaceFsPath: string): Promise<void> {
+		await deleteDroxSessionOnDisk(this.fileService, workspaceFsPath, id);
 	}
 
 	private parseMessage(raw: unknown): IDroxTranscriptMessage {

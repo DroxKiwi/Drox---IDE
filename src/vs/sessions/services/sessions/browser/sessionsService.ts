@@ -459,10 +459,26 @@ export class SessionsService extends Disposable implements ISessionsService {
 			const fallback = this._visibility.activeSession.get();
 			if (fallback && this.sessionsManagementService.getSession(fallback.resource)) {
 				this.openSession(fallback.resource);
+				return;
+			}
+
+			const nextSession = this._pickSessionAfterRemoval(e.removed);
+			if (nextSession) {
+				this.openSession(nextSession.resource);
 			} else {
 				this.openNewSession();
 			}
 		}
+	}
+
+	private _pickSessionAfterRemoval(removed: readonly ISession[]): ISession | undefined {
+		const removedIds = new Set(removed.map(session => session.sessionId));
+		const remaining = this.sessionsManagementService.getSessions()
+			.filter(session => !removedIds.has(session.sessionId) && !session.isArchived.get());
+		if (remaining.length === 0) {
+			return undefined;
+		}
+		return remaining.sort((a, b) => b.updatedAt.get().getTime() - a.updatedAt.get().getTime())[0];
 	}
 
 	private _startSendFollow(session: ISession): void {
