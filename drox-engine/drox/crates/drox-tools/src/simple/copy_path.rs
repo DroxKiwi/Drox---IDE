@@ -38,10 +38,10 @@ impl Tool for CopyPathTool {
     }
 
     fn description(&self) -> &str {
-        "Copie un **fichier** vers une autre destination strictement sous le workspace. \
-         Préfère cet outil à `bash copy` / `cp` / `robocopy`. \
-         Format : {\"source\": \"…\", \"destination\": \"…\", \"createDirs\"?: true}. \
-         Ne copie pas de dossiers entiers (utilise plusieurs appels ou `glob` + copie fichier par fichier)."
+        "Copies a **file** to another destination strictly under the workspace. \
+         Prefer this tool over `bash copy` / `cp` / `robocopy`. \
+         Format: {\"source\": \"…\", \"destination\": \"…\", \"createDirs\"?: true}. \
+         Does not copy entire directories (use multiple calls or `glob` + copy file by file)."
     }
 
     fn input_schema(&self) -> Value {
@@ -51,7 +51,7 @@ impl Tool for CopyPathTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: CopyPathInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "copy_path: JSON invalide ({e}). Attendu : {{\"source\":\"…\",\"destination\":\"…\"}}."
+                "copy_path: invalid JSON ({e}). Expected: {{\"source\":\"…\",\"destination\":\"…\"}}."
             ))
         })?;
 

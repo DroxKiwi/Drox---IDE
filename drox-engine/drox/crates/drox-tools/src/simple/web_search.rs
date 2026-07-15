@@ -56,9 +56,9 @@ impl Tool for WebSearchTool {
     }
 
     fn description(&self) -> &str {
-        "Recherche web (DuckDuckGo) à partir d'une requête en langage naturel. \
-         Renvoie une liste de résultats { title, url, snippet }. \
-         Utilise `web_fetch` ensuite pour lire le contenu d'une URL choisie."
+        "Web search (DuckDuckGo) from a natural-language query. \
+         Returns a list of results { title, url, snippet }. \
+         Use `web_fetch` next to read the content of a chosen URL."
     }
 
     fn input_schema(&self) -> Value {

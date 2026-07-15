@@ -17,7 +17,7 @@ use crate::tool::Tool;
 /// Arguments optionnels pour `session_end`.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SessionEndInput {
-    /// Indication libre pour guider la phrase d’au revoir (optionnel).
+    /// Indication libre pour guider la phrase d’au revoir (optional).
     #[serde(default)]
     pub farewell_hint: Option<String>,
 }
@@ -32,12 +32,12 @@ impl Tool for SessionEndTool {
     }
 
     fn description(&self) -> &str {
-        "Clôture explicitement la session de travail courante lorsque \
-         l’utilisateur a signalé la fin (ex. « on s’arrête pour aujourd’hui »). \
-         Après succès : une brève phrase d’au revoir / synthèse dans `answering`, \
-         puis `[phase: done]`. **Dans le client Drox (VS Code)** cet appel est \
-         exécuté côté IDE (archivage indexé) ; hors client délégué, le tool \
-         n’est pas disponible. Format : `{ \"farewell_hint\"?: \"…\" }`."
+        "Explicitly closes the current work session when \
+         the user has signaled the end (e.g. \"we're done for today\"). \
+         After success: a brief farewell / summary in `answering`, \
+         then `[phase: done]`. **In the Drox client (VS Code)** this call is \
+         executed on the IDE side (indexed archiving); outside delegated client, the tool \
+         is unavailable. Format: `{ \"farewell_hint\"?: \"…\" }`."
     }
 
     fn input_schema(&self) -> Value {
@@ -49,12 +49,12 @@ impl Tool for SessionEndTool {
             farewell_hint: _hint,
         } = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "session_end: JSON invalide ({e}). Attendu : {{ \"farewell_hint\"?: \"…\" }}."
+                "session_end: invalid JSON ({e}). Expected: {{ \"farewell_hint\"?: \"…\" }}."
             ))
         })?;
         Err(ToolError::invalid_args(
-            "session_end: disponible uniquement lorsque le client IDE exécute cet outil \
-             via tool/exec (extension VS Code Drox).",
+            "session_end: only available when the IDE client executes this tool \
+             via tool/exec (Drox VS Code extension).",
         ))
     }
 }

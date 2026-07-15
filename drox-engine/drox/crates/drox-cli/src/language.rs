@@ -26,9 +26,8 @@ pub struct Language {
 impl Language {
     fn known(code: &str, display: &str) -> Self {
         let system_instruction = format!(
-            "Répondez systématiquement en {display} (sauf si l'utilisateur \
-             change explicitement de langue ou demande du code dans un \
-             autre langage de programmation). Langue principale : {code}."
+            "Always respond in {display} (unless the user explicitly switches language \
+             or asks for code in another programming language). Primary language: {code}."
         );
         Self {
             display: display.into(),
@@ -147,7 +146,7 @@ mod tests {
     fn merge_into_system_keeps_order() {
         let lang = parse("fr").unwrap();
         let merged = merge_into_system(Some("Mem rules".into()), Some(&lang)).unwrap();
-        assert!(merged.starts_with("Répondez"));
+        assert!(merged.starts_with("Always respond"));
         assert!(merged.contains("Mem rules"));
     }
 }

@@ -31,8 +31,8 @@ impl Tool for ExitPlanModeTool {
     }
 
     fn description(&self) -> &str {
-        "Présente un plan finalisé à l'humain et demande son accord pour \
-         quitter le mode plan et passer à l'exécution."
+        "Presents a finalized plan to the human and asks for approval to \
+         exit plan mode and proceed to execution."
     }
 
     fn input_schema(&self) -> Value {

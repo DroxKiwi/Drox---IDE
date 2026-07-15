@@ -25,9 +25,9 @@ impl Tool for WorkspaceMapReadTool {
     }
 
     fn description(&self) -> &str {
-        "Lit la carte structure persistante du workspace (`.drox/workspace-map.json`) : \
-         zones, rôles, pivots. Utilise-la avant un `glob` large si le system prompt en \
-         mentionne une version fresh."
+        "Reads the persistent workspace structure map (`.drox/workspace-map.json`): \
+         zones, roles, pivots. Use it before a broad `glob` if the system prompt \
+         mentions a fresh version."
     }
 
     fn input_schema(&self) -> Value {
@@ -37,7 +37,7 @@ impl Tool for WorkspaceMapReadTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: WorkspaceMapReadInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "workspace_map_read: JSON invalide ({e}). Attendu : {{\"path_prefix\": \"drox/\"}} (optionnel)."
+                "workspace_map_read: invalid JSON ({e}). Expected: {{\"path_prefix\": \"drox/\"}} (optional)."
             ))
         })?;
         let store = ctx.workspace_map.as_ref().ok_or_else(|| {

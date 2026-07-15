@@ -15,9 +15,9 @@ use drox_types::{Content, Message, Role};
 use crate::error::ContextError;
 
 /// Prompt système par défaut pour demander un résumé compact.
-pub const DEFAULT_COMPACT_INSTRUCTIONS: &str = "Résume la conversation suivante en préservant : les objectifs de l'utilisateur, \
-     les décisions techniques actées, les fichiers et chemins évoqués, les commandes \
-     déjà exécutées et leurs résultats clés, et tout TODO en cours. Sois concis.";
+pub const DEFAULT_COMPACT_INSTRUCTIONS: &str = "Summarize the following conversation while preserving: the user's goals, \
+     technical decisions made, files and paths mentioned, commands already run and their \
+     key results, and any open TODOs. Be concise.";
 
 /// Contrat d'un résumeur (par exemple un appel LLM).
 #[async_trait]

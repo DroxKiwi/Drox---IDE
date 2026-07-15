@@ -36,9 +36,9 @@ impl Tool for GrepTool {
     }
 
     fn description(&self) -> &str {
-        "Recherche une regex dans les fichiers du workspace (respecte `.gitignore` et **`.droxignore`**, limite 300 occurrences). \
-         Lecture UTF-8 **permissive** (fichiers partiellement binaires ignorés sans faire échouer toute la recherche). \
-         Option `glob` : limite aux chemins relatifs qui matchent (ex. `**/*.ts`)."
+        "Searches for a regex in workspace files (respects `.gitignore` and **`.droxignore`**, limit 300 matches). \
+         **Permissive** UTF-8 reading (partially binary files skipped without failing the entire search). \
+         Option `glob`: limit to relative paths that match (e.g. `**/*.ts`)."
     }
 
     fn input_schema(&self) -> Value {
@@ -74,7 +74,7 @@ impl Tool for GrepTool {
                 } else {
                     Some(
                         glob::Pattern::new(trimmed).map_err(|e| {
-                            ToolError::invalid_args(format!("grep: `glob` invalide ({e})"))
+                            ToolError::invalid_args(format!("grep: invalid `glob` ({e})"))
                         })?,
                     )
                 }
