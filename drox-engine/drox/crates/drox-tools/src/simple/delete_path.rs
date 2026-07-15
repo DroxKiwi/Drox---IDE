@@ -66,10 +66,10 @@ impl Tool for DeletePathTool {
     }
 
     fn description(&self) -> &str {
-        "Supprime un fichier ou un répertoire strictement sous le workspace. \
-         Préfère cet outil à `bash rm -rf` (chemins, quoting Windows). \
-         Format : {\"path\":\"chemin/relatif\",\"recursive\"?:true}. \
-         `recursive:false` sur un dossier ne supprime que s'il est vide."
+        "Deletes a file or directory strictly under the workspace. \
+         Prefer this tool over `bash rm -rf` (paths, Windows quoting). \
+         Format: {\"path\":\"relative/path\",\"recursive\"?:true}. \
+         `recursive:false` on a directory only deletes it if empty."
     }
 
     fn input_schema(&self) -> Value {
@@ -80,7 +80,7 @@ impl Tool for DeletePathTool {
         let normalized = normalize_input(input);
         let args: DeletePathInput = serde_json::from_value(normalized).map_err(|e| {
             ToolError::invalid_args(format!(
-                "delete_path: JSON invalide ({e}). Attendu : {{\"path\":\"…\",\"recursive\"?:true}}.",
+                "delete_path: invalid JSON ({e}). Expected: {{\"path\":\"…\",\"recursive\"?:true}}.",
             ))
         })?;
 
@@ -97,7 +97,7 @@ impl Tool for DeletePathTool {
 
         if dangerous_removal_resolved_path(&resolved) {
             return Err(ToolError::invalid_args(
-                "delete_path: chemin système sensible — suppression refusée.",
+                "delete_path: sensitive system path — deletion refused.",
             ));
         }
 
@@ -105,14 +105,14 @@ impl Tool for DeletePathTool {
             .map_err(|e| ToolError::io(ws.to_owned(), e))?;
         if resolved.as_std_path() == root_canon.as_path() {
             return Err(ToolError::invalid_args(
-                "delete_path: suppression de la racine du workspace interdite.",
+                "delete_path: deleting the workspace root is forbidden.",
             ));
         }
 
         if let Some(rel) = relative_under_workspace(&ws, &resolved) {
             if is_protected_workspace_entry(&rel) {
                 return Err(ToolError::invalid_args(format!(
-                    "delete_path: suppression de `{rel}` interdite (répertoire sensible du projet).",
+                    "delete_path: deleting `{rel}` is forbidden (protected project entry).",
                 )));
             }
         }
@@ -146,7 +146,7 @@ impl Tool for DeletePathTool {
                 }
             } else {
                 return Err(ToolError::invalid_args(
-                    "delete_path: type de fichier non pris en charge pour cette cible.",
+                    "delete_path: unsupported file type for this target.",
                 ));
             }
             Ok(json!({
@@ -289,7 +289,7 @@ mod tests {
             .await
             .unwrap_err();
         assert!(
-            matches!(err, ToolError::InvalidArgs(ref m) if m.contains("racine")),
+            matches!(err, ToolError::InvalidArgs(ref m) if m.contains("workspace root")),
             "got {err:?}"
         );
     }

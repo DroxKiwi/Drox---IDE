@@ -154,9 +154,9 @@ impl DroxIgnoreMatcher {
     #[must_use]
     pub fn format_for_prompt(&self) -> String {
         format!(
-            "[Drox ignore] {n} motif(s) actifs dans `{file}` — lecture agent **interdite** \
-             sur ces chemins (`file_read`, `glob`, `grep`, carte workspace, …). \
-             Le moteur filtre ou refuse ; ne pas contourner via chemins absolus hors workspace.",
+            "[Drox ignore] {n} active pattern(s) in `{file}` — agent read access is **forbidden** \
+             on these paths (`file_read`, `glob`, `grep`, workspace map, …). \
+             The engine filters or refuses; do not bypass via absolute paths outside the workspace.",
             n = self.pattern_lines,
             file = DROXIGNORE_FILENAME,
         )

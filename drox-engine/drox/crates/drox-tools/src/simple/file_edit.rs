@@ -86,9 +86,9 @@ impl Tool for FileEditTool {
     }
 
     fn description(&self) -> &str {
-        "Édite un fichier texte par couples (old_string, new_string). \
-         old_string doit être présent une seule fois sauf si replace_all=true. \
-         En mode apply, écrit sur disque ; sinon retourne contenu+diff."
+        "Edits a text file via (old_string, new_string) pairs. \
+         old_string must appear exactly once unless replace_all=true. \
+         In apply mode, writes to disk; otherwise returns content+diff."
     }
 
     fn input_schema(&self) -> Value {

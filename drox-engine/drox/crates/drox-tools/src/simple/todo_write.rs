@@ -121,20 +121,20 @@ impl Tool for TodoWriteTool {
     }
 
     fn description(&self) -> &str {
-        "Crée / met à jour la to-do list de la session courante. Le moteur \
-         exige **au moins un appel par réponse utilisateur**, même pour une \
-         seule étape (ex. « Répondre à la question ») : liste tes micro-tâches \
-         puis mets-les à jour au fil de l'eau. \
-         Envoie **toujours la liste complète** : mode replace, l'état précédent \
-         est écrasé. Statuts : `pending` | `in_progress` | `completed` | \
-         `cancelled`. Garde au plus **un seul** item en `in_progress` à la fois. \
-         Marque `in_progress` AVANT de commencer une étape, `completed` \
-         IMMÉDIATEMENT après.\n\n\
-         Format d'entrée OBLIGATOIRE — un objet avec UNE clé `todos` contenant \
-         un tableau d'items `{ id, content, status }` :\n\
-         {\"todos\": [ {\"id\": \"1\", \"content\": \"Répondre à la question\", \"status\": \"in_progress\"} ]}\n\
-         N'envoie PAS un objet plat `{id, content, status}` ni un tableau nu : \
-         toujours le wrapper `todos: [...]`."
+        "Creates / updates the to-do list for the current session. The engine \
+         requires **at least one call per user response**, even for a \
+         single step (e.g. \"Answer the question\"): list your micro-tasks \
+         then update them as you go. \
+         Always send **the full list**: replace mode, previous state \
+         is overwritten. Statuses: `pending` | `in_progress` | `completed` | \
+         `cancelled`. Keep at most **one** item in `in_progress` at a time. \
+         Mark `in_progress` BEFORE starting a step, `completed` \
+         IMMEDIATELY after.\n\n\
+         REQUIRED input format — an object with ONE `todos` key containing \
+         an array of items `{ id, content, status }`:\n\
+         {\"todos\": [ {\"id\": \"1\", \"content\": \"Answer the question\", \"status\": \"in_progress\"} ]}\n\
+         Do NOT send a flat object `{id, content, status}` or a bare array: \
+         always use the wrapper `todos: [...]`."
     }
 
     fn input_schema(&self) -> Value {
@@ -145,8 +145,8 @@ impl Tool for TodoWriteTool {
         let normalized = normalize_input(input);
         let args: TodoWriteInput = serde_json::from_value(normalized).map_err(|e| {
             ToolError::invalid_args(format!(
-                "todo_write: payload JSON invalide ({e}). \
-                 Format attendu : {{\"todos\": [{{\"id\": \"1\", \"content\": \"…\", \"status\": \"pending|in_progress|completed|cancelled\"}}]}}."
+                "todo_write: invalid JSON payload ({e}). \
+                 Expected format: {{\"todos\": [{{\"id\": \"1\", \"content\": \"…\", \"status\": \"pending|in_progress|completed|cancelled\"}}]}}."
             ))
         })?;
         validate(&args.todos)?;

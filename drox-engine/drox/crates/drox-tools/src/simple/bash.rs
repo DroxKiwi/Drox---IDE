@@ -42,8 +42,8 @@ impl Tool for BashTool {
     }
 
     fn description(&self) -> &str {
-        "Exécute une commande shell dans le workspace (cmd /C sous Windows, sh -c ailleurs). \
-         Renvoie { command, exit_code, stdout, stderr, timed_out, duration_ms }."
+        "Runs a shell command in the workspace (cmd /C on Windows, sh -c elsewhere). \
+         Returns { command, exit_code, stdout, stderr, timed_out, duration_ms }."
     }
 
     fn input_schema(&self) -> Value {

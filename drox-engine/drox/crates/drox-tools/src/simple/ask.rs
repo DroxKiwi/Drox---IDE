@@ -34,7 +34,7 @@ use crate::tool::Tool;
 
 /// Exemple JSON minimal copiable (§2.21 — messages d'erreur + nudge anti-boucle).
 pub const CANONICAL_ASK_JSON_EXAMPLE: &str =
-    r#"{"questions":[{"prompt":"Votre question ?","options":[{"id":"a","label":"Option A"},{"id":"b","label":"Option B"}],"allowFreeText":true}]}"#;
+    r#"{"questions":[{"prompt":"Your question?","options":[{"id":"a","label":"Option A"},{"id":"b","label":"Option B"}],"allowFreeText":true}]}"#;
 
 /// Option `{ id, label }` pour une question à choix (forme enrichie).
 /// `id` est ce qui revient dans `optionIds` côté réponse ; `label` est
@@ -111,17 +111,17 @@ impl Tool for AskUserQuestionTool {
     }
 
     fn description(&self) -> &str {
-        "Pose une ou plusieurs questions à l'humain et attend ses réponses. \
-         Appelle via tool_calls natifs (pas de JSON dans le texte assistant). \
-         Forme recommandée (exemple minimal) : \
-         `{\"questions\":[{\"prompt\":\"Quel texte sur la page d'accueil ?\",\
-         \"options\":[{\"id\":\"a\",\"label\":\"Court\"},{\"id\":\"b\",\"label\":\"Long\"}],\
+        "Asks one or more questions to the human and waits for answers. \
+         Call via native tool_calls (no JSON in assistant text). \
+         Recommended form (minimal example): \
+         `{\"questions\":[{\"prompt\":\"What text on the homepage?\",\
+         \"options\":[{\"id\":\"a\",\"label\":\"Short\"},{\"id\":\"b\",\"label\":\"Long\"}],\
          \"allowFreeText\":true}]}`. \
-         Legacy mono : `{\"question\":\"…\",\"choices\":[\"A\",\"B\"]}`. \
-         À utiliser dès qu'un doute non trivial change les actions à venir \
-         (architecture, périmètre, choix de techno) avant toute mutation. \
-         Le run est mis en pause jusqu'à réponse ; l'utilisateur peut skipper \
-         une question (champ `skipped: true` dans la réponse correspondante)."
+         Legacy single: `{\"question\":\"…\",\"choices\":[\"A\",\"B\"]}`. \
+         Use whenever non-trivial uncertainty changes upcoming actions \
+         (architecture, scope, tech choices) before any mutation. \
+         The run is paused until answered; the user can skip \
+         a question (`skipped: true` field in the corresponding response)."
     }
 
     fn input_schema(&self) -> Value {
@@ -132,7 +132,7 @@ impl Tool for AskUserQuestionTool {
         let normalized = normalize_input(input);
         let args: AskUserQuestionInput = serde_json::from_value(normalized).map_err(|e| {
             ToolError::invalid_args(invalid_payload_message(&format!(
-                "payload JSON invalide ({e})"
+                "payload invalid JSON ({e})"
             )))
         })?;
         let Some(asker) = ctx.user_asker.clone() else {
@@ -286,9 +286,9 @@ fn normalize_input(input: Value) -> Value {
 #[must_use]
 fn invalid_payload_message(detail: &str) -> String {
     format!(
-        "ask_user_question: {detail}. Appelle via tool_calls natifs (ne colle pas le JSON \
-         dans le texte assistant). Exemple minimal valide : {CANONICAL_ASK_JSON_EXAMPLE}. \
-         Legacy mono : {{\"question\":\"…\",\"choices\":[\"A\",\"B\"]}}."
+        "ask_user_question: {detail}. Call via native tool_calls (do NOT paste JSON \
+         in assistant text). Minimal valid example: {CANONICAL_ASK_JSON_EXAMPLE}. \
+         Legacy single-question: {{\"question\":\"…\",\"choices\":[\"A\",\"B\"]}}."
     )
 }
 
