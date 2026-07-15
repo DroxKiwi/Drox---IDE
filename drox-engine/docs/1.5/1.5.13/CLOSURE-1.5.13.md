@@ -32,6 +32,7 @@
 
 | # | Étape | Statut |
 |---|--------|--------|
+| R0 | Merge `1.5.13` → `main` (branche conservée) | ✅ |
 | R1 | Commit branche `1.5.13` | ✅ |
 | R2 | `npm run drox:ship -- -Force` Windows | ✅ |
 | R3 | Release `v1.5.13` + `stable/latest.json` (win32 + linux) | ✅ |
