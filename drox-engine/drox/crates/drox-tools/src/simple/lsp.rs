@@ -94,15 +94,15 @@ impl Tool for LspTool {
     }
 
     fn description(&self) -> &str {
-        "Interroge le Language Server Protocol via VS Code (diagnostics, \
-         définition, références, hover, recherche de symboles). \
-         Recherche **sémantique** (par symbole) plutôt que textuelle comme \
-         `grep`. Nécessite un language server actif côté éditeur \
+        "Queries the Language Server Protocol via VS Code (diagnostics, \
+         definition, references, hover, symbol search). \
+         **Semantic** search (by symbol) rather than textual like \
+         `grep`. Requires an active language server on the editor side \
          (rust-analyzer, tsserver, pyright…). \
-         Opérations : `diagnostics` | `workspace_symbol` | `definition` | \
-         `references` | `hover`. Positions en 0-indexed (LSP). Pour les \
-         opérations à position, fournis soit `position`, soit `symbol` \
-         (le client cherchera la première occurrence dans `path`)."
+         Operations: `diagnostics` | `workspace_symbol` | `definition` | \
+         `references` | `hover`. Positions are 0-indexed (LSP). For \
+         position-based operations, provide either `position` or `symbol` \
+         (the client will find the first occurrence in `path`)."
     }
 
     fn input_schema(&self) -> Value {

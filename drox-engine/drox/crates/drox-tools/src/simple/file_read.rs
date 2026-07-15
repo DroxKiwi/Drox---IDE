@@ -55,10 +55,10 @@ impl Tool for FileReadTool {
     }
 
     fn description(&self) -> &str {
-        "Lit le contenu UTF-8 d'un fichier sous la racine workspace. Sans `start_line`/`end_line` : \
-         lecture depuis le début (tronquée au-delà de 512 KiB). Avec les deux : **fenêtre de lignes** \
-         1-based inclusive (max 400 lignes, sortie max ~128 KiB) — idéal après un `grep` pour ne pas \
-         charger tout le fichier."
+        "Reads the UTF-8 content of a file under the workspace root. Without `start_line`/`end_line`: \
+         reads from the beginning (truncated beyond 512 KiB). With both: **line window** \
+         1-based inclusive (max 400 lines, output max ~128 KiB) — ideal after a `grep` to avoid \
+         loading the entire file."
     }
 
     fn input_schema(&self) -> Value {

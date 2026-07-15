@@ -27,10 +27,10 @@ impl Tool for GitWorktreeEnterTool {
     }
 
     fn description(&self) -> &str {
-        "Crée (ou reprend) un git worktree sous `.drox/worktrees/<name>/` avec une \
-         branche `worktree-<name>`, puis bascule les tools fichier/bash vers ce \
-         worktree pour le reste du run. À n'utiliser que si l'utilisateur demande \
-         explicitement un worktree. Format : {\"name\": \"feature-x\"} (optionnel)."
+        "Creates (or resumes) a git worktree under `.drox/worktrees/<name>/` with a \
+         `worktree-<name>` branch, then switches file/bash tools to this \
+         worktree for the rest of the run. Use only if the user explicitly requests \
+         a worktree. Format: {\"name\": \"feature-x\"} (optional)."
     }
 
     fn input_schema(&self) -> Value {
@@ -56,8 +56,8 @@ impl Tool for GitWorktreeEnterTool {
             "worktree_name": session.worktree_name,
             "main_repo_root": session.main_repo_root.as_str(),
             "message": format!(
-                "Worktree actif : {} (branche {}). Les prochains file_read/file_write/bash \
-                 ciblent ce dossier. Quitter avec git_worktree_exit.",
+                "Active worktree: {} (branch {}). Subsequent file_read/file_write/bash \
+                 calls target this directory. Exit with git_worktree_exit.",
                 session.worktree_path, session.worktree_branch
             ),
         }))
