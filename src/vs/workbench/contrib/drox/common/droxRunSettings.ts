@@ -163,6 +163,9 @@ export function buildAgentRunParams(opts: {
 	readonly images?: readonly IDroxAgentRunImage[];
 	readonly runObjective?: string;
 	readonly skipUserTurn?: boolean;
+	readonly allowOutsideWorkspace?: boolean;
+	/** Préfixe system IDE (ex. carnet session N0) — fusionné côté moteur avec memdir. */
+	readonly system?: string;
 }): Record<string, unknown> {
 	const wireMode = normalizeDroxPermissionMode(opts.mode);
 	const params: Record<string, unknown> = {
@@ -176,6 +179,9 @@ export function buildAgentRunParams(opts: {
 		nativeThinking: opts.settings.nativeThinking,
 		mcpToolsEnabled: opts.mcpToolsEnabled,
 	};
+	if (opts.system?.trim()) {
+		params.system = opts.system.trim();
+	}
 	if (opts.settings.server) {
 		params.server = opts.settings.server;
 	}
@@ -229,6 +235,9 @@ export function buildAgentRunParams(opts: {
 	}
 	if (opts.skipUserTurn) {
 		params.skipUserTurn = true;
+	}
+	if (opts.allowOutsideWorkspace) {
+		params.allowOutsideWorkspace = true;
 	}
 	return params;
 }

@@ -71,7 +71,11 @@ impl Tool for FileReadTool {
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: FileReadInput = serde_json::from_value(input)?;
-        let resolved = resolve_under_workspace(&ctx.effective_workspace(), &args.path)?;
+        let resolved = resolve_under_workspace(
+            &ctx.effective_workspace(),
+            &args.path,
+            ctx.allow_outside_workspace,
+        )?;
         ctx.deny_if_drox_ignored(&resolved)?;
         let meta = fs::metadata(&resolved)
             .await

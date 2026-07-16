@@ -73,8 +73,8 @@ import { ISessionsProvidersService } from '../../../../services/sessions/browser
 import { buildSessionHoverContent } from '../sessionHoverContent.js';
 import { SessionStatusIcon } from '../../../../browser/sessionStatusIcon.js';
 import { createDroxSessionItemDashboardRow, getDroxSessionDashboardRowHeight, renderDroxSessionItemDashboard } from '../../../drox/browser/droxSessionListDashboard.js';
-import { DroxSessionBackgroundPersistentContext } from '../../../drox/browser/droxSessionsBackgroundActions.js';
-import { DROX_SESSIONS_PROVIDER_ID } from '../../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+import { DroxSessionAllowOutsideWorkspaceContext, DroxSessionBackgroundPersistentContext } from '../../../drox/browser/droxSessionsBackgroundActions.js';
+import { DROX_SESSIONS_PROVIDER_ID, DroxChatSessionUri } from '../../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { IDroxSessionBackgroundService } from '../../../drox/common/droxSessionBackgroundService.js';
 
 const $ = DOM.$;
@@ -366,10 +366,17 @@ class SessionItemRenderer implements ITreeRenderer<SessionListItem, FuzzyScore, 
 		template.titleToolbar.context = element;
 
 		const droxBackgroundPersistent = DroxSessionBackgroundPersistentContext.bindTo(template.contextKeyService);
+		const droxAllowOutsideWorkspace = DroxSessionAllowOutsideWorkspaceContext.bindTo(template.contextKeyService);
 		template.elementDisposables.add(autorun(reader => {
 			const persistent = this._droxBackgroundService.persistentSessionIds.read(reader).has(element.sessionId);
 			droxBackgroundPersistent.set(persistent);
 			template.container.classList.toggle('drox-background-persistent', persistent);
+		}));
+		template.elementDisposables.add(autorun(reader => {
+			const engineKey = DroxChatSessionUri.parseSessionId(element.resource) ?? element.sessionId;
+			const allowOutside = this._droxBackgroundService.allowOutsideWorkspaceSessionIds.read(reader).has(engineKey);
+			droxAllowOutsideWorkspace.set(allowOutside);
+			template.container.classList.toggle('drox-allow-outside-workspace', allowOutside);
 		}));
 
 		renderDroxSessionItemDashboard(

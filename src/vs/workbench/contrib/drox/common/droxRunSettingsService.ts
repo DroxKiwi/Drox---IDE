@@ -29,5 +29,7 @@ export interface IDroxRunSettingsService {
 		images?: readonly IDroxAgentRunImage[];
 		runObjective?: string;
 		skipUserTurn?: boolean;
+		allowOutsideWorkspace?: boolean;
+		system?: string;
 	}): Record<string, unknown>;
 }
