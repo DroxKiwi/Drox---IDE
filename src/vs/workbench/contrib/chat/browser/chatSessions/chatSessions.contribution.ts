@@ -1194,6 +1194,15 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 		return session;
 	}
 
+	evictCachedChatSession(sessionResource: URI): void {
+		const resolved = this._resolveResource(sessionResource);
+		const sessionData = this._sessions.get(resolved);
+		if (!sessionData) {
+			return;
+		}
+		sessionData.session.dispose();
+	}
+
 	public hasAnySessionOptions(sessionResource: URI): boolean {
 		const session = this._sessions.get(this._resolveResource(sessionResource));
 		return !!session && !!session.options && session.options.size > 0;

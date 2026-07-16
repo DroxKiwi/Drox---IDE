@@ -147,10 +147,10 @@ impl Tool for GlobTool {
     }
 
     fn description(&self) -> &str {
-        "Liste les chemins (fichiers ET dossiers) qui correspondent à un motif glob sous le workspace. \
-         Respecte `.gitignore` indirectement via post-filtre **`.droxignore`** (chemins omis dans `droxignore_omitted`). \
-         Sortie : `files`, `directories`, `truncated`, `directory_fanout_caps`, `droxignore_omitted`. \
-         Utilise `*` pour le premier niveau, `**/*.ext` pour une extension."
+        "Lists paths (files AND directories) matching a glob pattern under the workspace. \
+         Respects `.gitignore` indirectly via post-filter **`.droxignore`** (omitted paths in `droxignore_omitted`). \
+         Output: `files`, `directories`, `truncated`, `directory_fanout_caps`, `droxignore_omitted`. \
+         Use `*` for the first level, `**/*.ext` for an extension."
     }
 
     fn input_schema(&self) -> Value {

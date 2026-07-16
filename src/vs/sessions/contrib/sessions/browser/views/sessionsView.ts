@@ -50,13 +50,13 @@ const SORTING_STORAGE_KEY = 'sessionsViewPane.sorting';
  * the session is already the last visible one, this is a no-op aside from
  * activation.
  */
-export async function openSessionToTheSide(sessionsService: ISessionsService, session: ISession, options?: { preserveFocus?: boolean }): Promise<void> {
+export async function openSessionToTheSide(sessionsService: ISessionsService, session: ISession, options?: { preserveFocus?: boolean }): Promise<boolean> {
 	const visible = sessionsService.visibleSessions.get();
 	const lastVisible = visible[visible.length - 1];
 	if (lastVisible && lastVisible.sessionId !== session.sessionId) {
 		sessionsService.insertAt(session, lastVisible.sessionId, 'right');
 	}
-	await sessionsService.openSession(session.resource, options);
+	return sessionsService.openSession(session.resource, options);
 }
 
 export const SessionsViewFilterSubMenu = new MenuId('SessionsViewPaneFilterSubMenu');
@@ -155,9 +155,10 @@ export class SessionsView extends ViewPane {
 		// Sessions content container
 		const sessionsContent = DOM.append(sessionsSection, $('.agent-sessions-content'));
 
-		// Header row: "Sessions" label (left) + compact "New" button (right)
-		const headerRow = this.headerRow = DOM.append(sessionsContent, $('.agent-sessions-header-row'));
-		const headerLabel = this.headerLabel = DOM.append(headerRow, $('.agent-sessions-header-label'));
+		// Minimal header: new discussion + filter/find (container title already shows "Sessions").
+		const headerRow = this.headerRow = DOM.append(sessionsContent, $('.agent-sessions-header-row.minimal'));
+		this.headerLabel = DOM.append(headerRow, $('.agent-sessions-header-label'));
+		this.headerLabel.style.display = 'none';
 
 		const headerActions = this.headerActions = DOM.append(headerRow, $('.agent-sessions-header-actions'));
 
@@ -167,8 +168,6 @@ export class SessionsView extends ViewPane {
 		// widget mounts inside it.
 		const phoneLayout = isPhoneLayout(this.layoutService);
 		if (!phoneLayout) {
-			headerLabel.textContent = localize('sessionsHeader', "Sessions");
-
 			// Header actions (visual order: New, Filter, Search). The "New" button is
 			// contributed to Menus.SidebarSessionsHeader and rendered as a compact pill
 			// by NewSessionActionViewItem.
@@ -205,18 +204,53 @@ export class SessionsView extends ViewPane {
 						this.layoutService.setPartHidden(true, Parts.SIDEBAR_PART);
 					}
 				};
+				const onOpenFinished = (opened: boolean) => {
+					if (!opened) {
+						// List focus moves on click before the switch gate; restore the
+						// active row highlight without stealing focus from chat / editor.
+						this.restoreLastSelectedSession({ preserveFocus: true });
+						return;
+					}
+					onOpened();
+				};
 				if (sideBySide) {
 					// Alt-click: open the session to the right of the last visible session in the grid.
 					const session = this.sessionsManagementService.getSession(resource);
 					if (session) {
-						openSessionToTheSide(this.sessionsService, session, { preserveFocus }).then(onOpened).catch(onUnexpectedError);
+						openSessionToTheSide(this.sessionsService, session, { preserveFocus }).then(onOpenFinished).catch(onUnexpectedError);
 						return;
 					}
 				}
-				this.sessionsService.openSession(resource, { preserveFocus }).then(onOpened).catch(onUnexpectedError);
+				this.sessionsService.openSession(resource, { preserveFocus }).then(onOpenFinished).catch(onUnexpectedError);
 			},
 		}));
-		this._register(this.onDidChangeBodyVisibility(visible => sessionsControl.setVisible(visible)));
+		this._register(this.onDidChangeBodyVisibility(visible => {
+			sessionsControl.setVisible(visible);
+			if (visible) {
+				const targetWindow = DOM.getWindow(this.element);
+				const relayout = () => this._layoutSessionsList();
+				relayout();
+				DOM.scheduleAtNextAnimationFrame(targetWindow, () => {
+					relayout();
+					DOM.scheduleAtNextAnimationFrame(targetWindow, relayout);
+				});
+			}
+		}));
+		sessionsControl.setVisible(this.isBodyVisible());
+
+		const listSizeObserver = this._register(new DOM.DisposableResizeObserver('SessionsView.list', () => {
+			this._layoutSessionsList();
+		}));
+		listSizeObserver.observe(this.sessionsControlContainer);
+
+		this._register(this.sessionsManagementService.onDidChangeSessions(() => {
+			const targetWindow = DOM.getWindow(this.element);
+			DOM.scheduleAtNextAnimationFrame(targetWindow, () => {
+				if (this.isBodyVisible()) {
+					this._layoutSessionsList();
+				}
+			});
+		}));
 
 		// Toggle header label/actions visibility when find widget opens/closes
 		this._register(sessionsControl.onDidChangeFindOpenState(open => {
@@ -255,15 +289,16 @@ export class SessionsView extends ViewPane {
 		// Listen to list updates and restore selection if nothing is selected
 		this._register(sessionsControl.onDidUpdate(() => {
 			if (!sessionsControl.hasFocusOrSelection()) {
-				this.restoreLastSelectedSession();
+				this.restoreLastSelectedSession({ preserveFocus: true });
 			}
 		}));
 
-		// When the active session changes, select it in the list
+		// When the active session changes, scroll/select it in the list without
+		// stealing focus from chat, editor toolbars, or open dropdown menus.
 		this._register(autorun(reader => {
 			const activeSession = this.sessionsService.activeSession.read(reader);
 			if (activeSession) {
-				if (!sessionsControl.reveal(activeSession.resource)) {
+				if (!sessionsControl.reveal(activeSession.resource, { preserveFocus: true })) {
 					sessionsControl.clearFocus();
 				}
 			} else {
@@ -319,10 +354,10 @@ export class SessionsView extends ViewPane {
 		this._customizationsWidget?.focus();
 	}
 
-	private restoreLastSelectedSession(): void {
+	private restoreLastSelectedSession(options?: { readonly preserveFocus?: boolean }): void {
 		const activeSession = this.sessionsService.activeSession.get();
 		if (activeSession && this.sessionsControl) {
-			this.sessionsControl.reveal(activeSession.resource);
+			this.sessionsControl.reveal(activeSession.resource, options);
 		}
 	}
 
@@ -478,12 +513,18 @@ export class SessionsView extends ViewPane {
 		super.layoutBody(height, width);
 
 		this.updateHeaderLayout();
+		this._layoutSessionsList(width);
+	}
 
+	private _layoutSessionsList(width?: number): void {
 		if (!this.sessionsControl || !this.sessionsControlContainer) {
 			return;
 		}
-
-		this.sessionsControl.layout(this.sessionsControlContainer.offsetHeight, width);
+		const listWidth = width ?? this.sessionsControlContainer.clientWidth;
+		const listHeight = this.sessionsControlContainer.clientHeight;
+		if (listHeight > 0 && listWidth > 0) {
+			this.sessionsControl.layout(listHeight, listWidth);
+		}
 	}
 
 	override focus(): void {
@@ -524,7 +565,7 @@ export class SessionsView extends ViewPane {
 			return;
 		}
 
-		this.headerLabel.style.display = '';
+		this.headerLabel.style.display = 'none';
 		this.headerActions.style.display = '';
 	}
 

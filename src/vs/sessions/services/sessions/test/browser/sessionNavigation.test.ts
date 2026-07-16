@@ -165,7 +165,7 @@ class MockSessionStore implements ISessionsManagementService {
 	getSessionTypesForFolder(_folderUri: URI): IProviderSessionType[] { return []; }
 	resolveWorkspace(_folderUri: URI): { providerId: string; workspace: ISessionWorkspace } | undefined { return undefined; }
 
-	async openSession(sessionResource: URI): Promise<void> {
+	async openSession(sessionResource: URI): Promise<boolean> {
 		this._openedResource = sessionResource;
 		this._openedChatResource = undefined;
 		this._openedNewSession = false;
@@ -173,6 +173,7 @@ class MockSessionStore implements ISessionsManagementService {
 		if (session) {
 			this.setActiveSession(session);
 		}
+		return true;
 	}
 
 	openNewSession(): ISession | undefined {

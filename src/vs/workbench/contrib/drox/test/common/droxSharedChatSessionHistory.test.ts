@@ -15,6 +15,7 @@ import {
 	markDroxEngineSessionOpened,
 	readDroxEngineSessionRecency,
 	readLastDroxEngineSessionId,
+	removeDroxEngineSessionFromRecency,
 	sortDroxSessionEntriesByRecency,
 } from '../../common/droxSharedChatSessionHistory.js';
 
@@ -101,5 +102,17 @@ suite('droxSharedChatSessionHistory', () => {
 		];
 		const sorted = sortDroxSessionEntriesByRecency(entries, ['ses_mid', 'ses_old']);
 		assert.deepStrictEqual(sorted.map(e => e.id), ['ses_mid', 'ses_old', 'ses_new']);
+	});
+
+	test('removeDroxEngineSessionFromRecency drops session from shared MRU', () => {
+		const storage = mockStorage();
+		markDroxEngineSessionOpened(storage, ws, 'ses_a');
+		markDroxEngineSessionOpened(storage, ws, 'ses_b');
+		removeDroxEngineSessionFromRecency(storage, ws, 'ses_a');
+		assert.deepStrictEqual(readDroxEngineSessionRecency(storage, ws), ['ses_b']);
+		assert.strictEqual(readLastDroxEngineSessionId(storage, ws), 'ses_b');
+		const raw = storage.get(DROX_AGENT_SESSIONS_RECENCY_STORAGE_KEY, StorageScope.WORKSPACE);
+		assert.ok(raw);
+		assert.ok(!raw.includes('ses_a'));
 	});
 });

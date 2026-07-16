@@ -73,6 +73,23 @@
 		display: none;
 	}
 
+	/* Header row: new discussion + filter/find */
+	.agent-sessions-header-row.minimal {
+		padding: 6px 8px;
+		min-height: 32px;
+		gap: 4px;
+	}
+
+	.agent-sessions-header-row.minimal .agent-sessions-header-actions {
+		margin-left: 0;
+		flex: 1;
+		justify-content: flex-start;
+	}
+
+	.agent-sessions-header-row.minimal .agent-sessions-header-actions .monaco-action-bar .actions-container {
+		gap: 2px;
+	}
+
 	/* Header row: label + action buttons */
 	.agent-sessions-header-row {
 		display: flex;

@@ -101,7 +101,7 @@ impl CoursePlanCounts {
 
     fn summary(&self, total: usize, title: &str) -> String {
         format!(
-            "Plan de cours «{title}» : {total} étape(s) — {} pending · {} active · {} mastered · {} skipped",
+            "Course plan «{title}»: {total} step(s) — {} pending · {} active · {} mastered · {} skipped",
             self.pending, self.active, self.mastered, self.skipped
         )
     }
@@ -114,14 +114,14 @@ impl Tool for CoursePlanWriteTool {
     }
 
     fn description(&self) -> &str {
-        "Crée ou met à jour le **plan de cours** (mode Professeur). Liste \
-         complète en mode replace. Chaque cours alterne enseignement + exercice ; \
-         inclure un `checkpoint` final si pertinent.\n\n\
-         Format : `{ \"courseTitle\": \"…\", \"steps\": [{ \"id\", \"title\", \
+        "Creates or updates the **course plan** (Professor mode). Full list \
+         in replace mode. Each lesson alternates teaching + exercise; \
+         include a final `checkpoint` if relevant.\n\n\
+         Format: `{ \"courseTitle\": \"…\", \"steps\": [{ \"id\", \"title\", \
          \"kind\": \"lesson|exercise|checkpoint\", \"status\": \"pending|active|mastered|skipped\", \
          \"workArea\"?: { \"strategy\", \"primaryPaths\", \"referencePaths\", \"rationale\" } }] }`.\n\n\
-         Au plus **une** étape `active`. Pour les `exercise` / `checkpoint`, \
-         renseigne `workArea` (où l'élève travaille dans le repo ouvert)."
+         At most **one** `active` step. For `exercise` / `checkpoint` steps, \
+         fill in `workArea` (where the student works in the open repo)."
     }
 
     fn input_schema(&self) -> Value {
@@ -132,8 +132,8 @@ impl Tool for CoursePlanWriteTool {
         let normalized = normalize_input(input);
         let args: CoursePlanWriteInput = serde_json::from_value(normalized).map_err(|e| {
             ToolError::invalid_args(format!(
-                "course_plan_write: payload JSON invalide ({e}). \
-                 Format : {{\"courseTitle\":\"…\",\"steps\":[{{\"id\",\"title\",\"kind\",\"status\"}}]}}."
+                "course_plan_write: payload invalid JSON ({e}). \
+                 Expected format: {{\"courseTitle\":\"…\",\"steps\":[{{\"id\",\"title\",\"kind\",\"status\"}}]}}."
             ))
         })?;
         validate(&args)?;

@@ -16,7 +16,7 @@ use crate::tool::Tool;
 /// Arguments optionnels pour `session_compact`.
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SessionCompactInput {
-    /// Motif affiché dans les journaux / permissions (optionnel).
+    /// Motif affiché dans les journaux / permissions (optional).
     #[serde(default)]
     pub reason: Option<String>,
 }
@@ -31,12 +31,12 @@ impl Tool for SessionCompactTool {
     }
 
     fn description(&self) -> &str {
-        "Force une **compaction LLM** sur le transcript JSONL de la session \
-         courante (`session.compact`) — même pipeline que la commande `/compact`. \
-         Réduit l'historique persisté et renvoie un résumé structuré (objectif, \
-         fichiers, corps markdown). **Exécution** : client IDE (extension Drox) ; \
-         hors délégation, indisponible. Préférez un moment où le transcript n'est \
-         pas en écriture concurrente intense. Format : `{ \"reason\"?: \"…\" }`."
+        "Forces an **LLM compaction** on the current session JSONL transcript \
+         (`session.compact`) — same pipeline as the `/compact` command. \
+         Reduces persisted history and returns a structured summary (objective, \
+         files, markdown body). **Execution**: IDE client (Drox extension); \
+         unavailable outside delegation. Prefer a moment when the transcript is not \
+         under heavy concurrent writes. Format: `{ \"reason\"?: \"…\" }`."
     }
 
     fn input_schema(&self) -> Value {
@@ -47,13 +47,13 @@ impl Tool for SessionCompactTool {
         let SessionCompactInput { reason: _reason } = serde_json::from_value(input).map_err(
             |e| {
                 ToolError::invalid_args(format!(
-                    "session_compact: JSON invalide ({e}). Attendu : {{ \"reason\"?: \"…\" }}."
+                    "session_compact: invalid JSON ({e}). Expected: {{ \"reason\"?: \"…\" }}."
                 ))
             },
         )?;
         Err(ToolError::invalid_args(
-            "session_compact: disponible uniquement lorsque le client IDE exécute cet outil \
-             via tool/exec (extension VS Code Drox).",
+            "session_compact: only available when the IDE client executes this tool \
+             via tool/exec (Drox VS Code extension).",
         ))
     }
 }

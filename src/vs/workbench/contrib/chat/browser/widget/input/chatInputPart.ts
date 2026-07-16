@@ -28,6 +28,7 @@ import { ResourceSet } from '../../../../../../base/common/map.js';
 import { MarshalledId } from '../../../../../../base/common/marshallingIds.js';
 import { Schemas } from '../../../../../../base/common/network.js';
 import { mixin } from '../../../../../../base/common/objects.js';
+import { generateUuid } from '../../../../../../base/common/uuid.js';
 import { autorun, constObservable, derived, derivedOpts, IObservable, ISettableObservable, observableFromEvent, observableValue } from '../../../../../../base/common/observable.js';
 import { isMacintosh } from '../../../../../../base/common/platform.js';
 import { isEqual } from '../../../../../../base/common/resources.js';
@@ -154,6 +155,15 @@ import {
 	isDroxAgentsChatSessionType,
 	syncDroxArchitectModelFromChatPicker,
 } from '../../../../drox/browser/agents/droxAgentsChatInputIntegration.js';
+import { registerDroxSmartPasteHandler } from '../../../../drox/browser/agents/droxAgentsSmartPaste.js';
+import { IDroxPasteCandidateService } from '../../../../drox/common/droxPasteCandidateService.js';
+import {
+	droxSmartPasteVariableEntryToPasteEntry,
+	isDroxSendablePasteAttachment,
+	isDroxSmartPasteVariableEntry,
+	toDroxSmartPasteVariableEntry,
+	wireToDroxSmartPasteAttachmentValue,
+} from '../../../../drox/common/droxNativeChatRequestAttachments.js';
 import { DroxSetting } from '../../../../drox/common/droxConfiguration.js';
 
 const $ = dom.$;
@@ -631,6 +641,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		@IChatAttachmentWidgetRegistry private readonly _chatAttachmentWidgetRegistry: IChatAttachmentWidgetRegistry,
 		@IChatInputNotificationService private readonly chatInputNotificationService: IChatInputNotificationService,
 		@IChatPhoneInputPresenter private readonly chatPhoneInputPresenter: IChatPhoneInputPresenter,
+		@IDroxPasteCandidateService private readonly pasteCandidateService: IDroxPasteCandidateService,
 	) {
 		super();
 
@@ -1741,6 +1752,32 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this._droxAgentsChatStatusBarHost?.mountIfNeeded(sessionType);
 	}
 
+	private _mountDroxSmartPasteHandler(): void {
+		if (!this._usesDroxNativeComposer()) {
+			return;
+		}
+		this._register(registerDroxSmartPasteHandler(
+			this.inputContainer,
+			this.pasteCandidateService,
+			candidate => {
+				if (!isDroxAgentsChatSessionType(this.getCurrentSessionType())) {
+					return;
+				}
+				this._attachmentModel.addContext(toDroxSmartPasteVariableEntry(
+					`drox-paste-${generateUuid()}`,
+					wireToDroxSmartPasteAttachmentValue(candidate),
+				));
+			},
+			token => this._attachmentModel.attachments.some(entry => {
+				if (!isDroxSmartPasteVariableEntry(entry)) {
+					return false;
+				}
+				const value = entry.value as { token?: string } | undefined;
+				return value?.token === token;
+			}),
+		));
+	}
+
 	private _preferDroxArchitectModel(): void {
 		if (!this._usesDroxNativeComposer() || !isDroxAgentsChatSessionType(this.getCurrentSessionType())) {
 			return;
@@ -2290,7 +2327,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private _updateInputContentContextKeys(): void {
 		const inputHasText = !!this._inputEditor?.getModel()?.getValue().trim();
 		this.inputEditorHasText.set(inputHasText);
-		const hasSendableContent = inputHasText || this._attachmentModel.attachments.some(isExplicitFileOrImageVariableEntry);
+		const hasSendableAttachment = this._attachmentModel.attachments.some(entry =>
+			isExplicitFileOrImageVariableEntry(entry)
+			|| (this._usesDroxNativeComposer() && isDroxSendablePasteAttachment(entry)),
+		);
+		const hasSendableContent = inputHasText || hasSendableAttachment;
 		// Block sending when the session type has no usable model (and can't
 		// fall back to Auto): there is nothing to send the request with.
 		this.inputEditorHasSendableContent.set(hasSendableContent && !this.hasNoAvailableModel());
@@ -3064,6 +3105,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			this.inputEditorHasFocus.set(true);
 			this._onDidFocus.fire();
 			inputContainer.classList.toggle('focused', true);
+			if (this._usesDroxNativeComposer()) {
+				this.pasteCandidateService.resync();
+			}
 		}));
 		this._register(this._inputEditor.onDidBlurEditorText(() => {
 			this.inputEditorHasFocus.set(false);
@@ -3404,6 +3448,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				this._droxAgentsChatInputToolbarHost = host;
 				this._syncDroxAgentsFollowUpInput();
 			}
+			this._mountDroxSmartPasteHandler();
 			const statusHost = createDroxAgentsChatStatusBarHost(
 				this.instantiationService,
 				this.configurationService,
@@ -3640,6 +3685,12 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				attachmentWidget = this.instantiationService.createInstance(ElementChatAttachmentWidget, attachment, lm, options, container, this._contextResourceLabels);
 			} else if (isPasteVariableEntry(attachment)) {
 				attachmentWidget = this.instantiationService.createInstance(PasteAttachmentWidget, attachment, lm, options, container, this._contextResourceLabels);
+			} else if (isDroxSmartPasteVariableEntry(attachment)) {
+				const pasteLike = droxSmartPasteVariableEntryToPasteEntry(attachment);
+				if (!pasteLike) {
+					continue;
+				}
+				attachmentWidget = this.instantiationService.createInstance(PasteAttachmentWidget, pasteLike, lm, options, container, this._contextResourceLabels);
 			} else if (isSCMHistoryItemVariableEntry(attachment)) {
 				attachmentWidget = this.instantiationService.createInstance(SCMHistoryItemAttachmentWidget, attachment, lm, options, container, this._contextResourceLabels);
 			} else if (isSCMHistoryItemChangeVariableEntry(attachment)) {

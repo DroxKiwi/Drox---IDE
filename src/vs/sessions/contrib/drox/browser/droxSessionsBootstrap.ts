@@ -29,3 +29,8 @@ import '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatContribu
 import '../../../../workbench/contrib/drox/browser/droxAgentsRetroThemeContribution.js';
 import './droxSessionsActiveSessionSync.js';
 import './droxSessionsRecencyStorageSync.js';
+import './droxSessionsLayoutContribution.js';
+import './droxSessionBackgroundService.js';
+import './droxSessionsBackgroundActions.js';
+import './droxSessionsColdStartLayout.js';
+import './media/droxSessionDashboard.css';

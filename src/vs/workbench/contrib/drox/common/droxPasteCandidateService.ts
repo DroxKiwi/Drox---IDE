@@ -13,4 +13,5 @@ export interface IDroxPasteCandidateService {
 	readonly _serviceBrand: undefined;
 	readonly onDidUpdate: Event<IDroxPasteCandidateWire>;
 	resync(): void;
+	resolveCandidateByToken(token: string): IDroxPasteCandidateWire | undefined;
 }

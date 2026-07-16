@@ -22,6 +22,8 @@
 | [**1.5.10/**](1.5.10/README.md) | Run recovery toujours dispo + respawn moteur différé | **Livré** · `v1.5.10` |
 | [**1.5.11/**](1.5.11/README.md) | Chat natif Drox + CFG IDE ↔ Agents + historique partagé | **Livré** · `v1.5.11` |
 | [**1.5.12/**](1.5.12/README.md) | Polish + workspace Cursor + MCP marketplace | **Livré** · `v1.5.12` |
+| [**1.5.13/**](1.5.13/README.md) | Stabilisation Agents (fil · perf · crash) | **Clôturé** · `v1.5.13` |
+| [**1.5.14/**](1.5.14/README.md) | Clôture plan sans boucle (`loop detected`) | **Ouvert** |
 
 ---
 
@@ -40,6 +42,8 @@
 1.5.10  run recovery + respawn différé  →  livré
 1.5.11  chat natif + CFG + historique partagé  →  livré
 1.5.12  polish + workspace Cursor (changes, onglets, MCP)  →  livré
+1.5.13  stabilisation Agents (fil · perf · crash)  →  clôturé (merge main, branche conservée)
+1.5.14  clôture plan sans loop detected  →  ouvert
 MCP  →  brainstorm #16
 ```
 
@@ -59,6 +63,8 @@ MCP  →  brainstorm #16
 - [PLAN 1.5.10](1.5.10/PLAN-1.5.10.md)
 - [PLAN 1.5.11 Agents](1.5.11/PLAN-1.5.11.md)
 - [PLAN 1.5.12](1.5.12/PLAN-1.5.12.md)
+- [PLAN 1.5.13](1.5.13/PLAN-1.5.13.md)
+- [PLAN 1.5.14](1.5.14/PLAN-1.5.14.md)
 - [Brainstorm MCP #16](../feature-brainstorm/16-connexions-mcp-ui-moteur.md)
 - [GUIDE release & upstream](../GUIDE-RELEASE-ET-UPSTREAM.md)
 - [Opérations release (index)](../operations/README.md)

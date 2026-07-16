@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
+import { DisposableResizeObserver } from '../../../../base/browser/dom.js';
 import { MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
@@ -18,6 +19,8 @@ import { ChatAgentLocation, ChatModeKind } from '../../../../workbench/contrib/c
 import { getChatSessionType } from '../../../../workbench/contrib/chat/common/model/chatUri.js';
 import { IChatSessionsService, localChatSessionType } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
 import { DROX_CHAT_SESSION_TYPE } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+import { droxAgentsChatSessionHasLiveRun, evictDroxAgentsChatSessionForReload } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatSessionCache.js';
+import { DroxSessionLoadingOverlay } from '../../../../workbench/contrib/drox/browser/droxSessionLoadingOverlay.js';
 import { finalizeDroxNativeChatHistoryModel } from '../../../../workbench/contrib/drox/common/droxNativeChatHistoryFinalize.js';
 import { AbstractChatView, ChatViewKind, IChatViewOptions } from '../../../browser/parts/chatView.js';
 import { IChat } from '../../../services/sessions/common/session.js';
@@ -75,6 +78,12 @@ export class NewChatView extends AbstractChatView {
 		}
 	}
 
+	override clearWorkspaceSelection(): void {
+		if (this._widget instanceof NewChatWidget) {
+			this._widget.clearWorkspaceSelection();
+		}
+	}
+
 	override prefillInput(text: string): void {
 		if (this._widget instanceof NewChatWidget) {
 			this._widget.prefillInput(text);
@@ -120,6 +129,8 @@ export class ChatView extends AbstractChatView {
 	/** Whether this view currently represents the active session. */
 	private _isActive = true;
 
+	private readonly _droxSessionLoadingOverlay: DroxSessionLoadingOverlay;
+
 	constructor(
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IContextKeyService contextKeyService: IContextKeyService,
@@ -160,6 +171,8 @@ export class ChatView extends AbstractChatView {
 		this._widget.render(this.element);
 		this._widget.setVisible(true);
 
+		this._droxSessionLoadingOverlay = this._register(new DroxSessionLoadingOverlay(this.element));
+
 		// Mount the session banners directly above the chat input.
 		this._banners = this._register(instantiationService.createInstance(SessionInputBanners));
 		this._banners.setActive(this._isActive);
@@ -170,6 +183,9 @@ export class ChatView extends AbstractChatView {
 				this._applyHistoryKey();
 			}
 		}));
+
+		const sizeObserver = this._register(new DisposableResizeObserver('ChatView.size', () => this._layoutWidgetWhenSized()));
+		sizeObserver.observe(this.element);
 	}
 
 	override dispose(): void {
@@ -197,18 +213,31 @@ export class ChatView extends AbstractChatView {
 		this._historyKey = historyKey;
 		this._applyHistoryKey();
 
-		// Skip loading if we're already showing this chat
-		if (isEqual(this._currentChatResource, resource)) {
-			return;
+		const sameResource = isEqual(this._currentChatResource, resource);
+
+		// SessionView autorun may call setChat on every observable tick — never
+		// restart a bind that is already complete or in flight for this resource.
+		if (sameResource) {
+			if (this._modelRef.value && this._widget.viewModel) {
+				return;
+			}
+			const inFlight = this._loadCts.value;
+			if (inFlight && !inFlight.token.isCancellationRequested) {
+				return;
+			}
 		}
 
 		const previousChatResource = this._currentChatResource;
+		const switchingChat = previousChatResource !== undefined && !isEqual(previousChatResource, resource);
 		this._currentChatResource = resource;
 
-		// Cancel any in-flight load for the previous chat and start a fresh one.
 		this._loadCts.value?.cancel();
-		if (previousChatResource) {
-			this._clearCurrentChat();
+		if (switchingChat) {
+			this._detachWidgetFromModel();
+		}
+		if (switchingChat || !this._modelRef.value) {
+			// Refresh disk-backed session content when idle; skip while a live run keeps the model hot.
+			evictDroxAgentsChatSessionForReload(resource, this.chatSessionsService, this.chatService);
 		}
 		const cts = new CancellationTokenSource();
 		this._loadCts.value = cts;
@@ -222,9 +251,13 @@ export class ChatView extends AbstractChatView {
 			this._modelRef.value = ref;
 			this._updateWidgetLockState(getChatSessionType(ref.object.sessionResource));
 			if (getChatSessionType(ref.object.sessionResource) === DROX_CHAT_SESSION_TYPE) {
-				finalizeDroxNativeChatHistoryModel(ref.object);
+				// History finalize marks open responses complete — never on a live background run.
+				if (!droxAgentsChatSessionHasLiveRun(ref.object)) {
+					finalizeDroxNativeChatHistoryModel(ref.object);
+				}
 			}
 			this._widget.setModel(ref.object);
+			this._layoutWidgetWhenSized();
 			// Expose the bound chat resource on the DOM so test automation
 			// can synchronize with the post-rebind state without polling timeouts.
 			// Set AFTER `setModel` so observers see the attribute only once the
@@ -239,13 +272,16 @@ export class ChatView extends AbstractChatView {
 			}
 		});
 
-		// Surface progress on this leaf's own bar while the chat model loads,
-		// matching how each editor group shows progress independently. The short
-		// delay avoids flashing the bar for fast cached loads.
-		this.showProgressWhile(loadPromise, 800);
+		if (getChatSessionType(resource) === DROX_CHAT_SESSION_TYPE) {
+			void this._droxSessionLoadingOverlay.showWhile(loadPromise);
+		} else {
+			// Non-Drox sessions keep the generic leaf progress bar.
+			this.showProgressWhile(loadPromise, 800);
+		}
 	}
 
-	private _clearCurrentChat(): void {
+	/** Detaches the chat widget without cancelling an in-flight agent run on the model. */
+	private _detachWidgetFromModel(): void {
 		this._widget.clear().catch(err => this.logService.error('[ChatView] Failed to clear chat widget', err));
 		this._widget.setModel(undefined);
 		this._modelRef.clear();
@@ -276,6 +312,15 @@ export class ChatView extends AbstractChatView {
 
 	override toJSON(): object {
 		return { type: ChatView.TYPE };
+	}
+
+	private _layoutWidgetWhenSized(): void {
+		const height = this.element.clientHeight;
+		const width = this.element.clientWidth;
+		if (height > 0 && width > 0) {
+			this._ensureBannersMounted();
+			this._widget.layout(height, width);
+		}
 	}
 
 	protected override doLayout(width: number, height: number, _top: number, _left: number): void {

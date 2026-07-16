@@ -47,6 +47,8 @@ export class NewChatWidget extends Disposable {
 	 */
 	private _activeEmptyState: NoAgentHostEmptyState | undefined;
 
+	private _widgetRoot: HTMLElement | undefined;
+
 	/**
 	 * Whether to render the session type ("harness") picker below the input
 	 * (in the controls) instead of next to the workspace picker. Read once from
@@ -136,8 +138,10 @@ export class NewChatWidget extends Disposable {
 	// --- Rendering ---
 
 	render(parent: HTMLElement): void {
-		const element = dom.append(parent, dom.$('.sessions-chat-widget'));
+		const element = this._widgetRoot = dom.append(parent, dom.$('.sessions-chat-widget'));
 		const chatWidgetContainer = dom.append(element, dom.$('.new-chat-widget-container'));
+		const sizeObserver = this._register(new dom.DisposableResizeObserver('NewChatWidget.size', () => this._layoutWhenSized()));
+		sizeObserver.observe(element);
 		const chatWidgetContent = dom.append(chatWidgetContainer, dom.$('.new-chat-widget-content'));
 
 		this._aquariumToggle = this._register(this.aquariumService.mountToggle(element));
@@ -426,8 +430,20 @@ export class NewChatWidget extends Disposable {
 		this._newChatInput.saveState();
 	}
 
-	layout(_height: number, _width: number): void {
-		this._newChatInput.layout(_height, _width);
+	layout(height: number, width: number): void {
+		this._newChatInput.layout(height, width);
+	}
+
+	private _layoutWhenSized(): void {
+		const root = this._widgetRoot;
+		if (!root) {
+			return;
+		}
+		const width = root.clientWidth;
+		const height = root.clientHeight;
+		if (width > 0 && height > 0) {
+			this._newChatInput.layout(height, width);
+		}
 	}
 
 	focusInput(): void {
@@ -485,6 +501,11 @@ export class NewChatWidget extends Disposable {
 
 	selectWorkspace(folderUri: URI, providerId?: string): void {
 		this._workspacePicker.setSelectedWorkspace(folderUri, { providerId });
+	}
+
+	clearWorkspaceSelection(): void {
+		this._pendingPreferredUpgrade.clear();
+		this._workspacePicker.clearSelection();
 	}
 }
 

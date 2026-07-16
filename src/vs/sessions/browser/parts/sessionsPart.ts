@@ -16,6 +16,7 @@ import { Direction, SerializableGrid, Sizing } from '../../../base/browser/ui/gr
 import { Part } from '../../../workbench/browser/part.js';
 import { ActiveSessionsContext, MultipleSessionsVisibleContext, SessionsFocusContext } from '../../common/contextkeys.js';
 import { $, addDisposableGenericMouseDownListener, addDisposableListener, EventType, isAncestor, trackFocus } from '../../../base/browser/dom.js';
+import { disposableTimeout } from '../../../base/common/async.js';
 import { IActiveSession } from '../../services/sessions/common/sessionsManagement.js';
 import { SessionView } from './sessionView.js';
 import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js';
@@ -264,7 +265,52 @@ export class SessionsPart extends Part {
 		}
 
 		this._updateContextKeys(visible);
+		this._scheduleRelayoutAfterBind();
 	}
+
+	/**
+	 * Re-run the internal grid layout after rebinding session views. The first
+	 * {@link SessionView.openSession} can mount the new-session widget before this
+	 * part has been sized, leaving the composer blank until the user triggers a
+	 * later layout pass (resize, focus, etc.).
+	 */
+	private _relayoutGridIfNeeded(): void {
+		if (!this._gridWidget || !this._lastLayout) {
+			return;
+		}
+		const { width, height, top, left } = this._lastLayout;
+		const borderTotal = SessionsPart.BORDER_WIDTH * 2;
+		const marginLeft = this.layoutService.isVisible(Parts.SIDEBAR_PART) ? 0 : SessionsPart.MARGIN_LEFT;
+		const marginBottom = this.layoutService.isVisible(Parts.PANEL_PART) ? SessionsPart.MARGIN_BOTTOM : 0;
+		const marginRight = this.layoutService.isVisible(Parts.AUXILIARYBAR_PART) ? SessionsPart.MARGIN_RIGHT : 0;
+		const { contentSize } = this.layoutContents(
+			width - marginLeft - marginRight - borderTotal,
+			height - SessionsPart.MARGIN_TOP - marginBottom - borderTotal
+		);
+		this._gridWidget.layout(contentSize.width, contentSize.height, top, left);
+	}
+
+	private _scheduleRelayoutAfterBind(): void {
+		this._relayoutGridIfNeeded();
+		if (this._requestedInitialWorkbenchLayout) {
+			return;
+		}
+		// Sessions were bound before this part received its first layout pass
+		// (common on cold boot). Request workbench layouts via timers — rAF may
+		// not run until user interaction after Windows cold start.
+		this._requestedInitialWorkbenchLayout = true;
+		this.layoutService.layout();
+		for (const delay of [0, 100, 400]) {
+			this._register(disposableTimeout(() => {
+				if (!this._store.isDisposed) {
+					this.layoutService.layout();
+					this._relayoutGridIfNeeded();
+				}
+			}, delay));
+		}
+	}
+
+	private _requestedInitialWorkbenchLayout = false;
 
 	private _updateContextKeys(visible: readonly (IActiveSession | undefined)[]): void {
 		this._multipleSessionsVisibleKey.set(visible.length > 1);
@@ -439,6 +485,9 @@ export class SessionsPart extends Part {
 
 		// Store the full grid-allocated dimensions so that Part.relayout() works correctly.
 		super.layout(width, height, top, left);
+
+		// Session views may have been bound before this part was first sized.
+		this._relayoutGridIfNeeded();
 	}
 
 	override dispose(): void {

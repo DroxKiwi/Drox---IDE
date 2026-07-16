@@ -64,6 +64,8 @@ export function getInProgressSessionDescription(chatModel: IChatModel): string |
 			description = part.invocationMessage;
 		} else if (part.kind === 'progressMessage') {
 			description = part.content;
+		} else if (part.kind === 'droxWarmup') {
+			description = part.phrase;
 		} else if (part.kind === 'thinking') {
 			description = localize('chat.sessions.description.thinking', 'Thinking...');
 		}

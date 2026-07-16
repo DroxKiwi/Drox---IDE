@@ -23,7 +23,7 @@ function entryKey(sessionResource: URI, chatResource: URI | undefined): string {
  * depending on the core view service.
  */
 export interface ISessionOpener {
-	openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<void>;
+	openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<boolean>;
 	openChat(session: ISession, chatResource: URI): Promise<void>;
 }
 
