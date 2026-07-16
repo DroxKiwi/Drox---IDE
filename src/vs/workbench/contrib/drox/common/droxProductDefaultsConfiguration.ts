@@ -270,6 +270,29 @@ export function registerDroxProductDefaultsConfiguration(): void {
 		preventExperimentOverride: true,
 		source: 'droxProductDefaults',
 	}]);
+
+	// WS1 — Per-session editor working sets require grid editors (not modal-all).
+	// Upstream sets agentsWindow default to 'all'; Drox overrides to 'some'.
+	Registry.as<IConfigurationRegistry>(Extensions.Configuration).updateConfigurations({
+		add: [{
+			id: 'droxSessionLayoutDefaults',
+			properties: {
+				'workbench.editor.useModal': {
+					type: 'string',
+					enum: ['off', 'some', 'all'],
+					default: 'some',
+					agentsWindow: {
+						default: 'some',
+					},
+					description: localize(
+						'drox.product.useModal',
+						'Controls whether editors open in a modal overlay. Drox Agents window defaults to "some" so each session can restore its open editors.',
+					),
+				},
+			},
+		}],
+		remove: [],
+	});
 }
 
 /** Doc D1 — URL de remplacement des liens aka.ms dans product.json. */

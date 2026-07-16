@@ -7,8 +7,8 @@ import '../../workbench/browser/style.js';
 import './media/style.css';
 import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../base/common/lifecycle.js';
 import { Emitter, Event, setGlobalLeakWarningThreshold } from '../../base/common/event.js';
-import { getActiveDocument, getActiveElement, getClientArea, getWindowId, getWindows, IDimension, isAncestorUsingFlowTo, isHTMLElement, size, Dimension, runWhenWindowIdle, scheduleAtNextAnimationFrame } from '../../base/browser/dom.js';
-import { DeferredPromise, RunOnceScheduler } from '../../base/common/async.js';
+import { getActiveDocument, getActiveElement, getClientArea, getWindowId, getWindows, IDimension, isAncestorUsingFlowTo, isHTMLElement, size, Dimension, runWhenWindowIdle } from '../../base/browser/dom.js';
+import { DeferredPromise, disposableTimeout, RunOnceScheduler } from '../../base/common/async.js';
 import { isFullscreen, onDidChangeFullscreen, isChrome, isFirefox, isSafari } from '../../base/browser/browser.js';
 import { mark } from '../../base/common/performance.js';
 import { onUnexpectedError, setUnexpectedErrorHandler } from '../../base/common/errors.js';
@@ -589,7 +589,9 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 			this.dispose();
 		}));
 
-		// Flush storage on window focus loss
+		// Flush storage on window focus loss (matches main workbench — do not
+		// call layout() on focus gain: it fires onDidLayoutContainer which closes
+		// open dropdown/context menus because canRelayout is false).
 		this._register(hostService.onDidChangeFocus(focus => {
 			if (!focus) {
 				storageService.flush();
@@ -1066,12 +1068,7 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 				// Session views mount before the first reliable layout pass; re-run
 				// workbench layout so chat / sidebar content is not blank until interaction.
 				if (!this._store.isDisposed) {
-					this.layout();
-					scheduleAtNextAnimationFrame(mainWindow, () => {
-						if (!this._store.isDisposed) {
-							this.layout();
-						}
-					});
+					this._schedulePostRestoreLayout();
 				}
 			});
 
@@ -1236,18 +1233,40 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 			if (e.added.length === 0) {
 				return;
 			}
-			scheduleAtNextAnimationFrame(mainWindow, () => {
-				if (!this._store.isDisposed) {
-					this.layout();
-					scheduleAtNextAnimationFrame(mainWindow, () => {
-						if (!this._store.isDisposed) {
-							this.layout();
-						}
-					});
-				}
-			});
+			this._schedulePostRestoreLayout();
 		}));
 	}
+
+	/** Layout passes after session restore or late session registration (cold boot). */
+	private _schedulePostRestoreLayout(): void {
+		// Always paint once synchronously — content may have mounted with a stale size.
+		this.layout();
+
+		// Coalesce bursty callers (many sessions registering at once).
+		if (this._postRestoreLayoutScheduled) {
+			return;
+		}
+		this._postRestoreLayoutScheduled = true;
+
+		// Prefer setTimeout over rAF/idle: after cold boot on Windows, animation
+		// frames and idle callbacks often do not run until the first user input,
+		// which leaves the chat/grid frozen until a click "unsticks" them.
+		const delays = [0, 50, 200, 600, 1500];
+		let pending = delays.length;
+		for (const delay of delays) {
+			this._register(disposableTimeout(() => {
+				if (!this._store.isDisposed) {
+					this.layout();
+				}
+				pending--;
+				if (pending <= 0) {
+					this._postRestoreLayoutScheduled = false;
+				}
+			}, delay));
+		}
+	}
+
+	private _postRestoreLayoutScheduled = false;
 
 	private updateFullscreenClass(): void {
 		if (this.mainWindowFullscreen) {
@@ -1486,6 +1505,8 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	//#region Layout Methods
 
 	private _previousViewportClass: string | undefined;
+	/** Last dimension passed to {@link handleContainerDidLayout} (avoids closing open menus). */
+	private _lastEmittedLayoutContainerDimension: IDimension | undefined;
 
 	layout(): void {
 		this._mainContainerDimension = getClientArea(
@@ -1570,8 +1591,20 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.workbenchGrid.layout(gridWidth, gridHeight);
 		this.layoutMobileSidebar();
 
-		// Emit as event
-		this.handleContainerDidLayout(this.mainContainer, this._mainContainerDimension);
+		// Emit as event — skip when outer dimensions are unchanged so open
+		// context/dropdown menus are not dismissed (ContextView hides when
+		// canRelayout is false and the container relayouts).
+		this._emitLayoutContainerEventIfNeeded();
+	}
+
+	private _emitLayoutContainerEventIfNeeded(): void {
+		const dim = this._mainContainerDimension;
+		const prev = this._lastEmittedLayoutContainerDimension;
+		if (prev && prev.width === dim.width && prev.height === dim.height) {
+			return;
+		}
+		this._lastEmittedLayoutContainerDimension = { width: dim.width, height: dim.height };
+		this.handleContainerDidLayout(this.mainContainer, dim);
 	}
 
 	private layoutMobileSidebar(): void {

@@ -50,13 +50,13 @@ const SORTING_STORAGE_KEY = 'sessionsViewPane.sorting';
  * the session is already the last visible one, this is a no-op aside from
  * activation.
  */
-export async function openSessionToTheSide(sessionsService: ISessionsService, session: ISession, options?: { preserveFocus?: boolean }): Promise<void> {
+export async function openSessionToTheSide(sessionsService: ISessionsService, session: ISession, options?: { preserveFocus?: boolean }): Promise<boolean> {
 	const visible = sessionsService.visibleSessions.get();
 	const lastVisible = visible[visible.length - 1];
 	if (lastVisible && lastVisible.sessionId !== session.sessionId) {
 		sessionsService.insertAt(session, lastVisible.sessionId, 'right');
 	}
-	await sessionsService.openSession(session.resource, options);
+	return sessionsService.openSession(session.resource, options);
 }
 
 export const SessionsViewFilterSubMenu = new MenuId('SessionsViewPaneFilterSubMenu');
@@ -204,15 +204,24 @@ export class SessionsView extends ViewPane {
 						this.layoutService.setPartHidden(true, Parts.SIDEBAR_PART);
 					}
 				};
+				const onOpenFinished = (opened: boolean) => {
+					if (!opened) {
+						// List focus moves on click before the switch gate; restore the
+						// active row highlight without stealing focus from chat / editor.
+						this.restoreLastSelectedSession({ preserveFocus: true });
+						return;
+					}
+					onOpened();
+				};
 				if (sideBySide) {
 					// Alt-click: open the session to the right of the last visible session in the grid.
 					const session = this.sessionsManagementService.getSession(resource);
 					if (session) {
-						openSessionToTheSide(this.sessionsService, session, { preserveFocus }).then(onOpened).catch(onUnexpectedError);
+						openSessionToTheSide(this.sessionsService, session, { preserveFocus }).then(onOpenFinished).catch(onUnexpectedError);
 						return;
 					}
 				}
-				this.sessionsService.openSession(resource, { preserveFocus }).then(onOpened).catch(onUnexpectedError);
+				this.sessionsService.openSession(resource, { preserveFocus }).then(onOpenFinished).catch(onUnexpectedError);
 			},
 		}));
 		this._register(this.onDidChangeBodyVisibility(visible => {
@@ -280,15 +289,16 @@ export class SessionsView extends ViewPane {
 		// Listen to list updates and restore selection if nothing is selected
 		this._register(sessionsControl.onDidUpdate(() => {
 			if (!sessionsControl.hasFocusOrSelection()) {
-				this.restoreLastSelectedSession();
+				this.restoreLastSelectedSession({ preserveFocus: true });
 			}
 		}));
 
-		// When the active session changes, select it in the list
+		// When the active session changes, scroll/select it in the list without
+		// stealing focus from chat, editor toolbars, or open dropdown menus.
 		this._register(autorun(reader => {
 			const activeSession = this.sessionsService.activeSession.read(reader);
 			if (activeSession) {
-				if (!sessionsControl.reveal(activeSession.resource)) {
+				if (!sessionsControl.reveal(activeSession.resource, { preserveFocus: true })) {
 					sessionsControl.clearFocus();
 				}
 			} else {
@@ -344,10 +354,10 @@ export class SessionsView extends ViewPane {
 		this._customizationsWidget?.focus();
 	}
 
-	private restoreLastSelectedSession(): void {
+	private restoreLastSelectedSession(options?: { readonly preserveFocus?: boolean }): void {
 		const activeSession = this.sessionsService.activeSession.get();
 		if (activeSession && this.sessionsControl) {
-			this.sessionsControl.reveal(activeSession.resource);
+			this.sessionsControl.reveal(activeSession.resource, options);
 		}
 	}
 

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
-import { getWindow, scheduleAtNextAnimationFrame } from '../../../../base/browser/dom.js';
+import { DisposableResizeObserver } from '../../../../base/browser/dom.js';
 import { MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
@@ -20,6 +20,7 @@ import { getChatSessionType } from '../../../../workbench/contrib/chat/common/mo
 import { IChatSessionsService, localChatSessionType } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
 import { DROX_CHAT_SESSION_TYPE } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { droxAgentsChatSessionHasLiveRun, evictDroxAgentsChatSessionForReload } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatSessionCache.js';
+import { DroxSessionLoadingOverlay } from '../../../../workbench/contrib/drox/browser/droxSessionLoadingOverlay.js';
 import { finalizeDroxNativeChatHistoryModel } from '../../../../workbench/contrib/drox/common/droxNativeChatHistoryFinalize.js';
 import { AbstractChatView, ChatViewKind, IChatViewOptions } from '../../../browser/parts/chatView.js';
 import { IChat } from '../../../services/sessions/common/session.js';
@@ -128,6 +129,8 @@ export class ChatView extends AbstractChatView {
 	/** Whether this view currently represents the active session. */
 	private _isActive = true;
 
+	private readonly _droxSessionLoadingOverlay: DroxSessionLoadingOverlay;
+
 	constructor(
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IContextKeyService contextKeyService: IContextKeyService,
@@ -168,6 +171,8 @@ export class ChatView extends AbstractChatView {
 		this._widget.render(this.element);
 		this._widget.setVisible(true);
 
+		this._droxSessionLoadingOverlay = this._register(new DroxSessionLoadingOverlay(this.element));
+
 		// Mount the session banners directly above the chat input.
 		this._banners = this._register(instantiationService.createInstance(SessionInputBanners));
 		this._banners.setActive(this._isActive);
@@ -178,6 +183,9 @@ export class ChatView extends AbstractChatView {
 				this._applyHistoryKey();
 			}
 		}));
+
+		const sizeObserver = this._register(new DisposableResizeObserver('ChatView.size', () => this._layoutWidgetWhenSized()));
+		sizeObserver.observe(this.element);
 	}
 
 	override dispose(): void {
@@ -249,15 +257,7 @@ export class ChatView extends AbstractChatView {
 				}
 			}
 			this._widget.setModel(ref.object);
-			// Cold start: the grid may not have laid out yet when the model arrives.
-			const targetWindow = getWindow(this.element);
-			scheduleAtNextAnimationFrame(targetWindow, () => {
-				const h = this.element.clientHeight;
-				const w = this.element.clientWidth;
-				if (h > 0 && w > 0) {
-					this._widget.layout(h, w);
-				}
-			});
+			this._layoutWidgetWhenSized();
 			// Expose the bound chat resource on the DOM so test automation
 			// can synchronize with the post-rebind state without polling timeouts.
 			// Set AFTER `setModel` so observers see the attribute only once the
@@ -272,10 +272,12 @@ export class ChatView extends AbstractChatView {
 			}
 		});
 
-		// Surface progress on this leaf's own bar while the chat model loads,
-		// matching how each editor group shows progress independently. The short
-		// delay avoids flashing the bar for fast cached loads.
-		this.showProgressWhile(loadPromise, 800);
+		if (getChatSessionType(resource) === DROX_CHAT_SESSION_TYPE) {
+			void this._droxSessionLoadingOverlay.showWhile(loadPromise);
+		} else {
+			// Non-Drox sessions keep the generic leaf progress bar.
+			this.showProgressWhile(loadPromise, 800);
+		}
 	}
 
 	/** Detaches the chat widget without cancelling an in-flight agent run on the model. */
@@ -310,6 +312,15 @@ export class ChatView extends AbstractChatView {
 
 	override toJSON(): object {
 		return { type: ChatView.TYPE };
+	}
+
+	private _layoutWidgetWhenSized(): void {
+		const height = this.element.clientHeight;
+		const width = this.element.clientWidth;
+		if (height > 0 && width > 0) {
+			this._ensureBannersMounted();
+			this._widget.layout(height, width);
+		}
 	}
 
 	protected override doLayout(width: number, height: number, _top: number, _left: number): void {

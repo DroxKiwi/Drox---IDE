@@ -36,6 +36,7 @@ import { getDefaultHoverDelegate } from '../../../../base/browser/ui/hover/hover
 import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
 import { appendDroxActivityGrid } from '../../../../workbench/contrib/drox/browser/droxActivityGrid.js';
+import { DROX_LOADING_SHOW_DELAY_MS } from '../../../../workbench/contrib/drox/browser/droxLoadingConstants.js';
 import { DroxAgentsComposerToolbar } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsComposerToolbar.js';
 import { createDroxAgentsComposerQuickActionsHost, DroxAgentsComposerQuickActionsHost } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatInputIntegration.js';
 import { registerDroxSmartPasteHandler } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsSmartPaste.js';
@@ -491,7 +492,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 					if (this._sending) {
 						this._loadingSpinner?.classList.add('visible');
 					}
-				}, 500);
+				}, DROX_LOADING_SHOW_DELAY_MS);
 				this._loadingDelayDisposable.value = toDisposable(() => clearTimeout(timer));
 			}
 		} else {
