@@ -207,6 +207,9 @@ pub struct AgentRunParams {
     /// Si `true`, reprend depuis le transcript sans nouveau tour user.
     #[serde(default)]
     pub skip_user_turn: Option<bool>,
+    /// Si `true`, les tools fs acceptent des chemins hors workspace (session toggle IDE).
+    #[serde(default)]
+    pub allow_outside_workspace: Option<bool>,
 }
 
 /// Image attachée à un `agent.run`. `data` est la base64 brute (sans préfixe
@@ -354,6 +357,9 @@ pub struct ToolExecParams {
     /// client doit renvoyer une proposition (`applied: false`).
     #[serde(default)]
     pub apply_fs_writes: bool,
+    /// Si `true`, le client peut résoudre des chemins hors workspace.
+    #[serde(default)]
+    pub allow_outside_workspace: bool,
 }
 
 /// Réponse client à `tool/exec`. Le champ `result` d'une `Response` JSON-RPC

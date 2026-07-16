@@ -76,6 +76,9 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 	private readonly _persistentSessionIds = observableValue<ReadonlySet<string>>('droxPersistentSessionIds', new Set());
 	readonly persistentSessionIds: IObservable<ReadonlySet<string>> = this._persistentSessionIds;
 
+	private readonly _allowOutsideWorkspaceSessionIds = observableValue<ReadonlySet<string>>('droxAllowOutsideWorkspaceSessionIds', new Set());
+	readonly allowOutsideWorkspaceSessionIds: IObservable<ReadonlySet<string>> = this._allowOutsideWorkspaceSessionIds;
+
 	private readonly _layoutSnapshots = new Map<string, IDroxSessionLayoutSnapshot>();
 	private readonly _suppressTerminalEnsureSessionIds = new Set<string>();
 	private readonly _dashboardSignals = new Map<string, IObservable<IDroxSessionDashboardSignals>>();
@@ -165,6 +168,20 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 		this._persistentSessionIds.set(next, undefined);
 	}
 
+	isAllowOutsideWorkspace(sessionId: string): boolean {
+		return this._allowOutsideWorkspaceSessionIds.get().has(sessionId);
+	}
+
+	setAllowOutsideWorkspace(sessionId: string, value: boolean): void {
+		const next = new Set(this._allowOutsideWorkspaceSessionIds.get());
+		if (value) {
+			next.add(sessionId);
+		} else {
+			next.delete(sessionId);
+		}
+		this._allowOutsideWorkspaceSessionIds.set(next, undefined);
+	}
+
 	hasLayoutSnapshot(sessionId: string): boolean {
 		return this._layoutSnapshots.has(sessionId);
 	}
@@ -225,9 +242,21 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 
 		const snapshot = this._layoutSnapshots.get(session.sessionId);
 		if (this.isPersistent(session.sessionId) && snapshot) {
-			this._suppressTerminalEnsureSessionIds.delete(session.sessionId);
+			// Keep ensure suppressed while restoring the snapshot. Clearing it in
+			// `_prepareTerminalPolicyForSession` (persistent↔persistent) lets
+			// `SessionsTerminalContribution.ensureTerminal` create a *new* shell
+			// before/while the working set reapplies — especially when another
+			// persistent session still owns tracked terminals on the same cwd.
+			this._suppressTerminalEnsureSessionIds.add(session.sessionId);
 			this._adoptSnapshotIntoLayoutController(session.resource, snapshot);
 			await applyDroxSessionLayoutSnapshot(snapshot, this._editorGroupsService, this._layoutService, this._viewsService);
+			try {
+				const terminalContribution = getWorkbenchContribution<SessionsTerminalContribution>(SessionsTerminalContribution.ID);
+				await terminalContribution.revealSessionTerminals(session.sessionId);
+			} catch {
+				// contribution not ready
+			}
+			this._suppressTerminalEnsureSessionIds.delete(session.sessionId);
 			return;
 		}
 
@@ -249,6 +278,7 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 		// session is not registered yet when the list row first renders.
 		existing = derived<IDroxSessionDashboardSignals>(reader => {
 			const persistent = this._persistentSessionIds.read(reader).has(sessionId);
+			const allowOutsideWorkspace = this._allowOutsideWorkspaceSessionIds.read(reader).has(sessionId);
 			// Poll + terminal tracking bumps keep lamps accurate whether this
 			// session is focused or sitting in the background.
 			this._dashboardPollTick.read(reader);
@@ -261,6 +291,7 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 					gitOperationActive: false,
 					needsInput: false,
 					backgroundPersistent: persistent,
+					allowOutsideWorkspace,
 				};
 			}
 
@@ -284,6 +315,7 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 				gitOperationActive: hasGitOperation,
 				needsInput: status === SessionStatus.NeedsInput,
 				backgroundPersistent: persistent,
+				allowOutsideWorkspace,
 			};
 		});
 
@@ -532,11 +564,12 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 		if (!toSession || toSession.providerId !== DROX_SESSIONS_PROVIDER_ID) {
 			return;
 		}
-		if (this.isPersistent(toSession.sessionId) && this._layoutSnapshots.has(toSession.sessionId)) {
-			this._suppressTerminalEnsureSessionIds.delete(toSession.sessionId);
-		} else {
-			this._suppressTerminalEnsureSessionIds.add(toSession.sessionId);
-		}
+		// Always suppress auto-ensure for the target during the switch gate.
+		// Lifting it early for persistent sessions with a layout snapshot caused
+		// `ensureTerminal` to spawn an extra shell when switching persistent↔persistent
+		// (same cwd: other session's tracked terminals are excluded → create new).
+		// `applyForegroundLayout` clears the suppress after the snapshot / template settles.
+		this._suppressTerminalEnsureSessionIds.add(toSession.sessionId);
 	}
 
 	private _sessionHasForegroundWork(session: ISession): boolean {

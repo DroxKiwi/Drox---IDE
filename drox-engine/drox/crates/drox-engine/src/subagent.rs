@@ -105,6 +105,7 @@ impl SubagentExecutor for EngineSubagentExecutor {
             workspace_root: parent_ctx.effective_workspace(),
             apply_fs_writes: false,
             plan_mode: true,
+            allow_outside_workspace: parent_ctx.allow_outside_workspace,
             user_asker: None,
             session_notes: None,
             mcp_hub: None,

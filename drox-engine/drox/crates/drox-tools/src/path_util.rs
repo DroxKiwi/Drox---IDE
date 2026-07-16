@@ -1,4 +1,4 @@
-//! Résolution de chemins sous la racine workspace.
+//! Résolution de chemins sous la racine workspace (ou hors workspace si autorisé).
 
 use std::fs;
 use std::path::Path;
@@ -11,21 +11,35 @@ fn utf8_path_buf_from_std(path: std::path::PathBuf) -> Result<Utf8PathBuf, ToolE
     Utf8PathBuf::from_path_buf(path).map_err(|_| ToolError::invalid_args("path is not valid UTF-8"))
 }
 
-/// Résout `user_path` en chemin absolu UTF-8 **contenu** dans `workspace_root`.
-pub fn resolve_under_workspace(
-    workspace_root: &Utf8Path,
-    user_path: &str,
-) -> Result<Utf8PathBuf, ToolError> {
+fn join_user_path(workspace_root: &Utf8Path, user_path: &str) -> Result<Utf8PathBuf, ToolError> {
     let trimmed = user_path.trim();
     if trimmed.is_empty() {
         return Err(ToolError::invalid_args("path must not be empty"));
     }
-
-    let joined = if Path::new(trimmed).is_absolute() {
+    Ok(if Path::new(trimmed).is_absolute() {
         Utf8PathBuf::from(trimmed)
     } else {
         workspace_root.join(trimmed)
-    };
+    })
+}
+
+/// Résout `user_path` en chemin absolu UTF-8.
+///
+/// Par défaut (`allow_outside = false`) le résultat **doit** rester sous
+/// `workspace_root`. Si `allow_outside` est vrai, les chemins absolus hors
+/// workspace sont acceptés (les relatifs restent ancrés au workspace).
+pub fn resolve_under_workspace(
+    workspace_root: &Utf8Path,
+    user_path: &str,
+    allow_outside: bool,
+) -> Result<Utf8PathBuf, ToolError> {
+    let joined = join_user_path(workspace_root, user_path)?;
+
+    if allow_outside {
+        let target_canon =
+            fs::canonicalize(joined.as_std_path()).map_err(|e| ToolError::io(joined.clone(), e))?;
+        return utf8_path_buf_from_std(target_canon);
+    }
 
     let root_canon = fs::canonicalize(workspace_root.as_std_path())
         .map_err(|e| ToolError::io(workspace_root.to_owned(), e))?;
@@ -42,24 +56,14 @@ pub fn resolve_under_workspace(
 }
 
 /// Résout un chemin cible pour **écriture** : le fichier peut ne pas exister,
-/// mais le répertoire parent doit exister et être sous `workspace_root`.
+/// mais le répertoire parent doit exister. Hors mode `allow_outside`, le parent
+/// doit être sous `workspace_root`.
 pub fn resolve_path_for_write(
     workspace_root: &Utf8Path,
     user_path: &str,
+    allow_outside: bool,
 ) -> Result<Utf8PathBuf, ToolError> {
-    let trimmed = user_path.trim();
-    if trimmed.is_empty() {
-        return Err(ToolError::invalid_args("path must not be empty"));
-    }
-
-    let joined: Utf8PathBuf = if Path::new(trimmed).is_absolute() {
-        Utf8PathBuf::from(trimmed)
-    } else {
-        workspace_root.join(trimmed)
-    };
-
-    let root_canon = fs::canonicalize(workspace_root.as_std_path())
-        .map_err(|e| ToolError::io(workspace_root.to_owned(), e))?;
+    let joined = join_user_path(workspace_root, user_path)?;
 
     let parent_utf8 = joined
         .parent()
@@ -69,12 +73,16 @@ pub fn resolve_path_for_write(
     let parent_canon = fs::canonicalize(parent_utf8.as_std_path())
         .map_err(|e| ToolError::io(parent_utf8.to_owned(), e))?;
 
-    parent_canon
-        .strip_prefix(&root_canon)
-        .map_err(|_| ToolError::PathEscape {
-            path: utf8_path_buf_from_std(parent_canon.clone())
-                .unwrap_or_else(|_| parent_utf8.to_owned()),
-        })?;
+    if !allow_outside {
+        let root_canon = fs::canonicalize(workspace_root.as_std_path())
+            .map_err(|e| ToolError::io(workspace_root.to_owned(), e))?;
+        parent_canon
+            .strip_prefix(&root_canon)
+            .map_err(|_| ToolError::PathEscape {
+                path: utf8_path_buf_from_std(parent_canon.clone())
+                    .unwrap_or_else(|_| parent_utf8.to_owned()),
+            })?;
+    }
 
     let file_name = joined
         .file_name()
@@ -168,7 +176,7 @@ mod tests {
         fs::create_dir_all(root.join("foo")).unwrap();
         let f = root.join("foo").join("bar.txt");
         fs::File::create(&f).unwrap().write_all(b"x").unwrap();
-        let resolved = resolve_under_workspace(&root, "foo/bar.txt").unwrap();
+        let resolved = resolve_under_workspace(&root, "foo/bar.txt", false).unwrap();
         assert!(resolved.as_str().contains("bar.txt"));
     }
 
@@ -193,8 +201,20 @@ mod tests {
         let outside = std::env::temp_dir().join("drox_path_escape_test.txt");
         fs::write(&outside, b"x").unwrap();
         let outside_utf8 = Utf8PathBuf::from_path_buf(outside.clone()).unwrap();
-        let err = resolve_under_workspace(&root, outside_utf8.as_str()).unwrap_err();
+        let err = resolve_under_workspace(&root, outside_utf8.as_str(), false).unwrap_err();
         assert!(matches!(err, ToolError::PathEscape { .. }));
+        let _ = fs::remove_file(&outside);
+    }
+
+    #[test]
+    fn absolute_outside_workspace_allowed_when_flag() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+        let outside = std::env::temp_dir().join("drox_path_escape_allow_test.txt");
+        fs::write(&outside, b"x").unwrap();
+        let outside_utf8 = Utf8PathBuf::from_path_buf(outside.clone()).unwrap();
+        let resolved = resolve_under_workspace(&root, outside_utf8.as_str(), true).unwrap();
+        assert!(resolved.as_str().contains("drox_path_escape_allow_test.txt"));
         let _ = fs::remove_file(&outside);
     }
 }

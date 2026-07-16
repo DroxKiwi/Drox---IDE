@@ -1938,6 +1938,41 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	color: var(--vscode-errorForeground);
 }
 
+.msg-error-with-retry {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.msg-error-retry {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 26px;
+	padding: 0 10px;
+	border: 1px solid color-mix(in srgb, var(--vscode-errorForeground) 45%, transparent);
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-errorForeground) 12%);
+	color: var(--vscode-errorForeground);
+	cursor: pointer;
+	flex-shrink: 0;
+	font: inherit;
+	font-size: 11px;
+	line-height: 1;
+	letter-spacing: 0.02em;
+}
+
+.msg-error-retry:hover {
+	border-color: var(--vscode-errorForeground);
+	background: color-mix(in srgb, var(--vscode-editor-background) 75%, var(--vscode-errorForeground) 25%);
+}
+
+.msg-error-retry:focus-visible {
+	outline: 1px solid var(--vscode-errorForeground);
+	outline-offset: 1px;
+}
+
 .msg.system {
 	opacity: 0.75;
 	font-size: 0.92em;

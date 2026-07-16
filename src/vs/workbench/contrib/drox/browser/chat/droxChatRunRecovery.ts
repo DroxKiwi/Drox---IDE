@@ -6,6 +6,7 @@
 // allow-any-unicode-comment-file
 
 import { localize } from '../../../../../nls.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IDroxAgentRunImage } from '../../common/droxAttachments.js';
@@ -121,6 +122,7 @@ type IRunRecoveryDeps = {
 	readonly droxEngineService: IDroxEngineService;
 	readonly logService: ILogService;
 	readonly runRevertService: IDroxRunRevertService;
+	readonly fileService?: IFileService;
 };
 
 function cancelActiveRunForRecovery(host: IDroxChatSendRunHost, deps: IRunRecoveryDeps): void {
@@ -200,6 +202,7 @@ async function startRecoveryRun(
 			runSettingsService: deps.runSettingsService,
 			droxEngineService: deps.droxEngineService,
 			logService: deps.logService,
+			fileService: deps.fileService,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {
 			prompt: ctx.enginePrompt || '.',

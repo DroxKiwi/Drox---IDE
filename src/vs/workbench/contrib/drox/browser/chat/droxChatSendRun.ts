@@ -24,6 +24,7 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
+import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 import {
 	offerRunRecovery,
 	persistPendingRunRecovery,
@@ -63,6 +64,7 @@ export async function executeDroxChatSend(
 		readonly logService: ILogService;
 		readonly runRevertService: IDroxRunRevertService;
 		readonly sessionService: IDroxSessionService;
+		readonly sessionBackgroundService?: IDroxSessionBackgroundService;
 	},
 	prompt: string,
 	mode: string,
@@ -185,6 +187,7 @@ export async function executeDroxChatSend(
 			runSettingsService: deps.runSettingsService,
 			droxEngineService: deps.droxEngineService,
 			logService: deps.logService,
+			fileService: deps.fileService,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {
 			prompt: finalPrompt,
@@ -192,6 +195,7 @@ export async function executeDroxChatSend(
 			mode: runMode,
 			sessionId: tabs.currentSessionId!,
 			images: imagesPayload.length > 0 ? imagesPayload : undefined,
+			allowOutsideWorkspace: deps.sessionBackgroundService?.isAllowOutsideWorkspace(tabs.currentSessionId!),
 		});
 		if (runId) {
 			host.setPendingRunStart(false);

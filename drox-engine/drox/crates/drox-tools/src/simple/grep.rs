@@ -56,7 +56,7 @@ impl Tool for GrepTool {
         let ws = ctx.effective_workspace();
         let base = match &args.path {
             None => ws.clone(),
-            Some(p) => resolve_under_workspace(&ws, p)?,
+            Some(p) => resolve_under_workspace(&ws, p, ctx.allow_outside_workspace)?,
         };
 
         if let Some(ref ignore) = ctx.drox_ignore {
