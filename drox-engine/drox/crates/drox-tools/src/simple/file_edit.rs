@@ -55,7 +55,7 @@ pub fn preview_file_edit_diff(workspace: &Utf8Path, input: &Value) -> Result<Str
         return Err(ToolError::invalid_args("edits must not be empty"));
     }
 
-    let resolved = resolve_under_workspace(workspace, &args.path)?;
+    let resolved = resolve_under_workspace(workspace, &args.path, false)?;
     let meta = std::fs::metadata(&resolved).map_err(|e| ToolError::io(resolved.clone(), e))?;
     if !meta.is_file() {
         return Err(ToolError::invalid_args(format!(
@@ -101,7 +101,11 @@ impl Tool for FileEditTool {
             return Err(ToolError::invalid_args("edits must not be empty"));
         }
 
-        let resolved = resolve_under_workspace(&ctx.effective_workspace(), &args.path)?;
+        let resolved = resolve_under_workspace(
+            &ctx.effective_workspace(),
+            &args.path,
+            ctx.allow_outside_workspace,
+        )?;
         let meta = fs::metadata(&resolved)
             .await
             .map_err(|e| ToolError::io(resolved.clone(), e))?;

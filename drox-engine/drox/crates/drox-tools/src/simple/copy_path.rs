@@ -60,8 +60,8 @@ impl Tool for CopyPathTool {
         }
 
         let ws = ctx.effective_workspace();
-        let src = resolve_under_workspace(&ws, &args.source)?;
-        let dest = resolve_path_for_write(&ws, &args.destination)?;
+        let src = resolve_under_workspace(&ws, &args.source, ctx.allow_outside_workspace)?;
+        let dest = resolve_path_for_write(&ws, &args.destination, ctx.allow_outside_workspace)?;
 
         let src_meta = fs::metadata(&src)
             .await

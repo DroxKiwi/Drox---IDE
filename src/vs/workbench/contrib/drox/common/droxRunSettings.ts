@@ -163,6 +163,7 @@ export function buildAgentRunParams(opts: {
 	readonly images?: readonly IDroxAgentRunImage[];
 	readonly runObjective?: string;
 	readonly skipUserTurn?: boolean;
+	readonly allowOutsideWorkspace?: boolean;
 }): Record<string, unknown> {
 	const wireMode = normalizeDroxPermissionMode(opts.mode);
 	const params: Record<string, unknown> = {
@@ -229,6 +230,9 @@ export function buildAgentRunParams(opts: {
 	}
 	if (opts.skipUserTurn) {
 		params.skipUserTurn = true;
+	}
+	if (opts.allowOutsideWorkspace) {
+		params.allowOutsideWorkspace = true;
 	}
 	return params;
 }

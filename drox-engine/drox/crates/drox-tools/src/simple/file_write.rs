@@ -25,7 +25,7 @@ pub struct FileWriteTool;
 /// Produit un diff unifié pour une proposition `file_write` (lecture disque sync).
 pub fn preview_file_write_diff(workspace: &Utf8Path, input: &Value) -> Result<String, ToolError> {
     let args: FileWriteInput = serde_json::from_value(input.clone())?;
-    let resolved = resolve_path_for_write(workspace, &args.path)?;
+    let resolved = resolve_path_for_write(workspace, &args.path, false)?;
     let before = std::fs::read_to_string(&resolved).unwrap_or_default();
     Ok(crate::diff_util::unified_line_diff(
         resolved.as_str(),
@@ -50,7 +50,11 @@ impl Tool for FileWriteTool {
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: FileWriteInput = serde_json::from_value(input)?;
-        let resolved = resolve_path_for_write(&ctx.effective_workspace(), &args.path)?;
+        let resolved = resolve_path_for_write(
+            &ctx.effective_workspace(),
+            &args.path,
+            ctx.allow_outside_workspace,
+        )?;
 
         if ctx.plan_mode {
             return Err(ToolError::plan_violation("file_write"));

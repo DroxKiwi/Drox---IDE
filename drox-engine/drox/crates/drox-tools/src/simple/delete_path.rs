@@ -93,7 +93,7 @@ impl Tool for DeletePathTool {
         }
 
         let ws = ctx.effective_workspace();
-        let resolved = resolve_under_workspace(&ws, &args.path)?;
+        let resolved = resolve_under_workspace(&ws, &args.path, ctx.allow_outside_workspace)?;
 
         if dangerous_removal_resolved_path(&resolved) {
             return Err(ToolError::invalid_args(

@@ -363,7 +363,11 @@ impl Tool for NotebookEditTool {
             return Err(ToolError::invalid_args("edits must not be empty"));
         }
 
-        let resolved = resolve_under_workspace(&ctx.effective_workspace(), &args.path)?;
+        let resolved = resolve_under_workspace(
+            &ctx.effective_workspace(),
+            &args.path,
+            ctx.allow_outside_workspace,
+        )?;
         ctx.deny_if_drox_ignored(&resolved)?;
         if !resolved.as_str().to_ascii_lowercase().ends_with(".ipynb") {
             return Err(ToolError::invalid_args(
@@ -454,7 +458,7 @@ pub fn preview_notebook_edit_diff(workspace: &camino::Utf8Path, input: &Value) -
         return Err(ToolError::invalid_args("edits must not be empty"));
     }
 
-    let resolved = resolve_under_workspace(workspace, &args.path)?;
+    let resolved = resolve_under_workspace(workspace, &args.path, false)?;
     if !resolved.as_str().to_ascii_lowercase().ends_with(".ipynb") {
         return Err(ToolError::invalid_args(
             "notebook_edit: path must end with .ipynb",

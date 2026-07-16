@@ -24,6 +24,11 @@ Hard rules for EVERY reply while this mode is active:
 2. The chat UI shows your native `thinking` in the **Native reasoning** fold. There is **no** separate Drox `[phase: reasoning]` phase anymore — that marker is ignored if present.
 3. All other phase rules (`reading`, `planning`, `acting`, `[phase: done]`, `todo_write` gates, micro-cycles around edits, …) stay unchanged."#;
 
+/// Injecté quand la session IDE active « accès hors workspace ».
+pub const ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT: &str = r#"# Outside-workspace access (session toggle)
+
+The user enabled **outside-workspace** access for this discussion. You **may** use absolute paths outside the project root with `file_read`, `file_edit`, `file_write`, `glob`, `grep`, `copy_path`, `delete_path`, and `bash` (e.g. to take inspiration from another local repo). Prefer absolute paths when leaving the workspace. Still refuse destructive system paths; ask via `ask_user_question` before risky deletes."#;
+
 /// System prompt par défaut. Stable, ASCII / UTF-8 sûr.
 ///
 /// Le prompt est volontairement court : chaque token gaspillé ici réduit la

@@ -71,6 +71,7 @@ impl Tool for RemoteTool {
             workspace: ctx.workspace_root.clone(),
             plan_mode: ctx.plan_mode,
             apply_fs_writes: ctx.apply_fs_writes,
+            allow_outside_workspace: ctx.allow_outside_workspace,
         };
 
         let value = self

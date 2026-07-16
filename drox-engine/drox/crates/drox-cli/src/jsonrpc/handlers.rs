@@ -476,6 +476,20 @@ async fn build_agent_setup(
         }
     }
 
+    let allow_outside = params.allow_outside_workspace.unwrap_or(false);
+    if allow_outside {
+        match &mut system_merged {
+            Some(s) => {
+                s.push_str("\n\n");
+                s.push_str(crate::prompts::ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT);
+            }
+            None => {
+                system_merged =
+                    Some(crate::prompts::ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT.to_string());
+            }
+        }
+    }
+
     let (mode, policy) = build_permission_policy(params, &workspace)?;
 
     // Mode Professeur : propositions seules côté client (`applyFsWrites: false`).
@@ -567,6 +581,7 @@ async fn build_agent_setup(
     let scope_deferred = ScopeDeferredHandle::new();
     let mut ctx = ToolContext::new(workspace.clone(), apply)
         .with_plan_mode(mode == PermissionMode::Plan)
+        .with_allow_outside_workspace(allow_outside)
         .with_user_asker(asker)
         .with_scope_deferred(scope_deferred)
         .with_workspace_map(workspace_map.clone())
