@@ -187,6 +187,7 @@ export async function executeDroxChatSend(
 			runSettingsService: deps.runSettingsService,
 			droxEngineService: deps.droxEngineService,
 			logService: deps.logService,
+			fileService: deps.fileService,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {
 			prompt: finalPrompt,

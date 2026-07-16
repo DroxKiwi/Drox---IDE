@@ -124,6 +124,23 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 		assert.strictEqual('engineTuning' in params, false);
 	});
 
+	test('buildAgentRunParams forwards optional system supplement (session notes N0)', () => {
+		const settings = readLlmSettings(createMockConfigurationService({
+			[DroxSetting.ArchitectModel]: 'qwen3:8b',
+		}), WS);
+		const params = buildAgentRunParams({
+			prompt: 'ping',
+			workspace: WS.fsPath,
+			mode: 'acceptEdits',
+			sessionId: 'ses_notes',
+			settings,
+			disabledTools: [],
+			mcpToolsEnabled: true,
+			system: '  [Session notes]\n---\nBe brief\n---  ',
+		});
+		assert.strictEqual(params.system, '[Session notes]\n---\nBe brief\n---');
+	});
+
 	test('readDroxGeneralSettingsForWebview exposes maxIterations in release path', () => {
 		const config = createMockConfigurationService({
 			[DroxSetting.MaxIterations]: 42,

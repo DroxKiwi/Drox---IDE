@@ -10,8 +10,11 @@ import { localize, localize2 } from '../../../../nls.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { ContextKeyExpr, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
+import { IEditorService, MODAL_GROUP } from '../../../../workbench/services/editor/common/editorService.js';
 import { DROX_SESSIONS_PROVIDER_ID, DroxChatSessionUri } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+import { ensureDroxSessionNotesFile } from '../../../../workbench/contrib/drox/common/droxSessionNotesFs.js';
 import { SessionIsArchivedContext, SessionProviderIdContext } from '../../../common/contextkeys.js';
 import { ISession } from '../../../services/sessions/common/session.js';
 import { SessionItemContextMenuId, SessionItemToolbarMenuId } from '../../sessions/browser/views/sessionsList.js';
@@ -101,6 +104,50 @@ registerAction2(class DroxToggleAllowOutsideWorkspaceAction extends Action2 {
 			key,
 			!backgroundService.isAllowOutsideWorkspace(key),
 		);
+	}
+});
+
+registerAction2(class DroxOpenSessionNotesAction extends Action2 {
+	constructor() {
+		super({
+			id: 'drox.sessions.openSessionNotes',
+			title: localize2('drox.openSessionNotes', "Session Notes"),
+			tooltip: localize('drox.openSessionNotes.tooltip', "Open the markdown notepad for this discussion"),
+			icon: Codicon.note,
+			menu: [{
+				id: SessionItemToolbarMenuId,
+				group: 'navigation',
+				order: 3,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}, {
+				id: SessionItemContextMenuId,
+				group: '0_pin',
+				order: 1,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}],
+		});
+	}
+
+	async run(accessor: ServicesAccessor, context?: ISession | ISession[]): Promise<void> {
+		const session = Array.isArray(context) ? context[0] : context;
+		if (!session || session.providerId !== DROX_SESSIONS_PROVIDER_ID) {
+			return;
+		}
+		const engineSessionId = droxEngineSessionKey(session);
+		const workspacePath = session.workspace.get()?.folders[0]?.workingDirectory?.fsPath;
+		if (!workspacePath || !engineSessionId.startsWith('ses_')) {
+			return;
+		}
+		const fileService = accessor.get(IFileService);
+		const editorService = accessor.get(IEditorService);
+		const uri = await ensureDroxSessionNotesFile(fileService, workspacePath, engineSessionId);
+		if (!uri) {
+			return;
+		}
+		await editorService.openEditor({
+			resource: uri,
+			options: { pinned: true },
+		}, MODAL_GROUP);
 	}
 });
 

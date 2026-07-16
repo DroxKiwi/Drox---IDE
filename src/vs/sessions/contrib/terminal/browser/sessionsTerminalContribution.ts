@@ -406,6 +406,20 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 	}
 
 	/**
+	 * Re-opens tracked shells for a session in the editor without creating new ones.
+	 * Used after restoring a background-persistent layout snapshot.
+	 */
+	async revealSessionTerminals(sessionId: string): Promise<void> {
+		const instances = this._getTrackedTerminalsForSession(sessionId);
+		if (instances.length === 0) {
+			return;
+		}
+		for (const instance of instances) {
+			await this._openTerminalInEditor(instance, false);
+		}
+	}
+
+	/**
 	 * Associates a terminal editor tab with the active session (or the given session).
 	 * Used when tabs are restored from a session working set or opened outside
 	 * {@link ensureTerminal} / {@link openNewTerminal}.

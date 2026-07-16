@@ -1,16 +1,30 @@
-# 1.5.15 — Accès hors workspace (toggle session)
+# 1.5.15 — Hors workspace · Retry · Carnet de session
 
-**Statut** : en cours  
-**Version** : `droxVersion` **1.5.15**
+**Statut** : en cours (code RT+NB en place)  
+**Version** : `droxVersion` **1.5.15**  
+**Plan** : [PLAN-1.5.15.md](PLAN-1.5.15.md)  
+**Trace Rust** : [ENGINE-RUST-1.5.15.md](ENGINE-RUST-1.5.15.md) — OW uniquement ; **RT + NB = zéro Rust**
 
-## Objectif
+## Piliers
 
-Sur la carte / historique de session (même barre d’icônes que la persistance background), une **icône** permet d’autoriser le modèle à lire / écrire / naviguer **hors** du répertoire workspace de la discussion.
+| # | Sujet | Statut |
+|---|--------|--------|
+| **OW** | Toggle session — accès hors workspace (cadenas) | ✅ livré |
+| **RT** | Retry sur erreur moteur (502…) — Agents + IDE | ✅ implémenté |
+| **NB** | Carnet markdown par discussion (icône note, modal, `.drox/sessions`) | ✅ N0 (injection `system`) |
 
-Par défaut : confinement workspace inchangé (`path escapes workspace`).
+## Retry (RT)
 
-## Livrables
+- **IDE** : bouton **Retry** sur la bulle d’erreur → `restartRunAfterError` (truncate + `skipUserTurn`)
+- **Agents** : `errorDetails.confirmationButtons` → restore dernier prompt + truncate + `skipUserTurn`
 
-- [ ] Toggle session (toolbar)
-- [ ] Flag `allowOutsideWorkspace` → `agent.run` + tools Rust / client
-- [ ] Supplément prompt quand activé
+## Carnet (NB)
+
+- Fichier : `.drox/sessions/<ses_*>.notes.md` (template EN)
+- Toolbar : `Codicon.note` → Modal Editor (`MODAL_GROUP` scoped)
+- Injection : `startDroxAgentRun` lit le carnet et envoie `system` (plafond 12 KiB)
+- Delete : inclus dans `droxSessionArtifactPaths`
+
+## Moteur
+
+**Décision** : N0 — **aucune** modif Rust pour RT/NB. Seul OW touche le crate (voir audit).

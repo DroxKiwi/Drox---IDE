@@ -10,6 +10,33 @@
 
 	let activeRecoveryMessageId = null;
 
+	fn.attachErrorRetryAction = function (errorEl) {
+		if (!errorEl || D.state.uiReplayActive) {
+			return;
+		}
+		const messageId = activeRecoveryMessageId
+			|| fn.findLastUserMessageRow?.()?.dataset?.msgId
+			|| '';
+		if (!messageId) {
+			return;
+		}
+		if (errorEl.querySelector('.msg-error-retry')) {
+			return;
+		}
+		errorEl.classList.add('msg-error-with-retry');
+		const retryBtn = document.createElement('button');
+		retryBtn.type = 'button';
+		retryBtn.className = 'msg-error-retry';
+		retryBtn.textContent = 'Retry';
+		retryBtn.title = 'Clear the error and re-run the last user message';
+		retryBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			D.vscode.postMessage({ type: 'restartRunAfterError', messageId });
+		});
+		errorEl.appendChild(retryBtn);
+	};
+
 	fn.findUserRowByMessageId = function (messageId) {
 		const id = String(messageId || '').trim();
 		if (!id || !D.dom.logEl) {
@@ -158,10 +185,16 @@
 		}
 		if (row) {
 			fn.attachRunRecoveryActions(row, id || row.dataset.msgId);
-			return;
-		}
-		if (id) {
+		} else if (id) {
 			activeRecoveryMessageId = id;
+		}
+		const log = D.dom.logEl;
+		if (log) {
+			const errors = log.querySelectorAll('.msg.error');
+			const lastError = errors.length > 0 ? errors[errors.length - 1] : null;
+			if (lastError) {
+				fn.attachErrorRetryAction?.(lastError);
+			}
 		}
 	};
 
