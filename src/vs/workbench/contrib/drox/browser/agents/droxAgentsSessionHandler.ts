@@ -45,8 +45,9 @@ import { parseDroxAgentsModelIdentifier } from '../../common/droxAgentsModels.js
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { isListableDroxSessionId } from '../../common/droxSession.js';
 import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js';
+import { IDroxAgentRunImage } from '../../common/droxAttachments.js';
 import { prepareDroxNativeChatRunPrompt, extractImageAttachmentPayloads } from '../../common/droxNativeChatRequestAttachments.js';
-import { buildUserPromptStickyPayload } from '../../common/chat/droxUserPromptSticky.js';
+import { buildUserPromptStickyPayload } from '../../common/droxUserPromptSticky.js';
 import { generateUuid } from '../../../../../base/common/uuid.js';
 import { createDroxAgentsChatSink, shouldHandleDroxAgentsEngineNotification } from './droxAgentsChatSink.js';
 import { DroxNativeUiReplayRecorder } from './droxNativeUiReplayRecorder.js';
@@ -54,9 +55,21 @@ import { IDroxAgentsChatUiStatsService } from './droxAgentsChatUiStatsService.js
 import { IDroxSessionChangesBridge } from '../../common/droxSessionChangesBridge.js';
 import { buildDroxAgentsHistoryFromTranscript, buildDroxAgentsHistoryFromUiReplay } from './droxAgentsUiReplayHistory.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
+import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
+import { droxWorkspaceSessionsDir } from '../../common/droxWorkspacePaths.js';
 
 /** Derniers tours user chargés à l'ouverture (évite un modèle chat géant en prod). */
 const DROX_AGENTS_SESSION_INITIAL_TAIL_TURNS = 25;
+
+const DROX_AGENTS_RETRY_DATA = { droxAgentsRetry: true as const };
+
+interface IDroxAgentsLastRunContext {
+	readonly prompt: string;
+	readonly images?: readonly IDroxAgentRunImage[];
+	readonly mode: string;
+	readonly workspacePath: string;
+	readonly engineSessionId: string;
+}
 
 class DroxAgentsChatSession implements IChatSession {
 
@@ -79,6 +92,8 @@ class DroxAgentsChatSession implements IChatSession {
 
 export class DroxAgentsSessionHandler extends Disposable implements IChatSessionContentProvider {
 
+	private readonly _lastRunBySession = new Map<string, IDroxAgentsLastRunContext>();
+
 	constructor(
 		@IChatAgentService private readonly chatAgentService: IChatAgentService,
 		@IChatService private readonly chatService: IChatService,
@@ -95,6 +110,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxAttachmentsService private readonly attachmentsService: IDroxAttachmentsService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IDroxSessionChangesBridge private readonly sessionChangesBridge: IDroxSessionChangesBridge,
+		@IDroxSessionBackgroundService private readonly sessionBackgroundService: IDroxSessionBackgroundService,
 	) {
 		super();
 		this._registerAgent();
@@ -204,46 +220,83 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			};
 		}
 
+		const sessionKey = request.sessionResource.toString();
+		const isRetry = (request.acceptedConfirmationData ?? []).some(d =>
+			!!d && typeof d === 'object' && (d as { droxAgentsRetry?: boolean }).droxAgentsRetry === true
+		);
+		const lastRun = this._lastRunBySession.get(sessionKey);
+
 		const mode = this.runSettingsService.getPermissionMode();
 		this.userAskService.setActivePermissionMode(mode);
 		this.userAskService.attachAgentsProgress(progress);
 
-		const modelName = request.userSelectedModelId
-			? parseDroxAgentsModelIdentifier(request.userSelectedModelId)
-			: undefined;
-		const preparedPrompt = await prepareDroxNativeChatRunPrompt(this.attachmentsService, this.fileService, {
-			message: request.message,
-			variables: request.variables,
-			workspaceRoot: workspacePath,
-			modelName,
-		});
-		if (!preparedPrompt.ok) {
-			this.notificationService.error(preparedPrompt.message);
-			return { errorDetails: { message: preparedPrompt.message } };
+		let runPrompt: string;
+		let runImages: readonly IDroxAgentRunImage[] | undefined;
+		let skipUserTurn = false;
+
+		if (isRetry) {
+			if (!lastRun) {
+				return {
+					errorDetails: {
+						message: localize('droxAgents.retryUnavailable', 'Cannot retry — no previous run to restore.'),
+					},
+				};
+			}
+			runPrompt = lastRun.prompt;
+			runImages = lastRun.images;
+			skipUserTurn = true;
+			try {
+				await this.droxEngineService.request('session.truncateAfterLastUser', {
+					id: engineSessionId,
+					dir: droxWorkspaceSessionsDir(workspacePath),
+				});
+			} catch (e) {
+				this.logService.warn('[Drox Agents] truncateAfterLastUser before retry failed', e);
+			}
+		} else {
+			const modelName = request.userSelectedModelId
+				? parseDroxAgentsModelIdentifier(request.userSelectedModelId)
+				: undefined;
+			const preparedPrompt = await prepareDroxNativeChatRunPrompt(this.attachmentsService, this.fileService, {
+				message: request.message,
+				variables: request.variables,
+				workspaceRoot: workspacePath,
+				modelName,
+			});
+			if (!preparedPrompt.ok) {
+				this.notificationService.error(preparedPrompt.message);
+				return { errorDetails: { message: preparedPrompt.message } };
+			}
+			runPrompt = preparedPrompt.prompt;
+			runImages = preparedPrompt.images;
 		}
 
 		const uiReplayRecorder = new DroxNativeUiReplayRecorder(this.sessionService, engineSessionId, workspacePath);
-		const imagePayloads = extractImageAttachmentPayloads(request.variables);
-		const wireImages = imagePayloads.length > 0
-			? imagePayloads.map(img => ({
-				relPath: img.name ?? 'image',
-				dataUrl: img.dataUrl ?? '',
-			})).filter(img => img.dataUrl.length > 0)
-			: undefined;
-		const displayed = request.message;
-		const trimmed = displayed.trim();
-		uiReplayRecorder.record({
-			kind: 'userPromptSticky',
-			...buildUserPromptStickyPayload(displayed, trimmed, imagePayloads.length),
-		});
-		uiReplayRecorder.record({ kind: 'clearAssistant' });
-		uiReplayRecorder.record({
-			kind: 'append',
-			role: 'user',
-			text: displayed,
-			messageId: `msg_${generateUuid()}`,
-			images: wireImages,
-		});
+		if (!isRetry) {
+			const imagePayloads = extractImageAttachmentPayloads(request.variables);
+			const wireImages = imagePayloads.length > 0
+				? imagePayloads.map(img => ({
+					relPath: img.name ?? 'image',
+					dataUrl: img.dataUrl ?? '',
+				})).filter(img => img.dataUrl.length > 0)
+				: undefined;
+			const displayed = request.message;
+			const trimmed = displayed.trim();
+			uiReplayRecorder.record({
+				kind: 'userPromptSticky',
+				...buildUserPromptStickyPayload(displayed, trimmed, imagePayloads.length),
+			});
+			uiReplayRecorder.record({ kind: 'clearAssistant' });
+			uiReplayRecorder.record({
+				kind: 'append',
+				role: 'user',
+				text: displayed,
+				messageId: `msg_${generateUuid()}`,
+				images: wireImages,
+			});
+		} else {
+			uiReplayRecorder.record({ kind: 'clearAssistant' });
+		}
 
 		const sink = createDroxAgentsChatSink(progress, {
 			workspaceRoot: workspacePath,
@@ -258,7 +311,16 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			runSettingsService: this.runSettingsService,
 			droxEngineService: this.droxEngineService,
 			logService: this.logService,
+			fileService: this.fileService,
 		};
+
+		this._lastRunBySession.set(sessionKey, {
+			prompt: runPrompt,
+			images: runImages,
+			mode,
+			workspacePath,
+			engineSessionId,
+		});
 
 		let activeRunId: string | undefined;
 		const notificationStore = new DisposableStore();
@@ -290,18 +352,16 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 
 		try {
 			const runId = await startDroxAgentRun(bridgeDeps, {
-				prompt: preparedPrompt.prompt,
+				prompt: runPrompt,
 				workspace: workspacePath,
 				mode,
 				sessionId: engineSessionId,
-				images: preparedPrompt.images,
+				images: runImages,
+				skipUserTurn: skipUserTurn || undefined,
+				allowOutsideWorkspace: this.sessionBackgroundService.isAllowOutsideWorkspace(engineSessionId),
 			});
 			if (!runId) {
-				return {
-					errorDetails: {
-						message: localize('droxAgents.runStartFailed', 'Drox could not start an agent run.'),
-					},
-				};
+				return this._retryableError(localize('droxAgents.runStartFailed', 'Drox could not start an agent run.'));
 			}
 			activeRunId = runId;
 			registerDroxAgentsWindowRun(runId);
@@ -311,7 +371,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 
 			const done = await this._waitForRunDone(runId, token);
 			if (done.status === 'error' && done.error) {
-				return { errorDetails: { message: done.error } };
+				return this._retryableError(done.error);
 			}
 			return {};
 		} catch (e) {
@@ -320,7 +380,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			}
 			const message = e instanceof Error ? e.message : String(e);
 			this.logService.error('[Drox Agents] invoke failed', e);
-			return { errorDetails: { message } };
+			return this._retryableError(message);
 		} finally {
 			notificationStore.dispose();
 			this.userAskService.attachAgentsProgress(undefined);
@@ -333,6 +393,19 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			}
 			this.userAskService.setActivePermissionMode(undefined);
 		}
+	}
+
+	private _retryableError(message: string): IChatAgentResult {
+		return {
+			errorDetails: {
+				message,
+				isExpectedError: true,
+				confirmationButtons: [{
+					label: localize('droxAgents.retry', "Retry"),
+					data: DROX_AGENTS_RETRY_DATA,
+				}],
+			},
+		};
 	}
 
 	private _waitForRunDone(runId: string, token: CancellationToken): Promise<{ status?: string; error?: string }> {

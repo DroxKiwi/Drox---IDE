@@ -28,6 +28,7 @@ export interface IDroxSessionDashboardSignals {
 	readonly gitOperationActive: boolean;
 	readonly needsInput: boolean;
 	readonly backgroundPersistent: boolean;
+	readonly allowOutsideWorkspace: boolean;
 }
 
 export interface IDroxSessionResourceMetricsView {
@@ -47,9 +48,13 @@ export interface IDroxSessionBackgroundService {
 	readonly _serviceBrand: undefined;
 
 	readonly persistentSessionIds: IObservable<ReadonlySet<string>>;
+	readonly allowOutsideWorkspaceSessionIds: IObservable<ReadonlySet<string>>;
 
 	isPersistent(sessionId: string): boolean;
 	setPersistent(sessionId: string, value: boolean): void;
+
+	isAllowOutsideWorkspace(sessionId: string): boolean;
+	setAllowOutsideWorkspace(sessionId: string, value: boolean): void;
 
 	hasLayoutSnapshot(sessionId: string): boolean;
 

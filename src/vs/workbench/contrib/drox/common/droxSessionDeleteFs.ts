@@ -10,6 +10,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { isListableDroxSessionId } from './droxSession.js';
 import { droxSessionChangesPanelPath } from './droxSessionChangesPanelStore.js';
+import { droxSessionNotesPath } from './droxSessionNotesFs.js';
 import { droxSessionRunRecoveryPath } from './droxRunRecoveryPersist.js';
 import { droxSessionUiReplayPath } from './droxUiReplayJournal.js';
 import { droxWorkspaceSessionsDir } from './droxWorkspacePaths.js';
@@ -21,6 +22,7 @@ export function droxSessionArtifactPaths(workspaceFsPath: string, sessionId: str
 		join(sessionsDir, `${sessionId}.jsonl`),
 		join(sessionsDir, `${sessionId}.meta.json`),
 		join(sessionsDir, `${sessionId}.ui-stats.json`),
+		droxSessionNotesPath(workspaceFsPath, sessionId),
 		droxSessionUiReplayPath(workspaceFsPath, sessionId),
 		droxSessionRunRecoveryPath(workspaceFsPath, sessionId),
 		droxSessionChangesPanelPath(workspaceFsPath, sessionId),

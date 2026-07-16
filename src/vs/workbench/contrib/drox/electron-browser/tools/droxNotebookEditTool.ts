@@ -50,7 +50,7 @@ export function createDroxNotebookEditToolHandler(
 
 		let absPath: string;
 		try {
-			absPath = await resolveExistingFileUnderWorkspace(fileService, p.workspace, args.path);
+			absPath = await resolveExistingFileUnderWorkspace(fileService, p.workspace, args.path, !!p.allowOutsideWorkspace);
 		} catch (e) {
 			return {
 				output: { error: e instanceof Error ? e.message : String(e) },

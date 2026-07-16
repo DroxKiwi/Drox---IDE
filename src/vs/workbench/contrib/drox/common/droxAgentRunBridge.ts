@@ -5,11 +5,16 @@
 
 // allow-any-unicode-comment-file
 
+import { IFileService } from '../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IDroxAgentRunImage } from './droxAttachments.js';
 import { IDroxClientToolsService } from './droxClientToolsService.js';
 import { IDroxEngineService } from './droxEngineService.js';
 import { IDroxRunSettingsService } from './droxRunSettingsService.js';
+import {
+	ensureDroxSessionNotesFile,
+	readDroxSessionNotesSystemSupplement,
+} from './droxSessionNotesFs.js';
 import { truncateUserPromptForEngine } from './droxUserPromptEngine.js';
 
 export interface IDroxAgentRunBridgeDeps {
@@ -17,6 +22,8 @@ export interface IDroxAgentRunBridgeDeps {
 	readonly runSettingsService: IDroxRunSettingsService;
 	readonly droxEngineService: IDroxEngineService;
 	readonly logService: ILogService;
+	/** Optionnel : carnet session (N0) injecté dans `system`. */
+	readonly fileService?: IFileService;
 }
 
 export interface IDroxAgentRunStartOptions {
@@ -27,6 +34,9 @@ export interface IDroxAgentRunStartOptions {
 	readonly images?: readonly IDroxAgentRunImage[];
 	readonly skipUserTurn?: boolean;
 	readonly runObjective?: string;
+	readonly allowOutsideWorkspace?: boolean;
+	/** Override system (sinon chargé depuis le carnet si `fileService` présent). */
+	readonly system?: string;
 }
 
 /** Initialise `drox.exe` pour un run agent (tools exécutables + ask interactif). */
@@ -45,6 +55,15 @@ export async function startDroxAgentRun(
 	options: IDroxAgentRunStartOptions,
 ): Promise<string | undefined> {
 	await initializeDroxEngineForAgentRun(deps);
+	let system = options.system;
+	if (!system?.trim() && deps.fileService) {
+		await ensureDroxSessionNotesFile(deps.fileService, options.workspace, options.sessionId);
+		system = await readDroxSessionNotesSystemSupplement(
+			deps.fileService,
+			options.workspace,
+			options.sessionId,
+		);
+	}
 	const runParams = deps.runSettingsService.buildAgentRunParams({
 		prompt: truncateUserPromptForEngine(options.prompt),
 		workspace: options.workspace,
@@ -53,6 +72,8 @@ export async function startDroxAgentRun(
 		images: options.images && options.images.length > 0 ? [...options.images] : undefined,
 		skipUserTurn: options.skipUserTurn,
 		runObjective: options.runObjective,
+		allowOutsideWorkspace: options.allowOutsideWorkspace,
+		system: system?.trim() ? system : undefined,
 	});
 	const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 	if (typeof result?.runId === 'string') {

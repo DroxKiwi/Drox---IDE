@@ -28,6 +28,9 @@ export interface IDroxToolExecParams {
 
 	readonly applyFsWrites?: boolean;
 
+	/** Session toggle: allow absolute paths outside the workspace. */
+	readonly allowOutsideWorkspace?: boolean;
+
 }
 
 

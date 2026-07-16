@@ -48,12 +48,17 @@
 			return userEl;
 		}
 		el.className = `msg ${role}`;
-		el.textContent = text;
 		if (role === 'error') {
+			const textSpan = document.createElement('span');
+			textSpan.className = 'msg-error-text';
+			textSpan.textContent = text;
+			el.appendChild(textSpan);
 			fn.appendChatIssue?.(el, text);
+			fn.attachErrorRetryAction?.(el);
 			fn.scrollLog();
 			return el;
 		}
+		el.textContent = text;
 		fn.appendToLog?.(el);
 		fn.scrollLog();
 		return el;

@@ -88,6 +88,7 @@ import { IDroxSessionChangesBridge } from '../../../../../workbench/contrib/drox
 import { IDroxSessionChangesDetailService } from '../../../../../workbench/contrib/drox/common/droxSessionChangesDetailService.js';
 import { IDroxSessionChangesPanelService } from '../../../../../workbench/contrib/drox/common/droxSessionChangesPanelService.js';
 import { readDroxSessionMeta, writeDroxSessionMeta } from '../../../../../workbench/contrib/drox/common/droxSessionMetaFs.js';
+import { ensureDroxSessionNotesFile } from '../../../../../workbench/contrib/drox/common/droxSessionNotesFs.js';
 import { buildAggregatedSessionFileChanges } from '../../../../../workbench/contrib/drox/common/droxSessionChangesAggregate.js';
 import {
 	loadDroxGitUncommittedChanges,
@@ -839,6 +840,11 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 		this._newSessions.set(session.sessionId, session);
 		this._ensureGitWatch(session);
+		const engineSessionId = DroxChatSessionUri.parseSessionId(session.resource);
+		const workspacePath = session.workingDirectory?.fsPath;
+		if (engineSessionId && workspacePath) {
+			void ensureDroxSessionNotesFile(this.fileService, workspacePath, engineSessionId);
+		}
 		return this._toISession(session);
 	}
 

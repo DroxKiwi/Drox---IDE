@@ -26,10 +26,10 @@ pub struct ToolContext {
     /// écrivent réellement. Sinon, ils retournent uniquement une proposition
     /// JSON (mode client / preview).
     pub apply_fs_writes: bool,
-    /// Si `true`, **aucun** tool d'écriture ne peut s'exécuter : ils retournent
-    /// `ToolError::PlanModeViolation`. Utilisé pendant la phase de planification
-    /// en mode plan.
+    /// Si `true`, les tools d'écriture refusent d'écrire (`PlanModeViolation`).
     pub plan_mode: bool,
+    /// Si `true`, les tools fs acceptent des chemins absolus hors workspace.
+    pub allow_outside_workspace: bool,
     /// Mécanisme optionnel pour poser une question à l'humain (utilisé par
     /// `ask_user_question` et `exit_plan_mode`).
     pub user_asker: Option<Arc<dyn UserAsker>>,
@@ -62,6 +62,7 @@ impl ToolContext {
             workspace_root,
             apply_fs_writes,
             plan_mode: false,
+            allow_outside_workspace: false,
             user_asker: None,
             session_notes: None,
             mcp_hub: None,
@@ -85,6 +86,13 @@ impl ToolContext {
     #[must_use]
     pub const fn with_plan_mode(mut self, plan_mode: bool) -> Self {
         self.plan_mode = plan_mode;
+        self
+    }
+
+    /// Builder : autorise les chemins hors workspace (fs tools).
+    #[must_use]
+    pub const fn with_allow_outside_workspace(mut self, allow: bool) -> Self {
+        self.allow_outside_workspace = allow;
         self
     }
 
@@ -167,6 +175,7 @@ impl std::fmt::Debug for ToolContext {
             .field("workspace_root", &self.workspace_root)
             .field("apply_fs_writes", &self.apply_fs_writes)
             .field("plan_mode", &self.plan_mode)
+            .field("allow_outside_workspace", &self.allow_outside_workspace)
             .field("user_asker", &self.user_asker.as_ref().map(|_| "<asker>"))
             .field(
                 "session_notes",

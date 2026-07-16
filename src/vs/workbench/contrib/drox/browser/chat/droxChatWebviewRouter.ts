@@ -195,6 +195,7 @@ export async function routeDroxChatWebviewMessage(
 				droxEngineService: deps.droxEngineService,
 				logService: deps.logService,
 				runRevertService: deps.runRevertService,
+				fileService: deps.fileService,
 			}, raw.messageId);
 			break;
 		case 'restartRunAfterError':
@@ -206,6 +207,7 @@ export async function routeDroxChatWebviewMessage(
 				droxEngineService: deps.droxEngineService,
 				logService: deps.logService,
 				runRevertService: deps.runRevertService,
+				fileService: deps.fileService,
 			}, raw.messageId);
 			break;
 		case 'undoFileChange':

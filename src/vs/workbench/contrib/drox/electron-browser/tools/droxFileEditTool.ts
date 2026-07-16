@@ -61,7 +61,7 @@ export function createDroxFileEditToolHandler(host: DroxFileToolHost, fileServic
 
 		try {
 
-			absPath = await resolveExistingFileUnderWorkspace(fileService, p.workspace, args.path);
+			absPath = await resolveExistingFileUnderWorkspace(fileService, p.workspace, args.path, !!p.allowOutsideWorkspace);
 
 		} catch (e) {
 
