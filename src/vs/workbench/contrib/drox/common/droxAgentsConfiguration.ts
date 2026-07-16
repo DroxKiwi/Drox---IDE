@@ -204,14 +204,6 @@ export function isDroxNativeChatStackEnabled(configurationService: IConfiguratio
 	return isDroxAgentsWindowEnabled(configurationService) || isDroxIdeNativeChatTabEnabled(configurationService);
 }
 
-/**
- * Fenêtre Agents Drox : l'agencement UI (panneaux, éditeurs, terminaux) ne change pas
- * au switch de discussion — seulement quand l'utilisateur le modifie explicitement.
- */
-export function isDroxAgentsStableWindowLayout(configurationService: IConfigurationService): boolean {
-	return isDroxAgentsWindowEnabled(configurationService);
-}
-
 /** Fenêtre Agents Drox : pas de compte GitHub / Copilot requis (`drox.exe` local). */
 export function shouldSkipDroxSessionsSignIn(productService: Pick<IProductService, 'droxMicrosoftAgentsSurfaceEnabled'>): boolean {
 	return productService.droxMicrosoftAgentsSurfaceEnabled !== true;

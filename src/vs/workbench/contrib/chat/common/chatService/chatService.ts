@@ -259,6 +259,12 @@ export interface IChatProgressMessage {
 	shimmer?: boolean;
 }
 
+/** Drox native run warmup — grille + phrase avant le 1er token/tool. */
+export interface IChatDroxWarmupPart {
+	kind: 'droxWarmup';
+	phrase: string;
+}
+
 export interface IChatTask extends IChatTaskDto {
 	deferred: DeferredPromise<string | void>;
 	progress: (IChatWarningMessage | IChatContentReference)[];
@@ -1271,6 +1277,7 @@ export type IChatProgress =
 	| IChatContentInlineReference
 	| IChatCodeCitation
 	| IChatProgressMessage
+	| IChatDroxWarmupPart
 	| IChatTask
 	| IChatTaskResult
 	| IChatCommandButton

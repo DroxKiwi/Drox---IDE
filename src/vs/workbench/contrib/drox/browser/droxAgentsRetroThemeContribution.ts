@@ -6,6 +6,7 @@
 // allow-any-unicode-comment-file
 
 import './media/droxAgentsRetroTheme.css';
+import './media/droxLoadingKit.css';
 import './agents/media/droxNativeFileChange.css';
 import '../common/droxAgentsThemeColors.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';

@@ -12,9 +12,8 @@ import { ResourceMap } from '../../../../base/common/map.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { observableConfigValue } from '../../../../platform/observable/common/platformObservableUtils.js';
-import { IStorageService, StorageScope, StorageTarget, WillSaveStateReason } from '../../../../platform/storage/common/storage.js';
+import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { isDroxAgentsStableWindowLayout } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IEditorGroupsService, IEditorWorkingSet } from '../../../../workbench/services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../../workbench/services/editor/common/editorService.js';
 import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
@@ -48,10 +47,8 @@ interface ISessionLayoutEntry {
 const SESSION_LAYOUT_STATE_KEY = 'sessions.layoutState';
 /** Legacy key — read on startup for migration only. */
 const WORKING_SETS_STORAGE_KEY = 'sessions.workingSets';
-
-/** Drox Agents: single shared editor area — persisted across app restarts. */
-const DROX_STABLE_EDITOR_WORKING_SET_REF_KEY = 'sessions.droxStableEditorWorkingSet';
-const DROX_STABLE_LAYOUT_ANCHOR = URI.from({ scheme: 'drox-agents-stable', path: '/editor-layout' });
+/** Deprecated Drox stable-layout key — removed on load (per-session layout is restored). */
+const LEGACY_DROX_STABLE_EDITOR_WORKING_SET_KEY = 'sessions.droxStableEditorWorkingSet';
 
 /**
  * Shared, platform-agnostic per-session layout state management. The behaviour
@@ -90,17 +87,11 @@ export abstract class BaseLayoutController extends Disposable {
 	) {
 		super();
 
-		const stableWindowLayout = isDroxAgentsStableWindowLayout(this._configurationService);
-
 		// [B3] Restore persisted state (with one-time legacy migration).
-		if (!stableWindowLayout) {
-			this._loadState();
-		}
+		this._loadState();
 
 		// [B4] Persist on shutdown.
-		if (!stableWindowLayout) {
-			this._register(this._storageService.onWillSaveState(() => this._saveState()));
-		}
+		this._register(this._storageService.onWillSaveState(() => this._saveState()));
 
 		// All session-switch logic is observable-driven.
 		this.activeSessionResourceObs = derivedOpts<URI | undefined>({
@@ -115,12 +106,6 @@ export abstract class BaseLayoutController extends Disposable {
 		});
 
 		this._useModalConfigObs = observableConfigValue<'off' | 'some' | 'all'>('workbench.editor.useModal', 'all', this._configurationService);
-
-		if (stableWindowLayout) {
-			this._registerDroxStableWindowLayout();
-			this._registerViewStateManagement();
-			return;
-		}
 
 		// [B5] When multiple sessions are visible, drop per-session view/panel state
 		// for each visible session (editor working sets are preserved). This ensures
@@ -198,16 +183,19 @@ export abstract class BaseLayoutController extends Disposable {
 
 			// [B2] Session changed (save, apply)
 			reader.store.add(runOnChange(activeSessionForWorkingSet, (session, previousSession) => {
-				// Save working set for previous session (skip for untitled sessions)
+				// Save working set for previous session (skip for untitled sessions).
+				// No-op when editors were already cleared (see `_saveWorkingSet`).
 				if (previousSession && previousSession.status.read(undefined) !== SessionStatus.Untitled) {
 					this._saveWorkingSet(previousSession.resource);
 				}
 
-				// Apply working set for current session.
-				// On initial load (no previous session), only apply if we have a saved working set —
-				// skip applying 'empty' to avoid closing editors that are being restored.
-				if (previousSession || (session && this._workingSets.has(session.resource))) {
-					void this._applyWorkingSet(session?.resource, { isInitialRestore: !previousSession });
+				// Only restore when we have a saved working set. Applying `'empty'` on every
+				// switch races with Plan B Drox snapshots after cross-directory workspace
+				// settle and wipes restored editors. Clearing the shared editor area for
+				// sessions without a working set is owned by Drox `applyForegroundLayout`
+				// (default template) / explicit `forgetSessionLayout`.
+				if (session && this._workingSets.has(session.resource)) {
+					void this._applyWorkingSet(session.resource, { isInitialRestore: !previousSession });
 				}
 			}));
 
@@ -233,79 +221,6 @@ export abstract class BaseLayoutController extends Disposable {
 	protected _registerViewStateManagement(): void { }
 
 	/**
-	 * Drox Agents window: one shared editor + panel area across discussions.
-	 * Persist the live editor working set on shutdown and restore it once the
-	 * active session is back after a cold start (per-session switching stays disabled).
-	 */
-	private _registerDroxStableWindowLayout(): void {
-		this._loadStableEditorWorkingSetRef();
-
-		this._register(this._storageService.onWillSaveState(e => {
-			if (e.reason === WillSaveStateReason.SHUTDOWN) {
-				this._persistStableEditorWorkingSet();
-			}
-		}));
-
-		let restored = false;
-		this._register(autorun(reader => {
-			if (restored) {
-				return;
-			}
-			const session = this._sessionsService.activeSession.read(reader);
-			if (!session || session.isCreated.read(reader) === false) {
-				return;
-			}
-			if (!this._workingSets.has(DROX_STABLE_LAYOUT_ANCHOR)) {
-				restored = true;
-				return;
-			}
-			restored = true;
-			void this._restoreStableEditorWorkingSet();
-		}));
-	}
-
-	private _loadStableEditorWorkingSetRef(): void {
-		const raw = this._storageService.get(DROX_STABLE_EDITOR_WORKING_SET_REF_KEY, StorageScope.WORKSPACE);
-		if (!raw) {
-			return;
-		}
-		try {
-			const workingSet = JSON.parse(raw) as IEditorWorkingSet;
-			if (workingSet?.id && workingSet.name) {
-				this._workingSets.set(DROX_STABLE_LAYOUT_ANCHOR, workingSet);
-			}
-		} catch {
-			this._storageService.remove(DROX_STABLE_EDITOR_WORKING_SET_REF_KEY, StorageScope.WORKSPACE);
-		}
-	}
-
-	private _persistStableEditorWorkingSet(): void {
-		if (this._editorService.visibleEditors.length === 0) {
-			this._deleteWorkingSet(DROX_STABLE_LAYOUT_ANCHOR);
-			this._storageService.remove(DROX_STABLE_EDITOR_WORKING_SET_REF_KEY, StorageScope.WORKSPACE);
-			return;
-		}
-
-		this._deleteWorkingSet(DROX_STABLE_LAYOUT_ANCHOR);
-		const workingSet = this._editorGroupsService.saveWorkingSet('drox-agents-stable-window');
-		this._workingSets.set(DROX_STABLE_LAYOUT_ANCHOR, workingSet);
-		this._storageService.store(
-			DROX_STABLE_EDITOR_WORKING_SET_REF_KEY,
-			JSON.stringify(workingSet),
-			StorageScope.WORKSPACE,
-			StorageTarget.MACHINE,
-		);
-	}
-
-	private async _restoreStableEditorWorkingSet(): Promise<void> {
-		await this._applyWorkingSet(DROX_STABLE_LAYOUT_ANCHOR, { isInitialRestore: true });
-		if (this._editorService.visibleEditors.length > 0 && !this._layoutService.isVisible(Parts.EDITOR_PART, mainWindow)) {
-			this._revealEditorPartForWorkingSet();
-		}
-		this._layoutService.layout();
-	}
-
-	/**
 	 * [B4] Hook that lets a subclass snapshot the active session's view state when
 	 * state is about to be persisted. The base implementation does nothing.
 	 */
@@ -324,6 +239,10 @@ export abstract class BaseLayoutController extends Disposable {
 	// --- Persistence [B3] ---
 
 	private _loadState(): void {
+		if (this._storageService.get(LEGACY_DROX_STABLE_EDITOR_WORKING_SET_KEY, StorageScope.WORKSPACE)) {
+			this._storageService.remove(LEGACY_DROX_STABLE_EDITOR_WORKING_SET_KEY, StorageScope.WORKSPACE);
+		}
+
 		// Load from new key first
 		const raw = this._storageService.get(SESSION_LAYOUT_STATE_KEY, StorageScope.WORKSPACE);
 		if (raw) {
@@ -471,13 +390,17 @@ export abstract class BaseLayoutController extends Disposable {
 	}
 
 	private _saveWorkingSet(sessionResource: URI): void {
-		this._deleteWorkingSet(sessionResource);
-
-		if (this._editorService.visibleEditors.length > 0) {
-			const workingSetName = `session-working-set:${sessionResource.toString()}`;
-			const workingSet = this._editorGroupsService.saveWorkingSet(workingSetName);
-			this._workingSets.set(sessionResource, workingSet);
+		// Cross-directory switches clear editors (new session template) before
+		// `activeSessionForWorkingSet` settles. Saving then would wipe a good
+		// working set with empty — keep the prior snapshot instead.
+		if (this._editorService.visibleEditors.length === 0) {
+			return;
 		}
+
+		this._deleteWorkingSet(sessionResource);
+		const workingSetName = `session-working-set:${sessionResource.toString()}`;
+		const workingSet = this._editorGroupsService.saveWorkingSet(workingSetName);
+		this._workingSets.set(sessionResource, workingSet);
 	}
 
 	private _deleteWorkingSet(sessionResource: URI): void {
@@ -488,5 +411,28 @@ export abstract class BaseLayoutController extends Disposable {
 
 		this._editorGroupsService.deleteWorkingSet(existingWorkingSet);
 		this._workingSets.delete(sessionResource);
+	}
+
+	/**
+	 * Adopts an externally captured editor working set (Plan B Drox snapshot)
+	 * so a later {@link _applyWorkingSet} restores the same tabs instead of `'empty'`.
+	 */
+	adoptEditorWorkingSet(sessionResource: URI, workingSet: IEditorWorkingSet | undefined): void {
+		const existing = this._workingSets.get(sessionResource);
+		if (existing && existing !== workingSet) {
+			this._editorGroupsService.deleteWorkingSet(existing);
+		}
+		if (workingSet) {
+			this._workingSets.set(sessionResource, workingSet);
+		} else {
+			this._workingSets.delete(sessionResource);
+		}
+	}
+
+	/** Drops persisted per-session layout for Plan B non-persistent switches. */
+	forgetSessionLayout(sessionResource: URI): void {
+		this._deleteWorkingSet(sessionResource);
+		this._viewStateBySession.delete(sessionResource);
+		this._panelVisibilityBySession.delete(sessionResource);
 	}
 }

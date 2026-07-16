@@ -1,0 +1,212 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/*
+ * Persistence toggle lives on the session card toolbar. VS Code puts `checked`
+ * on `.action-label`, not `.action-item` — and there is no data-action-id.
+ * Target icon CSS classes instead (continue = off, stop/square = on).
+ */
+.monaco-list-row .session-title-toolbar .action-label.codicon.codicon-debug-continue,
+.monaco-list-row .session-title-toolbar .action-label.codicon.codicon-debug-stop {
+	opacity: 0.5;
+	color: var(--vscode-descriptionForeground);
+	transition: color 120ms ease, opacity 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+	border-radius: 4px;
+}
+
+/* Persistence OFF — continue glyph, muted */
+.monaco-list-row .session-title-toolbar .action-label.codicon.codicon-debug-continue:not(.checked) {
+	opacity: 0.45;
+}
+
+/* Persistence ON — square (debug-stop), orange */
+.monaco-list-row .session-title-toolbar .action-label.codicon.codicon-debug-stop.checked {
+	opacity: 1;
+	color: #e89b2a;
+	background-color: color-mix(in srgb, #e89b2a 18%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, #e89b2a 35%, transparent);
+}
+
+.monaco-list-row .session-title-toolbar .action-label.codicon.codicon-debug-stop.checked::before {
+	filter: drop-shadow(0 0 4px rgba(232, 155, 42, 0.45));
+}
+
+/* Persistent session row accent */
+.session-item.drox-background-persistent:not(.sticky) {
+	border-left: 2px solid #e89b2a;
+	padding-left: 4px;
+}
+
+.session-item.drox-background-persistent.sticky {
+	box-shadow: inset 2px 0 0 #e89b2a;
+}
+
+/* Dashboard strip under title/details — column so metrics never clip beside lamps */
+.drox-session-dashboard-row {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	align-content: flex-start;
+	gap: 4px;
+	margin-top: 3px;
+	min-height: 0;
+	width: 100%;
+	box-sizing: border-box;
+	overflow: visible;
+}
+
+.drox-session-dashboard-row.drox-dashboard-expanded {
+	min-height: 52px;
+	padding-bottom: 2px;
+}
+
+.drox-session-dashboard-status {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+	min-width: 0;
+}
+
+.drox-dashboard-persist-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 14px;
+	height: 14px;
+	color: #e89b2a;
+	opacity: 0.95;
+}
+
+.drox-dashboard-persist-badge .codicon {
+	font-size: 12px;
+}
+
+.drox-session-dashboard-lamps {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	align-content: flex-start;
+	gap: 6px;
+	row-gap: 3px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.drox-session-dashboard-lamps .drox-dashboard-lamp {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 15px;
+	height: 15px;
+	opacity: 0.35;
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-session-dashboard-lamps .drox-dashboard-lamp.on {
+	opacity: 1;
+	color: #e89b2a;
+}
+
+.drox-session-dashboard-lamps .drox-dashboard-lamp.on .codicon {
+	filter: drop-shadow(0 0 3px rgba(232, 155, 42, 0.55));
+}
+
+.drox-session-dashboard-lamps .drox-dashboard-lamp.idle {
+	opacity: 0.3;
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-session-dashboard-lamps .drox-dashboard-lamp.idle .codicon {
+	filter: none;
+}
+
+.drox-session-dashboard-lamps .drox-dashboard-lamp .codicon {
+	font-size: 12px;
+}
+
+/* Resource metrics — own row, wrap freely, never clipped by row height */
+.drox-session-dashboard-metrics {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	align-content: flex-start;
+	gap: 4px 8px;
+	row-gap: 4px;
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.drox-dashboard-metric {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	flex: 0 0 auto;
+	padding: 1px 3px;
+	border-radius: 3px;
+	color: var(--vscode-descriptionForeground);
+	opacity: 0.75;
+	cursor: default;
+	white-space: nowrap;
+}
+
+.drox-dashboard-metric .codicon {
+	font-size: 11px;
+	flex-shrink: 0;
+}
+
+.drox-dashboard-metric-value {
+	font-size: 10px;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	min-width: 2.2em;
+}
+
+.drox-dashboard-metric.warm {
+	opacity: 0.95;
+	color: #e89b2a;
+}
+
+.drox-dashboard-metric.hot {
+	opacity: 1;
+	color: #e85d2a;
+	background-color: color-mix(in srgb, #e85d2a 12%, transparent);
+}
+
+.drox-dashboard-metric.hot .codicon {
+	filter: drop-shadow(0 0 3px rgba(232, 93, 42, 0.45));
+}
+
+.drox-metric-hover {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 2px 0;
+	max-width: 220px;
+}
+
+.drox-metric-hover-title {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--vscode-editor-foreground);
+}
+
+.drox-metric-hover-canvas {
+	display: block;
+	border-radius: 3px;
+	background: color-mix(in srgb, var(--vscode-editor-background) 80%, transparent);
+}
+
+.drox-metric-hover-footer {
+	font-size: 10px;
+	line-height: 1.35;
+	color: var(--vscode-descriptionForeground);
+	opacity: 0.9;
+}

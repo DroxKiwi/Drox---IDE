@@ -13,6 +13,7 @@ import {
 	extractDroxAgentsAnsweringOnlyText,
 	shouldPreferDroxAgentsStreamOverCanonicalReply,
 } from '../../browser/agents/droxAgentsChatSink.js';
+import { resetDroxWarmupPhraseIndexForTest } from '../../common/droxWarmupPhrase.js';
 
 function agentEvent(kind: string, fields: Record<string, unknown> = {}): unknown {
 	return { event: { kind, ...fields } };
@@ -20,6 +21,21 @@ function agentEvent(kind: string, fields: Record<string, unknown> = {}): unknown
 
 suite('Drox — droxAgentsChatSink', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
+
+	setup(() => {
+		resetDroxWarmupPhraseIndexForTest();
+	});
+
+	test('create pushes droxWarmup progress before agent events', () => {
+		const parts: IChatProgress[] = [];
+		createDroxAgentsChatSink(p => parts.push(...p));
+
+		assert.strictEqual(parts.length, 1);
+		assert.strictEqual(parts[0].kind, 'droxWarmup');
+		if (parts[0].kind === 'droxWarmup') {
+			assert.ok(parts[0].phrase.length > 0);
+		}
+	});
 
 	test('text_delta streams incremental markdown during answering', () => {
 		const parts: IChatProgress[] = [];
@@ -43,10 +59,11 @@ suite('Drox — droxAgentsChatSink', () => {
 		sink.handleAgentEvent(agentEvent('phase_enter', { phase: 'internal_reasoning' }));
 		sink.handleAgentEvent(agentEvent('text_delta', { text: 'Planning…' }));
 
-		assert.strictEqual(parts.length, 1);
-		assert.strictEqual(parts[0].kind, 'thinking');
-		if (parts[0].kind === 'thinking') {
-			assert.strictEqual(parts[0].value, 'Planning…');
+		assert.strictEqual(parts.length, 2);
+		assert.strictEqual(parts[0].kind, 'droxWarmup');
+		assert.strictEqual(parts[1].kind, 'thinking');
+		if (parts[1].kind === 'thinking') {
+			assert.strictEqual(parts[1].value, 'Planning…');
 		}
 		assert.strictEqual(sink.assistantText, '');
 	});

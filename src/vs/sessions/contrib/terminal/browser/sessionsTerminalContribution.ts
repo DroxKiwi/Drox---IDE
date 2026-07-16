@@ -6,7 +6,7 @@
 import { Codicon } from '../../../../base/common/codicons.js';
 import { mainWindow } from '../../../../base/browser/window.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
-import { autorun, derived, IReader } from '../../../../base/common/observable.js';
+import { autorun, derived, IObservable, IReader, observableValue } from '../../../../base/common/observable.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { localize, localize2 } from '../../../../nls.js';
@@ -14,12 +14,11 @@ import { Action2, registerAction2 } from '../../../../platform/actions/common/ac
 import { AGENT_HOST_SCHEME, fromAgentHostUri } from '../../../../platform/agentHost/common/agentHostUri.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
-import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { isDroxAgentsStableWindowLayout } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IWorkbenchContribution, getWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
 import { IAgentHostTerminalService } from '../../../../workbench/contrib/terminal/browser/agentHostTerminalService.js';
 import { ITerminalInstance, ITerminalEditorService, ITerminalService } from '../../../../workbench/contrib/terminal/browser/terminal.js';
 import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
+import { getSessionTerminalForegroundPolicy } from '../common/sessionTerminalForegroundPolicy.js';
 import { IPathService } from '../../../../workbench/services/path/common/pathService.js';
 import { Menus } from '../../../browser/menus.js';
 import { isAgentHostProvider, LOCAL_AGENT_HOST_PROVIDER_ID } from '../../../common/agentHostSessionsProvider.js';
@@ -92,6 +91,13 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 	private readonly _sessionTerminals = new Map<string, Set<number>>();
 
 	/**
+	 * Bumped whenever session↔terminal tracking or hide/kill changes so dashboard
+	 * lamps stay accurate for background (non-focused) sessions.
+	 */
+	private readonly _trackingVersion = observableValue<number>('sessionsTerminalTrackingVersion', 0);
+	readonly trackingVersion: IObservable<number> = this._trackingVersion;
+
+	/**
 	 * Session ids already processed as archived. The archive cleanup runs only
 	 * on the not-archived → archived transition: the provider keeps archived
 	 * sessions cached and re-emits them in `changed` on every sync, so acting on
@@ -112,7 +118,6 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		@ITerminalEditorService private readonly _terminalEditorService: ITerminalEditorService,
 		@IAgentWorkbenchLayoutService private readonly _layoutService: IAgentWorkbenchLayoutService,
 		@IContextKeyService contextKeyService: IContextKeyService,
-		@IConfigurationService private readonly _configurationService: IConfigurationService,
 	) {
 		super();
 
@@ -381,6 +386,25 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 			.filter(instance => instance.target === TerminalLocation.Editor);
 	}
 
+	/** True if the session has any live tracked shell (editor or background). */
+	hasTrackedShellForSession(sessionId: string): boolean {
+		return this._getTrackedTerminalsForSession(sessionId).length > 0;
+	}
+
+	hasActiveShellForSession(sessionId: string): boolean {
+		// Any live tracked shell (editor or background) — not only "busy" child
+		// processes, so background-persistent cards stay accurate after hide.
+		return this.hasTrackedShellForSession(sessionId);
+	}
+
+	async killSessionTerminals(sessionId: string): Promise<void> {
+		await this._closeTerminalsForSession(sessionId, 'drox session switch (non-persistent)');
+	}
+
+	async hideSessionTerminals(sessionId: string): Promise<void> {
+		await this._hideTerminalsForSession(sessionId, 'drox session background (persistent)');
+	}
+
 	/**
 	 * Associates a terminal editor tab with the active session (or the given session).
 	 * Used when tabs are restored from a session working set or opened outside
@@ -444,6 +468,10 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 			return;
 		}
 
+		if (getSessionTerminalForegroundPolicy(session.sessionId) === 'suppressEnsure') {
+			return;
+		}
+
 		const info = getSessionTerminalInfo(session);
 		const targetPath = info?.cwd ?? await this._pathService.userHome();
 		const targetKey = targetPath.fsPath.toLowerCase();
@@ -452,11 +480,6 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		}
 		this._activeKey = targetKey;
 		this._activeSessionId = session.sessionId;
-
-		// Drox: never auto-create/reopen a terminal when switching discussions.
-		if (isDroxAgentsStableWindowLayout(this._configurationService)) {
-			return;
-		}
 
 		const instances = await this.ensureTerminal(targetPath, false, session);
 
@@ -503,8 +526,15 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 			terminalIds = new Set<number>();
 			this._sessionTerminals.set(sessionId, terminalIds);
 		}
+		let changed = false;
 		for (const instance of instances) {
-			terminalIds.add(instance.instanceId);
+			if (!terminalIds.has(instance.instanceId)) {
+				terminalIds.add(instance.instanceId);
+				changed = true;
+			}
+		}
+		if (changed) {
+			this._bumpTrackingVersion();
 		}
 	}
 
@@ -549,12 +579,22 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 	}
 
 	private _removeTerminalFromTrackedSessions(instanceId: number): void {
+		let changed = false;
 		for (const [sessionId, terminalIds] of this._sessionTerminals) {
-			terminalIds.delete(instanceId);
+			if (terminalIds.delete(instanceId)) {
+				changed = true;
+			}
 			if (terminalIds.size === 0) {
 				this._sessionTerminals.delete(sessionId);
 			}
 		}
+		if (changed) {
+			this._bumpTrackingVersion();
+		}
+	}
+
+	private _bumpTrackingVersion(): void {
+		this._trackingVersion.set(this._trackingVersion.get() + 1, undefined);
 	}
 
 	private _getAvailableTerminal(instance: ITerminalInstance, action: string): ITerminalInstance | undefined {
@@ -647,6 +687,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 			this._logService.info(`[SessionsTerminal] Hiding terminal ${availableInstance.instanceId} (session: ${sessionId}, reason: ${reason})`);
 			await this._hideTerminalInstance(availableInstance);
 		}
+		this._bumpTrackingVersion();
 	}
 
 	async dumpTracking(): Promise<void> {

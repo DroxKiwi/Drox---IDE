@@ -8,7 +8,7 @@
 
 ## En une phrase
 
-Le moteur **abort** trop tôt quand le modèle **répète la même tentative de clôture** (dernier todo ouvert + `[phase: done]`) : corriger l’interaction **`LoopDetector` × `unfinished_todos_prompt`** sans affaiblir la détection des vraies boucles.
+Le moteur **abort** trop tôt quand le modèle **répète la même tentative de clôture** (dernier todo ouvert + `[phase: done]`) : corriger l’interaction **`LoopDetector` × `unfinished_todos_prompt`** sans affaiblir la détection des vraies boucles. En parallèle : **flux de chargement unifié** (grille Drox, skeletons) sur fenêtre **Agents** et chat **IDE natif**, et **restauration du layout workspace par session** (vanilla Copilot).
 
 ---
 
@@ -102,8 +102,11 @@ Conséquence : une **convergence légitime butée** (le modèle insiste sur `[ph
 | **Dans 1.5.14** | **Hors scope** |
 |-----------------|----------------|
 | L1–L3 ci-dessous | Refonte complète du protocole phases |
+| **UL1–UL3** — loading kit + session + panneaux composer | Refonte complète du shell Sessions (layout Microsoft) |
+| **WS** — layout workspace par session (vanilla) | Layout global par repo / snapshot terminaux exhaustif |
 | Tests Rust + smoke manuel | Heuristiques sur le texte utilisateur (interdit RULES §6) |
 | Ship OR après validation | Bump upstream VS Code |
+| | **Moteur Rust** pour le loading UI (voir § UL — effets de bord) |
 
 Reports [1.5.13](../1.5.13/PLAN-1.5.13.md) (MCP, perf, purge) → **P2+** si L1–L2 clos avant deadline.
 
@@ -120,6 +123,182 @@ Reports [1.5.13](../1.5.13/PLAN-1.5.13.md) (MCP, perf, purge) → **P2+** si L1�
 | **L2-b** | Smoke non-régression : vraie boucle (3× même lecture) abort toujours | P0 | faible | ⬜ |
 | **L3-a** | Renforcer nudge clôture plan (dernier item) si L1 insuffisant | P1 | faible | ⬜ |
 | **L3-b** | Vérifier affichage hint IDE (`drox.loop.abort.hint`) | P1 | faible | ⬜ |
+| **UL1** | Drox Loading Kit (primitives + CSS thème) | P1 | moyen | ✅ |
+| **UL2** | Chargement session (Agents + IDE natif) | P1 | moyen | ✅ |
+| **UL3** | Bootstrap panneaux composer (chips Model / Settings) | P1 | moyen | ✅ |
+| **UL4** | Warmup run natif (grille + phrases) | P2 | moyen | ✅ |
+| **UL5** | Lazy history webview + skeleton liste sessions | P2 | faible | ⬜ |
+| **WS1** | Restauration layout vanilla par session (retrait stable Drox) | P1 | moyen | ✅ |
+
+---
+
+## UL — Flux de chargement Drox (Agents + IDE)
+
+**Objectif** : remplacer les indicateurs génériques VS Code / absences de feedback par un **kit visuel unique** (grille 3×3, skeletons rétro vert/brun), **performant** (anti-flash ~450 ms, pas de re-layout global) et **cohérent** entre fenêtre Agents et chat IDE natif.
+
+**Référence UX existante** : webview Drox Chat (`activity.js`, `droxChatMvp.css`) · primitive TS `droxActivityGrid.ts`.
+
+### Moteur Rust — touché ou pas ?
+
+| Zone | Touchée en UL ? | Détail |
+|------|-----------------|--------|
+| `drox-engine/` (Rust) | **Non** | Aucun changement JSON-RPC, boucle agent, tools, nudges |
+| Binaire `drox.exe` / `package-drox.ps1` | **Non** (UL seul) | Rebuild moteur **non requis** pour livrer UL1–UL5 |
+| Workbench TS/CSS (`src/vs/workbench/contrib/drox/`, `src/vs/sessions/`) | **Oui** | Cœur du chantier |
+| Webview chat legacy (`droxChat/…` JS) | **Optionnel** (UL5) | Lazy history uniquement |
+| `droxThinkingPhrases.ts` | **Lecture seule** (UL4) | Réutiliser les phrases ; pas de nouveau contenu Rust |
+
+Le loading UI observe des **promesses déjà existantes** (`acquireOrLoadSession`, `_ensureReady`, stream sink) — il ne modifie pas le contrat moteur ↔ IDE.
+
+### Effets de bord à anticiper
+
+| Risque | Gravité | Mitigation |
+|--------|---------|------------|
+| **Flash / double indicateur** (barre VS Code + overlay Drox) | Moyen | Délai unique `droxLoadingController` ; remplacer ou désactiver `showProgressWhile` sur le leaf concerné |
+| **Z-index / pointer-events** (panneaux composer flottants) | Moyen | Overlays locaux au leaf ; ne pas monter sur `document.body` sauf bootstrap panel |
+| **Layout shift** à la disparition du skeleton | Faible | Réserver hauteur min (3 lignes skeleton) ; fade-out 150 ms |
+| **`prefers-reduced-motion`** | Faible | Grille statique (opacité fixe) — pattern déjà dans `droxAgentsRetroTheme.css` |
+| **Accessibilité** | Moyen | `aria-busy`, `role="status"`, label localisé ; grille `aria-hidden` |
+| **Tests automation** | Faible | `data-boundChatResource` sur `ChatView` — ne pas le casser ; ajouter `data-drox-loading` si besoin Playwright |
+| **Perf liste sessions** | Faible | Pas de spinner par ligne ; skeleton global ou refresh ponctuel |
+| **Régression switch session / run background** | Moyen | Smokes UL-S1–S3 (voir ci-dessous) ; ne pas bloquer le fil pendant un run live |
+| **Webview vs natif** | Faible | UL2/UL3 ciblent le **natif Agents** en priorité ; webview reste référence pour UL4/UL5 |
+
+### Checklist — Phase A · UL1 · Drox Loading Kit
+
+- [x] **UL1-a** — `droxLoadingController.ts` : show/hide avec délai anti-flash (~450 ms), cancel si promise résolue avant, dispose au unmount
+- [x] **UL1-b** — Étendre `droxActivityGrid.ts` : variantes `inline` | `centered` | `mini` (toolbar chip)
+- [x] **UL1-c** — `droxLoadingOverlay.ts` : overlay leaf (grille + label optionnel)
+- [x] **UL1-d** — `droxLoadingSkeleton.ts` : 3–5 lignes / bulles skeleton (tokens `--drox-thread-green-dim`)
+- [x] **UL1-e** — CSS utilitaires dans `droxLoadingKit.css` (Agents + IDE natif)
+- [x] **UL1-f** — Tests unitaires controller (delay, cancel, reduced-motion hook)
+- [x] **UL1-g** — Doc courte `IMPLEMENTATION-UL-LOADING-KIT.md` (API + conventions)
+
+### Checklist — Phase B · UL2 · Chargement session
+
+- [x] **UL2-a** — `ChatView.setChat()` (Agents) : overlay Drox pendant `acquireOrLoadSession` / `provideChatSessionContent`
+- [x] **UL2-b** — Remplacer ou compléter `showProgressWhile(..., 800)` par le kit UL1 (un seul indicateur visible)
+- [x] **UL2-c** — `DroxNativeChatViewPane._openDroxSession` (IDE) : même overlay (parité IDE)
+- [x] **UL2-d** — Skeleton fil (optionnel P1) : 3 bulles pendant lecture disque (`droxAgentsSessionHandler`)
+- [ ] **UL2-e** — Smoke **UL-S1** : switch session Agents < 500 ms (pas de flash) et > 2 s (overlay visible)
+
+### Checklist — Phase C · UL3 · Panneaux composer
+
+- [x] **UL3-a** — `DroxAgentsComposerDroxChatHost` : observable `onPanelBootstrapState` (`idle` \| `loading` \| `ready` \| `error`)
+- [x] **UL3-b** — Pendant `_loadScripts()` : chips Model / Server / Settings en `.drox-panel-loading` + mini-grille
+- [ ] **UL3-c** — 1er clic avant bootstrap : panneau avec skeleton interne (header + 2 lignes), pas panneau vide
+- [x] **UL3-d** — Brancher `droxAgentsComposerToolbar.ts` + `newChatInput.ts` (`aria-busy` sur slot concerné)
+- [ ] **UL3-e** — Smoke **UL-S2** : 1er clic chip Model après cold start — feedback < 100 ms visuel, panneau utilisable après bootstrap
+
+### Checklist — Phase D · UL4 · Warmup run natif (P2)
+
+- [x] **UL4-a** — Progress part custom dans `droxAgentsChatSink` entre run start et 1er token/tool
+- [x] **UL4-b** — Grille + phrase depuis `droxThinkingPhrases.ts` (même pool que webview)
+- [x] **UL4-c** — Retrait automatique au 1er contenu réel (thinking, tool, texte)
+- [ ] **UL4-d** — Smoke : run agent natif — pas de « trou » visuel avant 1ère phase
+
+### Checklist — Phase E · UL5 · Finitions (P2, 1.5.14 ou 1.5.15)
+
+- [ ] **UL5-a** — `lazy-history.js` : mini-grille en tête de `#log` si `sessionHistoryLoading`
+- [ ] **UL5-b** — Skeleton liste sessions au refresh (sidebar)
+- [ ] **UL5-c** — Picker modèles natif : spinner inline (parité select webview « Chargement… »)
+- [ ] **UL5-d** — Unifier tokens `#progress.busy` webview avec classes kit UL1
+
+### Smokes UL
+
+| ID | Scénario | Attendu |
+|----|----------|---------|
+| **UL-S1** | Switch session Agents (cache froid / chaud) | Overlay Drox si > ~450 ms ; pas de double barre ; fil intact après load |
+| **UL-S2** | 1er clic panneau composer (cold) | Chip loading immédiat ; panneau fonctionnel après scripts |
+| **UL-S3** | Run en cours + switch session | Run background **non** interrompu ; pas d’overlay bloquant global |
+| **UL-S4** | IDE natif — ouverture onglet Drox | Même UX chargement que Agents (UL2-c) |
+| **UL-S5** | `prefers-reduced-motion: reduce` | Grille sans animation ; contenu lisible |
+
+### Fichiers cibles (carte)
+
+| Fichier | Rôle UL |
+|---------|---------|
+| `src/vs/workbench/contrib/drox/browser/droxActivityGrid.ts` | Primitive grille (existe) |
+| `src/vs/workbench/contrib/drox/browser/droxLoading*.ts` | **Nouveau** kit |
+| `src/vs/workbench/contrib/drox/browser/media/droxAgentsRetroTheme.css` | Animations + skeletons Agents |
+| `src/vs/workbench/contrib/drox/browser/chat/media/droxIdeNativeChat.css` | Variante IDE |
+| `src/vs/sessions/contrib/chat/browser/chatView.ts` | Gate session Agents |
+| `src/vs/workbench/contrib/drox/browser/chat/droxNativeChatViewPane.ts` | Gate session IDE |
+| `src/vs/workbench/contrib/drox/browser/agents/droxAgentsComposerDroxChatHost.ts` | Gate panneaux |
+| `src/vs/workbench/contrib/drox/browser/agents/droxAgentsChatSink.ts` | Gate warmup run (UL4) |
+| `src/vs/sessions/contrib/chat/browser/newChatInput.ts` | Spinner envoi (unifier délai) |
+| `src/vs/workbench/contrib/drox/browser/chat/chatDroxWarmupContentPart.ts` | Rendu warmup natif (UL4) |
+| `src/vs/workbench/contrib/drox/common/droxWarmupPhrase.ts` | Pool phrases warmup (UL4) |
+
+---
+
+## WS — Layout workspace par session (restauration vanilla)
+
+**Objectif** : chaque session sidebar retrouve son **contexte de travail** au switch (panneaux, auxiliary bar, éditeurs grille, terminaux) — aligné sur le design upstream Copilot Agents (`LayoutController`, règles B1–B5 / D1–D6).
+
+**Référence** : `src/vs/sessions/LAYOUT_CONTROLLER.md` · `src/vs/sessions/LAYOUT.md` §10.
+
+### Contexte — pourquoi ça ne marchait pas
+
+Un mode Drox **`isDroxAgentsStableWindowLayout`** (introduit pour éviter les sauts de layout au switch de discussion) **court-circuitait** tout le mécanisme per-session :
+
+| Composant | Comportement Drox « stable » (retiré) |
+|-----------|--------------------------------------|
+| `BaseLayoutController` | Pas de `sessions.layoutState` ; un seul working set partagé (`sessions.droxStableEditorWorkingSet`) |
+| `LayoutController` (desktop) | Pas de sync auxiliary bar (Files / Changes) par session |
+| `SessionsTerminalContribution` | `return` immédiat au switch — pas de terminal par session |
+
+Résultat : le chat/transcript changeait, mais **éditeurs, panneaux et terminaux restaient ceux de la dernière session utilisée**.
+
+### Décision 1.5.14
+
+**Rétablir le vanilla** : supprimer le mode stable et laisser le `LayoutController` upstream gérer la mémoire par `session.resource`.
+
+### Livré (WS1)
+
+- [x] **WS1-a** — Suppression `isDroxAgentsStableWindowLayout()` (`droxAgentsConfiguration.ts`)
+- [x] **WS1-b** — Suppression `_registerDroxStableWindowLayout()` et clé `sessions.droxStableEditorWorkingSet` (`baseSessionLayoutController.ts`)
+- [x] **WS1-c** — Migration : purge de `sessions.droxStableEditorWorkingSet` au `_loadState()`
+- [x] **WS1-d** — Réactivation sync auxiliary bar per-session (`desktopSessionLayoutController.ts`)
+- [x] **WS1-e** — Réactivation terminaux au switch (`sessionsTerminalContribution.ts`)
+- [x] **WS1-g** — Fix `workbench.editor.useModal` : défaut Agents `'some'` (pas `'all'`) + migration profils existants (`droxProductDefaultsConfiguration.ts`, `droxSessionsLayoutContribution.ts`) — sans ça les working sets [B2] sont ignorés et seul le terminal réapparaît au retour
+- [ ] **WS1-f** — Smokes manuels WS-S1 à WS-S3 (voir ci-dessous)
+
+### Retiré (nettoyage)
+
+| Élément | Fichier |
+|---------|---------|
+| `isDroxAgentsStableWindowLayout()` | `droxAgentsConfiguration.ts` |
+| `_registerDroxStableWindowLayout()` + ancres `DROX_STABLE_*` | `baseSessionLayoutController.ts` |
+| Early return Drox dans `_registerViewStateManagement` | `desktopSessionLayoutController.ts` |
+| Early return Drox dans `_onActiveSessionChanged` | `sessionsTerminalContribution.ts` |
+| Storage `sessions.droxStableEditorWorkingSet` | migré / supprimé au boot |
+
+### Limites connues (vanilla upstream — hors WS1)
+
+| Domaine | Comportement |
+|---------|--------------|
+| **Tailles parts** (sidebar, editor, panel) | Global fenêtre Agents (`__agents_window__`), pas par session |
+| **Éditeurs modal** (`workbench.editor.useModal: 'all'`) | Overlays éphémères — pas de working set à restaurer — **Drox** : défaut Agents forcé à `'some'` (WS1-g) |
+| **Multi-sessions visibles** (pin côte à côte) | Sync per-session suspendue (règle B5) |
+| **Chat / transcript Drox** | Inchangé — déjà per-session via moteur `ses_*` |
+
+### Smokes WS
+
+| ID | Scénario | Attendu |
+|----|----------|---------|
+| **WS-S1** | Session A : fichiers + panel + aux bar → switch B → layout différent → retour A | État A restauré (panel, aux bar, onglets grille) |
+| **WS-S2** | Session A : terminal ouvert → switch B → retour A | Terminal A visible (cwd session) |
+| **WS-S3** | 2 sessions même repo, layouts différents | Pas de mélange d’onglets entre discussions |
+
+### Fichiers WS
+
+| Fichier | Rôle |
+|---------|------|
+| `src/vs/sessions/contrib/layout/browser/baseSessionLayoutController.ts` | Panel + working sets + persistance `sessions.layoutState` |
+| `src/vs/sessions/contrib/layout/browser/desktopSessionLayoutController.ts` | Auxiliary bar per-session |
+| `src/vs/sessions/contrib/terminal/browser/sessionsTerminalContribution.ts` | Terminaux per-session au switch |
+| `src/vs/workbench/contrib/drox/common/droxAgentsConfiguration.ts` | Retrait flag stable layout |
 
 ---
 
@@ -194,6 +373,10 @@ Fichier cible : `drox-engine/drox/crates/drox-engine/src/agent.rs` (module tests
 - [ ] **L1-a** : tests Rust verts (3 cas minimum)
 - [ ] **L2-a** : T1 OK sur build 1.5.14 (Windows + fenêtre Agents)
 - [ ] **L2-b** : T2 OK — vraies boucles toujours stoppées
+- [ ] **UL1** : kit loading documenté + tests controller verts
+- [ ] **UL2** + **UL3** : smokes UL-S1, UL-S2, UL-S3 OK
+- [ ] **UL4** : smoke UL4-d OK
+- [ ] **WS1** : smokes WS-S1, WS-S2, WS-S3 OK
 - [ ] Aucune régression E2E 1.5.13 (fil, switch session, stream arrière-plan)
 - [ ] Ship OR `v1.5.14`
 

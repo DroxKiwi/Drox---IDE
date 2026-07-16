@@ -48,6 +48,7 @@ import { IWorkspaceContextService } from '../../../../../platform/workspace/comm
 import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { DroxNativeChatSessionStore } from './droxNativeChatSessionStore.js';
 import { DroxAgentSessionsPicker } from './droxAgentSessionsPicker.js';
+import { DroxSessionLoadingOverlay } from '../droxSessionLoadingOverlay.js';
 import {
 	markDroxEngineSessionOpened,
 	readDroxEngineSessionRecency,
@@ -66,6 +67,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 	private readonly _layoutStore: DroxChatLayoutStore;
 	private _engineSessionId: string | undefined;
 	private _sessionEntries: readonly IDroxSessionListEntry[] = [];
+	private _sessionLoadingOverlay: DroxSessionLoadingOverlay | undefined;
 
 	constructor(
 		options: IViewletViewOptions,
@@ -133,6 +135,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 		));
 
 		const chatRoot = dom.append(container, dom.$('.drox-ide-native-chat-widget'));
+		this._sessionLoadingOverlay = this._register(new DroxSessionLoadingOverlay(chatRoot));
 		this._widget.render(chatRoot);
 		this._register(this.onDidChangeBodyVisibility(visible => {
 			this._widget?.setVisible(visible);
@@ -298,12 +301,15 @@ export class DroxNativeChatViewPane extends ViewPane {
 		const sessionResource = DroxChatSessionUri.forSession(engineSessionId);
 		try {
 			this._modelRef.clear();
-			const ref = await this.chatService.acquireOrLoadSession(
+			const loadPromise = this.chatService.acquireOrLoadSession(
 				sessionResource,
 				ChatAgentLocation.Chat,
 				CancellationToken.None,
 				'DroxNativeChatViewPane#openSession',
 			);
+			const ref = this._sessionLoadingOverlay
+				? await this._sessionLoadingOverlay.showWhile(loadPromise)
+				: await loadPromise;
 			if (!ref) {
 				return;
 			}

@@ -9,7 +9,9 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { ResourceMap } from '../../../../base/common/map.js';
 import { IObservable, autorun } from '../../../../base/common/observable.js';
+import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
+import { invokeSessionOpenGateAfterOpen, invokeSessionOpenGatePrepare } from '../common/sessionOpenGate.js';
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
@@ -134,8 +136,10 @@ export interface ISessionsService {
 	 * Select an existing session as the active session and show it in the grid.
 	 * When `options.preserveFocus` is set, the session is shown without moving
 	 * keyboard focus into it.
+	 *
+	 * @returns `true` when the session was opened, `false` when aborted (e.g. switch dialog cancelled).
 	 */
-	openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<void>;
+	openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<boolean>;
 
 	/**
 	 * Open a specific chat within a session and show it in the grid.
@@ -601,13 +605,13 @@ export class SessionsService extends Disposable implements ISessionsService {
 		this.logService.trace(`[SessionsView] openChat done total=${Date.now() - t0}ms uri=${chatUri.toString()}`);
 	}
 
-	async openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<void> {
+	async openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<boolean> {
 		this._cancelRestore();
 		const token = this._startOpenSession();
-		await this._doOpenSession(sessionResource, token, options);
+		return this._doOpenSession(sessionResource, token, options);
 	}
 
-	private async _doOpenSession(sessionResource: URI, token: CancellationToken, options?: { preserveFocus?: boolean }): Promise<void> {
+	private async _doOpenSession(sessionResource: URI, token: CancellationToken, options?: { preserveFocus?: boolean }): Promise<boolean> {
 		const t0 = Date.now();
 		const sessionData = this.sessionsManagementService.getSession(sessionResource);
 		if (!sessionData) {
@@ -615,13 +619,35 @@ export class SessionsService extends Disposable implements ISessionsService {
 			throw new Error(`Session with resource ${sessionResource.toString()} not found`);
 		}
 		this.logService.trace(`[SessionsView] openSession start uri=${sessionResource.toString()} provider=${sessionData.providerId}`);
+
+		const currentActive = this._visibility.activeSession.get();
+		if (currentActive && isEqual(currentActive.resource, sessionResource)) {
+			// List single-click always fires open; re-entering the active session
+			// must not cancel in-flight work or steal focus from chat / editor UI.
+			return true;
+		}
+
+		if (currentActive && !isEqual(currentActive.resource, sessionResource)) {
+			const gateResult = await invokeSessionOpenGatePrepare({ from: currentActive, toResource: sessionResource });
+			if (gateResult === 'cancel') {
+				this.logService.trace(`[SessionsView] openSession cancelled by foreground gate uri=${sessionResource.toString()}`);
+				return false;
+			}
+			if (token.isCancellationRequested) {
+				return false;
+			}
+		}
+
 		this._activate(sessionData, options?.preserveFocus);
 		if (!await this._waitForSessionToLoad(sessionData, token)) {
 			this.logService.trace(`[SessionsView] openSession cancelled while waiting for session to load uri=${sessionResource.toString()}`);
-			return;
+			return false;
 		}
 
+		await invokeSessionOpenGateAfterOpen(sessionData);
+
 		this.logService.trace(`[SessionsView] openSession done total=${Date.now() - t0}ms uri=${sessionResource.toString()}`);
+		return true;
 	}
 
 	unsetNewSession(): void {
@@ -1042,6 +1068,10 @@ export class SessionsService extends Disposable implements ISessionsService {
 			slots.push({ session: session ?? undefined, sticky: target.isSticky });
 		}
 		this._visibility.restoreGrid(slots, activeSlotIndex);
+
+		if (activeSession) {
+			await invokeSessionOpenGateAfterOpen(activeSession);
+		}
 
 		if (token.isCancellationRequested) {
 			return;

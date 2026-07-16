@@ -115,5 +115,8 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		this._serverSettingsChip.setPanelOpen(state.serverSettingsPanelOpen);
 		this._modelSettingsChip.setConnectionBlocked(state.modelSettingsBlocked);
 		this._serverSettingsChip.setConnectionAttention(state.serverSettingsNeedsAttention);
+		const bootstrapLoading = state.panelBootstrapLoading;
+		this._modelSettingsChip.setLoading(bootstrapLoading);
+		this._serverSettingsChip.setLoading(bootstrapLoading);
 	}
 }

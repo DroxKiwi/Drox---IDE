@@ -59,6 +59,7 @@ import { localChatSessionType, SessionType } from '../../common/chatSessionsServ
 import { getChatSessionType } from '../../common/model/chatUri.js';
 import { getExplicitFileOrImageAttachmentSummary, IChatRequestVariableEntry, isExplicitFileOrImageVariableEntry, isPasteVariableEntry } from '../../common/attachments/chatVariableEntries.js';
 import { isDroxSmartPasteVariableEntry } from '../../../drox/common/droxNativeChatRequestAttachments.js';
+import { ChatDroxWarmupContentPart } from '../../../drox/browser/chat/chatDroxWarmupContentPart.js';
 import { IChatChangesSummaryPart, IChatCodeCitations, IChatErrorDetailsPart, IChatReferences, IChatRendererContent, IChatRequestViewModel, IChatResponseViewModel, IChatViewModel, IChatWorkingProgress, isRequestVM, isResponseVM, IChatPendingDividerViewModel, isPendingDividerVM } from '../../common/model/chatViewModel.js';
 import { getNWords } from '../../common/model/chatWordCounter.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, CollapsedToolsDisplayMode, ThinkingDisplayMode } from '../../common/constants.js';
@@ -1231,7 +1232,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			if (lastThinking?.getIsActive() && !lastThinking.isFixedScrollingMode) {
 				return undefined;
 			}
-			if (lastPart?.kind === 'progressMessage') {
+			if (lastPart?.kind === 'progressMessage' || lastPart?.kind === 'droxWarmup') {
 				return undefined;
 			}
 			return { kind: 'working', state: workingState };
@@ -2386,6 +2387,8 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				return this.renderTreeData(content, templateData, context);
 			} else if (content.kind === 'multiDiffData') {
 				return this.renderMultiDiffData(content, templateData, context);
+			} else if (content.kind === 'droxWarmup') {
+				return this.instantiationService.createInstance(ChatDroxWarmupContentPart, content, context);
 			} else if (content.kind === 'progressMessage') {
 				return this.instantiationService.createInstance(ChatProgressContentPart, content, this.chatContentMarkdownRenderer, context, undefined, undefined, undefined, undefined, content.shimmer);
 			} else if (content.kind === 'working') {
