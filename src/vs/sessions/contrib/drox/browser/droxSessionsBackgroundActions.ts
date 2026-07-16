@@ -11,7 +11,7 @@ import { Action2, registerAction2 } from '../../../../platform/actions/common/ac
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { ContextKeyExpr, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
-import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+import { DROX_SESSIONS_PROVIDER_ID, DroxChatSessionUri } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { SessionIsArchivedContext, SessionProviderIdContext } from '../../../common/contextkeys.js';
 import { ISession } from '../../../services/sessions/common/session.js';
 import { SessionItemContextMenuId, SessionItemToolbarMenuId } from '../../sessions/browser/views/sessionsList.js';
@@ -20,6 +20,10 @@ import { IDroxSessionBackgroundService } from '../common/droxSessionBackgroundSe
 export const DroxSessionBackgroundPersistentContext = new RawContextKey<boolean>('droxSessionBackgroundPersistent', false);
 
 const isDroxSession = ContextKeyExpr.equals(SessionProviderIdContext.key, DROX_SESSIONS_PROVIDER_ID);
+
+function droxEngineSessionKey(session: ISession): string {
+	return DroxChatSessionUri.parseSessionId(session.resource) ?? session.sessionId;
+}
 
 registerAction2(class DroxToggleBackgroundPersistAction extends Action2 {
 	constructor() {
@@ -55,6 +59,48 @@ registerAction2(class DroxToggleBackgroundPersistAction extends Action2 {
 		}
 		const backgroundService = accessor.get(IDroxSessionBackgroundService);
 		backgroundService.setPersistent(session.sessionId, !backgroundService.isPersistent(session.sessionId));
+	}
+});
+
+export const DroxSessionAllowOutsideWorkspaceContext = new RawContextKey<boolean>('droxSessionAllowOutsideWorkspace', false);
+
+registerAction2(class DroxToggleAllowOutsideWorkspaceAction extends Action2 {
+	constructor() {
+		super({
+			id: 'drox.sessions.toggleAllowOutsideWorkspace',
+			title: localize2('drox.toggleAllowOutsideWorkspace', "Allow Outside Workspace"),
+			tooltip: localize('drox.toggleAllowOutsideWorkspace.off', "Enable access outside this discussion's folder — the model may read other local paths"),
+			icon: Codicon.lock,
+			toggled: {
+				condition: DroxSessionAllowOutsideWorkspaceContext,
+				icon: Codicon.unlock,
+				tooltip: localize('drox.toggleAllowOutsideWorkspace.on', "Outside-workspace access enabled — disable to confine tools to this folder"),
+			},
+			menu: [{
+				id: SessionItemToolbarMenuId,
+				group: 'navigation',
+				order: 2,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}, {
+				id: SessionItemContextMenuId,
+				group: '0_pin',
+				order: 0,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}],
+		});
+	}
+
+	run(accessor: ServicesAccessor, context?: ISession | ISession[]): void {
+		const session = Array.isArray(context) ? context[0] : context;
+		if (!session || session.providerId !== DROX_SESSIONS_PROVIDER_ID) {
+			return;
+		}
+		const backgroundService = accessor.get(IDroxSessionBackgroundService);
+		const key = droxEngineSessionKey(session);
+		backgroundService.setAllowOutsideWorkspace(
+			key,
+			!backgroundService.isAllowOutsideWorkspace(key),
+		);
 	}
 });
 

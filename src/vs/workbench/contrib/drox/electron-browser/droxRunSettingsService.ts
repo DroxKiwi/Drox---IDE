@@ -97,6 +97,7 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 		images?: readonly IDroxAgentRunImage[];
 		runObjective?: string;
 		skipUserTurn?: boolean;
+		allowOutsideWorkspace?: boolean;
 	}): Record<string, unknown> {
 
 		const resource = this._llmConfigurationResource();
