@@ -27,6 +27,7 @@ export interface IDroxAgentRunStartOptions {
 	readonly images?: readonly IDroxAgentRunImage[];
 	readonly skipUserTurn?: boolean;
 	readonly runObjective?: string;
+	readonly allowOutsideWorkspace?: boolean;
 }
 
 /** Initialise `drox.exe` pour un run agent (tools exécutables + ask interactif). */
@@ -53,6 +54,7 @@ export async function startDroxAgentRun(
 		images: options.images && options.images.length > 0 ? [...options.images] : undefined,
 		skipUserTurn: options.skipUserTurn,
 		runObjective: options.runObjective,
+		allowOutsideWorkspace: options.allowOutsideWorkspace,
 	});
 	const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 	if (typeof result?.runId === 'string') {

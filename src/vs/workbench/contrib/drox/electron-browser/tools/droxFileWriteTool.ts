@@ -53,7 +53,7 @@ export function createDroxFileWriteToolHandler(host: DroxFileToolHost, fileServi
 
 		const args = parseInput(p.input);
 
-		const absPath = await resolvePathForWrite(fileService, p.workspace, args.path);
+		const absPath = await resolvePathForWrite(fileService, p.workspace, args.path, !!p.allowOutsideWorkspace);
 
 		const pathForModel = absPath.replace(/\\/g, '/');
 

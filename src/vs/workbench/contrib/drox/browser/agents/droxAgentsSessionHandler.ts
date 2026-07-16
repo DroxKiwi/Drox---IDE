@@ -54,6 +54,7 @@ import { IDroxAgentsChatUiStatsService } from './droxAgentsChatUiStatsService.js
 import { IDroxSessionChangesBridge } from '../../common/droxSessionChangesBridge.js';
 import { buildDroxAgentsHistoryFromTranscript, buildDroxAgentsHistoryFromUiReplay } from './droxAgentsUiReplayHistory.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
+import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 
 /** Derniers tours user chargés à l'ouverture (évite un modèle chat géant en prod). */
 const DROX_AGENTS_SESSION_INITIAL_TAIL_TURNS = 25;
@@ -95,6 +96,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxAttachmentsService private readonly attachmentsService: IDroxAttachmentsService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IDroxSessionChangesBridge private readonly sessionChangesBridge: IDroxSessionChangesBridge,
+		@IDroxSessionBackgroundService private readonly sessionBackgroundService: IDroxSessionBackgroundService,
 	) {
 		super();
 		this._registerAgent();
@@ -295,6 +297,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 				mode,
 				sessionId: engineSessionId,
 				images: preparedPrompt.images,
+				allowOutsideWorkspace: this.sessionBackgroundService.isAllowOutsideWorkspace(engineSessionId),
 			});
 			if (!runId) {
 				return {
