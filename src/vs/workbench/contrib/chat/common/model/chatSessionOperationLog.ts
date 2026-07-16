@@ -76,6 +76,7 @@ const responsePartSchema = Adapt.v<IChatProgressResponseContent, SerializedChatR
 				case 'markdownVuln':
 				case 'notebookEditGroup':
 				case 'progressMessage':
+				case 'droxWarmup':
 				case 'pullRequest':
 				case 'questionCarousel':
 				case 'planReview':

@@ -15,7 +15,8 @@ import { LayoutPriority } from '../../../base/browser/ui/splitview/splitview.js'
 import { Direction, SerializableGrid, Sizing } from '../../../base/browser/ui/grid/grid.js';
 import { Part } from '../../../workbench/browser/part.js';
 import { ActiveSessionsContext, MultipleSessionsVisibleContext, SessionsFocusContext } from '../../common/contextkeys.js';
-import { $, addDisposableGenericMouseDownListener, addDisposableListener, EventType, getWindow, isAncestor, scheduleAtNextAnimationFrame, trackFocus } from '../../../base/browser/dom.js';
+import { $, addDisposableGenericMouseDownListener, addDisposableListener, EventType, isAncestor, trackFocus } from '../../../base/browser/dom.js';
+import { disposableTimeout } from '../../../base/common/async.js';
 import { IActiveSession } from '../../services/sessions/common/sessionsManagement.js';
 import { SessionView } from './sessionView.js';
 import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js';
@@ -290,14 +291,26 @@ export class SessionsPart extends Part {
 	}
 
 	private _scheduleRelayoutAfterBind(): void {
-		const run = () => this._relayoutGridIfNeeded();
-		run();
-		const targetWindow = getWindow(this.element);
-		scheduleAtNextAnimationFrame(targetWindow, () => {
-			run();
-			scheduleAtNextAnimationFrame(targetWindow, run);
-		});
+		this._relayoutGridIfNeeded();
+		if (this._requestedInitialWorkbenchLayout) {
+			return;
+		}
+		// Sessions were bound before this part received its first layout pass
+		// (common on cold boot). Request workbench layouts via timers — rAF may
+		// not run until user interaction after Windows cold start.
+		this._requestedInitialWorkbenchLayout = true;
+		this.layoutService.layout();
+		for (const delay of [0, 100, 400]) {
+			this._register(disposableTimeout(() => {
+				if (!this._store.isDisposed) {
+					this.layoutService.layout();
+					this._relayoutGridIfNeeded();
+				}
+			}, delay));
+		}
 	}
+
+	private _requestedInitialWorkbenchLayout = false;
 
 	private _updateContextKeys(visible: readonly (IActiveSession | undefined)[]): void {
 		this._multipleSessionsVisibleKey.set(visible.length > 1);

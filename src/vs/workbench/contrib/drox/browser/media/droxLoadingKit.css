@@ -1,0 +1,193 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Kit de chargement Drox — grille 3×3, overlay session, skeletons, chips composer. */
+
+.drox-loading-host {
+	position: relative;
+}
+
+.drox-loading-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 12;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	background: color-mix(in srgb, var(--vscode-editor-background, #000) 82%, transparent);
+}
+
+.drox-loading-overlay.visible {
+	display: flex;
+}
+
+.drox-loading-overlay-inner {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+	max-width: min(420px, 90%);
+	padding: 12px 16px;
+}
+
+.drox-loading-label {
+	font-size: 12px;
+	line-height: 1.35;
+	color: color-mix(in srgb, var(--vscode-foreground) 72%, var(--drox-thread-green, #3d7a3d) 28%);
+	text-align: center;
+}
+
+.drox-loading-grid {
+	transform: scale(1.35);
+}
+
+.drox-loading-skeleton {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	width: min(320px, 80vw);
+	opacity: 0.55;
+}
+
+.drox-skeleton-row {
+	display: flex;
+}
+
+.drox-skeleton-row-user {
+	justify-content: flex-end;
+}
+
+.drox-skeleton-row-assistant {
+	justify-content: flex-start;
+}
+
+.drox-skeleton-bubble {
+	height: 10px;
+	border-radius: 0;
+	background: color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 22%, var(--vscode-editor-background) 78%);
+	animation: drox-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.drox-skeleton-row-user .drox-skeleton-bubble {
+	width: 42%;
+}
+
+.drox-skeleton-row-assistant .drox-skeleton-bubble {
+	width: 68%;
+}
+
+.drox-skeleton-row-user:nth-child(3) .drox-skeleton-bubble {
+	width: 36%;
+}
+
+@keyframes drox-skeleton-pulse {
+	0%, 100% {
+		opacity: 0.35;
+	}
+	50% {
+		opacity: 0.75;
+	}
+}
+
+/* Grille — Agents + IDE natif */
+.agent-sessions-workbench .drox-loading-overlay .activity-grid,
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 2px;
+	width: 18px;
+	height: 18px;
+}
+
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span,
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span {
+	display: block;
+	width: 100%;
+	height: 100%;
+	background: var(--drox-thread-green, #3d7a3d);
+	opacity: 0.25;
+	animation: drox-loading-grid-pulse 1.05s ease-in-out infinite;
+}
+
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(1),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(1) { animation-delay: 0s; }
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(2),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(2) { animation-delay: 0.12s; }
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(3),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(3) { animation-delay: 0.24s; }
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(4),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(4) { animation-delay: 0.36s; }
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(5),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(5) { animation-delay: 0.48s; }
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(6),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(6) { animation-delay: 0.6s; }
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(7),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(7) { animation-delay: 0.72s; }
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(8),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(8) { animation-delay: 0.84s; }
+.agent-sessions-workbench .drox-loading-overlay .activity-grid > span:nth-child(9),
+.drox-ide-native-chat-active .drox-loading-overlay .activity-grid > span:nth-child(9) { animation-delay: 0.96s; }
+
+@keyframes drox-loading-grid-pulse {
+	0%, 55%, 100% {
+		opacity: 0.22;
+		transform: scale(0.82);
+	}
+	28% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.monaco-reduce-motion .drox-loading-overlay .activity-grid > span,
+.monaco-reduce-motion .drox-skeleton-bubble {
+	animation: none;
+	opacity: 0.55;
+}
+
+/* Composer — chips en bootstrap */
+.agent-sessions-workbench .drox-agents-panel-picker.loading .drox-panel-loading-grid {
+	display: inline-grid !important;
+	vertical-align: middle;
+	margin-left: 4px;
+}
+
+.agent-sessions-workbench .drox-panel-loading-grid {
+	display: none;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1px;
+	width: 12px;
+	height: 12px;
+	flex-shrink: 0;
+}
+
+.agent-sessions-workbench .drox-panel-loading-grid > span {
+	display: block;
+	width: 100%;
+	height: 100%;
+	background: var(--drox-thread-green, #3d7a3d);
+	opacity: 0.25;
+	animation: drox-loading-grid-pulse 1.05s ease-in-out infinite;
+}
+
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(1) { animation-delay: 0s; }
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(2) { animation-delay: 0.12s; }
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(3) { animation-delay: 0.24s; }
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(4) { animation-delay: 0.36s; }
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(5) { animation-delay: 0.48s; }
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(6) { animation-delay: 0.6s; }
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(7) { animation-delay: 0.72s; }
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(8) { animation-delay: 0.84s; }
+.agent-sessions-workbench .drox-panel-loading-grid > span:nth-child(9) { animation-delay: 0.96s; }
+
+.monaco-reduce-motion .agent-sessions-workbench .drox-panel-loading-grid > span {
+	animation: none;
+	opacity: 0.55;
+}
+
+.agent-sessions-workbench .drox-agents-panel-picker.loading .drox-agents-panel-picker-trigger {
+	opacity: 0.85;
+}

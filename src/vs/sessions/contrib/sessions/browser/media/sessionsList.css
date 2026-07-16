@@ -144,6 +144,8 @@
 
 	.session-main {
 		padding-left: 6px;
+		overflow: visible;
+		min-height: 0;
 	}
 
 	.session-title-row,
