@@ -121,6 +121,10 @@ sync_clone() {
 	fi
 	cd "$LINUX_REPO"
 	git fetch --all --prune || true
+	# Discard leftover dirty tree from a previous isolated build (rsync overlay, etc.)
+	# so checkout of $BRANCH cannot fail with "local changes would be overwritten".
+	git reset --hard HEAD
+	git clean -fd
 	if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
 		git checkout "$BRANCH"
 	else
