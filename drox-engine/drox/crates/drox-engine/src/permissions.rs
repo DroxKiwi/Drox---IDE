@@ -126,12 +126,12 @@ impl PermissionPolicy {
             Err(BashError::TooManySubcommands(n)) => PermissionDecision::Ask {
                 reason: DecisionReason::Default,
                 message: format!(
-                    "La commande Bash est trop fragmentée ({n} segments) ; validation humaine requise."
+                    "Bash command is too fragmented ({n} segments); human approval required."
                 ),
             },
             Err(_) => PermissionDecision::Ask {
                 reason: DecisionReason::Default,
-                message: "Analyse Bash indisponible ; validation humaine requise.".to_string(),
+                message: "Bash analysis unavailable; human approval required.".to_string(),
             },
         }
     }
@@ -166,7 +166,7 @@ impl PermissionPolicy {
                 decision = PermissionDecision::Deny {
                     reason: DecisionReason::Default,
                     message: format!(
-                        "Commande Bash refusée ({hint}). Pour autoriser explicitement, ajoutez une règle `Allow` pour `bash({trimmed})`."
+                        "Bash command denied ({hint}). To allow explicitly, add an `Allow` rule for `bash({trimmed})`."
                     ),
                 };
             }
@@ -420,7 +420,7 @@ mod tests {
         let decision = policy.evaluate("bash", &json!({ "command": "rm -rf /tmp/z" }));
         assert!(decision.is_deny(), "got {decision:?}");
         if let PermissionDecision::Deny { message, .. } = decision {
-            assert!(message.contains("refusée") || message.contains("refused"));
+            assert!(message.contains("denied") || message.contains("refused"));
         }
     }
 

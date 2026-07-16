@@ -63,4 +63,7 @@ export interface IDroxSessionService {
 	clearRunRecovery(id: string, workspaceFsPath: string): Promise<void>;
 
 	resetWorkspace(workspaceFsPath: string): Promise<IDroxWorkspaceResetResult>;
+
+	/** Supprime les artefacts disque d'une session (`ses_*`) dans le workspace. */
+	deleteSession(id: string, workspaceFsPath: string): Promise<void>;
 }

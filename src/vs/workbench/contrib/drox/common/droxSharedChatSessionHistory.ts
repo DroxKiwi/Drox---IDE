@@ -408,6 +408,45 @@ export function markDroxEngineSessionOpened(
 
 }
 
+/** Retire une session moteur des MRU partagés (profil + workspace). */
+export function removeDroxEngineSessionFromRecency(
+	storageService: IStorageService,
+	workspaceFsPath: string,
+	engineSessionId: string,
+): void {
+	if (!isListableDroxSessionId(engineSessionId)) {
+		return;
+	}
+
+	const sessionResource = DroxChatSessionUri.forSession(engineSessionId);
+	const sessionStr = sessionResource.toString();
+	writeWorkspaceRecencyEntries(
+		storageService,
+		readWorkspaceRecencyEntries(storageService).filter(entry => entry?.session !== sessionStr),
+	);
+
+	const key = normalizeWorkspaceKey(workspaceFsPath);
+	const memento = readWorkspaceRecencyMemento(storageService);
+	const prev = memento.byWorkspace?.[key];
+	if (!prev) {
+		return;
+	}
+
+	const sessionOrder = (prev.sessionOrder ?? []).filter(id => id !== engineSessionId);
+	let sessionId = prev.sessionId;
+	if (sessionId === engineSessionId) {
+		sessionId = sessionOrder[0] ?? '';
+	}
+
+	const nextByWorkspace = { ...(memento.byWorkspace ?? {}) };
+	if (!sessionId && sessionOrder.length === 0) {
+		delete nextByWorkspace[key];
+	} else {
+		nextByWorkspace[key] = { sessionId, sessionOrder, updatedAt: Date.now() };
+	}
+	writeWorkspaceRecencyMemento(storageService, { byWorkspace: nextByWorkspace });
+}
+
 /** Efface l'historique MRU Drox (profil + workspace) pour un workspace donné. */
 export function clearDroxEngineSessionRecency(
 	storageService: IStorageService,

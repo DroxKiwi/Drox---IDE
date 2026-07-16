@@ -37,10 +37,10 @@ impl Tool for TaskTool {
     }
 
     fn description(&self) -> &str {
-        "Délègue une exploration **lecture seule** à un sous-agent (grep, glob, file_read, lsp). \
-         Réservé aux recherches larges ou parallélisables — pas pour une lecture ciblée d'un \
-         fichier connu (utilise `file_read`). **Désactivé** si les sous-agents ne sont pas \
-         activés dans les paramètres (`drox.subagents.enabled`). V1 : `subagent_type` = `explore`."
+        "Delegates **read-only** exploration to a sub-agent (grep, glob, file_read, lsp). \
+         Reserved for broad or parallelizable searches — not for targeted reading of a \
+         known file (use `file_read`). **Disabled** if sub-agents are not \
+         enabled in settings (`drox.subagents.enabled`). V1: `subagent_type` = `explore`."
     }
 
     fn input_schema(&self) -> Value {
@@ -63,13 +63,13 @@ impl Tool for TaskTool {
             .unwrap_or_default();
         if !settings.enabled {
             return Err(ToolError::invalid_args(
-                "Sous-agents désactivés. Activez `drox.subagents.enabled` dans les paramètres \
-                 VS Code pour utiliser `task`.",
+                "Sub-agents disabled. Enable `drox.subagents.enabled` in VS Code settings \
+                 to use `task`.",
             ));
         }
         let executor = ctx.subagent_executor.as_ref().ok_or_else(|| {
             ToolError::invalid_args(
-                "Sous-agents non configurés pour ce run (exécuteur manquant côté moteur).",
+                "Sub-agents not configured for this run (missing executor on the engine side).",
             )
         })?;
         let args: TaskInput = serde_json::from_value(input)?;
@@ -79,7 +79,7 @@ impl Tool for TaskTool {
         let kind = args.subagent_type.trim().to_ascii_lowercase();
         if kind != "explore" {
             return Err(ToolError::invalid_args(format!(
-                "subagent_type `{kind}` inconnu — V1 supporte uniquement `explore`"
+                "unknown subagent_type `{kind}` — V1 only supports `explore`"
             )));
         }
         let report = executor

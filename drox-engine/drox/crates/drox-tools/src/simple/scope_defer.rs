@@ -29,10 +29,10 @@ impl Tool for ScopeDeferTool {
     }
 
     fn description(&self) -> &str {
-        "Reporte une découverte **hors scope** de la demande utilisateur (incohérence, dette, \
-         piste parallèle) sans la traiter. Utilise-le quand tu explores et trouves quelque chose \
-         d'intéressant mais **non demandé** — puis continue vers l'objectif verrouillé. \
-         Format : {\"finding\": \"…\", \"reason\": \"…\"}."
+        "Defers an **out-of-scope** discovery from the user request (inconsistency, debt, \
+         parallel lead) without addressing it. Use when exploring and finding something \
+         interesting but **not requested** — then continue toward the locked objective. \
+         Format: {\"finding\": \"…\", \"reason\": \"…\"}."
     }
 
     fn input_schema(&self) -> Value {
@@ -42,14 +42,14 @@ impl Tool for ScopeDeferTool {
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: ScopeDeferInput = serde_json::from_value(input).map_err(|e| {
             ToolError::invalid_args(format!(
-                "scope_defer: JSON invalide ({e}). Attendu : {{\"finding\": \"…\", \"reason\": \"…\"}}."
+                "scope_defer: invalid JSON ({e}). Expected: {{\"finding\": \"…\", \"reason\": \"…\"}}."
             ))
         })?;
         let finding = args.finding.trim().to_string();
         let reason = args.reason.trim().to_string();
         if finding.is_empty() || reason.is_empty() {
             return Err(ToolError::invalid_args(
-                "scope_defer: `finding` et `reason` sont obligatoires (non vides).",
+                "scope_defer: `finding` and `reason` are required (non-empty).",
             ));
         }
         if finding.len() > MAX_FINDING_LEN {

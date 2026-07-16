@@ -34,7 +34,8 @@ import { basename } from '../../../../base/common/resources.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { DEFAULT_LABELS_CONTAINER, ResourceLabels } from '../../../../workbench/browser/labels.js';
 
-import { IChatRequestVariableEntry, isAgentHostCompletionVariableEntry, OmittedState } from '../../../../workbench/contrib/chat/common/attachments/chatVariableEntries.js';
+import { IChatRequestVariableEntry, isAgentHostCompletionVariableEntry, OmittedState, isPasteVariableEntry } from '../../../../workbench/contrib/chat/common/attachments/chatVariableEntries.js';
+import { droxSmartPasteVariableEntryToPasteEntry, isDroxSmartPasteVariableEntry } from '../../../../workbench/contrib/drox/common/droxNativeChatRequestAttachments.js';
 import { isLocation } from '../../../../editor/common/languages.js';
 import { resizeImage } from '../../../../workbench/contrib/chat/browser/chatImageUtils.js';
 import { imageToHash, isImage } from '../../../../workbench/contrib/chat/browser/widget/input/editor/chatPasteProviders.js';
@@ -121,40 +122,67 @@ export class NewChatContextAttachments extends Disposable {
 			const pill = dom.append(this._container, dom.$('.sessions-chat-attachment-pill'));
 			pill.tabIndex = 0;
 			pill.role = 'button';
-			const resource = URI.isUri(entry.value) ? entry.value : isLocation(entry.value) ? entry.value.uri : undefined;
-			if (entry.kind === 'image') {
-				dom.append(pill, renderIcon(Codicon.fileMedia));
-				dom.append(pill, dom.$('span.sessions-chat-attachment-name', undefined, entry.name));
-			} else {
+			const pasteEntry = isPasteVariableEntry(entry)
+				? entry
+				: isDroxSmartPasteVariableEntry(entry)
+					? droxSmartPasteVariableEntryToPasteEntry(entry)
+					: undefined;
+			if (pasteEntry) {
+				const resource = pasteEntry.copiedFrom?.uri;
 				const label = this._resourceLabels.create(pill, { supportIcons: true });
 				this._renderDisposables.add(label);
 				if (resource) {
-					label.setFile(resource, {
-						fileKind: entry.kind === 'directory' ? FileKind.FOLDER : FileKind.FILE,
-						hidePath: true,
-					});
+					label.setFile(resource, { fileKind: FileKind.FILE, hidePath: true });
 				} else {
-					label.setLabel(entry.name);
-				}
-			}
-
-			// Click to open the resource or image
-			const imageData = entry.kind === 'image' ? coerceImageBuffer(entry.value) : undefined;
-			if (imageData) {
-				pill.style.cursor = 'pointer';
-				this._renderDisposables.add(registerOpenEditorListeners(pill, async () => {
-					if (this.configurationService.getValue<boolean>(ChatConfiguration.ImageCarouselEnabled)) {
-						const imageResource = resource ?? URI.from({ scheme: 'data', path: entry.name });
-						await this.chatImageCarouselService.openCarouselAtResource(imageResource, imageData);
-					} else if (resource) {
-						await this.openerService.open(resource, { fromUserGesture: true });
+					try {
+						label.setLabel(basename(URI.parse(pasteEntry.fileName)));
+					} catch {
+						label.setLabel(pasteEntry.fileName);
 					}
-				}));
-			} else if (resource) {
-				pill.style.cursor = 'pointer';
-				this._renderDisposables.add(registerOpenEditorListeners(pill, async () => {
-					await this.openerService.open(resource, { fromUserGesture: true });
-				}));
+				}
+				dom.append(pill, dom.$('span.sessions-chat-attachment-name', undefined, `Pasted ${pasteEntry.pastedLines}`));
+				if (resource) {
+					pill.style.cursor = 'pointer';
+					this._renderDisposables.add(registerOpenEditorListeners(pill, async () => {
+						await this.openerService.open(resource, { fromUserGesture: true });
+					}));
+				}
+			} else {
+				const resource = URI.isUri(entry.value) ? entry.value : isLocation(entry.value) ? entry.value.uri : undefined;
+				if (entry.kind === 'image') {
+					dom.append(pill, renderIcon(Codicon.fileMedia));
+					dom.append(pill, dom.$('span.sessions-chat-attachment-name', undefined, entry.name));
+				} else {
+					const label = this._resourceLabels.create(pill, { supportIcons: true });
+					this._renderDisposables.add(label);
+					if (resource) {
+						label.setFile(resource, {
+							fileKind: entry.kind === 'directory' ? FileKind.FOLDER : FileKind.FILE,
+							hidePath: true,
+						});
+					} else {
+						label.setLabel(entry.name);
+					}
+				}
+
+				// Click to open the resource or image
+				const imageData = entry.kind === 'image' ? coerceImageBuffer(entry.value) : undefined;
+				if (imageData) {
+					pill.style.cursor = 'pointer';
+					this._renderDisposables.add(registerOpenEditorListeners(pill, async () => {
+						if (this.configurationService.getValue<boolean>(ChatConfiguration.ImageCarouselEnabled)) {
+							const imageResource = resource ?? URI.from({ scheme: 'data', path: entry.name });
+							await this.chatImageCarouselService.openCarouselAtResource(imageResource, imageData);
+						} else if (resource) {
+							await this.openerService.open(resource, { fromUserGesture: true });
+						}
+					}));
+				} else if (resource) {
+					pill.style.cursor = 'pointer';
+					this._renderDisposables.add(registerOpenEditorListeners(pill, async () => {
+						await this.openerService.open(resource, { fromUserGesture: true });
+					}));
+				}
 			}
 
 			const removeButton = dom.append(pill, dom.$('.sessions-chat-attachment-remove'));

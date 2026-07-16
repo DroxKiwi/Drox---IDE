@@ -17,7 +17,6 @@ import { ExtensionIdentifier } from '../../../../../platform/extensions/common/e
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
-import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import { IChatProgress, IChatService } from '../../../chat/common/chatService/chatService.js';
 import { IChatSession, IChatSessionContentProvider, IChatSessionHistoryItem } from '../../../chat/common/chatSessionsService.js';
 import { ChatAgentLocation, ChatModeKind } from '../../../chat/common/constants.js';
@@ -56,6 +55,9 @@ import { IDroxSessionChangesBridge } from '../../common/droxSessionChangesBridge
 import { buildDroxAgentsHistoryFromTranscript, buildDroxAgentsHistoryFromUiReplay } from './droxAgentsUiReplayHistory.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
 
+/** Derniers tours user chargés à l'ouverture (évite un modèle chat géant en prod). */
+const DROX_AGENTS_SESSION_INITIAL_TAIL_TURNS = 25;
+
 class DroxAgentsChatSession implements IChatSession {
 
 	private readonly _onWillDispose = new Emitter<void>();
@@ -84,7 +86,6 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 		@IDroxUserAskService private readonly userAskService: IDroxUserAskService,
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
-		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@ILogService private readonly logService: ILogService,
 		@IFileService private readonly fileService: IFileService,
 		@IDroxRunRevertService private readonly runRevertService: IDroxRunRevertService,
@@ -105,24 +106,47 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 	}
 
 	private async _resolveWorkspacePath(sessionResource: URI): Promise<string | undefined> {
-		return getDroxSessionsProviderInstance()?.ensureSessionWorkspacePath(sessionResource)
-			?? this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath;
+		return getDroxSessionsProviderInstance()?.ensureSessionWorkspacePath(sessionResource);
 	}
 
 	private async _loadSessionHistory(sessionResource: URI): Promise<IChatSessionHistoryItem[]> {
+		const started = Date.now();
 		const engineSessionId = DroxChatSessionUri.parseSessionId(sessionResource);
 		const workspacePath = await this._resolveWorkspacePath(sessionResource);
 		if (!engineSessionId || !workspacePath || !isListableDroxSessionId(engineSessionId)) {
+			if (engineSessionId) {
+				this.logService.warn(
+					`[Drox Agents] session history skipped sessionId=${engineSessionId} workspacePath=${workspacePath ?? '(missing)'}`,
+				);
+			}
 			return [];
 		}
 
 		try {
-			const uiReplay = await this.sessionService.readUiReplay(engineSessionId, workspacePath);
-			if (uiReplay.length > 0) {
-				return buildDroxAgentsHistoryFromUiReplay(uiReplay);
+			const tail = await this.sessionService.readUiReplayTail(
+				engineSessionId,
+				workspacePath,
+				{ maxTurns: DROX_AGENTS_SESSION_INITIAL_TAIL_TURNS },
+			);
+			if (tail.messages.length > 0) {
+				const history = buildDroxAgentsHistoryFromUiReplay(tail.messages);
+				if (history.length === 0) {
+					this.logService.warn(
+						`[Drox Agents] session history empty after ui replay sessionId=${engineSessionId} workspacePath=${workspacePath} events=${tail.messages.length}`,
+					);
+				} else {
+					this.logService.info(
+						`[Drox Agents] session history loaded sessionId=${engineSessionId} items=${history.length} events=${tail.messages.length}/${tail.totalEventCount} loadMs=${Date.now() - started}`,
+					);
+				}
+				return history;
 			}
 			const read = await this.sessionService.readSession(engineSessionId, workspacePath);
-			return buildDroxAgentsHistoryFromTranscript(read.messages);
+			const history = buildDroxAgentsHistoryFromTranscript(read.messages);
+			this.logService.info(
+				`[Drox Agents] session history from transcript sessionId=${engineSessionId} items=${history.length} loadMs=${Date.now() - started}`,
+			);
+			return history;
 		} catch (e) {
 			this.logService.warn('[Drox Agents] failed to load session history for replay', e);
 			return [];
@@ -187,7 +211,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		const modelName = request.userSelectedModelId
 			? parseDroxAgentsModelIdentifier(request.userSelectedModelId)
 			: undefined;
-		const preparedPrompt = await prepareDroxNativeChatRunPrompt(this.attachmentsService, {
+		const preparedPrompt = await prepareDroxNativeChatRunPrompt(this.attachmentsService, this.fileService, {
 			message: request.message,
 			variables: request.variables,
 			workspaceRoot: workspacePath,

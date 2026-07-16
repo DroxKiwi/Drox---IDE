@@ -65,6 +65,11 @@ export class DroxPasteCandidateService extends Disposable implements IDroxPasteC
 		}
 	}
 
+	resolveCandidateByToken(token: string): IDroxPasteCandidateWire | undefined {
+		const candidate = this.candidates.get(token);
+		return candidate ? toPasteCandidateWire(candidate) : undefined;
+	}
+
 	private workspaceRoot(): string | undefined {
 		return this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath;
 	}

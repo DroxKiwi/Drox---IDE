@@ -291,7 +291,7 @@ const ANALYZING_PHASE_NUDGE: &str = "The user asked for a **workspace / repo ana
 fn format_tool_result_for_llm(tool_name: &str, value: &Value) -> String {
     let serialized = serde_json::to_string(value).unwrap_or_default();
     format!(
-        "[drox: résultat de l'outil «{tool_name}» — JSON ci-dessous ; ce n'est pas un message utilisateur]\n{serialized}",
+        "[drox: tool result for «{tool_name}» — JSON below; this is NOT a user message]\n{serialized}",
     )
 }
 
@@ -401,7 +401,7 @@ const PROFESSOR_DONE_WITHOUT_PLAN: &str = "You emitted `[phase: done]` but never
     `[phase: done]`, or continue teaching if more work remains.";
 
 const TODO_WRITE_FORBIDDEN_IN_PROFESSOR: &str = "Blocked: `todo_write` is not available \
-    in Professor mode. Use `course_plan_write` to maintain the **Plan de cours** instead.";
+    in Professor mode. Use `course_plan_write` to maintain the **course plan** instead.";
 
 #[must_use]
 fn is_professor_run(policy: Option<&PermissionPolicy>) -> bool {
@@ -495,11 +495,11 @@ per run, ever-growing, never replaced.";
 /// refuse (clôture de session = commande utilisateur `/session_end` dans
 /// l'IDE uniquement).
 const SESSION_END_FORBIDDEN_FOR_MODEL: &str =
-    "session_end: cet outil n'est pas disponible depuis le modèle. La fin de session \
-     (nouveau fil de chat + mémoire longue côté client) est réservée à la commande \
-     `/session_end` déclenchée par l'utilisateur. Pour archiver le travail : termine \
-     la to-do puis `[phase: answering]` + `[phase: done]` — le moteur écrit déjà \
-     `.drox/memory/sessions/` automatiquement.";
+    "session_end: this tool is not available from the model. Ending a session \
+     (new chat thread + long memory on the client) is reserved for the user \
+     `/session_end` command. To archive work: finish the todo list then \
+     `[phase: answering]` + `[phase: done]` — the engine already writes \
+     `.drox/memory/sessions/` automatically.";
 
 /// Extrait la liste des ids du payload `todo_write` et indique si au moins
 /// un item est encore actif (`pending` / `in_progress`). Retourne `None`
@@ -593,7 +593,7 @@ fn unfinished_todos_prompt(pending: u64, in_progress: u64) -> String {
 fn unfinished_course_plan_prompt(pending: u64, active: u64) -> String {
     format!(
         "You emitted `[phase: done]` but your most recent `course_plan_write` still has \
-         {pending} step(s) in `pending` and {active} in `active`. Update the **Plan de cours** \
+         {pending} step(s) in `pending` and {active} in `active`. Update the **course plan** \
          (`mastered` / `skipped`) or continue teaching the active step before closing.\n\
          \n\
          - If the learner finished the step: `course_plan_write` with that step `mastered`, \
@@ -660,13 +660,13 @@ impl Default for AgentConfig {
 
 fn run_objective_system_block(objective: &str) -> String {
     format!(
-        "## Objectif verrouillé (demande utilisateur)\n{}\n\n\
-         Fidélité objectif :\n\
-         - Une incohérence découverte n'est PAS une tâche implicite : utilise `scope_defer` \
-         ou `ask_user_question` avant d'élargir le périmètre.\n\
-         - Pas d'audit ni refactor global tant que cet objectif n'est pas atteint.\n\
-         - Avant `[phase: done]`, indique brièvement dans ta dernière `[phase: answering]` \
-         comment l'objectif est satisfait.",
+        "## Locked objective (user request)\n{}\n\n\
+         Objective fidelity:\n\
+         - A discovered inconsistency is NOT an implicit task: use `scope_defer` \
+         or `ask_user_question` before widening scope.\n\
+         - No global audit or refactor until this objective is met.\n\
+         - Before `[phase: done]`, briefly state in your last `[phase: answering]` \
+         how the objective is satisfied.",
         objective.trim()
     )
 }
@@ -690,9 +690,9 @@ async fn mirror_workspace_map_from_tool(
 
 fn run_objective_done_nudge(objective: &str) -> String {
     format!(
-        "Tu as émis `[phase: done]`. Avant de clôturer : dans `[phase: answering]`, rappelle en \
-         **une courte phrase** comment l'objectif verrouillé est satisfait, puis `[phase: done]` \
-         à nouveau.\n\nObjectif : {}",
+        "You emitted `[phase: done]`. Before closing: in `[phase: answering]`, briefly \
+         recall in **one short sentence** how the locked objective is satisfied, then \
+         `[phase: done]` again.\n\nObjective: {}",
         objective.trim()
     )
 }
@@ -994,41 +994,6 @@ impl Agent {
                 saw_testing_phase_in_run = true;
             }
 
-            // Sprint Hotfix « boucle » — détection d'empreinte répétée. À
-            // évaluer AVANT les gates `Done` / `tool_calls.is_empty` parce
-            // que celles-ci injectent leurs propres nudges et pourraient
-            // masquer la boucle (le modèle répondrait pareil mais on
-            // continuerait à nudger sans jamais stopper).
-            match loop_detector.observe(&outcome) {
-                LoopDecision::Ok => {}
-                LoopDecision::Warn { kind } => {
-                    debug!(
-                        kind,
-                        "boucle détectée (1er strike) — injection nudge anti-boucle"
-                    );
-                    messages.push(Message::system(LOOP_DETECTED_NUDGE_PROMPT));
-                    if let Err(e) = self
-                        .flush_transcript(&messages, &mut transcript_cursor)
-                        .await
-                    {
-                        let _ = tx.send(Err(e)).await;
-                        return;
-                    }
-                    continue;
-                }
-                LoopDecision::Abort { kind, turns } => {
-                    debug!(
-                        kind,
-                        turns,
-                        "boucle non résolue après nudge — abort"
-                    );
-                    let _ = tx
-                        .send(Err(EngineError::LoopDetected { kind, turns }))
-                        .await;
-                    return;
-                }
-            }
-
             // Done-driven completion + answering-before-done. `todo_write`
             // n'est PAS exigé ici : les réponses purement conversationnelles
             // (salutations, questions triviales) et les runs purement
@@ -1151,6 +1116,41 @@ impl Agent {
                     }))
                     .await;
                 return;
+            }
+
+            // Sprint Hotfix « boucle » — détection d'empreinte répétée.
+            // Évalué **après** les gates `[phase: done]` (D1–D7) : un modèle
+            // qui répète `[phase: done]` alors que la to-do est encore ouverte
+            // doit recevoir `unfinished_todos_prompt` à chaque tour, pas
+            // `LOOP_DETECTED_NUDGE` au 2e tour identique (cf. 1.5.14 L1).
+            match loop_detector.observe(&outcome) {
+                LoopDecision::Ok => {}
+                LoopDecision::Warn { kind } => {
+                    debug!(
+                        kind,
+                        "boucle détectée (1er strike) — injection nudge anti-boucle"
+                    );
+                    messages.push(Message::system(LOOP_DETECTED_NUDGE_PROMPT));
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    continue;
+                }
+                LoopDecision::Abort { kind, turns } => {
+                    debug!(
+                        kind,
+                        turns,
+                        "boucle non résolue après nudge — abort"
+                    );
+                    let _ = tx
+                        .send(Err(EngineError::LoopDetected { kind, turns }))
+                        .await;
+                    return;
+                }
             }
 
             // Si le modèle n'a pas signé `done` et n'a pas non plus appelé
@@ -1763,7 +1763,7 @@ impl Agent {
                 let nudge = if professor {
                     format!(
                         "Heads-up: you've called {mutating_tools_since_last_todo} mutating tools \
-                         since your last `course_plan_write`, and the Plan de cours still has \
+                         since your last `course_plan_write`, and the course plan still has \
                          {last_course_pending} pending + {last_course_active} active step(s). \
                          Update the plan (`mastered` / next `active`) before continuing."
                     )
@@ -2251,8 +2251,9 @@ struct PendingToolCall {
 ///
 /// Anti-faux-positif : les nudges moteur (`unfinished_todos`, `DONE_ONLY`,
 /// etc.) appellent `LoopDetector::reset` parce qu'ils **forcent**
-/// le modèle à changer de comportement — leur effet sur le tour suivant doit
-/// être évalué à part.
+/// le modèle à changer de comportement. Depuis 1.5.14, `observe` est appelé
+/// **après** les gates `[phase: done]` pour ne pas confondre une tentative
+/// répétée de clôture (plan ouvert) avec une vraie boucle.
 #[derive(Default)]
 struct LoopDetector {
     /// Hash du dernier tour observé (`None` au début du run).
@@ -3726,6 +3727,103 @@ mod tests {
                 .iter()
                 .any(|e| matches!(e, AgentEvent::TextDelta { text } if text.contains("réponse finale"))),
             "expected final answer to come from the post-close turn, got {events:?}",
+        );
+    }
+
+    /// 1.5.14 L1 — repro prod : plan 1/2, le modèle répète `[phase: done]`
+    /// sans `todo_write` de clôture. Avant le fix, le 3e tour identique
+    /// abortait avec `LoopDetected` ; après, les gates D4 nudgent jusqu'à
+    /// convergence.
+    #[tokio::test]
+    async fn loop_does_not_abort_when_done_blocked_by_open_todo_repeated() {
+        let tid_plan = ToolUseId::new();
+        let tid_close = ToolUseId::new();
+        let premature_done = || {
+            vec![
+                StreamEvent::Start,
+                StreamEvent::TextDelta {
+                    text: "[phase: answering]\nCorrectif livré, je clôture.\n[phase: done]"
+                        .into(),
+                },
+                StreamEvent::Stop {
+                    reason: StopReason::EndTurn,
+                    usage: Usage::default(),
+                },
+            ]
+        };
+        let llm = Arc::new(ScriptedLlm::new(vec![
+            // Tour 1 : plan 2 items — 1 completed, 1 in_progress (widget 1/2).
+            vec![
+                StreamEvent::Start,
+                StreamEvent::TextDelta {
+                    text: "[phase: reading]\nJe pose le plan.\n".into(),
+                },
+                StreamEvent::ToolCall {
+                    id: tid_plan,
+                    name: "todo_write".into(),
+                    arguments: json!({
+                        "todos": [
+                            { "id": "1", "content": "Redirect /docs", "status": "completed" },
+                            { "id": "2", "content": "Bouton retour accueil", "status": "in_progress" },
+                        ]
+                    }),
+                },
+                StreamEvent::Stop {
+                    reason: StopReason::ToolUse,
+                    usage: Usage::default(),
+                },
+            ],
+            premature_done(),
+            premature_done(),
+            premature_done(),
+            // Tour 5 : clôture plan puis done.
+            vec![
+                StreamEvent::Start,
+                StreamEvent::TextDelta {
+                    text: "[phase: verifying]\nJe coche le dernier item.\n".into(),
+                },
+                StreamEvent::ToolCall {
+                    id: tid_close,
+                    name: "todo_write".into(),
+                    arguments: json!({
+                        "todos": [
+                            { "id": "1", "content": "Redirect /docs", "status": "completed" },
+                            { "id": "2", "content": "Bouton retour accueil", "status": "completed" },
+                        ]
+                    }),
+                },
+                StreamEvent::Stop {
+                    reason: StopReason::ToolUse,
+                    usage: Usage::default(),
+                },
+            ],
+            vec![
+                StreamEvent::Start,
+                StreamEvent::TextDelta {
+                    text: "[phase: answering]\nTerminé.\n[phase: done]".into(),
+                },
+                StreamEvent::Stop {
+                    reason: StopReason::EndTurn,
+                    usage: Usage::default(),
+                },
+            ],
+        ]));
+        let mut registry = ToolRegistry::new();
+        registry.register(Arc::new(TodoWriteTool));
+        let registry = Arc::new(registry);
+        let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
+        let agent = Agent::new(llm, registry, ctx, AgentConfig::default());
+
+        let raw: Vec<_> = agent.run("docs").collect::<Vec<_>>().await;
+        assert!(
+            !raw
+                .iter()
+                .any(|r| matches!(r, Err(EngineError::LoopDetected { .. }))),
+            "repeated premature done with open todo must not abort; got {raw:?}",
+        );
+        assert!(
+            matches!(raw.last(), Some(Ok(AgentEvent::Stop { .. }))),
+            "expected clean Stop after todo close; got {raw:?}",
         );
     }
 
