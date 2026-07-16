@@ -20,6 +20,7 @@ import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { describeToolCall, previewJson } from '../../common/droxToolPreview.js';
 import { IDroxAgentEventSink } from '../../common/droxAgentEventSink.js';
+import { pickDroxWarmupPhrase } from '../../common/droxWarmupPhrase.js';
 import { asFileChangeHostMessage } from '../../common/droxFileChange.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { extractAgentNotificationRunId } from '../droxChatAgentEvents.js';
@@ -157,6 +158,15 @@ export function createDroxAgentsChatSink(
 	const push = (parts: IChatProgress[]): void => {
 		progress(parts);
 	};
+
+	const pushRunWarmup = (): void => {
+		push([{
+			kind: 'droxWarmup',
+			phrase: pickDroxWarmupPhrase(),
+		}]);
+	};
+
+	pushRunWarmup();
 
 	const pushMarkdownDelta = (text: string): void => {
 		const chunk = sanitizeDroxAgentsChatDeltaChunk(text);

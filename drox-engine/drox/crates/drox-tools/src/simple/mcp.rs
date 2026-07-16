@@ -18,7 +18,7 @@ const MAX_RESULT_CHARS: usize = 100_000;
 fn require_hub(ctx: &ToolContext) -> Result<&McpHub, ToolError> {
     let Some(hub) = ctx.mcp_hub.as_deref() else {
         return Err(ToolError::mcp(
-            "aucun serveur MCP configuré (ajouter `.mcp.json` ou `mcp.json` à la racine du workspace)",
+            "no MCP server configured (add `.mcp.json` or `mcp.json` at the workspace root)",
         ));
     };
     Ok(hub)
@@ -135,8 +135,8 @@ impl Tool for McpCallTool {
     }
 
     fn description(&self) -> &str {
-        "Invoque un tool sur un serveur MCP configuré (`.mcp.json`). \
-         Utilisé en secours si les stubs `mcp__*` n'ont pas pu être chargés."
+        "Invokes a tool on a configured MCP server (`.mcp.json`). \
+         Used as fallback if `mcp__*` stubs could not be loaded."
     }
 
     fn input_schema(&self) -> Value {
@@ -147,7 +147,7 @@ impl Tool for McpCallTool {
         let args: McpCallInput = serde_json::from_value(input)?;
         if args.server.trim().is_empty() || args.tool.trim().is_empty() {
             return Err(ToolError::invalid_args(
-                "`server` et `tool` sont obligatoires",
+                "`server` and `tool` are required",
             ));
         }
         let hub = require_hub(ctx)?;
@@ -173,7 +173,7 @@ impl Tool for ListMcpResourcesTool {
     }
 
     fn description(&self) -> &str {
-        "Liste les ressources MCP disponibles. Chaque entrée inclut un champ `server`."
+        "Lists available MCP resources. Each entry includes a `server` field."
     }
 
     fn input_schema(&self) -> Value {
@@ -210,7 +210,7 @@ impl Tool for ReadMcpResourceTool {
     }
 
     fn description(&self) -> &str {
-        "Lit une ressource MCP par URI sur le serveur indiqué."
+        "Reads an MCP resource by URI on the specified server."
     }
 
     fn input_schema(&self) -> Value {
@@ -225,7 +225,7 @@ impl Tool for ReadMcpResourceTool {
         let args: ReadMcpResourceInput = serde_json::from_value(input)?;
         if args.server.trim().is_empty() || args.uri.trim().is_empty() {
             return Err(ToolError::invalid_args(
-                "`server` et `uri` sont obligatoires",
+                "`server` and `uri` are required",
             ));
         }
         let hub = require_hub(ctx)?;

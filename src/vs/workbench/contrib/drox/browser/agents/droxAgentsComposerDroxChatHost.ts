@@ -45,6 +45,7 @@ export interface IDroxAgentsComposerToolbarUiState {
 	readonly serverSettingsPanelOpen: boolean;
 	readonly modelSettingsBlocked: boolean;
 	readonly serverSettingsNeedsAttention: boolean;
+	readonly panelBootstrapLoading: boolean;
 }
 
 export interface IDroxAgentsComposerDroxChatHost {
@@ -107,6 +108,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 
 	private static _initPromise: Promise<void> | undefined;
 	private static _panelsRoot: HTMLElement | undefined;
+	private static _panelBootstrapLoading = false;
 
 	private readonly _hostAdapter: ComposerHostAdapter;
 	private readonly _toolbarRoots = new Set<HTMLElement>();
@@ -192,6 +194,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 				serverSettingsPanelOpen,
 				modelSettingsBlocked: !configured,
 				serverSettingsNeedsAttention: !configured && !wizardOpen && !busy && !serverSettingsPanelOpen,
+				panelBootstrapLoading: DroxAgentsComposerDroxChatHost._panelBootstrapLoading,
 			};
 		} catch {
 			return {
@@ -199,6 +202,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 				serverSettingsPanelOpen: false,
 				modelSettingsBlocked: false,
 				serverSettingsNeedsAttention: false,
+				panelBootstrapLoading: DroxAgentsComposerDroxChatHost._panelBootstrapLoading,
 			};
 		}
 	}
@@ -248,12 +252,25 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 
 	private async _ensureReady(): Promise<void> {
 		if (!DroxAgentsComposerDroxChatHost._initPromise) {
-			DroxAgentsComposerDroxChatHost._initPromise = this._bootstrap().catch(err => {
-				DroxAgentsComposerDroxChatHost._initPromise = undefined;
-				throw err;
-			});
+			this._setPanelBootstrapLoading(true);
+			DroxAgentsComposerDroxChatHost._initPromise = this._bootstrap()
+				.catch(err => {
+					DroxAgentsComposerDroxChatHost._initPromise = undefined;
+					throw err;
+				})
+				.finally(() => {
+					this._setPanelBootstrapLoading(false);
+				});
 		}
 		return DroxAgentsComposerDroxChatHost._initPromise;
+	}
+
+	private _setPanelBootstrapLoading(loading: boolean): void {
+		if (DroxAgentsComposerDroxChatHost._panelBootstrapLoading === loading) {
+			return;
+		}
+		DroxAgentsComposerDroxChatHost._panelBootstrapLoading = loading;
+		this._onDidReconcileToolbarUi.fire();
 	}
 
 	private async _bootstrap(): Promise<void> {

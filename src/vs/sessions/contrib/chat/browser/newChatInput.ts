@@ -36,9 +36,14 @@ import { getDefaultHoverDelegate } from '../../../../base/browser/ui/hover/hover
 import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
 import { appendDroxActivityGrid } from '../../../../workbench/contrib/drox/browser/droxActivityGrid.js';
+import { DROX_LOADING_SHOW_DELAY_MS } from '../../../../workbench/contrib/drox/browser/droxLoadingConstants.js';
 import { DroxAgentsComposerToolbar } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsComposerToolbar.js';
 import { createDroxAgentsComposerQuickActionsHost, DroxAgentsComposerQuickActionsHost } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatInputIntegration.js';
-import { isDroxAgentsWindowEnabled } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+import { registerDroxSmartPasteHandler } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsSmartPaste.js';
+import { isDroxAgentsWindowEnabled, isDroxNativeChatStackEnabled } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+import { IDroxPasteCandidateService } from '../../../../workbench/contrib/drox/common/droxPasteCandidateService.js';
+import { isDroxSendablePasteAttachment, isDroxSmartPasteVariableEntry, toDroxSmartPasteVariableEntry, wireToDroxSmartPasteAttachmentValue } from '../../../../workbench/contrib/drox/common/droxNativeChatRequestAttachments.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
 import { localize } from '../../../../nls.js';
 import * as aria from '../../../../base/browser/ui/aria/aria.js';
 import { ContextMenuController } from '../../../../editor/contrib/contextmenu/browser/contextmenu.js';
@@ -262,6 +267,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 	// Attached context
 	private readonly _contextAttachments: NewChatContextAttachments;
+	private _smartPasteEnabled = false;
 
 	// Slash commands
 	private _slashCommandHandler: SlashCommandHandler | undefined;
@@ -302,6 +308,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		@IStorageService private readonly storageService: IStorageService,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
+		@IDroxPasteCandidateService private readonly pasteCandidateService: IDroxPasteCandidateService,
 	) {
 		super();
 		this._scopedInstantiationService = this._register(this.instantiationService.createChild(new ServiceCollection(
@@ -334,6 +341,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			this._updateSendButtonState();
 			this.focus();
 		}));
+		this._smartPasteEnabled = isDroxNativeChatStackEnabled(this.configurationService);
 		this._register(autorun(reader => {
 			this.options.canSendRequest.read(reader);
 			const isLoading = this.options.loading.read(reader);
@@ -393,6 +401,25 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		const attachRow = dom.append(inputArea, dom.$('.sessions-chat-attach-row'));
 		const attachedContextContainer = dom.append(attachRow, dom.$('.sessions-chat-attached-context'));
 		this._contextAttachments.renderAttachedContext(attachedContextContainer);
+		if (this._smartPasteEnabled) {
+			this._register(registerDroxSmartPasteHandler(
+				inputArea,
+				this.pasteCandidateService,
+				candidate => {
+					this._contextAttachments.addAttachments(toDroxSmartPasteVariableEntry(
+						`drox-paste-${generateUuid()}`,
+						wireToDroxSmartPasteAttachmentValue(candidate),
+					));
+				},
+				token => this._contextAttachments.attachments.some(entry => {
+					if (!isDroxSmartPasteVariableEntry(entry)) {
+						return false;
+					}
+					const value = entry.value as { token?: string } | undefined;
+					return value?.token === token;
+				}),
+			));
+		}
 		this._contextAttachments.registerDropTarget(root);
 		this._contextAttachments.registerPasteHandler(inputArea);
 
@@ -465,7 +492,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 					if (this._sending) {
 						this._loadingSpinner?.classList.add('visible');
 					}
-				}, 500);
+				}, DROX_LOADING_SHOW_DELAY_MS);
 				this._loadingDelayDisposable.value = toDisposable(() => clearTimeout(timer));
 			}
 		} else {
@@ -623,6 +650,11 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			this._updateDraftState();
 			this._updateSendButtonState();
 		}));
+		this._register(this._editor.onDidFocusEditorText(() => {
+			if (this._smartPasteEnabled) {
+				this.pasteCandidateService.resync();
+			}
+		}));
 	}
 
 	private _createAttachButton(container: HTMLElement): void {
@@ -745,12 +777,19 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 	// --- Send ---
 
 
+	private _hasSendableContent(): boolean {
+		const hasText = !!this._editor?.getModel()?.getValue().trim();
+		const hasSendableAttachment = this._contextAttachments.attachments.some(entry =>
+			isExplicitFileOrImageVariableEntry(entry) || isDroxSendablePasteAttachment(entry),
+		);
+		return hasText || hasSendableAttachment;
+	}
+
 	private async _send(background = false): Promise<void> {
 		const rawQuery = this._editor.getModel()?.getValue() ?? '';
 		const query = rawQuery.trim();
 		const queryOffset = rawQuery.length - rawQuery.trimStart().length;
-		const hasSendableAttachment = this._contextAttachments.attachments.some(isExplicitFileOrImageVariableEntry);
-		if ((!query && !hasSendableAttachment) || this._sending) {
+		if (!this._hasSendableContent() || this._sending) {
 			return;
 		}
 
@@ -801,9 +840,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		if (!this._sendButton) {
 			return;
 		}
-		const hasText = !!this._editor?.getModel()?.getValue().trim();
-		const hasSendableAttachment = this._contextAttachments.attachments.some(isExplicitFileOrImageVariableEntry);
-		this._sendButton.enabled = !this._sending && (hasText || hasSendableAttachment) && this.options.canSendRequest.get();
+		this._sendButton.enabled = !this._sending && this._hasSendableContent() && this.options.canSendRequest.get();
 	}
 
 	private _restoreState(): void {

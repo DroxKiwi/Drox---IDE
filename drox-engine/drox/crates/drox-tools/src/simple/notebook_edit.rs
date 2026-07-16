@@ -338,11 +338,11 @@ impl Tool for NotebookEditTool {
     }
 
     fn description(&self) -> &str {
-        "Édite un notebook Jupyter (.ipynb). Chaque entrée de `edits` cible une cellule par \
-         `cell_index` (0-based). Mode `replace` (défaut) : old_string → new_string dans la source \
-         (comme file_edit ; old_string vide = remplacer toute la source). Mode `insert` : \
-         nouvelle cellule à l’index (`new_string`, `cell_type` code|markdown). Mode `delete` : \
-         supprime la cellule. Exemple : \
+        "Edits a Jupyter notebook (.ipynb). Each entry in `edits` targets a cell by \
+         `cell_index` (0-based). Mode `replace` (default): old_string → new_string in the source \
+         (like file_edit; empty old_string = replace entire source). Mode `insert`: \
+         new cell at index (`new_string`, `cell_type` code|markdown). Mode `delete`: \
+         removes the cell. Example: \
          {\"path\":\"nb.ipynb\",\"edits\":[{\"cell_index\":1,\"old_string\":\"a\",\"new_string\":\"b\"}]}"
     }
 

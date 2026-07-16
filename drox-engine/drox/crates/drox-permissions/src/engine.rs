@@ -240,7 +240,7 @@ impl PermissionEngine {
                         return PermissionDecision::Deny {
                             reason: DecisionReason::Default,
                             message: format!(
-                                "Modification refusée ({hint}) sur `{path}`. Ajoutez une règle Allow explicite pour autoriser."
+                                "Modification denied ({hint}) on `{path}`. Add an explicit Allow rule to authorize."
                             ),
                         };
                     }
