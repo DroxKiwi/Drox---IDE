@@ -326,6 +326,87 @@ const NUDGE_PROMPT: &str = "Have you fully completed the user's objective?\n\
       the engine will keep nudging you until you either deliver `[phase: done]` \
       or actually act.";
 
+/// FX-B 1.5.16 — nudge quand le modèle annonce une mutation (`file_write` /
+/// `file_edit`…) en prose **sans** émettre de `tool_calls`. Remplace le
+/// `NUDGE_PROMPT` générique qui laisse boucler « je vais écrire… ».
+const INTENT_ONLY_WRITE_NUDGE_PROMPT: &str = "STOP. You described writing or \
+    editing a file in plain text, but you did NOT emit any native `tool_calls`.\n\
+    \n\
+    Intent prose alone does nothing. In your NEXT reply you MUST either:\n\
+    1. Emit a real `file_write` or `file_edit` tool call (preferred — same \
+       reply as a short `[phase: acting]` line), OR\n\
+    2. If you cannot mutate, explain why briefly in `[phase: answering]` then \
+       emit `[phase: done]`.\n\
+    \n\
+    Do NOT repeat \"I will write / Je vais écrire\". Call the tool NOW.";
+
+/// 2e strike FX-B — même situation + exemple minimal pour forcer le format.
+const INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT: &str = "You still have not called \
+    a mutating tool after announcing a write/edit. This is your last chance \
+    before the engine aborts the run.\n\
+    \n\
+    Emit a native `file_write` tool call NOW. Example arguments shape:\n\
+    `{ \"path\": \"relative/or/absolute/path.ext\", \"content\": \"...\" }`\n\
+    \n\
+    Or `file_edit` with `{ \"path\", \"old_string\", \"new_string\" }`.\n\
+    No more announcement-only replies.";
+
+/// Nombre de nudges « intent-only write » avant soft-abort (`LoopDetected`).
+const INTENT_ONLY_WRITE_MAX_NUDGES: u32 = 2;
+
+/// Détecte une intention de mutation fichier annoncée en prose (FR/EN).
+/// Utilisé uniquement quand `tool_calls` est vide — pas un parseur NLP.
+#[must_use]
+fn assistant_text_suggests_mutation_intent(text: &str) -> bool {
+    let t = text.to_lowercase();
+    const NEEDLES: &[&str] = &[
+        // EN
+        "i will write",
+        "i'll write",
+        "i am going to write",
+        "i'm going to write",
+        "going to write the file",
+        "write the file",
+        "writing the file",
+        "i will edit",
+        "i'll edit",
+        "i am going to edit",
+        "create the file",
+        "creating the file",
+        "call file_write",
+        "calling file_write",
+        "use file_write",
+        "using file_write",
+        "call file_edit",
+        "use file_edit",
+        // FR (accents + ASCII)
+        "je vais écrire",
+        "je vais ecrire",
+        "je dois écrire",
+        "je dois ecrire",
+        "j'écris",
+        "j'ecris",
+        "j’écris",
+        "écrire le fichier",
+        "ecrire le fichier",
+        "je lance l'écriture",
+        "je lance l'ecriture",
+        "appeler file_write",
+        "utiliser file_write",
+        "je vais éditer",
+        "je vais editer",
+        "je crée le fichier",
+        "je cree le fichier",
+        "je vais créer le fichier",
+        "je vais creer le fichier",
+    ];
+    // Mention nue de l'outil dans une phrase d'action (souvent FR/EN mélangés).
+    if t.contains("file_write") || t.contains("file_edit") {
+        return true;
+    }
+    NEEDLES.iter().any(|n| t.contains(n))
+}
+
 /// Nudge minimaliste injecté quand le modèle a **déjà** rédigé sa réponse
 /// dans `[phase: answering]` mais a oublié le marqueur `[phase: done]` final.
 ///
@@ -911,6 +992,8 @@ impl Agent {
         let mut saw_analyzing_phase_in_run = false;
         let mut saw_code_mutation_in_run = false;
         let mut saw_testing_phase_in_run = false;
+        // FX-B 1.5.16 — compteur de nudges « intention write sans tool ».
+        let mut consecutive_intent_only_write_nudges: u32 = 0;
         let testing_gate_active = !ctx.plan_mode && !professor;
         for iter in 0..self.config.max_iterations {
             debug!(
@@ -1118,6 +1201,50 @@ impl Agent {
                 return;
             }
 
+            // FX-B 1.5.16 — intention de mutation en prose sans tool_calls.
+            // **Avant** le LoopDetector : sinon un 2e tour de prose identique
+            // déclenche `Warn`/`Abort` générique et court-circuite les nudges
+            // « emit file_write NOW » (et le soft-abort `intent_only_write`).
+            if outcome.tool_calls.is_empty() {
+                let write_intent = assistant_text_suggests_mutation_intent(&outcome.text)
+                    || consecutive_intent_only_write_nudges > 0;
+                if write_intent {
+                    consecutive_intent_only_write_nudges =
+                        consecutive_intent_only_write_nudges.saturating_add(1);
+                    if consecutive_intent_only_write_nudges > INTENT_ONLY_WRITE_MAX_NUDGES {
+                        debug!(
+                            strikes = consecutive_intent_only_write_nudges,
+                            "intent-only write — soft-abort après nudges"
+                        );
+                        let _ = tx
+                            .send(Err(EngineError::LoopDetected {
+                                kind: "intent_only_write",
+                                turns: consecutive_intent_only_write_nudges,
+                            }))
+                            .await;
+                        return;
+                    }
+                    let nudge = if consecutive_intent_only_write_nudges >= 2 {
+                        INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT
+                    } else {
+                        INTENT_ONLY_WRITE_NUDGE_PROMPT
+                    };
+                    debug!(
+                        strike = consecutive_intent_only_write_nudges,
+                        "tour sans tool_call — nudge intent-only write"
+                    );
+                    messages.push(Message::system(nudge));
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    continue;
+                }
+            }
+
             // Sprint Hotfix « boucle » — détection d'empreinte répétée.
             // Évalué **après** les gates `[phase: done]` (D1–D7) : un modèle
             // qui répète `[phase: done]` alors que la to-do est encore ouverte
@@ -1169,6 +1296,7 @@ impl Agent {
                     && last_todo_in_progress == 0
                 {
                     debug!("answering sans done + todo clôturée — nudge minimal (done seul)");
+                    consecutive_intent_only_write_nudges = 0;
                     messages.push(Message::system(DONE_ONLY_NUDGE_PROMPT));
                     loop_detector.reset();
                     if let Err(e) = self
@@ -1181,6 +1309,7 @@ impl Agent {
                     continue;
                 }
 
+                consecutive_intent_only_write_nudges = 0;
                 debug!("tour sans tool_call et sans [phase: done] — nudge");
                 messages.push(Message::system(NUDGE_PROMPT));
                 loop_detector.reset();
@@ -1194,6 +1323,7 @@ impl Agent {
                 continue;
             }
 
+            consecutive_intent_only_write_nudges = 0;
             // GLM-4.7-Flash bat parfois `[file_edit, todo_write]` ou
             // `[bash, todo_write]` dans le même tour. Sans réordonnement, le
             // mutateur rate la gate `MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED`,
@@ -5381,6 +5511,79 @@ mod tests {
             matches!(events.last(), Some(AgentEvent::Stop { .. })),
             "le run doit finir par Stop ; events={events:?}"
         );
+    }
+
+    #[test]
+    fn mutation_intent_detector_fr_en() {
+        assert!(assistant_text_suggests_mutation_intent(
+            "Je vais écrire le fichier Engine enrichi maintenant."
+        ));
+        assert!(assistant_text_suggests_mutation_intent(
+            "I will write the file with file_write right away."
+        ));
+        assert!(assistant_text_suggests_mutation_intent(
+            "Je suis bloqué… j'appelle file_write."
+        ));
+        assert!(!assistant_text_suggests_mutation_intent(
+            "Je vais lire le README pour comprendre l'architecture."
+        ));
+        assert!(!assistant_text_suggests_mutation_intent(
+            "I will read the source before deciding."
+        ));
+    }
+
+    /// FX-B 1.5.16 : prose « je vais écrire » sans tool → nudges dédiés puis abort.
+    #[tokio::test]
+    async fn intent_only_write_prose_aborts_after_nudges() {
+        let loop_text = "[phase: acting]\nJe vais écrire le fichier src/app/docs/engine/page.tsx maintenant.\n";
+        let llm = Arc::new(ScriptedLlm::new(vec![
+            vec![
+                StreamEvent::Start,
+                StreamEvent::TextDelta {
+                    text: loop_text.into(),
+                },
+                StreamEvent::Stop {
+                    reason: StopReason::EndTurn,
+                    usage: Usage::default(),
+                },
+            ],
+            vec![
+                StreamEvent::Start,
+                StreamEvent::TextDelta {
+                    text: loop_text.into(),
+                },
+                StreamEvent::Stop {
+                    reason: StopReason::EndTurn,
+                    usage: Usage::default(),
+                },
+            ],
+            vec![
+                StreamEvent::Start,
+                StreamEvent::TextDelta {
+                    text: loop_text.into(),
+                },
+                StreamEvent::Stop {
+                    reason: StopReason::EndTurn,
+                    usage: Usage::default(),
+                },
+            ],
+        ]));
+        let mut registry = ToolRegistry::new();
+        registry.register(Arc::new(TodoWriteTool));
+        let registry = Arc::new(registry);
+        let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
+        let mut config = AgentConfig::default();
+        config.max_iterations = 8;
+        let agent = Agent::new(llm, registry, ctx, config);
+
+        let raw: Vec<_> = agent.run("Écris la page Engine").collect::<Vec<_>>().await;
+        match raw.last() {
+            Some(Err(EngineError::LoopDetected { kind, turns })) => {
+                assert_eq!(*kind, "intent_only_write");
+                assert!(*turns >= 3, "turns={turns}");
+            }
+            other => panic!("expected LoopDetected intent_only_write, got {other:?}"),
+        }
     }
 
     /// Anti-régression : sur un simple « Salut », le moteur DOIT accepter
