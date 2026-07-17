@@ -25,7 +25,7 @@
 | [**1.5.13/**](1.5.13/README.md) | Stabilisation Agents (fil · perf · crash) | **Clôturé** · `v1.5.13` |
 | [**1.5.14/**](1.5.14/README.md) | LoopDetector, loading UI, Plan B sessions | **Livré** · `v1.5.14` |
 | [**1.5.15/**](1.5.15/README.md) | Hors workspace · Retry · carnet session | **Livré** · `v1.5.15` |
-| [**1.5.16/**](1.5.16/README.md) | Correctifs post-1.5.15 | **Ouvert** |
+| [**1.5.16/**](1.5.16/README.md) | Stabilisation modèle (hors-WS wiring · boucle write) | **Livré** · `v1.5.16` |
 
 ---
 
@@ -47,7 +47,7 @@
 1.5.13  stabilisation Agents (fil · perf · crash)  →  clôturé (merge main, branche conservée)
 1.5.14  Plan B sessions + loading + LoopDetector  →  livré
 1.5.15  hors workspace · retry · carnet  →  livré
-1.5.16  correctifs post-1.5.15  →  ouvert
+1.5.16  stabilisation modèle (hors-WS · boucle write)  →  livré
 MCP  →  brainstorm #16
 ```
 
@@ -55,6 +55,8 @@ MCP  →  brainstorm #16
 
 ## Liens
 
+- [PLAN 1.5.16](1.5.16/PLAN-1.5.16.md)
+- [Clôture 1.5.16](1.5.16/CLOSURE-1.5.16.md)
 - [PLAN 1.5.1](1.5.1/PLAN-1.5.1.md)
 - [PLAN 1.5.2](1.5.2/PLAN-1.5.2.md)
 - [PLAN 1.5.3](1.5.3/PLAN-1.5.3.md)
