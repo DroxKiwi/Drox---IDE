@@ -24,7 +24,8 @@
 | [**1.5.12/**](1.5.12/README.md) | Polish + workspace Cursor + MCP marketplace | **Livré** · `v1.5.12` |
 | [**1.5.13/**](1.5.13/README.md) | Stabilisation Agents (fil · perf · crash) | **Clôturé** · `v1.5.13` |
 | [**1.5.14/**](1.5.14/README.md) | LoopDetector, loading UI, Plan B sessions | **Livré** · `v1.5.14` |
-| [**1.5.15/**](1.5.15/README.md) | Accès hors workspace (toggle session) | **Ouvert** |
+| [**1.5.15/**](1.5.15/README.md) | Hors workspace · Retry · carnet session | **Livré** · `v1.5.15` |
+| [**1.5.16/**](1.5.16/README.md) | Correctifs post-1.5.15 | **Ouvert** |
 
 ---
 
@@ -45,7 +46,8 @@
 1.5.12  polish + workspace Cursor (changes, onglets, MCP)  →  livré
 1.5.13  stabilisation Agents (fil · perf · crash)  →  clôturé (merge main, branche conservée)
 1.5.14  Plan B sessions + loading + LoopDetector  →  livré
-1.5.15  accès hors workspace (toggle session)  →  ouvert
+1.5.15  hors workspace · retry · carnet  →  livré
+1.5.16  correctifs post-1.5.15  →  ouvert
 MCP  →  brainstorm #16
 ```
 
