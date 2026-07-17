@@ -66,6 +66,7 @@ import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
 import { IDroxReleaseNotesService } from '../common/droxReleaseNotesService.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { formatDroxChatVersionLabel, formatDroxChatVersionTitle } from '../common/droxProductVersion.js';
+import { IDroxSessionBackgroundService } from '../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 
 export class DroxChatController extends Disposable
 	implements IDroxChatTabsDelegate, IDroxChatSendRunHost, IDroxChatWebviewRouterHost, IDroxChatAgentBridgeHost {
@@ -115,6 +116,7 @@ export class DroxChatController extends Disposable
 		@IHostService private readonly hostService: IHostService,
 		@IProductService private readonly productService: IProductService,
 		@IDroxReleaseNotesService private readonly releaseNotesService: IDroxReleaseNotesService,
+		@IDroxSessionBackgroundService private readonly sessionBackgroundService: IDroxSessionBackgroundService,
 	) {
 		super();
 		this._layoutStore = new DroxChatLayoutStore(this.storageService);
@@ -487,6 +489,7 @@ export class DroxChatController extends Disposable
 			workspaceContextService: this.workspaceContextService,
 			productService: this.productService,
 			releaseNotesService: this.releaseNotesService,
+			sessionBackgroundService: this.sessionBackgroundService,
 		};
 	}
 
