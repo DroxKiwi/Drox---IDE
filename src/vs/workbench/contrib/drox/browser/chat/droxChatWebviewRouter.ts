@@ -48,6 +48,7 @@ import { IDroxLlmModelsService } from '../../common/droxLlmModelsService.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 import { handleDroxRevertLastRun, handleDroxRevertToMessage } from './droxChatRunRevert.js';
 import { handleDroxResumeRunAfterError, handleDroxRestartRunAfterError } from './droxChatRunRecovery.js';
 import { handleDroxExportTranscript } from './droxChatTranscriptExport.js';
@@ -96,6 +97,8 @@ export interface IDroxChatWebviewRouterDeps {
 	readonly workspaceContextService: IWorkspaceContextService;
 	readonly productService: IProductService;
 	readonly releaseNotesService: IDroxReleaseNotesService;
+	/** Flag hors-workspace par session moteur (`ses_*`) — FX-A 1.5.16. */
+	readonly sessionBackgroundService: IDroxSessionBackgroundService;
 }
 
 export async function routeDroxChatWebviewMessage(
@@ -196,6 +199,7 @@ export async function routeDroxChatWebviewMessage(
 				logService: deps.logService,
 				runRevertService: deps.runRevertService,
 				fileService: deps.fileService,
+				sessionBackgroundService: deps.sessionBackgroundService,
 			}, raw.messageId);
 			break;
 		case 'restartRunAfterError':
@@ -208,6 +212,7 @@ export async function routeDroxChatWebviewMessage(
 				logService: deps.logService,
 				runRevertService: deps.runRevertService,
 				fileService: deps.fileService,
+				sessionBackgroundService: deps.sessionBackgroundService,
 			}, raw.messageId);
 			break;
 		case 'undoFileChange':

@@ -1,6 +1,6 @@
 # 1.5.15 — Hors workspace · Retry · Carnet de session
 
-**Statut** : en cours (code RT+NB en place)  
+**Statut** : livré · `v1.5.15`  
 **Version** : `droxVersion` **1.5.15**  
 **Plan** : [PLAN-1.5.15.md](PLAN-1.5.15.md)  
 **Trace Rust** : [ENGINE-RUST-1.5.15.md](ENGINE-RUST-1.5.15.md) — OW uniquement ; **RT + NB = zéro Rust**
