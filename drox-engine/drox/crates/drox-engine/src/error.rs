@@ -33,8 +33,10 @@ pub enum EngineError {
     /// consécutifs dont les empreintes (texte assistant nettoyé + signature
     /// des `tool_calls`) sont identiques après un nudge anti-boucle. On
     /// stoppe explicitement plutôt que de gaspiller des tokens jusqu'à
-    /// `max_iterations`. Le `kind` décrit ce qui se répétait (« text »,
-    /// « tool_calls », « both ») pour aider au debug.
+    /// `max_iterations`.
+    ///
+    /// `kind` : `"text"` / `"tool_calls"` / `"both"` (empreinte LD) ou
+    /// `"intent_only_write"` (FX-B 1.5.16 — prose write/edit sans tool_calls).
     #[error("loop detected: model repeated the same {kind} for {turns} consecutive turns")]
     LoopDetected { kind: &'static str, turns: u32 },
 }

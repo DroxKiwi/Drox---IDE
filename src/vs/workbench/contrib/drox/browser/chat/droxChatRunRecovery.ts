@@ -26,6 +26,7 @@ import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { IDroxChatSendRunHost } from './droxChatSendRun.js';
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
+import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 
 export interface IDroxPendingRunRecovery {
 	readonly messageId: string;
@@ -123,6 +124,7 @@ type IRunRecoveryDeps = {
 	readonly logService: ILogService;
 	readonly runRevertService: IDroxRunRevertService;
 	readonly fileService?: IFileService;
+	readonly sessionBackgroundService?: IDroxSessionBackgroundService;
 };
 
 function cancelActiveRunForRecovery(host: IDroxChatSendRunHost, deps: IRunRecoveryDeps): void {
@@ -211,6 +213,7 @@ async function startRecoveryRun(
 			sessionId,
 			images: ctx.images && ctx.images.length > 0 ? [...ctx.images] : undefined,
 			skipUserTurn: true,
+			allowOutsideWorkspace: deps.sessionBackgroundService?.isAllowOutsideWorkspace(sessionId),
 		});
 		if (runId) {
 			host.setPendingRunStart(false);
