@@ -14,31 +14,19 @@ import { readDroxChatConfigurationString, readDroxChatConfigurationValue } from 
 import { DroxSetting } from './droxConfiguration.js';
 import { readWorkspaceDroxEnv } from './droxEnvFile.js';
 import { mergeLlmHttpHeaders, readLlmHeadersMap, type IDroxLlmAuthContext } from './droxLlmHeaders.js';
+import {
+	providerChatProbeBody,
+	providerChatUrl,
+	providerModelListUrl,
+} from './llmProviders/index.js';
+import {
+	DROX_DEFAULT_LLM_SERVER,
+	type DroxLlmProviderId,
+} from './llmProviders/types.js';
 
-export type DroxLlmProviderId =
-	| 'ollama'
-	| 'vllm'
-	| 'lmstudio'
-	| 'huggingface'
-	| 'mistral'
-	| 'scaleway'
-	| 'ovhcloud'
-	| 'openai_compatible';
+export type { DroxLlmProviderId } from './llmProviders/types.js';
+export { DROX_DEFAULT_LLM_SERVER, DROX_LLM_PROVIDERS } from './llmProviders/types.js';
 
-export const DROX_LLM_PROVIDERS: readonly DroxLlmProviderId[] = [
-	'ollama', 'vllm', 'lmstudio', 'huggingface', 'mistral', 'scaleway', 'ovhcloud', 'openai_compatible',
-];
-
-export const DROX_DEFAULT_LLM_SERVER: Record<DroxLlmProviderId, string> = {
-	ollama: 'http://127.0.0.1:11434',
-	vllm: 'http://127.0.0.1:8000',
-	lmstudio: 'http://127.0.0.1:1234',
-	huggingface: 'https://router.huggingface.co/v1',
-	mistral: 'https://api.mistral.ai/v1',
-	scaleway: 'https://api.scaleway.ai/v1',
-	ovhcloud: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1',
-	openai_compatible: '',
-};
 
 /** @deprecated use DROX_DEFAULT_LLM_SERVER.ollama */
 export const DROX_DEFAULT_OLLAMA_SERVER = DROX_DEFAULT_LLM_SERVER.ollama;
@@ -105,24 +93,15 @@ export function buildLlmModelListUrl(
 	provider: DroxLlmProviderId,
 	configured: string,
 ): { readonly url: string } | { readonly error: string } {
-	const base = normalizeLlmServerBaseUrl(configured);
-	if (!base) {
-		return {
-			error: 'Server URL not configured — set drox.server (or DROX_SERVER in .drox/.env), then Reload.',
-		};
-	}
-	switch (provider) {
-		case 'ollama':
-			return { url: `${base}/api/tags` };
-		case 'vllm':
-		case 'lmstudio':
-		case 'huggingface':
-		case 'mistral':
-		case 'scaleway':
-		case 'ovhcloud':
-		case 'openai_compatible':
-			return { url: base.endsWith('/v1') ? `${base}/models` : `${base}/v1/models` };
-	}
+	return providerModelListUrl(provider, normalizeLlmServerBaseUrl(configured));
+}
+
+/** URL chat runtime — miroir de `buildLlmModelListUrl` (adaptateur provider). */
+export function buildLlmChatUrl(
+	provider: DroxLlmProviderId,
+	configured: string,
+): { readonly url: string } | { readonly error: string } {
+	return providerChatUrl(provider, normalizeLlmServerBaseUrl(configured));
 }
 
 /** @deprecated use resolveLlmServerUrl('ollama', configured) */
@@ -263,6 +242,58 @@ export async function fetchLlmModelNames(
 	return { ...result, listUrl: target.url };
 }
 
+export type DroxHttpRequestFn = (
+	url: string,
+	options?: { method?: 'GET' | 'POST'; body?: string },
+) => Promise<{ statusCode: number; body: string }>;
+
+export interface IDroxLlmChatProbeResult {
+	readonly ok: boolean;
+	readonly error?: string;
+	readonly chatUrl?: string;
+}
+
+/** Corps minimal pour valider le chemin chat runtime (stream:false). */
+export function buildLlmChatProbeBody(provider: DroxLlmProviderId, model: string): string {
+	return providerChatProbeBody(provider, model.trim() || 'default');
+}
+
+/** Mini POST chat — même protocole que le runtime agent. */
+export async function probeLlmChat(
+	httpRequest: DroxHttpRequestFn,
+	provider: DroxLlmProviderId,
+	configuredServer: string,
+	model: string,
+): Promise<IDroxLlmChatProbeResult> {
+	const target = buildLlmChatUrl(provider, configuredServer);
+	if ('error' in target) {
+		return { ok: false, error: target.error };
+	}
+	const body = buildLlmChatProbeBody(provider, model);
+	const urls = localhostUrlVariants(target.url);
+	let lastError = '';
+	for (const url of urls) {
+		try {
+			const res = await httpRequest(url, { method: 'POST', body });
+			if (!res.statusCode || res.statusCode >= 400) {
+				const snippet = (res.body || '').trim().slice(0, 240);
+				lastError = snippet
+					? `HTTP ${res.statusCode || '?'} — ${url}: ${snippet}`
+					: `HTTP ${res.statusCode || '?'} — ${url}`;
+				continue;
+			}
+			return { ok: true, chatUrl: url };
+		} catch (err) {
+			lastError = err instanceof Error ? err.message : String(err);
+		}
+	}
+	return {
+		ok: false,
+		error: lastError || `Could not reach ${target.url}`,
+		chatUrl: target.url,
+	};
+}
+
 /** Fallback renderer (peut échouer sur localhost à cause du CORS). */
 export function createRequestServiceHttpGet(requestService: IRequestService, headers?: Record<string, string>): DroxHttpGetFn {
 	return async (url: string) => {
@@ -274,6 +305,33 @@ export function createRequestServiceHttpGet(requestService: IRequestService, hea
 		if (statusCode >= 400) {
 			return { statusCode, body: '' };
 		}
+		const body = (await asText(context)) ?? '';
+		return { statusCode, body };
+	};
+}
+
+function createRequestServiceHttp(
+	requestService: IRequestService,
+	headers?: Record<string, string>,
+): DroxHttpRequestFn {
+	return async (url, options) => {
+		const method = options?.method ?? 'GET';
+		const context = await requestService.request(
+			{
+				type: method,
+				url,
+				headers: {
+					...(headers ?? {}),
+					...(options?.body !== undefined && method === 'POST'
+						? { 'Content-Type': 'application/json' }
+						: {}),
+				},
+				data: options?.body,
+				callSite: 'droxLlmCatalog.createRequestServiceHttp',
+			},
+			CancellationToken.None,
+		);
+		const statusCode = context.res.statusCode ?? 0;
 		const body = (await asText(context)) ?? '';
 		return { statusCode, body };
 	};
@@ -294,6 +352,30 @@ export function createDroxLlmHttpGet(
 			return await mainFetchHttp(url, hasHeaders ? authHeaders : undefined);
 		} catch {
 			return fallback(url);
+		}
+	};
+}
+
+export function createDroxLlmHttp(
+	mainFetchHttp: (
+		url: string,
+		headers?: Record<string, string>,
+		options?: { method?: 'GET' | 'POST'; body?: string },
+	) => Promise<{ statusCode: number; body: string }>,
+	requestService: IRequestService,
+	apiKey: string,
+	customHeaders?: Readonly<Record<string, string>>,
+	authContext?: IDroxLlmAuthContext,
+): DroxHttpRequestFn {
+	const authHeaders = mergeLlmHttpHeaders(apiKey, customHeaders ?? {}, authContext);
+	const hasHeaders = Object.keys(authHeaders).length > 0;
+	const hdrs = hasHeaders ? authHeaders : undefined;
+	const fallback = createRequestServiceHttp(requestService, hdrs);
+	return async (url, options) => {
+		try {
+			return await mainFetchHttp(url, hdrs, options);
+		} catch {
+			return fallback(url, options);
 		}
 	};
 }

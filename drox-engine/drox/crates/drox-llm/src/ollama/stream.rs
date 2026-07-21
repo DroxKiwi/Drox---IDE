@@ -108,11 +108,11 @@ impl OllamaClient {
     /// Liste les modèles installés (`GET /api/tags`, format Ollama).
     pub async fn list_installed_models(&self) -> Result<Vec<String>, LlmError> {
         let url = self.api_url("api/tags")?;
-        let resp = self.http.get(url).send().await?;
+        let resp = self.http.get(url.clone()).send().await?;
         if !resp.status().is_success() {
             let status = resp.status().as_u16();
             let body = resp.text().await.unwrap_or_default();
-            return Err(LlmError::Api { status, body });
+            return Err(LlmError::Api { status, body, url: url.to_string() });
         }
         let parsed: TagsResponse = resp.json().await?;
         Ok(parsed.models.into_iter().map(|m| m.name).collect())
@@ -147,13 +147,14 @@ impl LlmClient for OllamaClient {
         );
         debug!(%url, "POST Ollama chat");
 
-        let response = self.http.post(url).json(&payload).send().await?;
+        let response = self.http.post(url.clone()).json(&payload).send().await?;
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or_default();
             return Err(LlmError::Api {
                 status: status.as_u16(),
                 body,
+                url: url.to_string(),
             });
         }
 

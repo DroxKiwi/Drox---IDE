@@ -101,8 +101,17 @@ export class DroxEngineChannelClient extends Disposable {
 		});
 	}
 
-	fetchHttp(url: string, headers?: Record<string, string>): Promise<IDroxFetchHttpResult> {
-		return this.channel.call(DroxEngineCommand.FetchHttp, { url, headers });
+	fetchHttp(
+		url: string,
+		headers?: Record<string, string>,
+		options?: { method?: 'GET' | 'POST'; body?: string },
+	): Promise<IDroxFetchHttpResult> {
+		return this.channel.call(DroxEngineCommand.FetchHttp, {
+			url,
+			headers,
+			method: options?.method,
+			body: options?.body,
+		});
 	}
 
 	respondServerRequest(id: number | string, payload: IDroxEngineRespondArgs['payload']): Promise<void> {
