@@ -41,17 +41,17 @@ function getPermissionModeItems(): readonly IPermissionModeItem[] {
 		{
 			value: 'analyze',
 			label: localize('droxChatModeAnalyzeName', 'Planifier'),
-			description: localize('droxChatModeAnalyzeDesc', 'Plan before acting: read-only exploration, then present a plan for approval before any writes.'),
+			description: localize('droxChatModeAnalyzeDesc', 'TUI --plan — propose only; explore and plan, no writes to disk.'),
 		},
 		{
 			value: 'trustEdit',
 			label: localize('droxChatModeTrustEditName', 'Trust Edit'),
-			description: localize('droxChatModeTrustEditDesc', 'Full agent: read and edit the project without confirmation prompts.'),
+			description: localize('droxChatModeTrustEditDesc', 'TUI --apply — writes to disk automatically, no confirmation prompts.'),
 		},
 		{
 			value: 'imNotCrazy',
 			label: localize('droxChatModeImNotCrazyName', "I'm Not Crazy"),
-			description: localize('droxChatModeImNotCrazyDesc', 'Free reading. Each file edit or write requires your confirmation.'),
+			description: localize('droxChatModeImNotCrazyDesc', 'TUI default — Allow/Deny per write; free reading.'),
 		},
 	];
 }

@@ -209,6 +209,7 @@ export function createDroxFileEditToolHandler(host: DroxFileToolHost, fileServic
 
 			if (!confirmed) {
 
+				// AMB-08 : cancel ≠ soft success — le modèle doit voir un tool error.
 				return {
 
 					output: {
@@ -221,7 +222,11 @@ export function createDroxFileEditToolHandler(host: DroxFileToolHost, fileServic
 
 						diff,
 
+						error: 'User cancelled file edit — NOT applied to disk.',
+
 					},
+
+					isError: true,
 
 				};
 

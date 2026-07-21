@@ -45,7 +45,7 @@ export function extractTodosFromToolOutput(output: unknown): IDroxTodoItemPayloa
 			continue;
 		}
 		const r = raw as Record<string, unknown>;
-		const id = typeof r.id === 'string' ? r.id.trim() : '';
+		const id = normalizeTodoId(r.id);
 		const content = typeof r.content === 'string' ? r.content.trim() : '';
 		const statusRaw = typeof r.status === 'string' ? r.status : '';
 		if (!id || !content || !TODO_STATUSES.has(statusRaw)) {
@@ -58,6 +58,17 @@ export function extractTodosFromToolOutput(output: unknown): IDroxTodoItemPayloa
 		});
 	}
 	return result.length > 0 ? result : null;
+}
+
+/** Accepte `id` string ou number (GLM / certains modèles envoient des ids numériques). */
+function normalizeTodoId(raw: unknown): string {
+	if (typeof raw === 'string') {
+		return raw.trim();
+	}
+	if (typeof raw === 'number' && Number.isFinite(raw)) {
+		return String(Math.trunc(raw));
+	}
+	return '';
 }
 
 export function extractTodoErrorMessage(output: unknown): string | null {

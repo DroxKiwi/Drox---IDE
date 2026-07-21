@@ -25,34 +25,9 @@ import {
 	sanitizeDroxAgentsChatDeltaChunk,
 	shouldPreferDroxAgentsStreamOverCanonicalReply,
 } from './droxAgentsChatSink.js';
+import { isDroxThinkingRoute } from '../../common/droxPhaseRoute.js';
 
 const SKIP_TOOL_UI = new Set(['course_plan_write', 'scope_defer', 'delegate_executor']);
-
-const THINKING_PHASES = new Set([
-	'internal_reasoning',
-	'reasoning',
-	'reading',
-	'analyzing',
-	'acting',
-	'planning',
-	'verifying',
-	'testing',
-	'clarifying',
-]);
-
-function isAnsweringPhase(phase: string | null): boolean {
-	return phase === 'answering';
-}
-
-function isThinkingRoute(phase: string | null): boolean {
-	if (isAnsweringPhase(phase)) {
-		return false;
-	}
-	if (!phase) {
-		return true;
-	}
-	return THINKING_PHASES.has(phase) || phase !== 'done';
-}
 
 class DroxAgentsUiReplayCollector {
 
@@ -123,7 +98,7 @@ class DroxAgentsUiReplayCollector {
 		if (!chunk) {
 			return;
 		}
-		if (isThinkingRoute(this._phase)) {
+		if (isDroxThinkingRoute(this._phase)) {
 			this._push([{ kind: 'thinking', value: chunk }]);
 			return;
 		}

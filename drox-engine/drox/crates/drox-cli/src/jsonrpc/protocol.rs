@@ -145,6 +145,10 @@ pub struct AgentRunParams {
     /// Les noms sont insensibles à la casse.
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
+    /// Identifiant provider catalogue IDE (`ollama`, `vllm`, `openai_compatible`, …).
+    /// Absent / vide → Ollama (rétrocompat).
+    #[serde(default)]
+    pub provider: Option<String>,
     /// Images attachées au prompt utilisateur (input multimodal). Chaque
     /// entrée embarque un `mime` et le payload base64 brut. Le moteur les
     /// transmet aux providers qui supportent la vision.
@@ -305,6 +309,9 @@ pub struct SessionCompactParams {
     pub api_key: Option<String>,
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
+    /// Même sémantique que `AgentRunParams.provider`.
+    #[serde(default)]
+    pub provider: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

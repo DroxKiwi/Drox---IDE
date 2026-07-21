@@ -95,6 +95,8 @@ export class DroxSessionCompactService implements IDroxSessionCompactService {
 
 				}
 
+				params.provider = settings.llmProvider;
+
 				const authContext = { provider: settings.llmProvider, server: settings.server };
 				const headers = llmHeadersForRpc(settings.apiKey, settings.llmHeaders, authContext);
 				if (headers) {

@@ -11,6 +11,7 @@
 	const fn = D.fn;
 	const { EXPLORE_REASONING_PHASES } = D.streamLog;
 
+	// Parité AMB-09 avec `common/droxPhaseRoute.ts` (`DROX_THINKING_PHASES`).
 	const LINEAR_THINKING_PHASES = new Set([
 		'internal_reasoning',
 		'reasoning',

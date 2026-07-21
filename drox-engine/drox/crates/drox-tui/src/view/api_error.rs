@@ -28,10 +28,10 @@ impl ApiErrorView {
     #[must_use]
     pub fn from_llm(err: &LlmError) -> Self {
         match err {
-            LlmError::Api { status, body } => Self {
+            LlmError::Api { status, body, url } => Self {
                 status: Some(*status),
                 headline: status_headline(*status),
-                detail: Some(truncate_body(body)),
+                detail: Some(format!("{}\n{}", url, truncate_body(body))),
                 retryable: err.is_retryable(),
             },
             LlmError::RetryExhausted { attempts, source } => {
@@ -134,6 +134,7 @@ mod tests {
         let err = LlmError::Api {
             status: 429,
             body: "too many requests".into(),
+            url: "http://localhost/api/chat".into(),
         };
         let view = ApiErrorView::from_llm(&err);
         assert_eq!(view.status, Some(429));

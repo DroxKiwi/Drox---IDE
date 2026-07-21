@@ -125,6 +125,7 @@ export function createDroxFileWriteToolHandler(host: DroxFileToolHost, fileServi
 
 			if (!confirmed) {
 
+				// AMB-08 : cancel ≠ soft success — le modèle doit voir un tool error.
 				return {
 
 					output: {
@@ -135,7 +136,11 @@ export function createDroxFileWriteToolHandler(host: DroxFileToolHost, fileServi
 
 						path: pathForModel,
 
+						error: 'User cancelled file write — NOT applied to disk.',
+
 					},
+
+					isError: true,
 
 				};
 

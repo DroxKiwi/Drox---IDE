@@ -74,6 +74,15 @@ export function shouldAutoAllowPermissionAsk(mode: string | undefined): boolean 
 	return normalizeDroxPermissionMode(mode) === 'trustEdit';
 }
 
+/**
+ * AMB-16 — ne pas empiler `confirmFileWrites` (dialog IDE) quand le mode a déjà
+ * une confirm moteur : Trust (auto-allow) ou I'm Not Crazy (permission Ask).
+ */
+export function shouldSkipStackedFileWriteConfirm(mode: string | undefined): boolean {
+	const m = normalizeDroxPermissionMode(mode);
+	return m === 'trustEdit' || m === 'imNotCrazy';
+}
+
 const PERMISSION_ASK_RE = /Allow this `[^`]+` call\?/i;
 
 /**
