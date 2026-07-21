@@ -419,11 +419,8 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 
 			description: localize(
-
 				'drox.confirmFileWrites',
-
-				'Ask for confirmation before `file_write` / `file_edit` apply to disk.',
-
+				'Extra IDE confirm (diff + Apply) before writing to disk. Ignored in Trust Edit and I\'m Not Crazy (permission Ask already covers confirmation — AMB-16).',
 			),
 
 		},

@@ -20,7 +20,7 @@ use drox_engine::{
     summarize_run, transcript_path, truncate_after_last_user, write_session_ui_stats,
     write_transcript, DroxIgnoreMatcher,
 };
-use drox_llm::{ChatOptions, LlmConfig, OllamaClient};
+use drox_llm::{ChatOptions, LlmClient, LlmConfig, create_llm_client};
 use drox_mcp::McpHub;
 use drox_permissions::{
     DetectUnreachableOptions, PathMatchContext, PermissionBehavior, Rule, RuleSet, RuleSource,
@@ -183,11 +183,12 @@ pub async fn session_compact(params: Option<Value>) -> Result<Value, RpcError> {
         ));
     }
 
-    let llm = build_ollama_from_llm_connect_fields(
+    let llm = build_llm_client_from_connect_fields(
         p.server,
         p.model,
         p.api_key,
         &p.headers,
+        p.provider.as_deref(),
     )?;
 
     let result = summarize_run(
@@ -372,17 +373,16 @@ fn build_llm_config(
     Ok(llm_config)
 }
 
-fn build_ollama_from_llm_connect_fields(
+fn build_llm_client_from_connect_fields(
     server: Option<String>,
     model: Option<String>,
     api_key: Option<String>,
     headers: &BTreeMap<String, String>,
-) -> Result<Arc<OllamaClient>, RpcError> {
+    provider: Option<&str>,
+) -> Result<Arc<dyn LlmClient>, RpcError> {
     let llm_config = build_llm_config(server, model, api_key, headers, None)?;
-    Ok(Arc::new(
-        OllamaClient::new(llm_config)
-            .map_err(|e| RpcError::new(CONFIG_ERROR, format!("LLM init failed: {e}")))?,
-    ))
+    create_llm_client(provider, llm_config)
+        .map_err(|e| RpcError::new(CONFIG_ERROR, format!("LLM init failed: {e}")))
 }
 
 #[allow(clippy::too_many_lines)] // plomberie linéaire : workspace + memory + permissions + transcript + registry
@@ -399,10 +399,8 @@ async fn build_agent_setup(
         Some(params),
     )?;
     let num_ctx = llm_config.num_ctx.max(2048) as usize;
-    let llm = Arc::new(
-        OllamaClient::new(llm_config)
-            .map_err(|e| RpcError::new(CONFIG_ERROR, format!("LLM init failed: {e}")))?,
-    );
+    let llm = create_llm_client(params.provider.as_deref(), llm_config)
+        .map_err(|e| RpcError::new(CONFIG_ERROR, format!("LLM init failed: {e}")))?;
 
     let workspace = resolve_workspace(params.workspace.clone())?;
     let workspace_fingerprint = workspace.as_str().to_string();

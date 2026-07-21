@@ -12,8 +12,12 @@ pub enum LlmError {
     #[error("JSON parse error: {0}")]
     Json(#[from] serde_json::Error),
 
-    #[error("LLM API error (status {status}): {body}")]
-    Api { status: u16, body: String },
+    #[error("LLM API error (status {status}) at {url}: {body}")]
+    Api {
+        status: u16,
+        body: String,
+        url: String,
+    },
 
     #[error("invalid URL: {0}")]
     InvalidUrl(#[from] url::ParseError),

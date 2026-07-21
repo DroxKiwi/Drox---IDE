@@ -5,7 +5,6 @@
 
 // allow-any-unicode-comment-file
 
-import { localize } from '../../../../nls.js';
 import { URI } from '../../../../base/common/uri.js';
 import {
 	isHallucinatedPhaseToolName,
@@ -17,6 +16,12 @@ import { isFileMutationToolName } from '../common/droxFileMutation.js';
 import { buildShellToolFinishWire, buildShellToolStartWire } from '../common/chat/droxShellToolWire.js';
 import { extractTodoErrorMessage, extractTodosFromToolOutput, isTodoWriteOutput } from '../common/droxTodoExtract.js';
 import { formatVisionChatError, isVisionRelatedLlmError } from '../common/droxVision.js';
+import {
+	getDroxLoopAbortErrorMessage,
+	getDroxLoopAbortHint,
+	isDroxLoopDetectedError,
+} from '../common/droxLoopAbort.js';
+import { markDroxPlanArchivedForNextRun } from '../common/droxPlanArchiveNote.js';
 import { DroxHostToWebviewMessage } from './droxChatBridge.js';
 import {
 	offerRunRecovery,
@@ -457,23 +462,19 @@ export function dispatchAgentDone(host: IDroxChatAgentDoneHost, params: unknown)
 
 	const p = params as { status?: string; error?: string } | undefined;
 	host.notifyRunCycleFinished(doneRunId, p?.status, p?.error);
+	// AMB-01 P1 : prochain agent.run reçoit une note system (plan archivé).
+	markDroxPlanArchivedForNextRun(host.getCurrentSessionId());
 	if (p?.status === 'error' && p.error) {
 		const raw = p.error;
-		if (/loop detected/i.test(raw)) {
+		if (isDroxLoopDetectedError(raw)) {
 			host.post({
 				kind: 'append',
 				role: 'system',
-				text: localize(
-					'drox.loop.abort.hint',
-					'The run stopped: the model kept looping despite automatic re-framing. Read the “Re-perspective” messages above, then rephrase or send a new instruction.',
-				),
+				text: getDroxLoopAbortHint(),
 			});
 		}
-		const errText = /loop detected/i.test(raw)
-			? localize(
-				'drox.loop.abort.error',
-				'Run stopped — unresolved loop (see the system message just above).',
-			)
+		const errText = isDroxLoopDetectedError(raw)
+			? getDroxLoopAbortErrorMessage()
 			: isVisionRelatedLlmError(raw)
 				? formatVisionChatError(host.getLlmModel(), raw)
 				: raw;

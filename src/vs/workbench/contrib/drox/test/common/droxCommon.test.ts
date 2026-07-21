@@ -18,6 +18,7 @@ import { formatDroxEngineTraceExport } from '../../common/chat/droxEngineTraceEx
 import { formatDroxTranscriptExport } from '../../common/chat/droxTranscriptExport.js';
 import { formatDroxCombinedSessionExport, formatDroxUiReplayExport } from '../../common/chat/droxUiReplayExport.js';
 import {
+	buildLlmChatUrl,
 	buildLlmModelListUrl,
 	normalizeLlmServerBaseUrl,
 	parseLlmProvider,
@@ -46,6 +47,7 @@ import {
 	normalizeDroxPermissionMode,
 	resolveDroxPermissionMode,
 	shouldAutoAllowPermissionAsk,
+	shouldSkipStackedFileWriteConfirm,
 } from '../../common/droxPermissionAsk.js';
 import {
 	applyNotebookCellEdits,
@@ -536,6 +538,13 @@ suite('Drox — diagnostics → chat', () => {
 		assert.ok(!shouldAutoAllowPermissionAsk(undefined));
 	});
 
+	test('shouldSkipStackedFileWriteConfirm for trustEdit and imNotCrazy', () => {
+		assert.ok(shouldSkipStackedFileWriteConfirm('trustEdit'));
+		assert.ok(shouldSkipStackedFileWriteConfirm('imNotCrazy'));
+		assert.ok(shouldSkipStackedFileWriteConfirm(undefined)); // défaut = imNotCrazy
+		assert.ok(!shouldSkipStackedFileWriteConfirm('analyze'));
+	});
+
 	test('normalizeDroxPermissionMode downgrades removed professor mode', () => {
 		assert.strictEqual(normalizeDroxPermissionMode('professor'), 'imNotCrazy');
 		assert.strictEqual(normalizeDroxPermissionMode('Professor'), 'imNotCrazy');
@@ -560,6 +569,19 @@ suite('Drox — diagnostics → chat', () => {
 		});
 		assert.strictEqual(params.mode, 'imNotCrazy');
 		assert.notStrictEqual(params.mode, 'professor');
+	});
+
+	test('buildAgentRunParams wires llmProvider as provider', () => {
+		const params = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'default',
+			sessionId: 'ses_test',
+			settings: mockLlmSettings({ llmProvider: 'openai_compatible' }),
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(params.provider, 'openai_compatible');
 	});
 
 	test('isPermissionToolAsk detects engine permission ask', () => {
@@ -706,6 +728,19 @@ suite('Drox — todo_write extract', () => {
 		assert.ok(todos);
 		assert.strictEqual(todos.length, 2);
 		assert.strictEqual(todos[0].status, 'in_progress');
+	});
+
+	test('extractTodosFromToolOutput accepts numeric ids', () => {
+		const todos = extractTodosFromToolOutput({
+			todos: [
+				{ id: 1, content: 'A', status: 'pending' },
+				{ id: 2, content: 'B', status: 'completed' },
+			],
+		});
+		assert.ok(todos);
+		assert.strictEqual(todos.length, 2);
+		assert.strictEqual(todos[0].id, '1');
+		assert.strictEqual(todos[1].id, '2');
 	});
 });
 
@@ -1412,6 +1447,24 @@ suite('Drox — agent.run params', () => {
 		}
 		const empty = buildLlmModelListUrl('ollama', '');
 		assert.ok('error' in empty);
+	});
+
+	test('buildLlmChatUrl mirrors list protocol families', () => {
+		const ollama = buildLlmChatUrl('ollama', 'http://192.168.1.50:11434');
+		assert.ok('url' in ollama);
+		if ('url' in ollama) {
+			assert.strictEqual(ollama.url, 'http://192.168.1.50:11434/api/chat');
+		}
+		const openaiBase = buildLlmChatUrl('openai_compatible', 'http://192.168.1.1:4000');
+		assert.ok('url' in openaiBase);
+		if ('url' in openaiBase) {
+			assert.strictEqual(openaiBase.url, 'http://192.168.1.1:4000/v1/chat/completions');
+		}
+		const mistral = buildLlmChatUrl('mistral', 'https://api.mistral.ai/v1');
+		assert.ok('url' in mistral);
+		if ('url' in mistral) {
+			assert.strictEqual(mistral.url, 'https://api.mistral.ai/v1/chat/completions');
+		}
 	});
 
 	test('parseDroxEnvFileContent reads DROX_SERVER and DROX_MODEL', () => {

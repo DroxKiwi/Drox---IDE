@@ -30,7 +30,7 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 
 import { DroxSetting } from '../../common/droxConfiguration.js';
-import { shouldAutoAllowPermissionAsk } from '../../common/droxPermissionAsk.js';
+import { shouldSkipStackedFileWriteConfirm } from '../../common/droxPermissionAsk.js';
 import { IDroxUserAskService } from '../../common/droxUserAskService.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { languageIdForFile } from './droxPathUtils.js';
@@ -68,7 +68,8 @@ export class DroxFileToolHost {
 
 
 	shouldConfirmFileWrites(workspaceRoot: string): boolean {
-		if (shouldAutoAllowPermissionAsk(this.userAskService.getActivePermissionMode())) {
+		// AMB-16 : permission Ask / Trust couvrent déjà la confirm — pas de 2e dialog.
+		if (shouldSkipStackedFileWriteConfirm(this.userAskService.getActivePermissionMode())) {
 			return false;
 		}
 		return this.configurationService.getValue<boolean>(DroxSetting.ConfirmFileWrites, { resource: URI.file(workspaceRoot) }) ?? false;
