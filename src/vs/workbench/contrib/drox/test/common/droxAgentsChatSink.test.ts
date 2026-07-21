@@ -11,8 +11,10 @@ import { IChatProgress } from '../../../../contrib/chat/common/chatService/chatS
 import {
 	createDroxAgentsChatSink,
 	extractDroxAgentsAnsweringOnlyText,
+	mapDroxTodosToAgentsChatTodoList,
 	shouldPreferDroxAgentsStreamOverCanonicalReply,
 } from '../../browser/agents/droxAgentsChatSink.js';
+import { isDroxThinkingRoute } from '../../common/droxPhaseRoute.js';
 import { resetDroxWarmupPhraseIndexForTest } from '../../common/droxWarmupPhrase.js';
 
 function agentEvent(kind: string, fields: Record<string, unknown> = {}): unknown {
@@ -85,6 +87,37 @@ suite('Drox — droxAgentsChatSink', () => {
 		assert.strictEqual(sink.assistantText, 'Hello world');
 	});
 
+	test('text_delta during reading/acting routes to thinking (AMB-09 wide set)', () => {
+		for (const phase of ['reading', 'acting', 'planning', 'verifying'] as const) {
+			const parts: IChatProgress[] = [];
+			const sink = createDroxAgentsChatSink(p => parts.push(...p));
+			sink.handleAgentEvent(agentEvent('phase_enter', { phase }));
+			sink.handleAgentEvent(agentEvent('text_delta', { text: `${phase}-note` }));
+			const thinking = parts.filter(p => p.kind === 'thinking');
+			assert.strictEqual(thinking.length, 1, phase);
+			assert.strictEqual(sink.assistantText, '');
+		}
+	});
+
+	test('isDroxThinkingRoute — answering visible, rest thinking', () => {
+		assert.strictEqual(isDroxThinkingRoute('answering'), false);
+		assert.strictEqual(isDroxThinkingRoute('done'), false);
+		assert.strictEqual(isDroxThinkingRoute('reading'), true);
+		assert.strictEqual(isDroxThinkingRoute(null), true);
+		assert.strictEqual(isDroxThinkingRoute('unknown_phase'), true);
+	});
+
+	test('mapDroxTodosToAgentsChatTodoList surfaces cancelled in title (AMB-03)', () => {
+		const mapped = mapDroxTodosToAgentsChatTodoList([
+			{ id: '1', content: 'Write docs', status: 'cancelled' },
+			{ id: '2', content: 'Ship', status: 'completed' },
+		]);
+		assert.strictEqual(mapped[0].status, 'not-started');
+		assert.ok(mapped[0].title.includes('cancelled'));
+		assert.strictEqual(mapped[1].status, 'completed');
+		assert.strictEqual(mapped[1].title, 'Ship');
+	});
+
 	test('extractDroxAgentsAnsweringOnlyText strips phase markers', () => {
 		const raw = '[phase: internal_reasoning]\nhidden\n[phase: answering]\nVisible answer\n[phase: done]\ntrailer';
 		assert.strictEqual(extractDroxAgentsAnsweringOnlyText(raw), 'Visible answer');
@@ -136,5 +169,59 @@ suite('Drox — droxAgentsChatSink', () => {
 		}
 		const commands = parts.filter(p => p.kind === 'command');
 		assert.strictEqual(commands.length, 1);
+	});
+
+	test('handleAgentDone invokes onAgentRunEnded for completed and error', () => {
+		let ended = 0;
+		const sinkOk = createDroxAgentsChatSink(() => { }, {
+			onAgentRunEnded: () => { ended++; },
+		});
+		sinkOk.handleAgentDone({ status: 'completed' });
+		assert.strictEqual(ended, 1);
+
+		const sinkErr = createDroxAgentsChatSink(() => { }, {
+			onAgentRunEnded: () => { ended++; },
+		});
+		sinkErr.handleAgentDone({ status: 'error', error: 'boom' });
+		assert.strictEqual(ended, 2);
+	});
+
+	test('handleAgentDone rewrites loop detected for Agents UX', () => {
+		const parts: IChatProgress[] = [];
+		const sink = createDroxAgentsChatSink(p => parts.push(...p));
+		sink.handleAgentDone({ status: 'error', error: 'Loop detected: both' });
+		const markdown = parts.filter(p => p.kind === 'markdownContent');
+		assert.strictEqual(markdown.length, 1);
+		if (markdown[0].kind === 'markdownContent') {
+			assert.ok(/looping|unresolved loop/i.test(markdown[0].content.value));
+			assert.ok(!/Loop detected: both/.test(markdown[0].content.value));
+		}
+	});
+
+	test('todo_write finish invokes onTodosUpdated for plan widget', () => {
+		const updates: { id: string; title: string; status: string }[][] = [];
+		const sink = createDroxAgentsChatSink(() => { }, {
+			onTodosUpdated: list => updates.push([...list]),
+		});
+		sink.handleAgentEvent(agentEvent('tool_start', {
+			id: 't1',
+			name: 'todo_write',
+			arguments: { todos: [] },
+		}));
+		sink.handleAgentEvent(agentEvent('tool_finish', {
+			id: 't1',
+			output: {
+				todos: [
+					{ id: 1, content: 'Write TUI page', status: 'in_progress' },
+					{ id: '2', content: 'Write IDE page', status: 'pending' },
+				],
+			},
+		}));
+		assert.strictEqual(updates.length, 1);
+		assert.strictEqual(updates[0].length, 2);
+		assert.strictEqual(updates[0][0].id, '1');
+		assert.strictEqual(updates[0][0].title, 'Write TUI page');
+		assert.strictEqual(updates[0][0].status, 'in-progress');
+		assert.strictEqual(updates[0][1].status, 'not-started');
 	});
 });

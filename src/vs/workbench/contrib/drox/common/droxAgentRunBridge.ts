@@ -15,6 +15,7 @@ import {
 	ensureDroxSessionNotesFile,
 	readDroxSessionNotesSystemSupplement,
 } from './droxSessionNotesFs.js';
+import { consumeDroxPlanArchiveSystemNote } from './droxPlanArchiveNote.js';
 import { truncateUserPromptForEngine } from './droxUserPromptEngine.js';
 
 export interface IDroxAgentRunBridgeDeps {
@@ -63,6 +64,10 @@ export async function startDroxAgentRun(
 			options.workspace,
 			options.sessionId,
 		);
+	}
+	const planArchiveNote = consumeDroxPlanArchiveSystemNote(options.sessionId);
+	if (planArchiveNote) {
+		system = system?.trim() ? `${planArchiveNote}\n\n${system}` : planArchiveNote;
 	}
 	const runParams = deps.runSettingsService.buildAgentRunParams({
 		prompt: truncateUserPromptForEngine(options.prompt),

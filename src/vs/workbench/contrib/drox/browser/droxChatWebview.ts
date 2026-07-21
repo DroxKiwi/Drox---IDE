@@ -134,17 +134,17 @@ export function getDroxChatHtml(
 	const modeAnalyzeName = localize('droxChatModeAnalyzeName', 'Planifier');
 	const modeAnalyzeDesc = localize(
 		'droxChatModeAnalyzeDesc',
-		'Plan before acting: read-only exploration, then present a plan for approval before any writes.',
+		'TUI --plan — propose only; explore and plan, no writes to disk.',
 	);
 	const modeTrustEditName = localize('droxChatModeTrustEditName', 'Trust Edit');
 	const modeTrustEditDesc = localize(
 		'droxChatModeTrustEditDesc',
-		'Full agent: read and edit the project without confirmation prompts.',
+		'TUI --apply — writes to disk automatically, no confirmation prompts.',
 	);
 	const modeImNotCrazyName = localize('droxChatModeImNotCrazyName', "I'm Not Crazy");
 	const modeImNotCrazyDesc = localize(
 		'droxChatModeImNotCrazyDesc',
-		'Free reading. Each file edit or write requires your confirmation.',
+		'TUI default — Allow/Deny per write; free reading.',
 	);
 
 	const architectVignetteName = localize('droxChatArchitectVignetteName', 'Architect');
