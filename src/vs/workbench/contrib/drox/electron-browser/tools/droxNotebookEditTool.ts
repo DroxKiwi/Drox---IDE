@@ -164,13 +164,16 @@ export function createDroxNotebookEditToolHandler(
 				confirmMessage: localize('drox.confirmNotebookEdit', 'Apply notebook edits to disk?'),
 			});
 			if (!confirmed) {
+				// AMB-08 : cancel ≠ soft success — le modèle doit voir un tool error.
 				return {
 					output: {
 						applied: false,
 						cancelled: true,
 						path: pathForModel,
 						diff,
+						error: 'User cancelled notebook edit — NOT applied to disk.',
 					},
+					isError: true,
 				};
 			}
 		}

@@ -515,12 +515,29 @@ const PHASE_MARKER_MUST_BE_TEXT_NOT_TOOL: &str = "You tried to invoke a tool nam
     unless you still have real work left.";
 
 /// Détecte les `tool_calls` qui mimiquent le protocole `[phase: …]`.
+///
+/// Qwen / GLM émettent souvent le marqueur **comme nom d'outil** (parfois avec
+/// crochets littéraux, parfois avec du XML tronqué collé : `[phase: testing]\n</parameter`).
+/// Sans cette détection, le registry renvoie `unknown tool:` et le modèle retente
+/// en boucle au lieu de recevoir le nudge « phase = texte, pas tool ».
 #[must_use]
 fn is_hallucinated_phase_tool_call(name: &str, arguments: &Value) -> bool {
     let raw = name.trim().to_ascii_lowercase();
-    let core = raw.trim_end_matches(':').trim();
+    // Forme littérale `[phase: …]` — même si du junk XML suit sur la même string.
+    if raw.contains("[phase:") {
+        return true;
+    }
+
+    // Première « ligne » / fragment avant junk XML souvent collé par le codec outil.
+    let fragment = raw
+        .split(['\n', '\r', '<', '>'])
+        .next()
+        .unwrap_or(raw.as_str())
+        .trim()
+        .trim_matches(|c: char| c == '[' || c == ']' || c == '"' || c == '\'');
+    let core = fragment.trim_end_matches(':').trim();
     if let Some((head, _rest)) = core.split_once(':') {
-        if head == "phase" {
+        if head.trim() == "phase" {
             return true;
         }
     }
@@ -3113,6 +3130,13 @@ mod tests {
         assert!(is_hallucinated_phase_tool_call("set_phase", &json!({})));
         assert!(is_hallucinated_phase_tool_call("phase_transition", &json!({})));
         assert!(is_hallucinated_phase_tool_call("done", &json!({ "done": "" })));
+        // Smoke Qwen3.6 : marqueur avec crochets + junk XML → sinon `unknown tool:` en boucle.
+        assert!(is_hallucinated_phase_tool_call(
+            "[phase: testing]\n</parameter",
+            &json!({})
+        ));
+        assert!(is_hallucinated_phase_tool_call("[phase: done]", &json!({})));
+        assert!(is_hallucinated_phase_tool_call("[phase: answering]", &json!({})));
     }
 
     #[test]

@@ -90,6 +90,44 @@ suite('Drox — droxAgentRunBridge', () => {
 		assert.strictEqual((runCall!.params as { prompt?: string }).prompt, 'hello');
 	});
 
+	test('startDroxAgentRun injects one-shot plan archive system note', async () => {
+		const { markDroxPlanArchivedForNextRun, resetDroxPlanArchiveNotesForTest } = await import('../../common/droxPlanArchiveNote.js');
+		resetDroxPlanArchiveNotesForTest();
+		markDroxPlanArchivedForNextRun('ses_archive');
+		let capturedSystem: string | undefined;
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => {
+				capturedSystem = opts.system;
+				return {
+					prompt: opts.prompt,
+					workspace: opts.workspace,
+					mode: opts.mode,
+					sessionId: opts.sessionId,
+					system: opts.system,
+				};
+			},
+		});
+		await startDroxAgentRun(deps, {
+			prompt: 'next',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_archive',
+			system: 'existing notes',
+		});
+		assert.ok(capturedSystem && /todo plan was archived/i.test(capturedSystem));
+		assert.ok(capturedSystem!.includes('existing notes'));
+		// second run: consumed
+		capturedSystem = undefined;
+		await startDroxAgentRun(deps, {
+			prompt: 'again',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_archive',
+			system: 'existing notes',
+		});
+		assert.strictEqual(capturedSystem, 'existing notes');
+	});
+
 	test('startDroxAgentRun returns undefined when engine omits runId', async () => {
 		const deps = createBridgeDeps({
 			request: async method => (method === 'agent.run' ? {} : {}),

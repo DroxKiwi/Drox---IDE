@@ -24,7 +24,7 @@ use drox_engine::{
     default_sessions_dir, default_tool_registry, list_sessions, load_memdir, memdir_system_prefix,
     read_transcript, transcript_path,
 };
-use drox_llm::{ChatOptions, LlmConfig, OllamaClient};
+use drox_llm::{ChatOptions, LlmConfig, create_llm_client};
 use drox_permissions::{
     DetectUnreachableOptions, PathMatchContext, PermissionBehavior, Rule, RuleSet, RuleSource,
     detect_unreachable_rules, format_rule, parse_rule,
@@ -51,6 +51,11 @@ struct Cli {
     /// Modèle à utiliser (e.g. llama3.2, qwen2.5-coder:32b).
     #[arg(long, env = "DROX_MODEL", default_value = "llama3.2")]
     model: String,
+
+    /// Identifiant provider catalogue (`ollama`, `vllm`, `openai_compatible`, …).
+    /// Défaut `ollama` — tout autre id utilise le client OpenAI-compatible.
+    #[arg(long, env = "DROX_PROVIDER", default_value = "ollama")]
+    provider: String,
 
     /// Racine du workspace exposée aux tools (par défaut : `cwd`).
     #[arg(long, env = "DROX_WORKSPACE")]
@@ -348,6 +353,7 @@ async fn main() -> anyhow::Result<()> {
         );
         println!("  server   : {}", cli.server);
         println!("  model    : {}", cli.model);
+        println!("  provider : {}", cli.provider);
         println!("  apply    : {}", cli.apply);
         println!("  plan     : {}", cli.plan);
         println!("  mode     : {}", cli.mode.as_deref().unwrap_or("(auto)"));
@@ -423,7 +429,8 @@ async fn main() -> anyhow::Result<()> {
         "LLM config prête"
     );
     let num_ctx = config.num_ctx.max(2048) as usize;
-    let llm = Arc::new(OllamaClient::new(config).context("failed to build Ollama client")?);
+    let llm = create_llm_client(Some(cli.provider.as_str()), config)
+        .context("failed to build LLM client")?;
     let registry = Arc::new(default_tool_registry());
     let workspace = resolve_workspace(cli.workspace.clone())?;
     let workspace_fingerprint = workspace.as_str().to_string();

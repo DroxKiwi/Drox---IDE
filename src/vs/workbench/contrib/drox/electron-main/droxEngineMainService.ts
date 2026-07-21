@@ -27,7 +27,7 @@ import {
 	isUnresolvedBareDroxExecutable,
 	resolveDroxExecutableOnDisk,
 } from './droxExecutableMain.js';
-import { droxLocalHttpGet } from './droxLocalHttp.js';
+import { droxLocalHttpGet, droxLocalHttpRequest } from './droxLocalHttp.js';
 import { DroxRpcClientMain } from './droxRpcClientMain.js';
 
 interface IDroxEngineHostCallbacks {
@@ -139,7 +139,12 @@ export class DroxEngineMainService extends Disposable {
 	}
 
 	fetchHttp(args: IDroxFetchHttpArgs): Promise<IDroxFetchHttpResult> {
-		return droxLocalHttpGet(args.url, undefined, args.headers ? { ...args.headers } : undefined);
+		const headers = args.headers ? { ...args.headers } : undefined;
+		const method = args.method ?? 'GET';
+		if (method === 'GET' && args.body === undefined) {
+			return droxLocalHttpGet(args.url, undefined, headers);
+		}
+		return droxLocalHttpRequest(args.url, { method, headers, body: args.body });
 	}
 
 	respondServerRequest(args: IDroxEngineRespondArgs): void {

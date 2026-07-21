@@ -26,7 +26,7 @@
 | [**1.5.14/**](1.5.14/README.md) | LoopDetector, loading UI, Plan B sessions | **Livré** · `v1.5.14` |
 | [**1.5.15/**](1.5.15/README.md) | Hors workspace · Retry · carnet session | **Livré** · `v1.5.15` |
 | [**1.5.16/**](1.5.16/README.md) | Stabilisation modèle (hors-WS wiring · boucle write) | **Livré** · `v1.5.16` |
-| [**1.5.17/**](1.5.17/README.md) | Alignement enveloppe IDE ↔ contrat TUI (plan / run) | **Ouvert** |
+| [**1.5.17/**](1.5.17/README.md) | Alignement enveloppe IDE ↔ contrat TUI + connexions LLM runtime | **Livré** |
 
 ---
 

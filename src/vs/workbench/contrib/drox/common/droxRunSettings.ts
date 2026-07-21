@@ -188,6 +188,7 @@ export function buildAgentRunParams(opts: {
 	if (opts.settings.model) {
 		params.model = opts.settings.model;
 	}
+	params.provider = opts.settings.llmProvider;
 	const authContext = {
 		provider: opts.settings.llmProvider,
 		server: opts.settings.server,

@@ -14,7 +14,7 @@ export const enum DroxEngineCommand {
 	Request = 'request',
 	RespondServerRequest = 'respondServerRequest',
 	ExecBash = 'execBash',
-	/** GET HTTP local (Ollama / OpenAI-compatible) — contourne CORS/proxy du renderer. */
+	/** HTTP local (Ollama / OpenAI-compatible) — contourne CORS/proxy du renderer. */
 	FetchHttp = 'fetchHttp',
 	Shutdown = 'shutdown',
 	Dispose = 'dispose',
@@ -23,6 +23,8 @@ export const enum DroxEngineCommand {
 export interface IDroxFetchHttpArgs {
 	readonly url: string;
 	readonly headers?: Readonly<Record<string, string>>;
+	readonly method?: 'GET' | 'POST';
+	readonly body?: string;
 }
 
 export interface IDroxFetchHttpResult {

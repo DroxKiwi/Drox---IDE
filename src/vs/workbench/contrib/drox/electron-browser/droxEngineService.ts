@@ -204,8 +204,12 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		return this.ipc.request(method, params);
 	}
 
-	fetchHttp(url: string, headers?: Record<string, string>): Promise<{ statusCode: number; body: string }> {
-		return this.ipc.fetchHttp(url, headers);
+	fetchHttp(
+		url: string,
+		headers?: Record<string, string>,
+		options?: { method?: 'GET' | 'POST'; body?: string },
+	): Promise<{ statusCode: number; body: string }> {
+		return this.ipc.fetchHttp(url, headers, options);
 	}
 
 	setRequestHandler(method: string, handler: RpcRequestHandler): void {

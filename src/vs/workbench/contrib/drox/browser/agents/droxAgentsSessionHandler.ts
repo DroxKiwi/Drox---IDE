@@ -32,6 +32,8 @@ import {
 	IDroxAgentRunBridgeDeps,
 	startDroxAgentRun,
 } from '../../common/droxAgentRunBridge.js';
+import { formatDroxAgentsLoopAbortMessage } from '../../common/droxLoopAbort.js';
+import { markDroxPlanArchivedForNextRun } from '../../common/droxPlanArchiveNote.js';
 import { DROX_AGENT_ID, DroxChatSessionUri } from '../../common/droxAgentsSession.js';
 import { registerDroxAgentsWindowRun, unregisterDroxAgentsWindowRun } from '../../common/droxAgentsActiveRuns.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
@@ -54,6 +56,7 @@ import { DroxNativeUiReplayRecorder } from './droxNativeUiReplayRecorder.js';
 import { IDroxAgentsChatUiStatsService } from './droxAgentsChatUiStatsService.js';
 import { IDroxSessionChangesBridge } from '../../common/droxSessionChangesBridge.js';
 import { buildDroxAgentsHistoryFromTranscript, buildDroxAgentsHistoryFromUiReplay } from './droxAgentsUiReplayHistory.js';
+import { IChatTodoListService } from '../../../chat/common/tools/chatTodoListService.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
 import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 import { droxWorkspaceSessionsDir } from '../../common/droxWorkspacePaths.js';
@@ -111,6 +114,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@INotificationService private readonly notificationService: INotificationService,
 		@IDroxSessionChangesBridge private readonly sessionChangesBridge: IDroxSessionChangesBridge,
 		@IDroxSessionBackgroundService private readonly sessionBackgroundService: IDroxSessionBackgroundService,
+		@IChatTodoListService private readonly chatTodoListService: IChatTodoListService,
 	) {
 		super();
 		this._registerAgent();
@@ -304,6 +308,25 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			runRevertService: this.runRevertService,
 			recordUiReplay: message => uiReplayRecorder.record(message),
 			onFileChangeApplied: change => this.sessionChangesBridge.notifyFileChange(request.sessionResource, change),
+			// 1.5.17 — contrat TUI run-centric : fin de run = plus de plan session actif.
+			onAgentRunEnded: () => {
+				markDroxPlanArchivedForNextRun(engineSessionId);
+				this.chatTodoListService.setTodos(request.sessionResource, []);
+			},
+			// Pendant le run : alimenter le widget plan (sinon invisible — update tardif Copilot).
+			onTodosUpdated: todoList => {
+				this.chatTodoListService.setTodos(
+					request.sessionResource,
+					todoList.map((t, index) => {
+						const parsedId = parseInt(t.id, 10);
+						return {
+							id: Number.isNaN(parsedId) ? index + 1 : parsedId,
+							title: t.title,
+							status: t.status,
+						};
+					}),
+				);
+			},
 		});
 		this.agentsUiStatsService.resetCycleTimer();
 		const bridgeDeps: IDroxAgentRunBridgeDeps = {
@@ -371,7 +394,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 
 			const done = await this._waitForRunDone(runId, token);
 			if (done.status === 'error' && done.error) {
-				return this._retryableError(done.error);
+				return this._retryableError(formatDroxAgentsLoopAbortMessage(done.error));
 			}
 			return {};
 		} catch (e) {
@@ -380,7 +403,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			}
 			const message = e instanceof Error ? e.message : String(e);
 			this.logService.error('[Drox Agents] invoke failed', e);
-			return this._retryableError(message);
+			return this._retryableError(formatDroxAgentsLoopAbortMessage(message));
 		} finally {
 			notificationStore.dispose();
 			this.userAskService.attachAgentsProgress(undefined);
