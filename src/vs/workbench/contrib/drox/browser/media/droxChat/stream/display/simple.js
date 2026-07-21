@@ -10,7 +10,18 @@
 
 (function (D) {
 	const fn = D.fn;
-	const THINKING_PHASES = new Set(['internal_reasoning', 'reasoning']);
+	// Chemin non-linéaire : même set wide qu’Agents / phases.js (AMB-09 · droxPhaseRoute).
+	const THINKING_PHASES = new Set([
+		'internal_reasoning',
+		'reasoning',
+		'reading',
+		'analyzing',
+		'acting',
+		'planning',
+		'verifying',
+		'testing',
+		'clarifying',
+	]);
 
 	fn.looksLikeGateJson = function (text) {
 		const t = String(text || '').trim();

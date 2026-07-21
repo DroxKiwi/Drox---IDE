@@ -21,24 +21,13 @@ import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { describeToolCall, previewJson } from '../../common/droxToolPreview.js';
 import { IDroxAgentEventSink } from '../../common/droxAgentEventSink.js';
 import { pickDroxWarmupPhrase } from '../../common/droxWarmupPhrase.js';
+import { formatDroxAgentsLoopAbortMessage } from '../../common/droxLoopAbort.js';
+import { isDroxThinkingRoute } from '../../common/droxPhaseRoute.js';
 import { asFileChangeHostMessage } from '../../common/droxFileChange.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { extractAgentNotificationRunId } from '../droxChatAgentEvents.js';
 
 const SKIP_TOOL_UI = new Set(['course_plan_write', 'scope_defer', 'delegate_executor']);
-
-/** Phases moteur dont le texte streamé ne doit pas apparaître dans la réponse utilisateur. */
-const THINKING_PHASES = new Set([
-	'internal_reasoning',
-	'reasoning',
-	'reading',
-	'analyzing',
-	'acting',
-	'planning',
-	'verifying',
-	'testing',
-	'clarifying',
-]);
 
 export interface IDroxAgentsChatProgressSink {
 	(parts: IChatProgress[]): void;
@@ -120,18 +109,10 @@ function isBrokenDroxAgentsCanonicalReply(text: string): boolean {
 	return false;
 }
 
-function isAnsweringPhase(phase: string | null): boolean {
-	return phase === 'answering';
-}
-
-function isThinkingRoute(phase: string | null): boolean {
-	if (isAnsweringPhase(phase)) {
-		return false;
-	}
-	if (!phase) {
-		return true;
-	}
-	return THINKING_PHASES.has(phase) || phase !== 'done';
+export interface IDroxAgentsChatTodoListItem {
+	readonly id: string;
+	readonly title: string;
+	readonly status: 'not-started' | 'in-progress' | 'completed';
 }
 
 export interface IDroxAgentsChatSinkContext {
@@ -140,6 +121,33 @@ export interface IDroxAgentsChatSinkContext {
 	readonly runRevertService?: IDroxRunRevertService;
 	readonly recordUiReplay?: (message: DroxHostToWebviewMessage) => void;
 	readonly onFileChangeApplied?: (change: IDroxFileChangePayload) => void;
+	/**
+	 * 1.5.17 — fin de `agent.run` (contrat TUI run-centric) : l’enveloppe IDE
+	 * doit arrêter le plan session « vivant » (clear force), quel que soit le status.
+	 */
+	readonly onAgentRunEnded?: () => void;
+	/**
+	 * Pendant le run : chaque `todo_write` réussi doit alimenter le widget plan
+	 * (IChatTodoListService) — le constructeur Copilot ne re-lit pas un update tardif.
+	 */
+	readonly onTodosUpdated?: (todoList: readonly IDroxAgentsChatTodoListItem[]) => void;
+}
+
+/** Mappe le payload moteur vers le format widget Copilot (`todoList` toolSpecificData). */
+export function mapDroxTodosToAgentsChatTodoList(
+	todos: readonly { id: string; content: string; status: string }[],
+): IDroxAgentsChatTodoListItem[] {
+	return todos.map(t => {
+		// Copilot n’a pas de statut `cancelled` (AMB-03) — on le surface dans le titre.
+		const cancelled = t.status === 'cancelled';
+		return {
+			id: t.id,
+			title: cancelled ? `${t.content} · cancelled` : t.content,
+			status: t.status === 'completed' ? 'completed' as const
+				: t.status === 'in_progress' ? 'in-progress' as const
+					: 'not-started' as const,
+		};
+	});
 }
 
 export function createDroxAgentsChatSink(
@@ -195,7 +203,7 @@ export function createDroxAgentsChatSink(
 		if (!chunk) {
 			return;
 		}
-		if (isThinkingRoute(currentPhase)) {
+		if (isDroxThinkingRoute(currentPhase)) {
 			pushThinkingDelta(chunk);
 			recordWire({ kind: 'delta', text: chunk });
 			return;
@@ -305,6 +313,7 @@ export function createDroxAgentsChatSink(
 			if (!isError) {
 				const todos = extractTodosFromToolOutput(output);
 				if (todos) {
+					const todoList = mapDroxTodosToAgentsChatTodoList(todos);
 					push([{
 						kind: 'externalToolInvocationUpdate',
 						toolCallId: id,
@@ -312,15 +321,22 @@ export function createDroxAgentsChatSink(
 						isComplete: true,
 						toolSpecificData: {
 							kind: 'todoList',
-							todoList: todos.map(t => ({
-								id: t.id,
-								title: t.content,
-								status: t.status === 'completed' ? 'completed' as const
-									: t.status === 'in_progress' ? 'in-progress' as const
-										: 'not-started' as const,
-							})),
+							todoList,
 						},
 					}]);
+					try {
+						context?.onTodosUpdated?.(todoList);
+					} catch {
+						// Ne pas casser le fil tool si le widget plan échoue.
+					}
+					recordWire({
+						kind: 'tool',
+						phase: 'finish',
+						id,
+						name: 'todo_write',
+						outputPreview: previewJson(output),
+						isError: false,
+					});
 				}
 			}
 			return;
@@ -409,14 +425,21 @@ export function createDroxAgentsChatSink(
 		handleAgentDone(params: unknown): void {
 			const p = params as { status?: string; error?: string } | undefined;
 			if (p?.status === 'error' && p.error) {
+				const text = formatDroxAgentsLoopAbortMessage(p.error);
 				push([{
 					kind: 'markdownContent',
-					content: new MarkdownString(p.error),
+					content: new MarkdownString(text),
 				}]);
-				recordWire({ kind: 'append', role: 'error', text: p.error });
+				recordWire({ kind: 'append', role: 'error', text });
 			}
 			currentPhase = null;
 			pendingTools.clear();
+			// Contrat TUI : fin de run = plus de plan UI actif (completed / error / cancel).
+			try {
+				context?.onAgentRunEnded?.();
+			} catch {
+				// Ne pas masquer la fin de run si le clear widget échoue.
+			}
 		},
 	};
 }

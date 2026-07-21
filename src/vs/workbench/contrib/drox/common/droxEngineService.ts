@@ -54,8 +54,12 @@ export interface IDroxEngineService {
 
 	request(method: string, params?: unknown): Promise<unknown>;
 
-	/** GET HTTP via le process principal (LLM distant / local, sans CORS renderer). */
-	fetchHttp(url: string, headers?: Record<string, string>): Promise<{ statusCode: number; body: string }>;
+	/** HTTP via le process principal (LLM distant / local, sans CORS renderer). GET par défaut ; POST pour probe chat. */
+	fetchHttp(
+		url: string,
+		headers?: Record<string, string>,
+		options?: { method?: 'GET' | 'POST'; body?: string },
+	): Promise<{ statusCode: number; body: string }>;
 
 	setRequestHandler(method: string, handler: RpcRequestHandler): void;
 
