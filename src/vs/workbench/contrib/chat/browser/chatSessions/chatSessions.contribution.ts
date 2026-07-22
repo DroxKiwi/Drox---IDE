@@ -913,7 +913,20 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 			return;
 		}
 
-		await Event.toPromise(Event.filter(this.onDidChangeContentProviderSchemes, e => e.added.includes(sessionType)));
+		// Attach the listener before the re-check so a registration that lands in the
+		// TOCTOU window between `has()` and subscribe cannot be missed (would hang forever).
+		await new Promise<void>(resolve => {
+			const listener = this.onDidChangeContentProviderSchemes(e => {
+				if (e.added.includes(sessionType)) {
+					listener.dispose();
+					resolve();
+				}
+			});
+			if (this._contentProviders.has(sessionType)) {
+				listener.dispose();
+				resolve();
+			}
+		});
 	}
 
 	async provideChatInputCompletions(sessionResource: URI, params: IChatInputCompletionsParams, token: CancellationToken): Promise<IChatInputCompletionsResult | undefined> {
