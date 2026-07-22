@@ -9,6 +9,7 @@ import './media/droxIdeNativeChat.css';
 import '../agents/media/droxNativeFileChange.css';
 import * as dom from '../../../../../base/browser/dom.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
+import { raceTimeout } from '../../../../../base/common/async.js';
 import { MarshalledId } from '../../../../../base/common/marshallingIds.js';
 import { MutableDisposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
@@ -41,7 +42,7 @@ import { finalizeDroxNativeChatHistoryModel } from '../../common/droxNativeChatH
 import { IDroxSessionListEntry } from '../../common/droxSession.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
-import { DroxChatLayoutStore } from '../droxChatLayoutStore.js';
+import { DroxChatLayoutStore, DROX_CHAT_LAYOUT_VERSION } from '../droxChatLayoutStore.js';
 import { newSessionId } from '../droxChatTabs.js';
 import { DroxViews } from '../../common/drox.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
@@ -49,6 +50,10 @@ import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.j
 import { DroxNativeChatSessionStore } from './droxNativeChatSessionStore.js';
 import { DroxAgentSessionsPicker } from './droxAgentSessionsPicker.js';
 import { DroxSessionLoadingOverlay } from '../droxSessionLoadingOverlay.js';
+import {
+	DROX_NATIVE_WORKSPACE_READY_TIMEOUT_MS,
+	DROX_SESSION_LOAD_TIMEOUT_MS,
+} from '../droxLoadingConstants.js';
 import {
 	markDroxEngineSessionOpened,
 	readDroxEngineSessionRecency,
@@ -68,6 +73,10 @@ export class DroxNativeChatViewPane extends ViewPane {
 	private _engineSessionId: string | undefined;
 	private _sessionEntries: readonly IDroxSessionListEntry[] = [];
 	private _sessionLoadingOverlay: DroxSessionLoadingOverlay | undefined;
+	/** True once we opened a session after a resolved workspace path (or timed out). */
+	private _startupSessionResolved = false;
+	private _awaitingWorkspaceForStartup = false;
+	private _startupSessionInFlight: Promise<void> | undefined;
 
 	constructor(
 		options: IViewletViewOptions,
@@ -148,6 +157,12 @@ export class DroxNativeChatViewPane extends ViewPane {
 		}));
 		this._register(this.storageService.onDidChangeValue(StorageScope.PROFILE, DROX_WORKSPACE_SESSION_RECENCY_STORAGE_KEY, storageListenerStore)(() => {
 			void this._onSharedRecencyStorageChanged();
+		}));
+
+		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
+			if (this._awaitingWorkspaceForStartup || !this._startupSessionResolved) {
+				void this._openStartupSession();
+			}
 		}));
 
 		void this._openStartupSession();
@@ -262,10 +277,51 @@ export class DroxNativeChatViewPane extends ViewPane {
 		return this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath;
 	}
 
+	private async _waitForWorkspacePath(timeoutMs: number): Promise<string | undefined> {
+		const existing = this._workspacePath();
+		if (existing) {
+			return existing;
+		}
+		this._awaitingWorkspaceForStartup = true;
+		try {
+			return await new Promise<string | undefined>(resolve => {
+				const timer = setTimeout(() => {
+					listener.dispose();
+					resolve(this._workspacePath());
+				}, timeoutMs);
+				const listener = this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
+					const ws = this._workspacePath();
+					if (ws) {
+						clearTimeout(timer);
+						listener.dispose();
+						resolve(ws);
+					}
+				});
+			});
+		} finally {
+			this._awaitingWorkspaceForStartup = false;
+		}
+	}
+
 	private async _openStartupSession(): Promise<void> {
-		const ws = this._workspacePath();
+		if (this._startupSessionInFlight) {
+			return this._startupSessionInFlight;
+		}
+		this._startupSessionInFlight = this._doOpenStartupSession().finally(() => {
+			this._startupSessionInFlight = undefined;
+		});
+		return this._startupSessionInFlight;
+	}
+
+	private async _doOpenStartupSession(): Promise<void> {
+		let ws = this._workspacePath();
 		if (!ws) {
-			await this._openDroxSession(newSessionId());
+			ws = await this._waitForWorkspacePath(DROX_NATIVE_WORKSPACE_READY_TIMEOUT_MS);
+		}
+		if (!ws) {
+			// Do not mark MRU — a later folder handoff can still resume the real last session.
+			this._startupSessionResolved = false;
+			await this._openDroxSession(newSessionId(), { markOpened: false });
 			return;
 		}
 		try {
@@ -282,14 +338,32 @@ export class DroxNativeChatViewPane extends ViewPane {
 			if (wsPath) {
 				this._sessionEntries = await enrichDroxSessionListEntries(this.sessionService, wsPath, resolved.entries);
 			}
+			this._startupSessionResolved = true;
 			await this._openDroxSession(resolved.sessionId);
 		} catch (e) {
 			this.logService.error('[Drox IDE native chat] failed to resolve startup session', e);
+			this._startupSessionResolved = true;
 			await this._openDroxSession(newSessionId());
 		}
 	}
 
-	private async _openDroxSession(engineSessionId: string): Promise<void> {
+	private _persistNativeLayout(engineSessionId: string): void {
+		const snap = this._layoutStore.load();
+		const tabs = snap?.tabs.slice() ?? [];
+		if (!tabs.some(t => t.sessionId === engineSessionId)) {
+			tabs.push({ sessionId: engineSessionId });
+		}
+		this._layoutStore.save({
+			version: DROX_CHAT_LAYOUT_VERSION,
+			tabs,
+			activeTabId: engineSessionId,
+		});
+	}
+
+	private async _openDroxSession(
+		engineSessionId: string,
+		opts?: { readonly markOpened?: boolean },
+	): Promise<void> {
 		if (!this._widget) {
 			return;
 		}
@@ -298,6 +372,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 			return;
 		}
 
+		const markOpened = opts?.markOpened !== false;
 		const sessionResource = DroxChatSessionUri.forSession(engineSessionId);
 		try {
 			this._modelRef.clear();
@@ -307,17 +382,32 @@ export class DroxNativeChatViewPane extends ViewPane {
 				CancellationToken.None,
 				'DroxNativeChatViewPane#openSession',
 			);
+			const timed = raceTimeout(
+				loadPromise,
+				DROX_SESSION_LOAD_TIMEOUT_MS,
+				() => this.logService.error(
+					`[Drox IDE native chat] session load timed out after ${DROX_SESSION_LOAD_TIMEOUT_MS}ms sessionId=${engineSessionId}`,
+				),
+			);
 			const ref = this._sessionLoadingOverlay
-				? await this._sessionLoadingOverlay.showWhile(loadPromise)
-				: await loadPromise;
+				? await this._sessionLoadingOverlay.showWhile(timed)
+				: await timed;
 			if (!ref) {
+				this.notificationService.warn(localize(
+					'drox.nativeChat.loadTimeout',
+					'Timed out loading the chat session. Try New Chat or reopen the panel.',
+				));
+				this._widget.setModel(undefined);
 				return;
 			}
 			this._engineSessionId = engineSessionId;
-			this._sessionStore.setActiveSessionId(engineSessionId);
-			const ws = this._workspacePath();
-			if (ws) {
-				markDroxEngineSessionOpened(this.storageService, ws, engineSessionId);
+			if (markOpened) {
+				this._sessionStore.setActiveSessionId(engineSessionId);
+				const ws = this._workspacePath();
+				if (ws) {
+					markDroxEngineSessionOpened(this.storageService, ws, engineSessionId);
+				}
+				this._persistNativeLayout(engineSessionId);
 			}
 			this.chatSessionService.setSessionId(engineSessionId);
 			this._modelRef.value = ref;
