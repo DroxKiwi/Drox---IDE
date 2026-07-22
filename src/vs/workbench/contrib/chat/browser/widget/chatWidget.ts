@@ -2583,6 +2583,44 @@ export class ChatWidget extends Disposable implements IChatWidget {
 				this.chatService.removePendingRequest(this.viewModel.sessionResource, editingRequestId);
 				options.queue ??= editingPendingRequest;
 			} else {
+				// Drox F1c — if a partial assistant response exists, ask Keep vs Discard.
+				if (this._lockedAgent?.id === 'drox') {
+					const editingId = this.viewModel.editing!.id;
+					const editingRequest = this.viewModel.model.getRequests().find(r => r.id === editingId);
+					const partialMarkdown = editingRequest?.response?.response.getMarkdown()?.trim() ?? '';
+					const hasPartial = partialMarkdown.length > 0 || (editingRequest?.response?.response.value.some(p =>
+						p.kind === 'toolInvocation' || p.kind === 'toolInvocationSerialized' || p.kind === 'markdownContent'
+					) ?? false);
+					if (hasPartial) {
+						const result = await this.dialogService.prompt({
+							type: 'info',
+							message: localize('drox.edit.partialTitle', 'Keep the unfinished response?'),
+							detail: localize(
+								'drox.edit.partialDetail',
+								'This turn was interrupted. Keep the partial reply on screen, or discard it and restart from your edited message.',
+							),
+							buttons: [
+								{
+									label: localize('drox.edit.discard', 'Discard && restart'),
+									run: () => 'discard' as const,
+								},
+								{
+									label: localize('drox.edit.keep', '&&Keep partial'),
+									run: () => 'keep' as const,
+								},
+							],
+							cancelButton: true,
+						});
+						if (result.result === 'keep' || result.result === undefined) {
+							const editedText = this.getInput();
+							this.finishedEditing(false);
+							if (editedText.trim()) {
+								this.input.setValue(editedText, false);
+							}
+							return;
+						}
+					}
+				}
 				await this.chatService.cancelCurrentRequestForSession(this.viewModel.sessionResource, 'acceptInput-editing');
 				options.queue = undefined;
 			}
