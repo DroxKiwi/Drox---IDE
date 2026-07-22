@@ -42,6 +42,14 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.18':
+			return [
+				localize('drox.releaseNotes.1518.resume', '**Resume last chat** — reopening the app restores your last conversation (stable layout + MRU), instead of always starting empty.'),
+				localize('drox.releaseNotes.1518.loading', '**IDE loading fixed** — the native Drox panel no longer sticks on “Loading session…”; history loads from the open workspace folder.'),
+				localize('drox.releaseNotes.1518.stop', '**Smarter stop** — cancel before the model answers puts your message back in the input; cancel mid-reply keeps the partial turn on screen.'),
+				localize('drox.releaseNotes.1518.edit', '**Edit last message** — change your last prompt and choose **Keep partial** or **Discard & restart** when a reply was interrupted.'),
+				localize('drox.releaseNotes.1518.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.11':
 			return [
 				localize('drox.releaseNotes.1511.native', '**Native chat** — the IDE **Drox** panel and the **Agents window** use the same `drox.exe` stack (legacy webview tab hidden by default; enable with `drox.ideLegacyWebviewChat.enabled`). Streamed replies, tools, cancel, and blocking questions — no Copilot account.'),
@@ -129,6 +137,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.18':
+			return localize(
+				'drox.releaseNotes.1518.message',
+				'Session resume on restart, reliable IDE chat loading, and Cursor-like stop / edit for interrupted turns.',
+			);
 		case '1.5.11':
 			return localize(
 				'drox.releaseNotes.1511.message',

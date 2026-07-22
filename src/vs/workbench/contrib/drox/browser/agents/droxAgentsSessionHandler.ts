@@ -17,6 +17,7 @@ import { ExtensionIdentifier } from '../../../../../platform/extensions/common/e
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
+import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import { IChatProgress, IChatService } from '../../../chat/common/chatService/chatService.js';
 import { IChatSession, IChatSessionContentProvider, IChatSessionHistoryItem } from '../../../chat/common/chatSessionsService.js';
 import { ChatAgentLocation, ChatModeKind } from '../../../chat/common/constants.js';
@@ -106,6 +107,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
 		@ILogService private readonly logService: ILogService,
 		@IFileService private readonly fileService: IFileService,
+		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IDroxRunRevertService private readonly runRevertService: IDroxRunRevertService,
 		@IDroxAgentsChatUiStatsService private readonly agentsUiStatsService: IDroxAgentsChatUiStatsService,
 		@IDroxSessionService private readonly sessionService: IDroxSessionService,
@@ -125,8 +127,17 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		return new DroxAgentsChatSession(sessionResource, history);
 	}
 
+	/**
+	 * Prefer the Agents-window session workspace (multi-root / recent picks), then fall
+	 * back to the IDE workbench folder so native chat can reload history without
+	 * `DroxSessionsProvider` (IDE-only process).
+	 */
 	private async _resolveWorkspacePath(sessionResource: URI): Promise<string | undefined> {
-		return getDroxSessionsProviderInstance()?.ensureSessionWorkspacePath(sessionResource);
+		const fromProvider = await getDroxSessionsProviderInstance()?.ensureSessionWorkspacePath(sessionResource);
+		if (fromProvider) {
+			return fromProvider;
+		}
+		return this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath;
 	}
 
 	private async _loadSessionHistory(sessionResource: URI): Promise<IChatSessionHistoryItem[]> {
