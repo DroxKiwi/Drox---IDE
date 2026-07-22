@@ -26,6 +26,7 @@ import {
 import { DroxAgentsLanguageModelProvider, droxAgentsLanguageModelVendorDescriptor } from './droxAgentsLanguageModelProvider.js';
 import { DroxAgentsSessionHandler } from './droxAgentsSessionHandler.js';
 import { registerDroxAgentsFileOpenActions } from './droxAgentsFileOpenActions.js';
+import { registerDroxChatCancelRestoreAction } from '../chat/droxChatCancelRestore.js';
 import './droxAgentsChatUiStatsService.js';
 import './droxNativeFileChangeScrollContribution.js';
 
@@ -52,6 +53,8 @@ class DroxAgentsChatContribution extends Disposable implements IWorkbenchContrib
 			return;
 		}
 
+		registerDroxChatCancelRestoreAction();
+
 		const store = this._register(new DisposableStore());
 
 		store.add(chatSessionsService.registerChatSessionContribution({
@@ -64,7 +67,8 @@ class DroxAgentsChatContribution extends Disposable implements IWorkbenchContrib
 			supportsAutoModel: false,
 			supportsDelegation: false,
 			capabilities: {
-				supportsCheckpoints: false,
+				// Enables request edit + truncate-on-resubmit (stop/edit UX, 1.5.18 F1).
+				supportsCheckpoints: true,
 				supportsPromptAttachments: false,
 				supportsImageAttachments: true,
 			},
