@@ -15,6 +15,32 @@ export interface IGitPushOptions {
 	readonly setUpstream?: boolean;
 }
 
+export type LocalGitRefKind = 'head' | 'remote' | 'tag';
+
+export interface ILocalGitCommit {
+	readonly hash: string;
+	readonly parents: readonly string[];
+	readonly authorName: string;
+	readonly authorEmail: string;
+	readonly authorDateSeconds: number;
+	readonly subject: string;
+}
+
+export interface ILocalGitRef {
+	readonly hash: string;
+	readonly name: string;
+	readonly kind: LocalGitRefKind;
+}
+
+export interface ILocalGitLogOptions {
+	readonly maxCount?: number;
+	readonly includeRemotes?: boolean;
+}
+
+export interface ILocalGitStatusSummary {
+	readonly uncommittedCount: number;
+}
+
 /**
  * Low-level service for executing git commands on the local machine.
  * Used in the shared process where Node.js APIs are available.
@@ -36,4 +62,12 @@ export interface ILocalGitService {
 	hasUpstream(repoPath: string, branchName: string): Promise<boolean>;
 	commitAll(repoPath: string, message: string): Promise<void>;
 	push(repoPath: string, options?: IGitPushOptions): Promise<void>;
+
+	/** Returns whether `repoPath` is inside a git work tree. */
+	isGitRepository(repoPath: string): Promise<boolean>;
+	/** Absolute path to the work-tree root, or `undefined` if not a repo. */
+	getRepoRoot(repoPath: string): Promise<string | undefined>;
+	getCommitLog(repoPath: string, options?: ILocalGitLogOptions): Promise<readonly ILocalGitCommit[]>;
+	getRefs(repoPath: string, options?: { readonly includeRemotes?: boolean }): Promise<readonly ILocalGitRef[]>;
+	getStatusSummary(repoPath: string): Promise<ILocalGitStatusSummary>;
 }

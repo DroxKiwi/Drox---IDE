@@ -6,9 +6,12 @@
 import * as cp from 'child_process';
 import { CancellationError } from '../../../base/common/errors.js';
 import { generateUuid } from '../../../base/common/uuid.js';
-import { IGitPullOptions, IGitPushOptions, ILocalGitService } from '../common/localGitService.js';
+import { IGitPullOptions, IGitPushOptions, ILocalGitCommit, ILocalGitLogOptions, ILocalGitRef, ILocalGitService, ILocalGitStatusSummary, LocalGitRefKind } from '../common/localGitService.js';
 import { ILogService } from '../../log/common/log.js';
 
+const COMMIT_FIELD_SEP = '\x1f';
+const COMMIT_RECORD_SEP = '\x1e';
+const DEFAULT_LOG_COUNT = 500;
 export class LocalGitService implements ILocalGitService {
 	declare readonly _serviceBrand: undefined;
 
@@ -192,5 +195,126 @@ export class LocalGitService implements ILocalGitService {
 			args.push('--set-upstream');
 		}
 		await this._exec(generateUuid(), args, repoPath);
+	}
+
+	async isGitRepository(repoPath: string): Promise<boolean> {
+		try {
+			const result = (await this._exec(generateUuid(), ['rev-parse', '--is-inside-work-tree'], repoPath)).trim();
+			return result === 'true';
+		} catch {
+			return false;
+		}
+	}
+
+	async getRepoRoot(repoPath: string): Promise<string | undefined> {
+		try {
+			const root = (await this._exec(generateUuid(), ['rev-parse', '--show-toplevel'], repoPath)).trim();
+			return root.length > 0 ? root : undefined;
+		} catch {
+			return undefined;
+		}
+	}
+
+	async getCommitLog(repoPath: string, options?: ILocalGitLogOptions): Promise<readonly ILocalGitCommit[]> {
+		const maxCount = options?.maxCount ?? DEFAULT_LOG_COUNT;
+		const args = [
+			'log',
+			'--date-order',
+			`--max-count=${maxCount}`,
+			`--pretty=format:%H${COMMIT_FIELD_SEP}%P${COMMIT_FIELD_SEP}%an${COMMIT_FIELD_SEP}%ae${COMMIT_FIELD_SEP}%at${COMMIT_FIELD_SEP}%s${COMMIT_RECORD_SEP}`,
+		];
+		if (options?.includeRemotes !== false) {
+			args.splice(1, 0, '--all');
+		}
+
+		let stdout: string;
+		try {
+			stdout = await this._exec(generateUuid(), args, repoPath);
+		} catch {
+			return [];
+		}
+
+		const commits: ILocalGitCommit[] = [];
+		for (const record of stdout.split(COMMIT_RECORD_SEP)) {
+			const trimmed = record.replace(/^\r?\n/, '').trimEnd();
+			if (!trimmed) {
+				continue;
+			}
+			const parts = trimmed.split(COMMIT_FIELD_SEP);
+			if (parts.length < 6) {
+				continue;
+			}
+			const [hash, parentsRaw, authorName, authorEmail, authorDateRaw, subject] = parts;
+			const authorDateSeconds = Number(authorDateRaw);
+			commits.push({
+				hash,
+				parents: parentsRaw ? parentsRaw.split(' ').filter(Boolean) : [],
+				authorName,
+				authorEmail,
+				authorDateSeconds: Number.isFinite(authorDateSeconds) ? authorDateSeconds : 0,
+				subject,
+			});
+		}
+		return commits;
+	}
+
+	async getRefs(repoPath: string, options?: { readonly includeRemotes?: boolean }): Promise<readonly ILocalGitRef[]> {
+		const patterns = ['refs/heads', 'refs/tags'];
+		if (options?.includeRemotes !== false) {
+			patterns.push('refs/remotes');
+		}
+
+		let stdout: string;
+		try {
+			stdout = await this._exec(generateUuid(), [
+				'for-each-ref',
+				`--format=%(objectname)${COMMIT_FIELD_SEP}%(refname)${COMMIT_FIELD_SEP}%(refname:short)`,
+				...patterns,
+			], repoPath);
+		} catch {
+			return [];
+		}
+
+		const refs: ILocalGitRef[] = [];
+		for (const line of stdout.split(/\r?\n/)) {
+			if (!line.trim()) {
+				continue;
+			}
+			const [hash, refname, shortName] = line.split(COMMIT_FIELD_SEP);
+			if (!hash || !refname || !shortName) {
+				continue;
+			}
+			const kind = this._refKind(refname);
+			if (!kind) {
+				continue;
+			}
+			refs.push({ hash, name: shortName, kind });
+		}
+		return refs;
+	}
+
+	async getStatusSummary(repoPath: string): Promise<ILocalGitStatusSummary> {
+		try {
+			const output = (await this._exec(generateUuid(), ['status', '--porcelain'], repoPath)).trim();
+			if (!output) {
+				return { uncommittedCount: 0 };
+			}
+			return { uncommittedCount: output.split(/\r?\n/).filter(Boolean).length };
+		} catch {
+			return { uncommittedCount: 0 };
+		}
+	}
+
+	private _refKind(refname: string): LocalGitRefKind | undefined {
+		if (refname.startsWith('refs/heads/')) {
+			return 'head';
+		}
+		if (refname.startsWith('refs/remotes/')) {
+			return 'remote';
+		}
+		if (refname.startsWith('refs/tags/')) {
+			return 'tag';
+		}
+		return undefined;
 	}
 }
