@@ -41,9 +41,22 @@ import { MockContextKeyService } from '../../../../../platform/keybinding/test/c
 import { IMenuService } from '../../../../../platform/actions/common/actions.js';
 import { INotification, INotificationHandle, INotificationService, NoOpNotification, NotificationMessage } from '../../../../../platform/notification/common/notification.js';
 import { TestNotificationService } from '../../../../../platform/notification/test/common/testNotificationService.js';
+import { IDroxGitGraphService } from '../../../../../workbench/contrib/drox/common/droxGitGraphService.js';
+import { mock } from '../../../../../base/test/common/mock.js';
 
 // ---- Storage key (must match the one in sessionWorkspacePicker.ts) ----------
 const STORAGE_KEY_RECENT_WORKSPACES = 'sessions.recentlyPickedWorkspaces';
+
+function stubDroxGitGraphService(instantiationService: TestInstantiationService): void {
+	instantiationService.stub(IDroxGitGraphService, new class extends mock<IDroxGitGraphService>() {
+		override currentBranch() { return constObservable<string | undefined>(undefined); }
+		override isGitRepo() { return constObservable(false); }
+		override async refreshBranch() { }
+		override async getGraphWindow() { return undefined; }
+		override async checkoutBranch() { }
+		override async openGitGraph() { }
+	}());
+}
 
 // ---- Mock providers ---------------------------------------------------------
 
@@ -248,6 +261,7 @@ function createTestPicker(
 		onDidChangeRecentlyOpened: Event.None,
 	});
 	instantiationService.stub(ITelemetryService, NullTelemetryService);
+	stubDroxGitGraphService(instantiationService);
 
 	return disposables.add(instantiationService.createInstance(pickerCtor));
 }
@@ -671,6 +685,7 @@ function createTestablePicker(disposables: DisposableStore, providersService: Mo
 		onDidChangeRecentlyOpened: Event.None,
 	});
 	instantiationService.stub(ITelemetryService, NullTelemetryService);
+	stubDroxGitGraphService(instantiationService);
 	return disposables.add(instantiationService.createInstance(TestablePicker));
 }
 
@@ -784,6 +799,7 @@ suite('WorkspacePicker - Tab discovery', () => {
 			onDidChangeRecentlyOpened: Event.None,
 		});
 		instantiationService.stub(ITelemetryService, NullTelemetryService);
+		stubDroxGitGraphService(instantiationService);
 		const picker = disposables.add(instantiationService.createInstance(TestablePicker));
 		// Recent workspace group ('Cloud') is not added as a tab — only
 		// browse actions and the always-present Remote group contribute tabs.

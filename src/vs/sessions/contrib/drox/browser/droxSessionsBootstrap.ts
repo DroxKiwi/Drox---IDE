@@ -27,6 +27,7 @@ import '../../../../workbench/contrib/drox/electron-browser/droxLlmModelsContrib
 import '../../../../workbench/contrib/drox/browser/agents/droxAgentsComposerDroxChatHost.js';
 import '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatContribution.js';
 import '../../../../workbench/contrib/drox/browser/droxAgentsRetroThemeContribution.js';
+import '../../../../workbench/contrib/drox/browser/gitGraph/droxGitGraph.contribution.js';
 import './droxSessionsActiveSessionSync.js';
 import './droxSessionsRecencyStorageSync.js';
 import './droxSessionsLayoutContribution.js';
