@@ -16,9 +16,9 @@
 
 | # | Type | Sujet | Statut |
 |---|------|--------|--------|
-| A | Feature | Badge branche (dossier git) | ⏳ planifié |
-| B | Infra | Service centralisé branches / HEAD | ⏳ planifié |
-| C | Feature | Git Graph natif Drox — **parité `mhutchie.git-graph`** | ⏳ catalogue figé → [FEATURES-GIT-GRAPH.md](FEATURES-GIT-GRAPH.md) |
+| A | Feature | Badge branche (dossier git) | ✅ tranche 1 |
+| B | Infra | Service centralisé branches / HEAD | ✅ tranche 1–2 |
+| C | Feature | Git Graph natif Drox — **parité `mhutchie.git-graph`** | 🔄 layout + menus + détail |
 
 **Docs** :
 - [FEATURES-GIT-GRAPH.md](FEATURES-GIT-GRAPH.md) — catalogue MVP = parité Git Graph (+ badge Drox)
@@ -107,9 +107,9 @@ Détail → [ARCHITECTURE-BRANCH-SERVICE.md](ARCHITECTURE-BRANCH-SERVICE.md).
 | Phase | Item | Dépend | Statut |
 |-------|------|--------|--------|
 | 0 | Catalogue features = parité Git Graph | — | ✅ figé |
-| 1 | Archi service + extension `ILocalGitService` | 0 | ✅ tranche 1 |
+| 1 | Archi service + extension `ILocalGitService` | 0 | ✅ tranche 1–2 |
 | 2 | Badge branche (picker + header) branché sur service | 1 | ✅ tranche 1 |
-| 3 | Vue graphe + actions (tranches → couverture catalogue) | 0 + 1 | 🔄 read-only + checkout |
+| 3 | Vue graphe + actions (tranches → couverture catalogue) | 0 + 1 | 🔄 diffs + compare + V3/V7 |
 | 4 | Smoke parité + badge live Agents | 2 + 3 | ⏳ |
 
 ---
@@ -120,6 +120,7 @@ Détail → [ARCHITECTURE-BRANCH-SERVICE.md](ARCHITECTURE-BRANCH-SERVICE.md).
 - Carte visuelle du **code** (seulement préparer le socle graphe pour y arriver plus tard)
 - Remplacer SCM VS Code / Source Control panel
 - Authenticode / ship OR (phase clôture séparée)
+- **Implémentation** index `@Codebase` (spec seulement → [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md), phases CB1+)
 
 ---
 

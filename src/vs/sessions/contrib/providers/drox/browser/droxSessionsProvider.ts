@@ -81,7 +81,7 @@ import {
 	ISessionsProvider,
 } from '../../../../services/sessions/common/sessionsProvider.js';
 import { IChatSessionFileChange2 } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
-import { normalizeWindowsFsPath } from '../../../../../workbench/contrib/drox/common/droxPathUtil.js';
+import { droxSessionChangePathKey, normalizeWindowsFsPath } from '../../../../../workbench/contrib/drox/common/droxPathUtil.js';
 import { IDroxFileChangePayload } from '../../../../../workbench/contrib/drox/common/droxFileChange.js';
 import { enrichDroxFileChangeSnapshotAsync } from '../../../../../workbench/contrib/drox/common/droxFileChangeProgress.js';
 import { IDroxSessionChangesBridge } from '../../../../../workbench/contrib/drox/common/droxSessionChangesBridge.js';
@@ -91,9 +91,12 @@ import { readDroxSessionMeta, writeDroxSessionMeta } from '../../../../../workbe
 import { ensureDroxSessionNotesFile } from '../../../../../workbench/contrib/drox/common/droxSessionNotesFs.js';
 import { buildAggregatedSessionFileChanges } from '../../../../../workbench/contrib/drox/common/droxSessionChangesAggregate.js';
 import {
+	collectCommittedChangeEventKeys,
+	loadDroxGitDirtyPathKeys,
 	loadDroxGitUncommittedChanges,
 	mergeDroxSessionFileChanges,
 } from '../../../../../workbench/contrib/drox/common/droxSessionGitChanges.js';
+import { droxChangeEventKey } from '../../../../../workbench/contrib/drox/common/droxChangeEventKey.js';
 import { IGitService } from '../../../../../workbench/contrib/git/common/gitService.js';
 import { createDroxSessionChangesets } from './droxSessionChangesets.js';
 
@@ -304,6 +307,15 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 	private _persistRefreshPending = false;
 	private readonly _syncGeneration = new Map<string, number>();
 	private readonly _gitWatchStores = new Map<string, DisposableStore>();
+	/** Last known git dirty path keys per workspace — prune history only on dirty→clean. */
+	private readonly _lastGitDirtyPathKeysByWorkspace = new Map<string, ReadonlySet<string>>();
+	/** Workspaces that have had a non-empty dirty set at least once (avoids wiping history before first git status). */
+	private readonly _workspaceHasSeenDirty = new Set<string>();
+	/** Sessions whose ui-replay fileChange events were loaded into the detail service. */
+	private readonly _fileChangesHydratedSessions = new Set<string>();
+	/** workspacePath → session resource strings that contribute Changes history. */
+	private readonly _workspaceChangeSessionResources = new Map<string, Set<string>>();
+	private readonly _workspaceFileChangesHydratePromises = new Map<string, Promise<void>>();
 	/** Sessions for which git watch + changes replay have been started (lazy — not at boot). */
 	private readonly _activatedSessionKeys = new Set<string>();
 
@@ -478,6 +490,8 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 		void complete.then(() => {
 			void this._loadPersistedSessions(true);
+			// Agent may have committed/pushed via shell — re-read git uncommitted so Changes +/− update.
+			void this._syncSessionFileChangesSummary(session, true);
 		}, err => {
 			this.logService.error('[DroxSessionsProvider] response failed', err);
 			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });
@@ -577,7 +591,42 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		this._syncGeneration.set(key, generation);
 
 		const workspace = session.workspace.get();
-		const events = this.sessionChangesDetailService.getSessionChangeEvents(session.resource);
+		const workspacePath = workspace?.folders[0]?.root.fsPath;
+		if (workspacePath) {
+			this._trackWorkspaceChangeSession(workspacePath, session.resource);
+			await this._ensureWorkspaceFileChangesHydrated(workspacePath);
+			if (this._syncGeneration.get(key) !== generation) {
+				return;
+			}
+		}
+
+		let dirtyPathKeys: Set<string> | undefined;
+		try {
+			dirtyPathKeys = await loadDroxGitDirtyPathKeys(this.gitService, workspace);
+			if (this._syncGeneration.get(key) !== generation) {
+				return;
+			}
+			if (workspacePath && dirtyPathKeys !== undefined) {
+				if (dirtyPathKeys.size > 0) {
+					this._workspaceHasSeenDirty.add(workspacePath);
+				}
+				const previouslyDirty = this._lastGitDirtyPathKeysByWorkspace.get(workspacePath);
+				this._lastGitDirtyPathKeysByWorkspace.set(workspacePath, dirtyPathKeys);
+				if (previouslyDirty && previouslyDirty.size > 0) {
+					await this._pruneCommittedChangeHistoryForWorkspace(workspacePath, previouslyDirty, dirtyPathKeys);
+				}
+			}
+		} catch (e) {
+			this.logService.warn('[DroxSessionsProvider] failed to load git dirty paths', e);
+		}
+
+		const eventsFilter = this._dirtyFilterForWorkspace(workspacePath, dirtyPathKeys);
+		const events = workspacePath
+			? this._collectWorkspaceChangeEvents(workspacePath, eventsFilter)
+			: this.sessionChangesPanelService.filterDismissed(
+				session.resource,
+				this.sessionChangesDetailService.getSessionChangeEvents(session.resource),
+			);
 		const sessionChanges = buildAggregatedSessionFileChanges(events);
 
 		let merged = sessionChanges;
@@ -586,7 +635,9 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 			if (this._syncGeneration.get(key) !== generation) {
 				return;
 			}
-			merged = mergeDroxSessionFileChanges(sessionChanges, gitChanges);
+			if (gitChanges !== undefined) {
+				merged = mergeDroxSessionFileChanges(sessionChanges, gitChanges);
+			}
 		} catch (e) {
 			this.logService.warn('[DroxSessionsProvider] failed to load git uncommitted changes', e);
 		}
@@ -602,6 +653,213 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [this._toISession(session)] });
 		}
 	}
+
+	/**
+	 * Events agent de toutes les sessions du workspace, optionnellement limités aux
+	 * chemins encore dirty (working tree branche).
+	 */
+	getWorkspaceFileChangeEvents(sessionResource: URI): readonly IDroxFileChangePayload[] {
+		const workspacePath = this.getSessionWorkspacePath(sessionResource);
+		if (!workspacePath) {
+			return this.sessionChangesPanelService.filterDismissed(
+				sessionResource,
+				this.sessionChangesDetailService.getSessionChangeEvents(sessionResource),
+			);
+		}
+		void this._ensureWorkspaceFileChangesHydrated(workspacePath);
+		this._trackWorkspaceChangeSession(workspacePath, sessionResource);
+		const dirtyPathKeys = this._lastGitDirtyPathKeysByWorkspace.has(workspacePath)
+			? this._lastGitDirtyPathKeysByWorkspace.get(workspacePath)
+			: undefined;
+		return this._collectWorkspaceChangeEvents(
+			workspacePath,
+			this._dirtyFilterForWorkspace(workspacePath, dirtyPathKeys),
+		);
+	}
+
+	/**
+	 * `undefined` = ne pas filtrer (git indisponible ou status pas encore vu).
+	 * `Set` (éventuellement vide) = limiter aux chemins dirty.
+	 */
+	private _dirtyFilterForWorkspace(
+		workspacePath: string | undefined,
+		dirtyPathKeys: ReadonlySet<string> | undefined,
+	): ReadonlySet<string> | undefined {
+		if (!workspacePath || dirtyPathKeys === undefined) {
+			return undefined;
+		}
+		if (dirtyPathKeys.size > 0) {
+			return dirtyPathKeys;
+		}
+		// Empty dirty before we've ever seen dirty files → likely status lag, keep history.
+		if (!this._workspaceHasSeenDirty.has(workspacePath)) {
+			return undefined;
+		}
+		return dirtyPathKeys;
+	}
+
+	async dismissWorkspaceChangeKeys(sessionResource: URI, keys: readonly string[]): Promise<void> {
+		if (keys.length === 0) {
+			return;
+		}
+		const workspacePath = await this.ensureSessionWorkspacePath(sessionResource);
+		if (!workspacePath) {
+			return;
+		}
+		await this._ensureWorkspaceFileChangesHydrated(workspacePath);
+		const keySet = new Set(keys);
+		for (const resource of this._workspaceChangeSessionResourceUris(workspacePath)) {
+			const events = this.sessionChangesDetailService.getSessionChangeEvents(resource);
+			const sessionKeys = events
+				.map((change, index) => droxChangeEventKey(change, index))
+				.filter(k => keySet.has(k));
+			if (sessionKeys.length === 0) {
+				continue;
+			}
+			const engineSessionId = DroxChatSessionUri.parseSessionId(resource);
+			if (!engineSessionId) {
+				continue;
+			}
+			await this.sessionChangesPanelService.dismissChanges(resource, engineSessionId, workspacePath, sessionKeys);
+		}
+		const session = this._findSessionByResource(sessionResource);
+		if (session) {
+			void this._syncSessionFileChangesSummary(session, true);
+		}
+	}
+
+	async cleanWorkspaceChangeHistory(sessionResource: URI): Promise<void> {
+		const events = this.getWorkspaceFileChangeEvents(sessionResource);
+		const keys = events.map((change, index) => droxChangeEventKey(change, index));
+		await this.dismissWorkspaceChangeKeys(sessionResource, keys);
+	}
+
+	private _trackWorkspaceChangeSession(workspacePath: string, sessionResource: URI): void {
+		let set = this._workspaceChangeSessionResources.get(workspacePath);
+		if (!set) {
+			set = new Set();
+			this._workspaceChangeSessionResources.set(workspacePath, set);
+		}
+		set.add(sessionResource.toString());
+	}
+
+	private _workspaceChangeSessionResourceUris(workspacePath: string): URI[] {
+		const keys = new Set<string>(this._workspaceChangeSessionResources.get(workspacePath));
+		for (const session of this._sessionCache.values()) {
+			if (session.workspace.get()?.folders[0]?.root.fsPath === workspacePath) {
+				keys.add(session.resource.toString());
+			}
+		}
+		for (const session of this._newSessions.values()) {
+			if (session.workspace.get()?.folders[0]?.root.fsPath === workspacePath) {
+				keys.add(session.resource.toString());
+			}
+		}
+		return [...keys].map(k => URI.parse(k));
+	}
+
+	private _collectWorkspaceChangeEvents(
+		workspacePath: string,
+		dirtyPathKeys: ReadonlySet<string> | undefined,
+	): IDroxFileChangePayload[] {
+		const out: IDroxFileChangePayload[] = [];
+		const seen = new Set<string>();
+		for (const resource of this._workspaceChangeSessionResourceUris(workspacePath)) {
+			const raw = this.sessionChangesDetailService.getSessionChangeEvents(resource);
+			const filtered = this.sessionChangesPanelService.filterDismissed(resource, raw);
+			for (let i = 0; i < filtered.length; i++) {
+				const change = filtered[i]!;
+				if (dirtyPathKeys && !dirtyPathKeys.has(droxSessionChangePathKey(change.path))) {
+					continue;
+				}
+				const eventKey = droxChangeEventKey(change, i);
+				if (seen.has(eventKey)) {
+					continue;
+				}
+				seen.add(eventKey);
+				out.push(change);
+			}
+		}
+		return out;
+	}
+
+	private async _ensureWorkspaceFileChangesHydrated(workspacePath: string): Promise<void> {
+		const existing = this._workspaceFileChangesHydratePromises.get(workspacePath);
+		if (existing) {
+			return existing;
+		}
+		const pending = this._doEnsureWorkspaceFileChangesHydrated(workspacePath).finally(() => {
+			this._workspaceFileChangesHydratePromises.delete(workspacePath);
+		});
+		this._workspaceFileChangesHydratePromises.set(workspacePath, pending);
+		return pending;
+	}
+
+	private async _doEnsureWorkspaceFileChangesHydrated(workspacePath: string): Promise<void> {
+		let entries: Awaited<ReturnType<IDroxSessionService['listSessions']>> = [];
+		try {
+			entries = (await this.sessionService.listSessions(workspacePath))
+				.filter(e => isListableDroxSessionId(e.id));
+		} catch (e) {
+			this.logService.warn('[DroxSessionsProvider] failed to list sessions for workspace changes', e);
+			return;
+		}
+		for (const entry of entries) {
+			const resource = DroxChatSessionUri.forSession(entry.id);
+			const sessionKey = resource.toString();
+			this._trackWorkspaceChangeSession(workspacePath, resource);
+			if (this._fileChangesHydratedSessions.has(sessionKey)) {
+				continue;
+			}
+			this._fileChangesHydratedSessions.add(sessionKey);
+			try {
+				const replay = await this.sessionService.readUiReplay(entry.id, workspacePath);
+				const replayEvents: IDroxFileChangePayload[] = [];
+				for (const message of replay) {
+					if (message.kind !== 'fileChange' || message.applied === false) {
+						continue;
+					}
+					replayEvents.push(await enrichDroxFileChangeSnapshotAsync(message, workspacePath, this.fileService));
+				}
+				this.sessionChangesDetailService.mergeSessionChangeEvents(resource, replayEvents);
+				await this.sessionChangesPanelService.applyPersistedDismissals(resource, entry.id, workspacePath);
+			} catch {
+				// ignore missing replay for sibling sessions
+			}
+		}
+	}
+
+	/** Retire l'historique panneau pour les chemins dirty→clean, toutes sessions du workspace. */
+	private async _pruneCommittedChangeHistoryForWorkspace(
+		workspacePath: string,
+		previouslyDirty: ReadonlySet<string>,
+		currentlyDirty: ReadonlySet<string>,
+	): Promise<void> {
+		for (const resource of this._workspaceChangeSessionResourceUris(workspacePath)) {
+			const events = this.sessionChangesDetailService.getSessionChangeEvents(resource);
+			if (events.length === 0) {
+				continue;
+			}
+			const committedKeys = collectCommittedChangeEventKeys(events, previouslyDirty, currentlyDirty);
+			if (committedKeys.length === 0) {
+				continue;
+			}
+			const engineSessionId = DroxChatSessionUri.parseSessionId(resource);
+			if (engineSessionId) {
+				await this.sessionChangesPanelService.dismissChanges(
+					resource,
+					engineSessionId,
+					workspacePath,
+					committedKeys,
+				);
+			} else {
+				const keySet = new Set(committedKeys);
+				const next = events.filter((change, index) => !keySet.has(droxChangeEventKey(change, index)));
+				this.sessionChangesDetailService.setSessionChangeEvents(resource, next);
+			}
+		}
+	}
+
 
 	syncSessionChangesFromDetail(sessionResource: URI): void {
 		const session = this._findSessionByResource(sessionResource);
@@ -754,16 +1012,22 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 
 	private async _hydrateSessionChanges(session: DroxSession, engineSessionId: string, workspacePath: string): Promise<void> {
 		try {
-			const replay = await this.sessionService.readUiReplay(engineSessionId, workspacePath);
-			const replayEvents: IDroxFileChangePayload[] = [];
-			for (const message of replay) {
-				if (message.kind !== 'fileChange' || message.applied === false) {
-					continue;
+			this._trackWorkspaceChangeSession(workspacePath, session.resource);
+			const sessionKey = session.resource.toString();
+			if (!this._fileChangesHydratedSessions.has(sessionKey)) {
+				this._fileChangesHydratedSessions.add(sessionKey);
+				const replay = await this.sessionService.readUiReplay(engineSessionId, workspacePath);
+				const replayEvents: IDroxFileChangePayload[] = [];
+				for (const message of replay) {
+					if (message.kind !== 'fileChange' || message.applied === false) {
+						continue;
+					}
+					replayEvents.push(await enrichDroxFileChangeSnapshotAsync(message, workspacePath, this.fileService));
 				}
-				replayEvents.push(await enrichDroxFileChangeSnapshotAsync(message, workspacePath, this.fileService));
+				this.sessionChangesDetailService.mergeSessionChangeEvents(session.resource, replayEvents);
+				await this.sessionChangesPanelService.applyPersistedDismissals(session.resource, engineSessionId, workspacePath);
 			}
-			this.sessionChangesDetailService.mergeSessionChangeEvents(session.resource, replayEvents);
-			await this.sessionChangesPanelService.applyPersistedDismissals(session.resource, engineSessionId, workspacePath);
+			await this._ensureWorkspaceFileChangesHydrated(workspacePath);
 			void this._syncSessionFileChangesSummary(session, true);
 			const iSession = this._toISession(session);
 			this._onDidChangeSessions.fire({ added: [], removed: [], changed: [iSession] });

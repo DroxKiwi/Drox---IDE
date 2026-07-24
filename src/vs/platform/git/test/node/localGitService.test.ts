@@ -245,4 +245,58 @@ suite('LocalGitService', () => {
 		]);
 		assert.strictEqual(expectations.length, 0);
 	});
+
+	test('getStashes parses stash list records', async () => {
+		const expectations: IExecFileExpectation[] = [
+			{
+				args: [
+					'stash',
+					'list',
+					`--pretty=format:%gd${'\x1f'}%H${'\x1f'}%s${'\x1e'}`,
+				],
+				stdout: `stash@{0}${'\x1f'}deadbeef${'\x1f'}WIP on main: tip${'\x1e'}`,
+			},
+		];
+		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const stashes = await service.getStashes('C:\\repo');
+		assert.deepStrictEqual(stashes, [
+			{ reflogSelector: 'stash@{0}', hash: 'deadbeef', subject: 'WIP on main: tip' },
+		]);
+		assert.strictEqual(expectations.length, 0);
+	});
+
+	test('createBranch checkouts with start point when requested', async () => {
+		const expectations: IExecFileExpectation[] = [
+			{ args: ['checkout', '-b', 'feature', 'abc123'] },
+		];
+		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		await service.createBranch('C:\\repo', 'feature', { checkout: true, startPoint: 'abc123' });
+		assert.strictEqual(expectations.length, 0);
+	});
+
+	test('getFileAtRevision returns file blob contents', async () => {
+		const expectations: IExecFileExpectation[] = [
+			{ args: ['show', 'abc:src/a.ts'], stdout: 'console.log(1);\n' },
+		];
+		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const content = await service.getFileAtRevision('C:\\repo', 'abc', 'src\\a.ts');
+		assert.strictEqual(content, 'console.log(1);\n');
+		assert.strictEqual(expectations.length, 0);
+	});
+
+	test('getChangedFilesBetween parses name-status', async () => {
+		const expectations: IExecFileExpectation[] = [
+			{
+				args: ['diff', '--name-status', '-z', 'aaa', 'bbb'],
+				stdout: `M\0src/a.ts\0A\0src/b.ts\0`,
+			},
+		];
+		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const files = await service.getChangedFilesBetween('C:\\repo', 'aaa', 'bbb');
+		assert.deepStrictEqual(files, [
+			{ status: 'M', path: 'src/a.ts' },
+			{ status: 'A', path: 'src/b.ts' },
+		]);
+		assert.strictEqual(expectations.length, 0);
+	});
 });
