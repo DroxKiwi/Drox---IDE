@@ -20,6 +20,8 @@ import { IWorkspaceContextService } from '../../../../../platform/workspace/comm
 import { DROX_GIT_GRAPH_OPEN_COMMAND_ID } from '../../common/droxGitGraphService.js';
 import { DroxGitGraphEditor } from './droxGitGraphEditor.js';
 import { DROX_GIT_GRAPH_EDITOR_ID, DroxGitGraphInput } from './droxGitGraphInput.js';
+import './droxGitRevisionContent.js';
+import './droxGitGraphTitleBarContribution.js';
 
 Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane(
 	EditorPaneDescriptor.create(
