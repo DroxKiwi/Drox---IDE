@@ -11,14 +11,16 @@
 | [ARCHITECTURE-BRANCH-SERVICE.md](ARCHITECTURE-BRANCH-SERVICE.md) | Service centralisé branches / HEAD |
 | [FEATURES-GIT-GRAPH.md](FEATURES-GIT-GRAPH.md) | Catalogue MVP = parité extension Git Graph |
 | [IMPLEMENTATION.md](IMPLEMENTATION.md) | Suivi d’implémentation |
+| [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md) | Répliquer `@Codebase` (embed · index · retrieval) |
 
 ## Synthèse
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| A | Badge branche visible (dossier git) | 🔄 en cours |
-| B | Service centralisé gestion branche | 🔄 fondation |
-| C | Git Graph natif — parité `mhutchie.git-graph` | 🔄 vue read-only + checkout |
+| A | Badge branche visible (dossier git) | ✅ tranche 1 |
+| B | Service centralisé gestion branche | ✅ fondation + ops tranche 2 |
+| C | Git Graph natif — parité `mhutchie.git-graph` | 🔄 diffs + compare + branches/colonnes |
+| D | Index codebase type Cursor (`@Codebase`) | 📋 spec CB0 |
 
 ## Décisions clés
 
@@ -26,3 +28,4 @@
 - Graphe = **fait maison**, comportement cible = **parité Git Graph**.
 - Double-clic pastille → checkout (raccourci Drox).
 - Observables **fins** (`currentBranch` vs fenêtre graphe).
+- Compréhension code LLM = **retrieval local** (chunk → embed → hybrid search), pas fine-tune — voir fiche D.

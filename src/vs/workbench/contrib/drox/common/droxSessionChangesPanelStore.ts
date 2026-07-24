@@ -29,7 +29,9 @@ export interface IDroxChangesPanelPersistedState {
 
 export function droxSessionChangesPanelPath(workspaceFsPath: string, sessionId: string): string {
 
-	return join(droxWorkspaceSessionsDir(workspaceFsPath), `${sessionId}.changes-panel.json`);
+	// v2: invalidates dismissals persisted by the brief git-diff-only prune that
+	// treated untracked agent edits as committed (empty Changes panel).
+	return join(droxWorkspaceSessionsDir(workspaceFsPath), `${sessionId}.changes-panel.v2.json`);
 
 }
 

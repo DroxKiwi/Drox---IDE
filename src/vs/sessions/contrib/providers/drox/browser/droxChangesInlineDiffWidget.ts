@@ -180,11 +180,13 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 
 
 
-		this._register(this.detailService.onDidChange(sessionResource => {
+		this._register(this.detailService.onDidChange(() => {
 
-			if (sessionResource.toString() === this.sessionResourceObs.get()?.toString()) {
+			const current = this.sessionResourceObs.get();
 
-				this._render(sessionResource);
+			if (current) {
+
+				this._render(current);
 
 			}
 
@@ -192,11 +194,13 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 
 
 
-		this._register(this.panelService.onDidChange(sessionResource => {
+		this._register(this.panelService.onDidChange(() => {
 
-			if (sessionResource.toString() === this.sessionResourceObs.get()?.toString()) {
+			const current = this.sessionResourceObs.get();
 
-				this._render(sessionResource);
+			if (current) {
+
+				this._render(current);
 
 			}
 
@@ -262,15 +266,22 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 
 
 
-		const mergedFiles = getDroxSessionsProviderInstance()?.getSessionMergedFileChanges(sessionResource) ?? [];
+		const provider = getDroxSessionsProviderInstance();
+		// Prefer git-merged uncommitted set when the provider is available (incl. empty after commit).
+		const mergedFiles = provider
+			? [...provider.getSessionMergedFileChanges(sessionResource)]
+			: undefined;
 
-		const allEvents = this.detailService.getSessionChangeEvents(sessionResource);
+		const events = provider
+			? [...provider.getWorkspaceFileChangeEvents(sessionResource)]
+			: this.panelService.filterDismissed(
+				sessionResource,
+				this.detailService.getSessionChangeEvents(sessionResource),
+			);
 
-		const events = this.panelService.filterDismissed(sessionResource, allEvents);
+		const uncommittedFiles = mergedFiles ?? buildAggregatedSessionFileChanges(events);
 
-
-
-		if (events.length === 0 && mergedFiles.length === 0) {
+		if (events.length === 0 && uncommittedFiles.length === 0) {
 
 			this._setSummaryEmpty();
 
@@ -286,11 +297,11 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 
 		this._cleanBtn.style.removeProperty('display');
 
-		this._openAllBtn.style.display = mergedFiles.length > 0 ? '' : 'none';
+		this._openAllBtn.style.display = uncommittedFiles.length > 0 ? '' : 'none';
 
 
 
-		const stats = countDroxSessionFileChangeStats(mergedFiles.length > 0 ? mergedFiles : buildAggregatedSessionFileChanges(events));
+		const stats = countDroxSessionFileChangeStats(uncommittedFiles);
 
 		this._summaryLabel.textContent = stats.files === 1
 
@@ -322,9 +333,9 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 
 
 
-		if (mergedFiles.length > 0) {
+		if (uncommittedFiles.length > 0) {
 
-			this._renderFileList(sessionResource, toIChangesFileItem(mergedFiles));
+			this._renderFileList(sessionResource, toIChangesFileItem(uncommittedFiles));
 
 		} else {
 
@@ -592,15 +603,16 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 
 		}
 
-		const ctx = this._resolveSessionContext(sessionResource);
-
-		if (!ctx) {
-
-			return;
-
+		const provider = getDroxSessionsProviderInstance();
+		if (provider) {
+			await provider.dismissWorkspaceChangeKeys(sessionResource, keys);
+		} else {
+			const ctx = this._resolveSessionContext(sessionResource);
+			if (!ctx) {
+				return;
+			}
+			await this.panelService.dismissChanges(sessionResource, ctx.engineSessionId, ctx.workspacePath, keys);
 		}
-
-		await this.panelService.dismissChanges(sessionResource, ctx.engineSessionId, ctx.workspacePath, keys);
 
 		for (const key of keys) {
 
@@ -634,19 +646,19 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 
 		}
 
-		const ctx = this._resolveSessionContext(sessionResource);
-
-		if (!ctx) {
-
-			return;
-
+		const provider = getDroxSessionsProviderInstance();
+		if (provider) {
+			await provider.cleanWorkspaceChangeHistory(sessionResource);
+		} else {
+			const ctx = this._resolveSessionContext(sessionResource);
+			if (!ctx) {
+				return;
+			}
+			await this.panelService.cleanAllChanges(sessionResource, ctx.engineSessionId, ctx.workspacePath);
+			getDroxSessionsProviderInstance()?.syncSessionChangesFromDetail(sessionResource);
 		}
 
-		await this.panelService.cleanAllChanges(sessionResource, ctx.engineSessionId, ctx.workspacePath);
-
 		this._selectedKeys.clear();
-
-		getDroxSessionsProviderInstance()?.syncSessionChangesFromDetail(sessionResource);
 
 		this._render(sessionResource);
 

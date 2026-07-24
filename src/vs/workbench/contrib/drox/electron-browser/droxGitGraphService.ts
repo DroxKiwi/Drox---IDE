@@ -14,7 +14,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
-import { ILocalGitService } from '../../../../platform/git/common/localGitService.js';
+import { ILocalGitChangedFile, ILocalGitCommitDetails, ILocalGitCreateBranchOptions, ILocalGitService, ILocalGitStashPushOptions, LocalGitResetMode } from '../../../../platform/git/common/localGitService.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { DROX_GIT_GRAPH_OPEN_COMMAND_ID, IDroxGitGraphService, IDroxGitGraphWindow } from '../common/droxGitGraphService.js';
 
@@ -63,19 +63,20 @@ export class DroxGitGraphService extends Disposable implements IDroxGitGraphServ
 		await this._refreshRepo(this._ensureRepo(folder));
 	}
 
-	async getGraphWindow(folder: URI, options?: { readonly maxCount?: number; readonly includeRemotes?: boolean }): Promise<IDroxGitGraphWindow | undefined> {
-		const path = this._nativePath(folder);
-		if (!path) {
-			return undefined;
-		}
-		const root = await this._localGitService.getRepoRoot(path);
+	async getGraphWindow(folder: URI, options?: { readonly maxCount?: number; readonly includeRemotes?: boolean; readonly refs?: readonly string[] }): Promise<IDroxGitGraphWindow | undefined> {
+		const root = await this._resolveRoot(folder);
 		if (!root) {
 			return undefined;
 		}
-		const [currentBranch, commits, refs, status] = await Promise.all([
+		const [currentBranch, commits, refs, stashes, status] = await Promise.all([
 			this._localGitService.getCurrentBranch(root),
-			this._localGitService.getCommitLog(root, { maxCount: options?.maxCount ?? 500, includeRemotes: options?.includeRemotes }),
+			this._localGitService.getCommitLog(root, {
+				maxCount: options?.maxCount ?? 500,
+				includeRemotes: options?.includeRemotes,
+				refs: options?.refs,
+			}),
 			this._localGitService.getRefs(root, { includeRemotes: options?.includeRemotes }),
+			this._localGitService.getStashes(root),
 			this._localGitService.getStatusSummary(root),
 		]);
 		const entry = this._ensureRepo(folder);
@@ -90,25 +91,142 @@ export class DroxGitGraphService extends Disposable implements IDroxGitGraphServ
 			currentBranch,
 			commits,
 			refs,
+			stashes,
 			status,
 		};
 	}
 
-	async checkoutBranch(folder: URI, branchName: string): Promise<void> {
-		const path = this._nativePath(folder);
-		if (!path) {
-			throw new Error('Checkout is only supported for local folders.');
-		}
-		const root = await this._localGitService.getRepoRoot(path);
+	async getCommitDetails(folder: URI, commitHash: string): Promise<ILocalGitCommitDetails | undefined> {
+		const root = await this._resolveRoot(folder);
 		if (!root) {
-			throw new Error('Not a git repository.');
+			return undefined;
 		}
-		await this._localGitService.checkout(generateUuid(), root, branchName);
-		await this.refreshBranch(folder);
+		return this._localGitService.getCommitDetails(root, commitHash);
+	}
+
+	async getFileAtRevision(folder: URI, rev: string, relativePath: string): Promise<string | undefined> {
+		const root = await this._resolveRoot(folder);
+		if (!root) {
+			return undefined;
+		}
+		return this._localGitService.getFileAtRevision(root, rev, relativePath);
+	}
+
+	async getChangedFilesBetween(folder: URI, baseRev: string, headRev: string): Promise<readonly ILocalGitChangedFile[]> {
+		const root = await this._resolveRoot(folder);
+		if (!root) {
+			return [];
+		}
+		return this._localGitService.getChangedFilesBetween(root, baseRev, headRev);
+	}
+
+	async checkoutBranch(folder: URI, branchName: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.checkout(generateUuid(), root, branchName));
+	}
+
+	async checkoutDetached(folder: URI, treeish: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.checkout(generateUuid(), root, treeish, true));
+	}
+
+	async fetch(folder: URI): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.fetch(generateUuid(), root));
+	}
+
+	async createBranch(folder: URI, name: string, options?: ILocalGitCreateBranchOptions): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.createBranch(root, name, options));
+	}
+
+	async deleteBranch(folder: URI, name: string, force?: boolean): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.deleteBranch(root, name, force));
+	}
+
+	async renameBranch(folder: URI, oldName: string, newName: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.renameBranch(root, oldName, newName));
+	}
+
+	async createTag(folder: URI, name: string, commitHash: string, message?: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.createTag(root, name, commitHash, message));
+	}
+
+	async deleteTag(folder: URI, name: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.deleteTag(root, name));
+	}
+
+	async merge(folder: URI, ref: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.merge(root, ref));
+	}
+
+	async rebase(folder: URI, upstream: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.rebase(root, upstream));
+	}
+
+	async reset(folder: URI, commitHash: string, mode: LocalGitResetMode): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.reset(root, commitHash, mode));
+	}
+
+	async cherryPick(folder: URI, commitHash: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.cherryPick(root, commitHash));
+	}
+
+	async revertCommit(folder: URI, commitHash: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.revertCommit(root, commitHash));
+	}
+
+	async pushBranch(folder: URI, branchName: string, options?: { readonly setUpstream?: boolean }): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.pushRef(root, 'origin', branchName, options));
+	}
+
+	async pushTag(folder: URI, tagName: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.pushRef(root, 'origin', tagName));
+	}
+
+	async deleteRemoteBranch(folder: URI, remoteAndBranch: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.deleteRemoteBranch(root, remoteAndBranch));
+	}
+
+	async stashPush(folder: URI, options?: ILocalGitStashPushOptions): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.stashPush(root, options));
+	}
+
+	async stashApply(folder: URI, selector: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.stashApply(root, selector));
+	}
+
+	async stashPop(folder: URI, selector: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.stashPop(root, selector));
+	}
+
+	async stashDrop(folder: URI, selector: string): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.stashDrop(root, selector));
+	}
+
+	async resetUncommitted(folder: URI, mode: 'mixed' | 'hard'): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.resetUncommitted(root, mode));
+	}
+
+	async cleanUntracked(folder: URI): Promise<void> {
+		await this._withRoot(folder, root => this._localGitService.cleanUntracked(root));
 	}
 
 	async openGitGraph(folder: URI): Promise<void> {
 		await this._commandService.executeCommand(DROX_GIT_GRAPH_OPEN_COMMAND_ID, folder);
+	}
+
+	private async _resolveRoot(folder: URI): Promise<string | undefined> {
+		const path = this._nativePath(folder);
+		if (!path) {
+			return undefined;
+		}
+		return this._localGitService.getRepoRoot(path);
+	}
+
+	private async _withRoot(folder: URI, fn: (root: string) => Promise<void>): Promise<void> {
+		const root = await this._resolveRoot(folder);
+		if (!root) {
+			throw new Error('Not a git repository.');
+		}
+		await fn(root);
+		await this.refreshBranch(folder);
 	}
 
 	private _ensureRepo(folder: URI): IRepoEntry {

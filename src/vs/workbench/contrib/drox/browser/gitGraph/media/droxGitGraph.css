@@ -16,6 +16,7 @@
 .drox-git-graph-toolbar {
 	display: flex;
 	align-items: center;
+	flex-wrap: wrap;
 	gap: 10px;
 	padding: 8px 12px;
 	border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
@@ -35,14 +36,151 @@
 	background: var(--vscode-button-secondaryHoverBackground);
 }
 
+.drox-git-graph-toolbar-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	opacity: 0.9;
+	user-select: none;
+}
+
+.drox-git-graph-search {
+	min-width: 160px;
+	flex: 1;
+	max-width: 280px;
+	padding: 2px 8px;
+	border: 1px solid var(--vscode-input-border, transparent);
+	background: var(--vscode-input-background);
+	color: var(--vscode-input-foreground);
+	border-radius: 2px;
+}
+
 .drox-git-graph-current-branch {
 	opacity: 0.85;
+	margin-left: auto;
+}
+
+.drox-git-graph-body {
+	display: flex;
+	flex: 1;
+	min-height: 0;
 }
 
 .drox-git-graph-list {
 	flex: 1;
 	overflow: auto;
 	padding: 4px 0;
+	min-width: 0;
+}
+
+.drox-git-graph-header {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	gap: 8px;
+	align-items: center;
+	padding: 6px 12px;
+	min-height: 24px;
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--vscode-editor-background);
+	border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	opacity: 0.8;
+	user-select: none;
+}
+
+.drox-git-graph-header-meta {
+	display: flex;
+	gap: 12px;
+	white-space: nowrap;
+}
+
+.drox-git-graph-detail-parents {
+	margin-bottom: 8px;
+	font-size: 12px;
+}
+
+.drox-git-graph-parent-link {
+	border: none;
+	background: transparent;
+	color: var(--vscode-textLink-foreground);
+	cursor: pointer;
+	font: inherit;
+	padding: 0 4px;
+	text-decoration: underline;
+}
+
+.drox-git-graph-body-link {
+	color: var(--vscode-textLink-foreground);
+}
+
+.drox-git-graph-detail {
+	width: min(360px, 38%);
+	flex-shrink: 0;
+	border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	overflow: auto;
+	padding: 12px;
+	box-sizing: border-box;
+}
+
+.drox-git-graph-detail-empty {
+	opacity: 0.75;
+}
+
+.drox-git-graph-detail-title {
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.drox-git-graph-detail-meta {
+	opacity: 0.75;
+	font-size: 12px;
+	margin-bottom: 10px;
+}
+
+.drox-git-graph-detail-body {
+	white-space: pre-wrap;
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 12px;
+	margin: 0 0 12px;
+	opacity: 0.9;
+}
+
+.drox-git-graph-detail-compare {
+	margin-bottom: 10px;
+	font-size: 12px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.drox-git-graph-detail-files-title {
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.drox-git-graph-detail-files {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.drox-git-graph-detail-file {
+	text-align: left;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	padding: 3px 4px;
+	border-radius: 2px;
+	cursor: pointer;
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 12px;
+}
+
+.drox-git-graph-detail-file:hover {
+	background: var(--vscode-list-hoverBackground);
 }
 
 .drox-git-graph-loading,
@@ -53,24 +191,53 @@
 
 .drox-git-graph-row {
 	display: grid;
-	grid-template-columns: 28px minmax(0, 1fr) auto;
+	grid-template-columns: auto minmax(0, 1fr) auto;
 	gap: 8px;
 	align-items: center;
-	padding: 4px 12px;
-	min-height: 28px;
+	padding: 5px 12px;
+	min-height: 32px;
+	box-sizing: border-box;
 }
 
 .drox-git-graph-row:hover {
 	background: var(--vscode-list-hoverBackground);
 }
 
+.drox-git-graph-row.selected {
+	background: var(--vscode-list-activeSelectionBackground);
+	color: var(--vscode-list-activeSelectionForeground);
+}
+
+.drox-git-graph-row.kind-uncommitted .drox-git-graph-subject,
+.drox-git-graph-row.kind-stash .drox-git-graph-subject {
+	font-style: italic;
+	opacity: 0.95;
+}
+
+.drox-git-graph-lanes {
+	position: relative;
+	align-self: stretch;
+	min-height: 28px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: stretch;
+}
+
+.drox-git-graph-svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	min-height: 28px;
+}
+
 .drox-git-graph-node {
+	position: absolute;
+	top: 50%;
 	width: 10px;
 	height: 10px;
 	border-radius: 50%;
 	background: var(--vscode-focusBorder, #3794ff);
-	justify-self: center;
-	position: relative;
+	transform: translate(-50%, -50%);
 }
 
 .drox-git-graph-node.open {
@@ -82,14 +249,19 @@
 .drox-git-graph-desc {
 	min-width: 0;
 	display: flex;
-	flex-direction: column;
-	gap: 2px;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 6px;
 }
 
 .drox-git-graph-pills {
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
+	flex-shrink: 0;
 	gap: 4px;
+	max-width: 45%;
+	overflow: hidden;
 }
 
 .drox-git-graph-pill {
@@ -98,10 +270,11 @@
 	padding: 0 6px;
 	border-radius: 10px;
 	font-size: 11px;
-	line-height: 18px;
+	line-height: 16px;
 	background: color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 35%, transparent);
 	cursor: pointer;
 	user-select: none;
+	white-space: nowrap;
 }
 
 .drox-git-graph-pill.kind-remote {
@@ -113,13 +286,16 @@
 }
 
 .drox-git-graph-pill.current {
-	outline: 1px solid var(--vscode-focusBorder, #3794ff);
+	outline: 1px solid;
 }
 
 .drox-git-graph-subject {
+	flex: 1;
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	line-height: 18px;
 }
 
 .drox-git-graph-meta {
@@ -128,6 +304,7 @@
 	opacity: 0.75;
 	font-size: 12px;
 	white-space: nowrap;
+	align-items: center;
 }
 
 .drox-git-graph-hash {
