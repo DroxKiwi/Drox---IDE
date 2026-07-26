@@ -20,6 +20,7 @@
 
 use std::sync::Arc;
 
+use drox_bash::{BashCommandKind, command_is_inspect_only, kind_of_segment, split_command_segments};
 use drox_llm::{ChatOptions, LlmClient, ToolSpec};
 use drox_permissions::PermissionDecision;
 use drox_hooks::{PostHookOutcome, PreHookOutcome, ToolHookContext, ToolHooksConfig};
@@ -129,8 +130,30 @@ fn phase_for_tool(tool_name: &str, active_phase: Option<Phase>) -> Phase {
         | "list_mcp_resources" | "read_mcp_resource" | "workspace_map_read"
         | "memory_read" | "memory_list" | "task"
         | "todo_write" | "course_plan_write" | "ask_user_question" => exploration_default,
+        // Inspect-only bash is exploration; mutating bash stays Acting.
+        // Callers that know args should prefer `phase_for_tool_call`.
         _ => Phase::Acting,
     }
+}
+
+/// Like [`phase_for_tool`], but bash inspect-only (`git status`, `cargo check`, …) maps to Reading.
+fn phase_for_tool_call(tool_name: &str, arguments: &Value, active_phase: Option<Phase>) -> Phase {
+    if tool_name == "bash"
+        && arguments
+            .get("command")
+            .and_then(|v| v.as_str())
+            .is_some_and(command_is_inspect_only)
+    {
+        if active_phase == Some(Phase::Testing) {
+            return Phase::Testing;
+        }
+        return if active_phase == Some(Phase::Analyzing) {
+            Phase::Analyzing
+        } else {
+            Phase::Reading
+        };
+    }
+    phase_for_tool(tool_name, active_phase)
 }
 
 /// `true` si le texte utilisateur ressemble à une demande d'analyse de dépôt (§2.18).
@@ -243,21 +266,25 @@ fn tool_mutation_path(arguments: &Value) -> Option<&str> {
 
 #[must_use]
 fn bash_command_counts_as_code_mutation(command: &str) -> bool {
-    let lower = command.to_lowercase();
-    [
-        "git commit",
-        "git push",
-        "git add",
-        "npm install",
-        "pnpm install",
-        "yarn add",
-        "cargo fix",
-        "rm -rf",
-        "del /f",
-        "del /s",
-    ]
-    .iter()
-    .any(|needle| lower.contains(needle))
+    // VCS plumbing never arms the testing gate (commit-only runs, late git add, …).
+    let segments = match split_command_segments(command) {
+        Ok(s) if !s.is_empty() => s,
+        _ => vec![command.trim().to_string()],
+    };
+    segments.iter().any(|seg| {
+        let first = drox_bash::first_executable_token(seg)
+            .map(|t| t.rsplit_once('/').map_or(t, |(_, n)| n).to_ascii_lowercase());
+        if first.as_deref() == Some("git") {
+            return false;
+        }
+        match kind_of_segment(seg) {
+            BashCommandKind::ReadOnly | BashCommandKind::Network => false,
+            BashCommandKind::Mutating | BashCommandKind::Destructive | BashCommandKind::Unknown => {
+                true
+            }
+            _ => true,
+        }
+    })
 }
 
 /// `true` si l'appel d'outil réussi doit activer la gate `testing` (§2.11).
@@ -306,26 +333,40 @@ fn format_tool_result_for_llm(tool_name: &str, value: &Value) -> String {
 const NUDGE_PROMPT: &str = "Have you fully completed the user's objective?\n\
     \n\
     **IMPORTANT — read this before acting:** This is an engine reminder, NOT \
-    a user reply. If your previous `[phase: answering]` ended with a question \
-    to the user (\"Do you want me to…?\", \"Shall I…?\", \"Would you like…?\"), \
-    treat the answer as NO — the user has NOT responded yet. In that case, \
-    you MUST close with `[phase: done]` and wait. Do NOT interpret this \
-    engine message as user approval or as permission to proceed autonomously.\n\
+    a user reply. Do NOT treat it as user approval.\n\
     \n\
-    - If your last answering block contained a question to the user and you \
-      are waiting for their answer → emit ONLY `[phase: done]`. Stop here.\n\
-    - If YES (objective fully met, no pending question): emit `[phase: answering]` \
-      on its own line, write your final user-facing response in clean Markdown, \
-      then end the message with a line containing EXACTLY `[phase: done]`. \
-      That is the ONLY way to end the conversation.\n\
-    - If NO: emit `[phase: reading]` or `[phase: acting]` (pick what matches \
-      your next tool), optionally one short line of intent, then call the \
-      next tool **in the same reply** (`glob`, `file_read`, `grep`, `lsp`, \
-      `file_edit`, `file_write`, `delete_path`, `bash`, etc.). Stopping with mere intent \
-      prose (\"I should verify…\", \"I will read…\") does NOT end your turn — \
-      the engine will keep nudging you until you either deliver `[phase: done]` \
-      or actually act.";
+    **Before `[phase: done]`, the engine enforces this order** (a later step is \
+    refused until earlier ones are clear):\n\
+    1. At least one `[phase: answering]` must have happened in the run.\n\
+    2. If your todo list still has `pending` / `in_progress` items → call \
+    `todo_write` to close them (or keep working). Bare `[phase: done]` will be refused.\n\
+    3. If you mutated **code** this run and never ran `[phase: testing]` + a \
+    verification tool → do that first. Bare `[phase: done]` will be refused.\n\
+    4. If your last answering asked the user a question and you are waiting → \
+    emit ONLY `[phase: done]` and stop (do not start new work).\n\
+    5. Otherwise: `[phase: answering]` + final Markdown reply + `[phase: done]`.\n\
+    \n\
+    - If work remains: `[phase: reading]` or `[phase: acting]` then a real tool \
+    call in the same reply. Intent prose alone (\"I should verify…\") does not \
+    end the turn.";
 
+/// Injecté quand le modèle a **déjà** rédigé sa réponse
+/// dans `[phase: answering]` mais a oublié le marqueur `[phase: done]` final,
+/// **et** que les gates todo + testing sont déjà satisfaites.
+///
+/// Si testing / todos manquent encore, le moteur envoie le nudge **spécifique**
+/// correspondant — pas celui-ci (sinon « ONLY done » mentirait).
+const DONE_ONLY_NUDGE_PROMPT: &str = "Your previous reply ended inside \
+    `[phase: answering]` but did NOT include the final `[phase: done]` marker. \
+    The engine only closes the turn on `[phase: done]`.\n\
+    \n\
+    Your todo list is closed and no testing gate is pending. Do NOT rewrite your \
+    answer. Do NOT start new tools. In your next reply emit ONLY:\n\
+    \n\
+    [phase: done]\n\
+    \n\
+    (Optionally keep a one-line `[phase: answering]` if required by your stack — \
+    still no new tool calls.)";
 /// FX-B 1.5.16 — nudge quand le modèle annonce une mutation (`file_write` /
 /// `file_edit`…) en prose **sans** émettre de `tool_calls`. Remplace le
 /// `NUDGE_PROMPT` générique qui laisse boucler « je vais écrire… ».
@@ -407,27 +448,6 @@ fn assistant_text_suggests_mutation_intent(text: &str) -> bool {
     NEEDLES.iter().any(|n| t.contains(n))
 }
 
-/// Nudge minimaliste injecté quand le modèle a **déjà** rédigé sa réponse
-/// dans `[phase: answering]` mais a oublié le marqueur `[phase: done]` final.
-///
-/// Le `NUDGE_PROMPT` générique ci-dessus relance le modèle en lui demandant
-/// d'« écrire sa réponse finale » — ce que GLM-4.7-Flash et consorts prennent
-/// au pied de la lettre et **ré-écrivent** toute la réponse, causant un
-/// affichage en double dans le fil. Ce prompt-ci sert exclusivement à dire
-/// « ajoute juste le marqueur, ne rerédige RIEN ». Déclenché par
-/// `drive_inner` quand `final_phase == Some(Answering)` ET aucune todo
-/// ouverte.
-const DONE_ONLY_NUDGE_PROMPT: &str = "Your previous reply ended inside \
-    `[phase: answering]` but did NOT include the final `[phase: done]` marker. \
-    The engine only closes the turn on `[phase: done]`.\n\
-    \n\
-    **Do NOT rewrite, paraphrase, or repeat your answer** — the user already \
-    received it. Just send a tiny assistant message containing ONLY:\n\
-    \n\
-    [phase: done]\n\
-    \n\
-    Nothing else. No `[phase: answering]`, no Markdown, no recap.";
-
 /// Injecté quand le modèle signe `[phase: done]` SANS jamais avoir émis
 /// `[phase: answering]` au cours du run. Symptôme : le modèle écrit sa
 /// synthèse dans `reading` / `verifying` puis ferme directement — la
@@ -454,27 +474,38 @@ const MISSING_ANSWERING_PROMPT: &str = "You emitted `[phase: done]` without \
 /// La planification est critique **avant mutation**, pas avant exploration :
 /// imposer un plan avant d'avoir vu l'arborescence donne souvent des plans
 /// génériques ou hors-sujet. On laisse donc passer librement les read-only
-/// (`glob`/`file_read`/`grep`/`lsp`/`web_*`) et on bloque uniquement les
-/// écritures et l'exécution shell tant que la to-do n'est pas posée.
+/// (`glob`/`file_read`/`grep`/`lsp`/`web_*` **et** `bash` inspectif :
+/// `git status` / `git log` / `ls` / …) et on bloque uniquement les
+/// écritures et le shell **mutateur** tant que la to-do n'est pas posée.
 ///
-/// Note : `ask_user_question` n'est pas dans la liste — demander une
+/// Note : `ask_user_question` n'est pas gated — demander une
 /// clarification avant de planifier est légitime (cf. phase `clarifying`).
-const TOOLS_REQUIRING_TODO_WRITE_GATE: &[&str] =
-    &["file_edit", "file_write", "notebook_edit", "delete_path", "copy_path", "bash"];
 
+/// `true` si l'outil (avec ses args) exige un `todo_write` préalable.
+/// Bash : source de vérité = `drox_bash::command_is_inspect_only`.
 #[must_use]
-fn requires_todo_write_gate(tool_name: &str) -> bool {
-    TOOLS_REQUIRING_TODO_WRITE_GATE.contains(&tool_name)
+fn requires_todo_write_gate(tool_name: &str, arguments: &Value) -> bool {
+    match tool_name {
+        "file_edit" | "file_write" | "notebook_edit" | "delete_path" | "copy_path" => true,
+        "bash" => !arguments
+            .get("command")
+            .and_then(|v| v.as_str())
+            .is_some_and(command_is_inspect_only),
+        _ => false,
+    }
 }
 
 const MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED: &str = "Blocked: you tried to call a \
-    **mutating** tool (`file_edit` / `file_write` / `notebook_edit` / `delete_path` / `bash`) before any successful \
+    **mutating** tool (`file_edit` / `file_write` / `notebook_edit` / `delete_path` / mutating `bash`) before any successful \
     `todo_write` in this run. Planning is required before any mutation — the user \
     wants to see your plan in the to-do widget BEFORE you start changing files or \
-    running commands. Call `todo_write` first with at least one item describing \
+    running write commands. Call `todo_write` first with at least one item describing \
     what you're about to do, then retry your mutation. Read-only exploration \
-    (`glob`, `file_read`, `grep`, `lsp`, `web_*`) remains allowed before the plan \
-    if you need more context.";
+    (`glob`, `file_read`, `grep`, `lsp`, `web_*`, and inspect-only `bash` such as \
+    `git status` / `git log` / `ls` / `dir` / `ls|grep|awk` filters / `dir|findstr` / \
+    `cargo check`) remains allowed before the plan. Do **not** call `todo_write` just \
+    to unlock inspect-only shell — only before real mutations (`git add`/`commit`, \
+    `rm`, `sed -i`, redirects `> file`, …).";
 
 const PROFESSOR_DONE_WITHOUT_PLAN: &str = "You emitted `[phase: done]` but never called \
     `course_plan_write` successfully in this run. In Professor mode, end with a course \
@@ -569,8 +600,17 @@ fn is_hallucinated_phase_tool_call(name: &str, arguments: &Value) -> bool {
 /// `lsp`, `web_*`) : pendant une même étape « comprendre le module X »,
 /// le modèle peut avoir besoin de lire 5 fichiers — c'est UNE étape, pas
 /// cinq. La granularité utile est l'**action** (édition, exécution shell).
-const MUTATING_TOOLS_FOR_STEP_TRACKING: &[&str] =
-    &["file_edit", "file_write", "notebook_edit", "delete_path", "bash"];
+#[must_use]
+fn counts_as_mutating_for_step_tracking(tool_name: &str, arguments: &Value) -> bool {
+    match tool_name {
+        "file_edit" | "file_write" | "notebook_edit" | "delete_path" | "copy_path" => true,
+        "bash" => !arguments
+            .get("command")
+            .and_then(|v| v.as_str())
+            .is_some_and(command_is_inspect_only),
+        _ => false,
+    }
+}
 
 /// Nudge soft injecté quand le modèle a accumulé ≥ 2 outils mutateurs depuis
 /// son dernier `todo_write`. Ne bloque PAS le tour courant (les outils sont
@@ -644,7 +684,8 @@ fn is_todo_recreation_from_scratch(
 fn step_by_step_todo_nudge(unupdated_tools: u32, pending: u64, in_progress: u64) -> String {
     format!(
         "Heads-up: you've called {unupdated_tools} mutating tools \
-         (file_edit / file_write / notebook_edit / delete_path / bash) since your last `todo_write`, and your \
+         (file_edit / file_write / notebook_edit / delete_path / copy_path / mutating bash) \
+         since your last `todo_write`, and your \
          plan still has {pending} pending + {in_progress} in_progress item(s).\n\
          \n\
          The user follows your progress in real time on the todo widget. Don't \
@@ -655,7 +696,8 @@ fn step_by_step_todo_nudge(unupdated_tools: u32, pending: u64, in_progress: u64)
          move the finished step(s) to `completed` and the next active step to \
          `in_progress`. Then continue with `[phase: reading]` / `[phase: acting]` + your next \
          tool. One `todo_write` per real step transition is enough — you don't \
-         need one between every tool call inside the same step."
+         need one between every tool call inside the same step. \
+         Inspect-only bash (ls/dir/git status/…) does not count toward this reminder."
     )
 }
 
@@ -1162,7 +1204,7 @@ impl Agent {
                         last_todo_pending,
                         last_todo_in_progress,
                     )));
-                    loop_detector.reset();
+                    // Do NOT reset LoopDetector — repeated identical done attempts must abort.
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
                         .await
@@ -1180,7 +1222,7 @@ impl Agent {
                         "[phase: done] mutation code sans phase testing — nudge"
                     );
                     messages.push(Message::system(CODE_MUTATION_TESTING_NUDGE));
-                    loop_detector.reset();
+                    // Do NOT reset LoopDetector — otherwise verify/done nudges loop forever.
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
                         .await
@@ -1304,15 +1346,32 @@ impl Agent {
             if outcome.tool_calls.is_empty() {
                 // Cas typique GLM-4.7-Flash : le modèle a déjà émis sa
                 // réponse en `answering` mais a omis le `[phase: done]`
-                // final. Le nudge générique le fait ré-écrire toute la
-                // réponse (« écris ta réponse finale ») → affichage en
-                // double côté UI. On lui demande juste le marqueur.
+                // final. Si la gate testing est encore due, on envoie CE
+                // message (pas « ONLY done » — ce serait un mensonge).
+                let todos_closed = last_todo_pending == 0 && last_todo_in_progress == 0;
+                let testing_still_due = testing_gate_active
+                    && saw_code_mutation_in_run
+                    && !saw_testing_phase_in_run;
                 if outcome.final_phase == Some(Phase::Answering)
                     && seen_answering_in_run
-                    && last_todo_pending == 0
-                    && last_todo_in_progress == 0
+                    && todos_closed
                 {
-                    debug!("answering sans done + todo clôturée — nudge minimal (done seul)");
+                    if testing_still_due {
+                        debug!(
+                            "answering sans done + todo clôturée + testing dû — nudge testing (pas DONE_ONLY)"
+                        );
+                        consecutive_intent_only_write_nudges = 0;
+                        messages.push(Message::system(CODE_MUTATION_TESTING_NUDGE));
+                        if let Err(e) = self
+                            .flush_transcript(&messages, &mut transcript_cursor)
+                            .await
+                        {
+                            let _ = tx.send(Err(e)).await;
+                            return;
+                        }
+                        continue;
+                    }
+                    debug!("answering sans done + todo clôturée + testing OK — nudge minimal (done seul)");
                     consecutive_intent_only_write_nudges = 0;
                     messages.push(Message::system(DONE_ONLY_NUDGE_PROMPT));
                     loop_detector.reset();
@@ -1703,9 +1762,10 @@ impl Agent {
                                         last_course_active =
                                             value["counts"]["active"].as_u64().unwrap_or(0);
                                         mutating_tools_since_last_todo = 0;
-                                    } else if MUTATING_TOOLS_FOR_STEP_TRACKING
-                                        .contains(&call.name.as_str())
-                                    {
+                                    } else if counts_as_mutating_for_step_tracking(
+                                        &call.name,
+                                        &call.arguments,
+                                    ) {
                                         mutating_tools_since_last_todo =
                                             mutating_tools_since_last_todo.saturating_add(1);
                                     }
@@ -2138,7 +2198,7 @@ impl Agent {
                 return Some(msg.to_string());
             }
         } else if !plan_write_gate_satisfied(false, saw_successful_todo_write_in_run, false)
-            && requires_todo_write_gate(&call.name)
+            && requires_todo_write_gate(&call.name, &call.arguments)
         {
             return Some(MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED.to_string());
         }
@@ -2781,7 +2841,7 @@ async fn consume_stream(
                 // trace repliée. Le choix entre `Reading` et `Acting` se fait
                 // selon la nature lecture seule / mutative du tool.
                 if final_phase.is_none() {
-                    let inferred = phase_for_tool(&name, final_phase);
+                    let inferred = phase_for_tool_call(&name, &arguments, final_phase);
                     if inferred == Phase::Analyzing {
                         saw_analyzing = true;
                     }
@@ -3250,28 +3310,27 @@ mod tests {
         );
     }
 
-    /// Sprint A.7 — la gate reste **dure** sur les mutateurs.
+    /// Sprint A.7 — la gate reste **dure** sur les mutateurs shell.
     ///
-    /// `bash` (tool mutateur) appelé sans `todo_write` préalable doit toujours
-    /// recevoir `MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED`. La discipline de
-    /// planification est conservée pour tout ce qui touche au filesystem ou
-    /// exécute du shell.
+    /// `bash` **mutateur** (`git add`, `rm`, …) appelé sans `todo_write`
+    /// préalable doit recevoir `MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED`.
+    /// Les commandes inspectives (`git status`, `ls`) sont exemptées.
     #[tokio::test]
     async fn mutating_tool_before_todo_write_still_blocked() {
         let tid_bash = ToolUseId::new();
         let llm = Arc::new(ScriptedLlm::new(vec![
-            // Tour 1 : reasoning + bash SEUL (mutateur, pas de todo_write).
+            // Tour 1 : reasoning + bash mutateur SEUL (pas de todo_write).
             vec![
                 StreamEvent::Start,
                 StreamEvent::TextDelta {
-                    text: "[phase: reading]\nJe vais lancer un script.\n\
+                    text: "[phase: reading]\nJe vais stager.\n\
                            [phase: acting]\n"
                         .into(),
                 },
                 StreamEvent::ToolCall {
                     id: tid_bash.clone(),
                     name: "bash".into(),
-                    arguments: json!({ "command": "ls" }),
+                    arguments: json!({ "command": "git add -A" }),
                 },
                 StreamEvent::Stop {
                     reason: StopReason::ToolUse,
@@ -3313,7 +3372,61 @@ mod tests {
         });
         assert!(
             bash_blocked,
-            "bash sans todo_write préalable doit être bloqué par la gate mutateurs ; events={events:?}"
+            "bash mutateur sans todo_write préalable doit être bloqué ; events={events:?}"
+        );
+    }
+
+    /// Inspect-only `bash` (`git status`) must run before any `todo_write`.
+    #[tokio::test]
+    async fn read_only_bash_allowed_before_todo_write() {
+        let tid_bash = ToolUseId::new();
+        let llm = Arc::new(ScriptedLlm::new(vec![
+            vec![
+                StreamEvent::Start,
+                StreamEvent::TextDelta {
+                    text: "[phase: reading]\nInspect repo.\n".into(),
+                },
+                StreamEvent::ToolCall {
+                    id: tid_bash.clone(),
+                    name: "bash".into(),
+                    arguments: json!({ "command": "git status --short" }),
+                },
+                StreamEvent::Stop {
+                    reason: StopReason::ToolUse,
+                    usage: Usage::default(),
+                },
+            ],
+            done_turn("Clean or dirty — inspected."),
+        ]));
+
+        let mut registry = ToolRegistry::new();
+        registry.register(Arc::new(TodoWriteTool));
+        registry.register(Arc::new(FakeBashTool));
+        let registry = Arc::new(registry);
+        let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
+        let agent = Agent::new(llm, registry, ctx, AgentConfig::default());
+
+        let events: Vec<_> = agent
+            .run("test")
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .collect::<Result<_, _>>()
+            .unwrap();
+
+        let bash_ok = events.iter().any(|e| {
+            matches!(
+                e,
+                AgentEvent::ToolFinish {
+                    id,
+                    is_error: false,
+                    ..
+                } if id == &tid_bash
+            )
+        });
+        assert!(
+            bash_ok,
+            "git status must run without prior todo_write ; events={events:?}"
         );
     }
 
@@ -3395,11 +3508,9 @@ mod tests {
     /// `todo_write` est exécuté en premier, le mutateur ensuite, les deux
     /// passent silencieusement.
     ///
-    /// Note : `echo` n'est PAS un mutateur (cf. `TOOLS_REQUIRING_TODO_WRITE_GATE`).
-    /// On utilise quand même `echo` ici par commodité (tool de test simple),
-    /// mais ce qu'on teste réellement c'est l'ordre d'exécution préservé
-    /// quand un batch contient `todo_write` non en tête. La gate elle-même
-    /// n'est plus déclenchée par `echo` depuis le relax read-only.
+    /// Note : `echo` n'est PAS un mutateur (outil de test simple).
+    /// On teste l'ordre d'exécution quand un batch contient `todo_write`
+    /// non en tête — la gate mutateurs ne s'applique pas à `echo`.
     #[tokio::test]
     async fn todo_write_promoted_when_batched_with_other_tool() {
         let tid_echo = ToolUseId::new();
@@ -4438,6 +4549,48 @@ mod tests {
             &json!({ "path": "README.md" })
         ));
         assert!(record_counts_as_code_mutation("notebook_edit", &json!({})));
+        assert!(!record_counts_as_code_mutation(
+            "bash",
+            &json!({ "command": "git commit -F .drox/COMMIT_MSG" })
+        ));
+        assert!(!record_counts_as_code_mutation(
+            "bash",
+            &json!({ "command": "git add -A && git status" })
+        ));
+        assert!(record_counts_as_code_mutation(
+            "bash",
+            &json!({ "command": "npm install lodash" })
+        ));
+    }
+
+    #[test]
+    fn bash_inspect_only_via_drox_bash() {
+        assert!(command_is_inspect_only("git status --short"));
+        assert!(command_is_inspect_only("git log --oneline -20"));
+        assert!(command_is_inspect_only("git diff --cached"));
+        assert!(command_is_inspect_only("ls"));
+        assert!(command_is_inspect_only("FOO=1 git status"));
+        assert!(command_is_inspect_only("git status && git log -1"));
+        assert!(command_is_inspect_only("cargo check"));
+        assert!(command_is_inspect_only(
+            "ls -la | grep \"^-\" | awk '{print $NF}'"
+        ));
+        assert!(!command_is_inspect_only("git add -A"));
+        assert!(!command_is_inspect_only("git commit -F msg"));
+        assert!(!command_is_inspect_only("git status && git add -A"));
+        assert!(!command_is_inspect_only("echo hi > file.txt"));
+        assert!(!requires_todo_write_gate(
+            "bash",
+            &json!({ "command": "git status" })
+        ));
+        assert!(!requires_todo_write_gate(
+            "bash",
+            &json!({ "command": "cargo check" })
+        ));
+        assert!(requires_todo_write_gate(
+            "bash",
+            &json!({ "command": "git add -A" })
+        ));
     }
 
     #[test]
@@ -5309,6 +5462,8 @@ mod tests {
         assert!(msg.contains("4 pending"), "msg={msg}");
         assert!(msg.contains("1 in_progress"), "msg={msg}");
         assert!(msg.contains("todo_write"), "msg={msg}");
+        assert!(msg.contains("mutating bash"), "msg={msg}");
+        assert!(msg.contains("Inspect-only bash"), "msg={msg}");
         assert!(
             msg.contains("step transition") || msg.contains("step-by-step"),
             "le nudge doit rappeler la granularité step-by-step ; msg={msg}"

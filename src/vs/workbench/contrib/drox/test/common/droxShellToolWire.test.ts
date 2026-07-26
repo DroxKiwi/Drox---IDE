@@ -13,7 +13,7 @@ suite('Drox shell tool wire', () => {
 		assert.ok(wire);
 		assert.strictEqual(wire.shellCommand, 'git status');
 		assert.strictEqual(wire.shellDescription, 'Check repo');
-		assert.ok(wire.shellKind === 'powershell' || wire.shellKind === 'bash');
+		assert.ok(wire.shellKind === 'cmd' || wire.shellKind === 'powershell' || wire.shellKind === 'bash');
 	});
 
 	test('buildShellToolStartWire ignores non-bash tools', () => {

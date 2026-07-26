@@ -2052,7 +2052,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .drox-explore-bundle.streaming > .phase-body.drox-explore-scroll {
-	max-height: min(42vh, 28rem);
+	max-height: min(84vh, 56rem);
 	overflow-y: auto;
 	overflow-x: hidden;
 	scroll-behavior: auto;
@@ -2134,7 +2134,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .drox-explore-bundle.drox-explore-compact > .phase-body.drox-explore-scroll {
-	max-height: min(42vh, 28rem);
+	max-height: min(84vh, 56rem);
 	overflow-y: auto;
 	overflow-x: hidden;
 	overscroll-behavior: contain;

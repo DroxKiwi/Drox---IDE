@@ -172,7 +172,7 @@ interface ILazyThinkingItem {
 }
 
 type ILazyItem = ILazyToolItem | ILazyThinkingItem;
-const THINKING_SCROLL_MAX_HEIGHT = 200;
+const THINKING_SCROLL_MAX_HEIGHT = 400;
 
 const TITLE_CACHE_STORAGE_KEY = 'chat.thinkingTitleCache';
 const TITLE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

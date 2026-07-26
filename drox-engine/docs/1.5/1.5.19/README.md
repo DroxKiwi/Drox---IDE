@@ -1,6 +1,6 @@
 # 1.5.19 — Badge branche + Git Graph natif
 
-**Statut** : **ouvert** · implémentation **en cours** (fondation + badge + vue read-only)  
+**Statut** : **ouvert** · Git Graph **livré** (ship principal) · polish / clôture à finaliser  
 **Version** : `droxVersion` **1.5.19**
 
 ## Docs
@@ -10,17 +10,28 @@
 | [PLAN-GIT-BRANCH-GRAPH.md](PLAN-GIT-BRANCH-GRAPH.md) | Plan global (badge · service · graphe) |
 | [ARCHITECTURE-BRANCH-SERVICE.md](ARCHITECTURE-BRANCH-SERVICE.md) | Service centralisé branches / HEAD |
 | [FEATURES-GIT-GRAPH.md](FEATURES-GIT-GRAPH.md) | Catalogue MVP = parité extension Git Graph |
-| [IMPLEMENTATION.md](IMPLEMENTATION.md) | Suivi d’implémentation |
-| [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md) | Répliquer `@Codebase` (embed · index · retrieval) |
+| [IMPLEMENTATION.md](IMPLEMENTATION.md) | Suivi d’implémentation Git Graph |
+| [ENGINE-RUST-AGENT-LOOPS.md](ENGINE-RUST-AGENT-LOOPS.md) | **Moteur Rust** — gates bash/todo/testing, LoopDetector, prompts (smoke commit / boucles) |
+| [PLAN-MUTATORS-AND-TRANSCRIPT-EXPORT.md](PLAN-MUTATORS-AND-TRANSCRIPT-EXPORT.md) | Unification mutateurs + export transcript |
+| [PLAN-INSTRUCTION-RUNTIME-COHERENCE.md](PLAN-INSTRUCTION-RUNTIME-COHERENCE.md) | **Priorité** : cohérence instructions (prompt / gates / nudges) ↔ runtime |
+| [FEATURES-DEV-TRANSCRIPT-EXPORT.md](FEATURES-DEV-TRANSCRIPT-EXPORT.md) | Export transcript natif (dev) |
 
 ## Synthèse
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| A | Badge branche visible (dossier git) | ✅ tranche 1 |
-| B | Service centralisé gestion branche | ✅ fondation + ops tranche 2 |
-| C | Git Graph natif — parité `mhutchie.git-graph` | 🔄 diffs + compare + branches/colonnes |
-| D | Index codebase type Cursor (`@Codebase`) | 📋 spec CB0 |
+| A | Badge branche visible (dossier git) | ✅ |
+| B | Service centralisé gestion branche | ✅ |
+| C | Git Graph natif — parité `mhutchie.git-graph` | ✅ (reste polish catalogue) |
+| D | Moteur Rust — anti-boucles agent / bash inspectif / commit Windows | ✅ (doc [ENGINE-RUST…](ENGINE-RUST-AGENT-LOOPS.md) · rebuild `drox.exe` requis) |
+| E | Unification mutateurs + export transcript dev | ✅ code + docs · rebuild `drox.exe` + smoke |
+
+## Reporté → [1.5.20](../1.5.20/README.md)
+
+| Sujet | Fiche |
+|-------|--------|
+| Index `@Codebase` · embed · BDD locale | [ARCHITECTURE-CODEBASE-INDEX.md](../1.5.20/ARCHITECTURE-CODEBASE-INDEX.md) |
+| Carte visuelle du code | [PLAN-CODE-MAP.md](../1.5.20/PLAN-CODE-MAP.md) |
 
 ## Décisions clés
 
@@ -28,4 +39,4 @@
 - Graphe = **fait maison**, comportement cible = **parité Git Graph**.
 - Double-clic pastille → checkout (raccourci Drox).
 - Observables **fins** (`currentBranch` vs fenêtre graphe).
-- Compréhension code LLM = **retrieval local** (chunk → embed → hybrid search), pas fine-tune — voir fiche D.
+- Socle layout isolé → réutilisable en 1.5.20 pour la carte code.

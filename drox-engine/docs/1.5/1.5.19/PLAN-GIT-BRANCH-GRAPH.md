@@ -120,7 +120,7 @@ Détail → [ARCHITECTURE-BRANCH-SERVICE.md](ARCHITECTURE-BRANCH-SERVICE.md).
 - Carte visuelle du **code** (seulement préparer le socle graphe pour y arriver plus tard)
 - Remplacer SCM VS Code / Source Control panel
 - Authenticode / ship OR (phase clôture séparée)
-- **Implémentation** index `@Codebase` (spec seulement → [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md), phases CB1+)
+- **Implémentation** index `@Codebase` / embed / carte code → **[1.5.20](../1.5.20/README.md)**
 
 ---
 

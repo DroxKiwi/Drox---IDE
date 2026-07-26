@@ -100,6 +100,16 @@ pub fn check_mutating_tool(
         return None;
     }
 
+    // Inspect-only bash (`git status`, `cargo check`, …) is exploration — never gated.
+    if tool_name == "bash"
+        && args
+            .get("command")
+            .and_then(|v| v.as_str())
+            .is_some_and(drox_bash::command_is_inspect_only)
+    {
+        return None;
+    }
+
     if !state.has_plan {
         return Some(MUTATING_BEFORE_COURSE_PLAN);
     }
@@ -109,7 +119,7 @@ pub fn check_mutating_tool(
         return Some(MUTATING_NO_ACTIVE_EXERCISE);
     }
 
-    // `bash` : pas de validation de chemin en V1 (compile/test dans l'exercice).
+    // Mutating `bash`: no path validation in V1 (compile/test in the exercise).
     if tool_name == "bash" {
         return None;
     }
@@ -208,6 +218,23 @@ mod tests {
         };
         assert_eq!(
             check_mutating_tool("file_edit", &json!({"path": "src/app/page.tsx"}), &state),
+            Some(MUTATING_NO_ACTIVE_EXERCISE)
+        );
+    }
+
+    #[test]
+    fn allows_inspect_bash_during_lesson() {
+        let state = ProfessorCourseState {
+            has_plan: true,
+            active_step_kind: Some("lesson".into()),
+            allowed_paths: vec!["src/app/page.tsx".into()],
+        };
+        assert_eq!(
+            check_mutating_tool("bash", &json!({"command": "git status --short"}), &state),
+            None
+        );
+        assert_eq!(
+            check_mutating_tool("bash", &json!({"command": "git add -A"}), &state),
             Some(MUTATING_NO_ACTIVE_EXERCISE)
         );
     }

@@ -422,7 +422,7 @@
 	}
 
 	&.chat-used-context-collapsed .chat-used-context-list.chat-thinking-collapsible.chat-thinking-streaming {
-		max-height: 200px;
+		max-height: 400px;
 		overflow: hidden;
 		display: block;
 		margin-left: 0px;

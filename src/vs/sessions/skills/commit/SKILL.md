@@ -62,13 +62,20 @@ Using the diff and the commit convention detected in step 1, draft a commit mess
 
 ### 4. Commit
 
-Construct the `git commit` command with the generated message.
+Prefer a message file so quoting works on every host (especially Windows `cmd.exe`):
 
-Execute the commit:
+1. Write the full message with `file_write` to `.drox/COMMIT_MSG` (subject + blank line + optional body).
+2. Run:
 
 ```
-git commit -m "<subject>" -m "<body>"
+git commit -F .drox/COMMIT_MSG
 ```
+
+3. Delete `.drox/COMMIT_MSG` with `delete_path`.
+
+**Do not** use `git commit -m "..."` with nested quotes, bash heredocs (`cat <<EOF`), or `echo` redirection under Windows — the `bash` tool runs `cmd.exe /C`, not PowerShell.
+
+On Unix you may still use a simple single-quoted `-m` only when the message has no quotes; prefer `-F` whenever the message is multi-line.
 
 ### 5. Confirm
 

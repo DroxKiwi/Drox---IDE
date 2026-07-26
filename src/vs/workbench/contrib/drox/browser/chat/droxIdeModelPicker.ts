@@ -91,6 +91,9 @@ export class DroxIdeModelPicker extends Disposable {
 		}));
 
 		this._updateTrigger();
+		if (this.llmModelsService.snapshot.models.length === 0 && !this.llmModelsService.snapshot.loading) {
+			void this.llmModelsService.refresh();
+		}
 	}
 
 	private _currentModelId(): string {

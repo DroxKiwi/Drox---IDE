@@ -1032,10 +1032,7 @@ export class DroxGitGraphEditor extends EditorPane {
 					run: () => ({ kind: 'discard' as const }),
 				},
 			],
-			cancelButton: {
-				label: localize('drox.gitGraph.checkoutCancel', "Cancel"),
-				run: () => undefined,
-			},
+			cancelButton: localize('drox.gitGraph.checkoutCancel', "Cancel"),
 		});
 
 		if (!result) {
