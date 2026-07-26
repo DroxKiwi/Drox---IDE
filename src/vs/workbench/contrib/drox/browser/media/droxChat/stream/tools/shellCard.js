@@ -12,7 +12,13 @@
 	const SHELL_COLLAPSED_MAX_CHARS = 2000;
 
 	function shellKindLabel(kind) {
-		return kind === 'powershell' ? 'PowerShell' : 'bash';
+		if (kind === 'powershell') {
+			return 'PowerShell';
+		}
+		if (kind === 'cmd') {
+			return 'cmd';
+		}
+		return 'bash';
 	}
 
 	function truncateShellText(text, expanded) {

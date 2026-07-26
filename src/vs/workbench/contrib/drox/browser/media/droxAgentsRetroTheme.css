@@ -237,30 +237,18 @@
 	opacity: 0.65;
 }
 
-/* Run warmup natif — grille + phrase (parité webview), ×2 pour lisibilité */
+/* Run warmup natif — grille + phrase (parité webview) */
 .agent-sessions-workbench .drox-run-warmup.activity-warmup {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin: 6px 0 12px;
+	gap: 8px;
+	margin: 4px 0 8px;
 	padding: 0;
 	max-width: 100%;
 }
 
-.agent-sessions-workbench .drox-run-warmup .activity-grid {
-	grid-template-columns: repeat(3, 6px);
-	grid-template-rows: repeat(3, 6px);
-	gap: 3px;
-}
-
-.agent-sessions-workbench .drox-run-warmup .activity-grid > span {
-	width: 6px;
-	height: 6px;
-	border-radius: 1px;
-}
-
 .agent-sessions-workbench .drox-run-warmup .activity-warmup-label {
-	font-size: 24px;
+	font-size: 12px;
 	line-height: 1.35;
 	color: var(--drox-thread-fg-muted, var(--vscode-descriptionForeground));
 	font-style: italic;
@@ -522,4 +510,13 @@
 	background-color: color-mix(in srgb, var(--drox-thread-green) 20%, var(--drox-thread-brown-deep) 80%) !important;
 	outline: 1px solid color-mix(in srgb, var(--drox-thread-green) 35%, transparent);
 	outline-offset: -1px;
+}
+
+/* Empty chat: Drox disables chat.viewSessions — do not blank the welcome chrome. */
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-icon,
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-title,
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-message,
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-disclaimer,
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-tips {
+	display: revert;
 }

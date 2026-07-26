@@ -362,3 +362,21 @@
 }
 
 
+
+/* Empty session: keep welcome visible — Drox has no ChatViewPane sessions list to replace it. */
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-icon,
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-title,
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-message,
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-disclaimer,
+
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-tips {
+
+	display: revert;
+
+}
+
+

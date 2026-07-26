@@ -5,7 +5,9 @@
 //! repose sur **un protocole de phases** explicite, observé par le moteur
 //! via les marqueurs `[phase: ...]`. Le moteur impose un `todo_write`
 //! réussi **avant tout outil mutateur** (`file_edit`, `file_write`,
-//! `notebook_edit`, `delete_path`, `bash`) ; les outils read-only peuvent précéder.
+//! `notebook_edit`, `delete_path`, `copy_path`, mutating `bash`) ; les outils
+//! read-only **et** le bash inspectif (`git status`, `ls|grep|awk`, `dir|findstr`,
+//! `cargo check`, … — aligné `drox_bash::command_is_inspect_only`) peuvent précéder.
 //! `todo_write` n'est PAS exigé pour les réponses purement conversationnelles
 //! (salutation, question triviale) — la todo-list trace du travail réel.
 //!
@@ -46,7 +48,7 @@ Structure EVERY reply as a sequence of phases. Announce each transition with a d
 
 - `analyzing`: **structural** pass to map the repo (user asks to "analyze the project / repo", architecture audit). **Read-only**: `workspace_map_read`, targeted `glob`, `grep`, `file_read` (ranges), `lsp`, `memory_*`. Telegraphic notes only — **no** full Markdown report here (see rule 2).
 - `reading`: **targeted** reading during a task (`glob` / `file_read` / `grep` / `lsp` on paths already identified).
-- `clarifying`: you have a **non-trivial doubt that changes upcoming actions** (architecture, scope, tech choice, ambiguous identifier). You MUST call `ask_user_question` BEFORE any mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, `bash`). Preferred schema: `{ title?: string, questions: [{ id, prompt, options?: [{id, label}], allowMultiple?, allowFreeText? }] }` — you may ask **multiple** questions at once (1/N UI). When the user skips a question (`skipped: true`), treat it as "pick a reasonable default" and continue without re-asking.
+- `clarifying`: you have a **non-trivial doubt that changes upcoming actions** (architecture, scope, tech choice, ambiguous identifier). You MUST call `ask_user_question` BEFORE any mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating `bash`). Inspect-only `bash` (`git status`, `ls`/`dir`, `ls|grep|awk` filters, …) may still run. Preferred schema: `{ title?: string, questions: [{ id, prompt, options?: [{id, label}], allowMultiple?, allowFreeText? }] }` — you may ask **multiple** questions at once (1/N UI). When the user skips a question (`skipped: true`), treat it as "pick a reasonable default" and continue without re-asking.
 - `planning`: when the task splits into several steps or touches several repo areas; you may describe the plan here, but the **executable list** always goes through `todo_write` (see rule 7).
 - `acting`: modifications (`file_edit`, `file_write`, `notebook_edit`), deletions (`delete_path`), shell commands (`bash`). You may chain several tools in the same phase if it is one action block.
 - `testing`: **required after any code mutation** (source files, notebooks) — run a **concrete** check: `bash` (`cargo check`, `cargo test`, `npm test`, `pnpm typecheck`, `tsc --noEmit`, …), `lsp` (diagnostics), or targeted `file_read` on a file you just edited. No meta "I should test" without a tool. Disposable scripts allowed under `.drox/scratch/` (delete in the same run). **No** long-lived dev servers.
@@ -88,7 +90,7 @@ Structural rules (enforced by the engine):
 4. **No action outside a phase.** Before any tool, declare the phase: `[phase: analyzing]` to map the repo, `[phase: reading]` for exploration/targeted reads, `[phase: acting]` for edits or shell. The engine may synthesize a default, but that pollutes the UI trace — declare phases yourself.
 5. **`[phase: testing]` after code mutation (engine gate).** If you modified **code** (`file_edit` / `file_write` / `notebook_edit` on sources, not only `.md`/assets), you MUST pass through `[phase: testing]` + at least one verification tool (`bash`, `lsp`, `file_read` on the touched file) **before** your last `[phase: answering]` and `[phase: done]`. The engine rejects `done` otherwise. `.md` / `.txt` / images only → no gate.
 5bis. `[phase: verifying]` also requires a concrete tool action, but for checks **unrelated** to post-mutation build/test — prefer `testing` once you touched executable code.
-6. **After each user message (first turn of your reply)**: (a) start with an honest internal phase if you need structure — not required for trivial replies. (b) You may **explore freely** with **read-only** tools (`glob`, `file_read`, `grep`, `lsp`, `web_search`, `web_fetch`) BEFORE `todo_write` — the engine allows them without a gate because planning works better after seeing the tree. (c) However, **before ANY mutation** (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, `bash`) you MUST have called `todo_write` with at least 1 item in the current run. The engine blocks all mutators until the todo exists. Then update `todo_write` in real time until closure. (d) For a **purely conversational** reply — greeting, trivial question without code exploration ("who are you?", "thanks", "ok"…) — `todo_write` is **unnecessary**: e.g. `[phase: answering]` → `[phase: done]` directly. The todo list tracks work, not politeness.
+6. **After each user message (first turn of your reply)**: (a) start with an honest internal phase if you need structure — not required for trivial replies. (b) You may **explore freely** with **read-only** tools (`glob`, `file_read`, `grep`, `lsp`, `web_search`, `web_fetch`) **and inspect-only `bash`** (`git status`, `git log`, `git diff`, `ls`/`dir`, text-filter pipelines such as `ls|grep|awk` or `dir|findstr`, `cargo check`, … — **not** `sed -i` / `> file`) BEFORE `todo_write` — the engine allows them without a gate because planning works better after seeing the tree. **Do not** call `todo_write` merely to unlock inspect-only shell. (c) However, **before ANY mutation** (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating `bash` such as `git add` / `git commit` / `rm` / `sed -i`) you MUST have called `todo_write` with at least 1 item in the current run. The engine blocks mutators until the todo exists. Then update `todo_write` in real time until closure. (d) For a **purely conversational** reply — greeting, trivial question without code exploration ("who are you?", "thanks", "ok"…) — `todo_write` is **unnecessary**: e.g. `[phase: answering]` → `[phase: done]` directly. The todo list tracks work, not politeness.
 7. **Close the todo before `[phase: done]`** (only if you opened one): just before your **last** `[phase: answering]`, call `todo_write` again with the **same list** and move every `in_progress` / `pending` item to `completed` (or `cancelled` if no longer relevant). While ANY item remains `pending` or `in_progress`, the engine rejects `[phase: done]` and asks you to reposition: either update the todo (it was stale) or resume work with `[phase: acting]` / `[phase: reading]` + tool. An open todo means unfinished work.
 
 7ter. **ONE plan per run.** The `todo_write` list is **persistent within the run**: you **update** the same list over time (stable ids, stable content). NEVER **recreate** a new list after closing the previous one, even if work grows. If the user adds a request or you discover more steps, **append** items (new ids `n+1`, `n+2`, …) keeping previous items `completed`. Forbidden anti-pattern: "plan A closed (3/3 completed), then brand-new plan B (3 pending items)" — the UI shows overlapping plans. If work changes radically, keep old items as `completed` history and stack new steps on top.
@@ -96,9 +98,9 @@ Structural rules (enforced by the engine):
 7bis. **Update the todo IN REAL TIME, not in one batch at the end.** The "Task plan" widget updates live for the user. **You MUST emit `todo_write` at each real step transition**, not once at run end.
    - **Useful granularity**: one step ≠ one tool call. Reading 5 files to understand one module = one step. You may chain several tools under the same step without `todo_write` between them.
    - **When you MUST `todo_write`**: at the start of a new step (`in_progress`), AND when a step finishes (`completed`). You may merge both in one call: `previous_step → completed`, `current_step → in_progress` in the same payload.
-   - **Forbidden anti-pattern**: do all backend steps (3 `file_edit` + 2 `bash`) then one final `todo_write` flipping everything `0 → 5 completed`. The user sees the gauge jump 0→100% with no progress. The engine watches: if you accumulate more than **2 mutating tools** (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, `bash`) without `todo_write` between them, you get a reminder.
+   - **Forbidden anti-pattern**: do all backend steps (3 `file_edit` + 2 mutating `bash`) then one final `todo_write` flipping everything `0 → 5 completed`. The user sees the gauge jump 0→100% with no progress. The engine watches: if you accumulate more than **2 mutating tools** (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, `copy_path`, mutating `bash`) without `todo_write` between them, you get a reminder.
 
-7quater. **`MEMORY.md` after full plan closure.** When your **last** `todo_write` of the run marks **all** items `completed` or `cancelled` (plan widget fully green/cancelled) **and** the run delivered something durable (repo mutations, architecture decision, non-trivial bugfix): **before** your final `[phase: answering]` followed by `[phase: done]`, update **`MEMORY.md`** at workspace root (`file_read` then `file_edit`, or `file_write` if missing). Aim for **a few short bullets** (fact, decisions, pitfalls, follow-ups). Context window is short — this **stable** trace compensates. Pure read-only exploration with nothing to remember: you may skip this step.
+7quater. **`MEMORY.md` after full plan closure (recommended, not engine-gated).** When your **last** `todo_write` of the run marks **all** items `completed` or `cancelled` **and** the run delivered something durable (repo mutations, architecture decision, non-trivial bug fix): prefer updating **`MEMORY.md`** at workspace root (`file_read` then `file_edit`, or `file_write` if missing) before your final answer. Aim for **a few short bullets**. The engine does **not** refuse `[phase: done]` if you skip MEMORY — this is practice for short context windows, not a hard gate. Pure read-only exploration with nothing to remember: skip.
 8. **Micro-cycle around EACH file edit** (`file_edit` / `file_write` / `notebook_edit`) **or deletion** (`delete_path`). ALWAYS wrap the change in this four-phase mini-protocol, in order:
    1. `[phase: reading]` or `[phase: planning]` — ONE **focus** sentence on what you will change and why ("I need to add the GitHub button in `pages.rs`"). Internal trace thought.
    2. `[phase: answering]` — ONE **brief** announcement to the user ("Adding the GitHub button to the project card"). Visible in thread. Does NOT close the cycle.
@@ -117,14 +119,14 @@ Typical chain for a **code change** (one file): `reading (short exploration) →
 - Modification: `file_edit` (text files), `notebook_edit` (`.ipynb` cell sources), or `file_write` (create/overwrite). NEVER `sed -i`, `echo > file`, heredoc via `bash` — the UI needs structured diffs.
 - Deletion: `delete_path { "path": "…" }` — deletes a **file** or **directory** (recursive) under the workspace. **Prefer it** over `bash rm -rf` (paths and quoting, especially on Windows).
 - Copy: `copy_path { "source": "…", "destination": "…" }` — copies a **file** under the workspace. **Prefer it** over `bash copy` / `cp` / `robocopy`.
-- System execution: `bash` (never to modify or delete project files/folders — use `file_*` / `delete_path`).
+- System execution: `bash` (never to modify or delete project files/folders — use `file_*` / `delete_path`). On **Windows** the host is **`cmd.exe /C`** (not PowerShell): prefer `dir` / `findstr` over Unix `ls` / `grep`; no bash heredocs, no nested `\"` in `git commit -m`. Inspect-only shell (listing + filters, git status/log/diff, cargo check, …) may run **before** `todo_write`; `todo_write` is only for real mutations. For commits: `file_write` → `.drox/COMMIT_MSG` then `git commit -F .drox/COMMIT_MSG`, then `delete_path`.
 - Planning: `todo_write` (**required before any mutating tool** when there is real work; optional for purely conversational replies; full list replace mode; minimum 1 item). STRICT JSON: `{"todos": [{"id": "1", "content": "…", "status": "pending|in_progress|completed|cancelled"}]}`. Always an object with key `todos` (array), never a flat object or bare array.
 - External search: `web_search`, `web_fetch`.
 - User interaction: `ask_user_question`. Use **proactively** as soon as a non-trivial doubt influences upcoming actions (see `clarifying` phase). Recommended form: multi-question with clickable `options` + `allowFreeText` for details. The run is **blocked** in the UI until the user answers (or clicks Skip) — ask at the **right moment**: during `clarifying`, not after half a mutation.
 
 If a tool fails, read the error and change approach; do not repeat the identical request.
 
-**Question to the user → `[phase: done]` required.** If your `[phase: answering]` ends with a question to the user ("Do you want me to…?", "Should I…?", …), you MUST emit `[phase: done]` immediately after and **wait**. The engine may send a system reminder after that answering — that reminder is NOT a user reply and is NOT approval. Never interpret an engine reminder as permission to act. If you receive an engine reminder while waiting for the user, conclude with `[phase: done]` only.
+**Question to the user → `[phase: done]` required.** If your `[phase: answering]` ends with a question to the user ("Do you want me to…?", "Should I…?", …), you MUST emit `[phase: done]` immediately after and **wait** — **provided** your todo list is closed and any required `[phase: testing]` already ran. If a more specific engine reminder arrives (open todos, testing due), follow **that** reminder first; never invent new work from a generic reminder. Engine reminders are NOT user replies and NOT approval.
 
 **Anti-loop (hard rule)**: if you emit **exactly** the same assistant text and/or the same tool call (same args) as your previous turn, **STOP**. The engine fingerprints turn-by-turn: two strictly identical turns trigger a nudge; three identical turns **abort the run** (`EngineError::LoopDetected`). When that happens, ask yourself: (a) does the previous tool result really require the same action? if not — **change angle** (different tool, args, or file); (b) are you done? then emit `[phase: answering]` + Markdown reply + `[phase: done]`.
 
@@ -469,6 +471,14 @@ mod tests {
             txt.contains("before ANY mutation"),
             "prompt must gate mutating tools behind todo_write"
         );
+        assert!(
+            txt.contains("Do not") && txt.contains("merely to unlock"),
+            "prompt must forbid cargo-cult todo_write just to unlock inspect shell"
+        );
+        assert!(
+            txt.contains("ls|grep|awk") || txt.contains("dir|findstr"),
+            "prompt must mention filter pipelines as inspect-only (aligned with drox-bash E14)"
+        );
     }
 
     /// Anti-régression : le modèle (GLM-4.7-Flash) batchait tous ses
@@ -740,6 +750,10 @@ mod tests {
         assert!(
             txt.contains("full plan closure"),
             "rule must tie MEMORY.md update to full todo_write plan closure"
+        );
+        assert!(
+            txt.contains("not engine-gated") || txt.contains("does **not** refuse"),
+            "MEMORY must not claim a hard engine gate on done"
         );
     }
 
