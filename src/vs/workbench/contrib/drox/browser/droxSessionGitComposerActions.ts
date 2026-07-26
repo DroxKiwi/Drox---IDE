@@ -51,7 +51,7 @@ ${localize('drox.git.commitPrompt.intro', 'Commit all uncommitted changes in thi
 - ${localize('drox.git.commitPrompt.log', 'Read recent commits (`git log --oneline -20`) and follow this repository\'s commit message style.')}
 - ${localize('drox.git.commitPrompt.stage', 'Stage everything that should ship (`git add -A` when appropriate).')}
 - ${localize('drox.git.commitPrompt.commit', 'Write a clear commit message and run `git commit`.')}
-- ${localize('drox.git.commitPrompt.commitWindows', 'On Windows, avoid `git commit -m "..."` with nested quotes: write the message to a temp file and run `git commit -F <file>` (then delete the file).')}
+- ${localize('drox.git.commitPrompt.commitWindows', 'On Windows the shell is cmd.exe (not PowerShell): write the message with `file_write` to `.drox/COMMIT_MSG`, run `git commit -F .drox/COMMIT_MSG`, then `delete_path` that file. Never use nested quotes in `git commit -m`, heredocs, or bash `echo` to create the message.')}
 - ${localize('drox.git.commitPrompt.verify', 'Confirm with `git status` and `git log -1`.')}
 - ${tail}`;
 }

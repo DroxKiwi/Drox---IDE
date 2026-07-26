@@ -53,6 +53,36 @@ export async function handleDroxExportTranscript(
 	productService: IProductService,
 	fileService: IFileService,
 ): Promise<void> {
+	await exportDroxSessionTranscript({
+		sessionId: tabs.currentSessionId,
+		sessionService,
+		workspaceContextService,
+		clipboardService,
+		notificationService,
+		productService,
+		fileService,
+	});
+}
+
+/** Export + clipboard for any `ses_*` (webview tabs or native IDE chat). Dev surface only. */
+export async function exportDroxSessionTranscript(opts: {
+	readonly sessionId: string | undefined;
+	readonly sessionService: IDroxSessionService;
+	readonly workspaceContextService: IWorkspaceContextService;
+	readonly clipboardService: IClipboardService;
+	readonly notificationService: INotificationService;
+	readonly productService: IProductService;
+	readonly fileService: IFileService;
+}): Promise<void> {
+	const {
+		sessionService,
+		workspaceContextService,
+		clipboardService,
+		notificationService,
+		productService,
+		fileService,
+	} = opts;
+
 	if (!isDroxDevFeatureEnabled('exportTranscript', productService)) {
 		notificationService.warn(
 			localize('drox.export.devOnly', 'Export transcript is only available in the dev surface.'),
@@ -60,7 +90,7 @@ export async function handleDroxExportTranscript(
 		return;
 	}
 
-	const sessionId = tabs.currentSessionId;
+	const sessionId = opts.sessionId;
 	if (!sessionId?.startsWith('ses_')) {
 		notificationService.warn(localize('drox.export.noSession', 'No session to export — send a message first.'));
 		return;

@@ -15,7 +15,7 @@ Référence menus (source de vérité amont) : [Context Menus](https://docs.mhut
 | Badge branche header / New session | Hors graphe — voir plan Partie A |
 | Double-clic pastille → checkout | Raccourci Drox (Git Graph = menu « Checkout Branch ») |
 | Ouverture depuis le badge | Intégration Agents |
-| Socle layout réutilisable « carte code » | Hors UX Git Graph ; contrainte d’archi |
+| Socle layout réutilisable « carte code » | Hors UX Git Graph · reporté → [1.5.20](../1.5.20/PLAN-CODE-MAP.md) |
 
 **Hors MVP** : cloner pixel-perfect le webview / CSS de l’extension ; on vise la **parité comportementale**, UI native Drox.
 
