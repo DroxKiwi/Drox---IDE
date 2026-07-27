@@ -8,7 +8,7 @@
 import './media/droxIdeNativeChat.css';
 import '../agents/media/droxNativeFileChange.css';
 import * as dom from '../../../../../base/browser/dom.js';
-import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
+import { CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { raceTimeout } from '../../../../../base/common/async.js';
 import { MarshalledId } from '../../../../../base/common/marshallingIds.js';
 import { MutableDisposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
