@@ -8,7 +8,7 @@
 import './media/droxIdeNativeChat.css';
 import '../agents/media/droxNativeFileChange.css';
 import * as dom from '../../../../../base/browser/dom.js';
-import { CancellationToken } from '../../../../../base/common/cancellation.js';
+import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { raceTimeout } from '../../../../../base/common/async.js';
 import { MarshalledId } from '../../../../../base/common/marshallingIds.js';
 import { MutableDisposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
@@ -405,22 +405,29 @@ export class DroxNativeChatViewPane extends ViewPane {
 		try {
 			// Keep the previous model until a replacement loads. Clearing early disposes
 			// the input text model and leaves a broken composer (toolbar without editor).
+			const cts = new CancellationTokenSource();
+			// Ensure that when we hit the timeout we cancel the underlying acquire/load as well.
+			// Otherwise repeated Agent → IDE switches can leave pending loads that stall subsequent retries.
 			const loadPromise = this.chatService.acquireOrLoadSession(
 				sessionResource,
 				ChatAgentLocation.Chat,
-				CancellationToken.None,
+				cts.token,
 				'DroxNativeChatViewPane#openSession',
-			);
+			).catch(() => undefined);
 			const timed = raceTimeout(
 				loadPromise,
 				DROX_SESSION_LOAD_TIMEOUT_MS,
-				() => this.logService.error(
-					`[Drox IDE native chat] session load timed out after ${DROX_SESSION_LOAD_TIMEOUT_MS}ms sessionId=${engineSessionId}`,
-				),
+				() => {
+					cts.cancel();
+					this.logService.error(
+						`[Drox IDE native chat] session load timed out after ${DROX_SESSION_LOAD_TIMEOUT_MS}ms sessionId=${engineSessionId}`,
+					);
+				},
 			);
 			const ref = this._sessionLoadingOverlay
 				? await this._sessionLoadingOverlay.showWhile(timed)
 				: await timed;
+			cts.dispose();
 			if (!ref) {
 				if (allowBlankFallback) {
 					this.logService.warn(
