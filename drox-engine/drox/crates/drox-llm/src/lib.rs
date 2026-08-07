@@ -32,6 +32,7 @@ pub mod factory;
 pub mod ollama;
 pub mod openai;
 pub mod retry;
+pub mod schema;
 
 pub use client::{ChatOptions, LlmClient, StreamHandle, ToolSpec};
 pub use config::LlmConfig;
