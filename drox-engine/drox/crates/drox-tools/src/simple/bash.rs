@@ -42,7 +42,14 @@ impl Tool for BashTool {
     }
 
     fn description(&self) -> &str {
-        "Runs a shell command in the workspace (cmd /C on Windows, sh -c elsewhere). \
+        "Runs a shell command in the workspace (cmd.exe /C on Windows — not PowerShell; \
+         sh -c elsewhere). No stdin. Inspect-only commands are allowed before todo_write: \
+         git status/log/diff, ls/dir, pipelines that only filter text \
+         (grep/rg/findstr/awk/sed without -i), cargo check, … — do NOT call todo_write \
+         just to unlock those. Mutating shell (git add/commit, rm, sed -i, `> file`, …) \
+         requires a plan. On Windows: prefer `dir`/`findstr` over Unix ls/grep; avoid \
+         bash heredocs and nested quotes in `git commit -m`; use `file_write` + \
+         `git commit -F <file>` instead. \
          Returns { command, exit_code, stdout, stderr, timed_out, duration_ms }."
     }
 

@@ -27,6 +27,9 @@ import {
 import { IDroxEngineService } from '../common/droxEngineService.js';
 import { IDroxLlmModelsService, IDroxLlmModelsSnapshot } from '../common/droxLlmModelsService.js';
 
+/** Attente max du fetch modèles via canal moteur avant repli requestService. */
+const DROX_LLM_ENGINE_FETCH_TIMEOUT_MS = 3_000;
+
 export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsService {
 
 	declare readonly _serviceBrand: undefined;
@@ -103,6 +106,7 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 			apiKey,
 			headers,
 			{ provider, server: configuredServer },
+			{ mainFetchTimeoutMs: DROX_LLM_ENGINE_FETCH_TIMEOUT_MS },
 		);
 
 		let models: string[] = [];

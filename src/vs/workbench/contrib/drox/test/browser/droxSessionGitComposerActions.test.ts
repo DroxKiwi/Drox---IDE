@@ -14,6 +14,7 @@ suite('DroxSessionGitComposerActions', () => {
 		const withPush = buildDroxCommitAgentPrompt(true);
 		assert.ok(withPush.startsWith('/commit'));
 		assert.ok(withPush.includes('git commit'));
+		assert.ok(withPush.includes('git commit -F'));
 		assert.ok(withPush.toLowerCase().includes('push'));
 
 		const withoutPush = buildDroxCommitAgentPrompt(false);

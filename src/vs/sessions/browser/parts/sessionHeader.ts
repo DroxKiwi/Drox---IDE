@@ -36,6 +36,9 @@ import { IContextKeyService } from '../../../platform/contextkey/common/contextk
 import { onUnexpectedError } from '../../../base/common/errors.js';
 import { SessionStatusIcon } from '../sessionStatusIcon.js';
 import { SessionHeaderMetaActionViewItem } from './sessionHeaderMetaActionViewItem.js';
+import { IDroxGitGraphService } from '../../../workbench/contrib/drox/common/droxGitGraphService.js';
+import { DroxBranchBadge } from '../../../workbench/contrib/drox/browser/gitGraph/droxBranchBadge.js';
+import '../../../workbench/contrib/drox/browser/gitGraph/media/droxBranchBadge.css';
 
 /**
  * An action runner for the session header toolbars that promotes the header's
@@ -101,6 +104,7 @@ export class SessionHeader extends Disposable {
 	private readonly _metaActionsSignal: IObservable<void>;
 
 	private readonly _statusIcon: SessionStatusIcon;
+	private readonly _branchBadge: DroxBranchBadge;
 
 	get element(): HTMLElement {
 		return this._container;
@@ -123,10 +127,12 @@ export class SessionHeader extends Disposable {
 		@ISessionsListModelService private readonly _sessionsListModelService: ISessionsListModelService,
 		@ISessionsService private readonly _sessionsService: ISessionsService,
 		@IHoverService private readonly _hoverService: IHoverService,
+		@IDroxGitGraphService droxGitGraphService: IDroxGitGraphService,
 	) {
 		super();
 
 		this._readStateSignal = observableSignalFromEvent(this, this._sessionsListModelService.onDidChange);
+		this._branchBadge = this._register(new DroxBranchBadge(droxGitGraphService));
 
 		this._container = $('.chat-composite-bar.session-header-bar');
 
@@ -362,6 +368,11 @@ export class SessionHeader extends Disposable {
 			const workspaceLabel = $('span.chat-composite-bar-meta-workspace-label');
 			workspaceLabel.textContent = workspace.label;
 			this._metaWorkspaceEl.appendChild(workspaceLabel);
+			const folderUri = workspace.folders[0]?.workingDirectory ?? workspace.folders[0]?.root;
+			this._branchBadge.bind(folderUri);
+			this._metaWorkspaceEl.appendChild(this._branchBadge.element);
+		} else {
+			this._branchBadge.bind(undefined);
 		}
 		this._metaWorkspaceEl.style.display = hasWorkspace ? '' : 'none';
 

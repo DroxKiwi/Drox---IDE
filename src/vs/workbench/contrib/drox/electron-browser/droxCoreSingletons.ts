@@ -22,6 +22,7 @@ import { IDroxPasteCandidateService } from '../common/droxPasteCandidateService.
 import { IDroxRefsBridgeService } from '../common/droxRefsBridgeService.js';
 import { IDroxReleaseNotesService } from '../common/droxReleaseNotesService.js';
 import { IDroxSessionGitService } from '../common/droxSessionGitService.js';
+import { IDroxGitGraphService } from '../common/droxGitGraphService.js';
 import { IDroxSessionChangesDetailService, DroxSessionChangesDetailService } from '../common/droxSessionChangesDetailService.js';
 import { IDroxSessionChangesBridge, DroxSessionChangesBridge } from '../common/droxSessionChangesBridge.js';
 import { IDroxSessionChangesPanelService, DroxSessionChangesPanelService } from '../common/droxSessionChangesPanelService.js';
@@ -45,6 +46,7 @@ import { DroxSessionService } from './droxSessionService.js';
 import { DroxSlashCommandService } from './droxSlashCommandService.js';
 import { DroxUserAskService } from './droxUserAskService.js';
 import { DroxSessionGitService } from './droxSessionGitService.js';
+import { DroxGitGraphService } from './droxGitGraphService.js';
 
 /** Singletons moteur Drox partagés entre l’IDE principal et la fenêtre Agents. */
 export function registerDroxCoreSingletons(): void {
@@ -69,4 +71,5 @@ export function registerDroxCoreSingletons(): void {
 	registerSingleton(IDroxSessionChangesPanelService, DroxSessionChangesPanelService, InstantiationType.Eager);
 	registerSingleton(IDroxReleaseNotesService, DroxReleaseNotesService, InstantiationType.Eager);
 	registerSingleton(IDroxSessionGitService, DroxSessionGitService, InstantiationType.Delayed);
+	registerSingleton(IDroxGitGraphService, DroxGitGraphService, InstantiationType.Delayed);
 }

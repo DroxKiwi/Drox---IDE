@@ -511,3 +511,12 @@
 	outline: 1px solid color-mix(in srgb, var(--drox-thread-green) 35%, transparent);
 	outline-offset: -1px;
 }
+
+/* Empty chat: Drox disables chat.viewSessions — do not blank the welcome chrome. */
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-icon,
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-title,
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-message,
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-disclaimer,
+.agent-sessions-workbench .interactive-session.chat-view-getting-started-disabled .chat-welcome-view .chat-welcome-view-tips {
+	display: revert;
+}

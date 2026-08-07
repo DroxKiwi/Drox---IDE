@@ -1,0 +1,48 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-branch-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	margin-left: 6px;
+	padding: 1px 6px 1px 4px;
+	border-radius: 3px;
+	border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+	background: color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 18%, transparent);
+	color: var(--vscode-foreground);
+	font-size: 11px;
+	line-height: 16px;
+	cursor: pointer;
+	user-select: none;
+	max-width: 160px;
+	vertical-align: middle;
+}
+
+.drox-branch-badge:hover {
+	background: color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 28%, transparent);
+}
+
+.drox-branch-badge:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 1px;
+}
+
+.drox-branch-badge .drox-branch-badge-icon {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.drox-branch-badge .drox-branch-badge-icon .codicon {
+	font-size: 12px;
+}
+
+.drox-branch-badge .drox-branch-badge-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}

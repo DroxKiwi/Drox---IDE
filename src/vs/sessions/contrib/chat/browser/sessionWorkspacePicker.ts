@@ -42,6 +42,9 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { reportNewChatPickerClosed } from './newChatPickerTelemetry.js';
 import { Menus } from '../../../browser/menus.js';
 import { markOnboardingTarget } from '../../../../workbench/contrib/onboarding/browser/spotlight/onboardingTarget.js';
+import { IDroxGitGraphService } from '../../../../workbench/contrib/drox/common/droxGitGraphService.js';
+import { DroxBranchBadge } from '../../../../workbench/contrib/drox/browser/gitGraph/droxBranchBadge.js';
+import '../../../../workbench/contrib/drox/browser/gitGraph/media/droxBranchBadge.css';
 
 const STORAGE_KEY_RECENT_WORKSPACES = 'sessions.recentlyPickedWorkspaces';
 const FILTER_THRESHOLD = 10;
@@ -144,6 +147,7 @@ export class WorkspacePicker extends Disposable {
 	private readonly _connectionStatusWatch = this._register(new MutableDisposable());
 
 	protected _triggerElement: HTMLElement | undefined;
+	private _branchBadge: DroxBranchBadge | undefined;
 	private readonly _renderDisposables = this._register(new DisposableStore());
 	private readonly _tabbedWidget: TabbedActionListWidget;
 	private readonly _pickerGroupContext: IContextKey<string>;
@@ -194,10 +198,12 @@ export class WorkspacePicker extends Disposable {
 		@IFileDialogService private readonly fileDialogService: IFileDialogService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@INotificationService private readonly notificationService: INotificationService,
+		@IDroxGitGraphService private readonly droxGitGraphService: IDroxGitGraphService,
 	) {
 		super();
 
 		this._tabbedWidget = this._register(this.instantiationService.createInstance(TabbedActionListWidget));
+		this._branchBadge = this._register(new DroxBranchBadge(this.droxGitGraphService));
 		this._pickerGroupContext = SessionWorkspacePickerGroupContext.bindTo(this.contextKeyService);
 		this._register(this._tabbedWidget.onDidChangeTab(tab => {
 			this._activeTab = tab;
@@ -872,6 +878,7 @@ export class WorkspacePicker extends Disposable {
 		const workspace = this._selectedResolved?.workspace;
 		const label = workspace ? workspace.label : localize('pickWorkspace', "workspace");
 		const icon = workspace ? workspace.icon : Codicon.project;
+		const folderUri = workspace?.folders[0]?.root ?? this._selectedFolderUri;
 
 		this._triggerElement.setAttribute('aria-label', workspace
 			? localize('workspacePicker.selectedAriaLabel', "New session in {0}", label)
@@ -880,6 +887,10 @@ export class WorkspacePicker extends Disposable {
 		dom.append(this._triggerElement, renderIcon(icon));
 		const labelSpan = dom.append(this._triggerElement, dom.$('span.sessions-chat-dropdown-label'));
 		labelSpan.textContent = label;
+		if (this._branchBadge) {
+			this._branchBadge.bind(folderUri);
+			dom.append(this._triggerElement, this._branchBadge.element);
+		}
 		dom.append(this._triggerElement, renderIcon(Codicon.chevronDownCompact)).classList.add('sessions-chat-dropdown-chevron');
 	}
 

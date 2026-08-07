@@ -7,7 +7,7 @@
 
 import { isWindows } from '../../../../../base/common/platform.js';
 
-export type DroxShellKind = 'powershell' | 'bash';
+export type DroxShellKind = 'cmd' | 'powershell' | 'bash';
 
 export interface IDroxShellToolOutputWire {
 	readonly stdout?: string;
@@ -24,8 +24,9 @@ export interface IDroxShellToolStartWire {
 	readonly shellDescription?: string;
 }
 
+/** Host shell for the `bash` tool — Windows uses `cmd.exe /C`, not PowerShell. */
 export function resolveDroxShellKind(): DroxShellKind {
-	return isWindows ? 'powershell' : 'bash';
+	return isWindows ? 'cmd' : 'bash';
 }
 
 export function buildShellToolStartWire(name: string, args: unknown): IDroxShellToolStartWire | undefined {

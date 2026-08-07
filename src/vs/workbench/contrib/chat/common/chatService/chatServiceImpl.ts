@@ -877,7 +877,12 @@ export class ChatService extends Disposable implements IChatService {
 			this.telemetryService.publicLog2<ChatPendingRequestChangeEvent, ChatPendingRequestChangeClassification>(ChatPendingRequestChangeEventName, { action: 'notCancelable', source: 'remoteSession', chatSessionId: chatSessionResourceToId(model.sessionResource) });
 			if (lastRequest && model.editingSession) {
 				// wait for timeline to load so that a 'changes' part is added when the response completes
-				await chatEditingSessionIsReady(model.editingSession);
+				// Soft-bound: unbounded wait was burning the Native Chat 15s Agent→IDE load timeout.
+				const EDITING_SESSION_READY_TIMEOUT_MS = 3_000;
+				await raceTimeout(
+					chatEditingSessionIsReady(model.editingSession),
+					EDITING_SESSION_READY_TIMEOUT_MS,
+				);
 				lastRequest.response?.complete();
 			}
 		}
