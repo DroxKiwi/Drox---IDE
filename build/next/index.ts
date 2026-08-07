@@ -409,7 +409,20 @@ function getResourcePatternsForTarget(target: BuildTarget): string[] {
 async function cleanDir(dir: string): Promise<void> {
 	const fullPath = path.join(REPO_ROOT, dir);
 	console.log(`[clean] ${dir}`);
-	await fs.promises.rm(fullPath, { recursive: true, force: true });
+	const retryableCodes = new Set(['ENOTEMPTY', 'EBUSY', 'EPERM']);
+	for (let attempt = 0; attempt < 5; attempt++) {
+		try {
+			await fs.promises.rm(fullPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+			break;
+		} catch (err) {
+			const code = (err as NodeJS.ErrnoException).code;
+			if (code && retryableCodes.has(code) && attempt < 4) {
+				await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
+				continue;
+			}
+			throw err;
+		}
+	}
 	await fs.promises.mkdir(fullPath, { recursive: true });
 }
 

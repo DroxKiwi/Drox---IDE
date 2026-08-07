@@ -5,11 +5,13 @@
 
 // allow-any-unicode-comment-file
 
+import { raceTimeout } from '../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { CancellationError, isCancellationError } from '../../../../../base/common/errors.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { Emitter } from '../../../../../base/common/event.js';
 import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
+import { join } from '../../../../../base/common/path.js';
 import { observableValue } from '../../../../../base/common/observable.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { localize } from '../../../../../nls.js';
@@ -60,6 +62,7 @@ import { buildDroxAgentsHistoryFromTranscript, buildDroxAgentsHistoryFromUiRepla
 import { IChatTodoListService } from '../../../chat/common/tools/chatTodoListService.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
 import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
+import { DROX_SESSION_HISTORY_LOAD_TIMEOUT_MS, DROX_SESSION_HISTORY_TRANSCRIPT_TIMEOUT_MS } from '../droxLoadingConstants.js';
 import { droxWorkspaceSessionsDir } from '../../common/droxWorkspacePaths.js';
 
 /** Derniers tours user chargés à l'ouverture (évite un modèle chat géant en prod). */
@@ -123,7 +126,17 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 	}
 
 	async provideChatSessionContent(sessionResource: URI, _token: CancellationToken): Promise<IChatSession> {
-		const history = await this._loadSessionHistory(sessionResource);
+		const t0 = Date.now();
+		const history = await raceTimeout(
+			this._loadSessionHistory(sessionResource),
+			DROX_SESSION_HISTORY_LOAD_TIMEOUT_MS,
+			() => this.logService.warn(
+				`[Drox Agents] session history load timed out after ${DROX_SESSION_HISTORY_LOAD_TIMEOUT_MS}ms resource=${sessionResource.toString()}`,
+			),
+		) ?? [];
+		this.logService.info(
+			`[Drox Agents] history ready items=${history.length} (+${Date.now() - t0}ms) resource=${sessionResource.toString()}`,
+		);
 		return new DroxAgentsChatSession(sessionResource, history);
 	}
 
@@ -133,9 +146,15 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 	 * `DroxSessionsProvider` (IDE-only process).
 	 */
 	private async _resolveWorkspacePath(sessionResource: URI): Promise<string | undefined> {
-		const fromProvider = await getDroxSessionsProviderInstance()?.ensureSessionWorkspacePath(sessionResource);
-		if (fromProvider) {
-			return fromProvider;
+		const provider = getDroxSessionsProviderInstance();
+		if (provider) {
+			const fromProvider = await raceTimeout(
+				provider.ensureSessionWorkspacePath(sessionResource),
+				2_000,
+			);
+			if (fromProvider) {
+				return fromProvider;
+			}
 		}
 		return this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath;
 	}
@@ -172,7 +191,24 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 				}
 				return history;
 			}
-			const read = await this.sessionService.readSession(engineSessionId, workspacePath);
+			// `session.read` starts drox.exe — skip when no transcript on disk (new chat / cold IDE).
+			const transcriptUri = URI.file(join(droxWorkspaceSessionsDir(workspacePath), `${engineSessionId}.jsonl`));
+			if (!(await this.fileService.exists(transcriptUri))) {
+				this.logService.info(
+					`[Drox Agents] session history empty (no ui-replay/transcript) sessionId=${engineSessionId} loadMs=${Date.now() - started}`,
+				);
+				return [];
+			}
+			const read = await raceTimeout(
+				this.sessionService.readSession(engineSessionId, workspacePath),
+				DROX_SESSION_HISTORY_TRANSCRIPT_TIMEOUT_MS,
+				() => this.logService.warn(
+					`[Drox Agents] session.read timed out after ${DROX_SESSION_HISTORY_TRANSCRIPT_TIMEOUT_MS}ms sessionId=${engineSessionId}`,
+				),
+			);
+			if (!read) {
+				return [];
+			}
 			const history = buildDroxAgentsHistoryFromTranscript(read.messages);
 			this.logService.info(
 				`[Drox Agents] session history from transcript sessionId=${engineSessionId} items=${history.length} loadMs=${Date.now() - started}`,

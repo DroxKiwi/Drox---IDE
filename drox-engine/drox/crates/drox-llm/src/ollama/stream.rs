@@ -180,7 +180,9 @@ fn build_request<'a>(
     defaults: OllamaSamplingDefaults,
     keep_alive: Option<&str>,
 ) -> ChatRequest<'a> {
-    let chat_messages = messages.iter().map(message_to_wire).collect();
+    let chat_messages = normalize_system_messages_for_ollama(
+        messages.iter().map(message_to_wire).collect(),
+    );
 
     let num_predict = options
         .max_tokens
@@ -221,7 +223,9 @@ fn build_request<'a>(
             function: ChatToolSpecFunction {
                 name: &t.name,
                 description: &t.description,
-                parameters: &t.parameters,
+                // schemars emits `$ref` → `#/definitions/EditOp|TodoItem|…`.
+                // Some Ollama GGUF templates fail schema conversion unless inlined.
+                parameters: crate::schema::inline_json_schema_refs(&t.parameters),
             },
         })
         .collect();
@@ -286,6 +290,49 @@ fn message_to_wire(m: &Message) -> ChatMessage {
         tool_calls,
         images,
     }
+}
+
+/// Templates Jinja stricts (ex. KAT-Coder) : `System message must be at the beginning`.
+///
+/// - Fusionne tous les `system` **de tête** en un seul message initial.
+/// - Réécrit tout `system` ultérieur (nudges agent) en `user` préfixé.
+fn normalize_system_messages_for_ollama(messages: Vec<ChatMessage>) -> Vec<ChatMessage> {
+    let mut leading_systems: Vec<String> = Vec::new();
+    let mut rest: Vec<ChatMessage> = Vec::new();
+    let mut seen_non_system = false;
+
+    for mut m in messages {
+        if m.role == "system" {
+            if !seen_non_system {
+                if !m.content.is_empty() {
+                    leading_systems.push(m.content);
+                }
+            } else {
+                m.role = "user";
+                if m.content.is_empty() {
+                    m.content = "[System reminder]".into();
+                } else {
+                    m.content = format!("[System reminder]\n{}", m.content);
+                }
+                rest.push(m);
+            }
+            continue;
+        }
+        seen_non_system = true;
+        rest.push(m);
+    }
+
+    let mut out = Vec::with_capacity(rest.len() + usize::from(!leading_systems.is_empty()));
+    if !leading_systems.is_empty() {
+        out.push(ChatMessage {
+            role: "system",
+            content: leading_systems.join("\n\n"),
+            tool_calls: Vec::new(),
+            images: Vec::new(),
+        });
+    }
+    out.extend(rest);
+    out
 }
 
 const fn role_to_str(role: Role) -> &'static str {
@@ -633,6 +680,56 @@ mod tests {
             serialized.get("images").is_none(),
             "images field should be omitted when empty"
         );
+    }
+
+    #[test]
+    fn coalesce_leading_systems_and_rewrite_mid_conversation_system() {
+        let messages = vec![
+            Message::system("Tu es Drox."),
+            Message::system("Objectif: tester."),
+            Message::user("Salut"),
+            Message::assistant("…thinking…"),
+            Message::system("Continue — des to-dos sont ouvertes."),
+        ];
+        let opts = ChatOptions::default();
+        let req = build_request("m", &messages, &opts, empty_defaults(), None);
+        assert_eq!(req.messages.len(), 4);
+        assert_eq!(req.messages[0].role, "system");
+        assert!(req.messages[0].content.contains("Tu es Drox."));
+        assert!(req.messages[0].content.contains("Objectif: tester."));
+        assert_eq!(req.messages[1].role, "user");
+        assert_eq!(req.messages[2].role, "assistant");
+        assert_eq!(req.messages[3].role, "user");
+        assert!(
+            req.messages[3].content.starts_with("[System reminder]"),
+            "mid-conversation system must become user reminder"
+        );
+        assert_eq!(
+            req.messages.iter().filter(|m| m.role == "system").count(),
+            1,
+            "exactly one system message, at the beginning"
+        );
+    }
+
+    #[test]
+    fn normalize_system_only_leading_empty_skipped() {
+        let wired = vec![
+            ChatMessage {
+                role: "system",
+                content: String::new(),
+                tool_calls: vec![],
+                images: vec![],
+            },
+            ChatMessage {
+                role: "user",
+                content: "hi".into(),
+                tool_calls: vec![],
+                images: vec![],
+            },
+        ];
+        let out = normalize_system_messages_for_ollama(wired);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].role, "user");
     }
 
     #[test]

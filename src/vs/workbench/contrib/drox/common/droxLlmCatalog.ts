@@ -5,6 +5,7 @@
 
 // allow-any-unicode-comment-file
 
+import { raceTimeout } from '../../../../base/common/async.js';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
@@ -343,13 +344,23 @@ export function createDroxLlmHttpGet(
 	apiKey: string,
 	customHeaders?: Readonly<Record<string, string>>,
 	authContext?: IDroxLlmAuthContext,
+	opts?: { readonly mainFetchTimeoutMs?: number },
 ): DroxHttpGetFn {
 	const authHeaders = mergeLlmHttpHeaders(apiKey, customHeaders ?? {}, authContext);
 	const hasHeaders = Object.keys(authHeaders).length > 0;
 	const fallback = createRequestServiceHttpGet(requestService, hasHeaders ? authHeaders : undefined);
+	const mainFetchTimeoutMs = opts?.mainFetchTimeoutMs;
 	return async (url: string) => {
 		try {
-			return await mainFetchHttp(url, hasHeaders ? authHeaders : undefined);
+			const hdrs = hasHeaders ? authHeaders : undefined;
+			if (mainFetchTimeoutMs !== undefined && mainFetchTimeoutMs > 0) {
+				const raced = await raceTimeout(mainFetchHttp(url, hdrs), mainFetchTimeoutMs);
+				if (raced !== undefined) {
+					return raced;
+				}
+				return fallback(url);
+			}
+			return await mainFetchHttp(url, hdrs);
 		} catch {
 			return fallback(url);
 		}

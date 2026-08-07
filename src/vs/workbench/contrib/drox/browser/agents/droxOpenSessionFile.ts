@@ -44,9 +44,11 @@ function buildSessionChangeItems(
 	sessionResource: URI,
 	workspaceRoot: string | undefined,
 ): IChangesFileItem[] {
-	const merged = getDroxSessionsProviderInstance()?.getSessionMergedFileChanges(sessionResource);
-	if (merged && merged.length > 0) {
-		return toIChangesFileItem(merged);
+	const provider = getDroxSessionsProviderInstance();
+	// Provider present → use git-merged changes (including empty after commit).
+	// Do not fall back to agent event history, which stays stale after commit/push.
+	if (provider) {
+		return toIChangesFileItem([...provider.getSessionMergedFileChanges(sessionResource)]);
 	}
 	const events = detailService.getSessionChangeEvents(sessionResource)
 		.map(change => enrichDroxFileChangeSnapshot(change, workspaceRoot));
