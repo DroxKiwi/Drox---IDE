@@ -24,7 +24,7 @@ use drox_bash::{BashCommandKind, command_is_inspect_only, kind_of_segment, split
 use drox_llm::{ChatOptions, LlmClient, ToolSpec};
 use drox_permissions::PermissionDecision;
 use drox_hooks::{PostHookOutcome, PreHookOutcome, ToolHookContext, ToolHooksConfig};
-use drox_tools::{CANONICAL_ASK_JSON_EXAMPLE, ToolContext, ToolRegistry, UserQuestion};
+use drox_tools::{CANONICAL_ASK_JSON_EXAMPLE, ToolContext, ToolError, ToolRegistry, UserQuestion};
 use drox_types::{Content, Message, Role, StopReason, StreamEvent, ToolUseId, Usage};
 use futures::{StreamExt, stream, stream::BoxStream};
 use serde_json::{Value, json};
@@ -1576,6 +1576,9 @@ impl Agent {
                                     }
                                 }
                                 Err(err) => {
+                                    if matches!(&err, ToolError::InvalidArgs(_)) {
+                                        loop_detector.reset();
+                                    }
                                     if push_tool_error_tracked(
                                         &tx,
                                         &mut messages,
@@ -1870,7 +1873,14 @@ impl Agent {
                                     }
                                 }
                                 Err(err) => {
+                                    let is_invalid = matches!(&err, ToolError::InvalidArgs(_));
                                     let msg = err.to_string();
+                                    // Format / args invalides : le modèle vient
+                                    // de recevoir un feedback nouveau — ne pas
+                                    // enchaîner tout de suite vers Abort loop.
+                                    if is_invalid {
+                                        loop_detector.reset();
+                                    }
                                     if push_tool_error_tracked(
                                         &tx,
                                         &mut messages,
@@ -2497,15 +2507,20 @@ impl LoopDetector {
     /// Examine un `TurnOutcome` et renvoie la décision à prendre. `outcome`
     /// est passé par ref : on ne touche pas à son contenu.
     fn observe(&mut self, outcome: &TurnOutcome) -> LoopDecision {
-        let text_h = hash_text(&outcome.text);
+        // Thinking natif compte : sinon KAT-Coder / modèles *think* n'ont
+        // qu'un texte vide + le même tool cassé → faux positif immédiat.
+        let text_h = combine_hash(hash_text(&outcome.text), hash_text(&outcome.thinking));
         let tools_h = hash_tool_calls(&outcome.tool_calls);
         let fp = combine_hash(text_h, tools_h);
 
-        // Tour vide (ni texte significatif, ni outils) : on laisse les
-        // gates `tool_calls.is_empty()` + `NUDGE_PROMPT` faire leur job et
+        // Tour vide (ni texte significatif, ni thinking, ni outils) : on laisse
+        // les gates `tool_calls.is_empty()` + `NUDGE_PROMPT` faire leur job et
         // on n'incrémente pas — sinon un run silencieux puis re-silencieux
         // se ferait flagger par erreur.
-        if outcome.text.trim().is_empty() && outcome.tool_calls.is_empty() {
+        if outcome.text.trim().is_empty()
+            && outcome.thinking.trim().is_empty()
+            && outcome.tool_calls.is_empty()
+        {
             self.last_fingerprint = Some(fp);
             self.last_text_hash = text_h;
             self.last_tools_hash = tools_h;
@@ -2538,10 +2553,12 @@ impl LoopDetector {
 
         self.strike = self.strike.saturating_add(1);
         match self.strike {
-            1 => LoopDecision::Warn { kind },
+            // 1er + 2e strike → nudge (laisse plus de marge aux retries
+            // JSON d'outils / thinking models). Abort au 3e.
+            1 | 2 => LoopDecision::Warn { kind },
             _ => LoopDecision::Abort {
                 kind,
-                turns: self.strike + 1, // strike == 2 → 3e tour identique au total
+                turns: self.strike + 1, // strike == 3 → 4e tour identique au total
             },
         }
     }
@@ -2605,27 +2622,31 @@ hypothesis in `[phase: reading]` or `[phase: acting]` BEFORE acting.\n\n\
 Repeating the same content again will cause the run to be aborted.";
 
 struct TurnOutcome {
-    /// Texte assistant **nettoyé** : tous les marqueurs `[phase: ...]` reconnus
-    /// ont été retirés (y compris les lignes `reasoning` / `next-move` ignorées).
-    /// C'est ce qui est poussé dans le transcript et renvoyé au LLM aux tours
-    /// suivants — le contexte sémantique pour le modèle, sans la quincaillerie
-    /// protocolaire.
-    text: String,
-    tool_calls: Vec<PendingToolCall>,
-    reason: StopReason,
-    usage: Usage,
-    /// Dernière phase déclarée dans ce tour, si présente. Utilisée par
-    /// `drive_inner` pour décider de la clôture (cf. `Phase::Done`).
-    final_phase: Option<Phase>,
-    /// `true` si la phase `Answering` a été déclarée à un moment ou un autre
-    /// pendant ce tour. Sert à détecter les `Done` prématurés où le modèle
-    /// écrit sa synthèse dans `reading`/`verifying` puis ferme sans passer
-    /// par `answering` (cf. Sprint A.3 — answering-before-done).
-    saw_answering: bool,
-    /// `true` si `[phase: analyzing]` a été déclaré pendant ce tour (§2.18).
-    saw_analyzing: bool,
-    /// `true` si `[phase: testing]` a été déclaré pendant ce tour (§2.11).
-    saw_testing: bool,
+	/// Texte assistant **nettoyé** : tous les marqueurs `[phase: ...]` reconnus
+	/// ont été retirés (y compris les lignes `reasoning` / `next-move` ignorées).
+	/// C'est ce qui est poussé dans le transcript et renvoyé au LLM aux tours
+	/// suivants — le contexte sémantique pour le modèle, sans la quincaillerie
+	/// protocolaire.
+	text: String,
+	/// Trace *thinking* native (Ollama / reasoning_content). **Incluse dans
+	/// l'empreinte anti-boucle** : sinon un modèle thinking qui n'émet que
+	/// le même `todo_write` cassé + thinking différent est flaggé à tort.
+	thinking: String,
+	tool_calls: Vec<PendingToolCall>,
+	reason: StopReason,
+	usage: Usage,
+	/// Dernière phase déclarée dans ce tour, si présente. Utilisée par
+	/// `drive_inner` pour décider de la clôture (cf. `Phase::Done`).
+	final_phase: Option<Phase>,
+	/// `true` si la phase `Answering` a été déclarée à un moment ou un autre
+	/// pendant ce tour. Sert à détecter les `Done` prématurés où le modèle
+	/// écrit sa synthèse dans `reading`/`verifying` puis ferme sans passer
+	/// par `answering` (cf. Sprint A.3 — answering-before-done).
+	saw_answering: bool,
+	/// `true` si `[phase: analyzing]` a été déclaré pendant ce tour (§2.18).
+	saw_analyzing: bool,
+	/// `true` si `[phase: testing]` a été déclaré pendant ce tour (§2.11).
+	saw_testing: bool,
 }
 
 /// Buffer line-based pour extraire les marqueurs `[phase: ...]` d'un stream
@@ -2721,6 +2742,7 @@ async fn consume_stream(
     native_thinking_ui: bool,
 ) -> Result<TurnOutcome, ()> {
     let mut text = String::new();
+    let mut thinking = String::new();
     let mut tool_calls: Vec<PendingToolCall> = Vec::new();
     let mut last_stop: Option<(StopReason, Usage)> = None;
     let mut buffer = PhaseLineBuffer::new();
@@ -2740,6 +2762,11 @@ async fn consume_stream(
         match event {
             Ok(StreamEvent::Start) => {}
             Ok(StreamEvent::ThinkingDelta { text: delta }) => {
+                // Toujours accumuler pour l'empreinte anti-boucle (même si
+                // l'UI n'affiche pas le thinking).
+                if !delta.is_empty() {
+                    thinking.push_str(&delta);
+                }
                 if !native_thinking_ui || delta.is_empty() {
                     continue;
                 }
@@ -2948,6 +2975,7 @@ async fn consume_stream(
     let (reason, usage) = last_stop.unwrap_or_else(|| (StopReason::EndTurn, Usage::default()));
     Ok(TurnOutcome {
         text,
+        thinking,
         tool_calls,
         reason,
         usage,
@@ -5068,10 +5096,11 @@ mod tests {
     }
 
     /// Sprint Hotfix « boucle édition/lecture » — empreinte de texte assistant
-    /// répétée à l'identique sur trois tours consécutifs. Attendu :
-    /// 1er tour `Ok` (rien à comparer) → nudge structurel (DONE_ONLY) → reset.
-    /// 2e tour `Warn` (1er strike) → nudge anti-boucle.
-    /// 3e tour `Abort` → `EngineError::LoopDetected { kind: "text", turns: 3 }`.
+    /// répétée à l'identique. Attendu avec seuil assoupli :
+    /// 1er tour `Ok` → …
+    /// 2e tour `Warn` (strike 1) → nudge anti-boucle.
+    /// 3e tour `Warn` (strike 2) → nudge anti-boucle.
+    /// 4e tour `Abort` → `EngineError::LoopDetected`.
     #[tokio::test]
     async fn repeated_assistant_text_triggers_loop_detected_after_nudge() {
         let same_turn = || {
@@ -5092,10 +5121,11 @@ mod tests {
             same_turn(),
             same_turn(),
             same_turn(),
+            same_turn(),
         ]));
         let registry = Arc::new(ToolRegistry::new());
         let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
-        // `max_iterations` largement supérieur à 3 pour s'assurer que c'est
+        // `max_iterations` largement supérieur pour s'assurer que c'est
         // bien le `LoopDetector` qui clôt le run, pas le garde-fou.
         let cfg = AgentConfig {
             max_iterations: 12,
@@ -5155,6 +5185,7 @@ mod tests {
             same_turn(),
             same_turn(),
             same_turn(),
+            same_turn(),
         ]));
         let registry = Arc::new(ToolRegistry::new());
         let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
@@ -5167,9 +5198,32 @@ mod tests {
         let raw: Vec<_> = agent.run("essaie").collect::<Vec<_>>().await;
         assert!(
             matches!(raw.last(), Some(Err(EngineError::LoopDetected { .. }))),
-            "expected LoopDetected after 3 identical tail turns, got {:?}",
+            "expected LoopDetected after 4 identical tail turns, got {:?}",
             raw.last()
         );
+    }
+
+    #[test]
+    fn loop_detector_treats_different_thinking_as_progress() {
+        let mut det = LoopDetector::new();
+        let mk = |thinking: &str| TurnOutcome {
+            text: String::new(),
+            thinking: thinking.into(),
+            tool_calls: vec![PendingToolCall {
+                id: ToolUseId::new(),
+                name: "todo_write".into(),
+                arguments: serde_json::json!({}),
+            }],
+            reason: StopReason::EndTurn,
+            usage: Usage::default(),
+            final_phase: Some(Phase::Acting),
+            saw_answering: false,
+            saw_analyzing: false,
+            saw_testing: false,
+        };
+        assert_eq!(det.observe(&mk("plan A")), LoopDecision::Ok);
+        assert_eq!(det.observe(&mk("plan B — fix JSON")), LoopDecision::Ok);
+        assert_eq!(det.observe(&mk("plan B — fix JSON")), LoopDecision::Warn { kind: "both" });
     }
 
     /// Sprint Hotfix « boucle » — anti-faux-positif : le détecteur ne doit

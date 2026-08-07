@@ -63,6 +63,10 @@ import {
 	DROX_WORKSPACE_SESSION_RECENCY_STORAGE_KEY,
 	clearDroxEngineSessionRecency,
 } from '../../common/droxSharedChatSessionHistory.js';
+import {
+	consumeDroxIdeSessionHandoff,
+	DROX_PENDING_IDE_SESSION_HANDOFF_KEY,
+} from '../../common/droxIdeSessionHandoff.js';
 
 export class DroxNativeChatViewPane extends ViewPane {
 
@@ -163,6 +167,10 @@ export class DroxNativeChatViewPane extends ViewPane {
 		}));
 		this._register(this.storageService.onDidChangeValue(StorageScope.PROFILE, DROX_WORKSPACE_SESSION_RECENCY_STORAGE_KEY, storageListenerStore)(() => {
 			void this._onSharedRecencyStorageChanged();
+		}));
+		// Agents → IDE handoff while this window is already open.
+		this._register(this.storageService.onDidChangeValue(StorageScope.APPLICATION_SHARED, DROX_PENDING_IDE_SESSION_HANDOFF_KEY, storageListenerStore)(() => {
+			void this._onPendingIdeSessionHandoff();
 		}));
 
 		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
@@ -320,6 +328,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 	}
 
 	private async _doOpenStartupSession(): Promise<void> {
+		const t0 = Date.now();
 		let ws = this._workspacePath();
 		if (!ws) {
 			ws = await this._waitForWorkspacePath(DROX_NATIVE_WORKSPACE_READY_TIMEOUT_MS);
@@ -330,7 +339,20 @@ export class DroxNativeChatViewPane extends ViewPane {
 			await this._openDroxSession(newSessionId(), { markOpened: false });
 			return;
 		}
+
+		const handoffSessionId = consumeDroxIdeSessionHandoff(this.storageService, ws);
+		if (handoffSessionId) {
+			this.logService.info(
+				`[Drox IDE native chat] handoff sessionId=${handoffSessionId} (+${Date.now() - t0}ms)`,
+			);
+			this._startupSessionResolved = true;
+			void this._refreshSessionList();
+			await this._openDroxSession(handoffSessionId);
+			return;
+		}
+
 		try {
+			this.logService.info(`[Drox IDE native chat] resolve startup (+${Date.now() - t0}ms)`);
 			const listPromise = resolveDroxNativeChatStartupSessionId({
 				workspaceFsPath: ws,
 				sessionService: this.sessionService,
@@ -374,6 +396,19 @@ export class DroxNativeChatViewPane extends ViewPane {
 		}
 	}
 
+	private async _onPendingIdeSessionHandoff(): Promise<void> {
+		const ws = this._workspacePath();
+		if (!ws || !this._widget) {
+			return;
+		}
+		const sessionId = consumeDroxIdeSessionHandoff(this.storageService, ws);
+		if (!sessionId) {
+			return;
+		}
+		this.logService.info(`[Drox IDE native chat] handoff (live) sessionId=${sessionId}`);
+		await this._openDroxSession(sessionId);
+	}
+
 	private _persistNativeLayout(engineSessionId: string): void {
 		const snap = this._layoutStore.load();
 		const tabs = snap?.tabs.slice() ?? [];
@@ -399,6 +434,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 			return;
 		}
 
+		const t0 = Date.now();
 		const markOpened = opts?.markOpened !== false;
 		const allowBlankFallback = opts?.allowBlankFallback !== false;
 		const sessionResource = DroxChatSessionUri.forSession(engineSessionId);
@@ -408,6 +444,9 @@ export class DroxNativeChatViewPane extends ViewPane {
 			const cts = new CancellationTokenSource();
 			// Ensure that when we hit the timeout we cancel the underlying acquire/load as well.
 			// Otherwise repeated Agent → IDE switches can leave pending loads that stall subsequent retries.
+			this.logService.info(
+				`[Drox IDE native chat] acquire sessionId=${engineSessionId} (+0ms)`,
+			);
 			const loadPromise = this.chatService.acquireOrLoadSession(
 				sessionResource,
 				ChatAgentLocation.Chat,
@@ -461,6 +500,9 @@ export class DroxNativeChatViewPane extends ViewPane {
 			this._widget.setModel(ref.object);
 			this._bindDroxNativeSession(ref.object);
 			this.updateActions();
+			this.logService.info(
+				`[Drox IDE native chat] setModel sessionId=${engineSessionId} (+${Date.now() - t0}ms)`,
+			);
 		} catch (e) {
 			this.logService.error('[Drox IDE native chat] failed to open session', e);
 			if (allowBlankFallback) {

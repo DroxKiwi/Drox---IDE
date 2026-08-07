@@ -58,7 +58,8 @@ pub(super) struct ChatToolSpec<'a> {
 pub(super) struct ChatToolSpecFunction<'a> {
     pub name: &'a str,
     pub description: &'a str,
-    pub parameters: &'a Value,
+    /// Owned + `$ref` inlined — Ollama template conversion rejects `#/definitions/…`.
+    pub parameters: Value,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]

@@ -30,6 +30,15 @@ import { IInstantiationService } from '../../../platform/instantiation/common/in
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { resolveRemoteAuthority } from '../../browser/openInVSCodeUtils.js';
 import { INativeHostService } from '../../../platform/native/common/native.js';
+import { ICommandService } from '../../../platform/commands/common/commands.js';
+import { isSingleFolderWorkspaceIdentifier } from '../../../platform/workspace/common/workspace.js';
+
+/** Keep in sync with `DROX_PREPARE_IDE_SESSION_HANDOFF_COMMAND_ID` (no cross-layer import). */
+const DROX_PREPARE_IDE_SESSION_HANDOFF_COMMAND_ID = 'drox.prepareIdeSessionHandoff';
+
+function normalizeFsPath(fsPath: string): string {
+	return fsPath.replace(/\\/g, '/').toLowerCase();
+}
 
 export class OpenSessionInVSCodeAction extends Action2 {
 	static readonly ID = 'agents.openSessionInVSCode';
@@ -57,12 +66,34 @@ export class OpenSessionInVSCodeAction extends Action2 {
 		const sessionsProvidersService = accessor.get(ISessionsProvidersService);
 		const remoteAgentHostService = accessor.get(IRemoteAgentHostService);
 		const nativeHostService = accessor.get(INativeHostService);
+		const commandService = accessor.get(ICommandService);
 
 		const folderUri = this.getFolderUriToOpen(sessionsService, sessionsProvidersService, remoteAgentHostService);
 		if (!folderUri) {
 			return nativeHostService.openWindow();
 		}
-		return nativeHostService.openWindow([{ folderUri }], { forceNewWindow: true });
+
+		if (folderUri.scheme === Schemas.file) {
+			try {
+				await commandService.executeCommand(DROX_PREPARE_IDE_SESSION_HANDOFF_COMMAND_ID, folderUri.fsPath);
+			} catch {
+				// Handoff is best-effort (command may be unavailable if native chat is off).
+			}
+		}
+
+		const currentWindowId = getWindowId(mainWindow);
+		const windows = await nativeHostService.getWindows({ includeAuxiliaryWindows: false });
+		const targetKey = normalizeFsPath(folderUri.fsPath);
+		const reuseExistingIde = windows.some(w => {
+			if (w.id === currentWindowId || !w.workspace || !isSingleFolderWorkspaceIdentifier(w.workspace)) {
+				return false;
+			}
+			return normalizeFsPath(w.workspace.uri.fsPath) === targetKey;
+		});
+
+		return nativeHostService.openWindow([{ folderUri }], reuseExistingIde
+			? { forceReuseWindow: true }
+			: { forceNewWindow: true });
 	}
 
 	private getFolderUriToOpen(sessionsService: ISessionsService, sessionsProvidersService: ISessionsProvidersService, remoteAgentHostService: IRemoteAgentHostService): URI | undefined {

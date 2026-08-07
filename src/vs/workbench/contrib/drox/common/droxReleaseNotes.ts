@@ -42,6 +42,13 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.19':
+			return [
+				localize('drox.releaseNotes.1519.graph', '**Native Git Graph** — explore commits and branches in-product (parity with the classic Git Graph extension), with the branch badge always visible.'),
+				localize('drox.releaseNotes.1519.handoff', '**Agents → IDE handoff** — opening a session in the IDE from Agents no longer times out on an empty chat; the thread loads via a one-shot session handoff.'),
+				localize('drox.releaseNotes.1519.ollama', '**Ollama / agent stability** — schema `$ref` inlining, system-message order for Jinja templates, and smarter loop detection while the model is thinking.'),
+				localize('drox.releaseNotes.1519.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.18':
 			return [
 				localize('drox.releaseNotes.1518.resume', '**Resume last chat** — reopening the app restores your last conversation (stable layout + MRU), instead of always starting empty.'),
@@ -137,6 +144,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.19':
+			return localize(
+				'drox.releaseNotes.1519.message',
+				'Native Git Graph and branch badge, reliable Agents → IDE chat handoff, and tougher Ollama / agent loop handling.',
+			);
 		case '1.5.18':
 			return localize(
 				'drox.releaseNotes.1518.message',

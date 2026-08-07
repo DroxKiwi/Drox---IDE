@@ -385,3 +385,4 @@ Tool call bash?
 | 1.5.14 | LoopDetector × clôture plan | [IMPLEMENTATION-L1-LOOP-DETECTOR.md](../1.5.14/IMPLEMENTATION-L1-LOOP-DETECTOR.md) |
 | 1.4.x | Spirale VERIFY Windows (historique) | `docs/1.4/1.4.0/archive/SMOKE-BACKLOG.md` (B-MOTOR-02) |
 | 1.5.18 | Session resume / overlay IDE | [IMPLEMENTATION-S0-S3.md](../1.5.18/IMPLEMENTATION-S0-S3.md) |
+| 1.5.19 | Ollama wire + LoopDetector thinking (KAT-Coder) | [ENGINE-OLLAMA-THINKING-AND-LOOPS.md](ENGINE-OLLAMA-THINKING-AND-LOOPS.md) |

@@ -126,6 +126,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 	}
 
 	async provideChatSessionContent(sessionResource: URI, _token: CancellationToken): Promise<IChatSession> {
+		const t0 = Date.now();
 		const history = await raceTimeout(
 			this._loadSessionHistory(sessionResource),
 			DROX_SESSION_HISTORY_LOAD_TIMEOUT_MS,
@@ -133,6 +134,9 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 				`[Drox Agents] session history load timed out after ${DROX_SESSION_HISTORY_LOAD_TIMEOUT_MS}ms resource=${sessionResource.toString()}`,
 			),
 		) ?? [];
+		this.logService.info(
+			`[Drox Agents] history ready items=${history.length} (+${Date.now() - t0}ms) resource=${sessionResource.toString()}`,
+		);
 		return new DroxAgentsChatSession(sessionResource, history);
 	}
 
