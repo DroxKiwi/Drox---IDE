@@ -1,6 +1,6 @@
 # 1.5.19 — Badge branche + Git Graph natif
 
-**Statut** : **ouvert** · Git Graph **livré** (ship principal) · polish / clôture à finaliser  
+**Statut** : **clôturé** · [CLOSURE-1.5.19.md](CLOSURE-1.5.19.md)  
 **Version** : `droxVersion` **1.5.19**
 
 ## Docs
@@ -12,6 +12,7 @@
 | [FEATURES-GIT-GRAPH.md](FEATURES-GIT-GRAPH.md) | Catalogue MVP = parité extension Git Graph |
 | [IMPLEMENTATION.md](IMPLEMENTATION.md) | Suivi d’implémentation Git Graph |
 | [ENGINE-RUST-AGENT-LOOPS.md](ENGINE-RUST-AGENT-LOOPS.md) | **Moteur Rust** — gates bash/todo/testing, LoopDetector, prompts (smoke commit / boucles) |
+| [ENGINE-OLLAMA-THINKING-AND-LOOPS.md](ENGINE-OLLAMA-THINKING-AND-LOOPS.md) | **Moteur LLM** — Ollama `$ref` / system Jinja / empreinte thinking (KAT-Coder) |
 | [PLAN-MUTATORS-AND-TRANSCRIPT-EXPORT.md](PLAN-MUTATORS-AND-TRANSCRIPT-EXPORT.md) | Unification mutateurs + export transcript |
 | [PLAN-INSTRUCTION-RUNTIME-COHERENCE.md](PLAN-INSTRUCTION-RUNTIME-COHERENCE.md) | **Priorité** : cohérence instructions (prompt / gates / nudges) ↔ runtime |
 | [FEATURES-DEV-TRANSCRIPT-EXPORT.md](FEATURES-DEV-TRANSCRIPT-EXPORT.md) | Export transcript natif (dev) |
@@ -24,6 +25,7 @@
 | B | Service centralisé gestion branche | ✅ |
 | C | Git Graph natif — parité `mhutchie.git-graph` | ✅ (reste polish catalogue) |
 | D | Moteur Rust — anti-boucles agent / bash inspectif / commit Windows | ✅ (doc [ENGINE-RUST…](ENGINE-RUST-AGENT-LOOPS.md) · rebuild `drox.exe` requis) |
+| F | Moteur LLM — Ollama schema/system + LoopDetector thinking (KAT-Coder) | ✅ (doc [ENGINE-OLLAMA…](ENGINE-OLLAMA-THINKING-AND-LOOPS.md) · E16–E18 · rebuild `drox.exe`) |
 | E | Unification mutateurs + export transcript dev | ✅ code + docs · rebuild `drox.exe` + smoke |
 
 ## Reporté → [1.5.20](../1.5.20/README.md)

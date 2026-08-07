@@ -8,7 +8,8 @@
 
 | Fiche | Rôle |
 |-------|------|
-| [ENGINE-RUST-AGENT-LOOPS.md](ENGINE-RUST-AGENT-LOOPS.md) | Change log moteur E1–E12 (détail avant/après / tests) |
+| [ENGINE-RUST-AGENT-LOOPS.md](ENGINE-RUST-AGENT-LOOPS.md) | Change log moteur E1–E15 (détail avant/après / tests) |
+| [ENGINE-OLLAMA-THINKING-AND-LOOPS.md](ENGINE-OLLAMA-THINKING-AND-LOOPS.md) | Change log moteur E16–E18 (Ollama `$ref` / system / LoopDetector thinking) |
 | [FEATURES-DEV-TRANSCRIPT-EXPORT.md](FEATURES-DEV-TRANSCRIPT-EXPORT.md) | Export transcript natif (dev) |
 | [README.md](README.md) | Index 1.5.19 |
 | Cet fichier | Backlog + critères d’acceptation |
@@ -121,7 +122,7 @@ Contenu attendu (déjà dans le combiner) :
 | C2 | Mettre à jour [README.md](README.md) (liens plan + export) |
 | C3 | Cocher ce plan au fil de l’eau (statuts ci-dessous) |
 
-**Règle projet** : tout patch moteur Rust en 1.5.19 **doit** avoir une entrée numérotée dans ENGINE-RUST (but, avant/après, fichiers, tests).
+**Règle projet** : tout patch moteur Rust en 1.5.19 **doit** avoir une entrée numérotée dans [ENGINE-RUST-AGENT-LOOPS.md](ENGINE-RUST-AGENT-LOOPS.md) (gates bash/todo) **ou** [ENGINE-OLLAMA-THINKING-AND-LOOPS.md](ENGINE-OLLAMA-THINKING-AND-LOOPS.md) (wire LLM / LoopDetector thinking) — but, avant/après, fichiers, tests.
 
 ---
 
