@@ -1,34 +1,33 @@
-# 1.5.20 — Index codebase + carte visuelle du code
+# 1.5.20 — Tool calling universel
 
 **Statut** : **ouvert** · branche `1.5.20`  
 **Version** : `droxVersion` **1.5.20**  
-**Précédent** : [1.5.19](../1.5.19/README.md) — badge branche + Git Graph natif ([CLOSURE](../1.5.19/CLOSURE-1.5.19.md))
+**Précédent** : [1.5.19](../1.5.19/README.md) — badge / Git Graph + correctifs Ollama ([CLOSURE](../1.5.19/CLOSURE-1.5.19.md))  
+**Suite reportée** : [1.5.21](../1.5.21/README.md) — index `@Codebase` + carte code
 
 ## Docs
 
 | Fiche | Sujet |
 |-------|--------|
-| [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md) | `@Codebase` local : chunk · embed · store · retrieval |
-| [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) | Carte visuelle du code (canvas fichiers / symboles) |
+| [PLAN-UNIVERSAL-TOOL-CALLING.md](PLAN-UNIVERSAL-TOOL-CALLING.md) | Plan produit / tech — universaliser l’accès aux outils sans modèle Drox |
 
 ## Synthèse
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| A | Index codebase type Cursor (`@Codebase`) — SQLite + embed local | 📋 CB0 (spec) → CB1+ |
-| B | Embeddings locaux (Ollama / modèle dédié) + recherche hybride | 📋 CB2 |
-| C | Carte visuelle du code (réutilise le socle layout Git Graph) | 📋 plan |
+| A | Constater les canaux « universels » LLM vs tool calling natif | 📋 plan |
+| B | Durcir / normaliser le chemin natif (args, schémas, erreurs) | 📋 |
+| C | Concevoir un contrat d’outils compatible multi-modèles (local GGUF inclus) | 📋 |
+| D | Doc moteur + smoke KAT / Laguna / Qwen | 📋 |
 
-## Décisions clés
+## Décisions clés (point de départ)
 
-- Compréhension code LLM = **retrieval local** (chunk → embed → hybrid search), pas fine-tune.
-- Store = **BDD locale** bornée sous `{workspace}/.drox/codebase-index/` (pas de monolithe type `state.vscdb`).
-- Carte code = **autre domaine** que le Git Graph, mais **même famille UI** (pastilles, liens, layout).
-- Les hits retrieval peuvent **alimenter** la carte (nœuds fichiers / symboles).
+- Pas de **fine-tune / LoRA Drox** comme prérequis.
+- Les LLM sont **universels en langage** (prose, Markdown souple, petits choix, canevas texte) ; le **JSON/XML tool calling natif n’est pas universel**.
+- Objectif 1.5.20 : faire en sorte que **les outils Drox s’exécutent** sur une large famille de modèles, en s’appuyant d’abord sur ce que les LLM font déjà bien — le design exact (normalisation seule, canevas, filet texte, etc.) se tranche dans le plan.
+- Index codebase / carte code → **[1.5.21](../1.5.21/README.md)**.
 
 ## Origine
 
-Features reportées hors 1.5.19 pour laisser le ship Git Graph se terminer proprement :
-
-- Index / embed / database → fiche Architecture Codebase  
-- Carte visuelle du code → plan dédié  
+- Smoke KAT-Coder (1.5.19) : `todo_write` avec `"status": {}`, fragments XML dans le thinking, boucles `InvalidArgs`.
+- Discussion : ce que les modèles gèrent vraiment bien vs spécialité function-calling.

@@ -28,12 +28,18 @@
 | F | Moteur LLM — Ollama schema/system + LoopDetector thinking (KAT-Coder) | ✅ (doc [ENGINE-OLLAMA…](ENGINE-OLLAMA-THINKING-AND-LOOPS.md) · E16–E18 · rebuild `drox.exe`) |
 | E | Unification mutateurs + export transcript dev | ✅ code + docs · rebuild `drox.exe` + smoke |
 
-## Reporté → [1.5.20](../1.5.20/README.md)
+## Reporté → [1.5.21](../1.5.21/README.md)
 
 | Sujet | Fiche |
 |-------|--------|
-| Index `@Codebase` · embed · BDD locale | [ARCHITECTURE-CODEBASE-INDEX.md](../1.5.20/ARCHITECTURE-CODEBASE-INDEX.md) |
-| Carte visuelle du code | [PLAN-CODE-MAP.md](../1.5.20/PLAN-CODE-MAP.md) |
+| Index `@Codebase` · embed · BDD locale | [ARCHITECTURE-CODEBASE-INDEX.md](../1.5.21/ARCHITECTURE-CODEBASE-INDEX.md) |
+| Carte visuelle du code | [PLAN-CODE-MAP.md](../1.5.21/PLAN-CODE-MAP.md) |
+
+## Suite immédiate → [1.5.20](../1.5.20/README.md)
+
+| Sujet | Fiche |
+|-------|--------|
+| Tool calling universel | [PLAN-UNIVERSAL-TOOL-CALLING.md](../1.5.20/PLAN-UNIVERSAL-TOOL-CALLING.md) |
 
 ## Décisions clés
 
@@ -41,4 +47,4 @@
 - Graphe = **fait maison**, comportement cible = **parité Git Graph**.
 - Double-clic pastille → checkout (raccourci Drox).
 - Observables **fins** (`currentBranch` vs fenêtre graphe).
-- Socle layout isolé → réutilisable en 1.5.20 pour la carte code.
+- Socle layout isolé → réutilisable en 1.5.21 pour la carte code.
