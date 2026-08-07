@@ -1,8 +1,8 @@
 # 1.5.20 — Index codebase + carte visuelle du code
 
-**Statut** : **préparé** · pas encore ouvert en branche dédiée  
-**Version cible** : `droxVersion` **1.5.20**  
-**Précédent** : [1.5.19](../1.5.19/README.md) — badge branche + Git Graph natif (ship)
+**Statut** : **ouvert** · branche `1.5.20`  
+**Version** : `droxVersion` **1.5.20**  
+**Précédent** : [1.5.19](../1.5.19/README.md) — badge branche + Git Graph natif ([CLOSURE](../1.5.19/CLOSURE-1.5.19.md))
 
 ## Docs
 
