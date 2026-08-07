@@ -28,8 +28,8 @@
 | [**1.5.16/**](1.5.16/README.md) | Stabilisation modèle (hors-WS wiring · boucle write) | **Livré** · `v1.5.16` |
 | [**1.5.17/**](1.5.17/README.md) | Alignement enveloppe IDE ↔ contrat TUI + connexions LLM runtime | **Livré** |
 | [**1.5.18/**](1.5.18/README.md) | Reprise / hang IDE + stop-edit type Cursor | **Livré** · `v1.5.18` |
-| [**1.5.19/**](1.5.19/README.md) | Badge branche + Git Graph natif Drox | **Ouvert** (ship graphe) |
-| [**1.5.20/**](1.5.20/README.md) | Index `@Codebase` · embed · carte visuelle du code | **Préparé** |
+| [**1.5.19/**](1.5.19/README.md) | Badge branche + Git Graph natif Drox | **Livré** · `v1.5.19` |
+| [**1.5.20/**](1.5.20/README.md) | Index `@Codebase` · embed · carte visuelle du code | **Ouvert** |
 
 ---
 
