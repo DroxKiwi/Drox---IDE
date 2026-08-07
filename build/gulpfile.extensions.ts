@@ -175,7 +175,21 @@ const tasks = compilations.map(function (tsconfigFile) {
 
 	const cleanTask = task.define(`clean-extension-${name}`, async () => {
 		await util.rimraf(out)();
-		fs.rmSync(tsBuildInfoFile, { force: true });
+		// Windows: antivirus / Explorer / TS LS can briefly lock *.tsbuildinfo during parallel cleans.
+		const retryable = new Set(['EPERM', 'EBUSY', 'ENOTEMPTY']);
+		for (let attempt = 0; attempt < 5; attempt++) {
+			try {
+				fs.rmSync(tsBuildInfoFile, { force: true });
+				break;
+			} catch (err) {
+				const code = (err as NodeJS.ErrnoException).code;
+				if (code && retryable.has(code) && attempt < 4) {
+					await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
+					continue;
+				}
+				throw err;
+			}
+		}
 	});
 
 	const transpileTask = task.define(`transpile-extension:${name}`, task.series(cleanTask, () => {

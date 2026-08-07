@@ -490,6 +490,9 @@ export class ChatWidget extends Disposable implements IChatWidget {
 					this.updateChatViewVisibility();
 				}
 			}
+			if (e.affectsConfiguration(ChatConfiguration.ChatViewSessionsEnabled)) {
+				this.updateChatViewVisibility();
+			}
 			if (e.affectsConfiguration(ChatConfiguration.ProgressBorder)) {
 				this.updateWorkingProgressBorder();
 			}
@@ -1066,10 +1069,14 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			}
 		}
 
-		// Only show welcome getting started until setup is completed
-		this.container.classList.toggle(
-			'chat-view-getting-started-disabled',
-			this.chatEntitlementService.sentiment.completed || this.chatEntitlementService.hasByokModels);
+		// Hide welcome chrome only when ChatViewPane can show recent sessions instead.
+		// Drox disables chat.viewSessions and Native Chat is not a ChatViewPane — keeping
+		// this class on would leave an empty black center with only the composer.
+		const viewSessionsEnabled = this.configurationService.getValue<boolean>(ChatConfiguration.ChatViewSessionsEnabled) !== false;
+		const hideWelcomeForSessionsList = viewSessionsEnabled
+			&& !this.viewOptions.droxNativeComposer
+			&& (this.chatEntitlementService.sentiment.completed || this.chatEntitlementService.hasByokModels);
+		this.container.classList.toggle('chat-view-getting-started-disabled', hideWelcomeForSessionsList);
 
 		this._onDidChangeEmptyState.fire();
 	}

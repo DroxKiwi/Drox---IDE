@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { sep } from '../../../../../base/common/path.js';
-import { AsyncIterableProducer, raceCancellationError } from '../../../../../base/common/async.js';
+import { AsyncIterableProducer, raceCancellationError, raceTimeout } from '../../../../../base/common/async.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
@@ -915,18 +915,24 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 
 		// Attach the listener before the re-check so a registration that lands in the
 		// TOCTOU window between `has()` and subscribe cannot be missed (would hang forever).
-		await new Promise<void>(resolve => {
-			const listener = this.onDidChangeContentProviderSchemes(e => {
-				if (e.added.includes(sessionType)) {
-					listener.dispose();
+		const CONTENT_PROVIDER_WAIT_MS = 5_000;
+		let listener: IDisposable | undefined;
+		try {
+			await raceTimeout(new Promise<void>(resolve => {
+				listener = this.onDidChangeContentProviderSchemes(e => {
+					if (e.added.includes(sessionType)) {
+						resolve();
+					}
+				});
+				if (this._contentProviders.has(sessionType)) {
 					resolve();
 				}
+			}), CONTENT_PROVIDER_WAIT_MS, () => {
+				this._logService.warn(`[ChatSessionsService] Timed out waiting for content provider "${sessionType}" after ${CONTENT_PROVIDER_WAIT_MS}ms`);
 			});
-			if (this._contentProviders.has(sessionType)) {
-				listener.dispose();
-				resolve();
-			}
-		});
+		} finally {
+			listener?.dispose();
+		}
 	}
 
 	async provideChatInputCompletions(sessionResource: URI, params: IChatInputCompletionsParams, token: CancellationToken): Promise<IChatInputCompletionsResult | undefined> {

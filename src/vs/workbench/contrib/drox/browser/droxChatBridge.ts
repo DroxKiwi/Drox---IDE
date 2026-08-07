@@ -185,7 +185,7 @@ export type DroxHostToWebviewMessage =
 		readonly outputPreview?: string;
 		readonly elapsedMs?: number;
 		readonly executorJobId?: string;
-		readonly shellKind?: 'powershell' | 'bash';
+		readonly shellKind?: 'cmd' | 'powershell' | 'bash';
 		readonly shellCommand?: string;
 		readonly shellDescription?: string;
 		readonly shellOutput?: {
