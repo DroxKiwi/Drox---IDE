@@ -1,33 +1,26 @@
-# 1.5.20 — Tool calling universel
+# 1.5.20 — Bugs résiduels post-1.5.19
 
 **Statut** : **ouvert** · branche `1.5.20`  
 **Version** : `droxVersion` **1.5.20**  
-**Précédent** : [1.5.19](../1.5.19/README.md) — badge / Git Graph + correctifs Ollama ([CLOSURE](../1.5.19/CLOSURE-1.5.19.md))  
-**Suite reportée** : [1.5.21](../1.5.21/README.md) — index `@Codebase` + carte code
+**Précédent** : [1.5.19](../1.5.19/README.md) — badge / Git Graph + Ollama ([CLOSURE](../1.5.19/CLOSURE-1.5.19.md))  
+**Reporté** : tool calling universel → [1.5.21](../1.5.21/README.md) · index / carte code → [1.5.22](../1.5.22/README.md)
 
 ## Docs
 
 | Fiche | Sujet |
 |-------|--------|
-| [PLAN-UNIVERSAL-TOOL-CALLING.md](PLAN-UNIVERSAL-TOOL-CALLING.md) | Plan produit / tech — universaliser l’accès aux outils sans modèle Drox |
+| [PLAN-RESIDUAL-BUGS.md](PLAN-RESIDUAL-BUGS.md) | Correctifs post-ship 1.5.19 (IDE chat, régressions) |
 
 ## Synthèse
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| A | Constater les canaux « universels » LLM vs tool calling natif | 📋 plan |
-| B | Durcir / normaliser le chemin natif (args, schémas, erreurs) | 📋 |
-| C | Concevoir un contrat d’outils compatible multi-modèles (local GGUF inclus) | 📋 |
-| D | Doc moteur + smoke KAT / Laguna / Qwen | 📋 |
+| A | **Chat IDE natif** — plus possible de parler au modèle | 🔴 prioritaire |
+| B | Autres bugs résiduels 1.5.19 (handoff Agents→IDE, empty-state, timeouts, …) | 📋 inventaire |
+| C | Smoke Agents + IDE sur workspace réel avant clôture | 📋 |
 
-## Décisions clés (point de départ)
+## Décisions clés
 
-- Pas de **fine-tune / LoRA Drox** comme prérequis.
-- Les LLM sont **universels en langage** (prose, Markdown souple, petits choix, canevas texte) ; le **JSON/XML tool calling natif n’est pas universel**.
-- Objectif 1.5.20 : faire en sorte que **les outils Drox s’exécutent** sur une large famille de modèles, en s’appuyant d’abord sur ce que les LLM font déjà bien — le design exact (normalisation seule, canevas, filet texte, etc.) se tranche dans le plan.
-- Index codebase / carte code → **[1.5.21](../1.5.21/README.md)**.
-
-## Origine
-
-- Smoke KAT-Coder (1.5.19) : `todo_write` avec `"status": {}`, fragments XML dans le thinking, boucles `InvalidArgs`.
-- Discussion : ce que les modèles gèrent vraiment bien vs spécialité function-calling.
+- 1.5.20 = **stabilisation**, pas nouvelle feature majeure.
+- Tool calling universel et `@Codebase` restent en backlog (1.5.21 / 1.5.22).
+- Critère de sortie : un utilisateur peut **envoyer un message et obtenir une réponse modèle** depuis le panneau Drox IDE (et Agents inchangé / non régressé).
