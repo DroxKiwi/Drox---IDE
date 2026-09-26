@@ -25,6 +25,7 @@ import {
 } from '../../common/droxAgentsSession.js';
 import { DroxAgentsLanguageModelProvider, droxAgentsLanguageModelVendorDescriptor } from './droxAgentsLanguageModelProvider.js';
 import { DroxAgentsSessionHandler } from './droxAgentsSessionHandler.js';
+import { markDroxChatContentProviderReady, whenDroxChatContentProviderReady } from './droxAgentsChatActivation.js';
 import { registerDroxAgentsFileOpenActions } from './droxAgentsFileOpenActions.js';
 import { registerDroxIdeSessionHandoffActions } from './droxIdeSessionHandoffActions.js';
 import { registerDroxChatCancelRestoreAction } from '../chat/droxChatCancelRestore.js';
@@ -34,7 +35,21 @@ import './droxNativeFileChangeScrollContribution.js';
 Registry.as<IAsyncChatSessionActivationRegistry>(ChatSessionsExtensions.AsyncActivation).register({
 	matchSessionType: sessionType => sessionType === DROX_CHAT_SESSION_TYPE,
 	waitForActivation: async (accessor: ServicesAccessor) => {
-		return isDroxNativeChatStackEnabled(accessor.get(IConfigurationService));
+		if (!isDroxNativeChatStackEnabled(accessor.get(IConfigurationService))) {
+			return false;
+		}
+		const chatSessionsService = accessor.get(IChatSessionsService);
+		if (chatSessionsService.getContentProviderSchemes().includes(DROX_CHAT_SESSION_TYPE)) {
+			markDroxChatContentProviderReady();
+			return true;
+		}
+		// Wait for DroxAgentsChatContribution to register the provider (not just the setting).
+		const ready = await whenDroxChatContentProviderReady(8_000);
+		if (ready || chatSessionsService.getContentProviderSchemes().includes(DROX_CHAT_SESSION_TYPE)) {
+			markDroxChatContentProviderReady();
+			return true;
+		}
+		return false;
 	},
 });
 
@@ -77,6 +92,7 @@ class DroxAgentsChatContribution extends Disposable implements IWorkbenchContrib
 
 		const sessionHandler = store.add(instantiationService.createInstance(DroxAgentsSessionHandler));
 		store.add(chatSessionsService.registerChatSessionContentProvider(DROX_CHAT_SESSION_TYPE, sessionHandler));
+		markDroxChatContentProviderReady();
 
 		registerDroxAgentsFileOpenActions();
 		registerDroxIdeSessionHandoffActions();

@@ -1,59 +1,57 @@
-# Plan — bugs résiduels post-1.5.19 (1.5.20)
+# Plan — bugs résiduels + liens History/Changes (1.5.20)
 
 **Statut** : **ouvert**  
 **Version** : 1.5.20  
-**Objectif** : rétablir un chat IDE utilisable et absorber les régressions du ship 1.5.19.
+**Plan principal History/Changes** : **[PLAN-HISTORY-AND-CHANGES-IDE.md](PLAN-HISTORY-AND-CHANGES-IDE.md)**
 
 ---
 
-## 1. Priorité A — IDE : impossible de parler au modèle
+## 1. Priorité A — IDE : timeout « Loading session… »
 
-**Symptôme (utilisateur)** : en mode IDE (panneau Native Chat), l’envoi d’un message **ne permet plus** de dialoguer avec le modèle.
+**Symptôme** : overlay → `Timed out loading the chat session…` → pas de chat.
 
-Pistes de départ (à valider en repro) :
+**Audit** : [AUDIT-IDE-CHAT-LOADING.md](AUDIT-IDE-CHAT-LOADING.md)
 
-| Zone | Indices 1.5.19 |
-|------|----------------|
-| Native Chat / session load | Handoff Agents→IDE, soft-timeout load session, empty-state |
-| Bridge run / moteur | `drox.exe`, settings partagés, session workspace |
-| Composer / send path | Préconditions UI (session absente, mode, modèle) |
+| Phase | Action |
+|-------|--------|
+| **P0** | Supprimer `DroxSessionLoadingOverlay` du panneau IDE |
+| **P1** | Soft-fail / empty-first — plus de double timeout 15 s opaque |
+| **P2** | Diagnostiquer hang `acquireOrLoadSession` si besoin |
 
-### Repro minimal
-
-1. Ouvrir un dossier workspace dans Drox IDE.
-2. Panneau **Drox** (Native Chat) — nouvelle discussion ou session existante.
-3. Choisir un modèle joignable (Ollama / API déjà OK en Agents si possible).
-4. Envoyer « Salut » → **attendu** : bulle user + réponse / stream ; **actuel** : échec (à documenter : erreur UI, silence, timeout, …).
-
-### Critère de done (A)
-
-- Message user visible immédiatement.
-- Run moteur démarré (stream ou erreur LLM explicite, pas un no-op).
-- Pas de panneau bloqué « Loading session… » / zone chat absente.
+**Done** : composer utilisable rapidement ; Agents non régressé.
 
 ---
 
-## 2. Priorité B — inventaire résiduels
+## 2. Historique + Changes (lot principal)
 
-À compléter au fil du triage (cocher / ajouter) :
+Voir [PLAN-HISTORY-AND-CHANGES-IDE.md](PLAN-HISTORY-AND-CHANGES-IDE.md) :
 
-- [ ] Handoff Agents → Open in Editor (session correcte)
-- [ ] Empty-state Native Chat
-- [ ] Timeout / cancel load session
-- [ ] Autres régressions signalées post-`v1.5.19`
-
----
-
-## 3. Hors scope 1.5.20
-
-- Universalisation tool calling → [1.5.21](../1.5.21/README.md)
-- Index `@Codebase` / carte code → [1.5.22](../1.5.22/README.md)
-- Nouvelles features Git Graph
+- **B** Stabiliser delete / groupes Agents
+- **C** Historique IDE (même folder)
+- **D** Changes IDE multi-git
 
 ---
 
-## 4. Liens
+## 3. Muse Glimmer — boucle thinking (parallèle)
 
-- Clôture 1.5.19 : [CLOSURE-1.5.19.md](../1.5.19/CLOSURE-1.5.19.md)
-- Handoff session : `src/vs/workbench/contrib/drox/common/droxIdeSessionHandoff.ts`
+**Doc** : [AUDIT-MUSE-GLIMMER-LOOP.md](AUDIT-MUSE-GLIMMER-LOOP.md)
+
+Suite : M1 mid-stream repetition · M2 soft-close todos+testing — **non bloquant** pour History/Changes.
+
+---
+
+## 4. Hors scope 1.5.20
+
+- Shell discussion unifié Agents ↔ IDE → [1.5.21](../1.5.21/PLAN-SHARED-DISCUSSION-SHELL.md)
+- Universalisation tool calling → [1.5.22](../1.5.22/README.md)
+- Index `@Codebase` / carte code → [1.5.23](../1.5.23/README.md)
+- Commit/Push depuis Changes IDE
+
+---
+
+## 5. Liens code
+
 - Vue IDE : `src/vs/workbench/contrib/drox/browser/chat/droxNativeChatViewPane.ts`
+- Overlay : `src/vs/workbench/contrib/drox/browser/droxSessionLoadingOverlay.ts`
+- Provider sessions : `src/vs/sessions/contrib/providers/drox/browser/droxSessionsProvider.ts`
+- Changes git : `src/vs/workbench/contrib/drox/common/droxSessionGitChanges.ts`
