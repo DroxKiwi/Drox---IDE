@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import '../../../../workbench/contrib/drox/browser/discussion/media/droxDiscussionShell.css';
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
 import { DisposableResizeObserver } from '../../../../base/browser/dom.js';
 import { MutableDisposable } from '../../../../base/common/lifecycle.js';
@@ -15,10 +16,11 @@ import { ServiceCollection } from '../../../../platform/instantiation/common/ser
 import { EDITOR_DRAG_AND_DROP_BACKGROUND } from '../../../../workbench/common/theme.js';
 import { ChatWidget } from '../../../../workbench/contrib/chat/browser/widget/chatWidget.js';
 import { IChatModelReference, IChatService } from '../../../../workbench/contrib/chat/common/chatService/chatService.js';
-import { ChatAgentLocation, ChatModeKind } from '../../../../workbench/contrib/chat/common/constants.js';
+import { ChatAgentLocation } from '../../../../workbench/contrib/chat/common/constants.js';
 import { getChatSessionType } from '../../../../workbench/contrib/chat/common/model/chatUri.js';
 import { IChatSessionsService, localChatSessionType } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
 import { DROX_CHAT_SESSION_TYPE } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+import { createDroxDiscussionChatWidgetOptions } from '../../../../workbench/contrib/drox/browser/discussion/droxDiscussionChatWidgetOptions.js';
 import { droxAgentsChatSessionHasLiveRun, evictDroxAgentsChatSessionForReload } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatSessionCache.js';
 import { DroxSessionLoadingOverlay } from '../../../../workbench/contrib/drox/browser/droxSessionLoadingOverlay.js';
 import { finalizeDroxNativeChatHistoryModel } from '../../../../workbench/contrib/drox/common/droxNativeChatHistoryFinalize.js';
@@ -152,23 +154,11 @@ export class ChatView extends AbstractChatView {
 			ChatWidget,
 			ChatAgentLocation.Chat,
 			undefined,
-			{
-				autoScroll: mode => mode !== ChatModeKind.Ask,
-				renderFollowups: true,
-				supportsFileReferences: true,
-				rendererOptions: {
-					referencesExpandedWhenEmptyResponse: false,
-					progressMessageAtBottomOfResponse: mode => mode !== ChatModeKind.Ask,
-				},
-				enableImplicitContext: true,
-				enableWorkingSet: 'implicit',
-				supportsChangingModes: true,
-				inputEditorMinLines: 2,
-				isSessionsWindow: true
-			},
+			createDroxDiscussionChatWidgetOptions('agents'),
 			this._buildStyles(this._isActive)
 		));
 		this._widget.render(this.element);
+		this.element.classList.add('drox-discussion-shell');
 		this._widget.setVisible(true);
 
 		this._droxSessionLoadingOverlay = this._register(new DroxSessionLoadingOverlay(this.element));

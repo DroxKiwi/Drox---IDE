@@ -1,7 +1,7 @@
-# Plan — carte visuelle du code (1.5.22)
+# Plan — carte visuelle du code (1.5.23)
 
 **Statut** : **backlog / plan léger** · pas d’implémentation  
-**Version** : 1.5.22  
+**Version** : 1.5.23  
 **Dépendances** :
 - Socle layout canvas livré en [1.5.19 Git Graph](../1.5.19/PLAN-GIT-BRANCH-GRAPH.md) (`droxGitGraphLayout` / pastilles / arêtes)
 - Idéalement [index codebase](ARCHITECTURE-CODEBASE-INDEX.md) (hits → nœuds pertinents) — phases CB3+ / CB5

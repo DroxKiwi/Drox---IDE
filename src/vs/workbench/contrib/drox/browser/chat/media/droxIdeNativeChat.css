@@ -380,3 +380,36 @@
 }
 
 
+/* --- 1.5.21 shared discussion shell (Agents-parity chrome) --- */
+.drox-ide-native-chat-active .drox-discussion-shell .interactive-session {
+	/* Sessions-like horizontal padding */
+	--chat-content-horizontal-padding: 64px;
+}
+
+/* Hide residual Copilot / agent-host chrome slots left empty by HiddenActionViewItem */
+.drox-ide-native-chat-active .drox-discussion-shell .chat-input-toolbar .action-item:empty,
+.drox-ide-native-chat-active .drox-discussion-shell .chat-secondary-input-toolbar .action-item:empty {
+	display: none !important;
+}
+
+/* Prefer Drox composer chips as the primary controls row */
+.drox-ide-native-chat-active .drox-discussion-shell .drox-agents-composer-toolbar {
+	order: -1;
+}
+
+.drox-ide-native-chat-active .drox-discussion-shell .chat-input-container {
+	border-radius: 12px;
+	padding: 10px 12px 8px;
+}
+
+.drox-ide-native-chat-active .drox-discussion-shell .interactive-input-part {
+	max-width: 760px;
+	margin-inline: auto;
+	width: 100%;
+}
+
+/* Softer empty welcome — discussion-first, less Copilot marketing */
+.drox-ide-native-chat-active .drox-discussion-shell .chat-welcome-view-disclaimer,
+.drox-ide-native-chat-active .drox-discussion-shell .chat-welcome-view-tips {
+	display: none !important;
+}

@@ -6,8 +6,11 @@
 /** Délai anti-flash unifié pour tous les indicateurs de chargement Drox (ms). */
 export const DROX_LOADING_SHOW_DELAY_MS = 450;
 
-/** Timeout max pour `acquireOrLoadSession` (overlay IDE) — évite un « Loading session… » permanent. */
-export const DROX_SESSION_LOAD_TIMEOUT_MS = 15_000;
+/** Timeout max pour `acquireOrLoadSession` IDE — après que le content-provider soit prêt. */
+export const DROX_SESSION_LOAD_TIMEOUT_MS = 12_000;
+
+/** Attente max du content-provider Drox avant d’ouvrir une session native. */
+export const DROX_CHAT_PROVIDER_READY_TIMEOUT_MS = 10_000;
 
 /** Attente max du dossier workspace avant de créer une session native au cold start. */
 export const DROX_NATIVE_WORKSPACE_READY_TIMEOUT_MS = 5_000;
