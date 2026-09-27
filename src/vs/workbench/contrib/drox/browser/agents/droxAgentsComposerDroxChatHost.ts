@@ -81,6 +81,7 @@ const COMPOSER_DROX_CHAT_SCRIPTS = [
 	'droxChat/settings/role-models/helpers.js',
 	'droxChat/settings/role-models/num-ctx.js',
 	'droxChat/settings/role-models/panel.js',
+	'droxChat/settings/role-models/mute.js',
 	'droxChat/settings/role-models/persist.js',
 	'droxChat/settings/role-models/host-sync.js',
 	'droxChat/settings/role-models/init.js',
@@ -644,6 +645,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 					frequencyPenalty: raw.frequencyPenalty,
 					maxTokens: raw.maxTokens,
 					keepAlive: raw.keepAlive,
+					mutedParams: raw.mutedParams,
 				});
 				break;
 			case 'setGeneralSettings':

@@ -79,6 +79,12 @@ export const enum DroxSetting {
 
 	KeepAlive = 'drox.keepAlive',
 
+	/**
+	 * Sampling keys muted in the model panel: values stay stored/editable but
+	 * are omitted from `agent.run` (safe for backends that reject unknown keys).
+	 */
+	LlmParamsMuted = 'drox.llmParamsMuted',
+
 	ConfirmFileWrites = 'drox.confirmFileWrites',
 
 	AddDiagnosticOnHover = 'drox.addDiagnosticOnHover',
@@ -330,6 +336,16 @@ export const droxConfigurationNode: IConfigurationNode = {
 			default: '',
 			scope: ConfigurationScope.RESOURCE,
 			description: localize('drox.keepAlive', 'Ollama `keepAlive` in `agent.run` (e.g. `30m`, `0`, `-1`). Leave empty for server default.'),
+		},
+		[DroxSetting.LlmParamsMuted]: {
+			type: 'array',
+			items: { type: 'string' },
+			default: [],
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.llmParamsMuted',
+				'LLM sampling keys that are **stored but not sent** on `agent.run` (eye-off in the model panel). Prevents backends from rejecting unsupported parameters.',
+			),
 		},
 
 		[DroxSetting.MaxIterations]: {

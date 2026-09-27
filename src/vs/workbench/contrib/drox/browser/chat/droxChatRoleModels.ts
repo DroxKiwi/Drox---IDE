@@ -14,6 +14,7 @@ import { DroxSetting } from '../../common/droxConfiguration.js';
 import { clampDroxNumCtx } from '../../common/droxNumCtx.js';
 
 import { effectiveMaxTokensForRun, IDroxLlmSettings } from '../../common/droxRunSettings.js';
+import { normalizeDroxLlmParamsMuted } from '../../common/droxLlmParamMute.js';
 
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 export interface IDroxArchitectLlmParamsPatch {
@@ -39,6 +40,8 @@ export interface IDroxArchitectLlmParamsPatch {
 	readonly maxTokens?: number | null;
 
 	readonly keepAlive?: string | null;
+
+	readonly mutedParams?: readonly string[] | null;
 
 }
 export interface IDroxArchitectRoleModelsWire {
@@ -66,6 +69,8 @@ export interface IDroxArchitectRoleModelsWire {
 	readonly architectMaxTokens?: number;
 
 	readonly architectKeepAlive?: string;
+
+	readonly architectLlmParamsMuted?: readonly string[];
 
 }
 async function patchOptionalNumber(
@@ -191,6 +196,16 @@ export async function setDroxArchitectLlmParamsFromWebview(
 
 	}
 
+	if (params.mutedParams !== undefined) {
+		const muted = normalizeDroxLlmParamsMuted(params.mutedParams ?? []);
+		await applyDroxConfigurationUpdate(
+			configurationService,
+			DroxSetting.LlmParamsMuted,
+			muted.length > 0 ? [...muted] : [],
+			workspaceResource,
+		);
+	}
+
 }
 export function readDroxRoleModelsForWebview(
 
@@ -227,6 +242,8 @@ export function readDroxRoleModelsForWebview(
 		architectMaxTokens: maxTokens,
 
 		architectKeepAlive: llm.keepAlive || undefined,
+
+		architectLlmParamsMuted: [...llm.llmParamsMuted],
 
 	};
 

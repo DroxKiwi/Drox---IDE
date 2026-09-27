@@ -3200,6 +3200,48 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	color: var(--vscode-descriptionForeground);
 }
 
+.role-model-field-label-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
+.role-model-param-mute-btn {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: none;
+	border-radius: 3px;
+	background: transparent;
+	color: var(--vscode-foreground);
+	cursor: pointer;
+	opacity: 0.75;
+	line-height: 1;
+}
+
+.role-model-param-mute-btn .codicon {
+	font-size: 12px;
+}
+
+.role-model-param-mute-btn:hover {
+	opacity: 1;
+	background: var(--vscode-toolbar-hoverBackground);
+}
+
+.role-model-field-muted {
+	opacity: 0.55;
+}
+
+.role-model-field-muted .role-model-panel-input,
+.role-model-field-muted .role-model-panel-select {
+	opacity: 0.85;
+}
+
 .role-model-num-ctx-row {
 	display: flex;
 	flex-direction: row;

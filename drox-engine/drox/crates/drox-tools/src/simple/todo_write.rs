@@ -165,36 +165,108 @@ impl Tool for TodoWriteTool {
 /// - un **tableau** `[{...}, {...}]` → on le wrappe en `{ "todos": [...] }`.
 /// - un **objet** avec `id` / `content` / `status` (item seul à plat) → idem.
 /// - un objet avec `todo` au singulier ou `items` → on remappe vers `todos`.
+/// - un `status` invalide (`{}`, null, objet enum inventé) → string enum.
 ///
 /// Toutes ces variantes sont strictement équivalentes côté sémantique
 /// (mode replace, liste complète) ; on évite juste à un modèle qui se trompe
 /// de format de boucler sur l'erreur de parse.
 fn normalize_input(input: Value) -> Value {
     use serde_json::map::Map;
-    match input {
+    let wrapped = match input {
         Value::Array(items) => json!({ "todos": items }),
         Value::Object(mut obj) => {
             if obj.contains_key("todos") {
-                return Value::Object(obj);
-            }
-            if let Some(v) = obj.remove("todo") {
+                Value::Object(obj)
+            } else if let Some(v) = obj.remove("todo") {
                 let arr = if v.is_array() { v } else { Value::Array(vec![v]) };
                 let mut out = Map::new();
                 out.insert("todos".into(), arr);
-                return Value::Object(out);
-            }
-            if let Some(v) = obj.remove("items") {
+                Value::Object(out)
+            } else if let Some(v) = obj.remove("items") {
                 let mut out = Map::new();
                 out.insert("todos".into(), v);
-                return Value::Object(out);
+                Value::Object(out)
+            } else if obj.contains_key("id")
+                || obj.contains_key("content")
+                || obj.contains_key("status")
+            {
+                json!({ "todos": [Value::Object(obj)] })
+            } else {
+                Value::Object(obj)
             }
-            if obj.contains_key("id") || obj.contains_key("content") || obj.contains_key("status") {
-                return json!({ "todos": [Value::Object(obj)] });
-            }
-            Value::Object(obj)
         }
         other => other,
+    };
+    coerce_todo_statuses(wrapped)
+}
+
+/// U1 — coerce `status` vers une string enum snake_case.
+///
+/// Observé en prod (Qwen / KAT / LiteLLM) : `"status": {}` alors que le schéma
+/// demande `"pending" | "in_progress" | …`. Serde refuse avec
+/// `invalid value: map, expected map with a single key`.
+fn coerce_todo_statuses(input: Value) -> Value {
+    let Value::Object(mut root) = input else {
+        return input;
+    };
+    let Some(Value::Array(items)) = root.get_mut("todos") else {
+        return Value::Object(root);
+    };
+    for item in items.iter_mut() {
+        let Value::Object(obj) = item else {
+            continue;
+        };
+        let next = match obj.get("status") {
+            None | Some(Value::Null) => Some(Value::String("pending".into())),
+            Some(Value::String(s)) => {
+                let trimmed = s.trim();
+                if trimmed.is_empty() {
+                    Some(Value::String("pending".into()))
+                } else {
+                    let lower = trimmed.to_ascii_lowercase().replace('-', "_");
+                    match lower.as_str() {
+                        "pending" | "in_progress" | "completed" | "cancelled" | "canceled" => {
+                            let canon = if lower == "canceled" {
+                                "cancelled"
+                            } else {
+                                lower.as_str()
+                            };
+                            if canon == trimmed {
+                                None
+                            } else {
+                                Some(Value::String(canon.into()))
+                            }
+                        }
+                        _ => Some(Value::String("pending".into())),
+                    }
+                }
+            }
+            Some(Value::Object(map)) => {
+                // `{}` → pending ; `{"pending":null}` / `{"in_progress":true}` → clé.
+                if map.is_empty() {
+                    Some(Value::String("pending".into()))
+                } else if map.len() == 1 {
+                    let key = map.keys().next().map(|k| k.as_str()).unwrap_or("pending");
+                    let lower = key.to_ascii_lowercase().replace('-', "_");
+                    let canon = match lower.as_str() {
+                        "pending" | "in_progress" | "completed" | "cancelled" => lower,
+                        "canceled" => "cancelled".into(),
+                        _ => "pending".into(),
+                    };
+                    Some(Value::String(canon))
+                } else {
+                    Some(Value::String("pending".into()))
+                }
+            }
+            Some(Value::Bool(_) | Value::Number(_) | Value::Array(_)) => {
+                Some(Value::String("pending".into()))
+            }
+        };
+        if let Some(status) = next {
+            obj.insert("status".into(), status);
+        }
     }
+    Value::Object(root)
 }
 
 /// Vérifie les invariants : ≥ 1 item, ids uniques non vides, content non
@@ -378,6 +450,71 @@ mod tests {
             json!({ "todo": { "id": "1", "content": "Saluer", "status": "in_progress" } });
         let out = TodoWriteTool.execute(&ctx(), payload).await.unwrap();
         assert_eq!(out["todos"].as_array().unwrap().len(), 1);
+    }
+
+    /// Transcript Qwen3.8 / KAT : le modèle envoie `"status": {}` à chaque retry.
+    #[tokio::test]
+    async fn u1_coerces_empty_status_object_to_pending() {
+        let payload = json!({
+            "todos": [
+                {
+                    "content": "Analyser le projet",
+                    "id": "1",
+                    "status": {}
+                },
+                {
+                    "content": "Rediger le document",
+                    "id": "2",
+                    "status": {}
+                },
+            ]
+        });
+        let out = TodoWriteTool.execute(&ctx(), payload).await.unwrap();
+        assert_eq!(out["todos"].as_array().unwrap().len(), 2);
+        assert_eq!(out["todos"][0]["status"], "pending");
+        assert_eq!(out["todos"][1]["status"], "pending");
+        assert_eq!(out["counts"]["pending"], 2);
+    }
+
+    #[tokio::test]
+    async fn u1_coerces_null_and_missing_status_to_pending() {
+        let payload = json!({
+            "todos": [
+                { "id": "1", "content": "A", "status": null },
+                { "id": "2", "content": "B" },
+            ]
+        });
+        let out = TodoWriteTool.execute(&ctx(), payload).await.unwrap();
+        assert_eq!(out["todos"][0]["status"], "pending");
+        assert_eq!(out["todos"][1]["status"], "pending");
+    }
+
+    #[tokio::test]
+    async fn u1_coerces_externally_tagged_status_map() {
+        let payload = json!({
+            "todos": [
+                { "id": "1", "content": "A", "status": { "in_progress": null } },
+                { "id": "2", "content": "B", "status": { "Completed": true } },
+            ]
+        });
+        let out = TodoWriteTool.execute(&ctx(), payload).await.unwrap();
+        assert_eq!(out["todos"][0]["status"], "in_progress");
+        assert_eq!(out["todos"][1]["status"], "completed");
+        assert_eq!(out["counts"]["in_progress"], 1);
+        assert_eq!(out["counts"]["completed"], 1);
+    }
+
+    #[tokio::test]
+    async fn u1_normalizes_status_casing_and_canceled_alias() {
+        let payload = json!({
+            "todos": [
+                { "id": "1", "content": "A", "status": "Pending" },
+                { "id": "2", "content": "B", "status": "canceled" },
+            ]
+        });
+        let out = TodoWriteTool.execute(&ctx(), payload).await.unwrap();
+        assert_eq!(out["todos"][0]["status"], "pending");
+        assert_eq!(out["todos"][1]["status"], "cancelled");
     }
 
     #[tokio::test]

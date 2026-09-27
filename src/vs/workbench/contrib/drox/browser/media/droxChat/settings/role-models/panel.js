@@ -45,6 +45,9 @@
 		if (D.dom.roleModelPanelKeepAliveEl) {
 			D.dom.roleModelPanelKeepAliveEl.value = D.state.architectKeepAlive ? String(D.state.architectKeepAlive) : '';
 		}
+		if (typeof fn.syncRoleModelMuteButtonsFromState === 'function') {
+			fn.syncRoleModelMuteButtonsFromState();
+		}
 	};
 
 	fn.openRoleModelPanel = function() {

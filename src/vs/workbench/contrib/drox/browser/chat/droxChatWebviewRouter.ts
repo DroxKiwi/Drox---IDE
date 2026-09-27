@@ -148,6 +148,7 @@ export async function routeDroxChatWebviewMessage(
 				frequencyPenalty: raw.frequencyPenalty,
 				maxTokens: raw.maxTokens,
 				keepAlive: raw.keepAlive,
+				mutedParams: raw.mutedParams,
 			});
 			break;
 		case 'setGeneralSettings':

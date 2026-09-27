@@ -216,6 +216,12 @@
 				padding-top: 0px;
 			}
 
+			.rendered-markdown,
+			.rendered-markdown p {
+				white-space: pre-wrap;
+				overflow-wrap: anywhere;
+			}
+
 			[data-code] {
 				background-color: var(--vscode-textPreformat-background);
 				padding: 1px 3px;

@@ -1,6 +1,6 @@
 # Plan — tool calling universel (1.5.22)
 
-**Statut** : **préparé / design** · pas encore d’implémentation figée  
+**Statut** : **en cours** · U1 livré (normalizer `todo_write`) ; U2–U4 ouverts  
 **Version** : 1.5.22  
 **Contexte** : sans modèle fine-tuné Drox ; fumée KAT / GGUF en 1.5.19 (`status: {}`, XML dans thinking, wire natif cassé).
 
@@ -61,7 +61,7 @@ Ces pistes ne sont **pas** toutes retenues ; elles structurent le débat 1.5.22.
 | Phase | Livrable | Notes |
 |-------|----------|--------|
 | **U0** | Ce plan + smoke baseline (KAT transcript / scénario `todo_write`) | Doc only |
-| **U1** | Normalizer args partagé (au moins `todo_write` / enums) | Quick win même sans filet |
+| **U1** | Normalizer args `todo_write` (`status: {}` / null / map → enum string) | ☑ `drox-tools` `todo_write.rs` + tests |
 | **U2** | Décision design C vs T vs H (spike court + smoke) | Trancher avant gros code |
 | **U3** | Implémentation du contrat retenu + prompt | Cœur 1.5.22 |
 | **U4** | Fiche `ENGINE-UNIVERSAL-TOOL-CALLING.md` (E-style) + tests unit + smoke multi-modèles | Clôture |

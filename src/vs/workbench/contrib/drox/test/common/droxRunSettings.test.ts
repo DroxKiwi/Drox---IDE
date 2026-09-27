@@ -63,6 +63,7 @@ function createMockRunSettingsService(
 		frequencyPenalty: undefined,
 		keepAlive: '',
 		nativeThinking: false,
+		llmParamsMuted: [],
 		...llmOverrides,
 	};
 	return {
