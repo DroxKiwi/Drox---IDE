@@ -13,6 +13,7 @@
 	D.state.architectRepeatPenalty = '';
 	D.state.architectMinP = '';
 	D.state.architectSeed = '';
+	D.state.architectLlmParamsMuted = [];
 	D.state.architectTemperature = '';
 	D.state.architectPresencePenalty = '';
 	D.state.architectFrequencyPenalty = '';

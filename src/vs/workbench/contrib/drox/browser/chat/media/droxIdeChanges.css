@@ -9,6 +9,52 @@
 	--vscode-agents-fontSize-body2: 13px;
 	--vscode-agents-fontWeight-semiBold: 600;
 	--vscode-agents-fontWeight-regular: 400;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	height: 100%;
+}
+
+.drox-ide-changes .drox-ide-changes-actions {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	gap: 4px;
+	align-items: center;
+	margin: 8px 10px 0;
+	justify-content: flex-end;
+	flex-shrink: 0;
+}
+
+.drox-ide-changes .drox-ide-changes-actions .monaco-button {
+	height: 26px;
+	padding: 4px;
+	font-size: var(--vscode-agents-fontSize-label1);
+	line-height: 18px;
+}
+
+.drox-ide-changes .drox-ide-changes-actions .monaco-button:not(.secondary) {
+	flex: 1;
+	min-width: 0;
+}
+
+.drox-ide-changes .drox-ide-changes-actions .monaco-button-dropdown {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+}
+
+.drox-ide-changes .drox-ide-changes-actions .monaco-button-dropdown > .monaco-button {
+	flex: 1;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.drox-ide-changes .drox-ide-changes-actions .monaco-button-dropdown > .monaco-button.monaco-dropdown-button {
+	flex: 0 0 auto;
+	padding: 4px;
+	width: auto;
+	min-width: 0;
 }
 
 .drox-ide-changes .drox-changes-inline-host {
@@ -16,4 +62,5 @@
 	box-sizing: border-box;
 	padding: 4px 10px 12px;
 	min-height: 0;
+	flex: 1;
 }

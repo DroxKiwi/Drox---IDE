@@ -10,11 +10,11 @@ import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
+import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
-import { IsSessionsWindowContext } from '../../../common/contextkeys.js';
+import { IsSessionsWindowContext, VirtualWorkspaceContext } from '../../../common/contextkeys.js';
 import { Menus } from '../../../../sessions/browser/menus.js';
 import { ActiveSessionContextKeys } from '../../../../sessions/contrib/changes/common/changes.js';
 import { SessionHasChangesContext, SessionProviderIdContext, SessionHasGitSyncActionRunningContext, SessionWorkspaceIsVirtualContext } from '../../../../sessions/common/contextkeys.js';
@@ -23,7 +23,14 @@ import { ISessionsService } from '../../../../sessions/services/sessions/browser
 import { ISessionsManagementService } from '../../../../sessions/services/sessions/common/sessionsManagement.js';
 import { IActiveSession } from '../../../../sessions/services/sessions/common/sessionsManagement.js';
 import { ISession } from '../../../../sessions/services/sessions/common/session.js';
+import { IWorkbenchLayoutService, Parts } from '../../../services/layout/browser/layoutService.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IChatWidgetService } from '../../chat/browser/chat.js';
+import {
+	DroxIdeHasUncommittedChangesContextKey,
+	DroxIdeNativeChatTabEnabledContext,
+} from '../common/droxAgentsConfiguration.js';
+import { DroxViews } from '../common/drox.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../common/droxAgentsSession.js';
 
 export const DroxSessionGitComposerMenu = new MenuId('DroxSessionGitComposerMenu');
@@ -86,6 +93,14 @@ export const droxSessionGitComposerWhen = ContextKeyExpr.and(
 	SessionHasGitSyncActionRunningContext.negate(),
 );
 
+/** IDE native chat — Commit / Commit & Push pills (no Agents session context keys). */
+export const droxIdeGitComposerWhen = ContextKeyExpr.and(
+	IsSessionsWindowContext.negate(),
+	DroxIdeNativeChatTabEnabledContext,
+	DroxIdeHasUncommittedChangesContextKey,
+	VirtualWorkspaceContext.isEqualTo(''),
+);
+
 export const droxSessionGitComposerCreatePrWhen = ContextKeyExpr.and(
 	IsSessionsWindowContext,
 	SessionProviderIdContext.isEqualTo(DROX_SESSIONS_PROVIDER_ID),
@@ -101,6 +116,11 @@ export const droxSessionGitComposerCreatePrWhen = ContextKeyExpr.and(
 		ActiveSessionContextKeys.HasOutgoingChanges,
 		ActiveSessionContextKeys.HasBranchChanges,
 	),
+);
+
+export const droxGitComposerToolbarWhen = ContextKeyExpr.or(
+	droxSessionGitComposerWhen,
+	droxIdeGitComposerWhen,
 );
 
 interface ISessionSendContext {
@@ -132,6 +152,43 @@ function resolveSessionSendContext(
 	return { session, chat };
 }
 
+async function runDroxIdeGitPromptAction(
+	accessor: ServicesAccessor,
+	prompt: string,
+	errorLogMessage: string,
+	failureMessage: (err: unknown) => string,
+	noSessionMessage: string,
+): Promise<void> {
+	const layoutService = accessor.get(IWorkbenchLayoutService);
+	const viewsService = accessor.get(IViewsService);
+	const chatWidgetService = accessor.get(IChatWidgetService);
+	const logService = accessor.get(ILogService);
+	const notificationService = accessor.get(INotificationService);
+
+	try {
+		if (!layoutService.isVisible(Parts.AUXILIARYBAR_PART)) {
+			layoutService.setPartHidden(false, Parts.AUXILIARYBAR_PART);
+		}
+		await viewsService.openView(DroxViews.NativeChatViewId, true);
+		const widget = chatWidgetService.lastFocusedWidget;
+		if (!widget) {
+			notificationService.notify({
+				severity: Severity.Warning,
+				message: noSessionMessage,
+			});
+			return;
+		}
+		await widget.acceptInput(prompt);
+		widget.focusInput();
+	} catch (err) {
+		logService.error(errorLogMessage, err);
+		notificationService.notify({
+			severity: Severity.Error,
+			message: failureMessage(err),
+		});
+	}
+}
+
 async function runDroxSessionGitPromptAction(
 	accessor: ServicesAccessor,
 	sessionArg: IActiveSession | ISession | URI | undefined,
@@ -140,6 +197,14 @@ async function runDroxSessionGitPromptAction(
 	failureMessage: (err: unknown) => string,
 	noSessionMessage: string,
 ): Promise<void> {
+	const contextKeyService = accessor.get(IContextKeyService);
+	const isSessionsWindow = !!IsSessionsWindowContext.getValue(contextKeyService);
+
+	if (!isSessionsWindow) {
+		await runDroxIdeGitPromptAction(accessor, prompt, errorLogMessage, failureMessage, noSessionMessage);
+		return;
+	}
+
 	const sessionsService = accessor.get(ISessionsService);
 	const sessionsManagementService = accessor.get(ISessionsManagementService);
 	const chatWidgetService = accessor.get(IChatWidgetService);
@@ -282,13 +347,28 @@ MenuRegistry.appendMenuItem(Menus.SessionComposerQuickActions, {
 	when: droxSessionGitComposerCreatePrWhen,
 });
 
+// IDE composer pills (same actions, IDE when — no Agents session context).
+MenuRegistry.appendMenuItem(Menus.SessionComposerQuickActions, {
+	command: { id: DROX_SESSION_COMMIT_ACTION_ID, title: localize2('drox.git.commit', "Commit"), icon: Codicon.check },
+	group: 'navigation',
+	order: 5,
+	when: droxIdeGitComposerWhen,
+});
+
+MenuRegistry.appendMenuItem(Menus.SessionComposerQuickActions, {
+	command: { id: DROX_SESSION_COMMIT_AND_PUSH_ACTION_ID, title: localize2('drox.git.commitAndPush', "Commit & Push"), icon: Codicon.cloudUpload },
+	group: 'navigation',
+	order: 6,
+	when: droxIdeGitComposerWhen,
+});
+
 MenuRegistry.appendMenuItem(MenuId.AgentsChangesToolbar, {
 	submenu: DroxSessionGitComposerMenu,
 	title: localize2('drox.git.commitAndPush', "Commit & Push"),
 	icon: Codicon.cloudUpload,
 	group: 'navigation',
 	order: 5,
-	when: droxSessionGitComposerWhen,
+	when: droxGitComposerToolbarWhen,
 });
 
 // Legacy header meta row (non-Drox providers keep using SessionHeaderMeta).

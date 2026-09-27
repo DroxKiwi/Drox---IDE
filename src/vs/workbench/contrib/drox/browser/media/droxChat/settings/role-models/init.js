@@ -76,6 +76,12 @@
 				el.addEventListener('change', () => fn.persistRoleModelFromPanel());
 			}
 		}
+		if (typeof fn.bindRoleModelMuteButtons === 'function') {
+			fn.bindRoleModelMuteButtons();
+		}
+		if (typeof fn.syncRoleModelMuteButtonsFromState === 'function') {
+			fn.syncRoleModelMuteButtonsFromState();
+		}
 		if (D.dom.roleModelPanelReloadEl) {
 			D.dom.roleModelPanelReloadEl.addEventListener('click', () => fn.refreshLlmModels());
 		}
