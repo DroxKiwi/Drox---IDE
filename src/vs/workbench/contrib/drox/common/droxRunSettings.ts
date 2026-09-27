@@ -19,6 +19,11 @@ import {
 	readDroxChatConfigurationString,
 	readDroxArchitectModelForContext,
 } from './droxAgentsConfiguration.js';
+import {
+	liveDroxLlmParamValue,
+	normalizeDroxLlmParamsMuted,
+	type DroxLlmMuteableParamKey,
+} from './droxLlmParamMute.js';
 export interface IDroxLlmSettings {
 	readonly server: string;
 	readonly model: string;
@@ -40,6 +45,8 @@ export interface IDroxLlmSettings {
 	readonly frequencyPenalty: number | undefined;
 	readonly keepAlive: string;
 	readonly nativeThinking: boolean;
+	/** Keys muted in the model panel — omitted from wire even if values are set. */
+	readonly llmParamsMuted: readonly DroxLlmMuteableParamKey[];
 }
 export function readPermissionMode(configService: IConfigurationService, resource?: URI): DroxPermissionMode {
 	const v = readDroxChatConfigurationValue<string>(configService, DroxSetting.PermissionMode, resource);
@@ -86,9 +93,13 @@ export function readLlmSettings(configService: IConfigurationService, resource?:
 		frequencyPenalty: num(DroxSetting.FrequencyPenalty),
 		keepAlive: str(DroxSetting.KeepAlive),
 		nativeThinking: bool(DroxSetting.NativeThinking, false),
+		llmParamsMuted: normalizeDroxLlmParamsMuted(
+			readDroxChatConfigurationValue<unknown>(configService, DroxSetting.LlmParamsMuted, resource),
+		),
 	};
 }
 export function llmSettingsToEnv(settings: IDroxLlmSettings): Record<string, string> {
+	const muted = settings.llmParamsMuted;
 	const env: Record<string, string> = {};
 	if (settings.server) {
 		env.DROX_SERVER = settings.server;
@@ -102,36 +113,45 @@ export function llmSettingsToEnv(settings: IDroxLlmSettings): Record<string, str
 	if (settings.primaryLanguage) {
 		env.DROX_PRIMARY_LANGUAGE = settings.primaryLanguage;
 	}
-	const maxOut = effectiveMaxTokensForRun(settings);
+	const maxOut = liveDroxLlmParamValue(muted, 'maxTokens', effectiveMaxTokensForRun(settings));
 	if (maxOut !== undefined) {
 		env.DROX_NUM_PREDICT = String(maxOut);
 	}
-	if (settings.numCtx !== undefined && settings.numCtx > 0) {
-		env.DROX_NUM_CTX = String(Math.floor(settings.numCtx));
+	const numCtx = liveDroxLlmParamValue(muted, 'numCtx', settings.numCtx);
+	if (numCtx !== undefined && numCtx > 0) {
+		env.DROX_NUM_CTX = String(Math.floor(numCtx));
 	}
-	if (settings.topP !== undefined) {
-		env.DROX_TOP_P = String(settings.topP);
+	const topP = liveDroxLlmParamValue(muted, 'topP', settings.topP);
+	if (topP !== undefined) {
+		env.DROX_TOP_P = String(topP);
 	}
-	if (settings.topK !== undefined && settings.topK > 0) {
-		env.DROX_TOP_K = String(Math.floor(settings.topK));
+	const topK = liveDroxLlmParamValue(muted, 'topK', settings.topK);
+	if (topK !== undefined && topK > 0) {
+		env.DROX_TOP_K = String(Math.floor(topK));
 	}
-	if (settings.repeatPenalty !== undefined) {
-		env.DROX_REPEAT_PENALTY = String(settings.repeatPenalty);
+	const repeatPenalty = liveDroxLlmParamValue(muted, 'repeatPenalty', settings.repeatPenalty);
+	if (repeatPenalty !== undefined) {
+		env.DROX_REPEAT_PENALTY = String(repeatPenalty);
 	}
-	if (settings.seed !== undefined) {
-		env.DROX_SEED = String(Math.floor(settings.seed));
+	const seed = liveDroxLlmParamValue(muted, 'seed', settings.seed);
+	if (seed !== undefined) {
+		env.DROX_SEED = String(Math.floor(seed));
 	}
-	if (settings.minP !== undefined) {
-		env.DROX_MIN_P = String(settings.minP);
+	const minP = liveDroxLlmParamValue(muted, 'minP', settings.minP);
+	if (minP !== undefined) {
+		env.DROX_MIN_P = String(minP);
 	}
-	if (settings.presencePenalty !== undefined) {
-		env.DROX_PRESENCE_PENALTY = String(settings.presencePenalty);
+	const presencePenalty = liveDroxLlmParamValue(muted, 'presencePenalty', settings.presencePenalty);
+	if (presencePenalty !== undefined) {
+		env.DROX_PRESENCE_PENALTY = String(presencePenalty);
 	}
-	if (settings.frequencyPenalty !== undefined) {
-		env.DROX_FREQUENCY_PENALTY = String(settings.frequencyPenalty);
+	const frequencyPenalty = liveDroxLlmParamValue(muted, 'frequencyPenalty', settings.frequencyPenalty);
+	if (frequencyPenalty !== undefined) {
+		env.DROX_FREQUENCY_PENALTY = String(frequencyPenalty);
 	}
-	if (settings.keepAlive) {
-		env.DROX_KEEP_ALIVE = settings.keepAlive;
+	const keepAlive = liveDroxLlmParamValue(muted, 'keepAlive', settings.keepAlive || undefined);
+	if (keepAlive) {
+		env.DROX_KEEP_ALIVE = keepAlive;
 	}
 	return env;
 }
@@ -200,21 +220,24 @@ export function buildAgentRunParams(opts: {
 	if (shouldSendApiKeyRpcParam(opts.settings.apiKey, headers ?? {})) {
 		params.apiKey = opts.settings.apiKey;
 	}
-	wireOptionalNumber(params, 'temperature', opts.settings.temperature);
-	const maxTokens = effectiveMaxTokensForRun(opts.settings);
+	const muted = opts.settings.llmParamsMuted;
+	wireOptionalNumber(params, 'temperature', liveDroxLlmParamValue(muted, 'temperature', opts.settings.temperature));
+	const maxTokens = liveDroxLlmParamValue(muted, 'maxTokens', effectiveMaxTokensForRun(opts.settings));
 	wireOptionalPositiveInt(params, 'maxTokens', maxTokens);
-	wireOptionalPositiveInt(params, 'numCtx', opts.settings.numCtx);
-	wireOptionalNumber(params, 'topP', opts.settings.topP);
-	wireOptionalPositiveInt(params, 'topK', opts.settings.topK);
-	wireOptionalNumber(params, 'repeatPenalty', opts.settings.repeatPenalty);
-	wireOptionalNumber(params, 'minP', opts.settings.minP);
-	if (opts.settings.seed !== undefined) {
-		params.seed = Math.floor(opts.settings.seed);
+	wireOptionalPositiveInt(params, 'numCtx', liveDroxLlmParamValue(muted, 'numCtx', opts.settings.numCtx));
+	wireOptionalNumber(params, 'topP', liveDroxLlmParamValue(muted, 'topP', opts.settings.topP));
+	wireOptionalPositiveInt(params, 'topK', liveDroxLlmParamValue(muted, 'topK', opts.settings.topK));
+	wireOptionalNumber(params, 'repeatPenalty', liveDroxLlmParamValue(muted, 'repeatPenalty', opts.settings.repeatPenalty));
+	wireOptionalNumber(params, 'minP', liveDroxLlmParamValue(muted, 'minP', opts.settings.minP));
+	const seed = liveDroxLlmParamValue(muted, 'seed', opts.settings.seed);
+	if (seed !== undefined) {
+		params.seed = Math.floor(seed);
 	}
-	wireOptionalNumber(params, 'presencePenalty', opts.settings.presencePenalty);
-	wireOptionalNumber(params, 'frequencyPenalty', opts.settings.frequencyPenalty);
-	if (opts.settings.keepAlive) {
-		params.keepAlive = opts.settings.keepAlive;
+	wireOptionalNumber(params, 'presencePenalty', liveDroxLlmParamValue(muted, 'presencePenalty', opts.settings.presencePenalty));
+	wireOptionalNumber(params, 'frequencyPenalty', liveDroxLlmParamValue(muted, 'frequencyPenalty', opts.settings.frequencyPenalty));
+	const keepAlive = liveDroxLlmParamValue(muted, 'keepAlive', opts.settings.keepAlive || undefined);
+	if (keepAlive) {
+		params.keepAlive = keepAlive;
 	}
 	if (opts.disabledTools.length > 0) {
 		params.disabledTools = [...opts.disabledTools];

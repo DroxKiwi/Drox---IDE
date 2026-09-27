@@ -57,6 +57,9 @@
 		assignStateNumber('architectFrequencyPenalty', frequencyPenalty);
 		assignStateNumber('architectMaxTokens', maxTokens);
 		D.state.architectKeepAlive = keepAlive === null ? '' : keepAlive;
+		const mutedParams = Array.isArray(D.state.architectLlmParamsMuted)
+			? [...D.state.architectLlmParamsMuted].filter(k => typeof k === 'string')
+			: [];
 		D.vscode.postMessage({
 			type: 'setArchitectLlmParams',
 			numCtx,
@@ -70,6 +73,7 @@
 			frequencyPenalty,
 			maxTokens,
 			keepAlive,
+			mutedParams,
 		});
 		fn.syncRoleModelVignetteHints();
 		if (D.dom.llmModelPickerEl) {

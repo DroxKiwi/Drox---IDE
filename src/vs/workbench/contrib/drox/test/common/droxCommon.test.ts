@@ -114,6 +114,7 @@ function mockLlmSettings(overrides: Partial<IDroxLlmSettings> = {}): IDroxLlmSet
 		frequencyPenalty: undefined,
 		keepAlive: '',
 		nativeThinking: false,
+		llmParamsMuted: [],
 		...overrides,
 	};
 }
@@ -1339,6 +1340,30 @@ suite('Drox — agent.run params', () => {
 		assert.strictEqual(params.presencePenalty, 0.1);
 		assert.strictEqual(params.frequencyPenalty, 0.2);
 		assert.strictEqual(params.keepAlive, '5m');
+	});
+
+	test('buildAgentRunParams omits muted sampling keys while values remain set', () => {
+		const params = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings: mockLlmSettings({
+				temperature: 0.7,
+				topP: 0.9,
+				topK: 40,
+				seed: 42,
+				keepAlive: '5m',
+				llmParamsMuted: ['temperature', 'topK', 'keepAlive'],
+			}),
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(params.temperature, undefined);
+		assert.strictEqual(params.topK, undefined);
+		assert.strictEqual(params.keepAlive, undefined);
+		assert.strictEqual(params.topP, 0.9);
+		assert.strictEqual(params.seed, 42);
 	});
 
 	test('buildAgentRunParams omits unset sampling keys', () => {

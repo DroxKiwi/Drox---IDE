@@ -41,6 +41,7 @@ export type DroxWebviewToHostMessage =
 		readonly frequencyPenalty?: number | null;
 		readonly maxTokens?: number | null;
 		readonly keepAlive?: string | null;
+		readonly mutedParams?: readonly string[] | null;
 	}
 
 	| { readonly type: 'setGeneralSettings'; readonly settings: Record<string, unknown> }
@@ -265,6 +266,7 @@ export type DroxHostToWebviewMessage =
 		readonly architectFrequencyPenalty?: number;
 		readonly architectMaxTokens?: number;
 		readonly architectKeepAlive?: string;
+		readonly architectLlmParamsMuted?: readonly string[];
 	}
 
 	| { readonly kind: 'generalSettings'; readonly settings: Record<string, unknown> }

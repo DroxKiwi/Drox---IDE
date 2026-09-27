@@ -19,6 +19,7 @@ import { DroxNativeChatViewPane } from './droxNativeChatViewPane.js';
 import { DroxIdeChangesViewPane } from './droxIdeChangesViewPane.js';
 import { registerDroxNativeChatViewActions } from './droxNativeChatViewActions.js';
 import './droxIdeSessionChangesBridge.contribution.js';
+import './droxIdeGitComposer.contribution.js';
 
 registerDroxNativeChatViewActions();
 
