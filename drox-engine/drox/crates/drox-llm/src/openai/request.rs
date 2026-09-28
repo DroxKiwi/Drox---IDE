@@ -18,6 +18,8 @@ pub(crate) fn build_request<'a>(
     frequency_penalty: Option<f32>,
     seed: Option<i64>,
     num_predict: i64,
+    reasoning_effort: Option<&'a str>,
+    thinking_budget: Option<u32>,
 ) -> ChatCompletionRequest<'a> {
     let max_tokens = options
         .max_tokens
@@ -45,11 +47,71 @@ pub(crate) fn build_request<'a>(
         presence_penalty,
         frequency_penalty,
         seed,
+        reasoning_effort,
+        thinking_budget,
     }
 }
 
 fn messages_to_openai(messages: &[Message]) -> Vec<OpenAiMessage> {
-    messages.iter().map(message_to_openai).collect()
+    // Qwen / Jinja templates (via LiteLLM): "System message must be at the beginning".
+    // Same policy as Ollama — coalesce leading systems, rewrite mid-run nudges to user.
+    normalize_openai_system_order(messages.iter().map(message_to_openai).collect())
+}
+
+fn openai_plain_text(content: &Option<Value>) -> String {
+    match content {
+        Some(Value::String(s)) => s.clone(),
+        Some(Value::Array(parts)) => parts
+            .iter()
+            .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
+            .collect::<Vec<_>>()
+            .join(""),
+        _ => String::new(),
+    }
+}
+
+/// Templates Jinja stricts (Qwen3 / LiteLLM) : un seul `system`, en tête.
+///
+/// - Fusionne tous les `system` **de tête** en un seul message initial.
+/// - Réécrit tout `system` ultérieur (nudges agent) en `user` préfixé.
+fn normalize_openai_system_order(messages: Vec<OpenAiMessage>) -> Vec<OpenAiMessage> {
+    let mut leading_systems: Vec<String> = Vec::new();
+    let mut rest: Vec<OpenAiMessage> = Vec::new();
+    let mut seen_non_system = false;
+
+    for mut m in messages {
+        if m.role == "system" {
+            let text = openai_plain_text(&m.content);
+            if !seen_non_system {
+                if !text.is_empty() {
+                    leading_systems.push(text);
+                }
+            } else {
+                m.role = "user".into();
+                m.content = Some(Value::String(if text.is_empty() {
+                    "[System reminder]".into()
+                } else {
+                    format!("[System reminder]\n{text}")
+                }));
+                rest.push(m);
+            }
+            continue;
+        }
+        seen_non_system = true;
+        rest.push(m);
+    }
+
+    let mut out = Vec::with_capacity(rest.len() + usize::from(!leading_systems.is_empty()));
+    if !leading_systems.is_empty() {
+        out.push(OpenAiMessage {
+            role: "system".into(),
+            content: Some(Value::String(leading_systems.join("\n\n"))),
+            tool_calls: Vec::new(),
+            tool_call_id: None,
+        });
+    }
+    out.extend(rest);
+    out
 }
 
 pub(crate) fn message_to_openai(m: &Message) -> OpenAiMessage {
@@ -213,8 +275,47 @@ mod tests {
             description: "run".into(),
             parameters: json!({ "type": "object" }),
         }]);
-        let req = build_request("m", &msgs, &opts, None, None, None, None, 0);
+        let req = build_request("m", &msgs, &opts, None, None, None, None, 0, None, None);
         assert_eq!(req.tools.len(), 1);
         assert!(req.stream);
+    }
+
+    #[test]
+    fn openai_coalesce_leading_systems_and_rewrite_mid_conversation_system() {
+        let messages = vec![
+            Message::system("Tu es Drox."),
+            Message::system("Objectif: tester."),
+            Message::user("Salut"),
+            Message::assistant("…thinking…"),
+            Message::system("Continue — des to-dos sont ouvertes."),
+        ];
+        let opts = ChatOptions::default();
+        let req = build_request("m", &messages, &opts, None, None, None, None, 0, None, None);
+        assert_eq!(req.messages.len(), 4);
+        assert_eq!(req.messages[0].role, "system");
+        let sys = req.messages[0]
+            .content
+            .as_ref()
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        assert!(sys.contains("Tu es Drox."));
+        assert!(sys.contains("Objectif: tester."));
+        assert_eq!(req.messages[1].role, "user");
+        assert_eq!(req.messages[2].role, "assistant");
+        assert_eq!(req.messages[3].role, "user");
+        let reminder = req.messages[3]
+            .content
+            .as_ref()
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        assert!(
+            reminder.starts_with("[System reminder]"),
+            "mid-conversation system must become user reminder, got {reminder:?}"
+        );
+        assert_eq!(
+            req.messages.iter().filter(|m| m.role == "system").count(),
+            1,
+            "exactly one system message, at the beginning"
+        );
     }
 }

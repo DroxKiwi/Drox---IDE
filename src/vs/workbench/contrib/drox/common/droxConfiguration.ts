@@ -79,6 +79,23 @@ export const enum DroxSetting {
 
 	KeepAlive = 'drox.keepAlive',
 
+	/**
+	 * OpenAI-compat / Qwen / LiteLLM — profondeur du thinking
+	 * (`low` | `medium` | `high` | `xhigh`). Vide = non envoyé.
+	 */
+	ReasoningEffort = 'drox.reasoningEffort',
+
+	/**
+	 * Plafond de tokens de raisonnement (thinking budget). Vide = non envoyé.
+	 */
+	ThinkingBudget = 'drox.thinkingBudget',
+
+	/**
+	 * Sampling keys muted in the model panel: values stay stored/editable but
+	 * are omitted from `agent.run` (safe for backends that reject unknown keys).
+	 */
+	LlmParamsMuted = 'drox.llmParamsMuted',
+
 	ConfirmFileWrites = 'drox.confirmFileWrites',
 
 	AddDiagnosticOnHover = 'drox.addDiagnosticOnHover',
@@ -330,6 +347,43 @@ export const droxConfigurationNode: IConfigurationNode = {
 			default: '',
 			scope: ConfigurationScope.RESOURCE,
 			description: localize('drox.keepAlive', 'Ollama `keepAlive` in `agent.run` (e.g. `30m`, `0`, `-1`). Leave empty for server default.'),
+		},
+		[DroxSetting.ReasoningEffort]: {
+			type: 'string',
+			enum: ['', 'low', 'medium', 'high', 'xhigh'],
+			enumDescriptions: [
+				localize('drox.reasoningEffort.empty', 'Do not send (server default)'),
+				localize('drox.reasoningEffort.low', 'Low — shorter thinking, more direct'),
+				localize('drox.reasoningEffort.medium', 'Medium — balanced'),
+				localize('drox.reasoningEffort.high', 'High — deeper reasoning'),
+				localize('drox.reasoningEffort.xhigh', 'Extra high — longest thinking (Qwen default often)'),
+			],
+			default: '',
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.reasoningEffort',
+				'**Reasoning effort** (`reasoning_effort`) for OpenAI-compatible / Qwen / LiteLLM APIs. Leave empty or mute with the eye if the backend rejects this key.',
+			),
+		},
+		[DroxSetting.ThinkingBudget]: {
+			type: 'number',
+			default: undefined,
+			minimum: 1,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.thinkingBudget',
+				'**Thinking budget** — max reasoning tokens (`thinking_budget`) for compatible APIs. Leave unset or mute if unsupported.',
+			),
+		},
+		[DroxSetting.LlmParamsMuted]: {
+			type: 'array',
+			items: { type: 'string' },
+			default: [],
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.llmParamsMuted',
+				'LLM sampling keys that are **stored but not sent** on `agent.run` (eye-off in the model panel). Prevents backends from rejecting unsupported parameters.',
+			),
 		},
 
 		[DroxSetting.MaxIterations]: {

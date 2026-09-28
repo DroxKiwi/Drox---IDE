@@ -70,11 +70,19 @@
 			D.dom.roleModelPanelFrequencyPenaltyEl,
 			D.dom.roleModelPanelMaxTokensEl,
 			D.dom.roleModelPanelKeepAliveEl,
+			D.dom.roleModelPanelReasoningEffortEl,
+			D.dom.roleModelPanelThinkingBudgetEl,
 		];
 		for (const el of architectInputs) {
 			if (el) {
 				el.addEventListener('change', () => fn.persistRoleModelFromPanel());
 			}
+		}
+		if (typeof fn.bindRoleModelMuteButtons === 'function') {
+			fn.bindRoleModelMuteButtons();
+		}
+		if (typeof fn.syncRoleModelMuteButtonsFromState === 'function') {
+			fn.syncRoleModelMuteButtonsFromState();
 		}
 		if (D.dom.roleModelPanelReloadEl) {
 			D.dom.roleModelPanelReloadEl.addEventListener('click', () => fn.refreshLlmModels());

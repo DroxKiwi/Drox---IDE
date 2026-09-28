@@ -50,20 +50,9 @@ async function openDroxGitRepository(
 	return gitService.openRepository(repositoryUri);
 }
 
-/**
- * Fichiers uncommitted Git du workspace (HEAD → working tree + untracked).
- * Retourne `undefined` si le dépôt n'est pas joignable (ne pas traiter comme working tree propre).
- *
- * Note: `diffBetweenWithStats2` ignore les untracked — on les ajoute depuis `repository.state`.
- */
-export async function loadDroxGitUncommittedChanges(
-	gitService: IGitService,
-	workspace: ISessionWorkspace | undefined,
-): Promise<IChatSessionFileChange2[] | undefined> {
-	const repository = await openDroxGitRepository(gitService, workspace);
-	if (!repository) {
-		return undefined;
-	}
+async function loadUncommittedFromRepository(
+	repository: IGitRepository,
+): Promise<IChatSessionFileChange2[]> {
 	const changes = await repository.diffBetweenWithStats2('HEAD');
 	const byKey = new Map<string, IChatSessionFileChange2>();
 	for (const change of gitDiffToSessionFileChanges(changes, 'HEAD', undefined)) {
@@ -86,7 +75,6 @@ export async function loadDroxGitUncommittedChanges(
 		if (byKey.has(key)) {
 			continue;
 		}
-		// Untracked / status-only: stats come from agent session events in merge.
 		byKey.set(key, {
 			uri,
 			originalUri: change.originalUri,
@@ -97,6 +85,57 @@ export async function loadDroxGitUncommittedChanges(
 	}
 
 	return [...byKey.values()];
+}
+
+/**
+ * Fichiers uncommitted Git du workspace (HEAD → working tree + untracked).
+ * Retourne `undefined` si le dépôt n'est pas joignable (ne pas traiter comme working tree propre).
+ *
+ * Note: `diffBetweenWithStats2` ignore les untracked — on les ajoute depuis `repository.state`.
+ */
+export async function loadDroxGitUncommittedChanges(
+	gitService: IGitService,
+	workspace: ISessionWorkspace | undefined,
+): Promise<IChatSessionFileChange2[] | undefined> {
+	const repository = await openDroxGitRepository(gitService, workspace);
+	if (!repository) {
+		return undefined;
+	}
+	return loadUncommittedFromRepository(repository);
+}
+
+/** Uncommitted changes for an explicit git working-tree root. */
+export async function loadDroxGitUncommittedChangesForRoot(
+	gitService: IGitService,
+	repositoryUri: URI,
+): Promise<IChatSessionFileChange2[] | undefined> {
+	const repository = await gitService.openRepository(repositoryUri);
+	if (!repository) {
+		return undefined;
+	}
+	return loadUncommittedFromRepository(repository);
+}
+
+/** Dirty path keys for an explicit git root. `undefined` if repo unreachable. */
+export async function loadDroxGitDirtyPathKeysForRoot(
+	gitService: IGitService,
+	repositoryUri: URI,
+): Promise<Set<string> | undefined> {
+	const repository = await gitService.openRepository(repositoryUri);
+	if (!repository) {
+		return undefined;
+	}
+	const dirty = new Set<string>();
+	const state = repository.state.get();
+	for (const change of [
+		...state.indexChanges,
+		...state.workingTreeChanges,
+		...state.untrackedChanges,
+		...state.mergeChanges,
+	]) {
+		dirty.add(droxSessionChangePathKey((change.modifiedUri ?? change.uri).fsPath));
+	}
+	return dirty;
 }
 
 /** Chemins dirty (index + WT + untracked + merge). `undefined` si dépôt inaccessible. */

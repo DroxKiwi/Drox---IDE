@@ -7,6 +7,9 @@ export namespace DroxViews {
 	export const ViewContainerId = 'workbench.view.drox';
 	export const ChatViewId = 'workbench.view.drox.chat';
 	export const NativeChatViewId = 'workbench.view.drox.nativeChat';
+	/** Sidebar activity-bar container (replaces Explorer when active). */
+	export const ChangesViewContainerId = 'workbench.view.drox.changesContainer';
+	export const ChangesViewId = 'workbench.view.drox.changes';
 }
 
 export namespace DroxCommands {

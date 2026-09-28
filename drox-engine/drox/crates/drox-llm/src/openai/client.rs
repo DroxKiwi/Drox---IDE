@@ -24,6 +24,8 @@ pub struct OpenAiCompatibleClient {
     frequency_penalty: Option<f32>,
     seed: Option<i64>,
     num_predict: i64,
+    reasoning_effort: Option<String>,
+    thinking_budget: Option<u32>,
 }
 
 impl OpenAiCompatibleClient {
@@ -50,6 +52,8 @@ impl OpenAiCompatibleClient {
             frequency_penalty: config.frequency_penalty,
             seed: config.seed,
             num_predict: config.num_predict,
+            reasoning_effort: config.reasoning_effort,
+            thinking_budget: config.thinking_budget,
         })
     }
 
@@ -86,6 +90,8 @@ impl LlmClient for OpenAiCompatibleClient {
             self.frequency_penalty,
             self.seed,
             self.num_predict,
+            self.reasoning_effort.as_deref(),
+            self.thinking_budget,
         );
         debug!(%url, "POST OpenAI chat/completions");
 

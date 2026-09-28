@@ -198,12 +198,18 @@ pub struct AgentRunParams {
     pub presence_penalty: Option<f32>,
     #[serde(default)]
     pub frequency_penalty: Option<f32>,
-    #[serde(default)]
-    pub keep_alive: Option<String>,
-    /// Champs envoyés par l'IDE 1.4 — désérialisés puis **ignorés** (pas de
-    /// rail `role_split` dans le moteur TUI).
-    #[serde(default)]
-    pub orchestration_mode: Option<String>,
+	#[serde(default)]
+	pub keep_alive: Option<String>,
+	/// OpenAI-compat / Qwen / LiteLLM — profondeur du thinking (`low`/`medium`/`high`/`xhigh`).
+	#[serde(default)]
+	pub reasoning_effort: Option<String>,
+	/// Plafond de tokens de raisonnement (thinking budget) pour APIs compatibles.
+	#[serde(default)]
+	pub thinking_budget: Option<u32>,
+	/// Champs envoyés par l'IDE 1.4 — désérialisés puis **ignorés** (pas de
+	/// rail `role_split` dans le moteur TUI).
+	#[serde(default)]
+	pub orchestration_mode: Option<String>,
     #[serde(default)]
     pub orchestration_max_parallel_executors: Option<usize>,
     #[serde(default)]

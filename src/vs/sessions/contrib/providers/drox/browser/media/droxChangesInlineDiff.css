@@ -23,8 +23,8 @@
 	justify-content: space-between;
 	gap: 8px;
 	padding: 2px 0 6px;
-	font-size: var(--vscode-agents-fontSize-label1);
-	font-weight: var(--vscode-agents-fontWeight-semiBold);
+	font-size: var(--vscode-agents-fontSize-label1, 12px);
+	font-weight: var(--vscode-agents-fontWeight-semiBold, 600);
 	color: var(--vscode-foreground);
 	min-width: 0;
 	max-width: 100%;
@@ -43,7 +43,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	font-weight: var(--vscode-agents-fontWeight-regular);
+	font-weight: var(--vscode-agents-fontWeight-regular, 400);
 	font-variant-numeric: tabular-nums;
 	flex-shrink: 0;
 	white-space: nowrap;
@@ -74,7 +74,7 @@
 	padding: 32px 16px;
 	text-align: center;
 	color: var(--vscode-descriptionForeground);
-	font-size: var(--vscode-agents-fontSize-label1);
+	font-size: var(--vscode-agents-fontSize-label1, 12px);
 	line-height: 1.45;
 	box-sizing: border-box;
 }
@@ -182,8 +182,8 @@
 	justify-content: center;
 	width: 16px;
 	min-width: 16px;
-	font-size: var(--vscode-agents-fontSize-body2);
-	font-weight: var(--vscode-agents-fontWeight-semiBold);
+	font-size: var(--vscode-agents-fontSize-body2, 13px);
+	font-weight: var(--vscode-agents-fontWeight-semiBold, 600);
 	flex-shrink: 0;
 	opacity: 0.9;
 }

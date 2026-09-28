@@ -172,6 +172,9 @@ export const DroxIdeNativeChatTabEnabledContext = ContextKeyExpr.equals(`config.
 
 export const DroxIdeLegacyWebviewChatEnabledContext = ContextKeyExpr.equals(`config.${DROX_IDE_LEGACY_WEBVIEW_CHAT_ENABLED_SETTING}`, true);
 
+/** IDE Changes / composer Commit pills — true when the active Drox session has uncommitted files. */
+export const DroxIdeHasUncommittedChangesContextKey = new RawContextKey<boolean>('droxIdeHasUncommittedChanges', false);
+
 export const DroxCopilotSignInHiddenContext = ContextKeyExpr.equals(DroxCopilotSignInHiddenContextKey.key, true);
 
 export function isDroxAgentsWindowEnabled(configurationService: IConfigurationService): boolean {

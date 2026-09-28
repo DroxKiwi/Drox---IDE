@@ -52,7 +52,7 @@ export function registerDroxNativeChatViewActions(): void {
 		constructor() {
 			super({
 				id: 'drox.nativeChat.pickSession',
-				title: localize2('drox.nativeChat.pickSession', 'Open Session'),
+				title: localize2('drox.nativeChat.pickSession', 'Session History'),
 				icon: Codicon.history,
 				f1: false,
 				precondition: DroxIdeNativeChatTabEnabledContext,

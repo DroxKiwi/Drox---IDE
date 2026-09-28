@@ -92,6 +92,16 @@ pub struct LlmConfig {
     /// secondes en string. `None` = défaut Ollama (~5 minutes).
     #[serde(default)]
     pub keep_alive: Option<String>,
+
+    /// OpenAI-compat / Qwen / LiteLLM — `reasoning_effort` (`low`…`xhigh`).
+    /// Ignoré par Ollama. `None` = non envoyé.
+    #[serde(default)]
+    pub reasoning_effort: Option<String>,
+
+    /// OpenAI-compat — plafond de tokens de thinking (`thinking_budget`).
+    /// Ignoré par Ollama. `None` = non envoyé.
+    #[serde(default)]
+    pub thinking_budget: Option<u32>,
 }
 
 const fn default_timeout_secs() -> u64 {
@@ -128,6 +138,8 @@ impl LlmConfig {
             presence_penalty: None,
             frequency_penalty: None,
             keep_alive: None,
+            reasoning_effort: None,
+            thinking_budget: None,
         }
     }
 
@@ -202,6 +214,20 @@ impl LlmConfig {
     #[must_use]
     pub fn with_keep_alive(mut self, v: Option<String>) -> Self {
         self.keep_alive = v;
+        self
+    }
+
+    /// Surcharge `reasoning_effort` (OpenAI-compat / Qwen). `None` = non envoyé.
+    #[must_use]
+    pub fn with_reasoning_effort(mut self, v: Option<String>) -> Self {
+        self.reasoning_effort = v;
+        self
+    }
+
+    /// Surcharge `thinking_budget` (OpenAI-compat). `None` = non envoyé.
+    #[must_use]
+    pub const fn with_thinking_budget(mut self, v: Option<u32>) -> Self {
+        self.thinking_budget = v;
         self
     }
 
