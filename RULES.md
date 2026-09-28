@@ -137,70 +137,20 @@ npm run release-publish-win32
 
 ---
 
-## 5. README.md racine — front matter projet + doc moteur
+## 5. README.md racine — produit, histoire, technique
 
 Fichier : [`README.md`](README.md) à la racine du fork.
 
-### Front matter (haut de fichier)
+### Contenu attendu
 
-Court, factuel — intention OSS / gratuité, licence MIT, où télécharger, comment builder, **tableau docs moteur** avec liens vers `docs/engine/`. Pas de pitch commercial.
+- **Français uniquement** (pas de double FR/EN).
+- Introduction : but (IDE IA OSS local, sans télémétrie / cloud imposé).
+- Historique daté (commits / releases) jusqu’à l’ouverture du code.
+- Naissance du projet / usage d’outils d’assistance (Cursor) comme *outil*, pas comme co-auteur Git.
+- Présentation technique pédagogique + liens vers [`docs/engine/`](docs/engine/README.md).
+- Remerciements et licence.
 
-### Corps — doc moteur (chronologie)
-
-Référence longue (chronologie, schémas) — la **référence fonctionnelle à jour** vit dans [`docs/engine/`](docs/engine/README.md).
-
-### Périmètre (corps moteur)
-
-- **Oui** : binaire Rust, RPC, orchestration, outils, gates, chronologie des capacités moteur.
-- **Non** (dans le corps chronologie) : quick start IDE long, upstream VS Code, CI, liens docs internes trop denses, promesses produit.
-
-### Ton — désinvolte et brut
-
-Par **vulgaire**, on entend **direct et sans vernis commercial** — pas grossièreté gratuite.
-
-| À faire | À éviter |
-|---------|----------|
-| Dire ce que le code fait | « Solution », « expérience », « révolutionnaire », « puissant » |
-| Identifiants réels (`delegate_executor`, `RunSpec`) | Vignettes marketing, storytelling (« nous avons voulu… ») |
-| Phrases courtes, factuelles | Tableaux « Principe \| Idée » façon pitch |
-| « Le client stream, le moteur décide » | Anthropic, Cursor, cloud imposé sauf fait utile (ex. indépendance Ollama) |
-
-Même ton en **FR** et en **EN** (EN = traduction brute, pas re-marketing).
-
-### Structure
-
-1. **Sommaire** — ancres FR / EN + liens vue globale + schéma Mermaid.
-2. **Vue globale** — pile Ollama / moteur / IDE (diagrammes grossiers), avant le schéma détaillé.
-3. **Schéma** — état actuel (ex. run rail 1.4), avant le prose.
-4. **Corps FR** — intro une ligne, `___`, invariants, `___`, chronologie par mois.
-5. **Corps EN** — même squelette, deuxième moitié du fichier.
-
-Séparateurs de section : ligne seule `___` (pas de titres « Fonctionnalités » ou « Features »).
-
-### Chronologie
-
-- Une entrée = une ligne, **sans puce** :
-  - `` `identifiant_mecanique` — ce que ça fait, en une phrase sèche. ``
-- Slugs de blocs : `### 2025-12 — amorçage`, `### 2026-05 — v1_3`, etc.
-- Les noms d’identifiants restent stables entre FR et EN (pas de traduction des clés).
-
-### Mermaid
-
-Aligné sur la chronologie : **schéma de flux**, pas plaquette commerciale.
-
-- Nœuds = rôles / binaires (`Architecte`, `Client IDE`, `delegate_executor`).
-- Libellés de flèches = verbes techniques courts (`sync`, `reportMarkdown`), compatibles **rendu GitHub** (pas de `tasks[]` / `results[]` dans les flèches, pas de `<br/>` sur les liens, éviter `==>` si ça casse).
-- Pas de gras marketing dans les subgraphs.
-- Si besoin de précision : petit tableau sous les diagrammes (comme aujourd’hui), pas un paragraphe vendeur.
-
-Mettre à jour les schémas quand le comportement moteur change (version produit ou flag d’orchestration), pas pour la déco.
-
-### Maintenance
-
-- Nouvelle capacité moteur livrée → ligne chronologie + éventuellement schéma / invariant.
-- Refonte marketing ou doc IDE → **pas** dans ce README ; autre fichier ou `docs/`.
-- Les agents IA qui modifient `README.md` **doivent** appliquer cette section.
-
+La chronologie moteur détaillée et les schémas opératoires vivent dans **`docs/engine/`** et l’historique versionné sous `docs/1.x/` — pas dans un second README bilingue.
 ---
 
 ## 6. Travail avec les agents IA (Cursor, etc.)
@@ -219,7 +169,7 @@ Mettre à jour les schémas quand le comportement moteur change (version produit
 - **Interdit** : trailer `Co-authored-by: Cursor …` / toute attribution Git à `cursoragent` (voir §1).
 - Préférer réutiliser les scripts existants (`build-release-win32.ps1`, `sync-drox-win32-icons.ps1`, `release-publish-win32.ps1`) plutôt que réinventer le pipeline.
 - Après modif du plan distribution : mettre à jour `docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` et **1.3.1/finalisation/CLOSURE-1.3.1.md** si le processus release change.
-- Édition de [`README.md`](README.md) racine : respecter la **§5** (ton brut, chronologie, Mermaid).
+- Édition de [`README.md`](README.md) racine : respecter la **§5** (FR, but, historique, technique, pas de trailer Cursor).
 - Tests : n’en ajouter que s’ils couvrent un comportement réel demandé, pas des assertions triviales.
 
 ---
