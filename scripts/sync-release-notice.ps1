@@ -2,7 +2,7 @@
 #
 # Usage:
 #   .\scripts\sync-release-notice.ps1
-#   .\scripts\sync-release-notice.ps1 -ReleasesRepo C:\path\Drox---IDE---OR -Force
+#   .\scripts\sync-release-notice.ps1 -ReleasesRepo C:\path\other -Force
 
 [CmdletBinding()]
 param(
@@ -19,11 +19,19 @@ if (-not (Test-Path $template)) {
 }
 
 if (-not $ReleasesRepo) {
-	$ReleasesRepo = Join-Path (Split-Path -Parent $repoRoot) 'Drox---IDE---OR'
+	$ReleasesRepo = $repoRoot
 }
 
 if (-not (Test-Path $ReleasesRepo)) {
 	Write-Error "Repo releases introuvable : $ReleasesRepo"
+}
+
+# Sources = canal Releases : NOTICE.md racine fait foi, ne pas ecraser avec le template.
+$resolvedRoot = (Resolve-Path $repoRoot).Path
+$resolvedDestRepo = (Resolve-Path $ReleasesRepo).Path
+if ($resolvedRoot -eq $resolvedDestRepo -and -not $Force) {
+	Write-Host '[sync-release-notice] NOTICE.md source deja en place (skip)' -ForegroundColor DarkGray
+	exit 0
 }
 
 $dest = Join-Path $ReleasesRepo 'NOTICE.md'

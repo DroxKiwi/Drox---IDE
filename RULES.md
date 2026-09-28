@@ -39,8 +39,8 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 
 | Dépôt | Rôle |
 |-------|------|
-| `Drox---IDE` | Sources, build, développement — **cible publique OSS** (MIT) |
-| `Drox---IDE---OR` | Canal Releases historique (`latest.json`, binaires) — à consolider vers `Drox---IDE` Releases |
+| `Drox---IDE` | Sources, build, développement, **manifestes `stable/` + GitHub Releases** — **cible publique OSS** (MIT) |
+| `Drox---IDE---OR` | Ancien canal Releases — **à archiver** (ne plus publier ici) |
 
 ### Releases GitHub
 

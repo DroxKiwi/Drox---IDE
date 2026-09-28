@@ -18,7 +18,7 @@ suite('Drox external URL remap', () => {
 		assert.strictEqual(out, DROX_PRODUCT_NOTICE_URL);
 	});
 	test('keeps Drox GitHub links', () => {
-		const url = 'https://github.com/DroxKiwi/Drox---IDE---OR/issues/new';
+		const url = 'https://github.com/DroxKiwi/Drox---IDE/issues/new';
 		assert.strictEqual(remapDroxOutboundUrl(url, DROX_PRODUCT), url);
 	});
 	test('keeps localhost Ollama', () => {

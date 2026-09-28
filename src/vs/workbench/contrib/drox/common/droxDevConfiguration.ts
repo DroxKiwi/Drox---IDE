@@ -56,7 +56,7 @@ function createDroxDevUpdateSimulateProperties(): Record<string, IConfigurationP
 
 			type: 'string',
 
-			default: 'https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest',
+			default: 'https://github.com/DroxKiwi/Drox---IDE/releases/latest',
 
 			scope: ConfigurationScope.APPLICATION,
 

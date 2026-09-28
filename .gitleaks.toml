@@ -1,0 +1,19 @@
+# Gitleaks — allowlist for upstream VS Code / Copilot fixtures (not Drox secrets).
+# Scan: gitleaks detect --source . --report-path .build/gitleaks-report.json
+title = "Drox IDE gitleaks"
+
+[allowlist]
+description = "Test fixtures, fake keys, and package.json publisher hashes from Code OSS / Copilot"
+paths = [
+  '''extensions/copilot/.*/test/.*''',
+  '''extensions/copilot/.*/fixtures/.*''',
+  '''extensions/copilot/.*/secretFilter\.spec\.ts''',
+  '''src/vs/.*/test/.*''',
+  '''src/vs/platform/agentHost/node/sshRemoteAgentHostService\.ts''',
+]
+
+regexes = [
+  '''(?i)example[_-]?api[_-]?key''',
+  '''(?i)fake[_-]?secret''',
+  '''(?i)test[_-]?token''',
+]

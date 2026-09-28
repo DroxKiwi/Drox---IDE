@@ -14,7 +14,7 @@ The little I can share as a developer — tools, sources, design notes — stays
 |---|---|
 | **Licence** | **MIT** — Code OSS (Microsoft) + portions Drox (KDDS). Détail : [`NOTICE.md`](NOTICE.md) |
 | **Version produit** | **1.5.20** (`droxVersion`) · base VS Code **1.127.0** |
-| **Binaires** | [Releases OR](https://github.com/DroxKiwi/Drox---IDE---OR/releases) (canal actuel) — consolidation prévue sur ce dépôt |
+| **Binaires** | [Releases](https://github.com/DroxKiwi/Drox---IDE/releases) |
 | **Issues** | [Drox---IDE/issues](https://github.com/DroxKiwi/Drox---IDE/issues) |
 | **État** | Dogfood / expérimental — bugs et cassures possibles sans préavis |
 
