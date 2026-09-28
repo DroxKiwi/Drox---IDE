@@ -4,9 +4,9 @@
 # No restore-windows-dev.ps1 needed afterward.
 #
 # Usage (PowerShell, from Windows repo root):
-#   .\drox-engine\docs\operations\scripts\wsl-linux-build-isolated.ps1
-#   .\drox-engine\docs\operations\scripts\wsl-linux-build-isolated.ps1 -Distro Ubuntu-24.04
-#   .\drox-engine\docs\operations\scripts\wsl-linux-build-isolated.ps1 -SkipCommit
+#   .\docs\operations\scripts\wsl-linux-build-isolated.ps1
+#   .\docs\operations\scripts\wsl-linux-build-isolated.ps1 -Distro Ubuntu-24.04
+#   .\docs\operations\scripts\wsl-linux-build-isolated.ps1 -SkipCommit
 #
 # Changements locaux non commités : commit auto avant sync (voir -SkipCommit).
 # Log: .build/wsl-linux-build-isolated.log (on Windows repo)
@@ -28,13 +28,9 @@ if (-not $Distro) {
 }
 
 $winRepo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
-$winOr = (Join-Path (Split-Path -Parent $winRepo) 'Drox---IDE---OR')
 $drive = $winRepo.Substring(0, 1).ToLowerInvariant()
 $winRest = ($winRepo.Substring(2) -replace '\\', '/').TrimStart('/')
 $winRepoWsl = "/mnt/$drive/$winRest"
-$orDrive = $winOr.Substring(0, 1).ToLowerInvariant()
-$orRest = ($winOr.Substring(2) -replace '\\', '/').TrimStart('/')
-$winOrWsl = "/mnt/$orDrive/$orRest"
 $logFile = Join-Path $winRepo '.build\wsl-linux-build-isolated.log'
 
 function Ensure-WindowsRepoCommitted {
@@ -104,7 +100,7 @@ LINUX_REPO="$HOME/__LINUX_REPO__"
 BRANCH='__BRANCH__'
 WIN_HEAD='__WIN_HEAD__'
 REMOTE_URL='__REMOTE_URL__'
-DROX_RELEASES_REPO='__WIN_OR_WSL__'
+DROX_RELEASES_REPO='__WIN_REPO__'
 LOG='__LOG__'
 
 mkdir -p "$(dirname "$LOG")"
@@ -156,7 +152,7 @@ chmod +x docs/operations/scripts/wsl-linux-build.sh \
 bash ./docs/operations/scripts/wsl-linux-build.sh
 
 echo ""
-echo "==> Done. Windows dev unchanged. .deb via release-publish-linux.sh if OR repo present."
+echo "==> Done. Windows dev unchanged. Manifeste + .deb via release-publish-linux.sh (ce depot)."
 '@
 
 $bashScript = $bashScript.Replace('__WIN_REPO__', $winRepoWsl)
@@ -164,7 +160,6 @@ $bashScript = $bashScript.Replace('__LINUX_REPO__', $LinuxRepoName)
 $bashScript = $bashScript.Replace('__BRANCH__', $branch)
 $bashScript = $bashScript.Replace('__WIN_HEAD__', $winHead)
 $bashScript = $bashScript.Replace('__REMOTE_URL__', $remoteUrl.Replace("'", "'\''"))
-$bashScript = $bashScript.Replace('__WIN_OR_WSL__', $winOrWsl.Replace("'", "'\''"))
 $bashScript = $bashScript.Replace('__LOG__', ($winRepoWsl + '/.build/wsl-linux-build-isolated.log'))
 
 $tempSh = Join-Path $env:TEMP "drox-wsl-linux-build-isolated-$PID.sh"

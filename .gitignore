@@ -53,3 +53,6 @@ dist
 # Transcripts / exports locaux (ne pas publier)
 docs/exports/
 docs/retour_discussion/
+
+# Artefacts release (binaires via GitHub Releases, pas git)
+_upload/

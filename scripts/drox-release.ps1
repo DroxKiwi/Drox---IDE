@@ -141,6 +141,6 @@ else { Write-Host '  mode: standard (compile si bundle obsolete)' }
 		Invoke-PublishManifests
 		Write-Host ''
 		Write-Host ('Pipeline termine (droxVersion {0}).' -f $version) -ForegroundColor Green
-		Write-Host 'Reste : commit + push dans Drox---IDE---OR, puis gh release create (voir sortie ci-dessus).' -ForegroundColor Yellow
+		Write-Host 'Reste : commit + push des manifestes (stable/) sur ce depot, puis gh release create (voir sortie ci-dessus).' -ForegroundColor Yellow
 	}
 }

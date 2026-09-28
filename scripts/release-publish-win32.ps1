@@ -13,7 +13,7 @@ param(
 	[string]$SetupExe = '',
 	[string]$ReleasesRepo = '',
 	[string]$GitHubOrg = 'DroxKiwi',
-	[string]$GitHubRepo = 'Drox---IDE---OR',
+	[string]$GitHubRepo = 'Drox---IDE',
 	[switch]$DryRun
 )
 
@@ -42,7 +42,7 @@ function Write-Utf8NoBomLines([string]$Path, [string[]]$Lines) {
 }
 
 if (-not $ReleasesRepo) {
-	$ReleasesRepo = Join-Path (Split-Path -Parent $repoRoot) 'Drox---IDE---OR'
+	$ReleasesRepo = $repoRoot
 }
 
 if (-not $SetupExe) {
@@ -168,4 +168,4 @@ Write-Host "  1. cd `"$ReleasesRepo`""
 Write-Host '  2. git add .gitignore stable/ NOTICE.md README.md'
 Write-Host "  3. git commit -m `"Release v$ProductVersion win32-x64 (manifest)`""
 Write-Host '  4. git push'
-Write-Host "  5. gh release create v$ProductVersion `"$destSetup`" --title `"Drox IDE $ProductVersion`" --notes-file `"$releaseNotes`""
+Write-Host "  5. gh release create v$ProductVersion `"$destSetup`" --repo $GitHubOrg/$GitHubRepo --title `"Drox IDE $ProductVersion`" --notes-file `"$releaseNotes`""
