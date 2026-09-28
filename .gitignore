@@ -37,17 +37,13 @@ dist
 .playwright-cli
 .playwright-mcp
 .claude/
-.agents/agents/*.local.md
+# Outillage agent local (Cursor / skills) — hors dépôt public
+.agents/
 .github/agents/*.local.md
-.agents/agents/*.local.agent.md
 .github/agents/*.local.agent.md
-.agents/hooks/*.local.json
 .github/hooks/*.local.json
-.agents/instructions/*.local.instructions.md
 .github/instructions/*.local.instructions.md
-.agents/prompts/*.local.prompt.md
 .github/prompts/*.local.prompt.md
-.agents/skills/.local/
 .github/skills/.local/
 
 # Transcripts / exports locaux (ne pas publier)
