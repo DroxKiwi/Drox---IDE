@@ -15,14 +15,16 @@ Pour l’architecture VS Code / Code OSS, voir [AGENTS.md](AGENTS.md) et [.githu
 - Pas de commandes destructives (`push --force` sur `main`/`master`, `reset --hard`) sauf demande explicite.
 - Pas de `--no-verify` / `--no-gpg-sign` sauf demande explicite.
 
-### Co-auteur Cursor (important)
+### Co-auteur Cursor — interdit sur ce dépôt
 
-Pour éviter **cursoragent** dans les *Contributors* GitHub :
+**Ne jamais** ajouter de trailer `Co-authored-by: Cursor <cursoragent@cursor.com>` (ni variante) aux messages de commit.
 
-- Préférer des **commits manuels** sans trailer `Co-authored-by: Cursor <cursoragent@cursor.com>`.
-- Ou désactiver l’ajout automatique du co-auteur dans les **réglages Cursor** (selon version).
-- Si un commit a été amendé par un agent : vérifier le message avec `git log -1 --format=full` avant `push`.
-- Pour retirer un co-auteur déjà poussé : `git commit --amend` (message sans `Co-authored-by`) puis `git push --force-with-lease` sur la branche concernée.
+- GitHub affiche alors **cursoragent** dans l’historique / Contributors — à éviter pour un dépôt public.
+- Les agents IA (Cursor, etc.) commitent **uniquement** sous l’identité git locale du mainteneur (`user.name` / `user.email` du repo).
+- L’usage d’outils d’assistance (Cursor, etc.) peut être mentionné dans la **documentation** (`README`, `NOTICE`, docs) — pas via trailers Git.
+- Purge historique déjà faite : ne pas réintroduire ces trailers.
+
+Si un commit local contient encore le trailer avant push : `git commit --amend` (message sans `Co-authored-by`) puis push normal (ou `--force-with-lease` seulement si l’utilisateur l’a demandé).
 
 ### E-mail git (confidentialité)
 
@@ -214,6 +216,7 @@ Mettre à jour les schémas quand le comportement moteur change (version produit
 - **Plans** : en chemin edit, chaque ligne `todo_write` doit refléter une demande utilisateur explicite — pas de plan d'audit / analyse de répertoire par défaut.
 
 - Ne pas committer sans demande ; ne pas pousser sur le remote sans demande.
+- **Interdit** : trailer `Co-authored-by: Cursor …` / toute attribution Git à `cursoragent` (voir §1).
 - Préférer réutiliser les scripts existants (`build-release-win32.ps1`, `sync-drox-win32-icons.ps1`, `release-publish-win32.ps1`) plutôt que réinventer le pipeline.
 - Après modif du plan distribution : mettre à jour `docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` et **1.3.1/finalisation/CLOSURE-1.3.1.md** si le processus release change.
 - Édition de [`README.md`](README.md) racine : respecter la **§5** (ton brut, chronologie, Mermaid).
