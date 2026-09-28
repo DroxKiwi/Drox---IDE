@@ -44,6 +44,8 @@ export interface IDroxLlmSettings {
 	readonly presencePenalty: number | undefined;
 	readonly frequencyPenalty: number | undefined;
 	readonly keepAlive: string;
+	readonly reasoningEffort: string;
+	readonly thinkingBudget: number | undefined;
 	readonly nativeThinking: boolean;
 	/** Keys muted in the model panel — omitted from wire even if values are set. */
 	readonly llmParamsMuted: readonly DroxLlmMuteableParamKey[];
@@ -92,6 +94,8 @@ export function readLlmSettings(configService: IConfigurationService, resource?:
 		presencePenalty: num(DroxSetting.PresencePenalty),
 		frequencyPenalty: num(DroxSetting.FrequencyPenalty),
 		keepAlive: str(DroxSetting.KeepAlive),
+		reasoningEffort: str(DroxSetting.ReasoningEffort).trim(),
+		thinkingBudget: num(DroxSetting.ThinkingBudget),
 		nativeThinking: bool(DroxSetting.NativeThinking, false),
 		llmParamsMuted: normalizeDroxLlmParamsMuted(
 			readDroxChatConfigurationValue<unknown>(configService, DroxSetting.LlmParamsMuted, resource),
@@ -239,6 +243,11 @@ export function buildAgentRunParams(opts: {
 	if (keepAlive) {
 		params.keepAlive = keepAlive;
 	}
+	const reasoningEffort = liveDroxLlmParamValue(muted, 'reasoningEffort', opts.settings.reasoningEffort || undefined);
+	if (reasoningEffort) {
+		params.reasoningEffort = reasoningEffort;
+	}
+	wireOptionalPositiveInt(params, 'thinkingBudget', liveDroxLlmParamValue(muted, 'thinkingBudget', opts.settings.thinkingBudget));
 	if (opts.disabledTools.length > 0) {
 		params.disabledTools = [...opts.disabledTools];
 	}
@@ -284,5 +293,7 @@ export const DROX_ENGINE_RESPAWN_SETTINGS: readonly string[] = [
 	DroxSetting.PresencePenalty,
 	DroxSetting.FrequencyPenalty,
 	DroxSetting.KeepAlive,
+	DroxSetting.ReasoningEffort,
+	DroxSetting.ThinkingBudget,
 	DroxSetting.MaxTokens,
 ];

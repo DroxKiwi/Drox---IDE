@@ -148,6 +148,8 @@ export async function routeDroxChatWebviewMessage(
 				frequencyPenalty: raw.frequencyPenalty,
 				maxTokens: raw.maxTokens,
 				keepAlive: raw.keepAlive,
+				reasoningEffort: raw.reasoningEffort,
+				thinkingBudget: raw.thinkingBudget,
 				mutedParams: raw.mutedParams,
 			});
 			break;

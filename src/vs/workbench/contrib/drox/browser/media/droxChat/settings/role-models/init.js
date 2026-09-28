@@ -70,6 +70,8 @@
 			D.dom.roleModelPanelFrequencyPenaltyEl,
 			D.dom.roleModelPanelMaxTokensEl,
 			D.dom.roleModelPanelKeepAliveEl,
+			D.dom.roleModelPanelReasoningEffortEl,
+			D.dom.roleModelPanelThinkingBudgetEl,
 		];
 		for (const el of architectInputs) {
 			if (el) {

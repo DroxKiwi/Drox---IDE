@@ -44,6 +44,9 @@
 		const maxTokens = readPatchNumber(D.dom.roleModelPanelMaxTokensEl?.value.trim() ?? '');
 		const keepAliveRaw = D.dom.roleModelPanelKeepAliveEl?.value.trim() ?? '';
 		const keepAlive = keepAliveRaw === '' ? null : keepAliveRaw;
+		const reasoningEffortRaw = D.dom.roleModelPanelReasoningEffortEl?.value.trim() ?? '';
+		const reasoningEffort = reasoningEffortRaw === '' ? null : reasoningEffortRaw;
+		const thinkingBudget = readPatchNumber(D.dom.roleModelPanelThinkingBudgetEl?.value.trim() ?? '');
 		if (numCtx !== undefined) {
 			D.state.architectNumCtx = numCtx;
 		}
@@ -57,6 +60,8 @@
 		assignStateNumber('architectFrequencyPenalty', frequencyPenalty);
 		assignStateNumber('architectMaxTokens', maxTokens);
 		D.state.architectKeepAlive = keepAlive === null ? '' : keepAlive;
+		D.state.architectReasoningEffort = reasoningEffort === null ? '' : reasoningEffort;
+		assignStateNumber('architectThinkingBudget', thinkingBudget);
 		const mutedParams = Array.isArray(D.state.architectLlmParamsMuted)
 			? [...D.state.architectLlmParamsMuted].filter(k => typeof k === 'string')
 			: [];
@@ -73,6 +78,8 @@
 			frequencyPenalty,
 			maxTokens,
 			keepAlive,
+			reasoningEffort,
+			thinkingBudget,
 			mutedParams,
 		});
 		fn.syncRoleModelVignetteHints();

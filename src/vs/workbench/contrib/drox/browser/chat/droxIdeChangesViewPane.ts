@@ -46,7 +46,8 @@ export class DroxIdeChangesViewPane extends ViewPane {
 	private readonly _toolbarStore = this._register(new DisposableStore());
 	private readonly _sessionResourceObs = observableValue<URI | undefined>('droxIdeChangesSession', undefined);
 	private readonly _mergedFilesObs = observableValue<readonly ISessionFileChange[] | undefined>('droxIdeChangesMerged', undefined);
-	private _toolbarSessionKey = '';
+	/** `undefined` until the toolbar has been built once for a given session key. */
+	private _toolbarSessionKey: string | undefined = undefined;
 
 	constructor(
 		options: IViewletViewOptions,
@@ -112,7 +113,7 @@ export class DroxIdeChangesViewPane extends ViewPane {
 			return;
 		}
 		const sessionKey = this.uiState.sessionResource?.toString() ?? '';
-		if (this._toolbarStore.size > 0 && this._toolbarSessionKey === sessionKey) {
+		if (this._toolbarSessionKey === sessionKey) {
 			return;
 		}
 		this._toolbarSessionKey = sessionKey;

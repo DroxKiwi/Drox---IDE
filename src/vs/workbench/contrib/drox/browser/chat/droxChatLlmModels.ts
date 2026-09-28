@@ -43,6 +43,9 @@ export function pushLlmModelsSnapshotToWebview(
 		architectFrequencyPenalty: role?.architectFrequencyPenalty,
 		architectMaxTokens: role?.architectMaxTokens,
 		architectKeepAlive: role?.architectKeepAlive,
+		architectReasoningEffort: role?.architectReasoningEffort,
+		architectThinkingBudget: role?.architectThinkingBudget,
+		architectLlmParamsMuted: role?.architectLlmParamsMuted,
 	});
 }
 

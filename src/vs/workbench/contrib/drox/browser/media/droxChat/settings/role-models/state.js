@@ -19,6 +19,8 @@
 	D.state.architectFrequencyPenalty = '';
 	D.state.architectMaxTokens = '';
 	D.state.architectKeepAlive = '';
+	D.state.architectReasoningEffort = '';
+	D.state.architectThinkingBudget = '';
 	D.state.architectNumCtxCustomMode = false;
 	D.state.rolePanelOpen = null;
 })(globalThis.DroxChat);

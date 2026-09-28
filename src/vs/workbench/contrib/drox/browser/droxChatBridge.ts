@@ -41,6 +41,8 @@ export type DroxWebviewToHostMessage =
 		readonly frequencyPenalty?: number | null;
 		readonly maxTokens?: number | null;
 		readonly keepAlive?: string | null;
+		readonly reasoningEffort?: string | null;
+		readonly thinkingBudget?: number | null;
 		readonly mutedParams?: readonly string[] | null;
 	}
 
@@ -266,6 +268,8 @@ export type DroxHostToWebviewMessage =
 		readonly architectFrequencyPenalty?: number;
 		readonly architectMaxTokens?: number;
 		readonly architectKeepAlive?: string;
+		readonly architectReasoningEffort?: string;
+		readonly architectThinkingBudget?: number;
 		readonly architectLlmParamsMuted?: readonly string[];
 	}
 

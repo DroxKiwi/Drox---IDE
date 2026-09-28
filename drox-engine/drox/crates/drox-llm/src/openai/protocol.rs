@@ -24,6 +24,12 @@ pub(super) struct ChatCompletionRequest<'a> {
     pub frequency_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seed: Option<i64>,
+    /// Qwen / LiteLLM / OpenAI-compat — profondeur du thinking.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<&'a str>,
+    /// Plafond de tokens de raisonnement (API thinking).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thinking_budget: Option<u32>,
 }
 
 #[derive(Debug, Serialize)]

@@ -62,6 +62,8 @@ function createMockRunSettingsService(
 		presencePenalty: undefined,
 		frequencyPenalty: undefined,
 		keepAlive: '',
+		reasoningEffort: '',
+		thinkingBudget: undefined,
 		nativeThinking: false,
 		llmParamsMuted: [],
 		...llmOverrides,

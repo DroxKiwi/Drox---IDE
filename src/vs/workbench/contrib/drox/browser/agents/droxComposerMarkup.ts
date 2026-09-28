@@ -25,6 +25,14 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const rolePanelFrequencyPenaltyLabel = localize('droxChatRolePanelFrequencyPenalty', 'Frequency penalty');
 	const rolePanelMaxTokensLabel = localize('droxChatRolePanelMaxTokens', 'Max tokens');
 	const rolePanelKeepAliveLabel = localize('droxChatRolePanelKeepAlive', 'Keep alive');
+	const rolePanelSectionThinking = localize('droxChatRolePanelSectionThinking', 'Thinking');
+	const rolePanelReasoningEffortLabel = localize('droxChatRolePanelReasoningEffort', 'Reasoning effort');
+	const rolePanelThinkingBudgetLabel = localize('droxChatRolePanelThinkingBudget', 'Thinking budget');
+	const rolePanelReasoningEffortUnset = localize('droxChatRolePanelReasoningEffortUnset', '— (server default)');
+	const rolePanelReasoningEffortLow = localize('droxChatRolePanelReasoningEffortLow', 'Low');
+	const rolePanelReasoningEffortMedium = localize('droxChatRolePanelReasoningEffortMedium', 'Medium');
+	const rolePanelReasoningEffortHigh = localize('droxChatRolePanelReasoningEffortHigh', 'High');
+	const rolePanelReasoningEffortXHigh = localize('droxChatRolePanelReasoningEffortXHigh', 'Extra high');
 	const rolePanelReloadLabel = localize('droxChatRolePanelReload', 'Reload models');
 	const rolePanelApplyLabel = localize('droxChatRolePanelClose', 'Close');
 	const rolePanelMuteOnTitle = localize('droxChatRolePanelMuteOn', 'Hidden from backend — click to send this parameter');
@@ -33,11 +41,11 @@ export function buildDroxComposerPanelsMarkup(): string {
 
 	const muteableField = (paramKey: string, label: string, inputHtml: string): string => `
 			<label class="role-model-field" data-llm-param="${paramKey}">
-				<span class="role-model-field-label-row">
+				<span class="role-model-field-label">${label}</span>
+				<span class="role-model-field-input-row">
+					${inputHtml}
 					<button type="button" class="role-model-param-mute-btn" data-llm-param="${paramKey}" aria-pressed="false" title="${rolePanelMuteOffTitle}" aria-label="${rolePanelMuteOffTitle}" data-title-live="${rolePanelMuteOffTitle}" data-title-muted="${rolePanelMuteOnTitle}"><span class="codicon codicon-eye" aria-hidden="true"></span></button>
-					<span>${label}</span>
 				</span>
-				${inputHtml}
 			</label>`;
 	const generalSettingsSectionConnection = localize('droxChatGeneralSettingsSectionConnection', 'Connection');
 	const generalSettingsConnectIa = localize('droxChatGeneralSettingsConnectIa', 'Connect your AI');
@@ -86,6 +94,15 @@ export function buildDroxComposerPanelsMarkup(): string {
 			${muteableField('seed', rolePanelSeedLabel, `<input type="number" id="role-model-panel-seed" class="role-model-panel-input" step="1" placeholder="—" />`)}
 			${muteableField('presencePenalty', rolePanelPresencePenaltyLabel, `<input type="number" id="role-model-panel-presence-penalty" class="role-model-panel-input" min="-2" max="2" step="0.05" placeholder="—" />`)}
 			${muteableField('frequencyPenalty', rolePanelFrequencyPenaltyLabel, `<input type="number" id="role-model-panel-frequency-penalty" class="role-model-panel-input" min="-2" max="2" step="0.05" placeholder="—" />`)}
+			<p class="role-model-panel-section-label">${rolePanelSectionThinking}</p>
+			${muteableField('reasoningEffort', rolePanelReasoningEffortLabel, `<select id="role-model-panel-reasoning-effort" class="role-model-panel-select">
+					<option value="">${rolePanelReasoningEffortUnset}</option>
+					<option value="low">${rolePanelReasoningEffortLow}</option>
+					<option value="medium">${rolePanelReasoningEffortMedium}</option>
+					<option value="high">${rolePanelReasoningEffortHigh}</option>
+					<option value="xhigh">${rolePanelReasoningEffortXHigh}</option>
+				</select>`)}
+			${muteableField('thinkingBudget', rolePanelThinkingBudgetLabel, `<input type="number" id="role-model-panel-thinking-budget" class="role-model-panel-input" min="1" step="1" placeholder="—" />`)}
 			<p class="role-model-panel-section-label">${rolePanelSectionOutput}</p>
 			${muteableField('maxTokens', rolePanelMaxTokensLabel, `<input type="number" id="role-model-panel-max-tokens" class="role-model-panel-input" min="1" step="1" placeholder="—" />`)}
 			${muteableField('keepAlive', rolePanelKeepAliveLabel, `<input type="text" id="role-model-panel-keep-alive" class="role-model-panel-input" spellcheck="false" placeholder="30m" />`)}

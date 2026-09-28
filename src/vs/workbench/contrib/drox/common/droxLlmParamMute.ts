@@ -21,6 +21,8 @@ export const DROX_LLM_MUTEABLE_PARAM_KEYS = [
 	'frequencyPenalty',
 	'maxTokens',
 	'keepAlive',
+	'reasoningEffort',
+	'thinkingBudget',
 ] as const;
 
 export type DroxLlmMuteableParamKey = (typeof DROX_LLM_MUTEABLE_PARAM_KEYS)[number];
