@@ -4,7 +4,7 @@
 
 ## But du projet
 
-S’approprier un éditeur IA **entièrement open source**, en s’appuyant sur la puissance du moteur VS Code (édition, extensions, terminal, git, LSP), sans dépendre d’un produit fermé.
+Je veux m’approprier un éditeur IA **entièrement open source**, en m’appuyant sur la puissance du moteur VS Code (édition, extensions, terminal, git, LSP), sans dépendre d’un produit fermé.
 
 Principes non négociables :
 
@@ -37,7 +37,7 @@ Les dates ci-dessous s’appuient sur l’historique git de ce dépôt (export s
 
 ### Avant mai 2026 — laboratoire
 
-Le moteur agent a d’abord vécu comme un chantier Rust + expériences d’orchestration (boucle LLM, outils, permissions), avec un client terminal (**Drox TUI**) pour valider le comportement hors IDE. L’idée : un cerveau agent réutilisable, pas seulement une UI.
+J’ai d’abord fait vivre le moteur agent comme un chantier Rust + expériences d’orchestration (boucle LLM, outils, permissions), avec un client terminal (**Drox TUI**) pour valider le comportement hors IDE. L’idée : un cerveau agent réutilisable, pas seulement une UI.
 
 ### Mai 2026 — naissance de Drox IDE dans ce dépôt
 
@@ -56,7 +56,7 @@ Le moteur agent a d’abord vécu comme un chantier Rust + expériences d’orch
 | **19 juin** | **1.4.2** : rail **observateur**, quatre couches de contexte, fin des reliquats trop prescriptifs — point d’arrêt avant une autre refonte. |
 | **20–26 juin** | **1.5.0 – 1.5.6** : ancrage sur VS Code **1.126 / 1.127**, pipeline **`tui_mono`**, fil chat, config `agent.run`, builds Windows **et** Linux, correctifs UX massifs. |
 
-La 1.4.x a servi de laboratoire : beaucoup de ce qu’on a appris (et de ce qu’on ne veut plus) est documenté sous [`docs/1.4/`](docs/1.4/). Le produit courant ne prolonge pas ce rail tel quel.
+La 1.4.x m’a servi de laboratoire : beaucoup de ce que j’ai appris (et de ce que je ne veux plus) est documenté sous [`docs/1.4/`](docs/1.4/). Le produit courant ne prolonge pas ce rail tel quel.
 
 ### Juillet – août 2026 — surface Agents et durcissement
 
@@ -69,7 +69,7 @@ Ligne **1.5.9 → 1.5.19** : récupération de runs, chat natif, fenêtre Agents
 | **fin septembre** | **1.5.20** : Commit/Push dans le chat IDE, Changes Sidebar, mute des params LLM, thinking budget, correctifs Qwen/LiteLLM. |
 | **28 septembre** | Décision produit : **dévoiler complètement** le code. Licence MIT unifiée, docs moteur publiques (`docs/engine/`), canal Releases sur **ce** dépôt (plus le miroir OR). |
 
-Aujourd’hui le dépôt est pensé pour la communauté : cloner, forker, lire, contribuer — ou simplement télécharger l’installeur.
+Aujourd’hui je pense ce dépôt pour la communauté : cloner, forker, lire, contribuer — ou simplement télécharger l’installeur.
 
 ---
 
@@ -77,15 +77,15 @@ Aujourd’hui le dépôt est pensé pour la communauté : cloner, forker, lire, 
 
 Des outils comme **Cursor** ont montré qu’un agent dans l’éditeur change le quotidien. Ils restent des produits d’entreprise : compte, cloud, règles du vendeur.
 
-Drox est né du besoin de **retrouver un confort comparable** — certes avec moins de puissance brute et moins de polish — **sans dépendre d’une société** pour le cœur local. Assez pour travailler sereinement, avec des données qui restent chez toi.
+Drox est né de mon besoin de **retrouver un confort comparable** — certes avec moins de puissance brute et moins de polish — **sans dépendre d’une société** pour le cœur local. Assez pour travailler sereinement, avec des données qui restent chez toi.
 
 Pendant le développement, **Cursor a été un outil**, pas le propriétaire du projet :
 
-- il **traduit des demandes en code** ; la **maîtrise des features**, les arbitrages produit et la responsabilité du design restent ceux du mainteneur ;
-- il a servi à de **grosses phases de réflexion** : prendre du recul sur des questions qui auraient mangé des semaines avant d’être tranchées ;
-- il permet de **tester rapidement des architectures** qui, auparavant, auraient pris des mois à prototyper à la main.
+- il **traduit mes demandes en code** ; la **maîtrise des features**, les arbitrages produit et la responsabilité du design restent les miens ;
+- il m’a servi à de **grosses phases de réflexion** : prendre du recul sur des questions qui m’auraient mangé des semaines avant d’être tranchées ;
+- il me permet de **tester rapidement des architectures** qui, auparavant, m’auraient pris des mois à prototyper à la main.
 
-C’est précisément ce confort — accélérer la pensée et l’expérimentation — que Drox vise à rendre **local et ouvert**, pour soi et pour d’autres.
+C’est précisément ce confort — accélérer la pensée et l’expérimentation — que je vise à rendre **local et ouvert** avec Drox, pour moi et pour d’autres.
 
 ---
 
@@ -114,7 +114,7 @@ Toi + ton repo
 - **Un binaire** (`drox.exe` / `drox`) portable, démarré par l’IDE via `drox --serve`.
 - **Perf et mémoire** prévisibles sur des boucles longues (stream tokens, outils, compaction).
 - **Contrôle** : pas de runtime Node pour le cœur agent ; erreurs typées, async Tokio, peu de surprise à l’embarquer dans l’installeur.
-- Le workbench reste en **TypeScript** (écosystème VS Code). On ne réécrit pas l’éditeur en Rust — seulement l’agent.
+- Le workbench reste en **TypeScript** (écosystème VS Code). Je ne réécris pas l’éditeur en Rust — seulement l’agent.
 
 ### 3. Pourquoi cette arborescence de crates ?
 
@@ -161,7 +161,7 @@ Variables d’environnement utiles : [`drox-engine/DROX-ENV-SETUP.txt`](drox-eng
 
 ## Remerciements
 
-Merci à l’équipe du **SI de Salesky** pour l’aide aux tests et pour le matériel mis à disposition — indispensable pour avancer sur cette quête d’autonomie face à des outils comme Cursor.
+Je remercie l’équipe du **SI de Salesky** pour l’aide aux tests et pour le matériel mis à disposition — indispensable pour avancer sur cette quête d’autonomie face à des outils comme Cursor.
 
 ---
 
