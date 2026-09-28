@@ -22,4 +22,4 @@ Write-Host '=== P3 preflight: Drox IDE unit tests ===' -ForegroundColor Cyan
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host '=== P3 preflight OK ===' -ForegroundColor Green
-Write-Host 'Manuel: drox-engine/docs/1.2.0/steps/11-operations/SMOKE-ORCHESTRATION-1.2.0.md (scenarios 1-3)' -ForegroundColor Yellow
+Write-Host 'Manuel: docs/1.2.0/steps/11-operations/SMOKE-ORCHESTRATION-1.2.0.md (scenarios 1-3)' -ForegroundColor Yellow

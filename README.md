@@ -1,57 +1,67 @@
-<a id="statut-produit"></a>
+<a id="intention"></a>
 
-> **Produit IDE** : release [**1.5.9**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.9) (juin 2026) — branche dev **1.5.10**. Binaires & MAJ sur [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Moteur courant : pipeline **`tui_mono`** (depuis 1.5.0). Ce README documente l’**historique moteur** ; le rail **1.4.2** ci-dessous est **archivé**.
->
-> **IDE product** : [**1.5.9**](https://github.com/DroxKiwi/Drox---IDE---OR/releases/tag/v1.5.9) release (June 2026) — dev branch **1.5.10**. Binaries & updates on [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR). Current engine: **`tui_mono`** pipeline (since 1.5.0). This README is **engine history**; **1.4.2** rail below is **archived**.
+# Drox IDE
 
-# ⚠️ STATUT PRODUIT — LIRE EN PREMIER (archive 1.4.2)
+Éditeur local + moteur agent Rust. Tu codes dans ton repo ; **Ollama** (ou un endpoint compatible) fait tourner le modèle ; **`drox.exe`** enchaîne tours LLM et outils.
 
-> **Le moteur Drox 1.4.2 est obsolète — il va complètement changer.**  
-> Branche **1.4.2** clôturée et mergée sur `main` (juin 2026). Ce n’est **pas** une base stable : c’est un **point d’arrêt** avant une refonte majeure du moteur.
+## Intention
+
+Le peu que je peux transmettre en tant que développeur — outils, sources, notes de conception — reste **public et gratuit**. Pas de mur payant sur le cœur local. Les forks et les contributions sont les bienvenus.
+
+The little I can share as a developer — tools, sources, design notes — stays **public and free**. No paywall on the local core. Forks and contributions welcome.
 
 | | |
 |---|---|
-| **Code produit courant** | **1.5.10** (dev) · release **1.5.9** — moteur **`tui_mono`** + shim IDE |
-| **Code sur `main` (archive)** | **1.4.2** — rail **observateur** (section historique ci-dessous) |
-| **Utilisable en prod ?** | **Non.** Phase **expérimentale agressive** — dogfood uniquement. |
-| **Tester quand même ?** | **Option pour les curieux** : compiler `drox.exe`, brancher Ollama, accepter bugs / régressions / changements cassants sans préavis. |
-| **Suite moteur** | Refonte **profonde** (pas un polish 1.4.3) — voir plans 1.4.3+ dans le dépôt ; l’architecture actuelle ne sera **pas** prolongée telle quelle. |
+| **Licence** | **MIT** — Code OSS (Microsoft) + portions Drox (KDDS). Détail : [`NOTICE.md`](NOTICE.md) |
+| **Version produit** | **1.5.20** (`droxVersion`) · base VS Code **1.127.0** |
+| **Binaires** | [Releases OR](https://github.com/DroxKiwi/Drox---IDE---OR/releases) (canal actuel) — consolidation prévue sur ce dépôt |
+| **Issues** | [Drox---IDE/issues](https://github.com/DroxKiwi/Drox---IDE/issues) |
+| **État** | Dogfood / expérimental — bugs et cassures possibles sans préavis |
 
-### Ce que la 1.4.2 a changé (gros morceaux)
+## Build rapide (sources)
 
-Après la stabilisation **1.4.1** (session, UI busy, discuss, VERIFY Windows), la **1.4.2** abandonne le rail **prescriptif** au profit d’une culture **observateur + contexte** :
+```powershell
+npm install
+npm run watch
+.\scripts\code.bat
+```
 
-| Avant | Après 1.4.2 |
-|-------|-------------|
-| Outils filtrés par **station** (READ ≠ ACT) | Palette **plate et stable** tout le run EDIT |
-| **Tool folders** (`read_workspace`, `edit_file`, …) | Supprimés — outils réels uniquement (`file_read`, `file_edit`, …) |
-| Gates + nudges coercitifs (`stall_read`, `stall_act`, `force_act`, mutation sur `done`) | Rail **observateur** : snapshot + inférence station, **pas** de blocage advance |
-| **Intent probe** LLM au boot | Routage **statique** : `discuss` / `analyze` / `edit` (mode IDE ou RPC) |
-| `todo_write` + gates todo | **`internal_plan_write`** seul (plan moteur, pas todo utilisateur) |
-| Mémoire éclatée (listing boot skills/sessions) | **`DROX.md` seul** · checkpoint compaction court → snapshot réinjecté |
-| Prompt boot avec `[gate:]` obligatoire | `01_core_rail_solo.md` **observateur** — rail = hint dans le snapshot |
+Moteur Rust : workspace sous `drox-engine/drox/` (voir `drox-engine/drox/README.md`). Variables utiles : `drox-engine/DROX-ENV-SETUP.txt`.
 
-**4 couches de contexte** (complémentaires, pas substituts) : (1) cadre boot + hint rail, (2) outils wire + protocole compact, (3) snapshot run + plan interne, (4) transcript chaud/froid + compaction.
+## Documentation
 
-### Pourquoi c’est obsolète malgré la clôture
+Hub : [`docs/`](docs/README.md) · **référence moteur** : [`docs/engine/`](docs/engine/README.md)
 
-La 1.4.2 **nettoie** l’expérience 1.4.x (moins de forcing, outils libres, mémoire unifiée) mais **ne fige pas** le design final. Le chantier suivant **remplace** le modèle actuel (rail, orchestration, injection de contexte) — pas une itération douce. Tout ce qui est sur `main` aujourd’hui sert surtout de **laboratoire** et de **référence de ce qu’on ne veut plus**.
+| Partie | En bref | Doc |
+|--------|---------|-----|
+| **Architecture** | Workspace crates (`drox-types` → `drox-tools` → `drox-engine` → `drox-cli`), clients IDE / TUI / CLI, pipeline **`tui_mono`**. | [architecture-overview.md](docs/engine/architecture-overview.md) |
+| **JSON-RPC** | `drox --serve`, NDJSON stdio : `initialize`, `agent.run`, `agent/event`, `tool/exec`, sessions. | [jsonrpc-protocol.md](docs/engine/jsonrpc-protocol.md) |
+| **Boucle agent** | `drive_inner` : contexte → stream LLM → tools / nudges → phases `[phase: done]` → `agent/done`. | [agent-run-loop.md](docs/engine/agent-run-loop.md) |
+| **Outils & permissions** | Palette locale + **RemoteTool** IDE ; modes `default` / `plan` / `acceptEdits` / … ; hooks `.drox/hooks.json`. | [tools-and-permissions.md](docs/engine/tools-and-permissions.md) |
+| **Sessions & mémoire** | Transcripts JSONL, `session.*`, compaction, notes / memdir locaux. | [sessions-and-memory.md](docs/engine/sessions-and-memory.md) |
+| **Backends LLM** | Ollama-first + OpenAI-compat ; sampling, thinking / budget, pas de cloud imposé. | [llm-backends.md](docs/engine/llm-backends.md) |
+| **Intégration IDE** | Spawn Electron main, bridge chat Agents, shim événements UI. | [ide-integration.md](docs/engine/ide-integration.md) |
+| **Glossaire** | `tui_mono`, `AgentEvent`, RemoteTool, phases — sans jargon mort (`role_split`). | [glossary.md](docs/engine/glossary.md) |
 
-**En résumé** : OK pour **explorer et casser** en local ; **pas** pour un usage quotidien, un client, ou une extension long terme sur cette stack.
+Ops release / build : [`docs/operations/`](docs/operations/README.md). Historique plans : [`docs/1.5/`](docs/1.5/README.md).
 
-### Où lire la suite (dépôt)
+## Suite de ce README
 
-- Clôture 1.4.2 : `drox-engine/docs/1.4/1.4.2/PLAN-1.4.2.md`
-- Stabilisation 1.4.1 : `drox-engine/docs/1.4/1.4.1/finalisation/CLOSURE-1.4.1.md`
-- Refonte initiale 1.4.0 : `drox-engine/docs/1.4/1.4.0/archive/finalisation/CLOSURE-1.4.0.md`
+Ci-dessous : **chronologie moteur** (schémas, invariants) — conventions [RULES.md §5](RULES.md#5-readmemd-racine--front-matter-projet--doc-moteur). Le rail **1.4.2** y figure comme archive ; le produit courant est documenté dans [`docs/engine/`](docs/engine/README.md) (`tui_mono`).
 
 ___
 
-Doc moteur brute — conventions : [RULES.md §5](RULES.md#5-readmemd-racine--doc-moteur)
+<a id="statut-produit"></a>
+
+## Archive — note 1.4.2 (historique)
+
+La section chronologie plus bas documente encore le rail observateur **1.4.2**. Ce n’est **pas** le moteur shippé aujourd’hui. Produit courant : **1.5.20** / pipeline **`tui_mono`** — voir [`docs/engine/`](docs/engine/README.md).
+
+___
 
 ## Sommaire
 
-**[⚠️ Statut produit 1.4.2](#statut-produit)** · [Product status EN](#en-product-status)
+[Intention](#intention) · [Documentation](#documentation) · [Archive 1.4.2](#statut-produit) · [Product status EN](#en-product-status)
 
 [Vue globale](#vue-globale) · [Overview](#overview) · [Schéma 1.4 — run rail](#schema-rail)
 

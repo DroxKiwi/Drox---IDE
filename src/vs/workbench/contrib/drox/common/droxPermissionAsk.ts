@@ -40,7 +40,7 @@ export function isRemovedProfessorPermissionMode(mode: string | undefined): bool
 export function getProfessorModeRemovedNotificationMessage(): string {
 	return localize(
 		'drox.professorModeRemoved',
-		'Professor mode was removed in Drox 1.4.0. Using "I\'m not crazy" (confirm each edit). See drox-engine/docs/1.4/REPORT/professor-2.0.md.',
+		'Professor mode was removed in Drox 1.4.0. Using "I\'m not crazy" (confirm each edit). See docs/1.4/REPORT/professor-2.0.md.',
 	);
 }
 

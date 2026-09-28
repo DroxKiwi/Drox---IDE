@@ -39,8 +39,8 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 
 | Dépôt | Rôle |
 |-------|------|
-| `Drox---IDE` | Sources, build, développement (souvent privé) |
-| `Drox---IDE---OR` | Manifestes publics (`latest.json`, notes, NOTICE) — **pas** les gros binaires dans git |
+| `Drox---IDE` | Sources, build, développement — **cible publique OSS** (MIT) |
+| `Drox---IDE---OR` | Canal Releases historique (`latest.json`, binaires) — à consolider vers `Drox---IDE` Releases |
 
 ### Releases GitHub
 
@@ -56,9 +56,9 @@ Pour éviter **cursoragent** dans les *Contributors* GitHub :
 - Nom utilisateur : **Drox IDE** (moteur **Drox**). Plus de « Nexus » / `kdds-nexus` dans l’UI ou le package.
 - Profil utilisateur : `%APPDATA%\.drox-ide`
 - `product.json` : source de vérité pour noms exe, mutex, AppId, dossiers.
-- URLs produit (`licenseUrl`, `reportIssueUrl`) : pointer vers **Drox** / `Drox---IDE---OR`, pas Microsoft / Nexus.
-- Licence distribuée : conserver **`LICENSE.txt`** + **`ThirdPartyNotices.txt`** dans le package ; voir `NOTICE-DROX.txt` pour l’attribution KDDS. EULA produit (non open source) : voir `drox-engine/docs/1.3/1.3.1/finalisation/LICENCE-PRODUIT.md`.
-- Release **1.3.1** : pas de liens Microsoft / Copilot visibles à l’usage ; suivi [CLOSURE-1.3.1.md](drox-engine/docs/1.3/1.3.1/finalisation/CLOSURE-1.3.1.md) et [PLAN-DEBRAND-MICROSOFT.md](drox-engine/docs/1.3/1.3.1/finalisation/PLAN-DEBRAND-MICROSOFT.md).
+- URLs produit (`licenseUrl`, `reportIssueUrl`) : pointer vers **`Drox---IDE`** (sources + NOTICE), pas Microsoft / Nexus. Releases binaires : encore `Drox---IDE---OR` jusqu’à consolidation.
+- Licence : **MIT** pour Code OSS **et** portions KDDS. Documents : `LICENSE.txt`, `NOTICE.md`, `NOTICE-DROX.txt`, `LICENSE-INSTALL.txt`. Ancien cadrage EULA : `LICENCE-PRODUIT.md` (supersédé).
+- Release **1.3.1** : pas de liens Microsoft / Copilot visibles à l’usage ; suivi [CLOSURE-1.3.1.md](docs/1.3/1.3.1/finalisation/CLOSURE-1.3.1.md) et [PLAN-DEBRAND-MICROSOFT.md](docs/1.3/1.3.1/finalisation/PLAN-DEBRAND-MICROSOFT.md).
 
 ### Versionning (source unique : `package.json`)
 
@@ -76,7 +76,7 @@ Affichage utilisateur : `1.3.1 (base VS Code 1.122.0)` via `getProductDisplayVer
 
 ## 3. Build & release Windows
 
-**Guide publication + clôture branche** : [drox-engine/docs/operations/README.md](drox-engine/docs/operations/README.md)
+**Guide publication + clôture branche** : [docs/operations/README.md](docs/operations/README.md)
 
 ### Commandes usuelles
 
@@ -135,14 +135,22 @@ npm run release-publish-win32
 
 ---
 
-## 5. README.md racine — doc moteur
+## 5. README.md racine — front matter projet + doc moteur
 
-Fichier : [`README.md`](README.md) à la racine du fork. Référence publique du **moteur** — pas de l’IDE, du build, ni du marketing produit.
+Fichier : [`README.md`](README.md) à la racine du fork.
 
-### Périmètre
+### Front matter (haut de fichier)
+
+Court, factuel — intention OSS / gratuité, licence MIT, où télécharger, comment builder, **tableau docs moteur** avec liens vers `docs/engine/`. Pas de pitch commercial.
+
+### Corps — doc moteur (chronologie)
+
+Référence longue (chronologie, schémas) — la **référence fonctionnelle à jour** vit dans [`docs/engine/`](docs/engine/README.md).
+
+### Périmètre (corps moteur)
 
 - **Oui** : binaire Rust, RPC, orchestration, outils, gates, chronologie des capacités moteur.
-- **Non** : quick start IDE, upstream VS Code, CI, licence détaillée, liens vers `drox-engine/docs/`, guides externes, promesses produit.
+- **Non** (dans le corps chronologie) : quick start IDE long, upstream VS Code, CI, liens docs internes trop denses, promesses produit.
 
 ### Ton — désinvolte et brut
 
@@ -188,7 +196,7 @@ Mettre à jour les schémas quand le comportement moteur change (version produit
 ### Maintenance
 
 - Nouvelle capacité moteur livrée → ligne chronologie + éventuellement schéma / invariant.
-- Refonte marketing ou doc IDE → **pas** dans ce README ; autre fichier ou `drox-engine/docs/`.
+- Refonte marketing ou doc IDE → **pas** dans ce README ; autre fichier ou `docs/`.
 - Les agents IA qui modifient `README.md` **doivent** appliquer cette section.
 
 ---
@@ -207,7 +215,7 @@ Mettre à jour les schémas quand le comportement moteur change (version produit
 
 - Ne pas committer sans demande ; ne pas pousser sur le remote sans demande.
 - Préférer réutiliser les scripts existants (`build-release-win32.ps1`, `sync-drox-win32-icons.ps1`, `release-publish-win32.ps1`) plutôt que réinventer le pipeline.
-- Après modif du plan distribution : mettre à jour `drox-engine/docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` et **1.3.1/finalisation/CLOSURE-1.3.1.md** si le processus release change.
+- Après modif du plan distribution : mettre à jour `docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` et **1.3.1/finalisation/CLOSURE-1.3.1.md** si le processus release change.
 - Édition de [`README.md`](README.md) racine : respecter la **§5** (ton brut, chronologie, Mermaid).
 - Tests : n’en ajouter que s’ils couvrent un comportement réel demandé, pas des assertions triviales.
 
@@ -224,7 +232,7 @@ Ordre : **P0 → F1 → F2 → F3 → F4 → F5**.
 | F3 | Canal public | `latest.json` + Release GitHub + exe |
 | F4–F5 | Plus tard | Notification MAJ IDE + `inno_updater` |
 
-Checklist smoke : `drox-engine/docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` §8.
+Checklist smoke : `docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` §8.
 
 ---
 
@@ -240,13 +248,13 @@ Checklist smoke : `drox-engine/docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAU
 
 | Sujet | Document |
 |-------|----------|
-| Plan distribution | `drox-engine/docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` |
-| Clôture 1.3.0 (moteur) | `drox-engine/docs/1.3/1.3.0/finalisation/CLOSURE-1.3.0.md` |
-| Suivi release 1.3.1 | `drox-engine/docs/1.3/1.3.1/finalisation/CLOSURE-1.3.1.md` |
-| Dé-branding 1.3.1 | `drox-engine/docs/1.3/1.3.1/finalisation/PLAN-DEBRAND-MICROSOFT.md` |
-| Audit licences 1.3.1 | `drox-engine/docs/1.3/1.3.1/finalisation/AUDIT-LICENCES-1.3.1.md` |
-| Feature brainstorm (idées) | `drox-engine/docs/feature-brainstorm/README.md` |
-| Patches fork / merge upstream | `drox-engine/docs/1.3/1.3.0/finalisation/PATCHES-UPSTREAM-BUILD.md` |
+| Plan distribution | `docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` |
+| Clôture 1.3.0 (moteur) | `docs/1.3/1.3.0/finalisation/CLOSURE-1.3.0.md` |
+| Suivi release 1.3.1 | `docs/1.3/1.3.1/finalisation/CLOSURE-1.3.1.md` |
+| Dé-branding 1.3.1 | `docs/1.3/1.3.1/finalisation/PLAN-DEBRAND-MICROSOFT.md` |
+| Audit licences 1.3.1 | `docs/1.3/1.3.1/finalisation/AUDIT-LICENCES-1.3.1.md` |
+| Feature brainstorm (idées) | `docs/feature-brainstorm/README.md` |
+| Patches fork / merge upstream | `docs/1.3/1.3.0/finalisation/PATCHES-UPSTREAM-BUILD.md` |
 | Repo releases | `../Drox---IDE---OR/README.md` |
 | Guide dev Drox | `DROX.md` (si présent) |
 

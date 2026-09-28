@@ -13,7 +13,7 @@ Le texte complet se trouve dans `LICENSE.txt` à la racine de l’installation.
 
 Copyright (c) **KDDS** — moteur Drox (`drox.exe`), module workbench Drox, branding et assets associés.
 
-Logiciel **propriétaire**. Voir [LICENSE](LICENSE) à la racine de ce dépôt.
+Ces portions sont également sous licence **MIT**. Voir [NOTICE.md](https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md) dans le dépôt sources.
 
 ## Composants tiers
 
@@ -29,6 +29,4 @@ Toute redistribution des binaires doit conserver :
 3. `NOTICE-DROX.txt`
 4. Les notices de copyright visibles dans l’application (menu **Aide → À propos**)
 
-Ce dépôt ne contient **pas** les sources — uniquement les binaires et manifests de version.
-
-L’ensemble du contenu de ce dépôt (hors attributions tierces ci-dessus) est soumis à la licence propriétaire [LICENSE](LICENSE).
+Les sources du projet sont publiques : [Drox---IDE](https://github.com/DroxKiwi/Drox---IDE).

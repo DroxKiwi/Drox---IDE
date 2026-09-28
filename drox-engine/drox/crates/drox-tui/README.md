@@ -41,7 +41,7 @@ local + LLM configurable (Ollama par défaut).
 | Widgets fil outils (tous outils 🦀 P1–P2) | ✅ partiel — fil structuré + viewers `e` ; LSP via extension |
 | Annulation run (Esc / Ctrl+C) + file messages | ✅ |
 
-Checklist détaillée : [`docs/TUI-REPRISE-LEAK-CHECKLIST.md`](../../../docs/TUI-REPRISE-LEAK-CHECKLIST.md).
+Checklist / doc moteur : [`docs/engine/`](../../../../docs/engine/README.md). Ambiguïtés IDE↔TUI : [`docs/1.5/1.5.17/AMBIGUITIES-IDE-TUI.md`](../../../../docs/1.5/1.5.17/AMBIGUITIES-IDE-TUI.md).
 
 ## Build & lancement
 

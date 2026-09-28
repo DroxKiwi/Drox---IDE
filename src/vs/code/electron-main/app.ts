@@ -1295,7 +1295,7 @@ export class CodeApplication extends Disposable {
 		const processChannel = ProxyChannel.fromService(new ProcessMainService(this.logService, accessor.get(IDiagnosticsService), accessor.get(IDiagnosticsMainService)), disposables);
 		mainProcessElectronServer.registerChannel('process', processChannel);
 
-		// DROX-NEXUS-START - Drox engine IPC channel (stdio JSON-RPC). See drox-engine/docs/1.2/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md
+		// DROX-NEXUS-START - Drox engine IPC channel (stdio JSON-RPC). See docs/1.2/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md
 		const droxEngineMainService = disposables.add(new DroxEngineMainService(accessor.get(ILogService)));
 		mainProcessElectronServer.registerChannel(DROX_ENGINE_CHANNEL_NAME, new DroxEngineChannel(droxEngineMainService));
 		// DROX-NEXUS-END

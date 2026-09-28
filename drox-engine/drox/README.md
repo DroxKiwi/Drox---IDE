@@ -4,7 +4,7 @@ Binaire `drox-cli` autonome qui implémente la boucle agent. Communique via stdi
 
 ## Statut
 
-**Phase 1 — Rewrite Rust en cours.** Le moteur TypeScript dans `../src/` est la spécification exécutable. Voir `../docs/PLAN-MOTEUR-RUST.md` et `../docs/INVENTAIRE-NOYAU-MOTEUR.md` pour le plan détaillé.
+**Phase 1 — Rewrite Rust en cours.** Le moteur TypeScript dans `../src/` est la spécification exécutable. Voir `../../docs/` (historique) et [`../../docs/engine/`](../../docs/engine/) (fonctionnement actuel).
 
 ## Architecture
 

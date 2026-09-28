@@ -234,4 +234,4 @@ Write-Host "  IDE      : $exe"
 if (Test-Path $droxBin) { Write-Host "  Moteur   : $droxBin" }
 Write-Host ""
 Write-Host 'Smoke manuel : lancer Drox IDE.exe, palette Drox Open Chat, run minimal.'
-Write-Host "Checklist    : drox-engine/docs/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md §8"
+Write-Host "Checklist    : docs/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md §8"
