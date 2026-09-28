@@ -7,6 +7,11 @@
       "installerUrl": "https://github.com/DroxKiwi/Drox---IDE/releases/download/v1.5.20/Drox-IDE-Setup-1.5.20-win32-x64.exe",
       "sha256": "5dced685108fbe53770170d20231be51dde56769715737b9a399e6274aaca36b",
       "sizeBytes": 240460265
+    },
+    "linux-x64": {
+      "installerUrl": "https://github.com/DroxKiwi/Drox---IDE/releases/download/v1.5.20/Drox-IDE-1.5.20-linux-x64.deb",
+      "sha256": "4cb44d51dc1c70b8a02cebcc5b655ba7d45025dedc50277813a57ff678704d03",
+      "sizeBytes": 233811140
     }
   },
   "mandatory": false,

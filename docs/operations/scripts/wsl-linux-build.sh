@@ -16,7 +16,8 @@ if [[ -z "${HOME:-}" || "$HOME" == /mnt/* || "$HOME" == *:* ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+# docs/operations/scripts -> ../../../ = repo root
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 # shellcheck source=/dev/null
 source "$REPO_ROOT/scripts/lib/linux-npm-install.sh"
 LOG_FILE="${REPO_ROOT}/.build/wsl-linux-build.log"
