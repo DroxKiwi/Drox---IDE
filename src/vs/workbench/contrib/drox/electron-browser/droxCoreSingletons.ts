@@ -24,6 +24,7 @@ import { IDroxReleaseNotesService } from '../common/droxReleaseNotesService.js';
 import { IDroxSessionGitService } from '../common/droxSessionGitService.js';
 import { IDroxGitGraphService } from '../common/droxGitGraphService.js';
 import { IDroxSessionChangesDetailService, DroxSessionChangesDetailService } from '../common/droxSessionChangesDetailService.js';
+import { IDroxIdeChangesUiState, DroxIdeChangesUiState } from '../common/droxIdeChangesUiState.js';
 import { IDroxSessionChangesBridge, DroxSessionChangesBridge } from '../common/droxSessionChangesBridge.js';
 import { IDroxSessionChangesPanelService, DroxSessionChangesPanelService } from '../common/droxSessionChangesPanelService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
@@ -68,6 +69,7 @@ export function registerDroxCoreSingletons(): void {
 	registerSingleton(IDroxRunRevertService, DroxRunRevertService, InstantiationType.Eager);
 	registerSingleton(IDroxSessionChangesBridge, DroxSessionChangesBridge, InstantiationType.Eager);
 	registerSingleton(IDroxSessionChangesDetailService, DroxSessionChangesDetailService, InstantiationType.Eager);
+	registerSingleton(IDroxIdeChangesUiState, DroxIdeChangesUiState, InstantiationType.Eager);
 	registerSingleton(IDroxSessionChangesPanelService, DroxSessionChangesPanelService, InstantiationType.Eager);
 	registerSingleton(IDroxReleaseNotesService, DroxReleaseNotesService, InstantiationType.Eager);
 	registerSingleton(IDroxSessionGitService, DroxSessionGitService, InstantiationType.Delayed);

@@ -218,6 +218,7 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/c
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/helpers.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/host-sync.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/init.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/mute.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/num-ctx.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/panel.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/persist.js

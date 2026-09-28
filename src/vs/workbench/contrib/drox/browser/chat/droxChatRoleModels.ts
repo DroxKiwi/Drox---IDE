@@ -14,6 +14,7 @@ import { DroxSetting } from '../../common/droxConfiguration.js';
 import { clampDroxNumCtx } from '../../common/droxNumCtx.js';
 
 import { effectiveMaxTokensForRun, IDroxLlmSettings } from '../../common/droxRunSettings.js';
+import { normalizeDroxLlmParamsMuted } from '../../common/droxLlmParamMute.js';
 
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 export interface IDroxArchitectLlmParamsPatch {
@@ -39,6 +40,12 @@ export interface IDroxArchitectLlmParamsPatch {
 	readonly maxTokens?: number | null;
 
 	readonly keepAlive?: string | null;
+
+	readonly reasoningEffort?: string | null;
+
+	readonly thinkingBudget?: number | null;
+
+	readonly mutedParams?: readonly string[] | null;
 
 }
 export interface IDroxArchitectRoleModelsWire {
@@ -66,6 +73,12 @@ export interface IDroxArchitectRoleModelsWire {
 	readonly architectMaxTokens?: number;
 
 	readonly architectKeepAlive?: string;
+
+	readonly architectReasoningEffort?: string;
+
+	readonly architectThinkingBudget?: number;
+
+	readonly architectLlmParamsMuted?: readonly string[];
 
 }
 async function patchOptionalNumber(
@@ -191,6 +204,31 @@ export async function setDroxArchitectLlmParamsFromWebview(
 
 	}
 
+	if (params.reasoningEffort !== undefined) {
+		const trimmed = params.reasoningEffort === null ? '' : String(params.reasoningEffort).trim();
+		const allowed = new Set(['', 'low', 'medium', 'high', 'xhigh']);
+		const next = allowed.has(trimmed) ? trimmed : '';
+		await applyDroxConfigurationUpdate(configurationService, DroxSetting.ReasoningEffort, next || undefined, workspaceResource);
+	}
+
+	await patchOptionalNumber(
+		configurationService,
+		DroxSetting.ThinkingBudget,
+		workspaceResource,
+		params.thinkingBudget,
+		n => Math.max(1, Math.floor(n)),
+	);
+
+	if (params.mutedParams !== undefined) {
+		const muted = normalizeDroxLlmParamsMuted(params.mutedParams ?? []);
+		await applyDroxConfigurationUpdate(
+			configurationService,
+			DroxSetting.LlmParamsMuted,
+			muted.length > 0 ? [...muted] : [],
+			workspaceResource,
+		);
+	}
+
 }
 export function readDroxRoleModelsForWebview(
 
@@ -227,6 +265,12 @@ export function readDroxRoleModelsForWebview(
 		architectMaxTokens: maxTokens,
 
 		architectKeepAlive: llm.keepAlive || undefined,
+
+		architectReasoningEffort: llm.reasoningEffort || undefined,
+
+		architectThinkingBudget: wireOptionalLlmNumber(llm, llm.thinkingBudget),
+
+		architectLlmParamsMuted: [...llm.llmParamsMuted],
 
 	};
 

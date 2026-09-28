@@ -35,6 +35,16 @@
 		if (typeof payload.architectKeepAlive === 'string') {
 			D.state.architectKeepAlive = payload.architectKeepAlive;
 		}
+		if (typeof payload.architectReasoningEffort === 'string') {
+			D.state.architectReasoningEffort = payload.architectReasoningEffort;
+		}
+		applyArchitectNumber('architectThinkingBudget', payload.architectThinkingBudget);
+		if (Array.isArray(payload.architectLlmParamsMuted)) {
+			D.state.architectLlmParamsMuted = payload.architectLlmParamsMuted.filter(k => typeof k === 'string');
+		}
+		if (typeof fn.syncRoleModelMuteButtonsFromState === 'function') {
+			fn.syncRoleModelMuteButtonsFromState();
+		}
 		fn.syncRoleModelVignetteHints();
 		if (typeof fn.renderStatus === 'function') {
 			fn.renderStatus();
