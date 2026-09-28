@@ -810,6 +810,10 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 			contentToRender = cleanedContent.slice(2, -2);
 		}
 
+		// Native thinking streams are plain prose with single `\n` (not MD paragraphs).
+		// Markdown collapses those into one wall of text — turn them into hard breaks.
+		contentToRender = contentToRender.replace(/\n/g, '  \n');
+
 		const target = reuseExisting ? this._markdownResult.value?.element : undefined;
 
 		const rendered = this.chatContentMarkdownRenderer.render(new MarkdownString(contentToRender), {

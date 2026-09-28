@@ -370,6 +370,24 @@ fn build_llm_config(
     }) {
         llm_config = llm_config.with_keep_alive(Some(ka));
     }
+    if let Some(effort) = run
+        .and_then(|p| p.reasoning_effort.clone())
+        .or_else(|| {
+            std::env::var("DROX_REASONING_EFFORT")
+                .ok()
+                .filter(|s| !s.trim().is_empty())
+        })
+    {
+        llm_config = llm_config.with_reasoning_effort(Some(effort));
+    }
+    if let Some(budget) = run.and_then(|p| p.thinking_budget).or_else(|| {
+        std::env::var("DROX_THINKING_BUDGET")
+            .ok()
+            .and_then(|s| s.parse::<u32>().ok())
+            .filter(|&n| n > 0)
+    }) {
+        llm_config = llm_config.with_thinking_budget(Some(budget));
+    }
     Ok(llm_config)
 }
 

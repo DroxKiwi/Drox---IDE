@@ -93,12 +93,15 @@ import { buildAggregatedSessionFileChanges } from '../../../../../workbench/cont
 import {
 	collectCommittedChangeEventKeys,
 	loadDroxGitDirtyPathKeys,
+	loadDroxGitDirtyPathKeysForRoot,
 	loadDroxGitUncommittedChanges,
+	loadDroxGitUncommittedChangesForRoot,
 	mergeDroxSessionFileChanges,
 } from '../../../../../workbench/contrib/drox/common/droxSessionGitChanges.js';
+import { discoverGitRoots } from '../../../../../workbench/contrib/drox/common/droxDiscoverGitRoots.js';
 import { droxChangeEventKey } from '../../../../../workbench/contrib/drox/common/droxChangeEventKey.js';
 import { IGitService } from '../../../../../workbench/contrib/git/common/gitService.js';
-import { createDroxSessionChangesets } from './droxSessionChangesets.js';
+import { createDroxSessionChangesetsController, IDroxSessionChangesetsController } from './droxSessionChangesets.js';
 
 /** Same key as {@link sessionWorkspacePicker.ts} — recent project folders in the Agents window. */
 const SESSIONS_RECENT_WORKSPACES_STORAGE_KEY = 'sessions.recentlyPickedWorkspaces';
@@ -161,7 +164,7 @@ class DroxSession extends Disposable implements ISession {
 	readonly changes = this._changes;
 	private readonly _changesSummary = observableValue<ISessionChangesSummary | undefined>(this, undefined);
 	readonly changesSummary = this._changesSummary;
-	private readonly _changesets: readonly ISessionChangeset[];
+	private readonly _changesetsController: IDroxSessionChangesetsController;
 	readonly changesets: IObservable<readonly ISessionChangeset[]>;
 	readonly mainChat: ISettableObservable<IChat>;
 	readonly chats: IObservable<readonly IChat[]>;
@@ -189,8 +192,12 @@ class DroxSession extends Disposable implements ISession {
 		this._workspaceData.set(workspace, undefined);
 		this.mainChat = observableValue<IChat>(this, buildChat(this));
 		this.chats = derived(this, reader => [this.mainChat.read(reader)]);
-		this._changesets = createDroxSessionChangesets(this.chats);
-		this.changesets = constObservable(this._changesets);
+		this._changesetsController = createDroxSessionChangesetsController(this.chats);
+		this.changesets = this._changesetsController.changesets;
+	}
+
+	setGitRoots(roots: readonly URI[]): void {
+		this._changesetsController.setGitRoots(roots);
 	}
 
 	setTitle(title: string): void {
@@ -305,6 +312,8 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 	private _persistLoadStarted = false;
 	private _persistLoadPromise: Promise<void> | undefined;
 	private _persistRefreshPending = false;
+	/** Engine ids deleted this process — skip re-injection if disk lag / race with listSessions. */
+	private readonly _locallyDeletedEngineIds = new Set<string>();
 	private readonly _syncGeneration = new Map<string, number>();
 	private readonly _gitWatchStores = new Map<string, DisposableStore>();
 	/** Last known git dirty path keys per workspace — prune history only on dirty→clean. */
@@ -548,6 +557,9 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 					continue;
 				}
 				for (const entry of entries) {
+					if (this._locallyDeletedEngineIds.has(entry.id)) {
+						continue;
+					}
 					const resource = DroxChatSessionUri.forSession(entry.id);
 					const key = resource.toString();
 					if (this._sessionCache.has(key) || this._newSessionsHasEngineId(entry.id)) {
@@ -601,8 +613,35 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 
 		let dirtyPathKeys: Set<string> | undefined;
+		let discoveredRoots: URI[] = [];
 		try {
-			dirtyPathKeys = await loadDroxGitDirtyPathKeys(this.gitService, workspace);
+			discoveredRoots = workspacePath
+				? await discoverGitRoots(this.fileService, workspacePath)
+				: [];
+			if (this._syncGeneration.get(key) !== generation) {
+				return;
+			}
+			session.setGitRoots(discoveredRoots);
+
+			if (discoveredRoots.length > 1) {
+				dirtyPathKeys = new Set<string>();
+				let anyRootReachable = false;
+				for (const root of discoveredRoots) {
+					const keys = await loadDroxGitDirtyPathKeysForRoot(this.gitService, root);
+					if (keys) {
+						anyRootReachable = true;
+						for (const k of keys) {
+							dirtyPathKeys.add(k);
+						}
+					}
+				}
+				if (!anyRootReachable) {
+					dirtyPathKeys = undefined;
+				}
+			} else {
+				dirtyPathKeys = await loadDroxGitDirtyPathKeys(this.gitService, workspace);
+			}
+
 			if (this._syncGeneration.get(key) !== generation) {
 				return;
 			}
@@ -631,12 +670,30 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 
 		let merged = sessionChanges;
 		try {
-			const gitChanges = await loadDroxGitUncommittedChanges(this.gitService, workspace);
-			if (this._syncGeneration.get(key) !== generation) {
-				return;
-			}
-			if (gitChanges !== undefined) {
-				merged = mergeDroxSessionFileChanges(sessionChanges, gitChanges);
+			if (discoveredRoots.length > 1) {
+				const allGit: IChatSessionFileChange2[] = [];
+				let anyReachable = false;
+				for (const root of discoveredRoots) {
+					const rootChanges = await loadDroxGitUncommittedChangesForRoot(this.gitService, root);
+					if (rootChanges) {
+						anyReachable = true;
+						allGit.push(...rootChanges);
+					}
+				}
+				if (this._syncGeneration.get(key) !== generation) {
+					return;
+				}
+				if (anyReachable) {
+					merged = mergeDroxSessionFileChanges(sessionChanges, allGit);
+				}
+			} else {
+				const gitChanges = await loadDroxGitUncommittedChanges(this.gitService, workspace);
+				if (this._syncGeneration.get(key) !== generation) {
+					return;
+				}
+				if (gitChanges !== undefined) {
+					merged = mergeDroxSessionFileChanges(sessionChanges, gitChanges);
+				}
 			}
 		} catch (e) {
 			this.logService.warn('[DroxSessionsProvider] failed to load git uncommitted changes', e);
@@ -1382,18 +1439,16 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		const engineSessionId = DroxChatSessionUri.parseSessionId(session.resource);
 		const workspacePath = session.workingDirectory?.fsPath;
 
+		// Disk first: never drop cache if persistence fails (avoids "delete then list grows").
+		if (engineSessionId && workspacePath) {
+			await this.sessionService.deleteSession(engineSessionId, workspacePath);
+			this._locallyDeletedEngineIds.add(engineSessionId);
+			removeDroxEngineSessionFromRecency(this.storageService, workspacePath, engineSessionId);
+		}
+
 		await this._evictChatSession(session.resource);
 		this.sessionChangesDetailService.clearSession(session.resource);
 		this.sessionChangesPanelService.clearSession(session.resource);
-
-		if (engineSessionId && workspacePath) {
-			try {
-				await this.sessionService.deleteSession(engineSessionId, workspacePath);
-			} catch (e) {
-				this.logService.warn('[DroxSessionsProvider] failed to delete session on disk', e);
-			}
-			removeDroxEngineSessionFromRecency(this.storageService, workspacePath, engineSessionId);
-		}
 
 		this._gitWatchStores.get(key)?.dispose();
 		this._gitWatchStores.delete(key);
@@ -1409,8 +1464,46 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 	}
 
 	async deleteSessions(sessionIds: readonly string[]): Promise<void> {
+		const removed: ISession[] = [];
+		const errors: string[] = [];
 		for (const id of sessionIds) {
-			await this.deleteSession(id);
+			const session = this._findSession(id);
+			if (!session) {
+				continue;
+			}
+			const key = session.resource.toString();
+			const engineSessionId = DroxChatSessionUri.parseSessionId(session.resource);
+			const workspacePath = session.workingDirectory?.fsPath;
+			try {
+				if (engineSessionId && workspacePath) {
+					await this.sessionService.deleteSession(engineSessionId, workspacePath);
+					this._locallyDeletedEngineIds.add(engineSessionId);
+					removeDroxEngineSessionFromRecency(this.storageService, workspacePath, engineSessionId);
+				}
+				await this._evictChatSession(session.resource);
+				this.sessionChangesDetailService.clearSession(session.resource);
+				this.sessionChangesPanelService.clearSession(session.resource);
+				this._gitWatchStores.get(key)?.dispose();
+				this._gitWatchStores.delete(key);
+				this._activatedSessionKeys.delete(key);
+				this._syncGeneration.delete(key);
+				this._sessionCache.delete(key);
+				if (this._newSessions.has(id)) {
+					this._newSessions.deleteAndDispose(id);
+				}
+				removed.push(this._toISession(session));
+				session.dispose();
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				errors.push(`${id}: ${msg}`);
+				this.logService.warn('[DroxSessionsProvider] deleteSessions item failed', id, e);
+			}
+		}
+		if (removed.length > 0) {
+			this._onDidChangeSessions.fire({ added: [], removed, changed: [] });
+		}
+		if (errors.length > 0 && removed.length === 0) {
+			throw new Error(localize('drox.sessions.deleteAllFailed', 'Failed to delete sessions: {0}', errors.join('; ')));
 		}
 	}
 

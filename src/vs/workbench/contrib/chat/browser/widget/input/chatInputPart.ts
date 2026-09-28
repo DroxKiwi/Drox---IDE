@@ -3188,9 +3188,18 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					const itemDelegate: IModelPickerDelegate = this._createModelPickerDelegate();
 					return this.modelWidget = this.instantiationService.createInstance(ModelPickerActionItem, action, itemDelegate, pickerOptions);
 				} else if (action.id === OpenModePickerAction.ID && action instanceof MenuItemAction) {
+					// Drox discussion shell: mode is always Agent; Agents UI uses Drox chips instead.
+					if (this._usesDroxNativeComposer()) {
+						return new HiddenActionViewItem(action);
+					}
 					const delegate: IModePickerDelegate = this._createModePickerDelegate();
 					return this.modeWidget = this.instantiationService.createInstance(ModePickerActionItem, action, delegate, pickerOptions);
+				} else if (action.id === ConfigureToolsAction.ID && this._usesDroxNativeComposer()) {
+					return new HiddenActionViewItem(action);
 				} else if ((action.id === OpenSessionTargetPickerAction.ID || action.id === OpenDelegationPickerAction.ID) && action instanceof MenuItemAction) {
+					if (this._usesDroxNativeComposer()) {
+						return new HiddenActionViewItem(action);
+					}
 					// Use provided delegate if available, otherwise create default delegate
 					const delegate: ISessionTypePickerDelegate = this.options.sessionTypePickerDelegate ?? {
 						getActiveSessionProvider: () => {
@@ -3325,6 +3334,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			},
 			actionViewItemProvider: (action, options) => {
 				if ((action.id === OpenSessionTargetPickerAction.ID || action.id === OpenDelegationPickerAction.ID) && action instanceof MenuItemAction) {
+					if (this._usesDroxNativeComposer()) {
+						return new HiddenActionViewItem(action);
+					}
 					const delegate: ISessionTypePickerDelegate = this.options.sessionTypePickerDelegate ?? {
 						getActiveSessionProvider: () => {
 							return this.getActiveSessionTypeForDelegation();
@@ -3347,6 +3359,10 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 						return new HiddenActionViewItem(action);
 					}
 				} else if (action.id === OpenPermissionPickerAction.ID && action instanceof MenuItemAction) {
+					// Drox uses DroxAgentsPermissionModePicker on the composer toolbar instead.
+					if (this._usesDroxNativeComposer()) {
+						return new HiddenActionViewItem(action);
+					}
 					const delegate: IPermissionPickerDelegate = {
 						currentPermissionLevel: this._currentPermissionLevel,
 						setPermissionLevel: (level: ChatPermissionLevel) => {

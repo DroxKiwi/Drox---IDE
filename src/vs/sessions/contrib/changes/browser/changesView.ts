@@ -842,8 +842,10 @@ export class ChangesViewPane extends ViewPane {
 					dom.clearNode(this.droxInlineContainer);
 					this.droxInlineDiffWidget = this.renderDisposables.add(this.scopedInstantiationService.createInstance(
 						DroxChangesInlineDiffWidget,
-						this.droxInlineContainer,
-						this.viewModel.activeSessionResourceObs,
+						{
+							parent: this.droxInlineContainer,
+							sessionResourceObs: this.viewModel.activeSessionResourceObs,
+						},
 					));
 				}
 				this.layoutSplitView();

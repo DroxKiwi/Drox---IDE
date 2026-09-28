@@ -1,0 +1,24 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Shared discussion shell — used by IDE native chat and Agents ChatView. */
+
+.drox-discussion-shell .interactive-session {
+	--chat-content-horizontal-padding: 64px;
+}
+
+.drox-discussion-shell .chat-input-toolbar .action-item:empty,
+.drox-discussion-shell .chat-secondary-input-toolbar .action-item:empty {
+	display: none !important;
+}
+
+.drox-discussion-shell .chat-input-container {
+	border-radius: 12px;
+}
+
+.drox-discussion-shell .chat-welcome-view-disclaimer,
+.drox-discussion-shell .chat-welcome-view-tips {
+	display: none !important;
+}
