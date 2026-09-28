@@ -5,7 +5,7 @@
 
 // allow-any-unicode-comment-file
 
-// Affichage messages — contrat : drox-engine/docs/1.3/1.3.2/PROTOCOL-CONTRACT.md §3
+// Affichage messages — contrat : docs/1.3/1.3.2/PROTOCOL-CONTRACT.md §3
 // Thinking interne → panneau Thinking ; reste → chat ; userFacingReply → chat canonique.
 
 (function (D) {

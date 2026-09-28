@@ -1,7 +1,7 @@
 # Build Drox IDE linux-x64 .deb and upload as workflow artifact.
 # Trigger: manual (workflow_dispatch) or tag v* after Windows ship prep.
 #
-# See: drox-engine/docs/operations/GUIDE-PUBLICATION-LINUX.md
+# See: docs/operations/GUIDE-PUBLICATION-LINUX.md
 
 name: Drox Linux release build
 
