@@ -27,7 +27,7 @@ if (-not $Distro) {
 	else { $Distro = $installed[0] }
 }
 
-$winRepo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
+$winRepo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $drive = $winRepo.Substring(0, 1).ToLowerInvariant()
 $winRest = ($winRepo.Substring(2) -replace '\\', '/').TrimStart('/')
 $winRepoWsl = "/mnt/$drive/$winRest"
