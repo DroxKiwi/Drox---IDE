@@ -2,7 +2,7 @@
 
 **Statut** : **préparé** · reporté (était 1.5.22)  
 **Version cible** : `droxVersion` **1.5.23**  
-**Précédent** : [1.5.22](../1.5.22/README.md) — tool calling universel
+**Précédent** : [1.5.22](../1.5.22/README.md) — shell discussion partagé Agents ↔ IDE
 
 ## Docs
 
@@ -28,4 +28,4 @@
 
 ## Origine
 
-Features reportées hors 1.5.19 → … → **1.5.23** pour prioriser stabilisation (1.5.20), shell discussion unifié (1.5.21), puis tool calling (1.5.22).
+Features reportées hors 1.5.19 → … → **1.5.23** pour prioriser stabilisation (1.5.20), tool calling (1.5.21), puis shell discussion unifié (1.5.22).

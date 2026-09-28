@@ -17,7 +17,7 @@ Audits liés : [AUDIT-IDE-CHAT-LOADING.md](AUDIT-IDE-CHAT-LOADING.md) · [AUDIT-
 | Changes IDE | Même UX Agents (widget inline) ; **activity bar Sidebar** (pas aux) ; merge multi-git |
 | Outils / sessions agent | Toujours bornés à `folders[0]` — le multi-git est **affichage Changes seulement** |
 | Commit/Push IDE | **Hors scope** (SCM natif) |
-| Shell discussion unifié Agents ↔ IDE | **Hors scope** → [1.5.21](../1.5.21/PLAN-SHARED-DISCUSSION-SHELL.md) |
+| Shell discussion unifié Agents ↔ IDE | **Hors scope** → [1.5.22](../1.5.22/PLAN-SHARED-DISCUSSION-SHELL.md) |
 
 ---
 

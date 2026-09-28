@@ -1,7 +1,7 @@
-# Plan — Shell de discussion partagé Agents ↔ IDE (1.5.21)
+# Plan — Shell de discussion partagé Agents ↔ IDE (1.5.22)
 
-**Statut** : **en cours** (implémentation démarrée)  
-**Version** : 1.5.21  
+**Statut** : **préparé** (implémentation partielle démarrée sous l’ancien numéro 1.5.21)  
+**Version** : 1.5.22  
 **Décision produit** : l’IDE récupère **l’intégralité** de l’interface de discussion Agents — fil **et** tous les outils qui vont avec (modèle, connexion, paramètres, modes, status) — pas un sous-ensemble.
 
 ---
@@ -136,4 +136,4 @@ CFG USER déjà unifiée (1.5.11) : l’UI partagée doit **exposer** les mêmes
 
 ## Origine demande
 
-Après 1.5.20 : unifier le chrome discussion ; confirmation produit — **récupérer l’intégralité des outils** (modèle, connexion, etc.), pas seulement le fil.
+Après 1.5.20 : unifier le chrome discussion ; confirmation produit — **récupérer l’intégralité des outils** (modèle, connexion, etc.), pas seulement le fil. Numéro de ligne : **1.5.22** (après tool calling **1.5.21**).

@@ -218,7 +218,7 @@ Réutiliser le chrome UI Agents tel quel dans l’IDE — deux workbenches (`ses
 
 - Ne pas casser le load d’historique long sur Agents (timeouts 6 s déjà soft).
 - Ne pas réintroduire un overlay bloquant « pour faire joli ».
-- Tool calling universel / codebase → 1.5.21 / 1.5.22.
+- Tool calling universel / shell discussion → 1.5.21 / 1.5.22.
 
 ---
 

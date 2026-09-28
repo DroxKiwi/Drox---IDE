@@ -3,8 +3,8 @@
 **Statut** : **ouvert** · branche `1.5.20`  
 **Version** : `droxVersion` **1.5.20**  
 **Précédent** : [1.5.19](../1.5.19/README.md) — badge / Git Graph + Ollama ([CLOSURE](../1.5.19/CLOSURE-1.5.19.md))  
-**Suite** : shell discussion unifié Agents ↔ IDE → [1.5.21](../1.5.21/README.md)  
-**Reporté** : tool calling universel → [1.5.22](../1.5.22/README.md) · index / carte code → [1.5.23](../1.5.23/README.md)
+**Suite** : tool calling universel → [1.5.21](../1.5.21/README.md)  
+**Reporté** : shell discussion unifié Agents ↔ IDE → [1.5.22](../1.5.22/README.md) · index / carte code → [1.5.23](../1.5.23/README.md)
 
 ## Docs
 
@@ -34,4 +34,5 @@
 - Outils agent restent sur `folders[0]` ; multi-git = affichage Changes seulement.
 - Commit/Push IDE hors scope (SCM natif).
 - Critère de sortie : chat IDE utilisable + historique fiable (Agents & IDE) + Changes IDE multi-git.
-- **Chrome discussion IDE ≠ Agents** (ChatWidget Copilot vs shell sessions) → chantier **[1.5.21](../1.5.21/PLAN-SHARED-DISCUSSION-SHELL.md)**.
+- **Chrome discussion IDE ≠ Agents** (ChatWidget Copilot vs shell sessions) → chantier **[1.5.22](../1.5.22/PLAN-SHARED-DISCUSSION-SHELL.md)**.
+- Tool calling universel → **[1.5.21](../1.5.21/PLAN-UNIVERSAL-TOOL-CALLING.md)**.

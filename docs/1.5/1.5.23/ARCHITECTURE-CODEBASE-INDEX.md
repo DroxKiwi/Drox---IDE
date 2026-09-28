@@ -8,7 +8,7 @@ Références liées :
 - [README.md](README.md) — périmètre 1.5.23
 - [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) — carte visuelle du code
 - [../1.5.19/PLAN-GIT-BRANCH-GRAPH.md](../1.5.19/PLAN-GIT-BRANCH-GRAPH.md) — socle canvas livré avec le Git Graph
-- [../1.5.22/README.md](../1.5.22/README.md) — tool calling (précédent)
+- [../1.5.22/README.md](../1.5.22/README.md) — shell discussion (précédent)
 
 ---
 
