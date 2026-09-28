@@ -1,7 +1,7 @@
-# Plan — tool calling universel (1.5.22)
+# Plan — tool calling universel (1.5.21)
 
 **Statut** : **en cours** · U1 livré (normalizer `todo_write`) ; U2–U4 ouverts  
-**Version** : 1.5.22  
+**Version** : 1.5.21  
 **Contexte** : sans modèle fine-tuné Drox ; fumée KAT / GGUF en 1.5.19 (`status: {}`, XML dans thinking, wire natif cassé).
 
 ---
@@ -42,7 +42,7 @@ Critère de succès (proposition) : sur au moins **deux** GGUF « fragiles » (e
 
 ## 3. Pistes de design (à trancher)
 
-Ces pistes ne sont **pas** toutes retenues ; elles structurent le débat 1.5.22.
+Ces pistes ne sont **pas** toutes retenues ; elles structurent le débat 1.5.21.
 
 | Id | Piste | Idée | Risque |
 |----|--------|------|--------|
@@ -63,17 +63,17 @@ Ces pistes ne sont **pas** toutes retenues ; elles structurent le débat 1.5.22.
 | **U0** | Ce plan + smoke baseline (KAT transcript / scénario `todo_write`) | Doc only |
 | **U1** | Normalizer args `todo_write` (`status: {}` / null / map → enum string) | ☑ `drox-tools` `todo_write.rs` + tests |
 | **U2** | Décision design C vs T vs H (spike court + smoke) | Trancher avant gros code |
-| **U3** | Implémentation du contrat retenu + prompt | Cœur 1.5.22 |
+| **U3** | Implémentation du contrat retenu + prompt | Cœur 1.5.21 |
 | **U4** | Fiche `ENGINE-UNIVERSAL-TOOL-CALLING.md` (E-style) + tests unit + smoke multi-modèles | Clôture |
 
 ---
 
-## 5. Hors scope 1.5.22
+## 5. Hors scope 1.5.21
 
 - Fine-tune / LoRA Drox.
 - Second modèle « translator ».
 - Templates Ollama par famille (ops, pas ship principal).
-- Shell discussion unifié → [1.5.21](../1.5.21/README.md).
+- Shell discussion unifié → [1.5.22](../1.5.22/README.md).
 - Index `@Codebase` / carte code → [1.5.23](../1.5.23/README.md).
 - Stabilisation chat IDE → [1.5.20](../1.5.20/README.md).
 
