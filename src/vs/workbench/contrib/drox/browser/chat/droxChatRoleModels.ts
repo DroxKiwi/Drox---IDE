@@ -41,6 +41,10 @@ export interface IDroxArchitectLlmParamsPatch {
 
 	readonly keepAlive?: string | null;
 
+	readonly reasoningEffort?: string | null;
+
+	readonly thinkingBudget?: number | null;
+
 	readonly mutedParams?: readonly string[] | null;
 
 }
@@ -69,6 +73,10 @@ export interface IDroxArchitectRoleModelsWire {
 	readonly architectMaxTokens?: number;
 
 	readonly architectKeepAlive?: string;
+
+	readonly architectReasoningEffort?: string;
+
+	readonly architectThinkingBudget?: number;
 
 	readonly architectLlmParamsMuted?: readonly string[];
 
@@ -196,6 +204,21 @@ export async function setDroxArchitectLlmParamsFromWebview(
 
 	}
 
+	if (params.reasoningEffort !== undefined) {
+		const trimmed = params.reasoningEffort === null ? '' : String(params.reasoningEffort).trim();
+		const allowed = new Set(['', 'low', 'medium', 'high', 'xhigh']);
+		const next = allowed.has(trimmed) ? trimmed : '';
+		await applyDroxConfigurationUpdate(configurationService, DroxSetting.ReasoningEffort, next || undefined, workspaceResource);
+	}
+
+	await patchOptionalNumber(
+		configurationService,
+		DroxSetting.ThinkingBudget,
+		workspaceResource,
+		params.thinkingBudget,
+		n => Math.max(1, Math.floor(n)),
+	);
+
 	if (params.mutedParams !== undefined) {
 		const muted = normalizeDroxLlmParamsMuted(params.mutedParams ?? []);
 		await applyDroxConfigurationUpdate(
@@ -242,6 +265,10 @@ export function readDroxRoleModelsForWebview(
 		architectMaxTokens: maxTokens,
 
 		architectKeepAlive: llm.keepAlive || undefined,
+
+		architectReasoningEffort: llm.reasoningEffort || undefined,
+
+		architectThinkingBudget: wireOptionalLlmNumber(llm, llm.thinkingBudget),
 
 		architectLlmParamsMuted: [...llm.llmParamsMuted],
 

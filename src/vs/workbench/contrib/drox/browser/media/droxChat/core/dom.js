@@ -68,6 +68,8 @@
 	D.dom.roleModelPanelFrequencyPenaltyEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-frequency-penalty'));
 	D.dom.roleModelPanelMaxTokensEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-max-tokens'));
 	D.dom.roleModelPanelKeepAliveEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-keep-alive'));
+	D.dom.roleModelPanelReasoningEffortEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('role-model-panel-reasoning-effort'));
+	D.dom.roleModelPanelThinkingBudgetEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-thinking-budget'));
 	D.dom.roleModelPanelReloadEl = document.getElementById('role-model-panel-reload');
 	D.dom.llmModelPickerWrapEl = document.getElementById('llm-model-picker-wrap');
 	D.dom.llmModelPickerEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('llm-model-picker'));
