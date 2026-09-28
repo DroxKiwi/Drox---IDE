@@ -138,7 +138,7 @@ export const enum DroxSetting {
 
 /** Default `latest.json` URL (also used when user settings clear the manifest URL). */
 export const DROX_DEFAULT_UPDATE_MANIFEST_URL =
-	'https://raw.githubusercontent.com/DroxKiwi/Drox---IDE---OR/main/stable/latest.json';
+	'https://raw.githubusercontent.com/DroxKiwi/Drox---IDE/main/stable/latest.json';
 
 /** Liste dynamique — modèle Architecte (`agent.run` / moteur `tui_mono`). */
 export const droxArchitectModelEnumValues: string[] = [''];

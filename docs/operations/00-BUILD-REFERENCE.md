@@ -6,13 +6,12 @@ Guides détaillés : [03 Windows](03-RELEASE-WINDOWS.md) · [04 Linux](04-RELEAS
 
 ---
 
-## Deux dossiers, deux rôles
+## Un dépôt, deux rôles
 
 | Dossier | OS | Rôle |
 |---------|-----|------|
-| `C:\…\Drox---IDE` | Windows | **Dev** + **build Windows** |
+| `C:\…\Drox---IDE` | Windows | **Dev** + **build Windows** + **manifestes `stable/`** + **GitHub Releases** |
 | `~/Drox---IDE` (WSL ext4) | Linux | **Build Linux** (créé par le script isolé) |
-| `Drox---IDE---OR` | — | **Publication** (manifestes + GitHub Releases) |
 
 **Ne jamais** lancer `npm install` sous WSL sur `C:\…` via `/mnt/c/`.
 
@@ -38,7 +37,7 @@ npm run drox:ship -- -Force
 ### Release Linux (`.deb`)
 
 ```powershell
-.\drox-engine\docs\operations\scripts\wsl-linux-build-isolated.ps1
+.\docs\operations\scripts\wsl-linux-build-isolated.ps1
 ```
 
 → [04-RELEASE-LINUX.md](04-RELEASE-LINUX.md)
@@ -46,7 +45,7 @@ npm run drox:ship -- -Force
 ### Ordre release complète
 
 ```
-Windows (03)  →  Linux isolé (04)  →  OR + gh release upload
+Windows (03)  →  Linux isolé (04)  →  commit stable/ + gh release sur Drox---IDE
 ```
 
 ---

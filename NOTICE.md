@@ -26,5 +26,5 @@ Voir [`ThirdPartyNotices.txt`](ThirdPartyNotices.txt) et [`NOTICE-DROX.txt`](NOT
 
 ## Téléchargements
 
-Les binaires (Windows / Linux) sont publiés via **GitHub Releases**.  
-Canal actuel : [Drox---IDE---OR](https://github.com/DroxKiwi/Drox---IDE---OR/releases) (migration prévue vers les Releases de ce dépôt).
+Les binaires (Windows / Linux) sont publiés via **GitHub Releases** de ce dépôt :
+[Drox---IDE/releases](https://github.com/DroxKiwi/Drox---IDE/releases).

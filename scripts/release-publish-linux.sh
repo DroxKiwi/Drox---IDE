@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publish Linux .deb manifest entry to Drox---IDE---OR (merge linux-x64 into latest.json).
+# Publish Linux .deb manifest entry into this repo (merge linux-x64 into stable/latest.json).
 #
 # Prerequisite: ./scripts/build-release-linux.sh
 #
@@ -7,7 +7,7 @@
 #   ./scripts/release-publish-linux.sh
 #   ./scripts/release-publish-linux.sh --dry-run
 #   ./scripts/release-publish-linux.sh --deb /path/to/package.deb
-#   DROX_RELEASES_REPO=/mnt/c/.../Drox---IDE---OR ./scripts/release-publish-linux.sh
+#   DROX_RELEASES_REPO=/path/to/Drox---IDE ./scripts/release-publish-linux.sh
 
 set -euo pipefail
 
@@ -15,7 +15,7 @@ DRY_RUN=0
 DEB_FILE=''
 RELEASES_REPO="${DROX_RELEASES_REPO:-}"
 GITHUB_ORG='DroxKiwi'
-GITHUB_REPO='Drox---IDE---OR'
+GITHUB_REPO='Drox---IDE'
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -27,7 +27,7 @@ while [[ $# -gt 0 ]]; do
 		-h|--help)
 			echo "Usage: $0 [--dry-run] [--deb PATH] [--releases-repo PATH]"
 			echo ""
-			echo "OR repo: env DROX_RELEASES_REPO ou voisin de <REPO> (pas ~/Drox---IDE---OR du clone isole)."
+			echo "Releases repo: env DROX_RELEASES_REPO or this source repo (default)."
 			exit 0
 			;;
 		*) echo "Option inconnue: $1" >&2; exit 1 ;;
@@ -37,12 +37,10 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 if [[ -z "$RELEASES_REPO" ]]; then
-	RELEASES_REPO="$(cd "$REPO_ROOT/.." && pwd)/Drox---IDE---OR"
+	RELEASES_REPO="$REPO_ROOT"
 fi
 if [[ ! -d "$RELEASES_REPO/.git" ]]; then
-	echo "[release-publish-linux] Repo OR introuvable ou sans .git: $RELEASES_REPO" >&2
-	echo "  Depuis un build isole (~/Drox---IDE), passer --releases-repo ou DROX_RELEASES_REPO" >&2
-	echo "  vers Desktop/GitHub/Drox---IDE---OR (voir 04-RELEASE-LINUX.md)." >&2
+	echo "[release-publish-linux] Repo releases introuvable ou sans .git: $RELEASES_REPO" >&2
 	exit 1
 fi
 PRODUCT_VERSION="$(node "$SCRIPT_DIR/lib/drox-release-manifest.mjs" version)"
@@ -109,4 +107,4 @@ echo "  1. cd \"$RELEASES_REPO\""
 echo "  2. git add stable/ .gitignore NOTICE.md README.md"
 echo "  3. git commit -m \"Release v$PRODUCT_VERSION linux-x64 (manifest)\""
 echo "  4. git push"
-echo "  5. gh release upload v$PRODUCT_VERSION \"$DEST_DEB\""
+echo "  5. gh release upload v$PRODUCT_VERSION \"$DEST_DEB\" --repo $GITHUB_ORG/$GITHUB_REPO"

@@ -102,22 +102,22 @@ chmod +x scripts/build-release-linux.sh scripts/package-drox.sh \
 	scripts/lib/linux-npm-install.sh scripts/lib/linux-strip-packaged-natives.sh
 ./scripts/build-release-linux.sh --force-compile --skip-npm-install
 
-OR_REPO="${DROX_RELEASES_REPO:-$(dirname "$REPO_ROOT")/Drox---IDE---OR}"
-if [[ -d "$OR_REPO/.git" ]]; then
+RELEASES_REPO="${DROX_RELEASES_REPO:-$REPO_ROOT}"
+if [[ -d "$RELEASES_REPO/.git" ]]; then
 	step "release-publish-linux.sh"
-	DROX_RELEASES_REPO="$OR_REPO" ./scripts/release-publish-linux.sh
-	UPLOAD="$OR_REPO/_upload"
+	DROX_RELEASES_REPO="$RELEASES_REPO" ./scripts/release-publish-linux.sh
+	UPLOAD="$RELEASES_REPO/_upload"
 	echo ""
 	echo "Done. Deb in: $UPLOAD"
 	ls -la "$UPLOAD"/*.deb 2>/dev/null || true
 	echo ""
 	echo "Upload to GitHub (from Windows PowerShell):"
 	VER="$(node scripts/lib/drox-release-manifest.mjs version)"
-	echo "  gh release upload v${VER} \"$(wslpath -w "$UPLOAD" 2>/dev/null || echo "$UPLOAD")/Drox-IDE-${VER}-linux-x64.deb\" --repo DroxKiwi/Drox---IDE---OR --clobber"
+	echo "  gh release upload v${VER} \"$(wslpath -w "$UPLOAD" 2>/dev/null || echo "$UPLOAD")/Drox-IDE-${VER}-linux-x64.deb\" --repo DroxKiwi/Drox---IDE --clobber"
 else
 	echo ""
-	echo "Build OK. Publier le manifeste (voir 04-RELEASE-LINUX.md §4) :"
-	echo "  DROX_RELEASES_REPO=/mnt/c/.../Drox---IDE---OR ./scripts/release-publish-linux.sh"
+	echo "Build OK. Publier le manifeste :"
+	echo "  DROX_RELEASES_REPO=\$PWD ./scripts/release-publish-linux.sh"
 fi
 
 if [[ "$REPO_ROOT" == /mnt/* ]]; then

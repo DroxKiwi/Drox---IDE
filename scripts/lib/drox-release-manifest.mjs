@@ -22,7 +22,7 @@ function readPackageDroxVersion() {
 }
 
 function defaultReleasesRepo() {
-	return path.resolve(repoRoot, '..', 'Drox---IDE---OR');
+	return repoRoot;
 }
 
 function latestJsonPath(releasesRepo) {
@@ -66,6 +66,10 @@ function buildManifest(opts) {
 		sizeBytes: Number(opts.sizeBytes || 0),
 	};
 
+	const defaultNotes = `https://github.com/DroxKiwi/Drox---IDE/blob/main/stable/${version}/RELEASE_NOTES.md`;
+	let notesUrl = opts.notesUrl || existing.notesUrl || defaultNotes;
+	notesUrl = String(notesUrl).replace(/Drox---IDE---OR/g, 'Drox---IDE');
+
 	return {
 		manifest: {
 			version,
@@ -73,10 +77,7 @@ function buildManifest(opts) {
 			productVersion: version,
 			platforms,
 			mandatory: existing.mandatory ?? false,
-			notesUrl:
-				opts.notesUrl ||
-				existing.notesUrl ||
-				`https://github.com/DroxKiwi/Drox---IDE---OR/blob/main/stable/${version}/RELEASE_NOTES.md`,
+			notesUrl,
 		},
 		path: latestJsonPath(releasesRepo),
 	};

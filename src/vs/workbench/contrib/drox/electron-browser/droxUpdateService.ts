@@ -81,7 +81,7 @@ export class DroxUpdateService extends Disposable implements IDroxUpdateService 
 		const simulated = isDroxDevFeatureEnabled('updateSimulateLatest', this.productService) ? simulatedRaw : '';
 		if (simulated) {
 			const simulateInstaller = this.configurationService.getValue<string>(DroxSetting.UpdateSimulateInstallerUrl)?.trim()
-				|| 'https://github.com/DroxKiwi/Drox---IDE---OR/releases/latest';
+				|| 'https://github.com/DroxKiwi/Drox---IDE/releases/latest';
 			return this.evaluateVersions(current, simulated, {
 				installerUrl: simulateInstaller,
 				notesUrl: simulateInstaller,
