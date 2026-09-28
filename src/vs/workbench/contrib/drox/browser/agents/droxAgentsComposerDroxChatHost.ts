@@ -576,6 +576,8 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 		D.dom.roleModelPanelFrequencyPenaltyEl = mainWindow.document.getElementById('role-model-panel-frequency-penalty') as HTMLInputElement | null;
 		D.dom.roleModelPanelMaxTokensEl = mainWindow.document.getElementById('role-model-panel-max-tokens') as HTMLInputElement | null;
 		D.dom.roleModelPanelKeepAliveEl = mainWindow.document.getElementById('role-model-panel-keep-alive') as HTMLInputElement | null;
+		D.dom.roleModelPanelReasoningEffortEl = mainWindow.document.getElementById('role-model-panel-reasoning-effort') as HTMLSelectElement | null;
+		D.dom.roleModelPanelThinkingBudgetEl = mainWindow.document.getElementById('role-model-panel-thinking-budget') as HTMLInputElement | null;
 		D.dom.roleModelPanelReloadEl = mainWindow.document.getElementById('role-model-panel-reload');
 	}
 
@@ -645,6 +647,8 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 					frequencyPenalty: raw.frequencyPenalty,
 					maxTokens: raw.maxTokens,
 					keepAlive: raw.keepAlive,
+					reasoningEffort: raw.reasoningEffort,
+					thinkingBudget: raw.thinkingBudget,
 					mutedParams: raw.mutedParams,
 				});
 				break;

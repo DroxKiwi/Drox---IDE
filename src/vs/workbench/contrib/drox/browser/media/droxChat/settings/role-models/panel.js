@@ -45,6 +45,12 @@
 		if (D.dom.roleModelPanelKeepAliveEl) {
 			D.dom.roleModelPanelKeepAliveEl.value = D.state.architectKeepAlive ? String(D.state.architectKeepAlive) : '';
 		}
+		if (D.dom.roleModelPanelReasoningEffortEl) {
+			D.dom.roleModelPanelReasoningEffortEl.value = D.state.architectReasoningEffort ? String(D.state.architectReasoningEffort) : '';
+		}
+		if (D.dom.roleModelPanelThinkingBudgetEl) {
+			D.dom.roleModelPanelThinkingBudgetEl.value = formatPanelNumber(D.state.architectThinkingBudget);
+		}
 		if (typeof fn.syncRoleModelMuteButtonsFromState === 'function') {
 			fn.syncRoleModelMuteButtonsFromState();
 		}

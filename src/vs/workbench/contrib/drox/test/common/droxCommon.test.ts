@@ -113,6 +113,8 @@ function mockLlmSettings(overrides: Partial<IDroxLlmSettings> = {}): IDroxLlmSet
 		presencePenalty: undefined,
 		frequencyPenalty: undefined,
 		keepAlive: '',
+		reasoningEffort: '',
+		thinkingBudget: undefined,
 		nativeThinking: false,
 		llmParamsMuted: [],
 		...overrides,
