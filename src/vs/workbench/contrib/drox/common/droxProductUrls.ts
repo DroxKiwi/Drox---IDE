@@ -11,4 +11,4 @@ export const DROX_PRODUCT_REPO_URL = 'https://github.com/DroxKiwi/Drox---IDE';
 export const DROX_PRODUCT_ISSUES_URL =
 	'https://github.com/DroxKiwi/Drox---IDE---OR/issues/new';
 export const DROX_ENGINE_DOCS_URL =
-	'https://github.com/DroxKiwi/Drox---IDE/tree/main/drox-engine/docs';
+	'https://github.com/DroxKiwi/Drox---IDE/tree/main/docs';

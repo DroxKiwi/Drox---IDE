@@ -1,6 +1,6 @@
 # Drox chat webview modules
 
-**Suivi projet** : [drox-engine/docs/ide/CHAT-WEBVIEW-MODULES.md](../../../../../../../../drox-engine/docs/ide/CHAT-WEBVIEW-MODULES.md) · **Découpage 1.3.2** : [drox-engine/docs/1.3/1.3.2/DECOUPAGE-CHAT-WEBVIEW.md](../../../../../../../../drox-engine/docs/1.3/1.3.2/DECOUPAGE-CHAT-WEBVIEW.md)
+**Suivi projet** : [docs/ide/CHAT-WEBVIEW-MODULES.md](../../../../../../../../docs/ide/CHAT-WEBVIEW-MODULES.md) · **Découpage 1.3.2** : [docs/1.3/1.3.2/DECOUPAGE-CHAT-WEBVIEW.md](../../../../../../../../docs/1.3/1.3.2/DECOUPAGE-CHAT-WEBVIEW.md)
 
 Modules ordonnés par mécanique, chargés via `DROX_CHAT_SCRIPT_FILES` dans `droxChatWebview.ts`.
 

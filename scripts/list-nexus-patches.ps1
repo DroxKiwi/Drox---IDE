@@ -1,6 +1,6 @@
 # Liste les fichiers du fork Nexus hors contrib/drox contenant des marqueurs Drox/Nexus.
 # Usage : .\scripts\list-nexus-patches.ps1
-# See: drox-engine/docs/1.2.0/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md section 5
+# See: docs/1.2.0/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md section 5
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
