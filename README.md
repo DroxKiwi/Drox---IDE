@@ -146,7 +146,7 @@ Pipeline actuel : **`tui_mono`** — une boucle claire, plus le vieux split Arch
 | Sujet | Doc |
 |-------|-----|
 | Index moteur (parcours lecture) | [docs/engine/](docs/engine/README.md) |
-| Rust lu dans le moteur | [rust-par-le-moteur.md](docs/engine/rust-par-le-moteur.md) · [parcours inférence](docs/engine/rust-parcours-inference.md) |
+| Pédagogie (guides accompagnés) | [docs/pedagogie/](docs/pedagogie/README.md) |
 | Crates & clients | [architecture-overview.md](docs/engine/architecture-overview.md) |
 | Protocole NDJSON | [jsonrpc-protocol.md](docs/engine/jsonrpc-protocol.md) |
 | Boucle agent | [agent-run-loop.md](docs/engine/agent-run-loop.md) |

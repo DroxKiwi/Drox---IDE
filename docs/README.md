@@ -6,14 +6,21 @@ Rédigé à l'aide de Cursor Agent
 
 | Entrée | Contenu |
 |--------|---------|
-| **[`engine/`](engine/README.md)** | Moteur actuel (`tui_mono`) — référence Rust |
-| **[`tutorials/ide-navigation.md`](tutorials/ide-navigation.md)** | Navigation dans l’interface IDE (séparé du moteur) |
+| **[`pedagogie/`](pedagogie/README.md)** | Guides **accompagnés** (Rust + moteur, ligne à ligne) |
+| **[`engine/`](engine/README.md)** | Référence moteur (`tui_mono`) |
+| **[`tutorials/ide-navigation.md`](tutorials/ide-navigation.md)** | Navigation dans l’interface IDE |
 | **[`operations/`](operations/README.md)** | Build, release Windows/Linux, branches |
 | **[`1.5/`](1.5/README.md)** | Plans / clôtures ligne 1.5.x |
 | **[`1.4/`](1.4/)** · **[`1.3/`](1.3/)** · **[`1.2/`](1.2/)** · **[`0.0/`](0.0/)** | Historique (archives) |
 | **[`feature-brainstorm/`](feature-brainstorm/README.md)** | Idées hors train de release |
 
 Onboarding court racine fork : [`../DROX.md`](../DROX.md) (si présent).
+
+---
+
+## Pédagogie (lecture guidée)
+
+Voir **[`pedagogie/`](pedagogie/README.md)** — série **01 → 14** (socle Ollama, boucle, erreurs, UI, outils, permissions, phases, contexte, sessions, parallélisme, MCP/Explore, hooks, TUI, professor).
 
 ---
 
@@ -24,8 +31,6 @@ Voir **[`engine/`](engine/README.md)** :
 | Document | Contenu |
 |----------|---------|
 | [Architecture](engine/architecture-overview.md) | Crates et clients |
-| [Rust par le moteur](engine/rust-par-le-moteur.md) | Concepts Rust ancrés dans le code |
-| [Parcours inférence](engine/rust-parcours-inference.md) | Requête LLM pas à pas (Ollama) |
 | [JSON-RPC](engine/jsonrpc-protocol.md) | Wire NDJSON + schémas |
 | [Boucle agent](engine/agent-run-loop.md) | `agent.run` → `drive_inner` |
 | [Internes `agent.rs`](engine/agent-internals.md) | Carte du monolithe |
