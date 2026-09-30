@@ -35,8 +35,8 @@
 | Index `@Codebase` · embed · BDD locale | [ARCHITECTURE-CODEBASE-INDEX.md](../1.5.21/ARCHITECTURE-CODEBASE-INDEX.md) |
 | Carte visuelle du code | [PLAN-CODE-MAP.md](../1.5.21/PLAN-CODE-MAP.md) |
 | Explore IDE (`task`) | [PLAN-SUBAGENTS-EXPLORE-IDE.md](../1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md) |
-| Shell discussion Agents ↔ IDE | [PLAN-SHARED-DISCUSSION-SHELL.md](../1.5.22/PLAN-SHARED-DISCUSSION-SHELL.md) |
-| Tool calling universel | [PLAN-UNIVERSAL-TOOL-CALLING.md](../1.5.23/PLAN-UNIVERSAL-TOOL-CALLING.md) |
+| Shell discussion Agents ↔ IDE | [PLAN-SHARED-DISCUSSION-SHELL.md](../1.5.21/PLAN-SHARED-DISCUSSION-SHELL.md) |
+| Tool calling universel | [PLAN-UNIVERSAL-TOOL-CALLING.md](../1.5.22/PLAN-UNIVERSAL-TOOL-CALLING.md) |
 
 ## Suite immédiate → [1.5.20](../1.5.20/README.md)
 
