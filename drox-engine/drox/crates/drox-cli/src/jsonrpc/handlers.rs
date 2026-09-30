@@ -38,11 +38,11 @@ use tracing::warn;
 use super::ide_event_shim::{IdeEventShimState, expand_agent_event_for_ide};
 use super::protocol::{
     AgentCancelParams, AgentCancelResult, AgentDoneNotification, AgentEventNotification,
-    AgentRunParams, AgentRunResult, InitializeParams, InitializeResult, RunStatus,
-    SessionCompactParams, SessionCompactResult, SessionCompactUsageDto, SessionListEntryDto,
-    SessionListParams, SessionReadParams, SessionReadResult, SessionTruncateAfterLastUserParams,
-    SessionTruncateAfterLastUserResult, UserAskParams, UserAskQuestion,
-    UserAskOption, UserAskResult,
+    AgentRunParams, AgentRunResult, EmbedEncodeParams, EmbedLoadParams, InitializeParams,
+    InitializeResult, RunStatus, SessionCompactParams, SessionCompactResult,
+    SessionCompactUsageDto, SessionListEntryDto, SessionListParams, SessionReadParams,
+    SessionReadResult, SessionTruncateAfterLastUserParams, SessionTruncateAfterLastUserResult,
+    UserAskParams, UserAskQuestion, UserAskOption, UserAskResult,
 };
 use super::remote_tool::RemoteTool;
 use super::server::Server;
@@ -272,6 +272,31 @@ pub fn agent_cancel(server: &Server, params: Option<Value>) -> Result<Value, Rpc
         ));
     }
     serde_json::to_value(AgentCancelResult { cancelled: true }).map_err(internal)
+}
+
+#[allow(clippy::unused_async)]
+pub async fn embed_status(_params: Option<Value>) -> Result<Value, RpcError> {
+    let status = drox_embed::status();
+    serde_json::to_value(status).map_err(internal)
+}
+
+#[allow(clippy::unused_async)]
+pub async fn embed_load(params: Option<Value>) -> Result<Value, RpcError> {
+    let params: EmbedLoadParams = decode_required(params, "embed.load requires `modelPath`")?;
+    let path = std::path::Path::new(&params.model_path);
+    match drox_embed::load_model(path) {
+        Ok(status) => serde_json::to_value(status).map_err(internal),
+        Err(e) => Err(RpcError::new(ENGINE_ERROR, e.to_string())),
+    }
+}
+
+#[allow(clippy::unused_async)]
+pub async fn embed_encode(params: Option<Value>) -> Result<Value, RpcError> {
+    let params: EmbedEncodeParams = decode_required(params, "embed.encode requires `texts`")?;
+    match drox_embed::encode(&params.texts) {
+        Ok(vectors) => serde_json::to_value(json!({ "vectors": vectors })).map_err(internal),
+        Err(e) => Err(RpcError::new(ENGINE_ERROR, e.to_string())),
+    }
 }
 
 // --------------------------------------------------------------------------

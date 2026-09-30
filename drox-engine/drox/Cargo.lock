@@ -741,6 +741,7 @@ dependencies = [
  "camino",
  "clap",
  "dirs",
+ "drox-embed",
  "drox-engine",
  "drox-hooks",
  "drox-llm",
@@ -776,6 +777,14 @@ dependencies = [
  "tiktoken-rs",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "drox-embed"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

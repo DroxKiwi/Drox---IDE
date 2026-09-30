@@ -1,0 +1,20 @@
+[package]
+name = "drox-embed"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Drox — local text embeddings (llama.cpp GGUF, CB2)"
+
+[lints]
+workspace = true
+
+[features]
+default = []
+# Enables advertising the llama.cpp backend in embed.status / load_model.
+# Full GGUF encode lands in the same feature once linked (PLAN-CB2).
+embed = []
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
