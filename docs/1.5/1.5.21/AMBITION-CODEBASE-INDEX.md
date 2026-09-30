@@ -94,12 +94,29 @@ Pas deux BDD pour « le même projet ouvert deux fois » si le path canonique es
 | Session Agents sur un autre cwd | **Autre instance** d’index (autre path) — visible dans le catalogue cockpit |
 | Renommage / déplacement du dossier | Nouveau path = nouvelle instance ; l’ancienne reste orpheline jusqu’à purge manuelle (alerte cockpit possible) |
 | Symlinks / casing Windows | `canonicalize` avant hash / clé (éviter doublons `C:\A` vs `c:\a`) |
+| Ouvrir un **parent** d’un dossier déjà indexé | **Nouvel index** sur le parent — **pas** de fusion auto avec l’index enfant |
+| Ouvrir un **enfant** d’un parent déjà indexé | **Nouvel index** sur l’enfant — le parent n’« absorbe » pas ; pas de partage silencieux |
+
+### Croissance disque — ce que ça n’est pas
+
+Ce n’est **pas** un seul index machine qui grossit à l’infini ni qui « complète » l’arbre quand on ouvre un parent.
+
+```text
+Ouvre D:\proj\app        →  index #1 sous D:\proj\app\.drox\codebase-index\
+Ouvre D:\proj\autre      →  index #2 (séparé)
+Ouvre D:\proj            →  index #3 sous D:\proj\.drox\...  (re-scan du parent)
+                           index #1 et #2 restent ; pas de merge
+```
+
+- **N racines ouvertes dans le temps** → jusqu’à **N index** indépendants (chacun plafonné + GC + purge cockpit).  
+- L’embed ne « fusionne » rien tout seul : il ne fait que vectoriser les chunks **de l’instance active**.  
+- Doublons parent/enfant = coût disque possible ; le cockpit doit le rendre visible (deux instances, tailles) et permettre purge.
 
 ### Ce qu’on ne fait pas en v1
 
-- Fusionner automatiquement deux clones du même GitHub.  
+- Fusionner automatiquement parent ↔ enfant ou deux clones du même GitHub.  
 - Un index « machine globale » unique pour tout le disque.  
-- Indexer hors de la racine workspace sans opt-in explicite (`allow_outside_workspace` reste un autre sujet agent).
+- Indexer hors de la racine workspace sans opt-in explicite.
 
 ---
 
@@ -203,6 +220,32 @@ Objectif : **temps réel**, **diagnostic**, **anticipation** — pas seulement u
 | Nomic / Jina-code | 150–260+ Mo | Profil qualité optionnel, pas le défaut |
 
 Changement de modèle → **rebuild** index (dimensions).
+
+### 4.1 Comment fonctionne l’embed (pas un moteur inventé from scratch)
+
+On **n’entraîne pas** un réseau Drox. On **assemble** trois briques :
+
+| Brique | Qui la fournit | Rôle |
+|--------|----------------|------|
+| **Chunker / segmentation** | **Règles Drox** (notre code) | Découper fichiers → chunks (symboles, fenêtres, ignore, hash) |
+| **Modèle d’embed** | Poids **tiers** shippés (ex. MiniLM GGUF) | Texte → vecteur de dimension fixe |
+| **Runtime d’inférence** | **llama.cpp** embarqué (direction) | Exécuter le modèle en RAM/CPU |
+| **Store** | **Notre** BDD locale (SQLite + vecteurs) | Persister chunks + vecteurs, chercher top-k |
+
+```text
+fichier
+  → [chunker Drox] → texte chunk
+  → [llama.cpp + modèle GGUF] → vecteur
+  → [store Drox] → disque
+requête user/agent
+  → même embed → similarité + lexical → hits
+```
+
+- **Segmentation** = à nous (qualité retrieval = surtout ça).  
+- **« Moteur » embed** = runtime existant (llama.cpp), pas un moteur ML custom.  
+- **Modèle** = poids pré-entraînés minimalistes, pas LoRA / fine-tune projet.
+
+Détail pipeline : [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md).
 
 ---
 
