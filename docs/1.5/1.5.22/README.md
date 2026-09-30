@@ -1,9 +1,9 @@
 # 1.5.22 — Shell de discussion partagé Agents ↔ IDE
 
-**Statut** : **préparé** · après tool calling 1.5.21  
+**Statut** : **préparé** · après index / Explore 1.5.21  
 **Version cible** : `droxVersion` **1.5.22**  
-**Précédent** : [1.5.21](../1.5.21/README.md) — tool calling universel  
-**Suite** : [1.5.23](../1.5.23/README.md) — index `@Codebase` + carte code
+**Précédent** : [1.5.21](../1.5.21/README.md) — index `@Codebase` + Explore IDE  
+**Suite** : [1.5.23](../1.5.23/README.md) — tool calling universel
 
 ## Docs
 
@@ -32,4 +32,4 @@
 
 ## Origine
 
-1.5.11 = ChatWidget Copilot côté IDE. Demande produit : même discussion qu’Agents **avec l’intégralité des outils**. Reporté en **1.5.22** pour laisser **1.5.21** au tool calling universel.
+1.5.11 = ChatWidget Copilot côté IDE. Demande produit : même discussion qu’Agents **avec l’intégralité des outils**. Après **1.5.21** (index + Explore).

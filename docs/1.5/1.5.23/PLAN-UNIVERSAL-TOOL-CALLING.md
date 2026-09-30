@@ -1,7 +1,7 @@
-# Plan — tool calling universel (1.5.21)
+# Plan — tool calling universel (1.5.23)
 
-**Statut** : **en cours** · U1 livré (normalizer `todo_write`) ; U2–U4 ouverts  
-**Version** : 1.5.21  
+**Statut** : **préparé** · U1 livré (normalizer `todo_write`) ; U2–U4 ouverts  
+**Version** : 1.5.23 (reporté hors 1.5.21 — index `@Codebase` + Explore d’abord)  
 **Contexte** : sans modèle fine-tuné Drox ; fumée KAT / GGUF en 1.5.19 (`status: {}`, XML dans thinking, wire natif cassé).
 
 ---
@@ -68,13 +68,13 @@ Ces pistes ne sont **pas** toutes retenues ; elles structurent le débat 1.5.21.
 
 ---
 
-## 5. Hors scope 1.5.21
+## 5. Hors scope 1.5.23
 
 - Fine-tune / LoRA Drox.
 - Second modèle « translator ».
 - Templates Ollama par famille (ops, pas ship principal).
+- Index `@Codebase` + Explore → [1.5.21](../1.5.21/README.md).
 - Shell discussion unifié → [1.5.22](../1.5.22/README.md).
-- Index `@Codebase` / carte code → [1.5.23](../1.5.23/README.md).
 - Stabilisation chat IDE → [1.5.20](../1.5.20/README.md).
 
 ---
