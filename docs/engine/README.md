@@ -10,25 +10,25 @@ Les dossiers `docs/1.3/`, `docs/1.4/`, `docs/1.5/` restent l’**historique de l
 
 ## Intention
 
-Expliquer avec précision — pour débutant motivé comme pour contributeur confirmé — comment un message devient des tours LLM, des appels d’outils et des événements, avec des **liens vers le code source**.
+Expliquer avec précision comment un message devient des tours LLM, des appels d’outils et des événements — en reliant chaque idée au **code source**, aux **contrats** (JSON-RPC, phases) et aux **bibliothèques** qui portent le runtime.
 
-## Parcours de lecture recommandé
+## Ordre de lecture
 
-| Étape | Document | Niveau |
-|-------|----------|--------|
-| 1 | Ce README + [architecture-overview.md](architecture-overview.md) | Débutant |
-| 2 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Débutant |
-| 3 | [agent-run-loop.md](agent-run-loop.md) | Débutant → confirmé |
-| 4 | [system-prompts-and-phases.md](system-prompts-and-phases.md) | Confirmé |
-| 5 | [agent-internals.md](agent-internals.md) | Confirmé (carte de `agent.rs`) |
-| 6 | [tools-and-permissions.md](tools-and-permissions.md) | Confirmé |
-| 7 | [sessions-and-memory.md](sessions-and-memory.md) · [llm-backends.md](llm-backends.md) | Selon le bug |
-| 8 | [mcp-and-subagents.md](mcp-and-subagents.md) · [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Avancé |
-| 9 | [developer-guide.md](developer-guide.md) | Pour patcher / tester |
-| — | [glossary.md](glossary.md) | Référence lexicale |
-| — | [migration-from-1.4.md](migration-from-1.4.md) | Si tu tombes sur de la doc rail / `role_split` |
+| Ordre | Document | Ce qu’on y construit |
+|-------|----------|----------------------|
+| 1 | Ce README + [architecture-overview.md](architecture-overview.md) | Découpage en crates, runtime async, clients |
+| 2 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Wire IDE ↔ moteur |
+| 3 | [agent-run-loop.md](agent-run-loop.md) | Sémantique d’un run (`drive_inner`) |
+| 4 | [system-prompts-and-phases.md](system-prompts-and-phases.md) | Contrat textuel imposé au modèle |
+| 5 | [agent-internals.md](agent-internals.md) | Organisation de `agent.rs`, gates, nudges |
+| 6 | [tools-and-permissions.md](tools-and-permissions.md) | Palette, local/remote, hooks, parallélisme |
+| 7 | [sessions-and-memory.md](sessions-and-memory.md) · [llm-backends.md](llm-backends.md) | Persistance et backends d’inférence |
+| 8 | [mcp-and-subagents.md](mcp-and-subagents.md) · [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Extensions MCP / Explore / TUI |
+| 9 | [developer-guide.md](developer-guide.md) | Build, tests, où patcher |
+| — | [glossary.md](glossary.md) | Lexique |
+| — | [migration-from-1.4.md](migration-from-1.4.md) | Ancien rail / `role_split` → `tui_mono` |
 
-## Sommaire complet
+## Sommaire
 
 | Document | Contenu |
 |----------|---------|
@@ -47,13 +47,13 @@ Expliquer avec précision — pour débutant motivé comme pour contributeur con
 | [migration-from-1.4.md](migration-from-1.4.md) | Rail 1.4 / `role_split` → `tui_mono` |
 | [glossary.md](glossary.md) | Termes stables |
 
-## Carte mentale (1 minute)
+## Carte mentale
 
 ```text
 Toi + repo  ↔  Drox IDE (ou drox-tui)
                  ↕ stdio NDJSON (JSON-RPC)   ← IDE seulement
               drox  (drox-cli → drox-engine)
-                 ↕ HTTP
+                 ↕ HTTP (reqwest)
               Ollama / endpoint OpenAI-compat
                  ↕
               modèle (Qwen, Gemma, …)

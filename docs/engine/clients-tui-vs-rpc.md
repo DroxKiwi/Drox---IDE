@@ -1,12 +1,14 @@
 # Clients : `drox --serve` vs `drox-tui`
 
-Le cœur `drox-engine` est **unique**. Deux façons de l’entraîner :
+Le cœur `drox-engine` est **unique**. Deux façons de l’entraîner — même `Agent` / `drive_inner`, frontière I/O différente :
 
 | Client | Process | Transport | Binaire |
 |--------|---------|-----------|---------|
 | **IDE / RPC** | Process séparé | JSON-RPC NDJSON stdio | `drox --serve` ([`drox-cli`](../../drox-engine/drox/crates/drox-cli/src/main.rs)) |
 | **TUI** | Même process | Appels Rust directs | `drox-tui` ([`drox-tui`](../../drox-engine/drox/crates/drox-tui/src/main.rs)) |
 | **CLI one-shot** | Même process | Args → un run | `drox` sans `--serve` |
+
+**Sémantique** : `--serve` isole crash et impose un contrat sérialisable (tout client peut parler NDJSON). La TUI évite la sérialisation et lie **ratatui** / **crossterm** directement aux `AgentEvent` — idéal pour dogfood terminal, moins pour un host Electron.
 
 ## Chemin RPC (IDE)
 

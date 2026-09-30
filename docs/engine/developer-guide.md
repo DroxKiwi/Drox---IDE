@@ -2,8 +2,10 @@
 
 ## Prérequis
 
-- Rust toolchain (édition du workspace — voir `rust-toolchain` / `Cargo.toml` du workspace si présent)
+- Rust **1.85+** (edition 2024 — `[workspace.package]` dans [`drox-engine/drox/Cargo.toml`](../../drox-engine/drox/Cargo.toml))
 - Pour l’IDE complet : Node / scripts fork (hors scope moteur — [`operations/`](../operations/README.md))
+
+Le CLI parse ses flags avec **clap** ; les logs serveur `--serve` passent par **tracing-subscriber** (filtre `RUST_LOG` / équivalent).
 
 ## Build moteur
 
