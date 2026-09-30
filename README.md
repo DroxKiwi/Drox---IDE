@@ -145,13 +145,20 @@ Pipeline actuel : **`tui_mono`** — une boucle claire, plus le vieux split Arch
 
 | Sujet | Doc |
 |-------|-----|
+| Index moteur (parcours lecture) | [docs/engine/](docs/engine/README.md) |
 | Crates & clients | [architecture-overview.md](docs/engine/architecture-overview.md) |
 | Protocole NDJSON | [jsonrpc-protocol.md](docs/engine/jsonrpc-protocol.md) |
 | Boucle agent | [agent-run-loop.md](docs/engine/agent-run-loop.md) |
+| Carte `agent.rs` / gates | [agent-internals.md](docs/engine/agent-internals.md) |
+| Prompts & `[phase:]` | [system-prompts-and-phases.md](docs/engine/system-prompts-and-phases.md) |
 | Outils & permissions | [tools-and-permissions.md](docs/engine/tools-and-permissions.md) |
-| Sessions | [sessions-and-memory.md](docs/engine/sessions-and-memory.md) |
+| Sessions & mémoire | [sessions-and-memory.md](docs/engine/sessions-and-memory.md) |
 | LLM | [llm-backends.md](docs/engine/llm-backends.md) |
-| Pont IDE | [ide-integration.md](docs/engine/ide-integration.md) |
+| MCP & Explore | [mcp-and-subagents.md](docs/engine/mcp-and-subagents.md) |
+| TUI vs `--serve` | [clients-tui-vs-rpc.md](docs/engine/clients-tui-vs-rpc.md) |
+| Pont IDE (contrat) | [ide-integration.md](docs/engine/ide-integration.md) |
+| Naviguer l’UI IDE | [tutorials/ide-navigation.md](docs/tutorials/ide-navigation.md) |
+| Guide contributeur moteur | [developer-guide.md](docs/engine/developer-guide.md) |
 | Glossaire | [glossary.md](docs/engine/glossary.md) |
 | Build / release | [docs/operations/](docs/operations/README.md) |
 

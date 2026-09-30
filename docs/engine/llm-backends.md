@@ -2,41 +2,56 @@
 
 ## Factory
 
-`drox-llm` expose une factory `create_llm_client(provider, LlmConfig)` qui choisit l’adaptateur.
+[`create_llm_client`](../../drox-engine/drox/crates/drox-llm/src/factory.rs) choisit l’adaptateur selon `provider` + `LlmConfig`.
 
-Deux familles principales :
+| Famille | Usage | Code |
+|---------|--------|------|
+| **Ollama** | Défaut local — `/api/chat`, `num_ctx`, think, sampling | [`adapters/ollama.rs`](../../drox-engine/drox/crates/drox-llm/src/adapters/ollama.rs), [`ollama/`](../../drox-engine/drox/crates/drox-llm/src/ollama/) |
+| **OpenAI-compatible** | Chat Completions + SSE — vLLM, LM Studio, Mistral, HF, Scaleway, OVH, … | [`openai/`](../../drox-engine/drox/crates/drox-llm/src/openai/), [`adapters/openai_compatible.rs`](../../drox-engine/drox/crates/drox-llm/src/adapters/openai_compatible.rs) |
 
-| Famille | Usage |
-|---------|--------|
-| **Ollama** | Défaut local — API `/api/chat`, options `num_ctx`, think, sampling |
-| **OpenAI-compatible** | Chat Completions (+ SSE) — vLLM, LM Studio, Mistral, Hugging Face, Scaleway, OVHcloud, etc. |
+Trait : [`LlmClient`](../../drox-engine/drox/crates/drox-llm/src/client.rs) — `stream_chat`, `ToolSpec`, retry.
 
-Les ids catalogue côté IDE / settings mappent vers ces adaptateurs.
+Les ids catalogue côté IDE / settings mappent vers ces adaptateurs (hors scope moteur pur).
 
-## Paramètres de run (exemples)
+## Paramètres de run
 
-Passés via `agent.run` / config :
+Passés via `agent.run` / config CLI :
 
-- `server` / `baseUrl`, `model`, `apiKey`, headers custom ;
-- `provider` (ollama, openai, …) ;
-- sampling : temperature, top_p, … ;
-- `nativeThinking` / effort (`reasoningEffort`) / budget (`thinkingBudget`) — utiles pour Qwen / LiteLLM ;
-- images multimodales si le modèle et le client les supportent.
+| Groupe | Exemples |
+|--------|----------|
+| Endpoint | `server` / base URL, `model`, `api_key`, `headers`, `provider` |
+| Sampling | `temperature`, `top_p`, `max_tokens`, options Ollama |
+| Contexte | `num_ctx` |
+| Thinking | `native_thinking`, `reasoning_effort`, `thinking_budget` (Qwen / LiteLLM, …) |
+| Multimodal | `images[]` (`mime` + base64) si modèle + client supportent |
 
-Le moteur **normalise** certains détails de protocole (ex. ordre des messages `system` pour des backends stricts type LiteLLM/Qwen) — voir `drox-llm` (`openai/request.rs`, etc.).
+Le moteur **normalise** certains détails (ex. ordre des messages `system` pour backends stricts) — voir [`openai/request.rs`](../../drox-engine/drox/crates/drox-llm/src/openai/request.rs).
 
 ## Streaming
 
-- Le client LLM streame tokens + éventuels tool_calls structurés.
-- `drive_inner` consomme le stream, émet des `AgentEvent` texte / thinking / tool vers le client UI.
+1. `LlmClient` streame tokens + éventuels `tool_calls` structurés.
+2. `drive_inner` → `consume_stream` produit `TextDelta`, phases, tool calls.
+3. Le thinking natif (si activé) est séparé de la prose `[phase: answering]` — l’UI IDE le plie souvent en « Native reasoning ».
 
 ## Indépendance cloud
 
-Aucun compte cloud Drox n’est requis pour le cœur local : tu pointes vers **ton** Ollama ou **ton** endpoint compatible. Les clés API éventuelles restent dans la config utilisateur / env (jamais committer).
+Aucun compte cloud Drox n’est requis pour le cœur local : tu pointes vers **ton** Ollama ou **ton** endpoint compatible. Les clés API restent dans la config utilisateur / env — **jamais** committer.
+
+Setup env documenté : [`drox-engine/DROX-ENV-SETUP.txt`](../../drox-engine/DROX-ENV-SETUP.txt) (si présent).
+
+## Pièges fréquents
+
+| Symptôme | Piste |
+|----------|--------|
+| Timeouts / 404 | Mauvaise `baseUrl` / modèle non pull Ollama |
+| Tool calls ignorés | Backend qui ne renvoie pas le format tools attendu |
+| Thinking invisible | `native_thinking` off ou modèle sans think |
+| Doublons system | Normalisation OpenAI-compat — lire `request.rs` |
 
 ## Fichiers
 
-- `drox-engine/drox/crates/drox-llm/src/factory.rs`
-- `…/adapters/`
-- `…/openai/`, client Ollama
-- Setup env : `drox-engine/DROX-ENV-SETUP.txt`
+| Rôle | Chemin |
+|------|--------|
+| Factory | [`factory.rs`](../../drox-engine/drox/crates/drox-llm/src/factory.rs) |
+| Adaptateurs | [`adapters/`](../../drox-engine/drox/crates/drox-llm/src/adapters/) |
+| Schémas | [`schema.rs`](../../drox-engine/drox/crates/drox-llm/src/schema.rs) |
