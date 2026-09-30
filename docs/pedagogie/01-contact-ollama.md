@@ -616,9 +616,12 @@ Si tu relis ce parcours une deuxième fois en n’ouvrant que [`ollama/stream.rs
 
 ## Pour aller plus loin (même méthode)
 
-Sur le même modèle — une partie de Drox, ligne après ligne :
+Ce guide est le **socle** de la série pédagogique. La suite, dans le même esprit :
 
-- exécution d’un **outil** (`file_read`, `bash`) ;
-- lecture d’une ligne **JSON-RPC** sur stdin.
+| Suite | Sujet |
+|-------|--------|
+| [02-boucle-agent.md](02-boucle-agent.md) | Comment le moteur **répète** les tours LLM ↔ outils |
+| [03-gestion-erreurs.md](03-gestion-erreurs.md) | `Result`, `?`, que se passe-t-il quand ça casse |
+| [04-moteur-et-affichage.md](04-moteur-et-affichage.md) | Du flux Rust aux bulles dans l’IDE |
 
-Index : [rust-par-le-moteur.md](rust-par-le-moteur.md).
+Index de la série : [README.md](README.md).

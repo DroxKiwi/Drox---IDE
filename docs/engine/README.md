@@ -7,8 +7,9 @@ Pipeline d’orchestration : **`tui_mono`** (depuis 1.5.0).
 
 Les dossiers `docs/1.3/`, `docs/1.4/`, `docs/1.5/` restent l’**historique de livraison** (plans, smokes, archives). Ici : le fonctionnement du code tel qu’il tourne.
 
-> **Périmètre** : ce dossier documente le **moteur** (boucle agent, outils, RPC, LLM, sessions).  
-> Pour naviguer dans l’**interface IDE** (chat, settings, Changes) : [tutoriel dédié](../tutorials/ide-navigation.md).
+> **Périmètre** : ce dossier documente le **moteur** (boucle agent, outils, RPC, LLM, sessions) en référence.  
+> Pour une lecture **guidée** du code (syntaxe Rust, machine, parcours concrets) : [`docs/pedagogie/`](../pedagogie/README.md).  
+> Pour naviguer dans l’**interface IDE** : [tutoriel dédié](../tutorials/ide-navigation.md).
 
 ## Intention
 
@@ -19,7 +20,7 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Ordre | Document | Ce qu’on y construit |
 |-------|----------|----------------------|
 | 1 | Ce README + [architecture-overview.md](architecture-overview.md) | Découpage en crates, runtime async, clients |
-| 2 | [rust-par-le-moteur.md](rust-par-le-moteur.md) · [rust-parcours-inference.md](rust-parcours-inference.md) | Rust expliqué dans le chemin d’inférence Ollama |
+| 2 | **[Pedagogie](../pedagogie/README.md)** (série guidée) | Rust + moteur, ligne à ligne |
 | 3 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Wire IDE ↔ moteur |
 | 4 | [agent-run-loop.md](agent-run-loop.md) | Sémantique d’un run (`drive_inner`) |
 | 5 | [system-prompts-and-phases.md](system-prompts-and-phases.md) | Contrat textuel imposé au modèle |
@@ -36,8 +37,7 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Document | Contenu |
 |----------|---------|
 | [architecture-overview.md](architecture-overview.md) | Crates, dépendances, clients (IDE / TUI / CLI) |
-| [rust-par-le-moteur.md](rust-par-le-moteur.md) | Fil pédagogique Rust ancré dans Drox |
-| [rust-parcours-inference.md](rust-parcours-inference.md) | Comment Drox parle à Ollama — syntaxe et machine, ligne à ligne |
+| **[Pedagogie →](../pedagogie/README.md)** | Guides accompagnés **01–14** (de Ollama au mode professor) |
 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Transport NDJSON, méthodes, schémas `agent.run`, `tool/exec` |
 | [agent-run-loop.md](agent-run-loop.md) | De `agent.run` à `drive_inner` : tours, phases, nudges, clôture |
 | [agent-internals.md](agent-internals.md) | Carte du monolithe `agent.rs`, `AgentConfig`, gates |

@@ -53,8 +53,8 @@ Setup env documenté : [`drox-engine/DROX-ENV-SETUP.txt`](../../drox-engine/DROX
 
 ## Lire le code (Rust)
 
-Pour suivre une requête d’inférence **ligne par ligne** avec les concepts du langage (`let`, traits, `Arc<dyn>`, async, serde) :  
-[rust-parcours-inference.md](rust-parcours-inference.md) · index [rust-par-le-moteur.md](rust-par-le-moteur.md).
+Pour suivre une requête d’inférence **ligne par ligne** (syntaxe + machine) :  
+série [`docs/pedagogie/`](../pedagogie/README.md) — en particulier [01-contact-ollama.md](../pedagogie/01-contact-ollama.md).
 
 ## Pièges fréquents
 
