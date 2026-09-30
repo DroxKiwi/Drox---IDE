@@ -4,7 +4,8 @@
 
 | Entrée | Pour qui |
 |--------|----------|
-| **[`engine/`](engine/README.md)** | Comprendre le **moteur actuel** (`tui_mono`) — à lire en premier |
+| **[`engine/`](engine/README.md)** | Comprendre le **moteur actuel** (`tui_mono`) — à lire en premier si tu contribues au Rust |
+| **[`tutorials/ide-navigation.md`](tutorials/ide-navigation.md)** | Tutoriel **interface IDE** (navigation workbench) — séparé du moteur |
 | **[`operations/`](operations/README.md)** | Build, release Windows/Linux, branches |
 | **[`1.5/`](1.5/README.md)** | Plans / clôtures ligne 1.5.x |
 | **[`1.4/`](1.4/)** · **[`1.3/`](1.3/)** · **[`1.2/`](1.2/)** · **[`0.0/`](0.0/)** | Historique (archives) |
@@ -16,18 +17,34 @@ Onboarding court racine fork : [`../DROX.md`](../DROX.md) (si présent).
 
 ## Moteur (doc publique de référence)
 
-Voir **[`engine/`](engine/README.md)** :
+Voir **[`engine/`](engine/README.md)** — parcours débutant → confirmé :
 
-- [Architecture](engine/architecture-overview.md)
-- [JSON-RPC](engine/jsonrpc-protocol.md)
-- [Boucle agent](engine/agent-run-loop.md)
-- [Outils & permissions](engine/tools-and-permissions.md)
-- [Sessions & mémoire](engine/sessions-and-memory.md)
-- [Backends LLM](engine/llm-backends.md)
-- [Intégration IDE](engine/ide-integration.md)
-- [Glossaire](engine/glossary.md)
+| Document | Contenu |
+|----------|---------|
+| [Architecture](engine/architecture-overview.md) | Crates et clients |
+| [JSON-RPC](engine/jsonrpc-protocol.md) | Wire NDJSON + schémas |
+| [Boucle agent](engine/agent-run-loop.md) | `agent.run` → `drive_inner` |
+| [Internes `agent.rs`](engine/agent-internals.md) | Carte du monolithe |
+| [Prompts & phases](engine/system-prompts-and-phases.md) | Contrat `[phase:]` |
+| [Outils & permissions](engine/tools-and-permissions.md) | Palette, hooks, parallélisme |
+| [Sessions & mémoire](engine/sessions-and-memory.md) | JSONL, compaction, archives |
+| [Backends LLM](engine/llm-backends.md) | Ollama / OpenAI-compat |
+| [MCP & sous-agents](engine/mcp-and-subagents.md) | `mcp__*`, Explore/`task` |
+| [Clients TUI vs RPC](engine/clients-tui-vs-rpc.md) | Deux entrées |
+| [Intégration IDE](engine/ide-integration.md) | Spawn / bridge |
+| [Guide développeur](engine/developer-guide.md) | Build & tests |
+| [Migration 1.4](engine/migration-from-1.4.md) | Rail / `role_split` → `tui_mono` |
+| [Glossaire](engine/glossary.md) | Lexique |
 
-Carte fonctionnelle historique (audit) : [`1.4/moteur/`](1.4/moteur/README.md) — filtrer les mentions `role_split`.
+Carte fonctionnelle historique (audit) : [`1.4/moteur/`](1.4/moteur/README.md) — **archive** ; filtrer `role_split` et chemins obsolètes.
+
+---
+
+## Tutoriels interface
+
+| Guide | Contenu |
+|-------|---------|
+| [Naviguer dans l’IDE](tutorials/ide-navigation.md) | Surfaces chat, modes, sessions, liens code UI |
 
 ---
 
