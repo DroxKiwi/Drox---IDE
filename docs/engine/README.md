@@ -17,14 +17,15 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Ordre | Document | Ce qu’on y construit |
 |-------|----------|----------------------|
 | 1 | Ce README + [architecture-overview.md](architecture-overview.md) | Découpage en crates, runtime async, clients |
-| 2 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Wire IDE ↔ moteur |
-| 3 | [agent-run-loop.md](agent-run-loop.md) | Sémantique d’un run (`drive_inner`) |
-| 4 | [system-prompts-and-phases.md](system-prompts-and-phases.md) | Contrat textuel imposé au modèle |
-| 5 | [agent-internals.md](agent-internals.md) | Organisation de `agent.rs`, gates, nudges |
-| 6 | [tools-and-permissions.md](tools-and-permissions.md) | Palette, local/remote, hooks, parallélisme |
-| 7 | [sessions-and-memory.md](sessions-and-memory.md) · [llm-backends.md](llm-backends.md) | Persistance et backends d’inférence |
-| 8 | [mcp-and-subagents.md](mcp-and-subagents.md) · [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Extensions MCP / Explore / TUI |
-| 9 | [developer-guide.md](developer-guide.md) | Build, tests, où patcher |
+| 2 | [rust-par-le-moteur.md](rust-par-le-moteur.md) · [rust-parcours-inference.md](rust-parcours-inference.md) | Rust lu dans le code (requête d’inférence) |
+| 3 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Wire IDE ↔ moteur |
+| 4 | [agent-run-loop.md](agent-run-loop.md) | Sémantique d’un run (`drive_inner`) |
+| 5 | [system-prompts-and-phases.md](system-prompts-and-phases.md) | Contrat textuel imposé au modèle |
+| 6 | [agent-internals.md](agent-internals.md) | Organisation de `agent.rs`, gates, nudges |
+| 7 | [tools-and-permissions.md](tools-and-permissions.md) | Palette, local/remote, hooks, parallélisme |
+| 8 | [sessions-and-memory.md](sessions-and-memory.md) · [llm-backends.md](llm-backends.md) | Persistance et backends d’inférence |
+| 9 | [mcp-and-subagents.md](mcp-and-subagents.md) · [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Extensions MCP / Explore / TUI |
+| 10 | [developer-guide.md](developer-guide.md) | Build, tests, où patcher |
 | — | [glossary.md](glossary.md) | Lexique |
 | — | [migration-from-1.4.md](migration-from-1.4.md) | Ancien rail / `role_split` → `tui_mono` |
 
@@ -33,6 +34,8 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Document | Contenu |
 |----------|---------|
 | [architecture-overview.md](architecture-overview.md) | Crates, dépendances, clients (IDE / TUI / CLI) |
+| [rust-par-le-moteur.md](rust-par-le-moteur.md) | Apprendre Rust **dans** le code Drox |
+| [rust-parcours-inference.md](rust-parcours-inference.md) | Pas à pas : requête Ollama (`let` → `Arc<dyn>` → stream) |
 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Transport NDJSON, méthodes, schémas `agent.run`, `tool/exec` |
 | [agent-run-loop.md](agent-run-loop.md) | De `agent.run` à `drive_inner` : tours, phases, nudges, clôture |
 | [agent-internals.md](agent-internals.md) | Carte du monolithe `agent.rs`, `AgentConfig`, gates |

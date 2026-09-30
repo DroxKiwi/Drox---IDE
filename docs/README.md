@@ -22,6 +22,8 @@ Voir **[`engine/`](engine/README.md)** :
 | Document | Contenu |
 |----------|---------|
 | [Architecture](engine/architecture-overview.md) | Crates et clients |
+| [Rust par le moteur](engine/rust-par-le-moteur.md) | Concepts Rust ancrés dans le code |
+| [Parcours inférence](engine/rust-parcours-inference.md) | Requête LLM pas à pas (Ollama) |
 | [JSON-RPC](engine/jsonrpc-protocol.md) | Wire NDJSON + schémas |
 | [Boucle agent](engine/agent-run-loop.md) | `agent.run` → `drive_inner` |
 | [Internes `agent.rs`](engine/agent-internals.md) | Carte du monolithe |
