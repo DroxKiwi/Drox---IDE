@@ -1,29 +1,14 @@
-# 1.5.23 — Tool calling universel
+# 1.5.23 — Réservé
 
-**Statut** : **préparé** · après shell 1.5.22  
+**Statut** : **libre** · pas de chantier assigné  
 **Version cible** : `droxVersion` **1.5.23**  
-**Précédent** : [1.5.22](../1.5.22/README.md) — shell discussion partagé Agents ↔ IDE
+**Précédent** : [1.5.22](../1.5.22/README.md) — tool calling universel
 
-## Docs
+Les sujets précédemment ici (index `@Codebase`, tool calling) ont été réaffectés :
 
-| Fiche | Sujet |
-|-------|--------|
-| [PLAN-UNIVERSAL-TOOL-CALLING.md](PLAN-UNIVERSAL-TOOL-CALLING.md) | **Plan principal** — tool calling universel (tous providers) |
-
-## Synthèse
-
-| # | Sujet | Statut |
-|---|--------|--------|
-| T0 | Inventaire écarts provider / formats tool call | 📋 |
-| T1 | Normalisation moteur → protocole unique | 📋 |
-| T2 | Smoke multi-provider (Ollama, OpenAI-compat, etc.) | 📋 |
-| T3 | CLOSURE + docs | 📋 |
-
-## Décisions clés
-
-- Un **chemin unique** côté moteur pour les tool calls, indépendant du provider.
-- Reporté hors **1.5.21** pour prioriser **index `@Codebase` + Explore**.
-
-## Origine
-
-Était le focus 1.5.21. **Reporté en 1.5.23** : BDD vectorielle locale + Explore d’abord (1.5.21), puis shell discussion (1.5.22).
+| Sujet | Dossier actuel |
+|-------|----------------|
+| Index `@Codebase` · embed · carte code | [1.5.21](../1.5.21/README.md) |
+| Explore IDE | [1.5.21](../1.5.21/README.md) |
+| Shell discussion partagé | [1.5.21](../1.5.21/README.md) |
+| Tool calling universel | [1.5.22](../1.5.22/README.md) |

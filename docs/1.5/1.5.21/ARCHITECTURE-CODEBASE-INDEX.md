@@ -258,8 +258,8 @@ Leçon Cursor `state.vscdb` 40 Go : **séparer** index codebase et historique ch
 | Système | Domaine | Partage |
 |---------|---------|---------|
 | Git Graph 1.5.19 | Commits / branches | Layout canvas (socle) |
-| Codebase index 1.5.23 | Contenu fichiers / symboles | Hits → nœuds carte |
-| Carte code 1.5.23 | Navigation visuelle | UI + éventuellement graphe d’imports |
+| Codebase index 1.5.21 | Contenu fichiers / symboles | Hits → nœuds carte |
+| Carte code 1.5.21 | Navigation visuelle | UI + éventuellement graphe d’imports |
 
 Le retrieval fournit **quoi montrer** ; le canvas fournit **comment le voir**.
 
@@ -276,7 +276,7 @@ Le retrieval fournit **quoi montrer** ; le canvas fournit **comment le voir**.
 | **CB4** | `@` Codebase dans composer + budget tokens | CB3 |
 | **CB5** | Alimentation carte code (optionnel) | CB3 + canvas |
 
-**1.5.23** : cette fiche = **CB0 documentaire** ; ship cible des phases CB1+ dans cette release (à trancher au planning vs carte code).
+**1.5.21** : cette fiche = **CB0 documentaire** ; ship cible des phases CB1+ dans cette release (à trancher au planning vs carte code).
 
 ---
 
@@ -307,4 +307,4 @@ Le retrieval fournit **quoi montrer** ; le canvas fournit **comment le voir**.
 | 2 | Modèle embed défaut | Ollama, modèle documenté dans settings |
 | 3 | Auto-inject vs tool only | Tool `codebase_search` d’abord, auto-inject opt-in |
 | 4 | Emplacement | `{workspace}/.drox/codebase-index/` |
-| 5 | Release cible | **1.5.23** |
+| 5 | Release cible | **1.5.21** |

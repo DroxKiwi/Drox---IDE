@@ -1,35 +1,30 @@
-# 1.5.22 — Shell de discussion partagé Agents ↔ IDE
+# 1.5.22 — Tool calling universel
 
-**Statut** : **préparé** · après index / Explore 1.5.21  
+**Statut** : **préparé** · après index / Explore / shell 1.5.21  
 **Version cible** : `droxVersion` **1.5.22**  
-**Précédent** : [1.5.21](../1.5.21/README.md) — index `@Codebase` + Explore IDE  
-**Suite** : [1.5.23](../1.5.23/README.md) — tool calling universel
+**Précédent** : [1.5.21](../1.5.21/README.md) — index `@Codebase` + Explore + shell discussion  
+**Suite** : [1.5.23](../1.5.23/README.md) — réservé
 
 ## Docs
 
 | Fiche | Sujet |
 |-------|--------|
-| [PLAN-SHARED-DISCUSSION-SHELL.md](PLAN-SHARED-DISCUSSION-SHELL.md) | **Plan principal** — shell Agents + **tous** ses outils de discussion dans l’IDE |
+| [PLAN-UNIVERSAL-TOOL-CALLING.md](PLAN-UNIVERSAL-TOOL-CALLING.md) | **Plan principal** — tool calling universel (tous providers) |
 
 ## Synthèse
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| S0 | Inventaire shell + outils (modèle, connexion, params, modes, status) | ✅ |
-| S1 | Module options/CSS discussion partageable | ✅ |
-| S2 | Brancher panneau IDE + masquer chrome Copilot | ✅ |
-| S3 | Parité interactive de chaque contrôle | 🔄 |
-| S4 | Handoff + empty-first sur le nouveau shell | 🔄 |
-| S5 | Smoke Agents + IDE + CLOSURE | 📋 |
+| T0 | Inventaire écarts provider / formats tool call | 📋 |
+| T1 | Normalisation moteur → protocole unique | 📋 |
+| T2 | Smoke multi-provider (Ollama, OpenAI-compat, etc.) | 📋 |
+| T3 | CLOSURE + docs | 📋 |
 
 ## Décisions clés
 
-- **Parité stricte** de la zone discussion Agents ↔ IDE, **y compris** choix modèle, connexion/serveur, paramètres modèle, modes, status bar, toolbar.
-- On **extrait** le shell Agents déjà adapté ; on ne réécrit pas une 3ᵉ UI.
-- L’IDE **n’embarque pas** le chrome fenêtre (liste sessions, Customizations, Changes latéral Agents).
-- History / Changes IDE restent les ports 1.5.20 à côté du shell.
-- Cerveau inchangé : `DroxAgentsSessionHandler` + `drox.exe`.
+- Un **chemin unique** côté moteur pour les tool calls, indépendant du provider.
+- Reporté hors **1.5.21** pour prioriser index `@Codebase`, Explore et shell discussion.
 
 ## Origine
 
-1.5.11 = ChatWidget Copilot côté IDE. Demande produit : même discussion qu’Agents **avec l’intégralité des outils**. Après **1.5.21** (index + Explore).
+Était 1.5.21 puis 1.5.23. **Placé en 1.5.22** après remontée du shell discussion dans 1.5.21.
