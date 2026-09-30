@@ -11,6 +11,7 @@ Ils **accompagnent** la lecture du vrai code : une histoire concrète, des défi
 2. Le guide **01** pose les bases (programme, variable, fonction, mémoire) sur le contact avec Ollama — c’est le socle.
 3. Les suivants **réutilisent** ces idées et en ajoutent (boucles, erreurs, tools, permissions…).
 4. Ouvre toujours les fichiers source cités **à côté** du tutoriel.
+5. Chaque guide contient des blocs **« Exemple concret »** tirés du dépôt, avec un tableau qui détaille la syntaxe ligne à ligne — appuie-toi dessus autant que sur le récit.
 
 ## Parcours
 

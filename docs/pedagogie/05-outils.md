@@ -69,6 +69,40 @@ pub trait Tool: Send + Sync {
 
 `DynTool = Arc<dyn Tool>` : comme pour `LlmClient`, on range des outils de types différents derrière **un** contrat.
 
+### Exemple concret — le trait tel qu’il est dans le dépôt
+
+Fichier : [`tool.rs`](../../drox-engine/drox/crates/drox-tools/src/tool.rs) :
+
+```rust
+#[async_trait]
+pub trait Tool: Send + Sync {
+    fn name(&self) -> &str;
+    fn description(&self) -> &str;
+    fn input_schema(&self) -> Value;
+
+    fn is_read_only(&self) -> bool {
+        false
+    }
+
+    fn is_concurrency_safe(&self) -> bool {
+        self.is_read_only()
+    }
+
+    async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError>;
+}
+
+pub type DynTool = Arc<dyn Tool>;
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `fn name(&self) -> &str` | Emprunte `self`, renvoie une **vue** texte (souvent un littéral `"file_read"`) |
+| `input_schema() -> Value` | `serde_json::Value` = JSON arbitraire en mémoire (objet/array/…) |
+| `is_read_only` **avec corps** | Méthode à **défaut** : si un outil ne la surcharge pas → `false` |
+| `is_concurrency_safe` | Par défaut = même chose que read_only (les lectures peuvent aller en parallèle — [10](10-parallelisme-outils.md)) |
+| `async fn execute(…)` | Cœur : reçoit le JSON des arguments, agit, renvoie JSON ou `ToolError` |
+| `type DynTool = Arc<dyn Tool>` | Alias : « outil partagé derrière le trait » |
+
 ---
 
 ## Partie C — Le registre : une boîte à outils nommée
@@ -79,6 +113,33 @@ pub trait Tool: Send + Sync {
 Cherche la liste exacte dans [`registry.rs`](../../drox-engine/drox/crates/drox-tools/src/registry.rs) ou la [référence](../engine/tools-and-permissions.md).
 
 **Côté machine** : une table de hachage en mémoire ; `get("grep")` retrouve l’`Arc` vers l’implémentation.
+
+### Exemple concret — enregistrement de la palette
+
+[`registry.rs`](../../drox-engine/drox/crates/drox-tools/src/registry.rs) — `with_simple_tools` :
+
+```rust
+pub fn with_simple_tools() -> Self {
+    let mut reg = Self::new();
+    reg.register(coerce_tool(FileReadTool));
+    reg.register(coerce_tool(FileWriteTool));
+    reg.register(coerce_tool(GrepTool));
+    reg.register(coerce_tool(GlobTool));
+    reg.register(coerce_tool(FileEditTool));
+    reg.register(coerce_tool(BashTool));
+    reg.register(coerce_tool(TodoWriteTool));
+    // … lsp, web_*, memory_*, skills, session_*, …
+    reg
+}
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `let mut reg = Self::new()` | Registre vide, mutable le temps d’ajouter |
+| `FileReadTool` | **Struct unité** (souvent sans champs) qui `impl Tool` |
+| `coerce_tool(…)` | Enveloppe dans `Arc<dyn Tool>` (`DynTool`) |
+| `reg.register(…)` | Insert dans la `HashMap` interne, clé = `tool.name()` |
+| `reg` en fin de bloc | En Rust, la dernière expression **sans** `;` est la valeur retournée |
 
 Avant chaque tour LLM, le moteur construit des `ToolSpec` (nom + description + schéma) à partir du registry — c’est ce que reçoit `stream_chat` dans les `ChatOptions.tools`.
 
@@ -103,6 +164,55 @@ Le contexte est préparé au setup du run (`handlers` / bootstrap TUI), puis pas
 Au `initialize`, l’IDE envoie `executableTools`. Pour chaque nom listé, le serveur enregistre un **`RemoteTool`** à la place (ou en plus) de l’impl locale : même trait `Tool`, mais `execute` envoie une requête JSON-RPC et **attend** la réponse UI.
 
 Si l’IDE ne répond pas → la [boucle](02-boucle-agent.md) attend. Lien avec [04](04-moteur-et-affichage.md).
+
+### Exemple concret — `RemoteTool::execute`
+
+[`remote_tool.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/remote_tool.rs) :
+
+```rust
+async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
+    let params = ToolExecParams {
+        run_id: self.run_id.clone(),
+        call_id: Uuid::new_v4().to_string(),
+        tool_name: self.name.to_string(),
+        input,
+        workspace: ctx.workspace_root.clone(),
+        plan_mode: ctx.plan_mode,
+        apply_fs_writes: ctx.apply_fs_writes,
+        allow_outside_workspace: ctx.allow_outside_workspace,
+    };
+
+    let value = self
+        .server
+        .send_request("tool/exec", &params)
+        .await
+        .map_err(|e| {
+            ToolError::remote(format!("`{}`: {} (code={})", self.name, e.message, e.code))
+        })?;
+
+    let result: ToolExecResult = serde_json::from_value(value).map_err(|e| {
+        ToolError::remote(format!("`{}`: invalid `tool/exec` result: {e}", self.name))
+    })?;
+
+    if result.is_error {
+        return Err(ToolError::remote(format!(
+            "`{}`: client reported tool error: {}",
+            self.name, result.output
+        )));
+    }
+    Ok(result.output)
+}
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `ToolExecParams { … }` | Struct envoyée à l’IDE (serde → JSON) |
+| `Uuid::new_v4()` | Identifiant unique de **cet** appel (corrélation UI) |
+| `send_request("tool/exec", &params).await` | JSON-RPC **request** (contrairement à `notify`) : on **attend** la réponse |
+| `map_err` + `?` | Erreur transport → `ToolError` |
+| `serde_json::from_value(value)` | JSON générique → struct `ToolExecResult` typée |
+| `if result.is_error` | L’IDE peut renvoyer un échec métier sans casser le process |
+| `Ok(result.output)` | Succès : le JSON résultat ira dans l’historique messages |
 
 ---
 

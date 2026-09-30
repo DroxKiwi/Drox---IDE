@@ -61,6 +61,50 @@ si politique de contexte active :
 
 `messages` est la variable **mutable** de l’historique ([02](02-boucle-agent.md)) : après snip/compact, les tours suivants voient la version réduite.
 
+### Exemple concret — appel dans la boucle + signatures
+
+Dans `drive_inner` :
+
+```rust
+if self
+    .maybe_snip(&mut messages, &tx, &mut live_compaction_seq)
+    .await
+    .is_err()
+{
+    return;
+}
+```
+
+Méthode agent ([`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) ~L2089) qui s’appuie sur la politique :
+
+```rust
+// context.rs — idée
+pub fn maybe_snip(&self, messages: &mut Vec<Message>) -> Option<SnipReport> {
+    self.maybe_snip_with_config(messages, self.snip.as_ref()?)
+}
+```
+
+Et compaction live éventuelle :
+
+```rust
+// compaction.rs
+pub async fn try_live_compact(
+    llm: &dyn LlmClient,
+    compaction_system_prompt: &str,
+    messages: &mut Vec<Message>,
+    policy: &ContextPolicy,
+    config: &CompactionConfig,
+) -> Option<LiveCompactReport> {
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `&mut messages` | Permission de **réécrire** l’historique en place |
+| `Option<SnipReport>` | `None` = rien à sniper ; `Some(report)` = snip effectué (+ infos pour l’UI) |
+| `self.snip.as_ref()?` | Si pas de config snip → `None` tôt (le `?` dans une fn qui renvoie `Option`) |
+| `try_live_compact(…)` | **Async** : peut rappeler un LLM pour résumer ; `&dyn LlmClient` = n’importe quel backend |
+| `Option<LiveCompactReport>` | Pas de compaction → `None` (pas forcément une erreur) |
+
 Attention : sniper trop agressivement peut faire « oublier » une décision — d’où archives / mémoire projet ([09](09-sessions-et-memoire.md)).
 
 ---

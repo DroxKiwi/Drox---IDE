@@ -44,6 +44,19 @@ Prérequis : [01](01-contact-ollama.md), [04](04-moteur-et-affichage.md).
 
 Ce qui diverge : **qui** exécute LSP / certains FS, et **comment** les événements sont peints.
 
+### Exemple concret — deux entrées binaires
+
+**IDE** — [`main.rs`](../../drox-engine/drox/crates/drox-cli/src/main.rs) (idée) : si le flag `--serve` est présent → `jsonrpc::serve_stdio().await`.
+
+**TUI** — [`bootstrap.rs`](../../drox-engine/drox/crates/drox-tui/src/engine/bootstrap.rs) : construit `LlmConfig`, `create_llm_client`, `ToolRegistry`, `AgentConfig`, puis `Agent::new(…)` **dans le même process**, sans passer par `send_request("tool/exec")`.
+
+| Chemin | Ce que tu lis dans le code |
+|--------|----------------------------|
+| Serve | Boucle stdin ligne JSON → `handlers` → `Agent` → `notify("agent/event")` |
+| TUI | Widgets ratatui consomment un stream d’`AgentEvent` local |
+
+Même `drive_inner` ; façade différente.
+
 ---
 
 ## Partie C — Déboguer « marche en TUI, pas dans l’IDE »

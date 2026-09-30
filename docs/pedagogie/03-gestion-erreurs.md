@@ -55,6 +55,32 @@ fn parse_port(texte: &str) -> Result<u16, String> {
 
 **Côté machine** : un `Result` est souvent une petite structure avec une étiquette (ok/err) + la donnée associée. Pas de magie : juste une valeur comme une autre, que le typage t’oblige à traiter.
 
+### Exemple concret — erreur LLM dans la boucle
+
+Même extrait que le guide 02, zoom sur le `match` ([`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs)) :
+
+```rust
+let stream = match self.llm.stream_chat(messages.clone(), options).await {
+    Ok(s) => s,
+    Err(err) => {
+        let _ = tx.send(Err(err.into())).await;
+        return;
+    }
+};
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `stream_chat(…).await` | Renvoie `Result<StreamHandle, LlmError>` |
+| `Ok(s) => s` | Succès : on extrait le flux et on le met dans `stream` |
+| `Err(err)` | Échec : timeout, 404, JSON invalide… |
+| `err.into()` | Conversion d’erreur (`LlmError` → erreur moteur/`EngineError` via le trait `From`) |
+| `tx.send(Err(…))` | Notifie l’UI **avant** de mourir |
+| `let _ = …` | On ignore volontairement si l’envoi au canal échoue aussi (UI déjà partie) |
+| `return` | Quitte `drive_inner` : plus de tours |
+
+Ici on n’utilise **pas** `?` : on veut ce traitement local (pousser vers `tx`) avant de sortir.
+
 ---
 
 ## Partie B — Le raccourci `?`
@@ -130,6 +156,13 @@ Côté `handlers.rs`, une mauvaise config devient une erreur JSON-RPC pour l’I
 let llm = create_llm_client(params.provider.as_deref(), llm_config)
     .map_err(|e| RpcError::new(CONFIG_ERROR, format!("LLM init failed: {e}")))?;
 ```
+
+| Morceau | Détail |
+|---------|--------|
+| `create_llm_client(…)` | Renvoie `Result<Arc<dyn LlmClient>, LlmError>` |
+| `.map_err(\|e\| RpcError::new(…))` | Transforme l’erreur LLM en erreur **RPC** avec un message lisible pour l’IDE |
+| `format!("… {e}")` | Construit une `String` en interpolant l’erreur |
+| `?` | Si toujours `Err` après conversion → quitte `build_agent_setup` en renvoyant cette `RpcError` |
 
 L’IDE peut alors afficher « LLM init failed: … » au lieu d’un silence.
 

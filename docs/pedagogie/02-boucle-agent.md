@@ -63,6 +63,58 @@ for iter in 0..max_iterations {
 
 Dans Drox, `max_iterations` (souvent autour de **12** par défaut dans `AgentConfig`) est un **filet de sécurité** : même si le modèle n’émet jamais `done`, on ne tourne pas à l’infini.
 
+### Exemple concret — la vraie boucle dans `agent.rs`
+
+Fichier : [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) (autour des lignes 1057–1106).
+
+```rust
+for iter in 0..self.config.max_iterations {
+    debug!(iter, /* … flags todos … */, "tour LLM …");
+
+    if self
+        .maybe_snip(&mut messages, &tx, &mut live_compaction_seq)
+        .await
+        .is_err()
+    {
+        return;
+    }
+
+    let options = self
+        .config
+        .chat_options
+        .clone()
+        .with_tools(tool_specs.clone());
+
+    let stream = match self.llm.stream_chat(messages.clone(), options).await {
+        Ok(s) => s,
+        Err(err) => {
+            let _ = tx.send(Err(err.into())).await;
+            return;
+        }
+    };
+
+    let native_thinking_ui = self.config.chat_options.think == Some(true);
+
+    let Ok(mut outcome) = consume_stream(stream, &tx, native_thinking_ui).await else {
+        return; // canal consommateur fermé
+    };
+    // … suite : gates done / tools / nudges …
+}
+```
+
+| Ligne / morceau | Lecture détaillée |
+|-----------------|-------------------|
+| `for iter in 0..self.config.max_iterations` | `self` = l’`Agent` ; on lit le champ `config`, puis `max_iterations` (un entier). `0..N` produit 0, 1, …, N−1. |
+| `debug!(iter, …)` | Macro **tracing** : écrit un log structuré (pas affiché dans le chat). Utile pour déboguer combien de tours ont tourné. |
+| `maybe_snip(&mut messages, &tx, …).await` | Appel **async** : peut modifier `messages` (d’où `&mut`). Si ça renvoie `Err` (souvent : plus personne n’écoute le canal UI), on `return`. |
+| `.is_err()` | Méthode sur `Result` : « est-ce un échec ? » → `bool`. |
+| `let options = …clone().with_tools(…)` | On **copie** les options de chat du run, puis on y attache la liste d’outils de ce tour (vu en [01](01-contact-ollama.md)). |
+| `match self.llm.stream_chat(…).await` | Appel au trait `LlmClient` ; deux issues `Ok` / `Err`. |
+| `tx.send(Err(err.into())).await` | En cas d’échec réseau/LLM : on pousse l’erreur vers l’UI via le canal, puis on quitte. |
+| `consume_stream(…).await` | Lit le flux token par token (voir plus bas). `let Ok(mut outcome) = … else { return }` = si ça échoue doucement, stop. |
+
+Le défaut `max_iterations: 12` est dans `impl Default for AgentConfig` (même fichier, ~L786).
+
 ### Sortir plus tôt : `return` / `break`
 
 - `return` dans `drive_inner` : quitte **toute la fonction** (fin du run pour cette tâche).
@@ -116,6 +168,14 @@ Ouvre `drive_inner` dans [`agent.rs`](../../drox-engine/drox/crates/drox-engine/
 3. **Lecture du flux** — `consume_stream` : transforme tokens / tool_calls / lignes `[phase:…]` en `AgentEvent` + un `TurnOutcome` local.
 4. **Branche fin** — si le modèle a signé `done` **et** que les **gates** sont OK → fin du run (succès).
 5. **Branche outils** — s’il y a des `tool_calls` : permissions → exécution (local ou `tool/exec`) → résultats ajoutés à `messages`.
+
+```rust
+// plus bas dans le même for iter (~L1454)
+let batches = partition_tool_calls(&tool_names, &self.registry);
+```
+
+`partition_tool_calls` découpe en lots parallèles / série — détail dans [10](10-parallelisme-outils.md).
+
 6. **Branche nudge** — s’il n’y a ni fin valide ni outils utiles : le moteur injecte un message système du genre « tu dois émettre `[phase: done]` » ou « ferme tes todos », puis **repart** pour un nouvel `iter`.
 
 ### Pourquoi « done-driven » ?
@@ -129,24 +189,32 @@ Les détails des gates : [system-prompts-and-phases.md](../engine/system-prompts
 
 ## Partie E — Boucle *dans* la boucle : lire le stream
 
-`consume_stream` contient typiquement une forme :
+Dans le vrai code (`consume_stream`, ~L2761) :
 
 ```rust
 while let Some(event) = stream.next().await {
-    // traiter un morceau
+    match event {
+        Ok(StreamEvent::Start) => {}
+        Ok(StreamEvent::ThinkingDelta { text: delta }) => {
+            // … forward vers l’UI / buffers …
+        }
+        // … TextDelta, ToolCall, Stop, Err …
+    }
 }
 ```
 
 | Élément | Sens |
 |---------|------|
-| `while` | Répète **tant que** la condition de pattern réussit |
-| `let Some(event) = …` | « S’il y a encore un événement, appelle-le `event` » |
-| `.await` | Attend le prochain morceau du réseau / du parseur |
+| `while` | Répète **tant que** le pattern réussit |
+| `stream.next().await` | Demande le **prochain** événement du flux (async) ; renvoie `None` à la fin |
+| `let Some(event) = …` | S’il y a un événement, on le nomme `event` et on entre dans le corps |
+| `match event` | Selon le **type** d’événement (`Start`, texte, tool…), on fait différent traitement |
+| `Ok(StreamEvent::ThinkingDelta { text: delta })` | Pattern : succès + variante enum ; `delta` = le bout de texte thinking |
 
-C’est une boucle **sur le temps** (arrivée des données), imbriquée dans la boucle **sur les tours** de raisonnement. Deux échelles différentes :
+C’est une boucle **sur le temps** (arrivée des données), imbriquée dans la boucle **sur les tours** de raisonnement :
 
 - **Tour** (`for iter`) : une « pensée » complète + tools.
-- **Stream** (`while let`) : les pixels/tokens d’*une* réponse.
+- **Stream** (`while let`) : les tokens d’*une* réponse.
 
 ---
 

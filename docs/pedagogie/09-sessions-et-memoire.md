@@ -51,6 +51,30 @@ Le transcript peut être **plus riche** que le contexte courant.
 
 **Côté machine** : ouvrir le fichier, écrire des bytes + `\n`, flush. Pas de base SQL obligatoire pour le MVP session.
 
+### Exemple concret — chemins de session
+
+[`paths.rs`](../../drox-engine/drox/crates/drox-session/src/paths.rs) :
+
+```rust
+pub fn default_sessions_dir() -> Result<Utf8PathBuf, SessionError> {
+    let home = dirs::home_dir().ok_or(SessionError::NoHomeDir)?;
+    let joined = home.join(".drox").join("sessions");
+    Utf8PathBuf::try_from(joined).map_err(|_| SessionError::InvalidPath)
+}
+
+pub fn transcript_path(sessions_dir: &camino::Utf8Path, session_id: &SessionId) -> Utf8PathBuf {
+    sessions_dir.join(format!("{session_id}.jsonl"))
+}
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `dirs::home_dir()` | Lib **dirs** : chemin du home utilisateur (`C:\Users\…` / `/home/…`) |
+| `.ok_or(SessionError::NoHomeDir)?` | `Option` → `Result` : pas de home = erreur typée |
+| `home.join(".drox").join("sessions")` | Construit `~/.drox/sessions` |
+| `Utf8PathBuf` (**camino**) | Chemin garanti UTF-8 (plus sûr pour JSON / affichage que `PathBuf` opaque) |
+| `format!("{session_id}.jsonl")` | Nom de fichier transcript |
+
 Fichiers voisins fréquents : `{id}.meta.json`, `{id}.ui-stats.json`.
 
 ---

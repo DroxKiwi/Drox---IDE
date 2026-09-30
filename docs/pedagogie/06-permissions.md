@@ -50,6 +50,36 @@ Chaînes typiques dans `agent.run` (`mode`) :
 
 **Côté machine** : un `enum` Rust (`PermissionMode`) désérialisé depuis le JSON du client. Une seule valeur par run (sauf changement explicite).
 
+### Exemple concret — l’enum dans `mode.rs`
+
+[`mode.rs`](../../drox-engine/drox/crates/drox-permissions/src/mode.rs) :
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum PermissionMode {
+    /// Mode par défaut : pipeline complet allow → ask → deny.
+    #[default]
+    Default,
+    /// Mode plan : interdit toute écriture / commande qui change le système.
+    Plan,
+    /// Auto-allow les écritures fichier dans le workspace.
+    AcceptEdits,
+    /// Bypass complet (sauf rules deny explicites).
+    BypassPermissions,
+    /// Mode professeur : écritures via gates `workArea` + étape exercise/checkpoint.
+    Professor,
+}
+```
+
+| Attribut / syntaxe | Sens |
+|--------------------|------|
+| `#[derive(…)]` | Le compilateur génère Debug, Clone, sérialisation JSON, etc. |
+| `Serialize, Deserialize` | **serde** : lecture/écriture JSON automatique |
+| `rename_all = "camelCase"` | En JSON on écrit `acceptEdits`, pas `AcceptEdits` |
+| `#[default]` | `PermissionMode::default()` → `Default` |
+| `Copy` | Enum sans données heap : on peut la copier bit à bit (pas besoin de `.clone()` obligatoire) |
+
 Mapping UI fréquent : `analyze` → `plan`, `trustEdit` → `acceptEdits`, etc.
 
 ---
