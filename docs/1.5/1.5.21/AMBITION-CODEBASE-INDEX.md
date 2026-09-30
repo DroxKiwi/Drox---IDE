@@ -85,6 +85,7 @@ Objectif : **temps réel**, **diagnostic**, **anticipation** — pas seulement u
 | **Santé live** | État instance (OK / sync / erreur) · heartbeat embed · âge du dernier commit index |
 | **Pipeline live** | File d’indexation : fichier courant, queue depth, débit chunks/s, pause / reprise |
 | **Stockage** | Taille disque, nb fichiers / chunks / vecteurs, chemin, vacuum / GC |
+| **Catalogue des connaissances** | Voir §3.5 — parcourir / administrer **tout** ce qui est indexé |
 | **Moteur embed** | Modèle, chargé ?, RSS / RAM budget, threads, latence probe |
 | **Sonde retrieval** | Champ requête → top-k hits (path, score, preview) · lexical vs hybride |
 | **Journal / rapports** | Erreurs, warnings, skips (binaires, trop gros, secrets) — **rapports de bugs** exportables |
@@ -106,6 +107,22 @@ Objectif : **temps réel**, **diagnostic**, **anticipation** — pas seulement u
 - Embed en RAM, modèle X, latence Y ?  
 - Recherche test → bons fichiers ?  
 - Y a-t-il des alertes / un rapport à exporter ?
+
+### 3.5 Administration des connaissances indexées *(cockpit — phase plus tardive OK)*
+
+**Décision produit** : le panneau ne se limite pas au monitoring. L’utilisateur doit pouvoir **voir et administrer l’ensemble** de ce qui est stocké dans la BDD vectorielle / chunk store de l’instance.
+
+| Capacité | Détail |
+|----------|--------|
+| **Parcourir** | Liste / arborescence des unités indexées (fichiers → chunks) : path, lignes, symbole, taille, date d’index |
+| **Inspecter** | Preview du texte chunk + métadonnées (hash, dim vecteur, score de fraîcheur) |
+| **Espace** | Coût disque **par fichier / par chunk / total** (et % du soft cap) — pas seulement un total opaque |
+| **Suppression** | Retirer un fichier, une sélection, ou un chunk ; sync vecteurs + métadonnées (pas d’orphelins) |
+| **Compactage** | Vacuum / compactage **supplémentaire** à la demande (au-delà du GC auto) + feedback « avant / après » taille |
+| **Exclusions** | Marquer path / glob comme « ne plus réindexer » (liste locale instance) |
+| **Rebuild ciblé** | Reindex d’un sous-ensemble (dossier, fichiers sélectionnés) sans tout purger |
+
+**Priorité livrable** : vision cockpit dès CB0b ; implémentation catalogue / delete / compact **après** santé live + sondes (typiquement **CB3+**), pas bloquant pour CB1–CB2.
 
 ---
 
@@ -187,6 +204,7 @@ ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou 
 | A | But = retrieval local pour nourrir l’agent | ✅ |
 | B | Cockpit supervision **complet** + live + alertes + rapports | ✅ |
 | B2 | Double accès : **activity bar** (comme Changes) + **zone agent** (comme Terminal / Web) | ✅ |
+| B3 | Admin connaissances : parcourir / supprimer / compacter / espace détaillé | ✅ vision · 🔲 impl. CB3+ |
 | C | Embed shippé, minimaliste, **RAM-first** | ✅ |
 | D | Modèle exact (MiniLM vs BGE-small) | 🔲 micro-bench |
 | E | Runtime **llama.cpp + GGUF** (direction) | ✅ proposé |
@@ -205,6 +223,7 @@ ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou 
 | **CB1** | Store + chunker lexical + **cockpit live** (sans embed si besoin) |
 | **CB2** | llama.cpp embed + MiniLM/BGE + probes |
 | **CB3** | Budgets RAM / alertes anticipation / multi-instance |
+| **CB3b** | **Catalogue admin** : parcourir index, delete, compactage, espace par entrée |
 | **CB4+** | Tool agent / `@Codebase` / carte |
 
 L’[ARCHITECTURE](ARCHITECTURE-CODEBASE-INDEX.md) doit abandonner Ollama-first au profit de **llama.cpp embarqué** dès validation E.
