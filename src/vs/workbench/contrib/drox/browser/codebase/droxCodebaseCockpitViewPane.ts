@@ -85,7 +85,8 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		dom.append(embed, dom.$('h4', undefined, localize('drox.codebase.embed', 'Embed')));
 		dom.append(embed, dom.$('p', undefined, s.embed.loaded
 			? localize('drox.codebase.embedLoaded', 'Loaded ({0})', s.embed.modelId ?? '?')
-			: localize('drox.codebase.embedNotLoaded', 'Not loaded (CB2) — lexical only')));
+			: localize('drox.codebase.embedNotLoaded', 'Not loaded — {0}', s.mode === 'hybrid' ? 'hybrid ready' : 'lexical only (CB2)')));
+		dom.append(embed, dom.$('p.drox-codebase-muted', undefined, localize('drox.codebase.mode', 'Retrieval mode: {0}', s.mode)));
 
 		const storage = dom.append(this._body, dom.$('.drox-codebase-section'));
 		dom.append(storage, dom.$('h4', undefined, localize('drox.codebase.storage', 'Storage')));

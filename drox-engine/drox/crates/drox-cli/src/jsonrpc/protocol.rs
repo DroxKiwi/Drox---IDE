@@ -84,6 +84,8 @@ pub struct ServerCapabilities {
     /// Le serveur expose un asker interactif via requêtes serveur→client.
     /// **v1 = `false`** : tout `Ask` retombe en refus côté serveur.
     pub interactive_ask: bool,
+    /// Local GGUF embed runtime compiled into this binary (`--features embed`).
+    pub codebase_embed: bool,
 }
 
 impl ServerCapabilities {
@@ -97,6 +99,7 @@ impl ServerCapabilities {
         // niveau serveur pour que le client puisse interroger
         // `InitializeResult` et adapter son UI si besoin.
         interactive_ask: true,
+        codebase_embed: cfg!(feature = "embed"),
     };
 }
 
@@ -446,6 +449,20 @@ pub struct UserAskAnswer {
 #[serde(rename_all = "camelCase")]
 pub struct UserAskResult {
     pub answers: Vec<UserAskAnswer>,
+}
+
+/// `embed.encode` — encode texts with the loaded GGUF model.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmbedEncodeParams {
+    pub texts: Vec<String>,
+}
+
+/// `embed.load` — load a GGUF embedding model from disk.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmbedLoadParams {
+    pub model_path: String,
 }
 
 /// Statut final d'un run, transporté par `agent/done`.

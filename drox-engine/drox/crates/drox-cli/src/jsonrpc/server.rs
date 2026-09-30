@@ -283,6 +283,18 @@ impl Server {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,
             },
+            "embed.status" => match handlers::embed_status(req.params).await {
+                Ok(v) => self.respond(Response::success(id, v)).await,
+                Err(e) => self.respond(Response::error(id, e)).await,
+            },
+            "embed.load" => match handlers::embed_load(req.params).await {
+                Ok(v) => self.respond(Response::success(id, v)).await,
+                Err(e) => self.respond(Response::error(id, e)).await,
+            },
+            "embed.encode" => match handlers::embed_encode(req.params).await {
+                Ok(v) => self.respond(Response::success(id, v)).await,
+                Err(e) => self.respond(Response::error(id, e)).await,
+            },
             other => {
                 self.respond(Response::error(
                     id,

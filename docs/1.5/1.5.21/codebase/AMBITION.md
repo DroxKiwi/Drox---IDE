@@ -325,7 +325,7 @@ Packaging **dev = ship** (Cargo / drox.exe + GGUF asset, pas npm user) : [PLAN-E
 | **CB0a** | Ce doc (ambition + UI + runtime) | ✅ |
 | **CB0b** | Spec cockpit partagée → [PLAN-COCKPIT.md](PLAN-COCKPIT.md) + IDs `DroxViews` | ✅ spec · 🔲 acceptation → CB1 |
 | **CB1** | Store lexical + cockpit → [PLAN-CB1.md](PLAN-CB1.md) | 🔄 |
-| **CB2** | llama.cpp embed + MiniLM/BGE + probes |
+| **CB2** | Embed RPC + hybrid ready → [PLAN-CB2.md](PLAN-CB2.md) | 🔄 |
 | **CB3** | Budgets RAM / alertes anticipation / multi-instance |
 | **CB3b** | **Catalogue admin** : parcourir index, delete, compactage, espace par entrée |
 | **CB4+** | Tool agent / `@Codebase` / carte |

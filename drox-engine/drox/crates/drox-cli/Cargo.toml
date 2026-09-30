@@ -25,6 +25,7 @@ drox-engine.workspace = true
 drox-hooks.workspace = true
 drox-mcp.workspace = true
 drox-permissions.workspace = true
+drox-embed.workspace = true
 dirs.workspace = true
 
 camino.workspace = true
@@ -44,6 +45,10 @@ anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tracing-appender.workspace = true
+
+[features]
+default = []
+embed = ["drox-embed/embed"]
 
 [dev-dependencies]
 insta.workspace = true

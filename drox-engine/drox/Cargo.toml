@@ -11,6 +11,7 @@ members = [
     "crates/drox-session",
     "crates/drox-engine",
     "crates/drox-hooks",
+    "crates/drox-embed",
     "crates/drox-cli",
     "crates/drox-tui",
 ]
@@ -53,6 +54,7 @@ drox-context = { path = "crates/drox-context", version = "0.1.0" }
 drox-session = { path = "crates/drox-session", version = "0.1.0" }
 drox-engine = { path = "crates/drox-engine", version = "0.1.0" }
 drox-hooks = { path = "crates/drox-hooks", version = "0.1.0" }
+drox-embed = { path = "crates/drox-embed", version = "0.1.0" }
 drox-tui = { path = "crates/drox-tui", version = "0.1.0" }
 
 # TUI
