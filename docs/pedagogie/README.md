@@ -30,7 +30,7 @@ Ils **accompagnent** la lecture du vrai code : une histoire concrète, des défi
 | **11** | [MCP et Explore](11-mcp-et-explore.md) | `mcp__*`, tool `task` | Process externes, sous-agent |
 | **12** | [Hooks](12-hooks.md) | `.drox/hooks.json` | Spawn shell, exit codes |
 | **13** | [TUI vs `--serve`](13-tui-vs-serve.md) | Deux façades du même cœur | Isolation vs in-process |
-| **14** | [Mode professor](14-mode-professor.md) | Gates pédagogiques | Permission + prompt cours |
+| **14** | [Mode professor](14-mode-professor.md) | Intention + code (⚠️ **pas dispo** IDE) | Gates / downgrade |
 
 ## Référence (hors pédagogie)
 

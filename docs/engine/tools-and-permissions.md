@@ -72,9 +72,9 @@ Modes ([`mode.rs`](../../drox-engine/drox/crates/drox-permissions/src/mode.rs)) 
 | `Plan` | Interdit écritures ; lecture/grep OK |
 | `AcceptEdits` | Auto-allow edits fichier workspace ; bash arbitraire peut encore demander |
 | `BypassPermissions` | « Yolo » — auto-allow sauf `Deny` explicite (risqué) |
-| `Professor` | Écritures seulement via gates pédagogiques (`workArea` + étape exercise/checkpoint) |
+| `Professor` | **Prévu / non dispo IDE** — écritures via gates pédagogiques ; UI downgrade depuis 1.4.0 ([pédagogie 14](../pedagogie/14-mode-professor.md), [REPORT](../1.4/REPORT/professor-2.0.md)) |
 
-Alias parsing : `yolo` → Bypass ; `professeur` / `teacher` → Professor.
+Alias parsing : `yolo` → Bypass ; `professeur` / `teacher` → Professor (si le mode est un jour réactivé côté produit).
 
 Mapping UI fréquent (IDE) :
 

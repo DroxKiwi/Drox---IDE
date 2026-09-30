@@ -27,6 +27,6 @@ Rédigé à l'aide de Cursor Agent
 | **`mcp__*`** | Préfixe des outils issus de serveurs MCP. |
 | **Ollama-first** | Inférence locale par défaut ; OpenAI-compat pour d’autres endpoints. |
 | **Hooks** | `.drox/hooks.json` — commandes pre/post tool. |
-| **PermissionMode** | `default` \| `plan` \| `acceptEdits` \| `bypassPermissions` \| `professor`. |
+| **PermissionMode** | `default` \| `plan` \| `acceptEdits` \| `bypassPermissions` \| `professor` (**enum Rust** ; `professor` **non exposé** de façon fiable dans l’IDE — downgrade 1.4.0). |
 
 Pour l’historique des releases : `docs/1.5/`, `docs/1.4/`, etc.

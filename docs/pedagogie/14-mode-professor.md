@@ -1,35 +1,41 @@
 Rédigé à l'aide de Cursor Agent
 
-# Mode professor — gates pédagogiques sur les écritures
+# Mode professor — prévu, pas encore disponible
 
 ## Introduction — ce qu’on va faire ensemble
 
-Ici, nous allons voir **comment une partie précise de Drox fonctionne** : le mode **`professor`**. C’est un [mode de permission](06-permissions.md) + des **prompts** + des **gates** qui transforment le run en parcours d’apprentissage (leçon / exercice / review) plutôt qu’en agent libre de tout modifier.
+Ici, nous allons voir **ce que le mode `professor` est censé faire** dans Drox, et **où en est le produit aujourd’hui**.
 
-Prérequis : [06](06-permissions.md), [07](07-phases-et-gates.md).
+> **État produit** : le mode Professor **n’est pas disponible** dans Drox IDE.  
+> Depuis **1.4.0**, l’UI le **refuse / downgrade** (notification + repli sur un mode confirm-each-edit). Le code Rust (`professor.rs`, prompts, `course_plan_write`) peut encore exister dans le dépôt, mais ce n’est **pas** un chemin fiable ni exposé aux utilisateurs.  
+> Une reprise propre (« Professor 2.0 ») est **prévue** comme chantier futur — pas livrée. Voir aussi [`docs/1.4/REPORT/professor-2.0.md`](../1.4/REPORT/professor-2.0.md).
 
-### L’histoire en une phrase
+Ce guide reste utile pour comprendre **l’intention** et lire le code s’il revient ; ce n’est **pas** un tutoriel d’usage actuel.
 
-En professor, le modèle enseigne et fait travailler ; les **écritures** hors zone / hors étape d’exercice sont refusées par le moteur.
+Prérequis conceptuels : [06-permissions.md](06-permissions.md), [07-phases-et-gates.md](07-phases-et-gates.md).
 
-### Fichiers
+### L’histoire en une phrase (cible produit)
+
+En professor, le modèle enseigne et fait travailler ; les **écritures** hors zone / hors étape d’exercice seraient refusées par le moteur — **quand** le mode sera de nouveau branché et validé.
+
+### Fichiers (code encore présent / historique)
 
 | Fichier | Rôle |
 |---------|------|
-| [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) | Gates runtime |
+| [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) | Gates runtime (si chemin activé) |
 | [`prompts.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts.rs) | Variantes teach / exercise / review |
-| [`mode.rs`](../../drox-engine/drox/crates/drox-permissions/src/mode.rs) | Variant `Professor` |
-| Tools | `course_plan_write`, etc. |
+| [`mode.rs`](../../drox-engine/drox/crates/drox-permissions/src/mode.rs) | Variant `Professor` dans l’enum |
+| IDE | [`droxPermissionAsk.ts`](../../src/vs/workbench/contrib/drox/common/droxPermissionAsk.ts) — **downgrade** si `professor` est demandé |
 
 ---
 
-## Partie A — Permission + pédagogie
+## Partie A — Intention (permission + pédagogie)
 
-`PermissionMode::Professor` : les écritures ne sont autorisées que via les **gates** (zone de travail `workArea`, étape `exercise` / `checkpoint` active, selon implémentation).
+`PermissionMode::Professor` : les écritures ne seraient autorisées que via des **gates** (zone `workArea`, étape `exercise` / `checkpoint`, selon implémentation).
 
-Ce n’est pas seulement un prompt « sois gentil » : le Rust **bloque**.
+Ce n’est pas seulement un prompt « sois gentil » : le Rust **bloquerait**. Aujourd’hui, l’IDE **n’envoie pas** ce mode sur le wire.
 
-### Exemple concret — gate professor sur les mutations
+### Exemple concret — gate professor sur les mutations (code legacy / futur)
 
 [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) :
 
@@ -65,49 +71,35 @@ pub fn check_mutating_tool(
 
 | Morceau | Détail |
 |---------|--------|
-| `-> Option<&'static str>` | `None` = OK ; `Some("…")` = message de refus (littéral vivant toute la vie du programme) |
+| `-> Option<&'static str>` | `None` = OK ; `Some("…")` = message de refus |
 | `PROFESSOR_GATED_TOOLS.contains` | Seuls certains tools sont concernés |
-| `args.get("command").and_then(…).is_some_and(…)` | Chaîne Option : extraire la commande bash puis tester « inspect only » |
-| `as_deref()?` | `Option<String>` → `Option<&str>` ; si pas d’étape active → `None` tôt (= refus via `?` dans ce contexte Option) |
 | Constantes `MUTATING_…` | Messages stables renvoyés au modèle |
 
 ---
 
-## Partie B — Phases de cours (dans le prompt)
+## Partie B — Downgrade côté IDE (comportement actuel)
 
-Le prompt professor parle de phases du genre :
+```typescript
+// droxPermissionAsk.ts (idée)
+normalizeDroxPermissionMode('professor') // → mode confirm (ex. imNotCrazy)
+resolveDroxPermissionMode('professor').downgradedFromProfessor // → true + notification
+```
 
-| Phase | Idée |
-|-------|------|
-| `teach` / leçon | Expliquer, extraits commentés, **pas** de grosse mutation repo |
-| `exercise` | Énoncé ancré dans le projet / `.drox/learn/…` |
-| `review` | Corriger la réponse de l’apprenant |
-| `done` | Attendre le prochain message humain |
-
-Comme ailleurs : question à l’utilisateur → `done` et on attend (pas confondre un nudge moteur avec une réponse élève).
+Les tests (`droxCommon.test.ts`) vérifient que `buildAgentRunParams` **n’envoie jamais** `mode: "professor"` sur le wire.
 
 ---
 
-## Partie C — Outils de cours
+## Partie C — Phases de cours (cible prompt, non UI)
 
-`course_plan_write` et apparentés aident à structurer le parcours.  
-Le détail évolue : lis `simple/course_plan_write.rs` et le prompt professor actuel.
-
----
-
-## Partie D — Quand l’activer
-
-- Ateliers, onboarding repo, enseignement.
-- Pas le mode par défaut pour un chantier de prod urgent (`acceptEdits` / `default` plus adaptés).
-
-Alias parsing : `professeur`, `teacher` → `Professor`.
+Le prompt professor (s’il est réactivé) parle de phases du genre `teach` / `exercise` / `review` / `done`.  
+Sans surface UI ni smoke fiables, **ne pas** compter dessus pour dogfood.
 
 ---
 
 ## Récapitulatif
 
-1. Professor = mode permission + prompt + gates.
-2. But : apprendre **dans** le repo sans laisser l’agent tout réécrire.
-3. S’appuie sur le même `drive_inner` que les autres modes.
+1. Professor = mode permission + prompt + gates **en conception / code partiel**.
+2. **Pas dispo** dans l’IDE actuel (retiré 1.4.0, downgrade explicite).
+3. Reprise future = chantier dédié (« Professor 2.0 »), pas un toggle caché.
 
-Index : [README.md](README.md) · fin de la série numérotée actuelle.
+Index : [README.md](README.md).

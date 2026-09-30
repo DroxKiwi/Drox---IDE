@@ -25,6 +25,9 @@ MCP ajoute des outils au registry comme s’ils étaient natifs ; Explore crée 
 | [`subagent.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) | `EngineSubagentExecutor` |
 | Réf. | [mcp-and-subagents.md](../engine/mcp-and-subagents.md) |
 
+> **État produit** : le moteur Explore est **implémenté**, mais **désactivé par défaut**. Dans Drox IDE aujourd’hui, settings / bridge n’envoient en général pas `subagentsEnabled` → le tool `task` n’apparaît pas.  
+> **Prochaine maj** : câblage IDE prévu en **[1.5.21 — PLAN-SUBAGENTS-EXPLORE-IDE](../1.5/1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md)**.
+
 ---
 
 ## Partie A — MCP en image
@@ -182,6 +185,16 @@ let agent = Agent::new(
 
 Cette archive est **périmée** pour Explore.  
 Le guide de migration : [migration-from-1.4.md](../engine/migration-from-1.4.md).
+
+## Partie F — Activation dans l’IDE (à venir)
+
+Tant que `subagentsEnabled` n’est pas passé à `true` sur `agent.run` :
+
+1. `register_subagent_task()` n’est **pas** appelé ;
+2. le LLM ne voit pas `task` ;
+3. un appel manuel échouerait avec « Sub-agents disabled… ».
+
+Checklist de livraison : [PLAN-SUBAGENTS-EXPLORE-IDE.md](../1.5/1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md).
 
 ---
 

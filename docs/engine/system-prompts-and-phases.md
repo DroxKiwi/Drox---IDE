@@ -70,7 +70,9 @@ Correct : `[phase: planning]` (texte) puis **tool_call** natif `todo_write` avec
 
 ## Mode professor / course
 
-Prompts additionnels dans le même fichier : phases `teach`, `exercise`, `review` ; interdiction de modifier le repo pendant une `lesson` ; exercices ancrés dans le repo / `.drox/learn/`. Gates runtime : [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs).
+> **Pas disponible** dans Drox IDE aujourd’hui (retiré / downgrade depuis 1.4.0 ; pas fiable). Reprise future éventuelle : [professor-2.0.md](../1.4/REPORT/professor-2.0.md) · [pédagogie 14](../pedagogie/14-mode-professor.md).
+
+Des prompts additionnels et [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) peuvent encore figurer dans le dépôt — **ne pas** les traiter comme un mode utilisateur actif.
 
 ## Où le prompt est injecté
 

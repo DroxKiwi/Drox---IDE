@@ -20,7 +20,7 @@ Onboarding court racine fork : [`../DROX.md`](../DROX.md) (si présent).
 
 ## Pédagogie (lecture guidée)
 
-Voir **[`pedagogie/`](pedagogie/README.md)** — série **01 → 14** (socle Ollama, boucle, erreurs, UI, outils, permissions, phases, contexte, sessions, parallélisme, MCP/Explore, hooks, TUI, professor).
+Voir **[`pedagogie/`](pedagogie/README.md)** — série **01 → 14** (socle Ollama … hooks, TUI ; le **14 professor** décrit une intention **pas encore dispo** dans l’IDE).
 
 ---
 

@@ -21,7 +21,8 @@ Si le chat reste muet : vérifier que le process moteur démarre (Sortie / logs 
 | Surface | À quoi ça sert | Code (orienté) |
 |---------|----------------|----------------|
 | Chat / Agents | Fil de conversation, streaming, tools | `contrib/drox/browser/`, `…/agents/` |
-| Modes permission | Plan / trust edits / default / professor | pickers Agents + mapping → `AgentRunParams.mode` |
+| Modes permission | Plan / trust edits / default (pas Professor) | pickers Agents + mapping → `AgentRunParams.mode` |
+
 | Modèles / connexions LLM | Choisir provider, modèle, mute params | settings + `llmProviders/` |
 | Changes / diffs | Voir et appliquer les edits du run | composer / Changes Drox |
 | Sessions | Reprendre / compacter / tronquer un fil | bridge sessions + RPC `session.*` |
@@ -36,7 +37,8 @@ Racine code UI : [`src/vs/workbench/contrib/drox/`](../../src/vs/workbench/contr
 | Analyser sans écrire | `plan` |
 | Laisser appliquer les edits fichier | `acceptEdits` |
 | Demander confirmation au fil de l’eau | `default` |
-| Mode tuteur / cours | `professor` |
+| Mode tuteur / cours | **Pas disponible** — `professor` est downgradé côté IDE ([pédagogie 14](../pedagogie/14-mode-professor.md)) |
+
 | Dogfood sans friction (attention) | `bypassPermissions` |
 
 Détail moteur : [tools-and-permissions.md](../engine/tools-and-permissions.md).

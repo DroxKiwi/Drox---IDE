@@ -80,7 +80,7 @@ Source : [`protocol.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/prot
 | LLM | `server` / base URL, `model`, `provider`, `api_key`, `headers` |
 | Sampling | `temperature`, `max_tokens`, `num_ctx`, options Ollama |
 | Thinking | `native_thinking`, `reasoning_effort`, `thinking_budget` |
-| Permissions | `mode` (`default` \| `plan` \| `acceptEdits` \| `bypassPermissions` \| `professor`), `allow` / `ask` / `deny` |
+| Permissions | `mode` (`default` \| `plan` \| `acceptEdits` \| `bypassPermissions` \| `professor` — ce dernier **non supporté** comme chemin produit IDE actuel) |
 | Outils | `disabled_tools`, `mcp_tools_enabled`, `apply_edits` |
 | Session | `session_id`, `session_dir` |
 | Boucle | `max_iterations`, `run_objective`, `skip_user_turn` |
