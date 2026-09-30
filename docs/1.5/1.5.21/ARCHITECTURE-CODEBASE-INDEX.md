@@ -101,8 +101,8 @@ Ce n’est **pas** un fine-tune du modèle sur le projet.
               ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  Embed provider                                              │
-│  local (Ollama nomic / mxbai…)  ou  API compatible           │
-│  même famille config que connexions LLM Drox                 │
+│  **llama.cpp + GGUF** (ship Drox, RAM-first) — voir ambition │
+│  (Ollama / API = override avancé éventuel, pas le défaut)    │
 └──────────────────────────────────────────────────────────────┘
 ```
 
