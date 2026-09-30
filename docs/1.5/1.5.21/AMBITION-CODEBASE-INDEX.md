@@ -48,18 +48,58 @@ Le branchement agent / tests coding reste **après** ambition + supervision + ru
 
 ---
 
-## 2. Instances = un index par projet
+## 2. Séparation des connaissances — **par racine workspace (chemin), pas par Git**
 
-Chaque **workspace / dossier ouvert** = une **instance** d’index indépendante.
+### Décision
+
+| Question | Réponse |
+|----------|---------|
+| Par dépôt GitHub / remote ? | **Non** comme clé d’identité (pas tout le monde a un git) |
+| Par arborescence machine « magique » ? | **Non** — trop flou (où s’arrête le projet ?) |
+| Par **projet ouvert** / racine agent ? | **Oui** — une instance d’index = **un chemin absolu canonique** de racine workspace |
 
 ```text
-Projet A  →  index A  (chunks + vecteurs + manifest)
-Projet B  →  index B
+Clé d’instance = canonicalize(workspaceRootFsPath)
+Exemple :  C:\Users\…\MonApp   ou   /home/…/mon-app
 ```
 
-L’UI doit lister les instances, ouvrir celle du projet courant, et refuser le mélange silencieux si le modèle embed / schéma change (rebuild proposé).
+Stockage : `{workspaceRoot}/.drox/codebase-index/` (co-localisé avec sessions / memory déjà sous `.drox/`).
 
-Emplacement (direction) : `{workspace}/.drox/codebase-index/`.
+### Pourquoi pas Git / GitHub
+
+- Beaucoup de dossiers ouverts **sans** `.git`.  
+- Un même remote peut être cloné **N fois** → N arbres fichiers ≠ 1 index.  
+- Un monorepo git ≠ forcément 1 seule racine de travail utile.  
+- Git reste utile en **métadonnée d’affichage** (branche, remote) dans le cockpit, pas comme ID.
+
+### IDE vs Agents — même règle
+
+Aujourd’hui le moteur reçoit déjà un `workspace` (chemin) sur `agent.run` ; l’IDE borne outils / historique à `folders[0]` ; Agents attache souvent un `workingDirectory` de session.
+
+| Surface | Racine utilisée pour l’index |
+|---------|------------------------------|
+| **IDE** | `workspace.folders[0]` (même borne que l’agent IDE aujourd’hui) |
+| **Agents** | `workingDirectory` de la session (fallback : dossier workspace IDE si présent) |
+| **Cockpit partagé** | Affiche / administre l’instance de **la racine active** du host ; liste les autres racines déjà indexées sur la machine |
+
+**Même chemin → même index**, que tu sois dans l’IDE ou Agents.  
+Pas deux BDD pour « le même projet ouvert deux fois » si le path canonique est identique.
+
+### Cas limites (v1)
+
+| Cas | Comportement |
+|-----|----------------|
+| Dossier sans git | Index normal (path only) |
+| Multi-root IDE (`folders[1+]`) | v1 = **folders[0] seulement** (aligné outils agent) ; multi-root index = plus tard |
+| Session Agents sur un autre cwd | **Autre instance** d’index (autre path) — visible dans le catalogue cockpit |
+| Renommage / déplacement du dossier | Nouveau path = nouvelle instance ; l’ancienne reste orpheline jusqu’à purge manuelle (alerte cockpit possible) |
+| Symlinks / casing Windows | `canonicalize` avant hash / clé (éviter doublons `C:\A` vs `c:\a`) |
+
+### Ce qu’on ne fait pas en v1
+
+- Fusionner automatiquement deux clones du même GitHub.  
+- Un index « machine globale » unique pour tout le disque.  
+- Indexer hors de la racine workspace sans opt-in explicite (`allow_outside_workspace` reste un autre sujet agent).
 
 ---
 
@@ -226,7 +266,8 @@ ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou 
 | D | Modèle exact (MiniLM vs BGE-small) | 🔲 micro-bench |
 | E | Runtime **llama.cpp + GGUF** (direction) | ✅ proposé |
 | F | GPU backends | ⛔ hors v1 sauf option tardive |
-| G | Emplacement index workspace | ✅ proposé `.drox/codebase-index/` |
+| G | Emplacement / clé instance = **path workspace canonique** (pas Git) | ✅ |
+| G2 | IDE `folders[0]` · Agents `workingDirectory` · même path = même index | ✅ |
 | H | Branchement coder | ⛔ plus tard |
 
 ---
