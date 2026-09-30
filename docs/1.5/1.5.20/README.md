@@ -34,7 +34,7 @@
 - Outils agent restent sur `folders[0]` ; multi-git = affichage Changes seulement.
 - Commit/Push IDE hors scope (SCM natif).
 - Critère de sortie : chat IDE utilisable + historique fiable (Agents & IDE) + Changes IDE multi-git.
-- Index `@Codebase` / embed local → **[1.5.21 ARCHITECTURE-CODEBASE-INDEX](../1.5.21/ARCHITECTURE-CODEBASE-INDEX.md)**.
+- Index `@Codebase` / embed local → **[1.5.21 codebase/](../1.5.21/codebase/README.md)**.
 - Explore / sous-agents dans l’IDE → **[1.5.21 PLAN-SUBAGENTS-EXPLORE-IDE](../1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md)**.
 - Shell discussion unifié Agents ↔ IDE → **[1.5.21 PLAN-SHARED-DISCUSSION-SHELL](../1.5.21/PLAN-SHARED-DISCUSSION-SHELL.md)**.
 - Tool calling universel → **[1.5.22](../1.5.22/PLAN-UNIVERSAL-TOOL-CALLING.md)**.
