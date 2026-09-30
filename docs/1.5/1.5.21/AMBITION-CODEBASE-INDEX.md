@@ -319,8 +319,8 @@ ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou 
 
 | Phase | Livrable |
 |-------|----------|
-| **CB0a** | Ce doc (ambition + UI + runtime) |
-| **CB0b** | Spec détaillée vue cockpit **partagée** (hosts IDE + Agents) |
+| **CB0a** | Ce doc (ambition + UI + runtime) | ✅ |
+| **CB0b** | Spec détaillée vue cockpit **partagée** → [PLAN-CODEBASE-COCKPIT.md](PLAN-CODEBASE-COCKPIT.md) | 🔄 |
 | **CB1** | Store + chunker lexical + **cockpit live** (sans embed si besoin) |
 | **CB2** | llama.cpp embed + MiniLM/BGE + probes |
 | **CB3** | Budgets RAM / alertes anticipation / multi-instance |
