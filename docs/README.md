@@ -2,10 +2,10 @@
 
 **Racine doc** : ce dossier (`docs/`), anciennement `drox-engine/docs/`.
 
-| Entrée | Pour qui |
-|--------|----------|
-| **[`engine/`](engine/README.md)** | Comprendre le **moteur actuel** (`tui_mono`) — à lire en premier si tu contribues au Rust |
-| **[`tutorials/ide-navigation.md`](tutorials/ide-navigation.md)** | Tutoriel **interface IDE** (navigation workbench) — séparé du moteur |
+| Entrée | Contenu |
+|--------|---------|
+| **[`engine/`](engine/README.md)** | Moteur actuel (`tui_mono`) — référence Rust |
+| **[`tutorials/ide-navigation.md`](tutorials/ide-navigation.md)** | Navigation dans l’interface IDE (séparé du moteur) |
 | **[`operations/`](operations/README.md)** | Build, release Windows/Linux, branches |
 | **[`1.5/`](1.5/README.md)** | Plans / clôtures ligne 1.5.x |
 | **[`1.4/`](1.4/)** · **[`1.3/`](1.3/)** · **[`1.2/`](1.2/)** · **[`0.0/`](0.0/)** | Historique (archives) |
@@ -17,7 +17,7 @@ Onboarding court racine fork : [`../DROX.md`](../DROX.md) (si présent).
 
 ## Moteur (doc publique de référence)
 
-Voir **[`engine/`](engine/README.md)** — parcours débutant → confirmé :
+Voir **[`engine/`](engine/README.md)** :
 
 | Document | Contenu |
 |----------|---------|

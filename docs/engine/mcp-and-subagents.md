@@ -2,7 +2,9 @@
 
 ## MCP
 
-Crate [`drox-mcp`](../../drox-engine/drox/crates/drox-mcp/src/lib.rs) — hub autour de `rmcp` (stdio / HTTP).
+Crate [`drox-mcp`](../../drox-engine/drox/crates/drox-mcp/src/lib.rs) — hub autour de **`rmcp`** (client MCP Rust : transport child-process et HTTP streamable).
+
+MCP (Model Context Protocol) expose des tools d’un **processus serveur externe** (filesystem, browsers, APIs…). Drox les enregistre sous des noms préfixés `mcp__*` pour éviter les collisions avec la palette native, puis les traite comme n’importe quel `Tool` du registry (permissions / hooks inclus).
 
 ### Flux
 

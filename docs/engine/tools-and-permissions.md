@@ -1,5 +1,15 @@
 # Outils et permissions
 
+## Idée centrale
+
+Un **outil** est une unité d’effet de bord (ou de lecture) que le modèle peut demander via un `tool_call` nommé. Le moteur ne « croit » pas le modèle : il passe chaque appel par **pre-gates → permissions → hooks → exécution → résultat typé**.
+
+- Trait [`Tool`](../../drox-engine/drox/crates/drox-tools/src/tool.rs) : `name`, schéma d’entrée, `execute`, `is_read_only` / `is_concurrency_safe`.
+- [`ToolRegistry`](../../drox-engine/drox/crates/drox-tools/src/registry.rs) : map nom → `Arc<dyn Tool>` (dyn via `async-trait`).
+- Contexte d’exécution : [`ToolContext`](../../drox-engine/drox/crates/drox-tools/src/context.rs) (workspace, flags apply/plan, notes, …).
+
+**Local vs remote** n’est pas une propriété du tool dans le registry : c’est le **setup RPC** qui remplace certaines entrées par un `RemoteTool` quand le client a déclaré le nom dans `executableTools`. Sémantiquement : « qui possède l’API host ? » — le process `drox` (FS local, MCP) ou l’IDE (LSP VS Code, intégrations workbench).
+
 ## Palette exacte — `with_simple_tools()`
 
 Source : [`registry.rs`](../../drox-engine/drox/crates/drox-tools/src/registry.rs).
@@ -13,7 +23,7 @@ Source : [`registry.rs`](../../drox-engine/drox/crates/drox-tools/src/registry.r
 | `lsp` | Langage (souvent **remote** IDE) |
 | `ask_user_question` | Interaction (`user/ask` si capability) |
 | `exit_plan_mode` | Sortie mode plan |
-| `bash` | Shell (`drox-bash` + permissions) |
+| `bash` | Shell — classification via **`drox-bash`** (**tree-sitter** + grammar bash) pour distinguer inspectif vs mutateur |
 | `todo_write`, `course_plan_write`, `scope_defer` | Plan / scope |
 | `workspace_map_read`, `workspace_map_note` | Carte workspace |
 | `session_note`, `memory_read`, `memory_list` | Mémoire locale |

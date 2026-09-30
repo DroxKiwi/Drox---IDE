@@ -4,8 +4,20 @@
 
 Décrire le chemin **exact** d’un message utilisateur jusqu’à la clôture du run sous pipeline **`tui_mono`**.
 
-Pour une carte ligne-par-ligne du fichier monolithe : [agent-internals.md](agent-internals.md).  
+Pour une carte du fichier monolithe : [agent-internals.md](agent-internals.md).  
 Pour le protocole textuel imposé au modèle : [system-prompts-and-phases.md](system-prompts-and-phases.md).
+
+## Sémantique : qu’est-ce qu’un « tour » ?
+
+Un **run** est une conversation contrôlée entre trois acteurs :
+
+1. **Le modèle** — produit du texte (dont marqueurs `[phase:]`) et éventuellement des `tool_calls` structurés.
+2. **Le moteur** — valide, autorise, exécute (ou délègue), injecte les résultats, décide de continuer ou de s’arrêter.
+3. **Le client** — affiche les `AgentEvent`, répond à `tool/exec` / `user/ask`.
+
+La clôture n’est **pas** « le modèle a arrêté d’appeler des outils ». Elle est **signée** par `[phase: done]` après un `[phase: answering]` valide, sous réserve des gates (todos, testing, professor, anti-boucle). Sans `done`, `drive_inner` **relance** jusqu’à `max_iterations`.
+
+`Agent::run` expose un **stream** (`AgentStream`) : chaque événement est poussé dès qu’il est connu (Tokio / futures), ce qui permet à l’UI de peindre sans attendre la fin du run.
 
 ## Enchaînement
 

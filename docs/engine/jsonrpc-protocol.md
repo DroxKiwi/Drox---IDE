@@ -3,11 +3,20 @@
 Version protocole : **`PROTOCOL_VERSION = "1.0"`**  
 ([`jsonrpc/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/mod.rs)).
 
+## Pourquoi ce transport ?
+
+L’IDE Electron spawn `drox` comme **processus enfant**. Le canal le plus simple et le plus portable est **stdio** : pas de port TCP à gérer, pas de firewall local, un seul pipe par sens.
+
+- **NDJSON** (un objet JSON + `\n`) : parsing ligne à ligne, compatible avec un lecteur async Tokio sur stdin.
+- **Pas** de framing LSP `Content-Length` : inutile ici (messages déjà délimités par ligne) et plus simple à déboguer à l’œil.
+- **Séparation des canaux** : stdout = RPC uniquement ; **stderr** = `tracing` (logs). Un client qui mélange les deux casse le protocole.
+
+Types wire : **`serde` / `serde_json`** sur les structs de [`protocol.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/protocol.rs). Les IDs de requête JSON-RPC coexistent avec des `run_id` / `call_id` métier (**uuid**).
+
 ## Transport
 
-- **Un objet JSON par ligne** sur stdin / stdout (NDJSON).
-- Pas de framing LSP `Content-Length`.
-- stderr : logs tracing (ne pas parser comme RPC).
+- Un objet JSON par ligne sur stdin / stdout (NDJSON).
+- stderr : logs tracing — ne pas parser comme RPC.
 
 Démarrage serveur :
 

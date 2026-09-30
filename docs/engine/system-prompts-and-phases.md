@@ -2,7 +2,17 @@
 
 Source de vérité : [`drox-cli/src/prompts.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts.rs) (`CORE_SYSTEM_PROMPT` + variants professor / course).
 
-Le moteur **parse** les marqueurs et applique des gates dans [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs). Le prompt et le Rust doivent rester alignés.
+Le moteur **parse** les marqueurs et applique des gates dans [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs). Le prompt et le Rust doivent rester alignés : le texte explique la règle au modèle ; le code **applique** la règle (sinon le modèle peut ignorer le prompt).
+
+## Pourquoi des phases en texte plat ?
+
+Les tool calls structurés décrivent des **actions**. Les phases décrivent l’**intention narrative** du tour (lecture, édition, réponse finale) sans inventer un faux outil `set_phase`. Une ligne seule `[phase: …]` est :
+
+- triviale à parser dans `consume_stream` (buffer ligne) ;
+- visible dans le transcript JSONL ;
+- mappable vers l’UI (et éventuellement synthétisée en `rail_station_*` par le shim).
+
+Le **thinking natif** du modèle (stream séparé) n’est pas une phase Drox : il ne doit pas remplacer `answering` pour la prose utilisateur.
 
 ## Marqueurs
 

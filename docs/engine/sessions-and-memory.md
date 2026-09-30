@@ -1,5 +1,17 @@
 # Sessions et mémoire
 
+## Idée centrale
+
+Trois mémoires distinctes, volontairement **non fusionnées** :
+
+| Couche | Rôle | Durée de vie |
+|--------|------|--------------|
+| **Transcript JSONL** | Trace complète du run (reprise UI, debug) | Profil utilisateur (`~/.drox/sessions/`) |
+| **Contexte LLM vivant** | Ce qui est réellement envoyé au modèle | Éphémère — snip / compact pendant le run |
+| **Archives / notes projet** | Décisions durables (`.drox/memory/`, `MEMORY.md`) | Workspace |
+
+Le snip (**déterministe**, pas d’appel LLM) retire d’abord les blocs froids ; la compaction (**async**, résume via LLM) n’intervient que si le budget reste trop serré — primitives dans `drox-context` (**tiktoken-rs** pour estimer), orchestration dans `compaction.rs` / `maybe_snip`.
+
 ## Transcripts JSONL
 
 Crate [`drox-session`](../../drox-engine/drox/crates/drox-session/src/lib.rs).

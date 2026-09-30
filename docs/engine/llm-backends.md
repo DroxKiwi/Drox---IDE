@@ -1,5 +1,15 @@
 # Backends LLM
 
+## Idée centrale
+
+Le moteur ne parle jamais « Ollama » ou « OpenAI » dans `drive_inner` : il parle le trait **`LlmClient`** (`stream_chat`, options, tool specs). Les adaptateurs traduisent vers le protocole HTTP du serveur d’inférence.
+
+- HTTP : **`reqwest`** (TLS **rustls**, JSON, stream).
+- SSE OpenAI-compat : **`eventsource-stream`** (+ parsing dans `openai/`).
+- Erreurs / retry : typées côté `drox-llm` ; l’orchestration (quand relancer un tour) reste dans `drox-engine`.
+
+Pourquoi deux familles ? Ollama expose une API `/api/chat` et des options (`num_ctx`, think) spécifiques ; la majorité des endpoints cloud/self-host parlent **Chat Completions** OpenAI. Une factory unique évite de forker la boucle agent.
+
 ## Factory
 
 [`create_llm_client`](../../drox-engine/drox/crates/drox-llm/src/factory.rs) choisit l’adaptateur selon `provider` + `LlmConfig`.

@@ -1,6 +1,12 @@
-# Internes de `agent.rs` — carte pour contributeurs
+# Internes de `agent.rs`
 
-Le fichier [`drox-engine/src/agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) concentre la boucle `tui_mono` (plusieurs milliers de lignes). Cette page dit **où lire** sans tout dérouler.
+Le fichier [`drox-engine/src/agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) concentre la boucle `tui_mono` (plusieurs milliers de lignes). Cette page dit **où lire** et **pourquoi** le fichier est structuré ainsi.
+
+## Pourquoi un monolithe ici ?
+
+Après le retrait du rail 1.4 (`agent/loop/`, stations), la sémantique « done-driven » (phases, gates todos/testing, nudges, anti-boucle, snip) est **fortement couplée** : éclater trop tôt en dizaines de fichiers obscurcissait le flux d’un tour. Les satellites (`compaction`, `tool_orchestration`, `subagent`, `professor`, …) absorbent ce qui a une frontière claire ; le reste reste dans `agent.rs` pour garder une lecture linéaire de `drive_inner`.
+
+État partagé du run : clones légers + **`Arc`** sur LLM, registry, permissions — compatible avec l’exécution parallèle d’outils (`buffer_unordered` / Tokio).
 
 ## Types publics
 

@@ -91,7 +91,7 @@ C’est précisément ce confort — accélérer la pensée et l’expérimentat
 
 ## Présentation technique (cours express)
 
-Public : débutant motivé ou développeur confirmé. Le détail opératoire vit dans [`docs/engine/`](docs/engine/README.md).
+Le détail opératoire vit dans [`docs/engine/`](docs/engine/README.md).
 
 ### 1. Trois briques, un poste de travail
 
