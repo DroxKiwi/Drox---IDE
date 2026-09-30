@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Guide développeur — build, tests, où patcher
 
 ## Prérequis

@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Prompts système et protocole des phases
 
 Source de vérité : [`drox-cli/src/prompts.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts.rs) (`CORE_SYSTEM_PROMPT` + variants professor / course).

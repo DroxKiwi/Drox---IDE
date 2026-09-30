@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Intégration IDE ↔ moteur
 
 > Contrat technique IDE → moteur. Pour **apprendre l’interface** (où cliquer) : [tutoriel navigation IDE](../tutorials/ide-navigation.md).

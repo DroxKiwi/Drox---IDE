@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Migration mentale — rail 1.4 / `role_split` → `tui_mono`
 
 Cette page évite de suivre de **fausses pistes** dans `docs/1.4/moteur/` ou d’anciens plans.

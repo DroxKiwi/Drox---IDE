@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Architecture — vue d’ensemble
 
 ## Rôle du moteur
