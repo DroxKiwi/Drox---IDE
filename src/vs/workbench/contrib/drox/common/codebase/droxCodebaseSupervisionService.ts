@@ -18,7 +18,6 @@ export interface IDroxCodebaseSupervisionService {
 	readonly _serviceBrand: undefined;
 	readonly onDidChangeSnapshot: Event<void>;
 	readonly snapshot: IDroxCodebaseCockpitSnapshot;
-	/** Active root for cockpit (IDE folders[0] by default; Agents may override later). */
 	setActiveRoot(root: URI | undefined): void;
 	refresh(): Promise<void>;
 	reindex(): Promise<void>;
@@ -29,10 +28,6 @@ export interface IDroxCodebaseSupervisionService {
 	getIndexDirFsPath(): string | undefined;
 }
 
-/**
- * CB1 stub: binds cockpit to folders[0], reports missing/idle, no embed yet.
- * Real indexing lands in subsequent CB1 commits.
- */
 export class DroxCodebaseSupervisionService extends Disposable implements IDroxCodebaseSupervisionService {
 
 	declare readonly _serviceBrand: undefined;
@@ -69,17 +64,45 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 	}
 
 	async refresh(): Promise<void> {
-		const root = this._resolveRootFsPath();
+		const rootUri = this._resolveRootUri();
+		const root = rootUri?.fsPath;
+		if (!root || !rootUri) {
+			this._snapshot = {
+				...createEmptyCodebaseSnapshot(),
+				state: 'missing',
+				alerts: [{
+					id: 'no-root',
+					severity: 'info',
+					code: 'NO_WORKSPACE_ROOT',
+					message: 'Open a folder to enable the codebase index.',
+					at: Date.now(),
+				}],
+			};
+			this._onDidChangeSnapshot.fire();
+			return;
+		}
+
+		const manifest = await this.indexService.getManifest(rootUri);
+		const base = createEmptyCodebaseSnapshot(root);
 		this._snapshot = {
-			...createEmptyCodebaseSnapshot(root),
-			state: root ? 'idle' : 'missing',
-			embed: { loaded: false, modelId: undefined },
+			...base,
+			state: 'idle',
+			storage: manifest
+				? {
+					files: manifest.files,
+					chunks: manifest.chunks,
+					vectors: manifest.vectors,
+					bytes: manifest.bytes,
+					softCapBytes: base.storage.softCapBytes,
+				}
+				: base.storage,
+			embed: { loaded: false },
 			mode: 'lexical',
-			alerts: root ? [] : [{
-				id: 'no-root',
+			alerts: manifest ? [] : [{
+				id: 'no-index',
 				severity: 'info',
-				code: 'NO_WORKSPACE_ROOT',
-				message: 'Open a folder to enable the codebase index.',
+				code: 'NO_INDEX',
+				message: 'No index yet — click Reindex.',
 				at: Date.now(),
 			}],
 		};
@@ -91,7 +114,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		if (!root) {
 			return;
 		}
-		this._snapshot = { ...this._snapshot, state: 'indexing', pipeline: { ...this._snapshot.pipeline, phase: 'ensure' } };
+		this._snapshot = { ...this._snapshot, state: 'indexing', pipeline: { queueDepth: 0, chunksPerSec: 0, phase: 'scan+chunk' } };
 		this._onDidChangeSnapshot.fire();
 		try {
 			await this.indexService.ensureIndexed(root);
@@ -101,6 +124,13 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 				...this._snapshot,
 				state: 'error',
 				lastError: err instanceof Error ? err.message : String(err),
+				alerts: [{
+					id: 'index-error',
+					severity: 'error',
+					code: 'INDEX_FAILED',
+					message: err instanceof Error ? err.message : String(err),
+					at: Date.now(),
+				}],
 			};
 			this._onDidChangeSnapshot.fire();
 		}

@@ -5,8 +5,13 @@
 | Fichier | Rôle |
 |---------|------|
 | `droxCodebasePaths.ts` | Racine index `{workspace}/.drox/codebase-index/` |
+| `droxCodebaseIgnore.ts` | Dossiers / fichiers exclus |
+| `droxCodebaseChunker.ts` | Fenêtres de lignes → chunks |
+| `droxCodebaseLexicalSearch.ts` | Recherche lexicale CB1 |
+| `droxCodebaseJsonStore.ts` | `manifest.json` + `chunks.json` |
 | `droxCodebaseTypes.ts` | Snapshot cockpit, hits, états |
-| `droxCodebaseIndexService.ts` | Index / search / invalidate (CB1+) |
+| `droxCodebaseIndexService.ts` | Contrat index / search |
+| `droxCodebaseIndexServiceImpl.ts` | Scan + store (CB1) |
 | `droxCodebaseSupervisionService.ts` | Live status + actions cockpit |
 
 UI : [`browser/codebase/`](../../browser/codebase/README.md)

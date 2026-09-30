@@ -20,6 +20,11 @@ export function droxCodebaseManifestPath(workspaceRootFsPath: string): string {
 	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'manifest.json');
 }
 
+/** CB1 lexical store (JSON). SQLite path reserved for CB2+ vectors. */
+export function droxCodebaseChunksJsonPath(workspaceRootFsPath: string): string {
+	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'chunks.json');
+}
+
 export function droxCodebaseChunksDbPath(workspaceRootFsPath: string): string {
 	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'chunks.sqlite');
 }

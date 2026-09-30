@@ -13,6 +13,13 @@ Premier code utile **sans** llama.cpp :
 4. Cockpit sidebar branché sur `IDroxCodebaseSupervisionService` (probe lexical)  
 5. Badge embed = « non chargé » jusqu’à CB2  
 
-## Hors scope CB1
+## Statut CB1
 
-Embed / hybrid · catalogue admin · tool agent · host Agents / panel (peut suivre juste après sidebar IDE)
+- ✅ Store JSON lexical (`chunks.json` + `manifest.json`)  
+- ✅ Chunker fenêtres + ignore  
+- ✅ Search lexical + probe cockpit  
+- ✅ Purge / Reindex  
+- 🔲 Index incrémental (invalidate path)  
+- 🔲 Host Agents / panel  
+
+Embed → CB2 ([PLAN-EMBED-PACKAGING](PLAN-EMBED-PACKAGING.md)).
