@@ -10,6 +10,12 @@ export namespace DroxViews {
 	/** Sidebar activity-bar container (replaces Explorer when active). */
 	export const ChangesViewContainerId = 'workbench.view.drox.changesContainer';
 	export const ChangesViewId = 'workbench.view.drox.changes';
+	/** Sidebar activity-bar container — @Codebase cockpit (shared Agents ↔ IDE). */
+	export const CodebaseViewContainerId = 'workbench.view.drox.codebaseContainer';
+	export const CodebaseViewId = 'workbench.view.drox.codebase';
+	/** Optional bottom panel host (Terminal-like) for the same cockpit view. */
+	export const CodebasePanelViewContainerId = 'workbench.view.drox.codebasePanelContainer';
+	export const CodebasePanelViewId = 'workbench.view.drox.codebasePanel';
 }
 
 export namespace DroxCommands {
@@ -22,4 +28,10 @@ export namespace DroxCommands {
 	export const UndoFileChange = 'workbench.action.droxUndoFileChange';
 	export const RedoFileChange = 'workbench.action.droxRedoFileChange';
 	export const OpenSessionFile = 'workbench.action.droxOpenSessionFile';
+	/** Focus shared @Codebase cockpit (sidebar). */
+	export const FocusCodebase = 'workbench.action.droxFocusCodebase';
+	export const CodebaseReindex = 'workbench.action.droxCodebaseReindex';
+	export const CodebasePause = 'workbench.action.droxCodebasePause';
+	export const CodebasePurge = 'workbench.action.droxCodebasePurge';
+	export const CodebaseExportDiag = 'workbench.action.droxCodebaseExportDiag';
 }

@@ -10,7 +10,7 @@
 | Fiche | Sujet | Priorité |
 |-------|--------|----------|
 | [AMBITION-CODEBASE-INDEX.md](AMBITION-CODEBASE-INDEX.md) | **But produit** + supervision IDE + embed embarqué / ressources | **#1 — avant code** |
-| [PLAN-CODEBASE-COCKPIT.md](PLAN-CODEBASE-COCKPIT.md) | **CB0b** — spec cockpit shell partagé (layout · hosts · events) | **En cours** |
+| [PLAN-CODEBASE-COCKPIT.md](PLAN-CODEBASE-COCKPIT.md) | **CB0b** — spec cockpit shell partagé (layout · hosts · events) | **Spec prête** |
 | [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md) | Pipeline technique chunk · embed · store · retrieval | Aligné après ambition |
 | [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) | Carte visuelle du code (canvas fichiers / symboles) | Lié à #1 |
 | [PLAN-SUBAGENTS-EXPLORE-IDE.md](PLAN-SUBAGENTS-EXPLORE-IDE.md) | Brancher Explore / `task` dans l’IDE (opt-in) | **#2** |

@@ -1,6 +1,6 @@
 # Plan CB0b — Cockpit `@Codebase` (shell partagé)
 
-**Statut** : **en cours** · spec UI avant code store/embed  
+**Statut** : **spec CB0b prête** · IDs `DroxViews` / commandes figés · go CB1 après acceptation  
 **Version** : 1.5.21  
 **Parent** : [README](README.md) · [AMBITION-CODEBASE-INDEX.md](AMBITION-CODEBASE-INDEX.md)  
 **Suite code** : CB1 (store lexical + branchement cockpit) → CB2 (llama.cpp embed)
@@ -21,13 +21,19 @@ Sans implémenter encore le vector store ni llama.cpp : la spec doit permettre u
 
 ## 2. Module partagé
 
-| Élément | Proposition |
-|---------|-------------|
-| Id vue | `workbench.view.drox.codebase` (à figer dans `DroxViews`) |
-| Container sidebar | `workbench.view.container.drox.codebase` — `ViewContainerLocation.Sidebar` (miroir Changes) |
+| Élément | Id / nom figé |
+|---------|----------------|
+| Container sidebar | `DroxViews.CodebaseViewContainerId` = `workbench.view.drox.codebaseContainer` |
+| Vue sidebar | `DroxViews.CodebaseViewId` = `workbench.view.drox.codebase` |
+| Container panel (optionnel) | `DroxViews.CodebasePanelViewContainerId` = `workbench.view.drox.codebasePanelContainer` |
+| Vue panel | `DroxViews.CodebasePanelViewId` = `workbench.view.drox.codebasePanel` |
+| Focus commande | `DroxCommands.FocusCodebase` |
+| Actions | `CodebaseReindex` · `CodebasePause` · `CodebasePurge` · `CodebaseExportDiag` |
 | Classe UI | `DroxCodebaseCockpitView` (ou Pane) — **une** implémentation |
-| Service | `IDroxCodebaseSupervisionService` (statut live + actions) au-dessus de `IDroxCodebaseIndexService` |
-| Racine active | Résolue par le host : IDE `folders[0]` · Agents `session.workingDirectory` |
+| Service | `IDroxCodebaseSupervisionService` au-dessus de `IDroxCodebaseIndexService` |
+| Racine active | Host : IDE `folders[0]` · Agents `session.workingDirectory` |
+
+Constants déjà dans [`drox.ts`](../../../src/vs/workbench/contrib/drox/common/drox.ts) (CB0b).
 
 ```text
 Host (IDE sidebar | IDE panel | Agents)
@@ -180,10 +186,10 @@ Refresh : push à chaque changement d’état / ~1 Hz pendant `indexing`.
 
 ## 8. Critères « CB0b done »
 
-1. Ce plan relu et accepté (layout + hosts + contrat snapshot).  
-2. IDs vue / container notés dans `DroxViews` (peut être stub comments jusqu’au code).  
-3. Ambition §9 marque CB0b ✅.  
-4. Go explicite → CB1 (store + vue stub branchée).
+1. ✅ Plan layout + hosts + contrat snapshot (ce doc).  
+2. ✅ IDs vue / container / commandes dans `DroxViews` / `DroxCommands`.  
+3. ✅ Ambition §9 marque CB0b.  
+4. 🔲 Acceptation produit → **CB1** (store + vue stub branchée).
 
 ---
 
