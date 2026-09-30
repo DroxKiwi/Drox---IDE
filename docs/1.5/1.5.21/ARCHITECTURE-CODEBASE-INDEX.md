@@ -4,8 +4,12 @@
 **Version** : **1.5.21** (**priorité #1** de la maj — devant Explore ; originellement hors 1.5.19 Git Graph)  
 **Objectif** : répliquer côté Drox le mécanisme qui rend un modèle **efficace sur la compréhension du code** sans charger tout le repo dans le contexte.
 
+> **Lire d’abord** : [AMBITION-CODEBASE-INDEX.md](AMBITION-CODEBASE-INDEX.md) (but produit, UI supervision, embed embarqué / ressources).  
+> Cette fiche = pipeline technique ; **aligner** §6 Embeddings sur les décisions ambition (ship in-app, plus Ollama-first).
+
 Références liées :
-- [README.md](README.md) — périmètre 1.5.21 (index d’abord, Explore ensuite)
+- [AMBITION-CODEBASE-INDEX.md](AMBITION-CODEBASE-INDEX.md) — ambition + supervision
+- [README.md](README.md) — périmètre 1.5.21
 - [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) — carte visuelle du code
 - [PLAN-SUBAGENTS-EXPLORE-IDE.md](PLAN-SUBAGENTS-EXPLORE-IDE.md) — Explore IDE (priorité #2)
 - [../1.5.19/PLAN-GIT-BRANCH-GRAPH.md](../1.5.19/PLAN-GIT-BRANCH-GRAPH.md) — socle canvas livré avec le Git Graph
@@ -140,11 +144,12 @@ Profil utilisateur si multi-root / cache partagé : `%APPDATA%\.drox-ide\codebas
 
 ## 6. Embeddings
 
-### MVP recommandé
+### MVP recommandé *(à aligner ambition)*
 
-- Provider **local** via stack déjà Drox (Ollama) : modèle dédié embed (ex. famille `nomic-embed-text` / équivalent configurable).
+- **Direction produit** : modèle d’embed **embarqué** dans l’app (voir [AMBITION §4](AMBITION-CODEBASE-INDEX.md)) — plus Ollama-first.
 - Dimension fixe documentée dans `manifest.json`.
 - Changement de modèle embed → **rebuild** index (pas de mélange de dimensions).
+- Ollama / API = override avancé éventuel, pas le chemin nominal.
 
 ### Settings (brouillon)
 
@@ -304,7 +309,9 @@ Le retrieval fournit **quoi montrer** ; le canvas fournit **comment le voir**.
 | # | Question | Proposition défaut |
 |---|----------|-------------------|
 | 1 | Store vectoriel | SQLite (+ vec) local |
-| 2 | Modèle embed défaut | Ollama, modèle documenté dans settings |
-| 3 | Auto-inject vs tool only | Tool `codebase_search` d’abord, auto-inject opt-in |
+| 2 | Modèle embed défaut | Small shippé (MiniLM / BGE-small) — voir ambition §4 ; micro-bench avant lock |
+| 3 | Auto-inject vs tool only | **Reporté** (ambition §6) — tool d’abord probable |
 | 4 | Emplacement | `{workspace}/.drox/codebase-index/` |
 | 5 | Release cible | **1.5.21** |
+| 6 | UI supervision / sondes | **Exigée dès CB1** (ambition §3) |
+| 7 | Runtime embed | ONNX vs llama.cpp — lié au choix modèle |
