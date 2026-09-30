@@ -9,7 +9,8 @@
 
 | Fiche | Sujet | Priorité |
 |-------|--------|----------|
-| [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md) | `@Codebase` local : chunk · embed · store · retrieval | **#1** |
+| [AMBITION-CODEBASE-INDEX.md](AMBITION-CODEBASE-INDEX.md) | **But produit** + supervision IDE + embed embarqué / ressources | **#1 — avant code** |
+| [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md) | Pipeline technique chunk · embed · store · retrieval | Aligné après ambition |
 | [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) | Carte visuelle du code (canvas fichiers / symboles) | Lié à #1 |
 | [PLAN-SUBAGENTS-EXPLORE-IDE.md](PLAN-SUBAGENTS-EXPLORE-IDE.md) | Brancher Explore / `task` dans l’IDE (opt-in) | **#2** |
 | [PLAN-SHARED-DISCUSSION-SHELL.md](PLAN-SHARED-DISCUSSION-SHELL.md) | Shell Agents + **tous** ses outils de discussion dans l’IDE | **#3** |
@@ -18,20 +19,23 @@
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| A | Index codebase type Cursor (`@Codebase`) — SQLite + embed local | 📋 CB0 (spec) → CB1+ |
-| B | Embeddings locaux (Ollama / modèle dédié) + recherche hybride | 📋 CB2 |
-| C | Carte visuelle du code (réutilise le socle layout Git Graph) | 📋 plan |
-| D | Explore / sous-agents dans l’IDE — settings + câblage UI | 📋 |
-| E | Shell discussion partagé Agents ↔ IDE (parité contrôles) | 🔄 S0–S2 ✅ · S3–S5 |
+| A | Ambition + UI supervision `@Codebase` (avant code index) | 📋 [AMBITION…](AMBITION-CODEBASE-INDEX.md) |
+| B | Index codebase — SQLite + embed **embarqué** | 📋 CB0a/b → CB1+ |
+| C | Embeddings locaux + recherche hybride | 📋 CB2 |
+| D | Carte visuelle du code (réutilise le socle layout Git Graph) | 📋 plan |
+| E | Explore / sous-agents dans l’IDE — settings + câblage UI | 📋 |
+| F | Shell discussion partagé Agents ↔ IDE (parité contrôles) | 🔄 S0–S2 ✅ · S3–S5 |
 
 ## Décisions clés
 
-- **Ordre produit 1.5.21** : **BDD vectorielle / index d’abord**, **Explore ensuite**, **shell discussion partagé** dans la même maj.
+- **Ordre produit 1.5.21** : **ambition + supervision `@Codebase` d’abord** (pas de code index aveugle), puis Explore, puis shell discussion.
 - Compréhension code LLM = **retrieval local** (chunk → embed → hybrid search), pas fine-tune.
-- Store = **BDD locale** bornée sous `{workspace}/.drox/codebase-index/`.
+- Embed **shippé dans l’app** (consommation minimale) ; ressources CPU/GPU/RAM paramétrables dans l’UI de supervision.
+- Store = **BDD locale** bornée sous `{workspace}/.drox/codebase-index/` (par instance projet).
 - **Explore** : code moteur déjà là ; câblage produit IDE (opt-in), pas réécriture du sous-agent.
 - **Shell** : parité stricte zone discussion Agents ↔ IDE (modèle, connexion, params, modes, status) ; pas le chrome fenêtre Agents.
 - Tool calling universel → **[1.5.22](../1.5.22/README.md)**.
+- Branchement agent / tests coding sur `@Codebase` → **après** verrouillage ambition (voir fiche).
 
 ## Origine
 
