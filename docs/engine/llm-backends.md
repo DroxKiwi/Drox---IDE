@@ -49,6 +49,11 @@ Aucun compte cloud Drox n’est requis pour le cœur local : tu pointes vers **t
 
 Setup env documenté : [`drox-engine/DROX-ENV-SETUP.txt`](../../drox-engine/DROX-ENV-SETUP.txt) (si présent).
 
+## Lire le code (Rust)
+
+Pour suivre une requête d’inférence **ligne par ligne** avec les concepts du langage (`let`, traits, `Arc<dyn>`, async, serde) :  
+[rust-parcours-inference.md](rust-parcours-inference.md) · index [rust-par-le-moteur.md](rust-par-le-moteur.md).
+
 ## Pièges fréquents
 
 | Symptôme | Piste |
