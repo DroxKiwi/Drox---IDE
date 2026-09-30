@@ -32,10 +32,11 @@
 
 | Sujet | Fiche |
 |-------|--------|
+| Index `@Codebase` · embed · BDD locale | [ARCHITECTURE-CODEBASE-INDEX.md](../1.5.21/ARCHITECTURE-CODEBASE-INDEX.md) |
+| Carte visuelle du code | [PLAN-CODE-MAP.md](../1.5.21/PLAN-CODE-MAP.md) |
+| Explore IDE (`task`) | [PLAN-SUBAGENTS-EXPLORE-IDE.md](../1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md) |
 | Shell discussion Agents ↔ IDE | [PLAN-SHARED-DISCUSSION-SHELL.md](../1.5.22/PLAN-SHARED-DISCUSSION-SHELL.md) |
-| Tool calling universel | [PLAN-UNIVERSAL-TOOL-CALLING.md](../1.5.21/PLAN-UNIVERSAL-TOOL-CALLING.md) |
-| Index `@Codebase` · embed · BDD locale | [ARCHITECTURE-CODEBASE-INDEX.md](../1.5.23/ARCHITECTURE-CODEBASE-INDEX.md) |
-| Carte visuelle du code | [PLAN-CODE-MAP.md](../1.5.23/PLAN-CODE-MAP.md) |
+| Tool calling universel | [PLAN-UNIVERSAL-TOOL-CALLING.md](../1.5.23/PLAN-UNIVERSAL-TOOL-CALLING.md) |
 
 ## Suite immédiate → [1.5.20](../1.5.20/README.md)
 
@@ -49,4 +50,4 @@
 - Graphe = **fait maison**, comportement cible = **parité Git Graph**.
 - Double-clic pastille → checkout (raccourci Drox).
 - Observables **fins** (`currentBranch` vs fenêtre graphe).
-- Socle layout isolé → réutilisable en 1.5.23 pour la carte code.
+- Socle layout isolé → réutilisable en 1.5.21 pour la carte code.

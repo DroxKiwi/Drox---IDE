@@ -1,6 +1,6 @@
-# 1.5.23 — Index codebase + carte visuelle du code
+# 1.5.23 — Tool calling universel
 
-**Statut** : **préparé** · reporté (était 1.5.22)  
+**Statut** : **préparé** · après shell 1.5.22  
 **Version cible** : `droxVersion` **1.5.23**  
 **Précédent** : [1.5.22](../1.5.22/README.md) — shell discussion partagé Agents ↔ IDE
 
@@ -8,24 +8,22 @@
 
 | Fiche | Sujet |
 |-------|--------|
-| [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md) | `@Codebase` local : chunk · embed · store · retrieval |
-| [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) | Carte visuelle du code (canvas fichiers / symboles) |
+| [PLAN-UNIVERSAL-TOOL-CALLING.md](PLAN-UNIVERSAL-TOOL-CALLING.md) | **Plan principal** — tool calling universel (tous providers) |
 
 ## Synthèse
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| A | Index codebase type Cursor (`@Codebase`) — SQLite + embed local | 📋 CB0 (spec) → CB1+ |
-| B | Embeddings locaux (Ollama / modèle dédié) + recherche hybride | 📋 CB2 |
-| C | Carte visuelle du code (réutilise le socle layout Git Graph) | 📋 plan |
+| T0 | Inventaire écarts provider / formats tool call | 📋 |
+| T1 | Normalisation moteur → protocole unique | 📋 |
+| T2 | Smoke multi-provider (Ollama, OpenAI-compat, etc.) | 📋 |
+| T3 | CLOSURE + docs | 📋 |
 
 ## Décisions clés
 
-- Compréhension code LLM = **retrieval local** (chunk → embed → hybrid search), pas fine-tune.
-- Store = **BDD locale** bornée sous `{workspace}/.drox/codebase-index/`.
-- Carte code = **autre domaine** que le Git Graph, même famille UI.
-- Hits retrieval peuvent **alimenter** la carte.
+- Un **chemin unique** côté moteur pour les tool calls, indépendant du provider.
+- Reporté hors **1.5.21** pour prioriser **index `@Codebase` + Explore**.
 
 ## Origine
 
-Features reportées hors 1.5.19 → … → **1.5.23** pour prioriser stabilisation (1.5.20), tool calling (1.5.21), puis shell discussion unifié (1.5.22).
+Était le focus 1.5.21. **Reporté en 1.5.23** : BDD vectorielle locale + Explore d’abord (1.5.21), puis shell discussion (1.5.22).

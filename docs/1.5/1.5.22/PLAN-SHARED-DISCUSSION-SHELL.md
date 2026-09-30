@@ -136,4 +136,4 @@ CFG USER déjà unifiée (1.5.11) : l’UI partagée doit **exposer** les mêmes
 
 ## Origine demande
 
-Après 1.5.20 : unifier le chrome discussion ; confirmation produit — **récupérer l’intégralité des outils** (modèle, connexion, etc.), pas seulement le fil. Numéro de ligne : **1.5.22** (après tool calling **1.5.21**).
+Après 1.5.20 : unifier le chrome discussion ; confirmation produit — **récupérer l’intégralité des outils** (modèle, connexion, etc.), pas seulement le fil. Numéro de ligne : **1.5.22** (après index `@Codebase` + Explore **1.5.21**).

@@ -1,14 +1,14 @@
 # Architecture — index codebase Drox (type Cursor `@Codebase`)
 
 **Statut** : **direction produit / tech** · pas encore d’implémentation  
-**Version** : **1.5.23** (déplacé depuis 1.5.22 / 1.5.21 — hors ship tool calling et shell discussion ; originellement hors 1.5.19 Git Graph)  
+**Version** : **1.5.21** (**priorité #1** de la maj — devant Explore ; originellement hors 1.5.19 Git Graph)  
 **Objectif** : répliquer côté Drox le mécanisme qui rend un modèle **efficace sur la compréhension du code** sans charger tout le repo dans le contexte.
 
 Références liées :
-- [README.md](README.md) — périmètre 1.5.23
+- [README.md](README.md) — périmètre 1.5.21 (index d’abord, Explore ensuite)
 - [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) — carte visuelle du code
+- [PLAN-SUBAGENTS-EXPLORE-IDE.md](PLAN-SUBAGENTS-EXPLORE-IDE.md) — Explore IDE (priorité #2)
 - [../1.5.19/PLAN-GIT-BRANCH-GRAPH.md](../1.5.19/PLAN-GIT-BRANCH-GRAPH.md) — socle canvas livré avec le Git Graph
-- [../1.5.22/README.md](../1.5.22/README.md) — shell discussion (précédent)
 
 ---
 

@@ -43,8 +43,8 @@ Suite : M1 mid-stream repetition · M2 soft-close todos+testing — **non bloqua
 ## 4. Hors scope 1.5.20
 
 - Shell discussion unifié Agents ↔ IDE → [1.5.22](../1.5.22/PLAN-SHARED-DISCUSSION-SHELL.md)
-- Universalisation tool calling → [1.5.21](../1.5.21/README.md)
-- Index `@Codebase` / carte code → [1.5.23](../1.5.23/README.md)
+- Universalisation tool calling → [1.5.23](../1.5.23/README.md)
+- Index `@Codebase` / carte code → [1.5.21](../1.5.21/README.md)
 - Commit/Push depuis Changes IDE
 
 ---

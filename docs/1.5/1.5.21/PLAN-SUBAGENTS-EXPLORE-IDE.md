@@ -1,5 +1,6 @@
 # 1.5.21 — Brancher Explore (`task`) dans Drox IDE
 
+**Priorité maj** : **#2** (après [ARCHITECTURE-CODEBASE-INDEX](ARCHITECTURE-CODEBASE-INDEX.md))  
 **Statut** : 📋 à faire · moteur déjà prêt, IDE non câblé  
 **Parent** : [README 1.5.21](README.md)  
 **Pédagogie** : [docs/pedagogie/11-mcp-et-explore.md](../../pedagogie/11-mcp-et-explore.md)  
