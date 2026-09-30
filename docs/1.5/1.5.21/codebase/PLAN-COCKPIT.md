@@ -2,7 +2,7 @@
 
 **Statut** : **spec CB0b prête** · IDs `DroxViews` / commandes figés · go CB1 après acceptation  
 **Version** : 1.5.21  
-**Parent** : [README](README.md) · [AMBITION-CODEBASE-INDEX.md](AMBITION-CODEBASE-INDEX.md)  
+**Parent** : [README](../README.md) · [hub](README.md) · [AMBITION.md](AMBITION.md)  
 **Suite code** : CB1 (store lexical + branchement cockpit) → CB2 (llama.cpp embed)
 
 ---
@@ -189,7 +189,7 @@ Refresh : push à chaque changement d’état / ~1 Hz pendant `indexing`.
 1. ✅ Plan layout + hosts + contrat snapshot (ce doc).  
 2. ✅ IDs vue / container / commandes dans `DroxViews` / `DroxCommands`.  
 3. ✅ Ambition §9 marque CB0b.  
-4. 🔲 Acceptation produit → **CB1** (store + vue stub branchée).
+4. ✅ Stub CB1 démarré (services + vue sidebar Codebase).
 
 ---
 

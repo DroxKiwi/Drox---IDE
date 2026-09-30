@@ -3,8 +3,8 @@
 **Statut** : **backlog / plan léger** · pas d’implémentation  
 **Version** : 1.5.21 (lié à l’index `@Codebase`)  
 **Dépendances** :
-- Socle layout canvas livré en [1.5.19 Git Graph](../1.5.19/PLAN-GIT-BRANCH-GRAPH.md) (`droxGitGraphLayout` / pastilles / arêtes)
-- Idéalement [index codebase](ARCHITECTURE-CODEBASE-INDEX.md) (hits → nœuds pertinents) — phases CB3+ / CB5
+- Socle layout canvas livré en [1.5.19 Git Graph](../../1.5.19/PLAN-GIT-BRANCH-GRAPH.md) (`droxGitGraphLayout` / pastilles / arêtes)
+- Idéalement [index codebase](ARCHITECTURE.md) (hits → nœuds pertinents) — phases CB3+ / CB5
 
 ---
 

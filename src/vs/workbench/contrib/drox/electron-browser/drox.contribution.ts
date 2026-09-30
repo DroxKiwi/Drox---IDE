@@ -20,6 +20,7 @@ import './droxUpdateNotificationContribution.js';
 import '../browser/agents/droxIdeSessionBackgroundService.js';
 import '../browser/agents/droxAgentsChatContribution.js';
 import '../browser/chat/droxIdeChat.contribution.js';
+import '../browser/codebase/droxCodebase.contribution.js';
 import '../browser/gitGraph/droxGitGraph.contribution.js';
 
 import { registerDroxCoreSingletons } from './droxCoreSingletons.js';

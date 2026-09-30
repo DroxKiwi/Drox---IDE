@@ -32,8 +32,9 @@
 
 | Sujet | Fiche |
 |-------|--------|
-| Index `@Codebase` · embed · BDD locale | [ARCHITECTURE-CODEBASE-INDEX.md](../1.5.21/ARCHITECTURE-CODEBASE-INDEX.md) |
-| Carte visuelle du code | [PLAN-CODE-MAP.md](../1.5.21/PLAN-CODE-MAP.md) |
+| Index `@Codebase` · embed · BDD locale | [codebase/ARCHITECTURE.md](../1.5.21/codebase/ARCHITECTURE.md) |
+| Carte visuelle du code | [codebase/PLAN-CODE-MAP.md](../1.5.21/codebase/PLAN-CODE-MAP.md) |
+| Hub `@Codebase` | [codebase/README.md](../1.5.21/codebase/README.md) |
 | Explore IDE (`task`) | [PLAN-SUBAGENTS-EXPLORE-IDE.md](../1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md) |
 | Shell discussion Agents ↔ IDE | [PLAN-SHARED-DISCUSSION-SHELL.md](../1.5.21/PLAN-SHARED-DISCUSSION-SHELL.md) |
 | Tool calling universel | [PLAN-UNIVERSAL-TOOL-CALLING.md](../1.5.22/PLAN-UNIVERSAL-TOOL-CALLING.md) |

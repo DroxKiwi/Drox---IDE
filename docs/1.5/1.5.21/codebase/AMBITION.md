@@ -2,8 +2,8 @@
 
 **Statut** : **réflexion produit** · **avant tout code d’index / embed**  
 **Version** : 1.5.21  
-**Parent** : [README 1.5.21](README.md)  
-**Tech** : [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md) (pipeline — à aligner après décisions ici)
+**Parent** : [README 1.5.21](../README.md) · [hub codebase](README.md)  
+**Tech** : [ARCHITECTURE.md](ARCHITECTURE.md) (pipeline — à aligner après décisions ici)
 
 ---
 
@@ -126,7 +126,7 @@ Ouvre D:\proj            →  index #3 sous D:\proj\.drox\...  (re-scan du paren
 
 ### 3.1 Où elle vit — **shell partagé** Agents ↔ IDE
 
-**Décision produit** : l’interface de gestion / supervision `@Codebase` est **commune** à la fenêtre **Agents** et à l’**IDE** — un seul module UI (même principe que le [shell discussion partagé](PLAN-SHARED-DISCUSSION-SHELL.md)), pas deux implémentations divergentes.
+**Décision produit** : l’interface de gestion / supervision `@Codebase` est **commune** à la fenêtre **Agents** et à l’**IDE** — un seul module UI (même principe que le [shell discussion partagé](../PLAN-SHARED-DISCUSSION-SHELL.md)), pas deux implémentations divergentes.
 
 | Host | Analogie | Rôle |
 |------|----------|------|
@@ -245,7 +245,7 @@ requête user/agent
 - **« Moteur » embed** = runtime existant (llama.cpp), pas un moteur ML custom.  
 - **Modèle** = poids pré-entraînés minimalistes, pas LoRA / fine-tune projet.
 
-Détail pipeline : [ARCHITECTURE-CODEBASE-INDEX.md](ARCHITECTURE-CODEBASE-INDEX.md).
+Détail pipeline : [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
@@ -320,11 +320,11 @@ ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou 
 | Phase | Livrable |
 |-------|----------|
 | **CB0a** | Ce doc (ambition + UI + runtime) | ✅ |
-| **CB0b** | Spec cockpit partagée → [PLAN-CODEBASE-COCKPIT.md](PLAN-CODEBASE-COCKPIT.md) + IDs `DroxViews` | ✅ spec · 🔲 acceptation → CB1 |
-| **CB1** | Store + chunker lexical + **cockpit live** (sans embed si besoin) |
+| **CB0b** | Spec cockpit partagée → [PLAN-COCKPIT.md](PLAN-COCKPIT.md) + IDs `DroxViews` | ✅ spec · 🔲 acceptation → CB1 |
+| **CB1** | Store lexical + cockpit → [PLAN-CB1.md](PLAN-CB1.md) | 🔄 |
 | **CB2** | llama.cpp embed + MiniLM/BGE + probes |
 | **CB3** | Budgets RAM / alertes anticipation / multi-instance |
 | **CB3b** | **Catalogue admin** : parcourir index, delete, compactage, espace par entrée |
 | **CB4+** | Tool agent / `@Codebase` / carte |
 
-L’[ARCHITECTURE](ARCHITECTURE-CODEBASE-INDEX.md) doit abandonner Ollama-first au profit de **llama.cpp embarqué** dès validation E.
+L’[ARCHITECTURE](ARCHITECTURE.md) doit abandonner Ollama-first au profit de **llama.cpp embarqué** dès validation E.

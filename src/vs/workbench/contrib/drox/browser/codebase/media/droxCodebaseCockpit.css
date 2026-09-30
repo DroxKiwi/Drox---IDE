@@ -1,0 +1,41 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-codebase-cockpit-body {
+	padding: 8px 12px;
+	overflow: auto;
+	box-sizing: border-box;
+}
+
+.drox-codebase-section {
+	margin-bottom: 12px;
+}
+
+.drox-codebase-section h3,
+.drox-codebase-section h4 {
+	margin: 0 0 4px 0;
+	font-weight: 600;
+}
+
+.drox-codebase-section p {
+	margin: 2px 0;
+}
+
+.drox-codebase-muted {
+	opacity: 0.75;
+	font-size: 11px;
+	word-break: break-all;
+}
+
+.drox-codebase-actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 12px;
+}
+
+.drox-codebase-btn {
+	cursor: pointer;
+}
