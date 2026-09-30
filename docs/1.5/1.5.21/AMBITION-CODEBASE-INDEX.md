@@ -7,41 +7,44 @@
 
 ---
 
-## 1. Qu’est-ce qu’on veut ? (but)
+## 1. But primaire — à quoi sert `@Codebase`
 
-### Le problème
+### En une phrase
 
-Un agent (local ou API) **ne « voit » pas le dépôt**. Sans mécanisme dédié :
+> **Donner au LLM les bons morceaux de code du projet, au bon moment, sans lui coller tout le dépôt dans le contexte.**
 
-- soit on bourre le contexte → lent, cher, bruité ;
-- soit on sous-informe → hallucinations, mauvaises edits, Explore aveugle.
+### Comment ça fonctionne (modèle mental)
 
-Cursor résout ça avec `@Codebase` : **index local → embeddings → recherche → injection ciblée**. Ce n’est **pas** un fine-tune du modèle sur le projet.
+Le modèle de chat (Ollama, API, etc.) **n’a aucune mémoire du disque**. `@Codebase` est un **annuaire sémantique local** du workspace :
 
-### L’ambition Drox
+```text
+1. Indexation (fond)     fichiers → chunks → vecteurs → BDD locale
+2. Question / run agent  « où est le checkout de branche ? »
+3. Retrieval             similarité + lexical → top-k chunks
+4. Injection             seuls ces extraits entrent dans le prompt / tools
+```
 
-Donner à Drox la même **capacité de compréhension du code du workspace ouvert**, en restant **local-first** et **observable** :
+| Étape | Rôle |
+|-------|------|
+| **Chunk** | Découper le code en unités indexables (fichier / symbole / fenêtre) |
+| **Embed** | Transformer chaque chunk en vecteur (modèle **petit**, shippé) |
+| **Store** | Garder texte + vecteurs **par projet** sur disque |
+| **Retrieve** | À la requête : trouver les chunks proches + grep / chemin |
+| **Inject** | Nourrir l’agent avec un **budget** borné (pas 50k lignes) |
 
-| Intention | Traduction concrète |
-|-----------|---------------------|
-| L’agent **comprend** le projet | Retrieval de chunks pertinents (sémantique + lexical) avant / pendant un run |
-| L’utilisateur **contrôle** | Pas de boîte noire : statut, per-projet, sondes, ressources |
-| **Minimal & embarqué** | Un modèle d’embed **shippé avec l’app** (pas « va installer Ollama pour indexer ») |
-| **Borné** | Index par instance de projet, taille plafonnée, ignore secrets / `node_modules` |
-| **Vérifiable** | UI de gestion / supervision **dès le design** — pas un afterthought post-MVP |
+Ce n’est **pas** un fine-tune, **pas** un second « cerveau coder », **pas** un upload cloud.  
+C’est le même rôle que Cursor `@Codebase` : **retrieval**, pour que l’agent soit efficace sur *ce* dépôt.
 
-### Ce que ce n’est pas (pour cette maj)
+### Pourquoi c’est le but #1 de la maj
 
-- Un second LLM « coder » entraîné sur le repo  
-- Un service cloud Drox d’indexation (sauf opt-in utilisateur plus tard)  
-- Remplacer grep / ouverture de fichiers (complément)  
-- La carte visuelle du code (liée, mais **après** un index fiable et supervisable)
+Sans ça, Explore / edits / plans restent **aveugles ou bruyants**.  
+Avec ça (et une UI qui prouve que ça marche), tout le reste de l’agent Drox gagne en pertinence.
 
-### Critère de succès produit (formulation)
+### Critère de succès produit
 
-> Sur un workspace donné, Drox maintient un index local sain ; l’utilisateur peut **voir** qu’il tourne, **sonder** qu’il récupère les bons fichiers, et **paramétrer** le moteur d’embed (modèle + CPU/GPU/RAM) ; l’agent pourra ensuite s’en servir sans magie opaque.
+> Sur un workspace donné, Drox maintient un index local sain ; l’utilisateur **voit en direct** qu’il tourne, **sonde** les hits, **lit** les alertes / rapports ; l’embed minimaliste tourne surtout en **RAM** ; l’agent pourra ensuite s’en servir sans magie opaque.
 
-Le branchement agent / tests de coding (**comment** `@Codebase` nourrit le coder) est **volontairement reporté** après ambition + supervision + choix embed — voir §6.
+Le branchement agent / tests coding reste **après** ambition + supervision + runtime — §7.
 
 ---
 
@@ -54,158 +57,154 @@ Projet A  →  index A  (chunks + vecteurs + manifest)
 Projet B  →  index B
 ```
 
-L’UI de supervision doit permettre de :
+L’UI doit lister les instances, ouvrir celle du projet courant, et refuser le mélange silencieux si le modèle embed / schéma change (rebuild proposé).
 
-- lister les instances connues (chemin, taille, dernière synchro, modèle embed utilisé) ;
-- ouvrir le détail de **l’instance du projet courant** en un clic ;
-- détecter un index **incompatible** (changement de modèle embed / schéma) → rebuild proposé, pas mélange silencieux.
-
-Emplacement (rappel direction) : `{workspace}/.drox/codebase-index/` (détail dans l’archi).
+Emplacement (direction) : `{workspace}/.drox/codebase-index/`.
 
 ---
 
-## 3. Supervision IDE — exigible dès le début
+## 3. Supervision — fenêtre complète, double accès
 
-**Décision produit** : on ne livre pas un index « silencieux » sans surface de contrôle.  
-Les outils de vérif / paramétrage font partie du **MVP d’ambition**, pas d’un polish 1.5.x+2.
+**Décision produit** : pas d’index silencieux. La supervision est un **produit à part entière**, la plus complète possible.
 
-### 3.1 Surface proposée — « Drox : Codebase »
+### 3.1 Où elle vit (deux entrées, une même vue)
 
-Commande palette + entrée Settings / panneau dédié (détail UX à figer) :
+| Emplacement | Analogie Drox / VS Code | Intention |
+|-------------|-------------------------|-----------|
+| **Barre d’activité gauche** | Comme **Changes** (outil workbench) | Suivi projet / santé index hors conversation |
+| **Zone agent (panneau bas / latéral agent)** | Comme **Terminal** ou **Web visuel** | Suivre l’index **pendant** qu’on dialogue / qu’un run tourne |
 
-| Zone | Rôle |
-|------|------|
-| **Santé instance** | Vert / ambre / rouge : index ouvert ? à jour ? dernière erreur ? |
-| **Stockage** | Taille disque, nb fichiers indexés, nb chunks, chemin du dossier |
-| **Moteur embed** | Modèle chargé ? device (CPU / GPU) ? latence d’un probe ? |
-| **File d’indexation** | Idle / indexing / paused · progress · fichiers en attente |
-| **Actions** | Reindex, Pause, Purge index, Ouvrir dossier index, Exporter rapport diag |
-| **Sondes** | Requête test + top-k hits (path, score, preview) — **preuve** que ça marche |
-| **Ressources** | Budgets CPU / GPU / RAM (voir §5) |
+Même contenu / même service derrière : on n’écrit pas deux UIs divergentes — **une vue**, deux host containers (activity bar + agent tools area).
 
-### 3.2 Sondes minimales (checklist « ça tourne »)
+### 3.2 Contenu cible — « cockpit » Codebase
 
-Sans attendre le branchement agent :
+Objectif : **temps réel**, **diagnostic**, **anticipation** — pas seulement un voyant vert.
 
-1. **Probe embed** — encoder une phrase courte → vecteur non nul + latence ms + device utilisé.  
-2. **Probe store** — ouvrir la BDD, `COUNT(*)` chunks / vecteurs, cohérence schéma.  
-3. **Probe retrieval** — requête utilisateur (champ libre) → liste de hits ; bascule lexical seul / hybride.  
-4. **Probe per-projet** — confirmer que les hits viennent bien de **cette** instance (pas d’un autre workspace).  
-5. **Probe drift** — fichier modifié récemment encore « stale » ? (hash vs index).
+| Bloc | Contenu |
+|------|---------|
+| **Santé live** | État instance (OK / sync / erreur) · heartbeat embed · âge du dernier commit index |
+| **Pipeline live** | File d’indexation : fichier courant, queue depth, débit chunks/s, pause / reprise |
+| **Stockage** | Taille disque, nb fichiers / chunks / vecteurs, chemin, vacuum / GC |
+| **Moteur embed** | Modèle, chargé ?, RSS / RAM budget, threads, latence probe |
+| **Sonde retrieval** | Champ requête → top-k hits (path, score, preview) · lexical vs hybride |
+| **Journal / rapports** | Erreurs, warnings, skips (binaires, trop gros, secrets) — **rapports de bugs** exportables |
+| **Anticipation** | Alertes : dérive (fichiers stale), approche cap disque, RAM proche plafond, modèle incompatible, index corrompu, latence embed qui dérive |
+| **Ressources** | Paramètres RAM / threads / batch / priorité (voir §6) |
+| **Actions** | Reindex, Pause, Purge, Ouvrir dossier, Exporter rapport diag, Relancer probe |
 
-Ces sondes sont aussi la **base des tests manuels / smoke** avant d’attaquer le coding agent.
+### 3.3 Sondes minimales (preuve que ça marche)
 
-### 3.3 Ce que l’utilisateur doit pouvoir répondre en 10 secondes
+1. **Probe embed** — phrase → vecteur + latence + RAM  
+2. **Probe store** — ouverture BDD + compteurs + schéma  
+3. **Probe retrieval** — requête libre → hits  
+4. **Probe instance** — hits bien de *ce* projet  
+5. **Probe drift** — fichiers modifiés encore stale ?
 
-- « Mon index de **ce** projet est-il OK ? »  
-- « L’embed tourne-t-il, sur quoi (CPU/GPU), avec quel modèle ? »  
-- « Si je cherche X, est-ce que je retrouve les bons fichiers ? »  
-- « Combien de ressources je laisse à l’indexeur ? »
+### 3.4 Ce que l’utilisateur doit pouvoir répondre en 10 secondes
 
----
-
-## 4. Modèle d’embed — embarqué, consommation minimale
-
-### 4.1 Contrainte produit (nouvelle vs archi ancienne)
-
-| Ancienne direction (archi) | Direction ambition |
-|----------------------------|--------------------|
-| Embed via **Ollama** optionnel | Modèle d’embed **transporté dans l’app** (défaut) |
-| User doit pull un modèle | First-run / install : poids déjà là (ou téléchargement contrôlé 1× packagé) |
-| Settings provider générique | Runtime **Drox-owned** (ONNX Runtime / llama.cpp embed / équivalent) + override avancé plus tard |
-
-Ollama / API compatible restent éventuellement un **mode avancé**, pas le chemin nominal « ça marche out of the box ».
-
-### 4.2 Critères de choix du modèle défaut
-
-1. **Taille shippable** — viser idéalement **&lt; ~100 Mo** quantizé (hard ceiling à trancher, ex. 150 Mo).  
-2. **RAM / CPU frugal** — indexation background acceptable sur machine 8 Go.  
-3. **Qualité code** — assez bon sur requêtes « où est le checkout git », pas seulement similarité prose.  
-4. **Licence** OK redistribution dans un binaire OSS / produit.  
-5. **Dimension stable** documentée dans `manifest.json` (changement = rebuild).
-
-### 4.3 Candidats (discussion — pas encore décidé)
-
-| Candidat | Ordre de grandeur | Notes |
-|----------|-------------------|--------|
-| **all-MiniLM-L6-v2** (GGUF Q4–Q8 / ONNX) | ~20–45 Mo (GGUF) · ~80 Mo ONNX typ. | Très léger ; généraliste, **pas** code-spécialisé ; bon défaut « partout » |
-| **BGE-small** / équiv. | ~40 Mo ONNX ordre | Souvent meilleur retrieval général que MiniLM |
-| **Nomic embed text** v1/v1.5 (GGUF) | ~150 Mo Q8 · ~260+ Mo F16 | Meilleure qualité RAG / long contexte ; plus lourd à shipper par défaut |
-| **Jina base-code** / modèles « code » | ~260 Mo ordre | Meilleur biais code ; vérifier taille + licence avant ship |
-
-**Proposition de travail (à valider)** :
-
-- **Défaut shippé** : un **small** (famille MiniLM / BGE-small) pour garantir « ça tourne partout ».  
-- **Profil « qualité »** (option) : modèle plus gros téléchargeable ou second pack — jamais forcé au first launch.  
-- Benchmark interne minimal avant lock : 20–50 requêtes sur le repo Drox IDE + 1–2 repos utilisateurs types ; comparer hit@10 lexical-only vs embed.
-
-### 4.4 Runtime
-
-- Process / thread **isolé** de l’UI (pas geler le workbench).  
-- Chargement **lazy** : pas d’embed en RAM tant que l’indexation / une sonde n’est pas demandée (ou setting « précharger »).  
-- Un seul modèle actif par instance à la fois ; swap modèle → rebuild.
+- Index de **ce** projet OK ?  
+- Embed en RAM, modèle X, latence Y ?  
+- Recherche test → bons fichiers ?  
+- Y a-t-il des alertes / un rapport à exporter ?
 
 ---
 
-## 5. Ressources — paramétrables dans l’UI de supervision
+## 4. Modèle d’embed — minimaliste, privilégie la RAM
 
-L’utilisateur décide ce qu’il **met à disposition** de l’indexeur / embedder.
+### Décisions figées
 
-| Paramètre | Intention | Exemple UI |
-|-----------|-----------|------------|
-| **Device** | CPU only · GPU (si dispo) · Auto | Liste détectée (CUDA / Vulkan / Metal / DirectML — selon runtime retenu) |
-| **Budget RAM** | Plafond process embed + buffers | Slider Mo / Go |
-| **Threads CPU** | Parallelisme encode | 1 … N (défaut conservateur) |
-| **GPU layers / offload** | Si backend type llama.cpp | 0 = CPU · max = full GPU |
-| **Batch size** | Débit vs pics mémoire à l’indexation | Petit / Moyen / Grand |
-| **Priorité** | Background vs agressif | Idle / Normal |
-| **Cap disque index** | Soft limit + GC | Mo / workspace |
+| Décision | Choix |
+|----------|--------|
+| Embarqué dans le ship Drox | ✅ |
+| Profil | **Minimaliste** (famille small : MiniLM / BGE-small — lock après micro-bench) |
+| Device privilégié | **RAM / CPU** (pas GPU-first) |
+| GPU | Option avancée plus tard si le runtime le permet sans complexifier le ship v1 |
 
-**Comportements** :
+### Ordres de grandeur candidats
 
-- Défauts **conservateurs** (CPU, peu de threads, pas de spike) pour ne pas concurrencer le LLM agent.  
-- Afficher en live : RAM utilisée (approx), device réel, files en attente.  
-- Si dépassement budget → pause indexation + message clair dans la supervision (pas crash silencieux).
+| Candidat | Taille typ. | Notes |
+|----------|-------------|--------|
+| **all-MiniLM-L6-v2** GGUF | ~20–45 Mo | Défaut probable « partout » |
+| **BGE-small** | ~40 Mo ordre | Souvent meilleur retrieval |
+| Nomic / Jina-code | 150–260+ Mo | Profil qualité optionnel, pas le défaut |
 
----
-
-## 6. Reporté volontairement (prochaine discussion)
-
-Après verrouillage ambition + supervision + modèle / ressources :
-
-1. **Contrat agent** — tool `codebase_search` vs auto-inject ; budget tokens ; lien Explore.  
-2. **Pipeline détaillé** — chunking, store SQLite+vec, hybrid RRF (déjà ébauché dans l’archi).  
-3. **Tests automatisés** — fixtures repos, golden queries, CI sans GPU.  
-4. **Carte code** — consommation des hits (secondaire).
-
-Ne pas coder CB1+ tant que §1–§5 ont une direction acceptée.
+Changement de modèle → **rebuild** index (dimensions).
 
 ---
 
-## 7. Décisions à trancher (checklist)
+## 5. Runtime — recommandation (intégré au ship)
+
+Pour **petit modèle + RAM minimale + binaire embarqué**, direction recommandée :
+
+### Direction : **llama.cpp (mode embedding) + GGUF**
+
+| Critère | llama.cpp + GGUF | ONNX Runtime |
+|---------|------------------|--------------|
+| **RAM au runtime** | Très bas (mmap du fichier ; bench public ~**~130 Mo RSS** vs **~700–1200 Mo** pour plusieurs stacks ONNX sur petit embed) | Plus gourmand en buffers / EP |
+| **Ship dans Drox** | Une lib C++ déjà dans l’écosystème local-LLM ; modèle = 1 fichier GGUF | Runtime + EP + modèle ONNX (souvent plus gros) |
+| **Alignement produit** | RAM-first ✅ | Plutôt throughput / portabilité hardware |
+| **GPU** | Possible plus tard (offload) ; **pas requis** pour v1 | Nombreux EP, complexité ship |
+| **Contre** | Parfois plus de cycles CPU / token que ONNX quantizé sur certains benches | Meilleur débit batch sur certaines plateformes au prix RAM |
+
+**Verdict Drox v1** : **llama.cpp embarqué** pour l’embed, modèle MiniLM (ou équiv.) en GGUF, **CPU + RAM plafonnée**, lazy-load.  
+ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou perf inacceptable).
+
+### Comportements runtime
+
+- Process / thread **isolé** du workbench (pas de freeze UI).  
+- **Lazy** : pas de modèle en RAM tant qu’indexation / sonde / retrieval ne le demande.  
+- Budget RAM **hard** depuis l’UI supervision ; dépassement → pause + alerte cockpit.  
+- Un modèle actif ; swap → rebuild.
+
+---
+
+## 6. Ressources — UI de supervision
+
+| Paramètre | Défaut v1 | Notes |
+|-----------|-----------|--------|
+| Device | **CPU / RAM** | GPU = avancé / plus tard |
+| Budget RAM | Conservateur (ex. 256–512 Mo plafond process embed — à calibrer) | Slider dans le cockpit |
+| Threads CPU | Bas (ex. 2) | Ne pas concurrencer le LLM agent |
+| Batch | Petit | Pics mémoire maîtrisés |
+| Priorité | Idle / background | |
+| Cap disque index | Soft limit + GC | Alerte anticipation |
+
+---
+
+## 7. Reporté (prochaine discussion)
+
+1. Contrat agent — tool vs auto-inject, budget tokens, Explore  
+2. Détail chunking / SQLite+vec / hybrid (archi)  
+3. Tests auto / golden queries  
+4. Carte code  
+
+---
+
+## 8. Checklist décisions
 
 | # | Question | État |
 |---|----------|------|
-| A | Ambition = retrieval local observable + embarqué (ce doc) | ✅ proposé |
-| B | UI supervision **MVP** (sondes + santé + ressources) | ✅ exigée dès le début |
-| C | Embed **shippé dans l’app** (pas Ollama-first) | ✅ direction ; modèle exact TBD |
-| D | Quel modèle défaut (MiniLM vs BGE-small vs autre) | 🔲 à trancher + micro-bench |
-| E | Runtime (ONNX vs llama.cpp embed vs autre) | 🔲 lié à D |
-| F | GPU : quels backends ship Windows / Linux / macOS v1 | 🔲 |
-| G | Emplacement index workspace vs profil app | 🔲 (archi propose workspace) |
-| H | Branchement coder / tests agent | ⛔ plus tard |
+| A | But = retrieval local pour nourrir l’agent | ✅ |
+| B | Cockpit supervision **complet** + live + alertes + rapports | ✅ |
+| B2 | Double accès : **activity bar** (comme Changes) + **zone agent** (comme Terminal / Web) | ✅ |
+| C | Embed shippé, minimaliste, **RAM-first** | ✅ |
+| D | Modèle exact (MiniLM vs BGE-small) | 🔲 micro-bench |
+| E | Runtime **llama.cpp + GGUF** (direction) | ✅ proposé |
+| F | GPU backends | ⛔ hors v1 sauf option tardive |
+| G | Emplacement index workspace | ✅ proposé `.drox/codebase-index/` |
+| H | Branchement coder | ⛔ plus tard |
 
 ---
 
-## 8. Lien phases (réordonnancement proposé)
+## 9. Phases
 
 | Phase | Livrable |
 |-------|----------|
-| **CB0a** | Ce doc ambition + décisions D–G |
-| **CB0b** | Maquette / spec UI « Drox : Codebase » (sondes + ressources) |
-| **CB1** | Store + chunker lexical + **UI statut / sondes** (même sans embed) |
-| **CB2** | Runtime embed embarqué + probe embed + hybrid |
-| **CB3** | Ressources paramétrables branchées + rebuild / multi-instance |
-| **CB4+** | Tool agent / `@Codebase` / carte (discussion séparée) |
+| **CB0a** | Ce doc (ambition + UI + runtime) |
+| **CB0b** | Spec détaillée vue cockpit (les 2 hosts) |
+| **CB1** | Store + chunker lexical + **cockpit live** (sans embed si besoin) |
+| **CB2** | llama.cpp embed + MiniLM/BGE + probes |
+| **CB3** | Budgets RAM / alertes anticipation / multi-instance |
+| **CB4+** | Tool agent / `@Codebase` / carte |
 
-L’architecture technique existante reste la référence pipeline ; **elle doit être mise à jour** dès que C–E sont figés (Ollama-first → runtime shippé).
+L’[ARCHITECTURE](ARCHITECTURE-CODEBASE-INDEX.md) doit abandonner Ollama-first au profit de **llama.cpp embarqué** dès validation E.
