@@ -67,14 +67,31 @@ Emplacement (direction) : `{workspace}/.drox/codebase-index/`.
 
 **Décision produit** : pas d’index silencieux. La supervision est un **produit à part entière**, la plus complète possible.
 
-### 3.1 Où elle vit (deux entrées, une même vue)
+### 3.1 Où elle vit — **shell partagé** Agents ↔ IDE
 
-| Emplacement | Analogie Drox / VS Code | Intention |
-|-------------|-------------------------|-----------|
-| **Barre d’activité gauche** | Comme **Changes** (outil workbench) | Suivi projet / santé index hors conversation |
-| **Zone agent (panneau bas / latéral agent)** | Comme **Terminal** ou **Web visuel** | Suivre l’index **pendant** qu’on dialogue / qu’un run tourne |
+**Décision produit** : l’interface de gestion / supervision `@Codebase` est **commune** à la fenêtre **Agents** et à l’**IDE** — un seul module UI (même principe que le [shell discussion partagé](PLAN-SHARED-DISCUSSION-SHELL.md)), pas deux implémentations divergentes.
 
-Même contenu / même service derrière : on n’écrit pas deux UIs divergentes — **une vue**, deux host containers (activity bar + agent tools area).
+| Host | Analogie | Rôle |
+|------|----------|------|
+| **IDE — barre d’activité gauche** | Comme **Changes** | Ouvrir le cockpit hors conversation |
+| **IDE — zone agent / panneaux** | Comme **Terminal** ou **Web visuel** | Suivre l’index pendant un run / le chat |
+| **Agents — même entrée outils** | Miroir de l’IDE | Parité stricte : mêmes blocs, mêmes actions, même service |
+
+```text
+┌─────────────────────────────────────────┐
+│  Module partagé : DroxCodebaseCockpit   │
+│  (vue + bindings service)               │
+└───────────────┬─────────────────────────┘
+                │
+        ┌───────┴───────┐
+        ▼               ▼
+   IDE (activity     Agents
+    bar + panel)    (même vue)
+```
+
+- **Une vue**, N hosts (activity bar + zone outils agent IDE + fenêtre Agents).  
+- **Un service** (`IDroxCodebaseIndexService` / supervision) — pas de logique métier dupliquée.  
+- Évolutions (catalogue admin CB3b, sondes, ressources) : **une** fois, visibles partout.
 
 ### 3.2 Contenu cible — « cockpit » Codebase
 
@@ -203,7 +220,7 @@ ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou 
 |---|----------|------|
 | A | But = retrieval local pour nourrir l’agent | ✅ |
 | B | Cockpit supervision **complet** + live + alertes + rapports | ✅ |
-| B2 | Double accès : **activity bar** (comme Changes) + **zone agent** (comme Terminal / Web) | ✅ |
+| B2 | Shell **partagé** Agents ↔ IDE (activity bar + zone outils + fenêtre Agents) | ✅ |
 | B3 | Admin connaissances : parcourir / supprimer / compacter / espace détaillé | ✅ vision · 🔲 impl. CB3+ |
 | C | Embed shippé, minimaliste, **RAM-first** | ✅ |
 | D | Modèle exact (MiniLM vs BGE-small) | 🔲 micro-bench |
@@ -219,7 +236,7 @@ ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou 
 | Phase | Livrable |
 |-------|----------|
 | **CB0a** | Ce doc (ambition + UI + runtime) |
-| **CB0b** | Spec détaillée vue cockpit (les 2 hosts) |
+| **CB0b** | Spec détaillée vue cockpit **partagée** (hosts IDE + Agents) |
 | **CB1** | Store + chunker lexical + **cockpit live** (sans embed si besoin) |
 | **CB2** | llama.cpp embed + MiniLM/BGE + probes |
 | **CB3** | Budgets RAM / alertes anticipation / multi-instance |
