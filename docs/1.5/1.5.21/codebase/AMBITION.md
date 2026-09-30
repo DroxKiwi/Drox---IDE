@@ -275,6 +275,9 @@ ONNX = plan B seulement si un bench interne Windows Drox contredit (qualité ou 
 
 ---
 
+
+Packaging **dev = ship** (Cargo / drox.exe + GGUF asset, pas npm user) : [PLAN-EMBED-PACKAGING.md](PLAN-EMBED-PACKAGING.md).
+
 ## 6. Ressources — UI de supervision
 
 | Paramètre | Défaut v1 | Notes |
