@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Documentation Drox — hub
 
 **Racine doc** : ce dossier (`docs/`), anciennement `drox-engine/docs/`.

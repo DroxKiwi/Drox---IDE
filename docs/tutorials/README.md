@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Tutoriels Drox
 
 Guides orientés **usage / navigation**, distincts de la référence moteur.

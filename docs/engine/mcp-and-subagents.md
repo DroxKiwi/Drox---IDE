@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # MCP et sous-agents Explore
 
 ## MCP

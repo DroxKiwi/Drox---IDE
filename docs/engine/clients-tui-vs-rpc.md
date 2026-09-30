@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Clients : `drox --serve` vs `drox-tui`
 
 Le cœur `drox-engine` est **unique**. Deux façons de l’entraîner — même `Agent` / `drive_inner`, frontière I/O différente :

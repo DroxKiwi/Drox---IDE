@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Tutoriel — naviguer dans l’interface Drox IDE
 
 Guide **utilisateur / contributeur UI** : où trouver les surfaces Drox dans le workbench.  

@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Backends LLM
 
 ## Idée centrale

@@ -1,43 +1,22 @@
+Rédigé à l'aide de Cursor Agent
+
 # Apprendre Rust avec le moteur Drox
 
-Ce pan de doc n’est **pas** un cours Rust générique. Il lit le **vrai code** du moteur et nomme chaque construction du langage au moment où elle apparaît.
+Ici, on n’apprend pas Rust « dans le vide ». On ouvre le **vrai code** de Drox et on lit comment une partie précise du moteur est écrite — en détail, ligne après ligne.
 
-Fil conducteur recommandé : **une requête vers le moteur d’inférence** (Ollama), de la config jusqu’au stream de tokens.
+## Par où commencer
 
 | Document | Contenu |
 |----------|---------|
-| **[rust-parcours-inference.md](rust-parcours-inference.md)** | Parcours pas à pas : variables, structs, traits, `async`, `Arc<dyn …>`, streams… sur le chemin LLM |
-| [llm-backends.md](llm-backends.md) | Référence produit des backends (sans pédagogie langage) |
-| [architecture-overview.md](architecture-overview.md) | Crates et libs du workspace |
+| **[rust-parcours-inference.md](rust-parcours-inference.md)** | Fil principal : comment Drox parle à Ollama (requête d’inférence), en expliquant la syntaxe Rust et ce que ça fait dans la machine |
+| [llm-backends.md](llm-backends.md) | Référence technique des backends (sans le fil pédagogique) |
+| [architecture-overview.md](architecture-overview.md) | Vue des crates du workspace |
 
-## Comment lire
+## Comment lire le parcours
 
-1. Ouvre les fichiers listés dans le parcours (ordre donné).
-2. Lis le tutoriel **en parallèle** : chaque section pointe un extrait et dit à quoi il sert dans le run.
-3. Compile / cherche les symboles dans l’IDE pour vérifier les numéros de ligne (ils peuvent bouger légèrement).
+1. Garde ce README pour te repérer.
+2. Ouvre [rust-parcours-inference.md](rust-parcours-inference.md) et suis-le **du début à la fin** une première fois.
+3. Quand un fichier source est cité, ouvre-le dans l’éditeur à côté : le tutoriel et le code se répondent.
+4. Les numéros de ligne peuvent bouger un peu avec le temps : cherche le **nom** de la fonction (`create_llm_client`, `stream_chat`, …).
 
-## Carte des concepts Rust ↔ endroit dans Drox
-
-| Concept Rust | Où le voir d’abord (chemin inférence) |
-|--------------|----------------------------------------|
-| `let` / `let mut` | `build_llm_config`, `drive_inner` (`options`, `messages`) |
-| `struct` + champs | `OllamaClient`, `Agent`, `ChatOptions` |
-| `impl` (méthodes) | `OllamaClient::new`, `ChatOptions::with_tools` |
-| `trait` + `async fn` | `LlmClient::stream_chat` |
-| `impl Trait for Type` | `impl LlmClient for OllamaClient` |
-| `Option` / `Result` / `?` | config, HTTP, factory |
-| `match` / `if let` / `while let` | choix provider, appel `stream_chat`, lecture du stream |
-| `Arc` + `dyn Trait` | `Arc<dyn LlmClient>` dans `Agent` |
-| `async` / `.await` | `stream_chat`, `drive_inner`, `consume_stream` |
-| `Clone` sur config | `chat_options.clone().with_tools(…)` |
-| Types alias | `StreamHandle = BoxStream<…>` |
-| Génériques + `impl Stream` | `events_from_ndjson<S>(…)` |
-| `serde` Serialize/Deserialize | `ChatRequest`, `ChatOptions` |
-| `#[async_trait]` | objet trait async dyn-compatible |
-
-## Prérequis minimaux hors Drox
-
-- Savoir ouvrir un fichier Rust et lancer `cargo test -p drox-llm` / `cargo test -p drox-engine` (voir [developer-guide.md](developer-guide.md)).
-- Pas besoin d’avoir fini *The Rust Book* : le parcours introduit les idées **dans le contexte**.
-
-Ensuite : **[rust-parcours-inference.md](rust-parcours-inference.md)**.
+Le parcours commence par des idées très générales (qu’est-ce qu’un programme, une variable, une fonction), puis les retrouve immédiatement dans Drox. Ensuite seulement apparaissent des idées plus spécifiques à Rust (`struct`, `trait`, `async`, `Arc`…).

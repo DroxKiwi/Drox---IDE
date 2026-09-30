@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Moteur Drox — documentation
 
 Documentation **actuelle** du moteur agent Rust (`drox` / workspace [`drox-engine/drox/`](../../drox-engine/drox/)).  
@@ -17,7 +19,7 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Ordre | Document | Ce qu’on y construit |
 |-------|----------|----------------------|
 | 1 | Ce README + [architecture-overview.md](architecture-overview.md) | Découpage en crates, runtime async, clients |
-| 2 | [rust-par-le-moteur.md](rust-par-le-moteur.md) · [rust-parcours-inference.md](rust-parcours-inference.md) | Rust lu dans le code (requête d’inférence) |
+| 2 | [rust-par-le-moteur.md](rust-par-le-moteur.md) · [rust-parcours-inference.md](rust-parcours-inference.md) | Rust expliqué dans le chemin d’inférence Ollama |
 | 3 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Wire IDE ↔ moteur |
 | 4 | [agent-run-loop.md](agent-run-loop.md) | Sémantique d’un run (`drive_inner`) |
 | 5 | [system-prompts-and-phases.md](system-prompts-and-phases.md) | Contrat textuel imposé au modèle |
@@ -34,8 +36,8 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Document | Contenu |
 |----------|---------|
 | [architecture-overview.md](architecture-overview.md) | Crates, dépendances, clients (IDE / TUI / CLI) |
-| [rust-par-le-moteur.md](rust-par-le-moteur.md) | Apprendre Rust **dans** le code Drox |
-| [rust-parcours-inference.md](rust-parcours-inference.md) | Pas à pas : requête Ollama (`let` → `Arc<dyn>` → stream) |
+| [rust-par-le-moteur.md](rust-par-le-moteur.md) | Fil pédagogique Rust ancré dans Drox |
+| [rust-parcours-inference.md](rust-parcours-inference.md) | Comment Drox parle à Ollama — syntaxe et machine, ligne à ligne |
 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Transport NDJSON, méthodes, schémas `agent.run`, `tool/exec` |
 | [agent-run-loop.md](agent-run-loop.md) | De `agent.run` à `drive_inner` : tours, phases, nudges, clôture |
 | [agent-internals.md](agent-internals.md) | Carte du monolithe `agent.rs`, `AgentConfig`, gates |

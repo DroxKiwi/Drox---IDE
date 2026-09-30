@@ -1,3 +1,5 @@
+Rédigé à l'aide de Cursor Agent
+
 # Protocole JSON-RPC (stdio NDJSON)
 
 Version protocole : **`PROTOCOL_VERSION = "1.0"`**  
