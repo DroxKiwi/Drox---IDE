@@ -30,7 +30,7 @@
 | [**1.5.18/**](1.5.18/README.md) | Reprise / hang IDE + stop-edit type Cursor | **Livré** · `v1.5.18` |
 | [**1.5.19/**](1.5.19/README.md) | Badge branche + Git Graph natif Drox | **Livré** · `v1.5.19` |
 | [**1.5.20/**](1.5.20/README.md) | Stabilisation + historique + Changes IDE (multi-git) | **Ouvert** |
-| [**1.5.21/**](1.5.21/README.md) | Tool calling universel (multi-modèles / GGUF) | **Préparé** |
+| [**1.5.21/**](1.5.21/README.md) | Tool calling universel + **Explore IDE (`task`)** | **Préparé** |
 | [**1.5.22/**](1.5.22/README.md) | Shell discussion partagé Agents ↔ IDE | **Préparé** |
 | [**1.5.23/**](1.5.23/README.md) | Index `@Codebase` · embed · carte visuelle du code | **Préparé** |
 

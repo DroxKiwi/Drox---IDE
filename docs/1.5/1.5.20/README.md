@@ -36,3 +36,4 @@
 - Critère de sortie : chat IDE utilisable + historique fiable (Agents & IDE) + Changes IDE multi-git.
 - **Chrome discussion IDE ≠ Agents** (ChatWidget Copilot vs shell sessions) → chantier **[1.5.22](../1.5.22/PLAN-SHARED-DISCUSSION-SHELL.md)**.
 - Tool calling universel → **[1.5.21](../1.5.21/PLAN-UNIVERSAL-TOOL-CALLING.md)**.
+- Explore / sous-agents dans l’IDE → **[1.5.21 PLAN-SUBAGENTS-EXPLORE-IDE](../1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md)**.

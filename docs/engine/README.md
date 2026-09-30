@@ -37,7 +37,7 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Document | Contenu |
 |----------|---------|
 | [architecture-overview.md](architecture-overview.md) | Crates, dépendances, clients (IDE / TUI / CLI) |
-| **[Pedagogie →](../pedagogie/README.md)** | Guides accompagnés **01–14** (de Ollama au mode professor) |
+| **[Pedagogie →](../pedagogie/README.md)** | Guides accompagnés **01–14** (Ollama … TUI ; professor = **prévu / pas dispo**) |
 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Transport NDJSON, méthodes, schémas `agent.run`, `tool/exec` |
 | [agent-run-loop.md](agent-run-loop.md) | De `agent.run` à `drive_inner` : tours, phases, nudges, clôture |
 | [agent-internals.md](agent-internals.md) | Carte du monolithe `agent.rs`, `AgentConfig`, gates |

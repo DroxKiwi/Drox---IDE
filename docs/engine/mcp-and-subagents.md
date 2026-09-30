@@ -62,6 +62,16 @@ Impl tool : [`simple/task.rs`](../../drox-engine/drox/crates/drox-tools/src/simp
 
 Le prompt système recommande `task`/`explore` pour un périmètre **très large** plutôt que des dizaines de `glob` dans le parent ([`prompts.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts.rs) — playbook `analyzing`).
 
+## État produit (IDE)
+
+| | |
+|--|--|
+| Moteur Explore / `task` | ✅ code présent |
+| Activé out-of-the-box dans Drox IDE | ❌ (défaut off + bridge non câblé) |
+| Livraison prévue | **[1.5.21](../1.5/1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md)** |
+
+Voir aussi la pédagogie : [11-mcp-et-explore.md](../pedagogie/11-mcp-et-explore.md).
+
 ## Fichiers
 
 | Rôle | Chemin |

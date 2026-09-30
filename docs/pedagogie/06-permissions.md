@@ -46,7 +46,7 @@ Chaînes typiques dans `agent.run` (`mode`) :
 | `plan` | Lecture OK ; **écritures refusées** (analyser sans modifier) |
 | `acceptEdits` | Auto-allow des edits fichier dans le workspace ; bash risqué peut encore demander |
 | `bypassPermissions` | « Yolo » — presque tout auto-allow sauf denies explicites (risqué) |
-| `professor` | Écritures bridées par la pédagogie cours ([14](14-mode-professor.md)) |
+| `professor` | **Non disponible** dans l’IDE actuel (downgrade). Intention : écritures bridées cours — voir [14](14-mode-professor.md) |
 
 **Côté machine** : un `enum` Rust (`PermissionMode`) désérialisé depuis le JSON du client. Une seule valeur par run (sauf changement explicite).
 
@@ -68,6 +68,8 @@ pub enum PermissionMode {
     /// Bypass complet (sauf rules deny explicites).
     BypassPermissions,
     /// Mode professeur : écritures via gates `workArea` + étape exercise/checkpoint.
+    /// ⚠️ Variant encore dans l'enum Rust ; **non exposé** de façon fiable dans Drox IDE
+    /// (downgrade UI depuis 1.4.0 — voir docs/pedagogie/14-mode-professor.md).
     Professor,
 }
 ```

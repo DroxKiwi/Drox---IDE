@@ -71,7 +71,7 @@ Documenté aussi dans le prompt système ([`prompts.rs`](../../drox-engine/drox/
 | [`context.rs`](../../drox-engine/drox/crates/drox-engine/src/context.rs) | Politique budget côté agent |
 | [`memory.rs`](../../drox-engine/drox/crates/drox-engine/src/memory.rs) / [`long_memory.rs`](../../drox-engine/drox/crates/drox-engine/src/long_memory.rs) | Mémoire run / longue |
 | [`subagent.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) | Exécuteur Explore |
-| [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) | Gates mode professeur |
+| [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) | Gates mode professeur (**code présent ; mode IDE non dispo**) |
 | [`tool_hooks.rs`](../../drox-engine/drox/crates/drox-engine/src/tool_hooks.rs) | Pont vers `drox-hooks` |
 | [`tool_progress.rs`](../../drox-engine/drox/crates/drox-engine/src/tool_progress.rs) | Progression outils longs (bash) |
 
