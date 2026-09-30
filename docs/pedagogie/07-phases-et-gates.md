@@ -69,6 +69,24 @@ Les gates rendent certaines règles **non négociables**.
 
 Le détail vivant est dans le code + [référence phases](../engine/system-prompts-and-phases.md).
 
+### Exemple concret — gate « todo avant mutation »
+
+Toujours dans [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) :
+
+```rust
+fn requires_todo_write_gate(tool_name: &str, arguments: &Value) -> bool {
+    // … selon le nom d’outil et parfois le contenu bash …
+}
+```
+
+Utilisée avant exécution (~L2211) : si le gate exige un todo et qu’aucun `todo_write` réussi n’a eu lieu dans le run, l’appel mutateur est **bloqué** / renvoyé en erreur contrôlée, et un nudge peut suivre.
+
+| Idée | Traduction code |
+|------|-----------------|
+| Fonction pure de décision | `fn … -> bool` : pas d’async, juste un calcul |
+| `&str` / `&Value` | Emprunts : on lit le nom et le JSON d’args sans les prendre |
+| Appelée dans la pipeline tool | Entre « le modèle a demandé » et « execute » |
+
 ---
 
 ## Partie D — Qu’est-ce qu’un nudge ?
@@ -79,6 +97,30 @@ Ce n’est pas l’humain qui parle.
 Au tour suivant, le modèle « voit » le rappel et (en théorie) corrige.
 
 Constantes du genre `NUDGE_PROMPT`, `DONE_ONLY_NUDGE_PROMPT` dans `agent.rs`.
+
+### Exemple concret — injection d’un nudge
+
+Dans `drive_inner`, quand le modèle s’arrête sans `done` valide (~L1376+) :
+
+```rust
+messages.push(Message::system(DONE_ONLY_NUDGE_PROMPT));
+// … puis la boucle for continue → nouvel stream_chat …
+```
+
+Et plus bas, nudge générique :
+
+```rust
+messages.push(Message::system(NUDGE_PROMPT));
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `NUDGE_PROMPT` | `const &str` : long texte anglais imposé au modèle (défini en tête de `agent.rs`) |
+| `Message::system(…)` | Construit un message de **rôle system** (pas user/assistant) |
+| `messages.push(…)` | Ajoute à la `Vec` d’historique **mutable** — le prochain `stream_chat` le verra |
+| Pas de `done` | On ne `return` pas : on laisse `for iter` enchaîner |
+
+Le modèle « croit » recevoir une consigne système supplémentaire ; ce n’est pas l’humain.
 
 ---
 

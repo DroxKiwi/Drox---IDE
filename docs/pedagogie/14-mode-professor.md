@@ -29,6 +29,48 @@ En professor, le modèle enseigne et fait travailler ; les **écritures** hors z
 
 Ce n’est pas seulement un prompt « sois gentil » : le Rust **bloque**.
 
+### Exemple concret — gate professor sur les mutations
+
+[`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) :
+
+```rust
+/// `Some(message)` si l'appel doit être refusé.
+pub fn check_mutating_tool(
+    tool_name: &str,
+    args: &Value,
+    state: &ProfessorCourseState,
+) -> Option<&'static str> {
+    if !PROFESSOR_GATED_TOOLS.contains(&tool_name) {
+        return None;
+    }
+
+    // bash inspect-only (`git status`, …) : exploration, jamais gated.
+    if tool_name == "bash"
+        && args.get("command").and_then(|v| v.as_str()).is_some_and(drox_bash::command_is_inspect_only)
+    {
+        return None;
+    }
+
+    if !state.has_plan {
+        return Some(MUTATING_BEFORE_COURSE_PLAN);
+    }
+
+    let kind = state.active_step_kind.as_deref()?;
+    if kind != "exercise" && kind != "checkpoint" {
+        return Some(MUTATING_NO_ACTIVE_EXERCISE);
+    }
+    // … contrôles workArea …
+}
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `-> Option<&'static str>` | `None` = OK ; `Some("…")` = message de refus (littéral vivant toute la vie du programme) |
+| `PROFESSOR_GATED_TOOLS.contains` | Seuls certains tools sont concernés |
+| `args.get("command").and_then(…).is_some_and(…)` | Chaîne Option : extraire la commande bash puis tester « inspect only » |
+| `as_deref()?` | `Option<String>` → `Option<&str>` ; si pas d’étape active → `None` tôt (= refus via `?` dans ce contexte Option) |
+| Constantes `MUTATING_…` | Messages stables renvoyés au modèle |
+
 ---
 
 ## Partie B — Phases de cours (dans le prompt)

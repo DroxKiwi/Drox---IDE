@@ -68,6 +68,49 @@ Conditions :
 
 `is_concurrency_safe` = **false** → pas de parallèle hasardeux avec d’autres tools du même tour ([10](10-parallelisme-outils.md)).
 
+### Exemple concret — tool `task`
+
+[`task.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/task.rs) :
+
+```rust
+fn is_read_only(&self) -> bool {
+    true
+}
+
+fn is_concurrency_safe(&self) -> bool {
+    false
+}
+
+async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
+    let settings = ctx.subagent_settings.as_ref().cloned().unwrap_or_default();
+    if !settings.enabled {
+        return Err(ToolError::invalid_args(
+            "Sub-agents disabled. Enable `drox.subagents.enabled` …",
+        ));
+    }
+    let executor = ctx.subagent_executor.as_ref().ok_or_else(|| {
+        ToolError::invalid_args("Sub-agents not configured …")
+    })?;
+    let args: TaskInput = serde_json::from_value(input)?;
+    // …
+    if kind != "explore" {
+        return Err(ToolError::invalid_args(format!(
+            "unknown subagent_type `{kind}` — V1 only supports `explore`"
+        )));
+    }
+    let report = executor.run_explore(args.description, args.thoroughness, ctx).await?;
+    Ok(json!({ "subagent_type": "explore", "report": report }))
+}
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `is_read_only = true` mais `is_concurrency_safe = false` | Lecture seule **et** pourtant sérialisé (sous-agent lourd) |
+| `unwrap_or_default()` | Si pas de settings → valeur `Default` |
+| `ok_or_else(\|\| …)?` | `Option` → `Result` avec message d’erreur |
+| `serde_json::from_value(input)?` | JSON libre → struct `TaskInput` typée |
+| `json!({ … })` | Macro serde_json : construit le `Value` de retour |
+
 ---
 
 ## Partie D — Ce que fait l’exécuteur Explore
@@ -83,6 +126,55 @@ Dans `subagent.rs` (idée) :
 | Concurrence | Semaphore `max_concurrent` ; parallèle tools interne souvent plafonné à 4 |
 
 Le parent **reçoit le rapport** comme résultat d’outil, puis continue sa propre boucle.
+
+### Exemple concret — registry Explore + démarrage agent enfant
+
+[`subagent.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) :
+
+```rust
+pub fn explore_tool_registry() -> ToolRegistry {
+    let mut reg = ToolRegistry::new();
+    reg.register(coerce_tool(FileReadTool));
+    reg.register(coerce_tool(GlobTool));
+    reg.register(coerce_tool(GrepTool));
+    reg.register(coerce_tool(LspTool));
+    reg.register(coerce_tool(WebFetchTool));
+    reg.register(coerce_tool(WebSearchTool));
+    reg.register(coerce_tool(WorkspaceMapReadTool));
+    reg
+}
+```
+
+Puis dans `run_explore` :
+
+```rust
+let explore_ctx = ToolContext {
+    workspace_root: parent_ctx.effective_workspace(),
+    apply_fs_writes: false,
+    plan_mode: true,
+    // … pas de sous-agent imbriqué …
+    subagent_executor: None,
+    ..
+};
+
+let agent = Agent::new(
+    self.llm.clone(),
+    Arc::new(explore_tool_registry()),
+    explore_ctx,
+    AgentConfig {
+        max_parallel_tool_calls: 4,
+        // …
+        ..
+    },
+);
+```
+
+| Morceau | Détail |
+|---------|--------|
+| Pas de `BashTool` / `FileWriteTool` | Explore ne peut pas muter via ces tools |
+| `apply_fs_writes: false` | Même les tools d’écriture éventuels seraient bridés au contexte |
+| `self.llm.clone()` | Même client LLM (`Arc`) que le parent — pas un second process HTTP |
+| `max_parallel_tool_calls: 4` | Plafond local plus bas que le défaut 8 |
 
 ---
 

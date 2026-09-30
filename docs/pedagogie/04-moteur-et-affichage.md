@@ -78,6 +78,45 @@ Exemples de variantes (voir [`event.rs`](../../drox-engine/drox/crates/drox-engi
 En Rust, c’est souvent un **`enum`** : une famille de cas possibles, chacun avec ses champs.  
 **Côté machine** : une étiquette (quel cas ?) + les données du cas. Exactement comme `Result` et `Option`, mais avec plus de variantes métier.
 
+### Exemple concret — début de `AgentEvent`
+
+Fichier : [`event.rs`](../../drox-engine/drox/crates/drox-engine/src/event.rs) (~L73+) :
+
+```rust
+pub enum AgentEvent {
+    /// Marqueur `[phase: …]` détecté → l’UI ouvre un bloc collapsible.
+    PhaseEnter { phase: Phase },
+    PhaseClose,
+    /// Token(s) de texte produits par l'assistant.
+    TextDelta { text: String },
+    /// Décision d'invoquer un tool (avant exécution).
+    ToolStart {
+        id: ToolUseId,
+        name: String,
+        arguments: Value,
+    },
+    /// Résultat d'exécution d'un tool.
+    ToolFinish {
+        id: ToolUseId,
+        output: Value,
+        #[serde(default)]
+        is_error: bool,
+    },
+    // … ToolProgress, ContextUsage, TurnUsage, Stop, …
+}
+```
+
+| Syntaxe | Sens |
+|---------|------|
+| `pub enum AgentEvent` | Type public à plusieurs **variantes** |
+| `PhaseEnter { phase: Phase }` | Variante **avec champs nommés** (comme une mini-struct) |
+| `PhaseClose` | Variante **sans** données associées |
+| `TextDelta { text: String }` | Porte le bout de texte à afficher |
+| `#[serde(default)]` | À la désérialisation JSON, si `is_error` manque → valeur par défaut (`false`) |
+| Commentaires `///` | Doc Rust : s’affiche dans les outils (`cargo doc`) |
+
+Quand tu vois du texte qui s’écrit dans le chat, c’est en général une rafale de `TextDelta`.
+
 ---
 
 ## Partie C — Le canal (`tx` / `rx`) : file d’attente en mémoire
@@ -121,7 +160,43 @@ Le serveur JSON-RPC sérialise l’événement en JSON et écrit une **notificat
 
 L’IDE parse la ligne, trouve le bon run, et met à jour le DOM / les parts de chat.
 
-Le **shim** (`ide_event_shim`) peut encore **traduire** certaines phases en anciens marqueurs `rail_station_*` pour des écrans historiques — le moteur `tui_mono` parle phases ; l’UI legacy parle parfois « stations ».
+### Exemple concret — émission dans `drive_run`
+
+Fichier : [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) (~L684+) :
+
+```rust
+while let Some(event) = stream.next().await {
+    match event {
+        Ok(ev) => {
+            let is_stop = matches!(&ev, AgentEvent::Stop { .. });
+            for wire in expand_agent_event_for_ide(&ev, &mut ide_shim) {
+                server
+                    .notify(
+                        "agent/event",
+                        AgentEventNotification {
+                            run_id: run_id.clone(),
+                            event: wire,
+                        },
+                    )
+                    .await;
+            }
+            // …
+        }
+        // …
+    }
+}
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `stream.next().await` | On tire les `AgentEvent` produits par `drive_inner` |
+| `matches!(&ev, AgentEvent::Stop { .. })` | Macro : « est-ce un Stop ? » sans extraire les champs (`..` = ignore le reste) |
+| `expand_agent_event_for_ide(…)` | Peut **éclater** un événement en plusieurs formes wire (shim rail / phases) — voir [`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs) |
+| `server.notify("agent/event", …)` | Écrit une **notification** JSON-RPC sur stdout (pas une request qui attend réponse) |
+| `run_id.clone()` | Duplique l’id de run (souvent un `String`) pour chaque notification |
+| `.await` | L’écriture réseau/stdio est async |
+
+Le **shim** peut encore fabriquer d’anciens marqueurs `rail_station_*` pour des écrans historiques — le moteur `tui_mono` parle phases ; l’UI legacy parle parfois « stations ».
 
 ---
 

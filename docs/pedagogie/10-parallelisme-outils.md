@@ -62,6 +62,41 @@ Dès qu’un outil non safe apparaît, on coupe le lot parallèle et on crée un
 
 **Pourquoi l’ordre compte** : le modèle peut dépendre sémantiquement de l’ordre ; on ne réordonne pas arbitrairement les mutations.
 
+### Exemple concret — `partition_tool_calls`
+
+[`tool_orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tool_orchestration.rs) :
+
+```rust
+pub fn partition_tool_calls(tool_names: &[&str], registry: &ToolRegistry) -> Vec<ToolCallBatch> {
+    let mut batches: Vec<ToolCallBatch> = Vec::new();
+    for (idx, name) in tool_names.iter().enumerate() {
+        let safe = registry.is_concurrency_safe(name);
+        if safe {
+            if let Some(ToolCallBatch::Parallel(indices)) = batches.last_mut() {
+                indices.push(idx);
+                continue;
+            }
+            batches.push(ToolCallBatch::Parallel(vec![idx]));
+        } else {
+            batches.push(ToolCallBatch::Serial(vec![idx]));
+        }
+    }
+    batches
+}
+```
+
+| Morceau | Détail |
+|---------|--------|
+| `tool_names: &[&str]` | Slice de références vers les noms (emprunt, pas de copie des `String`) |
+| `.enumerate()` | Donne `(index, name)` : 0, 1, 2… |
+| `registry.is_concurrency_safe(name)` | Demande au tool (via le trait) s’il est safe |
+| `batches.last_mut()` | Emprunt **mutable** du dernier lot |
+| `if let Some(ToolCallBatch::Parallel(indices))` | Si le dernier lot est déjà parallèle → on **ajoute** l’index dedans |
+| `continue` | Passe à l’outil suivant sans créer de nouveau lot |
+| `Serial(vec![idx])` | Un outil non safe → son propre lot série |
+
+Puis dans `drive_inner` (~L1454) : `let batches = partition_tool_calls(&tool_names, &self.registry);` suivi de l’exécution Tokio (`buffer_unordered` pour les lots parallèles).
+
 ---
 
 ## Partie D — Plafond 8
