@@ -28,4 +28,6 @@ export interface IDroxCodebaseIndexService {
 	purge(workspaceRoot: URI): Promise<void>;
 	pause(workspaceRoot: URI): void;
 	resume(workspaceRoot: URI): void;
+	/** CB1: load manifest stats for cockpit (undefined if no index yet). */
+	getManifest(workspaceRoot: URI): Promise<{ files: number; chunks: number; vectors: number; bytes: number } | undefined>;
 }

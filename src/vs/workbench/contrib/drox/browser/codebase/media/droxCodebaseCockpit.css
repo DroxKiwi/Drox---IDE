@@ -36,6 +36,23 @@
 	margin-bottom: 12px;
 }
 
-.drox-codebase-btn {
-	cursor: pointer;
+.drox-codebase-probe-input {
+	width: 100%;
+	box-sizing: border-box;
+	margin: 4px 0 8px 0;
+}
+
+.drox-codebase-hit {
+	margin-bottom: 8px;
+	border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	padding-top: 6px;
+}
+
+.drox-codebase-preview {
+	white-space: pre-wrap;
+	font-size: 11px;
+	margin: 4px 0 0 0;
+	opacity: 0.85;
+	max-height: 120px;
+	overflow: auto;
 }

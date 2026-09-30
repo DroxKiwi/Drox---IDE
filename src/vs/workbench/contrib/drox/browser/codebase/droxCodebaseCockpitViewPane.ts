@@ -19,6 +19,7 @@ import { ViewPane } from '../../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../../common/views.js';
 import { IDroxCodebaseSupervisionService } from '../../common/codebase/droxCodebaseSupervisionService.js';
+import { IDroxCodebaseHit } from '../../common/codebase/droxCodebaseTypes.js';
 import './media/droxCodebaseCockpit.css';
 
 /**
@@ -28,6 +29,9 @@ import './media/droxCodebaseCockpit.css';
 export class DroxCodebaseCockpitViewPane extends ViewPane {
 
 	private _body: HTMLElement | undefined;
+	private _probeInput: HTMLInputElement | undefined;
+	private _probeResults: HTMLElement | undefined;
+	private _lastHits: readonly IDroxCodebaseHit[] = [];
 
 	constructor(
 		options: IViewletViewOptions,
@@ -65,6 +69,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		if (!this._body) {
 			return;
 		}
+		const prevQuery = this._probeInput?.value ?? '';
 		const s = this.supervision.snapshot;
 		dom.clearNode(this._body);
 
@@ -72,21 +77,25 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		dom.append(header, dom.$('h3', undefined, localize('drox.codebase.cockpit.title', 'Codebase index')));
 		dom.append(header, dom.$('p.drox-codebase-muted', undefined, s.rootFsPath ?? localize('drox.codebase.noRoot', 'No folder open')));
 		dom.append(header, dom.$('p', undefined, localize('drox.codebase.state', 'State: {0}', s.state)));
+		if (s.lastError) {
+			dom.append(header, dom.$('p', undefined, s.lastError));
+		}
 
 		const embed = dom.append(this._body, dom.$('.drox-codebase-section'));
 		dom.append(embed, dom.$('h4', undefined, localize('drox.codebase.embed', 'Embed')));
 		dom.append(embed, dom.$('p', undefined, s.embed.loaded
 			? localize('drox.codebase.embedLoaded', 'Loaded ({0})', s.embed.modelId ?? '?')
-			: localize('drox.codebase.embedNotLoaded', 'Not loaded (CB2)')));
+			: localize('drox.codebase.embedNotLoaded', 'Not loaded (CB2) — lexical only')));
 
 		const storage = dom.append(this._body, dom.$('.drox-codebase-section'));
 		dom.append(storage, dom.$('h4', undefined, localize('drox.codebase.storage', 'Storage')));
 		dom.append(storage, dom.$('p', undefined, localize(
 			'drox.codebase.storageStats',
-			'{0} files · {1} chunks · {2} vectors',
+			'{0} files · {1} chunks · {2} vectors · {3} bytes',
 			String(s.storage.files),
 			String(s.storage.chunks),
 			String(s.storage.vectors),
+			String(s.storage.bytes),
 		)));
 		const indexDir = this.supervision.getIndexDirFsPath();
 		if (indexDir) {
@@ -96,11 +105,25 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		const actions = dom.append(this._body, dom.$('.drox-codebase-actions'));
 		const reindexBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
 		reindexBtn.textContent = localize('drox.codebase.reindex', 'Reindex');
+		reindexBtn.disabled = s.state === 'indexing' || !s.rootFsPath;
 		reindexBtn.onclick = () => void this.supervision.reindex();
 
 		const purgeBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
 		purgeBtn.textContent = localize('drox.codebase.purge', 'Purge');
+		purgeBtn.disabled = !s.rootFsPath;
 		purgeBtn.onclick = () => void this.supervision.purge();
+
+		const probe = dom.append(this._body, dom.$('.drox-codebase-section'));
+		dom.append(probe, dom.$('h4', undefined, localize('drox.codebase.probe', 'Lexical probe')));
+		this._probeInput = dom.append(probe, dom.$('input.drox-codebase-probe-input')) as HTMLInputElement;
+		this._probeInput.type = 'text';
+		this._probeInput.placeholder = localize('drox.codebase.probePlaceholder', 'e.g. checkout branch');
+		this._probeInput.value = prevQuery;
+		const probeBtn = dom.append(probe, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+		probeBtn.textContent = localize('drox.codebase.runProbe', 'Probe');
+		probeBtn.onclick = () => void this._runProbe();
+		this._probeResults = dom.append(probe, dom.$('.drox-codebase-probe-results'));
+		this._renderHits(this._lastHits);
 
 		if (s.alerts.length) {
 			const alerts = dom.append(this._body, dom.$('.drox-codebase-section'));
@@ -108,6 +131,28 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			for (const a of s.alerts) {
 				dom.append(alerts, dom.$('p', undefined, `[${a.severity}] ${a.message}`));
 			}
+		}
+	}
+
+	private async _runProbe(): Promise<void> {
+		const q = this._probeInput?.value ?? '';
+		this._lastHits = await this.supervision.probeRetrieval(q);
+		this._renderHits(this._lastHits);
+	}
+
+	private _renderHits(hits: readonly IDroxCodebaseHit[]): void {
+		if (!this._probeResults) {
+			return;
+		}
+		dom.clearNode(this._probeResults);
+		if (!hits.length) {
+			dom.append(this._probeResults, dom.$('p.drox-codebase-muted', undefined, localize('drox.codebase.noHits', 'No hits')));
+			return;
+		}
+		for (const hit of hits) {
+			const row = dom.append(this._probeResults, dom.$('div.drox-codebase-hit'));
+			dom.append(row, dom.$('p', undefined, `${hit.path}:${hit.startLine}-${hit.endLine} (score ${hit.score})`));
+			dom.append(row, dom.$('pre.drox-codebase-preview', undefined, hit.preview));
 		}
 	}
 }
