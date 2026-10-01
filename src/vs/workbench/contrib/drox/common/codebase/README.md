@@ -11,10 +11,10 @@
 | `droxCodebaseJsonStore.ts` | `manifest.json` + `chunks.json` + `vectors.json` |
 | `droxCodebaseHybrid.ts` | Fusion RRF-ish lexical + cosine |
 | `droxCodebaseEmbedClient.ts` | RPC `embed.status` / `load` / `encode` |
-| `droxCodebaseEmbedPaths.ts` | Resolve GGUF (env / userData / resources / repo) |
+| `droxCodebaseEmbedPaths.ts` | Resolve GGUF + source (`bundled` / `custom` / …) |
 | `droxCodebaseTypes.ts` | Snapshot cockpit, hits, états |
 | `droxCodebaseIndexService.ts` | Contrat index / search |
 | `droxCodebaseIndexServiceImpl.ts` | Scan + store + embed optionnel (CB2) |
-| `droxCodebaseSupervisionService.ts` | Live status + actions cockpit |
+| `droxCodebaseSupervisionService.ts` | Live status + reset embed defaults + chemin custom |
 
 UI : [`browser/codebase/`](../../browser/codebase/README.md)

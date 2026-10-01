@@ -54,3 +54,15 @@ $dest = Join-Path $destDir $binName
 
 Copy-Item -Force $built $dest
 Write-Host "[package-drox] OK -> $dest"
+
+# Ship default MiniLM GGUF next to the engine (inherent to the app — no user download).
+$modelsSrc = Join-Path $repoRoot 'drox-engine\models\all-MiniLM-L6-v2.Q4_K_M.gguf'
+$modelsDestDir = Join-Path $repoRoot 'resources\drox\models'
+$modelsDest = Join-Path $modelsDestDir 'all-MiniLM-L6-v2.Q4_K_M.gguf'
+if (Test-Path $modelsSrc) {
+	New-Item -ItemType Directory -Force -Path $modelsDestDir | Out-Null
+	Copy-Item -Force $modelsSrc $modelsDest
+	Write-Host "[package-drox] embed model OK -> $modelsDest"
+} else {
+	Write-Warning "[package-drox] MiniLM GGUF missing at $modelsSrc — run scripts/fetch-drox-embed-model.ps1 before shipping (users must not download this)."
+}

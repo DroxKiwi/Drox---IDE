@@ -7,15 +7,13 @@ Le moteur Drox est livré ici pour les **installations packagées**, sans que l�
 ```
 resources/drox/
   README.md
+  models/
+    all-MiniLM-L6-v2.Q4_K_M.gguf   # défaut embed (copié par package-drox ; gitignored)
   win32-x64/drox.exe
-  win32-arm64/drox.exe
-  linux-x64/drox
-  linux-arm64/drox
-  darwin-x64/drox
-  darwin-arm64/drox
+  ...
 ```
 
-Les noms de dossiers reprennent les **target platforms** VS Code (`win32-x64`, `darwin-arm64`, …).
+`package-drox` copie aussi le MiniLM GGUF depuis `drox-engine/models/` vers `resources/drox/models/` (asset **inhérent** à l’app — pas de download utilisateur).
 
 ## Construire et copier (développeur / CI)
 

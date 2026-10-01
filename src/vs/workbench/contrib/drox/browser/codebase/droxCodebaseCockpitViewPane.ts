@@ -18,6 +18,7 @@ import { localize } from '../../../../../nls.js';
 import { ViewPane } from '../../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../../common/views.js';
+import { DROX_EMBED_DEFAULT_MODEL_ID, DROX_EMBED_DEFAULT_MODEL_LABEL } from '../../common/codebase/droxCodebaseEmbedPaths.js';
 import { IDroxCodebaseSupervisionService } from '../../common/codebase/droxCodebaseSupervisionService.js';
 import { IDroxCodebaseHit } from '../../common/codebase/droxCodebaseTypes.js';
 import './media/droxCodebaseCockpit.css';
@@ -30,6 +31,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 
 	private _body: HTMLElement | undefined;
 	private _probeInput: HTMLInputElement | undefined;
+	private _embedPathInput: HTMLInputElement | undefined;
 	private _probeResults: HTMLElement | undefined;
 	private _lastHits: readonly IDroxCodebaseHit[] = [];
 
@@ -70,6 +72,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			return;
 		}
 		const prevQuery = this._probeInput?.value ?? '';
+		const prevEmbedPath = this._embedPathInput?.value;
 		const s = this.supervision.snapshot;
 		dom.clearNode(this._body);
 
@@ -81,12 +84,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			dom.append(header, dom.$('p', undefined, s.lastError));
 		}
 
-		const embed = dom.append(this._body, dom.$('.drox-codebase-section'));
-		dom.append(embed, dom.$('h4', undefined, localize('drox.codebase.embed', 'Embed')));
-		dom.append(embed, dom.$('p', undefined, s.embed.loaded
-			? localize('drox.codebase.embedLoaded', 'Loaded ({0})', s.embed.modelId ?? '?')
-			: localize('drox.codebase.embedNotLoaded', 'Not loaded — {0}', s.mode === 'hybrid' ? 'hybrid ready' : 'lexical only (CB2)')));
-		dom.append(embed, dom.$('p.drox-codebase-muted', undefined, localize('drox.codebase.mode', 'Retrieval mode: {0}', s.mode)));
+		this._renderEmbedSection(s.embed, s.mode, prevEmbedPath);
 
 		const storage = dom.append(this._body, dom.$('.drox-codebase-section'));
 		dom.append(storage, dom.$('h4', undefined, localize('drox.codebase.storage', 'Storage')));
@@ -134,6 +132,103 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			for (const a of s.alerts) {
 				dom.append(alerts, dom.$('p', undefined, `[${a.severity}] ${a.message}`));
 			}
+		}
+	}
+
+	private _renderEmbedSection(
+		embed: typeof this.supervision.snapshot.embed,
+		mode: typeof this.supervision.snapshot.mode,
+		prevEmbedPath: string | undefined,
+	): void {
+		if (!this._body) {
+			return;
+		}
+		const section = dom.append(this._body, dom.$('.drox-codebase-section'));
+		dom.append(section, dom.$('h4', undefined, localize('drox.codebase.embed', 'Embed')));
+
+		const callout = dom.append(section, dom.$('.drox-codebase-embed-callout'));
+		dom.append(callout, dom.$('p.drox-codebase-embed-callout-title', undefined, localize(
+			'drox.codebase.embedWhatTitle',
+			'What MiniLM does (visible by design)',
+		)));
+		const list = dom.append(callout, dom.$('ul.drox-codebase-embed-facts'));
+		const facts = [
+			localize('drox.codebase.embedFact1', 'Turns each code chunk into a vector so search can match meaning, not only exact words.'),
+			localize('drox.codebase.embedFact2', 'Runs locally in drox.exe (llama.cpp) — no cloud upload of your codebase for embeddings.'),
+			localize('drox.codebase.embedFact3', 'Default model: {0} — small (~20 Mo), ~384 dimensions, embedding GGUF (not a chat LLM).', DROX_EMBED_DEFAULT_MODEL_LABEL),
+			localize('drox.codebase.embedFact4', 'Used at Reindex (encode chunks) and at Probe (encode your query), then fused with lexical hits.'),
+		];
+		for (const fact of facts) {
+			dom.append(list, dom.$('li', undefined, fact));
+		}
+
+		const sourceLabel = this._sourceLabel(embed.source);
+		dom.append(section, dom.$('p', undefined, embed.loaded
+			? localize('drox.codebase.embedLoaded', 'Loaded ({0})', embed.modelId ?? '?')
+			: localize('drox.codebase.embedNotLoaded', 'Not loaded — {0}', mode === 'hybrid' ? 'hybrid ready' : 'lexical only')));
+		dom.append(section, dom.$('p', undefined, localize('drox.codebase.mode', 'Retrieval mode: {0}', mode)));
+		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
+			'drox.codebase.embedSource',
+			'Active source: {0}',
+			sourceLabel,
+		)));
+		if (embed.resolvedPath) {
+			dom.append(section, dom.$('p.drox-codebase-muted', undefined, embed.resolvedPath));
+		}
+		if (embed.dimensions) {
+			dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
+				'drox.codebase.embedDims',
+				'Dimensions: {0} · backend: {1}',
+				String(embed.dimensions),
+				embed.backend ?? '?',
+			)));
+		}
+		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
+			'drox.codebase.embedFormatHint',
+			'Custom override: absolute path to an embedding GGUF (e.g. MiniLM / BGE-small). Chat models will not work here. File name default: {0}',
+			DROX_EMBED_DEFAULT_MODEL_ID,
+		)));
+
+		this._embedPathInput = dom.append(section, dom.$('input.drox-codebase-probe-input')) as HTMLInputElement;
+		this._embedPathInput.type = 'text';
+		this._embedPathInput.placeholder = localize('drox.codebase.embedPathPlaceholder', 'Optional custom GGUF path…');
+		this._embedPathInput.value = prevEmbedPath ?? embed.customPathSetting ?? '';
+
+		const embedActions = dom.append(section, dom.$('.drox-codebase-actions'));
+		const applyBtn = dom.append(embedActions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+		applyBtn.textContent = localize('drox.codebase.embedApplyPath', 'Use this GGUF');
+		applyBtn.onclick = () => void this.supervision.setEmbedModelPath(this._embedPathInput?.value ?? '');
+
+		const resetBtn = dom.append(embedActions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+		resetBtn.textContent = localize('drox.codebase.embedResetDefaults', 'Reset to defaults');
+		resetBtn.title = localize(
+			'drox.codebase.embedResetDefaultsTitle',
+			'Clear custom path and reload the bundled MiniLM shipped with Drox.',
+		);
+		resetBtn.onclick = () => {
+			if (this._embedPathInput) {
+				this._embedPathInput.value = '';
+			}
+			void this.supervision.resetEmbedDefaults();
+		};
+	}
+
+	private _sourceLabel(source: typeof this.supervision.snapshot.embed.source): string {
+		switch (source) {
+			case 'custom':
+				return localize('drox.codebase.source.custom', 'custom path (your override)');
+			case 'env':
+				return localize('drox.codebase.source.env', 'DROX_EMBED_MODEL_PATH (env)');
+			case 'bundled':
+				return localize('drox.codebase.source.bundled', 'bundled with the app (default MiniLM)');
+			case 'userData':
+				return localize('drox.codebase.source.userData', 'userData/drox/models');
+			case 'repo':
+				return localize('drox.codebase.source.repo', 'dev repo drox-engine/models');
+			case 'missing':
+				return localize('drox.codebase.source.missing', 'missing — package MiniLM or set a path');
+			default:
+				return localize('drox.codebase.source.unknown', 'unknown');
 		}
 	}
 
