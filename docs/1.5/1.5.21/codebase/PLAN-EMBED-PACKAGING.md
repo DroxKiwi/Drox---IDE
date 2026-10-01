@@ -143,6 +143,8 @@ Pas besoin d’un `npm install` spécial pour l’embed.
 
 ## 10. Lien phases
 
-- **CB1** : store lexical — **sans** runtime embed (badge « non chargé ») ✅ compatible.  
-- **CB2** : activer feature Cargo + resolve modèle + probe cockpit.  
+- **CB1** : store lexical — **sans** runtime embed (badge « non chargé ») ✅ compatible.
+- **CB2** : activer feature Cargo + resolve modèle + probe cockpit.
+- **CB2b** : auto-index open + incrémental ([PLAN-CB2b.md](PLAN-CB2b.md)) — **avant** CB3.
+- **CB3** : tool agent + pastille statut (consomme un index déjà frais).
 - Ne pas bloquer CB1 sur le packaging ; ne pas improviser un `node-llama` en attendant.

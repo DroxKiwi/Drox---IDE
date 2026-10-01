@@ -275,13 +275,16 @@ Le retrieval fournit **quoi montrer** ; le canvas fournit **comment le voir**.
 | Phase | Livrable | Dépend |
 |-------|----------|--------|
 | **CB0** | Spec figée + choix store A + modèle embed défaut | — |
-| **CB1** | Chunker + sqlite metadata + index incrémental (sans embed : BM25/lexical only) | CB0 |
+| **CB1** | Chunker + store metadata + recherche lexicale (cockpit) | CB0 |
 | **CB2** | Embed local + vector search + hybrid | CB1 |
-| **CB3** | Tool agent + UI statut / reindex | CB2 |
+| **CB2b** | **Auto-index type Cursor** (open workspace + incrémental save/watcher) — [PLAN-CB2b.md](PLAN-CB2b.md) | CB2 |
+| **CB3** | Tool agent + pastille statut (reindex manuel = secours cockpit) | **CB2b** |
 | **CB4** | `@` Codebase dans composer + budget tokens | CB3 |
 | **CB5** | Alimentation carte code (optionnel) | CB3 + canvas |
 
-**1.5.21** : cette fiche = **CB0 documentaire** ; ship cible des phases CB1+ dans cette release (à trancher au planning vs carte code).
+**Ordre figé** : **CB2b avant CB3** — le modèle ne déclenche pas l’index ; l’IDE le tient à jour, puis l’agent interroge.
+
+**1.5.21** : CB0–CB2 shippés en dogfood ; **next = CB2b**, puis CB3.
 
 ---
 
