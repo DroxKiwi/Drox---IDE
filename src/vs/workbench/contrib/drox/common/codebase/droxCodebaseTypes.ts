@@ -180,35 +180,36 @@ export function buildDroxCodebasePipelineView(
 	const start = runEvents.find(e => e.kind === 'run_start');
 	const trigger = (start?.detail?.trigger as DroxCodebasePipelineTrigger | undefined) ?? undefined;
 
+	const runDoneOk = runEvents.some(e => e.kind === 'run_done' && e.status === 'ok');
+	const runFailed = runEvents.some(e => e.kind === 'error' || (e.kind === 'run_done' && e.status === 'error'));
+
 	const stageState = (id: DroxCodebasePipelineStageId): IDroxCodebasePipelineStage['state'] => {
 		const related = runEvents.filter(e => eventTouchesStage(e.kind, id));
-		if (!related.length) {
-			return 'pending';
+		if (id === 'done') {
+			if (runFailed) {
+				return 'error';
+			}
+			return runDoneOk ? 'done' : (related.some(e => e.status === 'running') ? 'active' : 'pending');
 		}
-		if (related.some(e => e.status === 'error')) {
+		if (!related.length) {
+			// After a successful run, untouched stages (e.g. no embed work) → skipped
+			return runDoneOk ? 'skipped' : 'pending';
+		}
+		const latest = related[related.length - 1]!;
+		if (latest.status === 'error' || related.some(e => e.status === 'error')) {
 			return 'error';
 		}
-		if (related.some(e => e.status === 'running')) {
+		if (runDoneOk) {
+			return latest.status === 'warn' && id === 'embed' ? 'done' : 'done';
+		}
+		if (latest.status === 'running') {
 			return 'active';
 		}
-		if (id === 'done' && runEvents.some(e => e.kind === 'run_done' && e.status === 'ok')) {
-			return 'done';
-		}
-		if (id !== 'done' && related.some(e => e.status === 'ok' || e.status === 'warn')) {
-			// Mark done if a later stage already started
-			const order: DroxCodebasePipelineStageId[] = ['scan', 'chunk', 'embed', 'write', 'done'];
-			const idx = order.indexOf(id);
-			const laterActive = order.slice(idx + 1).some(s => runEvents.some(e => eventTouchesStage(e.kind, s)));
-			const finished = related.every(e => e.status !== 'running');
-			if (finished && (laterActive || runEvents.some(e => e.kind === 'run_done'))) {
-				return 'done';
-			}
-			if (finished && id === 'embed' && !runEvents.some(e => e.kind === 'embed_batch' || e.kind === 'embed_load')) {
-				return 'skipped';
-			}
-			return laterActive || finished ? 'done' : 'active';
-		}
-		return 'pending';
+		// ok/warn for this stage: done if a later stage has started, else still active briefly
+		const order: DroxCodebasePipelineStageId[] = ['scan', 'chunk', 'embed', 'write', 'done'];
+		const idx = order.indexOf(id);
+		const laterStarted = order.slice(idx + 1).some(s => runEvents.some(e => eventTouchesStage(e.kind, s)));
+		return laterStarted ? 'done' : 'active';
 	};
 
 	const stages: IDroxCodebasePipelineStage[] = [
@@ -221,10 +222,10 @@ export function buildDroxCodebasePipelineView(
 
 	let progressPct = 0;
 	const pctDetail = last?.detail?.progressPct;
-	if (typeof pctDetail === 'number') {
-		progressPct = Math.max(0, Math.min(100, pctDetail));
-	} else if (runEvents.some(e => e.kind === 'run_done')) {
+	if (runDoneOk) {
 		progressPct = 100;
+	} else if (typeof pctDetail === 'number') {
+		progressPct = Math.max(0, Math.min(100, pctDetail));
 	} else {
 		const doneCount = stages.filter(s => s.state === 'done' || s.state === 'skipped').length;
 		const active = stages.some(s => s.state === 'active') ? 0.5 : 0;
@@ -244,7 +245,7 @@ export function buildDroxCodebasePipelineView(
 function eventTouchesStage(kind: DroxCodebasePipelineStepKind, stage: DroxCodebasePipelineStageId): boolean {
 	switch (stage) {
 		case 'scan':
-			return kind === 'scan' || kind === 'run_start';
+			return kind === 'scan';
 		case 'chunk':
 			return kind === 'chunk' || kind === 'skip';
 		case 'embed':
