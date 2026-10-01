@@ -25,6 +25,11 @@ export function droxCodebaseChunksJsonPath(workspaceRootFsPath: string): string 
 	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'chunks.json');
 }
 
+/** CB2 embedding rows (JSON) — one vector per chunk id. */
+export function droxCodebaseVectorsJsonPath(workspaceRootFsPath: string): string {
+	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'vectors.json');
+}
+
 export function droxCodebaseChunksDbPath(workspaceRootFsPath: string): string {
 	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'chunks.sqlite');
 }

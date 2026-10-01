@@ -274,29 +274,31 @@ pub fn agent_cancel(server: &Server, params: Option<Value>) -> Result<Value, Rpc
     serde_json::to_value(AgentCancelResult { cancelled: true }).map_err(internal)
 }
 
-#[allow(clippy::unused_async)]
 pub async fn embed_status(_params: Option<Value>) -> Result<Value, RpcError> {
-    let status = drox_embed::status();
+    let status = tokio::task::spawn_blocking(drox_embed::status)
+        .await
+        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?;
     serde_json::to_value(status).map_err(internal)
 }
 
-#[allow(clippy::unused_async)]
 pub async fn embed_load(params: Option<Value>) -> Result<Value, RpcError> {
     let params: EmbedLoadParams = decode_required(params, "embed.load requires `modelPath`")?;
-    let path = std::path::Path::new(&params.model_path);
-    match drox_embed::load_model(path) {
-        Ok(status) => serde_json::to_value(status).map_err(internal),
-        Err(e) => Err(RpcError::new(ENGINE_ERROR, e.to_string())),
-    }
+    let path = params.model_path.clone();
+    let status = tokio::task::spawn_blocking(move || drox_embed::load_model(std::path::Path::new(&path)))
+        .await
+        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?
+        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?;
+    serde_json::to_value(status).map_err(internal)
 }
 
-#[allow(clippy::unused_async)]
 pub async fn embed_encode(params: Option<Value>) -> Result<Value, RpcError> {
     let params: EmbedEncodeParams = decode_required(params, "embed.encode requires `texts`")?;
-    match drox_embed::encode(&params.texts) {
-        Ok(vectors) => serde_json::to_value(json!({ "vectors": vectors })).map_err(internal),
-        Err(e) => Err(RpcError::new(ENGINE_ERROR, e.to_string())),
-    }
+    let texts = params.texts;
+    let vectors = tokio::task::spawn_blocking(move || drox_embed::encode(&texts))
+        .await
+        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?
+        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?;
+    serde_json::to_value(json!({ "vectors": vectors })).map_err(internal)
 }
 
 // --------------------------------------------------------------------------

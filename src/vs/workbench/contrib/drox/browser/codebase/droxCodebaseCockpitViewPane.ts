@@ -115,7 +115,9 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		purgeBtn.onclick = () => void this.supervision.purge();
 
 		const probe = dom.append(this._body, dom.$('.drox-codebase-section'));
-		dom.append(probe, dom.$('h4', undefined, localize('drox.codebase.probe', 'Lexical probe')));
+		dom.append(probe, dom.$('h4', undefined, s.mode === 'hybrid'
+			? localize('drox.codebase.probeHybrid', 'Hybrid probe')
+			: localize('drox.codebase.probe', 'Lexical probe')));
 		this._probeInput = dom.append(probe, dom.$('input.drox-codebase-probe-input')) as HTMLInputElement;
 		this._probeInput.type = 'text';
 		this._probeInput.placeholder = localize('drox.codebase.probePlaceholder', 'e.g. checkout branch');
