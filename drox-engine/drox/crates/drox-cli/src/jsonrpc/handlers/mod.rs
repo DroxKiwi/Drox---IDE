@@ -4,6 +4,9 @@
 //! `Value` ou un [`RpcError`], le [`super::server::Server`] s'occupe de
 //! sérialiser la `Response` et de pousser les notifications.
 
+mod embed;
+pub use embed::{embed_encode, embed_load, embed_status};
+
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -38,11 +41,10 @@ use tracing::warn;
 use super::ide_event_shim::{IdeEventShimState, expand_agent_event_for_ide};
 use super::protocol::{
     AgentCancelParams, AgentCancelResult, AgentDoneNotification, AgentEventNotification,
-    AgentRunParams, AgentRunResult, EmbedEncodeParams, EmbedLoadParams, InitializeParams,
-    InitializeResult, RunStatus, SessionCompactParams, SessionCompactResult,
-    SessionCompactUsageDto, SessionListEntryDto, SessionListParams, SessionReadParams,
-    SessionReadResult, SessionTruncateAfterLastUserParams, SessionTruncateAfterLastUserResult,
-    UserAskParams, UserAskQuestion, UserAskOption, UserAskResult,
+    AgentRunParams, AgentRunResult, InitializeParams, InitializeResult, RunStatus,
+    SessionCompactParams, SessionCompactResult, SessionCompactUsageDto, SessionListEntryDto,
+    SessionListParams, SessionReadParams, SessionReadResult, SessionTruncateAfterLastUserParams,
+    SessionTruncateAfterLastUserResult, UserAskParams, UserAskQuestion, UserAskOption, UserAskResult,
 };
 use super::remote_tool::RemoteTool;
 use super::server::Server;
@@ -272,33 +274,6 @@ pub fn agent_cancel(server: &Server, params: Option<Value>) -> Result<Value, Rpc
         ));
     }
     serde_json::to_value(AgentCancelResult { cancelled: true }).map_err(internal)
-}
-
-pub async fn embed_status(_params: Option<Value>) -> Result<Value, RpcError> {
-    let status = tokio::task::spawn_blocking(drox_embed::status)
-        .await
-        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?;
-    serde_json::to_value(status).map_err(internal)
-}
-
-pub async fn embed_load(params: Option<Value>) -> Result<Value, RpcError> {
-    let params: EmbedLoadParams = decode_required(params, "embed.load requires `modelPath`")?;
-    let path = params.model_path.clone();
-    let status = tokio::task::spawn_blocking(move || drox_embed::load_model(std::path::Path::new(&path)))
-        .await
-        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?
-        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?;
-    serde_json::to_value(status).map_err(internal)
-}
-
-pub async fn embed_encode(params: Option<Value>) -> Result<Value, RpcError> {
-    let params: EmbedEncodeParams = decode_required(params, "embed.encode requires `texts`")?;
-    let texts = params.texts;
-    let vectors = tokio::task::spawn_blocking(move || drox_embed::encode(&texts))
-        .await
-        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?
-        .map_err(|e| RpcError::new(ENGINE_ERROR, e.to_string()))?;
-    serde_json::to_value(json!({ "vectors": vectors })).map_err(internal)
 }
 
 // --------------------------------------------------------------------------
@@ -1098,7 +1073,7 @@ fn merge_optional_system(cli: Option<String>, mem: Option<String>) -> Option<Str
     }
 }
 
-fn decode_optional<T: serde::de::DeserializeOwned + Default>(
+pub(super) fn decode_optional<T: serde::de::DeserializeOwned + Default>(
     params: Option<Value>,
 ) -> Result<T, RpcError> {
     match params {
@@ -1108,7 +1083,7 @@ fn decode_optional<T: serde::de::DeserializeOwned + Default>(
     }
 }
 
-fn decode_required<T: serde::de::DeserializeOwned>(
+pub(super) fn decode_required<T: serde::de::DeserializeOwned>(
     params: Option<Value>,
     missing_msg: &str,
 ) -> Result<T, RpcError> {
@@ -1121,7 +1096,7 @@ fn decode_required<T: serde::de::DeserializeOwned>(
     })
 }
 
-fn internal<E: std::fmt::Display>(e: E) -> RpcError {
+pub(super) fn internal<E: std::fmt::Display>(e: E) -> RpcError {
     RpcError::new(super::INTERNAL_ERROR, e.to_string())
 }
 

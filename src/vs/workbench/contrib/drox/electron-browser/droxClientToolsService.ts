@@ -27,6 +27,7 @@ import { createDroxFileWriteToolHandler } from './tools/droxFileWriteTool.js';
 import { createDroxSessionCompactToolHandler } from './tools/droxSessionCompactTool.js';
 import { createDroxSessionEndToolHandler } from './tools/droxSessionEndTool.js';
 import { createDroxSessionSearchToolHandler } from './tools/droxSessionSearchTool.js';
+import { createDroxCodebaseSearchToolHandler } from './tools/droxCodebaseSearchTool.js';
 import { createDroxLspToolHandler } from './tools/droxLspTool.js';
 import { createDroxNotebookEditToolHandler } from './tools/droxNotebookEditTool.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
@@ -35,6 +36,7 @@ import { ITextModelService } from '../../../../editor/common/services/resolverSe
 import { IDroxChatSessionService } from '../common/droxChatSessionService.js';
 import { IDroxLongMemoryService } from '../common/droxLongMemoryService.js';
 import { IDroxSessionCompactService } from '../common/droxSessionCompactService.js';
+import { IDroxCodebaseIndexService } from '../common/codebase/droxCodebaseIndexService.js';
 
 export class DroxClientToolsService extends Disposable implements IDroxClientToolsService {
 
@@ -53,6 +55,7 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 		@IDroxChatSessionService chatSessionService: IDroxChatSessionService,
 		@IDroxSessionCompactService sessionCompactService: IDroxSessionCompactService,
 		@IDroxLongMemoryService longMemoryService: IDroxLongMemoryService,
+		@IDroxCodebaseIndexService codebaseIndexService: IDroxCodebaseIndexService,
 		@ICommandService commandService: ICommandService,
 		@IMarkerService markerService: IMarkerService,
 		@ITextModelService textModelService: ITextModelService,
@@ -79,6 +82,11 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 		this.registry.register(
 			'session_search',
 			createDroxSessionSearchToolHandler(longMemoryService),
+		);
+
+		this.registry.register(
+			'codebase_search',
+			createDroxCodebaseSearchToolHandler(codebaseIndexService),
 		);
 
 		this.registry.register(

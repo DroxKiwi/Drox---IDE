@@ -82,6 +82,13 @@ export const DROX_TOOL_GROUPS: readonly IDroxToolGroup[] = [
 		],
 	},
 	{
+		id: 'codebase',
+		label: localize('drox.toolGroup.codebase', 'Codebase'),
+		tools: [
+			{ name: 'codebase_search', label: 'codebase_search', description: localize('drox.tool.codebaseSearch', 'Search local @Codebase index (IDE client)') },
+		],
+	},
+	{
 		id: 'skills',
 		label: localize('drox.toolGroup.skills', 'Skills'),
 		tools: [

@@ -277,14 +277,15 @@ Le retrieval fournit **quoi montrer** ; le canvas fournit **comment le voir**.
 | **CB0** | Spec figée + choix store A + modèle embed défaut | — |
 | **CB1** | Chunker + store metadata + recherche lexicale (cockpit) | CB0 |
 | **CB2** | Embed local + vector search + hybrid | CB1 |
-| **CB2b** | **Auto-index type Cursor** (open workspace + incrémental save/watcher) — [PLAN-CB2b.md](PLAN-CB2b.md) | CB2 |
-| **CB3** | Tool agent + pastille statut (reindex manuel = secours cockpit) | **CB2b** |
+| **CB2b** | Auto-index type Cursor (open + incrémental) — [PLAN-CB2b.md](PLAN-CB2b.md) | CB2 |
+| **CB2c** | **Découpage / lisibilité** (modules index · supervision · cockpit · handlers embed) — [PLAN-CB2c.md](PLAN-CB2c.md) | CB2b |
+| **CB3** | Tool agent + pastille statut (reindex manuel = secours cockpit) | **CB2c** |
 | **CB4** | `@` Codebase dans composer + budget tokens | CB3 |
 | **CB5** | Alimentation carte code (optionnel) | CB3 + canvas |
 
-**Ordre figé** : **CB2b avant CB3** — le modèle ne déclenche pas l’index ; l’IDE le tient à jour, puis l’agent interroge.
+**Ordre figé** : **CB2b → CB2c → CB3**. Pas de tool agent tant que l’arborescence codebase n’est pas lisible.
 
-**1.5.21** : CB0–CB2 shippés en dogfood ; **next = CB2b**, puis CB3.
+**1.5.21** : CB0–CB3 shippés en dogfood ; **next = CB4** (`@` composer) ou CB3b (catalogue).
 
 ---
 

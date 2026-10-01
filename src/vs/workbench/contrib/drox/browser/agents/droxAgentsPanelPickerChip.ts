@@ -116,3 +116,13 @@ export function createServerSettingsPickerChip(defaultLabel: string, title: stri
 		extraClass: 'general-settings-vignette',
 	});
 }
+
+export function createCodebaseStatusPickerChip(defaultLabel: string, title: string): DroxAgentsPanelPickerChip {
+	return new DroxAgentsPanelPickerChip({
+		id: 'codebase-status-vignette',
+		icon: Codicon.symbolClass,
+		defaultLabel,
+		title,
+		extraClass: 'codebase-status-vignette',
+	});
+}

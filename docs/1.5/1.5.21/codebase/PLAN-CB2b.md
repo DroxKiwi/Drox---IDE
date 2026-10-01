@@ -47,5 +47,5 @@ Comportement « zero-click » pour l’utilisateur :
 ## Ordre dans 1.5.21 `@Codebase`
 
 ```text
-CB0 → CB1 → CB2 → CB2b (auto-index) → CB3 (tool + pastille) → CB3b / CB4…
+CB0 → CB1 → CB2 → CB2b (auto-index) → CB2c (découpage) → CB3 (tool + pastille) → CB3b / CB4…
 ```

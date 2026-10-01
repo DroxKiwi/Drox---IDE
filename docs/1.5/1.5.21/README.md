@@ -25,7 +25,7 @@ Ne pas chercher les fiches index à la racine de `1.5.21/` : elles ont été reg
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| A | `@Codebase` — docs + arborescence code | 🔄 [codebase/](codebase/README.md) · CB0–CB2 ✅ · **CB2b** (auto-index) → CB3 |
+| A | `@Codebase` — docs + arborescence code | 🔄 [codebase/](codebase/README.md) · CB0–CB2b ✅ · **next CB2c** (découpage) → CB3 |
 | B | Explore IDE | 📋 |
 | C | Shell discussion partagé | 🔄 S0–S2 ✅ · S3–S5 |
 

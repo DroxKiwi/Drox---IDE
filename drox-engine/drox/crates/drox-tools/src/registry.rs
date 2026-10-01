@@ -8,7 +8,7 @@ use serde_json::Value;
 use crate::context::ToolContext;
 use crate::error::ToolError;
 use crate::simple::{
-    AskUserQuestionTool, BashTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
+    AskUserQuestionTool, BashTool, CodebaseSearchTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
     FileWriteTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
     SkillListTool, SkillReadTool, GitWorktreeEnterTool, GitWorktreeExitTool, CopyPathTool,
     CoursePlanWriteTool,     ScopeDeferTool, SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool,
@@ -50,6 +50,7 @@ impl ToolRegistry {
     ///   la clôture de session est la commande `/session_end` côté utilisateur.
     /// - **`session_search`** — recherche mémoire longue (client IDE).
     /// - **`session_compact`** — compaction transcript `session.compact` (client IDE).
+    /// - **`codebase_search`** — index `@Codebase` local (client IDE, CB3).
     #[must_use]
     pub fn with_simple_tools() -> Self {
         let mut reg = Self::new();
@@ -82,6 +83,7 @@ impl ToolRegistry {
         reg.register(coerce_tool(SessionCompactTool));
         reg.register(coerce_tool(SessionEndTool));
         reg.register(coerce_tool(SessionSearchTool));
+        reg.register(coerce_tool(CodebaseSearchTool));
         reg
     }
 

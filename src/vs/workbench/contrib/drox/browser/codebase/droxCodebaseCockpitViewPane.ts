@@ -23,9 +23,11 @@ import { localize } from '../../../../../nls.js';
 import { ViewPane } from '../../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../../common/views.js';
-import { DROX_EMBED_DEFAULT_MODEL_ID, DROX_EMBED_DEFAULT_MODEL_LABEL } from '../../common/codebase/droxCodebaseEmbedPaths.js';
 import { IDroxCodebaseSupervisionService } from '../../common/codebase/droxCodebaseSupervisionService.js';
-import { IDroxCodebaseHit, IDroxCodebasePipelineEvent, IDroxCodebasePipelineStage } from '../../common/codebase/droxCodebaseTypes.js';
+import { IDroxCodebaseHit } from '../../common/codebase/droxCodebaseTypes.js';
+import { renderDroxCodebaseCockpitEmbed } from './cockpit/droxCodebaseCockpitEmbed.js';
+import { renderDroxCodebaseCockpitHits, renderDroxCodebaseCockpitProbe } from './cockpit/droxCodebaseCockpitProbe.js';
+import { renderDroxCodebaseCockpitPipeline } from './cockpit/droxCodebaseCockpitPipeline.js';
 import './media/droxCodebaseCockpit.css';
 
 /**
@@ -100,9 +102,25 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			dom.append(header, dom.$('p', undefined, s.lastError));
 		}
 
-		this._renderPipelineSection(s.pipelineView.stages, s.pipelineView.events, s.pipeline.progressPct ?? s.pipelineView.progressPct, s.pipelineView.currentMessage, s.pipeline.trigger ?? s.pipelineView.trigger);
+		const { logEl } = renderDroxCodebaseCockpitPipeline(this._body, {
+			stages: s.pipelineView.stages,
+			events: s.pipelineView.events,
+			progressPct: s.pipeline.progressPct ?? s.pipelineView.progressPct,
+			currentMessage: s.pipelineView.currentMessage,
+			trigger: s.pipeline.trigger ?? s.pipelineView.trigger,
+			onExport: () => void this._exportDiag(),
+			onClear: () => this.supervision.clearPipelineLog(),
+		});
+		this._pipelineLogEl = logEl;
 
-		this._renderEmbedSection(s.embed, s.mode, prevEmbedPath);
+		const { pathInput } = renderDroxCodebaseCockpitEmbed(this._body, {
+			embed: s.embed,
+			mode: s.mode,
+			prevEmbedPath,
+			onApplyPath: path => void this.supervision.setEmbedModelPath(path),
+			onResetDefaults: () => void this.supervision.resetEmbedDefaults(),
+		});
+		this._embedPathInput = pathInput;
 
 		const storage = dom.append(this._body, dom.$('.drox-codebase-section'));
 		dom.append(storage, dom.$('h4', undefined, localize('drox.codebase.storage', 'Storage')));
@@ -130,19 +148,14 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		purgeBtn.disabled = !s.rootFsPath;
 		purgeBtn.onclick = () => void this.supervision.purge();
 
-		const probe = dom.append(this._body, dom.$('.drox-codebase-section'));
-		dom.append(probe, dom.$('h4', undefined, s.mode === 'hybrid'
-			? localize('drox.codebase.probeHybrid', 'Hybrid probe')
-			: localize('drox.codebase.probe', 'Lexical probe')));
-		this._probeInput = dom.append(probe, dom.$('input.drox-codebase-probe-input')) as HTMLInputElement;
-		this._probeInput.type = 'text';
-		this._probeInput.placeholder = localize('drox.codebase.probePlaceholder', 'e.g. checkout branch');
-		this._probeInput.value = prevQuery;
-		const probeBtn = dom.append(probe, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
-		probeBtn.textContent = localize('drox.codebase.runProbe', 'Probe');
-		probeBtn.onclick = () => void this._runProbe();
-		this._probeResults = dom.append(probe, dom.$('.drox-codebase-probe-results'));
-		this._renderHits(this._lastHits);
+		const probe = renderDroxCodebaseCockpitProbe(this._body, {
+			mode: s.mode,
+			prevQuery,
+			onProbe: () => void this._runProbe(),
+		});
+		this._probeInput = probe.input;
+		this._probeResults = probe.results;
+		renderDroxCodebaseCockpitHits(this._probeResults, this._lastHits);
 
 		if (s.alerts.length) {
 			const alerts = dom.append(this._body, dom.$('.drox-codebase-section'));
@@ -156,73 +169,6 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			this._pipelineLogEl.scrollTop = this._pipelineLogEl.scrollHeight;
 		} else if (this._pipelineLogEl) {
 			this._pipelineLogEl.scrollTop = prevScroll;
-		}
-	}
-
-	private _renderPipelineSection(
-		stages: readonly IDroxCodebasePipelineStage[],
-		events: readonly IDroxCodebasePipelineEvent[],
-		progressPct: number,
-		currentMessage: string | undefined,
-		trigger: string | undefined,
-	): void {
-		if (!this._body) {
-			return;
-		}
-		const section = dom.append(this._body, dom.$('.drox-codebase-section.drox-codebase-pipeline'));
-		dom.append(section, dom.$('h4', undefined, localize('drox.codebase.pipeline', 'Vectorization pipeline')));
-		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
-			'drox.codebase.pipelineHint',
-			'Live steps from the local engine (scan → chunk → embed → write). Use Export to share a debug dump.',
-		)));
-		if (trigger || currentMessage) {
-			dom.append(section, dom.$('p', undefined, [
-				trigger ? localize('drox.codebase.pipelineTrigger', 'Trigger: {0}', trigger) : '',
-				currentMessage ?? '',
-			].filter(Boolean).join(' · ')));
-		}
-
-		const stagesRow = dom.append(section, dom.$('.drox-codebase-pipeline-stages'));
-		for (const stage of stages) {
-			const chip = dom.append(stagesRow, dom.$(`.drox-codebase-pipeline-stage.is-${stage.state}`));
-			dom.append(chip, dom.$('span.drox-codebase-pipeline-stage-dot'));
-			dom.append(chip, dom.$('span', undefined, stage.label));
-		}
-
-		const bar = dom.append(section, dom.$('.drox-codebase-pipeline-bar'));
-		const fill = dom.append(bar, dom.$('.drox-codebase-pipeline-bar-fill')) as HTMLElement;
-		fill.style.width = `${Math.max(0, Math.min(100, progressPct))}%`;
-		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
-			'drox.codebase.pipelineProgress',
-			'Progress: {0}%',
-			String(Math.round(progressPct)),
-		)));
-
-		const actions = dom.append(section, dom.$('.drox-codebase-actions'));
-		const exportBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
-		exportBtn.textContent = localize('drox.codebase.exportDiag', 'Export diag');
-		exportBtn.title = localize('drox.codebase.exportDiagTitle', 'Copy JSON to clipboard and write diag-export-*.json under .drox/codebase-index');
-		exportBtn.onclick = () => void this._exportDiag();
-
-		const clearBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
-		clearBtn.textContent = localize('drox.codebase.clearPipeline', 'Clear log');
-		clearBtn.onclick = () => this.supervision.clearPipelineLog();
-
-		this._pipelineLogEl = dom.append(section, dom.$('.drox-codebase-pipeline-log'));
-		const recent = events.slice(-80);
-		if (!recent.length) {
-			dom.append(this._pipelineLogEl, dom.$('p.drox-codebase-muted', undefined, localize(
-				'drox.codebase.pipelineEmpty',
-				'No steps yet — open a folder or click Reindex.',
-			)));
-			return;
-		}
-		for (const ev of recent) {
-			const row = dom.append(this._pipelineLogEl, dom.$(`.drox-codebase-pipeline-event.is-${ev.status}`));
-			const time = new Date(ev.at).toLocaleTimeString();
-			const pathBit = ev.path ? ` · ${ev.path}` : '';
-			dom.append(row, dom.$('span.drox-codebase-pipeline-event-meta', undefined, `${time} · ${ev.kind}`));
-			dom.append(row, dom.$('span.drox-codebase-pipeline-event-msg', undefined, `${ev.message}${pathBit}`));
 		}
 	}
 
@@ -252,122 +198,11 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		}
 	}
 
-	private _renderEmbedSection(
-		embed: typeof this.supervision.snapshot.embed,
-		mode: typeof this.supervision.snapshot.mode,
-		prevEmbedPath: string | undefined,
-	): void {
-		if (!this._body) {
-			return;
-		}
-		const section = dom.append(this._body, dom.$('.drox-codebase-section'));
-		dom.append(section, dom.$('h4', undefined, localize('drox.codebase.embed', 'Embed')));
-
-		const callout = dom.append(section, dom.$('.drox-codebase-embed-callout'));
-		dom.append(callout, dom.$('p.drox-codebase-embed-callout-title', undefined, localize(
-			'drox.codebase.embedWhatTitle',
-			'What MiniLM does (visible by design)',
-		)));
-		const list = dom.append(callout, dom.$('ul.drox-codebase-embed-facts'));
-		const facts = [
-			localize('drox.codebase.embedFact1', 'Turns each code chunk into a vector so search can match meaning, not only exact words.'),
-			localize('drox.codebase.embedFact2', 'Runs locally in drox.exe (llama.cpp) — no cloud upload of your codebase for embeddings.'),
-			localize('drox.codebase.embedFact3', 'Default model: {0} — small (~20 Mo), ~384 dimensions, embedding GGUF (not a chat LLM).', DROX_EMBED_DEFAULT_MODEL_LABEL),
-			localize('drox.codebase.embedFact4', 'Used at Reindex (encode chunks) and at Probe (encode your query), then fused with lexical hits.'),
-		];
-		for (const fact of facts) {
-			dom.append(list, dom.$('li', undefined, fact));
-		}
-
-		const sourceLabel = this._sourceLabel(embed.source);
-		dom.append(section, dom.$('p', undefined, embed.loaded
-			? localize('drox.codebase.embedLoaded', 'Loaded ({0})', embed.modelId ?? '?')
-			: localize('drox.codebase.embedNotLoaded', 'Not loaded — {0}', mode === 'hybrid' ? 'hybrid ready' : 'lexical only')));
-		dom.append(section, dom.$('p', undefined, localize('drox.codebase.mode', 'Retrieval mode: {0}', mode)));
-		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
-			'drox.codebase.embedSource',
-			'Active source: {0}',
-			sourceLabel,
-		)));
-		if (embed.resolvedPath) {
-			dom.append(section, dom.$('p.drox-codebase-muted', undefined, embed.resolvedPath));
-		}
-		if (embed.dimensions) {
-			dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
-				'drox.codebase.embedDims',
-				'Dimensions: {0} · backend: {1}',
-				String(embed.dimensions),
-				embed.backend ?? '?',
-			)));
-		}
-		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
-			'drox.codebase.embedFormatHint',
-			'Custom override: absolute path to an embedding GGUF (e.g. MiniLM / BGE-small). Chat models will not work here. File name default: {0}',
-			DROX_EMBED_DEFAULT_MODEL_ID,
-		)));
-
-		this._embedPathInput = dom.append(section, dom.$('input.drox-codebase-probe-input')) as HTMLInputElement;
-		this._embedPathInput.type = 'text';
-		this._embedPathInput.placeholder = localize('drox.codebase.embedPathPlaceholder', 'Optional custom GGUF path…');
-		this._embedPathInput.value = prevEmbedPath ?? embed.customPathSetting ?? '';
-
-		const embedActions = dom.append(section, dom.$('.drox-codebase-actions'));
-		const applyBtn = dom.append(embedActions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
-		applyBtn.textContent = localize('drox.codebase.embedApplyPath', 'Use this GGUF');
-		applyBtn.onclick = () => void this.supervision.setEmbedModelPath(this._embedPathInput?.value ?? '');
-
-		const resetBtn = dom.append(embedActions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
-		resetBtn.textContent = localize('drox.codebase.embedResetDefaults', 'Reset to defaults');
-		resetBtn.title = localize(
-			'drox.codebase.embedResetDefaultsTitle',
-			'Clear custom path and reload the bundled MiniLM shipped with Drox.',
-		);
-		resetBtn.onclick = () => {
-			if (this._embedPathInput) {
-				this._embedPathInput.value = '';
-			}
-			void this.supervision.resetEmbedDefaults();
-		};
-	}
-
-	private _sourceLabel(source: typeof this.supervision.snapshot.embed.source): string {
-		switch (source) {
-			case 'custom':
-				return localize('drox.codebase.source.custom', 'custom path (your override)');
-			case 'env':
-				return localize('drox.codebase.source.env', 'DROX_EMBED_MODEL_PATH (env)');
-			case 'bundled':
-				return localize('drox.codebase.source.bundled', 'bundled with the app (default MiniLM)');
-			case 'userData':
-				return localize('drox.codebase.source.userData', 'userData/drox/models');
-			case 'repo':
-				return localize('drox.codebase.source.repo', 'dev repo drox-engine/models');
-			case 'missing':
-				return localize('drox.codebase.source.missing', 'missing — package MiniLM or set a path');
-			default:
-				return localize('drox.codebase.source.unknown', 'unknown');
-		}
-	}
-
 	private async _runProbe(): Promise<void> {
 		const q = this._probeInput?.value ?? '';
 		this._lastHits = await this.supervision.probeRetrieval(q);
-		this._renderHits(this._lastHits);
-	}
-
-	private _renderHits(hits: readonly IDroxCodebaseHit[]): void {
-		if (!this._probeResults) {
-			return;
-		}
-		dom.clearNode(this._probeResults);
-		if (!hits.length) {
-			dom.append(this._probeResults, dom.$('p.drox-codebase-muted', undefined, localize('drox.codebase.noHits', 'No hits')));
-			return;
-		}
-		for (const hit of hits) {
-			const row = dom.append(this._probeResults, dom.$('div.drox-codebase-hit'));
-			dom.append(row, dom.$('p', undefined, `${hit.path}:${hit.startLine}-${hit.endLine} (score ${hit.score})`));
-			dom.append(row, dom.$('pre.drox-codebase-preview', undefined, hit.preview));
+		if (this._probeResults) {
+			renderDroxCodebaseCockpitHits(this._probeResults, this._lastHits);
 		}
 	}
 }
