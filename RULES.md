@@ -24,7 +24,21 @@ Pour l’architecture VS Code / Code OSS, voir [AGENTS.md](AGENTS.md) et [.githu
 - L’usage d’outils d’assistance (Cursor, etc.) peut être mentionné dans la **documentation** (`README`, `NOTICE`, docs) — pas via trailers Git.
 - Purge historique déjà faite : ne pas réintroduire ces trailers.
 
-Si un commit local contient encore le trailer avant push : `git commit --amend` (message sans `Co-authored-by`) puis push normal (ou `--force-with-lease` seulement si l’utilisateur l’a demandé).
+**Empêcher Cursor de le réinjecter (obligatoire sur cette machine) :**
+
+1. **Cursor Settings → Agent → Attribution** (ou **Git & PRs → Attribution** dès Cursor 3.11) : désactiver **Commit Attribution** et **PR Attribution**.
+2. Fichier CLI `~/.cursor/cli-config.json` :
+   ```json
+   {
+     "attribution": {
+       "attributeCommitsToAgent": false,
+       "attributePRsToAgent": false
+     }
+   }
+   ```
+3. Filet local : hook `.git/hooks/commit-msg` qui appelle `scripts/strip-cursor-coauthor-msg.py` (installe automatiquement si présent ; sinon copier à la main).
+
+Si un commit local contient encore le trailer avant push : `git commit --amend` (message sans `Co-authored-by`) puis push normal (ou `--force-with-lease` seulement si l’utilisateur l’a demandé). Pour purger toute une branche déjà poussée : `git filter-branch` / `scripts/strip-cursor-coauthor-msg.py` puis `git push --force-with-lease` (jamais sur `main`/`master` sans demande explicite).
 
 ### E-mail git (confidentialité)
 
