@@ -39,8 +39,39 @@ export async function resolveDroxEmbedModelPath(
 		if (await fileService.exists(URI.file(bundled))) {
 			return bundled;
 		}
+		const fromAppRoot = await walkForRepoModel(fileService, appRoot, modelId);
+		if (fromAppRoot) {
+			return fromAppRoot;
+		}
 	}
 
+	if (typeof process !== 'undefined' && process.cwd) {
+		const fromCwd = await walkForRepoModel(fileService, process.cwd(), modelId);
+		if (fromCwd) {
+			return fromCwd;
+		}
+	}
+
+	return undefined;
+}
+
+async function walkForRepoModel(
+	fileService: IFileService,
+	startDir: string,
+	modelId: string,
+): Promise<string | undefined> {
+	let dir = startDir;
+	for (let i = 0; i < 8; i++) {
+		const candidate = join(dir, 'drox-engine', 'models', modelId);
+		if (await fileService.exists(URI.file(candidate))) {
+			return candidate;
+		}
+		const parent = join(dir, '..');
+		if (parent === dir) {
+			break;
+		}
+		dir = parent;
+	}
 	return undefined;
 }
 

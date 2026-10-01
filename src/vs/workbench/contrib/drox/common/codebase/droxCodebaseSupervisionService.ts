@@ -94,6 +94,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		const manifest = await this.indexService.getManifest(rootUri);
 		const base = createEmptyCodebaseSnapshot(root);
 		const embedAlert = await this._probeEmbedAlert();
+		const hasVectors = !!(manifest && manifest.vectors > 0);
 		this._snapshot = {
 			...base,
 			state: 'idle',
@@ -109,7 +110,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			embed: this._snapshot.embed.modelId || this._snapshot.embed.loaded
 				? this._snapshot.embed
 				: { loaded: false },
-			mode: 'lexical',
+			mode: hasVectors || this._snapshot.mode === 'hybrid' ? 'hybrid' : 'lexical',
 			alerts: [
 				...(manifest ? [] : [{
 					id: 'no-index',
@@ -128,6 +129,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 	async refreshEmbedStatus(): Promise<void> {
 		try {
 			const st = await this._embedClient.status();
+			const hasVectors = this._snapshot.storage.vectors > 0;
 			this._snapshot = {
 				...this._snapshot,
 				embed: {
@@ -136,7 +138,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 					rssBytes: undefined,
 					lastProbeMs: undefined,
 				},
-				mode: st.built && st.modelLoaded ? 'hybrid' : 'lexical',
+				mode: (st.built && st.modelLoaded) || hasVectors ? 'hybrid' : 'lexical',
 			};
 			this._onDidChangeSnapshot.fire();
 		} catch (err) {

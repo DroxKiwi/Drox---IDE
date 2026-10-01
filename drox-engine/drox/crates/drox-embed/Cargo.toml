@@ -11,10 +11,10 @@ workspace = true
 
 [features]
 default = []
-# Enables advertising the llama.cpp backend in embed.status / load_model.
-# Full GGUF encode lands in the same feature once linked (PLAN-CB2).
-embed = []
+# Links llama.cpp and enables real GGUF encode.
+embed = ["dep:llama-cpp-2"]
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
+llama-cpp-2 = { version = "0.1.157", optional = true, default-features = false, features = ["common"] }

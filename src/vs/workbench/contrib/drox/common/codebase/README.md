@@ -8,10 +8,13 @@
 | `droxCodebaseIgnore.ts` | Dossiers / fichiers exclus |
 | `droxCodebaseChunker.ts` | Fenêtres de lignes → chunks |
 | `droxCodebaseLexicalSearch.ts` | Recherche lexicale CB1 |
-| `droxCodebaseJsonStore.ts` | `manifest.json` + `chunks.json` |
+| `droxCodebaseJsonStore.ts` | `manifest.json` + `chunks.json` + `vectors.json` |
+| `droxCodebaseHybrid.ts` | Fusion RRF-ish lexical + cosine |
+| `droxCodebaseEmbedClient.ts` | RPC `embed.status` / `load` / `encode` |
+| `droxCodebaseEmbedPaths.ts` | Resolve GGUF (env / userData / resources / repo) |
 | `droxCodebaseTypes.ts` | Snapshot cockpit, hits, états |
 | `droxCodebaseIndexService.ts` | Contrat index / search |
-| `droxCodebaseIndexServiceImpl.ts` | Scan + store (CB1) |
+| `droxCodebaseIndexServiceImpl.ts` | Scan + store + embed optionnel (CB2) |
 | `droxCodebaseSupervisionService.ts` | Live status + actions cockpit |
 
 UI : [`browser/codebase/`](../../browser/codebase/README.md)

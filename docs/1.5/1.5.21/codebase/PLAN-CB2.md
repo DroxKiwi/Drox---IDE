@@ -7,7 +7,7 @@
 
 1. Runtime embed dans `drox.exe` (feature Cargo `embed`)  
 2. RPC `embed.status` / `embed.encode`  
-3. Vecteurs persistés à côté des chunks  
+3. Vecteurs persistés à côté des chunks (`vectors.json`)  
 4. Recherche **hybride** (lexical + cosine)  
 5. Cockpit : statut embed + probe hybrid  
 
@@ -15,12 +15,27 @@
 
 ```text
 # Dev moteur avec embed
+# Windows: LIBCLANG_PATH=...\LLVM\bin  + cmake on PATH (VS BuildTools CMake OK)
 cargo build -p drox-cli --features embed
 # Modèle
 pwsh scripts/fetch-drox-embed-model.ps1
 ```
 
 Sans feature : `embed.status.built = false` — IDE reste en lexical-only (CB1).
+
+## IDE (CB2)
+
+- Reindex : chunks + encode batch via RPC si `built` + GGUF résolu  
+- Probe cockpit : hybrid merge si `vectors.json` présent  
+- Resolve modèle : `DROX_EMBED_MODEL_PATH` → userData → resources → `drox-engine/models/`
+
+## Dev Windows (pièges connus)
+
+- `LIBCLANG_PATH` → NuGet `libclang.runtime.win-x64` (voir `scripts/build-drox-embed.ps1`)
+- `CARGO_TARGET_DIR=C:\t\drox` évite MAX_PATH sous le cache sandbox
+- `GGML_CPU_REPACK=OFF` + `with_use_mmap(false)` sur le load modèle
+- `load_model` ne doit **pas** appeler `status()` sous le mutex `LOADED` (deadlock)
+- Test dogfood : `cargo test -p drox-embed --features embed --test live_minilm -- --ignored --nocapture`
 
 ## Modèle défaut
 
