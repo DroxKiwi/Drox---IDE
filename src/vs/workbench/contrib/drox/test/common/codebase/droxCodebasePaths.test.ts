@@ -104,4 +104,20 @@ suite('Drox codebase CB1/CB2/CB2b', () => {
 		assert.strictEqual(view.stages.find(s => s.id === 'chunk')?.state, 'active');
 		assert.strictEqual(view.progressPct, 40);
 	});
+
+	test('pipeline stages all done after run_done', () => {
+		const view = buildDroxCodebasePipelineView([
+			{ id: '1', at: 1, runId: 'r1', kind: 'run_start', status: 'running', message: 'start', detail: { trigger: 'ensureIndexed' } },
+			{ id: '2', at: 2, runId: 'r1', kind: 'scan', status: 'running', message: 'scanning' },
+			{ id: '3', at: 3, runId: 'r1', kind: 'scan', status: 'ok', message: 'scanned' },
+			{ id: '4', at: 4, runId: 'r1', kind: 'chunk', status: 'running', message: 'chunking' },
+			{ id: '5', at: 5, runId: 'r1', kind: 'chunk', status: 'ok', message: 'chunked' },
+			{ id: '6', at: 6, runId: 'r1', kind: 'embed_batch', status: 'ok', message: 'reused' },
+			{ id: '7', at: 7, runId: 'r1', kind: 'upsert', status: 'running', message: 'writing' },
+			{ id: '8', at: 8, runId: 'r1', kind: 'upsert', status: 'ok', message: 'written' },
+			{ id: '9', at: 9, runId: 'r1', kind: 'run_done', status: 'ok', message: 'ready', detail: { progressPct: 100 } },
+		]);
+		assert.ok(view.stages.every(s => s.state === 'done'));
+		assert.strictEqual(view.progressPct, 100);
+	});
 });
