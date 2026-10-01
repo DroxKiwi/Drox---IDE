@@ -4,7 +4,7 @@
 **Suite** : [CB3 — tool agent](ARCHITECTURE.md) (après cette phase)  
 **Code** : `contrib/drox/common/codebase/` · supervision / index service
 
-**Statut** : 📋 **prochaine étape** · **avant CB3**
+**Statut** : 🔄 **implémenté (dogfood)** · **avant CB3**
 
 ## Pourquoi avant CB3
 

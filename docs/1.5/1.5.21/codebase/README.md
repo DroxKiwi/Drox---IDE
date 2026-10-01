@@ -26,7 +26,7 @@ Index local par racine workspace · cockpit partagé · embed MiniLM (llama.cpp)
 | **CB0** / CB0b | Spec + IDs cockpit | ✅ |
 | **CB1** | Lexical + cockpit | ✅ |
 | **CB2** | Embed MiniLM + hybrid + probe | ✅ |
-| **CB2b** | Auto-index (open + incrémental) | 📋 **next** |
+| **CB2b** | Auto-index (open + incrémental) | 🔄 dogfood |
 | **CB3** | Tool agent + pastille statut | ⏳ après CB2b |
 | **CB3b** | Catalogue admin | ⏳ |
 | **CB4** | `@Codebase` composer | ⏳ |

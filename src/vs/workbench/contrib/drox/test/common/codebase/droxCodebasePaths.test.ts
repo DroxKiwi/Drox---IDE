@@ -10,9 +10,11 @@ import { DROX_EMBED_DEFAULT_MODEL_ID } from '../../../common/codebase/droxCodeba
 import { droxCodebaseHybridMerge } from '../../../common/codebase/droxCodebaseHybrid.js';
 import { droxCodebaseShouldSkipDirName, droxCodebaseShouldSkipFileName } from '../../../common/codebase/droxCodebaseIgnore.js';
 import { droxCodebaseLexicalSearch } from '../../../common/codebase/droxCodebaseLexicalSearch.js';
+import { buildDroxCodebasePipelineView } from '../../../common/codebase/droxCodebaseTypes.js';
+import { droxCodebaseChunksContentEqualForTest } from '../../../common/codebase/droxCodebaseIndexServiceImpl.js';
 import { droxCodebaseChunksJsonPath, droxCodebaseIndexDir, droxCodebaseVectorsJsonPath } from '../../../common/codebase/droxCodebasePaths.js';
 
-suite('Drox codebase CB1/CB2', () => {
+suite('Drox codebase CB1/CB2/CB2b', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('paths use .drox/codebase-index', () => {
@@ -81,5 +83,25 @@ suite('Drox codebase CB1/CB2', () => {
 	test('default embed model id is MiniLM Q4', () => {
 		assert.ok(DROX_EMBED_DEFAULT_MODEL_ID.includes('MiniLM'));
 		assert.ok(DROX_EMBED_DEFAULT_MODEL_ID.endsWith('.gguf'));
+	});
+
+	test('CB2b chunk content equality uses hashes', () => {
+		const a = droxCodebaseChunkText('x.ts', 'const a = 1;\n');
+		const b = droxCodebaseChunkText('x.ts', 'const a = 1;\n');
+		const c = droxCodebaseChunkText('x.ts', 'const a = 2;\n');
+		assert.strictEqual(droxCodebaseChunksContentEqualForTest(a, b), true);
+		assert.strictEqual(droxCodebaseChunksContentEqualForTest(a, c), false);
+	});
+
+	test('pipeline view derives stages from events', () => {
+		const view = buildDroxCodebasePipelineView([
+			{ id: '1', at: 1, runId: 'r1', kind: 'run_start', status: 'running', message: 'start', detail: { trigger: 'reindex' } },
+			{ id: '2', at: 2, runId: 'r1', kind: 'scan', status: 'ok', message: 'scanned' },
+			{ id: '3', at: 3, runId: 'r1', kind: 'chunk', status: 'running', message: 'chunking', detail: { progressPct: 40 } },
+		]);
+		assert.strictEqual(view.trigger, 'reindex');
+		assert.strictEqual(view.stages.find(s => s.id === 'scan')?.state, 'done');
+		assert.strictEqual(view.stages.find(s => s.id === 'chunk')?.state, 'active');
+		assert.strictEqual(view.progressPct, 40);
 	});
 });

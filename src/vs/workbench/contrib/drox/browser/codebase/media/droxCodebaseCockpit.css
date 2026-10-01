@@ -83,3 +83,122 @@
 .drox-codebase-btn {
 	cursor: pointer;
 }
+
+.drox-codebase-pipeline-stages {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 8px 0;
+}
+
+.drox-codebase-pipeline-stage {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 11px;
+	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	opacity: 0.7;
+}
+
+.drox-codebase-pipeline-stage.is-active {
+	opacity: 1;
+	border-color: var(--vscode-focusBorder, #007acc);
+	background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.drox-codebase-pipeline-stage.is-done {
+	opacity: 1;
+	border-color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-codebase-pipeline-stage.is-error {
+	opacity: 1;
+	border-color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.drox-codebase-pipeline-stage.is-skipped {
+	opacity: 0.55;
+	font-style: italic;
+}
+
+.drox-codebase-pipeline-stage-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--vscode-descriptionForeground, #888);
+}
+
+.drox-codebase-pipeline-stage.is-active .drox-codebase-pipeline-stage-dot {
+	background: var(--vscode-focusBorder, #007acc);
+}
+
+.drox-codebase-pipeline-stage.is-done .drox-codebase-pipeline-stage-dot {
+	background: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-codebase-pipeline-stage.is-error .drox-codebase-pipeline-stage-dot {
+	background: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.drox-codebase-pipeline-bar {
+	height: 6px;
+	border-radius: 3px;
+	background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.2));
+	overflow: hidden;
+	margin: 6px 0 2px 0;
+}
+
+.drox-codebase-pipeline-bar-fill {
+	height: 100%;
+	width: 0;
+	background: var(--vscode-progressBar-background, #0e70c0);
+	transition: width 0.2s ease-out;
+}
+
+.drox-codebase-pipeline-log {
+	margin-top: 8px;
+	max-height: 220px;
+	overflow: auto;
+	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	border-radius: 4px;
+	padding: 6px 8px;
+	font-size: 11px;
+	font-family: var(--monaco-monospace-font, monospace);
+	background: var(--vscode-editor-background, transparent);
+}
+
+.drox-codebase-pipeline-event {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 4px 0;
+	border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+}
+
+.drox-codebase-pipeline-event:last-child {
+	border-bottom: none;
+}
+
+.drox-codebase-pipeline-event-meta {
+	opacity: 0.65;
+	font-size: 10px;
+}
+
+.drox-codebase-pipeline-event-msg {
+	word-break: break-word;
+}
+
+.drox-codebase-pipeline-event.is-error .drox-codebase-pipeline-event-msg {
+	color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.drox-codebase-pipeline-event.is-warn .drox-codebase-pipeline-event-msg {
+	color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.drox-codebase-pipeline-event.is-running .drox-codebase-pipeline-event-meta {
+	color: var(--vscode-focusBorder, #007acc);
+}
+

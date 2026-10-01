@@ -91,10 +91,15 @@ Défaut produit : MiniLM **inhérent à l’app** (pas de download utilisateur).
 
 | Indicateur | Affichage |
 |------------|-----------|
-| Queue | N fichiers en attente |
-| Courant | path relatif + phase (chunk / embed / upsert) |
-| Débit | chunks/s (moyenne courte) |
-| Dernière activité | relative time |
+| Stages | Scan → Chunk → Embed → Write → Done (chips pending/active/done/error) |
+| Progress | Barre 0–100 % + message courant |
+| Journal | Derniers événements moteur (throttle UI ~200 ms) |
+| Actions | **Export diag** (clipboard + `diag-export-*.json` sous `.drox/codebase-index`) · **Clear log** |
+| Queue | N fichiers en attente (invalidate) |
+| Courant | path relatif + phase |
+| Débit | chunks/s (moyenne courte) — stub si non mesuré |
+
+Implémenté côté CB2b (événements `onDidPipelineEvent` depuis l’index service).
 
 ### 3.4 Stockage
 

@@ -3,9 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { Event } from '../../../../../base/common/event.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
-import { IDroxCodebaseHit } from './droxCodebaseTypes.js';
+import { IDroxCodebaseHit, IDroxCodebasePipelineEvent } from './droxCodebaseTypes.js';
 
 export const IDroxCodebaseIndexService = createDecorator<IDroxCodebaseIndexService>('droxCodebaseIndexService');
 
@@ -17,10 +18,12 @@ export interface IDroxCodebaseSearchOptions {
 
 /**
  * Workspace-scoped codebase index (one instance per canonical root path).
- * CB1: lexical metadata; CB2+: embeddings / hybrid.
+ * CB1: lexical metadata; CB2+: embeddings / hybrid; CB2b: incremental + pipeline events.
  */
 export interface IDroxCodebaseIndexService {
 	readonly _serviceBrand: undefined;
+	/** Live steps from scan → chunk → embed → write (cockpit journal). */
+	readonly onDidPipelineEvent: Event<IDroxCodebasePipelineEvent>;
 
 	ensureIndexed(workspaceRoot: URI): Promise<void>;
 	search(workspaceRoot: URI, query: string, opts?: IDroxCodebaseSearchOptions): Promise<readonly IDroxCodebaseHit[]>;
