@@ -114,9 +114,16 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 
 		const manifest = await this.indexService.getManifest(rootUri);
 		const base = createEmptyCodebaseSnapshot(root);
-		const embedAlert = await this._probeEmbedAlert();
 		const hasVectors = !!(manifest && manifest.vectors > 0);
 		const embedMeta = await this._resolveEmbedMeta(this._snapshot.embed);
+		const indexAlerts = manifest ? [] : [{
+			id: 'no-index',
+			severity: 'info' as const,
+			code: 'NO_INDEX',
+			message: 'No index yet — click Reindex.',
+			at: Date.now(),
+		}];
+		// Embed alerts are applied after refreshEmbedStatus (auto-load) to avoid stale "not loaded yet".
 		this._snapshot = {
 			...base,
 			state: 'idle',
@@ -131,19 +138,10 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 				: base.storage,
 			embed: embedMeta,
 			mode: hasVectors || embedMeta.loaded ? 'hybrid' : 'lexical',
-			alerts: [
-				...(manifest ? [] : [{
-					id: 'no-index',
-					severity: 'info' as const,
-					code: 'NO_INDEX',
-					message: 'No index yet — click Reindex.',
-					at: Date.now(),
-				}]),
-				...embedAlert,
-			],
+			alerts: indexAlerts,
 		};
 		this._onDidChangeSnapshot.fire();
-		void this.refreshEmbedStatus();
+		await this.refreshEmbedStatus();
 	}
 
 	async refreshEmbedStatus(): Promise<void> {
@@ -171,23 +169,13 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 						backend: after.backend,
 						built: after.built,
 					});
-					this._snapshot = {
-						...this._snapshot,
-						embed: loadedEmbed,
-						mode: after.modelLoaded || hasVectors ? 'hybrid' : 'lexical',
-					};
-					this._onDidChangeSnapshot.fire();
+					await this._applyEmbedSnapshot(loadedEmbed, after.modelLoaded || hasVectors ? 'hybrid' : 'lexical');
 					return;
 				} catch (loadErr) {
 					this.logService.trace(`[drox-codebase] auto embed.load failed: ${loadErr}`);
 				}
 			}
-			this._snapshot = {
-				...this._snapshot,
-				embed,
-				mode: (st.built && st.modelLoaded) || hasVectors ? 'hybrid' : 'lexical',
-			};
-			this._onDidChangeSnapshot.fire();
+			await this._applyEmbedSnapshot(embed, (st.built && st.modelLoaded) || hasVectors ? 'hybrid' : 'lexical');
 		} catch (err) {
 			this.logService.trace(`[drox-codebase] embed.status failed: ${err}`);
 		}
@@ -285,6 +273,21 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		return this.indexService.search(root, query, { includeLexical: true });
 	}
 
+	private async _applyEmbedSnapshot(
+		embed: IDroxCodebaseEmbedStats,
+		mode: IDroxCodebaseCockpitSnapshot['mode'],
+	): Promise<void> {
+		const nonEmbedAlerts = this._snapshot.alerts.filter(a => !a.id.startsWith('embed-'));
+		const embedAlerts = await this._probeEmbedAlert();
+		this._snapshot = {
+			...this._snapshot,
+			embed,
+			mode,
+			alerts: [...nonEmbedAlerts, ...embedAlerts],
+		};
+		this._onDidChangeSnapshot.fire();
+	}
+
 	private async _resolveEmbedMeta(partial: IDroxCodebaseEmbedStats): Promise<IDroxCodebaseEmbedStats> {
 		const customPathSetting = (this.configurationService.getValue<string>(DroxSetting.CodebaseEmbedModelPath) ?? '').trim();
 		const resolved = await resolveDroxEmbedModelPathDetailed(this.fileService, {
@@ -331,9 +334,9 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			if (!st.modelLoaded) {
 				return [{
 					id: 'embed-no-model',
-					severity: 'info',
+					severity: 'warn',
 					code: 'EMBED_NO_MODEL',
-					message: `GGUF ready (${resolved.source}) but not loaded yet — Reindex or open Codebase cockpit to load.`,
+					message: `GGUF found (${resolved.source}) but failed to load — check the path or click Reindex.`,
 					at: Date.now(),
 				}];
 			}
