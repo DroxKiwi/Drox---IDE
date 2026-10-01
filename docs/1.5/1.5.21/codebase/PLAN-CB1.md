@@ -19,7 +19,9 @@ Premier code utile **sans** llama.cpp :
 - ✅ Chunker fenêtres + ignore  
 - ✅ Search lexical + probe cockpit  
 - ✅ Purge / Reindex  
-- 🔲 Index incrémental (invalidate path)  
-- 🔲 Host Agents / panel  
+- 🔲 Host Agents / panel (peut suivre CB2b / CB3)  
 
-Embed → CB2 ([PLAN-EMBED-PACKAGING](PLAN-EMBED-PACKAGING.md)).
+**Index incrémental** (invalidate path, watcher) → **[PLAN-CB2b.md](PLAN-CB2b.md)** (après embed hybrid, **avant** tool agent).
+
+Embed → CB2 ([PLAN-CB2.md](PLAN-CB2.md) · [PLAN-EMBED-PACKAGING](PLAN-EMBED-PACKAGING.md)).  
+Suite : CB2b → CB3.

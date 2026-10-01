@@ -25,12 +25,13 @@ Ne pas chercher les fiches index à la racine de `1.5.21/` : elles ont été reg
 
 | # | Sujet | Statut |
 |---|--------|--------|
-| A | `@Codebase` — docs + arborescence code | 🔄 [codebase/](codebase/README.md) · CB0 ✅ · **CB1** |
+| A | `@Codebase` — docs + arborescence code | 🔄 [codebase/](codebase/README.md) · CB0–CB2 ✅ · **next CB2b** (auto-index) → CB3 |
 | B | Explore IDE | 📋 |
 | C | Shell discussion partagé | 🔄 S0–S2 ✅ · S3–S5 |
 
 ## Décisions clés
 
 - Index = retrieval local par **racine workspace** ; cockpit shell partagé ; embed llama.cpp RAM-first (voir [codebase/AMBITION.md](codebase/AMBITION.md)).
+- Fraîcheur index = **auto IDE** ([CB2b](codebase/PLAN-CB2b.md)) avant tool agent (CB3) — pas déclenchée par le LLM.
 - Explore puis shell discussion ensuite.
-- Tool calling → [1.5.22](../1.5.22/README.md).
+- Tool calling universel → [1.5.22](../1.5.22/README.md).

@@ -196,7 +196,7 @@ Objectif : **temps réel**, **diagnostic**, **anticipation** — pas seulement u
 | **Exclusions** | Marquer path / glob comme « ne plus réindexer » (liste locale instance) |
 | **Rebuild ciblé** | Reindex d’un sous-ensemble (dossier, fichiers sélectionnés) sans tout purger |
 
-**Priorité livrable** : vision cockpit dès CB0b ; implémentation catalogue / delete / compact **après** santé live + sondes (typiquement **CB3+**), pas bloquant pour CB1–CB2.
+**Priorité livrable** : vision cockpit dès CB0b ; implémentation catalogue / delete / compact **après** santé live + sondes (typiquement **CB3b+**), pas bloquant pour CB1–CB2b.
 
 ---
 
@@ -320,14 +320,17 @@ Packaging **dev = ship** (Cargo / drox.exe + GGUF asset, pas npm user) : [PLAN-E
 
 ## 9. Phases
 
-| Phase | Livrable |
-|-------|----------|
+| Phase | Livrable | Statut |
+|-------|----------|--------|
 | **CB0a** | Ce doc (ambition + UI + runtime) | ✅ |
-| **CB0b** | Spec cockpit partagée → [PLAN-COCKPIT.md](PLAN-COCKPIT.md) + IDs `DroxViews` | ✅ spec · 🔲 acceptation → CB1 |
-| **CB1** | Store lexical + cockpit → [PLAN-CB1.md](PLAN-CB1.md) | 🔄 |
-| **CB2** | Embed RPC + hybrid ready → [PLAN-CB2.md](PLAN-CB2.md) | 🔄 |
-| **CB3** | Budgets RAM / alertes anticipation / multi-instance |
-| **CB3b** | **Catalogue admin** : parcourir index, delete, compactage, espace par entrée |
-| **CB4+** | Tool agent / `@Codebase` / carte |
+| **CB0b** | Spec cockpit partagée → [PLAN-COCKPIT.md](PLAN-COCKPIT.md) + IDs `DroxViews` | ✅ |
+| **CB1** | Store lexical + cockpit → [PLAN-CB1.md](PLAN-CB1.md) | ✅ |
+| **CB2** | Embed RPC + hybrid ready → [PLAN-CB2.md](PLAN-CB2.md) | ✅ |
+| **CB2b** | **Auto-index type Cursor** (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md) | 📋 **next** · **avant CB3** |
+| **CB3** | Tool agent + pastille statut (+ budgets RAM / alertes si prêt) | ⏳ après CB2b |
+| **CB3b** | **Catalogue admin** : parcourir index, delete, compactage, espace par entrée | ⏳ |
+| **CB4+** | `@Codebase` composer / carte | ⏳ |
+
+**Décision** : fraîcheur d’index = service IDE (comme Cursor), **pas** déclenchée par le LLM. CB2b avant tout tool agent.
 
 L’[ARCHITECTURE](ARCHITECTURE.md) doit abandonner Ollama-first au profit de **llama.cpp embarqué** dès validation E.

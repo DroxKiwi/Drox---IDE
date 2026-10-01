@@ -40,3 +40,7 @@ Sans feature : `embed.status.built = false` — IDE reste en lexical-only (CB1).
 ## Modèle défaut
 
 `all-MiniLM-L6-v2` GGUF Q4/Q5 (~20–45 Mo) — chemin via resolve (env / userData / resources / repo `drox-engine/models/`).
+
+## Suite
+
+**CB2b** — auto-index type Cursor (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md) · **avant** le tool agent CB3.
