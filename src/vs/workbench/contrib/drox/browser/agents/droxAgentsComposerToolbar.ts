@@ -11,13 +11,17 @@ import { Disposable, DisposableStore } from '../../../../../base/common/lifecycl
 import { localize } from '../../../../../nls.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
+import { IViewsService } from '../../../../services/views/common/viewsService.js';
 import { droxConfigChangeAffectsArchitectSettings, droxConfigChangeAffectsGeneralSettings } from '../../common/droxChatConfigSync.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { formatDroxNumCtxLabel } from '../../common/droxNumCtx.js';
 import { readDroxChatConfigurationValue } from '../../common/droxAgentsConfiguration.js';
+import { DroxViews } from '../../common/drox.js';
+import { IDroxCodebaseSupervisionService } from '../../common/codebase/droxCodebaseSupervisionService.js';
+import { DroxCodebaseIndexState } from '../../common/codebase/droxCodebaseTypes.js';
 import { readDroxGeneralSettingsForWebview } from '../chat/droxChatGeneralSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
-import { createModelSettingsPickerChip, createServerSettingsPickerChip } from './droxAgentsPanelPickerChip.js';
+import { createCodebaseStatusPickerChip, createModelSettingsPickerChip, createServerSettingsPickerChip } from './droxAgentsPanelPickerChip.js';
 import { DroxAgentsPermissionModePicker } from './droxAgentsPermissionModePicker.js';
 import { IDroxAgentsComposerDroxChatHost } from './droxAgentsComposerDroxChatHost.js';
 
@@ -29,6 +33,7 @@ export class DroxAgentsComposerToolbar extends Disposable {
 
 	private readonly _modelSettingsChip: ReturnType<typeof createModelSettingsPickerChip>;
 	private readonly _serverSettingsChip: ReturnType<typeof createServerSettingsPickerChip>;
+	private readonly _codebaseChip: ReturnType<typeof createCodebaseStatusPickerChip>;
 	private readonly _permissionModePicker: DroxAgentsPermissionModePicker;
 	private readonly _chipDisposables = this._register(new DisposableStore());
 
@@ -37,6 +42,8 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
+		@IDroxCodebaseSupervisionService private readonly codebaseSupervision: IDroxCodebaseSupervisionService,
+		@IViewsService private readonly viewsService: IViewsService,
 	) {
 		super();
 
@@ -51,6 +58,10 @@ export class DroxAgentsComposerToolbar extends Disposable {
 			serverSettingsLabel,
 			localize('droxAgents.serverSettingsTitle', 'Server and agent behavior'),
 		);
+		this._codebaseChip = createCodebaseStatusPickerChip(
+			localize('droxAgents.codebaseChip', 'Codebase'),
+			localize('droxAgents.codebaseChipTitle', 'Open @Codebase cockpit (index status)'),
+		);
 		this._permissionModePicker = this._register(instantiationService.createInstance(DroxAgentsPermissionModePicker));
 
 		this.domNode = $('.drox-agents-composer-toolbar');
@@ -59,8 +70,10 @@ export class DroxAgentsComposerToolbar extends Disposable {
 
 		this._chipDisposables.add(this._modelSettingsChip);
 		this._chipDisposables.add(this._serverSettingsChip);
+		this._chipDisposables.add(this._codebaseChip);
 		this._modelSettingsChip.render(this.domNode);
 		this._serverSettingsChip.render(this.domNode);
+		this._codebaseChip.render(this.domNode);
 		this._permissionModePicker.render(this.domNode);
 
 		this._chipDisposables.add(this._modelSettingsChip.onDidClick(() => {
@@ -69,6 +82,9 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		this._chipDisposables.add(this._serverSettingsChip.onDidClick(() => {
 			void this.composerHost.toggleServerSettingsPanel();
 		}));
+		this._chipDisposables.add(this._codebaseChip.onDidClick(() => {
+			void this._openCodebaseCockpit();
+		}));
 
 		this._register(this.composerHost.attachToolbarRoot(this.domNode));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
@@ -76,6 +92,7 @@ export class DroxAgentsComposerToolbar extends Disposable {
 				this._syncChipLabels();
 			}
 		}));
+		this._register(this.codebaseSupervision.onDidChangeSnapshot(() => this._syncCodebaseChip()));
 
 		this._register(this.composerHost.onDidReconcileToolbarUi(() => {
 			this._syncChipUi();
@@ -83,6 +100,58 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		}));
 		this._syncChipUi();
 		this._syncChipLabels();
+		this._syncCodebaseChip();
+	}
+
+	private async _openCodebaseCockpit(): Promise<void> {
+		await this.viewsService.openViewContainer(DroxViews.CodebaseViewContainerId, true);
+		await this.viewsService.openView(DroxViews.CodebaseViewId, true);
+	}
+
+	private _syncCodebaseChip(): void {
+		const s = this.codebaseSupervision.snapshot;
+		const label = this._codebaseLabel(s.state, s.storage.files, s.mode);
+		this._codebaseChip.setLabel(label);
+		const trigger = this._codebaseChip.triggerElement;
+		trigger.classList.toggle('is-indexing', s.state === 'indexing');
+		trigger.classList.toggle('is-error', s.state === 'error');
+		trigger.classList.toggle('is-paused', s.state === 'paused');
+		trigger.classList.toggle('is-missing', s.state === 'missing' || s.storage.chunks === 0);
+		trigger.classList.toggle('is-ready', s.state === 'idle' && s.storage.chunks > 0);
+		const tip = [
+			localize('droxAgents.codebaseChipTitle', 'Open @Codebase cockpit (index status)'),
+			localize('droxAgents.codebaseChipState', 'State: {0}', s.state),
+			s.mode ? localize('droxAgents.codebaseChipMode', 'Mode: {0}', s.mode) : '',
+			s.storage.chunks
+				? localize('droxAgents.codebaseChipStats', '{0} files · {1} chunks · {2} vectors', String(s.storage.files), String(s.storage.chunks), String(s.storage.vectors))
+				: localize('droxAgents.codebaseChipEmpty', 'No index yet'),
+		].filter(Boolean).join('\n');
+		trigger.title = tip;
+	}
+
+	private _codebaseLabel(
+		state: DroxCodebaseIndexState,
+		files: number,
+		mode: string,
+	): string {
+		switch (state) {
+			case 'indexing':
+				return localize('droxAgents.codebaseIndexing', 'Indexing…');
+			case 'error':
+				return localize('droxAgents.codebaseError', 'Index error');
+			case 'paused':
+				return localize('droxAgents.codebasePaused', 'Paused');
+			case 'missing':
+				return localize('droxAgents.codebaseMissing', 'No index');
+			case 'idle':
+			default:
+				if (!files) {
+					return localize('droxAgents.codebaseMissing', 'No index');
+				}
+				return mode === 'hybrid'
+					? localize('droxAgents.codebaseHybrid', 'Hybrid')
+					: localize('droxAgents.codebaseLexical', 'Lexical');
+		}
 	}
 
 	private _syncChipLabels(): void {

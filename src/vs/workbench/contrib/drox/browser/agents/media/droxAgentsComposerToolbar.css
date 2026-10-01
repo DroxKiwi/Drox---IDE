@@ -200,3 +200,22 @@
 	min-width: 0;
 
 }
+
+/* CB3 — pastille @Codebase (état index). */
+
+.agent-sessions-workbench .drox-agents-composer-toolbar .codebase-status-vignette.is-indexing {
+	color: var(--vscode-charts-yellow, #cca700);
+}
+
+.agent-sessions-workbench .drox-agents-composer-toolbar .codebase-status-vignette.is-error {
+	color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.agent-sessions-workbench .drox-agents-composer-toolbar .codebase-status-vignette.is-paused,
+.agent-sessions-workbench .drox-agents-composer-toolbar .codebase-status-vignette.is-missing {
+	opacity: 0.72;
+}
+
+.agent-sessions-workbench .drox-agents-composer-toolbar .codebase-status-vignette.is-ready {
+	color: var(--drox-thread-green, var(--drox-ui-green, var(--vscode-charts-green, #89d185)));
+}

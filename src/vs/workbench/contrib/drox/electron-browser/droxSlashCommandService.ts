@@ -70,7 +70,8 @@ export class DroxSlashCommandService implements IDroxSlashCommandService {
 						'- `/memory` — open `MEMORY.md`\n' +
 						'- `/compact` — LLM transcript compaction (`session.compact`; `session_compact` tool)\n' +
 						'- `/session_end` or `/end-session` — compaction, long-memory archive (`.drox/long-memory/`), new thread\n' +
-						'- **`session_search`** tool — search long memory\n',
+						'- **`session_search`** tool — search long memory\n' +
+						'- **`codebase_search`** tool — search local @Codebase index\n',
 				});
 				return;
 

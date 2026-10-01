@@ -3,7 +3,7 @@
 **Statut** : **spec CB0b prête** · IDs `DroxViews` / commandes figés · go CB1 après acceptation  
 **Version** : 1.5.21  
 **Parent** : [README](../README.md) · [hub](README.md) · [AMBITION.md](AMBITION.md)  
-**Suite code** : CB1 (store lexical + branchement cockpit) → CB2 (llama.cpp embed) → **CB2b (auto-index)** → CB3 (tool agent + pastille)
+**Suite code** : CB1 → CB2 → CB2b (auto-index) → **CB2c (découpage)** → CB3 (tool agent + pastille)
 
 ---
 

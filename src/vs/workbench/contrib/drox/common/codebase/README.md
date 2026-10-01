@@ -1,20 +1,25 @@
-# Drox `@Codebase` — domaine commun
+# `@Codebase` (contrib/drox)
 
-**Docs produit / tech** : [`docs/1.5/1.5.21/codebase/`](../../../../../../../docs/1.5/1.5.21/codebase/README.md)
+Workbench modules for the local codebase index (CB1 lexical → CB2 MiniLM hybrid → CB2b auto-index / pipeline).
 
-| Fichier | Rôle |
-|---------|------|
-| `droxCodebasePaths.ts` | Racine index `{workspace}/.drox/codebase-index/` |
-| `droxCodebaseIgnore.ts` | Dossiers / fichiers exclus |
-| `droxCodebaseChunker.ts` | Fenêtres de lignes → chunks |
-| `droxCodebaseLexicalSearch.ts` | Recherche lexicale CB1 |
-| `droxCodebaseJsonStore.ts` | `manifest.json` + `chunks.json` + `vectors.json` |
-| `droxCodebaseHybrid.ts` | Fusion RRF-ish lexical + cosine |
-| `droxCodebaseEmbedClient.ts` | RPC `embed.status` / `load` / `encode` |
-| `droxCodebaseEmbedPaths.ts` | Resolve GGUF + source (`bundled` / `custom` / …) |
-| `droxCodebaseTypes.ts` | Snapshot cockpit, hits, états |
-| `droxCodebaseIndexService.ts` | Contrat index / search |
-| `droxCodebaseIndexServiceImpl.ts` | Scan + store + embed optionnel (CB2) |
-| `droxCodebaseSupervisionService.ts` | Live status + reset embed defaults + chemin custom |
+## Layout (CB2c)
 
-UI : [`browser/codebase/`](../../browser/codebase/README.md)
+```text
+common/codebase/
+  droxCodebaseTypes.ts / PipelineView.ts   # snapshots + pipeline builders
+  droxCodebase*Paths|Ignore|Chunker|…      # pure helpers
+  droxCodebaseIndexService.ts              # interface
+  droxCodebaseIndexServiceImpl.ts          # thin orchestration
+  index/                                   # scan / ensure+invalidate / embed / emit
+  supervision/                             # auto-index, watcher filter, pipeline log, embed UI glue
+  droxCodebaseSupervisionService.ts        # cockpit façade
+
+browser/codebase/
+  droxCodebaseCockpitViewPane.ts           # shell
+  cockpit/                                 # embed / pipeline / probe renderers
+  media/
+```
+
+Engine side: `drox-cli/src/jsonrpc/handlers/embed.rs` (`embed.status|load|encode`).
+
+Soft max ~250–300 LOC / file (excl. CSS / tests). Behavior changes belong in CB3+, not here.

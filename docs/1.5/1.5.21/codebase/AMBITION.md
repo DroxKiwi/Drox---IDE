@@ -326,11 +326,12 @@ Packaging **dev = ship** (Cargo / drox.exe + GGUF asset, pas npm user) : [PLAN-E
 | **CB0b** | Spec cockpit partagée → [PLAN-COCKPIT.md](PLAN-COCKPIT.md) + IDs `DroxViews` | ✅ |
 | **CB1** | Store lexical + cockpit → [PLAN-CB1.md](PLAN-CB1.md) | ✅ |
 | **CB2** | Embed RPC + hybrid ready → [PLAN-CB2.md](PLAN-CB2.md) | ✅ |
-| **CB2b** | **Auto-index type Cursor** (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md) | 🔄 dogfood · **avant CB3** |
-| **CB3** | Tool agent + pastille statut (+ budgets RAM / alertes si prêt) | ⏳ après CB2b |
+| **CB2b** | **Auto-index type Cursor** (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md) | ✅ |
+| **CB2c** | **Découpage / lisibilité** → [PLAN-CB2c.md](PLAN-CB2c.md) | ✅ dogfood |
+| **CB3** | Tool agent + pastille statut → [PLAN-CB3.md](PLAN-CB3.md) | ✅ dogfood |
 | **CB3b** | **Catalogue admin** : parcourir index, delete, compactage, espace par entrée | ⏳ |
-| **CB4+** | `@Codebase` composer / carte | ⏳ |
+| **CB4+** | `@Codebase` composer / carte | ⏳ **next** (composer) |
 
-**Décision** : fraîcheur d’index = service IDE (comme Cursor), **pas** déclenchée par le LLM. CB2b avant tout tool agent.
+**Décision** : fraîcheur d’index = service IDE (comme Cursor), **pas** déclenchée par le LLM. CB2b avant tool ; **CB2c** (découpe) avant de grossir encore le code.
 
 L’[ARCHITECTURE](ARCHITECTURE.md) doit abandonner Ollama-first au profit de **llama.cpp embarqué** dès validation E.
