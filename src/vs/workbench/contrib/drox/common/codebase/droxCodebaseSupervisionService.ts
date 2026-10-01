@@ -3,12 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { RunOnceScheduler } from '../../../../../base/common/async.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
+import { isEqualOrParent, relativePath } from '../../../../../base/common/resources.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { INativeEnvironmentService } from '../../../../../platform/environment/common/environment.js';
-import { IFileService } from '../../../../../platform/files/common/files.js';
+import { FileChangeType, IFileService } from '../../../../../platform/files/common/files.js';
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
@@ -20,9 +22,15 @@ import {
 	DROX_EMBED_DEFAULT_MODEL_LABEL,
 	resolveDroxEmbedModelPathDetailed,
 } from './droxCodebaseEmbedPaths.js';
+import { droxCodebaseShouldSkipDirName, droxCodebaseShouldSkipFileName } from './droxCodebaseIgnore.js';
 import { IDroxCodebaseIndexService } from './droxCodebaseIndexService.js';
 import { droxCodebaseIndexDir } from './droxCodebasePaths.js';
-import { createEmptyCodebaseSnapshot, IDroxCodebaseCockpitSnapshot, IDroxCodebaseEmbedStats, IDroxCodebaseHit } from './droxCodebaseTypes.js';
+import { createEmptyCodebaseSnapshot, createEmptyPipelineView, buildDroxCodebasePipelineView, IDroxCodebaseCockpitSnapshot, IDroxCodebaseDiagExport, IDroxCodebaseEmbedStats, IDroxCodebaseHit, IDroxCodebasePipelineEvent } from './droxCodebaseTypes.js';
+
+/** Debounce for CB2b file-watcher incremental updates (ms). */
+const CB2B_INVALIDATE_DEBOUNCE_MS = 600;
+const PIPELINE_LOG_MAX = 200;
+const PIPELINE_UI_THROTTLE_MS = 200;
 
 export const IDroxCodebaseSupervisionService = createDecorator<IDroxCodebaseSupervisionService>('droxCodebaseSupervisionService');
 
@@ -44,6 +52,10 @@ export interface IDroxCodebaseSupervisionService {
 	setEmbedModelPath(path: string): Promise<void>;
 	/** Clear custom path + env expectation → back to bundled MiniLM default. */
 	resetEmbedDefaults(): Promise<void>;
+	/** Clear the in-memory pipeline journal (cockpit). */
+	clearPipelineLog(): void;
+	/** Build JSON diag export (snapshot + pipeline + last probe). */
+	buildDiagnosticsExport(lastProbeHits?: readonly IDroxCodebaseHit[]): IDroxCodebaseDiagExport;
 }
 
 export class DroxCodebaseSupervisionService extends Disposable implements IDroxCodebaseSupervisionService {
@@ -56,6 +68,12 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 	private readonly _embedClient: DroxCodebaseEmbedClient;
 	private _overrideRoot: URI | undefined;
 	private _snapshot: IDroxCodebaseCockpitSnapshot = createEmptyCodebaseSnapshot();
+	private _autoIndexInFlight = false;
+	private readonly _pendingInvalidate = new Set<string>();
+	private readonly _invalidateScheduler: RunOnceScheduler;
+	private readonly _pipelineEvents: IDroxCodebasePipelineEvent[] = [];
+	private readonly _pipelineUiScheduler: RunOnceScheduler;
+	private _lastProbeHits: readonly IDroxCodebaseHit[] = [];
 
 	constructor(
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
@@ -68,15 +86,47 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 	) {
 		super();
 		this._embedClient = new DroxCodebaseEmbedClient(engineService);
+		this._invalidateScheduler = this._register(new RunOnceScheduler(() => {
+			void this._flushInvalidations();
+		}, CB2B_INVALIDATE_DEBOUNCE_MS));
+		this._pipelineUiScheduler = this._register(new RunOnceScheduler(() => {
+			this._publishPipelineView();
+		}, PIPELINE_UI_THROTTLE_MS));
+		this._register(this.indexService.onDidPipelineEvent(ev => {
+			this._pipelineEvents.push(ev);
+			while (this._pipelineEvents.length > PIPELINE_LOG_MAX) {
+				this._pipelineEvents.shift();
+			}
+			if (ev.kind === 'run_done' || ev.kind === 'error' || ev.status === 'error') {
+				this._publishPipelineView();
+			} else {
+				this._pipelineUiScheduler.schedule();
+			}
+		}));
 		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
-			void this.refresh();
+			void this.refresh().then(() => this._scheduleAutoIndex('workspace-folders'));
 		}));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(DroxSetting.CodebaseEmbedModelPath)) {
 				void this.refreshEmbedStatus();
 			}
 		}));
-		void this.refresh();
+		this._register(this.fileService.onDidFilesChange(e => {
+			const root = this._resolveRootUri();
+			if (!root) {
+				return;
+			}
+			const candidates = [...e.rawAdded, ...e.rawUpdated, ...e.rawDeleted];
+			for (const uri of candidates) {
+				if (!isEqualOrParent(uri, root)) {
+					continue;
+				}
+				if (e.contains(uri, FileChangeType.ADDED, FileChangeType.UPDATED, FileChangeType.DELETED)) {
+					this._queueInvalidate(uri);
+				}
+			}
+		}));
+		void this.refresh().then(() => this._scheduleAutoIndex('startup'));
 	}
 
 	get snapshot(): IDroxCodebaseCockpitSnapshot {
@@ -85,7 +135,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 
 	setActiveRoot(root: URI | undefined): void {
 		this._overrideRoot = root;
-		void this.refresh();
+		void this.refresh().then(() => this._scheduleAutoIndex('active-root'));
 	}
 
 	getIndexDirFsPath(): string | undefined {
@@ -124,6 +174,8 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			at: Date.now(),
 		}];
 		// Embed alerts are applied after refreshEmbedStatus (auto-load) to avoid stale "not loaded yet".
+		const pipelineView = buildDroxCodebasePipelineView(this._pipelineEvents);
+		const last = this._pipelineEvents[this._pipelineEvents.length - 1];
 		this._snapshot = {
 			...base,
 			state: 'idle',
@@ -139,6 +191,16 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			embed: embedMeta,
 			mode: hasVectors || embedMeta.loaded ? 'hybrid' : 'lexical',
 			alerts: indexAlerts,
+			pipeline: {
+				queueDepth: 0,
+				chunksPerSec: 0,
+				phase: pipelineView.currentMessage,
+				currentPath: last?.path,
+				progressPct: pipelineView.progressPct,
+				runId: pipelineView.runId,
+				trigger: pipelineView.trigger,
+			},
+			pipelineView,
 		};
 		this._onDidChangeSnapshot.fire();
 		await this.refreshEmbedStatus();
@@ -253,7 +315,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		if (root) {
 			this.indexService.resume(root);
 		}
-		void this.refresh();
+		void this.refresh().then(() => this._scheduleAutoIndex('resume'));
 	}
 
 	async purge(): Promise<void> {
@@ -263,6 +325,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		}
 		await this.indexService.purge(root);
 		await this.refresh();
+		this._scheduleAutoIndex('after-purge');
 	}
 
 	async probeRetrieval(query: string): Promise<readonly IDroxCodebaseHit[]> {
@@ -270,7 +333,128 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		if (!root || !query.trim()) {
 			return [];
 		}
-		return this.indexService.search(root, query, { includeLexical: true });
+		const hits = await this.indexService.search(root, query, { includeLexical: true });
+		this._lastProbeHits = hits;
+		return hits;
+	}
+
+	clearPipelineLog(): void {
+		this._pipelineEvents.length = 0;
+		this._publishPipelineView();
+	}
+
+	buildDiagnosticsExport(lastProbeHits?: readonly IDroxCodebaseHit[]): IDroxCodebaseDiagExport {
+		const pipeline = buildDroxCodebasePipelineView(this._pipelineEvents);
+		return {
+			exportedAt: new Date().toISOString(),
+			snapshot: this._snapshot,
+			pipeline,
+			lastProbeHits: lastProbeHits ?? this._lastProbeHits,
+		};
+	}
+
+	/** CB2b: background ensureIndexed (hash-skip) without blocking UI. */
+	private _scheduleAutoIndex(reason: string): void {
+		const root = this._resolveRootUri();
+		if (!root || this._autoIndexInFlight || this._snapshot.state === 'paused') {
+			return;
+		}
+		this._autoIndexInFlight = true;
+		this._snapshot = {
+			...this._snapshot,
+			state: this._snapshot.storage.chunks > 0 ? this._snapshot.state : 'indexing',
+			pipeline: { ...this._snapshot.pipeline, phase: `auto:${reason}` },
+		};
+		this._onDidChangeSnapshot.fire();
+		void (async () => {
+			try {
+				if (this._snapshot.state !== 'indexing') {
+					this._snapshot = { ...this._snapshot, state: 'indexing', pipeline: { ...this._snapshot.pipeline, phase: `auto:${reason}` } };
+					this._onDidChangeSnapshot.fire();
+				}
+				await this.indexService.ensureIndexed(root);
+				await this.refresh();
+			} catch (err) {
+				this.logService.warn(`[drox-codebase] auto-index (${reason}) failed: ${err}`);
+				this._snapshot = {
+					...this._snapshot,
+					state: 'error',
+					lastError: err instanceof Error ? err.message : String(err),
+				};
+				this._onDidChangeSnapshot.fire();
+			} finally {
+				this._autoIndexInFlight = false;
+			}
+		})();
+	}
+
+	private _queueInvalidate(uri: URI): void {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return;
+		}
+		const rel = relativePath(root, uri);
+		if (!rel) {
+			return;
+		}
+		const norm = rel.replace(/\\/g, '/');
+		if (norm.startsWith('.drox/') || norm.split('/').some(seg => droxCodebaseShouldSkipDirName(seg))) {
+			return;
+		}
+		const base = norm.includes('/') ? norm.slice(norm.lastIndexOf('/') + 1) : norm;
+		if (droxCodebaseShouldSkipFileName(base)) {
+			return;
+		}
+		this._pendingInvalidate.add(uri.toString());
+		this._invalidateScheduler.schedule();
+	}
+
+	private async _flushInvalidations(): Promise<void> {
+		const root = this._resolveRootUri();
+		if (!root || this._pendingInvalidate.size === 0) {
+			return;
+		}
+		const uris = [...this._pendingInvalidate].map(s => URI.parse(s));
+		this._pendingInvalidate.clear();
+		try {
+			this._snapshot = { ...this._snapshot, state: 'indexing', pipeline: { ...this._snapshot.pipeline, phase: 'incremental' } };
+			this._onDidChangeSnapshot.fire();
+			await this.indexService.invalidate(root, uris);
+			await this.refresh();
+		} catch (err) {
+			this.logService.warn(`[drox-codebase] incremental invalidate failed: ${err}`);
+			await this.refresh();
+		}
+	}
+
+	private _publishPipelineView(): void {
+		const pipelineView = this._pipelineEvents.length
+			? buildDroxCodebasePipelineView(this._pipelineEvents)
+			: createEmptyPipelineView();
+		const last = this._pipelineEvents[this._pipelineEvents.length - 1];
+		const indexing = !!(last && (
+			(last.kind !== 'run_done' && last.kind !== 'error' && last.status === 'running')
+			|| (last.kind !== 'run_done' && last.kind !== 'error' && this._autoIndexInFlight)
+		));
+		this._snapshot = {
+			...this._snapshot,
+			state: indexing && this._snapshot.state !== 'paused' && this._snapshot.state !== 'error'
+				? 'indexing'
+				: (this._snapshot.state === 'indexing' && (last?.kind === 'run_done' || last?.kind === 'error')
+					? (last.kind === 'error' ? 'error' : 'idle')
+					: this._snapshot.state),
+			pipeline: {
+				queueDepth: this._pendingInvalidate.size,
+				chunksPerSec: this._snapshot.pipeline.chunksPerSec,
+				phase: pipelineView.currentMessage,
+				currentPath: last?.path,
+				progressPct: pipelineView.progressPct,
+				runId: pipelineView.runId,
+				trigger: pipelineView.trigger,
+			},
+			pipelineView,
+		};
+		this._onDidChangeSnapshot.fire();
 	}
 
 	private async _applyEmbedSnapshot(
@@ -284,6 +468,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			embed,
 			mode,
 			alerts: [...nonEmbedAlerts, ...embedAlerts],
+			pipelineView: this._snapshot.pipelineView ?? createEmptyPipelineView(),
 		};
 		this._onDidChangeSnapshot.fire();
 	}

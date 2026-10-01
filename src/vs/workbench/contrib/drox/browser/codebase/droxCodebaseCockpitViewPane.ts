@@ -6,12 +6,17 @@
 // allow-any-unicode-comment-file
 
 import * as dom from '../../../../../base/browser/dom.js';
+import { VSBuffer } from '../../../../../base/common/buffer.js';
+import { URI } from '../../../../../base/common/uri.js';
+import { IClipboardService } from '../../../../../platform/clipboard/common/clipboardService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { IContextMenuService } from '../../../../../platform/contextview/browser/contextView.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IKeybindingService } from '../../../../../platform/keybinding/common/keybinding.js';
+import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 import { localize } from '../../../../../nls.js';
@@ -20,7 +25,7 @@ import { IViewletViewOptions } from '../../../../browser/parts/views/viewsViewle
 import { IViewDescriptorService } from '../../../../common/views.js';
 import { DROX_EMBED_DEFAULT_MODEL_ID, DROX_EMBED_DEFAULT_MODEL_LABEL } from '../../common/codebase/droxCodebaseEmbedPaths.js';
 import { IDroxCodebaseSupervisionService } from '../../common/codebase/droxCodebaseSupervisionService.js';
-import { IDroxCodebaseHit } from '../../common/codebase/droxCodebaseTypes.js';
+import { IDroxCodebaseHit, IDroxCodebasePipelineEvent, IDroxCodebasePipelineStage } from '../../common/codebase/droxCodebaseTypes.js';
 import './media/droxCodebaseCockpit.css';
 
 /**
@@ -33,7 +38,9 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 	private _probeInput: HTMLInputElement | undefined;
 	private _embedPathInput: HTMLInputElement | undefined;
 	private _probeResults: HTMLElement | undefined;
+	private _pipelineLogEl: HTMLElement | undefined;
 	private _lastHits: readonly IDroxCodebaseHit[] = [];
+	private _pipelineLogPinnedToBottom = true;
 
 	constructor(
 		options: IViewletViewOptions,
@@ -47,6 +54,9 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		@IThemeService themeService: IThemeService,
 		@IHoverService hoverService: IHoverService,
 		@IDroxCodebaseSupervisionService private readonly supervision: IDroxCodebaseSupervisionService,
+		@IClipboardService private readonly clipboardService: IClipboardService,
+		@INotificationService private readonly notificationService: INotificationService,
+		@IFileService private readonly fileService: IFileService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 		this._register(this.supervision.onDidChangeSnapshot(() => this._render()));
@@ -73,6 +83,12 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		}
 		const prevQuery = this._probeInput?.value ?? '';
 		const prevEmbedPath = this._embedPathInput?.value;
+		const prevScroll = this._pipelineLogEl?.scrollTop ?? 0;
+		const prevScrollHeight = this._pipelineLogEl?.scrollHeight ?? 0;
+		const prevClientHeight = this._pipelineLogEl?.clientHeight ?? 0;
+		if (this._pipelineLogEl) {
+			this._pipelineLogPinnedToBottom = prevScroll + prevClientHeight >= prevScrollHeight - 8;
+		}
 		const s = this.supervision.snapshot;
 		dom.clearNode(this._body);
 
@@ -83,6 +99,8 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		if (s.lastError) {
 			dom.append(header, dom.$('p', undefined, s.lastError));
 		}
+
+		this._renderPipelineSection(s.pipelineView.stages, s.pipelineView.events, s.pipeline.progressPct ?? s.pipelineView.progressPct, s.pipelineView.currentMessage, s.pipeline.trigger ?? s.pipelineView.trigger);
 
 		this._renderEmbedSection(s.embed, s.mode, prevEmbedPath);
 
@@ -132,6 +150,105 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			for (const a of s.alerts) {
 				dom.append(alerts, dom.$('p', undefined, `[${a.severity}] ${a.message}`));
 			}
+		}
+
+		if (this._pipelineLogEl && this._pipelineLogPinnedToBottom) {
+			this._pipelineLogEl.scrollTop = this._pipelineLogEl.scrollHeight;
+		} else if (this._pipelineLogEl) {
+			this._pipelineLogEl.scrollTop = prevScroll;
+		}
+	}
+
+	private _renderPipelineSection(
+		stages: readonly IDroxCodebasePipelineStage[],
+		events: readonly IDroxCodebasePipelineEvent[],
+		progressPct: number,
+		currentMessage: string | undefined,
+		trigger: string | undefined,
+	): void {
+		if (!this._body) {
+			return;
+		}
+		const section = dom.append(this._body, dom.$('.drox-codebase-section.drox-codebase-pipeline'));
+		dom.append(section, dom.$('h4', undefined, localize('drox.codebase.pipeline', 'Vectorization pipeline')));
+		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
+			'drox.codebase.pipelineHint',
+			'Live steps from the local engine (scan → chunk → embed → write). Use Export to share a debug dump.',
+		)));
+		if (trigger || currentMessage) {
+			dom.append(section, dom.$('p', undefined, [
+				trigger ? localize('drox.codebase.pipelineTrigger', 'Trigger: {0}', trigger) : '',
+				currentMessage ?? '',
+			].filter(Boolean).join(' · ')));
+		}
+
+		const stagesRow = dom.append(section, dom.$('.drox-codebase-pipeline-stages'));
+		for (const stage of stages) {
+			const chip = dom.append(stagesRow, dom.$(`.drox-codebase-pipeline-stage.is-${stage.state}`));
+			dom.append(chip, dom.$('span.drox-codebase-pipeline-stage-dot'));
+			dom.append(chip, dom.$('span', undefined, stage.label));
+		}
+
+		const bar = dom.append(section, dom.$('.drox-codebase-pipeline-bar'));
+		const fill = dom.append(bar, dom.$('.drox-codebase-pipeline-bar-fill')) as HTMLElement;
+		fill.style.width = `${Math.max(0, Math.min(100, progressPct))}%`;
+		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
+			'drox.codebase.pipelineProgress',
+			'Progress: {0}%',
+			String(Math.round(progressPct)),
+		)));
+
+		const actions = dom.append(section, dom.$('.drox-codebase-actions'));
+		const exportBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+		exportBtn.textContent = localize('drox.codebase.exportDiag', 'Export diag');
+		exportBtn.title = localize('drox.codebase.exportDiagTitle', 'Copy JSON to clipboard and write diag-export-*.json under .drox/codebase-index');
+		exportBtn.onclick = () => void this._exportDiag();
+
+		const clearBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+		clearBtn.textContent = localize('drox.codebase.clearPipeline', 'Clear log');
+		clearBtn.onclick = () => this.supervision.clearPipelineLog();
+
+		this._pipelineLogEl = dom.append(section, dom.$('.drox-codebase-pipeline-log'));
+		const recent = events.slice(-80);
+		if (!recent.length) {
+			dom.append(this._pipelineLogEl, dom.$('p.drox-codebase-muted', undefined, localize(
+				'drox.codebase.pipelineEmpty',
+				'No steps yet — open a folder or click Reindex.',
+			)));
+			return;
+		}
+		for (const ev of recent) {
+			const row = dom.append(this._pipelineLogEl, dom.$(`.drox-codebase-pipeline-event.is-${ev.status}`));
+			const time = new Date(ev.at).toLocaleTimeString();
+			const pathBit = ev.path ? ` · ${ev.path}` : '';
+			dom.append(row, dom.$('span.drox-codebase-pipeline-event-meta', undefined, `${time} · ${ev.kind}`));
+			dom.append(row, dom.$('span.drox-codebase-pipeline-event-msg', undefined, `${ev.message}${pathBit}`));
+		}
+	}
+
+	private async _exportDiag(): Promise<void> {
+		try {
+			const bundle = this.supervision.buildDiagnosticsExport(this._lastHits);
+			const json = JSON.stringify(bundle, null, 2);
+			await this.clipboardService.writeText(json);
+			const indexDir = this.supervision.getIndexDirFsPath();
+			let savedAs: string | undefined;
+			if (indexDir) {
+				const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+				const fileUri = URI.file(`${indexDir.replace(/[\\/]$/, '')}/diag-export-${stamp}.json`);
+				await this.fileService.createFolder(URI.file(indexDir));
+				await this.fileService.writeFile(fileUri, VSBuffer.fromString(json));
+				savedAs = fileUri.fsPath;
+			}
+			this.notificationService.info(savedAs
+				? localize('drox.codebase.exportOkFile', 'Diag copied to clipboard and saved to {0}', savedAs)
+				: localize('drox.codebase.exportOkClip', 'Diag copied to clipboard'));
+		} catch (err) {
+			this.notificationService.error(localize(
+				'drox.codebase.exportFail',
+				'Export failed: {0}',
+				err instanceof Error ? err.message : String(err),
+			));
 		}
 	}
 

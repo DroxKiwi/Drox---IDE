@@ -326,7 +326,7 @@ Packaging **dev = ship** (Cargo / drox.exe + GGUF asset, pas npm user) : [PLAN-E
 | **CB0b** | Spec cockpit partagée → [PLAN-COCKPIT.md](PLAN-COCKPIT.md) + IDs `DroxViews` | ✅ |
 | **CB1** | Store lexical + cockpit → [PLAN-CB1.md](PLAN-CB1.md) | ✅ |
 | **CB2** | Embed RPC + hybrid ready → [PLAN-CB2.md](PLAN-CB2.md) | ✅ |
-| **CB2b** | **Auto-index type Cursor** (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md) | 📋 **next** · **avant CB3** |
+| **CB2b** | **Auto-index type Cursor** (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md) | 🔄 dogfood · **avant CB3** |
 | **CB3** | Tool agent + pastille statut (+ budgets RAM / alertes si prêt) | ⏳ après CB2b |
 | **CB3b** | **Catalogue admin** : parcourir index, delete, compactage, espace par entrée | ⏳ |
 | **CB4+** | `@Codebase` composer / carte | ⏳ |
