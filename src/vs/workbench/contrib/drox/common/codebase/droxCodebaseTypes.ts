@@ -27,6 +27,15 @@ export interface IDroxCodebaseEmbedStats {
 	readonly loaded: boolean;
 	readonly rssBytes?: number;
 	readonly lastProbeMs?: number;
+	/** Absolute path currently resolved for the GGUF (may be unloaded). */
+	readonly resolvedPath?: string;
+	/** Where the path came from — shown transparently in the cockpit. */
+	readonly source?: 'custom' | 'env' | 'bundled' | 'userData' | 'repo' | 'missing';
+	/** Setting override path (empty = use app default). */
+	readonly customPathSetting?: string;
+	readonly dimensions?: number;
+	readonly backend?: string;
+	readonly built?: boolean;
 }
 
 export interface IDroxCodebaseAlert {

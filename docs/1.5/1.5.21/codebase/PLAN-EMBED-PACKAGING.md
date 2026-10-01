@@ -73,16 +73,19 @@ Source llama.cpp : **via le crate** (téléchargé au `cargo build`, éventuelle
 | **S2 — First-run download** vers `%APPDATA%\.drox-ide\models\` | Script `fetch-embed-model` | Download une fois + checksum |
 | **S3 — Hybride** | Petit modèle bundlé ; qualité optionnelle en download | Défaut offline immédiat |
 
-**Verdict v1** : **S1** (ou S3 si l’installeur doit rester mince) — modèle défaut **toujours** résolu par un **chemin connu** :
+**Verdict v1** : **S1** — modèle défaut **toujours** dans l’app (`resources/drox/models/`). Pas de download utilisateur.
 
 ```text
-1. DROX_EMBED_MODEL_PATH (env override)
-2. {userData}/drox/models/<id>.gguf
-3. {appRoot}/resources/drox/models/<id>.gguf   // ship
-4. {repo}/drox-engine/models/<id>.gguf         // dev
+1. drox.codebase.embedModelPath (override cockpit / settings — optionnel)
+2. DROX_EMBED_MODEL_PATH (env, dev)
+3. {appRoot}/resources/drox/models/<id>.gguf   // défaut ship + F5 si copié
+4. {userData}/drox/models/<id>.gguf
+5. {repo}/drox-engine/models/<id>.gguf         // dev
 ```
 
-Même fonction `resolveEmbedModelPath()` en dev et en prod.
+Même fonction `resolveDroxEmbedModelPathDetailed()` en dev et en prod — la **source** est affichée dans le cockpit.  
+`scripts/fetch-drox-embed-model.ps1` = outil **packaging/dev** uniquement ; `package-drox.ps1` copie le GGUF dans `resources/drox/models/`.  
+**Reset to defaults** dans le cockpit efface l’override et recharge le MiniLM bundlé.
 
 ---
 

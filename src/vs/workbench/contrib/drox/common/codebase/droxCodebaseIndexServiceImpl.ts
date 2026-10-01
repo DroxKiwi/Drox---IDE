@@ -6,10 +6,12 @@
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { relativePath } from '../../../../../base/common/resources.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { IEnvironmentService } from '../../../../../platform/environment/common/environment.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
+import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { INativeEnvironmentService } from '../../../../../platform/environment/common/environment.js';
 import { IDroxEngineService } from '../droxEngineService.js';
+import { DroxSetting } from '../droxConfiguration.js';
 import { droxCodebaseChunkText, IDroxCodebaseChunk } from './droxCodebaseChunker.js';
 import { DroxCodebaseEmbedClient } from './droxCodebaseEmbedClient.js';
 import { resolveDroxEmbedModelPath } from './droxCodebaseEmbedPaths.js';
@@ -52,10 +54,25 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 		@IFileService private readonly fileService: IFileService,
 		@ILogService private readonly logService: ILogService,
 		@IDroxEngineService engineService: IDroxEngineService,
-		@IEnvironmentService private readonly environmentService: IEnvironmentService,
+		@INativeEnvironmentService private readonly environmentService: INativeEnvironmentService,
+		@IConfigurationService private readonly configurationService: IConfigurationService,
 	) {
 		super();
 		this._embedClient = new DroxCodebaseEmbedClient(engineService);
+	}
+
+	private _customEmbedPath(): string | undefined {
+		const raw = this.configurationService.getValue<string>(DroxSetting.CodebaseEmbedModelPath);
+		const trimmed = typeof raw === 'string' ? raw.trim() : '';
+		return trimmed || undefined;
+	}
+
+	private _embedResolveOpts(customPath?: string) {
+		return {
+			customPath,
+			appRoot: this.environmentService.appRoot,
+			userDataPath: this.environmentService.userDataPath,
+		};
 	}
 
 	async ensureIndexed(workspaceRoot: URI): Promise<void> {
@@ -129,7 +146,7 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 				return lexical;
 			}
 			if (!st.modelLoaded) {
-				const modelPath = await resolveDroxEmbedModelPath(this.fileService, this.environmentService);
+				const modelPath = await resolveDroxEmbedModelPath(this.fileService, this._embedResolveOpts(this._customEmbedPath()));
 				if (!modelPath) {
 					return lexical;
 				}
@@ -190,7 +207,7 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 			}
 			let modelPath = st.modelPath;
 			if (!st.modelLoaded || !modelPath) {
-				modelPath = await resolveDroxEmbedModelPath(this.fileService, this.environmentService);
+				modelPath = await resolveDroxEmbedModelPath(this.fileService, this._embedResolveOpts(this._customEmbedPath()));
 				if (!modelPath) {
 					this.logService.info('[drox-codebase] embed built but no GGUF found — lexical-only index');
 					return undefined;

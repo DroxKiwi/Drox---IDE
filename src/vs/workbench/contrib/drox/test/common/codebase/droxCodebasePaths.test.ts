@@ -6,6 +6,7 @@
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { droxCodebaseChunkText } from '../../../common/codebase/droxCodebaseChunker.js';
+import { DROX_EMBED_DEFAULT_MODEL_ID } from '../../../common/codebase/droxCodebaseEmbedPaths.js';
 import { droxCodebaseHybridMerge } from '../../../common/codebase/droxCodebaseHybrid.js';
 import { droxCodebaseShouldSkipDirName, droxCodebaseShouldSkipFileName } from '../../../common/codebase/droxCodebaseIgnore.js';
 import { droxCodebaseLexicalSearch } from '../../../common/codebase/droxCodebaseLexicalSearch.js';
@@ -75,5 +76,10 @@ suite('Drox codebase CB1/CB2', () => {
 		assert.ok(hits.length >= 2);
 		assert.ok(hits.some(h => h.path === 'b.ts'));
 		assert.ok(hits[0].score > 0);
+	});
+
+	test('default embed model id is MiniLM Q4', () => {
+		assert.ok(DROX_EMBED_DEFAULT_MODEL_ID.includes('MiniLM'));
+		assert.ok(DROX_EMBED_DEFAULT_MODEL_ID.endsWith('.gguf'));
 	});
 });

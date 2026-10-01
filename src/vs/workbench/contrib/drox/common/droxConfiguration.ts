@@ -26,6 +26,12 @@ export const enum DroxSetting {
 
 	ExecutablePath = 'drox.executablePath',
 
+	/**
+	 * Optional absolute path to a custom GGUF embedding model.
+	 * Empty = use the MiniLM shipped with the app (`resources/drox/models/`).
+	 */
+	CodebaseEmbedModelPath = 'drox.codebase.embedModelPath',
+
 	Server = 'drox.server',
 
 	/** Type de serveur LLM local (Ollama pour l'instant). */
@@ -680,6 +686,21 @@ export const droxConfigurationNode: IConfigurationNode = {
 			description: localize(
 				'drox.ideLegacyWebviewChat.enabled',
 				'Show the legacy **webview** Drox chat tab (frozen reference UI). For comparison and non-regression only — reload after changing.',
+			),
+
+		},
+
+		[DroxSetting.CodebaseEmbedModelPath]: {
+
+			type: 'string',
+
+			default: '',
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.codebase.embedModelPath',
+				'Optional absolute path to a **GGUF embedding** model for `@Codebase`. Leave empty to use the **bundled MiniLM** (`resources/drox/models/all-MiniLM-L6-v2.Q4_K_M.gguf`). Must be an embedding GGUF (not a chat LLM). Reset from the Codebase cockpit restores the default.',
 			),
 
 		},

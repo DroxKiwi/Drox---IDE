@@ -70,6 +70,23 @@ Une colonne scrollable, sections repliables (accordéon). Ordre haut → bas = p
 - Voyants : store ouvert, embed chargé (N/A en CB1), dérive (stale count), cap disque %  
 - Liste **alertes** actives (severityité : error > warn) — cliquables → journal filtré
 
+### 3.2b Embed — transparence (CB2)
+
+Section **Embed** du cockpit (pas de mécanique masquée) :
+
+| Élément | Rôle |
+|---------|------|
+| Callout « What MiniLM does » | 4 faits : vecteurs / local / modèle défaut / quand c’est utilisé (Reindex + Probe) |
+| Source active | undled · custom · env · 
+epo · missing + chemin absolu |
+| Dims / backend | Affichés dès que le modèle est chargé |
+| Champ path GGUF | Override optionnel (embedding GGUF seulement) |
+| **Use this GGUF** | Persiste drox.codebase.embedModelPath + embed.load |
+| **Reset to defaults** | Vide le setting → recharge le MiniLM bundlé (
+esources/drox/models/…) |
+
+Défaut produit : MiniLM **inhérent à l’app** (pas de download utilisateur). Override = choix explicite.
+
 ### 3.3 Pipeline live
 
 | Indicateur | Affichage |

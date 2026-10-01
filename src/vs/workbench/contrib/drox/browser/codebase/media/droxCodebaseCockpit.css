@@ -56,3 +56,30 @@
 	max-height: 120px;
 	overflow: auto;
 }
+
+.drox-codebase-embed-callout {
+	margin: 6px 0 10px 0;
+	padding: 8px 10px;
+	border-left: 3px solid var(--vscode-focusBorder, #007acc);
+	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.12));
+}
+
+.drox-codebase-embed-callout-title {
+	margin: 0 0 6px 0;
+	font-weight: 600;
+}
+
+.drox-codebase-embed-facts {
+	margin: 0;
+	padding-left: 18px;
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+.drox-codebase-embed-facts li {
+	margin-bottom: 4px;
+}
+
+.drox-codebase-btn {
+	cursor: pointer;
+}
