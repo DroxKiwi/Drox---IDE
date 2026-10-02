@@ -20,6 +20,7 @@ import { IDroxCodebaseContextService } from './droxCodebaseContextService.js';
 import { IDroxCodebaseIndexService } from './droxCodebaseIndexService.js';
 import { droxCodebaseIndexDir } from './droxCodebasePaths.js';
 import { createEmptyCodebaseSnapshot, buildDroxCodebasePipelineView, IDroxCodebaseCockpitSnapshot, IDroxCodebaseDiagExport, IDroxCodebaseHit, IDroxCodebaseLastInject, IDroxCodebasePipelineEvent } from './droxCodebaseTypes.js';
+import { IDroxCodebaseCatalog, IDroxCodebaseCompactResult } from './droxCodebaseCatalog.js';
 import { DroxCodebaseAutoIndex } from './supervision/droxCodebaseAutoIndex.js';
 import { droxCodebaseInvalidateRelativePath } from './supervision/droxCodebaseFileWatcher.js';
 import { DroxCodebasePipelineLog } from './supervision/droxCodebasePipelineLog.js';
@@ -56,6 +57,14 @@ export interface IDroxCodebaseSupervisionService {
 	clearPipelineLog(): void;
 	buildDiagnosticsExport(lastProbeHits?: readonly IDroxCodebaseHit[]): IDroxCodebaseDiagExport;
 	readonly lastInject: IDroxCodebaseLastInject | undefined;
+	/** CB3b catalogue admin */
+	listCatalog(): Promise<IDroxCodebaseCatalog>;
+	deleteCatalogPaths(relativePaths: readonly string[]): Promise<{ removedChunks: number; removedVectors: number }>;
+	compactCatalog(): Promise<IDroxCodebaseCompactResult>;
+	listExclusions(): Promise<readonly string[]>;
+	setExclusions(globs: readonly string[]): Promise<readonly string[]>;
+	excludeCatalogPaths(relativePathsOrGlobs: readonly string[]): Promise<{ globs: readonly string[]; removedChunks: number; removedVectors: number }>;
+	rebuildCatalogPaths(relativePaths: readonly string[]): Promise<void>;
 }
 
 export class DroxCodebaseSupervisionService extends Disposable implements IDroxCodebaseSupervisionService {
@@ -305,6 +314,83 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		await this.indexService.purge(root);
 		await this.refresh();
 		this._autoIndex.schedule('after-purge');
+	}
+
+	async listCatalog(): Promise<IDroxCodebaseCatalog> {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return { files: [], totalFiles: 0, totalChunks: 0, totalVectors: 0, textBytes: 0 };
+		}
+		return this.indexService.listCatalog(root);
+	}
+
+	async deleteCatalogPaths(relativePaths: readonly string[]): Promise<{ removedChunks: number; removedVectors: number }> {
+		const root = this._resolveRootUri();
+		if (!root || !relativePaths.length) {
+			return { removedChunks: 0, removedVectors: 0 };
+		}
+		const result = await this.indexService.deleteIndexedPaths(root, relativePaths);
+		await this.refresh();
+		return result;
+	}
+
+	async compactCatalog(): Promise<IDroxCodebaseCompactResult> {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return { bytesBefore: 0, bytesAfter: 0, files: 0, chunks: 0, vectors: 0, orphanVectorsRemoved: 0 };
+		}
+		const result = await this.indexService.compactStore(root);
+		await this.refresh();
+		return result;
+	}
+
+	async listExclusions(): Promise<readonly string[]> {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return [];
+		}
+		return this.indexService.listExclusions(root);
+	}
+
+	async setExclusions(globs: readonly string[]): Promise<readonly string[]> {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return [];
+		}
+		const next = await this.indexService.setExclusions(root, globs);
+		await this.refresh();
+		return next;
+	}
+
+	async excludeCatalogPaths(relativePathsOrGlobs: readonly string[]): Promise<{ globs: readonly string[]; removedChunks: number; removedVectors: number }> {
+		const root = this._resolveRootUri();
+		if (!root || !relativePathsOrGlobs.length) {
+			return { globs: [], removedChunks: 0, removedVectors: 0 };
+		}
+		const result = await this.indexService.excludePaths(root, relativePathsOrGlobs);
+		await this.refresh();
+		return result;
+	}
+
+	async rebuildCatalogPaths(relativePaths: readonly string[]): Promise<void> {
+		const root = this._resolveRootUri();
+		if (!root || !relativePaths.length) {
+			return;
+		}
+		this._snapshot = { ...this._snapshot, state: 'indexing', pipeline: { ...this._snapshot.pipeline, phase: 'rebuild' } };
+		this._onDidChangeSnapshot.fire();
+		try {
+			await this.indexService.rebuildIndexedPaths(root, relativePaths);
+			await this.refresh();
+		} catch (err) {
+			this._snapshot = {
+				...this._snapshot,
+				state: 'error',
+				lastError: err instanceof Error ? err.message : String(err),
+			};
+			this._onDidChangeSnapshot.fire();
+			throw err;
+		}
 	}
 
 	async probeRetrieval(query: string): Promise<readonly IDroxCodebaseHit[]> {

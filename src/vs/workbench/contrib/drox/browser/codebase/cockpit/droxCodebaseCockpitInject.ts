@@ -17,19 +17,27 @@ export function renderDroxCodebaseCockpitInject(
 		readonly lastInject: IDroxCodebaseLastInject | undefined;
 		readonly autoEnabled: boolean;
 		readonly forceArmed: boolean;
+		readonly onToggleAuto?: () => void;
 	},
 ): void {
 	const section = dom.append(parent, dom.$('.drox-codebase-section.drox-codebase-inject'));
 	dom.append(section, dom.$('h4', undefined, localize('drox.codebase.inject.title', 'Last auto-inject')));
 
 	const badges = dom.append(section, dom.$('.drox-codebase-inject-badges'));
-	appendBadge(
-		badges,
-		opts.autoEnabled
-			? localize('drox.codebase.inject.autoOn', 'Auto ON')
-			: localize('drox.codebase.inject.autoOff', 'Auto OFF'),
-		opts.autoEnabled ? 'is-ok' : 'is-muted',
+	const autoBtn = dom.append(badges, dom.$('button.drox-codebase-inject-badge')) as HTMLButtonElement;
+	autoBtn.type = 'button';
+	autoBtn.classList.add(opts.autoEnabled ? 'is-ok' : 'is-muted', 'is-toggle');
+	autoBtn.textContent = opts.autoEnabled
+		? localize('drox.codebase.inject.autoOn', 'Auto ON')
+		: localize('drox.codebase.inject.autoOff', 'Auto OFF');
+	autoBtn.title = localize(
+		'drox.codebase.inject.autoToggleTitle',
+		'Toggle auto-inject of @Codebase context into agent runs (setting drox.codebase.autoInject)',
 	);
+	autoBtn.disabled = !opts.onToggleAuto;
+	if (opts.onToggleAuto) {
+		autoBtn.onclick = () => opts.onToggleAuto!();
+	}
 	if (opts.forceArmed) {
 		appendBadge(badges, localize('drox.codebase.inject.forceArmed', 'Force armed'), 'is-warn');
 	}
