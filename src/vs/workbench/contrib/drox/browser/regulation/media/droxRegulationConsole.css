@@ -1,0 +1,148 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-regulation-console .drox-regulation-global {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin: 8px 0;
+	padding: 6px 8px;
+	border-radius: 4px;
+	border-left: 3px solid var(--vscode-focusBorder, #007acc);
+	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.12));
+}
+
+.drox-regulation-console .drox-regulation-global.is-good {
+	border-left-color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-regulation-console .drox-regulation-global.is-warn {
+	border-left-color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.drox-regulation-console .drox-regulation-global.is-bad {
+	border-left-color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.drox-regulation-global-label {
+	font-weight: 600;
+}
+
+.drox-regulation-score {
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+
+.drox-regulation-levers {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 12px 0;
+}
+
+.drox-regulation-lever {
+	display: grid;
+	grid-template-columns: 28px 1fr 36px 40px minmax(72px, auto);
+	gap: 6px;
+	align-items: center;
+	padding: 4px 6px;
+	border-radius: 3px;
+	border-left: 3px solid transparent;
+	font-size: 12px;
+}
+
+.drox-regulation-lever.is-good {
+	border-left-color: var(--vscode-testing-iconPassed, #73c991);
+	background: color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 12%, transparent);
+}
+
+.drox-regulation-lever.is-warn {
+	border-left-color: var(--vscode-editorWarning-foreground, #cca700);
+	background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 12%, transparent);
+}
+
+.drox-regulation-lever.is-bad {
+	border-left-color: var(--vscode-testing-iconFailed, #f14c4c);
+	background: color-mix(in srgb, var(--vscode-testing-iconFailed, #f14c4c) 12%, transparent);
+}
+
+.drox-regulation-lever-id {
+	font-weight: 700;
+	opacity: 0.85;
+}
+
+.drox-regulation-lever-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-regulation-module {
+	font-size: 11px;
+	opacity: 0.8;
+	text-align: right;
+}
+
+.drox-regulation-history-list {
+	max-height: 220px;
+	overflow: auto;
+	margin: 4px 0 0 0;
+	border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+
+.drox-regulation-history-row {
+	padding: 6px 4px;
+	border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+	border-left: 3px solid transparent;
+}
+
+.drox-regulation-history-row.is-good {
+	border-left-color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-regulation-history-row.is-warn {
+	border-left-color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.drox-regulation-history-row.is-bad {
+	border-left-color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.drox-regulation-history-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 11px;
+}
+
+.drox-regulation-issue {
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 10px;
+	padding: 1px 5px;
+	border-radius: 3px;
+	background: rgba(127, 127, 127, 0.2);
+}
+
+.drox-regulation-issue.is-ok {
+	color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-regulation-issue.is-error,
+.drox-regulation-issue.is-loop {
+	color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.drox-regulation-issue.is-cancel {
+	color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.drox-regulation-history-prompt {
+	margin: 3px 0 2px 0;
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
