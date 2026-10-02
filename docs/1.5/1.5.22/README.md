@@ -36,7 +36,7 @@ Système **auto-régulateur** : on n’adapte pas les capacités du moteur, on a
 | # | Sujet | Statut | Ordre |
 |---|--------|--------|-------|
 | **G** | CB3b catalogue admin | ✅ MVP + exclusions + rebuild | **1** |
-| A–D | Auto-régulation (console · histo · L1–L5) | 🚧 **R0–R4 ✅** · R5+ | **2** |
+| A–D | Auto-régulation (console · histo · L1–L5) | 🚧 **R0–R5 ✅** · R6+ | **2** |
 | E | Explore IDE (`task` / subagents) | 📋 reporté | 3+ |
 | F | SAV erreurs chat | 📋 reporté | 3+ |
 | H | CB5 carte code (opt.) | 📋 reporté | 3+ |

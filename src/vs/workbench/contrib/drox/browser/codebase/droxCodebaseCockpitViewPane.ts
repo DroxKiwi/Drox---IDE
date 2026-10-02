@@ -95,6 +95,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		this._register(this.codebaseContext.onDidChangeForceNext(() => this._render()));
 		this._register(this.regulationService.onDidChangeScores(() => this._render()));
 		this._register(this.regulationService.onDidChangeHistory(() => this._render()));
+		this._register(this.regulationService.onDidChangeSurface(() => this._render()));
 		void this._reloadCatalog();
 		void this._ensureRegulationHistory();
 	}
@@ -167,7 +168,10 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			modelKey,
 			scores: this.regulationService.getScores(modelKey),
 			history: this.regulationService.list({ limit: 40 }),
+			surface: this.regulationService.getState(),
 			prevListScroll: prevRegulationListScroll,
+			onSetLeverMode: (lever, mode) => this.regulationService.setLeverMode(lever, mode),
+			onSetLeverModule: (lever, module) => this.regulationService.setLeverModule(lever, module),
 		});
 
 		renderDroxCodebaseCockpitInject(this._body, {

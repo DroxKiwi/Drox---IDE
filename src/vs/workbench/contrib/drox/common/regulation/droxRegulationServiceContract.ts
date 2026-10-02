@@ -27,8 +27,8 @@ export interface IDroxRegulationService extends IDroxRegulationProbe, IDroxRegul
 	recordRunSignals(modelKey: string, signals: IDroxRegulationRunSignals): void;
 	/** Score + history entry (persists when workspace root is set). */
 	recordRun(record: IDroxRegulationRunRecord): void;
-	/** Load history from `.drox/regulation/history.json` for a workspace (idempotent). */
+	/** Load history + surface from `.drox/regulation/` for a workspace (idempotent). */
 	ensureHistoryLoaded(workspaceRootFsPath: string): Promise<void>;
-	/** Await pending history writes. */
+	/** Await pending history/surface writes. */
 	whenHistoryIdle(): Promise<void>;
 }

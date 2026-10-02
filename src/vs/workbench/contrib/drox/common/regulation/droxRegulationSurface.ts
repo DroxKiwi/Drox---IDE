@@ -7,14 +7,14 @@ import { Event } from '../../../../../base/common/event.js';
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
 import {
 	DroxRegulationLeverId,
+	DroxRegulationLeverMode,
 	DroxRegulationModule,
 	DroxRegulationSurfaceState,
 } from './droxRegulationTypes.js';
 
 /**
  * Effective modules for wrappers (Auto / manual override).
- * R0: defaults only, no apply; R5+: UI state; R6+: wrappers read this.
- * Per-lever narrowing can be added later via helpers; keep one signature for DI.
+ * R5: UI state persisted; R6+: wrappers read getModule; R11: Auto policy writes modules.
  */
 export const IDroxRegulationSurface = createDecorator<IDroxRegulationSurface>('droxRegulationSurface');
 
@@ -23,4 +23,7 @@ export interface IDroxRegulationSurface {
 	readonly onDidChangeSurface: Event<void>;
 	getState(): DroxRegulationSurfaceState;
 	getModule(lever: DroxRegulationLeverId): DroxRegulationModule;
+	setLeverMode(lever: DroxRegulationLeverId, mode: DroxRegulationLeverMode): void;
+	/** Sets module and forces mode=manual (override freezes Auto on that lever). */
+	setLeverModule(lever: DroxRegulationLeverId, module: DroxRegulationModule): void;
 }

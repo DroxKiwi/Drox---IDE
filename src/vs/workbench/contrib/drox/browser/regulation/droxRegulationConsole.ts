@@ -14,18 +14,22 @@ import {
 } from '../../common/regulation/droxRegulationCharts.js';
 import { droxRegulationScoreBand } from '../../common/regulation/droxRegulationScoreBand.js';
 import {
-	DROX_REGULATION_DEFAULT_MODULES,
 	DROX_REGULATION_LEVER_IDS,
 	DROX_REGULATION_LEVER_LABELS,
+	DROX_REGULATION_MODULES_FOR_LEVER,
+	DroxRegulationLeverId,
+	DroxRegulationLeverMode,
+	DroxRegulationModule,
 	DroxRegulationRunIssue,
+	DroxRegulationSurfaceState,
 	IDroxRegulationHistoryEntry,
 	IDroxRegulationScoreSnapshot,
 } from '../../common/regulation/droxRegulationTypes.js';
 import './media/droxRegulationConsole.css';
 
 /**
- * R3–R4 observatory: live lever scores + charts + run history.
- * No Auto / override controls yet (R5).
+ * R3–R5 observatory + overrides: scores, charts, history, module select + Auto toggle.
+ * Auto policy apply = R11; engine wrappers = R6+.
  */
 export function renderDroxRegulationConsole(
 	parent: HTMLElement,
@@ -33,14 +37,17 @@ export function renderDroxRegulationConsole(
 		readonly modelKey: string;
 		readonly scores: IDroxRegulationScoreSnapshot;
 		readonly history: readonly IDroxRegulationHistoryEntry[];
+		readonly surface: DroxRegulationSurfaceState;
 		readonly prevListScroll?: number;
+		readonly onSetLeverMode?: (lever: DroxRegulationLeverId, mode: DroxRegulationLeverMode) => void;
+		readonly onSetLeverModule?: (lever: DroxRegulationLeverId, module: DroxRegulationModule) => void;
 	},
 ): { readonly listEl: HTMLElement | undefined } {
 	const section = dom.append(parent, dom.$('.drox-codebase-section.drox-regulation-console'));
 	dom.append(section, dom.$('h4', undefined, localize('drox.regulation.console.title', 'Model regulation')));
 	dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
 		'drox.regulation.console.subtitle',
-		'Observatory — engine fitness for the current model (no Auto apply yet).',
+		'Observatory + overrides — Auto policy apply comes later; modules not yet wired into the engine.',
 	)));
 	dom.append(section, dom.$('p.drox-codebase-muted', undefined, opts.modelKey
 		? localize('drox.regulation.console.model', 'Model: {0}', opts.modelKey)
@@ -63,6 +70,7 @@ export function renderDroxRegulationConsole(
 	const levers = dom.append(section, dom.$('.drox-regulation-levers'));
 	for (const lever of DROX_REGULATION_LEVER_IDS) {
 		const ls = opts.scores.levers[lever];
+		const st = opts.surface[lever];
 		const band = droxRegulationScoreBand(ls.score);
 		const row = dom.append(levers, dom.$('.drox-regulation-lever'));
 		row.classList.add(`is-${band}`);
@@ -70,7 +78,36 @@ export function renderDroxRegulationConsole(
 		dom.append(row, dom.$('span.drox-regulation-lever-label', undefined, DROX_REGULATION_LEVER_LABELS[lever]));
 		dom.append(row, dom.$('span.drox-regulation-score', undefined, String(Math.round(ls.score))));
 		dom.append(row, dom.$('span.drox-codebase-muted', undefined, `n=${ls.samples}`));
-		dom.append(row, dom.$('span.drox-regulation-module', undefined, DROX_REGULATION_DEFAULT_MODULES[lever]));
+
+		const select = dom.append(row, dom.$('select.drox-regulation-module-select')) as HTMLSelectElement;
+		select.title = localize('drox.regulation.moduleSelect', 'Module override (manual)');
+		for (const mod of DROX_REGULATION_MODULES_FOR_LEVER[lever]) {
+			const opt = document.createElement('option');
+			opt.value = mod;
+			opt.textContent = mod;
+			if (mod === st.module) {
+				opt.selected = true;
+			}
+			select.appendChild(opt);
+		}
+		select.onchange = () => {
+			opts.onSetLeverModule?.(lever, select.value as DroxRegulationModule);
+		};
+
+		const autoBtn = dom.append(row, dom.$('button.drox-regulation-auto-btn')) as HTMLButtonElement;
+		autoBtn.type = 'button';
+		const isAuto = st.mode === 'auto';
+		autoBtn.classList.toggle('is-on', isAuto);
+		autoBtn.textContent = isAuto
+			? localize('drox.regulation.autoOn', 'Auto ON')
+			: localize('drox.regulation.autoOff', 'Auto OFF');
+		autoBtn.title = localize(
+			'drox.regulation.autoTitle',
+			'Per-lever Auto (policy apply later). Choosing a module forces Manual.',
+		);
+		autoBtn.onclick = () => {
+			opts.onSetLeverMode?.(lever, isAuto ? 'manual' : 'auto');
+		};
 	}
 
 	renderCharts(section, opts.history);

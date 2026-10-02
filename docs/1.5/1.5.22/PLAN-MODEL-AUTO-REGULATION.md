@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0–R4 ✅** · R5+ (§9)  
+**Statut** : 📋 cadrage · **R0–R5 ✅** · R6+ (§9)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -191,7 +191,7 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 | **R2** | **History store** : 1 entrée / run (prompt extrait, notes, modules, issue, model) | ✅ `.drox/regulation/history.json` + tests |
 | **R3** | **Console observatoire** : section sous Embed — leviers (notes + couleurs) + liste historique | ✅ section cockpit + live scores/histo ; **aucun Auto apply** |
 | **R4** | **Graphiques** : note globale dans le temps + breakdown issues (couleur) | ✅ sparkline SVG + barre issues sur histo |
-| **R5** | **Overrides UI** : select module + Auto par levier (state persisté) — **encore sans wrap moteur** | State lu/écrit ; parity run |
+| **R5** | **Overrides UI** : select module + Auto par levier (state persisté) — **encore sans wrap moteur** | ✅ `surface.json` + select/Auto cockpit |
 | **R6** | **Wrapper L1** Context budget | Diff run mesurable ; Auto L1 optionnel |
 | **R7** | **Wrapper L2** Tool surface | idem |
 | **R8** | **Wrapper L3** Directive density | idem |
@@ -208,5 +208,5 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 
 ## 10. Suite immédiate
 
-1. ~~Cadrage~~ · ~~**R0–R4**~~.  
-2. Démarrer **R5** (overrides UI) uniquement.
+1. ~~Cadrage~~ · ~~**R0–R5**~~.  
+2. Démarrer **R6** (wrapper L1 Context budget) uniquement.
