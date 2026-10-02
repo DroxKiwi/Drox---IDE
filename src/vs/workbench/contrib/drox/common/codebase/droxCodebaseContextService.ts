@@ -13,6 +13,11 @@ import { ILogService } from '../../../../../platform/log/common/log.js';
 import { DroxSetting } from '../droxConfiguration.js';
 import { IDroxModelQuestionService } from '../modelQuestions/droxModelQuestionService.js';
 import {
+	applyDroxRegulationL1InjectBudget,
+	asDroxRegulationL1Module,
+} from '../regulation/droxRegulationL1Budget.js';
+import { IDroxRegulationService } from '../regulation/droxRegulationServiceContract.js';
+import {
 	DROX_CODEBASE_AUTO_INJECT_DEFAULT_MAX_CHARS,
 	DROX_CODEBASE_AUTO_INJECT_DEFAULT_MAX_HITS,
 	DROX_CODEBASE_FORCE_INJECT_MAX_HITS,
@@ -67,6 +72,7 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 		@IDroxModelQuestionService private readonly modelQuestions: IDroxModelQuestionService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ILogService private readonly logService: ILogService,
+		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
 	) {
 		super();
 	}
@@ -127,10 +133,15 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 		}
 
 		const maxCharsRaw = this.configurationService.getValue<number>(DroxSetting.CodebaseAutoInjectMaxChars);
-		const maxChars = typeof maxCharsRaw === 'number' && Number.isFinite(maxCharsRaw) && maxCharsRaw > 500
+		const maxCharsBase = typeof maxCharsRaw === 'number' && Number.isFinite(maxCharsRaw) && maxCharsRaw > 500
 			? Math.floor(maxCharsRaw)
 			: DROX_CODEBASE_AUTO_INJECT_DEFAULT_MAX_CHARS;
-		const maxHits = forced ? DROX_CODEBASE_FORCE_INJECT_MAX_HITS : DROX_CODEBASE_AUTO_INJECT_DEFAULT_MAX_HITS;
+		const maxHitsBase = forced ? DROX_CODEBASE_FORCE_INJECT_MAX_HITS : DROX_CODEBASE_AUTO_INJECT_DEFAULT_MAX_HITS;
+		const l1 = asDroxRegulationL1Module(this.regulationService.getModule('L1'));
+		const { maxChars, maxHits } = applyDroxRegulationL1InjectBudget(l1, {
+			maxChars: maxCharsBase,
+			maxHits: maxHitsBase,
+		});
 
 		if (userMessage.length < 2) {
 			this._recordInject({

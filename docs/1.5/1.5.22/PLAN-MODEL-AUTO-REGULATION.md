@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0–R5 ✅** · R6+ (§9)  
+**Statut** : 📋 cadrage · **R0–R6 ✅** · R7+ (§9)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -192,7 +192,7 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 | **R3** | **Console observatoire** : onglet Regulation — leviers (notes + couleurs) + liste historique | ✅ view sidebar dédiée + live scores/histo ; **aucun Auto apply** |
 | **R4** | **Graphiques** : note globale dans le temps + breakdown issues (couleur) | ✅ sparkline SVG + barre issues sur histo |
 | **R5** | **Overrides UI** : select module + Auto par levier (state persisté) — **encore sans wrap moteur** | ✅ `surface.json` + select/Auto cockpit |
-| **R6** | **Wrapper L1** Context budget | Diff run mesurable ; Auto L1 optionnel |
+| **R6** | **Wrapper L1** Context budget | ✅ inject Codebase (`maxChars`/`maxHits`) + session notes truncate/omit via `getModule('L1')` |
 | **R7** | **Wrapper L2** Tool surface | idem |
 | **R8** | **Wrapper L3** Directive density | idem |
 | **R9** | **Wrapper L4** Protocol strictness | idem |
@@ -208,5 +208,5 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 
 ## 10. Suite immédiate
 
-1. ~~Cadrage~~ · ~~**R0–R5**~~.  
-2. Démarrer **R6** (wrapper L1 Context budget) uniquement.
+1. ~~Cadrage~~ · ~~**R0–R6**~~.  
+2. Démarrer **R7** (wrapper L2 Tool surface) uniquement.

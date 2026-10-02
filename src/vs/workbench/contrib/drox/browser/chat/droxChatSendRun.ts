@@ -16,6 +16,7 @@ import { cancelDroxAgentRun, IDroxAgentRunBridgeDeps, startDroxAgentRun } from '
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
+import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePasteWire, toUserMessagePasteWire } from '../../common/droxPasteCandidates.js';
 import { formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
@@ -70,6 +71,7 @@ export async function executeDroxChatSend(
 		readonly sessionBackgroundService?: IDroxSessionBackgroundService;
 		readonly codebaseContextService?: IDroxCodebaseContextService;
 		readonly editorService?: IEditorService;
+		readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
 	},
 	prompt: string,
 	mode: string,
@@ -194,6 +196,7 @@ export async function executeDroxChatSend(
 			logService: deps.logService,
 			fileService: deps.fileService,
 			codebaseContextService: deps.codebaseContextService,
+			regulationService: deps.regulationService,
 			resolveCodebaseForcePathPrefixes: deps.editorService
 				? wsPath => resolveDroxCodebaseForcePathPrefixesFromEditor(deps.editorService!, wsPath)
 				: undefined,

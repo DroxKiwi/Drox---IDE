@@ -18,6 +18,11 @@ import {
 import { consumeDroxPlanArchiveSystemNote } from './droxPlanArchiveNote.js';
 import { truncateUserPromptForEngine } from './droxUserPromptEngine.js';
 import { IDroxCodebaseContextService } from './codebase/droxCodebaseContextService.js';
+import {
+	applyDroxRegulationL1SessionNotes,
+	asDroxRegulationL1Module,
+} from './regulation/droxRegulationL1Budget.js';
+import { IDroxRegulationService } from './regulation/droxRegulationServiceContract.js';
 
 export interface IDroxAgentRunBridgeDeps {
 	readonly clientToolsService: IDroxClientToolsService;
@@ -33,6 +38,8 @@ export interface IDroxAgentRunBridgeDeps {
 	 * (browser supplies active editor; common layer stays editor-free).
 	 */
 	readonly resolveCodebaseForcePathPrefixes?: (workspaceFsPath: string) => string[] | undefined;
+	/** Optionnel : L1 Context budget (session notes truncate / omit). */
+	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
 }
 
 export interface IDroxAgentRunStartOptions {
@@ -72,6 +79,10 @@ export async function startDroxAgentRun(
 			options.workspace,
 			options.sessionId,
 		);
+	}
+	if (deps.regulationService) {
+		const l1 = asDroxRegulationL1Module(deps.regulationService.getModule('L1'));
+		system = applyDroxRegulationL1SessionNotes(l1, system);
 	}
 	const planArchiveNote = consumeDroxPlanArchiveSystemNote(options.sessionId);
 	if (planArchiveNote) {

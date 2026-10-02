@@ -14,6 +14,7 @@ import { cancelDroxAgentRun, IDroxAgentRunBridgeDeps, startDroxAgentRun } from '
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
+import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
 import {
 	buildEnginePromptFromLastUserTranscript,
 	findLastUserMessageIdInUiReplay,
@@ -130,6 +131,7 @@ type IRunRecoveryDeps = {
 	readonly sessionBackgroundService?: IDroxSessionBackgroundService;
 	readonly codebaseContextService?: IDroxCodebaseContextService;
 	readonly editorService?: IEditorService;
+	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
 };
 
 function cancelActiveRunForRecovery(host: IDroxChatSendRunHost, deps: IRunRecoveryDeps): void {
@@ -211,6 +213,7 @@ async function startRecoveryRun(
 			logService: deps.logService,
 			fileService: deps.fileService,
 			codebaseContextService: deps.codebaseContextService,
+			regulationService: deps.regulationService,
 			resolveCodebaseForcePathPrefixes: deps.editorService
 				? wsPath => resolveDroxCodebaseForcePathPrefixesFromEditor(deps.editorService!, wsPath)
 				: undefined,
