@@ -2,7 +2,7 @@
 
 ## Nouveautés
 
-- **@Codebase** — index local avec auto-inject dans les runs agent ; chip Forced pour ancrer la recherche sur le fichier éditeur actif.
+- **Codebase** — index local avec auto-inject dans les runs agent ; chip Forced pour ancrer la recherche sur le fichier éditeur actif.
 - **Retrieval** — compréhension modèle (EN) pour les filtres de recherche, sans heuristiques mot-clés sur le message utilisateur.
 - **Shell discussion partagé** — IDE et Agents partagent les mêmes outils compositeur (modèle, serveur, réglages).
 - **Loop guard** — retries bash/grep à changements cosmétiques uniquement : nudge puis abort.
