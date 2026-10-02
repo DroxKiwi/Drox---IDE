@@ -27,6 +27,10 @@ import {
 	applyDroxRegulationL2ExecutableTools,
 	asDroxRegulationL2Module,
 } from './regulation/droxRegulationL2Surface.js';
+import {
+	applyDroxRegulationL3Directive,
+	asDroxRegulationL3Module,
+} from './regulation/droxRegulationL3Directive.js';
 import { IDroxRegulationService } from './regulation/droxRegulationServiceContract.js';
 
 export interface IDroxAgentRunBridgeDeps {
@@ -43,7 +47,7 @@ export interface IDroxAgentRunBridgeDeps {
 	 * (browser supplies active editor; common layer stays editor-free).
 	 */
 	readonly resolveCodebaseForcePathPrefixes?: (workspaceFsPath: string) => string[] | undefined;
-	/** Optionnel : L1 notes + L2 tool surface. */
+	/** Optionnel : L1 notes + L2 tools + L3 directive. */
 	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
 }
 
@@ -97,6 +101,8 @@ export async function startDroxAgentRun(
 	if (deps.regulationService) {
 		const l1 = asDroxRegulationL1Module(deps.regulationService.getModule('L1'));
 		system = applyDroxRegulationL1SessionNotes(l1, system);
+		const l3 = asDroxRegulationL3Module(deps.regulationService.getModule('L3'));
+		system = applyDroxRegulationL3Directive(l3, system);
 	}
 	const planArchiveNote = consumeDroxPlanArchiveSystemNote(options.sessionId);
 	if (planArchiveNote) {
