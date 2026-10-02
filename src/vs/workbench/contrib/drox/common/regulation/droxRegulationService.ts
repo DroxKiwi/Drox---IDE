@@ -15,6 +15,7 @@ import {
 } from './droxRegulationHistoryStore.js';
 import { mergeRegulationRunIntoSnapshot } from './droxRegulationScoreAggregate.js';
 import { scoreRegulationGlobal, scoreRegulationRun } from './droxRegulationScorer.js';
+import { applyDroxRegulationAutoPolicy } from './droxRegulationAutoPolicy.js';
 import { IDroxRegulationRunRecord, IDroxRegulationService } from './droxRegulationServiceContract.js';
 import { IDroxRegulationRunSignals } from './droxRegulationRunSignals.js';
 import {
@@ -36,8 +37,8 @@ import {
 } from './droxRegulationTypes.js';
 
 /**
- * R5: scores + history + persisted surface (mode/module per lever).
- * Auto policy apply = R11; wrappers = R6+.
+ * R11: scores + history + surface + Auto policy (note → module when mode=auto).
+ * Wrappers = R6–R10.
  */
 export class DroxRegulationService extends Disposable implements IDroxRegulationService {
 
@@ -102,6 +103,20 @@ export class DroxRegulationService extends Disposable implements IDroxRegulation
 			this._history = this._history.slice(this._history.length - DROX_REGULATION_HISTORY_MAX_ENTRIES);
 		}
 		this._onDidChangeHistory.fire();
+
+		// R11: after historizing modules used for this run, Auto may retarget next run.
+		const applied = applyDroxRegulationAutoPolicy(this._surface, {
+			L1: next.levers.L1.score,
+			L2: next.levers.L2.score,
+			L3: next.levers.L3.score,
+			L4: next.levers.L4.score,
+			L5: next.levers.L5.score,
+		});
+		if (applied !== this._surface) {
+			this._surface = applied;
+			this._onDidChangeSurface.fire();
+			this._scheduleSurfacePersist();
+		}
 
 		const ws = record.workspaceRootFsPath?.trim();
 		if (ws) {

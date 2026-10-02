@@ -11,6 +11,7 @@ import { FileService } from '../../../../../../platform/files/common/fileService
 import { InMemoryFileSystemProvider } from '../../../../../../platform/files/common/inMemoryFilesystemProvider.js';
 import { NullLogService } from '../../../../../../platform/log/common/log.js';
 import { droxRegulationSurfacePath } from '../../../common/regulation/droxRegulationPaths.js';
+import { buildDroxRegulationRunSignals } from '../../../common/regulation/droxRegulationRunSignals.js';
 import { DroxRegulationService } from '../../../common/regulation/droxRegulationService.js';
 import {
 	parseDroxRegulationSurfaceFile,
@@ -62,5 +63,29 @@ suite('Drox regulation R5 surface', () => {
 		assert.strictEqual(svc2.getModule('L3'), 'assertive');
 		assert.strictEqual(svc2.getState().L3.mode, 'manual');
 		assert.strictEqual(svc2.getState().L5.mode, 'auto');
+	});
+
+	test('R11 Auto policy retargets auto levers after recordRun', () => {
+		const log = new NullLogService();
+		const fileService = store.add(new FileService(log));
+		const provider = store.add(new InMemoryFileSystemProvider());
+		store.add(fileService.registerProvider(Schemas.file, provider));
+		const svc = store.add(new DroxRegulationService(fileService, log));
+		svc.setLeverMode('L2', 'auto');
+		svc.setLeverMode('L3', 'manual');
+		svc.setLeverModule('L3', 'guided');
+		svc.recordRunSignals('ollama::qwen', buildDroxRegulationRunSignals({
+			status: 'error',
+			error: 'loop detected: repeated tool call',
+			engineTrace: [{
+				kind: 'run_summary',
+				schemaErrorContinueCount: 3,
+				textToolMarkerStreak: 2,
+			}],
+		}));
+		assert.strictEqual(svc.getModule('L2'), 'core');
+		assert.strictEqual(svc.getState().L2.mode, 'auto');
+		assert.strictEqual(svc.getModule('L3'), 'guided');
+		assert.strictEqual(svc.getState().L3.mode, 'manual');
 	});
 });

@@ -30,8 +30,9 @@ common/regulation/
   droxRegulationL3Directive.ts # R8 L3 directive density annexes
   droxRegulationL4Protocol.ts # R9 L4 protocol strictness annexes
   droxRegulationL5Retrieval.ts # R10 L5 retrieval posture hints
+  droxRegulationAutoPolicy.ts  # R11 score → module (Auto ON only)
   droxRegulationServiceContract.ts  # IDroxRegulationService (DI unique)
-  droxRegulationService.ts    # probe + history R2
+  droxRegulationService.ts    # probe + history + Auto apply
 
 electron-browser/
   droxRegulationProbeContribution.ts  # agent/done → recordRun
@@ -56,7 +57,7 @@ browser/regulation/           # console UI (R3+)
 | **R8** | Wrapper L3 Directive density — **annex system guided/assertive** |
 | **R9** | Wrapper L4 Protocol strictness — **annex todo/phase soft/normal/strict** |
 | **R10** | Wrapper L5 Retrieval posture — **hint Codebase passive/nudge/aggressive** |
-| **R11** | Policy Auto |
+| **R11** | Policy Auto — **note → module** (Auto ON only; manual frozen) |
 | **R12** | Pass docs fin de maj |
 
 ## Règles
