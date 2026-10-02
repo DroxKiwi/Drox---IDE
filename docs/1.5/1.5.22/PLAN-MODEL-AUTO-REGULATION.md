@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0–R10 ✅** · R11+ (§9)  
+**Statut** : 📋 cadrage · **R0–R11 ✅** · R12 / PF / AG / THEME / DOC (§9 + README)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -197,7 +197,7 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 | **R8** | **Wrapper L3** Directive density | ✅ annex system `laissez-faire` (omit) / `guided` / `assertive` via `getModule('L3')` |
 | **R9** | **Wrapper L4** Protocol strictness | ✅ annex system `soft` (omit) / `normal` / `strict` via `getModule('L4')` |
 | **R10** | **Wrapper L5** Retrieval posture | ✅ hint Codebase `passive` / `nudge` / `aggressive` via `getModule('L5')` |
-| **R11** | **Policy Auto** branchée (note → module) + dogfood multi-modèles + polish console | Critères §6 OK |
+| **R11** | **Policy Auto** branchée (note → module) + dogfood multi-modèles + polish console | ✅ `droxRegulationAutoPolicy` après `recordRun` ; manuel figé ; suggest UI |
 | **R12** | **Pass docs fin de maj** : relire et mettre à jour / compléter la documentation au regard de **1.5.21 + 1.5.22** (pédagogie, `docs/engine`, README 1.5.x, CLOSURE, surface utilisateur) | Docs alignées sur le livré ; plus de mentions obsolètes (ex. Explore « depuis 1.5.21 » si non câblé, OR releases, etc.) |
 
 **Règle d’or** : ne pas démarrer Rn+1 tant que Rn n’est pas smoke-ok.  
@@ -208,5 +208,5 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 
 ## 10. Suite immédiate
 
-1. ~~Cadrage~~ · ~~**R0–R10**~~.  
-2. Démarrer **R11** (Policy Auto note → module + dogfood) uniquement.
+1. ~~Cadrage~~ · ~~**R0–R11**~~.  
+2. Fin de maj : **PF** → **AG** → **THEME** → **DOC** (R12) — voir [README](README.md).

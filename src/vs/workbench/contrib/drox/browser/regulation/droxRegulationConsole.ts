@@ -7,6 +7,7 @@
 
 import * as dom from '../../../../../base/browser/dom.js';
 import { localize } from '../../../../../nls.js';
+import { recommendDroxRegulationModule } from '../../common/regulation/droxRegulationAutoPolicy.js';
 import {
 	droxRegulationGlobalScoreSeries,
 	droxRegulationIssueBreakdown,
@@ -28,8 +29,8 @@ import {
 import './media/droxRegulationConsole.css';
 
 /**
- * R3–R5 observatory + overrides: scores, charts, history, module select + Auto toggle.
- * Auto policy apply = R11; engine wrappers = R6+.
+ * R3–R11 observatory + overrides + Auto policy suggestions.
+ * Engine wrappers = R6–R10; Auto apply = R11.
  */
 export function renderDroxRegulationConsole(
 	parent: HTMLElement,
@@ -50,7 +51,7 @@ export function renderDroxRegulationConsole(
 	}
 	dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
 		'drox.regulation.console.subtitle',
-		'Observatory + overrides — Auto policy apply comes later; modules not yet wired into the engine.',
+		'Observatory + overrides — Auto ON applies policy after each scored run (manual picks stay frozen).',
 	)));
 	dom.append(section, dom.$('p.drox-codebase-muted', undefined, opts.modelKey
 		? localize('drox.regulation.console.model', 'Model: {0}', opts.modelKey)
@@ -97,6 +98,15 @@ export function renderDroxRegulationConsole(
 			opts.onSetLeverModule?.(lever, select.value as DroxRegulationModule);
 		};
 
+		const suggested = recommendDroxRegulationModule(lever, ls.score);
+		if (suggested !== st.module) {
+			dom.append(row, dom.$('span.drox-codebase-muted.drox-regulation-suggest', undefined, localize(
+				'drox.regulation.suggest',
+				'suggest {0}',
+				suggested,
+			)));
+		}
+
 		const autoBtn = dom.append(row, dom.$('button.drox-regulation-auto-btn')) as HTMLButtonElement;
 		autoBtn.type = 'button';
 		const isAuto = st.mode === 'auto';
@@ -106,7 +116,7 @@ export function renderDroxRegulationConsole(
 			: localize('drox.regulation.autoOff', 'Auto OFF');
 		autoBtn.title = localize(
 			'drox.regulation.autoTitle',
-			'Per-lever Auto (policy apply later). Choosing a module forces Manual.',
+			'Per-lever Auto: after each run, apply recommended module from the score. Choosing a module forces Manual.',
 		);
 		autoBtn.onclick = () => {
 			opts.onSetLeverMode?.(lever, isAuto ? 'manual' : 'auto');
