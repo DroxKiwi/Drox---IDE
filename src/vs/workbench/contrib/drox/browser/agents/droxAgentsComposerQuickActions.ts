@@ -19,7 +19,7 @@ import { isDroxNativeChatStackEnabled } from '../../common/droxAgentsConfigurati
 import { isDroxAgentsChatSessionType } from './droxAgentsChatInputIntegration.js';
 import './media/droxAgentsComposerQuickActions.css';
 
-/** Cursor-style Changes / Commit pills mounted above the chat composer (Drox sessions). */
+/** Changes / Commit pills mounted above the chat composer (Drox sessions). */
 export class DroxAgentsComposerQuickActionsHost extends Disposable {
 
 	private _toolbar: MenuWorkbenchToolBar | undefined;

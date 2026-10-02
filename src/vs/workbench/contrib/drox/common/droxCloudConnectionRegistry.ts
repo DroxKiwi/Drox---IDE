@@ -53,7 +53,7 @@ export function cloudProviderRequiresGdprWarning(spec: IDroxCloudProviderSpec | 
  * Catalogue cloud Drox — critères d’admission :
  * - Soutien à la communauté **open-weight** (Ollama Cloud, Hugging Face Inference Providers)
  * - Prestataires **européens** sur modèles ouverts (Mistral, Scaleway, OVHcloud)
- * Exclus : agrégateurs US, APIs fermées, OpenAI / Anthropic / Google.
+ * Exclus : agrégateurs US et APIs cloud fermées hors catalogue.
  */
 export const DROX_CLOUD_PROVIDER_SPECS: readonly IDroxCloudProviderSpec[] = [
 	{

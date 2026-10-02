@@ -1,4 +1,4 @@
-//! Curseur texte et motions vim simplifiées (leak : `Cursor.ts`, `motions.ts`).
+//! Curseur texte et motions vim simplifiées (leak : caret / motions).
 
 /// Position en indices **caractères** (pas octets).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

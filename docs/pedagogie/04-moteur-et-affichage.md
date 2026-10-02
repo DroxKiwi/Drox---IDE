@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Du moteur à l’écran — comment le chat affiche ce que Rust produit
+﻿# Du moteur à l’écran — comment le chat affiche ce que Rust produit
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -243,3 +241,4 @@ Ici on a vu **pourquoi** ces pixels bougent.
 - Compaction visible (`ContextCompacted`) et mémoire.
 
 Index : [README.md](README.md) · référence [ide-integration.md](../engine/ide-integration.md).
+

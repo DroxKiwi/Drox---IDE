@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Guide développeur — build, tests, où patcher
+﻿# Guide développeur — build, tests, où patcher
 
 ## Prérequis
 
@@ -64,3 +62,4 @@ Voir aussi smokes historiques sous `docs/0.0/operations/` et `docs/1.5/` (peuven
 ## Doc à tenir à jour
 
 Quand tu changes un comportement **observable** (gates, outils, RPC, phases) : mets à jour la page correspondante sous [`docs/engine/`](README.md) dans le même PR / commit doc si possible.
+

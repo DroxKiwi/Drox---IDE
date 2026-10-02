@@ -37,7 +37,16 @@ export interface IDroxCodebaseContextService {
 	setForceNextRun(force: boolean): void;
 	toggleForceNextRun(): void;
 	isAutoInjectEnabled(): boolean;
-	buildSystemSupplement(workspaceFsPath: string, query: string): Promise<string | undefined>;
+	buildSystemSupplement(
+		workspaceFsPath: string,
+		query: string,
+		opts?: IDroxCodebaseInjectOpts,
+	): Promise<string | undefined>;
+}
+
+export interface IDroxCodebaseInjectOpts {
+	/** When force is armed: editor-relative path prefixes (file + parent dir). */
+	readonly pathPrefixes?: readonly string[];
 }
 
 export class DroxCodebaseContextService extends Disposable implements IDroxCodebaseContextService {
@@ -86,7 +95,11 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 		return this.configurationService.getValue<boolean>(DroxSetting.CodebaseAutoInject) !== false;
 	}
 
-	async buildSystemSupplement(workspaceFsPath: string, query: string): Promise<string | undefined> {
+	async buildSystemSupplement(
+		workspaceFsPath: string,
+		query: string,
+		opts?: IDroxCodebaseInjectOpts,
+	): Promise<string | undefined> {
 		const t0 = Date.now();
 		const forced = this._forceNextRun;
 		if (forced) {
@@ -94,6 +107,9 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 		}
 		const auto = this.isAutoInjectEnabled();
 		const userMessage = query.trim();
+		const forcePathPrefixes = forced
+			? (opts?.pathPrefixes ?? []).map(p => p.replace(/\\/g, '/')).filter(Boolean)
+			: [];
 
 		if (!auto && !forced) {
 			this._recordInject({
@@ -127,6 +143,7 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 				ms: Date.now() - t0,
 				hits: [],
 				skip: 'empty_query',
+				forcePathPrefixes: forcePathPrefixes.length ? forcePathPrefixes : undefined,
 			});
 			return DROX_CODEBASE_RETRIEVAL_HINT;
 		}
@@ -148,8 +165,12 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 			return DROX_CODEBASE_RETRIEVAL_HINT;
 		}
 
-		// 2) Mechanical search from filter (fallback: raw message, no path heuristics)
+		// 2) Mechanical search from filter (fallback: raw message, no path heuristics).
+		// Force+editor prefixes win over model pathPrefixes when present.
 		const searchQuery = filter?.searchQuery?.trim() || userMessage;
+		const pathPrefixes = forcePathPrefixes.length
+			? forcePathPrefixes
+			: filter?.pathPrefixes;
 		let packText: string | undefined;
 		let usedHits: readonly IDroxCodebaseHit[] = [];
 		let skip: DroxCodebaseInjectSkip | undefined;
@@ -160,8 +181,8 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 				this.indexService.search(root, searchQuery, {
 					maxResults: maxHits,
 					includeLexical: true,
-					preferCodeFiles: filter?.preferCodeFiles === true,
-					pathPrefixes: filter?.pathPrefixes,
+					preferCodeFiles: filter?.preferCodeFiles === true || (forced && forcePathPrefixes.length > 0),
+					pathPrefixes,
 				}),
 				DROX_CODEBASE_INJECT_SEARCH_TIMEOUT_MS,
 			);
@@ -198,6 +219,7 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 			ms: Date.now() - t0,
 			hits: usedHits,
 			skip,
+			forcePathPrefixes: forcePathPrefixes.length ? forcePathPrefixes : undefined,
 		});
 
 		return mergeDroxSystemSupplements(DROX_CODEBASE_RETRIEVAL_HINT, packText);

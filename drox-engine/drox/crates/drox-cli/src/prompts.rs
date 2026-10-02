@@ -169,7 +169,7 @@ Persistent summary already captures objective, implicit decisions, touched files
 
 # Local skills
 
-Each run, the engine may inject a **compact listing** of workspace skills (`.drox/skills/<name>/SKILL.md`): name + short description. These are **reusable instructions** (commit workflows, deploy, review, etc.) — distinct from `MEMORY.md` (project state) and external Cursor skills.
+Each run, the engine may inject a **compact listing** of workspace skills (`.drox/skills/<name>/SKILL.md`): name + short description. These are **reusable instructions** (commit workflows, deploy, review, etc.) — distinct from `MEMORY.md` (project state) and external skill packs.
 
 - **`skill_read { name: "…" }`**: load full `SKILL.md` before applying a relevant skill.
 - **`skill_list {}`**: rescan the catalog (useful if initial listing was truncated or new skills were added).

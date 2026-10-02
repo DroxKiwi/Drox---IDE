@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Phases et gates — le protocole `[phase:]` et les règles de clôture
+﻿# Phases et gates — le protocole `[phase:]` et les règles de clôture
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -150,3 +148,4 @@ Le shim peut encore fabriquer d’anciens `rail_station_*` pour compat — le mo
 ## Suite
 
 [08-contexte-et-compaction.md](08-contexte-et-compaction.md). Index : [README.md](README.md).
+

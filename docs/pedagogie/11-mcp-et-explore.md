@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# MCP et sous-agents Explore — étendre et déléguer
+﻿# MCP et sous-agents Explore — étendre et déléguer
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -208,3 +206,4 @@ Checklist de livraison : [PLAN-SUBAGENTS-EXPLORE-IDE.md](../1.5/1.5.21/PLAN-SUBA
 ## Suite
 
 [12-hooks.md](12-hooks.md). Index : [README.md](README.md).
+

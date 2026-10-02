@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Parallélisme des outils — plusieurs lectures en même temps
+﻿# Parallélisme des outils — plusieurs lectures en même temps
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -134,3 +132,4 @@ Les événements `ToolStart`/`ToolFinish` peuvent s’**entrelacer** en parallè
 ## Suite
 
 [11-mcp-et-explore.md](11-mcp-et-explore.md). Index : [README.md](README.md).
+

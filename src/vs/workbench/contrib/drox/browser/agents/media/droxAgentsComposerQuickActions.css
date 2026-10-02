@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Cursor-style quick actions row above the chat composer input. */
+/* Quick actions row above the chat composer input. */
 .agent-sessions-workbench .drox-composer-quick-actions-host {
 	display: flex;
 	flex-wrap: wrap;

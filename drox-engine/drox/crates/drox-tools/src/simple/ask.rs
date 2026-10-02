@@ -65,7 +65,7 @@ pub struct AskQuestionItem {
     #[serde(default)]
     pub allow_multiple: bool,
     /// Permet à l'utilisateur de saisir un complément libre **en plus** des
-    /// options (Cursor → champ « Add more optional details »). Default
+    /// options (champ libre optionnel côté UI). Default
     /// `false`.
     #[serde(default)]
     pub allow_free_text: bool,

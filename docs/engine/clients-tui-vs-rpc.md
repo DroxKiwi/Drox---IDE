@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Clients : `drox --serve` vs `drox-tui`
+﻿# Clients : `drox --serve` vs `drox-tui`
 
 Le cœur `drox-engine` est **unique**. Deux façons de l’entraîner — même `Agent` / `drive_inner`, frontière I/O différente :
 
@@ -58,3 +56,4 @@ Le dépôt public **Drox---TUI** peut packager ce binaire séparément ; les sou
 2. Params `agent.run` (mode permission, `disabled_tools`, MCP).
 3. Client qui ne répond pas à `tool/exec` / `user/ask`.
 4. Shim qui transforme les événements — comparer le JSON brut `agent/event` et l’UI.
+

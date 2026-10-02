@@ -74,7 +74,7 @@ Remplace dans **General settings** les champs bruts *LLM provider* / *Server URL
 
 **Contraintes produit**
 
-- Pas Anthropic, pas OpenAI (société), pas de « géants US » dans le catalogue cloud initial.
+- Pas de backends cloud propriétaires fermés dans le catalogue initial (OpenAI-compatible et vendors catalogue OK).
 - Cloud : prestataires pertinents (Ollama cloud si applicable, Hugging Face, autres à valider).
 - Personnel : headers multiples, noms libres — le moteur les consomme (cf. `drox-cli` `collect_headers` / `LlmConfig`).
 - État connecté visible dans General settings (résumé + bouton « Modifier la connexion »).
@@ -267,7 +267,7 @@ Le shim émet encore `rail_station_*` pour compat — l’UI **1.5.1** peut les 
 | C1 | Wizard 3 étapes (cloud/perso → provider → formulaire) | fait |
 | C2 | Remplacer provider/URL/API key par « Connecter son IA » | fait |
 | C3 | Headers personnalisés (serveur perso) → moteur | fait |
-| C4 | Catalogue providers (hors géants US / Anthropic) | fait |
+| C4 | Catalogue providers (vendors catalogue + OpenAI-compatible) | fait |
 | C5 | Persistance + `agent.run` | fait |
 
 ---

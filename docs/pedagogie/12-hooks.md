@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Hooks — exécuter un script autour d’un outil
+﻿# Hooks — exécuter un script autour d’un outil
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -177,3 +175,4 @@ En dogfood : commence par un hook `echo` inoffensif pour valider le déclencheme
 
 [13-tui-vs-serve.md](13-tui-vs-serve.md) · [14-mode-professor.md](14-mode-professor.md)  
 Index : [README.md](README.md).
+

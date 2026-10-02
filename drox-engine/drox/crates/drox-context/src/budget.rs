@@ -32,7 +32,7 @@ pub struct WarningState {
 /// Configuration d'un budget de contexte.
 #[derive(Debug, Clone, Copy)]
 pub struct ContextBudget {
-    /// Taille brute de la fenêtre du modèle (200k pour Claude par défaut).
+    /// Taille brute de la fenêtre du modèle (200k tokens par défaut pour les grands contextes).
     pub window_size: usize,
     /// Tokens réservés pour la sortie du modèle (sommaire de compaction, etc.).
     pub reserved_output: usize,

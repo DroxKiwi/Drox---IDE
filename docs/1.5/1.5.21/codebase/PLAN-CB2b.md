@@ -1,4 +1,4 @@
-# Plan CB2b — Auto-index (type Cursor)
+# Plan CB2b — Auto-index (à l'ouverture + incrémental)
 
 **Parent** : [PLAN-CB2.md](PLAN-CB2.md) · [ARCHITECTURE.md](ARCHITECTURE.md) §9  
 **Suite** : [CB3 — tool agent](ARCHITECTURE.md) (après cette phase)  

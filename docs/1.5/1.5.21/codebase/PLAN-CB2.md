@@ -43,5 +43,5 @@ Sans feature : `embed.status.built = false` — IDE reste en lexical-only (CB1).
 
 ## Suite
 
-**CB2b** — auto-index type Cursor → [PLAN-CB2b.md](PLAN-CB2b.md)  
+**CB2b** — auto-index (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md)  
 Puis **CB2c** — découpage lisible → [PLAN-CB2c.md](PLAN-CB2c.md) · **avant** le tool agent CB3.

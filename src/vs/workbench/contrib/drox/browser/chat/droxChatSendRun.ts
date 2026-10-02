@@ -36,6 +36,8 @@ import {
 	resolveDroxPermissionMode,
 } from '../../common/droxPermissionAsk.js';
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
+import { IEditorService } from '../../../../services/editor/common/editorService.js';
+import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
 
 export interface IDroxChatSendRunHost {
 	post(message: DroxHostToWebviewMessage): void;
@@ -67,6 +69,7 @@ export async function executeDroxChatSend(
 		readonly sessionService: IDroxSessionService;
 		readonly sessionBackgroundService?: IDroxSessionBackgroundService;
 		readonly codebaseContextService?: IDroxCodebaseContextService;
+		readonly editorService?: IEditorService;
 	},
 	prompt: string,
 	mode: string,
@@ -191,6 +194,9 @@ export async function executeDroxChatSend(
 			logService: deps.logService,
 			fileService: deps.fileService,
 			codebaseContextService: deps.codebaseContextService,
+			resolveCodebaseForcePathPrefixes: deps.editorService
+				? wsPath => resolveDroxCodebaseForcePathPrefixesFromEditor(deps.editorService!, wsPath)
+				: undefined,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {
 			prompt: finalPrompt,

@@ -28,8 +28,8 @@ pub enum Content {
     /// Image attachée par l'utilisateur (input multimodal).
     ///
     /// `data` doit être la base64 *brute* (sans préfixe `data:...;base64,`).
-    /// `mime` est conservé pour les providers qui en ont besoin (`Anthropic`,
-    /// `OpenAI`). Ollama n'utilise que `data`.
+    /// `mime` est conservé pour les providers vision (protocole OpenAI-compatible).
+    /// Ollama n'utilise que `data`.
     Image { mime: String, data: String },
     /// Demande d'exécution d'un tool par l'assistant.
     ToolUse {

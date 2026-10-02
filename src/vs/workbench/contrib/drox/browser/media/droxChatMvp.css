@@ -1647,7 +1647,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	opacity: 0.96;
 }
 
-/* Liens fichier inline dans le fil (style Cursor) */
+/* Liens fichier inline dans le fil */
 .msg-ref-link {
 	display: inline-flex;
 	align-items: center;
@@ -2288,7 +2288,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	color: var(--vscode-errorForeground);
 }
 
-/* Shell command cards (outil bash — type Cursor) */
+/* Shell command cards (outil bash) */
 .drox-shell-card {
 	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
 	border-radius: var(--drox-chat-frame-radius);
@@ -3889,7 +3889,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	font-size: 11px;
 }
 
-/* Zone de saisie unifiée : liens fichier + textarea (style Cursor) */
+/* Zone de saisie unifiée : liens fichier + textarea */
 .prompt-editor {
 	display: flex;
 	flex-direction: column;
@@ -4367,7 +4367,7 @@ button:disabled {
 	flex: 1 1 auto;
 }
 
-/* --- To-dos (style Cursor) --- */
+/* --- To-dos --- */
 
 .msg-todos {
 	margin: 10px 0 14px;

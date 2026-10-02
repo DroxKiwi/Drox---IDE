@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Sessions et mémoire — ce qui survit après un tour
+﻿# Sessions et mémoire — ce qui survit après un tour
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -127,3 +125,4 @@ Chaque fichier porte date, slug, objectif une ligne — réinjectés au **démar
 ## Suite
 
 [10-parallelisme-outils.md](10-parallelisme-outils.md). Index : [README.md](README.md).
+

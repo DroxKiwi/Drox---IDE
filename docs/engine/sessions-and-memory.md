@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Sessions et mémoire
+﻿# Sessions et mémoire
 
 ## Idée centrale
 
@@ -86,3 +84,4 @@ Aucun compte cloud Drox n’est requis pour le cœur : tout reste **local** au p
 | Contexte / tokens | [`drox-context/`](../../drox-engine/drox/crates/drox-context/) |
 | Compaction | [`compaction.rs`](../../drox-engine/drox/crates/drox-engine/src/compaction.rs) |
 | RPC | [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) |
+

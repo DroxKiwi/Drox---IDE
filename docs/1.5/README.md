@@ -1,4 +1,4 @@
-# Ligne de version 1.5
+﻿# Ligne de version 1.5
 
 **Prérequis** : [1.4.2](../1.4/1.4.2/README.md) tag `v1.4.2` · refonte moteur **profonde**
 
@@ -27,7 +27,7 @@
 | [**1.5.15/**](1.5.15/README.md) | Hors workspace · Retry · carnet session | **Livré** · `v1.5.15` |
 | [**1.5.16/**](1.5.16/README.md) | Stabilisation modèle (hors-WS wiring · boucle write) | **Livré** · `v1.5.16` |
 | [**1.5.17/**](1.5.17/README.md) | Alignement enveloppe IDE ↔ contrat TUI + connexions LLM runtime | **Livré** |
-| [**1.5.18/**](1.5.18/README.md) | Reprise / hang IDE + stop-edit type Cursor | **Livré** · `v1.5.18` |
+| [**1.5.18/**](1.5.18/README.md) | Reprise / hang IDE + stop-edit UX agent compacte | **Livré** · `v1.5.18` |
 | [**1.5.19/**](1.5.19/README.md) | Badge branche + Git Graph natif Drox | **Livré** · `v1.5.19` |
 | [**1.5.20/**](1.5.20/README.md) | Stabilisation + historique + Changes IDE (multi-git) | **Ouvert** |
 | [**1.5.21/**](1.5.21/README.md) | `@Codebase` CB4/CB4b + shell discussion | **En cours** |

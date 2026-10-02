@@ -1,4 +1,4 @@
-# Implémentation 1.5.11 — Agents Window + moteur Drox
+﻿# Implémentation 1.5.11 — Agents Window + moteur Drox
 
 **Complément du** [PLAN-1.5.11.md](PLAN-1.5.11.md)  
 **Public** : développeurs, agents IA  
@@ -77,7 +77,7 @@ Agents Window (vs/sessions/)
 
 | Provider | Lignes (ordre de grandeur) | Pertinence Drox |
 |----------|----------------------------|-----------------|
-| `CopilotChatSessionsProvider` | ~2000 | Agent host + Claude SDK — **ne pas copier** |
+| `CopilotChatSessionsProvider` | ~2000 | Agent host + SDK agent host — **ne pas copier** |
 | `LocalChatSessionsProvider` | ~1200 | `IChatService` VS Code — **pas** le moteur Drox |
 | **À créer** `DroxSessionsProvider` | cible ~400–800 MVP | Branche sur `IDroxEngineService` |
 

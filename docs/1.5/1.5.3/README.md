@@ -1,4 +1,4 @@
-# Drox 1.5.3 — Diffs fil + UX chat
+﻿# Drox 1.5.3 — Diffs fil + UX chat
 
 **Statut** : **clôture code** (juin 2026) · branche `1.5.3` — tag `v1.5.3` à poser  
 **Prérequis** : [1.5.2](../1.5.2/CLOSURE-1.5.2.md) livrée (configuration moteur IDE)
@@ -18,7 +18,7 @@ Fil agent enrichi (**diffs fichier**, **undo/redo**, **cadres shell**), **UX mes
 | **D1** | Diffs fichier dans le fil + undo/redo | ✅ |
 | **U1** | Messages utilisateur (copie, style, expand, hint commit) | ✅ |
 | **U2** | Composer : textarea auto-grow | ✅ |
-| **T1** | Cadres commandes shell (type Cursor) | ✅ |
+| **T1** | Cadres commandes shell (UX agent compacte) | ✅ |
 | **TUI-1** | Style fil rétro (VT323, phosphore) | ✅ |
 | **W** | Patch WORK UI (smoke fil) | ~98 % (W5 partiel) |
 | **H** | Historique sessions (liste + rejeu UI) | Phase 1+2 ✅ |

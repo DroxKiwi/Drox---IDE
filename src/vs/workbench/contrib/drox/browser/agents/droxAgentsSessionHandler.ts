@@ -65,6 +65,8 @@ import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib
 import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 import { DROX_SESSION_HISTORY_LOAD_TIMEOUT_MS, DROX_SESSION_HISTORY_TRANSCRIPT_TIMEOUT_MS } from '../droxLoadingConstants.js';
 import { droxWorkspaceSessionsDir } from '../../common/droxWorkspacePaths.js';
+import { IEditorService } from '../../../../services/editor/common/editorService.js';
+import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
 
 /** Derniers tours user chargés à l'ouverture (évite un modèle chat géant en prod). */
 const DROX_AGENTS_SESSION_INITIAL_TAIL_TURNS = 25;
@@ -122,6 +124,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxSessionChangesBridge private readonly sessionChangesBridge: IDroxSessionChangesBridge,
 		@IDroxSessionBackgroundService private readonly sessionBackgroundService: IDroxSessionBackgroundService,
 		@IChatTodoListService private readonly chatTodoListService: IChatTodoListService,
+		@IEditorService private readonly editorService: IEditorService,
 	) {
 		super();
 		this._registerAgent();
@@ -385,6 +388,8 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			logService: this.logService,
 			fileService: this.fileService,
 			codebaseContextService: this.codebaseContextService,
+			resolveCodebaseForcePathPrefixes: ws =>
+				resolveDroxCodebaseForcePathPrefixesFromEditor(this.editorService, ws),
 		};
 
 		this._lastRunBySession.set(sessionKey, {

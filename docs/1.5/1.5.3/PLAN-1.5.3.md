@@ -1,4 +1,4 @@
-# Plan 1.5.3 — Diffs fil + UX utilisateur + splash phosphore
+﻿# Plan 1.5.3 — Diffs fil + UX utilisateur + splash phosphore
 
 **Version** : juin 2026  
 **Base** : [1.5.2](../1.5.2/PLAN-1.5.2.md) · moteur `tui_mono` · shim RPC  
@@ -27,7 +27,7 @@
 | Sujet | Décision |
 |-------|----------|
 | Option C (aperçu fichier avant écriture) | Abandonnée — cartes `fileChange` à `tool_finish` + undo/redo carte conservés |
-| Edit & resend (type Cursor) | Hors scope — le dev commit manuellement |
+| Edit & resend (UX agent compacte) | Hors scope — le dev commit manuellement |
 | Bouton **Restore here** sur messages | Retiré de l’UI (backend `revertToMessage` conservé) |
 | Hint commit | Au-dessus de chaque message user : *Commit regularly — the agent can make mistakes.* |
 | Expand message user long | Inline dans le fil (plus de popup) |
@@ -44,7 +44,7 @@
 | Undo / redo des edits agent dans le fil | Index / graphe repo |
 | Copie rapide + style messages user | Refonte workbench VS Code |
 | Composer qui grandit avec le texte | Nouveaux champs RPC moteur |
-| **Cadres shell** (commande + sortie type Cursor) | Refonte workbench VS Code |
+| **Cadres shell** (commande + sortie UX agent compacte) | Refonte workbench VS Code |
 | **Style TUI** fil discussion (VT323, phosphore) | Splash boot phosphore IDE (**A1**, reporté) |
 | Historique sessions (liste + rejeu UI) | Titres archives dérivés transcript (**H1**) |
 | Animation de lancement IDE (splash phosphore TUI, spec `animation-start/`) | Signature Authenticode (**1.5.4**) |
@@ -106,7 +106,7 @@ Le moteur et les outils IDE produisent des diffs (`unifiedDiff`, event `fileChan
 
 ---
 
-## T1 — Cadres commandes shell (type Cursor)
+## T1 — Cadres commandes shell (UX agent compacte)
 
 Afficher les appels outil **`bash`** (shell Windows PowerShell / Linux bash) dans un **cartouche dédié** : en-tête lisible, commande monospace avec préfixe `$`, sortie stdout/stderr dans le même cadre, badge exit code / erreur — plutôt que le bloc générique `<details class="msg-tool">` + JSON brut.
 
@@ -157,7 +157,7 @@ Parité TUI : le moteur formate déjà les lignes bash dans `drox-tui/src/view/b
 - [x] **T1-6** — Replay session : même rendu après rechargement onglet
 - [x] **T1-7** — Smoke : `bash` ok / erreur / sortie longue
 
-**Critère** : run agent avec `git status` ou `dir` → carte type Cursor dans le fil → sortie lisible sans JSON → état erreur visible si exit ≠ 0.
+**Critère** : run agent avec `git status` ou `dir` → carte UX agent compacte dans le fil → sortie lisible sans JSON → état erreur visible si exit ≠ 0.
 
 **Fichiers** : `stream/tools/shellCard.js`, `logTools.js`, `tool-events.js`, `droxShellToolWire.ts`, `droxToolPreview.ts`, `droxChatMvp.css`, `chronology.js`, `droxSessionReplay.ts`.
 
@@ -306,7 +306,7 @@ Corrections visuelles du fil **WORK** détectées en smoke — **webview uniquem
 | D1 | Diffs + undo/redo | smoke mutation + revert | ✅ |
 | U1 | UX user messages | copie · style · expand · hint commit | ✅ |
 | U2 | Composer | auto-grow 2–12 lignes · pleine largeur | ✅ |
-| T1 | Cadres shell | carte commande + sortie type Cursor | ✅ |
+| T1 | Cadres shell | carte commande + sortie UX agent compacte | ✅ |
 | TUI-1 | Style fil rétro | VT323 · phosphore · flush sash | ✅ |
 | W | Patch WORK UI | W1–W4, W6 + scroll + hotfixes strip | ~98 % |
 | H | Historique sessions | liste propre + rejeu full | Phase 1+2 ✅ |

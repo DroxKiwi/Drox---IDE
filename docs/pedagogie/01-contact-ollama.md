@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Comment Drox parle à Ollama — lire le Rust ligne à ligne
+﻿# Comment Drox parle à Ollama — lire le Rust ligne à ligne
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -625,3 +623,4 @@ Ce guide est le **socle** de la série pédagogique. La suite, dans le même esp
 | [04-moteur-et-affichage.md](04-moteur-et-affichage.md) | Du flux Rust aux bulles dans l’IDE |
 
 Index de la série : [README.md](README.md).
+

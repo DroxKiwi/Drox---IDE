@@ -1,4 +1,4 @@
-# Implémentation F1 — Stop / restore / edit (type Cursor)
+﻿# Implémentation F1 — Stop / restore / edit (UX agent compacte)
 
 **Version** : 1.5.18 · **Date** : 2026-07-22  
 **Plan** : [PLAN-SESSION-RESUME.md](PLAN-SESSION-RESUME.md)

@@ -126,7 +126,7 @@ impl std::fmt::Debug for TiktokenCounter {
 }
 
 impl TiktokenCounter {
-    /// `cl100k_base` (GPT-3.5/4, Claude approximatif).
+    /// `cl100k_base` (GPT-3.5/4 approximatif).
     pub fn cl100k_base() -> Result<Self, ContextError> {
         let bpe =
             tiktoken_rs::cl100k_base().map_err(|e| ContextError::TokenizerInit(e.to_string()))?;

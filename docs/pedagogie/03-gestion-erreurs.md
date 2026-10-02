@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Quand ça échoue — `Result`, `?` et les erreurs dans Drox
+﻿# Quand ça échoue — `Result`, `?` et les erreurs dans Drox
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -215,3 +213,4 @@ Trois façons différentes de **finir** un run — l’UI peut les afficher diff
 - Référence : [jsonrpc-protocol.md](../engine/jsonrpc-protocol.md) (`agent/done` avec `status`).
 
 Index : [README.md](README.md).
+

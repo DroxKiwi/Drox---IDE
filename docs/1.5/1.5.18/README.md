@@ -1,4 +1,4 @@
-# 1.5.18 — Stabilité chat + stop/edit Cursor-like
+﻿# 1.5.18 — Stabilité chat + stop/edit Cursor-like
 
 **Statut** : **clôturé** · ship OR `v1.5.18`  
 **Version** : `droxVersion` **1.5.18**
@@ -19,4 +19,4 @@
 | # | Sujet | Statut |
 |---|--------|--------|
 | A/B | Hang IDE + reprise cold boot | ✅ |
-| C | Stop / restore / edit type Cursor | ✅ |
+| C | Stop / restore / edit UX agent compacte | ✅ |

@@ -277,7 +277,7 @@
    *
    * Le moteur Rust émet des `phase_enter` (`internal_reasoning`, `reading`,
    * `planning`, `acting`, `verifying`, `clarifying`, `answering`, `done`) que la webview
-   * matérialise comme blocs collapsibles type Cursor « Thought for 1s ».
+   * matérialise comme blocs collapsibles « Thought for 1s ».
    * Toutes les sorties (texte streaming, tool blocks) qui suivent un
    * `phase_enter` non-done sont insérées **à l'intérieur** du bloc de phase
    * courant ; un `phase_enter: done` ferme la phase active et bascule la
@@ -1455,7 +1455,7 @@
     assistantEl.appendChild(renderMarkdown(assistantEl.dataset.raw));
     // Si on est dans la phase de réflexion (cadre à hauteur fixée par CSS),
     // on auto-scroll le corps vers le bas pour que les nouvelles pensées
-    // restent visibles, comme Cursor.
+    // restent visibles.
     if (
       currentPhaseBodyEl &&
       currentPhaseEl &&
@@ -1483,7 +1483,7 @@
   const toolBlocks = new Map();
 
   /**
-   * Construit le DOM des lignes de diff (style "Cursor") à partir d'une
+   * Construit le DOM des lignes de diff à partir d'une
    * diff unifiée. Si pas de diff (file_write d'un fichier neuf), on rend
    * `content` comme tout-ajouté.
    *
@@ -1669,7 +1669,7 @@
   /**
    * Crée (ou réutilise) le bloc to-do dans le log et le remplit avec les
    * items reçus. Un seul bloc par conversation : c'est l'UX "carte qui
-   * s'update" inspirée de Cursor. Met aussi à jour le sticky compact.
+   * s'update". Met aussi à jour le sticky compact.
    */
   function renderTodos(items) {
     if (!Array.isArray(items) || items.length === 0) {

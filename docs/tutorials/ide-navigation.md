@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Tutoriel — naviguer dans l’interface Drox IDE
+﻿# Tutoriel — naviguer dans l’interface Drox IDE
 
 Guide **utilisateur / contributeur UI** : où trouver les surfaces Drox dans le workbench.  
 Ce n’est **pas** la doc du moteur Rust — pour ça : [`docs/engine/`](../engine/README.md).
@@ -81,3 +79,4 @@ Cherche : `Drox:` — exemples typiques selon build :
 - Parcours « premier run Ollama de A à Z ».
 - Différences chat natif vs webview legacy si encore présentes.
 - Raccourcis clavier exacts de la build courante.
+
