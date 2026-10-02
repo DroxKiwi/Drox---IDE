@@ -144,7 +144,7 @@ suite('Drox — droxAgentRunBridge', () => {
 				};
 			},
 			regulationService: {
-				getModule: lever => (lever === 'L1' ? 'minimal' : lever === 'L3' ? 'laissez-faire' : 'standard'),
+				getModule: lever => (lever === 'L1' ? 'minimal' : lever === 'L3' ? 'laissez-faire' : lever === 'L4' ? 'soft' : 'standard'),
 			},
 		});
 		await startDroxAgentRun(deps, {
@@ -171,7 +171,7 @@ suite('Drox — droxAgentRunBridge', () => {
 				};
 			},
 			regulationService: {
-				getModule: lever => (lever === 'L3' ? 'assertive' : 'standard'),
+				getModule: lever => (lever === 'L3' ? 'assertive' : lever === 'L4' ? 'soft' : 'standard'),
 			},
 		});
 		await startDroxAgentRun(deps, {
@@ -182,6 +182,34 @@ suite('Drox — droxAgentRunBridge', () => {
 			system: 'notes',
 		});
 		assert.ok(capturedSystem && /Anti-rumination/i.test(capturedSystem));
+		assert.ok(capturedSystem!.includes('notes'));
+	});
+
+	test('startDroxAgentRun injects strict L4 protocol into system', async () => {
+		let capturedSystem: string | undefined;
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => {
+				capturedSystem = opts.system;
+				return {
+					prompt: opts.prompt,
+					workspace: opts.workspace,
+					mode: opts.mode,
+					sessionId: opts.sessionId,
+					system: opts.system,
+				};
+			},
+			regulationService: {
+				getModule: lever => (lever === 'L4' ? 'strict' : lever === 'L3' ? 'laissez-faire' : 'standard'),
+			},
+		});
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l4',
+			system: 'notes',
+		});
+		assert.ok(capturedSystem && /Strict protocol/i.test(capturedSystem));
 		assert.ok(capturedSystem!.includes('notes'));
 	});
 

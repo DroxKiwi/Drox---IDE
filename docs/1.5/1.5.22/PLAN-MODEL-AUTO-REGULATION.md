@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0–R8 ✅** · R9+ (§9)  
+**Statut** : 📋 cadrage · **R0–R9 ✅** · R10+ (§9)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -195,7 +195,7 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 | **R6** | **Wrapper L1** Context budget | ✅ inject Codebase (`maxChars`/`maxHits`) + session notes truncate/omit via `getModule('L1')` |
 | **R7** | **Wrapper L2** Tool surface | ✅ allowlist `core`/`standard`/`full` → `disabledTools` + executable filter |
 | **R8** | **Wrapper L3** Directive density | ✅ annex system `laissez-faire` (omit) / `guided` / `assertive` via `getModule('L3')` |
-| **R9** | **Wrapper L4** Protocol strictness | idem |
+| **R9** | **Wrapper L4** Protocol strictness | ✅ annex system `soft` (omit) / `normal` / `strict` via `getModule('L4')` |
 | **R10** | **Wrapper L5** Retrieval posture | idem |
 | **R11** | **Policy Auto** branchée (note → module) + dogfood multi-modèles + polish console | Critères §6 OK |
 | **R12** | **Pass docs fin de maj** : relire et mettre à jour / compléter la documentation au regard de **1.5.21 + 1.5.22** (pédagogie, `docs/engine`, README 1.5.x, CLOSURE, surface utilisateur) | Docs alignées sur le livré ; plus de mentions obsolètes (ex. Explore « depuis 1.5.21 » si non câblé, OR releases, etc.) |
@@ -208,5 +208,5 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 
 ## 10. Suite immédiate
 
-1. ~~Cadrage~~ · ~~**R0–R8**~~.  
-2. Démarrer **R9** (wrapper L4 Protocol strictness) uniquement.
+1. ~~Cadrage~~ · ~~**R0–R9**~~.  
+2. Démarrer **R10** (wrapper L5 Retrieval posture) uniquement.
