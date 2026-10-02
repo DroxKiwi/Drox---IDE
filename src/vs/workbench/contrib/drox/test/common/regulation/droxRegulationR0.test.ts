@@ -4,7 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
+import { Schemas } from '../../../../../../base/common/network.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
+import { FileService } from '../../../../../../platform/files/common/fileService.js';
+import { InMemoryFileSystemProvider } from '../../../../../../platform/files/common/inMemoryFilesystemProvider.js';
+import { NullLogService } from '../../../../../../platform/log/common/log.js';
 import { DroxRegulationService } from '../../../common/regulation/droxRegulationService.js';
 import {
 	createDefaultRegulationSurfaceState,
@@ -15,7 +19,7 @@ import {
 } from '../../../common/regulation/droxRegulationTypes.js';
 
 suite('Drox regulation R0', () => {
-	ensureNoDisposablesAreLeakedInTestSuite();
+	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('lever ids and default modules are complete', () => {
 		assert.deepStrictEqual([...DROX_REGULATION_LEVER_IDS], ['L1', 'L2', 'L3', 'L4', 'L5']);
@@ -29,8 +33,12 @@ suite('Drox regulation R0', () => {
 		assert.strictEqual(droxRegulationModelKey(' Ollama ', 'qwen2.5'), 'ollama::qwen2.5');
 	});
 
-	test('stub service returns defaults and empty history', () => {
-		const svc = new DroxRegulationService();
+	test('service returns defaults and empty history', () => {
+		const log = new NullLogService();
+		const fileService = store.add(new FileService(log));
+		const provider = store.add(new InMemoryFileSystemProvider());
+		store.add(fileService.registerProvider(Schemas.file, provider));
+		const svc = store.add(new DroxRegulationService(fileService, log));
 		const state = createDefaultRegulationSurfaceState();
 		assert.strictEqual(svc.getModule('L1'), state.L1.module);
 		assert.strictEqual(svc.getModule('L2'), 'standard');
@@ -38,6 +46,5 @@ suite('Drox regulation R0', () => {
 		assert.strictEqual(scores.samples, 0);
 		assert.strictEqual(scores.globalScore, 50);
 		assert.strictEqual(svc.list().length, 0);
-		svc.dispose();
 	});
 });

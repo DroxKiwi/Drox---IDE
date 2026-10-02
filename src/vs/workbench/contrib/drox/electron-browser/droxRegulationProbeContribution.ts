@@ -8,6 +8,7 @@ import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 
 import { isDroxAgentsWindowRun } from '../common/droxAgentsActiveRuns.js';
 import { IDroxChatSessionService } from '../common/droxChatSessionService.js';
 import { IDroxEngineService } from '../common/droxEngineService.js';
+import { droxRegulationPromptExcerptFromMessages } from '../common/regulation/droxRegulationHistoryStore.js';
 import { buildDroxRegulationRunSignals } from '../common/regulation/droxRegulationRunSignals.js';
 import { IDroxRegulationService } from '../common/regulation/droxRegulationServiceContract.js';
 import { droxRegulationModelKey } from '../common/regulation/droxRegulationTypes.js';
@@ -49,6 +50,7 @@ class DroxRegulationProbeContribution extends Disposable implements IWorkbenchCo
 		let messages;
 		if (sessionId && workspace) {
 			try {
+				await this.regulationService.ensureHistoryLoaded(workspace);
 				const read = await this.sessionService.readSession(sessionId, workspace);
 				engineTrace = read.engineTrace;
 				uiStats = read.uiStats;
@@ -64,7 +66,15 @@ class DroxRegulationProbeContribution extends Disposable implements IWorkbenchCo
 			uiStats,
 			messages,
 		});
-		this.regulationService.recordRunSignals(modelKey, signals);
+		this.regulationService.recordRun({
+			modelKey,
+			signals,
+			sessionId,
+			runId,
+			promptExcerpt: droxRegulationPromptExcerptFromMessages(messages),
+			workspaceRootFsPath: workspace,
+			issueDetail: typeof p?.error === 'string' ? p.error.slice(0, 240) : undefined,
+		});
 	}
 }
 
