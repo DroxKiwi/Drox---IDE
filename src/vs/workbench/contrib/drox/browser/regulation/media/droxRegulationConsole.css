@@ -146,3 +146,82 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+
+.drox-regulation-charts {
+	margin: 0 0 12px 0;
+}
+
+.drox-regulation-chart-label {
+	margin: 6px 0 4px 0;
+	font-size: 11px;
+	font-weight: 600;
+	opacity: 0.9;
+}
+
+.drox-regulation-spark-svg {
+	display: block;
+	max-width: 100%;
+	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.08));
+	border-radius: 3px;
+}
+
+.drox-regulation-spark-baseline {
+	stroke: var(--vscode-panel-border, rgba(128, 128, 128, 0.45));
+	stroke-width: 1;
+	stroke-dasharray: 3 3;
+}
+
+.drox-regulation-spark-line {
+	fill: none;
+	stroke: var(--vscode-charts-blue, var(--vscode-focusBorder, #007acc));
+	stroke-width: 1.75;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+
+.drox-regulation-issue-bar {
+	display: flex;
+	height: 10px;
+	border-radius: 3px;
+	overflow: hidden;
+	background: rgba(127, 127, 127, 0.15);
+	margin: 4px 0;
+}
+
+.drox-regulation-issue-seg {
+	min-width: 2px;
+	height: 100%;
+}
+
+.drox-regulation-issue-seg.is-ok {
+	background: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-regulation-issue-seg.is-error,
+.drox-regulation-issue-seg.is-loop {
+	background: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.drox-regulation-issue-seg.is-cancel {
+	background: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.drox-regulation-issue-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	font-size: 11px;
+}
+
+.drox-regulation-issue-legend-item.is-ok {
+	color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-regulation-issue-legend-item.is-error,
+.drox-regulation-issue-legend-item.is-loop {
+	color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.drox-regulation-issue-legend-item.is-cancel {
+	color: var(--vscode-editorWarning-foreground, #cca700);
+}
