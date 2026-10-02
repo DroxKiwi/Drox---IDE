@@ -16,12 +16,15 @@ import {
 	applyDroxRegulationL1InjectBudget,
 	asDroxRegulationL1Module,
 } from '../regulation/droxRegulationL1Budget.js';
+import {
+	asDroxRegulationL5Module,
+	droxRegulationL5RetrievalHint,
+} from '../regulation/droxRegulationL5Retrieval.js';
 import { IDroxRegulationService } from '../regulation/droxRegulationServiceContract.js';
 import {
 	DROX_CODEBASE_AUTO_INJECT_DEFAULT_MAX_CHARS,
 	DROX_CODEBASE_AUTO_INJECT_DEFAULT_MAX_HITS,
 	DROX_CODEBASE_FORCE_INJECT_MAX_HITS,
-	DROX_CODEBASE_RETRIEVAL_HINT,
 	formatDroxCodebaseContextBlock,
 	mergeDroxSystemSupplements,
 } from './droxCodebaseContextPack.js';
@@ -101,6 +104,11 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 		return this.configurationService.getValue<boolean>(DroxSetting.CodebaseAutoInject) !== false;
 	}
 
+	private _retrievalHint(): string | undefined {
+		const l5 = asDroxRegulationL5Module(this.regulationService.getModule('L5'));
+		return droxRegulationL5RetrievalHint(l5);
+	}
+
 	async buildSystemSupplement(
 		workspaceFsPath: string,
 		query: string,
@@ -129,7 +137,7 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 				hits: [],
 				skip: 'disabled',
 			});
-			return DROX_CODEBASE_RETRIEVAL_HINT;
+			return this._retrievalHint();
 		}
 
 		const maxCharsRaw = this.configurationService.getValue<number>(DroxSetting.CodebaseAutoInjectMaxChars);
@@ -156,7 +164,7 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 				skip: 'empty_query',
 				forcePathPrefixes: forcePathPrefixes.length ? forcePathPrefixes : undefined,
 			});
-			return DROX_CODEBASE_RETRIEVAL_HINT;
+			return this._retrievalHint();
 		}
 
 		// 1) Comprehension (English model question) → structured filter
@@ -173,7 +181,7 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 				hits: [],
 				skip: 'model_skip',
 			});
-			return DROX_CODEBASE_RETRIEVAL_HINT;
+			return this._retrievalHint();
 		}
 
 		// 2) Mechanical search from filter (fallback: raw message, no path heuristics).
@@ -233,7 +241,7 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 			forcePathPrefixes: forcePathPrefixes.length ? forcePathPrefixes : undefined,
 		});
 
-		return mergeDroxSystemSupplements(DROX_CODEBASE_RETRIEVAL_HINT, packText);
+		return mergeDroxSystemSupplements(this._retrievalHint(), packText);
 	}
 
 	private _recordInject(rec: IDroxCodebaseLastInject): void {

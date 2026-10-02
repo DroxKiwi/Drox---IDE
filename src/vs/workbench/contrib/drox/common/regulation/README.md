@@ -29,6 +29,7 @@ common/regulation/
   droxRegulationL2Surface.ts  # R7 L2 tool surface allowlists + apply helpers
   droxRegulationL3Directive.ts # R8 L3 directive density annexes
   droxRegulationL4Protocol.ts # R9 L4 protocol strictness annexes
+  droxRegulationL5Retrieval.ts # R10 L5 retrieval posture hints
   droxRegulationServiceContract.ts  # IDroxRegulationService (DI unique)
   droxRegulationService.ts    # probe + history R2
 
@@ -54,7 +55,7 @@ browser/regulation/           # console UI (R3+)
 | **R7** | Wrapper L2 Tool surface — **allowlist tools → disabledTools / executable** |
 | **R8** | Wrapper L3 Directive density — **annex system guided/assertive** |
 | **R9** | Wrapper L4 Protocol strictness — **annex todo/phase soft/normal/strict** |
-| **R10** | Wrapper L5 Retrieval posture |
+| **R10** | Wrapper L5 Retrieval posture — **hint Codebase passive/nudge/aggressive** |
 | **R11** | Policy Auto |
 | **R12** | Pass docs fin de maj |
 
