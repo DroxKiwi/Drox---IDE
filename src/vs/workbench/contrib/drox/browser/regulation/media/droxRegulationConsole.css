@@ -44,7 +44,7 @@
 
 .drox-regulation-lever {
 	display: grid;
-	grid-template-columns: 28px 1fr 36px 40px minmax(72px, auto);
+	grid-template-columns: 28px minmax(72px, 1fr) 36px 40px minmax(88px, 110px) auto;
 	gap: 6px;
 	align-items: center;
 	padding: 4px 6px;
@@ -83,6 +83,25 @@
 	font-size: 11px;
 	opacity: 0.8;
 	text-align: right;
+}
+
+.drox-regulation-module-select {
+	max-width: 110px;
+	font-size: 11px;
+}
+
+.drox-regulation-auto-btn {
+	cursor: pointer;
+	font-size: 10px;
+	padding: 2px 6px;
+	white-space: nowrap;
+	opacity: 0.85;
+}
+
+.drox-regulation-auto-btn.is-on {
+	opacity: 1;
+	font-weight: 600;
+	border-color: var(--vscode-focusBorder, #007acc);
 }
 
 .drox-regulation-history-list {

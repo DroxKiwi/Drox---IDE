@@ -23,6 +23,7 @@ common/regulation/
   droxRegulationScorer.ts     # formules v0 L1–L5
   droxRegulationScoreAggregate.ts
   droxRegulationScoreBand.ts
+  droxRegulationSurfaceStore.ts # `.drox/regulation/surface.json`
   droxRegulationCharts.ts      # séries + sparkline points (R4)
   droxRegulationServiceContract.ts  # IDroxRegulationService (DI unique)
   droxRegulationService.ts    # probe + history R2
@@ -44,7 +45,7 @@ browser/regulation/           # console UI (R3+)
 | **R2** | History store `.drox/regulation/history.json` |
 | **R3** | Console observatoire (leviers + histo) sous Embed — sans Auto |
 | **R4** | Graphiques (sparkline globale + barre issues) |
-| **R5** | Overrides UI (module + Auto) |
+| **R5** | Overrides UI (module + Auto) — state persisté, pas encore de wrap |
 | **R6–R10** | Wrappers L1–L5 |
 | **R11** | Policy Auto |
 | **R12** | Pass docs fin de maj |

@@ -18,10 +18,17 @@ import { scoreRegulationGlobal, scoreRegulationRun } from './droxRegulationScore
 import { IDroxRegulationRunRecord, IDroxRegulationService } from './droxRegulationServiceContract.js';
 import { IDroxRegulationRunSignals } from './droxRegulationRunSignals.js';
 import {
+	droxRegulationModulesFromSurface,
+	droxRegulationReadSurface,
+	droxRegulationWriteSurface,
+	withLeverMode,
+	withLeverModule,
+} from './droxRegulationSurfaceStore.js';
+import {
 	createDefaultRegulationSurfaceState,
 	createEmptyLeverScores,
-	DROX_REGULATION_DEFAULT_MODULES,
 	DroxRegulationLeverId,
+	DroxRegulationLeverMode,
 	DroxRegulationModule,
 	DroxRegulationSurfaceState,
 	IDroxRegulationHistoryEntry,
@@ -29,8 +36,8 @@ import {
 } from './droxRegulationTypes.js';
 
 /**
- * R2: in-memory scores + history persisted under `.drox/regulation/history.json`.
- * Surface = defaults until R5.
+ * R5: scores + history + persisted surface (mode/module per lever).
+ * Auto policy apply = R11; wrappers = R6+.
  */
 export class DroxRegulationService extends Disposable implements IDroxRegulationService {
 
@@ -78,7 +85,7 @@ export class DroxRegulationService extends Disposable implements IDroxRegulation
 			promptExcerpt: record.promptExcerpt || '',
 			modelKey: key,
 			workspaceRootFsPath: record.workspaceRootFsPath,
-			modules: { ...DROX_REGULATION_DEFAULT_MODULES },
+			modules: droxRegulationModulesFromSurface(this._surface),
 			leverScores: {
 				L1: run.L1,
 				L2: run.L2,
@@ -105,7 +112,6 @@ export class DroxRegulationService extends Disposable implements IDroxRegulation
 		}
 	}
 
-	/** Await pending history writes (tests / shutdown). */
 	async whenHistoryIdle(): Promise<void> {
 		await this._persistChain;
 	}
@@ -115,10 +121,15 @@ export class DroxRegulationService extends Disposable implements IDroxRegulation
 		if (!ws || this._loadedWorkspace === ws) {
 			return;
 		}
-		const entries = await droxRegulationReadHistory(this.fileService, ws);
+		const [entries, surface] = await Promise.all([
+			droxRegulationReadHistory(this.fileService, ws),
+			droxRegulationReadSurface(this.fileService, ws),
+		]);
 		this._history = [...entries];
+		this._surface = surface;
 		this._loadedWorkspace = ws;
 		this._onDidChangeHistory.fire();
+		this._onDidChangeSurface.fire();
 	}
 
 	getScores(modelKey: string): IDroxRegulationScoreSnapshot {
@@ -157,6 +168,39 @@ export class DroxRegulationService extends Disposable implements IDroxRegulation
 
 	getModule(lever: DroxRegulationLeverId): DroxRegulationModule {
 		return this._surface[lever].module;
+	}
+
+	setLeverMode(lever: DroxRegulationLeverId, mode: DroxRegulationLeverMode): void {
+		if (this._surface[lever].mode === mode) {
+			return;
+		}
+		this._surface = withLeverMode(this._surface, lever, mode);
+		this._onDidChangeSurface.fire();
+		this._scheduleSurfacePersist();
+	}
+
+	setLeverModule(lever: DroxRegulationLeverId, module: DroxRegulationModule): void {
+		const next = withLeverModule(this._surface, lever, module);
+		if (!next) {
+			return;
+		}
+		if (next[lever].module === this._surface[lever].module && next[lever].mode === this._surface[lever].mode) {
+			return;
+		}
+		this._surface = next;
+		this._onDidChangeSurface.fire();
+		this._scheduleSurfacePersist();
+	}
+
+	private _scheduleSurfacePersist(): void {
+		const ws = this._loadedWorkspace;
+		if (!ws) {
+			return;
+		}
+		const snapshot = this._surface;
+		this._persistChain = this._persistChain.then(() => droxRegulationWriteSurface(this.fileService, ws, snapshot)).catch(err => {
+			this.logService.warn('[Drox regulation] surface persist failed', err);
+		});
 	}
 
 	private async _writeHistory(workspaceRootFsPath: string): Promise<void> {

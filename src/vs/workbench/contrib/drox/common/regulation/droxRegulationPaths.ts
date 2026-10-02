@@ -15,3 +15,7 @@ export function droxRegulationDir(workspaceRootFsPath: string): string {
 export function droxRegulationHistoryPath(workspaceRootFsPath: string): string {
 	return join(droxRegulationDir(workspaceRootFsPath), 'history.json');
 }
+
+export function droxRegulationSurfacePath(workspaceRootFsPath: string): string {
+	return join(droxRegulationDir(workspaceRootFsPath), 'surface.json');
+}
