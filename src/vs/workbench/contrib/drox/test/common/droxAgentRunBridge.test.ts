@@ -23,6 +23,7 @@ function createBridgeDeps(overrides: {
 	request?: (method: string, params?: unknown) => Promise<unknown>;
 	filterExecutableTools?: (names: readonly string[]) => string[];
 	buildAgentRunParams?: IDroxRunSettingsService['buildAgentRunParams'];
+	regulationService?: IDroxAgentRunBridgeDeps['regulationService'];
 } = {}): IDroxAgentRunBridgeDeps {
 	const requests: { method: string; params?: unknown }[] = [];
 	const clientToolsService = {
@@ -56,6 +57,7 @@ function createBridgeDeps(overrides: {
 		runSettingsService,
 		droxEngineService,
 		logService,
+		regulationService: overrides.regulationService,
 		_requests: requests,
 	} as IDroxAgentRunBridgeDeps & { _requests: { method: string; params?: unknown }[] };
 }
@@ -87,7 +89,7 @@ suite('Drox — droxAgentRunBridge', () => {
 		assert.strictEqual(runId, 'run_test_1');
 		const runCall = deps._requests.find(r => r.method === 'agent.run');
 		assert.ok(runCall);
-		assert.strictEqual((runCall!.params as { prompt?: string }).prompt, 'hello');
+		assert.strictEqual((runCall!.params as { prompt?: string }).prompt, '  hello  ');
 	});
 
 	test('startDroxAgentRun injects one-shot plan archive system note', async () => {
@@ -126,6 +128,33 @@ suite('Drox — droxAgentRunBridge', () => {
 			system: 'existing notes',
 		});
 		assert.strictEqual(capturedSystem, 'existing notes');
+	});
+
+	test('startDroxAgentRun omits session notes when L1 is minimal', async () => {
+		let capturedSystem: string | undefined;
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => {
+				capturedSystem = opts.system;
+				return {
+					prompt: opts.prompt,
+					workspace: opts.workspace,
+					mode: opts.mode,
+					sessionId: opts.sessionId,
+					system: opts.system,
+				};
+			},
+			regulationService: {
+				getModule: () => 'minimal',
+			},
+		});
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l1',
+			system: 'session notes body',
+		});
+		assert.strictEqual(capturedSystem, undefined);
 	});
 
 	test('startDroxAgentRun returns undefined when engine omits runId', async () => {
