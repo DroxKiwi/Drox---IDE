@@ -24,7 +24,10 @@ if ($arch -eq 'ARM64') {
 
 $binName = 'drox.exe'
 $targetDir = if ($Profile -eq 'release') { 'release' } else { 'debug' }
-$built = Join-Path $droxCrateRoot "target\$targetDir\$binName"
+# Pin target dir: agent/sandbox shells may redirect CARGO_TARGET_DIR to a cache,
+# which would leave the repo target/ stale while package-drox copies the old binary.
+$env:CARGO_TARGET_DIR = Join-Path $droxCrateRoot 'target'
+$built = Join-Path $env:CARGO_TARGET_DIR "$targetDir\$binName"
 
 $cargoArgs = if ($Profile -eq 'release') { @('build', '--release', '-p', 'drox-cli') } else { @('build', '-p', 'drox-cli') }
 if ($Profile -eq 'release') {
@@ -55,7 +58,7 @@ $dest = Join-Path $destDir $binName
 Copy-Item -Force $built $dest
 Write-Host "[package-drox] OK -> $dest"
 
-# Ship default MiniLM GGUF next to the engine (inherent to the app — no user download).
+# Ship default MiniLM GGUF next to the engine (inherent to the app - no user download).
 $modelsSrc = Join-Path $repoRoot 'drox-engine\models\all-MiniLM-L6-v2.Q4_K_M.gguf'
 $modelsDestDir = Join-Path $repoRoot 'resources\drox\models'
 $modelsDest = Join-Path $modelsDestDir 'all-MiniLM-L6-v2.Q4_K_M.gguf'
@@ -64,5 +67,5 @@ if (Test-Path $modelsSrc) {
 	Copy-Item -Force $modelsSrc $modelsDest
 	Write-Host "[package-drox] embed model OK -> $modelsDest"
 } else {
-	Write-Warning "[package-drox] MiniLM GGUF missing at $modelsSrc — run scripts/fetch-drox-embed-model.ps1 before shipping (users must not download this)."
+	Write-Warning "[package-drox] MiniLM GGUF missing at $modelsSrc - run scripts/fetch-drox-embed-model.ps1 before shipping (users must not download this)."
 }
