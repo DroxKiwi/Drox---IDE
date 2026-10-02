@@ -47,6 +47,6 @@ Système **auto-régulateur** : on n’adapte pas les capacités du moteur, on a
 ## Décisions clés
 
 - **CB3b d’abord** : parcourir / supprimer / compacter l’index depuis le cockpit (store JSON actuel).
-- Auto-régulation ensuite : package découplé · console sous Embed · Auto par levier · override manuel.
+- Auto-régulation ensuite : package découplé · **onglet Regulation** · Auto par levier · override manuel.
 - Explore / SAV / CB5 : reportés, arbitrage après A–D.
 - **Fin de maj (ordre)** : Port forwarding → Parité Agents (ex. Embed accessible depuis Agents) → pass docs.

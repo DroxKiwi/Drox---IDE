@@ -39,12 +39,15 @@ export function renderDroxRegulationConsole(
 		readonly history: readonly IDroxRegulationHistoryEntry[];
 		readonly surface: DroxRegulationSurfaceState;
 		readonly prevListScroll?: number;
+		readonly hideHeading?: boolean;
 		readonly onSetLeverMode?: (lever: DroxRegulationLeverId, mode: DroxRegulationLeverMode) => void;
 		readonly onSetLeverModule?: (lever: DroxRegulationLeverId, module: DroxRegulationModule) => void;
 	},
 ): { readonly listEl: HTMLElement | undefined } {
 	const section = dom.append(parent, dom.$('.drox-codebase-section.drox-regulation-console'));
-	dom.append(section, dom.$('h4', undefined, localize('drox.regulation.console.title', 'Model regulation')));
+	if (!opts.hideHeading) {
+		dom.append(section, dom.$('h4', undefined, localize('drox.regulation.console.title', 'Model regulation')));
+	}
 	dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
 		'drox.regulation.console.subtitle',
 		'Observatory + overrides — Auto policy apply comes later; modules not yet wired into the engine.',
