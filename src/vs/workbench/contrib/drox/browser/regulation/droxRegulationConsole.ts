@@ -7,6 +7,11 @@
 
 import * as dom from '../../../../../base/browser/dom.js';
 import { localize } from '../../../../../nls.js';
+import {
+	droxRegulationGlobalScoreSeries,
+	droxRegulationIssueBreakdown,
+	droxRegulationSparklinePoints,
+} from '../../common/regulation/droxRegulationCharts.js';
 import { droxRegulationScoreBand } from '../../common/regulation/droxRegulationScoreBand.js';
 import {
 	DROX_REGULATION_DEFAULT_MODULES,
@@ -19,7 +24,7 @@ import {
 import './media/droxRegulationConsole.css';
 
 /**
- * R3 observatory: live lever scores + run history.
+ * R3–R4 observatory: live lever scores + charts + run history.
  * No Auto / override controls yet (R5).
  */
 export function renderDroxRegulationConsole(
@@ -68,6 +73,8 @@ export function renderDroxRegulationConsole(
 		dom.append(row, dom.$('span.drox-regulation-module', undefined, DROX_REGULATION_DEFAULT_MODULES[lever]));
 	}
 
+	renderCharts(section, opts.history);
+
 	dom.append(section, dom.$('h4', undefined, localize('drox.regulation.history.title', 'Run history')));
 	if (!opts.history.length) {
 		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
@@ -86,6 +93,87 @@ export function renderDroxRegulationConsole(
 		list.scrollTop = opts.prevListScroll;
 	}
 	return { listEl: list };
+}
+
+function renderCharts(section: HTMLElement, history: readonly IDroxRegulationHistoryEntry[]): void {
+	const charts = dom.append(section, dom.$('.drox-regulation-charts'));
+	dom.append(charts, dom.$('h4', undefined, localize('drox.regulation.charts.title', 'Trends')));
+
+	if (!history.length) {
+		dom.append(charts, dom.$('p.drox-codebase-muted', undefined, localize(
+			'drox.regulation.charts.empty',
+			'Charts appear after the first scored run.',
+		)));
+		return;
+	}
+
+	const series = droxRegulationGlobalScoreSeries(history, 40);
+	const sparkWrap = dom.append(charts, dom.$('.drox-regulation-spark'));
+	dom.append(sparkWrap, dom.$('p.drox-regulation-chart-label', undefined, localize(
+		'drox.regulation.charts.globalOverTime',
+		'Global score over time',
+	)));
+	const svgNS = 'http://www.w3.org/2000/svg';
+	const width = 280;
+	const height = 48;
+	const svg = document.createElementNS(svgNS, 'svg');
+	svg.setAttribute('class', 'drox-regulation-spark-svg');
+	svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+	svg.setAttribute('width', '100%');
+	svg.setAttribute('height', String(height));
+	svg.setAttribute('role', 'img');
+	svg.setAttribute('aria-label', localize('drox.regulation.charts.sparkAria', 'Global score sparkline'));
+	const baseline = document.createElementNS(svgNS, 'line');
+	baseline.setAttribute('x1', '2');
+	baseline.setAttribute('x2', String(width - 2));
+	baseline.setAttribute('y1', String(height / 2));
+	baseline.setAttribute('y2', String(height / 2));
+	baseline.setAttribute('class', 'drox-regulation-spark-baseline');
+	svg.appendChild(baseline);
+	const poly = document.createElementNS(svgNS, 'polyline');
+	poly.setAttribute('points', droxRegulationSparklinePoints(series, width, height));
+	poly.setAttribute('class', 'drox-regulation-spark-line');
+	svg.appendChild(poly);
+	sparkWrap.appendChild(svg);
+	dom.append(sparkWrap, dom.$('p.drox-codebase-muted', undefined, localize(
+		'drox.regulation.charts.sparkHint',
+		'{0} points · last {1}',
+		String(series.length),
+		String(Math.round(series[series.length - 1] ?? 0)),
+	)));
+
+	const breakdown = droxRegulationIssueBreakdown(history);
+	const issues = dom.append(charts, dom.$('.drox-regulation-issues'));
+	dom.append(issues, dom.$('p.drox-regulation-chart-label', undefined, localize(
+		'drox.regulation.charts.issues',
+		'Issues',
+	)));
+	const bar = dom.append(issues, dom.$('.drox-regulation-issue-bar'));
+	appendIssueSegment(bar, 'ok', breakdown.ok, breakdown.total);
+	appendIssueSegment(bar, 'error', breakdown.error, breakdown.total);
+	appendIssueSegment(bar, 'loop', breakdown.loop, breakdown.total);
+	appendIssueSegment(bar, 'cancel', breakdown.cancel, breakdown.total);
+
+	const legend = dom.append(issues, dom.$('.drox-regulation-issue-legend'));
+	for (const kind of ['ok', 'error', 'loop', 'cancel'] as const) {
+		const n = breakdown[kind];
+		if (n <= 0) {
+			continue;
+		}
+		const item = dom.append(legend, dom.$('span.drox-regulation-issue-legend-item'));
+		item.classList.add(`is-${kind}`);
+		item.textContent = `${kind} ${n}`;
+	}
+}
+
+function appendIssueSegment(bar: HTMLElement, kind: DroxRegulationRunIssue, count: number, total: number): void {
+	if (count <= 0 || total <= 0) {
+		return;
+	}
+	const seg = dom.append(bar, dom.$('span.drox-regulation-issue-seg'));
+	seg.classList.add(`is-${kind}`);
+	seg.style.flexGrow = String(count);
+	seg.title = `${kind}: ${count}`;
 }
 
 function appendHistoryRow(parent: HTMLElement, entry: IDroxRegulationHistoryEntry): void {
