@@ -16,6 +16,9 @@ export namespace DroxViews {
 	/** Optional bottom panel host (Terminal-like) for the same cockpit view. */
 	export const CodebasePanelViewContainerId = 'workbench.view.drox.codebasePanelContainer';
 	export const CodebasePanelViewId = 'workbench.view.drox.codebasePanel';
+	/** Sidebar activity-bar container — model regulation observatory. */
+	export const RegulationViewContainerId = 'workbench.view.drox.regulationContainer';
+	export const RegulationViewId = 'workbench.view.drox.regulation';
 }
 
 export namespace DroxCommands {

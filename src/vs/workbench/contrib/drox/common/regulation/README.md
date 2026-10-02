@@ -43,7 +43,7 @@ browser/regulation/           # console UI (R3+)
 | **R0** | Types + contrats + stub — **aucun effet run** |
 | **R1** | Scorer + sonde `agent/done` (scores in-memory, pas d’UI) |
 | **R2** | History store `.drox/regulation/history.json` |
-| **R3** | Console observatoire (leviers + histo) sous Embed — sans Auto |
+| **R3** | Console observatoire (onglet Regulation) — sans Auto |
 | **R4** | Graphiques (sparkline globale + barre issues) |
 | **R5** | Overrides UI (module + Auto) — state persisté, pas encore de wrap |
 | **R6–R10** | Wrappers L1–L5 |
