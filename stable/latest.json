@@ -9,9 +9,9 @@
       "sizeBytes": 260539256
     },
     "linux-x64": {
-      "installerUrl": "https://github.com/DroxKiwi/Drox---IDE/releases/download/v1.5.20/Drox-IDE-1.5.20-linux-x64.deb",
-      "sha256": "4cb44d51dc1c70b8a02cebcc5b655ba7d45025dedc50277813a57ff678704d03",
-      "sizeBytes": 233811140
+      "installerUrl": "https://github.com/DroxKiwi/Drox---IDE/releases/download/v1.5.21/Drox-IDE-1.5.21-linux-x64.deb",
+      "sha256": "791b13554de72dc82155cc0050159a0a49bd53dc27dd18b292ecb48664dd31fb",
+      "sizeBytes": 253784772
     }
   },
   "mandatory": false,
