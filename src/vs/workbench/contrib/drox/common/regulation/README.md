@@ -28,7 +28,9 @@ common/regulation/
 electron-browser/
   droxRegulationProbeContribution.ts  # agent/done → recordRun
 
-browser/regulation/           # console UI (R3+) — pas encore
+browser/regulation/           # console UI (R3+)
+  droxRegulationConsole.ts
+  media/droxRegulationConsole.css
 ```
 
 ## Roadmap (package)
@@ -38,8 +40,9 @@ browser/regulation/           # console UI (R3+) — pas encore
 | **R0** | Types + contrats + stub — **aucun effet run** |
 | **R1** | Scorer + sonde `agent/done` (scores in-memory, pas d’UI) |
 | **R2** | History store `.drox/regulation/history.json` |
-| **R2** | History store |
-| **R3–R5** | Console + overrides |
+| **R3** | Console observatoire (leviers + histo) sous Embed — sans Auto |
+| **R4** | Graphiques |
+| **R5** | Overrides UI (module + Auto) |
 | **R6–R10** | Wrappers L1–L5 |
 | **R11** | Policy Auto |
 | **R12** | Pass docs fin de maj |

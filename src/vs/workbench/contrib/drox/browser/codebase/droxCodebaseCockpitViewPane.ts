@@ -32,7 +32,11 @@ import { renderDroxCodebaseCockpitEmbed } from './cockpit/droxCodebaseCockpitEmb
 import { renderDroxCodebaseCockpitInject } from './cockpit/droxCodebaseCockpitInject.js';
 import { renderDroxCodebaseCockpitHits, renderDroxCodebaseCockpitProbe } from './cockpit/droxCodebaseCockpitProbe.js';
 import { renderDroxCodebaseCockpitPipeline } from './cockpit/droxCodebaseCockpitPipeline.js';
+import { renderDroxRegulationConsole } from '../regulation/droxRegulationConsole.js';
 import { IDroxCodebaseCatalog } from '../../common/codebase/droxCodebaseCatalog.js';
+import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
+import { droxRegulationModelKey } from '../../common/regulation/droxRegulationTypes.js';
+import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import './media/droxCodebaseCockpit.css';
 
 /**
@@ -56,6 +60,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 	private _lastCompactMsg: string | undefined;
 	private _catalogRootKey: string | undefined;
 	private _catalogStorageKey: string | undefined;
+	private _regulationHistoryRoot: string | undefined;
 
 	constructor(
 		options: IViewletViewOptions,
@@ -73,6 +78,8 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		@IClipboardService private readonly clipboardService: IClipboardService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IFileService private readonly fileService: IFileService,
+		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
+		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 		this._register(this.supervision.onDidChangeSnapshot(() => {
@@ -86,7 +93,10 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			}
 		}));
 		this._register(this.codebaseContext.onDidChangeForceNext(() => this._render()));
+		this._register(this.regulationService.onDidChangeScores(() => this._render()));
+		this._register(this.regulationService.onDidChangeHistory(() => this._render()));
 		void this._reloadCatalog();
+		void this._ensureRegulationHistory();
 	}
 
 	protected override renderBody(container: HTMLElement): void {
@@ -112,12 +122,14 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		const prevEmbedPath = this._embedPathInput?.value;
 		const prevBodyScroll = this._body.scrollTop;
 		const prevCatalogListScroll = this._body.querySelector('.drox-codebase-catalog-list')?.scrollTop ?? 0;
+		const prevRegulationListScroll = this._body.querySelector('.drox-regulation-history-list')?.scrollTop ?? 0;
 		const prevScroll = this._pipelineLogEl?.scrollTop ?? 0;
 		const prevScrollHeight = this._pipelineLogEl?.scrollHeight ?? 0;
 		const prevClientHeight = this._pipelineLogEl?.clientHeight ?? 0;
 		if (this._pipelineLogEl) {
 			this._pipelineLogPinnedToBottom = prevScroll + prevClientHeight >= prevScrollHeight - 8;
 		}
+		void this._ensureRegulationHistory();
 		const s = this.supervision.snapshot;
 		dom.clearNode(this._body);
 
@@ -148,6 +160,15 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			onResetDefaults: () => void this.supervision.resetEmbedDefaults(),
 		});
 		this._embedPathInput = pathInput;
+
+		const llm = this.runSettingsService.getLlmSettings();
+		const modelKey = droxRegulationModelKey(llm.llmProvider, llm.model);
+		renderDroxRegulationConsole(this._body, {
+			modelKey,
+			scores: this.regulationService.getScores(modelKey),
+			history: this.regulationService.list({ limit: 40 }),
+			prevListScroll: prevRegulationListScroll,
+		});
 
 		renderDroxCodebaseCockpitInject(this._body, {
 			lastInject: this.codebaseContext.lastInject,
@@ -241,6 +262,23 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		const catalogList = this._body.querySelector('.drox-codebase-catalog-list');
 		if (catalogList) {
 			catalogList.scrollTop = prevCatalogListScroll;
+		}
+		const regulationList = this._body.querySelector('.drox-regulation-history-list');
+		if (regulationList) {
+			regulationList.scrollTop = prevRegulationListScroll;
+		}
+	}
+
+	private async _ensureRegulationHistory(): Promise<void> {
+		const root = this.supervision.snapshot.rootFsPath;
+		if (!root || root === this._regulationHistoryRoot) {
+			return;
+		}
+		this._regulationHistoryRoot = root;
+		try {
+			await this.regulationService.ensureHistoryLoaded(root);
+		} catch {
+			// Best-effort — console still shows in-memory scores.
 		}
 	}
 
