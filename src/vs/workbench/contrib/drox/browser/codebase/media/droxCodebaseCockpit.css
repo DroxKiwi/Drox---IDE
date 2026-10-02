@@ -201,6 +201,22 @@
 	color: var(--vscode-charts-orange, #ee9d28);
 }
 
+.drox-codebase-inject-badge.is-toggle {
+	cursor: pointer;
+	font: inherit;
+	background: transparent;
+	color: inherit;
+}
+
+.drox-codebase-inject-badge.is-toggle:hover {
+	filter: brightness(1.15);
+}
+
+.drox-codebase-inject-badge.is-toggle:disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
 .drox-codebase-inject-callout {
 	margin: 0 0 8px 0;
 	padding: 8px 10px;
@@ -262,5 +278,59 @@
 
 .drox-codebase-pipeline-event.is-running .drox-codebase-pipeline-event-meta {
 	color: var(--vscode-focusBorder, #007acc);
+}
+
+.drox-codebase-catalog-list {
+	margin-top: 6px;
+	max-height: 280px;
+	overflow: auto;
+	border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+
+.drox-codebase-catalog-file {
+	padding: 4px 0;
+	border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+}
+
+.drox-codebase-catalog-file-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.drox-codebase-catalog-path {
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 12px;
+	word-break: break-all;
+}
+
+.drox-codebase-catalog-expand {
+	border: none;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	padding: 0 2px;
+	min-width: 1.2em;
+}
+
+.drox-codebase-catalog-chunks {
+	margin: 4px 0 0 28px;
+}
+
+.drox-codebase-catalog-chunk {
+	margin-bottom: 6px;
+}
+
+.drox-codebase-exclusion-list {
+	margin: 4px 0 10px 0;
+}
+
+.drox-codebase-exclusion-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	justify-content: space-between;
+	padding: 2px 0;
 }
 

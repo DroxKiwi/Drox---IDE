@@ -1,0 +1,41 @@
+# Auto-regulation (`contrib/drox/.../regulation`)
+
+Découplé du moteur : **sonde** (notes) · **history** (prompts) · **surface** (modules L1–L5) · console UI · wrappers aux bords.
+
+Spec : [`docs/1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md`](../../../../../../docs/1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md)
+
+## Principe
+
+On n’adapte **pas** les capacités du moteur. On adapte **ce qu’on expose au modèle** (contexte, tools, directivité, protocole, retrieval).
+
+## Layout
+
+```text
+common/regulation/
+  README.md
+  droxRegulationTypes.ts      # L1–L5, modules, scores, history entry
+  droxRegulationProbe.ts      # IDroxRegulationProbe (notes)
+  droxRegulationHistory.ts    # IDroxRegulationHistory (histo runs)
+  droxRegulationSurface.ts    # IDroxRegulationSurface (modules effectifs)
+  droxRegulationService.ts    # stub R0 → impl progressive R1+
+
+browser/regulation/           # console UI (R3+) — pas encore
+```
+
+## Roadmap (package)
+
+| Étape | Contenu |
+|-------|---------|
+| **R0** | Types + contrats + stub (ce dossier) — **aucun effet run** |
+| **R1** | Scorer |
+| **R2** | History store |
+| **R3–R5** | Console + overrides |
+| **R6–R10** | Wrappers L1–L5 |
+| **R11** | Policy Auto |
+| **R12** | Pass docs fin de maj |
+
+## Règles
+
+1. Pas de scoring dans `agent.rs` / index / chat unrelated.  
+2. Wrappers lisent uniquement `IDroxRegulationSurface.getModule`.  
+3. Producteurs d’events restent ignorants de ce package.
