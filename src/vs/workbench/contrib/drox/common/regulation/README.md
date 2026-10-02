@@ -27,6 +27,7 @@ common/regulation/
   droxRegulationCharts.ts      # séries + sparkline points (R4)
   droxRegulationL1Budget.ts   # R6 L1 context budget tables + apply helpers
   droxRegulationL2Surface.ts  # R7 L2 tool surface allowlists + apply helpers
+  droxRegulationL3Directive.ts # R8 L3 directive density annexes
   droxRegulationServiceContract.ts  # IDroxRegulationService (DI unique)
   droxRegulationService.ts    # probe + history R2
 
@@ -50,7 +51,8 @@ browser/regulation/           # console UI (R3+)
 | **R5** | Overrides UI (module + Auto) — state persisté, pas encore de wrap |
 | **R6** | Wrapper L1 Context budget — **inject Codebase + session notes** |
 | **R7** | Wrapper L2 Tool surface — **allowlist tools → disabledTools / executable** |
-| **R8–R10** | Wrappers L3–L5 |
+| **R8** | Wrapper L3 Directive density — **annex system guided/assertive** |
+| **R9–R10** | Wrappers L4–L5 |
 | **R11** | Policy Auto |
 | **R12** | Pass docs fin de maj |
 

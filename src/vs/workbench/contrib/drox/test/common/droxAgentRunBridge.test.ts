@@ -144,7 +144,7 @@ suite('Drox — droxAgentRunBridge', () => {
 				};
 			},
 			regulationService: {
-				getModule: () => 'minimal',
+				getModule: lever => (lever === 'L1' ? 'minimal' : lever === 'L3' ? 'laissez-faire' : 'standard'),
 			},
 		});
 		await startDroxAgentRun(deps, {
@@ -155,6 +155,34 @@ suite('Drox — droxAgentRunBridge', () => {
 			system: 'session notes body',
 		});
 		assert.strictEqual(capturedSystem, undefined);
+	});
+
+	test('startDroxAgentRun injects assertive L3 directive into system', async () => {
+		let capturedSystem: string | undefined;
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => {
+				capturedSystem = opts.system;
+				return {
+					prompt: opts.prompt,
+					workspace: opts.workspace,
+					mode: opts.mode,
+					sessionId: opts.sessionId,
+					system: opts.system,
+				};
+			},
+			regulationService: {
+				getModule: lever => (lever === 'L3' ? 'assertive' : 'standard'),
+			},
+		});
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l3',
+			system: 'notes',
+		});
+		assert.ok(capturedSystem && /Anti-rumination/i.test(capturedSystem));
+		assert.ok(capturedSystem!.includes('notes'));
 	});
 
 	test('startDroxAgentRun disables non-core tools when L2 is core', async () => {

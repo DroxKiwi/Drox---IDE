@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0–R7 ✅** · R8+ (§9)  
+**Statut** : 📋 cadrage · **R0–R8 ✅** · R9+ (§9)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -194,7 +194,7 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 | **R5** | **Overrides UI** : select module + Auto par levier (state persisté) — **encore sans wrap moteur** | ✅ `surface.json` + select/Auto cockpit |
 | **R6** | **Wrapper L1** Context budget | ✅ inject Codebase (`maxChars`/`maxHits`) + session notes truncate/omit via `getModule('L1')` |
 | **R7** | **Wrapper L2** Tool surface | ✅ allowlist `core`/`standard`/`full` → `disabledTools` + executable filter |
-| **R8** | **Wrapper L3** Directive density | idem |
+| **R8** | **Wrapper L3** Directive density | ✅ annex system `laissez-faire` (omit) / `guided` / `assertive` via `getModule('L3')` |
 | **R9** | **Wrapper L4** Protocol strictness | idem |
 | **R10** | **Wrapper L5** Retrieval posture | idem |
 | **R11** | **Policy Auto** branchée (note → module) + dogfood multi-modèles + polish console | Critères §6 OK |
@@ -208,5 +208,5 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 
 ## 10. Suite immédiate
 
-1. ~~Cadrage~~ · ~~**R0–R7**~~.  
-2. Démarrer **R8** (wrapper L3 Directive density) uniquement.
+1. ~~Cadrage~~ · ~~**R0–R8**~~.  
+2. Démarrer **R9** (wrapper L4 Protocol strictness) uniquement.
