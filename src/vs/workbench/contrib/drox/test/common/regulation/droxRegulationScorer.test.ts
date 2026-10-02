@@ -4,7 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
+import { Schemas } from '../../../../../../base/common/network.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
+import { FileService } from '../../../../../../platform/files/common/fileService.js';
+import { InMemoryFileSystemProvider } from '../../../../../../platform/files/common/inMemoryFilesystemProvider.js';
+import { NullLogService } from '../../../../../../platform/log/common/log.js';
 import { mergeRegulationRunIntoSnapshot } from '../../../common/regulation/droxRegulationScoreAggregate.js';
 import {
 	buildDroxRegulationRunSignals,
@@ -17,9 +21,17 @@ import {
 import { DroxRegulationService } from '../../../common/regulation/droxRegulationService.js';
 
 suite('Drox regulation R1 scorer', () => {
-	ensureNoDisposablesAreLeakedInTestSuite();
+	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	const cleanSignals = buildDroxRegulationRunSignals({ status: 'completed' });
+
+	function createService(): DroxRegulationService {
+		const log = new NullLogService();
+		const fileService = store.add(new FileService(log));
+		const provider = store.add(new InMemoryFileSystemProvider());
+		store.add(fileService.registerProvider(Schemas.file, provider));
+		return store.add(new DroxRegulationService(fileService, log));
+	}
 
 	test('clean run scores high on all levers', () => {
 		const run = scoreRegulationRun(cleanSignals);
@@ -51,7 +63,7 @@ suite('Drox regulation R1 scorer', () => {
 	});
 
 	test('service aggregates running mean after two runs', () => {
-		const svc = new DroxRegulationService();
+		const svc = createService();
 		const key = 'ollama::qwen';
 		svc.recordRunSignals(key, cleanSignals);
 		svc.recordRunSignals(key, buildDroxRegulationRunSignals({
@@ -64,6 +76,5 @@ suite('Drox regulation R1 scorer', () => {
 		assert.ok(snap.globalScore > 40);
 		const merged = mergeRegulationRunIntoSnapshot(undefined, key, scoreRegulationRun(cleanSignals));
 		assert.strictEqual(merged.samples, 1);
-		svc.dispose();
 	});
 });

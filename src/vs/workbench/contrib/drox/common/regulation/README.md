@@ -17,14 +17,16 @@ common/regulation/
   droxRegulationProbe.ts      # IDroxRegulationProbe (notes)
   droxRegulationHistory.ts    # IDroxRegulationHistory (histo runs)
   droxRegulationSurface.ts    # IDroxRegulationSurface (modules effectifs)
+  droxRegulationPaths.ts
+  droxRegulationHistoryStore.ts  # `.drox/regulation/history.json`
   droxRegulationRunSignals.ts # extract signals (done + trace + transcript)
   droxRegulationScorer.ts     # formules v0 L1–L5
   droxRegulationScoreAggregate.ts
   droxRegulationServiceContract.ts  # IDroxRegulationService (DI unique)
-  droxRegulationService.ts    # probe in-memory R1
+  droxRegulationService.ts    # probe + history R2
 
 electron-browser/
-  droxRegulationProbeContribution.ts  # agent/done → recordRunSignals
+  droxRegulationProbeContribution.ts  # agent/done → recordRun
 
 browser/regulation/           # console UI (R3+) — pas encore
 ```
@@ -35,6 +37,7 @@ browser/regulation/           # console UI (R3+) — pas encore
 |-------|---------|
 | **R0** | Types + contrats + stub — **aucun effet run** |
 | **R1** | Scorer + sonde `agent/done` (scores in-memory, pas d’UI) |
+| **R2** | History store `.drox/regulation/history.json` |
 | **R2** | History store |
 | **R3–R5** | Console + overrides |
 | **R6–R10** | Wrappers L1–L5 |
