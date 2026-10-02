@@ -347,6 +347,22 @@ Tool call bash?
 
 ---
 
+### E16 — LoopDetector : familles bash/grep normalisées (near-duplicate)
+
+**Fichier** : `agent.rs` — `LoopDetector`, `hash_tool_calls_family`, `normalize_bash_command_for_loop`
+
+**Avant**  
+Empreinte = texte+thinking + args tools **bruts**. Variantes cosmétique (`metrics`/`Metrics`, `cmd & cmd`, thinking différent) → pas de strike → spirale findstr (dogfood site-kdds).
+
+**Après**  
+Piste parallèle `tool_family` : si tous les tools du tour sont `bash` ou `grep`, hash sur commande/pattern **normalisés** (minuscules ; découpe `&&` / `&` / `;` puis sort+dedup segments ; strip `(retry N)`). Warn ×2 puis Abort `LoopDetected { kind: "tool_family" }` même si thinking change. Nudge dédié `LOOP_TOOL_FAMILY_NUDGE_PROMPT`.
+
+**Tests** : `loop_detector_flags_bash_family_despite_thinking_change`, `normalize_bash_command_folds_case_and_duplicates`.
+
+**Note produit** : rebuild `drox.exe` requis pour dogfood IDE.
+
+---
+
 ## Rebuild / validation
 
 1. Rebuild `drox.exe` depuis `drox-engine/drox` (le client IDE charge le binaire pointé par `drox.executablePath`).  

@@ -13,6 +13,10 @@ export const IDroxCodebaseIndexService = createDecorator<IDroxCodebaseIndexServi
 export interface IDroxCodebaseSearchOptions {
 	readonly maxResults?: number;
 	readonly pathPrefix?: string;
+	/** From model comprehension filter — applied at re-rank. */
+	readonly pathPrefixes?: readonly string[];
+	/** From model comprehension filter — enable code-oriented path multipliers. */
+	readonly preferCodeFiles?: boolean;
 	readonly includeLexical?: boolean;
 }
 

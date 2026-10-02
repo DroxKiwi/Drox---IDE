@@ -29,6 +29,7 @@ const SKIP_EXTENSIONS = new Set([
 	'.zip', '.7z', '.rar', '.gz', '.tar',
 	'.exe', '.dll', '.so', '.dylib', '.node',
 	'.pdf', '.wasm', '.bin', '.lock',
+	'.tsbuildinfo', '.map',
 ]);
 
 /** Max file size to index in CB1 (bytes). */
@@ -47,6 +48,10 @@ export function droxCodebaseShouldSkipFileName(name: string): boolean {
 		return true;
 	}
 	if (lower.includes('credentials') || lower.includes('secrets')) {
+		return true;
+	}
+	// Build / tooling noise (CB4b — was polluting hybrid retrieval).
+	if (lower.endsWith('.tsbuildinfo') || lower.endsWith('.js.map') || lower.endsWith('.css.map')) {
 		return true;
 	}
 	const ext = extname(lower);

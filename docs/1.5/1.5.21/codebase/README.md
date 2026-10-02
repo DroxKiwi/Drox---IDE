@@ -15,6 +15,8 @@ Index local par racine workspace · cockpit partagé · embed MiniLM (llama.cpp)
 | [PLAN-CB2b.md](PLAN-CB2b.md) | Auto-index type Cursor |
 | [PLAN-CB2c.md](PLAN-CB2c.md) | Découpage / lisibilité |
 | [PLAN-CB3.md](PLAN-CB3.md) | Tool agent + pastille statut |
+| [PLAN-CB4.md](PLAN-CB4.md) | **Contexte auto + forçage utilisateur** |
+| [PLAN-CB4b.md](PLAN-CB4b.md) | Ranking / pertinence hits |
 | [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) | Lien carte code (plus tard) |
 
 ## Code
@@ -31,8 +33,9 @@ Index local par racine workspace · cockpit partagé · embed MiniLM (llama.cpp)
 | **CB2b** | Auto-index (open + incrémental) + pipeline UI | ✅ |
 | **CB2c** | Découpage fichiers / arborescence lisible | ✅ dogfood |
 | **CB3** | Tool agent + pastille statut | ✅ dogfood |
-| **CB3b** | Catalogue admin | ⏳ |
-| **CB4** | `@Codebase` composer | ⏳ **next** |
-| **CB5** | Carte code (opt.) | ⏳ |
+| **CB4** | Contexte auto-inject + forçage chip/`@` → [PLAN-CB4.md](PLAN-CB4.md) | 🔄 à clôturer |
+| **CB4b** | Ranking pertinence → [PLAN-CB4b.md](PLAN-CB4b.md) | 🔄 à clôturer |
 
-**Règle** : CB2c avant CB3 — fait. Suite produit typique : **CB4** (`@` composer).
+**Reporté 1.5.22** : CB3b catalogue admin · CB5 carte code.
+
+**Règle** : CB3 fait. **CB4** = automatique pour le modèle, forçage optionnel pour l’humain.

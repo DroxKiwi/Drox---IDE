@@ -16,9 +16,10 @@ import { IWorkspaceContextService } from '../../../../../platform/workspace/comm
 import { DroxSetting } from '../droxConfiguration.js';
 import { IDroxEngineService } from '../droxEngineService.js';
 import { DroxCodebaseEmbedClient } from './droxCodebaseEmbedClient.js';
+import { IDroxCodebaseContextService } from './droxCodebaseContextService.js';
 import { IDroxCodebaseIndexService } from './droxCodebaseIndexService.js';
 import { droxCodebaseIndexDir } from './droxCodebasePaths.js';
-import { createEmptyCodebaseSnapshot, buildDroxCodebasePipelineView, IDroxCodebaseCockpitSnapshot, IDroxCodebaseDiagExport, IDroxCodebaseHit } from './droxCodebaseTypes.js';
+import { createEmptyCodebaseSnapshot, buildDroxCodebasePipelineView, IDroxCodebaseCockpitSnapshot, IDroxCodebaseDiagExport, IDroxCodebaseHit, IDroxCodebaseLastInject, IDroxCodebasePipelineEvent } from './droxCodebaseTypes.js';
 import { DroxCodebaseAutoIndex } from './supervision/droxCodebaseAutoIndex.js';
 import { droxCodebaseInvalidateRelativePath } from './supervision/droxCodebaseFileWatcher.js';
 import { DroxCodebasePipelineLog } from './supervision/droxCodebasePipelineLog.js';
@@ -54,6 +55,7 @@ export interface IDroxCodebaseSupervisionService {
 	resetEmbedDefaults(): Promise<void>;
 	clearPipelineLog(): void;
 	buildDiagnosticsExport(lastProbeHits?: readonly IDroxCodebaseHit[]): IDroxCodebaseDiagExport;
+	readonly lastInject: IDroxCodebaseLastInject | undefined;
 }
 
 export class DroxCodebaseSupervisionService extends Disposable implements IDroxCodebaseSupervisionService {
@@ -76,6 +78,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 	constructor(
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IDroxCodebaseIndexService private readonly indexService: IDroxCodebaseIndexService,
+		@IDroxCodebaseContextService private readonly contextService: IDroxCodebaseContextService,
 		@IDroxEngineService engineService: IDroxEngineService,
 		@ILogService private readonly logService: ILogService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
@@ -107,12 +110,19 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 				this._pipelineUiScheduler.schedule();
 			}
 		}));
+		this._register(this.contextService.onDidInject(rec => {
+			this._pipelineLog.push(injectToPipelineEvent(rec));
+			this._publishPipelineView();
+		}));
 		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
 			void this.refresh().then(() => this._autoIndex.schedule('workspace-folders'));
 		}));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(DroxSetting.CodebaseEmbedModelPath)) {
 				void this.refreshEmbedStatus();
+			}
+			if (e.affectsConfiguration(DroxSetting.CodebaseAutoInject)) {
+				this._onDidChangeSnapshot.fire();
 			}
 		}));
 		this._register(this.fileService.onDidFilesChange(e => {
@@ -126,6 +136,10 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			}
 		}));
 		void this.refresh().then(() => this._autoIndex.schedule('startup'));
+	}
+
+	get lastInject(): IDroxCodebaseLastInject | undefined {
+		return this.contextService.lastInject;
 	}
 
 	get snapshot(): IDroxCodebaseCockpitSnapshot {
@@ -314,6 +328,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			snapshot: this._snapshot,
 			pipeline: buildDroxCodebasePipelineView(this._pipelineLog.events),
 			lastProbeHits: lastProbeHits ?? this._lastProbeHits,
+			lastInject: this.contextService.lastInject,
 		};
 	}
 
@@ -366,4 +381,29 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 	private _resolveRootUri(): URI | undefined {
 		return this._overrideRoot ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
 	}
+}
+
+function injectToPipelineEvent(rec: IDroxCodebaseLastInject): IDroxCodebasePipelineEvent {
+	const status = rec.skip === 'error' || rec.skip === 'timeout'
+		? 'warn' as const
+		: (rec.hitCount > 0 ? 'ok' as const : 'warn' as const);
+	const message = rec.skip
+		? `Inject ${rec.forced ? 'forced' : 'auto'} — ${rec.skip}`
+		: `Inject ${rec.forced ? 'forced' : 'auto'} — ${rec.hitCount} hits · ${rec.chars} chars`;
+	return {
+		id: `inj-${rec.at}`,
+		at: rec.at,
+		runId: `inject-${rec.at}`,
+		kind: 'search',
+		status,
+		message,
+		detail: {
+			source: rec.forced ? 'force_inject' : 'auto_inject',
+			hits: rec.hitCount,
+			chars: rec.chars,
+			ms: rec.ms,
+			skip: rec.skip,
+			query: rec.query.slice(0, 80),
+		},
+	};
 }

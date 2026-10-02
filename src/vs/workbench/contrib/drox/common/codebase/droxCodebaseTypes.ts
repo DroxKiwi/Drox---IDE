@@ -85,12 +85,35 @@ export interface IDroxCodebasePipelineView {
 	readonly currentMessage: string | undefined;
 }
 
+/** Why auto-inject produced no packed hits (hint may still be sent). */
+export type DroxCodebaseInjectSkip =
+	| 'disabled'
+	| 'empty_query'
+	| 'timeout'
+	| 'no_hits'
+	| 'error'
+	| 'model_skip';
+
+/** Last CB4 auto/force inject — cockpit + diag export. */
+export interface IDroxCodebaseLastInject {
+	readonly at: number;
+	readonly query: string;
+	readonly forced: boolean;
+	readonly autoEnabled: boolean;
+	readonly hitCount: number;
+	readonly chars: number;
+	readonly ms: number;
+	readonly hits: readonly IDroxCodebaseHit[];
+	readonly skip?: DroxCodebaseInjectSkip;
+}
+
 /** JSON bundle for Export diag (clipboard / file). */
 export interface IDroxCodebaseDiagExport {
 	readonly exportedAt: string;
 	readonly snapshot: IDroxCodebaseCockpitSnapshot;
 	readonly pipeline: IDroxCodebasePipelineView;
 	readonly lastProbeHits: readonly IDroxCodebaseHit[];
+	readonly lastInject?: IDroxCodebaseLastInject;
 }
 
 export interface IDroxCodebaseEmbedStats {

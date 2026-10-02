@@ -24,8 +24,10 @@ import { ViewPane } from '../../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../../common/views.js';
 import { IDroxCodebaseSupervisionService } from '../../common/codebase/droxCodebaseSupervisionService.js';
+import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxCodebaseHit } from '../../common/codebase/droxCodebaseTypes.js';
 import { renderDroxCodebaseCockpitEmbed } from './cockpit/droxCodebaseCockpitEmbed.js';
+import { renderDroxCodebaseCockpitInject } from './cockpit/droxCodebaseCockpitInject.js';
 import { renderDroxCodebaseCockpitHits, renderDroxCodebaseCockpitProbe } from './cockpit/droxCodebaseCockpitProbe.js';
 import { renderDroxCodebaseCockpitPipeline } from './cockpit/droxCodebaseCockpitPipeline.js';
 import './media/droxCodebaseCockpit.css';
@@ -56,12 +58,14 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		@IThemeService themeService: IThemeService,
 		@IHoverService hoverService: IHoverService,
 		@IDroxCodebaseSupervisionService private readonly supervision: IDroxCodebaseSupervisionService,
+		@IDroxCodebaseContextService private readonly codebaseContext: IDroxCodebaseContextService,
 		@IClipboardService private readonly clipboardService: IClipboardService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IFileService private readonly fileService: IFileService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 		this._register(this.supervision.onDidChangeSnapshot(() => this._render()));
+		this._register(this.codebaseContext.onDidChangeForceNext(() => this._render()));
 	}
 
 	protected override renderBody(container: HTMLElement): void {
@@ -121,6 +125,12 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			onResetDefaults: () => void this.supervision.resetEmbedDefaults(),
 		});
 		this._embedPathInput = pathInput;
+
+		renderDroxCodebaseCockpitInject(this._body, {
+			lastInject: this.codebaseContext.lastInject,
+			autoEnabled: this.codebaseContext.isAutoInjectEnabled(),
+			forceArmed: this.codebaseContext.forceNextRun,
+		});
 
 		const storage = dom.append(this._body, dom.$('.drox-codebase-section'));
 		dom.append(storage, dom.$('h4', undefined, localize('drox.codebase.storage', 'Storage')));

@@ -41,6 +41,7 @@ import { DROX_AGENT_ID, DroxChatSessionUri } from '../../common/droxAgentsSessio
 import { registerDroxAgentsWindowRun, unregisterDroxAgentsWindowRun } from '../../common/droxAgentsActiveRuns.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
+import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
@@ -108,6 +109,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 		@IDroxUserAskService private readonly userAskService: IDroxUserAskService,
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
+		@IDroxCodebaseContextService private readonly codebaseContextService: IDroxCodebaseContextService,
 		@ILogService private readonly logService: ILogService,
 		@IFileService private readonly fileService: IFileService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
@@ -382,6 +384,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			droxEngineService: this.droxEngineService,
 			logService: this.logService,
 			fileService: this.fileService,
+			codebaseContextService: this.codebaseContextService,
 		};
 
 		this._lastRunBySession.set(sessionKey, {

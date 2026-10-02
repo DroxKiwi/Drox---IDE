@@ -280,12 +280,12 @@ Le retrieval fournit **quoi montrer** ; le canvas fournit **comment le voir**.
 | **CB2b** | Auto-index type Cursor (open + incrémental) — [PLAN-CB2b.md](PLAN-CB2b.md) | CB2 |
 | **CB2c** | **Découpage / lisibilité** (modules index · supervision · cockpit · handlers embed) — [PLAN-CB2c.md](PLAN-CB2c.md) | CB2b |
 | **CB3** | Tool agent + pastille statut (reindex manuel = secours cockpit) | **CB2c** |
-| **CB4** | `@` Codebase dans composer + budget tokens | CB3 |
+| **CB4** | Auto-inject contexte + forçage utilisateur → [PLAN-CB4.md](PLAN-CB4.md) | CB3 |
 | **CB5** | Alimentation carte code (optionnel) | CB3 + canvas |
 
-**Ordre figé** : **CB2b → CB2c → CB3**. Pas de tool agent tant que l’arborescence codebase n’est pas lisible.
+**Ordre figé** : **CB2b → CB2c → CB3 → CB4**. Auto-inject par défaut ; chip/`@` = override.
 
-**1.5.21** : CB0–CB3 shippés en dogfood ; **next = CB4** (`@` composer) ou CB3b (catalogue).
+**1.5.21** : CB0–CB3 shippés en dogfood ; **next = CB4** (contexte automatique).
 
 ---
 

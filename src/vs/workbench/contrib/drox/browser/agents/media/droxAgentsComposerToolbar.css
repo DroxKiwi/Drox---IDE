@@ -219,3 +219,14 @@
 .agent-sessions-workbench .drox-agents-composer-toolbar .codebase-status-vignette.is-ready {
 	color: var(--drox-thread-green, var(--drox-ui-green, var(--vscode-charts-green, #89d185)));
 }
+
+/* CB4 — forçage inject prochain tour. */
+
+.agent-sessions-workbench .drox-agents-composer-toolbar .codebase-force-vignette.is-forced {
+	color: var(--vscode-charts-orange, #ee9d28);
+	font-weight: 600;
+}
+
+.agent-sessions-workbench .drox-agents-composer-toolbar .codebase-force-vignette.is-auto-off {
+	opacity: 0.72;
+}

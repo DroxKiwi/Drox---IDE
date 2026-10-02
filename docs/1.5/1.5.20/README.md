@@ -4,7 +4,7 @@
 **Version** : `droxVersion` **1.5.20**  
 **Précédent** : [1.5.19](../1.5.19/README.md) — badge / Git Graph + Ollama ([CLOSURE](../1.5.19/CLOSURE-1.5.19.md))  
 **Suite** : index `@Codebase` + Explore + shell discussion → [1.5.21](../1.5.21/README.md)  
-**Reporté** : tool calling universel → [1.5.22](../1.5.22/README.md)
+**Reporté** : auto-régulation modèle → [1.5.22](../1.5.22/README.md)
 
 ## Docs
 
@@ -37,4 +37,4 @@
 - Index `@Codebase` / embed local → **[1.5.21 codebase/](../1.5.21/codebase/README.md)**.
 - Explore / sous-agents dans l’IDE → **[1.5.21 PLAN-SUBAGENTS-EXPLORE-IDE](../1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md)**.
 - Shell discussion unifié Agents ↔ IDE → **[1.5.21 PLAN-SHARED-DISCUSSION-SHELL](../1.5.21/PLAN-SHARED-DISCUSSION-SHELL.md)**.
-- Tool calling universel → **[1.5.22](../1.5.22/PLAN-UNIVERSAL-TOOL-CALLING.md)**.
+- Auto-régulation modèle → **[1.5.22](../1.5.22/PLAN-MODEL-AUTO-REGULATION.md)**.

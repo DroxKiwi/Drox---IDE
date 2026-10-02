@@ -12,6 +12,7 @@ import { INotificationService } from '../../../../../platform/notification/commo
 import { IDroxAgentRunImage } from '../../common/droxAttachments.js';
 import { cancelDroxAgentRun, IDroxAgentRunBridgeDeps, startDroxAgentRun } from '../../common/droxAgentRunBridge.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
+import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import {
 	buildEnginePromptFromLastUserTranscript,
@@ -125,6 +126,7 @@ type IRunRecoveryDeps = {
 	readonly runRevertService: IDroxRunRevertService;
 	readonly fileService?: IFileService;
 	readonly sessionBackgroundService?: IDroxSessionBackgroundService;
+	readonly codebaseContextService?: IDroxCodebaseContextService;
 };
 
 function cancelActiveRunForRecovery(host: IDroxChatSendRunHost, deps: IRunRecoveryDeps): void {
@@ -205,6 +207,7 @@ async function startRecoveryRun(
 			droxEngineService: deps.droxEngineService,
 			logService: deps.logService,
 			fileService: deps.fileService,
+			codebaseContextService: deps.codebaseContextService,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {
 			prompt: ctx.enginePrompt || '.',

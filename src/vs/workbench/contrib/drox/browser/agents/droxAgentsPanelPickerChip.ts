@@ -126,3 +126,13 @@ export function createCodebaseStatusPickerChip(defaultLabel: string, title: stri
 		extraClass: 'codebase-status-vignette',
 	});
 }
+
+export function createCodebaseForcePickerChip(defaultLabel: string, title: string): DroxAgentsPanelPickerChip {
+	return new DroxAgentsPanelPickerChip({
+		id: 'codebase-force-vignette',
+		icon: Codicon.pin,
+		defaultLabel,
+		title,
+		extraClass: 'codebase-force-vignette',
+	});
+}
