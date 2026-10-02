@@ -42,6 +42,14 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.21':
+			return [
+				localize('drox.releaseNotes.1521.codebase', '**@Codebase** — local index with auto-inject into agent runs; Force chip anchors retrieval to the active editor file.'),
+				localize('drox.releaseNotes.1521.ranking', '**Smarter retrieval** — English model comprehension picks search filters (no keyword heuristics on your message).'),
+				localize('drox.releaseNotes.1521.shell', '**Shared discussion shell** — IDE and Agents share the same composer tools (model, server, settings).'),
+				localize('drox.releaseNotes.1521.loops', '**Loop guard** — repeated bash/grep retries with only cosmetic changes are nudged then aborted.'),
+				localize('drox.releaseNotes.1521.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.19':
 			return [
 				localize('drox.releaseNotes.1519.graph', '**Native Git Graph** — explore commits and branches in-product (parity with the classic Git Graph extension), with the branch badge always visible.'),
@@ -144,6 +152,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.21':
+			return localize(
+				'drox.releaseNotes.1521.message',
+				'Local @Codebase auto-inject with Force-to-editor, smarter retrieval, shared IDE/Agents discussion tools, and stronger bash/grep loop guards.',
+			);
 		case '1.5.19':
 			return localize(
 				'drox.releaseNotes.1519.message',
