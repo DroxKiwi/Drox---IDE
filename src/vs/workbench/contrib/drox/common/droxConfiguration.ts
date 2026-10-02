@@ -32,6 +32,18 @@ export const enum DroxSetting {
 	 */
 	CodebaseEmbedModelPath = 'drox.codebase.embedModelPath',
 
+	/** Auto-inject hybrid `@Codebase` hits into agent.run system (CB4). */
+	CodebaseAutoInject = 'drox.codebase.autoInject',
+
+	/** Soft max characters for the auto-injected context block. */
+	CodebaseAutoInjectMaxChars = 'drox.codebase.autoInjectMaxChars',
+
+	/**
+	 * Variant id for codebase retrieval comprehension question
+	 * (`v1` | `v1-compact` …) — SAV / model auto-reg.
+	 */
+	ModelQuestionCodebaseComprehensionVariant = 'drox.modelQuestions.codebaseRetrievalComprehensionVariant',
+
 	Server = 'drox.server',
 
 	/** Type de serveur LLM local (Ollama pour l'instant). */
@@ -701,6 +713,57 @@ export const droxConfigurationNode: IConfigurationNode = {
 			markdownDescription: localize(
 				'drox.codebase.embedModelPath',
 				'Optional absolute path to a **GGUF embedding** model for `@Codebase`. Leave empty to use the **bundled MiniLM** (`resources/drox/models/all-MiniLM-L6-v2.Q4_K_M.gguf`). Must be an embedding GGUF (not a chat LLM). Reset from the Codebase cockpit restores the default.',
+			),
+
+		},
+
+		[DroxSetting.CodebaseAutoInject]: {
+
+			type: 'boolean',
+
+			default: true,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.codebase.autoInject',
+				'When enabled, each agent run **auto-injects** a bounded `@Codebase` context block (hybrid retrieval on the user message) into the system supplement. The `codebase_search` tool remains available. Turn off to rely on tools only; the composer **Force** chip can still inject for one turn.',
+			),
+
+		},
+
+		[DroxSetting.CodebaseAutoInjectMaxChars]: {
+
+			type: 'number',
+
+			default: 5000,
+
+			minimum: 500,
+
+			maximum: 20000,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.codebase.autoInjectMaxChars',
+				'Soft maximum size (characters) of the auto-injected `@Codebase` context block per run.',
+			),
+
+		},
+
+		[DroxSetting.ModelQuestionCodebaseComprehensionVariant]: {
+
+			type: 'string',
+
+			default: 'v1',
+
+			enum: ['v1', 'v1-compact'],
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.modelQuestions.codebaseRetrievalComprehensionVariant',
+				'Which **English** comprehension-question variant to ask the model before `@Codebase` retrieval (`v1` full, `v1-compact` shorter for small models). Used for SAV / future auto-regulation — not NLP heuristics in code.',
 			),
 
 		},

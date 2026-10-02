@@ -14,6 +14,7 @@ import { isVisionRelatedLlmError, formatVisionChatError } from '../../common/dro
 import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js';
 import { cancelDroxAgentRun, IDroxAgentRunBridgeDeps, startDroxAgentRun } from '../../common/droxAgentRunBridge.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
+import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePasteWire, toUserMessagePasteWire } from '../../common/droxPasteCandidates.js';
@@ -65,6 +66,7 @@ export async function executeDroxChatSend(
 		readonly runRevertService: IDroxRunRevertService;
 		readonly sessionService: IDroxSessionService;
 		readonly sessionBackgroundService?: IDroxSessionBackgroundService;
+		readonly codebaseContextService?: IDroxCodebaseContextService;
 	},
 	prompt: string,
 	mode: string,
@@ -188,6 +190,7 @@ export async function executeDroxChatSend(
 			droxEngineService: deps.droxEngineService,
 			logService: deps.logService,
 			fileService: deps.fileService,
+			codebaseContextService: deps.codebaseContextService,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {
 			prompt: finalPrompt,

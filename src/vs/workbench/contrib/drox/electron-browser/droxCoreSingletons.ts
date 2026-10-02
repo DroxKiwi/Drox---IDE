@@ -51,6 +51,8 @@ import { DroxGitGraphService } from './droxGitGraphService.js';
 import { IDroxCodebaseIndexService } from '../common/codebase/droxCodebaseIndexService.js';
 import { DroxCodebaseIndexService } from '../common/codebase/droxCodebaseIndexServiceImpl.js';
 import { IDroxCodebaseSupervisionService, DroxCodebaseSupervisionService } from '../common/codebase/droxCodebaseSupervisionService.js';
+import { IDroxCodebaseContextService, DroxCodebaseContextService } from '../common/codebase/droxCodebaseContextService.js';
+import { IDroxModelQuestionService, DroxModelQuestionService } from '../common/modelQuestions/droxModelQuestionService.js';
 
 /** Singletons moteur Drox partagés entre l’IDE principal et la fenêtre Agents. */
 export function registerDroxCoreSingletons(): void {
@@ -78,5 +80,7 @@ export function registerDroxCoreSingletons(): void {
 	registerSingleton(IDroxSessionGitService, DroxSessionGitService, InstantiationType.Delayed);
 	registerSingleton(IDroxGitGraphService, DroxGitGraphService, InstantiationType.Delayed);
 	registerSingleton(IDroxCodebaseIndexService, DroxCodebaseIndexService, InstantiationType.Delayed);
+	registerSingleton(IDroxModelQuestionService, DroxModelQuestionService, InstantiationType.Delayed);
+	registerSingleton(IDroxCodebaseContextService, DroxCodebaseContextService, InstantiationType.Delayed);
 	registerSingleton(IDroxCodebaseSupervisionService, DroxCodebaseSupervisionService, InstantiationType.Delayed);
 }

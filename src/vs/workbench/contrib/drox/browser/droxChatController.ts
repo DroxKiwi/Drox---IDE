@@ -24,6 +24,7 @@ import { IDroxEngineNotificationPayload } from '../common/droxIpc.js';
 import { IDroxAttachmentPayload } from '../common/droxAttachments.js';
 import { IDroxAttachmentsService } from '../common/droxAttachmentsService.js';
 import { IDroxClientToolsService } from '../common/droxClientToolsService.js';
+import { IDroxCodebaseContextService } from '../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../common/droxEngineService.js';
 import { applyDroxConfigurationUpdate } from '../common/droxAgentsConfiguration.js';
 import { DroxSetting } from '../common/droxConfiguration.js';
@@ -88,6 +89,7 @@ export class DroxChatController extends Disposable
 	constructor(
 		@IDroxEngineService private readonly droxEngineService: IDroxEngineService,
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
+		@IDroxCodebaseContextService private readonly codebaseContextService: IDroxCodebaseContextService,
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 		@IDroxUserAskService private readonly userAskService: IDroxUserAskService,
 		@IDroxAttachmentsService private readonly attachmentsService: IDroxAttachmentsService,
@@ -490,6 +492,7 @@ export class DroxChatController extends Disposable
 			productService: this.productService,
 			releaseNotesService: this.releaseNotesService,
 			sessionBackgroundService: this.sessionBackgroundService,
+			codebaseContextService: this.codebaseContextService,
 		};
 	}
 

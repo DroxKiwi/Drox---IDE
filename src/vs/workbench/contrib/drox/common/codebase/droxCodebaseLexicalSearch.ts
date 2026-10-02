@@ -6,7 +6,11 @@
 import { IDroxCodebaseChunk } from './droxCodebaseChunker.js';
 import { IDroxCodebaseHit } from './droxCodebaseTypes.js';
 
-function tokenize(query: string): string[] {
+/**
+ * Tokenize a retrieval query (already rewritten by model comprehension when possible).
+ * No language stopword lists — RULES §6 / no NL heuristics on user text.
+ */
+export function droxCodebaseLexicalTokens(query: string): string[] {
 	return query
 		.toLowerCase()
 		.split(/[^a-z0-9_./\\-]+/i)
@@ -22,7 +26,7 @@ export function droxCodebaseLexicalSearch(
 	query: string,
 	maxResults: number = 12,
 ): IDroxCodebaseHit[] {
-	const tokens = tokenize(query);
+	const tokens = droxCodebaseLexicalTokens(query);
 	if (tokens.length === 0) {
 		return [];
 	}

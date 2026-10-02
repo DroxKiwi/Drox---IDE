@@ -1,6 +1,6 @@
 # `@Codebase` (contrib/drox)
 
-Workbench modules for the local codebase index (CB1 lexical → CB2 MiniLM hybrid → CB2b auto-index / pipeline).
+Workbench modules for the local codebase index (CB1 lexical → CB2 MiniLM hybrid → CB2b auto-index / pipeline → CB3 tool → CB4 auto-inject).
 
 ## Layout (CB2c)
 
@@ -8,6 +8,8 @@ Workbench modules for the local codebase index (CB1 lexical → CB2 MiniLM hybri
 common/codebase/
   droxCodebaseTypes.ts / PipelineView.ts   # snapshots + pipeline builders
   droxCodebase*Paths|Ignore|Chunker|…      # pure helpers
+  droxCodebaseContextPack.ts               # CB4 format hits → system block
+  droxCodebaseContextService.ts            # CB4 auto-inject + force-next + lastInject
   droxCodebaseIndexService.ts              # interface
   droxCodebaseIndexServiceImpl.ts          # thin orchestration
   index/                                   # scan / ensure+invalidate / embed / emit
@@ -16,7 +18,7 @@ common/codebase/
 
 browser/codebase/
   droxCodebaseCockpitViewPane.ts           # shell
-  cockpit/                                 # embed / pipeline / probe renderers
+  cockpit/                                 # embed / inject / pipeline / probe renderers
   media/
 ```
 

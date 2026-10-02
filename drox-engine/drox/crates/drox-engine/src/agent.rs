@@ -1316,7 +1316,12 @@ impl Agent {
                         kind,
                         "boucle détectée (1er strike) — injection nudge anti-boucle"
                     );
-                    messages.push(Message::system(LOOP_DETECTED_NUDGE_PROMPT));
+                    let nudge = if kind == "tool_family" {
+                        LOOP_TOOL_FAMILY_NUDGE_PROMPT
+                    } else {
+                        LOOP_DETECTED_NUDGE_PROMPT
+                    };
+                    messages.push(Message::system(nudge));
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
                         .await
@@ -2457,14 +2462,11 @@ struct PendingToolCall {
 /// mêmes `tool_calls` (mêmes args), sans jamais converger vers `[phase: done]`.
 /// Sans filet, le run épuise `max_iterations` en gaspillant des tokens.
 ///
-/// Heuristique V1 (stricte, peu de faux positifs) :
-/// 1. On capture l'empreinte du tour : (texte trimé, signature des tool_calls).
-///    Empreinte vide = on ignore (cas pathologique, déjà géré par
-///    `tool_calls.is_empty()` en amont).
-/// 2. Si l'empreinte est identique à la précédente :
-///    - 1er strike → `Decision::Warn` (le moteur injecte un nudge anti-boucle).
-///    - 2e strike → `Decision::Abort(kind)` (le moteur stoppe le run).
-/// 3. Toute empreinte **différente** reset le compteur.
+/// Heuristique V1 (stricte) + V1.1 familles ciblées (`bash`/`grep`) :
+/// 1. Empreinte tour : (texte+thinking, signature tool_calls brutes).
+/// 2. Identique → Warn puis Abort (historique).
+/// 3. Famille bash/grep aux args **normalisés** identiques (casse, `cmd & cmd`)
+///    → Warn/Abort même si thinking change (dogfood findstr Metrics retry).
 ///
 /// Anti-faux-positif : les nudges moteur (`unfinished_todos`, `DONE_ONLY`,
 /// etc.) appellent `LoopDetector::reset` parce qu'ils **forcent**
@@ -2479,8 +2481,12 @@ struct LoopDetector {
     /// « text » / « tool_calls » / « both »).
     last_text_hash: u64,
     last_tools_hash: u64,
+    /// Empreinte tools après normalisation (familles bash/grep).
+    last_tools_family_hash: Option<u64>,
     /// Nombre de tours identiques **consécutifs** observés.
     strike: u32,
+    /// Strikes consécutifs sur la même famille d'outils normalisée.
+    family_strike: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2502,6 +2508,7 @@ impl LoopDetector {
     /// laisser une chance de convergence sans pénalité).
     fn reset(&mut self) {
         self.strike = 0;
+        self.family_strike = 0;
     }
 
     /// Examine un `TurnOutcome` et renvoie la décision à prendre. `outcome`
@@ -2511,7 +2518,9 @@ impl LoopDetector {
         // qu'un texte vide + le même tool cassé → faux positif immédiat.
         let text_h = combine_hash(hash_text(&outcome.text), hash_text(&outcome.thinking));
         let tools_h = hash_tool_calls(&outcome.tool_calls);
+        let tools_family_h = hash_tool_calls_family(&outcome.tool_calls);
         let fp = combine_hash(text_h, tools_h);
+        let targeted_family = is_targeted_tool_loop_family(&outcome.tool_calls);
 
         // Tour vide (ni texte significatif, ni thinking, ni outils) : on laisse
         // les gates `tool_calls.is_empty()` + `NUDGE_PROMPT` faire leur job et
@@ -2524,10 +2533,14 @@ impl LoopDetector {
             self.last_fingerprint = Some(fp);
             self.last_text_hash = text_h;
             self.last_tools_hash = tools_h;
+            self.last_tools_family_hash = None;
+            self.family_strike = 0;
             return LoopDecision::Ok;
         }
 
-        let repeat = matches!(self.last_fingerprint, Some(prev) if prev == fp);
+        let exact_repeat = matches!(self.last_fingerprint, Some(prev) if prev == fp);
+        let family_repeat = targeted_family
+            && matches!(self.last_tools_family_hash, Some(prev) if prev == tools_family_h);
 
         // Mise à jour de l'état AVANT de retourner : le prochain `observe`
         // doit voir l'empreinte courante quelle que soit la décision.
@@ -2536,8 +2549,31 @@ impl LoopDetector {
         self.last_fingerprint = Some(fp);
         self.last_text_hash = text_h;
         self.last_tools_hash = tools_h;
+        if targeted_family {
+            self.last_tools_family_hash = Some(tools_family_h);
+        } else {
+            self.last_tools_family_hash = None;
+            self.family_strike = 0;
+        }
 
-        if !repeat {
+        // 1) Famille d'outils (bash/grep normalisés) — même si thinking change.
+        if family_repeat {
+            self.family_strike = self.family_strike.saturating_add(1);
+            match self.family_strike {
+                1 | 2 => return LoopDecision::Warn { kind: "tool_family" },
+                _ => {
+                    return LoopDecision::Abort {
+                        kind: "tool_family",
+                        turns: self.family_strike + 1,
+                    };
+                }
+            }
+        } else if targeted_family {
+            self.family_strike = 0;
+        }
+
+        // 2) Empreinte stricte (texte + tools bruts) — comportement historique.
+        if !exact_repeat {
             self.strike = 0;
             return LoopDecision::Ok;
         }
@@ -2595,6 +2631,108 @@ fn hash_tool_calls(calls: &[PendingToolCall]) -> u64 {
     h.finish()
 }
 
+/// Empreinte tools après normalisation (familles bash / grep).
+fn hash_tool_calls_family(calls: &[PendingToolCall]) -> u64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut h = DefaultHasher::new();
+    calls.len().hash(&mut h);
+    for c in calls {
+        c.name.hash(&mut h);
+        normalize_tool_args_for_loop_family(&c.name, &c.arguments).hash(&mut h);
+    }
+    h.finish()
+}
+
+fn is_targeted_tool_loop_family(calls: &[PendingToolCall]) -> bool {
+    !calls.is_empty() && calls.iter().all(|c| c.name == "bash" || c.name == "grep")
+}
+
+/// Canonise les args d'un outil pour la détection de famille (pas de NLP user).
+fn normalize_tool_args_for_loop_family(name: &str, args: &serde_json::Value) -> String {
+    match name {
+        "bash" => {
+            let cmd = args
+                .get("command")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            normalize_bash_command_for_loop(cmd)
+        }
+        "grep" => {
+            let pat = args
+                .get("pattern")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let path = args
+                .get("path")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .replace('\\', "/")
+                .to_lowercase();
+            let glob = args
+                .get("glob")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_lowercase();
+            format!("{pat}|{path}|{glob}")
+        }
+        _ => serde_json::to_string(args).unwrap_or_default(),
+    }
+}
+
+fn normalize_bash_command_for_loop(cmd: &str) -> String {
+    let mut s = cmd.to_lowercase();
+    loop {
+        let next = strip_retry_noise(&s);
+        if next == s {
+            break;
+        }
+        s = next;
+    }
+    let mut segments: Vec<String> = split_bash_segments_for_loop(&s);
+    segments.sort();
+    segments.dedup();
+    segments.join(" | ")
+}
+
+/// Découpe `&&`, `&`, `;` pour comparer le fond de la commande (ignore doublons).
+fn split_bash_segments_for_loop(s: &str) -> Vec<String> {
+    let unified = s.replace("&&", "\n").replace('&', "\n").replace(';', "\n");
+    unified
+        .split('\n')
+        .map(|part| part.split_whitespace().collect::<Vec<_>>().join(" "))
+        .filter(|part| !part.is_empty())
+        .collect()
+}
+
+fn strip_retry_noise(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = String::with_capacity(s.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'(' {
+            let rest = &s[i..];
+            if rest.starts_with("(retry)") {
+                i += "(retry)".len();
+                continue;
+            }
+            if rest.starts_with("(retry ") {
+                if let Some(end) = rest.find(')') {
+                    let inner = &rest[7..end];
+                    if !inner.is_empty() && inner.bytes().all(|b| b.is_ascii_digit()) {
+                        i += end + 1;
+                        continue;
+                    }
+                }
+            }
+        }
+        out.push(bytes[i] as char);
+        i += 1;
+    }
+    out
+}
+
 fn combine_hash(a: u64, b: u64) -> u64 {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -2620,6 +2758,15 @@ hypothesis in `[phase: reading]` or `[phase: acting]` BEFORE acting.\n\n\
 `[phase: answering]` with your final answer in Markdown, then \
 `[phase: done]`.\n\n\
 Repeating the same content again will cause the run to be aborted.";
+
+/// Nudge spécifique familles bash/grep (args équivalents après normalisation).
+const LOOP_TOOL_FAMILY_NUDGE_PROMPT: &str = "You are repeating the same shell/search \
+tool family with only cosmetic changes (case, retry labels, duplicated commands). \
+That will not converge.\n\n\
+1. **Stop retrying the same findstr/grep/bash** — treat empty stdout + exit 1 as \
+\"no matches\" (not a crash), OR switch to `file_read` / `codebase_search`.\n\
+2. **Or conclude**: `[phase: answering]` with what you already know, then `[phase: done]`.\n\n\
+Repeating the same search family again will abort the run.";
 
 struct TurnOutcome {
 	/// Texte assistant **nettoyé** : tous les marqueurs `[phase: ...]` reconnus
@@ -5224,6 +5371,62 @@ mod tests {
         assert_eq!(det.observe(&mk("plan A")), LoopDecision::Ok);
         assert_eq!(det.observe(&mk("plan B — fix JSON")), LoopDecision::Ok);
         assert_eq!(det.observe(&mk("plan B — fix JSON")), LoopDecision::Warn { kind: "both" });
+    }
+
+    #[test]
+    fn loop_detector_flags_bash_family_despite_thinking_change() {
+        let mut det = LoopDetector::new();
+        let mk = |thinking: &str, command: &str| TurnOutcome {
+            text: String::new(),
+            thinking: thinking.into(),
+            tool_calls: vec![PendingToolCall {
+                id: ToolUseId::new(),
+                name: "bash".into(),
+                arguments: serde_json::json!({ "command": command }),
+            }],
+            reason: StopReason::EndTurn,
+            usage: Usage::default(),
+            final_phase: Some(Phase::Reading),
+            saw_answering: false,
+            saw_analyzing: false,
+            saw_testing: false,
+        };
+        assert_eq!(
+            det.observe(&mk("try metrics", r#"cd src\app && findstr /n "metrics" page.tsx"#)),
+            LoopDecision::Ok
+        );
+        assert_eq!(
+            det.observe(&mk(
+                "retry capital M",
+                r#"cd src\app && findstr /n "Metrics" page.tsx"#
+            )),
+            LoopDecision::Warn { kind: "tool_family" }
+        );
+        assert_eq!(
+            det.observe(&mk(
+                "retry again",
+                r#"cd src\app && findstr /n "Metrics" page.tsx & findstr /n "Metrics" page.tsx"#
+            )),
+            LoopDecision::Warn { kind: "tool_family" }
+        );
+        assert!(matches!(
+            det.observe(&mk("still", r#"cd src\app && findstr /n "metrics" page.tsx"#)),
+            LoopDecision::Abort {
+                kind: "tool_family",
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn normalize_bash_command_folds_case_and_duplicates() {
+        let a = normalize_bash_command_for_loop(r#"cd src\app && findstr /n "metrics" page.tsx"#);
+        let b = normalize_bash_command_for_loop(r#"cd src\app && findstr /n "Metrics" page.tsx"#);
+        let c = normalize_bash_command_for_loop(
+            r#"cd src\app && findstr /n "Metrics" page.tsx & findstr /n "Metrics" page.tsx"#,
+        );
+        assert_eq!(a, b);
+        assert_eq!(a, c);
     }
 
     /// Sprint Hotfix « boucle » — anti-faux-positif : le détecteur ne doit

@@ -174,7 +174,7 @@ La chronologie moteur détaillée et les schémas opératoires vivent dans **`do
 
 ### Orchestration moteur — interdictions (obligatoire)
 
-- **Pas de listes heuristiques** sur le message utilisateur : interdit de classer l'intention par listes de mots-clés, regex « salut / bonjour / merci », longueur minimale du prompt, ou tout autre NLP codé en dur dans le moteur ou l'IDE pour choisir discuss vs edit.
+- **Pas de listes heuristiques** sur le message utilisateur : interdit de classer l'intention **ou de réécrire / filtrer pour le retrieval** par listes de mots-clés, regex « salut / bonjour / merci », stopwords FR/EN, longueur minimale du prompt, ou tout autre NLP codé en dur dans le moteur ou l'IDE. Compréhension = **question modèle anglaise versionnée** (`common/modelQuestions/`) → sortie structurée → code mécanique.
 - **Routage discuss / edit** : uniquement via `architectInteractionMode` (RPC), tour intent modèle (`[gate: architect_discuss|architect_edit]`), ou marqueurs protocolaires déjà définis — pas de raccourci heuristique parallèle.
 - **Prompts modèle** : ne pas injecter de numéros de version produit (ex. « Drox 1.2 », « 1.3.2 ») dans les system prompts architecte / exécuteur ; le modèle juge l'intention dans le texte du prompt, le code ne duplique pas cette logique.
 - **Plans** : en chemin edit, chaque ligne `todo_write` doit refléter une demande utilisateur explicite — pas de plan d'audit / analyse de répertoire par défaut.

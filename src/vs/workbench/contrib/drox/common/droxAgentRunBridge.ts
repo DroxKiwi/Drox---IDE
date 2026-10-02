@@ -17,6 +17,7 @@ import {
 } from './droxSessionNotesFs.js';
 import { consumeDroxPlanArchiveSystemNote } from './droxPlanArchiveNote.js';
 import { truncateUserPromptForEngine } from './droxUserPromptEngine.js';
+import { IDroxCodebaseContextService } from './codebase/droxCodebaseContextService.js';
 
 export interface IDroxAgentRunBridgeDeps {
 	readonly clientToolsService: IDroxClientToolsService;
@@ -25,6 +26,8 @@ export interface IDroxAgentRunBridgeDeps {
 	readonly logService: ILogService;
 	/** Optionnel : carnet session (N0) injecté dans `system`. */
 	readonly fileService?: IFileService;
+	/** Optionnel : hint + pack `@Codebase` (CB4 auto-inject / force). */
+	readonly codebaseContextService?: IDroxCodebaseContextService;
 }
 
 export interface IDroxAgentRunStartOptions {
@@ -68,6 +71,19 @@ export async function startDroxAgentRun(
 	const planArchiveNote = consumeDroxPlanArchiveSystemNote(options.sessionId);
 	if (planArchiveNote) {
 		system = system?.trim() ? `${planArchiveNote}\n\n${system}` : planArchiveNote;
+	}
+	if (deps.codebaseContextService) {
+		try {
+			const codebaseSystem = await deps.codebaseContextService.buildSystemSupplement(
+				options.workspace,
+				options.prompt,
+			);
+			if (codebaseSystem?.trim()) {
+				system = system?.trim() ? `${system}\n\n${codebaseSystem}` : codebaseSystem;
+			}
+		} catch (e) {
+			deps.logService.trace('[Drox] codebase context inject skipped', e);
+		}
 	}
 	const runParams = deps.runSettingsService.buildAgentRunParams({
 		prompt: truncateUserPromptForEngine(options.prompt),

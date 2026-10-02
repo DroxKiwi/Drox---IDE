@@ -27,6 +27,7 @@ import {
 import { IDroxAttachmentPayload } from '../../common/droxAttachments.js';
 import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
+import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxSlashHostMessage, IDroxSlashCommandService } from '../../common/droxSlashCommandService.js';
@@ -99,6 +100,7 @@ export interface IDroxChatWebviewRouterDeps {
 	readonly releaseNotesService: IDroxReleaseNotesService;
 	/** Flag hors-workspace par session moteur (`ses_*`) — FX-A 1.5.16. */
 	readonly sessionBackgroundService: IDroxSessionBackgroundService;
+	readonly codebaseContextService: IDroxCodebaseContextService;
 }
 
 export async function routeDroxChatWebviewMessage(
@@ -203,6 +205,7 @@ export async function routeDroxChatWebviewMessage(
 				runRevertService: deps.runRevertService,
 				fileService: deps.fileService,
 				sessionBackgroundService: deps.sessionBackgroundService,
+				codebaseContextService: deps.codebaseContextService,
 			}, raw.messageId);
 			break;
 		case 'restartRunAfterError':
@@ -216,6 +219,7 @@ export async function routeDroxChatWebviewMessage(
 				runRevertService: deps.runRevertService,
 				fileService: deps.fileService,
 				sessionBackgroundService: deps.sessionBackgroundService,
+				codebaseContextService: deps.codebaseContextService,
 			}, raw.messageId);
 			break;
 		case 'undoFileChange':

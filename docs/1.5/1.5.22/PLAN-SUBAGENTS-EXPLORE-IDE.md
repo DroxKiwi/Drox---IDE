@@ -1,8 +1,8 @@
-# 1.5.21 — Brancher Explore (`task`) dans Drox IDE
+# 1.5.22 — Brancher Explore (`task`) dans Drox IDE
 
-**Priorité maj** : **#2** (après [ARCHITECTURE-CODEBASE-INDEX](ARCHITECTURE-CODEBASE-INDEX.md))  
+**Priorité maj** : reporté depuis 1.5.21  
 **Statut** : 📋 à faire · moteur déjà prêt, IDE non câblé  
-**Parent** : [README 1.5.21](README.md)  
+**Parent** : [README 1.5.22](README.md)  
 **Pédagogie** : [docs/pedagogie/11-mcp-et-explore.md](../../pedagogie/11-mcp-et-explore.md)  
 **Réf. moteur** : [mcp-and-subagents.md](../../engine/mcp-and-subagents.md)
 
@@ -18,7 +18,7 @@
 
 Donc : **fonctionne si on active et câble** ; **inutilisable out-of-the-box** dans l’IDE produit actuel.
 
-## Objectif produit 1.5.21
+## Objectif produit 1.5.22
 
 Rendre Explore **opt-in** (ou défaut produit à trancher) depuis Drox IDE :
 

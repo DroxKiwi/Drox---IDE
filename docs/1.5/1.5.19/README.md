@@ -28,7 +28,7 @@
 | F | Moteur LLM — Ollama schema/system + LoopDetector thinking (KAT-Coder) | ✅ (doc [ENGINE-OLLAMA…](ENGINE-OLLAMA-THINKING-AND-LOOPS.md) · E16–E18 · rebuild `drox.exe`) |
 | E | Unification mutateurs + export transcript dev | ✅ code + docs · rebuild `drox.exe` + smoke |
 
-## Reporté → [1.5.21](../1.5.21/README.md) / [1.5.22](../1.5.22/README.md) / [1.5.23](../1.5.23/README.md)
+## Reporté → [1.5.21](../1.5.21/README.md) / [1.5.22](../1.5.22/README.md)
 
 | Sujet | Fiche |
 |-------|--------|
@@ -37,7 +37,7 @@
 | Hub `@Codebase` | [codebase/README.md](../1.5.21/codebase/README.md) |
 | Explore IDE (`task`) | [PLAN-SUBAGENTS-EXPLORE-IDE.md](../1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md) |
 | Shell discussion Agents ↔ IDE | [PLAN-SHARED-DISCUSSION-SHELL.md](../1.5.21/PLAN-SHARED-DISCUSSION-SHELL.md) |
-| Tool calling universel | [PLAN-UNIVERSAL-TOOL-CALLING.md](../1.5.22/PLAN-UNIVERSAL-TOOL-CALLING.md) |
+| Auto-régulation moteur ↔ modèle | [PLAN-MODEL-AUTO-REGULATION.md](../1.5.22/PLAN-MODEL-AUTO-REGULATION.md) |
 
 ## Suite immédiate → [1.5.20](../1.5.20/README.md)
 

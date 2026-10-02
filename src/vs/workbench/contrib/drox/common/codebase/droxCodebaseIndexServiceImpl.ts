@@ -24,7 +24,10 @@ import {
 	IDroxCodebaseManifest,
 } from './droxCodebaseJsonStore.js';
 import { droxCodebaseLexicalSearch } from './droxCodebaseLexicalSearch.js';
+import { droxCodebaseRerankHits } from './droxCodebaseRerank.js';
 import { IDroxCodebaseHit } from './droxCodebaseTypes.js';
+import { droxCodebaseShouldSkipFileName } from './droxCodebaseIgnore.js';
+import { basename } from '../../../../../base/common/path.js';
 import { droxCodebaseRunEnsureIndexed, droxCodebaseRunInvalidate } from './index/droxCodebaseIndexIncremental.js';
 import { DroxCodebaseIndexPipelineEmitter } from './index/droxCodebaseIndexPipelineEmit.js';
 import { droxCodebaseChunksContentEqual } from './index/droxCodebaseIndexScan.js';
@@ -119,14 +122,15 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 			chunks = await droxCodebaseReadChunks(this.fileService, rootKey);
 			this._chunksCache.set(rootKey, chunks);
 		}
-		let filtered = chunks;
+		let filtered = chunks.filter(c => !droxCodebaseShouldSkipFileName(basename(c.path)));
 		if (opts?.pathPrefix) {
 			const prefix = opts.pathPrefix.replace(/\\/g, '/');
-			filtered = chunks.filter(c => c.path.startsWith(prefix));
+			filtered = filtered.filter(c => c.path.startsWith(prefix));
 		}
 		const maxResults = opts?.maxResults ?? 12;
+		const candidateCap = Math.min(48, Math.max(maxResults * 3, maxResults));
 		const lexical = opts?.includeLexical !== false
-			? droxCodebaseLexicalSearch(filtered, query, maxResults)
+			? droxCodebaseLexicalSearch(filtered, query, candidateCap)
 			: [];
 
 		let vectors = this._vectorsCache.get(rootKey);
@@ -135,33 +139,35 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 			this._vectorsCache.set(rootKey, vectors);
 		}
 		if (!vectors.length) {
-			return lexical;
+			return droxCodebaseRerankHits(lexical, maxResults, rerankOpts(opts));
 		}
 
 		try {
 			const st = await this._embedClient.status();
 			if (!st.built) {
-				return lexical;
+				return droxCodebaseRerankHits(lexical, maxResults, rerankOpts(opts));
 			}
 			if (!st.modelLoaded) {
 				const modelPath = await resolveDroxEmbedModelPath(this.fileService, this._embedDeps().resolveOpts);
 				if (!modelPath) {
-					return lexical;
+					return droxCodebaseRerankHits(lexical, maxResults, rerankOpts(opts));
 				}
 				await this._embedClient.load(modelPath);
 			}
 			const encoded = await this._embedClient.encode([query]);
 			const queryVector = encoded.vectors[0]?.values;
 			if (!queryVector?.length) {
-				return lexical;
+				return droxCodebaseRerankHits(lexical, maxResults, rerankOpts(opts));
 			}
-			const filteredVectors = opts?.pathPrefix
+			const filteredVectors = (opts?.pathPrefix
 				? vectors.filter(v => v.path.startsWith(opts.pathPrefix!.replace(/\\/g, '/')))
-				: vectors;
-			return droxCodebaseHybridMerge(lexical, queryVector, filteredVectors, maxResults);
+				: vectors
+			).filter(v => !droxCodebaseShouldSkipFileName(basename(v.path)));
+			const merged = droxCodebaseHybridMerge(lexical, queryVector, filteredVectors, candidateCap);
+			return droxCodebaseRerankHits(merged, maxResults, rerankOpts(opts));
 		} catch (err) {
 			this.logService.trace(`[drox-codebase] hybrid search fallback: ${err}`);
-			return lexical;
+			return droxCodebaseRerankHits(lexical, maxResults, rerankOpts(opts));
 		}
 	}
 
@@ -213,4 +219,11 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 /** @internal exported for tests */
 export function droxCodebaseChunksContentEqualForTest(a: readonly IDroxCodebaseChunk[], b: readonly IDroxCodebaseChunk[]): boolean {
 	return droxCodebaseChunksContentEqual(a, b);
+}
+
+function rerankOpts(opts?: IDroxCodebaseSearchOptions) {
+	return {
+		preferCodeFiles: opts?.preferCodeFiles,
+		pathPrefixes: opts?.pathPrefixes ?? (opts?.pathPrefix ? [opts.pathPrefix] : undefined),
+	};
 }
