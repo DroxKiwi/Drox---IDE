@@ -5,9 +5,10 @@
 
 import { Emitter } from '../../../../../base/common/event.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
-import { IDroxRegulationHistory } from './droxRegulationHistory.js';
-import { IDroxRegulationProbe } from './droxRegulationProbe.js';
-import { IDroxRegulationSurface } from './droxRegulationSurface.js';
+import { mergeRegulationRunIntoSnapshot } from './droxRegulationScoreAggregate.js';
+import { scoreRegulationRun } from './droxRegulationScorer.js';
+import { IDroxRegulationService } from './droxRegulationServiceContract.js';
+import { IDroxRegulationRunSignals } from './droxRegulationRunSignals.js';
 import {
 	createDefaultRegulationSurfaceState,
 	createEmptyLeverScores,
@@ -19,10 +20,9 @@ import {
 } from './droxRegulationTypes.js';
 
 /**
- * R0 stub: defaults only. No scoring, no persistence, no run mutation.
- * Later steps flesh out probe / history / surface without changing this public shape.
+ * R1: in-memory scorer per modelKey. History persist = R2. Surface = defaults until R5.
  */
-export class DroxRegulationService extends Disposable implements IDroxRegulationProbe, IDroxRegulationHistory, IDroxRegulationSurface {
+export class DroxRegulationService extends Disposable implements IDroxRegulationService {
 
 	declare readonly _serviceBrand: undefined;
 
@@ -36,12 +36,26 @@ export class DroxRegulationService extends Disposable implements IDroxRegulation
 	readonly onDidChangeSurface = this._onDidChangeSurface.event;
 
 	private _surface: DroxRegulationSurfaceState = createDefaultRegulationSurfaceState();
+	private readonly _scoresByModel = new Map<string, IDroxRegulationScoreSnapshot>();
+
+	recordRunSignals(modelKey: string, signals: IDroxRegulationRunSignals): void {
+		const key = modelKey.trim() || 'unknown';
+		const run = scoreRegulationRun(signals);
+		const next = mergeRegulationRunIntoSnapshot(this._scoresByModel.get(key), key, run);
+		this._scoresByModel.set(key, next);
+		this._onDidChangeScores.fire();
+	}
 
 	getScores(modelKey: string): IDroxRegulationScoreSnapshot {
+		const key = modelKey.trim() || 'unknown';
+		const stored = this._scoresByModel.get(key);
+		if (stored) {
+			return stored;
+		}
 		const at = Date.now();
 		const levers = createEmptyLeverScores(at);
 		return {
-			modelKey: modelKey || 'unknown',
+			modelKey: key,
 			levers,
 			globalScore: 50,
 			samples: 0,

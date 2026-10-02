@@ -53,9 +53,7 @@ import { DroxCodebaseIndexService } from '../common/codebase/droxCodebaseIndexSe
 import { IDroxCodebaseSupervisionService, DroxCodebaseSupervisionService } from '../common/codebase/droxCodebaseSupervisionService.js';
 import { IDroxCodebaseContextService, DroxCodebaseContextService } from '../common/codebase/droxCodebaseContextService.js';
 import { IDroxModelQuestionService, DroxModelQuestionService } from '../common/modelQuestions/droxModelQuestionService.js';
-import { IDroxRegulationProbe } from '../common/regulation/droxRegulationProbe.js';
-import { IDroxRegulationHistory } from '../common/regulation/droxRegulationHistory.js';
-import { IDroxRegulationSurface } from '../common/regulation/droxRegulationSurface.js';
+import { IDroxRegulationService } from '../common/regulation/droxRegulationServiceContract.js';
 import { DroxRegulationService } from '../common/regulation/droxRegulationService.js';
 
 /** Singletons moteur Drox partagés entre l’IDE principal et la fenêtre Agents. */
@@ -87,8 +85,5 @@ export function registerDroxCoreSingletons(): void {
 	registerSingleton(IDroxModelQuestionService, DroxModelQuestionService, InstantiationType.Delayed);
 	registerSingleton(IDroxCodebaseContextService, DroxCodebaseContextService, InstantiationType.Delayed);
 	registerSingleton(IDroxCodebaseSupervisionService, DroxCodebaseSupervisionService, InstantiationType.Delayed);
-	// R0 stub: three contracts, same impl class (separate Delayed instances OK — defaults only).
-	registerSingleton(IDroxRegulationProbe, DroxRegulationService, InstantiationType.Delayed);
-	registerSingleton(IDroxRegulationHistory, DroxRegulationService, InstantiationType.Delayed);
-	registerSingleton(IDroxRegulationSurface, DroxRegulationService, InstantiationType.Delayed);
+	registerSingleton(IDroxRegulationService, DroxRegulationService, InstantiationType.Delayed);
 }

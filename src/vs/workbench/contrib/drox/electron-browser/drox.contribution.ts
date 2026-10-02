@@ -7,6 +7,8 @@
 
 import './droxEngineConfigContribution.js';
 
+import './droxRegulationProbeContribution.js';
+
 import './droxEngineWarmStartContribution.js';
 
 import './droxEngineWorkbenchContribution.js';

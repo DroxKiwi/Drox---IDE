@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0 scaffold ✅** · R1+ à venir (§9)  
+**Statut** : 📋 cadrage · **R0 ✅** · **R1 scorer + sonde ✅** · R2+ (§9)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -187,7 +187,7 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 | Étape | Livrable | Done quand |
 |-------|----------|------------|
 | **R0** | Scaffold `regulation/` : types L1–L5, modules, contrats vides, README package | ✅ types + Probe/History/Surface + stub Delayed + test smoke |
-| **R1** | **Sonde + scorer** : events → notes L1–L5 + globale (formules v0 + tests unitaires) | Tests verts ; pas d’UI obligatoire |
+| **R1** | **Sonde + scorer** : events → notes L1–L5 + globale (formules v0 + tests unitaires) | ✅ `droxRegulationScorer` + `agent/done` contribution + tests |
 | **R2** | **History store** : 1 entrée / run (prompt extrait, notes, modules, issue, model) | Persistance locale + tests |
 | **R3** | **Console observatoire** : section sous Embed — leviers (notes + couleurs) + liste historique | Visible dogfood ; **aucun Auto apply** |
 | **R4** | **Graphiques** : note globale dans le temps + breakdown issues (couleur) | Au moins 1 chart live sur histo |
@@ -202,11 +202,11 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 
 **Règle d’or** : ne pas démarrer Rn+1 tant que Rn n’est pas smoke-ok.  
 **Interdit** : mélanger scorer dans les wrappers, ou UI avant store/types stables (sauf stubs R0).  
-**R12** se fait **en toute fin de 1.5.22** (après R11 et éventuels E/F/H retenus), pas au milieu de la régulation.
+**R12** se fait **en toute fin de 1.5.22** (après R11, puis **PF** port-forward + **AG** parité Agents — voir [README](README.md)), pas au milieu de la régulation.
 
 ---
 
 ## 10. Suite immédiate
 
-1. ~~Cadrage validé~~ · ~~**R0** scaffold~~.  
-2. Démarrer **R1** (scorer / sonde) uniquement.
+1. ~~Cadrage~~ · ~~**R0**~~ · ~~**R1** scorer/sonde~~.  
+2. Démarrer **R2** (history store) uniquement.
