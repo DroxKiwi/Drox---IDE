@@ -157,6 +157,32 @@ suite('Drox — droxAgentRunBridge', () => {
 		assert.strictEqual(capturedSystem, undefined);
 	});
 
+	test('startDroxAgentRun disables non-core tools when L2 is core', async () => {
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => ({
+				prompt: opts.prompt,
+				workspace: opts.workspace,
+				mode: opts.mode,
+				sessionId: opts.sessionId,
+			}),
+			regulationService: {
+				getModule: lever => (lever === 'L2' ? 'core' : 'standard'),
+			},
+		}) as IDroxAgentRunBridgeDeps & { _requests: { method: string; params?: unknown }[] };
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l2',
+		});
+		const runCall = deps._requests.find(r => r.method === 'agent.run');
+		assert.ok(runCall);
+		const disabled = (runCall!.params as { disabledTools?: string[] }).disabledTools;
+		assert.ok(disabled);
+		assert.ok(disabled!.includes('web_search'));
+		assert.ok(!disabled!.includes('bash'));
+	});
+
 	test('startDroxAgentRun returns undefined when engine omits runId', async () => {
 		const deps = createBridgeDeps({
 			request: async method => (method === 'agent.run' ? {} : {}),

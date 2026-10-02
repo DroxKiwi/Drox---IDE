@@ -22,6 +22,11 @@ import {
 	applyDroxRegulationL1SessionNotes,
 	asDroxRegulationL1Module,
 } from './regulation/droxRegulationL1Budget.js';
+import {
+	applyDroxRegulationL2DisabledTools,
+	applyDroxRegulationL2ExecutableTools,
+	asDroxRegulationL2Module,
+} from './regulation/droxRegulationL2Surface.js';
 import { IDroxRegulationService } from './regulation/droxRegulationServiceContract.js';
 
 export interface IDroxAgentRunBridgeDeps {
@@ -38,7 +43,7 @@ export interface IDroxAgentRunBridgeDeps {
 	 * (browser supplies active editor; common layer stays editor-free).
 	 */
 	readonly resolveCodebaseForcePathPrefixes?: (workspaceFsPath: string) => string[] | undefined;
-	/** Optionnel : L1 Context budget (session notes truncate / omit). */
+	/** Optionnel : L1 notes + L2 tool surface. */
 	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
 }
 
@@ -55,12 +60,21 @@ export interface IDroxAgentRunStartOptions {
 	readonly system?: string;
 }
 
+function resolveExecutableTools(deps: IDroxAgentRunBridgeDeps): string[] {
+	const filtered = deps.runSettingsService.filterExecutableTools(
+		deps.clientToolsService.executableToolNames,
+	);
+	if (!deps.regulationService) {
+		return [...filtered];
+	}
+	const l2 = asDroxRegulationL2Module(deps.regulationService.getModule('L2'));
+	return applyDroxRegulationL2ExecutableTools(l2, filtered);
+}
+
 /** Initialise `drox.exe` pour un run agent (tools exécutables + ask interactif). */
 export async function initializeDroxEngineForAgentRun(deps: IDroxAgentRunBridgeDeps): Promise<void> {
-	const allTools = deps.clientToolsService.executableToolNames;
-	const executableTools = deps.runSettingsService.filterExecutableTools(allTools);
 	await deps.droxEngineService.initialize({
-		executableTools: [...executableTools],
+		executableTools: resolveExecutableTools(deps),
 		interactiveAsk: true,
 	});
 }
@@ -115,7 +129,19 @@ export async function startDroxAgentRun(
 		runObjective: options.runObjective,
 		allowOutsideWorkspace: options.allowOutsideWorkspace,
 		system: system?.trim() ? system : undefined,
-	});
+	}) as Record<string, unknown>;
+	if (deps.regulationService) {
+		const l2 = asDroxRegulationL2Module(deps.regulationService.getModule('L2'));
+		const existing = Array.isArray(runParams.disabledTools)
+			? (runParams.disabledTools as string[])
+			: [];
+		const disabled = applyDroxRegulationL2DisabledTools(l2, existing);
+		if (disabled.length > 0) {
+			runParams.disabledTools = disabled;
+		} else {
+			delete runParams.disabledTools;
+		}
+	}
 	const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 	if (typeof result?.runId === 'string') {
 		deps.logService.info('[Drox] agent.run', result.runId);

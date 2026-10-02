@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0–R6 ✅** · R7+ (§9)  
+**Statut** : 📋 cadrage · **R0–R7 ✅** · R8+ (§9)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -193,7 +193,7 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 | **R4** | **Graphiques** : note globale dans le temps + breakdown issues (couleur) | ✅ sparkline SVG + barre issues sur histo |
 | **R5** | **Overrides UI** : select module + Auto par levier (state persisté) — **encore sans wrap moteur** | ✅ `surface.json` + select/Auto cockpit |
 | **R6** | **Wrapper L1** Context budget | ✅ inject Codebase (`maxChars`/`maxHits`) + session notes truncate/omit via `getModule('L1')` |
-| **R7** | **Wrapper L2** Tool surface | idem |
+| **R7** | **Wrapper L2** Tool surface | ✅ allowlist `core`/`standard`/`full` → `disabledTools` + executable filter |
 | **R8** | **Wrapper L3** Directive density | idem |
 | **R9** | **Wrapper L4** Protocol strictness | idem |
 | **R10** | **Wrapper L5** Retrieval posture | idem |
@@ -202,11 +202,11 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 
 **Règle d’or** : ne pas démarrer Rn+1 tant que Rn n’est pas smoke-ok.  
 **Interdit** : mélanger scorer dans les wrappers, ou UI avant store/types stables (sauf stubs R0).  
-**R12** se fait **en toute fin de 1.5.22** (après R11, puis **PF** port-forward + **AG** parité Agents — voir [README](README.md)), pas au milieu de la régulation.
+**R12** se fait **en toute fin de 1.5.22** (après R11, puis **PF** port-forward + **AG** parité Agents + **THEME** theming — voir [README](README.md)), pas au milieu de la régulation.
 
 ---
 
 ## 10. Suite immédiate
 
-1. ~~Cadrage~~ · ~~**R0–R6**~~.  
-2. Démarrer **R7** (wrapper L2 Tool surface) uniquement.
+1. ~~Cadrage~~ · ~~**R0–R7**~~.  
+2. Démarrer **R8** (wrapper L3 Directive density) uniquement.
