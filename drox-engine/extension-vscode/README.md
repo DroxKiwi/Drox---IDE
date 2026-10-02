@@ -39,7 +39,7 @@ npm install
      **`cargo: drox-cli (debug)`** (cf. `.vscode/tasks.json`).
    - Une fenêtre « **[Extension Development Host]** » s'ouvre.
 3. Dans la fenêtre Extension Host : **Fichier → Ouvrir le dossier…** →
-   choisis le **dossier racine du repo** (`claude-code-leak-packaged/`) pour
+   choisis le **dossier racine du repo** (`drox-engine/` à la racine monorepo) pour
    que l'auto-détection trouve `drox/target/debug/drox.exe`.
 4. **`Ctrl+Shift+P`** → **« Drox: Ouvrir le chat »**.
 5. Tape un message et **Envoyer**.

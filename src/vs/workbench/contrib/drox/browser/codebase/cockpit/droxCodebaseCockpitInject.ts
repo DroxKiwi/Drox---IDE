@@ -78,6 +78,13 @@ export function renderDroxCodebaseCockpitInject(
 			rec.query.length > 120 ? `${rec.query.slice(0, 118)}…` : rec.query,
 		)));
 	}
+	if (rec.forcePathPrefixes?.length) {
+		dom.append(callout, dom.$('p.drox-codebase-muted', undefined, localize(
+			'drox.codebase.inject.forcePaths',
+			'Force paths: {0}',
+			rec.forcePathPrefixes.join(', '),
+		)));
+	}
 
 	const results = dom.append(section, dom.$('.drox-codebase-inject-hits'));
 	if (rec.hits.length) {

@@ -1,4 +1,4 @@
-# Architecture — index codebase Drox (type Cursor `@Codebase`)
+# Architecture — index codebase Drox (`@Codebase`)
 
 **Statut** : **direction produit / tech** · pas encore d’implémentation  
 **Version** : **1.5.21** (**priorité #1** de la maj — devant Explore ; originellement hors 1.5.19 Git Graph)  
@@ -67,7 +67,7 @@ Ce n’est **pas** un fine-tune du modèle sur le projet.
 | Local-first | Index sur machine utilisateur (sous `.drox/` ou profil app) |
 | Même stack agent | Consommé par chat natif IDE **et** fenêtre Agents |
 | Ignore sensible | Respect `.gitignore` + liste Drox (`node_modules`, `out/`, `.git/objects`, secrets) |
-| Hybride | Sémantique **+** ripgrep / chemin (comme Cursor combine souvent) |
+| Hybride | Sémantique **+** ripgrep / chemin (souvent combiné en pratique) |
 | Pas de monolithe disque | Éviter un `state.vscdb`-like de dizaines de Go : index **borné**, GC, pas d’historique chat dans l’index |
 | Réutilisable UI | Les hits retrieval peuvent nourrir plus tard la **carte code** (nœuds fichiers / symboles) |
 
@@ -277,15 +277,16 @@ Le retrieval fournit **quoi montrer** ; le canvas fournit **comment le voir**.
 | **CB0** | Spec figée + choix store A + modèle embed défaut | — |
 | **CB1** | Chunker + store metadata + recherche lexicale (cockpit) | CB0 |
 | **CB2** | Embed local + vector search + hybrid | CB1 |
-| **CB2b** | Auto-index type Cursor (open + incrémental) — [PLAN-CB2b.md](PLAN-CB2b.md) | CB2 |
+| **CB2b** | Auto-index (open + incrémental) — [PLAN-CB2b.md](PLAN-CB2b.md) | CB2 |
 | **CB2c** | **Découpage / lisibilité** (modules index · supervision · cockpit · handlers embed) — [PLAN-CB2c.md](PLAN-CB2c.md) | CB2b |
 | **CB3** | Tool agent + pastille statut (reindex manuel = secours cockpit) | **CB2c** |
-| **CB4** | Auto-inject contexte + forçage utilisateur → [PLAN-CB4.md](PLAN-CB4.md) | CB3 |
+| **CB4** | Auto-inject contexte + forçage utilisateur (+ ancrage éditeur) → [PLAN-CB4.md](PLAN-CB4.md) · [IMPLEMENTATION…](IMPLEMENTATION-CB4-CB4b.md) | CB3 |
+| **CB4b** | Compréhension modèle EN → filtre mécanique + rerank → [PLAN-CB4b.md](PLAN-CB4b.md) | CB4 |
 | **CB5** | Alimentation carte code (optionnel) | CB3 + canvas |
 
-**Ordre figé** : **CB2b → CB2c → CB3 → CB4**. Auto-inject par défaut ; chip/`@` = override.
+**Ordre figé** : **CB2b → CB2c → CB3 → CB4 → CB4b**. Auto-inject par défaut ; chip = override (+ éditeur).
 
-**1.5.21** : CB0–CB3 shippés en dogfood ; **next = CB4** (contexte automatique).
+**1.5.21** : CB0–**CB4b** livrés ; reste shell discussion smoke S5.
 
 ---
 

@@ -15,3 +15,5 @@ modelQuestions/
 ```
 
 Add a new ask: new file under `questions/`, append to catalog array, extend `DroxModelQuestionId` if needed.
+
+First ask shipped (CB4b) : `codebaseRetrievalComprehension` — see `docs/1.5/1.5.21/codebase/IMPLEMENTATION-CB4-CB4b.md`.

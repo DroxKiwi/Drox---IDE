@@ -1,8 +1,9 @@
 # Plan — Shell de discussion partagé Agents ↔ IDE (1.5.21)
 
-**Statut** : **préparé** · priorité **#3** de la maj (après index + Explore)  
-**Version** : 1.5.21  
 **Parent** : [README 1.5.21](README.md)  
+**Smoke** : [SMOKE-SHELL.md](SMOKE-SHELL.md)  
+**Statut** : S0–S4 ✅ code · **S5 smoke** 🔄  
+**Version** : 1.5.21  
 **Décision produit** : l’IDE récupère **l’intégralité** de l’interface de discussion Agents — fil **et** tous les outils qui vont avec (modèle, connexion, paramètres, modes, status) — pas un sous-ensemble.
 
 ---
@@ -87,9 +88,9 @@ CFG USER déjà unifiée (1.5.11) : l’UI partagée doit **exposer** les mêmes
 | **S0** | Inventaire : `NewChatInput`, pickers, toolbar, host connexion/modèle, status — matrice « inclus » ci-dessus | ✅ |
 | **S1** | Options ChatWidget partagées (`createDroxDiscussionChatWidgetOptions`) + CSS shell | ✅ partiel |
 | **S2** | Brancher `DroxNativeChatViewPane` + masquer chrome Copilot (`@ Agent`, mode, Local/Approvals) | ✅ partiel |
-| **S3** | Vérifier chaque contrôle : modèle, connexion, serveur, num_ctx, modes, status | 🔄 |
-| **S4** | Handoff + empty-first (1.5.20) sur le nouveau shell | 🔄 |
-| **S5** | Smoke Agents + IDE + CLOSURE | 📋 |
+| **S3** | Vérifier chaque contrôle : modèle, connexion, serveur, num_ctx, modes, status | ✅ code partagé · smoke [SMOKE-SHELL.md](SMOKE-SHELL.md) |
+| **S4** | Handoff + empty-first (1.5.20) sur le nouveau shell | ✅ code (native pane + handoff keys) · smoke |
+| **S5** | Smoke Agents + IDE + CLOSURE | 🔄 [SMOKE-SHELL.md](SMOKE-SHELL.md) |
 
 ### Implémentation en cours (notes)
 

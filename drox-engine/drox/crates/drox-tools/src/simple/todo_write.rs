@@ -1,7 +1,7 @@
 //! Tool `todo_write` — gestion d'une **to-do list de session** pilotée par
 //! l'agent.
 //!
-//! Inspiré du `TodoWrite` de Claude Code / Cursor : l'agent maintient une
+//! Inspiré des listes de tâches agent modernes : l'agent maintient une
 //! liste d'items avec un statut (`pending` / `in_progress` / `completed` /
 //! `cancelled`). Le **moteur** impose au moins un appel `todo_write` par
 //! réponse utilisateur, y compris pour une micro-tâche (ex. une seule ligne
@@ -26,7 +26,7 @@
 //! - Les `id` doivent être **uniques** et non vides.
 //! - Le `content` de chaque item doit être non vide.
 //! - **Au plus un seul** item en `in_progress` à la fois (règle calquée sur
-//!   Claude Code : on ne peut pas travailler sur deux choses simultanément).
+//!   contrainte agent : on ne peut pas travailler sur deux choses simultanément).
 //!
 //! En cas de violation, l'erreur retournée est `ToolError::InvalidArgs` avec
 //! un message clair que le modèle peut lire et corriger.

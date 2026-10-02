@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Backends LLM
+﻿# Backends LLM
 
 ## Idée centrale
 
@@ -72,3 +70,4 @@ série [`docs/pedagogie/`](../pedagogie/README.md) — en particulier [01-contac
 | Factory | [`factory.rs`](../../drox-engine/drox/crates/drox-llm/src/factory.rs) |
 | Adaptateurs | [`adapters/`](../../drox-engine/drox/crates/drox-llm/src/adapters/) |
 | Schémas | [`schema.rs`](../../drox-engine/drox/crates/drox-llm/src/schema.rs) |
+

@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Permissions — allow, ask, deny avant d’agir
+﻿# Permissions — allow, ask, deny avant d’agir
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -128,3 +126,4 @@ Pour chaque tool call, avant `execute` :
 ## Suite
 
 [07-phases-et-gates.md](07-phases-et-gates.md). Index : [README.md](README.md).
+

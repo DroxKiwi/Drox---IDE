@@ -105,6 +105,8 @@ export interface IDroxCodebaseLastInject {
 	readonly ms: number;
 	readonly hits: readonly IDroxCodebaseHit[];
 	readonly skip?: DroxCodebaseInjectSkip;
+	/** Path prefixes applied when force+editor anchored the search. */
+	readonly forcePathPrefixes?: readonly string[];
 }
 
 /** JSON bundle for Export diag (clipboard / file). */

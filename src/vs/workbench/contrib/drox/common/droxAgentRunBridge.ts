@@ -28,6 +28,11 @@ export interface IDroxAgentRunBridgeDeps {
 	readonly fileService?: IFileService;
 	/** Optionnel : hint + pack `@Codebase` (CB4 auto-inject / force). */
 	readonly codebaseContextService?: IDroxCodebaseContextService;
+	/**
+	 * When force-next is armed: resolve editor path prefixes under workspace
+	 * (browser supplies active editor; common layer stays editor-free).
+	 */
+	readonly resolveCodebaseForcePathPrefixes?: (workspaceFsPath: string) => string[] | undefined;
 }
 
 export interface IDroxAgentRunStartOptions {
@@ -74,9 +79,13 @@ export async function startDroxAgentRun(
 	}
 	if (deps.codebaseContextService) {
 		try {
+			const forcePathPrefixes = deps.codebaseContextService.forceNextRun
+				? deps.resolveCodebaseForcePathPrefixes?.(options.workspace)
+				: undefined;
 			const codebaseSystem = await deps.codebaseContextService.buildSystemSupplement(
 				options.workspace,
 				options.prompt,
+				forcePathPrefixes?.length ? { pathPrefixes: forcePathPrefixes } : undefined,
 			);
 			if (codebaseSystem?.trim()) {
 				system = system?.trim() ? `${system}\n\n${codebaseSystem}` : codebaseSystem;

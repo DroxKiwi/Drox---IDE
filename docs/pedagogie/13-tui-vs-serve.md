@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# TUI vs `drox --serve` — deux portes, même moteur
+﻿# TUI vs `drox --serve` — deux portes, même moteur
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -75,3 +73,4 @@ Même `drive_inner` ; façade différente.
 3. Beaucoup de bugs « IDE only » sont des bugs de **pont**, pas de boucle agent.
 
 Index : [README.md](README.md).
+

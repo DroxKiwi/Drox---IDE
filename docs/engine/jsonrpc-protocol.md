@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Protocole JSON-RPC (stdio NDJSON)
+﻿# Protocole JSON-RPC (stdio NDJSON)
 
 Version protocole : **`PROTOCOL_VERSION = "1.0"`**  
 ([`jsonrpc/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/mod.rs)).
@@ -132,3 +130,4 @@ Puis des lignes `agent/event` jusqu’à `agent/done`.
 | Shim UI | [`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs) |
 
 Doc historique (peut diverger) : [`docs/0.0/architecture/PROTOCOLE-JSONRPC.md`](../0.0/architecture/PROTOCOLE-JSONRPC.md).
+

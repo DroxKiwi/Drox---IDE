@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Moteur Drox — documentation
+﻿# Moteur Drox — documentation
 
 Documentation **actuelle** du moteur agent Rust (`drox` / workspace [`drox-engine/drox/`](../../drox-engine/drox/)).  
 Pipeline d’orchestration : **`tui_mono`** (depuis 1.5.0).
@@ -84,3 +82,4 @@ Les outils que le moteur ne peut pas faire seul (LSP, certains FS IDE) partent e
 
 Carte plus ancienne — **ne plus l’utiliser comme carte de fichiers** (chemins `agent/loop/`, rail, `role_split` obsolètes) :  
 [`docs/1.4/moteur/`](../1.4/moteur/README.md). Voir [migration-from-1.4.md](migration-from-1.4.md).
+

@@ -1,7 +1,7 @@
 # drox-tui — interface terminal Drox
 
 Client **TUI propriétaire** pour le moteur Rust `drox-engine`. Réécriture inspirée
-du REPL Ink du leak TypeScript, **sans** code Anthropic ni services cloud : moteur
+du REPL Ink du leak TypeScript, **sans** SDK cloud propriétaire : moteur
 local + LLM configurable (Ollama par défaut).
 
 ## Statut (2026-05-19)
@@ -131,4 +131,4 @@ système partagée avec le binaire `drox` via la lib `drox_cli`.
 | `drox-tui` | REPL terminal autonome |
 
 Les trois consomment les mêmes crates moteur ; aucun client n’embarque de télémétrie
-ni d’API Anthropic.
+ni d’API cloud propriétaire.

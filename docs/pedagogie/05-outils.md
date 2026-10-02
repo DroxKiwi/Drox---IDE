@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Les outils — quand le modèle agit sur le monde
+﻿# Les outils — quand le modèle agit sur le monde
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -240,3 +238,4 @@ Le modèle **lit** le résultat comme un nouveau message « tool » — d’où 
 
 [06-permissions.md](06-permissions.md) — qui a le droit d’exécuter quoi.  
 Index : [README.md](README.md).
+

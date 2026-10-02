@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Outils et permissions
+﻿# Outils et permissions
 
 ## Idée centrale
 
@@ -134,3 +132,4 @@ Crate [`drox-hooks`](../../drox-engine/drox/crates/drox-hooks/). Emplacements : 
 | Permissions | [`drox-permissions/`](../../drox-engine/drox/crates/drox-permissions/) |
 | Hooks | [`drox-hooks/`](../../drox-engine/drox/crates/drox-hooks/) |
 | Remote | [`remote_tool.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/remote_tool.rs) |
+

@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Internes de `agent.rs`
+﻿# Internes de `agent.rs`
 
 Le fichier [`drox-engine/src/agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) concentre la boucle `tui_mono` (plusieurs milliers de lignes). Cette page dit **où lire** et **pourquoi** le fichier est structuré ainsi.
 
@@ -86,3 +84,4 @@ Documenté aussi dans le prompt système ([`prompts.rs`](../../drox-engine/drox/
 | Tool bloqué en attente | `tool/exec` non répondu côté client |
 
 Suite logique : [system-prompts-and-phases.md](system-prompts-and-phases.md) puis [tools-and-permissions.md](tools-and-permissions.md).
+

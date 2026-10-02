@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Migration mentale — rail 1.4 / `role_split` → `tui_mono`
+﻿# Migration mentale — rail 1.4 / `role_split` → `tui_mono`
 
 Cette page évite de suivre de **fausses pistes** dans `docs/1.4/moteur/` ou d’anciens plans.
 
@@ -36,3 +34,4 @@ L’IDE peut encore envoyer `orchestrationMode` / `architectInteractionMode`. Le
 2. Cherche `[phase: done]` — pas « no tools ⇒ end ».
 3. Cherche `ide_event_shim` avant de conclure qu’un rail existe encore dans le moteur.
 4. Ignore `role_split` comme modèle mental du runtime actuel.
+

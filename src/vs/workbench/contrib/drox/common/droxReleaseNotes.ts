@@ -152,7 +152,7 @@ export function getDroxReleaseNotesLeadMessage(version: string): string {
 		case '1.5.18':
 			return localize(
 				'drox.releaseNotes.1518.message',
-				'Session resume on restart, reliable IDE chat loading, and Cursor-like stop / edit for interrupted turns.',
+				'Session resume on restart, reliable IDE chat loading, and inline stop / edit for interrupted turns.',
 			);
 		case '1.5.11':
 			return localize(

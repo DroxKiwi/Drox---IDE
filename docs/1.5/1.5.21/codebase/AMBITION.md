@@ -326,12 +326,12 @@ Packaging **dev = ship** (Cargo / drox.exe + GGUF asset, pas npm user) : [PLAN-E
 | **CB0b** | Spec cockpit partagée → [PLAN-COCKPIT.md](PLAN-COCKPIT.md) + IDs `DroxViews` | ✅ |
 | **CB1** | Store lexical + cockpit → [PLAN-CB1.md](PLAN-CB1.md) | ✅ |
 | **CB2** | Embed RPC + hybrid ready → [PLAN-CB2.md](PLAN-CB2.md) | ✅ |
-| **CB2b** | **Auto-index type Cursor** (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md) | ✅ |
+| **CB2b** | **Auto-index** (open + incrémental) → [PLAN-CB2b.md](PLAN-CB2b.md) | ✅ |
 | **CB2c** | **Découpage / lisibilité** → [PLAN-CB2c.md](PLAN-CB2c.md) | ✅ dogfood |
 | **CB3** | Tool agent + pastille statut → [PLAN-CB3.md](PLAN-CB3.md) | ✅ dogfood |
-| **CB4** / **CB4b** | Auto-inject + forçage + ranking → [PLAN-CB4.md](PLAN-CB4.md) · [PLAN-CB4b.md](PLAN-CB4b.md) | 🔄 à clôturer |
+| **CB4** / **CB4b** | Auto-inject + forçage + ranking → [PLAN-CB4.md](PLAN-CB4.md) · [PLAN-CB4b.md](PLAN-CB4b.md) · [IMPLEMENTATION…](IMPLEMENTATION-CB4-CB4b.md) | ✅ |
 | **CB3b** / **CB5** | Catalogue admin · carte code | 📋 → [1.5.22](../../1.5.22/README.md) |
 
-**Décision** : fraîcheur d’index = service IDE (comme Cursor), **pas** déclenchée par le LLM. CB2b avant tool ; **CB2c** (découpe) avant de grossir encore le code.
+**Décision** : fraîcheur d’index = service IDE automatique, **pas** déclenchée par le LLM. CB2b avant tool ; **CB2c** (découpe) avant de grossir encore le code.
 
 L’[ARCHITECTURE](ARCHITECTURE.md) doit abandonner Ollama-first au profit de **llama.cpp embarqué** dès validation E.

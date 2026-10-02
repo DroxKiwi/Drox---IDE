@@ -31,7 +31,7 @@ pub struct UserQuestion {
     #[serde(default)]
     pub allow_multiple: bool,
     /// Autorise un complément en texte libre **en plus** des choix (sprint
-    /// Questions bloquantes — §2.13 du backlog : Cursor expose un champ
+    /// Questions bloquantes — §2.13 du backlog : l'UI peut exposer un champ
     /// « Add more optional details » sous chaque question). Les askers
     /// mono-texte (stdin) acceptent toujours du texte libre et peuvent
     /// ignorer ce champ ; les askers UI (extension) s'en servent pour

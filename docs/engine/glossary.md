@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Glossaire moteur Drox
+﻿# Glossaire moteur Drox
 
 | Terme | Définition |
 |-------|------------|
@@ -30,3 +28,4 @@ Rédigé à l'aide de Cursor Agent
 | **PermissionMode** | `default` \| `plan` \| `acceptEdits` \| `bypassPermissions` \| `professor` (**enum Rust** ; `professor` **non exposé** de façon fiable dans l’IDE — downgrade 1.4.0). |
 
 Pour l’historique des releases : `docs/1.5/`, `docs/1.4/`, etc.
+

@@ -51,7 +51,7 @@ export interface AgentRunParams {
   /**
    * Pièces jointes image transmises au modèle (input multimodal). Pour Ollama,
    * seul `data` est utilisé (champ `images` sur le message user). Pour
-   * Anthropic/OpenAI, `mime` est requis.
+   * Certains providers vision (OpenAI-compatible) exigent `mime`.
    */
   images?: AgentRunImage[];
   /** Active le flux *thinking* Ollama et la phase UI `internal_reasoning`. */

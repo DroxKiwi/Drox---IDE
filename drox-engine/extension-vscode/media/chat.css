@@ -1240,7 +1240,7 @@ body.vscode-light .mode-picker select {
   transition: outline-color 0.15s ease;
 }
 
-/* --- Appels d'outils : ligne plate type Cursor --- */
+/* --- Appels d'outils : ligne plate --- */
 /* Pas de cadre, pas de background : juste `<icône d'état> <verb> <target>` en
    gris atténué, monospace pour `target`. Cliquable pour déplier args/output
    en dessous (corps minimaliste, barre verticale fine, monospace gris). */
@@ -1406,7 +1406,7 @@ body.vscode-light .mode-picker select {
   animation: drox-shimmer 2.4s linear infinite;
 }
 
-/* --- Carte "fichier modifié" repliable (Cursor-like) --- */
+/* --- Carte "fichier modifié" repliable --- */
 
 .msg-file-change {
   align-self: stretch;
@@ -1819,7 +1819,7 @@ body.vscode-light .mode-picker select {
 }
 
 /* ── Sprint Questions bloquantes (§2.13) — carte modale au-dessus du composer.
- * Inspirée de la carte Cursor (capture jointe) : titre + compteur, prompt,
+ * Carte fichier : titre + compteur, prompt,
  * options A/B/C cliquables, champ de détails optionnels, actions Skip/
  * Précédent/Continuer en bas. */
 .user-ask {
@@ -2306,7 +2306,7 @@ textarea#prompt::placeholder {
   }
 }
 
-/* --- Blocs de phase : refonte minimaliste type Cursor (« Thought for 20s ») ---
+/* --- Blocs de phase : refonte minimaliste (« Thought for 20s ») ---
    Chaque phase est un `<details class="phase-block">` frère sur `logEl`.
    Plus de cadre, plus de background : juste une ligne titre (icône d'état
    discrète masquée + label) + corps en italique gris sur barre verticale
@@ -2349,7 +2349,7 @@ textarea#prompt::placeholder {
   background: transparent;
 }
 
-/* Emojis de PHASE_META masqués : on s'aligne sur le ton sobre de Cursor
+/* Emojis de PHASE_META masqués : ton sobre
    (texte seul, pas de pictogramme). Conservés dans le DOM pour pouvoir les
    réactiver si besoin via un futur réglage. */
 .phase-block .phase-icon {

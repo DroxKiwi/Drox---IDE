@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# MCP et sous-agents Explore
+﻿# MCP et sous-agents Explore
 
 ## MCP
 
@@ -80,3 +78,4 @@ Voir aussi la pédagogie : [11-mcp-et-explore.md](../pedagogie/11-mcp-et-explore
 | Register MCP tools | [`simple/mcp.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/mcp.rs) |
 | Tool `task` | [`simple/task.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/task.rs) |
 | Exécuteur | [`subagent.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) |
+

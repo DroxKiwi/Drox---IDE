@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Boucle agent — `agent.run` → `drive_inner`
+﻿# Boucle agent — `agent.run` → `drive_inner`
 
 ## Objectif
 
@@ -134,3 +132,4 @@ Voir [sessions-and-memory.md](sessions-and-memory.md).
 | Orchestration tools | [`tool_orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tool_orchestration.rs) |
 | Permissions bridge | [`permissions.rs`](../../drox-engine/drox/crates/drox-engine/src/permissions.rs) |
 | Entrée `agent.run` | [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) |
+

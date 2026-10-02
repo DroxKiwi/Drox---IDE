@@ -12,11 +12,12 @@ Index local par racine workspace · cockpit partagé · embed MiniLM (llama.cpp)
 | [PLAN-EMBED-PACKAGING.md](PLAN-EMBED-PACKAGING.md) | GGUF bundlé / resolve paths |
 | [PLAN-CB1.md](PLAN-CB1.md) | Store lexical + cockpit |
 | [PLAN-CB2.md](PLAN-CB2.md) | Embed + hybrid |
-| [PLAN-CB2b.md](PLAN-CB2b.md) | Auto-index type Cursor |
+| [PLAN-CB2b.md](PLAN-CB2b.md) | Auto-index (open + incrémental) |
 | [PLAN-CB2c.md](PLAN-CB2c.md) | Découpage / lisibilité |
 | [PLAN-CB3.md](PLAN-CB3.md) | Tool agent + pastille statut |
 | [PLAN-CB4.md](PLAN-CB4.md) | **Contexte auto + forçage utilisateur** |
 | [PLAN-CB4b.md](PLAN-CB4b.md) | Ranking / pertinence hits |
+| [IMPLEMENTATION-CB4-CB4b.md](IMPLEMENTATION-CB4-CB4b.md) | **Carte fichiers + dogfood exports** |
 | [PLAN-CODE-MAP.md](PLAN-CODE-MAP.md) | Lien carte code (plus tard) |
 
 ## Code
@@ -33,9 +34,9 @@ Index local par racine workspace · cockpit partagé · embed MiniLM (llama.cpp)
 | **CB2b** | Auto-index (open + incrémental) + pipeline UI | ✅ |
 | **CB2c** | Découpage fichiers / arborescence lisible | ✅ dogfood |
 | **CB3** | Tool agent + pastille statut | ✅ dogfood |
-| **CB4** | Contexte auto-inject + forçage chip/`@` → [PLAN-CB4.md](PLAN-CB4.md) | 🔄 à clôturer |
-| **CB4b** | Ranking pertinence → [PLAN-CB4b.md](PLAN-CB4b.md) | 🔄 à clôturer |
+| **CB4** | Contexte auto-inject + forçage chip/`@` → [PLAN-CB4.md](PLAN-CB4.md) | ✅ |
+| **CB4b** | Ranking pertinence → [PLAN-CB4b.md](PLAN-CB4b.md) | ✅ |
 
 **Reporté 1.5.22** : CB3b catalogue admin · CB5 carte code.
 
-**Règle** : CB3 fait. **CB4** = automatique pour le modèle, forçage optionnel pour l’humain.
+**Règle** : CB3–CB4b faits. Shell discussion = dernier chantier 1.5.21.

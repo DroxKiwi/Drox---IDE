@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Pédagogie — comprendre Drox en lisant le code
+﻿# Pédagogie — comprendre Drox en lisant le code
 
 Ces guides ne remplacent pas la [référence moteur](../engine/README.md).  
 Ils **accompagnent** la lecture du vrai code : une histoire concrète, des définitions au moment où on en a besoin, la syntaxe Rust et ce que ça fait dans la machine.
@@ -35,3 +33,4 @@ Ils **accompagnent** la lecture du vrai code : une histoire concrète, des défi
 ## Référence (hors pédagogie)
 
 Quand tu cherches un fait précis sans le fil narratif : [`docs/engine/`](../engine/README.md).
+

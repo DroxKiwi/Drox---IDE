@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# La boucle de l’agent — pourquoi Drox « recommence » jusqu’à `done`
+﻿# La boucle de l’agent — pourquoi Drox « recommence » jusqu’à `done`
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -239,3 +237,4 @@ Le guide [04-moteur-et-affichage.md](04-moteur-et-affichage.md) détaille ce tuy
 - [04-moteur-et-affichage.md](04-moteur-et-affichage.md) — comment ces événements deviennent du chat.
 
 Index : [README.md](README.md).
+

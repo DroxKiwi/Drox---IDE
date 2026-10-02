@@ -145,6 +145,6 @@ mod tests {
     #[test]
     fn shortens_ollama_tag() {
         assert_eq!(shorten_model_name("ollama/qwen2.5-coder:7b"), "7b");
-        assert_eq!(shorten_model_name("claude-sonnet"), "claude-sonnet");
+        assert_eq!(shorten_model_name("acme-sonnet"), "acme-sonnet");
     }
 }

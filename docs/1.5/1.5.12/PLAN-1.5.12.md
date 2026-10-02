@@ -1,4 +1,4 @@
-# Plan 1.5.12 — Polish natif + workspace Cursor
+﻿# Plan 1.5.12 — Polish natif + workspace Cursor
 
 **Version** : juin 2026 · **Base** : [1.5.11](../1.5.11/PLAN-1.5.11.md) livrée  
 **Branche** : `1.5.12` · tag **`v1.5.12`** · **clôturée** (merge `main`, branche conservée)
@@ -22,7 +22,7 @@ Rattraper les **coquilles 1.5.11** (reset, voix Drox, rebrand, surfaces Copilot 
 | **P5** | Open in Browser (title bar) | **1.5.12** | **fait** | **✅** |
 | **P6** | **Workspace Cursor** (changes · onglets · tree · git) | **1.5.12** | large | **A–E2/E3 ✅** · D/E6 code · smoke ⏳ |
 | **P7** | Fiabilisation installateur Windows (artefacts télémétrie/Copilot) | **1.5.12** | moyen | **code ✅** · smoke install ⏳ |
-| **P8** | Purge références Copilot / Anthropic / Microsoft | **1.5.12+** | large | ⏳ planifié |
+| **P8** | Purge intégrations host / cloud tierces (hors catalogue Drox) | **1.5.12+** | large | ⏳ planifié |
 
 Docs détaillés : [AUDIT](AUDIT-COPILOT-AGENTS-WINDOW.md) · [MCP](MCP-MARKETPLACE-DROX.md) · [COMPARE](../1.5.11/COMPARE-WEBVIEW-VS-NATIF.md) · P7 install Windows ci-dessous
 
@@ -115,7 +115,7 @@ Action `agentSession.openInBrowser` · globe à côté du terminal · `runScript
 └───────────────────────────────────────────┴──┴──────┴──────────────────────┘
 ```
 
-Menu **+** (comme Cursor) : **File** · **Terminal** · **Browser** · **Changes** · *(Canvas, … futur)*  
+Menu **+** (en pratique) : **File** · **Terminal** · **Browser** · **Changes** · *(Canvas, … futur)*  
 → Chaque type = **onglet** dans le même strip ; **plusieurs onglets du même type** (ex. 2× PowerShell, fichier + terminal).
 
 ### Existant Agents à réutiliser
@@ -140,7 +140,7 @@ Brancher `droxSessionsProvider` : accumulateur depuis `droxFileChangeProgress` /
 
 ### Phase A2 — Diff inline style Cursor (panneau Changes Drox) ✅ (code)
 
-**Objectif** : dans l’onglet **Changes** à droite, afficher le **contenu modifié** comme Cursor — pas seulement la liste de fichiers.
+**Objectif** : dans l’onglet **Changes** à droite, afficher le **contenu modifié** en pratique — pas seulement la liste de fichiers.
 
 **Comportement UI (réf. captures Cursor)** :
 
@@ -272,9 +272,9 @@ Popup typique : *Recommencer / Ignorer / Annuler l’installation* — l’insta
 
 ---
 
-## P8 — Purge Copilot / Anthropic / Microsoft
+## P8 — Purge intégrations host / cloud tierces
 
-**Objectif** : aucune dépendance, télémétrie externe ni texte utilisateur pointant vers Copilot, Anthropic ou Microsoft — sauf remplacement explicite par **Drox** quand la fonctionnalité est conservée.
+**Objectif** : aucune dépendance, télémétrie externe ni texte utilisateur pointant vers des produits cloud/host hors périmètre Drox — sauf remplacement explicite par **Drox** quand la fonctionnalité est conservée (catalogue LLM + OpenAI-compatible conservés).
 
 ### Périmètre
 
@@ -283,13 +283,13 @@ Popup typique : *Recommencer / Ignorer / Annuler l’installation* — l’insta
 | **Packages install** | Exclure modules inutiles (OTel, experimentation, auth MS) du bundle release ; pas de téléchargement marketplace Copilot par défaut |
 | **Runtime UI** | Texte « Copilot » → « Drox » ; masquer sign-in / tunnel / agents Microsoft (déjà partiel via P3) |
 | **Télémétrie** | `telemetry` off · OTel Copilot off · pas d’export App Insights / OTLP |
-| **Serveurs externes** | Pas d’appels dev tunnels, experimentation, gallery Copilot, endpoints Anthropic/Microsoft sauf opt-in explicite |
+| **Serveurs externes** | Pas d’appels dev tunnels, experimentation, gallery host, endpoints cloud fermés sauf opt-in explicite |
 | **Build / CI** | Pipelines `product-copilot.yml` hors release Drox ; audit `product.json` |
 
 ### Ordre recommandé
 
 1. **Release bundle** (P7 + `.moduleignore` + defaults config) — en cours
-2. **UI strings** — grep `Copilot` / `GitHub` / `Microsoft` / `Anthropic` dans `src/vs/workbench/contrib/drox` et `src/vs/sessions`
+2. **UI strings** — audit marques tierces dans `src/vs/workbench/contrib/drox` et `src/vs/sessions`
 3. **Extensions built-in** — réduire surface `extensions/copilot` au strict moteur agent si possible
 4. **Smoke** — install neuve · fenêtre Agents · aucun lien MS dans About / Help
 
@@ -297,7 +297,7 @@ Popup typique : *Recommencer / Ignorer / Annuler l’installation* — l’insta
 
 - Installateur et app Drox sans modules OTel / experimentation dans le package
 - Aucun texte « Copilot » visible en usage normal Drox (Agents + chat natif)
-- Pas de connexion réseau MS/Anthropic sans action utilisateur explicite
+- Pas de connexion réseau host/cloud fermé sans action utilisateur explicite
 
 ---
 
@@ -329,7 +329,7 @@ Popup typique : *Recommencer / Ignorer / Annuler l’installation* — l’insta
 - [x] Composer : Commit & Push git local (P6-D code) — smoke ⏳
 - [x] Terminal / browser / fichier en **onglets** (+ menu E2 · E6 slice) — smoke ⏳
 - [x] Installateur : exclusion `@opentelemetry/*` du bundle (P7 code) — smoke install ⏳
-- [ ] Purge Copilot / MS / Anthropic (P8)
+- [ ] Purge intégrations host / cloud tierces (P8)
 - [ ] Pas de régression E2E 1.5.11 · ship OR `v1.5.12`
 
 ---

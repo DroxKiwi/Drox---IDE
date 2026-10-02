@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Intégration IDE ↔ moteur
+﻿# Intégration IDE ↔ moteur
 
 > Contrat technique IDE → moteur. Pour **apprendre l’interface** (où cliquer) : [tutoriel navigation IDE](../tutorials/ide-navigation.md).
 
@@ -60,3 +58,4 @@ Le **webview legacy** et le chat natif convergent progressivement ; le contrat m
 | Doc shim historique | [`docs/1.5/1.5.0/SHIM-MOTEUR-IDE.md`](../1.5/1.5.0/SHIM-MOTEUR-IDE.md) |
 
 Voir aussi [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md).
+

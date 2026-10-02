@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Contexte, snip et compaction — faire tenir l’historique dans la fenêtre du modèle
+﻿# Contexte, snip et compaction — faire tenir l’historique dans la fenêtre du modèle
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -137,3 +135,4 @@ Si Drox envoie plus que ce que le serveur accepte, le serveur peut tronquer **si
 ## Suite
 
 [09-sessions-et-memoire.md](09-sessions-et-memoire.md). Index : [README.md](README.md).
+

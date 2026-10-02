@@ -28,6 +28,8 @@ import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { IDroxChatSendRunHost } from './droxChatSendRun.js';
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
 import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
+import { IEditorService } from '../../../../services/editor/common/editorService.js';
+import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
 
 export interface IDroxPendingRunRecovery {
 	readonly messageId: string;
@@ -127,6 +129,7 @@ type IRunRecoveryDeps = {
 	readonly fileService?: IFileService;
 	readonly sessionBackgroundService?: IDroxSessionBackgroundService;
 	readonly codebaseContextService?: IDroxCodebaseContextService;
+	readonly editorService?: IEditorService;
 };
 
 function cancelActiveRunForRecovery(host: IDroxChatSendRunHost, deps: IRunRecoveryDeps): void {
@@ -208,6 +211,9 @@ async function startRecoveryRun(
 			logService: deps.logService,
 			fileService: deps.fileService,
 			codebaseContextService: deps.codebaseContextService,
+			resolveCodebaseForcePathPrefixes: deps.editorService
+				? wsPath => resolveDroxCodebaseForcePathPrefixesFromEditor(deps.editorService!, wsPath)
+				: undefined,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {
 			prompt: ctx.enginePrompt || '.',

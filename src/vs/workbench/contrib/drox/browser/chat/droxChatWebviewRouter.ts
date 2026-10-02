@@ -206,6 +206,7 @@ export async function routeDroxChatWebviewMessage(
 				fileService: deps.fileService,
 				sessionBackgroundService: deps.sessionBackgroundService,
 				codebaseContextService: deps.codebaseContextService,
+				editorService: deps.editorService,
 			}, raw.messageId);
 			break;
 		case 'restartRunAfterError':
@@ -220,6 +221,7 @@ export async function routeDroxChatWebviewMessage(
 				fileService: deps.fileService,
 				sessionBackgroundService: deps.sessionBackgroundService,
 				codebaseContextService: deps.codebaseContextService,
+				editorService: deps.editorService,
 			}, raw.messageId);
 			break;
 		case 'undoFileChange':

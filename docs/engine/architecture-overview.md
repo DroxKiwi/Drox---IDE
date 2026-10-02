@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Architecture — vue d’ensemble
+﻿# Architecture — vue d’ensemble
 
 ## Rôle du moteur
 
@@ -137,3 +135,4 @@ handlers::agent_run          (drox-cli/jsonrpc)
 | `drive_inner` | [`drox-engine/src/agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) |
 | Flags CLI / `--serve` | [`drox-cli/src/main.rs`](../../drox-engine/drox/crates/drox-cli/src/main.rs) |
 | Cycle de vie process IDE | [`droxEngineService.ts`](../../src/vs/workbench/contrib/drox/electron-browser/droxEngineService.ts) |
+

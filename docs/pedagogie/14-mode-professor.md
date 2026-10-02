@@ -1,6 +1,4 @@
-Rédigé à l'aide de Cursor Agent
-
-# Mode professor — prévu, pas encore disponible
+﻿# Mode professor — prévu, pas encore disponible
 
 ## Introduction — ce qu’on va faire ensemble
 
@@ -103,3 +101,4 @@ Sans surface UI ni smoke fiables, **ne pas** compter dessus pour dogfood.
 3. Reprise future = chantier dédié (« Professor 2.0 »), pas un toggle caché.
 
 Index : [README.md](README.md).
+
