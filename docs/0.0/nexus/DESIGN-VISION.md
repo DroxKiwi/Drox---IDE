@@ -28,15 +28,13 @@ Les détails d’interaction (protocole harness, API workbench, composants dédi
 
 ## 2. Charte graphique Nexus
 
-Palette principale : **bleu ciel**, **blanc métallique**, **violet foncé (aubergine)** et **noir**.
+Palette principale : **vert Drox**, **blanc métallique**, fonds **noir** / clair froid.
 
 | Rôle | Usage | Référence hex (cible) |
 |------|--------|----------------------|
-| **Bleu ciel** | Accent primaire : liens, focus, badges, sélections, boutons principaux | `#52C0F0` (sombre), `#0EA5E9` (clair) |
-| **Aubergine** | Structure du chrome sombre : barres latérales, bordures, profondeur | Fonds type `#1A0F24`, bordures `#3A2548` |
-| **Noir** | Fond d’éditeur et zones de lecture profondes | `#06060A` |
+| **Vert Drox** | Accent primaire : focus, badges, sélections, boutons, bordures chrome | `#3D7A3D` (sombre & clair) · hover `#5A9E5A` |
+| **Noir** | Fond d’éditeur et zones de lecture profondes | `#000000` / `#06060A` |
 | **Blanc métallique** | Fond clair froid (panneaux, éditeur clair) | `#EEF2F9`, surfaces `#F4F7FC` |
-| **Violet structurel (clair)** | Accents discrets sur thème clair (onglets, barre d’activité active) | `#5B2D6E` |
 
 Les teintes exactes peuvent être affinées ; les thèmes **Nexus Dark** et **Nexus Light** dans `extensions/theme-defaults/themes/` matérialisent cette charte dans les couleurs du workbench VS Code.
 
