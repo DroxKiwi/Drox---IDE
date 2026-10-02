@@ -9,7 +9,6 @@ import { createDecorator } from '../../../../../platform/instantiation/common/in
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
-import { URI } from '../../../../../base/common/uri.js';
 import { IDroxEngineService } from '../droxEngineService.js';
 import { IDroxRunSettingsService } from '../droxRunSettingsService.js';
 import {
