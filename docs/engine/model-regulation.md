@@ -2,7 +2,7 @@
 
 Sous-système IDE (`contrib/drox/.../regulation/`) : on n’adapte **pas** les capacités du moteur ; on module **ce qu’on expose au modèle** (contexte, tools, directivité, protocole, retrieval).
 
-Plan de livraison : [`docs/1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md`](../1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md)  
+Plan de livraison : [`docs/1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md`](../1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md) · clôture [`CLOSURE-1.5.22.md`](../1.5/1.5.22/CLOSURE-1.5.22.md)  
 Lecture guidée : [`docs/pedagogie/15-regulation-et-notes.md`](../pedagogie/15-regulation-et-notes.md)  
 Code : [`src/vs/workbench/contrib/drox/common/regulation/`](../../src/vs/workbench/contrib/drox/common/regulation/)
 

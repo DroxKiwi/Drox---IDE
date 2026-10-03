@@ -1,9 +1,9 @@
 # 1.5.23 — Port forwarding · Théming
 
-**Statut** : 📋 **réservé** (pas démarré)  
+**Statut** : 📋 **réservé** (prêt à ouvrir après ship 1.5.22)  
 **Version cible** : `droxVersion` **1.5.23**  
-**Précédent** : [1.5.22](../1.5.22/README.md) — régulation · parité Agents · docs  
-**Déplacé depuis 1.5.22** : PF + THEME (fin de maj 1.5.22 recentrée sur **AG**)
+**Précédent** : [1.5.22](../1.5.22/README.md) — **clôturé** ([CLOSURE](../1.5.22/CLOSURE-1.5.22.md))  
+**Déplacé depuis 1.5.22** : PF + THEME
 
 ## Cap
 

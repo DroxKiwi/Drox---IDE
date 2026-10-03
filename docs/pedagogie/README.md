@@ -34,7 +34,7 @@ Ils **accompagnent** la lecture du vrai code : une histoire concrète, des défi
 
 ## Cours (vulgarisation)
 
-Hors parcours code : [`Cours/`](Cours/) — démarrer par [Gros modèle vs Drox](Cours/01-gros-modele-vs-drox/).
+Hors parcours code : [`Cours/`](Cours/) — [01 Gros modèle vs Drox](Cours/01-gros-modele-vs-drox/) · [02 Axes du moteur](Cours/02-axes-moteur-drox/) (sommaire linéaire d’une requête).
 
 ## Référence (hors pédagogie)
 

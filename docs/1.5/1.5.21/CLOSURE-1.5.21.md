@@ -13,9 +13,12 @@
 | **LoopDetector** | Familles bash/grep normalisées (`tool_family`) — E16 |
 | **Shell discussion** | Options ChatWidget partagées IDE ↔ Agents · toolbar / contrôles Drox · S0–S4 |
 
-## Reporté → 1.5.22
+## Reporté → 1.5.22 (depuis livré / backlog)
 
-Explore IDE (`task`) · SAV erreurs chat · CB3b catalogue admin · CB5 carte code · auto-régulation modèle.
+| Sujet | Devenu |
+|-------|--------|
+| CB3b catalogue · auto-régulation · parité Agents | ✅ [1.5.22 CLOSURE](../1.5.22/CLOSURE-1.5.22.md) |
+| Explore IDE · SAV · CB5 | 📋 backlog (hors 1.5.22 critique) |
 
 ## Docs
 

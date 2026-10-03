@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Les grands axes du moteur Drox</title>
+<style>
+  @page { margin: 16mm; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #111;
+    line-height: 1.45;
+    font-size: 12.5pt;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 20pt; margin: 0 0 0.4em; font-weight: 700; }
+  .lead { margin: 0 0 1em; font-size: 11pt; color: #333; }
+  pre {
+    font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+    font-size: 9.2pt;
+    line-height: 1.28;
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 14px 12px;
+    white-space: pre;
+    overflow: hidden;
+  }
+  ol { margin: 0.9em 0 0.6em; padding-left: 1.35em; }
+  li { margin: 0.35em 0; }
+  p { margin: 0.85em 0; }
+  strong { font-weight: 650; }
+</style>
+</head>
+<body>
+<h1>Les grands axes du moteur Drox</h1>
+<p class="lead">Sommaire en une requête — parcours linéaire typique (IDE).</p>
+<pre>TOI  « corrige ce bug »
+  │
+  ▼
+1. CLIENT          (IDE / TUI · agent.run)
+  │
+  ▼
+2. RÉGULATION      (notes L1–L5 · Auto)
+  │
+  ▼
+3. CONTEXTE        (Codebase / RAG · .drox · session)
+  │
+  ▼
+4. BOUCLE AGENT    (tours jusqu’à done)
+  │
+  ├─► 5. BACKEND LLM     (Ollama / OpenAI-compat)
+  ├─► 6. PHASES          ([phase:] · todos · done)
+  ├─► 7. GATES / NUDGES  (freins · relances)
+  └─► 8. OUTILS          (bash · edit · permissions)
+  │
+  ▼
+9. RÉPONSE         (agent/done · visible)</pre>
+<ol>
+  <li><strong>Client</strong> (IDE / TUI · <code>agent.run</code>) — envoie ta question au moteur.</li>
+  <li><strong>Régulation</strong> (notes L1–L5 · Auto) — décide ce que le modèle a le droit de voir / utiliser.</li>
+  <li><strong>Contexte</strong> (Codebase / RAG · <code>.drox</code> · session) — historique, mémoire, éventuellement extraits de code.</li>
+  <li><strong>Boucle agent</strong> (tours jusqu’à done) — cœur du moteur : on répète 5→8 jusqu’à clôture.</li>
+  <li><strong>Backend LLM</strong> (Ollama / OpenAI-compat) — le modèle <em>génère</em> du texte, il n’orchestre pas.</li>
+  <li><strong>Phases</strong> (<code>[phase:]</code> · todos · done) — le modèle annonce où il en est.</li>
+  <li><strong>Gates / nudges</strong> (freins · relances) — le moteur bloque ou relance si ça dérive.</li>
+  <li><strong>Outils</strong> (bash · edit · permissions) — le moteur agit sur le projet selon les droits.</li>
+  <li><strong>Réponse</strong> (<code>agent/done</code> · visible) — résultat final, parcours rejouable.</li>
+</ol>
+<p>Le modèle <strong>génère</strong>. Le moteur <strong>orchestre</strong>. Chaque axe a sa place dans ce parcours.</p>
+</body>
+</html>

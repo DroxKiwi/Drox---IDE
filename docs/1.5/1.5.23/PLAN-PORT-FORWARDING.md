@@ -36,4 +36,4 @@ Référence amont : le mécanisme **VS Code / Codespaces / Remote** (Ports view,
 
 ## 4. Suite
 
-Après clôture 1.5.22 (**AG** + DOC). Ne pas démarrer tant que la parité Agents 1.5.22 n’est pas livrée / tranchée.
+Après clôture 1.5.22 (**AG** + DOC) — ✅ [CLOSURE-1.5.22](../1.5.22/CLOSURE-1.5.22.md). Ouverture 1.5.23 quand le ship 1.5.22 est décidé.

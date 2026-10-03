@@ -40,6 +40,7 @@ Index local par racine workspace · cockpit partagé · embed MiniLM (llama.cpp)
 | **CB4** | Contexte auto-inject + forçage chip/`@` → [PLAN-CB4.md](PLAN-CB4.md) | ✅ |
 | **CB4b** | Ranking pertinence → [PLAN-CB4b.md](PLAN-CB4b.md) | ✅ |
 
-**Reporté 1.5.22** : CB3b catalogue admin · CB5 carte code.
+**Livré ensuite (1.5.22)** : CB3b catalogue admin · parité Agents · régulation L1–L5.  
+**Backlog** : CB5 carte code · Explore IDE.
 
-**Règle** : CB3–CB4b faits. Shell discussion = dernier chantier 1.5.21.
+**Règle** : CB3–CB4b faits en 1.5.21. Shell discussion = dernier chantier 1.5.21.
