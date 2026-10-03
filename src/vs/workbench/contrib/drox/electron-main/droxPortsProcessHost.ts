@@ -110,7 +110,7 @@ export class DroxPortsProcessHost {
 					} catch {
 						// ignore
 					}
-				}, 2000).unref?.();
+				}, 2000);
 			}
 		} catch (err) {
 			this.logService.trace(`[drox-ports] stop ${key}: ${err}`);

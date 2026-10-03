@@ -5,17 +5,17 @@
 
 // allow-any-unicode-comment-file
 
-import { Emitter } from '../../../../base/common/event.js';
-import { Disposable } from '../../../../base/common/lifecycle.js';
-import { URI } from '../../../../base/common/uri.js';
-import { localize } from '../../../../nls.js';
-import { ConfigurationTarget, IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
-import { ILogService } from '../../../../platform/log/common/log.js';
-import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
-import { IOpenerService } from '../../../../platform/opener/common/opener.js';
-import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-import { INativeWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
+import { Emitter } from '../../../../../base/common/event.js';
+import { Disposable } from '../../../../../base/common/lifecycle.js';
+import { URI } from '../../../../../base/common/uri.js';
+import { localize } from '../../../../../nls.js';
+import { ConfigurationTarget, IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { IMainProcessService } from '../../../../../platform/ipc/common/mainProcessService.js';
+import { ILogService } from '../../../../../platform/log/common/log.js';
+import { INotificationService, Severity } from '../../../../../platform/notification/common/notification.js';
+import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
+import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import { INativeWorkbenchEnvironmentService } from '../../../../services/environment/electron-browser/environmentService.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import {
 	DROX_ENGINE_CHANNEL_NAME,
