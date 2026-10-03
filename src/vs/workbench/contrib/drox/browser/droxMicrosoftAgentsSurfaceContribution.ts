@@ -5,18 +5,42 @@
 
 // allow-any-unicode-comment-file
 
-import { ChatViewContainerId } from '../../chat/browser/chat.js';
+import { ChatViewContainerId, ChatViewId } from '../../chat/browser/chat.js';
 import { ChatConfiguration } from '../../chat/common/constants.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IChatEntitlementService } from '../../../services/chat/common/chatEntitlementService.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
+import { IViewDescriptorService } from '../../../common/views.js';
+import { IPaneCompositePartService } from '../../../services/panecomposite/browser/panecomposite.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
 import { isDroxAgentsWindowEnabled } from '../common/droxAgentsConfiguration.js';
 import { isDroxMicrosoftAgentsSurfaceEnabled } from '../common/droxMicrosoftAgentsSurface.js';
 import { RemoteAgentHostAutoConnectSettingId, RemoteAgentHostsEnabledSettingId } from '../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { TUNNEL_HOST_ENABLED_SETTING } from '../../chat/electron-browser/tunnelHost.contribution.js';
 import { ITunnelHostService } from '../../chat/common/tunnelHost.js';
+
+function hideMicrosoftChatSurfaces(
+	viewsService: IViewsService,
+	viewDescriptorService: IViewDescriptorService,
+	paneCompositeService: IPaneCompositePartService,
+): void {
+	viewsService.closeView(ChatViewId);
+	void viewsService.closeViewContainer(ChatViewContainerId);
+
+	const container = viewDescriptorService.getViewContainerById(ChatViewContainerId);
+	if (!container) {
+		return;
+	}
+	const location = viewDescriptorService.getViewContainerLocation(container);
+	if (location === null) {
+		return;
+	}
+	const active = paneCompositeService.getActivePaneComposite(location);
+	if (active?.getId() === ChatViewContainerId) {
+		paneCompositeService.hideActivePaneComposite(location);
+	}
+}
 
 /**
  * Masque les surfaces Agents / chat Microsoft quand `droxMicrosoftAgentsSurfaceEnabled` ≠ true.
@@ -30,6 +54,8 @@ class DroxMicrosoftAgentsSurfaceContribution implements IWorkbenchContribution {
 		@IProductService productService: IProductService,
 		@IConfigurationService configurationService: IConfigurationService,
 		@IViewsService viewsService: IViewsService,
+		@IViewDescriptorService viewDescriptorService: IViewDescriptorService,
+		@IPaneCompositePartService paneCompositeService: IPaneCompositePartService,
 		@IChatEntitlementService chatEntitlementService: IChatEntitlementService,
 	) {
 		if (isDroxMicrosoftAgentsSurfaceEnabled(productService)) {
@@ -57,7 +83,24 @@ class DroxMicrosoftAgentsSurfaceContribution implements IWorkbenchContribution {
 		apply(RemoteAgentHostsEnabledSettingId, false);
 		apply(RemoteAgentHostAutoConnectSettingId, false);
 		apply(TUNNEL_HOST_ENABLED_SETTING, false);
-		void viewsService.closeViewContainer(ChatViewContainerId);
+		hideMicrosoftChatSurfaces(viewsService, viewDescriptorService, paneCompositeService);
+	}
+}
+
+/** Second pass after layout restore — Chat may reappear in Panel from workspace state. */
+class DroxMicrosoftChatSurfaceHideAfterRestoreContribution implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.droxMicrosoftChatSurfaceHideAfterRestore';
+
+	constructor(
+		@IProductService productService: IProductService,
+		@IViewsService viewsService: IViewsService,
+		@IViewDescriptorService viewDescriptorService: IViewDescriptorService,
+		@IPaneCompositePartService paneCompositeService: IPaneCompositePartService,
+	) {
+		if (isDroxMicrosoftAgentsSurfaceEnabled(productService)) {
+			return;
+		}
+		hideMicrosoftChatSurfaces(viewsService, viewDescriptorService, paneCompositeService);
 	}
 }
 
@@ -92,4 +135,10 @@ registerWorkbenchContribution2(
 	DroxMicrosoftAgentsSurfaceContribution.ID,
 	DroxMicrosoftAgentsSurfaceContribution,
 	WorkbenchPhase.BlockRestore,
+);
+
+registerWorkbenchContribution2(
+	DroxMicrosoftChatSurfaceHideAfterRestoreContribution.ID,
+	DroxMicrosoftChatSurfaceHideAfterRestoreContribution,
+	WorkbenchPhase.AfterRestored,
 );
