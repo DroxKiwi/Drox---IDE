@@ -66,7 +66,7 @@ Le prompt système recommande `task`/`explore` pour un périmètre **très large
 |--|--|
 | Moteur Explore / `task` | ✅ code présent |
 | Activé out-of-the-box dans Drox IDE | ❌ (défaut off + bridge non câblé) |
-| Livraison prévue | **[1.5.21](../1.5/1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md)** |
+| Livraison | 📋 backlog — **[1.5.22 PLAN](../1.5/1.5.22/PLAN-SUBAGENTS-EXPLORE-IDE.md)** (hors clôture 1.5.22) |
 
 Voir aussi la pédagogie : [11-mcp-et-explore.md](../pedagogie/11-mcp-et-explore.md).
 

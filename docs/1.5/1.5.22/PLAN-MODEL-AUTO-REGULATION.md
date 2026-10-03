@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0–R11 ✅** · AG / DOC (§9 + README) · PF/THEME → [1.5.23](../1.5.23/README.md)  
+**Statut** : ✅ **R0–R12 livrés** · AG + DOC clôturés · PF/THEME → [1.5.23](../1.5.23/README.md)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -206,15 +206,15 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 | **R9** | **Wrapper L4** Protocol strictness | ✅ annex system `soft` (omit) / `normal` / `strict` via `getModule('L4')` |
 | **R10** | **Wrapper L5** Retrieval posture | ✅ hint Codebase `passive` / `nudge` / `aggressive` via `getModule('L5')` |
 | **R11** | **Policy Auto** branchée (note → module) + dogfood multi-modèles + polish console | ✅ `droxRegulationAutoPolicy` après `recordRun` ; manuel figé ; suggest UI |
-| **R12** | **Pass docs fin de maj** : relire et mettre à jour / compléter la documentation au regard de **1.5.21 + 1.5.22** (pédagogie, `docs/engine`, README 1.5.x, CLOSURE, surface utilisateur) | Docs alignées sur le livré ; plus de mentions obsolètes (ex. Explore « depuis 1.5.21 » si non câblé, OR releases, etc.) |
+| **R12** | **Pass docs fin de maj** : relire et mettre à jour / compléter la documentation au regard de **1.5.21 + 1.5.22** (pédagogie, `docs/engine`, README 1.5.x, CLOSURE, surface utilisateur) | ✅ [CLOSURE-1.5.22.md](CLOSURE-1.5.22.md) · README / plans / engine / pédagogie alignés |
 
 **Règle d’or** : ne pas démarrer Rn+1 tant que Rn n’est pas smoke-ok.  
 **Interdit** : mélanger scorer dans les wrappers, ou UI avant store/types stables (sauf stubs R0).  
-**R12** se fait **en toute fin de 1.5.22** (après R11, puis **AG** parité Agents — voir [README](README.md)), pas au milieu de la régulation. **PF** / **THEME** → [1.5.23](../1.5.23/README.md).
+**R12** = fin de maj 1.5.22 (après R11 + **AG**). **PF** / **THEME** → [1.5.23](../1.5.23/README.md).
 
 ---
 
-## 10. Suite immédiate
+## 10. Suite
 
-1. ~~Cadrage~~ · ~~**R0–R11**~~.  
-2. Fin de maj 1.5.22 : **AG** → **DOC** (R12) — voir [README](README.md). PF/THEME → [1.5.23](../1.5.23/README.md).
+1. ~~Cadrage~~ · ~~**R0–R12**~~ · ~~**AG**~~ · ~~**DOC**~~ — voir [CLOSURE](CLOSURE-1.5.22.md).  
+2. Suite produit : [1.5.23](../1.5.23/README.md) (PF · THEME).

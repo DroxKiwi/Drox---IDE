@@ -1,8 +1,9 @@
 # Architecture — index codebase Drox (`@Codebase`)
 
-**Statut** : **direction produit / tech** · pas encore d’implémentation  
-**Version** : **1.5.21** (**priorité #1** de la maj — devant Explore ; originellement hors 1.5.19 Git Graph)  
-**Objectif** : répliquer côté Drox le mécanisme qui rend un modèle **efficace sur la compréhension du code** sans charger tout le repo dans le contexte.
+**Statut** : ✅ **livré** (CB1–CB4b en 1.5.21 · CB3b / parité Agents en 1.5.22) — fiche d’architecture de référence  
+**Version** : **1.5.21+**  
+**Objectif** : répliquer côté Drox le mécanisme qui rend un modèle **efficace sur la compréhension du code** sans charger tout le repo dans le contexte.  
+**Runtime à jour** : [`docs/engine/codebase-and-rag.md`](../../../engine/codebase-and-rag.md).
 
 > **Lire d’abord** : [AMBITION.md](AMBITION.md) (but produit, UI supervision, embed embarqué / ressources).  
 > Cette fiche = pipeline technique ; **aligner** §6 Embeddings sur les décisions ambition (ship in-app, plus Ollama-first).

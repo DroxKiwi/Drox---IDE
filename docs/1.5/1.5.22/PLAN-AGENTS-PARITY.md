@@ -2,8 +2,8 @@
 
 **Parent** : [README 1.5.22](README.md)  
 **Statut** : ✅ **MVP livré** (Codebase + Regulation) · gap-list figée  
-**Ordre maj** : après A–D (R11) · **avant DOC (R12)**  
-**Note** : PF et THEME ont été reportés en [1.5.23](../1.5.23/README.md) — AG n’attend plus le port-forward.
+**Ordre maj** : après A–D (R11) · puis DOC (R12) — **enchaînement terminé**  
+**Note** : PF et THEME → [1.5.23](../1.5.23/README.md).
 
 ## 0. But
 
@@ -76,5 +76,5 @@ Réf. runtime : [`docs/engine/codebase-and-rag.md`](../../engine/codebase-and-ra
 
 ## 7. Suite
 
-Après AG → pass **DOC** (R12) pour clôturer 1.5.22.  
+~~DOC (R12)~~ — fait · [CLOSURE-1.5.22.md](CLOSURE-1.5.22.md).  
 PF / THEME : [1.5.23](../1.5.23/README.md).

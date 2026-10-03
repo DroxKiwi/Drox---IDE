@@ -3,7 +3,7 @@
 **Statut** : **clôturé** · [CLOSURE](CLOSURE-1.5.21.md) · tag `v1.5.21`  
 **Version cible** : `droxVersion` **1.5.21**  
 **Précédent** : [1.5.20](../1.5.20/README.md) — History / Changes IDE  
-**Suite** : [1.5.22](../1.5.22/README.md) — auto-régulation · parité Agents (Codebase/Regulation/RAG) · DOC
+**Suite** : [1.5.22](../1.5.22/README.md) — auto-régulation · parité Agents · **clôturé**
 
 ## `@Codebase` — tout est ici
 
@@ -25,6 +25,10 @@
 | A | `@Codebase` CB0–CB4b | ✅ |
 | B | Shell discussion partagé | ✅ |
 
-## Reporté → [1.5.22](../1.5.22/README.md)
+## Suite livrée en [1.5.22](../1.5.22/README.md)
 
-Explore IDE · SAV erreurs chat · CB3b catalogue admin · CB5 carte code · auto-régulation modèle.
+CB3b catalogue · auto-régulation R0–R11 · parité Agents · DOC (R12).
+
+## Toujours en backlog
+
+Explore IDE · SAV erreurs chat · CB5 carte code → voir [1.5.22](../1.5.22/README.md) / [1.5.23](../1.5.23/README.md).

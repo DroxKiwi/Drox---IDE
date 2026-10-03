@@ -2,7 +2,7 @@
 
 Sous-système IDE (`contrib/drox/.../codebase/`) : index **local** par dossier workspace, retrieval hybride / lexical, inject contexte avant `agent.run`, cockpit admin.
 
-Plans de livraison : [`docs/1.5/1.5.21/codebase/`](../1.5/1.5.21/codebase/) · parité Agents [`PLAN-AGENTS-PARITY.md`](../1.5/1.5.22/PLAN-AGENTS-PARITY.md)  
+Plans de livraison : [`docs/1.5/1.5.21/codebase/`](../1.5/1.5.21/codebase/) · parité Agents [`PLAN-AGENTS-PARITY.md`](../1.5/1.5.22/PLAN-AGENTS-PARITY.md) · clôture [`CLOSURE-1.5.22.md`](../1.5/1.5.22/CLOSURE-1.5.22.md)  
 Archi produit : [`ARCHITECTURE.md`](../1.5/1.5.21/codebase/ARCHITECTURE.md)
 
 ---
