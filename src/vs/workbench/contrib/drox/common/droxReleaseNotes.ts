@@ -42,6 +42,14 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.22':
+			return [
+				localize('drox.releaseNotes.1522.regulation', '**Model regulation** — observatory for L1–L5 notes (context, tools, directive, protocol, retrieval) with optional Auto per lever.'),
+				localize('drox.releaseNotes.1522.agents', '**Agents parity** — Codebase and Regulation open from discussion history badges; same services as the IDE, scoped to the session folder.'),
+				localize('drox.releaseNotes.1522.catalogue', '**Codebase catalogue** — browse indexed files, exclude paths, rebuild selected entries from the cockpit.'),
+				localize('drox.releaseNotes.1522.embed', '**Hardened embed** — bad/binary chunks are skipped with clear alerts; indexing continues for the rest of the project.'),
+				localize('drox.releaseNotes.1522.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.21':
 			return [
 				localize('drox.releaseNotes.1521.codebase', '**@Codebase** — local index with auto-inject into agent runs; Force chip anchors retrieval to the active editor file.'),

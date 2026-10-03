@@ -80,6 +80,55 @@
 	margin-bottom: 4px;
 }
 
+.drox-codebase-embed-resources {
+	margin: 8px 0 10px 0;
+	padding: 8px 10px;
+	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	border-radius: 4px;
+	background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.08));
+}
+
+.drox-codebase-embed-resources-title {
+	margin: 0 0 6px 0;
+	font-weight: 600;
+	font-size: 12px;
+}
+
+.drox-codebase-embed-ram-bar {
+	height: 8px;
+	border-radius: 4px;
+	background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.25));
+	overflow: hidden;
+	margin: 0 0 6px 0;
+}
+
+.drox-codebase-embed-ram-bar-fill {
+	height: 100%;
+	width: 0;
+	background: var(--vscode-charts-blue, #3794ff);
+	transition: width 0.25s ease-out;
+}
+
+.drox-codebase-embed-ram-bar-fill.is-loaded {
+	background: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-codebase-alert {
+	margin: 4px 0;
+	padding: 6px 8px;
+	border-left: 3px solid var(--vscode-focusBorder, #007acc);
+	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.12));
+	font-size: 12px;
+}
+
+.drox-codebase-alert.is-warn {
+	border-left-color: var(--vscode-charts-orange, #ee9d28);
+}
+
+.drox-codebase-alert.is-error {
+	border-left-color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
 .drox-codebase-btn {
 	cursor: pointer;
 }
@@ -201,6 +250,22 @@
 	color: var(--vscode-charts-orange, #ee9d28);
 }
 
+.drox-codebase-inject-badge.is-toggle {
+	cursor: pointer;
+	font: inherit;
+	background: transparent;
+	color: inherit;
+}
+
+.drox-codebase-inject-badge.is-toggle:hover {
+	filter: brightness(1.15);
+}
+
+.drox-codebase-inject-badge.is-toggle:disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
 .drox-codebase-inject-callout {
 	margin: 0 0 8px 0;
 	padding: 8px 10px;
@@ -262,5 +327,59 @@
 
 .drox-codebase-pipeline-event.is-running .drox-codebase-pipeline-event-meta {
 	color: var(--vscode-focusBorder, #007acc);
+}
+
+.drox-codebase-catalog-list {
+	margin-top: 6px;
+	max-height: 280px;
+	overflow: auto;
+	border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+
+.drox-codebase-catalog-file {
+	padding: 4px 0;
+	border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+}
+
+.drox-codebase-catalog-file-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.drox-codebase-catalog-path {
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 12px;
+	word-break: break-all;
+}
+
+.drox-codebase-catalog-expand {
+	border: none;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	padding: 0 2px;
+	min-width: 1.2em;
+}
+
+.drox-codebase-catalog-chunks {
+	margin: 4px 0 0 28px;
+}
+
+.drox-codebase-catalog-chunk {
+	margin-bottom: 6px;
+}
+
+.drox-codebase-exclusion-list {
+	margin: 4px 0 10px 0;
+}
+
+.drox-codebase-exclusion-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	justify-content: space-between;
+	padding: 2px 0;
 }
 

@@ -31,18 +31,33 @@ Comportement « zero-click » pour l’utilisateur :
 | # | Livrable |
 |---|----------|
 | 1 | Hook workspace : au `folders[0]` (et changement de racine) → indexation idle en background |
+| 1b | Agents multi-discussion : **lazy** sur root actif ; file `DroxCodebaseAutoIndex` **1-root + coalesce** (pas fan-out historique) |
 | 2 | File watcher / `onDidSave` (debounce ~300–800 ms) → upsert path(s) seulement |
 | 3 | Skip si `contentHash` inchangé (déjà prévu archi) |
 | 4 | File d’index **une** par racine ; pas de rebuild full sauf Purge / Reindex forcé / changement modèle embed |
 | 5 | Respect ignore (`.gitignore` / règles Drox) + soft cap fichiers |
 | 6 | Snapshot cockpit à jour pendant l’auto-index (sans alerte stale embed) |
 
+## Ordonnancement Agents (1.5.22)
+
+Décision produit (parité AG) :
+
+1. **Lazy** — index seulement le dossier de la **discussion active** (focus / `setActiveRoot`).  
+2. **1er open** d’un root sans index → `ensureIndexed` **automatique** (pas de clic Reindex).  
+3. **Ensuite** : watcher incrémental (debounce) pour les changements de fichiers.  
+4. **Pas** d’index de tous les répertoires de l’historique.  
+5. **File séquentielle** + **coalesce** : A en cours, focus B puis C → après A, seul **C** part.  
+6. Persist : `{root}/.drox/codebase-index/` (hash-skip si déjà à jour).
+
+Réf. : [`docs/engine/codebase-and-rag.md`](../../../engine/codebase-and-rag.md) · [`PLAN-AGENTS-PARITY.md`](../../1.5.22/PLAN-AGENTS-PARITY.md).
+
 ## Critères d’acceptation
 
 1. Ouvrir un repo sans cliquer Reindex → au bout de quelques secondes, cockpit montre files/chunks/(vectors si embed).  
 2. Modifier un fichier indexé → après debounce, ce path est à jour ; le reste de l’index inchangé.  
 3. Pas de freeze UI (travail en background / batches).  
-4. Reindex cockpit force toujours un rebuild cohérent.
+4. Reindex cockpit force toujours un rebuild cohérent.  
+5. Agents : changer rapidement de discussion pendant un index → pas de pile N roots ; le dernier focus est bien indexé.
 
 ## Ordre dans 1.5.21 `@Codebase`
 

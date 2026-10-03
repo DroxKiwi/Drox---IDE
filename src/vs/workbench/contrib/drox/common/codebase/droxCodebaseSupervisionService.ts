@@ -20,6 +20,7 @@ import { IDroxCodebaseContextService } from './droxCodebaseContextService.js';
 import { IDroxCodebaseIndexService } from './droxCodebaseIndexService.js';
 import { droxCodebaseIndexDir } from './droxCodebasePaths.js';
 import { createEmptyCodebaseSnapshot, buildDroxCodebasePipelineView, IDroxCodebaseCockpitSnapshot, IDroxCodebaseDiagExport, IDroxCodebaseHit, IDroxCodebaseLastInject, IDroxCodebasePipelineEvent } from './droxCodebaseTypes.js';
+import { IDroxCodebaseCatalog, IDroxCodebaseCompactResult } from './droxCodebaseCatalog.js';
 import { DroxCodebaseAutoIndex } from './supervision/droxCodebaseAutoIndex.js';
 import { droxCodebaseInvalidateRelativePath } from './supervision/droxCodebaseFileWatcher.js';
 import { DroxCodebasePipelineLog } from './supervision/droxCodebasePipelineLog.js';
@@ -31,6 +32,8 @@ import {
 	resolveDroxCodebaseEmbedMeta,
 	setDroxCodebaseEmbedModelPath,
 } from './supervision/droxCodebaseSupervisionEmbed.js';
+import { buildDroxCodebaseEmbedIssueAlerts } from './supervision/droxCodebaseEmbedIssueAlerts.js';
+import { buildDroxCodebaseRootAlerts } from './supervision/droxCodebaseRootAlerts.js';
 
 /** Debounce for CB2b file-watcher incremental updates (ms). */
 const CB2B_INVALIDATE_DEBOUNCE_MS = 600;
@@ -56,6 +59,14 @@ export interface IDroxCodebaseSupervisionService {
 	clearPipelineLog(): void;
 	buildDiagnosticsExport(lastProbeHits?: readonly IDroxCodebaseHit[]): IDroxCodebaseDiagExport;
 	readonly lastInject: IDroxCodebaseLastInject | undefined;
+	/** CB3b catalogue admin */
+	listCatalog(): Promise<IDroxCodebaseCatalog>;
+	deleteCatalogPaths(relativePaths: readonly string[]): Promise<{ removedChunks: number; removedVectors: number }>;
+	compactCatalog(): Promise<IDroxCodebaseCompactResult>;
+	listExclusions(): Promise<readonly string[]>;
+	setExclusions(globs: readonly string[]): Promise<readonly string[]>;
+	excludeCatalogPaths(relativePathsOrGlobs: readonly string[]): Promise<{ globs: readonly string[]; removedChunks: number; removedVectors: number }>;
+	rebuildCatalogPaths(relativePaths: readonly string[]): Promise<void>;
 }
 
 export class DroxCodebaseSupervisionService extends Disposable implements IDroxCodebaseSupervisionService {
@@ -111,7 +122,7 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			}
 		}));
 		this._register(this.contextService.onDidInject(rec => {
-			this._pipelineLog.push(injectToPipelineEvent(rec));
+			this._pipelineLog.push(injectToPipelineEvent(rec, this._resolveRootUri()?.fsPath));
 			this._publishPipelineView();
 		}));
 		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
@@ -148,7 +159,13 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 
 	setActiveRoot(root: URI | undefined): void {
 		this._overrideRoot = root;
-		void this.refresh().then(() => this._autoIndex.schedule('active-root'));
+		this._pipelineLog.setActiveRoot(root?.fsPath);
+		// Index immediately on open / switch — do not wait for refresh (first-time
+		// folders must start ensureIndexed ASAP; hash-skip is cheap if already done).
+		if (root) {
+			this._autoIndex.schedule('active-root');
+		}
+		void this.refresh();
 	}
 
 	getIndexDirFsPath(): string | undefined {
@@ -160,16 +177,11 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		const rootUri = this._resolveRootUri();
 		const root = rootUri?.fsPath;
 		if (!root || !rootUri) {
+			this._pipelineLog.setActiveRoot(undefined);
 			this._snapshot = {
 				...createEmptyCodebaseSnapshot(),
 				state: 'missing',
-				alerts: [{
-					id: 'no-root',
-					severity: 'info',
-					code: 'NO_WORKSPACE_ROOT',
-					message: 'Open a folder to enable the codebase index.',
-					at: Date.now(),
-				}],
+				alerts: [...buildDroxCodebaseRootAlerts({ hasRoot: false, manifest: undefined })],
 			};
 			this._onDidChangeSnapshot.fire();
 			return;
@@ -181,8 +193,10 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		const embedMeta = await resolveDroxCodebaseEmbedMeta(
 			this.fileService, this.configurationService, this.environmentService, this._snapshot.embed,
 		);
-		const pipelineView = buildDroxCodebasePipelineView(this._pipelineLog.events);
-		const last = this._pipelineLog.events[this._pipelineLog.events.length - 1];
+		this._pipelineLog.setActiveRoot(root);
+		const events = this._pipelineLog.events;
+		const pipelineView = buildDroxCodebasePipelineView(events);
+		const last = events[events.length - 1];
 		this._snapshot = {
 			...base,
 			state: 'idle',
@@ -198,13 +212,10 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 			embed: embedMeta,
 			// Hybrid only when embed runtime can encode queries (matches search fallback).
 			mode: hasVectors && embedMeta.built && embedMeta.loaded ? 'hybrid' : 'lexical',
-			alerts: manifest ? [] : [{
-				id: 'no-index',
-				severity: 'info',
-				code: 'NO_INDEX',
-				message: 'No index yet — click Reindex.',
-				at: Date.now(),
-			}],
+			alerts: [
+				...buildDroxCodebaseRootAlerts({ hasRoot: true, manifest }),
+				...buildDroxCodebaseEmbedIssueAlerts(events),
+			],
 			pipeline: {
 				queueDepth: 0,
 				chunksPerSec: 0,
@@ -218,6 +229,11 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		};
 		this._onDidChangeSnapshot.fire();
 		await this.refreshEmbedStatus();
+		// First open of a never-indexed folder: ensure auto-index is armed even if
+		// the earlier schedule was skipped (e.g. pause bleed from another root).
+		if (!manifest && this._snapshot.state !== 'paused' && !this._autoIndex.inFlight) {
+			this._autoIndex.schedule('missing-index');
+		}
 	}
 
 	async refreshEmbedStatus(): Promise<void> {
@@ -307,6 +323,83 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		this._autoIndex.schedule('after-purge');
 	}
 
+	async listCatalog(): Promise<IDroxCodebaseCatalog> {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return { files: [], totalFiles: 0, totalChunks: 0, totalVectors: 0, textBytes: 0 };
+		}
+		return this.indexService.listCatalog(root);
+	}
+
+	async deleteCatalogPaths(relativePaths: readonly string[]): Promise<{ removedChunks: number; removedVectors: number }> {
+		const root = this._resolveRootUri();
+		if (!root || !relativePaths.length) {
+			return { removedChunks: 0, removedVectors: 0 };
+		}
+		const result = await this.indexService.deleteIndexedPaths(root, relativePaths);
+		await this.refresh();
+		return result;
+	}
+
+	async compactCatalog(): Promise<IDroxCodebaseCompactResult> {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return { bytesBefore: 0, bytesAfter: 0, files: 0, chunks: 0, vectors: 0, orphanVectorsRemoved: 0 };
+		}
+		const result = await this.indexService.compactStore(root);
+		await this.refresh();
+		return result;
+	}
+
+	async listExclusions(): Promise<readonly string[]> {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return [];
+		}
+		return this.indexService.listExclusions(root);
+	}
+
+	async setExclusions(globs: readonly string[]): Promise<readonly string[]> {
+		const root = this._resolveRootUri();
+		if (!root) {
+			return [];
+		}
+		const next = await this.indexService.setExclusions(root, globs);
+		await this.refresh();
+		return next;
+	}
+
+	async excludeCatalogPaths(relativePathsOrGlobs: readonly string[]): Promise<{ globs: readonly string[]; removedChunks: number; removedVectors: number }> {
+		const root = this._resolveRootUri();
+		if (!root || !relativePathsOrGlobs.length) {
+			return { globs: [], removedChunks: 0, removedVectors: 0 };
+		}
+		const result = await this.indexService.excludePaths(root, relativePathsOrGlobs);
+		await this.refresh();
+		return result;
+	}
+
+	async rebuildCatalogPaths(relativePaths: readonly string[]): Promise<void> {
+		const root = this._resolveRootUri();
+		if (!root || !relativePaths.length) {
+			return;
+		}
+		this._snapshot = { ...this._snapshot, state: 'indexing', pipeline: { ...this._snapshot.pipeline, phase: 'rebuild' } };
+		this._onDidChangeSnapshot.fire();
+		try {
+			await this.indexService.rebuildIndexedPaths(root, relativePaths);
+			await this.refresh();
+		} catch (err) {
+			this._snapshot = {
+				...this._snapshot,
+				state: 'error',
+				lastError: err instanceof Error ? err.message : String(err),
+			};
+			this._onDidChangeSnapshot.fire();
+			throw err;
+		}
+	}
+
 	async probeRetrieval(query: string): Promise<readonly IDroxCodebaseHit[]> {
 		const root = this._resolveRootUri();
 		if (!root || !query.trim()) {
@@ -360,10 +453,22 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 	}
 
 	private _publishPipelineView(): void {
-		this._snapshot = this._pipelineLog.publishIntoSnapshot(this._snapshot, {
+		const next = this._pipelineLog.publishIntoSnapshot(this._snapshot, {
 			queueDepth: this._pendingInvalidate.size,
 			autoIndexInFlight: this._autoIndex.inFlight,
 		});
+		const rootAlerts = next.alerts.filter(a =>
+			!a.id.startsWith('index-embed-') && !a.id.startsWith('embed-'),
+		);
+		const embedRuntimeAlerts = next.alerts.filter(a => a.id.startsWith('embed-'));
+		this._snapshot = {
+			...next,
+			alerts: [
+				...rootAlerts,
+				...buildDroxCodebaseEmbedIssueAlerts(next.pipelineView.events),
+				...embedRuntimeAlerts,
+			],
+		};
 		this._onDidChangeSnapshot.fire();
 	}
 
@@ -374,7 +479,11 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 		const embedAlerts = await probeDroxCodebaseEmbedAlerts(
 			this._embedClient, this.fileService, this.configurationService, this.environmentService,
 		);
-		this._snapshot = applyDroxCodebaseEmbedToSnapshot(this._snapshot, embed, mode, embedAlerts);
+		const next = applyDroxCodebaseEmbedToSnapshot(this._snapshot, embed, mode, embedAlerts);
+		if (embedSnapshotUnchanged(this._snapshot, next)) {
+			return;
+		}
+		this._snapshot = next;
 		this._onDidChangeSnapshot.fire();
 	}
 
@@ -383,7 +492,30 @@ export class DroxCodebaseSupervisionService extends Disposable implements IDroxC
 	}
 }
 
-function injectToPipelineEvent(rec: IDroxCodebaseLastInject): IDroxCodebasePipelineEvent {
+function embedSnapshotUnchanged(prev: IDroxCodebaseCockpitSnapshot, next: IDroxCodebaseCockpitSnapshot): boolean {
+	const pe = prev.embed;
+	const ne = next.embed;
+	if (prev.mode !== next.mode) {
+		return false;
+	}
+	if (pe.loaded !== ne.loaded || pe.built !== ne.built || pe.backend !== ne.backend
+		|| pe.dimensions !== ne.dimensions || pe.resolvedPath !== ne.resolvedPath
+		|| pe.source !== ne.source || pe.modelId !== ne.modelId
+		|| pe.modelFileBytes !== ne.modelFileBytes || pe.rssBytes !== ne.rssBytes) {
+		return false;
+	}
+	if (prev.alerts.length !== next.alerts.length) {
+		return false;
+	}
+	for (let i = 0; i < prev.alerts.length; i++) {
+		if (prev.alerts[i]!.id !== next.alerts[i]!.id || prev.alerts[i]!.code !== next.alerts[i]!.code) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function injectToPipelineEvent(rec: IDroxCodebaseLastInject, rootFsPath?: string): IDroxCodebasePipelineEvent {
 	const status = rec.skip === 'error' || rec.skip === 'timeout'
 		? 'warn' as const
 		: (rec.hitCount > 0 ? 'ok' as const : 'warn' as const);
@@ -397,6 +529,7 @@ function injectToPipelineEvent(rec: IDroxCodebaseLastInject): IDroxCodebasePipel
 		kind: 'search',
 		status,
 		message,
+		rootFsPath,
 		detail: {
 			source: rec.forced ? 'force_inject' : 'auto_inject',
 			hits: rec.hitCount,

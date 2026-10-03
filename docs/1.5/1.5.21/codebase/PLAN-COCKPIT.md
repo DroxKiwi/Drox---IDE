@@ -140,7 +140,13 @@ interface IDroxCodebaseCockpitSnapshot {
   readonly state: 'missing' | 'idle' | 'indexing' | 'paused' | 'error';
   readonly storage: { files: number; chunks: number; vectors: number; bytes: number; softCapBytes: number };
   readonly pipeline: { queueDepth: number; currentPath?: string; phase?: string; chunksPerSec: number };
-  readonly embed: { modelId?: string; loaded: boolean; rssBytes?: number; lastProbeMs?: number };
+  readonly embed: {
+    modelId?: string;
+    loaded: boolean;
+    rssBytes?: number;       // process RSS drox.exe (embed.status)
+    modelFileBytes?: number; // taille GGUF sur disque
+    lastProbeMs?: number;
+  };
   readonly alerts: readonly IDroxCodebaseAlert[];
   readonly mode: 'lexical' | 'hybrid';
 }
@@ -148,13 +154,14 @@ interface IDroxCodebaseCockpitSnapshot {
 interface IDroxCodebaseAlert {
   readonly id: string;
   readonly severity: 'error' | 'warn' | 'info';
-  readonly code: string;   // ex. DISK_NEAR_CAP, STALE_FILES, EMBED_OOM
+  readonly code: string;   // ex. EMPTY_WORKSPACE, EMBED_NOT_BUILT, DISK_NEAR_CAP
   readonly message: string;
   readonly at: number;
 }
 ```
 
-Refresh : push à chaque changement d’état / ~1 Hz pendant `indexing`.
+Refresh : push à chaque changement d’état / ~1 Hz pendant `indexing`.  
+Embed RSS : poll ~2 s tant que le corps du cockpit est visible (`refreshEmbedStatus`).
 
 ---
 
@@ -179,20 +186,22 @@ Refresh : push à chaque changement d’état / ~1 Hz pendant `indexing`.
 
 ### 6.1 IDE activity bar (comme Changes)
 
-- [ ] `registerViewContainer` Sidebar + icon (ex. `Codicon.database` / custom)  
-- [ ] `registerViews` → `DroxCodebaseCockpitViewPane`  
-- [ ] Commande « Drox: Focus Codebase »  
-- [ ] Root = `folders[0]` ; empty state si pas de folder
+- [x] `registerViewContainer` Sidebar + icon (`Codicon.database`)  
+- [x] `registerViews` → `DroxCodebaseCockpitViewPane`  
+- [x] Commande focus / open via `DroxViews` / helpers  
+- [x] Root = `folders[0]` (IDE) ; empty state si pas de folder
 
 ### 6.2 IDE zone agent
 
-- [ ] Entrée panneau / view container panel (miroir Terminal) **ou** vue secondaire dans le stack agent — à trancher en impl. (préférence : **Panel** bottom pour parité Terminal)  
-- [ ] Même ctor vue ; même service
+- [x] Chips composer Codebase (+ force inject) — `droxAgentsComposerToolbar`  
+- [ ] Panel bottom miroir Terminal (optionnel ; sidebar suffit pour MVP)
 
-### 6.3 Agents
+### 6.3 Agents (1.5.22 AG)
 
-- [ ] Enregistrement miroir dans `sessions.desktop` (même module `contrib/drox`)  
-- [ ] Root = workingDirectory session ; si absent → empty state « Choisissez un dossier de travail »
+- [x] Import contributions dans `droxSessionsBootstrap`  
+- [x] Root = `workingDirectory` / folder session via `setActiveRoot`  
+- [x] Icônes toolbar historique (`droxSessionsCockpitActions`) + chip Regulation  
+- [x] Auto-index lazy + coalesce (pas fan-out historique) — voir [codebase-and-rag.md](../../../engine/codebase-and-rag.md)
 
 ---
 

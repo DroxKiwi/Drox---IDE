@@ -31,7 +31,8 @@
 | [**1.5.19/**](1.5.19/README.md) | Badge branche + Git Graph natif Drox | **Livré** · `v1.5.19` |
 | [**1.5.20/**](1.5.20/README.md) | Stabilisation + historique + Changes IDE (multi-git) | **Livré** |
 | [**1.5.21/**](1.5.21/README.md) | `@Codebase` CB4/CB4b + shell discussion | **Clôturé** · `v1.5.21` |
-| [**1.5.22/**](1.5.22/README.md) | Auto-régulation · Explore · SAV · admin index | **Préparé** |
+| [**1.5.22/**](1.5.22/README.md) | Auto-régulation · CB3b · parité Agents · DOC | **Clôturé** · [CLOSURE](1.5.22/CLOSURE-1.5.22.md) |
+| [**1.5.23/**](1.5.23/README.md) | Port forwarding · Théming | **Réservé** |
 
 ---
 
@@ -54,9 +55,11 @@
 1.5.14  Plan B sessions + loading + LoopDetector  →  livré
 1.5.15  hors workspace · retry · carnet  →  livré
 1.5.16  stabilisation modèle (hors-WS · boucle write)  →  livré
-1.5.17  alignement enveloppe IDE ↔ contrat TUI (plan / run)  →  ouvert
-MCP  →  brainstorm #16
+1.5.17 … 1.5.21  →  livrés / clôturés
+1.5.22  régulation · CB3b · parité Agents · DOC  →  clôturé
+1.5.23  PF · THEME  →  réservé
 ```
+
 
 ---
 

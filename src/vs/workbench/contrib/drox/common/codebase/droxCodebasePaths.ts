@@ -30,6 +30,11 @@ export function droxCodebaseVectorsJsonPath(workspaceRootFsPath: string): string
 	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'vectors.json');
 }
 
+/** CB3b — per-workspace globs that must not be (re)indexed. */
+export function droxCodebaseExclusionsPath(workspaceRootFsPath: string): string {
+	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'exclusions.json');
+}
+
 export function droxCodebaseChunksDbPath(workspaceRootFsPath: string): string {
 	return join(droxCodebaseIndexDir(workspaceRootFsPath), 'chunks.sqlite');
 }

@@ -169,11 +169,11 @@ Variables d’environnement utiles : [`drox-engine/DROX-ENV-SETUP.txt`](drox-eng
 
 ## Remerciements
 
-Je remercie l’équipe du **SI de [Salesky](https://www.salesky.fr/)** pour l’aide aux tests et pour le matériel mis à disposition — indispensable pour avancer sur cette quête d’autonomie face à des outils comme Cursor.
+Je remercie l’équipe du **SI de [Salesky](https://www.salesky.fr/)** pour l’aide aux tests et pour le matériel mis à disposition — indispensable pour avancer sur cette quête d’autonomie.
 
 ---
 
 ## Licence
 
-MIT. Socle Code OSS © Microsoft ; portions moteur / intégration / branding © KDDS.  
+MIT. Socle Code OSS © Microsoft ; portions moteur / intégration / branding © KDDS.
 Détail : [`NOTICE.md`](NOTICE.md) · [`LICENSE.txt`](LICENSE.txt).

@@ -12,11 +12,23 @@ export type DroxCodebaseAutoIndexFire = () => void;
 export type DroxCodebaseAutoIndexGetSnapshot = () => IDroxCodebaseCockpitSnapshot;
 export type DroxCodebaseAutoIndexSetSnapshot = (s: IDroxCodebaseCockpitSnapshot) => void;
 
+interface IDroxCodebaseAutoIndexJob {
+	readonly root: URI;
+	readonly reason: string;
+}
+
 /**
- * CB2b background ensureIndexed (hash-skip) without blocking the cockpit UI.
+ * CB2b background `ensureIndexed` (hash-skip) without blocking the cockpit UI.
+ *
+ * Orchestration (Agents multi-discussion + IDE root switch):
+ * - Lazy: only the root passed via {@link schedule} / current {@link getRoot}.
+ * - Sequential: one `ensureIndexed` at a time.
+ * - Coalesce: while in flight, later {@link schedule} calls keep only the **latest** root.
+ * - Never fan-out across the whole discussion history list.
  */
 export class DroxCodebaseAutoIndex {
 	private _inFlight = false;
+	private _pending: IDroxCodebaseAutoIndexJob | undefined;
 
 	constructor(
 		private readonly indexService: IDroxCodebaseIndexService,
@@ -32,44 +44,78 @@ export class DroxCodebaseAutoIndex {
 		return this._inFlight;
 	}
 
+	/** Test / diagnostics — last coalesced job waiting after the current run. */
+	get pendingRootFsPath(): string | undefined {
+		return this._pending?.root.fsPath;
+	}
+
 	schedule(reason: string): void {
 		const root = this.getRoot();
+		if (!root) {
+			return;
+		}
 		const snapshot = this.getSnapshot();
-		if (!root || this._inFlight || snapshot.state === 'paused') {
+		// Pause is per active root — never block indexing of a newly opened folder
+		// because a previous root left the snapshot in `paused`.
+		if (snapshot.state === 'paused' && snapshot.rootFsPath === root.fsPath) {
+			return;
+		}
+		this._pending = { root, reason };
+		if (!this._inFlight) {
+			void this._runLoop();
+		}
+	}
+
+	private async _runLoop(): Promise<void> {
+		if (this._inFlight) {
 			return;
 		}
 		this._inFlight = true;
+		try {
+			while (this._pending) {
+				const job = this._pending;
+				this._pending = undefined;
+				await this._runJob(job);
+			}
+		} finally {
+			this._inFlight = false;
+			// A schedule() during the final job's finally window may have queued work
+			// after the while exited but before _inFlight cleared — pick it up.
+			if (this._pending) {
+				void this._runLoop();
+			}
+		}
+	}
+
+	private async _runJob(job: IDroxCodebaseAutoIndexJob): Promise<void> {
+		const snapshot = this.getSnapshot();
 		this.setSnapshot({
 			...snapshot,
 			state: snapshot.storage.chunks > 0 ? snapshot.state : 'indexing',
-			pipeline: { ...snapshot.pipeline, phase: `auto:${reason}` },
+			pipeline: { ...snapshot.pipeline, phase: `auto:${job.reason}` },
 		});
 		this.fire();
-		void (async () => {
-			try {
-				const current = this.getSnapshot();
-				if (current.state !== 'indexing') {
-					this.setSnapshot({
-						...current,
-						state: 'indexing',
-						pipeline: { ...current.pipeline, phase: `auto:${reason}` },
-					});
-					this.fire();
-				}
-				await this.indexService.ensureIndexed(root);
-				await this.refresh();
-			} catch (err) {
-				this.logService.warn(`[drox-codebase] auto-index (${reason}) failed: ${err}`);
-				const current = this.getSnapshot();
+		try {
+			const current = this.getSnapshot();
+			if (current.state !== 'indexing') {
 				this.setSnapshot({
 					...current,
-					state: 'error',
-					lastError: err instanceof Error ? err.message : String(err),
+					state: 'indexing',
+					pipeline: { ...current.pipeline, phase: `auto:${job.reason}` },
 				});
 				this.fire();
-			} finally {
-				this._inFlight = false;
 			}
-		})();
+			await this.indexService.ensureIndexed(job.root);
+			await this.refresh();
+		} catch (err) {
+			this.logService.warn(`[drox-codebase] auto-index (${job.reason}) failed: ${err}`);
+			const current = this.getSnapshot();
+			this.setSnapshot({
+				...current,
+				state: 'error',
+				lastError: err instanceof Error ? err.message : String(err),
+			});
+			this.fire();
+		}
 	}
 }

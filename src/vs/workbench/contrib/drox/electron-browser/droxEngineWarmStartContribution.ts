@@ -19,6 +19,13 @@ import { DroxSetting } from '../common/droxConfiguration.js';
 
 import { IDroxEngineService } from '../common/droxEngineService.js';
 
+import {
+	applyDroxRegulationL2ExecutableTools,
+	asDroxRegulationL2Module,
+} from '../common/regulation/droxRegulationL2Surface.js';
+
+import { IDroxRegulationService } from '../common/regulation/droxRegulationServiceContract.js';
+
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 
 
@@ -52,6 +59,8 @@ class DroxEngineWarmStartContribution extends Disposable implements IWorkbenchCo
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
 
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
+
+		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
 
 		@ILogService private readonly logService: ILogService,
 
@@ -119,7 +128,11 @@ class DroxEngineWarmStartContribution extends Disposable implements IWorkbenchCo
 
 		const allTools = this.clientToolsService.executableToolNames;
 
-		const executableTools = this.runSettingsService.filterExecutableTools(allTools);
+		const filtered = this.runSettingsService.filterExecutableTools(allTools);
+
+		const l2 = asDroxRegulationL2Module(this.regulationService.getModule('L2'));
+
+		const executableTools = applyDroxRegulationL2ExecutableTools(l2, filtered);
 
 		await this.droxEngineService.initialize({
 

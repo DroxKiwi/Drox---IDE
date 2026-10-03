@@ -21,8 +21,23 @@ import {
 	droxCodebaseReadChunks,
 	droxCodebaseReadManifest,
 	droxCodebaseReadVectors,
+	droxCodebaseWriteStore,
 	IDroxCodebaseManifest,
 } from './droxCodebaseJsonStore.js';
+import {
+	buildDroxCodebaseCatalog,
+	droxCodebaseDeleteCatalogPaths,
+	droxCodebasePruneOrphanVectors,
+	IDroxCodebaseCatalog,
+	IDroxCodebaseCompactResult,
+} from './droxCodebaseCatalog.js';
+import {
+	droxCodebaseMergeExclusionGlobs,
+	droxCodebasePathMatchesExclusion,
+	droxCodebaseReadExclusions,
+	droxCodebaseWriteExclusions,
+} from './droxCodebaseExclusions.js';
+import { droxCodebaseJoinWorkspacePath } from './index/droxCodebaseIndexScan.js';
 import { droxCodebaseLexicalSearch } from './droxCodebaseLexicalSearch.js';
 import { droxCodebaseRerankHits } from './droxCodebaseRerank.js';
 import { IDroxCodebaseHit } from './droxCodebaseTypes.js';
@@ -102,16 +117,21 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 			if (this._paused.has(rootKey)) {
 				return;
 			}
-			await droxCodebaseRunEnsureIndexed({
-				fileService: this.fileService,
-				logService: this.logService,
-				workspaceRoot,
-				rootKey,
-				isPaused: () => this._paused.has(rootKey),
-				pipeline: this._pipeline,
-				embedDeps: this._embedDeps(),
-				setCaches: (chunks, vectors) => this._setCaches(rootKey, chunks, vectors),
-			});
+			this._pipeline.setWorkspaceRoot(rootKey);
+			try {
+				await droxCodebaseRunEnsureIndexed({
+					fileService: this.fileService,
+					logService: this.logService,
+					workspaceRoot,
+					rootKey,
+					isPaused: () => this._paused.has(rootKey),
+					pipeline: this._pipeline,
+					embedDeps: this._embedDeps(),
+					setCaches: (chunks, vectors) => this._setCaches(rootKey, chunks, vectors),
+				});
+			} finally {
+				this._pipeline.setWorkspaceRoot(undefined);
+			}
 		});
 	}
 
@@ -180,17 +200,22 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 			if (this._paused.has(rootKey)) {
 				return;
 			}
-			await droxCodebaseRunInvalidate({
-				fileService: this.fileService,
-				logService: this.logService,
-				workspaceRoot,
-				rootKey,
-				paths,
-				isPaused: () => this._paused.has(rootKey),
-				pipeline: this._pipeline,
-				embedDeps: this._embedDeps(),
-				setCaches: (chunks, vectors) => this._setCaches(rootKey, chunks, vectors),
-			});
+			this._pipeline.setWorkspaceRoot(rootKey);
+			try {
+				await droxCodebaseRunInvalidate({
+					fileService: this.fileService,
+					logService: this.logService,
+					workspaceRoot,
+					rootKey,
+					paths,
+					isPaused: () => this._paused.has(rootKey),
+					pipeline: this._pipeline,
+					embedDeps: this._embedDeps(),
+					setCaches: (chunks, vectors) => this._setCaches(rootKey, chunks, vectors),
+				});
+			} finally {
+				this._pipeline.setWorkspaceRoot(undefined);
+			}
 		});
 	}
 
@@ -213,6 +238,132 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 
 	async getManifest(workspaceRoot: URI): Promise<IDroxCodebaseManifest | undefined> {
 		return droxCodebaseReadManifest(this.fileService, workspaceRoot.fsPath);
+	}
+
+	async listCatalog(workspaceRoot: URI): Promise<IDroxCodebaseCatalog> {
+		const rootKey = workspaceRoot.fsPath;
+		const chunks = this._chunksCache.get(rootKey) ?? await droxCodebaseReadChunks(this.fileService, rootKey);
+		const vectors = this._vectorsCache.get(rootKey) ?? await droxCodebaseReadVectors(this.fileService, rootKey);
+		this._setCaches(rootKey, chunks, vectors);
+		return buildDroxCodebaseCatalog(chunks, vectors);
+	}
+
+	async deleteIndexedPaths(workspaceRoot: URI, relativePaths: readonly string[]): Promise<{ removedChunks: number; removedVectors: number }> {
+		const rootKey = workspaceRoot.fsPath;
+		let removedChunks = 0;
+		let removedVectors = 0;
+		await this._enqueue(rootKey, async () => {
+			const chunks = this._chunksCache.get(rootKey) ?? await droxCodebaseReadChunks(this.fileService, rootKey);
+			const vectors = this._vectorsCache.get(rootKey) ?? await droxCodebaseReadVectors(this.fileService, rootKey);
+			const next = droxCodebaseDeleteCatalogPaths(chunks, vectors, relativePaths);
+			removedChunks = next.removedChunks;
+			removedVectors = next.removedVectors;
+			if (removedChunks === 0 && removedVectors === 0) {
+				return;
+			}
+			const prevManifest = await droxCodebaseReadManifest(this.fileService, rootKey);
+			const manifest = await droxCodebaseWriteStore(this.fileService, rootKey, next.chunks, {
+				vectors: next.vectors,
+				embedDimensions: prevManifest?.embedDimensions,
+				embedModelPath: prevManifest?.embedModelPath,
+			});
+			this._setCaches(rootKey, next.chunks, next.vectors);
+			this._pipeline.emit(
+				'invalidate',
+				'ok',
+				`Catalogue delete: ${removedChunks} chunks, ${removedVectors} vectors (${manifest.files} files left)`,
+				{ runId: `catalog-delete-${Date.now()}`, detail: { removedChunks, removedVectors, files: manifest.files } },
+			);
+		});
+		return { removedChunks, removedVectors };
+	}
+
+	async compactStore(workspaceRoot: URI): Promise<IDroxCodebaseCompactResult> {
+		const rootKey = workspaceRoot.fsPath;
+		let result: IDroxCodebaseCompactResult = {
+			bytesBefore: 0,
+			bytesAfter: 0,
+			files: 0,
+			chunks: 0,
+			vectors: 0,
+			orphanVectorsRemoved: 0,
+		};
+		await this._enqueue(rootKey, async () => {
+			const chunks = this._chunksCache.get(rootKey) ?? await droxCodebaseReadChunks(this.fileService, rootKey);
+			const vectors = this._vectorsCache.get(rootKey) ?? await droxCodebaseReadVectors(this.fileService, rootKey);
+			const prevManifest = await droxCodebaseReadManifest(this.fileService, rootKey);
+			const bytesBefore = prevManifest?.bytes
+				?? chunks.reduce((n, c) => n + c.text.length, 0) + vectors.reduce((n, v) => n + v.values.length * 4, 0);
+			const pruned = droxCodebasePruneOrphanVectors(chunks, vectors);
+			const manifest = await droxCodebaseWriteStore(this.fileService, rootKey, chunks, {
+				vectors: pruned.vectors,
+				embedDimensions: prevManifest?.embedDimensions,
+				embedModelPath: prevManifest?.embedModelPath,
+			});
+			this._setCaches(rootKey, chunks, pruned.vectors);
+			result = {
+				bytesBefore,
+				bytesAfter: manifest.bytes,
+				files: manifest.files,
+				chunks: manifest.chunks,
+				vectors: manifest.vectors,
+				orphanVectorsRemoved: pruned.removed,
+			};
+			this._pipeline.emit(
+				'upsert',
+				'ok',
+				`Catalogue compact: ${bytesBefore} → ${manifest.bytes} bytes (−${pruned.removed} orphan vectors)`,
+				{
+					runId: `catalog-compact-${Date.now()}`,
+					detail: {
+						bytesBefore,
+						bytesAfter: manifest.bytes,
+						orphanVectorsRemoved: pruned.removed,
+					},
+				},
+			);
+		});
+		return result;
+	}
+
+	async listExclusions(workspaceRoot: URI): Promise<readonly string[]> {
+		return (await droxCodebaseReadExclusions(this.fileService, workspaceRoot.fsPath)).globs;
+	}
+
+	async setExclusions(workspaceRoot: URI, globs: readonly string[]): Promise<readonly string[]> {
+		const written = await droxCodebaseWriteExclusions(this.fileService, workspaceRoot.fsPath, globs);
+		return written.globs;
+	}
+
+	async excludePaths(workspaceRoot: URI, relativePathsOrGlobs: readonly string[]): Promise<{ globs: readonly string[]; removedChunks: number; removedVectors: number }> {
+		const rootKey = workspaceRoot.fsPath;
+		const current = await droxCodebaseReadExclusions(this.fileService, rootKey);
+		const globs = droxCodebaseMergeExclusionGlobs(current.globs, relativePathsOrGlobs);
+		await droxCodebaseWriteExclusions(this.fileService, rootKey, globs);
+
+		const chunks = this._chunksCache.get(rootKey) ?? await droxCodebaseReadChunks(this.fileService, rootKey);
+		const toDelete = [...new Set(chunks.map(c => c.path))].filter(p => droxCodebasePathMatchesExclusion(p, globs));
+		const deleted = toDelete.length
+			? await this.deleteIndexedPaths(workspaceRoot, toDelete)
+			: { removedChunks: 0, removedVectors: 0 };
+		this._pipeline.emit(
+			'invalidate',
+			'ok',
+			`Exclusions updated (${globs.length} globs) — removed ${deleted.removedChunks} chunks`,
+			{ runId: `catalog-exclude-${Date.now()}`, detail: { globs: globs.length, ...deleted } },
+		);
+		return { globs, ...deleted };
+	}
+
+	async rebuildIndexedPaths(workspaceRoot: URI, relativePaths: readonly string[]): Promise<void> {
+		const uris = relativePaths
+			.map(p => p.replace(/\\/g, '/').replace(/^\.\//, ''))
+			.filter(Boolean)
+			.map(p => droxCodebaseJoinWorkspacePath(workspaceRoot, p));
+		if (!uris.length) {
+			return;
+		}
+		await this.invalidate(workspaceRoot, uris);
 	}
 }
 

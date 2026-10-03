@@ -29,6 +29,12 @@ Ils **accompagnent** la lecture du vrai code : une histoire concrète, des défi
 | **12** | [Hooks](12-hooks.md) | `.drox/hooks.json` | Spawn shell, exit codes |
 | **13** | [TUI vs `--serve`](13-tui-vs-serve.md) | Deux façades du même cœur | Isolation vs in-process |
 | **14** | [Mode professor](14-mode-professor.md) | Intention + code (⚠️ **pas dispo** IDE) | Gates / downgrade |
+| **15** | [Régulation et notes](15-regulation-et-notes.md) | Sonde, L1–L5, scores, Auto | Signaux, moyenne, policy |
+| **16** | [Codebase et RAG](16-codebase-et-rag.md) | Index local, lazy Agents, coalesce | Root discussion, file 1-root |
+
+## Cours (vulgarisation)
+
+Hors parcours code : [`Cours/`](Cours/) — [01 Gros modèle vs Drox](Cours/01-gros-modele-vs-drox/) · [02 Axes du moteur](Cours/02-axes-moteur-drox/) (sommaire linéaire d’une requête).
 
 ## Référence (hors pédagogie)
 

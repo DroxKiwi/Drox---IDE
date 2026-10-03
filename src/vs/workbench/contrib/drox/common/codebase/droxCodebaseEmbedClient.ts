@@ -11,6 +11,8 @@ export interface IDroxEmbedStatus {
 	readonly modelLoaded: boolean;
 	readonly modelPath?: string;
 	readonly dimensions?: number;
+	/** Process RSS of drox.exe (bytes), when reported by the engine. */
+	readonly rssBytes?: number;
 }
 
 export interface IDroxEmbedEncodeResult {
@@ -36,6 +38,7 @@ export class DroxCodebaseEmbedClient {
 			modelLoaded: !!raw?.modelLoaded,
 			modelPath: raw?.modelPath,
 			dimensions: raw?.dimensions,
+			rssBytes: typeof raw?.rssBytes === 'number' && Number.isFinite(raw.rssBytes) ? raw.rssBytes : undefined,
 		};
 	}
 

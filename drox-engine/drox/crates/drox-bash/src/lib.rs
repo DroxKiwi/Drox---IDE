@@ -13,8 +13,10 @@ pub mod parse;
 pub mod split;
 
 pub use classify::{
-    BashCommandKind, auto_deny_message, command_is_inspect_only, destructive_hint,
-    first_executable_token, has_file_redirect, kind_of_segment, permission_flags,
+    BashCommandKind, auto_deny_message, command_is_inspect_only,
+    command_is_inspect_only_with_workspace, destructive_hint, file_redirect_targets,
+    first_executable_token, has_file_redirect, has_workspace_affecting_file_redirect,
+    kind_of_segment, permission_flags,
 };
 pub use error::{BashError, MAX_SUBCOMMANDS};
 pub use parse::parse_bash;

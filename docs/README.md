@@ -20,7 +20,8 @@ Onboarding court racine fork : [`../DROX.md`](../DROX.md) (si présent).
 
 ## Pédagogie (lecture guidée)
 
-Voir **[`pedagogie/`](pedagogie/README.md)** — série **01 → 14** (socle Ollama … hooks, TUI ; le **14 professor** décrit une intention **pas encore dispo** dans l’IDE).
+Voir **[`pedagogie/`](pedagogie/README.md)** — série **01 → 16** (socle Ollama … régulation · Codebase/RAG ; le **14 professor** = intention **pas dispo** IDE).  
+Vulgarisation courte : [`pedagogie/Cours/`](pedagogie/Cours/) (01 gros modèle vs Drox · 02 axes moteur).
 
 ---
 
@@ -41,6 +42,8 @@ Voir **[`engine/`](engine/README.md)** :
 | [MCP & sous-agents](engine/mcp-and-subagents.md) | `mcp__*`, Explore/`task` |
 | [Clients TUI vs RPC](engine/clients-tui-vs-rpc.md) | Deux entrées |
 | [Intégration IDE](engine/ide-integration.md) | Spawn / bridge |
+| [Régulation modèle](engine/model-regulation.md) | Notes L1–L5 · Auto |
+| [Codebase / RAG](engine/codebase-and-rag.md) | Index local · Agents |
 | [Guide développeur](engine/developer-guide.md) | Build & tests |
 | [Migration 1.4](engine/migration-from-1.4.md) | Rail / `role_split` → `tui_mono` |
 | [Glossaire](engine/glossary.md) | Lexique |

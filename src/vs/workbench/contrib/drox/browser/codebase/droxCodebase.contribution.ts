@@ -22,6 +22,7 @@ const codebaseViewIcon = registerIcon(
 	localize('droxCodebaseViewIcon', 'View icon of the Drox Codebase cockpit.'),
 );
 
+/** IDE only — Agents hosts a dedicated AuxiliaryBar copy (keeps Sessions list). */
 const codebaseViewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer({
 	id: DroxViews.CodebaseViewContainerId,
 	title: localize2('drox.codebaseContainer.label', 'Codebase'),

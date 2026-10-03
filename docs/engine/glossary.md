@@ -26,6 +26,12 @@
 | **Ollama-first** | Inférence locale par défaut ; OpenAI-compat pour d’autres endpoints. |
 | **Hooks** | `.drox/hooks.json` — commandes pre/post tool. |
 | **PermissionMode** | `default` \| `plan` \| `acceptEdits` \| `bypassPermissions` \| `professor` (**enum Rust** ; `professor` **non exposé** de façon fiable dans l’IDE — downgrade 1.4.0). |
+| **Codebase / RAG** | Index local par dossier (`{root}/.drox/codebase-index/`) + retrieval / inject — pas un second LLM. |
+| **`ensureIndexed`** | Sync d’index (hash-skip) pour une racine ; déclenché en background par l’auto-index. |
+| **Auto-index coalesce** | File **1-root** : si l’utilisateur change de discussion pendant un index, seul le **dernier** root demandé est enfilé. |
+| **`setActiveRoot`** | Pin supervision Codebase sur le folder de la discussion active (Agents). |
+| **Regulation** | Observatoire L1–L5 (notes / Auto) — UI IDE + Agents, store sous `.drox/regulation/`. |
 
-Pour l’historique des releases : `docs/1.5/`, `docs/1.4/`, etc.
+Pour l’historique des releases : `docs/1.5/`, `docs/1.4/`, etc.  
+Réf. Codebase : [codebase-and-rag.md](codebase-and-rag.md).
 

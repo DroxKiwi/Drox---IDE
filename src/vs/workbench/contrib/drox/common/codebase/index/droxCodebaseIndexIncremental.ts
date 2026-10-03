@@ -26,6 +26,7 @@ import {
 	droxCodebaseJoinWorkspacePath,
 	droxCodebaseRelativePosix,
 } from './droxCodebaseIndexScan.js';
+import { droxCodebasePathMatchesExclusion, droxCodebaseReadExclusions } from '../droxCodebaseExclusions.js';
 
 export async function droxCodebaseRunEnsureIndexed(opts: {
 	readonly fileService: IFileService;
@@ -45,10 +46,19 @@ export async function droxCodebaseRunEnsureIndexed(opts: {
 		const existingVectors = await droxCodebaseReadVectors(fileService, rootKey);
 		const byPath = droxCodebaseGroupChunksByPath(existingChunks);
 		const vectorByChunkId = new Map(existingVectors.map(v => [v.chunkId, v]));
+		const exclusions = await droxCodebaseReadExclusions(fileService, rootKey);
 
-		const files = await droxCodebaseCollectFiles(fileService, workspaceRoot);
-		pipeline.emit('scan', 'ok', `Found ${files.length} candidate files`, {
-			detail: { files: files.length, progressPct: 15 },
+		const scanned = await droxCodebaseCollectFiles(fileService, workspaceRoot);
+		const files = scanned.filter(f => !droxCodebasePathMatchesExclusion(
+			droxCodebaseRelativePosix(workspaceRoot, f),
+			exclusions.globs,
+		));
+		const excluded = scanned.length - files.length;
+		const scanMsg = files.length === 0
+			? 'No indexable source files (ignored dirs like .git / .drox / node_modules are skipped)'
+			: `Found ${files.length} candidate files (${excluded} excluded)`;
+		pipeline.emit('scan', 'ok', scanMsg, {
+			detail: { files: files.length, excluded, progressPct: 15 },
 		});
 
 		const outChunks: IDroxCodebaseChunk[] = [];
@@ -117,7 +127,10 @@ export async function droxCodebaseRunEnsureIndexed(opts: {
 			detail: { progressPct: 96, chunks: outChunks.length, vectors: embedMeta?.vectors.length ?? 0, dimensions: embedMeta?.dimensions },
 		});
 		logService.info(`[drox-codebase] ensureIndexed ${outChunks.length} chunks (${reusedFiles} unchanged, ${rewrittenFiles} rewritten), ${embedMeta?.vectors.length ?? 0} vectors → ${rootKey}`);
-		pipeline.endRun(true, `Index ready — ${outChunks.length} chunks, ${embedMeta?.vectors.length ?? 0} vectors`, {
+		const readyMsg = files.length === 0
+			? 'Index ready — empty folder (0 indexable files)'
+			: `Index ready — ${outChunks.length} chunks, ${embedMeta?.vectors.length ?? 0} vectors`;
+		pipeline.endRun(true, readyMsg, {
 			chunks: outChunks.length,
 			vectors: embedMeta?.vectors.length ?? 0,
 			files: files.length,
@@ -142,6 +155,7 @@ export async function droxCodebaseRunInvalidate(opts: {
 	const { fileService, logService, workspaceRoot, rootKey, paths, pipeline } = opts;
 	pipeline.beginRun('incremental');
 	try {
+		const exclusions = await droxCodebaseReadExclusions(fileService, rootKey);
 		const relPaths = new Set<string>();
 		for (const p of paths) {
 			const rel = relativePath(workspaceRoot, p);
@@ -153,6 +167,12 @@ export async function droxCodebaseRunInvalidate(opts: {
 				continue;
 			}
 			if (droxCodebaseShouldSkipFileName(basename(p))) {
+				continue;
+			}
+			if (droxCodebasePathMatchesExclusion(norm, exclusions.globs)) {
+				// Drop from store if previously indexed; do not re-chunk.
+				relPaths.add(norm);
+				pipeline.emit('skip', 'ok', `Excluded from index`, { path: norm });
 				continue;
 			}
 			relPaths.add(norm);
@@ -173,6 +193,10 @@ export async function droxCodebaseRunInvalidate(opts: {
 		const newChunks: IDroxCodebaseChunk[] = [];
 
 		for (const rel of relPaths) {
+			if (droxCodebasePathMatchesExclusion(rel, exclusions.globs)) {
+				pipeline.emit('skip', 'ok', `Removed from index (excluded)`, { path: rel });
+				continue;
+			}
 			const file = droxCodebaseJoinWorkspacePath(workspaceRoot, rel);
 			try {
 				if (!(await fileService.exists(file))) {

@@ -23,6 +23,7 @@ function createBridgeDeps(overrides: {
 	request?: (method: string, params?: unknown) => Promise<unknown>;
 	filterExecutableTools?: (names: readonly string[]) => string[];
 	buildAgentRunParams?: IDroxRunSettingsService['buildAgentRunParams'];
+	regulationService?: IDroxAgentRunBridgeDeps['regulationService'];
 } = {}): IDroxAgentRunBridgeDeps {
 	const requests: { method: string; params?: unknown }[] = [];
 	const clientToolsService = {
@@ -56,6 +57,7 @@ function createBridgeDeps(overrides: {
 		runSettingsService,
 		droxEngineService,
 		logService,
+		regulationService: overrides.regulationService,
 		_requests: requests,
 	} as IDroxAgentRunBridgeDeps & { _requests: { method: string; params?: unknown }[] };
 }
@@ -87,7 +89,7 @@ suite('Drox — droxAgentRunBridge', () => {
 		assert.strictEqual(runId, 'run_test_1');
 		const runCall = deps._requests.find(r => r.method === 'agent.run');
 		assert.ok(runCall);
-		assert.strictEqual((runCall!.params as { prompt?: string }).prompt, 'hello');
+		assert.strictEqual((runCall!.params as { prompt?: string }).prompt, '  hello  ');
 	});
 
 	test('startDroxAgentRun injects one-shot plan archive system note', async () => {
@@ -126,6 +128,115 @@ suite('Drox — droxAgentRunBridge', () => {
 			system: 'existing notes',
 		});
 		assert.strictEqual(capturedSystem, 'existing notes');
+	});
+
+	test('startDroxAgentRun omits session notes when L1 is minimal', async () => {
+		let capturedSystem: string | undefined;
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => {
+				capturedSystem = opts.system;
+				return {
+					prompt: opts.prompt,
+					workspace: opts.workspace,
+					mode: opts.mode,
+					sessionId: opts.sessionId,
+					system: opts.system,
+				};
+			},
+			regulationService: {
+				getModule: lever => (lever === 'L1' ? 'minimal' : lever === 'L3' ? 'laissez-faire' : lever === 'L4' ? 'soft' : 'standard'),
+			},
+		});
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l1',
+			system: 'session notes body',
+		});
+		assert.strictEqual(capturedSystem, undefined);
+	});
+
+	test('startDroxAgentRun injects assertive L3 directive into system', async () => {
+		let capturedSystem: string | undefined;
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => {
+				capturedSystem = opts.system;
+				return {
+					prompt: opts.prompt,
+					workspace: opts.workspace,
+					mode: opts.mode,
+					sessionId: opts.sessionId,
+					system: opts.system,
+				};
+			},
+			regulationService: {
+				getModule: lever => (lever === 'L3' ? 'assertive' : lever === 'L4' ? 'soft' : 'standard'),
+			},
+		});
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l3',
+			system: 'notes',
+		});
+		assert.ok(capturedSystem && /Anti-rumination/i.test(capturedSystem));
+		assert.ok(capturedSystem!.includes('notes'));
+	});
+
+	test('startDroxAgentRun injects strict L4 protocol into system', async () => {
+		let capturedSystem: string | undefined;
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => {
+				capturedSystem = opts.system;
+				return {
+					prompt: opts.prompt,
+					workspace: opts.workspace,
+					mode: opts.mode,
+					sessionId: opts.sessionId,
+					system: opts.system,
+				};
+			},
+			regulationService: {
+				getModule: lever => (lever === 'L4' ? 'strict' : lever === 'L3' ? 'laissez-faire' : 'standard'),
+			},
+		});
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l4',
+			system: 'notes',
+		});
+		assert.ok(capturedSystem && /Strict protocol/i.test(capturedSystem));
+		assert.ok(capturedSystem!.includes('notes'));
+	});
+
+	test('startDroxAgentRun disables non-core tools when L2 is core', async () => {
+		const deps = createBridgeDeps({
+			buildAgentRunParams: opts => ({
+				prompt: opts.prompt,
+				workspace: opts.workspace,
+				mode: opts.mode,
+				sessionId: opts.sessionId,
+			}),
+			regulationService: {
+				getModule: lever => (lever === 'L2' ? 'core' : 'standard'),
+			},
+		}) as IDroxAgentRunBridgeDeps & { _requests: { method: string; params?: unknown }[] };
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l2',
+		});
+		const runCall = deps._requests.find(r => r.method === 'agent.run');
+		assert.ok(runCall);
+		const disabled = (runCall!.params as { disabledTools?: string[] }).disabledTools;
+		assert.ok(disabled);
+		assert.ok(disabled!.includes('web_search'));
+		assert.ok(!disabled!.includes('bash'));
 	});
 
 	test('startDroxAgentRun returns undefined when engine omits runId', async () => {
