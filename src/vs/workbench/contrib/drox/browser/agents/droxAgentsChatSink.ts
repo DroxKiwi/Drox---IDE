@@ -9,6 +9,11 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { localize } from '../../../../../nls.js';
 import { IChatProgress } from '../../../chat/common/chatService/chatService.js';
 import { buildShellToolStartWire } from '../../common/chat/droxShellToolWire.js';
+import {
+	buildExploreSubagentToolSpecificData,
+	buildExploreToolFinishWire,
+	buildExploreToolStartWire,
+} from '../../common/chat/droxExploreToolWire.js';
 import { extractTodosFromToolOutput, isTodoWriteOutput } from '../../common/droxTodoExtract.js';
 import { isFileMutationToolName } from '../../common/droxFileMutation.js';
 import {
@@ -245,8 +250,10 @@ export function createDroxAgentsChatSink(
 			return;
 		}
 		const { verb, target } = describeToolCall(name, args);
-		const label = target ? `${verb} ${target}` : verb;
 		const shellStart = buildShellToolStartWire(name, args);
+		const exploreStart = buildExploreToolStartWire(name, args);
+		const label = exploreStart?.exploreDescription
+			?? (target ? `${verb} ${target}` : verb);
 		const toolSpecificData = shellStart ? {
 			kind: 'terminal' as const,
 			language: shellStart.shellKind,
@@ -254,7 +261,9 @@ export function createDroxAgentsChatSink(
 				original: shellStart.shellCommand,
 				forDisplay: shellStart.shellDescription ?? shellStart.shellCommand,
 			},
-		} : undefined;
+		} : exploreStart
+			? buildExploreSubagentToolSpecificData(exploreStart)
+			: undefined;
 		push([{
 			kind: 'externalToolInvocationUpdate',
 			toolCallId: id,
@@ -273,6 +282,7 @@ export function createDroxAgentsChatSink(
 			target,
 			argsPreview,
 			...shellStart,
+			...exploreStart,
 		});
 	};
 
@@ -349,6 +359,43 @@ export function createDroxAgentsChatSink(
 			return;
 		}
 		const preview = previewJson(output);
+		const exploreStart = buildExploreToolStartWire(name, pendingArgs);
+		const exploreOutput = buildExploreToolFinishWire(name, output, isError);
+		if (exploreStart || exploreOutput) {
+			const start = exploreStart ?? {
+				exploreDescription: localize('droxAgents.exploreDefault', 'Explore'),
+			};
+			const report = exploreOutput?.exploreReport || exploreOutput?.exploreError || preview;
+			push([{
+				kind: 'externalToolInvocationUpdate',
+				toolCallId: id,
+				toolName: name,
+				isComplete: true,
+				errorMessage: isError
+					? (exploreOutput?.exploreError || preview || localize('droxAgents.toolFailed', 'Tool failed'))
+					: undefined,
+				pastTenseMessage: isError
+					? localize('droxAgents.exploreError', 'Explore error: {0}', exploreOutput?.exploreError || preview || name)
+					: localize('droxAgents.exploreDone', 'Explore completed'),
+				toolSpecificData: buildExploreSubagentToolSpecificData(start, {
+					exploreReport: report || undefined,
+					exploreError: exploreOutput?.exploreError,
+					exploreThoroughness: exploreOutput?.exploreThoroughness,
+				}),
+			}]);
+			recordWire({
+				kind: 'tool',
+				phase: 'finish',
+				id,
+				name,
+				outputPreview: preview,
+				isError,
+				exploreDescription: start.exploreDescription,
+				exploreThoroughness: start.exploreThoroughness ?? exploreOutput?.exploreThoroughness,
+				exploreOutput,
+			});
+			return;
+		}
 		push([{
 			kind: 'externalToolInvocationUpdate',
 			toolCallId: id,

@@ -12,6 +12,11 @@ import { IChatRequestVariableData } from '../../../chat/common/model/chatModel.j
 import { IChatSessionHistoryItem } from '../../../chat/common/chatSessionsService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { buildShellToolStartWire } from '../../common/chat/droxShellToolWire.js';
+import {
+	buildExploreSubagentToolSpecificData,
+	buildExploreToolFinishWire,
+	buildExploreToolStartWire,
+} from '../../common/chat/droxExploreToolWire.js';
 import { fileChangeResolutionToChatProgress } from '../../common/droxFileChangeProgress.js';
 import { DroxFileChangeHostMessage } from '../../common/droxFileChange.js';
 import { uiReplayImagesToVariableData } from '../../common/droxNativeChatRequestAttachments.js';
@@ -146,8 +151,15 @@ class DroxAgentsUiReplayCollector {
 				}
 			}
 			const { verb, target } = describeToolCall(name, args);
-			const label = target ? `${verb} ${target}` : verb;
 			const shellStart = buildShellToolStartWire(name, args);
+			const exploreStart = message.exploreDescription
+				? {
+					exploreDescription: message.exploreDescription,
+					exploreThoroughness: message.exploreThoroughness,
+				}
+				: buildExploreToolStartWire(name, args);
+			const label = exploreStart?.exploreDescription
+				?? (target ? `${verb} ${target}` : verb);
 			const toolSpecificData = shellStart ? {
 				kind: 'terminal' as const,
 				language: shellStart.shellKind,
@@ -155,7 +167,9 @@ class DroxAgentsUiReplayCollector {
 					original: shellStart.shellCommand,
 					forDisplay: shellStart.shellDescription ?? shellStart.shellCommand,
 				},
-			} : undefined;
+			} : exploreStart
+				? buildExploreSubagentToolSpecificData(exploreStart)
+				: undefined;
 			this._push([{
 				kind: 'externalToolInvocationUpdate',
 				toolCallId: id,
@@ -200,6 +214,37 @@ class DroxAgentsUiReplayCollector {
 			return;
 		}
 		const preview = previewJson(output);
+		const exploreStart = message.exploreDescription
+			? {
+				exploreDescription: message.exploreDescription,
+				exploreThoroughness: message.exploreThoroughness,
+			}
+			: buildExploreToolStartWire(name, undefined);
+		const exploreOutput = message.exploreOutput ?? buildExploreToolFinishWire(name, output, isError);
+		if (exploreStart?.exploreDescription || exploreOutput) {
+			const start = exploreStart?.exploreDescription
+				? exploreStart
+				: { exploreDescription: localize('droxAgents.exploreDefault', 'Explore') };
+			const report = exploreOutput?.exploreReport || exploreOutput?.exploreError || preview;
+			this._push([{
+				kind: 'externalToolInvocationUpdate',
+				toolCallId: id,
+				toolName: name,
+				isComplete: true,
+				errorMessage: isError
+					? (exploreOutput?.exploreError || preview || localize('droxAgents.toolFailed', 'Tool failed'))
+					: undefined,
+				pastTenseMessage: isError
+					? localize('droxAgents.exploreError', 'Explore error: {0}', exploreOutput?.exploreError || preview || name)
+					: localize('droxAgents.exploreDone', 'Explore completed'),
+				toolSpecificData: buildExploreSubagentToolSpecificData(start, {
+					exploreReport: report || undefined,
+					exploreError: exploreOutput?.exploreError,
+					exploreThoroughness: exploreOutput?.exploreThoroughness,
+				}),
+			}]);
+			return;
+		}
 		this._push([{
 			kind: 'externalToolInvocationUpdate',
 			toolCallId: id,

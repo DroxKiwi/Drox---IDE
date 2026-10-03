@@ -24,7 +24,11 @@ import {
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { isDroxEmbeddingModelId } from '../../common/droxAgentsModels.js';
 import { droxLlmSnapshotDiffersFromConfiguration } from '../../common/droxChatConfigSync.js';
+import { DroxCommands } from '../../common/drox.js';
 import { IDroxLlmModelsService } from '../../common/droxLlmModelsService.js';
+import { ICommandService } from '../../../../../platform/commands/common/commands.js';
+import { readDroxGeneralSettingsForWebview } from './droxChatGeneralSettings.js';
+import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 
 interface IModelPickerItem {
 	readonly id: string;
@@ -43,6 +47,8 @@ export class DroxIdeModelPicker extends Disposable {
 		@IDroxLlmModelsService private readonly llmModelsService: IDroxLlmModelsService,
 		@IHoverService private readonly hoverService: IHoverService,
 		@IHostService private readonly hostService: IHostService,
+		@ICommandService private readonly commandService: ICommandService,
+		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 	) {
 		super();
 		this._register(this.llmModelsService.onDidChange(() => this._updateTrigger()));
@@ -114,16 +120,29 @@ export class DroxIdeModelPicker extends Disposable {
 		dom.clearNode(this._triggerElement);
 
 		const current = this._currentModelId();
-		const label = current || localize('droxIde.modelPickerNone', 'No model');
+		const needsConnect = this._listModels().length === 0 && !this._isConnectionConfigured();
+		const label = needsConnect
+			? localize('drox.modelPicker.connect', 'Connect your AI')
+			: (current || localize('droxIde.modelPickerNone', 'No model'));
 
-		dom.append(this._triggerElement, renderIcon(Codicon.sparkle));
+		dom.append(this._triggerElement, renderIcon(needsConnect ? Codicon.plug : Codicon.sparkle));
 
 		const labelSpan = dom.append(this._triggerElement, dom.$('span.sessions-chat-dropdown-label'));
 		labelSpan.textContent = label;
 
 		dom.append(this._triggerElement, renderIcon(Codicon.chevronDown));
 
-		this._triggerElement.ariaLabel = localize('droxIde.modelPickerAria', 'Pick model, {0}', label);
+		this._triggerElement.ariaLabel = needsConnect
+			? localize('droxIde.modelPickerConnectAria', 'Connect your AI')
+			: localize('droxIde.modelPickerAria', 'Pick model, {0}', label);
+	}
+
+	private _isConnectionConfigured(): boolean {
+		const settings = readDroxGeneralSettingsForWebview({
+			configurationService: this.configurationService,
+			runSettingsService: this.runSettingsService,
+		});
+		return Boolean(settings.server?.trim());
 	}
 
 	private _showPicker(): void {
@@ -134,6 +153,11 @@ export class DroxIdeModelPicker extends Disposable {
 		const current = this._currentModelId();
 		const items = this._listModels();
 		const triggerElement = this._triggerElement;
+
+		if (items.length === 0) {
+			void this.commandService.executeCommand(DroxCommands.ConnectAi);
+			return;
+		}
 
 		const actionItems: IActionListItem<IModelPickerItem>[] = items.map(item => ({
 			kind: ActionListItemKind.Action,

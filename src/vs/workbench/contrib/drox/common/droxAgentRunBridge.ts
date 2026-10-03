@@ -36,6 +36,7 @@ import {
 	asDroxRegulationL4Module,
 } from './regulation/droxRegulationL4Protocol.js';
 import { IDroxRegulationService } from './regulation/droxRegulationServiceContract.js';
+import { droxSubagentsEnabledForRun } from './droxSubagents.js';
 
 export interface IDroxAgentRunBridgeDeps {
 	readonly clientToolsService: IDroxClientToolsService;
@@ -153,6 +154,17 @@ export async function startDroxAgentRun(
 		} else {
 			delete runParams.disabledTools;
 		}
+		// Explore master × L2: strip RPC flags when core or kill-switch off.
+		const masterOn = runParams.subagentsEnabled === true;
+		if (!droxSubagentsEnabledForRun(masterOn, l2)) {
+			delete runParams.subagentsEnabled;
+			delete runParams.subagentsMaxIterations;
+			delete runParams.subagentsMaxConcurrent;
+		}
+	} else if (runParams.subagentsEnabled !== true) {
+		delete runParams.subagentsEnabled;
+		delete runParams.subagentsMaxIterations;
+		delete runParams.subagentsMaxConcurrent;
 	}
 	const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 	if (typeof result?.runId === 'string') {

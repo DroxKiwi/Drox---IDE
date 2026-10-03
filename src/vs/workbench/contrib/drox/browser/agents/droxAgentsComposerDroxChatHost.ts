@@ -57,6 +57,8 @@ export interface IDroxAgentsComposerDroxChatHost {
 	getToolbarUiState(): IDroxAgentsComposerToolbarUiState;
 	toggleModelSettingsPanel(): Promise<void>;
 	toggleServerSettingsPanel(): Promise<void>;
+	/** Open connection wizard / server panel (IDE + Agents). */
+	openConnectionSetup(): Promise<void>;
 	/** Resync panneaux composer depuis la config USER (ex. autre fenêtre IDE / Agents). */
 	reconcileFromConfiguration(): Promise<void>;
 }
@@ -238,6 +240,24 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 			const fn = this._drox().fn;
 			if (typeof fn.toggleGeneralSettingsPanel === 'function') {
 				fn.toggleGeneralSettingsPanel();
+			} else if (typeof fn.openGeneralSettingsPanel === 'function') {
+				fn.openGeneralSettingsPanel();
+			}
+			this._reconcileToolbarUi();
+		} catch (err) {
+			onUnexpectedError(err);
+		}
+	}
+
+	async openConnectionSetup(): Promise<void> {
+		try {
+			await this._ensureReady();
+			this._bindDomFromVisibleRoot();
+			const fn = this._drox().fn;
+			if (typeof fn.redirectToConnectionSetup === 'function') {
+				fn.redirectToConnectionSetup();
+			} else if (typeof fn.openConnectionWizard === 'function') {
+				fn.openConnectionWizard();
 			} else if (typeof fn.openGeneralSettingsPanel === 'function') {
 				fn.openGeneralSettingsPanel();
 			}

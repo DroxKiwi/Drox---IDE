@@ -6,11 +6,15 @@
 // allow-any-unicode-comment-file
 
 import * as dom from '../../../../../base/browser/dom.js';
+import { renderIcon } from '../../../../../base/browser/ui/iconLabel/iconLabels.js';
+import { Codicon } from '../../../../../base/common/codicons.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { observableValue } from '../../../../../base/common/observable.js';
 import { URI } from '../../../../../base/common/uri.js';
+import { localize } from '../../../../../nls.js';
 import { MenuWorkbenchButtonBar } from '../../../../../platform/actions/browser/buttonbar.js';
 import { IMenuService, MenuId } from '../../../../../platform/actions/common/actions.js';
+import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { IContextMenuService } from '../../../../../platform/contextview/browser/contextView.js';
@@ -31,6 +35,10 @@ import {
 	DROX_SESSION_COMMIT_AND_PUSH_ACTION_ID,
 	DROX_SESSION_CREATE_PR_ACTION_ID,
 } from '../droxSessionGitComposerActions.js';
+import {
+	DROX_IDE_REFRESH_CHANGES_ACTION_ID,
+	DROX_IDE_SELECT_BRANCH_ACTION_ID,
+} from './droxIdeGitComposer.contribution.js';
 import './media/droxIdeChanges.css';
 
 /**
@@ -39,6 +47,8 @@ import './media/droxIdeChanges.css';
  */
 export class DroxIdeChangesViewPane extends ViewPane {
 
+	private _metaBar: HTMLElement | undefined;
+	private _branchButton: HTMLButtonElement | undefined;
 	private _host: HTMLElement | undefined;
 	private _actionsContainer: HTMLElement | undefined;
 	private _widget: DroxChangesInlineDiffWidget | undefined;
@@ -63,6 +73,7 @@ export class DroxIdeChangesViewPane extends ViewPane {
 		@IDroxIdeChangesUiState private readonly uiState: IDroxIdeChangesUiState,
 		@IMenuService private readonly menuService: IMenuService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
+		@ICommandService private readonly commandService: ICommandService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 
@@ -72,6 +83,23 @@ export class DroxIdeChangesViewPane extends ViewPane {
 	protected override renderBody(container: HTMLElement): void {
 		super.renderBody(container);
 		container.classList.add('drox-ide-changes');
+
+		this._metaBar = dom.append(container, dom.$('.drox-ide-changes-meta'));
+		this._branchButton = dom.append(this._metaBar, dom.$('button.drox-ide-changes-branch')) as HTMLButtonElement;
+		this._branchButton.type = 'button';
+		this._branchButton.title = localize('drox.ide.changes.branchTitle', 'Select git branch (checkout)');
+		this._register(dom.addDisposableListener(this._branchButton, dom.EventType.CLICK, () => {
+			void this.commandService.executeCommand(DROX_IDE_SELECT_BRANCH_ACTION_ID);
+		}));
+
+		const reloadBtn = dom.append(this._metaBar, dom.$('button.drox-ide-changes-reload')) as HTMLButtonElement;
+		reloadBtn.type = 'button';
+		reloadBtn.title = localize('drox.ide.changes.reloadTitle', 'Reload changes from git');
+		reloadBtn.setAttribute('aria-label', localize('drox.ide.changes.reloadAria', 'Reload changes'));
+		dom.append(reloadBtn, renderIcon(Codicon.refresh));
+		this._register(dom.addDisposableListener(reloadBtn, dom.EventType.CLICK, () => {
+			void this.commandService.executeCommand(DROX_IDE_REFRESH_CHANGES_ACTION_ID);
+		}));
 
 		this._actionsContainer = dom.append(container, dom.$('.chat-editing-session-actions.outside-card.drox-ide-changes-actions'));
 		this._host = dom.append(container, dom.$('.drox-changes-inline-host'));
@@ -90,8 +118,9 @@ export class DroxIdeChangesViewPane extends ViewPane {
 
 	protected override layoutBody(height: number, width: number): void {
 		super.layoutBody(height, width);
+		const metaHeight = this._metaBar?.offsetHeight ?? 0;
 		const actionsHeight = this._actionsContainer?.offsetHeight ?? 0;
-		const contentHeight = Math.max(0, height - actionsHeight);
+		const contentHeight = Math.max(0, height - metaHeight - actionsHeight);
 		if (this._host) {
 			this._host.style.height = `${contentHeight}px`;
 			this._host.style.width = `${width}px`;
@@ -104,6 +133,13 @@ export class DroxIdeChangesViewPane extends ViewPane {
 		this._mergedFilesObs.set(this.uiState.mergedFiles, undefined);
 		if (this._actionsContainer) {
 			dom.setVisibility(this.uiState.hasUncommittedChanges, this._actionsContainer);
+		}
+		if (this._branchButton) {
+			const label = this.uiState.branchLabels.join(' · ') || localize('drox.ide.changes.noBranch', 'No branch');
+			dom.clearNode(this._branchButton);
+			dom.append(this._branchButton, renderIcon(Codicon.gitBranch));
+			dom.append(this._branchButton, dom.$('span', undefined, label));
+			dom.append(this._branchButton, renderIcon(Codicon.chevronDown));
 		}
 		this._ensureToolbar();
 	}

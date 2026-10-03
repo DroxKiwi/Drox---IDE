@@ -13,6 +13,7 @@ import { IClipboardService } from '../../../../../platform/clipboard/common/clip
 import { ConfigurationTarget, IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { IContextMenuService } from '../../../../../platform/contextview/browser/contextView.js';
+import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
@@ -29,7 +30,7 @@ import { IDroxCodebaseSupervisionService } from '../../common/codebase/droxCodeb
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxCodebaseHit } from '../../common/codebase/droxCodebaseTypes.js';
 import { renderDroxCodebaseCockpitCatalog } from './cockpit/droxCodebaseCockpitCatalog.js';
-import { renderDroxCodebaseCockpitEmbed } from './cockpit/droxCodebaseCockpitEmbed.js';
+import { formatBytesShort, renderDroxCodebaseCockpitEmbed } from './cockpit/droxCodebaseCockpitEmbed.js';
 import { renderDroxCodebaseCockpitInject } from './cockpit/droxCodebaseCockpitInject.js';
 import { renderDroxCodebaseCockpitHits, renderDroxCodebaseCockpitProbe } from './cockpit/droxCodebaseCockpitProbe.js';
 import { renderDroxCodebaseCockpitPipeline } from './cockpit/droxCodebaseCockpitPipeline.js';
@@ -77,6 +78,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		@IDroxCodebaseContextService private readonly codebaseContext: IDroxCodebaseContextService,
 		@IClipboardService private readonly clipboardService: IClipboardService,
 		@INotificationService private readonly notificationService: INotificationService,
+		@IDialogService private readonly dialogService: IDialogService,
 		@IFileService private readonly fileService: IFileService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
@@ -109,6 +111,11 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			}
 		}));
 		this._register(this.codebaseContext.onDidChangeForceNext(() => this._render()));
+		this._register(this.configurationService.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration(DroxSetting.CodebaseEmbedEnabled) || e.affectsConfiguration(DroxSetting.CodebaseAutoInject)) {
+				this._render();
+			}
+		}));
 		void this._reloadCatalog();
 	}
 
@@ -146,10 +153,10 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 
 		const header = dom.append(this._body, dom.$('.drox-codebase-section'));
 		dom.append(header, dom.$('h3', undefined, localize('drox.codebase.cockpit.title', 'Codebase index')));
-		dom.append(header, dom.$('p.drox-codebase-muted', undefined, s.rootFsPath ?? localize('drox.codebase.noRoot', 'No folder open')));
-		dom.append(header, dom.$('p', undefined, localize('drox.codebase.state', 'State: {0}', s.state)));
+		dom.append(header, dom.$('p.drox-codebase-path', undefined, s.rootFsPath ?? localize('drox.codebase.noRoot', 'No folder open')));
+		dom.append(header, dom.$('p.drox-codebase-muted', undefined, localize('drox.codebase.state', 'State: {0}', s.state)));
 		if (s.lastError) {
-			dom.append(header, dom.$('p', undefined, s.lastError));
+			dom.append(header, dom.$('p.drox-codebase-alert.is-error', undefined, s.lastError));
 		}
 
 		if (s.alerts.length) {
@@ -176,12 +183,15 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		});
 		this._pipelineLogEl = logEl;
 
+		const embedEnabled = this.configurationService.getValue<boolean>(DroxSetting.CodebaseEmbedEnabled) !== false;
 		const { pathInput } = renderDroxCodebaseCockpitEmbed(this._body, {
 			embed: s.embed,
 			mode: s.mode,
+			embedEnabled,
 			prevEmbedPath,
 			onApplyPath: path => void this.supervision.setEmbedModelPath(path),
 			onResetDefaults: () => void this.supervision.resetEmbedDefaults(),
+			onToggleEmbedEnabled: enabled => void this._setEmbedEnabled(enabled),
 		});
 		this._embedPathInput = pathInput;
 
@@ -195,28 +205,40 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		const storage = dom.append(this._body, dom.$('.drox-codebase-section'));
 		dom.append(storage, dom.$('h4', undefined, localize('drox.codebase.storage', 'Storage')));
 		dom.append(storage, dom.$('p', undefined, localize(
+			'drox.codebase.storageDisk',
+			'On disk: {0}',
+			formatBytesShort(s.storage.bytes),
+		)));
+		dom.append(storage, dom.$('p.drox-codebase-muted', undefined, localize(
 			'drox.codebase.storageStats',
-			'{0} files · {1} chunks · {2} vectors · {3} bytes',
+			'{0} files · {1} chunks · {2} vectors',
 			String(s.storage.files),
 			String(s.storage.chunks),
 			String(s.storage.vectors),
-			String(s.storage.bytes),
 		)));
 		const indexDir = this.supervision.getIndexDirFsPath();
 		if (indexDir) {
-			dom.append(storage, dom.$('p.drox-codebase-muted', undefined, indexDir));
+			dom.append(storage, dom.$('p.drox-codebase-muted', undefined, localize(
+				'drox.codebase.vectorDbPath',
+				'Vector DB path',
+			)));
+			dom.append(storage, dom.$('p.drox-codebase-path', undefined, indexDir));
 		}
 
-		const actions = dom.append(this._body, dom.$('.drox-codebase-actions'));
-		const reindexBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+		const actions = dom.append(storage, dom.$('.drox-codebase-actions'));
+		const reindexBtn = dom.append(actions, dom.$('button.drox-codebase-btn.drox-codebase-btn-primary')) as HTMLButtonElement;
 		reindexBtn.textContent = localize('drox.codebase.reindex', 'Reindex');
 		reindexBtn.disabled = s.state === 'indexing' || !s.rootFsPath;
 		reindexBtn.onclick = () => void this.supervision.reindex();
 
-		const purgeBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
-		purgeBtn.textContent = localize('drox.codebase.purge', 'Purge');
+		const purgeBtn = dom.append(actions, dom.$('button.drox-codebase-btn.drox-codebase-btn-danger')) as HTMLButtonElement;
+		purgeBtn.textContent = localize('drox.codebase.purgeAll', 'Purge all saved data');
+		purgeBtn.title = localize(
+			'drox.codebase.purgeAllTitle',
+			'Delete the local codebase index folder (chunks, vectors, manifest).',
+		);
 		purgeBtn.disabled = !s.rootFsPath;
-		purgeBtn.onclick = () => void this.supervision.purge();
+		purgeBtn.onclick = () => void this._confirmPurge();
 
 		renderDroxCodebaseCockpitCatalog(this._body, this._catalog, this._catalogBusy, {
 			onRefresh: () => void this._reloadCatalog(true),
@@ -281,6 +303,46 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 			this.notificationService.error(localize(
 				'drox.codebase.inject.toggleFail',
 				'Could not toggle auto-inject: {0}',
+				err instanceof Error ? err.message : String(err),
+			));
+		}
+	}
+
+	private async _setEmbedEnabled(enabled: boolean): Promise<void> {
+		try {
+			await this.configurationService.updateValue(DroxSetting.CodebaseEmbedEnabled, enabled, ConfigurationTarget.USER);
+			this._render();
+		} catch (err) {
+			this.notificationService.error(localize(
+				'drox.codebase.embed.toggleFail',
+				'Could not toggle embeddings: {0}',
+				err instanceof Error ? err.message : String(err),
+			));
+		}
+	}
+
+	private async _confirmPurge(): Promise<void> {
+		const indexDir = this.supervision.getIndexDirFsPath();
+		const { confirmed } = await this.dialogService.confirm({
+			type: 'warning',
+			message: localize('drox.codebase.purgeConfirmTitle', 'Purge all codebase index data?'),
+			detail: localize(
+				'drox.codebase.purgeConfirmDetail',
+				'This permanently deletes chunks, vectors and the manifest{0}. You can reindex afterwards.',
+				indexDir ? `\n\n${indexDir}` : '',
+			),
+			primaryButton: localize('drox.codebase.purgeConfirmOk', 'Purge'),
+		});
+		if (!confirmed) {
+			return;
+		}
+		try {
+			await this.supervision.purge();
+			this.notificationService.info(localize('drox.codebase.purgeOk', 'Codebase index purged.'));
+		} catch (err) {
+			this.notificationService.error(localize(
+				'drox.codebase.purgeFail',
+				'Purge failed: {0}',
 				err instanceof Error ? err.message : String(err),
 			));
 		}
