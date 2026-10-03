@@ -1,8 +1,7 @@
 # 1.5.23 — Port forwarding · Théming
 
-**Statut** : 📋 **réservé** (prêt à ouvrir après ship 1.5.22)  
-**Version cible** : `droxVersion` **1.5.23**  
-**Précédent** : [1.5.22](../1.5.22/README.md) — **clôturé** ([CLOSURE](../1.5.22/CLOSURE-1.5.22.md))  
+**Statut** : 🟢 **ouverte** · branche `1.5.23` · `droxVersion` **1.5.23**  
+**Précédent** : [1.5.22](../1.5.22/README.md) — **clôturé** ([CLOSURE](../1.5.22/CLOSURE-1.5.22.md)) · ship `v1.5.22`  
 **Déplacé depuis 1.5.22** : PF + THEME
 
 ## Cap
@@ -19,7 +18,7 @@ Deux sujets reportés hors du train 1.5.22 :
 | [PLAN-PORT-FORWARDING.md](PLAN-PORT-FORWARDING.md) | Ports, preview, tunnel / service user |
 | [PLAN-THEMING.md](PLAN-THEMING.md) | Thèmes importables + identité verte Drox |
 
-## Ordre indicatif (quand on ouvrira 1.5.23)
+## Ordre d’exécution
 
 1. **PF** — cadrage + MVP dogfood  
 2. **THEME** — audit chrome + thème identité + import tiers  
