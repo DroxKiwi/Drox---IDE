@@ -206,14 +206,26 @@ fn classify_git(segment: &str) -> BashCommandKind {
 
 /// `true` if every subcommand is [`BashCommandKind::ReadOnly`] (agent todo / phase gates).
 ///
-/// File redirects (`>` / `>>`, except stderr-only to nul) force **false**.
+/// File redirects into the **workspace** (or unknown relative paths) force **false**.
+/// Redirects to OS scratch (`%TEMP%`, `/tmp`, …) or null sinks do **not** — models often
+/// park inspect output there without mutating the project.
 #[must_use]
 pub fn command_is_inspect_only(command: &str) -> bool {
+    command_is_inspect_only_with_workspace(command, None)
+}
+
+/// Like [`command_is_inspect_only`], but absolute redirect targets under `workspace`
+/// count as mutations; absolute targets **outside** the workspace do not.
+#[must_use]
+pub fn command_is_inspect_only_with_workspace(
+    command: &str,
+    workspace: Option<&std::path::Path>,
+) -> bool {
     let trimmed = command.trim();
     if trimmed.is_empty() {
         return true;
     }
-    if has_file_redirect(trimmed) {
+    if has_workspace_affecting_file_redirect(trimmed, workspace) {
         return false;
     }
     let segments = match crate::split::split_command_segments(trimmed) {
@@ -221,25 +233,46 @@ pub fn command_is_inspect_only(command: &str) -> bool {
         Ok(_) => return true,
         Err(_) => vec![trimmed.to_string()],
     };
-    segments
-        .iter()
-        .all(|seg| {
-            // Pure `FOO=1` leftovers from the splitter are not commands.
-            if first_executable_token(seg).is_none() {
-                return true;
-            }
-            kind_of_segment(seg) == BashCommandKind::ReadOnly
-        })
+    segments.iter().all(|seg| {
+        // Pure `FOO=1` leftovers from the splitter are not commands.
+        if first_executable_token(seg).is_none() {
+            return true;
+        }
+        kind_of_segment(seg) == BashCommandKind::ReadOnly
+    })
 }
 
 /// `true` when the command likely writes via shell redirect (not `2>nul` / `>/dev/null` only).
+///
+/// Includes scratch redirects (`> %TEMP%\x`) — use [`has_workspace_affecting_file_redirect`]
+/// for agent mutation gates.
 ///
 /// Fd-to-fd merges (`2>&1`, `1>&2`, `>&1`) are **not** file writes — they must not trip agent
 /// inspect-only gates (smoke: `ls … 2>&1` was falsely blocked as mutating bash).
 #[must_use]
 pub fn has_file_redirect(command: &str) -> bool {
+    !file_redirect_targets(command).is_empty()
+}
+
+/// `true` when at least one `>` / `>>` target is treated as a **project** write for gates.
+///
+/// Model-agnostic: classify by **destination path**, not by which model issued the command.
+#[must_use]
+pub fn has_workspace_affecting_file_redirect(
+    command: &str,
+    workspace: Option<&std::path::Path>,
+) -> bool {
+    file_redirect_targets(command)
+        .into_iter()
+        .any(|target| redirect_target_affects_workspace(target, workspace))
+}
+
+/// Collect `>` / `>>` path targets (excludes fd merges and null sinks).
+#[must_use]
+pub fn file_redirect_targets(command: &str) -> Vec<&str> {
     let bytes = command.as_bytes();
     let mut i = 0;
+    let mut out = Vec::new();
     while i < bytes.len() {
         if bytes[i] == b'>' {
             // `>>` append — skip the second `>` then inspect target.
@@ -256,19 +289,137 @@ pub fn has_file_redirect(command: &str) -> bool {
                     continue;
                 }
             }
-            // `2>nul`, `>/dev/null`, `>nul` — discard only, not a workspace write.
-            let to_nul = rest.to_ascii_lowercase().starts_with("nul")
-                || rest.starts_with("/dev/null")
-                || rest.starts_with("NUL");
-            if to_nul {
+            let Some(target) = redirect_target_token(rest) else {
+                i += 1;
+                continue;
+            };
+            // `2>nul`, `>/dev/null`, `>nul` — discard only.
+            if redirect_target_is_null_sink(target) {
                 i += 1;
                 continue;
             }
-            return true;
+            out.push(target);
         }
         i += 1;
     }
+    out
+}
+
+fn redirect_target_token(rest: &str) -> Option<&str> {
+    let rest = rest.trim_start();
+    if rest.is_empty() {
+        return None;
+    }
+    if rest.starts_with('"') {
+        let end = rest[1..].find('"').map(|i| i + 1)?;
+        return Some(&rest[..=end]);
+    }
+    if rest.starts_with('\'') {
+        let end = rest[1..].find('\'').map(|i| i + 1)?;
+        return Some(&rest[..=end]);
+    }
+    let end = rest
+        .find(|c: char| c.is_whitespace() || c == '|' || c == '&' || c == ';')
+        .unwrap_or(rest.len());
+    let tok = rest[..end].trim();
+    if tok.is_empty() {
+        None
+    } else {
+        Some(tok)
+    }
+}
+
+fn strip_redirect_quotes(target: &str) -> &str {
+    let t = target.trim();
+    if (t.starts_with('"') && t.ends_with('"') && t.len() >= 2)
+        || (t.starts_with('\'') && t.ends_with('\'') && t.len() >= 2)
+    {
+        &t[1..t.len() - 1]
+    } else {
+        t
+    }
+}
+
+fn redirect_target_is_null_sink(target: &str) -> bool {
+    let t = strip_redirect_quotes(target).to_ascii_lowercase();
+    t == "nul"
+        || t.starts_with("nul.")
+        || t == "/dev/null"
+        || t.starts_with("/dev/null")
+}
+
+/// OS / shell scratch destinations — not the user's project tree.
+fn redirect_target_is_scratch(target: &str) -> bool {
+    let raw = strip_redirect_quotes(target);
+    if raw.is_empty() {
+        return false;
+    }
+    if redirect_target_is_null_sink(raw) {
+        return true;
+    }
+    let lower = raw.to_ascii_lowercase().replace('/', "\\");
+    // Shell env forms (unexpanded) — common on Windows cmd / PowerShell / POSIX.
+    if lower.contains("%temp%")
+        || lower.contains("%tmp%")
+        || lower.contains("$tmpdir")
+        || lower.contains("${tmpdir}")
+        || lower.contains("$temp")
+        || lower.contains("${temp}")
+        || lower.contains("$tmp")
+        || lower.contains("${tmp}")
+    {
+        return true;
+    }
+    // POSIX temp roots.
+    if lower.starts_with("\\tmp\\")
+        || lower.starts_with("\\var\\tmp\\")
+        || lower == "\\tmp"
+        || lower == "\\var\\tmp"
+    {
+        return true;
+    }
+    // Windows user temp (expanded).
+    if lower.contains("\\appdata\\local\\temp\\") || lower.contains("\\appdata\\local\\tmp\\") {
+        return true;
+    }
+    // Compare to process temp dir when the path looks absolute.
+    let path = std::path::Path::new(raw);
+    if path.is_absolute() {
+        let temp = std::env::temp_dir();
+        if path.starts_with(&temp) {
+            return true;
+        }
+        if let (Ok(canon_t), Ok(canon_p)) = (temp.canonicalize(), path.canonicalize()) {
+            if canon_p.starts_with(&canon_t) {
+                return true;
+            }
+        }
+    }
     false
+}
+
+fn redirect_target_affects_workspace(
+    target: &str,
+    workspace: Option<&std::path::Path>,
+) -> bool {
+    let raw = strip_redirect_quotes(target);
+    if redirect_target_is_scratch(raw) {
+        return false;
+    }
+    let path = std::path::Path::new(raw);
+    if path.is_absolute() {
+        if let Some(ws) = workspace {
+            if let (Ok(canon_ws), Ok(canon_p)) = (ws.canonicalize(), path.canonicalize()) {
+                return canon_p.starts_with(&canon_ws);
+            }
+            // Best-effort prefix if canonicalize fails (path may not exist yet).
+            return path.starts_with(ws);
+        }
+        // No workspace context: absolute non-scratch → treat as mutation (safe default).
+        return true;
+    }
+    // Relative path → project write for gate purposes.
+    true
 }
 
 /// Motifs destructifs (sous-ensemble porté depuis `destructiveCommandWarning.ts`).
@@ -387,6 +538,7 @@ static GIT_READ: &[&str] = &[
     "diff",
     "log",
     "show",
+    "cat-file",
     "branch",
     "tag",
     "remote",
@@ -556,6 +708,55 @@ mod tests {
             "ls /tmp 2>&1; echo ---; ls /tmp | head -30"
         ));
         assert!(!command_is_inspect_only("echo hi > file.txt"));
+    }
+
+    #[test]
+    fn scratch_redirects_are_inspect_only_for_gates() {
+        // Dogfood: inspect output parked in OS temp must not arm todo / mutating gates.
+        assert!(has_file_redirect(
+            "git show HEAD:.env > %TEMP%\\drox_env_hist.txt"
+        ));
+        assert!(!has_workspace_affecting_file_redirect(
+            "git show HEAD:.env > %TEMP%\\drox_env_hist.txt",
+            None
+        ));
+        assert!(command_is_inspect_only(
+            "git show HEAD:.env > %TEMP%\\drox_env_hist.txt && findstr DATABASE %TEMP%\\drox_env_hist.txt"
+        ));
+        assert!(command_is_inspect_only(
+            "git cat-file -p abc > $TMPDIR/drox_env_hist.txt"
+        ));
+        assert!(command_is_inspect_only("echo hi > /tmp/out.txt"));
+        assert!(!command_is_inspect_only("echo hi > src/out.txt"));
+        assert!(!command_is_inspect_only("echo hi >> README.md"));
+    }
+
+    #[test]
+    fn workspace_aware_absolute_redirects() {
+        // Synthetic roots (need not exist): outside workspace ≠ scratch temp.
+        let ws = if cfg!(windows) {
+            std::path::Path::new(r"C:\drox_fake_ws_redirect")
+        } else {
+            std::path::Path::new("/drox_fake_ws_redirect")
+        };
+        let inside = if cfg!(windows) {
+            r"C:\drox_fake_ws_redirect\note.txt"
+        } else {
+            "/drox_fake_ws_redirect/note.txt"
+        };
+        let outside = if cfg!(windows) {
+            r"C:\other_place\out.txt"
+        } else {
+            "/other_place/out.txt"
+        };
+        assert!(command_is_inspect_only_with_workspace(
+            &format!("echo hi > {outside}"),
+            Some(ws)
+        ));
+        assert!(!command_is_inspect_only_with_workspace(
+            &format!("echo hi > {inside}"),
+            Some(ws)
+        ));
     }
 
     #[test]

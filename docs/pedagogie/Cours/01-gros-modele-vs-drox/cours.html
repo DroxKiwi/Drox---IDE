@@ -1,0 +1,72 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Gros modèle vs Drox + petit modèle</title>
+<style>
+  @page { margin: 18mm; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #111;
+    line-height: 1.45;
+    font-size: 12.5pt;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 20pt;
+    margin: 0 0 1.2em;
+    font-weight: 700;
+  }
+  pre {
+    font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+    font-size: 8.5pt;
+    line-height: 1.25;
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 14px 12px;
+    white-space: pre;
+    overflow: hidden;
+  }
+  p { margin: 0.85em 0; }
+  strong { font-weight: 650; }
+</style>
+</head>
+<body>
+<h1>Gros modèle vs Drox + petit modèle</h1>
+<pre>┌─────────────────────────────────────────────────────────────────┐
+│                     TA QUESTION                                 │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+           ┌─────────────────┴─────────────────┐
+           ▼                                   ▼
+┌──────────────────────────┐     ┌──────────────────────────────┐
+│   GROS MODÈLE            │     │   DROX + PETIT MODÈLE        │
+│   « tout seul »          │     │   « ping-pong »              │
+├──────────────────────────┤     ├──────────────────────────────┤
+│                          │     │                              │
+│  Dans les poids /        │     │  Question                     │
+│  l'entraînement :        │     │      ↕                       │
+│                          │     │  Petit modèle (génère)       │
+│  • raisonnement interne  │     │      ↕                       │
+│  • gros contexte         │     │  Moteur Drox                 │
+│  • découpe du savoir     │     │    · tools                   │
+│  • planning implicite    │     │    · phases / gates          │
+│  • « intuition » opaque  │     │    · contexte / mémoire      │
+│                          │     │    · nudges / régulation     │
+│                          │     │      ↕                       │
+│  → une génération        │     │  Résultats outils            │
+│    opaque, tout-en-un    │     │      ↕                       │
+│                          │     │  … jusqu'à une réponse       │
+│                          │     │    cadrée, rejouable         │
+└──────────────────────────┘     └──────────────────────────────┘
+           │                                   │
+           ▼                                   ▼
+     RÉPONSE                             RÉPONSE
+  (boîte noire)                   (parcours visible)</pre>
+<p>Un <strong>gros modèle</strong> porte en lui (poids + entraînement) le raisonnement interne, le gros contexte, la découpe du savoir, et bien d’autres capacités. Tout se joue dans la boîte : question → réponse opaque.</p>
+<p><strong>Drox</strong> mise sur un modèle <strong>modeste</strong> et externalise le reste : outils, phases, contexte, nudges. Question, petit modèle et moteur se renvoient la balle jusqu’à une réponse aussi pertinente que possible — avec un parcours visible et plus déterministe.</p>
+<p>Le modèle <strong>génère</strong>. Le moteur <strong>orchestre</strong> le raisonnement. On remet chaque pièce à sa place.</p>
+</body>
+</html>

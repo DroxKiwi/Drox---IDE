@@ -78,12 +78,15 @@ export function renderDroxRegulationConsole(
 		const band = droxRegulationScoreBand(ls.score);
 		const row = dom.append(levers, dom.$('.drox-regulation-lever'));
 		row.classList.add(`is-${band}`);
-		dom.append(row, dom.$('span.drox-regulation-lever-id', undefined, lever));
-		dom.append(row, dom.$('span.drox-regulation-lever-label', undefined, DROX_REGULATION_LEVER_LABELS[lever]));
-		dom.append(row, dom.$('span.drox-regulation-score', undefined, String(Math.round(ls.score))));
-		dom.append(row, dom.$('span.drox-codebase-muted', undefined, `n=${ls.samples}`));
 
-		const select = dom.append(row, dom.$('select.drox-regulation-module-select')) as HTMLSelectElement;
+		const meta = dom.append(row, dom.$('.drox-regulation-lever-meta'));
+		dom.append(meta, dom.$('span.drox-regulation-lever-id', undefined, lever));
+		dom.append(meta, dom.$('span.drox-regulation-lever-label', undefined, DROX_REGULATION_LEVER_LABELS[lever]));
+		dom.append(meta, dom.$('span.drox-regulation-score', undefined, String(Math.round(ls.score))));
+		dom.append(meta, dom.$('span.drox-codebase-muted', undefined, `n=${ls.samples}`));
+
+		const controls = dom.append(row, dom.$('.drox-regulation-lever-controls'));
+		const select = dom.append(controls, dom.$('select.drox-regulation-module-select')) as HTMLSelectElement;
 		select.title = localize('drox.regulation.moduleSelect', 'Module override (manual)');
 		for (const mod of DROX_REGULATION_MODULES_FOR_LEVER[lever]) {
 			const opt = document.createElement('option');
@@ -99,18 +102,19 @@ export function renderDroxRegulationConsole(
 		};
 
 		const suggested = recommendDroxRegulationModule(lever, ls.score);
+		const suggestEl = dom.append(controls, dom.$('span.drox-regulation-suggest'));
 		if (suggested !== st.module) {
-			dom.append(row, dom.$('span.drox-codebase-muted.drox-regulation-suggest', undefined, localize(
-				'drox.regulation.suggest',
-				'suggest {0}',
-				suggested,
-			)));
+			suggestEl.textContent = localize('drox.regulation.suggest', 'suggest {0}', suggested);
+		} else {
+			suggestEl.classList.add('is-empty');
+			suggestEl.textContent = '\u00a0';
 		}
 
-		const autoBtn = dom.append(row, dom.$('button.drox-regulation-auto-btn')) as HTMLButtonElement;
+		const autoBtn = dom.append(controls, dom.$('button.drox-regulation-auto-btn')) as HTMLButtonElement;
 		autoBtn.type = 'button';
 		const isAuto = st.mode === 'auto';
 		autoBtn.classList.toggle('is-on', isAuto);
+		autoBtn.classList.toggle('is-off', !isAuto);
 		autoBtn.textContent = isAuto
 			? localize('drox.regulation.autoOn', 'Auto ON')
 			: localize('drox.regulation.autoOff', 'Auto OFF');
