@@ -8,6 +8,9 @@ import { localize } from '../../../../../../nls.js';
 import { DROX_EMBED_DEFAULT_MODEL_ID, DROX_EMBED_DEFAULT_MODEL_LABEL } from '../../../common/codebase/droxCodebaseEmbedPaths.js';
 import { IDroxCodebaseEmbedStats } from '../../../common/codebase/droxCodebaseTypes.js';
 
+/** Soft visual ceiling for the RSS bar (not a hard limit). */
+const EMBED_RSS_BAR_SOFT_CAP_BYTES = 512 * 1024 * 1024;
+
 export interface IDroxCodebaseCockpitEmbedRenderResult {
 	readonly pathInput: HTMLInputElement;
 }
@@ -62,6 +65,9 @@ export function renderDroxCodebaseCockpitEmbed(
 			opts.embed.backend ?? '?',
 		)));
 	}
+
+	renderEmbedResources(section, opts.embed);
+
 	dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
 		'drox.codebase.embedFormatHint',
 		'Custom override: absolute path to an embedding GGUF (e.g. MiniLM / BGE-small). Chat models will not work here. File name default: {0}',
@@ -90,6 +96,61 @@ export function renderDroxCodebaseCockpitEmbed(
 	};
 
 	return { pathInput };
+}
+
+function renderEmbedResources(section: HTMLElement, embed: IDroxCodebaseEmbedStats): void {
+	const box = dom.append(section, dom.$('.drox-codebase-embed-resources'));
+	dom.append(box, dom.$('p.drox-codebase-embed-resources-title', undefined, localize(
+		'drox.codebase.embedResources',
+		'Live resources (drox.exe)',
+	)));
+
+	const rss = embed.rssBytes;
+	const pct = typeof rss === 'number'
+		? Math.min(100, Math.round((rss / EMBED_RSS_BAR_SOFT_CAP_BYTES) * 100))
+		: 0;
+	const bar = dom.append(box, dom.$('.drox-codebase-embed-ram-bar'));
+	const fill = dom.append(bar, dom.$('.drox-codebase-embed-ram-bar-fill')) as HTMLElement;
+	fill.style.width = `${pct}%`;
+	if (embed.loaded) {
+		fill.classList.add('is-loaded');
+	}
+
+	const rssLabel = typeof rss === 'number'
+		? localize('drox.codebase.embedRss', 'RSS: {0}', formatBytesShort(rss))
+		: localize('drox.codebase.embedRssUnknown', 'RSS: unavailable — rebuild drox.exe to report process memory');
+	dom.append(box, dom.$('p.drox-codebase-muted', undefined, rssLabel));
+
+	const disk = typeof embed.modelFileBytes === 'number'
+		? localize('drox.codebase.embedDisk', 'GGUF on disk: {0}', formatBytesShort(embed.modelFileBytes))
+		: localize('drox.codebase.embedDiskMissing', 'GGUF on disk: —');
+	const resident = embed.loaded
+		? localize('drox.codebase.embedResidentYes', 'Model resident in process')
+		: (embed.built
+			? localize('drox.codebase.embedResidentNo', 'Model not loaded in process')
+			: localize('drox.codebase.embedResidentNotBuilt', 'Embed runtime not in this binary'));
+	dom.append(box, dom.$('p.drox-codebase-muted', undefined, `${disk} · ${resident}`));
+	dom.append(box, dom.$('p.drox-codebase-muted', undefined, localize(
+		'drox.codebase.embedRssHint',
+		'Bar soft-cap {0} (visual only). Polls while this view is open.',
+		formatBytesShort(EMBED_RSS_BAR_SOFT_CAP_BYTES),
+	)));
+}
+
+export function formatBytesShort(bytes: number): string {
+	if (!Number.isFinite(bytes) || bytes < 0) {
+		return '—';
+	}
+	if (bytes < 1024) {
+		return `${Math.round(bytes)} B`;
+	}
+	if (bytes < 1024 * 1024) {
+		return `${(bytes / 1024).toFixed(1)} KiB`;
+	}
+	if (bytes < 1024 * 1024 * 1024) {
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+	}
+	return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GiB`;
 }
 
 function sourceLabelFor(source: IDroxCodebaseEmbedStats['source']): string {

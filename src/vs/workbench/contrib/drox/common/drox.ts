@@ -10,12 +10,21 @@ export namespace DroxViews {
 	/** Sidebar activity-bar container (replaces Explorer when active). */
 	export const ChangesViewContainerId = 'workbench.view.drox.changesContainer';
 	export const ChangesViewId = 'workbench.view.drox.changes';
-	/** Sidebar activity-bar container — @Codebase cockpit (shared Agents ↔ IDE). */
+	/** Sidebar activity-bar container — @Codebase cockpit (IDE). */
 	export const CodebaseViewContainerId = 'workbench.view.drox.codebaseContainer';
 	export const CodebaseViewId = 'workbench.view.drox.codebase';
+	/** Agents auxiliary bar — same cockpit UI, keeps Sessions list visible. */
+	export const CodebaseSessionsViewContainerId = 'workbench.view.drox.codebaseSessionsContainer';
+	export const CodebaseSessionsViewId = 'workbench.view.drox.codebaseSessions';
 	/** Optional bottom panel host (Terminal-like) for the same cockpit view. */
 	export const CodebasePanelViewContainerId = 'workbench.view.drox.codebasePanelContainer';
 	export const CodebasePanelViewId = 'workbench.view.drox.codebasePanel';
+	/** Sidebar activity-bar container — model regulation observatory (IDE). */
+	export const RegulationViewContainerId = 'workbench.view.drox.regulationContainer';
+	export const RegulationViewId = 'workbench.view.drox.regulation';
+	/** Agents auxiliary bar — same regulation UI. */
+	export const RegulationSessionsViewContainerId = 'workbench.view.drox.regulationSessionsContainer';
+	export const RegulationSessionsViewId = 'workbench.view.drox.regulationSessions';
 }
 
 export namespace DroxCommands {

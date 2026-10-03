@@ -43,9 +43,19 @@ Sous [`src/vs/workbench/contrib/drox/`](../../src/vs/workbench/contrib/drox/) :
 - chat natif / Agents ;
 - settings modèles & mute params LLM ;
 - Changes / git composer ;
-- bridge sessions.
+- bridge sessions ;
+- **Codebase** (cockpit / inject / index) et **Regulation** (observatoire L1–L5).
 
 Le **webview legacy** et le chat natif convergent progressivement ; le contrat moteur reste le même RPC.
+
+### Fenêtre Agents — racine discussion
+
+Chaque session Drox porte un **chemin racine** (`workingDirectory` / folder).  
+Au focus : sync vers supervision Codebase + override workspace run-settings (Regulation).  
+Entrées UI : icônes sur la **toolbar d’historique** + chips composer + sidebar (mêmes vues que l’IDE).
+
+Détail index / RAG : [codebase-and-rag.md](codebase-and-rag.md).  
+Parité livrable : [`PLAN-AGENTS-PARITY.md`](../1.5/1.5.22/PLAN-AGENTS-PARITY.md).
 
 ## Fichiers pivots
 

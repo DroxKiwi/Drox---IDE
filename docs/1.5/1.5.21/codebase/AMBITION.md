@@ -330,7 +330,8 @@ Packaging **dev = ship** (Cargo / drox.exe + GGUF asset, pas npm user) : [PLAN-E
 | **CB2c** | **Découpage / lisibilité** → [PLAN-CB2c.md](PLAN-CB2c.md) | ✅ dogfood |
 | **CB3** | Tool agent + pastille statut → [PLAN-CB3.md](PLAN-CB3.md) | ✅ dogfood |
 | **CB4** / **CB4b** | Auto-inject + forçage + ranking → [PLAN-CB4.md](PLAN-CB4.md) · [PLAN-CB4b.md](PLAN-CB4b.md) · [IMPLEMENTATION…](IMPLEMENTATION-CB4-CB4b.md) | ✅ |
-| **CB3b** / **CB5** | Catalogue admin · carte code | 📋 → [1.5.22](../../1.5.22/README.md) |
+| **CB3b** | Catalogue admin index | ✅ [1.5.22](../../1.5.22/README.md) |
+| **CB5** | Carte code | 📋 backlog |
 
 **Décision** : fraîcheur d’index = service IDE automatique, **pas** déclenchée par le LLM. CB2b avant tool ; **CB2c** (découpe) avant de grossir encore le code.
 

@@ -136,3 +136,13 @@ export function createCodebaseForcePickerChip(defaultLabel: string, title: strin
 		extraClass: 'codebase-force-vignette',
 	});
 }
+
+export function createRegulationPickerChip(defaultLabel: string, title: string): DroxAgentsPanelPickerChip {
+	return new DroxAgentsPanelPickerChip({
+		id: 'regulation-status-vignette',
+		icon: Codicon.graphLine,
+		defaultLabel,
+		title,
+		extraClass: 'regulation-status-vignette',
+	});
+}

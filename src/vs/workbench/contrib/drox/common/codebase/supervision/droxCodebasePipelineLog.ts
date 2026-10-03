@@ -7,27 +7,59 @@ import { buildDroxCodebasePipelineView, createEmptyPipelineView, IDroxCodebaseCo
 
 export const DROX_CODEBASE_PIPELINE_LOG_MAX = 200;
 
+/**
+ * Pipeline journal partitioned by workspace root so IDE / Agents cockpits
+ * never mix logs across discussions / folders.
+ */
 export class DroxCodebasePipelineLog {
-	private readonly _events: IDroxCodebasePipelineEvent[] = [];
+	private readonly _byRoot = new Map<string, IDroxCodebasePipelineEvent[]>();
+	private _activeRootKey: string | undefined;
 
+	setActiveRoot(rootFsPath: string | undefined): void {
+		const key = rootFsPath?.trim();
+		this._activeRootKey = key || undefined;
+	}
+
+	get activeRootKey(): string | undefined {
+		return this._activeRootKey;
+	}
+
+	/** Events for the active root only. */
 	get events(): readonly IDroxCodebasePipelineEvent[] {
-		return this._events;
+		if (!this._activeRootKey) {
+			return [];
+		}
+		return this._byRoot.get(this._activeRootKey) ?? [];
 	}
 
 	push(ev: IDroxCodebasePipelineEvent, max = DROX_CODEBASE_PIPELINE_LOG_MAX): void {
-		this._events.push(ev);
-		while (this._events.length > max) {
-			this._events.shift();
+		const key = (ev.rootFsPath ?? this._activeRootKey ?? '').trim();
+		if (!key) {
+			return;
 		}
+		const tagged: IDroxCodebasePipelineEvent = ev.rootFsPath === key
+			? ev
+			: { ...ev, rootFsPath: key };
+		const list = this._byRoot.get(key) ?? [];
+		list.push(tagged);
+		while (list.length > max) {
+			list.shift();
+		}
+		this._byRoot.set(key, list);
 	}
 
+	/** Clears the active root's journal (cockpit "Clear log"). */
 	clear(): void {
-		this._events.length = 0;
+		if (!this._activeRootKey) {
+			return;
+		}
+		this._byRoot.delete(this._activeRootKey);
 	}
 
 	buildView() {
-		return this._events.length
-			? buildDroxCodebasePipelineView(this._events)
+		const events = this.events;
+		return events.length
+			? buildDroxCodebasePipelineView(events)
 			: createEmptyPipelineView();
 	}
 
@@ -38,8 +70,11 @@ export class DroxCodebasePipelineLog {
 			readonly autoIndexInFlight: boolean;
 		},
 	): IDroxCodebaseCockpitSnapshot {
-		const pipelineView = this.buildView();
-		const last = this._events[this._events.length - 1];
+		const events = this.events;
+		const pipelineView = events.length
+			? buildDroxCodebasePipelineView(events)
+			: createEmptyPipelineView();
+		const last = events[events.length - 1];
 		const indexing = !!(last && (
 			(last.kind !== 'run_done' && last.kind !== 'error' && last.status === 'running')
 			|| (last.kind !== 'run_done' && last.kind !== 'error' && opts.autoIndexInFlight)

@@ -22,6 +22,10 @@ pub struct EmbedStatus {
     pub model_path: Option<String>,
     /// Embedding dimension once a model is loaded.
     pub dimensions: Option<u32>,
+    /// Current process resident set size (bytes), when the OS reports it.
+    /// Includes the loaded GGUF when `model_loaded` is true.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rss_bytes: Option<u64>,
 }
 
 /// One encoded vector.
@@ -65,7 +69,89 @@ pub fn status() -> EmbedStatus {
         model_loaded: guard.is_some(),
         model_path: guard.as_ref().map(|m| m.path.clone()),
         dimensions: guard.as_ref().map(|m| m.dimensions),
+        rss_bytes: process_rss_bytes(),
     }
+}
+
+/// Best-effort RSS of the current process (drox.exe / drox).
+fn process_rss_bytes() -> Option<u64> {
+    #[cfg(target_os = "windows")]
+    {
+        process_rss_bytes_windows()
+    }
+    #[cfg(target_os = "linux")]
+    {
+        process_rss_bytes_linux()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        None
+    }
+}
+
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+fn process_rss_bytes_windows() -> Option<u64> {
+    #[repr(C)]
+    struct ProcessMemoryCounters {
+        cb: u32,
+        page_fault_count: u32,
+        peak_working_set_size: usize,
+        working_set_size: usize,
+        quota_peak_paged_pool_usage: usize,
+        quota_paged_pool_usage: usize,
+        quota_peak_non_paged_pool_usage: usize,
+        quota_non_paged_pool_usage: usize,
+        pagefile_usage: usize,
+        peak_pagefile_usage: usize,
+    }
+
+    #[link(name = "psapi")]
+    unsafe extern "system" {
+        fn GetProcessMemoryInfo(
+            process: *mut core::ffi::c_void,
+            ppsmem_counters: *mut ProcessMemoryCounters,
+            cb: u32,
+        ) -> i32;
+    }
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn GetCurrentProcess() -> *mut core::ffi::c_void;
+    }
+
+    // SAFETY: GetCurrentProcess returns a pseudo-handle; GetProcessMemoryInfo writes into our stack struct.
+    unsafe {
+        let mut counters = ProcessMemoryCounters {
+            cb: std::mem::size_of::<ProcessMemoryCounters>() as u32,
+            page_fault_count: 0,
+            peak_working_set_size: 0,
+            working_set_size: 0,
+            quota_peak_paged_pool_usage: 0,
+            quota_paged_pool_usage: 0,
+            quota_peak_non_paged_pool_usage: 0,
+            quota_non_paged_pool_usage: 0,
+            pagefile_usage: 0,
+            peak_pagefile_usage: 0,
+        };
+        let ok = GetProcessMemoryInfo(
+            GetCurrentProcess(),
+            &mut counters,
+            counters.cb,
+        );
+        if ok == 0 {
+            return None;
+        }
+        Some(counters.working_set_size as u64)
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn process_rss_bytes_linux() -> Option<u64> {
+    let text = std::fs::read_to_string("/proc/self/statm").ok()?;
+    let pages: u64 = text.split_whitespace().nth(1)?.parse().ok()?;
+    let page_size = 4096_u64;
+    Some(pages.saturating_mul(page_size))
 }
 
 /// Load (or reload) a GGUF embedding model from `model_path`.
@@ -181,6 +267,12 @@ mod llama_rt {
         }
 
         fn encode_one(&mut self, text: &str) -> Result<Vec<f32>, String> {
+            // llama.cpp / CString reject interior NUL — strip as last resort (IDE also sanitizes).
+            let text = if text.as_bytes().contains(&0) {
+                text.chars().filter(|c| *c != '\0').collect::<String>()
+            } else {
+                text.to_string()
+            };
             // Single-thread decode avoids OpenMP ↔ tokio deadlocks on Windows.
             let n_ctx = NonZeroU32::new(512).ok_or_else(|| "n_ctx".to_string())?;
             let ctx_params = LlamaContextParams::default()
@@ -197,7 +289,7 @@ mod llama_rt {
 
             let tokens = self
                 .model
-                .str_to_token(text, AddBos::Always)
+                .str_to_token(&text, AddBos::Always)
                 .map_err(|e| e.to_string())?;
             if tokens.is_empty() {
                 return Ok(vec![0.0; self.dimensions as usize]);

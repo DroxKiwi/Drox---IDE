@@ -1,8 +1,9 @@
 # Architecture — index codebase Drox (`@Codebase`)
 
-**Statut** : **direction produit / tech** · pas encore d’implémentation  
-**Version** : **1.5.21** (**priorité #1** de la maj — devant Explore ; originellement hors 1.5.19 Git Graph)  
-**Objectif** : répliquer côté Drox le mécanisme qui rend un modèle **efficace sur la compréhension du code** sans charger tout le repo dans le contexte.
+**Statut** : ✅ **livré** (CB1–CB4b en 1.5.21 · CB3b / parité Agents en 1.5.22) — fiche d’architecture de référence  
+**Version** : **1.5.21+**  
+**Objectif** : répliquer côté Drox le mécanisme qui rend un modèle **efficace sur la compréhension du code** sans charger tout le repo dans le contexte.  
+**Runtime à jour** : [`docs/engine/codebase-and-rag.md`](../../../engine/codebase-and-rag.md).
 
 > **Lire d’abord** : [AMBITION.md](AMBITION.md) (but produit, UI supervision, embed embarqué / ressources).  
 > Cette fiche = pipeline technique ; **aligner** §6 Embeddings sur les décisions ambition (ship in-app, plus Ollama-first).
@@ -222,10 +223,13 @@ interface IDroxCodebaseIndexService {
 ## 9. Pipeline d’indexation
 
 ```text
-onDidChangeWorkspace / file watcher (debounce)
+onDidChangeWorkspace / setActiveRoot / file watcher (debounce)
         │
         ▼
-  filter ignore + taille
+  DroxCodebaseAutoIndex.schedule(reason)   ← coalesce 1-root
+        │
+        ▼
+  ensureIndexed(root) → filter ignore + taille
         │
         ▼
   hash vs chunks.sqlite
@@ -241,7 +245,10 @@ onDidChangeWorkspace / file watcher (debounce)
   update status (indexedFiles, pending, lastError)
 ```
 
-Concurrence : **une** file par workspace ; pause si machine sous batterie faible (option).
+Concurrence : **une** indexation full à la fois (toute l’app) ; jobs en attente **coalescés** sur le **dernier** root demandé (Agents multi-discussion).  
+Pas de fan-out « indexer toute la liste d’historique ».  
+Incrémental fichier = invalidate path (debounce), pas un second full-index parallèle.  
+Réf. runtime : [`docs/engine/codebase-and-rag.md`](../../../engine/codebase-and-rag.md) · plan CB2b.
 
 ---
 

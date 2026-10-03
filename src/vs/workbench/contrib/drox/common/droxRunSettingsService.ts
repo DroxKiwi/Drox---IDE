@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IDroxAgentRunImage } from './droxAttachments.js';
@@ -14,7 +15,13 @@ export const IDroxRunSettingsService = createDecorator<IDroxRunSettingsService>(
 export interface IDroxRunSettingsService {
 	readonly _serviceBrand: undefined;
 
+	readonly onDidChangeWorkspaceResource: Event<void>;
 	getWorkspaceResource(): URI | undefined;
+	/**
+	 * Agents: pin regulation / settings / cockpit to the active discussion root.
+	 * Pass `undefined` to fall back to the workbench workspace folder.
+	 */
+	setActiveWorkspaceResource(resource: URI | undefined): void;
 	getLlmSettings(resource?: URI): IDroxLlmSettings;
 	getEnvOverrides(resource?: URI): Record<string, string>;
 	getDisabledToolsForRun(resource?: URI): string[];
