@@ -1,8 +1,8 @@
-# Plan — Théming Drox (fin de maj 1.5.22)
+# Plan — Théming Drox (1.5.23)
 
-**Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 noté · **avant-dernier** (après PF + AG, avant DOC)  
-**Ordre** : **THEME** → puis [pass docs](README.md) (**DOC**)
+**Parent** : [README 1.5.23](README.md)  
+**Statut** : 📋 noté · reporté depuis 1.5.22  
+**Ordre maj 1.5.23** : après **PF**, avant pass docs 1.5.23
 
 ## Intention
 
@@ -11,9 +11,9 @@ Revoir le **système de theming au complet** :
 1. **Coller au principe VS Code** — thèmes color / file-icon / product-icon importables (Marketplace, JSON utilisateur, `workbench.colorCustomizations`), sans fork opaque qui casse l’écosystème.
 2. **Identité Drox** — un (ou deux) thème(s) embarqué(s) avec une vraie signature visuelle (vert Drox `#3D7A3D`, chrome cohérent), pas un simple recolorage bleu VS Code.
 
-## Hors scope immédiat
+## Hors scope
 
-Pas d’implémentation dans le train R0–R11 régulation. Ce plan est un **jalon de fin de maj** uniquement.
+Pas d’implémentation dans 1.5.22 (régulation + parité Agents). Ce plan est un **jalon 1.5.23**.
 
 ## Critères done (brouillon)
 

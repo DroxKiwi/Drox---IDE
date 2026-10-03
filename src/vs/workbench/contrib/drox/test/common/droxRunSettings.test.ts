@@ -6,6 +6,7 @@
 // allow-any-unicode-comment-file
 
 import assert from 'assert';
+import { Event } from '../../../../../base/common/event.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
@@ -70,7 +71,9 @@ function createMockRunSettingsService(
 	};
 	return {
 		_serviceBrand: undefined,
+		onDidChangeWorkspaceResource: Event.None,
 		getWorkspaceResource: () => WS,
+		setActiveWorkspaceResource: () => { },
 		getLlmSettings: () => base,
 		getEnvOverrides: () => ({}),
 		getDisabledToolsForRun: () => [],

@@ -27,7 +27,8 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | 8 | [sessions-and-memory.md](sessions-and-memory.md) · [llm-backends.md](llm-backends.md) | Persistance et backends d’inférence |
 | 9 | [mcp-and-subagents.md](mcp-and-subagents.md) · [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Extensions MCP / Explore / TUI |
 | 10 | [model-regulation.md](model-regulation.md) | Auto-régulation IDE : notes L1–L5, référentiel, Auto |
-| 11 | [developer-guide.md](developer-guide.md) | Build, tests, où patcher |
+| 11 | [codebase-and-rag.md](codebase-and-rag.md) | Index local, auto-index lazy/coalesce, Agents |
+| 12 | [developer-guide.md](developer-guide.md) | Build, tests, où patcher |
 | — | [glossary.md](glossary.md) | Lexique |
 | — | [migration-from-1.4.md](migration-from-1.4.md) | Ancien rail / `role_split` → `tui_mono` |
 
@@ -48,6 +49,7 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Deux entrées : `--serve` vs `drox-tui` in-process |
 | [ide-integration.md](ide-integration.md) | Contrat IDE↔moteur (spawn, bridge) — pas le tutoriel UI |
 | [model-regulation.md](model-regulation.md) | Notes L1–L5, signaux, formules v0, policy Auto, persistance |
+| [codebase-and-rag.md](codebase-and-rag.md) | Codebase / RAG : index, inject, ordonnancement Agents |
 | [developer-guide.md](developer-guide.md) | Build, tests Cargo, où patcher |
 | [migration-from-1.4.md](migration-from-1.4.md) | Rail 1.4 / `role_split` → `tui_mono` |
 | [glossary.md](glossary.md) | Termes stables |

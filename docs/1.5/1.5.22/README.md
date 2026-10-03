@@ -1,23 +1,24 @@
-# 1.5.22 — Auto-régulation + reportés 1.5.21
+# 1.5.22 — Auto-régulation + parité Agents
 
 **Statut** : **en cours** · branche `1.5.22`  
 **Version cible** : `droxVersion` **1.5.22**  
 **Précédent** : [1.5.21](../1.5.21/README.md) — Codebase CB4/CB4b · shell discussion  
-**Suite** : libre (plus de 1.5.23 réservé)
+**Suite** : [1.5.23](../1.5.23/README.md) — Port forwarding · Théming (**reportés**)
 
 ## Ordre d’exécution (figé)
 
 1. **CB3b** — catalogue admin index (cockpit)  
 2. **A–D** — auto-régulation modèle (roadmap R0–R11)  
-3. Explore / SAV / CB5 — **à arbitrer après**  
-4. **Port forwarding** — renseigner VS Code + MVP local / service user (**avant-avant-dernier**)  
-5. **Parité Agents** — exposer côté Agents ce qui est livré IDE (ex. Embed)  
-6. **Théming** — importabilité VS Code + thème identité Drox (**avant-dernier**)  
-7. **Fin de maj** — **relecture docs** (1.5.21 + 1.5.22) (**dernier**)
+3. Explore / SAV / CB5 — **à arbitrer** (hors chemin critique)  
+4. **Parité Agents (AG)** — exposer côté Agents ce qui est livré IDE (ex. Embed) — **fin de maj produit**  
+5. **Fin de maj** — **relecture docs** (1.5.21 + 1.5.22) (**dernier**)
+
+**Reporté → 1.5.23** : Port forwarding (PF) · Théming (THEME).
 
 ## Cap
 
-Système **auto-régulateur** : on n’adapte pas les capacités du moteur, on adapte **ce qu’on expose au modèle** (L1–L5). Sonde + historique prompts + console (scores, override, graphiques) + wrappers découplés — **après** CB3b.
+Système **auto-régulateur** : on n’adapte pas les capacités du moteur, on adapte **ce qu’on expose au modèle** (L1–L5). Sonde + historique prompts + console + wrappers — **après** CB3b.  
+Clôture produit 1.5.22 : **parité Agents** (même services, surface Agents).
 
 **Abandonné** : tool calling « universel » tous providers.
 
@@ -25,35 +26,36 @@ Système **auto-régulateur** : on n’adapte pas les capacités du moteur, on a
 
 | Fiche | Sujet |
 |-------|--------|
-| [PLAN-CB3b-CATALOGUE.md](PLAN-CB3b-CATALOGUE.md) | Catalogue admin — **priorité #1** |
-| [PLAN-MODEL-AUTO-REGULATION.md](PLAN-MODEL-AUTO-REGULATION.md) | Leviers L1–L5 · console · histo · roadmap R0–R11 — **#2** |
-| [Réf. notes / scorer](../../engine/model-regulation.md) | Formules v0 · signaux · Auto (doc moteur stable) |
+| [PLAN-CB3b-CATALOGUE.md](PLAN-CB3b-CATALOGUE.md) | Catalogue admin — **#1** |
+| [PLAN-MODEL-AUTO-REGULATION.md](PLAN-MODEL-AUTO-REGULATION.md) | Leviers L1–L5 · console · histo · R0–R11 — **#2** |
+| [Réf. notes / scorer](../../engine/model-regulation.md) | Formules v0 · signaux · Auto |
 | [Pédagogie 15](../../pedagogie/15-regulation-et-notes.md) | Lecture guidée notes ≠ Auto |
-| [PLAN-SUBAGENTS-EXPLORE-IDE.md](PLAN-SUBAGENTS-EXPLORE-IDE.md) | Explore / `task` IDE (opt-in) — à arbitrer |
-| [PLAN-SAV-CHAT-ERRORS.md](PLAN-SAV-CHAT-ERRORS.md) | SAV retry + capture erreurs chat — à arbitrer |
-| [PLAN-PORT-FORWARDING.md](PLAN-PORT-FORWARDING.md) | Port forward VS Code → Drox — **avant-avant-dernier** |
-| [PLAN-AGENTS-PARITY.md](PLAN-AGENTS-PARITY.md) | Parité Agents (Embed, etc.) |
-| [PLAN-THEMING.md](PLAN-THEMING.md) | Théming importable + identité Drox — **avant-dernier** |
-| [FIX-BASH-REDIRECT-INSPECT.md](FIX-BASH-REDIRECT-INSPECT.md) | Redirects temp / hors workspace = inspect-only (gates) |
+| [PLAN-AGENTS-PARITY.md](PLAN-AGENTS-PARITY.md) | Parité Agents (Codebase + Regulation + RAG lazy) — **MVP** |
+| [Réf. Codebase / RAG](../../engine/codebase-and-rag.md) | Index, coalesce, sync racine Agents |
+| [PLAN-SUBAGENTS-EXPLORE-IDE.md](PLAN-SUBAGENTS-EXPLORE-IDE.md) | Explore / `task` IDE — à arbitrer |
+| [PLAN-SAV-CHAT-ERRORS.md](PLAN-SAV-CHAT-ERRORS.md) | SAV retry + capture erreurs — à arbitrer |
+| [FIX-BASH-REDIRECT-INSPECT.md](FIX-BASH-REDIRECT-INSPECT.md) | Redirects temp / hors workspace = inspect-only |
+| → [1.5.23 PF](../1.5.23/PLAN-PORT-FORWARDING.md) | Port forward — **reporté** |
+| → [1.5.23 THEME](../1.5.23/PLAN-THEMING.md) | Théming — **reporté** |
 
 ## Synthèse
 
 | # | Sujet | Statut | Ordre |
 |---|--------|--------|-------|
 | **G** | CB3b catalogue admin | ✅ MVP + exclusions + rebuild | **1** |
-| A–D | Auto-régulation (console · histo · L1–L5) | ✅ **R0–R11** (wrappers + Auto policy) | **2** |
-| E | Explore IDE (`task` / subagents) | 📋 reporté | 3+ |
-| F | SAV erreurs chat | 📋 reporté | 3+ |
-| H | CB5 carte code (opt.) | 📋 reporté | 3+ |
-| **PF** | Port forwarding (local / service user) | 📋 cadrage | **avant-avant-dernier** |
-| **AG** | Parité Agents (Embed & co.) | 📋 cadrage | avant DOC |
-| **THEME** | Théming (import VS Code + identité Drox) | 📋 noté | **avant-dernier** |
-| **DOC** | Relecture / MAJ docs (**1.5.21 + 1.5.22**) | 📋 **dernière étape maj** | **fin** |
-| **FIX** | Bash `>` scratch / hors WS ≠ mutateur | ✅ classify destination-aware | dogfood |
+| A–D | Auto-régulation (console · histo · L1–L5) | ✅ **R0–R11** | **2** |
+| E | Explore IDE (`task` / subagents) | 📋 reporté | hors critique |
+| F | SAV erreurs chat | 📋 reporté | hors critique |
+| H | CB5 carte code (opt.) | 📋 reporté | hors critique |
+| **AG** | Parité Agents (Embed & Regulation) | ✅ MVP badges historique + sync racine | **fin produit** |
+| **DOC** | Relecture / MAJ docs (**1.5.21 + 1.5.22**) | 📋 | **fin** |
+| **FIX** | Bash `>` scratch / hors WS ≠ mutateur | ✅ | dogfood |
+| **PF** | Port forwarding | → [1.5.23](../1.5.23/README.md) | reporté |
+| **THEME** | Théming | → [1.5.23](../1.5.23/README.md) | reporté |
 
 ## Décisions clés
 
-- **CB3b d’abord** : parcourir / supprimer / compacter l’index depuis le cockpit (store JSON actuel).
-- Auto-régulation ensuite : package découplé · **onglet Regulation** · Auto par levier · override manuel.
-- Explore / SAV / CB5 : reportés, arbitrage après A–D.
-- **Fin de maj (ordre)** : Port forwarding → Parité Agents → **Théming** (écosystème thèmes VS Code + identité verte Drox) → pass docs.
+- **CB3b d’abord**, régulation ensuite.  
+- Explore / SAV / CB5 : arbitrage hors chemin critique.  
+- **Fin de maj 1.5.22** : **AG** → **DOC** (R12).  
+- **PF** et **THEME** : packagés dans **1.5.23**, pas dans la clôture actuelle.

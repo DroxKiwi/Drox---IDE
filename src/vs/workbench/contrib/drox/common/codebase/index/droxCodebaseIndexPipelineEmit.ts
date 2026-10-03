@@ -18,9 +18,15 @@ export class DroxCodebaseIndexPipelineEmitter {
 
 	private _eventSeq = 0;
 	private _activeRunId: string | undefined;
+	private _workspaceRootFsPath: string | undefined;
 
 	dispose(): void {
 		this._onDidPipelineEvent.dispose();
+	}
+
+	/** Tag subsequent events with this workspace root (partitioned cockpit log). */
+	setWorkspaceRoot(rootFsPath: string | undefined): void {
+		this._workspaceRootFsPath = rootFsPath?.trim() || undefined;
 	}
 
 	emit(
@@ -38,6 +44,7 @@ export class DroxCodebaseIndexPipelineEmitter {
 			status,
 			message,
 			path: opts?.path,
+			rootFsPath: this._workspaceRootFsPath,
 			detail: opts?.detail,
 		});
 	}

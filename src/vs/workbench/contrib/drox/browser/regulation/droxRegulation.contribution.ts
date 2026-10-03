@@ -21,6 +21,7 @@ const regulationViewIcon = registerIcon(
 	localize('droxRegulationViewIcon', 'View icon of the Drox Model regulation observatory.'),
 );
 
+/** IDE only — Agents hosts a dedicated AuxiliaryBar copy (keeps Sessions list). */
 const regulationViewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer({
 	id: DroxViews.RegulationViewContainerId,
 	title: localize2('drox.regulationContainer.label', 'Regulation'),

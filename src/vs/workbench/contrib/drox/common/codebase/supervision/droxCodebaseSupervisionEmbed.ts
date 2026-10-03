@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { URI } from '../../../../../../base/common/uri.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { INativeEnvironmentService } from '../../../../../../platform/environment/common/environment.js';
 import { IFileService } from '../../../../../../platform/files/common/files.js';
@@ -29,12 +30,26 @@ export async function resolveDroxCodebaseEmbedMeta(
 		appRoot: environmentService.appRoot,
 		userDataPath: environmentService.userDataPath,
 	});
+	let modelFileBytes = partial.modelFileBytes;
+	if (resolved.path) {
+		try {
+			const stat = await fileService.stat(URI.file(resolved.path));
+			if (typeof stat.size === 'number' && Number.isFinite(stat.size)) {
+				modelFileBytes = stat.size;
+			}
+		} catch {
+			// keep previous / undefined
+		}
+	} else {
+		modelFileBytes = undefined;
+	}
 	return {
 		...partial,
 		resolvedPath: resolved.path,
 		source: resolved.source,
 		customPathSetting: customPathSetting || undefined,
 		modelId: partial.modelId ?? (resolved.path ? DROX_EMBED_DEFAULT_MODEL_LABEL : undefined),
+		modelFileBytes,
 	};
 }
 
@@ -51,7 +66,7 @@ export async function probeDroxCodebaseEmbedAlerts(
 				id: 'embed-not-built',
 				severity: 'info',
 				code: 'EMBED_NOT_BUILT',
-				message: 'Embed runtime not in this drox.exe — rebuild with --features embed (CB2).',
+				message: 'Lexical-only mode: embed runtime not in this drox.exe (optional — rebuild with --features embed for hybrid).',
 				at: Date.now(),
 			}];
 		}
@@ -124,8 +139,8 @@ export async function refreshDroxCodebaseEmbedStatus(opts: {
 			dimensions: st.dimensions,
 			backend: st.backend,
 			built: st.built,
-			rssBytes: undefined,
-			lastProbeMs: undefined,
+			rssBytes: st.rssBytes,
+			lastProbeMs: opts.snapshot.embed.lastProbeMs,
 		});
 		if (st.built && !st.modelLoaded && embed.resolvedPath) {
 			try {
@@ -137,6 +152,8 @@ export async function refreshDroxCodebaseEmbedStatus(opts: {
 					dimensions: after.dimensions,
 					backend: after.backend,
 					built: after.built,
+					rssBytes: after.rssBytes,
+					lastProbeMs: opts.snapshot.embed.lastProbeMs,
 				});
 				await opts.apply(loadedEmbed, after.modelLoaded && hasVectors ? 'hybrid' : 'lexical');
 				return;

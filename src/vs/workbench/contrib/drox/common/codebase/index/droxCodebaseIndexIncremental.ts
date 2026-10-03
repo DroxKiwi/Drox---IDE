@@ -53,8 +53,12 @@ export async function droxCodebaseRunEnsureIndexed(opts: {
 			droxCodebaseRelativePosix(workspaceRoot, f),
 			exclusions.globs,
 		));
-		pipeline.emit('scan', 'ok', `Found ${files.length} candidate files (${scanned.length - files.length} excluded)`, {
-			detail: { files: files.length, excluded: scanned.length - files.length, progressPct: 15 },
+		const excluded = scanned.length - files.length;
+		const scanMsg = files.length === 0
+			? 'No indexable source files (ignored dirs like .git / .drox / node_modules are skipped)'
+			: `Found ${files.length} candidate files (${excluded} excluded)`;
+		pipeline.emit('scan', 'ok', scanMsg, {
+			detail: { files: files.length, excluded, progressPct: 15 },
 		});
 
 		const outChunks: IDroxCodebaseChunk[] = [];
@@ -123,7 +127,10 @@ export async function droxCodebaseRunEnsureIndexed(opts: {
 			detail: { progressPct: 96, chunks: outChunks.length, vectors: embedMeta?.vectors.length ?? 0, dimensions: embedMeta?.dimensions },
 		});
 		logService.info(`[drox-codebase] ensureIndexed ${outChunks.length} chunks (${reusedFiles} unchanged, ${rewrittenFiles} rewritten), ${embedMeta?.vectors.length ?? 0} vectors → ${rootKey}`);
-		pipeline.endRun(true, `Index ready — ${outChunks.length} chunks, ${embedMeta?.vectors.length ?? 0} vectors`, {
+		const readyMsg = files.length === 0
+			? 'Index ready — empty folder (0 indexable files)'
+			: `Index ready — ${outChunks.length} chunks, ${embedMeta?.vectors.length ?? 0} vectors`;
+		pipeline.endRun(true, readyMsg, {
 			chunks: outChunks.length,
 			vectors: embedMeta?.vectors.length ?? 0,
 			files: files.length,

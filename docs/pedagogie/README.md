@@ -30,6 +30,7 @@ Ils **accompagnent** la lecture du vrai code : une histoire concrète, des défi
 | **13** | [TUI vs `--serve`](13-tui-vs-serve.md) | Deux façades du même cœur | Isolation vs in-process |
 | **14** | [Mode professor](14-mode-professor.md) | Intention + code (⚠️ **pas dispo** IDE) | Gates / downgrade |
 | **15** | [Régulation et notes](15-regulation-et-notes.md) | Sonde, L1–L5, scores, Auto | Signaux, moyenne, policy |
+| **16** | [Codebase et RAG](16-codebase-et-rag.md) | Index local, lazy Agents, coalesce | Root discussion, file 1-root |
 
 ## Cours (vulgarisation)
 

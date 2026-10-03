@@ -1,8 +1,8 @@
-# Plan — Port forwarding (1.5.22)
+# Plan — Port forwarding (1.5.23)
 
-**Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 **cadrage** · **avant-avant-dernier** avant la clôture docs  
-**Ordre maj** : après A–D (R11) · avant Agents parity · avant DOC
+**Parent** : [README 1.5.23](README.md)  
+**Statut** : 📋 **cadrage** · reporté depuis 1.5.22  
+**Ordre maj 1.5.23** : **#1** (avant THEME)
 
 ## 0. But
 
@@ -36,4 +36,4 @@ Référence amont : le mécanisme **VS Code / Codespaces / Remote** (Ports view,
 
 ## 4. Suite
 
-Ne pas démarrer avant la fin de la régulation **R11** (sauf spike lecture code VS Code non bloquant).
+Après clôture 1.5.22 (**AG** + DOC). Ne pas démarrer tant que la parité Agents 1.5.22 n’est pas livrée / tranchée.

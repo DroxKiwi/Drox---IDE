@@ -3,7 +3,7 @@
 **Statut** : **clôturé** · [CLOSURE](CLOSURE-1.5.21.md) · tag `v1.5.21`  
 **Version cible** : `droxVersion` **1.5.21**  
 **Précédent** : [1.5.20](../1.5.20/README.md) — History / Changes IDE  
-**Suite** : [1.5.22](../1.5.22/README.md) — auto-régulation · Explore · SAV · admin index
+**Suite** : [1.5.22](../1.5.22/README.md) — auto-régulation · parité Agents (Codebase/Regulation/RAG) · DOC
 
 ## `@Codebase` — tout est ici
 

@@ -2,53 +2,50 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import { Emitter } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
-
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
-
 import { droxConfigurationResourceForRead } from '../common/droxAgentsConfiguration.js';
-
 import { IDroxAgentRunImage } from '../common/droxAttachments.js';
-
 import { DroxPermissionMode } from '../common/droxPermissionAsk.js';
-
 import {
-
 	buildAgentRunParams,
-
 	IDroxLlmSettings,
-
 	isMcpToolsEnabled,
-
 	llmSettingsToEnv,
-
 	readDisabledToolsForRun,
-
 	readLlmSettings,
-
 	readPermissionMode,
-
 } from '../common/droxRunSettings.js';
-
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
-
 import { getDisabledToolNames } from '../common/droxToolCatalog.js';
+
 export class DroxRunSettingsService implements IDroxRunSettingsService {
 
 	declare readonly _serviceBrand: undefined;
+
+	private readonly _onDidChangeWorkspaceResource = new Emitter<void>();
+	readonly onDidChangeWorkspaceResource = this._onDidChangeWorkspaceResource.event;
+	private _activeWorkspaceOverride: URI | undefined;
+
 	constructor(
-
 		@IConfigurationService private readonly configurationService: IConfigurationService,
-
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
-
 	) { }
+
 	getWorkspaceResource(): URI | undefined {
+		return this._activeWorkspaceOverride ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
+	}
 
-		return this.workspaceContextService.getWorkspace().folders[0]?.uri;
-
+	setActiveWorkspaceResource(resource: URI | undefined): void {
+		const prev = this._activeWorkspaceOverride?.toString();
+		const next = resource?.toString();
+		if (prev === next) {
+			return;
+		}
+		this._activeWorkspaceOverride = resource;
+		this._onDidChangeWorkspaceResource.fire();
 	}
 	private _llmConfigurationResource(explicit?: URI): URI | undefined {
 		return droxConfigurationResourceForRead(this.configurationService, explicit ?? this.getWorkspaceResource());

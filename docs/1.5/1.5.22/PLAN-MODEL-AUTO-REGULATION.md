@@ -1,7 +1,7 @@
 # Plan — Auto-régulation moteur ↔ modèle (1.5.22)
 
 **Parent** : [README 1.5.22](README.md)  
-**Statut** : 📋 cadrage · **R0–R11 ✅** · R12 / PF / AG / THEME / DOC (§9 + README)  
+**Statut** : 📋 cadrage · **R0–R11 ✅** · AG / DOC (§9 + README) · PF/THEME → [1.5.23](../1.5.23/README.md)  
 **Remplace** : ancien plan « tool calling universel » (abandonné)
 
 ## 0. Principe produit
@@ -143,8 +143,15 @@ Couleurs : succès moteur vs échec / dérive (alignées suggestions modules).
 
 ### 5.5 Persistance
 
-- Store local workspace (ex. sous `.drox/regulation/` ou adjacent index) — détail à l’étape store.  
+- Store local **par racine discussion** : `.drox/regulation/` (history + surface).  
 - Pas de télémétrie cloud dans le cadrage 1.5.22.
+
+### 5.6 Parité Agents (AG)
+
+- Même service + même vue sidebar **Regulation**.  
+- Entrées Agents : icône toolbar historique session + chip composer.  
+- Au focus session : `setActiveWorkspaceResource` + `ensureHistoryLoaded(root)`.  
+- Voir [`PLAN-AGENTS-PARITY.md`](PLAN-AGENTS-PARITY.md) et [`docs/engine/model-regulation.md`](../../engine/model-regulation.md).
 
 ---
 
@@ -203,11 +210,11 @@ Ordre volontairement séquentiel : chaque étape livre quelque chose de **testab
 
 **Règle d’or** : ne pas démarrer Rn+1 tant que Rn n’est pas smoke-ok.  
 **Interdit** : mélanger scorer dans les wrappers, ou UI avant store/types stables (sauf stubs R0).  
-**R12** se fait **en toute fin de 1.5.22** (après R11, puis **PF** port-forward + **AG** parité Agents + **THEME** theming — voir [README](README.md)), pas au milieu de la régulation.
+**R12** se fait **en toute fin de 1.5.22** (après R11, puis **AG** parité Agents — voir [README](README.md)), pas au milieu de la régulation. **PF** / **THEME** → [1.5.23](../1.5.23/README.md).
 
 ---
 
 ## 10. Suite immédiate
 
 1. ~~Cadrage~~ · ~~**R0–R11**~~.  
-2. Fin de maj : **PF** → **AG** → **THEME** → **DOC** (R12) — voir [README](README.md).
+2. Fin de maj 1.5.22 : **AG** → **DOC** (R12) — voir [README](README.md). PF/THEME → [1.5.23](../1.5.23/README.md).

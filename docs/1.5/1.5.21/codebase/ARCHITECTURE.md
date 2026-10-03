@@ -222,10 +222,13 @@ interface IDroxCodebaseIndexService {
 ## 9. Pipeline d’indexation
 
 ```text
-onDidChangeWorkspace / file watcher (debounce)
+onDidChangeWorkspace / setActiveRoot / file watcher (debounce)
         │
         ▼
-  filter ignore + taille
+  DroxCodebaseAutoIndex.schedule(reason)   ← coalesce 1-root
+        │
+        ▼
+  ensureIndexed(root) → filter ignore + taille
         │
         ▼
   hash vs chunks.sqlite
@@ -241,7 +244,10 @@ onDidChangeWorkspace / file watcher (debounce)
   update status (indexedFiles, pending, lastError)
 ```
 
-Concurrence : **une** file par workspace ; pause si machine sous batterie faible (option).
+Concurrence : **une** indexation full à la fois (toute l’app) ; jobs en attente **coalescés** sur le **dernier** root demandé (Agents multi-discussion).  
+Pas de fan-out « indexer toute la liste d’historique ».  
+Incrémental fichier = invalidate path (debounce), pas un second full-index parallèle.  
+Réf. runtime : [`docs/engine/codebase-and-rag.md`](../../../engine/codebase-and-rag.md) · plan CB2b.
 
 ---
 

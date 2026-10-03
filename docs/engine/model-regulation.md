@@ -194,12 +194,14 @@ La console peut afficher `suggest …` même en Auto OFF ; l’application n’a
 
 | Élément | Emplacement |
 |---------|-------------|
-| History | `.drox/regulation/history.json` |
+| History | `.drox/regulation/history.json` (sous la **racine discussion**) |
 | Surface (modules / modes) | `.drox/regulation/surface.json` |
-| Console | Vue Activity Bar **Regulation** |
-| Sonde | `electron-browser/droxRegulationProbeContribution.ts` |
+| Console IDE | Vue Activity Bar **Regulation** |
+| Console Agents | Même vue + icône toolbar historique + chip composer |
+| Sonde | `electron-browser/droxRegulationProbeContribution.ts` (+ bridge Agents) |
 
-Au chargement d’un workspace, les agrégats de notes sont **reconstruits** depuis l’historique.
+Au chargement d’une racine, les agrégats de notes sont **reconstruits** depuis l’historique.  
+Côté Agents, `setActiveWorkspaceResource` + `ensureHistoryLoaded` suivent la session active (voir [codebase-and-rag.md](codebase-and-rag.md) §4 et [`PLAN-AGENTS-PARITY.md`](../1.5/1.5.22/PLAN-AGENTS-PARITY.md)).
 
 ---
 

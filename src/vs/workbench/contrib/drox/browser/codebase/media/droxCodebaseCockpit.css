@@ -80,6 +80,55 @@
 	margin-bottom: 4px;
 }
 
+.drox-codebase-embed-resources {
+	margin: 8px 0 10px 0;
+	padding: 8px 10px;
+	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	border-radius: 4px;
+	background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.08));
+}
+
+.drox-codebase-embed-resources-title {
+	margin: 0 0 6px 0;
+	font-weight: 600;
+	font-size: 12px;
+}
+
+.drox-codebase-embed-ram-bar {
+	height: 8px;
+	border-radius: 4px;
+	background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.25));
+	overflow: hidden;
+	margin: 0 0 6px 0;
+}
+
+.drox-codebase-embed-ram-bar-fill {
+	height: 100%;
+	width: 0;
+	background: var(--vscode-charts-blue, #3794ff);
+	transition: width 0.25s ease-out;
+}
+
+.drox-codebase-embed-ram-bar-fill.is-loaded {
+	background: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-codebase-alert {
+	margin: 4px 0;
+	padding: 6px 8px;
+	border-left: 3px solid var(--vscode-focusBorder, #007acc);
+	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.12));
+	font-size: 12px;
+}
+
+.drox-codebase-alert.is-warn {
+	border-left-color: var(--vscode-charts-orange, #ee9d28);
+}
+
+.drox-codebase-alert.is-error {
+	border-left-color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
 .drox-codebase-btn {
 	cursor: pointer;
 }
