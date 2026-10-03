@@ -82,12 +82,17 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 		return trimmed || undefined;
 	}
 
+	private _isEmbedEnabled(): boolean {
+		return this.configurationService.getValue<boolean>(DroxSetting.CodebaseEmbedEnabled) !== false;
+	}
+
 	private _embedDeps() {
 		return {
 			fileService: this.fileService,
 			logService: this.logService,
 			embedClient: this._embedClient,
 			pipeline: this._pipeline,
+			embedEnabled: this._isEmbedEnabled(),
 			resolveOpts: {
 				customPath: this._customEmbedPath(),
 				appRoot: this.environmentService.appRoot,
@@ -158,7 +163,7 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 			vectors = await droxCodebaseReadVectors(this.fileService, rootKey);
 			this._vectorsCache.set(rootKey, vectors);
 		}
-		if (!vectors.length) {
+		if (!vectors.length || !this._isEmbedEnabled()) {
 			return droxCodebaseRerankHits(lexical, maxResults, rerankOpts(opts));
 		}
 

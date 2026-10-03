@@ -17,6 +17,7 @@ import {
 	readDisabledToolsForRun,
 	readLlmSettings,
 	readPermissionMode,
+	readSubagentsSettings,
 } from '../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 import { getDisabledToolNames } from '../common/droxToolCatalog.js';
@@ -109,6 +110,8 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 			disabledTools: this.getDisabledToolsForRun(resource),
 
 			mcpToolsEnabled: this.isMcpToolsEnabled(resource),
+
+			subagents: readSubagentsSettings(this.configurationService, resource),
 
 		});
 

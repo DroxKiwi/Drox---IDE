@@ -25,6 +25,7 @@ import { IDroxRefsBridgeService } from '../common/droxRefsBridgeService.js';
 import { IDroxComposerBridgeService } from '../common/droxComposerBridgeService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
+import { IDroxAgentsComposerDroxChatHost } from './agents/droxAgentsComposerDroxChatHost.js';
 
 /** Search query for the Settings UI — all `drox.*` keys. */
 export const DROX_SETTINGS_SEARCH_QUERY = 'drox';
@@ -112,6 +113,21 @@ export function registerDroxActions(): void {
 		override run(accessor: ServicesAccessor): void {
 			const preferencesService = accessor.get(IPreferencesService);
 			void preferencesService.openSettings({ jsonEditor: false, query: DROX_SETTINGS_SEARCH_QUERY });
+		}
+	});
+
+	registerAction2(class DroxConnectAiAction extends Action2 {
+		constructor() {
+			super({
+				id: DroxCommands.ConnectAi,
+				title: localize2('drox.connectAi', 'Connect your AI'),
+				category: DROX_CATEGORY,
+				f1: true,
+			});
+		}
+
+		override async run(accessor: ServicesAccessor): Promise<void> {
+			await accessor.get(IDroxAgentsComposerDroxChatHost).openConnectionSetup();
 		}
 	});
 

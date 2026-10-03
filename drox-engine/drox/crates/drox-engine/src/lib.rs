@@ -8,6 +8,14 @@
 //! Voir `docs/INVENTAIRE-NOYAU-MOTEUR.md` § 2.9 et
 //! `docs/PLAN-MOTEUR-RUST.md` (sprint 1.4).
 //!
+//! ## Organisation des modules (`src/`)
+//!
+//! - [`agent`] — boucle agent (`run/`, gates, phase, stream, nudges, …)
+//! - [`compaction`] — résumé persist + compaction live
+//! - [`memory`] — runtime mémoire de session + DTOs longue mémoire
+//! - [`tools`] — hooks / orchestration / progression d'outils
+//! - [`context`], [`permissions`], [`event`], [`professor`], [`subagent`]
+//!
 //! ## Exemple
 //!
 //! ```no_run
@@ -41,14 +49,26 @@ pub mod context;
 pub mod error;
 pub mod event;
 pub mod memory;
-pub mod long_memory;
 pub mod permissions;
 pub mod professor;
 pub mod subagent;
-pub mod tool_hooks;
-pub mod tool_orchestration;
-pub mod tool_progress;
-pub use tool_orchestration::{
+pub mod tools;
+
+/// Compat : anciens chemins plats `tool_*` / `long_memory`.
+pub mod tool_hooks {
+    pub use crate::tools::hooks::*;
+}
+pub mod tool_orchestration {
+    pub use crate::tools::orchestration::*;
+}
+pub mod tool_progress {
+    pub use crate::tools::progress::*;
+}
+pub mod long_memory {
+    pub use crate::memory::long::*;
+}
+
+pub use tools::{
     partition_tool_calls, ToolCallBatch, DEFAULT_MAX_PARALLEL_TOOL_CALLS,
 };
 

@@ -72,6 +72,8 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'openFile'; readonly filePath: string }
 
+	| { readonly type: 'revealShellTerminal'; readonly terminalInstanceId: number }
+
 	| { readonly type: 'openSettings' }
 
 	| { readonly type: 'pickReferences' }
@@ -198,6 +200,14 @@ export type DroxHostToWebviewMessage =
 			readonly timed_out?: boolean;
 			readonly duration_ms?: number;
 			readonly error?: string;
+			readonly terminal_instance_id?: number;
+		};
+		readonly exploreDescription?: string;
+		readonly exploreThoroughness?: string;
+		readonly exploreOutput?: {
+			readonly exploreReport?: string;
+			readonly exploreError?: string;
+			readonly exploreThoroughness?: string;
 		};
 	}
 
@@ -348,6 +358,11 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 		return typeof (msg as { filePath?: unknown }).filePath === 'string';
 
+	}
+
+	if (t === 'revealShellTerminal') {
+		const id = (msg as { terminalInstanceId?: unknown }).terminalInstanceId;
+		return typeof id === 'number' && Number.isFinite(id);
 	}
 
 	if (t === 'openPasteSource') {

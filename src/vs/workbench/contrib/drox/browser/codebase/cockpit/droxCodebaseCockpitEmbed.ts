@@ -20,13 +20,32 @@ export function renderDroxCodebaseCockpitEmbed(
 	opts: {
 		readonly embed: IDroxCodebaseEmbedStats;
 		readonly mode: 'lexical' | 'hybrid';
+		readonly embedEnabled: boolean;
 		readonly prevEmbedPath: string | undefined;
 		readonly onApplyPath: (path: string) => void;
 		readonly onResetDefaults: () => void;
+		readonly onToggleEmbedEnabled: (enabled: boolean) => void;
 	},
 ): IDroxCodebaseCockpitEmbedRenderResult {
 	const section = dom.append(parent, dom.$('.drox-codebase-section'));
 	dom.append(section, dom.$('h4', undefined, localize('drox.codebase.embed', 'Embed')));
+
+	const enableRow = dom.append(section, dom.$('.drox-codebase-row'));
+	const enableLabel = dom.append(enableRow, dom.$('label.drox-codebase-toggle')) as HTMLLabelElement;
+	const enableToggle = dom.append(enableLabel, dom.$('input')) as HTMLInputElement;
+	enableToggle.type = 'checkbox';
+	enableToggle.checked = opts.embedEnabled;
+	enableToggle.onchange = () => opts.onToggleEmbedEnabled(enableToggle.checked);
+	enableLabel.append(document.createTextNode(localize(
+		'drox.codebase.embedEnabledToggle',
+		'Enable embeddings (hybrid retrieval)',
+	)));
+	if (!opts.embedEnabled) {
+		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
+			'drox.codebase.embedDisabledHint',
+			'Embeddings off — indexing and search stay lexical-only. Vector files on disk are kept until you purge storage.',
+		)));
+	}
 
 	const callout = dom.append(section, dom.$('.drox-codebase-embed-callout'));
 	dom.append(callout, dom.$('p.drox-codebase-embed-callout-title', undefined, localize(
@@ -48,14 +67,18 @@ export function renderDroxCodebaseCockpitEmbed(
 	dom.append(section, dom.$('p', undefined, opts.embed.loaded
 		? localize('drox.codebase.embedLoaded', 'Loaded ({0})', opts.embed.modelId ?? '?')
 		: localize('drox.codebase.embedNotLoaded', 'Not loaded — {0}', opts.mode === 'hybrid' ? 'hybrid ready' : 'lexical only')));
-	dom.append(section, dom.$('p', undefined, localize('drox.codebase.mode', 'Retrieval mode: {0}', opts.mode)));
+	dom.append(section, dom.$('p', undefined, localize(
+		'drox.codebase.mode',
+		'Retrieval mode: {0}',
+		opts.embedEnabled ? opts.mode : 'lexical (embed off)',
+	)));
 	dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
 		'drox.codebase.embedSource',
 		'Active source: {0}',
 		sourceLabel,
 	)));
 	if (opts.embed.resolvedPath) {
-		dom.append(section, dom.$('p.drox-codebase-muted', undefined, opts.embed.resolvedPath));
+		dom.append(section, dom.$('p.drox-codebase-path', undefined, opts.embed.resolvedPath));
 	}
 	if (opts.embed.dimensions) {
 		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
@@ -74,17 +97,17 @@ export function renderDroxCodebaseCockpitEmbed(
 		DROX_EMBED_DEFAULT_MODEL_ID,
 	)));
 
-	const pathInput = dom.append(section, dom.$('input.drox-codebase-probe-input')) as HTMLInputElement;
+	const pathInput = dom.append(section, dom.$('input.drox-codebase-field')) as HTMLInputElement;
 	pathInput.type = 'text';
 	pathInput.placeholder = localize('drox.codebase.embedPathPlaceholder', 'Optional custom GGUF path…');
 	pathInput.value = opts.prevEmbedPath ?? opts.embed.customPathSetting ?? '';
 
 	const embedActions = dom.append(section, dom.$('.drox-codebase-actions'));
-	const applyBtn = dom.append(embedActions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+	const applyBtn = dom.append(embedActions, dom.$('button.drox-codebase-btn.drox-codebase-btn-primary')) as HTMLButtonElement;
 	applyBtn.textContent = localize('drox.codebase.embedApplyPath', 'Use this GGUF');
 	applyBtn.onclick = () => opts.onApplyPath(pathInput.value);
 
-	const resetBtn = dom.append(embedActions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+	const resetBtn = dom.append(embedActions, dom.$('button.drox-codebase-btn.drox-codebase-btn-ghost')) as HTMLButtonElement;
 	resetBtn.textContent = localize('drox.codebase.embedResetDefaults', 'Reset to defaults');
 	resetBtn.title = localize(
 		'drox.codebase.embedResetDefaultsTitle',

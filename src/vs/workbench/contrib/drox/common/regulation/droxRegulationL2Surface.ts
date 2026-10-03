@@ -23,7 +23,7 @@ const CORE_TOOLS: readonly string[] = [
 	'bash',
 ];
 
-/** Standard = core + IDE analysis, notebooks, path ops, memory, codebase, plan exit. */
+/** Standard = core + IDE analysis, notebooks, path ops, memory, codebase, plan exit, Explore. */
 const STANDARD_TOOLS: readonly string[] = [
 	...CORE_TOOLS,
 	'notebook_edit',
@@ -37,6 +37,7 @@ const STANDARD_TOOLS: readonly string[] = [
 	'session_compact',
 	'session_search',
 	'codebase_search',
+	'task',
 ];
 
 const ALLOWED: Readonly<Record<DroxRegulationL2Module, ReadonlySet<string> | undefined>> = {

@@ -32,8 +32,56 @@ export const enum DroxSetting {
 	 */
 	CodebaseEmbedModelPath = 'drox.codebase.embedModelPath',
 
+	/**
+	 * When false, `@Codebase` stays lexical-only: no encode, no hybrid search.
+	 * Existing vector files on disk are left until the user purges them.
+	 */
+	CodebaseEmbedEnabled = 'drox.codebase.embedEnabled',
+
 	/** Auto-inject hybrid `@Codebase` hits into agent.run system (CB4). */
 	CodebaseAutoInject = 'drox.codebase.autoInject',
+
+	/** Capture Drox in/out traffic (LLM, embed, MCP, tool/exec). */
+	TrafficEnabled = 'drox.traffic.enabled',
+
+	/** `live` = memory only (cleared on quit) · `persisted` = files on disk. */
+	TrafficMode = 'drox.traffic.mode',
+
+	/**
+	 * Destination tags for Traffic (bank-style): match host/IP/URL → label + color.
+	 * Each item: `{ id, label, color, match }`.
+	 */
+	TrafficDestinationTags = 'drox.traffic.destinationTags',
+
+	/**
+	 * Destination alerts for Traffic: match host/IP/URL → toast when traffic hits.
+	 * Each item: `{ id, match, label? }`.
+	 */
+	TrafficDestinationAlerts = 'drox.traffic.destinationAlerts',
+
+	/**
+	 * External forward tool profiles (user): `{ id, label, command, args, env?, cwd? }`.
+	 * Placeholders: `{{localHost}}` `{{localPort}}` `{{remoteHost}}` `{{remotePort}}`.
+	 */
+	PortsTools = 'drox.ports.tools',
+
+	/** Default tool id from `drox.ports.tools`. */
+	PortsDefaultToolId = 'drox.ports.defaultToolId',
+
+	/**
+	 * Declared port forwards (workspace preferred): host/port → local bind + tool.
+	 * Each item: `{ id, label, remoteHost, remotePort, localHost?, localPort?, protocol?, onReady?, toolId? }`.
+	 */
+	PortsForwards = 'drox.ports.forwards',
+
+	/** Master kill-switch for Explore sub-agents (`task` tool). */
+	SubagentsEnabled = 'drox.subagents.enabled',
+
+	/** Max LLM ↔ tool turns per Explore sub-agent. */
+	SubagentsMaxIterations = 'drox.subagents.maxIterations',
+
+	/** Max concurrent Explore `task` sub-agents. */
+	SubagentsMaxConcurrent = 'drox.subagents.maxConcurrent',
 
 	/** Soft max characters for the auto-injected context block. */
 	CodebaseAutoInjectMaxChars = 'drox.codebase.autoInjectMaxChars',
@@ -717,6 +765,21 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		},
 
+		[DroxSetting.CodebaseEmbedEnabled]: {
+
+			type: 'boolean',
+
+			default: true,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.codebase.embedEnabled',
+				'When enabled, `@Codebase` **encodes** chunks and runs **hybrid** (lexical + vector) retrieval. Turn off for lexical-only indexing/search — vector files already on disk are kept until you **Purge** from the Codebase cockpit.',
+			),
+
+		},
+
 		[DroxSetting.CodebaseAutoInject]: {
 
 			type: 'boolean',
@@ -764,6 +827,221 @@ export const droxConfigurationNode: IConfigurationNode = {
 			markdownDescription: localize(
 				'drox.modelQuestions.codebaseRetrievalComprehensionVariant',
 				'Which **English** comprehension-question variant to ask the model before `@Codebase` retrieval (`v1` full, `v1-compact` shorter for small models). Used for SAV / future auto-regulation — not NLP heuristics in code.',
+			),
+
+		},
+
+		[DroxSetting.TrafficEnabled]: {
+
+			type: 'boolean',
+
+			default: false,
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.traffic.enabled',
+				'When enabled, Drox records **outgoing/incoming** runtime traffic (LLM, embed, MCP, tool/exec) in the **Traffic** sidebar. Choice is remembered across launches.',
+			),
+
+		},
+
+		[DroxSetting.TrafficMode]: {
+
+			type: 'string',
+
+			default: 'live',
+
+			enum: ['live', 'persisted'],
+
+			enumDescriptions: [
+				localize('drox.traffic.mode.live', 'Keep events in memory for this editor session only (cleared when the window closes).'),
+				localize('drox.traffic.mode.persisted', 'Append events under the known on-disk traffic folder (purge from the Traffic view).'),
+			],
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.traffic.mode',
+				'Storage mode for the Traffic observatory when capture is enabled.',
+			),
+
+		},
+
+		[DroxSetting.TrafficDestinationTags]: {
+
+			type: 'array',
+
+			default: [],
+
+			scope: ConfigurationScope.APPLICATION,
+
+			items: {
+				type: 'object',
+				required: ['id', 'label', 'color', 'match'],
+				properties: {
+					id: { type: 'string' },
+					label: { type: 'string' },
+					color: { type: 'string' },
+					match: { type: 'string' },
+				},
+			},
+
+			markdownDescription: localize(
+				'drox.traffic.destinationTags',
+				'Bank-style **destination tags** for Traffic: each rule maps a host / IP / URL fragment (`match`) to a colored `label`. Prefer editing them from the Traffic sidebar.',
+			),
+
+		},
+
+		[DroxSetting.TrafficDestinationAlerts]: {
+
+			type: 'array',
+
+			default: [],
+
+			scope: ConfigurationScope.APPLICATION,
+
+			items: {
+				type: 'object',
+				required: ['id', 'match'],
+				properties: {
+					id: { type: 'string' },
+					match: { type: 'string' },
+					label: { type: 'string' },
+				},
+			},
+
+			markdownDescription: localize(
+				'drox.traffic.destinationAlerts',
+				'Simple **destination alerts** for Traffic: when a request hits a host / IP / URL fragment (`match`), Drox shows a notification. Prefer editing them from the Traffic sidebar.',
+			),
+
+		},
+
+		[DroxSetting.PortsTools]: {
+
+			type: 'array',
+
+			default: [],
+
+			scope: ConfigurationScope.APPLICATION,
+
+			items: {
+				type: 'object',
+				required: ['id', 'command'],
+				properties: {
+					id: { type: 'string' },
+					label: { type: 'string' },
+					command: { type: 'string' },
+					args: { type: 'array', items: { type: 'string' } },
+					env: { type: 'object', additionalProperties: { type: 'string' } },
+					cwd: { type: 'string' },
+				},
+			},
+
+			markdownDescription: localize(
+				'drox.ports.tools',
+				'External **port-forward tools** (ssh, socat, script…). Args may use placeholders `{{localHost}}`, `{{localPort}}`, `{{remoteHost}}`, `{{remotePort}}`. Prefer editing from the **Ports** sidebar.',
+			),
+
+		},
+
+		[DroxSetting.PortsDefaultToolId]: {
+
+			type: 'string',
+
+			default: '',
+
+			scope: ConfigurationScope.APPLICATION,
+
+			markdownDescription: localize(
+				'drox.ports.defaultToolId',
+				'Default tool id from `#drox.ports.tools#` when a forward does not set `toolId`.',
+			),
+
+		},
+
+		[DroxSetting.PortsForwards]: {
+
+			type: 'array',
+
+			default: [],
+
+			scope: ConfigurationScope.RESOURCE,
+
+			items: {
+				type: 'object',
+				required: ['id', 'remotePort'],
+				properties: {
+					id: { type: 'string' },
+					label: { type: 'string' },
+					remoteHost: { type: 'string' },
+					remotePort: { type: 'number' },
+					localHost: { type: 'string' },
+					localPort: { type: 'number' },
+					protocol: { type: 'string', enum: ['http', 'https', 'tcp'] },
+					onReady: { type: 'string', enum: ['none', 'notify', 'preview', 'browser'] },
+					toolId: { type: 'string' },
+				},
+			},
+
+			markdownDescription: localize(
+				'drox.ports.forwards',
+				'Declared **port forwards** for this workspace: remote host/port → local bind, using `#drox.ports.tools#`. Prefer editing from the **Ports** sidebar.',
+			),
+
+		},
+
+		[DroxSetting.SubagentsEnabled]: {
+
+			type: 'boolean',
+
+			default: false,
+
+			scope: ConfigurationScope.RESOURCE,
+
+			markdownDescription: localize(
+				'drox.subagents.enabled',
+				'Enable the **`task`** tool (read-only **Explore** sub-agent: `grep`, `glob`, `file_read`, `lsp`, web). **Off by default** — the main model does not see `task` while this setting is `false`. Also requires regulation L2 **standard** or **full**.',
+			),
+
+		},
+
+		[DroxSetting.SubagentsMaxIterations]: {
+
+			type: 'number',
+
+			default: 15,
+
+			minimum: 1,
+
+			maximum: 50,
+
+			scope: ConfigurationScope.RESOURCE,
+
+			markdownDescription: localize(
+				'drox.subagents.maxIterations',
+				'Max LLM ↔ tool turns **per** Explore `task` sub-agent.',
+			),
+
+		},
+
+		[DroxSetting.SubagentsMaxConcurrent]: {
+
+			type: 'number',
+
+			default: 1,
+
+			minimum: 1,
+
+			maximum: 8,
+
+			scope: ConfigurationScope.RESOURCE,
+
+			markdownDescription: localize(
+				'drox.subagents.maxConcurrent',
+				'Max number of Explore `task` sub-agents that may run in parallel (extras wait for a free slot).',
 			),
 
 		},

@@ -982,13 +982,16 @@ export class Response extends AbstractResponse implements IDisposable {
 			(part): part is ChatToolInvocation => part.kind === 'toolInvocation' && part.toolCallId === progress.toolCallId
 		);
 
+		// Subagent cards (Cursor Explore / runSubagent) render from contentForModel text parts.
+		const resultContent = externalToolInvocationResultContent(progress);
+
 		if (existingInvocation) {
 			if (progress.toolSpecificData !== undefined) {
 				existingInvocation.toolSpecificData = progress.toolSpecificData;
 			}
 			if (progress.isComplete) {
 				existingInvocation.didExecuteTool({
-					content: [],
+					content: resultContent,
 					toolResultMessage: progress.pastTenseMessage,
 					toolResultError: progress.errorMessage,
 					toolResultDetails: progress.resultDetails
@@ -1025,7 +1028,7 @@ export class Response extends AbstractResponse implements IDisposable {
 				invocation.toolSpecificData = progress.toolSpecificData;
 			}
 			invocation.didExecuteTool({
-				content: [],
+				content: resultContent,
 				toolResultMessage: progress.pastTenseMessage,
 				toolResultError: progress.errorMessage,
 				toolResultDetails: progress.resultDetails
@@ -1049,6 +1052,17 @@ export class Response extends AbstractResponse implements IDisposable {
 			this._onDidChangeValue.fire();
 		}
 	}
+}
+
+/** Text parts so ChatSubagentContentPart can render Explore/subagent reports from external updates. */
+function externalToolInvocationResultContent(progress: IChatExternalToolInvocationUpdate): Array<{ kind: 'text'; value: string }> {
+	if (progress.toolSpecificData?.kind === 'subagent') {
+		const result = progress.toolSpecificData.result?.trim();
+		if (result) {
+			return [{ kind: 'text', value: result }];
+		}
+	}
+	return [];
 }
 
 export interface IChatResponseModelParameters {

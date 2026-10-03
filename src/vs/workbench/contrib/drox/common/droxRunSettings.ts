@@ -166,6 +166,36 @@ export function readDisabledToolsForRun(configService: IConfigurationService, re
 export function isMcpToolsEnabled(configService: IConfigurationService, resource?: URI): boolean {
 	return readDroxChatConfigurationValue<boolean>(configService, DroxSetting.ToolsMcpEnabled, resource) !== false;
 }
+
+export interface IDroxSubagentsRunSettings {
+	readonly enabled: boolean;
+	readonly maxIterations: number;
+	readonly maxConcurrent: number;
+}
+
+function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
+	const n = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : fallback;
+	return Math.min(max, Math.max(min, n));
+}
+
+/** Settings for Explore (`task`) — master kill-switch + per-run ceilings. */
+export function readSubagentsSettings(configService: IConfigurationService, resource?: URI): IDroxSubagentsRunSettings {
+	const enabled = readDroxChatConfigurationValue<boolean>(configService, DroxSetting.SubagentsEnabled, resource) === true;
+	const maxIterations = clampInt(
+		readDroxChatConfigurationValue<number>(configService, DroxSetting.SubagentsMaxIterations, resource),
+		15,
+		1,
+		50,
+	);
+	const maxConcurrent = clampInt(
+		readDroxChatConfigurationValue<number>(configService, DroxSetting.SubagentsMaxConcurrent, resource),
+		1,
+		1,
+		8,
+	);
+	return { enabled, maxIterations, maxConcurrent };
+}
+
 function wireOptionalNumber(params: Record<string, unknown>, key: string, value: number | undefined): void {
 	if (value !== undefined && Number.isFinite(value)) {
 		params[key] = value;
@@ -190,6 +220,8 @@ export function buildAgentRunParams(opts: {
 	readonly allowOutsideWorkspace?: boolean;
 	/** Préfixe system IDE (ex. carnet session N0) — fusionné côté moteur avec memdir. */
 	readonly system?: string;
+	/** Explore sub-agents (`task`) — when `enabled`, wires `subagentsEnabled` + ceilings. */
+	readonly subagents?: IDroxSubagentsRunSettings;
 }): Record<string, unknown> {
 	const wireMode = normalizeDroxPermissionMode(opts.mode);
 	const params: Record<string, unknown> = {
@@ -271,6 +303,11 @@ export function buildAgentRunParams(opts: {
 	}
 	if (opts.allowOutsideWorkspace) {
 		params.allowOutsideWorkspace = true;
+	}
+	if (opts.subagents?.enabled) {
+		params.subagentsEnabled = true;
+		params.subagentsMaxIterations = opts.subagents.maxIterations;
+		params.subagentsMaxConcurrent = opts.subagents.maxConcurrent;
 	}
 	return params;
 }

@@ -1,23 +1,19 @@
-# Plan — Théming Drox (1.5.23)
+# Plan — Théming Drox (hors 1.5.23)
 
 **Parent** : [README 1.5.23](README.md)  
-**Statut** : 📋 noté · reporté depuis 1.5.22  
-**Ordre maj 1.5.23** : après **PF**, avant pass docs 1.5.23
+**Statut** : ⏸ **reporté** — retiré du cap 1.5.23  
+**Décision** : 2026-10-03 — priorité Explore + PF ; théming dans une maj ultérieure
 
-## Intention
+## Intention (inchangée)
 
 Revoir le **système de theming au complet** :
 
-1. **Coller au principe VS Code** — thèmes color / file-icon / product-icon importables (Marketplace, JSON utilisateur, `workbench.colorCustomizations`), sans fork opaque qui casse l’écosystème.
-2. **Identité Drox** — un (ou deux) thème(s) embarqué(s) avec une vraie signature visuelle (vert Drox `#3D7A3D`, chrome cohérent), pas un simple recolorage bleu VS Code.
+1. **Coller au principe VS Code** — thèmes color / file-icon / product-icon importables.  
+2. **Identité Drox** — thème(s) embarqué(s) signature verte `#3D7A3D`.
 
-## Hors scope
+## Critères done (brouillon, pour une maj future)
 
-Pas d’implémentation dans 1.5.22 (régulation + parité Agents). Ce plan est un **jalon 1.5.23**.
-
-## Critères done (brouillon)
-
-- [ ] Audit : ce qui est déjà « VS Code native » vs overrides Drox (Nexus Dark/Light, CSS chat/Agents, splash).
-- [ ] Thème identité : accent vert partout où l’ancien cyan VS Code / Nexus bleu fuyait encore.
-- [ ] Import utilisateur : un `.json` / extension thème tierce s’applique sans régression chrome Drox (ou régression documentée / opt-in).
-- [ ] Doc courte : comment changer / importer un thème dans Drox.
+- [ ] Audit : native VS Code vs overrides Drox.  
+- [ ] Thème identité vert cohérent.  
+- [ ] Import `.json` / thème Marketplace sans casser le chrome Drox.  
+- [ ] Doc courte utilisateur.

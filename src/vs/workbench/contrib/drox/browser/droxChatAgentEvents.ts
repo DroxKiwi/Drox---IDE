@@ -13,6 +13,7 @@ import {
 } from '../common/droxPhaseToolUi.js';
 import { describeToolCall, previewJson } from '../common/droxToolPreview.js';
 import { isFileMutationToolName } from '../common/droxFileMutation.js';
+import { buildExploreToolFinishWire, buildExploreToolStartWire } from '../common/chat/droxExploreToolWire.js';
 import { buildShellToolFinishWire, buildShellToolStartWire } from '../common/chat/droxShellToolWire.js';
 import { extractTodoErrorMessage, extractTodosFromToolOutput, isTodoWriteOutput } from '../common/droxTodoExtract.js';
 import { formatVisionChatError, isVisionRelatedLlmError } from '../common/droxVision.js';
@@ -42,6 +43,7 @@ const SKIP_TOOL_PREVIEW_NAMES = new Set([
 	'memory_read',
 	'memory_list',
 	'bash',
+	'task',
 	'list_mcp_resources',
 	'read_mcp_resource',
 ]);
@@ -160,6 +162,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 			}
 			const skipArgsPreview = SKIP_TOOL_PREVIEW_NAMES.has(name);
 			const shellStart = buildShellToolStartWire(name, args);
+			const exploreStart = buildExploreToolStartWire(name, args);
 			const { verb, target } = describeToolCall(name, args);
 			host.post({
 				kind: 'tool',
@@ -170,6 +173,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				target,
 				argsPreview: skipArgsPreview ? '' : previewJson(args),
 				...shellStart,
+				...exploreStart,
 			});
 			return;
 		}
@@ -222,6 +226,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				(pendingName && SKIP_TOOL_PREVIEW_NAMES.has(pendingName));
 			const outputPreview = skipOutputPreview ? '' : previewJson(output);
 			const shellOutput = buildShellToolFinishWire(pendingName, output, isError);
+			const exploreOutput = buildExploreToolFinishWire(pendingName, output, isError);
 			host.post({
 				kind: 'tool',
 				phase: 'finish',
@@ -230,6 +235,7 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				isError,
 				outputPreview,
 				shellOutput,
+				exploreOutput,
 			});
 			return;
 		}

@@ -25,12 +25,26 @@ export namespace DroxViews {
 	/** Agents auxiliary bar — same regulation UI. */
 	export const RegulationSessionsViewContainerId = 'workbench.view.drox.regulationSessionsContainer';
 	export const RegulationSessionsViewId = 'workbench.view.drox.regulationSessions';
+	/** Sidebar — traffic observatory (MITM / in-out requests). */
+	export const TrafficViewContainerId = 'workbench.view.drox.trafficContainer';
+	export const TrafficViewId = 'workbench.view.drox.traffic';
+	/** Agents auxiliary bar — same traffic UI. */
+	export const TrafficSessionsViewContainerId = 'workbench.view.drox.trafficSessionsContainer';
+	export const TrafficSessionsViewId = 'workbench.view.drox.trafficSessions';
+	/** Sidebar — declarative port forwards (external tool). */
+	export const PortsViewContainerId = 'workbench.view.drox.portsContainer';
+	export const PortsViewId = 'workbench.view.drox.ports';
+	/** Agents auxiliary bar — same ports UI. */
+	export const PortsSessionsViewContainerId = 'workbench.view.drox.portsSessionsContainer';
+	export const PortsSessionsViewId = 'workbench.view.drox.portsSessions';
 }
 
 export namespace DroxCommands {
 	export const OpenChat = 'workbench.action.openDroxChat';
 	export const NewChat = 'workbench.action.newDroxChat';
 	export const OpenSettings = 'workbench.action.openDroxSettings';
+	/** Open connection setup (wizard / server panel) from IDE or Agents. */
+	export const ConnectAi = 'workbench.action.droxConnectAi';
 	export const AddReferences = 'workbench.action.droxAddReferences';
 	export const AddDiagnosticToChat = 'workbench.action.droxAddDiagnosticToChat';
 	export const RevertLastRun = 'workbench.action.droxRevertLastRun';

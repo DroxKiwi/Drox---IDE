@@ -422,20 +422,33 @@ function shouldShowManageModelsAction(chatEntitlementService: IChatEntitlementSe
 		chatEntitlementService.isInternal;
 }
 
-function createManageModelsAction(commandService: ICommandService): IActionWidgetDropdownAction {
-	const openDroxSettings = product.droxMicrosoftAgentsSurfaceEnabled !== true;
+function isDroxModelPickerSurface(): boolean {
+	return product.droxMicrosoftAgentsSurfaceEnabled !== true;
+}
+
+function createManageModelsAction(commandService: ICommandService, emptyModels = false): IActionWidgetDropdownAction {
+	const openDroxSettings = isDroxModelPickerSurface();
+	const droxConnect = openDroxSettings && emptyModels;
 	return {
-		id: 'manageModels',
+		id: droxConnect ? 'droxConnectAi' : 'manageModels',
 		enabled: true,
 		checked: false,
-		class: ThemeIcon.asClassName(Codicon.gear),
-		tooltip: openDroxSettings
-			? localize('drox.manageModels.tooltip', "Open Drox model settings")
-			: localize('chat.manageModels.tooltip', "Manage Language Models"),
-		label: openDroxSettings
-			? localize('drox.manageModels', "Drox Settings…")
-			: localize('chat.manageModels', "Manage Models..."),
+		class: ThemeIcon.asClassName(droxConnect ? Codicon.plug : Codicon.gear),
+		tooltip: droxConnect
+			? localize('drox.modelPicker.connectTooltip', "Connect your AI provider")
+			: openDroxSettings
+				? localize('drox.manageModels.tooltip', "Open Drox model settings")
+				: localize('chat.manageModels.tooltip', "Manage Language Models"),
+		label: droxConnect
+			? localize('drox.modelPicker.connect', "Connect your AI")
+			: openDroxSettings
+				? localize('drox.manageModels', "Drox Settings…")
+				: localize('chat.manageModels', "Manage Models..."),
 		run: () => {
+			if (droxConnect) {
+				void commandService.executeCommand(DroxCommands.ConnectAi);
+				return;
+			}
 			commandService.executeCommand(openDroxSettings ? DroxCommands.OpenSettings : MANAGE_CHAT_COMMAND_ID);
 		}
 	};
@@ -486,6 +499,19 @@ export function buildModelPickerItems(
 	const items: IActionListItem<IActionWidgetDropdownAction>[] = [];
 	if (models.length === 0) {
 		if (!showAutoModel) {
+			// Drox: empty catalog means the user must connect a provider — surface
+			// an enabled Connect action instead of a dead "No models available".
+			if (manageModelsAction && isDroxModelPickerSurface()) {
+				items.push({
+					item: manageModelsAction,
+					kind: ActionListItemKind.Action,
+					label: manageModelsAction.label,
+					group: { title: '', icon: ThemeIcon.fromId(Codicon.plug.id) },
+					disabled: false,
+					hideIcon: false,
+				});
+				return items;
+			}
 			// Auto is not available for this session type (e.g. the Claude agent
 			// host), so the empty list cannot fall back to Auto. Surface a single
 			// disabled "No models available" entry. For Copilot Free / Student
@@ -1135,8 +1161,11 @@ export class ModelPickerWidget extends Disposable {
 		const manifest = this._languageModelsService.getModelsControlManifest();
 		// Signed-out users (e.g. offline-BYOK) should not see Copilot control-manifest entries
 		const controlModelsForTier: IStringDictionary<IModelControlEntry> = isSignedOut ? {} : getControlModelsForEntitlement(manifest, this._entitlementService.entitlement);
-		const canShowManageModelsAction = this._delegate.showManageModelsAction() && shouldShowManageModelsAction(this._entitlementService);
-		const manageModelsAction = canShowManageModelsAction ? createManageModelsAction(this._commandService) : undefined;
+		const canShowManageModelsAction = this._delegate.showManageModelsAction()
+			&& (isDroxModelPickerSurface() || shouldShowManageModelsAction(this._entitlementService));
+		const manageModelsAction = canShowManageModelsAction
+			? createManageModelsAction(this._commandService, models.length === 0)
+			: undefined;
 		const logModelPickerInteraction = (interaction: ChatModelPickerInteraction) => {
 			this._telemetryService.publicLog2<ChatModelPickerInteractionEvent, ChatModelPickerInteractionClassification>('chat.modelPickerInteraction', { interaction });
 		};
@@ -1164,7 +1193,8 @@ export class ModelPickerWidget extends Disposable {
 			onTogglePin,
 			manageSettingsUrl,
 			this._delegate.useGroupedModelPicker(),
-			isUBB ? manageModelsAction : undefined,
+			// Drox needs the Connect / Settings action in the empty-models list (not UBB-only).
+			(isUBB || isDroxModelPickerSurface()) ? manageModelsAction : undefined,
 			this._entitlementService,
 			this._delegate.showUnavailableFeatured(),
 			this._delegate.showFeatured(),
@@ -1278,7 +1308,9 @@ export class ModelPickerWidget extends Disposable {
 			nameChildren.push(renderIcon(statusIcon));
 		}
 		const modelLabel = noModelsAvailable
-			? localize('chat.modelPicker.noModels', "No models available")
+			? (isDroxModelPickerSurface()
+				? localize('drox.modelPicker.connect', "Connect your AI")
+				: localize('chat.modelPicker.noModels', "No models available"))
 			: (name ?? localize('chat.modelPicker.auto', "Auto"));
 		// In PRU mode, append the config description (e.g. thinking effort) to the button label
 		const isUBB = !!this._entitlementService.quotas.usageBasedBilling;

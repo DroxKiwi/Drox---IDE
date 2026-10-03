@@ -33,6 +33,9 @@ export interface IDroxBashExecResult {
 
 	readonly duration_ms: number;
 
+	/** IDE panel terminal instance id when run via the shared Drox Agent session. */
+	readonly terminal_instance_id?: number;
+
 	readonly error?: string;
 
 }
