@@ -11,21 +11,24 @@ import { Disposable, DisposableStore } from '../../../../../base/common/lifecycl
 import { localize } from '../../../../../nls.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
+import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
+import { IWorkbenchLayoutService } from '../../../../services/layout/browser/layoutService.js';
 import { IViewsService } from '../../../../services/views/common/viewsService.js';
 import { droxConfigChangeAffectsArchitectSettings, droxConfigChangeAffectsGeneralSettings } from '../../common/droxChatConfigSync.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { formatDroxNumCtxLabel } from '../../common/droxNumCtx.js';
 import { readDroxChatConfigurationValue } from '../../common/droxAgentsConfiguration.js';
-import { DroxViews } from '../../common/drox.js';
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxCodebaseSupervisionService } from '../../common/codebase/droxCodebaseSupervisionService.js';
 import { DroxCodebaseIndexState } from '../../common/codebase/droxCodebaseTypes.js';
 import { readDroxGeneralSettingsForWebview } from '../chat/droxChatGeneralSettings.js';
+import { openDroxCodebaseCockpit, openDroxRegulationView } from '../droxOpenWorkbenchViews.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import {
 	createCodebaseForcePickerChip,
 	createCodebaseStatusPickerChip,
 	createModelSettingsPickerChip,
+	createRegulationPickerChip,
 	createServerSettingsPickerChip,
 } from './droxAgentsPanelPickerChip.js';
 import { DroxAgentsPermissionModePicker } from './droxAgentsPermissionModePicker.js';
@@ -41,6 +44,7 @@ export class DroxAgentsComposerToolbar extends Disposable {
 	private readonly _serverSettingsChip: ReturnType<typeof createServerSettingsPickerChip>;
 	private readonly _codebaseChip: ReturnType<typeof createCodebaseStatusPickerChip>;
 	private readonly _codebaseForceChip: ReturnType<typeof createCodebaseForcePickerChip>;
+	private readonly _regulationChip: ReturnType<typeof createRegulationPickerChip>;
 	private readonly _permissionModePicker: DroxAgentsPermissionModePicker;
 	private readonly _chipDisposables = this._register(new DisposableStore());
 
@@ -52,6 +56,8 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		@IDroxCodebaseSupervisionService private readonly codebaseSupervision: IDroxCodebaseSupervisionService,
 		@IDroxCodebaseContextService private readonly codebaseContext: IDroxCodebaseContextService,
 		@IViewsService private readonly viewsService: IViewsService,
+		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
+		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
 
@@ -74,6 +80,10 @@ export class DroxAgentsComposerToolbar extends Disposable {
 			localize('droxAgents.codebaseForceAuto', 'Auto'),
 			localize('droxAgents.codebaseForceTitle', 'Force wider @Codebase inject on the next send'),
 		);
+		this._regulationChip = createRegulationPickerChip(
+			localize('droxAgents.regulationChip', 'Regulation'),
+			localize('droxAgents.regulationChipTitle', 'Open model regulation observatory'),
+		);
 		this._permissionModePicker = this._register(instantiationService.createInstance(DroxAgentsPermissionModePicker));
 
 		this.domNode = $('.drox-agents-composer-toolbar');
@@ -84,10 +94,12 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		this._chipDisposables.add(this._serverSettingsChip);
 		this._chipDisposables.add(this._codebaseChip);
 		this._chipDisposables.add(this._codebaseForceChip);
+		this._chipDisposables.add(this._regulationChip);
 		this._modelSettingsChip.render(this.domNode);
 		this._serverSettingsChip.render(this.domNode);
 		this._codebaseChip.render(this.domNode);
 		this._codebaseForceChip.render(this.domNode);
+		this._regulationChip.render(this.domNode);
 		this._permissionModePicker.render(this.domNode);
 
 		this._chipDisposables.add(this._modelSettingsChip.onDidClick(() => {
@@ -97,10 +109,21 @@ export class DroxAgentsComposerToolbar extends Disposable {
 			void this.composerHost.toggleServerSettingsPanel();
 		}));
 		this._chipDisposables.add(this._codebaseChip.onDidClick(() => {
-			void this._openCodebaseCockpit();
+			void openDroxCodebaseCockpit({
+				viewsService: this.viewsService,
+				layoutService: this.layoutService,
+				environmentService: this.environmentService,
+			});
 		}));
 		this._chipDisposables.add(this._codebaseForceChip.onDidClick(() => {
 			this.codebaseContext.toggleForceNextRun();
+		}));
+		this._chipDisposables.add(this._regulationChip.onDidClick(() => {
+			void openDroxRegulationView({
+				viewsService: this.viewsService,
+				layoutService: this.layoutService,
+				environmentService: this.environmentService,
+			});
 		}));
 
 		this._register(this.composerHost.attachToolbarRoot(this.domNode));
@@ -123,11 +146,6 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		this._syncChipLabels();
 		this._syncCodebaseChip();
 		this._syncCodebaseForceChip();
-	}
-
-	private async _openCodebaseCockpit(): Promise<void> {
-		await this.viewsService.openViewContainer(DroxViews.CodebaseViewContainerId, true);
-		await this.viewsService.openView(DroxViews.CodebaseViewId, true);
 	}
 
 	private _syncCodebaseChip(): void {

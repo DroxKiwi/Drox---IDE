@@ -64,6 +64,8 @@ export interface IDroxCodebasePipelineEvent {
 	readonly status: DroxCodebasePipelineEventStatus;
 	readonly message: string;
 	readonly path?: string;
+	/** Workspace root this event belongs to — cockpit filters by active discussion folder. */
+	readonly rootFsPath?: string;
 	readonly detail?: Readonly<Record<string, string | number | boolean | undefined>>;
 }
 
@@ -121,7 +123,10 @@ export interface IDroxCodebaseDiagExport {
 export interface IDroxCodebaseEmbedStats {
 	readonly modelId?: string;
 	readonly loaded: boolean;
+	/** Resident set of drox.exe (bytes), when embed.status reports it. */
 	readonly rssBytes?: number;
+	/** On-disk size of the resolved GGUF (bytes), when the file exists. */
+	readonly modelFileBytes?: number;
 	readonly lastProbeMs?: number;
 	/** Absolute path currently resolved for the GGUF (may be unloaded). */
 	readonly resolvedPath?: string;

@@ -185,6 +185,11 @@ export class DroxRegulationService extends Disposable implements IDroxRegulation
 
 	list(opts?: { readonly modelKey?: string; readonly limit?: number }): readonly IDroxRegulationHistoryEntry[] {
 		let rows = this._history;
+		// Partition by loaded discussion root (ignore orphan / other-folder rows).
+		if (this._loadedWorkspace) {
+			const ws = this._loadedWorkspace;
+			rows = rows.filter(e => !e.workspaceRootFsPath || e.workspaceRootFsPath === ws);
+		}
 		if (opts?.modelKey) {
 			const mk = opts.modelKey.trim();
 			rows = rows.filter(e => e.modelKey === mk);

@@ -117,16 +117,21 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 			if (this._paused.has(rootKey)) {
 				return;
 			}
-			await droxCodebaseRunEnsureIndexed({
-				fileService: this.fileService,
-				logService: this.logService,
-				workspaceRoot,
-				rootKey,
-				isPaused: () => this._paused.has(rootKey),
-				pipeline: this._pipeline,
-				embedDeps: this._embedDeps(),
-				setCaches: (chunks, vectors) => this._setCaches(rootKey, chunks, vectors),
-			});
+			this._pipeline.setWorkspaceRoot(rootKey);
+			try {
+				await droxCodebaseRunEnsureIndexed({
+					fileService: this.fileService,
+					logService: this.logService,
+					workspaceRoot,
+					rootKey,
+					isPaused: () => this._paused.has(rootKey),
+					pipeline: this._pipeline,
+					embedDeps: this._embedDeps(),
+					setCaches: (chunks, vectors) => this._setCaches(rootKey, chunks, vectors),
+				});
+			} finally {
+				this._pipeline.setWorkspaceRoot(undefined);
+			}
 		});
 	}
 
@@ -195,17 +200,22 @@ export class DroxCodebaseIndexService extends Disposable implements IDroxCodebas
 			if (this._paused.has(rootKey)) {
 				return;
 			}
-			await droxCodebaseRunInvalidate({
-				fileService: this.fileService,
-				logService: this.logService,
-				workspaceRoot,
-				rootKey,
-				paths,
-				isPaused: () => this._paused.has(rootKey),
-				pipeline: this._pipeline,
-				embedDeps: this._embedDeps(),
-				setCaches: (chunks, vectors) => this._setCaches(rootKey, chunks, vectors),
-			});
+			this._pipeline.setWorkspaceRoot(rootKey);
+			try {
+				await droxCodebaseRunInvalidate({
+					fileService: this.fileService,
+					logService: this.logService,
+					workspaceRoot,
+					rootKey,
+					paths,
+					isPaused: () => this._paused.has(rootKey),
+					pipeline: this._pipeline,
+					embedDeps: this._embedDeps(),
+					setCaches: (chunks, vectors) => this._setCaches(rootKey, chunks, vectors),
+				});
+			} finally {
+				this._pipeline.setWorkspaceRoot(undefined);
+			}
 		});
 	}
 

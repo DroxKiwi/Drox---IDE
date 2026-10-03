@@ -50,6 +50,10 @@ export class DroxRegulationViewPane extends ViewPane {
 		this._register(this.regulationService.onDidChangeScores(() => this._render()));
 		this._register(this.regulationService.onDidChangeHistory(() => this._render()));
 		this._register(this.regulationService.onDidChangeSurface(() => this._render()));
+		this._register(this.runSettingsService.onDidChangeWorkspaceResource(() => {
+			this._loadedRoot = undefined;
+			void this._ensureLoaded().then(() => this._render());
+		}));
 		void this._ensureLoaded();
 	}
 

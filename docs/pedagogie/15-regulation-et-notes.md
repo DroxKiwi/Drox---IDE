@@ -35,6 +35,12 @@ Deux choses distinctes :
 
 Si tu vois `0 runs` alors que tu as lancé des prompts Agents, c’est un bug de sonde (ou une vieille build) — pas un effet de Auto OFF.
 
+### Où ouvrir l’observatoire
+
+- IDE : activity bar **Regulation**.  
+- Agents : icône **pulse** sur la toolbar d’historique de discussion (ou chip composer) — même vue, store sous la **racine** de la session.  
+- Parité : [16-codebase-et-rag.md](16-codebase-et-rag.md) · [PLAN-AGENTS-PARITY.md](../1.5/1.5.22/PLAN-AGENTS-PARITY.md).
+
 ---
 
 ## Partie B — Les cinq leviers

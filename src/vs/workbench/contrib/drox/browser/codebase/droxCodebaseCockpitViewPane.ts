@@ -6,6 +6,7 @@
 // allow-any-unicode-comment-file
 
 import * as dom from '../../../../../base/browser/dom.js';
+import { RunOnceScheduler } from '../../../../../base/common/async.js';
 import { VSBuffer } from '../../../../../base/common/buffer.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { IClipboardService } from '../../../../../platform/clipboard/common/clipboardService.js';
@@ -35,6 +36,9 @@ import { renderDroxCodebaseCockpitPipeline } from './cockpit/droxCodebaseCockpit
 import { IDroxCodebaseCatalog } from '../../common/codebase/droxCodebaseCatalog.js';
 import './media/droxCodebaseCockpit.css';
 
+/** Poll embed.status for live RSS while the cockpit body is visible. */
+const EMBED_RSS_POLL_MS = 2000;
+
 /**
  * Shared @Codebase cockpit body (sidebar host first — Agents/panel later).
  * Spec: docs/1.5/1.5.21/codebase/PLAN-COCKPIT.md
@@ -56,6 +60,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 	private _lastCompactMsg: string | undefined;
 	private _catalogRootKey: string | undefined;
 	private _catalogStorageKey: string | undefined;
+	private readonly _embedRssPoll: RunOnceScheduler;
 
 	constructor(
 		options: IViewletViewOptions,
@@ -75,6 +80,24 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		@IFileService private readonly fileService: IFileService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
+		this._embedRssPoll = this._register(new RunOnceScheduler(() => {
+			if (!this.isBodyVisible()) {
+				return;
+			}
+			void this.supervision.refreshEmbedStatus().finally(() => {
+				if (this.isBodyVisible()) {
+					this._embedRssPoll.schedule();
+				}
+			});
+		}, EMBED_RSS_POLL_MS));
+		this._register(this.onDidChangeBodyVisibility(visible => {
+			if (visible) {
+				void this.supervision.refreshEmbedStatus();
+				this._embedRssPoll.schedule();
+			} else {
+				this._embedRssPoll.cancel();
+			}
+		}));
 		this._register(this.supervision.onDidChangeSnapshot(() => {
 			const s = this.supervision.snapshot;
 			const key = `${s.rootFsPath ?? ''}|${s.storage.files}|${s.storage.chunks}|${s.storage.bytes}`;
@@ -127,6 +150,19 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		dom.append(header, dom.$('p', undefined, localize('drox.codebase.state', 'State: {0}', s.state)));
 		if (s.lastError) {
 			dom.append(header, dom.$('p', undefined, s.lastError));
+		}
+
+		if (s.alerts.length) {
+			const alerts = dom.append(this._body, dom.$('.drox-codebase-section'));
+			dom.append(alerts, dom.$('h4', undefined, localize('drox.codebase.alerts', 'Alerts')));
+			for (const a of s.alerts) {
+				const row = dom.append(alerts, dom.$('p.drox-codebase-alert', undefined, `[${a.severity}] ${a.message}`));
+				if (a.severity === 'warn') {
+					row.classList.add('is-warn');
+				} else if (a.severity === 'error') {
+					row.classList.add('is-error');
+				}
+			}
 		}
 
 		const { logEl } = renderDroxCodebaseCockpitPipeline(this._body, {
@@ -221,14 +257,6 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		this._probeInput = probe.input;
 		this._probeResults = probe.results;
 		renderDroxCodebaseCockpitHits(this._probeResults, this._lastHits);
-
-		if (s.alerts.length) {
-			const alerts = dom.append(this._body, dom.$('.drox-codebase-section'));
-			dom.append(alerts, dom.$('h4', undefined, localize('drox.codebase.alerts', 'Alerts')));
-			for (const a of s.alerts) {
-				dom.append(alerts, dom.$('p', undefined, `[${a.severity}] ${a.message}`));
-			}
-		}
 
 		if (this._pipelineLogEl && this._pipelineLogPinnedToBottom) {
 			this._pipelineLogEl.scrollTop = this._pipelineLogEl.scrollHeight;
