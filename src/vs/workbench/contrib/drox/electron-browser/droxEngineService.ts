@@ -27,6 +27,10 @@ import { IDroxExecutableService } from '../common/droxExecutableService.js';
 import { DroxEngineInitializeResult, IDroxEngineService, InitializeOptions, RpcRequestHandler } from '../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 import { RpcRequestResult } from '../common/droxRpc.js';
+import { DroxSetting } from '../common/droxConfiguration.js';
+import { IDroxTrafficService } from '../common/traffic/droxTrafficService.js';
+import { destinationFromUrl, normalizeTrafficDestination } from '../common/traffic/droxTrafficTags.js';
+import { DroxTrafficKind } from '../common/traffic/droxTrafficTypes.js';
 import { DroxEngineChannelClient } from './droxEngineChannelClient.js';
 
 export class DroxEngineService extends Disposable implements IDroxEngineService {
@@ -93,6 +97,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IProductService private readonly productService: IProductService,
 		@IOutputService private readonly outputService: IOutputService,
+		@IDroxTrafficService private readonly trafficService: IDroxTrafficService,
 	) {
 		super();
 
@@ -106,7 +111,10 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 			this._onLog.fire(e);
 			this.appendEngineLog(e.text);
 		}));
-		this._register(this.ipc.onNotification(e => this._onNotification.fire(e)));
+		this._register(this.ipc.onNotification(e => {
+			this._onNotification.fire(e);
+			this.recordTrafficNotification(e.method, e.params);
+		}));
 		this._register(this.ipc.onExit(e => {
 			this._started = false;
 			this._onExit.fire(e);
@@ -200,16 +208,95 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		return init;
 	}
 
-	request(method: string, params?: unknown): Promise<unknown> {
-		return this.ipc.request(method, params);
+	async request(method: string, params?: unknown): Promise<unknown> {
+		const kind = trafficKindForRpc(method);
+		const summary = summarizeRpcOut(method, params);
+		const destination = method === 'agent.run' || method.startsWith('agent.')
+			? this.llmServerDestination()
+			: undefined;
+		const t0 = Date.now();
+		this.trafficService.record({
+			direction: 'out',
+			kind,
+			summary,
+			status: 'running',
+			destination,
+		});
+		try {
+			const result = await this.ipc.request(method, params);
+			this.trafficService.record({
+				direction: 'in',
+				kind,
+				summary: `${summary} ← ok`,
+				durationMs: Date.now() - t0,
+				status: 'ok',
+				detail: summarizeRpcResult(method, result),
+				destination,
+			});
+			return result;
+		} catch (err) {
+			this.trafficService.record({
+				direction: 'in',
+				kind,
+				summary: `${summary} ← error`,
+				durationMs: Date.now() - t0,
+				status: 'error',
+				detail: err instanceof Error ? err.message : String(err),
+				destination,
+			});
+			throw err;
+		}
 	}
 
-	fetchHttp(
+	private llmServerDestination(): string | undefined {
+		const raw = this.configurationService.getValue<string>(DroxSetting.Server);
+		if (typeof raw !== 'string' || !raw.trim()) {
+			return undefined;
+		}
+		// Prefer host+path so destination tags can partial-match the configured server URL.
+		return destinationFromUrl(raw.trim()) ?? normalizeTrafficDestination(raw);
+	}
+
+	async fetchHttp(
 		url: string,
 		headers?: Record<string, string>,
 		options?: { method?: 'GET' | 'POST'; body?: string },
 	): Promise<{ statusCode: number; body: string }> {
-		return this.ipc.fetchHttp(url, headers, options);
+		const method = options?.method ?? 'GET';
+		const destination = destinationFromUrl(url);
+		const t0 = Date.now();
+		this.trafficService.record({
+			direction: 'out',
+			kind: 'llm',
+			summary: `${method} ${shortUrl(url)}`,
+			status: 'running',
+			detail: options?.body ? `body ${options.body.length} chars` : undefined,
+			destination,
+		});
+		try {
+			const result = await this.ipc.fetchHttp(url, headers, options);
+			this.trafficService.record({
+				direction: 'in',
+				kind: 'llm',
+				summary: `${method} ${shortUrl(url)} ← ${result.statusCode}`,
+				durationMs: Date.now() - t0,
+				status: result.statusCode >= 400 ? 'error' : 'ok',
+				detail: `response ${result.body.length} chars`,
+				destination,
+			});
+			return result;
+		} catch (err) {
+			this.trafficService.record({
+				direction: 'in',
+				kind: 'llm',
+				summary: `${method} ${shortUrl(url)} ← error`,
+				durationMs: Date.now() - t0,
+				status: 'error',
+				detail: err instanceof Error ? err.message : String(err),
+				destination,
+			});
+			throw err;
+		}
 	}
 
 	setRequestHandler(method: string, handler: RpcRequestHandler): void {
@@ -247,6 +334,15 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 	}
 
 	private async dispatchServerRequest(id: number | string, method: string, params: unknown): Promise<void> {
+		const kind = trafficKindForRpc(method);
+		const summary = summarizeRpcIn(method, params);
+		const t0 = Date.now();
+		this.trafficService.record({
+			direction: 'in',
+			kind,
+			summary,
+			status: 'running',
+		});
 		const handler = this.requestHandlers.get(method);
 		let payload: RpcRequestResult;
 		if (!handler) {
@@ -268,11 +364,105 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 				};
 			}
 		}
+		this.trafficService.record({
+			direction: 'out',
+			kind,
+			summary: `${summary} → ${payload.error ? 'error' : 'ok'}`,
+			durationMs: Date.now() - t0,
+			status: payload.error ? 'error' : 'ok',
+			detail: payload.error?.message,
+		});
 		await this.ipc.respondServerRequest(id, payload);
+	}
+
+	private recordTrafficNotification(method: string, params: unknown): void {
+		// High-signal notifications only — skip token/stream spam.
+		const m = method.toLowerCase();
+		if (!(m.includes('error') || m.includes('fail') || m.endsWith('/done') || m.includes('tool') || m === 'agent.event')) {
+			return;
+		}
+		this.trafficService.record({
+			direction: 'in',
+			kind: trafficKindForRpc(method),
+			summary: `notify ${method}`,
+			status: m.includes('error') || m.includes('fail') ? 'error' : 'ok',
+			detail: summarizeNotificationParams(params),
+		});
 	}
 
 	private appendEngineLog(text: string): void {
 		const channel = this.outputService.getChannel(DROX_OUTPUT_CHANNEL_ID);
 		channel?.append(text);
+	}
+}
+
+function trafficKindForRpc(method: string): DroxTrafficKind {
+	const m = method.toLowerCase();
+	if (m.includes('tool')) {
+		return 'tool';
+	}
+	if (m.includes('embed') || m.includes('codebase')) {
+		return 'embed';
+	}
+	if (m.includes('mcp')) {
+		return 'mcp';
+	}
+	if (m.startsWith('agent.') || m.includes('llm') || m.includes('chat') || m.includes('completion')) {
+		return 'llm';
+	}
+	return 'rpc';
+}
+
+function summarizeRpcOut(method: string, params: unknown): string {
+	if (method === 'agent.run') {
+		const p = params as { prompt?: string; message?: string; model?: string; architectModel?: string } | undefined;
+		const model = typeof p?.model === 'string' ? p.model
+			: typeof p?.architectModel === 'string' ? p.architectModel
+				: undefined;
+		const raw = typeof p?.prompt === 'string' ? p.prompt : typeof p?.message === 'string' ? p.message : undefined;
+		const msg = raw?.trim().replace(/\s+/g, ' ').slice(0, 80);
+		return `agent.run${model ? ` [${model}]` : ''}${msg ? ` — ${msg}` : ''}`;
+	}
+	if (method === 'agent.cancel') {
+		return 'agent.cancel';
+	}
+	return method;
+}
+
+function summarizeRpcIn(method: string, params: unknown): string {
+	if (method === 'tool/exec') {
+		const p = params as { toolName?: string } | undefined;
+		return `tool/exec ${typeof p?.toolName === 'string' ? p.toolName : '?'}`;
+	}
+	return method;
+}
+
+function summarizeRpcResult(method: string, result: unknown): string | undefined {
+	if (method === 'agent.run' && result && typeof result === 'object') {
+		const runId = (result as { runId?: unknown }).runId;
+		if (typeof runId === 'string') {
+			return `runId=${runId}`;
+		}
+	}
+	return undefined;
+}
+
+function summarizeNotificationParams(params: unknown): string | undefined {
+	if (!params || typeof params !== 'object') {
+		return undefined;
+	}
+	const o = params as Record<string, unknown>;
+	const type = typeof o.type === 'string' ? o.type : typeof o.event === 'string' ? o.event : undefined;
+	const name = typeof o.name === 'string' ? o.name : typeof o.toolName === 'string' ? o.toolName : undefined;
+	const parts = [type, name].filter(Boolean);
+	return parts.length ? parts.join(' ') : undefined;
+}
+
+function shortUrl(url: string): string {
+	try {
+		const u = new URL(url);
+		return `${u.host}${u.pathname}`;
+	} catch {
+		return url.length > 80 ? `${url.slice(0, 80)}…` : url;
 	}
 }

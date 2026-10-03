@@ -33,6 +33,8 @@ export interface IDroxCodebaseIndexEmbedDeps {
 	readonly embedClient: DroxCodebaseEmbedClient;
 	readonly pipeline: DroxCodebaseIndexPipelineEmitter;
 	readonly resolveOpts: IDroxCodebaseEmbedResolveOpts;
+	/** When false, skip encode; keep reused vectors for store continuity. */
+	readonly embedEnabled?: boolean;
 }
 
 export async function droxCodebaseMergeEmbed(
@@ -42,6 +44,19 @@ export async function droxCodebaseMergeEmbed(
 	fallbackModelPath: string | undefined,
 ): Promise<{ vectors: IDroxCodebaseVectorRow[]; dimensions: number; modelPath: string } | undefined> {
 	const { pipeline } = deps;
+	if (deps.embedEnabled === false) {
+		pipeline.emit('embed_batch', 'ok', 'Embed disabled — lexical-only (kept reused vectors)', {
+			detail: { progressPct: 85, reusedVectors: reusedVectors.length, needEmbed: needEmbed.length },
+		});
+		if (!reusedVectors.length) {
+			return undefined;
+		}
+		return {
+			vectors: [...reusedVectors],
+			dimensions: reusedVectors[0]!.values.length,
+			modelPath: fallbackModelPath ?? 'disabled',
+		};
+	}
 	if (!needEmbed.length) {
 		if (!reusedVectors.length) {
 			pipeline.emit('embed_batch', 'ok', 'Embed skipped — nothing new to encode (reused vectors only or lexical)', {

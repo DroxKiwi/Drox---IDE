@@ -58,7 +58,7 @@ export function renderDroxCodebaseCockpitPipeline(
 	exportBtn.title = localize('drox.codebase.exportDiagTitle', 'Copy JSON to clipboard and write diag-export-*.json under .drox/codebase-index');
 	exportBtn.onclick = () => opts.onExport();
 
-	const clearBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+	const clearBtn = dom.append(actions, dom.$('button.drox-codebase-btn.drox-codebase-btn-ghost')) as HTMLButtonElement;
 	clearBtn.textContent = localize('drox.codebase.clearPipeline', 'Clear log');
 	clearBtn.onclick = () => opts.onClear();
 

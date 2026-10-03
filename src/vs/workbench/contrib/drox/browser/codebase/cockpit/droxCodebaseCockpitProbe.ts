@@ -24,11 +24,18 @@ export function renderDroxCodebaseCockpitProbe(
 	dom.append(probe, dom.$('h4', undefined, opts.mode === 'hybrid'
 		? localize('drox.codebase.probeHybrid', 'Hybrid probe')
 		: localize('drox.codebase.probe', 'Lexical probe')));
-	const input = dom.append(probe, dom.$('input.drox-codebase-probe-input')) as HTMLInputElement;
+	const row = dom.append(probe, dom.$('.drox-codebase-row'));
+	const input = dom.append(row, dom.$('input.drox-codebase-field.drox-codebase-field-sm')) as HTMLInputElement;
 	input.type = 'text';
 	input.placeholder = localize('drox.codebase.probePlaceholder', 'e.g. checkout branch');
 	input.value = opts.prevQuery;
-	const probeBtn = dom.append(probe, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+	input.onkeydown = e => {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			opts.onProbe();
+		}
+	};
+	const probeBtn = dom.append(row, dom.$('button.drox-codebase-btn.drox-codebase-btn-primary')) as HTMLButtonElement;
 	probeBtn.textContent = localize('drox.codebase.runProbe', 'Probe');
 	probeBtn.onclick = () => opts.onProbe();
 	const results = dom.append(probe, dom.$('.drox-codebase-probe-results'));

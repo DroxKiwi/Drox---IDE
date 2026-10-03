@@ -198,6 +198,52 @@ suite('Drox — droxAgentsChatSink', () => {
 		}
 	});
 
+	test('task Explore emits Cursor-shaped subagent toolSpecificData', () => {
+		const parts: IChatProgress[] = [];
+		const sink = createDroxAgentsChatSink(p => parts.push(...p));
+		sink.handleAgentEvent(agentEvent('tool_start', {
+			id: 'explore_1',
+			name: 'task',
+			arguments: {
+				description: 'Locate Traffic alert settings',
+				thoroughness: 'quick',
+				subagent_type: 'explore',
+			},
+		}));
+		sink.handleAgentEvent(agentEvent('tool_finish', {
+			id: 'explore_1',
+			output: {
+				subagent_type: 'explore',
+				report: 'See drox.traffic.alerts in settings.',
+			},
+		}));
+
+		const tools = parts.filter(p => p.kind === 'externalToolInvocationUpdate');
+		assert.strictEqual(tools.length, 2);
+		assert.strictEqual(tools[0].kind, 'externalToolInvocationUpdate');
+		if (tools[0].kind === 'externalToolInvocationUpdate') {
+			assert.strictEqual(tools[0].isComplete, false);
+			assert.strictEqual(tools[0].invocationMessage, 'Locate Traffic alert settings');
+			assert.deepStrictEqual(tools[0].toolSpecificData, {
+				kind: 'subagent',
+				agentName: 'explore',
+				description: 'Locate Traffic alert settings',
+				prompt: 'Locate Traffic alert settings',
+				result: undefined,
+			});
+		}
+		if (tools[1].kind === 'externalToolInvocationUpdate') {
+			assert.strictEqual(tools[1].isComplete, true);
+			assert.deepStrictEqual(tools[1].toolSpecificData, {
+				kind: 'subagent',
+				agentName: 'explore',
+				description: 'Locate Traffic alert settings',
+				prompt: 'Locate Traffic alert settings',
+				result: 'See drox.traffic.alerts in settings.',
+			});
+		}
+	});
+
 	test('todo_write finish invokes onTodosUpdated for plan widget', () => {
 		const updates: { id: string; title: string; status: string }[][] = [];
 		const sink = createDroxAgentsChatSink(() => { }, {

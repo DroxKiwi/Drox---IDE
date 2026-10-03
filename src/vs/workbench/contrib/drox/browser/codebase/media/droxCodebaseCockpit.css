@@ -3,77 +3,255 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+.drox-codebase-cockpit {
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
 .drox-codebase-cockpit-body {
-	padding: 8px 12px;
+	--drox-cb-accent: #3D7A3D;
+	--drox-cb-accent-soft: color-mix(in srgb, #3D7A3D 10%, transparent);
+	--drox-cb-surface: transparent;
+	--drox-cb-border: var(--vscode-panel-border, rgba(128, 128, 128, 0.28));
+	--drox-cb-rule: color-mix(in srgb, #3D7A3D 50%, transparent);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 10px 12px 8px;
 	overflow: auto;
 	box-sizing: border-box;
+	min-height: 0;
 }
 
 .drox-codebase-section {
-	margin-bottom: 12px;
+	margin: 0;
+	padding: 8px 0 10px 10px;
+	border: none;
+	border-left: 2px solid var(--drox-cb-rule);
+	border-bottom: 1px solid var(--drox-cb-border);
+	border-radius: 0;
+	background: var(--drox-cb-surface);
 }
 
 .drox-codebase-section h3,
 .drox-codebase-section h4 {
-	margin: 0 0 4px 0;
+	margin: 0 0 6px 0;
 	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+
+.drox-codebase-section h3 {
+	font-size: 13px;
+	color: color-mix(in srgb, var(--drox-cb-accent) 55%, var(--vscode-foreground, inherit));
+}
+
+.drox-codebase-section h4 {
+	font-size: 11px;
+	text-transform: uppercase;
+	opacity: 0.78;
+	letter-spacing: 0.04em;
 }
 
 .drox-codebase-section p {
 	margin: 2px 0;
+	font-size: 12px;
+	line-height: 1.35;
 }
 
 .drox-codebase-muted {
-	opacity: 0.75;
+	opacity: 0.72;
 	font-size: 11px;
+	line-height: 1.35;
 	word-break: break-all;
+	margin: 0;
+}
+
+.drox-codebase-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 8px;
 }
 
 .drox-codebase-actions {
 	display: flex;
 	gap: 8px;
 	flex-wrap: wrap;
-	margin-bottom: 12px;
+	align-items: center;
+	margin: 8px 0 0 0;
 }
 
+.drox-codebase-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+	cursor: pointer;
+	user-select: none;
+	opacity: 1;
+}
+
+.drox-codebase-toggle input {
+	accent-color: var(--drox-cb-accent);
+	width: 14px;
+	height: 14px;
+	margin: 0;
+}
+
+.drox-codebase-field,
 .drox-codebase-probe-input {
+	appearance: none;
 	width: 100%;
 	box-sizing: border-box;
-	margin: 4px 0 8px 0;
+	margin: 6px 0 0 0;
+	padding: 7px 10px;
+	border-radius: 6px;
+	border: 1px solid var(--drox-cb-border);
+	background: var(--vscode-input-background, rgba(0, 0, 0, 0.25));
+	color: var(--vscode-input-foreground, inherit);
+	font: inherit;
+	font-size: 12px;
+	outline: none;
+}
+
+.drox-codebase-field:focus,
+.drox-codebase-probe-input:focus {
+	border-color: color-mix(in srgb, var(--drox-cb-accent) 65%, var(--drox-cb-border));
+	box-shadow: none;
+}
+
+.drox-codebase-field-sm,
+.drox-codebase-actions .drox-codebase-probe-input,
+.drox-codebase-actions .drox-codebase-field {
+	width: auto;
+	min-width: 140px;
+	flex: 1 1 140px;
+	margin: 0;
+}
+
+.drox-codebase-btn {
+	appearance: none;
+	cursor: pointer;
+	border: 1px solid var(--drox-cb-border);
+	background: transparent;
+	color: var(--vscode-foreground, inherit);
+	border-radius: 5px;
+	padding: 5px 10px;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.2;
+	transition: background 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+
+.drox-codebase-btn:hover:not(:disabled) {
+	border-color: color-mix(in srgb, var(--drox-cb-accent) 45%, var(--drox-cb-border));
+	background: var(--drox-cb-accent-soft);
+}
+
+.drox-codebase-btn:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.drox-codebase-btn-primary {
+	background: transparent;
+	border-color: color-mix(in srgb, var(--drox-cb-accent) 55%, var(--drox-cb-border));
+	color: color-mix(in srgb, var(--drox-cb-accent) 70%, var(--vscode-foreground, inherit));
+}
+
+.drox-codebase-btn-primary:hover:not(:disabled) {
+	background: var(--drox-cb-accent-soft);
+	border-color: var(--drox-cb-accent);
+	color: color-mix(in srgb, var(--drox-cb-accent) 85%, var(--vscode-foreground, inherit));
+}
+
+.drox-codebase-btn-ghost {
+	padding: 3px 8px;
+	font-size: 11px;
+	font-weight: 500;
+	opacity: 0.9;
+}
+
+.drox-codebase-btn-danger {
+	border-color: color-mix(in srgb, var(--vscode-testing-iconFailed, #f14c4c) 55%, var(--drox-cb-border));
+}
+
+.drox-codebase-btn-danger:hover:not(:disabled) {
+	border-color: var(--vscode-testing-iconFailed, #f14c4c);
+	background: color-mix(in srgb, var(--vscode-testing-iconFailed, #f14c4c) 18%, transparent);
+}
+
+.drox-codebase-path {
+	margin-top: 6px;
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 10px;
+	opacity: 0.7;
+	word-break: break-all;
 }
 
 .drox-codebase-hit {
-	margin-bottom: 8px;
-	border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
-	padding-top: 6px;
+	margin: 0;
+	padding: 6px 4px;
+	border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border, rgba(128, 128, 128, 0.35)) 70%, transparent);
+	font-size: 11px;
+}
+
+.drox-codebase-hit:hover {
+	background: var(--drox-cb-accent-soft);
+}
+
+.drox-codebase-hit p {
+	margin: 0;
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 11px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .drox-codebase-preview {
 	white-space: pre-wrap;
-	font-size: 11px;
+	font-size: 10px;
 	margin: 4px 0 0 0;
-	opacity: 0.85;
-	max-height: 120px;
+	opacity: 0.8;
+	max-height: 72px;
 	overflow: auto;
+	line-height: 1.3;
 }
 
-.drox-codebase-embed-callout {
-	margin: 6px 0 10px 0;
-	padding: 8px 10px;
-	border-left: 3px solid var(--vscode-focusBorder, #007acc);
-	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.12));
+.drox-codebase-probe-results,
+.drox-codebase-inject-hits {
+	margin-top: 8px;
+	max-height: 180px;
+	overflow: auto;
+	min-height: 0;
+}
+
+.drox-codebase-embed-callout,
+.drox-codebase-inject-callout {
+	margin: 8px 0 0 0;
+	padding: 6px 0 6px 10px;
+	border-radius: 0;
+	border: none;
+	border-left: 2px solid var(--drox-cb-rule);
+	background: transparent;
 }
 
 .drox-codebase-embed-callout-title {
 	margin: 0 0 6px 0;
 	font-weight: 600;
+	font-size: 12px;
 }
 
 .drox-codebase-embed-facts {
 	margin: 0;
 	padding-left: 18px;
-	font-size: 12px;
-	line-height: 1.35;
+	font-size: 11px;
+	line-height: 1.4;
+	opacity: 0.9;
 }
 
 .drox-codebase-embed-facts li {
@@ -81,44 +259,51 @@
 }
 
 .drox-codebase-embed-resources {
-	margin: 8px 0 10px 0;
-	padding: 8px 10px;
-	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
-	border-radius: 4px;
-	background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.08));
+	margin: 8px 0 0 0;
+	padding: 6px 0 0 0;
+	border: none;
+	border-top: 1px solid var(--drox-cb-border);
+	border-radius: 0;
+	background: transparent;
 }
 
 .drox-codebase-embed-resources-title {
 	margin: 0 0 6px 0;
 	font-weight: 600;
-	font-size: 12px;
+	font-size: 11px;
+	text-transform: uppercase;
+	opacity: 0.9;
 }
 
-.drox-codebase-embed-ram-bar {
-	height: 8px;
-	border-radius: 4px;
-	background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.25));
+.drox-codebase-embed-ram-bar,
+.drox-codebase-pipeline-bar {
+	height: 6px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.25)) 80%, transparent);
 	overflow: hidden;
 	margin: 0 0 6px 0;
 }
 
-.drox-codebase-embed-ram-bar-fill {
+.drox-codebase-embed-ram-bar-fill,
+.drox-codebase-pipeline-bar-fill {
 	height: 100%;
 	width: 0;
-	background: var(--vscode-charts-blue, #3794ff);
+	background: var(--drox-cb-accent);
 	transition: width 0.25s ease-out;
 }
 
 .drox-codebase-embed-ram-bar-fill.is-loaded {
-	background: var(--vscode-testing-iconPassed, #73c991);
+	background: #4a914a;
 }
 
 .drox-codebase-alert {
 	margin: 4px 0;
-	padding: 6px 8px;
-	border-left: 3px solid var(--vscode-focusBorder, #007acc);
-	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.12));
-	font-size: 12px;
+	padding: 5px 0 5px 10px;
+	border-radius: 0;
+	border: none;
+	border-left: 2px solid var(--drox-cb-rule);
+	background: transparent;
+	font-size: 11px;
 }
 
 .drox-codebase-alert.is-warn {
@@ -127,10 +312,6 @@
 
 .drox-codebase-alert.is-error {
 	border-left-color: var(--vscode-testing-iconFailed, #f14c4c);
-}
-
-.drox-codebase-btn {
-	cursor: pointer;
 }
 
 .drox-codebase-pipeline-stages {
@@ -144,22 +325,26 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	padding: 4px 8px;
-	border-radius: 4px;
+	padding: 3px 8px;
+	border-radius: 999px;
 	font-size: 11px;
-	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	font-weight: 500;
+	border: 1px solid transparent;
 	opacity: 0.7;
+	background: transparent;
 }
 
 .drox-codebase-pipeline-stage.is-active {
 	opacity: 1;
-	border-color: var(--vscode-focusBorder, #007acc);
-	background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+	border-color: color-mix(in srgb, var(--drox-cb-accent) 40%, var(--drox-cb-border));
+	background: var(--drox-cb-accent-soft);
+	color: color-mix(in srgb, var(--drox-cb-accent) 65%, var(--vscode-foreground, inherit));
 }
 
 .drox-codebase-pipeline-stage.is-done {
 	opacity: 1;
-	border-color: var(--vscode-testing-iconPassed, #73c991);
+	border-color: transparent;
+	color: color-mix(in srgb, var(--drox-cb-accent) 55%, var(--vscode-foreground, inherit));
 }
 
 .drox-codebase-pipeline-stage.is-error {
@@ -180,65 +365,51 @@
 }
 
 .drox-codebase-pipeline-stage.is-active .drox-codebase-pipeline-stage-dot {
-	background: var(--vscode-focusBorder, #007acc);
+	background: var(--drox-cb-accent);
 }
 
 .drox-codebase-pipeline-stage.is-done .drox-codebase-pipeline-stage-dot {
-	background: var(--vscode-testing-iconPassed, #73c991);
+	background: #4a914a;
 }
 
 .drox-codebase-pipeline-stage.is-error .drox-codebase-pipeline-stage-dot {
 	background: var(--vscode-testing-iconFailed, #f14c4c);
 }
 
-.drox-codebase-pipeline-bar {
-	height: 6px;
-	border-radius: 3px;
-	background: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.2));
-	overflow: hidden;
-	margin: 6px 0 2px 0;
-}
-
-.drox-codebase-pipeline-bar-fill {
-	height: 100%;
-	width: 0;
-	background: var(--vscode-progressBar-background, #0e70c0);
-	transition: width 0.2s ease-out;
-}
-
 .drox-codebase-pipeline-log {
 	margin-top: 8px;
-	max-height: 220px;
+	max-height: 160px;
 	overflow: auto;
-	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
-	border-radius: 4px;
-	padding: 6px 8px;
+	border: none;
+	border-top: 1px solid var(--drox-cb-border);
+	border-radius: 0;
+	padding: 4px 0;
 	font-size: 11px;
 	font-family: var(--monaco-monospace-font, monospace);
-	background: var(--vscode-editor-background, transparent);
+	background: transparent;
 }
-
-/* CB4 — last auto-inject strip */
 
 .drox-codebase-inject-badges {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
-	margin: 6px 0 8px 0;
+	margin: 6px 0 0 0;
 }
 
 .drox-codebase-inject-badge {
 	display: inline-block;
 	padding: 2px 8px;
-	border-radius: 4px;
-	font-size: 11px;
-	font-weight: 600;
-	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	border-radius: 999px;
+	font-size: 10px;
+	font-weight: 700;
+	border: 1px solid var(--drox-cb-border);
+	line-height: 1.55;
 }
 
 .drox-codebase-inject-badge.is-ok {
-	border-color: var(--vscode-testing-iconPassed, #73c991);
-	color: var(--vscode-testing-iconPassed, #73c991);
+	border-color: color-mix(in srgb, var(--drox-cb-accent) 40%, var(--drox-cb-border));
+	color: color-mix(in srgb, var(--drox-cb-accent) 70%, var(--vscode-foreground, inherit));
+	background: var(--drox-cb-accent-soft);
 }
 
 .drox-codebase-inject-badge.is-muted {
@@ -248,17 +419,21 @@
 .drox-codebase-inject-badge.is-warn {
 	border-color: var(--vscode-charts-orange, #ee9d28);
 	color: var(--vscode-charts-orange, #ee9d28);
+	background: color-mix(in srgb, var(--vscode-charts-orange, #ee9d28) 14%, transparent);
 }
 
 .drox-codebase-inject-badge.is-toggle {
 	cursor: pointer;
 	font: inherit;
+	font-size: 10px;
+	font-weight: 700;
 	background: transparent;
 	color: inherit;
 }
 
-.drox-codebase-inject-badge.is-toggle:hover {
-	filter: brightness(1.15);
+.drox-codebase-inject-badge.is-toggle:hover:not(:disabled) {
+	border-color: var(--drox-cb-accent);
+	background: var(--drox-cb-accent-soft);
 }
 
 .drox-codebase-inject-badge.is-toggle:disabled {
@@ -266,15 +441,8 @@
 	opacity: 0.6;
 }
 
-.drox-codebase-inject-callout {
-	margin: 0 0 8px 0;
-	padding: 8px 10px;
-	border-left: 3px solid var(--vscode-focusBorder, #007acc);
-	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.12));
-}
-
 .drox-codebase-inject-callout.is-ok {
-	border-left-color: var(--vscode-testing-iconPassed, #73c991);
+	border-left-color: #4a914a;
 }
 
 .drox-codebase-inject-callout.is-forced {
@@ -292,29 +460,31 @@
 	font-size: 12px;
 }
 
-.drox-codebase-inject-hits {
-	margin-top: 4px;
-}
-
 .drox-codebase-pipeline-event {
 	display: flex;
 	flex-direction: column;
 	gap: 1px;
-	padding: 4px 0;
-	border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+	padding: 4px 2px;
+	border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border, rgba(128, 128, 128, 0.2)) 70%, transparent);
 }
 
 .drox-codebase-pipeline-event:last-child {
 	border-bottom: none;
 }
 
+.drox-codebase-pipeline-event:hover {
+	background: var(--drox-cb-accent-soft);
+}
+
 .drox-codebase-pipeline-event-meta {
 	opacity: 0.65;
 	font-size: 10px;
+	font-variant-numeric: tabular-nums;
 }
 
 .drox-codebase-pipeline-event-msg {
 	word-break: break-word;
+	font-size: 11px;
 }
 
 .drox-codebase-pipeline-event.is-error .drox-codebase-pipeline-event-msg {
@@ -326,41 +496,84 @@
 }
 
 .drox-codebase-pipeline-event.is-running .drox-codebase-pipeline-event-meta {
-	color: var(--vscode-focusBorder, #007acc);
+	color: var(--drox-cb-accent);
 }
 
 .drox-codebase-catalog-list {
-	margin-top: 6px;
-	max-height: 280px;
+	margin-top: 8px;
+	max-height: 200px;
 	overflow: auto;
-	border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+	min-height: 0;
+	border: none;
+	border-top: 1px solid var(--drox-cb-border);
+	border-radius: 0;
+	padding: 2px 0;
+	background: transparent;
 }
 
 .drox-codebase-catalog-file {
-	padding: 4px 0;
-	border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+	padding: 5px 4px;
+	border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border, rgba(128, 128, 128, 0.2)) 70%, transparent);
+}
+
+.drox-codebase-catalog-file:last-child {
+	border-bottom: none;
+}
+
+.drox-codebase-catalog-file:hover {
+	background: var(--drox-cb-accent-soft);
 }
 
 .drox-codebase-catalog-file-head {
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+
+.drox-codebase-catalog-file-head input[type="checkbox"] {
+	accent-color: var(--drox-cb-accent);
+	width: 13px;
+	height: 13px;
+	margin: 0;
+	flex: 0 0 auto;
 }
 
 .drox-codebase-catalog-path {
 	font-family: var(--monaco-monospace-font, monospace);
-	font-size: 12px;
-	word-break: break-all;
+	font-size: 11px;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1 1 auto;
 }
 
 .drox-codebase-catalog-expand {
-	border: none;
+	appearance: none;
+	border: 1px solid transparent;
 	background: transparent;
 	color: inherit;
 	cursor: pointer;
-	padding: 0 2px;
+	padding: 0 4px;
 	min-width: 1.2em;
+	border-radius: 4px;
+	font-size: 11px;
+	opacity: 0.75;
+	flex: 0 0 auto;
+}
+
+.drox-codebase-catalog-expand:hover:not(:disabled) {
+	border-color: var(--drox-cb-border);
+	background: var(--drox-cb-accent-soft);
+	opacity: 1;
+}
+
+.drox-codebase-catalog-file-head > .drox-codebase-muted {
+	flex: 0 0 auto;
+	white-space: nowrap;
+	font-size: 10px;
 }
 
 .drox-codebase-catalog-chunks {
@@ -372,7 +585,12 @@
 }
 
 .drox-codebase-exclusion-list {
-	margin: 4px 0 10px 0;
+	margin: 6px 0 0 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-height: 120px;
+	overflow: auto;
 }
 
 .drox-codebase-exclusion-row {
@@ -380,6 +598,12 @@
 	align-items: center;
 	gap: 8px;
 	justify-content: space-between;
-	padding: 2px 0;
+	padding: 4px 6px;
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 70%, transparent);
+	min-width: 0;
 }
 
+.drox-codebase-exclusion-row .drox-codebase-catalog-path {
+	flex: 1 1 auto;
+}

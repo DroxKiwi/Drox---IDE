@@ -16,6 +16,8 @@ export interface IDroxShellToolOutputWire {
 	readonly timed_out?: boolean;
 	readonly duration_ms?: number;
 	readonly error?: string;
+	/** Present when the command ran in the shared IDE agent terminal. */
+	readonly terminal_instance_id?: number;
 }
 
 export interface IDroxShellToolStartWire {
@@ -71,6 +73,10 @@ export function buildShellToolFinishWire(
 		typeof o.error === 'string' && o.error.trim() ? o.error.trim() :
 			isError && typeof o.message === 'string' ? o.message :
 				undefined;
+	const terminalInstanceId =
+		typeof o.terminal_instance_id === 'number' && Number.isFinite(o.terminal_instance_id)
+			? Math.trunc(o.terminal_instance_id)
+			: undefined;
 	return {
 		stdout: typeof o.stdout === 'string' ? o.stdout : '',
 		stderr: typeof o.stderr === 'string' ? o.stderr : '',
@@ -78,5 +84,6 @@ export function buildShellToolFinishWire(
 		exit_code: exitCode,
 		duration_ms: durationMs,
 		error,
+		terminal_instance_id: terminalInstanceId,
 	};
 }

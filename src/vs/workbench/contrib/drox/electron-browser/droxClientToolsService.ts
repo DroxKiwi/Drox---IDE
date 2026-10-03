@@ -10,13 +10,14 @@ import { IInstantiationService } from '../../../../platform/instantiation/common
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 
 import { IOutputService } from '../../../services/output/common/output.js';
+import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
+import { ITerminalService } from '../../terminal/browser/terminal.js';
 
 import { DroxClientToolRegistry } from '../common/droxClientTools.js';
 
 import { IDroxClientToolsService } from '../common/droxClientToolsService.js';
 
 import { IDroxEngineService } from '../common/droxEngineService.js';
-
 import { createDroxBashToolHandler } from './tools/droxBashTool.js';
 
 import { createDroxFileEditToolHandler } from './tools/droxFileEditTool.js';
@@ -51,6 +52,8 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 		@IMainProcessService mainProcessService: IMainProcessService,
 		@IFileService fileService: IFileService,
 		@IOutputService outputService: IOutputService,
+		@ITerminalService terminalService: ITerminalService,
+		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IDroxChatSessionService chatSessionService: IDroxChatSessionService,
 		@IDroxSessionCompactService sessionCompactService: IDroxSessionCompactService,
@@ -64,7 +67,9 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 
 		const fileHost = instantiationService.createInstance(DroxFileToolHost);
 
-		this.registry.register('bash', createDroxBashToolHandler(mainProcessService, outputService));
+		this.registry.register('bash', createDroxBashToolHandler(mainProcessService, outputService, terminalService, {
+			isSessionsWindow: environmentService.isSessionsWindow,
+		}));
 		this.registry.register('file_write', createDroxFileWriteToolHandler(fileHost, fileService));
 		this.registry.register('file_edit', createDroxFileEditToolHandler(fileHost, fileService));
 		this.registry.register('notebook_edit', createDroxNotebookEditToolHandler(fileHost, fileService));
@@ -96,6 +101,7 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 
 		this.executableToolNames = this.registry.executableToolNames();
 
+		// Traffic for tool/exec is recorded in DroxEngineService.dispatchServerRequest.
 		droxEngineService.setRequestHandler('tool/exec', this.registry.toRequestHandler(() => chatSessionService.getRunId()));
 	}
 }

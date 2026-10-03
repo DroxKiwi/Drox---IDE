@@ -16,8 +16,42 @@ export const enum DroxEngineCommand {
 	ExecBash = 'execBash',
 	/** HTTP local (Ollama / OpenAI-compatible) — contourne CORS/proxy du renderer. */
 	FetchHttp = 'fetchHttp',
+	/** Long-lived external port-forward process (ssh/socat/…). */
+	PortForwardStart = 'portForwardStart',
+	PortForwardStop = 'portForwardStop',
+	PortForwardProbe = 'portForwardProbe',
 	Shutdown = 'shutdown',
 	Dispose = 'dispose',
+}
+
+export interface IDroxPortForwardStartArgs {
+	readonly windowId: number;
+	readonly forwardId: string;
+	readonly command: string;
+	readonly args: readonly string[];
+	readonly env?: Readonly<Record<string, string>>;
+	readonly cwd?: string;
+}
+
+export interface IDroxPortForwardStartResult {
+	readonly ok: boolean;
+	readonly pid?: number;
+	readonly error?: string;
+}
+
+export interface IDroxPortForwardStopArgs {
+	readonly windowId: number;
+	readonly forwardId: string;
+}
+
+export interface IDroxPortForwardProbeArgs {
+	readonly host: string;
+	readonly port: number;
+	readonly timeoutMs?: number;
+}
+
+export interface IDroxPortForwardProbeResult {
+	readonly ok: boolean;
 }
 
 export interface IDroxFetchHttpArgs {

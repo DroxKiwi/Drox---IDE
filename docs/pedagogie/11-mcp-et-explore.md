@@ -23,8 +23,10 @@ MCP ajoute des outils au registry comme s’ils étaient natifs ; Explore crée 
 | [`subagent.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) | `EngineSubagentExecutor` |
 | Réf. | [mcp-and-subagents.md](../engine/mcp-and-subagents.md) |
 
-> **État produit** : le moteur Explore est **implémenté**, mais **désactivé par défaut**. Dans Drox IDE aujourd’hui, settings / bridge n’envoient en général pas `subagentsEnabled` → le tool `task` n’apparaît pas.  
-> **Prochaine maj** : câblage IDE prévu en **[1.5.21 — PLAN-SUBAGENTS-EXPLORE-IDE](../1.5/1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md)**.
+> **État produit (1.5.23)** : moteur + **câblage IDE** présents. Explore reste **opt-in** :  
+> `drox.subagents.enabled: true` **et** régulation L2 ∈ { `standard`, `full` }.  
+> Sinon le tool `task` n’apparaît pas (même en L2 `full` si le master est off).  
+> Détail : **[PLAN-SUBAGENTS-EXPLORE](../1.5/1.5.23/PLAN-SUBAGENTS-EXPLORE.md)**.
 
 ---
 
@@ -184,15 +186,20 @@ let agent = Agent::new(
 Cette archive est **périmée** pour Explore.  
 Le guide de migration : [migration-from-1.4.md](../engine/migration-from-1.4.md).
 
-## Partie F — Activation dans l’IDE (à venir)
+## Partie F — Activation dans l’IDE (1.5.23)
 
-Tant que `subagentsEnabled` n’est pas passé à `true` sur `agent.run` :
+Le bridge IDE envoie `subagentsEnabled` seulement si :
+
+1. `drox.subagents.enabled` est **true** ;
+2. **et** la régulation L2 est `standard` ou `full`.
+
+Sinon :
 
 1. `register_subagent_task()` n’est **pas** appelé ;
 2. le LLM ne voit pas `task` ;
-3. un appel manuel échouerait avec « Sub-agents disabled… ».
+3. un appel manuel échoue avec « Sub-agents disabled… ».
 
-Checklist de livraison : [PLAN-SUBAGENTS-EXPLORE-IDE.md](../1.5/1.5.21/PLAN-SUBAGENTS-EXPLORE-IDE.md).
+Checklist : [PLAN-SUBAGENTS-EXPLORE](../1.5/1.5.23/PLAN-SUBAGENTS-EXPLORE.md).
 
 ---
 
@@ -201,7 +208,7 @@ Checklist de livraison : [PLAN-SUBAGENTS-EXPLORE-IDE.md](../1.5/1.5.21/PLAN-SUBA
 1. MCP = tools externes dans le même registry.
 2. Explore = mini-agent read-only, tool `task`.
 3. Les deux s’insèrent dans la boucle parent comme des tools « normaux » une fois enregistrés.
-4. Activer explicitement (flags / settings).
+4. Activer explicitement (settings + L2).
 
 ## Suite
 

@@ -298,6 +298,14 @@ export async function routeDroxChatWebviewMessage(
 				raw.filePath,
 			);
 			break;
+		case 'revealShellTerminal': {
+			const instance = deps.terminalService.getInstanceFromId(raw.terminalInstanceId);
+			if (instance && !instance.isDisposed) {
+				deps.terminalService.setActiveInstance(instance);
+				await deps.terminalService.revealTerminal(instance, false);
+			}
+			break;
+		}
 		case 'openSettings':
 			await deps.commandService.executeCommand(DroxCommands.OpenSettings);
 			break;

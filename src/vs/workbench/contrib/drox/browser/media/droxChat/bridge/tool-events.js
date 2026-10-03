@@ -55,6 +55,10 @@
 				fn.appendShellProgress(existing, payload);
 				return;
 			}
+			if (fn.isExploreCard?.(existing)) {
+				fn.appendExploreProgress(existing, payload);
+				return;
+			}
 			const summary = existing.querySelector('summary');
 			if (summary) {
 				const name = String(payload.name ?? D.state.pendingToolName ?? 'tool');
@@ -64,7 +68,8 @@
 				const preview = tail ? ` — ${tail.split('\n').pop()}` : '';
 				const label =
 					summary.querySelector('.msg-tool-summary-label') ||
-					summary.querySelector('.drox-shell-card-header');
+					summary.querySelector('.drox-shell-card-header') ||
+					summary.querySelector('.drox-explore-card-header');
 				const text = `▶ ${name}${sec}${preview}`;
 				if (label) {
 					label.textContent = text;

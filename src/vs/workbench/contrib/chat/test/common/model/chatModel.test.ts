@@ -724,6 +724,49 @@ suite('Response', () => {
 		assert.strictEqual(notebookEditGroups.length, 1, 'Should have notebookEditGroup for cell edits');
 	});
 
+	test('external subagent tool updates expose result as contentForModel text', () => {
+		const response = store.add(new Response([]));
+		response.updateContent({
+			kind: 'externalToolInvocationUpdate',
+			toolCallId: 'explore-1',
+			toolName: 'task',
+			isComplete: false,
+			invocationMessage: 'Map settings',
+			toolSpecificData: {
+				kind: 'subagent',
+				agentName: 'explore',
+				description: 'Map settings',
+				prompt: 'Map settings',
+			},
+		});
+		response.updateContent({
+			kind: 'externalToolInvocationUpdate',
+			toolCallId: 'explore-1',
+			toolName: 'task',
+			isComplete: true,
+			pastTenseMessage: 'Explore completed',
+			toolSpecificData: {
+				kind: 'subagent',
+				agentName: 'explore',
+				description: 'Map settings',
+				prompt: 'Map settings',
+				result: 'Found drox.subagents.enabled.',
+			},
+		});
+
+		assert.strictEqual(response.value.length, 1);
+		assert.strictEqual(response.value[0].kind, 'toolInvocation');
+		const invocation = response.value[0];
+		assert.strictEqual(IChatToolInvocation.isComplete(invocation), true);
+		const state = invocation.state.get();
+		assert.strictEqual(state.type, IChatToolInvocation.StateKind.Completed);
+		if (state.type === IChatToolInvocation.StateKind.Completed) {
+			assert.deepStrictEqual(state.contentForModel, [
+				{ kind: 'text', value: 'Found drox.subagents.enabled.' },
+			]);
+		}
+	});
+
 	test('external terminal tool updates preserve toolSpecificData when completing an existing invocation', () => {
 		const response = store.add(new Response([]));
 		const toolSpecificData: IChatTerminalToolInvocationData = {

@@ -26,11 +26,13 @@ suite('Drox shell tool wire', () => {
 			stderr: '',
 			exit_code: 0,
 			duration_ms: 42,
+			terminal_instance_id: 7,
 		}, false);
 		assert.ok(wire);
 		assert.strictEqual(wire.stdout, 'ok\n');
 		assert.strictEqual(wire.exit_code, 0);
 		assert.strictEqual(wire.duration_ms, 42);
+		assert.strictEqual(wire.terminal_instance_id, 7);
 	});
 
 	test('buildShellToolFinishWire maps errors', () => {

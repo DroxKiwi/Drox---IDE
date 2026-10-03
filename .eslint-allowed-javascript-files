@@ -243,6 +243,7 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/strip.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/timeline/thinking.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/tools/logTools.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/stream/tools/shellCard.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/stream/tools/exploreCard.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/tools/12-fileChange.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/tools/13-collapsibleTray.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/user-ask/06-userAsk.js

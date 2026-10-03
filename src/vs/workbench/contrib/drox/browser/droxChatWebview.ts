@@ -77,6 +77,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/stream/answer/stream.js',
 	'droxChat/stream/tools/logTools.js',
 	'droxChat/stream/tools/shellCard.js',
+	'droxChat/stream/tools/exploreCard.js',
 	'droxChat/stream/timeline/strip.js',
 	'droxChat/stream/timeline/chronology.js',
 	'droxChat/stream/timeline/thinking.js',

@@ -32,7 +32,7 @@
 | [**1.5.20/**](1.5.20/README.md) | Stabilisation + historique + Changes IDE (multi-git) | **Livré** |
 | [**1.5.21/**](1.5.21/README.md) | `@Codebase` CB4/CB4b + shell discussion | **Clôturé** · `v1.5.21` |
 | [**1.5.22/**](1.5.22/README.md) | Auto-régulation · CB3b · parité Agents · DOC | **Clôturé** · [CLOSURE](1.5.22/CLOSURE-1.5.22.md) |
-| [**1.5.23/**](1.5.23/README.md) | Port forwarding · Théming | **Réservé** |
+| [**1.5.23/**](1.5.23/README.md) | Polish · Explore · PF MVP | **Clôturé** · [CLOSURE](1.5.23/CLOSURE-1.5.23.md) · ship `v1.5.23` |
 
 ---
 
@@ -57,7 +57,7 @@
 1.5.16  stabilisation modèle (hors-WS · boucle write)  →  livré
 1.5.17 … 1.5.21  →  livrés / clôturés
 1.5.22  régulation · CB3b · parité Agents · DOC  →  clôturé
-1.5.23  PF · THEME  →  réservé
+1.5.23  polish · Explore · PF MVP  →  clôturé (THEME reporté)
 ```
 
 

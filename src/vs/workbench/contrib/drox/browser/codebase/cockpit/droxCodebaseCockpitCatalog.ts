@@ -53,7 +53,7 @@ export function renderDroxCodebaseCockpitCatalog(
 	const selectedCount = opts?.selectedPaths?.size ?? 0;
 	const selected = () => opts?.selectedPaths ? [...opts.selectedPaths] : [];
 
-	const deleteBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+	const deleteBtn = dom.append(actions, dom.$('button.drox-codebase-btn.drox-codebase-btn-danger')) as HTMLButtonElement;
 	deleteBtn.textContent = selectedCount
 		? localize('drox.codebase.catalogDeleteN', 'Delete ({0})', String(selectedCount))
 		: localize('drox.codebase.catalogDelete', 'Delete selected');
@@ -68,7 +68,7 @@ export function renderDroxCodebaseCockpitCatalog(
 	excludeBtn.disabled = busy || selectedCount === 0;
 	excludeBtn.onclick = () => handlers.onExclude(selected());
 
-	const rebuildBtn = dom.append(actions, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+	const rebuildBtn = dom.append(actions, dom.$('button.drox-codebase-btn.drox-codebase-btn-primary')) as HTMLButtonElement;
 	rebuildBtn.textContent = selectedCount
 		? localize('drox.codebase.catalogRebuildN', 'Rebuild ({0})', String(selectedCount))
 		: localize('drox.codebase.catalogRebuild', 'Rebuild selected');
@@ -127,11 +127,11 @@ function renderExclusionsBlock(
 		'Globs / paths that stay out of the index (persisted in .drox/codebase-index/exclusions.json).',
 	)));
 
-	const addRow = dom.append(section, dom.$('.drox-codebase-actions'));
-	const input = dom.append(addRow, dom.$('input.drox-codebase-probe-input')) as HTMLInputElement;
+	const addRow = dom.append(section, dom.$('.drox-codebase-row'));
+	const input = dom.append(addRow, dom.$('input.drox-codebase-field.drox-codebase-field-sm')) as HTMLInputElement;
 	input.placeholder = localize('drox.codebase.exclusionPlaceholder', 'e.g. **/fixtures/** or docs/exports/**');
 	input.disabled = busy;
-	const addBtn = dom.append(addRow, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+	const addBtn = dom.append(addRow, dom.$('button.drox-codebase-btn.drox-codebase-btn-primary')) as HTMLButtonElement;
 	addBtn.textContent = localize('drox.codebase.exclusionAdd', 'Add glob');
 	addBtn.disabled = busy;
 	const submit = () => {
@@ -161,7 +161,7 @@ function renderExclusionsBlock(
 	for (const g of globs) {
 		const row = dom.append(list, dom.$('.drox-codebase-exclusion-row'));
 		dom.append(row, dom.$('span.drox-codebase-catalog-path', undefined, g));
-		const rm = dom.append(row, dom.$('button.drox-codebase-btn')) as HTMLButtonElement;
+		const rm = dom.append(row, dom.$('button.drox-codebase-btn.drox-codebase-btn-ghost')) as HTMLButtonElement;
 		rm.textContent = localize('drox.codebase.exclusionRemove', 'Remove');
 		rm.disabled = busy;
 		rm.onclick = () => handlers.onRemoveExclusionGlob(g);
