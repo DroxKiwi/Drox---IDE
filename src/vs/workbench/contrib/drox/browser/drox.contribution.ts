@@ -11,11 +11,14 @@ import { SyncDescriptor } from '../../../../platform/instantiation/common/descri
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
+import { ChatViewContainerId } from '../../chat/browser/chat.js';
 import { IViewContainersRegistry, IViewsRegistry, IViewDescriptorService, ViewContainer, ViewContainerLocation, Extensions as ViewExtensions } from '../../../common/views.js';
 import { Extensions as WorkbenchExtensions, IWorkbenchContributionsRegistry, IWorkbenchContribution } from '../../../common/contributions.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
+import { IProductService } from '../../../../platform/product/common/productService.js';
 import { DroxViews } from '../common/drox.js';
 import { DroxIdeLegacyWebviewChatEnabledContext } from '../common/droxAgentsConfiguration.js';
+import { shouldHideDroxMicrosoftChatSurface } from '../common/droxMicrosoftAgentsSurface.js';
 import '../common/droxSettingMigration.js';
 import { registerDroxConfiguration } from '../common/droxConfiguration.js';
 import { registerDroxProductDefaultsConfiguration } from '../common/droxProductDefaultsConfiguration.js';
@@ -23,6 +26,7 @@ import { DroxChatViewPane } from './droxChatViewPane.js';
 import { registerDroxActions } from './droxActions.js';
 import { DroxDiagnosticContribution } from './droxDiagnosticContribution.js';
 import './droxMicrosoftAgentsSurfaceContribution.js';
+import './droxMicrosoftChatSurfaceContextContribution.js';
 import './agents/droxAgentsComposerDroxChatHost.js';
 import './droxCopilotSignInContextContribution.js';
 import './droxTelemetryContribution.js';
@@ -63,11 +67,13 @@ Registry.as<IWorkbenchContributionsRegistry>(WorkbenchExtensions.Workbench).regi
 	LifecyclePhase.Restored,
 );
 
-/** Layout Nexus : Drox seul dans la barre auxiliaire (pas d’onglets Copilot/Terminal en bas). */
+/** Layout Drox : Drox seul dans la barre auxiliaire ; ne jamais pousser le Chat Microsoft vers le Panel. */
 class DroxAuxiliaryBarLayoutContribution implements IWorkbenchContribution {
 	constructor(
 		@IViewDescriptorService private readonly viewDescriptorService: IViewDescriptorService,
+		@IProductService productService: IProductService,
 	) {
+		const hideMsChat = shouldHideDroxMicrosoftChatSurface(productService);
 		const droxContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).get(DroxViews.ViewContainerId);
 		if (droxContainer && this.viewDescriptorService.getViewContainerLocation(droxContainer) === ViewContainerLocation.Sidebar) {
 			this.viewDescriptorService.moveViewContainerToLocation(droxContainer, ViewContainerLocation.AuxiliaryBar, 0, 'drox-ide-auxiliary-bar');
@@ -75,6 +81,10 @@ class DroxAuxiliaryBarLayoutContribution implements IWorkbenchContribution {
 
 		for (const container of this.viewDescriptorService.getViewContainersByLocation(ViewContainerLocation.AuxiliaryBar)) {
 			if (container.id === DroxViews.ViewContainerId) {
+				continue;
+			}
+			// Keep Microsoft Chat out of the bottom Panel (next to Terminal).
+			if (hideMsChat && container.id === ChatViewContainerId) {
 				continue;
 			}
 			this.viewDescriptorService.moveViewContainerToLocation(container, ViewContainerLocation.Panel, undefined, 'drox-ide-exclusive-aux');

@@ -1,5 +1,9 @@
 # Drox IDE 1.5.23
 
+## Correctifs (2026-10-04)
+
+- **Chat Microsoft masqué** — l’onglet Chat Copilot ne réapparaît plus dans le panneau bas (à côté du Terminal) ; surfaces MS restantes (Open/Toggle/Quick Chat) désactivées quand `droxMicrosoftAgentsSurfaceEnabled` est off.
+
 ## Nouveautés
 
 - **Polish dogfood** — badge Changes, switch Agents ↔ IDE, auth Copilot allégée, cockpits allégés, terminaux agent visibles, onglet Traffic.
