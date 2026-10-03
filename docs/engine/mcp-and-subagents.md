@@ -65,8 +65,11 @@ Le prompt système recommande `task`/`explore` pour un périmètre **très large
 | | |
 |--|--|
 | Moteur Explore / `task` | ✅ code présent |
-| Activé out-of-the-box dans Drox IDE | ❌ (défaut off + bridge non câblé) |
-| Livraison | 📋 backlog — **[1.5.22 PLAN](../1.5/1.5.22/PLAN-SUBAGENTS-EXPLORE-IDE.md)** (hors clôture 1.5.22) |
+| Settings `drox.subagents.*` + bridge `agent.run` | ✅ **1.5.23** |
+| Gate régulation | ✅ master ON **et** L2 ∈ { `standard`, `full` } |
+| Cartes chat / Agents | ✅ start / done / report |
+| Activé out-of-the-box | ❌ (défaut **off** — opt-in) |
+| Livraison | 🟢 câblé · smoke / notes — **[PLAN-SUBAGENTS-EXPLORE](../1.5/1.5.23/PLAN-SUBAGENTS-EXPLORE.md)** |
 
 Voir aussi la pédagogie : [11-mcp-et-explore.md](../pedagogie/11-mcp-et-explore.md).
 

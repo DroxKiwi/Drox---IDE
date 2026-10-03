@@ -42,6 +42,14 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.5.23':
+			return [
+				localize('drox.releaseNotes.1523.polish', '**Dogfood polish** — Changes badge, Agents ↔ IDE switch, lighter cockpits, visible agent terminals, and a Traffic observatory tab.'),
+				localize('drox.releaseNotes.1523.traffic', '**Traffic tags** — destination tags and alerts with list/remove, partial match, and retroactive ledger hits.'),
+				localize('drox.releaseNotes.1523.explore', '**Explore sub-agents** — `task` Explore runs in the IDE/Agents when sub-agents are enabled and L2 is standard/full, with report cards in the thread.'),
+				localize('drox.releaseNotes.1523.ports', '**Declarative Ports** — configure external forward tools (`ssh`, `socat`, scripts) via `drox.ports.*` and Start / Stop / Open from the Ports panel — no third-party cloud required.'),
+				localize('drox.releaseNotes.1523.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.22':
 			return [
 				localize('drox.releaseNotes.1522.regulation', '**Model regulation** — observatory for L1–L5 notes (context, tools, directive, protocol, retrieval) with optional Auto per lever.'),
@@ -160,6 +168,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.5.23':
+			return localize(
+				'drox.releaseNotes.1523.message',
+				'Dogfood polish, Traffic tags, Explore sub-agents in the IDE, and declarative Ports with an external forward tool — no cloud tunnel required.',
+			);
 		case '1.5.21':
 			return localize(
 				'drox.releaseNotes.1521.message',

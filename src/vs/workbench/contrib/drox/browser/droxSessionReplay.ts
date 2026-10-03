@@ -8,6 +8,7 @@
 import { isFileMutationToolName } from '../common/droxFileMutation.js';
 import { IDroxTranscriptContentBlock, IDroxTranscriptMessage, transcriptMessageToReplayAppends } from '../common/droxSession.js';
 import { describeToolCall, previewJson } from '../common/droxToolPreview.js';
+import { buildExploreToolFinishWire, buildExploreToolStartWire } from '../common/chat/droxExploreToolWire.js';
 import { buildShellToolFinishWire, buildShellToolStartWire } from '../common/chat/droxShellToolWire.js';
 import { extractTodoErrorMessage, extractTodosFromToolOutput, isTodoWriteOutput } from '../common/droxTodoExtract.js';
 import { DroxHostToWebviewMessage } from './droxChatBridge.js';
@@ -30,6 +31,7 @@ const SKIP_TOOL_PREVIEW_NAMES = new Set([
 	'memory_read',
 	'memory_list',
 	'bash',
+	'task',
 	'list_mcp_resources',
 	'read_mcp_resource',
 ]);
@@ -122,6 +124,7 @@ function replayToolStart(host: IDroxChatAgentEventHost, id: string, name: string
 	}
 	const skipArgsPreview = SKIP_TOOL_PREVIEW_NAMES.has(toolName);
 	const shellStart = buildShellToolStartWire(toolName, args);
+	const exploreStart = buildExploreToolStartWire(toolName, args);
 	const { verb, target } = describeToolCall(toolName, args);
 	host.post({
 		kind: 'tool',
@@ -132,6 +135,7 @@ function replayToolStart(host: IDroxChatAgentEventHost, id: string, name: string
 		target,
 		argsPreview: skipArgsPreview ? '' : previewJson(args),
 		...shellStart,
+		...exploreStart,
 	});
 }
 
@@ -185,6 +189,7 @@ function replayToolFinish(host: IDroxChatAgentEventHost, toolUseId: string, rawC
 		pendingName === 'workspace_map_read';
 	const outputPreview = skipOutputPreview ? '' : previewJson(output);
 	const shellOutput = buildShellToolFinishWire(pendingName, output, isError);
+	const exploreOutput = buildExploreToolFinishWire(pendingName, output, isError);
 	host.post({
 		kind: 'tool',
 		phase: 'finish',
@@ -193,6 +198,7 @@ function replayToolFinish(host: IDroxChatAgentEventHost, toolUseId: string, rawC
 		isError,
 		outputPreview,
 		shellOutput,
+		exploreOutput,
 	});
 }
 

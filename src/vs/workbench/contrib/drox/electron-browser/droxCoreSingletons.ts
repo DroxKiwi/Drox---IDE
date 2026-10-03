@@ -55,6 +55,9 @@ import { IDroxCodebaseContextService, DroxCodebaseContextService } from '../comm
 import { IDroxModelQuestionService, DroxModelQuestionService } from '../common/modelQuestions/droxModelQuestionService.js';
 import { IDroxRegulationService } from '../common/regulation/droxRegulationServiceContract.js';
 import { DroxRegulationService } from '../common/regulation/droxRegulationService.js';
+import { IDroxTrafficService, DroxTrafficService } from '../common/traffic/droxTrafficService.js';
+import { IDroxPortsService } from '../common/ports/droxPortsService.js';
+import { DroxPortsService } from './ports/droxPortsServiceImpl.js';
 
 /** Singletons moteur Drox partagés entre l’IDE principal et la fenêtre Agents. */
 export function registerDroxCoreSingletons(): void {
@@ -86,4 +89,6 @@ export function registerDroxCoreSingletons(): void {
 	registerSingleton(IDroxCodebaseContextService, DroxCodebaseContextService, InstantiationType.Delayed);
 	registerSingleton(IDroxCodebaseSupervisionService, DroxCodebaseSupervisionService, InstantiationType.Delayed);
 	registerSingleton(IDroxRegulationService, DroxRegulationService, InstantiationType.Delayed);
+	registerSingleton(IDroxTrafficService, DroxTrafficService, InstantiationType.Eager);
+	registerSingleton(IDroxPortsService, DroxPortsService, InstantiationType.Delayed);
 }

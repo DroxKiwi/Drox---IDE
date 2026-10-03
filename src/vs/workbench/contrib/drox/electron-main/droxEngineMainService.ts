@@ -18,9 +18,15 @@ import {
 	IDroxEngineRespondArgs,
 	IDroxEngineServerRequestPayload,
 	IDroxEngineStartArgs,
+	IDroxFetchHttpArgs,
+	IDroxFetchHttpResult,
+	IDroxPortForwardProbeArgs,
+	IDroxPortForwardProbeResult,
+	IDroxPortForwardStartArgs,
+	IDroxPortForwardStartResult,
+	IDroxPortForwardStopArgs,
 } from '../common/droxIpc.js';
 import { IDroxBashExecArgs, IDroxBashExecResult } from '../common/droxBash.js';
-import { IDroxFetchHttpArgs, IDroxFetchHttpResult } from '../common/droxIpc.js';
 import { runDroxBashExec } from './droxBashExec.js';
 import {
 	defaultDroxInstallDir,
@@ -28,6 +34,7 @@ import {
 	resolveDroxExecutableOnDisk,
 } from './droxExecutableMain.js';
 import { droxLocalHttpGet, droxLocalHttpRequest } from './droxLocalHttp.js';
+import { DroxPortsProcessHost } from './droxPortsProcessHost.js';
 import { DroxRpcClientMain } from './droxRpcClientMain.js';
 
 interface IDroxEngineHostCallbacks {
@@ -61,6 +68,7 @@ class DroxEngineHost extends Disposable {
 export class DroxEngineMainService extends Disposable {
 
 	private readonly hosts = this._register(new DisposableMap<number, DroxEngineHost>());
+	private readonly portsHost: DroxPortsProcessHost;
 
 	private readonly _onLog = this._register(new Emitter<IDroxEngineLogPayload>());
 	readonly onLog: Event<IDroxEngineLogPayload> = this._onLog.event;
@@ -79,6 +87,7 @@ export class DroxEngineMainService extends Disposable {
 
 	constructor(@ILogService private readonly logService: ILogService) {
 		super();
+		this.portsHost = new DroxPortsProcessHost(logService);
 	}
 
 	async start(args: IDroxEngineStartArgs): Promise<void> {
@@ -169,11 +178,24 @@ export class DroxEngineMainService extends Disposable {
 	}
 
 	async disposeWindow(windowId: number): Promise<void> {
+		await this.portsHost.stopAllForWindow(windowId);
 		const host = this.hosts.get(windowId);
 		if (host) {
 			host.client.dispose();
 			this.hosts.deleteAndDispose(windowId);
 			this.logService.info(`[Drox] disposed engine for window ${windowId}`);
 		}
+	}
+
+	portForwardStart(args: IDroxPortForwardStartArgs): Promise<IDroxPortForwardStartResult> {
+		return this.portsHost.start(args);
+	}
+
+	portForwardStop(args: IDroxPortForwardStopArgs): Promise<void> {
+		return this.portsHost.stop(args);
+	}
+
+	portForwardProbe(args: IDroxPortForwardProbeArgs): Promise<IDroxPortForwardProbeResult> {
+		return this.portsHost.probe(args);
 	}
 }

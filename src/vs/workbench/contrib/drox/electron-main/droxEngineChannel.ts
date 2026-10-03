@@ -6,7 +6,16 @@
 import { Event } from '../../../../base/common/event.js';
 import { IServerChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IDroxBashExecArgs } from '../common/droxBash.js';
-import { DroxEngineCommand, DroxEngineEvent, IDroxFetchHttpArgs, IDroxEngineRespondArgs, IDroxEngineStartArgs } from '../common/droxIpc.js';
+import {
+	DroxEngineCommand,
+	DroxEngineEvent,
+	IDroxFetchHttpArgs,
+	IDroxEngineRespondArgs,
+	IDroxEngineStartArgs,
+	IDroxPortForwardProbeArgs,
+	IDroxPortForwardStartArgs,
+	IDroxPortForwardStopArgs,
+} from '../common/droxIpc.js';
 import { DroxEngineMainService } from './droxEngineMainService.js';
 
 export class DroxEngineChannel implements IServerChannel<string> {
@@ -44,6 +53,13 @@ export class DroxEngineChannel implements IServerChannel<string> {
 				return await this.service.execBash(arg as IDroxBashExecArgs) as T;
 			case DroxEngineCommand.FetchHttp:
 				return await this.service.fetchHttp(arg as IDroxFetchHttpArgs) as T;
+			case DroxEngineCommand.PortForwardStart:
+				return await this.service.portForwardStart(arg as IDroxPortForwardStartArgs) as T;
+			case DroxEngineCommand.PortForwardStop:
+				await this.service.portForwardStop(arg as IDroxPortForwardStopArgs);
+				return undefined as T;
+			case DroxEngineCommand.PortForwardProbe:
+				return await this.service.portForwardProbe(arg as IDroxPortForwardProbeArgs) as T;
 			case DroxEngineCommand.Shutdown:
 				return await this.service.shutdown((arg as { windowId: number }).windowId) as T;
 			case DroxEngineCommand.Dispose:

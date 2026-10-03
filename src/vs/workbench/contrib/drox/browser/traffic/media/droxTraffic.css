@@ -1,0 +1,385 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-traffic-host {
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.drox-traffic-root {
+	--drox-traffic-accent: #3D7A3D;
+	--drox-traffic-accent-soft: color-mix(in srgb, #3D7A3D 10%, transparent);
+	--drox-traffic-surface: transparent;
+	--drox-traffic-border: var(--vscode-panel-border, rgba(128, 128, 128, 0.28));
+	--drox-traffic-rule: color-mix(in srgb, #3D7A3D 50%, transparent);
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	box-sizing: border-box;
+	padding: 10px 12px 8px;
+	gap: 8px;
+	overflow: hidden;
+}
+
+.drox-traffic-top {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	min-height: 0;
+	max-height: 48%;
+	overflow: auto;
+}
+
+.drox-traffic-section {
+	margin: 0;
+	padding: 8px 0 10px 10px;
+	border: none;
+	border-left: 2px solid var(--drox-traffic-rule);
+	border-bottom: 1px solid var(--drox-traffic-border);
+	border-radius: 0;
+	background: var(--drox-traffic-surface);
+}
+
+.drox-traffic-section h3,
+.drox-traffic-section h4 {
+	margin: 0 0 6px 0;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+
+.drox-traffic-section h3 {
+	font-size: 13px;
+	color: color-mix(in srgb, var(--drox-traffic-accent) 55%, var(--vscode-foreground, inherit));
+}
+
+.drox-traffic-section h4 {
+	font-size: 11px;
+	text-transform: uppercase;
+	opacity: 0.78;
+	letter-spacing: 0.04em;
+}
+
+.drox-traffic-muted {
+	opacity: 0.72;
+	font-size: 11px;
+	line-height: 1.35;
+	word-break: break-all;
+	margin: 0;
+}
+
+.drox-traffic-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 8px;
+}
+
+.drox-traffic-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+	cursor: pointer;
+	user-select: none;
+}
+
+.drox-traffic-toggle input {
+	accent-color: var(--drox-traffic-accent);
+	width: 14px;
+	height: 14px;
+	margin: 0;
+}
+
+.drox-traffic-field {
+	appearance: none;
+	width: 100%;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 7px 10px;
+	border-radius: 6px;
+	border: 1px solid var(--drox-traffic-border);
+	background: var(--vscode-input-background, rgba(0, 0, 0, 0.25));
+	color: var(--vscode-input-foreground, inherit);
+	font: inherit;
+	font-size: 12px;
+	outline: none;
+}
+
+.drox-traffic-field:focus {
+	border-color: color-mix(in srgb, var(--drox-traffic-accent) 65%, var(--drox-traffic-border));
+	box-shadow: none;
+}
+
+.drox-traffic-field-sm {
+	width: auto;
+	min-width: 140px;
+	flex: 1 1 140px;
+}
+
+.drox-traffic-btn {
+	appearance: none;
+	cursor: pointer;
+	border: 1px solid var(--drox-traffic-border);
+	background: transparent;
+	color: var(--vscode-foreground, inherit);
+	border-radius: 5px;
+	padding: 5px 10px;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.2;
+	transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.drox-traffic-btn:hover {
+	border-color: color-mix(in srgb, var(--drox-traffic-accent) 45%, var(--drox-traffic-border));
+	background: var(--drox-traffic-accent-soft);
+}
+
+.drox-traffic-btn-primary {
+	background: transparent;
+	border-color: color-mix(in srgb, var(--drox-traffic-accent) 55%, var(--drox-traffic-border));
+	color: color-mix(in srgb, var(--drox-traffic-accent) 70%, var(--vscode-foreground, inherit));
+}
+
+.drox-traffic-btn-primary:hover {
+	background: var(--drox-traffic-accent-soft);
+	border-color: var(--drox-traffic-accent);
+	color: color-mix(in srgb, var(--drox-traffic-accent) 85%, var(--vscode-foreground, inherit));
+}
+
+.drox-traffic-btn-ghost {
+	padding: 3px 8px;
+	font-size: 11px;
+	font-weight: 500;
+	opacity: 0.9;
+}
+
+.drox-traffic-path {
+	margin-top: 6px;
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 10px;
+	opacity: 0.7;
+	word-break: break-all;
+}
+
+.drox-traffic-tag-pill {
+	display: inline-block;
+	padding: 0 7px;
+	border-radius: 999px;
+	font-size: 10px;
+	font-weight: 700;
+	color: #fff;
+	line-height: 1.55;
+	vertical-align: middle;
+	max-width: 110px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 0 0 auto;
+}
+
+.drox-traffic-tag-list {
+	list-style: none;
+	margin: 8px 0 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.drox-traffic-tag-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 0;
+	border-radius: 0;
+	border-bottom: 1px solid var(--drox-traffic-border);
+	background: transparent;
+	min-width: 0;
+}
+
+.drox-traffic-tag-row:last-child {
+	border-bottom: none;
+}
+
+.drox-traffic-tag-match {
+	flex: 1 1 auto;
+	font-size: 11px;
+	opacity: 0.78;
+	font-family: var(--monaco-monospace-font, monospace);
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-traffic-tag-row > .drox-traffic-btn {
+	flex: 0 0 auto;
+	margin-left: auto;
+}
+
+.drox-traffic-tag-form {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.drox-traffic-color-swatches {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.drox-traffic-swatch {
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	border: 2px solid transparent;
+	padding: 0;
+	cursor: pointer;
+	appearance: none;
+	box-sizing: border-box;
+}
+
+.drox-traffic-swatch.is-active {
+	border-color: var(--vscode-focusBorder, #fff);
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.drox-traffic-history {
+	flex: 1 1 auto;
+	min-height: 120px;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	padding: 8px 0 0 10px;
+	border: none;
+	border-left: 2px solid var(--drox-traffic-rule);
+	border-radius: 0;
+	background: var(--drox-traffic-surface);
+}
+
+.drox-traffic-history-head {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+
+.drox-traffic-history-head h4 {
+	margin: 0;
+	font-size: 12px;
+	text-transform: uppercase;
+	font-weight: 600;
+}
+
+.drox-traffic-event-scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: auto;
+	margin: 0 -4px;
+	padding: 0 4px;
+}
+
+.drox-traffic-event-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.drox-traffic-event {
+	display: grid;
+	grid-template-columns: auto auto 1fr auto;
+	align-items: center;
+	column-gap: 6px;
+	row-gap: 0;
+	padding: 5px 4px;
+	border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border, rgba(128, 128, 128, 0.35)) 70%, transparent);
+	font-size: 11px;
+	line-height: 1.3;
+}
+
+.drox-traffic-event:hover {
+	background: var(--drox-traffic-accent-soft);
+}
+
+.drox-traffic-time {
+	font-variant-numeric: tabular-nums;
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 10px;
+	opacity: 0.65;
+	white-space: nowrap;
+}
+
+.drox-traffic-dir {
+	font-weight: 700;
+	width: 1em;
+	text-align: center;
+	opacity: 0.85;
+}
+
+.drox-traffic-summary {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-traffic-meta {
+	font-variant-numeric: tabular-nums;
+	font-size: 10px;
+	opacity: 0.65;
+	white-space: nowrap;
+}
+
+.drox-traffic-empty {
+	padding: 12px 4px;
+	font-size: 11px;
+	opacity: 0.7;
+}
+
+.drox-traffic-pager {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 8px;
+	padding-top: 6px;
+	border-top: 1px solid var(--drox-traffic-border);
+}
+
+.drox-traffic-pager-label {
+	font-size: 10px;
+	opacity: 0.75;
+	text-align: center;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.drox-traffic-alert-pill {
+	display: inline-block;
+	padding: 0 7px;
+	border-radius: 999px;
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1.55;
+	color: #fff7e6;
+	background: #EF6C00;
+	max-width: 110px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 0 0 auto;
+}

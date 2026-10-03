@@ -6,7 +6,7 @@
 // allow-any-unicode-comment-file
 
 /**
- * Agents window hosts for Codebase + Regulation on the AuxiliaryBar
+ * Agents window hosts for Codebase + Regulation + Traffic + Ports on the AuxiliaryBar
  * (same pane classes as IDE sidebar). Keeps the Sessions history list
  * visible on the left; cockpit opens beside the chat like Changes.
  */
@@ -19,7 +19,9 @@ import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js'
 import { ViewPaneContainer } from '../../../../workbench/browser/parts/views/viewPaneContainer.js';
 import { IViewContainersRegistry, IViewsRegistry, Extensions as ViewExtensions, ViewContainerLocation, WindowEnablement } from '../../../../workbench/common/views.js';
 import { DroxCodebaseCockpitViewPane } from '../../../../workbench/contrib/drox/browser/codebase/droxCodebaseCockpitViewPane.js';
+import { DroxPortsViewPane } from '../../../../workbench/contrib/drox/browser/ports/droxPortsViewPane.js';
 import { DroxRegulationViewPane } from '../../../../workbench/contrib/drox/browser/regulation/droxRegulationViewPane.js';
+import { DroxTrafficViewPane } from '../../../../workbench/contrib/drox/browser/traffic/droxTrafficViewPane.js';
 import { DroxViews } from '../../../../workbench/contrib/drox/common/drox.js';
 
 const codebaseSessionsIcon = registerIcon(
@@ -32,6 +34,18 @@ const regulationSessionsIcon = registerIcon(
 	'drox-regulation-sessions-view-icon',
 	Codicon.pulse,
 	localize('droxRegulationSessionsViewIcon', 'View icon of the Drox Regulation observatory (Agents).'),
+);
+
+const trafficSessionsIcon = registerIcon(
+	'drox-traffic-sessions-view-icon',
+	Codicon.radioTower,
+	localize('droxTrafficSessionsViewIcon', 'View icon of the Drox traffic observatory (Agents).'),
+);
+
+const portsSessionsIcon = registerIcon(
+	'drox-ports-sessions-view-icon',
+	Codicon.plug,
+	localize('droxPortsSessionsViewIcon', 'View icon of the Drox ports / forward panel (Agents).'),
 );
 
 const viewContainers = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry);
@@ -96,3 +110,63 @@ views.registerViews([{
 	windowEnablement: WindowEnablement.Sessions,
 	ctorDescriptor: new SyncDescriptor(DroxRegulationViewPane),
 }], regulationSessionsContainer);
+
+const trafficSessionsContainer = viewContainers.registerViewContainer({
+	id: DroxViews.TrafficSessionsViewContainerId,
+	title: localize2('drox.trafficSessionsContainer.label', 'Traffic'),
+	icon: trafficSessionsIcon,
+	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [DroxViews.TrafficSessionsViewContainerId, { mergeViewWithContainerWhenSingleView: true }]),
+	storageId: DroxViews.TrafficSessionsViewContainerId,
+	hideIfEmpty: false,
+	order: 22,
+	windowEnablement: WindowEnablement.Sessions,
+	openCommandActionDescriptor: {
+		id: DroxViews.TrafficSessionsViewContainerId,
+		mnemonicTitle: localize({ key: 'miDroxTrafficSessions', comment: ['&& denotes a mnemonic'] }, "&&Traffic"),
+		order: 22,
+	},
+}, ViewContainerLocation.AuxiliaryBar);
+
+views.registerViews([{
+	id: DroxViews.TrafficSessionsViewId,
+	name: localize2('drox.trafficSessionsView.label', 'Traffic'),
+	containerIcon: trafficSessionsIcon,
+	containerTitle: localize('drox.trafficSessionsContainer.title', 'Traffic'),
+	singleViewPaneContainerTitle: localize('drox.trafficSessionsContainer.title', 'Traffic'),
+	canToggleVisibility: false,
+	canMoveView: false,
+	weight: 100,
+	order: 0,
+	windowEnablement: WindowEnablement.Sessions,
+	ctorDescriptor: new SyncDescriptor(DroxTrafficViewPane),
+}], trafficSessionsContainer);
+
+const portsSessionsContainer = viewContainers.registerViewContainer({
+	id: DroxViews.PortsSessionsViewContainerId,
+	title: localize2('drox.portsSessionsContainer.label', 'Ports'),
+	icon: portsSessionsIcon,
+	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [DroxViews.PortsSessionsViewContainerId, { mergeViewWithContainerWhenSingleView: true }]),
+	storageId: DroxViews.PortsSessionsViewContainerId,
+	hideIfEmpty: false,
+	order: 23,
+	windowEnablement: WindowEnablement.Sessions,
+	openCommandActionDescriptor: {
+		id: DroxViews.PortsSessionsViewContainerId,
+		mnemonicTitle: localize({ key: 'miDroxPortsSessions', comment: ['&& denotes a mnemonic'] }, "&&Ports"),
+		order: 23,
+	},
+}, ViewContainerLocation.AuxiliaryBar);
+
+views.registerViews([{
+	id: DroxViews.PortsSessionsViewId,
+	name: localize2('drox.portsSessionsView.label', 'Ports'),
+	containerIcon: portsSessionsIcon,
+	containerTitle: localize('drox.portsSessionsContainer.title', 'Ports'),
+	singleViewPaneContainerTitle: localize('drox.portsSessionsContainer.title', 'Ports'),
+	canToggleVisibility: false,
+	canMoveView: false,
+	weight: 100,
+	order: 0,
+	windowEnablement: WindowEnablement.Sessions,
+	ctorDescriptor: new SyncDescriptor(DroxPortsViewPane),
+}], portsSessionsContainer);

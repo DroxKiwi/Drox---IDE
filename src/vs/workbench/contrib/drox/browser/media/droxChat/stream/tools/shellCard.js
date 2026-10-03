@@ -8,8 +8,8 @@
 (function (D) {
 	const fn = D.fn;
 
-	const SHELL_COLLAPSED_MAX_LINES = 24;
-	const SHELL_COLLAPSED_MAX_CHARS = 2000;
+	const SHELL_COLLAPSED_MAX_LINES = 18;
+	const SHELL_COLLAPSED_MAX_CHARS = 1600;
 
 	function shellKindLabel(kind) {
 		if (kind === 'powershell') {
@@ -87,9 +87,27 @@
 		}
 	}
 
+	function revealLinkedTerminal(card) {
+		const id = Number(card.dataset.terminalInstanceId);
+		if (!Number.isFinite(id)) {
+			return false;
+		}
+		D.vscode.postMessage({ type: 'revealShellTerminal', terminalInstanceId: id });
+		return true;
+	}
+
+	function closeShellMenus(except) {
+		document.querySelectorAll('.drox-shell-card-menu.is-open').forEach((menu) => {
+			if (menu !== except) {
+				menu.classList.remove('is-open');
+			}
+		});
+	}
+
 	fn.createShellCommandCard = function (payload) {
 		const card = document.createElement('details');
 		card.className = 'msg-tool drox-shell-card msg-ai-frame running drox-log-indent';
+		// Open while running so the user sees live output; finish may collapse.
 		card.open = true;
 		card.dataset.toolName = 'bash';
 
@@ -97,17 +115,21 @@
 		const header = document.createElement('div');
 		header.className = 'drox-shell-card-header';
 
+		const chevron = document.createElement('span');
+		chevron.className = 'drox-shell-card-chevron';
+		chevron.setAttribute('aria-hidden', 'true');
+
 		const icon = document.createElement('span');
 		icon.className = 'drox-shell-card-icon';
 		icon.setAttribute('aria-hidden', 'true');
+		icon.title = shellKindLabel(payload.shellKind);
 
 		const title = document.createElement('span');
 		title.className = 'drox-shell-card-title';
-		title.textContent = String(payload.shellDescription || 'Shell command').trim() || 'Shell command';
-
-		const kind = document.createElement('span');
-		kind.className = 'drox-shell-card-kind';
-		kind.textContent = shellKindLabel(payload.shellKind);
+		const desc = String(payload.shellDescription || '').trim();
+		const commandText = String(payload.shellCommand || payload.target || '').trim();
+		title.textContent = desc || commandText.slice(0, 72) || 'Shell command';
+		title.title = commandText || desc;
 
 		const status = document.createElement('span');
 		status.className = 'drox-shell-card-status running';
@@ -116,23 +138,60 @@
 		const actions = document.createElement('span');
 		actions.className = 'drox-shell-card-actions';
 
-		const copyBtn = document.createElement('button');
-		copyBtn.type = 'button';
-		copyBtn.className = 'drox-shell-card-copy';
-		copyBtn.title = 'Copy command';
-		copyBtn.textContent = 'Copy';
-		const commandText = String(payload.shellCommand || payload.target || '').trim();
-		copyBtn.addEventListener('click', (e) => {
+		const menu = document.createElement('div');
+		menu.className = 'drox-shell-card-menu';
+
+		const menuBtn = document.createElement('button');
+		menuBtn.type = 'button';
+		menuBtn.className = 'drox-shell-card-menu-btn';
+		menuBtn.title = 'More actions';
+		menuBtn.setAttribute('aria-label', 'More actions');
+		menuBtn.textContent = '⋯';
+		menuBtn.addEventListener('click', (e) => {
 			e.preventDefault();
 			e.stopPropagation();
+			const willOpen = !menu.classList.contains('is-open');
+			closeShellMenus(menu);
+			menu.classList.toggle('is-open', willOpen);
+		});
+
+		const menuPanel = document.createElement('div');
+		menuPanel.className = 'drox-shell-card-menu-panel';
+		menuPanel.setAttribute('role', 'menu');
+
+		const openTermItem = document.createElement('button');
+		openTermItem.type = 'button';
+		openTermItem.className = 'drox-shell-card-menu-item drox-shell-card-open-term';
+		openTermItem.textContent = 'Open in Terminal';
+		openTermItem.hidden = true;
+		openTermItem.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			menu.classList.remove('is-open');
+			revealLinkedTerminal(card);
+		});
+
+		const copyItem = document.createElement('button');
+		copyItem.type = 'button';
+		copyItem.className = 'drox-shell-card-menu-item';
+		copyItem.textContent = 'Copy command';
+		copyItem.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			menu.classList.remove('is-open');
 			copyText(commandText);
 		});
 
+		menuPanel.appendChild(openTermItem);
+		menuPanel.appendChild(copyItem);
+		menu.appendChild(menuBtn);
+		menu.appendChild(menuPanel);
+		actions.appendChild(menu);
+
+		header.appendChild(chevron);
 		header.appendChild(icon);
 		header.appendChild(title);
-		header.appendChild(kind);
 		header.appendChild(status);
-		actions.appendChild(copyBtn);
 		header.appendChild(actions);
 		summary.appendChild(header);
 
@@ -143,7 +202,7 @@
 		cmd.className = 'drox-shell-cmd';
 		const prompt = document.createElement('span');
 		prompt.className = 'drox-shell-prompt';
-		prompt.textContent = '$ ';
+		prompt.textContent = '$';
 		const cmdText = document.createElement('code');
 		cmdText.className = 'drox-shell-cmd-text';
 		cmdText.textContent = commandText;
@@ -208,11 +267,27 @@
 
 	fn.finishShellCommandCard = function (card, payload) {
 		card.classList.remove('running');
-		card.open = true;
 		const isError = Boolean(payload.isError);
 		if (isError) {
 			card.classList.add('error');
 			fn.markChatIssueElement?.(card);
+			card.open = true;
+		} else {
+			// Cursor-like: collapse successful consoles to keep the chat tidy.
+			card.open = false;
+		}
+		const termId = payload.shellOutput?.terminal_instance_id;
+		const openTermItem = card.querySelector('.drox-shell-card-open-term');
+		if (typeof termId === 'number' && Number.isFinite(termId)) {
+			card.dataset.terminalInstanceId = String(termId);
+			if (openTermItem) {
+				openTermItem.hidden = false;
+			}
+		} else {
+			delete card.dataset.terminalInstanceId;
+			if (openTermItem) {
+				openTermItem.hidden = true;
+			}
 		}
 		const status = card.querySelector('.drox-shell-card-status');
 		if (status) {
@@ -272,6 +347,12 @@
 	fn.isShellCommandCard = function (el) {
 		return Boolean(el?.classList?.contains('drox-shell-card'));
 	};
+
+	document.addEventListener('click', (e) => {
+		if (!(e.target instanceof Element) || !e.target.closest('.drox-shell-card-menu')) {
+			closeShellMenus();
+		}
+	});
 
 	const _createToolBlock = fn.createToolBlock;
 	fn.createToolBlock = function (payload) {

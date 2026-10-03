@@ -239,6 +239,64 @@ suite('Drox — droxAgentRunBridge', () => {
 		assert.ok(!disabled!.includes('bash'));
 	});
 
+	test('startDroxAgentRun strips Explore subagents flags when L2 is core', async () => {
+		const deps = createBridgeDeps({
+			buildAgentRunParams: () => ({
+				prompt: 'hi',
+				workspace: 'C:/ws',
+				mode: 'imNotCrazy',
+				sessionId: 'ses_sub_l2',
+				subagentsEnabled: true,
+				subagentsMaxIterations: 15,
+				subagentsMaxConcurrent: 1,
+			}),
+			regulationService: {
+				getModule: lever => (lever === 'L2' ? 'core' : 'standard'),
+			},
+		}) as IDroxAgentRunBridgeDeps & { _requests: { method: string; params?: unknown }[] };
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_sub_l2',
+		});
+		const runCall = deps._requests.find(r => r.method === 'agent.run');
+		assert.ok(runCall);
+		const params = runCall!.params as Record<string, unknown>;
+		assert.strictEqual(params.subagentsEnabled, undefined);
+		assert.strictEqual(params.subagentsMaxIterations, undefined);
+		assert.strictEqual(params.subagentsMaxConcurrent, undefined);
+	});
+
+	test('startDroxAgentRun keeps Explore subagents flags when L2 is standard', async () => {
+		const deps = createBridgeDeps({
+			buildAgentRunParams: () => ({
+				prompt: 'hi',
+				workspace: 'C:/ws',
+				mode: 'imNotCrazy',
+				sessionId: 'ses_sub_ok',
+				subagentsEnabled: true,
+				subagentsMaxIterations: 12,
+				subagentsMaxConcurrent: 2,
+			}),
+			regulationService: {
+				getModule: () => 'standard',
+			},
+		}) as IDroxAgentRunBridgeDeps & { _requests: { method: string; params?: unknown }[] };
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_sub_ok',
+		});
+		const runCall = deps._requests.find(r => r.method === 'agent.run');
+		assert.ok(runCall);
+		const params = runCall!.params as Record<string, unknown>;
+		assert.strictEqual(params.subagentsEnabled, true);
+		assert.strictEqual(params.subagentsMaxIterations, 12);
+		assert.strictEqual(params.subagentsMaxConcurrent, 2);
+	});
+
 	test('startDroxAgentRun returns undefined when engine omits runId', async () => {
 		const deps = createBridgeDeps({
 			request: async method => (method === 'agent.run' ? {} : {}),

@@ -1,8 +1,8 @@
 # 1.5.22 — Brancher Explore (`task`) dans Drox IDE
 
-**Priorité maj** : reporté depuis 1.5.21  
-**Statut** : 📋 à faire · moteur déjà prêt, IDE non câblé  
-**Parent** : [README 1.5.22](README.md)  
+**Priorité maj** : reporté depuis 1.5.21 → **livraison dans 1.5.23**  
+**Statut** : ➡️ voir **[1.5.23 PLAN-SUBAGENTS-EXPLORE](../1.5.23/PLAN-SUBAGENTS-EXPLORE.md)**  
+**Parent** : [README 1.5.22](README.md) (historique)  
 **Pédagogie** : [docs/pedagogie/11-mcp-et-explore.md](../../pedagogie/11-mcp-et-explore.md)  
 **Réf. moteur** : [mcp-and-subagents.md](../../engine/mcp-and-subagents.md)
 

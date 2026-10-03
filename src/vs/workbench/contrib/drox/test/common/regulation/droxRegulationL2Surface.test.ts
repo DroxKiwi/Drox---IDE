@@ -34,10 +34,16 @@ suite('Drox regulation R7 L2 surface', () => {
 		assert.ok(!disabled.includes('ask_user_question'));
 	});
 
-	test('standard keeps codebase_search, disables web', () => {
+	test('standard keeps codebase_search and task, disables web', () => {
 		const disabled = applyDroxRegulationL2DisabledTools('standard', []);
 		assert.ok(!disabled.includes('codebase_search'));
+		assert.ok(!disabled.includes('task'));
 		assert.ok(disabled.includes('web_fetch'));
+	});
+
+	test('core disables task (Explore)', () => {
+		const disabled = applyDroxRegulationL2DisabledTools('core', []);
+		assert.ok(disabled.includes('task'));
 	});
 
 	test('core filters executable client tools', () => {

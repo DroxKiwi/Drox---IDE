@@ -14,7 +14,7 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { IWorkbenchEnvironmentService } from '../../../../workbench/services/environment/common/environmentService.js';
 import { IWorkbenchLayoutService } from '../../../../workbench/services/layout/browser/layoutService.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
-import { openDroxCodebaseCockpit, openDroxRegulationView } from '../../../../workbench/contrib/drox/browser/droxOpenWorkbenchViews.js';
+import { openDroxCodebaseCockpit, openDroxPortsView, openDroxRegulationView, openDroxTrafficView } from '../../../../workbench/contrib/drox/browser/droxOpenWorkbenchViews.js';
 import { IDroxCodebaseSupervisionService } from '../../../../workbench/contrib/drox/common/codebase/droxCodebaseSupervisionService.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { IDroxRunSettingsService } from '../../../../workbench/contrib/drox/common/droxRunSettingsService.js';
@@ -118,5 +118,81 @@ registerAction2(class DroxOpenSessionRegulationAction extends Action2 {
 		if (root) {
 			void regulationService.ensureHistoryLoaded(root.fsPath).catch(() => { /* best-effort */ });
 		}
+	}
+});
+
+registerAction2(class DroxOpenSessionTrafficAction extends Action2 {
+	constructor() {
+		super({
+			id: 'drox.sessions.openTraffic',
+			title: localize2('drox.openSessionTraffic', "Traffic"),
+			tooltip: localize('drox.openSessionTraffic.tooltip', "Open traffic observatory for this discussion's folder"),
+			icon: Codicon.radioTower,
+			menu: [{
+				id: SessionItemToolbarMenuId,
+				group: 'navigation',
+				order: 6,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}, {
+				id: SessionItemContextMenuId,
+				group: '0_pin',
+				order: 4,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}],
+		});
+	}
+
+	async run(accessor: ServicesAccessor, context?: ISession | ISession[]): Promise<void> {
+		const session = Array.isArray(context) ? context[0] : context;
+		if (!session || session.providerId !== DROX_SESSIONS_PROVIDER_ID) {
+			return;
+		}
+		const viewsService = accessor.get(IViewsService);
+		const layoutService = accessor.get(IWorkbenchLayoutService);
+		const environmentService = accessor.get(IWorkbenchEnvironmentService);
+		applySessionRoot(accessor, session);
+		await openDroxTrafficView({
+			viewsService,
+			layoutService,
+			environmentService,
+		});
+	}
+});
+
+registerAction2(class DroxOpenSessionPortsAction extends Action2 {
+	constructor() {
+		super({
+			id: 'drox.sessions.openPorts',
+			title: localize2('drox.openSessionPorts', "Ports"),
+			tooltip: localize('drox.openSessionPorts.tooltip', "Open declarative port forwards for this discussion's folder"),
+			icon: Codicon.plug,
+			menu: [{
+				id: SessionItemToolbarMenuId,
+				group: 'navigation',
+				order: 7,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}, {
+				id: SessionItemContextMenuId,
+				group: '0_pin',
+				order: 5,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}],
+		});
+	}
+
+	async run(accessor: ServicesAccessor, context?: ISession | ISession[]): Promise<void> {
+		const session = Array.isArray(context) ? context[0] : context;
+		if (!session || session.providerId !== DROX_SESSIONS_PROVIDER_ID) {
+			return;
+		}
+		const viewsService = accessor.get(IViewsService);
+		const layoutService = accessor.get(IWorkbenchLayoutService);
+		const environmentService = accessor.get(IWorkbenchEnvironmentService);
+		applySessionRoot(accessor, session);
+		await openDroxPortsView({
+			viewsService,
+			layoutService,
+			environmentService,
+		});
 	}
 });

@@ -1,0 +1,211 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-ports-host {
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.drox-ports-root {
+	--drox-ports-accent: #3D7A3D;
+	--drox-ports-accent-soft: color-mix(in srgb, #3D7A3D 10%, transparent);
+	--drox-ports-border: var(--vscode-panel-border, rgba(128, 128, 128, 0.28));
+	--drox-ports-rule: color-mix(in srgb, #3D7A3D 50%, transparent);
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	box-sizing: border-box;
+	padding: 10px 12px 8px;
+	gap: 8px;
+	overflow: auto;
+}
+
+.drox-ports-section {
+	margin: 0;
+	padding: 8px 0 10px 10px;
+	border: none;
+	border-left: 2px solid var(--drox-ports-rule);
+	border-bottom: 1px solid var(--drox-ports-border);
+	background: transparent;
+}
+
+.drox-ports-section h3,
+.drox-ports-section h4 {
+	margin: 0 0 6px 0;
+	font-weight: 600;
+}
+
+.drox-ports-section h3 {
+	font-size: 13px;
+	color: color-mix(in srgb, var(--drox-ports-accent) 55%, var(--vscode-foreground, inherit));
+}
+
+.drox-ports-section h4 {
+	font-size: 11px;
+	text-transform: uppercase;
+	opacity: 0.78;
+	letter-spacing: 0.04em;
+}
+
+.drox-ports-muted {
+	opacity: 0.72;
+	font-size: 11px;
+	line-height: 1.35;
+	margin: 0;
+}
+
+.drox-ports-form {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.drox-ports-field {
+	appearance: none;
+	width: 100%;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 7px 10px;
+	border-radius: 5px;
+	border: 1px solid var(--drox-ports-border);
+	background: var(--vscode-input-background, rgba(0, 0, 0, 0.25));
+	color: var(--vscode-input-foreground, inherit);
+	font: inherit;
+	font-size: 12px;
+	outline: none;
+}
+
+.drox-ports-field:focus {
+	border-color: color-mix(in srgb, var(--drox-ports-accent) 65%, var(--drox-ports-border));
+}
+
+.drox-ports-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.drox-ports-field-sm {
+	width: auto;
+	min-width: 90px;
+	flex: 1 1 90px;
+}
+
+.drox-ports-btn {
+	appearance: none;
+	cursor: pointer;
+	border: 1px solid var(--drox-ports-border);
+	background: transparent;
+	color: var(--vscode-foreground, inherit);
+	border-radius: 5px;
+	padding: 5px 10px;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.2;
+}
+
+.drox-ports-btn:hover:not(:disabled) {
+	border-color: color-mix(in srgb, var(--drox-ports-accent) 45%, var(--drox-ports-border));
+	background: var(--drox-ports-accent-soft);
+}
+
+.drox-ports-btn:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.drox-ports-btn-primary {
+	border-color: color-mix(in srgb, var(--drox-ports-accent) 55%, var(--drox-ports-border));
+	color: color-mix(in srgb, var(--drox-ports-accent) 70%, var(--vscode-foreground, inherit));
+}
+
+.drox-ports-btn-ghost {
+	padding: 3px 8px;
+	font-size: 11px;
+}
+
+.drox-ports-list {
+	list-style: none;
+	margin: 8px 0 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.drox-ports-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--drox-ports-border);
+}
+
+.drox-ports-item:last-child {
+	border-bottom: none;
+}
+
+.drox-ports-item-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.drox-ports-item-title {
+	font-size: 12px;
+	font-weight: 600;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-ports-item-meta {
+	font-size: 11px;
+	font-family: var(--monaco-monospace-font, monospace);
+	opacity: 0.75;
+	word-break: break-all;
+}
+
+.drox-ports-status {
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	opacity: 0.85;
+	flex: 0 0 auto;
+}
+
+.drox-ports-status.is-up {
+	color: var(--drox-ports-accent);
+}
+
+.drox-ports-status.is-error {
+	color: var(--vscode-testing-iconFailed, #f14c4c);
+}
+
+.drox-ports-status.is-starting,
+.drox-ports-status.is-stopping {
+	color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.drox-ports-item-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 2px;
+}
+
+.drox-ports-code {
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 10px;
+	opacity: 0.7;
+	word-break: break-all;
+}

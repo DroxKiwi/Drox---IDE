@@ -40,7 +40,7 @@ import { DROX_LOADING_SHOW_DELAY_MS } from '../../../../workbench/contrib/drox/b
 import { DroxAgentsComposerToolbar } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsComposerToolbar.js';
 import { createDroxAgentsComposerQuickActionsHost, DroxAgentsComposerQuickActionsHost } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatInputIntegration.js';
 import { registerDroxSmartPasteHandler } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsSmartPaste.js';
-import { isDroxAgentsWindowEnabled, isDroxNativeChatStackEnabled } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+import { isDroxNativeChatStackEnabled } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IDroxPasteCandidateService } from '../../../../workbench/contrib/drox/common/droxPasteCandidateService.js';
 import { isDroxSendablePasteAttachment, isDroxSmartPasteVariableEntry, toDroxSmartPasteVariableEntry, wireToDroxSmartPasteAttachmentValue } from '../../../../workbench/contrib/drox/common/droxNativeChatRequestAttachments.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
@@ -385,7 +385,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		// Input area inside the input slot
 		const inputArea = dom.append(chatInputContainer, dom.$('.new-chat-input-area'));
 
-		if (isDroxAgentsWindowEnabled(this.configurationService)) {
+		if (isDroxNativeChatStackEnabled(this.configurationService)) {
 			const quickActionsHost = createDroxAgentsComposerQuickActionsHost(
 				this.instantiationService,
 				this.configurationService,
@@ -425,7 +425,8 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 		this._createEditor(inputArea, editorOverflowWidgetsDomNode);
 		let droxComposerToolbar: DroxAgentsComposerToolbar | undefined;
-		if (isDroxAgentsWindowEnabled(this.configurationService)) {
+		// IDE native chat needs the same Connect / model chips as Agents — not only the Agents window.
+		if (isDroxNativeChatStackEnabled(this.configurationService)) {
 			try {
 				droxComposerToolbar = this._register(this.instantiationService.createInstance(DroxAgentsComposerToolbar));
 			} catch (err) {

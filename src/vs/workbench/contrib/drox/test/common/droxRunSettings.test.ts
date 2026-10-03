@@ -33,6 +33,18 @@ function createMockConfigurationService(
 	return {
 		values: store,
 		getValue: <T>(key: string, _opts?: { resource?: URI }) => store[key] as T,
+		inspect: <T>(key: string) => ({
+			key,
+			value: store[key] as T | undefined,
+			defaultValue: undefined,
+			userValue: store[key] as T | undefined,
+			userLocalValue: undefined,
+			userRemoteValue: undefined,
+			workspaceValue: undefined,
+			workspaceFolderValue: undefined,
+			applicationValue: undefined,
+			policyValue: undefined,
+		}),
 		updateValue: async (key: string, value: unknown) => {
 			store[key] = value;
 		},
@@ -244,6 +256,42 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 		assert.ok(!keys.includes('drox.executor.model'));
 		assert.ok(!keys.includes('drox.engine.strictness'));
 		assert.ok(!keys.some(k => k.startsWith('drox.engine.tuning.')));
-		assert.ok(!keys.some(k => k.startsWith('drox.subagents.')));
+		assert.ok(keys.includes(DroxSetting.SubagentsEnabled));
+		assert.ok(keys.includes(DroxSetting.SubagentsMaxIterations));
+		assert.ok(keys.includes(DroxSetting.SubagentsMaxConcurrent));
+	});
+
+	test('buildAgentRunParams forwards subagents when enabled', () => {
+		const settings = createMockRunSettingsService(createMockConfigurationService()).getLlmSettings();
+		const params = buildAgentRunParams({
+			prompt: 'explore',
+			workspace: WS.fsPath,
+			mode: 'acceptEdits',
+			sessionId: 'ses_sub',
+			settings,
+			disabledTools: [],
+			mcpToolsEnabled: true,
+			subagents: { enabled: true, maxIterations: 12, maxConcurrent: 2 },
+		});
+		assert.strictEqual(params.subagentsEnabled, true);
+		assert.strictEqual(params.subagentsMaxIterations, 12);
+		assert.strictEqual(params.subagentsMaxConcurrent, 2);
+	});
+
+	test('buildAgentRunParams omits subagents when disabled', () => {
+		const settings = createMockRunSettingsService(createMockConfigurationService()).getLlmSettings();
+		const params = buildAgentRunParams({
+			prompt: 'explore',
+			workspace: WS.fsPath,
+			mode: 'acceptEdits',
+			sessionId: 'ses_sub_off',
+			settings,
+			disabledTools: [],
+			mcpToolsEnabled: true,
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1 },
+		});
+		assert.strictEqual(params.subagentsEnabled, undefined);
+		assert.strictEqual(params.subagentsMaxIterations, undefined);
+		assert.strictEqual(params.subagentsMaxConcurrent, undefined);
 	});
 });

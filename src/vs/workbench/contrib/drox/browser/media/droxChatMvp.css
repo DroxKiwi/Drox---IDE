@@ -2288,29 +2288,32 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	color: var(--vscode-errorForeground);
 }
 
-/* Shell command cards (outil bash) */
+/* Shell command cards — Cursor-like collapsible consoles in chat */
 .drox-shell-card {
-	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-	border-radius: var(--drox-chat-frame-radius);
-	background: var(--vscode-editor-background);
-	overflow: hidden;
+	--drox-shell-surface: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 92%, #000 8%);
+	--drox-shell-border: color-mix(in srgb, var(--vscode-panel-border, rgba(128, 128, 128, 0.4)) 80%, transparent);
+	border: 1px solid var(--drox-shell-border);
+	border-radius: 8px;
+	background: var(--drox-shell-surface);
+	overflow: visible;
 }
 
 .drox-shell-card.running {
-	border-color: var(--vscode-focusBorder, var(--drox-ui-green));
+	border-color: color-mix(in srgb, var(--drox-ui-green, #3D7A3D) 55%, var(--drox-shell-border));
 }
 
 .drox-shell-card.error {
-	border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+	border-color: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 45%, var(--drox-shell-border));
 }
 
 .drox-shell-card > summary {
 	cursor: pointer;
-	padding: 6px 8px;
+	padding: 8px 10px;
 	list-style: none;
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 0;
+	user-select: none;
 }
 
 .drox-shell-card > summary::-webkit-details-marker {
@@ -2327,35 +2330,58 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	min-height: 22px;
 }
 
-.drox-shell-card-icon::before {
-	content: '>';
+.drox-shell-card-chevron {
+	flex: 0 0 auto;
+	width: 12px;
+	height: 12px;
+	opacity: 0.55;
+	background: currentColor;
+	-webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6 4l4 4-4 4z'/></svg>") center / 10px 10px no-repeat;
+	mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6 4l4 4-4 4z'/></svg>") center / 10px 10px no-repeat;
+	transition: transform 120ms ease;
+}
+
+.drox-shell-card[open] .drox-shell-card-chevron {
+	transform: rotate(90deg);
+}
+
+.drox-shell-card-icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 5px;
+	border: 1px solid var(--drox-shell-border);
+	background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 70%, transparent);
 	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	font-size: 11px;
 	font-weight: 700;
-	color: var(--drox-ui-green, var(--vscode-terminal-ansiGreen));
+	line-height: 1;
+	color: var(--drox-ui-green, var(--vscode-terminal-ansiGreen, #89d185));
+}
+
+.drox-shell-card-icon::before {
+	content: '>_';
 }
 
 .drox-shell-card-title {
 	flex: 1 1 auto;
 	font-weight: 600;
-	font-size: 12px;
+	font-size: 12.5px;
+	letter-spacing: 0.01em;
 	color: var(--vscode-foreground);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.drox-shell-card-kind {
-	font-size: 11px;
-	color: var(--vscode-descriptionForeground);
-	padding: 1px 6px;
-	border-radius: 4px;
-	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
-}
-
 .drox-shell-card-status {
 	font-size: 11px;
 	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
 	color: var(--vscode-descriptionForeground);
+	flex: 0 0 auto;
 }
 
 .drox-shell-card-status.running {
@@ -2367,22 +2393,73 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .drox-shell-card-actions {
-	margin-left: auto;
+	margin-left: 2px;
 	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
 }
 
-.drox-shell-card-copy {
-	font-size: 11px;
-	padding: 2px 8px;
-	border-radius: 4px;
-	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+.drox-shell-card-menu {
+	position: relative;
+}
+
+.drox-shell-card-menu-btn {
+	appearance: none;
+	width: 26px;
+	height: 22px;
+	padding: 0;
+	border: none;
+	border-radius: 5px;
 	background: transparent;
-	color: var(--vscode-foreground);
+	color: var(--vscode-descriptionForeground);
+	font-size: 16px;
+	line-height: 1;
 	cursor: pointer;
 }
 
-.drox-shell-card-copy:hover {
-	background: var(--vscode-toolbar-hoverBackground);
+.drox-shell-card-menu-btn:hover,
+.drox-shell-card-menu.is-open .drox-shell-card-menu-btn {
+	background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+	color: var(--vscode-foreground);
+}
+
+.drox-shell-card-menu-panel {
+	display: none;
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	z-index: 20;
+	min-width: 160px;
+	padding: 4px;
+	border-radius: 8px;
+	border: 1px solid var(--drox-shell-border);
+	background: var(--vscode-editorWidget-background, var(--vscode-editor-background, #252526));
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.drox-shell-card-menu.is-open .drox-shell-card-menu-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.drox-shell-card-menu-item {
+	appearance: none;
+	border: none;
+	background: transparent;
+	color: var(--vscode-foreground);
+	text-align: left;
+	font: inherit;
+	font-size: 12px;
+	padding: 6px 10px;
+	border-radius: 5px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.drox-shell-card-menu-item:hover {
+	background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
 }
 
 .drox-shell-card-body {
@@ -2390,25 +2467,28 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+	overflow: hidden;
+	border-radius: 0 0 8px 8px;
 }
 
 .drox-shell-cmd {
 	display: flex;
 	align-items: flex-start;
-	gap: 6px;
+	gap: 8px;
 	padding: 8px 10px;
 	border-radius: 6px;
-	background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.12));
-	border: 1px solid var(--vscode-editorWidget-border, rgba(127, 127, 127, 0.2));
+	background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 55%, #000 45%);
+	border: 1px solid var(--drox-shell-border);
 	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
 	font-size: 12px;
 	line-height: 1.45;
 }
 
 .drox-shell-prompt {
-	color: var(--drox-ui-green, var(--vscode-terminal-ansiGreen));
+	color: var(--drox-ui-green, var(--vscode-terminal-ansiGreen, #89d185));
 	flex-shrink: 0;
 	user-select: none;
+	font-weight: 700;
 }
 
 .drox-shell-cmd-text {
@@ -2432,23 +2512,23 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
 	font-size: 11.5px;
 	line-height: 1.4;
-	max-height: 280px;
+	max-height: 220px;
 	overflow: auto;
 }
 
 .drox-shell-card[open] .drox-shell-output-block {
-	max-height: 480px;
+	max-height: 420px;
 }
 
 .drox-shell-output-stdout {
-	background: rgba(127, 127, 127, 0.08);
-	border: 1px solid var(--vscode-panel-border, transparent);
+	background: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 70%, #000 30%);
+	border: 1px solid var(--drox-shell-border);
 	color: var(--vscode-foreground);
 }
 
 .drox-shell-output-stderr {
-	background: rgba(255, 80, 80, 0.08);
-	border: 1px solid var(--vscode-inputValidation-errorBorder, rgba(255, 80, 80, 0.35));
+	background: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 10%, transparent);
+	border: 1px solid color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 35%, transparent);
 	color: var(--vscode-errorForeground);
 }
 
@@ -2462,6 +2542,266 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 #log > .drox-shell-card {
 	margin: 4px 0 6px;
 	max-width: 100%;
+}
+
+/* Explore (`task`) cards — collapsible sub-agent reports */
+.drox-explore-card {
+	--drox-explore-surface: color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 92%, #000 8%);
+	--drox-explore-border: color-mix(in srgb, var(--vscode-panel-border, rgba(128, 128, 128, 0.4)) 80%, transparent);
+	--drox-explore-accent: var(--vscode-charts-blue, #3794ff);
+	border: 1px solid var(--drox-explore-border);
+	border-radius: 8px;
+	background: var(--drox-explore-surface);
+	overflow: visible;
+}
+
+.drox-explore-card.running {
+	border-color: color-mix(in srgb, var(--drox-explore-accent) 55%, var(--drox-explore-border));
+}
+
+.drox-explore-card.error {
+	border-color: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 45%, var(--drox-explore-border));
+}
+
+.drox-explore-card > summary {
+	cursor: pointer;
+	padding: 8px 10px;
+	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: 0;
+	user-select: none;
+}
+
+.drox-explore-card > summary::-webkit-details-marker {
+	display: none;
+}
+
+.drox-explore-card-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 0;
+	min-height: 22px;
+}
+
+.drox-explore-card-chevron {
+	flex: 0 0 auto;
+	width: 12px;
+	height: 12px;
+	opacity: 0.55;
+	background: currentColor;
+	-webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6 4l4 4-4 4z'/></svg>") center / 10px 10px no-repeat;
+	mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6 4l4 4-4 4z'/></svg>") center / 10px 10px no-repeat;
+	transition: transform 120ms ease;
+}
+
+.drox-explore-card[open] .drox-explore-card-chevron {
+	transform: rotate(90deg);
+}
+
+.drox-explore-card-icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 5px;
+	border: 1px solid color-mix(in srgb, var(--drox-explore-accent) 40%, var(--drox-explore-border));
+	background: color-mix(in srgb, var(--drox-explore-accent) 14%, transparent);
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--drox-explore-accent);
+}
+
+.drox-explore-card-icon::before {
+	content: '◎';
+}
+
+.drox-explore-card-title-wrap {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.drox-explore-card-title {
+	font-weight: 600;
+	font-size: 12.5px;
+	letter-spacing: 0.01em;
+	color: var(--vscode-foreground);
+	line-height: 1.2;
+}
+
+.drox-explore-card-desc {
+	font-size: 11.5px;
+	color: var(--vscode-descriptionForeground);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.drox-explore-card-thoroughness {
+	align-self: flex-start;
+	margin-top: 2px;
+	font-size: 10.5px;
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	color: var(--drox-explore-accent);
+	opacity: 0.9;
+}
+
+.drox-explore-card-status {
+	font-size: 11px;
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	color: var(--vscode-descriptionForeground);
+	flex: 0 0 auto;
+}
+
+.drox-explore-card-status.running {
+	color: var(--vscode-terminal-ansiYellow, #dcdcaa);
+}
+
+.drox-explore-card-status.is-error {
+	color: var(--vscode-errorForeground);
+}
+
+.drox-explore-card-actions {
+	margin-left: 2px;
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.drox-explore-card-menu {
+	position: relative;
+}
+
+.drox-explore-card-menu-btn {
+	appearance: none;
+	width: 26px;
+	height: 22px;
+	padding: 0;
+	border: none;
+	border-radius: 5px;
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.drox-explore-card-menu-btn:hover,
+.drox-explore-card-menu.is-open .drox-explore-card-menu-btn {
+	background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+	color: var(--vscode-foreground);
+}
+
+.drox-explore-card-menu-panel {
+	display: none;
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	z-index: 20;
+	min-width: 140px;
+	padding: 4px;
+	border-radius: 8px;
+	border: 1px solid var(--drox-explore-border);
+	background: var(--vscode-editorWidget-background, var(--vscode-editor-background, #252526));
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.drox-explore-card-menu.is-open .drox-explore-card-menu-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.drox-explore-card-menu-item {
+	appearance: none;
+	border: none;
+	background: transparent;
+	color: var(--vscode-foreground);
+	text-align: left;
+	font: inherit;
+	font-size: 12px;
+	padding: 6px 10px;
+	border-radius: 5px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.drox-explore-card-menu-item:hover {
+	background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
+}
+
+.drox-explore-card-body {
+	padding: 0 10px 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	overflow: hidden;
+	border-radius: 0 0 8px 8px;
+}
+
+.drox-explore-report {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.drox-explore-report-placeholder {
+	font-size: 11.5px;
+	color: var(--vscode-descriptionForeground);
+	padding: 6px 2px;
+	font-style: italic;
+}
+
+.drox-explore-report-block {
+	margin: 0;
+	padding: 8px 10px;
+	border-radius: 6px;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	font-size: 11.5px;
+	line-height: 1.45;
+	max-height: 220px;
+	overflow: auto;
+}
+
+.drox-explore-card[open] .drox-explore-report-block {
+	max-height: 480px;
+}
+
+.drox-explore-report-body {
+	background: color-mix(in srgb, var(--drox-explore-accent) 6%, var(--vscode-editor-background, #1e1e1e));
+	border: 1px solid color-mix(in srgb, var(--drox-explore-accent) 28%, var(--drox-explore-border));
+	color: var(--vscode-foreground);
+}
+
+.drox-explore-report-error {
+	background: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 10%, transparent);
+	border: 1px solid color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 35%, transparent);
+	color: var(--vscode-errorForeground);
+}
+
+.drox-run-chronology .drox-explore-card,
+#log > .drox-explore-card {
+	margin: 4px 0 6px;
+	max-width: 100%;
+}
+
+#log > .drox-explore-card > summary {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .drox-run-section[data-section='plan'] .msg-tool.verify-line,

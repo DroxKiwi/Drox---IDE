@@ -42,6 +42,34 @@ export async function openDroxRegulationView(deps: IDroxOpenWorkbenchViewsDeps |
 	await viewsService.openView(DroxViews.RegulationViewId, true);
 }
 
+/** Opens the traffic observatory — IDE sidebar · Agents auxiliary bar. */
+export async function openDroxTrafficView(deps: IDroxOpenWorkbenchViewsDeps | IViewsService): Promise<void> {
+	const { viewsService, layoutService, environmentService } = normalizeDeps(deps);
+	if (environmentService?.isSessionsWindow) {
+		layoutService?.setPartHidden(false, Parts.AUXILIARYBAR_PART);
+		await viewsService.openViewContainer(DroxViews.TrafficSessionsViewContainerId, true);
+		await viewsService.openView(DroxViews.TrafficSessionsViewId, true);
+		return;
+	}
+	layoutService?.setPartHidden(false, Parts.SIDEBAR_PART);
+	await viewsService.openViewContainer(DroxViews.TrafficViewContainerId, true);
+	await viewsService.openView(DroxViews.TrafficViewId, true);
+}
+
+/** Opens declarative Ports / forward panel — IDE sidebar · Agents auxiliary bar. */
+export async function openDroxPortsView(deps: IDroxOpenWorkbenchViewsDeps | IViewsService): Promise<void> {
+	const { viewsService, layoutService, environmentService } = normalizeDeps(deps);
+	if (environmentService?.isSessionsWindow) {
+		layoutService?.setPartHidden(false, Parts.AUXILIARYBAR_PART);
+		await viewsService.openViewContainer(DroxViews.PortsSessionsViewContainerId, true);
+		await viewsService.openView(DroxViews.PortsSessionsViewId, true);
+		return;
+	}
+	layoutService?.setPartHidden(false, Parts.SIDEBAR_PART);
+	await viewsService.openViewContainer(DroxViews.PortsViewContainerId, true);
+	await viewsService.openView(DroxViews.PortsViewId, true);
+}
+
 function normalizeDeps(deps: IDroxOpenWorkbenchViewsDeps | IViewsService): IDroxOpenWorkbenchViewsDeps {
 	if (typeof (deps as IDroxOpenWorkbenchViewsDeps).viewsService !== 'undefined') {
 		return deps as IDroxOpenWorkbenchViewsDeps;

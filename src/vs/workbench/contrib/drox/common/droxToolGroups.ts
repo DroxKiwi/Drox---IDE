@@ -104,6 +104,13 @@ export const DROX_TOOL_GROUPS: readonly IDroxToolGroup[] = [
 			{ name: 'git_worktree_exit', label: 'git_worktree_exit', description: localize('drox.tool.gitWorktreeExit', 'Leave current worktree') },
 		],
 	},
+	{
+		id: 'subagents',
+		label: localize('drox.toolGroup.subagents', 'Sub-agents'),
+		tools: [
+			{ name: 'task', label: 'task', description: localize('drox.tool.task', 'Explore sub-agent (read-only search)') },
+		],
+	},
 ];
 
 export const DROX_TOGGLEABLE_TOOL_NAMES: readonly string[] = DROX_TOOL_GROUPS.flatMap(g => g.tools.map(t => t.name));

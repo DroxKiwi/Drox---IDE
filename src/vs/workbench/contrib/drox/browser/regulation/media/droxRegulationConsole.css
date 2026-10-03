@@ -8,10 +8,10 @@
 	align-items: baseline;
 	gap: 10px;
 	margin: 8px 0;
-	padding: 6px 8px;
-	border-radius: 4px;
-	border-left: 3px solid var(--vscode-focusBorder, #007acc);
-	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.12));
+	padding: 4px 0 4px 10px;
+	border-radius: 0;
+	border-left: 2px solid var(--vscode-focusBorder, #007acc);
+	background: transparent;
 }
 
 .drox-regulation-console .drox-regulation-global.is-good {
@@ -46,26 +46,26 @@
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
-	padding: 8px 8px 8px 10px;
-	border-radius: 4px;
-	border-left: 3px solid transparent;
+	padding: 7px 0 7px 10px;
+	border-radius: 0;
+	border-left: 2px solid transparent;
 	font-size: 12px;
-	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.08));
+	background: transparent;
 }
 
 .drox-regulation-lever.is-good {
 	border-left-color: var(--vscode-testing-iconPassed, #73c991);
-	background: color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 12%, transparent);
+	background: color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 5%, transparent);
 }
 
 .drox-regulation-lever.is-warn {
 	border-left-color: var(--vscode-editorWarning-foreground, #cca700);
-	background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 12%, transparent);
+	background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 5%, transparent);
 }
 
 .drox-regulation-lever.is-bad {
 	border-left-color: var(--vscode-testing-iconFailed, #f14c4c);
-	background: color-mix(in srgb, var(--vscode-testing-iconFailed, #f14c4c) 12%, transparent);
+	background: color-mix(in srgb, var(--vscode-testing-iconFailed, #f14c4c) 5%, transparent);
 }
 
 .drox-regulation-lever-meta {
@@ -261,8 +261,8 @@
 .drox-regulation-spark-svg {
 	display: block;
 	max-width: 100%;
-	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.08));
-	border-radius: 3px;
+	background: transparent;
+	border-radius: 0;
 }
 
 .drox-regulation-spark-baseline {
