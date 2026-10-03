@@ -67,7 +67,8 @@ function buildManifest(opts) {
 	};
 
 	const defaultNotes = `https://github.com/DroxKiwi/Drox---IDE/blob/main/stable/${version}/RELEASE_NOTES.md`;
-	let notesUrl = opts.notesUrl || existing.notesUrl || defaultNotes;
+	// Prefer explicit notes, else notes for the new version (don't keep previous version's URL).
+	let notesUrl = opts.notesUrl || defaultNotes;
 	notesUrl = String(notesUrl).replace(/Drox---IDE---OR/g, 'Drox---IDE');
 
 	return {
