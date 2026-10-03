@@ -3,6 +3,7 @@
 ## Correctifs (2026-10-04)
 
 - **Chat Microsoft masqué** — l’onglet Chat Copilot ne réapparaît plus dans le panneau bas (à côté du Terminal) ; surfaces MS restantes (Open/Toggle/Quick Chat) désactivées quand `droxMicrosoftAgentsSurfaceEnabled` est off.
+- **Diffs discussion** — clic sur le chemin d’un fichier modifié ouvre bien l’éditeur ; cartes diff allégées (plus de bordure verte).
 
 ## Nouveautés
 

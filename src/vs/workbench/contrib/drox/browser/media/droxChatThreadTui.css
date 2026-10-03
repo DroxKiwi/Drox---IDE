@@ -230,15 +230,15 @@ body {
 .drox-run-chronology .msg-file-change,
 .drox-run-answer .msg-file-change {
 	border-radius: var(--drox-thread-radius);
-	border-color: var(--drox-thread-green-border);
-	background: color-mix(in srgb, var(--vscode-editor-background) 85%, var(--drox-thread-brown) 15%);
+	border: none;
+	background: transparent;
 }
 
 #log .msg-file-change > .fc-summary,
 .drox-run-chronology .msg-file-change > .fc-summary,
 .drox-run-answer .msg-file-change > .fc-summary {
-	background: color-mix(in srgb, var(--vscode-editor-background) 78%, var(--drox-thread-brown) 22%);
-	border-bottom-color: color-mix(in srgb, var(--drox-thread-green-border) 40%, var(--drox-thread-brown) 60%);
+	background: transparent;
+	border-bottom-color: var(--vscode-widget-border, var(--vscode-panel-border));
 }
 
 #log .msg-file-change > .fc-body,

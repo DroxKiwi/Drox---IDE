@@ -4952,8 +4952,8 @@ button:disabled {
 /* --- Carte fichier modifié (diff repliable) --- */
 
 .msg-file-change.msg-ai-frame {
-	border: 1px solid var(--vscode-panel-border);
-	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	border: none;
+	background: transparent;
 	overflow: hidden;
 }
 
@@ -5002,9 +5002,9 @@ button:disabled {
 .msg-file-change {
 	align-self: stretch;
 	margin: 4px 0;
-	border: 1px solid var(--vscode-panel-border);
-	border-radius: 8px;
-	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	border: none;
+	border-radius: 4px;
+	background: transparent;
 	overflow: hidden;
 	font-family: var(--vscode-editor-font-family);
 	font-size: 12px;
@@ -5015,11 +5015,11 @@ button:disabled {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 6px 8px;
+	padding: 4px 2px 6px;
 	cursor: pointer;
 	user-select: none;
-	background: var(--vscode-titleBar-inactiveBackground, var(--vscode-sideBarSectionHeader-background, transparent));
-	border-bottom: 1px solid var(--vscode-panel-border);
+	background: transparent;
+	border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
 }
 
 .msg-file-change:not(.is-collapsed) > .fc-summary {

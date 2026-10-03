@@ -25,6 +25,7 @@ import './media/droxNativeFileChange.css';
 import { enrichDroxFileChangeSnapshot } from '../../common/droxFileChangeProgress.js';
 import { IDroxSessionChangesDetailService } from '../../common/droxSessionChangesDetailService.js';
 import { buildAggregatedSessionFileChanges } from '../../common/droxSessionChangesAggregate.js';
+import { resolveWorkspaceFilePath } from '../../common/droxFileChange.js';
 import { sanitizePathForEditor } from '../../common/droxPathUtil.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
 
@@ -225,7 +226,8 @@ export async function openDroxSessionFileChange(
 	workspaceRoot: string | undefined,
 	toolId?: string,
 ): Promise<void> {
-	const safePath = sanitizePathForEditor(filePath);
+	const resolved = resolveWorkspaceFilePath(workspaceRoot, filePath) || filePath;
+	const safePath = sanitizePathForEditor(resolved);
 	if (!safePath) {
 		return;
 	}

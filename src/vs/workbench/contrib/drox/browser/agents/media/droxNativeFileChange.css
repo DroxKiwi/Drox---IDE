@@ -9,9 +9,9 @@
 .drox-agents-retro-active .drox-native-file-change.msg-file-change {
 	align-self: stretch;
 	margin: 6px 0 8px;
-	border: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
-	border-radius: 8px;
-	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	border: none;
+	border-radius: 4px;
+	background: transparent;
 	overflow: hidden;
 	font-family: var(--vscode-editor-font-family);
 	font-size: 12px;
@@ -24,10 +24,10 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 6px 10px;
+	padding: 4px 2px 6px;
 	user-select: none;
-	background: color-mix(in srgb, var(--drox-thread-green, #4ec94e) 8%, var(--vscode-editorWidget-background));
-	border-bottom: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
+	background: transparent;
+	border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
 }
 
 .drox-ide-native-chat-active .drox-native-file-change .fc-op,
@@ -47,6 +47,7 @@
 	white-space: nowrap;
 	color: var(--vscode-textLink-foreground);
 	text-decoration: none;
+	cursor: pointer;
 	flex: 1;
 	min-width: 0;
 }
@@ -86,7 +87,7 @@
 	font-size: 11px;
 	padding: 2px 8px;
 	border-radius: 4px;
-	border: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
+	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
 	background: transparent;
 	color: var(--vscode-foreground);
 	cursor: pointer;
@@ -150,7 +151,6 @@
 .drox-ide-native-chat-active .drox-native-file-change.is-not-applied,
 .drox-agents-retro-active .drox-native-file-change.is-not-applied {
 	opacity: 0.85;
-	border-style: dashed;
 }
 
 .drox-ide-native-chat-active .drox-native-file-change.is-cancelled .fc-op,
@@ -162,9 +162,9 @@
 .drox-changes-inline-host .drox-native-file-change.msg-file-change {
 	align-self: stretch;
 	margin: 0;
-	border: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
-	border-radius: 8px;
-	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+	border: none;
+	border-radius: 4px;
+	background: transparent;
 	overflow: hidden;
 	font-family: var(--vscode-editor-font-family);
 	font-size: 12px;
@@ -178,10 +178,10 @@
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	padding: 6px 10px;
+	padding: 4px 2px 6px;
 	user-select: none;
-	background: color-mix(in srgb, var(--drox-thread-green, #4ec94e) 8%, var(--vscode-editorWidget-background));
-	border-bottom: 1px solid var(--drox-thread-green-dim, var(--vscode-panel-border));
+	background: transparent;
+	border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
 	min-width: 0;
 	width: 100%;
 	box-sizing: border-box;
@@ -291,7 +291,6 @@
 
 .drox-changes-inline-host .drox-native-file-change.is-not-applied {
 	opacity: 0.85;
-	border-style: dashed;
 }
 
 .drox-changes-inline-host .drox-native-file-change.is-cancelled .fc-op {

@@ -321,15 +321,16 @@ export function buildFileChangePayload(
 		return null;
 	}
 
+	const absPath = resolveWorkspaceFilePath(workspaceRoot, filePath) || filePath;
 	return {
 		op: toolName === 'file_write' ? 'write' : 'edit',
-		path: filePath,
-		relPath: relativePathUnderWorkspace(workspaceRoot, filePath),
+		path: absPath,
+		relPath: relativePathUnderWorkspace(workspaceRoot, absPath),
 		added,
 		removed,
 		diff,
 		content,
-		language: languageIdForFile(filePath),
+		language: languageIdForFile(absPath),
 		applied,
 		cancelled: options?.cancelled ?? out.cancelled === true,
 		proposed: options?.proposed ?? out.proposed === true,
