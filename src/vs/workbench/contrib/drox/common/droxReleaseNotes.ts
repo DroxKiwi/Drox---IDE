@@ -45,6 +45,7 @@ export function getDroxReleaseNotesItems(version: string): readonly string[] {
 		case '1.5.23':
 			return [
 				localize('drox.releaseNotes.1523.hotfixChat', '**Hotfix** — the built-in Microsoft Chat tab no longer appears next to Terminal; Copilot panel entry points stay hidden in Drox product builds.'),
+				localize('drox.releaseNotes.1523.hotfixDiffs', '**Hotfix** — clicking a changed file path in the discussion thread opens it in the editor; file-change cards are lighter (no green frame).'),
 				localize('drox.releaseNotes.1523.polish', '**Dogfood polish** — Changes badge, Agents ↔ IDE switch, lighter cockpits, visible agent terminals, and a Traffic observatory tab.'),
 				localize('drox.releaseNotes.1523.traffic', '**Traffic tags** — destination tags and alerts with list/remove, partial match, and retroactive ledger hits.'),
 				localize('drox.releaseNotes.1523.explore', '**Explore sub-agents** — `task` Explore runs in the IDE/Agents when sub-agents are enabled and L2 is standard/full, with report cards in the thread.'),
