@@ -84,9 +84,10 @@ Sous-système isolé : **sonde + store historique + policy + console + wrappers*
 
 ---
 
-## 4. Notes & signaux (brouillon → formules à l’impl)
+## 4. Notes & signaux
 
-Échelle **0–100** par levier + **note globale run** (agrégat documenté).
+Échelle **0–100** par levier + **note globale run** (moyenne).  
+**Référentiel formules v0 (source de vérité doc)** : [`docs/engine/model-regulation.md`](../../engine/model-regulation.md) · pédagogie : [`15-regulation-et-notes.md`](../../pedagogie/15-regulation-et-notes.md).
 
 | Levier | Signaux « mal » |
 |--------|-----------------|

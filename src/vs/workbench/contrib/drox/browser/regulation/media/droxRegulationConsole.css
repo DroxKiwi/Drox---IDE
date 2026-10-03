@@ -38,19 +38,19 @@
 .drox-regulation-levers {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 6px;
 	margin: 0 0 12px 0;
 }
 
 .drox-regulation-lever {
-	display: grid;
-	grid-template-columns: 28px minmax(72px, 1fr) 36px 40px minmax(88px, 110px) auto;
+	display: flex;
+	flex-direction: column;
 	gap: 6px;
-	align-items: center;
-	padding: 4px 6px;
-	border-radius: 3px;
+	padding: 8px 8px 8px 10px;
+	border-radius: 4px;
 	border-left: 3px solid transparent;
 	font-size: 12px;
+	background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.08));
 }
 
 .drox-regulation-lever.is-good {
@@ -68,15 +68,36 @@
 	background: color-mix(in srgb, var(--vscode-testing-iconFailed, #f14c4c) 12%, transparent);
 }
 
+.drox-regulation-lever-meta {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 6px 8px;
+	min-width: 0;
+}
+
 .drox-regulation-lever-id {
+	flex: 0 0 auto;
 	font-weight: 700;
 	opacity: 0.85;
 }
 
 .drox-regulation-lever-label {
+	flex: 1 1 auto;
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.drox-regulation-lever-controls {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-areas:
+		"select auto"
+		"suggest suggest";
+	gap: 6px 8px;
+	align-items: center;
 }
 
 .drox-regulation-module {
@@ -86,22 +107,82 @@
 }
 
 .drox-regulation-module-select {
-	max-width: 110px;
+	grid-area: select;
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 26px;
+	margin: 0;
+	padding: 3px 8px;
+	border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border, rgba(128, 128, 128, 0.45)));
+	border-radius: 3px;
+	background: var(--vscode-dropdown-background, var(--vscode-input-background, #3c3c3c));
+	color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground, inherit));
+	font: inherit;
 	font-size: 11px;
+	outline: none;
+	appearance: none;
+	-webkit-appearance: none;
+}
+
+.drox-regulation-module-select:focus {
+	border-color: var(--vscode-focusBorder, #007acc);
+}
+
+.drox-regulation-suggest {
+	grid-area: suggest;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 11px;
+	opacity: 0.75;
+	color: var(--vscode-descriptionForeground, inherit);
+}
+
+.drox-regulation-suggest.is-empty {
+	display: none;
 }
 
 .drox-regulation-auto-btn {
-	cursor: pointer;
-	font-size: 10px;
-	padding: 2px 6px;
+	grid-area: auto;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 72px;
+	min-height: 26px;
+	margin: 0;
+	padding: 3px 10px;
+	border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.45));
+	border-radius: 4px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.2;
 	white-space: nowrap;
-	opacity: 0.85;
+	cursor: pointer;
+	opacity: 0.9;
+}
+
+.drox-regulation-auto-btn:hover {
+	filter: brightness(1.12);
+}
+
+.drox-regulation-auto-btn:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder, #007acc);
+	outline-offset: 1px;
 }
 
 .drox-regulation-auto-btn.is-on {
 	opacity: 1;
-	font-weight: 600;
-	border-color: var(--vscode-focusBorder, #007acc);
+	border-color: var(--vscode-testing-iconPassed, #73c991);
+	color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+.drox-regulation-auto-btn.is-off {
+	opacity: 0.8;
 }
 
 .drox-regulation-history-list {

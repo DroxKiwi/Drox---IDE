@@ -74,5 +74,8 @@ suite('Drox regulation R2 history', () => {
 		assert.strictEqual(rows.length, 1);
 		assert.strictEqual(rows[0].promptExcerpt, 'add button');
 		assert.strictEqual(rows[0].issue, 'ok');
+		const scores = svc2.getScores('ollama::qwen');
+		assert.strictEqual(scores.samples, 1);
+		assert.ok(scores.globalScore > 0);
 	});
 });

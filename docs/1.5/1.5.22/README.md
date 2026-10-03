@@ -27,11 +27,14 @@ Système **auto-régulateur** : on n’adapte pas les capacités du moteur, on a
 |-------|--------|
 | [PLAN-CB3b-CATALOGUE.md](PLAN-CB3b-CATALOGUE.md) | Catalogue admin — **priorité #1** |
 | [PLAN-MODEL-AUTO-REGULATION.md](PLAN-MODEL-AUTO-REGULATION.md) | Leviers L1–L5 · console · histo · roadmap R0–R11 — **#2** |
+| [Réf. notes / scorer](../../engine/model-regulation.md) | Formules v0 · signaux · Auto (doc moteur stable) |
+| [Pédagogie 15](../../pedagogie/15-regulation-et-notes.md) | Lecture guidée notes ≠ Auto |
 | [PLAN-SUBAGENTS-EXPLORE-IDE.md](PLAN-SUBAGENTS-EXPLORE-IDE.md) | Explore / `task` IDE (opt-in) — à arbitrer |
 | [PLAN-SAV-CHAT-ERRORS.md](PLAN-SAV-CHAT-ERRORS.md) | SAV retry + capture erreurs chat — à arbitrer |
 | [PLAN-PORT-FORWARDING.md](PLAN-PORT-FORWARDING.md) | Port forward VS Code → Drox — **avant-avant-dernier** |
 | [PLAN-AGENTS-PARITY.md](PLAN-AGENTS-PARITY.md) | Parité Agents (Embed, etc.) |
 | [PLAN-THEMING.md](PLAN-THEMING.md) | Théming importable + identité Drox — **avant-dernier** |
+| [FIX-BASH-REDIRECT-INSPECT.md](FIX-BASH-REDIRECT-INSPECT.md) | Redirects temp / hors workspace = inspect-only (gates) |
 
 ## Synthèse
 
@@ -46,6 +49,7 @@ Système **auto-régulateur** : on n’adapte pas les capacités du moteur, on a
 | **AG** | Parité Agents (Embed & co.) | 📋 cadrage | avant DOC |
 | **THEME** | Théming (import VS Code + identité Drox) | 📋 noté | **avant-dernier** |
 | **DOC** | Relecture / MAJ docs (**1.5.21 + 1.5.22**) | 📋 **dernière étape maj** | **fin** |
+| **FIX** | Bash `>` scratch / hors WS ≠ mutateur | ✅ classify destination-aware | dogfood |
 
 ## Décisions clés
 

@@ -143,8 +143,27 @@ export class DroxRegulationService extends Disposable implements IDroxRegulation
 		this._history = [...entries];
 		this._surface = surface;
 		this._loadedWorkspace = ws;
+		this._rebuildScoresFromHistory();
 		this._onDidChangeHistory.fire();
+		this._onDidChangeScores.fire();
 		this._onDidChangeSurface.fire();
+	}
+
+	/** Rehydrate in-memory aggregates from persisted history (reload / workspace switch). */
+	private _rebuildScoresFromHistory(): void {
+		this._scoresByModel.clear();
+		for (const entry of this._history) {
+			const key = entry.modelKey.trim() || 'unknown';
+			const run = {
+				L1: entry.leverScores.L1,
+				L2: entry.leverScores.L2,
+				L3: entry.leverScores.L3,
+				L4: entry.leverScores.L4,
+				L5: entry.leverScores.L5,
+			};
+			const next = mergeRegulationRunIntoSnapshot(this._scoresByModel.get(key), key, run, entry.at);
+			this._scoresByModel.set(key, next);
+		}
 	}
 
 	getScores(modelKey: string): IDroxRegulationScoreSnapshot {

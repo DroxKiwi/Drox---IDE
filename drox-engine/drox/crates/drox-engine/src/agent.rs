@@ -20,7 +20,12 @@
 
 use std::sync::Arc;
 
-use drox_bash::{BashCommandKind, command_is_inspect_only, kind_of_segment, split_command_segments};
+use drox_bash::{
+    BashCommandKind, command_is_inspect_only_with_workspace, kind_of_segment,
+    split_command_segments,
+};
+#[cfg(test)]
+use drox_bash::command_is_inspect_only;
 use drox_llm::{ChatOptions, LlmClient, ToolSpec};
 use drox_permissions::PermissionDecision;
 use drox_hooks::{PostHookOutcome, PreHookOutcome, ToolHookContext, ToolHooksConfig};
@@ -136,13 +141,23 @@ fn phase_for_tool(tool_name: &str, active_phase: Option<Phase>) -> Phase {
     }
 }
 
+/// Bash inspect-only for agent gates — destination-aware redirects (temp / hors workspace OK).
+fn bash_is_inspect_only(command: &str, workspace_root: &camino::Utf8Path) -> bool {
+    command_is_inspect_only_with_workspace(command, Some(workspace_root.as_std_path()))
+}
+
 /// Like [`phase_for_tool`], but bash inspect-only (`git status`, `cargo check`, …) maps to Reading.
-fn phase_for_tool_call(tool_name: &str, arguments: &Value, active_phase: Option<Phase>) -> Phase {
+fn phase_for_tool_call(
+    tool_name: &str,
+    arguments: &Value,
+    active_phase: Option<Phase>,
+    workspace_root: &camino::Utf8Path,
+) -> Phase {
     if tool_name == "bash"
         && arguments
             .get("command")
             .and_then(|v| v.as_str())
-            .is_some_and(command_is_inspect_only)
+            .is_some_and(|cmd| bash_is_inspect_only(cmd, workspace_root))
     {
         if active_phase == Some(Phase::Testing) {
             return Phase::Testing;
@@ -482,15 +497,19 @@ const MISSING_ANSWERING_PROMPT: &str = "You emitted `[phase: done]` without \
 /// clarification avant de planifier est légitime (cf. phase `clarifying`).
 
 /// `true` si l'outil (avec ses args) exige un `todo_write` préalable.
-/// Bash : source de vérité = `drox_bash::command_is_inspect_only`.
+/// Bash : source de vérité = `drox_bash::command_is_inspect_only_with_workspace`.
 #[must_use]
-fn requires_todo_write_gate(tool_name: &str, arguments: &Value) -> bool {
+fn requires_todo_write_gate(
+    tool_name: &str,
+    arguments: &Value,
+    workspace_root: &camino::Utf8Path,
+) -> bool {
     match tool_name {
         "file_edit" | "file_write" | "notebook_edit" | "delete_path" | "copy_path" => true,
         "bash" => !arguments
             .get("command")
             .and_then(|v| v.as_str())
-            .is_some_and(command_is_inspect_only),
+            .is_some_and(|cmd| bash_is_inspect_only(cmd, workspace_root)),
         _ => false,
     }
 }
@@ -503,9 +522,10 @@ const MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED: &str = "Blocked: you tried to cal
     what you're about to do, then retry your mutation. Read-only exploration \
     (`glob`, `file_read`, `grep`, `lsp`, `web_*`, and inspect-only `bash` such as \
     `git status` / `git log` / `ls` / `dir` / `ls|grep|awk` filters / `dir|findstr` / \
-    `cargo check`) remains allowed before the plan. Do **not** call `todo_write` just \
-    to unlock inspect-only shell — only before real mutations (`git add`/`commit`, \
-    `rm`, `sed -i`, redirects `> file`, …).";
+    `cargo check`, and redirects to OS temp / outside the workspace) remains allowed \
+    before the plan. Do **not** call `todo_write` just to unlock inspect-only shell — \
+    only before real mutations (`git add`/`commit`, `rm`, `sed -i`, redirects into \
+    the workspace, …).";
 
 const PROFESSOR_DONE_WITHOUT_PLAN: &str = "You emitted `[phase: done]` but never called \
     `course_plan_write` successfully in this run. In Professor mode, end with a course \
@@ -601,13 +621,17 @@ fn is_hallucinated_phase_tool_call(name: &str, arguments: &Value) -> bool {
 /// le modèle peut avoir besoin de lire 5 fichiers — c'est UNE étape, pas
 /// cinq. La granularité utile est l'**action** (édition, exécution shell).
 #[must_use]
-fn counts_as_mutating_for_step_tracking(tool_name: &str, arguments: &Value) -> bool {
+fn counts_as_mutating_for_step_tracking(
+    tool_name: &str,
+    arguments: &Value,
+    workspace_root: &camino::Utf8Path,
+) -> bool {
     match tool_name {
         "file_edit" | "file_write" | "notebook_edit" | "delete_path" | "copy_path" => true,
         "bash" => !arguments
             .get("command")
             .and_then(|v| v.as_str())
-            .is_some_and(command_is_inspect_only),
+            .is_some_and(|cmd| bash_is_inspect_only(cmd, workspace_root)),
         _ => false,
     }
 }
@@ -1101,7 +1125,9 @@ impl Agent {
 
             let native_thinking_ui = self.config.chat_options.think == Some(true);
 
-            let Ok(mut outcome) = consume_stream(stream, &tx, native_thinking_ui).await else {
+            let Ok(mut outcome) =
+                consume_stream(stream, &tx, native_thinking_ui, &ctx.workspace_root).await
+            else {
                 return; // canal consommateur fermé
             };
 
@@ -1773,6 +1799,7 @@ impl Agent {
                                     } else if counts_as_mutating_for_step_tracking(
                                         &call.name,
                                         &call.arguments,
+                                        &ctx.workspace_root,
                                     ) {
                                         mutating_tools_since_last_todo =
                                             mutating_tools_since_last_todo.saturating_add(1);
@@ -2213,7 +2240,7 @@ impl Agent {
                 return Some(msg.to_string());
             }
         } else if !plan_write_gate_satisfied(false, saw_successful_todo_write_in_run, false)
-            && requires_todo_write_gate(&call.name, &call.arguments)
+            && requires_todo_write_gate(&call.name, &call.arguments, &self.ctx.workspace_root)
         {
             return Some(MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED.to_string());
         }
@@ -2887,6 +2914,7 @@ async fn consume_stream(
     mut stream: drox_llm::StreamHandle,
     tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
     native_thinking_ui: bool,
+    workspace_root: &camino::Utf8Path,
 ) -> Result<TurnOutcome, ()> {
     let mut text = String::new();
     let mut thinking = String::new();
@@ -3015,7 +3043,8 @@ async fn consume_stream(
                 // trace repliée. Le choix entre `Reading` et `Acting` se fait
                 // selon la nature lecture seule / mutative du tool.
                 if final_phase.is_none() {
-                    let inferred = phase_for_tool_call(&name, &arguments, final_phase);
+                    let inferred =
+                        phase_for_tool_call(&name, &arguments, final_phase, workspace_root);
                     if inferred == Phase::Analyzing {
                         saw_analyzing = true;
                     }
@@ -4063,7 +4092,10 @@ mod tests {
             },
         ];
         let stream = stream::iter(script.into_iter().map(Ok::<_, LlmError>)).boxed();
-        let outcome = consume_stream(stream, &tx, false).await.expect("channel open");
+        let ws = camino::Utf8Path::new(".");
+        let outcome = consume_stream(stream, &tx, false, ws)
+            .await
+            .expect("channel open");
         assert!(outcome.saw_testing);
         assert_eq!(outcome.final_phase, Some(Phase::Testing));
     }
@@ -4754,17 +4786,34 @@ mod tests {
         assert!(!command_is_inspect_only("git commit -F msg"));
         assert!(!command_is_inspect_only("git status && git add -A"));
         assert!(!command_is_inspect_only("echo hi > file.txt"));
+        assert!(command_is_inspect_only(
+            "git show HEAD:.env > %TEMP%\\drox_env_hist.txt && findstr DATABASE %TEMP%\\drox_env_hist.txt"
+        ));
+        let ws = camino::Utf8Path::new(".");
         assert!(!requires_todo_write_gate(
             "bash",
-            &json!({ "command": "git status" })
+            &json!({ "command": "git status" }),
+            ws
         ));
         assert!(!requires_todo_write_gate(
             "bash",
-            &json!({ "command": "cargo check" })
+            &json!({ "command": "cargo check" }),
+            ws
+        ));
+        assert!(!requires_todo_write_gate(
+            "bash",
+            &json!({ "command": "git show HEAD:.env > %TEMP%\\x.txt" }),
+            ws
         ));
         assert!(requires_todo_write_gate(
             "bash",
-            &json!({ "command": "git add -A" })
+            &json!({ "command": "git add -A" }),
+            ws
+        ));
+        assert!(requires_todo_write_gate(
+            "bash",
+            &json!({ "command": "echo hi > file.txt" }),
+            ws
         ));
     }
 

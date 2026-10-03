@@ -2,7 +2,9 @@
 
 Découplé du moteur : **sonde** (notes) · **history** (prompts) · **surface** (modules L1–L5) · console UI · wrappers aux bords.
 
-Spec : [`docs/1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md`](../../../../../../docs/1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md)
+Spec : [`docs/1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md`](../../../../../../docs/1.5/1.5.22/PLAN-MODEL-AUTO-REGULATION.md)  
+Référentiel notes / formules : [`docs/engine/model-regulation.md`](../../../../../../docs/engine/model-regulation.md)  
+Pédagogie : [`docs/pedagogie/15-regulation-et-notes.md`](../../../../../../docs/pedagogie/15-regulation-et-notes.md)
 
 ## Principe
 
@@ -35,7 +37,7 @@ common/regulation/
   droxRegulationService.ts    # probe + history + Auto apply
 
 electron-browser/
-  droxRegulationProbeContribution.ts  # agent/done → recordRun
+  droxRegulationProbeContribution.ts  # agent/done → recordRun (chat + Agents; Auto n’affecte pas la sonde)
 
 browser/regulation/           # console UI (R3+)
   droxRegulationConsole.ts

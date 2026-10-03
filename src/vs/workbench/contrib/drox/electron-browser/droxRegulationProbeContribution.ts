@@ -5,7 +5,6 @@
 
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
-import { isDroxAgentsWindowRun } from '../common/droxAgentsActiveRuns.js';
 import { IDroxChatSessionService } from '../common/droxChatSessionService.js';
 import { IDroxEngineService } from '../common/droxEngineService.js';
 import { droxRegulationPromptExcerptFromMessages } from '../common/regulation/droxRegulationHistoryStore.js';
@@ -15,6 +14,10 @@ import { droxRegulationModelKey } from '../common/regulation/droxRegulationTypes
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 import { IDroxSessionService } from '../common/droxSessionService.js';
 
+/**
+ * Scores every finished agent.run (chat IDE + Agents). Auto ON/OFF only affects
+ * module retargeting — never whether notes/history are recorded.
+ */
 class DroxRegulationProbeContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.droxRegulationProbe';
@@ -38,9 +41,6 @@ class DroxRegulationProbeContribution extends Disposable implements IWorkbenchCo
 	private async onAgentDone(params: unknown): Promise<void> {
 		const p = params as { runId?: string; run_id?: string; status?: string; error?: string } | undefined;
 		const runId = typeof p?.runId === 'string' ? p.runId : p?.run_id;
-		if (runId && isDroxAgentsWindowRun(runId)) {
-			return;
-		}
 		const llm = this.runSettingsService.getLlmSettings();
 		const modelKey = droxRegulationModelKey(llm.llmProvider, llm.model);
 		const sessionId = this.chatSessionService.getSessionId();

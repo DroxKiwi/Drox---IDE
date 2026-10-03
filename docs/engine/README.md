@@ -26,7 +26,8 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | 7 | [tools-and-permissions.md](tools-and-permissions.md) | Palette, local/remote, hooks, parallélisme |
 | 8 | [sessions-and-memory.md](sessions-and-memory.md) · [llm-backends.md](llm-backends.md) | Persistance et backends d’inférence |
 | 9 | [mcp-and-subagents.md](mcp-and-subagents.md) · [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Extensions MCP / Explore / TUI |
-| 10 | [developer-guide.md](developer-guide.md) | Build, tests, où patcher |
+| 10 | [model-regulation.md](model-regulation.md) | Auto-régulation IDE : notes L1–L5, référentiel, Auto |
+| 11 | [developer-guide.md](developer-guide.md) | Build, tests, où patcher |
 | — | [glossary.md](glossary.md) | Lexique |
 | — | [migration-from-1.4.md](migration-from-1.4.md) | Ancien rail / `role_split` → `tui_mono` |
 
@@ -35,7 +36,7 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Document | Contenu |
 |----------|---------|
 | [architecture-overview.md](architecture-overview.md) | Crates, dépendances, clients (IDE / TUI / CLI) |
-| **[Pedagogie →](../pedagogie/README.md)** | Guides accompagnés **01–14** (Ollama … TUI ; professor = **prévu / pas dispo**) |
+| **[Pedagogie →](../pedagogie/README.md)** | Guides accompagnés **01–15** (Ollama … régulation / notes) |
 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Transport NDJSON, méthodes, schémas `agent.run`, `tool/exec` |
 | [agent-run-loop.md](agent-run-loop.md) | De `agent.run` à `drive_inner` : tours, phases, nudges, clôture |
 | [agent-internals.md](agent-internals.md) | Carte du monolithe `agent.rs`, `AgentConfig`, gates |
@@ -46,6 +47,7 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | [mcp-and-subagents.md](mcp-and-subagents.md) | MCP `mcp__*`, tool `task` / Explore |
 | [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Deux entrées : `--serve` vs `drox-tui` in-process |
 | [ide-integration.md](ide-integration.md) | Contrat IDE↔moteur (spawn, bridge) — pas le tutoriel UI |
+| [model-regulation.md](model-regulation.md) | Notes L1–L5, signaux, formules v0, policy Auto, persistance |
 | [developer-guide.md](developer-guide.md) | Build, tests Cargo, où patcher |
 | [migration-from-1.4.md](migration-from-1.4.md) | Rail 1.4 / `role_split` → `tui_mono` |
 | [glossary.md](glossary.md) | Termes stables |
