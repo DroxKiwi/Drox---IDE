@@ -10,8 +10,8 @@
     },
     "linux-x64": {
       "installerUrl": "https://github.com/DroxKiwi/Drox---IDE/releases/download/v1.5.23/Drox-IDE-1.5.23-linux-x64.deb",
-      "sha256": "562b7d80c74f109ff6279a4cec3cc6b47ad97f2c6a3bade83bf297f5b31ab871",
-      "sizeBytes": 254016356
+      "sha256": "5f8b9bc903aabf31820d36030f8ca21f74f0e9aa950acb40d45015b7c7128da6",
+      "sizeBytes": 254018356
     }
   },
   "mandatory": false,
