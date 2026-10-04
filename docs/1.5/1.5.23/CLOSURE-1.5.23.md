@@ -37,4 +37,4 @@
 
 ## Suite
 
-Ship win32 + linux · merge `main` · prochain jalon hors THEME (dogfood / hotfix si besoin).
+Ship win32 + linux · merge `main` · hotfix Chat MS / diffs · puis ligne **[1.6.0](../../1.6/1.6.0/README.md)** (stabilisation agent).

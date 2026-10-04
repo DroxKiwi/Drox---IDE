@@ -34,6 +34,8 @@
 | [**1.5.22/**](1.5.22/README.md) | Auto-régulation · CB3b · parité Agents · DOC | **Clôturé** · [CLOSURE](1.5.22/CLOSURE-1.5.22.md) |
 | [**1.5.23/**](1.5.23/README.md) | Polish · Explore · PF MVP | **Clôturé** · [CLOSURE](1.5.23/CLOSURE-1.5.23.md) · ship `v1.5.23` |
 
+**Suite** : ligne [**1.6**](../1.6/README.md) — [1.6.0](../1.6/1.6.0/README.md) stabilisation agent (boucles · contexte).
+
 ---
 
 ## Séquence
@@ -58,6 +60,8 @@
 1.5.17 … 1.5.21  →  livrés / clôturés
 1.5.22  régulation · CB3b · parité Agents · DOC  →  clôturé
 1.5.23  polish · Explore · PF MVP  →  clôturé (THEME reporté)
+         ↓
+1.6.0   stabilisation agent (boucles · contexte · compaction)  →  voir docs/1.6/
 ```
 
 

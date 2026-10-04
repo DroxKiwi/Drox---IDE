@@ -2,6 +2,7 @@
 
 **Statut** : ✅ **clôturé** · branche `1.5.23` · `droxVersion` **1.5.23** · [CLOSURE](CLOSURE-1.5.23.md)  
 **Précédent** : [1.5.22](../1.5.22/README.md) — **clôturé** ([CLOSURE](../1.5.22/CLOSURE-1.5.22.md)) · ship `v1.5.22`  
+**Suite** : [1.6.0](../../1.6/1.6.0/README.md) — boucles · contexte · compaction  
 **Reporté depuis 1.5.22** : PF · Explore IDE  
 **Hors maj** : Théming → [PLAN-THEMING](PLAN-THEMING.md) (backlog ultérieur)
 
