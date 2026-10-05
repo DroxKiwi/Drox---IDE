@@ -161,8 +161,8 @@ impl Agent {
         let mut mutating_tools_since_last_todo: u32 = 0;
         // Sprint Hotfix « boucle édition/lecture » — détecteur strict de
         // répétition d'empreinte (texte assistant + tool_calls). Voir
-        // `LoopDetector` ; le `reset` est appelé après chaque nudge moteur
-        // structurel pour ne pas pénaliser une convergence forcée.
+        // `LoopDetector`. 1.6.0 : `reset` uniquement sur nudges structurels
+        // (pas DONE_ONLY / générique — L-1).
         let mut loop_detector = LoopDetector::new();
         let mut consecutive_ask_user_question_failures: u32 = 0;
         let mut live_compaction_seq: u32 = 0;
@@ -173,6 +173,10 @@ impl Agent {
         let mut saw_testing_phase_in_run = false;
         // FX-B 1.5.16 — compteur de nudges « intention write sans tool ».
         let mut consecutive_intent_only_write_nudges: u32 = 0;
+        // Systèmes injectés en tête de `messages` (re-poussés à chaque run) —
+        // exclus du rewrite JSONL post-compaction (C-1).
+        let leading_injected_systems = usize::from(self.config.system_prompt.is_some())
+            + usize::from(self.config.run_objective.is_some());
         let testing_gate_active = !ctx.plan_mode && !professor;
         for iter in 0..self.config.max_iterations {
             debug!(
@@ -186,7 +190,13 @@ impl Agent {
             );
 
             if self
-                .maybe_snip(&mut messages, &tx, &mut live_compaction_seq)
+                .maybe_snip(
+                    &mut messages,
+                    &tx,
+                    &mut live_compaction_seq,
+                    &mut transcript_cursor,
+                    leading_injected_systems,
+                )
                 .await
                 .is_err()
             {
@@ -272,6 +282,7 @@ impl Agent {
                 if !seen_answering_in_run {
                     debug!("[phase: done] prématuré (answering absent) — nudge");
                     messages.push(Message::system(MISSING_ANSWERING_PROMPT));
+                    // Reset OK : on force answering (contrat de phase différent).
                     loop_detector.reset();
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
@@ -285,6 +296,7 @@ impl Agent {
                 if professor && !saw_successful_course_plan_write_in_run {
                     debug!("[phase: done] professor sans course_plan_write — nudge");
                     messages.push(Message::system(PROFESSOR_DONE_WITHOUT_PLAN));
+                    // Reset OK : gate professor — comportement attendu différent.
                     loop_detector.reset();
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
@@ -306,6 +318,7 @@ impl Agent {
                             last_course_pending,
                             last_course_active,
                         )));
+                        // Reset OK : plan cours ouvert — le modèle doit muter le plan.
                         loop_detector.reset();
                         if let Err(e) = self
                             .flush_transcript(&messages, &mut transcript_cursor)
@@ -359,6 +372,7 @@ impl Agent {
                         debug!("[phase: done] rappel objectif verrouillé (soft)");
                         messages.push(Message::system(run_objective_done_nudge(obj)));
                         run_objective_reminder_sent = true;
+                        // Reset OK : soft reminder one-shot (contenu nouveau).
                         loop_detector.reset();
                         if let Err(e) = self
                             .flush_transcript(&messages, &mut transcript_cursor)
@@ -501,7 +515,8 @@ impl Agent {
                     debug!("answering sans done + todo clôturée + testing OK — nudge minimal (done seul)");
                     consecutive_intent_only_write_nudges = 0;
                     messages.push(Message::system(DONE_ONLY_NUDGE_PROMPT));
-                    loop_detector.reset();
+                    // 1.6.0 L-1 : ne PAS reset — même answering sans done doit
+                    // pouvoir strike / text_only-abort (sinon ×12 jusqu'à max_iter).
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
                         .await
@@ -515,7 +530,7 @@ impl Agent {
                 consecutive_intent_only_write_nudges = 0;
                 debug!("tour sans tool_call et sans [phase: done] — nudge");
                 messages.push(Message::system(NUDGE_PROMPT));
-                loop_detector.reset();
+                // 1.6.0 L-1 : ne PAS reset sur nudge générique.
                 if let Err(e) = self
                     .flush_transcript(&messages, &mut transcript_cursor)
                     .await
@@ -704,6 +719,7 @@ impl Agent {
                                 }
                                 Err(err) => {
                                     if matches!(&err, ToolError::InvalidArgs(_)) {
+                                        // Reset OK : feedback args nouveau ≠ boucle.
                                         loop_detector.reset();
                                     }
                                     if push_tool_error_tracked(
@@ -1007,6 +1023,7 @@ impl Agent {
                                     // de recevoir un feedback nouveau — ne pas
                                     // enchaîner tout de suite vers Abort loop.
                                     if is_invalid {
+                                        // Reset OK : feedback args nouveau ≠ boucle.
                                         loop_detector.reset();
                                     }
                                     if push_tool_error_tracked(
@@ -1052,6 +1069,7 @@ impl Agent {
                     );
                     messages.push(Message::system(ANALYZING_PHASE_NUDGE));
                     analyzing_phase_nudge_sent = true;
+                    // Reset OK : one-shot analyzing — contrat de phase différent.
                     loop_detector.reset();
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
@@ -1073,6 +1091,7 @@ impl Agent {
                 );
                 messages.push(Message::system(ask_user_question_loop_nudge()));
                 consecutive_ask_user_question_failures = 0;
+                // Reset OK : anti-boucle ask_user — message de sortie dédié.
                 loop_detector.reset();
                 if let Err(e) = self
                     .flush_transcript(&messages, &mut transcript_cursor)
@@ -1121,6 +1140,7 @@ impl Agent {
                 };
                 messages.push(Message::system(nudge));
                 mutating_tools_since_last_todo = 0;
+                // Reset OK : step-by-step todo — on demande un todo_write.
                 loop_detector.reset();
                 if let Err(e) = self
                     .flush_transcript(&messages, &mut transcript_cursor)

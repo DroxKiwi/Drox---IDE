@@ -16,6 +16,12 @@ use crate::record::ChatMessageRecord;
 pub trait TranscriptSink: Send + Sync {
     /// Ajoute une ligne (message + métadonnées).
     async fn append_record(&self, record: &ChatMessageRecord) -> Result<(), SessionError>;
+
+    /// Remplace entièrement le transcript (post-compaction / snip).
+    ///
+    /// Sans cette primitive, un compact RAM n'est pas visible au prochain
+    /// `agent.run` qui recharge le JSONL append-only.
+    async fn rewrite_messages(&self, messages: &[Message]) -> Result<(), SessionError>;
 }
 
 /// Sink concret : un fichier `.jsonl` (append + création récursive du parent).
@@ -57,6 +63,10 @@ impl TranscriptSink for JsonlTranscriptSink {
         f.write_all(line.as_bytes()).await?;
         f.flush().await?;
         Ok(())
+    }
+
+    async fn rewrite_messages(&self, messages: &[Message]) -> Result<(), SessionError> {
+        write_transcript(&self.path, messages).await
     }
 }
 
