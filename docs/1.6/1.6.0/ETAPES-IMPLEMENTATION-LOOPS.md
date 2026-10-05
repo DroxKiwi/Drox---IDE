@@ -200,12 +200,14 @@ npm run watch   # si UI G-1 / OBS
 
 ## Critères de clôture 1.6.0
 
-- [ ] Vague 1 mergée + smoke S1/S2 OK  
-- [ ] Vague 2 mergée + smoke S3/S4 OK  
-- [ ] OBS-1/2 disponibles pour dogfood  
-- [ ] [DIAGNOSTIC](DIAGNOSTIC-BOUCLES-CONTEXTE.md) mis à jour « résolu / reporté »  
-- [ ] `stable/1.6.0/RELEASE_NOTES.md` + `CLOSURE-1.6.0.md`  
-- [ ] Ship win32 + linux `v1.6.0`
+- [x] Vague 1 + Vague 2 + L-3 code (commits locaux)  
+- [ ] Smoke dogfood S1–S4  
+- [ ] OBS-1/2 — **reporté**  
+- [x] [DIAGNOSTIC](DIAGNOSTIC-BOUCLES-CONTEXTE.md) mis à jour résolu / reporté  
+- [x] [`stable/1.6.0/RELEASE_NOTES.md`](../../../stable/1.6.0/RELEASE_NOTES.md) + [CLOSURE-1.6.0.md](CLOSURE-1.6.0.md) (brouillon)  
+- [x] Popup nouveautés `droxReleaseNotes.ts` case `1.6.0`  
+- [ ] Ship win32 + linux `v1.6.0`  
+- [ ] Push / merge selon process
 
 ---
 

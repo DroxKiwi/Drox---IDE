@@ -100,4 +100,13 @@ suite('Drox release notes', () => {
 		assert.ok(joined.includes('MEMORY.md'));
 		assert.ok(joined.includes('Cleaner composer'));
 	});
+
+	test('getDroxReleaseNotesItems includes 1.6.0 highlights', () => {
+		const items = getDroxReleaseNotesItems('1.6.0');
+		const joined = items.join('\n');
+		assert.ok(joined.includes('Loop guards'));
+		assert.ok(joined.includes('Durable compaction'));
+		assert.ok(joined.includes('tool-outputs'));
+		assert.ok(joined.includes('estim.'));
+	});
 });

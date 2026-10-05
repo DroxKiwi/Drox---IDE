@@ -42,6 +42,15 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.6.0':
+			return [
+				localize('drox.releaseNotes.160.loops', '**Loop guards** — identical assistant replies without tools stop after a few turns; DONE_ONLY nudges no longer reset the detector; repeated identical tool calls abort (changing output still counts as progress).'),
+				localize('drox.releaseNotes.160.compact', '**Durable compaction** — live context compact/snip rewrites the session JSONL on disk (IDE + `/compact`), so the next message does not reload a fat history.'),
+				localize('drox.releaseNotes.160.spill', '**Large tool outputs** — oversized results spill under `.drox/tool-outputs/` with a short pointer for the model.'),
+				localize('drox.releaseNotes.160.gauge', '**Clearer context gauge** — Agents status shows `estim.` vs `provider` token sources.'),
+				localize('drox.releaseNotes.160.nudges', '**Cleaner nudges** — mid-run engine reminders stay in the system block (no fake `[System reminder]` user messages).'),
+				localize('drox.releaseNotes.160.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
+			];
 		case '1.5.23':
 			return [
 				localize('drox.releaseNotes.1523.hotfixChat', '**Hotfix** — the built-in Microsoft Chat tab no longer appears next to Terminal; Copilot panel entry points stay hidden in Drox product builds.'),
@@ -170,6 +179,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.6.0':
+			return localize(
+				'drox.releaseNotes.160.message',
+				'Stronger agent loop guards, durable context compaction on disk, spilled large tool outputs, and a clearer estim./provider context gauge.',
+			);
 		case '1.5.23':
 			return localize(
 				'drox.releaseNotes.1523.message',
