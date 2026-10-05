@@ -73,32 +73,37 @@ fn openai_plain_text(content: &Option<Value>) -> String {
 /// Templates Jinja stricts (Qwen3 / LiteLLM) : un seul `system`, en tête.
 ///
 /// - Fusionne tous les `system` **de tête** en un seul message initial.
-/// - Réécrit tout `system` ultérieur (nudges agent) en `user` préfixé.
+/// - 1.6.0 L-3 : les `system` mid-run (nudges) sont **repliés** dans ce
+///   même bloc system — plus de faux `user` `[System reminder]` (attracteur
+///   de boucle chez les modèles locaux / flash).
 fn normalize_openai_system_order(messages: Vec<OpenAiMessage>) -> Vec<OpenAiMessage> {
     let mut leading_systems: Vec<String> = Vec::new();
+    let mut mid_systems: Vec<String> = Vec::new();
     let mut rest: Vec<OpenAiMessage> = Vec::new();
     let mut seen_non_system = false;
 
-    for mut m in messages {
+    for m in messages {
         if m.role == "system" {
             let text = openai_plain_text(&m.content);
+            if text.is_empty() {
+                continue;
+            }
             if !seen_non_system {
-                if !text.is_empty() {
-                    leading_systems.push(text);
-                }
+                leading_systems.push(text);
             } else {
-                m.role = "user".into();
-                m.content = Some(Value::String(if text.is_empty() {
-                    "[System reminder]".into()
-                } else {
-                    format!("[System reminder]\n{text}")
-                }));
-                rest.push(m);
+                mid_systems.push(text);
             }
             continue;
         }
         seen_non_system = true;
         rest.push(m);
+    }
+
+    if !mid_systems.is_empty() {
+        leading_systems.push(format!(
+            "[engine nudges — not user messages]\n{}",
+            mid_systems.join("\n\n")
+        ));
     }
 
     let mut out = Vec::with_capacity(rest.len() + usize::from(!leading_systems.is_empty()));
@@ -281,7 +286,7 @@ mod tests {
     }
 
     #[test]
-    fn openai_coalesce_leading_systems_and_rewrite_mid_conversation_system() {
+    fn openai_coalesce_leading_systems_and_fold_mid_conversation_system() {
         let messages = vec![
             Message::system("Tu es Drox."),
             Message::system("Objectif: tester."),
@@ -291,7 +296,7 @@ mod tests {
         ];
         let opts = ChatOptions::default();
         let req = build_request("m", &messages, &opts, None, None, None, None, 0, None, None);
-        assert_eq!(req.messages.len(), 4);
+        assert_eq!(req.messages.len(), 3);
         assert_eq!(req.messages[0].role, "system");
         let sys = req.messages[0]
             .content
@@ -300,22 +305,30 @@ mod tests {
             .unwrap_or("");
         assert!(sys.contains("Tu es Drox."));
         assert!(sys.contains("Objectif: tester."));
+        assert!(
+            sys.contains("Continue — des to-dos sont ouvertes."),
+            "mid-run nudge must fold into system, got {sys:?}"
+        );
+        assert!(
+            !sys.contains("[System reminder]"),
+            "L-3: no fake System reminder prefix"
+        );
         assert_eq!(req.messages[1].role, "user");
         assert_eq!(req.messages[2].role, "assistant");
-        assert_eq!(req.messages[3].role, "user");
-        let reminder = req.messages[3]
-            .content
-            .as_ref()
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        assert!(
-            reminder.starts_with("[System reminder]"),
-            "mid-conversation system must become user reminder, got {reminder:?}"
-        );
         assert_eq!(
             req.messages.iter().filter(|m| m.role == "system").count(),
             1,
             "exactly one system message, at the beginning"
+        );
+        assert!(
+            !req.messages.iter().any(|m| {
+                m.role == "user"
+                    && m.content
+                        .as_ref()
+                        .and_then(|v| v.as_str())
+                        .is_some_and(|s| s.contains("[System reminder]"))
+            }),
+            "no fake user System reminder"
         );
     }
 }
