@@ -739,3 +739,100 @@ async fn live_compaction_emits_context_compacted_when_over_budget() {
     }
     assert!(matches!(events.last(), Some(AgentEvent::Stop { .. })));
 }
+
+/// 1.6.0 C-1 — après ContextCompacted, le JSONL session est réécrit (pas
+/// seulement la RAM) ; un reload lit le transcript compacté.
+#[tokio::test]
+async fn live_compaction_rewrites_transcript_on_disk() {
+    use drox_session::{
+        read_transcript, write_transcript, JsonlTranscriptSink, TranscriptSessionConfig,
+    };
+    use drox_types::Content;
+
+    let dir = tempfile::tempdir().unwrap();
+    let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+    let transcript_path = ws.join("ses_compact.jsonl");
+
+    // Pré-remplir un gros historique sur disque (comme une session IDE longue).
+    let fat_history: Vec<Message> = (0..14)
+        .map(|i| Message::user(format!("blob-{i}-{}", "z".repeat(10_000))))
+        .collect();
+    write_transcript(&transcript_path, &fat_history)
+        .await
+        .unwrap();
+    let size_before = tokio::fs::metadata(transcript_path.as_std_path())
+        .await
+        .unwrap()
+        .len();
+
+    let llm = Arc::new(ScriptedLlm::new(vec![
+        compaction_turn("Résumé disque", &["src/a.rs"]),
+        done_turn("Terminé."),
+    ]));
+    let sink = JsonlTranscriptSink::arc(transcript_path.clone());
+    let registry = Arc::new(ToolRegistry::new());
+    let ctx = ToolContext::new(ws.clone(), false);
+    let cfg = AgentConfig {
+        system_prompt: Some("Tu es un assistant.".into()),
+        context: Some(ContextPolicy::new(
+            Arc::new(RoughTokenCounter::new(4)),
+            ContextBudget {
+                window_size: 25_000,
+                reserved_output: 0,
+                autocompact_buffer: 5_000,
+                warning_buffer: 4_000,
+                error_buffer: 4_000,
+                manual_compact_buffer: 500,
+            },
+            None,
+        )),
+        memory: Some(memory_runtime_for_test(&ws, llm.clone())),
+        transcript: Some(TranscriptSessionConfig {
+            sink,
+            append_from_message_index: fat_history.len() + 1, // + system
+        }),
+        transcript_session_id: Some("ses_compact".into()),
+        workspace_fingerprint: ws.to_string(),
+        ..AgentConfig::default()
+    };
+    let agent = Agent::new(llm, registry, ctx, cfg);
+
+    let events: Vec<_> = agent
+        .run_with_history(fat_history, "suite")
+        .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .collect::<Result<_, _>>()
+        .unwrap();
+
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, AgentEvent::ContextCompacted { .. })),
+        "expected ContextCompacted; events={events:?}"
+    );
+
+    let size_after = tokio::fs::metadata(transcript_path.as_std_path())
+        .await
+        .unwrap()
+        .len();
+    assert!(
+        size_after < size_before / 2,
+        "JSONL must shrink after compact (before={size_before}, after={size_after})"
+    );
+
+    let reloaded = read_transcript(&transcript_path).await.unwrap();
+    assert!(
+        reloaded.iter().any(|m| {
+            m.role == drox_types::Role::System
+                && Content::collapse_text(&m.content).contains("[context checkpoint")
+        }),
+        "reloaded transcript must contain compaction checkpoint; len={}",
+        reloaded.len()
+    );
+    assert!(
+        reloaded.len() < 14,
+        "reloaded history shorter than fat prefix; len={}",
+        reloaded.len()
+    );
+}

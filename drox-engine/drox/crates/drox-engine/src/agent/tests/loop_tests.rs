@@ -222,11 +222,8 @@ async fn nudge_loops_until_max_iterations_when_done_never_emitted() {
 }
 
 /// Sprint Hotfix « boucle édition/lecture » — empreinte de texte assistant
-/// répétée à l'identique. Attendu avec seuil assoupli :
-/// 1er tour `Ok` → …
-/// 2e tour `Warn` (strike 1) → nudge anti-boucle.
-/// 3e tour `Warn` (strike 2) → nudge anti-boucle.
-/// 4e tour `Abort` → `EngineError::LoopDetected`.
+/// répétée à l'identique. 1.6.0 L-2 : text_only warn@2 / hard@3
+/// (thinking ignoré) → Abort au 3e tour identique.
 #[tokio::test]
 async fn repeated_assistant_text_triggers_loop_detected_after_nudge() {
     let same_turn = || {
@@ -247,7 +244,6 @@ async fn repeated_assistant_text_triggers_loop_detected_after_nudge() {
         same_turn(),
         same_turn(),
         same_turn(),
-        same_turn(),
     ]));
     let registry = Arc::new(ToolRegistry::new());
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
@@ -262,16 +258,10 @@ async fn repeated_assistant_text_triggers_loop_detected_after_nudge() {
     let raw: Vec<_> = agent.run("explique").collect::<Vec<_>>().await;
     match raw.last() {
         Some(Err(EngineError::LoopDetected { kind, turns })) => {
-            // Sans tool_calls dans les tours, les empreintes texte ET
-            // tool_calls (= vide) coïncident toutes les deux → kind est
-            // « both ». L'important est que la détection ait lieu.
-            assert!(
-                *kind == "both" || *kind == "text",
-                "kind doit refléter une répétition de texte, got {kind:?}"
-            );
-            assert!(*turns >= 2, "au moins deux strikes consécutifs : got {turns}");
+            assert_eq!(*kind, "text_only", "kind={kind:?}");
+            assert!(*turns >= 3, "at least 3 identical turns: got {turns}");
         }
-        other => panic!("expected LoopDetected, got {other:?}"),
+        other => panic!("expected LoopDetected text_only, got {other:?}"),
     }
 }
 
@@ -350,6 +340,67 @@ fn loop_detector_treats_different_thinking_as_progress() {
     assert_eq!(det.observe(&mk("plan A")), LoopDecision::Ok);
     assert_eq!(det.observe(&mk("plan B — fix JSON")), LoopDecision::Ok);
     assert_eq!(det.observe(&mk("plan B — fix JSON")), LoopDecision::Warn { kind: "both" });
+}
+
+/// 1.6.0 L-2 — même body sans tool, thinking différent → quand même warn/abort.
+#[test]
+fn loop_detector_text_only_ignores_thinking_variance() {
+    let mut det = LoopDetector::new();
+    let mk = |thinking: &str| TurnOutcome {
+        text: "Voici la réponse finale sans done.".into(),
+        thinking: thinking.into(),
+        tool_calls: vec![],
+        reason: StopReason::EndTurn,
+        usage: Usage::default(),
+        final_phase: Some(Phase::Answering),
+        saw_answering: true,
+        saw_analyzing: false,
+        saw_testing: false,
+    };
+    assert_eq!(det.observe(&mk("réflexion 1")), LoopDecision::Ok);
+    assert_eq!(
+        det.observe(&mk("réflexion 2 complètement différente")),
+        LoopDecision::Warn { kind: "text_only" }
+    );
+    assert!(matches!(
+        det.observe(&mk("encore autre thinking")),
+        LoopDecision::Abort {
+            kind: "text_only",
+            turns: 3
+        }
+    ));
+}
+
+/// 1.6.0 L-1+L-2 — answering identique sans done : abort text_only, pas max_iter.
+#[tokio::test]
+async fn identical_answering_without_done_aborts_via_text_only() {
+    let same = || {
+        vec![
+            StreamEvent::Start,
+            StreamEvent::TextDelta {
+                text: "[phase: answering]\nCorrectif livré.\n".into(),
+            },
+            StreamEvent::Stop {
+                reason: StopReason::EndTurn,
+                usage: Usage::default(),
+            },
+        ]
+    };
+    let llm = Arc::new(ScriptedLlm::new(vec![same(), same(), same()]));
+    let registry = Arc::new(ToolRegistry::new());
+    let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
+    let cfg = AgentConfig {
+        max_iterations: 12,
+        ..AgentConfig::default()
+    };
+    let agent = Agent::new(llm, registry, ctx, cfg);
+    let raw: Vec<_> = agent.run("finis").collect::<Vec<_>>().await;
+    match raw.last() {
+        Some(Err(EngineError::LoopDetected { kind, .. })) => {
+            assert_eq!(*kind, "text_only");
+        }
+        other => panic!("expected LoopDetected text_only before max_iter, got {other:?}"),
+    }
 }
 
 #[test]

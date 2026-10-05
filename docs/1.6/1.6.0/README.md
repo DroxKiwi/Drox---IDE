@@ -45,7 +45,7 @@ Détail : [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md).
 | Volet | État |
 |-------|------|
 | Diagnostic + plan d’étapes | ✅ |
-| Vague 1 — L-1 / L-2 / C-1 / C-3 | ⬜ |
+| Vague 1 — L-1 / L-2 / C-1 / C-3 | ✅ (moteur) |
 | Vague 2 — T-1 / L-tools / G-1 / C-2 | ⬜ |
 | Vague 3 — OBS / L-3 | ⬜ |
 | Preuves dogfood | ⬜ |

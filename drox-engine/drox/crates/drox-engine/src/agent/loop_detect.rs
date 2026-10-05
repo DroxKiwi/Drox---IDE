@@ -24,11 +24,11 @@ pub(crate) struct PendingToolCall {
 /// 3. Famille bash/grep aux args **normalisés** identiques (casse, `cmd & cmd`)
 ///    → Warn/Abort même si thinking change (dogfood findstr Metrics retry).
 ///
-/// Anti-faux-positif : les nudges moteur (`unfinished_todos`, `DONE_ONLY`,
-/// etc.) appellent `LoopDetector::reset` parce qu'ils **forcent**
-/// le modèle à changer de comportement. Depuis 1.5.14, `observe` est appelé
-/// **après** les gates `[phase: done]` pour ne pas confondre une tentative
-/// répétée de clôture (plan ouvert) avec une vraie boucle.
+/// Anti-faux-positif : seuls les nudges qui **changent vraiment** le contrat
+/// (todo ouverte, testing dû, InvalidArgs, etc.) appellent `reset`.
+/// Les nudges `DONE_ONLY` / générique **ne reset plus** (1.6.0 L-1) — sinon
+/// un modèle qui omet `done` régénère la même réponse jusqu'à `max_iterations`.
+/// Depuis 1.5.14, `observe` est appelé **après** les gates `[phase: done]`.
 #[derive(Default)]
 pub(crate) struct LoopDetector {
     /// Hash du dernier tour observé (`None` au début du run).
@@ -43,6 +43,10 @@ pub(crate) struct LoopDetector {
     strike: u32,
     /// Strikes consécutifs sur la même famille d'outils normalisée.
     family_strike: u32,
+    /// Hash du **body** assistant seul (sans thinking) — filet text-only 1.6.0 L-2.
+    last_body_hash: Option<u64>,
+    /// Strikes body identique sans tool_call (thinking ignoré).
+    text_only_strike: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,23 +64,29 @@ impl LoopDetector {
         Self::default()
     }
 
-    /// Reset le compteur (à appeler après chaque nudge moteur structurel pour
-    /// laisser une chance de convergence sans pénalité).
+    /// Reset le compteur (nudges structurels qui forcent un comportement
+    /// différent — pas les relances `DONE_ONLY` / générique).
     pub(crate) fn reset(&mut self) {
         self.strike = 0;
         self.family_strike = 0;
+        self.text_only_strike = 0;
+        self.last_body_hash = None;
     }
 
     /// Examine un `TurnOutcome` et renvoie la décision à prendre. `outcome`
     /// est passé par ref : on ne touche pas à son contenu.
     pub(crate) fn observe(&mut self, outcome: &TurnOutcome) -> LoopDecision {
-        // Thinking natif compte : sinon KAT-Coder / modèles *think* n'ont
-        // qu'un texte vide + le même tool cassé → faux positif immédiat.
+        // Thinking natif compte pour l'empreinte stricte : sinon KAT-Coder /
+        // modèles *think* n'ont qu'un texte vide + le même tool cassé → faux
+        // positif immédiat. Le filet text-only (L-2) ignore volontairement
+        // le thinking pour les tours sans tool.
         let text_h = combine_hash(hash_text(&outcome.text), hash_text(&outcome.thinking));
+        let body_h = hash_text(&outcome.text);
         let tools_h = hash_tool_calls(&outcome.tool_calls);
         let tools_family_h = hash_tool_calls_family(&outcome.tool_calls);
         let fp = combine_hash(text_h, tools_h);
         let targeted_family = is_targeted_tool_loop_family(&outcome.tool_calls);
+        let text_only = outcome.tool_calls.is_empty() && !outcome.text.trim().is_empty();
 
         // Tour vide (ni texte significatif, ni thinking, ni outils) : on laisse
         // les gates `tool_calls.is_empty()` + `NUDGE_PROMPT` faire leur job et
@@ -91,12 +101,16 @@ impl LoopDetector {
             self.last_tools_hash = tools_h;
             self.last_tools_family_hash = None;
             self.family_strike = 0;
+            self.last_body_hash = None;
+            self.text_only_strike = 0;
             return LoopDecision::Ok;
         }
 
         let exact_repeat = matches!(self.last_fingerprint, Some(prev) if prev == fp);
         let family_repeat = targeted_family
             && matches!(self.last_tools_family_hash, Some(prev) if prev == tools_family_h);
+        let body_repeat =
+            text_only && matches!(self.last_body_hash, Some(prev) if prev == body_h);
 
         // Mise à jour de l'état AVANT de retourner : le prochain `observe`
         // doit voir l'empreinte courante quelle que soit la décision.
@@ -110,6 +124,29 @@ impl LoopDetector {
         } else {
             self.last_tools_family_hash = None;
             self.family_strike = 0;
+        }
+        if text_only {
+            self.last_body_hash = Some(body_h);
+        } else {
+            self.last_body_hash = None;
+            self.text_only_strike = 0;
+        }
+
+        // 0) Text-only body (sans tool) — warn@2, hard@3 ; thinking ignoré.
+        if text_only {
+            if body_repeat {
+                self.text_only_strike = self.text_only_strike.saturating_add(1);
+                match self.text_only_strike {
+                    1 => return LoopDecision::Warn { kind: "text_only" },
+                    _ => {
+                        return LoopDecision::Abort {
+                            kind: "text_only",
+                            turns: self.text_only_strike + 1,
+                        };
+                    }
+                }
+            }
+            self.text_only_strike = 0;
         }
 
         // 1) Famille d'outils (bash/grep normalisés) — même si thinking change.

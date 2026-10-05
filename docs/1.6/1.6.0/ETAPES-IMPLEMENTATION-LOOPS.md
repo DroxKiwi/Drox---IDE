@@ -1,6 +1,6 @@
 # Étapes d’implémentation — boucles & contexte (1.6.0)
 
-**Statut** : plan d’exécution à appliquer · branche `1.6.0`  
+**Statut** : Vague 1 appliquée (L-1 / L-2 / C-1 / C-3) · branche `1.6.0`  
 **Baseline** : [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md)  
 **Synthèse industrie** : Cursor / Claude Code / Cline — filets runtime + compaction durable + gros results hors prompt
 
@@ -20,25 +20,25 @@ Ce document est la **checklist opérable**. On ne change pas le paradigme (phase
 ## Vue d’ensemble
 
 ```text
-Vague 1 (filets)     L-1 → L-2 → C-1 (+ C-3)
+Vague 1 (filets)     L-1 → L-2 → C-1 (+ C-3)   ✅ moteur
 Vague 2 (contexte)   T-1 → L-tools → G-1
 Vague 3 (preuve)     OBS-1 → OBS-2 → (L-3 optionnel)
 Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 ```
 
-| ID | Titre | Vague | Effort | Impact |
-|----|--------|-------|--------|--------|
-| L-1 | Stop reset LoopDetector sur nudges | 1 | S | ★★★ |
-| L-2 | Hard-stop réponses textuelles identiques | 1 | M | ★★★ |
-| C-1 | Persister compaction live IDE | 1 | M | ★★★ |
-| C-3 | Curseur flush après shrink | 1 | S | ★★ |
-| T-1 | Gros tool results → fichier | 2 | M | ★★★ |
-| L-tools | Hash tools global progress-aware | 2 | M | ★★ |
-| G-1 | Jauge estimé vs provider | 2 | S | ★★ |
-| OBS-1 | Unlock debug prod | 3 | S | ★★ |
-| OBS-2 | Export messages[] par itération | 3 | M | ★★ |
-| L-3 | Nudges sans faux `user` (providers locaux) | 3 | M | ★ |
-| C-2 | Aligner `/compact` session | 2–3 | S | ★★ |
+| ID | Titre | Vague | Effort | Impact | État |
+|----|--------|-------|--------|--------|------|
+| L-1 | Stop reset LoopDetector sur nudges | 1 | S | ★★★ | ✅ |
+| L-2 | Hard-stop réponses textuelles identiques | 1 | M | ★★★ | ✅ |
+| C-1 | Persister compaction live IDE | 1 | M | ★★★ | ✅ |
+| C-3 | Curseur flush après shrink | 1 | S | ★★ | ✅ |
+| T-1 | Gros tool results → fichier | 2 | M | ★★★ | ⬜ |
+| L-tools | Hash tools global progress-aware | 2 | M | ★★ | ⬜ |
+| G-1 | Jauge estimé vs provider | 2 | S | ★★ | ⬜ |
+| OBS-1 | Unlock debug prod | 3 | S | ★★ | ⬜ |
+| OBS-2 | Export messages[] par itération | 3 | M | ★★ | ⬜ |
+| L-3 | Nudges sans faux `user` (providers locaux) | 3 | M | ★ | ⬜ |
+| C-2 | Aligner `/compact` session | 2–3 | S | ★★ | ⬜ |
 
 ---
 
@@ -91,7 +91,7 @@ Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 | **Tests** | Unit : shrink puis flush → JSONL lisible / paires tool cohérentes. |
 | **Done when** | Couvert avec C-1 ; pas de session « cassée » post-compact. |
 
-**Gate Vague 1** : L-1 + L-2 + C-1 (+ C-3) mergés sur `1.6.0`, tests moteur verts, smoke 1 session longue locale OK.
+**Gate Vague 1** : ✅ L-1 + L-2 + C-1 (+ C-3) sur `1.6.0` · tests moteur verts · smoke dogfood S1/S2 à confirmer.
 
 ---
 
