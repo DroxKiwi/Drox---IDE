@@ -295,31 +295,35 @@ fn message_to_wire(m: &Message) -> ChatMessage {
 /// Templates Jinja stricts (ex. KAT-Coder) : `System message must be at the beginning`.
 ///
 /// - Fusionne tous les `system` **de tête** en un seul message initial.
-/// - Réécrit tout `system` ultérieur (nudges agent) en `user` préfixé.
+/// - 1.6.0 L-3 : les `system` mid-run (nudges) sont **repliés** dans ce
+///   même bloc system — plus de faux `user` `[System reminder]`.
 fn normalize_system_messages_for_ollama(messages: Vec<ChatMessage>) -> Vec<ChatMessage> {
     let mut leading_systems: Vec<String> = Vec::new();
+    let mut mid_systems: Vec<String> = Vec::new();
     let mut rest: Vec<ChatMessage> = Vec::new();
     let mut seen_non_system = false;
 
-    for mut m in messages {
+    for m in messages {
         if m.role == "system" {
+            if m.content.is_empty() {
+                continue;
+            }
             if !seen_non_system {
-                if !m.content.is_empty() {
-                    leading_systems.push(m.content);
-                }
+                leading_systems.push(m.content);
             } else {
-                m.role = "user";
-                if m.content.is_empty() {
-                    m.content = "[System reminder]".into();
-                } else {
-                    m.content = format!("[System reminder]\n{}", m.content);
-                }
-                rest.push(m);
+                mid_systems.push(m.content);
             }
             continue;
         }
         seen_non_system = true;
         rest.push(m);
+    }
+
+    if !mid_systems.is_empty() {
+        leading_systems.push(format!(
+            "[engine nudges — not user messages]\n{}",
+            mid_systems.join("\n\n")
+        ));
     }
 
     let mut out = Vec::with_capacity(rest.len() + usize::from(!leading_systems.is_empty()));
@@ -683,7 +687,7 @@ mod tests {
     }
 
     #[test]
-    fn coalesce_leading_systems_and_rewrite_mid_conversation_system() {
+    fn coalesce_leading_systems_and_fold_mid_conversation_system() {
         let messages = vec![
             Message::system("Tu es Drox."),
             Message::system("Objectif: tester."),
@@ -693,21 +697,29 @@ mod tests {
         ];
         let opts = ChatOptions::default();
         let req = build_request("m", &messages, &opts, empty_defaults(), None);
-        assert_eq!(req.messages.len(), 4);
+        assert_eq!(req.messages.len(), 3);
         assert_eq!(req.messages[0].role, "system");
         assert!(req.messages[0].content.contains("Tu es Drox."));
         assert!(req.messages[0].content.contains("Objectif: tester."));
+        assert!(
+            req.messages[0]
+                .content
+                .contains("Continue — des to-dos sont ouvertes."),
+            "mid-run nudge must fold into system"
+        );
+        assert!(!req.messages[0].content.contains("[System reminder]"));
         assert_eq!(req.messages[1].role, "user");
         assert_eq!(req.messages[2].role, "assistant");
-        assert_eq!(req.messages[3].role, "user");
-        assert!(
-            req.messages[3].content.starts_with("[System reminder]"),
-            "mid-conversation system must become user reminder"
-        );
         assert_eq!(
             req.messages.iter().filter(|m| m.role == "system").count(),
             1,
             "exactly one system message, at the beginning"
+        );
+        assert!(
+            !req.messages
+                .iter()
+                .any(|m| m.role == "user" && m.content.contains("[System reminder]")),
+            "no fake user System reminder"
         );
     }
 

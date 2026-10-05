@@ -22,7 +22,7 @@ Ce document est la **checklist opérable**. On ne change pas le paradigme (phase
 ```text
 Vague 1 (filets)     L-1 → L-2 → C-1 (+ C-3)   ✅ moteur
 Vague 2 (contexte)   T-1 → L-tools → G-1 → C-2  ✅ moteur+UI
-Vague 3 (preuve)     OBS-1 → OBS-2 → (L-3 optionnel)
+Vague 3 (preuve)     L-3 ✅ · OBS-1 / OBS-2 ⬜ (reporté)
 Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 ```
 
@@ -35,9 +35,9 @@ Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 | T-1 | Gros tool results → fichier | 2 | M | ★★★ | ✅ |
 | L-tools | Hash tools global progress-aware | 2 | M | ★★ | ✅ |
 | G-1 | Jauge estimé vs provider | 2 | S | ★★ | ✅ |
-| OBS-1 | Unlock debug prod | 3 | S | ★★ | ⬜ |
-| OBS-2 | Export messages[] par itération | 3 | M | ★★ | ⬜ |
-| L-3 | Nudges sans faux `user` (providers locaux) | 3 | M | ★ | ⬜ |
+| OBS-1 | Unlock debug prod | 3 | S | ★★ | ⬜ reporté |
+| OBS-2 | Export messages[] par itération | 3 | M | ★★ | ⬜ reporté |
+| L-3 | Nudges sans faux `user` (providers locaux) | 3 | M | ★ | ✅ |
 | C-2 | Aligner `/compact` session | 2–3 | S | ★★ | ✅ |
 
 ---
@@ -157,15 +157,15 @@ Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 | **Action** | Sous `.drox/debug/` (ou équivalent) : un fichier par run/itération (roles, tailles, présence nudge). Redacter secrets si besoin. |
 | **Done when** | Sur un run qui boucle encore, on peut ouvrir le dump et voir nudges / doublons. |
 
-### Étape L-3 — Nudges sans faux `user` (optionnel)
+### Étape L-3 — Nudges sans faux `user` ✅
 
 | | |
 |--|--|
 | **Fichiers** | `drox-llm` openai/request.rs · ollama/stream.rs |
-| **Action** | Pour providers qui acceptent plusieurs `system`, garder le nudge en system ; sinon conserver reminder mais après Vague 1. |
-| **Done when** | Eval Ollama : moins de régénérations « déterministes » sur nudge. |
+| **Action** | Mid-run `system` repliés dans le bloc system unique (préfixe `[engine nudges]`) — plus de `[System reminder]` en `user`. |
+| **Done when** | ✅ Tests coalesce/fold verts (OpenAI + Ollama). |
 
-**Gate Vague 3** : OBS utilisable en dogfood prod unlock.
+**Gate Vague 3** : L-3 livré · OBS reporté (hors scope immédiat).
 
 ---
 

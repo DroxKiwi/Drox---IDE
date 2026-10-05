@@ -47,7 +47,7 @@ Détail : [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md).
 | Diagnostic + plan d’étapes | ✅ |
 | Vague 1 — L-1 / L-2 / C-1 / C-3 | ✅ (moteur) |
 | Vague 2 — T-1 / L-tools / G-1 / C-2 | ✅ (moteur + UI) |
-| Vague 3 — OBS / L-3 | ⬜ |
+| Vague 3 — L-3 (OBS reporté) | ✅ L-3 · OBS ⬜ |
 | Preuves dogfood | ⬜ |
 | RELEASE_NOTES / CLOSURE / ship | ⬜ |
 
