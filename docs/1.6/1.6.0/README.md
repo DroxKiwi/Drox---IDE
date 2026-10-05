@@ -1,8 +1,9 @@
 # 1.6.0 — Stabilisation agent (boucles · contexte · compaction)
 
-**Statut** : **ouvert** · branche `1.6.0` · `droxVersion` **1.6.0**  
+**Statut** : code **prêt dogfood** · branche `1.6.0` · `droxVersion` **1.6.0**  
 **Précédent** : [1.5.23](../../1.5/1.5.23/README.md) — clôturé · ship `v1.5.23` (+ hotfix Chat MS / diffs)  
-**Suite** : à définir après clôture
+**Suite** : dogfood S1–S4 → ship `v1.6.0`  
+**Clôture** : [CLOSURE-1.6.0.md](CLOSURE-1.6.0.md) (brouillon)
 
 ## Cap
 
@@ -49,7 +50,8 @@ Détail : [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md).
 | Vague 2 — T-1 / L-tools / G-1 / C-2 | ✅ (moteur + UI) |
 | Vague 3 — L-3 (OBS reporté) | ✅ L-3 · OBS ⬜ |
 | Preuves dogfood | ⬜ |
-| RELEASE_NOTES / CLOSURE / ship | ⬜ |
+| RELEASE_NOTES / CLOSURE (brouillon) / popup | ✅ |
+| Ship win32 + linux | ⬜ |
 
 ## Docs
 
@@ -57,7 +59,9 @@ Détail : [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md).
 |-------|--------|
 | **[ETAPES-IMPLEMENTATION-LOOPS.md](ETAPES-IMPLEMENTATION-LOOPS.md)** | **Checklist à appliquer** |
 | [PLAN-AGENT-LOOP-CONTEXT.md](PLAN-AGENT-LOOP-CONTEXT.md) | Index lots / IDs / preuves |
-| [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md) | Baseline technique + communauté |
+| [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md) | Baseline + suivi résolu |
+| [CLOSURE-1.6.0.md](CLOSURE-1.6.0.md) | Clôture (brouillon) |
+| [`stable/1.6.0/RELEASE_NOTES.md`](../../../stable/1.6.0/RELEASE_NOTES.md) | Notes release |
 | [`docs/engine/`](../../engine/README.md) | Réf. runtime moteur |
 
 ## Décisions
