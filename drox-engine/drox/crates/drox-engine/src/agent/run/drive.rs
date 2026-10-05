@@ -594,6 +594,7 @@ impl Agent {
                 .map(|c| c.name.as_str())
                 .collect();
             let batches = partition_tool_calls(&tool_names, &self.registry);
+            let mut round_tool_outputs = String::new();
 
             for batch in batches {
                 match batch {
@@ -711,6 +712,7 @@ impl Agent {
                                             &mut memory_tracker,
                                             &tx,
                                             &mut messages,
+                                            &mut round_tool_outputs,
                                         )
                                         .await
                                     {
@@ -968,12 +970,19 @@ impl Agent {
                                         value = tool_response;
                                         hook_appendix = model_appendix;
                                     }
-                                    let mut for_llm =
-                                        format_tool_result_for_llm(&call.name, &value);
+                                    let mut for_llm = format_tool_result_for_llm(
+                                        &call.name,
+                                        &value,
+                                        &ctx.workspace_root,
+                                    );
                                     if let Some(app) = hook_appendix {
                                         for_llm.push_str("\n\n");
                                         for_llm.push_str(&app);
                                     }
+                                    if !round_tool_outputs.is_empty() {
+                                        round_tool_outputs.push('\n');
+                                    }
+                                    round_tool_outputs.push_str(&for_llm);
                                     mirror_workspace_map_from_tool(&ctx, &call.name, &value)
                                         .await;
                                     if call.name == "scope_defer" {
@@ -1049,6 +1058,30 @@ impl Agent {
                             }
                         }
                     }
+                }
+            }
+
+            // 1.6.0 L-tools — même (tool, args) + même output → warn/abort.
+            match loop_detector.observe_tool_outputs(&outcome.tool_calls, &round_tool_outputs) {
+                LoopDecision::Ok => {}
+                LoopDecision::Warn { kind } => {
+                    debug!(kind, "boucle tools (même call/output) — nudge");
+                    messages.push(Message::system(LOOP_DETECTED_NUDGE_PROMPT));
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    continue;
+                }
+                LoopDecision::Abort { kind, turns } => {
+                    debug!(kind, turns, "boucle tools — abort");
+                    let _ = tx
+                        .send(Err(EngineError::LoopDetected { kind, turns }))
+                        .await;
+                    return;
                 }
             }
 

@@ -1,5 +1,6 @@
 //! Helpers de dispatch : erreurs outil, confirmation, specs LLM, workspace map.
 
+use camino::Utf8Path;
 use drox_llm::ToolSpec;
 use drox_tools::{ToolContext, ToolRegistry, UserQuestion};
 use drox_types::{Content, Message, Role, ToolUseId};
@@ -12,16 +13,80 @@ use crate::event::AgentEvent;
 
 use super::loop_detect::PendingToolCall;
 
+/// Au-delà de ce seuil, le JSON outil est spillé sur disque (1.6.0 T-1).
+pub(crate) const TOOL_RESULT_SPILL_THRESHOLD_BYTES: usize = 48 * 1024;
+
+const TOOL_RESULT_PREVIEW_BYTES: usize = 2 * 1024;
+
 /// Corps du message `role = tool` renvoyé au LLM après exécution réussie.
 ///
 /// Sans balisage explicite, certains modèles prennent un gros JSON (sortie
 /// `glob`, `grep`, etc.) pour un « collage » utilisateur arbitraire au lieu
 /// du résultat structuré de leur propre appel d'outil.
-pub(crate) fn format_tool_result_for_llm(tool_name: &str, value: &Value) -> String {
+///
+/// 1.6.0 T-1 : au-delà de [`TOOL_RESULT_SPILL_THRESHOLD_BYTES`], le body est
+/// écrit sous `.drox/tool-outputs/` et le prompt ne reçoit qu'un pointeur.
+pub(crate) fn format_tool_result_for_llm(
+    tool_name: &str,
+    value: &Value,
+    workspace_root: &Utf8Path,
+) -> String {
     let serialized = serde_json::to_string(value).unwrap_or_default();
-    format!(
-        "[drox: tool result for «{tool_name}» — JSON below; this is NOT a user message]\n{serialized}",
-    )
+    if serialized.len() <= TOOL_RESULT_SPILL_THRESHOLD_BYTES {
+        return format!(
+            "[drox: tool result for «{tool_name}» — JSON below; this is NOT a user message]\n{serialized}",
+        );
+    }
+    match spill_tool_result_to_disk(workspace_root, tool_name, &serialized) {
+        Ok(path) => {
+            let preview_len = serialized.len().min(TOOL_RESULT_PREVIEW_BYTES);
+            let preview = &serialized[..preview_len];
+            format!(
+                "[drox: tool result for «{tool_name}» — LARGE OUTPUT SPILLED TO DISK]\n\
+                 Full JSON ({bytes} bytes) written to: {path}\n\
+                 Preview (first {preview_len} bytes):\n{preview}\n\
+                 Use `file_read` (or shell head/tail) on that path if you need more detail. \
+                 Do NOT re-call the same tool just to re-fetch this blob.",
+                bytes = serialized.len(),
+            )
+        }
+        Err(e) => {
+            warn!(
+                tool = %tool_name,
+                error = %e,
+                "tool result spill failed — truncating inline"
+            );
+            let truncated = &serialized[..serialized.len().min(TOOL_RESULT_SPILL_THRESHOLD_BYTES)];
+            format!(
+                "[drox: tool result for «{tool_name}» — LARGE OUTPUT TRUNCATED (spill failed: {e})]\n\
+                 {truncated}\n…[truncated]"
+            )
+        }
+    }
+}
+
+fn spill_tool_result_to_disk(
+    workspace_root: &Utf8Path,
+    tool_name: &str,
+    body: &str,
+) -> std::io::Result<String> {
+    let dir = workspace_root.join(".drox").join("tool-outputs");
+    std::fs::create_dir_all(dir.as_std_path())?;
+    let safe: String = tool_name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%S%.3fZ");
+    let file_name = format!("{stamp}-{safe}.json");
+    let path = dir.join(&file_name);
+    std::fs::write(path.as_std_path(), body)?;
+    Ok(path.to_string())
 }
 
 pub(crate) async fn mirror_workspace_map_from_tool(

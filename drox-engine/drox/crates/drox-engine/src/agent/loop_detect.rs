@@ -47,6 +47,12 @@ pub(crate) struct LoopDetector {
     last_body_hash: Option<u64>,
     /// Strikes body identique sans tool_call (thinking ignoré).
     text_only_strike: u32,
+    /// 1.6.0 L-tools — signature `(name, args)` du dernier round d'outils.
+    last_tools_call_sig: Option<u64>,
+    /// Hash des outputs LLM du dernier round (progrès = output change).
+    last_tools_output_sig: Option<u64>,
+    /// Strikes même call + même output (pas de progrès).
+    tools_progress_strike: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -71,6 +77,9 @@ impl LoopDetector {
         self.family_strike = 0;
         self.text_only_strike = 0;
         self.last_body_hash = None;
+        self.tools_progress_strike = 0;
+        self.last_tools_call_sig = None;
+        self.last_tools_output_sig = None;
     }
 
     /// Examine un `TurnOutcome` et renvoie la décision à prendre. `outcome`
@@ -188,6 +197,48 @@ impl LoopDetector {
             _ => LoopDecision::Abort {
                 kind,
                 turns: self.strike + 1, // strike == 3 → 4e tour identique au total
+            },
+        }
+    }
+
+    /// 1.6.0 L-tools — après exécution des tools du tour.
+    ///
+    /// Même `(name, args)` + **même** output → warn puis abort.
+    /// Même call + output **différent** → progrès (polling) : reset strike.
+    pub(crate) fn observe_tool_outputs(
+        &mut self,
+        calls: &[PendingToolCall],
+        output_blob: &str,
+    ) -> LoopDecision {
+        if calls.is_empty() {
+            self.last_tools_call_sig = None;
+            self.last_tools_output_sig = None;
+            self.tools_progress_strike = 0;
+            return LoopDecision::Ok;
+        }
+        let call_sig = hash_tool_calls(calls);
+        let out_sig = hash_text(output_blob);
+        let same_call = matches!(self.last_tools_call_sig, Some(prev) if prev == call_sig);
+        let same_out = matches!(self.last_tools_output_sig, Some(prev) if prev == out_sig);
+
+        self.last_tools_call_sig = Some(call_sig);
+        self.last_tools_output_sig = Some(out_sig);
+
+        if !same_call {
+            self.tools_progress_strike = 0;
+            return LoopDecision::Ok;
+        }
+        if !same_out {
+            // Même outil, output qui change = progrès (polling).
+            self.tools_progress_strike = 0;
+            return LoopDecision::Ok;
+        }
+        self.tools_progress_strike = self.tools_progress_strike.saturating_add(1);
+        match self.tools_progress_strike {
+            1 => LoopDecision::Warn { kind: "tools" },
+            _ => LoopDecision::Abort {
+                kind: "tools",
+                turns: self.tools_progress_strike + 1,
             },
         }
     }

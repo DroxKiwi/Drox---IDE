@@ -33,7 +33,7 @@ export interface IDroxAgentsChatUiStatsService {
 }
 
 function emptyStats(): IDroxChatUiStatsSnapshot {
-	return { totalIn: 0, totalOut: 0, ctx: 0 };
+	return { totalIn: 0, totalOut: 0, ctx: 0, ctxSource: 'unknown' };
 }
 
 export class DroxAgentsChatUiStatsService extends Disposable implements IDroxAgentsChatUiStatsService {
@@ -113,7 +113,8 @@ export class DroxAgentsChatUiStatsService extends Disposable implements IDroxAge
 			changed = true;
 		}
 		if (inputTokens > 0) {
-			this._stats = { ...this._stats, ctx: inputTokens };
+			// Provider usage écrase ctx — marquer la source (G-1).
+			this._stats = { ...this._stats, ctx: inputTokens, ctxSource: 'provider' };
 			changed = true;
 		}
 		if (changed) {
@@ -125,7 +126,8 @@ export class DroxAgentsChatUiStatsService extends Disposable implements IDroxAge
 		if (tokensUsed <= 0) {
 			return;
 		}
-		this._stats = { ...this._stats, ctx: tokensUsed };
+		// Estimation moteur (RoughTokenCounter) — ne pas confondre avec provider.
+		this._stats = { ...this._stats, ctx: tokensUsed, ctxSource: 'estimate' };
 		this._fireChange();
 	}
 

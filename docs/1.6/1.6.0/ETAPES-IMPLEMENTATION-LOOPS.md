@@ -21,7 +21,7 @@ Ce document est la **checklist opérable**. On ne change pas le paradigme (phase
 
 ```text
 Vague 1 (filets)     L-1 → L-2 → C-1 (+ C-3)   ✅ moteur
-Vague 2 (contexte)   T-1 → L-tools → G-1
+Vague 2 (contexte)   T-1 → L-tools → G-1 → C-2  ✅ moteur+UI
 Vague 3 (preuve)     OBS-1 → OBS-2 → (L-3 optionnel)
 Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 ```
@@ -32,13 +32,13 @@ Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 | L-2 | Hard-stop réponses textuelles identiques | 1 | M | ★★★ | ✅ |
 | C-1 | Persister compaction live IDE | 1 | M | ★★★ | ✅ |
 | C-3 | Curseur flush après shrink | 1 | S | ★★ | ✅ |
-| T-1 | Gros tool results → fichier | 2 | M | ★★★ | ⬜ |
-| L-tools | Hash tools global progress-aware | 2 | M | ★★ | ⬜ |
-| G-1 | Jauge estimé vs provider | 2 | S | ★★ | ⬜ |
+| T-1 | Gros tool results → fichier | 2 | M | ★★★ | ✅ |
+| L-tools | Hash tools global progress-aware | 2 | M | ★★ | ✅ |
+| G-1 | Jauge estimé vs provider | 2 | S | ★★ | ✅ |
 | OBS-1 | Unlock debug prod | 3 | S | ★★ | ⬜ |
 | OBS-2 | Export messages[] par itération | 3 | M | ★★ | ⬜ |
 | L-3 | Nudges sans faux `user` (providers locaux) | 3 | M | ★ | ⬜ |
-| C-2 | Aligner `/compact` session | 2–3 | S | ★★ | ⬜ |
+| C-2 | Aligner `/compact` session | 2–3 | S | ★★ | ✅ |
 
 ---
 
@@ -137,7 +137,7 @@ Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 | **Action** | `session.compact` / tool compact : même persistance que C-1. |
 | **Done when** | Compact manuel réduit le JSONL durablement. |
 
-**Gate Vague 2** : T-1 + L-tools + G-1 ; smoke Explore + gros tool OK.
+**Gate Vague 2** : ✅ T-1 + L-tools + G-1 + C-2 · tests moteur spill/tools · smoke Explore / gros tool à confirmer.
 
 ---
 

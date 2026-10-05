@@ -12,6 +12,8 @@ export interface IDroxChatUiStatsSnapshot {
 	readonly totalIn: number;
 	readonly totalOut: number;
 	readonly ctx: number;
+	/** 1.6.0 G-1 — source du compteur ctx affiché. */
+	readonly ctxSource: 'estimate' | 'provider' | 'unknown';
 }
 
 export function formatDroxCycleElapsed(ms: number): string {
@@ -26,9 +28,17 @@ export function formatDroxCycleElapsed(ms: number): string {
 export function formatDroxContextUsageStatFromConfig(
 	usedTokens: number,
 	numCtx: unknown,
+	ctxSource: IDroxChatUiStatsSnapshot['ctxSource'] = 'unknown',
 ): string {
 	const max = clampDroxNumCtx(
 		typeof numCtx === 'number' && Number.isFinite(numCtx) ? numCtx : DROX_DEFAULT_NUM_CTX,
 	);
-	return formatDroxContextUsageStat(usedTokens, max);
+	const base = formatDroxContextUsageStat(usedTokens, max);
+	if (ctxSource === 'estimate') {
+		return `${base} estim.`;
+	}
+	if (ctxSource === 'provider') {
+		return `${base} provider`;
+	}
+	return base;
 }

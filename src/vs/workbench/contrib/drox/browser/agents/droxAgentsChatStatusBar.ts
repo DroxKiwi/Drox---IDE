@@ -54,7 +54,7 @@ export class DroxAgentsChatStatusBar extends Disposable {
 		this._cycleEl.textContent = '00:00:00';
 
 		const ctx = dom.append(this.domNode, $('span.stat.stat-ctx'));
-		ctx.title = localize('droxChatCtxUsage', 'Context window usage (used / max)');
+		ctx.title = localize('droxChatCtxUsage', 'Context window usage (used / max) — estim. = RoughTokenCounter, provider = model usage.input_tokens');
 		dom.append(ctx, $('span')).textContent = 'ctx ';
 		this._ctxEl = dom.append(ctx, $('strong'));
 
@@ -70,6 +70,7 @@ export class DroxAgentsChatStatusBar extends Disposable {
 		this._ctxEl.textContent = formatDroxContextUsageStatFromConfig(
 			stats.ctx,
 			this.uiStatsService.getNumCtx(),
+			stats.ctxSource,
 		);
 	}
 }
