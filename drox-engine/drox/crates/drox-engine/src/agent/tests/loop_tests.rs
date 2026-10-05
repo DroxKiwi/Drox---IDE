@@ -459,6 +459,62 @@ fn normalize_bash_command_folds_case_and_duplicates() {
     assert_eq!(a, c);
 }
 
+/// 1.6.0 L-tools — même call + même output → warn puis abort ; output change = progrès.
+#[test]
+fn loop_detector_tools_progress_aware() {
+    let mut det = LoopDetector::new();
+    let call = || {
+        vec![PendingToolCall {
+            id: ToolUseId::new(),
+            name: "file_read".into(),
+            arguments: serde_json::json!({ "path": "src/a.rs", "offset": 1 }),
+        }]
+    };
+    assert_eq!(
+        det.observe_tool_outputs(&call(), "content-v1"),
+        LoopDecision::Ok
+    );
+    assert_eq!(
+        det.observe_tool_outputs(&call(), "content-v2-changed"),
+        LoopDecision::Ok,
+        "same call + different output = progress"
+    );
+    assert_eq!(
+        det.observe_tool_outputs(&call(), "content-v2-changed"),
+        LoopDecision::Warn { kind: "tools" }
+    );
+    assert!(matches!(
+        det.observe_tool_outputs(&call(), "content-v2-changed"),
+        LoopDecision::Abort {
+            kind: "tools",
+            ..
+        }
+    ));
+}
+
+#[test]
+fn format_tool_result_spills_large_output() {
+    use crate::agent::dispatch::{format_tool_result_for_llm, TOOL_RESULT_SPILL_THRESHOLD_BYTES};
+    let dir = tempfile::tempdir().unwrap();
+    let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+    let big = "x".repeat(TOOL_RESULT_SPILL_THRESHOLD_BYTES + 100);
+    let value = serde_json::json!({ "stdout": big });
+    let formatted = format_tool_result_for_llm("bash", &value, &ws);
+    assert!(
+        formatted.contains("LARGE OUTPUT SPILLED TO DISK"),
+        "expected spill marker; got {}",
+        &formatted[..formatted.len().min(200)]
+    );
+    assert!(
+        !formatted.contains(&"x".repeat(10_000)),
+        "full blob must not stay in the LLM message"
+    );
+    let out_dir = ws.join(".drox").join("tool-outputs");
+    assert!(out_dir.is_dir(), "spill directory must exist");
+    let entries: Vec<_> = std::fs::read_dir(out_dir.as_std_path()).unwrap().collect();
+    assert_eq!(entries.len(), 1, "one spill file expected");
+}
+
 /// Sprint Hotfix « boucle » — anti-faux-positif : le détecteur ne doit
 /// PAS pénaliser un run normal qui converge en quelques tours différents.
 /// Le run minimal `reasoning + todo (1 completed) + answering + done`

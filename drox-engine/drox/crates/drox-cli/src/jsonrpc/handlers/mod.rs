@@ -168,7 +168,7 @@ pub async fn session_compact(params: Option<Value>) -> Result<Value, RpcError> {
     let dir = resolve_session_dir(p.dir)?;
     let id = SessionId::from_string(p.id);
     let path = transcript_path(&dir, &id);
-    let messages = match read_transcript(&path).await {
+    let mut messages = match read_transcript(&path).await {
         Ok(m) => m,
         Err(SessionError::NotFound(_)) => Vec::new(),
         Err(e) => {
@@ -193,6 +193,38 @@ pub async fn session_compact(params: Option<Value>) -> Result<Value, RpcError> {
         p.provider.as_deref(),
     )?;
 
+    // 1.6.0 C-2 — même persistance que compaction live (TUI / agent.run).
+    let policy = ContextPolicy::for_model_context_window(131_072);
+    if let Some(report) = drox_engine::try_live_compact(
+        llm.as_ref(),
+        crate::prompts::COMPACTION_PROMPT,
+        &mut messages,
+        &policy,
+        &CompactionConfig::default(),
+    )
+    .await
+    {
+        write_transcript(&path, &messages).await.map_err(|e| {
+            RpcError::new(
+                ENGINE_ERROR,
+                format!("session.compact write_transcript failed: {e}"),
+            )
+        })?;
+        let usage = report.usage.map(|u| SessionCompactUsageDto {
+            input_tokens: u.input_tokens,
+            output_tokens: u.output_tokens,
+        });
+        let objective = extract_objective_from_summary(&report.summary_text);
+        let dto = SessionCompactResult {
+            summary: report.summary_text,
+            objective,
+            files_touched: report.files_touched,
+            usage,
+            transcript_rewritten: true,
+        };
+        return serde_json::to_value(dto).map_err(internal);
+    }
+
     let result = summarize_run(
         llm.as_ref(),
         crate::prompts::COMPACTION_PROMPT,
@@ -214,8 +246,32 @@ pub async fn session_compact(params: Option<Value>) -> Result<Value, RpcError> {
         objective,
         files_touched: result.files_touched,
         usage,
+        transcript_rewritten: false,
     };
     serde_json::to_value(dto).map_err(internal)
+}
+
+fn extract_objective_from_summary(summary: &str) -> Option<String> {
+    let mut in_obj = false;
+    let mut buf = String::new();
+    for line in summary.lines() {
+        let t = line.trim();
+        if t.starts_with("## ") {
+            if in_obj {
+                break;
+            }
+            if t[3..].to_ascii_lowercase().contains("objective") {
+                in_obj = true;
+                continue;
+            }
+        } else if in_obj && !t.is_empty() {
+            if !buf.is_empty() {
+                buf.push(' ');
+            }
+            buf.push_str(t);
+        }
+    }
+    (!buf.is_empty()).then_some(buf)
 }
 
 pub async fn agent_run(server: Server, params: Option<Value>) -> Result<Value, RpcError> {

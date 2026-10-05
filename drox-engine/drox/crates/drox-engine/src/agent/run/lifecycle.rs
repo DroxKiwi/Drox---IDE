@@ -336,6 +336,7 @@ impl Agent {
     }
 
     /// Applique le succès d'un tool read-only (lot parallèle §2.29).
+    /// Append le texte LLM à `round_tool_outputs` (filet L-tools).
     pub(super) async fn apply_read_only_tool_success(
         &self,
         ctx: &ToolContext,
@@ -344,10 +345,15 @@ impl Agent {
         memory_tracker: &mut MemoryTracker,
         tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
         messages: &mut Vec<Message>,
+        round_tool_outputs: &mut String,
     ) -> bool {
         memory_tracker.record_tool(&call.name);
         mirror_workspace_map_from_tool(ctx, &call.name, &value).await;
-        let for_llm = format_tool_result_for_llm(&call.name, &value);
+        let for_llm = format_tool_result_for_llm(&call.name, &value, &ctx.workspace_root);
+        if !round_tool_outputs.is_empty() {
+            round_tool_outputs.push('\n');
+        }
+        round_tool_outputs.push_str(&for_llm);
         if tx
             .send(Ok(AgentEvent::ToolFinish {
                 id: call.id.clone(),

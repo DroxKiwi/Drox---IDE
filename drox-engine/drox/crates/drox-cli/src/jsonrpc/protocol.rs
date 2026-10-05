@@ -339,6 +339,9 @@ pub struct SessionCompactResult {
     pub files_touched: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub usage: Option<SessionCompactUsageDto>,
+    /// 1.6.0 C-2 — true si le JSONL a été réécrit (compact live).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub transcript_rewritten: bool,
 }
 
 /// Notification `agent/event` — `event` peut être un [`AgentEvent`] ou un
