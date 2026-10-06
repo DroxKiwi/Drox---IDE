@@ -16,6 +16,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
+import { IPathService } from '../../../services/path/common/pathService.js';
 import { IOutputService } from '../../../services/output/common/output.js';
 import { IStorageService, StorageScope } from '../../../../platform/storage/common/storage.js';
 import { IHostService } from '../../../services/host/browser/host.js';
@@ -101,6 +102,7 @@ export class DroxChatController extends Disposable
 		@IDroxLongMemoryService private readonly longMemoryService: IDroxLongMemoryService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IEditorService private readonly editorService: IEditorService,
+		@IPathService private readonly pathService: IPathService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IFileService private readonly fileService: IFileService,
 		@IDroxRefsBridgeService private readonly refsBridgeService: IDroxRefsBridgeService,
@@ -496,6 +498,7 @@ export class DroxChatController extends Disposable
 			sessionBackgroundService: this.sessionBackgroundService,
 			codebaseContextService: this.codebaseContextService,
 			regulationService: this.regulationService,
+			userHomeFsPath: this.pathService.userHome({ preferLocal: true }).fsPath,
 		};
 	}
 

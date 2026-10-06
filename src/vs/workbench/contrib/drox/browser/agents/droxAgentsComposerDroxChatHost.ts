@@ -586,6 +586,8 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 		D.dom.roleModelPanelSelectEl = mainWindow.document.getElementById('role-model-panel-select') as HTMLSelectElement | null;
 		D.dom.roleModelPanelNumCtxEl = mainWindow.document.getElementById('role-model-panel-num-ctx') as HTMLSelectElement | null;
 		D.dom.roleModelPanelNumCtxCustomEl = mainWindow.document.getElementById('role-model-panel-num-ctx-custom') as HTMLInputElement | null;
+		D.dom.roleModelPanelMaxIterationsEl = mainWindow.document.getElementById('role-model-panel-max-iterations') as HTMLInputElement | null;
+		D.dom.roleModelPanelExploreMaxIterationsEl = mainWindow.document.getElementById('role-model-panel-explore-max-iterations') as HTMLInputElement | null;
 		D.dom.roleModelPanelTopPEl = mainWindow.document.getElementById('role-model-panel-top-p') as HTMLInputElement | null;
 		D.dom.roleModelPanelTopKEl = mainWindow.document.getElementById('role-model-panel-top-k') as HTMLInputElement | null;
 		D.dom.roleModelPanelRepeatPenaltyEl = mainWindow.document.getElementById('role-model-panel-repeat-penalty') as HTMLInputElement | null;

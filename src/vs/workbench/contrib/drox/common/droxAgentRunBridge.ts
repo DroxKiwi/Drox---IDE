@@ -27,6 +27,7 @@ import {
 	applyDroxRegulationL2ExecutableTools,
 	asDroxRegulationL2Module,
 } from './regulation/droxRegulationL2Surface.js';
+import { buildDroxAgentRunContextLoadParams } from './regulation/droxRegulationL2ContextLoad.js';
 import {
 	applyDroxRegulationL3Directive,
 	asDroxRegulationL3Module,
@@ -37,6 +38,12 @@ import {
 } from './regulation/droxRegulationL4Protocol.js';
 import { IDroxRegulationService } from './regulation/droxRegulationServiceContract.js';
 import { droxSubagentsEnabledForRun } from './droxSubagents.js';
+import { formatExploreMissionPlanAnnex } from './modelQuestions/droxModelQuestionParse.js';
+import type { IDroxModelQuestionService } from './modelQuestions/droxModelQuestionService.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { URI } from '../../../../base/common/uri.js';
+import { DroxSetting } from './droxConfiguration.js';
+import { collectDroxRulesSystemAnnex } from './rules/droxRulesFs.js';
 
 export interface IDroxAgentRunBridgeDeps {
 	readonly clientToolsService: IDroxClientToolsService;
@@ -52,8 +59,19 @@ export interface IDroxAgentRunBridgeDeps {
 	 * (browser supplies active editor; common layer stays editor-free).
 	 */
 	readonly resolveCodebaseForcePathPrefixes?: (workspaceFsPath: string) => string[] | undefined;
+	/**
+	 * Paths for scoped rule `applyTo` matching (open editors, etc.).
+	 * Prefer workspace-relative paths.
+	 */
+	readonly resolveRulesContextPaths?: (workspaceFsPath: string) => string[] | undefined;
+	/** Optional user home for `~/.drox/rules`. */
+	readonly userHomeFsPath?: string;
+	/** Optional: gates project rules inject via `drox.rules.enabled`. */
+	readonly configurationService?: IConfigurationService;
 	/** Optionnel : L1 notes + L2 tools + L3 directive + L4 protocol. */
 	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
+	/** Optionnel : Explore mission decompose (session master, no NL heuristics). */
+	readonly modelQuestionService?: Pick<IDroxModelQuestionService, 'decomposeExploreMissions'>;
 }
 
 export interface IDroxAgentRunStartOptions {
@@ -115,6 +133,34 @@ export async function startDroxAgentRun(
 	if (planArchiveNote) {
 		system = system?.trim() ? `${planArchiveNote}\n\n${system}` : planArchiveNote;
 	}
+
+	// Project rules (`.drox/rules`) — Cursor-style alwaysApply / applyTo.
+	const rulesEnabled = deps.configurationService
+		? deps.configurationService.getValue<boolean>(DroxSetting.RulesEnabled, {
+			resource: URI.file(options.workspace),
+		}) !== false
+		: true;
+	if (deps.fileService && rulesEnabled) {
+		try {
+			const contextPaths = deps.resolveRulesContextPaths?.(options.workspace)
+				?? deps.resolveCodebaseForcePathPrefixes?.(options.workspace);
+			const rulesAnnex = await collectDroxRulesSystemAnnex(deps.fileService, options.workspace, {
+				contextPaths,
+				userHomeFsPath: deps.userHomeFsPath,
+			});
+			if (rulesAnnex?.text.trim()) {
+				system = system?.trim() ? `${rulesAnnex.text}\n\n${system}` : rulesAnnex.text;
+				deps.logService.trace(
+					`[Drox] project rules annex n=${rulesAnnex.ruleCount} chars=${rulesAnnex.chars} truncated=${rulesAnnex.truncated}`,
+				);
+			}
+		} catch (e) {
+			deps.logService.trace('[Drox] project rules inject skipped', e);
+		}
+	} else if (!rulesEnabled) {
+		deps.logService.trace('[Drox] project rules disabled (drox.rules.enabled=false)');
+	}
+
 	if (deps.codebaseContextService) {
 		try {
 			const forcePathPrefixes = deps.codebaseContextService.forceNextRun
@@ -156,16 +202,42 @@ export async function startDroxAgentRun(
 		}
 		// Explore master × L2: strip RPC flags when core or kill-switch off.
 		const masterOn = runParams.subagentsEnabled === true;
-		if (!droxSubagentsEnabledForRun(masterOn, l2)) {
+		const exploreOn = droxSubagentsEnabledForRun(masterOn, l2);
+		if (!exploreOn) {
 			delete runParams.subagentsEnabled;
 			delete runParams.subagentsMaxIterations;
 			delete runParams.subagentsMaxConcurrent;
+		}
+		// Soft Context-load caps (post-glob nudge) — only when Explore can run.
+		const contextLoad = buildDroxAgentRunContextLoadParams(l2, exploreOn);
+		if (contextLoad) {
+			runParams.contextLoad = contextLoad;
+		} else {
+			delete runParams.contextLoad;
 		}
 	} else if (runParams.subagentsEnabled !== true) {
 		delete runParams.subagentsEnabled;
 		delete runParams.subagentsMaxIterations;
 		delete runParams.subagentsMaxConcurrent;
+		delete runParams.contextLoad;
 	}
+
+	// Session-master decompose — model question → annex (only when Explore can run).
+	const exploreCanRun = runParams.subagentsEnabled === true;
+	if (exploreCanRun && deps.modelQuestionService) {
+		try {
+			const plan = await deps.modelQuestionService.decomposeExploreMissions(options.prompt);
+			const annex = plan ? formatExploreMissionPlanAnnex(plan) : undefined;
+			if (annex) {
+				const prev = typeof runParams.system === 'string' ? runParams.system : system;
+				runParams.system = prev?.trim() ? `${annex}\n\n${prev}` : annex;
+				deps.logService.trace(`[Drox] explore decompose annex missions=${plan?.missionCount ?? 0}`);
+			}
+		} catch (e) {
+			deps.logService.trace('[Drox] explore decompose skipped', e);
+		}
+	}
+
 	const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 	if (typeof result?.runId === 'string') {
 		deps.logService.info('[Drox] agent.run', result.runId);

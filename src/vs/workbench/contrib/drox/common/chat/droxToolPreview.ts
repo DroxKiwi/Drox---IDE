@@ -62,11 +62,13 @@ export function describeToolCall(
 	switch (name) {
 
 		case 'file_read': {
-
 			const p = shortString(asStr(a.path));
-
+			const start = typeof a.start_line === 'number' ? a.start_line : undefined;
+			const end = typeof a.end_line === 'number' ? a.end_line : undefined;
+			if (start !== undefined && end !== undefined) {
+				return { verb: 'Read', target: `${p}:${start}-${end}` };
+			}
 			return { verb: 'Read', target: p };
-
 		}
 
 		case 'file_write':

@@ -129,6 +129,7 @@ pub(crate) fn extract_metadata(markdown: &str) -> (String, Vec<String>) {
                 "objective" | "objectif" | "goal" => SectionState::Objective,
                 "files touched"
                 | "files_touched"
+                | "files"
                 | "fichiers touchés"
                 | "fichiers touches"
                 | "fichiers" => SectionState::Files,

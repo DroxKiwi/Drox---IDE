@@ -67,13 +67,31 @@ export function normalizeDroxLlmHosting(value: unknown): DroxLlmHosting {
 	return "";
 }
 
+/**
+ * Connexion utilisable : URL serveur non vide.
+ * `llmHosting` seul ne doit pas masquer une config legacy (settings.json / pré-wizard).
+ */
+export function isDroxConnectionConfigured(
+	settings: Pick<IDroxGeneralSettingsWire, "server"> | { readonly server?: string },
+): boolean {
+	return Boolean(String(settings.server ?? "").trim());
+}
+
 export function formatDroxConnectionSummary(
 	settings: Pick<
 		IDroxGeneralSettingsWire,
 		"llmHosting" | "llmProvider" | "server"
 	>,
 ): string {
-	const hosting = normalizeDroxLlmHosting(settings.llmHosting);
+	const serverRaw = String(settings.server || "").trim();
+	if (!serverRaw) {
+		return "Not configured";
+	}
+	let hosting = normalizeDroxLlmHosting(settings.llmHosting);
+	// Legacy: serveur sans wizard → traiter comme self-hosted pour le libellé.
+	if (!hosting) {
+		hosting = "personal";
+	}
 	const provider = settings.llmProvider || "ollama";
 	const all = [
 		...DROX_PERSONAL_CONNECTION_PROVIDERS,
@@ -83,11 +101,9 @@ export function formatDroxConnectionSummary(
 	const providerLabel = def?.label ?? provider;
 	const hostLabel =
 		hosting === "cloud" ? "Cloud" : hosting === "personal" ? "Self-hosted" : "";
-	const server = String(settings.server || "")
-		.replace(/^https?:\/\//, "")
-		.slice(0, 28);
+	const server = serverRaw.replace(/^https?:\/\//, "").slice(0, 28);
 	const parts = [hostLabel, providerLabel, server].filter(Boolean);
-	return parts.length ? parts.join(" · ") : "Not configured";
+	return parts.join(" · ");
 }
 
 export function connectionPatchFromWizard(draft: {

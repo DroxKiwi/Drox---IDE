@@ -122,11 +122,47 @@ impl Agent {
             return Ok(());
         };
         let mut tokens = policy.count_tokens(messages);
+        let mut disk_dirty = false;
+
+        // 1.6.0 S-2 — snip chaud même sous le seuil autocompact (gros dumps
+        // docs / bash ne doivent pas rester N tours dans le prompt).
+        if let Some(report) = policy.maybe_snip_hot(messages) {
+            let tokens_before = tokens;
+            tokens = policy.count_tokens(messages);
+            debug!(
+                tokens_before,
+                tokens_after = tokens,
+                tokens_freed = report.tokens_freed,
+                blocks_snipped = report.blocks_snipped,
+                "hot context snip applied (S-2)"
+            );
+            disk_dirty = true;
+            tx.send(Ok(AgentEvent::ContextSnip {
+                tokens_freed: report.tokens_freed,
+                blocks_snipped: report.blocks_snipped,
+                tokens_used_after: tokens,
+            }))
+            .await
+            .map_err(|_| ())?;
+        }
+
         let mut state = policy.budget().evaluate(tokens);
         if !state.above_autocompact {
+            if disk_dirty {
+                if let Err(e) = self
+                    .rewrite_transcript_after_shrink(
+                        messages,
+                        transcript_cursor,
+                        leading_injected_systems,
+                    )
+                    .await
+                {
+                    let _ = tx.send(Err(e)).await;
+                    return Err(());
+                }
+            }
             return Ok(());
         }
-        let mut disk_dirty = false;
         if let Some(mc) = policy.maybe_microcompact(messages) {
             tokens = policy.count_tokens(messages);
             debug!(

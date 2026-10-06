@@ -6,6 +6,40 @@
 /* Subagent-specific styles */
 .interactive-session .interactive-response .value .chat-thinking-fixed-mode.chat-subagent-part {
 
+	/* Nest clearly under the parent chat response */
+	margin: 8px 0 10px 12px;
+	padding: 8px 10px 10px 14px;
+	border-left: 3px solid color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 70%, transparent);
+	border-radius: 0 8px 8px 0;
+	background: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 6%, var(--vscode-editor-background, transparent));
+
+	&.chat-thinking-active {
+		border-left-color: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 90%, transparent);
+	}
+
+	&.chat-subagent-finished {
+		border-left-color: color-mix(in srgb, var(--vscode-charts-green, #89d185) 75%, transparent);
+		background: color-mix(in srgb, var(--vscode-charts-green, #89d185) 5%, var(--vscode-editor-background, transparent));
+	}
+
+	/* Never ellipsize Explore / sub-agent titles — wrap the full mission text */
+	> .chat-used-context-label .monaco-button.monaco-icon-button {
+		align-items: flex-start;
+		height: auto;
+		min-height: 22px;
+		white-space: normal;
+
+		.monaco-button-mdlabel,
+		.chat-thinking-title-shimmer,
+		.chat-thinking-title-detail-text {
+			white-space: normal;
+			overflow: visible;
+			text-overflow: clip;
+			word-break: break-word;
+			line-height: 1.35;
+		}
+	}
+
 	/* Collapsed + streaming: show only the last item with max-height */
 	&.chat-used-context-collapsed .chat-used-context-list.chat-thinking-collapsible.chat-thinking-streaming {
 		max-height: var(--chat-subagent-last-item-height, 200px);
@@ -17,16 +51,41 @@
 	.chat-used-context-list.chat-thinking-collapsible {
 		max-height: none;
 		overflow: visible;
+		margin-left: 6px;
+		padding-left: 12px;
+		border-left: 1px solid color-mix(in srgb, var(--vscode-panel-border, rgba(128,128,128,.35)) 70%, transparent);
+	}
+
+	.chat-subagent-boundary {
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+		color: var(--vscode-descriptionForeground);
+		padding: 6px 4px 4px;
+		opacity: 0.92;
+	}
+
+	.chat-subagent-boundary-start {
+		color: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 80%, var(--vscode-foreground));
+	}
+
+	.chat-subagent-boundary-end {
+		color: color-mix(in srgb, var(--vscode-charts-green, #89d185) 80%, var(--vscode-foreground));
+		padding-top: 8px;
+		margin-top: 4px;
+		border-top: 1px dashed color-mix(in srgb, var(--vscode-panel-border, rgba(128,128,128,.35)) 80%, transparent);
 	}
 
 	/* Prompt and result section styling */
 	.chat-subagent-section {
-		padding: 4px 12px 4px 18px;
+		padding: 4px 8px 4px 10px;
 
+		/* Icon is absolutely positioned (~16px); give the label room to breathe. */
 		.chat-used-context {
 			margin-bottom: 0px;
-			margin-left: 2px;
-			padding-left: 2px;
+			margin-left: 0;
+			padding-left: 20px;
 		}
 
 		/* Hide the border for subagent prompt/result sections */
@@ -34,6 +93,85 @@
 			border: none;
 			padding: 0px 2px;
 		}
+
+		> .chat-used-context-label .monaco-button.monaco-icon-button {
+			white-space: normal;
+			height: auto;
+			gap: 6px;
+
+			.monaco-button-mdlabel {
+				white-space: normal;
+				overflow: visible;
+				text-overflow: clip;
+				margin-left: 2px;
+			}
+		}
+	}
+
+	.chat-thinking-tool-wrapper.chat-subagent-section {
+		/* Icon is absolute (left ~5px); keep the Prompt/Report label clear of it. */
+		> .chat-thinking-icon {
+			margin-right: 8px;
+		}
+
+		> .chat-used-context {
+			padding-left: 22px;
+		}
+	}
+
+	.chat-subagent-prompt-section .chat-collapsible-markdown-body,
+	.chat-subagent-result-section .chat-collapsible-markdown-body {
+		max-height: min(42vh, 420px);
+		overflow: auto;
+		scrollbar-width: thin;
+		padding: 4px 2px 6px;
+	}
+
+	.chat-subagent-live-notes {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 6px 8px 10px 4px;
+		position: relative;
+	}
+
+	.chat-subagent-live-notes-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 20px;
+		flex-shrink: 0;
+
+		> .chat-thinking-icon {
+			position: static;
+			left: auto;
+			top: auto;
+			flex-shrink: 0;
+			display: inline-flex;
+			align-items: center;
+		}
+	}
+
+	.chat-subagent-live-notes-label {
+		font-size: 11px;
+		line-height: 1.3;
+		opacity: 0.75;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--vscode-descriptionForeground);
+	}
+
+	.chat-subagent-live-notes-body {
+		display: block;
+		margin: 0;
+		padding: 0 0 0 24px;
+		max-height: 220px;
+		overflow: auto;
+		white-space: pre-wrap;
+		word-break: break-word;
+		font-size: 12px;
+		line-height: 1.45;
+		opacity: 0.92;
 	}
 
 	.chat-thinking-tool-wrapper {

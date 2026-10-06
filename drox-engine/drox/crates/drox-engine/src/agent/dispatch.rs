@@ -13,8 +13,9 @@ use crate::event::AgentEvent;
 
 use super::loop_detect::PendingToolCall;
 
-/// Au-delà de ce seuil, le JSON outil est spillé sur disque (1.6.0 T-1).
-pub(crate) const TOOL_RESULT_SPILL_THRESHOLD_BYTES: usize = 48 * 1024;
+/// Au-delà de ce seuil, le JSON outil est spillé sur disque (1.6.0 T-1 / S-2).
+/// Abaissé de 48 KiB → 24 KiB pour évacuer plus tôt les dumps docs / bash.
+pub(crate) const TOOL_RESULT_SPILL_THRESHOLD_BYTES: usize = 24 * 1024;
 
 const TOOL_RESULT_PREVIEW_BYTES: usize = 2 * 1024;
 

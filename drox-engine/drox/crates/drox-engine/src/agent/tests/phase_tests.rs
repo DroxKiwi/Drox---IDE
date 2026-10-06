@@ -175,6 +175,20 @@ fn user_prompt_suggests_workspace_analysis_heuristic() {
 }
 
 #[test]
+fn user_prompt_suggests_doc_ingestion_heuristic() {
+    assert!(user_prompt_suggests_doc_ingestion(
+        "Salut, prends connaissance de la doc officiel dans docs/pedagogie et remplace la page documentation"
+    ));
+    assert!(user_prompt_suggests_doc_ingestion(
+        "Mettre à jour la documentation en calquant la pédagogie"
+    ));
+    assert!(!user_prompt_suggests_doc_ingestion(
+        "Remplacer la variable foo dans index.ts"
+    ));
+    assert!(!user_prompt_suggests_doc_ingestion("fix the typo in README"));
+}
+
+#[test]
 fn phase_line_buffer_strips_marker_and_emits_phase() {
     let mut buf = PhaseLineBuffer::new();
     let mut text = String::new();

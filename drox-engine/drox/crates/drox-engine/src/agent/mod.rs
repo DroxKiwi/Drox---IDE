@@ -33,6 +33,7 @@
 //! | [`dispatch`] | Erreurs outil, confirmation user, specs exposées au LLM |
 
 pub mod config;
+pub mod context_load;
 pub mod dispatch;
 pub mod gates;
 pub mod hallucination;
@@ -40,6 +41,7 @@ pub mod loop_detect;
 pub mod nudges;
 pub mod phase;
 pub mod run;
+pub mod situation;
 pub mod stream;
 
 #[cfg(test)]
@@ -58,11 +60,14 @@ pub(crate) use loop_detect::{
     normalize_bash_command_for_loop, LoopDecision, LoopDetector, PendingToolCall, TurnOutcome,
 };
 #[cfg(test)]
-pub(crate) use nudges::{assistant_text_suggests_mutation_intent, step_by_step_todo_nudge};
+pub(crate) use nudges::{
+    assistant_text_suggests_large_write_intent, assistant_text_suggests_mutation_intent,
+    step_by_step_todo_nudge,
+};
 #[cfg(test)]
 pub(crate) use phase::{
     legacy_removed_phase_marker_line, parse_phase_marker, phase_for_tool, PhaseLineBuffer,
-    user_prompt_suggests_workspace_analysis,
+    user_prompt_suggests_doc_ingestion, user_prompt_suggests_workspace_analysis,
 };
 #[cfg(test)]
 pub(crate) use stream::consume_stream;

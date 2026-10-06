@@ -6,6 +6,7 @@
 // allow-any-unicode-comment-file
 
 import { localize } from '../../../../../nls.js';
+import { DROX_MAX_ITERATIONS_CAP } from '../../common/droxProductDefaults.js';
 import { DROX_NUM_CTX_CHOICES, DROX_NUM_CTX_CUSTOM_SELECT, DROX_NUM_CTX_MAX, DROX_NUM_CTX_MIN, formatDroxNumCtxLabel } from '../../common/droxNumCtx.js';
 
 /** Panneaux flottants Settings / Architecte / wizard — mêmes ids que le webview Drox Chat. */
@@ -19,6 +20,8 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const rolePanelMinPLabel = localize('droxChatRolePanelMinP', 'Min P');
 	const rolePanelSeedLabel = localize('droxChatRolePanelSeed', 'Seed');
 	const rolePanelTempLabel = localize('droxChatRolePanelTemperature', 'Temperature');
+	const rolePanelSectionAgent = localize('droxChatRolePanelSectionAgent', 'Agent');
+	const rolePanelMaxIterationsLabel = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const rolePanelSectionSampling = localize('droxChatRolePanelSectionSampling', 'Sampling');
 	const rolePanelSectionOutput = localize('droxChatRolePanelSectionOutput', 'Output');
 	const rolePanelPresencePenaltyLabel = localize('droxChatRolePanelPresencePenalty', 'Presence penalty');
@@ -53,6 +56,9 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const generalSettingsSectionAgent = localize('droxChatGeneralSettingsSectionAgent', 'Agent');
 	const generalSettingsSectionBehavior = localize('droxChatGeneralSettingsSectionBehavior', 'Behavior');
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
+	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
+	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
+	const generalSettingsProjectRulesEnabled = localize('droxChatGeneralSettingsProjectRulesEnabled', 'Project rules (.drox/rules)');
 	const generalSettingsNativeThinking = localize('droxChatGeneralSettingsNativeThinking', 'Native thinking');
 	const generalSettingsPrimaryLanguage = localize('droxChatGeneralSettingsPrimaryLanguage', 'Primary language');
 	const generalSettingsWarmStart = localize('droxChatGeneralSettingsWarmStart', 'Warm start');
@@ -85,6 +91,19 @@ export function buildDroxComposerPanelsMarkup(): string {
 					</select>
 					<input type="number" id="role-model-panel-num-ctx-custom" class="role-model-panel-input role-model-num-ctx-custom" hidden min="${DROX_NUM_CTX_MIN}" max="${DROX_NUM_CTX_MAX}" step="1024" />
 				</div>`)}
+			<p class="role-model-panel-section-label">${rolePanelSectionAgent}</p>
+			<label class="role-model-field">
+				<span class="role-model-field-label">${rolePanelMaxIterationsLabel}</span>
+				<span class="role-model-field-input-row">
+					<input type="number" id="role-model-panel-max-iterations" class="role-model-panel-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" />
+				</span>
+			</label>
+			<label class="role-model-field">
+				<span class="role-model-field-label">${generalSettingsExploreMaxIterations}</span>
+				<span class="role-model-field-input-row">
+					<input type="number" id="role-model-panel-explore-max-iterations" class="role-model-panel-input" min="1" step="1" />
+				</span>
+			</label>
 			<p class="role-model-panel-section-label">${rolePanelSectionSampling}</p>
 			${muteableField('temperature', rolePanelTempLabel, `<input type="number" id="role-model-panel-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" placeholder="—" />`)}
 			${muteableField('topP', rolePanelTopPLabel, `<input type="number" id="role-model-panel-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" placeholder="—" />`)}
@@ -121,7 +140,10 @@ export function buildDroxComposerPanelsMarkup(): string {
 				<button type="button" id="general-settings-connect-ia" class="general-settings-panel-btn general-settings-connect-btn">${generalSettingsConnectIa}</button>
 			</div>
 			<p class="general-settings-section-label">${generalSettingsSectionAgent}</p>
-			<label class="general-settings-field"><span>${generalSettingsMaxIterations}</span><input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="200" step="1" /></label>
+			<label class="general-settings-field"><span>${generalSettingsMaxIterations}</span><input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" /></label>
+			<label class="general-settings-field"><span>${generalSettingsExploreMaxIterations}</span><input type="number" id="general-settings-explore-max-iterations" class="general-settings-input" min="1" step="1" /></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-enabled" checked /><span>${generalSettingsSubagentsEnabled}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-project-rules-enabled" checked /><span>${generalSettingsProjectRulesEnabled}</span></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-native-thinking" /><span>${generalSettingsNativeThinking}</span></label>
 			<label class="general-settings-field"><span>${generalSettingsPrimaryLanguage}</span><input type="text" id="general-settings-primary-language" class="general-settings-input" spellcheck="false" /></label>
 			<p class="general-settings-section-label">${generalSettingsSectionBehavior}</p>

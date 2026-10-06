@@ -15,6 +15,18 @@ import { ISessionType } from '../../../../sessions/services/sessions/common/sess
 /** Chat session type / URI authority for Drox Agents window. */
 export const DROX_CHAT_SESSION_TYPE = 'drox';
 
+export function isDroxChatSessionType(sessionType: string | undefined): boolean {
+	return sessionType === DROX_CHAT_SESSION_TYPE;
+}
+
+/**
+ * Mount Server / Model / status chrome on the discussion composer.
+ * `undefined` = welcome / empty IDE shell (no session resource yet).
+ */
+export function shouldMountDroxComposerChrome(sessionType: string | undefined): boolean {
+	return sessionType === undefined || isDroxChatSessionType(sessionType);
+}
+
 export const DROX_SESSIONS_PROVIDER_ID = 'drox';
 
 export const DROX_AGENT_ID = 'drox';

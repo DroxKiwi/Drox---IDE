@@ -109,6 +109,20 @@ impl ContextPolicy {
         self.maybe_snip_with_config(messages, &aggressive)
     }
 
+    /// Snip « chaud » (1.6.0 Vague 4 / S-2) : même hors seuil autocompact,
+    /// retire les gros `tool_result` hors des 2 plus récents.
+    pub fn maybe_snip_hot(&self, messages: &mut Vec<Message>) -> Option<SnipReport> {
+        if self.snip.is_none() {
+            return None;
+        }
+        let hot = SnipConfig {
+            min_tokens: 500,
+            keep_recent_results: 2,
+            placeholder: "[Tool output truncated for context efficiency — re-read path/spill if needed]".into(),
+        };
+        self.maybe_snip_with_config(messages, &hot)
+    }
+
     fn maybe_snip_with_config(
         &self,
         messages: &mut Vec<Message>,

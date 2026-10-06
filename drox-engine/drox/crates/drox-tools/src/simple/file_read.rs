@@ -22,7 +22,7 @@ const MAX_RANGE_OUTPUT_BYTES: usize = 128 * 1024;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct FileReadInput {
-    /// Chemin relatif au workspace ou absolu **sous** le workspace.
+    /// Chemin relatif au workspace, ou absolu (y compris hors workspace — lecture seule).
     pub path: String,
     /// Première ligne à inclure (**1-based**). Si renseignée, `end_line` doit l’être aussi.
     #[serde(default)]
@@ -55,10 +55,11 @@ impl Tool for FileReadTool {
     }
 
     fn description(&self) -> &str {
-        "Reads the UTF-8 content of a file under the workspace root. Without `start_line`/`end_line`: \
-         reads from the beginning (truncated beyond 512 KiB). With both: **line window** \
-         1-based inclusive (max 400 lines, output max ~128 KiB) — ideal after a `grep` to avoid \
-         loading the entire file."
+        "Reads the UTF-8 content of a file. Prefer workspace-relative paths; **absolute paths \
+         outside the workspace are allowed for read-only access** (do not use bash Get-Content/cat \
+         for that). Without `start_line`/`end_line`: reads from the beginning (truncated beyond \
+         512 KiB). With both: **line window** 1-based inclusive (max 400 lines, output max ~128 KiB) \
+         — ideal after a `grep` to avoid loading the entire file."
     }
 
     fn input_schema(&self) -> Value {
@@ -71,10 +72,11 @@ impl Tool for FileReadTool {
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: FileReadInput = serde_json::from_value(input)?;
+        // P1 dogfood: read-only may always leave the workspace; writes stay gated by the toggle.
         let resolved = resolve_under_workspace(
             &ctx.effective_workspace(),
             &args.path,
-            ctx.allow_outside_workspace,
+            true,
         )?;
         ctx.deny_if_drox_ignored(&resolved)?;
         let meta = fs::metadata(&resolved)
@@ -291,5 +293,27 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, ToolError::InvalidArgs(_)), "{err:?}");
+    }
+
+    /// P1 — lecture hors workspace sans toggle `allow_outside` (read-only always).
+    #[tokio::test]
+    async fn reads_absolute_path_outside_workspace() {
+        let ws = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        let root = camino::Utf8PathBuf::from_path_buf(ws.path().to_path_buf()).unwrap();
+        let external = camino::Utf8PathBuf::from_path_buf(outside.path().to_path_buf()).unwrap();
+        let external_file = external.join("external.md");
+        tokio::fs::write(&external_file, "from outside").await.unwrap();
+        let ctx = ToolContext::new(root, false); // allow_outside_workspace = false
+        let reg = ToolRegistry::with_simple_tools();
+        let out = reg
+            .execute_named(
+                "file_read",
+                &ctx,
+                json!({ "path": external_file.as_str() }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(out["content"], "from outside");
     }
 }

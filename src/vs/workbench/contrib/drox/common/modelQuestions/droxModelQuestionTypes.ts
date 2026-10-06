@@ -11,7 +11,8 @@
 
 /** Stable question ids — add here when introducing a new ask. */
 export type DroxModelQuestionId =
-	| 'codebase.retrieval.comprehension';
+	| 'codebase.retrieval.comprehension'
+	| 'explore.mission.decompose';
 
 export type DroxModelQuestionLanguage = 'en';
 
@@ -39,6 +40,23 @@ export interface IDroxCodebaseRetrievalFilter {
 	readonly pathPrefixes: readonly string[];
 	readonly preferCodeFiles: boolean;
 	readonly skipRetrieval: boolean;
+	readonly questionId: DroxModelQuestionId;
+	readonly variantId: string;
+}
+
+/** One focused Explore mission from decompose ask. */
+export interface IDroxExploreMission {
+	readonly title: string;
+	readonly scope: string;
+	readonly mustReturn: readonly string[];
+	readonly thoroughness: 'quick' | 'medium' | 'very thorough';
+}
+
+/** Session-master decompose plan (mechanical annex only — no NL heuristics). */
+export interface IDroxExploreMissionPlan {
+	readonly needsExplore: boolean;
+	readonly missionCount: number;
+	readonly missions: readonly IDroxExploreMission[];
 	readonly questionId: DroxModelQuestionId;
 	readonly variantId: string;
 }

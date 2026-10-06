@@ -31,6 +31,7 @@ import { registerDroxIdeSessionHandoffActions } from './droxIdeSessionHandoffAct
 import { registerDroxChatCancelRestoreAction } from '../chat/droxChatCancelRestore.js';
 import './droxAgentsChatUiStatsService.js';
 import './droxNativeFileChangeScrollContribution.js';
+import './droxNativeFileChangeClickContribution.js';
 
 Registry.as<IAsyncChatSessionActivationRegistry>(ChatSessionsExtensions.AsyncActivation).register({
 	matchSessionType: sessionType => sessionType === DROX_CHAT_SESSION_TYPE,

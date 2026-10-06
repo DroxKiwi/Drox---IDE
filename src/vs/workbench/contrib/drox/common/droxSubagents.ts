@@ -6,8 +6,9 @@
 import { DroxRegulationL2Module } from './regulation/droxRegulationTypes.js';
 
 /**
- * Composition rule (v1): master setting ON **and** L2 ∈ { standard, full }.
- * Core never exposes Explore even if the user enabled the kill-switch.
+ * Composition rule (v1): master setting ON (product default **true**) **and**
+ * L2 ∈ { standard, full }. Core never exposes Explore — regulation frames usage;
+ * the setting is only a kill-switch when set to false.
  */
 export function droxSubagentsEnabledForRun(
 	masterEnabled: boolean,

@@ -14,13 +14,124 @@ pub(crate) const CODE_MUTATION_TESTING_NUDGE: &str = "You modified **code** in t
     Do not skip this — the engine will keep refusing `[phase: done]` until testing ran.";
 
 
-pub(crate) const ANALYZING_PHASE_NUDGE: &str = "The user asked for a **workspace / repo analysis**. \
-     Prefer `[phase: analyzing]` (not generic `[phase: reading]`) for this structural pass. \
-     Playbook: `workspace_map_read` if `[Workspace map]` is fresh → targeted `glob` (not blind \
-     root rescans) → `grep` + `file_read` with line ranges → `lsp` entry points. Treat \
-     `directory_fanout_caps` / `truncated` as signals to refine paths, not as errors. \
-     Keep notes telegraphic inside `analyzing`; put the full structured report only in \
-     `[phase: answering]`.";
+pub(crate) const ANALYZING_PHASE_NUDGE: &str = "The user asked for a **workspace / repo analysis** \
+     or topic understanding. Prefer `[phase: analyzing]` (not generic `[phase: reading]`). \
+     If the `task` tool is available this run, **default to `task` (`explore`) early** \
+     (`thoroughness`: `medium` or `very thorough`) for understanding / synthesis / multi-file \
+     scope — keep only the returned report in the parent. Needles or 1–2 known paths → direct \
+     tools. Otherwise playbook: `workspace_map_read` if `[Workspace map]` is fresh → targeted \
+     `glob` → `grep` + ranged `file_read` → `lsp`. Treat `directory_fanout_caps` / `truncated` as \
+     refine signals. Telegraphic notes in `analyzing`; full report only in `[phase: answering]`.";
+
+/// 1.6.0 S-5 — parent enchaîne des lectures sans déléguer Explore.
+pub(crate) const PARENT_HEAVY_READ_NUDGE: &str = "STOP flooding the parent context with repeated \
+    reads / `Get-Content` / `cat` dumps.\n\
+    \n\
+    For **understanding, synthesis, or multi-file reading**: if `task` (Explore) is available, \
+    you are the **session master** — **Plan → Assign → Merge** NOW:\n\
+    1. `todo_write` with 2–4 focused explore steps (or Context-load recommended_n).\n\
+    2. Spawn those `task` (`explore`) calls with `must_return` filled.\n\
+    3. Keep only the returned **reports** in the parent.\n\
+    \n\
+    Else: `file_read` with **`start_line` + `end_line`** (short ranges) or `grep` — do NOT \
+    re-ingest whole docs into this conversation.\n\
+    \n\
+    Needle lookups on 1–2 known paths may continue with direct tools.";
+
+/// Nombre de lectures parent sans `task` avant nudge S-5 (1 = default-to-Explore ferme).
+pub(crate) const PARENT_HEAVY_READ_NUDGE_THRESHOLD: u32 = 1;
+
+/// Soft Context-load V1 — suggestion chiffrée après un `glob` large (pas un hard gate).
+pub(crate) fn context_load_nudge(
+    files_effective: usize,
+    total_kb: u64,
+    load: u64,
+    recommended_n: u32,
+) -> String {
+    format!(
+        "[Context load] files≈{files_effective} ≈{total_kb}KB → load={load}. \
+You are the **session master**: you only keep Explore **reports**. \
+**Plan → Assign → Merge**:\n\
+1. `todo_write` with about **{recommended_n}** explore steps (one subtree / one question each).\n\
+2. Spawn that many focused `task` (`explore`) calls — each with short `title`, scoped \
+`description`, and non-empty `must_return` (facts your parent mission still needs).\n\
+3. Merge reports only — do **not** parent-read the whole tree.\n\
+\n\
+Sequential is fine if concurrency is 1. This is **guidance**, not a hard gate — \
+you may use a smaller N if a tighter scope is clearly enough."
+    )
+}
+
+/// Après un Explore `truncated` / plafond — re-split chiffré, pas de sauvetage parent.
+pub(crate) fn explore_incomplete_nudge(
+    iterations_used: u64,
+    max_iterations: u64,
+    recommended_n: u32,
+) -> String {
+    let n = recommended_n.max(2);
+    format!(
+        "[Explore incomplete] truncated=true iterations_used={iterations_used}/{max_iterations}.\n\
+\n\
+You are the **session master**. That Explore did not finish cleanly. You receive ONLY \
+structured reports — **do not** rescue by flooding the parent with `file_read` / `grep` / \
+`Get-Content` on the same perimeter.\n\
+\n\
+Choose **ONE** predictable path NOW:\n\
+1. **Re-split** — `todo_write` then spawn about **{n}** focused `task` (`explore`) missions \
+(one concern each). Each call MUST set `must_return` to the acceptance criteria your \
+overall mission still needs from that child.\n\
+2. **Needle** — only if you already know **1–2** exact paths: ranged `file_read` / `grep` \
+on those paths only.\n\
+\n\
+Forbidden: parent-read spam, re-opening Explore spill JSON, or one new mega-brief `task`."
+    )
+}
+
+/// Annex turn-0 — ingestion / calque docs multi-fichiers (quand `task` est dispo).
+pub(crate) const DOC_INGESTION_EXPLORE_ANNEX: &str = "DOC INGESTION / MULTI-FILE DOCS — engine directive\n\
+    \n\
+    The user asked you to take knowledge of a **docs tree** and/or rewrite / replace \
+    documentation pages from that source.\n\
+    \n\
+    **Session master — Plan → Assign → Merge (numeric):**\n\
+    1. **Plan** — `todo_write` with **2–4** explore steps (inventory / tone / target page / …).\n\
+    2. **Assign** — one step → one focused `task` (`explore`): short `title`, scoped \
+    `description`, non-empty `must_return` listing what YOUR rewrite still needs from that child.\n\
+    3. **Merge** — keep only Explore `report`s; then mutate 1–2 target pages in the parent.\n\
+    \n\
+    The Explore sub-agent does **not** see this chat — put every needed fact into \
+    `description` + `must_return`. Never pack the whole job into one mega Explore.\n\
+    \n\
+    Parent may `file_read` only the **1–2 pages being rewritten** (short line ranges). \
+    Do **NOT** dump the whole docs tree into the parent via `file_read` / bash dumps.\n\
+    \n\
+    Trust the reports. Context isolation is intentional.";
+
+/// Post-échec Explore — parent tente encore de sauver en lisant.
+pub(crate) const EXPLORE_RESCUE_PARENT_READ_NUDGE: &str = "STOP. A prior Explore was incomplete \
+    (`truncated`). Rescuing with parent `file_read` / `grep` / dumps on the same perimeter \
+    burns the context window and loses the point of sub-agents.\n\
+    \n\
+    **Required next action:** spawn **2–4 focused** `task` (`explore`) with explicit \
+    `must_return`, OR needle **1–2** known paths only. No third option.";
+
+/// P1 dogfood — même `file_read` path réussi N fois → stop re-read.
+pub(crate) const REPEATED_FILE_READ_NUDGE_THRESHOLD: u32 = 3;
+
+pub(crate) const REPEATED_FILE_READ_NUDGE: &str = "STOP re-reading the same file.\n\
+    \n\
+    You already successfully `file_read` the same path multiple times in this run. \
+    Do **not** call `file_read` (or bash `Get-Content`/`cat`/`type`) on it again.\n\
+    \n\
+    Next step — pick ONE:\n\
+    1. If you have enough context: write / edit (`file_write`/`file_edit`) or answer \
+       (`[phase: answering]` + `[phase: done]`).\n\
+    2. If you still need broad understanding: delegate one or more focused `task` \
+       (`explore`) missions (short `title` + scoped `description`), then act from the reports.\n\
+    3. If you need a different slice of another file: read a **new** path or a clearly \
+       different line range on a file you have not already fully covered.\n\
+    \n\
+    Re-reading the same path burns context and loops the run.";
 
 /// Texte injecté en `system` quand un tour LLM se termine **sans** marqueur
 /// `[phase: done]`. Sprint A.2 — done-driven completion : le moteur n'observe
@@ -70,12 +181,17 @@ pub(crate) const DONE_ONLY_NUDGE_PROMPT: &str = "Your previous reply ended insid
 /// FX-B 1.5.16 — nudge quand le modèle annonce une mutation (`file_write` /
 /// `file_edit`…) en prose **sans** émettre de `tool_calls`. Remplace le
 /// `NUDGE_PROMPT` générique qui laisse boucler « je vais écrire… ».
+/// Prefer a **small** first mutation (skeleton / one section), not a giant
+/// single-shot rewrite — oversized `file_write` payloads often never leave
+/// the model as structured `tool_calls`.
 pub(crate) const INTENT_ONLY_WRITE_NUDGE_PROMPT: &str = "STOP. You described writing or \
     editing a file in plain text, but you did NOT emit any native `tool_calls`.\n\
     \n\
     Intent prose alone does nothing. In your NEXT reply you MUST either:\n\
     1. Emit a real `file_write` or `file_edit` tool call (preferred — same \
-       reply as a short `[phase: acting]` line), OR\n\
+       reply as a short `[phase: acting]` line). Prefer a **small** first \
+       write: skeleton + 1–2 sections, then `file_edit` for the rest — do \
+       NOT attempt a multi-section / \"complete page\" rewrite in one call, OR\n\
     2. If you cannot mutate, explain why briefly in `[phase: answering]` then \
        emit `[phase: done]`.\n\
     \n\
@@ -86,14 +202,37 @@ pub(crate) const INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT: &str = "You still have 
     a mutating tool after announcing a write/edit. This is your last chance \
     before the engine aborts the run.\n\
     \n\
-    Emit a native `file_write` tool call NOW. Example arguments shape:\n\
-    `{ \"path\": \"relative/or/absolute/path.ext\", \"content\": \"...\" }`\n\
+    Emit a native `file_write` (or `file_edit`) tool call NOW with a **small** \
+    payload — skeleton or first section only. Example shape:\n\
+    `{ \"path\": \"relative/or/absolute/path.ext\", \"content\": \"/* skeleton */\\n...\" }`\n\
     \n\
-    Or `file_edit` with `{ \"path\", \"old_string\", \"new_string\" }`.\n\
-    No more announcement-only replies.";
+    Or `file_edit` with `{ \"path\", \"old_string\", \"new_string\" }` to append \
+    the next section. Forbidden: announce \"full page / all sections / one big \
+    file_write\" without a tool_call. No more announcement-only replies.";
+
+/// When prose clearly plans an oversized single-shot write (whole page, N
+/// sections, \"one big file_write\"), steer toward chunked mutations instead
+/// of repeating \"call file_write with everything\".
+pub(crate) const LARGE_WRITE_CHUNK_NUDGE_PROMPT: &str = "STOP. You announced a \
+    **large** write (whole file / complete page / many sections / one big \
+    `file_write`) in plain text, but you did NOT emit any native `tool_calls`.\n\
+    \n\
+    Oversized one-shot writes often fail to become tool_calls. In your NEXT \
+    reply you MUST:\n\
+    1. Emit `file_write` with a **skeleton** (imports + headings + 1–2 short \
+       sections only), OR\n\
+    2. Emit `file_edit` that adds **one** section to an existing file,\n\
+    then continue section-by-section in later turns.\n\
+    \n\
+    Do NOT try to paste the entire multi-section page in one tool call. Do NOT \
+    repeat \"I'll write the whole file / J'écris la page complète\".";
 
 /// Nombre de nudges « intent-only write » avant soft-abort (`LoopDetected`).
 pub(crate) const INTENT_ONLY_WRITE_MAX_NUDGES: u32 = 2;
+
+/// Plafond un cran plus haut quand la prose vise clairement un écrit monolithe
+/// (dogfood : page multi-fiches) — un nudge `LARGE_WRITE_CHUNK` supplémentaire.
+pub(crate) const INTENT_ONLY_LARGE_WRITE_MAX_NUDGES: u32 = 3;
 
 /// Détecte une intention de mutation fichier annoncée en prose (FR/EN).
 /// Utilisé uniquement quand `tool_calls` est vide — pas un parseur NLP.
@@ -145,6 +284,42 @@ pub(crate) fn assistant_text_suggests_mutation_intent(text: &str) -> bool {
     if t.contains("file_write") || t.contains("file_edit") {
         return true;
     }
+    NEEDLES.iter().any(|n| t.contains(n))
+}
+
+/// Indices qu'une prose vise une écriture **trop grosse** pour un seul
+/// `tool_call` (dogfood 1.6 — page docs multi-sections).
+#[must_use]
+pub(crate) fn assistant_text_suggests_large_write_intent(text: &str) -> bool {
+    let t = text.to_lowercase();
+    const NEEDLES: &[&str] = &[
+        // EN
+        "whole file",
+        "entire file",
+        "full file",
+        "complete page",
+        "full page",
+        "entire page",
+        "one file_write",
+        "one big file_write",
+        "single file_write",
+        "all sections",
+        "all 17",
+        "write the whole",
+        "write it all",
+        // FR
+        "page complète",
+        "page complete",
+        "fichier complet",
+        "tout le fichier",
+        "toute la page",
+        "en un seul file_write",
+        "un seul file_write",
+        "un gros file_write",
+        "17 fiches",
+        "toutes les fiches",
+        "toutes les sections",
+    ];
     NEEDLES.iter().any(|n| t.contains(n))
 }
 

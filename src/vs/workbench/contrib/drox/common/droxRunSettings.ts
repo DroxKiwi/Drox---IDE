@@ -178,18 +178,22 @@ function clampInt(value: number | undefined, fallback: number, min: number, max:
 	return Math.min(max, Math.max(min, n));
 }
 
+/** Positive int with floor only (Explore budget — no client-side max). */
+function positiveInt(value: number | undefined, fallback: number): number {
+	const n = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : fallback;
+	return Math.max(1, n);
+}
+
 /** Settings for Explore (`task`) — master kill-switch + per-run ceilings. */
 export function readSubagentsSettings(configService: IConfigurationService, resource?: URI): IDroxSubagentsRunSettings {
 	const enabled = readDroxChatConfigurationValue<boolean>(configService, DroxSetting.SubagentsEnabled, resource) === true;
-	const maxIterations = clampInt(
+	const maxIterations = positiveInt(
 		readDroxChatConfigurationValue<number>(configService, DroxSetting.SubagentsMaxIterations, resource),
-		15,
-		1,
-		50,
+		25,
 	);
 	const maxConcurrent = clampInt(
 		readDroxChatConfigurationValue<number>(configService, DroxSetting.SubagentsMaxConcurrent, resource),
-		1,
+		3,
 		1,
 		8,
 	);
@@ -222,6 +226,8 @@ export function buildAgentRunParams(opts: {
 	readonly system?: string;
 	/** Explore sub-agents (`task`) — when `enabled`, wires `subagentsEnabled` + ceilings. */
 	readonly subagents?: IDroxSubagentsRunSettings;
+	/** Workspace memory kill-switch (`drox.memory.enabled`). */
+	readonly memoryEnabled?: boolean;
 }): Record<string, unknown> {
 	const wireMode = normalizeDroxPermissionMode(opts.mode);
 	const params: Record<string, unknown> = {
@@ -308,6 +314,20 @@ export function buildAgentRunParams(opts: {
 		params.subagentsEnabled = true;
 		params.subagentsMaxIterations = opts.subagents.maxIterations;
 		params.subagentsMaxConcurrent = opts.subagents.maxConcurrent;
+	}
+	// Explicit false so engine skips memdir/archives even if param omitted later.
+	params.memoryEnabled = opts.memoryEnabled === true;
+	if (opts.memoryEnabled !== true) {
+		const memoryTools = ['memory_read', 'memory_list', 'session_note', 'session_search'];
+		const disabled = Array.isArray(params.disabledTools)
+			? [...(params.disabledTools as string[])]
+			: [];
+		for (const name of memoryTools) {
+			if (!disabled.includes(name)) {
+				disabled.push(name);
+			}
+		}
+		params.disabledTools = disabled;
 	}
 	return params;
 }

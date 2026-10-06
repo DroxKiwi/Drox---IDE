@@ -47,6 +47,8 @@
 		const reasoningEffortRaw = D.dom.roleModelPanelReasoningEffortEl?.value.trim() ?? '';
 		const reasoningEffort = reasoningEffortRaw === '' ? null : reasoningEffortRaw;
 		const thinkingBudget = readPatchNumber(D.dom.roleModelPanelThinkingBudgetEl?.value.trim() ?? '');
+		const maxIterationsRaw = readPatchNumber(D.dom.roleModelPanelMaxIterationsEl?.value.trim() ?? '');
+		const exploreMaxIterationsRaw = readPatchNumber(D.dom.roleModelPanelExploreMaxIterationsEl?.value.trim() ?? '');
 		if (numCtx !== undefined) {
 			D.state.architectNumCtx = numCtx;
 		}
@@ -62,6 +64,40 @@
 		D.state.architectKeepAlive = keepAlive === null ? '' : keepAlive;
 		D.state.architectReasoningEffort = reasoningEffort === null ? '' : reasoningEffort;
 		assignStateNumber('architectThinkingBudget', thinkingBudget);
+		const generalPatch = {};
+		if (maxIterationsRaw !== undefined && Number.isFinite(maxIterationsRaw)) {
+			const cap = D.const.MAX_ITERATIONS_CAP ?? 1000;
+			const fallback = D.const.DEFAULT_MAX_ITERATIONS ?? 50;
+			const maxIterations = Math.min(cap, Math.max(1, Math.floor(maxIterationsRaw || fallback)));
+			D.state.generalSettings = { ...(D.state.generalSettings || {}), maxIterations };
+			const gsEl = document.getElementById('general-settings-max-iterations');
+			if (gsEl && 'value' in gsEl) {
+				gsEl.value = String(maxIterations);
+			}
+			if (D.dom.roleModelPanelMaxIterationsEl) {
+				D.dom.roleModelPanelMaxIterationsEl.value = String(maxIterations);
+			}
+			generalPatch.maxIterations = maxIterations;
+		}
+		if (exploreMaxIterationsRaw !== undefined && Number.isFinite(exploreMaxIterationsRaw)) {
+			const fallback = D.const.DEFAULT_SUBAGENTS_MAX_ITERATIONS ?? 25;
+			const subagentsMaxIterations = Math.max(1, Math.floor(exploreMaxIterationsRaw || fallback));
+			D.state.generalSettings = { ...(D.state.generalSettings || {}), subagentsMaxIterations };
+			const gsEl = document.getElementById('general-settings-explore-max-iterations');
+			if (gsEl && 'value' in gsEl) {
+				gsEl.value = String(subagentsMaxIterations);
+			}
+			if (D.dom.roleModelPanelExploreMaxIterationsEl) {
+				D.dom.roleModelPanelExploreMaxIterationsEl.value = String(subagentsMaxIterations);
+			}
+			generalPatch.subagentsMaxIterations = subagentsMaxIterations;
+		}
+		if (Object.keys(generalPatch).length > 0) {
+			D.vscode.postMessage({ type: 'setGeneralSettings', settings: generalPatch });
+			if (typeof fn.syncGeneralSettingsVignetteHint === 'function') {
+				fn.syncGeneralSettingsVignetteHint();
+			}
+		}
 		const mutedParams = Array.isArray(D.state.architectLlmParamsMuted)
 			? [...D.state.architectLlmParamsMuted].filter(k => typeof k === 'string')
 			: [];

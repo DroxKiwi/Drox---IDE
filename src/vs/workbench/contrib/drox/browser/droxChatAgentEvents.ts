@@ -331,13 +331,16 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 		case 'tool_progress': {
 			const id = ev.id != null ? String(ev.id) : '?';
 			const output = typeof ev.output === 'string' ? ev.output : '';
+			const fullOutput = typeof ev.full_output === 'string'
+				? ev.full_output
+				: (typeof ev.fullOutput === 'string' ? ev.fullOutput : '');
 			const elapsedMs = Number(ev.elapsed_ms ?? ev.elapsedMs ?? 0);
 			host.post({
 				kind: 'tool',
 				phase: 'progress',
 				id,
 				name: typeof ev.name === 'string' ? ev.name : undefined,
-				outputPreview: output,
+				outputPreview: fullOutput || output,
 				elapsedMs,
 			});
 			return;
@@ -476,11 +479,11 @@ export function dispatchAgentDone(host: IDroxChatAgentDoneHost, params: unknown)
 			host.post({
 				kind: 'append',
 				role: 'system',
-				text: getDroxLoopAbortHint(),
+				text: getDroxLoopAbortHint(raw),
 			});
 		}
 		const errText = isDroxLoopDetectedError(raw)
-			? getDroxLoopAbortErrorMessage()
+			? getDroxLoopAbortErrorMessage(raw)
 			: isVisionRelatedLlmError(raw)
 				? formatVisionChatError(host.getLlmModel(), raw)
 				: raw;

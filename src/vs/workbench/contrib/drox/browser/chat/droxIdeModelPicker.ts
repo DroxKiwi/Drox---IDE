@@ -28,6 +28,7 @@ import { DroxCommands } from '../../common/drox.js';
 import { IDroxLlmModelsService } from '../../common/droxLlmModelsService.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { readDroxGeneralSettingsForWebview } from './droxChatGeneralSettings.js';
+import { isDroxConnectionConfigured } from './droxConnectionCatalog.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 
 interface IModelPickerItem {
@@ -142,7 +143,7 @@ export class DroxIdeModelPicker extends Disposable {
 			configurationService: this.configurationService,
 			runSettingsService: this.runSettingsService,
 		});
-		return Boolean(settings.server?.trim());
+		return isDroxConnectionConfigured(settings);
 	}
 
 	private _showPicker(): void {

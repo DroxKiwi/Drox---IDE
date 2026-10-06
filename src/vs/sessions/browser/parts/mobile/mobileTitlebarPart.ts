@@ -29,6 +29,8 @@ import { ChatEntitlement, ChatEntitlementService, IChatEntitlementService } from
 import { getAccountTitleBarState, getAccountProfileImageUrl, getAccountTitleBarBadgeKey, resolveAccountInfo } from '../../accountTitleBarState.js';
 // eslint-disable-next-line local/code-import-patterns -- Drox branding in sessions mobile title bar
 import { getDefaultChatAgentDisplayName } from '../../../../workbench/contrib/drox/common/droxChatAgentBranding.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox: hide Copilot account affordances
+import { shouldSkipDroxSessionsSignIn } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IChatDashboardService } from '../../chatDashboardService.js';
 import { MOBILE_OPEN_CHANGES_VIEW_COMMAND_ID } from './contributions/mobileChangesView.js';
@@ -263,9 +265,11 @@ export class MobileTitlebarPart extends Disposable {
 			const hasActions = toolbar.getItemsLength() > 0;
 			this.element.classList.toggle('show-actions', isNewChat && hasActions);
 
-			// Right slot: swap between [+] (in-chat) and [account] (welcome)
+			// Right slot: swap between [+] (in-chat) and [account] (welcome).
+			// Drox nominal: hide Copilot/GitHub account button.
+			const hideAccount = shouldSkipDroxSessionsSignIn(this.productService);
 			newSessionButton.style.display = isNewChat ? 'none' : '';
-			this.accountButton.style.display = isNewChat ? '' : 'none';
+			this.accountButton.style.display = (!hideAccount && isNewChat) ? '' : 'none';
 
 			// Changes pill follows the in-chat state — hidden on welcome.
 			isNewChatRef.value = isNewChat;

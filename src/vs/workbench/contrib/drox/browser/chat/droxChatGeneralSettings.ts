@@ -8,9 +8,10 @@ import { applyDroxConfigurationUpdate, droxConfigurationResourceForRead, readDro
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { readLlmProvider } from '../../common/droxLlmCatalog.js';
 import { readLlmHeadersMap } from '../../common/droxLlmHeaders.js';
-import { isMcpToolsEnabled, readLlmSettings } from '../../common/droxRunSettings.js';
+import { isMcpToolsEnabled, readLlmSettings, readSubagentsSettings } from '../../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
+import { DROX_DEFAULT_SUBAGENTS_MAX_ITERATIONS, DROX_MAX_ITERATIONS_CAP } from '../../common/droxProductDefaults.js';
 import { formatDroxConnectionSummary, normalizeDroxLlmHosting } from './droxConnectionCatalog.js';
 export interface IDroxGeneralSettingsWire {
 	readonly llmHosting: string;
@@ -28,6 +29,9 @@ export interface IDroxGeneralSettingsWire {
 	readonly addDiagnosticOnHover: boolean;
 	readonly mcpToolsEnabled: boolean;
 	readonly showChatErrorsAndWarnings: boolean;
+	readonly subagentsEnabled: boolean;
+	readonly subagentsMaxIterations: number;
+	readonly projectRulesEnabled: boolean;
 }
 export interface IDroxGeneralSettingsPatch {
 	readonly llmHosting?: string;
@@ -44,6 +48,9 @@ export interface IDroxGeneralSettingsPatch {
 	readonly addDiagnosticOnHover?: boolean;
 	readonly mcpToolsEnabled?: boolean;
 	readonly showChatErrorsAndWarnings?: boolean;
+	readonly subagentsEnabled?: boolean;
+	readonly subagentsMaxIterations?: number;
+	readonly projectRulesEnabled?: boolean;
 }
 export interface IDroxChatGeneralSettingsHost {
 	post(message: DroxHostToWebviewMessage): void;
@@ -65,6 +72,7 @@ export function readDroxGeneralSettingsForWebview(
 	const workspaceResource = deps.runSettingsService.getWorkspaceResource();
 	const resource = droxConfigurationResourceForRead(deps.configurationService, workspaceResource);
 	const llm = readLlmSettings(deps.configurationService, resource);
+	const subagents = readSubagentsSettings(deps.configurationService, resource);
 	const provider = readLlmProvider(deps.configurationService, resource);
 	const hosting = normalizeDroxLlmHosting(readDroxChatConfigurationString(deps.configurationService, DroxSetting.LlmHosting, workspaceResource));
 	const llmHeaders = readLlmHeadersMap(deps.configurationService, resource);
@@ -83,6 +91,9 @@ export function readDroxGeneralSettingsForWebview(
 		addDiagnosticOnHover: readBool(deps.configurationService, DroxSetting.AddDiagnosticOnHover, resource, false),
 		mcpToolsEnabled: isMcpToolsEnabled(deps.configurationService, resource),
 		showChatErrorsAndWarnings: readBool(deps.configurationService, DroxSetting.ChatShowErrorsAndWarnings, resource, true),
+		subagentsEnabled: subagents.enabled,
+		subagentsMaxIterations: subagents.maxIterations || DROX_DEFAULT_SUBAGENTS_MAX_ITERATIONS,
+		projectRulesEnabled: readBool(deps.configurationService, DroxSetting.RulesEnabled, resource, true),
 	};
 	return {
 		...wire,
@@ -109,15 +120,31 @@ export async function setDroxGeneralSettingsFromWebview(
 	const update = async (key: string, value: unknown): Promise<void> => {
 		await applyDroxConfigurationUpdate(deps.configurationService, key, value, workspaceResource);
 	};
-	if (patch.llmHosting !== undefined) {
-		const h = normalizeDroxLlmHosting(patch.llmHosting);
-		await update(DroxSetting.LlmHosting, h);
-	}
 	if (patch.llmProvider !== undefined) {
 		await update(DroxSetting.LlmProvider, String(patch.llmProvider).trim() || 'ollama');
 	}
 	if (patch.server !== undefined) {
 		await update(DroxSetting.Server, String(patch.server).trim());
+	}
+	// Ne jamais effacer `llmHosting` par un patch partiel (null/"").
+	// Serveur sans hosting wizard → `personal` pour garder le chip « Connect » stable.
+	if (patch.llmHosting !== undefined || patch.server !== undefined) {
+		const serverTrimmed = patch.server !== undefined
+			? String(patch.server).trim()
+			: readDroxChatConfigurationString(deps.configurationService, DroxSetting.Server, workspaceResource);
+		const hostingFromPatch = patch.llmHosting !== undefined
+			? normalizeDroxLlmHosting(patch.llmHosting)
+			: undefined;
+		if (hostingFromPatch) {
+			await update(DroxSetting.LlmHosting, hostingFromPatch);
+		} else if (serverTrimmed) {
+			const existing = normalizeDroxLlmHosting(
+				readDroxChatConfigurationString(deps.configurationService, DroxSetting.LlmHosting, workspaceResource),
+			);
+			await update(DroxSetting.LlmHosting, existing || 'personal');
+		} else if (patch.server !== undefined) {
+			await update(DroxSetting.LlmHosting, '');
+		}
 	}
 	if (patch.apiKey !== undefined) {
 		await update(DroxSetting.ApiKey, String(patch.apiKey).trim());
@@ -134,7 +161,10 @@ export async function setDroxGeneralSettingsFromWebview(
 		await update(DroxSetting.LlmHeaders, cleaned);
 	}
 	if (patch.maxIterations !== undefined && Number.isFinite(patch.maxIterations)) {
-		await update(DroxSetting.MaxIterations, Math.min(200, Math.max(1, Math.floor(patch.maxIterations))));
+		await update(DroxSetting.MaxIterations, Math.min(DROX_MAX_ITERATIONS_CAP, Math.max(1, Math.floor(patch.maxIterations))));
+	}
+	if (patch.subagentsMaxIterations !== undefined && Number.isFinite(patch.subagentsMaxIterations)) {
+		await update(DroxSetting.SubagentsMaxIterations, Math.max(1, Math.floor(patch.subagentsMaxIterations)));
 	}
 	if (patch.nativeThinking !== undefined) {
 		await update(DroxSetting.NativeThinking, Boolean(patch.nativeThinking));
@@ -159,5 +189,11 @@ export async function setDroxGeneralSettingsFromWebview(
 	}
 	if (patch.showChatErrorsAndWarnings !== undefined) {
 		await update(DroxSetting.ChatShowErrorsAndWarnings, Boolean(patch.showChatErrorsAndWarnings));
+	}
+	if (patch.subagentsEnabled !== undefined) {
+		await update(DroxSetting.SubagentsEnabled, Boolean(patch.subagentsEnabled));
+	}
+	if (patch.projectRulesEnabled !== undefined) {
+		await update(DroxSetting.RulesEnabled, Boolean(patch.projectRulesEnabled));
 	}
 }

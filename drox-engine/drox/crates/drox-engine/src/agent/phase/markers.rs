@@ -156,6 +156,62 @@ pub(crate) fn user_prompt_suggests_workspace_analysis(text: &str) -> bool {
     .any(|needle| lower.contains(needle))
 }
 
+/// `true` si le user demande d'ingérer / calquer une **doc multi-fichiers**
+/// (arbre docs, pédagogie, page documentation à remplacer).
+///
+/// Distinct de l'analyse repo : pousse un annex turn-0 Explore quand `task`
+/// est dispo, avant que le parent lise toute la forêt.
+pub(crate) fn user_prompt_suggests_doc_ingestion(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    // Signaux forts seuls (path docs / « prendre connaissance » / calque).
+    const STRONG: &[&str] = &[
+        "prendre connaissance",
+        "prends connaissance",
+        "docs/pedagogie",
+        "docs\\pedagogie",
+        "doc officiel",
+        "docs officiel",
+        "official doc",
+        "official docs",
+        "calquer",
+        "calquant",
+        "calque",
+        "familiarize yourself with the doc",
+        "familiarise-toi avec la doc",
+    ];
+    if STRONG.iter().any(|n| lower.contains(n)) {
+        return true;
+    }
+    let doc_scope = [
+        "documentation",
+        "pédagogie",
+        "pedagogie",
+        "docs/",
+        "docs\\",
+        "page documentation",
+        "docs tree",
+        "arbre de doc",
+    ]
+    .iter()
+    .any(|n| lower.contains(n));
+    if !doc_scope {
+        return false;
+    }
+    [
+        "mettre à jour",
+        "mettre a jour",
+        "remplacer",
+        "réécrire",
+        "reecrire",
+        "rewrite",
+        "replace",
+        "update the documentation",
+        "update documentation",
+    ]
+    .iter()
+    .any(|n| lower.contains(n))
+}
+
 pub(crate) fn is_workspace_exploration_tool(name: &str) -> bool {
     matches!(
         name,

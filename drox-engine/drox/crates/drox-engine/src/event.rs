@@ -104,6 +104,26 @@ pub enum AgentEvent {
         elapsed_ms: u64,
         total_lines: usize,
     },
+    /// Outil d'un sous-agent Explore — UI only (carte nestée), hors contexte LLM parent.
+    SubagentChildToolStart {
+        parent_id: ToolUseId,
+        id: ToolUseId,
+        name: String,
+        arguments: Value,
+    },
+    /// Fin d'outil enfant Explore — UI only.
+    SubagentChildToolFinish {
+        parent_id: ToolUseId,
+        id: ToolUseId,
+        output: Value,
+        #[serde(default)]
+        is_error: bool,
+    },
+    /// Thinking / notes texte de l'Explore enfant — UI only.
+    SubagentChildTextDelta {
+        parent_id: ToolUseId,
+        text: String,
+    },
     /// Estimation live de la fenêtre de contexte (jetons historique) avant un tour LLM.
     ContextUsage { parent_tokens: usize },
     /// Usage provider remonté à la fin d'un tour LLM (le run continue).

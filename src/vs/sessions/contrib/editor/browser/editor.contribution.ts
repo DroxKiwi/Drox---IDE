@@ -15,7 +15,7 @@ import { ActiveEditorContext, EditorPartModalContext, IsAuxiliaryWindowContext, 
 import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
 import { EditorMaximizedContext } from '../../../common/contextkeys.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
-import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { ConfigurationTarget, IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IEditorGroupsService } from '../../../../workbench/services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../../workbench/services/editor/common/editorService.js';
 import { IListService } from '../../../../platform/list/browser/listService.js';
@@ -177,8 +177,8 @@ class OpenEditorInModalEditorAction extends Action2 {
 
 		const isMaximized = layoutService.isEditorMaximized();
 
-		// Set the `workbench.editor.useModal` setting to 'all'
-		await configurationService.updateValue('workbench.editor.useModal', 'all');
+		// MEMORY only: never persist USER `useModal: all` (leaks into the main IDE window).
+		await configurationService.updateValue('workbench.editor.useModal', 'all', ConfigurationTarget.MEMORY);
 
 		// Move all editors from the active group to the modal editor
 		const activeGroup = editorGroupsService.mainPart.activeGroup;
@@ -248,8 +248,8 @@ class OpenModalEditorInEditorAction extends Action2 {
 
 		const isMaximized = activeEditorPart.maximized;
 
-		// Set the `workbench.editor.useModal` setting back to 'some'
-		await configurationService.updateValue('workbench.editor.useModal', 'some');
+		// Clear Agents modal-all without writing USER (IDE must keep normal tabs).
+		await configurationService.updateValue('workbench.editor.useModal', 'some', ConfigurationTarget.MEMORY);
 
 		// Show the main editor part
 		layoutService.setPartHidden(false, Parts.EDITOR_PART);

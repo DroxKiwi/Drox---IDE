@@ -74,7 +74,7 @@ impl Agent {
         user_blocks: Vec<Content>,
         skip_new_user_turn: bool,
     ) -> AgentStream {
-        let (tx, rx) = mpsc::channel::<Result<AgentEvent, EngineError>>(32);
+        let (tx, rx) = mpsc::channel::<Result<AgentEvent, EngineError>>(128);
         let agent = self.clone();
         tokio::spawn(async move {
             agent

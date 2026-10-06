@@ -13,7 +13,7 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { formatDroxContextUsageStatFromConfig, formatDroxCycleElapsed } from '../../common/droxChatUiStatsFormat.js';
 import { isDroxNativeChatStackEnabled } from '../../common/droxAgentsConfiguration.js';
-import { DROX_CHAT_SESSION_TYPE } from '../../common/droxAgentsSession.js';
+import { shouldMountDroxComposerChrome } from '../../common/droxAgentsSession.js';
 import { IDroxAgentsChatUiStatsService } from './droxAgentsChatUiStatsService.js';
 
 const $ = dom.$;
@@ -89,7 +89,7 @@ export class DroxAgentsChatStatusBarHost extends Disposable {
 	}
 
 	mountIfNeeded(sessionType: string | undefined): void {
-		if (!isDroxNativeChatStackEnabled(this.configurationService) || sessionType !== DROX_CHAT_SESSION_TYPE) {
+		if (!isDroxNativeChatStackEnabled(this.configurationService) || !shouldMountDroxComposerChrome(sessionType)) {
 			this._unmount();
 			return;
 		}

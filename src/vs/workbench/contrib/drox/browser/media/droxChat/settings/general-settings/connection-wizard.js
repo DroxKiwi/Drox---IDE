@@ -45,8 +45,8 @@
 
 	fn.isConnectionConfigured = function(settings) {
 		const s = settings || D.state.generalSettings || {};
-		const hosting = s.llmHosting === 'cloud' || s.llmHosting === 'personal';
-		return hosting && Boolean(String(s.server || '').trim());
+		// Aligné IDE : URL serveur suffit (hosting wizard optionnel / legacy).
+		return Boolean(String(s.server || '').trim());
 	};
 
 	fn.connectionWizardResetDraft = function(fromSettings, options) {

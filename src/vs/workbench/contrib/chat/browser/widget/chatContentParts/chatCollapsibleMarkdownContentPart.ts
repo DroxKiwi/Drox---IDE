@@ -34,6 +34,11 @@ export class ChatCollapsibleMarkdownContentPart extends ChatCollapsibleContentPa
 		this.icon = Codicon.check;
 	}
 
+	/** Expand after construction (DI-safe; avoids optional args before injected services). */
+	public expandByDefault(): void {
+		this.setExpanded(true);
+	}
+
 	protected override initContent(): HTMLElement {
 		const wrapper = $('.chat-collapsible-markdown-content.chat-used-context-list');
 

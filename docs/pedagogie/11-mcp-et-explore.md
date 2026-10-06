@@ -20,12 +20,12 @@ MCP ajoute des outils au registry comme s’ils étaient natifs ; Explore crée 
 | [`drox-mcp`](../../drox-engine/drox/crates/drox-mcp/) | Hub **rmcp** (stdio / HTTP) |
 | [`simple/mcp.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/mcp.rs) | `register_mcp_tools` |
 | [`simple/task.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/task.rs) | Tool `task` |
-| [`subagent.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) | `EngineSubagentExecutor` |
+| [`subagent/`](../../drox-engine/drox/crates/drox-engine/src/subagent/) | `EngineSubagentExecutor` + prompts Explore |
 | Réf. | [mcp-and-subagents.md](../engine/mcp-and-subagents.md) |
 
-> **État produit (1.5.23)** : moteur + **câblage IDE** présents. Explore reste **opt-in** :  
-> `drox.subagents.enabled: true` **et** régulation L2 ∈ { `standard`, `full` }.  
-> Sinon le tool `task` n’apparaît pas (même en L2 `full` si le master est off).  
+> **État produit** : moteur + **câblage IDE**. Explore est **on par défaut**  
+> (`drox.subagents.enabled: true`) **et** encadré par la régulation L2 ∈ { `standard`, `full` }.  
+> En L2 `core`, ou si le master est passé à `false`, le tool `task` n’apparaît pas.  
 > Détail : **[PLAN-SUBAGENTS-EXPLORE](../1.5/1.5.23/PLAN-SUBAGENTS-EXPLORE.md)**.
 
 ---
@@ -60,8 +60,12 @@ Un coup d’œil au nom suffit pour savoir « cet outil vient de MCP ».
 Le parent ne veut pas toujours faire 40 `glob` lui-même. Il appelle :
 
 ```text
-task { subagent_type: "explore", description: "…", thoroughness: … }
+task { subagent_type: "explore", description: "…", thoroughness: "medium"|"very thorough" }
 ```
+
+**Policy (alignée Cursor)** : le modèle parent **décide** — pas de spawn automatique à seuil de tokens.  
+Quand Explore est enabled, le system prompt ajoute un supplement « use proactively for broad/deep search ; never for needle lookups ».  
+`thoroughness` défaut = `medium`.
 
 Conditions :
 
@@ -190,7 +194,7 @@ Le guide de migration : [migration-from-1.4.md](../engine/migration-from-1.4.md)
 
 Le bridge IDE envoie `subagentsEnabled` seulement si :
 
-1. `drox.subagents.enabled` est **true** ;
+1. `drox.subagents.enabled` est **true** (défaut produit) ;
 2. **et** la régulation L2 est `standard` ou `full`.
 
 Sinon :

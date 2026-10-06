@@ -8,6 +8,7 @@
 import { localize } from '../../../../../nls.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
+import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IDroxAgentRunImage } from '../../common/droxAttachments.js';
 import { cancelDroxAgentRun, IDroxAgentRunBridgeDeps, startDroxAgentRun } from '../../common/droxAgentRunBridge.js';
@@ -31,6 +32,7 @@ import { DroxChatTabsManager } from './droxChatTabsManager.js';
 import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
+import { resolveDroxRulesContextPathsFromEditor } from '../rules/droxRulesContextFromEditor.js';
 
 export interface IDroxPendingRunRecovery {
 	readonly messageId: string;
@@ -132,6 +134,8 @@ type IRunRecoveryDeps = {
 	readonly codebaseContextService?: IDroxCodebaseContextService;
 	readonly editorService?: IEditorService;
 	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
+	readonly userHomeFsPath?: string;
+	readonly configurationService?: IConfigurationService;
 };
 
 function cancelActiveRunForRecovery(host: IDroxChatSendRunHost, deps: IRunRecoveryDeps): void {
@@ -214,8 +218,13 @@ async function startRecoveryRun(
 			fileService: deps.fileService,
 			codebaseContextService: deps.codebaseContextService,
 			regulationService: deps.regulationService,
+			userHomeFsPath: deps.userHomeFsPath,
+			configurationService: deps.configurationService,
 			resolveCodebaseForcePathPrefixes: deps.editorService
 				? wsPath => resolveDroxCodebaseForcePathPrefixesFromEditor(deps.editorService!, wsPath)
+				: undefined,
+			resolveRulesContextPaths: deps.editorService
+				? wsPath => resolveDroxRulesContextPathsFromEditor(deps.editorService!, wsPath)
 				: undefined,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {

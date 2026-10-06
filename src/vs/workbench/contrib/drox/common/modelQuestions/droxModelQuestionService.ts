@@ -18,16 +18,19 @@ import {
 } from '../droxLlmCatalog.js';
 import { mergeLlmHttpHeaders } from '../droxLlmHeaders.js';
 import { DroxSetting } from '../droxConfiguration.js';
-import { parseCodebaseRetrievalFilter } from './droxModelQuestionParse.js';
+import { formatExploreMissionPlanAnnex, parseCodebaseRetrievalFilter, parseExploreMissionPlan } from './droxModelQuestionParse.js';
 import { resolveDroxModelQuestionVariant } from './droxModelQuestionResolve.js';
 import { callDroxModelQuestionLlm } from './droxModelQuestionLlmCall.js';
 import {
 	DroxModelQuestionId,
 	IDroxCodebaseRetrievalFilter,
+	IDroxExploreMissionPlan,
 	IDroxModelQuestionResolveOpts,
+	IDroxModelQuestionVariant,
 } from './droxModelQuestionTypes.js';
 
 const COMPREHENSION_TIMEOUT_MS = 2800;
+const DECOMPOSE_TIMEOUT_MS = 3200;
 
 export const IDroxModelQuestionService = createDecorator<IDroxModelQuestionService>('droxModelQuestionService');
 
@@ -38,6 +41,10 @@ export interface IDroxModelQuestionService {
 	 * Returns undefined on timeout / parse / transport failure (caller falls back).
 	 */
 	comprehendCodebaseRetrieval(userMessage: string, opts?: IDroxModelQuestionResolveOpts): Promise<IDroxCodebaseRetrievalFilter | undefined>;
+	/**
+	 * Session-master Explore decompose → structured mission plan (+ optional annex text).
+	 */
+	decomposeExploreMissions(userMessage: string, opts?: IDroxModelQuestionResolveOpts): Promise<IDroxExploreMissionPlan | undefined>;
 }
 
 export class DroxModelQuestionService extends Disposable implements IDroxModelQuestionService {
@@ -78,28 +85,32 @@ export class DroxModelQuestionService extends Disposable implements IDroxModelQu
 		return result;
 	}
 
+	async decomposeExploreMissions(
+		userMessage: string,
+		opts?: IDroxModelQuestionResolveOpts,
+	): Promise<IDroxExploreMissionPlan | undefined> {
+		const q = userMessage.trim();
+		if (!q) {
+			return undefined;
+		}
+		const questionId: DroxModelQuestionId = 'explore.mission.decompose';
+		const variant = resolveDroxModelQuestionVariant(questionId, opts);
+		const result = await raceTimeout(
+			this._askDecompose(variant, q),
+			DECOMPOSE_TIMEOUT_MS,
+		);
+		if (!result) {
+			this.logService.trace('[drox-model-questions] explore decompose timeout/empty');
+		}
+		return result;
+	}
+
 	private async _askFilter(
-		variant: ReturnType<typeof resolveDroxModelQuestionVariant>,
+		variant: IDroxModelQuestionVariant,
 		userMessage: string,
 	): Promise<IDroxCodebaseRetrievalFilter | undefined> {
 		try {
-			await this.engineService.initialize();
-			const workspace = this.runSettingsService.getWorkspaceResource();
-			const conn = await resolveLlmCatalogConnection(this.configurationService, this.fileService, workspace);
-			const llm = this.runSettingsService.getLlmSettings(workspace);
-			const model = llm.model?.trim();
-			if (!model || !conn.server.trim()) {
-				return undefined;
-			}
-			const provider = parseLlmProvider(conn.provider) || readLlmProvider(this.configurationService, workspace);
-			const headers = mergeLlmHttpHeaders(conn.apiKey, conn.headers, { provider, server: conn.server });
-			const raw = await callDroxModelQuestionLlm({
-				provider,
-				server: conn.server,
-				model,
-				headers,
-				fetchHttp: (url, hdrs, options) => this.engineService.fetchHttp(url, hdrs, options),
-			}, variant, userMessage);
+			const raw = await this._rawAsk(variant, userMessage);
 			if (!raw) {
 				return undefined;
 			}
@@ -113,4 +124,49 @@ export class DroxModelQuestionService extends Disposable implements IDroxModelQu
 			return undefined;
 		}
 	}
+
+	private async _askDecompose(
+		variant: IDroxModelQuestionVariant,
+		userMessage: string,
+	): Promise<IDroxExploreMissionPlan | undefined> {
+		try {
+			const raw = await this._rawAsk(variant, userMessage);
+			if (!raw) {
+				return undefined;
+			}
+			const plan = parseExploreMissionPlan(raw, variant);
+			if (plan) {
+				this.logService.trace(`[drox-model-questions] decompose ok n=${plan.missionCount} needs=${plan.needsExplore}`);
+			}
+			return plan;
+		} catch (err) {
+			this.logService.trace(`[drox-model-questions] decompose failed: ${err}`);
+			return undefined;
+		}
+	}
+
+	private async _rawAsk(
+		variant: IDroxModelQuestionVariant,
+		userMessage: string,
+	): Promise<string | undefined> {
+		await this.engineService.initialize();
+		const workspace = this.runSettingsService.getWorkspaceResource();
+		const conn = await resolveLlmCatalogConnection(this.configurationService, this.fileService, workspace);
+		const llm = this.runSettingsService.getLlmSettings(workspace);
+		const model = llm.model?.trim();
+		if (!model || !conn.server.trim()) {
+			return undefined;
+		}
+		const provider = parseLlmProvider(conn.provider) || readLlmProvider(this.configurationService, workspace);
+		const headers = mergeLlmHttpHeaders(conn.apiKey, conn.headers, { provider, server: conn.server });
+		return callDroxModelQuestionLlm({
+			provider,
+			server: conn.server,
+			model,
+			headers,
+			fetchHttp: (url, hdrs, options) => this.engineService.fetchHttp(url, hdrs, options),
+		}, variant, userMessage);
+	}
 }
+
+export { formatExploreMissionPlanAnnex };

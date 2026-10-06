@@ -9,6 +9,8 @@ import { generateUuid } from '../../../../../base/common/uuid.js';
 import { localize } from '../../../../../nls.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
+import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { IFileService } from '../../../../../platform/files/common/files.js';
 import { IDroxAgentRunImage, IDroxAttachmentPayload, prepareImageAttachmentsForRun } from '../../common/droxAttachments.js';
 import { isVisionRelatedLlmError, formatVisionChatError } from '../../common/droxVision.js';
 import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js';
@@ -22,7 +24,6 @@ import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePas
 import { formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
 import { buildUserPromptStickyPayload } from '../../common/droxUserPromptSticky.js';
 import { IDroxUserAskService } from '../../common/droxUserAskService.js';
-import { IFileService } from '../../../../../platform/files/common/files.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
@@ -39,6 +40,7 @@ import {
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
+import { resolveDroxRulesContextPathsFromEditor } from '../rules/droxRulesContextFromEditor.js';
 
 export interface IDroxChatSendRunHost {
 	post(message: DroxHostToWebviewMessage): void;
@@ -72,6 +74,8 @@ export async function executeDroxChatSend(
 		readonly codebaseContextService?: IDroxCodebaseContextService;
 		readonly editorService?: IEditorService;
 		readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
+		readonly userHomeFsPath?: string;
+		readonly configurationService?: IConfigurationService;
 	},
 	prompt: string,
 	mode: string,
@@ -197,8 +201,13 @@ export async function executeDroxChatSend(
 			fileService: deps.fileService,
 			codebaseContextService: deps.codebaseContextService,
 			regulationService: deps.regulationService,
+			userHomeFsPath: deps.userHomeFsPath,
+			configurationService: deps.configurationService,
 			resolveCodebaseForcePathPrefixes: deps.editorService
 				? wsPath => resolveDroxCodebaseForcePathPrefixesFromEditor(deps.editorService!, wsPath)
+				: undefined,
+			resolveRulesContextPaths: deps.editorService
+				? wsPath => resolveDroxRulesContextPathsFromEditor(deps.editorService!, wsPath)
 				: undefined,
 		};
 		const runId = await startDroxAgentRun(bridgeDeps, {

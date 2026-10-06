@@ -18,6 +18,8 @@ export interface IDroxShellToolOutputWire {
 	readonly error?: string;
 	/** Present when the command ran in the shared IDE agent terminal. */
 	readonly terminal_instance_id?: number;
+	/** User skipped a stuck shell via the Skip control. */
+	readonly skipped?: boolean;
 }
 
 export interface IDroxShellToolStartWire {
@@ -46,6 +48,28 @@ export function buildShellToolStartWire(name: string, args: unknown): IDroxShell
 		shellCommand: command,
 		shellDescription: description || undefined,
 	};
+}
+
+/**
+ * What the user should see in the tool row: the real command first.
+ * Model `description` is optional intent, never a substitute for the command.
+ */
+export function formatShellToolDisplayLabel(
+	shellCommand: string,
+	shellDescription?: string,
+	maxCommandChars = 100,
+): string {
+	const cmd = shellCommand.trim();
+	if (!cmd) {
+		return shellDescription?.trim() || 'Shell command';
+	}
+	const short =
+		cmd.length > maxCommandChars ? `${cmd.slice(0, maxCommandChars)}…` : cmd;
+	const desc = shellDescription?.trim();
+	if (desc && desc !== cmd && !cmd.startsWith(desc)) {
+		return `${short} — ${desc}`;
+	}
+	return short;
 }
 
 export function buildShellToolFinishWire(
@@ -77,6 +101,8 @@ export function buildShellToolFinishWire(
 		typeof o.terminal_instance_id === 'number' && Number.isFinite(o.terminal_instance_id)
 			? Math.trunc(o.terminal_instance_id)
 			: undefined;
+	const skipped = o.skipped === true
+		|| (typeof error === 'string' && /skipped by user/i.test(error));
 	return {
 		stdout: typeof o.stdout === 'string' ? o.stdout : '',
 		stderr: typeof o.stderr === 'string' ? o.stderr : '',
@@ -85,5 +111,90 @@ export function buildShellToolFinishWire(
 		duration_ms: durationMs,
 		error,
 		terminal_instance_id: terminalInstanceId,
+		skipped: skipped || undefined,
+	};
+}
+
+/**
+ * Flatten bash tool stdout/stderr/error for the Agents collapsible terminal
+ * (xterm snapshot). Lone `\n` becomes staircase in detached xterm — normalize
+ * to `\r\n` like {@link getTerminalOutput} in the agent-host adapter.
+ */
+export function formatShellTerminalCommandOutputText(
+	shellOutput: IDroxShellToolOutputWire,
+): string {
+	const parts: string[] = [];
+	if (shellOutput.error?.trim()) {
+		parts.push(shellOutput.error.trimEnd());
+	}
+	if (shellOutput.stdout?.trim()) {
+		parts.push(shellOutput.stdout.replace(/\s+$/, ''));
+	}
+	if (shellOutput.stderr?.trim()) {
+		parts.push(shellOutput.stderr.replace(/\s+$/, ''));
+	}
+	return parts.join('\n').replace(/\r?\n/g, '\r\n');
+}
+
+/** Shape expected by VS Code Agents `ChatTerminalToolProgressPart`. */
+export interface IDroxAgentsShellTerminalToolSpecificData {
+	readonly kind: 'terminal';
+	readonly language: DroxShellKind;
+	readonly commandLine: {
+		readonly original: string;
+		readonly forDisplay?: string;
+	};
+	readonly terminalCommandOutput?: {
+		readonly text: string;
+		readonly truncated?: boolean;
+		readonly lineCount?: number;
+	};
+	readonly terminalCommandState?: {
+		readonly exitCode?: number;
+		readonly timestamp?: number;
+		readonly duration?: number;
+	};
+}
+
+/**
+ * Build Agents chat `toolSpecificData` for a bash tool — start (command only)
+ * or finish (command + collapsible terminal output).
+ */
+export function buildAgentsShellTerminalToolSpecificData(
+	start: IDroxShellToolStartWire,
+	finish?: IDroxShellToolOutputWire,
+	isError = false,
+): IDroxAgentsShellTerminalToolSpecificData {
+	const base: IDroxAgentsShellTerminalToolSpecificData = {
+		kind: 'terminal',
+		language: start.shellKind,
+		commandLine: {
+			original: start.shellCommand,
+			forDisplay: formatShellToolDisplayLabel(start.shellCommand, start.shellDescription),
+		},
+	};
+	if (!finish && !isError) {
+		return base;
+	}
+	const text = finish
+		? formatShellTerminalCommandOutputText(finish)
+		: '';
+	const exitCode = finish?.skipped
+		? undefined
+		: typeof finish?.exit_code === 'number'
+			? finish.exit_code
+			: isError || Boolean(finish?.error) || finish?.timed_out
+				? 1
+				: 0;
+	return {
+		...base,
+		terminalCommandOutput: {
+			text: text || (isError || finish?.skipped ? (finish?.error || 'Command failed.') : ''),
+		},
+		terminalCommandState: {
+			exitCode,
+			timestamp: Date.now(),
+			duration: finish?.duration_ms,
+		},
 	};
 }

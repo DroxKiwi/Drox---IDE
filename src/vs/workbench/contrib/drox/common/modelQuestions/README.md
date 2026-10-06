@@ -12,8 +12,11 @@ modelQuestions/
   droxModelQuestionService.ts      # façade IDE
   questions/
     codebaseRetrievalComprehension.ts   # v1 + v1-compact
+    exploreMissionDecompose.ts          # Explore Plan→Assign missions
 ```
 
 Add a new ask: new file under `questions/`, append to catalog array, extend `DroxModelQuestionId` if needed.
 
-First ask shipped (CB4b) : `codebaseRetrievalComprehension` — see `docs/1.5/1.5.21/codebase/IMPLEMENTATION-CB4-CB4b.md`.
+Shipped asks:
+- `codebase.retrieval.comprehension` (CB4b)
+- `explore.mission.decompose` — session-master Explore fan-out plan

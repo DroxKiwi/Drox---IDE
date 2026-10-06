@@ -33,6 +33,7 @@ import './droxTelemetryContribution.js';
 import './droxExternalUrlRemapContribution.js';
 import './droxHelpMenuContribution.js';
 import './droxReleaseNotesContribution.js';
+import './droxIdeUseModalGuardContribution.js';
 
 registerDroxConfiguration();
 registerDroxProductDefaultsConfiguration();

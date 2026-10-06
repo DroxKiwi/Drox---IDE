@@ -988,6 +988,7 @@ export class Response extends AbstractResponse implements IDisposable {
 		if (existingInvocation) {
 			if (progress.toolSpecificData !== undefined) {
 				existingInvocation.toolSpecificData = progress.toolSpecificData;
+				existingInvocation.notifyToolSpecificDataChanged();
 			}
 			if (progress.isComplete) {
 				existingInvocation.didExecuteTool({

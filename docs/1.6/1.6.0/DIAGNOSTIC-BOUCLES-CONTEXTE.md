@@ -30,7 +30,15 @@
 | H3 / L-3 | Nudges → faux `user` | Fold dans le system unique | ✅ |
 | OBS-1/2 | Export messages[] prod | — | ⬜ reporté |
 
-Détail opérable : [ETAPES-IMPLEMENTATION-LOOPS.md](ETAPES-IMPLEMENTATION-LOOPS.md).
+### Dogfood post-Vague 3 — intent-only / grosse écriture
+
+| ID | Cause | Fix | État |
+|----|--------|-----|------|
+| FX-B+ | Annonce « page complète / one file_write » sans `tool_calls` → abort opaque | Nudges chunk (`LARGE_WRITE_CHUNK`) + budget +1 · UI `intent_only_write` · CORE incremental writes | ✅ code |
+| H5+ | Dumps docs (`Get-Content`) + écriture monolithique | Prompt anti-dump · suite curation → **[Vague 4](PLAN-CONTEXT-SITUATION.md)** | partiel |
+
+Détail opérable 1.6.0 : [ETAPES-IMPLEMENTATION-LOOPS.md](ETAPES-IMPLEMENTATION-LOOPS.md).  
+Suite « apps sérieuses » (situation card, snip chaud) : [DIAGNOSTIC-CONTEXTE-SERIEUX.md](DIAGNOSTIC-CONTEXTE-SERIEUX.md).
 
 ---
 

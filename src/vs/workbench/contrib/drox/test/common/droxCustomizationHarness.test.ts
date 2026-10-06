@@ -40,6 +40,12 @@ suite('DroxCustomizationHarness', () => {
 		assert.ok(!matchesInstructionFileFilter('/project/AGENTS.md', filter));
 	});
 
+	test('rules disabled removes .drox/rules from instruction filter', () => {
+		const filter = createDroxHarnessDescriptor(userHome, { rulesEnabled: false }).instructionFileFilter!;
+		assert.ok(matchesInstructionFileFilter('/project/DROX.md', filter));
+		assert.ok(!matchesInstructionFileFilter('/project/.drox/rules/style.instructions.md', filter));
+	});
+
 	test('storage filter scopes user roots to ~/.drox', () => {
 		const descriptor = createDroxHarnessDescriptor(userHome);
 		const skillsFilter = descriptor.getStorageSourceFilter(PromptsType.skill);

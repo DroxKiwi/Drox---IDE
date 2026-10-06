@@ -101,40 +101,34 @@
 
 
 
-/* Toolbar Drox — chips Server / Model / mode sur une ligne propre. */
+/* Toolbar Drox — chips Server / Model / mode (input toolbars + secondary). */
 
-.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-secondary-toolbar {
-
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-secondary-toolbar,
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-input-toolbars {
 	display: flex;
-
 	align-items: center;
-
 	flex-wrap: wrap;
-
 	gap: 6px;
-
-	padding: 4px 8px 0;
-
 	min-width: 0;
-
 }
 
-
+.drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-secondary-toolbar {
+	padding: 4px 8px 0;
+}
 
 .drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-chat-input-toolbar-host {
-
-	display: flex;
-
+	display: flex !important;
 	align-items: center;
-
-	flex: 1 1 auto;
-
+	flex: 0 1 auto;
 	min-width: 0;
+	margin-left: 4px;
+	gap: 4px;
+}
 
-	margin-left: auto;
-
-	justify-content: flex-end;
-
+.drox-ide-native-chat-active .drox-ide-native-chat .chat-input-toolbars .drox-agents-chat-input-toolbar-host {
+	order: 5;
+	margin-left: 0;
+	margin-right: auto;
 }
 
 

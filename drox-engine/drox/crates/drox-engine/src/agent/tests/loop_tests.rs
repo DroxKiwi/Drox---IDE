@@ -558,6 +558,19 @@ fn mutation_intent_detector_fr_en() {
     ));
 }
 
+#[test]
+fn large_write_intent_detector() {
+    assert!(assistant_text_suggests_large_write_intent(
+        "I'll write the whole file now in one file_write call."
+    ));
+    assert!(assistant_text_suggests_large_write_intent(
+        "J'écris maintenant la page moteur complète (17 fiches de référence)."
+    ));
+    assert!(!assistant_text_suggests_large_write_intent(
+        "Je vais écrire le fichier Engine enrichi maintenant."
+    ));
+}
+
 /// FX-B 1.5.16 : prose « je vais écrire » sans tool → nudges dédiés puis abort.
 #[tokio::test]
 async fn intent_only_write_prose_aborts_after_nudges() {
@@ -609,6 +622,45 @@ async fn intent_only_write_prose_aborts_after_nudges() {
             assert!(*turns >= 3, "turns={turns}");
         }
         other => panic!("expected LoopDetected intent_only_write, got {other:?}"),
+    }
+}
+
+/// Gros écrit annoncé (page complète) — budget nudge +1, puis abort intent_only.
+#[tokio::test]
+async fn large_intent_only_write_gets_extra_nudge_then_aborts() {
+    let loop_text = "[phase: acting]\nI'll write the whole file now in one file_write — page complète, 17 fiches.\n";
+    let turn = || {
+        vec![
+            StreamEvent::Start,
+            StreamEvent::TextDelta {
+                text: loop_text.into(),
+            },
+            StreamEvent::Stop {
+                reason: StopReason::EndTurn,
+                usage: Usage::default(),
+            },
+        ]
+    };
+    // 4 tours identiques : strikes 1–3 = nudges (max large=3), strike 4 = abort.
+    let llm = Arc::new(ScriptedLlm::new(vec![turn(), turn(), turn(), turn()]));
+    let mut registry = ToolRegistry::new();
+    registry.register(Arc::new(TodoWriteTool));
+    let registry = Arc::new(registry);
+    let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
+    let mut config = AgentConfig::default();
+    config.max_iterations = 10;
+    let agent = Agent::new(llm, registry, ctx, config);
+
+    let raw: Vec<_> = agent.run("Écris la page Engine").collect::<Vec<_>>().await;
+    match raw.last() {
+        Some(Err(EngineError::LoopDetected { kind, turns })) => {
+            assert_eq!(*kind, "intent_only_write");
+            assert!(
+                *turns >= 4,
+                "large-write streak should allow 3 nudges before abort, turns={turns}"
+            );
+        }
+        other => panic!("expected LoopDetected intent_only_write after large streak, got {other:?}"),
     }
 }
 

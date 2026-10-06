@@ -21,6 +21,7 @@ import {
 	buildAgentRunParams,
 	IDroxLlmSettings,
 	readLlmSettings,
+	readSubagentsSettings,
 } from '../../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 
@@ -169,8 +170,32 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 			configurationService: config,
 		});
 		assert.strictEqual(wire.maxIterations, 42);
+		assert.strictEqual(wire.subagentsMaxIterations, 25);
 		assert.strictEqual('keepAlive' in wire, false);
 		assert.strictEqual('maxTokens' in wire, false);
+	});
+
+	test('readSubagentsSettings has no upper clamp on maxIterations', () => {
+		const config = createMockConfigurationService({
+			[DroxSetting.SubagentsEnabled]: true,
+			[DroxSetting.SubagentsMaxIterations]: 200,
+		});
+		const sub = readSubagentsSettings(config);
+		assert.strictEqual(sub.maxIterations, 200);
+	});
+
+	test('connection summary stays configured when server set without llmHosting', () => {
+		const config = createMockConfigurationService({
+			[DroxSetting.Server]: 'http://127.0.0.1:11434',
+			[DroxSetting.LlmProvider]: 'ollama',
+		});
+		const wire = readDroxGeneralSettingsForWebview({
+			runSettingsService: createMockRunSettingsService(config),
+			configurationService: config,
+		});
+		assert.ok(wire.server);
+		assert.ok(!/not configured/i.test(wire.connectionSummary));
+		assert.ok(/ollama|self-hosted/i.test(wire.connectionSummary));
 	});
 
 	test('readDroxRoleModelsForWebview exposes architect sampling for webview', () => {

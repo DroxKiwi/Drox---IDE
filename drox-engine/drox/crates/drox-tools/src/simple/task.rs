@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ * Task tool — Cursor-aligned description (when / when-not).
+ *--------------------------------------------------------------------------------------------*/
+
 //! Tool `task` — délègue une exploration en lecture seule à un sous-agent (§2.10).
 //!
 //! Désactivé par défaut (`drox.subagents.enabled` / `subagentsEnabled` JSON-RPC).
@@ -14,13 +18,29 @@ use crate::tool::Tool;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct TaskInput {
-    /// Description de la tâche de recherche / exploration.
+    /// Short concrete UI mission label only (≤8 words). Examples: "Map docs/pedagogie", \
+    /// "Audit src/app/docs page". NEVER put meta text here ("sub-agent does not see this chat", \
+    /// "Mission double", "pack all context", thoroughness notes).
+    #[serde(default)]
+    pub title: Option<String>,
+    /// Full exploration brief for the sub-agent (it does NOT see the parent chat — that fact \
+    /// belongs ONLY here as engine knowledge, never as the `title` or as the first line of this \
+    /// field). Include goal, likely folders/symbols. Keep **one focused mission** per `task` call.
     pub description: String,
-    /// Type de sous-agent. V1 : uniquement `explore`.
+    /// Acceptance criteria the parent **must** get back in the report to succeed its own mission. \
+    /// Session-master contract: the child only returns a synthesis — list every fact/section you \
+    /// still need (paths, APIs, tone notes, inventory counts, …). Empty = weaker brief.
+    #[serde(default)]
+    pub must_return: Vec<String>,
+    /// Optional id linking this Explore to a `todo_write` step (session plan).
+    #[serde(default)]
+    pub plan_step_id: Option<String>,
+    /// Sub-agent type. V1: only `explore`.
     #[serde(default = "default_subagent_type")]
     pub subagent_type: String,
-    /// Niveau d'exploration : `quick` | `medium` | `very thorough`.
-    #[serde(default)]
+    /// Search depth: `quick` | `medium` (default) | `very thorough`.
+    /// Use `medium`/`very thorough` for large or unfamiliar trees; `quick` only for a small subtree.
+    #[serde(default = "default_thoroughness")]
     pub thoroughness: Option<String>,
 }
 
@@ -28,7 +48,66 @@ fn default_subagent_type() -> String {
     "explore".to_string()
 }
 
+fn default_thoroughness() -> Option<String> {
+    Some("medium".to_string())
+}
+
+/// Cursor-style tool policy: default-to-Explore; session-master Plan → Assign → Merge.
+pub const TASK_TOOL_DESCRIPTION: &str = "\
+Launch a specialized **Explore** sub-agent (read-only: grep, glob, file_read, lsp, …) that \
+searches in an **isolated context** and returns a concise **report** (+ `truncated` / iteration \
+budget). **You are the session master**: you only receive summaries — write briefs that do not \
+lose content you will need later.
+
+**Session-master protocol (predictable choices):**
+1. **Plan** — `todo_write` with explore steps before heavy reading. Prefer **2–4** focused \
+missions when scope splits (use Context-load `recommended_n` when present).
+2. **Assign** — one todo step → one `task`. Fill `must_return` with every section/fact YOUR \
+mission still needs from that child. `description` = goal + scope for that mission only.
+3. **Merge** — trust each `report`. Do **not** re-ingest the same tree into the parent. If \
+`truncated: true`, spawn narrower missions — never parent `file_read` spam.
+
+**When to use (MUST — be proactive):**
+- Understanding / synthesis / multi-file / docs trees / unfamiliar areas.
+- You would otherwise open ≥3 files or run several search rounds.
+- Early in `[phase: analyzing]` / `[phase: reading]` for broad context.
+
+**When NOT to use (narrow):**
+- Needle: known symbol/file → `grep` / `lsp` / ranged `file_read`.
+- Only 1–2 exact known paths.
+- Mutations (Explore is read-only) — explore first if needed, then mutate in the parent.
+
+**Args:**
+- `title` (UI): ≤8 words concrete label. Never engine meta.
+- `description`: one focused mission (goal + paths).
+- `must_return`: string[] acceptance criteria for the parent-facing report.
+- `plan_step_id` (optional): matching todo id.
+- `subagent_type`: `explore`. `thoroughness`: `quick` | `medium` | `very thorough`.
+
+Requires `drox.subagents.enabled` and regulation L2 standard/full. V1: `explore` only.";
+
 pub struct TaskTool;
+
+fn build_child_description(description: &str, must_return: &[String]) -> String {
+    let base = description.trim();
+    let items: Vec<&str> = must_return
+        .iter()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect();
+    if items.is_empty() {
+        return base.to_string();
+    }
+    let mut out = String::new();
+    out.push_str(base);
+    out.push_str("\n\n## Must return to parent (acceptance — include in Findings/Paths/Gaps)\n");
+    for item in items {
+        out.push_str("- ");
+        out.push_str(item);
+        out.push('\n');
+    }
+    out
+}
 
 #[async_trait]
 impl Tool for TaskTool {
@@ -37,10 +116,7 @@ impl Tool for TaskTool {
     }
 
     fn description(&self) -> &str {
-        "Delegates **read-only** exploration to a sub-agent (grep, glob, file_read, lsp). \
-         Reserved for broad or parallelizable searches — not for targeted reading of a \
-         known file (use `file_read`). **Disabled** if sub-agents are not \
-         enabled in settings (`drox.subagents.enabled`). V1: `subagent_type` = `explore`."
+        TASK_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {
@@ -52,7 +128,9 @@ impl Tool for TaskTool {
     }
 
     fn is_concurrency_safe(&self) -> bool {
-        false
+        // Explore is read-only; parent may launch several focused `task` calls in one turn.
+        // Engine semaphore still caps parallelism (`maxConcurrent`).
+        true
     }
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
@@ -82,12 +160,61 @@ impl Tool for TaskTool {
                 "unknown subagent_type `{kind}` — V1 only supports `explore`"
             )));
         }
-        let report = executor
-            .run_explore(args.description, args.thoroughness, ctx)
+        let thoroughness = args
+            .thoroughness
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+            .or_else(|| Some("medium".to_string()));
+        let _title = args.title.as_deref().map(str::trim).filter(|s| !s.is_empty());
+        let _plan_step = args
+            .plan_step_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        let child_desc = build_child_description(&args.description, &args.must_return);
+        let outcome = executor
+            .run_explore(child_desc, thoroughness, ctx)
             .await?;
         Ok(json!({
             "subagent_type": "explore",
-            "report": report,
+            "report": outcome.report,
+            "truncated": outcome.truncated,
+            "iterations_used": outcome.iterations_used,
+            "max_iterations": outcome.max_iterations,
+            "must_return": args.must_return,
+            "plan_step_id": args.plan_step_id,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn description_has_session_master_protocol() {
+        assert!(TASK_TOOL_DESCRIPTION.contains("session master"));
+        assert!(TASK_TOOL_DESCRIPTION.contains("must_return"));
+        assert!(TASK_TOOL_DESCRIPTION.contains("Plan"));
+        assert!(TASK_TOOL_DESCRIPTION.contains("Assign"));
+        assert!(TASK_TOOL_DESCRIPTION.contains("Merge"));
+        assert!(TASK_TOOL_DESCRIPTION.contains("truncated"));
+        assert!(TASK_TOOL_DESCRIPTION.contains("Needle"));
+    }
+
+    #[test]
+    fn build_child_appends_must_return() {
+        let d = build_child_description("Map docs/x", &["inventory".into(), "tone".into()]);
+        assert!(d.contains("Map docs/x"));
+        assert!(d.contains("Must return to parent"));
+        assert!(d.contains("inventory"));
+        assert!(d.contains("tone"));
+    }
+
+    #[test]
+    fn task_is_concurrency_safe_for_fanout() {
+        assert!(TaskTool.is_concurrency_safe());
     }
 }
