@@ -8,6 +8,7 @@
 import { ChatModeKind } from '../../../chat/common/constants.js';
 import { IChatWidgetViewOptions } from '../../../chat/browser/chat.js';
 import { DroxViews } from '../../common/drox.js';
+import { DROX_CHAT_SESSION_TYPE } from '../../common/droxAgentsSession.js';
 
 /**
  * Shared ChatWidget view options for the Drox discussion shell (IDE panel + Agents ChatView).
@@ -26,6 +27,13 @@ export function createDroxDiscussionChatWidgetOptions(kind: 'ide' | 'agents'): I
 		supportsChangingModes: false,
 		/** Mounts Drox toolbar / status / permission chips (Server, Model settings, …). */
 		droxNativeComposer: true,
+		/**
+		 * Welcome / empty shell has no sessionResource yet — without this delegate,
+		 * `getCurrentSessionType()` is undefined and the Server/Model chips never mount on IDE.
+		 */
+		sessionTypePickerDelegate: {
+			getActiveSessionProvider: () => DROX_CHAT_SESSION_TYPE,
+		},
 		inputEditorMinLines: 2,
 	};
 

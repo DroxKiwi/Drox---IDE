@@ -8,6 +8,7 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import {
 	formatDroxAgentsLoopAbortMessage,
 	getDroxLoopAbortErrorMessage,
+	isDroxIntentOnlyWriteLoopError,
 	isDroxLoopDetectedError,
 } from '../../common/droxLoopAbort.js';
 import {
@@ -30,11 +31,29 @@ suite('Drox — loop abort + plan archive note', () => {
 		assert.ok(!isDroxLoopDetectedError(undefined));
 	});
 
+	test('isDroxIntentOnlyWriteLoopError', () => {
+		assert.ok(
+			isDroxIntentOnlyWriteLoopError(
+				'loop detected: model repeated the same intent_only_write for 3 consecutive turns',
+			),
+		);
+		assert.ok(!isDroxIntentOnlyWriteLoopError('loop detected: model repeated the same text_only for 3 consecutive turns'));
+		assert.ok(!isDroxIntentOnlyWriteLoopError(undefined));
+	});
+
 	test('formatDroxAgentsLoopAbortMessage rewrites loop, keeps other errors', () => {
 		const loop = formatDroxAgentsLoopAbortMessage('Loop detected: both');
 		assert.ok(loop.includes(getDroxLoopAbortErrorMessage()) || /unresolved loop/i.test(loop));
 		assert.ok(!loop.includes('Loop detected: both'));
 		assert.strictEqual(formatDroxAgentsLoopAbortMessage('boom'), 'boom');
+	});
+
+	test('formatDroxAgentsLoopAbortMessage specializes intent_only_write', () => {
+		const raw =
+			'loop detected: model repeated the same intent_only_write for 3 consecutive turns';
+		const msg = formatDroxAgentsLoopAbortMessage(raw);
+		assert.ok(/skeleton|section/i.test(msg), msg);
+		assert.ok(!/unresolved loop/i.test(msg), msg);
 	});
 
 	test('plan archive note is one-shot per session', () => {

@@ -54,6 +54,8 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'cancelRun' }
 
+	| { readonly type: 'skipShell' }
+
 	| { readonly type: 'slash'; readonly command?: string; readonly args?: string; readonly slashInvalid?: string }
 
 	| { readonly type: 'listSessions' }
@@ -201,7 +203,9 @@ export type DroxHostToWebviewMessage =
 			readonly duration_ms?: number;
 			readonly error?: string;
 			readonly terminal_instance_id?: number;
+			readonly skipped?: boolean;
 		};
+		readonly exploreTitle?: string;
 		readonly exploreDescription?: string;
 		readonly exploreThoroughness?: string;
 		readonly exploreOutput?: {
@@ -209,6 +213,8 @@ export type DroxHostToWebviewMessage =
 			readonly exploreError?: string;
 			readonly exploreThoroughness?: string;
 		};
+		/** Parent `task` tool id when this row is an Explore child tool. */
+		readonly parentToolId?: string;
 	}
 
 	| DroxFileChangeHostMessage
@@ -308,7 +314,7 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 	const t = (msg as { type?: unknown }).type;
 
-	if (t === 'webviewReady' || t === 'cancelRun' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings') {
+	if (t === 'webviewReady' || t === 'cancelRun' || t === 'skipShell' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings') {
 
 		return true;
 

@@ -9,6 +9,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { droxConfigurationResourceForRead } from '../common/droxAgentsConfiguration.js';
 import { IDroxAgentRunImage } from '../common/droxAttachments.js';
 import { DroxPermissionMode } from '../common/droxPermissionAsk.js';
+import { DroxSetting } from '../common/droxConfiguration.js';
 import {
 	buildAgentRunParams,
 	IDroxLlmSettings,
@@ -112,6 +113,8 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 			mcpToolsEnabled: this.isMcpToolsEnabled(resource),
 
 			subagents: readSubagentsSettings(this.configurationService, resource),
+
+			memoryEnabled: this.configurationService.getValue<boolean>(DroxSetting.MemoryEnabled, { resource }) === true,
 
 		});
 

@@ -10,6 +10,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 
 import { webviewGenericCspSource } from '../../webview/common/webview.js';
+import { DROX_MAX_ITERATIONS_CAP } from '../common/droxProductDefaults.js';
 import { DROX_NUM_CTX_CHOICES, DROX_NUM_CTX_CUSTOM_SELECT, DROX_NUM_CTX_MAX, DROX_NUM_CTX_MIN, formatDroxNumCtxLabel } from '../common/droxNumCtx.js';
 
 
@@ -181,6 +182,9 @@ export function getDroxChatHtml(
 	const generalSettingsSectionAgent = localize('droxChatGeneralSettingsSectionAgent', 'Agent');
 	const generalSettingsSectionBehavior = localize('droxChatGeneralSettingsSectionBehavior', 'Behavior');
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
+	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
+	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
+	const generalSettingsProjectRulesEnabled = localize('droxChatGeneralSettingsProjectRulesEnabled', 'Project rules (.drox/rules)');
 	const generalSettingsNativeThinking = localize('droxChatGeneralSettingsNativeThinking', 'Native thinking');
 	const generalSettingsPrimaryLanguage = localize('droxChatGeneralSettingsPrimaryLanguage', 'Primary language');
 	const generalSettingsWarmStart = localize('droxChatGeneralSettingsWarmStart', 'Warm start');
@@ -210,7 +214,31 @@ export function getDroxChatHtml(
 
 				<span>${generalSettingsMaxIterations}</span>
 
-				<input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="200" step="1" />
+				<input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" />
+
+			</label>
+
+			<label class="general-settings-field">
+
+				<span>${generalSettingsExploreMaxIterations}</span>
+
+				<input type="number" id="general-settings-explore-max-iterations" class="general-settings-input" min="1" step="1" />
+
+			</label>
+
+			<label class="general-settings-field general-settings-field-check">
+
+				<input type="checkbox" id="general-settings-subagents-enabled" checked />
+
+				<span>${generalSettingsSubagentsEnabled}</span>
+
+			</label>
+
+			<label class="general-settings-field general-settings-field-check">
+
+				<input type="checkbox" id="general-settings-project-rules-enabled" checked />
+
+				<span>${generalSettingsProjectRulesEnabled}</span>
 
 			</label>
 
@@ -231,6 +259,8 @@ export function getDroxChatHtml(
 			</label>
 `;
 
+	const rolePanelSectionAgent = localize('droxChatRolePanelSectionAgent', 'Agent');
+
 	const architectContextField = `
 			<label class="role-model-field">
 
@@ -246,6 +276,24 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 					<input type="number" id="role-model-panel-num-ctx-custom" class="role-model-panel-input role-model-num-ctx-custom" hidden min="${DROX_NUM_CTX_MIN}" max="${DROX_NUM_CTX_MAX}" step="1024" />
 
 				</div>
+
+			</label>
+
+			<p class="role-model-panel-section-label">${rolePanelSectionAgent}</p>
+
+			<label class="role-model-field">
+
+				<span>${generalSettingsMaxIterations}</span>
+
+				<input type="number" id="role-model-panel-max-iterations" class="role-model-panel-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" />
+
+			</label>
+
+			<label class="role-model-field">
+
+				<span>${generalSettingsExploreMaxIterations}</span>
+
+				<input type="number" id="role-model-panel-explore-max-iterations" class="role-model-panel-input" min="1" step="1" />
 
 			</label>
 `;

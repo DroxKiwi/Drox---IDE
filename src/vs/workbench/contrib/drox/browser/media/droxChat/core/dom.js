@@ -58,6 +58,8 @@
 	D.dom.roleModelPanelSelectEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('role-model-panel-select'));
 	D.dom.roleModelPanelNumCtxEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('role-model-panel-num-ctx'));
 	D.dom.roleModelPanelNumCtxCustomEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-num-ctx-custom'));
+	D.dom.roleModelPanelMaxIterationsEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-max-iterations'));
+	D.dom.roleModelPanelExploreMaxIterationsEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-explore-max-iterations'));
 	D.dom.roleModelPanelTopPEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-top-p'));
 	D.dom.roleModelPanelTopKEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-top-k'));
 	D.dom.roleModelPanelRepeatPenaltyEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-repeat-penalty'));

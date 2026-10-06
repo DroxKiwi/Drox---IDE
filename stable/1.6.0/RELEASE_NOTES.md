@@ -20,6 +20,30 @@ Correctifs moteur pour les boucles de réponse et les explosions de contexte obs
 ### UI
 
 - **G-1** — jauge contexte Agents : suffixe `estim.` (RoughTokenCounter) vs `provider` (`usage.input_tokens`).
+- Shell cards dépliables (commande + sortie) ; Skip sur bash bloqué ; Agents : sortie terminal dans le panneau collapsible.
+- **Max iterations** — plafond relevé à **1000** (settings + panneau Server) pour les gros plans.
+- **Chip serveur** — connexion détectée dès qu’une URL `drox.server` est présente (plus d’état « Connect » fantôme si `llmHosting` absente) ; scroll horizontal si la barre est étroite.
+- **Parité IDE ↔ Agents** — chips Server / Model / max iterations montés dans la barre d’input IDE (comme `NewChatInput` Agents), pas seulement la secondary toolbar ; CSS aussi sous `.drox-discussion-shell`.
+- **Accounts** — icône compte (activity bar IDE) et accès Sign In Copilot / GitHub masqués en build Drox (`droxMicrosoftAgentsSurfaceEnabled` off) ; widget compte Agents déjà gated.
+- **Max iterations** — aussi editable dans **Model settings** (section Agent), en plus de Server settings ; chip Server affiche `×N`.
+
+### Dogfood terminal · Explore · lectures (post Vague 4)
+
+- **Terminal** — cwd sans préfixe `\\?\` ; isolation stdout (marqueur + pas de scrollback stale) ; shell agent Windows = `cmd.exe`.
+- **Classifieur bash** — préfixes PowerShell `[Console]::…=` + `Get-Content` / listings = inspect-only.
+- **`file_read` hors workspace** — chemins absolus autorisés en lecture seule (écritures toujours gated).
+- **Anti re-read** — même path `file_read` ×3 → nudge dur.
+- **Explore** — prompts / outil `task` / nudge S-5 durcis (default-to-Explore pour compréhension / synthèse).
+- **Explore ferme (1.6 dogfood)** — annex turn-0 si intent docs (« prendre connaissance », `docs/pedagogie`, calquer/remplacer documentation) → premier tool = `task` Explore ; CORE sans « explore freely » ; S-5 seuil **1** + `glob`/`grep` comptés.
+- **Explore live** — avancement sub-agent streamé dans la carte chat (activité tools + rapport partiel, panneau scrollable type file-change).
+- **Explore master (rescue)** — protocole session master **Plan → Assign → Merge** ; briefs avec `must_return` (champs numériques, pas de prose NL) ; télémetrie `truncated` / `iterations` ; nudges post-fail + rescue ; question modèle `explore.mission.decompose` pour découper une mega-mission.
+- **Situation card** — module `agent/situation/` (card, paths, todos, task_outcome) ; arbo n+1 depuis `situation.rs`.
+
+### Project rules (`.drox/rules`)
+
+- Règles style Cursor (`*.instructions.md` / `.mdc`) sous `.drox/rules/` (workspace) et `~/.drox/rules/` (user).
+- Injection auto dans `agent.run` selon `alwaysApply` / `applyTo` / `globs`.
+- Setting **`drox.rules.enabled`** (défaut ON) + toggle dans General settings ; OFF = pas d’inject + Customizations sans liste rules (`DROX.md` / MEMORY / Skills inchangés).
 
 ## Prérequis
 

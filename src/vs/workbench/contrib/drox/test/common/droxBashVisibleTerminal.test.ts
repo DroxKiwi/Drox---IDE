@@ -4,6 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
+import {
+	createDroxBashStdoutMarker,
+	extractStdoutAfterDroxBashMarker,
+	wrapDroxBashCommandWithMarker,
+} from '../../common/droxBash.js';
 import { droxBashShouldRevealTerminal } from '../../common/droxBashVisibleTerminal.js';
 
 suite('Drox bash visible terminal heuristic', () => {
@@ -27,5 +32,29 @@ suite('Drox bash visible terminal heuristic', () => {
 
 	test('detached compose stays hidden', () => {
 		assert.strictEqual(droxBashShouldRevealTerminal('docker compose up -d'), false);
+	});
+});
+
+suite('Drox bash stdout marker (P0)', () => {
+	test('wraps cmd and posix', () => {
+		const m = '__DROX_BASH_test__';
+		assert.strictEqual(
+			wrapDroxBashCommandWithMarker('git status', m, true),
+			`echo ${m}& git status`,
+		);
+		assert.strictEqual(
+			wrapDroxBashCommandWithMarker('git status', m, false),
+			`printf '%s\\n' '${m}'; git status`,
+		);
+	});
+
+	test('extracts after marker and refuses stale buffer', () => {
+		const m = createDroxBashStdoutMarker();
+		assert.ok(m.startsWith('__DROX_BASH_'));
+		assert.strictEqual(
+			extractStdoutAfterDroxBashMarker(`stale\n${m}\nhello\nworld`, m),
+			'hello\nworld',
+		);
+		assert.strictEqual(extractStdoutAfterDroxBashMarker('only stale scrollback', m), '');
 	});
 });

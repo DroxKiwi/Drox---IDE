@@ -19,6 +19,7 @@ import { IDroxClientToolsService } from '../common/droxClientToolsService.js';
 
 import { IDroxEngineService } from '../common/droxEngineService.js';
 import { createDroxBashToolHandler } from './tools/droxBashTool.js';
+import { skipActiveDroxBashInIdeTerminal } from './tools/droxIdeBashTerminal.js';
 
 import { createDroxFileEditToolHandler } from './tools/droxFileEditTool.js';
 
@@ -103,5 +104,9 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 
 		// Traffic for tool/exec is recorded in DroxEngineService.dispatchServerRequest.
 		droxEngineService.setRequestHandler('tool/exec', this.registry.toRequestHandler(() => chatSessionService.getRunId()));
+	}
+
+	skipActiveBash(): boolean {
+		return skipActiveDroxBashInIdeTerminal();
 	}
 }

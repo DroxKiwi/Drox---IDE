@@ -36,14 +36,24 @@ export function getDroxUserRoots(userHome: URI): readonly URI[] {
 /**
  * Harness descriptor for Drox Agents sessions — Skills, Instructions, MCP
  * under workspace `.drox/` and user `~/.drox`, without Copilot Plugins/Tools.
+ *
+ * @param opts.rulesEnabled When false, hide `.drox/rules` from Instructions
+ *   (no create/edit UI for project rules). DROX.md / MEMORY.md remain.
  */
-export function createDroxHarnessDescriptor(userHome: URI): IHarnessDescriptor {
+export function createDroxHarnessDescriptor(
+	userHome: URI,
+	opts?: { readonly rulesEnabled?: boolean },
+): IHarnessDescriptor {
 	const droxUserRoots = getDroxUserRoots(userHome);
 	const allRootsFilter: IStorageSourceFilter = { sources: DROX_HARNESS_SOURCES };
 	const restrictedFilter: IStorageSourceFilter = {
 		sources: DROX_HARNESS_SOURCES,
 		includedUserFileRoots: droxUserRoots,
 	};
+	const rulesEnabled = opts?.rulesEnabled !== false;
+	const instructionFileFilter = rulesEnabled
+		? [DROX_MD_FILENAME, MEMORY_MD_FILENAME, `${DROX_RULES_SOURCE_FOLDER}/`]
+		: [DROX_MD_FILENAME, MEMORY_MD_FILENAME];
 
 	return {
 		id: DROX_CHAT_SESSION_TYPE,
@@ -56,11 +66,7 @@ export function createDroxHarnessDescriptor(userHome: URI): IHarnessDescriptor {
 		],
 		hideGenerateButton: true,
 		workspaceSubpaths: [DROX_CONFIG_FOLDER],
-		instructionFileFilter: [
-			DROX_MD_FILENAME,
-			MEMORY_MD_FILENAME,
-			`${DROX_RULES_SOURCE_FOLDER}/`,
-		],
+		instructionFileFilter,
 		sectionOverrides: new Map([
 			[AICustomizationManagementSection.Instructions, {
 				rootFileShortcuts: [DROX_MD_FILENAME, MEMORY_MD_FILENAME],

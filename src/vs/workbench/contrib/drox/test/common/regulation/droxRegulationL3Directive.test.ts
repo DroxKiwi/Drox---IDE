@@ -23,6 +23,7 @@ suite('Drox regulation R8 L3 directive', () => {
 		const out = applyDroxRegulationL3Directive('guided', 'session notes');
 		assert.ok(out);
 		assert.ok(/prefer tools/i.test(out!));
+		assert.ok(/task|Explore/i.test(out!));
 		assert.ok(out!.endsWith('session notes'));
 	});
 
@@ -30,6 +31,7 @@ suite('Drox regulation R8 L3 directive', () => {
 		const guided = droxRegulationL3DirectiveAnnex('guided')!;
 		const assertive = droxRegulationL3DirectiveAnnex('assertive')!;
 		assert.ok(/Anti-rumination/i.test(assertive));
+		assert.ok(/proactively/i.test(assertive));
 		assert.ok(assertive.length > guided.length);
 	});
 

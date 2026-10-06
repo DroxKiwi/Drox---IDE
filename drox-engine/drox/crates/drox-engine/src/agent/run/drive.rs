@@ -1,5 +1,7 @@
 //! Boucle principale `drive_inner` — tours LLM, tools, gates et clôture.
 
+use std::collections::HashMap;
+
 use drox_hooks::{PostHookOutcome, PreHookOutcome, ToolHookContext};
 use drox_tools::ToolError;
 use drox_types::{Content, Message, Usage};
@@ -24,16 +26,30 @@ use super::super::gates::{
 };
 use super::super::loop_detect::{LoopDecision, LoopDetector, PendingToolCall};
 use super::super::nudges::{
-    ask_user_question_loop_nudge, assistant_text_suggests_mutation_intent,
+    ask_user_question_loop_nudge, assistant_text_suggests_large_write_intent,
+    assistant_text_suggests_mutation_intent, context_load_nudge, explore_incomplete_nudge,
     run_objective_done_nudge, run_objective_system_block, step_by_step_todo_nudge,
     unfinished_course_plan_prompt, unfinished_todos_prompt, ANALYZING_PHASE_NUDGE,
-    CODE_MUTATION_TESTING_NUDGE, DONE_ONLY_NUDGE_PROMPT, INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,
-    INTENT_ONLY_WRITE_MAX_NUDGES, INTENT_ONLY_WRITE_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
+    CODE_MUTATION_TESTING_NUDGE, DONE_ONLY_NUDGE_PROMPT, DOC_INGESTION_EXPLORE_ANNEX,
+    EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_LARGE_WRITE_MAX_NUDGES,
+    INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT, INTENT_ONLY_WRITE_MAX_NUDGES,
+    INTENT_ONLY_WRITE_NUDGE_PROMPT, LARGE_WRITE_CHUNK_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
     LOOP_TOOL_FAMILY_NUDGE_PROMPT, MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
-    MISSING_ANSWERING_PROMPT, NUDGE_PROMPT,
+    MISSING_ANSWERING_PROMPT, NUDGE_PROMPT, PARENT_HEAVY_READ_NUDGE,
+    PARENT_HEAVY_READ_NUDGE_THRESHOLD, REPEATED_FILE_READ_NUDGE, REPEATED_FILE_READ_NUDGE_THRESHOLD,
+};
+use super::super::context_load::{
+    score as score_context_load, should_inject as should_inject_context_load,
+    snapshot_from_glob_value, ContextLoadSnapshot,
 };
 use super::super::phase::{
-    is_workspace_exploration_tool, user_blocks_plain_text, user_prompt_suggests_workspace_analysis,
+    is_workspace_exploration_tool, user_blocks_plain_text, user_prompt_suggests_doc_ingestion,
+    user_prompt_suggests_workspace_analysis,
+};
+use super::super::situation::{
+    completed_todos_hint, counts_as_parent_heavy_read, next_todo_from_output,
+    note_successful_file_read, note_task_tool_success, path_from_file_tool, task_outcome_telemetry,
+    upsert_situation_card, SituationSnapshot,
 };
 use super::super::stream::{consume_stream, push_assistant_message};
 use super::Agent;
@@ -73,19 +89,19 @@ impl Agent {
                 .await;
         }
         messages.extend(history);
-        let user_analysis_intent = if skip_new_user_turn {
+        let user_text_for_intent = if skip_new_user_turn {
             use drox_types::Role;
             messages
                 .iter()
                 .rev()
                 .find(|m| m.role == Role::User)
-                .map(|m| {
-                    user_prompt_suggests_workspace_analysis(&Content::collapse_text(&m.content))
-                })
-                .unwrap_or(false)
+                .map(|m| Content::collapse_text(&m.content))
+                .unwrap_or_default()
         } else {
-            user_prompt_suggests_workspace_analysis(&user_blocks_plain_text(&user_blocks))
+            user_blocks_plain_text(&user_blocks)
         };
+        let user_analysis_intent = user_prompt_suggests_workspace_analysis(&user_text_for_intent);
+        let user_doc_ingestion_intent = user_prompt_suggests_doc_ingestion(&user_text_for_intent);
         if !skip_new_user_turn {
             // Garantit qu'il y a toujours au moins un bloc texte pour les
             // providers strictement text-only et pour la cohérence du transcript.
@@ -173,10 +189,46 @@ impl Agent {
         let mut saw_testing_phase_in_run = false;
         // FX-B 1.5.16 — compteur de nudges « intention write sans tool ».
         let mut consecutive_intent_only_write_nudges: u32 = 0;
+        // True once any strike in the current intent-only streak looked like a
+        // monolithic / multi-section write (extra nudge budget + chunk prompt).
+        let mut intent_only_large_write_streak: bool = false;
+        // 1.6.0 Vague 4 / S-1 — situation card (upsert chaque tour).
+        let mut files_touched_in_run: Vec<String> = Vec::new();
+        let mut last_tool_error: Option<String> = None;
+        let mut last_todo_next: Option<String> = None;
+        let mut last_todo_completed_hint: u64 = 0;
+        let mut parent_heavy_read_streak: u32 = 0;
+        let mut parent_heavy_read_nudge_sent = false;
+        let mut doc_ingestion_annex_sent = false;
+        // Context-load V1 — soft nudge one-shot après glob large.
+        let mut pending_context_load: Option<ContextLoadSnapshot> = None;
+        let mut context_load_nudge_sent = false;
+        let mut last_context_load_recommended_n: u32 = 3;
+        // Explore truncated → re-split nudge + anti parent-rescue.
+        let mut pending_explore_incomplete: Option<(u64, u64)> = None;
+        let mut explore_rescue_active = false;
+        let mut explore_rescue_nudge_sent = false;
+        // P1 — compteur de `file_read` réussis par path normalisé.
+        let mut file_read_success_counts: HashMap<String, u32> = HashMap::new();
+        let mut repeated_file_read_nudge_sent = false;
+        let task_tool_available = tool_specs.iter().any(|s| s.name == "task");
         // Systèmes injectés en tête de `messages` (re-poussés à chaque run) —
-        // exclus du rewrite JSONL post-compaction (C-1).
-        let leading_injected_systems = usize::from(self.config.system_prompt.is_some())
+        // exclus du rewrite JSONL post-compaction (C-1). Inclut la situation
+        // card dès qu'elle est insérée.
+        let mut leading_injected_systems = usize::from(self.config.system_prompt.is_some())
             + usize::from(self.config.run_objective.is_some());
+        let permission_mode_label = self
+            .config
+            .permissions
+            .as_ref()
+            .map(|p| match p.mode {
+                drox_permissions::PermissionMode::Default => "default",
+                drox_permissions::PermissionMode::Plan => "plan",
+                drox_permissions::PermissionMode::AcceptEdits => "acceptEdits",
+                drox_permissions::PermissionMode::BypassPermissions => "bypassPermissions",
+                drox_permissions::PermissionMode::Professor => "professor",
+            })
+            .map(str::to_string);
         let testing_gate_active = !ctx.plan_mode && !professor;
         for iter in 0..self.config.max_iterations {
             debug!(
@@ -201,6 +253,113 @@ impl Agent {
                 .is_err()
             {
                 return;
+            }
+
+            // S-1 — rafraîchir la situation card après snip / avant stream_chat.
+            let situation = SituationSnapshot {
+                objective: self.config.run_objective.clone(),
+                todos_pending: last_todo_pending,
+                todos_in_progress: last_todo_in_progress,
+                todos_completed_hint: last_todo_completed_hint,
+                next_todo: last_todo_next.clone(),
+                files_touched: files_touched_in_run.clone(),
+                last_tool_error: last_tool_error.clone(),
+                permission_mode: permission_mode_label.clone(),
+            };
+            if upsert_situation_card(&mut messages, &situation, leading_injected_systems) {
+                leading_injected_systems = leading_injected_systems.saturating_add(1);
+            }
+
+            // Annex turn-0 — ingestion docs multi-fichiers → Explore d'abord.
+            if iter == 0
+                && task_tool_available
+                && user_doc_ingestion_intent
+                && !doc_ingestion_annex_sent
+            {
+                debug!("doc ingestion intent — Explore annex (turn-0)");
+                messages.push(Message::system(DOC_INGESTION_EXPLORE_ANNEX));
+                doc_ingestion_annex_sent = true;
+            }
+
+            // S-5 — trop de lectures massives parent sans Explore.
+            if task_tool_available
+                && !parent_heavy_read_nudge_sent
+                && parent_heavy_read_streak >= PARENT_HEAVY_READ_NUDGE_THRESHOLD
+            {
+                debug!(
+                    streak = parent_heavy_read_streak,
+                    "parent heavy reads — Explore nudge (S-5)"
+                );
+                messages.push(Message::system(PARENT_HEAVY_READ_NUDGE));
+                parent_heavy_read_nudge_sent = true;
+                parent_heavy_read_streak = 0;
+            }
+
+            // Post-échec Explore — parent lit encore → filet rescue.
+            if task_tool_available
+                && explore_rescue_active
+                && !explore_rescue_nudge_sent
+                && parent_heavy_read_streak >= 1
+            {
+                debug!("explore rescue — parent heavy read after truncated task");
+                messages.push(Message::system(EXPLORE_RESCUE_PARENT_READ_NUDGE));
+                explore_rescue_nudge_sent = true;
+                parent_heavy_read_streak = 0;
+            }
+
+            // Explore truncated — re-split chiffré (one-shot par événement).
+            if task_tool_available {
+                if let Some((used, max_it)) = pending_explore_incomplete.take() {
+                    debug!(
+                        iterations_used = used,
+                        max_iterations = max_it,
+                        "explore incomplete nudge"
+                    );
+                    messages.push(Message::system(explore_incomplete_nudge(
+                        used,
+                        max_it,
+                        last_context_load_recommended_n,
+                    )));
+                }
+            }
+
+            // Context-load V1 — soft N Explore après glob (L2 caps, one-shot).
+            if task_tool_available
+                && self.config.context_load.inject
+                && !context_load_nudge_sent
+            {
+                if let Some(snap) = pending_context_load.take() {
+                    let scored = score_context_load(&snap, &self.config.context_load);
+                    if should_inject_context_load(&snap, &scored) {
+                        debug!(
+                            load = scored.load,
+                            n = scored.recommended_n,
+                            files = scored.files_effective,
+                            "context-load soft nudge"
+                        );
+                        last_context_load_recommended_n = scored.recommended_n.max(2);
+                        messages.push(Message::system(context_load_nudge(
+                            scored.files_effective,
+                            scored.total_kb,
+                            scored.load,
+                            scored.recommended_n,
+                        )));
+                        context_load_nudge_sent = true;
+                        // Reset OK : one-shot guidance — contenu nouveau.
+                        loop_detector.reset();
+                    }
+                }
+            }
+
+            // P1 — même path `file_read` réussi ×N.
+            if !repeated_file_read_nudge_sent
+                && file_read_success_counts
+                    .values()
+                    .any(|&n| n >= REPEATED_FILE_READ_NUDGE_THRESHOLD)
+            {
+                debug!("repeated file_read path — re-read nudge (P1)");
+                messages.push(Message::system(REPEATED_FILE_READ_NUDGE));
+                repeated_file_read_nudge_sent = true;
             }
 
             if let Some(policy) = self.config.context.as_ref() {
@@ -404,11 +563,20 @@ impl Agent {
                 let write_intent = assistant_text_suggests_mutation_intent(&outcome.text)
                     || consecutive_intent_only_write_nudges > 0;
                 if write_intent {
+                    if assistant_text_suggests_large_write_intent(&outcome.text) {
+                        intent_only_large_write_streak = true;
+                    }
                     consecutive_intent_only_write_nudges =
                         consecutive_intent_only_write_nudges.saturating_add(1);
-                    if consecutive_intent_only_write_nudges > INTENT_ONLY_WRITE_MAX_NUDGES {
+                    let max_nudges = if intent_only_large_write_streak {
+                        INTENT_ONLY_LARGE_WRITE_MAX_NUDGES
+                    } else {
+                        INTENT_ONLY_WRITE_MAX_NUDGES
+                    };
+                    if consecutive_intent_only_write_nudges > max_nudges {
                         debug!(
                             strikes = consecutive_intent_only_write_nudges,
+                            large = intent_only_large_write_streak,
                             "intent-only write — soft-abort après nudges"
                         );
                         let _ = tx
@@ -419,13 +587,18 @@ impl Agent {
                             .await;
                         return;
                     }
-                    let nudge = if consecutive_intent_only_write_nudges >= 2 {
+                    let nudge = if intent_only_large_write_streak
+                        && consecutive_intent_only_write_nudges == 1
+                    {
+                        LARGE_WRITE_CHUNK_NUDGE_PROMPT
+                    } else if consecutive_intent_only_write_nudges >= 2 {
                         INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT
                     } else {
                         INTENT_ONLY_WRITE_NUDGE_PROMPT
                     };
                     debug!(
                         strike = consecutive_intent_only_write_nudges,
+                        large = intent_only_large_write_streak,
                         "tour sans tool_call — nudge intent-only write"
                     );
                     messages.push(Message::system(nudge));
@@ -502,6 +675,7 @@ impl Agent {
                             "answering sans done + todo clôturée + testing dû — nudge testing (pas DONE_ONLY)"
                         );
                         consecutive_intent_only_write_nudges = 0;
+                        intent_only_large_write_streak = false;
                         messages.push(Message::system(CODE_MUTATION_TESTING_NUDGE));
                         if let Err(e) = self
                             .flush_transcript(&messages, &mut transcript_cursor)
@@ -514,6 +688,7 @@ impl Agent {
                     }
                     debug!("answering sans done + todo clôturée + testing OK — nudge minimal (done seul)");
                     consecutive_intent_only_write_nudges = 0;
+                    intent_only_large_write_streak = false;
                     messages.push(Message::system(DONE_ONLY_NUDGE_PROMPT));
                     // 1.6.0 L-1 : ne PAS reset — même answering sans done doit
                     // pouvoir strike / text_only-abort (sinon ×12 jusqu'à max_iter).
@@ -528,6 +703,7 @@ impl Agent {
                 }
 
                 consecutive_intent_only_write_nudges = 0;
+                intent_only_large_write_streak = false;
                 debug!("tour sans tool_call et sans [phase: done] — nudge");
                 messages.push(Message::system(NUDGE_PROMPT));
                 // 1.6.0 L-1 : ne PAS reset sur nudge générique.
@@ -542,6 +718,7 @@ impl Agent {
             }
 
             consecutive_intent_only_write_nudges = 0;
+            intent_only_large_write_streak = false;
             // GLM-4.7-Flash bat parfois `[file_edit, todo_write]` ou
             // `[bash, todo_write]` dans le même tour. Sans réordonnement, le
             // mutateur rate la gate `MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED`,
@@ -704,6 +881,19 @@ impl Agent {
                             };
                             match exec {
                                 Ok(value) => {
+                                    if call.name == "glob" && !context_load_nudge_sent {
+                                        if let Some(snap) = snapshot_from_glob_value(
+                                            &value,
+                                            ctx.workspace_root.as_str(),
+                                        ) {
+                                            pending_context_load = Some(snap);
+                                        }
+                                    }
+                                    let task_telem = if call.name == "task" {
+                                        Some(task_outcome_telemetry(&value))
+                                    } else {
+                                        None
+                                    };
                                     if !self
                                         .apply_read_only_tool_success(
                                             &ctx,
@@ -718,17 +908,43 @@ impl Agent {
                                     {
                                         return;
                                     }
+                                    if let Some((truncated, used, max_it)) = task_telem {
+                                        note_task_tool_success(
+                                            truncated,
+                                            used,
+                                            max_it,
+                                            &mut parent_heavy_read_streak,
+                                            &mut pending_explore_incomplete,
+                                            &mut explore_rescue_active,
+                                            &mut explore_rescue_nudge_sent,
+                                        );
+                                    } else if counts_as_parent_heavy_read(
+                                        &call.name,
+                                        &call.arguments,
+                                    ) {
+                                        parent_heavy_read_streak =
+                                            parent_heavy_read_streak.saturating_add(1);
+                                    }
+                                    let _ = note_successful_file_read(
+                                        &mut file_read_success_counts,
+                                        &call.name,
+                                        &call.arguments,
+                                    );
                                 }
                                 Err(err) => {
                                     if matches!(&err, ToolError::InvalidArgs(_)) {
                                         // Reset OK : feedback args nouveau ≠ boucle.
                                         loop_detector.reset();
                                     }
+                                    let err_s = err.to_string();
+                                    last_tool_error = Some(
+                                        err_s.chars().take(200).collect::<String>(),
+                                    );
                                     if push_tool_error_tracked(
                                         &tx,
                                         &mut messages,
                                         call,
-                                        err.to_string(),
+                                        err_s,
                                         &mut consecutive_ask_user_question_failures,
                                     )
                                     .await
@@ -874,6 +1090,14 @@ impl Agent {
                                 .await;
                             match exec {
                                 Ok(mut value) => {
+                                    if call.name == "glob" && !context_load_nudge_sent {
+                                        if let Some(snap) = snapshot_from_glob_value(
+                                            &value,
+                                            ctx.workspace_root.as_str(),
+                                        ) {
+                                            pending_context_load = Some(snap);
+                                        }
+                                    }
                                     memory_tracker.record_tool(&call.name);
                                     let todo_prev_had_open_items = if call.name == "todo_write" {
                                         last_todo_pending > 0 || last_todo_in_progress > 0
@@ -898,6 +1122,8 @@ impl Agent {
                                         }
                                         last_todo_was_all_completed =
                                             last_todo_pending == 0 && last_todo_in_progress == 0;
+                                        last_todo_next = next_todo_from_output(&value);
+                                        last_todo_completed_hint = completed_todos_hint(&value);
                                         mutating_tools_since_last_todo = 0;
                                     } else if call.name == "course_plan_write" {
                                         saw_successful_course_plan_write_in_run = true;
@@ -924,6 +1150,49 @@ impl Agent {
                                     ) {
                                         saw_code_mutation_in_run = true;
                                     }
+                                    if let Some(path) =
+                                        path_from_file_tool(&call.name, &call.arguments)
+                                    {
+                                        if !files_touched_in_run.iter().any(|p| p == &path) {
+                                            files_touched_in_run.push(path);
+                                        }
+                                        last_tool_error = None;
+                                    } else if matches!(
+                                        call.name.as_str(),
+                                        "file_write"
+                                            | "file_edit"
+                                            | "notebook_edit"
+                                            | "delete_path"
+                                            | "copy_path"
+                                            | "bash"
+                                    ) {
+                                        // Succès mutateur / shell — effacer l'erreur précédente.
+                                        last_tool_error = None;
+                                    }
+                                    if call.name == "task" {
+                                        let (truncated, used, max_it) =
+                                            task_outcome_telemetry(&value);
+                                        note_task_tool_success(
+                                            truncated,
+                                            used,
+                                            max_it,
+                                            &mut parent_heavy_read_streak,
+                                            &mut pending_explore_incomplete,
+                                            &mut explore_rescue_active,
+                                            &mut explore_rescue_nudge_sent,
+                                        );
+                                    } else if counts_as_parent_heavy_read(
+                                        &call.name,
+                                        &call.arguments,
+                                    ) {
+                                        parent_heavy_read_streak =
+                                            parent_heavy_read_streak.saturating_add(1);
+                                    }
+                                    let _ = note_successful_file_read(
+                                        &mut file_read_success_counts,
+                                        &call.name,
+                                        &call.arguments,
+                                    );
                                     if call.name == "ask_user_question" {
                                         consecutive_ask_user_question_failures = 0;
                                     }
@@ -1028,6 +1297,8 @@ impl Agent {
                                 Err(err) => {
                                     let is_invalid = matches!(&err, ToolError::InvalidArgs(_));
                                     let msg = err.to_string();
+                                    last_tool_error =
+                                        Some(msg.chars().take(200).collect::<String>());
                                     // Format / args invalides : le modèle vient
                                     // de recevoir un feedback nouveau — ne pas
                                     // enchaîner tout de suite vers Abort loop.

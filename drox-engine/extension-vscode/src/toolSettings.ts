@@ -199,7 +199,7 @@ export function getSubagentSettings(scope?: vscode.Uri): {
 } {
   const cfg = vscode.workspace.getConfiguration("drox", scope);
   const maxIterations = cfg.get<number>("subagents.maxIterations") ?? 15;
-  const maxConcurrent = cfg.get<number>("subagents.maxConcurrent") ?? 1;
+  const maxConcurrent = cfg.get<number>("subagents.maxConcurrent") ?? 3;
   const modelRaw = getExecutorModel(scope);
   const numCtxRaw = cfg.get<number>("subagents.numCtx") ?? DEFAULT_SUBAGENT_NUM_CTX;
   return {

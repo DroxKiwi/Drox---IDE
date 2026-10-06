@@ -86,21 +86,29 @@ pub fn choose_live_compact_split_idx(
 }
 
 /// Construit un checkpoint court à partir du markdown de compaction (sections structurées).
+/// 1.6.0 S-3 : préfère Goal/Done/Next/Files/Blockers ; tolère les anciens titres.
 #[must_use]
 pub fn format_compact_checkpoint(summary_md: &str) -> String {
     let (objective, files) = extract_metadata(summary_md);
     let mut body = String::new();
     if !objective.is_empty() {
-        let _ = writeln!(body, "## Objective\n{objective}");
+        let _ = writeln!(body, "## Goal\n{objective}");
     }
-    append_section_excerpt(summary_md, "decision", "## Decisions", &mut body, 400);
-    append_section_excerpt(summary_md, "en cours", "## En cours", &mut body, 300);
+    append_section_excerpt(summary_md, "done", "## Done", &mut body, 400);
+    append_section_excerpt(summary_md, "next", "## Next", &mut body, 300);
+    // Legacy progress section if ## Next absent.
+    if !body.to_ascii_lowercase().contains("## next") {
+        append_section_excerpt(summary_md, "in progress", "## Next", &mut body, 300);
+        append_section_excerpt(summary_md, "en cours", "## Next", &mut body, 300);
+    }
     if !files.is_empty() {
-        let _ = writeln!(body, "## Files touched");
+        let _ = writeln!(body, "## Files");
         for path in files.iter().take(15) {
             let _ = writeln!(body, "- {path}");
         }
     }
+    append_section_excerpt(summary_md, "blocker", "## Blockers", &mut body, 300);
+    append_section_excerpt(summary_md, "decision", "## Decisions", &mut body, 400);
     if body.trim().is_empty() {
         body = truncate_chars(summary_md, 800);
     }

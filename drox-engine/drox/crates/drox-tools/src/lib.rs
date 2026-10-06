@@ -25,14 +25,14 @@ pub mod subagent;
 mod tool;
 
 pub use asker::{UserAnswer, UserAsker, UserQuestion};
-pub use progress::{ShellProgressUpdate, ToolProgressSink};
+pub use progress::{ShellProgressUpdate, TextProgressUpdate, ToolProgressSink};
 pub use context::ToolContext;
 pub use error::ToolError;
 pub use registry::ToolRegistry;
 pub use skills::{format_skills_listing_for_prompt, load_skills_catalog};
 pub use scope_deferred::{ScopeDeferredHandle, ScopeDeferredItem};
 pub use session_notes::{SessionNote, SessionNotesHandle};
-pub use subagent::{SubagentExecutor, SubagentSettings};
+pub use subagent::{ExploreOutcome, SubagentExecutor, SubagentSettings};
 pub use simple::{
     AskUserQuestionTool, BashTool, CANONICAL_ASK_JSON_EXAMPLE, ExitPlanModeTool, FileEditTool,
     FileReadTool, FileWriteTool, preview_file_edit_diff, preview_file_write_diff,

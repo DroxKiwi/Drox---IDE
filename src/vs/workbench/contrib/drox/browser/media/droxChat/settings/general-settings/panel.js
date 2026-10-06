@@ -23,6 +23,16 @@
 			fn.syncConnectionSummaryInPanel();
 		}
 		setVal('general-settings-max-iterations', s.maxIterations ?? 50);
+		if (D.dom.roleModelPanelMaxIterationsEl) {
+			D.dom.roleModelPanelMaxIterationsEl.value = String(s.maxIterations ?? (D.const.DEFAULT_MAX_ITERATIONS ?? 50));
+		}
+		const exploreMax = s.subagentsMaxIterations ?? (D.const.DEFAULT_SUBAGENTS_MAX_ITERATIONS ?? 25);
+		setVal('general-settings-explore-max-iterations', exploreMax);
+		if (D.dom.roleModelPanelExploreMaxIterationsEl) {
+			D.dom.roleModelPanelExploreMaxIterationsEl.value = String(exploreMax);
+		}
+		setVal('general-settings-subagents-enabled', s.subagentsEnabled !== false);
+		setVal('general-settings-project-rules-enabled', s.projectRulesEnabled !== false);
 		setVal('general-settings-native-thinking', s.nativeThinking);
 		setVal('general-settings-primary-language', s.primaryLanguage || '');
 		setVal('general-settings-warm-start', s.warmStart !== false);
@@ -69,6 +79,18 @@
 		};
 		if (document.getElementById('general-settings-max-iterations')) {
 			patch.maxIterations = num('general-settings-max-iterations') ?? 50;
+		}
+		if (document.getElementById('general-settings-explore-max-iterations')) {
+			const exploreRaw = num('general-settings-explore-max-iterations');
+			if (exploreRaw !== undefined && Number.isFinite(exploreRaw)) {
+				patch.subagentsMaxIterations = Math.max(1, Math.floor(exploreRaw));
+			}
+		}
+		if (document.getElementById('general-settings-subagents-enabled')) {
+			patch.subagentsEnabled = bool('general-settings-subagents-enabled');
+		}
+		if (document.getElementById('general-settings-project-rules-enabled')) {
+			patch.projectRulesEnabled = bool('general-settings-project-rules-enabled');
 		}
 		return patch;
 	};

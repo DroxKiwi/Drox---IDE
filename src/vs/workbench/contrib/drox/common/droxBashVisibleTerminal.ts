@@ -32,11 +32,13 @@ export function droxBashShouldRevealTerminal(command: string): boolean {
 	if (/\bng\s+serve\b/.test(c)) {
 		return true;
 	}
-	// Docker / compose that stays up (not one-shot ps/logs)
-	if (/\bdocker\s+compose\s+up\b/.test(c) && !/\b(-d|--detach)\b/.test(c)) {
+	// Docker / compose that stays up (not one-shot ps/logs).
+	// Note: `\b-d\b` does NOT match ` -d` in JS (no word boundary before `-`).
+	const dockerDetached = /(^|[\s;&|])(-d|--detach)([\s;&|]|$)/.test(c);
+	if (/\bdocker\s+compose\s+up\b/.test(c) && !dockerDetached) {
 		return true;
 	}
-	if (/\bdocker\s+run\b/.test(c) && !/\b(-d|--detach)\b/.test(c) && !/\b--rm\b/.test(c)) {
+	if (/\bdocker\s+run\b/.test(c) && !dockerDetached && !/\b--rm\b/.test(c)) {
 		return true;
 	}
 	// Language runtimes servers

@@ -16,7 +16,7 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
 import { createDroxDevConfigurationProperties } from './droxDevConfiguration.js';
-import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX } from './droxProductDefaults.js';
+import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX, DROX_MAX_ITERATIONS_CAP } from './droxProductDefaults.js';
 import { DROX_NUM_CTX_MAX, DROX_NUM_CTX_MIN, formatDroxNumCtxLabel } from './droxNumCtx.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
@@ -82,6 +82,18 @@ export const enum DroxSetting {
 
 	/** Max concurrent Explore `task` sub-agents. */
 	SubagentsMaxConcurrent = 'drox.subagents.maxConcurrent',
+
+	/**
+	 * Workspace memory (MEMORY.md / DROX.md / `.drox/memory` archives / persist).
+	 * Temporarily **off by default** — set `true` to re-enable injection + tools.
+	 */
+	MemoryEnabled = 'drox.memory.enabled',
+
+	/**
+	 * Project rules (`.drox/rules`) — auto-inject into agent runs + Customizations Instructions for rules.
+	 * Off → no injection, no rules management UI under Customizations.
+	 */
+	RulesEnabled = 'drox.rules.enabled',
 
 	/** Soft max characters for the auto-injected context block. */
 	CodebaseAutoInjectMaxChars = 'drox.codebase.autoInjectMaxChars',
@@ -456,11 +468,12 @@ export const droxConfigurationNode: IConfigurationNode = {
 			type: 'number',
 			default: DROX_DEFAULT_MAX_ITERATIONS,
 			minimum: 1,
-			maximum: 200,
+			maximum: DROX_MAX_ITERATIONS_CAP,
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.maxIterations',
-				'**Max iterations** — maximum LLM ↔ tool turns per `agent.run`.',
+				'**Max iterations** — maximum LLM ↔ tool turns per `agent.run` (up to {0} for large tasks).',
+				String(DROX_MAX_ITERATIONS_CAP),
 			),
 		},
 
@@ -997,13 +1010,13 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			type: 'boolean',
 
-			default: false,
+			default: true,
 
 			scope: ConfigurationScope.RESOURCE,
 
 			markdownDescription: localize(
 				'drox.subagents.enabled',
-				'Enable the **`task`** tool (read-only **Explore** sub-agent: `grep`, `glob`, `file_read`, `lsp`, web). **Off by default** — the main model does not see `task` while this setting is `false`. Also requires regulation L2 **standard** or **full**.',
+				'Master switch for the **`task`** tool (read-only **Explore** sub-agent: `grep`, `glob`, `file_read`, `lsp`, web). **On by default**. Actual exposure is still gated by regulation L2 (**standard** or **full** only — never in **core**). Set to `false` to force-disable Explore.',
 			),
 
 		},
@@ -1012,26 +1025,44 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			type: 'number',
 
-			default: 15,
+			default: 25,
 
 			minimum: 1,
-
-			maximum: 50,
 
 			scope: ConfigurationScope.RESOURCE,
 
 			markdownDescription: localize(
 				'drox.subagents.maxIterations',
-				'Max LLM ↔ tool turns **per** Explore `task` sub-agent.',
+				'Max LLM ↔ tool turns for the Explore **execution** phase per `task` sub-agent (no upper cap). A separate report phase always runs afterward.',
 			),
 
+		},
+
+		[DroxSetting.MemoryEnabled]: {
+			type: 'boolean',
+			default: false,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.memory.enabled',
+				'Workspace memory: inject `MEMORY.md` / `DROX.md`, list `.drox/memory/sessions` archives, persist run summaries, and expose `memory_*` / `session_note` / `session_search`. **Off by default (temporary)** — enable when you want cross-run memory again.',
+			),
+		},
+
+		[DroxSetting.RulesEnabled]: {
+			type: 'boolean',
+			default: true,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.rules.enabled',
+				'Project **rules** (`.drox/rules/*.instructions.md`): auto-inject into agent runs and expose rules under Customizations → Instructions. **On by default**. When off: no injection and no rules management UI (DROX.md / MEMORY.md / Skills stay available).',
+			),
 		},
 
 		[DroxSetting.SubagentsMaxConcurrent]: {
 
 			type: 'number',
 
-			default: 1,
+			default: 3,
 
 			minimum: 1,
 

@@ -11,6 +11,7 @@ import { DisposableStore, IDisposable } from '../../../../../base/common/lifecyc
 import { URI } from '../../../../../base/common/uri.js';
 import { localize } from '../../../../../nls.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
+import { IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { ACTIVE_GROUP } from '../../../../services/editor/common/editorService.js';
@@ -22,12 +23,14 @@ import { getChangesEditorLabels } from '../../../../../sessions/contrib/changes/
 import { IChangesFileItem, toIChangesFileItem } from '../../../../../sessions/contrib/changes/browser/changesViewRenderer.js';
 import '../../../../../sessions/contrib/changes/browser/media/changesView.css';
 import './media/droxNativeFileChange.css';
-import { enrichDroxFileChangeSnapshot } from '../../common/droxFileChangeProgress.js';
+import { enrichDroxFileChangeSnapshot, resolveDroxBeforeSnapshotUri } from '../../common/droxFileChangeProgress.js';
 import { IDroxSessionChangesDetailService } from '../../common/droxSessionChangesDetailService.js';
 import { buildAggregatedSessionFileChanges } from '../../common/droxSessionChangesAggregate.js';
 import { resolveWorkspaceFilePath } from '../../common/droxFileChange.js';
 import { sanitizePathForEditor } from '../../common/droxPathUtil.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
+import { ICommandService } from '../../../../../platform/commands/common/commands.js';
+import { REVEAL_IN_EXPLORER_COMMAND_ID } from '../../../files/browser/fileConstants.js';
 
 const $ = dom.$;
 
@@ -38,6 +41,7 @@ export interface IDroxOpenSessionFileDeps {
 	readonly detailService: IDroxSessionChangesDetailService;
 	readonly fileService: IFileService;
 	readonly contextKeyService: IContextKeyService;
+	readonly commandService?: ICommandService;
 }
 
 function buildSessionChangeItems(
@@ -178,8 +182,10 @@ async function openChangesFileItem(
 	} : undefined;
 
 	const labels = getChangesEditorLabels(item.uri, deps.labelService);
-	const modal = sidebar || navigation ? { sidebar, navigation } : undefined;
-	const options = { pinned: true, modal };
+	// Modal chrome (sidebar / prev-next) is Agents-window only. IDE opens must stay tabs.
+	const isSessionsWindow = !!IsSessionsWindowContext.getValue(deps.contextKeyService);
+	const modal = isSessionsWindow && (sidebar || navigation) ? { sidebar, navigation } : undefined;
+	const options = { pinned: true, revealIfOpened: true, modal };
 
 	const resolved = await resolveItemForOpen(deps, item);
 
@@ -189,6 +195,7 @@ async function openChangesFileItem(
 			...labels,
 			options,
 		}, ACTIVE_GROUP);
+		void deps.commandService?.executeCommand(REVEAL_IN_EXPLORER_COMMAND_ID, resolved.uri);
 		return;
 	}
 
@@ -199,6 +206,7 @@ async function openChangesFileItem(
 			...labels,
 			options,
 		}, ACTIVE_GROUP);
+		void deps.commandService?.executeCommand(REVEAL_IN_EXPLORER_COMMAND_ID, resolved.uri);
 		return;
 	}
 
@@ -207,6 +215,7 @@ async function openChangesFileItem(
 		...labels,
 		options,
 	}, ACTIVE_GROUP);
+	void deps.commandService?.executeCommand(REVEAL_IN_EXPLORER_COMMAND_ID, resolved.uri);
 }
 
 export async function openDroxSessionChangesFileItem(
@@ -248,8 +257,16 @@ export async function openDroxSessionFileChange(
 			linesAdded: 0,
 			linesRemoved: 0,
 		};
-	} else {
+	}
+
+	if (toolId) {
 		target = await applyToolSnapshotAsync(target, toolId, deps.detailService, sessionResource, workspaceRoot, deps);
+		if (!target.originalUri) {
+			const snap = resolveDroxBeforeSnapshotUri(workspaceRoot, toolId);
+			if (snap && await deps.fileService.exists(snap)) {
+				target = { ...target, originalUri: snap };
+			}
+		}
 	}
 
 	const includeSidebar = items.length > 1;

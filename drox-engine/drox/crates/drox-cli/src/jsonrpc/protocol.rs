@@ -177,6 +177,10 @@ pub struct AgentRunParams {
     /// Sous-agents (`task`, §2.10). `false` ou absent = désactivé (défaut).
     #[serde(default)]
     pub subagents_enabled: Option<bool>,
+    /// Mémoire workspace (MEMORY.md / DROX.md / archives `.drox/memory` / persist).
+    /// `false` ou absent = désactivé. IDE : `drox.memory.enabled`.
+    #[serde(default)]
+    pub memory_enabled: Option<bool>,
     /// Plafond d'itérations LLM par sous-agent Explore.
     #[serde(default)]
     pub subagents_max_iterations: Option<usize>,
@@ -223,6 +227,24 @@ pub struct AgentRunParams {
     /// Si `true`, les tools fs acceptent des chemins hors workspace (session toggle IDE).
     #[serde(default)]
     pub allow_outside_workspace: Option<bool>,
+    /// Caps Context-load soft (L2) — nudge post-`glob` one-shot, jamais un hard gate.
+    #[serde(default)]
+    pub context_load: Option<ContextLoadParams>,
+}
+
+/// Caps dérivés L2 pour le score Context-load → N Explore suggéré.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextLoadParams {
+    /// `false` / absent → pas d'injection moteur.
+    #[serde(default)]
+    pub inject: Option<bool>,
+    /// Plafond soft sur `recommended_n` (standard=3, full=4).
+    #[serde(default)]
+    pub max_recommended_n: Option<u32>,
+    /// Diviseur Ko dans `load = files + ceil(kb / kbDivisor)` (défaut 40).
+    #[serde(default)]
+    pub kb_divisor: Option<u32>,
 }
 
 /// Image attachée à un `agent.run`. `data` est la base64 brute (sans préfixe
@@ -503,6 +525,23 @@ mod tests {
         // questions interactives via `user/ask`, indépendamment de la
         // capacité côté client (qui est lue dans `ClientCapabilities`).
         assert!(r.capabilities.interactive_ask);
+    }
+
+    #[test]
+    fn agent_run_params_context_load() {
+        let raw = json!({
+            "prompt": "hi",
+            "contextLoad": {
+                "inject": true,
+                "maxRecommendedN": 3,
+                "kbDivisor": 40
+            }
+        });
+        let p: AgentRunParams = serde_json::from_value(raw).unwrap();
+        let cl = p.context_load.expect("context_load");
+        assert_eq!(cl.inject, Some(true));
+        assert_eq!(cl.max_recommended_n, Some(3));
+        assert_eq!(cl.kb_divisor, Some(40));
     }
 
     #[test]

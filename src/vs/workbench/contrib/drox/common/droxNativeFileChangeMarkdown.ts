@@ -109,15 +109,21 @@ export function buildDroxNativeFileChangeMarkdown(change: IDroxFileChangePayload
 	const openHref = filePath
 		? encodeCommandLink(DroxCommands.OpenSessionFile, [filePath, toolId])
 		: undefined;
+	const pathDataAttrs = [
+		filePath ? `data-path="${escapeHtml(filePath)}"` : '',
+		toolId ? `data-tool-id="${escapeHtml(toolId)}"` : '',
+		filePath ? `title="${escapeHtml(filePath)}"` : '',
+	].filter(Boolean).join(' ');
 	const pathHtml = openHref
-		? `<a class="fc-path" href="${openHref}" title="${escapeHtml(filePath)}">${relPath}</a>`
-		: `<span class="fc-path" title="${escapeHtml(filePath)}">${relPath}</span>`;
+		? `<a class="fc-path" href="${openHref}" ${pathDataAttrs}>${relPath}</a>`
+		: `<span class="fc-path" ${pathDataAttrs}>${relPath}</span>`;
 
 	const diffHtml = buildDiffLinesHtml(change.diff, change.content);
 
 	const html = [
 		`<div class="drox-native-file-change msg-file-change${extraClass ? ` ${extraClass}` : ''}"`,
 		toolId ? ` data-tool-id="${escapeHtml(toolId)}"` : '',
+		filePath ? ` data-path="${escapeHtml(filePath)}"` : '',
 		`>`,
 		'<div class="fc-summary">',
 		'<span class="fc-icon" aria-hidden="true">📄</span>',

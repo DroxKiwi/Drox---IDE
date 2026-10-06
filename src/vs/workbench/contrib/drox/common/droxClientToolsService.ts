@@ -17,6 +17,12 @@ export interface IDroxClientToolsService {
 
 	readonly executableToolNames: readonly string[];
 
+	/**
+	 * Interrupt a stuck IDE-terminal bash (Ctrl+C) and unblock tool/exec.
+	 * Returns true when an active bash was skipped.
+	 */
+	skipActiveBash(): boolean;
+
 }
 
 

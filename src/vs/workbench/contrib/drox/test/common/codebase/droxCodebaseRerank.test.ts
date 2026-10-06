@@ -7,7 +7,7 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { droxCodebaseRerankHits, pathRankMultiplier } from '../../../common/codebase/droxCodebaseRerank.js';
 import { IDroxCodebaseHit } from '../../../common/codebase/droxCodebaseTypes.js';
-import { parseCodebaseRetrievalFilter } from '../../../common/modelQuestions/droxModelQuestionParse.js';
+import { formatExploreMissionPlanAnnex, parseCodebaseRetrievalFilter, parseExploreMissionPlan } from '../../../common/modelQuestions/droxModelQuestionParse.js';
 import { resolveDroxModelQuestionVariant } from '../../../common/modelQuestions/droxModelQuestionResolve.js';
 import { listDroxModelQuestionVariants } from '../../../common/modelQuestions/droxModelQuestionCatalog.js';
 
@@ -22,6 +22,12 @@ suite('Drox — model questions + rerank (no NL heuristics)', () => {
 		assert.ok(variants.some(v => v.variantId === 'v1-compact'));
 	});
 
+	test('catalog has explore mission decompose variants', () => {
+		const variants = listDroxModelQuestionVariants('explore.mission.decompose');
+		assert.ok(variants.length >= 2);
+		assert.ok(variants.every(v => v.language === 'en'));
+	});
+
 	test('parseCodebaseRetrievalFilter accepts strict JSON', () => {
 		const variant = resolveDroxModelQuestionVariant('codebase.retrieval.comprehension');
 		const filter = parseCodebaseRetrievalFilter(JSON.stringify({
@@ -34,6 +40,25 @@ suite('Drox — model questions + rerank (no NL heuristics)', () => {
 		assert.strictEqual(filter!.searchQuery, 'GitHub API download metrics fetch');
 		assert.deepStrictEqual(filter!.pathPrefixes, ['src/']);
 		assert.strictEqual(filter!.preferCodeFiles, true);
+	});
+
+	test('parseExploreMissionPlan + annex are mechanical', () => {
+		const variant = resolveDroxModelQuestionVariant('explore.mission.decompose');
+		const plan = parseExploreMissionPlan(JSON.stringify({
+			needsExplore: true,
+			missionCount: 2,
+			missions: [
+				{ title: 'Map docs/pedagogie', scope: 'docs/pedagogie', mustReturn: ['file inventory'], thoroughness: 'medium' },
+				{ title: 'Audit site page', scope: 'src/app/docs', mustReturn: ['tone notes'], thoroughness: 'quick' },
+			],
+		}), variant);
+		assert.ok(plan);
+		assert.strictEqual(plan!.missionCount, 2);
+		assert.strictEqual(plan!.missions.length, 2);
+		const annex = formatExploreMissionPlanAnnex(plan!);
+		assert.ok(annex?.includes('missionCount=2'));
+		assert.ok(annex?.includes('must_return'));
+		assert.ok(annex?.includes('Map docs/pedagogie'));
 	});
 
 	test('rerank path boost only when preferCodeFiles from filter', () => {

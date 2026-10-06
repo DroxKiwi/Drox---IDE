@@ -483,27 +483,36 @@ async fn build_agent_setup(
 
     log_ignored_ide_orchestration_fields(params);
 
-    let mem = load_memdir(workspace.as_path())
-        .await
-        .map_err(|e| RpcError::new(ENGINE_ERROR, format!("memdir: {e}")))?;
-    let base_system = merge_optional_system(params.system.clone(), memdir_system_prefix(&mem));
+    // Kill-switch mémoire workspace (IDE `drox.memory.enabled`). Absent/`false`
+    // = pas de MEMORY.md / listing archives / persist / tools mémoire.
+    let memory_enabled = params.memory_enabled == Some(true);
+    let mem_prefix = if memory_enabled {
+        let mem = load_memdir(workspace.as_path())
+            .await
+            .map_err(|e| RpcError::new(ENGINE_ERROR, format!("memdir: {e}")))?;
+        memdir_system_prefix(&mem)
+    } else {
+        None
+    };
+    let base_system = merge_optional_system(params.system.clone(), mem_prefix);
     let mut base_system = crate::prompts::prepend_core_system_prompt(base_system);
-    // Sprint M1 — listing court des sessions archivées injecté en début de
-    // system prompt (compact, ≤ 10 entrées par défaut). Échec silencieux :
-    // si le dossier est inaccessible ou que les fichiers sont mal formés,
-    // on ne casse pas le run, on log juste.
-    let memory_listing = load_sessions_listing(
-        workspace.as_path(),
-        drox_engine::DEFAULT_LISTING_LIMIT,
-    )
-    .await
-    .unwrap_or_else(|e| {
-        warn!(error = %e, "memory: failed to load sessions listing — ignoring");
-        Vec::new()
-    });
-    if let Some(block) = format_sessions_listing_for_prompt(&memory_listing) {
-        base_system.push_str("\n\n");
-        base_system.push_str(&block);
+    if memory_enabled {
+        // Sprint M1 — listing court des sessions archivées (≤ 10 entrées).
+        let memory_listing = load_sessions_listing(
+            workspace.as_path(),
+            drox_engine::DEFAULT_LISTING_LIMIT,
+        )
+        .await
+        .unwrap_or_else(|e| {
+            warn!(error = %e, "memory: failed to load sessions listing — ignoring");
+            Vec::new()
+        });
+        if let Some(block) = format_sessions_listing_for_prompt(&memory_listing) {
+            base_system.push_str("\n\n");
+            base_system.push_str(&block);
+        }
+    } else {
+        tracing::info!("memory: disabled for this run (no memdir / archives inject)");
     }
     let skills_listing = drox_engine::load_skills_catalog(workspace.as_path())
         .await
@@ -564,6 +573,18 @@ async fn build_agent_setup(
         }
     }
 
+    if params.subagents_enabled.unwrap_or(false) {
+        match &mut system_merged {
+            Some(s) => {
+                s.push_str("\n\n");
+                s.push_str(crate::prompts::SUBAGENTS_EXPLORE_SUPPLEMENT);
+            }
+            None => {
+                system_merged = Some(crate::prompts::SUBAGENTS_EXPLORE_SUPPLEMENT.to_string());
+            }
+        }
+    }
+
     let (mode, policy) = build_permission_policy(params, &workspace)?;
 
     // Mode Professeur : propositions seules côté client (`applyFsWrites: false`).
@@ -585,7 +606,16 @@ async fn build_agent_setup(
         }
     }
 
-    if let Some(notice) = format_disabled_tools_notice(&params.disabled_tools) {
+    let mut disabled_tools = params.disabled_tools.clone();
+    if !memory_enabled {
+        for name in ["memory_read", "memory_list", "session_note"] {
+            if !disabled_tools.iter().any(|t| t == name) {
+                disabled_tools.push(name.to_string());
+            }
+        }
+    }
+
+    if let Some(notice) = format_disabled_tools_notice(&disabled_tools) {
         match &mut system_merged {
             Some(s) => s.push_str(&notice),
             None => system_merged = Some(notice.trim_start().to_string()),
@@ -616,10 +646,10 @@ async fn build_agent_setup(
     } else {
         tracing::info!("outils MCP désactivés pour ce run (paramètres workspace)");
     }
-    apply_disabled_tools(&mut registry, &params.disabled_tools);
-    if !params.disabled_tools.is_empty() {
+    apply_disabled_tools(&mut registry, &disabled_tools);
+    if !disabled_tools.is_empty() {
         tracing::info!(
-            disabled = ?params.disabled_tools,
+            disabled = ?disabled_tools,
             remaining = registry.names().len(),
             "registre tools après filtre workspace"
         );
@@ -627,8 +657,8 @@ async fn build_agent_setup(
 
     let subagent_settings = SubagentSettings {
         enabled: params.subagents_enabled.unwrap_or(false),
-        max_iterations: params.subagents_max_iterations.unwrap_or(15).clamp(1, 50),
-        max_concurrent: params.subagents_max_concurrent.unwrap_or(1).clamp(1, 8),
+        max_iterations: params.subagents_max_iterations.unwrap_or(25).max(1),
+        max_concurrent: params.subagents_max_concurrent.unwrap_or(3).clamp(1, 8),
     };
     if subagent_settings.enabled {
         registry.register_subagent_task();
@@ -691,18 +721,18 @@ async fn build_agent_setup(
 
     let tool_hooks = drox_hooks::load_merged(&workspace);
 
-    // Sprint M1 — mémoire de session. `MemoryRuntime` partage son
-    // `SessionNotesHandle` avec le `ToolContext` (via le moteur, à l'entrée
-    // de `drive_inner`). Le même client LLM est réutilisé pour la
-    // compaction — c'est intentionnel pour V1 : un sprint suivant pourra
-    // permettre un modèle dédié (plus petit, plus rapide) si besoin.
-    let memory_runtime = MemoryRuntime {
-        workspace_root: workspace,
-        llm: llm.clone(),
-        compaction_prompt: crate::prompts::COMPACTION_PROMPT.to_string(),
-        compaction_config: CompactionConfig::default(),
-        notes: SessionNotesHandle::new(),
-        model_label: model_label.clone(),
+    // Sprint M1 — mémoire de session (skip si kill-switch OFF).
+    let memory_runtime = if memory_enabled {
+        Some(MemoryRuntime {
+            workspace_root: workspace.clone(),
+            llm: llm.clone(),
+            compaction_prompt: crate::prompts::COMPACTION_PROMPT.to_string(),
+            compaction_config: CompactionConfig::default(),
+            notes: SessionNotesHandle::new(),
+            model_label: model_label.clone(),
+        })
+    } else {
+        None
     };
     if tool_hooks.is_enabled() {
         tracing::info!(
@@ -719,7 +749,7 @@ async fn build_agent_setup(
         permissions: Some(policy),
         context: Some(ContextPolicy::for_model_context_window(num_ctx)),
         transcript,
-        memory: Some(memory_runtime),
+        memory: memory_runtime,
         transcript_session_id: params.session_id.clone(),
         workspace_fingerprint,
         max_parallel_tool_calls: drox_engine::DEFAULT_MAX_PARALLEL_TOOL_CALLS,
@@ -729,6 +759,17 @@ async fn build_agent_setup(
             None
         },
         run_objective: params.run_objective.clone(),
+        context_load: {
+            use drox_engine::agent::context_load::ContextLoadPolicy;
+            match &params.context_load {
+                Some(cl) if cl.inject.unwrap_or(false) => ContextLoadPolicy {
+                    inject: true,
+                    max_recommended_n: cl.max_recommended_n.unwrap_or(3).clamp(0, 8),
+                    kb_divisor: cl.kb_divisor.unwrap_or(40).clamp(1, 512),
+                },
+                _ => ContextLoadPolicy::default(),
+            }
+        },
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);

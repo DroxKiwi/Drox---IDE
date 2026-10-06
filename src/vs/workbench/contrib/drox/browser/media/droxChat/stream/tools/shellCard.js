@@ -54,6 +54,9 @@
 		if (!shellOutput) {
 			return isError ? 'error' : 'done';
 		}
+		if (shellOutput.skipped) {
+			return 'skipped';
+		}
 		if (shellOutput.error) {
 			return 'error';
 		}
@@ -124,12 +127,24 @@
 		icon.setAttribute('aria-hidden', 'true');
 		icon.title = shellKindLabel(payload.shellKind);
 
-		const title = document.createElement('span');
-		title.className = 'drox-shell-card-title';
+		const titleWrap = document.createElement('span');
+		titleWrap.className = 'drox-shell-card-title-wrap';
+
+		const kind = document.createElement('span');
+		kind.className = 'drox-shell-card-kind';
+		kind.textContent = shellKindLabel(payload.shellKind);
+
 		const desc = String(payload.shellDescription || '').trim();
 		const commandText = String(payload.shellCommand || payload.target || '').trim();
-		title.textContent = desc || commandText.slice(0, 72) || 'Shell command';
-		title.title = commandText || desc;
+		// Short mission line: prefer model intent; fall back to truncated command.
+		const mission = desc || commandText || 'Shell command';
+		const missionEl = document.createElement('span');
+		missionEl.className = 'drox-shell-card-desc';
+		missionEl.textContent = mission.length > 80 ? `${mission.slice(0, 79)}…` : mission;
+		missionEl.title = commandText || desc;
+
+		titleWrap.appendChild(kind);
+		titleWrap.appendChild(missionEl);
 
 		const status = document.createElement('span');
 		status.className = 'drox-shell-card-status running';
@@ -137,6 +152,21 @@
 
 		const actions = document.createElement('span');
 		actions.className = 'drox-shell-card-actions';
+
+		const skipBtn = document.createElement('button');
+		skipBtn.type = 'button';
+		skipBtn.className = 'drox-shell-card-skip';
+		skipBtn.textContent = 'Skip';
+		skipBtn.title = 'Interrupt this stuck shell command and let the agent continue';
+		skipBtn.setAttribute('aria-label', 'Skip stuck shell command');
+		skipBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			skipBtn.disabled = true;
+			skipBtn.textContent = 'Skipping…';
+			D.vscode.postMessage({ type: 'skipShell' });
+		});
+		actions.appendChild(skipBtn);
 
 		const menu = document.createElement('div');
 		menu.className = 'drox-shell-card-menu';
@@ -190,13 +220,17 @@
 
 		header.appendChild(chevron);
 		header.appendChild(icon);
-		header.appendChild(title);
+		header.appendChild(titleWrap);
 		header.appendChild(status);
 		header.appendChild(actions);
 		summary.appendChild(header);
 
 		const body = document.createElement('div');
 		body.className = 'drox-shell-card-body';
+
+		// Single recessed terminal pane (Cursor-like): $ command + stdout/stderr together.
+		const terminal = document.createElement('div');
+		terminal.className = 'drox-shell-terminal';
 
 		const cmd = document.createElement('div');
 		cmd.className = 'drox-shell-cmd';
@@ -213,8 +247,9 @@
 		outputHost.className = 'drox-shell-output';
 		outputHost.dataset.role = 'shell-output';
 
-		body.appendChild(cmd);
-		body.appendChild(outputHost);
+		terminal.appendChild(cmd);
+		terminal.appendChild(outputHost);
+		body.appendChild(terminal);
 		card.appendChild(summary);
 		card.appendChild(body);
 		fn.enhanceDetailsDisclosure?.(card);
@@ -267,8 +302,16 @@
 
 	fn.finishShellCommandCard = function (card, payload) {
 		card.classList.remove('running');
-		const isError = Boolean(payload.isError);
-		if (isError) {
+		const skipBtn = card.querySelector('.drox-shell-card-skip');
+		if (skipBtn) {
+			skipBtn.remove();
+		}
+		const isSkipped = Boolean(payload.shellOutput?.skipped);
+		const isError = Boolean(payload.isError) && !isSkipped;
+		if (isSkipped) {
+			card.classList.add('is-skipped');
+			card.open = true;
+		} else if (isError) {
 			card.classList.add('error');
 			fn.markChatIssueElement?.(card);
 			card.open = true;
@@ -293,12 +336,14 @@
 		if (status) {
 			status.classList.remove('running');
 			status.textContent = formatShellStatusBadge(payload.shellOutput, isError);
-			if (isError || (payload.shellOutput && payload.shellOutput.exit_code !== 0)) {
+			if (isSkipped) {
+				status.classList.add('is-skipped');
+			} else if (isError || (payload.shellOutput && payload.shellOutput.exit_code !== 0)) {
 				status.classList.add('is-error');
 			}
 		}
 		const outputHost = card.querySelector('[data-role="shell-output"]');
-		fn.renderShellOutput(outputHost, payload.shellOutput, isError, card.open);
+		fn.renderShellOutput(outputHost, payload.shellOutput, isError || isSkipped, card.open);
 		card.addEventListener('toggle', () => {
 			fn.renderShellOutput(outputHost, payload.shellOutput, isError, card.open);
 		});
@@ -324,7 +369,8 @@
 
 	fn.appendShellProgress = function (card, payload) {
 		const outputHost = card.querySelector('[data-role="shell-output"]');
-		const chunk = String(payload.outputPreview ?? '').trim();
+		const terminal = card.querySelector('.drox-shell-terminal');
+		const chunk = String(payload.outputPreview ?? '').trimEnd();
 		if (outputHost && chunk) {
 			let pre = outputHost.querySelector('.drox-shell-output-progress');
 			if (!pre) {
@@ -332,15 +378,24 @@
 				pre.className = 'drox-shell-output-block drox-shell-output-stdout drox-shell-output-progress';
 				outputHost.appendChild(pre);
 			}
-			const tail = chunk.split('\n').slice(-8).join('\n');
+			// Thin live pane: keep a short tail so command + result stay readable.
+			const tail = chunk.split('\n').slice(-12).join('\n');
 			pre.textContent = tail;
+			if (terminal) {
+				const nearBottom = (terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight) < 32;
+				if (nearBottom) {
+					terminal.scrollTop = terminal.scrollHeight;
+				}
+			}
 		}
 		const status = card.querySelector('.drox-shell-card-status');
 		if (status) {
 			const elapsed = Number(payload.elapsedMs ?? 0);
 			const sec = elapsed > 0 ? ` · ${(elapsed / 1000).toFixed(1)}s` : '';
 			status.textContent = `running${sec}`;
+			status.classList.add('running');
 		}
+		card.classList.add('running');
 		fn.scrollLog();
 	};
 

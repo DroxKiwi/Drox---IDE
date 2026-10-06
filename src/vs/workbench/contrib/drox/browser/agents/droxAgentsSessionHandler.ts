@@ -17,6 +17,7 @@ import { URI } from '../../../../../base/common/uri.js';
 import { localize } from '../../../../../nls.js';
 import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
+import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
@@ -42,6 +43,7 @@ import { registerDroxAgentsWindowRun, unregisterDroxAgentsWindowRun } from '../.
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
+import { IDroxModelQuestionService } from '../../common/modelQuestions/droxModelQuestionService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
@@ -67,7 +69,9 @@ import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/d
 import { DROX_SESSION_HISTORY_LOAD_TIMEOUT_MS, DROX_SESSION_HISTORY_TRANSCRIPT_TIMEOUT_MS } from '../droxLoadingConstants.js';
 import { droxWorkspaceSessionsDir } from '../../common/droxWorkspacePaths.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
+import { IPathService } from '../../../../services/path/common/pathService.js';
 import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
+import { resolveDroxRulesContextPathsFromEditor } from '../rules/droxRulesContextFromEditor.js';
 
 /** Derniers tours user chargés à l'ouverture (évite un modèle chat géant en prod). */
 const DROX_AGENTS_SESSION_INITIAL_TAIL_TURNS = 25;
@@ -114,6 +118,8 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
 		@IDroxCodebaseContextService private readonly codebaseContextService: IDroxCodebaseContextService,
 		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
+		@IDroxModelQuestionService private readonly modelQuestionService: IDroxModelQuestionService,
+		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ILogService private readonly logService: ILogService,
 		@IFileService private readonly fileService: IFileService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
@@ -127,6 +133,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxSessionBackgroundService private readonly sessionBackgroundService: IDroxSessionBackgroundService,
 		@IChatTodoListService private readonly chatTodoListService: IChatTodoListService,
 		@IEditorService private readonly editorService: IEditorService,
+		@IPathService private readonly pathService: IPathService,
 	) {
 		super();
 		this._registerAgent();
@@ -391,8 +398,13 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			fileService: this.fileService,
 			codebaseContextService: this.codebaseContextService,
 			regulationService: this.regulationService,
+			modelQuestionService: this.modelQuestionService,
+			configurationService: this.configurationService,
+			userHomeFsPath: this.pathService.userHome({ preferLocal: true }).fsPath,
 			resolveCodebaseForcePathPrefixes: ws =>
 				resolveDroxCodebaseForcePathPrefixesFromEditor(this.editorService, ws),
+			resolveRulesContextPaths: ws =>
+				resolveDroxRulesContextPathsFromEditor(this.editorService, ws),
 		};
 
 		this._lastRunBySession.set(sessionKey, {

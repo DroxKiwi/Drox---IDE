@@ -82,7 +82,9 @@ export function createDroxBashToolHandler(
 		if (result.stderr) {
 			outChannel?.append(result.stderr.endsWith('\n') ? result.stderr : `${result.stderr}\n`);
 		}
-		if (result.timed_out) {
+		if (result.skipped) {
+			outChannel?.append(localize('drox.bash.skipped', '[drox] skipped by user\n'));
+		} else if (result.timed_out) {
 			outChannel?.append(
 				localize('drox.bash.timeout', '[drox] timed out after {0} ms\n', args.timeout_ms ?? 120_000),
 			);
@@ -92,8 +94,19 @@ export function createDroxBashToolHandler(
 			outChannel?.append(`[drox] exited code=${result.exit_code ?? 'null'} in ${result.duration_ms}ms\n`);
 		}
 
-		if (result.error) {
-			return { output: { error: result.error }, isError: true };
+		if (result.error || result.skipped) {
+			return {
+				output: {
+					error: result.error ?? 'Skipped by user',
+					skipped: Boolean(result.skipped),
+					command: result.command,
+					stdout: result.stdout,
+					stderr: result.stderr,
+					duration_ms: result.duration_ms,
+					terminal_instance_id: result.terminal_instance_id,
+				},
+				isError: true,
+			};
 		}
 
 		return {

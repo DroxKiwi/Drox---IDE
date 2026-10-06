@@ -30,5 +30,7 @@ suite('droxNativeFileChangeMarkdown', () => {
 		assert.ok(html.includes('diff-rem'));
 		assert.ok(html.includes('workbench.action.droxUndoFileChange'));
 		assert.ok(html.includes('workbench.action.droxOpenSessionFile'));
+		assert.ok(html.includes('data-path='));
+		assert.ok(html.includes('data-tool-id="tool_1"'));
 	});
 });

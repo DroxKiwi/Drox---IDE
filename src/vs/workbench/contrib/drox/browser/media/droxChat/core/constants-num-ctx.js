@@ -12,6 +12,10 @@
 	D.const.ARCHITECT_NUM_CTX_MIN = 2048;
 	D.const.ARCHITECT_NUM_CTX_MAX = 1000000;
 	D.const.ARCHITECT_NUM_CTX_CUSTOM = '__custom__';
+	/** Aligné sur `DROX_DEFAULT_MAX_ITERATIONS` / `DROX_MAX_ITERATIONS_CAP` (product defaults). */
+	D.const.DEFAULT_MAX_ITERATIONS = 50;
+	D.const.MAX_ITERATIONS_CAP = 1000;
+	D.const.DEFAULT_SUBAGENTS_MAX_ITERATIONS = 25;
 
 	D.fn.isArchitectNumCtxPreset = function (value) {
 		const n = Math.floor(Number(value));

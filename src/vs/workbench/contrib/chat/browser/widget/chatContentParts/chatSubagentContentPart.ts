@@ -11,7 +11,6 @@ import { Lazy } from '../../../../../../base/common/lazy.js';
 import { IRenderedMarkdown } from '../../../../../../base/browser/markdownRenderer.js';
 import { DisposableStore, IDisposable, MutableDisposable } from '../../../../../../base/common/lifecycle.js';
 import { autorun } from '../../../../../../base/common/observable.js';
-import { rcut } from '../../../../../../base/common/strings.js';
 import { localize } from '../../../../../../nls.js';
 import { IHoverService } from '../../../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
@@ -31,8 +30,6 @@ import { CollapsibleListPool } from './chatReferencesContentPart.js';
 import { buildPhrasePool, createThinkingIcon, getToolInvocationIcon } from './chatThinkingContentPart.js';
 import { ChatToolInvocationPart } from './toolInvocationParts/chatToolInvocationPart.js';
 import './media/chatSubagentContent.css';
-
-const MAX_TITLE_LENGTH = 100;
 
 const subagentWorkingMessages = [
 	localize('chat.subagent.working.1', 'Processing'),
@@ -88,6 +85,8 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 	private readonly isInitiallyComplete: boolean;
 	private promptContainer: HTMLElement | undefined;
 	private resultContainer: HTMLElement | undefined;
+	private liveNotesContainer: HTMLElement | undefined;
+	private liveNotesBody: HTMLElement | undefined;
 	private lastItemWrapper: HTMLElement | undefined;
 	private readonly layoutScheduler: AnimationFrameScheduler;
 	private description: string;
@@ -206,7 +205,7 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 		const initialTitle = `${prefix}: ${description}`;
 		super(initialTitle, context, undefined, hoverService, configurationService);
 
-		this.description = rcut(description, MAX_TITLE_LENGTH);
+		this.description = description;
 		this._isDefaultDescription = isDefaultDescription;
 		this.agentName = agentName;
 		this.prompt = prompt;
@@ -254,8 +253,9 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 			}
 		}));
 
-		// Start collapsed - fixed scrolling mode shows limited height when collapsed
-		this.setExpanded(false);
+		// Drox: keep Explore / sub-agent flows expanded by default so the user
+		// can follow prompt + activity without hunting for a chevron.
+		this.setExpanded(true);
 
 		// Track user manual expansion
 		// If the user expands (not via auto-expand for confirmation), mark it as manual
@@ -331,8 +331,18 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 	protected override initContent(): HTMLElement {
 		this.wrapper = $('.chat-used-context-list.chat-thinking-collapsible');
 
-		// Hide initially until there are tool calls
-		if (!this.hasToolItems) {
+		const startMarker = $('.chat-subagent-boundary.chat-subagent-boundary-start');
+		const rawName = this.agentName || localize('chat.subagent.prefix', 'Subagent');
+		const agentLabel = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+		startMarker.textContent = localize(
+			'chat.subagent.boundaryStart',
+			'{0} sub-agent — started',
+			agentLabel,
+		);
+		this.wrapper.appendChild(startMarker);
+
+		// Hide initially until there are tool calls / prompt / markers to show
+		if (!this.hasToolItems && !this.prompt && !this.pendingPromptRender) {
 			this.wrapper.style.display = 'none';
 		}
 
@@ -375,39 +385,33 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 			return;
 		}
 
-		// Split into first line and rest
-		const lines = this.prompt.split('\n');
-		const rawFirstLine = lines[0] || localize('chat.subagent.prompt', 'Prompt');
-		const restOfLines = lines.slice(1).join('\n').trim();
+		// Full brief — never truncate for the title row (user must see the exact ask).
+		const title = localize('chat.subagent.prompt', 'Prompt');
+		const content = this.prompt;
 
-		// Limit first line length, moving overflow to content
-		const titleContent = rcut(rawFirstLine, MAX_TITLE_LENGTH);
-		const wasTruncated = rawFirstLine.length > MAX_TITLE_LENGTH;
-		const title = wasTruncated ? titleContent + '…' : titleContent;
-		const titleRemainder = rawFirstLine.length > titleContent.length ? rawFirstLine.slice(titleContent.length).trim() : '';
-		const content = titleRemainder
-			? (titleRemainder + (restOfLines ? '\n' + restOfLines : ''))
-			: (restOfLines || this.prompt);
-
-		// Create collapsible prompt part
+		// Create collapsible prompt part (expanded by default)
 		const collapsiblePart = this._register(this.instantiationService.createInstance(
 			ChatCollapsibleMarkdownContentPart,
 			title,
 			content,
 			this.context,
-			this.chatContentMarkdownRenderer
+			this.chatContentMarkdownRenderer,
 		));
+		collapsiblePart.expandByDefault();
 
 		// Wrap in a container for chain of thought line styling
-		this.promptContainer = $('.chat-thinking-tool-wrapper.chat-subagent-section');
+		this.promptContainer = $('.chat-thinking-tool-wrapper.chat-subagent-section.chat-subagent-prompt-section');
 		const promptIcon = createThinkingIcon(Codicon.comment);
 		this.promptContainer.appendChild(promptIcon);
 		this.promptContainer.appendChild(collapsiblePart.domNode);
 
-		// Insert at the beginning of the wrapper
-		// With lazy rendering, wrapper may not be created yet if content hasn't been expanded
+		// Insert at the beginning of the wrapper (after the start boundary if present)
 		if (this.wrapper) {
-			if (this.wrapper.firstChild) {
+			// eslint-disable-next-line no-restricted-syntax -- boundary markers are sibling DOM inserts
+			const startBoundary = this.wrapper.querySelector('.chat-subagent-boundary-start');
+			if (startBoundary?.nextSibling) {
+				this.wrapper.insertBefore(this.promptContainer, startBoundary.nextSibling);
+			} else if (this.wrapper.firstChild) {
 				this.wrapper.insertBefore(this.promptContainer, this.wrapper.firstChild);
 			} else {
 				dom.append(this.wrapper, this.promptContainer);
@@ -453,19 +457,41 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 	public markAsInactive(): void {
 		this.isActive = false;
 		this.domNode.classList.remove('chat-thinking-active');
+		this.domNode.classList.add('chat-subagent-finished');
 		if (this._collapseButton) {
 			this._collapseButton.icon = Codicon.check;
 		}
 
 		this.removeWorkingSpinner();
+		this.clearLiveNotes();
 		this.hideConfirmationPlaceholder();
 
 		if (this._isDefaultDescription) {
 			this.description = localize('chat.subagent.completedDefaultDescription', 'Ran subagent');
 		}
 		this.finalizeTitle();
-		// Collapse when done
-		this.setExpanded(false);
+		this.ensureEndBoundary();
+		// Keep expanded so the user can still read prompt + activity + report.
+		this.setExpanded(true);
+	}
+
+	private ensureEndBoundary(): void {
+		// eslint-disable-next-line no-restricted-syntax -- boundary markers are sibling DOM inserts
+		if (!this.wrapper || this.wrapper.querySelector('.chat-subagent-boundary-end')) {
+			return;
+		}
+		const endMarker = $('.chat-subagent-boundary.chat-subagent-boundary-end');
+		const rawName = this.agentName || localize('chat.subagent.prefix', 'Subagent');
+		const agentLabel = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+		endMarker.textContent = localize(
+			'chat.subagent.boundaryEnd',
+			'{0} sub-agent — finished',
+			agentLabel,
+		);
+		this.wrapper.appendChild(endMarker);
+		if (this.wrapper.style.display === 'none') {
+			this.wrapper.style.display = '';
+		}
 	}
 
 	public finalizeTitle(): void {
@@ -767,6 +793,10 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 						}
 						this.updateTitle();
 					}
+					// Live Explore notes / thinking (progress → toolSpecificData.result).
+					if (this.isActive && toolInvocation.toolSpecificData.result) {
+						this.updateLiveNotes(toolInvocation.toolSpecificData.result);
+					}
 				}
 			}));
 		} else if (toolInvocation.toolSpecificData?.kind === 'subagent' && toolInvocation.toolSpecificData.result) {
@@ -794,7 +824,56 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 		}
 
 		this.pendingResultText = undefined;
+		this.clearLiveNotes();
 		this.doRenderResultText(resultText);
+	}
+
+	/**
+	 * Live thinking / notes while Explore runs (before the final Report section).
+	 * Prefer the portion after `--- report ---` when progress also streams activity lines.
+	 */
+	public updateLiveNotes(raw: string): void {
+		const notes = extractExploreLiveNotes(raw);
+		if (!notes || this.resultContainer) {
+			return;
+		}
+		if (!this.wrapper || (this.isInitiallyComplete && !this.isExpanded() && !this.hasExpandedOnce)) {
+			return;
+		}
+		if (!this.liveNotesContainer || !this.liveNotesBody) {
+			this.liveNotesContainer = $('.chat-subagent-live-notes');
+			const header = $('.chat-subagent-live-notes-header');
+			const icon = createThinkingIcon(Codicon.circleFilled);
+			header.appendChild(icon);
+			const label = $('div.chat-subagent-live-notes-label');
+			label.textContent = localize('chat.subagent.liveNotes', 'Thinking');
+			header.appendChild(label);
+			this.liveNotesBody = $('pre.chat-subagent-live-notes-body');
+			this.liveNotesContainer.appendChild(header);
+			this.liveNotesContainer.appendChild(this.liveNotesBody);
+			const anchor = this.workingSpinnerElement ?? this.resultContainer;
+			if (anchor) {
+				this.wrapper.insertBefore(this.liveNotesContainer, anchor);
+			} else {
+				dom.append(this.wrapper, this.liveNotesContainer);
+			}
+			if (this.wrapper.style.display === 'none') {
+				this.wrapper.style.display = '';
+			}
+		}
+		this.liveNotesBody.textContent = notes;
+		const nearBottom = (this.liveNotesBody.scrollHeight - this.liveNotesBody.scrollTop - this.liveNotesBody.clientHeight) < 48;
+		if (nearBottom) {
+			this.liveNotesBody.scrollTop = this.liveNotesBody.scrollHeight;
+		}
+	}
+
+	private clearLiveNotes(): void {
+		if (this.liveNotesContainer) {
+			this.liveNotesContainer.remove();
+			this.liveNotesContainer = undefined;
+			this.liveNotesBody = undefined;
+		}
 	}
 
 	private doRenderResultText(resultText: string): void {
@@ -802,38 +881,34 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 			return;
 		}
 
-		// Split into first line and rest
-		const lines = resultText.split('\n');
-		const rawFirstLine = lines[0] || '';
-		const restOfLines = lines.slice(1).join('\n').trim();
+		const title = localize('chat.subagent.result', 'Report');
+		const content = resultText;
 
-		// Limit first line length, moving overflow to content
-		const titleContent = rcut(rawFirstLine, MAX_TITLE_LENGTH);
-		const wasTruncated = rawFirstLine.length > MAX_TITLE_LENGTH;
-		const title = wasTruncated ? titleContent + '…' : titleContent;
-		const titleRemainder = rawFirstLine.length > titleContent.length ? rawFirstLine.slice(titleContent.length).trim() : '';
-		const content = titleRemainder
-			? (titleRemainder + (restOfLines ? '\n' + restOfLines : ''))
-			: restOfLines;
-
-		// Create collapsible result part
+		// Create collapsible result part (expanded by default)
 		const collapsiblePart = this._register(this.instantiationService.createInstance(
 			ChatCollapsibleMarkdownContentPart,
 			title,
 			content,
 			this.context,
-			this.chatContentMarkdownRenderer
+			this.chatContentMarkdownRenderer,
 		));
+		collapsiblePart.expandByDefault();
 
 		// Wrap in a container for chain of thought line styling
-		this.resultContainer = $('.chat-thinking-tool-wrapper.chat-subagent-section');
+		this.resultContainer = $('.chat-thinking-tool-wrapper.chat-subagent-section.chat-subagent-result-section');
 		const resultIcon = createThinkingIcon(Codicon.check);
 		this.resultContainer.appendChild(resultIcon);
 		this.resultContainer.appendChild(collapsiblePart.domNode);
 
 		// With lazy rendering, wrapper may not be created yet if content hasn't been expanded
 		if (this.wrapper) {
-			dom.append(this.wrapper, this.resultContainer);
+			// eslint-disable-next-line no-restricted-syntax -- boundary markers are sibling DOM inserts
+			const endBoundary = this.wrapper.querySelector('.chat-subagent-boundary-end');
+			if (endBoundary) {
+				this.wrapper.insertBefore(this.resultContainer, endBoundary);
+			} else {
+				dom.append(this.wrapper, this.resultContainer);
+			}
 
 			// Show the container if it was hidden
 			if (this.wrapper.style.display === 'none') {
@@ -1189,4 +1264,24 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 		}
 		return false;
 	}
+}
+
+/** Split Explore progress: activity tool lines vs thinking / report preview. */
+function extractExploreLiveNotes(raw: string): string {
+	const text = String(raw ?? '').trim();
+	if (!text) {
+		return '';
+	}
+	const marker = '\n--- report ---\n';
+	const idx = text.indexOf(marker);
+	if (idx >= 0) {
+		return text.slice(idx + marker.length).trim();
+	}
+	if (text.startsWith('--- report ---\n')) {
+		return text.slice('--- report ---\n'.length).trim();
+	}
+	// Thinking-only stream (no activity marker yet) — skip pure `→ tool` lines.
+	const lines = text.split(/\r?\n/);
+	const nonActivity = lines.filter(line => !/^\s*→\s+\S/.test(line) && !/^\s*---\s*phase:\s*report\s*---\s*$/i.test(line));
+	return nonActivity.join('\n').trim();
 }

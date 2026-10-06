@@ -9,33 +9,67 @@ import {
 	buildExploreSubagentToolSpecificData,
 	buildExploreToolFinishWire,
 	buildExploreToolStartWire,
+	deriveExploreTitle,
 } from '../../../common/chat/droxExploreToolWire.js';
 
 suite('Drox — Explore tool wire', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	test('buildExploreToolStartWire extracts description and thoroughness', () => {
+	test('buildExploreToolStartWire extracts title, description and thoroughness', () => {
 		const wire = buildExploreToolStartWire('task', {
-			description: 'Find auth entry points',
+			title: 'Find auth entry points',
+			description: 'Locate where auth is wired in the IDE and engine.\nReturn paths + symbols.',
 			thoroughness: 'medium',
 			subagent_type: 'explore',
 		});
 		assert.deepStrictEqual(wire, {
-			exploreDescription: 'Find auth entry points',
+			exploreTitle: 'Find auth entry points',
+			exploreDescription: 'Locate where auth is wired in the IDE and engine.\nReturn paths + symbols.',
 			exploreThoroughness: 'medium',
 		});
 	});
 
-	test('buildExploreSubagentToolSpecificData matches Cursor subagent shape', () => {
+	test('deriveExploreTitle falls back to first description line', () => {
+		assert.strictEqual(
+			deriveExploreTitle(undefined, 'Map pedagogy docs\n\nGoal: inventory markdown under docs/pedagogie'),
+			'Map pedagogy docs',
+		);
+	});
+
+	test('deriveExploreTitle rejects meta parrot titles', () => {
+		assert.strictEqual(
+			deriveExploreTitle(
+				'Mission double, très approfondie. Le sub-agent ne voit PAS ce chat — tout le contexte est ici.',
+				'Goal: Map docs/pedagogie\n\nList markdown files and H1/H2 titles.',
+			),
+			'Map docs/pedagogie',
+		);
+	});
+
+	test('deriveExploreTitle skips meta first line of description', () => {
+		assert.strictEqual(
+			deriveExploreTitle(
+				undefined,
+				'Mission double, très approfondie. Le sub-agent ne voit PAS ce chat — tout le contexte est ici.\nCONTEXTE : workspace Next.js\nObjectif : cartographier docs/pedagogie',
+			),
+			'cartographier docs/pedagogie',
+		);
+	});
+
+	test('buildExploreSubagentToolSpecificData uses short title + full prompt', () => {
 		const data = buildExploreSubagentToolSpecificData(
-			{ exploreDescription: 'Find alert config', exploreThoroughness: 'quick' },
+			{
+				exploreTitle: 'Find alert config',
+				exploreDescription: 'Search droxConfiguration for traffic alerts.\nReturn the setting keys.',
+				exploreThoroughness: 'quick',
+			},
 			{ exploreReport: 'Alerts live in droxConfiguration.' },
 		);
 		assert.deepStrictEqual(data, {
 			kind: 'subagent',
 			agentName: 'explore',
 			description: 'Find alert config',
-			prompt: 'Find alert config',
+			prompt: 'Search droxConfiguration for traffic alerts.\nReturn the setting keys.',
 			result: 'Alerts live in droxConfiguration.',
 		});
 	});

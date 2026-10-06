@@ -33,6 +33,37 @@
 		return 'done';
 	}
 
+	function shortExploreTitle(payload) {
+		const title = String(payload.exploreTitle || '').trim();
+		if (title) {
+			return title;
+		}
+		const description = String(payload.exploreDescription || payload.target || '').trim();
+		if (!description) {
+			return 'Read-only exploration';
+		}
+		const first = description.split(/\r?\n/).map((l) => l.trim()).find((l) => l) || description;
+		return first.length > 72 ? `${first.slice(0, 71).trimEnd()}…` : first;
+	}
+
+	/** Split live progress into activity lines vs report preview. */
+	function splitExploreLive(chunk) {
+		const raw = String(chunk ?? '');
+		const marker = '\n--- report ---\n';
+		const idx = raw.indexOf(marker);
+		if (idx >= 0) {
+			return {
+				activity: raw.slice(0, idx).trimEnd(),
+				report: raw.slice(idx + marker.length).trim(),
+			};
+		}
+		if (raw.startsWith('--- report ---\n')) {
+			return { activity: '', report: raw.slice('--- report ---\n'.length).trim() };
+		}
+		// Activity-only (tool lines) when no marker yet.
+		return { activity: raw.trimEnd(), report: '' };
+	}
+
 	function mountExploreCard(card) {
 		const parent = fn.getLogMountParent() || D.dom.logEl;
 		if (parent === D.dom.logEl) {
@@ -84,17 +115,17 @@
 		const titleWrap = document.createElement('span');
 		titleWrap.className = 'drox-explore-card-title-wrap';
 
-		const title = document.createElement('span');
-		title.className = 'drox-explore-card-title';
-		title.textContent = 'Explore';
+		const kind = document.createElement('span');
+		kind.className = 'drox-explore-card-kind';
+		kind.textContent = 'Explore';
 
-		const description = String(payload.exploreDescription || payload.target || '').trim();
+		const mission = shortExploreTitle(payload);
 		const descEl = document.createElement('span');
 		descEl.className = 'drox-explore-card-desc';
-		descEl.textContent = description || 'Read-only exploration';
-		descEl.title = description;
+		descEl.textContent = mission;
+		descEl.title = mission;
 
-		titleWrap.appendChild(title);
+		titleWrap.appendChild(kind);
 		titleWrap.appendChild(descEl);
 
 		const thoroughness = String(payload.exploreThoroughness || '').trim();
@@ -143,7 +174,8 @@
 			e.stopPropagation();
 			menu.classList.remove('is-open');
 			const report = card.querySelector('[data-role="explore-report"]')?.textContent
-				|| description;
+				|| card.querySelector('[data-role="explore-prompt"]')?.textContent
+				|| mission;
 			copyText(report);
 		});
 
@@ -162,13 +194,46 @@
 		const body = document.createElement('div');
 		body.className = 'drox-explore-card-body';
 
+		const brief = String(payload.exploreDescription || '').trim();
+		if (brief) {
+			const promptDetails = document.createElement('details');
+			promptDetails.className = 'drox-explore-prompt';
+			// Open only when brief is short enough to skim.
+			promptDetails.open = brief.length <= 280;
+			const promptSummary = document.createElement('summary');
+			promptSummary.className = 'drox-explore-prompt-summary';
+			promptSummary.textContent = 'Prompt';
+			const promptPre = document.createElement('pre');
+			promptPre.className = 'drox-explore-prompt-body';
+			promptPre.dataset.role = 'explore-prompt';
+			promptPre.textContent = brief;
+			promptDetails.appendChild(promptSummary);
+			promptDetails.appendChild(promptPre);
+			body.appendChild(promptDetails);
+			card.dataset.explorePrompt = brief;
+		}
+
+		const activityHost = document.createElement('div');
+		activityHost.className = 'drox-explore-activity';
+		activityHost.dataset.role = 'explore-activity-host';
+		const activityLabel = document.createElement('div');
+		activityLabel.className = 'drox-explore-panel-label';
+		activityLabel.textContent = 'Activity';
+		const activityPre = document.createElement('pre');
+		activityPre.className = 'drox-explore-activity-log';
+		activityPre.dataset.role = 'explore-activity';
+		activityPre.textContent = 'Waiting for tools…';
+		activityHost.appendChild(activityLabel);
+		activityHost.appendChild(activityPre);
+		body.appendChild(activityHost);
+
 		const reportHost = document.createElement('div');
 		reportHost.className = 'drox-explore-report';
 		reportHost.dataset.role = 'explore-report-host';
 
 		const placeholder = document.createElement('div');
 		placeholder.className = 'drox-explore-report-placeholder';
-		placeholder.textContent = 'Exploring…';
+		placeholder.textContent = 'Report will appear here…';
 		reportHost.appendChild(placeholder);
 
 		body.appendChild(reportHost);
@@ -210,7 +275,7 @@
 	};
 
 	fn.finishExploreCard = function (card, payload) {
-		card.classList.remove('running');
+		card.classList.remove('running', 'is-live');
 		const isError = Boolean(payload.isError) || Boolean(payload.exploreOutput?.exploreError);
 		if (isError) {
 			card.classList.add('error');
@@ -242,6 +307,10 @@
 				badge.textContent = thoroughness;
 			}
 		}
+		const activityHost = card.querySelector('[data-role="explore-activity-host"]');
+		if (activityHost && !card.querySelector('[data-role="explore-activity"]')?.textContent?.includes('→')) {
+			activityHost.hidden = true;
+		}
 		const reportHost = card.querySelector('[data-role="explore-report-host"]');
 		fn.renderExploreReport(reportHost, payload.exploreOutput, isError, card.open);
 		card.addEventListener('toggle', () => {
@@ -257,19 +326,41 @@
 			const elapsed = Number(payload.elapsedMs ?? 0);
 			const sec = elapsed > 0 ? ` · ${(elapsed / 1000).toFixed(1)}s` : '';
 			status.textContent = `running${sec}`;
+			status.classList.add('running');
 		}
+		card.classList.add('running', 'is-live');
+		card.open = true;
+		const chunk = String(payload.outputPreview ?? '').trimEnd();
+		const { activity, report } = splitExploreLive(chunk);
+
+		const activityPre = card.querySelector('[data-role="explore-activity"]');
+		if (activityPre && activity) {
+			activityPre.textContent = activity;
+			const nearBottom = (activityPre.scrollHeight - activityPre.scrollTop - activityPre.clientHeight) < 48;
+			if (nearBottom) {
+				activityPre.scrollTop = activityPre.scrollHeight;
+			}
+		}
+
 		const reportHost = card.querySelector('[data-role="explore-report-host"]');
-		const chunk = String(payload.outputPreview ?? '').trim();
-		if (reportHost && chunk) {
+		if (reportHost && report) {
 			let pre = reportHost.querySelector('.drox-explore-report-progress');
 			if (!pre) {
 				reportHost.replaceChildren();
+				const label = document.createElement('div');
+				label.className = 'drox-explore-panel-label';
+				label.textContent = 'Report (live)';
 				pre = document.createElement('pre');
 				pre.className = 'drox-explore-report-block drox-explore-report-body drox-explore-report-progress';
+				pre.dataset.role = 'explore-live';
+				reportHost.appendChild(label);
 				reportHost.appendChild(pre);
 			}
-			const tail = chunk.split('\n').slice(-10).join('\n');
-			pre.textContent = tail;
+			pre.textContent = report;
+			const nearBottom = (pre.scrollHeight - pre.scrollTop - pre.clientHeight) < 48;
+			if (nearBottom) {
+				pre.scrollTop = pre.scrollHeight;
+			}
 		}
 		fn.scrollLog();
 	};
@@ -286,7 +377,7 @@
 
 	const _createToolBlock = fn.createToolBlock;
 	fn.createToolBlock = function (payload) {
-		if (payload.name === 'task' && payload.exploreDescription) {
+		if (payload.name === 'task' && (payload.exploreDescription || payload.exploreTitle)) {
 			return fn.createExploreCard(payload);
 		}
 		return _createToolBlock.call(this, payload);

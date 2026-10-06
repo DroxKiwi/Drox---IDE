@@ -6,8 +6,11 @@
 // allow-any-unicode-comment-file
 
 /**
- * Fenêtre Agents Drox : garantit `workbench.editor.useModal: 'some'` pour activer
+ * Fenêtre Agents Drox : migration one-shot `useModal: 'all'` → `'some'` pour activer
  * les working sets per-session (voir BaseLayoutController [B2]).
+ *
+ * La garde IDE (`droxIdeUseModalGuardContribution`) empêche aussi que `'all'`
+ * fuite vers la fenêtre principale.
  */
 
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';

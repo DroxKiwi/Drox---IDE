@@ -42,6 +42,8 @@ pub struct AgentConfig {
     pub tool_hooks: Option<ToolHooksConfig>,
     /// Objectif verrouillé du run (§2.25) — injecté en tête de conversation.
     pub run_objective: Option<String>,
+    /// Caps Context-load soft (L2) — nudge post-`glob` one-shot.
+    pub context_load: crate::agent::context_load::ContextLoadPolicy,
 }
 
 impl Default for AgentConfig {
@@ -59,6 +61,7 @@ impl Default for AgentConfig {
             max_parallel_tool_calls: crate::tool_orchestration::DEFAULT_MAX_PARALLEL_TOOL_CALLS,
             tool_hooks: None,
             run_objective: None,
+            context_load: crate::agent::context_load::ContextLoadPolicy::default(),
         }
     }
 }

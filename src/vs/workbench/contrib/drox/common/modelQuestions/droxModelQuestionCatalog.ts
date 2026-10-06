@@ -5,9 +5,11 @@
 
 import { IDroxModelQuestionVariant } from './droxModelQuestionTypes.js';
 import { CODEBASE_RETRIEVAL_COMPREHENSION_VARIANTS } from './questions/codebaseRetrievalComprehension.js';
+import { EXPLORE_MISSION_DECOMPOSE_VARIANTS } from './questions/exploreMissionDecompose.js';
 
 const ALL_VARIANTS: readonly IDroxModelQuestionVariant[] = [
 	...CODEBASE_RETRIEVAL_COMPREHENSION_VARIANTS,
+	...EXPLORE_MISSION_DECOMPOSE_VARIANTS,
 ];
 
 /** All registered variants (flat). Prefer {@link listDroxModelQuestionVariants}. */

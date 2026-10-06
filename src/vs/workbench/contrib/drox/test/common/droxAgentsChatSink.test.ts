@@ -198,6 +198,34 @@ suite('Drox — droxAgentsChatSink', () => {
 		}
 	});
 
+	test('task Explore prefers short title for Agents header, full brief as prompt', () => {
+		const parts: IChatProgress[] = [];
+		const sink = createDroxAgentsChatSink(p => parts.push(...p));
+		sink.handleAgentEvent(agentEvent('tool_start', {
+			id: 'explore_title_1',
+			name: 'task',
+			arguments: {
+				title: 'Map pedagogy docs',
+				description: 'Inventory markdown under docs/pedagogie.\nReturn folder map + tone notes.',
+				thoroughness: 'medium',
+				subagent_type: 'explore',
+			},
+		}));
+
+		const tools = parts.filter(p => p.kind === 'externalToolInvocationUpdate');
+		assert.strictEqual(tools.length, 1);
+		if (tools[0].kind === 'externalToolInvocationUpdate') {
+			assert.strictEqual(tools[0].invocationMessage, 'Map pedagogy docs');
+			assert.deepStrictEqual(tools[0].toolSpecificData, {
+				kind: 'subagent',
+				agentName: 'explore',
+				description: 'Map pedagogy docs',
+				prompt: 'Inventory markdown under docs/pedagogie.\nReturn folder map + tone notes.',
+				result: undefined,
+			});
+		}
+	});
+
 	test('task Explore emits Cursor-shaped subagent toolSpecificData', () => {
 		const parts: IChatProgress[] = [];
 		const sink = createDroxAgentsChatSink(p => parts.push(...p));
@@ -241,6 +269,93 @@ suite('Drox — droxAgentsChatSink', () => {
 				prompt: 'Locate Traffic alert settings',
 				result: 'See drox.traffic.alerts in settings.',
 			});
+		}
+	});
+
+	test('Explore child tools nest under parent task via subagentInvocationId', () => {
+		const parts: IChatProgress[] = [];
+		const sink = createDroxAgentsChatSink(p => parts.push(...p));
+		sink.handleAgentEvent(agentEvent('tool_start', {
+			id: 'task_parent',
+			name: 'task',
+			arguments: {
+				description: 'Map docs/pedagogie',
+				subagent_type: 'explore',
+			},
+		}));
+		sink.handleAgentEvent(agentEvent('subagent_child_tool_start', {
+			parent_id: 'task_parent',
+			id: 'child_glob',
+			name: 'glob',
+			arguments: { pattern: 'docs/**/*.md' },
+		}));
+		sink.handleAgentEvent(agentEvent('tool_progress', {
+			id: 'task_parent',
+			name: 'task',
+			output: '→ glob docs/**/*.md\n--- report ---\nFound pedagogy overview…',
+			full_output: '→ glob docs/**/*.md\n--- report ---\nFound pedagogy overview…',
+			elapsed_ms: 1200,
+			total_lines: 3,
+		}));
+		sink.handleAgentEvent(agentEvent('subagent_child_tool_finish', {
+			parent_id: 'task_parent',
+			id: 'child_glob',
+			output: { matches: ['docs/pedagogie/README.md'] },
+			is_error: false,
+		}));
+
+		const tools = parts.filter(p => p.kind === 'externalToolInvocationUpdate');
+		const childStart = tools.find(p =>
+			p.kind === 'externalToolInvocationUpdate' && p.toolCallId === 'child_glob' && !p.isComplete);
+		const childFinish = tools.find(p =>
+			p.kind === 'externalToolInvocationUpdate' && p.toolCallId === 'child_glob' && p.isComplete);
+		const liveParent = tools.filter(p =>
+			p.kind === 'externalToolInvocationUpdate' && p.toolCallId === 'task_parent' && !p.isComplete);
+
+		assert.ok(childStart && childStart.kind === 'externalToolInvocationUpdate');
+		if (childStart.kind === 'externalToolInvocationUpdate') {
+			assert.strictEqual(childStart.subagentInvocationId, 'task_parent');
+			assert.strictEqual(childStart.toolName, 'glob');
+		}
+		assert.ok(childFinish && childFinish.kind === 'externalToolInvocationUpdate');
+		if (childFinish.kind === 'externalToolInvocationUpdate') {
+			assert.strictEqual(childFinish.subagentInvocationId, 'task_parent');
+			assert.strictEqual(childFinish.isComplete, true);
+		}
+		const notesUpdate = liveParent.find(p =>
+			p.kind === 'externalToolInvocationUpdate'
+			&& p.toolSpecificData?.kind === 'subagent'
+			&& String(p.toolSpecificData.result || '').includes('Found pedagogy overview'));
+		assert.ok(notesUpdate, 'parent task should stream Explore thinking into toolSpecificData.result');
+	});
+
+	test('bash tool row shows command, not only model description', () => {
+		const parts: IChatProgress[] = [];
+		const sink = createDroxAgentsChatSink(p => parts.push(...p));
+		sink.handleAgentEvent(agentEvent('tool_start', {
+			id: 'bash_1',
+			name: 'bash',
+			arguments: {
+				command: 'type "C:\\docs\\pedagogie\\README.md"',
+				description: 'Lit le README pedagogie apres le titre principal',
+			},
+		}));
+
+		const tools = parts.filter(p => p.kind === 'externalToolInvocationUpdate');
+		assert.strictEqual(tools.length, 1);
+		if (tools[0].kind === 'externalToolInvocationUpdate') {
+			assert.ok(String(tools[0].invocationMessage).includes('type "C:\\docs\\pedagogie\\README.md"'));
+			assert.ok(tools[0].toolSpecificData && tools[0].toolSpecificData.kind === 'terminal');
+			if (tools[0].toolSpecificData?.kind === 'terminal') {
+				assert.strictEqual(
+					tools[0].toolSpecificData.commandLine.original,
+					'type "C:\\docs\\pedagogie\\README.md"',
+				);
+				assert.ok(
+					String(tools[0].toolSpecificData.commandLine.forDisplay)
+						.includes('type "C:\\docs\\pedagogie\\README.md"'),
+				);
+			}
 		}
 	});
 

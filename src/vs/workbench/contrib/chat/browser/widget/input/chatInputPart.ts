@@ -3454,10 +3454,12 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				this._droxAgentsComposerQuickActionsHost = quickActionsHost;
 				this._syncDroxAgentsFollowUpInput();
 			}
+			// Same placement as Agents `NewChatInput`: chips next to the model picker
+			// in the input toolbar — not only in the secondary row (often empty / clipped on IDE).
 			const host = createDroxAgentsChatInputToolbarHost(
 				this.instantiationService,
 				this.configurationService,
-				this.secondaryToolbarContainer,
+				toolbarsContainer,
 			);
 			if (host) {
 				this._register(host);

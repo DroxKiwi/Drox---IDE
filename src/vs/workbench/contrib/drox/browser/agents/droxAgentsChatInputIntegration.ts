@@ -16,7 +16,7 @@ import {
 	isDroxNativeChatStackEnabled,
 	readDroxArchitectModelUser,
 } from '../../common/droxAgentsConfiguration.js';
-import { DROX_CHAT_SESSION_TYPE } from '../../common/droxAgentsSession.js';
+import { DROX_CHAT_SESSION_TYPE, shouldMountDroxComposerChrome } from '../../common/droxAgentsSession.js';
 import { isDroxEmbeddingModelId, parseDroxAgentsModelIdentifier, toDroxAgentsModelIdentifier } from '../../common/droxAgentsModels.js';
 import { DroxAgentsComposerToolbar } from './droxAgentsComposerToolbar.js';
 import { createDroxAgentsChatStatusBarHost, DroxAgentsChatStatusBarHost } from './droxAgentsChatStatusBar.js';
@@ -84,7 +84,7 @@ export class DroxAgentsChatInputToolbarHost extends Disposable {
 	}
 
 	mountIfNeeded(sessionType: string | undefined): void {
-		if (!isDroxNativeChatStackEnabled(this.configurationService) || !isDroxAgentsChatSessionType(sessionType)) {
+		if (!isDroxNativeChatStackEnabled(this.configurationService) || !shouldMountDroxComposerChrome(sessionType)) {
 			this._unmount();
 			return;
 		}
@@ -92,10 +92,15 @@ export class DroxAgentsChatInputToolbarHost extends Disposable {
 			return;
 		}
 		this._hostDisposables.clear();
-		this._host.style.display = '';
-		const toolbar = this._hostDisposables.add(this.instantiationService.createInstance(DroxAgentsComposerToolbar));
-		this._toolbar = toolbar;
-		this._host.appendChild(toolbar.domNode);
+		this._host.style.display = 'flex';
+		try {
+			const toolbar = this._hostDisposables.add(this.instantiationService.createInstance(DroxAgentsComposerToolbar));
+			this._toolbar = toolbar;
+			this._host.appendChild(toolbar.domNode);
+		} catch (err) {
+			this._host.style.display = 'none';
+			throw err;
+		}
 	}
 
 	private _unmount(): void {

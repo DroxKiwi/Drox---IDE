@@ -587,6 +587,34 @@ suite('Drox — diagnostics → chat', () => {
 		assert.strictEqual(params.provider, 'openai_compatible');
 	});
 
+	test('buildAgentRunParams memory off by default disables memory tools', () => {
+		const off = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'default',
+			sessionId: 'ses_test',
+			settings: mockLlmSettings(),
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(off.memoryEnabled, false);
+		assert.ok((off.disabledTools as string[]).includes('memory_read'));
+		assert.ok((off.disabledTools as string[]).includes('session_search'));
+
+		const on = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS,
+			mode: 'default',
+			sessionId: 'ses_test',
+			settings: mockLlmSettings(),
+			disabledTools: [],
+			mcpToolsEnabled: true,
+			memoryEnabled: true,
+		});
+		assert.strictEqual(on.memoryEnabled, true);
+		assert.deepStrictEqual(on.disabledTools, undefined);
+	});
+
 	test('isPermissionToolAsk detects engine permission ask', () => {
 		const perm = parseUserAskParams({
 			askId: 'p1',

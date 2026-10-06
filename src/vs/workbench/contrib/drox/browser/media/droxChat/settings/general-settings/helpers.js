@@ -100,6 +100,9 @@
 			if (s.maxIterations && document.getElementById('general-settings-max-iterations')) {
 				parts.push(`×${s.maxIterations}`);
 			}
+			if (s.subagentsMaxIterations && document.getElementById('general-settings-explore-max-iterations')) {
+				parts.push(`ex×${s.subagentsMaxIterations}`);
+			}
 			hint.textContent = parts.length ? parts.join(' · ') : '—';
 		}
 		if (typeof fn.syncConnectionSummaryInPanel === 'function') {

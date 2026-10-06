@@ -560,6 +560,7 @@ async fn main() -> anyhow::Result<()> {
             None
         },
         run_objective: None,
+        context_load: Default::default(),
     };
     let agent = Agent::new(llm, registry, ctx, agent_config);
 

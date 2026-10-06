@@ -103,6 +103,7 @@ export interface IDroxChatWebviewRouterDeps {
 	readonly sessionBackgroundService: IDroxSessionBackgroundService;
 	readonly codebaseContextService: IDroxCodebaseContextService;
 	readonly regulationService: IDroxRegulationService;
+	readonly userHomeFsPath?: string;
 }
 
 export async function routeDroxChatWebviewMessage(
@@ -175,6 +176,7 @@ export async function routeDroxChatWebviewMessage(
 			break;
 		}
 		case 'cancelRun':
+			deps.clientToolsService.skipActiveBash();
 			cancelDroxChatRun(host, {
 				userAskService: deps.userAskService,
 				droxEngineService: deps.droxEngineService,
@@ -182,6 +184,13 @@ export async function routeDroxChatWebviewMessage(
 				runRevertService: deps.runRevertService,
 			}, tabs.currentSessionId);
 			break;
+		case 'skipShell': {
+			const skipped = deps.clientToolsService.skipActiveBash();
+			if (!skipped) {
+				deps.logService.info('[Drox] skipShell: no active IDE bash to interrupt');
+			}
+			break;
+		}
 		case 'revertLastRun':
 			await handleDroxRevertLastRun(host, deps);
 			break;
@@ -210,6 +219,8 @@ export async function routeDroxChatWebviewMessage(
 				codebaseContextService: deps.codebaseContextService,
 				editorService: deps.editorService,
 				regulationService: deps.regulationService,
+				userHomeFsPath: deps.userHomeFsPath,
+				configurationService: deps.configurationService,
 			}, raw.messageId);
 			break;
 		case 'restartRunAfterError':
@@ -226,6 +237,8 @@ export async function routeDroxChatWebviewMessage(
 				codebaseContextService: deps.codebaseContextService,
 				editorService: deps.editorService,
 				regulationService: deps.regulationService,
+				userHomeFsPath: deps.userHomeFsPath,
+				configurationService: deps.configurationService,
 			}, raw.messageId);
 			break;
 		case 'undoFileChange':

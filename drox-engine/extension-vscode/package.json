@@ -320,11 +320,17 @@
           "scope": "resource",
           "markdownDescription": "Expose les outils **MCP** découverts (préfixe `mcp__…`) au modèle. Désactiver pour couper tout MCP sans lister chaque outil dynamique."
         },
-        "drox.subagents.enabled": {
+        "drox.memory.enabled": {
           "type": "boolean",
           "default": false,
           "scope": "resource",
-          "markdownDescription": "Active l'outil **`task`** (sous-agent **Explore** en lecture seule : `grep`, `glob`, `file_read`, `lsp`, web). **Désactivé par défaut** — le modèle principal ne voit pas `task` tant que ce paramètre est `false`."
+          "markdownDescription": "Mémoire workspace : injecte `MEMORY.md` / `DROX.md`, liste les archives `.drox/memory/sessions`, persiste les résumés de run, expose `memory_*` / `session_note`. **Désactivé par défaut (temporaire)** — remettre à `true` pour réactiver."
+        },
+        "drox.subagents.enabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Interrupteur maître de l'outil **`task`** (sous-agent **Explore** en lecture seule : `grep`, `glob`, `file_read`, `lsp`, web). **Activé par défaut**. Dans Drox IDE, l'exposition réelle reste filtrée par la régulation L2 (`standard` / `full` uniquement)."
         },
         "drox.subagents.maxIterations": {
           "type": "number",

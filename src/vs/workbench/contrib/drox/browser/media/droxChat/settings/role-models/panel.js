@@ -15,6 +15,20 @@
 		if (D.dom.roleModelPanelNumCtxEl) {
 			fn.syncArchitectNumCtxPanelFromState();
 		}
+		if (D.dom.roleModelPanelMaxIterationsEl) {
+			const maxIter = D.state.generalSettings?.maxIterations;
+			const fallback = D.const.DEFAULT_MAX_ITERATIONS ?? 50;
+			D.dom.roleModelPanelMaxIterationsEl.value = formatPanelNumber(
+				maxIter !== undefined && maxIter !== null && maxIter !== '' ? maxIter : fallback,
+			);
+		}
+		if (D.dom.roleModelPanelExploreMaxIterationsEl) {
+			const exploreMax = D.state.generalSettings?.subagentsMaxIterations;
+			const fallback = D.const.DEFAULT_SUBAGENTS_MAX_ITERATIONS ?? 25;
+			D.dom.roleModelPanelExploreMaxIterationsEl.value = formatPanelNumber(
+				exploreMax !== undefined && exploreMax !== null && exploreMax !== '' ? exploreMax : fallback,
+			);
+		}
 		if (D.dom.roleModelPanelTemperatureEl) {
 			D.dom.roleModelPanelTemperatureEl.value = formatPanelNumber(D.state.architectTemperature);
 		}

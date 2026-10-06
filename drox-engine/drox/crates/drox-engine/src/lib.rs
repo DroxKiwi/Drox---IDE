@@ -99,8 +99,8 @@ pub use drox_session::{
     write_transcript, DroxIgnoreMatcher, WorkspaceMapStore,
 };
 pub use drox_tools::{
-    format_skills_listing_for_prompt, load_skills_catalog, SessionNote, SessionNotesHandle,
-    SubagentExecutor, SubagentSettings, ToolContext, ToolRegistry,
+    format_skills_listing_for_prompt, load_skills_catalog, ExploreOutcome, SessionNote,
+    SessionNotesHandle, SubagentExecutor, SubagentSettings, ToolContext, ToolRegistry,
 };
 pub use subagent::{EngineSubagentExecutor, explore_tool_registry};
 pub use error::EngineError;

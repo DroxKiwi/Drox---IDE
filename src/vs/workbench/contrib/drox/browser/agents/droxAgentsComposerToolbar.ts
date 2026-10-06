@@ -66,7 +66,7 @@ export class DroxAgentsComposerToolbar extends Disposable {
 
 		this._modelSettingsChip = createModelSettingsPickerChip(
 			modelSettingsLabel,
-			localize('droxAgents.modelSettingsTitle', 'Model parameters (context window, sampling, output)'),
+			localize('droxAgents.modelSettingsTitle', 'Model parameters (context window, max iterations, sampling, output)'),
 		);
 		this._serverSettingsChip = createServerSettingsPickerChip(
 			serverSettingsLabel,
@@ -224,14 +224,16 @@ export class DroxAgentsComposerToolbar extends Disposable {
 			runSettingsService: this.runSettingsService,
 		});
 		const summary = settings.connectionSummary?.trim();
-		if (summary) {
-			const short = summary.length > 24 ? `${summary.slice(0, 22)}…` : summary;
-			this._serverSettingsChip.setLabel(short);
-		} else if (!settings.server?.trim()) {
+		if (!settings.server?.trim() || !summary || summary === 'Not configured') {
 			this._serverSettingsChip.setLabel(localize('droxAgents.serverNotConfigured', 'Connect'));
 		} else {
-			const host = settings.server.replace(/^https?:\/\//, '');
-			this._serverSettingsChip.setLabel(host.length > 20 ? `${host.slice(0, 18)}…` : host);
+			const short = summary.length > 24 ? `${summary.slice(0, 22)}…` : summary;
+			const maxIter = settings.maxIterations;
+			this._serverSettingsChip.setLabel(
+				typeof maxIter === 'number' && Number.isFinite(maxIter) && maxIter > 0
+					? `${short} · ×${Math.floor(maxIter)}`
+					: short,
+			);
 		}
 	}
 

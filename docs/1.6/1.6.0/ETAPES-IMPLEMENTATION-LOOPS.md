@@ -39,6 +39,7 @@ Clôture              dogfood → RELEASE_NOTES → CLOSURE → ship
 | OBS-2 | Export messages[] par itération | 3 | M | ★★ | ⬜ reporté |
 | L-3 | Nudges sans faux `user` (providers locaux) | 3 | M | ★ | ✅ |
 | C-2 | Aligner `/compact` session | 2–3 | S | ★★ | ✅ |
+| FX-B+ | Intent-only large write → nudge chunk + UI | dogfood | S | ★★ | ✅ |
 
 ---
 
@@ -216,7 +217,8 @@ npm run watch   # si UI G-1 / OBS
 - Supprimer le protocole `[phase: done]`.  
 - Refonte complète régulation / MEMORY.  
 - MCP lazy discovery façon Cursor (backlog post-1.6.0 si besoin).  
-- Fine-tune ou prompt géant anti-boucle sans garde runtime.
+- Fine-tune ou prompt géant anti-boucle sans garde runtime.  
+- Situation card / CORE slim / snip chaud agressif → **[Vague 4 PLAN-CONTEXT-SITUATION](PLAN-CONTEXT-SITUATION.md)** (dans 1.6.0).
 
 ---
 
@@ -224,4 +226,5 @@ npm run watch   # si UI G-1 / OBS
 
 - [README 1.6.0](README.md)  
 - [PLAN-AGENT-LOOP-CONTEXT.md](PLAN-AGENT-LOOP-CONTEXT.md) (lots / IDs)  
-- [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md)
+- [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md)  
+- [PLAN-CONTEXT-SITUATION.md](PLAN-CONTEXT-SITUATION.md) (Vague 4)

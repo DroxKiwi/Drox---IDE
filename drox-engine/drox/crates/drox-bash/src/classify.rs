@@ -43,10 +43,22 @@ pub fn kind_of_segment(segment: &str) -> BashCommandKind {
     let Some(first) = first_executable_token(segment) else {
         return BashCommandKind::Unknown;
     };
-    let base = first
-        .rsplit_once('/')
-        .map_or(first, |(_, name)| name)
-        .to_ascii_lowercase();
+    let base = normalize_exe_token(first);
+
+    // `cmd /c …`, `powershell -Command …` — peel the wrapper and classify the payload.
+    if matches!(base.as_str(), "cmd" | "cmd.exe") {
+        if let Some(inner) = peel_cmd_c_payload(segment) {
+            return kind_of_segment(inner);
+        }
+    }
+    if matches!(
+        base.as_str(),
+        "powershell" | "powershell.exe" | "pwsh" | "pwsh.exe"
+    ) {
+        if let Some(inner) = peel_powershell_command_payload(segment) {
+            return kind_of_segment(inner);
+        }
+    }
 
     if READ_ONLY.contains(&base.as_str()) {
         return BashCommandKind::ReadOnly;
@@ -77,6 +89,64 @@ pub fn kind_of_segment(segment: &str) -> BashCommandKind {
     }
 
     BashCommandKind::Unknown
+}
+
+/// Basename without path / `.exe` suffix, lowercased (`C:\Windows\System32\cmd.EXE` → `cmd`).
+fn normalize_exe_token(first: &str) -> String {
+    let name = first
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(first);
+    let without_exe = name
+        .strip_suffix(".exe")
+        .or_else(|| name.strip_suffix(".EXE"))
+        .unwrap_or(name);
+    without_exe.to_ascii_lowercase()
+}
+
+/// `cmd /c "…"` / `cmd.exe /C …` → inner command string (unquoted when possible).
+fn peel_cmd_c_payload(segment: &str) -> Option<&str> {
+    let mut it = segment.split_whitespace().filter(|t| !ENV_ASSIGN.is_match(t));
+    let _cmd = it.next()?;
+    let flag = it.next()?.to_ascii_lowercase();
+    if flag != "/c" && flag != "-c" {
+        return None;
+    }
+    // Remainder of the segment after `/c` (preserve spaces inside quotes).
+    let lower = segment.to_ascii_lowercase();
+    let idx = lower.find("/c").or_else(|| lower.find("-c"))?;
+    let after = segment[idx + 2..].trim_start();
+    Some(strip_wrapping_quotes(after))
+}
+
+/// `powershell -Command "…"` / `pwsh -c '…'` → inner script.
+fn peel_powershell_command_payload(segment: &str) -> Option<&str> {
+    let lower = segment.to_ascii_lowercase();
+    for flag in ["-command", "-c"] {
+        if let Some(idx) = lower.find(flag) {
+            // Require flag boundary (start or whitespace before).
+            if idx > 0 && !segment.as_bytes()[idx - 1].is_ascii_whitespace() {
+                continue;
+            }
+            let after = segment[idx + flag.len()..].trim_start();
+            if after.is_empty() {
+                return None;
+            }
+            return Some(strip_wrapping_quotes(after));
+        }
+    }
+    None
+}
+
+fn strip_wrapping_quotes(s: &str) -> &str {
+    let t = s.trim();
+    if t.len() >= 2
+        && ((t.starts_with('"') && t.ends_with('"')) || (t.starts_with('\'') && t.ends_with('\'')))
+    {
+        &t[1..t.len() - 1]
+    } else {
+        t
+    }
 }
 
 /// `sed` / `awk` used as text filters (pipelines) are inspect-only; `-i` / inplace → Mutating.
@@ -228,18 +298,85 @@ pub fn command_is_inspect_only_with_workspace(
     if has_workspace_affecting_file_redirect(trimmed, workspace) {
         return false;
     }
-    let segments = match crate::split::split_command_segments(trimmed) {
+    // Peel `powershell -Command "…; …"` / `cmd /c "…"` before `;` split so
+    // inner `;` does not break the wrapper into false mutating segments.
+    let for_segments = peel_shell_wrapper_for_inspect(trimmed).unwrap_or(trimmed);
+    let segments = match crate::split::split_command_segments(for_segments) {
         Ok(s) if !s.is_empty() => s,
         Ok(_) => return true,
-        Err(_) => vec![trimmed.to_string()],
+        Err(_) => vec![for_segments.to_string()],
     };
+    // tree-sitter bash often fails on PowerShell (`[Console]::…`) → one blob.
+    // Heuristic `;` split so encoding setup + Get-Content can still be inspect-only.
+    let segments = expand_powershell_semicolon_chain(segments);
     segments.iter().all(|seg| {
         // Pure `FOO=1` leftovers from the splitter are not commands.
         if first_executable_token(seg).is_none() {
             return true;
         }
+        // PowerShell session prefs (`[Console]::OutputEncoding = …`) are not
+        // workspace mutations — dogfood used them before Get-Content and got gated.
+        if is_powershell_session_setup(seg) {
+            return true;
+        }
         kind_of_segment(seg) == BashCommandKind::ReadOnly
     })
+}
+
+fn expand_powershell_semicolon_chain(segments: Vec<String>) -> Vec<String> {
+    if segments.len() != 1 {
+        return segments;
+    }
+    let only = segments[0].as_str();
+    if !only.contains(';') {
+        return segments;
+    }
+    let lower = only.to_ascii_lowercase();
+    let looks_ps = lower.contains("[console]::")
+        || lower.contains("$outputencoding")
+        || lower.contains("get-content")
+        || lower.contains("get-childitem")
+        || lower.contains("remove-item")
+        || lower.contains("set-content");
+    if !looks_ps {
+        return segments;
+    }
+    only.split(';')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn peel_shell_wrapper_for_inspect(command: &str) -> Option<&str> {
+    let first = first_executable_token(command)?;
+    let base = normalize_exe_token(first);
+    match base.as_str() {
+        "cmd" | "cmd.exe" => peel_cmd_c_payload(command),
+        "powershell" | "powershell.exe" | "pwsh" | "pwsh.exe" => {
+            peel_powershell_command_payload(command)
+        }
+        _ => None,
+    }
+}
+
+/// `$OutputEncoding = …` / `[Console]::OutputEncoding = …` — no project write.
+/// Single statement only (no `;` / `|` chaining) so `…=…; Remove-Item` stays mutating.
+fn is_powershell_session_setup(segment: &str) -> bool {
+    let t = segment.trim();
+    if t.is_empty() || !t.contains('=') {
+        return false;
+    }
+    if t.contains(';') || t.contains('|') || t.contains("&&") || t.contains("||") {
+        return false;
+    }
+    let lower = t.to_ascii_lowercase().replace(' ', "");
+    lower.starts_with("$outputencoding=")
+        || lower.starts_with("$psdefaultparametervalues=")
+        || lower.starts_with("[console]::outputencoding=")
+        || lower.starts_with("[console]::inputencoding=")
+        || lower.starts_with("[system.console]::outputencoding=")
+        || lower.starts_with("[system.console]::inputencoding=")
 }
 
 /// `true` when the command likely writes via shell redirect (not `2>nul` / `>/dev/null` only).
@@ -469,6 +606,14 @@ static READ_ONLY: &[&str] = &[
     "readlink", "find", "hostname", "printenv", "set", "ver",
     // Text filters / search (pipelines with `ls` / `dir` — smoke ornith E14)
     "grep", "egrep", "fgrep", "rg", "findstr",
+    // PowerShell inspect / listing (IDE agent terminal often inherits PS despite cmd prompts).
+    // Dogfood: Get-ChildItem | Select-Object was falsely gated as mutating bash → loop abort.
+    "get-childitem", "gci", "get-item", "gi", "get-content", "gc", "get-location", "gl",
+    "resolve-path", "rvpa", "test-path", "select-object", "select", "where-object", "where",
+    "foreach-object", "%", "format-table", "ft", "format-list", "fl", "format-wide", "fw",
+    "out-string", "out-host", "out-null", "write-output", "write-host", "write-verbose",
+    "measure-object", "measure", "sort-object", "group-object", "select-string", "sls",
+    "get-filehash", "convertto-json", "convertfrom-json", "convertto-csv",
 ];
 
 static NETWORK: &[&str] = &[
@@ -501,6 +646,24 @@ static MUTATING: &[&str] = &[
     "chgrp",
     "install",
     "tee",
+    // PowerShell writes (IDE often inherits PS despite cmd prompts).
+    "remove-item",
+    "ri",
+    "del",
+    "erase",
+    "rd",
+    "rmdir",
+    "new-item",
+    "ni",
+    "set-content",
+    "sc",
+    "add-content",
+    "out-file",
+    "move-item",
+    "mi",
+    "copy-item",
+    "rename-item",
+    "ren",
     // `sed` / `awk` → `classify_stream_filter` (ReadOnly unless -i / inplace)
     "perl",
     "python",
@@ -807,5 +970,55 @@ mod tests {
     #[test]
     fn auto_deny_skips_ls() {
         assert!(auto_deny_message("ls -la").is_none());
+    }
+
+    /// Dogfood site-kdds 2026-10-05: PowerShell listing blocked as mutating → loop abort.
+    #[test]
+    fn powershell_listing_pipelines_are_inspect_only() {
+        assert_eq!(
+            kind_of_segment(r#"Get-ChildItem -Recurse "C:\docs\pedagogie""#),
+            BashCommandKind::ReadOnly
+        );
+        assert!(command_is_inspect_only(
+            r#"Get-ChildItem -Recurse "C:\docs\pedagogie" | Select-Object FullName, Length"#
+        ));
+        assert!(command_is_inspect_only(
+            r#"Get-ChildItem -Recurse -File "C:\docs\pedagogie" | ForEach-Object { "$($_.FullName) | $($_.Length)" }"#
+        ));
+        assert!(command_is_inspect_only(
+            r#"Get-ChildItem -Recurse "C:\docs\pedagogie" | Select-Object FullName, Length | Format-Table -AutoSize"#
+        ));
+        assert!(command_is_inspect_only(
+            r#"cmd /c "dir /s /b C:\docs\pedagogie""#
+        ));
+        assert!(command_is_inspect_only(
+            r#"cmd.exe /C dir /s /b C:\docs\pedagogie"#
+        ));
+        // Still mutate when payload mutates.
+        assert!(!command_is_inspect_only(r#"cmd /c "del /f file.txt""#));
+        assert!(!command_is_inspect_only(
+            r#"powershell -Command "Remove-Item -Recurse foo""#
+        ));
+    }
+
+    /// Dogfood: PS encoding prefix before Get-Content was falsely mutating.
+    #[test]
+    fn powershell_console_encoding_prefix_is_inspect_only() {
+        assert!(is_powershell_session_setup(
+            r#"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8"#
+        ));
+        assert!(is_powershell_session_setup(
+            r#"$OutputEncoding = [Console]::OutputEncoding"#
+        ));
+        // Prefer paths without backslash escapes that confuse shell splitters in tests.
+        assert!(command_is_inspect_only(
+            r#"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Content .\README.md -TotalCount 40"#
+        ));
+        assert!(command_is_inspect_only(
+            r#"powershell -Command "$OutputEncoding = [Console]::OutputEncoding; Get-Content .\README.md""#
+        ));
+        assert!(!command_is_inspect_only(
+            r#"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Remove-Item foo"#
+        ));
     }
 }
