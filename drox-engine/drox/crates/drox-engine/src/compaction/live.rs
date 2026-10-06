@@ -6,7 +6,7 @@ use drox_llm::LlmClient;
 use drox_types::{Message, Usage};
 use tracing::{debug, warn};
 
-use crate::context::ContextPolicy;
+use crate::context_policy::ContextPolicy;
 
 use super::helpers::{extract_metadata, truncate_chars};
 use super::summarize::summarize_run_for_live;

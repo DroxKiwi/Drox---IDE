@@ -5,7 +5,7 @@ use drox_types::{Content, Message, Role, ToolUseId};
 use drox_tools::SessionNote;
 use std::sync::Arc;
 
-use crate::context::ContextPolicy;
+use crate::context_policy::ContextPolicy;
 use drox_context::{ContextBudget, RoughTokenCounter, SnipConfig};
 
 use super::*;

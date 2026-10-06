@@ -410,7 +410,7 @@ impl Agent {
     /// `None` si le tool peut s'exécuter.
     pub(super) async fn check_permission(&self, call: &PendingToolCall) -> Option<String> {
         let policy = self.config.permissions.as_ref()?;
-        let read_only = crate::permissions::is_read_only_tool(&call.name)
+        let read_only = crate::agent_permissions::is_read_only_tool(&call.name)
             || self
                 .registry
                 .get(&call.name)

@@ -5,10 +5,10 @@
 
 pub mod hooks;
 pub mod orchestration;
-pub mod progress;
+pub mod tool_progress_bridge;
 
 pub use hooks::*;
 pub use orchestration::{
     partition_tool_calls, ToolCallBatch, DEFAULT_MAX_PARALLEL_TOOL_CALLS,
 };
-pub use progress::*;
+pub use tool_progress_bridge::*;

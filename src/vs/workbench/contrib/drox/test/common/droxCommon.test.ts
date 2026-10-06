@@ -22,6 +22,7 @@ import {
 	buildLlmModelListUrl,
 	normalizeLlmServerBaseUrl,
 	parseLlmProvider,
+	pickLlmChatProbeModel,
 	resolveLlmServerUrl,
 	resolveOllamaServerUrl,
 } from '../../common/droxLlmCatalog.js';
@@ -1520,6 +1521,15 @@ suite('Drox — agent.run params', () => {
 		if ('url' in mistral) {
 			assert.strictEqual(mistral.url, 'https://api.mistral.ai/v1/chat/completions');
 		}
+	});
+
+	test('pickLlmChatProbeModel prefers smaller parameter sizes over catalog order', () => {
+		assert.strictEqual(
+			pickLlmChatProbeModel(['gemma4:31b', 'gpt-oss:20b', 'gpt-oss:120b']),
+			'gpt-oss:20b',
+		);
+		assert.strictEqual(pickLlmChatProbeModel(['deepseek-v4.1-flash', 'gemma4:31b']), 'deepseek-v4.1-flash');
+		assert.strictEqual(pickLlmChatProbeModel([]), undefined);
 	});
 
 	test('parseDroxEnvFileContent reads DROX_SERVER and DROX_MODEL', () => {

@@ -12,6 +12,7 @@ import {
 	createDroxLlmHttp,
 	fetchLlmModelNames,
 	parseLlmProvider,
+	pickLlmChatProbeModel,
 	probeLlmChat,
 } from '../../common/droxLlmCatalog.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
@@ -52,15 +53,26 @@ export async function testDroxLlmConnectionDraft(
 	if ('error' in listTarget) {
 		return { ok: false, error: listTarget.error };
 	}
+	// Main-process HTTP only — never fall back to renderer fetch (CORS on ollama.com /api/chat).
 	const http = createDroxLlmHttp(
 		(url, headers, options) => deps.droxEngineService.fetchHttp(url, headers, options),
 		deps.requestService,
 		apiKey,
 		customHeaders,
 		authContext,
+		{ allowRendererFallback: false },
 	);
 	const httpGet = async (url: string) => http(url, { method: 'GET' });
-	const result = await fetchLlmModelNames(httpGet, provider, server);
+	let result: Awaited<ReturnType<typeof fetchLlmModelNames>>;
+	try {
+		result = await fetchLlmModelNames(httpGet, provider, server);
+	} catch (err) {
+		return {
+			ok: false,
+			error: err instanceof Error ? err.message : String(err),
+			listUrl: listTarget.url,
+		};
+	}
 	if (result.error) {
 		return { ok: false, error: result.error, listUrl: result.listUrl };
 	}
@@ -71,7 +83,7 @@ export async function testDroxLlmConnectionDraft(
 			listUrl: result.listUrl,
 		};
 	}
-	const model = result.models[0]!;
+	const model = pickLlmChatProbeModel(result.models) ?? result.models[0]!;
 	const chat = await probeLlmChat(http, provider, server, model);
 	if (!chat.ok) {
 		return {

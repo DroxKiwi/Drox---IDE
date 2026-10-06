@@ -14,7 +14,7 @@ mod vllm;
 
 use std::sync::Arc;
 
-use crate::client::LlmClient;
+use crate::llm_client::LlmClient;
 use crate::config::LlmConfig;
 use crate::error::LlmError;
 

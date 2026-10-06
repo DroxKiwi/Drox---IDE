@@ -11,7 +11,7 @@ workspace = true
 
 [[bin]]
 name = "drox"
-path = "src/main.rs"
+path = "src/main/mod.rs"
 
 [lib]
 name = "drox_cli"

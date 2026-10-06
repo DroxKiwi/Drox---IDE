@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use crate::adapters;
-use crate::client::LlmClient;
+use crate::llm_client::LlmClient;
 use crate::config::LlmConfig;
 use crate::error::LlmError;
 

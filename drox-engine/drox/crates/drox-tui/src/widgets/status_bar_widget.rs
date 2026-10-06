@@ -7,7 +7,7 @@ use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::app::{AppPhase, AppState, RunStatus};
-use crate::engine::status_bar::{format_elapsed, StatusBarSnapshot};
+use crate::engine::status_bar_snapshot::{format_elapsed, StatusBarSnapshot};
 use crate::view::spinner;
 
 pub fn render(

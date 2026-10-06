@@ -122,16 +122,20 @@ mod tests {
             },
             &mut state,
         );
-        assert!(wire.iter().any(|v| v["kind"] == "rail_station_done" && v["station"] == "read"));
-        assert!(wire.iter().any(|v| v["kind"] == "rail_station_enter" && v["station"] == "act"));
+        assert!(
+            wire.iter()
+                .any(|v| v["kind"] == "rail_station_done" && v["station"] == "read")
+        );
+        assert!(
+            wire.iter()
+                .any(|v| v["kind"] == "rail_station_enter" && v["station"] == "act")
+        );
     }
 
     #[test]
     fn text_delta_passes_through_unchanged() {
         let mut state = IdeEventShimState::default();
-        let ev = AgentEvent::TextDelta {
-            text: "hi".into(),
-        };
+        let ev = AgentEvent::TextDelta { text: "hi".into() };
         let wire = expand_agent_event_for_ide(&ev, &mut state);
         assert_eq!(wire.len(), 1);
         assert_eq!(wire[0]["kind"], "text_delta");

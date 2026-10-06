@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::simple::{
     AskUserQuestionTool, BashTool, CodebaseSearchTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,

@@ -25,6 +25,27 @@ pub(crate) fn next_todo_from_output(value: &serde_json::Value) -> Option<String>
 	pending
 }
 
+/// Id du premier todo `in_progress` (kickoff d'étape).
+#[must_use]
+pub(crate) fn first_in_progress_todo_id(value: &serde_json::Value) -> Option<String> {
+	let todos = value.get("todos")?.as_array()?;
+	for t in todos {
+		let status = t.get("status").and_then(|v| v.as_str()).unwrap_or("");
+		if status != "in_progress" {
+			continue;
+		}
+		if let Some(id) = t
+			.get("id")
+			.and_then(|v| v.as_str())
+			.map(str::trim)
+			.filter(|s| !s.is_empty())
+		{
+			return Some(id.to_string());
+		}
+	}
+	None
+}
+
 #[must_use]
 pub(crate) fn completed_todos_hint(value: &serde_json::Value) -> u64 {
 	value

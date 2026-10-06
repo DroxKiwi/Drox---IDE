@@ -3,8 +3,8 @@
 use drox_types::{Content, Message, Role};
 use serde_json::{json, Value};
 
-use crate::client::ChatOptions;
-use crate::openai::protocol::{
+use crate::llm_client::ChatOptions;
+use crate::openai::wire::{
     ChatCompletionRequest, OpenAiFunctionCallOut, OpenAiMessage, OpenAiToolCallOut,
     OpenAiToolFunction, OpenAiToolSpec,
 };
@@ -237,7 +237,7 @@ pub(crate) fn message_to_openai(m: &Message) -> OpenAiMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::client::ToolSpec;
+    use crate::llm_client::ToolSpec;
     use drox_types::ToolUseId;
     use serde_json::json;
 

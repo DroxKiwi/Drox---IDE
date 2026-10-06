@@ -20,7 +20,7 @@ use tokio::sync::mpsc;
 
 use crate::asker::{parse_answer, AskCoordinator, PendingAsk};
 use crate::engine::{apply_agent_event, compact_checkpoint_preview, cycle_preset_index, BindingAction, CompactOutcome, EngineRuntime, TuiKeybindings, VimComposer, VimKeyResult, VimMode, CONTEXT_CUSTOM_INDEX};
-use crate::engine::status_bar::StatusBarSnapshot;
+use crate::engine::status_bar_snapshot::StatusBarSnapshot;
 use crate::slash::{apply_theme, filter_entries, handle_config, handle_hooks, handle_plan, handle_slash, PendingSlash, SlashOutcome, SLASH_PALETTE_ENTRIES};
 use crate::ui::TuiThemeSetting;
 use crate::terminal;

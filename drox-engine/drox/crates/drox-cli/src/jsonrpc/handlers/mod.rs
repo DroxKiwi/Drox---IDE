@@ -14,14 +14,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use camino::{Utf8Path, Utf8PathBuf};
 use drox_engine::{
-    Agent, AgentConfig, AgentEvent, CompactionConfig, ContextPolicy, JsonlTranscriptSink,
-    LayeredConfig, MemoryRuntime, PermissionEngine, PermissionMode, PermissionPolicy, SessionError,
-    SessionNotesHandle, TranscriptSessionConfig, WorkspaceMapStore, default_sessions_dir,
-    default_tool_registry, EngineSubagentExecutor, SubagentSettings,
+    Agent, AgentConfig, AgentEvent, CompactionConfig, ContextPolicy, DroxIgnoreMatcher,
+    EngineSubagentExecutor, JsonlTranscriptSink, LayeredConfig, MemoryRuntime, PermissionEngine,
+    PermissionMode, PermissionPolicy, SessionError, SessionNotesHandle, SubagentSettings,
+    TranscriptSessionConfig, WorkspaceMapStore, default_sessions_dir, default_tool_registry,
     format_sessions_listing_for_prompt, list_sessions, load_memdir, load_sessions_listing,
     memdir_system_prefix, read_session_ui_stats, read_transcript, session_ui_stats_path,
     summarize_run, transcript_path, truncate_after_last_user, write_session_ui_stats,
-    write_transcript, DroxIgnoreMatcher,
+    write_transcript,
 };
 use drox_llm::{ChatOptions, LlmClient, LlmConfig, create_llm_client};
 use drox_mcp::McpHub;
@@ -39,12 +39,13 @@ use serde_json::{Value, json};
 use tracing::warn;
 
 use super::ide_event_shim::{IdeEventShimState, expand_agent_event_for_ide};
-use super::protocol::{
+use super::rpc_types::{
     AgentCancelParams, AgentCancelResult, AgentDoneNotification, AgentEventNotification,
     AgentRunParams, AgentRunResult, InitializeParams, InitializeResult, RunStatus,
     SessionCompactParams, SessionCompactResult, SessionCompactUsageDto, SessionListEntryDto,
     SessionListParams, SessionReadParams, SessionReadResult, SessionTruncateAfterLastUserParams,
-    SessionTruncateAfterLastUserResult, UserAskParams, UserAskQuestion, UserAskOption, UserAskResult,
+    SessionTruncateAfterLastUserResult, UserAskOption, UserAskParams, UserAskQuestion,
+    UserAskResult,
 };
 use super::remote_tool::RemoteTool;
 use super::server::Server;
@@ -143,14 +144,12 @@ pub async fn session_truncate_after_last_user(params: Option<Value>) -> Result<V
         }
     };
     let truncated = truncate_after_last_user(&messages);
-    write_transcript(&path, &truncated)
-        .await
-        .map_err(|e| {
-            RpcError::new(
-                ENGINE_ERROR,
-                format!("session.truncateAfterLastUser write failed: {e}"),
-            )
-        })?;
+    write_transcript(&path, &truncated).await.map_err(|e| {
+        RpcError::new(
+            ENGINE_ERROR,
+            format!("session.truncateAfterLastUser write failed: {e}"),
+        )
+    })?;
     serde_json::to_value(SessionTruncateAfterLastUserResult {
         message_count: truncated.len(),
     })
@@ -356,9 +355,8 @@ fn build_llm_config(
     let server_url = server.unwrap_or_else(|| {
         std::env::var("DROX_SERVER").unwrap_or_else(|_| "http://localhost:11434".into())
     });
-    let model = model.unwrap_or_else(|| {
-        std::env::var("DROX_MODEL").unwrap_or_else(|_| "llama3.2".into())
-    });
+    let model =
+        model.unwrap_or_else(|| std::env::var("DROX_MODEL").unwrap_or_else(|_| "llama3.2".into()));
 
     let mut llm_config = LlmConfig::try_from_str(&server_url, &model)
         .map_err(|e| RpcError::new(CONFIG_ERROR, format!("invalid LLM config: {e}")))?;
@@ -378,10 +376,7 @@ fn build_llm_config(
     if let Some(n) = env_i64("DROX_NUM_PREDICT") {
         llm_config = llm_config.with_num_predict(n);
     }
-    if let Some(v) = run
-        .and_then(|p| p.top_p)
-        .or_else(|| env_f32("DROX_TOP_P"))
-    {
+    if let Some(v) = run.and_then(|p| p.top_p).or_else(|| env_f32("DROX_TOP_P")) {
         llm_config = llm_config.with_top_p(Some(v));
     }
     if let Some(n) = run
@@ -397,16 +392,10 @@ fn build_llm_config(
     {
         llm_config = llm_config.with_repeat_penalty(Some(v));
     }
-    if let Some(n) = run
-        .and_then(|p| p.seed)
-        .or_else(|| env_i64("DROX_SEED"))
-    {
+    if let Some(n) = run.and_then(|p| p.seed).or_else(|| env_i64("DROX_SEED")) {
         llm_config = llm_config.with_seed(Some(n));
     }
-    if let Some(v) = run
-        .and_then(|p| p.min_p)
-        .or_else(|| env_f32("DROX_MIN_P"))
-    {
+    if let Some(v) = run.and_then(|p| p.min_p).or_else(|| env_f32("DROX_MIN_P")) {
         llm_config = llm_config.with_min_p(Some(v));
     }
     if let Some(v) = run
@@ -428,14 +417,11 @@ fn build_llm_config(
     }) {
         llm_config = llm_config.with_keep_alive(Some(ka));
     }
-    if let Some(effort) = run
-        .and_then(|p| p.reasoning_effort.clone())
-        .or_else(|| {
-            std::env::var("DROX_REASONING_EFFORT")
-                .ok()
-                .filter(|s| !s.trim().is_empty())
-        })
-    {
+    if let Some(effort) = run.and_then(|p| p.reasoning_effort.clone()).or_else(|| {
+        std::env::var("DROX_REASONING_EFFORT")
+            .ok()
+            .filter(|s| !s.trim().is_empty())
+    }) {
         llm_config = llm_config.with_reasoning_effort(Some(effort));
     }
     if let Some(budget) = run.and_then(|p| p.thinking_budget).or_else(|| {
@@ -498,15 +484,13 @@ async fn build_agent_setup(
     let mut base_system = crate::prompts::prepend_core_system_prompt(base_system);
     if memory_enabled {
         // Sprint M1 — listing court des sessions archivées (≤ 10 entrées).
-        let memory_listing = load_sessions_listing(
-            workspace.as_path(),
-            drox_engine::DEFAULT_LISTING_LIMIT,
-        )
-        .await
-        .unwrap_or_else(|e| {
-            warn!(error = %e, "memory: failed to load sessions listing — ignoring");
-            Vec::new()
-        });
+        let memory_listing =
+            load_sessions_listing(workspace.as_path(), drox_engine::DEFAULT_LISTING_LIMIT)
+                .await
+                .unwrap_or_else(|e| {
+                    warn!(error = %e, "memory: failed to load sessions listing — ignoring");
+                    Vec::new()
+                });
         if let Some(block) = format_sessions_listing_for_prompt(&memory_listing) {
             base_system.push_str("\n\n");
             base_system.push_str(&block);
@@ -534,8 +518,8 @@ async fn build_agent_setup(
         workspace_fingerprint.clone(),
         Some(drox_ignore.clone()),
     )
-        .await
-        .map_err(|e| RpcError::new(ENGINE_ERROR, format!("workspace_map: {e}")))?;
+    .await
+    .map_err(|e| RpcError::new(ENGINE_ERROR, format!("workspace_map: {e}")))?;
     if let Some(block) = workspace_map.format_for_prompt() {
         base_system.push_str("\n\n");
         base_system.push_str(&block);
@@ -770,6 +754,7 @@ async fn build_agent_setup(
                 _ => ContextLoadPolicy::default(),
             }
         },
+        work_plan_frame: params.work_plan_frame.unwrap_or(false),
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);
@@ -939,7 +924,11 @@ fn format_disabled_tools_notice(disabled: &[String]) -> Option<String> {
 /// `executableTools` on remplace l'implémentation locale par un
 /// [`RemoteTool`] qui ré-émet l'appel via `tool/exec`. Si le nom n'existe pas
 /// dans la registry locale, il est ignoré (rien à wrapper).
-fn wrap_executable_tools(mut registry: ToolRegistry, server: &Server, run_id: &str) -> ToolRegistry {
+fn wrap_executable_tools(
+    mut registry: ToolRegistry,
+    server: &Server,
+    run_id: &str,
+) -> ToolRegistry {
     let remote_names = server.executable_tools();
     if remote_names.is_empty() {
         return registry;
@@ -1025,10 +1014,8 @@ fn build_permission_policy(
 
     let home = dirs::home_dir().unwrap_or_else(|| workspace.as_std_path().to_path_buf());
     let engine = Arc::new(
-        PermissionEngine::with_rules(rules).with_path_context(PathMatchContext::new(
-            workspace.as_std_path(),
-            home,
-        )),
+        PermissionEngine::with_rules(rules)
+            .with_path_context(PathMatchContext::new(workspace.as_std_path(), home)),
     );
     Ok((mode, PermissionPolicy::new(engine, mode)))
 }
@@ -1253,10 +1240,7 @@ impl UserAsker for RpcUserAsker {
             .iter()
             .enumerate()
             .map(|(i, q)| UserAskQuestion {
-                id: q
-                    .id
-                    .clone()
-                    .unwrap_or_else(|| format!("q{}", i + 1)),
+                id: q.id.clone().unwrap_or_else(|| format!("q{}", i + 1)),
                 prompt: q.prompt.clone(),
                 options: q
                     .choices
@@ -1322,12 +1306,7 @@ impl UserAsker for RpcUserAsker {
             let indices: Vec<usize> = a
                 .option_ids
                 .iter()
-                .filter_map(|opt_id| {
-                    q_rpc
-                        .options
-                        .iter()
-                        .position(|o| &o.id == opt_id)
-                })
+                .filter_map(|opt_id| q_rpc.options.iter().position(|o| &o.id == opt_id))
                 .collect();
 
             // Le `text` rendu au tool combine free_text + labels d'options
@@ -1362,7 +1341,7 @@ impl UserAsker for RpcUserAsker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::jsonrpc::protocol::AgentRunImage;
+    use crate::jsonrpc::rpc_types::AgentRunImage;
 
     fn fresh_server() -> Server {
         let (tx, _rx) = tokio::sync::mpsc::channel::<String>(8);

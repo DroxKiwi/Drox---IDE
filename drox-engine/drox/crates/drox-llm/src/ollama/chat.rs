@@ -10,10 +10,10 @@ use tokio_util::io::StreamReader;
 use tracing::{debug, instrument};
 use url::Url;
 
-use crate::client::{ChatOptions, LlmClient, StreamHandle};
+use crate::llm_client::{ChatOptions, LlmClient, StreamHandle};
 use crate::config::LlmConfig;
 use crate::error::LlmError;
-use crate::ollama::protocol::{
+use crate::ollama::wire::{
     ChatMessage, ChatRequest, ChatRequestOptions, ChatResponseChunk, ChatResponseToolCall,
     ChatToolCallFunction, ChatToolCallWire, ChatToolSpec, ChatToolSpecFunction,
 };

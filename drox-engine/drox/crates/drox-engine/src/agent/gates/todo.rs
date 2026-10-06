@@ -3,7 +3,7 @@
 use serde_json::Value;
 
 use super::super::phase::bash_is_inspect_only;
-use crate::permissions::PermissionPolicy;
+use crate::agent_permissions::PermissionPolicy;
 
 /// Liste des outils qui exigent qu'un `todo_write` ait déjà réussi dans le run.
 /// La planification est critique **avant mutation**, pas avant exploration :

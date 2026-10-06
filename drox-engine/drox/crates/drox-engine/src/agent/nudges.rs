@@ -16,21 +16,25 @@ pub(crate) const CODE_MUTATION_TESTING_NUDGE: &str = "You modified **code** in t
 
 pub(crate) const ANALYZING_PHASE_NUDGE: &str = "The user asked for a **workspace / repo analysis** \
      or topic understanding. Prefer `[phase: analyzing]` (not generic `[phase: reading]`). \
-     If the `task` tool is available this run, **default to `task` (`explore`) early** \
-     (`thoroughness`: `medium` or `very thorough`) for understanding / synthesis / multi-file \
-     scope — keep only the returned report in the parent. Needles or 1–2 known paths → direct \
-     tools. Otherwise playbook: `workspace_map_read` if `[Workspace map]` is fresh → targeted \
-     `glob` → `grep` + ranged `file_read` → `lsp`. Treat `directory_fanout_caps` / `truncated` as \
-     refine signals. Telegraphic notes in `analyzing`; full report only in `[phase: answering]`.";
+     If the `task` tool is available this run, prefer **Plan → Assign at step kickoff**: \
+     mount/update `todo_write`, then spawn one focused `task` (`explore`) when a step becomes \
+     `in_progress` (`thoroughness`: `medium` or `very thorough`) — keep only the returned report \
+     in the parent. Do **not** fan out Explore before the plan. Needles or 1–2 known paths → \
+     direct tools. Otherwise playbook: `workspace_map_read` if `[Workspace map]` is fresh → \
+     targeted `glob` → `grep` + ranged `file_read` → `lsp`. Treat `directory_fanout_caps` / \
+     `truncated` as refine signals. Telegraphic notes in `analyzing`; full report only in \
+     `[phase: answering]`.";
 
 /// 1.6.0 S-5 — parent enchaîne des lectures sans déléguer Explore.
 pub(crate) const PARENT_HEAVY_READ_NUDGE: &str = "STOP flooding the parent context with repeated \
     reads / `Get-Content` / `cat` dumps.\n\
     \n\
     For **understanding, synthesis, or multi-file reading**: if `task` (Explore) is available, \
-    you are the **session master** — **Plan → Assign → Merge** NOW:\n\
-    1. `todo_write` with 2–4 focused explore steps (or Context-load recommended_n).\n\
-    2. Spawn those `task` (`explore`) calls with `must_return` filled.\n\
+    you are the **session master** — **Plan → Assign (at step kickoff) → Merge**:\n\
+    1. If you have no plan yet: `todo_write` with focused explore-sized steps \
+    (2–4, or Context-load recommended_n).\n\
+    2. At the current `in_progress` kickoff: spawn **one** `task` (`explore`) for **that** \
+    step with `must_return` filled — not a blind multi-Explore fan-out outside the plan.\n\
     3. Keep only the returned **reports** in the parent.\n\
     \n\
     Else: `file_read` with **`start_line` + `end_line`** (short ranges) or `grep` — do NOT \
@@ -51,10 +55,11 @@ pub(crate) fn context_load_nudge(
     format!(
         "[Context load] files≈{files_effective} ≈{total_kb}KB → load={load}. \
 You are the **session master**: you only keep Explore **reports**. \
-**Plan → Assign → Merge**:\n\
-1. `todo_write` with about **{recommended_n}** explore steps (one subtree / one question each).\n\
-2. Spawn that many focused `task` (`explore`) calls — each with short `title`, scoped \
-`description`, and non-empty `must_return` (facts your parent mission still needs).\n\
+**Plan → Assign (at step kickoff) → Merge**:\n\
+1. `todo_write` with about **{recommended_n}** explore-sized **plan steps** \
+(one subtree / one question each).\n\
+2. At each step kickoff (`in_progress`), spawn **one** focused `task` (`explore`) for \
+**that** step — short `title`, scoped `description`, non-empty `must_return`.\n\
 3. Merge reports only — do **not** parent-read the whole tree.\n\
 \n\
 Sequential is fine if concurrency is 1. This is **guidance**, not a hard gate — \
@@ -87,20 +92,54 @@ Forbidden: parent-read spam, re-opening Explore spill JSON, or one new mega-brie
     )
 }
 
+/// Soft — message user classé **travail** (model question) → monter un plan.
+/// Texte only : le moteur **n'oblige pas** `todo_write` (outils libres).
+pub(crate) const WORK_PLAN_FRAME_NUDGE: &str = "WORK PLAN FRAME — procedure (not a hard gate)\n\
+    \n\
+    This user message is **work** (not chitchat). Your expected procedure:\n\
+    1. Mount or update a `todo_write` plan with clear steps for the ask.\n\
+    2. When you start a step (`in_progress`), gather info for **that** step with \
+    a focused `task` (`explore`) when Explore is available — then merge the report.\n\
+    3. Tools stay free: you may deviate, but this frame is the strongly preferred path.\n\
+    \n\
+    Do **not** skip planning for multi-step work.";
+
+/// Soft — nouvelle étape `in_progress` → Explore pour **cette** étape.
+/// Réinjecté à chaque kickoff d'étape (texte only, pas de refus outil).
+pub(crate) fn step_explore_kickoff_nudge(step_id: &str, step_content: Option<&str>) -> String {
+    let label = step_content
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(step_id);
+    format!(
+        "STEP KICKOFF — Explore for this step (soft procedure, not a hard gate)\n\
+         \n\
+         Plan step `{step_id}` is now **in_progress**: {label}\n\
+         \n\
+         Expected next move when `task`/Explore is available:\n\
+         - Spawn one focused `task` (`explore`) scoped to **this** step only.\n\
+         - Set `plan_step_id` to `{step_id}` when possible.\n\
+         - Fill `must_return` with what YOU still need from the child for this step.\n\
+         - Merge the report before heavy parent reads or mutations for this step.\n\
+         \n\
+         Needle exception (1–2 known paths) remains allowed. Tools stay free."
+    )
+}
+
 /// Annex turn-0 — ingestion / calque docs multi-fichiers (quand `task` est dispo).
 pub(crate) const DOC_INGESTION_EXPLORE_ANNEX: &str = "DOC INGESTION / MULTI-FILE DOCS — engine directive\n\
     \n\
     The user asked you to take knowledge of a **docs tree** and/or rewrite / replace \
     documentation pages from that source.\n\
     \n\
-    **Session master — Plan → Assign → Merge (numeric):**\n\
-    1. **Plan** — `todo_write` with **2–4** explore steps (inventory / tone / target page / …).\n\
-    2. **Assign** — one step → one focused `task` (`explore`): short `title`, scoped \
-    `description`, non-empty `must_return` listing what YOUR rewrite still needs from that child.\n\
-    3. **Merge** — keep only Explore `report`s; then mutate 1–2 target pages in the parent.\n\
+    Same soft frame as CORE: **Plan** (`todo_write`) → at each step kickoff **Assign** \
+    a focused `task` (`explore`) with `must_return` → **Merge** reports → mutate \
+    target pages in the parent.\n\
+    \n\
+    Prefer **2–4** explore steps (inventory / tone / target page / …). Never one mega Explore.\n\
     \n\
     The Explore sub-agent does **not** see this chat — put every needed fact into \
-    `description` + `must_return`. Never pack the whole job into one mega Explore.\n\
+    `description` + `must_return`.\n\
     \n\
     Parent may `file_read` only the **1–2 pages being rewritten** (short line ranges). \
     Do **NOT** dump the whole docs tree into the parent via `file_read` / bash dumps.\n\

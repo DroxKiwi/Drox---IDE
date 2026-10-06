@@ -18,11 +18,11 @@ use crate::error::EngineError;
 use crate::event::AgentEvent;
 
 use super::budget::explore_iteration_budget;
-use super::progress::{
+use super::explore_ui_progress::{
 	build_live_preview, flush_progress_throttled, tool_activity_line, EXPLORE_PROGRESS_INTERVAL,
 };
 use super::prompts::{thoroughness_supplement, EXPLORE_SYSTEM_PROMPT};
-use super::registry::explore_tool_registry;
+use super::explore_tool_registry::explore_tool_registry;
 use super::report::{
 	fallback_incomplete_report, parent_facing_report, strip_phase_markers, truncate_chars,
 	EXPLORE_SYNTH_NOTES_MAX_CHARS,
@@ -176,6 +176,7 @@ impl SubagentExecutor for EngineSubagentExecutor {
 				tool_hooks: None,
 				run_objective: None,
 				context_load: Default::default(),
+				work_plan_frame: false,
 			},
 		);
 

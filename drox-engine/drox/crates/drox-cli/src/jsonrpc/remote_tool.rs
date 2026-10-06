@@ -14,7 +14,7 @@ use drox_tools::{DynTool, Tool, ToolContext, ToolError};
 use serde_json::Value;
 use uuid::Uuid;
 
-use super::protocol::{ToolExecParams, ToolExecResult};
+use super::rpc_types::{ToolExecParams, ToolExecResult};
 use super::server::Server;
 
 /// Tool qui ré-émet l'appel vers le client via `tool/exec`.
@@ -111,16 +111,16 @@ mod tests {
         let server = Server::new(tx);
         server.set_executable_tools(["bash".to_string()]);
 
-        let inner = default_tool_registry().get("bash").expect("bash in registry");
+        let inner = default_tool_registry()
+            .get("bash")
+            .expect("bash in registry");
         let remote = RemoteTool::wrap(server.clone(), &inner, "run_42".to_string());
-        let ctx = ToolContext::new(Utf8PathBuf::from("/workspace"), true)
-            .with_plan_mode(false);
+        let ctx = ToolContext::new(Utf8PathBuf::from("/workspace"), true).with_plan_mode(false);
 
-        let pending = tokio::spawn(async move {
-            remote
-                .execute(&ctx, json!({ "command": "echo hi" }))
-                .await
-        });
+        let pending =
+            tokio::spawn(
+                async move { remote.execute(&ctx, json!({ "command": "echo hi" })).await },
+            );
 
         let line = rx.recv().await.expect("server should emit tool/exec");
         let parsed: Value = serde_json::from_str(&line).unwrap();
@@ -156,10 +156,7 @@ mod tests {
 
         let pending = tokio::spawn(async move {
             remote
-                .execute(
-                    &ctx,
-                    json!({ "path": "x.txt", "content": "y" }),
-                )
+                .execute(&ctx, json!({ "path": "x.txt", "content": "y" }))
                 .await
         });
 

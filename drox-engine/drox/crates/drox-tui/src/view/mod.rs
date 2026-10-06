@@ -22,7 +22,7 @@ pub mod tool_output;
 pub mod lines_viewer;
 pub mod glob_viewer;
 pub mod grep_viewer;
-pub mod scroll_viewer;
+pub mod scroll_viewer_state;
 pub mod web_fetch_viewer;
 pub mod web_search_viewer;
 pub mod bash_viewer;
@@ -34,7 +34,7 @@ pub mod transcript_search;
 
 pub use bash_output::{bash_kind_label, format_bash_finish_lines};
 pub use bash_progress::{progress_lines, ActiveBashRun};
-pub use scroll_viewer::ScrollViewerState;
+pub use scroll_viewer_state::ScrollViewerState;
 pub use hook_progress::{progress_lines as hook_progress_lines, ActiveHookProgress};
 pub use log_entry::LogEntry;
 pub use permission_preview::{

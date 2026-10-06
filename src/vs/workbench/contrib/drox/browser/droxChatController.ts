@@ -28,6 +28,7 @@ import { IDroxClientToolsService } from '../common/droxClientToolsService.js';
 import { IDroxCodebaseContextService } from '../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../common/droxEngineService.js';
 import { IDroxRegulationService } from '../common/regulation/droxRegulationServiceContract.js';
+import { IDroxModelQuestionService } from '../common/modelQuestions/droxModelQuestionService.js';
 import { applyDroxConfigurationUpdate } from '../common/droxAgentsConfiguration.js';
 import { DroxSetting } from '../common/droxConfiguration.js';
 import {
@@ -93,6 +94,7 @@ export class DroxChatController extends Disposable
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
 		@IDroxCodebaseContextService private readonly codebaseContextService: IDroxCodebaseContextService,
 		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
+		@IDroxModelQuestionService private readonly modelQuestionService: IDroxModelQuestionService,
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 		@IDroxUserAskService private readonly userAskService: IDroxUserAskService,
 		@IDroxAttachmentsService private readonly attachmentsService: IDroxAttachmentsService,
@@ -498,6 +500,7 @@ export class DroxChatController extends Disposable
 			sessionBackgroundService: this.sessionBackgroundService,
 			codebaseContextService: this.codebaseContextService,
 			regulationService: this.regulationService,
+			modelQuestionService: this.modelQuestionService,
 			userHomeFsPath: this.pathService.userHome({ preferLocal: true }).fsPath,
 		};
 	}

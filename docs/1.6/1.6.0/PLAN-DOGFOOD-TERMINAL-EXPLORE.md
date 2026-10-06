@@ -54,10 +54,12 @@ Pas de spawn auto à seuil de tokens (policy Cursor). Filet = prompts + soft-nud
 | Levier | Action | État |
 |--------|--------|------|
 | `must_return` | Champs numériques / listes structurées dans le brief enfant — pas d’heuristiques NL | ✅ |
-| Protocol parent | Plan → Assign (`task`) → Merge reports | ✅ prompts + nudges |
+| Protocol parent | Plan → Assign-at-step-kickoff (`task`) → Merge reports | ✅ prompts + soft nudges |
+| Soft plan-frame | Model question `session.user_message_is_work` → `workPlanFrame` → `WORK_PLAN_FRAME_NUDGE` (texte only) | ✅ |
+| Soft step kickoff | Nouveau todo `in_progress` → `STEP KICKOFF` Explore nudge (texte only) | ✅ |
 | Télémetrie | `truncated` / `iterations` sur outcome Explore | ✅ |
 | Rescue | Nudges post-fail + parent rescue si Explore incomplet | ✅ |
-| `explore.mission.decompose` | Question modèle pour découper une mega-mission | ✅ |
+| ~~`explore.mission.decompose`~~ | Retiré — Explore au kickoff plan/todo (soft), plus de pré-comptage missions au send | ❌ |
 
 ## Liens code
 
@@ -70,4 +72,4 @@ Pas de spawn auto à seuil de tokens (policy Cursor). Filet = prompts + soft-nud
 | `file_read` hors WS | `drox-tools/src/simple/file_read.rs` |
 | Nudge S-5 / re-read P1 | `drox-engine/.../agent/nudges.rs` · `agent/situation/` · `drive.rs` |
 | Session master / `must_return` | `task.rs` · `nudges.rs` · `situation/task_outcome.rs` · `drive.rs` |
-| Decompose mega-mission | `modelQuestions/questions/exploreMissionDecompose.ts` |
+| Soft plan-frame / step kickoff | `modelQuestions/questions/userMessageIsWork.ts` · `droxAgentRunBridge.ts` · `nudges.rs` · `drive.rs` |

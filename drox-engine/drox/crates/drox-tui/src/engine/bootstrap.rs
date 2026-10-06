@@ -347,7 +347,7 @@ impl EngineRuntime {
     pub fn format_hooks_lines(&self) -> Vec<String> {
         let merged = drox_engine::load_tool_hooks(&self.workspace);
         let active = self.hooks.lock().is_some();
-        super::hooks::format_hooks_config(&self.workspace, &merged, active)
+        super::hooks_format::format_hooks_config(&self.workspace, &merged, active)
     }
 
     fn tool_context(&self, ask: Arc<AskCoordinator>) -> ToolContext {
@@ -406,6 +406,8 @@ impl EngineRuntime {
                 max_parallel_tool_calls: DEFAULT_MAX_PARALLEL_TOOL_CALLS,
                 tool_hooks: self.hooks.lock().clone(),
                 run_objective: None,
+                context_load: Default::default(),
+                work_plan_frame: false,
             },
         )
     }

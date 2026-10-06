@@ -31,7 +31,8 @@ suite('Drox regulation R8 L3 directive', () => {
 		const guided = droxRegulationL3DirectiveAnnex('guided')!;
 		const assertive = droxRegulationL3DirectiveAnnex('assertive')!;
 		assert.ok(/Anti-rumination/i.test(assertive));
-		assert.ok(/proactively/i.test(assertive));
+		assert.ok(/plan step kickoff/i.test(assertive));
+		assert.ok(/plan step kickoff/i.test(guided));
 		assert.ok(assertive.length > guided.length);
 	});
 

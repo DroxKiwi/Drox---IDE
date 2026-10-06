@@ -1,6 +1,6 @@
 //! `/statusline` — introspection barre de statut TUI.
 
-use super::status_bar::{format_elapsed, StatusBarSnapshot};
+use super::status_bar_snapshot::{format_elapsed, StatusBarSnapshot};
 use super::EngineRuntime;
 
 /// Affiche le contenu actuel de la status line (sans lancer l'agent).

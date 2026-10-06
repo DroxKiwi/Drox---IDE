@@ -8,7 +8,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::registry::ToolRegistry;
 use crate::tool::Tool;

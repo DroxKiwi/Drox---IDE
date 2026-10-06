@@ -38,7 +38,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::tool::Tool;
 

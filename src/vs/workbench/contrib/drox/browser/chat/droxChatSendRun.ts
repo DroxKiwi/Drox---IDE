@@ -19,6 +19,7 @@ import { IDroxClientToolsService } from '../../common/droxClientToolsService.js'
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
+import { IDroxModelQuestionService } from '../../common/modelQuestions/droxModelQuestionService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePasteWire, toUserMessagePasteWire } from '../../common/droxPasteCandidates.js';
 import { formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
@@ -76,6 +77,7 @@ export async function executeDroxChatSend(
 		readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
 		readonly userHomeFsPath?: string;
 		readonly configurationService?: IConfigurationService;
+		readonly modelQuestionService?: Pick<IDroxModelQuestionService, 'classifyUserMessageIsWork'>;
 	},
 	prompt: string,
 	mode: string,
@@ -203,6 +205,7 @@ export async function executeDroxChatSend(
 			regulationService: deps.regulationService,
 			userHomeFsPath: deps.userHomeFsPath,
 			configurationService: deps.configurationService,
+			modelQuestionService: deps.modelQuestionService,
 			resolveCodebaseForcePathPrefixes: deps.editorService
 				? wsPath => resolveDroxCodebaseForcePathPrefixesFromEditor(deps.editorService!, wsPath)
 				: undefined,

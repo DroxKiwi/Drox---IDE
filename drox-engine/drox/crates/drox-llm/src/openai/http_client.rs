@@ -7,7 +7,7 @@ use futures::StreamExt;
 use tracing::{debug, instrument};
 use url::Url;
 
-use crate::client::{ChatOptions, LlmClient, StreamHandle};
+use crate::llm_client::{ChatOptions, LlmClient, StreamHandle};
 use crate::config::LlmConfig;
 use crate::error::LlmError;
 use crate::openai::request::build_request;

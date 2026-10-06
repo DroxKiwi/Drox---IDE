@@ -42,7 +42,7 @@ pub mod nudges;
 pub mod phase;
 pub mod run;
 pub mod situation;
-pub mod stream;
+pub mod consume_llm_stream;
 
 #[cfg(test)]
 mod tests;

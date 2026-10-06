@@ -14,12 +14,12 @@ import { DroxRegulationL3Module, DroxRegulationModule } from './droxRegulationTy
 const ANNEX: Readonly<Record<DroxRegulationL3Module, string | undefined>> = {
 	/** Soft: no extra directive (engine defaults only). */
 	'laissez-faire': undefined,
-	/** Default: light efficiency nudge + Explore when available. */
+	/** Default: light efficiency nudge + Explore at plan step kickoff when available. */
 	guided:
-		'Work efficiently: prefer tools over long speculation. When the next step is clear, take it. Keep narration brief. If the `task` (Explore) tool is available and the search span is large or unfamiliar, call `task`/`explore` early instead of many parent glob/grep/file_read rounds; for needle lookups use direct tools.',
-	/** Strong anti-rumination + same Explore bias. */
+		'Work efficiently: prefer tools over long speculation. When the next step is clear, take it. Keep narration brief. If the `task` (Explore) tool is available and the search span is large or unfamiliar, prefer `todo_write` then `task`/`explore` at plan step kickoff instead of many parent glob/grep/file_read rounds; for needle lookups use direct tools.',
+	/** Strong anti-rumination + same Explore-at-kickoff bias. */
 	assertive:
-		'Anti-rumination mode: do not narrate at length before acting. For simple lookups or edits, call the tool immediately. Avoid multi-paragraph plans when one tool call suffices. Prefer the shortest path to the user goal. When `task`/Explore is available, use it proactively for broad or deep codebase searches; never use it for a single known file or symbol.',
+		'Anti-rumination mode: do not narrate at length before acting. For simple lookups or edits, call the tool immediately. Avoid multi-paragraph plans when one tool call suffices. Prefer the shortest path to the user goal. When `task`/Explore is available, use it at plan step kickoff for broad or deep codebase searches (after mounting/updating the plan when scope splits); never use it for a single known file or symbol.',
 };
 
 /** Narrow `getModule('L3')` (union) to an L3 module; unknown → guided. */

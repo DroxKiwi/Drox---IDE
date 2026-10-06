@@ -25,7 +25,7 @@
 //! Voir `docs/INVENTAIRE-NOYAU-MOTEUR.md` § 2.2.
 
 pub mod adapters;
-pub mod client;
+pub mod llm_client;
 pub mod config;
 pub mod error;
 pub mod factory;
@@ -34,7 +34,7 @@ pub mod openai;
 pub mod retry;
 pub mod schema;
 
-pub use client::{ChatOptions, LlmClient, StreamHandle, ToolSpec};
+pub use llm_client::{ChatOptions, LlmClient, StreamHandle, ToolSpec};
 pub use config::LlmConfig;
 pub use error::LlmError;
 pub use factory::create_llm_client;

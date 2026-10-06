@@ -6,9 +6,9 @@ use camino::{Utf8Path, Utf8PathBuf};
 use drox_mcp::McpHub;
 
 use crate::error::ToolError;
-use crate::progress::ToolProgressSink;
+use crate::tool_progress::ToolProgressSink;
 
-use crate::asker::UserAsker;
+use crate::user_ask::UserAsker;
 use crate::scope_deferred::ScopeDeferredHandle;
 use crate::session_notes::SessionNotesHandle;
 use crate::subagent::{SubagentExecutor, SubagentSettings};

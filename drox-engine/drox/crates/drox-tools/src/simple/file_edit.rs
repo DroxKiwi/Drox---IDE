@@ -16,7 +16,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use tokio::fs;
 
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::path_util::resolve_under_workspace;
 use crate::tool::Tool;

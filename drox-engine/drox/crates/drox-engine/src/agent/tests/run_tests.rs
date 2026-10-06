@@ -184,7 +184,7 @@ async fn unknown_tool_yields_is_error_finish() {
 
 #[tokio::test]
 async fn permission_deny_skips_execution() {
-    use crate::permissions::PermissionPolicy;
+    use crate::agent_permissions::PermissionPolicy;
     use drox_permissions::{
         PermissionBehavior, PermissionEngine, PermissionMode, Rule, RuleSet, RuleSource,
         RuleValue,
@@ -263,7 +263,7 @@ async fn permission_deny_skips_execution() {
 
 #[tokio::test]
 async fn context_snip_event_emitted_when_history_exceeds_threshold() {
-    use crate::context::ContextPolicy;
+    use crate::context_policy::ContextPolicy;
     use drox_context::{ContextBudget, RoughTokenCounter, SnipConfig};
 
     // Tour 1 : modèle conclut (pas de tool call). On veut juste que le
