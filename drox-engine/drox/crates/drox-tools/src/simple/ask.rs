@@ -27,8 +27,8 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::asker::UserQuestion;
-use crate::context::ToolContext;
+use crate::user_ask::UserQuestion;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::tool::Tool;
 
@@ -457,7 +457,7 @@ fn option_id_from_label(index: usize, label: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::asker::{UserAnswer, UserAsker};
+    use crate::user_ask::{UserAnswer, UserAsker};
     use std::sync::Arc;
     use std::sync::Mutex;
 

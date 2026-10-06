@@ -9,8 +9,8 @@
 
 pub mod ids;
 pub mod messages;
-pub mod stream;
+pub mod llm_stream_events;
 
 pub use ids::{AgentId, MessageId, SessionId, ToolUseId};
 pub use messages::{Content, Message, Role};
-pub use stream::{StopReason, StreamEvent, Usage};
+pub use llm_stream_events::{StopReason, StreamEvent, Usage};

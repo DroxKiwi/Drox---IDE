@@ -3,9 +3,9 @@
 use drox_hooks::ToolHooksConfig;
 use drox_llm::ChatOptions;
 
-use crate::context::ContextPolicy;
+use crate::context_policy::ContextPolicy;
 use crate::memory::MemoryRuntime;
-use crate::permissions::PermissionPolicy;
+use crate::agent_permissions::PermissionPolicy;
 
 /// Configuration d'un agent.
 #[derive(Debug, Clone)]
@@ -44,6 +44,8 @@ pub struct AgentConfig {
     pub run_objective: Option<String>,
     /// Caps Context-load soft (L2) — nudge post-`glob` one-shot.
     pub context_load: crate::agent::context_load::ContextLoadPolicy,
+    /// Soft plan-frame (IDE `workPlanFrame`) — texte only, jamais un hard gate.
+    pub work_plan_frame: bool,
 }
 
 impl Default for AgentConfig {
@@ -62,6 +64,7 @@ impl Default for AgentConfig {
             tool_hooks: None,
             run_objective: None,
             context_load: crate::agent::context_load::ContextLoadPolicy::default(),
+            work_plan_frame: false,
         }
     }
 }

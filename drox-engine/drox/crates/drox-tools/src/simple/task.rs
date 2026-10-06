@@ -12,7 +12,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::tool::Tool;
 
@@ -52,24 +52,25 @@ fn default_thoroughness() -> Option<String> {
     Some("medium".to_string())
 }
 
-/// Cursor-style tool policy: default-to-Explore; session-master Plan → Assign → Merge.
+/// Cursor-style tool policy: soft Plan → Assign-at-step-kickoff → Merge.
 pub const TASK_TOOL_DESCRIPTION: &str = "\
 Launch a specialized **Explore** sub-agent (read-only: grep, glob, file_read, lsp, …) that \
 searches in an **isolated context** and returns a concise **report** (+ `truncated` / iteration \
 budget). **You are the session master**: you only receive summaries — write briefs that do not \
 lose content you will need later.
 
-**Session-master protocol (predictable choices):**
-1. **Plan** — `todo_write` with explore steps before heavy reading. Prefer **2–4** focused \
+**Session-master protocol (soft — tools stay free):**
+1. **Plan** — for work asks, `todo_write` with steps before heavy reading. Prefer **2–4** focused \
 missions when scope splits (use Context-load `recommended_n` when present).
-2. **Assign** — one todo step → one `task`. Fill `must_return` with every section/fact YOUR \
-mission still needs from that child. `description` = goal + scope for that mission only.
+2. **Assign at step kickoff** — when a todo becomes `in_progress`, spawn one `task` for **that** \
+step. Fill `must_return` with every section/fact YOUR mission still needs. Set `plan_step_id` \
+to the todo id when possible. `description` = goal + scope for that mission only.
 3. **Merge** — trust each `report`. Do **not** re-ingest the same tree into the parent. If \
 `truncated: true`, spawn narrower missions — never parent `file_read` spam.
 
 **When to use (MUST — be proactive):**
-- Understanding / synthesis / multi-file / docs trees / unfamiliar areas.
-- You would otherwise open ≥3 files or run several search rounds.
+- Start of a plan step that needs understanding / synthesis / multi-file / docs trees.
+- Unfamiliar areas; you would otherwise open ≥3 files or run several search rounds.
 - Early in `[phase: analyzing]` / `[phase: reading]` for broad context.
 
 **When NOT to use (narrow):**

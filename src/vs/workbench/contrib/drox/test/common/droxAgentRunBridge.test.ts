@@ -24,6 +24,7 @@ function createBridgeDeps(overrides: {
 	filterExecutableTools?: (names: readonly string[]) => string[];
 	buildAgentRunParams?: IDroxRunSettingsService['buildAgentRunParams'];
 	regulationService?: IDroxAgentRunBridgeDeps['regulationService'];
+	modelQuestionService?: IDroxAgentRunBridgeDeps['modelQuestionService'];
 } = {}): IDroxAgentRunBridgeDeps {
 	const requests: { method: string; params?: unknown }[] = [];
 	const clientToolsService = {
@@ -51,6 +52,7 @@ function createBridgeDeps(overrides: {
 	const logService = {
 		info: () => { },
 		warn: () => { },
+		trace: () => { },
 	} as unknown as ILogService;
 	return {
 		clientToolsService,
@@ -58,6 +60,7 @@ function createBridgeDeps(overrides: {
 		droxEngineService,
 		logService,
 		regulationService: overrides.regulationService,
+		modelQuestionService: overrides.modelQuestionService,
 		_requests: requests,
 	} as IDroxAgentRunBridgeDeps & { _requests: { method: string; params?: unknown }[] };
 }
@@ -90,6 +93,27 @@ suite('Drox — droxAgentRunBridge', () => {
 		const runCall = deps._requests.find(r => r.method === 'agent.run');
 		assert.ok(runCall);
 		assert.strictEqual((runCall!.params as { prompt?: string }).prompt, '  hello  ');
+	});
+
+	test('startDroxAgentRun sets workPlanFrame when model isWork=true', async () => {
+		const deps = createBridgeDeps({
+			modelQuestionService: {
+				classifyUserMessageIsWork: async () => ({
+					isWork: true,
+					questionId: 'session.user_message_is_work',
+					variantId: 'v1',
+				}),
+			},
+		}) as IDroxAgentRunBridgeDeps & { _requests: { method: string; params?: unknown }[] };
+		await startDroxAgentRun(deps, {
+			prompt: 'Adapt the docs pages',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_work',
+		});
+		const runCall = deps._requests.find(r => r.method === 'agent.run');
+		assert.ok(runCall);
+		assert.strictEqual((runCall!.params as { workPlanFrame?: boolean }).workPlanFrame, true);
 	});
 
 	test('startDroxAgentRun injects one-shot plan archive system note', async () => {

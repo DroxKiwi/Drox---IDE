@@ -19,7 +19,7 @@ use similar::TextDiff;
 use tokio::fs;
 
 use super::file_edit::{EditOp, apply_edits};
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::path_util::resolve_under_workspace;
 use crate::tool::Tool;

@@ -11,8 +11,8 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::asker::UserQuestion;
-use crate::context::ToolContext;
+use crate::user_ask::UserQuestion;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::tool::Tool;
 

@@ -215,7 +215,7 @@ async fn read_only_bash_allowed_before_todo_write() {
 
 #[tokio::test]
 async fn professor_file_edit_blocked_without_course_plan() {
-    use crate::permissions::PermissionPolicy;
+    use crate::agent_permissions::PermissionPolicy;
     use drox_permissions::{PermissionEngine, PermissionMode, RuleSet};
 
     let tid_edit = ToolUseId::new();

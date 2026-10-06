@@ -12,11 +12,11 @@ modelQuestions/
   droxModelQuestionService.ts      # façade IDE
   questions/
     codebaseRetrievalComprehension.ts   # v1 + v1-compact
-    exploreMissionDecompose.ts          # Explore Plan→Assign missions
+    userMessageIsWork.ts                # Work vs discussion (plan frame)
 ```
 
 Add a new ask: new file under `questions/`, append to catalog array, extend `DroxModelQuestionId` if needed.
 
 Shipped asks:
 - `codebase.retrieval.comprehension` (CB4b)
-- `explore.mission.decompose` — session-master Explore fan-out plan
+- `session.user_message_is_work` — work vs chitchat → soft `workPlanFrame`

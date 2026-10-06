@@ -36,7 +36,7 @@ Correctifs moteur pour les boucles de réponse et les explosions de contexte obs
 - **Explore** — prompts / outil `task` / nudge S-5 durcis (default-to-Explore pour compréhension / synthèse).
 - **Explore ferme (1.6 dogfood)** — annex turn-0 si intent docs (« prendre connaissance », `docs/pedagogie`, calquer/remplacer documentation) → premier tool = `task` Explore ; CORE sans « explore freely » ; S-5 seuil **1** + `glob`/`grep` comptés.
 - **Explore live** — avancement sub-agent streamé dans la carte chat (activité tools + rapport partiel, panneau scrollable type file-change).
-- **Explore master (rescue)** — protocole session master **Plan → Assign → Merge** ; briefs avec `must_return` (champs numériques, pas de prose NL) ; télémetrie `truncated` / `iterations` ; nudges post-fail + rescue ; question modèle `explore.mission.decompose` pour découper une mega-mission.
+- **Explore master (rescue)** — protocole session master **Plan → Assign → Merge** ; briefs avec `must_return` (champs numériques, pas de prose NL) ; télémetrie `truncated` / `iterations` ; nudges post-fail + rescue.
 - **Situation card** — module `agent/situation/` (card, paths, todos, task_outcome) ; arbo n+1 depuis `situation.rs`.
 
 ### Project rules (`.drox/rules`)

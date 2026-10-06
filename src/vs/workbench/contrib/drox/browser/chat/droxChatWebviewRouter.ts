@@ -29,6 +29,7 @@ import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js'
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
+import { IDroxModelQuestionService } from '../../common/modelQuestions/droxModelQuestionService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxSlashHostMessage, IDroxSlashCommandService } from '../../common/droxSlashCommandService.js';
@@ -103,6 +104,7 @@ export interface IDroxChatWebviewRouterDeps {
 	readonly sessionBackgroundService: IDroxSessionBackgroundService;
 	readonly codebaseContextService: IDroxCodebaseContextService;
 	readonly regulationService: IDroxRegulationService;
+	readonly modelQuestionService: IDroxModelQuestionService;
 	readonly userHomeFsPath?: string;
 }
 

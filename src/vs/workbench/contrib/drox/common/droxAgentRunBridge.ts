@@ -38,7 +38,6 @@ import {
 } from './regulation/droxRegulationL4Protocol.js';
 import { IDroxRegulationService } from './regulation/droxRegulationServiceContract.js';
 import { droxSubagentsEnabledForRun } from './droxSubagents.js';
-import { formatExploreMissionPlanAnnex } from './modelQuestions/droxModelQuestionParse.js';
 import type { IDroxModelQuestionService } from './modelQuestions/droxModelQuestionService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -70,8 +69,8 @@ export interface IDroxAgentRunBridgeDeps {
 	readonly configurationService?: IConfigurationService;
 	/** Optionnel : L1 notes + L2 tools + L3 directive + L4 protocol. */
 	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
-	/** Optionnel : Explore mission decompose (session master, no NL heuristics). */
-	readonly modelQuestionService?: Pick<IDroxModelQuestionService, 'decomposeExploreMissions'>;
+	/** Optional: work/discussion classifier (no NL heuristics). */
+	readonly modelQuestionService?: Pick<IDroxModelQuestionService, 'classifyUserMessageIsWork'>;
 }
 
 export interface IDroxAgentRunStartOptions {
@@ -222,19 +221,18 @@ export async function startDroxAgentRun(
 		delete runParams.contextLoad;
 	}
 
-	// Session-master decompose — model question → annex (only when Explore can run).
-	const exploreCanRun = runParams.subagentsEnabled === true;
-	if (exploreCanRun && deps.modelQuestionService) {
+	// Work vs discussion — model question → soft plan-frame flag (engine inject, no hard gate).
+	if (deps.modelQuestionService && !options.skipUserTurn) {
 		try {
-			const plan = await deps.modelQuestionService.decomposeExploreMissions(options.prompt);
-			const annex = plan ? formatExploreMissionPlanAnnex(plan) : undefined;
-			if (annex) {
-				const prev = typeof runParams.system === 'string' ? runParams.system : system;
-				runParams.system = prev?.trim() ? `${annex}\n\n${prev}` : annex;
-				deps.logService.trace(`[Drox] explore decompose annex missions=${plan?.missionCount ?? 0}`);
+			const classified = await deps.modelQuestionService.classifyUserMessageIsWork(options.prompt);
+			if (classified?.isWork === true) {
+				runParams.workPlanFrame = true;
+				deps.logService.trace('[Drox] workPlanFrame=true (model isWork)');
+			} else if (classified?.isWork === false) {
+				deps.logService.trace('[Drox] workPlanFrame skipped (model isWork=false)');
 			}
 		} catch (e) {
-			deps.logService.trace('[Drox] explore decompose skipped', e);
+			deps.logService.trace('[Drox] isWork classify skipped', e);
 		}
 	}
 

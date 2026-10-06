@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 
 use super::ExploreOutcome;

@@ -4,10 +4,10 @@
 //! `drox-engine::subagent`. Ici : uniquement ce que le registre / `ToolContext`
 //! et le tool `task` ont besoin de connaître.
 
-mod executor;
+mod subagent_executor_trait;
 mod outcome;
 mod settings;
 
-pub use executor::SubagentExecutor;
+pub use subagent_executor_trait::SubagentExecutor;
 pub use outcome::ExploreOutcome;
 pub use settings::SubagentSettings;

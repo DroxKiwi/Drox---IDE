@@ -61,13 +61,9 @@ pub fn parse(raw: &str) -> Option<Language> {
         .to_ascii_lowercase();
 
     let lang = match primary.as_str() {
-        "fr" | "fra" | "french" | "français" | "francais" => {
-            Language::known("fr", "français")
-        }
+        "fr" | "fra" | "french" | "français" | "francais" => Language::known("fr", "français"),
         "en" | "eng" | "english" => Language::known("en", "English"),
-        "es" | "spa" | "spanish" | "español" | "espanol" => {
-            Language::known("es", "español")
-        }
+        "es" | "spa" | "spanish" | "español" | "espanol" => Language::known("es", "español"),
         "de" | "ger" | "deu" | "german" | "deutsch" => Language::known("de", "Deutsch"),
         "it" | "ita" | "italian" | "italiano" => Language::known("it", "italiano"),
         "pt" | "por" | "portuguese" | "português" | "portugues" => {
@@ -80,9 +76,7 @@ pub fn parse(raw: &str) -> Option<Language> {
         "ru" | "rus" | "russian" | "русский" => Language::known("ru", "русский"),
         "ar" | "ara" | "arabic" | "العربية" => Language::known("ar", "العربية"),
         "pl" | "pol" | "polish" | "polski" => Language::known("pl", "polski"),
-        "tr" | "tur" | "turkish" | "türkçe" | "turkce" => {
-            Language::known("tr", "Türkçe")
-        }
+        "tr" | "tur" | "turkish" | "türkçe" | "turkce" => Language::known("tr", "Türkçe"),
         other if !other.is_empty() => {
             // Valeur inconnue : on délègue au modèle en lui passant la
             // chaîne brute comme nom de langue.

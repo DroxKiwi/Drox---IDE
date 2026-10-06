@@ -18,7 +18,7 @@ export interface IDroxLocalHttpRequestOptions {
 	readonly timeoutMs?: number;
 }
 
-const DEFAULT_TIMEOUT_MS = 12_000;
+const DEFAULT_TIMEOUT_MS = 60_000;
 
 export function droxLocalHttpGet(
 	url: string,

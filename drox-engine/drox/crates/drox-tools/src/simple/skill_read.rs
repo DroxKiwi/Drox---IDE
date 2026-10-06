@@ -5,7 +5,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
 use crate::skills::{
     MAX_SKILL_BYTES_RETURNED, find_skill, load_skills_catalog, read_skill_file,

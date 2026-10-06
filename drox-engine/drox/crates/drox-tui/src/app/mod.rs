@@ -1,9 +1,9 @@
 //! Boucle application TUI.
 
-mod run;
+mod event_loop;
 mod state;
 
-pub use run::{print_sessions_list, App};
+pub use event_loop::{print_sessions_list, App};
 pub use state::{
     AiServerDialog, AiServerField, AiServerStep, AppConfig, AppPhase, AppState, ComposerMode,
     ComposerSuggestionDialog, CourseSnapshot, CourseStepView, OnboardingDialog, PromptDialog,

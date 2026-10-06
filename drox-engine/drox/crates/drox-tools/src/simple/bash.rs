@@ -13,9 +13,9 @@ use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 use tokio::time::timeout;
 
-use crate::context::ToolContext;
+use crate::tool_context::ToolContext;
 use crate::error::ToolError;
-use crate::progress::ShellProgressUpdate;
+use crate::tool_progress::ShellProgressUpdate;
 use crate::tool::Tool;
 
 const DEFAULT_TIMEOUT_MS: u64 = 120_000;

@@ -373,20 +373,71 @@ export function createDroxLlmHttp(
 		headers?: Record<string, string>,
 		options?: { method?: 'GET' | 'POST'; body?: string },
 	) => Promise<{ statusCode: number; body: string }>,
-	requestService: IRequestService,
+	_requestService: IRequestService,
 	apiKey: string,
 	customHeaders?: Readonly<Record<string, string>>,
 	authContext?: IDroxLlmAuthContext,
+	opts?: {
+		/**
+		 * When true, fall back to renderer `requestService` if main fetch throws.
+		 * Default **false**: ollama.com (and other clouds) block browser CORS;
+		 * surfacing the main-process error is required for connection tests.
+		 */
+		readonly allowRendererFallback?: boolean;
+	},
 ): DroxHttpRequestFn {
 	const authHeaders = mergeLlmHttpHeaders(apiKey, customHeaders ?? {}, authContext);
 	const hasHeaders = Object.keys(authHeaders).length > 0;
 	const hdrs = hasHeaders ? authHeaders : undefined;
-	const fallback = createRequestServiceHttp(requestService, hdrs);
+	const allowFallback = opts?.allowRendererFallback === true;
+	const fallback = allowFallback ? createRequestServiceHttp(_requestService, hdrs) : undefined;
 	return async (url, options) => {
 		try {
 			return await mainFetchHttp(url, hdrs, options);
-		} catch {
-			return fallback(url, options);
+		} catch (err) {
+			if (fallback) {
+				return fallback(url, options);
+			}
+			throw err;
 		}
 	};
+}
+
+/**
+ * Prefer a lightweight model for connection chat probes (avoid first-catalog giants like `:31b`).
+ * Lower score = preferred.
+ */
+export function pickLlmChatProbeModel(models: readonly string[]): string | undefined {
+	if (models.length === 0) {
+		return undefined;
+	}
+	let best = models[0]!;
+	let bestScore = probeModelWeightScore(best);
+	for (let i = 1; i < models.length; i++) {
+		const name = models[i]!;
+		const score = probeModelWeightScore(name);
+		if (score < bestScore || (score === bestScore && name.localeCompare(best) < 0)) {
+			best = name;
+			bestScore = score;
+		}
+	}
+	return best;
+}
+
+function probeModelWeightScore(name: string): number {
+	const n = name.toLowerCase();
+	const size = n.match(/\b(\d+(?:\.\d+)?)b\b/);
+	if (size) {
+		const bil = Number(size[1]);
+		if (Number.isFinite(bil)) {
+			return Math.round(bil * 100);
+		}
+	}
+	if (/ultra|405|675/.test(n)) {
+		return 50_000;
+	}
+	if (/flash|mini|nano|tiny|small|e2b|e4b/.test(n)) {
+		return 400;
+	}
+	return 1_500;
 }

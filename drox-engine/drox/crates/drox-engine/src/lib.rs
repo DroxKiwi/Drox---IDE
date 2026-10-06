@@ -14,7 +14,7 @@
 //! - [`compaction`] — résumé persist + compaction live
 //! - [`memory`] — runtime mémoire de session + DTOs longue mémoire
 //! - [`tools`] — hooks / orchestration / progression d'outils
-//! - [`context`], [`permissions`], [`event`], [`professor`], [`subagent`]
+//! - [`context_policy`], [`agent_permissions`], [`event`], [`professor`], [`subagent`]
 //!
 //! ## Exemple
 //!
@@ -45,11 +45,11 @@
 
 pub mod agent;
 pub mod compaction;
-pub mod context;
+pub mod context_policy;
 pub mod error;
 pub mod event;
 pub mod memory;
-pub mod permissions;
+pub mod agent_permissions;
 pub mod professor;
 pub mod subagent;
 pub mod tools;
@@ -62,7 +62,7 @@ pub mod tool_orchestration {
     pub use crate::tools::orchestration::*;
 }
 pub mod tool_progress {
-    pub use crate::tools::progress::*;
+    pub use crate::tools::tool_progress_bridge::*;
 }
 pub mod long_memory {
     pub use crate::memory::long::*;
@@ -80,7 +80,7 @@ pub use compaction::{
     CompactionResult, LiveCompactReport, LIVE_COMPACT_MIN_PREFIX_TOKENS,
 };
 pub use memory::{MemoryRuntime, MemoryTracker, PersistedRun, persist_run};
-pub use context::{ContextPolicy, SnipReport};
+pub use context_policy::{ContextPolicy, SnipReport};
 pub use drox_context::{
     ContextBudget, RoughTokenCounter, SnipConfig, TiktokenCounter, TokenCounter,
 };
@@ -106,7 +106,7 @@ pub use subagent::{EngineSubagentExecutor, explore_tool_registry};
 pub use error::EngineError;
 pub use event::{AgentEvent, Phase};
 pub use long_memory::{ContextChunkSummaryV1, SessionClosureV1};
-pub use permissions::PermissionPolicy;
+pub use agent_permissions::PermissionPolicy;
 pub use drox_hooks::{load_merged as load_tool_hooks, ToolHooksConfig};
 
 /// Registre des tools par défaut (`file_read`, `file_write`, `delete_path`, `grep`, `glob`, …).

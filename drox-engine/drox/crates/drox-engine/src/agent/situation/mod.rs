@@ -25,4 +25,4 @@ pub(crate) use paths::{note_successful_file_read, path_from_file_tool};
 pub(crate) use task_outcome::{
 	counts_as_parent_heavy_read, note_task_tool_success, task_outcome_telemetry,
 };
-pub(crate) use todos::{completed_todos_hint, next_todo_from_output};
+pub(crate) use todos::{completed_todos_hint, first_in_progress_todo_id, next_todo_from_output};

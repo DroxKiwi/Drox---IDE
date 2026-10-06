@@ -11,7 +11,7 @@ use tokio_util::codec::{FramedRead, LinesCodec};
 use tokio_util::io::StreamReader;
 
 use crate::error::LlmError;
-use crate::openai::protocol::ChatCompletionChunk;
+use crate::openai::wire::ChatCompletionChunk;
 
 #[derive(Default)]
 pub(crate) struct ToolCallAcc {
@@ -159,7 +159,7 @@ pub(crate) fn map_finish_reason(raw: Option<&str>, had_tools: bool) -> StopReaso
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::openai::protocol::ChatCompletionChunk;
+    use crate::openai::wire::ChatCompletionChunk;
 
     #[test]
     fn parse_sse_tool_call_and_done() {

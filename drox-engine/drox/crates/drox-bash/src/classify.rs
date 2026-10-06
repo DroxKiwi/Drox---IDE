@@ -604,6 +604,8 @@ static READ_ONLY: &[&str] = &[
     "less", "more", "file", "stat", "whoami", "id", "uname", "date", "true", "false", "test", "[",
     "which", "where", "whereis", "type", "command", "help", "man", "basename", "dirname", "realpath",
     "readlink", "find", "hostname", "printenv", "set", "ver",
+    // Windows file compare (dogfood: `fc` was falsely gated as mutating → parent loop).
+    "fc", "comp",
     // Text filters / search (pipelines with `ls` / `dir` — smoke ornith E14)
     "grep", "egrep", "fgrep", "rg", "findstr",
     // PowerShell inspect / listing (IDE agent terminal often inherits PS despite cmd prompts).
@@ -995,6 +997,10 @@ mod tests {
             r#"cmd.exe /C dir /s /b C:\docs\pedagogie"#
         ));
         // Still mutate when payload mutates.
+        assert!(command_is_inspect_only(r#"fc /b "a.md" "b.md""#));
+        assert!(command_is_inspect_only(
+            r#"fc "C:\src\a.md" content\a.md | findstr /C:"****""#
+        ));
         assert!(!command_is_inspect_only(r#"cmd /c "del /f file.txt""#));
         assert!(!command_is_inspect_only(
             r#"powershell -Command "Remove-Item -Recurse foo""#

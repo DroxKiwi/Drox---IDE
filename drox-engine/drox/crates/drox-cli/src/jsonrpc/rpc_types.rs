@@ -205,18 +205,18 @@ pub struct AgentRunParams {
     pub presence_penalty: Option<f32>,
     #[serde(default)]
     pub frequency_penalty: Option<f32>,
-	#[serde(default)]
-	pub keep_alive: Option<String>,
-	/// OpenAI-compat / Qwen / LiteLLM — profondeur du thinking (`low`/`medium`/`high`/`xhigh`).
-	#[serde(default)]
-	pub reasoning_effort: Option<String>,
-	/// Plafond de tokens de raisonnement (thinking budget) pour APIs compatibles.
-	#[serde(default)]
-	pub thinking_budget: Option<u32>,
-	/// Champs envoyés par l'IDE 1.4 — désérialisés puis **ignorés** (pas de
-	/// rail `role_split` dans le moteur TUI).
-	#[serde(default)]
-	pub orchestration_mode: Option<String>,
+    #[serde(default)]
+    pub keep_alive: Option<String>,
+    /// OpenAI-compat / Qwen / LiteLLM — profondeur du thinking (`low`/`medium`/`high`/`xhigh`).
+    #[serde(default)]
+    pub reasoning_effort: Option<String>,
+    /// Plafond de tokens de raisonnement (thinking budget) pour APIs compatibles.
+    #[serde(default)]
+    pub thinking_budget: Option<u32>,
+    /// Champs envoyés par l'IDE 1.4 — désérialisés puis **ignorés** (pas de
+    /// rail `role_split` dans le moteur TUI).
+    #[serde(default)]
+    pub orchestration_mode: Option<String>,
     #[serde(default)]
     pub orchestration_max_parallel_executors: Option<usize>,
     #[serde(default)]
@@ -230,6 +230,10 @@ pub struct AgentRunParams {
     /// Caps Context-load soft (L2) — nudge post-`glob` one-shot, jamais un hard gate.
     #[serde(default)]
     pub context_load: Option<ContextLoadParams>,
+    /// Soft plan-frame (IDE model question `session.user_message_is_work`).
+    /// `true` → engine injects a **text** nudge to mount a `todo_write` plan — never a tool block.
+    #[serde(default)]
+    pub work_plan_frame: Option<bool>,
 }
 
 /// Caps dérivés L2 pour le score Context-load → N Explore suggéré.

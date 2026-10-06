@@ -174,3 +174,19 @@ fn ok_task_clears_rescue() {
 	assert!(pending.is_none());
 	assert!(!rescue);
 }
+
+#[test]
+fn first_in_progress_todo_id_prefers_active_step() {
+	let value = json!({
+		"todos": [
+			{ "id": "1", "content": "done step", "status": "completed" },
+			{ "id": "2", "content": "Map docs sidebar", "status": "in_progress" },
+			{ "id": "3", "content": "later", "status": "pending" }
+		]
+	});
+	assert_eq!(
+		first_in_progress_todo_id(&value).as_deref(),
+		Some("2")
+	);
+	assert!(first_in_progress_todo_id(&json!({ "todos": [] })).is_none());
+}

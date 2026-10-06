@@ -1,6 +1,6 @@
 //! Provider Ollama (`/api/chat` NDJSON streaming).
 
-mod protocol;
-mod stream;
+mod wire;
+mod chat;
 
-pub use stream::OllamaClient;
+pub use chat::OllamaClient;

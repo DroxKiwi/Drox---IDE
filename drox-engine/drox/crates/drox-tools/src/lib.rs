@@ -9,9 +9,9 @@
 //!
 //! Voir `docs/INVENTAIRE-NOYAU-MOTEUR.md` § 2.3.
 
-mod asker;
-mod progress;
-mod context;
+mod user_ask;
+mod tool_progress;
+mod tool_context;
 mod diff_util;
 mod error;
 mod path_util;
@@ -24,9 +24,9 @@ mod simple;
 pub mod subagent;
 mod tool;
 
-pub use asker::{UserAnswer, UserAsker, UserQuestion};
-pub use progress::{ShellProgressUpdate, TextProgressUpdate, ToolProgressSink};
-pub use context::ToolContext;
+pub use user_ask::{UserAnswer, UserAsker, UserQuestion};
+pub use tool_progress::{ShellProgressUpdate, TextProgressUpdate, ToolProgressSink};
+pub use tool_context::ToolContext;
 pub use error::ToolError;
 pub use registry::ToolRegistry;
 pub use skills::{format_skills_listing_for_prompt, load_skills_catalog};

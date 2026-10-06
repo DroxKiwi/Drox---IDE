@@ -23,10 +23,10 @@ pub(crate) use serde_json::{json, Value};
 pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::mpsc;
 
-pub(crate) use crate::context::ContextPolicy;
+pub(crate) use crate::context_policy::ContextPolicy;
 pub(crate) use crate::error::EngineError;
 pub(crate) use crate::event::{AgentEvent, Phase};
-pub(crate) use crate::permissions::PermissionPolicy;
+pub(crate) use crate::agent_permissions::PermissionPolicy;
 
 mod gates_tests;
 mod hallucination_tests;

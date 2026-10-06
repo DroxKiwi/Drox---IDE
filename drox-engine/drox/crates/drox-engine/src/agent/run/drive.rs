@@ -37,6 +37,7 @@ use super::super::nudges::{
     LOOP_TOOL_FAMILY_NUDGE_PROMPT, MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
     MISSING_ANSWERING_PROMPT, NUDGE_PROMPT, PARENT_HEAVY_READ_NUDGE,
     PARENT_HEAVY_READ_NUDGE_THRESHOLD, REPEATED_FILE_READ_NUDGE, REPEATED_FILE_READ_NUDGE_THRESHOLD,
+    WORK_PLAN_FRAME_NUDGE, step_explore_kickoff_nudge,
 };
 use super::super::context_load::{
     score as score_context_load, should_inject as should_inject_context_load,
@@ -47,11 +48,11 @@ use super::super::phase::{
     user_prompt_suggests_workspace_analysis,
 };
 use super::super::situation::{
-    completed_todos_hint, counts_as_parent_heavy_read, next_todo_from_output,
-    note_successful_file_read, note_task_tool_success, path_from_file_tool, task_outcome_telemetry,
-    upsert_situation_card, SituationSnapshot,
+    completed_todos_hint, counts_as_parent_heavy_read, first_in_progress_todo_id,
+    next_todo_from_output, note_successful_file_read, note_task_tool_success, path_from_file_tool,
+    task_outcome_telemetry, upsert_situation_card, SituationSnapshot,
 };
-use super::super::stream::{consume_stream, push_assistant_message};
+use super::super::consume_llm_stream::{consume_stream, push_assistant_message};
 use super::Agent;
 
 impl Agent {
@@ -200,6 +201,10 @@ impl Agent {
         let mut parent_heavy_read_streak: u32 = 0;
         let mut parent_heavy_read_nudge_sent = false;
         let mut doc_ingestion_annex_sent = false;
+        let mut work_plan_frame_nudge_sent = false;
+        let mut last_in_progress_todo_id: Option<String> = None;
+        // Soft Explore kickoff: (step_id, optional content label).
+        let mut pending_step_explore_nudge: Option<(String, Option<String>)> = None;
         // Context-load V1 — soft nudge one-shot après glob large.
         let mut pending_context_load: Option<ContextLoadSnapshot> = None;
         let mut context_load_nudge_sent = false;
@@ -270,6 +275,13 @@ impl Agent {
                 leading_injected_systems = leading_injected_systems.saturating_add(1);
             }
 
+            // Soft plan-frame (IDE model question isWork) — texte only.
+            if iter == 0 && self.config.work_plan_frame && !work_plan_frame_nudge_sent {
+                debug!("work plan frame — soft nudge (turn-0)");
+                messages.push(Message::system(WORK_PLAN_FRAME_NUDGE));
+                work_plan_frame_nudge_sent = true;
+            }
+
             // Annex turn-0 — ingestion docs multi-fichiers → Explore d'abord.
             if iter == 0
                 && task_tool_available
@@ -279,6 +291,17 @@ impl Agent {
                 debug!("doc ingestion intent — Explore annex (turn-0)");
                 messages.push(Message::system(DOC_INGESTION_EXPLORE_ANNEX));
                 doc_ingestion_annex_sent = true;
+            }
+
+            // Soft — kickoff d'une nouvelle étape plan → Explore pour cette étape.
+            if task_tool_available {
+                if let Some((step_id, step_content)) = pending_step_explore_nudge.take() {
+                    debug!(%step_id, "step kickoff — soft Explore nudge");
+                    messages.push(Message::system(step_explore_kickoff_nudge(
+                        &step_id,
+                        step_content.as_deref(),
+                    )));
+                }
             }
 
             // S-5 — trop de lectures massives parent sans Explore.
@@ -1125,6 +1148,16 @@ impl Agent {
                                         last_todo_next = next_todo_from_output(&value);
                                         last_todo_completed_hint = completed_todos_hint(&value);
                                         mutating_tools_since_last_todo = 0;
+                                        if let Some(step_id) = first_in_progress_todo_id(&value) {
+                                            if last_in_progress_todo_id.as_ref() != Some(&step_id)
+                                            {
+                                                pending_step_explore_nudge =
+                                                    Some((step_id.clone(), last_todo_next.clone()));
+                                                last_in_progress_todo_id = Some(step_id);
+                                            }
+                                        } else {
+                                            last_in_progress_todo_id = None;
+                                        }
                                     } else if call.name == "course_plan_write" {
                                         saw_successful_course_plan_write_in_run = true;
                                         professor_course_state =

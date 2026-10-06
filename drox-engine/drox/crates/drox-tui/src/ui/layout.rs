@@ -7,9 +7,9 @@ use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
 use crate::app::{AppPhase, AppState};
-use crate::engine::status_bar::StatusBarSnapshot;
+use crate::engine::status_bar_snapshot::StatusBarSnapshot;
 use crate::engine::VimComposer;
-use crate::widgets::{ai_server_dialog, composer, composer_help, composer_suggestions, copy_selector, course_panel, mcp_panel, message_log, onboarding, prompt_modal, rewind_selector, scroll_viewer, search_bar, slash_palette, status_bar, status_notices, theme_picker, toast, todo_panel, workspace_dialog};
+use crate::widgets::{ai_server_dialog, composer, composer_help, composer_suggestions, copy_selector, course_panel, mcp_panel, message_log, onboarding, prompt_modal, rewind_selector, scroll_viewer_widget as scroll_viewer, search_bar, slash_palette, status_bar_widget as status_bar, status_notices, theme_picker, toast, todo_panel, workspace_dialog};
 
 pub fn draw(
     frame: &mut Frame,
