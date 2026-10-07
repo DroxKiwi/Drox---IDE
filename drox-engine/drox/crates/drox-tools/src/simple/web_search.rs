@@ -56,9 +56,7 @@ impl Tool for WebSearchTool {
     }
 
     fn description(&self) -> &str {
-        "Web search (DuckDuckGo) from a natural-language query. \
-         Returns a list of results { title, url, snippet }. \
-         Use `web_fetch` next to read the content of a chosen URL."
+        drox_prompts::WEB_SEARCH_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

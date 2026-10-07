@@ -64,6 +64,8 @@ export interface IDroxChatAgentEventHost {
 	deletePendingTool(id: string): void;
 	/** Pending fichier : id puis repli par chemin (ids Ollama parfois désynchronisés). */
 	takePendingToolForFileFinish(id: string, output: unknown): IDroxPendingTool | undefined;
+	/** Vide et renvoie les outils encore ouverts (rescue cancel / fin de run). */
+	takeAllPendingTools(): Array<{ id: string } & IDroxPendingTool>;
 	clearPendingTools(): void;
 	handleFileMutationAfterToolFinish(
 		pendingName: string | undefined,
@@ -508,6 +510,25 @@ export function dispatchAgentDone(host: IDroxChatAgentDoneHost, params: unknown)
 		host.clearPendingSessionReset();
 	}
 
+	const orphanReason = p?.status === 'cancelled'
+		? 'Run cancelled'
+		: p?.status === 'error'
+			? (p.error?.trim() || 'Run failed')
+			: 'Run ended without tool result';
+	for (const orphan of host.takeAllPendingTools()) {
+		const exploreOutput = buildExploreToolFinishWire(orphan.name, orphanReason, true);
+		const shellOutput = buildShellToolFinishWire(orphan.name, orphanReason, true);
+		host.post({
+			kind: 'tool',
+			phase: 'finish',
+			id: orphan.id,
+			name: orphan.name,
+			isError: true,
+			outputPreview: orphanReason,
+			shellOutput,
+			exploreOutput,
+		});
+	}
 	host.clearPendingTools();
 	host.post({ kind: 'state', busy: false });
 

@@ -5,6 +5,9 @@ use std::time::Instant;
 
 use async_trait::async_trait;
 use drox_llm::{ChatOptions, LlmClient};
+use drox_prompts::{
+	explore_report_system_prompt, thoroughness_supplement, EXPLORE_SYSTEM_PROMPT,
+};
 use drox_tools::{
 	ExploreOutcome, SubagentExecutor, SubagentSettings, ToolContext, ToolError,
 };
@@ -18,11 +21,11 @@ use crate::error::EngineError;
 use crate::event::AgentEvent;
 
 use super::budget::explore_iteration_budget;
+use super::explore_artifact::{build_explore_summary, write_explore_conclusion, EXPLORE_SUMMARY_MAX_CHARS};
+use super::explore_tool_registry::explore_tool_registry;
 use super::explore_ui_progress::{
 	build_live_preview, flush_progress_throttled, tool_activity_line, EXPLORE_PROGRESS_INTERVAL,
 };
-use super::prompts::{thoroughness_supplement, EXPLORE_SYSTEM_PROMPT};
-use super::explore_tool_registry::explore_tool_registry;
 use super::report::{
 	fallback_incomplete_report, parent_facing_report, strip_phase_markers, truncate_chars,
 	EXPLORE_SYNTH_NOTES_MAX_CHARS,
@@ -82,11 +85,7 @@ Write ONLY the parent-facing report with these sections:\n\
 No tool calls. No preamble. No phase markers."
 		);
 		let messages = vec![
-			Message::system(
-				"You finalize Explore sub-agent reports for the parent agent. \
-Output a concise structured report only. Never dump tool transcripts. \
-Cite concrete paths and short facts the parent can act on.",
-			),
+			Message::system(explore_report_system_prompt()),
 			Message::user(user),
 		];
 		let options = self
@@ -155,6 +154,7 @@ impl SubagentExecutor for EngineSubagentExecutor {
 			subagent_settings: None,
 			subagent_executor: None,
 			tool_progress: None,
+			agent_run_id: parent_ctx.agent_run_id.clone(),
 		};
 
 		let registry = Arc::new(explore_tool_registry());
@@ -177,6 +177,9 @@ impl SubagentExecutor for EngineSubagentExecutor {
 				run_objective: None,
 				context_load: Default::default(),
 				work_plan_frame: false,
+				analysis_frame: false,
+				doc_ingestion_frame: false,
+				session_intent_preclassified: true,
 			},
 		);
 
@@ -297,8 +300,22 @@ impl SubagentExecutor for EngineSubagentExecutor {
 				fallback_incomplete_report(report.trim(), hit_max)
 			}
 		};
+		let ws = parent_ctx.effective_workspace();
+		let (report_path, summary) =
+			match write_explore_conclusion(&ws, parent_ctx.agent_run_id.as_deref(), &report_body) {
+				Ok((path, summary)) => (Some(path), summary),
+				Err(e) => {
+					warn!(error = %e, "explore conclusion.md write failed");
+					(
+						None,
+						build_explore_summary(&report_body, EXPLORE_SUMMARY_MAX_CHARS),
+					)
+				}
+			};
 		Ok(ExploreOutcome {
 			report: report_body,
+			report_path,
+			summary,
 			truncated: hit_max,
 			iterations_used,
 			max_iterations,

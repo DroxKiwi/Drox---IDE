@@ -19,6 +19,7 @@ drox-context.workspace = true
 drox-session.workspace = true
 drox-mcp.workspace = true
 drox-hooks.workspace = true
+drox-prompts.workspace = true
 
 tokio.workspace = true
 tokio-stream.workspace = true

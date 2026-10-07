@@ -43,7 +43,6 @@ import { registerDroxAgentsWindowRun, unregisterDroxAgentsWindowRun } from '../.
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
-import { IDroxModelQuestionService } from '../../common/modelQuestions/droxModelQuestionService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
@@ -118,7 +117,6 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
 		@IDroxCodebaseContextService private readonly codebaseContextService: IDroxCodebaseContextService,
 		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
-		@IDroxModelQuestionService private readonly modelQuestionService: IDroxModelQuestionService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ILogService private readonly logService: ILogService,
 		@IFileService private readonly fileService: IFileService,
@@ -398,7 +396,6 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			fileService: this.fileService,
 			codebaseContextService: this.codebaseContextService,
 			regulationService: this.regulationService,
-			modelQuestionService: this.modelQuestionService,
 			configurationService: this.configurationService,
 			userHomeFsPath: this.pathService.userHome({ preferLocal: true }).fsPath,
 			resolveCodebaseForcePathPrefixes: ws =>
@@ -441,6 +438,9 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 					'agent.cancel (agents window)',
 				);
 			}
+			// Ne pas attendre agent/done (race dispose) — fermer les cartes tool orphelines tout de suite.
+			sink.handleAgentDone({ status: 'cancelled', runId: activeRunId });
+			this.agentsUiStatsService.freezeCycleTimer();
 		}));
 
 		try {

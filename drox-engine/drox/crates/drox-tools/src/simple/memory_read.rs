@@ -41,12 +41,7 @@ impl Tool for MemoryReadTool {
     }
 
     fn description(&self) -> &str {
-        "Reloads the full content (front-matter + markdown body) of an \
-         archived workspace session, from its short slug (front-matter \
-         `slug` field — **without** the date-time prefix of the \
-         filename). Read-only. Returns the text as-is — \
-         extract what is relevant for the current task yourself. \
-         Format: {\"slug\": \"…\"}."
+        drox_prompts::MEMORY_READ_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

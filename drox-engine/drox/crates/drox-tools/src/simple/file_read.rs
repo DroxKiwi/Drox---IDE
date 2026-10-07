@@ -55,11 +55,7 @@ impl Tool for FileReadTool {
     }
 
     fn description(&self) -> &str {
-        "Reads the UTF-8 content of a file. Prefer workspace-relative paths; **absolute paths \
-         outside the workspace are allowed for read-only access** (do not use bash Get-Content/cat \
-         for that). Without `start_line`/`end_line`: reads from the beginning (truncated beyond \
-         512 KiB). With both: **line window** 1-based inclusive (max 400 lines, output max ~128 KiB) \
-         — ideal after a `grep` to avoid loading the entire file."
+        drox_prompts::FILE_READ_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

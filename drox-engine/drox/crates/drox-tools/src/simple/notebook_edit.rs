@@ -338,12 +338,7 @@ impl Tool for NotebookEditTool {
     }
 
     fn description(&self) -> &str {
-        "Edits a Jupyter notebook (.ipynb). Each entry in `edits` targets a cell by \
-         `cell_index` (0-based). Mode `replace` (default): old_string → new_string in the source \
-         (like file_edit; empty old_string = replace entire source). Mode `insert`: \
-         new cell at index (`new_string`, `cell_type` code|markdown). Mode `delete`: \
-         removes the cell. Example: \
-         {\"path\":\"nb.ipynb\",\"edits\":[{\"cell_index\":1,\"old_string\":\"a\",\"new_string\":\"b\"}]}"
+        drox_prompts::NOTEBOOK_EDIT_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

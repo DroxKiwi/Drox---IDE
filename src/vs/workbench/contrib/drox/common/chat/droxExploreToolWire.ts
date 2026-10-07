@@ -15,6 +15,7 @@ export interface IDroxExploreToolStartWire {
 
 export interface IDroxExploreToolFinishWire {
 	readonly exploreReport?: string;
+	readonly exploreReportPath?: string;
 	readonly exploreError?: string;
 	readonly exploreThoroughness?: string;
 }
@@ -26,6 +27,8 @@ export interface IDroxExploreSubagentToolData {
 	readonly description: string;
 	readonly prompt?: string;
 	readonly result?: string;
+	/** Workspace-relative path to `.drox/subagents/…/conclusion.md`. */
+	readonly resultPath?: string;
 }
 
 export function buildExploreSubagentToolSpecificData(
@@ -37,6 +40,7 @@ export function buildExploreSubagentToolSpecificData(
 		trimString(liveResult) ||
 		trimString(finish?.exploreReport) ||
 		trimString(finish?.exploreError);
+	const resultPath = trimString(finish?.exploreReportPath) || undefined;
 	return {
 		kind: 'subagent',
 		agentName: 'explore',
@@ -44,6 +48,7 @@ export function buildExploreSubagentToolSpecificData(
 		description: start.exploreTitle,
 		prompt: start.exploreDescription,
 		result: result || undefined,
+		resultPath,
 	};
 }
 
@@ -179,6 +184,7 @@ export function buildExploreToolFinishWire(
 	}
 	const o = asRecord(output);
 	const report = trimString(o.report);
+	const reportPath = trimString(o.report_path) || trimString(o.reportPath);
 	const thoroughness = trimString(o.thoroughness);
 	const error =
 		trimString(o.error) ||
@@ -186,6 +192,7 @@ export function buildExploreToolFinishWire(
 		(isError && !report ? 'Explore failed' : '');
 	return {
 		exploreReport: report || undefined,
+		exploreReportPath: reportPath || undefined,
 		exploreError: error || undefined,
 		exploreThoroughness: thoroughness || undefined,
 	};

@@ -1041,6 +1041,8 @@ export interface IChatSubagentToolInvocationData {
 	agentName?: string;
 	prompt?: string;
 	result?: string;
+	/** Workspace-relative path to the written sub-agent conclusion (e.g. `.drox/subagents/…/conclusion.md`). */
+	resultPath?: string;
 	modelName?: string;
 }
 

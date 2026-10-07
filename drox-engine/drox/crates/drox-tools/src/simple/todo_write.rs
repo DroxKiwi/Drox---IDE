@@ -121,20 +121,7 @@ impl Tool for TodoWriteTool {
     }
 
     fn description(&self) -> &str {
-        "Creates / updates the to-do list for the current session. The engine \
-         requires **at least one call per user response**, even for a \
-         single step (e.g. \"Answer the question\"): list your micro-tasks \
-         then update them as you go. \
-         Always send **the full list**: replace mode, previous state \
-         is overwritten. Statuses: `pending` | `in_progress` | `completed` | \
-         `cancelled`. Keep at most **one** item in `in_progress` at a time. \
-         Mark `in_progress` BEFORE starting a step, `completed` \
-         IMMEDIATELY after.\n\n\
-         REQUIRED input format — an object with ONE `todos` key containing \
-         an array of items `{ id, content, status }`:\n\
-         {\"todos\": [ {\"id\": \"1\", \"content\": \"Answer the question\", \"status\": \"in_progress\"} ]}\n\
-         Do NOT send a flat object `{id, content, status}` or a bare array: \
-         always use the wrapper `todos: [...]`."
+        drox_prompts::TODO_WRITE_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

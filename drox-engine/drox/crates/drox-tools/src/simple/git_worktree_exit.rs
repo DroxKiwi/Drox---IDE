@@ -28,10 +28,7 @@ impl Tool for GitWorktreeExitTool {
     }
 
     fn description(&self) -> &str {
-        "Exits the worktree session opened by git_worktree_enter. \
-         action=keep preserves the directory; action=remove destroys it (discard_changes: \
-         true required if there are unmerged files/commits). \
-         Format: {\"action\": \"keep\"} or {\"action\": \"remove\", \"discard_changes\": true}."
+        drox_prompts::GIT_WORKTREE_EXIT_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

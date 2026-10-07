@@ -210,6 +210,9 @@ pub(crate) async fn run_interactive_agent(cli: Cli, prompt: &str) -> anyhow::Res
         run_objective: None,
         context_load: Default::default(),
         work_plan_frame: false,
+        analysis_frame: false,
+        doc_ingestion_frame: false,
+        session_intent_preclassified: false,
     };
     let agent = Agent::new(llm, registry, ctx, agent_config);
 

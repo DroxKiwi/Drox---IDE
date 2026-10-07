@@ -31,12 +31,7 @@ impl Tool for SessionCompactTool {
     }
 
     fn description(&self) -> &str {
-        "Forces an **LLM compaction** on the current session JSONL transcript \
-         (`session.compact`) — same pipeline as the `/compact` command. \
-         Reduces persisted history and returns a structured summary (objective, \
-         files, markdown body). **Execution**: IDE client (Drox extension); \
-         unavailable outside delegation. Prefer a moment when the transcript is not \
-         under heavy concurrent writes. Format: `{ \"reason\"?: \"…\" }`."
+        drox_prompts::SESSION_COMPACT_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

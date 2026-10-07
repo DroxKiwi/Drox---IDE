@@ -32,12 +32,7 @@ impl Tool for SessionEndTool {
     }
 
     fn description(&self) -> &str {
-        "Explicitly closes the current work session when \
-         the user has signaled the end (e.g. \"we're done for today\"). \
-         After success: a brief farewell / summary in `answering`, \
-         then `[phase: done]`. **In the Drox client (VS Code)** this call is \
-         executed on the IDE side (indexed archiving); outside delegated client, the tool \
-         is unavailable. Format: `{ \"farewell_hint\"?: \"…\" }`."
+        drox_prompts::SESSION_END_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

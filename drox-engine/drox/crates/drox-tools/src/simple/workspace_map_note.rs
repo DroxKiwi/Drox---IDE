@@ -27,9 +27,7 @@ impl Tool for WorkspaceMapNoteTool {
     }
 
     fn description(&self) -> &str {
-        "Adds or updates a **semantic note** on the workspace map (zone, role, \
-         pivot). Use after exploration to capture what a folder is for without \
-         relisting the entire repo."
+        drox_prompts::WORKSPACE_MAP_NOTE_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

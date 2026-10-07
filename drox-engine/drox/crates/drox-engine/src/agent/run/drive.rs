@@ -26,27 +26,23 @@ use super::super::gates::{
 };
 use super::super::loop_detect::{LoopDecision, LoopDetector, PendingToolCall};
 use super::super::nudges::{
-    ask_user_question_loop_nudge, assistant_text_suggests_large_write_intent,
-    assistant_text_suggests_mutation_intent, context_load_nudge, explore_incomplete_nudge,
+    ask_user_question_loop_nudge, context_load_nudge, explore_incomplete_nudge,
     run_objective_done_nudge, run_objective_system_block, step_by_step_todo_nudge,
     unfinished_course_plan_prompt, unfinished_todos_prompt, ANALYZING_PHASE_NUDGE,
     CODE_MUTATION_TESTING_NUDGE, DONE_ONLY_NUDGE_PROMPT, DOC_INGESTION_EXPLORE_ANNEX,
-    EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_LARGE_WRITE_MAX_NUDGES,
-    INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT, INTENT_ONLY_WRITE_MAX_NUDGES,
-    INTENT_ONLY_WRITE_NUDGE_PROMPT, LARGE_WRITE_CHUNK_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
+    EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,
+    INTENT_ONLY_WRITE_MAX_NUDGES, INTENT_ONLY_WRITE_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
     LOOP_TOOL_FAMILY_NUDGE_PROMPT, MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
     MISSING_ANSWERING_PROMPT, NUDGE_PROMPT, PARENT_HEAVY_READ_NUDGE,
     PARENT_HEAVY_READ_NUDGE_THRESHOLD, REPEATED_FILE_READ_NUDGE, REPEATED_FILE_READ_NUDGE_THRESHOLD,
     WORK_PLAN_FRAME_NUDGE, step_explore_kickoff_nudge,
 };
+use super::super::session_intent::{classify_session_user_intent, SessionFrames};
 use super::super::context_load::{
     score as score_context_load, should_inject as should_inject_context_load,
     snapshot_from_glob_value, ContextLoadSnapshot,
 };
-use super::super::phase::{
-    is_workspace_exploration_tool, user_blocks_plain_text, user_prompt_suggests_doc_ingestion,
-    user_prompt_suggests_workspace_analysis,
-};
+use super::super::phase::{is_workspace_exploration_tool, user_blocks_plain_text};
 use super::super::situation::{
     completed_todos_hint, counts_as_parent_heavy_read, first_in_progress_todo_id,
     next_todo_from_output, note_successful_file_read, note_task_tool_success, path_from_file_tool,
@@ -101,8 +97,26 @@ impl Agent {
         } else {
             user_blocks_plain_text(&user_blocks)
         };
-        let user_analysis_intent = user_prompt_suggests_workspace_analysis(&user_text_for_intent);
-        let user_doc_ingestion_intent = user_prompt_suggests_doc_ingestion(&user_text_for_intent);
+        // Boot classif multi-bool (`drox_prompts`) — pas de needles sur le message user.
+        let session_frames = if self.config.session_intent_preclassified {
+            SessionFrames {
+                work_plan: self.config.work_plan_frame,
+                analysis: self.config.analysis_frame,
+                doc_ingestion: self.config.doc_ingestion_frame,
+            }
+        } else {
+            classify_session_user_intent(
+                self.llm.as_ref(),
+                &self.config.chat_options,
+                &user_text_for_intent,
+            )
+            .await
+            .unwrap_or(SessionFrames {
+                work_plan: self.config.work_plan_frame,
+                analysis: self.config.analysis_frame,
+                doc_ingestion: self.config.doc_ingestion_frame,
+            })
+        };
         if !skip_new_user_turn {
             // Garantit qu'il y a toujours au moins un bloc texte pour les
             // providers strictement text-only et pour la cohérence du transcript.
@@ -188,11 +202,8 @@ impl Agent {
         let mut saw_analyzing_phase_in_run = false;
         let mut saw_code_mutation_in_run = false;
         let mut saw_testing_phase_in_run = false;
-        // FX-B 1.5.16 — compteur de nudges « intention write sans tool ».
+        // FX-B — compteur de nudges « acting sans tool ».
         let mut consecutive_intent_only_write_nudges: u32 = 0;
-        // True once any strike in the current intent-only streak looked like a
-        // monolithic / multi-section write (extra nudge budget + chunk prompt).
-        let mut intent_only_large_write_streak: bool = false;
         // 1.6.0 Vague 4 / S-1 — situation card (upsert chaque tour).
         let mut files_touched_in_run: Vec<String> = Vec::new();
         let mut last_tool_error: Option<String> = None;
@@ -275,8 +286,8 @@ impl Agent {
                 leading_injected_systems = leading_injected_systems.saturating_add(1);
             }
 
-            // Soft plan-frame (IDE model question isWork) — texte only.
-            if iter == 0 && self.config.work_plan_frame && !work_plan_frame_nudge_sent {
+            // Soft plan-frame (classif isWork) — texte only.
+            if iter == 0 && session_frames.work_plan && !work_plan_frame_nudge_sent {
                 debug!("work plan frame — soft nudge (turn-0)");
                 messages.push(Message::system(WORK_PLAN_FRAME_NUDGE));
                 work_plan_frame_nudge_sent = true;
@@ -285,7 +296,7 @@ impl Agent {
             // Annex turn-0 — ingestion docs multi-fichiers → Explore d'abord.
             if iter == 0
                 && task_tool_available
-                && user_doc_ingestion_intent
+                && session_frames.doc_ingestion
                 && !doc_ingestion_annex_sent
             {
                 debug!("doc ingestion intent — Explore annex (turn-0)");
@@ -578,28 +589,18 @@ impl Agent {
                 return;
             }
 
-            // FX-B 1.5.16 — intention de mutation en prose sans tool_calls.
-            // **Avant** le LoopDetector : sinon un 2e tour de prose identique
-            // déclenche `Warn`/`Abort` générique et court-circuite les nudges
-            // « emit file_write NOW » (et le soft-abort `intent_only_write`).
+            // FX-B — mécanique : `[phase: acting]` sans tool_calls (pas de needles prose).
+            // **Avant** le LoopDetector : sinon un 2e tour identique court-circuite les nudges.
             if outcome.tool_calls.is_empty() {
-                let write_intent = assistant_text_suggests_mutation_intent(&outcome.text)
+                let write_intent = outcome.final_phase == Some(Phase::Acting)
                     || consecutive_intent_only_write_nudges > 0;
                 if write_intent {
-                    if assistant_text_suggests_large_write_intent(&outcome.text) {
-                        intent_only_large_write_streak = true;
-                    }
                     consecutive_intent_only_write_nudges =
                         consecutive_intent_only_write_nudges.saturating_add(1);
-                    let max_nudges = if intent_only_large_write_streak {
-                        INTENT_ONLY_LARGE_WRITE_MAX_NUDGES
-                    } else {
-                        INTENT_ONLY_WRITE_MAX_NUDGES
-                    };
+                    let max_nudges = INTENT_ONLY_WRITE_MAX_NUDGES;
                     if consecutive_intent_only_write_nudges > max_nudges {
                         debug!(
                             strikes = consecutive_intent_only_write_nudges,
-                            large = intent_only_large_write_streak,
                             "intent-only write — soft-abort après nudges"
                         );
                         let _ = tx
@@ -610,19 +611,14 @@ impl Agent {
                             .await;
                         return;
                     }
-                    let nudge = if intent_only_large_write_streak
-                        && consecutive_intent_only_write_nudges == 1
-                    {
-                        LARGE_WRITE_CHUNK_NUDGE_PROMPT
-                    } else if consecutive_intent_only_write_nudges >= 2 {
+                    let nudge = if consecutive_intent_only_write_nudges >= 2 {
                         INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT
                     } else {
                         INTENT_ONLY_WRITE_NUDGE_PROMPT
                     };
                     debug!(
                         strike = consecutive_intent_only_write_nudges,
-                        large = intent_only_large_write_streak,
-                        "tour sans tool_call — nudge intent-only write"
+                        "acting sans tool_call — nudge intent-only write"
                     );
                     messages.push(Message::system(nudge));
                     if let Err(e) = self
@@ -698,7 +694,6 @@ impl Agent {
                             "answering sans done + todo clôturée + testing dû — nudge testing (pas DONE_ONLY)"
                         );
                         consecutive_intent_only_write_nudges = 0;
-                        intent_only_large_write_streak = false;
                         messages.push(Message::system(CODE_MUTATION_TESTING_NUDGE));
                         if let Err(e) = self
                             .flush_transcript(&messages, &mut transcript_cursor)
@@ -711,7 +706,6 @@ impl Agent {
                     }
                     debug!("answering sans done + todo clôturée + testing OK — nudge minimal (done seul)");
                     consecutive_intent_only_write_nudges = 0;
-                    intent_only_large_write_streak = false;
                     messages.push(Message::system(DONE_ONLY_NUDGE_PROMPT));
                     // 1.6.0 L-1 : ne PAS reset — même answering sans done doit
                     // pouvoir strike / text_only-abort (sinon ×12 jusqu'à max_iter).
@@ -726,7 +720,6 @@ impl Agent {
                 }
 
                 consecutive_intent_only_write_nudges = 0;
-                intent_only_large_write_streak = false;
                 debug!("tour sans tool_call et sans [phase: done] — nudge");
                 messages.push(Message::system(NUDGE_PROMPT));
                 // 1.6.0 L-1 : ne PAS reset sur nudge générique.
@@ -741,7 +734,6 @@ impl Agent {
             }
 
             consecutive_intent_only_write_nudges = 0;
-            intent_only_large_write_streak = false;
             // GLM-4.7-Flash bat parfois `[file_edit, todo_write]` ou
             // `[bash, todo_write]` dans le même tour. Sans réordonnement, le
             // mutateur rate la gate `MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED`,
@@ -1389,7 +1381,7 @@ impl Agent {
                 }
             }
 
-            if user_analysis_intent
+            if session_frames.analysis
                 && !analyzing_phase_nudge_sent
                 && !saw_analyzing_phase_in_run
                 && iter == 0

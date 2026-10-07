@@ -58,6 +58,9 @@ pub(super) fn tool_activity_line(name: &str, arguments: &serde_json::Value) -> S
 	}
 }
 
+/// Marqueur live phase 1 (thinking / notes) — distinct de `--- report ---` (rapport parent phase 2).
+pub(super) const LIVE_NOTES_MARKER: &str = "--- notes ---";
+
 /// Compose le texte live : activity + preview notes (tronquée).
 pub(super) fn build_live_preview(activity: &[String], report: &str) -> String {
 	let mut out = activity.join("\n");
@@ -68,7 +71,8 @@ pub(super) fn build_live_preview(activity: &[String], report: &str) -> String {
 	if !out.is_empty() {
 		out.push('\n');
 	}
-	out.push_str("--- report ---\n");
+	out.push_str(LIVE_NOTES_MARKER);
+	out.push('\n');
 	if trimmed.len() <= EXPLORE_LIVE_REPORT_MAX_CHARS {
 		out.push_str(trimmed);
 	} else {
@@ -122,4 +126,17 @@ pub(super) fn flush_progress_throttled(
 	}
 	report_explore_progress(parent_ctx, live, started);
 	*last = Instant::now();
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn live_preview_uses_notes_marker_not_report() {
+		let live = build_live_preview(&[String::from("→ glob **/*.md")], "thinking…");
+		assert!(live.contains("--- notes ---"));
+		assert!(!live.contains("--- report ---"));
+		assert!(live.contains("thinking…"));
+	}
 }

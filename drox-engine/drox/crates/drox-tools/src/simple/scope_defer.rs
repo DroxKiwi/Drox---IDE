@@ -29,10 +29,7 @@ impl Tool for ScopeDeferTool {
     }
 
     fn description(&self) -> &str {
-        "Defers an **out-of-scope** discovery from the user request (inconsistency, debt, \
-         parallel lead) without addressing it. Use when exploring and finding something \
-         interesting but **not requested** — then continue toward the locked objective. \
-         Format: {\"finding\": \"…\", \"reason\": \"…\"}."
+        drox_prompts::SCOPE_DEFER_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

@@ -29,10 +29,7 @@ impl Tool for SkillReadTool {
     }
 
     fn description(&self) -> &str {
-        "Loads the full SKILL.md file of a local workspace skill \
-         (`.drox/skills/<name>/SKILL.md`). Read-only. Call before \
-         applying instructions from a skill listed at run startup. \
-         Format: {\"name\": \"…\"}."
+        drox_prompts::SKILL_READ_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

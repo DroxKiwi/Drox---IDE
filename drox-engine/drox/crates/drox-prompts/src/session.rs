@@ -1,8 +1,42 @@
-//! Suppléments system injectés selon flags de session / run.
+//! Suppléments session (flags run / mode).
 
-/// Ajouté au `system` lorsque le client active le raisonnement natif Ollama
-/// (`nativeThinking` / `think: true`). Le canal `thinking` porte déjà le
-/// monologue interne : ne le recopie pas dans le corps `content` de la réponse.
+use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
+
+/// Hors-WS : toggle session pour recherche / mutation / bash hors racine.
+///
+/// `file_read` absolu est **toujours** autorisé (voir [`crate::tools::FILE_READ_TOOL_ENTRY`]).
+pub const ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT: &str = r#"# Outside-workspace access (session toggle)
+
+The user enabled **outside-workspace** access for this discussion.
+
+**What the toggle unlocks** (absolute paths outside the project root):
+- Search / inventory: `glob`, `grep`
+- Mutations: `file_edit`, `file_write`, `copy_path`, `delete_path`
+- Shell: `bash` leaving the workspace
+
+Prefer absolute paths when leaving the workspace. Still refuse destructive system paths; ask via `ask_user_question` before risky deletes.
+
+**Always available (even without this toggle):** `file_read` may use absolute paths outside the workspace for **read-only** access. Prefer `file_read` over bash `Get-Content` / `cat` / `type` for external docs.
+
+Explore (`task`) children use the **same** `file_read` rule (absolute read-only OK). Put external paths in the Explore `description` — the child does not see this chat."#;
+
+pub const ALLOW_OUTSIDE_WORKSPACE_ENTRY: PromptEntry = PromptEntry {
+	id: "session.outside_ws.toggle",
+	intent: PromptIntent::Capability,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "outside_ws_toggle",
+	topics: &["outside_ws", "file_read", "explore", "grep", "glob"],
+	claims: &[
+		"outside_ws.file_read=always",
+		"outside_ws.grep_glob=toggle",
+		"outside_ws.mutate=toggle",
+		"outside_ws.bash=toggle",
+		"explore.file_read_absolute=same_as_parent",
+	],
+	body: ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT,
+};
+
 pub const NATIVE_THINKING_REASONING_SUPPLEMENT: &str = r#"# Native thinking mode (Ollama `think: true`)
 
 The server streams your **internal monologue** in a separate native `thinking` channel. **Do not duplicate that prose** in the assistant `content` body.
@@ -13,19 +47,24 @@ Hard rules for EVERY reply while this mode is active:
 2. The chat UI shows your native `thinking` in the **Native reasoning** fold. There is **no** separate Drox `[phase: reasoning]` phase anymore — that marker is ignored if present.
 3. All other phase rules (`reading`, `planning`, `acting`, `[phase: done]`, `todo_write` gates, micro-cycles around edits, …) stay unchanged."#;
 
-/// Injecté quand la session IDE active « accès hors workspace ».
-pub const ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT: &str = r#"# Outside-workspace access (session toggle)
+pub const NATIVE_THINKING_ENTRY: PromptEntry = PromptEntry {
+	id: "session.native_thinking",
+	intent: PromptIntent::Constraint,
+	strength: PromptStrength::MustText,
+	audience: PromptAudience::Parent,
+	when: "native_thinking",
+	topics: &["thinking", "phases"],
+	claims: &["native_thinking.duplicate_in_content=forbidden"],
+	body: NATIVE_THINKING_REASONING_SUPPLEMENT,
+};
 
-The user enabled **outside-workspace** access for this discussion. You **may** use absolute paths outside the project root with `file_read`, `file_edit`, `file_write`, `glob`, `grep`, `copy_path`, `delete_path`, and `bash` (e.g. to take inspiration from another local repo). Prefer absolute paths when leaving the workspace. Still refuse destructive system paths; ask via `ask_user_question` before risky deletes."#;
-
-/// Injecté quand `subagentsEnabled` est true (tool `task` / Explore enregistré).
-/// Aligné Cursor : le parent **décide** via l'outil ; default-to-Explore pour
-/// compréhension / synthèse / multi-fichiers (pas un spawn auto à seuil tokens).
 pub const SUBAGENTS_EXPLORE_SUPPLEMENT: &str = r#"# Sub-agents — Explore (`task`) ENABLED this run
 
-The `task` tool is available. **You are the session master**: children return **reports** only — they do **not** see this chat. Steer briefs so nothing critical is lost (`must_return`).
+The `task` tool is available. **You are the session master**: children return **summary** + **report_path** (full conclusion.md on disk) — they do **not** see this chat. Steer briefs so nothing critical is lost (`must_return`).
 
 **Soft procedure (preferred — tools stay free):** for **work** asks, mount a `todo_write` plan; **when a step becomes `in_progress`**, gather info for **that** step with a focused `task` (`explore`), then merge the report. **Default to Explore at step kickoff** for understanding / synthesis / multi-file — direct parent `glob`/`grep`/`file_read` is the **exception** (needles only). Do **not** fan out Explore before the plan.
+
+Explore children may `file_read` **absolute paths outside the workspace** (same read-only rule as the parent). Put those paths in `description`.
 
 ## Protocol — Plan → Assign → Merge (predictable)
 
@@ -35,7 +74,7 @@ The `task` tool is available. **You are the session master**: children return **
    - scoped `description` (goal + paths for **that** mission),
    - non-empty `must_return` (acceptance: every fact/section **your** mission still needs from that child),
    - optional `plan_step_id` matching the todo id.
-3. **Merge** — trust each `report` (+ check `truncated` / `iterations_used` / `max_iterations`). Do **not** re-ingest the same files into the parent. If `truncated: true`, re-split into narrower missions — never parent-read spam.
+3. **Merge** — trust each `summary` + `report_path` (full conclusion.md under `.drox/subagents/…`; `file_read` only if needed). Check `truncated` / `iterations_used` / `max_iterations`. Do **not** re-ingest the same files into the parent. If `truncated: true`, re-split into narrower missions — never parent-read spam.
 
 ## MUST use `task` (at plan step kickoff)
 
@@ -52,7 +91,22 @@ The `task` tool is available. **You are the session master**: children return **
 
 Never put engine meta into `title` ("sub-agent does not see this chat", "Mission double")."#;
 
-/// Supplément injecté uniquement en **mode Professeur** (`permissionMode: professor`).
+pub const SUBAGENTS_EXPLORE_ENTRY: PromptEntry = PromptEntry {
+	id: "session.subagents.explore",
+	intent: PromptIntent::Procedure,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "explore_enabled",
+	topics: &["plan_assign_merge", "explore", "outside_ws", "docs_tree"],
+	claims: &[
+		"plan_assign_merge=soft_prefer",
+		"explore.file_read_absolute=same_as_parent",
+		"docs_tree.inventory=via_explore",
+		"parent_dump.docs_tree=forbidden_prefer",
+	],
+	body: SUBAGENTS_EXPLORE_SUPPLEMENT,
+};
+
 pub const PROFESSOR_MODE_SUPPLEMENT: &str = r#"# Professor mode — course plan
 
 **HARD RULES (non-negotiable)**
@@ -94,3 +148,14 @@ Do **not** write into the user's project without explicit agreement (read/plan m
 ## Questions to the student
 
 If you end with a question ("Want to see the correction?"), emit **`[phase: done]`** and wait — an engine reminder is **not** a user answer."#;
+
+pub const PROFESSOR_MODE_ENTRY: PromptEntry = PromptEntry {
+	id: "session.professor",
+	intent: PromptIntent::Procedure,
+	strength: PromptStrength::MustText,
+	audience: PromptAudience::Parent,
+	when: "permission_mode:professor",
+	topics: &["professor", "course_plan"],
+	claims: &["professor.todo_write=forbidden", "professor.mutate_before_plan=forbidden"],
+	body: PROFESSOR_MODE_SUPPLEMENT,
+};

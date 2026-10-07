@@ -869,6 +869,11 @@ suite('Drox — transcript replay', () => {
 			setPendingTool: (id, entry) => pending.set(id, entry),
 			deletePendingTool: (id) => pending.delete(id),
 			takePendingToolForFileFinish: (id, output) => takePendingForFileFinish(pending, id, output),
+			takeAllPendingTools: () => {
+				const out = Array.from(pending.entries()).map(([id, entry]) => ({ id, name: entry.name, args: entry.args }));
+				pending.clear();
+				return out;
+			},
 			clearPendingTools: () => pending.clear(),
 			handleFileMutationAfterToolFinish: () => { },
 			getWorkspaceUri: () => undefined,

@@ -36,9 +36,7 @@ impl Tool for GrepTool {
     }
 
     fn description(&self) -> &str {
-        "Searches for a regex in workspace files (respects `.gitignore` and **`.droxignore`**, limit 300 matches). \
-         **Permissive** UTF-8 reading (partially binary files skipped without failing the entire search). \
-         Option `glob`: limit to relative paths that match (e.g. `**/*.ts`)."
+        drox_prompts::GREP_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

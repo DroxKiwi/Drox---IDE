@@ -114,14 +114,7 @@ impl Tool for CoursePlanWriteTool {
     }
 
     fn description(&self) -> &str {
-        "Creates or updates the **course plan** (Professor mode). Full list \
-         in replace mode. Each lesson alternates teaching + exercise; \
-         include a final `checkpoint` if relevant.\n\n\
-         Format: `{ \"courseTitle\": \"…\", \"steps\": [{ \"id\", \"title\", \
-         \"kind\": \"lesson|exercise|checkpoint\", \"status\": \"pending|active|mastered|skipped\", \
-         \"workArea\"?: { \"strategy\", \"primaryPaths\", \"referencePaths\", \"rationale\" } }] }`.\n\n\
-         At most **one** `active` step. For `exercise` / `checkpoint` steps, \
-         fill in `workArea` (where the student works in the open repo)."
+        drox_prompts::COURSE_PLAN_WRITE_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

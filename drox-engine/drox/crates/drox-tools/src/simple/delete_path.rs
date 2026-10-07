@@ -66,10 +66,7 @@ impl Tool for DeletePathTool {
     }
 
     fn description(&self) -> &str {
-        "Deletes a file or directory strictly under the workspace. \
-         Prefer this tool over `bash rm -rf` (paths, Windows quoting). \
-         Format: {\"path\":\"relative/path\",\"recursive\"?:true}. \
-         `recursive:false` on a directory only deletes it if empty."
+        drox_prompts::DELETE_PATH_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

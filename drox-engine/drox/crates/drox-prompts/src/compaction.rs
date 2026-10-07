@@ -1,4 +1,6 @@
-//! Prompt dédié au tour LLM de compaction mémoire.
+//! Prompt système du tour LLM de compaction mémoire.
+
+use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 
 /// System prompt utilisé **uniquement** pour le tour LLM de compaction
 /// (cf. `drox_engine::compaction::summarize_run`). Volontairement court,
@@ -12,8 +14,7 @@
 /// front-matter aura des champs vides.
 ///
 /// Note : on n'expose **aucun tool** au modèle pendant la compaction —
-/// `ChatOptions` est construit sans `tools` côté `summarize_run`. Le
-/// modèle ne peut donc pas tenter d'agir, juste produire du texte.
+/// `ChatOptions` est construit sans `tools` côté `summarize_run`.
 pub const COMPACTION_PROMPT: &str = r#"You are a **compaction model**. Your only job is to read the conversation transcript provided by the user and produce a **structured markdown summary** of what happened in the session.
 
 This summary will be **persisted to disk** under `.drox/memory/sessions/` as a file named like `YYYY-MM-DD-HHMMSS-<slug>.md` (UTC timestamp + slug from the objective) so that future sessions on the same project can reload it via `memory_read` (using the **slug** field, not the filename prefix). It must be readable both by a human glancing at the file AND by a future LLM scanning a directory of summaries.
@@ -61,3 +62,25 @@ Produce **markdown** with the following sections, in this order, using `## ` hea
 5. Language: write the `## Goal` / `## Objective` line in the language the user used (typically French or English). Other sections can stay in English — they are technical notes for future LLM consumption.
 6. If `## Pinned notes` (from the model's `session_note` calls) are present in the transcript, copy them **verbatim**. They were authored deliberately by the model that ran the session.
 "#;
+
+pub const COMPACTION_ENTRY: PromptEntry = PromptEntry {
+	id: "compaction.system",
+	intent: PromptIntent::Compaction,
+	strength: PromptStrength::MustText,
+	audience: PromptAudience::Compaction,
+	when: "compaction_turn",
+	topics: &["compaction", "memory", "session"],
+	claims: &[
+		"compaction.output=markdown_h2_sections",
+		"compaction.invent_facts=forbidden",
+		"compaction.tools=none",
+		"compaction.sections=goal,done,next,files,blockers,decisions,pinned_notes",
+	],
+	body: COMPACTION_PROMPT,
+};
+
+/// Accès uniforme au body (même pattern que les builders dynamiques).
+#[must_use]
+pub fn compaction_system_prompt() -> &'static str {
+	COMPACTION_ENTRY.body
+}

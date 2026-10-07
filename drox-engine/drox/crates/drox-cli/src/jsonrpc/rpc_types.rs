@@ -230,10 +230,18 @@ pub struct AgentRunParams {
     /// Caps Context-load soft (L2) — nudge post-`glob` one-shot, jamais un hard gate.
     #[serde(default)]
     pub context_load: Option<ContextLoadParams>,
-    /// Soft plan-frame (IDE model question `session.user_message_is_work`).
-    /// `true` → engine injects a **text** nudge to mount a `todo_write` plan — never a tool block.
+    /// Soft plan-frame (classif `isWork`). Si présent → skip classif moteur.
     #[serde(default)]
     pub work_plan_frame: Option<bool>,
+    /// Soft analyzing-frame (classif `isAnalysis`).
+    #[serde(default)]
+    pub analysis_frame: Option<bool>,
+    /// Soft doc-ingestion annex (classif `isDocIngestion`).
+    #[serde(default)]
+    pub doc_ingestion_frame: Option<bool>,
+    /// Si `true`, les frames ci-dessus sont déjà décidés (pas d'ask boot).
+    #[serde(default)]
+    pub session_intent_preclassified: Option<bool>,
 }
 
 /// Caps dérivés L2 pour le score Context-load → N Explore suggéré.

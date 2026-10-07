@@ -31,8 +31,7 @@ impl Tool for ExitPlanModeTool {
     }
 
     fn description(&self) -> &str {
-        "Presents a finalized plan to the human and asks for approval to \
-         exit plan mode and proceed to execution."
+        drox_prompts::EXIT_PLAN_MODE_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

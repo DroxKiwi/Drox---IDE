@@ -46,6 +46,7 @@ export interface IDroxChatAgentBridgeHost extends IDroxChatFileActionsHost {
 		id: string,
 		output: unknown,
 	): { name: string; args: unknown } | undefined;
+	takeAllPendingTools(): Array<{ id: string; name: string; args: unknown }>;
 	clearPendingTools(): void;
 	/** Resync webview `busy` depuis `_currentRunId` (focus / attach). */
 	reconcileChatBusyState?(): void;
@@ -80,6 +81,7 @@ export function createDroxChatAgentEventHost(
 		setPendingTool: (id, entry) => host.setPendingTool(id, entry),
 		deletePendingTool: (id) => host.deletePendingTool(id),
 		takePendingToolForFileFinish: (id, output) => host.takePendingToolForFileFinish(id, output),
+		takeAllPendingTools: () => host.takeAllPendingTools(),
 		clearPendingTools: () => host.clearPendingTools(),
 		handleFileMutationAfterToolFinish: (pendingName, output, isError, toolId, pendingArgs) =>
 			handleDroxFileMutationAfterToolFinish(host, deps, pendingName, output, isError, toolId, pendingArgs),
