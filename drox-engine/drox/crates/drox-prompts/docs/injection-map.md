@@ -69,24 +69,23 @@ Légende : **A** = déjà dans le blob system ; **B** = message system runtime ;
 - **B** : situation card ; pas de WORK PLAN FRAME
 - Attendu modèle : answering → done, sans todo obligatoire (CORE §6d)
 
-### S2 — Work + Explore on (cas le plus bruyant)
+### S2 — Work + Explore on
 
 - **D** : `isWork=true` (+ éventuellement analysis/doc)
-- **A** : CORE (déjà Plan→Assign dans règle 6) **+** `session.subagents.explore` (protocole complet)
-- **B turn-0** : `runtime.work_plan_frame` (re-dit Plan→Assign)
-- Si aussi doc : **+** `runtime.doc_ingestion` (encore la même procédure)
-- **Dose** : même soft ×2–4 — sujet prioritaire du désempilage
+- **A** : CORE (pointeur vers supplement) **+** `session.subagents.explore` (**protocole canonique** Plan→Assign→Merge)
+- **B turn-0** : `runtime.work_plan_frame` = **delta** « c’est du work → todo early » (ne re-déroule pas le protocole)
+- Si aussi doc : **+** `runtime.doc_ingestion` = **delta** docs (2–4 steps, pas de dump parent)
+- **Dose cible** : protocole ×1 (supplement) + deltas courts
 
 ### S3 — Doc ingestion + Explore
 
-- Comme S2 avec `isDocIngestion` → annex `runtime.doc_ingestion` turn-0
-- CORE + supplement Explore déjà orientés docs tree
+- Comme S2 avec `isDocIngestion` → annex delta `runtime.doc_ingestion` turn-0
 
 ### S4 — Analysis (repo / architecture)
 
 - **D** : `isAnalysis=true` ⇒ work aussi (normalisation)
 - **A** : comme S2 si Explore on
-- **B** : `runtime.work_plan_frame` si work ; `runtime.analyzing_phase` seulement si turn-0 + ≥2 outils d’exploration **sans** marqueur `analyzing` (pas un inject systématique)
+- **B** : `runtime.work_plan_frame` si work ; `runtime.analyzing_phase` = delta phase (`analyzing` + thoroughness) si turn-0 + ≥2 outils d’exploration **sans** marqueur `analyzing`
 
 ### S5 — Acting sans tool_calls (FX-B)
 
@@ -111,11 +110,10 @@ Légende : **A** = déjà dans le blob system ; **B** = message system runtime ;
 | Pont nudges | `drox-engine/.../agent/nudges.rs` (re-exports) |
 | Fiches | `drox-prompts/src/*.rs` + `catalog.rs` |
 
-## Dette connue (carte → désempilage)
+## Dette restante
 
-1. Plan→Assign→Merge répété CORE + `session.subagents.explore` + frames turn-0  
+1. ~~Plan→Assign×N~~ — traité 2026-10-07 (CORE pointeur + frames delta ; canon = `session.subagents.explore`)  
 2. Métadonnées `when` / bodies intent-write encore formulées « prose announce »  
 3. Orphelin `gates.large_write_chunk` / `INTENT_ONLY_LARGE_WRITE_MAX_NUDGES`  
-4. Vestige IDE `session.user_message_is_work` (plus branché sur `agent.run`)
-
-Ne pas « corriger » ici sans décision produit — seulement documenter et journaliser.
+4. Vestige IDE `session.user_message_is_work` (plus branché sur `agent.run`)  
+5. Rescues dynamiques (`explore_incomplete`, kickoff) — encore un peu verbeux ; OK pour l’action immédiate

@@ -17,6 +17,14 @@ Format suggéré :
 
 ---
 
+## 2026-10-07 — Étape 1 : une voix Plan→Assign→Merge
+
+- **Contexte** : désempiler la dose turn-0 (CORE + supplement + frames synonymes).
+- **Canal** : A (CORE allégé) + B (frames delta) ; protocole canonique reste A `session.subagents.explore`.
+- **Ids** : `session.core`, `runtime.work_plan_frame`, `runtime.doc_ingestion`, `runtime.analyzing_phase`, `runtime.s5_heavy_read` (+ `context_load_nudge` builder).
+- **Effet modèle** : S2/S3/S4 — un playbook Explore, frames = signal situationnel seulement.
+- **Carte** : scénarios S2–S4 + dette mise à jour.
+
 ## 2026-10-07 — Catalogue `drox-prompts` + boot multi-bool + intent mécanique
 
 - **Contexte** : centralisation des textes LLM hors facades CLI/engine ; cohérence hors fork VS Code.
