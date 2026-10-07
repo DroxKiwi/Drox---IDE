@@ -146,19 +146,12 @@ pub(crate) fn is_workspace_exploration_tool(name: &str) -> bool {
     )
 }
 
-/// Outils parent qui comptent pour le soft nudge « work sans plan »
-/// (hors `task` / mémoire — on pousse un todo, pas encore plus de dump).
-pub(crate) fn counts_as_pre_plan_exploration(name: &str) -> bool {
-    matches!(
+/// Outils qui comptent pour le soft nudge « work sans plan ».
+/// Toute activité utile hors planification / clarification / fin de session.
+pub(crate) fn counts_as_pre_plan_activity(name: &str) -> bool {
+    !matches!(
         name,
-        "glob"
-            | "grep"
-            | "file_read"
-            | "lsp"
-            | "web_search"
-            | "web_fetch"
-            | "workspace_map_read"
-            | "bash"
+        "todo_write" | "course_plan_write" | "ask_user_question" | "session_end"
     )
 }
 

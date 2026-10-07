@@ -17,12 +17,20 @@ Format suggéré :
 
 ---
 
+## 2026-10-07 — Soft nudge work sans plan (élargissement)
+
+- **Contexte** : rappel dès que le modèle **travaille** sans plan (pas seulement lectures).
+- **Canal** : B — compteur = tout outil réussi sauf `todo_write` / `course_plan_write` / `ask_user_question` / `session_end`.
+- **Ids** : `runtime.work_without_plan` ; claim `work.prefer_todo_when_working=prefer`.
+- **Effet modèle** : même soft one-shot ; ignore OK si needle / one-shot légitime.
+- **Carte** : ligne canal B mise à jour.
+
 ## 2026-10-07 — Soft nudge work sans plan (dogfood V2)
 
 - **Contexte** : dogfood docs pédagogie — 566 tools parent, 0 todo / 0 task ; modèle reportait le plan après `dir`.
-- **Canal** : B — `runtime.work_without_plan` (Prefer, one-shot) ; seuil 2 outils pre-plan (`bash`/`file_read`/…).
-- **Ids** : `runtime.work_without_plan` ; claim `work.prefer_todo_before_parent_inventory=prefer`.
-- **Effet modèle** : rappel soft « préfère todo_write maintenant » ; needles peuvent ignorer ; **aucun** blocked tool.
+- **Canal** : B — `runtime.work_without_plan` (Prefer, one-shot) ; seuil 2 (d’abord limité aux outils d’exploration).
+- **Ids** : `runtime.work_without_plan`.
+- **Effet modèle** : rappel soft ; **aucun** blocked tool.
 - **Carte** : ligne canal B + delta DOC (dir → preferred next = todo).
 
 ## 2026-10-07 — Étape 3 : discipline d’ajout + strength

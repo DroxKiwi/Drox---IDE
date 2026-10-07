@@ -7,7 +7,7 @@ Checklist manuelle / dogfood — pas un test unitaire. Cocher après un changeme
 | Id | Prompt user (idée) | Attendu injection | Attendu modèle |
 |----|--------------------|-------------------|----------------|
 | V1 | « salut » / « merci » | Classif `isWork≈false` ; pas de WORK PLAN FRAME | answering → done, sans todo |
-| V2 | Work multi-fichier + Explore on | CORE pointeur + **un** supplement Explore + WORK PLAN **court** ; après ≥2 explor. sans todo → `WORK WITHOUT PLAN` soft | Plan puis `task` au kickoff ; pas de dump parent |
+| V2 | Work multi-fichier + Explore on | CORE pointeur + **un** supplement Explore + WORK PLAN **court** ; après ≥2 outils sans todo → `WORK WITHOUT PLAN` soft | Plan puis `task` au kickoff ; pas de dump parent |
 | V3 | Ingest / rewrite docs tree | + DOC INGESTION **delta** (pas un 2e playbook) | 2–4 explores ; parent 1–2 pages |
 | V4 | Analyse repo | + éventuellement analyzing delta si explore sans marqueur | `[phase: analyzing]` |
 | V5 | Tour `[phase: acting]` sans tool | Nudge intent-write (acting sans tools) | tool_call ou answering+done ; abort après 2 nudges |

@@ -65,17 +65,18 @@ pub const DOC_INGESTION_EXPLORE_ANNEX: &str = "DOC INGESTION / MULTI-FILE DOCS �
     move is `todo_write`**, then Assign Explore (not more parent inventory).\n\
     - Trust reports; context isolation is intentional.";
 
-/// Soft — work/doc sans `todo_write` après quelques outils d'exploration parent.
-/// Tools restent libres (pas de hard gate).
+/// Soft — work/doc sans `todo_write` après activité outils (toute situation).
+/// Tools restent libres (pas de hard gate) ; ignore OK si légitime (needle, etc.).
 pub const WORK_WITHOUT_PLAN_NUDGE: &str = "WORK WITHOUT PLAN — soft reminder (not a hard gate)\n\
     \n\
-    This run is **work** / docs and you already explored with parent tools, but you have \
-    **not** called `todo_write` yet.\n\
+    This run is **work** / docs and you already used tools, but you have **not** called \
+    `todo_write` yet.\n\
     \n\
     **Preferred next move:** mount a short `todo_write` plan (2–4 clear steps) now. \
     If the **Sub-agents — Explore** supplement is present, Assign at step kickoff afterward.\n\
     \n\
-    Needle exception (1–2 known paths only): you may ignore this reminder. Tools stay free.";
+    If skipping a plan is clearly legitimate (needle / 1–2 known paths / trivial one-shot), \
+    you may ignore this reminder and continue. Tools stay free.";
 
 pub const WORK_WITHOUT_PLAN_NUDGE_THRESHOLD: u32 = 2;
 
@@ -84,11 +85,11 @@ pub const WORK_WITHOUT_PLAN_ENTRY: PromptEntry = PromptEntry {
 	intent: PromptIntent::Rescue,
 	strength: PromptStrength::Prefer,
 	audience: PromptAudience::Parent,
-	when: "work_or_doc_frame+pre_plan_exploration_n+no_todo_write",
-	topics: &["todo_write", "plan_assign_merge", "docs_tree"],
+	when: "work_or_doc_frame+pre_plan_activity_n+no_todo_write",
+	topics: &["todo_write", "plan_assign_merge"],
 	claims: &[
 		"plan_assign_merge=soft_prefer",
-		"work.prefer_todo_before_parent_inventory=prefer",
+		"work.prefer_todo_when_working=prefer",
 	],
 	body: WORK_WITHOUT_PLAN_NUDGE,
 };

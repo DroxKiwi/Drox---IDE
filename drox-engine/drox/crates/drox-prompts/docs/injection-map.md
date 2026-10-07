@@ -48,7 +48,7 @@ Puis, dans `drive.rs` **après** ce blob (canal B, messages séparés) :
 | Chaque tour (avant stream) | toujours | situation card (engine, hors fiche body fixe) |
 | Turn-0 | `session_frames.work_plan` | `runtime.work_plan_frame` |
 | Turn-0 | Explore + `doc_ingestion` | `runtime.doc_ingestion` |
-| Après ≥2 outils explor. parent sans `todo_write` | work ou doc frame | `runtime.work_without_plan` (soft, one-shot) |
+| Après ≥2 outils réussis (toute activité) sans `todo_write` | work ou doc frame | `runtime.work_without_plan` (soft, one-shot ; ignore OK si légitime) |
 | Après `todo` → `in_progress` | Explore on | `runtime.step_explore_kickoff` (body dynamique) |
 | Streak lectures parent | Explore on + seuil | `runtime.s5_heavy_read` |
 | Explore tronqué + lectures | … | `runtime.explore_rescue` / `explore_incomplete_nudge` |
