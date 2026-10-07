@@ -35,14 +35,17 @@ use super::super::nudges::{
     LOOP_TOOL_FAMILY_NUDGE_PROMPT, MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
     MISSING_ANSWERING_PROMPT, NUDGE_PROMPT, PARENT_HEAVY_READ_NUDGE,
     PARENT_HEAVY_READ_NUDGE_THRESHOLD, REPEATED_FILE_READ_NUDGE, REPEATED_FILE_READ_NUDGE_THRESHOLD,
-    WORK_PLAN_FRAME_NUDGE, step_explore_kickoff_nudge,
+    WORK_PLAN_FRAME_NUDGE, WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD,
+    step_explore_kickoff_nudge,
 };
 use super::super::session_intent::{classify_session_user_intent, SessionFrames};
 use super::super::context_load::{
     score as score_context_load, should_inject as should_inject_context_load,
     snapshot_from_glob_value, ContextLoadSnapshot,
 };
-use super::super::phase::{is_workspace_exploration_tool, user_blocks_plain_text};
+use super::super::phase::{
+    counts_as_pre_plan_exploration, is_workspace_exploration_tool, user_blocks_plain_text,
+};
 use super::super::situation::{
     completed_todos_hint, counts_as_parent_heavy_read, first_in_progress_todo_id,
     next_todo_from_output, note_successful_file_read, note_task_tool_success, path_from_file_tool,
@@ -213,6 +216,9 @@ impl Agent {
         let mut parent_heavy_read_nudge_sent = false;
         let mut doc_ingestion_annex_sent = false;
         let mut work_plan_frame_nudge_sent = false;
+        // Soft — work/doc + exploration parent sans todo_write (one-shot).
+        let mut pre_plan_exploration_count: u32 = 0;
+        let mut work_without_plan_nudge_sent = false;
         let mut last_in_progress_todo_id: Option<String> = None;
         // Soft Explore kickoff: (step_id, optional content label).
         let mut pending_step_explore_nudge: Option<(String, Option<String>)> = None;
@@ -302,6 +308,21 @@ impl Agent {
                 debug!("doc ingestion intent — Explore annex (turn-0)");
                 messages.push(Message::system(DOC_INGESTION_EXPLORE_ANNEX));
                 doc_ingestion_annex_sent = true;
+            }
+
+            // Soft — work/doc sans todo après N outils d'exploration parent.
+            // Tools restent libres (pas de blocked).
+            if !work_without_plan_nudge_sent
+                && !saw_successful_todo_write_in_run
+                && (session_frames.work_plan || session_frames.doc_ingestion)
+                && pre_plan_exploration_count >= WORK_WITHOUT_PLAN_NUDGE_THRESHOLD
+            {
+                debug!(
+                    pre_plan_exploration_count,
+                    "work without plan — soft todo nudge"
+                );
+                messages.push(Message::system(WORK_WITHOUT_PLAN_NUDGE));
+                work_without_plan_nudge_sent = true;
             }
 
             // Soft — kickoff d'une nouvelle étape plan → Explore pour cette étape.
@@ -940,6 +961,12 @@ impl Agent {
                                         parent_heavy_read_streak =
                                             parent_heavy_read_streak.saturating_add(1);
                                     }
+                                    if !saw_successful_todo_write_in_run
+                                        && counts_as_pre_plan_exploration(&call.name)
+                                    {
+                                        pre_plan_exploration_count =
+                                            pre_plan_exploration_count.saturating_add(1);
+                                    }
                                     let _ = note_successful_file_read(
                                         &mut file_read_success_counts,
                                         &call.name,
@@ -1212,6 +1239,12 @@ impl Agent {
                                     ) {
                                         parent_heavy_read_streak =
                                             parent_heavy_read_streak.saturating_add(1);
+                                    }
+                                    if !saw_successful_todo_write_in_run
+                                        && counts_as_pre_plan_exploration(&call.name)
+                                    {
+                                        pre_plan_exploration_count =
+                                            pre_plan_exploration_count.saturating_add(1);
                                     }
                                     let _ = note_successful_file_read(
                                         &mut file_read_success_counts,
