@@ -146,6 +146,22 @@ pub(crate) fn is_workspace_exploration_tool(name: &str) -> bool {
     )
 }
 
+/// Outils parent qui comptent pour le soft nudge « work sans plan »
+/// (hors `task` / mémoire — on pousse un todo, pas encore plus de dump).
+pub(crate) fn counts_as_pre_plan_exploration(name: &str) -> bool {
+    matches!(
+        name,
+        "glob"
+            | "grep"
+            | "file_read"
+            | "lsp"
+            | "web_search"
+            | "web_fetch"
+            | "workspace_map_read"
+            | "bash"
+    )
+}
+
 pub(crate) fn user_blocks_plain_text(blocks: &[Content]) -> String {
     blocks
         .iter()

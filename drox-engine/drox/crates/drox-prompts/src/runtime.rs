@@ -61,8 +61,37 @@ pub const DOC_INGESTION_EXPLORE_ANNEX: &str = "DOC INGESTION / MULTI-FILE DOCS �
     - Prefer **2–4** explore-sized steps (inventory / tone / target page / …). Never one mega Explore.\n\
     - Put absolute outside-workspace paths in `description` + `must_return` (Explore can `file_read` them).\n\
     - Parent: only the **1–2 pages being rewritten** (short line ranges). No docs-tree dump via \
-    `file_read` / bash. A `bash dir` to confirm the folder exists is OK — then Assign Explore.\n\
+    `file_read` / bash. At most one `bash dir` to confirm the folder exists — **preferred next \
+    move is `todo_write`**, then Assign Explore (not more parent inventory).\n\
     - Trust reports; context isolation is intentional.";
+
+/// Soft — work/doc sans `todo_write` après quelques outils d'exploration parent.
+/// Tools restent libres (pas de hard gate).
+pub const WORK_WITHOUT_PLAN_NUDGE: &str = "WORK WITHOUT PLAN — soft reminder (not a hard gate)\n\
+    \n\
+    This run is **work** / docs and you already explored with parent tools, but you have \
+    **not** called `todo_write` yet.\n\
+    \n\
+    **Preferred next move:** mount a short `todo_write` plan (2–4 clear steps) now. \
+    If the **Sub-agents — Explore** supplement is present, Assign at step kickoff afterward.\n\
+    \n\
+    Needle exception (1–2 known paths only): you may ignore this reminder. Tools stay free.";
+
+pub const WORK_WITHOUT_PLAN_NUDGE_THRESHOLD: u32 = 2;
+
+pub const WORK_WITHOUT_PLAN_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.work_without_plan",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "work_or_doc_frame+pre_plan_exploration_n+no_todo_write",
+	topics: &["todo_write", "plan_assign_merge", "docs_tree"],
+	claims: &[
+		"plan_assign_merge=soft_prefer",
+		"work.prefer_todo_before_parent_inventory=prefer",
+	],
+	body: WORK_WITHOUT_PLAN_NUDGE,
+};
 
 pub const DOC_INGESTION_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.doc_ingestion",
