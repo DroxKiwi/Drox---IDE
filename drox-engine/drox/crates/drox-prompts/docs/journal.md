@@ -17,6 +17,14 @@ Format suggéré :
 
 ---
 
+## 2026-10-07 — Étape 2 : sync intent-write + hygiène orphelins
+
+- **Contexte** : catalogue aligné sur la mécanique FX-B ; dead code IDE isWork.
+- **Canal** : B (`gates.intent_only_write*`) ; retrait fiche `gates.large_write_chunk` ; IDE modelQuestions sans `session.user_message_is_work`.
+- **Ids** : `when` → `phase_acting_without_tool_calls` (+strike2) ; claim `mutation.acting_without_tools=forbidden`.
+- **Effet modèle** : nudge parle d’`acting` sans tools (plus de « Je vais écrire »).
+- **Carte** : S5 + dette.
+
 ## 2026-10-07 — Étape 1 : une voix Plan→Assign→Merge
 
 - **Contexte** : désempiler la dose turn-0 (CORE + supplement + frames synonymes).

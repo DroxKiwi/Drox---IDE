@@ -18,7 +18,7 @@ import {
 } from '../droxLlmCatalog.js';
 import { mergeLlmHttpHeaders } from '../droxLlmHeaders.js';
 import { DroxSetting } from '../droxConfiguration.js';
-import { parseCodebaseRetrievalFilter, parseUserMessageIsWork } from './droxModelQuestionParse.js';
+import { parseCodebaseRetrievalFilter } from './droxModelQuestionParse.js';
 import { resolveDroxModelQuestionVariant } from './droxModelQuestionResolve.js';
 import { callDroxModelQuestionLlm } from './droxModelQuestionLlmCall.js';
 import {
@@ -26,11 +26,9 @@ import {
 	IDroxCodebaseRetrievalFilter,
 	IDroxModelQuestionResolveOpts,
 	IDroxModelQuestionVariant,
-	IDroxUserMessageIsWork,
 } from './droxModelQuestionTypes.js';
 
 const COMPREHENSION_TIMEOUT_MS = 2800;
-const IS_WORK_TIMEOUT_MS = 2200;
 
 export const IDroxModelQuestionService = createDecorator<IDroxModelQuestionService>('droxModelQuestionService');
 
@@ -41,10 +39,6 @@ export interface IDroxModelQuestionService {
 	 * Returns undefined on timeout / parse / transport failure (caller falls back).
 	 */
 	comprehendCodebaseRetrieval(userMessage: string, opts?: IDroxModelQuestionResolveOpts): Promise<IDroxCodebaseRetrievalFilter | undefined>;
-	/**
-	 * Work vs discussion — drives soft plan-frame inject (no NL heuristics in app code).
-	 */
-	classifyUserMessageIsWork(userMessage: string, opts?: IDroxModelQuestionResolveOpts): Promise<IDroxUserMessageIsWork | undefined>;
 }
 
 export class DroxModelQuestionService extends Disposable implements IDroxModelQuestionService {
@@ -85,26 +79,6 @@ export class DroxModelQuestionService extends Disposable implements IDroxModelQu
 		return result;
 	}
 
-	async classifyUserMessageIsWork(
-		userMessage: string,
-		opts?: IDroxModelQuestionResolveOpts,
-	): Promise<IDroxUserMessageIsWork | undefined> {
-		const q = userMessage.trim();
-		if (!q) {
-			return undefined;
-		}
-		const questionId: DroxModelQuestionId = 'session.user_message_is_work';
-		const variant = resolveDroxModelQuestionVariant(questionId, opts);
-		const result = await raceTimeout(
-			this._askIsWork(variant, q),
-			IS_WORK_TIMEOUT_MS,
-		);
-		if (!result) {
-			this.logService.trace('[drox-model-questions] isWork timeout/empty');
-		}
-		return result;
-	}
-
 	private async _askFilter(
 		variant: IDroxModelQuestionVariant,
 		userMessage: string,
@@ -121,26 +95,6 @@ export class DroxModelQuestionService extends Disposable implements IDroxModelQu
 			return filter;
 		} catch (err) {
 			this.logService.trace(`[drox-model-questions] ask failed: ${err}`);
-			return undefined;
-		}
-	}
-
-	private async _askIsWork(
-		variant: IDroxModelQuestionVariant,
-		userMessage: string,
-	): Promise<IDroxUserMessageIsWork | undefined> {
-		try {
-			const raw = await this._rawAsk(variant, userMessage);
-			if (!raw) {
-				return undefined;
-			}
-			const classified = parseUserMessageIsWork(raw, variant);
-			if (classified) {
-				this.logService.trace(`[drox-model-questions] isWork=${classified.isWork}`);
-			}
-			return classified;
-		} catch (err) {
-			this.logService.trace(`[drox-model-questions] isWork failed: ${err}`);
 			return undefined;
 		}
 	}
