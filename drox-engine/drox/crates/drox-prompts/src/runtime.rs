@@ -6,14 +6,8 @@ use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 pub const PARENT_HEAVY_READ_NUDGE: &str = "STOP flooding the parent context with repeated \
     reads / `Get-Content` / `cat` dumps.\n\
     \n\
-    For **understanding, synthesis, multi-file, or a docs tree**: if `task` (Explore) is available, \
-    you are the **session master** — **Plan → Assign (at step kickoff) → Merge**:\n\
-    1. If you have no plan yet: `todo_write` with focused explore-sized steps \
-    (2–4, or Context-load recommended_n).\n\
-    2. At the current `in_progress` kickoff: spawn **one** `task` (`explore`) for **that** \
-    step with `must_return` filled — not a blind multi-Explore fan-out outside the plan.\n\
-    3. Keep only the returned **summary** / **report_path** in the parent.\n\
-    \n\
+    If the **Sub-agents — Explore** supplement is present: follow it now \
+    (plan if missing → one `task` at the current step kickoff → merge reports only). \
     A prior `bash dir` / listing does **not** authorize parent `file_read` spam on that tree.\n\
     \n\
     Else: `file_read` with **`start_line` + `end_line`** (short ranges) or `grep` — do NOT \
@@ -39,15 +33,13 @@ pub const PARENT_HEAVY_READ_ENTRY: PromptEntry = PromptEntry {
 
 pub const PARENT_HEAVY_READ_NUDGE_THRESHOLD: u32 = 1;
 
-pub const WORK_PLAN_FRAME_NUDGE: &str = "WORK PLAN FRAME — procedure (not a hard gate)\n\
+pub const WORK_PLAN_FRAME_NUDGE: &str = "WORK PLAN FRAME — soft delta (not a hard gate)\n\
     \n\
-    This user message is **work** (not chitchat). Your expected procedure:\n\
-    1. Mount or update a `todo_write` plan with clear steps for the ask.\n\
-    2. When you start a step (`in_progress`), gather info for **that** step with \
-    a focused `task` (`explore`) when Explore is available — then merge the report.\n\
-    3. Tools stay free: you may deviate, but this frame is the strongly preferred path.\n\
+    This user message is **work** (not chitchat). Prefer mounting/updating a `todo_write` \
+    plan early for multi-step work.\n\
     \n\
-    Do **not** skip planning for multi-step work.";
+    If the **Sub-agents — Explore** supplement is present this run, follow that protocol \
+    at step kickoff — do **not** restate it here. Tools stay free.";
 
 pub const WORK_PLAN_FRAME_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.work_plan_frame",
@@ -60,26 +52,17 @@ pub const WORK_PLAN_FRAME_ENTRY: PromptEntry = PromptEntry {
 	body: WORK_PLAN_FRAME_NUDGE,
 };
 
-pub const DOC_INGESTION_EXPLORE_ANNEX: &str = "DOC INGESTION / MULTI-FILE DOCS — engine directive\n\
+pub const DOC_INGESTION_EXPLORE_ANNEX: &str = "DOC INGESTION / MULTI-FILE DOCS — soft delta\n\
     \n\
-    The user asked you to take knowledge of a **docs tree** and/or rewrite / replace \
-    documentation pages from that source.\n\
+    The user wants to ingest / mirror / rewrite from a **docs tree**.\n\
     \n\
-    Same soft frame as CORE: **Plan** (`todo_write`) → at each step kickoff **Assign** \
-    a focused `task` (`explore`) with `must_return` → **Merge** reports → mutate \
-    target pages in the parent.\n\
-    \n\
-    Prefer **2–4** explore steps (inventory / tone / target page / …). Never one mega Explore.\n\
-    \n\
-    The Explore sub-agent does **not** see this chat — put every needed fact into \
-    `description` + `must_return` (including absolute paths outside the workspace).\n\
-    Explore may `file_read` those absolute paths (read-only, same as parent).\n\
-    \n\
-    Parent may `file_read` only the **1–2 pages being rewritten** (short line ranges). \
-    Do **NOT** dump the whole docs tree into the parent via `file_read` / bash dumps. \
-    A single `bash dir` to confirm the folder exists is OK — then **Assign Explore** for inventory.\n\
-    \n\
-    Trust the reports. Context isolation is intentional.";
+    Follow Plan → Assign → Merge from the **Sub-agents — Explore** supplement when present \
+    (do not restate that protocol here). Delta for this run:\n\
+    - Prefer **2–4** explore-sized steps (inventory / tone / target page / …). Never one mega Explore.\n\
+    - Put absolute outside-workspace paths in `description` + `must_return` (Explore can `file_read` them).\n\
+    - Parent: only the **1–2 pages being rewritten** (short line ranges). No docs-tree dump via \
+    `file_read` / bash. A `bash dir` to confirm the folder exists is OK — then Assign Explore.\n\
+    - Trust reports; context isolation is intentional.";
 
 pub const DOC_INGESTION_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.doc_ingestion",
@@ -120,24 +103,24 @@ pub const EXPLORE_RESCUE_ENTRY: PromptEntry = PromptEntry {
 	body: EXPLORE_RESCUE_PARENT_READ_NUDGE,
 };
 
-pub const ANALYZING_PHASE_NUDGE: &str = "The user asked for a **workspace / repo analysis** \
-     or topic understanding. Prefer `[phase: analyzing]` (not generic `[phase: reading]`). \
-     If the `task` tool is available this run, prefer **Plan → Assign at step kickoff**: \
-     mount/update `todo_write`, then spawn one focused `task` (`explore`) when a step becomes \
-     `in_progress` (`thoroughness`: `medium` or `very thorough`) — keep only the returned report \
-     in the parent. Do **not** fan out Explore before the plan. Needles or 1–2 known paths → \
-     direct tools. Otherwise playbook: `workspace_map_read` if `[Workspace map]` is fresh → \
-     targeted `glob` → `grep` + ranged `file_read` → `lsp`. Treat `directory_fanout_caps` / \
-     `truncated` as refine signals. Telegraphic notes in `analyzing`; full report only in \
-     `[phase: answering]`.";
+pub const ANALYZING_PHASE_NUDGE: &str = "ANALYSIS FRAME — soft delta\n\
+    \n\
+    Prefer `[phase: analyzing]` (not generic `[phase: reading]`). Telegraphic notes in \
+    `analyzing`; full report only in `[phase: answering]`.\n\
+    \n\
+    If the **Sub-agents — Explore** supplement is present: follow it \
+    (`thoroughness`: `medium` or `very thorough` for overview). Else: `workspace_map_read` \
+    if map is fresh → targeted `glob` → `grep` + ranged `file_read` → `lsp`. Treat \
+    `directory_fanout_caps` / `truncated` as refine signals. Needles / 1–2 known paths → \
+    direct tools.";
 
 pub const ANALYZING_PHASE_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.analyzing_phase",
 	intent: PromptIntent::Procedure,
 	strength: PromptStrength::Prefer,
 	audience: PromptAudience::Parent,
-	when: "workspace_analysis_detected",
-	topics: &["plan_assign_merge", "analyzing", "explore"],
+	when: "session_frames.analysis+explore_tools_without_analyzing",
+	topics: &["analyzing", "explore"],
 	claims: &["plan_assign_merge=soft_prefer"],
 	body: ANALYZING_PHASE_NUDGE,
 };
@@ -183,16 +166,10 @@ pub fn context_load_nudge(
 ) -> String {
 	format!(
 		"[Context load] files≈{files_effective} ≈{total_kb}KB → load={load}. \
-You are the **session master**: you only keep Explore **reports**. \
-**Plan → Assign (at step kickoff) → Merge**:\n\
-1. `todo_write` with about **{recommended_n}** explore-sized **plan steps** \
-(one subtree / one question each).\n\
-2. At each step kickoff (`in_progress`), spawn **one** focused `task` (`explore`) for \
-**that** step — short `title`, scoped `description`, non-empty `must_return`.\n\
-3. Merge reports only — do **not** parent-read the whole tree.\n\
-\n\
-Sequential is fine if concurrency is 1. This is **guidance**, not a hard gate — \
-you may use a smaller N if a tighter scope is clearly enough."
+Follow the **Sub-agents — Explore** supplement (Plan → Assign at step kickoff → Merge). \
+Prefer about **{recommended_n}** explore-sized plan steps; keep only reports in the parent — \
+do **not** parent-read the whole tree. Sequential is fine if concurrency is 1. \
+Guidance only — a smaller N is OK when scope is clearly tighter."
 	)
 }
 
