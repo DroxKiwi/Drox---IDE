@@ -114,5 +114,6 @@ Légende : **A** = déjà dans le blob system ; **B** = message system runtime ;
 1. ~~Plan→Assign×N~~ — traité 2026-10-07  
 2. ~~Intent-write `when`/bodies + orphelin large-write~~ — traité 2026-10-07  
 3. ~~Vestige IDE `session.user_message_is_work`~~ — retiré 2026-10-07  
-4. Rescues dynamiques (`explore_incomplete`, kickoff) — encore un peu verbeux ; OK pour l’action immédiate  
-5. `PromptStrength::Soft` jamais utilisé (Prefer | MustText seulement)
+4. ~~`PromptStrength::Soft`~~ — retiré ; Prefer | MustText seulement (`docs/adding.md`)  
+5. Rescues dynamiques (`explore_incomplete`, kickoff) — encore un peu verbeux ; OK pour l’action immédiate  
+6. Dogfood V1–V6 — checklist [`verification.md`](verification.md)
