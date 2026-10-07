@@ -32,7 +32,13 @@ pub(crate) fn format_tool_result_for_llm(
     value: &Value,
     workspace_root: &Utf8Path,
 ) -> String {
-    let serialized = serde_json::to_string(value).unwrap_or_default();
+    // Explore : full `report` stays in the wire/JSON for IDE ; parent LLM gets path + summary.
+    let value_for_llm = if tool_name == "task" {
+        slim_task_tool_result_for_llm(value)
+    } else {
+        value.clone()
+    };
+    let serialized = serde_json::to_string(&value_for_llm).unwrap_or_default();
     if serialized.len() <= TOOL_RESULT_SPILL_THRESHOLD_BYTES {
         return format!(
             "[drox: tool result for «{tool_name}» — JSON below; this is NOT a user message]\n{serialized}",
@@ -64,6 +70,26 @@ pub(crate) fn format_tool_result_for_llm(
             )
         }
     }
+}
+
+/// Retire le markdown `report` du payload `task` (disponible via `report_path`).
+fn slim_task_tool_result_for_llm(value: &Value) -> Value {
+    let mut obj = match value {
+        Value::Object(map) => map.clone(),
+        other => {
+            return other.clone();
+        }
+    };
+    obj.remove("report");
+    if !obj.contains_key("summary") {
+        if let Some(path) = obj.get("report_path").and_then(|v| v.as_str()) {
+            obj.insert(
+                "summary".into(),
+                Value::String(format!("See report_path ({path})")),
+            );
+        }
+    }
+    Value::Object(obj)
 }
 
 fn spill_tool_result_to_disk(

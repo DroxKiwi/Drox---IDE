@@ -312,6 +312,7 @@ class DroxAgentsUiReplayCollector {
 					: localize('droxAgents.exploreDone', 'Explore completed'),
 				toolSpecificData: buildExploreSubagentToolSpecificData(start, {
 					exploreReport: report || undefined,
+					exploreReportPath: exploreOutput?.exploreReportPath,
 					exploreError: exploreOutput?.exploreError,
 					exploreThoroughness: exploreOutput?.exploreThoroughness,
 				}),

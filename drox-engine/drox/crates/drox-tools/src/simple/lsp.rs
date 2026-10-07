@@ -94,15 +94,7 @@ impl Tool for LspTool {
     }
 
     fn description(&self) -> &str {
-        "Queries the Language Server Protocol via VS Code (diagnostics, \
-         definition, references, hover, symbol search). \
-         **Semantic** search (by symbol) rather than textual like \
-         `grep`. Requires an active language server on the editor side \
-         (rust-analyzer, tsserver, pyright…). \
-         Operations: `diagnostics` | `workspace_symbol` | `definition` | \
-         `references` | `hover`. Positions are 0-indexed (LSP). For \
-         position-based operations, provide either `position` or `symbol` \
-         (the client will find the first occurrence in `path`)."
+        drox_prompts::LSP_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

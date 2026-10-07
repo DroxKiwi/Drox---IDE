@@ -41,7 +41,7 @@ impl Tool for FileWriteTool {
     }
 
     fn description(&self) -> &str {
-        "Writes a text file under the workspace. In `apply_fs_writes` mode, writes to disk; otherwise returns a JSON proposal."
+        drox_prompts::FILE_WRITE_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

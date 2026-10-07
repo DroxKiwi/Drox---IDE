@@ -38,7 +38,6 @@ import {
 } from './regulation/droxRegulationL4Protocol.js';
 import { IDroxRegulationService } from './regulation/droxRegulationServiceContract.js';
 import { droxSubagentsEnabledForRun } from './droxSubagents.js';
-import type { IDroxModelQuestionService } from './modelQuestions/droxModelQuestionService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { URI } from '../../../../base/common/uri.js';
 import { DroxSetting } from './droxConfiguration.js';
@@ -69,8 +68,6 @@ export interface IDroxAgentRunBridgeDeps {
 	readonly configurationService?: IConfigurationService;
 	/** Optionnel : L1 notes + L2 tools + L3 directive + L4 protocol. */
 	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
-	/** Optional: work/discussion classifier (no NL heuristics). */
-	readonly modelQuestionService?: Pick<IDroxModelQuestionService, 'classifyUserMessageIsWork'>;
 }
 
 export interface IDroxAgentRunStartOptions {
@@ -221,20 +218,8 @@ export async function startDroxAgentRun(
 		delete runParams.contextLoad;
 	}
 
-	// Work vs discussion — model question → soft plan-frame flag (engine inject, no hard gate).
-	if (deps.modelQuestionService && !options.skipUserTurn) {
-		try {
-			const classified = await deps.modelQuestionService.classifyUserMessageIsWork(options.prompt);
-			if (classified?.isWork === true) {
-				runParams.workPlanFrame = true;
-				deps.logService.trace('[Drox] workPlanFrame=true (model isWork)');
-			} else if (classified?.isWork === false) {
-				deps.logService.trace('[Drox] workPlanFrame skipped (model isWork=false)');
-			}
-		} catch (e) {
-			deps.logService.trace('[Drox] isWork classify skipped', e);
-		}
-	}
+	// Session intent (work / analysis / doc) : classif multi-bool dans le moteur
+	// (`drox-prompts`), pas ici — cohérent hors fork VS Code.
 
 	const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 	if (typeof result?.runId === 'string') {

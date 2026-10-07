@@ -63,7 +63,10 @@ suite('Drox — Explore tool wire', () => {
 				exploreDescription: 'Search droxConfiguration for traffic alerts.\nReturn the setting keys.',
 				exploreThoroughness: 'quick',
 			},
-			{ exploreReport: 'Alerts live in droxConfiguration.' },
+			{
+				exploreReport: 'Alerts live in droxConfiguration.',
+				exploreReportPath: '.drox/subagents/run_1/x-explore/conclusion.md',
+			},
 		);
 		assert.deepStrictEqual(data, {
 			kind: 'subagent',
@@ -71,6 +74,7 @@ suite('Drox — Explore tool wire', () => {
 			description: 'Find alert config',
 			prompt: 'Search droxConfiguration for traffic alerts.\nReturn the setting keys.',
 			result: 'Alerts live in droxConfiguration.',
+			resultPath: '.drox/subagents/run_1/x-explore/conclusion.md',
 		});
 	});
 
@@ -82,9 +86,12 @@ suite('Drox — Explore tool wire', () => {
 		const wire = buildExploreToolFinishWire('task', {
 			subagent_type: 'explore',
 			report: 'Auth lives in src/auth.ts',
+			report_path: '.drox/subagents/run_1/x-explore/conclusion.md',
+			summary: 'Auth lives in src/auth.ts',
 		}, false);
 		assert.deepStrictEqual(wire, {
 			exploreReport: 'Auth lives in src/auth.ts',
+			exploreReportPath: '.drox/subagents/run_1/x-explore/conclusion.md',
 			exploreError: undefined,
 			exploreThoroughness: undefined,
 		});

@@ -86,9 +86,7 @@ impl Tool for FileEditTool {
     }
 
     fn description(&self) -> &str {
-        "Edits a text file via (old_string, new_string) pairs. \
-         old_string must appear exactly once unless replace_all=true. \
-         In apply mode, writes to disk; otherwise returns content+diff."
+        drox_prompts::FILE_EDIT_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

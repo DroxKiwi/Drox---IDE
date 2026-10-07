@@ -25,9 +25,7 @@ impl Tool for WorkspaceMapReadTool {
     }
 
     fn description(&self) -> &str {
-        "Reads the persistent workspace structure map (`.drox/workspace-map.json`): \
-         zones, roles, pivots. Use it before a broad `glob` if the system prompt \
-         mentions a fresh version."
+        drox_prompts::WORKSPACE_MAP_READ_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

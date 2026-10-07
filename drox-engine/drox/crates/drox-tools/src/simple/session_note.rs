@@ -58,12 +58,7 @@ impl Tool for SessionNoteTool {
     }
 
     fn description(&self) -> &str {
-        "Pins a working note (≤ 500 chars) that will be included in the \
-         persistent session summary at the end of the run. Use to \
-         record a non-trivial technical decision, a hypothesis to \
-         verify, or a blocking point — NOT to narrate the previous tool \
-         or announce a plan. Effect: in-memory append, zero I/O. \
-         Format: {\"content\": \"…\"}."
+        drox_prompts::SESSION_NOTE_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

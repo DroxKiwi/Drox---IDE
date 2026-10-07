@@ -23,19 +23,9 @@ pub struct ProfessorCourseState {
     pub allowed_paths: Vec<String>,
 }
 
-pub const MUTATING_BEFORE_COURSE_PLAN: &str = "Blocked (Professor mode): call `course_plan_write` \
-    first with a full course plan (`courseTitle` + `steps`) before any mutating tool. \
-    Co-build the plan with the learner (`ask_user_question` if needed).";
-
-pub const MUTATING_NO_ACTIVE_EXERCISE: &str = "Blocked (Professor mode): mutating tools are only \
-    allowed during an **active** `exercise` or `checkpoint` step. If you are teaching, use \
-    `[phase: teach]` with short commented excerpts — do not edit project files. When the learner \
-    is ready to practice, set that step to `active` via `course_plan_write` with a `workArea`.";
-
-pub const MUTATING_PATH_OUTSIDE_WORK_AREA: &str = "Blocked (Professor mode): this path is outside \
-    the active step's `workArea`. Update `course_plan_write` to widen `primaryPaths` / \
-    `referencePaths`, or target a file listed there. Sandbox drafts under `.drox/learn/` are \
-    always allowed during an active exercise.";
+pub use drox_prompts::{
+	MUTATING_BEFORE_COURSE_PLAN, MUTATING_NO_ACTIVE_EXERCISE, MUTATING_PATH_OUTSIDE_WORK_AREA,
+};
 
 /// Met à jour l'état à partir du JSON renvoyé par `course_plan_write`.
 pub fn state_from_course_plan_output(value: &Value) -> ProfessorCourseState {

@@ -19,4 +19,7 @@ Add a new ask: new file under `questions/`, append to catalog array, extend `Dro
 
 Shipped asks:
 - `codebase.retrieval.comprehension` (CB4b)
-- `session.user_message_is_work` — work vs chitchat → soft `workPlanFrame`
+- `session.user_message_is_work` — **legacy IDE-only**; session boot intent
+  (work / analysis / doc) is owned by the engine via `drox-prompts`
+  multi-bool JSON (`model_question.session.user_intent`). Do not drive
+  `workPlanFrame` from the IDE.

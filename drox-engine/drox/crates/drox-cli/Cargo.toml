@@ -26,6 +26,7 @@ drox-hooks.workspace = true
 drox-mcp.workspace = true
 drox-permissions.workspace = true
 drox-embed.workspace = true
+drox-prompts.workspace = true
 dirs.workspace = true
 
 camino.workspace = true

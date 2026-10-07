@@ -186,6 +186,34 @@ suite('Drox — droxAgentsChatSink', () => {
 		assert.strictEqual(ended, 2);
 	});
 
+	test('handleAgentDone finalizes orphan task Explore on cancelled', () => {
+		const parts: IChatProgress[] = [];
+		const sink = createDroxAgentsChatSink(p => parts.push(...p));
+		sink.handleAgentEvent(agentEvent('tool_start', {
+			id: 'explore_orphan_1',
+			name: 'task',
+			arguments: {
+				title: 'Map docs',
+				description: 'Inventory markdown.',
+				thoroughness: 'quick',
+				subagent_type: 'explore',
+			},
+		}));
+		sink.handleAgentDone({ status: 'cancelled' });
+		const finishes = parts.filter(p =>
+			p.kind === 'externalToolInvocationUpdate' && p.isComplete === true && p.toolCallId === 'explore_orphan_1'
+		);
+		assert.strictEqual(finishes.length, 1);
+		if (finishes[0].kind === 'externalToolInvocationUpdate') {
+			assert.ok(finishes[0].errorMessage);
+			assert.ok(/cancel/i.test(String(finishes[0].errorMessage)));
+		}
+		// Idempotent if agent/done arrives after local cancel.
+		const before = parts.length;
+		sink.handleAgentDone({ status: 'cancelled' });
+		assert.strictEqual(parts.length, before);
+	});
+
 	test('handleAgentDone rewrites loop detected for Agents UX', () => {
 		const parts: IChatProgress[] = [];
 		const sink = createDroxAgentsChatSink(p => parts.push(...p));

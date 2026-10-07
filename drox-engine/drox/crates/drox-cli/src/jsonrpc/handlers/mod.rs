@@ -319,15 +319,27 @@ pub async fn agent_run(server: Server, params: Option<Value>) -> Result<Value, R
     serde_json::to_value(AgentRunResult { run_id }).map_err(internal)
 }
 
-pub fn agent_cancel(server: &Server, params: Option<Value>) -> Result<Value, RpcError> {
+pub async fn agent_cancel(server: &Server, params: Option<Value>) -> Result<Value, RpcError> {
     let params: AgentCancelParams = decode_required(params, "agent.cancel requires `runId`")?;
-    let cancelled = server.cancel_run(&params.run_id);
+    let run_id = params.run_id.clone();
+    let cancelled = server.cancel_run(&run_id);
     if !cancelled {
         return Err(RpcError::new(
             RUN_NOT_FOUND,
-            format!("no active run with id `{}`", params.run_id),
+            format!("no active run with id `{run_id}`"),
         ));
     }
+    // Abort seul ne laisse aucun tool_result / agent/done → carte Explore orpheline côté IDE.
+    server
+        .notify(
+            "agent/done",
+            AgentDoneNotification {
+                run_id,
+                status: RunStatus::Cancelled,
+                error: None,
+            },
+        )
+        .await;
     serde_json::to_value(AgentCancelResult { cancelled: true }).map_err(internal)
 }
 
@@ -673,7 +685,8 @@ async fn build_agent_setup(
         .with_user_asker(asker)
         .with_scope_deferred(scope_deferred)
         .with_workspace_map(workspace_map.clone())
-        .with_drox_ignore(drox_ignore);
+        .with_drox_ignore(drox_ignore)
+        .with_agent_run_id(run_id);
     if let Some(hub) = mcp_hub {
         tracing::info!(
             servers = ?hub.server_names(),
@@ -755,6 +768,15 @@ async fn build_agent_setup(
             }
         },
         work_plan_frame: params.work_plan_frame.unwrap_or(false),
+        analysis_frame: params.analysis_frame.unwrap_or(false),
+        doc_ingestion_frame: params.doc_ingestion_frame.unwrap_or(false),
+        session_intent_preclassified: params.session_intent_preclassified.unwrap_or_else(|| {
+            // Override RPC / resume → pas d'ask. Sinon classif moteur (hors fork VS Code inclus).
+            params.work_plan_frame.is_some()
+                || params.analysis_frame.is_some()
+                || params.doc_ingestion_frame.is_some()
+                || params.skip_user_turn.unwrap_or(false)
+        }),
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);
@@ -1426,12 +1448,32 @@ mod tests {
         assert_eq!(err.code, INVALID_PARAMS);
     }
 
-    #[test]
-    fn agent_cancel_rejects_missing_params() {
+    #[tokio::test]
+    async fn agent_cancel_rejects_missing_params() {
         let (tx, _rx) = tokio::sync::mpsc::channel::<String>(1);
         let server = Server::new(tx);
-        let err = agent_cancel(&server, None).unwrap_err();
+        let err = agent_cancel(&server, None).await.unwrap_err();
         assert_eq!(err.code, INVALID_PARAMS);
+    }
+
+    #[tokio::test]
+    async fn agent_cancel_emits_agent_done_cancelled() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(8);
+        let server = Server::new(tx);
+        let join = tokio::spawn(async {
+            tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+            RunOutcome::Completed
+        });
+        server.register_run("run_cancel_test".into(), join);
+        let ok = agent_cancel(&server, Some(json!({ "runId": "run_cancel_test" })))
+            .await
+            .expect("cancel ok");
+        assert_eq!(ok["cancelled"], true);
+        let wire = rx.recv().await.expect("notification");
+        let v: serde_json::Value = serde_json::from_str(&wire).expect("json");
+        assert_eq!(v["method"], "agent/done");
+        assert_eq!(v["params"]["runId"], "run_cancel_test");
+        assert_eq!(v["params"]["status"], "cancelled");
     }
 
     #[tokio::test]

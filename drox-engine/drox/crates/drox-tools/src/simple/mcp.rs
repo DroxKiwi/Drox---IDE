@@ -135,8 +135,7 @@ impl Tool for McpCallTool {
     }
 
     fn description(&self) -> &str {
-        "Invokes a tool on a configured MCP server (`.mcp.json`). \
-         Used as fallback if `mcp__*` stubs could not be loaded."
+        drox_prompts::MCP_CALL_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {
@@ -173,7 +172,7 @@ impl Tool for ListMcpResourcesTool {
     }
 
     fn description(&self) -> &str {
-        "Lists available MCP resources. Each entry includes a `server` field."
+        drox_prompts::LIST_MCP_RESOURCES_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {
@@ -210,7 +209,7 @@ impl Tool for ReadMcpResourceTool {
     }
 
     fn description(&self) -> &str {
-        "Reads an MCP resource by URI on the specified server."
+        drox_prompts::READ_MCP_RESOURCE_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

@@ -166,6 +166,7 @@ export function createDroxAgentsChatSink(
 ): IDroxAgentsChatSink {
 	let currentPhase: string | null = null;
 	let answerText = '';
+	let runEnded = false;
 	const pendingTools = new Map<string, IPendingTool>();
 	/** Child Explore tools → parent `task` toolCallId. */
 	const nestedChildParents = new Map<string, string>();
@@ -309,7 +310,9 @@ export function createDroxAgentsChatSink(
 		}
 		const notes = nestedChildNotes.get(id);
 		const liveResult = notes
-			? (live.includes('--- report ---') ? live : `${live}\n--- report ---\n${notes}`)
+			? ((live.includes('--- notes ---') || live.includes('--- report ---'))
+				? live
+				: `${live}\n--- notes ---\n${notes}`)
 			: live;
 		const sec = elapsedMs > 0 ? ` · ${(elapsedMs / 1000).toFixed(1)}s` : '';
 		push([{
@@ -419,7 +422,7 @@ export function createDroxAgentsChatSink(
 			toolSpecificData: buildExploreSubagentToolSpecificData(
 				exploreStart,
 				undefined,
-				`--- report ---\n${next}`,
+				`--- notes ---\n${next}`,
 			),
 		}]);
 	};
@@ -552,6 +555,7 @@ export function createDroxAgentsChatSink(
 					: localize('droxAgents.exploreDone', 'Explore completed'),
 				toolSpecificData: buildExploreSubagentToolSpecificData(start, {
 					exploreReport: report || undefined,
+					exploreReportPath: exploreOutput?.exploreReportPath,
 					exploreError: exploreOutput?.exploreError,
 					exploreThoroughness: exploreOutput?.exploreThoroughness,
 				}),
@@ -684,7 +688,22 @@ export function createDroxAgentsChatSink(
 			}
 		},
 		handleAgentDone(params: unknown): void {
+			if (runEnded) {
+				return;
+			}
+			runEnded = true;
 			const p = params as { status?: string; error?: string } | undefined;
+			const orphanReason = p?.status === 'cancelled'
+				? localize('droxAgents.runCancelled', 'Run cancelled')
+				: p?.status === 'error'
+					? (p.error?.trim() || localize('droxAgents.toolFailed', 'Tool failed'))
+					: localize('droxAgents.runEndedOrphan', 'Run ended without tool result');
+			// Rescue tool_use orphelins (ex. Sync Explore aborté sans tool_finish).
+			for (const [id, pending] of Array.from(pendingTools.entries())) {
+				pendingTools.delete(id);
+				nestedChildNotes.delete(id);
+				pushToolFinish(id, pending.name, orphanReason, true, pending.args);
+			}
 			if (p?.status === 'error' && p.error) {
 				const text = formatDroxAgentsLoopAbortMessage(p.error);
 				push([{

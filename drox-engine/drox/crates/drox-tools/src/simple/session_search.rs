@@ -33,10 +33,7 @@ impl Tool for SessionSearchTool {
     }
 
     fn description(&self) -> &str {
-        "Searches the workspace **long-term memory** (indexed compaction summaries \
-         + session closures). Returns the most relevant excerpts \
-         to enrich context. **Execution**: IDE client (Drox extension); \
-         unavailable outside delegated client. Format: `{ \"query\": \"…\", \"limit\"?: N }`."
+        drox_prompts::SESSION_SEARCH_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

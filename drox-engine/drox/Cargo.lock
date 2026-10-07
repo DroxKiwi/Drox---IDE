@@ -787,6 +787,7 @@ dependencies = [
  "drox-llm",
  "drox-mcp",
  "drox-permissions",
+ "drox-prompts",
  "drox-tools",
  "drox-types",
  "futures",
@@ -841,6 +842,7 @@ dependencies = [
  "drox-llm",
  "drox-mcp",
  "drox-permissions",
+ "drox-prompts",
  "drox-session",
  "drox-tools",
  "drox-types",
@@ -930,6 +932,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "drox-prompts"
+version = "0.1.0"
+dependencies = [
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "drox-session"
 version = "0.1.0"
 dependencies = [
@@ -957,6 +968,7 @@ dependencies = [
  "camino",
  "chrono",
  "drox-mcp",
+ "drox-prompts",
  "drox-session",
  "drox-types",
  "futures",

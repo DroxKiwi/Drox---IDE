@@ -210,6 +210,7 @@ export type DroxHostToWebviewMessage =
 		readonly exploreThoroughness?: string;
 		readonly exploreOutput?: {
 			readonly exploreReport?: string;
+			readonly exploreReportPath?: string;
 			readonly exploreError?: string;
 			readonly exploreThoroughness?: string;
 		};

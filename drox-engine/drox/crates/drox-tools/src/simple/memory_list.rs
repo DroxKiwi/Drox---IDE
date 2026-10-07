@@ -45,11 +45,7 @@ impl Tool for MemoryListTool {
     }
 
     fn description(&self) -> &str {
-        "Lists archived workspace sessions (`.drox/memory/sessions/`), \
-         sorted from most recent to oldest. Read-only. Returns \
-         {slug, date, objective, files_touched, model} for each entry, \
-         not the body — use `memory_read` to reload a specific session. \
-         Format: {\"limit\": 10} (optional, default 10, max 50)."
+        drox_prompts::MEMORY_LIST_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

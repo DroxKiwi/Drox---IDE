@@ -52,40 +52,8 @@ fn default_thoroughness() -> Option<String> {
     Some("medium".to_string())
 }
 
-/// Cursor-style tool policy: soft Plan → Assign-at-step-kickoff → Merge.
-pub const TASK_TOOL_DESCRIPTION: &str = "\
-Launch a specialized **Explore** sub-agent (read-only: grep, glob, file_read, lsp, …) that \
-searches in an **isolated context** and returns a concise **report** (+ `truncated` / iteration \
-budget). **You are the session master**: you only receive summaries — write briefs that do not \
-lose content you will need later.
-
-**Session-master protocol (soft — tools stay free):**
-1. **Plan** — for work asks, `todo_write` with steps before heavy reading. Prefer **2–4** focused \
-missions when scope splits (use Context-load `recommended_n` when present).
-2. **Assign at step kickoff** — when a todo becomes `in_progress`, spawn one `task` for **that** \
-step. Fill `must_return` with every section/fact YOUR mission still needs. Set `plan_step_id` \
-to the todo id when possible. `description` = goal + scope for that mission only.
-3. **Merge** — trust each `report`. Do **not** re-ingest the same tree into the parent. If \
-`truncated: true`, spawn narrower missions — never parent `file_read` spam.
-
-**When to use (MUST — be proactive):**
-- Start of a plan step that needs understanding / synthesis / multi-file / docs trees.
-- Unfamiliar areas; you would otherwise open ≥3 files or run several search rounds.
-- Early in `[phase: analyzing]` / `[phase: reading]` for broad context.
-
-**When NOT to use (narrow):**
-- Needle: known symbol/file → `grep` / `lsp` / ranged `file_read`.
-- Only 1–2 exact known paths.
-- Mutations (Explore is read-only) — explore first if needed, then mutate in the parent.
-
-**Args:**
-- `title` (UI): ≤8 words concrete label. Never engine meta.
-- `description`: one focused mission (goal + paths).
-- `must_return`: string[] acceptance criteria for the parent-facing report.
-- `plan_step_id` (optional): matching todo id.
-- `subagent_type`: `explore`. `thoroughness`: `quick` | `medium` | `very thorough`.
-
-Requires `drox.subagents.enabled` and regulation L2 standard/full. V1: `explore` only.";
+/// Cursor-style tool policy — source : [`drox_prompts::TASK_TOOL_DESCRIPTION`].
+pub use drox_prompts::TASK_TOOL_DESCRIPTION;
 
 pub struct TaskTool;
 
@@ -178,9 +146,12 @@ impl Tool for TaskTool {
         let outcome = executor
             .run_explore(child_desc, thoroughness, ctx)
             .await?;
+        // `report` = full markdown for IDE wire; LLM formatter strips it (keeps summary + path).
         Ok(json!({
             "subagent_type": "explore",
             "report": outcome.report,
+            "report_path": outcome.report_path,
+            "summary": outcome.summary,
             "truncated": outcome.truncated,
             "iterations_used": outcome.iterations_used,
             "max_iterations": outcome.max_iterations,
@@ -203,6 +174,8 @@ mod tests {
         assert!(TASK_TOOL_DESCRIPTION.contains("Merge"));
         assert!(TASK_TOOL_DESCRIPTION.contains("truncated"));
         assert!(TASK_TOOL_DESCRIPTION.contains("Needle"));
+        assert!(TASK_TOOL_DESCRIPTION.contains("report_path"));
+        assert!(TASK_TOOL_DESCRIPTION.contains("conclusion.md"));
     }
 
     #[test]

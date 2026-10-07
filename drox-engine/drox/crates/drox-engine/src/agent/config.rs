@@ -44,8 +44,15 @@ pub struct AgentConfig {
     pub run_objective: Option<String>,
     /// Caps Context-load soft (L2) — nudge post-`glob` one-shot.
     pub context_load: crate::agent::context_load::ContextLoadPolicy,
-    /// Soft plan-frame (IDE `workPlanFrame`) — texte only, jamais un hard gate.
+    /// Soft plan-frame — texte only, jamais un hard gate.
     pub work_plan_frame: bool,
+    /// Soft analyzing-frame (classif `isAnalysis`).
+    pub analysis_frame: bool,
+    /// Soft doc-ingestion annex (classif `isDocIngestion`).
+    pub doc_ingestion_frame: bool,
+    /// Si `true`, les trois frames ci-dessus sont déjà décidés (tests / override RPC).
+    /// Si `false`, le moteur pose l'ask multi-bool au boot (`drox_prompts`).
+    pub session_intent_preclassified: bool,
 }
 
 impl Default for AgentConfig {
@@ -65,6 +72,11 @@ impl Default for AgentConfig {
             run_objective: None,
             context_load: crate::agent::context_load::ContextLoadPolicy::default(),
             work_plan_frame: false,
+            analysis_frame: false,
+            doc_ingestion_frame: false,
+            // `true` par défaut : tests / Explore child ne déclenchent pas d'ask.
+            // CLI / TUI / JSON-RPC (sans override) passent `false` pour classif boot.
+            session_intent_preclassified: true,
         }
     }
 }

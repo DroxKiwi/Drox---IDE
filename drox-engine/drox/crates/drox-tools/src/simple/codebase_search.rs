@@ -36,11 +36,7 @@ impl Tool for CodebaseSearchTool {
     }
 
     fn description(&self) -> &str {
-        "Searches the workspace **local codebase index** (lexical + MiniLM hybrid). \
-         Returns relevant code chunks with path/line ranges for grounding. \
-         Prefer this over blind grepping when looking for behavior or concepts. \
-         **Execution**: IDE client (Drox); unavailable outside delegated client. \
-         Format: `{ \"query\": \"…\", \"limit\"?: N, \"path_prefix\"?: \"src/…\" }`."
+        drox_prompts::CODEBASE_SEARCH_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

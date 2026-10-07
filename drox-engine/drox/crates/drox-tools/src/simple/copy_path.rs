@@ -38,10 +38,7 @@ impl Tool for CopyPathTool {
     }
 
     fn description(&self) -> &str {
-        "Copies a **file** to another destination strictly under the workspace. \
-         Prefer this tool over `bash copy` / `cp` / `robocopy`. \
-         Format: {\"source\": \"…\", \"destination\": \"…\", \"createDirs\"?: true}. \
-         Does not copy entire directories (use multiple calls or `glob` + copy file by file)."
+        drox_prompts::COPY_PATH_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

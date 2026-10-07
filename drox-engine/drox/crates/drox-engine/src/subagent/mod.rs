@@ -5,16 +5,16 @@
 //! | Module | Rôle |
 //! |--------|------|
 //! | [`explore_tool_registry`] | Tools autorisés dans l'Explore enfant |
-//! | [`prompts`] | System prompt + thoroughness |
 //! | [`budget`] | Plafond d'itérations phase **exécution** |
 //! | [`explore_ui_progress`] | Activity lines + progress live UI (pas le parent) |
 //! | [`report`] | Format rapport parent + helpers texte |
+//! | [`explore_artifact`] | `.drox/subagents/…/conclusion.md` |
 //! | [`explore_executor`] | `EngineSubagentExecutor` : phase 1 tools → phase 2 compte rendu |
 
 mod budget;
+mod explore_artifact;
 mod explore_executor;
 mod explore_ui_progress;
-mod prompts;
 mod explore_tool_registry;
 mod report;
 

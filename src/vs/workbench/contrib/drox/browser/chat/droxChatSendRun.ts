@@ -19,7 +19,6 @@ import { IDroxClientToolsService } from '../../common/droxClientToolsService.js'
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
-import { IDroxModelQuestionService } from '../../common/modelQuestions/droxModelQuestionService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePasteWire, toUserMessagePasteWire } from '../../common/droxPasteCandidates.js';
 import { formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
@@ -42,6 +41,8 @@ import { DroxChatTabsManager } from './droxChatTabsManager.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
 import { resolveDroxRulesContextPathsFromEditor } from '../rules/droxRulesContextFromEditor.js';
+import { buildExploreToolFinishWire } from '../../common/chat/droxExploreToolWire.js';
+import { buildShellToolFinishWire } from '../../common/chat/droxShellToolWire.js';
 
 export interface IDroxChatSendRunHost {
 	post(message: DroxHostToWebviewMessage): void;
@@ -54,6 +55,7 @@ export interface IDroxChatSendRunHost {
 	getSuppressedRunId(): string | undefined;
 	setSuppressedRunId(runId: string | undefined): void;
 	resolveUserAskSkipped(): void;
+	takeAllPendingTools(): Array<{ id: string; name: string; args: unknown }>;
 	clearPendingTools(): void;
 }
 
@@ -77,7 +79,6 @@ export async function executeDroxChatSend(
 		readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
 		readonly userHomeFsPath?: string;
 		readonly configurationService?: IConfigurationService;
-		readonly modelQuestionService?: Pick<IDroxModelQuestionService, 'classifyUserMessageIsWork'>;
 	},
 	prompt: string,
 	mode: string,
@@ -205,7 +206,6 @@ export async function executeDroxChatSend(
 			regulationService: deps.regulationService,
 			userHomeFsPath: deps.userHomeFsPath,
 			configurationService: deps.configurationService,
-			modelQuestionService: deps.modelQuestionService,
 			resolveCodebaseForcePathPrefixes: deps.editorService
 				? wsPath => resolveDroxCodebaseForcePathPrefixesFromEditor(deps.editorService!, wsPath)
 				: undefined,
@@ -274,6 +274,19 @@ export function cancelDroxChatRun(
 	deps.runRevertService.discardActiveRun();
 	host.setCurrentRunId(undefined);
 	host.syncChatSessionState();
+	const orphanReason = localize('drox.run.cancelledTool', 'Run cancelled');
+	for (const orphan of host.takeAllPendingTools()) {
+		host.post({
+			kind: 'tool',
+			phase: 'finish',
+			id: orphan.id,
+			name: orphan.name,
+			isError: true,
+			outputPreview: orphanReason,
+			shellOutput: buildShellToolFinishWire(orphan.name, orphanReason, true),
+			exploreOutput: buildExploreToolFinishWire(orphan.name, orphanReason, true),
+		});
+	}
 	host.clearPendingTools();
 	host.post({ kind: 'clearAssistant' });
 	host.post({ kind: 'phase', close: true });

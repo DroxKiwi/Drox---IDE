@@ -111,17 +111,7 @@ impl Tool for AskUserQuestionTool {
     }
 
     fn description(&self) -> &str {
-        "Asks one or more questions to the human and waits for answers. \
-         Call via native tool_calls (no JSON in assistant text). \
-         Recommended form (minimal example): \
-         `{\"questions\":[{\"prompt\":\"What text on the homepage?\",\
-         \"options\":[{\"id\":\"a\",\"label\":\"Short\"},{\"id\":\"b\",\"label\":\"Long\"}],\
-         \"allowFreeText\":true}]}`. \
-         Legacy single: `{\"question\":\"…\",\"choices\":[\"A\",\"B\"]}`. \
-         Use whenever non-trivial uncertainty changes upcoming actions \
-         (architecture, scope, tech choices) before any mutation. \
-         The run is paused until answered; the user can skip \
-         a question (`skipped: true` field in the corresponding response)."
+        drox_prompts::ASK_USER_QUESTION_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

@@ -24,9 +24,7 @@ impl Tool for SkillListTool {
     }
 
     fn description(&self) -> &str {
-        "Lists local workspace skills (`.drox/skills/*/SKILL.md`), \
-         sorted by name. Read-only. Returns name, description, when_to_use \
-         — not the body (use `skill_read`). Format: {{}}."
+        drox_prompts::SKILL_LIST_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

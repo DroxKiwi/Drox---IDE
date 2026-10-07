@@ -147,10 +147,7 @@ impl Tool for GlobTool {
     }
 
     fn description(&self) -> &str {
-        "Lists paths (files AND directories) matching a glob pattern under the workspace. \
-         Respects `.gitignore` indirectly via post-filter **`.droxignore`** (omitted paths in `droxignore_omitted`). \
-         Output: `files`, `directories`, `truncated`, `directory_fanout_caps`, `droxignore_omitted`. \
-         Use `*` for the first level, `**/*.ext` for an extension."
+        drox_prompts::GLOB_TOOL_DESCRIPTION
     }
 
     fn input_schema(&self) -> Value {

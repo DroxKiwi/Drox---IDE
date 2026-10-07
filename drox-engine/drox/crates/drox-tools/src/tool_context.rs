@@ -51,6 +51,8 @@ pub struct ToolContext {
     pub subagent_executor: Option<Arc<dyn SubagentExecutor>>,
     /// Rapports de progression (bash stream, etc.).
     pub tool_progress: Option<Arc<dyn ToolProgressSink>>,
+    /// Id du run agent (`run_…`) — arbo `.drox/subagents/<runId>/…`.
+    pub agent_run_id: Option<String>,
 }
 
 impl ToolContext {
@@ -72,7 +74,15 @@ impl ToolContext {
             subagent_settings: None,
             subagent_executor: None,
             tool_progress: None,
+            agent_run_id: None,
         }
+    }
+
+    /// Builder : id de run pour artefacts sous-agents.
+    #[must_use]
+    pub fn with_agent_run_id(mut self, run_id: impl Into<String>) -> Self {
+        self.agent_run_id = Some(run_id.into());
+        self
     }
 
     /// Builder : associe un `UserAsker` au contexte.

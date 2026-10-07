@@ -12,10 +12,13 @@ import { IRenderedMarkdown } from '../../../../../../base/browser/markdownRender
 import { DisposableStore, IDisposable, MutableDisposable } from '../../../../../../base/common/lifecycle.js';
 import { autorun } from '../../../../../../base/common/observable.js';
 import { localize } from '../../../../../../nls.js';
+import { URI } from '../../../../../../base/common/uri.js';
 import { IHoverService } from '../../../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../../../platform/instantiation/common/instantiation.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { IMarkdownRenderer } from '../../../../../../platform/markdown/browser/markdownRenderer.js';
+import { IOpenerService } from '../../../../../../platform/opener/common/opener.js';
+import { IWorkspaceContextService } from '../../../../../../platform/workspace/common/workspace.js';
 import { IChatHookPart, IChatMarkdownContent, IChatToolInvocation, IChatToolInvocationSerialized } from '../../../common/chatService/chatService.js';
 import { IChatRendererContent } from '../../../common/model/chatViewModel.js';
 import { IRunSubagentToolInputParams } from '../../../common/tools/builtinTools/runSubagentTool.js';
@@ -98,6 +101,8 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 	private hasExpandedOnce: boolean = false;
 	private pendingPromptRender: boolean = false;
 	private pendingResultText: string | undefined;
+	private pendingResultPath: string | undefined;
+	private resultPath: string | undefined;
 
 	// Current tool message for collapsed title (persists even after tool completes)
 	private currentRunningToolMessage: string | undefined;
@@ -195,9 +200,14 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 		@IChatMarkdownAnchorService private readonly chatMarkdownAnchorService: IChatMarkdownAnchorService,
 		@IHoverService hoverService: IHoverService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
+		@IOpenerService private readonly openerService: IOpenerService,
+		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 	) {
 		// Extract description, agentName, and prompt from toolInvocation
 		const { description, isDefaultDescription, agentName, prompt, modelName } = ChatSubagentContentPart.extractSubagentInfo(toolInvocation);
+		const initialResultPath = toolInvocation.toolSpecificData?.kind === 'subagent'
+			? toolInvocation.toolSpecificData.resultPath
+			: undefined;
 
 		// Build title: "AgentName: description" or "Subagent: description"
 		const rawPrefix = agentName || localize('chat.subagent.prefix', 'Subagent');
@@ -205,6 +215,9 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 		const initialTitle = `${prefix}: ${description}`;
 		super(initialTitle, context, undefined, hoverService, configurationService);
 
+		if (initialResultPath) {
+			this.resultPath = initialResultPath;
+		}
 		this.description = description;
 		this._isDefaultDescription = isDefaultDescription;
 		this.agentName = agentName;
@@ -742,11 +755,7 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 						.filter((part): part is { kind: 'text'; value: string } => part.kind === 'text')
 						.map(part => part.value);
 
-					if (textParts.length > 0) {
-						this.renderResultText(textParts.join('\n'));
-					}
-
-					// Update description and model name from toolSpecificData (set during invoke())
+					// Update description / path / report from toolSpecificData (set during invoke())
 					if (toolInvocation.toolSpecificData?.kind === 'subagent') {
 						if (toolInvocation.toolSpecificData.description) {
 							this.description = toolInvocation.toolSpecificData.description;
@@ -756,6 +765,16 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 							this.modelName = toolInvocation.toolSpecificData.modelName;
 							this.updateHover();
 						}
+						if (toolInvocation.toolSpecificData.resultPath) {
+							this.resultPath = toolInvocation.toolSpecificData.resultPath;
+						}
+					}
+
+					const reportText = (toolInvocation.toolSpecificData?.kind === 'subagent'
+						? toolInvocation.toolSpecificData.result
+						: undefined) || (textParts.length > 0 ? textParts.join('\n') : undefined);
+					if (reportText) {
+						this.renderResultText(reportText, this.resultPath);
 					}
 
 					// Mark as inactive when the tool completes
@@ -793,6 +812,9 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 						}
 						this.updateTitle();
 					}
+					if (toolInvocation.toolSpecificData.resultPath) {
+						this.resultPath = toolInvocation.toolSpecificData.resultPath;
+					}
 					// Live Explore notes / thinking (progress → toolSpecificData.result).
 					if (this.isActive && toolInvocation.toolSpecificData.result) {
 						this.updateLiveNotes(toolInvocation.toolSpecificData.result);
@@ -801,7 +823,10 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 			}));
 		} else if (toolInvocation.toolSpecificData?.kind === 'subagent' && toolInvocation.toolSpecificData.result) {
 			// Render the persisted result for serialized invocations
-			this.renderResultText(toolInvocation.toolSpecificData.result);
+			if (toolInvocation.toolSpecificData.resultPath) {
+				this.resultPath = toolInvocation.toolSpecificData.resultPath;
+			}
+			this.renderResultText(toolInvocation.toolSpecificData.result, this.resultPath);
 			// Already complete, mark as inactive
 			this.markAsInactive();
 		}
@@ -812,20 +837,25 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 	 * If the wrapper doesn't exist yet (lazy init) or subagent is initially complete,
 	 * this is deferred until expanded.
 	 */
-	public renderResultText(resultText: string): void {
+	public renderResultText(resultText: string, resultPath?: string): void {
 		if (this.resultContainer || !resultText) {
 			return; // Already rendered or no content
+		}
+		if (resultPath) {
+			this.resultPath = resultPath;
 		}
 
 		// Defer rendering when wrapper doesn't exist yet (lazy init) or for old completed subagents until expanded
 		if (!this.wrapper || (this.isInitiallyComplete && !this.isExpanded() && !this.hasExpandedOnce)) {
 			this.pendingResultText = resultText;
+			this.pendingResultPath = this.resultPath;
 			return;
 		}
 
 		this.pendingResultText = undefined;
+		this.pendingResultPath = undefined;
 		this.clearLiveNotes();
-		this.doRenderResultText(resultText);
+		this.doRenderResultText(resultText, this.resultPath);
 	}
 
 	/**
@@ -876,12 +906,12 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 		}
 	}
 
-	private doRenderResultText(resultText: string): void {
+	private doRenderResultText(resultText: string, resultPath?: string): void {
 		if (this.resultContainer || !resultText) {
 			return;
 		}
 
-		const title = localize('chat.subagent.result', 'Report');
+		const title = localize('chat.subagent.result', 'Conclusion');
 		const content = resultText;
 
 		// Create collapsible result part (expanded by default)
@@ -898,7 +928,27 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 		this.resultContainer = $('.chat-thinking-tool-wrapper.chat-subagent-section.chat-subagent-result-section');
 		const resultIcon = createThinkingIcon(Codicon.check);
 		this.resultContainer.appendChild(resultIcon);
-		this.resultContainer.appendChild(collapsiblePart.domNode);
+
+		const body = $('.chat-subagent-result-body');
+		if (resultPath) {
+			const pathRow = $('.chat-subagent-result-path');
+			const label = $('span.chat-subagent-result-path-label');
+			label.textContent = localize('chat.subagent.resultFile', 'File');
+			pathRow.appendChild(label);
+			const anchor = $('a.chat-subagent-result-path-link') as HTMLAnchorElement;
+			anchor.href = '#';
+			anchor.textContent = resultPath;
+			anchor.title = localize('chat.subagent.openResultFile', 'Open {0}', resultPath);
+			this._register(dom.addDisposableListener(anchor, 'click', e => {
+				e.preventDefault();
+				e.stopPropagation();
+				void this.openResultPath(resultPath);
+			}));
+			pathRow.appendChild(anchor);
+			body.appendChild(pathRow);
+		}
+		body.appendChild(collapsiblePart.domNode);
+		this.resultContainer.appendChild(body);
 
 		// With lazy rendering, wrapper may not be created yet if content hasn't been expanded
 		if (this.wrapper) {
@@ -915,6 +965,15 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 				this.wrapper.style.display = '';
 			}
 		}
+	}
+
+	private async openResultPath(resultPath: string): Promise<void> {
+		const folder = this.workspaceContextService.getWorkspace().folders[0];
+		if (!folder) {
+			return;
+		}
+		const uri = URI.joinPath(folder.uri, ...resultPath.replace(/\\/g, '/').split('/').filter(Boolean));
+		await this.openerService.open(uri, { openToSide: true });
 	}
 
 	/**
@@ -1220,8 +1279,10 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 		// Render pending result text
 		if (this.pendingResultText) {
 			const resultText = this.pendingResultText;
+			const resultPath = this.pendingResultPath;
 			this.pendingResultText = undefined;
-			this.doRenderResultText(resultText);
+			this.pendingResultPath = undefined;
+			this.doRenderResultText(resultText, resultPath);
 		}
 	}
 
@@ -1266,19 +1327,23 @@ export class ChatSubagentContentPart extends ChatCollapsibleContentPart implemen
 	}
 }
 
-/** Split Explore progress: activity tool lines vs thinking / report preview. */
+/** Split Explore progress: activity tool lines vs thinking / notes preview. */
 function extractExploreLiveNotes(raw: string): string {
 	const text = String(raw ?? '').trim();
 	if (!text) {
 		return '';
 	}
-	const marker = '\n--- report ---\n';
-	const idx = text.indexOf(marker);
-	if (idx >= 0) {
-		return text.slice(idx + marker.length).trim();
+	// Phase 1 live uses `--- notes ---`; keep `--- report ---` for older streams / final copy.
+	for (const marker of ['\n--- notes ---\n', '\n--- report ---\n'] as const) {
+		const idx = text.indexOf(marker);
+		if (idx >= 0) {
+			return text.slice(idx + marker.length).trim();
+		}
 	}
-	if (text.startsWith('--- report ---\n')) {
-		return text.slice('--- report ---\n'.length).trim();
+	for (const prefix of ['--- notes ---\n', '--- report ---\n'] as const) {
+		if (text.startsWith(prefix)) {
+			return text.slice(prefix.length).trim();
+		}
 	}
 	// Thinking-only stream (no activity marker yet) — skip pure `→ tool` lines.
 	const lines = text.split(/\r?\n/);

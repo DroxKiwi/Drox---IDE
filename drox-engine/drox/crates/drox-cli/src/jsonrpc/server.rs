@@ -279,7 +279,7 @@ impl Server {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,
             },
-            "agent.cancel" => match handlers::agent_cancel(self, req.params) {
+            "agent.cancel" => match handlers::agent_cancel(self, req.params).await {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,
             },

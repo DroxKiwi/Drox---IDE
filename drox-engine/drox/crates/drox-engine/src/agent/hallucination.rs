@@ -9,14 +9,7 @@ use serde_json::Value;
 /// refuse sans asker explicite → message trompeur « User denied permission
 /// for `phase:` ». On intercepte **avant** `check_permission` et on renvoie
 /// une erreur explicite pour éviter la boucle « acting → réécriture finale ».
-pub(crate) const PHASE_MARKER_MUST_BE_TEXT_NOT_TOOL: &str = "You tried to invoke a tool named \
-    `phase` (or similar) with JSON arguments like `{ \"done\": … }`. That is a \
-    misunderstanding: **phase markers are NOT tools**. They MUST appear as \
-    **plain text lines** in your assistant message — e.g. `[phase: done]` alone \
-    on its own line after your final Markdown answer. Do NOT use `tool_calls` to \
-    simulate the protocol. In your NEXT reply, output the literal text line \
-    `[phase: done]` (no function call for it). Do NOT rewrite your whole answer \
-    unless you still have real work left.";
+pub(crate) use drox_prompts::PHASE_MARKER_MUST_BE_TEXT_NOT_TOOL;
 
 /// Détecte les `tool_calls` qui mimiquent le protocole `[phase: …]`.
 ///

@@ -29,7 +29,7 @@
 //! | [`nudges`] | Prompts système de relance (done, testing, intent-write…) |
 //! | [`hallucination`] | Détection des tool_calls qui miment `[phase:…]` |
 //! | [`loop_detect`] | Anti-boucle d'empreintes (texte + tool_calls) |
-//! | [`stream`] | Consommation du stream LLM → événements agent |
+//! | [`consume_llm_stream`] | Consommation du stream LLM → événements agent |
 //! | [`dispatch`] | Erreurs outil, confirmation user, specs exposées au LLM |
 
 pub mod config;
@@ -41,6 +41,7 @@ pub mod loop_detect;
 pub mod nudges;
 pub mod phase;
 pub mod run;
+pub mod session_intent;
 pub mod situation;
 pub mod consume_llm_stream;
 
@@ -60,14 +61,10 @@ pub(crate) use loop_detect::{
     normalize_bash_command_for_loop, LoopDecision, LoopDetector, PendingToolCall, TurnOutcome,
 };
 #[cfg(test)]
-pub(crate) use nudges::{
-    assistant_text_suggests_large_write_intent, assistant_text_suggests_mutation_intent,
-    step_by_step_todo_nudge,
-};
+pub(crate) use nudges::step_by_step_todo_nudge;
 #[cfg(test)]
 pub(crate) use phase::{
     legacy_removed_phase_marker_line, parse_phase_marker, phase_for_tool, PhaseLineBuffer,
-    user_prompt_suggests_doc_ingestion, user_prompt_suggests_workspace_analysis,
 };
 #[cfg(test)]
-pub(crate) use stream::consume_stream;
+pub(crate) use consume_llm_stream::consume_stream;
