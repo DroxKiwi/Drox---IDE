@@ -17,6 +17,14 @@ Format suggéré :
 
 ---
 
+## 2026-10-07 — Étape 3 : discipline d’ajout + strength
+
+- **Contexte** : figer comment on ajoute des fiches sans rerégénérer de dose.
+- **Canal** : doc (`docs/adding.md`, `docs/verification.md`) ; enum `PromptStrength` sans `Soft`.
+- **Ids** : n/a (process) ; strength = Prefer | MustText.
+- **Effet modèle** : aucun immédiat ; moins de risque de régression dose.
+- **Carte** : dette Soft cochée ; lien vérif V1–V6.
+
 ## 2026-10-07 — Étape 2 : sync intent-write + hygiène orphelins
 
 - **Contexte** : catalogue aligné sur la mécanique FX-B ; dead code IDE isWork.

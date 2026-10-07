@@ -34,14 +34,16 @@ pub enum PromptIntent {
 	ModelQuestion,
 }
 
-/// Force du message — **soft produit** : les tools restent appelables.
+/// Force du message — **soft produit** : les tools restent appelables
+/// sauf refus `blocks` / gates moteur (hors de ce enum).
+///
+/// Deux niveaux seulement : `Prefer` (guidance) et `MustText` (formulation
+/// forte dans le texte). Pas de `Soft` séparé — ça diluait la taxonomie.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PromptStrength {
-	/// Guidance douce.
-	Soft,
-	/// Fortement préféré (encore soft côté tools).
+	/// Guidance / procédure préférée (tools libres).
 	Prefer,
-	/// Formulation « MUST » dans le texte uniquement (pas un hard gate moteur).
+	/// Formulation « MUST » / « STOP » dans le texte (pas un hard gate tools par soi).
 	MustText,
 }
 

@@ -1,7 +1,7 @@
 //! Catalogue central des prompts Drox injectés au LLM.
 //!
-//! Doc humaine (carte + journal d'injection) : `README.md`, `docs/injection-map.md`,
-//! `docs/journal.md` à la racine de ce crate.
+//! Doc humaine : `README.md`, `docs/injection-map.md`, `docs/journal.md`,
+//! `docs/adding.md`, `docs/verification.md` à la racine de ce crate.
 //!
 //! ## Notation d'intention
 //!

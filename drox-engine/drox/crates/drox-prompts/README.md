@@ -22,25 +22,27 @@ toute procédure / contrainte / ask boot vit ici, pas dans l’IDE.
 | `compaction` | Prompt compaction mémoire |
 | `model_questions` | Ask one-shot boot (multi-bool session intent) |
 
-## Documentation (à compléter)
+## Documentation
 
 | Fichier | Contenu |
 |---------|---------|
-| [`docs/injection-map.md`](docs/injection-map.md) | **Carte** : ce que le modèle reçoit, par couche et par scénario |
+| [`docs/injection-map.md`](docs/injection-map.md) | **Carte** : ce que le modèle reçoit, par couche et scénario |
 | [`docs/journal.md`](docs/journal.md) | **Journal** : évolution des injections dans le temps |
+| [`docs/adding.md`](docs/adding.md) | **Discipline** : checklist avant nouvelle fiche / body |
+| [`docs/verification.md`](docs/verification.md) | **Vérif** : scénarios à contrôler (dose / mécanique) |
 
 Quand tu changes un body, un `when`, ou un site d’injection (`drive.rs`, handlers RPC) :
-1. mets à jour la fiche / claims si besoin ;
-2. ajuste `injection-map.md` si l’ordre ou un scénario change ;
-3. ajoute une entrée datée dans `journal.md`.
+1. fiche / claims ;
+2. `injection-map.md` si ordre ou scénario change ;
+3. entrée datée dans `journal.md`.
 
-## Trois couches utiles (cible produit)
+## Trois couches utiles
 
 1. **Contrat** — CORE + tool schemas (stable)
 2. **Contexte run** — flags session (Explore, hors-WS, professeur, thinking)
 3. **Rappel situationnel** — un motif, un moment (turn-0 classif, kickoff, gate, rescue)
 
-Éviter de répéter la même procédure soft (ex. Plan→Assign→Merge) dans (1)+(2)+(3).
+Canon Plan→Assign→Merge : `session.subagents.explore` uniquement (voir `docs/adding.md`).
 
 ## Lint
 
