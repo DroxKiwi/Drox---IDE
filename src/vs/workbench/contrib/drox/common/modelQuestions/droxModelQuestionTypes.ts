@@ -11,8 +11,7 @@
 
 /** Stable question ids — add here when introducing a new ask. */
 export type DroxModelQuestionId =
-	| 'codebase.retrieval.comprehension'
-	| 'session.user_message_is_work';
+	| 'codebase.retrieval.comprehension';
 
 export type DroxModelQuestionLanguage = 'en';
 
@@ -40,13 +39,6 @@ export interface IDroxCodebaseRetrievalFilter {
 	readonly pathPrefixes: readonly string[];
 	readonly preferCodeFiles: boolean;
 	readonly skipRetrieval: boolean;
-	readonly questionId: DroxModelQuestionId;
-	readonly variantId: string;
-}
-
-/** Work vs discussion classifier (mechanical inject only — no NL heuristics). */
-export interface IDroxUserMessageIsWork {
-	readonly isWork: boolean;
 	readonly questionId: DroxModelQuestionId;
 	readonly variantId: string;
 }

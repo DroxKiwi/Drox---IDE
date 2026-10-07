@@ -5,11 +5,9 @@
 
 import { IDroxModelQuestionVariant } from './droxModelQuestionTypes.js';
 import { CODEBASE_RETRIEVAL_COMPREHENSION_VARIANTS } from './questions/codebaseRetrievalComprehension.js';
-import { USER_MESSAGE_IS_WORK_VARIANTS } from './questions/userMessageIsWork.js';
 
 const ALL_VARIANTS: readonly IDroxModelQuestionVariant[] = [
 	...CODEBASE_RETRIEVAL_COMPREHENSION_VARIANTS,
-	...USER_MESSAGE_IS_WORK_VARIANTS,
 ];
 
 /** All registered variants (flat). Prefer {@link listDroxModelQuestionVariants}. */

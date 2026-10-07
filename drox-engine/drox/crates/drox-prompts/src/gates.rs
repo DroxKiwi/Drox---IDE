@@ -147,91 +147,61 @@ pub const MISSING_ANSWERING_ENTRY: PromptEntry = PromptEntry {
 	body: MISSING_ANSWERING_PROMPT,
 };
 
-// ── Intent-only write (FX-B) ────────────────────────────────────────────────
+// ── Intent-only write (FX-B) — mécanique : `[phase: acting]` sans tool_calls ─
 
-pub const INTENT_ONLY_WRITE_NUDGE_PROMPT: &str = "STOP. You described writing or \
-    editing a file in plain text, but you did NOT emit any native `tool_calls`.\n\
+pub const INTENT_ONLY_WRITE_NUDGE_PROMPT: &str = "STOP. You emitted `[phase: acting]` \
+    but no native `tool_calls` in this turn.\n\
     \n\
-    Intent prose alone does nothing. In your NEXT reply you MUST either:\n\
+    Acting without tools does nothing. In your NEXT reply you MUST either:\n\
     1. Emit a real `file_write` or `file_edit` tool call (preferred — same \
-       reply as a short `[phase: acting]` line). Prefer a **small** first \
-       write: skeleton + 1–2 sections, then `file_edit` for the rest — do \
-       NOT attempt a multi-section / \"complete page\" rewrite in one call, OR\n\
-    2. If you cannot mutate, explain why briefly in `[phase: answering]` then \
-       emit `[phase: done]`.\n\
+       reply as `[phase: acting]`). Prefer a **small** first write: skeleton + \
+       1–2 sections, then `file_edit` for the rest — do NOT attempt a \
+       multi-section / \"complete page\" rewrite in one call, OR\n\
+    2. If you cannot mutate, leave `acting` — explain briefly in \
+       `[phase: answering]` then emit `[phase: done]`.\n\
     \n\
-    Do NOT repeat \"I will write / Je vais écrire\". Call the tool NOW.";
+    Call the tool NOW.";
 
 pub const INTENT_ONLY_WRITE_ENTRY: PromptEntry = PromptEntry {
 	id: "gates.intent_only_write",
 	intent: PromptIntent::Rescue,
 	strength: PromptStrength::MustText,
 	audience: PromptAudience::Parent,
-	when: "mutation_intent_without_tool_call",
-	topics: &["mutation", "tool_calls"],
+	when: "phase_acting_without_tool_calls",
+	topics: &["mutation", "tool_calls", "phases"],
 	claims: &[
-		"mutation.intent_prose_only=forbidden",
+		"mutation.acting_without_tools=forbidden",
 		"mutation.prefer_chunked_writes=true",
 	],
 	body: INTENT_ONLY_WRITE_NUDGE_PROMPT,
 };
 
-pub const INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT: &str = "You still have not called \
-    a mutating tool after announcing a write/edit. This is your last chance \
-    before the engine aborts the run.\n\
+pub const INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT: &str = "You still have `[phase: acting]` \
+    without a mutating tool_call. This is your last chance before the engine \
+    aborts the run.\n\
     \n\
     Emit a native `file_write` (or `file_edit`) tool call NOW with a **small** \
     payload — skeleton or first section only. Example shape:\n\
     `{ \"path\": \"relative/or/absolute/path.ext\", \"content\": \"/* skeleton */\\n...\" }`\n\
     \n\
     Or `file_edit` with `{ \"path\", \"old_string\", \"new_string\" }` to append \
-    the next section. Forbidden: announce \"full page / all sections / one big \
-    file_write\" without a tool_call. No more announcement-only replies.";
+    the next section. No more acting-only turns.";
 
 pub const INTENT_ONLY_WRITE_EXAMPLE_ENTRY: PromptEntry = PromptEntry {
 	id: "gates.intent_only_write_example",
 	intent: PromptIntent::Rescue,
 	strength: PromptStrength::MustText,
 	audience: PromptAudience::Parent,
-	when: "mutation_intent_without_tool_call+strike2",
-	topics: &["mutation", "tool_calls"],
+	when: "phase_acting_without_tool_calls+strike2",
+	topics: &["mutation", "tool_calls", "phases"],
 	claims: &[
-		"mutation.intent_prose_only=forbidden",
+		"mutation.acting_without_tools=forbidden",
 		"mutation.prefer_chunked_writes=true",
 	],
 	body: INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,
 };
 
-pub const LARGE_WRITE_CHUNK_NUDGE_PROMPT: &str = "STOP. You announced a \
-    **large** write (whole file / complete page / many sections / one big \
-    `file_write`) in plain text, but you did NOT emit any native `tool_calls`.\n\
-    \n\
-    Oversized one-shot writes often fail to become tool_calls. In your NEXT \
-    reply you MUST:\n\
-    1. Emit `file_write` with a **skeleton** (imports + headings + 1–2 short \
-       sections only), OR\n\
-    2. Emit `file_edit` that adds **one** section to an existing file,\n\
-    then continue section-by-section in later turns.\n\
-    \n\
-    Do NOT try to paste the entire multi-section page in one tool call. Do NOT \
-    repeat \"I'll write the whole file / J'écris la page complète\".";
-
-pub const LARGE_WRITE_CHUNK_ENTRY: PromptEntry = PromptEntry {
-	id: "gates.large_write_chunk",
-	intent: PromptIntent::Rescue,
-	strength: PromptStrength::MustText,
-	audience: PromptAudience::Parent,
-	when: "large_write_intent_without_tool_call",
-	topics: &["mutation", "tool_calls"],
-	claims: &[
-		"mutation.intent_prose_only=forbidden",
-		"mutation.prefer_chunked_writes=true",
-	],
-	body: LARGE_WRITE_CHUNK_NUDGE_PROMPT,
-};
-
 pub const INTENT_ONLY_WRITE_MAX_NUDGES: u32 = 2;
-pub const INTENT_ONLY_LARGE_WRITE_MAX_NUDGES: u32 = 3;
 
 // ── Loop detection ──────────────────────────────────────────────────────────
 

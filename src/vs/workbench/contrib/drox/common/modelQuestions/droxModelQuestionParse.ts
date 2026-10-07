@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IDroxCodebaseRetrievalFilter, IDroxModelQuestionVariant, IDroxUserMessageIsWork } from './droxModelQuestionTypes.js';
+import { IDroxCodebaseRetrievalFilter, IDroxModelQuestionVariant } from './droxModelQuestionTypes.js';
 
 /** Extract first JSON object from model text (tolerates accidental fences). */
 export function extractJsonObjectText(raw: string): string | undefined {
@@ -51,35 +51,6 @@ export function parseCodebaseRetrievalFilter(
 		pathPrefixes,
 		preferCodeFiles: o.preferCodeFiles === true,
 		skipRetrieval: o.skipRetrieval === true,
-		questionId: variant.questionId,
-		variantId: variant.variantId,
-	};
-}
-
-/** Parse `{"isWork":boolean}` from model text. */
-export function parseUserMessageIsWork(
-	rawModelText: string,
-	variant: IDroxModelQuestionVariant,
-): IDroxUserMessageIsWork | undefined {
-	const jsonText = extractJsonObjectText(rawModelText);
-	if (!jsonText) {
-		return undefined;
-	}
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(jsonText);
-	} catch {
-		return undefined;
-	}
-	if (!parsed || typeof parsed !== 'object') {
-		return undefined;
-	}
-	const o = parsed as Record<string, unknown>;
-	if (typeof o.isWork !== 'boolean') {
-		return undefined;
-	}
-	return {
-		isWork: o.isWork,
 		questionId: variant.questionId,
 		variantId: variant.variantId,
 	};

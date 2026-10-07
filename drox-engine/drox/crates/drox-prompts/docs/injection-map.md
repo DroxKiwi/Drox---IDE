@@ -90,8 +90,7 @@ Légende : **A** = déjà dans le blob system ; **B** = message system runtime ;
 ### S5 — Acting sans tool_calls (FX-B)
 
 - Trigger **mécanique** : `final_phase == Acting` et `tool_calls` vide (pas de needles prose)
-- **B** : `gates.intent_only_write` puis example ; abort après `INTENT_ONLY_WRITE_MAX_NUDGES` (2)
-- Note : fiche `gates.large_write_chunk` encore au catalogue, **non branchée** dans `drive` (état 2026-10-07)
+- **B** : `gates.intent_only_write` (`when: phase_acting_without_tool_calls`) puis example strike 2 ; abort après `INTENT_ONLY_WRITE_MAX_NUDGES` (2)
 
 ### S6 — Explore enfant
 
@@ -112,8 +111,8 @@ Légende : **A** = déjà dans le blob system ; **B** = message system runtime ;
 
 ## Dette restante
 
-1. ~~Plan→Assign×N~~ — traité 2026-10-07 (CORE pointeur + frames delta ; canon = `session.subagents.explore`)  
-2. Métadonnées `when` / bodies intent-write encore formulées « prose announce »  
-3. Orphelin `gates.large_write_chunk` / `INTENT_ONLY_LARGE_WRITE_MAX_NUDGES`  
-4. Vestige IDE `session.user_message_is_work` (plus branché sur `agent.run`)  
-5. Rescues dynamiques (`explore_incomplete`, kickoff) — encore un peu verbeux ; OK pour l’action immédiate
+1. ~~Plan→Assign×N~~ — traité 2026-10-07  
+2. ~~Intent-write `when`/bodies + orphelin large-write~~ — traité 2026-10-07  
+3. ~~Vestige IDE `session.user_message_is_work`~~ — retiré 2026-10-07  
+4. Rescues dynamiques (`explore_incomplete`, kickoff) — encore un peu verbeux ; OK pour l’action immédiate  
+5. `PromptStrength::Soft` jamais utilisé (Prefer | MustText seulement)

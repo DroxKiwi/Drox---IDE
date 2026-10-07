@@ -1,25 +1,22 @@
-# Model questions (Drox)
+# Model questions (Drox IDE)
 
-Versionable **English** asks to the LLM. No NL heuristics in application code.
+Versionable **English** asks used by the IDE host (not the engine agent loop).
+
+Session boot intent (`isWork` / `isAnalysis` / `isDocIngestion`) lives in the
+engine via `drox-prompts` (`model_question.session.user_intent`) — do **not**
+reintroduce an IDE-side work classifier for `workPlanFrame`.
 
 ```text
 modelQuestions/
   droxModelQuestionTypes.ts
-  droxModelQuestionCatalog.ts      # register variants
-  droxModelQuestionResolve.ts      # pick variant (settings / later auto-reg)
-  droxModelQuestionParse.ts        # strict JSON → filter
-  droxModelQuestionLlmCall.ts      # one-shot HTTP
-  droxModelQuestionService.ts      # façade IDE
+  droxModelQuestionCatalog.ts
+  droxModelQuestionResolve.ts
+  droxModelQuestionParse.ts
+  droxModelQuestionLlmCall.ts
+  droxModelQuestionService.ts
   questions/
     codebaseRetrievalComprehension.ts   # v1 + v1-compact
-    userMessageIsWork.ts                # Work vs discussion (plan frame)
 ```
-
-Add a new ask: new file under `questions/`, append to catalog array, extend `DroxModelQuestionId` if needed.
 
 Shipped asks:
 - `codebase.retrieval.comprehension` (CB4b)
-- `session.user_message_is_work` — **legacy IDE-only**; session boot intent
-  (work / analysis / doc) is owned by the engine via `drox-prompts`
-  multi-bool JSON (`model_question.session.user_intent`). Do not drive
-  `workPlanFrame` from the IDE.

@@ -7,7 +7,7 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { droxCodebaseRerankHits, pathRankMultiplier } from '../../../common/codebase/droxCodebaseRerank.js';
 import { IDroxCodebaseHit } from '../../../common/codebase/droxCodebaseTypes.js';
-import { parseCodebaseRetrievalFilter, parseUserMessageIsWork } from '../../../common/modelQuestions/droxModelQuestionParse.js';
+import { parseCodebaseRetrievalFilter } from '../../../common/modelQuestions/droxModelQuestionParse.js';
 import { resolveDroxModelQuestionVariant } from '../../../common/modelQuestions/droxModelQuestionResolve.js';
 import { listDroxModelQuestionVariants } from '../../../common/modelQuestions/droxModelQuestionCatalog.js';
 
@@ -34,23 +34,6 @@ suite('Drox — model questions + rerank (no NL heuristics)', () => {
 		assert.strictEqual(filter!.searchQuery, 'GitHub API download metrics fetch');
 		assert.deepStrictEqual(filter!.pathPrefixes, ['src/']);
 		assert.strictEqual(filter!.preferCodeFiles, true);
-	});
-
-	test('catalog has session.user_message_is_work variants', () => {
-		const variants = listDroxModelQuestionVariants('session.user_message_is_work');
-		assert.ok(variants.length >= 2);
-		assert.ok(variants.every(v => v.language === 'en'));
-	});
-
-	test('parseUserMessageIsWork accepts strict JSON', () => {
-		const variant = resolveDroxModelQuestionVariant('session.user_message_is_work');
-		const work = parseUserMessageIsWork(JSON.stringify({ isWork: true }), variant);
-		assert.ok(work);
-		assert.strictEqual(work!.isWork, true);
-		const chat = parseUserMessageIsWork('```json\n{"isWork":false}\n```', variant);
-		assert.ok(chat);
-		assert.strictEqual(chat!.isWork, false);
-		assert.strictEqual(parseUserMessageIsWork('{"isWork":"yes"}', variant), undefined);
 	});
 
 	test('rerank path boost only when preferCodeFiles from filter', () => {
