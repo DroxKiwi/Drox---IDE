@@ -8,7 +8,7 @@
 
 | Dossier | Périmètre | Statut |
 |---------|-----------|--------|
-| [**1.6.0/**](1.6.0/README.md) | Boucles · compaction · spill · FX-B · **contexte sérieux (Vague 4)** | **Ouvert** · branche `1.6.0` |
+| [**1.6.0/**](1.6.0/README.md) | Boucles · compaction · Vague 4 · prompts / Explore · contrats retour · **concentration / volume** | **Ouvert** · branche `1.6.0` · dogfood E5 |
 
 ---
 

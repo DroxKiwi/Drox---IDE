@@ -83,6 +83,9 @@ export const enum DroxSetting {
 	/** Max concurrent Explore `task` sub-agents. */
 	SubagentsMaxConcurrent = 'drox.subagents.maxConcurrent',
 
+	/** Native thinking during Explore **execution** phase (report phase always off). */
+	SubagentsExecutionThink = 'drox.subagents.executionThink',
+
 	/**
 	 * Workspace memory (MEMORY.md / DROX.md / `.drox/memory` archives / persist).
 	 * Temporarily **off by default** — set `true` to re-enable injection + tools.
@@ -94,6 +97,12 @@ export const enum DroxSetting {
 	 * Off → no injection, no rules management UI under Customizations.
 	 */
 	RulesEnabled = 'drox.rules.enabled',
+
+	/** Inventory / search outside workspace (`glob`, `grep`) — Explore inherits. */
+	AllowOutsideWorkspaceRead = 'drox.allowOutsideWorkspace.read',
+
+	/** Mutations / bash outside workspace (`file_write`, `file_edit`, …). */
+	AllowOutsideWorkspaceWrite = 'drox.allowOutsideWorkspace.write',
 
 	/** Soft max characters for the auto-injected context block. */
 	CodebaseAutoInjectMaxChars = 'drox.codebase.autoInjectMaxChars',
@@ -1058,6 +1067,26 @@ export const droxConfigurationNode: IConfigurationNode = {
 			),
 		},
 
+		[DroxSetting.AllowOutsideWorkspaceRead]: {
+			type: 'boolean',
+			default: false,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.allowOutsideWorkspace.read',
+				'Allow **read / inventory** outside the workspace root (`glob`, `grep`). Explore sub-agents inherit this flag. `file_read` of absolute paths is always allowed. **Off by default**.',
+			),
+		},
+
+		[DroxSetting.AllowOutsideWorkspaceWrite]: {
+			type: 'boolean',
+			default: false,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.allowOutsideWorkspace.write',
+				'Allow **writes** outside the workspace root (`file_edit`, `file_write`, `copy_path`, `delete_path`, bash leaving the root). Explore stays read-only. **Off by default**.',
+			),
+		},
+
 		[DroxSetting.SubagentsMaxConcurrent]: {
 
 			type: 'number',
@@ -1075,6 +1104,16 @@ export const droxConfigurationNode: IConfigurationNode = {
 				'Max number of Explore `task` sub-agents that may run in parallel (extras wait for a free slot).',
 			),
 
+		},
+
+		[DroxSetting.SubagentsExecutionThink]: {
+			type: 'boolean',
+			default: false,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.subagents.executionThink',
+				'Enable **native thinking** during the Explore `task` **execution** phase. The report-synthesis turn always keeps thinking off. **Off by default** (cleaner notes for the final report).',
+			),
 		},
 
 		...droxDevConfigurationProperties,

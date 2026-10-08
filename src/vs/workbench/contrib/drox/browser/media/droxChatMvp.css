@@ -2759,6 +2759,47 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	opacity: 0.9;
 }
 
+.drox-explore-card-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+	align-self: flex-start;
+}
+
+.drox-explore-card-tag {
+	display: inline-flex;
+	align-items: center;
+	padding: 1px 6px;
+	border-radius: 3px;
+	font-size: 10px;
+	line-height: 1.35;
+	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+	border: 1px solid color-mix(in srgb, var(--vscode-foreground) 18%, transparent);
+	color: var(--vscode-descriptionForeground);
+	background: color-mix(in srgb, var(--vscode-editor-background) 70%, transparent);
+}
+
+.drox-explore-card-tag--type {
+	color: var(--drox-explore-accent, var(--vscode-textLink-foreground));
+	border-color: color-mix(in srgb, var(--drox-explore-accent, var(--vscode-textLink-foreground)) 35%, transparent);
+	font-weight: 600;
+}
+
+.drox-explore-card-tag--depth {
+	color: var(--drox-explore-accent, var(--vscode-descriptionForeground));
+}
+
+.drox-explore-card-tag--kind {
+	color: var(--vscode-foreground);
+}
+
+.drox-explore-card-tag--kind.is-incomplete {
+	opacity: 0.65;
+	text-decoration: line-through;
+	border-style: dashed;
+}
+
 .drox-explore-card-status {
 	font-size: 11px;
 	font-family: var(--vscode-editor-font-family, ui-monospace, monospace);

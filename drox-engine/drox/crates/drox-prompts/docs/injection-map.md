@@ -29,7 +29,7 @@ Ordre approximatif dans **une** string system :
 6. Workspace map — *hors catalogue*
 7. Supplément langue — *hors catalogue*
 8. `session.native_thinking` — si `native_thinking`
-9. `session.outside_ws.toggle` — si `allow_outside_workspace`
+9. `session.outside_ws.read` / `session.outside_ws.write` — si toggles lecture / écriture hors-WS
 10. `session.subagents.explore` — si `subagents_enabled`
 11. `session.professor` — si mode professeur
 12. Notice outils désactivés — *hors catalogue*
@@ -50,8 +50,12 @@ Puis, dans `drive.rs` **après** ce blob (canal B, messages séparés) :
 | Turn-0 | Explore + `doc_ingestion` | `runtime.doc_ingestion` |
 | Après ≥2 outils réussis (toute activité) sans `todo_write` | work ou doc frame | `runtime.work_without_plan` (soft, one-shot ; ignore OK si légitime) |
 | Après `todo` → `in_progress` | Explore on | `runtime.step_explore_kickoff` (body dynamique) |
+| Étape `in_progress` + ≥2 outils parent sans `task` | Explore on | `runtime.step_without_explore` (soft, one-shot / step) |
 | Streak lectures parent | Explore on + seuil | `runtime.s5_heavy_read` |
 | Explore tronqué + lectures | … | `runtime.explore_rescue` / `explore_incomplete_nudge` |
+| `task` Explore réussi (`truncated: false`) | one-shot | `runtime.post_merge_closure` |
+| `task.return_kinds` + artefacts / index | Explore on | schéma `task` + tools `explore_index_*` (scope `ses_`) |
+| Fenêtre `file_read` rotative (multi-path) | seuils fenêtre | `runtime.rotating_file_read` |
 | Post-glob context load | policy | `context_load_nudge` (dynamique) |
 | Même path `file_read` ×N | seuil | `gates.repeated_file_read` |
 | Done sans answering / todos / testing / … | gates | `gates.*` / `blocks.*` |
@@ -68,15 +72,16 @@ Légende : **A** = déjà dans le blob system ; **B** = message system runtime ;
 - **D** : classif → souvent `isWork=false` → pas de work/doc/analyzing frames
 - **A** : CORE (+ supplements si flags run) — Explore supplement **absent** si subagents off
 - **B** : situation card ; pas de WORK PLAN FRAME
-- Attendu modèle : answering → done, sans todo obligatoire (CORE §6d)
+- Attendu modèle : `[phase: answering]` (ack) → done, sans todo obligatoire (CORE §6d)
 
 ### S2 — Work + Explore on
 
 - **D** : `isWork=true` (+ éventuellement analysis/doc)
-- **A** : CORE (pointeur vers supplement) **+** `session.subagents.explore` (**protocole canonique** Plan→Assign→Merge)
+- **A** : CORE (pointeur vers supplement ; **mid-run status** via `answering`) **+** `session.subagents.explore` (**protocole canonique** Plan→Assign→Merge) **+** `session.native_thinking` si think on (statut user ≠ thinking-only)
 - **B turn-0** : `runtime.work_plan_frame` = **delta** « c’est du work → todo early » (ne re-déroule pas le protocole)
 - Si aussi doc : **+** `runtime.doc_ingestion` = **delta** docs (2–4 steps, pas de dump parent)
 - **Dose cible** : protocole ×1 (supplement) + deltas courts
+- Attendu mid-run : court `[phase: answering]` (« Je vais d’abord… ») **avant** tools / Explore — pas seulement dans native thinking
 
 ### S3 — Doc ingestion + Explore
 
@@ -96,8 +101,8 @@ Légende : **A** = déjà dans le blob system ; **B** = message system runtime ;
 ### S6 — Explore enfant
 
 - **E** : `explore.system` (+ thoroughness) ; `session_intent_preclassified=true` (pas d’ask boot sur le brief)
-- Phase report : `explore.report_system`
-- Parent reçoit summary / report_path — pas le transcript enfant
+- Phase report : `explore.report_synthesis` — **JSON** kinds → artefacts (`parse` + retry ; fallback markdown last-match + stub lint)
+- Parent reçoit summary / report_path / artifacts — pas le transcript enfant
 
 ## Sites de code (pour tracer)
 

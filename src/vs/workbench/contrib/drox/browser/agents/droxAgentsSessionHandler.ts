@@ -71,6 +71,7 @@ import { IEditorService } from '../../../../services/editor/common/editorService
 import { IPathService } from '../../../../services/path/common/pathService.js';
 import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
 import { resolveDroxRulesContextPathsFromEditor } from '../rules/droxRulesContextFromEditor.js';
+import { resolveDroxAllowOutsideWorkspaceForRun } from '../chat/droxChatGeneralSettings.js';
 
 /** Derniers tours user chargés à l'ouverture (évite un modèle chat géant en prod). */
 const DROX_AGENTS_SESSION_INITIAL_TAIL_TURNS = 25;
@@ -451,7 +452,12 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 				sessionId: engineSessionId,
 				images: runImages,
 				skipUserTurn: skipUserTurn || undefined,
-				allowOutsideWorkspace: this.sessionBackgroundService.isAllowOutsideWorkspace(engineSessionId),
+				...resolveDroxAllowOutsideWorkspaceForRun(
+					this.configurationService,
+					this.runSettingsService.getWorkspaceResource(),
+					this.sessionBackgroundService,
+					engineSessionId,
+				),
 			});
 			if (!runId) {
 				return this._retryableError(localize('droxAgents.runStartFailed', 'Drox could not start an agent run.'));

@@ -135,6 +135,37 @@ fn note_successful_file_read_normalizes_and_counts() {
 }
 
 #[test]
+fn rotating_file_read_detects_multi_path_spin() {
+	use std::collections::VecDeque;
+	let mut recent = VecDeque::new();
+	let paths = [
+		"a.tsx", "b.tsx", "a.tsx", "c.tsx", "b.tsx", "a.tsx", // 6 reads, a×3 b×2 c×1
+	];
+	let mut triggered = false;
+	for p in paths {
+		triggered = note_rotating_file_read(&mut recent, "file_read", &json!({ "path": p }));
+	}
+	assert!(triggered);
+	assert!(rotating_file_read_should_nudge(&recent));
+	clear_rotating_file_read_window(&mut recent);
+	assert!(!rotating_file_read_should_nudge(&recent));
+}
+
+#[test]
+fn rotating_file_read_ignores_short_or_single_path() {
+	use std::collections::VecDeque;
+	let mut recent = VecDeque::new();
+	for _ in 0..6 {
+		assert!(!note_rotating_file_read(
+			&mut recent,
+			"file_read",
+			&json!({ "path": "only.tsx" })
+		));
+	}
+	assert!(!rotating_file_read_should_nudge(&recent));
+}
+
+#[test]
 fn truncated_task_arms_rescue_without_resetting_streak() {
 	let mut streak = 2;
 	let mut pending = None;

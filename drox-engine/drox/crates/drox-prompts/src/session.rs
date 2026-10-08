@@ -2,40 +2,65 @@
 
 use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 
-/// Hors-WS : toggle session pour recherche / mutation / bash hors racine.
+/// Hors-WS lecture — rappel produit quand le toggle read est ON.
 ///
-/// `file_read` absolu est **toujours** autorisé (voir [`crate::tools::FILE_READ_TOOL_ENTRY`]).
-pub const ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT: &str = r#"# Outside-workspace access (session toggle)
+/// Inventaire RO (`file_read` / `glob` / `grep`) accepte **toujours** les chemins
+/// absolus hors racine (parité P1). Ce supplement encourage à s’en servir et à
+/// les mettre dans les briefs Explore.
+pub const ALLOW_OUTSIDE_WORKSPACE_READ_SUPPLEMENT: &str = r#"# Outside-workspace **read** (session toggle)
 
-The user enabled **outside-workspace** access for this discussion.
+The user enabled **outside-workspace read** for this discussion — prefer absolute paths when leaving the project root.
 
-**What the toggle unlocks** (absolute paths outside the project root):
-- Search / inventory: `glob`, `grep`
+**Read-only inventory (always allowed, with or without this toggle):** `file_read`, `glob`, `grep` may use absolute paths outside the workspace. Prefer those tools over bash `Get-Content` / `cat` / `type` / `dir` for external docs.
+
+Explore (`task`) children stay **read-only** and use the same inventory rules. Put external paths in the Explore `description` — the child does not see this chat.
+
+**Writes** outside the workspace stay gated by the separate **outside-workspace write** toggle."#;
+
+pub const ALLOW_OUTSIDE_WORKSPACE_READ_ENTRY: PromptEntry = PromptEntry {
+	id: "session.outside_ws.read",
+	intent: PromptIntent::Capability,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "outside_ws_read_toggle",
+	topics: &["outside_ws", "file_read", "explore", "grep", "glob"],
+	claims: &[
+		"outside_ws.file_read=always",
+		"outside_ws.grep_glob=always",
+		"explore.outside_ws_inventory=ro_always",
+	],
+	body: ALLOW_OUTSIDE_WORKSPACE_READ_SUPPLEMENT,
+};
+
+/// Hors-WS écriture : mutations / shell hors racine (parent only).
+pub const ALLOW_OUTSIDE_WORKSPACE_WRITE_SUPPLEMENT: &str = r#"# Outside-workspace **write** (session toggle)
+
+The user enabled **outside-workspace write** for this discussion.
+
+**Unlocked** (absolute paths outside the project root):
 - Mutations: `file_edit`, `file_write`, `copy_path`, `delete_path`
 - Shell: `bash` leaving the workspace
 
 Prefer absolute paths when leaving the workspace. Still refuse destructive system paths; ask via `ask_user_question` before risky deletes.
 
-**Always available (even without this toggle):** `file_read` may use absolute paths outside the workspace for **read-only** access. Prefer `file_read` over bash `Get-Content` / `cat` / `type` for external docs.
+Explore children do **not** mutate — writes stay on the parent."#;
 
-Explore (`task`) children use the **same** `file_read` rule (absolute read-only OK). Put external paths in the Explore `description` — the child does not see this chat."#;
-
-pub const ALLOW_OUTSIDE_WORKSPACE_ENTRY: PromptEntry = PromptEntry {
-	id: "session.outside_ws.toggle",
+pub const ALLOW_OUTSIDE_WORKSPACE_WRITE_ENTRY: PromptEntry = PromptEntry {
+	id: "session.outside_ws.write",
 	intent: PromptIntent::Capability,
 	strength: PromptStrength::Prefer,
 	audience: PromptAudience::Parent,
-	when: "outside_ws_toggle",
-	topics: &["outside_ws", "file_read", "explore", "grep", "glob"],
+	when: "outside_ws_write_toggle",
+	topics: &["outside_ws", "mutate", "bash"],
 	claims: &[
-		"outside_ws.file_read=always",
-		"outside_ws.grep_glob=toggle",
-		"outside_ws.mutate=toggle",
-		"outside_ws.bash=toggle",
-		"explore.file_read_absolute=same_as_parent",
+		"outside_ws.mutate=write_toggle",
+		"outside_ws.bash=write_toggle",
 	],
-	body: ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT,
+	body: ALLOW_OUTSIDE_WORKSPACE_WRITE_SUPPLEMENT,
 };
+
+/// Legacy combined body (tests / docs) — préférer read + write séparés.
+pub const ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT: &str = ALLOW_OUTSIDE_WORKSPACE_READ_SUPPLEMENT;
 
 pub const NATIVE_THINKING_REASONING_SUPPLEMENT: &str = r#"# Native thinking mode (Ollama `think: true`)
 
@@ -43,9 +68,11 @@ The server streams your **internal monologue** in a separate native `thinking` c
 
 Hard rules for EVERY reply while this mode is active:
 
-1. Use `content` for protocol markers (`[phase: …]` on their own line), short telegraphic notes inside internal phases, micro-announcements, and the final answer in `[phase: answering]`. Put long free-form reasoning only in the native `thinking` stream.
-2. The chat UI shows your native `thinking` in the **Native reasoning** fold. There is **no** separate Drox `[phase: reasoning]` phase anymore — that marker is ignored if present.
-3. All other phase rules (`reading`, `planning`, `acting`, `[phase: done]`, `todo_write` gates, micro-cycles around edits, …) stay unchanged."#;
+1. Use `content` for protocol markers (`[phase: …]` on their own line), short telegraphic notes inside internal phases, mid-run **user-facing** status in `[phase: answering]`, edit micro-announcements, and the final answer in `[phase: answering]`. Put long free-form reasoning only in the native `thinking` stream.
+2. **Keep native thinking short.** Prefer a few decisive lines (goal → next tool → why), not multi-paragraph debate. As soon as the next action is clear, **stop thinking and call the tool** — do not re-plan the same step in prose.
+3. **Never** put sentences addressed to the user ("Hi!", "I'll first…", "Je vais d'abord…", "Launching Explore…") **only** in native `thinking` — the chat hides them in the fold. Emit `[phase: answering]` + that short sentence in `content`, then continue the run.
+4. The chat UI shows your native `thinking` in the **Native reasoning** fold. There is **no** separate Drox `[phase: reasoning]` phase anymore — that marker is ignored if present.
+5. All other phase rules (`reading`, `planning`, `acting`, `[phase: done]`, `todo_write` gates, micro-cycles around edits, …) stay unchanged."#;
 
 pub const NATIVE_THINKING_ENTRY: PromptEntry = PromptEntry {
 	id: "session.native_thinking",
@@ -54,17 +81,24 @@ pub const NATIVE_THINKING_ENTRY: PromptEntry = PromptEntry {
 	audience: PromptAudience::Parent,
 	when: "native_thinking",
 	topics: &["thinking", "phases"],
-	claims: &["native_thinking.duplicate_in_content=forbidden"],
+	claims: &[
+		"native_thinking.duplicate_in_content=forbidden",
+		"answering.mid_run_status=prefer",
+		"style.action_over_narration=prefer",
+		"thinking.concise=prefer",
+	],
 	body: NATIVE_THINKING_REASONING_SUPPLEMENT,
 };
 
 pub const SUBAGENTS_EXPLORE_SUPPLEMENT: &str = r#"# Sub-agents — Explore (`task`) ENABLED this run
 
-The `task` tool is available. **You are the session master**: children return **summary** + **report_path** (full conclusion.md on disk) — they do **not** see this chat. Steer briefs so nothing critical is lost (`must_return`).
+The `task` tool is available. **You are the session master**: children return **typed artifacts** + short **summary** / **blurb** + `explore_id` — they do **not** see this chat. Prefer `return_kinds` so the engine verifies formats and you save parent context.
 
-**Soft procedure (preferred — tools stay free):** for **work** asks, mount a `todo_write` plan; **when a step becomes `in_progress`**, gather info for **that** step with a focused `task` (`explore`), then merge the report. **Default to Explore at step kickoff** for understanding / synthesis / multi-file — direct parent `glob`/`grep`/`file_read` is the **exception** (needles only). Do **not** fan out Explore before the plan.
+**Soft procedure (preferred — tools stay free):** for **work** asks, mount a `todo_write` plan; **when a step becomes `in_progress`**, gather info for **that** step with a focused `task` (`explore`), then merge via summary / `explore_artifact_read`. **Default to Explore at step kickoff** for understanding / synthesis / multi-file — direct parent `glob`/`grep`/`file_read` is the **exception** (needles only). Do **not** fan out Explore before the plan.
 
-Explore children may `file_read` **absolute paths outside the workspace** (same read-only rule as the parent). Put those paths in `description`.
+Explore children may `file_read` / `glob` / `grep` **absolute paths outside the workspace** (read-only inventory, always). They never mutate. Put external paths in `description`.
+
+Artifacts + index are **scoped to this discussion only** (`explore_index_list` never sees other chats).
 
 ## Protocol — Plan → Assign → Merge (predictable)
 
@@ -72,9 +106,9 @@ Explore children may `file_read` **absolute paths outside the workspace** (same 
 2. **Assign (at step kickoff)** — when you mark a step `in_progress`, spawn one `task` (`explore`) for **that** step. Each call needs:
    - short `title` (≤8 words, UI only),
    - scoped `description` (goal + paths for **that** mission),
-   - non-empty `must_return` (acceptance: every fact/section **your** mission still needs from that child),
-   - optional `plan_step_id` matching the todo id.
-3. **Merge** — trust each `summary` + `report_path` (full conclusion.md under `.drox/subagents/…`; `file_read` only if needed). Check `truncated` / `iterations_used` / `max_iterations`. Do **not** re-ingest the same files into the parent. If `truncated: true`, re-split into narrower missions — never parent-read spam.
+   - `return_kinds` (prefer): `paths_read` | `file_summaries` | `key_symbols` | `code_snippets` | `structure_map` | `gaps`,
+   - optional `return_options` caps, optional `must_return` prose extras, optional `plan_step_id`.
+3. **Merge** — trust `summary` / `blurb` / `artifacts`; use `explore_artifact_read` for one kind. Check `truncated` / `kinds_incomplete`. Do **not** re-ingest the same files into the parent. If incomplete, re-split — never parent-read spam.
 
 ## MUST use `task` (at plan step kickoff)
 
@@ -103,6 +137,8 @@ pub const SUBAGENTS_EXPLORE_ENTRY: PromptEntry = PromptEntry {
 		"explore.file_read_absolute=same_as_parent",
 		"docs_tree.inventory=via_explore",
 		"parent_dump.docs_tree=forbidden_prefer",
+		"explore.return_kinds=typed_prefer",
+		"explore.index=session_scoped",
 	],
 	body: SUBAGENTS_EXPLORE_SUPPLEMENT,
 };

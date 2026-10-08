@@ -76,7 +76,10 @@ pub(super) fn build_live_preview(activity: &[String], report: &str) -> String {
 	if trimmed.len() <= EXPLORE_LIVE_REPORT_MAX_CHARS {
 		out.push_str(trimmed);
 	} else {
-		let start = trimmed.len().saturating_sub(EXPLORE_LIVE_REPORT_MAX_CHARS);
+		// Byte budget — floor to a char boundary (FR accents must not panic).
+		let start = trimmed.floor_char_boundary(
+			trimmed.len().saturating_sub(EXPLORE_LIVE_REPORT_MAX_CHARS),
+		);
 		let mut slice = &trimmed[start..];
 		if let Some(i) = slice.find('\n') {
 			slice = &slice[i + 1..];
@@ -138,5 +141,16 @@ mod tests {
 		assert!(live.contains("--- notes ---"));
 		assert!(!live.contains("--- report ---"));
 		assert!(live.contains("thinking…"));
+	}
+
+	#[test]
+	fn live_preview_truncates_multibyte_utf8_without_panic() {
+		// Longer than EXPLORE_LIVE_REPORT_MAX_CHARS with multi-byte chars near the cut.
+		let chunk = "été café naïve — ";
+		let report = chunk.repeat(80);
+		assert!(report.len() > EXPLORE_LIVE_REPORT_MAX_CHARS);
+		let live = build_live_preview(&[], &report);
+		assert!(live.contains(LIVE_NOTES_MARKER));
+		assert!(live.contains('…'));
 	}
 }

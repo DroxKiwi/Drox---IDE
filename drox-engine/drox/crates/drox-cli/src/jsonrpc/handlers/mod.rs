@@ -555,16 +555,34 @@ async fn build_agent_setup(
         }
     }
 
-    let allow_outside = params.allow_outside_workspace.unwrap_or(false);
-    if allow_outside {
+    let allow_outside_legacy = params.allow_outside_workspace.unwrap_or(false);
+    let allow_outside_read = params
+        .allow_outside_workspace_read
+        .unwrap_or(allow_outside_legacy);
+    let allow_outside_write = params
+        .allow_outside_workspace_write
+        .unwrap_or(allow_outside_legacy);
+    if allow_outside_read {
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
-                s.push_str(crate::prompts::ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT);
+                s.push_str(crate::prompts::ALLOW_OUTSIDE_WORKSPACE_READ_SUPPLEMENT);
             }
             None => {
                 system_merged =
-                    Some(crate::prompts::ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT.to_string());
+                    Some(crate::prompts::ALLOW_OUTSIDE_WORKSPACE_READ_SUPPLEMENT.to_string());
+            }
+        }
+    }
+    if allow_outside_write {
+        match &mut system_merged {
+            Some(s) => {
+                s.push_str("\n\n");
+                s.push_str(crate::prompts::ALLOW_OUTSIDE_WORKSPACE_WRITE_SUPPLEMENT);
+            }
+            None => {
+                system_merged =
+                    Some(crate::prompts::ALLOW_OUTSIDE_WORKSPACE_WRITE_SUPPLEMENT.to_string());
             }
         }
     }
@@ -655,6 +673,7 @@ async fn build_agent_setup(
         enabled: params.subagents_enabled.unwrap_or(false),
         max_iterations: params.subagents_max_iterations.unwrap_or(25).max(1),
         max_concurrent: params.subagents_max_concurrent.unwrap_or(3).clamp(1, 8),
+        execution_think: params.subagents_execution_think.unwrap_or(false),
     };
     if subagent_settings.enabled {
         registry.register_subagent_task();
@@ -681,12 +700,16 @@ async fn build_agent_setup(
     let scope_deferred = ScopeDeferredHandle::new();
     let mut ctx = ToolContext::new(workspace.clone(), apply)
         .with_plan_mode(mode == PermissionMode::Plan)
-        .with_allow_outside_workspace(allow_outside)
+        .with_allow_outside_workspace_read(allow_outside_read)
+        .with_allow_outside_workspace_write(allow_outside_write)
         .with_user_asker(asker)
         .with_scope_deferred(scope_deferred)
         .with_workspace_map(workspace_map.clone())
         .with_drox_ignore(drox_ignore)
         .with_agent_run_id(run_id);
+    if let Some(ref sid) = params.session_id {
+        ctx = ctx.with_chat_session_id(sid.clone());
+    }
     if let Some(hub) = mcp_hub {
         tracing::info!(
             servers = ?hub.server_names(),
@@ -777,6 +800,7 @@ async fn build_agent_setup(
                 || params.doc_ingestion_frame.is_some()
                 || params.skip_user_turn.unwrap_or(false)
         }),
+        explore_execution: false,
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);

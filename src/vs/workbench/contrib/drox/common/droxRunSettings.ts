@@ -171,6 +171,8 @@ export interface IDroxSubagentsRunSettings {
 	readonly enabled: boolean;
 	readonly maxIterations: number;
 	readonly maxConcurrent: number;
+	/** Native thinking on Explore execution phase (report always off). */
+	readonly executionThink: boolean;
 }
 
 function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
@@ -197,7 +199,9 @@ export function readSubagentsSettings(configService: IConfigurationService, reso
 		1,
 		8,
 	);
-	return { enabled, maxIterations, maxConcurrent };
+	const executionThink =
+		readDroxChatConfigurationValue<boolean>(configService, DroxSetting.SubagentsExecutionThink, resource) === true;
+	return { enabled, maxIterations, maxConcurrent, executionThink };
 }
 
 function wireOptionalNumber(params: Record<string, unknown>, key: string, value: number | undefined): void {
@@ -222,6 +226,8 @@ export function buildAgentRunParams(opts: {
 	readonly runObjective?: string;
 	readonly skipUserTurn?: boolean;
 	readonly allowOutsideWorkspace?: boolean;
+	readonly allowOutsideWorkspaceRead?: boolean;
+	readonly allowOutsideWorkspaceWrite?: boolean;
 	/** Préfixe system IDE (ex. carnet session N0) — fusionné côté moteur avec memdir. */
 	readonly system?: string;
 	/** Explore sub-agents (`task`) — when `enabled`, wires `subagentsEnabled` + ceilings. */
@@ -307,13 +313,23 @@ export function buildAgentRunParams(opts: {
 	if (opts.skipUserTurn) {
 		params.skipUserTurn = true;
 	}
-	if (opts.allowOutsideWorkspace) {
+	const allowOutsideRead = opts.allowOutsideWorkspaceRead ?? opts.allowOutsideWorkspace;
+	const allowOutsideWrite = opts.allowOutsideWorkspaceWrite ?? opts.allowOutsideWorkspace;
+	if (allowOutsideRead) {
+		params.allowOutsideWorkspaceRead = true;
+	}
+	if (allowOutsideWrite) {
+		params.allowOutsideWorkspaceWrite = true;
+	}
+	// Legacy combined flag for older engines.
+	if (allowOutsideRead && allowOutsideWrite) {
 		params.allowOutsideWorkspace = true;
 	}
 	if (opts.subagents?.enabled) {
 		params.subagentsEnabled = true;
 		params.subagentsMaxIterations = opts.subagents.maxIterations;
 		params.subagentsMaxConcurrent = opts.subagents.maxConcurrent;
+		params.subagentsExecutionThink = opts.subagents.executionThink === true;
 	}
 	// Explicit false so engine skips memdir/archives even if param omitted later.
 	params.memoryEnabled = opts.memoryEnabled === true;

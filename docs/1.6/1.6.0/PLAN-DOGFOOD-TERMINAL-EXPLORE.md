@@ -61,6 +61,8 @@ Pas de spawn auto à seuil de tokens (policy Cursor). Filet = prompts + soft-nud
 | Rescue | Nudges post-fail + parent rescue si Explore incomplet | ✅ |
 | ~~`explore.mission.decompose`~~ | Retiré — Explore au kickoff plan/todo (soft), plus de pré-comptage missions au send | ❌ |
 
+**Suite produit** (kinds typés + index session) : [PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md) — ambition validée, code ⬜.
+
 ## Liens code
 
 | Zone | Chemin |

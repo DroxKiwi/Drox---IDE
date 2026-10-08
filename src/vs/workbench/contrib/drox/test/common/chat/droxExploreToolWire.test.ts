@@ -15,17 +15,20 @@ import {
 suite('Drox — Explore tool wire', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	test('buildExploreToolStartWire extracts title, description and thoroughness', () => {
+	test('buildExploreToolStartWire extracts title, description, thoroughness and return kinds', () => {
 		const wire = buildExploreToolStartWire('task', {
 			title: 'Find auth entry points',
 			description: 'Locate where auth is wired in the IDE and engine.\nReturn paths + symbols.',
 			thoroughness: 'medium',
 			subagent_type: 'explore',
+			return_kinds: ['paths_read', 'key_symbols', 'paths'],
 		});
 		assert.deepStrictEqual(wire, {
 			exploreTitle: 'Find auth entry points',
 			exploreDescription: 'Locate where auth is wired in the IDE and engine.\nReturn paths + symbols.',
 			exploreThoroughness: 'medium',
+			exploreSubagentType: 'explore',
+			exploreReturnKinds: ['paths_read', 'key_symbols'],
 		});
 	});
 
@@ -82,18 +85,25 @@ suite('Drox — Explore tool wire', () => {
 		assert.strictEqual(buildExploreToolStartWire('bash', { description: 'x' }), undefined);
 	});
 
-	test('buildExploreToolFinishWire extracts report', () => {
+	test('buildExploreToolFinishWire extracts report and return kinds', () => {
 		const wire = buildExploreToolFinishWire('task', {
 			subagent_type: 'explore',
+			explore_id: 'exp_1',
 			report: 'Auth lives in src/auth.ts',
 			report_path: '.drox/subagents/run_1/x-explore/conclusion.md',
 			summary: 'Auth lives in src/auth.ts',
+			return_kinds: ['paths_read', 'gaps'],
+			kinds_incomplete: ['gaps'],
 		}, false);
 		assert.deepStrictEqual(wire, {
 			exploreReport: 'Auth lives in src/auth.ts',
 			exploreReportPath: '.drox/subagents/run_1/x-explore/conclusion.md',
 			exploreError: undefined,
 			exploreThoroughness: undefined,
+			exploreSubagentType: 'explore',
+			exploreReturnKinds: ['paths_read', 'gaps'],
+			exploreId: 'exp_1',
+			exploreKindsIncomplete: ['gaps'],
 		});
 	});
 

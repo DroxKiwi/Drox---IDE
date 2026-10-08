@@ -28,8 +28,10 @@ pub struct ToolContext {
     pub apply_fs_writes: bool,
     /// Si `true`, les tools d'écriture refusent d'écrire (`PlanModeViolation`).
     pub plan_mode: bool,
-    /// Si `true`, les tools fs acceptent des chemins absolus hors workspace.
-    pub allow_outside_workspace: bool,
+    /// Si `true`, inventaire / recherche hors workspace (`glob`, `grep`).
+    pub allow_outside_workspace_read: bool,
+    /// Si `true`, mutations / bash hors workspace (`file_write`, `file_edit`, …).
+    pub allow_outside_workspace_write: bool,
     /// Mécanisme optionnel pour poser une question à l'humain (utilisé par
     /// `ask_user_question` et `exit_plan_mode`).
     pub user_asker: Option<Arc<dyn UserAsker>>,
@@ -51,8 +53,10 @@ pub struct ToolContext {
     pub subagent_executor: Option<Arc<dyn SubagentExecutor>>,
     /// Rapports de progression (bash stream, etc.).
     pub tool_progress: Option<Arc<dyn ToolProgressSink>>,
-    /// Id du run agent (`run_…`) — arbo `.drox/subagents/<runId>/…`.
+    /// Id du run agent (`run_…`) — télémétrie / logging.
     pub agent_run_id: Option<String>,
+    /// Id de discussion (`ses_…`) — **scope** index / artefacts Explore (pas de fuite cross-chat).
+    pub chat_session_id: Option<String>,
 }
 
 impl ToolContext {
@@ -64,7 +68,8 @@ impl ToolContext {
             workspace_root,
             apply_fs_writes,
             plan_mode: false,
-            allow_outside_workspace: false,
+            allow_outside_workspace_read: false,
+            allow_outside_workspace_write: false,
             user_asker: None,
             session_notes: None,
             mcp_hub: None,
@@ -75,6 +80,7 @@ impl ToolContext {
             subagent_executor: None,
             tool_progress: None,
             agent_run_id: None,
+            chat_session_id: None,
         }
     }
 
@@ -82,6 +88,13 @@ impl ToolContext {
     #[must_use]
     pub fn with_agent_run_id(mut self, run_id: impl Into<String>) -> Self {
         self.agent_run_id = Some(run_id.into());
+        self
+    }
+
+    /// Builder : id de discussion (`ses_…`) pour scope Explore.
+    #[must_use]
+    pub fn with_chat_session_id(mut self, session_id: impl Into<String>) -> Self {
+        self.chat_session_id = Some(session_id.into());
         self
     }
 
@@ -99,10 +112,25 @@ impl ToolContext {
         self
     }
 
-    /// Builder : autorise les chemins hors workspace (fs tools).
+    /// Builder : lecture + écriture hors workspace (legacy / tests).
     #[must_use]
     pub const fn with_allow_outside_workspace(mut self, allow: bool) -> Self {
-        self.allow_outside_workspace = allow;
+        self.allow_outside_workspace_read = allow;
+        self.allow_outside_workspace_write = allow;
+        self
+    }
+
+    /// Builder : inventaire / recherche hors workspace uniquement.
+    #[must_use]
+    pub const fn with_allow_outside_workspace_read(mut self, allow: bool) -> Self {
+        self.allow_outside_workspace_read = allow;
+        self
+    }
+
+    /// Builder : mutations hors workspace uniquement.
+    #[must_use]
+    pub const fn with_allow_outside_workspace_write(mut self, allow: bool) -> Self {
+        self.allow_outside_workspace_write = allow;
         self
     }
 
@@ -185,7 +213,14 @@ impl std::fmt::Debug for ToolContext {
             .field("workspace_root", &self.workspace_root)
             .field("apply_fs_writes", &self.apply_fs_writes)
             .field("plan_mode", &self.plan_mode)
-            .field("allow_outside_workspace", &self.allow_outside_workspace)
+            .field(
+                "allow_outside_workspace_read",
+                &self.allow_outside_workspace_read,
+            )
+            .field(
+                "allow_outside_workspace_write",
+                &self.allow_outside_workspace_write,
+            )
             .field("user_asker", &self.user_asker.as_ref().map(|_| "<asker>"))
             .field(
                 "session_notes",

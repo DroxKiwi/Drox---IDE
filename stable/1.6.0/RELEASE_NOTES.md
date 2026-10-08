@@ -31,8 +31,8 @@ Correctifs moteur pour les boucles de réponse et les explosions de contexte obs
 
 - **Terminal** — cwd sans préfixe `\\?\` ; isolation stdout (marqueur + pas de scrollback stale) ; shell agent Windows = `cmd.exe`.
 - **Classifieur bash** — préfixes PowerShell `[Console]::…=` + `Get-Content` / listings = inspect-only.
-- **`file_read` hors workspace** — chemins absolus autorisés en lecture seule (écritures toujours gated).
-- **Anti re-read** — même path `file_read` ×3 → nudge dur.
+- **`file_read` hors workspace** — lecture hors dossier (voir aussi split read/write post-Vague 4 ci-dessous).
+- **Anti re-read** — même path `file_read` ×3 → Prefer soft one-shot (angle mort : rotation multi-path — voir ANTI-LOOP-METHODES).
 - **Explore** — prompts / outil `task` / nudge S-5 durcis (default-to-Explore pour compréhension / synthèse).
 - **Explore ferme (1.6 dogfood)** — annex turn-0 si intent docs (« prendre connaissance », `docs/pedagogie`, calquer/remplacer documentation) → premier tool = `task` Explore ; CORE sans « explore freely » ; S-5 seuil **1** + `glob`/`grep` comptés.
 - **Explore live** — avancement sub-agent streamé dans la carte chat (activité tools + rapport partiel, panneau scrollable type file-change).
@@ -44,6 +44,25 @@ Correctifs moteur pour les boucles de réponse et les explosions de contexte obs
 - Règles style Cursor (`*.instructions.md` / `.mdc`) sous `.drox/rules/` (workspace) et `~/.drox/rules/` (user).
 - Injection auto dans `agent.run` selon `alwaysApply` / `applyTo` / `globs`.
 - Setting **`drox.rules.enabled`** (défaut ON) + toggle dans General settings ; OFF = pas d’inject + Customizations sans liste rules (`DROX.md` / MEMORY / Skills inchangés).
+
+### Prompts centralisés · Plan/Explore soft · hors-WS (post Vague 4)
+
+- **`drox-prompts`** — catalogue unique des textes moteur (CORE, runtime, gates, Explore, tools) avec fiches `PromptEntry`, lint claims, docs `injection-map` / `journal` / `adding` / `verification`.
+- **Voix Plan → Assign → Merge** — une seule ligne produit dans les prompts (kickoff Explore à l’étape, merge rapports) ; Prefer soft, pas de hard gate inventé.
+- **Soft nudges** — `work_without_plan` (activité sans `todo_write`) · `step_explore_kickoff` (nouvel `in_progress`) · `step_without_explore` (étape active sans `task`).
+- **Hors workspace read/write** — settings `drox.allowOutsideWorkspace.read` / `.write` + cases Server settings + toggles session (œil / cadenas) ; Explore hérite **read** seulement (reste RO).
+- **Anti-orphan Explore** — troncature live preview UTF-8 safe (`floor_char_boundary`) + `catch_unwind` sur `task` (plus de Sync « Run ended without tool result » sur panic preview).
+
+Historique détaillé : [`docs/1.6/1.6.0/JOURNAL-PROMPTS-ET-HORS-WS.md`](../../docs/1.6/1.6.0/JOURNAL-PROMPTS-ET-HORS-WS.md).
+
+### Contrats de retour Explore (post Vague 4)
+
+- **`return_kinds`** sur `task` — formats typés (`paths_read`, `file_summaries`, `key_symbols`, `code_snippets`, `structure_map`, `gaps`) + `return_options` (caps).
+- Artefacts par kind + `manifest.json` sous `.drox/subagents/<sessionId>/<exploreId>/` ; phase rapport **JSON** (retry) → fichiers ; JSON invalide / stubs méta-CoT → **incomplete** (plus de soft-OK) ; notes synth filtrées ; `drox.subagents.executionThink` (défaut off ; rapport toujours off).
+- Index session-scoped (`index.jsonl`) + tools `explore_index_list` / `explore_artifact_read` — **pas** de fuite entre discussions.
+- **Tags UI carte Explore** — pendant / après le run : type (`explore`), thoroughness, kinds cochés (kinds incomplets en pointillé).
+- Soft **post-merge** + **anti-relecture rotative** — Prefer one-shot après Explore OK / fenêtre multi-`file_read` (voir ANTI-LOOP-METHODES).
+- Voir [`PLAN-EXPLORE-RETURN-CONTRACTS.md`](../../docs/1.6/1.6.0/PLAN-EXPLORE-RETURN-CONTRACTS.md) · [`JOURNAL-PROMPTS-ET-HORS-WS.md`](../../docs/1.6/1.6.0/JOURNAL-PROMPTS-ET-HORS-WS.md).
 
 ## Prérequis
 

@@ -188,6 +188,104 @@ pub fn step_explore_kickoff_nudge(step_id: &str, step_content: Option<&str>) -> 
 	)
 }
 
+/// Soft — étape `in_progress` avec activité parent et pas encore de `task`.
+pub const STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD: u32 = 2;
+
+pub const STEP_WITHOUT_EXPLORE_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.step_without_explore",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "todo_step_in_progress+explore_enabled+parent_activity_n+no_task",
+	topics: &["plan_assign_merge", "explore"],
+	claims: &[
+		"plan_assign_merge=soft_prefer",
+		"step.prefer_explore_before_parent_work=prefer",
+	],
+	body: "STEP WITHOUT EXPLORE — soft reminder (not a hard gate) — dynamic body",
+};
+
+pub fn step_without_explore_nudge(step_id: &str, step_content: Option<&str>) -> String {
+	let label = step_content
+		.map(str::trim)
+		.filter(|s| !s.is_empty())
+		.unwrap_or(step_id);
+	format!(
+		"STEP WITHOUT EXPLORE — soft reminder (not a hard gate)\n\
+         \n\
+         Plan step `{step_id}` is **in_progress** ({label}) and you already used parent tools, \
+         but you have **not** spawned a `task` (`explore`) for this step yet.\n\
+         \n\
+         **Preferred next move:** one focused Explore for **this** step (`plan_step_id` = \
+         `{step_id}` when possible, non-empty `must_return`), then merge the report.\n\
+         \n\
+         Needle exception (1–2 known paths only): you may ignore this reminder and continue. \
+         Tools stay free."
+	)
+}
+
+/// Soft — après un `task` Explore réussi (non tronqué) : fusionner / agir, ne pas re-vérifier.
+pub const POST_MERGE_CLOSURE_NUDGE: &str = "POST-MERGE CLOSURE — soft reminder (not a hard gate)\n\
+    \n\
+    You just received a **successful** Explore `task` report (`truncated: false`).\n\
+    \n\
+    **Preferred next move:** merge the report into your plan / acting — update todos, \
+    edit/write, or answer. Do **not** re-verify by re-reading the same sources the child \
+    already covered.\n\
+    \n\
+    Needle exception (1–2 known paths only): a short ranged `file_read` / `grep` is OK. \
+    Tools stay free.";
+
+pub const POST_MERGE_CLOSURE_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.post_merge_closure",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "explore_task_success_non_truncated",
+	topics: &["plan_assign_merge", "explore"],
+	claims: &[
+		"plan_assign_merge=soft_prefer",
+		"explore.post_merge.prefer_acting=prefer",
+	],
+	body: POST_MERGE_CLOSURE_NUDGE,
+};
+
+/// Soft — relectures parent en rotation multi-path (angle mort M1–M4 / S1).
+/// Fenêtre = derniers `ROTATING_FILE_READ_WINDOW` `file_read` réussis.
+pub const ROTATING_FILE_READ_WINDOW: usize = 10;
+pub const ROTATING_FILE_READ_MIN_READS: usize = 6;
+pub const ROTATING_FILE_READ_MIN_DISTINCT_REPEATED: usize = 2;
+pub const ROTATING_FILE_READ_REPEAT_AT: u32 = 2;
+
+pub const ROTATING_FILE_READ_NUDGE: &str = "ROTATING RE-READS — soft reminder (not a hard gate)\n\
+    \n\
+    You are cycling `file_read` across a small set of paths without mutating or advancing \
+    the plan. That burns context and stalls the run.\n\
+    \n\
+    **Preferred next move — pick ONE:**\n\
+    1. Act from what you already have (`file_write` / `file_edit`, or `[phase: answering]` + \
+       `[phase: done]`).\n\
+    2. If understanding is still thin: one focused `task` (`explore`), then merge — do not \
+       keep parent-reading the same cluster.\n\
+    3. Update `todo_write` to reflect progress / next step.\n\
+    \n\
+    Needle exception (1–2 known paths, new line ranges only): you may ignore this reminder. \
+    Tools stay free.";
+
+pub const ROTATING_FILE_READ_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.rotating_file_read",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "parent_file_read_rotation_window",
+	topics: &["file_read", "explore", "plan_assign_merge"],
+	claims: &[
+		"file_read.rotating_spam=forbidden_prefer",
+		"plan_assign_merge=soft_prefer",
+	],
+	body: ROTATING_FILE_READ_NUDGE,
+};
+
 pub fn context_load_nudge(
 	files_effective: usize,
 	total_kb: u64,

@@ -1,6 +1,6 @@
 //! Boucle principale `drive_inner` — tours LLM, tools, gates et clôture.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use drox_hooks::{PostHookOutcome, PreHookOutcome, ToolHookContext};
 use drox_tools::ToolError;
@@ -34,9 +34,10 @@ use super::super::nudges::{
     INTENT_ONLY_WRITE_MAX_NUDGES, INTENT_ONLY_WRITE_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
     LOOP_TOOL_FAMILY_NUDGE_PROMPT, MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
     MISSING_ANSWERING_PROMPT, NUDGE_PROMPT, PARENT_HEAVY_READ_NUDGE,
-    PARENT_HEAVY_READ_NUDGE_THRESHOLD, REPEATED_FILE_READ_NUDGE, REPEATED_FILE_READ_NUDGE_THRESHOLD,
-    WORK_PLAN_FRAME_NUDGE, WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD,
-    step_explore_kickoff_nudge,
+    PARENT_HEAVY_READ_NUDGE_THRESHOLD, POST_MERGE_CLOSURE_NUDGE, REPEATED_FILE_READ_NUDGE,
+    REPEATED_FILE_READ_NUDGE_THRESHOLD, ROTATING_FILE_READ_NUDGE, WORK_PLAN_FRAME_NUDGE,
+    WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD,
+    step_explore_kickoff_nudge, step_without_explore_nudge,
 };
 use super::super::session_intent::{classify_session_user_intent, SessionFrames};
 use super::super::context_load::{
@@ -47,9 +48,11 @@ use super::super::phase::{
     counts_as_pre_plan_activity, is_workspace_exploration_tool, user_blocks_plain_text,
 };
 use super::super::situation::{
-    completed_todos_hint, counts_as_parent_heavy_read, first_in_progress_todo_id,
-    next_todo_from_output, note_successful_file_read, note_task_tool_success, path_from_file_tool,
-    task_outcome_telemetry, upsert_situation_card, SituationSnapshot,
+    clear_rotating_file_read_window, completed_todos_hint, counts_as_parent_heavy_read,
+    first_in_progress_todo_id, next_todo_from_output, note_rotating_file_read,
+    note_successful_file_read, note_task_tool_success, path_from_file_tool,
+    rotating_file_read_should_nudge, task_outcome_telemetry, upsert_situation_card,
+    SituationSnapshot,
 };
 use super::super::consume_llm_stream::{consume_stream, push_assistant_message};
 use super::Agent;
@@ -222,6 +225,10 @@ impl Agent {
         let mut last_in_progress_todo_id: Option<String> = None;
         // Soft Explore kickoff: (step_id, optional content label).
         let mut pending_step_explore_nudge: Option<(String, Option<String>)> = None;
+        // Soft — étape in_progress sans task (compteur parent, one-shot / step).
+        let mut step_parent_activity_count: u32 = 0;
+        let mut step_had_task_success = false;
+        let mut step_without_explore_nudge_sent = false;
         // Context-load V1 — soft nudge one-shot après glob large.
         let mut pending_context_load: Option<ContextLoadSnapshot> = None;
         let mut context_load_nudge_sent = false;
@@ -233,6 +240,10 @@ impl Agent {
         // P1 — compteur de `file_read` réussis par path normalisé.
         let mut file_read_success_counts: HashMap<String, u32> = HashMap::new();
         let mut repeated_file_read_nudge_sent = false;
+        // Soft — rotation multi-path (fenêtre glissante) + clôture post-merge Explore.
+        let mut recent_file_reads: VecDeque<String> = VecDeque::new();
+        let mut rotating_file_read_nudge_sent = false;
+        let mut pending_post_merge_closure_nudge = false;
         let task_tool_available = tool_specs.iter().any(|s| s.name == "task");
         // Systèmes injectés en tête de `messages` (re-poussés à chaque run) —
         // exclus du rewrite JSONL post-compaction (C-1). Inclut la situation
@@ -336,6 +347,22 @@ impl Agent {
                 }
             }
 
+            // Soft — étape in_progress, activité parent, toujours pas de task.
+            if task_tool_available
+                && !step_without_explore_nudge_sent
+                && !step_had_task_success
+                && last_in_progress_todo_id.is_some()
+                && step_parent_activity_count >= STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD
+            {
+                let step_id = last_in_progress_todo_id.as_deref().unwrap_or("?");
+                debug!(%step_id, step_parent_activity_count, "step without explore — soft nudge");
+                messages.push(Message::system(step_without_explore_nudge(
+                    step_id,
+                    last_todo_next.as_deref(),
+                )));
+                step_without_explore_nudge_sent = true;
+            }
+
             // S-5 — trop de lectures massives parent sans Explore.
             if task_tool_available
                 && !parent_heavy_read_nudge_sent
@@ -404,6 +431,25 @@ impl Agent {
                         loop_detector.reset();
                     }
                 }
+            }
+
+            // Soft — Explore réussi → fusionner / agir (one-shot par succès).
+            if pending_post_merge_closure_nudge {
+                debug!("post-merge Explore — soft closure nudge");
+                messages.push(Message::system(POST_MERGE_CLOSURE_NUDGE));
+                pending_post_merge_closure_nudge = false;
+            }
+
+            // Soft — rotation multi-path `file_read` (angle mort S1).
+            if !rotating_file_read_nudge_sent
+                && rotating_file_read_should_nudge(&recent_file_reads)
+            {
+                debug!(
+                    window = recent_file_reads.len(),
+                    "rotating file_read — soft nudge"
+                );
+                messages.push(Message::system(ROTATING_FILE_READ_NUDGE));
+                rotating_file_read_nudge_sent = true;
             }
 
             // P1 — même path `file_read` réussi ×N.
@@ -480,6 +526,31 @@ impl Agent {
             }
             if outcome.saw_testing {
                 saw_testing_phase_in_run = true;
+            }
+
+            // Explore child (phase 1) — E2 : answering ou done sans tool = Stop.
+            // La phase rapport moteur écrit le compte-rendu ; pas de DONE_ONLY /
+            // answering-before-done (évite text_only ×3 après nudges de clôture).
+            if self.config.explore_execution
+                && outcome.tool_calls.is_empty()
+                && matches!(
+                    outcome.final_phase,
+                    Some(Phase::Answering | Phase::Done)
+                )
+            {
+                debug!(
+                    phase = ?outcome.final_phase,
+                    "explore execution — stop (report phase follows)"
+                );
+                self.maybe_persist_session(&messages, &memory_tracker, &tx)
+                    .await;
+                let _ = tx
+                    .send(Ok(AgentEvent::Stop {
+                        reason: outcome.reason,
+                        usage: Usage::default(),
+                    }))
+                    .await;
+                return;
             }
 
             // Done-driven completion + answering-before-done. `todo_write`
@@ -954,6 +1025,15 @@ impl Agent {
                                             &mut explore_rescue_active,
                                             &mut explore_rescue_nudge_sent,
                                         );
+                                        if last_in_progress_todo_id.is_some() {
+                                            step_had_task_success = true;
+                                            step_parent_activity_count = 0;
+                                        }
+                                        if !truncated {
+                                            pending_post_merge_closure_nudge = true;
+                                        }
+                                        clear_rotating_file_read_window(&mut recent_file_reads);
+                                        rotating_file_read_nudge_sent = false;
                                     } else if counts_as_parent_heavy_read(
                                         &call.name,
                                         &call.arguments,
@@ -967,8 +1047,20 @@ impl Agent {
                                         pre_plan_activity_count =
                                             pre_plan_activity_count.saturating_add(1);
                                     }
+                                    if last_in_progress_todo_id.is_some()
+                                        && !step_had_task_success
+                                        && counts_as_pre_plan_activity(&call.name)
+                                    {
+                                        step_parent_activity_count =
+                                            step_parent_activity_count.saturating_add(1);
+                                    }
                                     let _ = note_successful_file_read(
                                         &mut file_read_success_counts,
+                                        &call.name,
+                                        &call.arguments,
+                                    );
+                                    let _ = note_rotating_file_read(
+                                        &mut recent_file_reads,
                                         &call.name,
                                         &call.arguments,
                                     );
@@ -1167,15 +1259,23 @@ impl Agent {
                                         last_todo_next = next_todo_from_output(&value);
                                         last_todo_completed_hint = completed_todos_hint(&value);
                                         mutating_tools_since_last_todo = 0;
+                                        clear_rotating_file_read_window(&mut recent_file_reads);
+                                        rotating_file_read_nudge_sent = false;
                                         if let Some(step_id) = first_in_progress_todo_id(&value) {
                                             if last_in_progress_todo_id.as_ref() != Some(&step_id)
                                             {
                                                 pending_step_explore_nudge =
                                                     Some((step_id.clone(), last_todo_next.clone()));
                                                 last_in_progress_todo_id = Some(step_id);
+                                                step_parent_activity_count = 0;
+                                                step_had_task_success = false;
+                                                step_without_explore_nudge_sent = false;
                                             }
                                         } else {
                                             last_in_progress_todo_id = None;
+                                            step_parent_activity_count = 0;
+                                            step_had_task_success = false;
+                                            step_without_explore_nudge_sent = false;
                                         }
                                     } else if call.name == "course_plan_write" {
                                         saw_successful_course_plan_write_in_run = true;
@@ -1201,6 +1301,8 @@ impl Agent {
                                         &call.arguments,
                                     ) {
                                         saw_code_mutation_in_run = true;
+                                        clear_rotating_file_read_window(&mut recent_file_reads);
+                                        rotating_file_read_nudge_sent = false;
                                     }
                                     if let Some(path) =
                                         path_from_file_tool(&call.name, &call.arguments)
@@ -1233,6 +1335,15 @@ impl Agent {
                                             &mut explore_rescue_active,
                                             &mut explore_rescue_nudge_sent,
                                         );
+                                        if last_in_progress_todo_id.is_some() {
+                                            step_had_task_success = true;
+                                            step_parent_activity_count = 0;
+                                        }
+                                        if !truncated {
+                                            pending_post_merge_closure_nudge = true;
+                                        }
+                                        clear_rotating_file_read_window(&mut recent_file_reads);
+                                        rotating_file_read_nudge_sent = false;
                                     } else if counts_as_parent_heavy_read(
                                         &call.name,
                                         &call.arguments,
@@ -1246,8 +1357,20 @@ impl Agent {
                                         pre_plan_activity_count =
                                             pre_plan_activity_count.saturating_add(1);
                                     }
+                                    if last_in_progress_todo_id.is_some()
+                                        && !step_had_task_success
+                                        && counts_as_pre_plan_activity(&call.name)
+                                    {
+                                        step_parent_activity_count =
+                                            step_parent_activity_count.saturating_add(1);
+                                    }
                                     let _ = note_successful_file_read(
                                         &mut file_read_success_counts,
+                                        &call.name,
+                                        &call.arguments,
+                                    );
+                                    let _ = note_rotating_file_read(
+                                        &mut recent_file_reads,
                                         &call.name,
                                         &call.arguments,
                                     );

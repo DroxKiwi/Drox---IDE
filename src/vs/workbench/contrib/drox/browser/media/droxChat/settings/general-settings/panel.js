@@ -32,7 +32,10 @@
 			D.dom.roleModelPanelExploreMaxIterationsEl.value = String(exploreMax);
 		}
 		setVal('general-settings-subagents-enabled', s.subagentsEnabled !== false);
+		setVal('general-settings-subagents-execution-think', s.subagentsExecutionThink === true);
 		setVal('general-settings-project-rules-enabled', s.projectRulesEnabled !== false);
+		setVal('general-settings-outside-ws-read', s.allowOutsideWorkspaceRead);
+		setVal('general-settings-outside-ws-write', s.allowOutsideWorkspaceWrite);
 		setVal('general-settings-native-thinking', s.nativeThinking);
 		setVal('general-settings-primary-language', s.primaryLanguage || '');
 		setVal('general-settings-warm-start', s.warmStart !== false);
@@ -89,8 +92,17 @@
 		if (document.getElementById('general-settings-subagents-enabled')) {
 			patch.subagentsEnabled = bool('general-settings-subagents-enabled');
 		}
+		if (document.getElementById('general-settings-subagents-execution-think')) {
+			patch.subagentsExecutionThink = bool('general-settings-subagents-execution-think');
+		}
 		if (document.getElementById('general-settings-project-rules-enabled')) {
 			patch.projectRulesEnabled = bool('general-settings-project-rules-enabled');
+		}
+		if (document.getElementById('general-settings-outside-ws-read')) {
+			patch.allowOutsideWorkspaceRead = bool('general-settings-outside-ws-read');
+		}
+		if (document.getElementById('general-settings-outside-ws-write')) {
+			patch.allowOutsideWorkspaceWrite = bool('general-settings-outside-ws-write');
 		}
 		return patch;
 	};

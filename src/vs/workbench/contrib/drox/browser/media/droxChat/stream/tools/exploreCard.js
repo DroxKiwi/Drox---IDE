@@ -46,6 +46,151 @@
 		return first.length > 72 ? `${first.slice(0, 71).trimEnd()}…` : first;
 	}
 
+	/** Stable key to reuse the same card when the model retries after an error. */
+	function exploreMissionKey(payload) {
+		return shortExploreTitle(payload).toLowerCase().replace(/\s+/g, ' ').trim();
+	}
+
+	function findReusableExploreCard(missionKey) {
+		if (!missionKey) {
+			return undefined;
+		}
+		const cards = D.dom.logEl?.querySelectorAll?.('.drox-explore-card.error') || [];
+		for (let i = cards.length - 1; i >= 0; i--) {
+			const card = cards[i];
+			if (card.dataset.exploreMission === missionKey && !card.classList.contains('running')) {
+				return card;
+			}
+		}
+		return undefined;
+	}
+
+	/** Reset a failed Explore card so a retry continues in the same frame. */
+	fn.resetExploreCardForRetry = function (card, payload) {
+		card.classList.remove('error', 'drox-chat-issue-hidden');
+		card.classList.add('running');
+		card.open = true;
+
+		const mission = shortExploreTitle(payload);
+		card.dataset.exploreMission = exploreMissionKey(payload);
+		const descEl = card.querySelector('.drox-explore-card-desc');
+		if (descEl) {
+			descEl.textContent = mission;
+			descEl.title = mission;
+		}
+		const thoroughness = String(payload.exploreThoroughness || '').trim();
+		if (thoroughness) {
+			card.dataset.thoroughness = thoroughness;
+		}
+		const wrap = card.querySelector('.drox-explore-card-title-wrap');
+		if (wrap) {
+			mountExploreTags(wrap, payload);
+		}
+		const status = card.querySelector('.drox-explore-card-status');
+		if (status) {
+			status.classList.remove('is-error');
+			status.classList.add('running');
+			status.textContent = 'running';
+		}
+
+		const brief = String(payload.exploreDescription || '').trim();
+		const promptPre = card.querySelector('[data-role="explore-prompt"]');
+		if (brief && promptPre) {
+			promptPre.textContent = brief;
+			card.dataset.explorePrompt = brief;
+		}
+
+		const activityHost = card.querySelector('[data-role="explore-activity-host"]');
+		if (activityHost) {
+			activityHost.hidden = false;
+			const activityPre = activityHost.querySelector('[data-role="explore-activity"]');
+			if (activityPre) {
+				activityPre.textContent = 'Retrying…';
+			}
+		}
+		const reportHost = card.querySelector('[data-role="explore-report-host"]');
+		if (reportHost) {
+			reportHost.replaceChildren();
+			const placeholder = document.createElement('div');
+			placeholder.className = 'drox-explore-report-placeholder';
+			placeholder.textContent = 'Report will appear here…';
+			reportHost.appendChild(placeholder);
+		}
+		fn.scrollLog();
+		return card;
+	};
+
+	const RETURN_KIND_LABELS = {
+		paths_read: 'paths',
+		file_summaries: 'summaries',
+		key_symbols: 'symbols',
+		code_snippets: 'snippets',
+		structure_map: 'structure',
+		gaps: 'gaps',
+	};
+
+	function normalizeReturnKinds(raw) {
+		if (!Array.isArray(raw)) {
+			return [];
+		}
+		const out = [];
+		for (const item of raw) {
+			const key = String(item || '').trim().toLowerCase().replace(/-/g, '_');
+			if (RETURN_KIND_LABELS[key] && !out.includes(key)) {
+				out.push(key);
+			}
+		}
+		return out;
+	}
+
+	function mountExploreTags(titleWrap, payload) {
+		let row = titleWrap.querySelector('[data-role="explore-tags"]');
+		if (!row) {
+			row = document.createElement('div');
+			row.className = 'drox-explore-card-tags';
+			row.dataset.role = 'explore-tags';
+			titleWrap.appendChild(row);
+		}
+		row.replaceChildren();
+
+		const subType = String(payload.exploreSubagentType || 'explore').trim() || 'explore';
+		const typeTag = document.createElement('span');
+		typeTag.className = 'drox-explore-card-tag drox-explore-card-tag--type';
+		typeTag.textContent = subType;
+		typeTag.title = `Sub-agent type: ${subType}`;
+		row.appendChild(typeTag);
+
+		const thoroughness = String(payload.exploreThoroughness || '').trim();
+		if (thoroughness) {
+			const t = document.createElement('span');
+			t.className = 'drox-explore-card-tag drox-explore-card-tag--depth';
+			t.textContent = thoroughness;
+			t.title = `Thoroughness: ${thoroughness}`;
+			row.appendChild(t);
+		}
+
+		const kinds = normalizeReturnKinds(payload.exploreReturnKinds);
+		const incomplete = new Set(normalizeReturnKinds(payload.exploreKindsIncomplete));
+		for (const kind of kinds) {
+			const tag = document.createElement('span');
+			tag.className = 'drox-explore-card-tag drox-explore-card-tag--kind'
+				+ (incomplete.has(kind) ? ' is-incomplete' : '');
+			tag.textContent = RETURN_KIND_LABELS[kind] || kind;
+			tag.title = incomplete.has(kind)
+				? `Return kind incomplete: ${kind}`
+				: `Return kind: ${kind}`;
+			tag.dataset.kind = kind;
+			row.appendChild(tag);
+		}
+
+		if (kinds.length) {
+			titleWrap.closest('.drox-explore-card')?.setAttribute(
+				'data-return-kinds',
+				kinds.join(','),
+			);
+		}
+	}
+
 	/** Split live progress into activity lines vs report preview. */
 	function splitExploreLive(chunk) {
 		const raw = String(chunk ?? '');
@@ -128,14 +273,12 @@
 		titleWrap.appendChild(kind);
 		titleWrap.appendChild(descEl);
 
+		card.dataset.exploreMission = exploreMissionKey(payload);
 		const thoroughness = String(payload.exploreThoroughness || '').trim();
 		if (thoroughness) {
 			card.dataset.thoroughness = thoroughness;
-			const badge = document.createElement('span');
-			badge.className = 'drox-explore-card-thoroughness';
-			badge.textContent = thoroughness;
-			titleWrap.appendChild(badge);
 		}
+		mountExploreTags(titleWrap, payload);
 
 		const status = document.createElement('span');
 		status.className = 'drox-explore-card-status running';
@@ -292,20 +435,21 @@
 				status.classList.add('is-error');
 			}
 		}
-		const thoroughness = String(
-			payload.exploreOutput?.exploreThoroughness || card.dataset.thoroughness || '',
-		).trim();
-		if (thoroughness) {
-			let badge = card.querySelector('.drox-explore-card-thoroughness');
-			if (!badge) {
-				const wrap = card.querySelector('.drox-explore-card-title-wrap');
-				badge = document.createElement('span');
-				badge.className = 'drox-explore-card-thoroughness';
-				wrap?.appendChild(badge);
-			}
-			if (badge) {
-				badge.textContent = thoroughness;
-			}
+		const wrap = card.querySelector('.drox-explore-card-title-wrap');
+		if (wrap) {
+			const existingKinds = (card.getAttribute('data-return-kinds') || '')
+				.split(',')
+				.map((s) => s.trim())
+				.filter(Boolean);
+			mountExploreTags(wrap, {
+				exploreSubagentType: payload.exploreOutput?.exploreSubagentType || 'explore',
+				exploreThoroughness:
+					payload.exploreOutput?.exploreThoroughness || card.dataset.thoroughness || '',
+				exploreReturnKinds: payload.exploreOutput?.exploreReturnKinds?.length
+					? payload.exploreOutput.exploreReturnKinds
+					: existingKinds,
+				exploreKindsIncomplete: payload.exploreOutput?.exploreKindsIncomplete,
+			});
 		}
 		const activityHost = card.querySelector('[data-role="explore-activity-host"]');
 		if (activityHost && !card.querySelector('[data-role="explore-activity"]')?.textContent?.includes('→')) {
@@ -378,6 +522,11 @@
 	const _createToolBlock = fn.createToolBlock;
 	fn.createToolBlock = function (payload) {
 		if (payload.name === 'task' && (payload.exploreDescription || payload.exploreTitle)) {
+			const missionKey = exploreMissionKey(payload);
+			const reusable = findReusableExploreCard(missionKey);
+			if (reusable) {
+				return fn.resetExploreCardForRetry(reusable, payload);
+			}
 			return fn.createExploreCard(payload);
 		}
 		return _createToolBlock.call(this, payload);

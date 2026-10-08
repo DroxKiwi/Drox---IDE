@@ -102,7 +102,7 @@ impl Tool for FileEditTool {
         let resolved = resolve_under_workspace(
             &ctx.effective_workspace(),
             &args.path,
-            ctx.allow_outside_workspace,
+            ctx.allow_outside_workspace_write,
         )?;
         let meta = fs::metadata(&resolved)
             .await

@@ -361,7 +361,7 @@ impl Tool for NotebookEditTool {
         let resolved = resolve_under_workspace(
             &ctx.effective_workspace(),
             &args.path,
-            ctx.allow_outside_workspace,
+            ctx.allow_outside_workspace_write,
         )?;
         ctx.deny_if_drox_ignored(&resolved)?;
         if !resolved.as_str().to_ascii_lowercase().ends_with(".ipynb") {

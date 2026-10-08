@@ -11,8 +11,9 @@ use crate::simple::{
     AskUserQuestionTool, BashTool, CodebaseSearchTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
     FileWriteTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
     SkillListTool, SkillReadTool, GitWorktreeEnterTool, GitWorktreeExitTool, CopyPathTool,
-    CoursePlanWriteTool,     ScopeDeferTool, SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool,
-    TaskTool, TodoWriteTool, WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool,
+    CoursePlanWriteTool, ExploreArtifactReadTool, ExploreIndexListTool, ScopeDeferTool,
+    SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool, TaskTool, TodoWriteTool,
+    WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool,
 };
 use crate::tool::{DynTool, Tool};
 
@@ -87,10 +88,12 @@ impl ToolRegistry {
         reg
     }
 
-    /// Enregistre `task` (sous-agent Explore, §2.10). À appeler uniquement si
+    /// Enregistre `task` + navigation index Explore. À appeler uniquement si
     /// `SubagentSettings::enabled` est vrai.
     pub fn register_subagent_task(&mut self) {
         self.register(coerce_tool(TaskTool));
+        self.register(coerce_tool(ExploreIndexListTool));
+        self.register(coerce_tool(ExploreArtifactReadTool));
     }
 
     /// Enregistre un tool (écrase si le nom existe déjà).

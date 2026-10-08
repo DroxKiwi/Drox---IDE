@@ -58,7 +58,10 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
 	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
+	const generalSettingsSubagentsExecutionThink = localize('droxChatGeneralSettingsSubagentsExecutionThink', 'Explore execution thinking');
 	const generalSettingsProjectRulesEnabled = localize('droxChatGeneralSettingsProjectRulesEnabled', 'Project rules (.drox/rules)');
+	const generalSettingsOutsideWsRead = localize('droxChatGeneralSettingsOutsideWsRead', 'Outside workspace — read / inventory');
+	const generalSettingsOutsideWsWrite = localize('droxChatGeneralSettingsOutsideWsWrite', 'Outside workspace — write');
 	const generalSettingsNativeThinking = localize('droxChatGeneralSettingsNativeThinking', 'Native thinking');
 	const generalSettingsPrimaryLanguage = localize('droxChatGeneralSettingsPrimaryLanguage', 'Primary language');
 	const generalSettingsWarmStart = localize('droxChatGeneralSettingsWarmStart', 'Warm start');
@@ -143,7 +146,10 @@ export function buildDroxComposerPanelsMarkup(): string {
 			<label class="general-settings-field"><span>${generalSettingsMaxIterations}</span><input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" /></label>
 			<label class="general-settings-field"><span>${generalSettingsExploreMaxIterations}</span><input type="number" id="general-settings-explore-max-iterations" class="general-settings-input" min="1" step="1" /></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-enabled" checked /><span>${generalSettingsSubagentsEnabled}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-execution-think" /><span>${generalSettingsSubagentsExecutionThink}</span></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-project-rules-enabled" checked /><span>${generalSettingsProjectRulesEnabled}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-outside-ws-read" /><span>${generalSettingsOutsideWsRead}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-outside-ws-write" /><span>${generalSettingsOutsideWsWrite}</span></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-native-thinking" /><span>${generalSettingsNativeThinking}</span></label>
 			<label class="general-settings-field"><span>${generalSettingsPrimaryLanguage}</span><input type="text" id="general-settings-primary-language" class="general-settings-input" spellcheck="false" /></label>
 			<p class="general-settings-section-label">${generalSettingsSectionBehavior}</p>

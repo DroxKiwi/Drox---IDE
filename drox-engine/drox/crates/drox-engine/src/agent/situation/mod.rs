@@ -21,7 +21,10 @@ mod tests;
 pub(crate) use card::{
 	format_situation_card, upsert_situation_card, SituationSnapshot, SITUATION_CARD_MARKER,
 };
-pub(crate) use paths::{note_successful_file_read, path_from_file_tool};
+pub(crate) use paths::{
+	clear_rotating_file_read_window, note_rotating_file_read, note_successful_file_read,
+	path_from_file_tool, rotating_file_read_should_nudge,
+};
 pub(crate) use task_outcome::{
 	counts_as_parent_heavy_read, note_task_tool_success, task_outcome_telemetry,
 };

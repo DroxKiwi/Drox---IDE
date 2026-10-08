@@ -33,6 +33,7 @@ import {
 	persistPendingRunRecovery,
 	setPendingRunRecovery,
 } from './droxChatRunRecovery.js';
+import { resolveDroxAllowOutsideWorkspaceForRun } from './droxChatGeneralSettings.js';
 import {
 	getProfessorModeRemovedNotificationMessage,
 	resolveDroxPermissionMode,
@@ -219,7 +220,12 @@ export async function executeDroxChatSend(
 			mode: runMode,
 			sessionId: tabs.currentSessionId!,
 			images: imagesPayload.length > 0 ? imagesPayload : undefined,
-			allowOutsideWorkspace: deps.sessionBackgroundService?.isAllowOutsideWorkspace(tabs.currentSessionId!),
+			...resolveDroxAllowOutsideWorkspaceForRun(
+				deps.configurationService,
+				deps.runSettingsService.getWorkspaceResource(),
+				deps.sessionBackgroundService,
+				tabs.currentSessionId!,
+			),
 		});
 		if (runId) {
 			host.setPendingRunStart(false);

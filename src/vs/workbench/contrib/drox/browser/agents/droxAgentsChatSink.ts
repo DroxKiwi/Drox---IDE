@@ -173,7 +173,20 @@ export function createDroxAgentsChatSink(
 	/** Accumulated Explore thinking notes per parent `task` id. */
 	const nestedChildNotes = new Map<string, string>();
 	const nestedChildNotesLastPush = new Map<string, number>();
+	/**
+	 * After an Explore error, a model retry gets a new toolCallId — map it to the
+	 * first frame so Agents keeps one visual card for the same mission.
+	 */
+	const exploreRetryAlias = new Map<string, string>();
+	/** Mission key → canonical toolCallId while that Explore is failed / retrying. */
+	const exploreFailedMissionCanonical = new Map<string, string>();
 	const record = context?.recordUiReplay;
+
+	const exploreMissionKey = (title: string | undefined): string =>
+		String(title || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+	const resolveExploreDisplayId = (id: string): string =>
+		exploreRetryAlias.get(id) || id;
 
 	const recordWire = (message: DroxHostToWebviewMessage): void => {
 		record?.(message);
@@ -263,6 +276,15 @@ export function createDroxAgentsChatSink(
 		const { verb, target } = describeToolCall(name, args);
 		const shellStart = buildShellToolStartWire(name, args);
 		const exploreStart = buildExploreToolStartWire(name, args);
+		let displayId = id;
+		if (exploreStart) {
+			const mission = exploreMissionKey(exploreStart.exploreTitle);
+			const canonical = mission ? exploreFailedMissionCanonical.get(mission) : undefined;
+			if (canonical && canonical !== id) {
+				exploreRetryAlias.set(id, canonical);
+				displayId = canonical;
+			}
+		}
 		const label = exploreStart?.exploreTitle
 			?? (shellStart
 				? formatShellToolDisplayLabel(shellStart.shellCommand, shellStart.shellDescription)
@@ -274,7 +296,7 @@ export function createDroxAgentsChatSink(
 				: undefined;
 		push([{
 			kind: 'externalToolInvocationUpdate',
-			toolCallId: id,
+			toolCallId: displayId,
 			toolName: name,
 			isComplete: false,
 			invocationMessage: label,
@@ -315,9 +337,10 @@ export function createDroxAgentsChatSink(
 				: `${live}\n--- notes ---\n${notes}`)
 			: live;
 		const sec = elapsedMs > 0 ? ` · ${(elapsedMs / 1000).toFixed(1)}s` : '';
+		const displayId = resolveExploreDisplayId(id);
 		push([{
 			kind: 'externalToolInvocationUpdate',
-			toolCallId: id,
+			toolCallId: displayId,
 			toolName,
 			isComplete: false,
 			invocationMessage: localize('droxAgents.exploreRunning', 'Explore{0}', sec),
@@ -333,15 +356,18 @@ export function createDroxAgentsChatSink(
 			exploreTitle: exploreStart.exploreTitle,
 			exploreDescription: exploreStart.exploreDescription,
 			exploreThoroughness: exploreStart.exploreThoroughness,
+			exploreSubagentType: exploreStart.exploreSubagentType,
+			exploreReturnKinds: exploreStart.exploreReturnKinds,
 		});
 	};
 
 	const pushNestedChildToolStart = (parentId: string, childId: string, name: string, args: unknown): void => {
-		const parent = pendingTools.get(parentId);
+		const displayParent = resolveExploreDisplayId(parentId);
+		const parent = pendingTools.get(parentId) || pendingTools.get(displayParent);
 		if (!parent || parent.name !== 'task') {
 			return;
 		}
-		nestedChildParents.set(childId, parentId);
+		nestedChildParents.set(childId, displayParent);
 		pendingTools.set(childId, { name, args });
 		const { verb, target } = describeToolCall(name, args);
 		const label = target ? `${verb} ${target}` : verb;
@@ -351,7 +377,7 @@ export function createDroxAgentsChatSink(
 			toolName: name,
 			isComplete: false,
 			invocationMessage: label,
-			subagentInvocationId: parentId,
+			subagentInvocationId: displayParent,
 		}]);
 		recordWire({
 			kind: 'tool',
@@ -361,11 +387,12 @@ export function createDroxAgentsChatSink(
 			verb,
 			target,
 			argsPreview: previewJson(args),
-			parentToolId: parentId,
+			parentToolId: displayParent,
 		});
 	};
 
 	const pushNestedChildToolFinish = (parentId: string, childId: string, output: unknown, isError: boolean): void => {
+		const displayParent = resolveExploreDisplayId(parentId);
 		const pending = pendingTools.get(childId);
 		pendingTools.delete(childId);
 		nestedChildParents.delete(childId);
@@ -382,7 +409,7 @@ export function createDroxAgentsChatSink(
 			pastTenseMessage: isError
 				? localize('droxAgents.nestedToolError', 'Failed: {0}', label)
 				: localize('droxAgents.nestedToolDone', '{0}', label),
-			subagentInvocationId: parentId,
+			subagentInvocationId: displayParent,
 		}]);
 		recordWire({
 			kind: 'tool',
@@ -391,12 +418,13 @@ export function createDroxAgentsChatSink(
 			name,
 			outputPreview: preview,
 			isError,
-			parentToolId: parentId,
+			parentToolId: displayParent,
 		});
 	};
 
 	const pushNestedChildTextDelta = (parentId: string, text: string): void => {
-		const parent = pendingTools.get(parentId);
+		const displayParent = resolveExploreDisplayId(parentId);
+		const parent = pendingTools.get(parentId) || pendingTools.get(displayParent);
 		if (!parent || parent.name !== 'task' || !text) {
 			return;
 		}
@@ -404,18 +432,18 @@ export function createDroxAgentsChatSink(
 		if (!exploreStart) {
 			return;
 		}
-		const prev = nestedChildNotes.get(parentId) || '';
+		const prev = nestedChildNotes.get(displayParent) || '';
 		const next = prev + text;
-		nestedChildNotes.set(parentId, next);
+		nestedChildNotes.set(displayParent, next);
 		const now = Date.now();
-		const last = nestedChildNotesLastPush.get(parentId) ?? 0;
+		const last = nestedChildNotesLastPush.get(displayParent) ?? 0;
 		if (now - last < 120 && next.length - prev.length < 80) {
 			return;
 		}
-		nestedChildNotesLastPush.set(parentId, now);
+		nestedChildNotesLastPush.set(displayParent, now);
 		push([{
 			kind: 'externalToolInvocationUpdate',
-			toolCallId: parentId,
+			toolCallId: displayParent,
 			toolName: 'task',
 			isComplete: false,
 			invocationMessage: localize('droxAgents.exploreRunning', 'Explore{0}', ''),
@@ -542,9 +570,19 @@ export function createDroxAgentsChatSink(
 				exploreDescription: localize('droxAgents.exploreDefault', 'Explore'),
 			};
 			const report = exploreOutput?.exploreReport || exploreOutput?.exploreError || preview;
+			const displayId = resolveExploreDisplayId(id);
+			const mission = exploreMissionKey(start.exploreTitle);
+			if (isError && mission) {
+				if (!exploreFailedMissionCanonical.has(mission)) {
+					exploreFailedMissionCanonical.set(mission, displayId);
+				}
+			} else if (mission) {
+				exploreFailedMissionCanonical.delete(mission);
+				exploreRetryAlias.delete(id);
+			}
 			push([{
 				kind: 'externalToolInvocationUpdate',
-				toolCallId: id,
+				toolCallId: displayId,
 				toolName: name,
 				isComplete: true,
 				errorMessage: isError
@@ -570,6 +608,8 @@ export function createDroxAgentsChatSink(
 				exploreTitle: start.exploreTitle,
 				exploreDescription: start.exploreDescription,
 				exploreThoroughness: start.exploreThoroughness ?? exploreOutput?.exploreThoroughness,
+				exploreSubagentType: start.exploreSubagentType ?? exploreOutput?.exploreSubagentType,
+				exploreReturnKinds: start.exploreReturnKinds ?? exploreOutput?.exploreReturnKinds,
 				exploreOutput,
 			});
 			return;

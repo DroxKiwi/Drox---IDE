@@ -184,7 +184,10 @@ export function getDroxChatHtml(
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
 	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
+	const generalSettingsSubagentsExecutionThink = localize('droxChatGeneralSettingsSubagentsExecutionThink', 'Explore execution thinking');
 	const generalSettingsProjectRulesEnabled = localize('droxChatGeneralSettingsProjectRulesEnabled', 'Project rules (.drox/rules)');
+	const generalSettingsOutsideWsRead = localize('droxChatGeneralSettingsOutsideWsRead', 'Outside workspace — read / inventory');
+	const generalSettingsOutsideWsWrite = localize('droxChatGeneralSettingsOutsideWsWrite', 'Outside workspace — write');
 	const generalSettingsNativeThinking = localize('droxChatGeneralSettingsNativeThinking', 'Native thinking');
 	const generalSettingsPrimaryLanguage = localize('droxChatGeneralSettingsPrimaryLanguage', 'Primary language');
 	const generalSettingsWarmStart = localize('droxChatGeneralSettingsWarmStart', 'Warm start');
@@ -236,9 +239,33 @@ export function getDroxChatHtml(
 
 			<label class="general-settings-field general-settings-field-check">
 
+				<input type="checkbox" id="general-settings-subagents-execution-think" />
+
+				<span>${generalSettingsSubagentsExecutionThink}</span>
+
+			</label>
+
+			<label class="general-settings-field general-settings-field-check">
+
 				<input type="checkbox" id="general-settings-project-rules-enabled" checked />
 
 				<span>${generalSettingsProjectRulesEnabled}</span>
+
+			</label>
+
+			<label class="general-settings-field general-settings-field-check">
+
+				<input type="checkbox" id="general-settings-outside-ws-read" />
+
+				<span>${generalSettingsOutsideWsRead}</span>
+
+			</label>
+
+			<label class="general-settings-field general-settings-field-check">
+
+				<input type="checkbox" id="general-settings-outside-ws-write" />
+
+				<span>${generalSettingsOutsideWsWrite}</span>
 
 			</label>
 

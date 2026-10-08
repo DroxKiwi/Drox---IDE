@@ -2,7 +2,7 @@
 
 **Branche** : `1.6.0`  
 **Version** : `droxVersion` **1.6.0**  
-**Statut** : code Vague 1–2 + L-3 **commité localement** · dogfood S1–S4 **à valider** · ship **pas encore**
+**Statut** : Vagues 1–4 + lots post-V4 (prompts / Explore / hors-WS) **en code** · dogfood **en cours** · ship **pas encore**
 
 ## Livré (moteur + UI)
 
@@ -14,6 +14,17 @@
 | **C-1 / C-3 / C-2** | Compaction / snip → rewrite JSONL ; compact manuel aligné |
 | **T-1** | Spill gros tool results |
 | **G-1** | Jauge `estim.` / `provider` |
+| **Vague 4** | Situation card / snip / CORE curation (voir PLAN-CONTEXT-SITUATION) |
+| **Post-V4** | `drox-prompts` · soft work/plan/Explore · hors-WS · fix UTF-8 Explore · **post-merge** · **anti-rotation** — [JOURNAL](JOURNAL-PROMPTS-ET-HORS-WS.md) |
+| **Explore contrats** | `return_kinds` · artefacts / manifest · index session · tools nav · **tags UI** carte — [PLAN](PLAN-EXPLORE-RETURN-CONTRACTS.md) |
+
+## Ouvert (dogfood 2026-10-07)
+
+| Sujet | Note |
+|-------|------|
+| Revalider soft post-merge + anti-rotation | Code ✅ — dogfood manuel dû |
+| Contrats retour Explore + tags UI | E1–E4b ✅ · P-safe/P-json ✅ · notes / popup ✅ · dogfood E5 ⬜ |
+| Découpage brief | Process utilisateur (optionnel) |
 
 ## Reporté
 
@@ -25,6 +36,9 @@
 ## Docs
 
 - [README.md](README.md)
+- [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md)
+- [ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md)
+- [PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md)
 - [ETAPES-IMPLEMENTATION-LOOPS.md](ETAPES-IMPLEMENTATION-LOOPS.md)
 - [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md)
 - [`stable/1.6.0/RELEASE_NOTES.md`](../../../stable/1.6.0/RELEASE_NOTES.md)

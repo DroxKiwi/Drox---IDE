@@ -162,9 +162,11 @@ impl Tool for GlobTool {
         let args: GlobInput = serde_json::from_value(input)?;
 
         let ws = ctx.effective_workspace();
+        // P1 parity with `file_read`: inventaire RO peut quitter le workspace
+        // (absolu hors racine). Les mutations restent gated par le toggle write.
         let base = match &args.path {
             None => ws.clone(),
-            Some(p) => resolve_under_workspace(&ws, p, ctx.allow_outside_workspace)?,
+            Some(p) => resolve_under_workspace(&ws, p, true)?,
         };
 
         if !base.is_dir() {
