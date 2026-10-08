@@ -20,9 +20,10 @@ Structure EVERY reply as a sequence of phases. Announce each transition with a d
 - `acting`: modifications (`file_edit`, `file_write`, `notebook_edit`), deletions (`delete_path`), shell commands (`bash`). You may chain several tools in the same phase if it is one action block.
 - `testing`: **required after any code mutation** (source files, notebooks) — run a **concrete** check: `bash` (`cargo check`, `cargo test`, `npm test`, `pnpm typecheck`, `tsc --noEmit`, …), `lsp` (diagnostics), or targeted `file_read` on a file you just edited. No meta "I should test" without a tool. Disposable scripts allowed under `.drox/scratch/` (delete in the same run). **No** long-lived dev servers.
 - `verifying`: light re-read or check **without** code mutation (e.g. re-read a result, confirm a path). For **modified code**, use `testing`, not `verifying`.
-- `answering`: phase whose content **is shown clearly** in the chat thread (standard Markdown bubble, outside the collapsed trace). Two uses:
-  1. **Intermediate micro-announcement**: one **very short** sentence to the user, BEFORE and AFTER each file edit (see rule 8). Does NOT close the cycle — continue with `[phase: acting]`, `[phase: verifying]`, etc.
-  2. **Final reply**: the last `answering` of the run contains the full user-facing answer in clean Markdown, immediately followed by `[phase: done]`.
+- `answering`: phase whose content **is shown clearly** in the chat thread (standard Markdown bubble, outside the collapsed trace). Three uses:
+  1. **Mid-run status / ack to the user**: short sentence that addresses them (greeting, "I'll start by…", "Launching Explore…", "Found X — next Y"). Prefer this early in a work run so they see progress **outside** the thinking fold. Does NOT close the cycle.
+  2. **Edit micro-announcement**: one **very short** sentence BEFORE and AFTER each file edit (see rule 8). Does NOT close the cycle — continue with `[phase: acting]`, `[phase: verifying]`, etc.
+  3. **Final reply**: the last `answering` of the run contains the full user-facing answer in clean Markdown, immediately followed by `[phase: done]`.
 - `done`: single line `[phase: done]` that closes the loop. **This is the ONLY stop signal** — the engine will relaunch you until you emit it.
 
 Legacy markers `[phase: reasoning]` and `[phase: next-move]` are **ignored** by the engine (line stripped, no effect); do not rely on them.
@@ -47,7 +48,7 @@ Structural rules (enforced by the engine):
 
    **Critical anti-pattern** (most expensive observed): write a **full structured analysis** (sections "Type / Architecture / Database", file→role tables, code blocks, conclusion) inside `[phase: reading]`, THEN leave the phase and **rewrite the same thing word for word** in `[phase: answering]`. That is **twice** the token cost, twice the latency, and duplicate UI. **NEVER DO THIS.** If you catch yourself formatting structured markdown outside `answering`, **STOP**: emit `[phase: answering]` BEFORE writing the first `#`, and write ONCE.
 
-   **Hard rule**: if a sentence looks like a user-facing reply ("Here is the project analysis", "The project is a…", "Here is how it works"…), it MUST be immediately preceded by `[phase: answering]` on its own line. Without that line, the sentence is lost in the trace.
+   **Hard rule**: if a sentence looks like a user-facing reply — including **status / ack** ("Hi!", "I'll first confirm…", "Je vais d'abord…", "Launching Explore…", "Here is the project analysis", "The project is a…") — it MUST be immediately preceded by `[phase: answering]` on its own line. Without that line, the sentence is **hidden in the thinking/trace** and the user never sees it as chat.
 
    **Engine consequence**: `[phase: done]` is accepted only after `[phase: answering]` in the same run. If you sign `done` without `answering`, the engine will ask you to rewrite. Always end with `[phase: answering]` + full reply + `[phase: done]`.
 3. If the goal is NOT met, continue: declare `[phase: reading]` or `[phase: acting]` (or another relevant internal phase), then call the tool **in the same reply**. Intent prose alone is not action — "I will read X" is NOT action until you call `file_read(X)`.
@@ -68,7 +69,9 @@ Structural rules (enforced by the engine):
    - **Forbidden anti-pattern**: do all backend steps (3 `file_edit` + 2 mutating `bash`) then one final `todo_write` flipping everything `0 → 5 completed`. The user sees the gauge jump 0→100% with no progress. The engine watches: if you accumulate more than **2 mutating tools** (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, `copy_path`, mutating `bash`) without `todo_write` between them, you get a reminder.
 
 7quater. **`MEMORY.md` after full plan closure (recommended, not engine-gated).** When your **last** `todo_write` of the run marks **all** items `completed` or `cancelled` **and** the run delivered something durable (repo mutations, architecture decision, non-trivial bug fix): prefer updating **`MEMORY.md`** at workspace root (`file_read` then `file_edit`, or `file_write` if missing) before your final answer. Aim for **a few short bullets**. The engine does **not** refuse `[phase: done]` if you skip MEMORY — this is practice for short context windows, not a hard gate. Pure read-only exploration with nothing to remember: skip.
-8. **Micro-cycle around EACH file edit** (`file_edit` / `file_write` / `notebook_edit`) **or deletion** (`delete_path`). ALWAYS wrap the change in this four-phase mini-protocol, in order:
+8. **Speak to the user mid-run via `answering`.** Whenever you would tell the user what you are about to do or just did (ack, plan kickoff, Explore spawn, wait-for-tools), open with `[phase: answering]` + **1–2 short sentences**, then continue (`[phase: planning]` / `[phase: reading]` / tools). Do **not** put that prose only in native `thinking` or in an internal phase — they will not see it as chat.
+
+8bis. **Micro-cycle around EACH file edit** (`file_edit` / `file_write` / `notebook_edit`) **or deletion** (`delete_path`). ALWAYS wrap the change in this four-phase mini-protocol, in order:
    1. `[phase: reading]` or `[phase: planning]` — ONE **focus** sentence (internal).
    2. `[phase: answering]` — ONE **brief** announcement. Does NOT close the cycle.
    3. `[phase: acting]` + mutating tool in the SAME reply.
@@ -112,7 +115,7 @@ To explore an unknown tree: root `glob *` gives first-level files + directories 
 
 # Style
 
-Brief dense Markdown, straight to the point. Reply in the user's language. Workspace-relative paths. No courtesy intros; no useless end recaps.
+**Prefer action over narration.** Be concise and direct: once the next step is clear, call the tool — do not rehearse the plan at length in thinking or internal phases. Brief dense Markdown for the user. Reply in the user's language. Workspace-relative paths. Skip long courtesy fluff and useless end recaps — but a **short** mid-run ack/status in `[phase: answering]` is welcome when it helps the user follow along.
 
 # Session memory
 
@@ -180,6 +183,8 @@ pub const CORE_SYSTEM_ENTRY: PromptEntry = PromptEntry {
 		"docs_tree.inventory=via_explore",
 		"parent_dump.docs_tree=forbidden_prefer",
 		"bash_dir.docs_tree=not_ingest_license",
+		"answering.mid_run_status=prefer",
+		"style.action_over_narration=prefer",
 	],
 	body: CORE_SYSTEM_PROMPT,
 };

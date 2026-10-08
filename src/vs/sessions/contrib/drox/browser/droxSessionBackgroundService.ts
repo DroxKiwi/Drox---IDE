@@ -76,8 +76,20 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 	private readonly _persistentSessionIds = observableValue<ReadonlySet<string>>('droxPersistentSessionIds', new Set());
 	readonly persistentSessionIds: IObservable<ReadonlySet<string>> = this._persistentSessionIds;
 
-	private readonly _allowOutsideWorkspaceSessionIds = observableValue<ReadonlySet<string>>('droxAllowOutsideWorkspaceSessionIds', new Set());
-	readonly allowOutsideWorkspaceSessionIds: IObservable<ReadonlySet<string>> = this._allowOutsideWorkspaceSessionIds;
+	private readonly _allowOutsideWorkspaceReadSessionIds = observableValue<ReadonlySet<string>>('droxAllowOutsideWorkspaceReadSessionIds', new Set());
+	readonly allowOutsideWorkspaceReadSessionIds: IObservable<ReadonlySet<string>> = this._allowOutsideWorkspaceReadSessionIds;
+
+	private readonly _allowOutsideWorkspaceWriteSessionIds = observableValue<ReadonlySet<string>>('droxAllowOutsideWorkspaceWriteSessionIds', new Set());
+	readonly allowOutsideWorkspaceWriteSessionIds: IObservable<ReadonlySet<string>> = this._allowOutsideWorkspaceWriteSessionIds;
+
+	/** Union read∪write — legacy consumers. */
+	readonly allowOutsideWorkspaceSessionIds: IObservable<ReadonlySet<string>> = derived(reader => {
+		const next = new Set(this._allowOutsideWorkspaceReadSessionIds.read(reader));
+		for (const id of this._allowOutsideWorkspaceWriteSessionIds.read(reader)) {
+			next.add(id);
+		}
+		return next;
+	});
 
 	private readonly _layoutSnapshots = new Map<string, IDroxSessionLayoutSnapshot>();
 	private readonly _suppressTerminalEnsureSessionIds = new Set<string>();
@@ -169,17 +181,40 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 	}
 
 	isAllowOutsideWorkspace(sessionId: string): boolean {
-		return this._allowOutsideWorkspaceSessionIds.get().has(sessionId);
+		return this.isAllowOutsideWorkspaceRead(sessionId) || this.isAllowOutsideWorkspaceWrite(sessionId);
 	}
 
 	setAllowOutsideWorkspace(sessionId: string, value: boolean): void {
-		const next = new Set(this._allowOutsideWorkspaceSessionIds.get());
+		this.setAllowOutsideWorkspaceRead(sessionId, value);
+		this.setAllowOutsideWorkspaceWrite(sessionId, value);
+	}
+
+	isAllowOutsideWorkspaceRead(sessionId: string): boolean {
+		return this._allowOutsideWorkspaceReadSessionIds.get().has(sessionId);
+	}
+
+	setAllowOutsideWorkspaceRead(sessionId: string, value: boolean): void {
+		const next = new Set(this._allowOutsideWorkspaceReadSessionIds.get());
 		if (value) {
 			next.add(sessionId);
 		} else {
 			next.delete(sessionId);
 		}
-		this._allowOutsideWorkspaceSessionIds.set(next, undefined);
+		this._allowOutsideWorkspaceReadSessionIds.set(next, undefined);
+	}
+
+	isAllowOutsideWorkspaceWrite(sessionId: string): boolean {
+		return this._allowOutsideWorkspaceWriteSessionIds.get().has(sessionId);
+	}
+
+	setAllowOutsideWorkspaceWrite(sessionId: string, value: boolean): void {
+		const next = new Set(this._allowOutsideWorkspaceWriteSessionIds.get());
+		if (value) {
+			next.add(sessionId);
+		} else {
+			next.delete(sessionId);
+		}
+		this._allowOutsideWorkspaceWriteSessionIds.set(next, undefined);
 	}
 
 	hasLayoutSnapshot(sessionId: string): boolean {
@@ -278,7 +313,9 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 		// session is not registered yet when the list row first renders.
 		existing = derived<IDroxSessionDashboardSignals>(reader => {
 			const persistent = this._persistentSessionIds.read(reader).has(sessionId);
-			const allowOutsideWorkspace = this._allowOutsideWorkspaceSessionIds.read(reader).has(sessionId);
+			const allowOutsideWorkspaceRead = this._allowOutsideWorkspaceReadSessionIds.read(reader).has(sessionId);
+			const allowOutsideWorkspaceWrite = this._allowOutsideWorkspaceWriteSessionIds.read(reader).has(sessionId);
+			const allowOutsideWorkspace = allowOutsideWorkspaceRead || allowOutsideWorkspaceWrite;
 			// Poll + terminal tracking bumps keep lamps accurate whether this
 			// session is focused or sitting in the background.
 			this._dashboardPollTick.read(reader);
@@ -292,6 +329,8 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 					needsInput: false,
 					backgroundPersistent: persistent,
 					allowOutsideWorkspace,
+					allowOutsideWorkspaceRead,
+					allowOutsideWorkspaceWrite,
 				};
 			}
 
@@ -316,6 +355,8 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 				needsInput: status === SessionStatus.NeedsInput,
 				backgroundPersistent: persistent,
 				allowOutsideWorkspace,
+				allowOutsideWorkspaceRead,
+				allowOutsideWorkspaceWrite,
 			};
 		});
 

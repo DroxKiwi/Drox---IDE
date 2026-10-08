@@ -192,6 +192,8 @@ class DroxAgentsUiReplayCollector {
 							: 'Explore'),
 					exploreDescription: message.exploreDescription || message.exploreTitle || 'Explore',
 					exploreThoroughness: message.exploreThoroughness,
+					exploreSubagentType: message.exploreSubagentType,
+					exploreReturnKinds: message.exploreReturnKinds,
 				}
 				: buildExploreToolStartWire(name, args);
 			const label = exploreStart?.exploreTitle
@@ -288,6 +290,8 @@ class DroxAgentsUiReplayCollector {
 						: localize('droxAgents.exploreDefault', 'Explore')),
 				exploreDescription: message.exploreDescription || message.exploreTitle || localize('droxAgents.exploreDefault', 'Explore'),
 				exploreThoroughness: message.exploreThoroughness,
+				exploreSubagentType: message.exploreSubagentType,
+				exploreReturnKinds: message.exploreReturnKinds,
 			}
 			: buildExploreToolStartWire(name, undefined);
 		const exploreOutput = message.exploreOutput ?? buildExploreToolFinishWire(name, output, isError);

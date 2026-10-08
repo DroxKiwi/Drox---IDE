@@ -2,10 +2,10 @@
 
 use async_trait::async_trait;
 
-use crate::tool_context::ToolContext;
 use crate::error::ToolError;
+use crate::tool_context::ToolContext;
 
-use super::ExploreOutcome;
+use super::{ExploreOutcome, ExploreRequest};
 
 /// Exécuteur branché par le moteur quand [`super::SubagentSettings::enabled`].
 ///
@@ -15,11 +15,10 @@ use super::ExploreOutcome;
 #[async_trait]
 pub trait SubagentExecutor: Send + Sync {
 	/// Lance un sous-agent **Explore** (lecture seule) et renvoie le rapport
-	/// parent + télémétrie budget (`truncated` / itérations).
+	/// parent + artefacts + télémétrie budget (`truncated` / itérations).
 	async fn run_explore(
 		&self,
-		description: String,
-		thoroughness: Option<String>,
+		request: ExploreRequest,
 		ctx: &ToolContext,
 	) -> Result<ExploreOutcome, ToolError>;
 }

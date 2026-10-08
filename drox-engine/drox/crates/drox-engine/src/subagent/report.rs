@@ -1,6 +1,6 @@
 //! Phase **compte rendu** — format du rapport parent (jamais le dump d'outils).
 
-pub(super) const EXPLORE_SYNTH_NOTES_MAX_CHARS: usize = 10_000;
+pub(super) const EXPLORE_SYNTH_NOTES_MAX_CHARS: usize = 6_000;
 
 pub(super) fn truncate_chars(s: &str, max: usize) -> String {
 	if s.len() <= max {
@@ -12,6 +12,71 @@ pub(super) fn truncate_chars(s: &str, max: usize) -> String {
 		slice = &slice[i + 1..];
 	}
 	format!("…\n{slice}")
+}
+
+/// Prépare les notes phase 1 pour le tour rapport : privilégie la clôture, retire le CoT évident.
+#[must_use]
+pub(super) fn prepare_synth_notes(draft: &str) -> String {
+	let raw = draft.trim();
+	if raw.is_empty() {
+		return String::new();
+	}
+	// Préférer le texte après le dernier marqueur answering / done (clôture phase 1).
+	let after_close = raw
+		.rfind("[phase: answering]")
+		.or_else(|| raw.rfind("[phase: done]"))
+		.map(|i| {
+			let rest = &raw[i..];
+			rest.lines()
+				.skip(1)
+				.collect::<Vec<_>>()
+				.join("\n")
+				.trim()
+				.to_string()
+		})
+		.filter(|s| !s.is_empty());
+	let base = after_close.as_deref().unwrap_or(raw);
+	let filtered: String = base
+		.lines()
+		.filter(|line| !is_synth_noise_line(line))
+		.collect::<Vec<_>>()
+		.join("\n");
+	let cleaned = filtered.trim();
+	let use_text = if cleaned.chars().count() >= 40 {
+		cleaned
+	} else {
+		base.trim()
+	};
+	truncate_chars(use_text, EXPLORE_SYNTH_NOTES_MAX_CHARS)
+}
+
+fn is_synth_noise_line(line: &str) -> bool {
+	let t = line.trim();
+	if t.is_empty() {
+		return false;
+	}
+	if t.starts_with("[phase:") && t.ends_with(']') {
+		return true;
+	}
+	let lower = t.to_ascii_lowercase();
+	const NOISE: &[&str] = &[
+		"let me ",
+		"i should ",
+		"i need to ",
+		"i'll ",
+		"i will ",
+		"now i ",
+		"wait —",
+		"wait,",
+		"hmm",
+		"actually,",
+		"the return contract",
+		"write only the",
+		"no tool calls",
+		"caps:",
+		"## return contract",
+	];
+	NOISE.iter().any(|p| lower.starts_with(p))
 }
 
 pub(super) fn strip_phase_markers(text: &str) -> String {
@@ -58,6 +123,26 @@ pub(super) fn parent_facing_report(body: &str, hit_max: bool) -> String {
 		);
 	}
 	out
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn prepare_prefers_answering_tail_and_drops_cot() {
+		let draft = "\
+Let me explore the tree first.\n\
+I should glob everything.\n\
+[phase: answering]\n\
+- docs/pedagogie/01-contact-ollama.md (~600 lines)\n\
+- docs/pedagogie/README.md hub\n\
+[phase: done]\n";
+		let notes = prepare_synth_notes(draft);
+		assert!(notes.contains("01-contact-ollama.md"));
+		assert!(!notes.to_ascii_lowercase().contains("let me explore"));
+		assert!(!notes.contains("[phase:"));
+	}
 }
 
 pub(super) fn fallback_incomplete_report(draft: &str, hit_max: bool) -> String {

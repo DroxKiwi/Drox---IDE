@@ -73,7 +73,12 @@ import { ISessionsProvidersService } from '../../../../services/sessions/browser
 import { buildSessionHoverContent } from '../sessionHoverContent.js';
 import { SessionStatusIcon } from '../../../../browser/sessionStatusIcon.js';
 import { createDroxSessionItemDashboardRow, getDroxSessionDashboardRowHeight, renderDroxSessionItemDashboard } from '../../../drox/browser/droxSessionListDashboard.js';
-import { DroxSessionAllowOutsideWorkspaceContext, DroxSessionBackgroundPersistentContext } from '../../../drox/browser/droxSessionsBackgroundActions.js';
+import {
+	DroxSessionAllowOutsideWorkspaceContext,
+	DroxSessionAllowOutsideWorkspaceReadContext,
+	DroxSessionAllowOutsideWorkspaceWriteContext,
+	DroxSessionBackgroundPersistentContext,
+} from '../../../drox/browser/droxSessionsBackgroundActions.js';
 import { DROX_SESSIONS_PROVIDER_ID, DroxChatSessionUri } from '../../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { IDroxSessionBackgroundService } from '../../../drox/common/droxSessionBackgroundService.js';
 
@@ -367,6 +372,8 @@ class SessionItemRenderer implements ITreeRenderer<SessionListItem, FuzzyScore, 
 
 		const droxBackgroundPersistent = DroxSessionBackgroundPersistentContext.bindTo(template.contextKeyService);
 		const droxAllowOutsideWorkspace = DroxSessionAllowOutsideWorkspaceContext.bindTo(template.contextKeyService);
+		const droxAllowOutsideWorkspaceRead = DroxSessionAllowOutsideWorkspaceReadContext.bindTo(template.contextKeyService);
+		const droxAllowOutsideWorkspaceWrite = DroxSessionAllowOutsideWorkspaceWriteContext.bindTo(template.contextKeyService);
 		template.elementDisposables.add(autorun(reader => {
 			const persistent = this._droxBackgroundService.persistentSessionIds.read(reader).has(element.sessionId);
 			droxBackgroundPersistent.set(persistent);
@@ -374,9 +381,15 @@ class SessionItemRenderer implements ITreeRenderer<SessionListItem, FuzzyScore, 
 		}));
 		template.elementDisposables.add(autorun(reader => {
 			const engineKey = DroxChatSessionUri.parseSessionId(element.resource) ?? element.sessionId;
-			const allowOutside = this._droxBackgroundService.allowOutsideWorkspaceSessionIds.read(reader).has(engineKey);
+			const allowRead = this._droxBackgroundService.allowOutsideWorkspaceReadSessionIds.read(reader).has(engineKey);
+			const allowWrite = this._droxBackgroundService.allowOutsideWorkspaceWriteSessionIds.read(reader).has(engineKey);
+			const allowOutside = allowRead || allowWrite;
 			droxAllowOutsideWorkspace.set(allowOutside);
+			droxAllowOutsideWorkspaceRead.set(allowRead);
+			droxAllowOutsideWorkspaceWrite.set(allowWrite);
 			template.container.classList.toggle('drox-allow-outside-workspace', allowOutside);
+			template.container.classList.toggle('drox-allow-outside-workspace-read', allowRead);
+			template.container.classList.toggle('drox-allow-outside-workspace-write', allowWrite);
 		}));
 
 		renderDroxSessionItemDashboard(

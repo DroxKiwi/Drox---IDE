@@ -6,7 +6,7 @@
 // allow-any-unicode-comment-file
 
 import { Disposable } from '../../../../../base/common/lifecycle.js';
-import { constObservable, IObservable, observableValue } from '../../../../../base/common/observable.js';
+import { constObservable, derived, IObservable, observableValue } from '../../../../../base/common/observable.js';
 import { InstantiationType, registerSingleton } from '../../../../../platform/instantiation/common/extensions.js';
 import { ISession } from '../../../../../sessions/services/sessions/common/session.js';
 import {
@@ -35,6 +35,8 @@ const EMPTY_DASHBOARD: IDroxSessionDashboardSignals = {
 	needsInput: false,
 	backgroundPersistent: false,
 	allowOutsideWorkspace: false,
+	allowOutsideWorkspaceRead: false,
+	allowOutsideWorkspaceWrite: false,
 };
 
 /**
@@ -51,8 +53,19 @@ export class DroxIdeSessionBackgroundService extends Disposable implements IDrox
 
 	readonly persistentSessionIds: IObservable<ReadonlySet<string>> = constObservable(EMPTY_SET);
 
-	private readonly _allowOutside = observableValue<ReadonlySet<string>>('droxIdeAllowOutside', EMPTY_SET);
-	readonly allowOutsideWorkspaceSessionIds: IObservable<ReadonlySet<string>> = this._allowOutside;
+	private readonly _allowOutsideRead = observableValue<ReadonlySet<string>>('droxIdeAllowOutsideRead', EMPTY_SET);
+	readonly allowOutsideWorkspaceReadSessionIds: IObservable<ReadonlySet<string>> = this._allowOutsideRead;
+
+	private readonly _allowOutsideWrite = observableValue<ReadonlySet<string>>('droxIdeAllowOutsideWrite', EMPTY_SET);
+	readonly allowOutsideWorkspaceWriteSessionIds: IObservable<ReadonlySet<string>> = this._allowOutsideWrite;
+
+	readonly allowOutsideWorkspaceSessionIds: IObservable<ReadonlySet<string>> = derived(reader => {
+		const next = new Set(this._allowOutsideRead.read(reader));
+		for (const id of this._allowOutsideWrite.read(reader)) {
+			next.add(id);
+		}
+		return next;
+	});
 
 	isPersistent(_sessionId: string): boolean {
 		return false;
@@ -63,17 +76,40 @@ export class DroxIdeSessionBackgroundService extends Disposable implements IDrox
 	}
 
 	isAllowOutsideWorkspace(sessionId: string): boolean {
-		return this._allowOutside.get().has(sessionId);
+		return this.isAllowOutsideWorkspaceRead(sessionId) || this.isAllowOutsideWorkspaceWrite(sessionId);
 	}
 
 	setAllowOutsideWorkspace(sessionId: string, value: boolean): void {
-		const next = new Set(this._allowOutside.get());
+		this.setAllowOutsideWorkspaceRead(sessionId, value);
+		this.setAllowOutsideWorkspaceWrite(sessionId, value);
+	}
+
+	isAllowOutsideWorkspaceRead(sessionId: string): boolean {
+		return this._allowOutsideRead.get().has(sessionId);
+	}
+
+	setAllowOutsideWorkspaceRead(sessionId: string, value: boolean): void {
+		const next = new Set(this._allowOutsideRead.get());
 		if (value) {
 			next.add(sessionId);
 		} else {
 			next.delete(sessionId);
 		}
-		this._allowOutside.set(next, undefined);
+		this._allowOutsideRead.set(next, undefined);
+	}
+
+	isAllowOutsideWorkspaceWrite(sessionId: string): boolean {
+		return this._allowOutsideWrite.get().has(sessionId);
+	}
+
+	setAllowOutsideWorkspaceWrite(sessionId: string, value: boolean): void {
+		const next = new Set(this._allowOutsideWrite.get());
+		if (value) {
+			next.add(sessionId);
+		} else {
+			next.delete(sessionId);
+		}
+		this._allowOutsideWrite.set(next, undefined);
 	}
 
 	hasLayoutSnapshot(_sessionId: string): boolean {

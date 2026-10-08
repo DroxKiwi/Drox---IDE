@@ -187,6 +187,9 @@ pub struct AgentRunParams {
     /// Nombre max de sous-agents en parallèle (file d'attente).
     #[serde(default)]
     pub subagents_max_concurrent: Option<usize>,
+    /// Thinking natif phase **exécution** Explore (`false` / absent = off). Rapport = toujours off.
+    #[serde(default)]
+    pub subagents_execution_think: Option<bool>,
     /// Fenêtre de contexte Ollama (`num_ctx`) — vignette Architecte IDE.
     #[serde(default)]
     pub num_ctx: Option<i64>,
@@ -224,9 +227,15 @@ pub struct AgentRunParams {
     /// Si `true`, reprend depuis le transcript sans nouveau tour user.
     #[serde(default)]
     pub skip_user_turn: Option<bool>,
-    /// Si `true`, les tools fs acceptent des chemins hors workspace (session toggle IDE).
+    /// Legacy : si `true` sans les flags read/write → active les deux.
     #[serde(default)]
     pub allow_outside_workspace: Option<bool>,
+    /// Inventaire / recherche hors workspace (`glob`, `grep`) — hérité par Explore.
+    #[serde(default)]
+    pub allow_outside_workspace_read: Option<bool>,
+    /// Mutations hors workspace (`file_write`, `file_edit`, …).
+    #[serde(default)]
+    pub allow_outside_workspace_write: Option<bool>,
     /// Caps Context-load soft (L2) — nudge post-`glob` one-shot, jamais un hard gate.
     #[serde(default)]
     pub context_load: Option<ContextLoadParams>,
@@ -410,9 +419,15 @@ pub struct ToolExecParams {
     /// client doit renvoyer une proposition (`applied: false`).
     #[serde(default)]
     pub apply_fs_writes: bool,
-    /// Si `true`, le client peut résoudre des chemins hors workspace.
+    /// Legacy : hors-WS (client ancien) — traité comme read∨write si les flags fins absents.
     #[serde(default)]
     pub allow_outside_workspace: bool,
+    /// Lecture / inventaire hors workspace.
+    #[serde(default)]
+    pub allow_outside_workspace_read: bool,
+    /// Écriture hors workspace.
+    #[serde(default)]
+    pub allow_outside_workspace_write: bool,
 }
 
 /// Réponse client à `tool/exec`. Le champ `result` d'une `Response` JSON-RPC

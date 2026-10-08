@@ -32,6 +32,8 @@ import {
 import { IDroxGeneralSettingsPatch, pushGeneralSettingsToWebview, setDroxGeneralSettingsFromWebview } from '../chat/droxChatGeneralSettings.js';
 import { refreshDroxChatLlmModels } from '../chat/droxChatLlmModels.js';
 import { setDroxArchitectLlmParamsFromWebview, setDroxArchitectModelFromWebview } from '../chat/droxChatRoleModels.js';
+import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
+import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
 import { buildDroxComposerPanelsMarkup } from './droxComposerMarkup.js';
 import { onUnexpectedError } from '../../../../../base/common/errors.js';
 import { installDroxChatTrustedDomOverrides, setDroxAgentsComposerInnerHtml, toDroxAgentsComposerTrustedScriptUrl } from './droxAgentsComposerDom.js';
@@ -131,6 +133,8 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 		@INotificationService private readonly notificationService: INotificationService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IHostService private readonly hostService: IHostService,
+		@IDroxChatSessionService private readonly chatSessionService: IDroxChatSessionService,
+		@IDroxSessionBackgroundService private readonly sessionBackgroundService: IDroxSessionBackgroundService,
 	) {
 		super();
 		this._hostAdapter = new ComposerHostAdapter(message => this._handleHostMessage(message));
@@ -674,10 +678,27 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 					mutedParams: raw.mutedParams,
 				});
 				break;
-			case 'setGeneralSettings':
-				await setDroxGeneralSettingsFromWebview(deps, raw.settings as IDroxGeneralSettingsPatch);
+			case 'setGeneralSettings': {
+				const patch = raw.settings as IDroxGeneralSettingsPatch;
+				await setDroxGeneralSettingsFromWebview(deps, patch);
+				const engineSessionId = this.chatSessionService.getSessionId();
+				if (engineSessionId) {
+					if (patch.allowOutsideWorkspaceRead !== undefined) {
+						this.sessionBackgroundService.setAllowOutsideWorkspaceRead(
+							engineSessionId,
+							Boolean(patch.allowOutsideWorkspaceRead),
+						);
+					}
+					if (patch.allowOutsideWorkspaceWrite !== undefined) {
+						this.sessionBackgroundService.setAllowOutsideWorkspaceWrite(
+							engineSessionId,
+							Boolean(patch.allowOutsideWorkspaceWrite),
+						);
+					}
+				}
 				pushGeneralSettingsToWebview(this._hostAdapter, deps.runSettingsService, deps.configurationService);
 				break;
+			}
 			case 'setPermissionMode': {
 				const resolved = resolveDroxPermissionMode(raw.permissionMode);
 				if (resolved.downgradedFromProfessor) {

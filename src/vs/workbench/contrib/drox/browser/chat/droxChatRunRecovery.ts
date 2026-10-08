@@ -33,6 +33,7 @@ import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/d
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { resolveDroxCodebaseForcePathPrefixesFromEditor } from '../codebase/droxCodebaseForceEditorPath.js';
 import { resolveDroxRulesContextPathsFromEditor } from '../rules/droxRulesContextFromEditor.js';
+import { resolveDroxAllowOutsideWorkspaceForRun } from './droxChatGeneralSettings.js';
 
 export interface IDroxPendingRunRecovery {
 	readonly messageId: string;
@@ -234,7 +235,12 @@ async function startRecoveryRun(
 			sessionId,
 			images: ctx.images && ctx.images.length > 0 ? [...ctx.images] : undefined,
 			skipUserTurn: true,
-			allowOutsideWorkspace: deps.sessionBackgroundService?.isAllowOutsideWorkspace(sessionId),
+			...resolveDroxAllowOutsideWorkspaceForRun(
+				deps.configurationService,
+				deps.runSettingsService.getWorkspaceResource(),
+				deps.sessionBackgroundService,
+				sessionId,
+			),
 		});
 		if (runId) {
 			host.setPendingRunStart(false);

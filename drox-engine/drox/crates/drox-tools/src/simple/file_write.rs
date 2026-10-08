@@ -53,7 +53,7 @@ impl Tool for FileWriteTool {
         let resolved = resolve_path_for_write(
             &ctx.effective_workspace(),
             &args.path,
-            ctx.allow_outside_workspace,
+            ctx.allow_outside_workspace_write,
         )?;
 
         if ctx.plan_mode {

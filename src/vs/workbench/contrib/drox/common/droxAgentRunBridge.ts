@@ -79,6 +79,8 @@ export interface IDroxAgentRunStartOptions {
 	readonly skipUserTurn?: boolean;
 	readonly runObjective?: string;
 	readonly allowOutsideWorkspace?: boolean;
+	readonly allowOutsideWorkspaceRead?: boolean;
+	readonly allowOutsideWorkspaceWrite?: boolean;
 	/** Override system (sinon chargé depuis le carnet si `fileService` présent). */
 	readonly system?: string;
 }
@@ -183,6 +185,8 @@ export async function startDroxAgentRun(
 		skipUserTurn: options.skipUserTurn,
 		runObjective: options.runObjective,
 		allowOutsideWorkspace: options.allowOutsideWorkspace,
+		allowOutsideWorkspaceRead: options.allowOutsideWorkspaceRead,
+		allowOutsideWorkspaceWrite: options.allowOutsideWorkspaceWrite,
 		system: system?.trim() ? system : undefined,
 	}) as Record<string, unknown>;
 	if (deps.regulationService) {
@@ -203,6 +207,7 @@ export async function startDroxAgentRun(
 			delete runParams.subagentsEnabled;
 			delete runParams.subagentsMaxIterations;
 			delete runParams.subagentsMaxConcurrent;
+			delete runParams.subagentsExecutionThink;
 		}
 		// Soft Context-load caps (post-glob nudge) — only when Explore can run.
 		const contextLoad = buildDroxAgentRunContextLoadParams(l2, exploreOn);
@@ -215,6 +220,7 @@ export async function startDroxAgentRun(
 		delete runParams.subagentsEnabled;
 		delete runParams.subagentsMaxIterations;
 		delete runParams.subagentsMaxConcurrent;
+		delete runParams.subagentsExecutionThink;
 		delete runParams.contextLoad;
 	}
 

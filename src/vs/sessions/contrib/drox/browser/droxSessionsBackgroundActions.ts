@@ -66,18 +66,20 @@ registerAction2(class DroxToggleBackgroundPersistAction extends Action2 {
 });
 
 export const DroxSessionAllowOutsideWorkspaceContext = new RawContextKey<boolean>('droxSessionAllowOutsideWorkspace', false);
+export const DroxSessionAllowOutsideWorkspaceReadContext = new RawContextKey<boolean>('droxSessionAllowOutsideWorkspaceRead', false);
+export const DroxSessionAllowOutsideWorkspaceWriteContext = new RawContextKey<boolean>('droxSessionAllowOutsideWorkspaceWrite', false);
 
-registerAction2(class DroxToggleAllowOutsideWorkspaceAction extends Action2 {
+registerAction2(class DroxToggleAllowOutsideWorkspaceReadAction extends Action2 {
 	constructor() {
 		super({
-			id: 'drox.sessions.toggleAllowOutsideWorkspace',
-			title: localize2('drox.toggleAllowOutsideWorkspace', "Allow Outside Workspace"),
-			tooltip: localize('drox.toggleAllowOutsideWorkspace.off', "Enable access outside this discussion's folder — the model may read other local paths"),
-			icon: Codicon.lock,
+			id: 'drox.sessions.toggleAllowOutsideWorkspaceRead',
+			title: localize2('drox.toggleAllowOutsideWorkspaceRead', "Allow Outside Workspace Read"),
+			tooltip: localize('drox.toggleAllowOutsideWorkspaceRead.off', "Enable read/inventory outside this folder — glob, grep, and Explore inventaire"),
+			icon: Codicon.eye,
 			toggled: {
-				condition: DroxSessionAllowOutsideWorkspaceContext,
-				icon: Codicon.unlock,
-				tooltip: localize('drox.toggleAllowOutsideWorkspace.on', "Outside-workspace access enabled — disable to confine tools to this folder"),
+				condition: DroxSessionAllowOutsideWorkspaceReadContext,
+				icon: Codicon.eyeClosed,
+				tooltip: localize('drox.toggleAllowOutsideWorkspaceRead.on', "Outside-workspace read enabled — disable to confine inventory to this folder"),
 			},
 			menu: [{
 				id: SessionItemToolbarMenuId,
@@ -100,10 +102,72 @@ registerAction2(class DroxToggleAllowOutsideWorkspaceAction extends Action2 {
 		}
 		const backgroundService = accessor.get(IDroxSessionBackgroundService);
 		const key = droxEngineSessionKey(session);
-		backgroundService.setAllowOutsideWorkspace(
+		backgroundService.setAllowOutsideWorkspaceRead(
 			key,
-			!backgroundService.isAllowOutsideWorkspace(key),
+			!backgroundService.isAllowOutsideWorkspaceRead(key),
 		);
+	}
+});
+
+registerAction2(class DroxToggleAllowOutsideWorkspaceWriteAction extends Action2 {
+	constructor() {
+		super({
+			id: 'drox.sessions.toggleAllowOutsideWorkspaceWrite',
+			title: localize2('drox.toggleAllowOutsideWorkspaceWrite', "Allow Outside Workspace Write"),
+			tooltip: localize('drox.toggleAllowOutsideWorkspaceWrite.off', "Enable writes outside this folder — file edit/write, delete, copy, bash"),
+			icon: Codicon.lock,
+			toggled: {
+				condition: DroxSessionAllowOutsideWorkspaceWriteContext,
+				icon: Codicon.unlock,
+				tooltip: localize('drox.toggleAllowOutsideWorkspaceWrite.on', "Outside-workspace write enabled — disable to confine mutations to this folder"),
+			},
+			menu: [{
+				id: SessionItemToolbarMenuId,
+				group: 'navigation',
+				order: 3,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}, {
+				id: SessionItemContextMenuId,
+				group: '0_pin',
+				order: 1,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}],
+		});
+	}
+
+	run(accessor: ServicesAccessor, context?: ISession | ISession[]): void {
+		const session = Array.isArray(context) ? context[0] : context;
+		if (!session || session.providerId !== DROX_SESSIONS_PROVIDER_ID) {
+			return;
+		}
+		const backgroundService = accessor.get(IDroxSessionBackgroundService);
+		const key = droxEngineSessionKey(session);
+		backgroundService.setAllowOutsideWorkspaceWrite(
+			key,
+			!backgroundService.isAllowOutsideWorkspaceWrite(key),
+		);
+	}
+});
+
+/** @deprecated Kept for keybindings that still reference the old combined toggle. */
+registerAction2(class DroxToggleAllowOutsideWorkspaceAction extends Action2 {
+	constructor() {
+		super({
+			id: 'drox.sessions.toggleAllowOutsideWorkspace',
+			title: localize2('drox.toggleAllowOutsideWorkspace', "Allow Outside Workspace"),
+			f1: false,
+		});
+	}
+
+	run(accessor: ServicesAccessor, context?: ISession | ISession[]): void {
+		const session = Array.isArray(context) ? context[0] : context;
+		if (!session || session.providerId !== DROX_SESSIONS_PROVIDER_ID) {
+			return;
+		}
+		const backgroundService = accessor.get(IDroxSessionBackgroundService);
+		const key = droxEngineSessionKey(session);
+		const next = !backgroundService.isAllowOutsideWorkspace(key);
+		backgroundService.setAllowOutsideWorkspace(key, next);
 	}
 });
 
@@ -117,12 +181,12 @@ registerAction2(class DroxOpenSessionNotesAction extends Action2 {
 			menu: [{
 				id: SessionItemToolbarMenuId,
 				group: 'navigation',
-				order: 3,
+				order: 4,
 				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
 			}, {
 				id: SessionItemContextMenuId,
 				group: '0_pin',
-				order: 1,
+				order: 2,
 				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
 			}],
 		});

@@ -296,7 +296,7 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 			settings,
 			disabledTools: [],
 			mcpToolsEnabled: true,
-			subagents: { enabled: true, maxIterations: 12, maxConcurrent: 2 },
+			subagents: { enabled: true, maxIterations: 12, maxConcurrent: 2, executionThink: false },
 		});
 		assert.strictEqual(params.subagentsEnabled, true);
 		assert.strictEqual(params.subagentsMaxIterations, 12);
@@ -313,7 +313,7 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 			settings,
 			disabledTools: [],
 			mcpToolsEnabled: true,
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1 },
+			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, executionThink: true },
 		});
 		assert.strictEqual(params.subagentsEnabled, undefined);
 		assert.strictEqual(params.subagentsMaxIterations, undefined);

@@ -120,9 +120,10 @@ mod tests {
 
 	#[test]
 	fn outside_ws_file_read_claim_is_shared() {
-		let a = crate::entry_by_id("session.outside_ws.toggle").expect("outside entry");
+		let a = crate::entry_by_id("session.outside_ws.read").expect("outside read entry");
 		let b = crate::entry_by_id("tools.file_read.description").expect("file_read entry");
 		assert!(a.claims.iter().any(|c| *c == "outside_ws.file_read=always"));
+		assert!(a.claims.iter().any(|c| *c == "outside_ws.grep_glob=always"));
 		assert!(b.claims.iter().any(|c| *c == "outside_ws.file_read=always"));
 	}
 }

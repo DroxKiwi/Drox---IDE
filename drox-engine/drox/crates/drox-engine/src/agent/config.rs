@@ -53,6 +53,9 @@ pub struct AgentConfig {
     /// Si `true`, les trois frames ci-dessus sont déjà décidés (tests / override RPC).
     /// Si `false`, le moteur pose l'ask multi-bool au boot (`drox_prompts`).
     pub session_intent_preclassified: bool,
+    /// Explore child phase-1 : `[phase: answering]` / `[phase: done]` sans tool → Stop immédiat
+    /// (la phase rapport moteur suit). Pas de DONE_ONLY / answering-before-done parent.
+    pub explore_execution: bool,
 }
 
 impl Default for AgentConfig {
@@ -77,6 +80,7 @@ impl Default for AgentConfig {
             // `true` par défaut : tests / Explore child ne déclenchent pas d'ask.
             // CLI / TUI / JSON-RPC (sans override) passent `false` pour classif boot.
             session_intent_preclassified: true,
+            explore_execution: false,
         }
     }
 }

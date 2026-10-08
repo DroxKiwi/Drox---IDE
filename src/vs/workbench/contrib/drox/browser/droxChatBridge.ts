@@ -208,11 +208,17 @@ export type DroxHostToWebviewMessage =
 		readonly exploreTitle?: string;
 		readonly exploreDescription?: string;
 		readonly exploreThoroughness?: string;
+		readonly exploreSubagentType?: string;
+		readonly exploreReturnKinds?: readonly string[];
 		readonly exploreOutput?: {
 			readonly exploreReport?: string;
 			readonly exploreReportPath?: string;
 			readonly exploreError?: string;
 			readonly exploreThoroughness?: string;
+			readonly exploreSubagentType?: string;
+			readonly exploreReturnKinds?: readonly string[];
+			readonly exploreId?: string;
+			readonly exploreKindsIncomplete?: readonly string[];
 		};
 		/** Parent `task` tool id when this row is an Explore child tool. */
 		readonly parentToolId?: string;

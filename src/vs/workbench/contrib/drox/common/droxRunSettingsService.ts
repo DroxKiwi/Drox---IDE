@@ -37,6 +37,8 @@ export interface IDroxRunSettingsService {
 		runObjective?: string;
 		skipUserTurn?: boolean;
 		allowOutsideWorkspace?: boolean;
+		allowOutsideWorkspaceRead?: boolean;
+		allowOutsideWorkspaceWrite?: boolean;
 		system?: string;
 	}): Record<string, unknown>;
 }

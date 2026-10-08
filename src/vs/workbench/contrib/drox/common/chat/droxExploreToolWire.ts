@@ -11,6 +11,10 @@ export interface IDroxExploreToolStartWire {
 	/** Full brief sent to the Explore sub-agent. */
 	readonly exploreDescription: string;
 	readonly exploreThoroughness?: string;
+	/** Sub-agent type (V1: `explore`). */
+	readonly exploreSubagentType?: string;
+	/** Typed return kinds requested by the parent (`paths_read`, …). */
+	readonly exploreReturnKinds?: readonly string[];
 }
 
 export interface IDroxExploreToolFinishWire {
@@ -18,6 +22,10 @@ export interface IDroxExploreToolFinishWire {
 	readonly exploreReportPath?: string;
 	readonly exploreError?: string;
 	readonly exploreThoroughness?: string;
+	readonly exploreSubagentType?: string;
+	readonly exploreReturnKinds?: readonly string[];
+	readonly exploreId?: string;
+	readonly exploreKindsIncomplete?: readonly string[];
 }
 
 /** Cursor-shaped `toolSpecificData` for Agents chat (`IChatSubagentToolInvocationData`). */
@@ -151,6 +159,39 @@ function clampExploreTitle(raw: string): string {
 	return `${oneLine.slice(0, EXPLORE_TITLE_MAX - 1).trimEnd()}…`;
 }
 
+const KNOWN_RETURN_KINDS = new Set([
+	'paths_read',
+	'file_summaries',
+	'key_symbols',
+	'code_snippets',
+	'structure_map',
+	'gaps',
+]);
+
+/** Normalize `return_kinds` / `returnKinds` from tool args or finish output. */
+export function normalizeExploreReturnKinds(raw: unknown): string[] | undefined {
+	const list: unknown[] = Array.isArray(raw)
+		? raw
+		: typeof raw === 'string' && raw.trim()
+			? raw.split(/[,|]/).map(s => s.trim())
+			: [];
+	const out: string[] = [];
+	for (const item of list) {
+		const key = trimString(item).toLowerCase().replace(/-/g, '_');
+		const alias =
+			key === 'paths' ? 'paths_read'
+				: key === 'summaries' ? 'file_summaries'
+					: key === 'symbols' ? 'key_symbols'
+						: key === 'snippets' ? 'code_snippets'
+							: key === 'structure' ? 'structure_map'
+								: key;
+		if (KNOWN_RETURN_KINDS.has(alias) && !out.includes(alias)) {
+			out.push(alias);
+		}
+	}
+	return out.length > 0 ? out : undefined;
+}
+
 export function buildExploreToolStartWire(name: string, args: unknown): IDroxExploreToolStartWire | undefined {
 	if (name !== 'task') {
 		return undefined;
@@ -161,10 +202,14 @@ export function buildExploreToolStartWire(name: string, args: unknown): IDroxExp
 		return undefined;
 	}
 	const thoroughness = trimString(a.thoroughness);
+	const subagentType = trimString(a.subagent_type) || trimString(a.subagentType) || 'explore';
+	const returnKinds = normalizeExploreReturnKinds(a.return_kinds ?? a.returnKinds);
 	return {
 		exploreTitle: deriveExploreTitle(a.title, description),
 		exploreDescription: description,
 		exploreThoroughness: thoroughness || undefined,
+		exploreSubagentType: subagentType || undefined,
+		exploreReturnKinds: returnKinds,
 	};
 }
 
@@ -186,6 +231,15 @@ export function buildExploreToolFinishWire(
 	const report = trimString(o.report);
 	const reportPath = trimString(o.report_path) || trimString(o.reportPath);
 	const thoroughness = trimString(o.thoroughness);
+	const subagentType = trimString(o.subagent_type) || trimString(o.subagentType);
+	const exploreId = trimString(o.explore_id) || trimString(o.exploreId);
+	const returnKinds = normalizeExploreReturnKinds(o.return_kinds ?? o.returnKinds)
+		?? normalizeExploreReturnKinds(
+			o.artifacts && typeof o.artifacts === 'object'
+				? Object.keys(o.artifacts as Record<string, unknown>)
+				: undefined,
+		);
+	const kindsIncomplete = normalizeExploreReturnKinds(o.kinds_incomplete ?? o.kindsIncomplete);
 	const error =
 		trimString(o.error) ||
 		(isError && typeof o.message === 'string' ? o.message.trim() : '') ||
@@ -195,5 +249,9 @@ export function buildExploreToolFinishWire(
 		exploreReportPath: reportPath || undefined,
 		exploreError: error || undefined,
 		exploreThoroughness: thoroughness || undefined,
+		exploreSubagentType: subagentType || undefined,
+		exploreReturnKinds: returnKinds,
+		exploreId: exploreId || undefined,
+		exploreKindsIncomplete: kindsIncomplete,
 	};
 }

@@ -1,9 +1,11 @@
 # 1.6.0 — Stabilisation agent (boucles · contexte · compaction)
 
-**Statut** : Vagues 1–4 + FX-B chunk ✅ · dogfood manuel encore dû · branche `1.6.0` · `droxVersion` **1.6.0**  
+**Statut** : Vagues 1–4 + FX-B ✅ · lots prompts / Explore soft / hors-WS / contrats retour + tags UI ✅ · dogfood manuel **en cours** · branche `1.6.0` · `droxVersion` **1.6.0**  
 **Précédent** : [1.5.23](../../1.5/1.5.23/README.md) — clôturé · ship `v1.5.23` (+ hotfix Chat MS / diffs)  
-**Suite** : dogfood S1–S4 + D1–D5 → ship `v1.6.0`  
-**Clôture** : [CLOSURE-1.6.0.md](CLOSURE-1.6.0.md) (brouillon)
+**Suite** : dogfood E5 (contrats + soft post-merge/anti-rotation) → ship `v1.6.0`  
+ 
+**Clôture** : [CLOSURE-1.6.0.md](CLOSURE-1.6.0.md) (brouillon)  
+**Journal post-Vague 4** : [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md) · **Anti-loop** : [ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md) · **Explore contrats** : [PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md) · **Concentration / volume** : [PLAN-CONCENTRATION-CONTEXTE.md](PLAN-CONCENTRATION-CONTEXTE.md)
 
 ## Cap
 
@@ -57,8 +59,10 @@ Détail curation : [DIAGNOSTIC-CONTEXTE-SERIEUX.md](DIAGNOSTIC-CONTEXTE-SERIEUX.
 | Vague 3 — L-3 (OBS reporté) | ✅ L-3 · OBS ⬜ |
 | Dogfood FX-B+ (chunk write / UI) | ✅ code · smokes S1–S4 encore ⬜ |
 | Vague 4 — S-1…S-5 contexte sérieux | ✅ code |
-| Preuves dogfood | ⬜ |
-| RELEASE_NOTES / CLOSURE (brouillon) / popup | ✅ |
+| **Post-V4** — prompts + soft Plan/Explore + hors-WS + orphan UTF-8 + post-merge + anti-rotation | ✅ code · voir [JOURNAL](JOURNAL-PROMPTS-ET-HORS-WS.md) |
+| Preuves dogfood | 🟡 à revalider (soft post-merge / anti-rotation) |
+| **Explore return contracts** (kinds + index + tags UI) | ✅ E1–E4b · P-safe/P-json/P-harden ✅ · notes ✅ · dogfood E5 ⬜ · [PLAN](PLAN-EXPLORE-RETURN-CONTRACTS.md) |
+| RELEASE_NOTES / CLOSURE (brouillon) / popup | ✅ (contrats + tags 1.6.0) |
 | Ship win32 + linux | ⬜ |
 
 ## Docs
@@ -67,6 +71,10 @@ Détail curation : [DIAGNOSTIC-CONTEXTE-SERIEUX.md](DIAGNOSTIC-CONTEXTE-SERIEUX.
 |-------|--------|
 | **[ETAPES-IMPLEMENTATION-LOOPS.md](ETAPES-IMPLEMENTATION-LOOPS.md)** | Checklist Vagues 1–3 |
 | **[PLAN-CONTEXT-SITUATION.md](PLAN-CONTEXT-SITUATION.md)** | **Vague 4** situation card / snip / CORE |
+| **[JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md)** | Historique post-V4 (prompts, soft Explore, hors-WS, dogfood) |
+| **[ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md)** | Comment l’anti-loop s’identifie / se déclenche (M1–M4 + soft) |
+| **[PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md)** | Contrats retour typés Explore + index navigable (scope discussion) |
+| **[PLAN-CONCENTRATION-CONTEXTE.md](PLAN-CONCENTRATION-CONTEXTE.md)** | Attention / règles : volume vs ordre · solutions V1–V6 · lots C1–C6 |
 | [DIAGNOSTIC-CONTEXTE-SERIEUX.md](DIAGNOSTIC-CONTEXTE-SERIEUX.md) | Écarts apps sérieuses · anti-vectoriel |
 | [PLAN-AGENT-LOOP-CONTEXT.md](PLAN-AGENT-LOOP-CONTEXT.md) | Index lots / IDs / preuves |
 | [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md) | Baseline boucles + dogfood FX-B |

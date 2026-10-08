@@ -47,6 +47,12 @@ export const DROX_CHAT_GENERAL_SETTING_KEYS: readonly string[] = [
 	DroxSetting.ToolsMcpEnabled,
 	DroxSetting.ToolsDisabled,
 	DroxSetting.ChatShowErrorsAndWarnings,
+	DroxSetting.SubagentsEnabled,
+	DroxSetting.SubagentsMaxIterations,
+	DroxSetting.SubagentsExecutionThink,
+	DroxSetting.RulesEnabled,
+	DroxSetting.AllowOutsideWorkspaceRead,
+	DroxSetting.AllowOutsideWorkspaceWrite,
 ];
 
 export function droxConfigChangeAffectsArchitectSettings(e: IConfigurationChangeEvent): boolean {

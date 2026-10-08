@@ -18,7 +18,9 @@ pub enum ToolError {
     #[error("invalid tool arguments: {0}")]
     InvalidArgs(String),
 
-    #[error("path escapes workspace: {path}")]
+    #[error(
+        "path escapes workspace: {path} — for mutations outside the project, enable outside-workspace write (`drox.allowOutsideWorkspace.write`); read-only inventory (`file_read` / `glob` / `grep`) may use absolute paths"
+    )]
     PathEscape { path: Utf8PathBuf },
 
     #[error("I/O error on {path}: {source}")]

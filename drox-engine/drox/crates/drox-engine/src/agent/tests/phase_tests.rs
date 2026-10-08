@@ -309,6 +309,48 @@ async fn answering_phase_alone_does_not_terminate_loop() {
     assert!(matches!(events.last(), Some(AgentEvent::Stop { .. })));
 }
 
+/// Explore child (E2) : `[phase: answering]` sans tool → Stop (pas de DONE_ONLY).
+#[tokio::test]
+async fn explore_execution_stops_on_answering_without_done() {
+	let llm = Arc::new(ScriptedLlm::new(vec![vec![
+		StreamEvent::Start,
+		StreamEvent::TextDelta {
+			text: "[phase: answering]\nNotes: src/app/docs trouvé.\n".into(),
+		},
+		StreamEvent::Stop {
+			reason: StopReason::EndTurn,
+			usage: Usage::default(),
+		},
+	]]));
+	let registry = Arc::new(ToolRegistry::new());
+	let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
+	let cfg = AgentConfig {
+		explore_execution: true,
+		max_iterations: 3,
+		..AgentConfig::default()
+	};
+	let agent = Agent::new(llm, registry, ctx, cfg);
+
+	let raw: Vec<_> = agent.run("explore").collect::<Vec<_>>().await;
+	let events: Vec<&AgentEvent> = raw.iter().filter_map(|r| r.as_ref().ok()).collect();
+	assert!(
+		matches!(events.last(), Some(AgentEvent::Stop { .. })),
+		"explore answering must Stop immediately; got {:?}",
+		raw.last()
+	);
+	assert!(
+		!raw.iter().any(|r| matches!(r, Err(EngineError::LoopDetected { .. }))),
+		"must not loop-detect on explore close"
+	);
+	assert_eq!(
+		events
+			.iter()
+			.filter(|e| matches!(e, AgentEvent::PhaseEnter { phase } if *phase == Phase::Answering))
+			.count(),
+		1
+	);
+}
+
 #[tokio::test]
 async fn done_without_answering_triggers_re_emission_nudge() {
     // Sprint A.3 : `done` sans `answering` → refus. Todo obligatoire d'abord.

@@ -49,6 +49,11 @@ export function getDroxReleaseNotesItems(version: string): readonly string[] {
 				localize('drox.releaseNotes.160.spill', '**Large tool outputs** — oversized results spill under `.drox/tool-outputs/` with a short pointer for the model.'),
 				localize('drox.releaseNotes.160.gauge', '**Clearer context gauge** — Agents status shows `estim.` vs `provider` token sources.'),
 				localize('drox.releaseNotes.160.nudges', '**Cleaner nudges** — mid-run engine reminders stay in the system block (no fake `[System reminder]` user messages).'),
+				localize('drox.releaseNotes.160.prompts', '**Centralized prompts** — engine text lives in `drox-prompts` (catalog + injection map); soft Plan → Assign → Merge nudges for work-without-plan and Explore at step kickoff.'),
+				localize('drox.releaseNotes.160.outsideWs', '**Outside-workspace read/write** — separate toggles (Server settings + session): Explore inherits read-only inventory; writes stay gated.'),
+				localize('drox.releaseNotes.160.exploreKinds', '**Explore return contracts** — typed `return_kinds`; JSON report or honest `kinds_incomplete` (no soft-OK on CoT); `drox.subagents.executionThink` for exec phase; navigate via `explore_index_list` / `explore_artifact_read`.'),
+				localize('drox.releaseNotes.160.exploreTags', '**Explore card tags** — live chips for sub-agent type, thoroughness, and requested return kinds (incomplete kinds shown dashed).'),
+				localize('drox.releaseNotes.160.antiReread', '**Softer post-Explore loops** — Prefer nudges after a good Explore merge and when rotating the same files with `file_read`.'),
 				localize('drox.releaseNotes.160.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),
 			];
 		case '1.5.23':
@@ -182,7 +187,7 @@ export function getDroxReleaseNotesLeadMessage(version: string): string {
 		case '1.6.0':
 			return localize(
 				'drox.releaseNotes.160.message',
-				'Stronger agent loop guards, durable context compaction on disk, spilled large tool outputs, and a clearer estim./provider context gauge.',
+				'Stronger loop guards, durable compaction, typed Explore return contracts with live card tags, soft Plan/Explore nudges, and separate outside-workspace read/write toggles.',
 			);
 		case '1.5.23':
 			return localize(

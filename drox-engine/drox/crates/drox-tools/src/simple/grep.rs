@@ -52,9 +52,10 @@ impl Tool for GrepTool {
         let re = regex::Regex::new(&args.pattern)?;
 
         let ws = ctx.effective_workspace();
+        // P1 parity with `file_read`: inventaire RO peut quitter le workspace.
         let base = match &args.path {
             None => ws.clone(),
-            Some(p) => resolve_under_workspace(&ws, p, ctx.allow_outside_workspace)?,
+            Some(p) => resolve_under_workspace(&ws, p, true)?,
         };
 
         if let Some(ref ignore) = ctx.drox_ignore {

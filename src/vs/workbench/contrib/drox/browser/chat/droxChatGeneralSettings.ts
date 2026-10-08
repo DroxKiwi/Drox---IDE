@@ -31,7 +31,10 @@ export interface IDroxGeneralSettingsWire {
 	readonly showChatErrorsAndWarnings: boolean;
 	readonly subagentsEnabled: boolean;
 	readonly subagentsMaxIterations: number;
+	readonly subagentsExecutionThink: boolean;
 	readonly projectRulesEnabled: boolean;
+	readonly allowOutsideWorkspaceRead: boolean;
+	readonly allowOutsideWorkspaceWrite: boolean;
 }
 export interface IDroxGeneralSettingsPatch {
 	readonly llmHosting?: string;
@@ -50,7 +53,10 @@ export interface IDroxGeneralSettingsPatch {
 	readonly showChatErrorsAndWarnings?: boolean;
 	readonly subagentsEnabled?: boolean;
 	readonly subagentsMaxIterations?: number;
+	readonly subagentsExecutionThink?: boolean;
 	readonly projectRulesEnabled?: boolean;
+	readonly allowOutsideWorkspaceRead?: boolean;
+	readonly allowOutsideWorkspaceWrite?: boolean;
 }
 export interface IDroxChatGeneralSettingsHost {
 	post(message: DroxHostToWebviewMessage): void;
@@ -93,7 +99,10 @@ export function readDroxGeneralSettingsForWebview(
 		showChatErrorsAndWarnings: readBool(deps.configurationService, DroxSetting.ChatShowErrorsAndWarnings, resource, true),
 		subagentsEnabled: subagents.enabled,
 		subagentsMaxIterations: subagents.maxIterations || DROX_DEFAULT_SUBAGENTS_MAX_ITERATIONS,
+		subagentsExecutionThink: subagents.executionThink === true,
 		projectRulesEnabled: readBool(deps.configurationService, DroxSetting.RulesEnabled, resource, true),
+		allowOutsideWorkspaceRead: readBool(deps.configurationService, DroxSetting.AllowOutsideWorkspaceRead, resource, false),
+		allowOutsideWorkspaceWrite: readBool(deps.configurationService, DroxSetting.AllowOutsideWorkspaceWrite, resource, false),
 	};
 	return {
 		...wire,
@@ -193,7 +202,47 @@ export async function setDroxGeneralSettingsFromWebview(
 	if (patch.subagentsEnabled !== undefined) {
 		await update(DroxSetting.SubagentsEnabled, Boolean(patch.subagentsEnabled));
 	}
+	if (patch.subagentsExecutionThink !== undefined) {
+		await update(DroxSetting.SubagentsExecutionThink, Boolean(patch.subagentsExecutionThink));
+	}
 	if (patch.projectRulesEnabled !== undefined) {
 		await update(DroxSetting.RulesEnabled, Boolean(patch.projectRulesEnabled));
 	}
+	if (patch.allowOutsideWorkspaceRead !== undefined) {
+		await update(DroxSetting.AllowOutsideWorkspaceRead, Boolean(patch.allowOutsideWorkspaceRead));
+	}
+	if (patch.allowOutsideWorkspaceWrite !== undefined) {
+		await update(DroxSetting.AllowOutsideWorkspaceWrite, Boolean(patch.allowOutsideWorkspaceWrite));
+	}
+}
+
+/** Effective hors-WS flags for a run: workspace config ∪ session toggles. */
+export function resolveDroxAllowOutsideWorkspaceForRun(
+	configurationService: IConfigurationService | undefined,
+	workspaceResource: ReturnType<IDroxRunSettingsService['getWorkspaceResource']>,
+	session?: { isAllowOutsideWorkspaceRead(id: string): boolean; isAllowOutsideWorkspaceWrite(id: string): boolean },
+	sessionId?: string,
+): { allowOutsideWorkspaceRead: boolean; allowOutsideWorkspaceWrite: boolean } {
+	const configRead = configurationService
+		? readBool(
+			configurationService,
+			DroxSetting.AllowOutsideWorkspaceRead,
+			droxConfigurationResourceForRead(configurationService, workspaceResource),
+			false,
+		)
+		: false;
+	const configWrite = configurationService
+		? readBool(
+			configurationService,
+			DroxSetting.AllowOutsideWorkspaceWrite,
+			droxConfigurationResourceForRead(configurationService, workspaceResource),
+			false,
+		)
+		: false;
+	const sessionRead = sessionId && session ? session.isAllowOutsideWorkspaceRead(sessionId) : false;
+	const sessionWrite = sessionId && session ? session.isAllowOutsideWorkspaceWrite(sessionId) : false;
+	return {
+		allowOutsideWorkspaceRead: configRead || sessionRead,
+		allowOutsideWorkspaceWrite: configWrite || sessionWrite,
+	};
 }

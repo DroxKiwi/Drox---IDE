@@ -14,6 +14,7 @@ fn subagents_explore_supplement_is_kickoff_scoped() {
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("task"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("explore"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("session master"));
+    assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("return_kinds"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("must_return"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Plan"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Assign"));

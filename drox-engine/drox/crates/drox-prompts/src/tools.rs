@@ -47,42 +47,45 @@ for that — this works even when the outside-workspace session toggle is off). 
 );
 
 pub const TASK_TOOL_DESCRIPTION: &str = "\
-Launch a specialized **Explore** sub-agent (read-only: grep, glob, file_read, lsp, …) that \
-searches in an **isolated context** and writes a full **conclusion.md** under \
-`.drox/subagents/…`. You receive a short **summary** + **report_path** (+ `truncated` / iteration \
-budget) — not a full dump. **You are the session master**: write briefs that do not lose content \
-you will need later; open `report_path` with `file_read` only when you need more detail.
+Launch a specialized **Explore** sub-agent (read-only: grep, glob, file_read, lsp, …) in an \
+**isolated context**. Prefer this over parent `file_read` spam to **save your context**.
 
-The child may `file_read` **absolute paths outside the workspace** (read-only, same as parent) — \
-put those paths in `description` (the child does not see this chat).
+The child writes session-scoped artifacts under `.drox/subagents/<this discussion>/…`. You receive \
+`explore_id`, short **summary**/**blurb**, `report_path`, and `artifacts` map — not a full dump. \
+Navigate later with `explore_index_list` / `explore_artifact_read` (same discussion only).
+
+**Return contracts (prefer always):** set `return_kinds` to the formats you need. The engine \
+report phase fills each kind (JSON → artefact file) and flags `kinds_incomplete` if a kind \
+is missing/stub. Available kinds:\n\
+- `paths_read` — paths inventoried/read\n\
+- `file_summaries` — short per-file summaries\n\
+- `key_symbols` — key fns/types/routes\n\
+- `code_snippets` — bounded code excerpts\n\
+- `structure_map` — modules / tree\n\
+- `gaps` — missing info / uncertainties\n\
+Optional `return_options` caps (**must be a JSON object**, never a stringified JSON string): \
+maxFiles, maxCharsPerFile, maxSnippets, maxItems, maxDepth, focus, signaturesOnly, \
+includeLineCounts, globFilter, symbolKinds.
+
+The child may `file_read` **absolute paths outside the workspace** (read-only) — put them in \
+`description`.
 
 **Session-master protocol (soft — tools stay free):**
-1. **Plan** — for work asks, `todo_write` with steps before heavy reading. Prefer **2–4** focused \
-missions when scope splits (use Context-load `recommended_n` when present).
-2. **Assign at step kickoff** — when a todo becomes `in_progress`, spawn one `task` for **that** \
-step. Fill `must_return` with every section/fact YOUR mission still needs. Set `plan_step_id` \
-to the todo id when possible. `description` = goal + scope for that mission only.
-3. **Merge** — trust each `summary` / `report_path`. Do **not** re-ingest the same tree into the \
-parent. If `truncated: true`, spawn narrower missions — never parent `file_read` spam.
+1. **Plan** — for work asks, `todo_write` before heavy reading (2–4 focused steps when scope splits).
+2. **Assign at step kickoff** — one `task` per `in_progress` step; set `return_kinds` + optional \
+`must_return` / `plan_step_id`.
+3. **Merge** — use `summary` / `explore_artifact_read(kind)` — do **not** re-ingest the tree. If \
+`truncated` or `kinds_incomplete` non-empty, spawn narrower missions.
 
-**When to use (MUST — be proactive):**
-- Start of a plan step that needs understanding / synthesis / multi-file / docs trees.
-- Unfamiliar areas; you would otherwise open ≥3 files or run several search rounds.
-- Early in `[phase: analyzing]` / `[phase: reading]` for broad context.
+**When to use:** understanding / synthesis / multi-file / docs / unfamiliar areas (≥3 files).
+**When NOT:** needle on 1–2 known paths; mutations (Explore is RO).
 
-**When NOT to use (narrow):**
-- Needle: known symbol/file → `grep` / `lsp` / ranged `file_read`.
-- Only 1–2 exact known paths.
-- Mutations (Explore is read-only) — explore first if needed, then mutate in the parent.
+**Args:** `title`, `description`, `return_kinds` (string[]), \
+`return_options` (object — e.g. `{\"maxFiles\":25}`, **not** `\"{\\\"maxFiles\\\":25}\"`), \
+`must_return` (legacy prose), `plan_step_id`, `subagent_type`=`explore`, \
+`thoroughness`=`quick|medium|very thorough`.
 
-**Args:**
-- `title` (UI): ≤8 words concrete label. Never engine meta.
-- `description`: one focused mission (goal + paths).
-- `must_return`: string[] acceptance criteria for the parent-facing report.
-- `plan_step_id` (optional): matching todo id.
-- `subagent_type`: `explore`. `thoroughness`: `quick` | `medium` | `very thorough`.
-
-Requires `drox.subagents.enabled` and regulation L2 standard/full. V1: `explore` only.";
+Requires `drox.subagents.enabled`. V1: `explore` only. Index is **this discussion only**.";
 
 pub const TASK_TOOL_ENTRY: PromptEntry = PromptEntry {
 	id: "tools.task.description",
@@ -97,9 +100,34 @@ pub const TASK_TOOL_ENTRY: PromptEntry = PromptEntry {
 		"parent_dump.docs_tree=forbidden_prefer",
 		"explore.file_read_absolute=same_as_parent",
 		"outside_ws.file_read=always",
+		"explore.return_kinds=typed_prefer",
+		"explore.index=session_scoped",
 	],
 	body: TASK_TOOL_DESCRIPTION,
 };
+
+tool_prompt!(
+	EXPLORE_INDEX_LIST_TOOL_DESCRIPTION,
+	EXPLORE_INDEX_LIST_TOOL_ENTRY,
+	"tools.explore_index_list.description",
+	"explore_index_list",
+	claims: &["explore.index=session_scoped"],
+	"List short Explore blurbs for **this discussion only** (session-scoped index). \
+Use to decide where to dig without reloading full reports. Returns exploreId, blurb, \
+returnKinds, status, artifact paths. Prefer this before parent file_read of sources."
+);
+
+tool_prompt!(
+	EXPLORE_ARTIFACT_READ_TOOL_DESCRIPTION,
+	EXPLORE_ARTIFACT_READ_TOOL_ENTRY,
+	"tools.explore_artifact_read.description",
+	"explore_artifact_read",
+	claims: &["explore.index=session_scoped", "explore.return_kinds=typed_prefer"],
+	"Read one Explore return artifact by explore_id + kind \
+(paths_read|file_summaries|key_symbols|code_snippets|structure_map|gaps). \
+Scoped to **this discussion** — unknown explore_id from another chat is rejected. \
+Prefer over re-reading the original source tree."
+);
 
 // ── Core FS / search ────────────────────────────────────────────────────────
 
@@ -493,9 +521,11 @@ pub fn all_tool_entries() -> &'static [PromptEntry] {
 	&TOOL_ENTRIES
 }
 
-static TOOL_ENTRIES: [PromptEntry; 34] = [
+static TOOL_ENTRIES: [PromptEntry; 36] = [
 	FILE_READ_TOOL_ENTRY,
 	TASK_TOOL_ENTRY,
+	EXPLORE_INDEX_LIST_TOOL_ENTRY,
+	EXPLORE_ARTIFACT_READ_TOOL_ENTRY,
 	GREP_TOOL_ENTRY,
 	GLOB_TOOL_ENTRY,
 	BASH_TOOL_ENTRY,

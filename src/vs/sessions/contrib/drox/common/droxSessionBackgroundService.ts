@@ -28,7 +28,10 @@ export interface IDroxSessionDashboardSignals {
 	readonly gitOperationActive: boolean;
 	readonly needsInput: boolean;
 	readonly backgroundPersistent: boolean;
+	/** @deprecated Prefer read/write flags — true if either is on. */
 	readonly allowOutsideWorkspace: boolean;
+	readonly allowOutsideWorkspaceRead: boolean;
+	readonly allowOutsideWorkspaceWrite: boolean;
 }
 
 export interface IDroxSessionResourceMetricsView {
@@ -48,13 +51,23 @@ export interface IDroxSessionBackgroundService {
 	readonly _serviceBrand: undefined;
 
 	readonly persistentSessionIds: IObservable<ReadonlySet<string>>;
+	/** @deprecated Prefer read/write observables. */
 	readonly allowOutsideWorkspaceSessionIds: IObservable<ReadonlySet<string>>;
+	readonly allowOutsideWorkspaceReadSessionIds: IObservable<ReadonlySet<string>>;
+	readonly allowOutsideWorkspaceWriteSessionIds: IObservable<ReadonlySet<string>>;
 
 	isPersistent(sessionId: string): boolean;
 	setPersistent(sessionId: string, value: boolean): void;
 
+	/** @deprecated Prefer read/write getters — true if either is on. */
 	isAllowOutsideWorkspace(sessionId: string): boolean;
+	/** @deprecated Prefer setAllowOutsideWorkspaceRead/Write. */
 	setAllowOutsideWorkspace(sessionId: string, value: boolean): void;
+
+	isAllowOutsideWorkspaceRead(sessionId: string): boolean;
+	setAllowOutsideWorkspaceRead(sessionId: string, value: boolean): void;
+	isAllowOutsideWorkspaceWrite(sessionId: string): boolean;
+	setAllowOutsideWorkspaceWrite(sessionId: string, value: boolean): void;
 
 	hasLayoutSnapshot(sessionId: string): boolean;
 
