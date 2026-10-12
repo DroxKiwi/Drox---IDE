@@ -50,6 +50,7 @@ export const DROX_CHAT_GENERAL_SETTING_KEYS: readonly string[] = [
 	DroxSetting.SubagentsEnabled,
 	DroxSetting.SubagentsMaxIterations,
 	DroxSetting.SubagentsExecutionThink,
+	DroxSetting.SubagentsReportThink,
 	DroxSetting.RulesEnabled,
 	DroxSetting.AllowOutsideWorkspaceRead,
 	DroxSetting.AllowOutsideWorkspaceWrite,

@@ -1,11 +1,11 @@
 # 1.6.0 — Stabilisation agent (boucles · contexte · compaction)
 
-**Statut** : Vagues 1–4 + FX-B ✅ · lots prompts / Explore soft / hors-WS / contrats retour + tags UI ✅ · dogfood manuel **en cours** · branche `1.6.0` · `droxVersion` **1.6.0**  
+**Statut** : Vagues 1–4 + FX-B ✅ · prompts / Explore soft / hors-WS / contrats + **Option A** ✅ · inventaire + **P1–P3** ✅ · **D1–D4** ✅ · dogfood manuel **en cours** · branche `1.6.0` · `droxVersion` **1.6.0**  
 **Précédent** : [1.5.23](../../1.5/1.5.23/README.md) — clôturé · ship `v1.5.23` (+ hotfix Chat MS / diffs)  
-**Suite** : dogfood E5 (contrats + soft post-merge/anti-rotation) → ship `v1.6.0`  
+**Suite** : dogfood revalider · D5/D6 backlog · ship `v1.6.0`  
  
 **Clôture** : [CLOSURE-1.6.0.md](CLOSURE-1.6.0.md) (brouillon)  
-**Journal post-Vague 4** : [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md) · **Anti-loop** : [ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md) · **Explore contrats** : [PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md) · **Concentration / volume** : [PLAN-CONCENTRATION-CONTEXTE.md](PLAN-CONCENTRATION-CONTEXTE.md)
+**Journal post-Vague 4** : [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md) · **Approche contrats** : [APPROCHE-CONTRATS-ETAPE.md](APPROCHE-CONTRATS-ETAPE.md) · **Anti-loop** : [ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md) · **Explore contrats** : [PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md) · **Concentration / volume** : [PLAN-CONCENTRATION-CONTEXTE.md](PLAN-CONCENTRATION-CONTEXTE.md)
 
 ## Cap
 
@@ -61,8 +61,10 @@ Détail curation : [DIAGNOSTIC-CONTEXTE-SERIEUX.md](DIAGNOSTIC-CONTEXTE-SERIEUX.
 | Vague 4 — S-1…S-5 contexte sérieux | ✅ code |
 | **Post-V4** — prompts + soft Plan/Explore + hors-WS + orphan UTF-8 + post-merge + anti-rotation | ✅ code · voir [JOURNAL](JOURNAL-PROMPTS-ET-HORS-WS.md) |
 | Preuves dogfood | 🟡 à revalider (soft post-merge / anti-rotation) |
-| **Explore return contracts** (kinds + index + tags UI) | ✅ E1–E4b · P-safe/P-json/P-harden ✅ · notes ✅ · dogfood E5 ⬜ · [PLAN](PLAN-EXPLORE-RETURN-CONTRACTS.md) |
-| RELEASE_NOTES / CLOSURE (brouillon) / popup | ✅ (contrats + tags 1.6.0) |
+| **Explore return contracts** (kinds + index + tags UI) | ✅ E1–E4b · P-safe… · **Option A** `explore_commit` + mono-kind + no `conclusion` + `artifacts_inline` ✅ · dogfood 2026-10-09 🟡 · [PLAN](PLAN-EXPLORE-RETURN-CONTRACTS.md) |
+| **Inventaire instructions** | ✅ `inventory-instructions.md` + example · CORE ~6.4k tok · boot S2 ~11k tok catalogue |
+| **Approche contrats d’étape / recovery** | 📐 cadre ✅ · **D1–D4** ✅ · P1–P3 ✅ · [APPROCHE](APPROCHE-CONTRATS-ETAPE.md) |
+| RELEASE_NOTES / CLOSURE (brouillon) / popup | ✅ (contrats + tags 1.6.0) — notes Option A à rafraîchir avant ship |
 | Ship win32 + linux | ⬜ |
 
 ## Docs
@@ -75,6 +77,7 @@ Détail curation : [DIAGNOSTIC-CONTEXTE-SERIEUX.md](DIAGNOSTIC-CONTEXTE-SERIEUX.
 | **[ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md)** | Comment l’anti-loop s’identifie / se déclenche (M1–M4 + soft) |
 | **[PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md)** | Contrats retour typés Explore + index navigable (scope discussion) |
 | **[PLAN-CONCENTRATION-CONTEXTE.md](PLAN-CONCENTRATION-CONTEXTE.md)** | Attention / règles : volume vs ordre · solutions V1–V6 · lots C1–C6 |
+| **[APPROCHE-CONTRATS-ETAPE.md](APPROCHE-CONTRATS-ETAPE.md)** | Cadre post-dogfood : D1–D6 · recovery moteur · désempilage prompts |
 | [DIAGNOSTIC-CONTEXTE-SERIEUX.md](DIAGNOSTIC-CONTEXTE-SERIEUX.md) | Écarts apps sérieuses · anti-vectoriel |
 | [PLAN-AGENT-LOOP-CONTEXT.md](PLAN-AGENT-LOOP-CONTEXT.md) | Index lots / IDs / preuves |
 | [DIAGNOSTIC-BOUCLES-CONTEXTE.md](DIAGNOSTIC-BOUCLES-CONTEXTE.md) | Baseline boucles + dogfood FX-B |

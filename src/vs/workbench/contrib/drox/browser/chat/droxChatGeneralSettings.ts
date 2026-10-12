@@ -32,6 +32,7 @@ export interface IDroxGeneralSettingsWire {
 	readonly subagentsEnabled: boolean;
 	readonly subagentsMaxIterations: number;
 	readonly subagentsExecutionThink: boolean;
+	readonly subagentsReportThink: boolean;
 	readonly projectRulesEnabled: boolean;
 	readonly allowOutsideWorkspaceRead: boolean;
 	readonly allowOutsideWorkspaceWrite: boolean;
@@ -54,6 +55,7 @@ export interface IDroxGeneralSettingsPatch {
 	readonly subagentsEnabled?: boolean;
 	readonly subagentsMaxIterations?: number;
 	readonly subagentsExecutionThink?: boolean;
+	readonly subagentsReportThink?: boolean;
 	readonly projectRulesEnabled?: boolean;
 	readonly allowOutsideWorkspaceRead?: boolean;
 	readonly allowOutsideWorkspaceWrite?: boolean;
@@ -100,6 +102,7 @@ export function readDroxGeneralSettingsForWebview(
 		subagentsEnabled: subagents.enabled,
 		subagentsMaxIterations: subagents.maxIterations || DROX_DEFAULT_SUBAGENTS_MAX_ITERATIONS,
 		subagentsExecutionThink: subagents.executionThink === true,
+		subagentsReportThink: subagents.reportThink === true,
 		projectRulesEnabled: readBool(deps.configurationService, DroxSetting.RulesEnabled, resource, true),
 		allowOutsideWorkspaceRead: readBool(deps.configurationService, DroxSetting.AllowOutsideWorkspaceRead, resource, false),
 		allowOutsideWorkspaceWrite: readBool(deps.configurationService, DroxSetting.AllowOutsideWorkspaceWrite, resource, false),
@@ -204,6 +207,9 @@ export async function setDroxGeneralSettingsFromWebview(
 	}
 	if (patch.subagentsExecutionThink !== undefined) {
 		await update(DroxSetting.SubagentsExecutionThink, Boolean(patch.subagentsExecutionThink));
+	}
+	if (patch.subagentsReportThink !== undefined) {
+		await update(DroxSetting.SubagentsReportThink, Boolean(patch.subagentsReportThink));
 	}
 	if (patch.projectRulesEnabled !== undefined) {
 		await update(DroxSetting.RulesEnabled, Boolean(patch.projectRulesEnabled));

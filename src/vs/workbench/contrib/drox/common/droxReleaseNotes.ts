@@ -51,7 +51,7 @@ export function getDroxReleaseNotesItems(version: string): readonly string[] {
 				localize('drox.releaseNotes.160.nudges', '**Cleaner nudges** — mid-run engine reminders stay in the system block (no fake `[System reminder]` user messages).'),
 				localize('drox.releaseNotes.160.prompts', '**Centralized prompts** — engine text lives in `drox-prompts` (catalog + injection map); soft Plan → Assign → Merge nudges for work-without-plan and Explore at step kickoff.'),
 				localize('drox.releaseNotes.160.outsideWs', '**Outside-workspace read/write** — separate toggles (Server settings + session): Explore inherits read-only inventory; writes stay gated.'),
-				localize('drox.releaseNotes.160.exploreKinds', '**Explore return contracts** — typed `return_kinds`; JSON report or honest `kinds_incomplete` (no soft-OK on CoT); `drox.subagents.executionThink` for exec phase; navigate via `explore_index_list` / `explore_artifact_read`.'),
+				localize('drox.releaseNotes.160.exploreKinds', '**Explore return contracts** — typed `return_kinds`; JSON report or honest `kinds_incomplete` (no soft-OK on CoT); `drox.subagents.executionThink` / `reportThink` for exec vs report phases; navigate via `explore_index_list` / `explore_artifact_read`.'),
 				localize('drox.releaseNotes.160.exploreTags', '**Explore card tags** — live chips for sub-agent type, thoroughness, and requested return kinds (incomplete kinds shown dashed).'),
 				localize('drox.releaseNotes.160.antiReread', '**Softer post-Explore loops** — Prefer nudges after a good Explore merge and when rotating the same files with `file_read`.'),
 				localize('drox.releaseNotes.160.reopen', 'Click the version label in the chat header anytime to reopen these notes.'),

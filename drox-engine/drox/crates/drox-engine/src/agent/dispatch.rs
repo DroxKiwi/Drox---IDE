@@ -1,6 +1,7 @@
 //! Helpers de dispatch : erreurs outil, confirmation, specs LLM, workspace map.
+//!
+//! Spill / stub des gros tool results : voir [`super::tool_result_spill`] (C1).
 
-use camino::Utf8Path;
 use drox_llm::ToolSpec;
 use drox_tools::{ToolContext, ToolRegistry, UserQuestion};
 use drox_types::{Content, Message, Role, ToolUseId};
@@ -13,108 +14,7 @@ use crate::event::AgentEvent;
 
 use super::loop_detect::PendingToolCall;
 
-/// Au-delà de ce seuil, le JSON outil est spillé sur disque (1.6.0 T-1 / S-2).
-/// Abaissé de 48 KiB → 24 KiB pour évacuer plus tôt les dumps docs / bash.
-pub(crate) const TOOL_RESULT_SPILL_THRESHOLD_BYTES: usize = 24 * 1024;
-
-const TOOL_RESULT_PREVIEW_BYTES: usize = 2 * 1024;
-
-/// Corps du message `role = tool` renvoyé au LLM après exécution réussie.
-///
-/// Sans balisage explicite, certains modèles prennent un gros JSON (sortie
-/// `glob`, `grep`, etc.) pour un « collage » utilisateur arbitraire au lieu
-/// du résultat structuré de leur propre appel d'outil.
-///
-/// 1.6.0 T-1 : au-delà de [`TOOL_RESULT_SPILL_THRESHOLD_BYTES`], le body est
-/// écrit sous `.drox/tool-outputs/` et le prompt ne reçoit qu'un pointeur.
-pub(crate) fn format_tool_result_for_llm(
-    tool_name: &str,
-    value: &Value,
-    workspace_root: &Utf8Path,
-) -> String {
-    // Explore : full `report` stays in the wire/JSON for IDE ; parent LLM gets path + summary.
-    let value_for_llm = if tool_name == "task" {
-        slim_task_tool_result_for_llm(value)
-    } else {
-        value.clone()
-    };
-    let serialized = serde_json::to_string(&value_for_llm).unwrap_or_default();
-    if serialized.len() <= TOOL_RESULT_SPILL_THRESHOLD_BYTES {
-        return format!(
-            "[drox: tool result for «{tool_name}» — JSON below; this is NOT a user message]\n{serialized}",
-        );
-    }
-    match spill_tool_result_to_disk(workspace_root, tool_name, &serialized) {
-        Ok(path) => {
-            let preview_len = serialized.len().min(TOOL_RESULT_PREVIEW_BYTES);
-            let preview = &serialized[..preview_len];
-            format!(
-                "[drox: tool result for «{tool_name}» — LARGE OUTPUT SPILLED TO DISK]\n\
-                 Full JSON ({bytes} bytes) written to: {path}\n\
-                 Preview (first {preview_len} bytes):\n{preview}\n\
-                 Use `file_read` (or shell head/tail) on that path if you need more detail. \
-                 Do NOT re-call the same tool just to re-fetch this blob.",
-                bytes = serialized.len(),
-            )
-        }
-        Err(e) => {
-            warn!(
-                tool = %tool_name,
-                error = %e,
-                "tool result spill failed — truncating inline"
-            );
-            let truncated = &serialized[..serialized.len().min(TOOL_RESULT_SPILL_THRESHOLD_BYTES)];
-            format!(
-                "[drox: tool result for «{tool_name}» — LARGE OUTPUT TRUNCATED (spill failed: {e})]\n\
-                 {truncated}\n…[truncated]"
-            )
-        }
-    }
-}
-
-/// Retire le markdown `report` du payload `task` (disponible via `report_path`).
-fn slim_task_tool_result_for_llm(value: &Value) -> Value {
-    let mut obj = match value {
-        Value::Object(map) => map.clone(),
-        other => {
-            return other.clone();
-        }
-    };
-    obj.remove("report");
-    if !obj.contains_key("summary") {
-        if let Some(path) = obj.get("report_path").and_then(|v| v.as_str()) {
-            obj.insert(
-                "summary".into(),
-                Value::String(format!("See report_path ({path})")),
-            );
-        }
-    }
-    Value::Object(obj)
-}
-
-fn spill_tool_result_to_disk(
-    workspace_root: &Utf8Path,
-    tool_name: &str,
-    body: &str,
-) -> std::io::Result<String> {
-    let dir = workspace_root.join(".drox").join("tool-outputs");
-    std::fs::create_dir_all(dir.as_std_path())?;
-    let safe: String = tool_name
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect();
-    let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%S%.3fZ");
-    let file_name = format!("{stamp}-{safe}.json");
-    let path = dir.join(&file_name);
-    std::fs::write(path.as_std_path(), body)?;
-    Ok(path.to_string())
-}
+pub(crate) use super::tool_result_spill::format_tool_result_for_llm;
 
 pub(crate) async fn mirror_workspace_map_from_tool(
     ctx: &ToolContext,

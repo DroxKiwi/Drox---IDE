@@ -296,11 +296,19 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 			settings,
 			disabledTools: [],
 			mcpToolsEnabled: true,
-			subagents: { enabled: true, maxIterations: 12, maxConcurrent: 2, executionThink: false },
+			subagents: {
+				enabled: true,
+				maxIterations: 12,
+				maxConcurrent: 2,
+				executionThink: false,
+				reportThink: true,
+			},
 		});
 		assert.strictEqual(params.subagentsEnabled, true);
 		assert.strictEqual(params.subagentsMaxIterations, 12);
 		assert.strictEqual(params.subagentsMaxConcurrent, 2);
+		assert.strictEqual(params.subagentsExecutionThink, false);
+		assert.strictEqual(params.subagentsReportThink, true);
 	});
 
 	test('buildAgentRunParams omits subagents when disabled', () => {
@@ -313,10 +321,18 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 			settings,
 			disabledTools: [],
 			mcpToolsEnabled: true,
-			subagents: { enabled: false, maxIterations: 15, maxConcurrent: 1, executionThink: true },
+			subagents: {
+				enabled: false,
+				maxIterations: 15,
+				maxConcurrent: 1,
+				executionThink: true,
+				reportThink: true,
+			},
 		});
 		assert.strictEqual(params.subagentsEnabled, undefined);
 		assert.strictEqual(params.subagentsMaxIterations, undefined);
 		assert.strictEqual(params.subagentsMaxConcurrent, undefined);
+		assert.strictEqual(params.subagentsExecutionThink, undefined);
+		assert.strictEqual(params.subagentsReportThink, undefined);
 	});
 });

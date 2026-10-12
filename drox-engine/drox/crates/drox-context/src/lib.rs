@@ -30,7 +30,9 @@ pub use error::ContextError;
 pub use microcompact::{
     MicrocompactConfig, MicrocompactOutcome, MICROCOMPACT_CLEARED, microcompact_messages,
 };
-pub use snip::{SNIP_PLACEHOLDER, SnipConfig, SnipOutcome, snip_messages};
+pub use snip::{
+    SNIP_PLACEHOLDER, SnipConfig, SnipOutcome, snip_messages, snip_messages_with,
+};
 pub use tokens::{
     DEFAULT_BYTES_PER_TOKEN, IMAGE_TOKEN_SIZE, RoughTokenCounter, TiktokenCounter, TokenCounter,
 };

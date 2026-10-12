@@ -108,16 +108,20 @@ pub fn parse_return_kinds(raw: &[String]) -> Vec<ExploreReturnKind> {
 	out
 }
 
-/// Brief **phase 1** (enfant) — quels kinds couvrir dans les notes (pas d’écriture d’artefacts).
+/// Brief **phase 1** (enfant) — kinds à déposer via `explore_commit` (canal tools).
 #[must_use]
 pub fn format_kinds_contract(kinds: &[ExploreReturnKind], options: &ExploreReturnOptions) -> String {
 	if kinds.is_empty() {
 		return String::new();
 	}
 	let mut out = String::from(
-		"## Return contract (phase 1 — gather evidence only)\n\
-		 Cover these formats in your **working notes** (paths, facts, gaps). \
-		 Do **not** write `## <kind>` headers or the parent report — the engine report phase does that.\n\
+		"## Return contract (phase 1 — progressive `explore_commit`)\n\
+		 Deposit these kinds with the **`explore_commit`** tool after each useful batch \
+		 (`{\"kind\":\"…\",\"body\":\"…\",\"append\"?:true}`). \
+		 Each `body` is **mono-kind facts only** (bullets/paths) — no CoT, no `## <other_kind>` \
+		 inside the same body (engine rejects). \
+		 Do **not** write a freeform parent report or `## <kind>` essay in chat — commits are the contract.\n\
+		 `paths_read` is also auto-filled by the engine from your tool calls.\n\
 		 Kinds:\n",
 	);
 	for k in kinds {
@@ -204,11 +208,11 @@ mod tests {
 	}
 
 	#[test]
-	fn phase1_contract_forbids_headers_phase2_asks_json() {
+	fn phase1_contract_asks_explore_commit() {
 		let kinds = vec![ExploreReturnKind::PathsRead, ExploreReturnKind::Gaps];
 		let p1 = format_kinds_contract(&kinds, &ExploreReturnOptions::default());
-		assert!(p1.contains("phase 1"));
-		assert!(p1.contains("Do **not** write"));
+		assert!(p1.contains("explore_commit"));
+		assert!(p1.contains("Do **not** write a freeform"));
 		let p2 = format_kinds_json_contract(&kinds, &ExploreReturnOptions::default());
 		assert!(p2.contains("JSON object"));
 		assert!(p2.contains("paths_read"));

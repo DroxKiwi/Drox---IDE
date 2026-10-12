@@ -40,9 +40,10 @@ pub struct TaskInput {
 	/// "Mission double", "pack all context", thoroughness notes).
 	#[serde(default)]
 	pub title: Option<String>,
-	/// Full exploration brief for the sub-agent (it does NOT see the parent chat — that fact \
-	/// belongs ONLY here as engine knowledge, never as the `title` or as the first line of this \
-	/// field). Include goal, likely folders/symbols. Keep **one focused mission** per `task` call.
+	/// Short mission scoop for the sub-agent (it does NOT see the parent chat). \
+	/// Goal + likely folders/symbols only — **not** an essay. Engine caps at \
+	/// [`EXPLORE_TASK_DESCRIPTION_MAX_CHARS`] chars before kinds/must_return. \
+	/// One focused mission per `task` call.
 	pub description: String,
 	/// Typed return formats the engine verifies as separate artifacts. Prefer always. \
 	/// Values: paths_read | file_summaries | key_symbols | code_snippets | structure_map | gaps.
@@ -108,25 +109,56 @@ pub use drox_prompts::TASK_TOOL_DESCRIPTION;
 
 pub struct TaskTool;
 
+/// Plafond description parent → enfant (romans rejetés / tronqués).
+pub const EXPLORE_TASK_DESCRIPTION_MAX_CHARS: usize = 900;
+
+/// Max items `must_return` collés (extras libres).
+pub const EXPLORE_TASK_MUST_RETURN_MAX_ITEMS: usize = 6;
+
+/// Max chars par item `must_return`.
+pub const EXPLORE_TASK_MUST_RETURN_ITEM_MAX_CHARS: usize = 120;
+
+fn truncate_head_chars(s: &str, max_chars: usize) -> String {
+	let t = s.trim();
+	if t.chars().count() <= max_chars {
+		return t.to_string();
+	}
+	let clipped: String = t.chars().take(max_chars).collect();
+	if let Some(i) = clipped.rfind('\n') {
+		if i > max_chars / 3 {
+			return format!("{}\n…", clipped[..i].trim_end());
+		}
+	}
+	format!("{}…", clipped.trim_end())
+}
+
+/// Normalise la mission phase 1 : scoop court (sans contrat kinds).
+#[must_use]
+pub fn normalize_explore_task_description(description: &str) -> String {
+	truncate_head_chars(description, EXPLORE_TASK_DESCRIPTION_MAX_CHARS)
+}
+
 fn build_child_description(
 	description: &str,
 	must_return: &[String],
 	kinds_contract: &str,
 ) -> String {
-	let base = description.trim();
-	let mut out = String::from(base);
+	let base = normalize_explore_task_description(description);
+	let mut out = base;
 	if !kinds_contract.trim().is_empty() {
 		out.push_str("\n\n");
 		out.push_str(kinds_contract.trim());
 	}
-	let items: Vec<&str> = must_return
+	let items: Vec<String> = must_return
 		.iter()
 		.map(|s| s.trim())
 		.filter(|s| !s.is_empty())
+		.take(EXPLORE_TASK_MUST_RETURN_MAX_ITEMS)
+		.map(|s| truncate_head_chars(s, EXPLORE_TASK_MUST_RETURN_ITEM_MAX_CHARS))
 		.collect();
 	if !items.is_empty() {
 		out.push_str("\n\n## Must return to parent (acceptance — free-text extras)\n");
-		for item in items {
+		for item in &items {
 			out.push_str("- ");
 			out.push_str(item);
 			out.push('\n');
@@ -232,18 +264,19 @@ impl Tool for TaskTool {
 		Ok(json!({
 			"subagent_type": "explore",
 			"explore_id": outcome.explore_id,
-			"report": outcome.report,
-			"report_path": outcome.report_path,
 			"summary": outcome.summary,
 			"blurb": outcome.blurb,
 			"artifacts": outcome.artifacts,
+			"artifacts_inline": outcome.artifacts_inline,
 			"kinds_incomplete": outcome.kinds_incomplete,
 			"truncated": outcome.truncated,
+			"status": outcome.status,
 			"iterations_used": outcome.iterations_used,
 			"max_iterations": outcome.max_iterations,
 			"return_kinds": args.return_kinds,
 			"must_return": args.must_return,
 			"plan_step_id": args.plan_step_id,
+			"merge_hint": "Merge from artifacts_inline (and artifacts paths). Do not re-file_read covered sources; needle 1–2 lines OK. Zoom: explore_artifact_read.",
 		}))
 	}
 }
@@ -271,6 +304,24 @@ mod tests {
 		assert!(d.contains("Map docs/x"));
 		assert!(d.contains("paths_read"));
 		assert!(d.contains("tone"));
+	}
+
+	#[test]
+	fn build_child_caps_long_parent_description() {
+		let novel = format!(
+			"{}\n\nRetour attendu: structure_map, file_summaries, and a long essay about design.",
+			"Mission detail paragraph. ".repeat(80)
+		);
+		assert!(novel.chars().count() > EXPLORE_TASK_DESCRIPTION_MAX_CHARS);
+		let capped = normalize_explore_task_description(&novel);
+		assert!(capped.chars().count() <= EXPLORE_TASK_DESCRIPTION_MAX_CHARS + 1);
+		let contract = format_kinds_contract(
+			&parse_return_kinds(&["gaps".into()]),
+			&ExploreReturnOptions::default(),
+		);
+		let d = build_child_description(&novel, &[], &contract);
+		assert!(d.contains("gaps"));
+		assert!(d.starts_with(&capped));
 	}
 
 	#[test]

@@ -50,6 +50,10 @@ pub(super) fn tool_activity_line(name: &str, arguments: &serde_json::Value) -> S
 			.and_then(|v| v.as_str())
 			.map(|s| s.trim().to_string()),
 		"workspace_map_read" => Some("workspace map".into()),
+		"explore_commit" => arguments
+			.get("kind")
+			.and_then(|v| v.as_str())
+			.map(|s| s.trim().to_string()),
 		_ => None,
 	};
 	match detail {

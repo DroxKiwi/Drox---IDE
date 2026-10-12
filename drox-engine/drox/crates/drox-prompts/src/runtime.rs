@@ -3,17 +3,13 @@
 use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 
 /// 1.6.0 S-5 — parent enchaîne des lectures sans déléguer Explore.
-pub const PARENT_HEAVY_READ_NUDGE: &str = "STOP flooding the parent context with repeated \
-    reads / `Get-Content` / `cat` dumps.\n\
+pub const PARENT_HEAVY_READ_NUDGE: &str = "STOP flooding the parent with repeated reads / \
+    `Get-Content` / `cat` dumps.\n\
     \n\
-    If the **Sub-agents — Explore** supplement is present: follow it now \
-    (plan if missing → one `task` at the current step kickoff → merge reports only). \
-    A prior `bash dir` / listing does **not** authorize parent `file_read` spam on that tree.\n\
+    If **Sub-agents — Explore** is present: follow that supplement now (one `task` at step \
+    kickoff → merge). A prior `bash dir` does **not** authorize parent tree dumps.\n\
     \n\
-    Else: `file_read` with **`start_line` + `end_line`** (short ranges) or `grep` — do NOT \
-    re-ingest whole docs into this conversation.\n\
-    \n\
-    Needle lookups on 1–2 known paths may continue with direct tools.";
+    Else: ranged `file_read` / `grep` only. Needles 1–2 known paths OK.";
 
 pub const PARENT_HEAVY_READ_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.s5_heavy_read",
@@ -54,29 +50,21 @@ pub const WORK_PLAN_FRAME_ENTRY: PromptEntry = PromptEntry {
 
 pub const DOC_INGESTION_EXPLORE_ANNEX: &str = "DOC INGESTION / MULTI-FILE DOCS — soft delta\n\
     \n\
-    The user wants to ingest / mirror / rewrite from a **docs tree**.\n\
-    \n\
-    Follow Plan → Assign → Merge from the **Sub-agents — Explore** supplement when present \
-    (do not restate that protocol here). Delta for this run:\n\
-    - Prefer **2–4** explore-sized steps (inventory / tone / target page / …). Never one mega Explore.\n\
-    - Put absolute outside-workspace paths in `description` + `must_return` (Explore can `file_read` them).\n\
-    - Parent: only the **1–2 pages being rewritten** (short line ranges). No docs-tree dump via \
-    `file_read` / bash. At most one `bash dir` to confirm the folder exists — **preferred next \
-    move is `todo_write`**, then Assign Explore (not more parent inventory).\n\
-    - Trust reports; context isolation is intentional.";
+    Docs-tree ingest / mirror / rewrite. Protocol = **Sub-agents — Explore** supplement \
+    (do not restate it). Delta:\n\
+    - Prefer **2–4** explore-sized steps — never one mega Explore.\n\
+    - Outside-workspace paths → `description` (child can `file_read` them).\n\
+    - Parent: only the **1–2 pages** being rewritten (short ranges). At most one `bash dir` \
+    to confirm the folder — then `todo_write` + Assign Explore, not more parent inventory.";
 
 /// Soft — work/doc sans `todo_write` après activité outils (toute situation).
 /// Tools restent libres (pas de hard gate) ; ignore OK si légitime (needle, etc.).
 pub const WORK_WITHOUT_PLAN_NUDGE: &str = "WORK WITHOUT PLAN — soft reminder (not a hard gate)\n\
     \n\
-    This run is **work** / docs and you already used tools, but you have **not** called \
-    `todo_write` yet.\n\
-    \n\
-    **Preferred next move:** mount a short `todo_write` plan (2–4 clear steps) now. \
-    If the **Sub-agents — Explore** supplement is present, Assign at step kickoff afterward.\n\
-    \n\
-    If skipping a plan is clearly legitimate (needle / 1–2 known paths / trivial one-shot), \
-    you may ignore this reminder and continue. Tools stay free.";
+    Work/docs run with tools already used, but **no** `todo_write` yet.\n\
+    **Preferred:** short `todo_write` (2–4 steps) now; then follow Explore supplement at \
+    step kickoff if present.\n\
+    Needle / trivial one-shot: ignore OK. Tools free.";
 
 pub const WORK_WITHOUT_PLAN_NUDGE_THRESHOLD: u32 = 2;
 
@@ -112,12 +100,9 @@ pub const DOC_INGESTION_ENTRY: PromptEntry = PromptEntry {
 	body: DOC_INGESTION_EXPLORE_ANNEX,
 };
 
-pub const EXPLORE_RESCUE_PARENT_READ_NUDGE: &str = "STOP. A prior Explore was incomplete \
-    (`truncated`). Rescuing with parent `file_read` / `grep` / dumps on the same perimeter \
-    burns the context window and loses the point of sub-agents.\n\
-    \n\
-    **Required next action:** spawn **2–4 focused** `task` (`explore`) with explicit \
-    `must_return`, OR needle **1–2** known paths only. No third option.";
+pub const EXPLORE_RESCUE_PARENT_READ_NUDGE: &str = "STOP. Prior Explore incomplete (`truncated`) — \
+    do not rescue with parent `file_read`/`grep` dumps on the same perimeter.\n\
+    **Next:** 2–4 focused `task`, OR needle 1–2 known paths. No third option.";
 
 pub const EXPLORE_RESCUE_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.explore_rescue",
@@ -135,14 +120,10 @@ pub const EXPLORE_RESCUE_ENTRY: PromptEntry = PromptEntry {
 
 pub const ANALYZING_PHASE_NUDGE: &str = "ANALYSIS FRAME — soft delta\n\
     \n\
-    Prefer `[phase: analyzing]` (not generic `[phase: reading]`). Telegraphic notes in \
-    `analyzing`; full report only in `[phase: answering]`.\n\
-    \n\
-    If the **Sub-agents — Explore** supplement is present: follow it \
-    (`thoroughness`: `medium` or `very thorough` for overview). Else: `workspace_map_read` \
-    if map is fresh → targeted `glob` → `grep` + ranged `file_read` → `lsp`. Treat \
-    `directory_fanout_caps` / `truncated` as refine signals. Needles / 1–2 known paths → \
-    direct tools.";
+    Prefer `[phase: analyzing]` (not `[phase: reading]`). Telegraphic notes; full report \
+    only in `[phase: answering]`.\n\
+    If **Sub-agents — Explore** is present: follow it for overview. Else: `workspace_map_read` \
+    (if fresh) → targeted `glob`/`grep`/ranged `file_read`/`lsp`. Needles 1–2 → direct tools.";
 
 pub const ANALYZING_PHASE_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.analyzing_phase",
@@ -163,29 +144,75 @@ pub const STEP_EXPLORE_KICKOFF_ENTRY: PromptEntry = PromptEntry {
 	audience: PromptAudience::Parent,
 	when: "todo_step_in_progress+explore_enabled",
 	topics: &["plan_assign_merge", "explore"],
-	claims: &["plan_assign_merge=soft_prefer"],
-	body: "STEP KICKOFF — Explore for this step (soft procedure, not a hard gate) — dynamic body",
+	claims: &["plan_assign_merge=soft_prefer", "explore.micro_kickoff=soft_prefer"],
+	body: "STEP KICKOFF — soft micro (not a hard gate) — dynamic body",
 };
 
+/// Soft / micro (C4 V6-a) — avant spawn `task` : 2–4 lignes, sans re-dérouler le protocole A.
 pub fn step_explore_kickoff_nudge(step_id: &str, step_content: Option<&str>) -> String {
 	let label = step_content
 		.map(str::trim)
 		.filter(|s| !s.is_empty())
 		.unwrap_or(step_id);
+	let label = truncate_micro_label(label, 80);
 	format!(
-		"STEP KICKOFF — Explore for this step (soft procedure, not a hard gate)\n\
-         \n\
-         Plan step `{step_id}` is now **in_progress**: {label}\n\
-         \n\
-         Expected next move when `task`/Explore is available:\n\
-         - Spawn one focused `task` (`explore`) scoped to **this** step only.\n\
-         - Set `plan_step_id` to `{step_id}` when possible.\n\
-         - Fill `must_return` with what YOU still need from the child for this step.\n\
-         - Put absolute outside-workspace paths in `description` if needed (Explore can `file_read` them).\n\
-         - Merge the report before heavy parent reads or mutations for this step.\n\
-         \n\
-         Needle exception (1–2 known paths) remains allowed. Tools stay free."
+		"STEP KICKOFF — soft micro (not a hard gate)\n\
+         Step `{step_id}` in_progress: {label}\n\
+         Prefer one focused `task` (explore) with `plan_step_id` + `must_return`, then merge. \
+         Needles 1–2 OK. Tools free."
 	)
+}
+
+fn truncate_micro_label(s: &str, max_chars: usize) -> String {
+	if s.chars().count() <= max_chars {
+		return s.to_string();
+	}
+	let clipped: String = s.chars().take(max_chars.saturating_sub(1)).collect();
+	format!("{clipped}…")
+}
+
+/// Soft / micro (C4 V6-a) — rappel acting write après merge (one-shot optionnel).
+pub const MICRO_ACT_WRITE_NUDGE: &str = "ACT WRITE — soft micro (not a hard gate)\n\
+    Prefer `file_edit` / `file_write` (or answer) from Explore artefacts now. \
+    Avoid another inventory pass. Tools free.";
+
+pub const MICRO_ACT_WRITE_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.micro_act_write",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "post_explore_merge_ready_to_act",
+	topics: &["plan_assign_merge", "context"],
+	claims: &["explore.micro_act_write=soft_prefer"],
+	body: MICRO_ACT_WRITE_NUDGE,
+};
+
+/// **D4** — après `ask_user_question` réussi : transition soft skeleton / mutate.
+pub const POST_ASK_ACTING_NUDGE: &str = "POST-ASK — soft micro (not a hard gate)\n\
+    User answered. Prefer act now: skeleton `file_write` then `file_edit` by section \
+    (or apply the decision). Do not re-inventory or re-ask unless a new blocker. Tools free.";
+
+pub const POST_ASK_ACTING_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.post_ask_acting",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "ask_user_question_success",
+	topics: &["ask_user", "acting", "context"],
+	claims: &["ask_user.post_acting=soft_prefer"],
+	body: POST_ASK_ACTING_NUDGE,
+};
+
+#[cfg(test)]
+mod post_ask_tests {
+	use super::*;
+
+	#[test]
+	fn post_ask_nudge_mentions_skeleton() {
+		assert!(POST_ASK_ACTING_NUDGE.contains("skeleton"));
+		assert!(POST_ASK_ACTING_NUDGE.contains("not a hard gate"));
+		assert_eq!(POST_ASK_ACTING_ENTRY.id, "runtime.post_ask_acting");
+	}
 }
 
 /// Soft — étape `in_progress` avec activité parent et pas encore de `task`.
@@ -212,29 +239,17 @@ pub fn step_without_explore_nudge(step_id: &str, step_content: Option<&str>) -> 
 		.unwrap_or(step_id);
 	format!(
 		"STEP WITHOUT EXPLORE — soft reminder (not a hard gate)\n\
-         \n\
-         Plan step `{step_id}` is **in_progress** ({label}) and you already used parent tools, \
-         but you have **not** spawned a `task` (`explore`) for this step yet.\n\
-         \n\
-         **Preferred next move:** one focused Explore for **this** step (`plan_step_id` = \
-         `{step_id}` when possible, non-empty `must_return`), then merge the report.\n\
-         \n\
-         Needle exception (1–2 known paths only): you may ignore this reminder and continue. \
-         Tools stay free."
+         Step `{step_id}` in_progress ({label}): parent tools used, no `task` yet.\n\
+         **Preferred:** one focused Explore for this step (`plan_step_id`=`{step_id}`), then merge.\n\
+         Needle 1–2: ignore OK. Tools free."
 	)
 }
 
-/// Soft — après un `task` Explore réussi (non tronqué) : fusionner / agir, ne pas re-vérifier.
-pub const POST_MERGE_CLOSURE_NUDGE: &str = "POST-MERGE CLOSURE — soft reminder (not a hard gate)\n\
-    \n\
-    You just received a **successful** Explore `task` report (`truncated: false`).\n\
-    \n\
-    **Preferred next move:** merge the report into your plan / acting — update todos, \
-    edit/write, or answer. Do **not** re-verify by re-reading the same sources the child \
-    already covered.\n\
-    \n\
-    Needle exception (1–2 known paths only): a short ranged `file_read` / `grep` is OK. \
-    Tools stay free.";
+/// Soft / micro (C4 V6-a) — après Explore OK : fusionner / agir (2–4 lignes).
+pub const POST_MERGE_CLOSURE_NUDGE: &str = "POST-MERGE — soft micro (not a hard gate)\n\
+    Explore `task` OK (`truncated: false`). Merge from **`artifacts_inline`** (already in the tool \
+    result) + summary/blurb; zoom with `explore_artifact_read` only if needed — then act \
+    (todo / edit / answer). Do not re-`file_read` `paths_read` sources. Needles 1–2 OK.";
 
 pub const POST_MERGE_CLOSURE_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.post_merge_closure",
@@ -246,8 +261,30 @@ pub const POST_MERGE_CLOSURE_ENTRY: PromptEntry = PromptEntry {
 	claims: &[
 		"plan_assign_merge=soft_prefer",
 		"explore.post_merge.prefer_acting=prefer",
+		"explore.post_merge.prefer_artifacts=prefer",
 	],
 	body: POST_MERGE_CLOSURE_NUDGE,
+};
+
+/// Soft C2/V2-c — parent `file_read` d’un path déjà dans `paths_read` Explore (merge OK).
+pub const EXPLORE_COVERED_REREAD_NUDGE: &str =
+	"EXPLORE-COVERED RE-READ — soft reminder (not a hard gate)\n\
+    You `file_read` a source already in last Explore `paths_read` — re-inflates context.\n\
+    **Preferred:** `artifacts_inline` / `explore_artifact_read` / needle 1–2 lines, then act.\n\
+    Tools free.";
+
+pub const EXPLORE_COVERED_REREAD_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.explore_covered_reread",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "parent_file_read_path_in_last_explore_paths_read",
+	topics: &["plan_assign_merge", "explore", "context"],
+	claims: &[
+		"explore.covered_reread=soft_prefer",
+		"plan_assign_merge=soft_prefer",
+	],
+	body: EXPLORE_COVERED_REREAD_NUDGE,
 };
 
 /// Soft — relectures parent en rotation multi-path (angle mort M1–M4 / S1).
@@ -258,19 +295,9 @@ pub const ROTATING_FILE_READ_MIN_DISTINCT_REPEATED: usize = 2;
 pub const ROTATING_FILE_READ_REPEAT_AT: u32 = 2;
 
 pub const ROTATING_FILE_READ_NUDGE: &str = "ROTATING RE-READS — soft reminder (not a hard gate)\n\
-    \n\
-    You are cycling `file_read` across a small set of paths without mutating or advancing \
-    the plan. That burns context and stalls the run.\n\
-    \n\
-    **Preferred next move — pick ONE:**\n\
-    1. Act from what you already have (`file_write` / `file_edit`, or `[phase: answering]` + \
-       `[phase: done]`).\n\
-    2. If understanding is still thin: one focused `task` (`explore`), then merge — do not \
-       keep parent-reading the same cluster.\n\
-    3. Update `todo_write` to reflect progress / next step.\n\
-    \n\
-    Needle exception (1–2 known paths, new line ranges only): you may ignore this reminder. \
-    Tools stay free.";
+    Cycling `file_read` on a small path set without advancing — burns context.\n\
+    **Pick ONE:** act (`file_edit`/`file_write`/answer+done) · one focused `task` then merge · \
+    update `todo_write`. Needle 1–2 new ranges: ignore OK. Tools free.";
 
 pub const ROTATING_FILE_READ_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.rotating_file_read",
@@ -294,10 +321,9 @@ pub fn context_load_nudge(
 ) -> String {
 	format!(
 		"[Context load] files≈{files_effective} ≈{total_kb}KB → load={load}. \
-Follow the **Sub-agents — Explore** supplement (Plan → Assign at step kickoff → Merge). \
-Prefer about **{recommended_n}** explore-sized plan steps; keep only reports in the parent — \
-do **not** parent-read the whole tree. Sequential is fine if concurrency is 1. \
-Guidance only — a smaller N is OK when scope is clearly tighter."
+Follow **Sub-agents — Explore** (do not restate protocol). Prefer ~**{recommended_n}** \
+explore-sized steps; keep reports only in parent — no whole-tree parent-read. \
+Smaller N OK if scope is tighter."
 	)
 }
 
@@ -310,17 +336,9 @@ pub fn explore_incomplete_nudge(
 	format!(
 		"[Explore incomplete] truncated=true iterations_used={iterations_used}/{max_iterations}.\n\
 \n\
-You are the **session master**. That Explore did not finish cleanly. You receive ONLY \
-structured reports — **do not** rescue by flooding the parent with `file_read` / `grep` / \
-`Get-Content` on the same perimeter.\n\
-\n\
-Choose **ONE** predictable path NOW:\n\
-1. **Re-split** — `todo_write` then spawn about **{n}** focused `task` (`explore`) missions \
-(one concern each). Each call MUST set `must_return` to the acceptance criteria your \
-overall mission still needs from that child.\n\
-2. **Needle** — only if you already know **1–2** exact paths: ranged `file_read` / `grep` \
-on those paths only.\n\
-\n\
-Forbidden: parent-read spam, re-opening Explore spill JSON, or one new mega-brief `task`."
+Explore did not finish cleanly — **do not** rescue with parent `file_read`/`grep` dumps.\n\
+**ONE path:** (1) re-split → ~**{n}** focused `task` (one concern each) · \
+(2) needle 1–2 known paths only.\n\
+Forbidden: parent-read spam, spill re-open, or one mega-brief `task`."
 	)
 }

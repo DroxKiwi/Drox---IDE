@@ -1,0 +1,25 @@
+---
+description: Hygiène des binaires drox.exe (debug vs resources) — dogfood et package
+alwaysApply: true
+---
+
+# Binaire Drox — hygiène
+
+Deux rôles, pas N sources de vérité :
+
+| Rôle | Chemin | Usage |
+|------|--------|--------|
+| **Dogfood / F5** | `drox-engine/drox/target/debug/drox.exe` | Source de vérité après lots moteur |
+| **Snapshot embarqué** | `resources/drox/<plateforme>/drox[.exe]` | Aligné via `package-drox` |
+
+## Habitudes (agent + dev)
+
+1. Après un lot moteur (`drox-cli` / `drox-engine` / prompts injectés au runtime) : `cargo build -p drox-cli` depuis `drox-engine/drox`.
+2. Avant dogfood sensible ou workspace externe : resync snapshot  
+   `.\scripts\package-drox.ps1 -Profile debug` (Windows) — même binaire que debug.
+3. Avant **ship** : `.\scripts\package-drox.ps1` (profil `release`, `DROX_OMIT_DEV_BUILD=1`) ou `npm run package-drox`.
+4. Ne **pas** supprimer `resources/…/drox.exe` à la main ; toujours passer par le script.
+5. `target/*/deps/drox.exe` = artefact Cargo — ignorer (pas le spawn).
+6. Éviter `drox.executablePath` = `drox` nu ; chemin absolu vers `target/debug` seulement si le probe est douteux.
+
+Doc officielle : [`resources/drox/README.md`](../../resources/drox/README.md) · résolution : `droxExecutable.ts`.

@@ -3,11 +3,13 @@
 Document vivant (étape 0 du désempilage). Décrire **l’état actuel**, pas la cible idéale.
 Mettre à jour quand l’ordre d’assemblage ou un scénario change ; tracer le « pourquoi » dans [`journal.md`](journal.md).
 
+**Volumes / contradictions** : [`inventory-instructions.md`](inventory-instructions.md) (`cargo run -p drox-prompts --example inventory`).
+
 ## Canaux (ne pas confondre)
 
 | Canal | Où | Contenu typique |
 |-------|-----|-----------------|
-| **A. Blob system parent** | 1× `Message::system` au boot (`AgentConfig.system_prompt`) | CORE + annexes host + listing mémoire/skills/map + supplements session |
+| **A. Blob system parent** | 1× `Message::system` au boot (`AgentConfig.system_prompt`) | CORE + annexes host + **index 1 ligne** mémoire/skills/map (C3) + supplements session (flags) |
 | **B. Messages system runtime** | `drive.rs` chaque tour / au besoin | Situation card, frames turn-0, nudges gates/rescues |
 | **C. Tool schemas** | API tools du provider | `tools.*.description` (catalogue `tools.rs`) |
 | **D. Ask one-shot** | Hors transcript agent | Boot session intent (`model_questions`) — RTT séparé, tools off |
@@ -23,10 +25,10 @@ Ordre approximatif dans **une** string system :
 
 1. `session.core` — `CORE_SYSTEM_PROMPT` (`prepend_core_system_prompt`)
 2. Host / memdir — `params.system` (IDE) + préfixe MEMORY si mémoire on
-3. Listing sessions archivées (si mémoire on) — *hors catalogue prompts*
-4. Catalogue skills — *hors catalogue*
+3. Index sessions archivées 1 ligne (si mémoire on) — *hors catalogue* (C3)
+4. Index skills 1 ligne — *hors catalogue* (C3)
 5. `.droxignore` formaté — *hors catalogue*
-6. Workspace map — *hors catalogue*
+6. Index workspace map 1 ligne — *hors catalogue* (C3)
 7. Supplément langue — *hors catalogue*
 8. `session.native_thinking` — si `native_thinking`
 9. `session.outside_ws.read` / `session.outside_ws.write` — si toggles lecture / écriture hors-WS
@@ -45,7 +47,9 @@ Puis, dans `drive.rs` **après** ce blob (canal B, messages séparés) :
 
 | Moment | Condition (résumé) | Id catalogue / builder |
 |--------|-------------------|-------------------------|
-| Chaque tour (avant stream) | toujours | situation card (engine, hors fiche body fixe) |
+| Chaque tour (avant stream) | toujours | situation card bornée C4 : gauge / next / constraint |
+| Après Explore OK | one-shot | `runtime.post_merge_closure` + `runtime.micro_act_write` (C4 micros) |
+| Après `ask_user_question` OK | one-shot | `runtime.post_ask_acting` (**D4** skeleton / mutate) |
 | Turn-0 | `session_frames.work_plan` | `runtime.work_plan_frame` |
 | Turn-0 | Explore + `doc_ingestion` | `runtime.doc_ingestion` |
 | Après ≥2 outils réussis (toute activité) sans `todo_write` | work ou doc frame | `runtime.work_without_plan` (soft, one-shot ; ignore OK si légitime) |
@@ -53,7 +57,8 @@ Puis, dans `drive.rs` **après** ce blob (canal B, messages séparés) :
 | Étape `in_progress` + ≥2 outils parent sans `task` | Explore on | `runtime.step_without_explore` (soft, one-shot / step) |
 | Streak lectures parent | Explore on + seuil | `runtime.s5_heavy_read` |
 | Explore tronqué + lectures | … | `runtime.explore_rescue` / `explore_incomplete_nudge` |
-| `task` Explore réussi (`truncated: false`) | one-shot | `runtime.post_merge_closure` |
+| `task` Explore réussi (`truncated: false`) | one-shot | voir ligne « Après Explore OK » ci-dessus |
+| Parent `file_read` d’un path ∈ `paths_read` Explore (après merge OK) | one-shot / fenêtre Explore | `runtime.explore_covered_reread` (C2) |
 | `task.return_kinds` + artefacts / index | Explore on | schéma `task` + tools `explore_index_*` (scope `ses_`) |
 | Fenêtre `file_read` rotative (multi-path) | seuils fenêtre | `runtime.rotating_file_read` |
 | Post-glob context load | policy | `context_load_nudge` (dynamique) |
@@ -101,7 +106,9 @@ Légende : **A** = déjà dans le blob system ; **B** = message system runtime ;
 ### S6 — Explore enfant
 
 - **E** : `explore.system` (+ thoroughness) ; `session_intent_preclassified=true` (pas d’ask boot sur le brief)
-- Phase report : `explore.report_synthesis` — **JSON** kinds → artefacts (`parse` + retry ; fallback markdown last-match + stub lint)
+- Phase 1 description : **plafonnée** (~900 car. mission) + contrat kinds / must_return courts (`normalize_explore_task_description`)
+- Phase report : **cascade** `materialize/fill/<kind>/` (1 kind = 1 tour, `FILL_KIND_SYSTEM` + template JSON) puis `assemble` (`write_explore_bundle`) — marker `c5b.cascade_fill`
+- Interfaces : arbo `src/explore/cascade/` ; legacy `explore.report_synthesis` reste au catalogue (bridge / non utilisé par le runner)
 - Parent reçoit summary / report_path / artifacts — pas le transcript enfant
 
 ## Sites de code (pour tracer)

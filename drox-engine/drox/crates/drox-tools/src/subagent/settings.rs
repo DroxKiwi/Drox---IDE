@@ -10,9 +10,12 @@ pub struct SubagentSettings {
 	pub max_iterations: usize,
 	/// Nombre max de sous-agents en parallèle (V1 : file d'attente via sémaphore).
 	pub max_concurrent: usize,
-	/// Thinking natif en **phase exécution** Explore. La phase rapport force toujours `false`.
+	/// Thinking natif en **phase exécution** Explore.
 	/// Défaut `false` (évite notes CoT polluant la synthèse).
 	pub execution_think: bool,
+	/// Thinking natif en **phase rapport** (synth JSON kinds).
+	/// Défaut `false` — peut fuir du CoT dans les artefacts si on.
+	pub report_think: bool,
 }
 
 impl Default for SubagentSettings {
@@ -22,6 +25,7 @@ impl Default for SubagentSettings {
 			max_iterations: 25,
 			max_concurrent: 3,
 			execution_think: false,
+			report_think: false,
 		}
 	}
 }

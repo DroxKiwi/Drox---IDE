@@ -108,7 +108,7 @@ Artifacts + index are **scoped to this discussion only** (`explore_index_list` n
    - scoped `description` (goal + paths for **that** mission),
    - `return_kinds` (prefer): `paths_read` | `file_summaries` | `key_symbols` | `code_snippets` | `structure_map` | `gaps`,
    - optional `return_options` caps, optional `must_return` prose extras, optional `plan_step_id`.
-3. **Merge** — trust `summary` / `blurb` / `artifacts`; use `explore_artifact_read` for one kind. Check `truncated` / `kinds_incomplete`. Do **not** re-ingest the same files into the parent. If incomplete, re-split — never parent-read spam.
+3. **Merge** — trust `artifacts_inline` (capped kind bodies in the `task` result) + `summary` / `blurb` / `artifacts` paths; `explore_artifact_read` only to zoom. Check `truncated` / `kinds_incomplete`. Do **not** re-ingest the same source files into the parent. If incomplete, re-split — never parent-read spam.
 
 ## MUST use `task` (at plan step kickoff)
 

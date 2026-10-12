@@ -187,9 +187,12 @@ pub struct AgentRunParams {
     /// Nombre max de sous-agents en parallèle (file d'attente).
     #[serde(default)]
     pub subagents_max_concurrent: Option<usize>,
-    /// Thinking natif phase **exécution** Explore (`false` / absent = off). Rapport = toujours off.
+    /// Thinking natif phase **exécution** Explore (`false` / absent = off).
     #[serde(default)]
     pub subagents_execution_think: Option<bool>,
+    /// Thinking natif phase **rapport** Explore (`false` / absent = off).
+    #[serde(default)]
+    pub subagents_report_think: Option<bool>,
     /// Fenêtre de contexte Ollama (`num_ctx`) — vignette Architecte IDE.
     #[serde(default)]
     pub num_ctx: Option<i64>,

@@ -1,5 +1,7 @@
 //! Résultat `task` / Explore + détection lectures parent lourdes (S-5).
 
+use serde_json::Value;
+
 /// Applique le résultat d'un `task` réussi : reset streak si OK, sinon filet truncated.
 pub(crate) fn note_task_tool_success(
 	truncated: bool,
@@ -25,7 +27,7 @@ pub(crate) fn note_task_tool_success(
 
 /// Lit les champs télémétrie Explore depuis la sortie `task` (avant move du Value).
 #[must_use]
-pub(crate) fn task_outcome_telemetry(value: &serde_json::Value) -> (bool, u64, u64) {
+pub(crate) fn task_outcome_telemetry(value: &Value) -> (bool, u64, u64) {
 	let truncated = value
 		.get("truncated")
 		.and_then(|v| v.as_bool())
@@ -39,6 +41,34 @@ pub(crate) fn task_outcome_telemetry(value: &serde_json::Value) -> (bool, u64, u
 		.and_then(|v| v.as_u64())
 		.unwrap_or(0);
 	(truncated, used, max_it)
+}
+
+/// **D2** — livrable Explore inutilisable (pas de merge / pas de step-complete).
+///
+/// `status == "partial"`, ou truncated + `artifacts_inline` vide + `kinds_incomplete` non vide.
+#[must_use]
+pub(crate) fn explore_deliverable_empty(value: &Value) -> bool {
+	if value.get("status").and_then(|v| v.as_str()) == Some("partial") {
+		return true;
+	}
+	let truncated = value
+		.get("truncated")
+		.and_then(|v| v.as_bool())
+		.unwrap_or(false);
+	if !truncated {
+		return false;
+	}
+	let inline_empty = match value.get("artifacts_inline") {
+		None => true,
+		Some(Value::Object(map)) => map.is_empty(),
+		Some(_) => true,
+	};
+	let incomplete = value
+		.get("kinds_incomplete")
+		.and_then(|v| v.as_array())
+		.map(|a| !a.is_empty())
+		.unwrap_or(false);
+	inline_empty && incomplete
 }
 
 /// `true` si l'appel parent risque de saturer le contexte (S-5).
@@ -64,5 +94,41 @@ pub(crate) fn counts_as_parent_heavy_read(tool_name: &str, arguments: &serde_jso
 				|| cmd.split_whitespace().any(|t| t == "cat" || t == "type")
 		}
 		_ => false,
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use serde_json::json;
+
+	#[test]
+	fn empty_via_status_partial() {
+		assert!(explore_deliverable_empty(&json!({
+			"status": "partial",
+			"truncated": true,
+			"artifacts_inline": {},
+			"kinds_incomplete": ["paths_read"]
+		})));
+	}
+
+	#[test]
+	fn empty_via_truncated_inline_incomplete() {
+		assert!(explore_deliverable_empty(&json!({
+			"truncated": true,
+			"artifacts_inline": {},
+			"kinds_incomplete": ["gaps"]
+		})));
+		assert!(!explore_deliverable_empty(&json!({
+			"truncated": true,
+			"status": "kinds_incomplete",
+			"artifacts_inline": { "paths_read": "- a.ts" },
+			"kinds_incomplete": ["gaps"]
+		})));
+		assert!(!explore_deliverable_empty(&json!({
+			"truncated": false,
+			"artifacts_inline": { "gaps": "x" },
+			"kinds_incomplete": []
+		})));
 	}
 }

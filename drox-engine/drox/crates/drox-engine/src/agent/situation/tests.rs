@@ -19,12 +19,27 @@ fn format_includes_marker_and_fields() {
 	};
 	let s = format_situation_card(&snap);
 	assert!(s.starts_with(SITUATION_CARD_MARKER));
+	assert_eq!(situation_card_body_line_count(&s), SITUATION_CARD_BODY_LINES);
 	assert!(s.contains("Adapter la page engine"));
 	assert!(s.contains("2 open"));
 	assert!(s.contains("Écrire engine/page.tsx"));
-	assert!(s.contains("src/a.tsx"));
-	assert!(s.contains("acceptEdits"));
-	assert!(s.contains("last_tool_error: none"));
+	assert!(s.contains("mode=acceptEdits"));
+	assert!(s.contains("- constraint:"));
+	// V4-c : files_touched non injectés.
+	assert!(!s.contains("src/a.tsx"));
+	assert!(!s.contains("files_touched"));
+	assert!(!s.to_ascii_lowercase().contains("plan → assign"));
+}
+
+#[test]
+fn format_uses_error_as_sole_constraint() {
+	let snap = SituationSnapshot {
+		last_tool_error: Some("path escapes workspace".into()),
+		..Default::default()
+	};
+	let s = format_situation_card(&snap);
+	assert!(s.contains("constraint: last_tool_error: path escapes workspace"));
+	assert_eq!(situation_card_body_line_count(&s), SITUATION_CARD_BODY_LINES);
 }
 
 #[test]

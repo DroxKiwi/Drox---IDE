@@ -48,44 +48,35 @@ for that — this works even when the outside-workspace session toggle is off). 
 
 pub const TASK_TOOL_DESCRIPTION: &str = "\
 Launch a specialized **Explore** sub-agent (read-only: grep, glob, file_read, lsp, …) in an \
-**isolated context**. Prefer this over parent `file_read` spam to **save your context**.
+**isolated context**. Prefer over parent `file_read` spam to **save context**.
 
-The child writes session-scoped artifacts under `.drox/subagents/<this discussion>/…`. You receive \
-`explore_id`, short **summary**/**blurb**, `report_path`, and `artifacts` map — not a full dump. \
-Navigate later with `explore_index_list` / `explore_artifact_read` (same discussion only).
+**Protocol:** Plan → Assign → Merge lives in the system **Sub-agents — Explore** supplement \
+(when present) — do not re-derive it here.
 
-**Return contracts (prefer always):** set `return_kinds` to the formats you need. The engine \
-report phase fills each kind (JSON → artefact file) and flags `kinds_incomplete` if a kind \
-is missing/stub. Available kinds:\n\
-- `paths_read` — paths inventoried/read\n\
-- `file_summaries` — short per-file summaries\n\
-- `key_symbols` — key fns/types/routes\n\
-- `code_snippets` — bounded code excerpts\n\
-- `structure_map` — modules / tree\n\
-- `gaps` — missing info / uncertainties\n\
-Optional `return_options` caps (**must be a JSON object**, never a stringified JSON string): \
-maxFiles, maxCharsPerFile, maxSnippets, maxItems, maxDepth, focus, signaturesOnly, \
+You receive `explore_id`, short **summary**/**blurb**, `artifacts` paths, and \
+**`artifacts_inline`** (capped kind bodies for immediate merge) — not a source-tree dump. \
+Zoom with `explore_index_list` / `explore_artifact_read` (same discussion only). \
+Artifacts under `.drox/subagents/<this discussion>/…`. Child may `file_read` **absolute \
+paths outside the workspace** (RO) — put them in `description`.
+
+**Return contracts (prefer always):** set `return_kinds`. Engine fills each kind \
+(JSON → artefact) and flags `kinds_incomplete` if missing/stub. Kinds: \
+`paths_read` | `file_summaries` | `key_symbols` | `code_snippets` | `structure_map` | `gaps`. \
+Optional `return_options` (**JSON object**, never a stringified JSON string): maxFiles, \
+maxCharsPerFile, maxSnippets, maxItems, maxDepth, focus, signaturesOnly, \
 includeLineCounts, globFilter, symbolKinds.
 
-The child may `file_read` **absolute paths outside the workspace** (read-only) — put them in \
-`description`.
+**When:** understanding / synthesis / multi-file / docs / unfamiliar (≥3 files). \
+**When NOT:** needle 1–2 known paths; mutations (Explore is RO).
 
-**Session-master protocol (soft — tools stay free):**
-1. **Plan** — for work asks, `todo_write` before heavy reading (2–4 focused steps when scope splits).
-2. **Assign at step kickoff** — one `task` per `in_progress` step; set `return_kinds` + optional \
-`must_return` / `plan_step_id`.
-3. **Merge** — use `summary` / `explore_artifact_read(kind)` — do **not** re-ingest the tree. If \
-`truncated` or `kinds_incomplete` non-empty, spawn narrower missions.
-
-**When to use:** understanding / synthesis / multi-file / docs / unfamiliar areas (≥3 files).
-**When NOT:** needle on 1–2 known paths; mutations (Explore is RO).
-
-**Args:** `title`, `description`, `return_kinds` (string[]), \
+**Args:** `title`, `description` (**short scoop** — goal + folders/symbols; engine caps ~900 chars; \
+no essays), `return_kinds` (string[]), \
 `return_options` (object — e.g. `{\"maxFiles\":25}`, **not** `\"{\\\"maxFiles\\\":25}\"`), \
-`must_return` (legacy prose), `plan_step_id`, `subagent_type`=`explore`, \
+`must_return` (legacy prose, few short items), `plan_step_id`, `subagent_type`=`explore`, \
 `thoroughness`=`quick|medium|very thorough`.
 
-Requires `drox.subagents.enabled`. V1: `explore` only. Index is **this discussion only**.";
+Requires `drox.subagents.enabled`. V1: `explore` only. Index is **session-scoped** \
+(this discussion only).";
 
 pub const TASK_TOOL_ENTRY: PromptEntry = PromptEntry {
 	id: "tools.task.description",
@@ -93,11 +84,9 @@ pub const TASK_TOOL_ENTRY: PromptEntry = PromptEntry {
 	strength: PromptStrength::Prefer,
 	audience: PromptAudience::ToolSchema,
 	when: "tool_registered:task",
-	topics: &["plan_assign_merge", "explore", "docs_tree", "outside_ws"],
+	// Protocol canon = session.subagents.explore ; schema = contracts + args only.
+	topics: &["explore", "outside_ws"],
 	claims: &[
-		"plan_assign_merge=soft_prefer",
-		"docs_tree.inventory=via_explore",
-		"parent_dump.docs_tree=forbidden_prefer",
 		"explore.file_read_absolute=same_as_parent",
 		"outside_ws.file_read=always",
 		"explore.return_kinds=typed_prefer",
@@ -127,6 +116,26 @@ tool_prompt!(
 (paths_read|file_summaries|key_symbols|code_snippets|structure_map|gaps). \
 Scoped to **this discussion** — unknown explore_id from another chat is rejected. \
 Prefer over re-reading the original source tree."
+);
+
+tool_prompt!(
+	EXPLORE_COMMIT_TOOL_DESCRIPTION,
+	EXPLORE_COMMIT_TOOL_ENTRY,
+	"tools.explore_commit.description",
+	"explore_commit",
+	claims: &[
+		"explore.commit=tool_channel",
+		"explore.report.format=commit_kinds",
+	],
+	"Explore child only — deposit one return **kind** for the parent (progressive). \
+Call after each useful batch of reads (not a final essay). \
+`kind` must be a parent-requested return kind \
+(paths_read|file_summaries|key_symbols|code_snippets|structure_map|gaps). \
+`body` = markdown facts for **that kind only** — no CoT/think tags, no essay openers \
+(\"Let me…\"), no `## <other_kind>` headings (engine rejects multi-kind paste). \
+`append` (optional bool) concatenates onto a previous commit for the same kind. \
+Effect: in-memory; engine writes artifacts at end of Explore. \
+Format: {\"kind\":\"…\",\"body\":\"…\",\"append\"?:false}."
 );
 
 // ── Core FS / search ────────────────────────────────────────────────────────
@@ -521,11 +530,12 @@ pub fn all_tool_entries() -> &'static [PromptEntry] {
 	&TOOL_ENTRIES
 }
 
-static TOOL_ENTRIES: [PromptEntry; 36] = [
+static TOOL_ENTRIES: [PromptEntry; 37] = [
 	FILE_READ_TOOL_ENTRY,
 	TASK_TOOL_ENTRY,
 	EXPLORE_INDEX_LIST_TOOL_ENTRY,
 	EXPLORE_ARTIFACT_READ_TOOL_ENTRY,
+	EXPLORE_COMMIT_TOOL_ENTRY,
 	GREP_TOOL_ENTRY,
 	GLOB_TOOL_ENTRY,
 	BASH_TOOL_ENTRY,

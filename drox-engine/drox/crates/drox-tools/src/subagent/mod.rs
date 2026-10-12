@@ -1,5 +1,6 @@
 //! Sous-agents (§2.10) — types partagés (settings, outcome, contrats de retour).
 
+pub mod commit;
 mod explore_request;
 mod index;
 mod outcome;
@@ -7,6 +8,10 @@ mod return_kinds;
 mod settings;
 mod subagent_executor_trait;
 
+pub use commit::{
+	record_tool_evidence, EvidencePath, ExploreCommitHandle, ExploreCommitSnapshot,
+	MAX_COMMIT_BODY_CHARS,
+};
 pub use explore_request::ExploreRequest;
 pub use index::{
 	append_index_entry, build_blurb, find_index_entry, index_path, kinds_as_strings,

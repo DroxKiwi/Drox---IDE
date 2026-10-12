@@ -33,6 +33,7 @@
 		}
 		setVal('general-settings-subagents-enabled', s.subagentsEnabled !== false);
 		setVal('general-settings-subagents-execution-think', s.subagentsExecutionThink === true);
+		setVal('general-settings-subagents-report-think', s.subagentsReportThink === true);
 		setVal('general-settings-project-rules-enabled', s.projectRulesEnabled !== false);
 		setVal('general-settings-outside-ws-read', s.allowOutsideWorkspaceRead);
 		setVal('general-settings-outside-ws-write', s.allowOutsideWorkspaceWrite);
@@ -94,6 +95,9 @@
 		}
 		if (document.getElementById('general-settings-subagents-execution-think')) {
 			patch.subagentsExecutionThink = bool('general-settings-subagents-execution-think');
+		}
+		if (document.getElementById('general-settings-subagents-report-think')) {
+			patch.subagentsReportThink = bool('general-settings-subagents-report-think');
 		}
 		if (document.getElementById('general-settings-project-rules-enabled')) {
 			patch.projectRulesEnabled = bool('general-settings-project-rules-enabled');

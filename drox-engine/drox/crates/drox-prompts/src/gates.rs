@@ -35,19 +35,9 @@ pub const CODE_MUTATION_TESTING_ENTRY: PromptEntry = PromptEntry {
 pub const REPEATED_FILE_READ_NUDGE_THRESHOLD: u32 = 3;
 
 pub const REPEATED_FILE_READ_NUDGE: &str = "STOP re-reading the same file.\n\
-    \n\
-    You already successfully `file_read` the same path multiple times in this run. \
-    Do **not** call `file_read` (or bash `Get-Content`/`cat`/`type`) on it again.\n\
-    \n\
-    Next step — pick ONE:\n\
-    1. If you have enough context: write / edit (`file_write`/`file_edit`) or answer \
-       (`[phase: answering]` + `[phase: done]`).\n\
-    2. If you still need broad understanding: delegate one or more focused `task` \
-       (`explore`) missions (short `title` + scoped `description`), then act from the reports.\n\
-    3. If you need a different slice of another file: read a **new** path or a clearly \
-       different line range on a file you have not already fully covered.\n\
-    \n\
-    Re-reading the same path burns context and loops the run.";
+    Same path already `file_read` successfully — do not re-call it (nor bash Get-Content/cat/type).\n\
+    **Pick ONE:** act/answer · one focused `task` then merge · new path or clearly new line range.\n\
+    Re-reading the same path burns context.";
 
 pub const REPEATED_FILE_READ_ENTRY: PromptEntry = PromptEntry {
 	id: "gates.repeated_file_read",

@@ -8,10 +8,12 @@
 //! | [`budget`] | Plafond d'itérations phase **exécution** |
 //! | [`explore_ui_progress`] | Activity lines + progress live UI (pas le parent) |
 //! | [`report`] | Format rapport parent + helpers texte |
-//! | [`explore_artifact`] | `.drox/subagents/…/conclusion.md` |
-//! | [`explore_executor`] | `EngineSubagentExecutor` : phase 1 tools → phase 2 compte rendu |
+//! | [`explore_artifact`] | `.drox/subagents/…/<kind>.md` + manifest (pas de conclusion) |
+//! | [`cascade_fill`] | Fallback legacy fill JSON (non nominal Option A) |
+//! | [`explore_executor`] | `EngineSubagentExecutor` : tools + commit → assemble |
 
 mod budget;
+mod cascade_fill;
 mod explore_artifact;
 mod explore_executor;
 mod explore_ui_progress;

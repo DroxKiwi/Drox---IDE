@@ -31,10 +31,12 @@
 //! | [`loop_detect`] | Anti-boucle d'empreintes (texte + tool_calls) |
 //! | [`consume_llm_stream`] | Consommation du stream LLM → événements agent |
 //! | [`dispatch`] | Erreurs outil, confirmation user, specs exposées au LLM |
+//! | [`tool_result_spill`] | Spill/stub gros tool results (C1 concentration) |
 
 pub mod config;
 pub mod context_load;
 pub mod dispatch;
+pub mod tool_result_spill;
 pub mod gates;
 pub mod hallucination;
 pub mod loop_detect;

@@ -33,8 +33,9 @@ use super::super::nudges::{
     EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,
     INTENT_ONLY_WRITE_MAX_NUDGES, INTENT_ONLY_WRITE_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
     LOOP_TOOL_FAMILY_NUDGE_PROMPT, MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
-    MISSING_ANSWERING_PROMPT, NUDGE_PROMPT, PARENT_HEAVY_READ_NUDGE,
-    PARENT_HEAVY_READ_NUDGE_THRESHOLD, POST_MERGE_CLOSURE_NUDGE, REPEATED_FILE_READ_NUDGE,
+    EXPLORE_COVERED_REREAD_NUDGE, MICRO_ACT_WRITE_NUDGE, MISSING_ANSWERING_PROMPT, NUDGE_PROMPT,
+    PARENT_HEAVY_READ_NUDGE, PARENT_HEAVY_READ_NUDGE_THRESHOLD, POST_ASK_ACTING_NUDGE,
+    POST_MERGE_CLOSURE_NUDGE, REPEATED_FILE_READ_NUDGE,
     REPEATED_FILE_READ_NUDGE_THRESHOLD, ROTATING_FILE_READ_NUDGE, WORK_PLAN_FRAME_NUDGE,
     WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD,
     step_explore_kickoff_nudge, step_without_explore_nudge,
@@ -51,8 +52,9 @@ use super::super::situation::{
     clear_rotating_file_read_window, completed_todos_hint, counts_as_parent_heavy_read,
     first_in_progress_todo_id, next_todo_from_output, note_rotating_file_read,
     note_successful_file_read, note_task_tool_success, path_from_file_tool,
-    rotating_file_read_should_nudge, task_outcome_telemetry, upsert_situation_card,
-    SituationSnapshot,
+    explore_deliverable_empty, rotating_file_read_should_nudge, task_outcome_telemetry,
+    upsert_situation_card,
+    ExploreCoveredPaths, SituationSnapshot,
 };
 use super::super::consume_llm_stream::{consume_stream, push_assistant_message};
 use super::Agent;
@@ -244,6 +246,15 @@ impl Agent {
         let mut recent_file_reads: VecDeque<String> = VecDeque::new();
         let mut rotating_file_read_nudge_sent = false;
         let mut pending_post_merge_closure_nudge = false;
+        // C4 / V6-a — micro acting write juste après post-merge.
+        let mut pending_micro_act_write_nudge = false;
+        let mut micro_act_write_nudge_sent = false;
+        // C2 / V2-c — paths Explore couverts → Prefer si parent re-file_read.
+        let mut explore_covered_paths = ExploreCoveredPaths::default();
+        let mut pending_explore_covered_reread_nudge = false;
+        let mut explore_covered_reread_nudge_sent = false;
+        // D4 — après ask_user_question réussi → soft skeleton / mutate.
+        let mut pending_post_ask_acting_nudge = false;
         let task_tool_available = tool_specs.iter().any(|s| s.name == "task");
         // Systèmes injectés en tête de `messages` (re-poussés à chaque run) —
         // exclus du rewrite JSONL post-compaction (C-1). Inclut la situation
@@ -301,6 +312,17 @@ impl Agent {
             };
             if upsert_situation_card(&mut messages, &situation, leading_injected_systems) {
                 leading_injected_systems = leading_injected_systems.saturating_add(1);
+                debug!(
+                    marker = "c4.situation_card",
+                    inserted = true,
+                    "dogfood: situation card inserted (bounded)"
+                );
+            } else {
+                debug!(
+                    marker = "c4.situation_card",
+                    inserted = false,
+                    "dogfood: situation card refreshed (bounded)"
+                );
             }
 
             // Soft plan-frame (classif isWork) — texte only.
@@ -339,7 +361,11 @@ impl Agent {
             // Soft — kickoff d'une nouvelle étape plan → Explore pour cette étape.
             if task_tool_available {
                 if let Some((step_id, step_content)) = pending_step_explore_nudge.take() {
-                    debug!(%step_id, "step kickoff — soft Explore nudge");
+                    debug!(
+                        marker = "c4.micro_task_kickoff",
+                        %step_id,
+                        "dogfood: step kickoff — soft Explore micro"
+                    );
                     messages.push(Message::system(step_explore_kickoff_nudge(
                         &step_id,
                         step_content.as_deref(),
@@ -435,9 +461,48 @@ impl Agent {
 
             // Soft — Explore réussi → fusionner / agir (one-shot par succès).
             if pending_post_merge_closure_nudge {
-                debug!("post-merge Explore — soft closure nudge");
+                debug!(
+                    marker = "c2.post_merge_closure",
+                    "dogfood: post-merge Explore — soft closure nudge"
+                );
                 messages.push(Message::system(POST_MERGE_CLOSURE_NUDGE));
                 pending_post_merge_closure_nudge = false;
+                if !micro_act_write_nudge_sent {
+                    pending_micro_act_write_nudge = true;
+                }
+            }
+
+            // Soft C4 — micro acting write juste après post-merge (V6-a).
+            if pending_micro_act_write_nudge && !micro_act_write_nudge_sent {
+                debug!(
+                    marker = "c4.micro_act_write",
+                    "dogfood: micro act-write prefer after Explore merge"
+                );
+                messages.push(Message::system(MICRO_ACT_WRITE_NUDGE));
+                pending_micro_act_write_nudge = false;
+                micro_act_write_nudge_sent = true;
+            }
+
+            // Soft C2 — parent re-lit un path déjà dans paths_read Explore.
+            if pending_explore_covered_reread_nudge && !explore_covered_reread_nudge_sent {
+                debug!(
+                    marker = "c2.explore_covered_reread_prefer",
+                    covered_n = explore_covered_paths.len(),
+                    "dogfood: Explore-covered path re-read — soft prefer"
+                );
+                messages.push(Message::system(EXPLORE_COVERED_REREAD_NUDGE));
+                pending_explore_covered_reread_nudge = false;
+                explore_covered_reread_nudge_sent = true;
+            }
+
+            // Soft D4 — user a répondu → skeleton / mutate (pas re-inventaire).
+            if pending_post_ask_acting_nudge {
+                debug!(
+                    marker = "d4.post_ask_acting",
+                    "dogfood: post-ask_user — soft skeleton/mutate prefer"
+                );
+                messages.push(Message::system(POST_ASK_ACTING_NUDGE));
+                pending_post_ask_acting_nudge = false;
             }
 
             // Soft — rotation multi-path `file_read` (angle mort S1).
@@ -445,8 +510,9 @@ impl Agent {
                 && rotating_file_read_should_nudge(&recent_file_reads)
             {
                 debug!(
+                    marker = "c1.rotating_file_read",
                     window = recent_file_reads.len(),
-                    "rotating file_read — soft nudge"
+                    "dogfood: rotating file_read — soft nudge"
                 );
                 messages.push(Message::system(ROTATING_FILE_READ_NUDGE));
                 rotating_file_read_nudge_sent = true;
@@ -997,7 +1063,24 @@ impl Agent {
                                         }
                                     }
                                     let task_telem = if call.name == "task" {
-                                        Some(task_outcome_telemetry(&value))
+                                        let telem = task_outcome_telemetry(&value);
+                                        let empty_fail = explore_deliverable_empty(&value);
+                                        // C2 / D3 : paths_read même si truncated (merge ;
+                                        // ne jamais clear — conserve couverture précédente).
+                                        if telem.0 {
+                                            explore_covered_paths.merge_from_task_outcome(
+                                                &value,
+                                                ctx.workspace_root.as_std_path(),
+                                            );
+                                        } else {
+                                            explore_covered_paths.ingest_from_task_outcome(
+                                                &value,
+                                                ctx.workspace_root.as_std_path(),
+                                            );
+                                        }
+                                        explore_covered_reread_nudge_sent = false;
+                                        pending_explore_covered_reread_nudge = false;
+                                        Some((telem, empty_fail))
                                     } else {
                                         None
                                     };
@@ -1015,7 +1098,8 @@ impl Agent {
                                     {
                                         return;
                                     }
-                                    if let Some((truncated, used, max_it)) = task_telem {
+                                    if let Some(((truncated, used, max_it), empty_fail)) = task_telem
+                                    {
                                         note_task_tool_success(
                                             truncated,
                                             used,
@@ -1025,12 +1109,14 @@ impl Agent {
                                             &mut explore_rescue_active,
                                             &mut explore_rescue_nudge_sent,
                                         );
-                                        if last_in_progress_todo_id.is_some() {
+                                        // D2 : Explore vide (`partial`) ≠ step-complete.
+                                        if last_in_progress_todo_id.is_some() && !empty_fail {
                                             step_had_task_success = true;
                                             step_parent_activity_count = 0;
                                         }
                                         if !truncated {
                                             pending_post_merge_closure_nudge = true;
+                                            micro_act_write_nudge_sent = false;
                                         }
                                         clear_rotating_file_read_window(&mut recent_file_reads);
                                         rotating_file_read_nudge_sent = false;
@@ -1064,6 +1150,18 @@ impl Agent {
                                         &call.name,
                                         &call.arguments,
                                     );
+                                    if let Some(hit) = explore_covered_paths
+                                        .hit_by_file_read(&call.name, &call.arguments)
+                                    {
+                                        debug!(
+                                            marker = "c2.explore_covered_hit",
+                                            path = %hit,
+                                            "dogfood: parent file_read hits Explore-covered path"
+                                        );
+                                        if !explore_covered_reread_nudge_sent {
+                                            pending_explore_covered_reread_nudge = true;
+                                        }
+                                    }
                                 }
                                 Err(err) => {
                                     if matches!(&err, ToolError::InvalidArgs(_)) {
@@ -1326,6 +1424,7 @@ impl Agent {
                                     if call.name == "task" {
                                         let (truncated, used, max_it) =
                                             task_outcome_telemetry(&value);
+                                        let empty_fail = explore_deliverable_empty(&value);
                                         note_task_tool_success(
                                             truncated,
                                             used,
@@ -1335,13 +1434,27 @@ impl Agent {
                                             &mut explore_rescue_active,
                                             &mut explore_rescue_nudge_sent,
                                         );
-                                        if last_in_progress_todo_id.is_some() {
+                                        // D2 : Explore vide (`partial`) ≠ step-complete.
+                                        if last_in_progress_todo_id.is_some() && !empty_fail {
                                             step_had_task_success = true;
                                             step_parent_activity_count = 0;
                                         }
-                                        if !truncated {
+                                        // C2 / D3 : armer / fusionner même si truncated.
+                                        if truncated {
+                                            explore_covered_paths.merge_from_task_outcome(
+                                                &value,
+                                                ctx.workspace_root.as_std_path(),
+                                            );
+                                        } else {
                                             pending_post_merge_closure_nudge = true;
+                                            micro_act_write_nudge_sent = false;
+                                            explore_covered_paths.ingest_from_task_outcome(
+                                                &value,
+                                                ctx.workspace_root.as_std_path(),
+                                            );
                                         }
+                                        explore_covered_reread_nudge_sent = false;
+                                        pending_explore_covered_reread_nudge = false;
                                         clear_rotating_file_read_window(&mut recent_file_reads);
                                         rotating_file_read_nudge_sent = false;
                                     } else if counts_as_parent_heavy_read(
@@ -1374,8 +1487,22 @@ impl Agent {
                                         &call.name,
                                         &call.arguments,
                                     );
+                                    if let Some(hit) = explore_covered_paths
+                                        .hit_by_file_read(&call.name, &call.arguments)
+                                    {
+                                        debug!(
+                                            marker = "c2.explore_covered_hit",
+                                            path = %hit,
+                                            "dogfood: parent file_read hits Explore-covered path"
+                                        );
+                                        if !explore_covered_reread_nudge_sent {
+                                            pending_explore_covered_reread_nudge = true;
+                                        }
+                                    }
                                     if call.name == "ask_user_question" {
                                         consecutive_ask_user_question_failures = 0;
+                                        // D4 : transition soft acting au tour suivant.
+                                        pending_post_ask_acting_nudge = true;
                                     }
                                     let mut hook_appendix: Option<String> = None;
                                     if let Some(hooks) = self

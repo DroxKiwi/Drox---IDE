@@ -59,6 +59,7 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
 	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
 	const generalSettingsSubagentsExecutionThink = localize('droxChatGeneralSettingsSubagentsExecutionThink', 'Explore execution thinking');
+	const generalSettingsSubagentsReportThink = localize('droxChatGeneralSettingsSubagentsReportThink', 'Explore report thinking');
 	const generalSettingsProjectRulesEnabled = localize('droxChatGeneralSettingsProjectRulesEnabled', 'Project rules (.drox/rules)');
 	const generalSettingsOutsideWsRead = localize('droxChatGeneralSettingsOutsideWsRead', 'Outside workspace — read / inventory');
 	const generalSettingsOutsideWsWrite = localize('droxChatGeneralSettingsOutsideWsWrite', 'Outside workspace — write');
@@ -147,6 +148,7 @@ export function buildDroxComposerPanelsMarkup(): string {
 			<label class="general-settings-field"><span>${generalSettingsExploreMaxIterations}</span><input type="number" id="general-settings-explore-max-iterations" class="general-settings-input" min="1" step="1" /></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-enabled" checked /><span>${generalSettingsSubagentsEnabled}</span></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-execution-think" /><span>${generalSettingsSubagentsExecutionThink}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-report-think" /><span>${generalSettingsSubagentsReportThink}</span></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-project-rules-enabled" checked /><span>${generalSettingsProjectRulesEnabled}</span></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-outside-ws-read" /><span>${generalSettingsOutsideWsRead}</span></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-outside-ws-write" /><span>${generalSettingsOutsideWsWrite}</span></label>

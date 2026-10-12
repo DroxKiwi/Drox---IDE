@@ -11,6 +11,7 @@ use crate::tool_progress::ToolProgressSink;
 use crate::user_ask::UserAsker;
 use crate::scope_deferred::ScopeDeferredHandle;
 use crate::session_notes::SessionNotesHandle;
+use crate::subagent::commit::ExploreCommitHandle;
 use crate::subagent::{SubagentExecutor, SubagentSettings};
 use drox_session::{DroxIgnoreMatcher, WorkspaceMapStore};
 
@@ -57,6 +58,9 @@ pub struct ToolContext {
     pub agent_run_id: Option<String>,
     /// Id de discussion (`ses_…`) — **scope** index / artefacts Explore (pas de fuite cross-chat).
     pub chat_session_id: Option<String>,
+    /// Commits progressifs + journal L0 de l’Explore enfant (`explore_commit`).
+    /// `None` hors run Explore.
+    pub explore_commit: Option<ExploreCommitHandle>,
 }
 
 impl ToolContext {
@@ -81,6 +85,7 @@ impl ToolContext {
             tool_progress: None,
             agent_run_id: None,
             chat_session_id: None,
+            explore_commit: None,
         }
     }
 
@@ -187,6 +192,13 @@ impl ToolContext {
     #[must_use]
     pub fn with_tool_progress(mut self, sink: Arc<dyn ToolProgressSink>) -> Self {
         self.tool_progress = Some(sink);
+        self
+    }
+
+    /// Builder : handle commits Explore (enfant uniquement).
+    #[must_use]
+    pub fn with_explore_commit(mut self, handle: ExploreCommitHandle) -> Self {
+        self.explore_commit = Some(handle);
         self
     }
 
