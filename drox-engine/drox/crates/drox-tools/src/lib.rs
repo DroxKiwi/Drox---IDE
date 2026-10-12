@@ -35,16 +35,17 @@ pub use session_notes::{SessionNote, SessionNotesHandle};
 pub use subagent::{
 	append_index_entry, build_blurb, find_index_entry, format_kinds_contract,
 	format_kinds_json_contract, kinds_as_strings, list_index_entries, parse_return_kinds,
-	sanitize_path_segment, session_subagents_dir, ExploreIndexEntry, ExploreOutcome,
-	ExploreRequest, ExploreReturnKind, ExploreReturnOptions, SubagentExecutor, SubagentSettings,
-	EXPLORE_BLURB_MAX_CHARS,
+	record_tool_evidence, sanitize_path_segment, session_subagents_dir, EvidencePath,
+	ExploreCommitHandle, ExploreCommitSnapshot, ExploreIndexEntry, ExploreOutcome, ExploreRequest,
+	ExploreReturnKind, ExploreReturnOptions, SubagentExecutor, SubagentSettings,
+	EXPLORE_BLURB_MAX_CHARS, MAX_COMMIT_BODY_CHARS,
 };
 pub use simple::{
     AskUserQuestionTool, BashTool, CANONICAL_ASK_JSON_EXAMPLE, ExitPlanModeTool, FileEditTool,
     FileReadTool, FileWriteTool, preview_file_edit_diff, preview_file_write_diff,
     GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
-    ExploreArtifactReadTool, ExploreIndexListTool, ScopeDeferTool, SessionNoteTool, SkillListTool,
-    SkillReadTool, TaskTool, TodoWriteTool,
+    ExploreArtifactReadTool, ExploreCommitTool, ExploreIndexListTool, ScopeDeferTool,
+    SessionNoteTool, SkillListTool, SkillReadTool, TaskTool, TodoWriteTool,
     WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool, register_mcp_tools,
     preview_notebook_edit_diff,
 };

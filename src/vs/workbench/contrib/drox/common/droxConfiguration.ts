@@ -83,8 +83,11 @@ export const enum DroxSetting {
 	/** Max concurrent Explore `task` sub-agents. */
 	SubagentsMaxConcurrent = 'drox.subagents.maxConcurrent',
 
-	/** Native thinking during Explore **execution** phase (report phase always off). */
+	/** Native thinking during Explore **execution** phase. */
 	SubagentsExecutionThink = 'drox.subagents.executionThink',
+
+	/** Native thinking during Explore **report-synthesis** phase (JSON kinds). */
+	SubagentsReportThink = 'drox.subagents.reportThink',
 
 	/**
 	 * Workspace memory (MEMORY.md / DROX.md / `.drox/memory` archives / persist).
@@ -1112,7 +1115,17 @@ export const droxConfigurationNode: IConfigurationNode = {
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.subagents.executionThink',
-				'Enable **native thinking** during the Explore `task` **execution** phase. The report-synthesis turn always keeps thinking off. **Off by default** (cleaner notes for the final report).',
+				'Enable **native thinking** during the Explore `task` **execution** phase (tool loop). **Off by default** (cleaner working notes for the report turn).',
+			),
+		},
+
+		[DroxSetting.SubagentsReportThink]: {
+			type: 'boolean',
+			default: false,
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.subagents.reportThink',
+				'Enable **native thinking** during the Explore `task` **report-synthesis** turn (JSON kinds). **Off by default** — turning on may leak CoT into artefacts; use for dogfood / models that need it.',
 			),
 		},
 

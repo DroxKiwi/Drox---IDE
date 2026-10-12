@@ -504,6 +504,13 @@ async fn build_agent_setup(
                     Vec::new()
                 });
         if let Some(block) = format_sessions_listing_for_prompt(&memory_listing) {
+            tracing::debug!(
+                marker = "c3.blob_a_index",
+                kind = "memory_sessions",
+                n = memory_listing.len(),
+                chars = block.len(),
+                "dogfood: blob A memory index (not full listing)"
+            );
             base_system.push_str("\n\n");
             base_system.push_str(&block);
         }
@@ -517,6 +524,13 @@ async fn build_agent_setup(
             Vec::new()
         });
     if let Some(block) = drox_engine::format_skills_listing_for_prompt(&skills_listing) {
+        tracing::debug!(
+            marker = "c3.blob_a_index",
+            kind = "skills",
+            n = skills_listing.len(),
+            chars = block.len(),
+            "dogfood: blob A skills index (not full listing)"
+        );
         base_system.push_str("\n\n");
         base_system.push_str(&block);
     }
@@ -533,6 +547,12 @@ async fn build_agent_setup(
     .await
     .map_err(|e| RpcError::new(ENGINE_ERROR, format!("workspace_map: {e}")))?;
     if let Some(block) = workspace_map.format_for_prompt() {
+        tracing::debug!(
+            marker = "c3.blob_a_index",
+            kind = "workspace_map",
+            chars = block.len(),
+            "dogfood: blob A workspace map index (not node dump)"
+        );
         base_system.push_str("\n\n");
         base_system.push_str(&block);
     }
@@ -543,6 +563,11 @@ async fn build_agent_setup(
     }
     let mut system_merged = crate::language::merge_into_system(base_system, lang.as_ref());
     if params.native_thinking == Some(true) {
+        tracing::debug!(
+            marker = "c3.supplement",
+            kind = "native_thinking",
+            "dogfood: session supplement appended (flag)"
+        );
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
@@ -588,6 +613,11 @@ async fn build_agent_setup(
     }
 
     if params.subagents_enabled.unwrap_or(false) {
+        tracing::debug!(
+            marker = "c3.supplement",
+            kind = "explore",
+            "dogfood: session supplement appended (flag)"
+        );
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
@@ -609,6 +639,11 @@ async fn build_agent_setup(
     };
 
     if mode.is_professor() {
+        tracing::debug!(
+            marker = "c3.supplement",
+            kind = "professor",
+            "dogfood: session supplement appended (flag)"
+        );
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
@@ -674,6 +709,7 @@ async fn build_agent_setup(
         max_iterations: params.subagents_max_iterations.unwrap_or(25).max(1),
         max_concurrent: params.subagents_max_concurrent.unwrap_or(3).clamp(1, 8),
         execution_think: params.subagents_execution_think.unwrap_or(false),
+        report_think: params.subagents_report_think.unwrap_or(false),
     };
     if subagent_settings.enabled {
         registry.register_subagent_task();

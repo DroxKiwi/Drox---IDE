@@ -51,12 +51,30 @@ pub struct SnipOutcome {
     pub blocks_snipped: usize,
 }
 
-/// Applique un snip sur la conversation.
+/// Applique un snip sur la conversation (placeholder fixe de [`SnipConfig`]).
 pub fn snip_messages<C: TokenCounter + ?Sized>(
     messages: &[Message],
     counter: &C,
     config: &SnipConfig,
 ) -> SnipOutcome {
+    let placeholder = config.placeholder.clone();
+    snip_messages_with(messages, counter, config, |_| placeholder.clone())
+}
+
+/// Comme [`snip_messages`], mais le placeholder est dérivé du contenu snippé.
+///
+/// Utile côté moteur pour **spill sur disque puis stub** (C1) sans lier
+/// `drox-context` au filesystem.
+pub fn snip_messages_with<C, F>(
+    messages: &[Message],
+    counter: &C,
+    config: &SnipConfig,
+    mut map_placeholder: F,
+) -> SnipOutcome
+where
+    C: TokenCounter + ?Sized,
+    F: FnMut(&str) -> String,
+{
     // Indexe les blocs `ToolResult` (message_idx, content_idx) par ordre.
     let mut tool_result_positions: Vec<(usize, usize)> = Vec::new();
     for (mi, m) in messages.iter().enumerate() {
@@ -96,12 +114,13 @@ pub fn snip_messages<C: TokenCounter + ?Sized>(
             if before < config.min_tokens {
                 continue;
             }
-            let after = counter.count_text(&config.placeholder);
+            let placeholder = map_placeholder(content);
+            let after = counter.count_text(&placeholder);
             tokens_freed = tokens_freed.saturating_add(before.saturating_sub(after));
             blocks_snipped += 1;
             *block = Content::ToolResult {
                 tool_use_id: tool_use_id.clone(),
-                content: config.placeholder.clone(),
+                content: placeholder,
                 is_error: *is_error,
             };
         }
@@ -190,5 +209,25 @@ mod tests {
         let out = snip_messages(&messages, &counter, &config);
         assert_eq!(out.blocks_snipped, 0);
         assert_eq!(out.messages, messages);
+    }
+
+    #[test]
+    fn snip_messages_with_derives_placeholder_from_content() {
+        let counter = RoughTokenCounter::new(4);
+        let big = "x".repeat(8_000);
+        let messages = vec![tool_result_msg(&big), tool_result_msg(&big)];
+        let config = SnipConfig {
+            min_tokens: 100,
+            keep_recent_results: 1,
+            placeholder: "[unused]".into(),
+        };
+        let out = snip_messages_with(&messages, &counter, &config, |content| {
+            format!("stub:{}", content.len())
+        });
+        assert_eq!(out.blocks_snipped, 1);
+        match &out.messages[0].content[0] {
+            Content::ToolResult { content, .. } => assert_eq!(content, "stub:8000"),
+            _ => panic!("expected ToolResult"),
+        }
     }
 }

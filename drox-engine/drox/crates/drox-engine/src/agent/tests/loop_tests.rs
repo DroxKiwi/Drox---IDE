@@ -494,7 +494,9 @@ fn loop_detector_tools_progress_aware() {
 
 #[test]
 fn format_tool_result_spills_large_output() {
-    use crate::agent::dispatch::{format_tool_result_for_llm, TOOL_RESULT_SPILL_THRESHOLD_BYTES};
+    use crate::agent::tool_result_spill::{
+        format_tool_result_for_llm, TOOL_RESULT_SPILL_THRESHOLD_BYTES,
+    };
     let dir = tempfile::tempdir().unwrap();
     let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
     let big = "x".repeat(TOOL_RESULT_SPILL_THRESHOLD_BYTES + 100);

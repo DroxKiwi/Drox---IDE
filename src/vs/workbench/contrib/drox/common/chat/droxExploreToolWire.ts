@@ -35,7 +35,7 @@ export interface IDroxExploreSubagentToolData {
 	readonly description: string;
 	readonly prompt?: string;
 	readonly result?: string;
-	/** Workspace-relative path to `.drox/subagents/…/conclusion.md`. */
+	/** Workspace-relative path to a kind artefact or explore dir (no conclusion.md). */
 	readonly resultPath?: string;
 }
 
@@ -229,7 +229,9 @@ export function buildExploreToolFinishWire(
 	}
 	const o = asRecord(output);
 	const report = trimString(o.report);
+	const summary = trimString(o.summary);
 	const reportPath = trimString(o.report_path) || trimString(o.reportPath);
+	const artifactPath = firstArtifactPath(o.artifacts);
 	const thoroughness = trimString(o.thoroughness);
 	const subagentType = trimString(o.subagent_type) || trimString(o.subagentType);
 	const exploreId = trimString(o.explore_id) || trimString(o.exploreId);
@@ -240,13 +242,16 @@ export function buildExploreToolFinishWire(
 				: undefined,
 		);
 	const kindsIncomplete = normalizeExploreReturnKinds(o.kinds_incomplete ?? o.kindsIncomplete);
+	const hasInline = o.artifacts_inline && typeof o.artifacts_inline === 'object'
+		&& Object.keys(o.artifacts_inline as Record<string, unknown>).length > 0;
+	const displayReport = report || summary || (hasInline ? '(merge via artifacts_inline)' : '');
 	const error =
 		trimString(o.error) ||
 		(isError && typeof o.message === 'string' ? o.message.trim() : '') ||
-		(isError && !report ? 'Explore failed' : '');
+		(isError && !displayReport ? 'Explore failed' : '');
 	return {
-		exploreReport: report || undefined,
-		exploreReportPath: reportPath || undefined,
+		exploreReport: displayReport || undefined,
+		exploreReportPath: reportPath || artifactPath || undefined,
 		exploreError: error || undefined,
 		exploreThoroughness: thoroughness || undefined,
 		exploreSubagentType: subagentType || undefined,
@@ -254,4 +259,17 @@ export function buildExploreToolFinishWire(
 		exploreId: exploreId || undefined,
 		exploreKindsIncomplete: kindsIncomplete,
 	};
+}
+
+function firstArtifactPath(artifacts: unknown): string {
+	if (!artifacts || typeof artifacts !== 'object') {
+		return '';
+	}
+	for (const v of Object.values(artifacts as Record<string, unknown>)) {
+		const p = trimString(v);
+		if (p) {
+			return p;
+		}
+	}
+	return '';
 }

@@ -14,14 +14,31 @@ use serde_json::Value;
 /// Longueur max du résumé inline (tool_result parent / LLM).
 pub(super) const EXPLORE_SUMMARY_MAX_CHARS: usize = 700;
 
+/// Caps merge one-shot (`artifacts_inline`) — anti-spill / anti-boucle re-read.
+pub(super) const ARTIFACT_INLINE_PER_KIND_CHARS: usize = 1_800;
+pub(super) const ARTIFACT_INLINE_TOTAL_CHARS: usize = 7_500;
+
+/// Ordre d’injection merge (actionnable d’abord).
+const ARTIFACT_INLINE_PRIORITY: &[&str] = &[
+	"gaps",
+	"structure_map",
+	"file_summaries",
+	"key_symbols",
+	"code_snippets",
+	"paths_read",
+];
+
 #[derive(Debug, Clone)]
 pub(super) struct ExploreArtifactWrite {
 	pub explore_id: String,
-	pub report_path: String,
+	/// Toujours `None` — plus de `conclusion.md`.
+	pub report_path: Option<String>,
 	pub summary: String,
 	pub blurb: String,
 	pub artifacts: BTreeMap<String, String>,
 	pub kinds_incomplete: Vec<String>,
+	/// `ok` | `partial` | `truncated_exec` | `kinds_incomplete`.
+	pub status: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -42,9 +59,9 @@ struct ExploreManifest {
 	status: String,
 }
 
-/// Écrit conclusion + artefacts par kind + manifest + ligne d'index.
+/// Écrit artefacts par kind + manifest + ligne d'index (**pas** de `conclusion.md`).
 ///
-/// Si `kind_bodies` est fourni (phase rapport JSON), on l’utilise ; sinon extract markdown
+/// Si `kind_bodies` est fourni (commits / map), on l’utilise ; sinon extract markdown
 /// (`## <kind>`, **dernier** header gagnant) + lint stub.
 pub(super) fn write_explore_bundle(
 	workspace_root: &Utf8Path,
@@ -67,20 +84,15 @@ pub(super) fn write_explore_bundle(
 	let abs_dir = workspace_root.join(&rel_dir);
 	std::fs::create_dir_all(abs_dir.as_std_path())?;
 
-	let abs_conclusion = abs_dir.join("conclusion.md");
-	let body = format!(
-		"<!-- Drox Explore conclusion — parent via report_path / artifacts; not a chat inject -->\n\n{}",
-		report.trim()
-	);
-	std::fs::write(abs_conclusion.as_std_path(), body)?;
-	let report_path = format!("{}/conclusion.md", rel_dir.as_str().replace('\\', "/"));
-
 	let mut artifacts = BTreeMap::new();
 	let mut kinds_incomplete = Vec::new();
 	for kind in kinds {
-		let section = kind_bodies
-			.and_then(|m| m.get(kind.as_str()).cloned())
-			.or_else(|| extract_kind_section(report, *kind));
+		// JSON map fournie → uniquement les clés présentes (pas d'extract soft CoT).
+		// Sans map → extract markdown classique (lint stub appliqué ensuite).
+		let section = match kind_bodies {
+			Some(m) => m.get(kind.as_str()).cloned(),
+			None => extract_kind_section(report, *kind),
+		};
 		let filename = kind.artifact_filename();
 		let abs_file = abs_dir.join(&filename);
 		let content = section.unwrap_or_default();
@@ -102,7 +114,11 @@ pub(super) fn write_explore_bundle(
 
 	let kinds_complete = kinds_incomplete.is_empty();
 	let truncated = truncated_exec || (!kinds.is_empty() && !kinds_complete);
-	let status = if truncated_exec {
+	// D2 : tous les kinds demandés incomplets → `partial` (livrable vide).
+	let empty_fail = !kinds.is_empty() && kinds_incomplete.len() == kinds.len();
+	let status = if empty_fail {
+		"partial".to_string()
+	} else if truncated_exec {
 		"truncated_exec".to_string()
 	} else if !kinds.is_empty() && !kinds_complete {
 		"kinds_incomplete".to_string()
@@ -110,7 +126,19 @@ pub(super) fn write_explore_bundle(
 		"ok".to_string()
 	};
 
-	let summary = build_explore_summary(report, EXPLORE_SUMMARY_MAX_CHARS);
+	let summary = if empty_fail {
+		format!(
+			"Explore deliverable empty (partial) — no usable kinds ({}). Re-split narrower or needle 1–2 known paths; do not parent-dump the tree.",
+			kinds_incomplete.join(", ")
+		)
+	} else if !kinds_incomplete.is_empty() {
+		format!(
+			"Explore ended with incomplete kinds ({}). Phase 1 evidence may still help — re-run narrower or needle known paths.",
+			kinds_incomplete.join(", ")
+		)
+	} else {
+		build_explore_summary(report, EXPLORE_SUMMARY_MAX_CHARS)
+	};
 	let blurb = build_blurb(&summary, EXPLORE_BLURB_MAX_CHARS);
 
 	let manifest = ExploreManifest {
@@ -141,10 +169,10 @@ pub(super) fn write_explore_bundle(
 		title: title.map(str::to_string),
 		plan_step_id: plan_step_id.map(str::to_string),
 		return_kinds: kinds_as_strings(kinds),
-		status,
+		status: status.clone(),
 		blurb: blurb.clone(),
 		artifacts: artifacts.clone(),
-		report_path: Some(report_path.clone()),
+		report_path: None,
 		truncated,
 		created_at: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
 	};
@@ -154,21 +182,86 @@ pub(super) fn write_explore_bundle(
 
 	Ok(ExploreArtifactWrite {
 		explore_id,
-		report_path,
+		report_path: None,
 		summary,
 		blurb,
 		artifacts,
 		kinds_incomplete,
+		status,
 	})
 }
 
-/// Corps kind utilisable (non vide + pas stub outline).
+/// Corps kinds bornés pour injection parent (merge one-shot).
+#[must_use]
+pub(super) fn build_artifacts_inline(
+	kind_map: Option<&BTreeMap<String, String>>,
+	requested: &[ExploreReturnKind],
+	artifact_paths: &BTreeMap<String, String>,
+) -> BTreeMap<String, String> {
+	let Some(map) = kind_map else {
+		return BTreeMap::new();
+	};
+	let mut order: Vec<&str> = Vec::new();
+	for k in ARTIFACT_INLINE_PRIORITY {
+		if requested.is_empty() {
+			if map.contains_key(*k) {
+				order.push(*k);
+			}
+		} else if requested.iter().any(|r| r.as_str() == *k) && map.contains_key(*k) {
+			order.push(*k);
+		}
+	}
+	for k in map.keys() {
+		if !order.contains(&k.as_str()) {
+			order.push(k.as_str());
+		}
+	}
+
+	let mut out = BTreeMap::new();
+	let mut total = 0usize;
+	for key in order {
+		let Some(body) = map.get(key) else {
+			continue;
+		};
+		if !kind_body_usable(body) {
+			continue;
+		}
+		if total >= ARTIFACT_INLINE_TOTAL_CHARS {
+			break;
+		}
+		let budget = (ARTIFACT_INLINE_PER_KIND_CHARS)
+			.min(ARTIFACT_INLINE_TOTAL_CHARS.saturating_sub(total));
+		let trimmed = body.trim();
+		let path = artifact_paths
+			.get(key)
+			.map(|p| p.as_str())
+			.unwrap_or("(artifact on disk)");
+		let footer = format!(
+			"\n\n_(truncated — full kind via explore_artifact_read / `{path}`)_"
+		);
+		let footer_len = footer.chars().count();
+		let final_text = if trimmed.chars().count() <= budget {
+			trimmed.to_string()
+		} else {
+			let body_budget = budget.saturating_sub(footer_len).saturating_sub(1).max(40);
+			let mut s: String = trimmed.chars().take(body_budget).collect();
+			s.push('…');
+			s.push_str(&footer);
+			s
+		};
+		total = total.saturating_add(final_text.chars().count());
+		out.insert(key.to_string(), final_text);
+	}
+	out
+}
+
+/// Corps kind utilisable — contrat **structurel** uniquement (pas d’heuristique lexicale).
 #[must_use]
 pub(super) fn kind_body_usable(body: &str) -> bool {
 	!is_stub_kind_body(body)
 }
 
-/// Détecte les stubs / outlines CoT / méta-descriptions (dogfood 2026-10-08).
+/// Vide / placeholders exacts uniquement (forme, pas analyse de prose CoT).
 #[must_use]
 pub(super) fn is_stub_kind_body(body: &str) -> bool {
 	let t = body.trim();
@@ -176,111 +269,21 @@ pub(super) fn is_stub_kind_body(body: &str) -> bool {
 		return true;
 	}
 	let lower = t.to_ascii_lowercase();
-	// Chemins courts valides (`- src/a.ts`) : ne pas rejeter sur la seule longueur.
-	if t.chars().count() < 8 && !kind_body_has_concrete_signal(&lower) {
-		return true;
-	}
-	const EXACT: &[&str] = &[
-		"tbd",
-		"todo",
-		"n/a",
-		"none yet",
-		"to fill",
-		"placeholder",
-		"(empty)",
-		"(stub)",
-		"…",
-		"...",
-		"-",
-		"*",
-	];
-	if EXACT.iter().any(|m| lower == *m) {
-		return true;
-	}
-	const PREFIX: &[&str] = &[
-		"tbd",
-		"todo:",
-		"to fill",
-		"will fill",
-		"placeholder",
-		"outline only",
-		"(incomplete",
-		"see below",
-		"pending —",
-		"pending:",
-		"let me ",
-		"i should ",
-		"i need to ",
-		"i'll ",
-		"i will ",
-		"now i ",
-		"caps:",
-	];
-	if PREFIX.iter().any(|m| lower.starts_with(m)) {
-		return true;
-	}
-	// Méta « cette section devrait contenir… » / outline de headers (dogfood).
-	const META: &[&str] = &[
-		"per-file summaries",
-		"list of paths consulted",
-		"list of paths",
-		"tree overview",
-		"i should keep",
-		"let me distill",
-		"let me write",
-		"the report should",
-		"write the report",
-		"keep it concise",
-		"parent-facing",
-		"recommended next parent steps`",
-		"## key_symbols",
-		"## code_snippets",
-		"## structure_map",
-		"## file_summaries",
-		"## paths_read",
-		"## gaps",
-	];
-	if META.iter().any(|m| lower.contains(m)) && !kind_body_has_concrete_signal(&lower) {
-		return true;
-	}
-	// Plusieurs headers markdown listés comme plan, sans faits.
-	let header_bullets = lower
-		.lines()
-		.filter(|l| {
-			let s = l.trim_start().trim_start_matches(['-', '*', '`']);
-			s.trim_start().starts_with("## ")
-		})
-		.count();
-	if header_bullets >= 2 && !kind_body_has_concrete_signal(&lower) {
-		return true;
-	}
-	let lines: Vec<_> = t.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
-	if lines.len() == 1 {
-		let l = lines[0];
-		if l == "-" || l == "*" || l == "…" || l == "..." || l.starts_with("(incomplete") {
-			return true;
-		}
-		// Une seule ligne méta « — description du kind » (em/en dash), sans faits.
-		if (l.starts_with('—') || l.starts_with('–')) && !kind_body_has_concrete_signal(&lower) {
-			return true;
-		}
-	}
-	false
-}
-
-/// Signal minimal qu’un kind contient des faits (chemins / fichiers), pas seulement du plan.
-fn kind_body_has_concrete_signal(lower: &str) -> bool {
-	lower.contains(".ts")
-		|| lower.contains(".tsx")
-		|| lower.contains(".js")
-		|| lower.contains(".md")
-		|| lower.contains(".rs")
-		|| lower.contains(".json")
-		|| lower.contains("src/")
-		|| lower.contains("docs/")
-		|| lower.contains("content/")
-		|| lower.contains("\\")
-		|| lower.contains("`/")
+	matches!(
+		lower.as_str(),
+		"tbd"
+			| "todo"
+			| "n/a"
+			| "none yet"
+			| "to fill"
+			| "placeholder"
+			| "(empty)"
+			| "(stub)"
+			| "…"
+			| "..."
+			| "-"
+			| "*"
+	) || lower.starts_with("(incomplete")
 }
 
 /// Parse le JSON de synthèse phase 2 → map kind→corps + next steps optionnels.
@@ -504,21 +507,54 @@ No tests for refresh.\n";
 	}
 
 	#[test]
-	fn stub_lint_rejects_outline_bodies() {
+	fn stub_lint_is_structural_only() {
 		assert!(is_stub_kind_body(""));
 		assert!(is_stub_kind_body("TBD"));
 		assert!(is_stub_kind_body("-"));
-		assert!(is_stub_kind_body("todo: fill later"));
-		assert!(is_stub_kind_body(
-			"— per-file summaries for pedagogie (the core mission), with filename, size"
-		));
-		assert!(is_stub_kind_body(
-			"`\n- `## key_symbols`\n- `## code_snippets`\n\nI should keep it concise, parent-facing"
+		assert!(is_stub_kind_body("(incomplete: missing)"));
+		// Plus d’heuristique CoT : la prose n’est pas rejetée ici (le cascade exige du JSON).
+		assert!(!is_stub_kind_body(
+			"I need to distill docs/pedagogie/01.md — let me write"
 		));
 		assert!(!is_stub_kind_body("- src/auth.ts\n- src/session.ts"));
-		assert!(!is_stub_kind_body(
-			"- `docs/pedagogie/01-contact-ollama.md` (~627 lines) — Contact Ollama\n- `docs/pedagogie/README.md`"
-		));
+	}
+
+	#[test]
+	fn json_map_skips_soft_extract_for_missing_kinds() {
+		let dir = tempfile::tempdir().unwrap();
+		let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+		// Rapport CoT qui aurait autrefois été découpé en kinds via extract.
+		let report = "I need to distill.## file_summaries\n- docs/a.md\n\n## gaps\nBOM on files\n";
+		let mut map = BTreeMap::new();
+		map.insert(
+			"paths_read".into(),
+			"- docs/pedagogie/01-contact-ollama.md".into(),
+		);
+		let kinds = vec![
+			ExploreReturnKind::PathsRead,
+			ExploreReturnKind::FileSummaries,
+			ExploreReturnKind::Gaps,
+		];
+		let w = write_explore_bundle(
+			&root,
+			"ses_partial",
+			None,
+			None,
+			&kinds,
+			&ExploreReturnOptions::default(),
+			report,
+			Some(&map),
+			false,
+		)
+		.unwrap();
+		assert_eq!(
+			w.kinds_incomplete,
+			vec!["file_summaries".to_string(), "gaps".to_string()]
+		);
+		let paths = std::fs::read_to_string(root.join(w.artifacts.get("paths_read").unwrap())).unwrap();
+		assert!(paths.contains("01-contact-ollama.md"));
+		let fs = std::fs::read_to_string(root.join(w.artifacts.get("file_summaries").unwrap())).unwrap();
+		assert!(fs.contains("incomplete"));
 	}
 
 	#[test]
@@ -564,13 +600,46 @@ No tests for refresh.\n";
 			w.kinds_incomplete
 		);
 		assert_eq!(w.artifacts.len(), 3);
-		let abs = root.join(&w.report_path);
-		assert!(abs.exists());
+		assert!(w.report_path.is_none());
+		assert!(!root
+			.join(".drox/subagents/ses_test")
+			.join(&w.explore_id)
+			.join("conclusion.md")
+			.exists());
+		for rel in w.artifacts.values() {
+			assert!(root.join(rel).exists(), "missing artifact {rel}");
+		}
 		let listed = drox_tools::list_index_entries(&root, "ses_test").unwrap();
 		assert_eq!(listed.len(), 1);
+		assert!(listed[0].report_path.is_none());
 		assert!(drox_tools::list_index_entries(&root, "ses_other")
 			.unwrap()
 			.is_empty());
+	}
+
+	#[test]
+	fn artifacts_inline_priority_and_caps() {
+		let mut map = BTreeMap::new();
+		map.insert("paths_read".into(), "- a.ts".into());
+		map.insert("gaps".into(), "- no MD pipeline".into());
+		map.insert("structure_map".into(), "X".repeat(3_000));
+		let mut paths = BTreeMap::new();
+		paths.insert(
+			"structure_map".into(),
+			".drox/subagents/ses/exp/structure_map.md".into(),
+		);
+		let kinds = vec![
+			ExploreReturnKind::PathsRead,
+			ExploreReturnKind::StructureMap,
+			ExploreReturnKind::Gaps,
+		];
+		let inline = build_artifacts_inline(Some(&map), &kinds, &paths);
+		let keys: Vec<&str> = inline.keys().map(|s| s.as_str()).collect();
+		assert!(keys.contains(&"gaps"));
+		assert!(keys.contains(&"structure_map"));
+		let structure = inline.get("structure_map").unwrap();
+		assert!(structure.chars().count() <= ARTIFACT_INLINE_PER_KIND_CHARS);
+		assert!(structure.contains("explore_artifact_read"));
 	}
 
 	#[test]
@@ -619,6 +688,29 @@ No tests for refresh.\n";
 		)
 		.unwrap();
 		assert_eq!(w.kinds_incomplete, vec!["gaps".to_string()]);
+		assert_eq!(w.status, "kinds_incomplete");
+	}
+
+	#[test]
+	fn empty_deliverable_status_partial() {
+		let dir = tempfile::tempdir().unwrap();
+		let root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+		let kinds = vec![ExploreReturnKind::PathsRead, ExploreReturnKind::Gaps];
+		let w = write_explore_bundle(
+			&root,
+			"ses_empty",
+			None,
+			None,
+			&kinds,
+			&ExploreReturnOptions::default(),
+			"## Findings\n(no commits)\n",
+			None,
+			true,
+		)
+		.unwrap();
+		assert_eq!(w.kinds_incomplete.len(), 2);
+		assert_eq!(w.status, "partial");
+		assert!(w.summary.contains("partial"));
 	}
 
 	#[test]

@@ -19,6 +19,15 @@ use drox_context::{
 };
 use drox_types::Message;
 
+/// C1 — tool results « chauds » complets (le reste peut être spill+stub).
+pub const HOT_SNIP_KEEP_RECENT: usize = 4;
+
+/// C1 — snip dès ~200 tokens estimés (~800 octets rough) hors fenêtre chaude.
+const HOT_SNIP_MIN_TOKENS: usize = 200;
+
+const HOT_SNIP_FALLBACK_PLACEHOLDER: &str =
+    "[Tool output truncated for context efficiency — re-read path/spill if needed]";
+
 /// Politique de contexte (cheap to clone).
 #[derive(Clone)]
 pub struct ContextPolicy {
@@ -109,18 +118,33 @@ impl ContextPolicy {
         self.maybe_snip_with_config(messages, &aggressive)
     }
 
-    /// Snip « chaud » (1.6.0 Vague 4 / S-2) : même hors seuil autocompact,
-    /// retire les gros `tool_result` hors des 2 plus récents.
-    pub fn maybe_snip_hot(&self, messages: &mut Vec<Message>) -> Option<SnipReport> {
+    /// Snip « chaud » (Vague 4 S-2 → **C1**) : hors seuil autocompact,
+    /// retire les `tool_result` hors des [`HOT_SNIP_KEEP_RECENT`] plus récents.
+    ///
+    /// Si `workspace_root` est fourni, chaque bloc snippé est **spillé sur disque**
+    /// avant le stub (rien n’est jeté sans pointeur). Sinon, placeholder court.
+    pub fn maybe_snip_hot(
+        &self,
+        messages: &mut Vec<Message>,
+        workspace_root: Option<&camino::Utf8Path>,
+    ) -> Option<SnipReport> {
         if self.snip.is_none() {
             return None;
         }
         let hot = SnipConfig {
-            min_tokens: 500,
-            keep_recent_results: 2,
-            placeholder: "[Tool output truncated for context efficiency — re-read path/spill if needed]".into(),
+            min_tokens: HOT_SNIP_MIN_TOKENS,
+            keep_recent_results: HOT_SNIP_KEEP_RECENT,
+            placeholder: HOT_SNIP_FALLBACK_PLACEHOLDER.into(),
         };
-        self.maybe_snip_with_config(messages, &hot)
+        match workspace_root {
+            Some(root) => {
+                let root = root.to_owned();
+                self.maybe_snip_with_mapper(messages, &hot, move |content| {
+                    crate::agent::tool_result_spill::stub_for_hot_snip(&root, content)
+                })
+            }
+            None => self.maybe_snip_with_config(messages, &hot),
+        }
     }
 
     fn maybe_snip_with_config(
@@ -129,6 +153,27 @@ impl ContextPolicy {
         config: &SnipConfig,
     ) -> Option<SnipReport> {
         let outcome = drox_context::snip_messages(messages, &*self.counter, config);
+        if outcome.blocks_snipped == 0 {
+            return None;
+        }
+        *messages = outcome.messages;
+        Some(SnipReport {
+            tokens_freed: outcome.tokens_freed,
+            blocks_snipped: outcome.blocks_snipped,
+        })
+    }
+
+    fn maybe_snip_with_mapper<F>(
+        &self,
+        messages: &mut Vec<Message>,
+        config: &SnipConfig,
+        map_placeholder: F,
+    ) -> Option<SnipReport>
+    where
+        F: FnMut(&str) -> String,
+    {
+        let outcome =
+            drox_context::snip_messages_with(messages, &*self.counter, config, map_placeholder);
         if outcome.blocks_snipped == 0 {
             return None;
         }
@@ -222,5 +267,54 @@ mod tests {
         let big = "x".repeat(8_000);
         let mut msgs = vec![tool_msg(&big), tool_msg(&big)];
         assert!(policy.maybe_snip(&mut msgs).is_none());
+    }
+
+    #[test]
+    fn maybe_snip_hot_keeps_four_recent_and_spills_older() {
+        let dir = tempfile::tempdir().unwrap();
+        let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        let policy = ContextPolicy::new(
+            Arc::new(RoughTokenCounter::new(4)),
+            ContextBudget::default(),
+            Some(SnipConfig::default()),
+        );
+        // ~1000 tokens chacun → au-dessus de HOT_SNIP_MIN_TOKENS (200).
+        let big = "w".repeat(4_000);
+        let mut msgs = vec![
+            tool_msg(&big),
+            tool_msg(&big),
+            tool_msg(&big),
+            tool_msg(&big),
+            tool_msg(&big),
+            tool_msg(&big),
+        ];
+        let report = policy
+            .maybe_snip_hot(&mut msgs, Some(ws.as_ref()))
+            .expect("hot snip should fire");
+        // 6 results, keep 4 → 2 snipped.
+        assert_eq!(report.blocks_snipped, 2);
+        match &msgs[0].content[0] {
+            Content::ToolResult { content, .. } => {
+                assert!(
+                    content.contains("SPILLED") || content.contains("tool-outputs"),
+                    "older result must become a spill stub, got: {}",
+                    &content[..content.len().min(120)]
+                );
+                // Preview 512 B max — le corps 4 KiB ne doit plus être inline.
+                assert!(
+                    content.len() < big.len(),
+                    "stub must be shorter than original body"
+                );
+                assert!(!content.contains(&big));
+            }
+            _ => panic!("expected ToolResult"),
+        }
+        match &msgs[5].content[0] {
+            Content::ToolResult { content, .. } => assert_eq!(content, &big),
+            _ => panic!("expected ToolResult"),
+        }
+        let out_dir = ws.join(".drox").join("tool-outputs");
+        let n = std::fs::read_dir(out_dir.as_std_path()).unwrap().count();
+        assert_eq!(n, 2, "each snipped block must spill once");
     }
 }

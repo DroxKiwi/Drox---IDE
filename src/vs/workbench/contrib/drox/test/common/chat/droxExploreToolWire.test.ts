@@ -85,19 +85,21 @@ suite('Drox — Explore tool wire', () => {
 		assert.strictEqual(buildExploreToolStartWire('bash', { description: 'x' }), undefined);
 	});
 
-	test('buildExploreToolFinishWire extracts report and return kinds', () => {
+	test('buildExploreToolFinishWire extracts summary, artifacts, return kinds', () => {
 		const wire = buildExploreToolFinishWire('task', {
 			subagent_type: 'explore',
 			explore_id: 'exp_1',
-			report: 'Auth lives in src/auth.ts',
-			report_path: '.drox/subagents/run_1/x-explore/conclusion.md',
 			summary: 'Auth lives in src/auth.ts',
+			artifacts: {
+				gaps: '.drox/subagents/run_1/exp_1/gaps.md',
+			},
+			artifacts_inline: { gaps: '- missing refresh' },
 			return_kinds: ['paths_read', 'gaps'],
 			kinds_incomplete: ['gaps'],
 		}, false);
 		assert.deepStrictEqual(wire, {
 			exploreReport: 'Auth lives in src/auth.ts',
-			exploreReportPath: '.drox/subagents/run_1/x-explore/conclusion.md',
+			exploreReportPath: '.drox/subagents/run_1/exp_1/gaps.md',
 			exploreError: undefined,
 			exploreThoroughness: undefined,
 			exploreSubagentType: 'explore',

@@ -3,18 +3,18 @@
 //! Sprint §2.31 — équivalent compact du listing leak `SkillTool/prompt.ts` :
 //! front-matter seulement au prompt, contenu complet via `skill_read`.
 
-use std::fmt::Write as _;
-
 use camino::{Utf8Path, Utf8PathBuf};
 use thiserror::Error;
 
 /// Sous-dossier des skills dans le workspace (leak : `projectSettings` → `.drox/skills`).
 pub const SKILLS_SUBDIR: &str = ".drox/skills";
 
-/// Budget caractères pour le listing injecté (leak : 1 % contexte ≈ 8k chars).
+/// Ancien budget caractères du listing injecté (pré-C3, ~8k). Conservé pour doc / outils.
+#[allow(dead_code)]
 pub const DEFAULT_LISTING_CHAR_BUDGET: usize = 8_000;
 
-/// Troncature par entrée (leak `MAX_LISTING_DESC_CHARS`).
+/// Troncature par entrée (leak `MAX_LISTING_DESC_CHARS`) — utilisé par `format_listing_line`.
+#[allow(dead_code)]
 pub const MAX_LISTING_DESC_CHARS: usize = 250;
 
 /// Taille max renvoyée par `skill_read` (aligné `memory_read`).
@@ -123,45 +123,26 @@ pub fn find_skill<'a>(entries: &'a [SkillEntry], name: &str) -> Option<&'a Skill
         .find(|e| e.name.eq_ignore_ascii_case(key))
 }
 
-/// Bloc texte injecté au system prompt (listing compact).
+/// Index 1 ligne pour le blob A (C3 / V3-b) — détail via `skill_list` / `skill_read`.
+///
+/// Ancien comportement : listing name+desc jusqu’à [`DEFAULT_LISTING_CHAR_BUDGET`].
 #[must_use]
 pub fn format_skills_listing_for_prompt(entries: &[SkillEntry]) -> Option<String> {
     let visible = model_visible_skills(entries);
     if visible.is_empty() {
         return None;
     }
-    let mut out = String::new();
-    out.push_str(
-        "[Skills — prompts réutilisables locaux (`.drox/skills/<name>/SKILL.md`)]\n",
-    );
-    let budget = DEFAULT_LISTING_CHAR_BUDGET;
-    let mut lines_added = 0usize;
-    let total_visible = visible.len();
-    for entry in &visible {
-        let line = format_listing_line(entry);
-        let line_len = line.len() + 1;
-        if used_budget(&out) + line_len > budget && lines_added > 0 {
-            let omitted = total_visible - lines_added;
-            let _ = writeln!(
-                out,
-                "(… {omitted} skill(s) omitted — use `skill_list` or `skill_read`)"
-            );
-            break;
-        }
-        let _ = writeln!(out, "{line}");
-        lines_added += 1;
-    }
-    out.push_str(
-        "Use `skill_read { \"name\": \"…\" }` to load full instructions before following a skill.\n",
-    );
-    Some(out)
+    let n = visible.len();
+    Some(format!(
+        "[Skills — {n} model-visible under `.drox/skills/` — use `skill_list` then \
+         `skill_read {{ name }}` for instructions; full catalog is **not** injected here]\n"
+    ))
 }
 
-fn used_budget(s: &str) -> usize {
-    s.len()
-}
-
-fn format_listing_line(entry: &SkillEntry) -> String {
+/// Ligne name+desc (tests / éventuel rendu tool) — plus injectée dans le blob A.
+#[must_use]
+#[allow(dead_code)]
+pub(crate) fn format_listing_line(entry: &SkillEntry) -> String {
     let mut desc = entry.description.clone();
     if let Some(w) = &entry.when_to_use {
         if !w.is_empty() {
@@ -310,8 +291,25 @@ mod tests {
 
         let entries = load_skills_catalog(&ws).await.unwrap();
         let block = format_skills_listing_for_prompt(&entries).unwrap();
-        assert!(block.contains("lint"));
+        assert!(block.contains("1 model-visible"));
+        assert!(block.contains("skill_list"));
         assert!(!block.contains("deploy"));
+        assert!(!block.contains("- lint:"));
+        let visible = model_visible_skills(&entries);
+        assert_eq!(visible.len(), 1);
+        assert_eq!(visible[0].name, "lint");
+    }
+
+    #[test]
+    fn listing_line_includes_name_and_desc() {
+        let e = SkillEntry {
+            name: "lint".into(),
+            description: "run linter".into(),
+            when_to_use: None,
+            path: Utf8PathBuf::from("/x/SKILL.md"),
+            disable_model_invocation: false,
+        };
+        assert_eq!(format_listing_line(&e), "- lint: run linter");
     }
 
     #[tokio::test]

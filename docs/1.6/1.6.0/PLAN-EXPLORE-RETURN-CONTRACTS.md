@@ -1,15 +1,17 @@
 # Plan — Contrats de retour Explore + index navigable (scope discussion)
 
-**Statut** : ambition validée · **E1–E4 + E4b** (2026-10-07) · **P-safe + P-json** (2026-10-08) · notes version à jour · **dogfood E5** dû  
+**Statut** : **Option A livrée** (2026-10-09) — `explore_commit` + L0 + mono-kind + **pas de `conclusion.md`** + `artifacts_inline` · **D2+D3** ✅ · dogfood 🟡 → [APPROCHE](APPROCHE-CONTRATS-ETAPE.md)  
  
-**Parent** : [README 1.6.0](README.md) · [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md) · [PLAN-DOGFOOD-TERMINAL-EXPLORE.md](PLAN-DOGFOOD-TERMINAL-EXPLORE.md)  
-**Règle** : Prefer soft / contrats mécaniques côté artefacts — pas de hard gate inventé hors brief ([pas-d-initiative](../../../.cursor/rules/pas-d-initiative.mdc))
+**Parent** : [README 1.6.0](README.md) · [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md) · [PLAN-DOGFOOD-TERMINAL-EXPLORE.md](PLAN-DOGFOOD-TERMINAL-EXPLORE.md) · [APPROCHE-CONTRATS-ETAPE.md](APPROCHE-CONTRATS-ETAPE.md)  
+**Règle** : contrats mécaniques côté artefacts + recovery étape ; Prefer soft en complément — pas de hard gate inventé hors brief ([pas-d-initiative](../../../.cursor/rules/pas-d-initiative.mdc))
 
 ---
 
 ## 1. Problème
 
-Aujourd’hui le parent spawn un Explore avec `must_return` en **prose libre**. L’enfant rend surtout un **`conclusion.md` unique**. Le moteur **ne vérifie pas** que chaque critère est rempli. Le parent re-lit souvent les sources → spirale de contexte (voir dogfood + [ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md)).
+**Historique** : le parent spawnait un Explore avec `must_return` en prose ; l’enfant rendait surtout un **`conclusion.md` unique** ; le parent re-lisait les sources → spirale (voir dogfood + [ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md)).
+
+**État 2026-10-09** : kinds via **`explore_commit`** (canal tools) + L0 `paths_read` ; artefacts `<kind>.md` ; **plus de `conclusion.md`** ; parent reçoit `artifacts_inline` borné. Reste ouvert : Explore fail / C2 désarmé si truncated ([APPROCHE](APPROCHE-CONTRATS-ETAPE.md) D2–D3).
 
 **Cible** : modèle type **arguments de fonction** —
 
@@ -51,13 +53,13 @@ Le parent coche **une ou plusieurs** sorties structurées (schéma JSON de `task
 ```text
 .drox/subagents/<sessionId>/<exploreId>/
   manifest.json          # kinds demandés, status, options, chemins
-  paths_read.md          # si coché
+  paths_read.md          # si coché (ou L0 auto)
   file_summaries.md
   …
-  conclusion.md          # optionnel / legacy — synthèse globale courte
+  # plus de conclusion.md (retiré 2026-10-09) — merge = artifacts_inline + <kind>.md
 ```
 
-Chaque kind coché → **fichier (ou sous-dossier) dédié**, pas un seul pavé monolithique.
+Chaque kind coché → **fichier dédié**. Parent LLM : `artifacts_inline` (caps) + chemins ; zoom `explore_artifact_read`.
 
 ### 3.3 `must_return` free-text
 
@@ -166,13 +168,14 @@ Alignement industrie (rappel) : Explore pour « comment c’est bâti » ; embed
 
 ## 9. Lien avec l’existant
 
-| Existant | Rôle demain |
-|----------|-------------|
+| Existant | Rôle |
+|----------|------|
 | `must_return` (texte) | Complément / legacy |
-| `conclusion.md` unique | Complété / remplacé par `manifest` + fichiers par kind |
-| `report_path` + summary | + `explore_id` + map d’artefacts + ligne d’index |
-| Soft post-merge / anti-rotation | Parent lit index/kind, pas re-vérif sources |
-| `session.subagents.explore` | Canon Plan→Assign→Merge — delta contrat de retour ici, pas second playbook |
+| `conclusion.md` | **Retiré** (2026-10-09) — `<kind>.md` + `artifacts_inline` |
+| `report_path` | `null` ; chemins via `artifacts` |
+| Soft post-merge / anti-rotation | Parent lit inline/kind — **D3** : C2 aussi si truncated |
+| `session.subagents.explore` | Canon Plan→Assign→Merge — delta contrat ici |
+| `explore_commit` | Canal kinds phase 1 (Option A) |
 
 ---
 
@@ -189,9 +192,11 @@ Alignement industrie (rappel) : Explore pour « comment c’est bâti » ; embed
 | **E5** | Notes [JOURNAL](JOURNAL-PROMPTS-ET-HORS-WS.md) / RELEASE_NOTES / popup | ✅ docs · ⬜ dogfood manuel |
 | **P-safe** | Extract **last-match** + lint stub → `kinds_incomplete` ; phase1 sans headers | ✅ `explore_artifact.rs` + prompts |
 | **P-json** | Synth phase2 **JSON** + parse/retry + `write_bundle` depuis map | ✅ `explore_executor` + `format_kinds_json_contract` |
-| **P-harden** | JSON fail / stubs méta → **incomplete** (plus de soft-OK markdown) ; notes synth filtrées ; `executionThink` setting | ✅ 2026-10-08 |
+| **P-harden** | JSON fail / stubs méta → **incomplete** ; notes filtrées ; think settings | ✅ 2026-10-08 |
+| **Option A** | `explore_commit` + L0 paths ; assemble 0-LLM ; gate mono-kind ; **no conclusion** ; `artifacts_inline` | ✅ 2026-10-09 |
+| **D2/D3** | Recovery Explore fail + C2 si truncated | ✅ D3 C2 · ✅ D2 partial/abort/step — [APPROCHE](APPROCHE-CONTRATS-ETAPE.md) |
 
-Layout live : `.drox/subagents/<sessionId>/<exploreId>/{manifest.json,conclusion.md,<kind>.md}` + `index.jsonl`.
+Layout live : `.drox/subagents/<sessionId>/<exploreId>/{manifest.json,<kind>.md}` + `index.jsonl` (pas de `conclusion.md`).
 
 ---
 

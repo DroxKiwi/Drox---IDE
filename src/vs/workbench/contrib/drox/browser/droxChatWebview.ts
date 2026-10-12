@@ -185,6 +185,7 @@ export function getDroxChatHtml(
 	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
 	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
 	const generalSettingsSubagentsExecutionThink = localize('droxChatGeneralSettingsSubagentsExecutionThink', 'Explore execution thinking');
+	const generalSettingsSubagentsReportThink = localize('droxChatGeneralSettingsSubagentsReportThink', 'Explore report thinking');
 	const generalSettingsProjectRulesEnabled = localize('droxChatGeneralSettingsProjectRulesEnabled', 'Project rules (.drox/rules)');
 	const generalSettingsOutsideWsRead = localize('droxChatGeneralSettingsOutsideWsRead', 'Outside workspace — read / inventory');
 	const generalSettingsOutsideWsWrite = localize('droxChatGeneralSettingsOutsideWsWrite', 'Outside workspace — write');
@@ -242,6 +243,14 @@ export function getDroxChatHtml(
 				<input type="checkbox" id="general-settings-subagents-execution-think" />
 
 				<span>${generalSettingsSubagentsExecutionThink}</span>
+
+			</label>
+
+			<label class="general-settings-field general-settings-field-check">
+
+				<input type="checkbox" id="general-settings-subagents-report-think" />
+
+				<span>${generalSettingsSubagentsReportThink}</span>
 
 			</label>
 

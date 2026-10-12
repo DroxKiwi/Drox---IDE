@@ -17,6 +17,42 @@ Format suggéré :
 
 ---
 
+## 2026-10-10 — D4 post-ask_user acting (soft)
+
+- **Canal** : B — `runtime.post_ask_acting` after `ask_user_question` success.
+- **Effet** : Prefer soft skeleton `file_write` → `file_edit` ; pas re-inventaire / re-ask.
+- **Site** : `drive.rs` flag `pending_post_ask_acting_nudge` · marker `d4.post_ask_acting`.
+- **Pas** de hard gate (FX-B intent-write reste le filet si acting sans tools).
+
+## 2026-10-10 — Désempilage P3 (frames B delta-only)
+
+- **Canal** : B — `runtime.*` + `gates.repeated_file_read`.
+- **Effet** : plus de re-playbook Plan→Assign ; pointeur supplement + delta situationnel.
+- **Mesure** : somme runtime+gates ~10.15k → **~8.19k** chars (~−490 tok catalogue). `doc_ingestion` 766→467.
+- **Carte** : inventory à jour.
+
+## 2026-10-10 — Désempilage P1+P2 (cohérence / volume)
+
+- **Canal** : A (`session.core`) + C (`tools.task.description`).
+- **P1** : `tools.task` — plus de playbook Plan→Assign→Merge ; kinds + args + pointeur vers supplement Explore (~2442 → ~1773 chars).
+- **P2** : CORE — redites Explore/docs-tree compressées en pointeurs (~25671 → ~24871 chars).
+- **Canon** inchangé : `session.subagents.explore`.
+- **Mesure** : boot S2 catalogue ~43.9k → ~42.4k chars (~−365 tok). Voir [`inventory-instructions.md`](inventory-instructions.md).
+
+## 2026-10-10 — Inventaire instructions + approche renforcée
+
+- **Doc** : [`inventory-instructions.md`](inventory-instructions.md) + example `drox-prompts/examples/inventory.rs`.
+- **Constats** (pré-coupe) : `session.core` ~25.6k chars (~6.4k tok) ; boot S2 ~11k tok ; Plan→Assign répété.
+- **Approche** : contrats / recovery (D1/D3/D2) puis désempilage volume.
+
+## 2026-10-09 — Explore Option A : explore_commit + L0 paths
+
+- **Contexte** : dogfood — fill JSON prose / CoT « Let me distill… » → kinds_incomplete ; le modèle réussit les tools, pas le JSON libre.
+- **Canal** : E — tool `explore_commit` (schéma) ; journal L0 depuis file_read/glob/grep ; assemble 0-LLM ; blurb moteur depuis kinds OK uniquement.
+- **Ids** : `tools.explore_commit.description` ; `explore.cascade.execution.commit` ; claims `explore.commit=tool_channel`, `explore.report.format=commit_kinds`.
+- **Effet** : livrable parent = commits progressifs + `paths_read` auto ; plus de dépendance au tour JSON tools-off.
+- **Doc** : [`explore-cascade.md`](explore-cascade.md).
+
 ## 2026-10-08 — Explore rapport : harden + notes filtrées + executionThink
 
 - **Contexte** : dogfood — phase rapport en CoT (« Let me distill… ») acceptée comme `ok` ; kinds méta/outline.

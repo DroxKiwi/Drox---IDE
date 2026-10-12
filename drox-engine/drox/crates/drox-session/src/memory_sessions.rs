@@ -357,40 +357,20 @@ fn extract_snippet(raw: &str, terms: &[String]) -> Option<String> {
 /// Renvoie `None` si la liste est vide — l'appelant ne doit alors PAS
 /// injecter d'en-tête vide.
 ///
-/// Format produit (compact, lisible humain et LLM) :
+/// Index 1 ligne pour le blob A (C3 / V3-b) — titre/obj via `memory_list` / `memory_read`.
 ///
-/// ```text
-/// [Memory — sessions récentes du workspace (.drox/memory/sessions/)]
-/// - 2026-05-13 17:42:00 UTC — refonte-phases : refonte protocole [phase: ...] (engine + prompts)
-/// - 2026-05-12 09:15:30 UTC — vision-images : Content::Image + multimodal Ollama
-/// ...
-/// Use `memory_read { slug: "..." }` to recall the full content of a past session.
-/// ```
+/// Ancien comportement : jusqu’à ~10 lignes date+slug+objective injectées.
 #[must_use]
 pub fn format_sessions_listing_for_prompt(entries: &[MemorySessionEntry]) -> Option<String> {
     if entries.is_empty() {
         return None;
     }
-    let mut out = String::new();
-    out.push_str(
-        "[Memory — sessions récentes du workspace (`.drox/memory/sessions/`)]\n",
-    );
-    for e in entries {
-        let when = e
-            .date
-            .format("%Y-%m-%d %H:%M:%S UTC")
-            .to_string();
-        let obj = if e.objective.is_empty() {
-            "(no objective)"
-        } else {
-            e.objective.as_str()
-        };
-        let _ = writeln!(out, "- {when} — {slug} : {obj}", slug = e.slug, obj = obj);
-    }
-    out.push_str(
-        "Use `memory_read { slug: \"…\" }` to recall the full content of a past session.\n",
-    );
-    Some(out)
+    let n = entries.len();
+    Some(format!(
+        "[Memory — {n} archived session(s) under `.drox/memory/sessions/` — use \
+         `memory_list` / `memory_read {{ slug }}` (or `session_search`); titles are **not** \
+         injected here]\n"
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -671,9 +651,10 @@ mod tests {
             model: "glm".into(),
         }];
         let s = format_sessions_listing_for_prompt(&entries).unwrap();
-        assert!(s.contains("sessions récentes"));
-        assert!(s.contains("2026-05-13 18:00:00 UTC — test : Une session test"));
+        assert!(s.contains("1 archived session"));
+        assert!(s.contains("memory_list"));
         assert!(s.contains("memory_read"));
+        assert!(!s.contains("Une session test"));
     }
 
     #[tokio::test]

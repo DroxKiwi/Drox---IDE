@@ -146,6 +146,7 @@ npm run release-publish-win32
 
 - Chat / run : le moteur packagé doit résoudre `drox.exe` embarqué, pas un `drox` nu sur le PATH.
 - `drox.executablePath` = `drox` seul peut court-circuiter l’auto-détection — comportement documenté dans `droxExecutable.ts`.
+- **Hygiène binaires (dogfood)** : source de vérité F5 = `drox-engine/drox/target/debug/drox.exe` ; snapshot = `resources/drox/<plateforme>/` via `.\scripts\package-drox.ps1 -Profile debug` (resync après lots moteur / avant dogfood hors-repo). Ship = `-Profile release`. Détail : [`resources/drox/README.md`](resources/drox/README.md).
 - Warnings `executable tool … no local counterpart` en mode Architecte : attendus (registre réduit).
 - Intégration GitHub du moteur (GitHub App, remote, etc.) ≠ liste **Contributors** GitHub ; pas de lien avec `cursoragent`.
 

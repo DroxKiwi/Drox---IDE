@@ -208,6 +208,7 @@ export async function startDroxAgentRun(
 			delete runParams.subagentsMaxIterations;
 			delete runParams.subagentsMaxConcurrent;
 			delete runParams.subagentsExecutionThink;
+			delete runParams.subagentsReportThink;
 		}
 		// Soft Context-load caps (post-glob nudge) — only when Explore can run.
 		const contextLoad = buildDroxAgentRunContextLoadParams(l2, exploreOn);
@@ -221,6 +222,7 @@ export async function startDroxAgentRun(
 		delete runParams.subagentsMaxIterations;
 		delete runParams.subagentsMaxConcurrent;
 		delete runParams.subagentsExecutionThink;
+		delete runParams.subagentsReportThink;
 		delete runParams.contextLoad;
 	}
 

@@ -171,8 +171,10 @@ export interface IDroxSubagentsRunSettings {
 	readonly enabled: boolean;
 	readonly maxIterations: number;
 	readonly maxConcurrent: number;
-	/** Native thinking on Explore execution phase (report always off). */
+	/** Native thinking on Explore execution phase. */
 	readonly executionThink: boolean;
+	/** Native thinking on Explore report-synthesis phase. */
+	readonly reportThink: boolean;
 }
 
 function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
@@ -201,7 +203,9 @@ export function readSubagentsSettings(configService: IConfigurationService, reso
 	);
 	const executionThink =
 		readDroxChatConfigurationValue<boolean>(configService, DroxSetting.SubagentsExecutionThink, resource) === true;
-	return { enabled, maxIterations, maxConcurrent, executionThink };
+	const reportThink =
+		readDroxChatConfigurationValue<boolean>(configService, DroxSetting.SubagentsReportThink, resource) === true;
+	return { enabled, maxIterations, maxConcurrent, executionThink, reportThink };
 }
 
 function wireOptionalNumber(params: Record<string, unknown>, key: string, value: number | undefined): void {
@@ -330,6 +334,7 @@ export function buildAgentRunParams(opts: {
 		params.subagentsMaxIterations = opts.subagents.maxIterations;
 		params.subagentsMaxConcurrent = opts.subagents.maxConcurrent;
 		params.subagentsExecutionThink = opts.subagents.executionThink === true;
+		params.subagentsReportThink = opts.subagents.reportThink === true;
 	}
 	// Explicit false so engine skips memdir/archives even if param omitted later.
 	params.memoryEnabled = opts.memoryEnabled === true;

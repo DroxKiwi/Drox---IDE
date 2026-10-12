@@ -3,15 +3,15 @@
 use std::sync::Arc;
 
 use drox_tools::{
-	DynTool, FileReadTool, GlobTool, GrepTool, LspTool, ToolRegistry, WebFetchTool, WebSearchTool,
-	WorkspaceMapReadTool,
+	DynTool, ExploreCommitTool, FileReadTool, GlobTool, GrepTool, LspTool, ToolRegistry,
+	WebFetchTool, WebSearchTool, WorkspaceMapReadTool,
 };
 
 fn coerce_tool<T: drox_tools::Tool + Sized + 'static>(tool: T) -> DynTool {
 	Arc::new(tool)
 }
 
-/// Registre minimal pour un sous-agent Explore.
+/// Registre minimal pour un sous-agent Explore (+ `explore_commit` Option A).
 #[must_use]
 pub fn explore_tool_registry() -> ToolRegistry {
 	let mut reg = ToolRegistry::new();
@@ -22,5 +22,6 @@ pub fn explore_tool_registry() -> ToolRegistry {
 	reg.register(coerce_tool(WebFetchTool));
 	reg.register(coerce_tool(WebSearchTool));
 	reg.register(coerce_tool(WorkspaceMapReadTool));
+	reg.register(coerce_tool(ExploreCommitTool));
 	reg
 }

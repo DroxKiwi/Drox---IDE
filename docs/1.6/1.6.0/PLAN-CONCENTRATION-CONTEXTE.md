@@ -1,6 +1,6 @@
 # Plan — Concentration modèle & pertinence face aux règles (volume / ordre)
 
-**Statut** : ambition documentée (2026-10-08) · **pas encore codé** comme lot dédié  
+**Statut** : C1–C5 ✅ (2026-10-09) · Option A / `artifacts_inline` ✅ · inventaire + P1–P3 ✅ · **D1+D2+D3** ✅ (2026-10-10) — voir [APPROCHE-CONTRATS-ETAPE.md](APPROCHE-CONTRATS-ETAPE.md)  
 **Parent** : [README 1.6.0](README.md) · [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md) · [PLAN-CONTEXT-SITUATION.md](PLAN-CONTEXT-SITUATION.md) · [PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md)  
 **Carte injection** : `drox-prompts/docs/injection-map.md`  
 **Règle** : Prefer soft d’abord ; pas de hard gate inventé hors brief ([pas-d-initiative](../../../.cursor/rules/pas-d-initiative.mdc))
@@ -65,8 +65,8 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 
 | # | Solution applicable | Type | Statut | Notes |
 |---|---------------------|------|--------|-------|
-| V1-a | **Spill / stub** des gros tool results hors fenêtre chaude (path + extrait + pointeur) | Mécanique curation | 🟡 Vague 4 / spill existant — **durcir seuils & couverture** | Levier n°1 volume |
-| V1-b | **Plafond de corps** tool_result par défaut (grep/file_read) : résumé + invitation artefact / re-read borné | Tool UX | ⬜ | Compatible Prefer soft |
+| V1-a | **Spill / stub** des gros tool results hors fenêtre chaude (path + extrait + pointeur) | Mécanique curation | ✅ **C1** (2026-10-09) | Voir §9 brief C1 |
+| V1-b | **Plafond de corps** tool_result lecture : seuil spill 8 KiB + preview 512 B | Tool UX / spill | ✅ **C1** (avec V1-a) | Pas de résumé LLM — spill mécanique |
 | V1-c | Compteur / Prefer « trop de lectures parent cette fenêtre » (étendre S5 / rotating) | Soft B | 🟡 | Déjà `rotating_file_read` + S5 |
 | V1-d | Ne **pas** renvoyer le transcript tool complet dans les nudges | Hygiene B | 🟡 à auditer | |
 
@@ -80,8 +80,8 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 |---|---------------------|------|--------|-------|
 | V2-a | Artefacts Explore **utiles** (JSON / incomplete honnête) | Contrats | ✅ P-safe/P-json/P-harden | Prérequis |
 | V2-b | Prefer post-merge : fusionner via blurb / `explore_artifact_read`, **pas** re-`file_read` sources | Soft B | ✅ `post_merge_closure` | Dogfood E5 à revalider |
-| V2-c | Prefer renforcé si `kinds_incomplete` vide **et** parent relit les mêmes paths que l’Explore | Soft B | ⬜ | Éviter hard abort |
-| V2-d | Tool_result `task` : summary/blurb **courts** ; jamais coller `conclusion.md` entier dans le chat | C / outcome | 🟡 | Auditer taille `report` dans outcome |
+| V2-c | Prefer si parent relit paths Explore | Soft B | ✅ **C2** · ✅ **D3** (merge si truncated, plus de clear) | `explore_covered` ; dogfood 2026-10-09 |
+| V2-d | Tool_result `task` : summary/blurb + **`artifacts_inline`** ; plus de `conclusion.md` | C / outcome | ✅ **C2** + Option A | slim ; wire UI via summary/artefact |
 | V2-e | UI : afficher kinds incomplets (déjà tags) pour que l’humain voie le trou | UI | ✅ E4b | |
 
 **Critère de succès V2** : après Explore OK, ≤ 1–2 `file_read` parent hors artefacts ; 0 spirale layout/sidebar.
@@ -93,10 +93,10 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 | # | Solution applicable | Type | Statut | Notes |
 |---|---------------------|------|--------|-------|
 | V3-a | **CORE mince** : pointer vers supplements ; retirer redites | Prompts A | 🟡 Vague 4 / curation | Continuer |
-| V3-b | Listings skills / archives / map → **index 1 ligne** + tools list/read | A → C | ⬜ | Gros gain milieu de blob |
-| V3-c | Rules IDE : injecter **résumé / règles scorées**, détail via tool ou fichier opt-in | A / IDE | ⬜ | |
-| V3-d | Supplements (Explore, hors-WS, professor, thinking) **uniquement si flag run** | A | 🟡 partiel | Aller au bout |
-| V3-e | Mesurer taille blob A (obs) par composant | OBS | ⬜ | Pour prioriser |
+| V3-b | Listings skills / archives / map → **index 1 ligne** + tools list/read | A → C | ✅ **C3** | Formatters + CORE |
+| V3-c | Rules IDE : injecter **résumé / règles scorées**, détail via tool ou fichier opt-in | A / IDE | ⬜ | Hors lot C3 |
+| V3-d | Supplements (Explore, hors-WS, professor, thinking) **uniquement si flag run** | A | ✅ déjà + markers C3 | Confirmé flags |
+| V3-e | Mesurer taille blob A (obs) par composant | OBS | ⬜ | Markers `c3.blob_a_index` chars |
 
 **Critère de succès V3** : taille blob A médiane ↓ ; aucun listing multi-ko collé si non utilisé dans le run.
 
@@ -106,9 +106,9 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 
 | # | Solution applicable | Type | Statut | Notes |
 |---|---------------------|------|--------|-------|
-| V4-a | Card = **jauge + next step + 1 contrainte** (budget lignes strict) | B | 🟡 existe — **borner** | |
-| V4-b | Ne pas dupliquer le protocole Explore dans la card | Hygiene | ⬜ audit | |
-| V4-c | Snip / hot window déjà Vague 4 — s’assurer que la card ne **réinjecte** pas l’historique tools | B | 🟡 | |
+| V4-a | Card = **jauge + next step + 1 contrainte** (budget lignes strict) | B | ✅ **C4** | 3 lignes corps |
+| V4-b | Ne pas dupliquer le protocole Explore dans la card | Hygiene | ✅ **C4** | Assert + format |
+| V4-c | Card ne réinjecte pas files_touched / historique tools | B | ✅ **C4** | paths hors card |
 
 **Critère de succès V4** : card &lt; N lignes stables ; nudges Prefer restent les derniers messages system avant génération.
 
@@ -119,10 +119,11 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 | # | Solution applicable | Type | Statut | Notes |
 |---|---------------------|------|--------|-------|
 | V5-a | Phase rapport : JSON + refuse soft-OK + notes filtrées | E | ✅ P-harden | Dogfood à rejouer |
-| V5-b | `executionThink` défaut off | Settings | ✅ | Granularité modèle/temp = suite |
+| V5-b | `executionThink` / `reportThink` défaut off | Settings généraux | ✅ | Checkbox report à côté d’execution |
 | V5-c | Budget tools Explore / thoroughness (déjà) — éviter lecture fichier entier | E | 🟡 | Caps `return_options` |
-| V5-d | Ne pas recoller **toute** la description parent au synth si notes + activity suffisent | E | ⬜ | Réduit concurrence « JSON only » |
-| V5-e | Activity synth plafonnée (déjà ~2.5k) — idem notes | E | ✅ / 🟡 | |
+| V5-d | Ne pas recoller **toute** la description parent au synth si notes + activity suffisent | E | ✅ **C5** → **C5b zéro desc** | synth = notes + contrat |
+| V5-e | Activity synth plafonnée (déjà ~2.5k) — idem notes | E | ✅ **C5b zéro activity** | |
+| V5-f | Description `task` plafonnée (~900) + notes phase 1 télégraphiques | E | ✅ **C5b** | `normalize_explore_task_description` + filtre notes |
 
 **Critère de succès V5** : kinds non-stubs ; parent n’a pas besoin de re-inventorier via `bash dir`.
 
@@ -132,7 +133,7 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 
 | # | Solution applicable | Type | Statut | Notes |
 |---|---------------------|------|--------|-------|
-| V6-a | Micro-rappel **2–4 lignes** juste avant actes critiques (spawn `task`, acting write, rapport déjà OK) | Soft B | ⬜ | Pas de pavé |
+| V6-a | Micro-rappel **2–4 lignes** juste avant actes critiques (spawn `task`, acting write, rapport déjà OK) | Soft B | ✅ **C4** | kickoff + post-merge + `micro_act_write` |
 | V6-b | Éviter de **re-dérouler** le protocole Plan→Assign→Merge dans chaque nudge | Hygiene prompts | 🟡 intention doc | Lint claims / revue |
 | V6-c | Un seul endroit canonique du protocole (`session.subagents.explore`) | A | ✅ | |
 
@@ -154,14 +155,17 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 | Lot | Contenu | Dépend | Priorité |
 |-----|---------|--------|----------|
 | **C0** | Cette fiche + liens hub / journal | — | ✅ doc |
-| **C1** | Durcir spill/stub tool results parent (V1-a/b) | — | P0 |
-| **C2** | Merge-only : auditer taille outcome `task` + Prefer V2-c si besoin | V2-a ✅ | P0 |
-| **C3** | Amincir blob A : listings → pointeurs (V3-b/d) | mesure V3-e optionnelle | P1 |
-| **C4** | Borner situation card (V4-a) + micro-rappels V6-a | — | P1 |
-| **C5** | Explore synth : description allégée V5-d + dogfood E5 | P-harden ✅ | P1 |
+| **C1** | Durcir spill/stub tool results parent (V1-a/b) | — | ✅ moteur 2026-10-09 |
+| **C2** | Merge-only : slim outcome `task` + Prefer V2-c | V2-a ✅ | ✅ moteur 2026-10-09 |
+| **C3** | Amincir blob A : listings → pointeurs (V3-b/d) | — | ✅ moteur 2026-10-09 |
+| **C4** | Borner situation card (V4-a) + micro-rappels V6-a | — | ✅ moteur 2026-10-09 |
+| **C5** | Explore synth : description allégée V5-d (+ dogfood E5) | P-harden ✅ | ✅ moteur 2026-10-09 |
 | **C6** | Granularité modèle Explore (temp / model override) | settings think ✅ | P2 |
+| **D3** | C2 armé malgré Explore truncated | C2 | ✅ `merge_from_task_outcome` · plus de `clear` si truncated |
+| **D1** | Spill sans « re-read » après Preview dropped | C1 | ✅ stubs `tool_result_spill` |
+| **Inv** | Inventaire volumes prompts + coupe CORE/`task` | C3/V6 | ✅ mesure · ⬜ coupe |
 
-Règle : un lot = un brief validé ; Prefer soft avant hard.
+Règle : un lot = un brief validé ; **recovery moteur (D*) avant** Prefer soft empilés.
 
 ---
 
@@ -178,9 +182,180 @@ Règle : un lot = un brief validé ; Prefer soft avant hard.
 
 ## 8. Prochaine étape (process)
 
-1. Relire cette fiche ; cocher les solutions **retenues** pour C1.  
-2. Brief C1 (seuils spill, quels tools, format stub).  
-3. Dogfood E5 en parallèle dès que le binaire P-harden est en main (ne bloque pas C1).
+1. ~~C1–C5~~ ✅  
+2. C6 / retrieve list-search-embed si briefé avant dogfood.  
+3. Dogfood E5 + grep marqueurs §10–§13.
+
+---
+
+## 9. Brief C1 — spill / stub parent (livré)
+
+### Décisions
+
+| Paramètre | Valeur | Raison |
+|-----------|--------|--------|
+| Spill lecture-lourde | **8 KiB** | `file_read` / `grep` / `glob` / `explore_artifact_read` / index Explore / `notebook_read` |
+| Spill autres | **24 KiB** | inchangé (bash, etc.) |
+| Preview stub | **512 B** | reconnaître le fichier, pas raisonner dessus |
+| Fenêtre chaude | **4** derniers `tool_result` complets | snip hors fenêtre même sous autocompact |
+| Seuil snip chaud | **~200 tokens** estimés | évacuer aussi les dumps « moyens » |
+| Avant stub | **toujours spill** sur `.drox/tool-outputs/` | pas de perte silencieuse |
+
+### Code (séparation)
+
+| Module | Rôle |
+|--------|------|
+| `agent/tool_result_spill.rs` | Seuils, écriture disque, format stub, spill à l’émission |
+| `drox-context` `snip_messages_with` | Snip avec placeholder dérivé du contenu (sans FS) |
+| `context_policy::maybe_snip_hot` | Fenêtre 4 + spill via `stub_for_hot_snip` si workspace fourni |
+| `agent/run/lifecycle.rs` | Passe hot snip avec `workspace_root` |
+
+### Hors C1 (plus tard)
+
+- Outils `tool_output_list` / `tool_output_search` sur spills (retrievability).
+- Embed optionnel à l’écriture spill (find-not-lighten) — **pas** pour alléger le chat.
+
+### Critère dogfood
+
+Run doc typique : moins de dumps md inline dans l’historique parent ; stubs avec path ; règles Prefer encore visibles en fin de contexte.
+
+---
+
+## 10. Brief C2 — merge-only + marqueurs dogfood
+
+### Décisions
+
+| Élément | Comportement |
+|---------|----------------|
+| Slim `task` → LLM | Pas de `report` ; summary ≤700 ; blurb ≤200 |
+| Wire UI | Peut encore recevoir `report` (carte Explore) |
+| Post-merge Prefer | Pointe artefacts / `explore_artifact_read`, pas re-`file_read` sources |
+| V2-c Prefer | Après merge OK : `file_read` d’un path ∈ `paths_read` → one-shot soft |
+
+### Code
+
+| Module | Rôle |
+|--------|------|
+| `tool_result_spill::slim_task_tool_result_for_llm` | V2-d |
+| `situation/explore_covered.rs` | Tracking paths + hit `file_read` |
+| `runtime.explore_covered_reread` | Texte Prefer V2-c |
+| `drive.rs` | Armement / injection |
+
+### Marqueurs tracing (`marker=…`, message `dogfood:`)
+
+Grep logs / transcript export :
+
+| Marker | Signifie |
+|--------|----------|
+| `c1.spill` | Gros tool_result écrit sous `.drox/tool-outputs/` |
+| `c1.spill_failed` | Spill disque échoué → truncate |
+| `c1.hot_snip` | Snip chaud (fenêtre 4) + spill-before-stub |
+| `c1.rotating_file_read` | Prefer rotation multi-path |
+| `c2.slim_task` | Outcome `task` slimé pour le LLM |
+| `c2.post_merge_closure` | Prefer post-merge injecté |
+| `c2.explore_paths_tracked` | N paths chargés depuis `paths_read` |
+| `c2.explore_covered_hit` | Parent `file_read` d’un path couvert |
+| `c2.explore_covered_reread_prefer` | Prefer V2-c injecté |
+
+Stub texte (historique LLM) : `LARGE OUTPUT SPILLED TO DISK`, `SPILLED FOR CONTEXT`, `.drox/tool-outputs/`.
+
+**Embed** : pas encore de marker (lot retrieve ultérieur) — placeholder intention : `c1.embed_spill` quand branché.
+
+### Critère dogfood C2
+
+Après Explore OK : Prefer post-merge visible ; si le parent relit un path Explore → Prefer V2-c ; transcript LLM sans markdown `report` collé.
+
+---
+
+## 11. Brief C3 — blob A index (livré)
+
+### Décisions
+
+| Bloc | Avant | Après C3 |
+|------|-------|----------|
+| Skills | jusqu’à 8 KiB name+desc | **1 ligne** count + `skill_list` / `skill_read` |
+| Archives memory | ≤10 lignes date+slug+obj | **1 ligne** count + `memory_list` / `memory_read` |
+| Workspace map | ≤28 nœuds | **1 ligne** fresh/stale + count + `workspace_map_read` |
+| Supplements session | flag-gated | inchangé + markers `c3.supplement` |
+| Rules IDE 12k | — | hors scope (V3-c) |
+
+### Code
+
+| Site | Rôle |
+|------|------|
+| `skills/catalog.rs` `format_skills_listing_for_prompt` | Index skills |
+| `memory_sessions.rs` `format_sessions_listing_for_prompt` | Index archives |
+| `workspace_map.rs` `format_workspace_map_for_prompt` | Index map |
+| `core.rs` Session memory / Local skills / 3ter | Alignement consignes |
+| `jsonrpc/handlers/mod.rs` | Markers dogfood à l’inject |
+
+### Marqueurs
+
+| Marker | Signifie |
+|--------|----------|
+| `c3.blob_a_index` | Index skills / memory / map collé (`kind`, `chars`) |
+| `c3.supplement` | Supplement flag-gated collé (`kind` = explore / thinking / professor) |
+
+### Critère dogfood C3
+
+Blob A sans listing multi-ligne skills/archives/map ; modèle appelle `skill_list` / `memory_list` / `workspace_map_read` quand besoin.
+
+---
+
+## 12. Brief C4 — situation card + micros (livré)
+
+### Card (V4)
+
+| Champ | Contenu |
+|-------|---------|
+| `gauge` | open (p/i) · done · mode · obj tronqué |
+| `next` | next todo tronqué |
+| `constraint` | `last_tool_error` **ou** une contrainte produit courte |
+| Hors card | `files_touched`, protocole Explore, dumps tools |
+
+### Micros (V6-a)
+
+| Moment | Prompt | Marker |
+|--------|--------|--------|
+| Step → spawn task | `step_explore_kickoff` (micro) | `c4.micro_task_kickoff` |
+| Explore OK | `post_merge_closure` (micro) | `c2.post_merge_closure` |
+| Juste après | `runtime.micro_act_write` | `c4.micro_act_write` |
+| Refresh card | — | `c4.situation_card` |
+
+### Critère dogfood C4
+
+Card ≤ 3 lignes corps ; Prefer micros courts en fin de contexte ; pas de protocole Explore dans la card.
+
+---
+
+## 13. Brief C5 — Explore synth brief (livré)
+
+### Décisions
+
+| Condition | Description dans le prompt synth |
+|-----------|----------------------------------|
+| Notes ≥ 200 chars **ou** ≥ 3 lignes activity | Brief **≤ 500** chars (tête) ; heading « short » |
+| Sinon (évidence mince) | Jusqu’à **2 000** chars |
+| Toujours | Strip blocs « Return contract / kinds / caps » déjà dans `contract_block` |
+| Notes | Cap 6k (existant) ; activity cap ~2.5k (existant) |
+
+### Code
+
+| Site | Rôle |
+|------|------|
+| `subagent/report.rs` `prepare_synth_task_brief` | V5-d |
+| `explore_executor::synthesize_parent_report` | Branche brief + marker |
+| `explore.report_synthesis` | Prefer evidence over restating brief |
+
+### Marqueur
+
+| Marker | Signifie |
+|--------|----------|
+| `c5.synth_brief` | Brief préparé (`slimmed`, `brief_chars`, `notes_chars`, `activity_n`) |
+
+### Critère dogfood E5 / C5
+
+Synth JSON kinds non-stubs ; logs `c5.synth_brief slimmed=true` sur Explore avec notes riches ; parent merge via artefacts (C2) sans re-inventaire.
 
 ---
 

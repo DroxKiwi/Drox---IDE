@@ -124,17 +124,19 @@ impl Agent {
         let mut tokens = policy.count_tokens(messages);
         let mut disk_dirty = false;
 
-        // 1.6.0 S-2 — snip chaud même sous le seuil autocompact (gros dumps
-        // docs / bash ne doivent pas rester N tours dans le prompt).
-        if let Some(report) = policy.maybe_snip_hot(messages) {
+        // S-2 / C1 — snip chaud sous seuil autocompact ; spill avant stub.
+        if let Some(report) =
+            policy.maybe_snip_hot(messages, Some(self.ctx.workspace_root.as_ref()))
+        {
             let tokens_before = tokens;
             tokens = policy.count_tokens(messages);
             debug!(
+                marker = "c1.hot_snip",
                 tokens_before,
                 tokens_after = tokens,
                 tokens_freed = report.tokens_freed,
                 blocks_snipped = report.blocks_snipped,
-                "hot context snip applied (S-2)"
+                "dogfood: hot context snip applied (S-2/C1)"
             );
             disk_dirty = true;
             tx.send(Ok(AgentEvent::ContextSnip {

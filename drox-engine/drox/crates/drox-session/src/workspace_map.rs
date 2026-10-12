@@ -21,6 +21,8 @@ const MAX_PIVOTS_PER_NODE: usize = 8;
 const MAX_SUMMARY_LEN: usize = 200;
 const SCAN_MAX_DEPTH: usize = 2;
 const SCAN_MAX_ENTRIES: usize = 80;
+/// Ancien plafond de lignes injectées (pré-C3) — conservé pour doc / éventuel tool détail.
+#[allow(dead_code)]
 const PROMPT_MAX_LINES: usize = 28;
 
 /// Nœud de la carte (répertoire ou fichier pivot).
@@ -329,60 +331,24 @@ pub fn initial_snapshot(workspace: &Utf8Path, drox_ignore: Option<&DroxIgnoreMat
     nodes
 }
 
-/// Rendu texte injecté au `agent.run`.
+/// Index 1 ligne pour le blob A (C3 / V3-b) — détail via `workspace_map_read`.
+///
+/// Ancien comportement : jusqu’à [`PROMPT_MAX_LINES`] nœuds scorés injectés.
 #[must_use]
 pub fn format_workspace_map_for_prompt(map: &WorkspaceMapV1) -> Option<String> {
     if map.nodes.is_empty() {
         return None;
     }
-    let mut lines = Vec::new();
-    if map.stale {
-        lines.push(
-            "[Workspace map] (stale — empreinte changée : explore les zones touchées, \
-             mets à jour via workspace_map_note)"
-            .to_string(),
-        );
+    let n = map.nodes.len();
+    let freshness = if map.stale {
+        "stale — fingerprint changed; explore touched zones, update via `workspace_map_note`"
     } else {
-        lines.push(
-            "[Workspace map] (fresh — ne refais pas un inventaire racine complet ; \
-             cible les pivots listés ou workspace_map_read pour le détail)"
-                .to_string(),
-        );
-    }
-
-    let mut candidates: Vec<&MapNode> = map
-        .nodes
-        .iter()
-        .filter(|n| n.path.matches('/').count() <= 1 || n.explored || !n.pivots.is_empty())
-        .collect();
-    candidates.sort_by(|a, b| {
-        let score_a = (a.explored as u8) + (a.pivots.len() as u8) * 2 + (!a.summary.is_none() as u8);
-        let score_b = (b.explored as u8) + (b.pivots.len() as u8) * 2 + (!b.summary.is_none() as u8);
-        score_b.cmp(&score_a).then_with(|| a.path.cmp(&b.path))
-    });
-
-    for node in candidates.into_iter().take(PROMPT_MAX_LINES) {
-        let label = if node.path.is_empty() { "." } else { &node.path };
-        let mut parts = vec![format!("· {label}")];
-        if node.kind == "dir" {
-            parts.push("(dir)".into());
-        }
-        if let Some(s) = &node.summary {
-            parts.push(format!("— {s}"));
-        } else if node.explored && node.kind == "dir" {
-            parts.push("— exploré".into());
-        }
-        if !node.pivots.is_empty() {
-            let pivots: Vec<_> = node.pivots.iter().take(3).cloned().collect();
-            parts.push(format!("pivots: {}", pivots.join(", ")));
-        }
-        if !node.children.is_empty() {
-            let kids: Vec<_> = node.children.iter().take(4).cloned().collect();
-            parts.push(format!("[{}{}]", kids.join(", "), if node.children.len() > 4 { "…" } else { "" }));
-        }
-        lines.push(parts.join(" "));
-    }
-    Some(lines.join("\n"))
+        "fresh — do not redo a full root inventory; use `workspace_map_read` for pivots/detail"
+    };
+    Some(format!(
+        "[Workspace map] ({freshness}) — {n} node(s) on disk — full node list is **not** \
+         injected here\n"
+    ))
 }
 
 fn attach_children_lists(nodes: &mut [MapNode]) {
@@ -538,8 +504,10 @@ mod tests {
             ..Default::default()
         };
         let block = format_workspace_map_for_prompt(&map).unwrap();
-        assert!(block.contains("moteur Rust"));
-        assert!(block.contains("agent.rs"));
+        assert!(block.contains("1 node"));
+        assert!(block.contains("fresh"));
+        assert!(block.contains("workspace_map_read"));
+        assert!(!block.contains("moteur Rust"));
     }
 
     #[tokio::test]
