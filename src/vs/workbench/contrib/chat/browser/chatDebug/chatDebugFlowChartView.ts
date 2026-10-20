@@ -296,7 +296,8 @@ export class ChatDebugFlowChartView extends Disposable {
 		const targetDocument = DOM.getWindow(this.content).document;
 		this._register(DOM.addDisposableListener(targetDocument, DOM.EventType.MOUSE_MOVE, e => this.handleMouseMove(e)));
 		this._register(DOM.addDisposableListener(targetDocument, DOM.EventType.MOUSE_UP, e => this.handleMouseUp(e)));
-		this._register(DOM.addDisposableListener(this.content, 'wheel', e => this.handleWheel(e), { passive: false }));
+		// Capture so a focused/selected node does not eat the wheel before pan.
+		this._register(DOM.addDisposableListener(this.content, 'wheel', e => this.handleWheel(e), { passive: false, capture: true }));
 	}
 
 	private setupKeyboard(): void {
@@ -677,17 +678,26 @@ export class ChatDebugFlowChartView extends Disposable {
 
 		this.hasUserPanned = true;
 
-		const rect = this.content.getBoundingClientRect();
-		const mouseX = e.clientX - rect.left;
-		const mouseY = e.clientY - rect.top;
-
-		const delta = -e.deltaY * WHEEL_ZOOM_FACTOR;
-		const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, this.scale * (1 + delta)));
-
-		const scaleFactor = newScale / this.scale;
-		this.translateX = mouseX - (mouseX - this.translateX) * scaleFactor;
-		this.translateY = mouseY - (mouseY - this.translateY) * scaleFactor;
-		this.scale = newScale;
+		if (e.ctrlKey || e.metaKey) {
+			const rect = this.content.getBoundingClientRect();
+			const mouseX = e.clientX - rect.left;
+			const mouseY = e.clientY - rect.top;
+			const delta = -e.deltaY * WHEEL_ZOOM_FACTOR;
+			const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, this.scale * (1 + delta)));
+			const scaleFactor = newScale / this.scale;
+			this.translateX = mouseX - (mouseX - this.translateX) * scaleFactor;
+			this.translateY = mouseY - (mouseY - this.translateY) * scaleFactor;
+			this.scale = newScale;
+		} else {
+			let dx = e.deltaX;
+			let dy = e.deltaY;
+			if (e.shiftKey && dx === 0) {
+				dx = dy;
+				dy = 0;
+			}
+			this.translateX -= dx;
+			this.translateY -= dy;
+		}
 
 		this.applyTransform();
 	}
