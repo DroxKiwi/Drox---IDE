@@ -221,11 +221,9 @@ async fn nudge_loops_until_max_iterations_when_done_never_emitted() {
     );
 }
 
-/// Sprint Hotfix « boucle édition/lecture » — empreinte de texte assistant
-/// répétée à l'identique. 1.6.0 L-2 : text_only warn@2 / hard@3
-/// (thinking ignoré) → Abort au 3e tour identique.
+/// text_only : Warn → ForceConclude → SyntheticDone (Stop propre, pas Err).
 #[tokio::test]
-async fn repeated_assistant_text_triggers_loop_detected_after_nudge() {
+async fn repeated_assistant_text_triggers_synthetic_done() {
     let same_turn = || {
         vec![
             StreamEvent::Start,
@@ -240,15 +238,15 @@ async fn repeated_assistant_text_triggers_loop_detected_after_nudge() {
             },
         ]
     };
+    // T1 Ok · T2 Warn · T3 ForceConclude · T4 SyntheticDone
     let llm = Arc::new(ScriptedLlm::new(vec![
+        same_turn(),
         same_turn(),
         same_turn(),
         same_turn(),
     ]));
     let registry = Arc::new(ToolRegistry::new());
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
-    // `max_iterations` largement supérieur pour s'assurer que c'est
-    // bien le `LoopDetector` qui clôt le run, pas le garde-fou.
     let cfg = AgentConfig {
         max_iterations: 12,
         ..AgentConfig::default()
@@ -256,19 +254,21 @@ async fn repeated_assistant_text_triggers_loop_detected_after_nudge() {
     let agent = Agent::new(llm, registry, ctx, cfg);
 
     let raw: Vec<_> = agent.run("explique").collect::<Vec<_>>().await;
-    match raw.last() {
-        Some(Err(EngineError::LoopDetected { kind, turns })) => {
-            assert_eq!(*kind, "text_only", "kind={kind:?}");
-            assert!(*turns >= 3, "at least 3 identical turns: got {turns}");
-        }
-        other => panic!("expected LoopDetected text_only, got {other:?}"),
-    }
+    assert!(
+        matches!(raw.last(), Some(Ok(AgentEvent::Stop { .. }))),
+        "expected clean Stop after SyntheticDone, got {:?}",
+        raw.last()
+    );
+    assert!(
+        raw.iter().any(|r| matches!(
+            r,
+            Ok(AgentEvent::TextDelta { text }) if text.contains("Run clôturé automatiquement")
+        )),
+        "expected synthetic done text in stream"
+    );
 }
 
-/// Sprint Hotfix « boucle » — variation : le 2e tour est **différent** du
-/// 1er (donc on reset le compteur), et seuls les tours 2-3-4 sont
-/// identiques. Doit aussi déclencher `LoopDetected` (sur les tours 2-3
-/// puis abort au 4).
+/// Variation : tour 1 différent, puis queue de same → SyntheticDone (Stop).
 #[tokio::test]
 async fn loop_detector_resets_when_intermediate_turn_differs() {
     let same_turn = || {
@@ -313,8 +313,8 @@ async fn loop_detector_resets_when_intermediate_turn_differs() {
 
     let raw: Vec<_> = agent.run("essaie").collect::<Vec<_>>().await;
     assert!(
-        matches!(raw.last(), Some(Err(EngineError::LoopDetected { .. }))),
-        "expected LoopDetected after 4 identical tail turns, got {:?}",
+        matches!(raw.last(), Some(Ok(AgentEvent::Stop { .. }))),
+        "expected clean Stop after SyntheticDone, got {:?}",
         raw.last()
     );
 }
@@ -342,7 +342,7 @@ fn loop_detector_treats_different_thinking_as_progress() {
     assert_eq!(det.observe(&mk("plan B — fix JSON")), LoopDecision::Warn { kind: "both" });
 }
 
-/// 1.6.0 L-2 — même body sans tool, thinking différent → quand même warn/abort.
+/// 1.6.0 L-2 — même body sans tool, thinking différent → Warn → ForceConclude → SyntheticDone.
 #[test]
 fn loop_detector_text_only_ignores_thinking_variance() {
     let mut det = LoopDetector::new();
@@ -362,18 +362,22 @@ fn loop_detector_text_only_ignores_thinking_variance() {
         det.observe(&mk("réflexion 2 complètement différente")),
         LoopDecision::Warn { kind: "text_only" }
     );
-    assert!(matches!(
+    assert_eq!(
         det.observe(&mk("encore autre thinking")),
-        LoopDecision::Abort {
+        LoopDecision::ForceConclude { kind: "text_only" }
+    );
+    assert!(matches!(
+        det.observe(&mk("toujours")),
+        LoopDecision::SyntheticDone {
             kind: "text_only",
-            turns: 3
+            turns: 4
         }
     ));
 }
 
-/// 1.6.0 L-1+L-2 — answering identique sans done : abort text_only, pas max_iter.
+/// answering identique sans done → SyntheticDone (Stop), pas max_iter ni Err.
 #[tokio::test]
-async fn identical_answering_without_done_aborts_via_text_only() {
+async fn identical_answering_without_done_synthetic_close() {
     let same = || {
         vec![
             StreamEvent::Start,
@@ -386,7 +390,7 @@ async fn identical_answering_without_done_aborts_via_text_only() {
             },
         ]
     };
-    let llm = Arc::new(ScriptedLlm::new(vec![same(), same(), same()]));
+    let llm = Arc::new(ScriptedLlm::new(vec![same(), same(), same(), same()]));
     let registry = Arc::new(ToolRegistry::new());
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
     let cfg = AgentConfig {
@@ -395,12 +399,11 @@ async fn identical_answering_without_done_aborts_via_text_only() {
     };
     let agent = Agent::new(llm, registry, ctx, cfg);
     let raw: Vec<_> = agent.run("finis").collect::<Vec<_>>().await;
-    match raw.last() {
-        Some(Err(EngineError::LoopDetected { kind, .. })) => {
-            assert_eq!(*kind, "text_only");
-        }
-        other => panic!("expected LoopDetected text_only before max_iter, got {other:?}"),
-    }
+    assert!(
+        matches!(raw.last(), Some(Ok(AgentEvent::Stop { .. }))),
+        "expected Stop after SyntheticDone, got {:?}",
+        raw.last()
+    );
 }
 
 #[test]
@@ -437,11 +440,11 @@ fn loop_detector_flags_bash_family_despite_thinking_change() {
             "retry again",
             r#"cd src\app && findstr /n "Metrics" page.tsx & findstr /n "Metrics" page.tsx"#
         )),
-        LoopDecision::Warn { kind: "tool_family" }
+        LoopDecision::ForceConclude { kind: "tool_family" }
     );
     assert!(matches!(
         det.observe(&mk("still", r#"cd src\app && findstr /n "metrics" page.tsx"#)),
-        LoopDecision::Abort {
+        LoopDecision::SyntheticDone {
             kind: "tool_family",
             ..
         }
@@ -483,9 +486,13 @@ fn loop_detector_tools_progress_aware() {
         det.observe_tool_outputs(&call(), "content-v2-changed"),
         LoopDecision::Warn { kind: "tools" }
     );
+    assert_eq!(
+        det.observe_tool_outputs(&call(), "content-v2-changed"),
+        LoopDecision::ForceConclude { kind: "tools" }
+    );
     assert!(matches!(
         det.observe_tool_outputs(&call(), "content-v2-changed"),
-        LoopDecision::Abort {
+        LoopDecision::SyntheticDone {
             kind: "tools",
             ..
         }

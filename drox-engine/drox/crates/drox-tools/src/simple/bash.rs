@@ -1,6 +1,7 @@
 //! Tool `bash` — exécute une commande shell sous le workspace.
 
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -18,11 +19,48 @@ use crate::error::ToolError;
 use crate::tool_progress::ShellProgressUpdate;
 use crate::tool::Tool;
 
-const DEFAULT_TIMEOUT_MS: u64 = 120_000;
-const MAX_TIMEOUT_MS: u64 = 600_000;
+/// Cursor-like default when the model omits `timeout_ms`.
+const DEFAULT_TIMEOUT_MS: u64 = 60_000;
 const MAX_STREAM_BYTES: usize = 30 * 1024;
 const PROGRESS_INTERVAL_MS: u64 = 150;
 const TAIL_LINES: usize = 5;
+
+/// Active native (in-process) bash child — Skip / `tools.skipBash` kills it.
+static ACTIVE_NATIVE_BASH: Mutex<Option<u32>> = Mutex::const_new(None);
+static NATIVE_BASH_SKIP_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+/// Kill the in-flight native `bash` tool child if any. Returns true when a pid was targeted.
+pub async fn skip_active_native_bash() -> bool {
+    let pid = {
+        let guard = ACTIVE_NATIVE_BASH.lock().await;
+        *guard
+    };
+    let Some(pid) = pid else {
+        return false;
+    };
+    NATIVE_BASH_SKIP_REQUESTED.store(true, Ordering::SeqCst);
+    kill_pid(pid);
+    true
+}
+
+fn kill_pid(pid: u32) {
+    #[cfg(windows)]
+    {
+        let _ = std::process::Command::new("taskkill")
+            .args(["/PID", &pid.to_string(), "/T", "/F"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = std::process::Command::new("kill")
+            .args(["-9", &pid.to_string()])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+}
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct BashInput {
@@ -62,7 +100,8 @@ impl Tool for BashTool {
 
         let timeout_ms = args
             .timeout_ms
-            .map_or(DEFAULT_TIMEOUT_MS, |ms| ms.min(MAX_TIMEOUT_MS));
+            .filter(|ms| *ms > 0)
+            .unwrap_or(DEFAULT_TIMEOUT_MS);
 
         let started = Instant::now();
         let cwd = ctx.effective_workspace();
@@ -76,6 +115,11 @@ impl Tool for BashTool {
         let mut child = cmd
             .spawn()
             .map_err(|e| ToolError::io(cwd.clone(), e))?;
+
+        NATIVE_BASH_SKIP_REQUESTED.store(false, Ordering::SeqCst);
+        if let Some(pid) = child.id() {
+            *ACTIVE_NATIVE_BASH.lock().await = Some(pid);
+        }
 
         let buffers = Arc::new(Mutex::new(StreamBuffers::default()));
         let stdout = child.stdout.take();
@@ -103,8 +147,30 @@ impl Tool for BashTool {
         )
         .await;
 
+        *ACTIVE_NATIVE_BASH.lock().await = None;
+        let skipped = NATIVE_BASH_SKIP_REQUESTED.swap(false, Ordering::SeqCst);
+
         let duration_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
         let bufs = buffers.lock().await.clone();
+
+        if skipped {
+            let (stdout, stdout_trunc) = decode_truncated(bufs.stdout.as_bytes());
+            let (stderr, stderr_trunc) = decode_truncated(bufs.stderr.as_bytes());
+            report_shell_progress(ctx, &bufs.combined_display(), started);
+            return Ok(json!({
+                "command": command,
+                "exit_code": null,
+                "stdout": stdout,
+                "stderr": stderr,
+                "stdout_truncated": stdout_trunc,
+                "stderr_truncated": stderr_trunc,
+                "timed_out": false,
+                "duration_ms": duration_ms,
+                "description": args.description,
+                "skipped": true,
+                "error": "Skipped by user",
+            }));
+        }
 
         match wait_result {
             Ok(Ok(status)) => {

@@ -11,11 +11,13 @@ import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { FileChangeType, IFileService } from '../../../../platform/files/common/files.js';
+import { ILogService } from '../../../../platform/log/common/log.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
 import { IDroxChatSessionService } from '../common/droxChatSessionService.js';
 import { isBareDroxExecutableName } from '../common/droxExecutable.js';
 import { IDroxExecutableService } from '../common/droxExecutableService.js';
+import { DroxEngineDisposeReason } from '../common/droxEngineLifecycle.js';
 import { DroxEngineInitializeResult, IDroxEngineService } from '../common/droxEngineService.js';
 import { DROX_ENGINE_RESPAWN_SETTINGS } from '../common/droxRunSettings.js';
 
@@ -24,14 +26,18 @@ class DroxEngineConfigContribution extends Disposable implements IWorkbenchContr
 	static readonly ID = 'workbench.contrib.droxEngineConfig';
 
 	private readonly respawnScheduler = this._register(new RunOnceScheduler(() => {
-		void this.requestRespawn(localize(
-			'drox.engineRespawnBinary',
-			'Drox engine binary was rebuilt. Restarting the engine.',
-		));
+		void this.requestRespawn(
+			'respawn-binary',
+			localize(
+				'drox.engineRespawnBinary',
+				'Drox engine binary was rebuilt. Restarting the engine.',
+			),
+		);
 	}, 1500));
 
 	private executableWatchUri: URI | undefined;
 	private pendingRespawnMessage: string | undefined;
+	private pendingRespawnReason: DroxEngineDisposeReason | undefined;
 
 	constructor(
 		@IConfigurationService configurationService: IConfigurationService,
@@ -40,6 +46,7 @@ class DroxEngineConfigContribution extends Disposable implements IWorkbenchContr
 		@IFileService private readonly fileService: IFileService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IDroxChatSessionService private readonly chatSessionService: IDroxChatSessionService,
+		@ILogService private readonly logService: ILogService,
 	) {
 		super();
 
@@ -51,20 +58,33 @@ class DroxEngineConfigContribution extends Disposable implements IWorkbenchContr
 			if (!needsRespawn) {
 				return;
 			}
-			void this.requestRespawn(localize(
-				'drox.engineRespawn',
-				'Drox engine settings changed. Restarting the engine for the new configuration to take effect.',
-			));
+			void this.requestRespawn(
+				'respawn-settings',
+				localize(
+					'drox.engineRespawn',
+					'Drox engine settings changed. Restarting the engine for the new configuration to take effect.',
+				),
+			);
 		}));
 
 		this._register(this.chatSessionService.onDidChangeRunId(() => {
 			void this.flushPendingRespawn();
 		}));
 
+		this._register(this.droxEngineService.onNotification(e => {
+			if (e.method === 'agent/done') {
+				void this.flushPendingRespawn();
+			}
+		}));
+
 		this._register(this.droxEngineService.onDidInitialize(init => {
 			this.warnLegacyEngine(init);
 			void this.watchExecutableForRebuild();
 		}));
+	}
+
+	private isEngineBusy(): boolean {
+		return !!this.chatSessionService.getRunId() || this.droxEngineService.isAgentRunActive;
 	}
 
 	private warnLegacyEngine(init: DroxEngineInitializeResult): void {
@@ -107,30 +127,41 @@ class DroxEngineConfigContribution extends Disposable implements IWorkbenchContr
 		}));
 	}
 
-	private async requestRespawn(message: string): Promise<void> {
-		if (this.chatSessionService.getRunId()) {
+	private async requestRespawn(reason: DroxEngineDisposeReason, message: string): Promise<void> {
+		if (this.isEngineBusy()) {
 			this.pendingRespawnMessage = message;
+			this.pendingRespawnReason = reason;
+			this.logService.info(`[Drox] engine respawn deferred reason=${reason} (agent run active)`);
 			this.notificationService.info(localize(
 				'drox.engineRespawnDeferred',
 				'Engine settings will apply after the current agent run finishes.',
 			));
 			return;
 		}
-		await this.respawnEngine(message);
+		await this.respawnEngine(reason, message);
 	}
 
 	private async flushPendingRespawn(): Promise<void> {
-		if (this.chatSessionService.getRunId() || !this.pendingRespawnMessage) {
+		if (this.isEngineBusy() || !this.pendingRespawnMessage || !this.pendingRespawnReason) {
 			return;
 		}
 		const message = this.pendingRespawnMessage;
+		const reason = this.pendingRespawnReason;
 		this.pendingRespawnMessage = undefined;
-		await this.respawnEngine(message);
+		this.pendingRespawnReason = undefined;
+		await this.respawnEngine(reason, message);
 	}
 
-	private async respawnEngine(message: string): Promise<void> {
+	private async respawnEngine(reason: DroxEngineDisposeReason, message: string): Promise<void> {
+		if (this.isEngineBusy()) {
+			this.pendingRespawnMessage = message;
+			this.pendingRespawnReason = reason;
+			this.logService.info(`[Drox] engine respawn re-deferred reason=${reason}`);
+			return;
+		}
 		this.notificationService.info(message);
-		await this.droxEngineService.dispose();
+		this.logService.info(`[Drox] engine respawn now reason=${reason}`);
+		await this.droxEngineService.dispose(reason);
 	}
 
 }

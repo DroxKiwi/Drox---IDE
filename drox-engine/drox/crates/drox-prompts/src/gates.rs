@@ -205,7 +205,8 @@ hypothesis in `[phase: reading]` or `[phase: acting]` BEFORE acting.\n\n\
 2. **Conclude**: if you genuinely have nothing more to do, emit \
 `[phase: answering]` with your final answer in Markdown, then \
 `[phase: done]`.\n\n\
-Repeating the same content again will cause the run to be aborted.";
+Repeating the same content again escalates: tools will be removed, then the \
+run will be closed automatically.";
 
 pub const LOOP_DETECTED_ENTRY: PromptEntry = PromptEntry {
 	id: "gates.loop_detected",
@@ -224,7 +225,8 @@ That will not converge.\n\n\
 1. **Stop retrying the same findstr/grep/bash** — treat empty stdout + exit 1 as \
 \"no matches\" (not a crash), OR switch to `file_read` / `codebase_search`.\n\
 2. **Or conclude**: `[phase: answering]` with what you already know, then `[phase: done]`.\n\n\
-Repeating the same search family again will abort the run.";
+Repeating the same search family again escalates: tools will be removed, then \
+the run will be closed automatically.";
 
 pub const LOOP_TOOL_FAMILY_ENTRY: PromptEntry = PromptEntry {
 	id: "gates.loop_tool_family",
@@ -235,6 +237,26 @@ pub const LOOP_TOOL_FAMILY_ENTRY: PromptEntry = PromptEntry {
 	topics: &["loop", "bash", "grep"],
 	claims: &["loop.tool_family_repeat=change_or_conclude"],
 	body: LOOP_TOOL_FAMILY_NUDGE_PROMPT,
+};
+
+pub const LOOP_FORCE_CONCLUDE_PROMPT: &str = "LOOP ESCALATION — tools are DISABLED for \
+this turn. Do not attempt any tool call.\n\n\
+You were stuck repeating the same approach. Finish the run NOW:\n\
+1. `[phase: answering]` — honest status: what is done, what is blocked, what the \
+user should do next (short).\n\
+2. `[phase: done]` — mandatory.\n\n\
+If you output tools or repeat the same stall, the engine will close the run \
+for you.";
+
+pub const LOOP_FORCE_CONCLUDE_ENTRY: PromptEntry = PromptEntry {
+	id: "gates.loop_force_conclude",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::MustText,
+	audience: PromptAudience::Parent,
+	when: "loop_force_conclude",
+	topics: &["loop", "phases", "done"],
+	claims: &["loop.force_conclude=answering_done_no_tools"],
+	body: LOOP_FORCE_CONCLUDE_PROMPT,
 };
 
 // ── Dynamic builders (catalogue = template + claims) ────────────────────────

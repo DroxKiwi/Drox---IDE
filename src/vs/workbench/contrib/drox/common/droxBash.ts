@@ -5,7 +5,19 @@
 
 export const DROX_BASH_OUTPUT_CHANNEL_ID = 'droxBash';
 
+/** Cursor-like default: cut stuck shell and return `timed_out` to the model. */
+export const DROX_BASH_DEFAULT_TIMEOUT_MS = 60_000;
 
+/** setTimeout ceiling (~24.8d) — platform limit, not a product policy cap. */
+const DROX_BASH_TIMEOUT_TIMER_CEILING_MS = 2 ** 31 - 1;
+
+/** Resolve bash wall-clock timeout: omit → default 60s; no product max (model may set higher). */
+export function clampDroxBashTimeoutMs(timeoutMs: number | undefined): number {
+	const raw = typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0
+		? timeoutMs
+		: DROX_BASH_DEFAULT_TIMEOUT_MS;
+	return Math.min(Math.max(1, Math.trunc(raw)), DROX_BASH_TIMEOUT_TIMER_CEILING_MS);
+}
 
 export interface IDroxBashExecArgs {
 
@@ -38,7 +50,7 @@ export interface IDroxBashExecResult {
 
 	readonly error?: string;
 
-	/** True when the user skipped a stuck IDE-terminal bash (Ctrl+C + unblock). */
+	/** True when the user skipped a stuck bash (IDE terminal Ctrl+C or ExecBash kill). */
 	readonly skipped?: boolean;
 
 }

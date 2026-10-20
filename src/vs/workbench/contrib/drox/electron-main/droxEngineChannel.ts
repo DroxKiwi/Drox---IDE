@@ -9,6 +9,7 @@ import { IDroxBashExecArgs } from '../common/droxBash.js';
 import {
 	DroxEngineCommand,
 	DroxEngineEvent,
+	IDroxEngineDisposeArgs,
 	IDroxFetchHttpArgs,
 	IDroxEngineRespondArgs,
 	IDroxEngineStartArgs,
@@ -51,6 +52,8 @@ export class DroxEngineChannel implements IServerChannel<string> {
 				return undefined as T;
 			case DroxEngineCommand.ExecBash:
 				return await this.service.execBash(arg as IDroxBashExecArgs) as T;
+			case DroxEngineCommand.SkipExecBash:
+				return this.service.skipExecBash() as T;
 			case DroxEngineCommand.FetchHttp:
 				return await this.service.fetchHttp(arg as IDroxFetchHttpArgs) as T;
 			case DroxEngineCommand.PortForwardStart:
@@ -62,8 +65,10 @@ export class DroxEngineChannel implements IServerChannel<string> {
 				return await this.service.portForwardProbe(arg as IDroxPortForwardProbeArgs) as T;
 			case DroxEngineCommand.Shutdown:
 				return await this.service.shutdown((arg as { windowId: number }).windowId) as T;
-			case DroxEngineCommand.Dispose:
-				return await this.service.disposeWindow((arg as { windowId: number }).windowId) as T;
+			case DroxEngineCommand.Dispose: {
+				const a = arg as IDroxEngineDisposeArgs;
+				return await this.service.disposeWindow(a.windowId, a.reason ?? 'explicit') as T;
+			}
 			default:
 				throw new Error(`[Drox] Call not found: ${command}`);
 		}

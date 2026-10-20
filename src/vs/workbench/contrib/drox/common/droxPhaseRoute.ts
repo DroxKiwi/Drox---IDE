@@ -33,7 +33,10 @@ export function isDroxAnsweringPhase(phase: string | null | undefined): boolean 
 /**
  * `true` → routage thinking ; `false` → markdown / answer visible.
  * - `answering` → visible
- * - phase inconnue / null / hors `done` → thinking (défensif)
+ * - `null` / undefined (entre phases, ex. après `phase_close` thinking natif) → **visible**
+ *   — aligné TUI `deltaBelongsInThinking` (hors set → answer). Sinon un ack mid-run
+ *   sans `[phase: answering]` tombe dans le fold (dogfood `ses_e6695920`).
+ * - phase inconnue hors `done` → thinking (défensif)
  * - `done` → pas de stream texte attendu ; traité comme non-thinking
  */
 export function isDroxThinkingRoute(phase: string | null | undefined): boolean {
@@ -41,7 +44,7 @@ export function isDroxThinkingRoute(phase: string | null | undefined): boolean {
 		return false;
 	}
 	if (!phase) {
-		return true;
+		return false;
 	}
 	// Inconnu hors `done` → thinking (défensif) ; set wide = phases métier hors answering.
 	return DROX_THINKING_PHASES.has(phase) || phase !== 'done';

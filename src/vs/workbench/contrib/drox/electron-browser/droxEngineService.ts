@@ -25,9 +25,16 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IDroxExecutableService } from '../common/droxExecutableService.js';
 import { DroxEngineInitializeResult, IDroxEngineService, InitializeOptions, RpcRequestHandler } from '../common/droxEngineService.js';
+import {
+	DroxEngineDisposeReason,
+	isDroxEngineStaleClientError,
+	parseAgentDoneRunId,
+	shouldDeferEngineDispose,
+} from '../common/droxEngineLifecycle.js';
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 import { RpcRequestResult } from '../common/droxRpc.js';
 import { DroxSetting } from '../common/droxConfiguration.js';
+import { ILogService } from '../../../../platform/log/common/log.js';
 import { IDroxTrafficService } from '../common/traffic/droxTrafficService.js';
 import { destinationFromUrl, normalizeTrafficDestination } from '../common/traffic/droxTrafficTags.js';
 import { DroxTrafficKind } from '../common/traffic/droxTrafficTypes.js';
@@ -45,6 +52,8 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 	private _engineGitSha: string | undefined;
 	private _resolvedExecutable: string | undefined;
 	private _initializePromise: Promise<unknown> | undefined;
+	/** runIds issus de `agent.run` jusqu'à `agent/done` / cancel / exit. */
+	private readonly _activeRunIds = new Set<string>();
 	private readonly _clientCapabilities = {
 		executableTools: [] as string[],
 		interactiveAsk: true,
@@ -73,6 +82,10 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		return this._initialized;
 	}
 
+	get isAgentRunActive(): boolean {
+		return this._activeRunIds.size > 0;
+	}
+
 	get engineDevBuild(): number | undefined {
 		return this._engineDevBuild;
 	}
@@ -98,6 +111,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		@IProductService private readonly productService: IProductService,
 		@IOutputService private readonly outputService: IOutputService,
 		@IDroxTrafficService private readonly trafficService: IDroxTrafficService,
+		@ILogService private readonly logService: ILogService,
 	) {
 		super();
 
@@ -112,17 +126,22 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 			this.appendEngineLog(e.text);
 		}));
 		this._register(this.ipc.onNotification(e => {
+			this.trackAgentRunNotification(e.method, e.params);
 			this._onNotification.fire(e);
 			this.recordTrafficNotification(e.method, e.params);
 		}));
 		this._register(this.ipc.onExit(e => {
-			this._started = false;
+			const signal = e.signal ?? 'null';
+			this.appendEngineLog(`[lifecycle] engine exit code=${e.code} signal=${signal}\n`);
+			this.logService.info(`[Drox] engine exit code=${e.code} signal=${signal}`);
+			this.resetEngineState();
 			this._onExit.fire(e);
 		}));
 		this._register(this.ipc.onError(e => {
-			this._started = false;
-			this._onError.fire(e);
 			this.appendEngineLog(`[error] ${e.message}\n`);
+			this.logService.error(`[Drox] engine error: ${e.message}`);
+			this.resetEngineState();
+			this._onError.fire(e);
 		}));
 
 		this._register(this.ipc.onServerRequest(e => {
@@ -178,6 +197,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 
 	private async doInitialize(): Promise<unknown> {
 		await this.start();
+		// `request` (not requestOnce): one restart+retry if the host died mid-handshake.
 		const init = await this.request('initialize', {
 			protocolVersion: '1.0',
 			clientName: 'drox-ide',
@@ -208,7 +228,30 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		return init;
 	}
 
+	/**
+	 * One RPC attempt. On stale client (`drox client closed` / not started), restart
+	 * the engine once and retry — covers the race where exit lags behind `_started`.
+	 */
 	async request(method: string, params?: unknown): Promise<unknown> {
+		try {
+			return await this.requestOnce(method, params);
+		} catch (err) {
+			if (!isDroxEngineStaleClientError(err)) {
+				throw err;
+			}
+			this.appendEngineLog(`[lifecycle] stale client on ${method} — restart + retry once\n`);
+			this.logService.info(`[Drox] engine stale client on ${method} — restart + retry`);
+			this.resetEngineState();
+			await this.start();
+			if (method !== 'initialize') {
+				await this.doInitialize();
+				this._initialized = true;
+			}
+			return await this.requestOnce(method, params);
+		}
+	}
+
+	private async requestOnce(method: string, params?: unknown): Promise<unknown> {
 		const kind = trafficKindForRpc(method);
 		const summary = summarizeRpcOut(method, params);
 		const destination = method === 'agent.run' || method.startsWith('agent.')
@@ -224,6 +267,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		});
 		try {
 			const result = await this.ipc.request(method, params);
+			this.trackAgentRunRequest(method, params, result);
 			this.trafficService.record({
 				direction: 'in',
 				kind,
@@ -316,10 +360,48 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		this.resetEngineState();
 	}
 
-	override async dispose(): Promise<void> {
+	override async dispose(reason: DroxEngineDisposeReason = 'explicit'): Promise<void> {
+		if (shouldDeferEngineDispose(reason, this.isAgentRunActive)) {
+			this.logService.info(
+				`[Drox] engine dispose deferred reason=${reason} activeRuns=${this._activeRunIds.size}`,
+			);
+			this.appendEngineLog(`[lifecycle] dispose deferred reason=${reason} activeRuns=${this._activeRunIds.size}\n`);
+			return;
+		}
+		this.logService.info(`[Drox] engine dispose reason=${reason}`);
 		await this.shutdown();
-		await this.ipc.disposeEngine();
+		await this.ipc.disposeEngine(reason);
 		this.resetEngineState();
+	}
+
+	private trackAgentRunRequest(method: string, params: unknown, result: unknown): void {
+		if (method === 'agent.run' && result && typeof result === 'object') {
+			const runId = (result as { runId?: unknown }).runId;
+			if (typeof runId === 'string' && runId.trim()) {
+				this._activeRunIds.add(runId.trim());
+			}
+			return;
+		}
+		if (method === 'agent.cancel') {
+			const runId = parseAgentDoneRunId(params);
+			if (runId) {
+				this._activeRunIds.delete(runId);
+			} else {
+				this._activeRunIds.clear();
+			}
+		}
+	}
+
+	private trackAgentRunNotification(method: string, params: unknown): void {
+		if (method !== 'agent/done') {
+			return;
+		}
+		const runId = parseAgentDoneRunId(params);
+		if (runId) {
+			this._activeRunIds.delete(runId);
+		} else {
+			this._activeRunIds.clear();
+		}
 	}
 
 	private resetEngineState(): void {
@@ -329,6 +411,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 		this._engineGitSha = undefined;
 		this._resolvedExecutable = undefined;
 		this._initializePromise = undefined;
+		this._activeRunIds.clear();
 		this._clientCapabilities.executableTools = [];
 		this._clientCapabilities.interactiveAsk = true;
 	}

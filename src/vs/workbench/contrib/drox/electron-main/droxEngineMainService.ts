@@ -27,13 +27,14 @@ import {
 	IDroxPortForwardStopArgs,
 } from '../common/droxIpc.js';
 import { IDroxBashExecArgs, IDroxBashExecResult } from '../common/droxBash.js';
-import { runDroxBashExec } from './droxBashExec.js';
+import { runDroxBashExec, skipActiveDroxBashExec } from './droxBashExec.js';
 import {
 	defaultDroxInstallDir,
 	isUnresolvedBareDroxExecutable,
 	resolveDroxExecutableOnDisk,
 } from './droxExecutableMain.js';
 import { droxLocalHttpGet, droxLocalHttpRequest } from './droxLocalHttp.js';
+import { droxEngineEnvFingerprint, shouldReuseDroxEngineHost } from '../common/droxEngineLifecycle.js';
 import { DroxPortsProcessHost } from './droxPortsProcessHost.js';
 import { DroxRpcClientMain } from './droxRpcClientMain.js';
 
@@ -47,6 +48,8 @@ interface IDroxEngineHostCallbacks {
 
 class DroxEngineHost extends Disposable {
 	readonly client: DroxRpcClientMain;
+	readonly cwd: string;
+	readonly envFingerprint: string;
 
 	constructor(
 		readonly windowId: number,
@@ -56,6 +59,8 @@ class DroxEngineHost extends Disposable {
 		callbacks: IDroxEngineHostCallbacks,
 	) {
 		super();
+		this.cwd = cwd;
+		this.envFingerprint = droxEngineEnvFingerprint(env);
 		this.client = this._register(new DroxRpcClientMain(executable, cwd, env));
 		this._register(this.client.onLog(callbacks.onLog));
 		this._register(this.client.onNotification(callbacks.onNotification));
@@ -92,7 +97,6 @@ export class DroxEngineMainService extends Disposable {
 
 	async start(args: IDroxEngineStartArgs): Promise<void> {
 		let { windowId, executable, cwd, env = {} } = args;
-		await this.disposeWindow(windowId);
 
 		const hints = args.resolveHints;
 		const configuredPath = hints?.configuredPath?.trim() ?? '';
@@ -116,6 +120,25 @@ export class DroxEngineMainService extends Disposable {
 		} else if (!existsSync(executable)) {
 			this.logService.error(`[Drox] engine binary missing: ${executable}`);
 		}
+
+		const nextEnvFingerprint = droxEngineEnvFingerprint(env);
+		const existing = this.hosts.get(windowId);
+		if (existing && shouldReuseDroxEngineHost({
+			existing: {
+				executable: existing.client.resolvedExecutable,
+				cwd: existing.cwd,
+				envFingerprint: existing.envFingerprint,
+				alive: existing.client.isProcessAlive,
+			},
+			nextExecutable: executable,
+			nextCwd: cwd,
+			nextEnvFingerprint,
+		})) {
+			this.logService.info(`[Drox] reused engine for window ${windowId}: ${executable} (cwd=${cwd})`);
+			return;
+		}
+
+		await this.disposeWindow(windowId, 'start-replace');
 
 		const host = new DroxEngineHost(windowId, executable, cwd, env, {
 			onLog: text => this._onLog.fire({ windowId, text }),
@@ -147,6 +170,10 @@ export class DroxEngineMainService extends Disposable {
 		return runDroxBashExec(args);
 	}
 
+	skipExecBash(): boolean {
+		return skipActiveDroxBashExec();
+	}
+
 	fetchHttp(args: IDroxFetchHttpArgs): Promise<IDroxFetchHttpResult> {
 		const headers = args.headers ? { ...args.headers } : undefined;
 		const method = args.method ?? 'GET';
@@ -174,17 +201,18 @@ export class DroxEngineMainService extends Disposable {
 			return;
 		}
 		await host.client.shutdown();
-		await this.disposeWindow(windowId);
+		await this.disposeWindow(windowId, 'shutdown');
 	}
 
-	async disposeWindow(windowId: number): Promise<void> {
+	async disposeWindow(windowId: number, reason: string = 'explicit'): Promise<void> {
 		await this.portsHost.stopAllForWindow(windowId);
 		const host = this.hosts.get(windowId);
-		if (host) {
-			host.client.dispose();
-			this.hosts.deleteAndDispose(windowId);
-			this.logService.info(`[Drox] disposed engine for window ${windowId}`);
+		if (!host) {
+			return;
 		}
+		host.client.dispose();
+		this.hosts.deleteAndDispose(windowId);
+		this.logService.info(`[Drox] disposed engine for window ${windowId} reason=${reason}`);
 	}
 
 	portForwardStart(args: IDroxPortForwardStartArgs): Promise<IDroxPortForwardStartResult> {

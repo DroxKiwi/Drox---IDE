@@ -19,6 +19,8 @@
 		"test-node": "mocha test/unit/node/index.js --delay --ui=tdd --timeout=5000 --exit",
 		"test-drox": "node test/unit/node/index.js --runGlob \"**/vs/workbench/contrib/drox/test/**/*.test.js\"",
 		"package-drox": "node scripts/package-drox-run.mjs",
+		"ensure-dev-out": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ensure-dev-out.ps1",
+		"code-dogfood": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/ensure-dev-out.ps1 -Launch",
 		"sync-drox-icons": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-drox-win32-icons.ps1",
 		"sync-drox-inno-wizard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/sync-drox-inno-wizard.ps1",
 		"release-publish-win32": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-publish-win32.ps1",

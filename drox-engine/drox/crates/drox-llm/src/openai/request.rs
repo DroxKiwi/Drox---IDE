@@ -4,6 +4,7 @@ use drox_types::{Content, Message, Role};
 use serde_json::{json, Value};
 
 use crate::llm_client::ChatOptions;
+use crate::openai::dialect::OpenAiCompatDialect;
 use crate::openai::wire::{
     ChatCompletionRequest, OpenAiFunctionCallOut, OpenAiMessage, OpenAiToolCallOut,
     OpenAiToolFunction, OpenAiToolSpec,
@@ -20,10 +21,13 @@ pub(crate) fn build_request<'a>(
     num_predict: i64,
     reasoning_effort: Option<&'a str>,
     thinking_budget: Option<u32>,
+    dialect: OpenAiCompatDialect,
 ) -> ChatCompletionRequest<'a> {
     let max_tokens = options
         .max_tokens
         .or_else(|| (num_predict > 0).then_some(num_predict as u32));
+    let top_p = dialect.sanitize_top_p(top_p);
+    let (seed, random_seed) = dialect.seed_wire_fields(seed);
     ChatCompletionRequest {
         model,
         messages: messages_to_openai(messages),
@@ -47,6 +51,7 @@ pub(crate) fn build_request<'a>(
         presence_penalty,
         frequency_penalty,
         seed,
+        random_seed,
         reasoning_effort,
         thinking_budget,
     }
@@ -280,9 +285,47 @@ mod tests {
             description: "run".into(),
             parameters: json!({ "type": "object" }),
         }]);
-        let req = build_request("m", &msgs, &opts, None, None, None, None, 0, None, None);
+        let req = build_request(
+            "m",
+            &msgs,
+            &opts,
+            None,
+            None,
+            None,
+            None,
+            0,
+            None,
+            None,
+            OpenAiCompatDialect::OpenAi,
+        );
         assert_eq!(req.tools.len(), 1);
         assert!(req.stream);
+    }
+
+    #[test]
+    fn mistral_dialect_maps_seed_and_drops_zero_top_p() {
+        let msgs = vec![Message::user("hi")];
+        let opts = ChatOptions::default();
+        let req = build_request(
+            "ministral-14b-latest",
+            &msgs,
+            &opts,
+            Some(0.0),
+            None,
+            None,
+            Some(0),
+            0,
+            None,
+            None,
+            OpenAiCompatDialect::Mistral,
+        );
+        assert!(req.top_p.is_none(), "Mistral rejects top_p<=0");
+        assert!(req.seed.is_none(), "Mistral rejects OpenAI `seed`");
+        assert_eq!(req.random_seed, Some(0));
+        let json = serde_json::to_value(&req).unwrap();
+        assert!(json.get("seed").is_none());
+        assert_eq!(json.get("random_seed"), Some(&serde_json::json!(0)));
+        assert!(json.get("top_p").is_none());
     }
 
     #[test]
@@ -295,7 +338,19 @@ mod tests {
             Message::system("Continue — des to-dos sont ouvertes."),
         ];
         let opts = ChatOptions::default();
-        let req = build_request("m", &messages, &opts, None, None, None, None, 0, None, None);
+        let req = build_request(
+            "m",
+            &messages,
+            &opts,
+            None,
+            None,
+            None,
+            None,
+            0,
+            None,
+            None,
+            OpenAiCompatDialect::OpenAi,
+        );
         assert_eq!(req.messages.len(), 3);
         assert_eq!(req.messages[0].role, "system");
         let sys = req.messages[0]

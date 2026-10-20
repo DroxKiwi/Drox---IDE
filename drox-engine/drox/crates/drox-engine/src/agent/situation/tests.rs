@@ -181,6 +181,25 @@ fn rotating_file_read_ignores_short_or_single_path() {
 }
 
 #[test]
+fn repeated_file_read_stubs_after_threshold() {
+	use drox_prompts::REPEATED_FILE_READ_NUDGE_THRESHOLD;
+	let mut counts = std::collections::HashMap::new();
+	let args = json!({ "path": "src/app/docs/page.tsx" });
+	assert!(should_stub_repeated_file_read(&counts, "file_read", &args).is_none());
+	for _ in 0..REPEATED_FILE_READ_NUDGE_THRESHOLD {
+		note_successful_file_read(&mut counts, "file_read", &args);
+	}
+	let stub = should_stub_repeated_file_read(&counts, "file_read", &args);
+	assert!(stub.is_some());
+	let (path, n) = stub.unwrap();
+	assert_eq!(path, "src/app/docs/page.tsx");
+	assert_eq!(n, REPEATED_FILE_READ_NUDGE_THRESHOLD);
+	let v = repeated_file_read_stub_value(&path, n);
+	assert_eq!(v["already_read"], true);
+	assert!(v["content"].as_str().unwrap().contains("already_read"));
+}
+
+#[test]
 fn truncated_task_arms_rescue_without_resetting_streak() {
 	let mut streak = 2;
 	let mut pending = None;

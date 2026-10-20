@@ -73,6 +73,44 @@ suite('Drox — native file-change click target', () => {
 		}
 	});
 
+	test('resolveFileChangeOpenTarget works on standalone fc-path with data-path', () => {
+		const path = document.createElement('a');
+		path.className = 'fc-path';
+		path.setAttribute('data-path', 'C:/repo/standalone.md');
+		path.textContent = 'standalone.md';
+		document.body.appendChild(path);
+
+		try {
+			const hit = resolveFileChangeOpenTarget(path.firstChild);
+			assert.ok(hit);
+			assert.strictEqual(hit.path, 'C:/repo/standalone.md');
+		} finally {
+			path.remove();
+		}
+	});
+
+	test('resolveFileChangeOpenTarget accepts msg-file-change card class', () => {
+		const card = document.createElement('div');
+		card.className = 'msg-file-change';
+		card.setAttribute('data-path', 'C:/repo/a.md');
+		const summary = document.createElement('div');
+		summary.className = 'fc-summary';
+		const path = document.createElement('a');
+		path.className = 'fc-path';
+		path.textContent = 'a.md';
+		summary.appendChild(path);
+		card.appendChild(summary);
+		document.body.appendChild(card);
+
+		try {
+			const hit = resolveFileChangeOpenTarget(path);
+			assert.ok(hit);
+			assert.strictEqual(hit.path, 'C:/repo/a.md');
+		} finally {
+			card.remove();
+		}
+	});
+
 	test('resolveFileChangeOpenTarget ignores diff body clicks', () => {
 		const card = document.createElement('div');
 		card.className = 'drox-native-file-change';

@@ -319,7 +319,49 @@ export function createDroxAgentsChatSink(
 	const pushToolProgress = (id: string, name: string | undefined, outputPreview: string, elapsedMs: number): void => {
 		const pending = pendingTools.get(id);
 		const toolName = name || pending?.name;
-		if (!toolName || toolName !== 'task') {
+		if (!toolName) {
+			return;
+		}
+		// Bash: stream stdout into the terminal card while Running (engine ToolProgress).
+		if (toolName === 'bash') {
+			const shellStart = buildShellToolStartWire(toolName, pending?.args);
+			if (!shellStart) {
+				return;
+			}
+			const live = String(outputPreview || '').trimEnd();
+			if (!live) {
+				return;
+			}
+			const sec = elapsedMs > 0 ? ` · ${(elapsedMs / 1000).toFixed(1)}s` : '';
+			const label = formatShellToolDisplayLabel(shellStart.shellCommand, shellStart.shellDescription);
+			push([{
+				kind: 'externalToolInvocationUpdate',
+				toolCallId: id,
+				toolName,
+				isComplete: false,
+				invocationMessage: localize('droxAgents.shellRunning', 'Running {0}{1}', label, sec),
+				toolSpecificData: {
+					...buildAgentsShellTerminalToolSpecificData(shellStart),
+					terminalCommandOutput: {
+						text: live,
+						lineCount: live.split('\n').length,
+					},
+				},
+			}]);
+			recordWire({
+				kind: 'tool',
+				phase: 'progress',
+				id,
+				name: toolName,
+				outputPreview: live,
+				elapsedMs,
+				shellKind: shellStart.shellKind,
+				shellCommand: shellStart.shellCommand,
+				shellDescription: shellStart.shellDescription,
+			});
+			return;
+		}
+		if (toolName !== 'task') {
 			return;
 		}
 		const exploreStart = buildExploreToolStartWire(toolName, pending?.args);

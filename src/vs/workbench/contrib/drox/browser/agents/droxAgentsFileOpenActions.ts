@@ -7,9 +7,7 @@
 
 import { Action2, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
-import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
-import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { ACTIVE_GROUP, IEditorService } from '../../../../services/editor/common/editorService.js';
@@ -21,10 +19,7 @@ import { IDroxChatSessionService } from '../../common/droxChatSessionService.js'
 import { resolveWorkspaceFilePath } from '../../common/droxFileChange.js';
 import { sanitizePathForEditor } from '../../common/droxPathUtil.js';
 import { resolveDroxBeforeSnapshotUri } from '../../common/droxFileChangeProgress.js';
-import { IDroxSessionChangesDetailService } from '../../common/droxSessionChangesDetailService.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
-import { ISessionsService } from '../../../../../sessions/services/sessions/browser/sessionsService.js';
-import { openDroxSessionFileChange } from './droxOpenSessionFile.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
@@ -32,27 +27,18 @@ import { REVEAL_IN_EXPLORER_COMMAND_ID } from '../../../files/browser/fileConsta
 
 const DROX_CATEGORY = localize2('drox.category', 'Drox');
 
-function resolveActiveDroxSessionResource(
-	droxChatSessionService: IDroxChatSessionService,
-	sessionsService: ISessionsService,
-): URI | undefined {
-	const engineId = droxChatSessionService.getSessionId();
-	if (engineId) {
-		return DroxChatSessionUri.forSession(engineId);
-	}
-	const active = sessionsService.activeSession.get();
-	if (!active) {
-		return undefined;
-	}
-	const activeChat = active.activeChat.get();
-	return activeChat?.resource ?? active.resource;
-}
-
+/**
+ * Résout le workspace de la session Drox **sans** `ISessionsService`.
+ * Dans la fenêtre IDE, `ISessionsService` tire `sessionsPartService` qui n'est
+ * pas enregistré → le clic chemin plantait silencieusement.
+ */
 function resolveWorkspaceFsPath(
-	sessionResource: URI | undefined,
+	droxChatSessionService: IDroxChatSessionService,
 	workspaceContextService: IWorkspaceContextService,
 ): string | undefined {
-	if (sessionResource) {
+	const engineId = droxChatSessionService.getSessionId();
+	if (engineId) {
+		const sessionResource = DroxChatSessionUri.forSession(engineId);
 		const fromProvider = getDroxSessionsProviderInstance()?.getSessionWorkspacePath(sessionResource);
 		if (fromProvider) {
 			return fromProvider;
@@ -75,6 +61,7 @@ async function openAbsoluteFileInEditor(
 ): Promise<void> {
 	const safePath = sanitizePathForEditor(absPath);
 	if (!safePath) {
+		notificationService.warn(localize('drox.openSessionFileInvalid', 'Drox: invalid path — {0}', absPath));
 		logService.warn(`[Drox] openSessionFile ignored (invalid path): ${absPath.slice(0, 120)}`);
 		return;
 	}
@@ -83,17 +70,20 @@ async function openAbsoluteFileInEditor(
 	const beforeCandidate = resolveDroxBeforeSnapshotUri(workspaceRoot, toolId);
 	const beforeUri = beforeCandidate && await fileService.exists(beforeCandidate) ? beforeCandidate : undefined;
 	try {
-		if (beforeUri) {
-			await editorService.openEditor({
+		const opened = beforeUri
+			? await editorService.openEditor({
 				original: { resource: beforeUri },
 				modified: { resource: fileUri },
 				options: { pinned: true, revealIfOpened: true },
-			}, ACTIVE_GROUP);
-		} else {
-			await editorService.openEditor({
+			}, ACTIVE_GROUP)
+			: await editorService.openEditor({
 				resource: fileUri,
 				options: { pinned: true, revealIfOpened: true },
 			}, ACTIVE_GROUP);
+		if (!opened) {
+			notificationService.warn(localize('drox.openSessionFileFailed', 'Drox: could not open {0}', absPath));
+			logService.warn(`[Drox] openSessionFile openEditor returned empty for ${absPath}`);
+			return;
 		}
 		void commandService.executeCommand(REVEAL_IN_EXPLORER_COMMAND_ID, fileUri);
 	} catch (e) {
@@ -116,6 +106,7 @@ export function registerDroxAgentsFileOpenActions(): void {
 		override async run(accessor: ServicesAccessor, filePath?: string, toolId?: string): Promise<void> {
 			const path = typeof filePath === 'string' ? filePath.trim() : '';
 			if (!path) {
+				accessor.get(ILogService).warn('[Drox] openSessionFile ignored (empty path)');
 				return;
 			}
 
@@ -126,36 +117,22 @@ export function registerDroxAgentsFileOpenActions(): void {
 			const commandService = accessor.get(ICommandService);
 			const workspaceContextService = accessor.get(IWorkspaceContextService);
 			const fileService = accessor.get(IFileService);
+			const droxChatSessionService = accessor.get(IDroxChatSessionService);
 
-			const sessionResource = resolveActiveDroxSessionResource(
-				accessor.get(IDroxChatSessionService),
-				accessor.get(ISessionsService),
-			);
-			const workspacePath = resolveWorkspaceFsPath(sessionResource, workspaceContextService);
+			const workspacePath = resolveWorkspaceFsPath(droxChatSessionService, workspaceContextService);
 			const absPath = resolveWorkspaceFilePath(workspacePath, path) || path;
 			const tid = typeof toolId === 'string' && toolId ? toolId : undefined;
 
 			logService.info(`[Drox] openSessionFile path=${path} abs=${absPath} toolId=${tid ?? ''}`);
 
-			if (sessionResource) {
-				try {
-					await openDroxSessionFileChange({
-						editorService,
-						layoutService,
-						labelService: accessor.get(ILabelService),
-						detailService: accessor.get(IDroxSessionChangesDetailService),
-						fileService,
-						contextKeyService: accessor.get(IContextKeyService),
-						commandService,
-					}, sessionResource, absPath, workspacePath, tid);
-					return;
-				} catch (e) {
-					logService.warn('[Drox] openSessionFileChange failed, falling back to plain editor open', e);
-				}
+			const safePath = sanitizePathForEditor(absPath);
+			if (!safePath) {
+				notificationService.warn(localize('drox.openSessionFileInvalid', 'Drox: invalid path — {0}', absPath));
+				logService.warn(`[Drox] openSessionFile invalid path: ${absPath.slice(0, 120)}`);
+				return;
 			}
 
-			const safePath = sanitizePathForEditor(absPath);
-			if (safePath && !(await fileService.exists(URI.file(safePath)))) {
+			if (!(await fileService.exists(URI.file(safePath)))) {
 				notificationService.warn(localize('drox.openSessionFileMissing', 'Drox: file not found — {0}', absPath));
 				logService.warn(`[Drox] openSessionFile missing on disk: ${absPath}`);
 			}

@@ -1,11 +1,11 @@
 # 1.6.0 — Dogfood terminal + Explore (post Vague 4)
 
-**Statut** : approche **validée** (dogfood ses_9efe968e) · P0–P2 code/procédure ✅ · smoke manuel dû  
-**Parent** : [README 1.6.0](README.md) · [PLAN-CONTEXT-SITUATION](PLAN-CONTEXT-SITUATION.md) (S-5)
+**Statut** : approche **validée** (dogfood ses_9efe968e) · P0–P2 code/procédure ✅ · **fiabilité tool-result P0+P1** ✅ code · smoke manuel dû  
+**Parent** : [README 1.6.0](README.md) · [PLAN-CONTEXT-SITUATION](PLAN-CONTEXT-SITUATION.md) (S-5) · journal : [JOURNAL](JOURNAL-PROMPTS-ET-HORS-WS.md) § Bash fiabilité
 
 ## Constat
 
-Le modèle boucle parce que **le shell ment** (cwd UNC `\\?\`, stdout = scrollback stale) → re-bash / re-read → abort + contexte pollué.  
+Le modèle boucle parce que **le shell ment** (cwd UNC `\\?\`, stdout = scrollback stale **ou** tool-result vide alors que la commande a réussi) → re-bash / re-read → abort + contexte pollué.  
 En parallèle, le parent **n’utilise pas Explore** assez tôt → lectures / synthèses gonflent le contexte parent alors que `task` isole le bruit.
 
 ## Fixes produit (ordre validé)
@@ -14,9 +14,12 @@ En parallèle, le parent **n’utilise pas Explore** assez tôt → lectures / s
 |----------|-----|------|
 | **P0** | Terminal agent : cwd **sans** `\\?\` ; isoler chaque commande ; ne jamais renvoyer le scrollback précédent comme stdout | ✅ sanitize cwd + marker stdout + delta fallback |
 | **P0** | Classifieur : `powershell -Command` avec préfixes `[Console]::…=` + `Get-Content` = inspect-only | ✅ |
+| **P0** | Tool-result : meilleur non-vide SI/buffer/delta + settle post-SI (live ≠ result) | ✅ `droxBashCapture` + `run.ts` |
 | **P1** | Hors-workspace lecture : autoriser `file_read` hors WS en lecture seule **ou** outil « import docs » propre (pas 60 bash) | ✅ `file_read` always `allow_outside` |
 | **P1** | Gate : même `(file_read, path)` réussi ×N → nudge dur « stop re-read, write / answer » | ✅ seuil 3 + `REPEATED_FILE_READ_NUDGE` |
+| **P1** | IDE stdout vide (inspect) → un retry `ExecBash` | ✅ `droxBashShouldRetryExecBashAfterIde` |
 | **P2** | Dogfood : ouvrir le workspace **qui contient** la doc cible, ou copier la doc **dans** le projet avant le run | ✅ procédure ci-dessous |
+| **P2** | (réserve) wrap Windows → fichier temp si P0+P1 insuffisant | ⬜ |
 
 ## Procédure dogfood (P2)
 
@@ -67,7 +70,7 @@ Pas de spawn auto à seuil de tokens (policy Cursor). Filet = prompts + soft-nud
 
 | Zone | Chemin |
 |------|--------|
-| Terminal IDE | `src/vs/workbench/contrib/drox/electron-browser/tools/droxIdeBashTerminal.ts` |
+| Terminal IDE | `src/vs/workbench/contrib/drox/electron-browser/tools/droxIdeBashTerminal/` (n+1) · capture pure `common/droxBashCapture.ts` |
 | Classifieur bash | `drox-engine/.../drox-bash/src/classify.rs` |
 | Prompts | `drox-cli/src/prompts.rs` |
 | Tool `task` | `drox-tools/src/simple/task.rs` |

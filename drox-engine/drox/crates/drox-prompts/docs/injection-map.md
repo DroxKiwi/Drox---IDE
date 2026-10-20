@@ -49,6 +49,9 @@ Puis, dans `drive.rs` **après** ce blob (canal B, messages séparés) :
 |--------|-------------------|-------------------------|
 | Chaque tour (avant stream) | toujours | situation card bornée C4 : gauge / next / constraint |
 | Après Explore OK | one-shot | `runtime.post_merge_closure` + `runtime.micro_act_write` (C4 micros) |
+| Après Explore OK + ≥1 lecture parent sans mutation | one-shot / fenêtre | `runtime.post_explore_stall_act` (**E2**, seuil 1) |
+| `file_read` d’un kind `.drox/subagents/…` | immédiat | Prefer covered + Prefer act (**E2b**) |
+| Erreur `explore_artifact_read` | one-shot | `runtime.explore_artifact_read_fail` (**A**) — ne pas `file_read` le kind |
 | Après `ask_user_question` OK | one-shot | `runtime.post_ask_acting` (**D4** skeleton / mutate) |
 | Turn-0 | `session_frames.work_plan` | `runtime.work_plan_frame` |
 | Turn-0 | Explore + `doc_ingestion` | `runtime.doc_ingestion` |
@@ -58,9 +61,10 @@ Puis, dans `drive.rs` **après** ce blob (canal B, messages séparés) :
 | Streak lectures parent | Explore on + seuil | `runtime.s5_heavy_read` |
 | Explore tronqué + lectures | … | `runtime.explore_rescue` / `explore_incomplete_nudge` |
 | `task` Explore réussi (`truncated: false`) | one-shot | voir ligne « Après Explore OK » ci-dessus |
-| Parent `file_read` d’un path ∈ `paths_read` Explore (après merge OK) | one-shot / fenêtre Explore | `runtime.explore_covered_reread` (C2) |
+| Parent `file_read` d’un path couvert Explore (source `paths_read` **ou** fichier kind `artifacts.*`) | one-shot / fenêtre Explore | `runtime.explore_covered_reread` (C2/**E1**) |
 | `task.return_kinds` + artefacts / index | Explore on | schéma `task` + tools `explore_index_*` (scope `ses_`) |
-| Fenêtre `file_read` rotative (multi-path) | seuils fenêtre | `runtime.rotating_file_read` |
+| Fenêtre `file_read` rotative (multi-path) | seuils + ré-inject /4 | `runtime.rotating_file_read` (**R1**) |
+| Même path `file_read` ≥3× | immédiat | stub `[already_read]` (**R4**) — pas de re-IO |
 | Post-glob context load | policy | `context_load_nudge` (dynamique) |
 | Même path `file_read` ×N | seuil | `gates.repeated_file_read` |
 | Done sans answering / todos / testing / … | gates | `gates.*` / `blocks.*` |

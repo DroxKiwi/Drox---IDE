@@ -176,7 +176,7 @@ export async function routeDroxChatWebviewMessage(
 			break;
 		}
 		case 'cancelRun':
-			deps.clientToolsService.skipActiveBash();
+			void deps.clientToolsService.skipActiveBash();
 			cancelDroxChatRun(host, {
 				userAskService: deps.userAskService,
 				droxEngineService: deps.droxEngineService,
@@ -185,9 +185,9 @@ export async function routeDroxChatWebviewMessage(
 			}, tabs.currentSessionId);
 			break;
 		case 'skipShell': {
-			const skipped = deps.clientToolsService.skipActiveBash();
+			const skipped = await deps.clientToolsService.skipActiveBash();
 			if (!skipped) {
-				deps.logService.info('[Drox] skipShell: no active IDE bash to interrupt');
+				deps.logService.info('[Drox] skipShell: no active bash to interrupt');
 			}
 			break;
 		}

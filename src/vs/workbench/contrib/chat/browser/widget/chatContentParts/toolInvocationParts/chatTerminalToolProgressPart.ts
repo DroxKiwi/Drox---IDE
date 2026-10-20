@@ -58,9 +58,13 @@ import { ITelemetryService } from '../../../../../../../platform/telemetry/commo
 import { isNumber } from '../../../../../../../base/common/types.js';
 import { removeAnsiEscapeCodes } from '../../../../../../../base/common/strings.js';
 import { PANEL_BACKGROUND } from '../../../../../../common/theme.js';
+import { onDroxBashLiveOutput } from '../../../../../drox/common/droxBashLiveOutput.js';
 import { editorBackground } from '../../../../../../../platform/theme/common/colorRegistry.js';
 import { IThemeService } from '../../../../../../../platform/theme/common/themeService.js';
-import { CommandsRegistry } from '../../../../../../../platform/commands/common/commands.js';
+import { CommandsRegistry, ICommandService } from '../../../../../../../platform/commands/common/commands.js';
+
+/** Drox Agents — Skip stuck bash without cancelling the run (`DroxCommands.SkipStuckShell`). */
+const DROX_SKIP_STUCK_SHELL_COMMAND_ID = 'workbench.action.droxSkipStuckShell';
 
 /**
  * Minimum number of rows to display in the terminal output view.
@@ -297,6 +301,9 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 	private _isInThinkingContainer: boolean = false;
 	private _usesCollapsibleWrapper: boolean = false;
 	private _thinkingCollapsibleWrapper: ChatTerminalThinkingCollapsibleWrapper | undefined;
+	/** Drox IDE bash: live stdout while Running (overrides stored snapshot). */
+	private _droxLiveOutput: IChatTerminalToolInvocationData['terminalCommandOutput'] | undefined;
+	private _droxOutputMounted = false;
 
 	private markdownPart: ChatMarkdownContentPart | undefined;
 	public get codeblocks(): IChatCodeBlockInfo[] {
@@ -328,6 +335,7 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		@ITerminalEditorService private readonly _terminalEditorService: ITerminalEditorService,
 		@ITerminalGroupService private readonly _terminalGroupService: ITerminalGroupService,
 		@ITelemetryService private readonly _telemetryService: ITelemetryService,
+		@ICommandService private readonly _commandService: ICommandService,
 	) {
 		super(toolInvocation);
 
@@ -381,15 +389,30 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			ChatTerminalToolOutputSection,
 			() => this._ensureTerminalInstance(),
 			() => this._getResolvedCommand(),
-			() => this._terminalData.terminalCommandOutput,
+			() => this._droxLiveOutput ?? this._terminalData.terminalCommandOutput,
 			() => this._commandText,
 			() => this._terminalData.terminalTheme,
 			!!this._terminalData.terminalToolSessionId,
 		));
 		// Only append the output section if there's a terminal session or stored output;
-		// display-only invocations with no output don't need the output area at all
-		if (this._terminalData.terminalToolSessionId || this._terminalData.terminalCommandOutput) {
+		// display-only invocations with no output don't need the output area at all.
+		// Drox `bash`: mount early so live stdout can fill the output box while Running.
+		const isDroxBash = toolInvocation.toolId === 'bash';
+		if (isDroxBash || this._terminalData.terminalToolSessionId || this._terminalData.terminalCommandOutput) {
 			elements.container.append(this._outputView.domNode);
+			this._droxOutputMounted = true;
+		}
+		if (isDroxBash) {
+			this._register(onDroxBashLiveOutput(e => {
+				if (this._store.isDisposed || !this._isInvocationRunning()) {
+					return;
+				}
+				void this._applyDroxLiveOutput(e.text);
+			}));
+			// Keep the shell detail open while the command runs.
+			if (this._isInvocationRunning()) {
+				void this._toggleOutput(true);
+			}
 		}
 		this._register(this._outputView.onDidFocus(() => this._handleOutputFocus()));
 		this._register(this._outputView.onDidBlur(e => this._handleOutputBlur(e)));
@@ -414,6 +437,14 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		this._terminalService.whenConnected.then(() => {
 			initializeTerminalActionsOnce();
 		});
+
+		// Drox bash: refresh Skip visibility when the tool completes.
+		if (toolInvocation.kind !== 'toolInvocationSerialized') {
+			this._register(autorun(reader => {
+				toolInvocation.state.read(reader);
+				this._updateToolbarActions();
+			}));
+		}
 
 		// Listen for continue in background — updates toolbar to auto-hide the action
 		const terminalToolSessionId = this._terminalData.terminalToolSessionId;
@@ -744,6 +775,24 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 				ThemeIcon.asClassName(toggleIcon),
 				true,
 				() => this.toggleOutputFromAction()
+			);
+			this._actionBarActions.add(action);
+			actions.push(action);
+		}
+		// Drox `bash` Running: Skip always (IDE shared terminal OR Agents ExecBash).
+		if (
+			this.toolInvocation.toolId === 'bash'
+			&& this._isInvocationRunning()
+		) {
+			const action = new Action(
+				DROX_SKIP_STUCK_SHELL_COMMAND_ID,
+				localize('droxSkipStuckShell', 'Skip'),
+				// circle-slash = skip this step (debugStop square reads as "stop run")
+				ThemeIcon.asClassName(Codicon.circleSlash),
+				true,
+				async () => {
+					await this._commandService.executeCommand(DROX_SKIP_STUCK_SHELL_COMMAND_ID);
+				}
 			);
 			this._actionBarActions.add(action);
 			actions.push(action);
@@ -1109,6 +1158,26 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 		if (sessionId) {
 			this._terminalChatService.continueInBackground(sessionId);
 		}
+	}
+
+	private async _applyDroxLiveOutput(text: string): Promise<void> {
+		const lineCount = text ? text.replace(/\r/g, '').split('\n').length : 0;
+		this._droxLiveOutput = { text, lineCount };
+		if (!this._droxOutputMounted && this._outputView.domNode.parentElement === null) {
+			// Part may have been built without a mount point — attach under title container.
+			const container = this._titleElement.parentElement;
+			if (container) {
+				container.append(this._outputView.domNode);
+				this._droxOutputMounted = true;
+			}
+		}
+		this._toolbarHasOutput = true;
+		if (!this._outputView.isExpanded) {
+			await this._toggleOutput(true);
+		} else {
+			await this._outputView.refreshSnapshotOutput();
+		}
+		this._updateToolbarActions();
 	}
 
 	public async toggleOutputFromAction(): Promise<void> {
@@ -1491,11 +1560,22 @@ class ChatTerminalToolOutputSection extends Disposable {
 	}
 
 	private async _renderSnapshotOutput(snapshot: NonNullable<IChatTerminalToolInvocationData['terminalCommandOutput']>): Promise<void> {
-		if (this._snapshotMirror) {
-			this._layoutOutput(snapshot.lineCount ?? this._lastRenderedLineCount ?? 0);
+		if (this._store.isDisposed) {
 			return;
 		}
-		if (this._store.isDisposed) {
+		if (this._snapshotMirror) {
+			this._snapshotMirror.setOutput(snapshot);
+			const result = await this._snapshotMirror.render();
+			const hasText = !!snapshot.text && snapshot.text.length > 0;
+			if (hasText) {
+				this._hideEmptyMessage();
+			} else {
+				this._showEmptyMessage(localize('chat.terminalOutputEmpty', 'No output was produced by the command.'));
+			}
+			this._layoutOutput(result?.lineCount ?? snapshot.lineCount ?? 0);
+			if (this._isAtBottom) {
+				this._scrollOutputToBottom();
+			}
 			return;
 		}
 		dom.clearNode(this._terminalContainer);
@@ -1511,6 +1591,17 @@ class ChatTerminalToolOutputSection extends Disposable {
 		}
 		const lineCount = result?.lineCount ?? snapshot.lineCount ?? 0;
 		this._layoutOutput(lineCount);
+	}
+
+	/** Drox live bash: re-read snapshot getter and repaint without collapsing. */
+	public async refreshSnapshotOutput(): Promise<void> {
+		if (!this.isExpanded) {
+			return;
+		}
+		await this._updateTerminalContent();
+		if (this._isAtBottom) {
+			this._scrollOutputToBottom();
+		}
 	}
 
 	private _renderUnavailableMessage(liveTerminalInstance: ITerminalInstance | undefined): void {

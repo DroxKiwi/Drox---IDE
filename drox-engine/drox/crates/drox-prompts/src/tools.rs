@@ -115,7 +115,9 @@ tool_prompt!(
 	"Read one Explore return artifact by explore_id + kind \
 (paths_read|file_summaries|key_symbols|code_snippets|structure_map|gaps). \
 Scoped to **this discussion** — unknown explore_id from another chat is rejected. \
-Prefer over re-reading the original source tree."
+Prefer over re-reading the original source tree. \
+On failure: use `artifacts_inline` from the last `task` or retry once — \
+**never** `file_read` the kind `.md` under `.drox/subagents/` (re-inflates); then act."
 );
 
 tool_prompt!(
@@ -174,6 +176,9 @@ tool_prompt!(
          requires a plan. On Windows: prefer `dir`/`findstr` over Unix ls/grep; avoid \
          bash heredocs and nested quotes in `git commit -m`; use `file_write` + \
          `git commit -F <file>` instead. \
+         Default wall-clock timeout ~60s if `timeout_ms` omitted; optional `timeout_ms` for \
+         long jobs (build/install) only — no product max. On timeout the engine kills the \
+         command and returns `timed_out: true` — change approach, do not wait forever. \
          Returns { command, exit_code, stdout, stderr, timed_out, duration_ms }."
 );
 

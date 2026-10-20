@@ -23,6 +23,15 @@ export class DroxRpcClientMain extends Disposable {
 	private readonly requestHandlers = new Map<string, RpcRequestHandler>();
 	private disposed = false;
 
+	/** Process enfant encore vivant (pas kill / exit). */
+	get isProcessAlive(): boolean {
+		return !this.disposed && this.child.exitCode === null && !this.child.killed;
+	}
+
+	get resolvedExecutable(): string {
+		return this.executable;
+	}
+
 	private readonly _onLog = this._register(new Emitter<string>());
 	readonly onLog: Event<string> = this._onLog.event;
 

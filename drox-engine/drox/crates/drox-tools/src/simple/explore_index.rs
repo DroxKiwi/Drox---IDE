@@ -114,37 +114,49 @@ impl Tool for ExploreArtifactReadTool {
 	}
 
 	async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
-		let args: ExploreArtifactReadInput = serde_json::from_value(input)?;
-		let session_id = require_session_id(ctx)?;
+		let args: ExploreArtifactReadInput = serde_json::from_value(input).map_err(|e| {
+			artifact_read_recovery(format!("invalid args for explore_artifact_read: {e}"))
+		})?;
+		let session_id = require_session_id(ctx).map_err(|e| {
+			artifact_read_recovery(e.to_string())
+		})?;
 		let explore_id = args.explore_id.trim();
 		if explore_id.is_empty() {
-			return Err(ToolError::invalid_args("explore_id must not be empty"));
+			return Err(artifact_read_recovery(
+				"explore_id must not be empty".into(),
+			));
 		}
 		let kind = ExploreReturnKind::parse(&args.kind).ok_or_else(|| {
-			ToolError::invalid_args(format!(
+			artifact_read_recovery(format!(
 				"unknown kind `{}` — use paths_read|file_summaries|key_symbols|code_snippets|structure_map|gaps",
 				args.kind.trim()
 			))
 		})?;
 		let ws = ctx.effective_workspace();
 		let entry = find_index_entry(&ws, session_id, explore_id)
-			.map_err(|e| ToolError::io(ws.clone(), e))?
+			.map_err(|e| {
+				artifact_read_recovery(format!("index io error for explore_id `{explore_id}`: {e}"))
+			})?
 			.ok_or_else(|| {
-				ToolError::invalid_args(format!(
+				artifact_read_recovery(format!(
 					"explore_id `{explore_id}` not found in this discussion's Explore index"
 				))
 			})?;
 		let rel = entry.artifacts.get(kind.as_str()).ok_or_else(|| {
-			ToolError::invalid_args(format!(
-				"kind `{}` not present for explore_id `{explore_id}`",
+			artifact_read_recovery(format!(
+				"kind `{}` not present for explore_id `{explore_id}` — check artifacts map / kinds_incomplete",
 				kind.as_str()
 			))
 		})?;
 		let abs = ws.join(rel);
-		ctx.deny_if_drox_ignored(&abs)?;
+		ctx.deny_if_drox_ignored(&abs).map_err(|e| {
+			artifact_read_recovery(format!("{e}"))
+		})?;
 		let content = tokio::fs::read_to_string(abs.as_std_path())
 			.await
-			.map_err(|e| ToolError::io(abs.clone(), e))?;
+			.map_err(|e| {
+				artifact_read_recovery(format!("cannot read kind file `{rel}`: {e}"))
+			})?;
 		Ok(json!({
 			"exploreId": explore_id,
 			"sessionId": session_id,
@@ -152,6 +164,16 @@ impl Tool for ExploreArtifactReadTool {
 			"path": rel,
 			"content": content,
 			"blurb": entry.blurb,
+			"merge_hint": "Use this body (or artifacts_inline). Do not file_read this path again — act next.",
 		}))
 	}
+}
+
+/// Erreur `explore_artifact_read` + recovery soft (anti `file_read` kind).
+fn artifact_read_recovery(msg: String) -> ToolError {
+	ToolError::invalid_args(format!(
+		"{msg}. Recovery: prefer `artifacts_inline` from the last `task` result, or retry \
+		 explore_artifact_read once with explore_id+kind. Do NOT file_read \
+		 `.drox/subagents/…/<kind>.md` (re-inflates) — skeleton file_write/file_edit instead."
+	))
 }

@@ -7,7 +7,7 @@
 //! |--------|------|
 //! | [`card`] | Snapshot + format + upsert dans l'historique |
 //! | [`paths`] | Paths fichiers touchés / re-read `file_read` |
-//! | [`explore_covered`] | C2 — paths Explore → Prefer si relecture parent |
+//! | [`explore_covered`] | C2/E1 — sources + fichiers kind Explore → Prefer si relecture parent |
 //! | [`todos`] | Indices todo depuis la sortie `todo_write` |
 //! | [`task_outcome`] | Télémétrie Explore + filet parent heavy-read |
 
@@ -27,7 +27,8 @@ pub(crate) use card::{
 pub(crate) use explore_covered::ExploreCoveredPaths;
 pub(crate) use paths::{
 	clear_rotating_file_read_window, note_rotating_file_read, note_successful_file_read,
-	path_from_file_tool, rotating_file_read_should_nudge,
+	path_from_file_tool, repeated_file_read_stub_value, rotating_file_read_should_nudge,
+	should_stub_repeated_file_read,
 };
 pub(crate) use task_outcome::{
 	counts_as_parent_heavy_read, explore_deliverable_empty, note_task_tool_success,

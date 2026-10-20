@@ -1,7 +1,10 @@
-//! C2 / V2-c — chemins déjà couverts par un Explore (artefacts `paths_read`).
+//! C2 / V2-c — chemins déjà couverts par un Explore.
 //!
-//! Après un `task`, on mémorise les paths disponibles (même si `truncated` — **D3**).
-//! Si le parent refait un `file_read` sur l’un d’eux → Prefer soft (pas de hard gate).
+//! Après un `task`, on mémorise :
+//! - sources listées dans `paths_read` (fichier / inline / report) — **D3** si truncated ;
+//! - chemins des **fichiers kind** (`artifacts.*`) — **E1** (anti relecture blobs Explore).
+//! Si le parent `file_read` l’un d’eux → Prefer soft (pas de hard gate).
+//! Hit **kind** → Prefer act immédiat (**E2b**, 2026-10-12).
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -11,10 +14,35 @@ use tracing::debug;
 
 use super::paths::{file_read_path_key, normalize_path_key};
 
-/// Ensemble des paths Explore à ne pas re-lire en parent (sources).
+/// Nature du path couvert touché par un `file_read` parent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum CoveredHit {
+	/// Source listée dans `paths_read`.
+	Source(String),
+	/// Fichier kind sous `.drox/subagents/…` (`artifacts.*`).
+	Kind(String),
+}
+
+impl CoveredHit {
+	#[must_use]
+	pub(crate) fn path(&self) -> &str {
+		match self {
+			Self::Source(p) | Self::Kind(p) => p.as_str(),
+		}
+	}
+
+	#[must_use]
+	pub(crate) fn is_kind(&self) -> bool {
+		matches!(self, Self::Kind(_))
+	}
+}
+
+/// Ensemble des paths Explore à ne pas re-lire en parent.
 #[derive(Debug, Default, Clone)]
 pub(crate) struct ExploreCoveredPaths {
 	keys: HashSet<String>,
+	/// Sous-ensemble : fichiers kind (`artifacts` map) — Prefer act dès 1er hit.
+	kind_keys: HashSet<String>,
 }
 
 impl ExploreCoveredPaths {
@@ -25,20 +53,26 @@ impl ExploreCoveredPaths {
 
 	/// Remplace l’ensemble à partir d’un outcome `task` (Explore complet).
 	///
-	/// Sources (dans l’ordre) : artefact `artifacts.paths_read` sur disque,
-	/// `artifacts_inline.paths_read`, sinon section `## paths_read` du `report` wire.
+	/// Inclut sources `paths_read` **et** chemins des fichiers kind (`artifacts`).
 	pub(crate) fn ingest_from_task_outcome(
 		&mut self,
 		value: &Value,
 		workspace_root: &Path,
 	) -> usize {
 		self.keys.clear();
-		for path in extract_paths_from_task_outcome(value, workspace_root) {
+		self.kind_keys.clear();
+		for path in extract_artifact_file_paths(value) {
+			let key = normalize_path_key(&path);
+			self.kind_keys.insert(key.clone());
+			self.keys.insert(key);
+		}
+		for path in extract_source_paths_from_task_outcome(value, workspace_root) {
 			self.keys.insert(normalize_path_key(&path));
 		}
 		debug!(
 			marker = "c2.explore_paths_tracked",
 			n = self.keys.len(),
+			kind_n = self.kind_keys.len(),
 			"dogfood: Explore covered paths loaded for prefer"
 		);
 		self.keys.len()
@@ -54,7 +88,14 @@ impl ExploreCoveredPaths {
 		workspace_root: &Path,
 	) -> usize {
 		let mut added = 0usize;
-		for path in extract_paths_from_task_outcome(value, workspace_root) {
+		for path in extract_artifact_file_paths(value) {
+			let key = normalize_path_key(&path);
+			self.kind_keys.insert(key.clone());
+			if self.keys.insert(key) {
+				added = added.saturating_add(1);
+			}
+		}
+		for path in extract_source_paths_from_task_outcome(value, workspace_root) {
 			if self.keys.insert(normalize_path_key(&path)) {
 				added = added.saturating_add(1);
 			}
@@ -63,6 +104,7 @@ impl ExploreCoveredPaths {
 			debug!(
 				marker = "c2.explore_paths_tracked",
 				n = self.keys.len(),
+				kind_n = self.kind_keys.len(),
 				added,
 				"dogfood: Explore covered paths merged (truncated task)"
 			);
@@ -70,23 +112,38 @@ impl ExploreCoveredPaths {
 		added
 	}
 
-	/// `Some(path_key)` si ce `file_read` retombe sur un path déjà couvert.
+	/// Hit source ou kind si ce `file_read` retombe sur un path couvert.
+	///
+	/// Heuristique : tout path sous `.drox/subagents/` compte comme **kind**
+	/// (même hors set — ex. after orphan `explore_artifact_read`).
 	#[must_use]
-	pub(crate) fn hit_by_file_read(&self, tool_name: &str, arguments: &Value) -> Option<String> {
-		if tool_name != "file_read" || self.keys.is_empty() {
+	pub(crate) fn hit_by_file_read(
+		&self,
+		tool_name: &str,
+		arguments: &Value,
+	) -> Option<CoveredHit> {
+		if tool_name != "file_read" {
 			return None;
 		}
 		let key = file_read_path_key(arguments)?;
-		if self.keys.contains(&key) {
-			Some(key)
-		} else {
-			None
+		if self.kind_keys.contains(&key) || looks_like_explore_kind_path(&key) {
+			return Some(CoveredHit::Kind(key));
 		}
+		if self.keys.contains(&key) {
+			return Some(CoveredHit::Source(key));
+		}
+		None
 	}
 }
 
-/// Corps `paths_read` depuis artefacts / inline / report.
-fn extract_paths_from_task_outcome(value: &Value, workspace_root: &Path) -> Vec<String> {
+#[must_use]
+fn looks_like_explore_kind_path(key: &str) -> bool {
+	let lower = key.to_ascii_lowercase().replace('\\', "/");
+	lower.contains(".drox/subagents/")
+}
+
+/// Sources listées dans `paths_read` (fichier / inline / report) — hors kinds.
+fn extract_source_paths_from_task_outcome(value: &Value, workspace_root: &Path) -> Vec<String> {
 	let mut raw = String::new();
 	if let Some(rel) = value
 		.get("artifacts")
@@ -113,6 +170,20 @@ fn extract_paths_from_task_outcome(value: &Value, workspace_root: &Path) -> Vec<
 		}
 	}
 	parse_path_lines(&raw)
+}
+
+/// Chemins relatifs workspace des artefacts kind (`artifacts` object values).
+fn extract_artifact_file_paths(value: &Value) -> Vec<String> {
+	let Some(obj) = value.get("artifacts").and_then(|a| a.as_object()) else {
+		return Vec::new();
+	};
+	let mut out = Vec::new();
+	for (_kind, v) in obj {
+		if let Some(p) = v.as_str().map(str::trim).filter(|s| !s.is_empty()) {
+			out.push(p.to_string());
+		}
+	}
+	out
 }
 
 /// Extrait le corps sous `## paths_read` (jusqu’au prochain `## `).
@@ -211,11 +282,16 @@ plain/c.rs\n";
 			"artifacts": { "paths_read": "paths_read.md" }
 		});
 		let mut covered = ExploreCoveredPaths::default();
-		assert_eq!(covered.ingest_from_task_outcome(&value, dir.path()), 2);
+		// E1 : fichier kind `paths_read.md` + 2 sources listées.
+		assert_eq!(covered.ingest_from_task_outcome(&value, dir.path()), 3);
 		assert_eq!(
 			covered.hit_by_file_read("file_read", &json!({ "path": "src/Layout.tsx" })),
-			Some("src/layout.tsx".into())
+			Some(CoveredHit::Source("src/layout.tsx".into()))
 		);
+		assert!(matches!(
+			covered.hit_by_file_read("file_read", &json!({ "path": "paths_read.md" })),
+			Some(CoveredHit::Kind(_))
+		));
 		assert!(covered
 			.hit_by_file_read("file_read", &json!({ "path": "other.ts" }))
 			.is_none());
@@ -229,12 +305,13 @@ plain/c.rs\n";
 		});
 		let mut covered = ExploreCoveredPaths::default();
 		assert_eq!(covered.ingest_from_task_outcome(&value, dir.path()), 1);
-		assert!(covered
-			.hit_by_file_read(
+		assert!(matches!(
+			covered.hit_by_file_read(
 				"file_read",
 				&json!({ "path": "only/from/report.ts" })
-			)
-			.is_some());
+			),
+			Some(CoveredHit::Source(_))
+		));
 	}
 
 	#[test]
@@ -246,9 +323,10 @@ plain/c.rs\n";
 		});
 		let mut covered = ExploreCoveredPaths::default();
 		assert_eq!(covered.ingest_from_task_outcome(&value, dir.path()), 2);
-		assert!(covered
-			.hit_by_file_read("file_read", &json!({ "path": "inline/a.ts" }))
-			.is_some());
+		assert!(matches!(
+			covered.hit_by_file_read("file_read", &json!({ "path": "inline/a.ts" })),
+			Some(CoveredHit::Source(_))
+		));
 	}
 
 	#[test]
@@ -266,9 +344,10 @@ plain/c.rs\n";
 		});
 		assert_eq!(covered.merge_from_task_outcome(&empty_truncated, dir.path()), 0);
 		assert_eq!(covered.len(), 1);
-		assert!(covered
-			.hit_by_file_read("file_read", &json!({ "path": "keep/me.ts" }))
-			.is_some());
+		assert!(matches!(
+			covered.hit_by_file_read("file_read", &json!({ "path": "keep/me.ts" })),
+			Some(CoveredHit::Source(_))
+		));
 	}
 
 	#[test]
@@ -285,5 +364,46 @@ plain/c.rs\n";
 		});
 		assert_eq!(covered.merge_from_task_outcome(&more, dir.path()), 1);
 		assert_eq!(covered.len(), 2);
+	}
+
+	#[test]
+	fn ingest_tracks_artifact_kind_files_e1() {
+		let dir = tempfile::tempdir().unwrap();
+		let value = json!({
+			"truncated": false,
+			"artifacts": {
+				"file_summaries": ".drox/subagents/ses_x/exp_y/file_summaries.md",
+				"structure_map": ".drox/subagents/ses_x/exp_y/structure_map.md"
+			},
+			"artifacts_inline": {}
+		});
+		let mut covered = ExploreCoveredPaths::default();
+		assert_eq!(covered.ingest_from_task_outcome(&value, dir.path()), 2);
+		assert!(matches!(
+			covered.hit_by_file_read(
+				"file_read",
+				&json!({ "path": ".drox/subagents/ses_x/exp_y/file_summaries.md" })
+			),
+			Some(CoveredHit::Kind(_))
+		));
+		assert!(matches!(
+			covered.hit_by_file_read(
+				"file_read",
+				&json!({ "path": ".drox/subagents/ses_x/exp_y/structure_map.md" })
+			),
+			Some(CoveredHit::Kind(_))
+		));
+	}
+
+	#[test]
+	fn heuristic_subagents_path_is_kind_even_without_ingest() {
+		let covered = ExploreCoveredPaths::default();
+		assert!(matches!(
+			covered.hit_by_file_read(
+				"file_read",
+				&json!({ "path": ".drox/subagents/ses_z/exp_z/gaps.md" })
+			),
+			Some(CoveredHit::Kind(_))
+		));
 	}
 }

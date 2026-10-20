@@ -10,6 +10,7 @@ use url::Url;
 use crate::llm_client::{ChatOptions, LlmClient, StreamHandle};
 use crate::config::LlmConfig;
 use crate::error::LlmError;
+use crate::openai::dialect::OpenAiCompatDialect;
 use crate::openai::request::build_request;
 use crate::openai::sse::events_from_sse;
 use crate::openai::url::openai_chat_completions_url;
@@ -26,10 +27,16 @@ pub struct OpenAiCompatibleClient {
     num_predict: i64,
     reasoning_effort: Option<String>,
     thinking_budget: Option<u32>,
+    dialect: OpenAiCompatDialect,
 }
 
 impl OpenAiCompatibleClient {
     pub fn new(config: LlmConfig) -> Result<Self, LlmError> {
+        Self::with_dialect(config, OpenAiCompatDialect::OpenAi)
+    }
+
+    /// Variante catalogue (ex. Mistral → `random_seed`, sanitize `top_p`).
+    pub fn with_dialect(config: LlmConfig, dialect: OpenAiCompatDialect) -> Result<Self, LlmError> {
         let mut builder = Client::builder().timeout(config.timeout());
         if !config.headers.is_empty() {
             let mut hm = reqwest::header::HeaderMap::with_capacity(config.headers.len());
@@ -54,6 +61,7 @@ impl OpenAiCompatibleClient {
             num_predict: config.num_predict,
             reasoning_effort: config.reasoning_effort,
             thinking_budget: config.thinking_budget,
+            dialect,
         })
     }
 
@@ -92,6 +100,7 @@ impl LlmClient for OpenAiCompatibleClient {
             self.num_predict,
             self.reasoning_effort.as_deref(),
             self.thinking_budget,
+            self.dialect,
         );
         debug!(%url, "POST OpenAI chat/completions");
 

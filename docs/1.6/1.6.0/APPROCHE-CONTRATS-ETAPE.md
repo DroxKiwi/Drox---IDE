@@ -1,6 +1,6 @@
 # Approche renforcée — contrats d’étape & recovery (1.6.0)
 
-**Statut** : cadre validé 2026-10-10 · **D1–D4 + P1–P3 livrés** · inventaire prompts ✅  
+**Statut** : cadre validé 2026-10-10 · **D1–D4 + P1–P3** ✅ · **E1+E2** (soft anti-spirale) ✅ · **F1+F2** (livraison Explore) ✅ · inventaire prompts ✅  
 **Parent** : [README](README.md) · [JOURNAL](JOURNAL-PROMPTS-ET-HORS-WS.md) · [PLAN-CONCENTRATION](PLAN-CONCENTRATION-CONTEXTE.md) · [PLAN-EXPLORE](PLAN-EXPLORE-RETURN-CONTRACTS.md)  
 **Mesure prompts** : [`drox-prompts/docs/inventory-instructions.md`](../../../drox-engine/drox/crates/drox-prompts/docs/inventory-instructions.md)
 
@@ -52,6 +52,31 @@ Pas de nouveau Prefer « merge mieux » tant que 1–3 ne sont pas là.
 
 ---
 
+## 3bis. Suite dogfood 2026-10-12 — spirale malgré Explore OK
+
+Dogfood `ses_d4220fc4…` (docs site ← `docs/engine`) : **2 Explore OK**, kinds riches, **~9,2 M tokens in**, **~271 `file_read`**, **0 write**. Cause primaire : **merge / `explore_artifact_read` spillés** (seuil read-heavy 8 KiB) + parent qui re-vérifie les sources ; pas des rapports trop vagues.
+
+| Id | Point | Action | Statut |
+|----|--------|--------|--------|
+| **F1** | `explore_artifact_read` / `task` traités comme dumps → spill annule Explore | Seuil **64 KiB** livraison Explore ; n+1 `agent/tool_result_spill/` | ✅ |
+| **F2** | Hot snip → stub 512 B sur merge | Compact `EXPLORE MERGE PRESERVED` (summary + paths kind + extrait) | ✅ |
+| **E1** | Relecture blobs kind `.drox/subagents/…` hors `paths_read` | Tracker `artifacts.*` dans `explore_covered` | ✅ |
+| **E2** | Lectures post-Explore sans mutation | Soft Prefer `runtime.post_explore_stall_act` (**seuil 1**) | ✅ |
+| **A** | Après fail/`orphan` `explore_artifact_read`, parent `file_read` le kind | Recovery erreur + Prefer `runtime.explore_artifact_read_fail` | ✅ |
+| **E2b** | Range-read kinds malgré covered | Hit `CoveredHit::Kind` → Prefer act immédiat | ✅ |
+| **R4** | Même path `file_read` ×N (spirale docs, `ses_45a84a19`) | Stub `[already_read]` dès seuil 3 (plus de re-IO) | ✅ |
+| **R1** | Prefer rotating one-shot ignoré | Ré-inject tous les 4 reads tant que fenêtre tourne | ✅ |
+
+Dogfood `ses_0ce29dd7…` : F1 gagnant (~1,2 M tok, 0 spill immédiat) mais **0 write** + ×20 `file_read` kind après orphan tool.  
+Dogfood `ses_45a84a19…` : 0 Explore, ×20 same docs paths, ~984k in — motive **R4/R1**.
+
+**Refuse** : hard gate « interdit `file_read` si covered » ; allonger les kinds narratifs.  
+**Ordre** : F1/F2 → A/E2b → **R4/R1** → dogfood ; `rewrite_plan` optionnel ensuite.
+
+Détail code / marqueurs : [PLAN-CONCENTRATION-CONTEXTE.md](PLAN-CONCENTRATION-CONTEXTE.md) §9–§10 · [JOURNAL](JOURNAL-PROMPTS-ET-HORS-WS.md).
+
+---
+
 ## 4. Inventaire instructions (constats)
 
 Mesure `cargo run -p drox-prompts --example inventory` (2026-10-10) :
@@ -82,6 +107,7 @@ Canon Plan→Assign→Merge : `session.subagents.explore` seul. CORE / `tools.ta
 ## 6. Liens
 
 - [PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md) — Option A / artefacts  
-- [PLAN-CONCENTRATION-CONTEXTE.md](PLAN-CONCENTRATION-CONTEXTE.md) — C1–C5 · V2 merge  
+- [PLAN-CONCENTRATION-CONTEXTE.md](PLAN-CONCENTRATION-CONTEXTE.md) — C1–C5 · V2 merge · F1/F2 · E1/E2  
 - [ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md)  
-- `drox-prompts/docs/injection-map.md` · `inventory-instructions.md` · `journal.md`
+- `drox-prompts/docs/injection-map.md` · `inventory-instructions.md` · `journal.md`  
+- Code spill : `drox-engine/.../agent/tool_result_spill/` (`thresholds` · `format` · `hot_snip` · `slim_task`)
