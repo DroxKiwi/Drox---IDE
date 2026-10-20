@@ -17,6 +17,35 @@ Format suggéré :
 
 ---
 
+## 2026-10-12 — R4 + R1 (anti rotation file_read)
+
+- **R4** : ≥3 `file_read` même path → stub outil `[already_read]` (drive, pas Prefer seul).
+- **R1** : Prefer rotating ré-injecté tous les `ROTATING_FILE_READ_REINJECT_EVERY` (4) reads.
+- **Marker** : `r4.repeated_file_read_stub` · `c1.rotating_file_read` (+ reinject).
+
+## 2026-10-12 — A + E2b (anti file_read kind post-fail)
+
+- **Contexte** : dogfood `ses_0ce29dd7…` — F1 OK (tokens ÷7) mais 0 write ; parent range-read kinds ×20 après orphan `explore_artifact_read`.
+- **A** : erreurs `explore_artifact_read` → recovery dans le message d’erreur + Prefer `runtime.explore_artifact_read_fail`.
+- **E2b** : hit kind (set `artifacts.*` ou path `.drox/subagents/`) → Prefer act immédiat ; seuil E2 = **1**.
+- **Ids** : `runtime.explore_artifact_read_fail`, `runtime.post_explore_stall_act` ; marker `a.explore_artifact_read_fail`.
+
+## 2026-10-12 — F1/F2 livraison Explore survivante (spill)
+
+- **Contexte** : dogfood `ses_d4220fc4…` — Explore OK riches, parent ×200 `file_read` car merge / `explore_artifact_read` spillés (8 KiB).
+- **Canal** : C (outcome tools) — pas de nouveau Prefer.
+- **F1** : seuil `task` + `explore_artifact_read` = 64 KiB ; arbo `agent/tool_result_spill/` (n+1).
+- **F2** : hot snip → stub `EXPLORE MERGE PRESERVED` (paths kind + extrait), marker `f2.hot_snip_explore_preserve`.
+
+## 2026-10-12 — E1 covered kinds + E2 post-Explore stall-act
+
+- **Contexte** : dogfood spirale relecture blobs Explore (`.drox/subagents/…/*.md`) + sources après merge OK.
+- **Canal** : B — `runtime.explore_covered_reread` élargi (**E1**) ; nouveau `runtime.post_explore_stall_act` (**E2**, seuil 2 lectures lourdes sans mutation).
+- **Ids** : `runtime.explore_covered_reread`, `runtime.post_explore_stall_act`.
+- **Effet modèle** : Prefer soft anti re-read kind+source ; Prefer act si stall lectures post-Explore.
+- **Sites** : `explore_covered.rs` (`artifacts.*`) · `drive.rs` fenêtre `post_explore_*` · marker `e2.post_explore_stall_act`.
+- **Carte** : injection-map lignes C2/E1 + E2.
+
 ## 2026-10-10 — D4 post-ask_user acting (soft)
 
 - **Canal** : B — `runtime.post_ask_acting` after `ask_user_question` success.
@@ -81,12 +110,18 @@ Format suggéré :
 - **Ids** : `session.core`, `session.native_thinking` ; claims `style.action_over_narration=prefer`, `thinking.concise=prefer`.
 - **Complément dogfood** : `reasoningEffort=low` / L3 assertive côté UI (hors prompts).
 
+## 2026-10-14 — Mid-run ack : rattrapage UI (B) + prompts
+
+- **Contexte** : dogfood `ses_e6695920` — thinking EN puis « Salut !… » en content **sans** `[phase: answering]` ; Agents `isDroxThinkingRoute(null)=true` → ack dans le fold.
+- **Canal** : B — `droxPhaseRoute` null → visible (parité TUI) ; A — `session.native_thinking` + CORE règle 8 (ordre answering avant tools ; thinking 3e personne).
+- **Ids** : `session.core`, `session.native_thinking` ; claim `answering.mid_run_status=prefer` (inchangé).
+
 ## 2026-10-08 — Mid-run status → `[phase: answering]` (option A)
 
 - **Contexte** : dogfood — « Salut / Je vais d’abord… » tombait en thinking / trace, invisible comme bulle chat.
 - **Canal** : A — CORE (`answering` ×3 usages + règle 8 mid-run) ; `session.native_thinking` (interdit statut user only-in-thinking).
 - **Ids** : `session.core`, `session.native_thinking` ; claim `answering.mid_run_status=prefer`.
-- **Effet modèle** : Prefer soft — pas de nouveau canal ni hard gate ; rattrapage B/C reporté.
+- **Effet modèle** : Prefer soft — pas de nouveau canal ni hard gate ; rattrapage B livré 2026-10-14.
 
 ## 2026-10-07 — task.return_options coerce + même cadre Explore au retry
 

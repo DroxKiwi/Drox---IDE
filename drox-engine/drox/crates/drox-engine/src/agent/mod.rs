@@ -29,9 +29,10 @@
 //! | [`nudges`] | Prompts système de relance (done, testing, intent-write…) |
 //! | [`hallucination`] | Détection des tool_calls qui miment `[phase:…]` |
 //! | [`loop_detect`] | Anti-boucle d'empreintes (texte + tool_calls) |
+//! | [`loop_close`] | ForceConclude / SyntheticDone (clôture run propre) |
 //! | [`consume_llm_stream`] | Consommation du stream LLM → événements agent |
 //! | [`dispatch`] | Erreurs outil, confirmation user, specs exposées au LLM |
-//! | [`tool_result_spill`] | Spill/stub gros tool results (C1 concentration) |
+//! | [`tool_result_spill`] | Spill/stub gros tool results (C1 · F1/F2 Explore delivery) |
 
 pub mod config;
 pub mod context_load;
@@ -39,6 +40,7 @@ pub mod dispatch;
 pub mod tool_result_spill;
 pub mod gates;
 pub mod hallucination;
+pub mod loop_close;
 pub mod loop_detect;
 pub mod nudges;
 pub mod phase;

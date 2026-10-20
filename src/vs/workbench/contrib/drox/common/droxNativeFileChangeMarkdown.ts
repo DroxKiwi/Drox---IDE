@@ -141,13 +141,9 @@ export function buildDroxNativeFileChangeMarkdown(change: IDroxFileChangePayload
 	].join('');
 
 	return new MarkdownString(html, {
-		isTrusted: {
-			enabledCommands: [
-				DroxCommands.UndoFileChange,
-				DroxCommands.RedoFileChange,
-				DroxCommands.OpenSessionFile,
-			],
-		},
+		// Boolean true: command: href survives sanitize + CommandOpener allowCommands.
+		// (enabledCommands-only can silently no-op if the id/path mismatch after URI.parse.)
+		isTrusted: true,
 		supportHtml: true,
 	});
 }

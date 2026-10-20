@@ -1,6 +1,6 @@
 # Plan — Concentration modèle & pertinence face aux règles (volume / ordre)
 
-**Statut** : C1–C5 ✅ (2026-10-09) · Option A / `artifacts_inline` ✅ · inventaire + P1–P3 ✅ · **D1+D2+D3** ✅ (2026-10-10) — voir [APPROCHE-CONTRATS-ETAPE.md](APPROCHE-CONTRATS-ETAPE.md)  
+**Statut** : C1–C5 ✅ · Option A / `artifacts_inline` ✅ · inventaire + P1–P3 ✅ · **D1–D4** ✅ · **E1+E2** ✅ · **F1+F2** ✅ (2026-10-12) — voir [APPROCHE-CONTRATS-ETAPE.md](APPROCHE-CONTRATS-ETAPE.md)  
 **Parent** : [README 1.6.0](README.md) · [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md) · [PLAN-CONTEXT-SITUATION.md](PLAN-CONTEXT-SITUATION.md) · [PLAN-EXPLORE-RETURN-CONTRACTS.md](PLAN-EXPLORE-RETURN-CONTRACTS.md)  
 **Carte injection** : `drox-prompts/docs/injection-map.md`  
 **Règle** : Prefer soft d’abord ; pas de hard gate inventé hors brief ([pas-d-initiative](../../../.cursor/rules/pas-d-initiative.mdc))
@@ -80,7 +80,7 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 |---|---------------------|------|--------|-------|
 | V2-a | Artefacts Explore **utiles** (JSON / incomplete honnête) | Contrats | ✅ P-safe/P-json/P-harden | Prérequis |
 | V2-b | Prefer post-merge : fusionner via blurb / `explore_artifact_read`, **pas** re-`file_read` sources | Soft B | ✅ `post_merge_closure` | Dogfood E5 à revalider |
-| V2-c | Prefer si parent relit paths Explore | Soft B | ✅ **C2** · ✅ **D3** (merge si truncated, plus de clear) | `explore_covered` ; dogfood 2026-10-09 |
+| V2-c | Prefer si parent relit paths Explore | Soft B | ✅ **C2** · ✅ **D3** · ✅ **E1** · ✅ **E2** · ✅ **F1/F2** (pas de spill merge) | `explore_covered` + spill Explore 64 KiB + hot-snip preserve |
 | V2-d | Tool_result `task` : summary/blurb + **`artifacts_inline`** ; plus de `conclusion.md` | C / outcome | ✅ **C2** + Option A | slim ; wire UI via summary/artefact |
 | V2-e | UI : afficher kinds incomplets (déjà tags) pour que l’humain voie le trou | UI | ✅ E4b | |
 
@@ -163,9 +163,15 @@ Légende statut : ⬜ idée · 🟡 partiel / déjà amorcé · ✅ livré aille
 | **C6** | Granularité modèle Explore (temp / model override) | settings think ✅ | P2 |
 | **D3** | C2 armé malgré Explore truncated | C2 | ✅ `merge_from_task_outcome` · plus de `clear` si truncated |
 | **D1** | Spill sans « re-read » après Preview dropped | C1 | ✅ stubs `tool_result_spill` |
-| **Inv** | Inventaire volumes prompts + coupe CORE/`task` | C3/V6 | ✅ mesure · ⬜ coupe |
+| **Inv** | Inventaire volumes prompts + coupe CORE/`task` | C3/V6 | ✅ mesure · ✅ P1–P3 |
+| **E1** | Covered = sources `paths_read` **+** fichiers kind `artifacts.*` | C2 | ✅ `explore_covered` |
+| **E2** | Post-Explore OK + ≥1 heavy read sans mutate → Prefer act | C2/C4 | ✅ seuil **1** |
+| **E2b** | `file_read` kind → Prefer act immédiat | E1/E2 | ✅ `CoveredHit::Kind` |
+| **A** | Erreur `explore_artifact_read` → Prefer recovery (pas `file_read` kind) | F1 | ✅ `runtime.explore_artifact_read_fail` |
+| **F1** | Livraison Explore (`task` / `explore_artifact_read`) : spill à **64 KiB** | C1 | ✅ `tool_result_spill/thresholds` |
+| **F2** | Hot snip : compact merge préservé (pas spill 512 B) | C1/F1 | ✅ `tool_result_spill/hot_snip` |
 
-Règle : un lot = un brief validé ; **recovery moteur (D*) avant** Prefer soft empilés.
+Règle : un lot = un brief validé ; **recovery / livraison moteur (D*, F*) avant** Prefer soft empilés.
 
 ---
 
@@ -182,32 +188,38 @@ Règle : un lot = un brief validé ; **recovery moteur (D*) avant** Prefer soft 
 
 ## 8. Prochaine étape (process)
 
-1. ~~C1–C5~~ ✅  
-2. C6 / retrieve list-search-embed si briefé avant dogfood.  
-3. Dogfood E5 + grep marqueurs §10–§13.
+1. ~~C1–C5 · D1–D4 · E1+E2 · F1+F2~~ ✅  
+2. Dogfood revalider post-F1/F2 (même brief site-kdds) — grep marqueurs §10.  
+3. C6 / retrieve list-search-embed / kind `rewrite_plan` seulement si briefé.
 
 ---
 
-## 9. Brief C1 — spill / stub parent (livré)
+## 9. Brief C1 — spill / stub parent (livré · **F1/F2** 2026-10-12)
 
 ### Décisions
 
 | Paramètre | Valeur | Raison |
 |-----------|--------|--------|
-| Spill lecture-lourde | **8 KiB** | `file_read` / `grep` / `glob` / `explore_artifact_read` / index Explore / `notebook_read` |
+| Spill lecture-lourde | **8 KiB** | `file_read` / `grep` / `glob` / `explore_index_*` / `notebook_read` |
 | Spill autres | **24 KiB** | inchangé (bash, etc.) |
-| Preview stub | **512 B** | reconnaître le fichier, pas raisonner dessus |
+| Spill **livraison Explore** (**F1**) | **64 KiB** | `task` (slim) + `explore_artifact_read` — ne pas annuler le merge |
+| Preview stub générique | **512 B** | reconnaître le dump, pas raisonner dessus |
+| Hot snip Explore (**F2**) | Compact `EXPLORE MERGE PRESERVED` | summary + chemins kind + extrait inline (~2,4k car.) — **pas** spill 512 B |
 | Fenêtre chaude | **4** derniers `tool_result` complets | snip hors fenêtre même sous autocompact |
 | Seuil snip chaud | **~200 tokens** estimés | évacuer aussi les dumps « moyens » |
-| Avant stub | **toujours spill** sur `.drox/tool-outputs/` | pas de perte silencieuse |
+| Avant stub (non-Explore) | **toujours spill** sur `.drox/tool-outputs/` | pas de perte silencieuse |
 
-### Code (séparation)
+### Code (séparation n+1)
 
 | Module | Rôle |
 |--------|------|
-| `agent/tool_result_spill.rs` | Seuils, écriture disque, format stub, spill à l’émission |
+| `agent/tool_result_spill/mod.rs` | API publique du lot |
+| `…/thresholds.rs` | Seuils + classification F1 |
+| `…/slim_task.rs` | Slim outcome `task` (C2) |
+| `…/format.rs` | Émission post-outil → inline / spill |
+| `…/hot_snip.rs` | Snip chaud + F2 merge préservé |
 | `drox-context` `snip_messages_with` | Snip avec placeholder dérivé du contenu (sans FS) |
-| `context_policy::maybe_snip_hot` | Fenêtre 4 + spill via `stub_for_hot_snip` si workspace fourni |
+| `context_policy::maybe_snip_hot` | Fenêtre 4 + `stub_for_hot_snip` si workspace fourni |
 | `agent/run/lifecycle.rs` | Passe hot snip avec `workspace_root` |
 
 ### Hors C1 (plus tard)
@@ -217,7 +229,7 @@ Règle : un lot = un brief validé ; **recovery moteur (D*) avant** Prefer soft 
 
 ### Critère dogfood
 
-Run doc typique : moins de dumps md inline dans l’historique parent ; stubs avec path ; règles Prefer encore visibles en fin de contexte.
+Run doc typique : moins de dumps md inline ; **merge Explore encore lisible** après snip ; stubs génériques avec path ; Prefer encore visibles en fin de contexte.
 
 ---
 
@@ -230,16 +242,19 @@ Run doc typique : moins de dumps md inline dans l’historique parent ; stubs av
 | Slim `task` → LLM | Pas de `report` ; summary ≤700 ; blurb ≤200 |
 | Wire UI | Peut encore recevoir `report` (carte Explore) |
 | Post-merge Prefer | Pointe artefacts / `explore_artifact_read`, pas re-`file_read` sources |
-| V2-c Prefer | Après merge OK : `file_read` d’un path ∈ `paths_read` → one-shot soft |
+| V2-c Prefer (**E1**) | Après merge : `file_read` d’une **source** `paths_read` **ou** d’un **fichier kind** `artifacts.*` → one-shot soft |
+| Stall-act Prefer (**E2**/E2b) | ≥1 heavy read post-Explore **ou** hit kind → Prefer skeleton write |
+| Artifact-read fail (**A**) | Erreur `explore_artifact_read` → Prefer : inline / retry once — jamais `file_read` kind |
 
 ### Code
 
 | Module | Rôle |
 |--------|------|
-| `tool_result_spill::slim_task_tool_result_for_llm` | V2-d |
-| `situation/explore_covered.rs` | Tracking paths + hit `file_read` |
-| `runtime.explore_covered_reread` | Texte Prefer V2-c |
-| `drive.rs` | Armement / injection |
+| `tool_result_spill/slim_task.rs` | V2-d |
+| `situation/explore_covered.rs` | Tracking sources + kinds (**E1**) + hit `file_read` |
+| `runtime.explore_covered_reread` | Texte Prefer V2-c / E1 |
+| `runtime.post_explore_stall_act` | Texte Prefer E2 |
+| `drive.rs` | Armement / injection E1+E2 + fenêtre `post_explore_*` |
 
 ### Marqueurs tracing (`marker=…`, message `dogfood:`)
 
@@ -247,23 +262,26 @@ Grep logs / transcript export :
 
 | Marker | Signifie |
 |--------|----------|
-| `c1.spill` | Gros tool_result écrit sous `.drox/tool-outputs/` |
+| `c1.spill` | Gros tool_result écrit sous `.drox/tool-outputs/` (champ `explore_delivery` si F1) |
 | `c1.spill_failed` | Spill disque échoué → truncate |
 | `c1.hot_snip` | Snip chaud (fenêtre 4) + spill-before-stub |
+| `f2.hot_snip_explore_preserve` | Hot snip → compact merge Explore (F2) |
 | `c1.rotating_file_read` | Prefer rotation multi-path |
 | `c2.slim_task` | Outcome `task` slimé pour le LLM |
 | `c2.post_merge_closure` | Prefer post-merge injecté |
-| `c2.explore_paths_tracked` | N paths chargés depuis `paths_read` |
+| `c2.explore_paths_tracked` | N paths chargés (sources + kinds E1) |
 | `c2.explore_covered_hit` | Parent `file_read` d’un path couvert |
-| `c2.explore_covered_reread_prefer` | Prefer V2-c injecté |
+| `c2.explore_covered_reread_prefer` | Prefer V2-c / E1 injecté |
+| `e2.post_explore_stall_act` | Prefer stall-act E2 / E2b injecté |
+| `a.explore_artifact_read_fail` | Prefer recovery après erreur `explore_artifact_read` |
 
-Stub texte (historique LLM) : `LARGE OUTPUT SPILLED TO DISK`, `SPILLED FOR CONTEXT`, `.drox/tool-outputs/`.
+Stub texte (historique LLM) : `LARGE OUTPUT SPILLED TO DISK`, `SPILLED FOR CONTEXT`, `EXPLORE MERGE PRESERVED`, `.drox/tool-outputs/`.
 
 **Embed** : pas encore de marker (lot retrieve ultérieur) — placeholder intention : `c1.embed_spill` quand branché.
 
 ### Critère dogfood C2
 
-Après Explore OK : Prefer post-merge visible ; si le parent relit un path Explore → Prefer V2-c ; transcript LLM sans markdown `report` collé.
+Après Explore OK : Prefer post-merge visible ; merge **non spillé** sous 64 KiB ; si relecture covered → Prefer E1 ; si stall lectures → Prefer E2 ; transcript LLM sans markdown `report` collé ; **acting** (write/edit) plutôt que ×100 `file_read` sur les mêmes 3 fichiers.
 
 ---
 

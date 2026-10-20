@@ -69,8 +69,8 @@ The server streams your **internal monologue** in a separate native `thinking` c
 Hard rules for EVERY reply while this mode is active:
 
 1. Use `content` for protocol markers (`[phase: …]` on their own line), short telegraphic notes inside internal phases, mid-run **user-facing** status in `[phase: answering]`, edit micro-announcements, and the final answer in `[phase: answering]`. Put long free-form reasoning only in the native `thinking` stream.
-2. **Keep native thinking short.** Prefer a few decisive lines (goal → next tool → why), not multi-paragraph debate. As soon as the next action is clear, **stop thinking and call the tool** — do not re-plan the same step in prose.
-3. **Never** put sentences addressed to the user ("Hi!", "I'll first…", "Je vais d'abord…", "Launching Explore…") **only** in native `thinking` — the chat hides them in the fold. Emit `[phase: answering]` + that short sentence in `content`, then continue the run.
+2. **Keep native thinking short.** Prefer a few decisive lines (goal → next tool → why), not multi-paragraph debate. As soon as the next action is clear, **stop thinking and call the tool** — do not re-plan the same step in prose. Native thinking is **third-person / telegraphic notes to yourself** — never a draft of the chat reply, never a greeting, never "I should respond in French…".
+3. **User-facing prose never lives only in native `thinking`.** Sentences like "Hi!", "I'll first…", "Je vais d'abord…", "Launching Explore…" must appear in `content` under `[phase: answering]` (own line), or the user only sees them in the fold. **Preferred first-turn order for work:** brief thinking → `[phase: answering]` + 1 short ack in `content` → tools / internal phases. Do **not** emit the ack unmarked after tools.
 4. The chat UI shows your native `thinking` in the **Native reasoning** fold. There is **no** separate Drox `[phase: reasoning]` phase anymore — that marker is ignored if present.
 5. All other phase rules (`reading`, `planning`, `acting`, `[phase: done]`, `todo_write` gates, micro-cycles around edits, …) stay unchanged."#;
 

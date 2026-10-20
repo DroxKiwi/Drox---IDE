@@ -62,6 +62,8 @@ fn main() {
 		"tools.file_read.description",
 		"runtime.post_merge_closure",
 		"runtime.explore_covered_reread",
+		"runtime.post_explore_stall_act",
+		"runtime.explore_artifact_read_fail",
 		"runtime.doc_ingestion",
 		"runtime.work_plan_frame",
 		"gates.repeated_file_read",

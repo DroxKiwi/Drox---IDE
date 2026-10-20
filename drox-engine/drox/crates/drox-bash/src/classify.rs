@@ -250,7 +250,9 @@ fn classify_git(segment: &str) -> BashCommandKind {
     // Skip leading ENV=value so `FOO=1 git status` still resolves.
     let mut it = segment.split_whitespace().filter(|t| !ENV_ASSIGN.is_match(t));
     let _git = it.next();
-    let Some(sub) = it.next() else {
+    // Skip git *global* options before the subcommand (`--no-pager`, `-c`, `-C`, …).
+    // Dogfood: `git --no-pager diff --stat` was Unknown → false "mutating bash" gate → loop abort.
+    let Some(sub) = next_git_subcommand(&mut it) else {
         return BashCommandKind::ReadOnly;
     };
     let sub = sub.to_ascii_lowercase();
@@ -272,6 +274,25 @@ fn classify_git(segment: &str) -> BashCommandKind {
     } else {
         BashCommandKind::Unknown
     }
+}
+
+/// First non-global token after `git` (the subcommand).
+fn next_git_subcommand<'a>(it: &mut impl Iterator<Item = &'a str>) -> Option<&'a str> {
+    while let Some(tok) = it.next() {
+        if !tok.starts_with('-') {
+            return Some(tok);
+        }
+        // Global options that take a separate value argument.
+        let base = tok.split('=').next().unwrap_or(tok);
+        if matches!(
+            base,
+            "-C" | "-c" | "--git-dir" | "--work-tree" | "--namespace" | "--config-env" | "--exec-path"
+        ) && !tok.contains('=')
+        {
+            let _ = it.next();
+        }
+    }
+    None
 }
 
 /// `true` if every subcommand is [`BashCommandKind::ReadOnly`] (agent todo / phase gates).
@@ -823,6 +844,24 @@ mod tests {
     #[test]
     fn git_status_read() {
         assert_eq!(kind_of_segment("git status"), BashCommandKind::ReadOnly);
+    }
+
+    #[test]
+    fn git_global_flags_before_subcommand_still_read() {
+        assert_eq!(
+            kind_of_segment("git --no-pager diff --stat"),
+            BashCommandKind::ReadOnly
+        );
+        assert_eq!(
+            kind_of_segment("git -c core.pager=cat log -1"),
+            BashCommandKind::ReadOnly
+        );
+        assert_eq!(
+            kind_of_segment("git -C /tmp status --short"),
+            BashCommandKind::ReadOnly
+        );
+        assert!(command_is_inspect_only("git --no-pager diff --stat"));
+        assert!(!command_is_inspect_only("git --no-pager add -A"));
     }
 
     #[test]

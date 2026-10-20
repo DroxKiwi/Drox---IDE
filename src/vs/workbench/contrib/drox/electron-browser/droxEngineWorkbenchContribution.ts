@@ -42,7 +42,7 @@ class DroxEngineLifecycleContribution extends Disposable implements IWorkbenchCo
 	) {
 		super();
 		this._register(lifecycleService.onWillShutdown(e => {
-			e.join(this.droxEngineService.dispose(), {
+			e.join(this.droxEngineService.dispose('shutdown'), {
 				id: 'drox.engine.dispose',
 				label: localize('droxShutdown', 'Shutting down Drox engine'),
 			});

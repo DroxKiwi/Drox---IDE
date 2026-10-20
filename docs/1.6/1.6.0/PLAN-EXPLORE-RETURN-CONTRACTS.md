@@ -1,6 +1,6 @@
 # Plan — Contrats de retour Explore + index navigable (scope discussion)
 
-**Statut** : **Option A livrée** (2026-10-09) — `explore_commit` + L0 + mono-kind + **pas de `conclusion.md`** + `artifacts_inline` · **D2+D3** ✅ · dogfood 🟡 → [APPROCHE](APPROCHE-CONTRATS-ETAPE.md)  
+**Statut** : **Option A livrée** (2026-10-09) — `explore_commit` + L0 + mono-kind + **pas de `conclusion.md`** + `artifacts_inline` · **D2+D3** ✅ · anti-spirale parent **E1+E2** ✅ · livraison merge **F1+F2** ✅ · dogfood 🟡 → [APPROCHE](APPROCHE-CONTRATS-ETAPE.md)  
  
 **Parent** : [README 1.6.0](README.md) · [JOURNAL-PROMPTS-ET-HORS-WS.md](JOURNAL-PROMPTS-ET-HORS-WS.md) · [PLAN-DOGFOOD-TERMINAL-EXPLORE.md](PLAN-DOGFOOD-TERMINAL-EXPLORE.md) · [APPROCHE-CONTRATS-ETAPE.md](APPROCHE-CONTRATS-ETAPE.md)  
 **Règle** : contrats mécaniques côté artefacts + recovery étape ; Prefer soft en complément — pas de hard gate inventé hors brief ([pas-d-initiative](../../../.cursor/rules/pas-d-initiative.mdc))
@@ -11,7 +11,7 @@
 
 **Historique** : le parent spawnait un Explore avec `must_return` en prose ; l’enfant rendait surtout un **`conclusion.md` unique** ; le parent re-lisait les sources → spirale (voir dogfood + [ANTI-LOOP-METHODES.md](ANTI-LOOP-METHODES.md)).
 
-**État 2026-10-09** : kinds via **`explore_commit`** (canal tools) + L0 `paths_read` ; artefacts `<kind>.md` ; **plus de `conclusion.md`** ; parent reçoit `artifacts_inline` borné. Reste ouvert : Explore fail / C2 désarmé si truncated ([APPROCHE](APPROCHE-CONTRATS-ETAPE.md) D2–D3).
+**État 2026-10-12** : kinds via **`explore_commit`** + L0 `paths_read` ; artefacts `<kind>.md` ; **plus de `conclusion.md`** ; `artifacts_inline` borné ; **D2/D3** recovery ✅ ; parent : covered kinds (**E1**) + stall-act (**E2**) ; merge ne spill plus à 8 KiB (**F1/F2**). Reste : dogfood revalider acting post-merge.
 
 **Cible** : modèle type **arguments de fonction** —
 
@@ -195,8 +195,12 @@ Alignement industrie (rappel) : Explore pour « comment c’est bâti » ; embed
 | **P-harden** | JSON fail / stubs méta → **incomplete** ; notes filtrées ; think settings | ✅ 2026-10-08 |
 | **Option A** | `explore_commit` + L0 paths ; assemble 0-LLM ; gate mono-kind ; **no conclusion** ; `artifacts_inline` | ✅ 2026-10-09 |
 | **D2/D3** | Recovery Explore fail + C2 si truncated | ✅ D3 C2 · ✅ D2 partial/abort/step — [APPROCHE](APPROCHE-CONTRATS-ETAPE.md) |
+| **E1/E2** *(anti-spirale parent — ≠ lots E1–E4 kinds)* | Covered kinds + Prefer stall-act post-Explore | ✅ 2026-10-12 — [JOURNAL](JOURNAL-PROMPTS-ET-HORS-WS.md) |
+| **F1/F2** | Spill 64 KiB livraison Explore + hot-snip merge préservé | ✅ `agent/tool_result_spill/` — [CONCENTRATION](PLAN-CONCENTRATION-CONTEXTE.md) §9 |
 
 Layout live : `.drox/subagents/<sessionId>/<exploreId>/{manifest.json,<kind>.md}` + `index.jsonl` (pas de `conclusion.md`).
+
+> **Noms** : les lots **E1–E4** de *ce* plan = contrats retour kinds. Les lots **E1/E2** du journal 2026-10-12 = anti-spirale parent (covered + stall). Ne pas confondre.
 
 ---
 

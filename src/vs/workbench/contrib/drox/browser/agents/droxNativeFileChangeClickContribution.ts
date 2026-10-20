@@ -7,18 +7,21 @@
 
 /**
  * Secours clic carte file-change : si le lien `command:` markdown est mangé /
- * bloqué, un clic sur `.fc-path` (ou le chemin dans le summary) ouvre quand même
- * le fichier via `DroxCommands.OpenSessionFile` (data-path / title / text).
+ * bloqué (cible Text, allowCommands silent no-op), un clic sur `.fc-path`
+ * (ou le summary) ouvre le fichier via `DroxCommands.OpenSessionFile`.
+ *
+ * Écoute au niveau `document` (capture) — pas seulement `ChatWidget.domNode` —
+ * pour couvrir Agents / IDE / listes reparentées.
  */
 
-import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
+import { Disposable } from '../../../../../base/common/lifecycle.js';
+import { addDisposableListener, getWindows, onDidRegisterWindow } from '../../../../../base/browser/dom.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../common/contributions.js';
-import { IChatWidget, IChatWidgetService } from '../../../chat/browser/chat.js';
 import { isDroxNativeChatStackEnabled } from '../../common/droxAgentsConfiguration.js';
 import { DroxCommands } from '../../common/drox.js';
-import * as dom from '../../../../../base/browser/dom.js';
 import { resolveFileChangeOpenTarget } from './droxNativeFileChangeClick.js';
 
 class DroxNativeFileChangeClickContribution extends Disposable implements IWorkbenchContribution {
@@ -26,9 +29,9 @@ class DroxNativeFileChangeClickContribution extends Disposable implements IWorkb
 	static readonly ID = 'workbench.contrib.droxNativeFileChangeClick';
 
 	constructor(
-		@IChatWidgetService chatWidgetService: IChatWidgetService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IConfigurationService configurationService: IConfigurationService,
+		@ILogService private readonly logService: ILogService,
 	) {
 		super();
 
@@ -36,16 +39,14 @@ class DroxNativeFileChangeClickContribution extends Disposable implements IWorkb
 			return;
 		}
 
-		for (const widget of chatWidgetService.getAllWidgets()) {
-			this.attachWidget(widget);
+		for (const { window } of getWindows()) {
+			this.attachDocument(window.document);
 		}
-		this._register(chatWidgetService.onDidAddWidget(widget => this.attachWidget(widget)));
+		this._register(onDidRegisterWindow(({ window }) => this.attachDocument(window.document)));
 	}
 
-	private attachWidget(widget: IChatWidget): void {
-		const store = new DisposableStore();
-		this._register(store);
-		store.add(dom.addDisposableListener(widget.domNode, 'click', e => {
+	private attachDocument(doc: Document): void {
+		this._register(addDisposableListener(doc, 'click', e => {
 			const target = resolveFileChangeOpenTarget(e.target);
 			if (!target) {
 				return;
@@ -53,11 +54,15 @@ class DroxNativeFileChangeClickContribution extends Disposable implements IWorkb
 			// Capture: take over before markdown `command:` opener (often silently no-ops in chat).
 			e.preventDefault();
 			e.stopPropagation();
+			e.stopImmediatePropagation();
+			this.logService.info(`[Drox] file-change path click → openSessionFile path=${target.path}`);
 			void this.commandService.executeCommand(
 				DroxCommands.OpenSessionFile,
 				target.path,
 				target.toolId,
-			);
+			).catch(err => {
+				this.logService.warn('[Drox] openSessionFile command failed', err);
+			});
 		}, true));
 	}
 }

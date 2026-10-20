@@ -18,10 +18,11 @@ export interface IDroxClientToolsService {
 	readonly executableToolNames: readonly string[];
 
 	/**
-	 * Interrupt a stuck IDE-terminal bash (Ctrl+C) and unblock tool/exec.
-	 * Returns true when an active bash was skipped.
+	 * Interrupt a stuck bash (IDE terminal Ctrl+C, else main-process ExecBash)
+	 * and unblock tool/exec so the agent can continue. Returns true when a run
+	 * was skipped.
 	 */
-	skipActiveBash(): boolean;
+	skipActiveBash(): Promise<boolean>;
 
 }
 

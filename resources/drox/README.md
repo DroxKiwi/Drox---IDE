@@ -63,6 +63,7 @@ Habitudes :
 3. Avant ship → `package-drox` **release**.
 4. `target/*/deps/drox.exe` = artefact Cargo (pas le process spawné) — ignorer.
 5. Ne pas laisser `drox.executablePath` = `drox` nu (court-circuite mal) ; chemin absolu vers `target/debug` seulement si besoin de forcer.
+6. **`out/` frais** (lots IDE / arbo n+1) : `.\scripts\ensure-dev-out.ps1` ou lancer via `.\scripts\code-dogfood.bat` — `code.bat` seul ne retranspile pas si `out/main.js` existe déjà. Option moteur : `-SyncEngine` ou `DROX_DOGFOOD_SYNC_ENGINE=1`.
 
 Vérif rapide après resync : même taille / même hash entre `target/debug/drox.exe` et `resources/drox/<plateforme>/drox.exe`.
 

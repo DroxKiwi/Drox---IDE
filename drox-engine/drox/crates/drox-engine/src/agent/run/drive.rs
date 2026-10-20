@@ -4,7 +4,7 @@ use std::collections::{HashMap, VecDeque};
 
 use drox_hooks::{PostHookOutcome, PreHookOutcome, ToolHookContext};
 use drox_tools::ToolError;
-use drox_types::{Content, Message, Usage};
+use drox_types::{Content, Message, StopReason, Usage};
 use futures::{stream, StreamExt};
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -24,6 +24,7 @@ use super::super::gates::{
     counts_as_mutating_for_step_tracking, is_professor_run, plan_write_gate_satisfied,
     record_counts_as_code_mutation, PROFESSOR_DONE_WITHOUT_PLAN,
 };
+use super::super::loop_close::emit_synthetic_done;
 use super::super::loop_detect::{LoopDecision, LoopDetector, PendingToolCall};
 use super::super::nudges::{
     ask_user_question_loop_nudge, context_load_nudge, explore_incomplete_nudge,
@@ -32,11 +33,15 @@ use super::super::nudges::{
     CODE_MUTATION_TESTING_NUDGE, DONE_ONLY_NUDGE_PROMPT, DOC_INGESTION_EXPLORE_ANNEX,
     EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,
     INTENT_ONLY_WRITE_MAX_NUDGES, INTENT_ONLY_WRITE_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
-    LOOP_TOOL_FAMILY_NUDGE_PROMPT, MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
-    EXPLORE_COVERED_REREAD_NUDGE, MICRO_ACT_WRITE_NUDGE, MISSING_ANSWERING_PROMPT, NUDGE_PROMPT,
-    PARENT_HEAVY_READ_NUDGE, PARENT_HEAVY_READ_NUDGE_THRESHOLD, POST_ASK_ACTING_NUDGE,
-    POST_MERGE_CLOSURE_NUDGE, REPEATED_FILE_READ_NUDGE,
-    REPEATED_FILE_READ_NUDGE_THRESHOLD, ROTATING_FILE_READ_NUDGE, WORK_PLAN_FRAME_NUDGE,
+    LOOP_FORCE_CONCLUDE_PROMPT, LOOP_TOOL_FAMILY_NUDGE_PROMPT,
+    MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
+    EXPLORE_ARTIFACT_READ_FAIL_NUDGE, EXPLORE_COVERED_REREAD_NUDGE, MICRO_ACT_WRITE_NUDGE,
+    MISSING_ANSWERING_PROMPT, NUDGE_PROMPT, PARENT_HEAVY_READ_NUDGE,
+    PARENT_HEAVY_READ_NUDGE_THRESHOLD, POST_ASK_ACTING_NUDGE, POST_EXPLORE_STALL_ACT_NUDGE,
+    POST_EXPLORE_STALL_READ_THRESHOLD, POST_MERGE_CLOSURE_NUDGE,
+    REPEATED_FILE_READ_NUDGE,
+    REPEATED_FILE_READ_NUDGE_THRESHOLD, ROTATING_FILE_READ_NUDGE,
+    ROTATING_FILE_READ_REINJECT_EVERY, WORK_PLAN_FRAME_NUDGE,
     WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD,
     step_explore_kickoff_nudge, step_without_explore_nudge,
 };
@@ -50,9 +55,10 @@ use super::super::phase::{
 };
 use super::super::situation::{
     clear_rotating_file_read_window, completed_todos_hint, counts_as_parent_heavy_read,
-    first_in_progress_todo_id, next_todo_from_output, note_rotating_file_read,
-    note_successful_file_read, note_task_tool_success, path_from_file_tool,
-    explore_deliverable_empty, rotating_file_read_should_nudge, task_outcome_telemetry,
+    explore_deliverable_empty, first_in_progress_todo_id, next_todo_from_output,
+    note_rotating_file_read, note_successful_file_read, note_task_tool_success,
+    path_from_file_tool, repeated_file_read_stub_value, rotating_file_read_should_nudge,
+    should_stub_repeated_file_read, task_outcome_telemetry,
     upsert_situation_card,
     ExploreCoveredPaths, SituationSnapshot,
 };
@@ -203,6 +209,8 @@ impl Agent {
         // `LoopDetector`. 1.6.0 : `reset` uniquement sur nudges structurels
         // (pas DONE_ONLY / générique — L-1).
         let mut loop_detector = LoopDetector::new();
+        // Après ForceConclude : tours LLM suivants sans tools jusqu'à Done / SyntheticDone.
+        let mut loop_tools_disabled = false;
         let mut consecutive_ask_user_question_failures: u32 = 0;
         let mut live_compaction_seq: u32 = 0;
         let mut run_objective_reminder_sent = false;
@@ -245,14 +253,23 @@ impl Agent {
         // Soft — rotation multi-path (fenêtre glissante) + clôture post-merge Explore.
         let mut recent_file_reads: VecDeque<String> = VecDeque::new();
         let mut rotating_file_read_nudge_sent = false;
+        // R1 — ré-inject Prefer rotating tous les N reads tant que la fenêtre tourne.
+        let mut rotating_last_nudge_at: usize = 0;
         let mut pending_post_merge_closure_nudge = false;
         // C4 / V6-a — micro acting write juste après post-merge.
         let mut pending_micro_act_write_nudge = false;
         let mut micro_act_write_nudge_sent = false;
-        // C2 / V2-c — paths Explore couverts → Prefer si parent re-file_read.
+        // C2 / V2-c / E1 — paths Explore couverts → Prefer si parent re-file_read.
         let mut explore_covered_paths = ExploreCoveredPaths::default();
         let mut pending_explore_covered_reread_nudge = false;
         let mut explore_covered_reread_nudge_sent = false;
+        // E2 — après Explore OK, lectures parent sans mutation → Prefer act.
+        let mut post_explore_window = false;
+        let mut post_explore_read_streak: u32 = 0;
+        let mut pending_post_explore_stall_nudge = false;
+        let mut post_explore_stall_nudge_sent = false;
+        // A — explore_artifact_read error → Prefer recovery (pas file_read kind).
+        let mut pending_explore_artifact_read_fail_nudge = false;
         // D4 — après ask_user_question réussi → soft skeleton / mutate.
         let mut pending_post_ask_acting_nudge = false;
         let task_tool_available = tool_specs.iter().any(|s| s.name == "task");
@@ -483,7 +500,7 @@ impl Agent {
                 micro_act_write_nudge_sent = true;
             }
 
-            // Soft C2 — parent re-lit un path déjà dans paths_read Explore.
+            // Soft C2 / E1 — parent re-lit un path déjà couvert Explore.
             if pending_explore_covered_reread_nudge && !explore_covered_reread_nudge_sent {
                 debug!(
                     marker = "c2.explore_covered_reread_prefer",
@@ -493,6 +510,28 @@ impl Agent {
                 messages.push(Message::system(EXPLORE_COVERED_REREAD_NUDGE));
                 pending_explore_covered_reread_nudge = false;
                 explore_covered_reread_nudge_sent = true;
+            }
+
+            // Soft E2 / E2b — post-Explore OK + lectures / hit kind → Prefer act.
+            if pending_post_explore_stall_nudge && !post_explore_stall_nudge_sent {
+                debug!(
+                    marker = "e2.post_explore_stall_act",
+                    streak = post_explore_read_streak,
+                    "dogfood: post-Explore read stall — soft act prefer"
+                );
+                messages.push(Message::system(POST_EXPLORE_STALL_ACT_NUDGE));
+                pending_post_explore_stall_nudge = false;
+                post_explore_stall_nudge_sent = true;
+            }
+
+            // Soft A — explore_artifact_read failed → don’t file_read kind blobs.
+            if pending_explore_artifact_read_fail_nudge {
+                debug!(
+                    marker = "a.explore_artifact_read_fail",
+                    "dogfood: explore_artifact_read error — soft recovery prefer"
+                );
+                messages.push(Message::system(EXPLORE_ARTIFACT_READ_FAIL_NUDGE));
+                pending_explore_artifact_read_fail_nudge = false;
             }
 
             // Soft D4 — user a répondu → skeleton / mutate (pas re-inventaire).
@@ -505,17 +544,24 @@ impl Agent {
                 pending_post_ask_acting_nudge = false;
             }
 
-            // Soft — rotation multi-path `file_read` (angle mort S1).
-            if !rotating_file_read_nudge_sent
-                && rotating_file_read_should_nudge(&recent_file_reads)
-            {
-                debug!(
-                    marker = "c1.rotating_file_read",
-                    window = recent_file_reads.len(),
-                    "dogfood: rotating file_read — soft nudge"
-                );
-                messages.push(Message::system(ROTATING_FILE_READ_NUDGE));
-                rotating_file_read_nudge_sent = true;
+            // Soft R1 — rotation multi-path `file_read` (ré-inject tous les N).
+            if rotating_file_read_should_nudge(&recent_file_reads) {
+                let len = recent_file_reads.len();
+                let due = !rotating_file_read_nudge_sent
+                    || len
+                        >= rotating_last_nudge_at
+                            .saturating_add(ROTATING_FILE_READ_REINJECT_EVERY);
+                if due {
+                    debug!(
+                        marker = "c1.rotating_file_read",
+                        window = len,
+                        reinject = rotating_file_read_nudge_sent,
+                        "dogfood: rotating file_read — soft nudge"
+                    );
+                    messages.push(Message::system(ROTATING_FILE_READ_NUDGE));
+                    rotating_file_read_nudge_sent = true;
+                    rotating_last_nudge_at = len;
+                }
             }
 
             // P1 — même path `file_read` réussi ×N.
@@ -541,11 +587,12 @@ impl Agent {
                 }
             }
 
-            let options = self
-                .config
-                .chat_options
-                .clone()
-                .with_tools(tool_specs.clone());
+            let turn_tools = if loop_tools_disabled {
+                Vec::new()
+            } else {
+                tool_specs.clone()
+            };
+            let options = self.config.chat_options.clone().with_tools(turn_tools);
 
             let stream = match self.llm.stream_chat(messages.clone(), options).await {
                 Ok(s) => s,
@@ -795,13 +842,11 @@ impl Agent {
             // qui répète `[phase: done]` alors que la to-do est encore ouverte
             // doit recevoir `unfinished_todos_prompt` à chaque tour, pas
             // `LOOP_DETECTED_NUDGE` au 2e tour identique (cf. 1.5.14 L1).
+            // Escalade 2026-10-15 : Warn → ForceConclude (tools off) → SyntheticDone.
             match loop_detector.observe(&outcome) {
                 LoopDecision::Ok => {}
                 LoopDecision::Warn { kind } => {
-                    debug!(
-                        kind,
-                        "boucle détectée (1er strike) — injection nudge anti-boucle"
-                    );
+                    debug!(kind, "boucle — Warn (nudge soft)");
                     let nudge = if kind == "tool_family" {
                         LOOP_TOOL_FAMILY_NUDGE_PROMPT
                     } else {
@@ -817,14 +862,29 @@ impl Agent {
                     }
                     continue;
                 }
-                LoopDecision::Abort { kind, turns } => {
-                    debug!(
-                        kind,
-                        turns,
-                        "boucle non résolue après nudge — abort"
-                    );
+                LoopDecision::ForceConclude { kind } => {
+                    debug!(kind, "boucle — ForceConclude (tools off)");
+                    messages.push(Message::system(LOOP_FORCE_CONCLUDE_PROMPT));
+                    loop_tools_disabled = true;
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    continue;
+                }
+                LoopDecision::SyntheticDone { kind, turns } => {
+                    debug!(kind, turns, "boucle — SyntheticDone (Stop propre)");
+                    emit_synthetic_done(&tx, &mut messages, kind, turns).await;
+                    self.maybe_persist_session(&messages, &memory_tracker, &tx)
+                        .await;
                     let _ = tx
-                        .send(Err(EngineError::LoopDetected { kind, turns }))
+                        .send(Ok(AgentEvent::Stop {
+                            reason: outcome.reason,
+                            usage: Usage::default(),
+                        }))
                         .await;
                     return;
                 }
@@ -951,6 +1011,10 @@ impl Agent {
                     ToolCallBatch::Parallel(indices) => {
                         let max_parallel = self.config.max_parallel_tool_calls.max(1);
                         let mut to_execute: Vec<usize> = Vec::new();
+                        let mut by_idx: std::collections::BTreeMap<
+                            usize,
+                            Result<Value, drox_tools::ToolError>,
+                        > = std::collections::BTreeMap::new();
                         for idx in &indices {
                             let call = &outcome.tool_calls[*idx];
                             if let Some(msg) = self
@@ -1007,6 +1071,24 @@ impl Agent {
                                 }
                                 continue;
                             }
+                            // R4 — même path déjà lu ×N → stub (pas de re-IO).
+                            if let Some((path, n)) = should_stub_repeated_file_read(
+                                &file_read_success_counts,
+                                &call.name,
+                                &call.arguments,
+                            ) {
+                                debug!(
+                                    marker = "r4.repeated_file_read_stub",
+                                    path = %path,
+                                    prior_reads = n,
+                                    "dogfood: stub repeated file_read"
+                                );
+                                by_idx.insert(
+                                    *idx,
+                                    Ok(repeated_file_read_stub_value(&path, n)),
+                                );
+                                continue;
+                            }
                             to_execute.push(*idx);
                         }
 
@@ -1039,10 +1121,6 @@ impl Agent {
                                 .collect()
                                 .await;
 
-                        let mut by_idx: std::collections::BTreeMap<
-                            usize,
-                            Result<Value, drox_tools::ToolError>,
-                        > = std::collections::BTreeMap::new();
                         for (idx, _call, result) in exec_results {
                             by_idx.insert(idx, result);
                         }
@@ -1117,15 +1195,36 @@ impl Agent {
                                         if !truncated {
                                             pending_post_merge_closure_nudge = true;
                                             micro_act_write_nudge_sent = false;
+                                            // E2 — ouvrir fenêtre stall-act.
+                                            post_explore_window = true;
+                                            post_explore_read_streak = 0;
+                                            pending_post_explore_stall_nudge = false;
+                                            post_explore_stall_nudge_sent = false;
+                                        } else {
+                                            post_explore_window = false;
+                                            post_explore_read_streak = 0;
+                                            pending_post_explore_stall_nudge = false;
                                         }
                                         clear_rotating_file_read_window(&mut recent_file_reads);
                                         rotating_file_read_nudge_sent = false;
+                                        rotating_last_nudge_at = 0;
                                     } else if counts_as_parent_heavy_read(
                                         &call.name,
                                         &call.arguments,
                                     ) {
                                         parent_heavy_read_streak =
                                             parent_heavy_read_streak.saturating_add(1);
+                                        // E2 — compter lectures dans la fenêtre post-Explore.
+                                        if post_explore_window {
+                                            post_explore_read_streak =
+                                                post_explore_read_streak.saturating_add(1);
+                                            if post_explore_read_streak
+                                                >= POST_EXPLORE_STALL_READ_THRESHOLD
+                                                && !post_explore_stall_nudge_sent
+                                            {
+                                                pending_post_explore_stall_nudge = true;
+                                            }
+                                        }
                                     }
                                     if !saw_successful_todo_write_in_run
                                         && counts_as_pre_plan_activity(&call.name)
@@ -1153,13 +1252,21 @@ impl Agent {
                                     if let Some(hit) = explore_covered_paths
                                         .hit_by_file_read(&call.name, &call.arguments)
                                     {
+                                        let is_kind = hit.is_kind();
                                         debug!(
                                             marker = "c2.explore_covered_hit",
-                                            path = %hit,
+                                            path = %hit.path(),
+                                            is_kind,
                                             "dogfood: parent file_read hits Explore-covered path"
                                         );
                                         if !explore_covered_reread_nudge_sent {
                                             pending_explore_covered_reread_nudge = true;
+                                        }
+                                        // E2b — hit kind → Prefer act immédiatement.
+                                        if is_kind && !post_explore_stall_nudge_sent {
+                                            pending_post_explore_stall_nudge = true;
+                                            post_explore_read_streak = post_explore_read_streak
+                                                .max(POST_EXPLORE_STALL_READ_THRESHOLD);
                                         }
                                     }
                                 }
@@ -1167,6 +1274,9 @@ impl Agent {
                                     if matches!(&err, ToolError::InvalidArgs(_)) {
                                         // Reset OK : feedback args nouveau ≠ boucle.
                                         loop_detector.reset();
+                                    }
+                                    if call.name == "explore_artifact_read" {
+                                        pending_explore_artifact_read_fail_nudge = true;
                                     }
                                     let err_s = err.to_string();
                                     last_tool_error = Some(
@@ -1311,15 +1421,30 @@ impl Agent {
                                 }
                             }
 
-                            let ctx_exec = ctx.clone().with_tool_progress(ToolProgressBridge::new(
-                                tx.clone(),
-                                call.id.clone(),
-                                call.name.clone(),
-                            ));
-                            let exec = self
-                                .registry
-                                .execute_named(&call.name, &ctx_exec, call.arguments.clone())
-                                .await;
+                            // R4 — même path déjà lu ×N → stub (pas de re-IO).
+                            let exec = if let Some((path, n)) = should_stub_repeated_file_read(
+                                &file_read_success_counts,
+                                &call.name,
+                                &call.arguments,
+                            ) {
+                                debug!(
+                                    marker = "r4.repeated_file_read_stub",
+                                    path = %path,
+                                    prior_reads = n,
+                                    "dogfood: stub repeated file_read"
+                                );
+                                Ok(repeated_file_read_stub_value(&path, n))
+                            } else {
+                                let ctx_exec =
+                                    ctx.clone().with_tool_progress(ToolProgressBridge::new(
+                                        tx.clone(),
+                                        call.id.clone(),
+                                        call.name.clone(),
+                                    ));
+                                self.registry
+                                    .execute_named(&call.name, &ctx_exec, call.arguments.clone())
+                                    .await
+                            };
                             match exec {
                                 Ok(mut value) => {
                                     if call.name == "glob" && !context_load_nudge_sent {
@@ -1359,6 +1484,7 @@ impl Agent {
                                         mutating_tools_since_last_todo = 0;
                                         clear_rotating_file_read_window(&mut recent_file_reads);
                                         rotating_file_read_nudge_sent = false;
+                                        rotating_last_nudge_at = 0;
                                         if let Some(step_id) = first_in_progress_todo_id(&value) {
                                             if last_in_progress_todo_id.as_ref() != Some(&step_id)
                                             {
@@ -1401,6 +1527,11 @@ impl Agent {
                                         saw_code_mutation_in_run = true;
                                         clear_rotating_file_read_window(&mut recent_file_reads);
                                         rotating_file_read_nudge_sent = false;
+                                        rotating_last_nudge_at = 0;
+                                        // E2 — mutation = fin de la fenêtre stall-act.
+                                        post_explore_window = false;
+                                        post_explore_read_streak = 0;
+                                        pending_post_explore_stall_nudge = false;
                                     }
                                     if let Some(path) =
                                         path_from_file_tool(&call.name, &call.arguments)
@@ -1445,6 +1576,9 @@ impl Agent {
                                                 &value,
                                                 ctx.workspace_root.as_std_path(),
                                             );
+                                            post_explore_window = false;
+                                            post_explore_read_streak = 0;
+                                            pending_post_explore_stall_nudge = false;
                                         } else {
                                             pending_post_merge_closure_nudge = true;
                                             micro_act_write_nudge_sent = false;
@@ -1452,17 +1586,34 @@ impl Agent {
                                                 &value,
                                                 ctx.workspace_root.as_std_path(),
                                             );
+                                            // E2 — ouvrir fenêtre stall-act.
+                                            post_explore_window = true;
+                                            post_explore_read_streak = 0;
+                                            pending_post_explore_stall_nudge = false;
+                                            post_explore_stall_nudge_sent = false;
                                         }
                                         explore_covered_reread_nudge_sent = false;
                                         pending_explore_covered_reread_nudge = false;
                                         clear_rotating_file_read_window(&mut recent_file_reads);
                                         rotating_file_read_nudge_sent = false;
+                                        rotating_last_nudge_at = 0;
                                     } else if counts_as_parent_heavy_read(
                                         &call.name,
                                         &call.arguments,
                                     ) {
                                         parent_heavy_read_streak =
                                             parent_heavy_read_streak.saturating_add(1);
+                                        // E2 — compter lectures dans la fenêtre post-Explore.
+                                        if post_explore_window {
+                                            post_explore_read_streak =
+                                                post_explore_read_streak.saturating_add(1);
+                                            if post_explore_read_streak
+                                                >= POST_EXPLORE_STALL_READ_THRESHOLD
+                                                && !post_explore_stall_nudge_sent
+                                            {
+                                                pending_post_explore_stall_nudge = true;
+                                            }
+                                        }
                                     }
                                     if !saw_successful_todo_write_in_run
                                         && counts_as_pre_plan_activity(&call.name)
@@ -1490,13 +1641,21 @@ impl Agent {
                                     if let Some(hit) = explore_covered_paths
                                         .hit_by_file_read(&call.name, &call.arguments)
                                     {
+                                        let is_kind = hit.is_kind();
                                         debug!(
                                             marker = "c2.explore_covered_hit",
-                                            path = %hit,
+                                            path = %hit.path(),
+                                            is_kind,
                                             "dogfood: parent file_read hits Explore-covered path"
                                         );
                                         if !explore_covered_reread_nudge_sent {
                                             pending_explore_covered_reread_nudge = true;
+                                        }
+                                        // E2b — hit kind → Prefer act immédiatement.
+                                        if is_kind && !post_explore_stall_nudge_sent {
+                                            pending_post_explore_stall_nudge = true;
+                                            post_explore_read_streak = post_explore_read_streak
+                                                .max(POST_EXPLORE_STALL_READ_THRESHOLD);
                                         }
                                     }
                                     if call.name == "ask_user_question" {
@@ -1614,6 +1773,9 @@ impl Agent {
                                         // Reset OK : feedback args nouveau ≠ boucle.
                                         loop_detector.reset();
                                     }
+                                    if call.name == "explore_artifact_read" {
+                                        pending_explore_artifact_read_fail_nudge = true;
+                                    }
                                     if push_tool_error_tracked(
                                         &tx,
                                         &mut messages,
@@ -1640,11 +1802,11 @@ impl Agent {
                 }
             }
 
-            // 1.6.0 L-tools — même (tool, args) + même output → warn/abort.
+            // 1.6.0 L-tools — même (tool, args) + même output → escalade clôture.
             match loop_detector.observe_tool_outputs(&outcome.tool_calls, &round_tool_outputs) {
                 LoopDecision::Ok => {}
                 LoopDecision::Warn { kind } => {
-                    debug!(kind, "boucle tools (même call/output) — nudge");
+                    debug!(kind, "boucle tools — Warn");
                     messages.push(Message::system(LOOP_DETECTED_NUDGE_PROMPT));
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
@@ -1655,10 +1817,29 @@ impl Agent {
                     }
                     continue;
                 }
-                LoopDecision::Abort { kind, turns } => {
-                    debug!(kind, turns, "boucle tools — abort");
+                LoopDecision::ForceConclude { kind } => {
+                    debug!(kind, "boucle tools — ForceConclude");
+                    messages.push(Message::system(LOOP_FORCE_CONCLUDE_PROMPT));
+                    loop_tools_disabled = true;
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    continue;
+                }
+                LoopDecision::SyntheticDone { kind, turns } => {
+                    debug!(kind, turns, "boucle tools — SyntheticDone");
+                    emit_synthetic_done(&tx, &mut messages, kind, turns).await;
+                    self.maybe_persist_session(&messages, &memory_tracker, &tx)
+                        .await;
                     let _ = tx
-                        .send(Err(EngineError::LoopDetected { kind, turns }))
+                        .send(Ok(AgentEvent::Stop {
+                            reason: StopReason::EndTurn,
+                            usage: Usage::default(),
+                        }))
                         .await;
                     return;
                 }

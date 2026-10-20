@@ -3,9 +3,10 @@
 use std::collections::{HashMap, VecDeque};
 
 use drox_prompts::{
-	ROTATING_FILE_READ_MIN_DISTINCT_REPEATED, ROTATING_FILE_READ_MIN_READS,
-	ROTATING_FILE_READ_REPEAT_AT, ROTATING_FILE_READ_WINDOW,
+	REPEATED_FILE_READ_NUDGE_THRESHOLD, ROTATING_FILE_READ_MIN_DISTINCT_REPEATED,
+	ROTATING_FILE_READ_MIN_READS, ROTATING_FILE_READ_REPEAT_AT, ROTATING_FILE_READ_WINDOW,
 };
+use serde_json::{json, Value};
 
 /// Extrait un path utile depuis les args d'un outil mutateur fichier.
 #[must_use]
@@ -95,4 +96,40 @@ pub(crate) fn rotating_file_read_should_nudge(recent: &VecDeque<String>) -> bool
 /// Reset fenêtre après progrès (mutation / todo / Explore).
 pub(crate) fn clear_rotating_file_read_window(recent: &mut VecDeque<String>) {
 	recent.clear();
+}
+
+/// **R4** — déjà ≥ seuil de `file_read` réussis sur ce path → stub (pas de re-IO).
+#[must_use]
+pub(crate) fn should_stub_repeated_file_read(
+	counts: &HashMap<String, u32>,
+	tool_name: &str,
+	arguments: &Value,
+) -> Option<(String, u32)> {
+	if tool_name != "file_read" {
+		return None;
+	}
+	let key = file_read_path_key(arguments)?;
+	let n = *counts.get(&key).unwrap_or(&0);
+	if n >= REPEATED_FILE_READ_NUDGE_THRESHOLD {
+		Some((key, n))
+	} else {
+		None
+	}
+}
+
+/// Corps outil court : le path a déjà été livré N fois cette run.
+#[must_use]
+pub(crate) fn repeated_file_read_stub_value(path: &str, prior_reads: u32) -> Value {
+	json!({
+		"path": path,
+		"truncated": false,
+		"already_read": true,
+		"prior_reads": prior_reads,
+		"size_bytes": 0,
+		"content": format!(
+			"[already_read ×{prior_reads}] `{path}` was already `file_read` this run.\n\
+			 Do NOT re-read — use prior tool results, or `grep` for a needle, then act \
+			 (`file_write` / `file_edit` / `todo_write`). Re-reading burns context."
+		),
+	})
 }

@@ -14,6 +14,8 @@ export const enum DroxEngineCommand {
 	Request = 'request',
 	RespondServerRequest = 'respondServerRequest',
 	ExecBash = 'execBash',
+	/** Interrupt active main-process ExecBash (Agents Skip) — returns boolean. */
+	SkipExecBash = 'skipExecBash',
 	/** HTTP local (Ollama / OpenAI-compatible) — contourne CORS/proxy du renderer. */
 	FetchHttp = 'fetchHttp',
 	/** Long-lived external port-forward process (ssh/socat/…). */
@@ -85,6 +87,12 @@ export interface IDroxEngineStartArgs {
 		readonly appRoot?: string;
 		readonly workspaceFolderPaths?: readonly string[];
 	};
+}
+
+/** Args IPC `dispose` — `reason` pour diag (lot survie run A). */
+export interface IDroxEngineDisposeArgs {
+	readonly windowId: number;
+	readonly reason?: string;
 }
 
 export interface IDroxEngineRequestArgs {

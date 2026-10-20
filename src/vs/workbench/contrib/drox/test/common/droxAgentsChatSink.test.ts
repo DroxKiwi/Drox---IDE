@@ -70,6 +70,23 @@ suite('Drox — droxAgentsChatSink', () => {
 		assert.strictEqual(sink.assistantText, '');
 	});
 
+	test('text_delta after native thinking close (null phase) is visible markdown', () => {
+		const parts: IChatProgress[] = [];
+		const sink = createDroxAgentsChatSink(p => parts.push(...p));
+
+		sink.handleAgentEvent(agentEvent('phase_enter', { phase: 'internal_reasoning' }));
+		sink.handleAgentEvent(agentEvent('text_delta', { text: 'Plan…' }));
+		sink.handleAgentEvent(agentEvent('phase_close', {}));
+		sink.handleAgentEvent(agentEvent('text_delta', { text: 'Salut ! Je vérifie.' }));
+
+		const thinking = parts.filter(p => p.kind === 'thinking');
+		const markdown = parts.filter(p => p.kind === 'markdownContent');
+		assert.strictEqual(thinking.length, 1);
+		assert.strictEqual(markdown.length, 1);
+		assert.strictEqual(markdown[0].kind === 'markdownContent' ? markdown[0].content.value : '', 'Salut ! Je vérifie.');
+		assert.strictEqual(sink.assistantText, 'Salut ! Je vérifie.');
+	});
+
 	test('user_facing_reply appends only missing suffix after streamed answer', () => {
 		const parts: IChatProgress[] = [];
 		const sink = createDroxAgentsChatSink(p => parts.push(...p));
@@ -103,7 +120,8 @@ suite('Drox — droxAgentsChatSink', () => {
 		assert.strictEqual(isDroxThinkingRoute('answering'), false);
 		assert.strictEqual(isDroxThinkingRoute('done'), false);
 		assert.strictEqual(isDroxThinkingRoute('reading'), true);
-		assert.strictEqual(isDroxThinkingRoute(null), true);
+		// null = entre phases (ex. post thinking natif) → visible, pas fold
+		assert.strictEqual(isDroxThinkingRoute(null), false);
 		assert.strictEqual(isDroxThinkingRoute('unknown_phase'), true);
 	});
 

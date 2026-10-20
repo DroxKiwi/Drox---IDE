@@ -22,8 +22,13 @@ pub(super) struct ChatCompletionRequest<'a> {
     pub presence_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<f32>,
+    /// OpenAI / proxies — deterministic sampling seed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seed: Option<i64>,
+    /// Mistral Cloud — même sémantique que `seed`, nom officiel `random_seed`
+    /// ([docs](https://docs.mistral.ai/api/#tag/chat)). `seed` est rejeté (422).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub random_seed: Option<i64>,
     /// Qwen / LiteLLM / OpenAI-compat — profondeur du thinking.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<&'a str>,

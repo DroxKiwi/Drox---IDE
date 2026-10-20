@@ -41,7 +41,7 @@ mod workspace_map_note;
 mod workspace_map_read;
 
 pub use ask::{AskUserQuestionTool, CANONICAL_ASK_JSON_EXAMPLE};
-pub use bash::BashTool;
+pub use bash::{skip_active_native_bash, BashTool};
 pub use delete_path::DeletePathTool;
 pub use file_edit::{FileEditTool, preview_file_edit_diff};
 pub use file_read::FileReadTool;

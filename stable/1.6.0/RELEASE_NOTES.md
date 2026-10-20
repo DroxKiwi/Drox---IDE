@@ -30,7 +30,14 @@ Correctifs moteur pour les boucles de réponse et les explosions de contexte obs
 ### Dogfood terminal · Explore · lectures (post Vague 4)
 
 - **Terminal** — cwd sans préfixe `\\?\` ; isolation stdout (marqueur + pas de scrollback stale) ; shell agent Windows = `cmd.exe`.
-- **Classifieur bash** — préfixes PowerShell `[Console]::…=` + `Get-Content` / listings = inspect-only.
+- **Classifieur bash** — préfixes PowerShell `[Console]::…=` + `Get-Content` / listings = inspect-only ; **flags globaux git** (`--no-pager`, `-c`, `-C`, …) avant le subcommand → plus de faux « mutating bash » sur `git --no-pager diff`.
+- **Survie run (lot A)** — pendant un `agent.run` actif, pas de kill moteur sur respawn settings/binaire ; `start` réutilise le process vivant ; logs `reason=` / `dispose deferred` (voir DIAG-RUN-STOP).
+- **Mid-run ack visible (Agents)** — texte content entre phases (`phase` null, typ. après thinking natif) routé en bulle chat, plus dans le fold ; prompts native thinking / CORE rappellent `[phase: answering]` avant les tools.
+- **Skip bash bloqué** — bouton Skip sur toute carte `bash` Running (IDE + Agents) + F1 ; coupe sans annuler le run (`skipped`).
+- **Timeout bash 60s** — défaut ~1 min si `timeout_ms` omis ; le modèle peut allonger (pas de plafond produit) ; kill + `timed_out` ; **recycle** du terminal IDE ; timer armé **avant** `runCommand` (couvre shell pourri / SI wait).
+- **Anti-loop clôture run** — au lieu d’un abort rouge : ForceConclude (sans tools) puis SyntheticDone (Stop propre) si la boucle continue.
+- **Recovery moteur** — si `drox.exe` meurt (`drox client closed`), reset d’état + restart + un retry RPC ; log `engine exit code=` dans Output Drox.
+- **Clic chemin carte file-change** — ouverture éditeur fiable en fenêtre IDE (plus de dépendance `ISessionsService`).
 - **`file_read` hors workspace** — lecture hors dossier (voir aussi split read/write post-Vague 4 ci-dessous).
 - **Anti re-read** — même path `file_read` ×3 → Prefer soft one-shot (angle mort : rotation multi-path — voir ANTI-LOOP-METHODES).
 - **Explore** — prompts / outil `task` / nudge S-5 durcis (default-to-Explore pour compréhension / synthèse).

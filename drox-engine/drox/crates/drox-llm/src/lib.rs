@@ -39,5 +39,5 @@ pub use config::LlmConfig;
 pub use error::LlmError;
 pub use factory::create_llm_client;
 pub use ollama::OllamaClient;
-pub use openai::{openai_chat_completions_url, OpenAiCompatibleClient};
+pub use openai::{openai_chat_completions_url, OpenAiCompatDialect, OpenAiCompatibleClient};
 pub use retry::with_retry;

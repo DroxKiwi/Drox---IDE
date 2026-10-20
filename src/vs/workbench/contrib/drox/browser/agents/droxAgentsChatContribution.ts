@@ -27,6 +27,7 @@ import { DroxAgentsLanguageModelProvider, droxAgentsLanguageModelVendorDescripto
 import { DroxAgentsSessionHandler } from './droxAgentsSessionHandler.js';
 import { markDroxChatContentProviderReady, whenDroxChatContentProviderReady } from './droxAgentsChatActivation.js';
 import { registerDroxAgentsFileOpenActions } from './droxAgentsFileOpenActions.js';
+import { registerDroxAgentsSkipShellActions } from './droxAgentsSkipShellActions.js';
 import { registerDroxIdeSessionHandoffActions } from './droxIdeSessionHandoffActions.js';
 import { registerDroxChatCancelRestoreAction } from '../chat/droxChatCancelRestore.js';
 import './droxAgentsChatUiStatsService.js';
@@ -96,6 +97,7 @@ class DroxAgentsChatContribution extends Disposable implements IWorkbenchContrib
 		markDroxChatContentProviderReady();
 
 		registerDroxAgentsFileOpenActions();
+		registerDroxAgentsSkipShellActions();
 		registerDroxIdeSessionHandoffActions();
 
 		const vendor = droxAgentsLanguageModelVendorDescriptor();

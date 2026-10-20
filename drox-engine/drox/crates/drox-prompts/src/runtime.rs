@@ -266,19 +266,20 @@ pub const POST_MERGE_CLOSURE_ENTRY: PromptEntry = PromptEntry {
 	body: POST_MERGE_CLOSURE_NUDGE,
 };
 
-/// Soft C2/V2-c — parent `file_read` d’un path déjà dans `paths_read` Explore (merge OK).
+/// Soft C2/V2-c / E1 — parent `file_read` d’une source ou d’un blob kind Explore.
 pub const EXPLORE_COVERED_REREAD_NUDGE: &str =
 	"EXPLORE-COVERED RE-READ — soft reminder (not a hard gate)\n\
-    You `file_read` a source already in last Explore `paths_read` — re-inflates context.\n\
-    **Preferred:** `artifacts_inline` / `explore_artifact_read` / needle 1–2 lines, then act.\n\
-    Tools free.";
+    You `file_read` a path already covered by the last Explore (source in `paths_read` \
+    or an Explore kind file under `.drox/subagents/…`) — re-inflates context.\n\
+    **Preferred:** trust `artifacts_inline` / retry `explore_artifact_read` once — then \
+    skeleton `file_write` / `file_edit`. Do **not** range-read kind `.md` blobs. Tools free.";
 
 pub const EXPLORE_COVERED_REREAD_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.explore_covered_reread",
 	intent: PromptIntent::Rescue,
 	strength: PromptStrength::Prefer,
 	audience: PromptAudience::Parent,
-	when: "parent_file_read_path_in_last_explore_paths_read",
+	when: "parent_file_read_path_in_last_explore_covered",
 	topics: &["plan_assign_merge", "explore", "context"],
 	claims: &[
 		"explore.covered_reread=soft_prefer",
@@ -287,17 +288,76 @@ pub const EXPLORE_COVERED_REREAD_ENTRY: PromptEntry = PromptEntry {
 	body: EXPLORE_COVERED_REREAD_NUDGE,
 };
 
+/// **E2** — après Explore OK, trop de lectures parent sans mutation (seuil 1 depuis dogfood 0ce29).
+pub const POST_EXPLORE_STALL_READ_THRESHOLD: u32 = 1;
+
+pub const POST_EXPLORE_STALL_ACT_NUDGE: &str = "POST-EXPLORE STALL — soft (not a hard gate)\n\
+    Explore already returned usable artefacts, but you keep reading instead of writing.\n\
+    **Preferred now:** skeleton `file_write` / `file_edit` from `artifacts_inline` — stop \
+    re-reading Explore blobs or covered sources. Tools free.";
+
+pub const POST_EXPLORE_STALL_ACT_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.post_explore_stall_act",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "post_explore_ok+parent_heavy_reads_without_mutate",
+	topics: &["explore", "acting", "context"],
+	claims: &["explore.post_stall_act=soft_prefer"],
+	body: POST_EXPLORE_STALL_ACT_NUDGE,
+};
+
+/// **A** — `explore_artifact_read` a échoué (args / orphan / IO) → ne pas `file_read` le kind.
+pub const EXPLORE_ARTIFACT_READ_FAIL_NUDGE: &str =
+	"EXPLORE ARTIFACT READ FAILED — soft recovery (not a hard gate)\n\
+    `explore_artifact_read` did not return a usable body.\n\
+    **Do NOT** `file_read` `.drox/subagents/…/<kind>.md` (range-reading kinds re-inflates \
+    context).\n\
+    **Preferred:** use `artifacts_inline` from the last `task` result, or retry \
+    `explore_artifact_read` **once** with the same `explore_id` + `kind`, then act \
+    (`file_write` / `file_edit`). Tools free.";
+
+pub const EXPLORE_ARTIFACT_READ_FAIL_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.explore_artifact_read_fail",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "explore_artifact_read_error",
+	topics: &["explore", "acting", "context"],
+	claims: &["explore.artifact_read_fail=soft_prefer"],
+	body: EXPLORE_ARTIFACT_READ_FAIL_NUDGE,
+};
+
+#[cfg(test)]
+mod e2_tests {
+	use super::*;
+
+	#[test]
+	fn stall_threshold_is_one() {
+		assert_eq!(POST_EXPLORE_STALL_READ_THRESHOLD, 1);
+		assert!(POST_EXPLORE_STALL_ACT_NUDGE.contains("POST-EXPLORE STALL"));
+		assert_eq!(POST_EXPLORE_STALL_ACT_ENTRY.id, "runtime.post_explore_stall_act");
+		assert_eq!(
+			EXPLORE_ARTIFACT_READ_FAIL_ENTRY.id,
+			"runtime.explore_artifact_read_fail"
+		);
+	}
+}
+
 /// Soft — relectures parent en rotation multi-path (angle mort M1–M4 / S1).
 /// Fenêtre = derniers `ROTATING_FILE_READ_WINDOW` `file_read` réussis.
 pub const ROTATING_FILE_READ_WINDOW: usize = 10;
 pub const ROTATING_FILE_READ_MIN_READS: usize = 6;
 pub const ROTATING_FILE_READ_MIN_DISTINCT_REPEATED: usize = 2;
 pub const ROTATING_FILE_READ_REPEAT_AT: u32 = 2;
+/// **R1** — ré-injecter le Prefer tous les N `file_read` additionnels tant que la fenêtre tourne.
+pub const ROTATING_FILE_READ_REINJECT_EVERY: usize = 4;
 
-pub const ROTATING_FILE_READ_NUDGE: &str = "ROTATING RE-READS — soft reminder (not a hard gate)\n\
+pub const ROTATING_FILE_READ_NUDGE: &str = "ROTATING RE-READS — soft Prefer (act now)\n\
     Cycling `file_read` on a small path set without advancing — burns context.\n\
-    **Pick ONE:** act (`file_edit`/`file_write`/answer+done) · one focused `task` then merge · \
-    update `todo_write`. Needle 1–2 new ranges: ignore OK. Tools free.";
+    Same-path re-reads may return `[already_read]` stubs (engine).\n\
+    **Required next:** act (`file_edit`/`file_write`) · one focused `task` then merge · \
+    or `todo_write`. Needle: `grep`, not full re-read. Tools free.";
 
 pub const ROTATING_FILE_READ_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.rotating_file_read",

@@ -596,6 +596,7 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 	private _output: IChatTerminalToolInvocationData['terminalCommandOutput'] | undefined;
 	private _container: HTMLElement | undefined;
 	private _dirty = true;
+	private _lastWrittenText: string | undefined;
 	private _lastRenderedLineCount: number | undefined;
 	private _lastRenderedMaxColumnWidth: number | undefined;
 
@@ -677,15 +678,34 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 		const lineCount = output.lineCount ?? this._estimateLineCount(text);
 		if (!text) {
 			this._dirty = false;
+			this._lastWrittenText = '';
 			this._lastRenderedLineCount = lineCount;
 			this._lastRenderedMaxColumnWidth = 0;
 			return { lineCount: 0, maxColumnWidth: 0 };
 		}
-		await new Promise<void>(resolve => terminal.xterm.write(text, resolve));
+		// Live updates rewrite the full snapshot — RIS (`\x1bc`) avoids appending
+		// the whole buffer again on each poll.
+		const canAppend = !!this._lastWrittenText
+			&& text.length >= this._lastWrittenText.length
+			&& text.startsWith(this._lastWrittenText);
+		await new Promise<void>(resolve => {
+			if (!canAppend) {
+				const payload = this._lastWrittenText !== undefined ? `\x1bc${text}` : text;
+				terminal.xterm.write(payload, resolve);
+			} else {
+				const appended = text.slice(this._lastWrittenText!.length);
+				if (appended) {
+					terminal.xterm.write(appended, resolve);
+				} else {
+					resolve();
+				}
+			}
+		});
 		if (this._store.isDisposed) {
 			return undefined;
 		}
 		this._dirty = false;
+		this._lastWrittenText = text;
 		this._lastRenderedLineCount = lineCount;
 		// Only compute max column width for small outputs to avoid performance issues
 		if (this._shouldComputeMaxColumnWidth(lineCount)) {

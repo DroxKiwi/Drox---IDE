@@ -15,6 +15,7 @@ export type DroxEngineInitializeResult = {
 	readonly engineGitSha?: string;
 };
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
+import { DroxEngineDisposeReason } from './droxEngineLifecycle.js';
 import { IDroxEngineErrorPayload, IDroxEngineExitPayload, IDroxEngineLogPayload, IDroxEngineNotificationPayload, IDroxEngineServerRequestPayload } from './droxIpc.js';
 import { InitializeOptions, RpcRequestHandler, RpcRequestResult } from './droxRpc.js';
 
@@ -33,6 +34,12 @@ export interface IDroxEngineService {
 
 	/** `initialize` JSON-RPC completed successfully for this engine instance. */
 	readonly isInitialized: boolean;
+
+	/**
+	 * Au moins un `agent.run` en vol (suivi moteur : runId jusqu'à `agent/done`).
+	 * Source de vérité pour no-kill / defer respawn — plus fiable que le seul flag UI.
+	 */
+	readonly isAgentRunActive: boolean;
 
 	/** Stamp compilé dans `drox.exe` (`build.rs`), lu à `initialize`. */
 	readonly engineDevBuild: number | undefined;
@@ -65,7 +72,8 @@ export interface IDroxEngineService {
 
 	shutdown(): Promise<void>;
 
-	dispose(): Promise<void>;
+	/** Tue le process moteur. Hors `shutdown`, refusé si `isAgentRunActive`. */
+	dispose(reason?: DroxEngineDisposeReason): Promise<void>;
 }
 
 export type { RpcRequestHandler, RpcRequestResult, InitializeOptions };

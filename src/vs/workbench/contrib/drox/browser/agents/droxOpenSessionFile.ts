@@ -238,7 +238,7 @@ export async function openDroxSessionFileChange(
 	const resolved = resolveWorkspaceFilePath(workspaceRoot, filePath) || filePath;
 	const safePath = sanitizePathForEditor(resolved);
 	if (!safePath) {
-		return;
+		throw new Error(`openDroxSessionFileChange: invalid path ${resolved.slice(0, 120)}`);
 	}
 
 	deps.layoutService.setPartHidden(false, Parts.EDITOR_PART);

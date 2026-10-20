@@ -355,15 +355,18 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 			this._onDidSetInspectPort.fire();
 		}
 
-		// Help in case we fail to start it
+		// Help in case we fail to start it.
+		// Dev / unbuilt (`code.bat`): 30s — Drox dogfood cold starts often exceed the upstream 10s.
+		const startupTimeoutMs = (!this._environmentService.isBuilt || this._isExtensionDevHost) ? 30_000 : 10_000;
 		let startupTimeoutHandle: Timeout | undefined;
 		if (!this._environmentService.isBuilt && !this._environmentService.remoteAuthority || this._isExtensionDevHost) {
 			startupTimeoutHandle = setTimeout(() => {
-				this._logService.error(`[LocalProcessExtensionHost]: Extension host did not start in 10 seconds (debugBrk: ${this._isExtensionDevDebugBrk})`);
+				const secs = Math.round(startupTimeoutMs / 1000);
+				this._logService.error(`[LocalProcessExtensionHost]: Extension host did not start in ${secs} seconds (debugBrk: ${this._isExtensionDevDebugBrk})`);
 
 				const msg = this._isExtensionDevDebugBrk
-					? nls.localize('extensionHost.startupFailDebug', "Extension host did not start in 10 seconds, it might be stopped on the first line and needs a debugger to continue.")
-					: nls.localize('extensionHost.startupFail', "Extension host did not start in 10 seconds, that might be a problem.");
+					? nls.localize('extensionHost.startupFailDebug', "Extension host did not start in {0} seconds, it might be stopped on the first line and needs a debugger to continue.", secs)
+					: nls.localize('extensionHost.startupFail', "Extension host did not start in {0} seconds, that might be a problem.", secs);
 
 				this._notificationService.prompt(Severity.Warning, msg,
 					[{
@@ -375,7 +378,7 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 						priority: NotificationPriority.URGENT
 					}
 				);
-			}, 10000);
+			}, startupTimeoutMs);
 		}
 
 		// Initialize extension host process with hand shakes

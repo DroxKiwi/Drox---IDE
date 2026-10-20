@@ -126,7 +126,7 @@ export class DroxEngineChannelClient extends Disposable {
 		return this.channel.call(DroxEngineCommand.Shutdown, { windowId: this.windowId });
 	}
 
-	disposeEngine(): Promise<void> {
-		return this.channel.call(DroxEngineCommand.Dispose, { windowId: this.windowId });
+	disposeEngine(reason: string = 'explicit'): Promise<void> {
+		return this.channel.call(DroxEngineCommand.Dispose, { windowId: this.windowId, reason });
 	}
 }

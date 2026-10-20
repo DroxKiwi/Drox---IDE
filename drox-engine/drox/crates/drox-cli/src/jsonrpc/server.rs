@@ -283,6 +283,11 @@ impl Server {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,
             },
+            "tools.skipBash" => {
+                let skipped = drox_tools::skip_active_native_bash().await;
+                self.respond(Response::success(id, serde_json::json!({ "skipped": skipped })))
+                    .await;
+            }
             "embed.status" => match handlers::embed_status(req.params).await {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,

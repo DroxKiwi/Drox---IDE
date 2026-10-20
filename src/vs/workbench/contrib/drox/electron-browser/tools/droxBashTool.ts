@@ -7,10 +7,23 @@ import { localize } from '../../../../../nls.js';
 import { IMainProcessService } from '../../../../../platform/ipc/common/mainProcessService.js';
 import { IOutputService } from '../../../../services/output/common/output.js';
 import { ITerminalService } from '../../../terminal/browser/terminal.js';
-import { DROX_BASH_OUTPUT_CHANNEL_ID, IDroxBashExecResult } from '../../common/droxBash.js';
+import {
+	DROX_BASH_DEFAULT_TIMEOUT_MS,
+	DROX_BASH_OUTPUT_CHANNEL_ID,
+	IDroxBashExecResult,
+} from '../../common/droxBash.js';
+import {
+	droxBashResultIsToolError,
+	droxBashShouldRetryExecBashAfterIde,
+} from '../../common/droxBashToolResult.js';
 import { DROX_ENGINE_CHANNEL_NAME, DroxEngineCommand } from '../../common/droxIpc.js';
 import { IDroxToolExecParams, IDroxToolExecResult } from '../../common/droxClientTools.js';
-import { runDroxBashInIdeTerminal } from './droxIdeBashTerminal.js';
+import { setActiveDroxBashSkipHandle } from './droxActiveBashGate.js';
+import {
+	forceInterruptDroxAgentTerminal,
+	runDroxBashInIdeTerminal,
+	skipActiveDroxBashInIdeTerminal,
+} from './droxIdeBashTerminal/index.js';
 
 interface IBashInput {
 	command: string;
@@ -36,6 +49,19 @@ function parseInput(input: unknown): IBashInput {
 	return out;
 }
 
+function skippedResult(command: string, started: number): IDroxBashExecResult {
+	return {
+		command,
+		exit_code: null,
+		stdout: '',
+		stderr: '',
+		timed_out: false,
+		duration_ms: Date.now() - started,
+		error: 'Skipped by user',
+		skipped: true,
+	};
+}
+
 export function createDroxBashToolHandler(
 	mainProcessService: IMainProcessService,
 	outputService: IOutputService,
@@ -59,21 +85,78 @@ export function createDroxBashToolHandler(
 		const header = `$ ${command}\n# cwd: ${p.workspace ?? '(undefined)'}\n`;
 		outChannel?.append(header);
 
-		// IDE: shared agent terminal (hidden for one-shots, revealed for servers).
-		// Agents: ExecBash only (editor terminals would cover chat).
-		let result = await runDroxBashInIdeTerminal(terminalService, {
-			command,
-			cwd: p.workspace,
-			title: args.description?.trim() || 'Drox Agent',
-			timeoutMs: args.timeout_ms,
-			allowVisibleTerminal,
+		const started = Date.now();
+		let skipResolve: ((result: IDroxBashExecResult) => void) | undefined;
+		const skipPromise = new Promise<IDroxBashExecResult>(resolve => {
+			skipResolve = resolve;
 		});
-		if (!result) {
-			result = await channel.call<IDroxBashExecResult>(DroxEngineCommand.ExecBash, {
-				command,
-				cwd: p.workspace,
-				timeoutMs: args.timeout_ms,
-			});
+		let finished = false;
+
+		setActiveDroxBashSkipHandle({
+			skip: async () => {
+				if (finished) {
+					return false;
+				}
+				// Best-effort kill: tracked IDE run, shared terminal, then ExecBash.
+				const ide = skipActiveDroxBashInIdeTerminal();
+				if (!ide) {
+					forceInterruptDroxAgentTerminal(terminalService);
+				}
+				try {
+					await channel.call<boolean>(DroxEngineCommand.SkipExecBash);
+				} catch {
+					/* main may be stale / channel down */
+				}
+				if (!finished) {
+					skipResolve?.(skippedResult(command, started));
+				}
+				return true;
+			},
+		});
+
+		let result: IDroxBashExecResult;
+		try {
+			const runPromise = (async (): Promise<IDroxBashExecResult> => {
+				// IDE: shared agent terminal (hidden for one-shots, revealed for servers).
+				// Agents sessions window: ExecBash only (editor terminals would cover chat).
+				let r = await runDroxBashInIdeTerminal(terminalService, {
+					command,
+					cwd: p.workspace,
+					title: args.description?.trim() || 'Drox Agent',
+					timeoutMs: args.timeout_ms,
+					allowVisibleTerminal,
+				});
+				if (!r) {
+					r = await channel.call<IDroxBashExecResult>(DroxEngineCommand.ExecBash, {
+						command,
+						cwd: p.workspace,
+						timeoutMs: args.timeout_ms,
+					});
+				} else if (droxBashShouldRetryExecBashAfterIde(r, command)) {
+					// P1: IDE settled empty (SI/buffer miss) → one ExecBash capture retry.
+					try {
+						const fallback = await channel.call<IDroxBashExecResult>(DroxEngineCommand.ExecBash, {
+							command,
+							cwd: p.workspace,
+							timeoutMs: args.timeout_ms,
+						});
+						if ((fallback.stdout ?? '').trim() || (fallback.stderr ?? '').trim()) {
+							r = fallback;
+						} else if (fallback.error || fallback.timed_out || fallback.skipped) {
+							r = fallback;
+						}
+						// else keep IDE result (both empty — same signal to the model)
+					} catch {
+						/* keep IDE result if main channel fails */
+					}
+				}
+				return r;
+			})();
+
+			result = await Promise.race([runPromise, skipPromise]);
+		} finally {
+			finished = true;
+			setActiveDroxBashSkipHandle(undefined);
 		}
 
 		if (result.stdout) {
@@ -86,7 +169,7 @@ export function createDroxBashToolHandler(
 			outChannel?.append(localize('drox.bash.skipped', '[drox] skipped by user\n'));
 		} else if (result.timed_out) {
 			outChannel?.append(
-				localize('drox.bash.timeout', '[drox] timed out after {0} ms\n', args.timeout_ms ?? 120_000),
+				localize('drox.bash.timeout', '[drox] timed out after {0} ms\n', args.timeout_ms ?? DROX_BASH_DEFAULT_TIMEOUT_MS),
 			);
 		} else if (result.error) {
 			outChannel?.append(`[drox] ${result.error}\n`);
@@ -119,7 +202,7 @@ export function createDroxBashToolHandler(
 				duration_ms: result.duration_ms,
 				terminal_instance_id: result.terminal_instance_id,
 			},
-			isError: (result.exit_code ?? 0) !== 0 || !!result.timed_out,
+			isError: droxBashResultIsToolError(result),
 		};
 	};
 }
