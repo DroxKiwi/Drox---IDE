@@ -118,6 +118,7 @@ function mockLlmSettings(overrides: Partial<IDroxLlmSettings> = {}): IDroxLlmSet
 		thinkingBudget: undefined,
 		nativeThinking: false,
 		llmParamsMuted: [],
+		engineProfile: 'local-9b',
 		...overrides,
 	};
 }

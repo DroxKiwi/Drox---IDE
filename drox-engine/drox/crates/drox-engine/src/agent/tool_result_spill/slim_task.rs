@@ -3,20 +3,52 @@
 use serde_json::{Map, Value};
 use tracing::debug;
 
+use crate::agent::config::EngineProfile;
+
 /// Plafonds LLM pour outcome `task` — détail = `artifacts_inline` + fichiers kind.
 pub(super) const TASK_SUMMARY_MAX_CHARS: usize = 700;
 pub(super) const TASK_BLURB_MAX_CHARS: usize = 200;
 pub(super) const TASK_INLINE_KIND_MAX_CHARS: usize = 1_800;
+/// Profils locaux : rapport kinds inline (~1,5k tokens) au lieu de pointeurs.
+pub(super) const TASK_REPORT_INLINE_MAX_CHARS: usize = 6_000;
 
 /// Retire `report` éventuel, borne summary/blurb/`artifacts_inline`.
+#[cfg(test)]
 #[must_use]
 pub(crate) fn slim_task_tool_result_for_llm(value: &Value) -> Value {
+	slim_task_tool_result_for_profile(value, EngineProfile::CloudFull)
+}
+
+/// `cloud-full` : slim 1.6.0. Profils locaux : `report` inline borné, sans
+/// doublon `artifacts_inline` (et sans chemins kind en `local-9b`).
+#[must_use]
+pub(crate) fn slim_task_tool_result_for_profile(value: &Value, profile: EngineProfile) -> Value {
 	let mut obj = match value {
 		Value::Object(map) => map.clone(),
 		other => {
 			return other.clone();
 		}
 	};
+	if profile.is_local() {
+		if let Some(Value::String(report)) = obj.get("report") {
+			if !report.trim().is_empty() {
+				obj.remove("artifacts_inline");
+				if profile == EngineProfile::Local9b {
+					obj.remove("artifacts");
+				}
+				obj.remove("report_path");
+				clamp_string_field(&mut obj, "report", TASK_REPORT_INLINE_MAX_CHARS);
+				clamp_string_field(&mut obj, "summary", TASK_SUMMARY_MAX_CHARS);
+				clamp_string_field(&mut obj, "blurb", TASK_BLURB_MAX_CHARS);
+				debug!(
+					marker = "c2.slim_task_inline_report",
+					profile = profile.id(),
+					"dogfood: task outcome inline report for local profile"
+				);
+				return Value::Object(obj);
+			}
+		}
+	}
 	let had_report = obj.remove("report").is_some();
 	obj.remove("report_path");
 	clamp_string_field(&mut obj, "summary", TASK_SUMMARY_MAX_CHARS);

@@ -21,6 +21,10 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const rolePanelSeedLabel = localize('droxChatRolePanelSeed', 'Seed');
 	const rolePanelTempLabel = localize('droxChatRolePanelTemperature', 'Temperature');
 	const rolePanelSectionAgent = localize('droxChatRolePanelSectionAgent', 'Agent');
+	const rolePanelEngineProfileLabel = localize('droxChatRolePanelEngineProfile', 'Engine profile');
+	const rolePanelEngineProfileSmall = localize('droxChatRolePanelEngineProfileSmall', 'Small model — engine-led sub-runs (default)');
+	const rolePanelEngineProfileCapable = localize('droxChatRolePanelEngineProfileCapable', 'Local capable — same sub-runs, richer parent');
+	const rolePanelEngineProfileFull = localize('droxChatRolePanelEngineProfileFull', 'Full protocol — 1.6.0 Plan→Assign');
 	const rolePanelMaxIterationsLabel = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const rolePanelSectionSampling = localize('droxChatRolePanelSectionSampling', 'Sampling');
 	const rolePanelSectionOutput = localize('droxChatRolePanelSectionOutput', 'Output');
@@ -97,6 +101,16 @@ export function buildDroxComposerPanelsMarkup(): string {
 				</div>`)}
 			<p class="role-model-panel-section-label">${rolePanelSectionAgent}</p>
 			<label class="role-model-field">
+				<span class="role-model-field-label">${rolePanelEngineProfileLabel}</span>
+				<span class="role-model-field-input-row">
+					<select id="role-model-panel-engine-profile" class="role-model-panel-select">
+						<option value="local-9b">${rolePanelEngineProfileSmall}</option>
+						<option value="local-27b">${rolePanelEngineProfileCapable}</option>
+						<option value="cloud-full">${rolePanelEngineProfileFull}</option>
+					</select>
+				</span>
+			</label>
+			<label class="role-model-field">
 				<span class="role-model-field-label">${rolePanelMaxIterationsLabel}</span>
 				<span class="role-model-field-input-row">
 					<input type="number" id="role-model-panel-max-iterations" class="role-model-panel-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" />
@@ -144,6 +158,11 @@ export function buildDroxComposerPanelsMarkup(): string {
 				<button type="button" id="general-settings-connect-ia" class="general-settings-panel-btn general-settings-connect-btn">${generalSettingsConnectIa}</button>
 			</div>
 			<p class="general-settings-section-label">${generalSettingsSectionAgent}</p>
+			<label class="general-settings-field"><span>${rolePanelEngineProfileLabel}</span><select id="general-settings-engine-profile" class="general-settings-input">
+				<option value="local-9b">${rolePanelEngineProfileSmall}</option>
+				<option value="local-27b">${rolePanelEngineProfileCapable}</option>
+				<option value="cloud-full">${rolePanelEngineProfileFull}</option>
+			</select></label>
 			<label class="general-settings-field"><span>${generalSettingsMaxIterations}</span><input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" /></label>
 			<label class="general-settings-field"><span>${generalSettingsExploreMaxIterations}</span><input type="number" id="general-settings-explore-max-iterations" class="general-settings-input" min="1" step="1" /></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-enabled" checked /><span>${generalSettingsSubagentsEnabled}</span></label>

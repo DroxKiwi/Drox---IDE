@@ -9,7 +9,17 @@
 	const fn = D.fn;
 
 	const WIZARD_STEPS = 3;
+	/** Slightly above host wall clock so the IDE error usually wins. */
+	const WIZARD_TEST_WATCHDOG_MS = 16_000;
 	let testRequestCounter = 0;
+	let testWatchdog = 0;
+
+	function clearConnectionTestWatchdog() {
+		if (testWatchdog) {
+			window.clearTimeout(testWatchdog);
+			testWatchdog = 0;
+		}
+	}
 
 	function wizardEl() {
 		return document.getElementById('drox-connection-wizard');
@@ -515,6 +525,7 @@
 	};
 
 	fn.closeConnectionWizard = function() {
+		clearConnectionTestWatchdog();
 		if (D.state.connectionWizard) {
 			D.state.connectionWizard.open = false;
 			D.state.connectionWizard.testStatus = 'idle';
@@ -545,6 +556,15 @@
 		wiz.testStatus = 'testing';
 		wiz.testError = '';
 		fn.renderConnectionWizard();
+		clearConnectionTestWatchdog();
+		testWatchdog = window.setTimeout(() => {
+			testWatchdog = 0;
+			fn.handleConnectionTestResult({
+				requestId,
+				ok: false,
+				error: 'Connection timed out. Check the server URL and that the process is listening.',
+			});
+		}, WIZARD_TEST_WATCHDOG_MS);
 		D.vscode.postMessage({ type: 'testLlmConnection', requestId, settings: patch });
 	};
 
@@ -567,6 +587,7 @@
 		if (!wiz || !wiz.open || payload.requestId !== wiz.pendingTestRequestId) {
 			return;
 		}
+		clearConnectionTestWatchdog();
 		wiz.pendingTestRequestId = '';
 		if (payload.ok) {
 			wiz.testStatus = 'ok';

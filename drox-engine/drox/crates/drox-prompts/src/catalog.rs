@@ -11,6 +11,10 @@ use crate::blocks::{
 use crate::compaction::COMPACTION_ENTRY;
 use crate::core::CORE_SYSTEM_ENTRY;
 use crate::entry::PromptEntry;
+use crate::local::{
+	CORE_LOCAL_SYSTEM_ENTRY, LOCAL_EMPTY_TURN_ENTRY, LOCAL_FINAL_ANSWER_ENTRY,
+	LOCAL_SOFT_CLOSE_CHECK_ENTRY, SUBAGENTS_EXPLORE_LOCAL_ENTRY, TASK_TOOL_LOCAL_ENTRY,
+};
 use crate::explore::{
 	COMMIT_STAGE_ENTRY, EXPLORE_REPORT_SYSTEM_ENTRY, EXPLORE_SYSTEM_ENTRY, FILL_KIND_SYSTEM_ENTRY,
 };
@@ -57,8 +61,14 @@ pub fn entry_by_id(id: &str) -> Option<&'static PromptEntry> {
 }
 
 /// Session / runtime / gates / blocks / explore / model questions — hors tools.
-static NON_TOOL_ENTRIES: [PromptEntry; 52] = [
+static NON_TOOL_ENTRIES: [PromptEntry; 58] = [
 	CORE_SYSTEM_ENTRY,
+	CORE_LOCAL_SYSTEM_ENTRY,
+	SUBAGENTS_EXPLORE_LOCAL_ENTRY,
+	TASK_TOOL_LOCAL_ENTRY,
+	LOCAL_FINAL_ANSWER_ENTRY,
+	LOCAL_EMPTY_TURN_ENTRY,
+	LOCAL_SOFT_CLOSE_CHECK_ENTRY,
 	COMPACTION_ENTRY,
 	SESSION_USER_INTENT_ENTRY,
 	ALLOW_OUTSIDE_WORKSPACE_READ_ENTRY,

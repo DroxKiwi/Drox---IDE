@@ -182,6 +182,10 @@ export function getDroxChatHtml(
 	const generalSettingsSectionAgent = localize('droxChatGeneralSettingsSectionAgent', 'Agent');
 	const generalSettingsSectionBehavior = localize('droxChatGeneralSettingsSectionBehavior', 'Behavior');
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
+	const rolePanelEngineProfileLabel = localize('droxChatRolePanelEngineProfile', 'Engine profile');
+	const rolePanelEngineProfileSmall = localize('droxChatRolePanelEngineProfileSmall', 'Small model — engine-led sub-runs (default)');
+	const rolePanelEngineProfileCapable = localize('droxChatRolePanelEngineProfileCapable', 'Local capable — same sub-runs, richer parent');
+	const rolePanelEngineProfileFull = localize('droxChatRolePanelEngineProfileFull', 'Full protocol — 1.6.0 Plan→Assign');
 	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
 	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
 	const generalSettingsSubagentsExecutionThink = localize('droxChatGeneralSettingsSubagentsExecutionThink', 'Explore execution thinking');
@@ -214,6 +218,18 @@ export function getDroxChatHtml(
 `;
 
 	const agentFields = `
+			<label class="general-settings-field">
+
+				<span>${rolePanelEngineProfileLabel}</span>
+
+				<select id="general-settings-engine-profile" class="general-settings-input">
+					<option value="local-9b">${rolePanelEngineProfileSmall}</option>
+					<option value="local-27b">${rolePanelEngineProfileCapable}</option>
+					<option value="cloud-full">${rolePanelEngineProfileFull}</option>
+				</select>
+
+			</label>
+
 			<label class="general-settings-field">
 
 				<span>${generalSettingsMaxIterations}</span>
@@ -316,6 +332,18 @@ ${DROX_NUM_CTX_CHOICES.map(v => `\t\t\t\t\t\t<option value="${v}">${formatDroxNu
 			</label>
 
 			<p class="role-model-panel-section-label">${rolePanelSectionAgent}</p>
+
+			<label class="role-model-field">
+
+				<span>${rolePanelEngineProfileLabel}</span>
+
+				<select id="role-model-panel-engine-profile" class="role-model-panel-select">
+					<option value="local-9b">${rolePanelEngineProfileSmall}</option>
+					<option value="local-27b">${rolePanelEngineProfileCapable}</option>
+					<option value="cloud-full">${rolePanelEngineProfileFull}</option>
+				</select>
+
+			</label>
 
 			<label class="role-model-field">
 

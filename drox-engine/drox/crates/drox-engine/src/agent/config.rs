@@ -56,6 +56,128 @@ pub struct AgentConfig {
     /// Explore child phase-1 : `[phase: answering]` / `[phase: done]` sans tool → Stop immédiat
     /// (la phase rapport moteur suit). Pas de DONE_ONLY / answering-before-done parent.
     pub explore_execution: bool,
+    /// Profil moteur IDE (`local-9b` | `local-27b` | `cloud-full`) — knobs parent (CADRAGE 1.6.1 §3bis).
+    pub engine_profile: String,
+}
+
+/// Valeurs RPC / settings. Inconnu → `local-9b`.
+#[must_use]
+pub fn normalize_engine_profile(raw: Option<&str>) -> String {
+    EngineProfile::parse(raw).id().to_string()
+}
+
+/// Profil moteur typé. Les knobs n'allègent que le **parent** ; le child Explore est inchangé.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EngineProfile {
+    Local9b,
+    Local27b,
+    CloudFull,
+}
+
+impl EngineProfile {
+    /// Inconnu / vide → `Local9b` (défaut produit).
+    #[must_use]
+    pub fn parse(raw: Option<&str>) -> Self {
+        match raw.map(str::trim) {
+            Some("local-27b") => Self::Local27b,
+            Some("cloud-full") => Self::CloudFull,
+            _ => Self::Local9b,
+        }
+    }
+
+    #[must_use]
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Local9b => "local-9b",
+            Self::Local27b => "local-27b",
+            Self::CloudFull => "cloud-full",
+        }
+    }
+
+    /// `local-9b` / `local-27b` : clôture portée par le moteur, CORE allégé, `task` inline.
+    #[must_use]
+    pub fn is_local(self) -> bool {
+        !matches!(self, Self::CloudFull)
+    }
+
+    /// Nudges « Prefer » orientés plan / merge Explore : coupés en `local-9b` seulement.
+    #[must_use]
+    pub fn plan_nudges(self) -> bool {
+        !matches!(self, Self::Local9b)
+    }
+
+    /// Gate dure « `todo_write` avant mutation » : `cloud-full` seulement.
+    #[must_use]
+    pub fn todo_before_mutation_gate(self) -> bool {
+        matches!(self, Self::CloudFull)
+    }
+
+    /// Outils parent masqués (schéma absent). `None` = catalogue complet.
+    /// S'ajoute aux `disabledTools` IDE (régulation L2) : jamais de ré-activation.
+    #[must_use]
+    pub fn parent_tool_allowlist(self) -> Option<&'static [&'static str]> {
+        const LOCAL_9B: &[&str] = &[
+            "todo_write",
+            "file_read",
+            "grep",
+            "glob",
+            "file_edit",
+            "file_write",
+            "delete_path",
+            "bash",
+            "task",
+            "codebase_search",
+            "exit_plan_mode",
+        ];
+        const LOCAL_27B: &[&str] = &[
+            "todo_write",
+            "file_read",
+            "grep",
+            "glob",
+            "file_edit",
+            "file_write",
+            "delete_path",
+            "copy_path",
+            "notebook_edit",
+            "bash",
+            "task",
+            "explore_artifact_read",
+            "codebase_search",
+            "exit_plan_mode",
+            "lsp",
+            "web_search",
+            "web_fetch",
+            "ask_user_question",
+            "workspace_map_read",
+            "memory_read",
+            "memory_list",
+            "session_note",
+            "skill_list",
+            "skill_read",
+        ];
+        match self {
+            Self::Local9b => Some(LOCAL_9B),
+            Self::Local27b => Some(LOCAL_27B),
+            Self::CloudFull => None,
+        }
+    }
+
+    /// Outil exposé au parent pour ce profil (MCP `mcp__*` toujours conservés).
+    #[must_use]
+    pub fn exposes_parent_tool(self, name: &str) -> bool {
+        if name.starts_with("mcp__") || name == "mcp_call" || name == "course_plan_write" {
+            return true;
+        }
+        self.parent_tool_allowlist()
+            .map_or(true, |allow| allow.contains(&name))
+    }
+}
+
+impl AgentConfig {
+    #[must_use]
+    pub fn profile(&self) -> EngineProfile {
+        EngineProfile::parse(Some(self.engine_profile.as_str()))
+    }
 }
 
 impl Default for AgentConfig {
@@ -81,6 +203,42 @@ impl Default for AgentConfig {
             // CLI / TUI / JSON-RPC (sans override) passent `false` pour classif boot.
             session_intent_preclassified: true,
             explore_execution: false,
+            // Struct par défaut (tests, child Explore) = protocole 1.6.0. Le défaut
+            // produit `local-9b` vient de `normalize_engine_profile` côté RPC / TUI.
+            engine_profile: EngineProfile::CloudFull.id().to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_engine_profile_defaults_and_aliases() {
+        assert_eq!(normalize_engine_profile(None), "local-9b");
+        assert_eq!(normalize_engine_profile(Some("")), "local-9b");
+        assert_eq!(normalize_engine_profile(Some("nope")), "local-9b");
+        assert_eq!(normalize_engine_profile(Some("local-9b")), "local-9b");
+        assert_eq!(normalize_engine_profile(Some("local-27b")), "local-27b");
+        assert_eq!(normalize_engine_profile(Some("cloud-full")), "cloud-full");
+    }
+
+    #[test]
+    fn struct_default_keeps_full_protocol() {
+        assert_eq!(AgentConfig::default().profile(), EngineProfile::CloudFull);
+    }
+
+    #[test]
+    fn local_9b_parent_surface_keeps_task_codebase_and_todo() {
+        let p = EngineProfile::Local9b;
+        for name in ["task", "codebase_search", "todo_write", "file_edit", "bash", "mcp__x__y"] {
+            assert!(p.exposes_parent_tool(name), "{name}");
+        }
+        for name in ["session_compact", "git_worktree_enter", "web_fetch", "explore_artifact_read"] {
+            assert!(!p.exposes_parent_tool(name), "{name}");
+        }
+        assert!(EngineProfile::Local27b.exposes_parent_tool("ask_user_question"));
+        assert!(EngineProfile::CloudFull.exposes_parent_tool("session_compact"));
     }
 }

@@ -225,7 +225,7 @@ fn build_request<'a>(
                 description: &t.description,
                 // schemars emits `$ref` → `#/definitions/EditOp|TodoItem|…`.
                 // Some Ollama GGUF templates fail schema conversion unless inlined.
-                parameters: crate::schema::inline_json_schema_refs(&t.parameters),
+                parameters: crate::schema::ollama_tool_parameters(&t.parameters),
             },
         })
         .collect();

@@ -33,6 +33,19 @@ suite('Drox regulation R9 L4 protocol', () => {
 		assert.ok(strict.length > normal.length);
 	});
 
+	test('local profiles drop phase-done wording and keep normal soft', () => {
+		for (const profile of ['local-9b', 'local-27b'] as const) {
+			const normal = droxRegulationL4ProtocolAnnex('normal', profile)!;
+			const strict = droxRegulationL4ProtocolAnnex('strict', profile)!;
+			assert.ok(!/phase: done/.test(normal));
+			assert.ok(!/phase: done/.test(strict));
+			assert.ok(!/before any mutating tool/i.test(normal));
+			assert.ok(/todo_write/.test(strict));
+			assert.strictEqual(droxRegulationL4ProtocolAnnex('soft', profile), undefined);
+		}
+		assert.ok(/phase: done/.test(droxRegulationL4ProtocolAnnex('normal', 'cloud-full')!));
+	});
+
 	test('asDroxRegulationL4Module falls back for non-L4 modules', () => {
 		assert.strictEqual(asDroxRegulationL4Module('core'), 'normal');
 		assert.strictEqual(asDroxRegulationL4Module('strict'), 'strict');

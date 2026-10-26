@@ -24,6 +24,7 @@ function createBridgeDeps(overrides: {
 	filterExecutableTools?: (names: readonly string[]) => string[];
 	buildAgentRunParams?: IDroxRunSettingsService['buildAgentRunParams'];
 	regulationService?: IDroxAgentRunBridgeDeps['regulationService'];
+	engineProfile?: string;
 } = {}): IDroxAgentRunBridgeDeps {
 	const requests: { method: string; params?: unknown }[] = [];
 	const clientToolsService = {
@@ -31,6 +32,7 @@ function createBridgeDeps(overrides: {
 	} as unknown as IDroxClientToolsService;
 	const runSettingsService = {
 		filterExecutableTools: overrides.filterExecutableTools ?? (names => [...names]),
+		getLlmSettings: () => ({ engineProfile: overrides.engineProfile ?? 'cloud-full' }),
 		buildAgentRunParams: overrides.buildAgentRunParams ?? (opts => ({
 			prompt: opts.prompt,
 			workspace: opts.workspace,
@@ -229,6 +231,29 @@ suite('Drox — droxAgentRunBridge', () => {
 		});
 		assert.ok(capturedSystem && /Strict protocol/i.test(capturedSystem));
 		assert.ok(capturedSystem!.includes('notes'));
+	});
+
+	test('startDroxAgentRun uses local L4 annex for local engine profiles', async () => {
+		let capturedSystem: string | undefined;
+		const deps = createBridgeDeps({
+			engineProfile: 'local-9b',
+			buildAgentRunParams: opts => {
+				capturedSystem = opts.system;
+				return { prompt: opts.prompt, workspace: opts.workspace, mode: opts.mode, sessionId: opts.sessionId, system: opts.system };
+			},
+			regulationService: {
+				getModule: lever => (lever === 'L4' ? 'normal' : lever === 'L3' ? 'laissez-faire' : 'standard'),
+			},
+		});
+		await startDroxAgentRun(deps, {
+			prompt: 'hi',
+			workspace: 'C:/ws',
+			mode: 'imNotCrazy',
+			sessionId: 'ses_l4_local',
+			system: 'notes',
+		});
+		assert.ok(capturedSystem && /prefer `todo_write`/.test(capturedSystem));
+		assert.ok(!/phase: done/.test(capturedSystem!));
 	});
 
 	test('startDroxAgentRun disables non-core tools when L2 is core', async () => {

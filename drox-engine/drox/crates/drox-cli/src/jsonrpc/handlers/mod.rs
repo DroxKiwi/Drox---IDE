@@ -481,6 +481,14 @@ async fn build_agent_setup(
 
     log_ignored_ide_orchestration_fields(params);
 
+    let (mode, policy) = build_permission_policy(params, &workspace)?;
+    // Professeur : gates plan de cours = protocole complet, quel que soit le profil IDE.
+    let engine_profile = if mode.is_professor() {
+        drox_engine::EngineProfile::CloudFull
+    } else {
+        drox_engine::EngineProfile::parse(params.engine_profile.as_deref())
+    };
+
     // Kill-switch mémoire workspace (IDE `drox.memory.enabled`). Absent/`false`
     // = pas de MEMORY.md / listing archives / persist / tools mémoire.
     let memory_enabled = params.memory_enabled == Some(true);
@@ -493,7 +501,8 @@ async fn build_agent_setup(
         None
     };
     let base_system = merge_optional_system(params.system.clone(), mem_prefix);
-    let mut base_system = crate::prompts::prepend_core_system_prompt(base_system);
+    let mut base_system =
+        crate::prompts::prepend_core_system_prompt_for_profile(base_system, engine_profile);
     if memory_enabled {
         // Sprint M1 — listing court des sessions archivées (≤ 10 entrées).
         let memory_listing =
@@ -618,18 +627,17 @@ async fn build_agent_setup(
             kind = "explore",
             "dogfood: session supplement appended (flag)"
         );
+        let supplement = crate::prompts::subagents_explore_supplement_for_profile(engine_profile);
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
-                s.push_str(crate::prompts::SUBAGENTS_EXPLORE_SUPPLEMENT);
+                s.push_str(supplement);
             }
             None => {
-                system_merged = Some(crate::prompts::SUBAGENTS_EXPLORE_SUPPLEMENT.to_string());
+                system_merged = Some(supplement.to_string());
             }
         }
     }
-
-    let (mode, policy) = build_permission_policy(params, &workspace)?;
 
     // Mode Professeur : propositions seules côté client (`applyFsWrites: false`).
     let apply = if mode.is_professor() {
@@ -837,6 +845,7 @@ async fn build_agent_setup(
                 || params.skip_user_turn.unwrap_or(false)
         }),
         explore_execution: false,
+        engine_profile: engine_profile.id().to_string(),
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);

@@ -24,7 +24,9 @@ mod thresholds;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
 pub(crate) use format::format_tool_result_for_llm;
+pub(crate) use format::format_tool_result_for_llm_with_profile;
 pub(crate) use hot_snip::stub_for_hot_snip;
 
 /// Seuils exposés pour asserts tests / `loop_tests`.

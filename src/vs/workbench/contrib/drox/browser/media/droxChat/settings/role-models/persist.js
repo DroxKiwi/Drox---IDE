@@ -47,6 +47,8 @@
 		const reasoningEffortRaw = D.dom.roleModelPanelReasoningEffortEl?.value.trim() ?? '';
 		const reasoningEffort = reasoningEffortRaw === '' ? null : reasoningEffortRaw;
 		const thinkingBudget = readPatchNumber(D.dom.roleModelPanelThinkingBudgetEl?.value.trim() ?? '');
+		const engineProfileRaw = D.dom.roleModelPanelEngineProfileEl?.value.trim() ?? '';
+		const engineProfile = engineProfileRaw === 'local-27b' || engineProfileRaw === 'cloud-full' ? engineProfileRaw : 'local-9b';
 		const maxIterationsRaw = readPatchNumber(D.dom.roleModelPanelMaxIterationsEl?.value.trim() ?? '');
 		const exploreMaxIterationsRaw = readPatchNumber(D.dom.roleModelPanelExploreMaxIterationsEl?.value.trim() ?? '');
 		if (numCtx !== undefined) {
@@ -65,6 +67,15 @@
 		D.state.architectReasoningEffort = reasoningEffort === null ? '' : reasoningEffort;
 		assignStateNumber('architectThinkingBudget', thinkingBudget);
 		const generalPatch = {};
+		D.state.generalSettings = { ...(D.state.generalSettings || {}), engineProfile };
+		const gsProfileEl = document.getElementById('general-settings-engine-profile');
+		if (gsProfileEl && 'value' in gsProfileEl) {
+			gsProfileEl.value = engineProfile;
+		}
+		if (D.dom.roleModelPanelEngineProfileEl) {
+			D.dom.roleModelPanelEngineProfileEl.value = engineProfile;
+		}
+		generalPatch.engineProfile = engineProfile;
 		if (maxIterationsRaw !== undefined && Number.isFinite(maxIterationsRaw)) {
 			const cap = D.const.MAX_ITERATIONS_CAP ?? 1000;
 			const fallback = D.const.DEFAULT_MAX_ITERATIONS ?? 50;

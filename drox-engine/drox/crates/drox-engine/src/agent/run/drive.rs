@@ -17,14 +17,17 @@ use crate::tool_orchestration::{partition_tool_calls, ToolCallBatch};
 use crate::tool_progress::ToolProgressBridge;
 
 use super::super::dispatch::{
-    build_tool_specs, format_tool_result_for_llm, mirror_workspace_map_from_tool,
+    build_tool_specs, format_tool_result_for_llm_with_profile, mirror_workspace_map_from_tool,
     push_tool_error_tracked,
 };
+use super::super::config::EngineProfile;
 use super::super::gates::{
     counts_as_mutating_for_step_tracking, is_professor_run, plan_write_gate_satisfied,
     record_counts_as_code_mutation, PROFESSOR_DONE_WITHOUT_PLAN,
 };
-use super::super::loop_close::emit_synthetic_done;
+use super::super::loop_close::{
+    emit_engine_closure, emit_synthetic_done, ENGINE_CLOSURE_EMPTY_REPLY,
+};
 use super::super::loop_detect::{LoopDecision, LoopDetector, PendingToolCall};
 use super::super::nudges::{
     ask_user_question_loop_nudge, context_load_nudge, explore_incomplete_nudge,
@@ -43,7 +46,8 @@ use super::super::nudges::{
     REPEATED_FILE_READ_NUDGE_THRESHOLD, ROTATING_FILE_READ_NUDGE,
     ROTATING_FILE_READ_REINJECT_EVERY, WORK_PLAN_FRAME_NUDGE,
     WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD,
-    step_explore_kickoff_nudge, step_without_explore_nudge,
+    step_explore_kickoff_nudge, step_without_explore_nudge, LOCAL_EMPTY_TURN_NUDGE,
+    LOCAL_FINAL_ANSWER_PROMPT, LOCAL_SOFT_CLOSE_CHECK_NUDGE,
 };
 use super::super::session_intent::{classify_session_user_intent, SessionFrames};
 use super::super::context_load::{
@@ -75,7 +79,18 @@ impl Agent {
         skip_new_user_turn: bool,
     ) {
         let professor = is_professor_run(self.config.permissions.as_ref());
-        let tool_specs = build_tool_specs(&self.registry, professor);
+        let profile = self.config.profile();
+        // Profils locaux : clôture moteur (tour sans tool = réponse). Child Explore
+        // et professeur gardent leur propre contrat.
+        let engine_closure = profile.is_local() && !professor && !self.config.explore_execution;
+        let plan_nudges = profile.plan_nudges();
+        tracing::info!(
+            engine_profile = profile.id(),
+            engine_closure,
+            plan_nudges,
+            "agent.run engine profile"
+        );
+        let tool_specs = build_tool_specs(&self.registry, professor, profile);
         // Sprint M1 — si la mémoire de session est configurée, on greffe
         // le `SessionNotesHandle` partagé dans le `ToolContext` du run.
         // Les tools `session_note` / `memory_read` / `memory_list` y voient
@@ -211,6 +226,10 @@ impl Agent {
         let mut loop_detector = LoopDetector::new();
         // Après ForceConclude : tours LLM suivants sans tools jusqu'à Done / SyntheticDone.
         let mut loop_tools_disabled = false;
+        // Profils locaux : tour final forcé (tools off) + relances one-shot.
+        let mut final_answer_forced = false;
+        let mut local_empty_turn_nudge_sent = false;
+        let mut local_soft_close_check_sent = false;
         let mut consecutive_ask_user_question_failures: u32 = 0;
         let mut live_compaction_seq: u32 = 0;
         let mut run_objective_reminder_sent = false;
@@ -343,7 +362,19 @@ impl Agent {
             }
 
             // Soft plan-frame (classif isWork) — texte only.
-            if iter == 0 && session_frames.work_plan && !work_plan_frame_nudge_sent {
+            // Profils locaux : budget presque épuisé → tools off, réponse obligatoire.
+            let final_reserve = if self.config.max_iterations >= 4 { 2 } else { 1 };
+            if engine_closure
+                && !final_answer_forced
+                && iter + final_reserve >= self.config.max_iterations
+            {
+                debug!(iter, "local profile — final answer turn (tools off)");
+                messages.push(Message::system(LOCAL_FINAL_ANSWER_PROMPT));
+                final_answer_forced = true;
+                loop_tools_disabled = true;
+            }
+
+            if plan_nudges && iter == 0 && session_frames.work_plan && !work_plan_frame_nudge_sent {
                 debug!("work plan frame — soft nudge (turn-0)");
                 messages.push(Message::system(WORK_PLAN_FRAME_NUDGE));
                 work_plan_frame_nudge_sent = true;
@@ -362,7 +393,8 @@ impl Agent {
 
             // Soft — work/doc sans todo après N outils réussis (toute activité).
             // Tools restent libres (pas de blocked) ; needles / chitchat légitimes OK.
-            if !work_without_plan_nudge_sent
+            if plan_nudges
+                && !work_without_plan_nudge_sent
                 && !saw_successful_todo_write_in_run
                 && (session_frames.work_plan || session_frames.doc_ingestion)
                 && pre_plan_activity_count >= WORK_WITHOUT_PLAN_NUDGE_THRESHOLD
@@ -376,7 +408,7 @@ impl Agent {
             }
 
             // Soft — kickoff d'une nouvelle étape plan → Explore pour cette étape.
-            if task_tool_available {
+            if task_tool_available && plan_nudges {
                 if let Some((step_id, step_content)) = pending_step_explore_nudge.take() {
                     debug!(
                         marker = "c4.micro_task_kickoff",
@@ -392,6 +424,7 @@ impl Agent {
 
             // Soft — étape in_progress, activité parent, toujours pas de task.
             if task_tool_available
+                && plan_nudges
                 && !step_without_explore_nudge_sent
                 && !step_had_task_success
                 && last_in_progress_todo_id.is_some()
@@ -477,6 +510,9 @@ impl Agent {
             }
 
             // Soft — Explore réussi → fusionner / agir (one-shot par succès).
+            if pending_post_merge_closure_nudge && !plan_nudges {
+                pending_post_merge_closure_nudge = false;
+            }
             if pending_post_merge_closure_nudge {
                 debug!(
                     marker = "c2.post_merge_closure",
@@ -501,7 +537,10 @@ impl Agent {
             }
 
             // Soft C2 / E1 — parent re-lit un path déjà couvert Explore.
-            if pending_explore_covered_reread_nudge && !explore_covered_reread_nudge_sent {
+            if pending_explore_covered_reread_nudge
+                && plan_nudges
+                && !explore_covered_reread_nudge_sent
+            {
                 debug!(
                     marker = "c2.explore_covered_reread_prefer",
                     covered_n = explore_covered_paths.len(),
@@ -513,7 +552,7 @@ impl Agent {
             }
 
             // Soft E2 / E2b — post-Explore OK + lectures / hit kind → Prefer act.
-            if pending_post_explore_stall_nudge && !post_explore_stall_nudge_sent {
+            if pending_post_explore_stall_nudge && plan_nudges && !post_explore_stall_nudge_sent {
                 debug!(
                     marker = "e2.post_explore_stall_act",
                     streak = post_explore_read_streak,
@@ -666,6 +705,80 @@ impl Agent {
                 return;
             }
 
+            // Profils locaux (CADRAGE 1.6.1 §3bis) : le moteur porte la clôture.
+            // Tour sans tool_call = réponse finale ; `[phase: done]` non requis.
+            // `[phase: acting]` sans tool reste traité par FX-B (intention d'écriture),
+            // sauf au tour final forcé.
+            if engine_closure
+                && outcome.tool_calls.is_empty()
+                && (final_answer_forced || outcome.final_phase != Some(Phase::Acting))
+            {
+                let reply = outcome.text.trim();
+                if reply.is_empty() && !final_answer_forced && !local_empty_turn_nudge_sent {
+                    debug!("local profile — empty turn, one-shot nudge");
+                    local_empty_turn_nudge_sent = true;
+                    messages.push(Message::system(LOCAL_EMPTY_TURN_NUDGE));
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    continue;
+                }
+                let open_todos = last_todo_pending > 0 || last_todo_in_progress > 0;
+                let testing_due =
+                    testing_gate_active && saw_code_mutation_in_run && !saw_testing_phase_in_run;
+                if profile == EngineProfile::Local27b
+                    && !reply.is_empty()
+                    && !final_answer_forced
+                    && !local_soft_close_check_sent
+                    && (open_todos || testing_due)
+                {
+                    debug!(open_todos, testing_due, "local-27b — soft close check (one-shot)");
+                    local_soft_close_check_sent = true;
+                    messages.push(Message::system(LOCAL_SOFT_CLOSE_CHECK_NUDGE));
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    continue;
+                }
+                debug!(
+                    final_answer_forced,
+                    reply_chars = reply.len(),
+                    saw_answering = outcome.saw_answering,
+                    "local profile — engine closure (turn without tools)"
+                );
+                if reply.is_empty() {
+                    emit_engine_closure(&tx, &mut messages, ENGINE_CLOSURE_EMPTY_REPLY, false, true)
+                        .await;
+                } else if outcome.final_phase != Some(Phase::Done) || !outcome.saw_answering {
+                    emit_engine_closure(&tx, &mut messages, reply, outcome.saw_answering, false)
+                        .await;
+                }
+                if let Err(e) = self
+                    .flush_transcript(&messages, &mut transcript_cursor)
+                    .await
+                {
+                    let _ = tx.send(Err(e)).await;
+                    return;
+                }
+                self.maybe_persist_session(&messages, &memory_tracker, &tx)
+                    .await;
+                let _ = tx
+                    .send(Ok(AgentEvent::Stop {
+                        reason: outcome.reason,
+                        usage: Usage::default(),
+                    }))
+                    .await;
+                return;
+            }
+
             // Done-driven completion + answering-before-done. `todo_write`
             // n'est PAS exigé ici : les réponses purement conversationnelles
             // (salutations, questions triviales) et les runs purement
@@ -803,6 +916,23 @@ impl Agent {
                     consecutive_intent_only_write_nudges =
                         consecutive_intent_only_write_nudges.saturating_add(1);
                     let max_nudges = INTENT_ONLY_WRITE_MAX_NUDGES;
+                    if consecutive_intent_only_write_nudges > max_nudges && engine_closure {
+                        debug!(
+                            strikes = consecutive_intent_only_write_nudges,
+                            "intent-only write — local profile: final answer turn"
+                        );
+                        messages.push(Message::system(LOCAL_FINAL_ANSWER_PROMPT));
+                        final_answer_forced = true;
+                        loop_tools_disabled = true;
+                        if let Err(e) = self
+                            .flush_transcript(&messages, &mut transcript_cursor)
+                            .await
+                        {
+                            let _ = tx.send(Err(e)).await;
+                            return;
+                        }
+                        continue;
+                    }
                     if consecutive_intent_only_write_nudges > max_nudges {
                         debug!(
                             strikes = consecutive_intent_only_write_nudges,
@@ -1706,10 +1836,11 @@ impl Agent {
                                         value = tool_response;
                                         hook_appendix = model_appendix;
                                     }
-                                    let mut for_llm = format_tool_result_for_llm(
+                                    let mut for_llm = format_tool_result_for_llm_with_profile(
                                         &call.name,
                                         &value,
                                         &ctx.workspace_root,
+                                        profile,
                                     );
                                     if let Some(app) = hook_appendix {
                                         for_llm.push_str("\n\n");
@@ -1846,6 +1977,7 @@ impl Agent {
             }
 
             if session_frames.analysis
+                && !profile.is_local()
                 && !analyzing_phase_nudge_sent
                 && !saw_analyzing_phase_in_run
                 && iter == 0
@@ -1907,7 +2039,7 @@ impl Agent {
             } else {
                 last_todo_pending > 0 || last_todo_in_progress > 0
             };
-            if mutating_tools_since_last_todo >= 2 && plan_still_open {
+            if plan_nudges && mutating_tools_since_last_todo >= 2 && plan_still_open {
                 debug!(
                     mutating_tools_since_last_todo,
                     last_todo_pending,

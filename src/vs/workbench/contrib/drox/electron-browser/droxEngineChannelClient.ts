@@ -104,13 +104,14 @@ export class DroxEngineChannelClient extends Disposable {
 	fetchHttp(
 		url: string,
 		headers?: Record<string, string>,
-		options?: { method?: 'GET' | 'POST'; body?: string },
+		options?: { method?: 'GET' | 'POST'; body?: string; timeoutMs?: number },
 	): Promise<IDroxFetchHttpResult> {
 		return this.channel.call(DroxEngineCommand.FetchHttp, {
 			url,
 			headers,
 			method: options?.method,
 			body: options?.body,
+			timeoutMs: options?.timeoutMs,
 		});
 	}
 

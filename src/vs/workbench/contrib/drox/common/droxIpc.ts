@@ -61,6 +61,7 @@ export interface IDroxFetchHttpArgs {
 	readonly headers?: Readonly<Record<string, string>>;
 	readonly method?: 'GET' | 'POST';
 	readonly body?: string;
+	readonly timeoutMs?: number;
 }
 
 export interface IDroxFetchHttpResult {

@@ -178,9 +178,9 @@ export class DroxEngineMainService extends Disposable {
 		const headers = args.headers ? { ...args.headers } : undefined;
 		const method = args.method ?? 'GET';
 		if (method === 'GET' && args.body === undefined) {
-			return droxLocalHttpGet(args.url, undefined, headers);
+			return droxLocalHttpGet(args.url, args.timeoutMs, headers);
 		}
-		return droxLocalHttpRequest(args.url, { method, headers, body: args.body });
+		return droxLocalHttpRequest(args.url, { method, headers, body: args.body, timeoutMs: args.timeoutMs });
 	}
 
 	respondServerRequest(args: IDroxEngineRespondArgs): void {

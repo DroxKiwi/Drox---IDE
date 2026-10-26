@@ -15,6 +15,10 @@
 		if (D.dom.roleModelPanelNumCtxEl) {
 			fn.syncArchitectNumCtxPanelFromState();
 		}
+		if (D.dom.roleModelPanelEngineProfileEl) {
+			const profile = D.state.generalSettings?.engineProfile;
+			D.dom.roleModelPanelEngineProfileEl.value = profile === 'local-27b' || profile === 'cloud-full' ? profile : 'local-9b';
+		}
 		if (D.dom.roleModelPanelMaxIterationsEl) {
 			const maxIter = D.state.generalSettings?.maxIterations;
 			const fallback = D.const.DEFAULT_MAX_ITERATIONS ?? 50;

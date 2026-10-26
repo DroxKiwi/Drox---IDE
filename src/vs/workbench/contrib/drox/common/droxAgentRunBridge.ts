@@ -125,7 +125,8 @@ export async function startDroxAgentRun(
 		const l3 = asDroxRegulationL3Module(deps.regulationService.getModule('L3'));
 		system = applyDroxRegulationL3Directive(l3, system);
 		const l4 = asDroxRegulationL4Module(deps.regulationService.getModule('L4'));
-		system = applyDroxRegulationL4Protocol(l4, system);
+		const engineProfile = deps.runSettingsService.getLlmSettings(URI.file(options.workspace)).engineProfile;
+		system = applyDroxRegulationL4Protocol(l4, system, engineProfile);
 	}
 	const planArchiveNote = consumeDroxPlanArchiveSystemNote(options.sessionId);
 	if (planArchiveNote) {
@@ -231,7 +232,7 @@ export async function startDroxAgentRun(
 
 	const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 	if (typeof result?.runId === 'string') {
-		deps.logService.info('[Drox] agent.run', result.runId);
+		deps.logService.info('[Drox] agent.run', result.runId, 'engineProfile=', runParams.engineProfile);
 		return result.runId;
 	}
 	deps.logService.warn('[Drox] agent.run returned no runId');

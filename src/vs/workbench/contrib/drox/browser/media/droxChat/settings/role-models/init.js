@@ -60,6 +60,7 @@
 			D.dom.roleModelPanelNumCtxCustomEl.addEventListener('blur', () => fn.persistRoleModelFromPanel());
 		}
 		const architectInputs = [
+			D.dom.roleModelPanelEngineProfileEl,
 			D.dom.roleModelPanelMaxIterationsEl,
 			D.dom.roleModelPanelExploreMaxIterationsEl,
 			D.dom.roleModelPanelTemperatureEl,

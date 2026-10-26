@@ -214,6 +214,8 @@ pub(crate) async fn run_interactive_agent(cli: Cli, prompt: &str) -> anyhow::Res
         doc_ingestion_frame: false,
         session_intent_preclassified: false,
         explore_execution: false,
+        // Pas de sélecteur de profil hors IDE : CORE complet = protocole complet.
+        engine_profile: drox_engine::EngineProfile::CloudFull.id().to_string(),
     };
     let agent = Agent::new(llm, registry, ctx, agent_config);
 
