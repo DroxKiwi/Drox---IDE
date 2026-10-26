@@ -653,6 +653,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 				const result = await testDroxLlmConnectionDraft(
 					{ droxEngineService: deps.droxEngineService, requestService: deps.requestService },
 					raw.settings as IDroxGeneralSettingsPatch,
+					typeof raw.timeoutMs === 'number' && raw.timeoutMs > 0 ? { timeoutMs: raw.timeoutMs } : undefined,
 				);
 				postConnectionTestResult(this._hostAdapter, raw.requestId, result);
 				break;

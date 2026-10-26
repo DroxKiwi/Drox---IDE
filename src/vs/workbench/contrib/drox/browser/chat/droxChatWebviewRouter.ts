@@ -132,6 +132,7 @@ export async function routeDroxChatWebviewMessage(
 					requestService: deps.requestService,
 				},
 				raw.settings as IDroxGeneralSettingsPatch,
+				typeof raw.timeoutMs === 'number' && raw.timeoutMs > 0 ? { timeoutMs: raw.timeoutMs } : undefined,
 			);
 			postConnectionTestResult(host, raw.requestId, result);
 			break;

@@ -9,8 +9,10 @@
 	const fn = D.fn;
 
 	const WIZARD_STEPS = 3;
-	/** Slightly above host wall clock so the IDE error usually wins. */
-	const WIZARD_TEST_WATCHDOG_MS = 16_000;
+	/** Align with droxChatConnectionTest.ts (first attempt / extended retry). */
+	const CONNECTION_TEST_DEFAULT_MS = 180_000;
+	const CONNECTION_TEST_EXTENDED_MS = 600_000;
+	const WIZARD_TEST_WATCHDOG_MARGIN_MS = 15_000;
 	let testRequestCounter = 0;
 	let testWatchdog = 0;
 
@@ -90,6 +92,8 @@
 			testError: '',
 			testModelCount: 0,
 			pendingTestRequestId: '',
+			testTimeoutMs: CONNECTION_TEST_DEFAULT_MS,
+			testTimedOut: false,
 		};
 	};
 
@@ -143,21 +147,70 @@
 		}
 	}
 
+	function wizardTestWatchdogMs(timeoutMs) {
+		return (timeoutMs || CONNECTION_TEST_DEFAULT_MS) + WIZARD_TEST_WATCHDOG_MARGIN_MS;
+	}
+
+	function isConnectionTestTimeoutMessage(message) {
+		return /timed out/i.test(String(message || ''));
+	}
+
+	function bindExtendedRetryButton(body) {
+		const btn = body?.querySelector('.drox-wizard-retry-extended');
+		if (btn) {
+			btn.addEventListener('click', (e) => {
+				e.preventDefault();
+				fn.retryConnectionWizardWithExtendedTimeout();
+			});
+		}
+	}
+
 	function renderTestStatus(wiz) {
 		if (wiz.step !== WIZARD_STEPS) {
 			return '';
 		}
 		if (wiz.testStatus === 'testing') {
-			return '<p class="drox-wizard-test-status drox-wizard-test-pending">Connecting to server…</p>';
+			const timeoutMs = wiz.testTimeoutMs || CONNECTION_TEST_DEFAULT_MS;
+			const longWait = timeoutMs >= CONNECTION_TEST_EXTENDED_MS
+				? ' This can take up to 10 minutes.'
+				: ' This can take up to 3 minutes.';
+			return `<p class="drox-wizard-test-status drox-wizard-test-pending">Connecting to server…${longWait}</p>`;
 		}
 		if (wiz.testStatus === 'ok') {
 			const n = wiz.testModelCount || 0;
 			return `<p class="drox-wizard-test-status drox-wizard-test-ok">Connection OK — ${n} model${n === 1 ? '' : 's'} detected.</p>`;
 		}
 		if (wiz.testStatus === 'error' && wiz.testError) {
-			return `<p class="drox-wizard-test-status drox-wizard-test-error">${fn.escapeHtmlAttr(wiz.testError)}</p>`;
+			const canRetryExtended = wiz.testTimedOut
+				&& (wiz.testTimeoutMs || CONNECTION_TEST_DEFAULT_MS) < CONNECTION_TEST_EXTENDED_MS;
+			const retryBtn = canRetryExtended
+				? '<button type="button" class="general-settings-panel-btn drox-wizard-retry-extended" style="margin-top:8px">Réessayer avec 10 minutes de délai</button>'
+				: '';
+			return `<p class="drox-wizard-test-status drox-wizard-test-error">${fn.escapeHtmlAttr(wiz.testError)}</p>${retryBtn}`;
 		}
 		return '';
+	}
+
+	function startConnectionWizardTest() {
+		const wiz = D.state.connectionWizard;
+		const patch = fn.buildConnectionPatchFromWizard();
+		const requestId = `conn-test-${++testRequestCounter}`;
+		const timeoutMs = wiz.testTimeoutMs || CONNECTION_TEST_DEFAULT_MS;
+		wiz.pendingTestRequestId = requestId;
+		wiz.testStatus = 'testing';
+		wiz.testError = '';
+		wiz.testTimedOut = false;
+		fn.renderConnectionWizard();
+		clearConnectionTestWatchdog();
+		testWatchdog = window.setTimeout(() => {
+			testWatchdog = 0;
+			fn.handleConnectionTestResult({
+				requestId,
+				ok: false,
+				error: 'Connection timed out. Check the server URL and that the process is listening.',
+			});
+		}, wizardTestWatchdogMs(timeoutMs));
+		D.vscode.postMessage({ type: 'testLlmConnection', requestId, settings: patch, timeoutMs });
 	}
 
 	function savedSecretsHint(wiz) {
@@ -339,8 +392,10 @@
 					}
 					wiz.testStatus = 'idle';
 					wiz.testError = '';
+					wiz.testTimedOut = false;
 				});
 			}
+			bindExtendedRetryButton(body);
 			return;
 		}
 
@@ -370,6 +425,7 @@
 				wiz.server = serverInput.value;
 				wiz.testStatus = 'idle';
 				wiz.testError = '';
+				wiz.testTimedOut = false;
 			});
 		}
 		const syncHeaderRows = () => {
@@ -386,6 +442,7 @@
 					syncHeaderRows();
 					wiz.testStatus = 'idle';
 					wiz.testError = '';
+					wiz.testTimedOut = false;
 				});
 			}
 			const remove = row.querySelector('.drox-wizard-header-remove');
@@ -409,6 +466,7 @@
 				fn.renderConnectionWizard();
 			});
 		}
+		bindExtendedRetryButton(body);
 	};
 
 	fn.escapeHtmlAttr = function(value) {
@@ -550,22 +608,17 @@
 			return;
 		}
 		const wiz = D.state.connectionWizard;
-		const patch = fn.buildConnectionPatchFromWizard();
-		const requestId = `conn-test-${++testRequestCounter}`;
-		wiz.pendingTestRequestId = requestId;
-		wiz.testStatus = 'testing';
-		wiz.testError = '';
-		fn.renderConnectionWizard();
-		clearConnectionTestWatchdog();
-		testWatchdog = window.setTimeout(() => {
-			testWatchdog = 0;
-			fn.handleConnectionTestResult({
-				requestId,
-				ok: false,
-				error: 'Connection timed out. Check the server URL and that the process is listening.',
-			});
-		}, WIZARD_TEST_WATCHDOG_MS);
-		D.vscode.postMessage({ type: 'testLlmConnection', requestId, settings: patch });
+		wiz.testTimeoutMs = CONNECTION_TEST_DEFAULT_MS;
+		startConnectionWizardTest();
+	};
+
+	fn.retryConnectionWizardWithExtendedTimeout = function() {
+		const wiz = D.state.connectionWizard;
+		if (!wiz || wiz.testStatus === 'testing') {
+			return;
+		}
+		wiz.testTimeoutMs = CONNECTION_TEST_EXTENDED_MS;
+		startConnectionWizardTest();
 	};
 
 	fn.showConnectionWizardError = function(message) {
@@ -605,6 +658,7 @@
 		}
 		wiz.testStatus = 'error';
 		wiz.testError = payload.error || 'Connection test failed.';
+		wiz.testTimedOut = isConnectionTestTimeoutMessage(wiz.testError);
 		fn.renderConnectionWizard();
 	};
 

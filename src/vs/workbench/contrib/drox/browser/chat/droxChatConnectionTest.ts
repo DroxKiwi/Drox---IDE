@@ -34,9 +34,10 @@ export interface IDroxConnectionTestDeps {
 	readonly requestService: IRequestService;
 }
 
-/** Wall clock for the wizard test (list + chat probe). */
-export const DROX_CONNECTION_TEST_TIMEOUT_MS = 15_000;
-const CONNECTION_TEST_HTTP_TIMEOUT_MS = 8_000;
+/** Wall clock for the wizard test (list + chat probe) — first attempt. */
+export const DROX_CONNECTION_TEST_TIMEOUT_MS = 180_000;
+/** Optional retry when the first attempt times out (cold start / large models). */
+export const DROX_CONNECTION_TEST_EXTENDED_TIMEOUT_MS = 600_000;
 
 export async function testDroxLlmConnectionDraft(
 	deps: IDroxConnectionTestDeps,
@@ -44,7 +45,7 @@ export async function testDroxLlmConnectionDraft(
 	opts?: { readonly timeoutMs?: number },
 ): Promise<IDroxConnectionTestResult> {
 	const wallMs = opts?.timeoutMs ?? DROX_CONNECTION_TEST_TIMEOUT_MS;
-	const raced = await raceTimeout(runConnectionTest(deps, draft), wallMs);
+	const raced = await raceTimeout(runConnectionTest(deps, draft, wallMs), wallMs);
 	if (raced === undefined) {
 		return {
 			ok: false,
@@ -61,6 +62,7 @@ export async function testDroxLlmConnectionDraft(
 async function runConnectionTest(
 	deps: IDroxConnectionTestDeps,
 	draft: IDroxGeneralSettingsPatch,
+	httpTimeoutMs: number,
 ): Promise<IDroxConnectionTestResult> {
 	const provider = parseLlmProvider(draft.llmProvider);
 	const server = String(draft.server ?? '').trim();
@@ -85,7 +87,7 @@ async function runConnectionTest(
 		apiKey,
 		customHeaders,
 		authContext,
-		{ allowRendererFallback: false, timeoutMs: CONNECTION_TEST_HTTP_TIMEOUT_MS },
+		{ allowRendererFallback: false, timeoutMs: httpTimeoutMs },
 	);
 	const httpGet = async (url: string) => http(url, { method: 'GET' });
 	let result: Awaited<ReturnType<typeof fetchLlmModelNames>>;

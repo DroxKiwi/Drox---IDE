@@ -50,7 +50,7 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'refreshLlmModels' }
 
-	| { readonly type: 'testLlmConnection'; readonly requestId: string; readonly settings: Record<string, unknown> }
+	| { readonly type: 'testLlmConnection'; readonly requestId: string; readonly settings: Record<string, unknown>; readonly timeoutMs?: number }
 
 	| { readonly type: 'cancelRun' }
 
