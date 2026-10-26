@@ -22,6 +22,10 @@
 		if (typeof fn.syncConnectionSummaryInPanel === 'function') {
 			fn.syncConnectionSummaryInPanel();
 		}
+		setVal('general-settings-engine-profile', s.engineProfile === 'local-27b' || s.engineProfile === 'cloud-full' ? s.engineProfile : 'local-9b');
+		if (D.dom.roleModelPanelEngineProfileEl) {
+			D.dom.roleModelPanelEngineProfileEl.value = s.engineProfile === 'local-27b' || s.engineProfile === 'cloud-full' ? s.engineProfile : 'local-9b';
+		}
 		setVal('general-settings-max-iterations', s.maxIterations ?? 50);
 		if (D.dom.roleModelPanelMaxIterationsEl) {
 			D.dom.roleModelPanelMaxIterationsEl.value = String(s.maxIterations ?? (D.const.DEFAULT_MAX_ITERATIONS ?? 50));
@@ -81,6 +85,10 @@
 			mcpToolsEnabled: bool('general-settings-mcp-tools-enabled'),
 			showChatErrorsAndWarnings: bool('general-settings-show-chat-errors-warnings'),
 		};
+		if (document.getElementById('general-settings-engine-profile')) {
+			const raw = str('general-settings-engine-profile');
+			patch.engineProfile = raw === 'local-27b' || raw === 'cloud-full' ? raw : 'local-9b';
+		}
 		if (document.getElementById('general-settings-max-iterations')) {
 			patch.maxIterations = num('general-settings-max-iterations') ?? 50;
 		}

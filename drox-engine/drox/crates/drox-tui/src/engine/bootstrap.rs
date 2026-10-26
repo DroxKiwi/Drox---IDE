@@ -411,6 +411,9 @@ impl EngineRuntime {
                 analysis_frame: false,
                 doc_ingestion_frame: false,
                 session_intent_preclassified: false,
+                explore_execution: false,
+                // Pas de sélecteur de profil hors IDE : CORE complet = protocole complet.
+                engine_profile: drox_engine::EngineProfile::CloudFull.id().to_string(),
             },
         )
     }

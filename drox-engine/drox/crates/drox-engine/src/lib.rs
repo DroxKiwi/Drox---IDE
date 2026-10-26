@@ -72,7 +72,7 @@ pub use tools::{
     partition_tool_calls, ToolCallBatch, DEFAULT_MAX_PARALLEL_TOOL_CALLS,
 };
 
-pub use agent::{Agent, AgentConfig, AgentStream};
+pub use agent::{normalize_engine_profile, Agent, AgentConfig, AgentStream, EngineProfile};
 pub use compaction::{
     choose_live_compact_split_idx, compact_until_budget, format_compact_checkpoint, summarize_run,
     try_live_compact, CompactionConfig, CHECKPOINT_MAX_CHARS, LIVE_COMPACT_MAX_PASSES,

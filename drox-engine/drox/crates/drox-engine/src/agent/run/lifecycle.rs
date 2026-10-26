@@ -14,7 +14,8 @@ use crate::long_memory::ContextChunkSummaryV1;
 use crate::memory::{persist_run, MemoryTracker};
 
 use super::super::dispatch::{
-    confirm_with_user, first_user_text, format_tool_result_for_llm, mirror_workspace_map_from_tool,
+    confirm_with_user, first_user_text, format_tool_result_for_llm_with_profile,
+    mirror_workspace_map_from_tool,
 };
 use super::super::gates::{
     is_todo_recreation_from_scratch, plan_write_gate_satisfied, requires_todo_write_gate,
@@ -125,9 +126,11 @@ impl Agent {
         let mut disk_dirty = false;
 
         // S-2 / C1 — snip chaud sous seuil autocompact ; spill avant stub.
-        if let Some(report) =
-            policy.maybe_snip_hot(messages, Some(self.ctx.workspace_root.as_ref()))
-        {
+        if let Some(report) = policy.maybe_snip_hot_for_profile(
+            messages,
+            Some(self.ctx.workspace_root.as_ref()),
+            self.config.profile(),
+        ) {
             let tokens_before = tokens;
             tokens = policy.count_tokens(messages);
             debug!(
@@ -349,7 +352,8 @@ impl Agent {
             ) {
                 return Some(msg.to_string());
             }
-        } else if !plan_write_gate_satisfied(false, saw_successful_todo_write_in_run, false)
+        } else if self.config.profile().todo_before_mutation_gate()
+            && !plan_write_gate_satisfied(false, saw_successful_todo_write_in_run, false)
             && requires_todo_write_gate(&call.name, &call.arguments, &self.ctx.workspace_root)
         {
             return Some(MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED.to_string());
@@ -387,7 +391,12 @@ impl Agent {
     ) -> bool {
         memory_tracker.record_tool(&call.name);
         mirror_workspace_map_from_tool(ctx, &call.name, &value).await;
-        let for_llm = format_tool_result_for_llm(&call.name, &value, &ctx.workspace_root);
+        let for_llm = format_tool_result_for_llm_with_profile(
+            &call.name,
+            &value,
+            &ctx.workspace_root,
+            self.config.profile(),
+        );
         if !round_tool_outputs.is_empty() {
             round_tool_outputs.push('\n');
         }

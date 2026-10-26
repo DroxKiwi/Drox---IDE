@@ -304,7 +304,7 @@ export class DroxEngineService extends Disposable implements IDroxEngineService 
 	async fetchHttp(
 		url: string,
 		headers?: Record<string, string>,
-		options?: { method?: 'GET' | 'POST'; body?: string },
+		options?: { method?: 'GET' | 'POST'; body?: string; timeoutMs?: number },
 	): Promise<{ statusCode: number; body: string }> {
 		const method = options?.method ?? 'GET';
 		const destination = destinationFromUrl(url);
@@ -498,13 +498,14 @@ function trafficKindForRpc(method: string): DroxTrafficKind {
 
 function summarizeRpcOut(method: string, params: unknown): string {
 	if (method === 'agent.run') {
-		const p = params as { prompt?: string; message?: string; model?: string; architectModel?: string } | undefined;
+		const p = params as { prompt?: string; message?: string; model?: string; architectModel?: string; engineProfile?: string } | undefined;
 		const model = typeof p?.model === 'string' ? p.model
 			: typeof p?.architectModel === 'string' ? p.architectModel
 				: undefined;
 		const raw = typeof p?.prompt === 'string' ? p.prompt : typeof p?.message === 'string' ? p.message : undefined;
 		const msg = raw?.trim().replace(/\s+/g, ' ').slice(0, 80);
-		return `agent.run${model ? ` [${model}]` : ''}${msg ? ` — ${msg}` : ''}`;
+		const profile = typeof p?.engineProfile === 'string' ? p.engineProfile : undefined;
+		return `agent.run${model ? ` [${model}]` : ''}${profile ? ` {${profile}}` : ''}${msg ? ` — ${msg}` : ''}`;
 	}
 	if (method === 'agent.cancel') {
 		return 'agent.cancel';

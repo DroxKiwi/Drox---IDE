@@ -9,7 +9,7 @@
 | Dossier | Périmètre | Statut |
 |---------|-----------|--------|
 | [**1.6.0/**](1.6.0/README.md) | Boucles · compaction · Vague 4 · prompts / Explore · contrats · bash capture | **Freeze** ([CLOSURE](1.6.0/CLOSURE-1.6.0.md)) · pas ship |
-| [**1.6.1/**](1.6.1/README.md) | Profils moteur · presets · canari 9B / qualité 27B | **Ouvert** (cadrage) |
+| [**1.6.1/**](1.6.1/README.md) | Sous-run par défaut · presets véhicule · canari 9B | **Ouvert** (cadrage figé) |
 
 ---
 
@@ -21,7 +21,7 @@
 |---------|------|
 | `main` | Ship. **Pas** de merge `1.6.0`. |
 | `1.6.0` | Freeze historique. On **quitte** ; on **ne merge pas** vers `main`. |
-| `1.6.1` | Travail profils. Si l’historique est **propre** (peu de commits de chantier, message clair) → PR/merge `main` + tag. |
+| `1.6.1` | Sous-run défaut + presets. Si l’historique est **propre** → PR/merge `main` + tag. |
 | `1.6.2` | **Filet git** : si `1.6.1` est trop bruitée, ouvrir depuis `1.6.1` et merger **ça** vers `main` (squash / read-tree [01-BRANCHE](../operations/01-BRANCHE.md) §4 B) pour une prod lisible. |
 
 Ouvrir `1.6.1` depuis `main` **perdrait** le freeze. Toujours **depuis** `1.6.0` (snapshot commité), puis bump `droxVersion`.
@@ -41,4 +41,4 @@ Les modèles locaux / flash restent supportés : c’est l’**orchestration** q
 - [Opérations release](../operations/README.md)
 - [Engine (réf. runtime)](../engine/README.md)
 - [1.6.0 PLAN contexte sérieux](1.6.0/PLAN-CONTEXT-SITUATION.md)
-- [1.6.1 cadrage profils](1.6.1/CADRAGE.md)
+- [1.6.1 cadrage](1.6.1/CADRAGE.md) — sous-run par défaut, presets véhicule

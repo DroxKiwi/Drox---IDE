@@ -4,22 +4,36 @@ use camino::Utf8Path;
 use serde_json::Value;
 use tracing::{debug, warn};
 
-use super::slim_task::slim_task_tool_result_for_llm;
+use crate::agent::config::EngineProfile;
+
+use super::slim_task::slim_task_tool_result_for_profile;
 use super::thresholds::{
 	is_explore_delivery_tool, spill_threshold_for_tool, TOOL_RESULT_PREVIEW_BYTES,
 };
 
-/// Corps `role=tool` après exécution réussie.
-///
-/// Explore `task` : pas de `report` monolithique — `artifacts_inline` borné + chemins kind.
-/// **F1** : `task` / `explore_artifact_read` spillent seulement au-delà de 64 KiB.
+/// Corps `role=tool` après exécution réussie (`cloud-full`).
+#[cfg(test)]
 pub(crate) fn format_tool_result_for_llm(
 	tool_name: &str,
 	value: &Value,
 	workspace_root: &Utf8Path,
 ) -> String {
+	format_tool_result_for_llm_with_profile(tool_name, value, workspace_root, EngineProfile::CloudFull)
+}
+
+/// Corps `role=tool` après exécution réussie.
+///
+/// Explore `task` (`cloud-full`) : pas de `report` monolithique — `artifacts_inline` borné +
+/// chemins kind. Profils locaux : `report` inline borné.
+/// **F1** : `task` / `explore_artifact_read` spillent seulement au-delà de 64 KiB.
+pub(crate) fn format_tool_result_for_llm_with_profile(
+	tool_name: &str,
+	value: &Value,
+	workspace_root: &Utf8Path,
+	profile: EngineProfile,
+) -> String {
 	let value_for_llm = if tool_name == "task" {
-		slim_task_tool_result_for_llm(value)
+		slim_task_tool_result_for_profile(value, profile)
 	} else {
 		value.clone()
 	};
@@ -54,7 +68,7 @@ pub(crate) fn format_tool_result_for_llm(
 				error = %e,
 				"tool result spill failed — truncating inline"
 			);
-			let truncated = &serialized[..serialized.len().min(threshold)];
+			let truncated = &serialized[..floor_char_boundary(&serialized, threshold)];
 			format!(
 				"[drox: tool result for «{tool_name}» — LARGE OUTPUT TRUNCATED (spill failed: {e})]\n\
                  {truncated}\n…[truncated]"
@@ -64,17 +78,54 @@ pub(crate) fn format_tool_result_for_llm(
 }
 
 pub(super) fn format_spill_stub(tool_name: &str, bytes: usize, path: &str, body: &str) -> String {
-	let preview_len = body.len().min(TOOL_RESULT_PREVIEW_BYTES);
+	format_spill_stub_with_preview(tool_name, bytes, path, body, TOOL_RESULT_PREVIEW_BYTES)
+}
+
+pub(super) fn format_spill_stub_with_preview(
+	tool_name: &str,
+	bytes: usize,
+	path: &str,
+	body: &str,
+	preview_max: usize,
+) -> String {
+	let preview_len = floor_char_boundary(body, preview_max);
 	let preview = &body[..preview_len];
-	// D1 : ne plus inciter file_read du spill (re-gonfle le contexte).
+	let source_hint = source_path_from_body(body)
+		.map(|p| format!("Source: {p}\n"))
+		.unwrap_or_default();
+	// D1 : ne pas inciter file_read du spill (re-gonfle le contexte) ; la source reste lisible par plage.
 	format!(
 		"[drox: tool result for «{tool_name}» — LARGE OUTPUT SPILLED TO DISK]\n\
          Full body ({bytes} bytes) written to: {path}\n\
+         {source_hint}\
          Preview (first {preview_len} bytes):\n{preview}\n\
-         Do NOT file_read this spill path (re-inflates context). Prefer Explore \
-         artifacts / explore_artifact_read, or a short needle on the original source \
-         if you must edit. Do NOT re-call the same tool just to re-fetch this blob."
+         Do NOT file_read the spill path. If you still need more of the original \
+         source, file_read it with start_line / end_line (a focused range)."
 	)
+}
+
+/// Plus grand index ≤ `max` sur une frontière de caractère UTF-8.
+pub(super) fn floor_char_boundary(s: &str, max: usize) -> usize {
+	if max >= s.len() {
+		return s.len();
+	}
+	let mut i = max;
+	while i > 0 && !s.is_char_boundary(i) {
+		i -= 1;
+	}
+	i
+}
+
+/// Champ `"path"` d'un résultat JSON (`file_read`, …) — sans désérialiser tout le blob.
+pub(super) fn source_path_from_body(body: &str) -> Option<String> {
+	let json_start = body.find('{')?;
+	if let Ok(Value::Object(map)) = serde_json::from_str::<Value>(&body[json_start..]) {
+		return map
+			.get("path")
+			.and_then(Value::as_str)
+			.map(str::to_string);
+	}
+	None
 }
 
 /// Spill forcé d’une livraison Explore : pointer les kinds, pas inciter re-read sources.

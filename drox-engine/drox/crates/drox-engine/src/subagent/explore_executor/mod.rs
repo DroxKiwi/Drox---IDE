@@ -19,12 +19,12 @@ use drox_tools::{
 	ToolContext, ToolError,
 };
 use tokio::sync::Semaphore;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use super::budget::explore_iteration_budget;
 
 use assemble::assemble_explore_outcome;
-use phase1::{run_explore_phase1, Phase1Input};
+use phase1::{run_explore_phase1, Phase1Input, Phase1Result};
 
 /// Exécuteur moteur branché sur `ToolContext::subagent_executor`.
 pub struct EngineSubagentExecutor {
@@ -97,15 +97,37 @@ impl SubagentExecutor for EngineSubagentExecutor {
 			"explore subagent start (phase 1 — tools + explore_commit)"
 		);
 
-		let phase1 = run_explore_phase1(Phase1Input {
-			llm: self.llm.clone(),
-			chat_options: self.execution_chat_options(),
-			max_iterations,
-			request: &request,
-			parent_ctx,
-			commit_handle: commit_handle.clone(),
-		})
-		.await?;
+		// Flux LLM coupé avant tout commit / evidence : une seule relance.
+		let mut attempt = 0;
+		let phase1 = loop {
+			let result = run_explore_phase1(Phase1Input {
+				llm: self.llm.clone(),
+				chat_options: self.execution_chat_options(),
+				max_iterations,
+				request: &request,
+				parent_ctx,
+				commit_handle: commit_handle.clone(),
+			})
+			.await?;
+			let Some(err) = result.llm_error.as_deref() else {
+				break result;
+			};
+			let snap = commit_handle.snapshot();
+			let nothing_gathered = snap.bodies.is_empty() && snap.evidence_paths.is_empty();
+			if nothing_gathered && attempt == 0 {
+				attempt += 1;
+				warn!(error = %err, "explore phase 1 LLM error before any evidence — retry once");
+				continue;
+			}
+			if nothing_gathered {
+				return Err(ToolError::remote(format!("subagent failed: LLM error: {err}")));
+			}
+			debug!(error = %err, "explore phase 1 LLM error — assembling partial delivery");
+			break Phase1Result {
+				hit_max: true,
+				..result
+			};
+		};
 
 		let snap = commit_handle.snapshot();
 		debug!(

@@ -23,6 +23,7 @@
 //! | [`tools`] | Descriptions d'outils exposées au LLM |
 //! | [`model_questions`] | Asks one-shot (boot intent multi-bool) |
 //! | [`lint`] | Vérification claims / doublons d'id |
+//! | [`local`] | CORE / Explore / clôture allégés — profils moteur locaux |
 
 mod blocks;
 mod catalog;
@@ -32,6 +33,7 @@ mod entry;
 mod explore;
 mod gates;
 mod lint;
+mod local;
 mod model_questions;
 mod runtime;
 mod session;
@@ -73,6 +75,13 @@ pub use gates::{
 	UNFINISHED_COURSE_PLAN_ENTRY, UNFINISHED_TODOS_ENTRY,
 };
 pub use lint::{lint_catalog, CatalogLintError};
+pub use local::{
+	CORE_LOCAL_SYSTEM_ENTRY, CORE_LOCAL_SYSTEM_PROMPT, LOCAL_EMPTY_TURN_ENTRY,
+	LOCAL_EMPTY_TURN_NUDGE, LOCAL_FINAL_ANSWER_ENTRY, LOCAL_FINAL_ANSWER_PROMPT,
+	LOCAL_SOFT_CLOSE_CHECK_ENTRY, LOCAL_SOFT_CLOSE_CHECK_NUDGE,
+	SUBAGENTS_EXPLORE_LOCAL_ENTRY, SUBAGENTS_EXPLORE_LOCAL_SUPPLEMENT, TASK_TOOL_DESCRIPTION_LOCAL,
+	TASK_TOOL_LOCAL_ENTRY,
+};
 pub use model_questions::{
 	extract_json_object_text, parse_session_user_intent, session_user_intent_user_message,
 	SessionUserIntent, SESSION_USER_INTENT_ENTRY, SESSION_USER_INTENT_SCHEMA_HINT,

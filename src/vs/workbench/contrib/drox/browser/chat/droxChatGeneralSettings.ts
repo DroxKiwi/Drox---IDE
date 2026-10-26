@@ -6,6 +6,7 @@
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { applyDroxConfigurationUpdate, droxConfigurationResourceForRead, readDroxChatConfigurationValue, readDroxChatConfigurationString } from '../../common/droxAgentsConfiguration.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
+import { normalizeDroxEngineProfile, type DroxEngineProfileId } from '../../common/droxEngineProfile.js';
 import { readLlmProvider } from '../../common/droxLlmCatalog.js';
 import { readLlmHeadersMap } from '../../common/droxLlmHeaders.js';
 import { isMcpToolsEnabled, readLlmSettings, readSubagentsSettings } from '../../common/droxRunSettings.js';
@@ -21,6 +22,7 @@ export interface IDroxGeneralSettingsWire {
 	readonly llmHeaders: Record<string, string>;
 	readonly connectionSummary: string;
 	readonly maxIterations: number;
+	readonly engineProfile: DroxEngineProfileId;
 	readonly nativeThinking: boolean;
 	readonly primaryLanguage: string;
 	readonly warmStart: boolean;
@@ -44,6 +46,7 @@ export interface IDroxGeneralSettingsPatch {
 	readonly apiKey?: string;
 	readonly llmHeaders?: Record<string, string>;
 	readonly maxIterations?: number;
+	readonly engineProfile?: string;
 	readonly nativeThinking?: boolean;
 	readonly primaryLanguage?: string;
 	readonly warmStart?: boolean;
@@ -91,6 +94,7 @@ export function readDroxGeneralSettingsForWebview(
 		apiKey: llm.apiKey,
 		llmHeaders,
 		maxIterations: llm.maxIterations,
+		engineProfile: llm.engineProfile,
 		nativeThinking: llm.nativeThinking,
 		primaryLanguage: llm.primaryLanguage,
 		warmStart: readBool(deps.configurationService, DroxSetting.WarmStart, resource, true),
@@ -174,6 +178,9 @@ export async function setDroxGeneralSettingsFromWebview(
 	}
 	if (patch.maxIterations !== undefined && Number.isFinite(patch.maxIterations)) {
 		await update(DroxSetting.MaxIterations, Math.min(DROX_MAX_ITERATIONS_CAP, Math.max(1, Math.floor(patch.maxIterations))));
+	}
+	if (patch.engineProfile !== undefined) {
+		await update(DroxSetting.EngineProfile, normalizeDroxEngineProfile(patch.engineProfile));
 	}
 	if (patch.subagentsMaxIterations !== undefined && Number.isFinite(patch.subagentsMaxIterations)) {
 		await update(DroxSetting.SubagentsMaxIterations, Math.max(1, Math.floor(patch.subagentsMaxIterations)));

@@ -12,9 +12,12 @@ use tracing::warn;
 use crate::error::EngineError;
 use crate::event::AgentEvent;
 
+use super::config::EngineProfile;
 use super::loop_detect::PendingToolCall;
 
+#[cfg(test)]
 pub(crate) use super::tool_result_spill::format_tool_result_for_llm;
+pub(crate) use super::tool_result_spill::format_tool_result_for_llm_with_profile;
 
 pub(crate) async fn mirror_workspace_map_from_tool(
     ctx: &ToolContext,
@@ -137,7 +140,11 @@ pub(crate) fn first_user_text(messages: &[Message]) -> Option<String> {
 /// Certains outils restent enregistrés pour exécution côté client / CLI
 /// mais ne doivent **pas** être visibles du LLM (`session_end` : réservé
 /// à la commande utilisateur `/session_end`).
-pub(crate) fn build_tool_specs(registry: &ToolRegistry, professor: bool) -> Vec<ToolSpec> {
+pub(crate) fn build_tool_specs(
+    registry: &ToolRegistry,
+    professor: bool,
+    profile: EngineProfile,
+) -> Vec<ToolSpec> {
     const HIDDEN_FROM_LLM: &[&str] = &["session_end"];
     let has_mcp_stubs = registry
         .names()
@@ -146,6 +153,9 @@ pub(crate) fn build_tool_specs(registry: &ToolRegistry, professor: bool) -> Vec<
     let mut specs = Vec::new();
     for name in registry.names() {
         if HIDDEN_FROM_LLM.contains(&name.as_str()) {
+            continue;
+        }
+        if !profile.exposes_parent_tool(&name) {
             continue;
         }
         if has_mcp_stubs && name == "mcp_call" {
@@ -158,12 +168,77 @@ pub(crate) fn build_tool_specs(registry: &ToolRegistry, professor: bool) -> Vec<
             continue;
         }
         if let Some(tool) = registry.get(&name) {
+            let description = if name == "task" && profile.is_local() {
+                drox_prompts::TASK_TOOL_DESCRIPTION_LOCAL.to_string()
+            } else {
+                tool.description().to_string()
+            };
             specs.push(ToolSpec {
                 name: tool.name().to_string(),
-                description: tool.description().to_string(),
+                description,
                 parameters: tool.input_schema(),
             });
         }
     }
     specs
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Nœud `type: object` dont une branche `oneOf` / `anyOf` est un scalaire = enum cassé.
+    fn find_object_with_scalar_branch(node: &Value, path: &str, out: &mut Vec<String>) {
+        match node {
+            Value::Object(map) => {
+                if map.get("type").and_then(Value::as_str) == Some("object") {
+                    for key in ["oneOf", "anyOf"] {
+                        if let Some(Value::Array(arr)) = map.get(key) {
+                            if arr.iter().any(|b| {
+                                matches!(b.get("type").and_then(Value::as_str), Some(t) if t != "object")
+                            }) {
+                                out.push(format!("{path}.{key}"));
+                            }
+                        }
+                    }
+                }
+                for (k, v) in map {
+                    find_object_with_scalar_branch(v, &format!("{path}.{k}"), out);
+                }
+            }
+            Value::Array(arr) => {
+                for (i, v) in arr.iter().enumerate() {
+                    find_object_with_scalar_branch(v, &format!("{path}[{i}]"), out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn ollama_schemas_of_real_tools_keep_string_enums() {
+        let mut registry = ToolRegistry::with_simple_tools();
+        registry.register_subagent_task();
+        let specs = build_tool_specs(&registry, false, EngineProfile::CloudFull);
+        assert!(specs.iter().any(|s| s.name == "todo_write"));
+        let mut bad = Vec::new();
+        for spec in &specs {
+            let out = drox_llm::schema::ollama_tool_parameters(&spec.parameters);
+            assert!(out["properties"].is_object(), "{} root properties", spec.name);
+            find_object_with_scalar_branch(&out, &spec.name, &mut bad);
+        }
+        assert!(bad.is_empty(), "string enums coerced to object: {bad:?}");
+    }
+
+    #[test]
+    fn local_9b_specs_are_a_subset() {
+        let mut registry = ToolRegistry::with_simple_tools();
+        registry.register_subagent_task();
+        let full = build_tool_specs(&registry, false, EngineProfile::CloudFull);
+        let light = build_tool_specs(&registry, false, EngineProfile::Local9b);
+        assert!(light.len() < full.len());
+        assert!(light.iter().any(|s| s.name == "task"));
+        assert!(light.iter().any(|s| s.name == "codebase_search"));
+        assert!(!light.iter().any(|s| s.name == "session_compact"));
+    }
 }

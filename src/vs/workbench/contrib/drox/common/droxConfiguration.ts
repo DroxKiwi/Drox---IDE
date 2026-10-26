@@ -144,6 +144,9 @@ export const enum DroxSetting {
 
 	NativeThinking = 'drox.nativeThinking',
 
+	/** 1.6.1 — moteur : `local-9b` | `local-27b` | `cloud-full`. Filé au run ; le moteur règle CORE, surface parent, clôture et gates. */
+	EngineProfile = 'drox.engine.profile',
+
 	Temperature = 'drox.temperature',
 
 	MaxTokens = 'drox.maxTokens',
@@ -553,6 +556,22 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 			description: localize('drox.nativeThinking', 'Enable native thinking (`nativeThinking` in `agent.run`, Ollama `internal_reasoning` phase).'),
 
+		},
+
+		[DroxSetting.EngineProfile]: {
+			type: 'string',
+			enum: ['local-9b', 'local-27b', 'cloud-full'],
+			enumDescriptions: [
+				localize('drox.engine.profile.local9b', 'Small model — engine-led sub-runs; light parent protocol (default).'),
+				localize('drox.engine.profile.local27b', 'Local capable — same sub-runs; parent a bit more tools and gates.'),
+				localize('drox.engine.profile.cloudFull', 'Full protocol — 1.6.0 manual Plan→Assign, full CORE and tools.'),
+			],
+			default: 'local-9b',
+			scope: ConfigurationScope.RESOURCE,
+			markdownDescription: localize(
+				'drox.engine.profile',
+				'**Agent engine profile** (`engineProfile` on `agent.run`). Does not change model weights. Local profiles: a reply without tools closes the run, smaller parent tool surface, inline Explore reports, `todo_write` optional (9B). `cloud-full` keeps the 1.6.0 protocol.',
+			),
 		},
 
 		[DroxSetting.ConfirmFileWrites]: {

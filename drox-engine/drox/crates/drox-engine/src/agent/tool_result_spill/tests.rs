@@ -1,11 +1,16 @@
 use super::*;
 use serde_json::json;
 
+use crate::agent::config::EngineProfile;
+
 use super::hot_snip::compact_explore_delivery_for_hot_snip;
 use super::slim_task::{
-	slim_task_tool_result_for_llm, TASK_INLINE_KIND_MAX_CHARS, TASK_SUMMARY_MAX_CHARS,
+	slim_task_tool_result_for_llm, slim_task_tool_result_for_profile, TASK_INLINE_KIND_MAX_CHARS,
+	TASK_REPORT_INLINE_MAX_CHARS, TASK_SUMMARY_MAX_CHARS,
 };
 use super::thresholds::TOOL_RESULT_PREVIEW_BYTES;
+
+const FULL: EngineProfile = EngineProfile::CloudFull;
 
 #[test]
 fn read_heavy_spills_earlier_than_bash() {
@@ -54,8 +59,12 @@ fn format_spills_file_read_at_8kib() {
 		"full blob must not stay in the LLM message"
 	);
 	assert!(
-		formatted.contains("Do NOT file_read this spill path"),
-		"D1: spill stub must discourage re-read"
+		formatted.contains("Do NOT file_read the spill path"),
+		"D1: spill stub must discourage re-read of the spill"
+	);
+	assert!(
+		formatted.contains("start_line / end_line"),
+		"original source stays readable by range"
 	);
 	assert!(
 		!formatted.contains("Use `file_read`"),
@@ -107,10 +116,11 @@ fn format_keeps_medium_bash_inline() {
 fn hot_snip_always_spills_before_stub() {
 	let dir = tempfile::tempdir().unwrap();
 	let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
-	let body = "payload-".repeat(200);
-	let stub = stub_for_hot_snip(&ws, &body);
+	let body = "payload-".repeat(400);
+	let stub = stub_for_hot_snip(&ws, &body, FULL);
 	assert!(stub.contains("SPILLED TO DISK") || stub.contains("tool-outputs"));
 	assert!(!stub.contains(&body));
+	assert!(stub.contains(&"payload-".repeat(100)), "hot-snip stub keeps a preview");
 	let out_dir = ws.join(".drox").join("tool-outputs");
 	let entries: Vec<_> = std::fs::read_dir(out_dir.as_std_path()).unwrap().collect();
 	assert_eq!(entries.len(), 1);
@@ -136,7 +146,7 @@ fn f2_hot_snip_preserves_task_merge() {
 	let wrapped = format!(
 		"[drox: tool result for «task» — JSON below; this is NOT a user message]\n{serialized}"
 	);
-	let stub = stub_for_hot_snip(&ws, &wrapped);
+	let stub = stub_for_hot_snip(&ws, &wrapped, FULL);
 	assert!(
 		stub.contains("EXPLORE MERGE PRESERVED"),
 		"F2: task hot-snip must preserve merge; got {}",
@@ -160,7 +170,7 @@ fn f2_compact_explore_artifact_read() {
 	let wrapped = format!(
 		"[drox: tool result for «explore_artifact_read» — JSON below; this is NOT a user message]\n{serialized}"
 	);
-	let compact = compact_explore_delivery_for_hot_snip(&wrapped).expect("compact");
+	let compact = compact_explore_delivery_for_hot_snip(&wrapped, FULL).expect("compact");
 	assert!(compact.contains("EXPLORE MERGE PRESERVED"));
 	assert!(compact.contains("file_summaries.md"));
 	assert!(compact.contains("content_excerpt"));
@@ -209,7 +219,7 @@ fn slim_task_drops_report_keeps_inline() {
 }
 
 #[test]
-fn hot_snip_shortens_existing_spill_stub() {
+fn hot_snip_keeps_existing_spill_stub_preview() {
 	let dir = tempfile::tempdir().unwrap();
 	let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
 	let existing = format!(
@@ -219,18 +229,60 @@ fn hot_snip_shortens_existing_spill_stub() {
 		ws,
 		"p".repeat(512)
 	);
-	let stub = stub_for_hot_snip(&ws, &existing);
-	assert!(stub.contains("SPILLED FOR CONTEXT"));
+	let stub = stub_for_hot_snip(&ws, &existing, FULL);
 	assert!(stub.contains("tool-outputs"));
-	assert!(!stub.contains(&"p".repeat(200)));
-	assert!(
-		stub.contains("Do NOT file_read this spill path"),
-		"D1: hot-snip stub must discourage re-read"
-	);
-	assert!(
-		!stub.contains("Re-read the spill"),
-		"D1: must not invite re-read after Preview dropped"
-	);
+	assert!(stub.contains(&"p".repeat(200)), "existing preview must not be dropped");
+	assert!(!stub.contains("Preview dropped"));
 	let out_dir = ws.join(".drox").join("tool-outputs");
 	assert!(!out_dir.exists() || std::fs::read_dir(out_dir.as_std_path()).unwrap().count() == 0);
+}
+
+#[test]
+fn spill_stub_names_original_source_path() {
+	let dir = tempfile::tempdir().unwrap();
+	let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+	let value = json!({ "path": "src/app/page.tsx", "content": "é".repeat(READ_HEAVY_SPILL_THRESHOLD_BYTES) });
+	let formatted = format_tool_result_for_llm("file_read", &value, &ws);
+	assert!(
+		formatted.contains("Source: src/app/page.tsx"),
+		"{}",
+		formatted.chars().take(300).collect::<String>()
+	);
+}
+
+#[test]
+fn local_slim_task_keeps_inline_report() {
+	let value = json!({
+		"report": "## file_summaries\n- a.ts: entry\n".repeat(400),
+		"summary": "ok",
+		"artifacts": { "file_summaries": ".drox/subagents/s/e/file_summaries.md" },
+		"artifacts_inline": { "file_summaries": "- a.ts: entry" },
+	});
+	let slim9 = slim_task_tool_result_for_profile(&value, EngineProfile::Local9b);
+	let report = slim9.get("report").and_then(|v| v.as_str()).expect("report inline");
+	assert!(report.chars().count() <= TASK_REPORT_INLINE_MAX_CHARS + 1);
+	assert!(slim9.get("artifacts_inline").is_none());
+	assert!(slim9.get("artifacts").is_none());
+	let slim27 = slim_task_tool_result_for_profile(&value, EngineProfile::Local27b);
+	assert!(slim27.get("report").is_some());
+	assert!(slim27.get("artifacts").is_some());
+	let full = slim_task_tool_result_for_profile(&value, FULL);
+	assert!(full.get("report").is_none());
+	assert!(full.get("artifacts_inline").is_some());
+}
+
+#[test]
+fn local_hot_snip_preserves_report() {
+	let json = json!({
+		"summary": "mapped",
+		"report": "## structure_map\n- src/app/docs/page.tsx\n",
+	});
+	let serialized = serde_json::to_string(&json).unwrap();
+	let wrapped = format!(
+		"[drox: tool result for «task» — JSON below; this is NOT a user message]\n{serialized}"
+	);
+	let compact =
+		compact_explore_delivery_for_hot_snip(&wrapped, EngineProfile::Local9b).expect("compact");
+	assert!(compact.contains("src/app/docs/page.tsx"));
+	assert!(!compact.contains("explore_artifact_read"));
 }

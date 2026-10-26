@@ -65,7 +65,7 @@ export interface IDroxEngineService {
 	fetchHttp(
 		url: string,
 		headers?: Record<string, string>,
-		options?: { method?: 'GET' | 'POST'; body?: string },
+		options?: { method?: 'GET' | 'POST'; body?: string; timeoutMs?: number },
 	): Promise<{ statusCode: number; body: string }>;
 
 	setRequestHandler(method: string, handler: RpcRequestHandler): void;

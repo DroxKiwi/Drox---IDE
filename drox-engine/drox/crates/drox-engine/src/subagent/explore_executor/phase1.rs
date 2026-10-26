@@ -44,6 +44,8 @@ pub(super) struct Phase1Input<'a> {
 pub(super) struct Phase1Result {
 	pub hit_max: bool,
 	pub iterations_used: usize,
+	/// Erreur LLM (flux coupé, I/O) : l'appelant retente ou assemble le partiel.
+	pub llm_error: Option<String>,
 }
 
 pub(super) async fn run_explore_phase1(input: Phase1Input<'_>) -> Result<Phase1Result, ToolError> {
@@ -112,6 +114,7 @@ pub(super) async fn run_explore_phase1(input: Phase1Input<'_>) -> Result<Phase1R
 		.unwrap_or_else(Instant::now);
 	let mut hit_max = false;
 	let mut iterations_used: usize = 0;
+	let mut llm_error: Option<String> = None;
 	// tool_call id → (name, args) pour apparier ToolFinish → L0.
 	let mut pending: HashMap<String, (String, serde_json::Value)> = HashMap::new();
 
@@ -193,6 +196,11 @@ pub(super) async fn run_explore_phase1(input: Phase1Input<'_>) -> Result<Phase1R
 				}
 				break;
 			}
+			Err(EngineError::Llm(e)) => {
+				warn!(error = %e, iterations_used, "explore subagent LLM error — partial phase 1");
+				llm_error = Some(e.to_string());
+				break;
+			}
 			Err(e) => {
 				warn!(error = %e, "explore subagent engine error");
 				return Err(ToolError::remote(format!("subagent failed: {e}")));
@@ -219,6 +227,7 @@ pub(super) async fn run_explore_phase1(input: Phase1Input<'_>) -> Result<Phase1R
 	Ok(Phase1Result {
 		hit_max,
 		iterations_used,
+		llm_error,
 	})
 }
 

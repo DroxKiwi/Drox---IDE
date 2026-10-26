@@ -22,8 +22,9 @@ use drox_types::Message;
 /// C1 — tool results « chauds » complets (le reste peut être spill+stub).
 pub const HOT_SNIP_KEEP_RECENT: usize = 4;
 
-/// C1 — snip dès ~200 tokens estimés (~800 octets rough) hors fenêtre chaude.
-const HOT_SNIP_MIN_TOKENS: usize = 200;
+/// C1 — snip seulement au-delà de ~2k tokens estimés (~8 KiB rough) hors fenêtre chaude :
+/// en dessous, le résultat (manifest, petit fichier) reste lisible tel quel.
+const HOT_SNIP_MIN_TOKENS: usize = 2_000;
 
 const HOT_SNIP_FALLBACK_PLACEHOLDER: &str =
     "[Tool output truncated for context efficiency — re-read path/spill if needed]";
@@ -128,6 +129,20 @@ impl ContextPolicy {
         messages: &mut Vec<Message>,
         workspace_root: Option<&camino::Utf8Path>,
     ) -> Option<SnipReport> {
+        self.maybe_snip_hot_for_profile(
+            messages,
+            workspace_root,
+            crate::agent::EngineProfile::CloudFull,
+        )
+    }
+
+    /// [`Self::maybe_snip_hot`] avec préservation Explore adaptée au profil moteur.
+    pub fn maybe_snip_hot_for_profile(
+        &self,
+        messages: &mut Vec<Message>,
+        workspace_root: Option<&camino::Utf8Path>,
+        profile: crate::agent::EngineProfile,
+    ) -> Option<SnipReport> {
         if self.snip.is_none() {
             return None;
         }
@@ -140,7 +155,7 @@ impl ContextPolicy {
             Some(root) => {
                 let root = root.to_owned();
                 self.maybe_snip_with_mapper(messages, &hot, move |content| {
-                    crate::agent::tool_result_spill::stub_for_hot_snip(&root, content)
+                    crate::agent::tool_result_spill::stub_for_hot_snip(&root, content, profile)
                 })
             }
             None => self.maybe_snip_with_config(messages, &hot),
@@ -278,8 +293,8 @@ mod tests {
             ContextBudget::default(),
             Some(SnipConfig::default()),
         );
-        // ~1000 tokens chacun → au-dessus de HOT_SNIP_MIN_TOKENS (200).
-        let big = "w".repeat(4_000);
+        // ~3000 tokens chacun → au-dessus de HOT_SNIP_MIN_TOKENS (2000).
+        let big = "w".repeat(12_000);
         let mut msgs = vec![
             tool_msg(&big),
             tool_msg(&big),
@@ -316,5 +331,24 @@ mod tests {
         let out_dir = ws.join(".drox").join("tool-outputs");
         let n = std::fs::read_dir(out_dir.as_std_path()).unwrap().count();
         assert_eq!(n, 2, "each snipped block must spill once");
+    }
+
+    #[test]
+    fn maybe_snip_hot_keeps_small_results_outside_window() {
+        let dir = tempfile::tempdir().unwrap();
+        let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        let policy = ContextPolicy::new(
+            Arc::new(RoughTokenCounter::new(4)),
+            ContextBudget::default(),
+            Some(SnipConfig::default()),
+        );
+        // ~250 tokens (manifest-sized) : jamais vidé par le hot snip.
+        let small = "p".repeat(1_000);
+        let mut msgs: Vec<Message> = (0..8).map(|_| tool_msg(&small)).collect();
+        assert!(policy.maybe_snip_hot(&mut msgs, Some(ws.as_ref())).is_none());
+        match &msgs[0].content[0] {
+            Content::ToolResult { content, .. } => assert_eq!(content, &small),
+            _ => panic!("expected ToolResult"),
+        }
     }
 }

@@ -201,7 +201,18 @@ pub fn dangerous_path_reason(path: &str, ctx: &PathMatchContext) -> Option<&'sta
         }
     }
 
+    // Zones de travail que le CORE propose au modèle (scripts jetables, message de commit).
+    let lower_fwd = lower.replace('\\', "/");
+    let in_drox_work_area = !lower_fwd.contains("/../")
+        && !lower_fwd.contains("/.git/")
+        && !lower_fwd.contains("/.vscode/")
+        && !lower_fwd.contains("/.idea/")
+        && (lower_fwd.contains("/.drox/scratch/") || lower_fwd.ends_with("/.drox/commit_msg"));
+
     for dir in DANGEROUS_DIRS {
+        if *dir == ".drox" && in_drox_work_area {
+            continue;
+        }
         let needle = if cfg!(windows) {
             format!("/{dir}/").to_ascii_lowercase()
         } else {
@@ -265,5 +276,17 @@ mod tests {
         let ctx = PathMatchContext::new(&root, "/home/user");
         assert!(dangerous_path_reason(".env", &ctx).is_some());
         assert!(dangerous_path_reason("src/.git/config", &ctx).is_some());
+    }
+
+    #[test]
+    fn drox_scratch_and_commit_msg_are_work_areas() {
+        let root = PathBuf::from("/tmp/drox_test");
+        let ctx = PathMatchContext::new(&root, "/home/user");
+        assert!(dangerous_path_reason(".drox/scratch/check.bat", &ctx).is_none());
+        assert!(dangerous_path_reason(".drox/COMMIT_MSG", &ctx).is_none());
+        assert!(dangerous_path_reason(".drox/settings.json", &ctx).is_some());
+        assert!(dangerous_path_reason(".drox/hooks.json", &ctx).is_some());
+        assert!(dangerous_path_reason(".drox/scratch/../settings.json", &ctx).is_some());
+        assert!(dangerous_path_reason(".drox/COMMIT_MSG.bak/x", &ctx).is_some());
     }
 }

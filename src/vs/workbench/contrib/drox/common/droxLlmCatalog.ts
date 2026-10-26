@@ -371,7 +371,7 @@ export function createDroxLlmHttp(
 	mainFetchHttp: (
 		url: string,
 		headers?: Record<string, string>,
-		options?: { method?: 'GET' | 'POST'; body?: string },
+		options?: { method?: 'GET' | 'POST'; body?: string; timeoutMs?: number },
 	) => Promise<{ statusCode: number; body: string }>,
 	_requestService: IRequestService,
 	apiKey: string,
@@ -384,6 +384,7 @@ export function createDroxLlmHttp(
 		 * surfacing the main-process error is required for connection tests.
 		 */
 		readonly allowRendererFallback?: boolean;
+		readonly timeoutMs?: number;
 	},
 ): DroxHttpRequestFn {
 	const authHeaders = mergeLlmHttpHeaders(apiKey, customHeaders ?? {}, authContext);
@@ -391,9 +392,10 @@ export function createDroxLlmHttp(
 	const hdrs = hasHeaders ? authHeaders : undefined;
 	const allowFallback = opts?.allowRendererFallback === true;
 	const fallback = allowFallback ? createRequestServiceHttp(_requestService, hdrs) : undefined;
+	const timeoutMs = opts?.timeoutMs;
 	return async (url, options) => {
 		try {
-			return await mainFetchHttp(url, hdrs, options);
+			return await mainFetchHttp(url, hdrs, timeoutMs !== undefined ? { ...options, timeoutMs } : options);
 		} catch (err) {
 			if (fallback) {
 				return fallback(url, options);

@@ -28,6 +28,7 @@ export const DROX_CHAT_ARCHITECT_SETTING_KEYS: readonly string[] = [
 	DroxSetting.FrequencyPenalty,
 	DroxSetting.MaxTokens,
 	DroxSetting.KeepAlive,
+	DroxSetting.EngineProfile,
 ];
 
 /** Clés panneau Général ⚙ — run + comportement IDE. */
@@ -38,6 +39,7 @@ export const DROX_CHAT_GENERAL_SETTING_KEYS: readonly string[] = [
 	DroxSetting.LlmProvider,
 	DroxSetting.LlmHosting,
 	DroxSetting.MaxIterations,
+	DroxSetting.EngineProfile,
 	DroxSetting.NativeThinking,
 	DroxSetting.PrimaryLanguage,
 	DroxSetting.WarmStart,

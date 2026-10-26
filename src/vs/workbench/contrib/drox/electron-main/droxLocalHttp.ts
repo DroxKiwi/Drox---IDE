@@ -51,7 +51,21 @@ export function droxLocalHttpRequest(
 		if (body !== undefined && !headers['Content-Length'] && !headers['content-length']) {
 			headers['Content-Length'] = String(Buffer.byteLength(body, 'utf8'));
 		}
-		const req = lib.request(
+		let settled = false;
+		let req!: http.ClientRequest;
+		const settle = (action: () => void) => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			clearTimeout(hardTimer);
+			action();
+		};
+		const hardTimer = setTimeout(() => {
+			req?.destroy();
+			settle(() => reject(new Error(`timeout after ${timeoutMs}ms`)));
+		}, timeoutMs);
+		req = lib.request(
 			{
 				protocol: parsed.protocol,
 				hostname: parsed.hostname,
@@ -65,18 +79,18 @@ export function droxLocalHttpRequest(
 				const chunks: Buffer[] = [];
 				res.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
 				res.on('end', () => {
-					resolve({
+					settle(() => resolve({
 						statusCode: res.statusCode ?? 0,
 						body: Buffer.concat(chunks).toString('utf8'),
-					});
+					}));
 				});
 			},
 		);
 		req.on('timeout', () => {
 			req.destroy();
-			reject(new Error(`timeout after ${timeoutMs}ms`));
+			settle(() => reject(new Error(`timeout after ${timeoutMs}ms`)));
 		});
-		req.on('error', reject);
+		req.on('error', err => settle(() => reject(err)));
 		if (body !== undefined && method !== 'GET') {
 			req.write(body, 'utf8');
 		}

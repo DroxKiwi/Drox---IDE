@@ -5,6 +5,7 @@
 
 // allow-any-unicode-comment-file
 
+import { raceTimeout } from '../../../../../base/common/async.js';
 import { localize } from '../../../../../nls.js';
 import { IRequestService } from '../../../../../platform/request/common/request.js';
 import {
@@ -33,7 +34,31 @@ export interface IDroxConnectionTestDeps {
 	readonly requestService: IRequestService;
 }
 
+/** Wall clock for the wizard test (list + chat probe). */
+export const DROX_CONNECTION_TEST_TIMEOUT_MS = 15_000;
+const CONNECTION_TEST_HTTP_TIMEOUT_MS = 8_000;
+
 export async function testDroxLlmConnectionDraft(
+	deps: IDroxConnectionTestDeps,
+	draft: IDroxGeneralSettingsPatch,
+	opts?: { readonly timeoutMs?: number },
+): Promise<IDroxConnectionTestResult> {
+	const wallMs = opts?.timeoutMs ?? DROX_CONNECTION_TEST_TIMEOUT_MS;
+	const raced = await raceTimeout(runConnectionTest(deps, draft), wallMs);
+	if (raced === undefined) {
+		return {
+			ok: false,
+			error: localize(
+				'drox.connection.test.timeout',
+				'Connection timed out after {0}s. Check that the server is running at this URL.',
+				String(Math.max(1, Math.round(wallMs / 1000))),
+			),
+		};
+	}
+	return raced;
+}
+
+async function runConnectionTest(
 	deps: IDroxConnectionTestDeps,
 	draft: IDroxGeneralSettingsPatch,
 ): Promise<IDroxConnectionTestResult> {
@@ -60,7 +85,7 @@ export async function testDroxLlmConnectionDraft(
 		apiKey,
 		customHeaders,
 		authContext,
-		{ allowRendererFallback: false },
+		{ allowRendererFallback: false, timeoutMs: CONNECTION_TEST_HTTP_TIMEOUT_MS },
 	);
 	const httpGet = async (url: string) => http(url, { method: 'GET' });
 	let result: Awaited<ReturnType<typeof fetchLlmModelNames>>;

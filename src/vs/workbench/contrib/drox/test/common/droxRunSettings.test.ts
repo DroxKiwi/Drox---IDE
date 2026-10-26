@@ -80,6 +80,7 @@ function createMockRunSettingsService(
 		thinkingBudget: undefined,
 		nativeThinking: false,
 		llmParamsMuted: [],
+		engineProfile: 'local-9b',
 		...llmOverrides,
 	};
 	return {
@@ -119,6 +120,47 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 		assert.strictEqual(settings.repeatPenalty, 1.15);
 		assert.strictEqual(settings.keepAlive, '30m');
 		assert.strictEqual(settings.maxIterations, 37);
+	});
+
+	test('engineProfile defaults to local-9b and wires agent.run', () => {
+		const config = createMockConfigurationService({});
+		const settings = readLlmSettings(config, WS);
+		assert.strictEqual(settings.engineProfile, 'local-9b');
+		const params = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS.fsPath,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings,
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(params.engineProfile, 'local-9b');
+	});
+
+	test('engineProfile cloud-full is forwarded unchanged', () => {
+		const config = createMockConfigurationService({
+			[DroxSetting.EngineProfile]: 'cloud-full',
+		});
+		const settings = readLlmSettings(config, WS);
+		assert.strictEqual(settings.engineProfile, 'cloud-full');
+		const params = buildAgentRunParams({
+			prompt: 'hi',
+			workspace: WS.fsPath,
+			mode: 'acceptEdits',
+			sessionId: 's1',
+			settings,
+			disabledTools: [],
+			mcpToolsEnabled: true,
+		});
+		assert.strictEqual(params.engineProfile, 'cloud-full');
+	});
+
+	test('unknown engineProfile falls back to local-9b', () => {
+		const config = createMockConfigurationService({
+			[DroxSetting.EngineProfile]: 'nope',
+		});
+		assert.strictEqual(readLlmSettings(config, WS).engineProfile, 'local-9b');
 	});
 
 	test('topP and maxIterations flow into next agent.run params', () => {
@@ -170,6 +212,7 @@ suite('Drox — M1 config moteur (read + agent.run wire)', () => {
 			configurationService: config,
 		});
 		assert.strictEqual(wire.maxIterations, 42);
+		assert.strictEqual(wire.engineProfile, 'local-9b');
 		assert.strictEqual(wire.subagentsMaxIterations, 25);
 		assert.strictEqual('keepAlive' in wire, false);
 		assert.strictEqual('maxTokens' in wire, false);

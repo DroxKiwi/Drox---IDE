@@ -52,7 +52,7 @@ pub mod consume_llm_stream;
 #[cfg(test)]
 mod tests;
 
-pub use config::AgentConfig;
+pub use config::{normalize_engine_profile, AgentConfig, EngineProfile};
 pub use run::{Agent, AgentStream};
 
 // Réexports minimaux pour `tests` (`use super::*`).

@@ -32,6 +32,7 @@ mod gates_tests;
 mod hallucination_tests;
 mod loop_tests;
 mod phase_tests;
+mod profile_tests;
 mod run_tests;
 
 /// Client LLM en mémoire : retourne des scripts d'événements pré-définis,

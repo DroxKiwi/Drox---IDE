@@ -24,6 +24,7 @@ import {
 	normalizeDroxLlmParamsMuted,
 	type DroxLlmMuteableParamKey,
 } from './droxLlmParamMute.js';
+import { normalizeDroxEngineProfile, type DroxEngineProfileId } from './droxEngineProfile.js';
 export interface IDroxLlmSettings {
 	readonly server: string;
 	readonly model: string;
@@ -49,6 +50,8 @@ export interface IDroxLlmSettings {
 	readonly nativeThinking: boolean;
 	/** Keys muted in the model panel — omitted from wire even if values are set. */
 	readonly llmParamsMuted: readonly DroxLlmMuteableParamKey[];
+	/** Engine policy profile — forwarded to `agent.run`; also selects the L4 annex variant. */
+	readonly engineProfile: DroxEngineProfileId;
 }
 export function readPermissionMode(configService: IConfigurationService, resource?: URI): DroxPermissionMode {
 	const v = readDroxChatConfigurationValue<string>(configService, DroxSetting.PermissionMode, resource);
@@ -99,6 +102,9 @@ export function readLlmSettings(configService: IConfigurationService, resource?:
 		nativeThinking: bool(DroxSetting.NativeThinking, false),
 		llmParamsMuted: normalizeDroxLlmParamsMuted(
 			readDroxChatConfigurationValue<unknown>(configService, DroxSetting.LlmParamsMuted, resource),
+		),
+		engineProfile: normalizeDroxEngineProfile(
+			readDroxChatConfigurationValue<string>(configService, DroxSetting.EngineProfile, resource),
 		),
 	};
 }
@@ -249,6 +255,7 @@ export function buildAgentRunParams(opts: {
 		sessionDir: droxWorkspaceSessionsDir(opts.workspace),
 		maxIterations: opts.settings.maxIterations,
 		nativeThinking: opts.settings.nativeThinking,
+		engineProfile: opts.settings.engineProfile,
 		mcpToolsEnabled: opts.mcpToolsEnabled,
 	};
 	if (opts.system?.trim()) {

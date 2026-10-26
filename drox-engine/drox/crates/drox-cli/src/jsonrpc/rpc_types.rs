@@ -163,6 +163,9 @@ pub struct AgentRunParams {
     /// serveur / modèle).
     #[serde(default)]
     pub native_thinking: Option<bool>,
+    /// Profil moteur (`local-9b` | `local-27b` | `cloud-full`). Lot 1 : stocké, pas de knobs.
+    #[serde(default)]
+    pub engine_profile: Option<String>,
     /// Outils retirés du registre pour ce run (paramètres workspace §2.17).
     /// Le modèle ne reçoit pas leurs `ToolSpec`. `ask_user_question` et
     /// `todo_write` sont ignorés s'ils apparaissent ici.
