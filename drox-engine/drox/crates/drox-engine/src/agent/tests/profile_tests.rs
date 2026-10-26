@@ -115,6 +115,30 @@ async fn local_9b_budget_forces_final_answer_turn() {
 }
 
 #[tokio::test]
+async fn local_9b_salvages_inline_todo_json_then_closes() {
+    let events = run(
+        vec![
+            text_turn(
+                "Salut !\n{\"todos\":[{\"id\":\"1\",\"content\":\"Répondre\",\"status\":\"completed\"}]}",
+            ),
+            text_turn("Comment puis-je t'aider ?"),
+        ],
+        config("local-9b", 12),
+    )
+    .await;
+    assert!(stopped_cleanly(&events), "{events:?}");
+    assert!(events.iter().any(|e| matches!(
+        e,
+        Ok(AgentEvent::ToolStart { name, .. }) if name == "todo_write"
+    )));
+    assert!(events.iter().any(|e| matches!(
+        e,
+        Ok(AgentEvent::ToolFinish { is_error: false, .. })
+    )));
+    assert!(answering_text(&events, "Comment puis-je t'aider"));
+}
+
+#[tokio::test]
 async fn local_27b_soft_close_check_is_one_shot() {
     let events = run(
         vec![

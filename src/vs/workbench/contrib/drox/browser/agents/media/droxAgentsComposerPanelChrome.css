@@ -6,9 +6,9 @@
 /* Panneaux flottants — cubique, fond noir, contrôles alignés chips / action-widget (picker modèle & mode). */
 
 .drox-agents-composer-panels-mount {
-	--drox-ui-green: #3d7a3d;
-	--drox-thread-brown: #4a3f2e;
-	--drox-thread-brown-deep: #2e281c;
+	--drox-ui-green: #888888;
+	--drox-thread-brown: #333333;
+	--drox-thread-brown-deep: #1e1e1e;
 	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green) 58%, var(--drox-thread-brown) 42%);
 	--drox-thread-green-bright: color-mix(in srgb, var(--drox-thread-green) 72%, #9aa88a 28%);
 	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 38%, #080808);

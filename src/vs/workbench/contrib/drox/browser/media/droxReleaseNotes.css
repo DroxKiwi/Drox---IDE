@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 .drox-release-notes-overlay {
-	--drox-ui-green: var(--vscode-panel-border, #3d7a3d);
+	--drox-ui-green: var(--vscode-panel-border, #888888);
 	--drox-ui-fg-muted: color-mix(in srgb, var(--vscode-foreground) 62%, transparent);
 
 	position: fixed;

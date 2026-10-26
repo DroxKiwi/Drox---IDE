@@ -39,8 +39,8 @@ export enum ThemeSettings {
 }
 
 export namespace ThemeSettingDefaults {
-	export const COLOR_THEME_DARK = 'Nexus Dark';
-	export const COLOR_THEME_LIGHT = 'Nexus Light';
+	export const COLOR_THEME_DARK = 'Drox Dark';
+	export const COLOR_THEME_LIGHT = 'Drox Light';
 	export const COLOR_THEME_HC_DARK = 'Default High Contrast';
 	export const COLOR_THEME_HC_LIGHT = 'Default High Contrast Light';
 
@@ -59,6 +59,10 @@ export function migrateThemeSettingsId(settingsId: string): string {
 		case 'Default Light Modern': return 'Light Modern';
 		case 'Default Dark+': return 'Dark+';
 		case 'Default Light+': return 'Light+';
+		case 'Nexus Dark':
+			return 'Drox Dark';
+		case 'Nexus Light':
+			return 'Drox Light';
 		case 'Experimental Dark':
 		case 'VS Code Dark':
 			return ThemeSettingDefaults.COLOR_THEME_DARK;

@@ -14,16 +14,16 @@
   "contributes": {
     "themes": [
       {
-        "id": "Nexus Light",
-        "label": "%nexusLightThemeLabel%",
+        "id": "Drox Light",
+        "label": "%droxLightThemeLabel%",
         "uiTheme": "vs",
-        "path": "./themes/nexus-light.json"
+        "path": "./themes/drox-light.json"
       },
       {
-        "id": "Nexus Dark",
-        "label": "%nexusDarkThemeLabel%",
+        "id": "Drox Dark",
+        "label": "%droxDarkThemeLabel%",
         "uiTheme": "vs-dark",
-        "path": "./themes/nexus-dark.json"
+        "path": "./themes/drox-dark.json"
       },
       {
         "id": "Light 2026",

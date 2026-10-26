@@ -13,7 +13,7 @@ body {
 	box-sizing: border-box;
 	overflow: hidden;
 	color-scheme: light dark;
-	--drox-ui-green: var(--vscode-panel-border, #3d7a3d);
+	--drox-ui-green: var(--vscode-focusBorder, #888888);
 	--drox-ui-icon: #ffffff;
 	--drox-ui-fg: #ffffff;
 	--drox-ui-fg-muted: rgba(255, 255, 255, 0.62);
@@ -648,8 +648,8 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 
 .msg-rail-segment {
 	margin: 4px 0 6px 8px;
-	border-left-color: var(--drox-ui-green, #3d7a3d);
-	background: color-mix(in srgb, var(--vscode-editor-background) 96%, var(--drox-ui-green, #3d7a3d) 4%);
+	border-left-color: var(--drox-ui-green, #888888);
+	background: color-mix(in srgb, var(--vscode-editor-background) 96%, var(--drox-ui-green, #888888) 4%);
 }
 
 .msg-rail-segment-scope {
@@ -683,7 +683,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 }
 
 .msg-rail-segment-done {
-	border-left-color: var(--drox-ui-green, #3d7a3d);
+	border-left-color: var(--drox-ui-green, #888888);
 }
 
 .rail-badge {
@@ -702,7 +702,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 }
 
 .rail-badge-done {
-	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 24%, transparent);
+	background: color-mix(in srgb, var(--drox-ui-green, #888888) 24%, transparent);
 }
 
 .rail-badge-partial {
@@ -728,17 +728,17 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 }
 
 .msg-orchestration-executor {
-	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 14%, transparent);
+	background: color-mix(in srgb, var(--drox-ui-green, #888888) 14%, transparent);
 }
 
 .msg-subagent-card.msg-subagent-executor {
-	border-left: 3px solid var(--drox-ui-green, #3d7a3d);
+	border-left: 3px solid var(--drox-ui-green, #888888);
 }
 
 .executor-stream {
 	margin-top: 8px;
 	padding-left: 4px;
-	border-left: 2px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 35%, transparent);
+	border-left: 2px solid color-mix(in srgb, var(--drox-ui-green, #888888) 35%, transparent);
 }
 
 .executor-stream-tools .msg-tool {
@@ -787,7 +787,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 	overflow-y: auto;
 	margin-top: 4px;
 	padding: 4px 6px 6px;
-	border-top: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 22%, transparent);
+	border-top: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 22%, transparent);
 	display: flex;
 	flex-direction: column;
 	gap: 3px;
@@ -827,7 +827,7 @@ body.drox-linear-run-active .chat-chrome-sticky-stack {
 .executor-stream-report {
 	margin-top: 8px;
 	padding-top: 8px;
-	border-top: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 25%, transparent);
+	border-top: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 25%, transparent);
 }
 
 .executor-report-body {
@@ -845,7 +845,7 @@ details.drox-run-work-collapsible {
 	border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 55%, transparent);
 	border-radius: var(--drox-chat-frame-radius);
 	padding: 0 10px 8px;
-	background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--drox-ui-green, #3d7a3d) 8%);
+	background: color-mix(in srgb, var(--vscode-editor-background) 92%, var(--drox-ui-green, #888888) 8%);
 }
 
 details.drox-run-work-collapsible > summary.drox-run-work-summary {
@@ -1425,8 +1425,8 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .msg.user,
 .msg-user-bubble {
-	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 16%, var(--vscode-editor-background, #1e1e1e));
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 48%, transparent);
+	background: color-mix(in srgb, var(--drox-ui-green, #888888) 16%, var(--vscode-editor-background, #1e1e1e));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 48%, transparent);
 	color: var(--vscode-foreground);
 	align-self: flex-end;
 	max-width: 92%;
@@ -1450,9 +1450,9 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	line-height: 1.35;
 	font-style: italic;
 	text-align: right;
-	color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, var(--drox-ui-green, #3d7a3d));
-	background: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--drox-ui-green, #3d7a3d) 10%);
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 28%, transparent);
+	color: color-mix(in srgb, var(--vscode-descriptionForeground) 88%, var(--drox-ui-green, #888888));
+	background: color-mix(in srgb, var(--vscode-editor-background) 82%, var(--drox-ui-green, #888888) 10%);
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 28%, transparent);
 	border-radius: 6px;
 	opacity: 0.95;
 }
@@ -1479,7 +1479,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	border-radius: 14px 14px 4px 14px;
 	font-size: 13.5px;
 	line-height: 1.5;
-	box-shadow: 0 1px 0 color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 18%, transparent);
+	box-shadow: 0 1px 0 color-mix(in srgb, var(--drox-ui-green, #888888) 18%, transparent);
 	transition:
 		border-color 0.12s ease,
 		box-shadow 0.12s ease,
@@ -1487,13 +1487,13 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .msg-row-user.msg-user-bubble:hover {
-	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 72%, transparent);
+	border-color: color-mix(in srgb, var(--drox-ui-green, #888888) 72%, transparent);
 	box-shadow: 0 4px 14px color-mix(in srgb, #000 28%, transparent);
 }
 
 .msg-row-user.msg-user-bubble:focus-within {
 	outline: none;
-	border-color: color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 65%, var(--drox-ui-green, #3d7a3d) 35%);
+	border-color: color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 65%, var(--drox-ui-green, #888888) 35%);
 	box-shadow:
 		0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder, #3794ff) 55%, transparent),
 		0 4px 14px color-mix(in srgb, #000 22%, transparent);
@@ -1535,7 +1535,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	padding: 0 8px;
 	border: 1px solid color-mix(in srgb, var(--vscode-panel-border, #444) 70%, transparent);
 	border-radius: 6px;
-	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #888888) 12%);
 	color: var(--vscode-foreground);
 	cursor: pointer;
 	flex-shrink: 0;
@@ -1546,12 +1546,12 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .msg-user-recovery:hover {
-	border-color: var(--drox-ui-green, #3d7a3d);
-	color: var(--drox-ui-green, #3d7a3d);
+	border-color: var(--drox-ui-green, #888888);
+	color: var(--drox-ui-green, #888888);
 }
 
 .msg-user-recovery:focus-visible {
-	outline: 1px solid var(--drox-ui-green, #3d7a3d);
+	outline: 1px solid var(--drox-ui-green, #888888);
 	outline-offset: 1px;
 }
 
@@ -1575,7 +1575,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	padding: 0;
 	border: 1px solid color-mix(in srgb, var(--vscode-panel-border, #444) 70%, transparent);
 	border-radius: 6px;
-	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #888888) 12%);
 	color: var(--vscode-foreground);
 	cursor: pointer;
 	flex-shrink: 0;
@@ -1589,7 +1589,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .msg-user-copy:hover {
 	background: color-mix(in srgb, var(--vscode-toolbar-hoverBackground, #fff) 14%, var(--vscode-editor-background));
-	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 55%, transparent);
+	border-color: color-mix(in srgb, var(--drox-ui-green, #888888) 55%, transparent);
 }
 
 .msg-user-copy:focus-visible {
@@ -1598,14 +1598,14 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .msg-user-copy.is-copied {
-	color: var(--drox-ui-green, #3d7a3d);
-	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 65%, transparent);
+	color: var(--drox-ui-green, #888888);
+	border-color: color-mix(in srgb, var(--drox-ui-green, #888888) 65%, transparent);
 }
 
 .msg-user-text {
 	white-space: pre-wrap;
 	word-break: break-word;
-	color: color-mix(in srgb, var(--vscode-foreground) 96%, var(--drox-ui-green, #3d7a3d) 4%);
+	color: color-mix(in srgb, var(--vscode-foreground) 96%, var(--drox-ui-green, #888888) 4%);
 }
 
 .msg-user-text.is-clamped {
@@ -2299,7 +2299,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .drox-shell-card.running {
-	border-color: color-mix(in srgb, var(--drox-ui-green, #3D7A3D) 55%, var(--drox-shell-border));
+	border-color: color-mix(in srgb, var(--drox-ui-green, #888888) 55%, var(--drox-shell-border));
 }
 
 .drox-shell-card.error {
@@ -3012,8 +3012,8 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .drox-explore-card.is-live .drox-explore-report-progress,
 .drox-explore-card.running .drox-explore-report-progress {
 	max-height: 200px;
-	background: color-mix(in srgb, var(--drox-explore-accent, #3d7a3d) 8%, var(--vscode-editor-background, #1e1e1e));
-	border: 1px solid color-mix(in srgb, var(--drox-explore-accent, #3d7a3d) 32%, var(--drox-explore-border, rgba(128,128,128,.35)));
+	background: color-mix(in srgb, var(--drox-explore-accent, #888888) 8%, var(--vscode-editor-background, #1e1e1e));
+	border: 1px solid color-mix(in srgb, var(--drox-explore-accent, #888888) 32%, var(--drox-explore-border, rgba(128,128,128,.35)));
 }
 
 .drox-explore-card[open].is-live .drox-explore-report-progress,
@@ -3132,7 +3132,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	padding: 8px 10px 10px;
 	border-radius: var(--drox-chat-frame-radius);
 	border: 1px solid color-mix(in srgb, var(--drox-ui-green, var(--vscode-panel-border)) 55%, transparent);
-	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
+	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--drox-ui-green, #888888) 12%);
 }
 
 .drox-plan-sticky-footer .msg-todos .todos-head {
@@ -3147,7 +3147,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .drox-plan-sticky-footer .todo-item.todo-active {
-	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 14%, transparent);
+	background: color-mix(in srgb, var(--drox-ui-green, #888888) 14%, transparent);
 	border-radius: var(--drox-chat-frame-radius);
 }
 
@@ -4122,12 +4122,12 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 }
 
 .agent-vignette.selected .vignette-rise {
-	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 70%, var(--vscode-widget-border));
+	border-color: color-mix(in srgb, var(--drox-ui-green, #888888) 70%, var(--vscode-widget-border));
 }
 
 #composer.drop-active {
-	box-shadow: inset 0 0 0 2px var(--vscode-focusBorder, var(--drox-ui-green, #3d7a3d));
-	background: color-mix(in srgb, var(--vscode-input-background) 88%, var(--drox-ui-green, #3d7a3d) 12%);
+	box-shadow: inset 0 0 0 2px var(--vscode-focusBorder, var(--drox-ui-green, #888888));
+	background: color-mix(in srgb, var(--vscode-input-background) 88%, var(--drox-ui-green, #888888) 12%);
 }
 
 #composer.drop-active .composer-input-frame {
@@ -4314,7 +4314,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .composer-input-frame:focus-within {
 	border-color: var(--vscode-focusBorder, var(--drox-ui-green));
-	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 35%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-ui-green, #888888) 35%, transparent);
 }
 
 .composer-input-frame .prompt-input {
@@ -4361,7 +4361,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	font-size: 11px;
 	line-height: 1.35;
 	border-radius: 4px;
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 45%, var(--vscode-widget-border));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 45%, var(--vscode-widget-border));
 	background: var(--vscode-input-background);
 	color: var(--vscode-foreground);
 	opacity: 0.92;
@@ -4482,7 +4482,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 
 .prompt-editor:focus-within {
 	border-color: var(--vscode-focusBorder, var(--drox-ui-green));
-	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 35%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-ui-green, #888888) 35%, transparent);
 }
 
 .prompt-input {
@@ -4537,15 +4537,15 @@ button:disabled {
 	align-items: center;
 	justify-content: center;
 	border-radius: var(--drox-thread-radius, 0);
-	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border, var(--drox-ui-green, #3d7a3d)) 65%, var(--vscode-panel-border, transparent));
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green-border, var(--drox-ui-green, #888888)) 65%, var(--vscode-panel-border, transparent));
 	background: color-mix(
 		in srgb,
-		var(--drox-thread-green-dim, var(--drox-ui-green, #3d7a3d)) 48%,
+		var(--drox-thread-green-dim, var(--drox-ui-green, #888888)) 48%,
 		var(--vscode-editor-background) 52%
 	);
-	color: color-mix(in srgb, var(--drox-thread-fg, var(--vscode-button-foreground)) 92%, var(--drox-ui-green, #3d7a3d) 8%);
+	color: color-mix(in srgb, var(--drox-thread-fg, var(--vscode-button-foreground)) 92%, var(--drox-ui-green, #888888) 8%);
 	cursor: pointer;
-	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 10%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #888888) 10%, transparent);
 	transition:
 		background 0.2s ease,
 		border-color 0.2s ease,
@@ -4557,13 +4557,13 @@ button:disabled {
 .composer-send-btn:hover:not(:disabled) {
 	background: color-mix(
 		in srgb,
-		var(--drox-thread-green-dim, var(--drox-ui-green, #3d7a3d)) 58%,
+		var(--drox-thread-green-dim, var(--drox-ui-green, #888888)) 58%,
 		var(--vscode-editor-background) 42%
 	);
-	border-color: color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 70%, var(--drox-thread-brown, #4a3f2e) 30%);
+	border-color: color-mix(in srgb, var(--drox-thread-green, #888888) 70%, var(--drox-thread-brown, #333333) 30%);
 	box-shadow:
-		inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 18%, transparent),
-		0 0 5px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 16%, transparent);
+		inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #888888) 18%, transparent),
+		0 0 5px color-mix(in srgb, var(--drox-thread-green, #888888) 16%, transparent);
 }
 
 .composer-send-btn:active:not(:disabled) {
@@ -4571,11 +4571,11 @@ button:disabled {
 }
 
 .composer-send-btn.is-run-active {
-	border-color: color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 55%, var(--vscode-inputValidation-errorBorder, #be1100) 45%);
+	border-color: color-mix(in srgb, var(--drox-thread-green, #888888) 55%, var(--vscode-inputValidation-errorBorder, #be1100) 45%);
 	background: color-mix(
 		in srgb,
 		var(--vscode-inputValidation-errorBackground, #5a1d1d) 22%,
-		var(--drox-thread-green-dim, #3d7a3d) 38%,
+		var(--drox-thread-green-dim, #888888) 38%,
 		var(--vscode-editor-background) 40%
 	);
 	animation: drox-send-run-pulse 1.35s ease-in-out infinite;
@@ -4585,7 +4585,7 @@ button:disabled {
 	content: '';
 	position: absolute;
 	inset: 3px;
-	border: 1px solid color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 35%, transparent);
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green, #888888) 35%, transparent);
 	opacity: 0.55;
 	animation: drox-send-run-ring 2.4s linear infinite;
 	pointer-events: none;
@@ -4595,22 +4595,22 @@ button:disabled {
 	background: color-mix(
 		in srgb,
 		var(--vscode-inputValidation-errorBackground, #5a1d1d) 30%,
-		var(--drox-thread-green-dim, #3d7a3d) 42%,
+		var(--drox-thread-green-dim, #888888) 42%,
 		var(--vscode-editor-background) 28%
 	);
-	border-color: color-mix(in srgb, var(--vscode-inputValidation-errorBorder, #be1100) 55%, var(--drox-thread-green, #3d7a3d) 45%);
+	border-color: color-mix(in srgb, var(--vscode-inputValidation-errorBorder, #be1100) 55%, var(--drox-thread-green, #888888) 45%);
 }
 
 @keyframes drox-send-run-pulse {
 	0%, 100% {
 		opacity: 0.88;
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 12%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #888888) 12%, transparent);
 	}
 	50% {
 		opacity: 1;
 		box-shadow:
-			inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 28%, transparent),
-			0 0 7px color-mix(in srgb, var(--drox-thread-green, #3d7a3d) 22%, transparent);
+			inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green, #888888) 28%, transparent),
+			0 0 7px color-mix(in srgb, var(--drox-thread-green, #888888) 22%, transparent);
 	}
 }
 
@@ -4660,7 +4660,7 @@ button:disabled {
 	gap: 8px;
 	padding: 10px 12px;
 	margin: 0 10px 6px;
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 55%, var(--vscode-panel-border));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 55%, var(--vscode-panel-border));
 	border-radius: var(--drox-chat-frame-radius);
 	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-panel-border) 12%);
 	font-size: 12px;
@@ -4729,7 +4729,7 @@ button:disabled {
 	align-items: flex-start;
 	gap: 8px;
 	padding: 6px 8px;
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 40%, var(--vscode-panel-border));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 40%, var(--vscode-panel-border));
 	border-radius: var(--drox-chat-frame-radius);
 	background: transparent;
 	color: var(--vscode-foreground);
@@ -4743,8 +4743,8 @@ button:disabled {
 }
 
 .user-ask-option.selected {
-	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 72%, transparent);
-	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 12%, var(--vscode-editor-background));
+	border-color: color-mix(in srgb, var(--drox-ui-green, #888888) 72%, transparent);
+	background: color-mix(in srgb, var(--drox-ui-green, #888888) 12%, var(--vscode-editor-background));
 }
 
 .user-ask-option-letter {
@@ -4754,16 +4754,16 @@ button:disabled {
 	width: 18px;
 	height: 18px;
 	flex: 0 0 18px;
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 45%, var(--vscode-panel-border));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 45%, var(--vscode-panel-border));
 	border-radius: var(--drox-chat-frame-radius);
 	font-size: 11px;
 	font-weight: 600;
 }
 
 .user-ask-option.selected .user-ask-option-letter {
-	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 78%, var(--drox-thread-brown-deep, #2e281c) 22%);
+	background: color-mix(in srgb, var(--drox-ui-green, #888888) 78%, var(--drox-thread-brown-deep, #1e1e1e) 22%);
 	color: var(--vscode-editor-background);
-	border-color: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 72%, transparent);
+	border-color: color-mix(in srgb, var(--drox-ui-green, #888888) 72%, transparent);
 }
 
 .user-ask-free-input {
@@ -4771,7 +4771,7 @@ button:disabled {
 	resize: vertical;
 	min-height: 26px;
 	padding: 5px 8px;
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 40%, var(--vscode-panel-border));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 40%, var(--vscode-panel-border));
 	border-radius: var(--drox-chat-frame-radius);
 	background: color-mix(in srgb, var(--vscode-input-background) 92%, var(--vscode-editor-background) 8%);
 	color: var(--vscode-input-foreground);
@@ -4806,13 +4806,13 @@ button:disabled {
 }
 
 .user-ask-action.next {
-	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 78%, var(--drox-thread-brown-deep, #2e281c) 22%);
+	background: color-mix(in srgb, var(--drox-ui-green, #888888) 78%, var(--drox-thread-brown-deep, #1e1e1e) 22%);
 	color: var(--vscode-editor-background);
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 65%, transparent);
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 65%, transparent);
 }
 
 .user-ask-action.next:hover {
-	background: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 88%, var(--drox-thread-brown-deep, #2e281c) 12%);
+	background: color-mix(in srgb, var(--drox-ui-green, #888888) 88%, var(--drox-thread-brown-deep, #1e1e1e) 12%);
 }
 
 /* --- Références fichier/dossier --- */
@@ -4953,7 +4953,7 @@ button:disabled {
 .msg-todos {
 	margin: 10px 0 14px;
 	padding: 12px 14px;
-	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 45%, var(--vscode-panel-border));
+	border: 1px solid color-mix(in srgb, var(--drox-ui-green, #888888) 45%, var(--vscode-panel-border));
 	border-radius: var(--drox-chat-frame-radius);
 	background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-panel-border) 12%);
 }

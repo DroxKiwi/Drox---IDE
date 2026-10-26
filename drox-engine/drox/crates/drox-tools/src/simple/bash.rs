@@ -89,10 +89,14 @@ impl Tool for BashTool {
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
         let args: BashInput = serde_json::from_value(input)?;
-        let command = args.command.trim();
-        if command.is_empty() {
+        let raw = args.command.trim();
+        if raw.is_empty() {
             return Err(ToolError::invalid_args("command must not be empty"));
         }
+        #[cfg(windows)]
+        let command = normalize_windows_cmd(raw);
+        #[cfg(not(windows))]
+        let command = raw.to_string();
 
         if ctx.plan_mode {
             return Err(ToolError::plan_violation("bash"));
@@ -105,7 +109,7 @@ impl Tool for BashTool {
 
         let started = Instant::now();
         let cwd = ctx.effective_workspace();
-        let mut cmd = build_shell_command(command);
+        let mut cmd = build_shell_command(&command);
         cmd.current_dir(cwd.as_std_path())
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -308,8 +312,10 @@ fn report_shell_progress(ctx: &ToolContext, full: &str, started: Instant) {
 fn build_shell_command(command: &str) -> Command {
     #[cfg(windows)]
     {
+        // `arg()` re-quote via CreateProcess and breaks `dir "C:\path"`.
+        // `/S /C "command"` : cmd strips the outer quotes and runs the rest as-is.
         let mut c = Command::new("cmd");
-        c.arg("/C").arg(command);
+        c.raw_arg("/S").raw_arg("/C").raw_arg(format!("\"{command}\""));
         c
     }
     #[cfg(not(windows))]
@@ -318,6 +324,156 @@ fn build_shell_command(command: &str) -> Command {
         c.arg("-c").arg(command);
         c
     }
+}
+
+/// Réécrit une commande modèle pour `cmd.exe` : `ls` → `dir`, `;` → `&`,
+/// `pwd` → `cd`, et déplie un `cmd /c` imbriqué.
+pub(crate) fn normalize_windows_cmd(command: &str) -> String {
+    let mut s = command.trim().to_string();
+    if let Some(inner) = peel_nested_cmd_c(&s) {
+        s = inner;
+    }
+    s = replace_semicolons_outside_quotes(&s);
+    rewrite_unix_tokens(&s)
+}
+
+fn peel_nested_cmd_c(command: &str) -> Option<String> {
+    let t = command.trim();
+    let lower = t.to_ascii_lowercase();
+    let prefix = if lower.starts_with("cmd.exe") {
+        7
+    } else if lower.starts_with("cmd") {
+        3
+    } else {
+        return None;
+    };
+    let mut rest = t[prefix..].trim_start();
+    let mut saw_c = false;
+    loop {
+        let r = rest.trim_start();
+        let rl = r.to_ascii_lowercase();
+        if rl.starts_with("/s") {
+            rest = r.get(2..)?.trim_start();
+            continue;
+        }
+        if rl.starts_with("/c") {
+            saw_c = true;
+            rest = r.get(2..)?.trim_start();
+            continue;
+        }
+        break;
+    }
+    if !saw_c {
+        return None;
+    }
+    let inner = strip_wrapping_quotes(rest);
+    if inner.is_empty() {
+        None
+    } else {
+        Some(inner.to_string())
+    }
+}
+
+fn strip_wrapping_quotes(s: &str) -> &str {
+    let t = s.trim();
+    if t.len() >= 2
+        && ((t.starts_with('"') && t.ends_with('"')) || (t.starts_with('\'') && t.ends_with('\'')))
+    {
+        &t[1..t.len() - 1]
+    } else {
+        t
+    }
+}
+
+fn replace_semicolons_outside_quotes(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut in_s = false;
+    let mut in_d = false;
+    let chars: Vec<char> = s.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        let ch = chars[i];
+        match ch {
+            '\'' if !in_d => in_s = !in_s,
+            '"' if !in_s => in_d = !in_d,
+            ';' if !in_s && !in_d => {
+                let rest = chars[i + 1..].iter().skip_while(|c| c.is_whitespace());
+                let next = rest.clone().next();
+                if next.is_some_and(|c| c.is_ascii_alphabetic() || *c == '.') {
+                    out.push('&');
+                    i += 1;
+                    continue;
+                }
+            }
+            _ => {}
+        }
+        out.push(ch);
+        i += 1;
+    }
+    out
+}
+
+fn rewrite_unix_tokens(s: &str) -> String {
+    split_keep_seps(s, &['&', '|'])
+        .into_iter()
+        .map(|(piece, sep)| {
+            let rewritten = rewrite_leading_unix(&piece);
+            match sep {
+                Some(c) => format!("{rewritten}{c}"),
+                None => rewritten,
+            }
+        })
+        .collect()
+}
+
+fn rewrite_leading_unix(piece: &str) -> String {
+    let lead = piece.len() - piece.trim_start().len();
+    let body = &piece[lead..];
+    let prefix = &piece[..lead];
+    if let Some(out) = rewrite_cmd_name(body, "ls", "dir") {
+        return format!("{prefix}{out}");
+    }
+    if let Some(out) = rewrite_cmd_name(body, "pwd", "cd") {
+        return format!("{prefix}{out}");
+    }
+    piece.to_string()
+}
+
+fn rewrite_cmd_name(body: &str, from: &str, to: &str) -> Option<String> {
+    if body == from {
+        return Some(to.to_string());
+    }
+    let rest = body.strip_prefix(from)?;
+    if rest.starts_with(|c: char| c.is_whitespace()) {
+        Some(format!("{to}{rest}"))
+    } else {
+        None
+    }
+}
+
+fn split_keep_seps(s: &str, seps: &[char]) -> Vec<(String, Option<char>)> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    let mut in_s = false;
+    let mut in_d = false;
+    for ch in s.chars() {
+        match ch {
+            '\'' if !in_d => {
+                in_s = !in_s;
+                cur.push(ch);
+            }
+            '"' if !in_s => {
+                in_d = !in_d;
+                cur.push(ch);
+            }
+            c if !in_s && !in_d && seps.contains(&c) => {
+                out.push((std::mem::take(&mut cur), Some(c)));
+            }
+            _ => cur.push(ch),
+        }
+    }
+    out.push((cur, None));
+    out
 }
 
 fn decode_truncated(bytes: &[u8]) -> (String, bool) {
@@ -383,5 +539,43 @@ mod tests {
             stdout.contains("hello-drox"),
             "stdout did not contain expected token: {stdout:?}"
         );
+    }
+
+    #[test]
+    fn normalize_rewrites_ls_semicolon_and_nested_cmd() {
+        assert_eq!(
+            normalize_windows_cmd(r#"ls "C:\Users\coren\proj""#),
+            r#"dir "C:\Users\coren\proj""#
+        );
+        assert_eq!(
+            normalize_windows_cmd("git status --short; echo hi"),
+            "git status --short& echo hi"
+        );
+        assert_eq!(
+            normalize_windows_cmd(r#"cmd /c "dir C:\tmp""#),
+            r#"dir C:\tmp"#
+        );
+        assert_eq!(normalize_windows_cmd("pwd"), "cd");
+        assert_eq!(
+            normalize_windows_cmd(r#"echo "a;b"; echo c"#),
+            r#"echo "a;b"& echo c"#
+        );
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn quoted_windows_path_dir_succeeds() {
+        let ctx = make_ctx();
+        let path = ctx.workspace_root.as_str();
+        let reg = ToolRegistry::with_simple_tools();
+        let v = reg
+            .execute_named(
+                "bash",
+                &ctx,
+                json!({ "command": format!("dir \"{path}\"") }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(v["exit_code"], 0, "stderr={}", v["stderr"]);
     }
 }
