@@ -15,9 +15,9 @@
 
 body {
 	--drox-thread-radius: 0;
-	--drox-thread-brown: #4a3f2e;
-	--drox-thread-brown-deep: #2e281c;
-	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green, #3d7a3d) 58%, var(--drox-thread-brown) 42%);
+	--drox-thread-brown: #333333;
+	--drox-thread-brown-deep: #1e1e1e;
+	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green, #888888) 58%, var(--drox-thread-brown) 42%);
 	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 38%, var(--vscode-editor-background));
 	--drox-thread-green-border: color-mix(in srgb, var(--drox-thread-green) 52%, var(--drox-thread-brown-deep) 48%);
 	--drox-thread-fg: color-mix(in srgb, var(--vscode-foreground) 72%, #9aa88a 28%);

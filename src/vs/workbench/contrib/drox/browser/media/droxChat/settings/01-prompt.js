@@ -55,6 +55,21 @@
 		D.dom.promptEl.setSelectionRange(len, len);
 	}
 
+	fn.insertPlainTextAtPromptCursor = function (text) {
+		const el = D.dom.promptEl;
+		if (!el) {
+			return;
+		}
+		const start = el.selectionStart ?? fn.getPromptText().length;
+		const end = el.selectionEnd ?? start;
+		const before = fn.getPromptText().slice(0, start);
+		const after = fn.getPromptText().slice(end);
+		fn.setPromptText(before + text + after);
+		const caret = start + text.length;
+		el.focus();
+		el.setSelectionRange(caret, caret);
+	}
+
 	fn.normalizePermissionMode = function(mode) {
 		const raw = String(mode || '').trim();
 		if (D.const.VALID_MODES.has(raw)) {

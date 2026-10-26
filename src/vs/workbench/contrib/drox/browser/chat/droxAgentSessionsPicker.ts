@@ -44,6 +44,16 @@ const groupSelectedButton: IQuickInputButton = {
 	tooltip: localize('drox.agentSessions.groupSelected', 'Group selected'),
 };
 
+const selectAllButton: IQuickInputButton = {
+	iconClass: ThemeIcon.asClassName(Codicon.checkAll),
+	tooltip: localize('drox.agentSessions.selectAll', 'Select all'),
+};
+
+const clearSelectionButton: IQuickInputButton = {
+	iconClass: ThemeIcon.asClassName(Codicon.clearAll),
+	tooltip: localize('drox.agentSessions.clearSelection', 'Clear selection'),
+};
+
 function groupDroxSessionsByDate(entries: readonly IDroxSessionListEntry[]): IDroxSessionDateGroup[] {
 	const now = Date.now();
 	const startOfToday = new Date(now).setHours(0, 0, 0, 0);
@@ -81,6 +91,27 @@ function groupDroxSessionsByDate(entries: readonly IDroxSessionListEntry[]): IDr
 		groups.push({ label: localize('drox.agentSessions.older', 'Older'), entries: older });
 	}
 	return groups;
+}
+
+function isSessionPickItem(item: IDroxSessionPickItem | IQuickPickSeparator): item is IDroxSessionPickItem {
+	return item.type !== 'separator' && 'sessionId' in item;
+}
+
+/** Sessions visibles pour la recherche courante (même logique simple que le filtre quick pick). */
+function sessionPickItemsMatchingFilter(
+	items: readonly (IDroxSessionPickItem | IQuickPickSeparator)[],
+	query: string,
+): IDroxSessionPickItem[] {
+	const sessions = items.filter(isSessionPickItem);
+	const q = query.trim().toLowerCase();
+	if (!q) {
+		return sessions;
+	}
+	return sessions.filter(
+		item =>
+			(item.label ?? '').toLowerCase().includes(q)
+			|| (item.description ?? '').toLowerCase().includes(q),
+	);
 }
 
 function toPickItem(entry: IDroxSessionListEntry): IDroxSessionPickItem {
@@ -130,7 +161,10 @@ export class DroxAgentSessionsPicker {
 		picker.canSelectMany = true;
 		picker.ok = true;
 		picker.title = localize('drox.agentSessions.historyTitle', 'Session History');
-		const titleButtons: IQuickInputButton[] = [];
+		const titleButtons: IQuickInputButton[] = [
+			selectAllButton,
+			clearSelectionButton,
+		];
 		if (options?.onDelete) {
 			titleButtons.push(deleteSelectedButton);
 		}
@@ -179,6 +213,14 @@ export class DroxAgentSessionsPicker {
 		}));
 
 		disposables.add(picker.onDidTriggerButton(async button => {
+			if (button === selectAllButton) {
+				picker.selectedItems = sessionPickItemsMatchingFilter(picker.items, picker.value);
+				return;
+			}
+			if (button === clearSelectionButton) {
+				picker.selectedItems = [];
+				return;
+			}
 			const selectedIds = picker.selectedItems.map(i => i.sessionId);
 			if (button === deleteSelectedButton && options?.onDelete) {
 				if (selectedIds.length === 0) {

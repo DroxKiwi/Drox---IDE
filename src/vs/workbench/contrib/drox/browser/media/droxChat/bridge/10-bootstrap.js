@@ -5,6 +5,8 @@
 
 (function (D) {
 	const fn = D.fn;
+	/** @type {boolean} */
+	let plainPasteNext = false;
 
 	fn.bindChatVersionReleaseNotes = function () {
 		const el = D.dom.chatVersionEl;
@@ -35,6 +37,20 @@
 	D.dom.promptEl.addEventListener('paste', (e) => {
 		const dt = e.clipboardData;
 		if (!dt) {
+			return;
+		}
+		const asPlainText = plainPasteNext || e.shiftKey;
+		plainPasteNext = false;
+		if (asPlainText) {
+			const pastedPlain = dt.getData('text/plain');
+			if (!pastedPlain) {
+				e.preventDefault();
+				return;
+			}
+			e.preventDefault();
+			fn.insertPlainTextAtPromptCursor(pastedPlain);
+			fn.updatePromptPlaceholder();
+			fn.schedulePathComplete();
 			return;
 		}
 		const files = [];
@@ -114,6 +130,15 @@
 	D.dom.promptEl.addEventListener('keydown', (e) => {
 		if (e.isComposing) {
 			return;
+		}
+
+		if (
+			(e.ctrlKey || e.metaKey) &&
+			e.shiftKey &&
+			!e.altKey &&
+			e.key.toLowerCase() === 'v'
+		) {
+			plainPasteNext = true;
 		}
 
 		if (fn.pathSuggestionsOpen()) {

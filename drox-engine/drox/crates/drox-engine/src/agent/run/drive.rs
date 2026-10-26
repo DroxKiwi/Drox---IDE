@@ -4,7 +4,7 @@ use std::collections::{HashMap, VecDeque};
 
 use drox_hooks::{PostHookOutcome, PreHookOutcome, ToolHookContext};
 use drox_tools::ToolError;
-use drox_types::{Content, Message, StopReason, Usage};
+use drox_types::{Content, Message, StopReason, ToolUseId, Usage};
 use futures::{stream, StreamExt};
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -47,7 +47,7 @@ use super::super::nudges::{
     ROTATING_FILE_READ_REINJECT_EVERY, WORK_PLAN_FRAME_NUDGE,
     WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD,
     step_explore_kickoff_nudge, step_without_explore_nudge, LOCAL_EMPTY_TURN_NUDGE,
-    LOCAL_FINAL_ANSWER_PROMPT, LOCAL_SOFT_CLOSE_CHECK_NUDGE,
+    LOCAL_EXPLORE_KICKOFF_NUDGE, LOCAL_FINAL_ANSWER_PROMPT, LOCAL_SOFT_CLOSE_CHECK_NUDGE,
 };
 use super::super::session_intent::{classify_session_user_intent, SessionFrames};
 use super::super::context_load::{
@@ -67,6 +67,7 @@ use super::super::situation::{
     ExploreCoveredPaths, SituationSnapshot,
 };
 use super::super::consume_llm_stream::{consume_stream, push_assistant_message};
+use super::super::todo_text_salvage::salvage_inline_todo_write;
 use super::Agent;
 
 impl Agent {
@@ -248,6 +249,7 @@ impl Agent {
         let mut parent_heavy_read_nudge_sent = false;
         let mut doc_ingestion_annex_sent = false;
         let mut work_plan_frame_nudge_sent = false;
+        let mut local_explore_kickoff_sent = false;
         // Soft — work/doc + activité outils sans todo_write (one-shot).
         let mut pre_plan_activity_count: u32 = 0;
         let mut work_without_plan_nudge_sent = false;
@@ -378,6 +380,18 @@ impl Agent {
                 debug!("work plan frame — soft nudge (turn-0)");
                 messages.push(Message::system(WORK_PLAN_FRAME_NUDGE));
                 work_plan_frame_nudge_sent = true;
+            }
+
+            // Soft Explore kickoff — local-9b (les plan_nudges 27b/cloud couvrent déjà le kickoff).
+            if profile == EngineProfile::Local9b
+                && task_tool_available
+                && iter == 0
+                && !local_explore_kickoff_sent
+                && (session_frames.work_plan || session_frames.doc_ingestion)
+            {
+                debug!("local-9b — soft Explore kickoff (turn-0)");
+                messages.push(Message::system(LOCAL_EXPLORE_KICKOFF_NUDGE));
+                local_explore_kickoff_sent = true;
             }
 
             // Annex turn-0 — ingestion docs multi-fichiers → Explore d'abord.
@@ -648,6 +662,37 @@ impl Agent {
             else {
                 return; // canal consommateur fermé
             };
+
+            if !professor
+                && outcome.tool_calls.is_empty()
+                && !loop_tools_disabled
+            {
+                if let Some(salvaged) = salvage_inline_todo_write(&outcome.text) {
+                    debug!(
+                        leftover = salvaged.cleaned_text.len(),
+                        "salvage inline todo_write JSON from assistant text"
+                    );
+                    outcome.text = salvaged.cleaned_text;
+                    let call = PendingToolCall {
+                        id: ToolUseId::new(),
+                        name: "todo_write".into(),
+                        arguments: salvaged.arguments,
+                    };
+                    if tx
+                        .send(Ok(AgentEvent::ToolStart {
+                            id: call.id.clone(),
+                            name: call.name.clone(),
+                            arguments: call.arguments.clone(),
+                        }))
+                        .await
+                        .is_err()
+                    {
+                        return;
+                    }
+                    outcome.tool_calls.push(call);
+                    outcome.reason = StopReason::ToolUse;
+                }
+            }
 
             if (outcome.usage.input_tokens > 0 || outcome.usage.output_tokens > 0)
                 && tx

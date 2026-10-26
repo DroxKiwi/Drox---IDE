@@ -10,11 +10,11 @@
 }
 
 .drox-codebase-cockpit-body {
-	--drox-cb-accent: #3D7A3D;
-	--drox-cb-accent-soft: color-mix(in srgb, #3D7A3D 10%, transparent);
+	--drox-cb-accent: #888888;
+	--drox-cb-accent-soft: color-mix(in srgb, #888888 10%, transparent);
 	--drox-cb-surface: transparent;
 	--drox-cb-border: var(--vscode-panel-border, rgba(128, 128, 128, 0.28));
-	--drox-cb-rule: color-mix(in srgb, #3D7A3D 50%, transparent);
+	--drox-cb-rule: color-mix(in srgb, #888888 50%, transparent);
 	display: flex;
 	flex-direction: column;
 	gap: 8px;

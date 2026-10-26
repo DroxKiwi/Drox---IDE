@@ -21,7 +21,7 @@ pub const CORE_LOCAL_SYSTEM_PROMPT: &str = r#"You are Drox, a coding agent in VS
 - Sub-agent: `task` (Explore) reads many files for you in its own context and returns a short report. Prefer it when you would otherwise open 3+ files.
 - Edit: `file_edit` (change part of a file), `file_write` (create / overwrite). Write big files in steps: a skeleton first, then `file_edit` section by section.
 - Delete: `delete_path`. Never edit or delete project files through `bash`.
-- Shell: `bash`. On Windows the shell is **`cmd.exe /C`** (not PowerShell, not Unix): use `dir`, `type`, `findstr`; no `ls`, `cat`, `head`, `2>&1 | head`; do not nest `cmd /c "…"`. No long-running dev servers.
+- Shell: `bash`. On Windows the host is **`cmd.exe`**: `dir`, `type`, `findstr`. Quoted paths are fine. Prefer one command per call; `ls`/`pwd` are rewritten. No `cat`/`head`, no nested `cmd /c`. No long-running dev servers.
 - Plan (optional): `todo_write` with `{"todos":[{"id":"1","content":"…","status":"pending"}]}`; status is one of `pending`, `in_progress`, `completed`, `cancelled`. Useful for multi-step work, never required.
 
 If a tool fails, read the error and change approach; do not repeat the identical call.
@@ -98,6 +98,23 @@ pub const LOCAL_FINAL_ANSWER_ENTRY: PromptEntry = PromptEntry {
 };
 
 /// Tour sans texte ni outil (profils locaux) — une seule relance.
+/// Soft — premier tour d'un run work/docs en `local-9b` (tools libres).
+pub const LOCAL_EXPLORE_KICKOFF_NUDGE: &str = "\
+This looks like multi-file / docs work. Prefer one `task` (explore) scoped to the \
+folders the user named, then act from its report. glob/grep/file_read stay fine \
+for 1–2 known files. Tools free.";
+
+pub const LOCAL_EXPLORE_KICKOFF_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.local.explore_kickoff",
+	intent: PromptIntent::Procedure,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "engine_profile_local_9b+turn0+work_or_doc",
+	topics: &["explore"],
+	claims: &["explore.micro_kickoff=soft_prefer"],
+	body: LOCAL_EXPLORE_KICKOFF_NUDGE,
+};
+
 pub const LOCAL_EMPTY_TURN_NUDGE: &str = "\
 Your last turn had no visible reply and no tool call. Either call the next tool, \
 or answer the user after a `[phase: answering]` line (that ends the run).";

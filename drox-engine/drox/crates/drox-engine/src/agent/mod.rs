@@ -48,6 +48,7 @@ pub mod run;
 pub mod session_intent;
 pub mod situation;
 pub mod consume_llm_stream;
+mod todo_text_salvage;
 
 #[cfg(test)]
 mod tests;

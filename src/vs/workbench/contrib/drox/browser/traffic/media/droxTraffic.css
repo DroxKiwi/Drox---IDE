@@ -10,11 +10,11 @@
 }
 
 .drox-traffic-root {
-	--drox-traffic-accent: #3D7A3D;
-	--drox-traffic-accent-soft: color-mix(in srgb, #3D7A3D 10%, transparent);
+	--drox-traffic-accent: #888888;
+	--drox-traffic-accent-soft: color-mix(in srgb, #888888 10%, transparent);
 	--drox-traffic-surface: transparent;
 	--drox-traffic-border: var(--vscode-panel-border, rgba(128, 128, 128, 0.28));
-	--drox-traffic-rule: color-mix(in srgb, #3D7A3D 50%, transparent);
+	--drox-traffic-rule: color-mix(in srgb, #888888 50%, transparent);
 	display: flex;
 	flex-direction: column;
 	height: 100%;
