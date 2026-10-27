@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { spawnSync } from 'child_process';
-import { constants, statSync } from 'fs';
+import { constants, existsSync, statSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import manifests from '../../../cgmanifest.json' with { type: 'json' };
@@ -33,11 +33,15 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
 	const chromiumManifest = manifests.registrations.filter(registration => {
 		return registration.component.type === 'git' && registration.component.git!.name === 'chromium';
 	});
-	const dpkgShlibdepsUrl = `https://raw.githubusercontent.com/chromium/chromium/${chromiumManifest[0].version}/third_party/dpkg-shlibdeps/dpkg-shlibdeps.pl`;
-	const dpkgShlibdepsScriptLocation = `${tmpdir()}/dpkg-shlibdeps.pl`;
-	const result = spawnSync('curl', [dpkgShlibdepsUrl, '-o', dpkgShlibdepsScriptLocation]);
-	if (result.status !== 0) {
-		throw new Error('Cannot retrieve dpkg-shlibdeps. Stderr:\n' + result.stderr);
+	const vendoredDpkgShlibdeps = path.join(import.meta.dirname, 'dpkg-shlibdeps.pl');
+	let dpkgShlibdepsScriptLocation = vendoredDpkgShlibdeps;
+	if (!existsSync(vendoredDpkgShlibdeps)) {
+		const dpkgShlibdepsUrl = `https://raw.githubusercontent.com/chromium/chromium/${chromiumManifest[0].version}/third_party/dpkg-shlibdeps/dpkg-shlibdeps.pl`;
+		dpkgShlibdepsScriptLocation = `${tmpdir()}/dpkg-shlibdeps.pl`;
+		const result = spawnSync('curl', [dpkgShlibdepsUrl, '-o', dpkgShlibdepsScriptLocation]);
+		if (result.status !== 0) {
+			throw new Error('Cannot retrieve dpkg-shlibdeps. Stderr:\n' + result.stderr);
+		}
 	}
 	const cmd = [dpkgShlibdepsScriptLocation, '--ignore-weak-undefined'];
 	switch (arch) {
