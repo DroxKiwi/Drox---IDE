@@ -9,13 +9,14 @@
 | Dossier | Périmètre | Statut |
 |---------|-----------|--------|
 | [**1.6.0/**](1.6.0/README.md) | Boucles · compaction · Vague 4 · prompts / Explore · contrats · bash capture | **Freeze** ([CLOSURE](1.6.0/CLOSURE-1.6.0.md)) · pas ship |
-| [**1.6.1/**](1.6.1/README.md) | Sous-run par défaut · presets véhicule · canari 9B | **Ouvert** (cadrage figé) |
+| [**1.6.1/**](1.6.1/README.md) | Sous-run par défaut · presets véhicule · charte / polish IDE | **Stable** (`v1.6.1`) |
+| [**1.6.2/**](1.6.2/README.md) | Suite ligne 1.6 | **Ouvert** |
 
 ---
 
 ## Git — ne pas polluer `main`
 
-`main` = dernier **produit stable shippé** (aujourd’hui `v1.5.23`). La ligne 1.6 **ne merge pas** tant qu’un `1.6.x` n’est pas un produit stable.
+`main` = dernier **produit stable shippé** (aujourd’hui `v1.6.1`). Développement courant : branche **`1.6.2`**.
 
 | Branche | Rôle |
 |---------|------|
