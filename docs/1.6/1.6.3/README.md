@@ -6,4 +6,7 @@
 
 ## Objectifs
 
-À cadrer.
+| Id | Sujet | Fiche |
+|----|--------|--------|
+| **O1** | Full protocol : une seule conclusion visible (**codé**) | [OBJECTIFS.md](OBJECTIFS.md) § O1 |
+| **O2** | Historique de session : le tour en cours reste lisible (**ouvert**) | [OBJECTIFS.md](OBJECTIFS.md) § O2 |

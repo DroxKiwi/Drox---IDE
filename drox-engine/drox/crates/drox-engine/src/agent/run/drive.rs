@@ -231,6 +231,9 @@ impl Agent {
         let mut final_answer_forced = false;
         let mut local_empty_turn_nudge_sent = false;
         let mut local_soft_close_check_sent = false;
+        // cloud-full : un DONE_ONLY déjà envoyé. Le tour suivant ne réaffiche
+        // pas la conclusion ; sans `[phase: done]`, le run s'arrête.
+        let mut done_only_nudge_sent = false;
         let mut consecutive_ask_user_question_failures: u32 = 0;
         let mut live_compaction_seq: u32 = 0;
         let mut run_objective_reminder_sent = false;
@@ -658,7 +661,7 @@ impl Agent {
             let native_thinking_ui = self.config.chat_options.think == Some(true);
 
             let Ok(mut outcome) =
-                consume_stream(stream, &tx, native_thinking_ui, &ctx.workspace_root).await
+                consume_stream(stream, &tx, native_thinking_ui, &ctx.workspace_root, done_only_nudge_sent).await
             else {
                 return; // canal consommateur fermé
             };
@@ -723,6 +726,25 @@ impl Agent {
             }
             if outcome.saw_testing {
                 saw_testing_phase_in_run = true;
+            }
+
+            // O1 — DONE_ONLY déjà parti. Le texte de ce tour n'a pas été affiché.
+            // `[phase: done]` retombe sur la clôture normale plus bas. Sinon on
+            // s'arrête : la première conclusion reste la seule visible.
+            if done_only_nudge_sent
+                && outcome.tool_calls.is_empty()
+                && outcome.final_phase != Some(Phase::Done)
+            {
+                debug!("DONE_ONLY ignoré — la première réponse reste, Stop");
+                self.maybe_persist_session(&messages, &memory_tracker, &tx)
+                    .await;
+                let _ = tx
+                    .send(Ok(AgentEvent::Stop {
+                        reason: outcome.reason,
+                        usage: Usage::default(),
+                    }))
+                    .await;
+                return;
             }
 
             // Explore child (phase 1) — E2 : answering ou done sans tool = Stop.
@@ -1121,6 +1143,7 @@ impl Agent {
                     }
                     debug!("answering sans done + todo clôturée + testing OK — nudge minimal (done seul)");
                     consecutive_intent_only_write_nudges = 0;
+                    done_only_nudge_sent = true;
                     messages.push(Message::system(DONE_ONLY_NUDGE_PROMPT));
                     // 1.6.0 L-1 : ne PAS reset — même answering sans done doit
                     // pouvoir strike / text_only-abort (sinon ×12 jusqu'à max_iter).

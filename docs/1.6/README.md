@@ -11,7 +11,7 @@
 | [**1.6.0/**](1.6.0/README.md) | Boucles · compaction · Vague 4 · prompts / Explore · contrats · bash capture | **Freeze** ([CLOSURE](1.6.0/CLOSURE-1.6.0.md)) · pas ship |
 | [**1.6.1/**](1.6.1/README.md) | Sous-run par défaut · presets véhicule · charte / polish IDE | **Stable** (`v1.6.1`) |
 | [**1.6.2/**](1.6.2/README.md) | Onglets IDE, sync modèle, clôture locale, prompts, connexions, thème Agents et runs parallèles | **Stable** (`v1.6.2`) |
-| [**1.6.3/**](1.6.3/README.md) | Suite ligne 1.6 | **Ouvert** |
+| [**1.6.3/**](1.6.3/README.md) | Conclusion unique en full protocol (O1) · historique de session (O2) | **Ouvert** |
 
 ---
 

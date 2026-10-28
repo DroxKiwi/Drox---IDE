@@ -152,3 +152,38 @@ async fn local_27b_soft_close_check_is_one_shot() {
     assert!(stopped_cleanly(&events), "{events:?}");
     assert!(answering_text(&events, "rien à tester"));
 }
+
+#[tokio::test]
+async fn cloud_full_done_only_ignored_hides_rewritten_conclusion() {
+    let events = run(
+        vec![
+            text_turn("[phase: answering]\nBilan initial."),
+            text_turn("[phase: answering]\nBilan réécrit une deuxième fois."),
+            text_turn("[phase: answering]\nBilan réécrit une troisième fois."),
+        ],
+        config("cloud-full", 8),
+    )
+    .await;
+    assert!(stopped_cleanly(&events), "{events:?}");
+    assert!(answering_text(&events, "Bilan initial."));
+    assert!(!answering_text(&events, "deuxième"));
+    assert!(!answering_text(&events, "troisième"));
+}
+
+#[tokio::test]
+async fn cloud_full_done_only_then_marker_closes() {
+    let events = run(
+        vec![
+            text_turn("[phase: answering]\nBilan initial."),
+            text_turn("[phase: done]"),
+        ],
+        config("cloud-full", 8),
+    )
+    .await;
+    assert!(stopped_cleanly(&events), "{events:?}");
+    assert!(answering_text(&events, "Bilan initial."));
+    assert!(events.iter().any(|e| matches!(
+        e,
+        Ok(AgentEvent::PhaseEnter { phase: Phase::Done })
+    )));
+}

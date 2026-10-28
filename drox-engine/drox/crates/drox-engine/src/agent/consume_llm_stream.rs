@@ -51,6 +51,7 @@ pub(crate) async fn consume_stream(
     tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
     native_thinking_ui: bool,
     workspace_root: &camino::Utf8Path,
+    suppress_visible_reply: bool,
 ) -> Result<TurnOutcome, ()> {
     let mut text = String::new();
     let mut thinking = String::new();
@@ -83,7 +84,7 @@ pub(crate) async fn consume_stream(
                 if !delta.is_empty() {
                     thinking.push_str(&delta);
                 }
-                if !native_thinking_ui || delta.is_empty() {
+                if !native_thinking_ui || delta.is_empty() || suppress_visible_reply {
                     continue;
                 }
                 if !native_thinking_open {
@@ -158,12 +159,15 @@ pub(crate) async fn consume_stream(
                     }
                 }
                 for line in std::mem::take(&mut pending_text) {
-                    note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
+                    if !suppress_visible_reply {
+                        note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
+                    }
                     text.push_str(&line);
-                    if tx
-                        .send(Ok(AgentEvent::TextDelta { text: line }))
-                        .await
-                        .is_err()
+                    if !suppress_visible_reply
+                        && tx
+                            .send(Ok(AgentEvent::TextDelta { text: line }))
+                            .await
+                            .is_err()
                     {
                         return Err(());
                     }
@@ -290,12 +294,15 @@ pub(crate) async fn consume_stream(
         }
     }
     for line in tail_text {
-        note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
+        if !suppress_visible_reply {
+            note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
+        }
         text.push_str(&line);
-        if tx
-            .send(Ok(AgentEvent::TextDelta { text: line }))
-            .await
-            .is_err()
+        if !suppress_visible_reply
+            && tx
+                .send(Ok(AgentEvent::TextDelta { text: line }))
+                .await
+                .is_err()
         {
             return Err(());
         }
