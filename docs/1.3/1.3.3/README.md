@@ -1,4 +1,4 @@
-﻿# Drox 1.3.3 — Release fiable (pipeline & package)
+# Drox 1.3.3 — Release fiable (pipeline & package)
 
 > Ligne 1.3 **archivée** — [CLOSURE-1.3](../CLOSURE-1.3.md) · suite [1.4](../../1.4/README.md)
 
@@ -26,7 +26,7 @@ L’installeur OR **1.3.2** a été produit avec un `out-vscode-min` recyclé (3
 | # | Axe | Doc |
 |---|-----|-----|
 | **B1** | Garde-fous `drox-bundle-readiness` (stamp, sentinelles, vérif package) | [PLAN-1.3.3](PLAN-1.3.3.md) · [RULES.md](../../../../RULES.md) |
-| **B2** | `npm run drox:ship -- -Force` + smoke install | [GUIDE-PUBLICATION-WIN32](../../operations/GUIDE-PUBLICATION-WIN32.md) |
+| **B2** | `npm run drox:ship -- -Force` + smoke install | [03-RELEASE-WINDOWS](../../release/03-RELEASE-WINDOWS.md) |
 | **B3** | MAJ in-app (install ≤1.3.2 → notif → 1.3.3) | [CLOSURE-1.3.3](finalisation/CLOSURE-1.3.3.md) |
 
 **Reporté en [1.3.4](../1.3.4/README.md)** : TEST-PLAN complet, presets, `cargo test` systématique.

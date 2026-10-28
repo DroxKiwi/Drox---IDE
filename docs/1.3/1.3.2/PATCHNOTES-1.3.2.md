@@ -1,4 +1,4 @@
-﻿# Patch notes 1.3.2
+# Patch notes 1.3.2
 
 **Version** : `droxVersion` **1.3.2** · branche `1.3.2`  
 **Statut** : stabilisation — tests avant tag
@@ -70,4 +70,4 @@ Exécuter [TEST-PLAN-1.3.2.md](finalisation/TEST-PLAN-1.3.2.md) :
 
 - [README 1.3.2](README.md)
 - [Hub 1.3](../README.md)
-- [GUIDE-PUBLICATION-WIN32](../../operations/GUIDE-PUBLICATION-WIN32.md)
+- [03-RELEASE-WINDOWS](../../release/03-RELEASE-WINDOWS.md)

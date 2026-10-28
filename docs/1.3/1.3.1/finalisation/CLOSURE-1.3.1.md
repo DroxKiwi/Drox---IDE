@@ -148,7 +148,7 @@ URL manifest : `https://raw.githubusercontent.com/DroxKiwi/Drox---IDE---releases
 | E.4 | Commit `stable/latest.json` sur `Drox---IDE---releases` | ⬜ |
 | E.5 | `gh release create v1.3.1` + notes | ⬜ |
 
-**Guide commandes** : [GUIDE-PUBLICATION-WIN32.md](../../../operations/GUIDE-PUBLICATION-WIN32.md)
+**Guide commandes** : [03-RELEASE-WINDOWS.md](../../../release/03-RELEASE-WINDOWS.md)
 
 ```powershell
 npm run drox:ship

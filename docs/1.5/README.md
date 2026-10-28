@@ -88,4 +88,4 @@
 - [PLAN 1.5.14](1.5.14/PLAN-1.5.14.md)
 - [Brainstorm MCP #16](../feature-brainstorm/16-connexions-mcp-ui-moteur.md)
 - [GUIDE release & upstream](../GUIDE-RELEASE-ET-UPSTREAM.md)
-- [Opérations release (index)](../operations/README.md)
+- [Opérations release (index)](../release/README.md)

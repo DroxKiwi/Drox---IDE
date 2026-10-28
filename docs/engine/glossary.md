@@ -2,36 +2,34 @@
 
 | Terme | Définition |
 |-------|------------|
-| **`tui_mono`** | Pipeline d’orchestration actuel : une boucle agent unique. Annoncé dans `initialize.orchestration_pipeline`. |
-| **`drox` / `drox.exe`** | Binaire `drox-cli` : CLI one-shot + serveur `--serve`. |
-| **`drox-tui`** | Client terminal in-process sur le même `drox-engine`. |
-| **`drive_inner`** | Boucle principale : LLM ↔ tools ↔ nudges jusqu’à done / cancel / plafond. |
-| **`AgentConfig`** | Config d’un run (prompt, itérations, permissions, contexte, hooks, parallélisme). |
-| **`AgentEvent`** | Événement de run streamé vers le client (`agent/event`). |
-| **`Phase` / `[phase:]`** | Marqueur protocole dans le flux modèle (`[phase: answering]`, `[phase: done]`, …). |
-| **`RemoteTool`** | Outil exécuté par le client via `tool/exec`, déclaré dans `executableTools`. |
-| **`executableTools`** | Liste handshake des outils remote IDE. |
-| **NDJSON** | Une requête/réponse JSON par ligne sur stdio (pas de `Content-Length`). |
-| **`PROTOCOL_VERSION`** | `"1.0"` — version du contrat JSON-RPC Drox. |
-| **Nudge** | Message système injecté quand le modèle dévie (sans done, todos ouverts, boucle…). |
-| **Gate** | Condition moteur qui bloque un tool ou refuse `done` (todo avant mutation, testing, professor…). |
-| **LoopDetector** | Fingerprint anti-répétition ; 3 tours identiques → abort. |
-| **Compaction / snip** | Réduction d’historique pour le budget tokens (`ContextSnip`, `ContextCompacted`). |
-| **Memdir / session notes** | Mémoire locale projet ou session. |
-| **`.drox/memory/sessions/`** | Archives auto (plan clos + fin de run). |
-| **`rail_station_*`** | Événements UI hérités ; souvent **synthétisés** par le shim depuis les phases. |
-| **`role_split`** | Ancien pipeline Architecte/Exécuteur — **obsolète**. |
-| **`task` / Explore** | Sous-agent read-only pour cartographier un large périmètre. |
-| **`mcp__*`** | Préfixe des outils issus de serveurs MCP. |
-| **Ollama-first** | Inférence locale par défaut ; OpenAI-compat pour d’autres endpoints. |
-| **Hooks** | `.drox/hooks.json` — commandes pre/post tool. |
-| **PermissionMode** | `default` \| `plan` \| `acceptEdits` \| `bypassPermissions` \| `professor` (**enum Rust** ; `professor` **non exposé** de façon fiable dans l’IDE — downgrade 1.4.0). |
-| **Codebase / RAG** | Index local par dossier (`{root}/.drox/codebase-index/`) + retrieval / inject — pas un second LLM. |
-| **`ensureIndexed`** | Sync d’index (hash-skip) pour une racine ; déclenché en background par l’auto-index. |
-| **Auto-index coalesce** | File **1-root** : si l’utilisateur change de discussion pendant un index, seul le **dernier** root demandé est enfilé. |
-| **`setActiveRoot`** | Pin supervision Codebase sur le folder de la discussion active (Agents). |
-| **Regulation** | Observatoire L1–L5 (notes / Auto) — UI IDE + Agents, store sous `.drox/regulation/`. |
+| **`tui_mono`** | Pipeline actuel : une boucle `Agent::run`. Handshake `orchestrationPipeline`. |
+| **`EngineProfile`** | `local-9b` · `local-27b` · `cloud-full` — knobs parent (CORE, outils, clôture). RPC `engineProfile`. |
+| **`drox` / `drox.exe`** | Binaire `drox-cli` (`--serve`, CLI one-shot). |
+| **`drox-tui`** | Client terminal in-process sur `drox-engine`. |
+| **`drive_inner`** | Boucle principale dans [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs). |
+| **`AgentConfig`** | Config run : prompt, itérations, permissions, **`engine_profile`**, hooks, parallélisme, … |
+| **`AgentEvent`** | Événement streamé (`agent/event`). |
+| **`Phase` / `[phase:]`** | Marqueurs protocole (`answering`, `done`, `testing`, …). |
+| **`drox-prompts`** | Crate catalogue textes injectés (CORE, gates, runtime, Explore, tools). |
+| **`RemoteTool`** | Outil client via `tool/exec` (`executableTools`). |
+| **NDJSON** | JSON + `\n` sur stdio. |
+| **`PROTOCOL_VERSION`** | `"1.0"`. |
+| **`rpc_types.rs`** | DTO wire JSON-RPC (`AgentRunParams`, …). |
+| **Nudge** | `Message::system` de relance (done, testing, loop, local, …). |
+| **Gate** | Blocage tool ou refus `done` (todo, testing, professor, …). |
+| **LoopDetector** | Anti-répétition → Warn · ForceConclude · **SyntheticDone** (souvent Stop propre). |
+| **Situation card** | Bloc system réécrit chaque tour (état court du run). |
+| **Tool result spill** | Externalise / stub gros résultats outil (contexte). |
+| **Compaction / snip** | Réduction historique (`ContextSnip`, `ContextCompacted`). |
+| **`.drox/memory/sessions/`** | Archives auto post-run / plan clos. |
+| **`rail_station_*`** | UI legacy ; shim depuis phases. |
+| **`role_split`** | Ancien Architecte/Exécuteur — **obsolète**. |
+| **`task` / Explore** | Sous-run read-only ; `explore_index_list` / `explore_artifact_read` côté parent. |
+| **`mcp__*`** | Tools MCP dynamiques. |
+| **`codebase_search`** | Retrieval index workspace (souvent remote IDE). |
+| **Hooks** | `.drox/hooks.json` pre/post tool. |
+| **`PermissionPolicy`** | Pont run permissions (`agent_permissions`). |
+| **Codebase / RAG** | Index `{root}/.drox/codebase-index/` — [codebase-and-rag.md](codebase-and-rag.md). |
+| **Regulation** | Notes L1–L5 IDE — [model-regulation.md](model-regulation.md). |
 
-Pour l’historique des releases : `docs/1.5/`, `docs/1.4/`, etc.  
-Réf. Codebase : [codebase-and-rag.md](codebase-and-rag.md).
-
+Historique releases : `docs/1.5/`, `docs/1.4/`.

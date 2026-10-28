@@ -40,7 +40,7 @@ Le moteur **normalise** certains détails (ex. ordre des messages `system` pour 
 ## Streaming
 
 1. `LlmClient` streame tokens + éventuels `tool_calls` structurés.
-2. `drive_inner` → `consume_stream` produit `TextDelta`, phases, tool calls.
+2. `drive_inner` → [`consume_llm_stream`](../../drox-engine/drox/crates/drox-engine/src/agent/consume_llm_stream.rs) → `TextDelta`, phases, tool calls.
 3. Le thinking natif (si activé) est séparé de la prose `[phase: answering]` — l’UI IDE le plie souvent en « Native reasoning ».
 
 ## Indépendance cloud

@@ -2,7 +2,7 @@
 
 **Agents IA** : lire aussi [AGENTS.md](AGENTS.md).
 
-Guides détaillés : [03 Windows](03-RELEASE-WINDOWS.md) · [04 Linux](04-RELEASE-LINUX.md) · [scripts](scripts/README.md)
+Guides détaillés : [03 Windows](03-RELEASE-WINDOWS.md) · [04 Linux](04-RELEASE-LINUX.md) · [scripts/release](../../scripts/release/README.md)
 
 ---
 
@@ -37,7 +37,7 @@ npm run drox:ship -- -Force
 ### Release Linux (`.deb`)
 
 ```powershell
-.\docs\operations\scripts\wsl-linux-build-isolated.ps1
+.\scripts\release\wsl-linux-build-isolated.ps1
 ```
 
 → [04-RELEASE-LINUX.md](04-RELEASE-LINUX.md)
@@ -54,7 +54,7 @@ Windows (03)  →  Linux isolé (04)  →  commit stable/ + gh release sur Drox-
 
 | Symptôme | Action |
 |----------|--------|
-| `watch` / `code.bat` cassés | `restore-windows-dev.ps1` (erreur passée sur `/mnt/c/`) |
+| `watch` / `code.bat` cassés | `.\scripts\release\restore-windows-dev.ps1` (erreur passée sur `/mnt/c/`) |
 | Build Linux : sudo bloqué | apt dans WSL interactif → [scripts/README](scripts/README.md) |
 | Build Linux : réseau npm | Relancer `wsl-linux-build-isolated.ps1` |
 | `code-open-folder.desktop` manquant | Fichier Drox perdu au merge upstream — restaurer depuis git |

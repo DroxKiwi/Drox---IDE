@@ -19,5 +19,5 @@ Préparation technique du build `.deb` et du merge manifeste — **exécution re
 
 ## Liens
 
-- [GUIDE publication Linux](../../operations/GUIDE-PUBLICATION-LINUX.md)
+- [Release Linux (04-RELEASE-LINUX)](../../release/04-RELEASE-LINUX.md)
 - [Hub 1.5](../README.md)

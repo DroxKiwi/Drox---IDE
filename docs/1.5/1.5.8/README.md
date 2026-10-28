@@ -20,4 +20,4 @@ Petits **correctifs UX** du chat Drox (fil Work/Reasoning, questionnaire, libell
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [Release 1.5.7](../../../operations/README.md)
+- [Release 1.5.7](../../../release/README.md)

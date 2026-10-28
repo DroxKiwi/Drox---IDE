@@ -2,86 +2,82 @@
 
 ## Idée centrale
 
-Trois mémoires distinctes, volontairement **non fusionnées** :
+Trois mémoires **non fusionnées** :
 
 | Couche | Rôle | Durée de vie |
 |--------|------|--------------|
-| **Transcript JSONL** | Trace complète du run (reprise UI, debug) | Profil utilisateur (`~/.drox/sessions/`) |
-| **Contexte LLM vivant** | Ce qui est réellement envoyé au modèle | Éphémère — snip / compact pendant le run |
-| **Archives / notes projet** | Décisions durables (`.drox/memory/`, `MEMORY.md`) | Workspace |
+| **Transcript JSONL** | Trace run (reprise UI, debug) | `~/.drox/sessions/` |
+| **Contexte LLM vivant** | Messages réellement envoyés au modèle | Snip / compact **pendant** le run |
+| **Archives / notes projet** | Décisions durables | `.drox/memory/`, `MEMORY.md` |
 
-Le snip (**déterministe**, pas d’appel LLM) retire d’abord les blocs froids ; la compaction (**async**, résume via LLM) n’intervient que si le budget reste trop serré — primitives dans `drox-context` (**tiktoken-rs** pour estimer), orchestration dans `compaction.rs` / `maybe_snip`.
+Snip = **déterministe** (`drox-context`) ; compaction live = **LLM** si budget encore serré ([`compaction.rs`](../../drox-engine/drox/crates/drox-engine/src/compaction.rs)).
+
+En parallèle, la **situation card** ([`agent/situation/`](../../drox-engine/drox/crates/drox-engine/src/agent/situation/)) réécrit un **bloc system court** chaque tour (paths touchés, todos, couverture Explore) — ce n’est pas le JSONL, mais ça compresse l’état visible du run.
 
 ## Transcripts JSONL
 
 Crate [`drox-session`](../../drox-engine/drox/crates/drox-session/src/lib.rs).
 
-| Élément | Emplacement / format |
-|---------|----------------------|
-| Répertoire défaut | `~/.drox/sessions/` (`paths::default_sessions_dir`) |
-| Transcript | `{sessions_dir}/{session_id}.jsonl` |
+| Élément | Emplacement |
+|---------|-------------|
+| Répertoire défaut | `~/.drox/sessions/` |
+| Transcript | `{session_id}.jsonl` |
 | Stats UI | `{session_id}.ui-stats.json` |
-| Métadonnées | `{session_id}.meta.json` |
+| Meta | `{session_id}.meta.json` |
 
-Chaque ligne JSONL = `ChatMessageRecord` :
+Ligne = `ChatMessageRecord` (`schema_version` **1**, `Message`). Append via `JsonlTranscriptSink`.
 
-- `schema_version` = **1** (`TRANSCRIPT_SCHEMA_VERSION`)
-- `timestamp` RFC3339
-- `message` (`drox_types::Message`)
-
-Écriture **append-only** (`JsonlTranscriptSink`).
-
-Côté IDE, le profil utilisateur peut rediriger / synchroniser ces chemins ; le moteur accepte `session_dir` dans les params RPC.
+Override : `sessionDir` / profil IDE. Écriture pendant run : [`run/lifecycle.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/lifecycle.rs) (`flush_transcript`).
 
 ## RPC `session.*`
 
 | Méthode | Usage |
-|---------|-------|
-| `session.list` | Enumérer (`id`, `modified_secs`, `size_bytes`) |
-| `session.read` | Charger historique + `ui_stats` |
-| `session.compact` | Compaction LLM → résumé / objectif / files_touched / usage |
-| `session.truncateAfterLastUser` | Couper après le dernier message user (édition / retry) |
+|---------|--------|
+| `session.list` | Index sessions |
+| `session.read` | Historique + `ui_stats` |
+| `session.compact` | Compaction LLM hors run agent |
+| `session.truncateAfterLastUser` | Retry / édition transcript |
 
-`agent.run` peut **reprendre** une session (`continue_from_history`) plutôt que partir de zéro — handlers dans [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs).
+Handlers : [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs).
 
-## Compaction / budget dans la boucle
+`agent.run` : reprise `continue_from_history` si `skipUserTurn` / session existante.
 
-Dans `drive_inner`, avant les tours LLM coûteux ([`maybe_snip`](../../drox-engine/drox/crates/drox-engine/src/agent.rs)) :
+## Budget contexte dans la boucle
 
-1. Estimation tokens ([`drox-context`](../../drox-engine/drox/crates/drox-context/src/lib.rs))
-2. Snip des blocs froids → événement `ContextSnip`
-3. Compaction live ([`compaction.rs`](../../drox-engine/drox/crates/drox-engine/src/compaction.rs)) → `ContextCompacted`
+Avant tours LLM coûteux — [`maybe_snip`](../../drox-engine/drox/crates/drox-engine/src/agent/run/lifecycle.rs) :
 
-But : rester sous le contexte du modèle sans perdre plan / décisions.
+1. Comptage tokens ([`drox-context`](../../drox-engine/drox/crates/drox-context/src/lib.rs))
+2. Snip blocs froids → `ContextSnip`
+3. Compaction live → `ContextCompacted` ([`try_live_compact`](../../drox-engine/drox/crates/drox-engine/src/compaction.rs))
 
-`session.compact` (RPC) est le chemin **explicite** client (outil remote / commande UI) distinct de la compaction live automatique.
+`session.compact` (RPC) = chemin **client explicite**, distinct de la compaction auto run.
 
-## Mémoire projet vs mémoire moteur
+Gros **tool_result** : spill / stub ([`tool_result_spill/`](../../drox-engine/drox/crates/drox-engine/src/agent/tool_result_spill/)) avant snip agressif.
+
+## Mémoire projet vs moteur
 
 | Mécanisme | Où | Qui écrit |
 |-----------|-----|-----------|
-| Transcript JSONL | `~/.drox/sessions/*.jsonl` | Moteur (chaque tour) |
-| Archives session | **`.drox/memory/sessions/`** (workspace) | Moteur auto : (1) plan entièrement clos, (2) run `done` non trivial |
-| `MEMORY.md` | Racine workspace | Modèle via `file_edit` (recommandé, non gate) |
-| `session_note` / `memory_read` / `memory_list` | Via tools | Modèle / runtime |
-| Memdir / `DROX.md` | Projet | Voir modules `memdir` de `drox-session` |
-| Skills | Workspace skills | `skill_list` / `skill_read` |
+| JSONL | `~/.drox/sessions/` | Moteur (append) |
+| Archives | `.drox/memory/sessions/` | Moteur : plan clos + run non trivial ([`memory.rs`](../../drox-engine/drox/crates/drox-engine/src/memory.rs)) |
+| `MEMORY.md` | Racine workspace | Modèle (`file_edit`) — recommandé, non gate |
+| Tools | `session_note`, `memory_*`, skills | Modèle / runtime |
+| Memdir | `DROX.md`, etc. | [`drox-session`](../../drox-engine/drox/crates/drox-session/) |
 
-Orchestration côté engine : [`memory.rs`](../../drox-engine/drox/crates/drox-engine/src/memory.rs), [`long_memory.rs`](../../drox-engine/drox/crates/drox-engine/src/long_memory.rs).  
-Événement `MemoryPersisted` quand une archive est écrite.
+Événement **`MemoryPersisted`** · DTO longue durée : [`memory/long.rs`](../../drox-engine/drox/crates/drox-engine/src/memory/long.rs) (réexport `long_memory`).
 
-Au démarrage d’un run, le prompt système peut injecter un résumé des archives workspace (date UTC, slug, objectif une ligne) pour rappel de décisions antérieures.
+Au boot run, le prompt peut lister les archives workspace (slug, objectif).
 
-## Ce qui n’est pas cloud
+## Local only
 
-Aucun compte cloud Drox n’est requis pour le cœur : tout reste **local** au profil + fichiers projet que tu choisis de versionner (souvent `.drox/` est gitignoré — vérifier ton `.gitignore` / `.droxignore`).
+Pas de cloud Drox obligatoire pour transcripts / mémoire — profil utilisateur + fichiers projet (souvent `.drox/` gitignoré).
 
 ## Fichiers
 
 | Rôle | Chemin |
 |------|--------|
-| Session crate | [`drox-session/`](../../drox-engine/drox/crates/drox-session/) |
-| Contexte / tokens | [`drox-context/`](../../drox-engine/drox/crates/drox-context/) |
+| Session | [`drox-session/`](../../drox-engine/drox/crates/drox-session/) |
+| Tokens / snip | [`drox-context/`](../../drox-engine/drox/crates/drox-context/) |
 | Compaction | [`compaction.rs`](../../drox-engine/drox/crates/drox-engine/src/compaction.rs) |
-| RPC | [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) |
-
+| Situation card | [`agent/situation/`](../../drox-engine/drox/crates/drox-engine/src/agent/situation/) |
+| RPC | [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) |

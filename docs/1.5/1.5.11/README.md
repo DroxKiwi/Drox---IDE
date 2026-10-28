@@ -35,4 +35,4 @@ Mettre **`drox.exe`** dans le **chat natif** VS Code (châssis Copilot-style, sa
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [Opérations release](../../operations/README.md)
+- [Opérations release](../../release/README.md)

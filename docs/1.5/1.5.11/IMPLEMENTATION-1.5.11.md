@@ -1,4 +1,4 @@
-﻿# Implémentation 1.5.11 — Agents Window + moteur Drox
+# Implémentation 1.5.11 — Agents Window + moteur Drox
 
 **Complément du** [PLAN-1.5.11.md](PLAN-1.5.11.md)  
 **Public** : développeurs, agents IA  
@@ -259,7 +259,7 @@ Ne pas supprimer le webview avant parité UX prouvée (phases P3–P4).
 | P2-1 | Chaînes nls Drox (pas de « Copilot » nominal) |
 | P2-2 | Welcome Agents : modèle local, workspace |
 | P2-3 | `Open in Agents` titlebar |
-| P2-4 | Doc utilisateur + [AGENTS.md](../../operations/AGENTS.md) |
+| P2-4 | Doc utilisateur + [AGENTS.md](../../release/AGENTS.md) |
 
 ### Phase P3 — Changes & parité (3–4 semaines, optionnel 1.5.11)
 

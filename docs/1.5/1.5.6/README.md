@@ -20,4 +20,4 @@ Corriger les **régressions ou défauts** observés sur la **1.5.5** en usage r�
 ## Liens
 
 - [Hub 1.5](../README.md)
-- [Release 1.5.6](../../../operations/README.md) — win + linux publiés
+- [Release 1.5.6](../../../release/README.md) — win + linux publiés

@@ -29,7 +29,7 @@ Setup apt une fois : [README.md § Setup](README.md#setup-machine-une-fois) ou [
 
 ```powershell
 cd <REPO>
-.\drox-engine\docs\operations\scripts\wsl-linux-build-isolated.ps1
+.\scripts\release\wsl-linux-build-isolated.ps1
 ```
 
 Commit auto · sync `~/Drox---IDE` · 1–3 h · Log : `.build\wsl-linux-build-isolated.log`
@@ -50,7 +50,7 @@ Commit auto · sync `~/Drox---IDE` · 1–3 h · Log : `.build\wsl-linux-build-i
 wsl -d Ubuntu-24.04
 cd ~/Drox---IDE
 export DROX_PRODUCT_SURFACE=release
-bash docs/operations/scripts/wsl-linux-build.sh
+bash scripts/release/wsl-linux-build.sh
 ```
 
 ---
@@ -74,13 +74,13 @@ Le repo **`<OR>`** est à côté des sources **Windows** (`Desktop\GitHub\Drox--
 Le script isolé exporte `DROX_RELEASES_REPO` automatiquement. Sinon, publier depuis le chemin Windows :
 
 ```powershell
-wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && DROX_RELEASES_REPO=/mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR ./scripts/release-publish-linux.sh"
+wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && DROX_RELEASES_REPO=/mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR ./scripts/release/release-publish-linux.sh"
 ```
 
 Ou avec le `.deb` du clone isolé :
 
 ```powershell
-wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && ./scripts/release-publish-linux.sh --releases-repo /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR --deb /home/<vous>/Drox---IDE/.build/linux/deb/amd64/deb/*.deb"
+wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && ./scripts/release/release-publish-linux.sh --releases-repo /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR --deb /home/<vous>/Drox---IDE/.build/linux/deb/amd64/deb/*.deb"
 ```
 
 Copie `.deb` → `<OR>\_upload\` · fusionne `platforms.linux-x64` dans `latest.json` (win32 conservé).
@@ -110,7 +110,7 @@ gh release upload <TAG> ".\_upload\Drox-IDE-<DROX_VER>-linux-x64.deb" --repo Dro
 Si `watch` / `code.bat` sont cassés (erreur passée : `npm install` WSL sur `/mnt/c/`) :
 
 ```powershell
-.\drox-engine\docs\operations\scripts\restore-windows-dev.ps1
+.\scripts\release\restore-windows-dev.ps1
 ```
 
 ---

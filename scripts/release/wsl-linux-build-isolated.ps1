@@ -4,9 +4,7 @@
 # No restore-windows-dev.ps1 needed afterward.
 #
 # Usage (PowerShell, from Windows repo root):
-#   .\docs\operations\scripts\wsl-linux-build-isolated.ps1
-#   .\docs\operations\scripts\wsl-linux-build-isolated.ps1 -Distro Ubuntu-24.04
-#   .\docs\operations\scripts\wsl-linux-build-isolated.ps1 -SkipCommit
+#   .\scripts\release\wsl-linux-build-isolated.ps1
 #
 # Changements locaux non commités : commit auto avant sync (voir -SkipCommit).
 # Log: .build/wsl-linux-build-isolated.log (on Windows repo)
@@ -27,7 +25,7 @@ if (-not $Distro) {
 	else { $Distro = $installed[0] }
 }
 
-$winRepo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+$winRepo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $drive = $winRepo.Substring(0, 1).ToLowerInvariant()
 $winRest = ($winRepo.Substring(2) -replace '\\', '/').TrimStart('/')
 $winRepoWsl = "/mnt/$drive/$winRest"
@@ -136,7 +134,7 @@ sync_clone() {
 		--exclude '.build/' \
 		"$WIN_REPO/" "$LINUX_REPO/"
 	echo "==> Normaliser fins de ligne scripts shell (LF)"
-	find "$LINUX_REPO/scripts" "$LINUX_REPO/docs/operations/scripts" -name '*.sh' -print0 2>/dev/null \
+	find "$LINUX_REPO/scripts/release" "$LINUX_REPO/scripts" -name '*.sh' -print0 2>/dev/null \
 		| xargs -0 -r sed -i 's/\r$//' || true
 }
 
@@ -144,12 +142,12 @@ sync_clone
 
 export DROX_PRODUCT_SURFACE=release
 export DROX_RELEASES_REPO="$DROX_RELEASES_REPO"
-chmod +x docs/operations/scripts/wsl-linux-build.sh \
-	scripts/build-release-linux.sh scripts/package-drox.sh \
-	scripts/verify-packaged-linux.sh scripts/release-publish-linux.sh \
+chmod +x scripts/release/wsl-linux-build.sh \
+	scripts/release/build-release-linux.sh scripts/package-drox.sh \
+	scripts/verify-packaged-linux.sh scripts/release/release-publish-linux.sh \
 	scripts/lib/linux-npm-install.sh scripts/lib/linux-strip-packaged-natives.sh
 
-bash ./docs/operations/scripts/wsl-linux-build.sh
+bash ./scripts/release/wsl-linux-build.sh
 
 echo ""
 echo "==> Done. Windows dev unchanged. Manifeste + .deb via release-publish-linux.sh (ce depot)."

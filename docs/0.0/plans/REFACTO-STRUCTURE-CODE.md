@@ -1,7 +1,7 @@
 # Refactoring structure — moteur Rust & workbench Drox
 
 **Date** : 2026-05-20  
-**Statut** : **Phase 0–3 ✅ structure** · **Phase 4 ✅ clôture doc** (2026-05-20) · smoke manuel IDE = gate optionnelle ([SMOKE-MANUEL-REFACTO](../operations/SMOKE-MANUEL-REFACTO.md))  
+**Statut** : **Phase 0–3 ✅ structure** · **Phase 4 ✅ clôture doc** (2026-05-20) · smoke manuel IDE = gate optionnelle ([SMOKE-MANUEL-REFACTO](../release/SMOKE-MANUEL-REFACTO.md))  
 **Objectif** : réduire les monolithes **sans changer le comportement actuel** (référence = profil **Medium**), tout en posant une structure prête pour [MODELES-PAR-TAILLE](../architecture/MODELES-PAR-TAILLE.md) et [MEMOIRE-LONG-TERME](../architecture/MEMOIRE-LONG-TERME.md).
 
 **Documents liés** : [PLAN-INTEGRATION](./PLAN-INTEGRATION.md) · [MODELES-PAR-TAILLE](../architecture/MODELES-PAR-TAILLE.md) · [MEMOIRE-LONG-TERME](../architecture/MEMOIRE-LONG-TERME.md) · [GUIDE-MOTEUR-DROX](../guides/GUIDE-MOTEUR-DROX.md)
@@ -122,13 +122,13 @@ Chaque phase se termine par une **validation obligatoire** (case à cocher). On 
 - Créer `run_profile/` (`RunProfileId`, `RunPolicy`, `RunPolicy::medium()`).
 - Ajouter `run_policy` à `AgentConfig` (défaut Medium).
 - Tests : `medium_policy_matches_legacy_defaults` (limites, pas de filtre tools).
-- Établir la **checklist smoke manuelle** figée — [SMOKE-MANUEL-REFACTO](../operations/SMOKE-MANUEL-REFACTO.md).
+- Établir la **checklist smoke manuelle** figée — [SMOKE-MANUEL-REFACTO](../release/SMOKE-MANUEL-REFACTO.md).
 
 **Validation Phase 0** — à cocher avant Phase 1
 
 - [x] `cargo test --workspace` vert (2026-05-20)
 - [ ] `cargo clippy --workspace -- -D warnings` vert — **hors scope refactor** : échecs préexistants (`drox-bash`, `drox-permissions`, `drox-session`, …)
-- [ ] Smoke manuel checklist : **aucune différence** vs avant Phase 0 — **à cocher par l’humain** ([SMOKE-MANUEL-REFACTO](../operations/SMOKE-MANUEL-REFACTO.md))
+- [ ] Smoke manuel checklist : **aucune différence** vs avant Phase 0 — **à cocher par l’humain** ([SMOKE-MANUEL-REFACTO](../release/SMOKE-MANUEL-REFACTO.md))
 - [x] Revue : aucun changement de texte dans `CORE_SYSTEM_PROMPT` ni dans les gates effectifs (déplacements uniquement)
 
 ---
@@ -171,7 +171,7 @@ Chaque phase se termine par une **validation obligatoire** (case à cocher). On 
 **Validation Phase 2** — à cocher avant Phase 3
 
 - [x] `cargo test --workspace` vert (2026-05-20)
-- [x] Smoke RPC doc [SMOKE-RPC](../operations/SMOKE-RPC.md) : parcours couvert par `test-drox` (`tool/exec`, cancel, bridge) ; E2E LLM = manuel IDE
+- [x] Smoke RPC doc [SMOKE-RPC](../release/SMOKE-RPC.md) : parcours couvert par `test-drox` (`tool/exec`, cancel, bridge) ; E2E LLM = manuel IDE
 - [ ] Smoke manuel checklist : **aucune différence** — **à cocher par l’humain**
 - [ ] `extension-vscode` F5 (référence) : un run complet OK (optionnel mais recommandé)
 
@@ -259,7 +259,7 @@ Chaque phase se termine par une **validation obligatoire** (case à cocher). On 
 | `npm run test-drox` / `scripts/test-drox.ps1` | ✅ (34 tests) |
 | `cargo clippy --workspace -D warnings` | ❌ dette clippy hors crates refactorés |
 
-**Gate optionnelle (régression UX)** : [SMOKE-MANUEL-REFACTO](../operations/SMOKE-MANUEL-REFACTO.md) (~10 min IDE + LLM) — recommandée avant merge release.
+**Gate optionnelle (régression UX)** : [SMOKE-MANUEL-REFACTO](../release/SMOKE-MANUEL-REFACTO.md) (~10 min IDE + LLM) — recommandée avant merge release.
 
 ---
 

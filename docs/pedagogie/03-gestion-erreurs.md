@@ -23,8 +23,8 @@ Presque toute opération « dangereuse » (réseau, parse, config) renvoie soit 
 |---------|------|
 | [`ollama/stream.rs`](../../drox-engine/drox/crates/drox-llm/src/ollama/stream.rs) | Erreurs HTTP Ollama |
 | [`client.rs`](../../drox-engine/drox/crates/drox-llm/src/client.rs) | `stream_chat` → `Result<…, LlmError>` |
-| [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) | `match` sur erreur LLM dans `drive_inner` |
-| [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) | Erreurs RPC / config |
+| [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) | `match` sur erreur LLM dans `drive_inner` |
+| [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) | Erreurs RPC / config |
 | Crate `thiserror` (dépendance) | Définir des types d’erreur lisibles |
 
 ---
@@ -55,7 +55,7 @@ fn parse_port(texte: &str) -> Result<u16, String> {
 
 ### Exemple concret — erreur LLM dans la boucle
 
-Même extrait que le guide 02, zoom sur le `match` ([`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs)) :
+Même extrait que le guide 02, zoom sur le `match` ([`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs)) :
 
 ```rust
 let stream = match self.llm.stream_chat(messages.clone(), options).await {
@@ -148,7 +148,7 @@ Ici on n’utilise pas `?` : on veut un traitement local (notifier l’UI) avant
 
 ### 2. Couche RPC (`RpcError`)
 
-Côté `handlers.rs`, une mauvaise config devient une erreur JSON-RPC pour l’IDE :
+Côté `handlers/mod.rs`, une mauvaise config devient une erreur JSON-RPC pour l’IDE :
 
 ```rust
 let llm = create_llm_client(params.provider.as_deref(), llm_config)

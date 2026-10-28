@@ -205,7 +205,7 @@ Outils **bloqués** tant qu’un job explore est `running` (profil Low uniquemen
 | # | Tâche | Fichiers | Statut |
 |---|--------|----------|--------|
 | C17 | Confirmer défaut `maxConcurrent: 1` + texte setting IDE | `droxConfiguration.ts` | ✅ |
-| C18 | Smoke VRAM : 1 vs 2 explores + parent actif (doc résultat) | `docs/operations/` ou §5.2 ci-dessous | ⬜ |
+| C18 | Smoke VRAM : 1 vs 2 explores + parent actif (doc résultat) | `docs/release/` ou §5.2 ci-dessous | ⬜ |
 | C19 | Après smoke vert : doc « quand passer à 2 » (périmètres disjoints) | ce plan §5.2 | ⬜ |
 | C20 | Maj [PLAN-PROFIL-LOW-ACCOMPAGNEMENT](./PLAN-PROFIL-LOW-ACCOMPAGNEMENT.md) statut M5c | lien croisé | ✅ |
 
