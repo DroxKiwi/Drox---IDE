@@ -295,7 +295,7 @@ Issues remontées après découpe `browser/chat/*`, services LLM, outils distant
 | S5 | Parité agent run Medium après refacto chat (send, replay, onglets) | `droxChatController`, `browser/chat/*` | ⬜ |
 | S6 | Régression `tool/exec` (bash, lsp, session_*) | `droxClientToolsService` | ⬜ |
 
-Référence structure : [REFACTO-STRUCTURE-CODE](./REFACTO-STRUCTURE-CODE.md) · procédure : [SMOKE-MANUEL-REFACTO](../operations/SMOKE-MANUEL-REFACTO.md).
+Référence structure : [REFACTO-STRUCTURE-CODE](./REFACTO-STRUCTURE-CODE.md) · procédure : [SMOKE-MANUEL-REFACTO](../release/SMOKE-MANUEL-REFACTO.md).
 
 ### M4a — Fondations `RunContext` + re-perspective
 
@@ -438,7 +438,7 @@ Plan détaillé : **[PLAN-M5c-SOUS-AGENTS-ASYNC](./PLAN-M5c-SOUS-AGENTS-ASYNC.md
 | 6b | M5c — audit async | `task` `background: true` → parent lit/planifie pendant explore ; gate mutation Low ; jauge parent seule |
 | 7 | M6 — revert | Run avec `file_edit` / `file_write` → « Undo last run » restaure l’état initial |
 
-Référence procédure : [SMOKE-MANUEL-REFACTO](../operations/SMOKE-MANUEL-REFACTO.md).
+Référence procédure : [SMOKE-MANUEL-REFACTO](../release/SMOKE-MANUEL-REFACTO.md).
 
 ---
 

@@ -1,4 +1,4 @@
-﻿# Drox 1.3.2 — Moteur stabilisé
+# Drox 1.3.2 — Moteur stabilisé
 
 > Ligne 1.3 **archivée** — [CLOSURE-1.3](../CLOSURE-1.3.md) · suite [1.4](../../1.4/README.md)
 
@@ -72,4 +72,4 @@ Plans gates, backpack, paliers `E-*`, circuit gate chain → [gates/ARCHIVE.md](
 "droxVersion": "1.3.2"
 ```
 
-Build : [GUIDE-PUBLICATION-WIN32.md](../../operations/GUIDE-PUBLICATION-WIN32.md)
+Build : [03-RELEASE-WINDOWS.md](../../release/03-RELEASE-WINDOWS.md)

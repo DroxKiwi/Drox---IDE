@@ -24,10 +24,10 @@ Publier **Drox IDE** sur Linux (`.deb` amd64), lever l’alerte Windows **« Éd
 ## Docs
 
 - [PLAN-1.5.4.md](PLAN-1.5.4.md)
-- [Opérations release (index)](../../operations/README.md)
-- [Release Windows](../../operations/03-RELEASE-WINDOWS.md)
-- [Release Linux](../../operations/04-RELEASE-LINUX.md)
-- [Open VSX](../../operations/05-OPEN-VSX.md)
+- [Opérations release](../../release/README.md)
+- [Release Windows](../../release/03-RELEASE-WINDOWS.md)
+- [Release Linux](../../release/04-RELEASE-LINUX.md)
+- [Open VSX](../../release/05-OPEN-VSX.md)
 
 ---
 

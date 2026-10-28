@@ -305,7 +305,7 @@ Le shim émet encore `rail_station_*` pour compat — l’UI **1.5.1** peut les 
 |-------|----------------|
 | Dev | Branche `1.5.1`, `npm run watch`, F5 |
 | Moteur | `cargo test -p drox-cli` si touché shim |
-| Release Windows | `npm run drox:ship` · [GUIDE-PUBLICATION-WIN32](../../operations/GUIDE-PUBLICATION-WIN32.md) |
+| Release Windows | `npm run drox:ship` · [03-RELEASE-WINDOWS](../../release/03-RELEASE-WINDOWS.md) |
 | Release Linux | reportée **1.5.4** · scripts prêts [1.5.1b](../1.5.1b/PLAN-1.5.1b.md) |
 | Git publish | [RULES.md § Intégration upstream](../../../../RULES.md) — squash sur `main` |
 

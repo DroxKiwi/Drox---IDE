@@ -122,7 +122,7 @@ async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolEr
 
 ## Partie D — Ce que fait l’exécuteur Explore
 
-Dans `subagent.rs` (idée) :
+Dans [`subagent/mod.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent/mod.rs) (idée) :
 
 | Propriété | Valeur |
 |-----------|--------|
@@ -136,7 +136,7 @@ Le parent **reçoit le rapport** comme résultat d’outil, puis continue sa pro
 
 ### Exemple concret — registry Explore + démarrage agent enfant
 
-[`subagent.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) :
+[`subagent/explore_tool_registry.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent/explore_tool_registry.rs) (ou module adjacent) :
 
 ```rust
 pub fn explore_tool_registry() -> ToolRegistry {

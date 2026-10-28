@@ -2,57 +2,48 @@
 
 ## Objectif
 
-Décrire le chemin **exact** d’un message utilisateur jusqu’à la clôture du run sous pipeline **`tui_mono`**.
+Décrire le chemin d’un message utilisateur jusqu’à la clôture du run sous pipeline **`tui_mono`**, y compris les différences de **profil moteur** (1.6.1).
 
-Pour une carte du fichier monolithe : [agent-internals.md](agent-internals.md).  
-Pour le protocole textuel imposé au modèle : [system-prompts-and-phases.md](system-prompts-and-phases.md).
+Carte des modules : [agent-internals.md](agent-internals.md).  
+Protocole textuel : [system-prompts-and-phases.md](system-prompts-and-phases.md).
 
 ## Sémantique : qu’est-ce qu’un « tour » ?
 
-Un **run** est une conversation contrôlée entre trois acteurs :
+Un **run** oppose trois acteurs :
 
-1. **Le modèle** — produit du texte (dont marqueurs `[phase:]`) et éventuellement des `tool_calls` structurés.
-2. **Le moteur** — valide, autorise, exécute (ou délègue), injecte les résultats, décide de continuer ou de s’arrêter.
+1. **Le modèle** — texte (marqueurs `[phase:]`) + éventuels `tool_calls`.
+2. **Le moteur** — gates, permissions, exécution locale ou `tool/exec`, nudges, décision de continuer ou **`Stop`**.
 3. **Le client** — affiche les `AgentEvent`, répond à `tool/exec` / `user/ask`.
 
-La clôture n’est **pas** « le modèle a arrêté d’appeler des outils ». Elle est **signée** par `[phase: done]` après un `[phase: answering]` valide, sous réserve des gates (todos, testing, professor, anti-boucle). Sans `done`, `drive_inner` **relance** jusqu’à `max_iterations`.
+`Agent::run` expose un **`AgentStream`** (Tokio) : l’UI peint au fil de l’eau.
 
-`Agent::run` expose un **stream** (`AgentStream`) : chaque événement est poussé dès qu’il est connu (Tokio / futures), ce qui permet à l’UI de peindre sans attendre la fin du run.
+Plafond : **`max_iterations`** (défaut struct **12** ; l’IDE envoie souvent **200** via RPC).
 
 ## Enchaînement
 
 ```text
 Client : agent.run(params)
-    → handlers::agent_run
-         · construit client LLM (factory)
-         · permissions + ToolRegistry
-         · RemoteTool pour executableTools
-         · MCP optionnel
-         · charge / crée session
-         · system prompt (prompts.rs)
-    → Agent::run  (ou continue_from_history)
-    → drive_inner  (boucle)
-         pour chaque itération (plafond max_iterations, défaut 12) :
-           1. maybe_snip / compact (contexte)
-           2. llm.stream_chat(messages + ToolSpec)
-           3. consume_stream → texte + tool_calls + marqueurs [phase:…]
-           4. si phase done + gates OK → sortie
-           5. sinon exécuter tools (permissions → hooks → local|remote)
-           6. injecter tool_result → tour suivant
-           7. si pas d’outils : nudges (réponse sans done, todos, LoopDetector, …)
-    → stream AgentEvent → shim → agent/event
+    → handlers::agent_run          (jsonrpc/handlers/mod.rs)
+         · build_agent_setup      (LLM, registry, RemoteTool, MCP, session)
+         · CORE + annexes         (drox-cli/prompts → drox-prompts, selon EngineProfile)
+         · engine_profile         (local-9b | local-27b | cloud-full)
+    → drive_run → Agent::run
+    → drive_inner                  (agent/run/drive.rs)
+         boucle :
+           1. situation card upsert (profils concernés)
+           2. maybe_snip / compact  (run/lifecycle + compaction/)
+           3. llm.stream_chat + ToolSpec filtrés (profil + disabledTools)
+           4. consume_stream        (agent/consume_llm_stream.rs)
+           5. clôture ? (voir § Clôture)
+           6. sinon tools           (lifecycle pre-gates → hooks → execute)
+           7. sinon nudges          (done, testing, loop, intent-write, …)
+    → agent/event (+ shim rail optionnel)
     → agent/done
 ```
 
-Code :
-
-- Entrée RPC : [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) (`agent_run`, `build_agent_setup`, `drive_run`)
-- Boucle : [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) — `Agent::run` → `drive_inner`
-- Stream : `consume_stream` dans le même fichier
-
 ## Phases
 
-Le modèle est guidé pour émettre des marqueurs **seuls sur leur ligne** :
+Marqueurs **seuls sur leur ligne** (parsés par [`phase/`](../../drox-engine/drox/crates/drox-engine/src/agent/phase/)) :
 
 ```text
 [phase: answering]
@@ -60,76 +51,91 @@ Voici la réponse…
 [phase: done]
 ```
 
-- **Clôture propre** : enchaînement `answering` → **`done`**. Ce n’est **pas** « absence d’appels outil » qui arrête le run.
-- Des **nudges** rappellent le protocole si le modèle répond trop tôt, oublie `done`, laisse des todos ouverts, ou saute `testing` après mutation code.
-- Legacy `[phase: reasoning]` / `[phase: next-move]` : **ignorés** (ligne stripée).
+- Legacy `[phase: reasoning]` / `[phase: next-move]` : **ignorés** (ligne retirée).
+- Enum : [`Phase`](../../drox-engine/drox/crates/drox-engine/src/event.rs) — `reading`, `planning`, `acting`, `testing`, `verifying`, `answering`, `done`, `analyzing`, …
+- Shim : [`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs) → `rail_station_*` pour l’UI historique.
 
-Le shim IDE peut **synthétiser** d’anciens événements `rail_station_*` à partir de ces phases ([`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs)).
+## Clôture
 
-Enum Rust : `Phase` dans [`event.rs`](../../drox-engine/drox/crates/drox-engine/src/event.rs)  
-(`internal_reasoning`, `analyzing`, `reading`, `clarifying`, `planning`, `acting`, `testing`, `verifying`, `answering`, `done`, …).
+La règle dépend du **`EngineProfile`** ([`config.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/config.rs)).
 
-## Gates moteur (résumé)
+### Profils locaux (`local-9b`, `local-27b`)
+
+- **`engine_closure`** : un tour **sans** `tool_call` (hors cas `[phase: acting]` intent-write) = **fin de run** ; `[phase: done]` **non requis**.
+- Tour vide → nudge one-shot **`LOCAL_EMPTY_TURN`**.
+- **`local-27b`** : avant clôture, si todos ouverts ou mutation sans vérif → **`LOCAL_SOFT_CLOSE_CHECK`** (one-shot) puis un dernier tour LLM possible.
+- Affichage : [`loop_close/engine_closure.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/loop_close/engine_closure.rs) complète phase `answering` / `done` si besoin.
+
+### `cloud-full`
+
+- Fin propre = **`[phase: done]`** après au moins un **`[phase: answering]`** dans le run.
+- Sans `done`, le moteur **relance** (nudges) jusqu’à `max_iterations` ou escalade anti-boucle.
+- Cas fréquent (GLM, etc.) : gros bloc **`answering`** sans `done` → nudge **`DONE_ONLY`** (« émets seulement `[phase: done]` ») si todos fermées et gate testing OK.
+
+### Explore (sous-run, `explore_execution`)
+
+- Phase 1 enfant : `answering` ou `done` **sans tool** → **Stop** tout de suite (pas de DONE_ONLY parent) ; le rapport Explore suit côté moteur.
+
+## Gates moteur (`cloud-full` et parties communes)
 
 | Gate | Effet |
 |------|--------|
-| `todo_write` avant mutation | Bloque `file_edit` / `file_write` / bash mutateur tant qu’aucun todo n’existe dans le run |
-| Todos ouverts | Refuse `[phase: done]` si items `pending` / `in_progress` |
-| `testing` après mutation code | Exige phase testing + outil de vérif avant `done` (pas pour seuls `.md` / assets) |
-| `answering` avant `done` | `done` sans answering → nudge rewrite |
-| Professor | Mutations limitées aux zones / étapes de cours (`professor.rs`) |
-| LoopDetector | 2 tours identiques → nudge ; 3 → abort `LoopDetected` |
+| `todo_write` avant mutation | **`cloud-full` only** — bloque mutateurs sans plan todo |
+| Todos `pending` / `in_progress` | Refuse `[phase: done]` → `unfinished_todos_prompt` |
+| Mutation code sans `testing` | Refuse `done` ou nudge testing si answering sans `done` |
+| `done` sans `answering` | `MISSING_ANSWERING_PROMPT` (réécriture demandée) |
+| Professor | Plan de cours / étapes (`professor.rs`) |
+| **LoopDetector** | Warn → ForceConclude (tools off) → **SyntheticDone** — voir [agent-internals.md](agent-internals.md#loopdetector-escalade-2026-10) |
 
-Détail et constantes de nudge : [agent-internals.md](agent-internals.md).
+Les nudges todo/testing **ne reset pas** le LoopDetector (répétitions de `done` prématuré doivent recevoir le bon message, pas un abort au 2e tour).
 
 ## Outils dans la boucle
 
-Pour chaque `tool_call` (éventuellement en lots parallèles) :
+Par `tool_call` (lots parallèles si `is_concurrency_safe`) :
 
-1. Pre-gates (`run_tool_pre_gates`)
-2. Permissions (mode + règles)
-3. Hooks pre-tool (`.drox/hooks.json`)
-4. Exécution **locale** (`drox-tools`) ou **remote** (`tool/exec`)
-5. Hooks post-tool
-6. Résultat → message tool → tour LLM suivant
+1. Pre-gates (`run_tool_pre_gates` — [`run/lifecycle.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/lifecycle.rs))
+2. `PermissionPolicy` + moteur `drox-permissions`
+3. Hooks `.drox/hooks.json`
+4. Local (`drox-tools`) ou **remote** (`tool/exec`)
+5. Format résultat (spill / profil — `dispatch` + `tool_result_spill`)
+6. Message tool → tour suivant
 
-Parallélisme : [`tool_orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tool_orchestration.rs) — plafond défaut **8** appels parallèles pour tools `is_concurrency_safe`. Voir [tools-and-permissions.md](tools-and-permissions.md#parallélisme).
+Parallélisme : [`tools/orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tools/orchestration.rs) — défaut **8**. Détail : [tools-and-permissions.md](tools-and-permissions.md).
 
 ## Contexte
 
-Avant chaque appel LLM coûteux, `maybe_snip` peut :
-
-- estimer les tokens (`drox-context`) ;
-- snipper l’historique froid ;
-- compacter live et émettre `ContextCompacted` / `ContextSnip`.
+`maybe_snip` : estimation tokens (`drox-context`), snip froid, compaction live → `ContextSnip` / `ContextCompacted`.  
+Situation card : résumé court réinjecté chaque tour ([`situation/`](../../drox-engine/drox/crates/drox-engine/src/agent/situation/)).
 
 Voir [sessions-and-memory.md](sessions-and-memory.md).
 
-## <a id="agentevent"></a>AgentEvent
+## AgentEvent
 
-Émis vers le client (`agent/event`). Variantes (`event.rs`, `#[non_exhaustive]`) :
+Émis vers le client (`agent/event`). Variantes principales ([`event.rs`](../../drox-engine/drox/crates/drox-engine/src/event.rs), `#[non_exhaustive]`) :
 
 | Variant | Rôle |
 |---------|------|
-| `PhaseEnter` / `PhaseClose` | Entrée / sortie de phase |
-| `TextDelta` | Texte assistant (stream) |
+| `PhaseEnter` / `PhaseClose` | Phases (+ thinking natif si activé) |
+| `TextDelta` | Texte assistant streamé |
 | `ToolStart` / `ToolFinish` / `ToolProgress` | Cycle outil |
-| `ContextUsage` / `TurnUsage` | Compteurs tokens |
+| `ContextUsage` / `TurnUsage` | Tokens |
 | `ContextSnip` / `ContextCompacted` | Budget contexte |
-| `MemoryPersisted` | Archive mémoire |
-| `RunObjective` | Objectif de run |
+| `MemoryPersisted` | Archive mémoire session |
+| `RunObjective` | Objectif verrouillé |
 | `ScopeParkingUpdate` | Scope différé |
-| `HookProgress` | Hook en cours |
-| `Stop` | Fin de tour / raison + usage |
+| `HookProgress` | Hook long |
+| `Stop` | Fin de run |
 
 ## Fichiers
 
 | Rôle | Chemin |
 |------|--------|
-| Cœur | [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) |
+| Boucle | [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) |
+| API + spawn | [`agent/run/api.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/api.rs) |
+| Lifecycle / snip / gates outil | [`agent/run/lifecycle.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/lifecycle.rs) |
+| Stream LLM | [`agent/consume_llm_stream.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/consume_llm_stream.rs) |
+| Config / profil | [`agent/config.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/config.rs) |
 | Événements | [`event.rs`](../../drox-engine/drox/crates/drox-engine/src/event.rs) |
 | Compaction | [`compaction.rs`](../../drox-engine/drox/crates/drox-engine/src/compaction.rs) |
-| Orchestration tools | [`tool_orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tool_orchestration.rs) |
-| Permissions bridge | [`permissions.rs`](../../drox-engine/drox/crates/drox-engine/src/permissions.rs) |
-| Entrée `agent.run` | [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) |
-
+| Permissions run | [`agent_permissions.rs`](../../drox-engine/drox/crates/drox-engine/src/agent_permissions.rs) |
+| RPC entrée | [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) |

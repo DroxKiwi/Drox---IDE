@@ -5,54 +5,49 @@ Version protocole : **`PROTOCOL_VERSION = "1.0"`**
 
 ## Pourquoi ce transport ?
 
-L’IDE Electron spawn `drox` comme **processus enfant**. Le canal le plus simple et le plus portable est **stdio** : pas de port TCP à gérer, pas de firewall local, un seul pipe par sens.
+L’IDE Electron spawn `drox` en **processus enfant**. Canal **stdio** :
 
-- **NDJSON** (un objet JSON + `\n`) : parsing ligne à ligne, compatible avec un lecteur async Tokio sur stdin.
-- **Pas** de framing LSP `Content-Length` : inutile ici (messages déjà délimités par ligne) et plus simple à déboguer à l’œil.
-- **Séparation des canaux** : stdout = RPC uniquement ; **stderr** = `tracing` (logs). Un client qui mélange les deux casse le protocole.
+- **NDJSON** (un JSON + `\n`) — parsing async Tokio sur stdin ;
+- pas de framing LSP `Content-Length` ;
+- **stdout** = RPC ; **stderr** = `tracing` uniquement.
 
-Types wire : **`serde` / `serde_json`** sur les structs de [`protocol.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/protocol.rs). Les IDs de requête JSON-RPC coexistent avec des `run_id` / `call_id` métier (**uuid**).
+Types wire : **`serde`** sur [`rpc_types.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs). IDs JSON-RPC + `run_id` / `call_id` métier (**uuid**).
 
 ## Transport
-
-- Un objet JSON par ligne sur stdin / stdout (NDJSON).
-- stderr : logs tracing — ne pas parser comme RPC.
-
-Démarrage serveur :
 
 ```text
 drox --serve
 ```
 
-Implémentation : [`serve_stdio()`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/server.rs) dans `drox-cli`.
+Boucle : [`serve_stdio()`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/server.rs).
 
 ## Handshake — `initialize`
 
-### Requête — `InitializeParams`
+### `InitializeParams`
 
 | Champ | Rôle |
 |-------|------|
 | `protocol_version` | Version client |
 | `client_name` / `client_version` | Identification |
-| `client_capabilities` | Voir ci-dessous |
+| `client_capabilities` | Capacités client |
 
 ### `ClientCapabilities`
 
 | Champ | Rôle |
 |-------|------|
-| `executable_tools` | Noms d’outils que **le client exécute** → le serveur enregistre des `RemoteTool` |
-| `interactive_ask` | Si vrai, le serveur peut envoyer `user/ask` |
+| `executable_tools` | Outils exécutés par le **client** → `RemoteTool` |
+| `interactive_ask` | Autorise `user/ask` |
 
-### Réponse — `InitializeResult::current()`
+### `InitializeResult::current()`
 
 | Champ | Valeur typique |
 |-------|----------------|
 | `server_name` | `"drox"` |
 | `protocol_version` | `"1.0"` |
 | `orchestration_pipeline` | **`"tui_mono"`** |
-| `capabilities` | `run_streaming_events`, `sessions`, `interactive_ask` = true |
+| `capabilities` | streaming, sessions, `interactive_ask` |
 
-Côté client IDE, `executableTools` liste les outils host (LSP, certains FS, etc.).
+Source : [`rpc_types.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs).
 
 ## Méthodes client → serveur
 
@@ -61,73 +56,76 @@ Côté client IDE, `executableTools` liste les outils host (LSP, certains FS, et
 | `initialize` | `InitializeParams` | `InitializeResult` |
 | `agent.run` | `AgentRunParams` | `{ run_id }` |
 | `agent.cancel` | `{ run_id }` | `{ cancelled }` |
-| `session.list` | `{ dir? }` | tableau d’entrées |
+| `session.list` | `{ dir? }` | entrées session |
 | `session.read` | `{ id, dir? }` | messages + `ui_stats` |
 | `session.compact` | id + config LLM | résumé + usage |
 | `session.truncateAfterLastUser` | `{ id, dir? }` | `{ message_count }` |
+| `embed.status` | — | statut modèle embed (feature `embed`) |
+| `embed.load` | `{ modelPath }` | charge GGUF local |
+| `embed.encode` | `{ texts[] }` | vecteurs |
 | `shutdown` | — | arrêt propre |
+
+Handlers : [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) · embed : [`handlers/embed.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/embed.rs).
 
 ### `AgentRunParams` — champs utiles
 
-Source : [`protocol.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/protocol.rs).
+Source : [`AgentRunParams`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs) (`camelCase` wire).
 
 | Groupe | Champs |
 |--------|--------|
-| Message | `prompt`, `images[]` (`mime` + `data` base64) |
-| Workspace | `workspace`, `allow_outside_workspace` |
-| LLM | `server` / base URL, `model`, `provider`, `api_key`, `headers` |
-| Sampling | `temperature`, `max_tokens`, `num_ctx`, options Ollama |
-| Thinking | `native_thinking`, `reasoning_effort`, `thinking_budget` |
-| Permissions | `mode` (`default` \| `plan` \| `acceptEdits` \| `bypassPermissions` \| `professor` — ce dernier **non supporté** comme chemin produit IDE actuel) |
-| Outils | `disabled_tools`, `mcp_tools_enabled`, `apply_edits` |
-| Session | `session_id`, `session_dir` |
-| Boucle | `max_iterations`, `run_objective`, `skip_user_turn` |
-| Sous-agents | `subagents_*` (activation / limites) |
-| Legacy ignorés | `orchestration_mode`, `architect_interaction_mode`, … |
+| Message | `prompt`, `images[]` |
+| Workspace | `workspace`, `allowOutsideWorkspace` (+ read / write) |
+| LLM | `server`, `model`, `provider`, `apiKey`, `headers` |
+| Sampling | `temperature`, `maxTokens`, `numCtx`, `topP`, `topK`, `repeatPenalty`, `minP`, `seed`, `presencePenalty`, `frequencyPenalty`, `keepAlive` |
+| Thinking | `nativeThinking`, `reasoningEffort`, `thinkingBudget` |
+| Moteur | **`engineProfile`** (`local-9b` \| `local-27b` \| `cloud-full`) |
+| Permissions | `mode`, `allow`, `ask`, `deny`, `applyEdits` |
+| Outils | `disabledTools`, `mcpToolsEnabled` |
+| Session | `sessionId`, `sessionDir`, `skipUserTurn`, `memoryEnabled` |
+| Boucle | `maxIterations`, `runObjective` |
+| Sous-agents | `subagentsEnabled`, `subagentsMaxIterations`, `subagentsMaxConcurrent`, `subagentsExecutionThink`, `subagentsReportThink` |
+| Intent frames | `workPlanFrame`, `analysisFrame`, `docIngestionFrame`, `sessionIntentPreclassified` |
+| Context-load | `contextLoad` (caps L2 soft) |
+| Legacy **ignorés** | `orchestrationMode`, `architectInteractionMode`, … |
 
-Handlers : [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) (`agent_run`, `build_agent_setup`, `drive_run`).
+Construction agent : `build_agent_setup` → `drive_run` dans le même module handlers.
 
 ## Notifications serveur → client
 
 | Notification | Payload |
 |--------------|---------|
-| `agent/event` | `{ run_id, event }` — `event` = `AgentEvent` sérialisé |
-| `agent/done` | `{ run_id, status, error? }` — `status` : `completed` \| `cancelled` \| `error` |
+| `agent/event` | `{ run_id, event }` — `AgentEvent` |
+| `agent/done` | `{ run_id, status, error? }` — `completed` \| `cancelled` \| `error` |
 
-Variantes d’événements : voir [agent-run-loop.md](agent-run-loop.md#agentevent) et [`event.rs`](../../drox-engine/drox/crates/drox-engine/src/event.rs).
+Variantes : [agent-run-loop.md](agent-run-loop.md#agentevent).
 
 ## Requêtes serveur → client
 
-| Méthode | Quand | Réponse attendue |
-|---------|-------|------------------|
-| `tool/exec` | Outil remote (`RemoteTool`) | `{ output, is_error }` |
-| `user/ask` | Si `interactive_ask` + permission / question | `{ answers }` (options / free text / skipped) |
+| Méthode | Quand | Réponse |
+|---------|-------|---------|
+| `tool/exec` | Outil remote | `{ output, is_error }` |
+| `user/ask` | Permission / question interactive | `{ answers }` |
 
-### `ToolExecParams`
+`ToolExecParams` : `run_id`, `call_id`, `tool_name`, `input`, `workspace`, `plan_mode`, `apply_fs_writes`, `allow_outside_workspace`.
 
-`run_id`, `call_id`, `tool_name`, `input`, `workspace`, `plan_mode`, `apply_fs_writes`, `allow_outside_workspace`.
-
-Le client **doit** répondre, sinon la boucle bloque.
-
-Implémentation remote : [`remote_tool.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/remote_tool.rs).
+Implémentation : [`remote_tool.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/remote_tool.rs).
 
 ## Exemple minimal (conceptuel)
 
 ```json
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocol_version":"1.0","client_name":"example","client_capabilities":{"executable_tools":["lsp"],"interactive_ask":true}}}
-{"jsonrpc":"2.0","id":2,"method":"agent.run","params":{"prompt":"Liste les fichiers à la racine","workspace":"/path/to/repo","model":"qwen2.5","provider":"ollama","server":"http://127.0.0.1:11434","mode":"plan"}}
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"1.0","clientName":"example","clientCapabilities":{"executableTools":["lsp"],"interactiveAsk":true}}}
+{"jsonrpc":"2.0","id":2,"method":"agent.run","params":{"prompt":"Liste les fichiers à la racine","workspace":"/path/to/repo","model":"qwen2.5","provider":"ollama","server":"http://127.0.0.1:11434","mode":"plan","engineProfile":"local-9b"}}
 ```
 
-Puis des lignes `agent/event` jusqu’à `agent/done`.
+Puis `agent/event` … `agent/done`.
 
 ## Fichiers
 
 | Rôle | Chemin |
 |------|--------|
-| Types wire | [`protocol.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/protocol.rs) |
-| Boucle stdio | [`server.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/server.rs) |
-| Handlers | [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) |
+| Types wire | [`rpc_types.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs) |
+| Serveur NDJSON | [`server.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/server.rs) |
+| Handlers | [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) |
 | Shim UI | [`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs) |
 
-Doc historique (peut diverger) : [`docs/0.0/architecture/PROTOCOLE-JSONRPC.md`](../0.0/architecture/PROTOCOLE-JSONRPC.md).
-
+Archive : [`docs/0.0/architecture/PROTOCOLE-JSONRPC.md`](../0.0/architecture/PROTOCOLE-JSONRPC.md) (peut diverger).

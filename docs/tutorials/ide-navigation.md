@@ -21,6 +21,7 @@ Si le chat reste muet : vérifier que le process moteur démarre (Sortie / logs 
 | Chat / Agents | Fil de conversation, streaming, tools | `contrib/drox/browser/`, `…/agents/` |
 | Modes permission | Plan / trust edits / default (pas Professor) | pickers Agents + mapping → `AgentRunParams.mode` |
 | Modèles / connexions LLM | Choisir provider, modèle, mute params | settings + `llmProviders/` |
+| **Profil moteur** | `local-9b` · `local-27b` · `cloud-full` → clôture & CORE | réglages généraux chat / panneau rôle · `engineProfile` RPC |
 | Changes / diffs | Voir et appliquer les edits du run | composer / Changes Drox |
 | **Codebase** | Index local, inject, catalogue | activity bar + chip composer + (Agents) icône historique |
 | **Regulation** | Notes L1–L5, Auto, historique runs | activity bar + chip + (Agents) icône historique |
@@ -41,6 +42,20 @@ Racine code UI : [`src/vs/workbench/contrib/drox/`](../../src/vs/workbench/contr
 | Dogfood sans friction (attention) | `bypassPermissions` |
 
 Détail moteur : [tools-and-permissions.md](../engine/tools-and-permissions.md).
+
+## 3b. Profil moteur (`engineProfile`)
+
+Réglage **1.6.1** : même binaire, trois comportements de boucle / prompt (pas trois moteurs).
+
+| Valeur UI (typique) | Effet utilisateur |
+|---------------------|-------------------|
+| **`local-9b`** | Petit modèle local — sous-runs guidés moteur ; clôture souvent sans `[phase: done]`. |
+| **`local-27b`** | Modèle local plus capable — même philosophie locale, parent plus riche. |
+| **`cloud-full`** | Protocole complet Plan→Assign — **`[phase: done]`** attendu ; gates todos / testing actives. |
+
+Où le régler : **paramètres généraux** du chat Drox et/ou **panneau rôle** Agents (liste déroulante « Engine profile »). Envoyé au run via `agent.run` → `AgentConfig.engine_profile`.
+
+Doc : [system-prompts-and-phases.md](../engine/system-prompts-and-phases.md) · pédagogie [07](../pedagogie/07-phases-et-gates.md).
 
 ## 4. Pendant un run
 

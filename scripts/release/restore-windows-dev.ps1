@@ -5,8 +5,8 @@
 #   - ELF .node binaries instead of Win32 PE          → scripts\code.bat fails
 #
 # Usage (PowerShell, from repo root):
-#   .\drox-engine\docs\operations\scripts\restore-windows-dev.ps1
-#   .\drox-engine\docs\operations\scripts\restore-windows-dev.ps1 -ShimsOnly
+#   .\scripts\release\restore-windows-dev.ps1
+#   .\scripts\release\restore-windows-dev.ps1 -ShimsOnly
 #
 # Stop `npm run watch` and close Drox/VS Code dev instances before running.
 
@@ -22,7 +22,7 @@ if ($env:OS -ne 'Windows_NT') {
 	Write-Error 'Run this script on Windows after a WSL Linux build.'
 }
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $binDir = Join-Path $repoRoot 'node_modules\.bin'
 $shimNames = @('npm-run-all2.cmd', 'gulp.cmd', 'electron.cmd')
 

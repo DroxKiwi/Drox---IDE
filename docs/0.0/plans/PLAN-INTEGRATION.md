@@ -101,7 +101,7 @@ Légende **Statut** : ✅ livré (critère d'acceptation atteint ou équivalent 
 | **I-35** | — | ~~Mode Professeur + cycles cours~~ | **Reporté** | — | *Hors périmètre intégration fork* — voir §8 | `courseCycleStore.ts` | Conservé tel quel dans le moteur ; UI fork plus tard |
 | **I-36** | ✅ | UX édition : open modified, logs UI | P2 | I-13 | `openModifiedFiles`, canaux `droxEngine` / `droxUi` / `droxBash` | `extension.ts`, `uiLog.ts` | Fichier modifié s'ouvre ; logs séparés moteur/UI |
 | **I-37** | ✅ | Warm start & perf processus | P3 | I-06 | `droxEngineWarmStartContribution`, `nexus.drox.warmStart` | — | Spawn + `initialize` en idle post-restore |
-| **I-38** | ✅ | Tests intégration & smoke E2E | P1 | I-09+ | `test/common/droxCommon.test.ts`, `npm run test-drox` | — | CI : unit fork ; E2E LLM manuel / doc [`operations/SMOKE-RPC.md`](../operations/SMOKE-RPC.md) |
+| **I-38** | ✅ | Tests intégration & smoke E2E | P1 | I-09+ | `test/common/droxCommon.test.ts`, `npm run test-drox` | — | CI : unit fork ; E2E LLM manuel / doc [`operations/SMOKE-RPC.md`](../release/SMOKE-RPC.md) |
 | **I-39** | ✅ | Packaging binaire multi-OS | P1 | I-01, I-02 | `resources/drox/<platform>/`, `npm run package-drox`, gulp | — | Install Nexus lance Drox sans Rust installé |
 | **I-40** | ✅ | Documentation & onboarding fork | P2 | I-39 | `DROX.md`, §18 GUIDE, README racine | README extension | Nouveau dev : build + chat en < 15 min |
 

@@ -30,7 +30,7 @@ Override local (gitignoré) : `product.overrides.json` à la racine.
 
 ## Release — merge automatique
 
-Déjà appelé dans `build-release-win32.ps1` et `build-release-linux.sh`.
+Déjà appelé dans `scripts/release/build-release-win32.ps1` et `scripts/release/build-release-linux.sh`.
 
 Manuel sur un package existant :
 

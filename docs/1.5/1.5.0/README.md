@@ -59,4 +59,4 @@ Moteur TUI dans `drox-engine/drox`, shim JSON-RPC vers l’IDE existant. Dogfood
 
 - [Hub 1.5](../README.md)
 - [TUI README](../../../drox/crates/drox-tui/README.md)
-- [GUIDE publication](../../operations/GUIDE-PUBLICATION-WIN32.md)
+- [Release Windows (03-RELEASE-WINDOWS)](../../release/03-RELEASE-WINDOWS.md)

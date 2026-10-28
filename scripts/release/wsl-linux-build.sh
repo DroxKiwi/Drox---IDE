@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # One-shot WSL Ubuntu setup + Drox IDE linux-x64 release build.
 # Called by wsl-linux-build-isolated.ps1 on ~/Drox---IDE (ext4).
-# Manual: cd ~/Drox---IDE && bash docs/operations/scripts/wsl-linux-build.sh
-# Doc: ../04-RELEASE-LINUX.md
+# Manual: cd ~/Drox---IDE && bash scripts/release/wsl-linux-build.sh
+# Doc: docs/release/04-RELEASE-LINUX.md
 
 set -euo pipefail
 
@@ -15,13 +15,13 @@ if [[ -z "${HOME:-}" || "$HOME" == /mnt/* || "$HOME" == *:* ]]; then
 	export HOME="/home/$(whoami)"
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# docs/operations/scripts -> ../../../ = repo root
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-# shellcheck source=/dev/null
-source "$REPO_ROOT/scripts/lib/linux-npm-install.sh"
+RELEASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPTS_ROOT="$(cd "$RELEASE_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPTS_ROOT/.." && pwd)"
+# shellcheck source=../lib/linux-npm-install.sh
+source "$SCRIPTS_ROOT/lib/linux-npm-install.sh"
 LOG_FILE="${REPO_ROOT}/.build/wsl-linux-build.log"
-RESTORE_PS1='docs/operations/scripts/restore-windows-dev.ps1'
+RESTORE_PS1='scripts/release/restore-windows-dev.ps1'
 
 mkdir -p "${REPO_ROOT}/.build"
 exec > >(tee -a "$LOG_FILE") 2>&1
@@ -53,7 +53,7 @@ ensure_system_packages() {
 		echo "  Puis relancez le build depuis PowerShell." >&2
 		echo "" >&2
 		echo "  Ou lancez tout le build depuis WSL (mot de passe demande ici) :" >&2
-		echo "    cd ~/Drox---IDE && bash docs/operations/scripts/wsl-linux-build.sh" >&2
+		echo "    cd ~/Drox---IDE && bash scripts/release/wsl-linux-build.sh" >&2
 		echo "" >&2
 		exit 1
 	fi
@@ -98,27 +98,27 @@ mkdir -p "${REPO_ROOT}/.build"
 date -Iseconds > "${REPO_ROOT}/.build/linux-npm-touch"
 
 step "build-release-linux.sh"
-chmod +x scripts/build-release-linux.sh scripts/package-drox.sh \
-	scripts/verify-packaged-linux.sh scripts/release-publish-linux.sh \
-	scripts/lib/linux-npm-install.sh scripts/lib/linux-strip-packaged-natives.sh
-./scripts/build-release-linux.sh --force-compile --skip-npm-install
+chmod +x "$RELEASE_DIR/build-release-linux.sh" "$SCRIPTS_ROOT/package-drox.sh" \
+	"$SCRIPTS_ROOT/verify-packaged-linux.sh" "$RELEASE_DIR/release-publish-linux.sh" \
+	"$SCRIPTS_ROOT/lib/linux-npm-install.sh" "$SCRIPTS_ROOT/lib/linux-strip-packaged-natives.sh"
+"$RELEASE_DIR/build-release-linux.sh" --force-compile --skip-npm-install
 
 RELEASES_REPO="${DROX_RELEASES_REPO:-$REPO_ROOT}"
 if [[ -d "$RELEASES_REPO/.git" ]]; then
 	step "release-publish-linux.sh"
-	DROX_RELEASES_REPO="$RELEASES_REPO" ./scripts/release-publish-linux.sh
+	DROX_RELEASES_REPO="$RELEASES_REPO" "$RELEASE_DIR/release-publish-linux.sh"
 	UPLOAD="$RELEASES_REPO/_upload"
 	echo ""
 	echo "Done. Deb in: $UPLOAD"
 	ls -la "$UPLOAD"/*.deb 2>/dev/null || true
 	echo ""
 	echo "Upload to GitHub (from Windows PowerShell):"
-	VER="$(node scripts/lib/drox-release-manifest.mjs version)"
+	VER="$(node "$SCRIPTS_ROOT/lib/drox-release-manifest.mjs" version)"
 	echo "  gh release upload v${VER} \"$(wslpath -w "$UPLOAD" 2>/dev/null || echo "$UPLOAD")/Drox-IDE-${VER}-linux-x64.deb\" --repo DroxKiwi/Drox---IDE --clobber"
 else
 	echo ""
 	echo "Build OK. Publier le manifeste :"
-	echo "  DROX_RELEASES_REPO=\$PWD ./scripts/release-publish-linux.sh"
+	echo "  DROX_RELEASES_REPO=\$PWD $RELEASE_DIR/release-publish-linux.sh"
 fi
 
 if [[ "$REPO_ROOT" == /mnt/* ]]; then

@@ -41,7 +41,7 @@
 - [x] `drox-release-manifest.mjs` (merge win32 + linux)
 - [x] `wsl-linux-build.ps1` / `.sh`
 - [x] Workflow `.github/workflows/drox-release-linux.yml`
-- [x] [GUIDE-PUBLICATION-LINUX.md](../../operations/GUIDE-PUBLICATION-LINUX.md)
+- [x] [04-RELEASE-LINUX.md](../../release/04-RELEASE-LINUX.md)
 
 ### Ship 1.5.4
 
@@ -62,10 +62,10 @@ Aujourd’hui l’installeur Inno (`Drox-IDE-Setup-*-win32-x64.exe`) est **non s
 | W1-2 | Script `sign-drox-win32.ps1` (ou intégration `build-release-win32.ps1`) | `signtool` (Windows SDK) · signer **setup.exe** + binaires embarqués si requis (`drox.exe`, `Drox.exe`) |
 | W1-3 | Timestamp RFC 3161 | Horodatage pour validité après expiration certificat |
 | W1-4 | CI / secrets | Certificat en secret GitHub ou signature manuelle locale documentée |
-| W1-5 | Doc utilisateur + OR README | Retirer ou nuancer l’avertissement SmartScreen · [GUIDE-PUBLICATION-WIN32.md](../../operations/GUIDE-PUBLICATION-WIN32.md) |
+| W1-5 | Doc utilisateur + OR README | Retirer ou nuancer l’avertissement SmartScreen · [03-RELEASE-WINDOWS.md](../../release/03-RELEASE-WINDOWS.md) |
 | W1-6 | Smoke install Windows frais | Machine / VM sans exception préalable · vérifier absence bannière « Éditeur inconnu » (ou réputation acquise) |
 
-**Références** : `build-release-win32.ps1` (`Add-WindowsSdkSignToolToPath`) · [RULES.md § Installeur](../../../../RULES.md) · [GUIDE WIN32 § Authenticode](../../operations/GUIDE-PUBLICATION-WIN32.md).
+**Références** : `build-release-win32.ps1` (`Add-WindowsSdkSignToolToPath`) · [RULES.md § Installeur](../../../../RULES.md) · [GUIDE WIN32 § Authenticode](../../release/03-RELEASE-WINDOWS.md).
 
 **Critère** : installeur `v1.5.4` publié sur OR avec signature Authenticode valide ; install testée sans contournement manuel SmartScreen.
 
@@ -113,7 +113,7 @@ Aujourd’hui le fork **n’expose pas** de galerie dans `product.json` (`extens
 - [x] **E1-3** — Audit : aucune garde Drox spécifique ne bloque la galerie (workbench natif)
 - [x] **E1-4** — Smoke : vue Extensions → install extension → reload OK
 - [x] **E1-5** — Smoke : linter (ESLint ou équivalent) fonctionnel
-- [x] **E1-6** — Doc : [GUIDE-MARKETPLACE-OPEN-VSX.md](../../operations/GUIDE-MARKETPLACE-OPEN-VSX.md)
+- [x] **E1-6** — Doc : [05-OPEN-VSX.md](../../release/05-OPEN-VSX.md)
 
 **Exemple `extensionsGallery` (source : `product.gallery.json` à la racine — mergé au build, pas dans `product.json` OSS)** :
 
@@ -184,7 +184,7 @@ CI : **Actions → Drox Linux release build → Run workflow**
 ## Liens
 
 - [README 1.5.4](README.md)
-- [GUIDE marketplace Open VSX](../../operations/GUIDE-MARKETPLACE-OPEN-VSX.md)
+- [GUIDE marketplace Open VSX](../../release/05-OPEN-VSX.md)
 - [PLAN 1.5.3](../1.5.3/PLAN-1.5.3.md)
 - [PLAN 1.5.1b](../1.5.1b/PLAN-1.5.1b.md) — préparation scripts
-- [GUIDE publication Linux](../../operations/GUIDE-PUBLICATION-LINUX.md)
+- [GUIDE publication Linux](../../release/04-RELEASE-LINUX.md)

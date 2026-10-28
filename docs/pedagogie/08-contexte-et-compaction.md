@@ -15,9 +15,9 @@ Avant un nouvel appel coûteux au modèle, le moteur peut **couper** des passage
 | Fichier | Rôle |
 |---------|------|
 | [`drox-context`](../../drox-engine/drox/crates/drox-context/src/lib.rs) | Primitives budget / snip / traits |
-| [`context.rs`](../../drox-engine/drox/crates/drox-engine/src/context.rs) | Politique côté agent |
-| [`compaction.rs`](../../drox-engine/drox/crates/drox-engine/src/compaction.rs) | Compaction live / résumé |
-| [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) | `maybe_snip` |
+| [`context_policy.rs`](../../drox-engine/drox/crates/drox-engine/src/context_policy.rs) | `ContextPolicy`, `maybe_snip*` |
+| [`compaction/live.rs`](../../drox-engine/drox/crates/drox-engine/src/compaction/live.rs) | Compaction live / résumé |
+| [`agent/run/lifecycle.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/lifecycle.rs) | `maybe_snip` appelé depuis `drive_inner` |
 | Réf. | [sessions-and-memory.md](../engine/sessions-and-memory.md) |
 
 ---
@@ -73,10 +73,10 @@ if self
 }
 ```
 
-Méthode agent ([`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) ~L2089) qui s’appuie sur la politique :
+Méthode sur l’agent ([`lifecycle.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/lifecycle.rs)) qui délègue à la politique ; logique snip dans [`context_policy.rs`](../../drox-engine/drox/crates/drox-engine/src/context_policy.rs) :
 
 ```rust
-// context.rs — idée
+// context_policy.rs — idée
 pub fn maybe_snip(&self, messages: &mut Vec<Message>) -> Option<SnipReport> {
     self.maybe_snip_with_config(messages, self.snip.as_ref()?)
 }
@@ -85,7 +85,7 @@ pub fn maybe_snip(&self, messages: &mut Vec<Message>) -> Option<SnipReport> {
 Et compaction live éventuelle :
 
 ```rust
-// compaction.rs
+// compaction/live.rs — idée
 pub async fn try_live_compact(
     llm: &dyn LlmClient,
     compaction_system_prompt: &str,

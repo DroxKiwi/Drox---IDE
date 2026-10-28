@@ -14,7 +14,7 @@ Chaque message / tool peut être **écrit sur disque** (JSONL) ; à certains jal
 |---------|------|
 | [`drox-session`](../../drox-engine/drox/crates/drox-session/src/lib.rs) | Transcripts, chemins |
 | [`memory.rs`](../../drox-engine/drox/crates/drox-engine/src/memory.rs) / [`long_memory.rs`](../../drox-engine/drox/crates/drox-engine/src/long_memory.rs) | Orchestration mémoire run |
-| [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) | `session.list` / `read` / `compact` / truncate |
+| [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) | `session.list` / `read` / `compact` / truncate |
 | Réf. | [sessions-and-memory.md](../engine/sessions-and-memory.md) |
 
 ---

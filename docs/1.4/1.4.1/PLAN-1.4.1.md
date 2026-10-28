@@ -218,7 +218,7 @@ Faire les étapes **dans l’ordre**. Cocher `☐` → `☑`. Ne pas sauter une 
 | 1.7 | ☑ | Masquer UI dev (export transcript, toggles dogfood) | `droxChatWebview.ts`, `bridge/` | B-REL-01 |
 | 1.8 | ☑ | Garde-fou `drox-bundle-readiness` | `scripts/lib/drox-bundle-readiness.ps1` | B-REL-01 |
 | 1.9 | ☑ | Tests `droxProductVersion.test.ts`, `droxDevSurface.test.ts` | `contrib/drox/test/` | B-REL-01 |
-| 1.10 | ☑ | Doc release RULES + GUIDE-PUBLICATION | `RULES.md`, `GUIDE-PUBLICATION-WIN32.md` | B-REL-01 |
+| 1.10 | ☑ | Doc release RULES + guide Windows | `RULES.md`, [03-RELEASE-WINDOWS.md](../../release/03-RELEASE-WINDOWS.md) | B-REL-01 |
 | | | | | **G-ts** · **G-ship** |
 
 ---
