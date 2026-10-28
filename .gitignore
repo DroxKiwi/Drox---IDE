@@ -56,3 +56,4 @@ docs/release/
 
 # Artefacts release (binaires via GitHub Releases, pas git)
 _upload/
+stable/
