@@ -3,19 +3,24 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Panneaux flottants — cubique, fond noir, contrôles alignés chips / action-widget (picker modèle & mode). */
+/* Panneaux flottants — charte Drox (surface #1e1e1e, bordure #333, accent #888). */
 
 .drox-agents-composer-panels-mount {
-	--drox-ui-green: #888888;
-	--drox-thread-brown: #333333;
-	--drox-thread-brown-deep: #1e1e1e;
-	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green) 58%, var(--drox-thread-brown) 42%);
-	--drox-thread-green-bright: color-mix(in srgb, var(--drox-thread-green) 72%, #9aa88a 28%);
-	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 38%, #080808);
-	--drox-thread-green-border: color-mix(in srgb, var(--drox-thread-green) 52%, var(--drox-thread-brown-deep) 48%);
-	--drox-thread-fg: color-mix(in srgb, #e8efe0 72%, #9aa88a 28%);
-	--drox-thread-fg-muted: color-mix(in srgb, var(--drox-thread-fg) 52%, var(--drox-thread-brown) 48%);
-	--drox-agents-surface: #000000;
+	--drox-charte-accent: #888888;
+	--drox-charte-surface: #1e1e1e;
+	--drox-charte-border: #333333;
+	--drox-charte-fg: #cccccc;
+	--drox-charte-fg-muted: #666666;
+	--drox-ui-green: var(--drox-charte-accent);
+	--drox-thread-brown: var(--drox-charte-border);
+	--drox-thread-brown-deep: var(--drox-charte-surface);
+	--drox-thread-green: var(--drox-charte-accent);
+	--drox-thread-green-bright: var(--drox-charte-fg);
+	--drox-thread-green-dim: color-mix(in srgb, var(--drox-charte-accent) 38%, var(--drox-charte-surface));
+	--drox-thread-green-border: var(--drox-charte-border);
+	--drox-thread-fg: var(--drox-charte-fg);
+	--drox-thread-fg-muted: var(--drox-charte-fg-muted);
+	--drox-agents-surface: var(--drox-charte-surface);
 	--drox-agents-panel-bg: var(--drox-agents-surface);
 	--drox-agents-panel-input-bg: var(--drox-agents-surface);
 	/* Même recette que .action-widget / chips toolbar (droxAgentsRetroTheme.css) */
@@ -24,9 +29,9 @@
 	--drox-agents-control-bg-active: color-mix(in srgb, var(--drox-thread-green) 14%, transparent);
 	--drox-agents-control-border: var(--drox-thread-green-border);
 	--drox-agents-control-border-hover: color-mix(in srgb, var(--drox-thread-green) 65%, var(--drox-thread-brown) 35%);
-	--drox-agents-btn-primary-bg: color-mix(in srgb, #3d5a3d 88%, var(--drox-thread-brown) 12%);
-	--drox-agents-btn-primary-fg: color-mix(in srgb, #e8efe0 92%, var(--drox-thread-brown) 8%);
-	--drox-agents-btn-primary-hover: color-mix(in srgb, #4a6b4a 90%, var(--drox-thread-brown) 10%);
+	--drox-agents-btn-primary-bg: color-mix(in srgb, var(--drox-charte-accent) 24%, var(--drox-charte-surface) 76%);
+	--drox-agents-btn-primary-fg: var(--drox-charte-fg);
+	--drox-agents-btn-primary-hover: color-mix(in srgb, var(--drox-charte-accent) 34%, var(--drox-charte-surface) 66%);
 	--drox-agents-panel-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 16%, transparent),
 		0 10px 28px rgba(0, 0, 0, 0.68);
 	font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
@@ -423,6 +428,57 @@
 .drox-agents-composer-panels-mount .drox-wizard-provider-card:hover {
 	border-color: var(--drox-agents-control-border-hover);
 	background: var(--drox-agents-control-bg);
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-lead {
+	margin-top: 14px;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-list,
+.drox-agents-composer-panels-mount .drox-wizard-saved-row {
+	display: flex;
+	gap: 6px;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-list {
+	flex-direction: column;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-row {
+	align-items: center;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-connection {
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid var(--drox-agents-control-border);
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+	font-size: 11px;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-connection {
+	flex: 1;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-connection:disabled {
+	cursor: default;
+	opacity: 0.55;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-connection.drox-wizard-saved-active {
+	border-color: var(--drox-thread-green);
+	opacity: 1;
+}
+
+.drox-agents-composer-panels-mount .drox-wizard-saved-delete {
+	border: 0;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	padding: 4px 8px;
 }
 
 .drox-agents-composer-panels-mount .drox-wizard-hosting-card.selected,

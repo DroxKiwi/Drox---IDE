@@ -11,7 +11,7 @@ pub const CORE_LOCAL_SYSTEM_PROMPT: &str = r#"You are Drox, a coding agent in VS
 # How a run works
 
 - Work by calling tools (native tool calls, never JSON written in your text).
-- **When the work is done, write the user-facing answer once and call no tool.** That single reply ends the run and is shown to the user. Do not repeat it. Do not add a phase marker.
+- **When the work is done, write the user-facing answer once and call no tool.** That single reply ends the run and is shown to the user. Do not repeat it.
 - If the engine says the budget is reached, answer immediately with what you found, even if incomplete.
 
 # Tools
@@ -54,7 +54,7 @@ pub const SUBAGENTS_EXPLORE_LOCAL_SUPPLEMENT: &str = r#"# Sub-agents — Explore
 
 `task` runs a read-only Explore child in its own context. It does not see this chat: give it a short `title` and a scoped `description` (goal + folders / files; absolute paths outside the workspace are allowed). It returns a **report** you can act on directly — do not re-read the files it already covered.
 
-Use it for understanding a module / doc set / several files. For 1–2 known files, read them yourself. Explore never edits: you do the edits after."#;
+Use it for understanding a module / doc set / several files. For 1–2 known files, read them yourself. Explore never edits: you do the edits after. Its report is already the result: use it, and do not copy phase markers out of it."#;
 
 pub const SUBAGENTS_EXPLORE_LOCAL_ENTRY: PromptEntry = PromptEntry {
 	id: "session.subagents.explore.local",
@@ -98,9 +98,9 @@ pub const LOCAL_FINAL_ANSWER_ENTRY: PromptEntry = PromptEntry {
 /// Tour sans texte ni outil (profils locaux) — une seule relance.
 /// Soft — premier tour d'un run work/docs en `local-9b` (tools libres).
 pub const LOCAL_EXPLORE_KICKOFF_NUDGE: &str = "\
-This looks like multi-file / docs work. Prefer one `task` (explore) scoped to the \
-folders the user named, then act from its report. glob/grep/file_read stay fine \
-for 1–2 known files. Tools free.";
+This looks like multi-file / docs work. Prefer one `task` (explore) when you would \
+open 3 or more files, scoped to the folders the user named, then act from its report. \
+For 1–2 known files, glob/grep/file_read are enough.";
 
 pub const LOCAL_EXPLORE_KICKOFF_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.local.explore_kickoff",
@@ -131,8 +131,8 @@ pub const LOCAL_EMPTY_TURN_ENTRY: PromptEntry = PromptEntry {
 /// `local-27b` : rappel one-shot avant clôture (todo ouverte / code modifié sans check).
 pub const LOCAL_SOFT_CLOSE_CHECK_NUDGE: &str = "\
 Before ending: your todo list still has open items, or you changed code without \
-running a check (build / test / re-read). If that is really done or not needed, \
-reply again and the run ends; otherwise continue with tools.";
+running a check (build / test / re-read). If something is still open, call the \
+next tool now. If nothing is left, write nothing: the reply you already sent stands.";
 
 pub const LOCAL_SOFT_CLOSE_CHECK_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.local.soft_close_check",

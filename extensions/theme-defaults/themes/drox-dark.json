@@ -85,6 +85,8 @@
 		"activityBarBadge.foreground": "#FFFFFF",
 		"activityBarTop.activeBorder": "#888888",
 		"sideBar.background": "#1E1E1E",
+		"agents.background": "#1E1E1E",
+		"agentsPanel.background": "#1E1E1E",
 		"sideBar.foreground": "#cccccc",
 		"sideBar.border": "#333333",
 		"sideBarTitle.foreground": "#cccccc",

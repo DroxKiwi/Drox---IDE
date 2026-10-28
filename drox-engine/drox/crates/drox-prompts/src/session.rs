@@ -7,11 +7,9 @@ use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 /// Inventaire RO (`file_read` / `glob` / `grep`) accepte **toujours** les chemins
 /// absolus hors racine (parité P1). Ce supplement encourage à s’en servir et à
 /// les mettre dans les briefs Explore.
-pub const ALLOW_OUTSIDE_WORKSPACE_READ_SUPPLEMENT: &str = r#"# Outside-workspace **read** (session toggle)
+pub const ALLOW_OUTSIDE_WORKSPACE_READ_SUPPLEMENT: &str = r#"# Outside-workspace **read** (preference, not a permission)
 
-The user enabled **outside-workspace read** for this discussion — prefer absolute paths when leaving the project root.
-
-**Read-only inventory (always allowed, with or without this toggle):** `file_read`, `glob`, `grep` may use absolute paths outside the workspace. Prefer those tools over bash `Get-Content` / `cat` / `type` / `dir` for external docs.
+The user prefers absolute paths when leaving the project root. This is a usage preference. `file_read`, `glob`, and `grep` may use absolute paths outside the workspace whether or not this preference is set. Prefer those tools over bash `Get-Content` / `cat` / `type` / `dir` for external docs.
 
 Explore (`task`) children stay **read-only** and use the same inventory rules. Put external paths in the Explore `description` — the child does not see this chat.
 
@@ -68,7 +66,7 @@ The server streams your **internal monologue** in a separate native `thinking` c
 
 Hard rules for EVERY reply while this mode is active:
 
-1. Use `content` for protocol markers (`[phase: …]` on their own line), short telegraphic notes inside internal phases, mid-run **user-facing** status in `[phase: answering]`, edit micro-announcements, and the final answer in `[phase: answering]`. Put long free-form reasoning only in the native `thinking` stream.
+1. Use `content` for protocol markers (`[phase: …]` on their own line), short telegraphic notes inside internal phases, mid-run **user-facing** status in `[phase: answering]`, edit micro-announcements, and the final answer in `[phase: answering]`. Native thinking stays a few decisive lines (goal, next tool, why). Never draft the user-facing report in thinking, and never write that report inside an internal phase (`analyzing`, `reading`, `planning`, `acting`, `testing`, `verifying`).
 2. **Keep native thinking short.** Prefer a few decisive lines (goal → next tool → why), not multi-paragraph debate. As soon as the next action is clear, **stop thinking and call the tool** — do not re-plan the same step in prose. Native thinking is **third-person / telegraphic notes to yourself** — never a draft of the chat reply, never a greeting, never "I should respond in French…".
 3. **User-facing prose never lives only in native `thinking`.** Sentences like "Hi!", "I'll first…", "Je vais d'abord…", "Launching Explore…" must appear in `content` under `[phase: answering]` (own line), or the user only sees them in the fold. **Preferred first-turn order for work:** brief thinking → `[phase: answering]` + 1 short ack in `content` → tools / internal phases. Do **not** emit the ack unmarked after tools.
 4. The chat UI shows your native `thinking` in the **Native reasoning** fold. There is **no** separate Drox `[phase: reasoning]` phase anymore — that marker is ignored if present.
@@ -94,7 +92,7 @@ pub const SUBAGENTS_EXPLORE_SUPPLEMENT: &str = r#"# Sub-agents — Explore (`tas
 
 The `task` tool is available. **You are the session master**: children return **typed artifacts** + short **summary** / **blurb** + `explore_id` — they do **not** see this chat. Prefer `return_kinds` so the engine verifies formats and you save parent context.
 
-**Soft procedure (preferred — tools stay free):** for **work** asks, mount a `todo_write` plan; **when a step becomes `in_progress`**, gather info for **that** step with a focused `task` (`explore`), then merge via summary / `explore_artifact_read`. **Default to Explore at step kickoff** for understanding / synthesis / multi-file — direct parent `glob`/`grep`/`file_read` is the **exception** (needles only). Do **not** fan out Explore before the plan.
+**Preferred procedure:** for **work** asks, mount a `todo_write` plan; **when a step becomes `in_progress`**, gather info for **that** step with a focused `task` (`explore`), then merge via summary / `explore_artifact_read`. **Prefer Explore at step kickoff** for understanding / synthesis / multi-file (3 or more files). Direct parent `glob`/`grep`/`file_read` stays right for 1–2 known files. Do **not** fan out Explore before the plan.
 
 Explore children may `file_read` / `glob` / `grep` **absolute paths outside the workspace** (read-only inventory, always). They never mutate. Put external paths in `description`.
 
@@ -110,7 +108,7 @@ Artifacts + index are **scoped to this discussion only** (`explore_index_list` n
    - optional `return_options` caps, optional `must_return` prose extras, optional `plan_step_id`.
 3. **Merge** — trust `artifacts_inline` (capped kind bodies in the `task` result) + `summary` / `blurb` / `artifacts` paths; `explore_artifact_read` only to zoom. Check `truncated` / `kinds_incomplete`. Do **not** re-ingest the same source files into the parent. If incomplete, re-split — never parent-read spam.
 
-## MUST use `task` (at plan step kickoff)
+## Prefer `task` (at plan step kickoff)
 
 - Start of a plan step that needs understanding / synthesis / multi-file reading.
 - Understanding a topic / module / doc set; rewrite / mirror multi-page docs; overview / architecture.

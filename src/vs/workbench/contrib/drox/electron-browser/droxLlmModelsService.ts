@@ -15,7 +15,7 @@ import { IWorkspaceContextService } from '../../../../platform/workspace/common/
 import { IHostService } from '../../../services/host/browser/host.js';
 import { DroxSetting, updateDroxLlmModelEnum } from '../common/droxConfiguration.js';
 import { isDroxEmbeddingModelId } from '../common/droxAgentsModels.js';
-import { readDroxArchitectModelUser } from '../common/droxAgentsConfiguration.js';
+import { persistDroxArchitectModelUser, readDroxArchitectModelUser } from '../common/droxAgentsConfiguration.js';
 import { droxConfigChangeAffectsArchitectSettings, droxLlmSnapshotDiffersFromConfiguration } from '../common/droxChatConfigSync.js';
 import {
 	buildLlmModelListUrl,
@@ -131,13 +131,21 @@ export class DroxLlmModelsService extends Disposable implements IDroxLlmModelsSe
 			return;
 		}
 
-		updateDroxLlmModelEnum(models.filter(model => !isDroxEmbeddingModelId(model)));
+		const chatModels = models.filter(model => !isDroxEmbeddingModelId(model));
+		updateDroxLlmModelEnum(chatModels);
+
+		let selectedForRun = selected;
+		if (chatModels.length > 0 && (!selectedForRun || !chatModels.includes(selectedForRun))) {
+			selectedForRun = chatModels[0];
+			const resource = this.workspaceResource();
+			await persistDroxArchitectModelUser(this.configurationService, selectedForRun, resource);
+		}
 
 		this._setSnapshot({
 			provider,
 			server,
 			models,
-			selected,
+			selected: selectedForRun,
 			error,
 			listUrl,
 			loading: false,

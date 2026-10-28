@@ -57,7 +57,9 @@ Dans le panneau **Drox** de l’IDE (même dossier workspace) :
 
 ---
 
-## O2 — Sync modèle après changement de provider / connexion
+## O2 — Sync modèle après changement de provider / connexion — **clos**
+
+**Statut** : clos. Décision : le correctif local (sync automatique vers `drox.architect.model` au reset du picker, au `refresh` catalogue et dans `ensureValidModel`) est tenu pour suffisant. Pas de dogfood supplémentaire exigé.
 
 ### Symptôme
 
@@ -134,7 +136,7 @@ Même famille de problème que les **doubles conclusions** en **`local-27b`** (`
 
 ---
 
-## O5 — Revue des prompts système (`drox-prompts`)
+## O5 — Revue des prompts système (`drox-prompts`) — **clos**
 
 ### Contexte
 
@@ -142,13 +144,31 @@ Les prompts runtime (CORE, gates, nudges, variantes local vs `cloud-full`) viven
 
 ### Objectif
 
-**Relire et ajuster** les prompts système injectés au modèle (parent et sous-runs concernés), en restant aligné avec les gates Rust (`drive.rs`, `gates/`) — pas de règles « prompt only » que le moteur ne tient pas.
+**Relire et ajuster** les prompts système injectés au modèle (parent et sous-runs concernés).
 
-### Critères d’acceptation (à figer avant patch)
+- Les aligner sur les gates Rust (`drive.rs`, `gates/`) : pas de règle « prompt only » que le moteur ne tient pas.
+- Vérifier la **consistance** d’un prompt à l’autre (local vs `cloud-full`, CORE, nudges, thinking).
+- Relever les **incohérences** (deux façons de finir, consigne contredite plus bas).
+- **Durcir** les formulations qui laissent le modèle mal interpréter (marqueur de phase, outil simulé en texte, rapport écrit dans le thinking).
 
-1. Inventaire des constantes réellement injectées (CORE, nudges, local, professor si encore câblé).
-2. Décisions écrites : ce qui change / ce qui reste, par `EngineProfile`.
-3. Après patch : dogfood court local + `cloud-full` sans régression de clôture (lien O4 si le rappel GLM/`done` est dans ce lot).
+### Fait
+
+Les trois profils restent distincts. Ajustements de texte (et rappel `local-27b` : un tour vide après le nudge ne réaffiche pas une seconde conclusion) :
+
+- local : une réponse, aucun outil, le CORE ne décrit plus le protocole cloud ;
+- cloud : seul `[phase: done]` termine ; `DONE_ONLY` n’autorise plus une seconde ligne `answering` ; le rapport utilisateur va sous `answering`, pas dans le thinking ni une phase interne ;
+- `task` : préférence à partir de 3 fichiers (plus de « MUST » contredit par « tools stay free ») ;
+- lecture hors workspace : préférence d’usage, pas une permission.
+
+### Dogfood — 28 octobre 2026
+
+Analyse et explication d’un répertoire de code jeune et simple. Trois runs sans faute (Ollama, le dernier sur Ollama Cloud).
+
+| Modèle | Mode |
+|--------|------|
+| `nemotron-3.5-bolt:e4b` | Small model (`local-9b`) |
+| `ornith1.5:35b` 8bit | Local capable (`local-27b`) |
+| `glm-5.3-flash` | Full protocol (`cloud-full`) |
 
 ### Docs / code
 
@@ -179,7 +199,9 @@ Nettoyer ces messages de commit pour que **cursoragent** disparaisse des contrib
 
 ---
 
-## O7 — Plusieurs connexions backend, bascule sans ressaisie
+## O7 — Plusieurs connexions backend, bascule sans ressaisie — **clos**
+
+**Statut** : clos. **Changer de connexion** ouvre l’étape 1 (Cloud / Self-hosted inchangé). En dessous, les connexions déjà testées. Un clic réactive URL, provider et identifiants. À l’ouverture, les autres sont testées vite : indisponible = non sélectionnable, conservée. **×** retire aussi la connexion active. Dogfood validé.
 
 ### Contexte
 
@@ -198,24 +220,23 @@ Enregistrer **plusieurs** connexions déjà établies (URL, type d’hébergemen
 
 ---
 
-## O8 — Style graphique du mode Agents
+## O8 — Style graphique du mode Agents, runs parallèles IDE — **clos**
 
-### Contexte
+**Statut** : clos.
 
-Le mode **Agents** (fenêtre / panneau Agents : liste de sessions, composer, panneaux latéraux) n’est pas homogène. Les surfaces ne partagent pas les mêmes traitements (chrome, barres, composer, listes).
+### Style
 
-### Objectif
+La fenêtre Agents reprend la surface de la charte (`#1E1E1E`, bordure `#333333`, texte `#cccccc` / `#666666`) : liste, fil, composer, panneaux (Changes, Files, …) et boutons de fenêtre. Les pastilles git restent leurs couleurs de diff.
 
-Revoir l’implémentation du style pour un rendu cohérent sur tout le mode Agents, aligné sur la charte. Pas un nouveau thème : unifier ce qui existe.
+### Runs
 
-### Critères d’acceptation
-
-1. Liste de sessions, composer et panneaux du mode Agents partagent les mêmes couleurs, rayons, bordures et typo.
-2. Pas de régression du chat natif IDE (hors de ce lot, sauf token partagé évident).
+- **Change connection** est bloqué tant qu’un run est en cours (IDE et Agents). Survol et clic indiquent d’arrêter le run avant de changer la connexion.
+- Onglets IDE : on peut en changer et en ouvrir un autre pendant un run. Un carré clignote sur l’onglet dont le run continue. Fermer cet onglet reste refusé tant que le run n’est pas arrêté.
+- Plusieurs discussions peuvent tourner en même temps. Le serveur d’inférence répond à chacune à son tour.
 
 ---
 
 ## Hors scope 1.6.2 (sauf décision explicite)
 
 - Onglets dans la **fenêtre Agents** (liste sessions à gauche = autre métaphore).
-- Runs parallèles sur deux sessions dans un même workspace.
+- Les runs parallèles **IDE** (plusieurs onglets) sont dans O8. La fenêtre Agents n’a pas ce bandeau.

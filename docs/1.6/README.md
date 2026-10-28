@@ -10,7 +10,7 @@
 |---------|-----------|--------|
 | [**1.6.0/**](1.6.0/README.md) | Boucles · compaction · Vague 4 · prompts / Explore · contrats · bash capture | **Freeze** ([CLOSURE](1.6.0/CLOSURE-1.6.0.md)) · pas ship |
 | [**1.6.1/**](1.6.1/README.md) | Sous-run par défaut · presets véhicule · charte / polish IDE | **Stable** (`v1.6.1`) |
-| [**1.6.2/**](1.6.2/README.md) | Suite ligne 1.6 · sync modèle (O2) · **prompts système** (O5) · **co-authored Cursor** (O6, reporté) · **connexions backend** (O7) · **style Agents** (O8) · clôture locale (O4, clos) · onglets IDE (O1, clos) | **Ouvert** |
+| [**1.6.2/**](1.6.2/README.md) | Suite ligne 1.6 · **co-authored Cursor** (O6, reporté) · style Agents et runs IDE (O8, clos) · prompts système (O5, clos) · clôture locale (O4, clos) · onglets IDE (O1, clos) · sync modèle (O2, clos) · connexions backend (O7, clos) | **Ouvert** |
 
 ---
 

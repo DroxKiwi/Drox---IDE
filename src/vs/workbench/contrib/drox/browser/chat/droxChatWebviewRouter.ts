@@ -124,6 +124,22 @@ export async function routeDroxChatWebviewMessage(
 				deps.configurationService,
 			);
 			break;
+		case 'probeSavedLlmConnections': {
+			await deps.droxEngineService.initialize();
+			const connections = Array.isArray(raw.connections) ? raw.connections : [];
+			await Promise.all(connections.map(async item => {
+				const result = await testDroxLlmConnectionDraft(
+					{
+						droxEngineService: deps.droxEngineService,
+						requestService: deps.requestService,
+					},
+					item.settings as IDroxGeneralSettingsPatch,
+					{ timeoutMs: 8_000, listOnly: true },
+				);
+				postConnectionTestResult(host, `saved-probe:${item.key}`, result);
+			}));
+			break;
+		}
 		case 'testLlmConnection': {
 			await deps.droxEngineService.initialize();
 			const result = await testDroxLlmConnectionDraft(
@@ -132,7 +148,10 @@ export async function routeDroxChatWebviewMessage(
 					requestService: deps.requestService,
 				},
 				raw.settings as IDroxGeneralSettingsPatch,
-				typeof raw.timeoutMs === 'number' && raw.timeoutMs > 0 ? { timeoutMs: raw.timeoutMs } : undefined,
+				{
+					...(typeof raw.timeoutMs === 'number' && raw.timeoutMs > 0 ? { timeoutMs: raw.timeoutMs } : {}),
+					listOnly: raw.listOnly === true,
+				},
 			);
 			postConnectionTestResult(host, raw.requestId, result);
 			break;

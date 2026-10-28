@@ -50,7 +50,9 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'refreshLlmModels' }
 
-	| { readonly type: 'testLlmConnection'; readonly requestId: string; readonly settings: Record<string, unknown>; readonly timeoutMs?: number }
+	| { readonly type: 'testLlmConnection'; readonly requestId: string; readonly settings: Record<string, unknown>; readonly timeoutMs?: number; readonly listOnly?: boolean }
+
+	| { readonly type: 'probeSavedLlmConnections'; readonly connections: readonly { readonly key: string; readonly settings: Record<string, unknown> }[] }
 
 	| { readonly type: 'cancelRun' }
 
@@ -325,6 +327,10 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 		return true;
 
+	}
+
+	if (t === 'probeSavedLlmConnections') {
+		return Array.isArray((msg as { connections?: unknown }).connections);
 	}
 
 	if (t === 'testLlmConnection') {

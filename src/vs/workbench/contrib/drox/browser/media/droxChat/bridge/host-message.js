@@ -108,7 +108,9 @@
 				fn.applyGeneralSettingsFromHost(m);
 				break;
 			case 'connectionTestResult':
-				if (typeof fn.handleConnectionTestResult === 'function') {
+				if (String(m.requestId || '').startsWith('saved-probe:') && typeof fn.handleSavedConnectionProbe === 'function') {
+					fn.handleSavedConnectionProbe(m);
+				} else if (typeof fn.handleConnectionTestResult === 'function') {
 					fn.handleConnectionTestResult(m);
 				}
 				break;

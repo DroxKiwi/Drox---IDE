@@ -466,6 +466,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			registerDroxAgentsWindowRun(runId);
 			this.chatSessionService.setSessionId(engineSessionId);
 			this.chatSessionService.setRunId(runId);
+			this.chatSessionService.beginSessionRun(engineSessionId, runId);
 			this.runRevertService.beginRun(runId, workspacePath, engineSessionId);
 
 			const done = await this._waitForRunDone(runId, token);
@@ -485,6 +486,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			this.userAskService.attachAgentsProgress(undefined);
 			if (activeRunId) {
 				unregisterDroxAgentsWindowRun(activeRunId);
+				this.chatSessionService.endSessionRun(engineSessionId, activeRunId);
 				if (this.chatSessionService.getRunId() === activeRunId) {
 					this.chatSessionService.setRunId(undefined);
 				}

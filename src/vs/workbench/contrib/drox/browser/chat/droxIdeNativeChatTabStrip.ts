@@ -35,17 +35,27 @@ export class DroxIdeNativeChatTabStrip extends Disposable {
 		return this._root.offsetHeight;
 	}
 
-	render(tabs: readonly IDroxIdeNativeChatTab[], activeSessionId: string | undefined): void {
+	render(tabs: readonly IDroxIdeNativeChatTab[], activeSessionId: string | undefined, runningSessionIds?: ReadonlySet<string>): void {
 		this._tabListeners.clear();
 		dom.clearNode(this._list);
 		for (const tab of tabs) {
 			const item = dom.append(this._list, dom.$('.drox-ide-native-chat-tab'));
 			const selected = tab.sessionId === activeSessionId;
+			const running = runningSessionIds?.has(tab.sessionId) === true;
 			if (selected) {
 				item.classList.add('active');
 			}
+			if (running) {
+				item.classList.add('running');
+			}
 			item.setAttribute('role', 'tab');
 			item.setAttribute('aria-selected', selected ? 'true' : 'false');
+
+			if (running) {
+				const mark = dom.append(item, dom.$('span.drox-ide-native-chat-tab-running'));
+				mark.title = localize('drox.ideNativeChat.tab.running', 'Run in progress');
+				mark.setAttribute('aria-label', mark.title);
+			}
 
 			const label = dom.append(item, dom.$('button.drox-ide-native-chat-tab-label')) as HTMLButtonElement;
 			label.type = 'button';

@@ -95,12 +95,10 @@ pub const DONE_ONLY_NUDGE_PROMPT: &str = "Your previous reply ended inside \
     The engine only closes the turn on `[phase: done]`.\n\
     \n\
     Your todo list is closed and no testing gate is pending. Do NOT rewrite your \
-    answer. Do NOT start new tools. In your next reply emit ONLY:\n\
+    answer. Do NOT start new tools. Do NOT emit `[phase: answering]` again. \
+    In your next reply emit ONLY:\n\
     \n\
-    [phase: done]\n\
-    \n\
-    (Optionally keep a one-line `[phase: answering]` if required by your stack — \
-    still no new tool calls.)";
+    [phase: done]";
 
 pub const DONE_ONLY_ENTRY: PromptEntry = PromptEntry {
 	id: "gates.done_only",

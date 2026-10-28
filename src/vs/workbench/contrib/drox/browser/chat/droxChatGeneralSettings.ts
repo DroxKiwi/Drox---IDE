@@ -14,12 +14,14 @@ import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js'
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { DROX_DEFAULT_SUBAGENTS_MAX_ITERATIONS, DROX_MAX_ITERATIONS_CAP } from '../../common/droxProductDefaults.js';
 import { formatDroxConnectionSummary, normalizeDroxLlmHosting } from './droxConnectionCatalog.js';
+import { IDroxSavedLlmConnection, parseDroxSavedLlmConnections, upsertDroxSavedLlmConnection } from './droxSavedLlmConnections.js';
 export interface IDroxGeneralSettingsWire {
 	readonly llmHosting: string;
 	readonly llmProvider: string;
 	readonly server: string;
 	readonly apiKey: string;
 	readonly llmHeaders: Record<string, string>;
+	readonly savedConnections: readonly IDroxSavedLlmConnection[];
 	readonly connectionSummary: string;
 	readonly maxIterations: number;
 	readonly engineProfile: DroxEngineProfileId;
@@ -45,6 +47,9 @@ export interface IDroxGeneralSettingsPatch {
 	readonly server?: string;
 	readonly apiKey?: string;
 	readonly llmHeaders?: Record<string, string>;
+	readonly savedConnections?: readonly IDroxSavedLlmConnection[];
+	/** true : la liste reçue remplace le stock (suppression). Sinon chaque entrée est ajoutée. */
+	readonly replaceSavedConnections?: boolean;
 	readonly maxIterations?: number;
 	readonly engineProfile?: string;
 	readonly nativeThinking?: boolean;
@@ -93,6 +98,9 @@ export function readDroxGeneralSettingsForWebview(
 		server: llm.server,
 		apiKey: llm.apiKey,
 		llmHeaders,
+		savedConnections: parseDroxSavedLlmConnections(
+			readDroxChatConfigurationValue(deps.configurationService, DroxSetting.LlmConnections, resource),
+		),
 		maxIterations: llm.maxIterations,
 		engineProfile: llm.engineProfile,
 		nativeThinking: llm.nativeThinking,
@@ -164,6 +172,32 @@ export async function setDroxGeneralSettingsFromWebview(
 	}
 	if (patch.apiKey !== undefined) {
 		await update(DroxSetting.ApiKey, String(patch.apiKey).trim());
+	}
+	if (patch.savedConnections !== undefined) {
+		const incoming = parseDroxSavedLlmConnections(patch.savedConnections);
+		const stored = parseDroxSavedLlmConnections(
+			readDroxChatConfigurationValue(deps.configurationService, DroxSetting.LlmConnections, workspaceResource),
+		);
+		let next = patch.replaceSavedConnections ? incoming : stored;
+		if (!patch.replaceSavedConnections) {
+			for (const connection of incoming) {
+				next = upsertDroxSavedLlmConnection(next, connection);
+			}
+			const activeServer = patch.server !== undefined
+				? String(patch.server).trim()
+				: '';
+			if (activeServer) {
+				const hosting = patch.llmHosting === 'cloud' ? 'cloud' : 'personal';
+				next = upsertDroxSavedLlmConnection(next, {
+					hosting,
+					provider: String(patch.llmProvider ?? '').trim() || 'ollama',
+					server: activeServer,
+					apiKey: String(patch.apiKey ?? '').trim(),
+					llmHeaders: patch.llmHeaders && typeof patch.llmHeaders === 'object' ? patch.llmHeaders : {},
+				});
+			}
+		}
+		await update(DroxSetting.LlmConnections, next);
 	}
 	if (patch.llmHeaders !== undefined && patch.llmHeaders && typeof patch.llmHeaders === 'object') {
 		const cleaned: Record<string, string> = {};

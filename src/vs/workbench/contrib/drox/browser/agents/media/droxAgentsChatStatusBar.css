@@ -16,7 +16,7 @@
 	width: 100%;
 	padding: 4px 12px 6px;
 	border-top: 1px solid var(--drox-ui-green, #888888);
-	background: var(--vscode-editor-background, #000000);
+	background: var(--vscode-editor-background, #1e1e1e);
 	color: var(--vscode-descriptionForeground, #9d9d9d);
 	font-size: 11px;
 	user-select: none;

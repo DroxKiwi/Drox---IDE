@@ -440,6 +440,20 @@
 	border-bottom-color: var(--drox-thread-green, var(--vscode-focusBorder));
 }
 
+.drox-ide-native-chat-tab-running {
+	flex: 0 0 auto;
+	width: 6px;
+	height: 6px;
+	margin-left: 8px;
+	background: var(--drox-charte-accent, #888888);
+	animation: drox-ide-tab-run 1.2s ease-in-out infinite;
+}
+
+@keyframes drox-ide-tab-run {
+	0%, 100% { opacity: 0.35; }
+	50% { opacity: 1; }
+}
+
 .drox-ide-native-chat-tab-label,
 .drox-ide-native-chat-tab-close {
 	border: 0;

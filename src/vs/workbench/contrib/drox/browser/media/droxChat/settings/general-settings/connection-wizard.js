@@ -110,7 +110,12 @@
 				: 'Not configured');
 		summary.textContent = text;
 		if (connectBtn) {
+			const locked = Boolean(D.state.busy || D.state.connectionLocked);
+			const lockedTitle = 'Stop the current run before changing the connection.';
 			connectBtn.textContent = fn.isConnectionConfigured(s) ? 'Change connection' : 'Connect your AI';
+			connectBtn.classList.toggle('is-locked', locked);
+			connectBtn.title = locked ? lockedTitle : '';
+			connectBtn.setAttribute('aria-disabled', locked ? 'true' : 'false');
 		}
 		if (typeof fn.syncConnectionVignetteAttention === 'function') {
 			fn.syncConnectionVignetteAttention();
@@ -259,6 +264,31 @@
 		syncWizardActionButtons();
 
 		if (step === 1) {
+			const saved = typeof fn.listSavedLlmConnections === 'function'
+				? fn.listSavedLlmConnections(D.state.generalSettings)
+				: [];
+			const activeKey = fn.savedLlmConnectionKey?.(D.state.generalSettings || {}) || '';
+			const probes = D.state.savedConnectionProbes || {};
+			const savedHtml = saved.length === 0 ? '' : `
+				<p class="drox-wizard-lead drox-wizard-saved-lead">Saved connections</p>
+				<div class="drox-wizard-saved-list">
+					${saved.map(item => {
+						const key = fn.savedLlmConnectionKey(item);
+						const probe = probes[key] || (key === activeKey ? 'active' : 'pending');
+						const selectable = probe === 'ok';
+						const status = probe === 'pending' ? 'Checking…' : probe === 'down' ? 'Unavailable' : probe === 'active' ? 'Active' : '';
+						const classes = [
+							'drox-wizard-saved-connection',
+							key === activeKey ? 'drox-wizard-saved-active' : '',
+							probe === 'down' ? 'drox-wizard-saved-down' : '',
+						].filter(Boolean).join(' ');
+						const remove = `<button type="button" class="drox-wizard-saved-delete" data-saved-key="${fn.escapeHtmlAttr(key)}" title="Remove connection">×</button>`;
+						return `<div class="drox-wizard-saved-row">
+							<button type="button" class="${classes}" data-saved-key="${fn.escapeHtmlAttr(key)}" ${selectable ? '' : 'disabled'}>${fn.escapeHtmlAttr(fn.savedLlmConnectionLabel(item))}${status ? ` — ${status}` : ''}</button>
+							${remove}
+						</div>`;
+					}).join('')}
+				</div>`;
 			fn.setInnerHtml(body, `
 				<p class="drox-wizard-lead">Select how your model is hosted.</p>
 				${stepSelectionHint(wiz)}
@@ -271,7 +301,45 @@
 						<strong>Self-hosted</strong>
 						<span>Your own server (Ollama, vLLM, …)</span>
 					</button>
-				</div>`);
+				</div>
+				${savedHtml}`);
+			for (const btn of body.querySelectorAll('.drox-wizard-saved-delete')) {
+				btn.addEventListener('click', (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					const key = btn.getAttribute('data-saved-key');
+					if (key && typeof fn.removeSavedLlmConnection === 'function') {
+						fn.removeSavedLlmConnection(key);
+					}
+				});
+			}
+			for (const btn of body.querySelectorAll('.drox-wizard-saved-connection')) {
+				btn.addEventListener('click', (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					if (btn.disabled) {
+						return;
+					}
+					const key = btn.getAttribute('data-saved-key');
+					const picked = saved.find(item => fn.savedLlmConnectionKey(item) === key);
+					if (!picked || (D.state.savedConnectionProbes || {})[key] !== 'ok') {
+						return;
+					}
+					D.vscode.postMessage({
+						type: 'setGeneralSettings',
+						settings: {
+							llmHosting: picked.hosting,
+							llmProvider: picked.provider,
+							server: picked.server,
+							apiKey: picked.apiKey,
+							llmHeaders: picked.llmHeaders,
+							savedConnections: saved,
+						},
+					});
+					D.vscode.postMessage({ type: 'refreshLlmModels' });
+					fn.closeConnectionWizard();
+				});
+			}
 			for (const btn of body.querySelectorAll('.drox-wizard-hosting-card')) {
 				btn.addEventListener('click', (e) => {
 					e.preventDefault();
@@ -281,13 +349,12 @@
 						return;
 					}
 					wiz.hosting = hosting;
-					if (wiz.provider) {
-						const def = fn.findConnectionProviderDef(hosting, wiz.provider);
-						if (!def) {
-							wiz.provider = null;
-						}
-					}
+					wiz.provider = null;
+					wiz.server = '';
+					wiz.formValues = {};
+					wiz.headers = [emptyHeadersRow()];
 					wiz.usingSavedSecrets = false;
+					wiz.savedBaseline = null;
 					wiz.testStatus = 'idle';
 					wiz.testError = '';
 					fn.renderConnectionWizard();
@@ -552,7 +619,7 @@
 			}
 			patch.llmHeaders = headers;
 		}
-		if (wiz.usingSavedSecrets && wiz.savedBaseline) {
+		if (wiz.usingSavedSecrets && wiz.savedBaseline && wiz.savedBaseline.llmHosting === wiz.hosting) {
 			const base = wiz.savedBaseline;
 			if (wiz.hosting === 'cloud' && !patch.apiKey && base.apiKey) {
 				patch.apiKey = base.apiKey;
@@ -566,11 +633,22 @@
 	};
 
 	fn.openConnectionWizard = function() {
-		if (D.state.busy) {
+		if (D.state.busy || D.state.connectionLocked) {
+			const message = 'Stop the current run before changing the connection.';
+			const connectBtn = document.getElementById('general-settings-connect-ia');
+			if (connectBtn) {
+				connectBtn.title = message;
+			}
+			const summary = document.getElementById('general-settings-connection-summary');
+			if (summary) {
+				summary.textContent = message;
+			}
 			return;
 		}
-		const configured = fn.isConnectionConfigured(D.state.generalSettings);
-		fn.connectionWizardResetDraft(D.state.generalSettings, { step: configured ? WIZARD_STEPS : 1 });
+		fn.connectionWizardResetDraft(D.state.generalSettings, { step: 1 });
+		if (typeof fn.beginSavedConnectionProbes === 'function') {
+			fn.beginSavedConnectionProbes();
+		}
 		D.state.connectionWizard.open = true;
 		const el = wizardEl();
 		if (el) {
@@ -647,6 +725,10 @@
 			wiz.testModelCount = payload.modelCount || 0;
 			wiz.testError = '';
 			const patch = fn.buildConnectionPatchFromWizard();
+			patch.savedConnections = fn.listSavedLlmConnections({
+				...D.state.generalSettings,
+				...patch,
+			});
 			D.state.generalSettings = { ...D.state.generalSettings, ...patch };
 			fn.syncConnectionSummaryInPanel();
 			fn.syncGeneralSettingsVignetteHint();

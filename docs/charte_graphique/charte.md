@@ -20,3 +20,9 @@ Le style est **technique, minimaliste et axé sur la souveraineté numérique**.
 
 - **Drox Dark** / **Drox Light** — `extensions/theme-defaults/themes/drox-dark.json`, `drox-light.json` (IDs `Drox Dark`, `Drox Light`).
 - Les anciens IDs **Nexus Dark** / **Nexus Light** sont migrés automatiquement au chargement des réglages.
+
+## Mode Agent (fenêtre Agents)
+
+- Variables charte : `--drox-charte-accent`, `--drox-charte-surface`, `--drox-charte-border`, `--drox-charte-fg`, `--drox-charte-fg-muted`.
+- Feuille principale : `src/vs/workbench/contrib/drox/browser/media/droxAgentsRetroTheme.css` (`.agent-sessions-workbench`).
+- Panneaux composer (modèle, réglages) : `agents/media/droxAgentsComposerPanelChrome.css`.

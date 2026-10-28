@@ -759,6 +759,28 @@ impl Agent {
                 && (final_answer_forced || outcome.final_phase != Some(Phase::Acting))
             {
                 let reply = outcome.text.trim();
+                if reply.is_empty()
+                    && local_soft_close_check_sent
+                    && !final_answer_forced
+                {
+                    debug!("local-27b — empty turn after soft close, previous reply stands");
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    self.maybe_persist_session(&messages, &memory_tracker, &tx)
+                        .await;
+                    let _ = tx
+                        .send(Ok(AgentEvent::Stop {
+                            reason: outcome.reason,
+                            usage: Usage::default(),
+                        }))
+                        .await;
+                    return;
+                }
                 if reply.is_empty() && !final_answer_forced && !local_empty_turn_nudge_sent {
                     debug!("local profile — empty turn, one-shot nudge");
                     local_empty_turn_nudge_sent = true;

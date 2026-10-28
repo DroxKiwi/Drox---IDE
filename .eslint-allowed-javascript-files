@@ -215,6 +215,7 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/p
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/state.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/connection-catalog.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/connection-wizard.js
+src/vs/workbench/contrib/drox/browser/media/droxChat/settings/general-settings/saved-connections.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/helpers.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/host-sync.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/settings/role-models/init.js

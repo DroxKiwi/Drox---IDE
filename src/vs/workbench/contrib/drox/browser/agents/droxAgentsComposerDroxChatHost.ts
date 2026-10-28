@@ -92,6 +92,7 @@ const COMPOSER_DROX_CHAT_SCRIPTS = [
 	'droxChat/settings/general-settings/state.js',
 	'droxChat/settings/general-settings/chat-issues.js',
 	'droxChat/settings/general-settings/connection-catalog.js',
+	'droxChat/settings/general-settings/saved-connections.js',
 	'droxChat/settings/general-settings/connection-wizard.js',
 	'droxChat/settings/general-settings/helpers.js',
 	'droxChat/settings/general-settings/panel.js',
@@ -138,6 +139,8 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 	) {
 		super();
 		this._hostAdapter = new ComposerHostAdapter(message => this._handleHostMessage(message));
+		this._register(this.chatSessionService.onDidChangeRunId(() => this._syncConnectionLock()));
+		this._register(this.chatSessionService.onDidChangeRunningSessions(() => this._syncConnectionLock()));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (droxConfigChangeAffectsPermissionMode(e)) {
 				void this._pushPermissionModeFromConfiguration();
@@ -234,6 +237,19 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 			this._reconcileToolbarUi();
 		} catch (err) {
 			onUnexpectedError(err);
+		}
+	}
+
+	private _syncConnectionLock(): void {
+		try {
+			const D = this._drox();
+			D.state.connectionLocked = this.chatSessionService.hasActiveRun();
+			const fn = D.fn;
+			if (typeof fn.syncConnectionSummaryInPanel === 'function') {
+				fn.syncConnectionSummaryInPanel();
+			}
+		} catch {
+			// Composer script not ready yet.
 		}
 	}
 
@@ -648,12 +664,28 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 			case 'refreshLlmModels':
 				await refreshDroxChatLlmModels(this._hostAdapter, deps.llmModelsService, deps.runSettingsService, deps.configurationService);
 				break;
+			case 'probeSavedLlmConnections': {
+				await deps.droxEngineService.initialize();
+				const connections = Array.isArray(raw.connections) ? raw.connections : [];
+				await Promise.all(connections.map(async item => {
+					const result = await testDroxLlmConnectionDraft(
+						{ droxEngineService: deps.droxEngineService, requestService: deps.requestService },
+						item.settings as IDroxGeneralSettingsPatch,
+						{ timeoutMs: 8_000, listOnly: true },
+					);
+					postConnectionTestResult(this._hostAdapter, `saved-probe:${item.key}`, result);
+				}));
+				break;
+			}
 			case 'testLlmConnection': {
 				await deps.droxEngineService.initialize();
 				const result = await testDroxLlmConnectionDraft(
 					{ droxEngineService: deps.droxEngineService, requestService: deps.requestService },
 					raw.settings as IDroxGeneralSettingsPatch,
-					typeof raw.timeoutMs === 'number' && raw.timeoutMs > 0 ? { timeoutMs: raw.timeoutMs } : undefined,
+					{
+						...(typeof raw.timeoutMs === 'number' && raw.timeoutMs > 0 ? { timeoutMs: raw.timeoutMs } : {}),
+						listOnly: raw.listOnly === true,
+					},
 				);
 				postConnectionTestResult(this._hostAdapter, raw.requestId, result);
 				break;

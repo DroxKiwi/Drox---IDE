@@ -67,6 +67,7 @@ export class DroxIdeModelPicker extends Disposable {
 				void this.llmModelsService.refresh().then(() => this._updateTrigger());
 			}
 		}));
+		this._register(this.llmModelsService.onDidChange(() => this.ensureValidModel()));
 	}
 
 	render(container: HTMLElement): void {
@@ -194,15 +195,17 @@ export class DroxIdeModelPicker extends Disposable {
 
 	ensureValidModel(): void {
 		const current = this._currentModelId();
-		if (!current || !isDroxEmbeddingModelId(current)) {
+		const models = this._listModels().filter(m => !isDroxEmbeddingModelId(m.id));
+		if (models.length === 0) {
 			return;
 		}
-		const models = this._listModels();
-		const preferred = models.find(m => !isDroxEmbeddingModelId(m.id));
-		if (!preferred) {
+		const inCatalog = current && models.some(m => m.id === current) && !isDroxEmbeddingModelId(current);
+		if (inCatalog) {
 			return;
 		}
+		const preferred = models[0];
 		const workspaceResource = this.workspaceContextService.getWorkspace().folders[0]?.uri;
 		void persistDroxArchitectModelUser(this.configurationService, preferred.id, workspaceResource);
+		this._updateTrigger();
 	}
 }

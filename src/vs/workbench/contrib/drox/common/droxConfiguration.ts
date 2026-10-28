@@ -127,6 +127,9 @@ export const enum DroxSetting {
 	/** Headers HTTP additionnels pour le serveur LLM (paires nom → valeur). */
 	LlmHeaders = 'drox.llmHeaders',
 
+	/** Connexions LLM déjà testées (assistant), en plus de la connexion active. */
+	LlmConnections = 'drox.llmConnections',
+
 	/** Modèle Architecte (plan) — ex-modèle principal chat. */
 	ArchitectModel = 'drox.architect.model',
 
@@ -347,6 +350,26 @@ export const droxConfigurationNode: IConfigurationNode = {
 			markdownDescription: localize(
 				'drox.llmHeaders',
 				'Additional HTTP headers for the LLM server (e.g. `Authorization`, custom API keys). Set via the connection wizard.',
+			),
+		},
+
+		[DroxSetting.LlmConnections]: {
+			type: 'array',
+			default: [],
+			items: {
+				type: 'object',
+				properties: {
+					hosting: { type: 'string' },
+					provider: { type: 'string' },
+					server: { type: 'string' },
+					apiKey: { type: 'string' },
+					llmHeaders: { type: 'object', additionalProperties: { type: 'string' } },
+				},
+			},
+			scope: ConfigurationScope.MACHINE_OVERRIDABLE,
+			markdownDescription: localize(
+				'drox.llmConnections',
+				'Saved LLM connections from the connection wizard. The active connection stays in the server, provider, and API key settings.',
 			),
 		},
 

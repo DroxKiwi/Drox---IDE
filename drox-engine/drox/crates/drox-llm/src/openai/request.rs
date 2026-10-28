@@ -60,7 +60,40 @@ pub(crate) fn build_request<'a>(
 fn messages_to_openai(messages: &[Message]) -> Vec<OpenAiMessage> {
     // Qwen / Jinja templates (via LiteLLM): "System message must be at the beginning".
     // Same policy as Ollama — coalesce leading systems, rewrite mid-run nudges to user.
-    normalize_openai_system_order(messages.iter().map(message_to_openai).collect())
+    let normalized = normalize_openai_system_order(messages.iter().map(message_to_openai).collect());
+    // LiteLLM / vLLM : la liste ne peut pas finir par deux `assistant` d'affilée.
+    // Les nudges sont repliés dans le system, donc deux tours texte sans outil
+    // restent consécutifs. On les fusionne avant l'envoi.
+    coalesce_consecutive_assistants(normalized)
+}
+
+fn coalesce_consecutive_assistants(messages: Vec<OpenAiMessage>) -> Vec<OpenAiMessage> {
+    let mut out: Vec<OpenAiMessage> = Vec::with_capacity(messages.len());
+    for m in messages {
+        let can_merge = m.role == "assistant"
+            && out.last().is_some_and(|prev| prev.role == "assistant");
+        if can_merge {
+            let prev = out.last_mut().expect("checked");
+            let prev_text = openai_plain_text(&prev.content);
+            let next_text = openai_plain_text(&m.content);
+            let merged = match (prev_text.is_empty(), next_text.is_empty()) {
+                (true, _) => next_text,
+                (_, true) => prev_text,
+                _ => format!("{prev_text}\n{next_text}"),
+            };
+            prev.content = if merged.is_empty() && !prev.tool_calls.is_empty() && m.tool_calls.is_empty() {
+                None
+            } else if merged.is_empty() {
+                None
+            } else {
+                Some(Value::String(merged))
+            };
+            prev.tool_calls.extend(m.tool_calls);
+            continue;
+        }
+        out.push(m);
+    }
+    out
 }
 
 fn openai_plain_text(content: &Option<Value>) -> String {
@@ -385,5 +418,43 @@ mod tests {
             }),
             "no fake user System reminder"
         );
+    }
+
+    #[test]
+    fn consecutive_text_assistants_are_merged_for_litellm() {
+        let messages = vec![
+            Message::system("Tu es Drox."),
+            Message::user("Salut"),
+            Message::assistant("Premier accusé."),
+            Message::system("Continue avec un outil."),
+            Message::assistant("Premier accusé.\n"),
+        ];
+        let opts = ChatOptions::default();
+        let req = build_request(
+            "ornith",
+            &messages,
+            &opts,
+            None,
+            None,
+            None,
+            None,
+            0,
+            None,
+            None,
+            OpenAiCompatDialect::OpenAi,
+        );
+        let assistants: Vec<_> = req
+            .messages
+            .iter()
+            .filter(|m| m.role == "assistant")
+            .collect();
+        assert_eq!(assistants.len(), 1, "LiteLLM rejects two trailing assistants");
+        let text = assistants[0]
+            .content
+            .as_ref()
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        assert!(text.contains("Premier accusé."));
+        assert_eq!(req.messages.last().map(|m| m.role.as_str()), Some("assistant"));
     }
 }

@@ -30,7 +30,7 @@ Legacy markers `[phase: reasoning]` and `[phase: next-move]` are **ignored** by 
 
 Structural rules (enforced by the engine):
 
-1. **Only `[phase: done]` ends the loop.** The engine no longer treats "no tool call" as end-of-run. If you stop without `done`, you will be nudged until `max_iterations`.
+1. **Only `[phase: done]` ends the loop.** If you stop without `done`, you will be nudged until `max_iterations`.
 1bis. **Phases vs tools: TWO strictly separate channels.** Confusing them is the most costly mistake — it loops the engine.
 
    - **Phase markers** (`[phase: reading]`, `[phase: acting]`, `[phase: answering]`, `[phase: done]`, …) = **plain text** on their own line in assistant content. NEVER invent a tool `phase`, `phase:`, `set_phase`, and NEVER emit a `tool_call` with payload `{\"done\": \"\"}` to "signal done" — no such tool exists; the engine rejects it.

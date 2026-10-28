@@ -42,10 +42,10 @@ export const DROX_CONNECTION_TEST_EXTENDED_TIMEOUT_MS = 600_000;
 export async function testDroxLlmConnectionDraft(
 	deps: IDroxConnectionTestDeps,
 	draft: IDroxGeneralSettingsPatch,
-	opts?: { readonly timeoutMs?: number },
+	opts?: { readonly timeoutMs?: number; readonly listOnly?: boolean },
 ): Promise<IDroxConnectionTestResult> {
 	const wallMs = opts?.timeoutMs ?? DROX_CONNECTION_TEST_TIMEOUT_MS;
-	const raced = await raceTimeout(runConnectionTest(deps, draft, wallMs), wallMs);
+	const raced = await raceTimeout(runConnectionTest(deps, draft, wallMs, opts?.listOnly === true), wallMs);
 	if (raced === undefined) {
 		return {
 			ok: false,
@@ -63,6 +63,7 @@ async function runConnectionTest(
 	deps: IDroxConnectionTestDeps,
 	draft: IDroxGeneralSettingsPatch,
 	httpTimeoutMs: number,
+	listOnly = false,
 ): Promise<IDroxConnectionTestResult> {
 	const provider = parseLlmProvider(draft.llmProvider);
 	const server = String(draft.server ?? '').trim();
@@ -107,6 +108,13 @@ async function runConnectionTest(
 		return {
 			ok: false,
 			error: localize('drox.connection.test.noModels', 'Server reachable but no models returned.'),
+			listUrl: result.listUrl,
+		};
+	}
+	if (listOnly) {
+		return {
+			ok: true,
+			modelCount: result.models.length,
 			listUrl: result.listUrl,
 		};
 	}

@@ -15,6 +15,8 @@ export interface IDroxChatSessionService {
 
 	readonly onDidChangeRunId: Event<string | undefined>;
 
+	readonly onDidChangeRunningSessions: Event<void>;
+
 	getSessionId(): string | undefined;
 
 	getRunId(): string | undefined;
@@ -22,6 +24,15 @@ export interface IDroxChatSessionService {
 	setSessionId(id: string | undefined): void;
 
 	setRunId(id: string | undefined): void;
+
+	/** Un run moteur est en cours pour cette session (plusieurs sessions peuvent tourner). */
+	beginSessionRun(sessionId: string, runId: string): void;
+
+	endSessionRun(sessionId: string, runId: string): void;
+
+	isSessionRunActive(sessionId: string | undefined): boolean;
+
+	hasActiveRun(): boolean;
 
 	getPendingSessionReset(): boolean;
 

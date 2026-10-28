@@ -3455,6 +3455,11 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	word-break: break-word;
 }
 
+.general-settings-connect-btn.is-locked {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
 .general-settings-connect-btn {
 	margin-top: 2px;
 }
@@ -3607,6 +3612,55 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .drox-wizard-hosting-card:hover,
 .drox-wizard-provider-card:hover {
 	border-color: var(--drox-ui-green, var(--vscode-focusBorder));
+}
+
+.drox-wizard-saved-lead {
+	margin-top: 14px;
+}
+
+.drox-wizard-saved-list,
+.drox-wizard-saved-row {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.drox-wizard-saved-row {
+	flex-direction: row;
+	align-items: center;
+}
+
+.drox-wizard-saved-connection {
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid var(--vscode-widget-border);
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+	font-size: 11px;
+}
+
+.drox-wizard-saved-connection {
+	flex: 1;
+}
+
+.drox-wizard-saved-connection:disabled {
+	cursor: default;
+	opacity: 0.55;
+}
+
+.drox-wizard-saved-connection.drox-wizard-saved-active {
+	border-color: var(--drox-thread-green, var(--vscode-focusBorder));
+	opacity: 1;
+}
+
+.drox-wizard-saved-delete {
+	border: 0;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	padding: 4px 8px;
 }
 
 .drox-wizard-hosting-card.selected,

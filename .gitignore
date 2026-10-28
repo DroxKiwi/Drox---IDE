@@ -51,5 +51,8 @@ docs/exports/
 docs/retour_discussion/
 docs/feature-brainstorm/
 
+# Procédure release locale
+docs/release/
+
 # Artefacts release (binaires via GitHub Releases, pas git)
 _upload/

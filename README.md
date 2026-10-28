@@ -40,6 +40,16 @@ Jalons (git + releases). Détail par version : [`docs/1.5/`](docs/1.5/README.md)
 | **Sept. 2026** | **fin septembre** · **28 septembre** | **1.5.20** (Commit/Push chat, sidebar Changes, params LLM) · **MIT** + releases sur ce dépôt, docs engine publiques. |
 | **Oct. 2026** | **1.6.0** · **1.6.1** | **1.6.0** freeze moteur (anti-boucle, compaction, Explore/contrats) — pas ship qualité · **1.6.1** **stable** : profils `local-9b` / `local-27b` / `cloud-full`, sous-run Explore par défaut, polish IDE — tag **`v1.6.1`** sur `main`. |
 
+### Dogfood — 28 octobre 2026
+
+Analyse et explication d’un répertoire de code jeune et simple. Trois runs sans faute, un par profil moteur, via Ollama (le dernier sur Ollama Cloud).
+
+| Modèle | Mode |
+|--------|------|
+| `nemotron-3.5-bolt:e4b` | Small model (`local-9b`) |
+| `ornith1.5:35b` 8bit | Local capable (`local-27b`) |
+| `glm-5.3-flash` | Full protocol (`cloud-full`) |
+
 ---
 
 ## Pourquoi cet outil existe

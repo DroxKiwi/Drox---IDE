@@ -3,16 +3,22 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-/* Fenêtre Agents — thème rétro Drox (phosphore vert / brun, aligné sur Drox Chat TUI). */
+/* Fenêtre Agents — charte Drox (surfaces #1e1e1e, bordures #333, accent #888). */
 
 .monaco-workbench.agent-sessions-workbench,
-.agent-sessions-workbench {	--drox-ui-green: #888888;
-	--drox-thread-brown: #333333;
-	--drox-thread-brown-deep: #1e1e1e;
-	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green) 58%, var(--drox-thread-brown) 42%);
-	--drox-thread-green-bright: color-mix(in srgb, var(--drox-thread-green) 72%, #9aa88a 28%);
-	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 38%, var(--vscode-editor-background));
-	--drox-thread-fg-muted: color-mix(in srgb, var(--vscode-foreground) 52%, var(--drox-thread-brown) 48%);
+.agent-sessions-workbench {
+	--drox-charte-accent: #888888;
+	--drox-charte-surface: #1e1e1e;
+	--drox-charte-border: #333333;
+	--drox-charte-fg: #cccccc;
+	--drox-charte-fg-muted: #666666;
+	--drox-ui-green: var(--drox-charte-accent);
+	--drox-thread-brown: var(--drox-charte-border);
+	--drox-thread-brown-deep: var(--drox-charte-surface);
+	--drox-thread-green: var(--drox-charte-accent);
+	--drox-thread-green-bright: var(--drox-charte-fg);
+	--drox-thread-green-dim: color-mix(in srgb, var(--drox-charte-accent) 38%, var(--drox-charte-surface));
+	--drox-thread-fg-muted: var(--drox-charte-fg-muted);
 	--drox-agents-font: var(--vscode-font-family);
 	--drox-agents-chat-font: var(--vscode-editor-font-family, var(--vscode-font-family));
 
@@ -23,24 +29,50 @@
 	--vscode-cornerRadius-large: 0;
 	--vscode-cornerRadius-xLarge: 0;
 
-	/* Surfaces noires (accents verts sur bordures / focus uniquement) */
-	--drox-agents-surface: #000000;
-	--drox-agents-surface-raised: #0a0a0a;
-	--vscode-agents-background: #000000 !important;
-	--vscode-agentsPanel-background: #000000 !important;
-	--vscode-sideBar-background: #000000 !important;
-	--vscode-editor-background: #000000;
-	--vscode-agentsPanel-border: color-mix(in srgb, var(--drox-thread-green) 22%, #1a1a1a 78%) !important;
+	/* Surfaces charte (accents gris sur bordures / focus) */
+	--drox-agents-surface: var(--drox-charte-surface);
+	--drox-agents-surface-raised: color-mix(in srgb, #ffffff 4%, var(--drox-charte-surface));
+	--vscode-agents-background: var(--drox-charte-surface) !important;
+	--vscode-agentsPanel-background: var(--drox-charte-surface) !important;
+	--vscode-sideBar-background: var(--drox-charte-surface) !important;
+	--vscode-sideBar-foreground: var(--drox-charte-fg);
+	--vscode-sideBar-border: var(--drox-charte-border);
+	--vscode-auxiliaryBar-background: var(--drox-charte-surface) !important;
+	--vscode-auxiliaryBar-foreground: var(--drox-charte-fg);
+	--vscode-auxiliaryBar-border: var(--drox-charte-border);
+	--vscode-activityBar-background: var(--drox-charte-surface);
+	--vscode-activityBar-foreground: var(--drox-charte-fg-muted);
+	--vscode-activityBar-activeBorder: var(--drox-charte-accent);
+	--vscode-titleBar-activeBackground: var(--drox-charte-surface);
+	--vscode-titleBar-activeForeground: var(--drox-charte-fg);
+	--vscode-titleBar-inactiveBackground: var(--drox-charte-surface);
+	--vscode-titleBar-border: var(--drox-charte-border);
+	--vscode-statusBar-background: var(--drox-charte-surface);
+	--vscode-statusBar-foreground: var(--drox-charte-fg-muted);
+	--vscode-statusBar-border: var(--drox-charte-border);
+	--vscode-panel-background: var(--drox-charte-surface) !important;
+	--vscode-panel-border: var(--drox-charte-border);
+	--vscode-editorGroupHeader-tabsBackground: var(--drox-charte-surface);
+	--vscode-editorGroup-border: var(--drox-charte-border);
+	--vscode-input-background: var(--drox-charte-surface);
+	--vscode-input-foreground: var(--drox-charte-fg);
+	--vscode-input-border: var(--drox-charte-border);
+	--vscode-dropdown-background: var(--drox-charte-surface);
+	--vscode-dropdown-border: var(--drox-charte-border);
+	--vscode-descriptionForeground: var(--drox-charte-fg-muted);
+	--vscode-foreground: var(--drox-charte-fg);
+	--vscode-editor-background: var(--drox-charte-surface);
+	--vscode-agentsPanel-border: var(--drox-charte-border) !important;
 
 	/* Remplace les bleus Copilot / VS Code Agents */
 	--vscode-textLink-foreground: var(--drox-thread-green-bright);
 	--vscode-textLink-activeForeground: var(--drox-thread-green);
-	--vscode-button-background: color-mix(in srgb, #3d5a3d 88%, var(--drox-thread-brown) 12%);
-	--vscode-button-hoverBackground: color-mix(in srgb, #4a6b4a 90%, var(--drox-thread-brown) 10%);
-	--vscode-button-foreground: color-mix(in srgb, #e8efe0 92%, var(--drox-thread-brown) 8%);
+	--vscode-button-background: color-mix(in srgb, var(--drox-charte-accent) 24%, var(--drox-charte-surface) 76%);
+	--vscode-button-hoverBackground: color-mix(in srgb, var(--drox-charte-accent) 34%, var(--drox-charte-surface) 66%);
+	--vscode-button-foreground: var(--drox-charte-fg);
 	--vscode-focusBorder: color-mix(in srgb, var(--drox-thread-green) 55%, transparent) !important;
 	--vscode-list-activeSelectionBackground: color-mix(in srgb, var(--drox-thread-green) 16%, var(--drox-agents-surface) 84%);
-	--vscode-list-activeSelectionForeground: color-mix(in srgb, #e8efe0 90%, var(--drox-agents-surface) 10%);
+	--vscode-list-activeSelectionForeground: var(--drox-charte-fg);
 	--vscode-list-focusBackground: color-mix(in srgb, var(--drox-thread-green) 10%, var(--drox-agents-surface) 90%);
 	--vscode-list-hoverBackground: color-mix(in srgb, #ffffff 6%, transparent);
 	--vscode-menu-selectionBackground: color-mix(in srgb, var(--drox-thread-green) 20%, var(--drox-agents-surface) 80%);
@@ -50,19 +82,19 @@
 	--vscode-agentsGradient-tintColor: var(--drox-thread-green);
 	--vscode-agentsChatInput-border: color-mix(in srgb, var(--drox-thread-green) 42%, var(--drox-thread-brown-deep) 58%) !important;
 	--vscode-agentsChatInput-focusBorder: color-mix(in srgb, var(--drox-thread-green) 70%, transparent) !important;
-	--vscode-agentsBadge-background: color-mix(in srgb, #4a6b4a 90%, var(--drox-thread-brown-deep) 10%);
-	--vscode-agentsBadge-foreground: #e8efe0;
+	--vscode-agentsBadge-background: color-mix(in srgb, var(--drox-charte-accent) 28%, var(--drox-charte-surface) 72%);
+	--vscode-agentsBadge-foreground: var(--drox-charte-fg);
 	--vscode-agentsNewSessionButton-foreground: var(--drox-thread-green-bright);
 	--vscode-agentsNewSessionButton-border: color-mix(in srgb, var(--drox-thread-green) 38%, var(--drox-thread-brown-deep) 62%);
 	--vscode-agentsNewSessionButton-hoverBackground: color-mix(in srgb, var(--drox-thread-green) 12%, var(--drox-thread-brown-deep) 88%);
 	--vscode-agentsUnreadBadge-background: color-mix(in srgb, var(--drox-thread-green) 72%, var(--drox-thread-brown-deep) 28%);
-	--vscode-agentsUnreadBadge-foreground: #e8efe0;
+	--vscode-agentsUnreadBadge-foreground: var(--drox-charte-fg);
 	--vscode-chat-requestBubbleBackground: color-mix(in srgb, #ffffff 8%, var(--drox-agents-surface) 92%);
 	--vscode-chat-requestBubbleHoverBackground: color-mix(in srgb, #ffffff 12%, var(--drox-agents-surface) 88%);
 	--vscode-chat-inputWorkingBorderColor1: var(--drox-thread-green) !important;
 	--vscode-chat-inputWorkingBorderColor2: color-mix(in srgb, var(--drox-thread-green) 65%, var(--drox-thread-brown-deep)) !important;
-	--vscode-chat-inputWorkingBorderColor3: color-mix(in srgb, var(--drox-thread-green) 45%, #9aa88a) !important;
-	--vscode-chat-thinkingShimmer: #9aa88a;
+	--vscode-chat-inputWorkingBorderColor3: color-mix(in srgb, var(--drox-charte-accent) 55%, var(--drox-charte-surface)) !important;
+	--vscode-chat-thinkingShimmer: var(--drox-charte-accent);
 	--vscode-chat-slashCommandForeground: var(--drox-thread-green-bright);
 	--vscode-chat-slashCommandBackground: color-mix(in srgb, var(--drox-thread-green-dim) 55%, transparent);
 	--vscode-drox-agentsStatusAccent: var(--drox-thread-green-bright);
@@ -73,31 +105,31 @@
 /* Pas de dégradé cuivré / teinté sur le shell — fond noir uniforme */
 .monaco-workbench.agent-sessions-workbench.shell-gradient-background::before,
 .agent-sessions-workbench.shell-gradient-background::before {
-	background: #000000 !important;
+	background: var(--drox-charte-surface) !important;
 }
 
 @supports (background: color-mix(in srgb, black 0%, white)) {
 	.monaco-workbench.vs.agent-sessions-workbench.shell-gradient-background::before,
 	.monaco-workbench.vs-dark.agent-sessions-workbench.shell-gradient-background::before {
-		background: #000000 !important;
+		background: var(--drox-charte-surface) !important;
 	}
 }
 
-/* Panneaux / cartes — noir (évite le cuivre du shell entre les marges) */
+/* Panneaux / cartes — surface charte */
 .agent-sessions-workbench .part.sessionspart,
 .agent-sessions-workbench .part.auxiliarybar,
 .agent-sessions-workbench .part.panel,
 .agent-sessions-workbench .part.sessionspart > .content,
 .agent-sessions-workbench .part.auxiliarybar > .content,
 .agent-sessions-workbench .part.panel > .content {
-	--part-background: #000000 !important;
-	background-color: #000000 !important;
+	--part-background: var(--drox-charte-surface) !important;
+	background-color: var(--drox-charte-surface) !important;
 }
 
 .agent-sessions-workbench > .monaco-grid-view,
 .agent-sessions-workbench .part.sidebar,
 .agent-sessions-workbench .part.sidebar > .content {
-	background-color: #000000 !important;
+	background-color: var(--drox-charte-surface) !important;
 }
 
 /* ---- Typographie IDE ---- */
@@ -207,7 +239,7 @@
 	width: 3px;
 	height: 3px;
 	border-radius: 0.5px;
-	background: color-mix(in srgb, var(--drox-thread-green) 55%, var(--drox-thread-brown) 45%);
+	background: color-mix(in srgb, var(--drox-charte-accent) 72%, var(--drox-charte-border) 28%);
 	animation: drox-agents-grid-pulse 1.35s ease-in-out infinite;
 }
 
@@ -325,7 +357,7 @@
 .agent-sessions-workbench .interactive-session .chat-input-container {
 	--chat-input-working-border-color1: var(--drox-thread-green);
 	--chat-input-working-border-color2: color-mix(in srgb, var(--drox-thread-green) 65%, var(--drox-thread-brown-deep));
-	--chat-input-working-border-color3: color-mix(in srgb, var(--drox-thread-green) 45%, #9aa88a);
+	--chat-input-working-border-color3: color-mix(in srgb, var(--drox-charte-accent) 55%, var(--drox-charte-surface));
 }
 
 .agent-sessions-workbench .interactive-session .chat-input-container.working::before {
@@ -446,7 +478,7 @@
 }
 
 .chat-setup-dialog.sessions-drox-welcome-dialog .monaco-button {
-	background: color-mix(in srgb, #3d5a3d 92%, var(--drox-thread-brown) 8%) !important;
+	background: color-mix(in srgb, var(--drox-charte-accent) 26%, var(--drox-charte-surface) 74%) !important;
 	border-radius: 0;
 	font-family: var(--drox-agents-font);
 }
@@ -510,6 +542,97 @@
 	background-color: color-mix(in srgb, var(--drox-thread-green) 20%, var(--drox-thread-brown-deep) 80%) !important;
 	outline: 1px solid color-mix(in srgb, var(--drox-thread-green) 35%, transparent);
 	outline-offset: -1px;
+}
+
+/* Surfaces encore sur le thème VS Code (barre de titre, Changes, Files, SCM) */
+.agent-sessions-workbench .part.titlebar,
+.agent-sessions-workbench .part.statusbar,
+.agent-sessions-workbench .part.activitybar,
+.agent-sessions-workbench .part.editor,
+.agent-sessions-workbench .editor-group-container,
+.agent-sessions-workbench .part.auxiliarybar .composite,
+.agent-sessions-workbench .part.auxiliarybar .pane-body,
+.agent-sessions-workbench .part.auxiliarybar .monaco-list,
+.agent-sessions-workbench .part.auxiliarybar .monaco-tl-row,
+.agent-sessions-workbench .part.sidebar .pane-body,
+.agent-sessions-workbench .part.panel .pane-body {
+	background-color: var(--drox-charte-surface) !important;
+}
+
+.agent-sessions-workbench .part.auxiliarybar,
+.agent-sessions-workbench .part.sidebar,
+.agent-sessions-workbench .part.panel,
+.agent-sessions-workbench .part.titlebar,
+.agent-sessions-workbench .part.statusbar {
+	border-color: var(--drox-charte-border) !important;
+}
+
+.agent-sessions-workbench .pane-header,
+.agent-sessions-workbench .composite-bar-container,
+.agent-sessions-workbench .auxiliarybar .monaco-action-bar .action-label {
+	color: var(--drox-charte-fg);
+}
+
+.agent-sessions-workbench .pane-header .title,
+.agent-sessions-workbench .composite.title .label-name {
+	color: var(--drox-charte-fg-muted);
+}
+
+.agent-sessions-workbench .interactive-session .chat-editing-session .chat-editing-session-container {
+	background-color: var(--drox-charte-surface) !important;
+	border: 1px solid var(--drox-charte-border) !important;
+	border-bottom: none !important;
+	border-radius: 0 !important;
+}
+
+.agent-sessions-workbench .interactive-item-container.interactive-request .value .rendered-markdown {
+	background-color: color-mix(in srgb, #ffffff 6%, var(--drox-charte-surface) 94%);
+	color: var(--drox-charte-fg);
+}
+
+/* Fil, sélection et composer : même surface que le reste de la fenêtre. */
+.agent-sessions-workbench .part.editor,
+.agent-sessions-workbench .editor-group-container,
+.agent-sessions-workbench .editor-group-container > .editor-group-container-toolbar,
+.agent-sessions-workbench .chat-viewpane,
+.agent-sessions-workbench .interactive-session,
+.agent-sessions-workbench .chat-welcome-view,
+.agent-sessions-workbench .interactive-list,
+.agent-sessions-workbench .monaco-list .monaco-scrollable-element,
+.agent-sessions-workbench .part.auxiliarybar > .title,
+.agent-sessions-workbench .part.auxiliarybar > .header-or-footer,
+.agent-sessions-workbench .part.sidebar > .title,
+.agent-sessions-workbench .ai-customization-toolbar {
+	background-color: var(--drox-charte-surface) !important;
+}
+
+.agent-sessions-workbench .agent-sessions-viewer .monaco-list-row.selected,
+.agent-sessions-workbench .agent-sessions-viewer .monaco-list-row.focused,
+.agent-sessions-workbench .agent-sessions-viewer .monaco-list:focus .monaco-list-row.selected,
+.agent-sessions-workbench .part.sidebar .monaco-list-row.selected,
+.agent-sessions-workbench .part.auxiliarybar .monaco-list-row.selected,
+.agent-sessions-workbench .part.auxiliarybar .monaco-list:focus .monaco-list-row.selected {
+	background-color: color-mix(in srgb, var(--drox-charte-accent) 22%, var(--drox-charte-surface) 78%) !important;
+	color: var(--drox-charte-fg) !important;
+}
+
+.agent-sessions-workbench .agent-sessions-viewer .monaco-list-row:hover:not(.selected),
+.agent-sessions-workbench .part.sidebar .monaco-list-row:hover:not(.selected),
+.agent-sessions-workbench .part.auxiliarybar .monaco-list-row:hover:not(.selected) {
+	background-color: color-mix(in srgb, #ffffff 6%, var(--drox-charte-surface) 94%) !important;
+}
+
+.agent-sessions-workbench .interactive-session .chat-input-container,
+.agent-sessions-workbench .new-chat-input-area,
+.agent-sessions-workbench .new-chat-input-container .chat-input-container {
+	background-color: var(--drox-charte-surface) !important;
+	border-color: var(--drox-charte-border) !important;
+}
+
+.agent-sessions-workbench .part.auxiliarybar > .content .monaco-editor,
+.agent-sessions-workbench .part.auxiliarybar > .content .monaco-editor .margin,
+.agent-sessions-workbench .part.auxiliarybar > .content .monaco-editor .monaco-editor-background {
+	background-color: var(--drox-charte-surface) !important;
 }
 
 /* Empty chat: Drox disables chat.viewSessions — do not blank the welcome chrome. */

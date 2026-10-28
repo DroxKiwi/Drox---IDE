@@ -19,7 +19,7 @@ fn subagents_explore_supplement_is_kickoff_scoped() {
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Plan"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Assign"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Merge"));
-    assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Default to Explore at step kickoff"));
+    assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Prefer Explore at step kickoff"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Do **not** fan out Explore before the plan"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("Needle"));
     assert!(SUBAGENTS_EXPLORE_SUPPLEMENT.contains("2–4"));

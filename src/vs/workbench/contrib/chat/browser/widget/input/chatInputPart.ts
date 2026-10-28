@@ -1585,7 +1585,8 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		logChangesToStateModel(this._inputModel, `setCurrentLanguageModel to ${model.identifier} in ${this._currentSessionKey}, storageKey=${selectedModelStorageKey}, isDefaultKey=${selectedModelIsDefaultStorageKey}, currentSessionType=${this._currentSessionType}, getCurrentSessionType=${this.getCurrentSessionType()}, boundInputModelSession=${this._inputModelSessionResource?.toString()}, modelDetials = ${modelDetails}`, undefined, undefined, this.logService);
 		this._currentLanguageModel.set(model, undefined);
 
-		if (this._usesDroxNativeComposer() && isDroxAgentsChatSessionType(this.getCurrentSessionType()) && isUserAction) {
+		if (this._usesDroxNativeComposer() && isDroxAgentsChatSessionType(this.getCurrentSessionType())) {
+			// Persist picker → drox.architect.model on automatic resets too (provider / catalog change).
 			syncDroxArchitectModelFromChatPicker(this.configurationService, this.workspaceContextService, model.identifier);
 		}
 

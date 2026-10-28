@@ -38,6 +38,7 @@ export const DROX_CHAT_SCRIPT_FILES = [
 	'droxChat/settings/general-settings/state.js',
 	'droxChat/settings/general-settings/chat-issues.js',
 	'droxChat/settings/general-settings/connection-catalog.js',
+	'droxChat/settings/general-settings/saved-connections.js',
 	'droxChat/settings/general-settings/connection-wizard.js',
 	'droxChat/settings/general-settings/helpers.js',
 	'droxChat/settings/general-settings/panel.js',

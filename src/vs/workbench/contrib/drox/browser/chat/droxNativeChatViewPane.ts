@@ -12,7 +12,7 @@ import * as dom from '../../../../../base/browser/dom.js';
 import { CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { raceTimeout } from '../../../../../base/common/async.js';
 import { MarshalledId } from '../../../../../base/common/marshallingIds.js';
-import { MutableDisposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
+import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { IContextMenuService } from '../../../../../platform/contextview/browser/contextView.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
@@ -96,7 +96,8 @@ export class DroxNativeChatViewPane extends ViewPane {
 
 	private _widget: ChatWidget | undefined;
 	private _scopedContextKeyService: IContextKeyService | undefined;
-	private readonly _modelRef = this._register(new MutableDisposable<IChatModelReference>());
+	/** Une ref par onglet : changer d'onglet ne dispose pas le run en arrière-plan. */
+	private readonly _sessionRefs = new Map<string, IChatModelReference>();
 	private readonly _sessionStore: DroxNativeChatSessionStore;
 	private readonly _layoutStore: DroxChatLayoutStore;
 	private readonly _ideTabsStore: DroxIdeNativeChatTabsStore;
@@ -204,12 +205,19 @@ export class DroxNativeChatViewPane extends ViewPane {
 				void this._openStartupSession();
 			}
 		}));
+		this._register(this.chatSessionService.onDidChangeRunningSessions(() => {
+			this._renderIdeTabs();
+		}));
 
 		void this._openStartupSession();
 	}
 
 	override dispose(): void {
 		document.body.classList.remove('drox-ide-native-chat-active');
+		for (const ref of this._sessionRefs.values()) {
+			ref.dispose();
+		}
+		this._sessionRefs.clear();
 		super.dispose();
 	}
 
@@ -235,10 +243,6 @@ export class DroxNativeChatViewPane extends ViewPane {
 	}
 
 	async pickSession(): Promise<void> {
-		if (this.chatSessionService.getRunId()) {
-			this.notificationService.warn(localize('drox.nativeChat.busy', 'Stop the current run before switching sessions.'));
-			return;
-		}
 		await this._refreshSessionList();
 		if (this._sessionEntries.length === 0) {
 			this.notificationService.info(localize('drox.nativeChat.noSessions', 'No saved sessions in this workspace yet.'));
@@ -330,9 +334,6 @@ export class DroxNativeChatViewPane extends ViewPane {
 	}
 
 	async startNewChat(): Promise<void> {
-		if (this._warnIfRunBusy()) {
-			return;
-		}
 		if (this._ideTabs.length >= DROX_IDE_NATIVE_CHAT_TAB_LIMIT) {
 			this.notificationService.warn(localize('drox.ideNativeChat.tab.limit', 'Close a chat tab before opening another (limit {0}).', DROX_IDE_NATIVE_CHAT_TAB_LIMIT));
 			return;
@@ -474,7 +475,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 				// Keep blank without writing MRU until a folder is known.
 				return;
 			}
-			if (!this._modelRef.value) {
+			if (!this._activeSessionRef()) {
 				this.notificationService.warn(localize(
 					'drox.nativeChat.loadTimeout',
 					'Timed out loading the chat session. Try New Chat or reopen the panel.',
@@ -544,7 +545,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 			this._sessionStore.setActiveSessionId(blankId);
 			markDroxEngineSessionOpened(this.storageService, ws, blankId);
 			this._persistNativeLayout(blankId);
-		} else if (!blankOk && !this._modelRef.value) {
+		} else if (!blankOk && !this._activeSessionRef()) {
 			this.notificationService.warn(localize(
 				'drox.nativeChat.loadTimeout',
 				'Timed out loading the chat session. Try New Chat or reopen the panel.',
@@ -611,27 +612,37 @@ export class DroxNativeChatViewPane extends ViewPane {
 		});
 	}
 
-	private _warnIfRunBusy(): boolean {
-		if (!this.chatSessionService.getRunId()) {
-			return false;
+	private _activeSessionRef(): IChatModelReference | undefined {
+		return this._engineSessionId ? this._sessionRefs.get(this._engineSessionId) : undefined;
+	}
+
+	private _holdSessionRef(sessionId: string, ref: IChatModelReference): void {
+		const previous = this._sessionRefs.get(sessionId);
+		if (previous && previous !== ref) {
+			previous.dispose();
 		}
-		this.notificationService.warn(localize('drox.nativeChat.busy', 'Stop the current run before switching sessions.'));
-		return true;
+		this._sessionRefs.set(sessionId, ref);
+	}
+
+	private _releaseSessionRef(sessionId: string): void {
+		const ref = this._sessionRefs.get(sessionId);
+		if (!ref) {
+			return;
+		}
+		this._sessionRefs.delete(sessionId);
+		ref.dispose();
 	}
 
 	private async _selectIdeTab(sessionId: string): Promise<void> {
 		if (sessionId === this._engineSessionId) {
 			return;
 		}
-		if (this._warnIfRunBusy()) {
-			return;
-		}
 		await this._openDroxSession(sessionId);
 	}
 
 	private async _closeIdeTab(sessionId: string): Promise<void> {
-		if (this.chatSessionService.getRunId() && sessionId === this._engineSessionId) {
-			this._warnIfRunBusy();
+		if (this.chatSessionService.isSessionRunActive(sessionId)) {
+			this.notificationService.warn(localize('drox.nativeChat.busy.close', 'Stop the run in this chat before closing it.'));
 			return;
 		}
 		const closed = closeIdeNativeChatTab(this._ideTabs, sessionId);
@@ -639,8 +650,10 @@ export class DroxNativeChatViewPane extends ViewPane {
 		this._persistIdeTabs();
 		this._renderIdeTabs();
 		if (sessionId !== this._engineSessionId) {
+			this._releaseSessionRef(sessionId);
 			return;
 		}
+		this._releaseSessionRef(sessionId);
 		if (closed.nextSessionId) {
 			await this._openDroxSession(closed.nextSessionId);
 			return;
@@ -678,7 +691,8 @@ export class DroxNativeChatViewPane extends ViewPane {
 	}
 
 	private _renderIdeTabs(): void {
-		this._tabStrip?.render(this._ideTabs, this._engineSessionId);
+		const running = new Set(this._ideTabs.filter(tab => this.chatSessionService.isSessionRunActive(tab.sessionId)).map(tab => tab.sessionId));
+		this._tabStrip?.render(this._ideTabs, this._engineSessionId, running);
 	}
 
 	private _applyIdeTabTitles(): void {
@@ -730,9 +744,26 @@ export class DroxNativeChatViewPane extends ViewPane {
 		if (!this._widget) {
 			return false;
 		}
-		if (this.chatSessionService.getRunId()) {
-			this.notificationService.warn(localize('drox.nativeChat.busy', 'Stop the current run before switching sessions.'));
-			return false;
+		const alreadyHeld = this._sessionRefs.get(engineSessionId);
+		if (alreadyHeld) {
+			this._engineSessionId = engineSessionId;
+			if (opts?.trackTab !== false) {
+				this._ensureIdeTab(engineSessionId);
+			}
+			this._persistIdeTabs();
+			this._renderIdeTabs();
+			this.chatSessionService.setSessionId(engineSessionId);
+			if (opts?.markOpened !== false) {
+				this._sessionStore.setActiveSessionId(engineSessionId);
+				const ws = this._workspacePath();
+				if (ws) {
+					markDroxEngineSessionOpened(this.storageService, ws, engineSessionId);
+				}
+				this._persistNativeLayout(engineSessionId);
+			}
+			this._widget.setModel(alreadyHeld.object);
+			this._bindDroxNativeSession(alreadyHeld.object);
+			return true;
 		}
 		if (opts?.trackTab !== false && !this._ideTabs.some(tab => tab.sessionId === engineSessionId)) {
 			if (!this._ensureIdeTab(engineSessionId)) {
@@ -800,7 +831,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 						showTimeoutToast,
 					});
 				}
-				if (showTimeoutToast && !this._modelRef.value) {
+				if (showTimeoutToast && !this._activeSessionRef()) {
 					this.notificationService.warn(localize(
 						'drox.nativeChat.loadTimeout',
 						'Timed out loading the chat session. Try New Chat or reopen the panel.',
@@ -823,7 +854,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 				this._persistNativeLayout(engineSessionId);
 			}
 			this.chatSessionService.setSessionId(engineSessionId);
-			this._modelRef.value = ref;
+			this._holdSessionRef(engineSessionId, ref);
 			finalizeDroxNativeChatHistoryModel(ref.object);
 			this._widget.setModel(ref.object);
 			this._bindDroxNativeSession(ref.object);
@@ -842,7 +873,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 					showTimeoutToast,
 				});
 			}
-			return !!this._modelRef.value;
+			return !!this._activeSessionRef();
 		}
 	}
 
