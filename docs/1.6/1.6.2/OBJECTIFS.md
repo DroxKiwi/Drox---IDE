@@ -5,7 +5,9 @@
 
 ---
 
-## O1 — Onglets de discussion (chat natif IDE)
+## O1 — Onglets de discussion (chat natif IDE) — **clos**
+
+**Statut** : clos. Bandeau dans le panneau natif IDE uniquement (`droxIdeNativeChatTabStrip`). Le `+` du header ouvre un onglet. Persistance propre (`drox.ideNativeChat.tabs`), pas le layout partagé avec Agents. Plafond 10. Dogfood validé.
 
 ### Contexte
 
@@ -91,9 +93,11 @@ Repro utilisateur : il faut **rouvrir la liste** et **re-cliquer** le modèle d�
 
 ---
 
-## O4 — Fin de run : conclusions répétées (cloud-full / GLM)
+## O4 — Fin de run : conclusions répétées — **clos**
 
-### Symptôme
+**Statut** : clos. Profil **local** (`local-9b` / `local-27b`) : une seule conclusion visible. Dogfood local capable validé. Le moteur ne réémet plus un bilan déjà streamé, et le prompt local n’exige plus de le réécrire après `[phase: answering]`.
+
+### Symptôme (historique)
 
 Sur profil **Full protocol — 1.6.0** (`cloud-full`), avec **GLM-5.3-flash** (Ollama Cloud observé) : en clôture, le modèle affiche **5–6 fois** le même récapitulatif utilisateur. Entre les blocs, le chat natif peut montrer **« Finished with 1 step »** (tours thinking / raisonnement), signe de **plusieurs tours LLM** de fin de run, pas d’un simple bug d’affichage markdown.
 
@@ -191,6 +195,23 @@ Enregistrer **plusieurs** connexions déjà établies (URL, type d’hébergemen
 2. **Changer de connexion** démarre à l’étape 1, pas à l’étape finale.
 3. La liste affiche les connexions déjà établies ; la connexion active reste identifiable.
 4. Une nouvelle connexion (saisie + test) s’ajoute à la liste.
+
+---
+
+## O8 — Style graphique du mode Agents
+
+### Contexte
+
+Le mode **Agents** (fenêtre / panneau Agents : liste de sessions, composer, panneaux latéraux) n’est pas homogène. Les surfaces ne partagent pas les mêmes traitements (chrome, barres, composer, listes).
+
+### Objectif
+
+Revoir l’implémentation du style pour un rendu cohérent sur tout le mode Agents, aligné sur la charte. Pas un nouveau thème : unifier ce qui existe.
+
+### Critères d’acceptation
+
+1. Liste de sessions, composer et panneaux du mode Agents partagent les mêmes couleurs, rayons, bordures et typo.
+2. Pas de régression du chat natif IDE (hors de ce lot, sauf token partagé évident).
 
 ---
 

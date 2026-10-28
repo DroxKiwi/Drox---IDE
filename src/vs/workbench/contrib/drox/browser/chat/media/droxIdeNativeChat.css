@@ -407,3 +407,63 @@
 .drox-ide-native-chat-active .drox-discussion-shell .chat-welcome-view-tips {
 	display: none !important;
 }
+
+.drox-ide-native-chat > .drox-ide-native-chat-tabs {
+	display: flex;
+	align-items: stretch;
+	gap: 4px;
+	flex-shrink: 0;
+	min-height: 28px;
+	padding: 4px 6px 0;
+	border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+
+.drox-ide-native-chat-tabs-list {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	gap: 2px;
+	overflow-x: auto;
+}
+
+.drox-ide-native-chat-tab {
+	display: flex;
+	align-items: center;
+	max-width: 180px;
+	min-width: 0;
+	border-bottom: 2px solid transparent;
+	opacity: 0.55;
+}
+
+.drox-ide-native-chat-tab.active {
+	opacity: 1;
+	border-bottom-color: var(--drox-thread-green, var(--vscode-focusBorder));
+}
+
+.drox-ide-native-chat-tab-label,
+.drox-ide-native-chat-tab-close {
+	border: 0;
+	background: transparent;
+	color: var(--vscode-foreground);
+	font: inherit;
+	cursor: pointer;
+}
+
+.drox-ide-native-chat-tab-label {
+	flex: 1;
+	min-width: 0;
+	padding: 4px 2px 4px 8px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-align: left;
+}
+
+.drox-ide-native-chat-tab-close {
+	padding: 2px 6px;
+	opacity: 0.75;
+}
+
+.drox-ide-native-chat-tab-close:hover {
+	opacity: 1;
+}

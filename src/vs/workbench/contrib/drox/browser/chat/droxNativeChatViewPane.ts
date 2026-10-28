@@ -50,6 +50,17 @@ import { IDroxChatSessionService } from '../../common/droxChatSessionService.js'
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { DroxChatLayoutStore, DROX_CHAT_LAYOUT_VERSION } from '../droxChatLayoutStore.js';
 import { newSessionId } from '../droxChatTabs.js';
+import { DroxIdeNativeChatTabStrip } from './droxIdeNativeChatTabStrip.js';
+import {
+	applyIdeNativeChatTabTitles,
+	closeIdeNativeChatTab,
+	defaultIdeNativeChatTabTitle,
+	DROX_IDE_NATIVE_CHAT_TAB_LIMIT,
+	DroxIdeNativeChatTabsStore,
+	ensureIdeNativeChatTab,
+	IDroxIdeNativeChatTab,
+} from './droxIdeNativeChatTabs.js';
+import { deriveSessionTabTitle } from '../../common/droxUserPromptSticky.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { IQuickInputService } from '../../../../../platform/quickinput/common/quickInput.js';
@@ -88,6 +99,11 @@ export class DroxNativeChatViewPane extends ViewPane {
 	private readonly _modelRef = this._register(new MutableDisposable<IChatModelReference>());
 	private readonly _sessionStore: DroxNativeChatSessionStore;
 	private readonly _layoutStore: DroxChatLayoutStore;
+	private readonly _ideTabsStore: DroxIdeNativeChatTabsStore;
+	private _ideTabs: readonly IDroxIdeNativeChatTab[] = [];
+	private _restoredIdeTabId: string | undefined;
+	private _startupBlankId: string | undefined;
+	private _tabStrip: DroxIdeNativeChatTabStrip | undefined;
 	private _engineSessionId: string | undefined;
 
 	/** Active engine session id (`ses_*`) for the native chat pane, if any. */
@@ -125,6 +141,10 @@ export class DroxNativeChatViewPane extends ViewPane {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 		this._sessionStore = instantiationService.createInstance(DroxNativeChatSessionStore);
 		this._layoutStore = new DroxChatLayoutStore(this.storageService);
+		this._ideTabsStore = new DroxIdeNativeChatTabsStore(this.storageService);
+		const restored = this._ideTabsStore.load();
+		this._ideTabs = restored.tabs;
+		this._restoredIdeTabId = restored.activeSessionId;
 	}
 
 	protected override renderBody(container: HTMLElement): void {
@@ -132,6 +152,12 @@ export class DroxNativeChatViewPane extends ViewPane {
 
 		container.classList.add('drox-ide-native-chat');
 		document.body.classList.add('drox-ide-native-chat-active');
+
+		this._tabStrip = this._register(new DroxIdeNativeChatTabStrip(container, {
+			onSelect: sessionId => { void this._selectIdeTab(sessionId); },
+			onClose: sessionId => { void this._closeIdeTab(sessionId); },
+		}));
+		this._renderIdeTabs();
 
 		this._scopedContextKeyService = this._register(this.contextKeyService.createScoped(container));
 		const scopedInstantiationService = this._register(this.instantiationService.createChild(
@@ -189,7 +215,8 @@ export class DroxNativeChatViewPane extends ViewPane {
 
 	protected override layoutBody(height: number, width: number): void {
 		super.layoutBody(height, width);
-		this._widget?.layout(height, width);
+		const stripHeight = this._tabStrip?.height ?? 0;
+		this._widget?.layout(Math.max(0, height - stripHeight), width);
 	}
 
 	override focus(): void {
@@ -285,6 +312,10 @@ export class DroxNativeChatViewPane extends ViewPane {
 		removeSessionsFromDroxIdeHistoryGroups(this.storageService, unique);
 		await this._refreshSessionList();
 
+		this._ideTabs = this._ideTabs.filter(tab => !unique.includes(tab.sessionId));
+		this._persistIdeTabs();
+		this._renderIdeTabs();
+
 		if (this._engineSessionId && unique.includes(this._engineSessionId)) {
 			await this._openDroxSession(newSessionId());
 		}
@@ -299,8 +330,11 @@ export class DroxNativeChatViewPane extends ViewPane {
 	}
 
 	async startNewChat(): Promise<void> {
-		if (this.chatSessionService.getRunId()) {
-			this.notificationService.warn(localize('drox.nativeChat.busy', 'Stop the current run before starting a new chat.'));
+		if (this._warnIfRunBusy()) {
+			return;
+		}
+		if (this._ideTabs.length >= DROX_IDE_NATIVE_CHAT_TAB_LIMIT) {
+			this.notificationService.warn(localize('drox.ideNativeChat.tab.limit', 'Close a chat tab before opening another (limit {0}).', DROX_IDE_NATIVE_CHAT_TAB_LIMIT));
 			return;
 		}
 		await this._openDroxSession(newSessionId());
@@ -335,6 +369,8 @@ export class DroxNativeChatViewPane extends ViewPane {
 		try {
 			await this.sessionService.resetWorkspace(ws);
 			clearDroxEngineSessionRecency(this.storageService, ws);
+			this._ideTabs = [];
+			this._ideTabsStore.clear();
 			await this._openDroxSession(newSessionId());
 			await this._refreshSessionList();
 			this.notificationService.info(localize(
@@ -410,11 +446,13 @@ export class DroxNativeChatViewPane extends ViewPane {
 		// Empty-first: attach a blank session immediately so the composer is usable
 		// before workspace / session.list / handoff work finishes.
 		const blankId = newSessionId();
+		this._startupBlankId = blankId;
 		this.logService.info(`[Drox IDE native chat] empty-first blank=${blankId} (+0ms)`);
 		const blankOk = await this._openDroxSession(blankId, {
 			markOpened: false,
 			allowBlankFallback: false,
 			showTimeoutToast: false,
+			trackTab: this._ideTabs.length === 0,
 		});
 
 		void this._resolveAndHydratePreferred(blankId, blankOk, t0);
@@ -451,6 +489,9 @@ export class DroxNativeChatViewPane extends ViewPane {
 				`[Drox IDE native chat] handoff sessionId=${handoffSessionId} (+${Date.now() - t0}ms)`,
 			);
 			preferredId = handoffSessionId;
+			void this._refreshSessionList();
+		} else if (this._restoredIdeTabId && this._ideTabs.some(tab => tab.sessionId === this._restoredIdeTabId)) {
+			preferredId = this._restoredIdeTabId;
 			void this._refreshSessionList();
 		} else {
 			try {
@@ -526,6 +567,9 @@ export class DroxNativeChatViewPane extends ViewPane {
 			allowBlankFallback: false,
 			showTimeoutToast: false,
 		});
+		if (ok && this._startupBlankId && this._startupBlankId !== sessionId) {
+			this._forgetIdeTab(this._startupBlankId);
+		}
 		if (!ok) {
 			this.logService.warn(
 				`[Drox IDE native chat] preferred hydrate failed; keeping blank (+${Date.now() - t0}ms)`,
@@ -559,16 +603,99 @@ export class DroxNativeChatViewPane extends ViewPane {
 	}
 
 	private _persistNativeLayout(engineSessionId: string): void {
-		const snap = this._layoutStore.load();
-		const tabs = snap?.tabs.slice() ?? [];
-		if (!tabs.some(t => t.sessionId === engineSessionId)) {
-			tabs.push({ sessionId: engineSessionId });
-		}
+		// Une seule entrée : le layout partagé sert au webview, pas aux onglets IDE.
 		this._layoutStore.save({
 			version: DROX_CHAT_LAYOUT_VERSION,
-			tabs,
+			tabs: [{ sessionId: engineSessionId }],
 			activeTabId: engineSessionId,
 		});
+	}
+
+	private _warnIfRunBusy(): boolean {
+		if (!this.chatSessionService.getRunId()) {
+			return false;
+		}
+		this.notificationService.warn(localize('drox.nativeChat.busy', 'Stop the current run before switching sessions.'));
+		return true;
+	}
+
+	private async _selectIdeTab(sessionId: string): Promise<void> {
+		if (sessionId === this._engineSessionId) {
+			return;
+		}
+		if (this._warnIfRunBusy()) {
+			return;
+		}
+		await this._openDroxSession(sessionId);
+	}
+
+	private async _closeIdeTab(sessionId: string): Promise<void> {
+		if (this.chatSessionService.getRunId() && sessionId === this._engineSessionId) {
+			this._warnIfRunBusy();
+			return;
+		}
+		const closed = closeIdeNativeChatTab(this._ideTabs, sessionId);
+		this._ideTabs = closed.tabs;
+		this._persistIdeTabs();
+		this._renderIdeTabs();
+		if (sessionId !== this._engineSessionId) {
+			return;
+		}
+		if (closed.nextSessionId) {
+			await this._openDroxSession(closed.nextSessionId);
+			return;
+		}
+		await this.startNewChat();
+	}
+
+	private _ensureIdeTab(sessionId: string): boolean {
+		const next = ensureIdeNativeChatTab(this._ideTabs, sessionId, defaultIdeNativeChatTabTitle());
+		if (next.rejected) {
+			this.notificationService.warn(localize('drox.ideNativeChat.tab.limit', 'Close a chat tab before opening another (limit {0}).', DROX_IDE_NATIVE_CHAT_TAB_LIMIT));
+			return false;
+		}
+		this._ideTabs = next.tabs;
+		this._persistIdeTabs();
+		this._renderIdeTabs();
+		return true;
+	}
+
+	private _forgetIdeTab(sessionId: string | undefined): void {
+		if (!sessionId) {
+			return;
+		}
+		const closed = closeIdeNativeChatTab(this._ideTabs, sessionId);
+		if (closed.tabs === this._ideTabs) {
+			return;
+		}
+		this._ideTabs = closed.tabs;
+		this._persistIdeTabs();
+		this._renderIdeTabs();
+	}
+
+	private _persistIdeTabs(): void {
+		this._ideTabsStore.save(this._ideTabs, this._engineSessionId);
+	}
+
+	private _renderIdeTabs(): void {
+		this._tabStrip?.render(this._ideTabs, this._engineSessionId);
+	}
+
+	private _applyIdeTabTitles(): void {
+		const titles = new Map<string, string>();
+		for (const entry of this._sessionEntries) {
+			const title = deriveSessionTabTitle(entry.title ?? '');
+			if (title) {
+				titles.set(entry.id, title);
+			}
+		}
+		const next = applyIdeNativeChatTabTitles(this._ideTabs, titles);
+		if (next.every((tab, index) => tab === this._ideTabs[index])) {
+			return;
+		}
+		this._ideTabs = next;
+		this._persistIdeTabs();
+		this._renderIdeTabs();
 	}
 
 	private _openSessionChain: Promise<unknown> = Promise.resolve();
@@ -582,6 +709,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 			readonly markOpened?: boolean;
 			readonly allowBlankFallback?: boolean;
 			readonly showTimeoutToast?: boolean;
+			readonly trackTab?: boolean;
 		},
 	): Promise<boolean> {
 		// Serialize opens — parallel acquire+cancel storms poison the chat service.
@@ -596,6 +724,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 			readonly markOpened?: boolean;
 			readonly allowBlankFallback?: boolean;
 			readonly showTimeoutToast?: boolean;
+			readonly trackTab?: boolean;
 		},
 	): Promise<boolean> {
 		if (!this._widget) {
@@ -604,6 +733,11 @@ export class DroxNativeChatViewPane extends ViewPane {
 		if (this.chatSessionService.getRunId()) {
 			this.notificationService.warn(localize('drox.nativeChat.busy', 'Stop the current run before switching sessions.'));
 			return false;
+		}
+		if (opts?.trackTab !== false && !this._ideTabs.some(tab => tab.sessionId === engineSessionId)) {
+			if (!this._ensureIdeTab(engineSessionId)) {
+				return false;
+			}
 		}
 
 		const t0 = Date.now();
@@ -675,6 +809,11 @@ export class DroxNativeChatViewPane extends ViewPane {
 				return false;
 			}
 			this._engineSessionId = engineSessionId;
+			if (opts?.trackTab !== false) {
+				this._ensureIdeTab(engineSessionId);
+			}
+			this._persistIdeTabs();
+			this._renderIdeTabs();
 			if (markOpened) {
 				this._sessionStore.setActiveSessionId(engineSessionId);
 				const ws = this._workspacePath();
@@ -737,6 +876,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 		const recency = readDroxEngineSessionRecency(this.storageService, ws);
 		const sorted = sortDroxSessionEntriesByRecency(entries, recency);
 		this._sessionEntries = await enrichDroxSessionListEntries(this.sessionService, ws, sorted);
+		this._applyIdeTabTitles();
 	}
 
 	private async _onSharedRecencyStorageChanged(): Promise<void> {
