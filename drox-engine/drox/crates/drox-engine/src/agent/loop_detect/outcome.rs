@@ -22,6 +22,9 @@ pub(crate) struct TurnOutcome {
     pub(crate) usage: Usage,
     pub(crate) final_phase: Option<Phase>,
     pub(crate) saw_answering: bool,
+    /// Le texte content a été streamé sur la bulle visible (phase vide ou `answering`),
+    /// sans fragment resté dans une phase interne.
+    pub(crate) reply_already_visible: bool,
     pub(crate) saw_analyzing: bool,
     pub(crate) saw_testing: bool,
 }

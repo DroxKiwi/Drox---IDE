@@ -38,6 +38,10 @@ export interface IFormatDroxUiReplayExportOptions {
 	readonly transcriptMessages?: readonly IDroxTranscriptMessage[];
 	readonly engineTrace?: readonly IDroxEngineTraceRecord[];
 	readonly uiStats?: IDroxSessionUiStats;
+	/** Chemin du `drox.exe` réellement lancé (handshake IDE). */
+	readonly engineExecutablePath?: string;
+	/** Epoch Unix (secondes) compilée dans ce binaire. */
+	readonly engineDevBuild?: number;
 	readonly exportedAt?: Date;
 	readonly maxStreamChars?: number;
 	readonly maxToolPreviewChars?: number;
@@ -297,6 +301,15 @@ export function formatDroxUiReplayExport(opts: IFormatDroxUiReplayExportOptions)
 		out.push(`Workspace: ${opts.workspacePath}`);
 	}
 	out.push(`Exported: ${exportedAt.toISOString()}`);
+	const engineExe = opts.engineExecutablePath?.trim();
+	out.push(`Engine binary: ${engineExe && engineExe.length > 0 ? engineExe : '(inconnu)'}`);
+	if (typeof opts.engineDevBuild === 'number' && opts.engineDevBuild > 0) {
+		out.push(
+			`Engine build: ${new Date(opts.engineDevBuild * 1000).toISOString()} (devBuild ${Math.floor(opts.engineDevBuild)})`,
+		);
+	} else {
+		out.push('Engine build: (inconnu)');
+	}
 	out.push(`UI journal events: ${opts.journal.length}`);
 	if (opts.transcriptMessageCount !== undefined) {
 		out.push(

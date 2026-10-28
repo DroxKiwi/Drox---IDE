@@ -265,6 +265,7 @@ export async function routeDroxChatWebviewMessage(
 				deps.notificationService,
 				deps.productService,
 				deps.fileService,
+				deps.droxEngineService,
 			);
 			break;
 		case 'showReleaseNotes':

@@ -23,6 +23,22 @@ pub(crate) fn mark_native_thinking_closed(native_ui: bool, native_open: &mut boo
     }
 }
 
+fn note_content_route(
+    ui_phase: Option<Phase>,
+    line: &str,
+    content_visible: &mut bool,
+    content_hidden: &mut bool,
+) {
+    if line.trim().is_empty() {
+        return;
+    }
+    if ui_phase.is_some_and(Phase::hides_user_reply) {
+        *content_hidden = true;
+    } else {
+        *content_visible = true;
+    }
+}
+
 /// Consomme un stream LLM, relaie texte et `tool_calls` vers `tx`, et
 /// retourne le bilan du tour. Retourne `Err(())` si le canal est fermé côté
 /// consommateur (auquel cas l'agent doit s'arrêter sans bruit).
@@ -47,6 +63,11 @@ pub(crate) async fn consume_stream(
     let mut saw_answering = false;
     let mut saw_analyzing = false;
     let mut saw_testing = false;
+    // Phase telle que l'UI la voit : `PhaseClose` (fin du thinking natif) la remet à vide,
+    // et le texte content qui suit est une bulle visible.
+    let mut ui_phase: Option<Phase> = None;
+    let mut content_visible = false;
+    let mut content_hidden = false;
     let mut pending_text: Vec<String> = Vec::new();
     let mut pending_phases: Vec<Phase> = Vec::new();
     // `true` tant que des deltas `thinking` Ollama sont affichés dans
@@ -69,6 +90,7 @@ pub(crate) async fn consume_stream(
                     native_thinking_open = true;
                     if final_phase != Some(Phase::InternalReasoning) {
                         final_phase = Some(Phase::InternalReasoning);
+                        ui_phase = Some(Phase::InternalReasoning);
                         if tx
                             .send(Ok(AgentEvent::PhaseEnter {
                                 phase: Phase::InternalReasoning,
@@ -98,6 +120,7 @@ pub(crate) async fn consume_stream(
                     let native_just_closed =
                         mark_native_thinking_closed(native_thinking_ui, &mut native_thinking_open);
                     if native_just_closed && native_thinking_ui {
+                        ui_phase = None;
                         if tx.send(Ok(AgentEvent::PhaseClose)).await.is_err() {
                             return Err(());
                         }
@@ -117,6 +140,7 @@ pub(crate) async fn consume_stream(
                         continue;
                     }
                     final_phase = Some(phase);
+                    ui_phase = Some(phase);
                     if tx
                         .send(Ok(AgentEvent::PhaseEnter { phase }))
                         .await
@@ -128,11 +152,13 @@ pub(crate) async fn consume_stream(
                 let native_just_closed =
                     mark_native_thinking_closed(native_thinking_ui, &mut native_thinking_open);
                 if native_just_closed && native_thinking_ui {
+                    ui_phase = None;
                     if tx.send(Ok(AgentEvent::PhaseClose)).await.is_err() {
                         return Err(());
                     }
                 }
                 for line in std::mem::take(&mut pending_text) {
+                    note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
                     text.push_str(&line);
                     if tx
                         .send(Ok(AgentEvent::TextDelta { text: line }))
@@ -151,6 +177,7 @@ pub(crate) async fn consume_stream(
                 let native_just_closed =
                     mark_native_thinking_closed(native_thinking_ui, &mut native_thinking_open);
                 if native_just_closed && native_thinking_ui {
+                    ui_phase = None;
                     if tx.send(Ok(AgentEvent::PhaseClose)).await.is_err() {
                         return Err(());
                     }
@@ -172,6 +199,7 @@ pub(crate) async fn consume_stream(
                         saw_testing = true;
                     }
                     final_phase = Some(inferred);
+                    ui_phase = Some(inferred);
                     if tx
                         .send(Ok(AgentEvent::PhaseEnter { phase: inferred }))
                         .await
@@ -201,6 +229,7 @@ pub(crate) async fn consume_stream(
                 let native_just_closed =
                     mark_native_thinking_closed(native_thinking_ui, &mut native_thinking_open);
                 if native_just_closed && native_thinking_ui {
+                    ui_phase = None;
                     let _ = tx.send(Ok(AgentEvent::PhaseClose)).await;
                 }
                 last_stop = Some((reason, usage));
@@ -226,6 +255,7 @@ pub(crate) async fn consume_stream(
         let native_just_closed =
             mark_native_thinking_closed(native_thinking_ui, &mut native_thinking_open);
         if native_just_closed && native_thinking_ui {
+            ui_phase = None;
             if tx.send(Ok(AgentEvent::PhaseClose)).await.is_err() {
                 return Err(());
             }
@@ -243,6 +273,7 @@ pub(crate) async fn consume_stream(
             continue;
         }
         final_phase = Some(phase);
+        ui_phase = Some(phase);
         if tx
             .send(Ok(AgentEvent::PhaseEnter { phase }))
             .await
@@ -253,11 +284,13 @@ pub(crate) async fn consume_stream(
     }
     let native_just_closed = mark_native_thinking_closed(native_thinking_ui, &mut native_thinking_open);
     if native_just_closed && native_thinking_ui {
+        ui_phase = None;
         if tx.send(Ok(AgentEvent::PhaseClose)).await.is_err() {
             return Err(());
         }
     }
     for line in tail_text {
+        note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
         text.push_str(&line);
         if tx
             .send(Ok(AgentEvent::TextDelta { text: line }))
@@ -277,6 +310,7 @@ pub(crate) async fn consume_stream(
         usage,
         final_phase,
         saw_answering,
+        reply_already_visible: content_visible && !content_hidden,
         saw_analyzing,
         saw_testing,
     })

@@ -334,6 +334,7 @@ fn loop_detector_treats_different_thinking_as_progress() {
         usage: Usage::default(),
         final_phase: Some(Phase::Acting),
         saw_answering: false,
+        reply_already_visible: false,
         saw_analyzing: false,
         saw_testing: false,
     };
@@ -354,6 +355,7 @@ fn loop_detector_text_only_ignores_thinking_variance() {
         usage: Usage::default(),
         final_phase: Some(Phase::Answering),
         saw_answering: true,
+        reply_already_visible: true,
         saw_analyzing: false,
         saw_testing: false,
     };
@@ -421,6 +423,7 @@ fn loop_detector_flags_bash_family_despite_thinking_change() {
         usage: Usage::default(),
         final_phase: Some(Phase::Reading),
         saw_answering: false,
+        reply_already_visible: false,
         saw_analyzing: false,
         saw_testing: false,
     };

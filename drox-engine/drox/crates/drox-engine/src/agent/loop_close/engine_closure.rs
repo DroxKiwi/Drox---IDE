@@ -10,16 +10,18 @@ use crate::event::{AgentEvent, Phase};
 pub(crate) const ENGINE_CLOSURE_EMPTY_REPLY: &str = "**Run terminé** — le modèle n’a pas rédigé \
      de réponse finale. Les actions effectuées restent visibles dans la trace ci-dessus.";
 
-/// Rend `text` visible dans la bulle (phase `answering`) si le tour n'y était pas,
-/// puis signe `done`. `push_message` : ajoute un message assistant (tour vide).
+/// Signe `done`. `surface_reply` : le texte n'est pas encore dans la bulle
+/// (tour vide, ou prose restée dans une phase interne) — on l'émet une fois
+/// sous `answering`. Un bilan déjà streamé après le thinking ne l'est pas.
+/// `push_message` : ajoute un message assistant (tour vide).
 pub(crate) async fn emit_engine_closure(
     tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
     messages: &mut Vec<Message>,
     text: &str,
-    turn_had_answering: bool,
+    surface_reply: bool,
     push_message: bool,
 ) {
-    if !turn_had_answering {
+    if surface_reply {
         let _ = tx
             .send(Ok(AgentEvent::PhaseEnter {
                 phase: Phase::Answering,

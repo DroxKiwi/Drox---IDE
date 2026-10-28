@@ -17,6 +17,7 @@ import { IWorkspaceContextService } from '../../../../../platform/workspace/comm
 import { extractDroxUserRunsFromJournal, formatDroxTranscriptExport } from '../../common/chat/droxTranscriptExport.js';
 import { formatDroxCombinedSessionExport } from '../../common/chat/droxUiReplayExport.js';
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
+import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
 
@@ -52,6 +53,7 @@ export async function handleDroxExportTranscript(
 	notificationService: INotificationService,
 	productService: IProductService,
 	fileService: IFileService,
+	droxEngineService: IDroxEngineService,
 ): Promise<void> {
 	await exportDroxSessionTranscript({
 		sessionId: tabs.currentSessionId,
@@ -61,6 +63,7 @@ export async function handleDroxExportTranscript(
 		notificationService,
 		productService,
 		fileService,
+		droxEngineService,
 	});
 }
 
@@ -73,6 +76,7 @@ export async function exportDroxSessionTranscript(opts: {
 	readonly notificationService: INotificationService;
 	readonly productService: IProductService;
 	readonly fileService: IFileService;
+	readonly droxEngineService?: IDroxEngineService;
 }): Promise<void> {
 	const {
 		sessionService,
@@ -119,6 +123,8 @@ export async function exportDroxSessionTranscript(opts: {
 				transcriptMessages: read.messages,
 				engineTrace: read.engineTrace,
 				uiStats: read.uiStats,
+				engineExecutablePath: opts.droxEngineService?.resolvedExecutable,
+				engineDevBuild: opts.droxEngineService?.engineDevBuild,
 				exportedAt,
 			})
 			: formatDroxTranscriptExport({

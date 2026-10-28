@@ -10,7 +10,8 @@ use drox_engine::EngineProfile;
 pub use drox_prompts::{
 	ALLOW_OUTSIDE_WORKSPACE_READ_SUPPLEMENT, ALLOW_OUTSIDE_WORKSPACE_SUPPLEMENT,
 	ALLOW_OUTSIDE_WORKSPACE_WRITE_SUPPLEMENT, COMPACTION_PROMPT, CORE_LOCAL_SYSTEM_PROMPT,
-	CORE_SYSTEM_PROMPT, NATIVE_THINKING_REASONING_SUPPLEMENT, PROFESSOR_MODE_SUPPLEMENT,
+	CORE_SYSTEM_PROMPT, NATIVE_THINKING_LOCAL_SUPPLEMENT, NATIVE_THINKING_REASONING_SUPPLEMENT,
+	PROFESSOR_MODE_SUPPLEMENT,
 	SUBAGENTS_EXPLORE_LOCAL_SUPPLEMENT, SUBAGENTS_EXPLORE_SUPPLEMENT,
 };
 
@@ -51,5 +52,16 @@ pub fn subagents_explore_supplement_for_profile(profile: EngineProfile) -> &'sta
 		SUBAGENTS_EXPLORE_LOCAL_SUPPLEMENT
 	} else {
 		SUBAGENTS_EXPLORE_SUPPLEMENT
+	}
+}
+
+/// Supplément thinking : cloud garde les marqueurs de phase ; local interdit
+/// de réécrire la réponse finale après `[phase: answering]`.
+#[must_use]
+pub fn native_thinking_supplement_for_profile(profile: EngineProfile) -> &'static str {
+	if profile.is_local() {
+		NATIVE_THINKING_LOCAL_SUPPLEMENT
+	} else {
+		NATIVE_THINKING_REASONING_SUPPLEMENT
 	}
 }

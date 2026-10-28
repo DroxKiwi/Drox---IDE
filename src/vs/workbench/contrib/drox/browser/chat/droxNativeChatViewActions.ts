@@ -19,6 +19,7 @@ import { IViewsService } from '../../../../services/views/common/viewsService.js
 import { DroxViews } from '../../common/drox.js';
 import { DroxIdeNativeChatTabEnabledContext } from '../../common/droxAgentsConfiguration.js';
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
+import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { exportDroxSessionTranscript } from './droxChatTranscriptExport.js';
 import { DroxNativeChatViewPane } from './droxNativeChatViewPane.js';
@@ -105,6 +106,7 @@ export function registerDroxNativeChatViewActions(): void {
 				notificationService: accessor.get(INotificationService),
 				productService,
 				fileService: accessor.get(IFileService),
+				droxEngineService: accessor.get(IDroxEngineService),
 			});
 		}
 	});

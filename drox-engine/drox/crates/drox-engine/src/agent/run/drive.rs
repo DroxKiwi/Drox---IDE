@@ -800,11 +800,11 @@ impl Agent {
                     "local profile — engine closure (turn without tools)"
                 );
                 if reply.is_empty() {
-                    emit_engine_closure(&tx, &mut messages, ENGINE_CLOSURE_EMPTY_REPLY, false, true)
+                    emit_engine_closure(&tx, &mut messages, ENGINE_CLOSURE_EMPTY_REPLY, true, true)
                         .await;
                 } else if outcome.final_phase != Some(Phase::Done) || !outcome.saw_answering {
-                    emit_engine_closure(&tx, &mut messages, reply, outcome.saw_answering, false)
-                        .await;
+                    let surface_reply = !outcome.saw_answering && !outcome.reply_already_visible;
+                    emit_engine_closure(&tx, &mut messages, reply, surface_reply, false).await;
                 }
                 if let Err(e) = self
                     .flush_transcript(&messages, &mut transcript_cursor)

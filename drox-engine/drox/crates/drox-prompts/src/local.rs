@@ -11,8 +11,7 @@ pub const CORE_LOCAL_SYSTEM_PROMPT: &str = r#"You are Drox, a coding agent in VS
 # How a run works
 
 - Work by calling tools (native tool calls, never JSON written in your text).
-- **When you reply without calling any tool, the run ends** and that reply is shown to the user. So only stop calling tools when you are ready to give your answer (or to ask the user a question).
-- Put the text the user should read after a line `[phase: answering]` (alone on its line). Other phase markers are optional.
+- **When the work is done, write the user-facing answer once and call no tool.** That single reply ends the run and is shown to the user. Do not repeat it. Do not add a phase marker.
 - If the engine says the budget is reached, answer immediately with what you found, even if incomplete.
 
 # Tools
@@ -82,9 +81,8 @@ optional `return_kinds` (string[]: `paths_read`, `file_summaries`, `key_symbols`
 
 /// Dernier tour : outils coupés, le modèle doit répondre.
 pub const LOCAL_FINAL_ANSWER_PROMPT: &str = "\
-Budget reached: tools are now disabled. Write your final answer to the user now, \
-after a `[phase: answering]` line: what you did, what you found, what is left \
-(if anything). Do not call tools.";
+Budget reached: tools are now disabled. Write your final answer once: what you did, \
+what you found, what is left (if anything). Do not repeat it. Do not call tools.";
 
 pub const LOCAL_FINAL_ANSWER_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.local.final_answer",
@@ -117,7 +115,7 @@ pub const LOCAL_EXPLORE_KICKOFF_ENTRY: PromptEntry = PromptEntry {
 
 pub const LOCAL_EMPTY_TURN_NUDGE: &str = "\
 Your last turn had no visible reply and no tool call. Either call the next tool, \
-or answer the user after a `[phase: answering]` line (that ends the run).";
+or write the user-facing answer once (that ends the run). Do not repeat it.";
 
 pub const LOCAL_EMPTY_TURN_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.local.empty_turn",
@@ -145,6 +143,27 @@ pub const LOCAL_SOFT_CLOSE_CHECK_ENTRY: PromptEntry = PromptEntry {
 	topics: &["closure", "todo_write", "testing"],
 	claims: &[],
 	body: LOCAL_SOFT_CLOSE_CHECK_NUDGE,
+};
+
+/// Thinking natif pour les profils locaux : pas de marqueur `[phase: answering]`
+/// sur la réponse finale (le CORE local clôt sur l'absence d'outil).
+pub const NATIVE_THINKING_LOCAL_SUPPLEMENT: &str = r#"# Native thinking
+
+The server streams your internal monologue on a separate channel. Do not copy it into the reply.
+
+- Keep thinking short, then act.
+- Between tools, one short sentence in the reply is enough, then the tool call.
+- The final answer is written **once** in the reply, with no phase marker and no tool call. Do not draft it in thinking and write it again."#;
+
+pub const NATIVE_THINKING_LOCAL_ENTRY: PromptEntry = PromptEntry {
+	id: "session.native_thinking.local",
+	intent: PromptIntent::Constraint,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "native_thinking+engine_profile_local",
+	topics: &["thinking", "closure"],
+	claims: &["native_thinking.duplicate_in_content=forbidden"],
+	body: NATIVE_THINKING_LOCAL_SUPPLEMENT,
 };
 
 pub const TASK_TOOL_LOCAL_ENTRY: PromptEntry = PromptEntry {

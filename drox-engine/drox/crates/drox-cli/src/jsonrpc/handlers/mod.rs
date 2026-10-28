@@ -580,11 +580,11 @@ async fn build_agent_setup(
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
-                s.push_str(crate::prompts::NATIVE_THINKING_REASONING_SUPPLEMENT);
+                s.push_str(crate::prompts::native_thinking_supplement_for_profile(engine_profile));
             }
             None => {
                 system_merged =
-                    Some(crate::prompts::NATIVE_THINKING_REASONING_SUPPLEMENT.to_string());
+                    Some(crate::prompts::native_thinking_supplement_for_profile(engine_profile).to_string());
             }
         }
     }
