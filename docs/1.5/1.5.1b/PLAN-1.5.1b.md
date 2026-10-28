@@ -105,5 +105,5 @@ flowchart LR
 ## Liens
 
 - [README 1.5.1b](README.md)
-- [GUIDE-PUBLICATION-LINUX.md](../../operations/GUIDE-PUBLICATION-LINUX.md)
+- [04-RELEASE-LINUX.md](../../release/04-RELEASE-LINUX.md)
 - [PLAN 1.5.4](../1.5.4/PLAN-1.5.4.md) — ship Linux + Authenticode

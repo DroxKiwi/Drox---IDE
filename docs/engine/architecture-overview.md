@@ -39,40 +39,57 @@ Racine : [`drox-engine/drox/`](../../drox-engine/drox/) (Cargo workspace, [`Carg
 ```text
 drox-types
     ↑
-drox-llm · drox-bash · drox-permissions · drox-context
-drox-session · drox-hooks · drox-mcp
+drox-prompts · drox-llm · drox-bash · drox-permissions · drox-context
+drox-session · drox-hooks · drox-mcp · drox-embed (optionnel, feature CLI)
     ↑
-drox-tools
+drox-tools          (descriptions outils ← drox-prompts)
     ↑
-drox-engine          ← Agent::run / drive_inner
+drox-engine         ← Agent::run · agent/run/drive.rs (drive_inner)
     ↑
-drox-cli             ← binaire `drox` (--serve, CLI one-shot)
-drox-tui             ← binaire terminal (même Agent, in-process)
+drox-cli            ← binaire `drox` (--serve, CLI one-shot, RPC embed)
+drox-tui            ← binaire terminal (même Agent, in-process)
 ```
 
 | Crate | Rôle | Entrée utile |
 |-------|------|----------------|
 | `drox-types` | Messages, IDs, schémas serde | [`lib.rs`](../../drox-engine/drox/crates/drox-types/src/lib.rs) |
+| `drox-prompts` | Catalogue prompts (CORE, gates, runtime, Explore, tools) + lint claims | [`lib.rs`](../../drox-engine/drox/crates/drox-prompts/src/lib.rs) · doc crate `docs/injection-map.md` |
 | `drox-llm` | Trait `LlmClient`, streaming, factory Ollama / OpenAI-compat | [`factory.rs`](../../drox-engine/drox/crates/drox-llm/src/factory.rs) |
 | `drox-tools` | Trait `Tool`, `ToolRegistry`, `simple/*` | [`registry.rs`](../../drox-engine/drox/crates/drox-tools/src/registry.rs) |
 | `drox-mcp` | Hub MCP via **`rmcp`**, outils `mcp__*` | [`hub.rs`](../../drox-engine/drox/crates/drox-mcp/src/hub.rs) |
 | `drox-bash` | Analyse shell (**tree-sitter** + grammar bash) pour permissions | [`crates/drox-bash/`](../../drox-engine/drox/crates/drox-bash/) |
-| `drox-permissions` | Allow / ask / deny, modes | [`mode.rs`](../../drox-engine/drox/crates/drox-permissions/src/mode.rs) |
+| `drox-permissions` | Allow / ask / deny, modes (crate bas niveau) | [`mode.rs`](../../drox-engine/drox/crates/drox-permissions/src/mode.rs) |
 | `drox-context` | Budget tokens (**tiktoken-rs**), snip, compact | [`lib.rs`](../../drox-engine/drox/crates/drox-context/src/lib.rs) |
 | `drox-session` | Transcripts JSONL, memdir | [`lib.rs`](../../drox-engine/drox/crates/drox-session/src/lib.rs) |
 | `drox-hooks` | `.drox/hooks.json` pre/post tool | [`lib.rs`](../../drox-engine/drox/crates/drox-hooks/src/lib.rs) |
-| `drox-engine` | Orchestration mono-boucle (`tui_mono`) | [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) |
-| `drox-cli` | Entrée process (**clap**), JSON-RPC, prompts | [`main.rs`](../../drox-engine/drox/crates/drox-cli/src/main.rs) |
+| `drox-embed` | Embeddings texte locaux (GGUF / llama.cpp, feature `embed`) | [`lib.rs`](../../drox-engine/drox/crates/drox-embed/src/lib.rs) |
+| `drox-engine` | Orchestration **`tui_mono`** — module [`agent/`](../../drox-engine/drox/crates/drox-engine/src/agent/) | [`lib.rs`](../../drox-engine/drox/crates/drox-engine/src/lib.rs) |
+| `drox-cli` | Entrée process (**clap**), JSON-RPC, re-export prompts | [`main.rs`](../../drox-engine/drox/crates/drox-cli/src/main.rs) |
 | `drox-tui` | UI terminal (**ratatui** / **crossterm**) | [`main.rs`](../../drox-engine/drox/crates/drox-tui/src/main.rs) |
 
-Modules publics de `drox-engine` ([`lib.rs`](../../drox-engine/drox/crates/drox-engine/src/lib.rs)) :
+### Modules publics de `drox-engine`
+
+([`lib.rs`](../../drox-engine/drox/crates/drox-engine/src/lib.rs)) :
 
 ```text
-agent · compaction · context · error · event · memory · long_memory
-permissions · professor · subagent · tool_hooks · tool_orchestration · tool_progress
+agent/          run/ (drive_inner), gates, phase, loop_detect, loop_close, situation, …
+compaction      résumé persist + compaction live
+memory          runtime session + long_memory (réexport)
+context_policy  budget / snip côté agent
+agent_permissions  politique PermissionPolicy (run)
+event           AgentEvent, Phase
+professor       mode cours (code présent ; IDE non exposé)
+subagent        Explore / task
+tools/          hooks, orchestration parallèle, tool_progress
 ```
 
-`default_tool_registry()` appelle `ToolRegistry::with_simple_tools()`.
+Réexports compat : `tool_hooks`, `tool_orchestration`, `tool_progress`, `long_memory`.
+
+`default_tool_registry()` → `ToolRegistry::with_simple_tools()` (+ sous-agents si activés).
+
+### Profils moteur (1.6.1)
+
+[`EngineProfile`](../../drox-engine/drox/crates/drox-engine/src/agent/config.rs) (`local-9b` · `local-27b` · `cloud-full`) : même boucle, **knobs parent** différents (CORE via `drox-prompts`, outils exposés, nudges plan/Explore, clôture). Valeur RPC `engine_profile` / setting IDE `drox.engine.profile`. Inconnu → **`local-9b`**. Cadrage produit : [`docs/1.6/1.6.1/CADRAGE.md`](../1.6/1.6.1/CADRAGE.md).
 
 ## Bibliothèques externes utiles à connaître
 
@@ -102,28 +119,29 @@ Liste complète : `[workspace.dependencies]` dans [`Cargo.toml`](../../drox-engi
 ## Pipeline d’orchestration
 
 Valeur annoncée au handshake : **`orchestrationPipeline = "tui_mono"`**  
-([`protocol.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/protocol.rs) — `InitializeResult::current()`).
+([`rpc_types.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs) — `InitializeResult::current()`).
 
-- Une seule boucle dans `drox-engine` (`agent.rs`), pas de split Architecte / Exécuteur côté code.
+- Une seule boucle dans `drox-engine` ([`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs)), pas de split Architecte / Exécuteur côté code.
 - Les champs legacy IDE (`orchestrationMode`, `architectInteractionMode`) peuvent encore être envoyés : ils sont **désérialisés puis ignorés** pour le routage.
-- Un **shim** d’événements ([`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs)) traduit certaines phases TUI en marqueurs `rail_station_*` pour compat UI historique.
+- Un **shim** d’événements ([`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs)) traduit certaines phases en marqueurs `rail_station_*` pour compat UI historique.
 
-Détail de la boucle : [agent-run-loop.md](agent-run-loop.md).
+Détail de la boucle et des modes de clôture : [agent-run-loop.md](agent-run-loop.md).
 
 ## Flux d’un run (vue crates)
 
 ```text
-handlers::agent_run          (drox-cli/jsonrpc)
+handlers::agent_run          (drox-cli/jsonrpc/handlers/mod.rs)
     → create_llm_client      (drox-llm / reqwest)
+    → prepend CORE           (drox-cli/prompts → drox-prompts, selon EngineProfile)
     → ToolRegistry + RemoteTool + MCP (rmcp)
-    → PermissionsEngine      (drox-permissions)
+    → PermissionPolicy       (drox-engine/agent_permissions)
     → Session / transcript   (drox-session)
     → Agent::run             (drox-engine / tokio)
-         → drive_inner
+         → drive_inner       (agent/run/drive.rs)
               → LlmClient::stream_chat
-              → consume_stream → AgentEvent
+              → consume_stream (agent/consume_llm_stream.rs) → AgentEvent
               → partition_tool_calls → Tool::execute
-              → maybe_snip / compaction
+              → maybe_snip / compaction (run/lifecycle + compaction/)
     → agent/event + agent/done
 ```
 
@@ -132,7 +150,8 @@ handlers::agent_run          (drox-cli/jsonrpc)
 | Sujet | Fichier |
 |-------|---------|
 | Membres workspace | [`drox-engine/drox/Cargo.toml`](../../drox-engine/drox/Cargo.toml) |
-| `drive_inner` | [`drox-engine/src/agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) |
+| `drive_inner` | [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) |
+| Types / params RPC | [`jsonrpc/rpc_types.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs) |
+| Handlers RPC | [`jsonrpc/handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) |
 | Flags CLI / `--serve` | [`drox-cli/src/main.rs`](../../drox-engine/drox/crates/drox-cli/src/main.rs) |
 | Cycle de vie process IDE | [`droxEngineService.ts`](../../src/vs/workbench/contrib/drox/electron-browser/droxEngineService.ts) |
-

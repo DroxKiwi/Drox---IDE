@@ -16,9 +16,9 @@ Prérequis : [05-outils.md](05-outils.md), [02-boucle-agent.md](02-boucle-agent.
 
 | Fichier | Rôle |
 |---------|------|
-| [`tool_orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tool_orchestration.rs) | `partition_tool_calls`, plafond 8 |
+| [`tools/orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tools/orchestration.rs) | `partition_tool_calls`, plafond 8 |
 | [`tool.rs`](../../drox-engine/drox/crates/drox-tools/src/tool.rs) | `is_concurrency_safe` |
-| [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) | Exécution des lots (`buffer_unordered`) |
+| [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) | Exécution des lots (`buffer_unordered`) |
 | Réf. | [tools-and-permissions.md](../engine/tools-and-permissions.md#parallélisme) |
 
 ---
@@ -62,7 +62,7 @@ Dès qu’un outil non safe apparaît, on coupe le lot parallèle et on crée un
 
 ### Exemple concret — `partition_tool_calls`
 
-[`tool_orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tool_orchestration.rs) :
+[`tools/orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tools/orchestration.rs) :
 
 ```rust
 pub fn partition_tool_calls(tool_names: &[&str], registry: &ToolRegistry) -> Vec<ToolCallBatch> {

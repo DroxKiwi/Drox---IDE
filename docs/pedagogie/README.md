@@ -10,18 +10,19 @@ Ils **accompagnent** la lecture du vrai code : une histoire concrète, des défi
 3. Les suivants **réutilisent** ces idées et en ajoutent (boucles, erreurs, tools, permissions…).
 4. Ouvre toujours les fichiers source cités **à côté** du tutoriel.
 5. Chaque guide contient des blocs **« Exemple concret »** tirés du dépôt, avec un tableau qui détaille la syntaxe ligne à ligne — appuie-toi dessus autant que sur le récit.
+6. **1.6.1** : le moteur distingue **`EngineProfile`** (`local-9b`, `local-27b`, `cloud-full`) — la **clôture** et certaines gates changent. Les guides **02** et **07** détaillent le cas **`cloud-full`** (protocole `[phase: done]`) et les profils **locaux** (clôture portée par le moteur).
 
 ## Parcours
 
 | # | Guide | Ce qu’on y voit dans Drox | Idées de langage / système |
 |---|--------|---------------------------|----------------------------|
 | **01** | [Contact Ollama](01-contact-ollama.md) | Config → client → `POST /api/chat` → flux | Variable, fonction, `struct`, `trait`, `async`, `Arc` |
-| **02** | [Boucle agent](02-boucle-agent.md) | `drive_inner` jusqu’à `done` | `for`, conditions, état mutable |
+| **02** | [Boucle agent](02-boucle-agent.md) | `drive_inner` · clôture cloud **ou** locale | `for`, conditions, état mutable |
 | **03** | [Gestion d’erreurs](03-gestion-erreurs.md) | `Result`, `?`, LLM / RPC | Succès ou échec typé |
 | **04** | [Moteur et affichage](04-moteur-et-affichage.md) | `AgentEvent` → chat IDE | Canal, NDJSON, deux process |
 | **05** | [Outils](05-outils.md) | Trait `Tool`, registry, local / remote | `dyn Tool`, JSON schéma |
 | **06** | [Permissions](06-permissions.md) | Modes, ask/deny, bash | Enum modes, classification shell |
-| **07** | [Phases et gates](07-phases-et-gates.md) | `[phase:]`, todos, nudges | Prompt + verrous Rust |
+| **07** | [Phases et gates](07-phases-et-gates.md) | `[phase:]`, todos, nudges · **`drox-prompts`** | Prompt + verrous Rust · profils |
 | **08** | [Contexte et compaction](08-contexte-et-compaction.md) | Snip, tokens, compact | Budget, tiktoken |
 | **09** | [Sessions et mémoire](09-sessions-et-memoire.md) | JSONL, `.drox/memory` | Append-only, couches mémoire |
 | **10** | [Parallélisme des outils](10-parallelisme-outils.md) | Lots parallel / serial | Concurrence Tokio, drapeaux |

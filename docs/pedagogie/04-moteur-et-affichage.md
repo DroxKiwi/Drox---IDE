@@ -22,7 +22,7 @@ Le moteur **ne dessine pas** les pixels du chat. Il **émet des faits** (« voic
 | Côté | Fichier | Rôle |
 |------|---------|------|
 | Moteur | [`event.rs`](../../drox-engine/drox/crates/drox-engine/src/event.rs) | Définition des `AgentEvent` |
-| Moteur | [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) | `tx.send(Ok(AgentEvent::…))` |
+| Moteur | [`consume_llm_stream.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/consume_llm_stream.rs) · [`drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) | `tx.send(Ok(AgentEvent::…))` |
 | Moteur | [`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs) | Adaptation éventuelle pour l’UI |
 | Moteur | [`server.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/server.rs) / handlers | Notification `agent/event` |
 | IDE | [`droxAgentRunBridge.ts`](../../src/vs/workbench/contrib/drox/common/droxAgentRunBridge.ts) | Pont run côté workbench |
@@ -160,7 +160,7 @@ L’IDE parse la ligne, trouve le bon run, et met à jour le DOM / les parts de 
 
 ### Exemple concret — émission dans `drive_run`
 
-Fichier : [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) (~L684+) :
+Fichier : [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) (boucle `agent/event`, ~L887+) :
 
 ```rust
 while let Some(event) = stream.next().await {

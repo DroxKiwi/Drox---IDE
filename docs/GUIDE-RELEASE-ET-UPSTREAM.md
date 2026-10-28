@@ -1,16 +1,16 @@
 # Guide release Drox + upstream VS Code
 
-> **Doc opérationnelle** : préférer les guides linéaires dans [operations/](operations/README.md).
+> **Doc opérationnelle** : préférer les guides linéaires dans [release/](release/README.md).
 
 | Besoin | Guide |
 |--------|--------|
-| Ouvrir branche, dev, merge `main` | [01-BRANCHE.md](operations/01-BRANCHE.md) |
-| Mise à jour VS Code (upstream) | [02-UPSTREAM-VSCODE.md](operations/02-UPSTREAM-VSCODE.md) |
-| Release Windows → OR | [03-RELEASE-WINDOWS.md](operations/03-RELEASE-WINDOWS.md) |
-| Release Linux → OR | [04-RELEASE-LINUX.md](operations/04-RELEASE-LINUX.md) |
-| **Référence build (2 min)** | [00-BUILD-REFERENCE.md](operations/00-BUILD-REFERENCE.md) |
-| Hotfix sur `latest` (même version) | [06-HOTFIX-LATEST.md](operations/06-HOTFIX-LATEST.md) |
-| Open VSX | [05-OPEN-VSX.md](operations/05-OPEN-VSX.md) |
+| Ouvrir branche, dev, merge `main` | [01-BRANCHE.md](release/01-BRANCHE.md) |
+| Mise à jour VS Code (upstream) | [02-UPSTREAM-VSCODE.md](release/02-UPSTREAM-VSCODE.md) |
+| Release Windows → OR | [03-RELEASE-WINDOWS.md](release/03-RELEASE-WINDOWS.md) |
+| Release Linux → OR | [04-RELEASE-LINUX.md](release/04-RELEASE-LINUX.md) |
+| **Référence build (2 min)** | [00-BUILD-REFERENCE.md](release/00-BUILD-REFERENCE.md) |
+| Hotfix sur `latest` (même version) | [06-HOTFIX-LATEST.md](release/06-HOTFIX-LATEST.md) |
+| Open VSX | [05-OPEN-VSX.md](release/05-OPEN-VSX.md) |
 
 ---
 

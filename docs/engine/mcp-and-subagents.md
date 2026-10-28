@@ -2,83 +2,68 @@
 
 ## MCP
 
-Crate [`drox-mcp`](../../drox-engine/drox/crates/drox-mcp/src/lib.rs) — hub autour de **`rmcp`** (client MCP Rust : transport child-process et HTTP streamable).
+Crate [`drox-mcp`](../../drox-engine/drox/crates/drox-mcp/src/lib.rs) — hub **`rmcp`** (stdio + HTTP streamable).
 
-MCP (Model Context Protocol) expose des tools d’un **processus serveur externe** (filesystem, browsers, APIs…). Drox les enregistre sous des noms préfixés `mcp__*` pour éviter les collisions avec la palette native, puis les traite comme n’importe quel `Tool` du registry (permissions / hooks inclus).
-
-### Flux
+Tools serveurs externes → noms **`mcp__*`** → même pipeline permissions / hooks que la palette native.
 
 ```text
-Config MCP (projet / user)
-  → McpHub charge les serveurs
-  → découverte des tools
-  → register_mcp_tools → noms mcp__*
-  → ToolRegistry
-  → exposés au LLM comme tools normaux
+Config MCP → McpHub → register_mcp_tools → ToolRegistry → ToolSpec LLM
 ```
 
-- Enregistrement dynamique : [`drox-tools/src/simple/mcp.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/mcp.rs) (`register_mcp_tools`)
-- Hub : [`hub.rs`](../../drox-engine/drox/crates/drox-mcp/src/hub.rs)
-- Activation côté run : flag `mcp_tools_enabled` dans `AgentRunParams` (RPC)
+- [`simple/mcp.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/mcp.rs) · [`hub.rs`](../../drox-engine/drox/crates/drox-mcp/src/hub.rs)
+- Run : `mcpToolsEnabled` dans `agent.run` ([`rpc_types.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs))
 
-Les tools MCP s’exécutent **localement** dans le process moteur (sauf si shadowés / remote — cas rare). Permissions et hooks s’appliquent comme aux autres tools selon matcher.
+Exécution **dans le process moteur** (sauf shadow remote rare).
 
-### Config typique
+## Sous-agents — `task` (Explore)
 
-Les fichiers de config MCP (souvent `.mcp.json` / settings utilisateur) sont lus par le hub — voir commentaires et loaders dans `drox-mcp`. En cas de doute, lire `lib.rs` + tests du crate.
-
-## Sous-agents — tool `task` (Explore)
-
-> La doc `docs/1.4/moteur/07-sous-agents` annonçait une suppression : **périmé**. Explore est **réintroduit** via `task`.
+> Doc `docs/1.4/moteur/07-sous-agents` (suppression) : **périmé**. Explore = **`task`** + module [`subagent/`](../../drox-engine/drox/crates/drox-engine/src/subagent/).
 
 ### Activation
 
-1. Settings sous-agents activés (`SubagentSettings.enabled`)
-2. `ToolRegistry::register_subagent_task()` depuis le setup RPC ([`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs))
-3. Le modèle appelle `task` avec `subagent_type: "explore"` (+ description, thoroughness)
+1. Settings IDE **`drox.subagents.enabled`** (défaut produit **on** sauf désactivation explicite).
+2. Bridge envoie `subagentsEnabled: true` sur `agent.run` quand master + gate régulation OK ([`droxAgentRunBridge.ts`](../../src/vs/workbench/contrib/drox/common/droxAgentRunBridge.ts)).
+3. Handler : `registry.register_subagent_task()` → `task`, `explore_index_list`, `explore_artifact_read` ([`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs)).
 
-Impl tool : [`simple/task.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/task.rs)  
-- V1 : **uniquement** `explore`  
-- `is_concurrency_safe` = **false**  
-- Retour JSON `{ subagent_type, report }`
+Tool : [`simple/task.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/task.rs) — V1 **`explore`** uniquement · pas concurrent · retour `{ subagent_type, report }`.
 
-### Exécuteur Explore
-
-[`EngineSubagentExecutor::run_explore`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) :
+### Exécuteur — [`EngineSubagentExecutor`](../../drox-engine/drox/crates/drox-engine/src/subagent/explore_executor/mod.rs)
 
 | Propriété | Valeur |
 |-----------|--------|
-| Concurrence | Semaphore `max_concurrent` |
-| Écritures FS | `apply_fs_writes: false`, `plan_mode: true` |
-| Sous-agents imbriqués | Non |
-| `max_parallel_tool_calls` | **4** (local à l’Explore) |
-| Registre outils | `file_read`, `glob`, `grep`, `lsp`, `web_fetch`, `web_search`, `workspace_map_read` — **pas** de `bash` ni écriture |
-| Prompt | Read-only ; rapport structuré ; `[phase: answering]` puis `[phase: done]` |
-| Collecte | `TextDelta` jusqu’à `Stop` / max iterations |
+| Concurrence | Semaphore `subagentsMaxConcurrent` |
+| Parent Explore | `apply_fs_writes: false`, `plan_mode: true`, pas de `task` imbriqué |
+| Parallélisme enfant | `max_parallel_tool_calls` **4** |
+| Registre enfant | [`explore_tool_registry()`](../../drox-engine/drox/crates/drox-engine/src/subagent/explore_tool_registry.rs) : read-only + **`explore_commit`** (pas bash / écriture) |
+| Phase 1 | Boucle LLM enfant — `explore_execution` : stop sur `answering`/`done` sans tool ([`phase1.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent/explore_executor/phase1.rs)) |
+| Rapport | Phase moteur + merge vers parent (prompts [`drox-prompts/explore`](../../drox-engine/drox/crates/drox-prompts/src/explore/)) |
 
-### Quand le modèle doit l’utiliser
+Livrables volumineux : spill / `.drox/scratch` côté parent ([`tool_result_spill`](../../drox-engine/drox/crates/drox-engine/src/agent/tool_result_spill/)).
 
-Le prompt système recommande `task`/`explore` pour un périmètre **très large** plutôt que des dizaines de `glob` dans le parent ([`prompts.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts.rs) — playbook `analyzing`).
+### Quand l’utiliser
+
+CORE + annexes Explore ([`drox-prompts`](../../drox-engine/drox/crates/drox-prompts/)) recommandent `task` pour périmètre large ; profils **local** = supplément **`SUBAGENTS_EXPLORE_LOCAL`**.
+
+Kickoffs soft parent : nudges runtime (`step_explore`, post-merge, …) — [system-prompts-and-phases.md](system-prompts-and-phases.md).
 
 ## État produit (IDE)
 
 | | |
 |--|--|
-| Moteur Explore / `task` | ✅ code présent |
-| Settings `drox.subagents.*` + bridge `agent.run` | ✅ **1.5.23** |
-| Gate régulation | ✅ master ON **et** L2 ∈ { `standard`, `full` } |
-| Cartes chat / Agents | ✅ start / done / report |
-| Activé out-of-the-box | ❌ (défaut **off** — opt-in) |
-| Livraison | 🟢 câblé · smoke / notes — **[PLAN-SUBAGENTS-EXPLORE](../1.5/1.5.23/PLAN-SUBAGENTS-EXPLORE.md)** |
+| Moteur Explore / `task` | ✅ |
+| Settings + bridge RPC | ✅ (1.5.23+, défaut subagents **on** en UI générale) |
+| Régulation L2 | Master ON + L2 ∈ { standard, full } pour envoyer `subagentsEnabled` |
+| UI cartes Explore | ✅ |
+| Plans historiques | [PLAN-SUBAGENTS-EXPLORE](../1.5/1.5.23/PLAN-SUBAGENTS-EXPLORE.md) |
 
-Voir aussi la pédagogie : [11-mcp-et-explore.md](../pedagogie/11-mcp-et-explore.md).
+Pédagogie : [11-mcp-et-explore.md](../pedagogie/11-mcp-et-explore.md).
 
 ## Fichiers
 
 | Rôle | Chemin |
 |------|--------|
-| MCP hub | [`drox-mcp/`](../../drox-engine/drox/crates/drox-mcp/) |
-| Register MCP tools | [`simple/mcp.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/mcp.rs) |
-| Tool `task` | [`simple/task.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/task.rs) |
-| Exécuteur | [`subagent.rs`](../../drox-engine/drox/crates/drox-engine/src/subagent.rs) |
-
+| MCP | [`drox-mcp/`](../../drox-engine/drox/crates/drox-mcp/) |
+| Register MCP | [`simple/mcp.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/mcp.rs) |
+| `task` | [`simple/task.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/task.rs) |
+| Explore index / read | [`explore_index.rs`](../../drox-engine/drox/crates/drox-tools/src/simple/explore_index.rs) (`explore_index_list`, `explore_artifact_read`) |
+| Exécuteur | [`subagent/`](../../drox-engine/drox/crates/drox-engine/src/subagent/) |

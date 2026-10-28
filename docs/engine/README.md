@@ -1,7 +1,7 @@
 ﻿# Moteur Drox — documentation
 
 Documentation **actuelle** du moteur agent Rust (`drox` / workspace [`drox-engine/drox/`](../../drox-engine/drox/)).  
-Pipeline d’orchestration : **`tui_mono`** (depuis 1.5.0).
+Pipeline d’orchestration : **`tui_mono`** (depuis 1.5.0) — une boucle `Agent::run`, profils moteur **1.6.1** (`local-9b` · `local-27b` · `cloud-full`).
 
 Les dossiers `docs/1.3/`, `docs/1.4/`, `docs/1.5/` restent l’**historique de livraison** (plans, smokes, archives). Ici : le fonctionnement du code tel qu’il tourne.
 
@@ -17,12 +17,12 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 
 | Ordre | Document | Ce qu’on y construit |
 |-------|----------|----------------------|
-| 1 | Ce README + [architecture-overview.md](architecture-overview.md) | Découpage en crates, runtime async, clients |
+| 1 | Ce README + [architecture-overview.md](architecture-overview.md) | Crates, runtime async, clients, chemins pivots |
 | 2 | **[Pedagogie](../pedagogie/README.md)** (série guidée) | Rust + moteur, ligne à ligne |
 | 3 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Wire IDE ↔ moteur |
 | 4 | [agent-run-loop.md](agent-run-loop.md) | Sémantique d’un run (`drive_inner`) |
 | 5 | [system-prompts-and-phases.md](system-prompts-and-phases.md) | Contrat textuel imposé au modèle |
-| 6 | [agent-internals.md](agent-internals.md) | Organisation de `agent.rs`, gates, nudges |
+| 6 | [agent-internals.md](agent-internals.md) | Module `agent/` (gates, nudges, anti-boucle) |
 | 7 | [tools-and-permissions.md](tools-and-permissions.md) | Palette, local/remote, hooks, parallélisme |
 | 8 | [sessions-and-memory.md](sessions-and-memory.md) · [llm-backends.md](llm-backends.md) | Persistance et backends d’inférence |
 | 9 | [mcp-and-subagents.md](mcp-and-subagents.md) · [clients-tui-vs-rpc.md](clients-tui-vs-rpc.md) | Extensions MCP / Explore / TUI |
@@ -37,10 +37,10 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | Document | Contenu |
 |----------|---------|
 | [architecture-overview.md](architecture-overview.md) | Crates, dépendances, clients (IDE / TUI / CLI) |
-| **[Pedagogie →](../pedagogie/README.md)** | Guides accompagnés **01–15** (Ollama … régulation / notes) |
+| **[Pedagogie →](../pedagogie/README.md)** | Guides accompagnés **01–16** (Ollama … régulation · Codebase/RAG) |
 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Transport NDJSON, méthodes, schémas `agent.run`, `tool/exec` |
 | [agent-run-loop.md](agent-run-loop.md) | De `agent.run` à `drive_inner` : tours, phases, nudges, clôture |
-| [agent-internals.md](agent-internals.md) | Carte du monolithe `agent.rs`, `AgentConfig`, gates |
+| [agent-internals.md](agent-internals.md) | Carte du module `agent/`, `AgentConfig`, `EngineProfile`, gates |
 | [system-prompts-and-phases.md](system-prompts-and-phases.md) | Prompt système, protocole `[phase:]`, règles done/todos/testing |
 | [tools-and-permissions.md](tools-and-permissions.md) | Palette exacte, local/remote, modes, parallélisme, hooks |
 | [sessions-and-memory.md](sessions-and-memory.md) | JSONL `~/.drox/sessions`, compaction, mémoire `.drox/memory` |
@@ -63,10 +63,12 @@ Toi + repo  ↔  Drox IDE (ou drox-tui)
                  ↕ HTTP (reqwest)
               Ollama / endpoint OpenAI-compat
                  ↕
-              modèle (Qwen, Gemma, …)
+              modèle (Qwen, GLM, …)
 ```
 
-Un run IDE : `initialize` → `agent.run` → boucle `drive_inner` (LLM → outils → …) → `agent/done`.  
+Un run IDE : `initialize` → `agent.run` → boucle `drive_inner` dans [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) (LLM → outils → …) → `agent/done`.  
+Le **profil moteur** (`engine_profile` RPC / `drox.engine.profile`) choisit CORE prompt, outils parent visibles et mode de **clôture** (protocol `cloud-full` vs clôture moteur locale). Détail : [agent-run-loop.md](agent-run-loop.md) · cadrage [1.6.1 CADRAGE](../1.6/1.6.1/CADRAGE.md).
+
 Les outils que le moteur ne peut pas faire seul (LSP, certains FS IDE) partent en `tool/exec` vers le client.
 
 ## Code source — points d’entrée
@@ -75,15 +77,15 @@ Les outils que le moteur ne peut pas faire seul (LSP, certains FS IDE) partent e
 |------|--------|
 | Workspace Rust | [`drox-engine/drox/`](../../drox-engine/drox/) |
 | Binaire `drox` | [`drox-cli/src/main.rs`](../../drox-engine/drox/crates/drox-cli/src/main.rs) |
-| Serveur RPC | [`drox-cli/src/jsonrpc/`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/) |
-| Boucle agent | [`drox-engine/src/agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) |
+| Serveur RPC | [`drox-cli/src/jsonrpc/`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/) — types [`rpc_types.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs), handlers [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) |
+| Boucle agent | [`drox-engine/src/agent/`](../../drox-engine/drox/crates/drox-engine/src/agent/) — `drive_inner` : [`run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) |
 | Événements | [`drox-engine/src/event.rs`](../../drox-engine/drox/crates/drox-engine/src/event.rs) |
 | Outils | [`drox-tools/src/registry.rs`](../../drox-engine/drox/crates/drox-tools/src/registry.rs) |
-| Prompts | [`drox-cli/src/prompts.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts.rs) |
+| Prompts (rédaction) | [`drox-prompts/`](../../drox-engine/drox/crates/drox-prompts/) — façade CLI : [`drox-cli/src/prompts/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts/mod.rs) |
+| Embeddings locaux (optionnel) | [`drox-embed/`](../../drox-engine/drox/crates/drox-embed/) — RPC [`handlers/embed.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/embed.rs), feature `embed` |
 | Intégration IDE (hors moteur) | [`src/vs/workbench/contrib/drox/`](../../src/vs/workbench/contrib/drox/) |
 
 ## Historique fonctionnel (audit)
 
 Carte plus ancienne — **ne plus l’utiliser comme carte de fichiers** (chemins `agent/loop/`, rail, `role_split` obsolètes) :  
 [`docs/1.4/moteur/`](../1.4/moteur/README.md). Voir [migration-from-1.4.md](migration-from-1.4.md).
-

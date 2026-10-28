@@ -53,12 +53,13 @@ git checkout main -- `
   .github/workflows/drox-release-linux.yml `
   scripts/templates/NOTICE.md `
   src/vs/workbench/browser/media/kdds-code-icon.png `
-  scripts/build-release-linux.sh scripts/release-publish-linux.sh `
+  scripts/release/build-release-linux.sh scripts/release/release-publish-linux.sh `
   scripts/verify-packaged-linux.sh `
-  docs/operations/scripts/wsl-linux-build-isolated.ps1 `
-  docs/operations/scripts/wsl-linux-build.sh `
-  docs/operations/scripts/restore-windows-dev.ps1 `
-  docs/operations/scripts/restore-windows-dev-deps.ps1 `
+  scripts/release/wsl-linux-build-isolated.ps1 `
+  scripts/release/wsl-linux-build.sh `
+  scripts/release/restore-windows-dev.ps1 `
+  scripts/release/restore-windows-dev-deps.ps1 `
+  scripts/release/drox-release.ps1 scripts/release/build-release-win32.ps1 `
   scripts/wsl-linux-build.ps1 scripts/wsl-linux-build.sh `
   scripts/restore-windows-dev.ps1 scripts/restore-windows-dev-deps.ps1
 ```

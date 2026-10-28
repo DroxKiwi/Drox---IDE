@@ -22,14 +22,15 @@ Puis il lit ce flux et le transforme en événements pour l’interface.
 
 | Fichier | Rôle dans l’histoire |
 |---------|----------------------|
-| [`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs) | Prépare la config et crée l’agent |
+| [`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) | Prépare la config et crée l’agent |
 | [`factory.rs`](../../drox-engine/drox/crates/drox-llm/src/factory.rs) | Choisit quel « pilote » LLM utiliser |
 | [`adapters/mod.rs`](../../drox-engine/drox/crates/drox-llm/src/adapters/mod.rs) | Branche Ollama / OpenAI / … |
 | [`adapters/ollama.rs`](../../drox-engine/drox/crates/drox-llm/src/adapters/ollama.rs) | Construit le client Ollama |
 | [`client.rs`](../../drox-engine/drox/crates/drox-llm/src/client.rs) | Contrat commun à tous les backends |
 | [`ollama/protocol.rs`](../../drox-engine/drox/crates/drox-llm/src/ollama/protocol.rs) | Forme du JSON envoyé à Ollama |
 | [`ollama/stream.rs`](../../drox-engine/drox/crates/drox-llm/src/ollama/stream.rs) | Envoi HTTP + lecture du flux |
-| [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) | Boucle qui appelle le client et consomme le flux |
+| [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) | Boucle `drive_inner` · appelle le client |
+| [`consume_llm_stream.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/consume_llm_stream.rs) | Consomme le flux (`consume_stream`) |
 
 ```text
 Message utilisateur
@@ -158,7 +159,7 @@ Quand tu lis `crate::client::LlmClient`, ça veut dire : « dans *cette* crate, 
 
 Retour à Drox. Avant de parler au serveur, le code **rassemble des réglages** : URL du serveur, nom du modèle, clé API éventuelle, taille de contexte…
 
-Ça se passe surtout dans `build_llm_config` ([`handlers.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers.rs)).
+Ça se passe surtout dans `build_llm_config` ([`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs)).
 
 ### B.1 Créer une variable qu’on va enrichir
 
@@ -495,7 +496,7 @@ pub(super) struct ChatRequest<'a> {
 
 ### G.1 Stocker le client dans l’`Agent`
 
-[`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs) :
+[`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) :
 
 ```rust
 pub struct Agent {
@@ -507,7 +508,7 @@ pub struct Agent {
 ```
 
 Le champ `llm` est **exactement** ce que la factory a renvoyé.  
-Quand `handlers.rs` fait `Agent::new(llm, …)`, il **place** cette instance partagée dans l’agent.
+Quand `handlers/mod.rs` fait `Agent::new(llm, …)`, il **place** cette instance partagée dans l’agent.
 
 ### G.2 Dans la boucle : préparer les options et appeler
 
@@ -610,7 +611,7 @@ Les mots Rust (`trait`, `async`, `Arc`, `Result`) sont les **mêmes** — seul l
 5. **Appel** dans `Agent` : `stream_chat(...).await` envoie le **POST**, reçoit un **flux**.
 6. **Consommation** : chaque morceau devient un événement pour l’interface.
 
-Si tu relis ce parcours une deuxième fois en n’ouvrant que [`ollama/stream.rs`](../../drox-engine/drox/crates/drox-llm/src/ollama/stream.rs) et le morceau `stream_chat` dans [`agent.rs`](../../drox-engine/drox/crates/drox-engine/src/agent.rs), tu dois pouvoir raconter l’histoire à voix haute sans regarder ce tutoriel.
+Si tu relis ce parcours une deuxième fois en n’ouvrant que [`ollama/stream.rs`](../../drox-engine/drox/crates/drox-llm/src/ollama/stream.rs) et le morceau `stream_chat` dans [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs), tu dois pouvoir raconter l’histoire à voix haute sans regarder ce tutoriel.
 
 ## Pour aller plus loin (même méthode)
 

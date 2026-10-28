@@ -32,7 +32,7 @@ Pont IDE : [ide-integration.md](ide-integration.md).
 drox-tui main
   → engine/bootstrap.rs
   → construit AgentConfig + registry + LLM
-  → Agent::run (même drive_inner)
+  → Agent::run (même [`drive_inner`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs))
   → widgets ratatui consomment AgentEvent
 ```
 
@@ -47,13 +47,13 @@ Le dépôt public **Drox---TUI** peut packager ce binaire séparément ; les sou
 | Partagé | Spécifique client |
 |---------|-------------------|
 | `drive_inner`, gates, phases | Shim `rail_station_*` (RPC IDE) |
-| Registry / permissions / compaction | Widgets chat IDE / ratatui |
+| Registry / permissions / compaction / **`EngineProfile`** | Widgets chat IDE / ratatui |
 | `AgentEvent` | Mapping TypeScript UI |
 
 ## Déboguer « ça marche en TUI pas dans l’IDE »
 
 1. Capability `executableTools` → tool remote vs local différent.
-2. Params `agent.run` (mode permission, `disabled_tools`, MCP).
+2. Params `agent.run` (`engineProfile`, mode permission, `disabledTools`, MCP, subagents).
 3. Client qui ne répond pas à `tool/exec` / `user/ask`.
 4. Shim qui transforme les événements — comparer le JSON brut `agent/event` et l’UI.
 

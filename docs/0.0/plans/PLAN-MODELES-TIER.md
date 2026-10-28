@@ -4,7 +4,7 @@
 **Statut** : plan actif — **M0–M3 ✅** (smoke manuel §6.2 recommandé avant M4)  
 **Modèle de test cible** : `qwen3.5:9b` (ou équivalent 7b–9b) — réglages Low activés **levier par levier** après M0.
 
-**Documents liés** : [MODELES-PAR-TAILLE](../architecture/MODELES-PAR-TAILLE.md) (vision produit) · [PLAN-PROFIL-LOW-ACCOMPAGNEMENT](./PLAN-PROFIL-LOW-ACCOMPAGNEMENT.md) (**M4+** exosquelette Low) · [REFACTO-STRUCTURE-CODE](./REFACTO-STRUCTURE-CODE.md) (socle `RunPolicy` ✅) · [MEMOIRE-LONG-TERME](../architecture/MEMOIRE-LONG-TERME.md) · [GUIDE-MOTEUR-DROX](../guides/GUIDE-MOTEUR-DROX.md) · [SMOKE-MANUEL-REFACTO](../operations/SMOKE-MANUEL-REFACTO.md)
+**Documents liés** : [MODELES-PAR-TAILLE](../architecture/MODELES-PAR-TAILLE.md) (vision produit) · [PLAN-PROFIL-LOW-ACCOMPAGNEMENT](./PLAN-PROFIL-LOW-ACCOMPAGNEMENT.md) (**M4+** exosquelette Low) · [REFACTO-STRUCTURE-CODE](./REFACTO-STRUCTURE-CODE.md) (socle `RunPolicy` ✅) · [MEMOIRE-LONG-TERME](../architecture/MEMOIRE-LONG-TERME.md) · [GUIDE-MOTEUR-DROX](../guides/GUIDE-MOTEUR-DROX.md) · [SMOKE-MANUEL-REFACTO](../release/SMOKE-MANUEL-REFACTO.md)
 
 ---
 
@@ -307,7 +307,7 @@ Chaque phase se termine par validation ; **Medium inchangé** à chaque merge.
 | Garantie | Comment |
 |----------|---------|
 | **Medium gelé** | Chemin `RunProfileId::Medium` = code legacy ; tests parité obligatoires avant merge |
-| Medium stable | Smoke [SMOKE-MANUEL-REFACTO](../operations/SMOKE-MANUEL-REFACTO.md) sur tier medium après chaque PR touchant agent/cli |
+| Medium stable | Smoke [SMOKE-MANUEL-REFACTO](../release/SMOKE-MANUEL-REFACTO.md) sur tier medium après chaque PR touchant agent/cli |
 | Pas de feature sneak | Un levier Low = une PR ; **aucun** « profit » sur Medium |
 | Réversibilité | Tier = paramètre run ; défaut et usage courant = medium |
 

@@ -94,7 +94,7 @@ Arrêter `npm run watch` et fermer `code.bat` sur Windows.
 
 ```powershell
 cd <REPO>
-.\drox-engine\docs\operations\scripts\wsl-linux-build-isolated.ps1
+.\scripts\release\wsl-linux-build-isolated.ps1
 ```
 
 Commit auto + clone `~/Drox---IDE`. Log : `.build\wsl-linux-build-isolated.log` · [00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)
@@ -102,7 +102,7 @@ Commit auto + clone `~/Drox---IDE`. Log : `.build\wsl-linux-build-isolated.log` 
 Manifeste (repo OR Windows — voir [04 §4](04-RELEASE-LINUX.md#4-manifeste-or)) :
 
 ```powershell
-wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && DROX_RELEASES_REPO=/mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR ./scripts/release-publish-linux.sh"
+wsl -d Ubuntu-24.04 bash -lc "cd /mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE && . ~/.nvm/nvm.sh && DROX_RELEASES_REPO=/mnt/c/Users/<vous>/Desktop/GitHub/Drox---IDE---OR ./scripts/release/release-publish-linux.sh"
 ```
 
 ```powershell
@@ -123,7 +123,7 @@ Après **tout** `npm install` ou build Linux sur `/mnt/c/`, le `node_modules` pa
 
 ```powershell
 cd <REPO>
-.\drox-engine\docs\operations\scripts\restore-windows-dev.ps1
+.\scripts\release\restore-windows-dev.ps1
 npm run watch
 .\scripts\code.bat
 ```
@@ -139,7 +139,8 @@ Voir [scripts/README.md](scripts/README.md) pour le détail (shims `.cmd` vs add
 | `<OR>\stable\latest.json` | `version` = `<DROX_VER>` · `sha256` mis à jour · **win32 + linux** présents |
 | GitHub Release `<TAG>` | Assets `.exe` / `.deb` datés récents (`--clobber`) |
 | Install frais ou MAJ auto | Correctif visible en prod |
-| Dev local | `watch` + `code.bat` OK après `restore-windows-dev.ps1` |
+| Dev local | `watch` + `code.bat` OK après `.\scripts\release\restore-windows-dev.ps1` |
+| Scripts release | Voir [scripts/release/README.md](../../scripts/release/README.md) |
 
 ---
 

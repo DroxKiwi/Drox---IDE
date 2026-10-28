@@ -71,4 +71,4 @@
 - [COMPARE-WEBVIEW-VS-NATIF.md](COMPARE-WEBVIEW-VS-NATIF.md)
 - [CLOSURE 1.5.10](../1.5.10/CLOSURE-1.5.10.md)
 - [Hub 1.5](../README.md)
-- [Opérations release](../../operations/README.md)
+- [Opérations release](../../release/README.md)

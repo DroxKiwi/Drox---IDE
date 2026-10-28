@@ -107,4 +107,4 @@ Détail curation : [DIAGNOSTIC-CONTEXTE-SERIEUX.md](DIAGNOSTIC-CONTEXTE-SERIEUX.
 - [Hub 1.6](../README.md)
 - [1.6.1](../1.6.1/README.md) — profils / presets
 - [Clôture 1.5.23](../../1.5/1.5.23/CLOSURE-1.5.23.md)
-- [01-BRANCHE](../../operations/01-BRANCHE.md)
+- [01-BRANCHE](../../release/01-BRANCHE.md)

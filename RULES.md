@@ -92,7 +92,7 @@ Affichage utilisateur : `1.3.1 (base VS Code 1.122.0)` via `getProductDisplayVer
 
 ## 3. Build & release Windows
 
-**Guide publication + clôture branche** : [docs/operations/README.md](docs/operations/README.md)
+**Guide publication + clôture branche** : [docs/release/README.md](docs/release/README.md)
 
 ### Commandes usuelles
 
@@ -221,7 +221,6 @@ Checklist smoke : `docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` §
 | Suivi release 1.3.1 | `docs/1.3/1.3.1/finalisation/CLOSURE-1.3.1.md` |
 | Dé-branding 1.3.1 | `docs/1.3/1.3.1/finalisation/PLAN-DEBRAND-MICROSOFT.md` |
 | Audit licences 1.3.1 | `docs/1.3/1.3.1/finalisation/AUDIT-LICENCES-1.3.1.md` |
-| Feature brainstorm (idées) | `docs/feature-brainstorm/README.md` |
 | Patches fork / merge upstream | `docs/1.3/1.3.0/finalisation/PATCHES-UPSTREAM-BUILD.md` |
 | Repo releases | `../Drox---IDE---OR/README.md` |
 | Guide dev Drox | `DROX.md` (si présent) |

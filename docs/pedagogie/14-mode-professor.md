@@ -21,7 +21,7 @@ En professor, le modèle enseigne et fait travailler ; les **écritures** hors z
 | Fichier | Rôle |
 |---------|------|
 | [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) | Gates runtime (si chemin activé) |
-| [`prompts.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts.rs) | Variantes teach / exercise / review |
+| [`prompts/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts/mod.rs) · [`drox-prompts`](../../drox-engine/drox/crates/drox-prompts/) | Variantes teach / exercise / review |
 | [`mode.rs`](../../drox-engine/drox/crates/drox-permissions/src/mode.rs) | Variant `Professor` dans l’enum |
 | IDE | [`droxPermissionAsk.ts`](../../src/vs/workbench/contrib/drox/common/droxPermissionAsk.ts) — **downgrade** si `professor` est demandé |
 

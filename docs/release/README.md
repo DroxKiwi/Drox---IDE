@@ -1,4 +1,4 @@
-# Opérations Drox IDE
+# Release Drox IDE
 
 **Build Windows / Linux en 2 min** → **[00-BUILD-REFERENCE.md](00-BUILD-REFERENCE.md)**  
 **Agents IA** → **[AGENTS.md](AGENTS.md)** (règles, dépannage, chemins scripts)
@@ -17,12 +17,12 @@ Guides **linéaires** — suivre dans l’ordre selon le besoin.
 | 5 | [05-OPEN-VSX.md](05-OPEN-VSX.md) | Galerie extensions (optionnel) |
 | 6 | [06-HOTFIX-LATEST.md](06-HOTFIX-LATEST.md) | Correctif sur la release déjà publiée (`latest`) |
 
-Scripts release Linux / restauration dev Windows : [scripts/](scripts/README.md).
+Scripts : **[scripts/release/](../../scripts/release/README.md)** (implémentation) · forwarders `scripts\wsl-linux-build.ps1`, etc.
 
 **Parcours release typique** : `00` (référence) → `01` → `02` (si bump VS Code) → `03` → `04`.  
 **Hotfix** sur version déjà en ligne : `06`.
 
-**Linux** : `wsl-linux-build-isolated.ps1` (ou `scripts\wsl-linux-build.ps1`).
+**Linux** : `.\scripts\release\wsl-linux-build-isolated.ps1` (ou `.\scripts\wsl-linux-build.ps1`).
 
 ---
 
