@@ -1,23 +1,28 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/DroxKiwi/Droxkiwi/main/logo3.png" width="120" alt="Logo Drox" />
+</p>
+
 # Drox IDE
 
-Éditeur de code avec agent IA **open source**, basé sur [Visual Studio Code – Open Source (Code OSS)](https://github.com/microsoft/vscode).
+Éditeur de code avec un agent IA **open source**, prêt à l’installation. Il reprend [Visual Studio Code – Open Source (Code OSS)](https://github.com/microsoft/vscode) : extensions, terminal, Git, LSP — et y ajoute un moteur agent en Rust qui tourne **chez toi**.
 
-## But du projet
+Installeurs Windows et Linux : [**télécharger la 1.6.2**](https://github.com/DroxKiwi/Drox---IDE/releases/latest).
 
-Éditeur IA **souverain** : puissance VS Code (extensions, terminal, git, LSP), sans produit fermé ni cloud imposé.
+Drox IDE est référencé sur la page contributeur du [XERJ Corpus Hub](https://hub.xerj.org/contributors/DroxKiwi).
+
+## En usage
 
 - **Aucune télémétrie** Drox / KDDS.
-- **Aucun appel imposé** vers un cloud tiers pour l’agent.
+- **Aucun cloud imposé** pour l’agent. Tu branches [Ollama](https://ollama.com/) en local, un provider du catalogue (Mistral, vLLM, LM Studio, Hugging Face, Scaleway, OVH, …) ou n’importe quel serveur **OpenAI-compatible**. URL et clés sont les tiennes. Détail : [llm-backends](docs/engine/llm-backends.md).
 - Session, transcripts et réglages **sur ta machine** (`%APPDATA%\.drox-ide`, workspace).
-- LLM **à toi** : [Ollama](https://ollama.com/) en local, ou un **provider du catalogue** IDE (Mistral, vLLM, LM Studio, Hugging Face, Scaleway, OVH, …) et tout serveur **OpenAI-compatible** custom — URL et clés API **que tu choisis** (aucun compte cloud Drox requis). Détail moteur : [llm-backends](docs/engine/llm-backends.md).
 
 | | |
 |---|---|
 | **Licence** | MIT — Code OSS (Microsoft) + portions Drox / KDDS — [`NOTICE.md`](NOTICE.md) |
-| **Version** | **1.6.1** · base VS Code **1.127.0** |
-| **Binaires** | [Releases](https://github.com/DroxKiwi/Drox---IDE/releases) |
+| **Version** | **1.6.2** · base VS Code **1.127.0** |
+| **Binaires** | [Releases](https://github.com/DroxKiwi/Drox---IDE/releases) — Windows et Linux |
 | **Doc moteur** | [`docs/engine/`](docs/engine/README.md) |
-| **État** | Expérimental / dogfood — bugs possibles |
+| **Référencement** | [XERJ Corpus Hub — DroxKiwi](https://hub.xerj.org/contributors/DroxKiwi) |
 
 ```powershell
 npm install
@@ -38,7 +43,7 @@ Jalons (git + releases). Détail par version : [`docs/1.5/`](docs/1.5/README.md)
 | **Juin 2026** | **8–11 juin** · **11–18 juin** · **19 juin** · **20–26 juin** | **1.4.x** Run Rail (labo, [`docs/1.4/`](docs/1.4/)) · **1.5.0–1.5.6** VS Code **1.126/1.127**, `tui_mono`, chat, builds Win/Linux. |
 | **Juil. – août 2026** | — | **1.5.9 → 1.5.19** : Agents, chat natif, MCP, sessions, loop detector, multi-provider, handoff Agents→IDE. |
 | **Sept. 2026** | **fin septembre** · **28 septembre** | **1.5.20** (Commit/Push chat, sidebar Changes, params LLM) · **MIT** + releases sur ce dépôt, docs engine publiques. |
-| **Oct. 2026** | **1.6.0** · **1.6.1** | **1.6.0** freeze moteur (anti-boucle, compaction, Explore/contrats) — pas ship qualité · **1.6.1** **stable** : profils `local-9b` / `local-27b` / `cloud-full`, sous-run Explore par défaut, polish IDE — tag **`v1.6.1`** sur `main`. |
+| **Oct. 2026** | **1.6.0** · **1.6.1** · **1.6.2** | **1.6.0** freeze moteur (anti-boucle, compaction, Explore/contrats) · **1.6.1** profils `local-9b` / `local-27b` / `cloud-full`, sous-run Explore, polish IDE · **1.6.2** onglets de chat, runs parallèles, connexions enregistrées, thème Agents — release **`v1.6.2`**. |
 
 ### Dogfood — 28 octobre 2026
 
