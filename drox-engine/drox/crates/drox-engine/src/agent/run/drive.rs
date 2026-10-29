@@ -4,14 +4,14 @@ use std::collections::{HashMap, VecDeque};
 
 use drox_hooks::{PostHookOutcome, PreHookOutcome, ToolHookContext};
 use drox_tools::ToolError;
-use drox_types::{Content, Message, StopReason, ToolUseId, Usage};
+use drox_types::{Content, Message, Role, StopReason, ToolUseId, Usage};
 use futures::{stream, StreamExt};
 use serde_json::Value;
 use tokio::sync::mpsc;
 use tracing::debug;
 
 use crate::error::EngineError;
-use crate::event::{AgentEvent, Phase};
+use crate::event::{AgentEvent, HistoryProbeEntry, Phase};
 use crate::memory::MemoryTracker;
 use crate::tool_orchestration::{partition_tool_calls, ToolCallBatch};
 use crate::tool_progress::ToolProgressBridge;
@@ -46,7 +46,8 @@ use super::super::nudges::{
     REPEATED_FILE_READ_NUDGE_THRESHOLD, ROTATING_FILE_READ_NUDGE,
     ROTATING_FILE_READ_REINJECT_EVERY, WORK_PLAN_FRAME_NUDGE,
     WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD,
-    step_explore_kickoff_nudge, step_without_explore_nudge, LOCAL_EMPTY_TURN_NUDGE,
+    step_explore_kickoff_nudge, step_targets_single_file, step_without_explore_nudge,
+    LOCAL_EMPTY_TURN_NUDGE,
     LOCAL_EXPLORE_KICKOFF_NUDGE, LOCAL_FINAL_ANSWER_PROMPT, LOCAL_SOFT_CLOSE_CHECK_NUDGE,
 };
 use super::super::session_intent::{classify_session_user_intent, SessionFrames};
@@ -81,9 +82,10 @@ impl Agent {
     ) {
         let professor = is_professor_run(self.config.permissions.as_ref());
         let profile = self.config.profile();
-        // Profils locaux : clôture moteur (tour sans tool = réponse). Child Explore
+        // Tour sans outil = fin de run (local capable et full protocol).
+        // `[phase: done]` reste accepté quand le modèle l'écrit. Child Explore
         // et professeur gardent leur propre contrat.
-        let engine_closure = profile.is_local() && !professor && !self.config.explore_execution;
+        let engine_closure = !professor && !self.config.explore_execution;
         let plan_nudges = profile.plan_nudges();
         tracing::info!(
             engine_profile = profile.id(),
@@ -427,15 +429,19 @@ impl Agent {
             // Soft — kickoff d'une nouvelle étape plan → Explore pour cette étape.
             if task_tool_available && plan_nudges {
                 if let Some((step_id, step_content)) = pending_step_explore_nudge.take() {
-                    debug!(
-                        marker = "c4.micro_task_kickoff",
-                        %step_id,
-                        "dogfood: step kickoff — soft Explore micro"
-                    );
-                    messages.push(Message::system(step_explore_kickoff_nudge(
-                        &step_id,
-                        step_content.as_deref(),
-                    )));
+                    if step_targets_single_file(step_content.as_deref()) {
+                        debug!(%step_id, "step kickoff skipped — single file");
+                    } else {
+                        debug!(
+                            marker = "c4.micro_task_kickoff",
+                            %step_id,
+                            "dogfood: step kickoff — soft Explore micro"
+                        );
+                        messages.push(Message::system(step_explore_kickoff_nudge(
+                            &step_id,
+                            step_content.as_deref(),
+                        )));
+                    }
                 }
             }
 
@@ -445,6 +451,7 @@ impl Agent {
                 && !step_without_explore_nudge_sent
                 && !step_had_task_success
                 && last_in_progress_todo_id.is_some()
+                && !step_targets_single_file(last_todo_next.as_deref())
                 && step_parent_activity_count >= STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD
             {
                 let step_id = last_in_progress_todo_id.as_deref().unwrap_or("?");
@@ -631,8 +638,20 @@ impl Agent {
                 repeated_file_read_nudge_sent = true;
             }
 
+            let transport = super::super::history_transport::for_model(&messages);
+            if self.config.history_probe {
+                let entries = history_probe_snapshot(&transport);
+                if tx
+                    .send(Ok(AgentEvent::HistoryProbe { entries }))
+                    .await
+                    .is_err()
+                {
+                    return;
+                }
+            }
+
             if let Some(policy) = self.config.context.as_ref() {
-                let parent_tokens = policy.count_tokens(&messages);
+                let parent_tokens = policy.count_tokens(&transport);
                 if parent_tokens > 0
                     && tx
                         .send(Ok(AgentEvent::ContextUsage { parent_tokens }))
@@ -650,7 +669,7 @@ impl Agent {
             };
             let options = self.config.chat_options.clone().with_tools(turn_tools);
 
-            let stream = match self.llm.stream_chat(messages.clone(), options).await {
+            let stream = match self.llm.stream_chat(transport, options).await {
                 Ok(s) => s,
                 Err(err) => {
                     let _ = tx.send(Err(err.into())).await;
@@ -803,7 +822,11 @@ impl Agent {
                         .await;
                     return;
                 }
-                if reply.is_empty() && !final_answer_forced && !local_empty_turn_nudge_sent {
+                if reply.is_empty()
+                    && outcome.final_phase != Some(Phase::Done)
+                    && !final_answer_forced
+                    && !local_empty_turn_nudge_sent
+                {
                     debug!("local profile — empty turn, one-shot nudge");
                     local_empty_turn_nudge_sent = true;
                     messages.push(Message::system(LOCAL_EMPTY_TURN_NUDGE));
@@ -819,7 +842,7 @@ impl Agent {
                 let open_todos = last_todo_pending > 0 || last_todo_in_progress > 0;
                 let testing_due =
                     testing_gate_active && saw_code_mutation_in_run && !saw_testing_phase_in_run;
-                if profile == EngineProfile::Local27b
+                if matches!(profile, EngineProfile::Local27b | EngineProfile::CloudFull)
                     && !reply.is_empty()
                     && !final_answer_forced
                     && !local_soft_close_check_sent
@@ -844,7 +867,7 @@ impl Agent {
                     "local profile — engine closure (turn without tools)"
                 );
                 if reply.is_empty() {
-                    emit_engine_closure(&tx, &mut messages, ENGINE_CLOSURE_EMPTY_REPLY, true, true)
+                    emit_engine_closure(&tx, &mut messages, ENGINE_CLOSURE_EMPTY_REPLY, true, false)
                         .await;
                 } else if outcome.final_phase != Some(Phase::Done) || !outcome.saw_answering {
                     let surface_reply = !outcome.saw_answering && !outcome.reply_already_visible;
@@ -1005,7 +1028,7 @@ impl Agent {
                     consecutive_intent_only_write_nudges =
                         consecutive_intent_only_write_nudges.saturating_add(1);
                     let max_nudges = INTENT_ONLY_WRITE_MAX_NUDGES;
-                    if consecutive_intent_only_write_nudges > max_nudges && engine_closure {
+                    if consecutive_intent_only_write_nudges > max_nudges && profile.is_local() {
                         debug!(
                             strikes = consecutive_intent_only_write_nudges,
                             "intent-only write — local profile: final answer turn"
@@ -1740,6 +1763,13 @@ impl Agent {
                                         mutating_tools_since_last_todo =
                                             mutating_tools_since_last_todo.saturating_add(1);
                                     }
+                                    if call.name == "bash"
+                                        && saw_code_mutation_in_run
+                                        && value.get("exit_code").and_then(|v| v.as_i64())
+                                            == Some(0)
+                                    {
+                                        saw_testing_phase_in_run = true;
+                                    }
                                     if record_counts_as_code_mutation(
                                         &call.name,
                                         &call.arguments,
@@ -2171,4 +2201,48 @@ impl Agent {
             .send(Err(EngineError::MaxIterations(self.config.max_iterations)))
             .await;
     }
+}
+
+fn history_probe_snapshot(messages: &[Message]) -> Vec<HistoryProbeEntry> {
+    messages
+        .iter()
+        .map(|message| {
+            let mut chars = 0usize;
+            let mut text = String::new();
+            let mut tools = Vec::new();
+            for block in &message.content {
+                match block {
+                    Content::Text { text: block_text } => {
+                        chars += block_text.chars().count();
+                        text.push_str(block_text);
+                    }
+                    Content::ToolUse { name, input, .. } => {
+                        tools.push(name.clone());
+                        let rendered = input.to_string();
+                        chars += rendered.chars().count();
+                        text.push_str(&rendered);
+                    }
+                    Content::ToolResult { content, .. } => {
+                        chars += content.chars().count();
+                        text.push_str(content);
+                    }
+                    Content::Image { data, .. } => chars += data.len(),
+                    _ => {}
+                }
+            }
+            HistoryProbeEntry {
+                role: match message.role {
+                    Role::System => "system",
+                    Role::User => "user",
+                    Role::Assistant => "assistant",
+                    Role::Tool => "tool",
+                }
+                .to_string(),
+                chars,
+                head: text.chars().take(240).collect(),
+                text,
+                tools,
+            }
+        })
+        .collect()
 }

@@ -1,0 +1,13 @@
+---
+description: Interdire Co-authored-by Cursor dans les commits
+alwaysApply: true
+---
+
+# Pas de Co-authored-by Cursor
+
+Aucun commit de ce dépôt ne doit contenir une ligne d’attribution Cursor.
+
+- Interdit dans le message : `Co-authored-by: Cursor <cursoragent@cursor.com>` et toute variante (`Co-authored-by: Cursor`, `cursoragent@cursor.com`).
+- Ne pas l’ajouter à la main, ni via `--trailer`, ni dans un corps de commit préparé pour `git` ou l’API GitHub.
+- Si la commande de commit est réécrite pour y insérer ce trailer, recommiter ou amender **avant le push** pour l’enlever. Le commit publié ne doit pas le contenir.
+- Ne pas réécrire l’historique déjà poussé pour ça, sauf demande explicite.

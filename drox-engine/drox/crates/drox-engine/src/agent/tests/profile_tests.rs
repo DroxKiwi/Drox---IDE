@@ -66,9 +66,6 @@ async fn local_9b_text_turn_without_markers_closes_run() {
     assert!(stopped_cleanly(&events), "{events:?}");
     assert!(events
         .iter()
-        .any(|e| matches!(e, Ok(AgentEvent::PhaseEnter { phase: Phase::Answering }))));
-    assert!(events
-        .iter()
         .any(|e| matches!(e, Ok(AgentEvent::PhaseEnter { phase: Phase::Done }))));
     assert!(answering_text(&events, "Voici la réponse."));
 }
@@ -91,11 +88,11 @@ async fn local_9b_mutation_without_todo_is_not_blocked() {
 }
 
 #[tokio::test]
-async fn cloud_full_still_requires_phase_done() {
-    // Texte sans `[phase: done]` : pas de clôture moteur, le run est relancé (protocole 1.6.0).
+async fn cloud_full_closes_on_turn_without_tools() {
+    // Même clôture que le local capable : un tour sans outil termine le run.
     let events = run(vec![text_turn("Voici la réponse.")], config("cloud-full", 3)).await;
-    assert!(!stopped_cleanly(&events), "{events:?}");
-    assert!(matches!(events.last(), Some(Err(_))));
+    assert!(stopped_cleanly(&events), "{events:?}");
+    assert!(answering_text(&events, "Voici la réponse."));
 }
 
 #[tokio::test]
@@ -171,7 +168,7 @@ async fn cloud_full_done_only_ignored_hides_rewritten_conclusion() {
 }
 
 #[tokio::test]
-async fn cloud_full_done_only_then_marker_closes() {
+async fn cloud_full_answering_without_done_closes() {
     let events = run(
         vec![
             text_turn("[phase: answering]\nBilan initial."),
@@ -182,8 +179,4 @@ async fn cloud_full_done_only_then_marker_closes() {
     .await;
     assert!(stopped_cleanly(&events), "{events:?}");
     assert!(answering_text(&events, "Bilan initial."));
-    assert!(events.iter().any(|e| matches!(
-        e,
-        Ok(AgentEvent::PhaseEnter { phase: Phase::Done })
-    )));
 }

@@ -8,6 +8,7 @@ use drox_tools::CANONICAL_ASK_JSON_EXAMPLE;
 pub(crate) use drox_prompts::{
 	context_load_nudge, explore_incomplete_nudge, run_objective_done_nudge,
 	run_objective_system_block, step_by_step_todo_nudge, step_explore_kickoff_nudge,
+	step_targets_single_file,
 	step_without_explore_nudge, unfinished_course_plan_prompt, unfinished_todos_prompt,
 	ANALYZING_PHASE_NUDGE, CODE_MUTATION_TESTING_NUDGE, DOC_INGESTION_EXPLORE_ANNEX,
 	DONE_ONLY_NUDGE_PROMPT, EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,

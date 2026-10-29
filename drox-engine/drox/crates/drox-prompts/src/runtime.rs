@@ -6,10 +6,8 @@ use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 pub const PARENT_HEAVY_READ_NUDGE: &str = "STOP flooding the parent with repeated reads / \
     `Get-Content` / `cat` dumps.\n\
     \n\
-    If **Sub-agents — Explore** is present: follow that supplement now (one `task` at step \
-    kickoff → merge). A prior `bash dir` does **not** authorize parent tree dumps.\n\
-    \n\
-    Else: ranged `file_read` / `grep` only. Needles 1–2 known paths OK.";
+    A prior `bash dir` does **not** authorize parent tree dumps. \
+    Ranged `file_read` / `grep` only. Needles 1–2 known paths OK.";
 
 pub const PARENT_HEAVY_READ_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.s5_heavy_read",
@@ -32,10 +30,7 @@ pub const PARENT_HEAVY_READ_NUDGE_THRESHOLD: u32 = 1;
 pub const WORK_PLAN_FRAME_NUDGE: &str = "WORK PLAN FRAME — soft delta (not a hard gate)\n\
     \n\
     This user message is **work** (not chitchat). Prefer mounting/updating a `todo_write` \
-    plan early for multi-step work.\n\
-    \n\
-    If the **Sub-agents — Explore** supplement is present this run, follow that protocol \
-    at step kickoff — do **not** restate it here. Tools stay free.";
+    plan early for multi-step work. Tools stay free.";
 
 pub const WORK_PLAN_FRAME_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.work_plan_frame",
@@ -160,6 +155,53 @@ pub fn step_explore_kickoff_nudge(step_id: &str, step_content: Option<&str>) -> 
          Step `{step_id}` in_progress: {label}\n\
          Prefer one focused `task` (explore) with `plan_step_id` + `must_return`, then merge. \
          Needles 1–2 OK. Tools free."
+	)
+}
+
+/// Une étape qui nomme un seul fichier n'a pas besoin du protocole Explore.
+pub fn step_targets_single_file(step_content: Option<&str>) -> bool {
+	let Some(text) = step_content.map(str::trim).filter(|s| !s.is_empty()) else {
+		return false;
+	};
+	let mut files = 0usize;
+	for token in text.split_whitespace() {
+		let token = token.trim_matches(|c: char| {
+			!c.is_ascii_alphanumeric() && c != '.' && c != '/' && c != '\\' && c != '_' && c != '-'
+		});
+		if looks_like_workspace_file(token) {
+			files += 1;
+		}
+	}
+	files == 1
+}
+
+fn looks_like_workspace_file(token: &str) -> bool {
+	let Some((_, ext)) = token.rsplit_once('.') else {
+		return false;
+	};
+	matches!(
+		ext,
+		"py" | "rs"
+			| "ts"
+			| "tsx"
+			| "js"
+			| "jsx"
+			| "mjs"
+			| "c"
+			| "h"
+			| "cpp"
+			| "cs"
+			| "go"
+			| "java"
+			| "md"
+			| "json"
+			| "toml"
+			| "yaml"
+			| "yml"
+			| "css"
+			| "html"
+			| "vue"
+			| "sql"
 	)
 }
 
@@ -401,4 +443,20 @@ Explore did not finish cleanly — **do not** rescue with parent `file_read`/`gr
 (2) needle 1–2 known paths only.\n\
 Forbidden: parent-read spam, spill re-open, or one mega-brief `task`."
 	)
+}
+
+#[cfg(test)]
+mod single_file_step_tests {
+	use super::step_targets_single_file;
+
+	#[test]
+	fn one_named_file_skips_explore() {
+		assert!(step_targets_single_file(Some(
+			"Modifier pricing.py : remise 10 %"
+		)));
+		assert!(!step_targets_single_file(Some(
+			"Modifier pricing.py et receipts.py"
+		)));
+		assert!(!step_targets_single_file(Some("Analyser le projet")));
+	}
 }

@@ -16,7 +16,9 @@ export type DroxDevFeatureId =
 
 	| 'exportTranscript'
 
-	| 'executablePath';
+	| 'executablePath'
+
+	| 'historyProbe';
 export interface IDroxSurfaceProductInfo {
 
 	readonly droxSurface?: string;
@@ -53,6 +55,12 @@ export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly des
 	executablePath: {
 
 		description: 'Réglage drox.executablePath (Settings IDE — dogfood binaire local, hors vignette chat).',
+
+	},
+
+	historyProbe: {
+
+		description: 'Commande palette « History probe » : session dédiée, snapshot de l\'historique réellement envoyé au modèle.',
 
 	},
 

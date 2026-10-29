@@ -32,28 +32,19 @@ Réf. enquête 1.6.2 : [DIAG-CLOSURE-REPEAT](../1.6.2/DIAG-CLOSURE-REPEAT.md).
 
 ---
 
-## O2 — Historique de session : le tour en cours reste lisible — **ouvert**
+## O2 — Historique de session — **retiré**
 
-**Statut** : ouvert. Cadrage validé, pas encore codé.  
-**Profils** : `local-9b`, `local-27b`, `cloud-full`. Même forme, queue plus courte pour le petit modèle.
+**Statut** : essai retiré. Pas de code en place.  
+**Commit** : aucun. O1 n’est pas concerné.
 
-### Symptôme
+### Ce qui a été retiré
 
-Sur un fil long, le modèle répond à la session entière plutôt qu’au dernier message. Repro `local-27b` + `glm-5.3-flash` : après « Oui fait le », la clôture ressort des sujets du tout début (`/api/track`, BOM, `readFileSync`) et peut rééditer un fichier déjà modifié dans le tour.
+Une copie envoyée au modèle ne gardait que les 4 derniers messages (`local-9b`) ou les 8 derniers (`local-27b`, `cloud-full`), et vidait les résultats d’outils au-delà de 2 ou 3. Le transcript du chat n’était pas modifié.
 
-### Règle
+Ce plafond est trop contraignant : un travail sur plusieurs fichiers sort de la queue, et le modèle n’a plus de quoi s’appuyer.
 
-Pas d’heuristique textuelle pour décider ce qui est important. Seulement le rôle du message, son âge et sa taille.
+Pas de quota du type « x derniers messages en clair ». Le détail de ce qui a été codé à la place est dans la [note du README](README.md).
 
-### Correctif retenu
+### Étape en place
 
-À chaque nouveau message utilisateur, avant l’appel modèle :
-
-1. Garder le prompt système.
-2. Garder en clair les derniers échanges (compte de messages ; queue plus courte en `local-9b`).
-3. Remplacer les anciens résultats d’outils par le placeholder de `microcompact`. Aujourd’hui ce passage ne part qu’au débordement de fenêtre.
-4. Laisser le message utilisateur du tour en dernier, tel quel.
-
-Si après ça la fenêtre déborde encore : résumé modèle déjà en place (`try_live_compact` / `summarize_run`). La fiche est fixe — fichiers touchés, décisions, sujets en suspens — et les sujets en suspens ne sont pas la tâche du tour. Pas de résumé à chaque message.
-
-Distinct de O1 : O1 coupe la conclusion répétée en full protocol ; O2 allège ce que le modèle relit.
+Le résultat renvoyé au modèle pour `file_edit`, `file_write` et `notebook_edit` ne contient plus le diff ni le fichier entier. `todo_write` ne répète plus `todos`, `course_plan_write` ne répète plus `steps`, `bash` ne répète plus la commande. L’appel d’outil garde la demande. Le chat affiche toujours le JSON complet.

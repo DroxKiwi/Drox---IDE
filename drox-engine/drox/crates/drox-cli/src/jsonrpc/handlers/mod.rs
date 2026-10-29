@@ -672,6 +672,9 @@ async fn build_agent_setup(
         }
     }
 
+    if let Some(prompt) = system_merged.as_mut() {
+        *prompt = omit_disabled_tool_docs(prompt, &disabled_tools);
+    }
     if let Some(notice) = format_disabled_tools_notice(&disabled_tools) {
         match &mut system_merged {
             Some(s) => s.push_str(&notice),
@@ -846,6 +849,7 @@ async fn build_agent_setup(
         }),
         explore_execution: false,
         engine_profile: engine_profile.id().to_string(),
+        history_probe: params.history_probe.unwrap_or(false),
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);
@@ -990,6 +994,76 @@ fn apply_disabled_tools(registry: &mut ToolRegistry, disabled: &[String]) {
             tracing::debug!(tool = %trimmed, "outil retiré du registre (désactivé)");
         }
     }
+}
+
+/// Retire le mode d'emploi des outils absents du registre.
+/// La liste courte « indisponibles » reste ajoutée ensuite.
+fn omit_disabled_tool_docs(prompt: &str, disabled: &[String]) -> String {
+    let disabled: std::collections::HashSet<&str> = disabled
+        .iter()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect();
+    let mut prompt = prompt.to_string();
+    if ["memory_read", "memory_list", "session_note", "session_search"]
+        .iter()
+        .all(|name| disabled.contains(name))
+    {
+        prompt = replace_heading(
+            &prompt,
+            "# Session memory",
+            "# Session memory\n\nLes outils de mémoire de session sont désactivés pour ce run.\n",
+        );
+        prompt = prompt.replace(", `memory_*`", "");
+    }
+    if ["skill_list", "skill_read"]
+        .iter()
+        .all(|name| disabled.contains(name))
+    {
+        prompt = replace_heading(
+            &prompt,
+            "# Local skills",
+            "# Local skills\n\nLes outils de skills sont désactivés pour ce run.\n",
+        );
+    }
+    if ["git_worktree_enter", "git_worktree_exit"]
+        .iter()
+        .all(|name| disabled.contains(name))
+    {
+        prompt = replace_heading(
+            &prompt,
+            "# Git worktrees",
+            "# Git worktrees\n\nLes outils worktree sont désactivés pour ce run.\n",
+        );
+    }
+    prompt
+        .lines()
+        .filter(|line| {
+            let trimmed = line.trim();
+            let Some(rest) = trimmed.strip_prefix("- **`") else {
+                return true;
+            };
+            let tool = rest.split(['`', ' ', '{']).next().unwrap_or("");
+            !disabled.contains(tool)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn replace_heading(prompt: &str, heading: &str, replacement: &str) -> String {
+    let Some(start) = prompt.find(heading) else {
+        return prompt.to_string();
+    };
+    let after = start + heading.len();
+    let end = prompt[after..]
+        .find("\n# ")
+        .map(|i| after + i)
+        .unwrap_or(prompt.len());
+    let mut out = String::with_capacity(prompt.len());
+    out.push_str(&prompt[..start]);
+    out.push_str(replacement.trim_end());
+    out.push_str(&prompt[end..]);
+    out
 }
 
 /// Bloc prompt indiquant au modèle quels outils ne sont pas disponibles.
@@ -1466,6 +1540,25 @@ mod tests {
         assert!(reg.get("bash").is_none());
         assert!(reg.get("file_read").is_some());
         assert!(reg.get("todo_write").is_some());
+    }
+
+    #[test]
+    fn omit_disabled_memory_section() {
+        let prompt = "# Phase protocol\n\n- `analyzing`: read-only: `file_read`, `lsp`, `memory_*`.\n\n# Tools\n\n- **`file_read { path }`**: read.\n\n# Session memory\n\n- **`memory_read { slug }`**: reload.\n\n# Security\n\nStay safe.\n";
+        let out = omit_disabled_tool_docs(
+            prompt,
+            &[
+                "memory_read".into(),
+                "memory_list".into(),
+                "session_note".into(),
+                "session_search".into(),
+            ],
+        );
+        assert!(out.contains("mémoire de session sont désactivés"));
+        assert!(!out.contains("memory_read"));
+        assert!(!out.contains("memory_*"));
+        assert!(out.contains("file_read"));
+        assert!(out.contains("# Security"));
     }
 
     #[tokio::test]

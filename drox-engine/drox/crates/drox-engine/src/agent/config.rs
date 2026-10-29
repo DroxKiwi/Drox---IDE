@@ -58,6 +58,10 @@ pub struct AgentConfig {
     pub explore_execution: bool,
     /// Profil moteur IDE (`local-9b` | `local-27b` | `cloud-full`) — knobs parent (CADRAGE 1.6.1 §3bis).
     pub engine_profile: String,
+    /// Dev only. Quand `true`, chaque appel LLM émet `AgentEvent::HistoryProbe`
+    /// (rôle, taille, extrait) sur l'historique réellement envoyé. L'IDE release
+    /// ne pose jamais ce flag.
+    pub history_probe: bool,
 }
 
 /// Valeurs RPC / settings. Inconnu → `local-9b`.
@@ -206,6 +210,7 @@ impl Default for AgentConfig {
             // Struct par défaut (tests, child Explore) = protocole 1.6.0. Le défaut
             // produit `local-9b` vient de `normalize_engine_profile` côté RPC / TUI.
             engine_profile: EngineProfile::CloudFull.id().to_string(),
+            history_probe: false,
         }
     }
 }

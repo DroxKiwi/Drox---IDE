@@ -25,5 +25,7 @@ suite('droxDevSurface', () => {
 		assert.strictEqual(isDroxDevFeatureEnabled('chatVersionDevSuffix', release), false);
 		assert.strictEqual(isDroxDevFeatureEnabled('executablePath', dev), true);
 		assert.strictEqual(isDroxDevFeatureEnabled('executablePath', release), false);
+		assert.strictEqual(isDroxDevFeatureEnabled('historyProbe', dev), true);
+		assert.strictEqual(isDroxDevFeatureEnabled('historyProbe', release), false);
 	});
 });

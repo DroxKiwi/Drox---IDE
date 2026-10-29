@@ -91,6 +91,7 @@ pub use model_questions::{
 };
 pub use runtime::{
 	context_load_nudge, explore_incomplete_nudge, step_explore_kickoff_nudge,
+	step_targets_single_file,
 	step_without_explore_nudge, ANALYZING_PHASE_ENTRY, ANALYZING_PHASE_NUDGE, DOC_INGESTION_ENTRY,
 	DOC_INGESTION_EXPLORE_ANNEX, EXPLORE_RESCUE_ENTRY, EXPLORE_RESCUE_PARENT_READ_NUDGE,
 	PARENT_HEAVY_READ_ENTRY, PARENT_HEAVY_READ_NUDGE, PARENT_HEAVY_READ_NUDGE_THRESHOLD,

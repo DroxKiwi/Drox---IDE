@@ -80,6 +80,19 @@ impl Phase {
     }
 }
 
+/// Une entrée de l'historique vu par le modèle (outil dev).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryProbeEntry {
+    pub role: String,
+    pub chars: usize,
+    /// Texte intégral de l'entrée (hors images). Sert à l'export dev.
+    pub text: String,
+    /// Début du texte, pour le canal de sortie.
+    pub head: String,
+    pub tools: Vec<String>,
+}
+
 /// Événement de haut niveau émis par l'agent.
 ///
 /// `#[non_exhaustive]` : de nouveaux variants pourront être ajoutés
@@ -141,6 +154,9 @@ pub enum AgentEvent {
         parent_id: ToolUseId,
         text: String,
     },
+    /// Snapshot de l'historique réellement envoyé au modèle, avant un tour LLM.
+    /// Activé seulement si `AgentConfig::history_probe` (outil dev IDE).
+    HistoryProbe { entries: Vec<HistoryProbeEntry> },
     /// Estimation live de la fenêtre de contexte (jetons historique) avant un tour LLM.
     ContextUsage { parent_tokens: usize },
     /// Usage provider remonté à la fin d'un tour LLM (le run continue).
