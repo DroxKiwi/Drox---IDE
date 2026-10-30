@@ -251,8 +251,91 @@
 		fn.scrollLog?.();
 	};
 
+	const CLOSING_PROSE_PHASES = new Set(['reading', 'acting', 'planning']);
+
+	fn.answerSectionHasVisibleReply = function (answer) {
+		if (!answer) {
+			return false;
+		}
+		const nodes = answer.querySelectorAll(
+			':scope > .drox-final-answer, :scope > .drox-user-facing-reply, :scope > .drox-chat-stream, :scope > .msg.assistant',
+		);
+		for (const node of nodes) {
+			const text = String(node.dataset?.raw ?? node.textContent ?? '').trim();
+			if (text) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	/**
+	 * Clôture sans `[phase: answering]` : le texte écrit après le dernier outil,
+	 * encore dans reading / acting / planning, sort du fil de travail et devient la bulle.
+	 */
+	fn.promoteClosingPhaseProseToAnswer = function () {
+		if (!D.dom.logEl || !D.state.linearRunUi) {
+			return;
+		}
+		fn.flushStreamBuffer?.({ asAnswer: false });
+		const strips = [
+			...D.dom.logEl.querySelectorAll(':scope > .drox-run-strip:not([data-sealed="1"])'),
+		];
+		if (strips.length === 0 && D.state.runStripEl?.isConnected) {
+			strips.push(D.state.runStripEl);
+		}
+		for (const strip of strips) {
+			const answer = strip.querySelector('[data-section="answer"]');
+			if (!answer || fn.answerSectionHasVisibleReply(answer)) {
+				continue;
+			}
+			const nodes = [...strip.querySelectorAll('.drox-phase-line, .msg-tool, .msg-file-change')];
+			let lastWork = -1;
+			for (let i = 0; i < nodes.length; i++) {
+				const node = nodes[i];
+				if (node.classList.contains('msg-tool') || node.classList.contains('msg-file-change')) {
+					lastWork = i;
+				}
+			}
+			if (lastWork < 0) {
+				continue;
+			}
+			const movedBlocks = new Set();
+			for (let i = lastWork + 1; i < nodes.length; i++) {
+				const line = nodes[i];
+				if (!line.classList.contains('drox-phase-line')) {
+					continue;
+				}
+				const block = line.closest('.phase-block');
+				const phase = block?.dataset?.phase || '';
+				if (!CLOSING_PROSE_PHASES.has(phase)) {
+					continue;
+				}
+				const raw = String(line.dataset?.raw ?? line.textContent ?? '').trim();
+				if (!raw) {
+					line.remove();
+					continue;
+				}
+				line.classList.remove('drox-phase-line', 'streaming');
+				line.classList.add('drox-user-facing-reply', 'drox-final-answer');
+				if (strip.dataset.stripId) {
+					line.dataset.runStripId = strip.dataset.stripId;
+				}
+				answer.appendChild(line);
+				fn.markTurnFinalAssistant?.(line);
+				if (block) {
+					movedBlocks.add(block);
+				}
+			}
+			for (const block of movedBlocks) {
+				fn.syncPhaseBlockSummary?.(block);
+			}
+		}
+	};
+
 	/** Stream answer sans événement `userFacingReply` → réponse finale visible. */
 	fn.promoteChatStreamToFinalAnswer = function () {
+		fn.promoteClosingPhaseProseToAnswer?.();
 		if (!D.dom.logEl) {
 			return;
 		}

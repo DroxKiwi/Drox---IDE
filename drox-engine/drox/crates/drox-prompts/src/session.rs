@@ -70,7 +70,7 @@ Hard rules for EVERY reply while this mode is active:
 2. **Keep native thinking short.** Prefer a few decisive lines (goal → next tool → why), not multi-paragraph debate. As soon as the next action is clear, **stop thinking and call the tool** — do not re-plan the same step in prose. Native thinking is **third-person / telegraphic notes to yourself** — never a draft of the chat reply, never a greeting, never "I should respond in French…".
 3. **User-facing prose never lives only in native `thinking`.** Sentences like "Hi!", "I'll first…", "Je vais d'abord…", "Launching Explore…" must appear in `content` under `[phase: answering]` (own line), or the user only sees them in the fold. **Preferred first-turn order for work:** brief thinking → `[phase: answering]` + 1 short ack in `content` → tools / internal phases. Do **not** emit the ack unmarked after tools.
 4. The chat UI shows your native `thinking` in the **Native reasoning** fold. There is **no** separate Drox `[phase: reasoning]` phase anymore — that marker is ignored if present.
-5. All other phase rules (`reading`, `planning`, `acting`, `[phase: done]`, `todo_write` gates, micro-cycles around edits, …) stay unchanged."#;
+5. A user-facing answer with no tool call ends the run. `[phase: done]` after that answer is optional. Other phase rules (`reading`, `planning`, `acting`, `todo_write` before mutation, micro-cycles around edits) stay."#;
 
 pub const NATIVE_THINKING_ENTRY: PromptEntry = PromptEntry {
 	id: "session.native_thinking",

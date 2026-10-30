@@ -61,6 +61,7 @@
 		}
 		if (phase === 'done') {
 			fn.appendPhaseMarker?.('done');
+			fn.promoteClosingPhaseProseToAnswer?.();
 			D.state.currentPhase = null;
 			if (!D.state.uiReplayActive) {
 				fn.finalizeAssistant?.();

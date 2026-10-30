@@ -80,6 +80,12 @@ pub fn kind_of_segment(segment: &str) -> BashCommandKind {
         return classify_stream_filter(base.as_str(), segment);
     }
 
+    // Scripts without an inline payload or a file redirect are checks
+    // (`python main.py`, `node app.js`). `-c` / `-e` and `>` stay mutating.
+    if matches!(base.as_str(), "python" | "python3" | "node") {
+        return classify_interpreter(base.as_str(), segment);
+    }
+
     if MUTATING.contains(&base.as_str()) {
         return BashCommandKind::Mutating;
     }
@@ -178,6 +184,33 @@ fn classify_stream_filter(base: &str, segment: &str) -> BashCommandKind {
             }
         }
         _ => BashCommandKind::Mutating,
+    }
+}
+
+/// `python` / `python3` / `node` running a file are checks. An inline
+/// program (`-c`, `-e`, `--eval`) or a workspace file redirect is a mutation.
+fn classify_interpreter(base: &str, segment: &str) -> BashCommandKind {
+    if has_workspace_affecting_file_redirect(segment, None) {
+        return BashCommandKind::Mutating;
+    }
+    let lower = segment.to_ascii_lowercase();
+    let tokens: Vec<&str> = lower.split_whitespace().collect();
+    let Some(idx) = tokens.iter().position(|t| {
+        let name = t.rsplit(['/', '\\']).next().unwrap_or(t);
+        let name = name.strip_suffix(".exe").unwrap_or(name);
+        name == base
+    }) else {
+        return BashCommandKind::Mutating;
+    };
+    let next = tokens.get(idx + 1).copied().unwrap_or("");
+    let inline = match base {
+        "node" => next == "-e" || next.starts_with("-e") || next == "--eval",
+        _ => next == "-c" || next.starts_with("-c"),
+    };
+    if inline {
+        BashCommandKind::Mutating
+    } else {
+        BashCommandKind::ReadOnly
     }
 }
 
@@ -689,9 +722,6 @@ static MUTATING: &[&str] = &[
     "ren",
     // `sed` / `awk` → `classify_stream_filter` (ReadOnly unless -i / inplace)
     "perl",
-    "python",
-    "python3",
-    "node",
     // cargo / npm / pnpm / yarn / tsc / npx / gh → `classify_toolchain`
     "make",
     "cmake",
@@ -871,6 +901,35 @@ mod tests {
         assert_eq!(kind_of_segment("pnpm run typecheck"), BashCommandKind::ReadOnly);
         assert_eq!(kind_of_segment("npm install lodash"), BashCommandKind::Mutating);
         assert_eq!(kind_of_segment("cargo build"), BashCommandKind::Mutating);
+    }
+
+    #[test]
+    fn python_and_node_scripts_are_checks_unless_inline_or_redirect() {
+        assert_eq!(
+            kind_of_segment("python main.py devis PL-04 2"),
+            BashCommandKind::ReadOnly
+        );
+        assert_eq!(
+            kind_of_segment("python -m py_compile atelier/pricing.py"),
+            BashCommandKind::ReadOnly
+        );
+        assert_eq!(
+            kind_of_segment("node app.js"),
+            BashCommandKind::ReadOnly
+        );
+        assert!(command_is_inspect_only("python main.py devis PL-04 2 PL-18 3"));
+        assert_eq!(
+            kind_of_segment("python -c \"open('x','w').write('a')\""),
+            BashCommandKind::Mutating
+        );
+        assert_eq!(
+            kind_of_segment("node -e \"require('fs').writeFileSync('x','a')\""),
+            BashCommandKind::Mutating
+        );
+        assert_eq!(
+            kind_of_segment("python main.py > out.txt"),
+            BashCommandKind::Mutating
+        );
     }
 
     #[test]

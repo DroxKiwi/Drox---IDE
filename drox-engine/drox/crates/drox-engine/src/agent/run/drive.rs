@@ -185,18 +185,8 @@ impl Agent {
             return;
         }
 
-        // Sprint A.2 — done-driven completion. Plus de heuristique « pas
-        // d'outil = on s'arrête » : la SEULE condition de fin propre est
-        // `[phase: done]`. Tant que ce marqueur n'est pas vu, on injecte un
-        // nudge et on relance. La borne dure reste `max_iterations`.
-        //
-        // Sprint A.3 — answering-before-done. On ajoute une seconde
-        // contrainte : `done` n'est accepté que si **au moins un**
-        // `[phase: answering]` a été émis dans le run. Sinon la réponse
-        // finale est enfouie dans la trace UI repliée (invisible) et on
-        // demande au modèle de la re-rédiger dans `answering`, même au prix
-        // d'une répétition. C'est délibéré : la phase `answering` est la
-        // seule rendue en clair dans la bulle assistant (cf. `chat.js`).
+        // Clôture : un tour sans outil ferme le run (local et full protocol).
+        // `[phase: done]` reste accepté quand le modèle l'écrit. Il n'est pas requis.
         let mut seen_answering_in_run = false;
         let mut saw_successful_todo_write_in_run = false;
         let mut saw_successful_course_plan_write_in_run = false;
@@ -251,6 +241,8 @@ impl Agent {
         let mut last_todo_next: Option<String> = None;
         let mut last_todo_completed_hint: u64 = 0;
         let mut parent_heavy_read_streak: u32 = 0;
+        // La lecture qui suit un `file_edit` non appliqué sert à corriger l'ancre.
+        let mut edit_repair_pending = false;
         let mut parent_heavy_read_nudge_sent = false;
         let mut doc_ingestion_annex_sent = false;
         let mut work_plan_frame_nudge_sent = false;
@@ -1455,17 +1447,20 @@ impl Agent {
                                         &call.name,
                                         &call.arguments,
                                     ) {
-                                        parent_heavy_read_streak =
-                                            parent_heavy_read_streak.saturating_add(1);
-                                        // E2 — compter lectures dans la fenêtre post-Explore.
-                                        if post_explore_window {
-                                            post_explore_read_streak =
-                                                post_explore_read_streak.saturating_add(1);
-                                            if post_explore_read_streak
-                                                >= POST_EXPLORE_STALL_READ_THRESHOLD
-                                                && !post_explore_stall_nudge_sent
-                                            {
-                                                pending_post_explore_stall_nudge = true;
+                                        if edit_repair_pending {
+                                            edit_repair_pending = false;
+                                        } else {
+                                            parent_heavy_read_streak =
+                                                parent_heavy_read_streak.saturating_add(1);
+                                            if post_explore_window {
+                                                post_explore_read_streak =
+                                                    post_explore_read_streak.saturating_add(1);
+                                                if post_explore_read_streak
+                                                    >= POST_EXPLORE_STALL_READ_THRESHOLD
+                                                    && !post_explore_stall_nudge_sent
+                                                {
+                                                    pending_post_explore_stall_nudge = true;
+                                                }
                                             }
                                         }
                                     }
@@ -1514,6 +1509,12 @@ impl Agent {
                                     }
                                 }
                                 Err(err) => {
+                                    if matches!(
+                                        call.name.as_str(),
+                                        "file_edit" | "file_write" | "notebook_edit"
+                                    ) {
+                                        edit_repair_pending = true;
+                                    }
                                     if matches!(&err, ToolError::InvalidArgs(_)) {
                                         // Reset OK : feedback args nouveau ≠ boucle.
                                         loop_detector.reset();
@@ -1760,8 +1761,13 @@ impl Agent {
                                         &call.arguments,
                                         &ctx.workspace_root,
                                     ) {
-                                        mutating_tools_since_last_todo =
-                                            mutating_tools_since_last_todo.saturating_add(1);
+                                        if tool_apply_failed(&value) {
+                                            edit_repair_pending = true;
+                                        } else {
+                                            edit_repair_pending = false;
+                                            mutating_tools_since_last_todo =
+                                                mutating_tools_since_last_todo.saturating_add(1);
+                                        }
                                     }
                                     if call.name == "bash"
                                         && saw_code_mutation_in_run
@@ -1773,7 +1779,8 @@ impl Agent {
                                     if record_counts_as_code_mutation(
                                         &call.name,
                                         &call.arguments,
-                                    ) {
+                                    ) && !tool_apply_failed(&value)
+                                    {
                                         saw_code_mutation_in_run = true;
                                         clear_rotating_file_read_window(&mut recent_file_reads);
                                         rotating_file_read_nudge_sent = false;
@@ -1851,17 +1858,20 @@ impl Agent {
                                         &call.name,
                                         &call.arguments,
                                     ) {
-                                        parent_heavy_read_streak =
-                                            parent_heavy_read_streak.saturating_add(1);
-                                        // E2 — compter lectures dans la fenêtre post-Explore.
-                                        if post_explore_window {
-                                            post_explore_read_streak =
-                                                post_explore_read_streak.saturating_add(1);
-                                            if post_explore_read_streak
-                                                >= POST_EXPLORE_STALL_READ_THRESHOLD
-                                                && !post_explore_stall_nudge_sent
-                                            {
-                                                pending_post_explore_stall_nudge = true;
+                                        if edit_repair_pending {
+                                            edit_repair_pending = false;
+                                        } else {
+                                            parent_heavy_read_streak =
+                                                parent_heavy_read_streak.saturating_add(1);
+                                            if post_explore_window {
+                                                post_explore_read_streak =
+                                                    post_explore_read_streak.saturating_add(1);
+                                                if post_explore_read_streak
+                                                    >= POST_EXPLORE_STALL_READ_THRESHOLD
+                                                    && !post_explore_stall_nudge_sent
+                                                {
+                                                    pending_post_explore_stall_nudge = true;
+                                                }
                                             }
                                         }
                                     }
@@ -2013,6 +2023,12 @@ impl Agent {
                                     }
                                 }
                                 Err(err) => {
+                                    if matches!(
+                                        call.name.as_str(),
+                                        "file_edit" | "file_write" | "notebook_edit"
+                                    ) {
+                                        edit_repair_pending = true;
+                                    }
                                     let is_invalid = matches!(&err, ToolError::InvalidArgs(_));
                                     let msg = err.to_string();
                                     last_tool_error =
@@ -2245,4 +2261,8 @@ fn history_probe_snapshot(messages: &[Message]) -> Vec<HistoryProbeEntry> {
             }
         })
         .collect()
+}
+
+fn tool_apply_failed(value: &Value) -> bool {
+    value.get("applied").and_then(Value::as_bool) == Some(false)
 }

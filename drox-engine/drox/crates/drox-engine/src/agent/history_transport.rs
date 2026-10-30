@@ -21,7 +21,8 @@ const DROP_CALL_KEYS: &[&str] = &[
 /// son résultat confirme `applied: true` et qu'un appel plus récent existe.
 /// Un échec (`old_string not found`, chemin invalide) garde `edits` pour
 /// que le modèle puisse corriger. Le dernier résultat `glob` / `task`
-/// reste entier. Deux messages user identiques à la suite n'en font qu'un.
+/// reste entier. Une lecture `file_read` plus ancienne du même chemin est
+/// résumée. Deux messages user identiques à la suite n'en font qu'un.
 pub(crate) fn for_model(messages: &[Message]) -> Vec<Message> {
     let mut out = dedupe_consecutive_users(messages);
     slim_old_payloads(&mut out);
@@ -54,12 +55,20 @@ fn slim_old_payloads(messages: &mut [Message]) {
     let mut last_task: Option<usize> = None;
     let mut calls: Vec<(usize, usize)> = Vec::new();
     let mut results: Vec<(usize, usize, String)> = Vec::new();
+    let mut read_paths: HashMap<ToolUseId, String> = HashMap::new();
+    let mut file_reads: Vec<(usize, usize, String)> = Vec::new();
+    let mut last_read_for_path: HashMap<String, usize> = HashMap::new();
 
     for (mi, message) in messages.iter().enumerate() {
         for (bi, block) in message.content.iter().enumerate() {
             match block {
-                Content::ToolUse { id, name, .. } => {
+                Content::ToolUse { id, name, input } => {
                     tool_names.insert(id.clone(), name.clone());
+                    if name == "file_read" {
+                        if let Some(path) = input.get("path").and_then(Value::as_str) {
+                            read_paths.insert(id.clone(), path.to_string());
+                        }
+                    }
                     if is_body_call(name) {
                         last_body_call = Some(calls.len());
                         calls.push((mi, bi));
@@ -71,6 +80,13 @@ fn slim_old_payloads(messages: &mut [Message]) {
                     };
                     if is_body_call(&name) {
                         applied.insert(tool_use_id.clone(), result_confirms_apply(content));
+                    }
+                    if name == "file_read" && content.len() > SLIM_RESULT_CHARS {
+                        if let Some(path) = read_paths.get(tool_use_id) {
+                            let slot = file_reads.len();
+                            last_read_for_path.insert(path.clone(), slot);
+                            file_reads.push((mi, bi, path.clone()));
+                        }
                     }
                     if (name == "glob" || name == "task") && content.len() > SLIM_RESULT_CHARS {
                         let slot = results.len();
@@ -113,6 +129,15 @@ fn slim_old_payloads(messages: &mut [Message]) {
         if let Content::ToolResult { content, .. } = &mut messages[*mi].content[*bi] {
             let n = content.len();
             *content = format!("earlier {name} result omitted ({n} chars)");
+        }
+    }
+    for (idx, (mi, bi, path)) in file_reads.iter().enumerate() {
+        if last_read_for_path.get(path) == Some(&idx) {
+            continue;
+        }
+        if let Content::ToolResult { content, .. } = &mut messages[*mi].content[*bi] {
+            let n = content.len();
+            *content = format!("earlier file_read of {path} omitted ({n} chars)");
         }
     }
 }
@@ -230,6 +255,37 @@ mod tests {
         match &out[2].content[0] {
             Content::ToolUse { input, .. } => assert_eq!(input["new_string"], "try"),
             _ => panic!("tool use"),
+        }
+    }
+
+    #[test]
+    fn keeps_latest_file_read_of_same_path() {
+        let big = "x".repeat(500);
+        let (a1, use1) = call("file_read", json!({"path": "atelier/pricing.py"}));
+        let (a2, use2) = call("file_read", json!({"path": "atelier/pricing.py"}));
+        let (b, use_b) = call("file_read", json!({"path": "main.py"}));
+        let messages = vec![
+            Message::new(Role::Assistant, vec![use1]),
+            Message::new(Role::Tool, vec![result(a1, &big)]),
+            Message::new(Role::Assistant, vec![use_b]),
+            Message::new(Role::Tool, vec![result(b, &big)]),
+            Message::new(Role::Assistant, vec![use2]),
+            Message::new(Role::Tool, vec![result(a2, &big)]),
+        ];
+        let out = for_model(&messages);
+        match &out[1].content[0] {
+            Content::ToolResult { content, .. } => {
+                assert!(content.starts_with("earlier file_read of atelier/pricing.py"));
+            }
+            _ => panic!("result"),
+        }
+        match &out[3].content[0] {
+            Content::ToolResult { content, .. } => assert_eq!(content.len(), 500),
+            _ => panic!("result"),
+        }
+        match &out[5].content[0] {
+            Content::ToolResult { content, .. } => assert_eq!(content.len(), 500),
+            _ => panic!("result"),
         }
     }
 
