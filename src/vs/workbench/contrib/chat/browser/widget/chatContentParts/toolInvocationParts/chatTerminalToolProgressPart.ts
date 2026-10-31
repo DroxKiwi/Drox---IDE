@@ -10,7 +10,7 @@ import { IConfigurationService } from '../../../../../../../platform/configurati
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js';
 import { ChatConfiguration } from '../../../../common/constants.js';
 import { migrateLegacyTerminalToolSpecificData } from '../../../../common/chat.js';
-import { IChatToolInvocation, IChatToolInvocationSerialized, ToolConfirmKind, type IChatMarkdownContent, type IChatTerminalToolInvocationData, type ILegacyChatTerminalToolInvocationData } from '../../../../common/chatService/chatService.js';
+import { IChatToolInvocation, IChatToolInvocationSerialized, ToolConfirmKind, isLegacyChatTerminalToolInvocationData, type IChatMarkdownContent, type IChatTerminalToolInvocationData, type ILegacyChatTerminalToolInvocationData } from '../../../../common/chatService/chatService.js';
 import { ChatTreeItem, IChatCodeBlockInfo, IChatWidgetService } from '../../../chat.js';
 import { ChatQueryTitlePart } from '../chatConfirmationWidget.js';
 import { IChatContentPartRenderContext } from '../chatContentParts.js';
@@ -497,7 +497,7 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 				toolInvocation.state.read(reader);
 				this._decoration.update();
 				const data = toolInvocation.toolSpecificData;
-				if (!data || data.kind !== 'terminal') {
+				if (!data || data.kind !== 'terminal' || isLegacyChatTerminalToolInvocationData(data)) {
 					return;
 				}
 				const text = data.terminalCommandOutput?.text ?? '';
