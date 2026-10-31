@@ -28,6 +28,7 @@ import { IDroxChatSessionService } from '../common/droxChatSessionService.js';
 import { IDroxLongMemoryService } from '../common/droxLongMemoryService.js';
 import { IDroxSessionCompactService } from '../common/droxSessionCompactService.js';
 import { IDroxCodebaseIndexService } from '../common/codebase/droxCodebaseIndexService.js';
+import { DROX_BASH_USER_STOPPED } from '../common/droxBash.js';
 import { createDroxBashToolHandler } from './tools/droxBashTool.js';
 import { skipRegisteredDroxBash } from './tools/droxActiveBashGate.js';
 import {
@@ -89,6 +90,17 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 
 		this.registry.register('bash', createDroxBashToolHandler(mainProcessService, outputService, terminalService, {
 			isSessionsWindow: environmentService.isSessionsWindow,
+			takeUserStop: async () => {
+				try {
+					const r = await droxEngineService.request('tools.takeBashSkip', {}) as { stop?: boolean };
+					return r?.stop === true;
+				} catch (e) {
+					this.logService.info(
+						`[Drox] tools.takeBashSkip: ${e instanceof Error ? e.message : String(e)}`,
+					);
+					return false;
+				}
+			},
 		}));
 		this.registry.register('file_write', createDroxFileWriteToolHandler(fileHost, fileService));
 		this.registry.register('file_edit', createDroxFileEditToolHandler(fileHost, fileService));
@@ -144,33 +156,38 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 					// resolve skipPromise again (caller will fall through).
 					return false;
 				}
-				const ide = skipActiveDroxBashInIdeTerminal();
-				const forced = ide ? false : forceInterruptDroxAgentTerminal(this.terminalService);
-				let exec = false;
-				try {
-					exec = await this.engineChannel.call<boolean>(DroxEngineCommand.SkipExecBash);
-				} catch (e) {
-					this.logService.info(
-						`[Drox] SkipExecBash: ${e instanceof Error ? e.message : String(e)}`,
-					);
-				}
-				// Also clear the bash-tool module latch if present.
-				void skipRegisteredDroxBash();
-
 				const command = extractBashCommand(p.input);
 				const skipped: IDroxToolExecResult = {
 					output: {
-						error: 'Skipped by user',
+						error: DROX_BASH_USER_STOPPED,
 						skipped: true,
 						command,
 					},
 					isError: true,
 				};
+				// Return the tool result before any kill. A hung IPC must not
+				// keep the model waiting, and the sentence stays out of the card.
 				settled = true;
 				resolveSkip?.({ result: skipped });
-				this.logService.info(
-					`[Drox] tool/exec bash skip: resolving waiter (ide=${ide} forced=${forced} exec=${exec})`,
-				);
+				const terminalService = this.terminalService;
+				const engineChannel = this.engineChannel;
+				const logService = this.logService;
+				void (async () => {
+					const ide = skipActiveDroxBashInIdeTerminal();
+					const forced = ide ? false : forceInterruptDroxAgentTerminal(terminalService);
+					let exec = false;
+					try {
+						exec = await engineChannel.call<boolean>(DroxEngineCommand.SkipExecBash);
+					} catch (e) {
+						logService.info(
+							`[Drox] SkipExecBash: ${e instanceof Error ? e.message : String(e)}`,
+						);
+					}
+					void skipRegisteredDroxBash();
+					logService.info(
+						`[Drox] tool/exec bash skip: waiter released (ide=${ide} forced=${forced} exec=${exec})`,
+					);
+				})();
 				return true;
 			};
 
@@ -186,19 +203,14 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 	}
 
 	async skipActiveBash(): Promise<boolean> {
-		// 1) In-flight tool/exec latch (may return false if already settled — fall through).
+		// Never return before `tools.skipBash`: a live agent run is not a stop.
+		// The engine must complete the in-flight `tool/exec` or the card stays
+		// Running and the model is not called again.
+		let fromWrap = false;
 		if (this._bashToolExecSkip) {
-			const fromWrap = await this._bashToolExecSkip();
-			if (fromWrap) {
-				return true;
-			}
+			fromWrap = await this._bashToolExecSkip();
 		}
-		// 2) Bash-tool module latch (same renderer).
 		const gated = await skipRegisteredDroxBash();
-		if (gated) {
-			return true;
-		}
-		// 3) IDE shared terminal latch + hard recycle / find-by-name.
 		const ide = skipActiveDroxBashInIdeTerminal();
 		const forced = ide ? false : forceInterruptDroxAgentTerminal(this.terminalService);
 		let exec = false;
@@ -209,18 +221,32 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 				`[Drox] skipActiveBash ExecBash: ${e instanceof Error ? e.message : String(e)}`,
 			);
 		}
-		let native = false;
+		let engineSkipped = false;
+		let nativeChild = false;
 		try {
-			const r = await this.droxEngineService.request('tools.skipBash', {}) as { skipped?: boolean };
-			native = r?.skipped === true;
+			const r = await this.droxEngineService.request('tools.skipBash', {}) as { skipped?: boolean; native?: boolean };
+			engineSkipped = r?.skipped === true;
+			nativeChild = r?.native === true;
 		} catch (e) {
 			this.logService.info(
 				`[Drox] skipActiveBash tools.skipBash: ${e instanceof Error ? e.message : String(e)}`,
 			);
 		}
-		const ok = ide || forced || exec || native;
+		// A native child keeps the flag: its wait consumes it and reports the stop.
+		// A client bash already got the stop sentence — do not also skip the next one.
+		if ((fromWrap || gated || ide || exec) && !nativeChild) {
+			try {
+				await this.droxEngineService.request('tools.clearBashSkip', {});
+			} catch (e) {
+				this.logService.info(
+					`[Drox] tools.clearBashSkip: ${e instanceof Error ? e.message : String(e)}`,
+				);
+			}
+		}
+		const runActive = this.droxEngineService.isAgentRunActive;
+		const ok = fromWrap || gated || ide || forced || exec || engineSkipped;
 		this.logService.info(
-			`[Drox] skipActiveBash result=${ok} ide=${ide} forced=${forced} exec=${exec} native=${native}`,
+			`[Drox] skipActiveBash result=${ok} wrap=${fromWrap} gated=${gated} ide=${ide} forced=${forced} exec=${exec} engine=${engineSkipped} native=${nativeChild} run=${runActive}`,
 		);
 		return ok;
 	}

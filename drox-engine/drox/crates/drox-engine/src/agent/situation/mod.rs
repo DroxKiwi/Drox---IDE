@@ -21,14 +21,14 @@ mod todos;
 mod tests;
 
 pub(crate) use card::{
-	format_situation_card, situation_card_body_line_count, upsert_situation_card,
-	SituationSnapshot, SITUATION_CARD_BODY_LINES, SITUATION_CARD_MARKER,
+	advance_transcript_cursor_for_insert, format_situation_card, situation_card_body_line_count,
+	upsert_situation_card, SituationSnapshot, SITUATION_CARD_BODY_LINES, SITUATION_CARD_MARKER,
 };
 pub(crate) use explore_covered::ExploreCoveredPaths;
 pub(crate) use paths::{
-	clear_rotating_file_read_window, note_rotating_file_read, note_successful_file_read,
-	path_from_file_tool, repeated_file_read_stub_value, rotating_file_read_should_nudge,
-	should_stub_repeated_file_read,
+	clear_rotating_file_read_window, forget_file_read_after_mutation, normalize_path_key,
+	note_rotating_file_read, note_successful_file_read, path_from_file_tool,
+	repeated_file_read_stub_value, rotating_file_read_should_nudge, should_stub_repeated_file_read,
 };
 pub(crate) use task_outcome::{
 	counts_as_parent_heavy_read, explore_deliverable_empty, note_task_tool_success,

@@ -29,7 +29,14 @@ struct RunHandle {
 }
 
 /// Slot d'une requête sortante en attente de réponse client.
-type PendingSlot = oneshot::Sender<Result<Value, RpcError>>;
+struct PendingOutbound {
+    method: String,
+    /// `tool/exec` seulement : nom du tool (`bash`, `file_write`, …).
+    tool_name: Option<String>,
+    /// `tool/exec` bash : commande, pour la phrase de stop renvoyée au modèle.
+    command: String,
+    tx: oneshot::Sender<Result<Value, RpcError>>,
+}
 
 /// État partagé du serveur, cheap-to-clone via `Arc`.
 #[derive(Clone)]
@@ -38,7 +45,7 @@ pub struct Server {
     runs: Arc<Mutex<HashMap<String, RunHandle>>>,
     next_run_id: Arc<AtomicU64>,
     shutdown: Arc<AtomicBool>,
-    pending_outbound: Arc<Mutex<HashMap<i64, PendingSlot>>>,
+    pending_outbound: Arc<Mutex<HashMap<i64, PendingOutbound>>>,
     next_outbound_id: Arc<AtomicI64>,
     /// Tools que le client a déclaré pouvoir exécuter (via
     /// `clientCapabilities.executableTools` à `initialize`).
@@ -47,6 +54,26 @@ pub struct Server {
     /// Questions bloquantes — §2.13). Sélectionne `RpcUserAsker` (si vrai)
     /// ou `RefuseAsker` (si faux/absent) au démarrage d'un `agent.run`.
     interactive_ask: Arc<AtomicBool>,
+}
+
+fn outbound_tool_meta(method: &str, params: &impl Serialize) -> (Option<String>, String) {
+    if method != "tool/exec" {
+        return (None, String::new());
+    }
+    let Ok(value) = serde_json::to_value(params) else {
+        return (None, String::new());
+    };
+    let tool_name = value
+        .get("toolName")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let command = value
+        .get("input")
+        .and_then(|v| v.get("command"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    (tool_name, command)
 }
 
 impl Server {
@@ -169,11 +196,20 @@ impl Server {
         params: P,
     ) -> Result<Value, RpcError> {
         let id = self.next_outbound_id.fetch_add(1, Ordering::SeqCst);
+        let (tool_name, command) = outbound_tool_meta(method, &params);
         let req = OutgoingRequest::new(RequestId::Number(id), method, params)
             .map_err(|e| RpcError::new(INTERNAL_ERROR, format!("serialize params: {e}")))?;
 
         let (tx, rx) = oneshot::channel();
-        self.pending_outbound.lock().insert(id, tx);
+        self.pending_outbound.lock().insert(
+            id,
+            PendingOutbound {
+                method: method.to_string(),
+                tool_name,
+                command,
+                tx,
+            },
+        );
 
         if let Err(e) = self.send_value(&req).await {
             self.pending_outbound.lock().remove(&id);
@@ -194,6 +230,33 @@ impl Server {
         })
     }
 
+    /// Termine chaque `tool/exec` bash encore sans réponse client.
+    /// Le modèle reçoit la phrase d'arrêt et la boucle peut rappeler le LLM.
+    /// Une réponse client tardive est ignorée (plus de slot).
+    fn release_pending_bash_tool_execs(&self) -> bool {
+        let mut guard = self.pending_outbound.lock();
+        let ids: Vec<i64> = guard
+            .iter()
+            .filter(|(_, slot)| {
+                slot.method == "tool/exec" && slot.tool_name.as_deref() == Some("bash")
+            })
+            .map(|(id, _)| *id)
+            .collect();
+        if ids.is_empty() {
+            return false;
+        }
+        for id in ids {
+            if let Some(slot) = guard.remove(&id) {
+                let output = drox_tools::bash_user_stopped_output(&slot.command);
+                let _ = slot.tx.send(Ok(serde_json::json!({
+                    "output": output,
+                    "isError": true,
+                })));
+            }
+        }
+        true
+    }
+
     /// Si l'`id` correspond à une requête sortante en attente, livre la
     /// réponse via le `oneshot` correspondant.
     fn dispatch_incoming_response(&self, resp: IncomingResponse) {
@@ -204,10 +267,11 @@ impl Server {
                 return;
             }
         };
-        let Some(tx) = self.pending_outbound.lock().remove(&id) else {
+        let Some(slot) = self.pending_outbound.lock().remove(&id) else {
             debug!(id, "incoming response with no matching pending request");
             return;
         };
+        let tx = slot.tx;
         let value = match (resp.result, resp.error) {
             (Some(v), None) => Ok(v),
             (_, Some(err)) => Err(err),
@@ -284,8 +348,30 @@ impl Server {
                 Err(e) => self.respond(Response::error(id, e)).await,
             },
             "tools.skipBash" => {
-                let skipped = drox_tools::skip_active_native_bash().await;
-                self.respond(Response::success(id, serde_json::json!({ "skipped": skipped })))
+                // Client `tool/exec` bash: the renderer latch can be missing
+                // while this request is still pending. Completing it is what
+                // lets the agent loop call the model again.
+                let released = self.release_pending_bash_tool_execs();
+                let native = drox_tools::skip_active_native_bash().await;
+                if released && !native {
+                    // The in-flight RPC already carries the stop sentence.
+                    // Leaving the flag set would also skip the next command.
+                    drox_tools::clear_bash_user_stop();
+                }
+                self.respond(Response::success(
+                    id,
+                    serde_json::json!({ "skipped": released || native, "native": native }),
+                ))
+                .await;
+            }
+            "tools.takeBashSkip" => {
+                let stop = drox_tools::take_bash_user_stop();
+                self.respond(Response::success(id, serde_json::json!({ "stop": stop })))
+                    .await;
+            }
+            "tools.clearBashSkip" => {
+                drox_tools::clear_bash_user_stop();
+                self.respond(Response::success(id, serde_json::json!({ "cleared": true })))
                     .await;
             }
             "embed.status" => match handlers::embed_status(req.params).await {
@@ -458,6 +544,80 @@ mod tests {
 
         let value = pending.await.unwrap().expect("ok");
         assert_eq!(value["output"], json!("ok"));
+    }
+
+    #[tokio::test]
+    async fn skip_bash_releases_pending_bash_tool_exec_only() {
+        let (server, mut rx) = test_server();
+        let bash_server = server.clone();
+        let bash = tokio::spawn(async move {
+            bash_server
+                .send_request(
+                    "tool/exec",
+                    json!({
+                        "toolName": "bash",
+                        "input": { "command": "cargo run" }
+                    }),
+                )
+                .await
+        });
+        let write_server = server.clone();
+        let write = tokio::spawn(async move {
+            write_server
+                .send_request(
+                    "tool/exec",
+                    json!({
+                        "toolName": "file_write",
+                        "input": { "path": "a.txt" }
+                    }),
+                )
+                .await
+        });
+
+        let mut bash_id = 0i64;
+        let mut write_id = 0i64;
+        for _ in 0..2 {
+            let line = rx.recv().await.expect("tool/exec");
+            let parsed: Value = serde_json::from_str(&line).unwrap();
+            let id = parsed["id"].as_i64().unwrap();
+            match parsed["params"]["toolName"].as_str() {
+                Some("bash") => bash_id = id,
+                Some("file_write") => write_id = id,
+                other => panic!("unexpected tool/exec {other:?}"),
+            }
+        }
+
+        server
+            .handle_line(r#"{"jsonrpc":"2.0","id":7,"method":"tools.skipBash","params":{}}"#)
+            .await;
+        let ack = collect_one(&mut rx).await;
+        assert_eq!(ack["result"]["skipped"], json!(true));
+        assert_eq!(ack["result"]["native"], json!(false));
+
+        let bash_value = bash.await.unwrap().expect("bash released");
+        assert_eq!(bash_value["isError"], json!(true));
+        assert_eq!(bash_value["output"]["skipped"], json!(true));
+        assert_eq!(bash_value["output"]["command"], json!("cargo run"));
+        assert!(
+            bash_value["output"]["error"]
+                .as_str()
+                .unwrap()
+                .contains("The user stopped this command")
+        );
+
+        // file_write stays pending until the client answers.
+        let write_resp = format!(
+            r#"{{"jsonrpc":"2.0","id":{write_id},"result":{{"output":{{"applied":true}},"isError":false}}}}"#
+        );
+        server.handle_line(&write_resp).await;
+        let write_value = write.await.unwrap().expect("file_write still answered by client");
+        assert_eq!(write_value["output"]["applied"], json!(true));
+
+        // A late client reply for the bash we already released is ignored.
+        let late = format!(
+            r#"{{"jsonrpc":"2.0","id":{bash_id},"result":{{"output":{{"stdout":"late"}},"isError":false}}}}"#
+        );
+        server.handle_line(&late).await;
     }
 
     #[tokio::test]

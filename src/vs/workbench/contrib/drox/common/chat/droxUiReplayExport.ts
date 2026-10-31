@@ -23,6 +23,7 @@ import {
 	formatDroxEngineTraceExport,
 	IDroxEngineTraceRecord,
 } from './droxEngineTraceExport.js';
+import { formatDroxRunCaptureExport } from './droxRunCaptureExport.js';
 
 const DEFAULT_MAX_STREAM_CHARS = 200_000;
 const DEFAULT_MAX_TOOL_PREVIEW_CHARS = 80_000;
@@ -43,6 +44,8 @@ export interface IFormatDroxUiReplayExportOptions {
 	/** Epoch Unix (secondes) compilée dans ce binaire. */
 	readonly engineDevBuild?: number;
 	readonly exportedAt?: Date;
+	/** JSONL `*.run-capture.jsonl`. Absent = bouton bug éteint pendant le run. */
+	readonly runCaptureRaw?: string;
 	readonly maxStreamChars?: number;
 	readonly maxToolPreviewChars?: number;
 	readonly maxGateResponseChars?: number;
@@ -738,6 +741,7 @@ export function formatDroxCombinedSessionExport(
 	const uiPart = formatDroxUiReplayExport(opts);
 	const messages = opts.transcriptMessages ?? [];
 	const parts: string[] = [
+		'PARTIE F — Capture moteur (payload envoyé au modèle)\n\n' + formatDroxRunCaptureExport(opts.sessionId, opts.runCaptureRaw),
 		'PARTIE A — Journal UI (ordre chronologique)\n\n' + uiPart,
 	];
 

@@ -262,6 +262,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 			async sessionId => { await this._openDroxSession(sessionId); },
 			{
 				historyGroups,
+				openSessionIds: new Set(this._ideTabs.map(tab => tab.sessionId)),
 				onDelete: async sessionIds => {
 					await this._deleteWorkspaceSessions(ws, sessionIds);
 				},
@@ -831,7 +832,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 						showTimeoutToast,
 					});
 				}
-				if (showTimeoutToast && !this._activeSessionRef()) {
+				if (showTimeoutToast) {
 					this.notificationService.warn(localize(
 						'drox.nativeChat.loadTimeout',
 						'Timed out loading the chat session. Try New Chat or reopen the panel.',

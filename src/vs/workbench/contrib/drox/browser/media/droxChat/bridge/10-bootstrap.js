@@ -194,6 +194,14 @@
 		}
 	});
 
+	if (D.dom.runCaptureBtn) {
+		D.dom.runCaptureBtn.addEventListener('click', () => {
+			const recording = !D.dom.runCaptureBtn.classList.contains('is-recording');
+			D.dom.runCaptureBtn.classList.toggle('is-recording', recording);
+			D.dom.runCaptureBtn.setAttribute('aria-pressed', recording ? 'true' : 'false');
+			D.vscode.postMessage({ type: 'setRunCapture', recording });
+		});
+	}
 	if (D.dom.exportTranscriptBtn) {
 		D.dom.exportTranscriptBtn.addEventListener('click', () => {
 			D.vscode.postMessage({ type: 'exportTranscript' });

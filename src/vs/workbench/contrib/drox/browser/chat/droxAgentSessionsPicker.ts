@@ -114,12 +114,16 @@ function sessionPickItemsMatchingFilter(
 	);
 }
 
-function toPickItem(entry: IDroxSessionListEntry): IDroxSessionPickItem {
+function toPickItem(entry: IDroxSessionListEntry, openSessionIds?: ReadonlySet<string>): IDroxSessionPickItem {
 	const label = formatDroxSessionListLabel(entry);
 	const timeAgo = sessionDateFromNow(entry.modifiedSecs * 1000);
+	const closed = openSessionIds ? !openSessionIds.has(entry.id) : false;
+	const description = closed
+		? localize('drox.agentSessions.closedTab', '{0} · closed tab', timeAgo)
+		: timeAgo;
 	return {
 		label,
-		description: timeAgo,
+		description,
 		iconClass: ThemeIcon.asClassName(Codicon.sparkle),
 		sessionId: entry.id,
 		buttons: [deleteButton],
@@ -132,6 +136,8 @@ export type DroxAgentSessionsGroupHandler = (sessionIds: readonly string[]) => v
 
 export interface IDroxAgentSessionsPickerOptions {
 	readonly historyGroups?: readonly IDroxIdeSessionHistoryGroup[];
+	/** Onglets encore ouverts. Une discussion absente de cet ensemble reste listée. */
+	readonly openSessionIds?: ReadonlySet<string>;
 	readonly onDelete?: DroxAgentSessionsDeleteHandler;
 	readonly onGroup?: DroxAgentSessionsGroupHandler;
 }
@@ -160,6 +166,7 @@ export class DroxAgentSessionsPicker {
 		picker.matchOnDescription = true;
 		picker.canSelectMany = true;
 		picker.ok = true;
+		picker.ignoreFocusOut = true;
 		picker.title = localize('drox.agentSessions.historyTitle', 'Session History');
 		const titleButtons: IQuickInputButton[] = [
 			selectAllButton,
@@ -172,7 +179,7 @@ export class DroxAgentSessionsPicker {
 			titleButtons.push(groupSelectedButton);
 		}
 		picker.buttons = titleButtons;
-		picker.items = this._buildItems(currentEntries, currentGroups);
+		picker.items = this._buildItems(currentEntries, currentGroups, options?.openSessionIds);
 
 		disposables.add(picker.onDidAccept(async () => {
 			const selected = picker.selectedItems;
@@ -208,7 +215,7 @@ export class DroxAgentSessionsPicker {
 				picker.hide();
 				return;
 			}
-			picker.items = this._buildItems(currentEntries, currentGroups);
+			picker.items = this._buildItems(currentEntries, currentGroups, options?.openSessionIds);
 			picker.value = keepValue;
 		}));
 
@@ -236,7 +243,7 @@ export class DroxAgentSessionsPicker {
 					picker.hide();
 					return;
 				}
-				picker.items = this._buildItems(currentEntries, currentGroups);
+				picker.items = this._buildItems(currentEntries, currentGroups, options?.openSessionIds);
 				picker.selectedItems = [];
 				return;
 			}
@@ -256,6 +263,7 @@ export class DroxAgentSessionsPicker {
 	private _buildItems(
 		sorted: readonly IDroxSessionListEntry[],
 		historyGroups: readonly IDroxIdeSessionHistoryGroup[],
+		openSessionIds?: ReadonlySet<string>,
 	): (IDroxSessionPickItem | IQuickPickSeparator)[] {
 		const items: (IDroxSessionPickItem | IQuickPickSeparator)[] = [];
 		const groupedIds = new Set<string>();
@@ -268,7 +276,7 @@ export class DroxAgentSessionsPicker {
 			items.push({ type: 'separator', label: group.name });
 			for (const entry of members) {
 				groupedIds.add(entry.id);
-				items.push(toPickItem(entry));
+				items.push(toPickItem(entry, openSessionIds));
 			}
 		}
 
@@ -276,7 +284,7 @@ export class DroxAgentSessionsPicker {
 		for (const group of groupDroxSessionsByDate(ungrouped)) {
 			items.push({ type: 'separator', label: group.label });
 			for (const entry of group.entries) {
-				items.push(toPickItem(entry));
+				items.push(toPickItem(entry, openSessionIds));
 			}
 		}
 		return items;

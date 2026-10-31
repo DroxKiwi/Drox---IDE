@@ -56,6 +56,19 @@ pub(crate) fn note_successful_file_read(
 	*entry
 }
 
+/// Un `file_write` / `file_edit` appliqué change le fichier : le prochain
+/// `file_read` doit relire, pas renvoyer le stub « déjà lu ».
+pub(crate) fn forget_file_read_after_mutation(
+	counts: &mut HashMap<String, u32>,
+	tool_name: &str,
+	arguments: &serde_json::Value,
+) {
+	let Some(path) = path_from_file_tool(tool_name, arguments) else {
+		return;
+	};
+	counts.remove(&normalize_path_key(&path));
+}
+
 /// Empile un `file_read` réussi dans la fenêtre glissante. Retourne `true` si
 /// la fenêtre montre une **rotation** multi-path (angle mort anti-loop S1).
 pub(crate) fn note_rotating_file_read(
@@ -125,11 +138,11 @@ pub(crate) fn repeated_file_read_stub_value(path: &str, prior_reads: u32) -> Val
 		"truncated": false,
 		"already_read": true,
 		"prior_reads": prior_reads,
-		"size_bytes": 0,
 		"content": format!(
-			"[already_read ×{prior_reads}] `{path}` was already `file_read` this run.\n\
-			 Do NOT re-read — use prior tool results, or `grep` for a needle, then act \
-			 (`file_write` / `file_edit` / `todo_write`). Re-reading burns context."
+			"[already_read ×{prior_reads}] `{path}` was already `file_read` this run. \
+			 This result is not the file and does not mean it is empty. \
+			 Do not rewrite it because of this stub. Use the earlier file_read in the thread, \
+			 or `grep` for a needle, then `file_edit`."
 		),
 	})
 }

@@ -14,36 +14,16 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
 import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
-import { extractDroxUserRunsFromJournal, formatDroxTranscriptExport } from '../../common/chat/droxTranscriptExport.js';
-import { formatDroxCombinedSessionExport } from '../../common/chat/droxUiReplayExport.js';
+import { buildDroxAnalysisExport } from '../../common/chat/droxAnalysisExport.js';
+import { droxSessionRunCapturePath } from '../../common/droxRunCapture.js';
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { DroxChatTabsManager } from './droxChatTabsManager.js';
 
-/** Presse-papiers : texte intégral jusqu'à ce seuil ; au-delà, pointeur fichier uniquement (pas d'aperçu tronqué). */
-const CLIPBOARD_MAX_FULL_CHARS = 2_000_000;
-const LATEST_EXPORT_FILENAME = 'latest-transcript.txt';
+const LATEST_INDEX_FILENAME = 'latest-index.txt';
+const LATEST_TRANSCRIPT_FILENAME = 'latest-transcript.txt';
 
-function formatExportClipboardPointer(opts: {
-	readonly sessionId: string;
-	readonly filePath: string;
-	readonly latestPath: string;
-	readonly charCount: number;
-	readonly stepCount: number;
-	readonly userRunCount: number;
-}): string {
-	return [
-		'Drox transcript export — clipboard pointer only (export too large for the clipboard).',
-		`Session: ${opts.sessionId}`,
-		`Size: ${opts.charCount} characters · ${opts.stepCount} steps · ${opts.userRunCount} user run(s)`,
-		'',
-		`Timestamped file: ${opts.filePath}`,
-		`Stable copy: ${opts.latestPath}`,
-		'',
-		'Open the file on disk for full PART A + B + C + D + E (all user cycles).',
-	].join('\n');
-}
 
 export async function handleDroxExportTranscript(
 	tabs: DroxChatTabsManager,
@@ -77,6 +57,8 @@ export async function exportDroxSessionTranscript(opts: {
 	readonly productService: IProductService;
 	readonly fileService: IFileService;
 	readonly droxEngineService?: IDroxEngineService;
+	/** Pas de toast si le fichier n'a encore aucun message (couper la capture avant un run). */
+	readonly quietIfEmpty?: boolean;
 }): Promise<void> {
 	const {
 		sessionService,
@@ -107,95 +89,51 @@ export async function exportDroxSessionTranscript(opts: {
 	try {
 		const read = await sessionService.readSession(sessionId, ws);
 		const uiReplay = await sessionService.readUiReplay(sessionId, ws);
+		let runCaptureRaw: string | undefined;
+		try {
+			const captureFile = await fileService.readFile(URI.file(droxSessionRunCapturePath(ws, sessionId)));
+			runCaptureRaw = captureFile.value.toString();
+		} catch {
+			runCaptureRaw = undefined;
+		}
 		const journal = uiReplay.map(m => m as unknown as Record<string, unknown>);
-		if (!read.messages.length && journal.length === 0) {
-			notificationService.warn(localize('drox.export.empty', 'This session has no messages yet.'));
+		if (!read.messages.length && journal.length === 0 && !runCaptureRaw?.trim()) {
+			if (!opts.quietIfEmpty) {
+				notificationService.warn(localize('drox.export.empty', 'This session has no messages yet.'));
+			}
 			return;
 		}
 		const exportedAt = new Date();
-		const fromUiJournal = journal.length > 0;
-		const text = fromUiJournal
-			? formatDroxCombinedSessionExport({
-				sessionId,
-				workspacePath: ws,
-				journal,
-				transcriptMessageCount: read.messages.length,
-				transcriptMessages: read.messages,
-				engineTrace: read.engineTrace,
-				uiStats: read.uiStats,
-				engineExecutablePath: opts.droxEngineService?.resolvedExecutable,
-				engineDevBuild: opts.droxEngineService?.engineDevBuild,
-				exportedAt,
-			})
-			: formatDroxTranscriptExport({
-				sessionId,
-				workspacePath: ws,
-				messages: read.messages,
-				uiStats: read.uiStats,
-				exportedAt,
-				includeEngineContext: true,
-			});
-
+		const analysis = buildDroxAnalysisExport({
+			sessionId,
+			runCaptureRaw,
+			messages: read.messages,
+		});
 		const exportDir = join(ws, '.drox', 'exports');
-		await fileService.createFolder(URI.file(exportDir));
-		const stamp = exportedAt.toISOString().replace(/[:.]/g, '-');
-		const filePath = join(exportDir, `transcript-${sessionId}-${stamp}.txt`);
-		const latestPath = join(exportDir, LATEST_EXPORT_FILENAME);
-		const fileBuffer = VSBuffer.fromString(text);
-		await fileService.writeFile(URI.file(filePath), fileBuffer);
-		await fileService.writeFile(URI.file(latestPath), fileBuffer);
-
-		const stepCount = (text.match(/^Step \d+ —/gm) ?? []).length;
-		const userRunCount = fromUiJournal
-			? extractDroxUserRunsFromJournal(journal).length
-			: (read.messages.filter(m => m.role === 'user').length || 1);
-		const clipboardText =
-			text.length <= CLIPBOARD_MAX_FULL_CHARS
-				? text
-				: formatExportClipboardPointer({
-					sessionId,
-					filePath,
-					latestPath,
-					charCount: text.length,
-					stepCount,
-					userRunCount,
-				});
-		await clipboardService.writeText(clipboardText);
-
-		const clipboardNote =
-			text.length <= CLIPBOARD_MAX_FULL_CHARS
-				? localize('drox.export.clipboardFull', 'presse-papiers = export complet')
-				: localize('drox.export.clipboardPointer', 'presse-papiers = pointeur fichier (export {0} chars)', text.length);
-
-		if (fromUiJournal) {
-			notificationService.info(
-				localize(
-					'drox.export.doneUiJournal',
-					'Export saved to {0} and {1} ({2} steps, {3} UI events, {4} engine trace records, {5} user runs, {6} chars) — {7}.',
-					filePath,
-					latestPath,
-					stepCount,
-					journal.length,
-					read.engineTrace?.length ?? 0,
-					userRunCount,
-					text.length,
-					clipboardNote,
-				),
-			);
-		} else {
-			notificationService.info(
-				localize(
-					'drox.export.done',
-					'Export saved to {0} and {1} ({2} steps, {3} transcript messages, {4} chars) — {5}.',
-					filePath,
-					latestPath,
-					stepCount,
-					read.messages.length,
-					text.length,
-					clipboardNote,
-				),
-			);
+		const blobDir = join(exportDir, 'blobs');
+		await fileService.createFolder(URI.file(blobDir));
+		for (const blob of analysis.blobs) {
+			await fileService.writeFile(URI.file(join(blobDir, `${blob.hash}.txt`)), VSBuffer.fromString(blob.text));
 		}
+		const stamp = exportedAt.toISOString().replace(/[:.]/g, '-');
+		const indexLatest = join(exportDir, LATEST_INDEX_FILENAME);
+		const transcriptLatest = join(exportDir, LATEST_TRANSCRIPT_FILENAME);
+		const indexStamped = join(exportDir, `index-${sessionId}-${stamp}.txt`);
+		const transcriptStamped = join(exportDir, `transcript-${sessionId}-${stamp}.txt`);
+		await fileService.writeFile(URI.file(indexLatest), VSBuffer.fromString(analysis.index));
+		await fileService.writeFile(URI.file(indexStamped), VSBuffer.fromString(analysis.index));
+		await fileService.writeFile(URI.file(transcriptLatest), VSBuffer.fromString(analysis.transcript));
+		await fileService.writeFile(URI.file(transcriptStamped), VSBuffer.fromString(analysis.transcript));
+		await clipboardService.writeText(analysis.index);
+		notificationService.info(
+			localize(
+				'drox.export.doneAnalysis',
+				'Export saved. Index: {0}. Transcript: {1}. Blobs: {2}.',
+				indexLatest,
+				transcriptLatest,
+				analysis.blobs.length,
+			),
+		);
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
 		notificationService.error(localize('drox.export.failed', 'Export failed: {0}', msg));

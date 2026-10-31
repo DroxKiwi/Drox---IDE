@@ -37,6 +37,7 @@
 	D.dom.addRefsBtn = document.getElementById('add-refs');
 	D.dom.fileInput = document.getElementById('file-input');
 	D.dom.exportTranscriptBtn = document.getElementById('export-transcript');
+	D.dom.runCaptureBtn = document.getElementById('run-capture');
 	D.dom.historyToggleBtn = document.getElementById('history-toggle');
 	D.dom.historyCloseBtn = document.getElementById('history-close');
 	D.dom.historyResetWorkspaceBtn = document.getElementById('history-reset-workspace');
@@ -74,6 +75,7 @@
 	D.dom.roleModelPanelReasoningEffortEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('role-model-panel-reasoning-effort'));
 	D.dom.roleModelPanelThinkingBudgetEl = /** @type {HTMLInputElement | null} */ (document.getElementById('role-model-panel-thinking-budget'));
 	D.dom.roleModelPanelReloadEl = document.getElementById('role-model-panel-reload');
+	D.dom.roleModelPanelResetEl = document.getElementById('role-model-panel-reset');
 	D.dom.llmModelPickerWrapEl = document.getElementById('llm-model-picker-wrap');
 	D.dom.llmModelPickerEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('llm-model-picker'));
 	D.dom.llmModelReloadBtn = document.getElementById('llm-model-reload');

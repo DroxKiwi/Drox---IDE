@@ -26,6 +26,14 @@
 				}
 				break;
 			}
+			case 'runCapture': {
+				const recording = Boolean(m.recording);
+				if (D.dom.runCaptureBtn) {
+					D.dom.runCaptureBtn.classList.toggle('is-recording', recording);
+					D.dom.runCaptureBtn.setAttribute('aria-pressed', recording ? 'true' : 'false');
+				}
+				break;
+			}
 			case 'state':
 				if (D.state.uiReplayActive) {
 					break;
@@ -210,7 +218,9 @@
 							fn.markTurnFinalAssistant?.(createdEl);
 						}
 					} else if (D.state.linearRunUi && text) {
-						if (D.state.currentPhase === 'answering') {
+						const nativeThinking = D.state.currentPhase === 'internal_reasoning'
+							|| D.state.currentPhase === 'reasoning';
+						if (!nativeThinking) {
 							fn.appendDelta(text);
 						} else if (typeof fn.mountStreamPhaseLine === 'function') {
 							fn.mountStreamPhaseLine(text, { variant: 'phase' });

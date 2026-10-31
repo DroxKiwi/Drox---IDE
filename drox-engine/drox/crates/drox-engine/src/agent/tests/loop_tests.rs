@@ -195,28 +195,16 @@ async fn nudge_loops_until_max_iterations_when_done_never_emitted() {
     let raw: Vec<_> = agent.run("salut").collect::<Vec<_>>().await;
     let events: Vec<&AgentEvent> = raw.iter().filter_map(|r| r.as_ref().ok()).collect();
 
-    // Les 3 tours ont été consommés (donc on a bien relancé à chaque
-    // fois). Aucun `Done` n'a été émis, et la dernière entrée du stream
-    // est l'erreur `MaxIterations(3)`.
-    assert_eq!(
+    // Un tour sans outil clôt le run. On ne relance plus jusqu'à max_iterations.
+    assert!(
         events
             .iter()
-            .filter(
-                |e| matches!(e, AgentEvent::TextDelta { text } if text.contains("muet"))
-            )
-            .count(),
-        3,
-        "les 3 tours muets doivent tous avoir été consommés"
+            .any(|e| matches!(e, AgentEvent::TextDelta { text } if text.contains("muet"))),
+        "le tour muet doit avoir été consommé"
     );
     assert!(
-        !events
-            .iter()
-            .any(|e| matches!(e, AgentEvent::PhaseEnter { phase } if *phase == Phase::Done)),
-        "aucun `[phase: done]` n'a été émis, donc aucun PhaseEnter Done"
-    );
-    assert!(
-        matches!(raw.last(), Some(Err(EngineError::MaxIterations(3)))),
-        "le stream doit se terminer par MaxIterations(3), got {:?}",
+        matches!(raw.last(), Some(Ok(AgentEvent::Stop { .. }))),
+        "le stream doit se terminer par Stop, got {:?}",
         raw.last()
     );
 }
@@ -238,7 +226,7 @@ async fn repeated_assistant_text_triggers_synthetic_done() {
             },
         ]
     };
-    // T1 Ok · T2 Warn · T3 ForceConclude · T4 SyntheticDone
+    // Le premier tour answering sans outil clôt le run.
     let llm = Arc::new(ScriptedLlm::new(vec![
         same_turn(),
         same_turn(),
@@ -256,15 +244,15 @@ async fn repeated_assistant_text_triggers_synthetic_done() {
     let raw: Vec<_> = agent.run("explique").collect::<Vec<_>>().await;
     assert!(
         matches!(raw.last(), Some(Ok(AgentEvent::Stop { .. }))),
-        "expected clean Stop after SyntheticDone, got {:?}",
+        "expected clean Stop, got {:?}",
         raw.last()
     );
     assert!(
         raw.iter().any(|r| matches!(
             r,
-            Ok(AgentEvent::TextDelta { text }) if text.contains("Run clôturé automatiquement")
+            Ok(AgentEvent::TextDelta { text }) if text.contains("Voici ce que je trouve")
         )),
-        "expected synthetic done text in stream"
+        "expected the first conclusion in the stream"
     );
 }
 
@@ -607,8 +595,7 @@ async fn intent_only_write_acting_aborts_after_nudges() {
 
 #[tokio::test]
 async fn silent_turn_after_tool_call_still_nudges_to_done() {
-    // Après todo obligatoire : tours muets avec reasoning, puis echo,
-    // puis encore muet, puis done.
+    // Après todo : un tour sans outil clôt le run avant l'echo suivant.
     let tid_echo = ToolUseId::new();
     let llm = Arc::new(ScriptedLlm::new(vec![
         read_then_one_todo_turn("Démarrage."),
@@ -672,7 +659,7 @@ async fn silent_turn_after_tool_call_still_nudges_to_done() {
                 matches!(e, AgentEvent::ToolStart { name, .. } if name == "echo")
             })
             .count(),
-        1
+        0
     );
     assert!(events.iter().any(
         |e| matches!(e, AgentEvent::PhaseEnter { phase } if *phase == Phase::Done)

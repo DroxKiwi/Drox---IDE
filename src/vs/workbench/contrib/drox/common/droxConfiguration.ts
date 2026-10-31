@@ -16,7 +16,7 @@ import { ConfigurationScope, Extensions, IConfigurationNode, IConfigurationPrope
 import { Registry } from '../../../../platform/registry/common/platform.js';
 
 import { createDroxDevConfigurationProperties } from './droxDevConfiguration.js';
-import { DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_NUM_CTX, DROX_MAX_ITERATIONS_CAP } from './droxProductDefaults.js';
+import { DROX_DEFAULT_FREQUENCY_PENALTY, DROX_DEFAULT_KEEP_ALIVE, DROX_DEFAULT_MAX_ITERATIONS, DROX_DEFAULT_MAX_TOKENS, DROX_DEFAULT_MIN_P, DROX_DEFAULT_NUM_CTX, DROX_DEFAULT_PRESENCE_PENALTY, DROX_DEFAULT_REASONING_EFFORT, DROX_DEFAULT_REPEAT_PENALTY, DROX_DEFAULT_SEED, DROX_DEFAULT_TEMPERATURE, DROX_DEFAULT_THINKING_BUDGET, DROX_DEFAULT_TOP_K, DROX_DEFAULT_TOP_P, DROX_MAX_ITERATIONS_CAP } from './droxProductDefaults.js';
 import { DROX_NUM_CTX_MAX, DROX_NUM_CTX_MIN, formatDroxNumCtxLabel } from './droxNumCtx.js';
 import { DROX_TOGGLEABLE_TOOL_NAMES, formatToolGroupsForSettingsDescription } from './droxToolGroups.js';
 
@@ -391,7 +391,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 
 		[DroxSetting.Temperature]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_TEMPERATURE,
 			minimum: 0,
 			maximum: 2,
 			scope: ConfigurationScope.RESOURCE,
@@ -399,7 +399,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 		},
 		[DroxSetting.TopP]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_TOP_P,
 			minimum: 0,
 			maximum: 1,
 			scope: ConfigurationScope.RESOURCE,
@@ -407,7 +407,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 		},
 		[DroxSetting.TopK]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_TOP_K,
 			minimum: 1,
 			maximum: 200,
 			scope: ConfigurationScope.RESOURCE,
@@ -415,7 +415,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 		},
 		[DroxSetting.RepeatPenalty]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_REPEAT_PENALTY,
 			minimum: 0.5,
 			maximum: 2,
 			scope: ConfigurationScope.RESOURCE,
@@ -423,7 +423,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 		},
 		[DroxSetting.MinP]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_MIN_P,
 			minimum: 0,
 			maximum: 1,
 			scope: ConfigurationScope.RESOURCE,
@@ -431,13 +431,13 @@ export const droxConfigurationNode: IConfigurationNode = {
 		},
 		[DroxSetting.Seed]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_SEED,
 			scope: ConfigurationScope.RESOURCE,
 			description: localize('drox.seed', 'Sampling seed (`seed` in `agent.run`). Leave unset for server default.'),
 		},
 		[DroxSetting.PresencePenalty]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_PRESENCE_PENALTY,
 			minimum: -2,
 			maximum: 2,
 			scope: ConfigurationScope.RESOURCE,
@@ -445,7 +445,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 		},
 		[DroxSetting.FrequencyPenalty]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_FREQUENCY_PENALTY,
 			minimum: -2,
 			maximum: 2,
 			scope: ConfigurationScope.RESOURCE,
@@ -453,14 +453,14 @@ export const droxConfigurationNode: IConfigurationNode = {
 		},
 		[DroxSetting.MaxTokens]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_MAX_TOKENS,
 			minimum: 1,
 			scope: ConfigurationScope.RESOURCE,
 			description: localize('drox.maxTokens', 'Max response tokens per turn (`maxTokens` in `agent.run`).'),
 		},
 		[DroxSetting.KeepAlive]: {
 			type: 'string',
-			default: '',
+			default: DROX_DEFAULT_KEEP_ALIVE,
 			scope: ConfigurationScope.RESOURCE,
 			description: localize('drox.keepAlive', 'Ollama `keepAlive` in `agent.run` (e.g. `30m`, `0`, `-1`). Leave empty for server default.'),
 		},
@@ -474,7 +474,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 				localize('drox.reasoningEffort.high', 'High — deeper reasoning'),
 				localize('drox.reasoningEffort.xhigh', 'Extra high — longest thinking (Qwen default often)'),
 			],
-			default: '',
+			default: DROX_DEFAULT_REASONING_EFFORT,
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.reasoningEffort',
@@ -483,7 +483,7 @@ export const droxConfigurationNode: IConfigurationNode = {
 		},
 		[DroxSetting.ThinkingBudget]: {
 			type: 'number',
-			default: undefined,
+			default: DROX_DEFAULT_THINKING_BUDGET,
 			minimum: 1,
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(

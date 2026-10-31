@@ -1,0 +1,14 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Insecte au repos. Rond rouge tant que la capture est armée. */
+.monaco-workbench .action-label.codicon-record.checked,
+.monaco-workbench .action-label.codicon-record.checked::before,
+.monaco-workbench .action-label.codicon-bug.checked,
+.monaco-workbench .action-label.codicon-bug.checked::before {
+	color: #e23b3b !important;
+	background-color: rgba(226, 59, 59, 0.22);
+	border-radius: 5px;
+}

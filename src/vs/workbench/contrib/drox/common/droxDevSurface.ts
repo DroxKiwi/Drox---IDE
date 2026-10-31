@@ -16,7 +16,11 @@ export type DroxDevFeatureId =
 
 	| 'exportTranscript'
 
-	| 'executablePath';
+	| 'runCapture'
+
+	| 'executablePath'
+
+	| 'historyProbe';
 export interface IDroxSurfaceProductInfo {
 
 	readonly droxSurface?: string;
@@ -50,9 +54,21 @@ export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly des
 
 	},
 
+	runCapture: {
+
+		description: 'Bouton bug à côté de l\'export : enregistre le payload LLM seulement quand il est rouge.',
+
+	},
+
 	executablePath: {
 
 		description: 'Réglage drox.executablePath (Settings IDE — dogfood binaire local, hors vignette chat).',
+
+	},
+
+	historyProbe: {
+
+		description: 'Commande palette « History probe » : session dédiée, snapshot de l\'historique réellement envoyé au modèle.',
 
 	},
 

@@ -193,16 +193,15 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			);
 			if (tail.messages.length > 0) {
 				const history = buildDroxAgentsHistoryFromUiReplay(tail.messages);
-				if (history.length === 0) {
-					this.logService.warn(
-						`[Drox Agents] session history empty after ui replay sessionId=${engineSessionId} workspacePath=${workspacePath} events=${tail.messages.length}`,
-					);
-				} else {
+				if (history.length > 0) {
 					this.logService.info(
 						`[Drox Agents] session history loaded sessionId=${engineSessionId} items=${history.length} events=${tail.messages.length}/${tail.totalEventCount} loadMs=${Date.now() - started}`,
 					);
+					return history;
 				}
-				return history;
+				this.logService.warn(
+					`[Drox Agents] session history empty after ui replay sessionId=${engineSessionId} workspacePath=${workspacePath} events=${tail.messages.length} — reading transcript`,
+				);
 			}
 			// `session.read` starts drox.exe — skip when no transcript on disk (new chat / cold IDE).
 			const transcriptUri = URI.file(join(droxWorkspaceSessionsDir(workspacePath), `${engineSessionId}.jsonl`));

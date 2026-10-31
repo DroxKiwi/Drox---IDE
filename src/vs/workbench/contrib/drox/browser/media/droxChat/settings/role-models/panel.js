@@ -10,6 +10,51 @@
 		return value !== '' && value !== undefined && value !== null ? String(value) : '';
 	}
 
+	/** Aligné sur `droxProductDefaults.ts` (température → thinking budget). */
+	const SAMPLING_DEFAULTS = {
+		temperature: '0.2',
+		topP: '0.9',
+		topK: '40',
+		repeatPenalty: '1',
+		minP: '0',
+		seed: '42',
+		presencePenalty: '0',
+		frequencyPenalty: '0',
+		maxTokens: '8192',
+		keepAlive: '5m',
+		reasoningEffort: 'low',
+		thinkingBudget: '4096',
+	};
+
+	fn.resetRoleModelSamplingDefaults = function () {
+		const fields = [
+			['temperature', D.dom.roleModelPanelTemperatureEl],
+			['topP', D.dom.roleModelPanelTopPEl],
+			['topK', D.dom.roleModelPanelTopKEl],
+			['repeatPenalty', D.dom.roleModelPanelRepeatPenaltyEl],
+			['minP', D.dom.roleModelPanelMinPEl],
+			['seed', D.dom.roleModelPanelSeedEl],
+			['presencePenalty', D.dom.roleModelPanelPresencePenaltyEl],
+			['frequencyPenalty', D.dom.roleModelPanelFrequencyPenaltyEl],
+			['maxTokens', D.dom.roleModelPanelMaxTokensEl],
+			['keepAlive', D.dom.roleModelPanelKeepAliveEl],
+			['reasoningEffort', D.dom.roleModelPanelReasoningEffortEl],
+			['thinkingBudget', D.dom.roleModelPanelThinkingBudgetEl],
+		];
+		for (const [key, el] of fields) {
+			if (el) {
+				el.value = SAMPLING_DEFAULTS[key];
+			}
+		}
+		const muted = new Set(Array.isArray(D.state.architectLlmParamsMuted) ? D.state.architectLlmParamsMuted : []);
+		for (const key of Object.keys(SAMPLING_DEFAULTS)) {
+			muted.delete(key);
+		}
+		D.state.architectLlmParamsMuted = [...muted].sort();
+		fn.syncRoleModelMuteButtonsFromState?.();
+		fn.persistRoleModelFromPanel?.();
+	};
+
 	fn.syncRoleModelPanelFieldsFromState = function () {
 		fn.fillRoleModelPanelSelect();
 		if (D.dom.roleModelPanelNumCtxEl) {

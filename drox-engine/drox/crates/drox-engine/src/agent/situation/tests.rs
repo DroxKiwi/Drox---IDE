@@ -71,6 +71,20 @@ fn upsert_replaces_without_duplicating() {
 }
 
 #[test]
+fn insert_before_flushed_user_advances_the_cursor() {
+	let mut cursor = 2usize;
+	advance_transcript_cursor_for_insert(&mut cursor, 1, 2);
+	assert_eq!(cursor, 3);
+}
+
+#[test]
+fn insert_at_unflushed_user_keeps_the_cursor() {
+	let mut cursor = 1usize;
+	advance_transcript_cursor_for_insert(&mut cursor, 1, 2);
+	assert_eq!(cursor, 1);
+}
+
+#[test]
 fn next_todo_prefers_in_progress() {
 	let v = json!({
 		"todos": [
@@ -196,7 +210,25 @@ fn repeated_file_read_stubs_after_threshold() {
 	assert_eq!(n, REPEATED_FILE_READ_NUDGE_THRESHOLD);
 	let v = repeated_file_read_stub_value(&path, n);
 	assert_eq!(v["already_read"], true);
-	assert!(v["content"].as_str().unwrap().contains("already_read"));
+	assert!(v.get("size_bytes").is_none());
+	assert!(v["content"].as_str().unwrap().contains("does not mean it is empty"));
+}
+
+#[test]
+fn applied_write_clears_the_file_read_count() {
+	use drox_prompts::REPEATED_FILE_READ_NUDGE_THRESHOLD;
+	let mut counts = std::collections::HashMap::new();
+	let read = json!({ "path": r"atelier_rust\src\json.rs" });
+	for _ in 0..REPEATED_FILE_READ_NUDGE_THRESHOLD {
+		note_successful_file_read(&mut counts, "file_read", &read);
+	}
+	assert!(should_stub_repeated_file_read(&counts, "file_read", &read).is_some());
+	forget_file_read_after_mutation(
+		&mut counts,
+		"file_write",
+		&json!({ "path": "atelier_rust/src/json.rs" }),
+	);
+	assert!(should_stub_repeated_file_read(&counts, "file_read", &read).is_none());
 }
 
 #[test]

@@ -9,7 +9,7 @@ use crate::error::EngineError;
 use crate::event::{AgentEvent, Phase};
 
 use super::loop_detect::{PendingToolCall, TurnOutcome};
-use super::phase::{phase_for_tool_call, PhaseLineBuffer};
+use super::phase::{phase_for_tool_call, should_infer_phase_from_tool, PhaseLineBuffer};
 
 /// Marque la fin du sous-flux d'affichage `internal_reasoning` (pensée
 /// native Ollama). Renvoie `true` si le bloc était ouvert et vient d'être
@@ -51,6 +51,7 @@ pub(crate) async fn consume_stream(
     tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
     native_thinking_ui: bool,
     workspace_root: &camino::Utf8Path,
+    suppress_visible_reply: bool,
 ) -> Result<TurnOutcome, ()> {
     let mut text = String::new();
     let mut thinking = String::new();
@@ -60,6 +61,7 @@ pub(crate) async fn consume_stream(
     // Dernière phase **émise** vers le consommateur. Sert à dédupliquer les
     // marqueurs consécutifs identiques (évite des blocs UI vides).
     let mut final_phase: Option<Phase> = None;
+    let mut phase_from_native_thinking = false;
     let mut saw_answering = false;
     let mut saw_analyzing = false;
     let mut saw_testing = false;
@@ -83,13 +85,14 @@ pub(crate) async fn consume_stream(
                 if !delta.is_empty() {
                     thinking.push_str(&delta);
                 }
-                if !native_thinking_ui || delta.is_empty() {
+                if !native_thinking_ui || delta.is_empty() || suppress_visible_reply {
                     continue;
                 }
                 if !native_thinking_open {
                     native_thinking_open = true;
                     if final_phase != Some(Phase::InternalReasoning) {
                         final_phase = Some(Phase::InternalReasoning);
+                        phase_from_native_thinking = true;
                         ui_phase = Some(Phase::InternalReasoning);
                         if tx
                             .send(Ok(AgentEvent::PhaseEnter {
@@ -140,6 +143,7 @@ pub(crate) async fn consume_stream(
                         continue;
                     }
                     final_phase = Some(phase);
+                    phase_from_native_thinking = false;
                     ui_phase = Some(phase);
                     if tx
                         .send(Ok(AgentEvent::PhaseEnter { phase }))
@@ -158,12 +162,15 @@ pub(crate) async fn consume_stream(
                     }
                 }
                 for line in std::mem::take(&mut pending_text) {
-                    note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
+                    if !suppress_visible_reply {
+                        note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
+                    }
                     text.push_str(&line);
-                    if tx
-                        .send(Ok(AgentEvent::TextDelta { text: line }))
-                        .await
-                        .is_err()
+                    if !suppress_visible_reply
+                        && tx
+                            .send(Ok(AgentEvent::TextDelta { text: line }))
+                            .await
+                            .is_err()
                     {
                         return Err(());
                     }
@@ -189,7 +196,7 @@ pub(crate) async fn consume_stream(
                 // atterrit en orphelin sur `logEl` et apparaît hors de la
                 // trace repliée. Le choix entre `Reading` et `Acting` se fait
                 // selon la nature lecture seule / mutative du tool.
-                if final_phase.is_none() {
+                if should_infer_phase_from_tool(final_phase, phase_from_native_thinking) {
                     let inferred =
                         phase_for_tool_call(&name, &arguments, final_phase, workspace_root);
                     if inferred == Phase::Analyzing {
@@ -199,6 +206,7 @@ pub(crate) async fn consume_stream(
                         saw_testing = true;
                     }
                     final_phase = Some(inferred);
+                    phase_from_native_thinking = false;
                     ui_phase = Some(inferred);
                     if tx
                         .send(Ok(AgentEvent::PhaseEnter { phase: inferred }))
@@ -290,12 +298,15 @@ pub(crate) async fn consume_stream(
         }
     }
     for line in tail_text {
-        note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
+        if !suppress_visible_reply {
+            note_content_route(ui_phase, &line, &mut content_visible, &mut content_hidden);
+        }
         text.push_str(&line);
-        if tx
-            .send(Ok(AgentEvent::TextDelta { text: line }))
-            .await
-            .is_err()
+        if !suppress_visible_reply
+            && tx
+                .send(Ok(AgentEvent::TextDelta { text: line }))
+                .await
+                .is_err()
         {
             return Err(());
         }

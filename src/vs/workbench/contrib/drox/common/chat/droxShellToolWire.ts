@@ -82,7 +82,9 @@ export function buildShellToolFinishWire(
 	}
 	if (!output || typeof output !== 'object') {
 		if (isError) {
-			return { error: typeof output === 'string' ? output : 'command failed' };
+			const text = typeof output === 'string' ? output : 'command failed';
+			const skipped = /skipped by user|the user stopped this command/i.test(text);
+			return { error: text, skipped: skipped || undefined };
 		}
 		return undefined;
 	}
@@ -102,7 +104,7 @@ export function buildShellToolFinishWire(
 			? Math.trunc(o.terminal_instance_id)
 			: undefined;
 	const skipped = o.skipped === true
-		|| (typeof error === 'string' && /skipped by user/i.test(error));
+		|| (typeof error === 'string' && /skipped by user|the user stopped this command/i.test(error));
 	return {
 		stdout: typeof o.stdout === 'string' ? o.stdout : '',
 		stderr: typeof o.stderr === 'string' ? o.stderr : '',
@@ -124,7 +126,8 @@ export function formatShellTerminalCommandOutputText(
 	shellOutput: IDroxShellToolOutputWire,
 ): string {
 	const parts: string[] = [];
-	if (shellOutput.error?.trim()) {
+	// The stop sentence is for the model. The card keeps the command output only.
+	if (shellOutput.error?.trim() && !shellOutput.skipped) {
 		parts.push(shellOutput.error.trimEnd());
 	}
 	if (shellOutput.stdout?.trim()) {
@@ -179,8 +182,9 @@ export function buildAgentsShellTerminalToolSpecificData(
 	const text = finish
 		? formatShellTerminalCommandOutputText(finish)
 		: '';
+	// A finished exit code closes the card. Undefined keeps the "Running" badge.
 	const exitCode = finish?.skipped
-		? undefined
+		? 130
 		: typeof finish?.exit_code === 'number'
 			? finish.exit_code
 			: isError || Boolean(finish?.error) || finish?.timed_out
@@ -189,7 +193,9 @@ export function buildAgentsShellTerminalToolSpecificData(
 	return {
 		...base,
 		terminalCommandOutput: {
-			text: text || (isError || finish?.skipped ? (finish?.error || 'Command failed.') : ''),
+			text: finish?.skipped
+				? text
+				: (text || (isError ? (finish?.error || 'Command failed.') : '')),
 		},
 		terminalCommandState: {
 			exitCode,

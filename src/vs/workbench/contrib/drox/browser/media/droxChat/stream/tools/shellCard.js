@@ -267,7 +267,7 @@
 			return;
 		}
 		const blocks = [];
-		if (shellOutput.error) {
+		if (shellOutput.error && !shellOutput.skipped) {
 			blocks.push({ kind: 'stderr', text: shellOutput.error });
 		}
 		if (shellOutput.stdout) {

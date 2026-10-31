@@ -12,6 +12,8 @@ import { INotificationService } from '../../../../../platform/notification/commo
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { DroxCommands } from '../../common/drox.js';
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
+import { IDroxEngineService } from '../../common/droxEngineService.js';
+import { IDroxUserAskService } from '../../common/droxUserAskService.js';
 
 const DROX_CATEGORY = localize2('drox.category', 'Drox');
 
@@ -32,20 +34,33 @@ export function registerDroxAgentsSkipShellActions(): void {
 
 		async run(accessor: ServicesAccessor): Promise<void> {
 			const clientTools = accessor.get(IDroxClientToolsService);
+			const userAsk = accessor.get(IDroxUserAskService);
+			const engine = accessor.get(IDroxEngineService);
 			const notification = accessor.get(INotificationService);
 			const log = accessor.get(ILogService);
+			// A permission dialog holds the run before the process exists.
+			const cancelledAsk = userAsk.cancelPendingForCommandStop();
 			const skipped = await clientTools.skipActiveBash();
-			if (skipped) {
-				log.info('[Drox] skipStuckShell: interrupted active bash');
+			if (cancelledAsk && !skipped) {
+				// The dialog denial is this click. Do not also skip the next command.
+				// A real bash stop keeps its flag until that wait consumes it.
+				try {
+					await engine.request('tools.clearBashSkip', {});
+				} catch (e) {
+					log.info(`[Drox] tools.clearBashSkip: ${e instanceof Error ? e.message : String(e)}`);
+				}
+			}
+			if (skipped || cancelledAsk) {
+				log.info('[Drox] skipStuckShell: command stop requested');
 				notification.info(localize(
 					'drox.skipStuckShell.ok',
-					'Shell command skipped — the agent can continue.',
+					'Command stopped. The model continues and knows you forced the stop.',
 				));
 			} else {
 				log.info('[Drox] skipStuckShell: no active bash');
 				notification.info(localize(
 					'drox.skipStuckShell.none',
-					'No stuck shell command to skip.',
+					'No shell command is running.',
 				));
 			}
 		}

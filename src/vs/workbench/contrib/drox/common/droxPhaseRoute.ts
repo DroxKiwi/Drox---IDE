@@ -13,17 +13,13 @@
  * *classification* du texte streamé est partagée.
  */
 
-/** Phases dont le texte streamé va dans le fold thinking (pas la réponse user). */
+/**
+ * Seul le thinking natif du fournisseur va dans le fold.
+ * Le `content` (y compris sous reading / acting / planning) est la bulle.
+ */
 export const DROX_THINKING_PHASES: ReadonlySet<string> = new Set([
 	'internal_reasoning',
 	'reasoning',
-	'reading',
-	'analyzing',
-	'acting',
-	'planning',
-	'verifying',
-	'testing',
-	'clarifying',
 ]);
 
 export function isDroxAnsweringPhase(phase: string | null | undefined): boolean {
@@ -31,21 +27,9 @@ export function isDroxAnsweringPhase(phase: string | null | undefined): boolean 
 }
 
 /**
- * `true` → routage thinking ; `false` → markdown / answer visible.
- * - `answering` → visible
- * - `null` / undefined (entre phases, ex. après `phase_close` thinking natif) → **visible**
- *   — aligné TUI `deltaBelongsInThinking` (hors set → answer). Sinon un ack mid-run
- *   sans `[phase: answering]` tombe dans le fold (dogfood `ses_e6695920`).
- * - phase inconnue hors `done` → thinking (défensif)
- * - `done` → pas de stream texte attendu ; traité comme non-thinking
+ * `true` → fold thinking natif ; `false` → bulle (content du fournisseur).
+ * `[phase: answering]` et `[phase: done]` ne décident pas de la bulle.
  */
 export function isDroxThinkingRoute(phase: string | null | undefined): boolean {
-	if (isDroxAnsweringPhase(phase)) {
-		return false;
-	}
-	if (!phase) {
-		return false;
-	}
-	// Inconnu hors `done` → thinking (défensif) ; set wide = phases métier hors answering.
-	return DROX_THINKING_PHASES.has(phase) || phase !== 'done';
+	return !!phase && DROX_THINKING_PHASES.has(phase);
 }

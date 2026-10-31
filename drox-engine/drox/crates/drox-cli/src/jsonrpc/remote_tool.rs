@@ -90,6 +90,10 @@ impl Tool for RemoteTool {
         })?;
 
         if result.is_error {
+            // User stop is a normal tool result: the model must read it and continue.
+            if result.output.get("skipped").and_then(|v| v.as_bool()) == Some(true) {
+                return Ok(result.output);
+            }
             return Err(ToolError::remote(format!(
                 "`{}`: client reported tool error: {}",
                 self.name, result.output

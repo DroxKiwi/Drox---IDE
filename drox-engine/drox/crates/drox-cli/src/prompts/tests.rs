@@ -52,14 +52,15 @@ fn core_prompt_lists_all_phases() {
 }
 
 #[test]
-fn core_prompt_states_done_is_only_termination_signal() {
-    // Garde-fou : si quelqu'un re-introduit une formulation laxiste
-    // (« si tu n'as rien à dire, arrête-toi »), le test casse. Le
-    // moteur d'A.2 s'appuie sur cette propriété : seul `done` ferme.
+fn core_prompt_states_no_tool_turn_ends_the_run() {
     let txt = CORE_SYSTEM_PROMPT;
     assert!(
-        txt.contains("ONLY stop signal") || txt.contains("This is the ONLY stop signal"),
-        "prompt must state explicitly that done is the ONLY termination signal"
+        txt.contains("no tool call is what stops the run"),
+        "prompt must state that a reply with no tool call ends the run"
+    );
+    assert!(
+        !txt.contains("ONLY stop signal"),
+        "prompt must not claim that done is the only stop"
     );
 }
 
@@ -76,14 +77,10 @@ fn core_prompt_forbids_actions_outside_phases() {
 
 #[test]
 fn core_prompt_requires_answering_before_done() {
-    // Sprint A.3 — answering-before-done : le moteur refuse `done` si
-    // `answering` n'a jamais été émis dans le run. Le prompt doit
-    // anticiper ça en l'énonçant clairement (sinon le modèle se fait
-    // « nudger » au pire moment, en répétant sa réponse).
     let txt = CORE_SYSTEM_PROMPT;
     assert!(
-        txt.contains("`[phase: done]` is accepted only after `[phase: answering]`"),
-        "prompt must state the answering-before-done rule"
+        txt.contains("final answer with no tool call ends the run"),
+        "prompt must state that the final answer without a tool ends the run"
     );
 }
 
@@ -183,12 +180,11 @@ fn core_prompt_allows_read_only_exploration_before_todo_write() {
         "prompt must allow read-only exploration before todo_write"
     );
     assert!(
-        txt.contains("step kickoff") && txt.contains("task") && txt.contains("explore"),
+        txt.contains("step-kickoff") && txt.contains("task") && txt.contains("explore"),
         "prompt must prefer Explore (`task`) at plan step kickoff for multi-file / docs"
     );
     assert!(
-        txt.contains("do **not** fan out Explore before the plan")
-            || txt.contains("never fan out Explore **before** the plan"),
+        txt.contains("never Explore before the plan"),
         "prompt must forbid Explore fan-out before the plan"
     );
     assert!(
@@ -283,7 +279,7 @@ fn core_prompt_allows_pure_conversation_without_todo_write() {
         "prompt must say todo_write is unnecessary for trivial conversation"
     );
     assert!(
-        txt.contains("answering → done"),
+        txt.contains("write `[phase: answering]` and call no tool"),
         "le prompt doit montrer la chaîne courte sans todo_write"
     );
 }

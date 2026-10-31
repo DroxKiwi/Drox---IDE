@@ -166,6 +166,13 @@ pub struct AgentRunParams {
     /// Profil moteur (`local-9b` | `local-27b` | `cloud-full`). Lot 1 : stocké, pas de knobs.
     #[serde(default)]
     pub engine_profile: Option<String>,
+    /// Outil dev : émettre `history_probe` avant chaque appel LLM. Absent = false.
+    #[serde(default)]
+    pub history_probe: Option<bool>,
+    /// Outil dev : écrire le payload LLM (system, nudges, comptes). Absent = false.
+    /// Le moteur n'ouvre aucun fichier tant que ce champ n'est pas `true`.
+    #[serde(default)]
+    pub run_capture: Option<bool>,
     /// Outils retirés du registre pour ce run (paramètres workspace §2.17).
     /// Le modèle ne reçoit pas leurs `ToolSpec`. `ask_user_question` et
     /// `todo_write` sont ignorés s'ils apparaissent ici.

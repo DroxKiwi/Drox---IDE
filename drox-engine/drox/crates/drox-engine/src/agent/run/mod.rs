@@ -7,6 +7,7 @@
 mod api;
 mod drive;
 mod lifecycle;
+mod run_capture;
 
 use std::sync::Arc;
 

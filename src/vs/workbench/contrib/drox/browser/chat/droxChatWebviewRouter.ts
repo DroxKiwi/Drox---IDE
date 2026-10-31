@@ -19,6 +19,8 @@ import { IEditorService } from '../../../../services/editor/common/editorService
 import { IOutputService } from '../../../../services/output/common/output.js';
 import { ITerminalService } from '../../../terminal/browser/terminal.js';
 import { DroxCommands } from '../../common/drox.js';
+import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
+import { isDroxRunCaptureArmed, setDroxRunCaptureArmed } from '../../common/droxRunCapture.js';
 import { setDroxPermissionModeConfiguration } from '../../common/droxAgentsConfiguration.js';
 import {
 	getProfessorModeRemovedNotificationMessage,
@@ -115,7 +117,15 @@ export async function routeDroxChatWebviewMessage(
 	switch (raw.type) {
 		case 'webviewReady':
 			host.syncWebviewAfterAttach();
+			host.post({ kind: 'runCapture', recording: isDroxRunCaptureArmed() });
 			break;
+		case 'setRunCapture': {
+			const allow = isDroxDevFeatureEnabled('runCapture', deps.productService);
+			const recording = allow && raw.recording === true;
+			setDroxRunCaptureArmed(recording);
+			host.post({ kind: 'runCapture', recording });
+			break;
+		}
 		case 'refreshLlmModels':
 			await refreshDroxChatLlmModels(
 				host,

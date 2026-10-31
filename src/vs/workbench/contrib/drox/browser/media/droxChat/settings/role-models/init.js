@@ -90,6 +90,9 @@
 		if (D.dom.roleModelPanelReloadEl) {
 			D.dom.roleModelPanelReloadEl.addEventListener('click', () => fn.refreshLlmModels());
 		}
+		if (D.dom.roleModelPanelResetEl) {
+			D.dom.roleModelPanelResetEl.addEventListener('click', () => fn.resetRoleModelSamplingDefaults?.());
+		}
 		document.addEventListener('click', (e) => {
 			if (!D.state.rolePanelOpen || !D.dom.roleModelPanelEl) {
 				return;

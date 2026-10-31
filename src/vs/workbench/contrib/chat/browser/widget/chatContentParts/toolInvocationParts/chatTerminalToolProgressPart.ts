@@ -496,6 +496,15 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 			this._register(autorun(reader => {
 				toolInvocation.state.read(reader);
 				this._decoration.update();
+				const data = toolInvocation.toolSpecificData;
+				if (!data || data.kind !== 'terminal') {
+					return;
+				}
+				const text = data.terminalCommandOutput?.text ?? '';
+				if (!text || text === this._droxLiveOutput?.text) {
+					return;
+				}
+				void this._applyDroxLiveOutput(text);
 			}));
 		}
 
@@ -791,6 +800,8 @@ export class ChatTerminalToolProgressPart extends BaseChatToolInvocationSubPart 
 				ThemeIcon.asClassName(Codicon.circleSlash),
 				true,
 				async () => {
+					// The stop sentence goes to the model as the tool result, not into this card.
+					this._droxLiveOutput = undefined;
 					await this._commandService.executeCommand(DROX_SKIP_STUCK_SHELL_COMMAND_ID);
 				}
 			);

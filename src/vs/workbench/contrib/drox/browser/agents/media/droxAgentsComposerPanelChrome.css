@@ -195,6 +195,15 @@
 	margin-top: 4px;
 }
 
+.drox-agents-composer-panels-mount .role-model-panel-actions {
+	gap: 6px;
+}
+
+.drox-agents-composer-panels-mount .role-model-panel-actions .role-model-panel-btn {
+	width: auto;
+	flex: 1;
+}
+
 .drox-agents-composer-panels-mount .general-settings-panel-btn,
 .drox-agents-composer-panels-mount .role-model-panel-btn {
 	width: 100%;

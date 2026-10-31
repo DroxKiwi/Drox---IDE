@@ -45,6 +45,7 @@ pub mod loop_detect;
 pub mod nudges;
 pub mod phase;
 pub mod run;
+pub mod history_transport;
 pub mod session_intent;
 pub mod situation;
 pub mod consume_llm_stream;

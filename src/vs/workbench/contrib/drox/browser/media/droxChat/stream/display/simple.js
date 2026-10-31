@@ -14,13 +14,6 @@
 	const THINKING_PHASES = new Set([
 		'internal_reasoning',
 		'reasoning',
-		'reading',
-		'analyzing',
-		'acting',
-		'planning',
-		'verifying',
-		'testing',
-		'clarifying',
 	]);
 
 	fn.looksLikeGateJson = function (text) {
@@ -40,7 +33,7 @@
 		return String(text || '')
 			.replace(/\[discussion:\s*reply\]\s*/gi, '')
 			.replace(/\[discussion:\s*done\]\s*/gi, '')
-			.replace(/\[phase:\s*(?:answering|done)\]\s*/gi, '')
+			.replace(/\[phase:\s*[a-z_]+\]\s*/gi, '')
 			.replace(/\{[^{}]*"(?:gate|open)"\s*:\s*[^}]+\}/gi, '');
 	};
 
@@ -226,13 +219,18 @@
 		return el;
 	};
 
+	/** Enveloppe d'outil dans le texte : pas une réponse, retirée de la bulle. */
+	fn.stripToolEnvelope = function (text) {
+		return String(text || '')
+			.replace(/<tool_call[\s\S]*?<\/tool_call>/gi, '')
+			.replace(/<function=[\s\S]*?<\/function>/gi, '')
+			.replace(/<tool_call[\s\S]*$/gi, '')
+			.replace(/<function=[\s\S]*$/gi, '');
+	};
+
 	fn.appendChatDelta = function (text) {
 		const chunk = fn.sanitizeChatDeltaChunk(text);
 		if (!chunk) {
-			return;
-		}
-		if (D.state.linearRunUi && D.state.currentPhase !== 'answering') {
-			fn.appendThinkingDelta(chunk);
 			return;
 		}
 		const parent = fn.getChatAnswerSection();
@@ -243,7 +241,12 @@
 			fn.ensureRunStripConnected(D.state.runStripEl);
 		}
 		const el = fn.ensureChatStreamElement(parent);
-		const nextRaw = (el.dataset.raw || '') + chunk;
+		const nextRaw = fn.stripToolEnvelope((el.dataset.raw || '') + chunk);
+		el.dataset.raw = nextRaw;
+		if (!nextRaw.trim()) {
+			el.textContent = '';
+			return;
+		}
 		fn.paintAssistantMarkdown(el, nextRaw, { streaming: true });
 		if (D.state.busy && typeof fn.ensureTailWarmupActivity === 'function') {
 			fn.ensureTailWarmupActivity();
@@ -251,8 +254,91 @@
 		fn.scrollLog?.();
 	};
 
+	const CLOSING_PROSE_PHASES = new Set(['reading', 'acting', 'planning']);
+
+	fn.answerSectionHasVisibleReply = function (answer) {
+		if (!answer) {
+			return false;
+		}
+		const nodes = answer.querySelectorAll(
+			':scope > .drox-final-answer, :scope > .drox-user-facing-reply, :scope > .drox-chat-stream, :scope > .msg.assistant',
+		);
+		for (const node of nodes) {
+			const text = String(node.dataset?.raw ?? node.textContent ?? '').trim();
+			if (text) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	/**
+	 * Clôture sans `[phase: answering]` : le texte écrit après le dernier outil,
+	 * encore dans reading / acting / planning, sort du fil de travail et devient la bulle.
+	 */
+	fn.promoteClosingPhaseProseToAnswer = function () {
+		if (!D.dom.logEl || !D.state.linearRunUi) {
+			return;
+		}
+		fn.flushStreamBuffer?.({ asAnswer: false });
+		const strips = [
+			...D.dom.logEl.querySelectorAll(':scope > .drox-run-strip:not([data-sealed="1"])'),
+		];
+		if (strips.length === 0 && D.state.runStripEl?.isConnected) {
+			strips.push(D.state.runStripEl);
+		}
+		for (const strip of strips) {
+			const answer = strip.querySelector('[data-section="answer"]');
+			if (!answer || fn.answerSectionHasVisibleReply(answer)) {
+				continue;
+			}
+			const nodes = [...strip.querySelectorAll('.drox-phase-line, .msg-tool, .msg-file-change')];
+			let lastWork = -1;
+			for (let i = 0; i < nodes.length; i++) {
+				const node = nodes[i];
+				if (node.classList.contains('msg-tool') || node.classList.contains('msg-file-change')) {
+					lastWork = i;
+				}
+			}
+			if (lastWork < 0) {
+				continue;
+			}
+			const movedBlocks = new Set();
+			for (let i = lastWork + 1; i < nodes.length; i++) {
+				const line = nodes[i];
+				if (!line.classList.contains('drox-phase-line')) {
+					continue;
+				}
+				const block = line.closest('.phase-block');
+				const phase = block?.dataset?.phase || '';
+				if (!CLOSING_PROSE_PHASES.has(phase)) {
+					continue;
+				}
+				const raw = String(line.dataset?.raw ?? line.textContent ?? '').trim();
+				if (!raw) {
+					line.remove();
+					continue;
+				}
+				line.classList.remove('drox-phase-line', 'streaming');
+				line.classList.add('drox-user-facing-reply', 'drox-final-answer');
+				if (strip.dataset.stripId) {
+					line.dataset.runStripId = strip.dataset.stripId;
+				}
+				answer.appendChild(line);
+				fn.markTurnFinalAssistant?.(line);
+				if (block) {
+					movedBlocks.add(block);
+				}
+			}
+			for (const block of movedBlocks) {
+				fn.syncPhaseBlockSummary?.(block);
+			}
+		}
+	};
+
 	/** Stream answer sans événement `userFacingReply` → réponse finale visible. */
 	fn.promoteChatStreamToFinalAnswer = function () {
+		fn.promoteClosingPhaseProseToAnswer?.();
 		if (!D.dom.logEl) {
 			return;
 		}
@@ -445,24 +531,6 @@
 		}
 		if (typeof fn.commitRunStripAnchor === 'function') {
 			fn.commitRunStripAnchor();
-		}
-		// Fil linéaire : tout hors `answering` reste dans la chronologie (Travail).
-		if (D.state.linearRunUi && D.state.currentPhase !== 'answering') {
-			fn.appendThinkingDelta(text);
-			return true;
-		}
-		const answeringMarker = /\[phase:\s*answering\]\s*/i;
-		const answerMatch = String(text).match(answeringMarker);
-		if (answerMatch && answerMatch.index !== undefined) {
-			const before = text.slice(0, answerMatch.index);
-			const after = text.slice(answerMatch.index + answerMatch[0].length);
-			if (before) {
-				fn.appendThinkingDelta(before);
-			}
-			if (after) {
-				fn.appendChatDelta(after);
-			}
-			return true;
 		}
 		if (fn.deltaBelongsInThinking(text)) {
 			fn.appendThinkingDelta(text);

@@ -11,11 +11,28 @@ import { isWindows } from '../../../../base/common/platform.js';
 
 import {
 	clampDroxBashTimeoutMs,
+	DROX_BASH_USER_STOPPED,
 	IDroxBashExecArgs,
 	IDroxBashExecResult,
 } from '../common/droxBash.js';
 
 const MAX_STREAM_BYTES = 30 * 1024;
+
+function killProcessTree(child: ChildProcess): void {
+	const pid = child.pid;
+	if (isWindows && pid) {
+		try {
+			spawn('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+		} catch {
+			/* ignore */
+		}
+	}
+	try {
+		child.kill();
+	} catch {
+		/* already gone */
+	}
+}
 
 function shellSpec(): { cmd: string; flag: string } {
 	if (isWindows) {
@@ -100,14 +117,10 @@ export function skipActiveDroxBashExec(): boolean {
 		stderr: joinBuf(active.stderrBuf),
 		timed_out: false,
 		duration_ms: Date.now() - active.started,
-		error: 'Skipped by user',
+		error: DROX_BASH_USER_STOPPED,
 		skipped: true,
 	});
-	try {
-		active.child.kill();
-	} catch {
-		/* already gone */
-	}
+	killProcessTree(active.child);
 	return true;
 }
 
@@ -165,11 +178,7 @@ export async function runDroxBashExec(args: IDroxBashExecArgs): Promise<IDroxBas
 		activeExecBash = active;
 
 		const timer = setTimeout(() => {
-			try {
-				child.kill();
-			} catch {
-				/* ignore */
-			}
+			killProcessTree(child);
 			active.settle({
 				command,
 				exit_code: null,

@@ -622,6 +622,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 		D.dom.roleModelPanelReasoningEffortEl = mainWindow.document.getElementById('role-model-panel-reasoning-effort') as HTMLSelectElement | null;
 		D.dom.roleModelPanelThinkingBudgetEl = mainWindow.document.getElementById('role-model-panel-thinking-budget') as HTMLInputElement | null;
 		D.dom.roleModelPanelReloadEl = mainWindow.document.getElementById('role-model-panel-reload');
+		D.dom.roleModelPanelResetEl = mainWindow.document.getElementById('role-model-panel-reset');
 	}
 
 	private _handleHostMessage(message: DroxHostToWebviewMessage): void {

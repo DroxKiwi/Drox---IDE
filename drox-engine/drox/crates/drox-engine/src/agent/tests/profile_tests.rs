@@ -66,9 +66,6 @@ async fn local_9b_text_turn_without_markers_closes_run() {
     assert!(stopped_cleanly(&events), "{events:?}");
     assert!(events
         .iter()
-        .any(|e| matches!(e, Ok(AgentEvent::PhaseEnter { phase: Phase::Answering }))));
-    assert!(events
-        .iter()
         .any(|e| matches!(e, Ok(AgentEvent::PhaseEnter { phase: Phase::Done }))));
     assert!(answering_text(&events, "Voici la réponse."));
 }
@@ -91,11 +88,11 @@ async fn local_9b_mutation_without_todo_is_not_blocked() {
 }
 
 #[tokio::test]
-async fn cloud_full_still_requires_phase_done() {
-    // Texte sans `[phase: done]` : pas de clôture moteur, le run est relancé (protocole 1.6.0).
+async fn cloud_full_closes_on_turn_without_tools() {
+    // Même clôture que le local capable : un tour sans outil termine le run.
     let events = run(vec![text_turn("Voici la réponse.")], config("cloud-full", 3)).await;
-    assert!(!stopped_cleanly(&events), "{events:?}");
-    assert!(matches!(events.last(), Some(Err(_))));
+    assert!(stopped_cleanly(&events), "{events:?}");
+    assert!(answering_text(&events, "Voici la réponse."));
 }
 
 #[tokio::test]
@@ -151,4 +148,35 @@ async fn local_27b_soft_close_check_is_one_shot() {
     .await;
     assert!(stopped_cleanly(&events), "{events:?}");
     assert!(answering_text(&events, "rien à tester"));
+}
+
+#[tokio::test]
+async fn cloud_full_done_only_ignored_hides_rewritten_conclusion() {
+    let events = run(
+        vec![
+            text_turn("[phase: answering]\nBilan initial."),
+            text_turn("[phase: answering]\nBilan réécrit une deuxième fois."),
+            text_turn("[phase: answering]\nBilan réécrit une troisième fois."),
+        ],
+        config("cloud-full", 8),
+    )
+    .await;
+    assert!(stopped_cleanly(&events), "{events:?}");
+    assert!(answering_text(&events, "Bilan initial."));
+    assert!(!answering_text(&events, "deuxième"));
+    assert!(!answering_text(&events, "troisième"));
+}
+
+#[tokio::test]
+async fn cloud_full_answering_without_done_closes() {
+    let events = run(
+        vec![
+            text_turn("[phase: answering]\nBilan initial."),
+            text_turn("[phase: done]"),
+        ],
+        config("cloud-full", 8),
+    )
+    .await;
+    assert!(stopped_cleanly(&events), "{events:?}");
+    assert!(answering_text(&events, "Bilan initial."));
 }

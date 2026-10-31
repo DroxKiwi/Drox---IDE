@@ -15,13 +15,6 @@
 	const LINEAR_THINKING_PHASES = new Set([
 		'internal_reasoning',
 		'reasoning',
-		'reading',
-		'analyzing',
-		'acting',
-		'planning',
-		'verifying',
-		'testing',
-		'clarifying',
 	]);
 
 	fn.closePhaseMarker = function () {
@@ -61,6 +54,7 @@
 		}
 		if (phase === 'done') {
 			fn.appendPhaseMarker?.('done');
+			fn.promoteClosingPhaseProseToAnswer?.();
 			D.state.currentPhase = null;
 			if (!D.state.uiReplayActive) {
 				fn.finalizeAssistant?.();

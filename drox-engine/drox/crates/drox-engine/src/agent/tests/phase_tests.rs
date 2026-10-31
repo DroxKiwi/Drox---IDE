@@ -17,7 +17,7 @@ async fn consume_stream_sets_saw_testing_flag() {
     ];
     let stream = stream::iter(script.into_iter().map(Ok::<_, LlmError>)).boxed();
     let ws = camino::Utf8Path::new(".");
-    let outcome = consume_stream(stream, &tx, false, ws)
+    let outcome = consume_stream(stream, &tx, false, ws, false)
         .await
         .expect("channel open");
     assert!(outcome.saw_testing);

@@ -35,7 +35,7 @@ pub(crate) fn format_tool_result_for_llm_with_profile(
 	let value_for_llm = if tool_name == "task" {
 		slim_task_tool_result_for_profile(value, profile)
 	} else {
-		value.clone()
+		without_duplicate_tool_body(tool_name, value)
 	};
 	let serialized = serde_json::to_string(&value_for_llm).unwrap_or_default();
 	let threshold = spill_threshold_for_tool(tool_name);
@@ -168,6 +168,26 @@ fn format_explore_delivery_spill_stub(
 	lines.join("\n")
 }
 
+/// L'appel porte déjà la demande. Le résultat vers le modèle ne la répète pas.
+/// L'UI reçoit toujours le JSON complet via `ToolFinish`.
+fn without_duplicate_tool_body(tool_name: &str, value: &Value) -> Value {
+	let Some(obj) = value.as_object() else {
+		return value.clone();
+	};
+	let drop_keys: &[&str] = match tool_name {
+		"file_edit" | "file_write" | "notebook_edit" => &["diff", "new_content", "content"],
+		"todo_write" => &["todos"],
+		"course_plan_write" => &["steps"],
+		"bash" => &["command", "description"],
+		_ => return value.clone(),
+	};
+	let mut slim = obj.clone();
+	for key in drop_keys {
+		slim.remove(*key);
+	}
+	Value::Object(slim)
+}
+
 pub(super) fn spill_tool_result_to_disk(
 	workspace_root: &Utf8Path,
 	tool_name: &str,
@@ -190,4 +210,71 @@ pub(super) fn spill_tool_result_to_disk(
 	let path = dir.join(&file_name);
 	std::fs::write(path.as_std_path(), body)?;
 	Ok(path.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use serde_json::json;
+
+	#[test]
+	fn file_edit_result_for_llm_drops_diff() {
+		let value = json!({
+			"applied": true,
+			"path": "src/page.tsx",
+			"edits_applied": 1,
+			"diff": "--- a/src/page.tsx\n+++ b/src/page.tsx\n-old\n+new"
+		});
+		let formatted = format_tool_result_for_llm(
+			"file_edit",
+			&value,
+			Utf8Path::new("."),
+		);
+		assert!(formatted.contains("\"applied\":true"));
+		assert!(formatted.contains("src/page.tsx"));
+		assert!(!formatted.contains("diff"));
+		assert!(!formatted.contains("--- a/"));
+	}
+
+	#[test]
+	fn todo_bash_and_course_plan_drop_echoed_request() {
+		let todo = format_tool_result_for_llm(
+			"todo_write",
+			&json!({
+				"todos": [{"id": "1", "content": "faire", "status": "pending"}],
+				"counts": {"pending": 1},
+				"summary": "1 pending"
+			}),
+			Utf8Path::new("."),
+		);
+		assert!(todo.contains("summary"));
+		assert!(!todo.contains("faire"));
+
+		let plan = format_tool_result_for_llm(
+			"course_plan_write",
+			&json!({
+				"courseTitle": "Rust",
+				"steps": [{"id": "1", "title": "boucle"}],
+				"counts": {"pending": 1},
+				"summary": "1 step"
+			}),
+			Utf8Path::new("."),
+		);
+		assert!(plan.contains("Rust"));
+		assert!(!plan.contains("boucle"));
+
+		let bash = format_tool_result_for_llm(
+			"bash",
+			&json!({
+				"command": "dir",
+				"description": "lister",
+				"exit_code": 0,
+				"stdout": "a.txt"
+			}),
+			Utf8Path::new("."),
+		);
+		assert!(bash.contains("a.txt"));
+		assert!(!bash.contains("dir"));
+		assert!(!bash.contains("lister"));
+	}
 }

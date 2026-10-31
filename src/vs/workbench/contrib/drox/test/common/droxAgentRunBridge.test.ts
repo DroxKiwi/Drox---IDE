@@ -252,7 +252,7 @@ suite('Drox — droxAgentRunBridge', () => {
 			sessionId: 'ses_l4_local',
 			system: 'notes',
 		});
-		assert.ok(capturedSystem && /prefer `todo_write`/.test(capturedSystem));
+		assert.strictEqual(capturedSystem, 'notes');
 		assert.ok(!/phase: done/.test(capturedSystem!));
 	});
 

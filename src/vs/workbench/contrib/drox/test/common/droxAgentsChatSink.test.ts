@@ -104,25 +104,27 @@ suite('Drox — droxAgentsChatSink', () => {
 		assert.strictEqual(sink.assistantText, 'Hello world');
 	});
 
-	test('text_delta during reading/acting routes to thinking (AMB-09 wide set)', () => {
+	test('text_delta during reading/acting is the visible reply', () => {
 		for (const phase of ['reading', 'acting', 'planning', 'verifying'] as const) {
 			const parts: IChatProgress[] = [];
 			const sink = createDroxAgentsChatSink(p => parts.push(...p));
 			sink.handleAgentEvent(agentEvent('phase_enter', { phase }));
 			sink.handleAgentEvent(agentEvent('text_delta', { text: `${phase}-note` }));
 			const thinking = parts.filter(p => p.kind === 'thinking');
-			assert.strictEqual(thinking.length, 1, phase);
-			assert.strictEqual(sink.assistantText, '');
+			const markdown = parts.filter(p => p.kind === 'markdownContent');
+			assert.strictEqual(thinking.length, 0, phase);
+			assert.strictEqual(markdown.length, 1, phase);
+			assert.strictEqual(sink.assistantText, `${phase}-note`);
 		}
 	});
 
-	test('isDroxThinkingRoute — answering visible, rest thinking', () => {
+	test('isDroxThinkingRoute — only native thinking folds', () => {
 		assert.strictEqual(isDroxThinkingRoute('answering'), false);
 		assert.strictEqual(isDroxThinkingRoute('done'), false);
-		assert.strictEqual(isDroxThinkingRoute('reading'), true);
-		// null = entre phases (ex. post thinking natif) → visible, pas fold
+		assert.strictEqual(isDroxThinkingRoute('reading'), false);
+		assert.strictEqual(isDroxThinkingRoute('internal_reasoning'), true);
 		assert.strictEqual(isDroxThinkingRoute(null), false);
-		assert.strictEqual(isDroxThinkingRoute('unknown_phase'), true);
+		assert.strictEqual(isDroxThinkingRoute('unknown_phase'), false);
 	});
 
 	test('mapDroxTodosToAgentsChatTodoList surfaces cancelled in title (AMB-03)', () => {

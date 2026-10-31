@@ -171,6 +171,7 @@ export function getDroxChatHtml(
 	const rolePanelMaxTokensLabel = localize('droxChatRolePanelMaxTokens', 'Max tokens');
 	const rolePanelKeepAliveLabel = localize('droxChatRolePanelKeepAlive', 'Keep alive');
 	const rolePanelReloadLabel = localize('droxChatRolePanelReload', 'Reload models');
+	const rolePanelResetLabel = localize('droxChatRolePanelReset', 'Reset');
 	const rolePanelApplyLabel = localize('droxChatRolePanelClose', 'Close');
 
 	const generalSettingsVignetteName = localize('droxChatGeneralSettingsVignetteName', 'Settings');
@@ -588,6 +589,8 @@ ${cssLinks}
 			${architectSamplingFields}
 
 			<div class="role-model-panel-actions">
+
+				<button type="button" id="role-model-panel-reset" class="role-model-panel-btn">${rolePanelResetLabel}</button>
 
 				<button type="button" id="role-model-panel-reload" class="role-model-panel-btn">${rolePanelReloadLabel}</button>
 

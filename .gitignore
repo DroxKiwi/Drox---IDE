@@ -47,6 +47,10 @@ dist
 .github/skills/.local/
 
 # Transcripts / exports locaux (ne pas publier)
+history-probe-test/
+history-prob-lab-results/
+history-probe-lab/*
+!history-probe-lab/.gitkeep
 docs/exports/
 docs/retour_discussion/
 docs/feature-brainstorm/
