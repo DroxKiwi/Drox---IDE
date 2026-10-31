@@ -88,6 +88,31 @@ suite('Drox shell tool wire', () => {
 		assert.strictEqual(wire.error, 'Skipped by user');
 	});
 
+	test('formatShellTerminalCommandOutputText hides the stop sentence from the card', () => {
+		assert.strictEqual(
+			formatShellTerminalCommandOutputText({
+				stdout: 'partial\n',
+				stderr: '',
+				skipped: true,
+				error: 'The user stopped this command. Resume the current task without running this command again.',
+			}),
+			'partial',
+		);
+	});
+
+	test('skipped bash closes the card with a finished exit code', () => {
+		const start = buildShellToolStartWire('bash', { command: 'ping -n 30 127.0.0.1' })!;
+		const finish = buildShellToolFinishWire('bash', {
+			stdout: '',
+			stderr: '',
+			skipped: true,
+			error: 'The user stopped this command. Resume the current task without running this command again.',
+		}, true)!;
+		const data = buildAgentsShellTerminalToolSpecificData(start, finish, true);
+		assert.strictEqual(data.terminalCommandOutput?.text, '');
+		assert.strictEqual(data.terminalCommandState?.exitCode, 130);
+	});
+
 	test('formatShellTerminalCommandOutputText normalizes newlines for xterm', () => {
 		assert.strictEqual(
 			formatShellTerminalCommandOutputText({ stdout: 'a\nb\n', stderr: 'err\n' }),

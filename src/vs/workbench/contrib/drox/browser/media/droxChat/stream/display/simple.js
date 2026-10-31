@@ -14,13 +14,6 @@
 	const THINKING_PHASES = new Set([
 		'internal_reasoning',
 		'reasoning',
-		'reading',
-		'analyzing',
-		'acting',
-		'planning',
-		'verifying',
-		'testing',
-		'clarifying',
 	]);
 
 	fn.looksLikeGateJson = function (text) {
@@ -40,7 +33,7 @@
 		return String(text || '')
 			.replace(/\[discussion:\s*reply\]\s*/gi, '')
 			.replace(/\[discussion:\s*done\]\s*/gi, '')
-			.replace(/\[phase:\s*(?:answering|done)\]\s*/gi, '')
+			.replace(/\[phase:\s*[a-z_]+\]\s*/gi, '')
 			.replace(/\{[^{}]*"(?:gate|open)"\s*:\s*[^}]+\}/gi, '');
 	};
 
@@ -226,13 +219,18 @@
 		return el;
 	};
 
+	/** Enveloppe d'outil dans le texte : pas une réponse, retirée de la bulle. */
+	fn.stripToolEnvelope = function (text) {
+		return String(text || '')
+			.replace(/<tool_call[\s\S]*?<\/tool_call>/gi, '')
+			.replace(/<function=[\s\S]*?<\/function>/gi, '')
+			.replace(/<tool_call[\s\S]*$/gi, '')
+			.replace(/<function=[\s\S]*$/gi, '');
+	};
+
 	fn.appendChatDelta = function (text) {
 		const chunk = fn.sanitizeChatDeltaChunk(text);
 		if (!chunk) {
-			return;
-		}
-		if (D.state.linearRunUi && D.state.currentPhase !== 'answering') {
-			fn.appendThinkingDelta(chunk);
 			return;
 		}
 		const parent = fn.getChatAnswerSection();
@@ -243,7 +241,12 @@
 			fn.ensureRunStripConnected(D.state.runStripEl);
 		}
 		const el = fn.ensureChatStreamElement(parent);
-		const nextRaw = (el.dataset.raw || '') + chunk;
+		const nextRaw = fn.stripToolEnvelope((el.dataset.raw || '') + chunk);
+		el.dataset.raw = nextRaw;
+		if (!nextRaw.trim()) {
+			el.textContent = '';
+			return;
+		}
 		fn.paintAssistantMarkdown(el, nextRaw, { streaming: true });
 		if (D.state.busy && typeof fn.ensureTailWarmupActivity === 'function') {
 			fn.ensureTailWarmupActivity();
@@ -528,24 +531,6 @@
 		}
 		if (typeof fn.commitRunStripAnchor === 'function') {
 			fn.commitRunStripAnchor();
-		}
-		// Fil linéaire : tout hors `answering` reste dans la chronologie (Travail).
-		if (D.state.linearRunUi && D.state.currentPhase !== 'answering') {
-			fn.appendThinkingDelta(text);
-			return true;
-		}
-		const answeringMarker = /\[phase:\s*answering\]\s*/i;
-		const answerMatch = String(text).match(answeringMarker);
-		if (answerMatch && answerMatch.index !== undefined) {
-			const before = text.slice(0, answerMatch.index);
-			const after = text.slice(answerMatch.index + answerMatch[0].length);
-			if (before) {
-				fn.appendThinkingDelta(before);
-			}
-			if (after) {
-				fn.appendChatDelta(after);
-			}
-			return true;
 		}
 		if (fn.deltaBelongsInThinking(text)) {
 			fn.appendThinkingDelta(text);

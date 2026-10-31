@@ -125,11 +125,16 @@ impl Tool for TodoWriteTool {
     }
 
     fn input_schema(&self) -> Value {
-        serde_json::to_value(schemars::schema_for!(TodoWriteInput)).unwrap_or(Value::Null)
+        let mut schema =
+            serde_json::to_value(schemars::schema_for!(TodoWriteInput)).unwrap_or(Value::Null);
+        // schemars met `status` en `allOf` + `$ref` vers un `oneOf` de chaînes
+        // (à cause des docs de l'enum). Les grammaires LiteLLM remplissent alors `{}`.
+        flatten_todo_status_schema(&mut schema);
+        schema
     }
 
     async fn execute(&self, _ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {
-        let normalized = normalize_input(input);
+        let normalized = normalize_input(input)?;
         let args: TodoWriteInput = serde_json::from_value(normalized).map_err(|e| {
             ToolError::invalid_args(format!(
                 "todo_write: invalid JSON payload ({e}). \
@@ -152,12 +157,11 @@ impl Tool for TodoWriteTool {
 /// - un **tableau** `[{...}, {...}]` → on le wrappe en `{ "todos": [...] }`.
 /// - un **objet** avec `id` / `content` / `status` (item seul à plat) → idem.
 /// - un objet avec `todo` au singulier ou `items` → on remappe vers `todos`.
-/// - un `status` invalide (`{}`, null, objet enum inventé) → string enum.
 ///
-/// Toutes ces variantes sont strictement équivalentes côté sémantique
-/// (mode replace, liste complète) ; on évite juste à un modèle qui se trompe
-/// de format de boucler sur l'erreur de parse.
-fn normalize_input(input: Value) -> Value {
+/// Le `status` n'est accepté que comme une des quatre chaînes. `{}`, null,
+/// un objet ou un mot inconnu font échouer l'appel : on n'enregistre pas
+/// `pending` à la place.
+fn normalize_input(input: Value) -> Result<Value, ToolError> {
     use serde_json::map::Map;
     let wrapped = match input {
         Value::Array(items) => json!({ "todos": items }),
@@ -184,76 +188,116 @@ fn normalize_input(input: Value) -> Value {
         }
         other => other,
     };
-    coerce_todo_statuses(wrapped)
+    require_todo_status_strings(wrapped)
 }
 
-/// U1 — coerce `status` vers une string enum snake_case.
-///
-/// Observé en prod (Qwen / KAT / LiteLLM) : `"status": {}` alors que le schéma
-/// demande `"pending" | "in_progress" | …`. Serde refuse avec
-/// `invalid value: map, expected map with a single key`.
-fn coerce_todo_statuses(input: Value) -> Value {
+const TODO_STATUS_VALUES: &str = "pending, in_progress, completed, cancelled";
+
+fn status_string_enum() -> Value {
+    json!({
+        "type": "string",
+        "enum": ["pending", "in_progress", "completed", "cancelled"]
+    })
+}
+
+fn points_at_todo_status(map: &serde_json::Map<String, Value>) -> bool {
+    const REF: &str = "#/definitions/TodoStatus";
+    if map.get("$ref").and_then(Value::as_str) == Some(REF) {
+        return true;
+    }
+    let Some(Value::Array(branches)) = map.get("allOf") else {
+        return false;
+    };
+    branches.len() == 1
+        && branches
+            .first()
+            .and_then(Value::as_object)
+            .and_then(|branch| branch.get("$ref"))
+            .and_then(Value::as_str)
+            == Some(REF)
+}
+
+/// Remplace le schéma `status` par une énumération de chaînes, définition comprise.
+fn flatten_todo_status_schema(node: &mut Value) {
+    let flat = status_string_enum();
+    match node {
+        Value::Array(items) => {
+            for item in items {
+                flatten_todo_status_schema(item);
+            }
+        }
+        Value::Object(map) => {
+            if points_at_todo_status(map) {
+                *node = flat;
+                return;
+            }
+            if let Some(Value::Object(defs)) = map.get_mut("definitions") {
+                if defs.contains_key("TodoStatus") {
+                    defs.insert("TodoStatus".into(), flat);
+                }
+            }
+            let keys: Vec<String> = map.keys().cloned().collect();
+            for key in keys {
+                if let Some(child) = map.get_mut(&key) {
+                    flatten_todo_status_schema(child);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn canonical_todo_status(raw: &str) -> Option<&'static str> {
+    match raw.trim().to_ascii_lowercase().replace('-', "_").as_str() {
+        "pending" => Some("pending"),
+        "in_progress" => Some("in_progress"),
+        "completed" => Some("completed"),
+        "cancelled" | "canceled" => Some("cancelled"),
+        _ => None,
+    }
+}
+
+fn todo_status_error(id: &str, got: &str) -> ToolError {
+    ToolError::invalid_args(format!(
+        "todo_write: item `{id}` has invalid status ({got}). \
+         Use one of: {TODO_STATUS_VALUES}. Nothing was saved."
+    ))
+}
+
+/// `status` doit être une des quatre chaînes. La casse et `canceled` sont
+/// ramenés à la forme canonique. Toute autre forme est une erreur.
+fn require_todo_status_strings(input: Value) -> Result<Value, ToolError> {
     let Value::Object(mut root) = input else {
-        return input;
+        return Ok(input);
     };
     let Some(Value::Array(items)) = root.get_mut("todos") else {
-        return Value::Object(root);
+        return Ok(Value::Object(root));
     };
     for item in items.iter_mut() {
         let Value::Object(obj) = item else {
             continue;
         };
-        let next = match obj.get("status") {
-            None | Some(Value::Null) => Some(Value::String("pending".into())),
+        let id = obj
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or("?")
+            .to_string();
+        match obj.get("status").cloned() {
             Some(Value::String(s)) => {
-                let trimmed = s.trim();
-                if trimmed.is_empty() {
-                    Some(Value::String("pending".into()))
-                } else {
-                    let lower = trimmed.to_ascii_lowercase().replace('-', "_");
-                    match lower.as_str() {
-                        "pending" | "in_progress" | "completed" | "cancelled" | "canceled" => {
-                            let canon = if lower == "canceled" {
-                                "cancelled"
-                            } else {
-                                lower.as_str()
-                            };
-                            if canon == trimmed {
-                                None
-                            } else {
-                                Some(Value::String(canon.into()))
-                            }
-                        }
-                        _ => Some(Value::String("pending".into())),
-                    }
-                }
+                let Some(canon) = canonical_todo_status(&s) else {
+                    return Err(todo_status_error(&id, &format!("\"{s}\"")));
+                };
+                obj.insert("status".into(), Value::String(canon.into()));
             }
-            Some(Value::Object(map)) => {
-                // `{}` → pending ; `{"pending":null}` / `{"in_progress":true}` → clé.
-                if map.is_empty() {
-                    Some(Value::String("pending".into()))
-                } else if map.len() == 1 {
-                    let key = map.keys().next().map(|k| k.as_str()).unwrap_or("pending");
-                    let lower = key.to_ascii_lowercase().replace('-', "_");
-                    let canon = match lower.as_str() {
-                        "pending" | "in_progress" | "completed" | "cancelled" => lower,
-                        "canceled" => "cancelled".into(),
-                        _ => "pending".into(),
-                    };
-                    Some(Value::String(canon))
-                } else {
-                    Some(Value::String("pending".into()))
-                }
+            Some(other) => {
+                return Err(todo_status_error(&id, &other.to_string()));
             }
-            Some(Value::Bool(_) | Value::Number(_) | Value::Array(_)) => {
-                Some(Value::String("pending".into()))
+            None => {
+                return Err(todo_status_error(&id, "missing"));
             }
-        };
-        if let Some(status) = next {
-            obj.insert("status".into(), status);
         }
     }
-    Value::Object(root)
+    Ok(Value::Object(root))
 }
 
 /// Vérifie les invariants : ≥ 1 item, ids uniques non vides, content non
@@ -316,10 +360,17 @@ mod tests {
 
     #[test]
     fn schema_lists_all_statuses() {
-        let s = TodoWriteTool.input_schema().to_string();
-        for st in ["pending", "in_progress", "completed", "cancelled"] {
-            assert!(s.contains(st), "schema must mention status `{st}`");
-        }
+        let schema = TodoWriteTool.input_schema();
+        let status = &schema["definitions"]["TodoItem"]["properties"]["status"];
+        assert_eq!(status["type"], "string");
+        assert_eq!(
+            status["enum"],
+            json!(["pending", "in_progress", "completed", "cancelled"])
+        );
+        assert!(status.get("allOf").is_none(), "{status}");
+        assert!(status.get("oneOf").is_none(), "{status}");
+        assert!(status.get("$ref").is_none(), "{status}");
+        assert_eq!(schema["definitions"]["TodoStatus"]["type"], "string");
     }
 
     #[tokio::test]
@@ -439,56 +490,43 @@ mod tests {
         assert_eq!(out["todos"].as_array().unwrap().len(), 1);
     }
 
-    /// Transcript Qwen3.8 / KAT : le modèle envoie `"status": {}` à chaque retry.
     #[tokio::test]
-    async fn u1_coerces_empty_status_object_to_pending() {
+    async fn empty_status_object_is_rejected() {
         let payload = json!({
             "todos": [
-                {
-                    "content": "Analyser le projet",
-                    "id": "1",
-                    "status": {}
-                },
-                {
-                    "content": "Rediger le document",
-                    "id": "2",
-                    "status": {}
-                },
+                { "content": "Analyser le projet", "id": "1", "status": {} },
             ]
         });
-        let out = TodoWriteTool.execute(&ctx(), payload).await.unwrap();
-        assert_eq!(out["todos"].as_array().unwrap().len(), 2);
-        assert_eq!(out["todos"][0]["status"], "pending");
-        assert_eq!(out["todos"][1]["status"], "pending");
-        assert_eq!(out["counts"]["pending"], 2);
+        let err = TodoWriteTool.execute(&ctx(), payload).await.unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("invalid status"), "{msg}");
+        assert!(msg.contains("pending, in_progress, completed, cancelled"), "{msg}");
+        assert!(msg.contains("`1`"), "{msg}");
     }
 
     #[tokio::test]
-    async fn u1_coerces_null_and_missing_status_to_pending() {
-        let payload = json!({
-            "todos": [
-                { "id": "1", "content": "A", "status": null },
-                { "id": "2", "content": "B" },
-            ]
+    async fn null_and_missing_status_are_rejected() {
+        let null_status = json!({
+            "todos": [ { "id": "1", "content": "A", "status": null } ]
         });
-        let out = TodoWriteTool.execute(&ctx(), payload).await.unwrap();
-        assert_eq!(out["todos"][0]["status"], "pending");
-        assert_eq!(out["todos"][1]["status"], "pending");
+        let missing = json!({
+            "todos": [ { "id": "2", "content": "B" } ]
+        });
+        for payload in [null_status, missing] {
+            let err = TodoWriteTool.execute(&ctx(), payload).await.unwrap_err();
+            assert!(err.to_string().contains("invalid status"), "{}", err);
+        }
     }
 
     #[tokio::test]
-    async fn u1_coerces_externally_tagged_status_map() {
+    async fn status_object_is_rejected() {
         let payload = json!({
             "todos": [
                 { "id": "1", "content": "A", "status": { "in_progress": null } },
-                { "id": "2", "content": "B", "status": { "Completed": true } },
             ]
         });
-        let out = TodoWriteTool.execute(&ctx(), payload).await.unwrap();
-        assert_eq!(out["todos"][0]["status"], "in_progress");
-        assert_eq!(out["todos"][1]["status"], "completed");
-        assert_eq!(out["counts"]["in_progress"], 1);
-        assert_eq!(out["counts"]["completed"], 1);
+        let err = TodoWriteTool.execute(&ctx(), payload).await.unwrap_err();
+        assert!(err.to_string().contains("invalid status"), "{err}");
     }
 
     #[tokio::test]

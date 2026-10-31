@@ -27,5 +27,7 @@ suite('droxDevSurface', () => {
 		assert.strictEqual(isDroxDevFeatureEnabled('executablePath', release), false);
 		assert.strictEqual(isDroxDevFeatureEnabled('historyProbe', dev), true);
 		assert.strictEqual(isDroxDevFeatureEnabled('historyProbe', release), false);
+		assert.strictEqual(isDroxDevFeatureEnabled('runCapture', dev), true);
+		assert.strictEqual(isDroxDevFeatureEnabled('runCapture', release), false);
 	});
 });

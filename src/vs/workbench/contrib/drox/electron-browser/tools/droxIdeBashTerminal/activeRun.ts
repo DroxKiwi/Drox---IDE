@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IDroxBashExecResult } from '../../../common/droxBash.js';
+import { DROX_BASH_USER_STOPPED, IDroxBashExecResult } from '../../../common/droxBash.js';
 import { isolateDroxBashCapturedStdout } from '../../../common/droxBashCapture.js';
 import { ITerminalInstance, ITerminalService } from '../../../../terminal/browser/terminal.js';
 import { collectRecentBuffer } from './buffer.js';
@@ -56,7 +56,7 @@ export function skipActiveDroxBashInIdeTerminal(): boolean {
 		timed_out: false,
 		duration_ms: Date.now() - active.started,
 		terminal_instance_id: active.instance.instanceId,
-		error: 'Skipped by user',
+		error: DROX_BASH_USER_STOPPED,
 		skipped: true,
 	});
 	// Recreate shared session — Ctrl+C alone leaves cmd on "Terminate batch (Y/N)?".

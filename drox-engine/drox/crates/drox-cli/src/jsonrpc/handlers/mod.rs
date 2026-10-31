@@ -682,8 +682,17 @@ async fn build_agent_setup(
         }
     }
 
-    let (history, transcript, ui_stats_path) =
+    let (history, transcript, ui_stats_path, transcript_file) =
         build_transcript(params, system_merged.as_deref()).await?;
+    let run_capture = params.run_capture.unwrap_or(false);
+    let run_capture_path = if run_capture {
+        transcript_file.as_ref().map(|file| {
+            let stem = file.file_stem().unwrap_or("session");
+            file.with_file_name(format!("{stem}.run-capture.jsonl"))
+        })
+    } else {
+        None
+    };
 
     let model_label = params
         .model
@@ -850,6 +859,8 @@ async fn build_agent_setup(
         explore_execution: false,
         engine_profile: engine_profile.id().to_string(),
         history_probe: params.history_probe.unwrap_or(false),
+        run_capture,
+        run_capture_path,
     };
 
     let agent = Agent::new(llm, registry, ctx, agent_config);
@@ -1203,11 +1214,12 @@ async fn build_transcript(
         Vec<drox_types::Message>,
         Option<TranscriptSessionConfig>,
         Option<Utf8PathBuf>,
+        Option<Utf8PathBuf>,
     ),
     RpcError,
 > {
     let Some(ref sid) = params.session_id else {
-        return Ok((Vec::new(), None, None));
+        return Ok((Vec::new(), None, None, None));
     };
     if !sid.starts_with("ses_") {
         return Err(RpcError::new(
@@ -1225,7 +1237,7 @@ async fn build_transcript(
         Err(e) => return Err(RpcError::new(ENGINE_ERROR, format!("session read: {e}"))),
     };
     let append_from = history.len() + usize::from(system_merged.is_some());
-    let sink = JsonlTranscriptSink::arc(path);
+    let sink = JsonlTranscriptSink::arc(path.clone());
     Ok((
         history,
         Some(TranscriptSessionConfig {
@@ -1233,6 +1245,7 @@ async fn build_transcript(
             append_from_message_index: append_from,
         }),
         Some(stats_path),
+        Some(path),
     ))
 }
 

@@ -119,6 +119,19 @@ pub(crate) fn upsert_situation_card(
 	true
 }
 
+/// L'insertion décale les messages déjà comptés par le curseur du transcript.
+/// Sans ça, le flush suivant réécrit le message utilisateur.
+pub(crate) fn advance_transcript_cursor_for_insert(
+	cursor: &mut usize,
+	insert_at: usize,
+	len_before: usize,
+) {
+	let at = insert_at.min(len_before);
+	if at < *cursor {
+		*cursor = cursor.saturating_add(1);
+	}
+}
+
 #[must_use]
 pub(crate) fn find_situation_card_index(messages: &[Message]) -> Option<usize> {
 	messages.iter().position(|m| {

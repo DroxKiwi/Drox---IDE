@@ -30,6 +30,12 @@ export interface IDroxUserAskService {
 
 	resolvePendingAsSkipped(): void;
 
+	/**
+	 * The user stopped the command from the terminal card.
+	 * Releases a pending question or permission dialog. Returns true when one was waiting.
+	 */
+	cancelPendingForCommandStop(): boolean;
+
 	/** Mode permission du run agent en cours (pour auto-allow en Accept Edit). */
 	setActivePermissionMode(mode: string | undefined): void;
 

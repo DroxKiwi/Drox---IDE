@@ -96,6 +96,7 @@ export type DroxWebviewToHostMessage =
 	| { readonly type: 'redoFileChange'; readonly toolId: string }
 
 	| { readonly type: 'exportTranscript' }
+	| { readonly type: 'setRunCapture'; readonly recording: boolean }
 
 	| { readonly type: 'showReleaseNotes' }
 
@@ -108,6 +109,7 @@ export type DroxWebviewToHostMessage =
 export type DroxHostToWebviewMessage =
 
 	| { readonly kind: 'state'; readonly busy: boolean }
+	| { readonly kind: 'runCapture'; readonly recording: boolean }
 
 	| { readonly kind: 'productVersion'; readonly label: string; readonly title: string }
 
@@ -323,7 +325,7 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 	const t = (msg as { type?: unknown }).type;
 
-	if (t === 'webviewReady' || t === 'cancelRun' || t === 'skipShell' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings') {
+	if (t === 'webviewReady' || t === 'cancelRun' || t === 'skipShell' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'setRunCapture' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings') {
 
 		return true;
 

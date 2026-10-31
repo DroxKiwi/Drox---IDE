@@ -114,8 +114,8 @@ pub const LOCAL_EXPLORE_KICKOFF_ENTRY: PromptEntry = PromptEntry {
 };
 
 pub const LOCAL_EMPTY_TURN_NUDGE: &str = "\
-Your last turn had no visible reply and no tool call. Either call the next tool, \
-or write the user-facing answer once (that ends the run). Do not repeat it.";
+Your last turn had no message text and no tool call. Write the reply in the \
+message itself, not in thinking, or call the next tool. One reply is enough.";
 
 pub const LOCAL_EMPTY_TURN_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.local.empty_turn",
@@ -127,6 +127,46 @@ pub const LOCAL_EMPTY_TURN_ENTRY: PromptEntry = PromptEntry {
 	claims: &[],
 	body: LOCAL_EMPTY_TURN_NUDGE,
 };
+
+/// Tour fermé sans `tool_calls`, alors que le texte imite `<tool_call>` / `<function=`.
+pub const LOCAL_TEXTUAL_TOOL_NUDGE: &str = "\
+That message is not a valid reply and not a tool call: a tool envelope in the \
+text (`<tool_call>`, `<function=`) is ignored. Send a native tool call, or write \
+a plain sentence. Do not repeat the envelope.";
+
+pub const LOCAL_TEXTUAL_TOOL_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.local.textual_tool",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "engine_profile_local+textual_tool_call+tools_enabled",
+	topics: &["closure", "tools"],
+	claims: &[],
+	body: LOCAL_TEXTUAL_TOOL_NUDGE,
+};
+
+/// Même forme, mais les outils du tour sont déjà coupés (boucle).
+pub const LOCAL_TEXTUAL_TOOL_TOOLS_OFF_NUDGE: &str = "\
+Tools are off for this turn. The `<tool_call>` text was not executed. \
+Write the user-facing reply in the message, with no tool syntax.";
+
+pub const LOCAL_TEXTUAL_TOOL_TOOLS_OFF_ENTRY: PromptEntry = PromptEntry {
+	id: "runtime.local.textual_tool_tools_off",
+	intent: PromptIntent::Rescue,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "engine_profile_local+textual_tool_call+tools_disabled",
+	topics: &["closure", "tools"],
+	claims: &[],
+	body: LOCAL_TEXTUAL_TOOL_TOOLS_OFF_NUDGE,
+};
+
+/// Le modèle a imité un appel dans le texte au lieu du canal natif.
+#[must_use]
+pub fn reply_has_textual_tool_call(reply: &str) -> bool {
+	let lower = reply.to_ascii_lowercase();
+	lower.contains("<tool_call") || lower.contains("<function=")
+}
 
 /// `local-27b` : rappel one-shot avant clôture (todo ouverte / code modifié sans check).
 pub const LOCAL_SOFT_CLOSE_CHECK_NUDGE: &str = "\
@@ -176,3 +216,18 @@ pub const TASK_TOOL_LOCAL_ENTRY: PromptEntry = PromptEntry {
 	claims: &[],
 	body: TASK_TOOL_DESCRIPTION_LOCAL,
 };
+
+#[cfg(test)]
+mod tests {
+	use super::reply_has_textual_tool_call;
+
+	#[test]
+	fn textual_tool_call_matches_xml_shapes_only() {
+		assert!(reply_has_textual_tool_call(
+			"<tool_call> <function=todo_write> <parameter=todos> [] </parameter>"
+		));
+		assert!(reply_has_textual_tool_call("<FUNCTION=file_edit>"));
+		assert!(!reply_has_textual_tool_call("J'ai mis à jour la documentation."));
+		assert!(!reply_has_textual_tool_call("appelle todo_write ensuite"));
+	}
+}

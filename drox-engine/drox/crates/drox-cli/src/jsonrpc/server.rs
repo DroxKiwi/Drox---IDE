@@ -288,6 +288,16 @@ impl Server {
                 self.respond(Response::success(id, serde_json::json!({ "skipped": skipped })))
                     .await;
             }
+            "tools.takeBashSkip" => {
+                let stop = drox_tools::take_bash_user_stop();
+                self.respond(Response::success(id, serde_json::json!({ "stop": stop })))
+                    .await;
+            }
+            "tools.clearBashSkip" => {
+                drox_tools::clear_bash_user_stop();
+                self.respond(Response::success(id, serde_json::json!({ "cleared": true })))
+                    .await;
+            }
             "embed.status" => match handlers::embed_status(req.params).await {
                 Ok(v) => self.respond(Response::success(id, v)).await,
                 Err(e) => self.respond(Response::error(id, e)).await,

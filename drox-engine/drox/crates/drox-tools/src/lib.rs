@@ -41,7 +41,8 @@ pub use subagent::{
 	EXPLORE_BLURB_MAX_CHARS, MAX_COMMIT_BODY_CHARS,
 };
 pub use simple::{
-    skip_active_native_bash, AskUserQuestionTool, BashTool, CANONICAL_ASK_JSON_EXAMPLE,
+    bash_user_stopped_output, clear_bash_user_stop, skip_active_native_bash, take_bash_user_stop,
+    AskUserQuestionTool, BashTool, CANONICAL_ASK_JSON_EXAMPLE,
     ExitPlanModeTool, FileEditTool, FileReadTool, FileWriteTool, preview_file_edit_diff,
     preview_file_write_diff, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool,
     NotebookEditTool, ExploreArtifactReadTool, ExploreCommitTool, ExploreIndexListTool,

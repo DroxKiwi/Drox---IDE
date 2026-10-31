@@ -71,6 +71,20 @@ fn upsert_replaces_without_duplicating() {
 }
 
 #[test]
+fn insert_before_flushed_user_advances_the_cursor() {
+	let mut cursor = 2usize;
+	advance_transcript_cursor_for_insert(&mut cursor, 1, 2);
+	assert_eq!(cursor, 3);
+}
+
+#[test]
+fn insert_at_unflushed_user_keeps_the_cursor() {
+	let mut cursor = 1usize;
+	advance_transcript_cursor_for_insert(&mut cursor, 1, 2);
+	assert_eq!(cursor, 1);
+}
+
+#[test]
 fn next_todo_prefers_in_progress() {
 	let v = json!({
 		"todos": [

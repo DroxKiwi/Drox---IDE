@@ -62,6 +62,11 @@ pub struct AgentConfig {
     /// (rôle, taille, extrait) sur l'historique réellement envoyé. L'IDE release
     /// ne pose jamais ce flag.
     pub history_probe: bool,
+    /// Dev only. Absent / `false` : aucun fichier, aucun parcours du payload.
+    /// `true` : écrit `*.run-capture.jsonl` à côté du transcript.
+    pub run_capture: bool,
+    /// Renseigné seulement quand `run_capture` est vrai.
+    pub run_capture_path: Option<camino::Utf8PathBuf>,
 }
 
 /// Valeurs RPC / settings. Inconnu → `local-9b`.
@@ -211,6 +216,8 @@ impl Default for AgentConfig {
             // produit `local-9b` vient de `normalize_engine_profile` côté RPC / TUI.
             engine_profile: EngineProfile::CloudFull.id().to_string(),
             history_probe: false,
+            run_capture: false,
+            run_capture_path: None,
         }
     }
 }

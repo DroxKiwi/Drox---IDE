@@ -17,6 +17,7 @@ import {
 } from './droxSessionNotesFs.js';
 import { consumeDroxPlanArchiveSystemNote } from './droxPlanArchiveNote.js';
 import { truncateUserPromptForEngine } from './droxUserPromptEngine.js';
+import { isDroxRunCaptureArmed } from './droxRunCapture.js';
 import { IDroxCodebaseContextService } from './codebase/droxCodebaseContextService.js';
 import {
 	applyDroxRegulationL1SessionNotes,
@@ -229,6 +230,10 @@ export async function startDroxAgentRun(
 
 	// Session intent (work / analysis / doc) : classif multi-bool dans le moteur
 	// (`drox-prompts`), pas ici — cohérent hors fork VS Code.
+
+	if (isDroxRunCaptureArmed()) {
+		runParams.runCapture = true;
+	}
 
 	const result = await deps.droxEngineService.request('agent.run', runParams) as { runId?: string };
 	if (typeof result?.runId === 'string') {

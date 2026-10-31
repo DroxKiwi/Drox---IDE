@@ -10,6 +10,11 @@ use crate::event::{AgentEvent, Phase};
 pub(crate) const ENGINE_CLOSURE_EMPTY_REPLY: &str = "**Run terminé** — le modèle n’a pas rédigé \
      de réponse finale. Les actions effectuées restent visibles dans la trace ci-dessus.";
 
+/// Réponse affichée quand le texte imite un appel d'outil. Le XML n'est pas la bulle.
+pub(crate) const ENGINE_CLOSURE_TEXTUAL_TOOL_REPLY: &str = "**Réponse refusée** — le message \
+     imitait un appel d'outil. Seul un appel natif est exécuté ; une réponse est une phrase. \
+     Rien de ce texte n'a été exécuté.";
+
 /// Signe `done`. `surface_reply` : le texte n'est pas encore dans la bulle
 /// (tour vide, ou prose restée dans une phase interne) — on l'émet une fois
 /// sous `answering`. Un bilan déjà streamé après le thinking ne l'est pas.

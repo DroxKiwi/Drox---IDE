@@ -41,6 +41,7 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const rolePanelReasoningEffortHigh = localize('droxChatRolePanelReasoningEffortHigh', 'High');
 	const rolePanelReasoningEffortXHigh = localize('droxChatRolePanelReasoningEffortXHigh', 'Extra high');
 	const rolePanelReloadLabel = localize('droxChatRolePanelReload', 'Reload models');
+	const rolePanelResetLabel = localize('droxChatRolePanelReset', 'Reset');
 	const rolePanelApplyLabel = localize('droxChatRolePanelClose', 'Close');
 	const rolePanelMuteOnTitle = localize('droxChatRolePanelMuteOn', 'Hidden from backend — click to send this parameter');
 	const rolePanelMuteOffTitle = localize('droxChatRolePanelMuteOff', 'Sent to backend — click to hide this parameter');
@@ -144,6 +145,7 @@ export function buildDroxComposerPanelsMarkup(): string {
 			${muteableField('maxTokens', rolePanelMaxTokensLabel, `<input type="number" id="role-model-panel-max-tokens" class="role-model-panel-input" min="1" step="1" placeholder="—" />`)}
 			${muteableField('keepAlive', rolePanelKeepAliveLabel, `<input type="text" id="role-model-panel-keep-alive" class="role-model-panel-input" spellcheck="false" placeholder="30m" />`)}
 			<div class="role-model-panel-actions">
+				<button type="button" id="role-model-panel-reset" class="role-model-panel-btn">${rolePanelResetLabel}</button>
 				<button type="button" id="role-model-panel-reload" class="role-model-panel-btn">${rolePanelReloadLabel}</button>
 			</div>
 		</div>

@@ -8,6 +8,9 @@ export const DROX_BASH_OUTPUT_CHANNEL_ID = 'droxBash';
 /** Cursor-like default: cut stuck shell and return `timed_out` to the model. */
 export const DROX_BASH_DEFAULT_TIMEOUT_MS = 60_000;
 
+/** Tool result when the user stops a running command. The model reads this. The card does not show it. */
+export const DROX_BASH_USER_STOPPED = 'The user stopped this command. Resume the current task without running this command again.';
+
 /** setTimeout ceiling (~24.8d) — platform limit, not a product policy cap. */
 const DROX_BASH_TIMEOUT_TIMER_CEILING_MS = 2 ** 31 - 1;
 

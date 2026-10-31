@@ -62,21 +62,11 @@ impl Phase {
         }
     }
 
-    /// Texte streamé dans cette phase : fold thinking, pas la bulle utilisateur.
-    /// Aligné sur `DROX_THINKING_PHASES` côté IDE.
+    /// Seul le thinking natif n'est pas une bulle. Le content sous reading,
+    /// acting, planning, etc. est déjà la réponse visible.
     #[must_use]
     pub const fn hides_user_reply(self) -> bool {
-        matches!(
-            self,
-            Self::InternalReasoning
-                | Self::Analyzing
-                | Self::Reading
-                | Self::Clarifying
-                | Self::Planning
-                | Self::Acting
-                | Self::Testing
-                | Self::Verifying
-        )
+        matches!(self, Self::InternalReasoning)
     }
 }
 

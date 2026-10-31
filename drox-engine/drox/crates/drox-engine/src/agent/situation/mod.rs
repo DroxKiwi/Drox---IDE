@@ -21,8 +21,8 @@ mod todos;
 mod tests;
 
 pub(crate) use card::{
-	format_situation_card, situation_card_body_line_count, upsert_situation_card,
-	SituationSnapshot, SITUATION_CARD_BODY_LINES, SITUATION_CARD_MARKER,
+	advance_transcript_cursor_for_insert, format_situation_card, situation_card_body_line_count,
+	upsert_situation_card, SituationSnapshot, SITUATION_CARD_BODY_LINES, SITUATION_CARD_MARKER,
 };
 pub(crate) use explore_covered::ExploreCoveredPaths;
 pub(crate) use paths::{

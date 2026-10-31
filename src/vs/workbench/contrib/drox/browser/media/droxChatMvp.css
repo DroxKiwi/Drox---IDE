@@ -3985,6 +3985,7 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .role-model-panel-actions {
 	display: flex;
 	justify-content: flex-end;
+	gap: 6px;
 }
 
 .role-model-panel-btn {
@@ -4317,6 +4318,12 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 .icon-btn:hover {
 	background: rgba(61, 122, 61, 0.12);
 	border-color: #5a9e5a;
+}
+
+.icon-btn.is-recording {
+	color: #e23b3b;
+	border-color: #e23b3b;
+	background: rgba(226, 59, 59, 0.14);
 }
 
 .icon-btn:focus-visible {

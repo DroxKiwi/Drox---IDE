@@ -10,6 +10,7 @@ import { ITerminalService } from '../../../terminal/browser/terminal.js';
 import {
 	DROX_BASH_DEFAULT_TIMEOUT_MS,
 	DROX_BASH_OUTPUT_CHANNEL_ID,
+	DROX_BASH_USER_STOPPED,
 	IDroxBashExecResult,
 } from '../../common/droxBash.js';
 import {
@@ -57,7 +58,7 @@ function skippedResult(command: string, started: number): IDroxBashExecResult {
 		stderr: '',
 		timed_out: false,
 		duration_ms: Date.now() - started,
-		error: 'Skipped by user',
+		error: DROX_BASH_USER_STOPPED,
 		skipped: true,
 	};
 }
@@ -66,7 +67,11 @@ export function createDroxBashToolHandler(
 	mainProcessService: IMainProcessService,
 	outputService: IOutputService,
 	terminalService: ITerminalService,
-	opts?: { readonly isSessionsWindow?: boolean },
+	opts?: {
+		readonly isSessionsWindow?: boolean;
+		/** Engine one-shot: the user already asked to stop the next bash. */
+		readonly takeUserStop?: () => Promise<boolean>;
+	},
 ): (p: IDroxToolExecParams) => Promise<IDroxToolExecResult> {
 	const channel = mainProcessService.getChannel(DROX_ENGINE_CHANNEL_NAME);
 	const allowVisibleTerminal = opts?.isSessionsWindow !== true;
@@ -85,6 +90,19 @@ export function createDroxBashToolHandler(
 		const header = `$ ${command}\n# cwd: ${p.workspace ?? '(undefined)'}\n`;
 		outChannel?.append(header);
 
+		if (opts?.takeUserStop && await opts.takeUserStop()) {
+			return {
+				output: {
+					error: DROX_BASH_USER_STOPPED,
+					skipped: true,
+					command,
+					stdout: '',
+					stderr: '',
+				},
+				isError: true,
+			};
+		}
+
 		const started = Date.now();
 		let skipResolve: ((result: IDroxBashExecResult) => void) | undefined;
 		const skipPromise = new Promise<IDroxBashExecResult>(resolve => {
@@ -97,19 +115,13 @@ export function createDroxBashToolHandler(
 				if (finished) {
 					return false;
 				}
-				// Best-effort kill: tracked IDE run, shared terminal, then ExecBash.
+				// Unblock the model first. Killing the process can wait on IPC.
+				skipResolve?.(skippedResult(command, started));
 				const ide = skipActiveDroxBashInIdeTerminal();
 				if (!ide) {
 					forceInterruptDroxAgentTerminal(terminalService);
 				}
-				try {
-					await channel.call<boolean>(DroxEngineCommand.SkipExecBash);
-				} catch {
-					/* main may be stale / channel down */
-				}
-				if (!finished) {
-					skipResolve?.(skippedResult(command, started));
-				}
+				void channel.call<boolean>(DroxEngineCommand.SkipExecBash).catch(() => undefined);
 				return true;
 			},
 		});
@@ -180,7 +192,7 @@ export function createDroxBashToolHandler(
 		if (result.error || result.skipped) {
 			return {
 				output: {
-					error: result.error ?? 'Skipped by user',
+					error: result.error ?? DROX_BASH_USER_STOPPED,
 					skipped: Boolean(result.skipped),
 					command: result.command,
 					stdout: result.stdout,

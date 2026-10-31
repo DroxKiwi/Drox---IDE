@@ -16,6 +16,8 @@ export type DroxDevFeatureId =
 
 	| 'exportTranscript'
 
+	| 'runCapture'
+
 	| 'executablePath'
 
 	| 'historyProbe';
@@ -49,6 +51,12 @@ export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly des
 	exportTranscript: {
 
 		description: 'Bouton export transcript dans le header Drox Chat.',
+
+	},
+
+	runCapture: {
+
+		description: 'Bouton bug à côté de l\'export : enregistre le payload LLM seulement quand il est rouge.',
 
 	},
 

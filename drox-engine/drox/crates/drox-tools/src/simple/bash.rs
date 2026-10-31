@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use tokio::io::AsyncReadExt;
 use tokio::process::{Child, Command};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Notify};
 use tokio::time::timeout;
 
 use crate::tool_context::ToolContext;
@@ -28,9 +28,16 @@ const TAIL_LINES: usize = 5;
 /// Active native (in-process) bash child — Skip / `tools.skipBash` kills it.
 static ACTIVE_NATIVE_BASH: Mutex<Option<u32>> = Mutex::const_new(None);
 static NATIVE_BASH_SKIP_REQUESTED: AtomicBool = AtomicBool::new(false);
+static NATIVE_BASH_SKIP_NOTIFY: Notify = Notify::const_new();
 
-/// Kill the in-flight native `bash` tool child if any. Returns true when a pid was targeted.
+const USER_STOPPED: &str = "The user stopped this command. Resume the current task without running this command again.";
+
+/// Arm a one-shot user stop and kill the in-flight native child if any.
+/// Returns true when a pid was targeted. The flag stays set when nothing is
+/// running yet, so the next `bash` does not start.
 pub async fn skip_active_native_bash() -> bool {
+    NATIVE_BASH_SKIP_REQUESTED.store(true, Ordering::SeqCst);
+    NATIVE_BASH_SKIP_NOTIFY.notify_waiters();
     let pid = {
         let guard = ACTIVE_NATIVE_BASH.lock().await;
         *guard
@@ -38,9 +45,30 @@ pub async fn skip_active_native_bash() -> bool {
     let Some(pid) = pid else {
         return false;
     };
-    NATIVE_BASH_SKIP_REQUESTED.store(true, Ordering::SeqCst);
-    kill_pid(pid);
+    let _ = tokio::task::spawn_blocking(move || kill_pid(pid)).await;
     true
+}
+
+/// Consume the user-stop flag. The next `bash` (or the one about to start) must not run.
+pub fn take_bash_user_stop() -> bool {
+    NATIVE_BASH_SKIP_REQUESTED.swap(false, Ordering::SeqCst)
+}
+
+/// Drop a stop that was already applied (in-flight client command or permission ask).
+pub fn clear_bash_user_stop() {
+    NATIVE_BASH_SKIP_REQUESTED.store(false, Ordering::SeqCst);
+}
+
+pub fn bash_user_stopped_output(command: &str) -> Value {
+    json!({
+        "command": command,
+        "exit_code": null,
+        "stdout": "",
+        "stderr": "",
+        "timed_out": false,
+        "skipped": true,
+        "error": USER_STOPPED,
+    })
 }
 
 fn kill_pid(pid: u32) {
@@ -107,6 +135,10 @@ impl Tool for BashTool {
             .filter(|ms| *ms > 0)
             .unwrap_or(DEFAULT_TIMEOUT_MS);
 
+        if take_bash_user_stop() {
+            return Ok(bash_user_stopped_output(&command));
+        }
+
         let started = Instant::now();
         let cwd = ctx.effective_workspace();
         let mut cmd = build_shell_command(&command);
@@ -120,7 +152,6 @@ impl Tool for BashTool {
             .spawn()
             .map_err(|e| ToolError::io(cwd.clone(), e))?;
 
-        NATIVE_BASH_SKIP_REQUESTED.store(false, Ordering::SeqCst);
         if let Some(pid) = child.id() {
             *ACTIVE_NATIVE_BASH.lock().await = Some(pid);
         }
@@ -172,7 +203,7 @@ impl Tool for BashTool {
                 "duration_ms": duration_ms,
                 "description": args.description,
                 "skipped": true,
-                "error": "Skipped by user",
+                "error": USER_STOPPED,
             }));
         }
 
@@ -242,11 +273,64 @@ async fn wait_child(
     child: &mut Child,
     pump_tasks: Vec<tokio::task::JoinHandle<()>>,
 ) -> std::io::Result<std::process::ExitStatus> {
-    let status = child.wait().await?;
-    for t in pump_tasks {
-        let _ = t.await;
+    let user_stopped = {
+        let notified = NATIVE_BASH_SKIP_NOTIFY.notified();
+        tokio::pin!(notified);
+        let status = child.wait();
+        tokio::pin!(status);
+        loop {
+            tokio::select! {
+                biased;
+                result = &mut status => {
+                    for t in pump_tasks {
+                        let _ = t.await;
+                    }
+                    return result;
+                }
+                _ = &mut notified => break true,
+                _ = tokio::time::sleep(Duration::from_millis(150)) => {
+                    // `notify_waiters` is lost if it fires before this wait is polled.
+                    // The flag stays set, so a click still ends the command.
+                    if NATIVE_BASH_SKIP_REQUESTED.load(Ordering::SeqCst) {
+                        break true;
+                    }
+                }
+            }
+        }
+    };
+    if user_stopped {
+        force_stop_child(child, &pump_tasks).await
+    } else {
+        unreachable!()
     }
-    Ok(status)
+}
+
+async fn force_stop_child(
+    child: &mut Child,
+    pump_tasks: &[tokio::task::JoinHandle<()>],
+) -> std::io::Result<std::process::ExitStatus> {
+    let _ = child.start_kill();
+    if let Some(pid) = child.id() {
+        let _ = tokio::task::spawn_blocking(move || kill_pid(pid)).await;
+    }
+    for t in pump_tasks {
+        t.abort();
+    }
+    let _ = timeout(Duration::from_millis(500), child.wait()).await;
+    Ok(forced_stop_status())
+}
+
+fn forced_stop_status() -> std::process::ExitStatus {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::ExitStatusExt;
+        std::process::ExitStatus::from_raw(1)
+    }
+    #[cfg(not(windows))]
+    {
+        use std::os::unix::process::ExitStatusExt;
+        std::process::ExitStatus::from_raw(9)
+    }
 }
 
 async fn read_pipe<R>(
@@ -488,6 +572,8 @@ fn decode_truncated(bytes: &[u8]) -> (String, bool) {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use camino::Utf8PathBuf;
     use serde_json::json;
 
@@ -522,6 +608,31 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, ToolError::PlanModeViolation(_)));
+    }
+
+    #[tokio::test]
+    async fn user_stop_ends_a_long_command() {
+        let ctx = make_ctx();
+        let reg = ToolRegistry::with_simple_tools();
+        let started = std::time::Instant::now();
+        let run = tokio::spawn(async move {
+            reg.execute_named(
+                "bash",
+                &ctx,
+                json!({ "command": "ping -n 20 127.0.0.1", "timeout_ms": 30000 }),
+            )
+            .await
+        });
+        tokio::time::sleep(Duration::from_millis(400)).await;
+        assert!(skip_active_native_bash().await);
+        let v = run.await.unwrap().unwrap();
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "stop took {:?}",
+            started.elapsed()
+        );
+        assert_eq!(v["skipped"], true);
+        assert!(v["error"].as_str().unwrap_or("").contains("The user stopped this command"));
     }
 
     #[tokio::test]

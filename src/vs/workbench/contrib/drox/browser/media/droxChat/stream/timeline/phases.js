@@ -15,13 +15,6 @@
 	const LINEAR_THINKING_PHASES = new Set([
 		'internal_reasoning',
 		'reasoning',
-		'reading',
-		'analyzing',
-		'acting',
-		'planning',
-		'verifying',
-		'testing',
-		'clarifying',
 	]);
 
 	fn.closePhaseMarker = function () {

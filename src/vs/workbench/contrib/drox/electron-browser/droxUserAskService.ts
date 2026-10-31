@@ -47,6 +47,7 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 	private _agentsProgress?: (parts: IChatProgress[]) => void;
 	private _pending?: IPendingUserAsk;
 	private _activePermissionMode: string | undefined;
+	private _permissionStop?: () => void;
 
 	private readonly _onDidChangePending = this._register(new Emitter<boolean>());
 	readonly onDidChangePending: Event<boolean> = this._onDidChangePending.event;
@@ -127,6 +128,15 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 		);
 	}
 
+	cancelPendingForCommandStop(): boolean {
+		const hadQuestion = this._pending !== undefined;
+		this.resolvePendingAsSkipped();
+		const stopPermission = this._permissionStop;
+		this._permissionStop = undefined;
+		stopPermission?.();
+		return hadQuestion || stopPermission !== undefined;
+	}
+
 	setActivePermissionMode(mode: string | undefined): void {
 		this._activePermissionMode = mode;
 	}
@@ -184,13 +194,19 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 				: localize('drox.permissionAskTitleGeneric', 'Allow tool call?');
 			const detailText =
 				detail.length > DETAIL_MAX ? `${detail.slice(0, DETAIL_MAX)}…` : detail;
-			const { confirmed } = await this.dialogService.confirm({
-				type: 'question',
-				message,
-				detail: detailText,
-				primaryButton: localize('drox.permissionAllow', 'Allow'),
-				cancelButton: localize('drox.permissionDeny', 'Deny'),
+			const stopped = new Promise<boolean>(resolve => {
+				this._permissionStop = () => resolve(true);
 			});
+			const confirmed = await Promise.race([
+				this.dialogService.confirm({
+					type: 'question',
+					message,
+					detail: detailText,
+					primaryButton: localize('drox.permissionAllow', 'Allow'),
+					cancelButton: localize('drox.permissionDeny', 'Deny'),
+				}).then(r => r.confirmed),
+				stopped.then(() => false),
+			]);
 			const answers: IDroxUserAskAnswer[] = [{
 				id: q.id,
 				optionIds: confirmed ? [yesId] : [noId],
@@ -199,6 +215,7 @@ export class DroxUserAskService extends Disposable implements IDroxUserAskServic
 			}];
 			return { result: { answers } };
 		} finally {
+			this._permissionStop = undefined;
 			this._onDidChangePending.fire(false);
 		}
 	}

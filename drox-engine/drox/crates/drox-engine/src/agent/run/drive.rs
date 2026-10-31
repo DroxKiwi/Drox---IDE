@@ -27,6 +27,7 @@ use super::super::gates::{
 };
 use super::super::loop_close::{
     emit_engine_closure, emit_synthetic_done, ENGINE_CLOSURE_EMPTY_REPLY,
+    ENGINE_CLOSURE_TEXTUAL_TOOL_REPLY,
 };
 use super::super::loop_detect::{LoopDecision, LoopDetector, PendingToolCall};
 use super::super::nudges::{
@@ -49,6 +50,7 @@ use super::super::nudges::{
     step_explore_kickoff_nudge, step_targets_single_file, step_without_explore_nudge,
     LOCAL_EMPTY_TURN_NUDGE,
     LOCAL_EXPLORE_KICKOFF_NUDGE, LOCAL_FINAL_ANSWER_PROMPT, LOCAL_SOFT_CLOSE_CHECK_NUDGE,
+    LOCAL_TEXTUAL_TOOL_NUDGE, LOCAL_TEXTUAL_TOOL_TOOLS_OFF_NUDGE, reply_has_textual_tool_call,
 };
 use super::super::session_intent::{classify_session_user_intent, SessionFrames};
 use super::super::context_load::{
@@ -64,7 +66,7 @@ use super::super::situation::{
     note_rotating_file_read, note_successful_file_read, note_task_tool_success,
     path_from_file_tool, repeated_file_read_stub_value, rotating_file_read_should_nudge,
     should_stub_repeated_file_read, task_outcome_telemetry,
-    upsert_situation_card,
+    advance_transcript_cursor_for_insert, upsert_situation_card,
     ExploreCoveredPaths, SituationSnapshot,
 };
 use super::super::consume_llm_stream::{consume_stream, push_assistant_message};
@@ -222,6 +224,7 @@ impl Agent {
         // Profils locaux : tour final forcé (tools off) + relances one-shot.
         let mut final_answer_forced = false;
         let mut local_empty_turn_nudge_sent = false;
+        let mut local_textual_tool_nudge_sent = false;
         let mut local_soft_close_check_sent = false;
         // cloud-full : un DONE_ONLY déjà envoyé. Le tour suivant ne réaffiche
         // pas la conclusion ; sans `[phase: done]`, le run s'arrête.
@@ -309,6 +312,7 @@ impl Agent {
             })
             .map(str::to_string);
         let testing_gate_active = !ctx.plan_mode && !professor;
+        let mut capture_loop = "none";
         for iter in 0..self.config.max_iterations {
             debug!(
                 iter,
@@ -345,8 +349,15 @@ impl Agent {
                 last_tool_error: last_tool_error.clone(),
                 permission_mode: permission_mode_label.clone(),
             };
-            if upsert_situation_card(&mut messages, &situation, leading_injected_systems) {
+            let len_before_card = messages.len();
+            let card_insert_at = leading_injected_systems;
+            if upsert_situation_card(&mut messages, &situation, card_insert_at) {
                 leading_injected_systems = leading_injected_systems.saturating_add(1);
+                advance_transcript_cursor_for_insert(
+                    &mut transcript_cursor,
+                    card_insert_at,
+                    len_before_card,
+                );
                 debug!(
                     marker = "c4.situation_card",
                     inserted = true,
@@ -642,6 +653,19 @@ impl Agent {
                 }
             }
 
+            if self.config.run_capture {
+                if let Some(path) = self.config.run_capture_path.as_ref() {
+                    super::run_capture::append_llm_request(
+                        path,
+                        iter.saturating_add(1),
+                        capture_loop,
+                        &messages,
+                        &transport,
+                    )
+                    .await;
+                }
+            }
+
             if let Some(policy) = self.config.context.as_ref() {
                 let parent_tokens = policy.count_tokens(&transport);
                 if parent_tokens > 0
@@ -717,6 +741,13 @@ impl Agent {
                     .is_err()
             {
                 return;
+            }
+
+            if self.config.run_capture {
+                if let Some(path) = self.config.run_capture_path.as_ref() {
+                    super::run_capture::append_llm_result(path, iter.saturating_add(1), &outcome)
+                        .await;
+                }
             }
 
             push_assistant_message(&mut messages, &outcome);
@@ -814,8 +845,9 @@ impl Agent {
                         .await;
                     return;
                 }
+                // Un tour vide reste vide même si `[phase: done]` est déjà écrit :
+                // le marqueur ne remplace pas le texte du message. Une seule relance.
                 if reply.is_empty()
-                    && outcome.final_phase != Some(Phase::Done)
                     && !final_answer_forced
                     && !local_empty_turn_nudge_sent
                 {
@@ -830,6 +862,54 @@ impl Agent {
                         return;
                     }
                     continue;
+                }
+                // Enveloppe d'outil dans le texte : format invalide. Une relance, puis refus.
+                // Le rappel de todo ne prolonge pas ce tour. Le XML n'est pas la réponse.
+                if reply_has_textual_tool_call(reply) {
+                    if !local_textual_tool_nudge_sent {
+                        local_textual_tool_nudge_sent = true;
+                        let nudge = if loop_tools_disabled {
+                            debug!("textual tool envelope — tools off, one-shot nudge");
+                            LOCAL_TEXTUAL_TOOL_TOOLS_OFF_NUDGE
+                        } else {
+                            debug!("textual tool envelope — one-shot nudge");
+                            LOCAL_TEXTUAL_TOOL_NUDGE
+                        };
+                        messages.push(Message::system(nudge));
+                        if let Err(e) = self
+                            .flush_transcript(&messages, &mut transcript_cursor)
+                            .await
+                        {
+                            let _ = tx.send(Err(e)).await;
+                            return;
+                        }
+                        continue;
+                    }
+                    debug!("textual tool envelope — second time, refuse and stop");
+                    emit_engine_closure(
+                        &tx,
+                        &mut messages,
+                        ENGINE_CLOSURE_TEXTUAL_TOOL_REPLY,
+                        true,
+                        false,
+                    )
+                    .await;
+                    if let Err(e) = self
+                        .flush_transcript(&messages, &mut transcript_cursor)
+                        .await
+                    {
+                        let _ = tx.send(Err(e)).await;
+                        return;
+                    }
+                    self.maybe_persist_session(&messages, &memory_tracker, &tx)
+                        .await;
+                    let _ = tx
+                        .send(Ok(AgentEvent::Stop {
+                            reason: outcome.reason,
+                            usage: Usage::default(),
+                        }))
+                        .await;
+                    return;
                 }
                 let open_todos = last_todo_pending > 0 || last_todo_in_progress > 0;
                 let testing_due =
@@ -893,7 +973,10 @@ impl Agent {
             // par `todo_write` AVANT — donc la liste existe forcément quand
             // il y a eu du vrai travail, et la gate `unfinished_todos_prompt`
             // ci-dessous garde la clôture propre.
-            if outcome.final_phase == Some(Phase::Done) {
+            // Un tool_call déjà émis doit être exécuté avant tout nouveau tour.
+            // Sinon la requête finit sur un assistant qui contient des tool_calls
+            // et le fournisseur répond 400 (« Cannot continue an assistant message… »).
+            if outcome.final_phase == Some(Phase::Done) && outcome.tool_calls.is_empty() {
                 if !seen_answering_in_run {
                     debug!("[phase: done] prématuré (answering absent) — nudge");
                     messages.push(Message::system(MISSING_ANSWERING_PROMPT));
@@ -1077,8 +1160,13 @@ impl Agent {
             // doit recevoir `unfinished_todos_prompt` à chaque tour, pas
             // `LOOP_DETECTED_NUDGE` au 2e tour identique (cf. 1.5.14 L1).
             // Escalade 2026-10-15 : Warn → ForceConclude (tools off) → SyntheticDone.
-            match loop_detector.observe(&outcome) {
-                LoopDecision::Ok => {}
+            let loop_decision = loop_detector.observe(&outcome);
+            if self.config.run_capture {
+                capture_loop = super::run_capture::loop_decision_label(loop_decision);
+            }
+            let deferred_pre_tool_loop = if outcome.tool_calls.is_empty() {
+                match loop_decision {
+                LoopDecision::Ok => None,
                 LoopDecision::Warn { kind } => {
                     debug!(kind, "boucle — Warn (nudge soft)");
                     let nudge = if kind == "tool_family" {
@@ -1122,7 +1210,12 @@ impl Agent {
                         .await;
                     return;
                 }
-            }
+                }
+            } else {
+                // Le tour a des tool_calls : on les exécute d'abord.
+                // La décision de boucle s'applique une fois les résultats posés.
+                Some(loop_decision)
+            };
 
             // Si le modèle n'a pas signé `done` et n'a pas non plus appelé
             // d'outil ce tour, on l'invite explicitement à choisir : conclure
@@ -1322,6 +1415,10 @@ impl Agent {
                                     *idx,
                                     Ok(repeated_file_read_stub_value(&path, n)),
                                 );
+                                continue;
+                            }
+                            if let Some(stopped) = bash_stopped_if_requested(call) {
+                                by_idx.insert(*idx, stopped);
                                 continue;
                             }
                             to_execute.push(*idx);
@@ -1666,7 +1763,9 @@ impl Agent {
                             }
 
                             // R4 — même path déjà lu ×N → stub (pas de re-IO).
-                            let exec = if let Some((path, n)) = should_stub_repeated_file_read(
+                            let exec = if let Some(stopped) = bash_stopped_if_requested(call) {
+                                stopped
+                            } else if let Some((path, n)) = should_stub_repeated_file_read(
                                 &file_read_success_counts,
                                 &call.name,
                                 &call.arguments,
@@ -2069,6 +2168,55 @@ impl Agent {
                 }
             }
 
+            if let Some(decision) = deferred_pre_tool_loop {
+                match decision {
+                    LoopDecision::Ok => {}
+                    LoopDecision::Warn { kind } => {
+                        debug!(kind, "boucle — Warn après résultats d'outils");
+                        let nudge = if kind == "tool_family" {
+                            LOOP_TOOL_FAMILY_NUDGE_PROMPT
+                        } else {
+                            LOOP_DETECTED_NUDGE_PROMPT
+                        };
+                        messages.push(Message::system(nudge));
+                        if let Err(e) = self
+                            .flush_transcript(&messages, &mut transcript_cursor)
+                            .await
+                        {
+                            let _ = tx.send(Err(e)).await;
+                            return;
+                        }
+                        continue;
+                    }
+                    LoopDecision::ForceConclude { kind } => {
+                        debug!(kind, "boucle — ForceConclude après résultats d'outils");
+                        messages.push(Message::system(LOOP_FORCE_CONCLUDE_PROMPT));
+                        loop_tools_disabled = true;
+                        if let Err(e) = self
+                            .flush_transcript(&messages, &mut transcript_cursor)
+                            .await
+                        {
+                            let _ = tx.send(Err(e)).await;
+                            return;
+                        }
+                        continue;
+                    }
+                    LoopDecision::SyntheticDone { kind, turns } => {
+                        debug!(kind, turns, "boucle — SyntheticDone après résultats d'outils");
+                        emit_synthetic_done(&tx, &mut messages, kind, turns).await;
+                        self.maybe_persist_session(&messages, &memory_tracker, &tx)
+                            .await;
+                        let _ = tx
+                            .send(Ok(AgentEvent::Stop {
+                                reason: outcome.reason,
+                                usage: Usage::default(),
+                            }))
+                            .await;
+                        return;
+                    }
+                }
+            }
+
             // 1.6.0 L-tools — même (tool, args) + même output → escalade clôture.
             match loop_detector.observe_tool_outputs(&outcome.tool_calls, &round_tool_outputs) {
                 LoopDecision::Ok => {}
@@ -2261,6 +2409,19 @@ fn history_probe_snapshot(messages: &[Message]) -> Vec<HistoryProbeEntry> {
             }
         })
         .collect()
+}
+
+/// One-shot: the user clicked Skip before this `bash` started. Do not spawn it.
+fn bash_stopped_if_requested(call: &PendingToolCall) -> Option<Result<Value, ToolError>> {
+    if call.name != "bash" || !drox_tools::take_bash_user_stop() {
+        return None;
+    }
+    let command = call
+        .arguments
+        .get("command")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    Some(Ok(drox_tools::bash_user_stopped_output(command)))
 }
 
 fn tool_apply_failed(value: &Value) -> bool {
