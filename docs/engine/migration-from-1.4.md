@@ -12,7 +12,7 @@
 | Run rail **exécuté** moteur | Rail **supprimé** ; UI peut recevoir `rail_station_*` **synthétisés** ([`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs)) |
 | Prompts éparpillés / `orchestration/` | Crate **[`drox-prompts`](../../drox-engine/drox/crates/drox-prompts/)** + façade [`prompts/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts/mod.rs) |
 | `protocol.rs` handlers éclatés | **[`rpc_types.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/rpc_types.rs)** + **[`handlers/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs)** |
-| Clôture = toujours `[phase: done]` | **`EngineProfile`** : `cloud-full` = done-driven ; **local** = clôture moteur ([agent-run-loop.md](agent-run-loop.md)) |
+| Clôture = toujours `[phase: done]` | Run parent : tour sans outil, les trois profils ([agent-run-loop.md](agent-run-loop.md)) |
 | Sous-agents « supprimés » | Explore via **`task`** — [mcp-and-subagents.md](mcp-and-subagents.md) |
 | Loop → `LoopDetected` abort | Escalade **SyntheticDone** (souvent) — [agent-internals.md](agent-internals.md) |
 
@@ -34,7 +34,7 @@ Hub actuel : [README.md](README.md).
 ## Checklist « vieux doc / vieux grep »
 
 1. Cherche **`drive_inner`** dans `agent/run/drive.rs` — pas `orchestration_run`.
-2. **`[phase: done]`** : règle **`cloud-full`** ; profils **local** = tour sans outil ([agent-run-loop.md](agent-run-loop.md#clôture)).
+2. **Clôture** : tour sans outil pour un run parent, `cloud-full` compris ([agent-run-loop.md](agent-run-loop.md#clôture)).
 3. **`ide_event_shim`** avant de conclure qu’un rail vit encore dans le moteur.
 4. Prompts : **`drox-prompts`**, pas un seul `prompts.rs`.
 5. Ignore **`role_split`** comme modèle mental du runtime.

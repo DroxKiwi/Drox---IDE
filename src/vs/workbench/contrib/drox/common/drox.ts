@@ -53,6 +53,8 @@ export namespace DroxCommands {
 	export const OpenSessionFile = 'workbench.action.droxOpenSessionFile';
 	/** Skip a stuck bash tool (IDE terminal or Agents ExecBash) without cancelling the run. */
 	export const SkipStuckShell = 'workbench.action.droxSkipStuckShell';
+	/** Open the editor inline panel on the Explain This Code tab. */
+	export const ExplainThisCode = 'workbench.action.droxExplainThisCode';
 	/** Focus shared @Codebase cockpit (sidebar). */
 	export const FocusCodebase = 'workbench.action.droxFocusCodebase';
 	export const CodebaseReindex = 'workbench.action.droxCodebaseReindex';

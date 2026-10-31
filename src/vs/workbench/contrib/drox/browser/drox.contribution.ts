@@ -25,6 +25,7 @@ import { registerDroxProductDefaultsConfiguration } from '../common/droxProductD
 import { DroxChatViewPane } from './droxChatViewPane.js';
 import { registerDroxActions } from './droxActions.js';
 import { DroxDiagnosticContribution } from './droxDiagnosticContribution.js';
+import './droxInlineChatContribution.js';
 import './droxMicrosoftAgentsSurfaceContribution.js';
 import './droxMicrosoftChatSurfaceContextContribution.js';
 import './agents/droxAgentsComposerDroxChatHost.js';

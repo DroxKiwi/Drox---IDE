@@ -46,7 +46,9 @@ suite('Drox regulation R9 L4 protocol', () => {
 			assert.strictEqual(droxRegulationL4ProtocolAnnex('soft', profile), undefined);
 		}
 		assert.ok(/every step/.test(droxRegulationL4ProtocolAnnex('strict', 'local-9b')!));
-		assert.ok(/phase: done/.test(droxRegulationL4ProtocolAnnex('normal', 'cloud-full')!));
+		assert.ok(/no tool call ends the run/.test(droxRegulationL4ProtocolAnnex('normal', 'cloud-full')!));
+		assert.ok(!/phase: done/.test(droxRegulationL4ProtocolAnnex('normal', 'cloud-full')!));
+		assert.ok(!/phase: done/.test(droxRegulationL4ProtocolAnnex('strict', 'cloud-full')!));
 	});
 
 	test('asDroxRegulationL4Module falls back for non-L4 modules', () => {

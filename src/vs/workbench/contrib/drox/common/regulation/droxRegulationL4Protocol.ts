@@ -6,7 +6,7 @@
 /**
  * L4 Protocol strictness — thin wrapper tables (R9).
  * Injects a short English system annex (todo/phase reminders).
- * Engine hard-gates still apply; this only adjusts reminder density.
+ * A parent run ends on a reply with no tool call. This annex only adjusts reminder density.
  * Wrappers read `getModule('L4')` only — no scoring here.
  */
 
@@ -16,12 +16,12 @@ import { DroxRegulationL4Module, DroxRegulationModule } from './droxRegulationTy
 const ANNEX: Readonly<Record<DroxRegulationL4Module, string | undefined>> = {
 	/** Soft: no extra reminder (engine gates only). */
 	soft: undefined,
-	/** Default: light protocol reminder. */
+	/** Default: hard todo gate still exists; the run ends without a tool call. */
 	normal:
-		'Protocol: before any mutating tool (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), call `todo_write` with at least one item in this run. Close todos before `[phase: done]`.',
-	/** Strict: phases + todos + testing reminder. */
+		'Protocol: before any mutating tool (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), call `todo_write` with at least one item in this run. A reply with no tool call ends the run.',
+	/** Strict: phases + todos + testing reminder. Same close as the engine. */
 	strict:
-		'Strict protocol: (1) Use honest `[phase: …]` markers when structuring non-trivial work. (2) Before ANY mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), you MUST have called `todo_write` this run. (3) Update todos as you go; mark all completed/cancelled before `[phase: done]`. (4) Prefer `[phase: testing]` when verifying changes. Do not emit `[phase: done]` with open todos.',
+		'Strict protocol: (1) Use honest `[phase: …]` markers when structuring non-trivial work. (2) Before ANY mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), you MUST have called `todo_write` this run. (3) Update todos as you go. (4) Prefer `[phase: testing]` when verifying changes. A reply with no tool call ends the run; open todos or unverified code may get one reminder first.',
 };
 
 /** `local-27b` : a reply without tools closes the run — no `[phase: done]` wording. */

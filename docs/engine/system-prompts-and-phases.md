@@ -16,7 +16,7 @@ Le moteur **parse** les marqueurs dans [`consume_llm_stream`](../../drox-engine/
 
 | Profil | Prompt principal | Clôture décrite au modèle |
 |--------|------------------|---------------------------|
-| **`cloud-full`** | `CORE_SYSTEM_PROMPT` (protocole 1.6.0 complet) | **`[phase: done]`** obligatoire après `answering` |
+| **`cloud-full`** | `CORE_SYSTEM_PROMPT` (protocole 1.6.0 complet) | Le texte demande encore `[phase: done]` après `answering`. Le moteur ferme quand même un tour sans outil |
 | **`local-9b`**, **`local-27b`** | `CORE_LOCAL_SYSTEM_PROMPT` (allégé) | Tour **sans outil** = réponse finale ; `done` non requis |
 
 Annexes session (hors-WS, Explore, native thinking, professeur) : modules [`session`](../../drox-engine/drox/crates/drox-prompts/src/session.rs), [`local`](../../drox-engine/drox/crates/drox-prompts/src/local.rs).  
@@ -55,11 +55,11 @@ Jamais un tool nommé `phase` / `set_phase` ([`hallucination.rs`](../../drox-eng
 | `reading` | Lecture ciblée |
 | `planning` | Organisation avant mutations |
 | `acting` | Édition / bash mutateur |
-| `testing` | Vérif après mutation **code** (gate **`cloud-full`**) |
+| `testing` | Vérif après mutation **code** (soft close check en `local-27b` / `cloud-full`) |
 | `verifying` | Checks hors post-mutation build |
 | `clarifying` | Questions |
 | `answering` | **Prose utilisateur** Markdown |
-| `done` | Signal d’arrêt (**`cloud-full`**) |
+| `done` | Marqueur de fin demandé par le CORE `cloud-full`. Le run parent s’arrête déjà sur un tour sans outil |
 
 Legacy **ignorés** : `[phase: reasoning]`, `[phase: next-move]`.
 
@@ -67,18 +67,17 @@ Legacy **ignorés** : `[phase: reasoning]`, `[phase: next-move]`.
 
 ### `cloud-full`
 
-1. **Seul `[phase: done]`** termine le run (sous gates). Tour sans tool ni `done` → nudges (`NUDGE_PROMPT`, `DONE_ONLY`, …).
-2. **`done` exige un `answering`** préalable (`MISSING_ANSWERING_PROMPT`).
+1. **Le moteur ferme le run** sur un tour sans outil (même filet que les profils locaux : tour vide, puis soft close check si todos ou testing). Le CORE décrit encore `[phase: done]` comme sortie ; les refus de `done` plus bas dans `drive.rs` ne s’appliquent pas à ce run parent.
+2. **Le texte de gate** dit qu’un `done` exige un `answering` préalable (`MISSING_ANSWERING_PROMPT`). Ce nudge est sur le chemin professeur, pas sur la clôture parent.
 3. Prose utilisateur **dans `answering`** uniquement.
 4. **Avant mutation** : `todo_write` réussi (**gate dure**). Read-only / bash inspectif peuvent précéder.
-5. **Avant `done`** : todos `completed` / `cancelled`.
-6. **Après mutation code** : `[phase: testing]` + vérif avant dernier answering+done (sauf `.md` / assets seuls).
-7. **Anti-boucle** : LoopDetector + texte CORE ; escalade moteur si répétition — [agent-internals.md](agent-internals.md).
+5. Le CORE demande encore des todos clos et un `[phase: testing]` après une mutation de code avant le dernier `answering` + `done`. Côté moteur parent, c’est le soft close check one-shot, puis l’arrêt.
+6. **Anti-boucle** : LoopDetector + texte CORE ; escalade moteur si répétition — [agent-internals.md](agent-internals.md).
 
 ### Profils locaux
 
 - CORE local + clôture **moteur** : pas de protocole « ONLY `done` ends the loop » au même niveau de rigidité.
-- Nudges runtime dédiés : `LOCAL_EMPTY_TURN`, `LOCAL_EXPLORE_KICKOFF`, `LOCAL_SOFT_CLOSE_CHECK` (`local-27b`), `LOCAL_FINAL_ANSWER` (budget / intent-write).
+- Nudges runtime : `LOCAL_EMPTY_TURN` (tout run parent), `LOCAL_EXPLORE_KICKOFF` (`local-9b`), `LOCAL_SOFT_CLOSE_CHECK` (`local-27b` et `cloud-full`), `LOCAL_FINAL_ANSWER` (budget / intent-write).
 - `todo_write` **recommandé** (soft) ; gate dure todo-avant-mutation **coupée**.
 
 Détail clôture : [agent-run-loop.md](agent-run-loop.md#clôture).

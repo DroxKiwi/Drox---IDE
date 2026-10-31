@@ -16,6 +16,7 @@ import {
 	applyDroxRegulationL1InjectBudget,
 	asDroxRegulationL1Module,
 } from '../regulation/droxRegulationL1Budget.js';
+import { asDroxRegulationL2Module, droxRegulationL2AllowedToggleableTools } from '../regulation/droxRegulationL2Surface.js';
 import {
 	asDroxRegulationL5Module,
 	droxRegulationL5RetrievalHint,
@@ -106,7 +107,10 @@ export class DroxCodebaseContextService extends Disposable implements IDroxCodeb
 
 	private _retrievalHint(): string | undefined {
 		const l5 = asDroxRegulationL5Module(this.regulationService.getModule('L5'));
-		return droxRegulationL5RetrievalHint(l5);
+		const l2 = asDroxRegulationL2Module(this.regulationService.getModule('L2'));
+		const allowed = droxRegulationL2AllowedToggleableTools(l2);
+		const codebaseSearchAvailable = !allowed || allowed.has('codebase_search');
+		return droxRegulationL5RetrievalHint(l5, codebaseSearchAvailable);
 	}
 
 	async buildSystemSupplement(

@@ -67,7 +67,7 @@ Toi + repo  ↔  Drox IDE (ou drox-tui)
 ```
 
 Un run IDE : `initialize` → `agent.run` → boucle `drive_inner` dans [`agent/run/drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs) (LLM → outils → …) → `agent/done`.  
-Le **profil moteur** (`engine_profile` RPC / `drox.engine.profile`) choisit CORE prompt, outils parent visibles et mode de **clôture** (protocol `cloud-full` vs clôture moteur locale). Détail : [agent-run-loop.md](agent-run-loop.md) · cadrage [1.6.1 CADRAGE](../1.6/1.6.1/CADRAGE.md).
+Le **profil moteur** (`engine_profile` RPC / `drox.engine.profile`) choisit CORE prompt, outils parent visibles et les nudges de plan. Un run parent (ni professeur, ni Explore) se **ferme sur un tour sans outil**, y compris en `cloud-full`. Détail : [agent-run-loop.md](agent-run-loop.md).
 
 Les outils que le moteur ne peut pas faire seul (LSP, certains FS IDE) partent en `tool/exec` vers le client.
 

@@ -21,6 +21,7 @@
 | **Situation card** | Bloc system réécrit chaque tour (état court du run). |
 | **Tool result spill** | Externalise / stub gros résultats outil (contexte). |
 | **Compaction / snip** | Réduction historique (`ContextSnip`, `ContextCompacted`). |
+| **`for_model`** | Copie LLM allégée ([`history_transport`](../../drox-engine/drox/crates/drox-engine/src/agent/history_transport.rs)). Transcript inchangé. |
 | **`.drox/memory/sessions/`** | Archives auto post-run / plan clos. |
 | **`rail_station_*`** | UI legacy ; shim depuis phases. |
 | **`role_split`** | Ancien Architecte/Exécuteur — **obsolète**. |

@@ -42,6 +42,7 @@ Alignée sur [`agent/mod.rs`](../../drox-engine/drox/crates/drox-engine/src/agen
 | [`loop_close`](../../drox-engine/drox/crates/drox-engine/src/agent/loop_close/) | Clôture moteur locale, message vide, `emit_synthetic_done` |
 | [`situation`](../../drox-engine/drox/crates/drox-engine/src/agent/situation/) | **Situation card** — bloc system réécrit chaque tour (paths, todos, Explore) |
 | [`tool_result_spill`](../../drox-engine/drox/crates/drox-engine/src/agent/tool_result_spill/) | Spill / stub gros résultats, hot-snip Explore |
+| [`history_transport`](../../drox-engine/drox/crates/drox-engine/src/agent/history_transport.rs) | Copie allégée envoyée au modèle (`for_model`) |
 | [`context_load`](../../drox-engine/drox/crates/drox-engine/src/agent/context_load.rs) | Politique nudge post-`glob` large (L2) |
 | [`session_intent`](../../drox-engine/drox/crates/drox-engine/src/agent/session_intent.rs) | Boot intent multi-bool (work / doc / analysis frames) |
 | [`dispatch`](../../drox-engine/drox/crates/drox-engine/src/agent/dispatch.rs) | Specs outils LLM, format résultats, confirmation user |
@@ -52,7 +53,7 @@ Alignée sur [`agent/mod.rs`](../../drox-engine/drox/crates/drox-engine/src/agen
 | Knob | `local-9b` | `local-27b` | `cloud-full` |
 |------|------------|-------------|--------------|
 | CORE system | Allégé (`CORE_LOCAL`) | Idem | CORE 1.6.0 complet |
-| Clôture | Moteur (tour sans outil) | + soft close check (todo / testing) one-shot | **`[phase: done]`** + gates |
+| Clôture | Moteur (tour sans outil) | + soft close check (todo / testing) one-shot | Même clôture moteur que `local-27b` |
 | Gate todo avant mutation | Non | Non | **Oui** |
 | Nudges plan / post-merge Explore | Réduits | Actifs | Actifs |
 | Outils parent | Allowlist courte | Allowlist élargie | Catalogue (hors `disabledTools` IDE) |
@@ -64,8 +65,8 @@ Méthodes : `is_local()`, `plan_nudges()`, `todo_before_mutation_gate()`, `expos
 Après `consume_stream` et push transcript :
 
 1. **Explore child** (`explore_execution`) : `answering` ou `done` sans tool → **Stop** immédiat (rapport moteur ensuite).
-2. **Clôture locale** (`engine_closure` = profil local, pas professeur) : tour sans tool → réponse finale ou nudges one-shot (`LOCAL_EMPTY_TURN`, `LOCAL_SOFT_CLOSE_CHECK` en 27b) → `emit_engine_closure` → **Stop**.
-3. **`[phase: done]`** (surtout **cloud-full**) : gates answering, todos, testing, professor → **Stop** ou nudge et `continue`.
+2. **Clôture moteur** (`engine_closure` = pas professeur, pas Explore) : tour sans tool → **Stop**. Tour vide : `LOCAL_EMPTY_TURN` puis « Run terminé ». `LOCAL_SOFT_CLOSE_CHECK` one-shot en `local-27b` et `cloud-full` si todos ouverts ou testing encore dû.
+3. **`[phase: done]`** : gates answering, todos, testing, professor — seulement si l’étape 2 n’a pas déjà clos le run (professeur, Explore hors `answering`/`done`).
 4. **FX-B** : `[phase: acting]` sans tool → nudges intent-only write (escalade locale → tour final forcé).
 5. **`LoopDetector::observe`** — **après** les gates `done` (répétitions de `done` bloqué par todo ne doivent pas abort trop tôt).
 6. Tour sans tool ni `done` : `DONE_ONLY` si answering OK et gates clear ; sinon `NUDGE_PROMPT` ou nudge testing.
@@ -104,11 +105,11 @@ Texte des nudges : crate **`drox-prompts`** ; le CORE peut mentionner l’anti-b
 
 | Symptôme | Où regarder |
 |----------|-------------|
-| Run ne s’arrête pas (**cloud-full**) | Gates `done`, `DONE_ONLY`, testing, todos — `drive.rs` après `outcome.final_phase == Done` |
-| Double / rafale de conclusions | Profil (**local-27b** soft close · **cloud-full** GLM sans `done`) — [agent-run-loop.md](agent-run-loop.md#clôture) |
+| Run ne s’arrête pas | Tour sans outil : `engine_closure` dans `drive.rs`. `[phase: acting]` sans outil reste sur FX-B. Professeur : gates `done` |
+| Double / rafale de conclusions | Clôture au premier tour sans outil ; un `DONE_ONLY` déjà envoyé ne réaffiche pas la conclusion réécrite — [agent-run-loop.md](agent-run-loop.md#clôture) |
 | Mutation refusée | [`gates/mutation.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/gates/mutation.rs), `todo_before_mutation_gate`, permissions |
 | Boucle d’outils identiques | `loop_detect/` + nudges Explore / file_read |
-| Gros tool result / contexte | `tool_result_spill/`, situation card |
+| Gros tool result / contexte | `history_transport` (copie LLM), `tool_result_spill/`, situation card |
 | UI rail vs phases | [`ide_event_shim.rs`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/ide_event_shim.rs) |
 | Tool bloqué | `tool/exec` non répondu côté IDE |
 

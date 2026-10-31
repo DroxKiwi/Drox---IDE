@@ -1,8 +1,8 @@
 # 1.6.3
 
-**Statut** : **ouvert**  
+**Statut** : **shippé** (`v1.6.3`)  
 **Précédent** : [1.6.2](../1.6.2/README.md) — stable shippée (`v1.6.2`).  
-**Git** : branche `1.6.3` depuis `main` (post-ship 1.6.2).
+**Git** : mergée sur `main`. La branche `1.6.3` a été supprimée.
 
 ## Objectifs
 

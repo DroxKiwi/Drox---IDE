@@ -54,6 +54,17 @@ Avant tours LLM coûteux — [`maybe_snip`](../../drox-engine/drox/crates/drox-e
 
 Gros **tool_result** : spill / stub ([`tool_result_spill/`](../../drox-engine/drox/crates/drox-engine/src/agent/tool_result_spill/)) avant snip agressif.
 
+## Copie envoyée au modèle
+
+[`history_transport::for_model`](../../drox-engine/drox/crates/drox-engine/src/agent/history_transport.rs) allège **l’appel LLM**. Le JSONL et l’UI gardent le détail.
+
+- Un `file_edit` / `file_write` / `notebook_edit` ne perd son corps que si `applied: true` et qu’un appel plus récent existe. Un échec (`old_string not found`) garde `edits`.
+- Le dernier `glob` ou `task` volumineux reste entier ; les plus anciens sont résumés.
+- Une `file_read` plus ancienne du même chemin est résumée. Si une écriture appliquée vise ce chemin ensuite, la lecture devient « remplacée par une écriture ».
+- Seul le dernier `bash` reste entier. Les précédents tiennent en une ligne (code de sortie, commande, première ligne de sortie).
+- Deux messages utilisateur identiques à la suite n’en font qu’un.
+- `todo_write`, `course_plan_write` et `bash` ne renvoient plus la demande dans le résultat ; l’appel d’outil la garde.
+
 ## Mémoire projet vs moteur
 
 | Mécanisme | Où | Qui écrit |

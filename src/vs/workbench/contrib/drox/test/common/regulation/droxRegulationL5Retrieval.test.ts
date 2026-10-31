@@ -25,7 +25,17 @@ suite('Drox regulation R10 L5 retrieval', () => {
 	test('aggressive is stronger than nudge', () => {
 		const aggressive = droxRegulationL5RetrievalHint('aggressive')!;
 		assert.ok(/Retrieval required/i.test(aggressive));
+		assert.ok(/codebase_search/.test(aggressive));
 		assert.ok(aggressive.length > DROX_CODEBASE_RETRIEVAL_HINT.length);
+	});
+
+	test('without codebase_search the hint does not name that tool', () => {
+		for (const module of ['nudge', 'aggressive'] as const) {
+			const hint = droxRegulationL5RetrievalHint(module, false)!;
+			assert.ok(!/codebase_search/.test(hint));
+			assert.ok(/@Codebase/.test(hint));
+		}
+		assert.strictEqual(droxRegulationL5RetrievalHint('passive', false), undefined);
 	});
 
 	test('asDroxRegulationL5Module falls back for non-L5 modules', () => {

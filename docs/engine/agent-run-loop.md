@@ -57,20 +57,15 @@ Voici la réponse…
 
 ## Clôture
 
-La règle dépend du **`EngineProfile`** ([`config.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/config.rs)).
+`engine_closure` vaut pour tout run qui n’est **ni** professeur **ni** enfant Explore ([`drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs)). Les trois profils parent passent par là.
 
-### Profils locaux (`local-9b`, `local-27b`)
+Un tour **sans** `tool_call` ferme le run, sauf `[phase: acting]` sans tour final forcé (intention d’écriture, FX-B). `[phase: done]` n’est pas exigé pour sortir.
 
-- **`engine_closure`** : un tour **sans** `tool_call` (hors cas `[phase: acting]` intent-write) = **fin de run** ; `[phase: done]` **non requis**.
-- Tour vide → nudge one-shot **`LOCAL_EMPTY_TURN`**.
-- **`local-27b`** : avant clôture, si todos ouverts ou mutation sans vérif → **`LOCAL_SOFT_CLOSE_CHECK`** (one-shot) puis un dernier tour LLM possible.
-- Affichage : [`loop_close/engine_closure.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/loop_close/engine_closure.rs) complète phase `answering` / `done` si besoin.
+- Tour **vide** (thinking seul compris) : un nudge **`LOCAL_EMPTY_TURN`**, puis au tour vide suivant le texte **« Run terminé »** (`ENGINE_CLOSURE_EMPTY_REPLY`).
+- **`local-27b` et `cloud-full`** : si la réponse a du texte, todos encore ouverts ou code modifié sans `[phase: testing]`, un **`LOCAL_SOFT_CLOSE_CHECK`** one-shot laisse un dernier tour. **`local-9b`** n’a pas ce contrôle.
+- Affichage : [`loop_close/engine_closure.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/loop_close/engine_closure.rs). Si `DONE_ONLY` a déjà été envoyé et que le tour suivant réécrit une conclusion sans outil ni `[phase: done]`, ce texte n’est pas renvoyé au chat et le run s’arrête.
 
-### `cloud-full`
-
-- Fin propre = **`[phase: done]`** après au moins un **`[phase: answering]`** dans le run.
-- Sans `done`, le moteur **relance** (nudges) jusqu’à `max_iterations` ou escalade anti-boucle.
-- Cas fréquent (GLM, etc.) : gros bloc **`answering`** sans `done` → nudge **`DONE_ONLY`** (« émets seulement `[phase: done]` ») si todos fermées et gate testing OK.
+Les gates `[phase: done]` (answering préalable, todos, testing) sont plus bas dans `drive_inner`. Un run parent n’y arrive pas : le tour sans outil est déjà clos. Elles restent le chemin professeur, et le texte que le CORE `cloud-full` décrit encore au modèle.
 
 ### Explore (sous-run, `explore_execution`)
 

@@ -89,7 +89,7 @@ Réexports compat : `tool_hooks`, `tool_orchestration`, `tool_progress`, `long_m
 
 ### Profils moteur (1.6.1)
 
-[`EngineProfile`](../../drox-engine/drox/crates/drox-engine/src/agent/config.rs) (`local-9b` · `local-27b` · `cloud-full`) : même boucle, **knobs parent** différents (CORE via `drox-prompts`, outils exposés, nudges plan/Explore, clôture). Valeur RPC `engine_profile` / setting IDE `drox.engine.profile`. Inconnu → **`local-9b`**. Cadrage produit : [`docs/1.6/1.6.1/CADRAGE.md`](../1.6/1.6.1/CADRAGE.md).
+[`EngineProfile`](../../drox-engine/drox/crates/drox-engine/src/agent/config.rs) (`local-9b` · `local-27b` · `cloud-full`) : même boucle. Les knobs diffèrent (CORE via `drox-prompts`, outils exposés, nudges plan/Explore, soft close check). La clôture d’un run parent est un tour sans outil — [agent-run-loop.md](agent-run-loop.md#clôture). Valeur RPC `engine_profile` / setting IDE `drox.engine.profile`. Inconnu → **`local-9b`**.
 
 ## Bibliothèques externes utiles à connaître
 

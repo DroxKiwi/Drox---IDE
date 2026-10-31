@@ -107,7 +107,7 @@ Exit : `0` OK · `2` bloquant · autre = warning.
 
 ## Gros résultats outil
 
-[`agent/tool_result_spill/`](../../drox-engine/drox/crates/drox-engine/src/agent/tool_result_spill/) : spill fichier, stub répétition `file_read`, hot-snip — réduit le bruit contexte (Explore / parent).
+[`agent/tool_result_spill/`](../../drox-engine/drox/crates/drox-engine/src/agent/tool_result_spill/) : spill fichier, stub répétition `file_read`, hot-snip — réduit le bruit contexte (Explore / parent). La copie du tour suivant passe en plus par [`history_transport`](../../drox-engine/drox/crates/drox-engine/src/agent/history_transport.rs) — [sessions-and-memory.md](sessions-and-memory.md#copie-envoyée-au-modèle).
 
 ## Désactivation
 
