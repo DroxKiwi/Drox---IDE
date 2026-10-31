@@ -203,19 +203,14 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 	}
 
 	async skipActiveBash(): Promise<boolean> {
-		// 1) In-flight tool/exec latch (may return false if already settled — fall through).
+		// Never return before `tools.skipBash`: a live agent run is not a stop.
+		// The engine must complete the in-flight `tool/exec` or the card stays
+		// Running and the model is not called again.
+		let fromWrap = false;
 		if (this._bashToolExecSkip) {
-			const fromWrap = await this._bashToolExecSkip();
-			if (fromWrap) {
-				return true;
-			}
+			fromWrap = await this._bashToolExecSkip();
 		}
-		// 2) Bash-tool module latch (same renderer).
 		const gated = await skipRegisteredDroxBash();
-		if (gated) {
-			return true;
-		}
-		// 3) IDE shared terminal latch + hard recycle / find-by-name.
 		const ide = skipActiveDroxBashInIdeTerminal();
 		const forced = ide ? false : forceInterruptDroxAgentTerminal(this.terminalService);
 		let exec = false;
@@ -226,20 +221,20 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 				`[Drox] skipActiveBash ExecBash: ${e instanceof Error ? e.message : String(e)}`,
 			);
 		}
-		let native = false;
+		let engineSkipped = false;
+		let nativeChild = false;
 		try {
-			// Arms the one-shot even when no process exists yet, and kills a native child.
-			const r = await this.droxEngineService.request('tools.skipBash', {}) as { skipped?: boolean };
-			native = r?.skipped === true;
+			const r = await this.droxEngineService.request('tools.skipBash', {}) as { skipped?: boolean; native?: boolean };
+			engineSkipped = r?.skipped === true;
+			nativeChild = r?.native === true;
 		} catch (e) {
 			this.logService.info(
 				`[Drox] skipActiveBash tools.skipBash: ${e instanceof Error ? e.message : String(e)}`,
 			);
 		}
-		const stoppedNow = ide || exec || native;
 		// A native child keeps the flag: its wait consumes it and reports the stop.
-		// Clearing it here used to leave the command running and skip the message.
-		if ((ide || exec) && !native) {
+		// A client bash already got the stop sentence — do not also skip the next one.
+		if ((fromWrap || gated || ide || exec) && !nativeChild) {
 			try {
 				await this.droxEngineService.request('tools.clearBashSkip', {});
 			} catch (e) {
@@ -249,9 +244,9 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 			}
 		}
 		const runActive = this.droxEngineService.isAgentRunActive;
-		const ok = stoppedNow || forced || runActive;
+		const ok = fromWrap || gated || ide || forced || exec || engineSkipped;
 		this.logService.info(
-			`[Drox] skipActiveBash result=${ok} ide=${ide} forced=${forced} exec=${exec} native=${native} run=${runActive}`,
+			`[Drox] skipActiveBash result=${ok} wrap=${fromWrap} gated=${gated} ide=${ide} forced=${forced} exec=${exec} engine=${engineSkipped} native=${nativeChild} run=${runActive}`,
 		);
 		return ok;
 	}

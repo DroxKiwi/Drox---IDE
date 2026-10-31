@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use drox_types::{Content, Message, Role, ToolUseId};
 use serde_json::Value;
 
+use super::situation::{normalize_path_key, path_from_file_tool};
+
 const SLIM_RESULT_CHARS: usize = 400;
 const DROP_CALL_KEYS: &[&str] = &[
     "old_string",
@@ -22,7 +24,9 @@ const DROP_CALL_KEYS: &[&str] = &[
 /// Un échec (`old_string not found`, chemin invalide) garde `edits` pour
 /// que le modèle puisse corriger. Le dernier résultat `glob` / `task`
 /// reste entier. Une lecture `file_read` plus ancienne du même chemin est
-/// résumée. Deux messages user identiques à la suite n'en font qu'un.
+/// résumée ; une lecture d'avant une écriture appliquée du même chemin aussi.
+/// Seul le dernier `bash` reste entier : les précédents tiennent en une ligne.
+/// Deux messages user identiques à la suite n'en font qu'un.
 pub(crate) fn for_model(messages: &[Message]) -> Vec<Message> {
     let mut out = dedupe_consecutive_users(messages);
     slim_old_payloads(&mut out);
@@ -56,8 +60,12 @@ fn slim_old_payloads(messages: &mut [Message]) {
     let mut calls: Vec<(usize, usize)> = Vec::new();
     let mut results: Vec<(usize, usize, String)> = Vec::new();
     let mut read_paths: HashMap<ToolUseId, String> = HashMap::new();
-    let mut file_reads: Vec<(usize, usize, String)> = Vec::new();
+    let mut file_reads: Vec<(usize, usize, String, String)> = Vec::new();
     let mut last_read_for_path: HashMap<String, usize> = HashMap::new();
+    let mut write_paths: HashMap<ToolUseId, String> = HashMap::new();
+    let mut writes: Vec<(usize, usize, String)> = Vec::new();
+    let mut bash_commands: HashMap<ToolUseId, String> = HashMap::new();
+    let mut bash_results: Vec<(usize, usize)> = Vec::new();
 
     for (mi, message) in messages.iter().enumerate() {
         for (bi, block) in message.content.iter().enumerate() {
@@ -67,6 +75,14 @@ fn slim_old_payloads(messages: &mut [Message]) {
                     if name == "file_read" {
                         if let Some(path) = input.get("path").and_then(Value::as_str) {
                             read_paths.insert(id.clone(), path.to_string());
+                        }
+                    }
+                    if let Some(path) = path_from_file_tool(name, input) {
+                        write_paths.insert(id.clone(), normalize_path_key(&path));
+                    }
+                    if name == "bash" {
+                        if let Some(command) = input.get("command").and_then(Value::as_str) {
+                            bash_commands.insert(id.clone(), command.to_string());
                         }
                     }
                     if is_body_call(name) {
@@ -79,13 +95,23 @@ fn slim_old_payloads(messages: &mut [Message]) {
                         continue;
                     };
                     if is_body_call(&name) {
-                        applied.insert(tool_use_id.clone(), result_confirms_apply(content));
+                        let did_apply = result_confirms_apply(content);
+                        applied.insert(tool_use_id.clone(), did_apply);
+                        if did_apply {
+                            if let Some(path) = write_paths.get(tool_use_id) {
+                                writes.push((mi, bi, path.clone()));
+                            }
+                        }
+                    }
+                    if name == "bash" {
+                        bash_results.push((mi, bi));
                     }
                     if name == "file_read" && content.len() > SLIM_RESULT_CHARS {
                         if let Some(path) = read_paths.get(tool_use_id) {
                             let slot = file_reads.len();
-                            last_read_for_path.insert(path.clone(), slot);
-                            file_reads.push((mi, bi, path.clone()));
+                            let key = normalize_path_key(path);
+                            last_read_for_path.insert(key.clone(), slot);
+                            file_reads.push((mi, bi, path.clone(), key));
                         }
                     }
                     if (name == "glob" || name == "task") && content.len() > SLIM_RESULT_CHARS {
@@ -131,15 +157,79 @@ fn slim_old_payloads(messages: &mut [Message]) {
             *content = format!("earlier {name} result omitted ({n} chars)");
         }
     }
-    for (idx, (mi, bi, path)) in file_reads.iter().enumerate() {
-        if last_read_for_path.get(path) == Some(&idx) {
+    for (idx, (mi, bi, path, key)) in file_reads.iter().enumerate() {
+        let superseded = writes.iter().any(|(wmi, wbi, wpath)| {
+            wpath == key && (*wmi > *mi || (*wmi == *mi && *wbi > *bi))
+        });
+        if !superseded && last_read_for_path.get(key) == Some(&idx) {
             continue;
         }
         if let Content::ToolResult { content, .. } = &mut messages[*mi].content[*bi] {
             let n = content.len();
-            *content = format!("earlier file_read of {path} omitted ({n} chars)");
+            *content = if superseded {
+                format!(
+                    "earlier file_read of {path} omitted ({n} chars) — a later write replaced this copy"
+                )
+            } else {
+                format!("earlier file_read of {path} omitted ({n} chars)")
+            };
         }
     }
+    let last_bash = bash_results.len().saturating_sub(1);
+    for (idx, (mi, bi)) in bash_results.iter().enumerate() {
+        if idx == last_bash {
+            continue;
+        }
+        let command = match &messages[*mi].content[*bi] {
+            Content::ToolResult { tool_use_id, .. } => {
+                bash_commands.get(tool_use_id).map(String::as_str)
+            }
+            _ => None,
+        };
+        if let Content::ToolResult { content, .. } = &mut messages[*mi].content[*bi] {
+            *content = bash_one_liner(content, command.unwrap_or(""));
+        }
+    }
+}
+
+fn bash_one_liner(content: &str, command: &str) -> String {
+    let cmd = one_line(command, 100);
+    let (exit, stdout) = bash_exit_and_stdout(content);
+    let detail = one_line(&stdout, 80);
+    match exit {
+        Some(code) if !detail.is_empty() => {
+            format!("earlier bash omitted (exit {code}): {cmd} — {detail}")
+        }
+        Some(code) if !cmd.is_empty() => format!("earlier bash omitted (exit {code}): {cmd}"),
+        Some(code) => format!("earlier bash omitted (exit {code})"),
+        None if !cmd.is_empty() => format!("earlier bash omitted: {cmd}"),
+        None => format!("earlier bash omitted ({} chars)", content.len()),
+    }
+}
+
+fn bash_exit_and_stdout(content: &str) -> (Option<i64>, String) {
+    let Some(start) = content.find('{') else {
+        return (None, String::new());
+    };
+    let Ok(value) = serde_json::from_str::<Value>(&content[start..]) else {
+        return (None, String::new());
+    };
+    let exit = value.get("exit_code").and_then(Value::as_i64);
+    let stdout = value
+        .get("stdout")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string();
+    (exit, stdout)
+}
+
+fn one_line(text: &str, max: usize) -> String {
+    let flat: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if flat.chars().count() <= max {
+        return flat;
+    }
+    let cut = flat.chars().take(max).collect::<String>();
+    format!("{cut}…")
 }
 
 fn is_body_call(name: &str) -> bool {
@@ -310,6 +400,52 @@ mod tests {
         match &out[3].content[0] {
             Content::ToolResult { content, .. } => assert_eq!(content.len(), 500),
             _ => panic!("result"),
+        }
+    }
+
+    #[test]
+    fn write_supersedes_earlier_file_read_and_old_bash_is_one_line() {
+        let big = "x".repeat(500);
+        let (read_id, read_use) = call("file_read", json!({"path": "atelier_rust/src/json.rs"}));
+        let (write_id, write_use) = call(
+            "file_write",
+            json!({"path": "atelier_rust/src/json.rs", "content": "new"}),
+        );
+        let (bash1, bash_use1) = call("bash", json!({"command": "atelier.exe devis PL-04"}));
+        let (bash2, bash_use2) = call("bash", json!({"command": "atelier.exe devis PL-11"}));
+        let err = r#"remote tool error: {"command":"atelier.exe devis PL-04","exit_code":1,"stdout":"erreur : pièce sans code\n"}"#;
+        let messages = vec![
+            Message::new(Role::Assistant, vec![read_use]),
+            Message::new(Role::Tool, vec![result(read_id, &big)]),
+            Message::new(Role::Assistant, vec![write_use]),
+            Message::new(
+                Role::Tool,
+                vec![result(write_id, r#"{"applied":true,"bytes_written":3}"#)],
+            ),
+            Message::new(Role::Assistant, vec![bash_use1]),
+            Message::new(Role::Tool, vec![result(bash1, err)]),
+            Message::new(Role::Assistant, vec![bash_use2]),
+            Message::new(Role::Tool, vec![result(bash2, err)]),
+        ];
+        let out = for_model(&messages);
+        match &out[1].content[0] {
+            Content::ToolResult { content, .. } => {
+                assert!(content.contains("later write replaced this copy"));
+            }
+            _ => panic!("read"),
+        }
+        match &out[5].content[0] {
+            Content::ToolResult { content, .. } => {
+                assert!(content.starts_with("earlier bash omitted (exit 1):"));
+                assert!(content.contains("PL-04"));
+                assert!(content.contains("pièce sans code"));
+                assert!(!content.contains("remote tool error"));
+            }
+            _ => panic!("bash1"),
+        }
+        match &out[7].content[0] {
+            Content::ToolResult { content, .. } => assert!(content.contains("remote tool error")),
+            _ => panic!("bash2"),
         }
     }
 

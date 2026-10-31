@@ -41,8 +41,9 @@ export function registerDroxAgentsSkipShellActions(): void {
 			// A permission dialog holds the run before the process exists.
 			const cancelledAsk = userAsk.cancelPendingForCommandStop();
 			const skipped = await clientTools.skipActiveBash();
-			if (cancelledAsk) {
+			if (cancelledAsk && !skipped) {
 				// The dialog denial is this click. Do not also skip the next command.
+				// A real bash stop keeps its flag until that wait consumes it.
 				try {
 					await engine.request('tools.clearBashSkip', {});
 				} catch (e) {

@@ -130,6 +130,17 @@ pub(crate) fn phase_for_tool_call(
     phase_for_tool(tool_name, active_phase)
 }
 
+/// La pensée native pose `internal_reasoning` avant les outils. Dans ce cas
+/// la phase de l'outil reprend la main. Un marqueur `[phase: …]` du modèle
+/// reste prioritaire.
+pub(crate) fn should_infer_phase_from_tool(
+    current: Option<Phase>,
+    from_native_thinking: bool,
+) -> bool {
+    current.is_none()
+        || (from_native_thinking && current == Some(Phase::InternalReasoning))
+}
+
 pub(crate) fn is_workspace_exploration_tool(name: &str) -> bool {
     matches!(
         name,
@@ -164,5 +175,26 @@ pub(crate) fn user_blocks_plain_text(blocks: &[Content]) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+#[cfg(test)]
+mod infer_phase_tests {
+    use super::should_infer_phase_from_tool;
+    use crate::event::Phase;
+
+    #[test]
+    fn native_thinking_yields_to_the_tool_phase() {
+        assert!(should_infer_phase_from_tool(None, false));
+        assert!(should_infer_phase_from_tool(
+            Some(Phase::InternalReasoning),
+            true
+        ));
+        assert!(!should_infer_phase_from_tool(Some(Phase::Acting), false));
+        assert!(!should_infer_phase_from_tool(Some(Phase::Acting), true));
+        assert!(!should_infer_phase_from_tool(
+            Some(Phase::InternalReasoning),
+            false
+        ));
+    }
 }
 

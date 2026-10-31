@@ -32,7 +32,10 @@ use super::super::loop_close::{
 use super::super::loop_detect::{LoopDecision, LoopDetector, PendingToolCall};
 use super::super::nudges::{
     ask_user_question_loop_nudge, context_load_nudge, explore_incomplete_nudge,
-    run_objective_done_nudge, run_objective_system_block, step_by_step_todo_nudge,
+    drop_stale_step_explore_reminders, drop_step_by_step_heads_up, drop_system_with_prefix,
+    run_objective_done_nudge,
+    run_objective_system_block,
+    step_by_step_todo_nudge, STEP_BY_STEP_HEADS_UP_PREFIX,
     unfinished_course_plan_prompt, unfinished_todos_prompt, ANALYZING_PHASE_NUDGE,
     CODE_MUTATION_TESTING_NUDGE, DONE_ONLY_NUDGE_PROMPT, DOC_INGESTION_EXPLORE_ANNEX,
     EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,
@@ -41,13 +44,13 @@ use super::super::nudges::{
     MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES,
     EXPLORE_ARTIFACT_READ_FAIL_NUDGE, EXPLORE_COVERED_REREAD_NUDGE, MICRO_ACT_WRITE_NUDGE,
     MISSING_ANSWERING_PROMPT, NUDGE_PROMPT, PARENT_HEAVY_READ_NUDGE,
-    PARENT_HEAVY_READ_NUDGE_THRESHOLD, POST_ASK_ACTING_NUDGE, POST_EXPLORE_STALL_ACT_NUDGE,
+    PARENT_HEAVY_READ_NUDGE_THRESHOLD, PARENT_HEAVY_READ_PREFIX, POST_ASK_ACTING_NUDGE, POST_EXPLORE_STALL_ACT_NUDGE,
     POST_EXPLORE_STALL_READ_THRESHOLD, POST_MERGE_CLOSURE_NUDGE,
     REPEATED_FILE_READ_NUDGE,
     REPEATED_FILE_READ_NUDGE_THRESHOLD, ROTATING_FILE_READ_NUDGE,
     ROTATING_FILE_READ_REINJECT_EVERY, WORK_PLAN_FRAME_NUDGE,
-    WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD,
-    step_explore_kickoff_nudge, step_targets_single_file, step_without_explore_nudge,
+    WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, WORK_WITHOUT_PLAN_PREFIX, STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD,
+    step_explore_kickoff_nudge, step_skips_explore_kickoff, step_without_explore_nudge,
     LOCAL_EMPTY_TURN_NUDGE,
     LOCAL_EXPLORE_KICKOFF_NUDGE, LOCAL_FINAL_ANSWER_PROMPT, LOCAL_SOFT_CLOSE_CHECK_NUDGE,
     LOCAL_TEXTUAL_TOOL_NUDGE, LOCAL_TEXTUAL_TOOL_TOOLS_OFF_NUDGE, reply_has_textual_tool_call,
@@ -63,7 +66,8 @@ use super::super::phase::{
 use super::super::situation::{
     clear_rotating_file_read_window, completed_todos_hint, counts_as_parent_heavy_read,
     explore_deliverable_empty, first_in_progress_todo_id, next_todo_from_output,
-    note_rotating_file_read, note_successful_file_read, note_task_tool_success,
+    forget_file_read_after_mutation, note_rotating_file_read, note_successful_file_read,
+    note_task_tool_success,
     path_from_file_tool, repeated_file_read_stub_value, rotating_file_read_should_nudge,
     should_stub_repeated_file_read, task_outcome_telemetry,
     advance_transcript_cursor_for_insert, upsert_situation_card,
@@ -428,12 +432,31 @@ impl Agent {
                 messages.push(Message::system(WORK_WITHOUT_PLAN_NUDGE));
                 work_without_plan_nudge_sent = true;
             }
+            if plan_nudges && saw_successful_todo_write_in_run {
+                drop_system_with_prefix(
+                    &mut messages,
+                    &mut transcript_cursor,
+                    WORK_WITHOUT_PLAN_PREFIX,
+                );
+            }
+
+            // Les rappels d'étape déjà passées (ou déjà explorées) sortent du
+            // contexte. `plan_nudges` est faux en `local-9b` : son kickoff
+            // tour-0, d'un autre texte, n'est pas touché.
+            if plan_nudges {
+                drop_stale_step_explore_reminders(
+                    &mut messages,
+                    &mut transcript_cursor,
+                    last_in_progress_todo_id.as_deref(),
+                    !step_had_task_success,
+                );
+            }
 
             // Soft — kickoff d'une nouvelle étape plan → Explore pour cette étape.
             if task_tool_available && plan_nudges {
                 if let Some((step_id, step_content)) = pending_step_explore_nudge.take() {
-                    if step_targets_single_file(step_content.as_deref()) {
-                        debug!(%step_id, "step kickoff skipped — single file");
+                    if step_skips_explore_kickoff(step_content.as_deref()) {
+                        debug!(%step_id, "step kickoff skipped — single file or execution");
                     } else {
                         debug!(
                             marker = "c4.micro_task_kickoff",
@@ -454,7 +477,7 @@ impl Agent {
                 && !step_without_explore_nudge_sent
                 && !step_had_task_success
                 && last_in_progress_todo_id.is_some()
-                && !step_targets_single_file(last_todo_next.as_deref())
+                && !step_skips_explore_kickoff(last_todo_next.as_deref())
                 && step_parent_activity_count >= STEP_WITHOUT_EXPLORE_NUDGE_THRESHOLD
             {
                 let step_id = last_in_progress_todo_id.as_deref().unwrap_or("?");
@@ -467,6 +490,22 @@ impl Agent {
             }
 
             // S-5 — trop de lectures massives parent sans Explore.
+            // Déjà montré au tour précédent : on le retire et on remet le
+            // compteur à zéro. Les lectures de ce tour-là ne le gardent pas.
+            // Une salve suivante peut le renvoyer une fois. Tous les profils
+            // avec `task`.
+            if task_tool_available {
+                let before = messages.len();
+                drop_system_with_prefix(
+                    &mut messages,
+                    &mut transcript_cursor,
+                    PARENT_HEAVY_READ_PREFIX,
+                );
+                if messages.len() != before {
+                    parent_heavy_read_nudge_sent = false;
+                    parent_heavy_read_streak = 0;
+                }
+            }
             if task_tool_available
                 && !parent_heavy_read_nudge_sent
                 && parent_heavy_read_streak >= PARENT_HEAVY_READ_NUDGE_THRESHOLD
@@ -1464,6 +1503,10 @@ impl Agent {
                             };
                             match exec {
                                 Ok(value) => {
+                                    let applied_mutation = value
+                                        .get("applied")
+                                        .and_then(|v| v.as_bool())
+                                        == Some(true);
                                     if call.name == "glob" && !context_load_nudge_sent {
                                         if let Some(snap) = snapshot_from_glob_value(
                                             &value,
@@ -1579,6 +1622,13 @@ impl Agent {
                                         &call.name,
                                         &call.arguments,
                                     );
+                                    if applied_mutation {
+                                        forget_file_read_after_mutation(
+                                            &mut file_read_success_counts,
+                                            &call.name,
+                                            &call.arguments,
+                                        );
+                                    }
                                     let _ = note_rotating_file_read(
                                         &mut recent_file_reads,
                                         &call.name,
@@ -1790,6 +1840,10 @@ impl Agent {
                             };
                             match exec {
                                 Ok(mut value) => {
+                                    let applied_mutation = value
+                                        .get("applied")
+                                        .and_then(|v| v.as_bool())
+                                        == Some(true);
                                     if call.name == "glob" && !context_load_nudge_sent {
                                         if let Some(snap) = snapshot_from_glob_value(
                                             &value,
@@ -1992,6 +2046,13 @@ impl Agent {
                                         &call.name,
                                         &call.arguments,
                                     );
+                                    if applied_mutation {
+                                        forget_file_read_after_mutation(
+                                            &mut file_read_success_counts,
+                                            &call.name,
+                                            &call.arguments,
+                                        );
+                                    }
                                     let _ = note_rotating_file_read(
                                         &mut recent_file_reads,
                                         &call.name,
@@ -2316,13 +2377,18 @@ impl Agent {
             // reste du travail dans son plan, on lui rappelle de mettre à
             // jour ses étapes avant le prochain tour. Ne se déclenche qu'à
             // partir de 2 outils mutateurs sans MAJ (silence en deçà).
-            // Reset après injection pour ne pas répéter en boucle si le
-            // modèle ignore le nudge — `max_iterations` reste le garde-fou.
+            // `plan_nudges` est faux en `local-9b` : ce filet ne s'y applique pas.
+            // `local-27b` et `cloud-full` le gardent, mais une seule copie :
+            // le rappel précédent est retiré avant d'écrire le nouveau, et
+            // retiré tout court quand le plan n'a plus d'étape ouverte.
             let plan_still_open = if professor {
                 last_course_pending > 0 || last_course_active > 0
             } else {
                 last_todo_pending > 0 || last_todo_in_progress > 0
             };
+            if plan_nudges && !plan_still_open {
+                drop_step_by_step_heads_up(&mut messages, &mut transcript_cursor);
+            }
             if plan_nudges && mutating_tools_since_last_todo >= 2 && plan_still_open {
                 debug!(
                     mutating_tools_since_last_todo,
@@ -2333,9 +2399,10 @@ impl Agent {
                     professor,
                     "step-by-step nudge : outils mutateurs accumulés sans MAJ plan"
                 );
+                drop_step_by_step_heads_up(&mut messages, &mut transcript_cursor);
                 let nudge = if professor {
                     format!(
-                        "Heads-up: you've called {mutating_tools_since_last_todo} mutating tools \
+                        "{STEP_BY_STEP_HEADS_UP_PREFIX}{mutating_tools_since_last_todo} mutating tools \
                          since your last `course_plan_write`, and the course plan still has \
                          {last_course_pending} pending + {last_course_active} active step(s). \
                          Update the plan (`mastered` / next `active`) before continuing."

@@ -270,9 +270,13 @@ pub const STEP_BY_STEP_TODO_ENTRY: PromptEntry = PromptEntry {
 	body: "STEP-BY-STEP TODO — dynamic body (unupdated_tools / pending / in_progress)",
 };
 
+/// Préfixe stable du rappel step-by-step (todo et plan de cours).
+/// Le moteur s'en sert pour remplacer l'ancien rappel au lieu de l'empiler.
+pub const STEP_BY_STEP_HEADS_UP_PREFIX: &str = "Heads-up: you've called ";
+
 pub fn step_by_step_todo_nudge(unupdated_tools: u32, pending: u64, in_progress: u64) -> String {
 	format!(
-		"Heads-up: you've called {unupdated_tools} mutating tools \
+		"{STEP_BY_STEP_HEADS_UP_PREFIX}{unupdated_tools} mutating tools \
          (file_edit / file_write / notebook_edit / delete_path / copy_path / mutating bash) \
          since your last `todo_write`, and your \
          plan still has {pending} pending + {in_progress} in_progress item(s).\n\

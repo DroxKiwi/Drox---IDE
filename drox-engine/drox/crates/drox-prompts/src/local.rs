@@ -5,8 +5,10 @@
 
 use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 
-/// CORE parent pour les profils locaux. Remplace `session.core` (pas d'empilement).
-pub const CORE_LOCAL_SYSTEM_PROMPT: &str = r#"You are Drox, a coding agent in VS Code. You explore, modify and run things in the workspace via tools.
+macro_rules! core_local_with_plan {
+	($plan:literal) => {
+		concat!(
+			r#"You are Drox, a coding agent in VS Code. You explore, modify and run things in the workspace via tools.
 
 # How a run works
 
@@ -21,8 +23,9 @@ pub const CORE_LOCAL_SYSTEM_PROMPT: &str = r#"You are Drox, a coding agent in VS
 - Edit: `file_edit` (change part of a file), `file_write` (create / overwrite). Write big files in steps: a skeleton first, then `file_edit` section by section.
 - Delete: `delete_path`. Never edit or delete project files through `bash`.
 - Shell: `bash`. On Windows the host is **`cmd.exe`**: `dir`, `type`, `findstr`. Quoted paths are fine. Prefer one command per call; `ls`/`pwd` are rewritten. No `cat`/`head`, no nested `cmd /c`. No long-running dev servers.
-- Plan (optional): `todo_write` with `{"todos":[{"id":"1","content":"…","status":"pending"}]}`; status is one of `pending`, `in_progress`, `completed`, `cancelled`. Useful for multi-step work, never required.
-
+"#,
+			$plan,
+			r#"
 If a tool fails, read the error and change approach; do not repeat the identical call.
 
 # Fidelity
@@ -36,17 +39,41 @@ Prefer action over narration: once the next step is clear, call the tool. Reply 
 # Security
 
 No `rm -rf` outside `target/` / `node_modules/`. No `git push --force` or `git reset --hard` on uncommitted work. Ask the user before any destructive operation.
-"#;
+"#
+		)
+	};
+}
+
+/// CORE parent pour les profils locaux autres que `local-9b`. Remplace `session.core` (pas d'empilement).
+pub const CORE_LOCAL_SYSTEM_PROMPT: &str = core_local_with_plan!(
+	"- Plan (optional): `todo_write` with `{\"todos\":[{\"id\":\"1\",\"content\":\"…\",\"status\":\"pending\"}]}`; status is one of `pending`, `in_progress`, `completed`, `cancelled`. Useful for multi-step work, never required.\n"
+);
+
+/// CORE parent `local-9b` : même texte, consigne de plan détaillée pour se repérer.
+pub const CORE_LOCAL_9B_SYSTEM_PROMPT: &str = core_local_with_plan!(
+	"- Plan: when the work has several steps, one `todo_write` lists them all — one `in_progress`, the others `pending`. Later calls update that same list. The detail is so you can find your place during the run, not to make the task heavier. Status: `pending`, `in_progress`, `completed`, `cancelled`.\n"
+);
 
 pub const CORE_LOCAL_SYSTEM_ENTRY: PromptEntry = PromptEntry {
 	id: "session.core.local",
 	intent: PromptIntent::Procedure,
 	strength: PromptStrength::Prefer,
 	audience: PromptAudience::Parent,
-	when: "engine_profile_local",
+	when: "engine_profile_local_27b",
 	topics: &["closure", "tools", "explore"],
 	claims: &["style.action_over_narration=prefer"],
 	body: CORE_LOCAL_SYSTEM_PROMPT,
+};
+
+pub const CORE_LOCAL_9B_SYSTEM_ENTRY: PromptEntry = PromptEntry {
+	id: "session.core.local.9b",
+	intent: PromptIntent::Procedure,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "engine_profile_local_9b",
+	topics: &["closure", "tools", "explore"],
+	claims: &["style.action_over_narration=prefer"],
+	body: CORE_LOCAL_9B_SYSTEM_PROMPT,
 };
 
 /// Supplément Explore court pour profils locaux (pas de Plan → Assign → Merge).
@@ -219,7 +246,9 @@ pub const TASK_TOOL_LOCAL_ENTRY: PromptEntry = PromptEntry {
 
 #[cfg(test)]
 mod tests {
-	use super::reply_has_textual_tool_call;
+	use super::{
+		reply_has_textual_tool_call, CORE_LOCAL_9B_SYSTEM_PROMPT, CORE_LOCAL_SYSTEM_PROMPT,
+	};
 
 	#[test]
 	fn textual_tool_call_matches_xml_shapes_only() {
@@ -229,5 +258,14 @@ mod tests {
 		assert!(reply_has_textual_tool_call("<FUNCTION=file_edit>"));
 		assert!(!reply_has_textual_tool_call("J'ai mis à jour la documentation."));
 		assert!(!reply_has_textual_tool_call("appelle todo_write ensuite"));
+	}
+
+	#[test]
+	fn local_9b_core_asks_for_a_detailed_plan_without_a_one_item_example() {
+		assert!(CORE_LOCAL_9B_SYSTEM_PROMPT.contains("find your place during the run"));
+		assert!(CORE_LOCAL_9B_SYSTEM_PROMPT.contains("lists them all"));
+		assert!(!CORE_LOCAL_9B_SYSTEM_PROMPT.contains("\"id\":\"1\""));
+		assert!(CORE_LOCAL_SYSTEM_PROMPT.contains("never required"));
+		assert!(!CORE_LOCAL_SYSTEM_PROMPT.contains("find your place during the run"));
 	}
 }

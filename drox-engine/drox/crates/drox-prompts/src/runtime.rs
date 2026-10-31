@@ -3,6 +3,8 @@
 use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 
 /// 1.6.0 S-5 — parent enchaîne des lectures sans déléguer Explore.
+pub const PARENT_HEAVY_READ_PREFIX: &str = "STOP flooding the parent";
+
 pub const PARENT_HEAVY_READ_NUDGE: &str = "STOP flooding the parent with repeated reads / \
     `Get-Content` / `cat` dumps.\n\
     \n\
@@ -54,6 +56,8 @@ pub const DOC_INGESTION_EXPLORE_ANNEX: &str = "DOC INGESTION / MULTI-FILE DOCS �
 
 /// Soft — work/doc sans `todo_write` après activité outils (toute situation).
 /// Tools restent libres (pas de hard gate) ; ignore OK si légitime (needle, etc.).
+pub const WORK_WITHOUT_PLAN_PREFIX: &str = "WORK WITHOUT PLAN — ";
+
 pub const WORK_WITHOUT_PLAN_NUDGE: &str = "WORK WITHOUT PLAN — soft reminder (not a hard gate)\n\
     \n\
     Work/docs run with tools already used, but **no** `todo_write` yet.\n\
@@ -143,6 +147,9 @@ pub const STEP_EXPLORE_KICKOFF_ENTRY: PromptEntry = PromptEntry {
 	body: "STEP KICKOFF — soft micro (not a hard gate) — dynamic body",
 };
 
+/// Préfixe stable du kickoff d'étape. Le moteur retire les copies des étapes déjà passées.
+pub const STEP_EXPLORE_KICKOFF_PREFIX: &str = "STEP KICKOFF — ";
+
 /// Soft / micro (C4 V6-a) — avant spawn `task` : 2–4 lignes, sans re-dérouler le protocole A.
 pub fn step_explore_kickoff_nudge(step_id: &str, step_content: Option<&str>) -> String {
 	let label = step_content
@@ -151,7 +158,7 @@ pub fn step_explore_kickoff_nudge(step_id: &str, step_content: Option<&str>) -> 
 		.unwrap_or(step_id);
 	let label = truncate_micro_label(label, 80);
 	format!(
-		"STEP KICKOFF — soft micro (not a hard gate)\n\
+		"{STEP_EXPLORE_KICKOFF_PREFIX}soft micro (not a hard gate)\n\
          Step `{step_id}` in_progress: {label}\n\
          Prefer one focused `task` (explore) with `plan_step_id` + `must_return`, then merge. \
          Needles 1–2 OK. Tools free."
@@ -173,6 +180,30 @@ pub fn step_targets_single_file(step_content: Option<&str>) -> bool {
 		}
 	}
 	files == 1
+}
+
+/// Étape de compilation, de test ou d'exécution : un explore n'est pas le bon rappel.
+pub fn step_is_execution(step_content: Option<&str>) -> bool {
+	let Some(text) = step_content.map(str::trim).filter(|s| !s.is_empty()) else {
+		return false;
+	};
+	let lower = text.to_lowercase();
+	const STEMS: &[&str] = &["compil", "cargo", "pytest", "npm test", "exécut", "execut", "tester", "testing"];
+	STEMS.iter().any(|stem| lower.contains(stem))
+		|| has_word(&lower, "build")
+		|| has_word(&lower, "test")
+		|| has_word(&lower, "tests")
+		|| has_word(&lower, "run")
+}
+
+fn has_word(lower: &str, word: &str) -> bool {
+	lower
+		.split(|c: char| !c.is_ascii_alphanumeric())
+		.any(|token| token == word)
+}
+
+pub fn step_skips_explore_kickoff(step_content: Option<&str>) -> bool {
+	step_targets_single_file(step_content) || step_is_execution(step_content)
 }
 
 fn looks_like_workspace_file(token: &str) -> bool {
@@ -274,13 +305,16 @@ pub const STEP_WITHOUT_EXPLORE_ENTRY: PromptEntry = PromptEntry {
 	body: "STEP WITHOUT EXPLORE — soft reminder (not a hard gate) — dynamic body",
 };
 
+/// Préfixe stable du rappel « étape sans explore ».
+pub const STEP_WITHOUT_EXPLORE_PREFIX: &str = "STEP WITHOUT EXPLORE — ";
+
 pub fn step_without_explore_nudge(step_id: &str, step_content: Option<&str>) -> String {
 	let label = step_content
 		.map(str::trim)
 		.filter(|s| !s.is_empty())
 		.unwrap_or(step_id);
 	format!(
-		"STEP WITHOUT EXPLORE — soft reminder (not a hard gate)\n\
+		"{STEP_WITHOUT_EXPLORE_PREFIX}soft reminder (not a hard gate)\n\
          Step `{step_id}` in_progress ({label}): parent tools used, no `task` yet.\n\
          **Preferred:** one focused Explore for this step (`plan_step_id`=`{step_id}`), then merge.\n\
          Needle 1–2: ignore OK. Tools free."
@@ -447,7 +481,7 @@ Forbidden: parent-read spam, spill re-open, or one mega-brief `task`."
 
 #[cfg(test)]
 mod single_file_step_tests {
-	use super::step_targets_single_file;
+	use super::{step_is_execution, step_skips_explore_kickoff, step_targets_single_file};
 
 	#[test]
 	fn one_named_file_skips_explore() {
@@ -458,5 +492,14 @@ mod single_file_step_tests {
 			"Modifier pricing.py et receipts.py"
 		)));
 		assert!(!step_targets_single_file(Some("Analyser le projet")));
+		assert!(step_is_execution(Some(
+			"Compiler et tester le projet Rust (cargo build + run)"
+		)));
+		assert!(!step_is_execution(Some("Analyser le projet")));
+		assert!(!step_is_execution(Some("Lire les sources pour le port")));
+		assert!(step_skips_explore_kickoff(Some(
+			"Compiler et tester le projet Rust (cargo build + run)"
+		)));
+		assert!(!step_skips_explore_kickoff(Some("Analyser le projet")));
 	}
 }
