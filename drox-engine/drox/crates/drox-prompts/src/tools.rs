@@ -349,6 +349,18 @@ tool_prompt!(
 );
 
 tool_prompt!(
+	SDTCM_ALIGN_TOOL_DESCRIPTION,
+	SDTCM_ALIGN_TOOL_ENTRY,
+	"tools.sdtcm_align.description",
+	"sdtcm_align",
+	"Realigns the SDTCM map. The diff is SDTCM's own copy of the cited files, \
+         not git, so uncommitted edits already referenced by the map are included. \
+         Only bricks whose lines diverged are resumed. Optional note for the role. \
+         **Execution**: IDE client (Drox); unavailable outside delegated client. \
+         Format: `{ \"note\"?: \"…\" }`."
+);
+
+tool_prompt!(
 	CODEBASE_SEARCH_TOOL_DESCRIPTION,
 	CODEBASE_SEARCH_TOOL_ENTRY,
 	"tools.codebase_search.description",
@@ -535,7 +547,7 @@ pub fn all_tool_entries() -> &'static [PromptEntry] {
 	&TOOL_ENTRIES
 }
 
-static TOOL_ENTRIES: [PromptEntry; 37] = [
+static TOOL_ENTRIES: [PromptEntry; 38] = [
 	FILE_READ_TOOL_ENTRY,
 	TASK_TOOL_ENTRY,
 	EXPLORE_INDEX_LIST_TOOL_ENTRY,
@@ -558,6 +570,7 @@ static TOOL_ENTRIES: [PromptEntry; 37] = [
 	WEB_SEARCH_TOOL_ENTRY,
 	WEB_FETCH_TOOL_ENTRY,
 	CODEBASE_SEARCH_TOOL_ENTRY,
+	SDTCM_ALIGN_TOOL_ENTRY,
 	SESSION_NOTE_TOOL_ENTRY,
 	SESSION_SEARCH_TOOL_ENTRY,
 	SESSION_END_TOOL_ENTRY,

@@ -89,6 +89,13 @@ export const DROX_TOOL_GROUPS: readonly IDroxToolGroup[] = [
 		],
 	},
 	{
+		id: 'sdtcm',
+		label: localize('drox.toolGroup.sdtcm', 'SDTCM'),
+		tools: [
+			{ name: 'sdtcm_align', label: 'sdtcm_align', description: localize('drox.tool.sdtcmAlign', 'Realign the SDTCM map from its own file diff (IDE client)') },
+		],
+	},
+	{
 		id: 'skills',
 		label: localize('drox.toolGroup.skills', 'Skills'),
 		tools: [

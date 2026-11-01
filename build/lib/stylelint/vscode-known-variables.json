@@ -1154,7 +1154,12 @@
 		"--vscode-inline-chat-affordance-height",
 		"--collapse-from-width",
 		"--slide-from-x",
-		"--slide-from-y"
+		"--slide-from-y",
+		"--drox-sdtcm-accent",
+		"--drox-sdtcm-border",
+		"--drox-sdtcm-muted",
+		"--drox-sdtcm-raised",
+		"--drox-sdtcm-surface"
 	],
 	"sizes": [
 		"--vscode-agents-fontSize-body1",

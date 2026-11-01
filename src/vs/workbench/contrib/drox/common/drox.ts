@@ -37,6 +37,9 @@ export namespace DroxViews {
 	/** Agents auxiliary bar — same ports UI. */
 	export const PortsSessionsViewContainerId = 'workbench.view.drox.portsSessionsContainer';
 	export const PortsSessionsViewId = 'workbench.view.drox.portsSessions';
+	/** Sidebar activity-bar entry — opens the SDTCM map editor tab. */
+	export const SdtcmViewContainerId = 'workbench.view.drox.sdtcmContainer';
+	export const SdtcmViewId = 'workbench.view.drox.sdtcm';
 }
 
 export namespace DroxCommands {
@@ -55,6 +58,10 @@ export namespace DroxCommands {
 	export const SkipStuckShell = 'workbench.action.droxSkipStuckShell';
 	/** Open the editor inline panel on the Explain This Code tab. */
 	export const ExplainThisCode = 'workbench.action.droxExplainThisCode';
+	/** Open the SDTCM prototype map as an editor tab. */
+	export const OpenSdtcm = 'workbench.action.droxOpenSdtcm';
+	/** Center the open SDTCM map on the folder with the most links. */
+	export const CenterSdtcm = 'workbench.action.droxSdtcmCenter';
 	/** Focus shared @Codebase cockpit (sidebar). */
 	export const FocusCodebase = 'workbench.action.droxFocusCodebase';
 	export const CodebaseReindex = 'workbench.action.droxCodebaseReindex';

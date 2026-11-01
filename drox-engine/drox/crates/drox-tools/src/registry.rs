@@ -13,7 +13,7 @@ use crate::simple::{
     SkillListTool, SkillReadTool, GitWorktreeEnterTool, GitWorktreeExitTool, CopyPathTool,
     CoursePlanWriteTool, ExploreArtifactReadTool, ExploreIndexListTool, ScopeDeferTool,
     SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool, TaskTool, TodoWriteTool,
-    WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool,
+    WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool, SdtcmAlignTool,
 };
 use crate::tool::{DynTool, Tool};
 
@@ -85,6 +85,7 @@ impl ToolRegistry {
         reg.register(coerce_tool(SessionEndTool));
         reg.register(coerce_tool(SessionSearchTool));
         reg.register(coerce_tool(CodebaseSearchTool));
+        reg.register(coerce_tool(SdtcmAlignTool));
         reg
     }
 

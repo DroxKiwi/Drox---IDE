@@ -103,6 +103,8 @@ export interface IDroxProseLlmDeps {
 	readonly server: string;
 	readonly model: string;
 	readonly headers?: Record<string, string>;
+	/** Ollama `think: false`, or `enable_thinking: false` on compatible servers. */
+	readonly disableThinking?: boolean;
 	readonly fetchHttp: (
 		url: string,
 		headers?: Record<string, string>,
@@ -111,24 +113,32 @@ export interface IDroxProseLlmDeps {
 }
 
 /** One-shot prose completion. No JSON mode, no agent run. */
-export async function callDroxProseLlm(deps: IDroxProseLlmDeps, system: string, user: string): Promise<string> {
+export async function callDroxProseLlm(deps: IDroxProseLlmDeps, system: string, user: string, timeoutMs = 60_000): Promise<string> {
 	const target = buildLlmChatUrl(deps.provider, deps.server);
 	const url = Object.hasOwn(target, 'url') ? (target as { readonly url: string }).url : undefined;
 	if (!url || !deps.model.trim()) {
 		return '';
 	}
-	const body = JSON.stringify({
+	const payload: Record<string, unknown> = {
 		model: deps.model,
 		stream: false,
 		messages: [
 			{ role: 'system', content: system },
 			{ role: 'user', content: user },
 		],
-	});
+	};
+	if (deps.disableThinking) {
+		if (deps.provider === 'ollama') {
+			payload.think = false;
+		} else if (deps.provider !== 'mistral' && deps.provider !== 'scaleway' && deps.provider !== 'ovhcloud') {
+			payload.chat_template_kwargs = { enable_thinking: false };
+		}
+	}
+	const body = JSON.stringify(payload);
 	const res = await deps.fetchHttp(url, {
 		'Content-Type': 'application/json',
 		...(deps.headers ?? {}),
-	}, { method: 'POST', body, timeoutMs: 60_000 });
+	}, { method: 'POST', body, timeoutMs });
 	if (!res.statusCode || res.statusCode >= 400) {
 		throw new Error(`HTTP ${res.statusCode || 0}`);
 	}

@@ -1,0 +1,547 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-sdtcm,
+.drox-sdtcm-side {
+	--drox-sdtcm-surface: var(--vscode-editor-background, #1e1e1e);
+	--drox-sdtcm-raised: color-mix(in srgb, var(--vscode-foreground) 6%, var(--drox-sdtcm-surface));
+	--drox-sdtcm-border: color-mix(in srgb, var(--vscode-foreground) 16%, transparent);
+	--drox-sdtcm-accent: color-mix(in srgb, var(--vscode-foreground) 62%, var(--drox-sdtcm-surface));
+	--drox-sdtcm-muted: var(--vscode-descriptionForeground, #666666);
+	color: var(--vscode-foreground);
+	font-family: var(--vscode-font-family);
+}
+
+.drox-sdtcm {
+	position: relative;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	min-height: 0;
+	background: var(--drox-sdtcm-surface);
+}
+
+.drox-sdtcm-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--drox-sdtcm-border);
+}
+
+.drox-sdtcm-live {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+}
+
+.drox-sdtcm-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex: 0 0 auto;
+	background: var(--drox-sdtcm-muted);
+}
+
+.drox-sdtcm.running .drox-sdtcm-dot {
+	background: var(--drox-sdtcm-accent);
+	animation: drox-sdtcm-pulse 1s ease-in-out infinite;
+}
+
+.drox-sdtcm.error .drox-sdtcm-dot {
+	background: var(--vscode-errorForeground);
+}
+
+.drox-sdtcm-status {
+	font-weight: 600;
+}
+
+.drox-sdtcm-step {
+	opacity: 0.75;
+}
+
+.drox-sdtcm-body {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	position: relative;
+}
+
+.drox-sdtcm-filters {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding-top: 4px;
+	font-size: 12px;
+	border-top: 1px solid var(--drox-sdtcm-border);
+}
+
+.drox-sdtcm-filters label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.drox-sdtcm-stage {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+	position: relative;
+}
+
+.drox-sdtcm-main {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+}
+
+.drox-sdtcm-rail {
+	display: flex;
+	flex-direction: column;
+	flex: 0 0 auto;
+	min-width: 0;
+	min-height: 0;
+	position: relative;
+	border-left: 1px solid var(--drox-sdtcm-border);
+	background: var(--drox-sdtcm-surface);
+}
+
+.drox-sdtcm-rail-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	margin-left: auto;
+	padding: 0;
+	color: var(--drox-sdtcm-muted);
+	background: transparent;
+	border: none;
+	border-radius: 0;
+	cursor: pointer;
+}
+
+.drox-sdtcm-rail-toggle .codicon {
+	font-size: 16px;
+}
+
+.drox-sdtcm-rail-toggle:hover {
+	color: var(--vscode-foreground);
+	background: var(--drox-sdtcm-raised);
+}
+
+.drox-sdtcm-rail.collapsed .drox-sdtcm-rail-body,
+.drox-sdtcm-rail.collapsed .drox-sdtcm-rail-label,
+.drox-sdtcm-rail.collapsed .drox-sdtcm-export {
+	display: none;
+}
+
+.drox-sdtcm-rail.collapsed .drox-sdtcm-rail-title {
+	justify-content: center;
+	padding-right: 6px;
+	padding-left: 6px;
+}
+
+.drox-sdtcm-rail.collapsed .drox-sdtcm-rail-toggle {
+	margin-left: 0;
+}
+
+.drox-sdtcm-node.folder {
+	cursor: grab;
+}
+
+.drox-sdtcm-code {
+	min-height: 0;
+	overflow: hidden;
+	border-top: 1px solid var(--drox-sdtcm-border);
+}
+
+.drox-sdtcm-code[hidden] {
+	display: none;
+}
+
+.drox-sdtcm-rail-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	font-weight: 600;
+	color: var(--drox-sdtcm-muted);
+	letter-spacing: 0.04em;
+	border-top: 1px solid var(--drox-sdtcm-border);
+	border-bottom: 1px solid var(--drox-sdtcm-border);
+}
+
+.drox-sdtcm-export {
+	margin-left: auto;
+	padding: 1px 8px;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--vscode-foreground);
+	background: transparent;
+	border: 1px solid var(--drox-sdtcm-border);
+	border-radius: 0;
+	cursor: pointer;
+}
+
+.drox-sdtcm-export:hover {
+	background: var(--drox-sdtcm-raised);
+}
+
+.drox-sdtcm-rail-title:first-child {
+	border-top: none;
+}
+
+.drox-sdtcm-rail-body {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+.drox-sdtcm-exchange,
+.drox-sdtcm-json {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	margin: 0;
+	padding: 8px 10px;
+}
+
+.drox-sdtcm-json {
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 12px;
+}
+
+.drox-sdtcm-exchange {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.drox-sdtcm-turn {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	max-width: 100%;
+}
+
+.drox-sdtcm-turn.agent {
+	align-items: flex-end;
+}
+
+.drox-sdtcm-bubble-name {
+	margin-bottom: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	opacity: 0.7;
+}
+
+.drox-sdtcm-bubble {
+	max-width: 92%;
+	padding: 8px 10px;
+	white-space: pre-wrap;
+	word-break: break-word;
+	border-radius: 0;
+	font-family: var(--monaco-monospace-font, monospace);
+	font-size: 12px;
+	background: transparent;
+	border: 1px solid var(--drox-sdtcm-border);
+}
+
+.drox-sdtcm-turn.agent .drox-sdtcm-bubble {
+	background: var(--drox-sdtcm-raised);
+}
+
+.drox-sdtcm-viewport {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+	cursor: grab;
+	background-color: var(--drox-sdtcm-surface);
+	background-image:
+		linear-gradient(color-mix(in srgb, var(--drox-sdtcm-border) 55%, transparent) 1px, transparent 1px),
+		linear-gradient(90deg, color-mix(in srgb, var(--drox-sdtcm-border) 55%, transparent) 1px, transparent 1px);
+	background-size: 32px 32px;
+}
+
+.drox-sdtcm-viewport.panning {
+	cursor: grabbing;
+}
+
+.drox-sdtcm-svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+	color: var(--vscode-foreground);
+	font-family: var(--vscode-font-family);
+}
+
+.drox-sdtcm-edge {
+	stroke: var(--drox-sdtcm-accent);
+	stroke-opacity: 0.45;
+	stroke-width: 1.25;
+	pointer-events: none;
+}
+
+.drox-sdtcm-edge.dim {
+	stroke-opacity: 0.08;
+}
+
+.drox-sdtcm-edge.linked {
+	stroke: var(--drox-sdtcm-accent);
+	stroke-opacity: 0.95;
+	stroke-width: 1.75;
+}
+
+.drox-sdtcm-node.dim {
+	opacity: 0.12;
+}
+
+.drox-sdtcm-node.primary rect,
+.drox-sdtcm-node.related rect,
+.drox-sdtcm-node.involved rect {
+	stroke: var(--drox-sdtcm-accent);
+	stroke-opacity: 1;
+	stroke-width: 1.5;
+}
+
+.drox-sdtcm-node rect {
+	fill: var(--drox-sdtcm-raised);
+	stroke: var(--drox-sdtcm-border);
+	stroke-opacity: 1;
+}
+
+.drox-sdtcm-node.folder rect {
+	fill: transparent;
+	stroke: var(--drox-sdtcm-accent);
+	stroke-opacity: 0.55;
+}
+
+.drox-sdtcm-node.file rect {
+	fill: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+	stroke-opacity: 0.85;
+}
+
+.drox-sdtcm-node.brick rect {
+	fill: color-mix(in srgb, var(--vscode-foreground) 8%, var(--drox-sdtcm-surface));
+}
+
+.drox-sdtcm-node.data rect {
+	fill: transparent;
+	stroke-opacity: 0.7;
+}
+
+.drox-sdtcm-node text {
+	fill: var(--vscode-foreground);
+	font-size: 12px;
+}
+
+.drox-sdtcm-node-meta {
+	fill: var(--vscode-descriptionForeground);
+	font-size: 11px;
+}
+
+.drox-sdtcm-node.selected rect {
+	stroke: var(--vscode-foreground);
+	stroke-opacity: 0.9;
+	stroke-width: 1.5;
+}
+
+.drox-sdtcm-tooltip,
+.drox-sdtcm-card {
+	padding: 8px 10px;
+	color: var(--vscode-foreground);
+	background: var(--drox-sdtcm-surface);
+	border: 1px solid var(--drox-sdtcm-border);
+	border-radius: 0;
+	box-shadow: 0 8px 24px color-mix(in srgb, #000 28%, transparent);
+}
+
+.drox-sdtcm-tooltip {
+	position: absolute;
+	z-index: 2;
+	max-width: 320px;
+	pointer-events: none;
+}
+
+.drox-sdtcm-card {
+	max-height: 140px;
+	overflow: auto;
+}
+
+.drox-sdtcm-journal {
+	max-height: 88px;
+	overflow: auto;
+	margin: 0 12px 8px;
+	padding: 6px 8px;
+	border: 1px solid var(--drox-sdtcm-border);
+	border-radius: 0;
+	background: var(--drox-sdtcm-raised);
+}
+
+.drox-sdtcm-journal-line {
+	padding: 2px 0;
+	opacity: 0.85;
+}
+
+.drox-sdtcm.running .drox-sdtcm-journal-line:last-child {
+	opacity: 1;
+	font-weight: 600;
+}
+
+@keyframes drox-sdtcm-pulse {
+	0%, 100% { opacity: 0.35; }
+	50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.drox-sdtcm.running .drox-sdtcm-dot {
+		animation: none;
+		opacity: 1;
+	}
+}
+
+.drox-sdtcm-tree {
+	overflow: auto;
+	padding: 8px 0 16px;
+}
+
+.drox-sdtcm-row {
+	display: flex;
+	gap: 10px;
+	padding: 3px 12px;
+}
+
+.drox-sdtcm-name {
+	font-weight: 600;
+}
+
+.drox-sdtcm-meta {
+	opacity: 0.7;
+}
+
+.drox-sdtcm-hint {
+	margin: 8px 12px;
+	opacity: 0.75;
+}
+
+.drox-sdtcm-side {
+	padding: 12px 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.drox-sdtcm-attraction {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 12px;
+}
+
+.drox-sdtcm-attraction[hidden] {
+	display: none;
+}
+
+.drox-sdtcm-attraction input {
+	width: 100%;
+	margin: 0;
+	accent-color: var(--drox-sdtcm-accent);
+}
+
+.drox-sdtcm-side-label {
+	font-weight: 600;
+	margin-top: 6px;
+	color: var(--drox-sdtcm-muted);
+	letter-spacing: 0.04em;
+}
+
+.drox-sdtcm-side-hint {
+	margin: 0;
+	color: var(--drox-sdtcm-muted);
+}
+
+.drox-sdtcm-side-open {
+	align-self: flex-start;
+	padding: 4px 10px;
+	color: var(--vscode-foreground);
+	background: var(--drox-sdtcm-raised);
+	border: 1px solid var(--drox-sdtcm-border);
+	border-radius: 0;
+	cursor: pointer;
+}
+
+.drox-sdtcm-side-open:hover {
+	border-color: var(--drox-sdtcm-accent);
+	background: color-mix(in srgb, var(--vscode-foreground) 10%, var(--drox-sdtcm-surface));
+}
+
+.drox-sdtcm-focus {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.drox-sdtcm-focus-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 12px;
+}
+
+.drox-sdtcm-focus-remove {
+	padding: 1px 6px;
+	font-size: 11px;
+	color: var(--vscode-foreground);
+	background: transparent;
+	border: 1px solid var(--drox-sdtcm-border);
+	border-radius: 0;
+	cursor: pointer;
+}
+
+.drox-sdtcm-focus-remove:hover {
+	background: var(--drox-sdtcm-raised);
+}
+
+.drox-sdtcm-menu {
+	position: fixed;
+	z-index: 40;
+	min-width: 140px;
+	padding: 4px;
+	background: var(--drox-sdtcm-surface, var(--vscode-menu-background));
+	color: var(--vscode-menu-foreground, var(--vscode-foreground));
+	border: 1px solid var(--drox-sdtcm-border, var(--vscode-menu-border));
+	border-radius: 0;
+	box-shadow: 0 8px 24px color-mix(in srgb, #000 28%, transparent);
+}
+
+.drox-sdtcm-menu button {
+	display: block;
+	width: 100%;
+	padding: 4px 8px;
+	text-align: left;
+	color: inherit;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+}
+
+.drox-sdtcm-menu button:hover {
+	background: color-mix(in srgb, var(--vscode-foreground) 8%, transparent);
+	color: inherit;
+}

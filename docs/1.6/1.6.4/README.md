@@ -12,3 +12,5 @@ Le texte de régulation doit dire la même chose que le moteur.
 - **L5** : si L2 est `core`, `codebase_search` n’est pas dans le schéma. Le rappel de recherche ne cite plus cet outil ; il s’appuie sur le contexte `@Codebase` déjà injecté.
 
 Le clic droit **Open Inline Chat** ouvre le panneau Drox dans l’éditeur (modèle de la conversation). L’onglet **Explain This Code**, aussi dans ce menu, explique uniquement la sélection.
+
+**SDTCM** (Simulator Data Transition into Code Map) : carte 2D du code, du dossier jusqu’à la variable, pour suivre le chemin factuel d’une donnée et rejouer ses transferts. Principe : [SDTCM.md](SDTCM.md). Le prototype n’est pas cadré.

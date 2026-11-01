@@ -136,6 +136,7 @@ impl EngineProfile {
             "bash",
             "task",
             "codebase_search",
+            "sdtcm_align",
             "exit_plan_mode",
         ];
         const LOCAL_27B: &[&str] = &[
@@ -152,6 +153,7 @@ impl EngineProfile {
             "task",
             "explore_artifact_read",
             "codebase_search",
+            "sdtcm_align",
             "exit_plan_mode",
             "lsp",
             "web_search",

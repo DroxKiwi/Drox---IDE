@@ -28,6 +28,7 @@ import { IDroxChatSessionService } from '../common/droxChatSessionService.js';
 import { IDroxLongMemoryService } from '../common/droxLongMemoryService.js';
 import { IDroxSessionCompactService } from '../common/droxSessionCompactService.js';
 import { IDroxCodebaseIndexService } from '../common/codebase/droxCodebaseIndexService.js';
+import { IDroxSdtcmService } from '../browser/sdtcm/droxSdtcmService.js';
 import { DROX_BASH_USER_STOPPED } from '../common/droxBash.js';
 import { createDroxBashToolHandler } from './tools/droxBashTool.js';
 import { skipRegisteredDroxBash } from './tools/droxActiveBashGate.js';
@@ -42,6 +43,7 @@ import { createDroxSessionCompactToolHandler } from './tools/droxSessionCompactT
 import { createDroxSessionEndToolHandler } from './tools/droxSessionEndTool.js';
 import { createDroxSessionSearchToolHandler } from './tools/droxSessionSearchTool.js';
 import { createDroxCodebaseSearchToolHandler } from './tools/droxCodebaseSearchTool.js';
+import { createDroxSdtcmAlignToolHandler } from './tools/droxSdtcmAlignTool.js';
 import { createDroxLspToolHandler } from './tools/droxLspTool.js';
 import { createDroxNotebookEditToolHandler } from './tools/droxNotebookEditTool.js';
 
@@ -75,6 +77,7 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 		@IDroxSessionCompactService sessionCompactService: IDroxSessionCompactService,
 		@IDroxLongMemoryService longMemoryService: IDroxLongMemoryService,
 		@IDroxCodebaseIndexService codebaseIndexService: IDroxCodebaseIndexService,
+		@IDroxSdtcmService sdtcmService: IDroxSdtcmService,
 		@ICommandService commandService: ICommandService,
 		@IMarkerService markerService: IMarkerService,
 		@ITextModelService textModelService: ITextModelService,
@@ -124,6 +127,11 @@ export class DroxClientToolsService extends Disposable implements IDroxClientToo
 		this.registry.register(
 			'codebase_search',
 			createDroxCodebaseSearchToolHandler(codebaseIndexService),
+		);
+
+		this.registry.register(
+			'sdtcm_align',
+			createDroxSdtcmAlignToolHandler(sdtcmService),
 		);
 
 		this.registry.register(

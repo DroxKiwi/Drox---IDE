@@ -28,6 +28,7 @@ import '../browser/codebase/droxCodebase.contribution.js';
 import '../browser/regulation/droxRegulation.contribution.js';
 import '../browser/traffic/droxTraffic.contribution.js';
 import '../browser/ports/droxPorts.contribution.js';
+import '../browser/sdtcm/droxSdtcm.contribution.js';
 import '../browser/gitGraph/droxGitGraph.contribution.js';
 
 import { registerDroxCoreSingletons } from './droxCoreSingletons.js';

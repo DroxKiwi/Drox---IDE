@@ -20,7 +20,9 @@ export type DroxDevFeatureId =
 
 	| 'executablePath'
 
-	| 'historyProbe';
+	| 'historyProbe'
+
+	| 'sdtcmExport';
 export interface IDroxSurfaceProductInfo {
 
 	readonly droxSurface?: string;
@@ -69,6 +71,12 @@ export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly des
 	historyProbe: {
 
 		description: 'Commande palette « History probe » : session dédiée, snapshot de l\'historique réellement envoyé au modèle.',
+
+	},
+
+	sdtcmExport: {
+
+		description: 'Bouton export de la discussion SDTCM, consigne système et injections comprises.',
 
 	},
 
