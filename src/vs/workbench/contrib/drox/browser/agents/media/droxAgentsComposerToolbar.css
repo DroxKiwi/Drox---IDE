@@ -13,22 +13,24 @@
 	min-width: 0;
 	gap: 4px;
 	margin-left: 4px;
-	overflow-x: auto;
-	overflow-y: hidden;
-	overscroll-behavior-x: contain;
-	scrollbar-width: thin;
+	overflow: hidden;
 	--drox-ui-green: var(--vscode-panel-border, #888888);
 }
 
-/* Chip serveur : ne pas le compresser / clipper hors écran en panneau étroit. */
+/* Le modèle et le serveur cèdent de la place, jusqu'à une largeur plancher. */
 .agent-sessions-workbench .drox-agents-composer-toolbar .general-settings-vignette,
 .drox-discussion-shell .drox-agents-composer-toolbar .general-settings-vignette {
-	flex-shrink: 0;
+	flex: 1 1 88px;
+	min-width: 72px;
+	max-width: 168px;
+	overflow: hidden;
 }
 
 .agent-sessions-workbench .drox-agents-composer-toolbar .sessions-chat-picker-slot,
 .drox-discussion-shell .drox-agents-composer-toolbar .sessions-chat-picker-slot {
-	flex-shrink: 0;
+	flex: 1 1 72px;
+	min-width: 72px;
+	max-width: 148px;
 }
 
 .agent-sessions-workbench .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger,
@@ -42,8 +44,9 @@
 	touch-action: manipulation;
 	color: var(--vscode-icon-foreground);
 	white-space: nowrap;
-	min-width: 30px;
-	max-width: 140px;
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
 	overflow: hidden;
 	text-decoration: none;
 }

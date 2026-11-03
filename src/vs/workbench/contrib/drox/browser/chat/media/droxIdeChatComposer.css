@@ -41,11 +41,7 @@
 	min-width: 0;
 	padding: 5px 8px 6px;
 	gap: 4px;
-	overflow-x: auto;
-	overflow-y: hidden;
-	overscroll-behavior-x: contain;
-	scrollbar-width: thin;
-	-webkit-overflow-scrolling: touch;
+	overflow: hidden;
 }
 
 .drox-ide-chat-composer-toolbar::-webkit-scrollbar {
@@ -64,7 +60,7 @@
 	flex-wrap: nowrap;
 	align-items: center;
 	flex: 1 1 auto;
-	min-width: min-content;
+	min-width: 0;
 	gap: 4px;
 }
 

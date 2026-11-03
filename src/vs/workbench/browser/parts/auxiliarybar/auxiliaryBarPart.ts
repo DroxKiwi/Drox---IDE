@@ -18,6 +18,7 @@ import { ACTIVITY_BAR_BADGE_BACKGROUND, ACTIVITY_BAR_BADGE_FOREGROUND, ACTIVITY_
 import { IViewDescriptorService, ViewContainerLocation } from '../../../common/views.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { ActivityBarPosition, IWorkbenchLayoutService, LayoutSettings, Parts, Position } from '../../../services/layout/browser/layoutService.js';
+import { getWindow } from '../../../../base/browser/dom.js';
 import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { IAction, Separator, SubmenuAction, toAction } from '../../../../base/common/actions.js';
 import { ToggleAuxiliaryBarAction } from './auxiliaryBarActions.js';
@@ -35,6 +36,14 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { VisibleViewContainersTracker } from '../visibleViewContainersTracker.js';
 import { Extensions } from '../../panecomposite.js';
 
+/** Smallest chat width: 35% of the window, never under the workbench floor of 170. */
+function droxChatFloor(windowWidth: number): number {
+	if (windowWidth <= 0) {
+		return 170;
+	}
+	return Math.max(170, Math.round(windowWidth * 0.35));
+}
+
 interface IAuxiliaryBarPartConfiguration {
 	position: ActivityBarPosition;
 
@@ -49,8 +58,12 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 	static readonly placeholdeViewContainersKey = 'workbench.auxiliarybar.placeholderPanels';
 	static readonly viewContainersWorkspaceStateKey = 'workbench.auxiliarybar.viewContainersWorkspaceState';
 
-	// Use the side bar dimensions
-	override readonly minimumWidth: number = 170;
+	// IDE chat: stop at 35% of the window. Pushing past that snaps the bar shut.
+	// While hidden, snap stays off so the sash does not pull the chat back open.
+	private chatFloor = 170;
+
+	override get minimumWidth(): number { return this.chatFloor; }
+	override get snap(): boolean { return this.layoutService.isVisible(Parts.AUXILIARYBAR_PART); }
 	override readonly maximumWidth: number = Number.POSITIVE_INFINITY;
 	override readonly minimumHeight: number = 0;
 	override readonly maximumHeight: number = Number.POSITIVE_INFINITY;
@@ -135,6 +148,15 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 
 		this.configuration = this.resolveConfiguration();
 
+		this._register(layoutService.onDidLayoutMainContainer(dimension => {
+			const next = droxChatFloor(dimension.width);
+			if (next === this.chatFloor) {
+				return;
+			}
+			this.chatFloor = next;
+			this._onDidChange.fire(undefined);
+		}));
+
 		this._register(configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(LayoutSettings.ACTIVITY_BAR_LOCATION)) {
 				this.configuration = this.resolveConfiguration();
@@ -176,6 +198,21 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 		if (id) {
 			this.onTitleAreaUpdate(id);
 		}
+	}
+
+	override setVisible(visible: boolean): void {
+		const frame = this.element?.parentElement;
+		if (frame && !getWindow(frame).matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			// Keep the split view painted so the width change can ease instead of cutting.
+			this.layoutService.mainContainer.classList.add('drox-aux-slide');
+			if (!visible) {
+				frame.classList.add('visible');
+			} else {
+				frame.style.width = `${frame.getBoundingClientRect().width}px`;
+				void frame.offsetWidth;
+			}
+		}
+		super.setVisible(visible);
 	}
 
 	override updateStyles(): void {

@@ -9,13 +9,18 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { diffDroxSdtcmText, focusDroxSdtcmMap } from '../../../common/sdtcm/droxSdtcmDiff.js';
 import { droxSdtcmPathIgnored, parseDroxSdtcmIgnore } from '../../../common/sdtcm/droxSdtcmIgnore.js';
+import { expandDroxSdtcmPhases, seedDroxSdtcmProbe, summarizeDroxSdtcmConsistency } from '../../../common/sdtcm/droxSdtcmConsistency.js';
+import { parseDroxSdtcmDisplay, savedDroxSdtcmDisplay } from '../../../common/sdtcm/droxSdtcmDisplay.js';
 import { emptyDroxSdtcmMap, IDroxSdtcmBrick, listDroxSdtcmRows, parseDroxSdtcmMap } from '../../../common/sdtcm/droxSdtcmMap.js';
-import { acceptDroxSdtcmData, acceptDroxSdtcmTrace } from '../../../common/sdtcm/data/droxSdtcmData.js';
+import { acceptDroxSdtcmData, acceptDroxSdtcmTrace, buildDroxSdtcmDataTurn } from '../../../common/sdtcm/data/droxSdtcmData.js';
+import { traceDroxSdtcmSelection } from '../../../common/sdtcm/data/droxSdtcmPath.js';
 import { buildDroxSdtcmGraph } from '../../../common/sdtcm/droxSdtcmGraph.js';
 import { mostLinkedDroxSdtcmFolderId } from '../../../common/sdtcm/placement/droxSdtcmFolderLinks.js';
-import { placeDroxSdtcmGraph, stepDroxSdtcmLinkPull } from '../../../common/sdtcm/placement/droxSdtcmPlacement.js';
+import { emptyDroxSdtcmMoveHistory, redoDroxSdtcmMove, rememberDroxSdtcmMove, undoDroxSdtcmMove } from '../../../common/sdtcm/placement/droxSdtcmMoveHistory.js';
+import { placeDroxSdtcmGraph } from '../../../common/sdtcm/placement/droxSdtcmPlacement.js';
 import { markDroxSdtcmFocus } from '../../../common/sdtcm/focus/droxSdtcmFocus.js';
-import { acceptDroxSdtcmFile, acceptDroxSdtcmLinks, buildDroxSdtcmTurn, completeDroxSdtcmLinks, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
+import { droxSdtcmSystemPrompt } from '../../../common/sdtcm/droxSdtcmPrompt.js';
+import { acceptDroxSdtcmFile, acceptDroxSdtcmFolderTags, acceptDroxSdtcmLinks, acceptDroxSdtcmTags, buildDroxSdtcmTagTurn, buildDroxSdtcmTurn, completeDroxSdtcmLinks, IDroxSdtcmTag, parseDroxSdtcmTags, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
 
 suite('Drox SDTCM map', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
@@ -142,18 +147,52 @@ suite('Drox SDTCM map', () => {
 		if (!accepted.ok) {
 			return;
 		}
-		assert.deepStrictEqual(accepted.map.bricks[0].files, ['src/components/HeroSection.tsx']);
-		const wrong = readDroxSdtcmFileDraft('{"file":"src/lib/engine-docs.ts","items":[{"kind":"operation","form":"declare","name":"getEngineDocMeta","line":1,"quote":"export interface EngineDocMeta {","links":[]}]}', 'src/lib/engine-docs.ts');
-		assert.strictEqual(wrong.ok, true);
-		if (!wrong.ok) {
+		assert.deepStrictEqual(accepted.map.bricks[0].files, []);
+		const linked = readDroxSdtcmFileDraft('{"file":"src/app/page.tsx","items":[{"kind":"source","form":"declare","name":"HeroSection","line":1,"quote":"import HeroSection from \\"../components/HeroSection\\"","links":["../components/HeroSection"]}]}', 'src/app/page.tsx');
+		assert.strictEqual(linked.ok, true);
+		if (!linked.ok) {
 			return;
 		}
-		const refused = acceptDroxSdtcmFile(emptyDroxSdtcmMap(), 'src/lib/engine-docs.ts', wrong.items, 'export interface EngineDocMeta {\n', new Set(['src/lib/engine-docs.ts']));
+		const keptLink = acceptDroxSdtcmFile(emptyDroxSdtcmMap(), 'src/app/page.tsx', linked.items, 'import HeroSection from "../components/HeroSection"\n', known);
+		assert.strictEqual(keptLink.ok, true);
+		if (keptLink.ok) {
+			assert.deepStrictEqual(keptLink.map.bricks[0].files, ['src/components/HeroSection.tsx']);
+		}
+		assert.strictEqual(accepted.map.bricks[0].name, 'Page');
+		const renamed = readDroxSdtcmFileDraft('{"file":"src/lib/engine-docs.ts","items":[{"kind":"type","form":"declare","name":"getEngineDocMeta","line":1,"quote":"export interface EngineDocMeta {","links":[]}]}', 'src/lib/engine-docs.ts');
+		assert.strictEqual(renamed.ok, true);
+		if (!renamed.ok) {
+			return;
+		}
+		const fixed = acceptDroxSdtcmFile(emptyDroxSdtcmMap(), 'src/lib/engine-docs.ts', renamed.items, 'export interface EngineDocMeta {\n', new Set(['src/lib/engine-docs.ts']));
+		assert.strictEqual(fixed.ok, true);
+		if (!fixed.ok) {
+			return;
+		}
+		assert.strictEqual(fixed.map.bricks[0].name, 'EngineDocMeta');
+		const imported = readDroxSdtcmFileDraft('{"file":"src/a.ts","items":[{"kind":"source","form":"declare","name":"node:fs","line":1,"quote":"import fs from \\"node:fs\\";","links":[]},{"kind":"source","form":"declare","name":"react","line":2,"quote":"import { useState, useEffect as effect } from \\"react\\";","links":[]}]}', 'src/a.ts');
+		assert.strictEqual(imported.ok, true);
+		if (!imported.ok) {
+			return;
+		}
+		const bindings = acceptDroxSdtcmFile(emptyDroxSdtcmMap(), 'src/a.ts', imported.items, 'import fs from "node:fs";\nimport { useState, useEffect as effect } from "react";\n', new Set(['src/a.ts']));
+		assert.strictEqual(bindings.ok, false);
+		if (bindings.ok) {
+			return;
+		}
+		assert.ok(bindings.errors.some(error => error.includes('useState')));
+		const kept = acceptDroxSdtcmFile(emptyDroxSdtcmMap(), 'src/a.ts', [imported.items[0]], 'import fs from "node:fs";\n', new Set(['src/a.ts']));
+		assert.strictEqual(kept.ok, true);
+		if (kept.ok) {
+			assert.strictEqual(kept.map.bricks[0].name, 'fs');
+		}
+		const pathName = readDroxSdtcmFileDraft('{"file":"next-env.d.ts","items":[{"kind":"source","form":"declare","name":"./.next/types/routes.d.ts","line":1,"quote":"/// <reference path=\\"./.next/types/routes.d.ts\\" />","links":[]}]}', 'next-env.d.ts');
+		assert.strictEqual(pathName.ok, true);
+		if (!pathName.ok) {
+			return;
+		}
+		const refused = acceptDroxSdtcmFile(emptyDroxSdtcmMap(), 'next-env.d.ts', pathName.items, '/// <reference path="./.next/types/routes.d.ts" />\n', new Set(['next-env.d.ts']));
 		assert.strictEqual(refused.ok, false);
-		if (refused.ok) {
-			return;
-		}
-		assert.ok(refused.errors.some(error => error.includes('getEngineDocMeta')));
 		const turn = buildDroxSdtcmTurn({
 			mode: 'build',
 			path: 'main.py',
@@ -163,6 +202,29 @@ suite('Drox SDTCM map', () => {
 			focus: [],
 		});
 		assert.ok(turn.includes('1|def main():'));
+		assert.ok(!turn.includes('links lists only'));
+		const buildPrompt = droxSdtcmSystemPrompt('build');
+		const dataPrompt = droxSdtcmSystemPrompt('data');
+		assert.ok(buildPrompt.includes('MODE build'));
+		assert.ok(!buildPrompt.includes('MODE data'));
+		assert.ok(dataPrompt.includes('MODE data'));
+		assert.ok(!dataPrompt.includes('MODE build'));
+		const dataTurn = buildDroxSdtcmDataTurn({
+			path: 'src/b.ts',
+			text: 'const next = user\n',
+			map: {
+				...emptyDroxSdtcmMap(),
+				data: [{
+					id: 'd1', name: 'user', birth: 'introduce', file: 'src/a.ts', brick: 'b1', line: 1, quote: 'const user = 1', parents: [],
+					steps: [{ brick: 'b1', name: 'user', line: 1, quote: 'const user = 1', span: 1 }],
+				}],
+			},
+			reads: [],
+		});
+		assert.ok(dataTurn.includes('"id":"d1"'));
+		assert.ok(dataTurn.includes('"file":"src/a.ts"'));
+		assert.ok(!dataTurn.includes('const user = 1'));
+		assert.ok(!dataTurn.includes('A parameter'));
 	});
 
 	test('a syntax error lists the field and does not accept the file', () => {
@@ -196,7 +258,7 @@ suite('Drox SDTCM map', () => {
 				id: 'b1',
 				file: 'a/main.py',
 				line: 1,
-				quote: 'def main():',
+				quote: 'bot()',
 				name: 'main',
 				kind: 'operation' as const,
 				form: 'declare' as const,
@@ -224,8 +286,29 @@ suite('Drox SDTCM map', () => {
 		assert.strictEqual(missed.ok, false);
 		const filled = completeDroxSdtcmLinks(map, 'a/main.py');
 		assert.deepStrictEqual(filled.bricks[0].links, ['b2']);
+		const unnamed = completeDroxSdtcmLinks({
+			...map,
+			bricks: [{ ...map.bricks[0], quote: 'def main():' }, map.bricks[1]],
+		}, 'a/main.py');
+		assert.deepStrictEqual(unnamed.bricks[0].links, []);
 		const outside = acceptDroxSdtcmLinks(map, [{ from: 'b2', to: 'b1' }]);
 		assert.strictEqual(outside.ok, false);
+		const sameName = acceptDroxSdtcmLinks({
+			...map,
+			bricks: [
+				{ ...map.bricks[0], name: 'save', files: [] },
+				{ ...map.bricks[1], name: 'save', form: 'declare' },
+			],
+		}, [{ from: 'b1', to: 'b2' }]);
+		assert.strictEqual(sameName.ok, true);
+		const imports = acceptDroxSdtcmLinks({
+			...map,
+			bricks: [
+				{ ...map.bricks[0], name: 'Link', kind: 'source', files: [] },
+				{ ...map.bricks[1], name: 'Link', kind: 'source' },
+			],
+		}, [{ from: 'b1', to: 'b2' }]);
+		assert.strictEqual(imports.ok, false);
 	});
 
 	test('a bare name ignores a segment anywhere and a path starts at the root', () => {
@@ -261,14 +344,18 @@ suite('Drox SDTCM map', () => {
 				files: [],
 				links: [],
 			}],
+			data: [
+				born('d1', 'main', 'a/main.py', 'b1', []),
+				born('d2', 'bot', 'b/util.py', 'b2', ['d1']),
+			],
 		};
 		const graph = buildDroxSdtcmGraph(map);
 		assert.strictEqual(graph.nodes.filter(node => node.kind === 'folder').length, 2);
 		assert.strictEqual(graph.nodes.filter(node => node.kind === 'file').length, 2);
 		assert.strictEqual(graph.nodes.filter(node => node.kind === 'brick').length, 2);
-		assert.strictEqual(graph.edges.length, 1);
-		assert.strictEqual(graph.edges[0].from, 'b1');
-		assert.strictEqual(graph.edges[0].to, 'b2');
+		assert.strictEqual(graph.edges.length, 2);
+		assert.ok(graph.edges.some(edge => edge.from === 'b1' && edge.to === 'b2'));
+		assert.ok(graph.edges.some(edge => edge.from === 'd1' && edge.to === 'd2'));
 		const file = graph.nodes.find(node => node.id === 'file:a/main.py');
 		const brick = graph.nodes.find(node => node.id === 'b1');
 		assert.ok(file && brick);
@@ -279,7 +366,44 @@ suite('Drox SDTCM map', () => {
 		assert.strictEqual(skeleton.edges.length, 0);
 	});
 
-	test('free view lays folders in a row and weight view pulls the busiest folder to the middle', () => {
+	test('a folder sits inside the folder that contains it', () => {
+		const brick = (id: string, file: string) => ({
+			id, file, line: 1, quote: 'x', name: id, kind: 'value' as const, form: 'declare' as const, files: [], links: id === 'b1' ? ['b2'] : [],
+		});
+		const graph = buildDroxSdtcmGraph({
+			...emptyDroxSdtcmMap(),
+			bricks: [
+				brick('b1', 'src/app/page.tsx'),
+				brick('b2', 'src/components/landing/Hero.tsx'),
+			],
+		});
+		const src = graph.nodes.find(node => node.id === 'folder:src');
+		const app = graph.nodes.find(node => node.id === 'folder:src/app');
+		const components = graph.nodes.find(node => node.id === 'folder:src/components');
+		const landing = graph.nodes.find(node => node.id === 'folder:src/components/landing');
+		const hero = graph.nodes.find(node => node.id === 'b2');
+		const heroFile = graph.nodes.find(node => node.id === 'file:src/components/landing/Hero.tsx');
+		assert.ok(src && app && components && landing && hero && heroFile);
+		assert.ok(contains(src, app) && contains(src, components) && contains(components, landing));
+		assert.ok(contains(landing, heroFile) && contains(heroFile, hero));
+		assert.ok(graph.edges.some(edge => edge.from === 'b1' && edge.to === 'b2'));
+		const placed = placeDroxSdtcmGraph(graph);
+		const placedSrc = placed.nodes.find(node => node.id === 'folder:src');
+		const placedLanding = placed.nodes.find(node => node.id === 'folder:src/components/landing');
+		assert.ok(placedSrc && placedLanding && contains(placedSrc, placedLanding));
+		const row = buildDroxSdtcmGraph({
+			...emptyDroxSdtcmMap(),
+			bricks: ['a', 'b', 'c', 'd'].map(name => brick(name, `src/${name}.ts`)),
+		});
+		const files = row.nodes.filter(node => node.kind === 'file');
+		assert.strictEqual(files.length, 4);
+		assert.ok(files.some((file, index) => files.some((other, otherIndex) => otherIndex !== index && Math.abs(file.y - other.y) < 2)));
+		const folder = row.nodes.find(node => node.id === 'folder:src');
+		assert.ok(folder);
+		assert.ok(folder.w / folder.h < 4 && folder.h / folder.w < 4);
+	});
+
+	test('free view lays folders in a row', () => {
 		const brick = (id: string, file: string, links: string[]) => ({
 			id,
 			file,
@@ -300,35 +424,159 @@ suite('Drox SDTCM map', () => {
 				brick('b4', 'b/b.py', []),
 				brick('b5', 'c/c.py', []),
 			],
+			data: [
+				born('d1', 'a', 'a/a.py', 'b1', []),
+				born('d2', 'b', 'b/b.py', 'b2', ['d1']),
+				born('d3', 'c', 'b/b.py', 'b3', ['d1']),
+				born('d4', 'd', 'b/b.py', 'b4', ['d1']),
+				born('d5', 'e', 'c/c.py', 'b5', ['d1']),
+			],
 		};
 		const built = buildDroxSdtcmGraph(map);
-		const free = placeDroxSdtcmGraph(built, 'free');
+		const free = placeDroxSdtcmGraph(built);
 		const left = free.nodes.find(node => node.id === 'folder:a');
 		const right = free.nodes.find(node => node.id === 'folder:b');
 		assert.ok(left && right);
 		assert.ok(right.x >= left.x + left.w);
-		const weight = placeDroxSdtcmGraph(built, 'weight');
-		const center = (id: string) => {
-			const node = weight.nodes.find(item => item.id === id);
-			assert.ok(node);
-			return { x: node.x + node.w / 2, y: node.y + node.h / 2 };
-		};
-		const hub = center('folder:a');
-		const near = center('folder:b');
-		const far = center('folder:c');
-		const distance = (from: { x: number; y: number }, to: { x: number; y: number }) => Math.hypot(to.x - from.x, to.y - from.y);
-		assert.ok(distance(hub, near) < distance(hub, far));
 		assert.strictEqual(mostLinkedDroxSdtcmFolderId(built), 'folder:a');
-		const apart = new Map<string, { x: number; y: number }>([['folder:a', { x: 0, y: 0 }], ['folder:b', { x: 5000, y: 0 }]]);
-		assert.strictEqual(stepDroxSdtcmLinkPull(apart, built, 1, 'folder:a'), true);
-		assert.strictEqual(apart.get('folder:a')?.x, 0);
-		assert.ok((apart.get('folder:b')?.x ?? 5000) < 5000);
-		const close = new Map<string, { x: number; y: number }>([['folder:a', { x: 0, y: 0 }], ['folder:b', { x: 40, y: 0 }]]);
-		assert.strictEqual(stepDroxSdtcmLinkPull(close, built, 0, undefined), true);
-		assert.ok((close.get('folder:b')?.x ?? 0) > 40);
 	});
 
-	test('focus keeps the grabbed folder and highlights only the linked bricks', () => {
+	test('a consistency run starts from the same map and names what diverges', () => {
+		const birth = born('d1', 'main', 'src/a.ts', 'b1', []);
+		const live = {
+			...emptyDroxSdtcmMap(),
+			bricks: [brick('b1', 'src/a.ts', 1, 'def main():', 'main', [])],
+			data: [{ ...birth, steps: [...birth.steps, { ...birth.steps[0], line: 4 }] }],
+		};
+		const seeded = seedDroxSdtcmProbe(live, new Set(['link', 'trace']));
+		assert.deepStrictEqual(seeded.bricks[0].links, []);
+		assert.strictEqual(seeded.data[0].steps.length, 1);
+		assert.strictEqual(seedDroxSdtcmProbe(live, new Set(['build'])).bricks.length, 0);
+		const again = {
+			...live,
+			bricks: [{ ...live.bricks[0], links: ['b2'] }, brick('b2', 'src/b.ts', 4, 'def bot():', 'bot', [])],
+		};
+		const summary = summarizeDroxSdtcmConsistency([live, again], ['link']);
+		assert.ok(summary.includes('Turns: 2.'));
+		assert.ok(summary.includes('turns 2:'));
+		assert.ok(summary.includes('src/b.ts'));
+	});
+
+	test('an earlier phase keeps the phases that follow from it', () => {
+		assert.deepStrictEqual(expandDroxSdtcmPhases(['tag']), ['tag']);
+		assert.deepStrictEqual(expandDroxSdtcmPhases(['data']), ['data', 'trace']);
+		assert.deepStrictEqual(expandDroxSdtcmPhases(['build']), ['build', 'data', 'trace', 'link', 'tag']);
+		assert.deepStrictEqual(expandDroxSdtcmPhases(['link', 'tag']), ['link', 'tag']);
+		assert.deepStrictEqual(expandDroxSdtcmPhases([]), []);
+	});
+
+	test('a sidebar choice is kept for the folder and an unknown tag is dropped', () => {
+		const saved = parseDroxSdtcmDisplay('{"move":false,"links":false,"kinds":["type","nope"],"forms":[],"focus":["folder:src"],"visibleTags":["front","gone"]}');
+		assert.ok(saved);
+		if (!saved) {
+			return;
+		}
+		assert.strictEqual(saved.move, false);
+		assert.deepStrictEqual(saved.kinds, ['type']);
+		assert.deepStrictEqual(saved.forms, []);
+		const kept = savedDroxSdtcmDisplay(saved, ['front', 'back']);
+		assert.deepStrictEqual(kept.visibleTags, ['front']);
+		assert.strictEqual(parseDroxSdtcmDisplay('{'), undefined);
+	});
+
+	test('a tag sticks to a brick only when the user declared it', () => {
+		const map = {
+			...emptyDroxSdtcmMap(),
+			bricks: [brick('b1', 'src/a.ts', 1, 'def main():', 'main', [])],
+			data: [born('d1', 'main', 'src/a.ts', 'b1', [])],
+		};
+		const front = tag('front', 'brick');
+		const back = tag('back', 'brick');
+		const page = tag('page', 'file');
+		const value = tag('value', 'data');
+		const area = tag('area', 'folder');
+		const accepted = acceptDroxSdtcmTags(map, 'src/a.ts', [
+			{ scope: 'brick', id: 'b1', tag: 'front', reason: 'shown' },
+			{ scope: 'brick', id: 'b1', tag: 'back', reason: 'stored' },
+		], [front, back]);
+		assert.strictEqual(accepted.ok, true);
+		if (accepted.ok) {
+			assert.deepStrictEqual(accepted.map.bricks[0].tags, [{ name: 'front', reason: 'shown' }, { name: 'back', reason: 'stored' }]);
+		}
+		assert.strictEqual(acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'brick', id: 'b1', tag: 'back', reason: 'stored' }], [front]).ok, false);
+		assert.strictEqual(acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'brick', id: 'b1', tag: 'front', reason: 'x'.repeat(31) }], [front]).ok, false);
+		assert.strictEqual(acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'data', id: 'd1', tag: 'front', reason: 'shown' }], [front]).ok, false);
+		const placed = acceptDroxSdtcmTags(map, 'src/a.ts', [
+			{ scope: 'file', id: '', tag: 'page', reason: 'client page' },
+			{ scope: 'data', id: 'd1', tag: 'value', reason: 'born here' },
+		], [page, value]);
+		assert.strictEqual(placed.ok, true);
+		if (placed.ok) {
+			const graph = buildDroxSdtcmGraph(placed.map);
+			assert.deepStrictEqual(graph.nodes.find(node => node.id === 'file:src/a.ts')?.marks, [{ scope: 'file', on: 'src/a.ts', name: 'page', reason: 'client page' }]);
+			assert.deepStrictEqual(graph.nodes.find(node => node.id === 'd1')?.marks, [{ name: 'value', reason: 'born here' }]);
+		}
+		const folder = acceptDroxSdtcmFolderTags(map, 'src', [{ scope: 'folder', id: '', tag: 'area', reason: 'pages' }], [area]);
+		assert.strictEqual(folder.ok, true);
+		if (folder.ok) {
+			const graph = buildDroxSdtcmGraph(folder.map);
+			assert.deepStrictEqual(graph.nodes.find(node => node.id === 'folder:src')?.marks, [{ scope: 'folder', on: 'src', name: 'area', reason: 'pages' }]);
+		}
+		const turn = buildDroxSdtcmTagTurn({ map, file: 'src/a.ts', text: 'def main():\n', tags: [front] });
+		assert.ok(turn.includes('1|def main():'));
+		assert.ok(!turn.includes('READ '));
+		const parsed = parseDroxSdtcmTags('[{"name":"front","description":"what the user sees","color":"#c4a574"}]');
+		assert.deepStrictEqual(parsed.map(item => item.name), ['front']);
+		assert.strictEqual(parsed[0].scope, 'brick');
+		const hidden = buildDroxSdtcmGraph({
+			...map,
+			bricks: [{ ...map.bricks[0], tags: [{ name: 'front', reason: 'shown' }] }],
+		}, [], {
+			kinds: new Set(['type', 'operation', 'value', 'source']),
+			forms: new Set(['declare', 'apply']),
+			links: true,
+			tags: new Set<string>(),
+			tagColors: new Map([['front', '#c4a574']]),
+		});
+		assert.strictEqual(hidden.nodes.filter(node => node.kind === 'brick').length, 0);
+		const seeded = seedDroxSdtcmProbe({
+			...map,
+			bricks: [{ ...map.bricks[0], tags: [{ name: 'front', reason: 'shown' }] }],
+			placed: [{ scope: 'file', on: 'src/a.ts', name: 'page', reason: 'client page' }],
+		}, new Set(['tag']));
+		assert.deepStrictEqual(seeded.bricks[0].tags, []);
+		assert.deepStrictEqual(seeded.data[0].tags, []);
+		assert.deepStrictEqual(seeded.placed, []);
+		const legacy = parseDroxSdtcmMap(JSON.stringify({
+			version: 1,
+			entry: null,
+			bricks: [{ ...map.bricks[0], tags: ['front'] }],
+			data: [],
+		}));
+		assert.deepStrictEqual(legacy.bricks[0].tags, [{ name: 'front', reason: '' }]);
+	});
+
+	test('ctrl+z puts a folder back and ctrl+y moves it again', () => {
+		let history = rememberDroxSdtcmMove(emptyDroxSdtcmMoveHistory(), {
+			id: 'folder:src',
+			before: { x: 0, y: 0 },
+			after: { x: 40, y: 12 },
+		});
+		const undone = undoDroxSdtcmMove(history);
+		assert.ok(undone);
+		assert.deepStrictEqual(undone.move.before, { x: 0, y: 0 });
+		const redone = redoDroxSdtcmMove(undone.history);
+		assert.ok(redone);
+		assert.deepStrictEqual(redone.move.after, { x: 40, y: 12 });
+		history = rememberDroxSdtcmMove(undone.history, {
+			id: 'folder:src',
+			before: { x: 0, y: 0 },
+			after: { x: 8, y: 8 },
+		});
+		assert.strictEqual(history.redo.length, 0);
+	});
+
+	test('focus keeps the grabbed folder and highlights only the linked data', () => {
 		const brick = (id: string, file: string, links: string[]) => ({
 			id,
 			file,
@@ -348,16 +596,20 @@ suite('Drox SDTCM map', () => {
 				brick('b3', 'b/other.py', []),
 				brick('b4', 'c/c.py', []),
 			],
+			data: [
+				born('d1', 'a', 'a/a.py', 'b1', []),
+				born('d2', 'b', 'b/b.py', 'b2', ['d1']),
+			],
 		});
 		const marks = markDroxSdtcmFocus(graph, new Set(['folder:a']));
 		assert.ok(marks);
 		assert.strictEqual(marks.nodes.get('folder:a'), 'primary');
 		assert.strictEqual(marks.nodes.get('folder:b'), 'related');
-		assert.strictEqual(marks.nodes.get('b2'), 'involved');
+		assert.strictEqual(marks.nodes.get('d2'), 'involved');
 		assert.strictEqual(marks.nodes.get('file:b/b.py'), 'involved');
 		assert.strictEqual(marks.nodes.get('b3'), 'dim');
 		assert.strictEqual(marks.nodes.get('folder:c'), 'dim');
-		assert.strictEqual(marks.edges.get('b1->b2'), 'linked');
+		assert.strictEqual(marks.edges.get('d1->d2'), 'linked');
 		assert.strictEqual(markDroxSdtcmFocus(graph, new Set()), undefined);
 	});
 
@@ -367,43 +619,53 @@ suite('Drox SDTCM map', () => {
 	});
 
 	test('a birth is kept, a duplicate is refused, and a transform needs a parent', () => {
-		const text = 'const user = new User()\nconst account = user\n';
+		const text = 'const user = new User()\nconst account = user\nimport Link from "next/link"\n';
 		const map = {
 			...emptyDroxSdtcmMap(),
 			bricks: [
 				brick('b1', 'src/app.ts', 1, 'const user = new User()', 'user', []),
 				brick('b2', 'src/app.ts', 2, 'const account = user', 'account', []),
+				{ ...brick('b3', 'src/app.ts', 3, 'import Link from "next/link"', 'Link', []), kind: 'source' as const },
 			],
 		};
-		const born = acceptDroxSdtcmData(map, 'src/app.ts', [{
-			name: 'user', birth: 'introduce', brick: 'b1', line: 1, quote: 'const user = new User()', parents: [],
-		}], text);
+		const born = acceptDroxSdtcmData(map, 'src/app.ts', [
+			{ name: 'someone', birth: 'introduce', brick: 'b1', line: 9, quote: 'nope', parents: [] },
+			{ name: 'Link', birth: 'introduce', brick: 'b3', line: 3, quote: 'import Link from "next/link"', parents: [] },
+			{ name: 'account', birth: 'introduce', brick: 'b2', line: 2, quote: 'const account = user', parents: [] },
+		], text);
 		assert.strictEqual(born.ok, true);
 		if (!born.ok) {
 			return;
 		}
-		assert.strictEqual(born.map.data[0].id, 'd1');
-		assert.strictEqual(born.map.data[0].steps[0].span, 1);
+		assert.deepStrictEqual(born.map.data.map(item => item.name), ['user', 'account']);
+		assert.strictEqual(born.map.data[0].line, 1);
 		const duplicate = acceptDroxSdtcmData(map, 'src/app.ts', [
 			{ name: 'user', birth: 'introduce', brick: 'b1', line: 1, quote: 'const user = new User()', parents: [] },
 			{ name: 'user', birth: 'introduce', brick: 'b1', line: 1, quote: 'const user = new User()', parents: [] },
+			{ name: 'account', birth: 'introduce', brick: 'b2', line: 2, quote: 'const account = user', parents: [] },
 		], text);
 		assert.strictEqual(duplicate.ok, false);
 		const orphan = acceptDroxSdtcmData(map, 'src/app.ts', [{
 			name: 'account', birth: 'transform', brick: 'b2', line: 2, quote: 'const account = user', parents: [],
 		}], text);
 		assert.strictEqual(orphan.ok, false);
+		if (orphan.ok) {
+			return;
+		}
+		assert.ok(orphan.errors.some(error => error.includes('user')));
 	});
 
-	test('a trace stays in the file or follows a brick link, and a loop is one repeat step', () => {
-		const app = 'const user = new User()\nfor (const row of rows) {\n';
-		const other = 'save(account)\n';
+	test('a trace follows an apply of the same name, and a loop is one repeat step', () => {
+		const app = 'const user = new User()\nuser()\nfor (const user of rows) {\n';
+		const other = 'save(user)\naccount()\n';
 		const map = {
 			...emptyDroxSdtcmMap(),
 			bricks: [
 				brick('b1', 'src/app.ts', 1, 'const user = new User()', 'user', []),
-				brick('b2', 'src/app.ts', 2, 'for (const row of rows) {', 'row', ['b3']),
-				brick('b3', 'src/other.ts', 1, 'save(account)', 'account', []),
+				{ ...brick('b2', 'src/app.ts', 2, 'user()', 'user', []), form: 'apply' as const, files: ['src/other.ts'] },
+				{ ...brick('b5', 'src/app.ts', 3, 'for (const user of rows) {', 'user', []), form: 'apply' as const, files: ['src/other.ts'] },
+				{ ...brick('b3', 'src/other.ts', 1, 'save(user)', 'user', []), form: 'apply' as const },
+				{ ...brick('b4', 'src/other.ts', 2, 'account()', 'account', []), form: 'apply' as const },
 			],
 		};
 		const born = acceptDroxSdtcmData(map, 'src/app.ts', [{
@@ -414,20 +676,22 @@ suite('Drox SDTCM map', () => {
 			return;
 		}
 		const texts = new Map([['src/app.ts', app], ['src/other.ts', other]]);
-		const blocked = acceptDroxSdtcmTrace(born.map, 'src/app.ts', [{
-			data: 'd1', brick: 'b3', name: 'account', line: 1, quote: 'save(account)', span: 1,
-		}], texts);
-		assert.strictEqual(blocked.ok, false);
 		const traced = acceptDroxSdtcmTrace(born.map, 'src/app.ts', [{
-			data: 'd1', brick: 'b2', name: 'row', line: 2, quote: 'for (const row of rows) {', span: 'repeat',
+			data: 'd1', brick: 'b4', name: 'account', line: 2, quote: 'account()', span: 1,
 		}, {
-			data: 'd1', brick: 'b3', name: 'account', line: 1, quote: 'save(account)', span: 1,
+			data: 'd1', brick: 'b2', name: 'row', line: 2, quote: 'user()', span: 'repeat',
+		}, {
+			data: 'd1', brick: 'b5', name: 'user', line: 3, quote: 'for (const user of rows) {', span: 1,
+		}, {
+			data: 'd1', brick: 'b3', name: 'user', line: 1, quote: 'save(user)', span: 1,
 		}], texts);
 		assert.strictEqual(traced.ok, true);
 		if (!traced.ok) {
 			return;
 		}
-		assert.deepStrictEqual(traced.map.data[0].steps.map(step => step.span), [1, 'repeat', 1]);
+		assert.deepStrictEqual(traced.map.data[0].steps.map(step => step.name), ['user', 'user', 'user', 'user']);
+		assert.deepStrictEqual(traced.map.data[0].steps.map(step => step.span), [1, 1, 'repeat', 1]);
+		assert.deepStrictEqual(traced.map.data[0].steps.map(step => step.brick), ['b1', 'b2', 'b5', 'b3']);
 		const graph = buildDroxSdtcmGraph(traced.map);
 		const frame = graph.nodes.find(node => node.id === 'b1');
 		const data = graph.nodes.find(node => node.id === 'd1');
@@ -437,27 +701,73 @@ suite('Drox SDTCM map', () => {
 		assert.ok(data.x >= frame.x && data.y >= frame.y);
 		assert.ok(data.x + data.w <= frame.x + frame.w);
 		assert.ok(data.y + data.h <= frame.y + frame.h);
-		const loose = acceptDroxSdtcmData(map, 'src/app.ts', [{
-			name: 'rows', birth: 'introduce', brick: null, line: 2, quote: 'for (const row of rows) {', parents: [],
-		}], app);
-		assert.strictEqual(loose.ok, false);
-		const outside = acceptDroxSdtcmData(born.map, 'src/app.ts', [{
-			name: 'note', birth: 'introduce', brick: null, line: 3, quote: 'note', parents: [],
-		}], `${app}note\n`);
-		assert.strictEqual(outside.ok, true);
-		if (!outside.ok) {
-			return;
-		}
-		const placed = buildDroxSdtcmGraph(outside.map);
-		const fileData = placed.nodes.find(node => node.id === 'd2');
-		const fileBox = placed.nodes.find(node => node.id === 'file:src/app.ts');
-		const brickBox = placed.nodes.find(node => node.id === 'b1');
-		assert.ok(fileData && fileBox && brickBox);
-		assert.ok(fileData.y + fileData.h <= fileBox.y + fileBox.h);
-		assert.ok(fileData.y + fileData.h <= brickBox.y || fileData.y >= brickBox.y + brickBox.h);
+	});
+
+	test('a data click keeps the whole path, from the start through a middle point', () => {
+		const map = {
+			...emptyDroxSdtcmMap(),
+			bricks: [
+				brick('b1', 'src/a.ts', 1, 'user', 'user', []),
+				brick('b2', 'src/b.ts', 4, 'left', 'left', []),
+				brick('b3', 'src/c.ts', 8, 'end', 'end', []),
+			],
+			data: [{
+				id: 'd1', name: 'user', birth: 'introduce' as const, file: 'src/a.ts', brick: 'b1', line: 1, quote: 'user', parents: [],
+				steps: [{ brick: 'b1', name: 'user', line: 1, quote: 'user', span: 1 as const }],
+			}, {
+				id: 'd2', name: 'left', birth: 'transform' as const, file: 'src/b.ts', brick: 'b2', line: 4, quote: 'left', parents: ['d1'],
+				steps: [{ brick: 'b2', name: 'left', line: 4, quote: 'left', span: 1 as const }],
+			}, {
+				id: 'd3', name: 'end', birth: 'transform' as const, file: 'src/c.ts', brick: 'b3', line: 8, quote: 'end', parents: ['d2'],
+				steps: [{ brick: 'b3', name: 'end', line: 8, quote: 'end', span: 1 as const }],
+			}],
+		};
+		const path = traceDroxSdtcmSelection(map, 'data', 'd2');
+		assert.ok(path);
+		assert.ok(path.nodes.has('d1') && path.nodes.has('d2') && path.nodes.has('d3'));
+		assert.ok(path.edges.has('d1->d2') && path.edges.has('d2->d3'));
+		const hero = {
+			...emptyDroxSdtcmMap(),
+			bricks: [
+				brick('b1', 'src/Hero.tsx', 1, 'export function Hero()', 'Hero', []),
+				brick('b2', 'src/page.tsx', 4, '<Hero />', 'Home', ['b1', 'b9']),
+				brick('b9', 'src/other.tsx', 2, 'Other', 'Other', []),
+			],
+			data: [{
+				id: 'd1', name: 'Hero', birth: 'introduce' as const, file: 'src/Hero.tsx', brick: 'b1', line: 1, quote: 'export function Hero()', parents: [],
+				steps: [{ brick: 'b1', name: 'Hero', line: 1, quote: 'export function Hero()', span: 1 as const }],
+			}],
+		};
+		const used = traceDroxSdtcmSelection(hero, 'brick', 'b1');
+		assert.ok(used);
+		assert.ok(used.edges.has('b2->b1'));
+		assert.ok(used.nodes.has('b1') && used.nodes.has('b2'));
+		assert.strictEqual(used.nodes.has('b9'), false);
+		const alone = traceDroxSdtcmSelection({
+			...emptyDroxSdtcmMap(),
+			bricks: [brick('b1', 'src/a.ts', 1, 'alone', 'alone', [])],
+		}, 'brick', 'b1');
+		assert.ok(alone);
+		assert.strictEqual(alone.edges.size, 0);
+		assert.ok(alone.nodes.has('b1'));
 	});
 });
 
+function contains(outer: { x: number; y: number; w: number; h: number }, inner: { x: number; y: number; w: number; h: number }): boolean {
+	return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h;
+}
+
+function tag(name: string, scope: IDroxSdtcmTag['scope']): IDroxSdtcmTag {
+	return { name, description: 'where it belongs', color: '#c4a574', scope };
+}
+
 function brick(id: string, file: string, line: number, quote: string, name: string, links: string[]): IDroxSdtcmBrick {
 	return { id, file, line, quote, name, kind: 'value', form: 'declare', files: [], links };
+}
+
+function born(id: string, name: string, file: string, brickId: string, parents: string[]) {
+	return {
+		id, name, birth: 'introduce' as const, file, brick: brickId, line: 1, quote: 'x', parents,
+		steps: [{ brick: brickId, name, line: 1, quote: 'x', span: 1 as const }],
+	};
 }

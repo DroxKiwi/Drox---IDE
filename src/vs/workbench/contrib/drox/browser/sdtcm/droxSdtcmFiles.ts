@@ -20,6 +20,8 @@ import {
 	parseDroxSdtcmBaseline,
 	parseDroxSdtcmMap,
 } from '../../common/sdtcm/droxSdtcmMap.js';
+import { IDroxSdtcmSavedDisplay, parseDroxSdtcmDisplay } from '../../common/sdtcm/droxSdtcmDisplay.js';
+import { IDroxSdtcmTag, parseDroxSdtcmTags } from '../../common/sdtcm/droxSdtcmRole.js';
 
 const SOURCE = new Set(['py', 'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'go', 'rs', 'java', 'kt', 'cs', 'php', 'rb', 'c', 'h', 'cc', 'cpp', 'hpp', 'vue', 'svelte', 'html', 'css', 'scss', 'json', 'yml', 'yaml', 'toml', 'sh', 'ps1', 'sql']);
 
@@ -30,6 +32,28 @@ export async function readDroxSdtcmStore(fileService: IFileService, root: URI): 
 		map: map === undefined ? emptyDroxSdtcmMap() : parseDroxSdtcmMap(map),
 		baseline: baseline === undefined ? emptyDroxSdtcmBaseline() : parseDroxSdtcmBaseline(baseline),
 	};
+}
+
+export async function readDroxSdtcmTags(fileService: IFileService, root: URI): Promise<IDroxSdtcmTag[]> {
+	const raw = await readText(fileService, URI.joinPath(root, '.drox', 'sdtcm', 'tags.json'));
+	return raw === undefined ? [] : parseDroxSdtcmTags(raw);
+}
+
+export async function readDroxSdtcmDisplay(fileService: IFileService, root: URI): Promise<IDroxSdtcmSavedDisplay | undefined> {
+	const raw = await readText(fileService, URI.joinPath(root, '.drox', 'sdtcm', 'display.json'));
+	return raw === undefined ? undefined : parseDroxSdtcmDisplay(raw);
+}
+
+export async function writeDroxSdtcmDisplay(fileService: IFileService, root: URI, display: IDroxSdtcmSavedDisplay): Promise<void> {
+	const dir = URI.joinPath(root, '.drox', 'sdtcm');
+	await fileService.createFolder(dir);
+	await fileService.writeFile(URI.joinPath(dir, 'display.json'), VSBuffer.fromString(`${JSON.stringify(display, null, 2)}\n`));
+}
+
+export async function writeDroxSdtcmTags(fileService: IFileService, root: URI, tags: readonly IDroxSdtcmTag[]): Promise<void> {
+	const dir = URI.joinPath(root, '.drox', 'sdtcm');
+	await fileService.createFolder(dir);
+	await fileService.writeFile(URI.joinPath(dir, 'tags.json'), VSBuffer.fromString(`${JSON.stringify(tags, null, 2)}\n`));
 }
 
 export async function writeDroxSdtcmStore(fileService: IFileService, root: URI, map: IDroxSdtcmMap, baseline: IDroxSdtcmBaseline): Promise<void> {

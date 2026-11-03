@@ -153,7 +153,11 @@
 
 .drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .sessions-chat-picker-slot {
 
-	flex-shrink: 0;
+	flex: 1 1 72px;
+
+	min-width: 72px;
+
+	max-width: 148px;
 
 }
 
@@ -177,7 +181,11 @@
 
 	white-space: nowrap;
 
-	max-width: 160px;
+	width: 100%;
+
+	min-width: 0;
+
+	max-width: 100%;
 
 	overflow: hidden;
 

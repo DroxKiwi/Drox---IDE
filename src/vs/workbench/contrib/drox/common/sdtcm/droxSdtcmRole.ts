@@ -19,45 +19,6 @@ import {
 	normalizeDroxSdtcmPath,
 } from './droxSdtcmMap.js';
 
-export const DROX_SDTCM_SYSTEM_PROMPT = `You are the SDTCM role. You do not write code and you do not comment. You answer with one JSON object and nothing around it.
-
-The engine already listed the files. FILE is in the message. Each line starts with its number and a bar. quote is the text after the bar, without the number. name is written on that line.
-To read another file, answer {"read":"relative/path"} and nothing else. The next message returns it under READ. Read only paths from the file tree.
-
-When the message says MODE build or MODE realign, answer:
-{"file":"relative/path","items":[{"kind":"operation","form":"declare","name":"main","line":1,"quote":"def main():","links":["src/lib.ts"]}]}
-items must contain at least one entry. Never leave the file empty.
-links lists only a file this line actually names, copied from FILES. Use [] when it names none. Do not list the whole tree. Do not cite FILE itself. A package name is not a link.
-
-When the message says MODE link, FILE is one file. Its file links already exist. Cover every one that points at a file which has a brick. from is the brick that listed the file. to is one brick in that file. Prefer the brick with the same name. Answer:
-{"links":[{"from":"b1","to":"b4"}]}
-
-kind:
-- type: a named shape. Class, struct, enum, interface, or SQL table.
-- operation: a named transformation. Function, method, procedure, macro, or SQL function.
-- value: a named holder. Constant, variable, parameter, or column.
-- source: a name brought from elsewhere. import, #include, using, or a SQL extension.
-form:
-- declare: the line that introduces the name.
-- apply: the line that constructs, calls, or reads it.
-
-Python "class User" is type/declare, and "User()" is type/apply. C++ "struct Point" is type/declare, "Point p{}" is type/apply, and "#include" is source/declare. SQL "CREATE TABLE users" is type/declare, "INSERT INTO users" is type/apply, and "CREATE FUNCTION" is operation/declare. Skip every other line. A file still needs at least one item.
-
-When the message says MODE data, name the births in FILE. A birth is a new name. introduce has no parents. transform names data from DATA. A parameter, an alias, or a mutation is not a birth. A file may have none. Answer:
-{"data":[{"name":"user","birth":"introduce","brick":"b3","line":12,"quote":"const user = new User()","parents":[]},{"name":"token","birth":"introduce","line":4,"quote":"const token = read()","parents":[]}]}
-If the birth line is a brick, set brick to that brick id. The data is drawn inside the brick. If the birth line is not a brick, omit brick. The data is drawn inside the file. quote is that line. name is on that line. One birth per line and name.
-
-When the message says MODE trace, the births already exist. Extend each data of FILE along the brick links. A parameter keeps the same data and may change name. A repeated site is one step with span repeat. Write its body once after it. Do not unroll. Answer:
-{"steps":[{"data":"d1","brick":"b8","name":"account","line":3,"quote":"function save(account)","span":1}]}
-span is 1 or "repeat". brick is the birth brick or a brick linked from the previous step.
-
-kind is type, operation, value, or source.
-form is declare or apply.
-file is the path you were given. Do not add another file.
-line is an integer. quote is that exact line, with no line number in the text.
-name is the declared or used name.
-If the message contains FEEDBACK, those are the errors in the previous JSON. Return the corrected JSON.`;
-
 export interface IDroxSdtcmFileItem {
 	readonly kind: DroxSdtcmKind;
 	readonly form: DroxSdtcmForm;
@@ -117,14 +78,19 @@ export function acceptDroxSdtcmFile(
 	items.forEach((item, index) => {
 		const where = `items[${index}]`;
 		const before = errors.length;
-		const anchor = reviewAnchor(where, { file, line: item.line, quote: item.quote, name: item.name }, new Map([[file, text]]), errors);
-		if (errors.length === before && !anchor.quote.includes(item.name)) {
-			errors.push(`${where}.name ${item.name} is not on line ${anchor.line}.`);
+		let anchor = reviewAnchor(where, { file, line: item.line, quote: item.quote, name: item.name }, new Map([[file, text]]), errors);
+		if (errors.length === before) {
+			const named = hardenDroxSdtcmName(anchor.quote, item.name);
+			if (!named.ok) {
+				errors.push(`${where}.name ${named.error}`);
+			} else {
+				anchor = { ...anchor, name: named.name };
+			}
 		}
 		const files: string[] = [];
 		for (const link of item.links) {
 			const resolved = resolveDroxSdtcmLink(file, link, known);
-			if (resolved && !files.includes(resolved)) {
+			if (resolved && droxSdtcmLinkOnLine(anchor.quote, link, resolved) && !files.includes(resolved)) {
 				files.push(resolved);
 			}
 		}
@@ -132,7 +98,7 @@ export function acceptDroxSdtcmFile(
 			return;
 		}
 		const id = nextBrickId(used);
-		bricks.push({ ...anchor, id, kind: item.kind, form: item.form, files, links: [] });
+		bricks.push({ ...anchor, id, kind: item.kind, form: item.form, files, links: [], tags: [] });
 	});
 	if (errors.length) {
 		return { ok: false, errors };
@@ -191,8 +157,21 @@ export function acceptDroxSdtcmLinks(
 			errors.push(`${from.id} is not in ${file}.`);
 			return;
 		}
-		if (!from.files.includes(to.file)) {
-			errors.push(`${from.id} has no file link to ${to.file}.`);
+		if (from.file === to.file) {
+			errors.push(`${from.id} and ${to.id} are in the same file.`);
+			return;
+		}
+		if (from.kind === 'source' && to.kind === 'source') {
+			errors.push(`${from.id} and ${to.id} are both imports.`);
+			return;
+		}
+		const usedInFile = map.bricks.some(brick => brick.file === from.file && droxSdtcmQuoteMentions(brick.quote, to.name));
+		if (from.name !== to.name && !usedInFile) {
+			errors.push(`${to.name} is not used by ${from.file}.`);
+			return;
+		}
+		if (!from.files.includes(to.file) && from.name !== to.name) {
+			errors.push(`${from.id} does not bring ${to.file} and does not share a name with ${to.id}.`);
 			return;
 		}
 		const list = grouped.get(from.id) ?? [];
@@ -227,13 +206,19 @@ export function completeDroxSdtcmLinks(map: IDroxSdtcmMap, file: string): IDroxS
 			return brick;
 		}
 		const links = [...brick.links];
+		const quotes = map.bricks.filter(item => item.file === brick.file).map(item => item.quote);
 		for (const path of brick.files) {
 			const targets = map.bricks.filter(item => item.file === path);
 			if (!targets.length || links.some(id => targets.some(item => item.id === id))) {
 				continue;
 			}
-			const named = targets.find(item => item.name === brick.name);
-			links.push((named ?? targets[0]).id);
+			const same = targets.find(item => item.name === brick.name && !(brick.kind === 'source' && item.kind === 'source'));
+			const mentioned = targets.filter(item => quotes.some(quote => droxSdtcmQuoteMentions(quote, item.name)));
+			const onLine = mentioned.filter(item => droxSdtcmQuoteMentions(brick.quote, item.name));
+			const chosen = same ?? (onLine.length === 1 ? onLine[0] : mentioned.length === 1 ? mentioned[0] : undefined);
+			if (chosen) {
+				links.push(chosen.id);
+			}
 		}
 		return { ...brick, links };
 	});
@@ -266,8 +251,8 @@ export function droxSdtcmMapFiles(map: IDroxSdtcmMap): string[] {
 export function formatDroxSdtcmDiscussion(exchanges: readonly { readonly role: 'engine' | 'agent'; readonly text: string }[]): string {
 	const lines = [
 		'SDTCM discussion',
-		'The system prompt is the first ENGINE message. It is sent again on every model call.',
-		'Each later ENGINE message includes FILE with numbered lines, the READ tool results, and FEEDBACK when the previous JSON was refused. Later turns ask for brick-to-brick links, then data births, then the trace of each birth.',
+		'Each pass starts with the system prompt of that pass. A call sends only that prompt, then one user message.',
+		'The user message holds the file, the lists for that pass, READ results, and FEEDBACK when the previous JSON was refused. Tags are the last pass.',
 		'',
 	];
 	exchanges.forEach((item, index) => {
@@ -286,14 +271,12 @@ export function buildDroxSdtcmTurn(input: {
 	readonly note?: string;
 	readonly hint?: string;
 }): string {
-	const focus = input.mode === 'align'
-		? `Rewrite the items of FILE. The diff is SDTCM's, not git.\n${formatDroxSdtcmFocus(input.focus.filter(item => item.path === input.path)) || 'no gap'}`
-		: 'Record at least one item. links lists only a file this line actually names. Use [] when it names none.';
+	const gap = input.mode === 'align' ? formatDroxSdtcmFocus(input.focus.filter(item => item.path === input.path)) : '';
 	const reads = input.reads.map(file => `READ ${file.path}\n${numberDroxSdtcmText(file.text)}`).join('\n\n');
 	return [
 		input.mode === 'align' ? 'MODE realign' : 'MODE build',
 		input.note?.trim() ? `NOTE ${input.note.trim()}` : '',
-		focus,
+		gap ? `GAP\n${gap}` : '',
 		input.hint ? `FEEDBACK\n${input.hint}` : '',
 		`FILES\n${input.files.slice(0, 120).join('\n')}`,
 		`FILE ${input.path}\n${numberDroxSdtcmText(input.text)}`,
@@ -315,26 +298,315 @@ export function droxSdtcmLinkFiles(map: IDroxSdtcmMap): string[] {
 export function buildDroxSdtcmLinkTurn(input: {
 	readonly map: IDroxSdtcmMap;
 	readonly file: string;
+	readonly files: readonly string[];
 	readonly reads: readonly { readonly path: string; readonly text: string }[];
 	readonly hint?: string;
 }): string {
-	const known = new Set(input.map.bricks.map(brick => brick.file));
-	const from = input.map.bricks.filter(brick => brick.file === input.file && brick.files.some(path => known.has(path))).map(brick => ({
-		id: brick.id, name: brick.name, files: brick.files.filter(path => known.has(path)),
+	const from = input.map.bricks.filter(brick => brick.file === input.file).map(brick => ({
+		id: brick.id, name: brick.name, kind: brick.kind, form: brick.form,
 	}));
-	const targets = new Set(from.flatMap(brick => brick.files));
-	const to = input.map.bricks.filter(brick => targets.has(brick.file)).map(brick => ({
-		id: brick.id, name: brick.name, file: brick.file,
+	const names = new Set(from.map(brick => brick.name));
+	const namedFiles = new Set(input.map.bricks.filter(brick => brick.file === input.file).flatMap(brick => brick.files));
+	const candidates = input.map.bricks.filter(brick => brick.file !== input.file && (names.has(brick.name) || namedFiles.has(brick.file))).map(brick => ({
+		id: brick.id, name: brick.name, kind: brick.kind, form: brick.form, file: brick.file,
 	}));
 	const reads = input.reads.map(file => `READ ${file.path}\n${numberDroxSdtcmText(file.text)}`).join('\n\n');
 	return [
 		'MODE link',
-		`Cover every file link of ${input.file}. from listed the file. to is one brick in that file. Prefer the brick with the same name.`,
 		input.hint ? `FEEDBACK\n${input.hint}` : '',
+		`FILES\n${input.files.slice(0, 120).join('\n')}`,
 		`FROM ${JSON.stringify(from)}`,
-		`TO ${JSON.stringify(to)}`,
+		`CANDIDATES ${JSON.stringify(candidates)}`,
 		reads,
 	].filter(part => part.length > 0).join('\n\n');
+}
+
+export type DroxSdtcmTagScope = 'folder' | 'file' | 'brick' | 'data';
+
+export interface IDroxSdtcmTag {
+	readonly name: string;
+	readonly description: string;
+	readonly color: string;
+	readonly scope: DroxSdtcmTagScope;
+}
+
+export interface IDroxSdtcmTagMarkDraft {
+	readonly scope: DroxSdtcmTagScope;
+	readonly id: string;
+	readonly tag: string;
+	readonly reason: string;
+}
+
+const DROX_SDTCM_TAG_REASON = 30;
+
+export function isDroxSdtcmTagScope(value: unknown): value is DroxSdtcmTagScope {
+	return value === 'folder' || value === 'file' || value === 'brick' || value === 'data';
+}
+
+const DROX_SDTCM_TAG_NAME = /^[A-Za-z][A-Za-z0-9-]{0,31}$/;
+const DROX_SDTCM_TAG_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+export function parseDroxSdtcmTags(raw: string): IDroxSdtcmTag[] {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return [];
+	}
+	if (!Array.isArray(parsed)) {
+		return [];
+	}
+	const tags: IDroxSdtcmTag[] = [];
+	for (const item of parsed) {
+		if (!item || typeof item !== 'object' || Array.isArray(item)) {
+			continue;
+		}
+		const record = item as Record<string, unknown>;
+		const name = typeof record.name === 'string' ? record.name.trim() : '';
+		const description = typeof record.description === 'string' ? record.description.trim() : '';
+		const color = typeof record.color === 'string' ? record.color.trim() : '';
+		const scope = isDroxSdtcmTagScope(record.scope) ? record.scope : 'brick';
+		if (!DROX_SDTCM_TAG_NAME.test(name) || !description || !DROX_SDTCM_TAG_COLOR.test(color) || tags.some(tag => tag.name === name)) {
+			continue;
+		}
+		tags.push({ name, description: description.slice(0, 240), color, scope });
+	}
+	return tags;
+}
+
+export function droxSdtcmTagNameOk(name: string): boolean {
+	return DROX_SDTCM_TAG_NAME.test(name);
+}
+
+export function buildDroxSdtcmTagTurn(input: {
+	readonly map: IDroxSdtcmMap;
+	readonly file: string;
+	readonly text: string;
+	readonly tags: readonly IDroxSdtcmTag[];
+	readonly hint?: string;
+}): string {
+	const tags = input.tags.filter(tag => tag.scope !== 'folder').map(tag => ({
+		name: tag.name, description: tag.description, scope: tag.scope,
+	}));
+	const scopes = new Set(tags.map(tag => tag.scope));
+	const bricks = scopes.has('brick') ? input.map.bricks.filter(brick => brick.file === input.file).map(brick => ({
+		id: brick.id, name: brick.name, kind: brick.kind, form: brick.form, quote: brick.quote,
+	})) : [];
+	const data = scopes.has('data') ? input.map.data.filter(item => item.file === input.file).map(item => ({
+		id: item.id, name: item.name, birth: item.birth, quote: item.quote,
+	})) : [];
+	return [
+		'MODE tag',
+		input.hint ? `FEEDBACK\n${input.hint}` : '',
+		`TAGS ${JSON.stringify(tags)}`,
+		scopes.has('brick') ? `BRICKS ${JSON.stringify(bricks)}` : '',
+		scopes.has('data') ? `DATA ${JSON.stringify(data)}` : '',
+		`FILE ${input.file}\n${numberDroxSdtcmText(input.text)}`,
+	].filter(part => part.length > 0).join('\n\n');
+}
+
+export function buildDroxSdtcmFolderTagTurn(input: {
+	readonly folder: string;
+	readonly files: readonly string[];
+	readonly tags: readonly IDroxSdtcmTag[];
+	readonly hint?: string;
+}): string {
+	const tags = input.tags.filter(tag => tag.scope === 'folder').map(tag => ({
+		name: tag.name, description: tag.description, scope: tag.scope,
+	}));
+	return [
+		'MODE tag',
+		input.hint ? `FEEDBACK\n${input.hint}` : '',
+		`TAGS ${JSON.stringify(tags)}`,
+		`FOLDER ${input.folder}`,
+		`FILES\n${input.files.join('\n')}`,
+	].filter(part => part.length > 0).join('\n\n');
+}
+
+export function readDroxSdtcmTagDraft(raw: string): { readonly ok: true; readonly marks: readonly IDroxSdtcmTagMarkDraft[] } | { readonly ok: false; readonly errors: readonly string[] } {
+	const json = extractDroxSdtcmJson(raw);
+	if (!json) {
+		return { ok: false, errors: ['Response has no JSON object. Return { marks }.'] };
+	}
+	if (!Array.isArray(json.marks)) {
+		return { ok: false, errors: ['marks must be an array.'] };
+	}
+	const marks: IDroxSdtcmTagMarkDraft[] = [];
+	const errors: string[] = [];
+	json.marks.forEach((item, index) => {
+		if (!item || typeof item !== 'object' || Array.isArray(item)) {
+			errors.push(`marks[${index}] must be an object.`);
+			return;
+		}
+		const record = item as Record<string, unknown>;
+		if (!isDroxSdtcmTagScope(record.scope)) {
+			errors.push(`marks[${index}].scope must be folder, file, brick, or data.`);
+			return;
+		}
+		if (typeof record.tag !== 'string' || !record.tag.trim()) {
+			errors.push(`marks[${index}].tag must be a tag name.`);
+			return;
+		}
+		if (typeof record.reason !== 'string') {
+			errors.push(`marks[${index}].reason must be a string.`);
+			return;
+		}
+		const id = typeof record.id === 'string' ? record.id.trim() : '';
+		marks.push({ scope: record.scope, id, tag: record.tag.trim(), reason: record.reason });
+	});
+	return errors.length ? { ok: false, errors } : { ok: true, marks };
+}
+
+/** Replace the file, brick, and data tags of FILE for the scopes present in the catalog. */
+export function acceptDroxSdtcmTags(
+	map: IDroxSdtcmMap,
+	file: string,
+	marks: readonly IDroxSdtcmTagMarkDraft[],
+	catalog: readonly IDroxSdtcmTag[],
+): { readonly ok: true; readonly map: IDroxSdtcmMap } | { readonly ok: false; readonly errors: readonly string[] } {
+	const errors: string[] = [];
+	const scopes = new Set(catalog.map(tag => tag.scope));
+	const bricks = new Map<string, { name: string; reason: string }[]>();
+	const data = new Map<string, { name: string; reason: string }[]>();
+	const files: { name: string; reason: string }[] = [];
+	marks.forEach((mark, index) => {
+		const declared = catalog.find(tag => tag.name === mark.tag);
+		if (!declared) {
+			errors.push(`marks[${index}] uses an unknown tag ${mark.tag}.`);
+			return;
+		}
+		if (declared.scope !== mark.scope) {
+			errors.push(`marks[${index}] uses ${mark.tag} outside its ${declared.scope} scope.`);
+			return;
+		}
+		const reason = mark.reason.trim();
+		if (!reason || reason.length > DROX_SDTCM_TAG_REASON) {
+			errors.push(`marks[${index}].reason must be 1 to ${DROX_SDTCM_TAG_REASON} characters.`);
+			return;
+		}
+		if (mark.scope === 'folder') {
+			errors.push(`marks[${index}] is a folder tag. This turn is the file.`);
+			return;
+		}
+		if (mark.scope === 'file') {
+			if (mark.id) {
+				errors.push(`marks[${index}] is a file tag and takes no id.`);
+				return;
+			}
+			if (files.some(item => item.name === mark.tag)) {
+				errors.push(`marks[${index}] repeats ${mark.tag} on ${file}.`);
+				return;
+			}
+			files.push({ name: mark.tag, reason });
+			return;
+		}
+		if (mark.scope === 'brick') {
+			const brick = map.bricks.find(entry => entry.id === mark.id && entry.file === file);
+			if (!brick) {
+				errors.push(`marks[${index}].id is not a brick of ${file}.`);
+				return;
+			}
+			const list = bricks.get(brick.id) ?? [];
+			if (list.some(item => item.name === mark.tag)) {
+				errors.push(`marks[${index}] repeats ${mark.tag} on ${brick.id}.`);
+				return;
+			}
+			list.push({ name: mark.tag, reason });
+			bricks.set(brick.id, list);
+			return;
+		}
+		const item = map.data.find(entry => entry.id === mark.id && entry.file === file);
+		if (!item) {
+			errors.push(`marks[${index}].id is not a data born in ${file}.`);
+			return;
+		}
+		const list = data.get(item.id) ?? [];
+		if (list.some(entry => entry.name === mark.tag)) {
+			errors.push(`marks[${index}] repeats ${mark.tag} on ${item.id}.`);
+			return;
+		}
+		list.push({ name: mark.tag, reason });
+		data.set(item.id, list);
+	});
+	if (errors.length) {
+		return { ok: false, errors };
+	}
+	const placed = (map.placed ?? []).filter(mark => !(scopes.has('file') && mark.scope === 'file' && mark.on === file));
+	for (const mark of files) {
+		placed.push({ scope: 'file', on: file, name: mark.name, reason: mark.reason });
+	}
+	return {
+		ok: true,
+		map: {
+			...map,
+			bricks: map.bricks.map(brick => brick.file === file && scopes.has('brick') ? { ...brick, tags: bricks.get(brick.id) ?? [] } : brick),
+			data: map.data.map(item => item.file === file && scopes.has('data') ? { ...item, tags: data.get(item.id) ?? [] } : item),
+			placed,
+		},
+	};
+}
+
+/** Replace the folder tags of one folder. */
+export function acceptDroxSdtcmFolderTags(
+	map: IDroxSdtcmMap,
+	folder: string,
+	marks: readonly IDroxSdtcmTagMarkDraft[],
+	catalog: readonly IDroxSdtcmTag[],
+): { readonly ok: true; readonly map: IDroxSdtcmMap } | { readonly ok: false; readonly errors: readonly string[] } {
+	const errors: string[] = [];
+	const chosen: { name: string; reason: string }[] = [];
+	marks.forEach((mark, index) => {
+		const declared = catalog.find(tag => tag.name === mark.tag);
+		if (!declared) {
+			errors.push(`marks[${index}] uses an unknown tag ${mark.tag}.`);
+			return;
+		}
+		if (mark.scope !== 'folder' || declared.scope !== 'folder') {
+			errors.push(`marks[${index}] uses ${mark.tag} outside its folder scope.`);
+			return;
+		}
+		if (mark.id) {
+			errors.push(`marks[${index}] is a folder tag and takes no id.`);
+			return;
+		}
+		const reason = mark.reason.trim();
+		if (!reason || reason.length > DROX_SDTCM_TAG_REASON) {
+			errors.push(`marks[${index}].reason must be 1 to ${DROX_SDTCM_TAG_REASON} characters.`);
+			return;
+		}
+		if (chosen.some(item => item.name === mark.tag)) {
+			errors.push(`marks[${index}] repeats ${mark.tag} on ${folder}.`);
+			return;
+		}
+		chosen.push({ name: mark.tag, reason });
+	});
+	if (errors.length) {
+		return { ok: false, errors };
+	}
+	const placed = (map.placed ?? []).filter(mark => !(mark.scope === 'folder' && mark.on === folder));
+	for (const mark of chosen) {
+		placed.push({ scope: 'folder', on: folder, name: mark.name, reason: mark.reason });
+	}
+	return { ok: true, map: { ...map, placed } };
+}
+
+/** Files that have a brick the link pass can connect: a shared name, or a named file. */
+export function droxSdtcmFilesToLink(map: IDroxSdtcmMap): string[] {
+	const names = new Map<string, Set<string>>();
+	for (const brick of map.bricks) {
+		const files = names.get(brick.name) ?? new Set<string>();
+		files.add(brick.file);
+		names.set(brick.name, files);
+	}
+	const files = new Set<string>();
+	for (const brick of map.bricks) {
+		const shared = (names.get(brick.name)?.size ?? 0) > 1;
+		const brought = brick.files.some(path => map.bricks.some(item => item.file === path));
+		if (shared || brought) {
+			files.add(brick.file);
+		}
+	}
+	return [...files].sort();
 }
 
 function readItems(raw: unknown, errors: string[]): IDroxSdtcmFileItem[] {
@@ -404,6 +676,62 @@ function nextBrickId(used: Set<string>): string {
 	return id;
 }
 
+const DROX_SDTCM_IDENT = '[A-Za-z_][A-Za-z0-9_]*';
+
+/** The line decides the name. A unique shape overwrites it. An import with several bindings must use one of them. */
+function hardenDroxSdtcmName(quote: string, name: string): { readonly ok: true; readonly name: string } | { readonly ok: false; readonly error: string } {
+	const line = quote.trim();
+	const imported = importBindings(line);
+	if (imported) {
+		if (imported.length === 1) {
+			return { ok: true, name: imported[0] };
+		}
+		if (imported.includes(name)) {
+			return { ok: true, name };
+		}
+		return { ok: false, error: `${name} is not a binding of this import. Use one of: ${imported.join(', ')}.` };
+	}
+	const introduced = new RegExp(`\\b(?:function|class|struct|interface|type|enum|const|let|var|def)\\s+(${DROX_SDTCM_IDENT})\\b`).exec(line);
+	if (introduced) {
+		return { ok: true, name: introduced[1] };
+	}
+	const exported = new RegExp(`^export\\s+default\\s+(${DROX_SDTCM_IDENT})\\b`).exec(line);
+	if (exported) {
+		return { ok: true, name: exported[1] };
+	}
+	if (new RegExp(`^${DROX_SDTCM_IDENT}$`).test(name) && new RegExp(`(^|[^A-Za-z0-9_])${name}([^A-Za-z0-9_]|$)`).test(line)) {
+		return { ok: true, name };
+	}
+	return { ok: false, error: `${name} is not an identifier on this line.` };
+}
+
+function importBindings(line: string): string[] | undefined {
+	const brace = new RegExp(`^import\\s+(?:type\\s+)?(?:(${DROX_SDTCM_IDENT})\\s*,\\s*)?\\{([^}]+)\\}\\s+from\\b`).exec(line);
+	if (brace) {
+		const names: string[] = [];
+		if (brace[1]) {
+			names.push(brace[1]);
+		}
+		for (const part of brace[2].split(',')) {
+			const bits = part.trim().split(/\s+as\s+/);
+			const local = bits[bits.length - 1]?.trim() ?? '';
+			if (new RegExp(`^${DROX_SDTCM_IDENT}$`).test(local) && !names.includes(local)) {
+				names.push(local);
+			}
+		}
+		return names;
+	}
+	const star = new RegExp(`^import\\s+(?:type\\s+)?\\*\\s+as\\s+(${DROX_SDTCM_IDENT})\\s+from\\b`).exec(line);
+	if (star) {
+		return [star[1]];
+	}
+	const alone = new RegExp(`^import\\s+(?:type\\s+)?(${DROX_SDTCM_IDENT})\\s+from\\b`).exec(line);
+	if (alone) {
+		return [alone[1]];
+	}
+	return undefined;
+}
+
 function reviewAnchor(where: string, anchor: IDroxSdtcmEntry, files: ReadonlyMap<string, string>, errors: string[]): IDroxSdtcmEntry {
 	const text = files.get(anchor.file);
 	if (text === undefined) {
@@ -452,6 +780,18 @@ function numberDroxSdtcmText(text: string): string {
 	const lines = text.split(/\r?\n/);
 	const body = lines.length > 1 && lines[lines.length - 1] === '' ? lines.slice(0, -1) : lines;
 	return clip(body.map((line, index) => `${index + 1}|${line}`).join('\n'));
+}
+
+function droxSdtcmQuoteMentions(quote: string, name: string): boolean {
+	return new RegExp(`(^|[^A-Za-z0-9_])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z0-9_]|$)`).test(quote);
+}
+
+function droxSdtcmLinkOnLine(quote: string, raw: string, resolved: string): boolean {
+	if (quote.includes(raw.trim()) || quote.includes(resolved)) {
+		return true;
+	}
+	const base = resolved.split('/').pop()?.replace(/\.[^.]+$/, '') ?? '';
+	return base.length > 0 && droxSdtcmQuoteMentions(quote, base);
 }
 
 function resolveDroxSdtcmLink(fromFile: string, raw: string, known: ReadonlySet<string>): string | undefined {

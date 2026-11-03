@@ -8,6 +8,19 @@
 	visibility: hidden !important;
 }
 
+/* Width ease while the IDE chat is shown or stowed. The class is removed when the slide ends. */
+.monaco-workbench.drox-aux-slide .monaco-split-view2.horizontal > .monaco-scrollable-element > .split-view-container > .split-view-view {
+	transition: width 280ms cubic-bezier(0.22, 1, 0.36, 1), left 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.monaco-workbench.drox-aux-slide .monaco-split-view2.horizontal > .sash-container > .monaco-sash {
+	transition: left 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.monaco-workbench.drox-aux-slide .part.auxiliarybar {
+	overflow: hidden;
+}
+
 .monaco-workbench .part.auxiliarybar > .content .monaco-editor,
 .monaco-workbench .part.auxiliarybar > .content .monaco-editor .margin,
 .monaco-workbench .part.auxiliarybar > .content .monaco-editor .monaco-editor-background {

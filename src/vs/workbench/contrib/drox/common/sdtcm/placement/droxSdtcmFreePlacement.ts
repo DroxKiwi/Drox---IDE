@@ -5,14 +5,15 @@
 
 // allow-any-unicode-comment-file
 
-import { IDroxSdtcmGraph, IDroxSdtcmGraphNode } from '../droxSdtcmGraph.js';
+import { droxSdtcmParentFolderId, IDroxSdtcmGraph, IDroxSdtcmGraphNode } from '../droxSdtcmGraph.js';
 import { IDroxSdtcmPoint, moveDroxSdtcmFolders } from './droxSdtcmFolderShift.js';
 
 const GAP = 36;
 
-/** Folders in one row. The user offset stays where they dropped it. */
+/** Root folders in one row. A folder nested in another keeps its place inside that parent. */
 export function placeDroxSdtcmFree(graph: IDroxSdtcmGraph): IDroxSdtcmGraph {
-	const folders = graph.nodes.filter(node => node.kind === 'folder').sort(byLabel);
+	const present = new Set(graph.nodes.filter(node => node.kind === 'folder').map(node => node.id));
+	const folders = graph.nodes.filter(node => node.kind === 'folder' && !droxSdtcmParentFolderId(node.id, present)).sort(byLabel);
 	const origins = new Map<string, IDroxSdtcmPoint>();
 	let cursor = 0;
 	for (const folder of folders) {

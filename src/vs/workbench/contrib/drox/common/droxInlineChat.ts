@@ -105,6 +105,8 @@ export interface IDroxProseLlmDeps {
 	readonly headers?: Record<string, string>;
 	/** Ollama `think: false`, or `enable_thinking: false` on compatible servers. */
 	readonly disableThinking?: boolean;
+	/** When set, sent as `temperature` so repeated calls stay close. */
+	readonly temperature?: number;
 	readonly fetchHttp: (
 		url: string,
 		headers?: Record<string, string>,
@@ -127,6 +129,9 @@ export async function callDroxProseLlm(deps: IDroxProseLlmDeps, system: string, 
 			{ role: 'user', content: user },
 		],
 	};
+	if (typeof deps.temperature === 'number') {
+		payload.temperature = deps.temperature;
+	}
 	if (deps.disableThinking) {
 		if (deps.provider === 'ollama') {
 			payload.think = false;

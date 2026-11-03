@@ -40,6 +40,9 @@ export namespace DroxViews {
 	/** Sidebar activity-bar entry — opens the SDTCM map editor tab. */
 	export const SdtcmViewContainerId = 'workbench.view.drox.sdtcmContainer';
 	export const SdtcmViewId = 'workbench.view.drox.sdtcm';
+	/** IDE activity bar — shows the auxiliary chat only when it is hidden. */
+	export const ChatRevealViewContainerId = 'workbench.view.drox.chatRevealContainer';
+	export const ChatRevealViewId = 'workbench.view.drox.chatReveal';
 }
 
 export namespace DroxCommands {

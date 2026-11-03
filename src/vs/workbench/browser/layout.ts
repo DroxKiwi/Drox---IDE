@@ -2244,16 +2244,25 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 		return panelOpensMaximized === PartOpensMaximizedOptions.ALWAYS || (panelOpensMaximized === PartOpensMaximizedOptions.REMEMBER_LAST && panelLastIsMaximized);
 	}
 
+	private auxiliarySlideEpoch = 0;
+
 	private setAuxiliaryBarHidden(hidden: boolean, skipLayout?: boolean): void {
 		if (hidden && this.setAuxiliaryBarMaximized(false) && !this.isVisible(Parts.AUXILIARYBAR_PART)) {
 			return; // return: leaving maximised auxiliary bar made this part hidden
 		}
 
+		const reducedMotion = getWindow(this.mainContainer).matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const epoch = ++this.auxiliarySlideEpoch;
 		this.stateModel.setRuntimeValue(LayoutStateKeys.AUXILIARYBAR_HIDDEN, hidden);
 
-		// Adjust CSS
+		// The display:none class waits until the width ease finishes, so the chat slides shut.
+		if (!reducedMotion) {
+			this.mainContainer.classList.add('drox-aux-slide');
+		}
 		if (hidden) {
-			this.mainContainer.classList.add(LayoutClasses.AUXILIARYBAR_HIDDEN);
+			if (reducedMotion) {
+				this.mainContainer.classList.add(LayoutClasses.AUXILIARYBAR_HIDDEN);
+			}
 		} else {
 			this.mainContainer.classList.remove(LayoutClasses.AUXILIARYBAR_HIDDEN);
 		}
@@ -2261,10 +2270,16 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 		// Propagate to grid
 		this.workbenchGrid.setViewVisible(this.auxiliaryBarPartView, !hidden);
 
+		const releaseComposite = () => {
+			if (this.paneCompositeService.getActivePaneComposite(ViewContainerLocation.AuxiliaryBar)) {
+				this.paneCompositeService.hideActivePaneComposite(ViewContainerLocation.AuxiliaryBar);
+				this.focusPanelOrEditor();
+			}
+		};
+
 		// If auxiliary bar becomes hidden, also hide the current active pane composite if any
-		if (hidden && this.paneCompositeService.getActivePaneComposite(ViewContainerLocation.AuxiliaryBar)) {
-			this.paneCompositeService.hideActivePaneComposite(ViewContainerLocation.AuxiliaryBar);
-			this.focusPanelOrEditor();
+		if (hidden && reducedMotion) {
+			releaseComposite();
 		}
 
 		// If auxiliary bar becomes visible, show last active pane composite or default pane composite
@@ -2282,6 +2297,19 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 			if (viewletToOpen) {
 				this.openViewContainer(ViewContainerLocation.AuxiliaryBar, viewletToOpen, !skipLayout);
 			}
+		}
+
+		if (!reducedMotion) {
+			getWindow(this.mainContainer).setTimeout(() => {
+				if (epoch !== this.auxiliarySlideEpoch) {
+					return;
+				}
+				this.mainContainer.classList.remove('drox-aux-slide');
+				if (hidden && this.stateModel.getRuntimeValue(LayoutStateKeys.AUXILIARYBAR_HIDDEN)) {
+					this.mainContainer.classList.add(LayoutClasses.AUXILIARYBAR_HIDDEN);
+					releaseComposite();
+				}
+			}, 280);
 		}
 	}
 

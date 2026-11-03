@@ -5,13 +5,20 @@
 
 .drox-sdtcm,
 .drox-sdtcm-side {
-	--drox-sdtcm-surface: var(--vscode-editor-background, #1e1e1e);
-	--drox-sdtcm-raised: color-mix(in srgb, var(--vscode-foreground) 6%, var(--drox-sdtcm-surface));
-	--drox-sdtcm-border: color-mix(in srgb, var(--vscode-foreground) 16%, transparent);
-	--drox-sdtcm-accent: color-mix(in srgb, var(--vscode-foreground) 62%, var(--drox-sdtcm-surface));
+	--drox-ui-green: #888888;
+	--drox-thread-brown: #333333;
+	--drox-thread-brown-deep: #1e1e1e;
+	--drox-thread-green: color-mix(in srgb, var(--drox-ui-green) 58%, var(--drox-thread-brown) 42%);
+	--drox-agents-control-bg: color-mix(in srgb, var(--drox-thread-green) 12%, var(--drox-thread-brown-deep) 88%);
+	--drox-agents-control-bg-hover: color-mix(in srgb, var(--drox-thread-green) 20%, var(--drox-thread-brown-deep) 80%);
+	--drox-agents-control-border: color-mix(in srgb, var(--drox-thread-green) 52%, var(--drox-thread-brown-deep) 48%);
+	--drox-sdtcm-surface: var(--vscode-editor-background, var(--drox-thread-brown-deep));
+	--drox-sdtcm-raised: var(--drox-agents-control-bg);
+	--drox-sdtcm-border: var(--drox-agents-control-border);
+	--drox-sdtcm-accent: var(--drox-ui-green);
 	--drox-sdtcm-muted: var(--vscode-descriptionForeground, #666666);
 	color: var(--vscode-foreground);
-	font-family: var(--vscode-font-family);
+	font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
 }
 
 .drox-sdtcm {
@@ -29,16 +36,19 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px;
-	padding: 10px 12px;
-	border-bottom: 1px solid var(--drox-sdtcm-border);
+	gap: 4px;
+	padding: 5px 8px 6px;
+	border-bottom: 1px solid var(--drox-ui-green);
+	background: var(--vscode-editor-background);
 }
 
 .drox-sdtcm-live {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 8px 12px;
+	gap: 14px;
+	padding: 6px 12px 8px;
+	color: var(--vscode-descriptionForeground);
+	font-size: 11px;
 }
 
 .drox-sdtcm-dot {
@@ -50,7 +60,7 @@
 }
 
 .drox-sdtcm.running .drox-sdtcm-dot {
-	background: var(--drox-sdtcm-accent);
+	background: #4ec94e;
 	animation: drox-sdtcm-pulse 1s ease-in-out infinite;
 }
 
@@ -59,7 +69,8 @@
 }
 
 .drox-sdtcm-status {
-	font-weight: 600;
+	color: var(--vscode-foreground);
+	font-weight: 500;
 }
 
 .drox-sdtcm-step {
@@ -71,21 +82,96 @@
 	flex: 1;
 	min-height: 0;
 	position: relative;
+	--drox-sdtcm-surface: var(--vscode-editor-background, #1e1e1e);
+	--drox-sdtcm-raised: color-mix(in srgb, var(--vscode-foreground) 6%, var(--drox-sdtcm-surface));
+	--drox-sdtcm-border: color-mix(in srgb, var(--vscode-foreground) 16%, transparent);
+	--drox-sdtcm-accent: color-mix(in srgb, var(--vscode-foreground) 62%, var(--drox-sdtcm-surface));
 }
 
 .drox-sdtcm-filters {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 2px;
 	padding-top: 4px;
-	font-size: 12px;
-	border-top: 1px solid var(--drox-sdtcm-border);
+	font-size: 11px;
+	border-top: 1px solid var(--drox-ui-green);
 }
 
-.drox-sdtcm-filters label {
+.drox-sdtcm-filters label,
+.drox-sdtcm-turns {
 	display: flex;
 	align-items: center;
 	gap: 6px;
+	min-height: 22px;
+	padding: 2px 6px;
+	box-sizing: border-box;
+}
+
+.drox-sdtcm-filters label:hover,
+.drox-sdtcm-tag-row:hover,
+.drox-sdtcm-focus-row:hover {
+	background: color-mix(in srgb, var(--drox-ui-green) 12%, var(--drox-thread-brown-deep) 88%);
+}
+
+.drox-sdtcm-side input[type='checkbox'] {
+	accent-color: var(--drox-ui-green);
+}
+
+.drox-sdtcm-turns input {
+	width: 64px;
+	height: 22px;
+	margin: 0;
+	padding: 0 6px;
+	color: var(--vscode-foreground);
+	background: var(--drox-agents-control-bg);
+	border: 1px solid var(--drox-agents-control-border);
+	border-radius: 0;
+	box-sizing: border-box;
+	font-size: 11px;
+}
+
+.drox-sdtcm-tags {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 14px;
+}
+
+.drox-sdtcm-tag-add,
+.drox-sdtcm-tag-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 22px;
+	padding: 2px 6px;
+	box-sizing: border-box;
+	font-size: 11px;
+}
+
+.drox-sdtcm-tag-add select,
+.drox-sdtcm-tag-add input[type='text'] {
+	flex: 1;
+	min-width: 0;
+	height: 22px;
+	background: var(--drox-agents-control-bg);
+	color: var(--vscode-foreground);
+	border: 1px solid var(--drox-agents-control-border);
+	border-radius: 0;
+	padding: 0 6px;
+	box-sizing: border-box;
+	font-size: 11px;
+}
+
+.drox-sdtcm-tag-add select {
+	flex: 0 0 auto;
+}
+
+.drox-sdtcm-tag-row input[type='color'] {
+	width: 28px;
+	height: 18px;
+	padding: 0;
+	border: 0;
+	background: transparent;
 }
 
 .drox-sdtcm-stage {
@@ -160,10 +246,55 @@
 	cursor: grab;
 }
 
+.drox-sdtcm-viewport.locked .drox-sdtcm-node.folder {
+	cursor: default;
+}
+
 .drox-sdtcm-code {
+	display: flex;
+	flex-direction: column;
+	flex: 0 0 auto;
 	min-height: 0;
 	overflow: hidden;
 	border-top: 1px solid var(--drox-sdtcm-border);
+}
+
+.drox-sdtcm-code-bar {
+	display: flex;
+	align-items: center;
+	flex: 0 0 auto;
+	height: 22px;
+	padding: 0 10px;
+	color: var(--vscode-foreground);
+	background: var(--drox-sdtcm-raised);
+	border-bottom: 1px solid var(--drox-sdtcm-border);
+	font-size: 11px;
+}
+
+.drox-sdtcm-code-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-sdtcm-code-editor {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.drox-sdtcm-stage > .monaco-sash.horizontal {
+	z-index: 40;
+}
+
+.drox-sdtcm-stage > .monaco-sash.horizontal::before {
+	height: 1px;
+	background: var(--drox-sdtcm-border);
+}
+
+.drox-sdtcm-stage > .monaco-sash.horizontal:hover::before,
+.drox-sdtcm-stage > .monaco-sash.horizontal.active::before {
+	height: 2px;
+	background: var(--drox-sdtcm-accent);
 }
 
 .drox-sdtcm-code[hidden] {
@@ -271,6 +402,7 @@
 	min-height: 0;
 	overflow: hidden;
 	cursor: grab;
+	outline: none;
 	background-color: var(--drox-sdtcm-surface);
 	background-image:
 		linear-gradient(color-mix(in srgb, var(--drox-sdtcm-border) 55%, transparent) 1px, transparent 1px),
@@ -292,13 +424,32 @@
 
 .drox-sdtcm-edge {
 	stroke: var(--drox-sdtcm-accent);
-	stroke-opacity: 0.45;
-	stroke-width: 1.25;
+	stroke-opacity: 0.9;
+	stroke-width: 1.75;
+	pointer-events: none;
+}
+
+.drox-sdtcm-edge-sheen {
+	stroke: #fff;
+	stroke-opacity: 0.85;
+	stroke-width: 1.75;
+	stroke-linecap: round;
+	stroke-dasharray: 12 88;
+	animation: drox-sdtcm-flow 1.6s linear infinite;
 	pointer-events: none;
 }
 
 .drox-sdtcm-edge.dim {
 	stroke-opacity: 0.08;
+}
+
+.drox-sdtcm-edge-sheen.dim {
+	stroke-opacity: 0;
+	animation: none;
+}
+
+@keyframes drox-sdtcm-flow {
+	to { stroke-dashoffset: -100; }
 }
 
 .drox-sdtcm-edge.linked {
@@ -378,6 +529,10 @@
 	pointer-events: none;
 }
 
+.drox-sdtcm-tooltip-reason {
+	color: var(--drox-sdtcm-muted);
+}
+
 .drox-sdtcm-card {
 	max-height: 140px;
 	overflow: auto;
@@ -440,34 +595,19 @@
 }
 
 .drox-sdtcm-side {
-	padding: 12px 14px;
+	padding: 8px;
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-}
-
-.drox-sdtcm-attraction {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	font-size: 12px;
-}
-
-.drox-sdtcm-attraction[hidden] {
-	display: none;
-}
-
-.drox-sdtcm-attraction input {
-	width: 100%;
-	margin: 0;
-	accent-color: var(--drox-sdtcm-accent);
+	gap: 8px;
+	font-size: 11px;
 }
 
 .drox-sdtcm-side-label {
-	font-weight: 600;
+	font-size: 11px;
+	font-weight: 500;
 	margin-top: 6px;
 	color: var(--drox-sdtcm-muted);
-	letter-spacing: 0.04em;
+	letter-spacing: 0.02em;
 }
 
 .drox-sdtcm-side-hint {
@@ -475,19 +615,63 @@
 	color: var(--drox-sdtcm-muted);
 }
 
-.drox-sdtcm-side-open {
+.drox-sdtcm-toolbar .drox-sdtcm-side-open,
+.drox-sdtcm-toolbar .drox-sdtcm-phase,
+.drox-sdtcm-side .drox-sdtcm-side-open,
+.drox-sdtcm-side .drox-sdtcm-focus-remove {
+	display: inline-flex;
+	align-items: center;
 	align-self: flex-start;
-	padding: 4px 10px;
-	color: var(--vscode-foreground);
-	background: var(--drox-sdtcm-raised);
-	border: 1px solid var(--drox-sdtcm-border);
+	height: 16px;
+	padding: 3px 7px;
+	box-sizing: border-box;
 	border-radius: 0;
+	border: 1px solid transparent;
+	background: transparent;
+	color: var(--vscode-icon-foreground, #cccccc);
+	font-size: 11px;
+	line-height: 1;
+	white-space: nowrap;
 	cursor: pointer;
 }
 
-.drox-sdtcm-side-open:hover {
-	border-color: var(--drox-sdtcm-accent);
-	background: color-mix(in srgb, var(--vscode-foreground) 10%, var(--drox-sdtcm-surface));
+.drox-sdtcm-toolbar .drox-sdtcm-side-open:hover,
+.drox-sdtcm-toolbar .drox-sdtcm-phase:hover,
+.drox-sdtcm-side .drox-sdtcm-side-open:hover,
+.drox-sdtcm-side .drox-sdtcm-focus-remove:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+	color: var(--vscode-foreground);
+}
+
+.drox-sdtcm-toolbar .drox-sdtcm-side-open,
+.drox-sdtcm-toolbar .drox-sdtcm-phase.on,
+.drox-sdtcm-side .drox-sdtcm-side-open {
+	background: var(--drox-agents-control-bg);
+	border-color: var(--drox-agents-control-border);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 14%, transparent);
+	color: var(--vscode-foreground);
+}
+
+.drox-sdtcm-toolbar .drox-sdtcm-side-open:hover,
+.drox-sdtcm-toolbar .drox-sdtcm-phase.on:hover,
+.drox-sdtcm-side .drox-sdtcm-side-open:hover {
+	background: var(--drox-agents-control-bg-hover);
+	color: var(--vscode-foreground);
+}
+
+.drox-sdtcm-toolbar .drox-sdtcm-side-open:disabled {
+	opacity: 0.55;
+	cursor: default;
+}
+
+.drox-sdtcm-phases {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.drox-sdtcm-phase.locked {
+	cursor: default;
 }
 
 .drox-sdtcm-focus {
@@ -501,21 +685,10 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
-	font-size: 12px;
-}
-
-.drox-sdtcm-focus-remove {
-	padding: 1px 6px;
+	min-height: 22px;
+	padding: 2px 6px;
+	box-sizing: border-box;
 	font-size: 11px;
-	color: var(--vscode-foreground);
-	background: transparent;
-	border: 1px solid var(--drox-sdtcm-border);
-	border-radius: 0;
-	cursor: pointer;
-}
-
-.drox-sdtcm-focus-remove:hover {
-	background: var(--drox-sdtcm-raised);
 }
 
 .drox-sdtcm-menu {
@@ -523,11 +696,13 @@
 	z-index: 40;
 	min-width: 140px;
 	padding: 4px;
-	background: var(--drox-sdtcm-surface, var(--vscode-menu-background));
+	background: var(--drox-thread-brown-deep, var(--vscode-menu-background));
 	color: var(--vscode-menu-foreground, var(--vscode-foreground));
-	border: 1px solid var(--drox-sdtcm-border, var(--vscode-menu-border));
+	border: 1px solid var(--drox-agents-control-border, var(--vscode-menu-border));
 	border-radius: 0;
-	box-shadow: 0 8px 24px color-mix(in srgb, #000 28%, transparent);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--drox-ui-green) 16%, transparent),
+		0 10px 28px rgba(0, 0, 0, 0.68);
 }
 
 .drox-sdtcm-menu button {
@@ -538,10 +713,12 @@
 	color: inherit;
 	background: transparent;
 	border: none;
+	border-radius: 0;
+	font-size: 11px;
 	cursor: pointer;
 }
 
 .drox-sdtcm-menu button:hover {
-	background: color-mix(in srgb, var(--vscode-foreground) 8%, transparent);
+	background: color-mix(in srgb, var(--drox-ui-green) 12%, var(--drox-thread-brown-deep) 88%);
 	color: inherit;
 }

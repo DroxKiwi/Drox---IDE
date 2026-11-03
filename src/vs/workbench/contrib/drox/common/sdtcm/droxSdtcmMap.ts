@@ -38,6 +38,22 @@ export interface IDroxSdtcmData {
 	readonly quote: string;
 	readonly parents: readonly string[];
 	readonly steps: readonly IDroxSdtcmDataStep[];
+	/** Tags placed on this data. Absent on maps written before data tags. */
+	readonly tags?: readonly IDroxSdtcmTagMark[];
+}
+
+/** One tag on one entity, with the short reason the model gave. */
+export interface IDroxSdtcmTagMark {
+	readonly name: string;
+	readonly reason: string;
+}
+
+/** A tag on a file or a folder. Bricks and data keep their marks on themselves. */
+export interface IDroxSdtcmPlacedTag {
+	readonly scope: 'folder' | 'file';
+	readonly on: string;
+	readonly name: string;
+	readonly reason: string;
 }
 
 export interface IDroxSdtcmBrick {
@@ -52,6 +68,8 @@ export interface IDroxSdtcmBrick {
 	readonly files: readonly string[];
 	/** Brick ids chosen for those files. */
 	readonly links: readonly string[];
+	/** Tags placed on this brick. A string list is the shape written before reasons. */
+	readonly tags?: readonly IDroxSdtcmTagMark[];
 }
 
 export interface IDroxSdtcmMap {
@@ -59,6 +77,8 @@ export interface IDroxSdtcmMap {
 	readonly entry: IDroxSdtcmEntry | null;
 	readonly bricks: readonly IDroxSdtcmBrick[];
 	readonly data: readonly IDroxSdtcmData[];
+	/** Tags on files and folders. Absent on maps written before those scopes. */
+	readonly placed?: readonly IDroxSdtcmPlacedTag[];
 }
 
 export interface IDroxSdtcmBaseline {
@@ -163,7 +183,7 @@ export function parseDroxSdtcmMap(raw: string): IDroxSdtcmMap {
 				}
 			}
 		}
-		return { version: 1, entry: normalizeEntry(json.entry), bricks, data };
+		return { version: 1, entry: normalizeEntry(json.entry), bricks, data, placed: normalizeDroxSdtcmPlaced(json.placed) };
 	} catch {
 		return emptyDroxSdtcmMap();
 	}
@@ -223,7 +243,56 @@ function normalizeBrick(raw: unknown): IDroxSdtcmBrick | undefined {
 	if (!files || !links) {
 		return undefined;
 	}
-	return { id: brick.id, file, line: brick.line, quote: brick.quote, name: brick.name.trim(), kind: brick.kind, form: brick.form, files, links };
+	return { id: brick.id, file, line: brick.line, quote: brick.quote, name: brick.name.trim(), kind: brick.kind, form: brick.form, files, links, tags: normalizeDroxSdtcmTagMarks(brick.tags) };
+}
+
+export function normalizeDroxSdtcmTagMarks(raw: unknown): IDroxSdtcmTagMark[] {
+	if (!Array.isArray(raw)) {
+		return [];
+	}
+	const tags: IDroxSdtcmTagMark[] = [];
+	for (const item of raw) {
+		if (typeof item === 'string') {
+			const name = item.trim();
+			if (name && !tags.some(mark => mark.name === name)) {
+				tags.push({ name, reason: '' });
+			}
+			continue;
+		}
+		if (!item || typeof item !== 'object' || Array.isArray(item)) {
+			continue;
+		}
+		const record = item as Record<string, unknown>;
+		const name = typeof record.name === 'string' ? record.name.trim() : '';
+		const reason = typeof record.reason === 'string' ? record.reason.trim().slice(0, 30) : '';
+		if (!name || tags.some(mark => mark.name === name)) {
+			continue;
+		}
+		tags.push({ name, reason });
+	}
+	return tags;
+}
+
+function normalizeDroxSdtcmPlaced(raw: unknown): IDroxSdtcmPlacedTag[] {
+	if (!Array.isArray(raw)) {
+		return [];
+	}
+	const placed: IDroxSdtcmPlacedTag[] = [];
+	for (const item of raw) {
+		if (!item || typeof item !== 'object' || Array.isArray(item)) {
+			continue;
+		}
+		const record = item as Record<string, unknown>;
+		const scope = record.scope === 'folder' || record.scope === 'file' ? record.scope : undefined;
+		const on = typeof record.on === 'string' ? record.on.trim() : '';
+		const name = typeof record.name === 'string' ? record.name.trim() : '';
+		const reason = typeof record.reason === 'string' ? record.reason.trim().slice(0, 30) : '';
+		if (!scope || !on || !name || placed.some(mark => mark.scope === scope && mark.on === on && mark.name === name)) {
+			continue;
+		}
+		placed.push({ scope, on, name, reason });
+	}
+	return placed;
 }
 
 function normalizeDroxSdtcmPathList(raw: unknown): string[] | undefined {
@@ -317,6 +386,7 @@ function normalizeData(raw: unknown, brickFile: ReadonlyMap<string, string>): ID
 		quote: data.quote,
 		parents: [...data.parents],
 		steps,
+		tags: normalizeDroxSdtcmTagMarks(data.tags),
 	};
 }
 

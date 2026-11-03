@@ -6,9 +6,7 @@
 // allow-any-unicode-comment-file
 
 import {
-	droxSdtcmLineAt,
 	droxSdtcmLines,
-	droxSdtcmQuoteMatches,
 	IDroxSdtcmData,
 	IDroxSdtcmDataStep,
 	IDroxSdtcmMap,
@@ -45,11 +43,10 @@ export function buildDroxSdtcmDataTurn(input: {
 	const bricks = input.map.bricks.filter(brick => brick.file === input.path).map(brick => ({
 		id: brick.id, name: brick.name, kind: brick.kind, form: brick.form, line: brick.line, quote: brick.quote,
 	}));
-	const known = input.map.data.map(item => ({ id: item.id, name: item.name, birth: item.birth, brick: item.brick }));
+	const known = input.map.data.filter(item => item.file !== input.path).map(item => ({ id: item.id, name: item.name, file: item.file }));
 	const reads = input.reads.map(file => `READ ${file.path}\n${numberText(file.text)}`).join('\n\n');
 	return [
 		'MODE data',
-		'Name the births in FILE. introduce has no parents. transform names data from DATA. A parameter, an alias, or a mutation is not a birth. A file may have none. If the birth line is a brick, set brick. If it is not, omit brick.',
 		input.hint ? `FEEDBACK\n${input.hint}` : '',
 		`BRICKS ${JSON.stringify(bricks)}`,
 		`DATA ${JSON.stringify(known)}`,
@@ -64,28 +61,25 @@ export function buildDroxSdtcmTraceTurn(input: {
 	readonly reads: readonly { readonly path: string; readonly text: string }[];
 	readonly hint?: string;
 }): string {
-	const born = input.map.data.filter(item => item.file === input.path);
-	const brickIds = new Set<string>();
-	for (const item of born) {
-		if (item.brick) {
-			brickIds.add(item.brick);
-		}
-		for (const step of item.steps) {
-			if (step.brick) {
-				brickIds.add(step.brick);
+	const born = input.map.data.filter(item => item.file === input.path).map(item => ({
+		id: item.id, name: item.name, file: item.file, brick: item.brick, line: item.line, parents: item.parents,
+	}));
+	const reachable = new Map<string, { id: string; file: string; name: string }>();
+	for (const item of input.map.data.filter(entry => entry.file === input.path)) {
+		const origin = item.brick ? input.map.bricks.find(brick => brick.id === item.brick) : undefined;
+		const files = new Set<string>([item.file, ...(origin?.files ?? [])]);
+		for (const brick of input.map.bricks) {
+			if (brick.form === 'apply' && brick.name === item.name && files.has(brick.file)) {
+				reachable.set(brick.id, { id: brick.id, file: brick.file, name: brick.name });
 			}
 		}
 	}
-	const links = input.map.bricks.filter(brick => brickIds.has(brick.id) || brick.links.some(id => brickIds.has(id))).map(brick => ({
-		id: brick.id, file: brick.file, links: brick.links,
-	}));
 	const reads = input.reads.map(file => `READ ${file.path}\n${numberText(file.text)}`).join('\n\n');
 	return [
 		'MODE trace',
-		'Extend each data of FILE. A parameter keeps the same data and may change name. A repeated site is one step with span repeat. Write its body once after it. Do not unroll.',
 		input.hint ? `FEEDBACK\n${input.hint}` : '',
 		`DATA ${JSON.stringify(born)}`,
-		`LINKS ${JSON.stringify(links)}`,
+		`BRICKS ${JSON.stringify([...reachable.values()])}`,
 		reads,
 	].filter(part => part.length > 0).join('\n\n');
 }
@@ -122,10 +116,11 @@ export function acceptDroxSdtcmData(
 	map: IDroxSdtcmMap,
 	file: string,
 	drafts: readonly IDroxSdtcmDataDraft[],
-	text: string,
+	_text: string,
 ): { readonly ok: true; readonly map: IDroxSdtcmMap } | { readonly ok: false; readonly errors: readonly string[] } {
 	const errors: string[] = [];
 	const bricks = new Map(map.bricks.filter(brick => brick.file === file).map(brick => [brick.id, brick]));
+	const required = [...bricks.values()].filter(brick => brick.form === 'declare' && brick.kind !== 'source');
 	const kept = map.data.filter(item => item.file !== file);
 	const known = new Set(kept.map(item => item.id));
 	const used = new Set(map.data.map(item => item.id));
@@ -135,20 +130,11 @@ export function acceptDroxSdtcmData(
 		const where = `data[${index}]`;
 		const before = errors.length;
 		const brick = draft.brick ? bricks.get(draft.brick) : undefined;
-		if (draft.brick && !brick) {
-			errors.push(`${where}.brick is not a brick of ${file}.`);
+		if (!brick || brick.form !== 'declare' || brick.kind === 'source') {
+			return;
 		}
-		const anchor = snap(where, text, draft.line, draft.quote, draft.name, errors);
-		const onLine = anchor ? [...bricks.values()].filter(item => item.line === anchor.line) : [];
-		if (anchor && onLine.length && !onLine.some(item => item.id === draft.brick)) {
-			errors.push(`${where}.brick must be the brick on line ${anchor.line}.`);
-		}
-		if (anchor && !onLine.length && draft.brick) {
-			errors.push(`${where}.brick must be omitted. Line ${anchor.line} is outside every brick.`);
-		}
-		const key = anchor ? `${anchor.line}:${draft.name}` : '';
-		if (key && seen.has(key)) {
-			errors.push(`${where} repeats line ${anchor?.line} name ${draft.name}.`);
+		if (seen.has(brick.id)) {
+			errors.push(`${where} repeats brick ${brick.id}.`);
 		}
 		if (draft.birth === 'introduce' && draft.parents.length > 0) {
 			errors.push(`${where}.parents must be empty for introduce.`);
@@ -161,15 +147,20 @@ export function acceptDroxSdtcmData(
 				errors.push(`${where}.parents cites unknown ${parent}.`);
 			}
 		}
-		if (errors.length !== before || !anchor || (draft.brick && !brick)) {
+		if (errors.length !== before) {
 			return;
 		}
-		seen.add(key);
+		seen.add(brick.id);
 		const id = nextDataId(used);
 		known.add(id);
-		const step: IDroxSdtcmDataStep = { brick: brick?.id ?? null, name: draft.name, line: anchor.line, quote: anchor.quote, span: 1 };
-		created.push({ id, name: draft.name, birth: draft.birth, file, brick: brick?.id ?? null, line: anchor.line, quote: anchor.quote, parents: [...draft.parents], steps: [step] });
+		const step: IDroxSdtcmDataStep = { brick: brick.id, name: brick.name, line: brick.line, quote: brick.quote, span: 1 };
+		created.push({ id, name: brick.name, birth: draft.birth, file, brick: brick.id, line: brick.line, quote: brick.quote, parents: [...draft.parents], steps: [step] });
 	});
+	for (const brick of required) {
+		if (!seen.has(brick.id)) {
+			errors.push(`missing birth for brick ${brick.id} ${brick.name}.`);
+		}
+	}
 	if (errors.length) {
 		return { ok: false, errors };
 	}
@@ -185,29 +176,14 @@ export function acceptDroxSdtcmTrace(
 	const errors: string[] = [];
 	const bricks = new Map(map.bricks.map(brick => [brick.id, brick]));
 	const bornHere = new Set(map.data.filter(item => item.file === file).map(item => item.id));
-	const extra = new Map<string, IDroxSdtcmDataStep[]>();
+	const extra = new Map<string, IDroxSdtcmTraceDraft[]>();
 	drafts.forEach((draft, index) => {
-		const where = `steps[${index}]`;
 		if (!bornHere.has(draft.data)) {
-			errors.push(`${where}.data is not a birth of ${file}.`);
-			return;
-		}
-		const brick = bricks.get(draft.brick);
-		if (!brick) {
-			errors.push(`${where}.brick is unknown.`);
-			return;
-		}
-		const text = texts.get(brick.file);
-		if (text === undefined) {
-			errors.push(`${where}: ${brick.file} was not found.`);
-			return;
-		}
-		const anchor = snap(where, text, draft.line, draft.quote, draft.name, errors);
-		if (!anchor) {
+			errors.push(`steps[${index}].data is not a birth of ${file}.`);
 			return;
 		}
 		const list = extra.get(draft.data) ?? [];
-		list.push({ brick: brick.id, name: draft.name, line: anchor.line, quote: anchor.quote, span: draft.span });
+		list.push(draft);
 		extra.set(draft.data, list);
 	});
 	if (errors.length) {
@@ -219,31 +195,20 @@ export function acceptDroxSdtcmTrace(
 			return item;
 		}
 		const steps = [...item.steps];
-		for (const step of added) {
-			const birth = steps[0];
-			if (birth && step.brick === birth.brick && step.line === birth.line && step.name === birth.name) {
+		for (const draft of added) {
+			const next = bricks.get(draft.brick);
+			if (!next || next.form !== 'apply' || next.name !== item.name || !texts.has(next.file)) {
 				continue;
 			}
-			const next = step.brick ? bricks.get(step.brick) : undefined;
-			if (!next) {
-				errors.push(`${item.id} cites an unknown brick.`);
-				continue;
-			}
-			const previousId = steps[steps.length - 1].brick;
+			const previousId = steps[steps.length - 1]?.brick;
 			const previous = previousId ? bricks.get(previousId) : undefined;
-			if (!previous) {
-				if (next.file !== item.file) {
-					errors.push(`${item.id} cannot leave ${item.file} before it enters a brick.`);
-				} else {
-					steps.push(step);
-				}
+			if (!previous || (previous.file !== next.file && !previous.files.includes(next.file))) {
 				continue;
 			}
-			if (previous.file !== next.file && !previous.links.includes(next.id)) {
-				errors.push(`${item.id} cannot reach ${next.id} from ${previous.id}.`);
+			if (steps.some(step => step.brick === next.id && step.line === next.line)) {
 				continue;
 			}
-			steps.push(step);
+			steps.push({ brick: next.id, name: next.name, line: next.line, quote: next.quote, span: droxSdtcmRepeatSpan(next.quote) });
 		}
 		return { ...item, steps };
 	});
@@ -251,6 +216,13 @@ export function acceptDroxSdtcmTrace(
 		return { ok: false, errors };
 	}
 	return { ok: true, map: { ...map, data } };
+}
+
+function droxSdtcmRepeatSpan(quote: string): 1 | 'repeat' {
+	if (/\b(?:for|while)\b/.test(quote) || /\.(?:map|forEach)\s*\(/.test(quote)) {
+		return 'repeat';
+	}
+	return 1;
 }
 
 function readBirth(item: unknown, index: number, data: IDroxSdtcmDataDraft[], errors: string[]): void {
@@ -337,48 +309,6 @@ function readTrace(item: unknown, index: number, steps: IDroxSdtcmTraceDraft[], 
 		return;
 	}
 	steps.push({ data, brick, name, line: record.line, quote, span: record.span });
-}
-
-function snap(where: string, text: string, line: number, quote: string, name: string, errors: string[]): { line: number; quote: string } | undefined {
-	const before = errors.length;
-	let resolved = line;
-	if (!droxSdtcmQuoteMatches(text, line, quote)) {
-		const found = findLines(text, quote);
-		if (found.length === 1) {
-			resolved = found[0];
-		} else if (found.length > 1) {
-			errors.push(`${where}.quote is on lines ${found.join(', ')}.`);
-		} else {
-			const actual = droxSdtcmLineAt(text, line);
-			errors.push(actual === undefined
-				? `${where}: line ${line} is missing.`
-				: `${where}: line ${line} is: ${actual.trim()}`);
-		}
-	}
-	if (errors.length !== before) {
-		return undefined;
-	}
-	const exact = droxSdtcmLineAt(text, resolved)?.trim() || quote;
-	if (!exact.includes(name)) {
-		errors.push(`${where}.name ${name} is not on line ${resolved}.`);
-		return undefined;
-	}
-	return { line: resolved, quote: exact };
-}
-
-function findLines(text: string, quote: string): number[] {
-	const wanted = quote.trim();
-	if (!wanted) {
-		return [];
-	}
-	const lines = droxSdtcmLines(text);
-	const found: number[] = [];
-	for (let i = 0; i < lines.length; i++) {
-		if (lines[i].trim() === wanted) {
-			found.push(i + 1);
-		}
-	}
-	return found;
 }
 
 function nextDataId(used: Set<string>): string {

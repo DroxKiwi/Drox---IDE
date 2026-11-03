@@ -15,13 +15,12 @@ export interface IDroxSdtcmCanvasHandlers {
 	onLeave(): void;
 	onSelect(node: IDroxSdtcmGraphNode): void;
 	onPressNode?(node: IDroxSdtcmGraphNode, event: PointerEvent): void;
-	onGrabFolder?(node: IDroxSdtcmGraphNode, event: PointerEvent): void;
+	onGrabFolder?(node: IDroxSdtcmGraphNode, event: PointerEvent): boolean | void;
 	onFolderMenu?(node: IDroxSdtcmGraphNode, event: MouseEvent): void;
 }
 
 export function paintDroxSdtcmGraph(
 	world: SVGGElement,
-	markerId: string,
 	graph: IDroxSdtcmGraph,
 	selectedId: string | undefined,
 	handlers: IDroxSdtcmCanvasHandlers,
@@ -47,9 +46,20 @@ export function paintDroxSdtcmGraph(
 		line.setAttribute('x2', String(target.x));
 		line.setAttribute('y2', String(target.y + target.h / 2));
 		const edgeTone = focus?.edges.get(`${edge.from}->${edge.to}`);
-		line.setAttribute('class', edgeTone ? `drox-sdtcm-edge ${edgeTone}` : 'drox-sdtcm-edge');
-		line.setAttribute('marker-end', `url(#${markerId})`);
+		const classes = ['drox-sdtcm-edge'];
+		if (edgeTone) {
+			classes.push(edgeTone);
+		}
+		line.setAttribute('class', classes.join(' '));
+		const sheen = svg<SVGLineElement>('line');
+		sheen.setAttribute('x1', line.getAttribute('x1') ?? '0');
+		sheen.setAttribute('y1', line.getAttribute('y1') ?? '0');
+		sheen.setAttribute('x2', line.getAttribute('x2') ?? '0');
+		sheen.setAttribute('y2', line.getAttribute('y2') ?? '0');
+		sheen.setAttribute('pathLength', '100');
+		sheen.setAttribute('class', edgeTone === 'dim' ? 'drox-sdtcm-edge-sheen dim' : 'drox-sdtcm-edge-sheen');
 		world.appendChild(line);
+		world.appendChild(sheen);
 	}
 	for (const node of graph.nodes) {
 		if (node.kind !== 'brick' && node.kind !== 'data') {
@@ -74,6 +84,9 @@ function paintFrame(node: IDroxSdtcmGraphNode, selectedId: string | undefined, h
 	rect.setAttribute('width', String(node.w));
 	rect.setAttribute('height', String(node.h));
 	rect.setAttribute('rx', '0');
+	if (node.color) {
+		rect.style.stroke = node.color;
+	}
 	const title = svg<SVGTextElement>('text');
 	title.setAttribute('x', '10');
 	title.setAttribute('y', node.kind === 'data' ? '19' : node.kind === 'brick' ? '20' : '18');
@@ -98,8 +111,10 @@ function paintFrame(node: IDroxSdtcmGraphNode, selectedId: string | undefined, h
 		});
 	} else if (node.kind === 'folder') {
 		group.addEventListener('pointerdown', event => {
+			if (handlers.onGrabFolder?.(node, event) === false) {
+				return;
+			}
 			event.stopPropagation();
-			handlers.onGrabFolder?.(node, event);
 		});
 		group.addEventListener('contextmenu', event => {
 			event.preventDefault();
@@ -111,29 +126,6 @@ function paintFrame(node: IDroxSdtcmGraphNode, selectedId: string | undefined, h
 	group.addEventListener('mouseleave', () => handlers.onLeave());
 	group.addEventListener('click', () => handlers.onSelect(node));
 	return group;
-}
-
-export function ensureDroxSdtcmMarker(svgRoot: SVGSVGElement, markerId: string): void {
-	let defs = svgRoot.querySelector('defs');
-	if (!defs) {
-		defs = svg<SVGDefsElement>('defs');
-		svgRoot.appendChild(defs);
-	}
-	if (svgRoot.querySelector(`#${markerId}`)) {
-		return;
-	}
-	const marker = svg<SVGMarkerElement>('marker');
-	marker.setAttribute('id', markerId);
-	marker.setAttribute('markerWidth', '8');
-	marker.setAttribute('markerHeight', '8');
-	marker.setAttribute('refX', '8');
-	marker.setAttribute('refY', '4');
-	marker.setAttribute('orient', 'auto');
-	const path = svg<SVGPathElement>('path');
-	path.setAttribute('d', 'M0,0 L8,4 L0,8 Z');
-	path.setAttribute('fill', 'currentColor');
-	marker.appendChild(path);
-	defs.appendChild(marker);
 }
 
 export function clearDroxSdtcmNode(node: { firstChild: ChildNode | null }): void {
