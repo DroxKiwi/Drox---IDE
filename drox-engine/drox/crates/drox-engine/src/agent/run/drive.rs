@@ -37,7 +37,7 @@ use super::super::nudges::{
     run_objective_system_block,
     step_by_step_todo_nudge, STEP_BY_STEP_HEADS_UP_PREFIX,
     unfinished_course_plan_prompt, unfinished_todos_prompt, ANALYZING_PHASE_NUDGE,
-    CODE_MUTATION_TESTING_NUDGE, DONE_ONLY_NUDGE_PROMPT, DOC_INGESTION_EXPLORE_ANNEX,
+    DONE_ONLY_NUDGE_PROMPT, DOC_INGESTION_EXPLORE_ANNEX,
     EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,
     INTENT_ONLY_WRITE_MAX_NUDGES, INTENT_ONLY_WRITE_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
     LOOP_FORCE_CONCLUDE_PROMPT, LOOP_TOOL_FAMILY_NUDGE_PROMPT,
@@ -238,8 +238,6 @@ impl Agent {
         let mut run_objective_reminder_sent = false;
         let mut analyzing_phase_nudge_sent = false;
         let mut saw_analyzing_phase_in_run = false;
-        let mut saw_code_mutation_in_run = false;
-        let mut saw_testing_phase_in_run = false;
         // FX-B — compteur de nudges « acting sans tool ».
         let mut consecutive_intent_only_write_nudges: u32 = 0;
         // 1.6.0 Vague 4 / S-1 — situation card (upsert chaque tour).
@@ -315,7 +313,6 @@ impl Agent {
                 drox_permissions::PermissionMode::Professor => "professor",
             })
             .map(str::to_string);
-        let testing_gate_active = !ctx.plan_mode && !professor;
         let mut capture_loop = "none";
         for iter in 0..self.config.max_iterations {
             debug!(
@@ -805,9 +802,6 @@ impl Agent {
             if outcome.saw_analyzing {
                 saw_analyzing_phase_in_run = true;
             }
-            if outcome.saw_testing {
-                saw_testing_phase_in_run = true;
-            }
 
             // O1 — DONE_ONLY déjà parti. Le texte de ce tour n'a pas été affiché.
             // `[phase: done]` retombe sur la clôture normale plus bas. Sinon on
@@ -951,15 +945,13 @@ impl Agent {
                     return;
                 }
                 let open_todos = last_todo_pending > 0 || last_todo_in_progress > 0;
-                let testing_due =
-                    testing_gate_active && saw_code_mutation_in_run && !saw_testing_phase_in_run;
                 if matches!(profile, EngineProfile::Local27b | EngineProfile::CloudFull)
                     && !reply.is_empty()
                     && !final_answer_forced
                     && !local_soft_close_check_sent
-                    && (open_todos || testing_due)
+                    && open_todos
                 {
-                    debug!(open_todos, testing_due, "local-27b — soft close check (one-shot)");
+                    debug!(open_todos, "local-27b — soft close check (one-shot)");
                     local_soft_close_check_sent = true;
                     messages.push(Message::system(LOCAL_SOFT_CLOSE_CHECK_NUDGE));
                     if let Err(e) = self
@@ -1077,24 +1069,6 @@ impl Agent {
                         last_todo_in_progress,
                     )));
                     // Do NOT reset LoopDetector — repeated identical done attempts must abort.
-                    if let Err(e) = self
-                        .flush_transcript(&messages, &mut transcript_cursor)
-                        .await
-                    {
-                        let _ = tx.send(Err(e)).await;
-                        return;
-                    }
-                    continue;
-                }
-                if testing_gate_active
-                    && saw_code_mutation_in_run
-                    && !saw_testing_phase_in_run
-                {
-                    debug!(
-                        "[phase: done] mutation code sans phase testing — nudge"
-                    );
-                    messages.push(Message::system(CODE_MUTATION_TESTING_NUDGE));
-                    // Do NOT reset LoopDetector — otherwise verify/done nudges loop forever.
                     if let Err(e) = self
                         .flush_transcript(&messages, &mut transcript_cursor)
                         .await
@@ -1263,32 +1237,13 @@ impl Agent {
             if outcome.tool_calls.is_empty() {
                 // Cas typique GLM-4.7-Flash : le modèle a déjà émis sa
                 // réponse en `answering` mais a omis le `[phase: done]`
-                // final. Si la gate testing est encore due, on envoie CE
-                // message (pas « ONLY done » — ce serait un mensonge).
+                // final.
                 let todos_closed = last_todo_pending == 0 && last_todo_in_progress == 0;
-                let testing_still_due = testing_gate_active
-                    && saw_code_mutation_in_run
-                    && !saw_testing_phase_in_run;
                 if outcome.final_phase == Some(Phase::Answering)
                     && seen_answering_in_run
                     && todos_closed
                 {
-                    if testing_still_due {
-                        debug!(
-                            "answering sans done + todo clôturée + testing dû — nudge testing (pas DONE_ONLY)"
-                        );
-                        consecutive_intent_only_write_nudges = 0;
-                        messages.push(Message::system(CODE_MUTATION_TESTING_NUDGE));
-                        if let Err(e) = self
-                            .flush_transcript(&messages, &mut transcript_cursor)
-                            .await
-                        {
-                            let _ = tx.send(Err(e)).await;
-                            return;
-                        }
-                        continue;
-                    }
-                    debug!("answering sans done + todo clôturée + testing OK — nudge minimal (done seul)");
+                    debug!("answering sans done + todo clôturée — nudge minimal (done seul)");
                     consecutive_intent_only_write_nudges = 0;
                     done_only_nudge_sent = true;
                     messages.push(Message::system(DONE_ONLY_NUDGE_PROMPT));
@@ -1922,19 +1877,11 @@ impl Agent {
                                                 mutating_tools_since_last_todo.saturating_add(1);
                                         }
                                     }
-                                    if call.name == "bash"
-                                        && saw_code_mutation_in_run
-                                        && value.get("exit_code").and_then(|v| v.as_i64())
-                                            == Some(0)
-                                    {
-                                        saw_testing_phase_in_run = true;
-                                    }
                                     if record_counts_as_code_mutation(
                                         &call.name,
                                         &call.arguments,
                                     ) && !tool_apply_failed(&value)
                                     {
-                                        saw_code_mutation_in_run = true;
                                         clear_rotating_file_read_window(&mut recent_file_reads);
                                         rotating_file_read_nudge_sent = false;
                                         rotating_last_nudge_at = 0;

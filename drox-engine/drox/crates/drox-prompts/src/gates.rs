@@ -6,30 +6,6 @@
 
 use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 
-// ── Testing after code mutation ─────────────────────────────────────────────
-
-pub const CODE_MUTATION_TESTING_NUDGE: &str = "You modified **code** in this run but never entered \
-    `[phase: testing]` with a **concrete verification** tool call.\n\
-    \n\
-    Before your final `[phase: answering]` + `[phase: done]`, you MUST:\n\
-    1. Emit `[phase: testing]` on its own line.\n\
-    2. Call at least one verification tool in the same turn or the next: `bash` \
-    (e.g. `cargo check`, `cargo test`, `npm test`, `pnpm typecheck`, `tsc --noEmit`), \
-    `lsp` with diagnostics, or `file_read` on a file you edited.\n\
-    \n\
-    Do not skip this — the engine will keep refusing `[phase: done]` until testing ran.";
-
-pub const CODE_MUTATION_TESTING_ENTRY: PromptEntry = PromptEntry {
-	id: "gates.code_mutation_testing",
-	intent: PromptIntent::Rescue,
-	strength: PromptStrength::MustText,
-	audience: PromptAudience::Parent,
-	when: "code_mutated+no_testing",
-	topics: &["testing", "done", "phases"],
-	claims: &["done.requires_testing_after_code_mutation=true"],
-	body: CODE_MUTATION_TESTING_NUDGE,
-};
-
 // ── Repeated file_read ──────────────────────────────────────────────────────
 
 pub const REPEATED_FILE_READ_NUDGE_THRESHOLD: u32 = 3;
@@ -65,11 +41,9 @@ pub const NUDGE_PROMPT: &str = "Have you fully completed the user's objective?\n
     1. At least one `[phase: answering]` must have happened in the run.\n\
     2. If your todo list still has `pending` / `in_progress` items → call \
     `todo_write` to close them (or keep working). Bare `[phase: done]` will be refused.\n\
-    3. If you mutated **code** this run and never ran `[phase: testing]` + a \
-    verification tool → do that first. Bare `[phase: done]` will be refused.\n\
-    4. If your last answering asked the user a question and you are waiting → \
+    3. If your last answering asked the user a question and you are waiting → \
     emit ONLY `[phase: done]` and stop (do not start new work).\n\
-    5. Otherwise: `[phase: answering]` + final Markdown reply + `[phase: done]`.\n\
+    4. Otherwise: `[phase: answering]` + final Markdown reply + `[phase: done]`.\n\
     \n\
     - If work remains: `[phase: reading]` or `[phase: acting]` then a real tool \
     call in the same reply. Intent prose alone (\"I should verify…\") does not \
@@ -81,11 +55,10 @@ pub const NUDGE_PROMPT_ENTRY: PromptEntry = PromptEntry {
 	strength: PromptStrength::MustText,
 	audience: PromptAudience::Parent,
 	when: "no_phase_done",
-	topics: &["done", "phases", "todo_write", "testing"],
+	topics: &["done", "phases", "todo_write"],
 	claims: &[
 		"done.requires_answering=true",
 		"done.requires_closed_todos=true",
-		"done.requires_testing_after_code_mutation=true",
 	],
 	body: NUDGE_PROMPT,
 };
@@ -94,7 +67,7 @@ pub const DONE_ONLY_NUDGE_PROMPT: &str = "Your previous reply ended inside \
     `[phase: answering]` but did NOT include the final `[phase: done]` marker. \
     The engine only closes the turn on `[phase: done]`.\n\
     \n\
-    Your todo list is closed and no testing gate is pending. Do NOT rewrite your \
+    Your todo list is closed. Do NOT rewrite your \
     answer. Do NOT start new tools. Do NOT emit `[phase: answering]` again. \
     In your next reply emit ONLY:\n\
     \n\

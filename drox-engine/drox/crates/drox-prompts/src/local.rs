@@ -195,19 +195,18 @@ pub fn reply_has_textual_tool_call(reply: &str) -> bool {
 	lower.contains("<tool_call") || lower.contains("<function=")
 }
 
-/// `local-27b` : rappel one-shot avant clôture (todo ouverte / code modifié sans check).
+/// `local-27b` et `cloud-full` : rappel one-shot avant clôture (todo encore ouverte).
 pub const LOCAL_SOFT_CLOSE_CHECK_NUDGE: &str = "\
-Before ending: your todo list still has open items, or you changed code without \
-running a check (build / test / re-read). If something is still open, call the \
-next tool now. If nothing is left, write nothing: the reply you already sent stands.";
+Before ending: your todo list still has open items. If something is still open, call \
+the next tool now. If nothing is left, write nothing: the reply you already sent stands.";
 
 pub const LOCAL_SOFT_CLOSE_CHECK_ENTRY: PromptEntry = PromptEntry {
 	id: "runtime.local.soft_close_check",
 	intent: PromptIntent::Constraint,
 	strength: PromptStrength::Prefer,
 	audience: PromptAudience::Parent,
-	when: "engine_profile_local_27b+closure_with_open_work",
-	topics: &["closure", "todo_write", "testing"],
+	when: "engine_profile_local_27b+closure_with_open_todos",
+	topics: &["closure", "todo_write"],
 	claims: &[],
 	body: LOCAL_SOFT_CLOSE_CHECK_NUDGE,
 };

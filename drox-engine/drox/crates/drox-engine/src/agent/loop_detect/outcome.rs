@@ -26,5 +26,7 @@ pub(crate) struct TurnOutcome {
     /// sans fragment resté dans une phase interne.
     pub(crate) reply_already_visible: bool,
     pub(crate) saw_analyzing: bool,
+    /// Marqueur `testing` vu dans le tour. Plus lu par la clôture.
+    #[allow(dead_code)]
     pub(crate) saw_testing: bool,
 }

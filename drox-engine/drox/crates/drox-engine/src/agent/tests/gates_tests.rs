@@ -458,7 +458,7 @@ async fn todo_write_not_promoted_once_gate_already_satisfied() {
 }
 
 #[tokio::test]
-async fn done_blocked_when_code_edited_without_testing() {
+async fn done_closes_when_code_edited_without_testing() {
     let tid_bash = ToolUseId::new();
     let llm = Arc::new(ScriptedLlm::new(vec![
         todo_then_code_edit_turn("src/lib.rs"),
@@ -492,25 +492,17 @@ async fn done_blocked_when_code_edited_without_testing() {
     let raw: Vec<_> = agent.run("corrige le bug").collect().await;
     let events: Vec<AgentEvent> = raw.into_iter().filter_map(Result::ok).collect();
 
-    let testing_idx = events
-        .iter()
-        .position(|e| matches!(e, AgentEvent::PhaseEnter { phase: Phase::Testing }));
     assert!(
-        testing_idx.is_some(),
-        "expected Testing phase after code edit nudge, got {events:?}"
-    );
-    let testing_idx = testing_idx.unwrap();
-    assert!(
-        !events[..testing_idx]
+        !events
             .iter()
-            .any(|e| matches!(e, AgentEvent::Stop { .. })),
-        "run must not Stop before testing phase"
+            .any(|e| matches!(e, AgentEvent::PhaseEnter { phase: Phase::Testing })),
+        "a code edit must not require a testing phase, got {events:?}"
     );
     assert!(
         events
             .iter()
-            .any(|e| matches!(e, AgentEvent::PhaseEnter { phase: Phase::Done })),
-        "expected eventual Done, got {events:?}"
+            .any(|e| matches!(e, AgentEvent::Stop { .. })),
+        "the run closes on the answer without a testing phase, got {events:?}"
     );
 }
 

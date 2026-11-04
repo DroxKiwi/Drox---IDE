@@ -19,9 +19,9 @@ const ANNEX: Readonly<Record<DroxRegulationL4Module, string | undefined>> = {
 	/** Default: hard todo gate still exists; the run ends without a tool call. */
 	normal:
 		'Protocol: before any mutating tool (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), call `todo_write` with at least one item in this run. A reply with no tool call ends the run.',
-	/** Strict: phases + todos + testing reminder. Same close as the engine. */
+	/** Strict: phases + todos. Same close as the engine. No testing phase. */
 	strict:
-		'Strict protocol: (1) Use honest `[phase: …]` markers when structuring non-trivial work. (2) Before ANY mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), you MUST have called `todo_write` this run. (3) Update todos as you go. (4) Prefer `[phase: testing]` when verifying changes. A reply with no tool call ends the run; open todos or unverified code may get one reminder first.',
+		'Strict protocol: (1) Use honest `[phase: …]` markers when structuring non-trivial work. (2) Before ANY mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), you MUST have called `todo_write` this run. (3) Update todos as you go. A reply with no tool call ends the run; open todos may get one reminder first.',
 };
 
 /** `local-27b` : a reply without tools closes the run — no `[phase: done]` wording. */
@@ -30,7 +30,7 @@ const LOCAL_ANNEX: Readonly<Record<DroxRegulationL4Module, string | undefined>> 
 	normal:
 		'Protocol: prefer `todo_write` to track multi-step work; update it as you go.',
 	strict:
-		'Strict protocol: (1) Before ANY mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), call `todo_write` this run. (2) Update todos as you go; mark all completed/cancelled before your final reply. (3) Verify changes (build / tests) before the final reply when relevant.',
+		'Strict protocol: (1) Before ANY mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), call `todo_write` this run. (2) Update todos as you go; mark all completed/cancelled before your final reply.',
 };
 
 /**
@@ -41,7 +41,7 @@ const LOCAL_9B_ANNEX: Readonly<Record<DroxRegulationL4Module, string | undefined
 	soft: undefined,
 	normal: undefined,
 	strict:
-		'Strict protocol: (1) Before ANY mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), call `todo_write` this run with every step (one `in_progress`, the rest `pending`). (2) Update that same list as you go; mark all completed/cancelled before your final reply. (3) Verify changes (build / tests) before the final reply when relevant.',
+		'Strict protocol: (1) Before ANY mutation (`file_edit`, `file_write`, `notebook_edit`, `delete_path`, mutating bash), call `todo_write` this run with every step (one `in_progress`, the rest `pending`). (2) Update that same list as you go; mark all completed/cancelled before your final reply.',
 };
 
 /** Narrow `getModule('L4')` (union) to an L4 module; unknown → normal. */
