@@ -42,6 +42,7 @@ import { IMenuService } from '../../../../../platform/actions/common/actions.js'
 import { INotification, INotificationHandle, INotificationService, NoOpNotification, NotificationMessage } from '../../../../../platform/notification/common/notification.js';
 import { TestNotificationService } from '../../../../../platform/notification/test/common/testNotificationService.js';
 import { IDroxGitGraphService } from '../../../../../workbench/contrib/drox/common/droxGitGraphService.js';
+import { IDroxTutorialService } from '../../../../../workbench/contrib/drox/browser/tutorial/droxTutorial.js';
 import { mock } from '../../../../../base/test/common/mock.js';
 
 // ---- Storage key (must match the one in sessionWorkspacePicker.ts) ----------
@@ -56,6 +57,11 @@ function stubDroxGitGraphService(instantiationService: TestInstantiationService)
 		override async checkoutBranch() { }
 		override async openGitGraph() { }
 	}());
+	instantiationService.stub(IDroxTutorialService, {
+		active: false,
+		onDidChange: Event.None,
+		toggle() { },
+	});
 }
 
 // ---- Mock providers ---------------------------------------------------------

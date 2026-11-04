@@ -70,6 +70,21 @@ export async function openDroxPortsView(deps: IDroxOpenWorkbenchViewsDeps | IVie
 	await viewsService.openView(DroxViews.PortsViewId, true);
 }
 
+/** Opens the SDTCM side pane. In Agents the map editor is revealed beside the chat. */
+export async function openDroxSdtcmView(deps: IDroxOpenWorkbenchViewsDeps | IViewsService): Promise<void> {
+	const { viewsService, layoutService, environmentService } = normalizeDeps(deps);
+	if (environmentService?.isSessionsWindow) {
+		layoutService?.setPartHidden(false, Parts.AUXILIARYBAR_PART);
+		layoutService?.setPartHidden(false, Parts.EDITOR_PART);
+		await viewsService.openViewContainer(DroxViews.SdtcmSessionsViewContainerId, true);
+		await viewsService.openView(DroxViews.SdtcmSessionsViewId, true);
+		return;
+	}
+	layoutService?.setPartHidden(false, Parts.SIDEBAR_PART);
+	await viewsService.openViewContainer(DroxViews.SdtcmViewContainerId, true);
+	await viewsService.openView(DroxViews.SdtcmViewId, true);
+}
+
 function normalizeDeps(deps: IDroxOpenWorkbenchViewsDeps | IViewsService): IDroxOpenWorkbenchViewsDeps {
 	if (typeof (deps as IDroxOpenWorkbenchViewsDeps).viewsService !== 'undefined') {
 		return deps as IDroxOpenWorkbenchViewsDeps;

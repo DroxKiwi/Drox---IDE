@@ -125,6 +125,7 @@ export class DroxSdtcmEditor extends EditorPane {
 	protected createEditor(parent: HTMLElement): void {
 		this._container = $('div.drox-sdtcm');
 		const toolbar = $('div.drox-sdtcm-toolbar');
+		toolbar.setAttribute('data-drox-tour', 'sdtcm-header');
 		const live = $('div.drox-sdtcm-live');
 		live.appendChild($('span.drox-sdtcm-dot'));
 		this._status = $('div.drox-sdtcm-status');
@@ -220,6 +221,7 @@ export class DroxSdtcmEditor extends EditorPane {
 		toolbar.appendChild(actions);
 		this._journal = $('div.drox-sdtcm-journal');
 		this._viewport = $('div.drox-sdtcm-viewport');
+		this._viewport.setAttribute('data-drox-tour', 'sdtcm-graph');
 		this._viewport.tabIndex = 0;
 		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 		svg.setAttribute('class', 'drox-sdtcm-svg');
@@ -335,7 +337,7 @@ export class DroxSdtcmEditor extends EditorPane {
 
 	override async setInput(input: EditorInput, options: IEditorOptions | undefined, context: IEditorOpenContext, token: CancellationToken): Promise<void> {
 		await super.setInput(input, options, context, token);
-		const folder = this.workspaceService.getWorkspace().folders[0]?.uri;
+		const folder = this.sdtcmService.takeSessionPin() ?? this.workspaceService.getWorkspace().folders[0]?.uri;
 		if (!folder) {
 			this._render({
 				phase: 'idle',

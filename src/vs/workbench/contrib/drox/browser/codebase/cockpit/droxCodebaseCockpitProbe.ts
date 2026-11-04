@@ -21,6 +21,7 @@ export function renderDroxCodebaseCockpitProbe(
 	},
 ): IDroxCodebaseCockpitProbeRenderResult {
 	const probe = dom.append(parent, dom.$('.drox-codebase-section'));
+	probe.setAttribute('data-drox-tour', 'codebase-probe');
 	dom.append(probe, dom.$('h4', undefined, opts.mode === 'hybrid'
 		? localize('drox.codebase.probeHybrid', 'Hybrid probe')
 		: localize('drox.codebase.probe', 'Lexical probe')));

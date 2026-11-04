@@ -6,9 +6,10 @@
 // allow-any-unicode-comment-file
 
 /**
- * Agents window hosts for Codebase + Regulation + Traffic + Ports on the AuxiliaryBar
+ * Agents window hosts for Codebase + Regulation + Traffic + Ports + SDTCM on the AuxiliaryBar
  * (same pane classes as IDE sidebar). Keeps the Sessions history list
  * visible on the left; cockpit opens beside the chat like Changes.
+ * SDTCM also reveals the editor, because the map itself is an editor tab.
  */
 
 import { Codicon } from '../../../../base/common/codicons.js';
@@ -21,6 +22,7 @@ import { IViewContainersRegistry, IViewsRegistry, Extensions as ViewExtensions, 
 import { DroxCodebaseCockpitViewPane } from '../../../../workbench/contrib/drox/browser/codebase/droxCodebaseCockpitViewPane.js';
 import { DroxPortsViewPane } from '../../../../workbench/contrib/drox/browser/ports/droxPortsViewPane.js';
 import { DroxRegulationViewPane } from '../../../../workbench/contrib/drox/browser/regulation/droxRegulationViewPane.js';
+import { DroxSdtcmViewPane } from '../../../../workbench/contrib/drox/browser/sdtcm/droxSdtcmViewPane.js';
 import { DroxTrafficViewPane } from '../../../../workbench/contrib/drox/browser/traffic/droxTrafficViewPane.js';
 import { DroxViews } from '../../../../workbench/contrib/drox/common/drox.js';
 
@@ -46,6 +48,12 @@ const portsSessionsIcon = registerIcon(
 	'drox-ports-sessions-view-icon',
 	Codicon.plug,
 	localize('droxPortsSessionsViewIcon', 'View icon of the Drox ports / forward panel (Agents).'),
+);
+
+const sdtcmSessionsIcon = registerIcon(
+	'drox-sdtcm-sessions-view-icon',
+	Codicon.map,
+	localize('droxSdtcmSessionsViewIcon', 'View icon of the Drox SDTCM map (Agents).'),
 );
 
 const viewContainers = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry);
@@ -170,3 +178,33 @@ views.registerViews([{
 	windowEnablement: WindowEnablement.Sessions,
 	ctorDescriptor: new SyncDescriptor(DroxPortsViewPane),
 }], portsSessionsContainer);
+
+const sdtcmSessionsContainer = viewContainers.registerViewContainer({
+	id: DroxViews.SdtcmSessionsViewContainerId,
+	title: localize2('drox.sdtcmSessionsContainer.label', 'SDTCM'),
+	icon: sdtcmSessionsIcon,
+	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [DroxViews.SdtcmSessionsViewContainerId, { mergeViewWithContainerWhenSingleView: true }]),
+	storageId: DroxViews.SdtcmSessionsViewContainerId,
+	hideIfEmpty: false,
+	order: 24,
+	windowEnablement: WindowEnablement.Sessions,
+	openCommandActionDescriptor: {
+		id: DroxViews.SdtcmSessionsViewContainerId,
+		mnemonicTitle: localize({ key: 'miDroxSdtcmSessions', comment: ['&& denotes a mnemonic'] }, "&&SDTCM"),
+		order: 24,
+	},
+}, ViewContainerLocation.AuxiliaryBar);
+
+views.registerViews([{
+	id: DroxViews.SdtcmSessionsViewId,
+	name: localize2('drox.sdtcmSessionsView.label', 'SDTCM'),
+	containerIcon: sdtcmSessionsIcon,
+	containerTitle: localize('drox.sdtcmSessionsContainer.title', 'SDTCM'),
+	singleViewPaneContainerTitle: localize('drox.sdtcmSessionsContainer.title', 'SDTCM'),
+	canToggleVisibility: false,
+	canMoveView: false,
+	weight: 100,
+	order: 0,
+	windowEnablement: WindowEnablement.Sessions,
+	ctorDescriptor: new SyncDescriptor(DroxSdtcmViewPane),
+}], sdtcmSessionsContainer);

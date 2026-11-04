@@ -24,6 +24,9 @@ import { EditorExtensions } from '../../../../common/editor.js';
 import { ActiveEditorContext } from '../../../../common/contextkeys.js';
 import { IViewContainersRegistry, IViewsRegistry, Extensions as ViewExtensions, ViewContainerLocation } from '../../../../common/views.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
+import { IEditorGroupsService } from '../../../../services/editor/common/editorGroupsService.js';
+import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
+import { IWorkbenchLayoutService, Parts } from '../../../../services/layout/browser/layoutService.js';
 import { DroxCommands, DroxViews } from '../../common/drox.js';
 import { DroxSdtcmEditor } from './droxSdtcmEditor.js';
 import { DROX_SDTCM_EDITOR_ID, DroxSdtcmInput } from './droxSdtcmInput.js';
@@ -86,7 +89,16 @@ registerAction2(class extends Action2 {
 
 	async run(accessor: ServicesAccessor): Promise<void> {
 		const editorService = accessor.get(IEditorService);
-		await editorService.openEditor(new DroxSdtcmInput(), { pinned: true });
+		const environmentService = accessor.get(IWorkbenchEnvironmentService);
+		const input = new DroxSdtcmInput();
+		if (environmentService.isSessionsWindow) {
+			const layoutService = accessor.get(IWorkbenchLayoutService);
+			const editorGroupsService = accessor.get(IEditorGroupsService);
+			layoutService.setPartHidden(false, Parts.EDITOR_PART);
+			await editorService.openEditor(input, { pinned: true }, editorGroupsService.mainPart.activeGroup);
+			return;
+		}
+		await editorService.openEditor(input, { pinned: true });
 	}
 });
 

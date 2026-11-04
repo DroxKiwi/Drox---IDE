@@ -46,3 +46,32 @@
 	white-space: nowrap;
 	min-width: 0;
 }
+
+.drox-tutorial-launch {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	margin-left: 6px;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: none;
+	border-radius: 3px;
+	background: transparent;
+	color: var(--vscode-foreground);
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+.drox-tutorial-launch:hover {
+	background: color-mix(in srgb, var(--vscode-foreground) 12%, transparent);
+}
+
+.drox-tutorial-launch.is-open {
+	color: #4ec94e;
+}
+
+.drox-tutorial-launch .codicon {
+	font-size: 14px;
+}

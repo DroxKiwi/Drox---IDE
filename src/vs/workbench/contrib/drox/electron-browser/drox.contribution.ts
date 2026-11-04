@@ -24,6 +24,7 @@ import './droxUpdateNotificationContribution.js';
 import '../browser/agents/droxIdeSessionBackgroundService.js';
 import '../browser/agents/droxAgentsChatContribution.js';
 import '../browser/chat/droxIdeChat.contribution.js';
+import '../browser/tutorial/droxTutorial.contribution.js';
 import '../browser/codebase/droxCodebase.contribution.js';
 import '../browser/regulation/droxRegulation.contribution.js';
 import '../browser/traffic/droxTraffic.contribution.js';

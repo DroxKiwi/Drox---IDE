@@ -124,6 +124,9 @@ export interface IDroxSdtcmService {
 	setTags(tags: readonly IDroxSdtcmTag[]): void;
 	updateTag(from: string, draft: { readonly name: string; readonly description: string; readonly scope: IDroxSdtcmTag['scope'] }): string;
 	open(workspace: URI): Promise<void>;
+	/** Next map open uses this folder. The Agents session card sets it. */
+	pinSessionFolder(workspace: URI): void;
+	takeSessionPin(): URI | undefined;
 	stop(): void;
 	getPhasePick(): readonly DroxSdtcmProbePhase[];
 	setPhasePick(phases: readonly DroxSdtcmProbePhase[]): void;
@@ -163,6 +166,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 	private _tags: IDroxSdtcmTag[] = [];
 
 	private _workspace: URI | undefined;
+	private _sessionPin: URI | undefined;
 	private _loadedKey: string | undefined;
 	private _phasePick: DroxSdtcmProbePhase[] = [...DROX_SDTCM_PROBE_PHASES];
 	private _map: IDroxSdtcmMap = emptyDroxSdtcmMap();
@@ -348,6 +352,16 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		}
 		this.setTags(this._tags.map(tag => tag.name === from ? { ...tag, name, description, scope } : tag));
 		return '';
+	}
+
+	pinSessionFolder(workspace: URI): void {
+		this._sessionPin = workspace;
+	}
+
+	takeSessionPin(): URI | undefined {
+		const pin = this._sessionPin;
+		this._sessionPin = undefined;
+		return pin;
 	}
 
 	async open(workspace: URI): Promise<void> {

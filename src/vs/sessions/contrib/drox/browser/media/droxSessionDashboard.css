@@ -210,3 +210,8 @@
 	color: var(--vscode-descriptionForeground);
 	opacity: 0.9;
 }
+
+/* Agents tour: the card toolbar is hidden until hover. Keep it visible while those steps run. */
+.monaco-workbench.drox-tutorial-show-session-tools .sessions-list-control .monaco-list-row .session-title-toolbar {
+	display: block;
+}

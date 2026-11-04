@@ -117,16 +117,6 @@ export function createServerSettingsPickerChip(defaultLabel: string, title: stri
 	});
 }
 
-export function createCodebaseStatusPickerChip(defaultLabel: string, title: string): DroxAgentsPanelPickerChip {
-	return new DroxAgentsPanelPickerChip({
-		id: 'codebase-status-vignette',
-		icon: Codicon.symbolClass,
-		defaultLabel,
-		title,
-		extraClass: 'codebase-status-vignette',
-	});
-}
-
 export function createCodebaseForcePickerChip(defaultLabel: string, title: string): DroxAgentsPanelPickerChip {
 	return new DroxAgentsPanelPickerChip({
 		id: 'codebase-force-vignette',
@@ -144,15 +134,5 @@ export function createAutoAlignPickerChip(defaultLabel: string, title: string): 
 		defaultLabel,
 		title,
 		extraClass: 'sdtcm-auto-align-vignette',
-	});
-}
-
-export function createRegulationPickerChip(defaultLabel: string, title: string): DroxAgentsPanelPickerChip {
-	return new DroxAgentsPanelPickerChip({
-		id: 'regulation-status-vignette',
-		icon: Codicon.graphLine,
-		defaultLabel,
-		title,
-		extraClass: 'regulation-status-vignette',
 	});
 }

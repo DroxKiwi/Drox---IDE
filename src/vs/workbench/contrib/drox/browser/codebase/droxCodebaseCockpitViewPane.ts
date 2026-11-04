@@ -152,6 +152,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		dom.clearNode(this._body);
 
 		const header = dom.append(this._body, dom.$('.drox-codebase-section'));
+		header.setAttribute('data-drox-tour', 'codebase-header');
 		dom.append(header, dom.$('h3', undefined, localize('drox.codebase.cockpit.title', 'Codebase index')));
 		dom.append(header, dom.$('p.drox-codebase-path', undefined, s.rootFsPath ?? localize('drox.codebase.noRoot', 'No folder open')));
 		dom.append(header, dom.$('p.drox-codebase-muted', undefined, localize('drox.codebase.state', 'State: {0}', s.state)));
@@ -203,6 +204,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		});
 
 		const storage = dom.append(this._body, dom.$('.drox-codebase-section'));
+		storage.setAttribute('data-drox-tour', 'codebase-storage');
 		dom.append(storage, dom.$('h4', undefined, localize('drox.codebase.storage', 'Storage')));
 		dom.append(storage, dom.$('p', undefined, localize(
 			'drox.codebase.storageDisk',
@@ -226,6 +228,7 @@ export class DroxCodebaseCockpitViewPane extends ViewPane {
 		}
 
 		const actions = dom.append(storage, dom.$('.drox-codebase-actions'));
+		actions.setAttribute('data-drox-tour', 'codebase-actions');
 		const reindexBtn = dom.append(actions, dom.$('button.drox-codebase-btn.drox-codebase-btn-primary')) as HTMLButtonElement;
 		reindexBtn.textContent = localize('drox.codebase.reindex', 'Reindex');
 		reindexBtn.disabled = s.state === 'indexing' || !s.rootFsPath;

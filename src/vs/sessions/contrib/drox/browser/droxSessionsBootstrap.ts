@@ -28,8 +28,10 @@ import '../../../../workbench/contrib/drox/browser/agents/droxAgentsComposerDrox
 import '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatContribution.js';
 import '../../../../workbench/contrib/drox/browser/droxAgentsRetroThemeContribution.js';
 import '../../../../workbench/contrib/drox/browser/gitGraph/droxGitGraph.contribution.js';
+import '../../../../workbench/contrib/drox/browser/tutorial/droxTutorial.contribution.js';
 import '../../../../workbench/contrib/drox/browser/codebase/droxCodebase.contribution.js';
 import '../../../../workbench/contrib/drox/browser/regulation/droxRegulation.contribution.js';
+import '../../../../workbench/contrib/drox/browser/sdtcm/droxSdtcm.contribution.js';
 import './droxSessionsViews.contribution.js';
 import './droxSessionsActiveSessionSync.js';
 import './droxSessionsRecencyStorageSync.js';
@@ -39,3 +41,4 @@ import './droxSessionsBackgroundActions.js';
 import './droxSessionsCockpitActions.js';
 import './droxSessionsColdStartLayout.js';
 import './media/droxSessionDashboard.css';
+import '../../../../workbench/contrib/chat/electron-browser/agentSessions/media/openInAgents.css';

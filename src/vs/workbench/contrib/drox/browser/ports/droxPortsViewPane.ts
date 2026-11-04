@@ -88,6 +88,7 @@ export class DroxPortsViewPane extends ViewPane {
 
 	private _renderToolsSection(parent: HTMLElement): void {
 		const section = dom.append(parent, dom.$('.drox-ports-section'));
+		section.setAttribute('data-drox-tour', 'ports-tools');
 		dom.append(section, dom.$('h4', undefined, localize('drox.ports.tools', 'External tools')));
 		dom.append(section, dom.$('p.drox-ports-muted', undefined, localize(
 			'drox.ports.toolsHint',
@@ -138,6 +139,7 @@ export class DroxPortsViewPane extends ViewPane {
 
 	private _renderForwardsSection(parent: HTMLElement): void {
 		const section = dom.append(parent, dom.$('.drox-ports-section'));
+		section.setAttribute('data-drox-tour', 'ports-forwards');
 		dom.append(section, dom.$('h4', undefined, localize('drox.ports.forwards', 'Forwards')));
 		dom.append(section, dom.$('p.drox-ports-muted', undefined, localize(
 			'drox.ports.forwardsHint',

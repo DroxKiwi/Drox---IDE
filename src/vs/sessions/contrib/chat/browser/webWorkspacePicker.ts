@@ -21,6 +21,7 @@ import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uri
 import { IWorkspacesService } from '../../../../platform/workspaces/common/workspaces.js';
 import { IWorkbenchLayoutService } from '../../../../workbench/services/layout/browser/layoutService.js';
 import { IDroxGitGraphService } from '../../../../workbench/contrib/drox/common/droxGitGraphService.js';
+import { IDroxTutorialService } from '../../../../workbench/contrib/drox/browser/tutorial/droxTutorial.js';
 import { ISessionsProvidersService } from '../../../services/sessions/browser/sessionsProvidersService.js';
 import { IAgentHostFilterService } from '../../../services/agentHostFilter/common/agentHostFilter.js';
 import { IWorkspacePickerItem, WorkspacePicker } from './sessionWorkspacePicker.js';
@@ -62,6 +63,7 @@ export class WebWorkspacePicker extends WorkspacePicker {
 		@ITelemetryService telemetryService: ITelemetryService,
 		@INotificationService notificationService: INotificationService,
 		@IDroxGitGraphService droxGitGraphService: IDroxGitGraphService,
+		@IDroxTutorialService droxTutorialService: IDroxTutorialService,
 		@IAgentHostFilterService private readonly _agentHostFilterService: IAgentHostFilterService,
 		@IWorkbenchLayoutService private readonly _layoutService: IWorkbenchLayoutService,
 	) {
@@ -81,6 +83,7 @@ export class WebWorkspacePicker extends WorkspacePicker {
 			telemetryService,
 			notificationService,
 			droxGitGraphService,
+			droxTutorialService,
 		);
 
 		// When the scoped host changes, if the current selection no longer

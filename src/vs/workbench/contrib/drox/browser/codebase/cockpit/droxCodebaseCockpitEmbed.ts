@@ -28,6 +28,7 @@ export function renderDroxCodebaseCockpitEmbed(
 	},
 ): IDroxCodebaseCockpitEmbedRenderResult {
 	const section = dom.append(parent, dom.$('.drox-codebase-section'));
+	section.setAttribute('data-drox-tour', 'codebase-embed');
 	dom.append(section, dom.$('h4', undefined, localize('drox.codebase.embed', 'Embed')));
 
 	const enableRow = dom.append(section, dom.$('.drox-codebase-row'));

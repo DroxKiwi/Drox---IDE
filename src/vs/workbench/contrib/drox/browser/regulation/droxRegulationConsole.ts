@@ -129,16 +129,18 @@ export function renderDroxRegulationConsole(
 
 	renderCharts(section, opts.history);
 
-	dom.append(section, dom.$('h4', undefined, localize('drox.regulation.history.title', 'Run history')));
+	const historyHost = dom.append(section, dom.$('.drox-regulation-history'));
+	historyHost.setAttribute('data-drox-tour', 'regulation-history');
+	dom.append(historyHost, dom.$('h4', undefined, localize('drox.regulation.history.title', 'Run history')));
 	if (!opts.history.length) {
-		dom.append(section, dom.$('p.drox-codebase-muted', undefined, localize(
+		dom.append(historyHost, dom.$('p.drox-codebase-muted', undefined, localize(
 			'drox.regulation.history.empty',
 			'No runs scored yet — finish an agent run to populate.',
 		)));
 		return { listEl: undefined };
 	}
 
-	const list = dom.append(section, dom.$('.drox-regulation-history-list'));
+	const list = dom.append(historyHost, dom.$('.drox-regulation-history-list'));
 	const rows = [...opts.history].slice().reverse().slice(0, 40);
 	for (const entry of rows) {
 		appendHistoryRow(list, entry);

@@ -14,11 +14,12 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { IWorkbenchEnvironmentService } from '../../../../workbench/services/environment/common/environmentService.js';
 import { IWorkbenchLayoutService } from '../../../../workbench/services/layout/browser/layoutService.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
-import { openDroxCodebaseCockpit, openDroxPortsView, openDroxRegulationView, openDroxTrafficView } from '../../../../workbench/contrib/drox/browser/droxOpenWorkbenchViews.js';
+import { openDroxCodebaseCockpit, openDroxPortsView, openDroxRegulationView, openDroxSdtcmView, openDroxTrafficView } from '../../../../workbench/contrib/drox/browser/droxOpenWorkbenchViews.js';
 import { IDroxCodebaseSupervisionService } from '../../../../workbench/contrib/drox/common/codebase/droxCodebaseSupervisionService.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { IDroxRunSettingsService } from '../../../../workbench/contrib/drox/common/droxRunSettingsService.js';
 import { IDroxRegulationService } from '../../../../workbench/contrib/drox/common/regulation/droxRegulationServiceContract.js';
+import { IDroxSdtcmService } from '../../../../workbench/contrib/drox/browser/sdtcm/droxSdtcmService.js';
 import { SessionIsArchivedContext, SessionProviderIdContext } from '../../../common/contextkeys.js';
 import { ISession } from '../../../services/sessions/common/session.js';
 import { SessionItemContextMenuId, SessionItemToolbarMenuId } from '../../sessions/browser/views/sessionsList.js';
@@ -190,6 +191,49 @@ registerAction2(class DroxOpenSessionPortsAction extends Action2 {
 		const environmentService = accessor.get(IWorkbenchEnvironmentService);
 		applySessionRoot(accessor, session);
 		await openDroxPortsView({
+			viewsService,
+			layoutService,
+			environmentService,
+		});
+	}
+});
+
+registerAction2(class DroxOpenSessionSdtcmAction extends Action2 {
+	constructor() {
+		super({
+			id: 'drox.sessions.openSdtcm',
+			title: localize2('drox.openSessionSdtcm', "SDTCM"),
+			tooltip: localize('drox.openSessionSdtcm.tooltip', "Open the SDTCM map for this discussion's folder"),
+			icon: Codicon.map,
+			menu: [{
+				id: SessionItemToolbarMenuId,
+				group: 'navigation',
+				order: 8,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}, {
+				id: SessionItemContextMenuId,
+				group: '0_pin',
+				order: 6,
+				when: ContextKeyExpr.and(isDroxSession, ContextKeyExpr.equals(SessionIsArchivedContext.key, false)),
+			}],
+		});
+	}
+
+	async run(accessor: ServicesAccessor, context?: ISession | ISession[]): Promise<void> {
+		const session = Array.isArray(context) ? context[0] : context;
+		if (!session || session.providerId !== DROX_SESSIONS_PROVIDER_ID) {
+			return;
+		}
+		const viewsService = accessor.get(IViewsService);
+		const layoutService = accessor.get(IWorkbenchLayoutService);
+		const environmentService = accessor.get(IWorkbenchEnvironmentService);
+		const root = applySessionRoot(accessor, session);
+		const sdtcmService = accessor.get(IDroxSdtcmService);
+		if (root) {
+			sdtcmService.pinSessionFolder(root);
+			await sdtcmService.open(root);
+		}
+		await openDroxSdtcmView({
 			viewsService,
 			layoutService,
 			environmentService,

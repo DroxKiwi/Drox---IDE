@@ -40,7 +40,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IOpenerService openerService: IOpenerService,
 		@IThemeService themeService: IThemeService,
-		@IHoverService private readonly hoverService: IHoverService,
+		@IHoverService protected override readonly hoverService: IHoverService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IDroxSdtcmService private readonly sdtcmService: IDroxSdtcmService,
 	) {
@@ -60,6 +60,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 		const hint = $('p.drox-sdtcm-side-hint');
 		hint.textContent = localize('drox.sdtcm.sideHint', 'The map opens in an editor tab.');
 		const button = $('button.drox-sdtcm-side-open');
+		button.setAttribute('data-drox-tour', 'sdtcm-open');
 		button.textContent = localize('drox.sdtcm.sideOpen', 'Open the map');
 		this._register(addDisposableListener(button, 'click', () => {
 			void this.commandService.executeCommand(DroxCommands.OpenSdtcm);
@@ -67,8 +68,11 @@ export class DroxSdtcmViewPane extends ViewPane {
 		const toolsTitle = $('div.drox-sdtcm-side-label');
 		toolsTitle.textContent = localize('drox.sdtcm.tools', 'Tools');
 		const tools = $('div.drox-sdtcm-filters');
+		const moveRow = $('div');
+		moveRow.setAttribute('data-drox-tour', 'sdtcm-tools');
+		tools.appendChild(moveRow);
 		const display = this.sdtcmService.getDisplay();
-		this._addToggle(tools, localize('drox.sdtcm.move', 'Move'), display.move, checked => {
+		this._addToggle(moveRow, localize('drox.sdtcm.move', 'Move'), display.move, checked => {
 			const current = this.sdtcmService.getDisplay();
 			this.sdtcmService.setDisplay({ ...current, move: checked });
 		}, () => this.sdtcmService.getDisplay().move);
@@ -105,6 +109,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 		}));
 		tools.appendChild(run);
 		const tagHost = $('div.drox-sdtcm-tags');
+		tagHost.setAttribute('data-drox-tour', 'sdtcm-tags');
 		const tagUi = this._register(new DisposableStore());
 		let tagStamp = '';
 		const renderTags = () => {
@@ -180,6 +185,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 		this._register(this.sdtcmService.onDidChange(() => renderTags()));
 		this._register(this.sdtcmService.onDidChangeDisplay(() => renderTags()));
 		const filters = $('div.drox-sdtcm-filters');
+		filters.setAttribute('data-drox-tour', 'sdtcm-links');
 		this._addToggle(filters, localize('drox.sdtcm.filterLinks', 'Links'), display.links, checked => {
 			const current = this.sdtcmService.getDisplay();
 			this.sdtcmService.setDisplay({ ...current, links: checked });
@@ -197,6 +203,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 		root.appendChild(tagHost);
 		root.appendChild(filters);
 		const focusHost = $('div.drox-sdtcm-focus');
+		focusHost.setAttribute('data-drox-tour', 'sdtcm-focus');
 		const focusUi = this._register(new DisposableStore());
 		const renderFocus = () => {
 			focusUi.clear();
@@ -333,7 +340,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 			row.appendChild(name);
 			return row;
 		}
-		const edit = $('button.drox-sdtcm-focus-remove');
+		const edit = $('button.drox-sdtcm-focus-remove') as HTMLButtonElement;
 		edit.type = 'button';
 		edit.textContent = localize('drox.sdtcm.editTag', 'Edit');
 		store.add(addDisposableListener(edit, 'click', () => this._editTag(row, tag, store)));
@@ -372,10 +379,10 @@ export class DroxSdtcmViewPane extends ViewPane {
 		}
 		scopeInput.value = tag.scope;
 		scopeInput.disabled = locked;
-		const save = $('button.drox-sdtcm-focus-remove');
+		const save = $('button.drox-sdtcm-focus-remove') as HTMLButtonElement;
 		save.type = 'button';
 		save.textContent = localize('drox.sdtcm.saveTag', 'Save');
-		const cancel = $('button.drox-sdtcm-focus-remove');
+		const cancel = $('button.drox-sdtcm-focus-remove') as HTMLButtonElement;
 		cancel.type = 'button';
 		cancel.textContent = localize('drox.sdtcm.cancelTag', 'Cancel');
 		const hint = $('p.drox-sdtcm-side-hint');

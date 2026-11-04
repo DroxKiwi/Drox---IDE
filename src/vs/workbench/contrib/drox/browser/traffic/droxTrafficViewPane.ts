@@ -90,6 +90,7 @@ export class DroxTrafficViewPane extends ViewPane {
 		)));
 
 		const controls = dom.append(top, dom.$('.drox-traffic-section'));
+		controls.setAttribute('data-drox-tour', 'traffic-capture');
 		dom.append(controls, dom.$('h4', undefined, localize('drox.traffic.capture', 'Capture')));
 
 		const enableRow = dom.append(controls, dom.$('.drox-traffic-row'));
@@ -143,6 +144,7 @@ export class DroxTrafficViewPane extends ViewPane {
 
 	private _renderHistory(parent: HTMLElement): void {
 		const history = dom.append(parent, dom.$('.drox-traffic-history'));
+		history.setAttribute('data-drox-tour', 'traffic-ledger');
 		const head = dom.append(history, dom.$('.drox-traffic-history-head'));
 		dom.append(head, dom.$('h4', undefined, localize('drox.traffic.events', 'Ledger')));
 
@@ -224,6 +226,7 @@ export class DroxTrafficViewPane extends ViewPane {
 
 	private _renderAlertsSection(parent: HTMLElement): void {
 		const section = dom.append(parent, dom.$('.drox-traffic-section'));
+		section.setAttribute('data-drox-tour', 'traffic-alerts');
 		dom.append(section, dom.$('h4', undefined, localize('drox.traffic.alerts', 'Destination alerts')));
 		dom.append(section, dom.$('p.drox-traffic-muted', undefined, localize(
 			'drox.traffic.alertsHint',

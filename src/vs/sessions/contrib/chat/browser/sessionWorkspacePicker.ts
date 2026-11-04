@@ -43,6 +43,8 @@ import { reportNewChatPickerClosed } from './newChatPickerTelemetry.js';
 import { Menus } from '../../../browser/menus.js';
 import { markOnboardingTarget } from '../../../../workbench/contrib/onboarding/browser/spotlight/onboardingTarget.js';
 import { IDroxGitGraphService } from '../../../../workbench/contrib/drox/common/droxGitGraphService.js';
+import { IDroxTutorialService } from '../../../../workbench/contrib/drox/browser/tutorial/droxTutorial.js';
+import { createDroxTutorialLaunchButton } from '../../../../workbench/contrib/drox/browser/tutorial/droxTutorialLaunchButton.js';
 import { DroxBranchBadge } from '../../../../workbench/contrib/drox/browser/gitGraph/droxBranchBadge.js';
 import '../../../../workbench/contrib/drox/browser/gitGraph/media/droxBranchBadge.css';
 
@@ -148,6 +150,7 @@ export class WorkspacePicker extends Disposable {
 
 	protected _triggerElement: HTMLElement | undefined;
 	private _branchBadge: DroxBranchBadge | undefined;
+	private _tutorialLaunch: HTMLElement | undefined;
 	private readonly _renderDisposables = this._register(new DisposableStore());
 	private readonly _tabbedWidget: TabbedActionListWidget;
 	private readonly _pickerGroupContext: IContextKey<string>;
@@ -199,11 +202,13 @@ export class WorkspacePicker extends Disposable {
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IDroxGitGraphService private readonly droxGitGraphService: IDroxGitGraphService,
+		@IDroxTutorialService droxTutorialService: IDroxTutorialService,
 	) {
 		super();
 
 		this._tabbedWidget = this._register(this.instantiationService.createInstance(TabbedActionListWidget));
 		this._branchBadge = this._register(new DroxBranchBadge(this.droxGitGraphService));
+		this._tutorialLaunch = createDroxTutorialLaunchButton(droxTutorialService, this._store);
 		this._pickerGroupContext = SessionWorkspacePickerGroupContext.bindTo(this.contextKeyService);
 		this._register(this._tabbedWidget.onDidChangeTab(tab => {
 			this._activeTab = tab;
@@ -887,6 +892,9 @@ export class WorkspacePicker extends Disposable {
 		dom.append(this._triggerElement, renderIcon(icon));
 		const labelSpan = dom.append(this._triggerElement, dom.$('span.sessions-chat-dropdown-label'));
 		labelSpan.textContent = label;
+		if (this._tutorialLaunch) {
+			dom.append(this._triggerElement, this._tutorialLaunch);
+		}
 		if (this._branchBadge) {
 			this._branchBadge.bind(folderUri);
 			dom.append(this._triggerElement, this._branchBadge.element);
