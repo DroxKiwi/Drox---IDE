@@ -5,31 +5,33 @@
 
 // allow-any-unicode-comment-file
 
+import { $, append } from '../../../../../base/browser/dom.js';
+import { BaseActionViewItem, IBaseActionViewItemOptions } from '../../../../../base/browser/ui/actionbar/actionViewItems.js';
+import { getDefaultHoverDelegate } from '../../../../../base/browser/ui/hover/hoverDelegateFactory.js';
+import { IAction } from '../../../../../base/common/actions.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
+import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { localize, localize2 } from '../../../../../nls.js';
-import { ICommandService } from '../../../../../platform/commands/common/commands.js';
-import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
-import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
-import { IContextMenuService } from '../../../../../platform/contextview/browser/contextView.js';
+import { ServicesAccessor } from '../../../../../editor/browser/editorExtensions.js';
+import { Action2, MenuId, registerAction2 } from '../../../../../platform/actions/common/actions.js';
+import { IActionViewItemService } from '../../../../../platform/actions/browser/actionViewItemService.js';
+import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';
 import { SyncDescriptor } from '../../../../../platform/instantiation/common/descriptors.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
-import { IKeybindingService } from '../../../../../platform/keybinding/common/keybinding.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
-import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
 import { Registry } from '../../../../../platform/registry/common/platform.js';
 import { registerIcon } from '../../../../../platform/theme/common/iconRegistry.js';
-import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
-import { ViewPane } from '../../../../browser/parts/views/viewPane.js';
-import { ViewPaneContainer } from '../../../../browser/parts/views/viewPaneContainer.js';
-import { IViewletViewOptions } from '../../../../browser/parts/views/viewsViewlet.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../common/contributions.js';
-import { IViewContainersRegistry, IViewsRegistry, IViewDescriptorService, Extensions as ViewExtensions, ViewContainerLocation, WindowEnablement } from '../../../../common/views.js';
+import { IsAuxiliaryWindowContext, IsSessionsWindowContext } from '../../../../common/contextkeys.js';
+import { IViewContainersRegistry, IViewsRegistry, Extensions as ViewExtensions, ViewContainerLocation } from '../../../../common/views.js';
+import { TitleBarLeadingActionsGroup } from '../../../../browser/parts/titlebar/titlebarActions.js';
+import { ViewPaneContainer } from '../../../../browser/parts/views/viewPaneContainer.js';
 import { IWorkbenchLayoutService, Parts } from '../../../../services/layout/browser/layoutService.js';
-import { IPaneCompositePartService } from '../../../../services/panecomposite/browser/panecomposite.js';
-import { DroxCommands, DroxViews } from '../../common/drox.js';
+import { DroxViews } from '../../common/drox.js';
 import { DroxIdeNativeChatTabEnabledContext } from '../../common/droxAgentsConfiguration.js';
+import { openDroxIdeChatView } from './droxIdeChatViewRoute.js';
 import { DroxNativeChatViewPane } from './droxNativeChatViewPane.js';
 import { DroxIdeChangesViewPane } from './droxIdeChangesViewPane.js';
 import { registerDroxNativeChatViewActions } from './droxNativeChatViewActions.js';
@@ -99,127 +101,83 @@ Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([{
 	when: DroxIdeNativeChatTabEnabledContext,
 }], changesViewContainer);
 
-const droxChatRevealIcon = registerIcon(
-	'drox-chat-reveal-view-icon',
-	Codicon.commentDiscussion,
-	localize('droxChatRevealViewIcon', 'View icon that shows the Drox chat when it is hidden.'),
-);
+const TOGGLE_DROX_CHAT_TITLEBAR = 'workbench.action.toggleDroxChatTitleBar';
 
-/** IDE activity bar only. Clicking toggles the auxiliary chat open or closed. */
-const chatRevealViewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer({
-	id: DroxViews.ChatRevealViewContainerId,
-	title: localize2('drox.chatRevealContainer.label', 'Chat'),
-	icon: droxChatRevealIcon,
-	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [DroxViews.ChatRevealViewContainerId, { mergeViewWithContainerWhenSingleView: true }]),
-	storageId: DroxViews.ChatRevealViewContainerId,
-	hideIfEmpty: false,
-	order: 9,
-	windowEnablement: WindowEnablement.Editor,
-}, ViewContainerLocation.Sidebar, { doNotRegisterOpenCommand: true });
-
-class DroxChatRevealViewPane extends ViewPane {
-
-	constructor(
-		options: IViewletViewOptions,
-		@IKeybindingService keybindingService: IKeybindingService,
-		@IContextMenuService contextMenuService: IContextMenuService,
-		@IConfigurationService configurationService: IConfigurationService,
-		@IContextKeyService contextKeyService: IContextKeyService,
-		@IViewDescriptorService viewDescriptorService: IViewDescriptorService,
-		@IInstantiationService instantiationService: IInstantiationService,
-		@IOpenerService openerService: IOpenerService,
-		@IThemeService themeService: IThemeService,
-		@IHoverService hoverService: IHoverService,
-	) {
-		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
+class ToggleDroxChatTitleBarAction extends Action2 {
+	constructor() {
+		super({
+			id: TOGGLE_DROX_CHAT_TITLEBAR,
+			title: localize2('drox.chatTitleBar', 'Chat'),
+			f1: false,
+			menu: {
+				id: MenuId.TitleBar,
+				group: TitleBarLeadingActionsGroup,
+				order: -999,
+				when: ContextKeyExpr.and(IsSessionsWindowContext.negate(), IsAuxiliaryWindowContext.negate()),
+			},
+		});
 	}
 
-	protected override renderBody(container: HTMLElement): void {
-		super.renderBody(container);
-		const note = document.createElement('p');
-		note.textContent = localize('drox.chatReveal.note', 'The chat opens on the side.');
-		container.appendChild(note);
+	override async run(accessor: ServicesAccessor): Promise<void> {
+		const layoutService = accessor.get(IWorkbenchLayoutService);
+		if (layoutService.isVisible(Parts.AUXILIARYBAR_PART)) {
+			layoutService.setPartHidden(true, Parts.AUXILIARYBAR_PART);
+			return;
+		}
+		await openDroxIdeChatView(accessor, true);
 	}
 }
 
-Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([{
-	id: DroxViews.ChatRevealViewId,
-	name: localize2('drox.chatRevealView.label', 'Chat'),
-	containerIcon: droxChatRevealIcon,
-	containerTitle: localize('drox.chatRevealContainer.title', 'Chat'),
-	singleViewPaneContainerTitle: localize('drox.chatRevealContainer.title', 'Chat'),
-	canToggleVisibility: false,
-	canMoveView: false,
-	weight: 100,
-	order: 0,
-	windowEnablement: WindowEnablement.Editor,
-	ctorDescriptor: new SyncDescriptor(DroxChatRevealViewPane),
-}], chatRevealViewContainer);
+registerAction2(ToggleDroxChatTitleBarAction);
 
-class DroxChatRevealContribution extends Disposable implements IWorkbenchContribution {
-	static readonly ID = 'workbench.contrib.droxChatReveal';
+/** Title-bar chat control, beside Open in Agents. Green while the side chat is open. */
+class DroxChatTitleBarWidget extends BaseActionViewItem {
 
-	private lastSidebarId: string | undefined;
-	private sidebarWasVisible: boolean;
-	private pending = false;
+	private host: HTMLElement | undefined;
 
 	constructor(
-		@IPaneCompositePartService private readonly paneCompositeService: IPaneCompositePartService,
+		action: IAction,
+		options: IBaseActionViewItemOptions | undefined,
+		@IHoverService private readonly hoverService: IHoverService,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
-		@ICommandService private readonly commandService: ICommandService,
+	) {
+		super(undefined, action, options);
+	}
+
+	override render(container: HTMLElement): void {
+		super.render(container);
+		this.host = container;
+		container.classList.add('drox-chat-titlebar-widget');
+		container.setAttribute('role', 'button');
+
+		const icon = append(container, $('span.drox-chat-titlebar-widget-icon'));
+		icon.classList.add(...ThemeIcon.asClassNameArray(Codicon.commentDiscussion));
+		icon.setAttribute('aria-hidden', 'true');
+
+		this._register(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), container, localize('drox.chatTitleBar.hover', 'Chat')));
+		this._register(this.layoutService.onDidChangePartVisibility(() => this.sync()));
+		this.sync();
+	}
+
+	private sync(): void {
+		const open = this.layoutService.isVisible(Parts.AUXILIARYBAR_PART);
+		this.host?.classList.toggle('is-open', open);
+		this.host?.setAttribute('aria-pressed', open ? 'true' : 'false');
+	}
+}
+
+class DroxChatTitleBarContribution extends Disposable implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.droxChatTitleBar';
+
+	constructor(
+		@IActionViewItemService actionViewItemService: IActionViewItemService,
+		@IInstantiationService instantiationService: IInstantiationService,
 	) {
 		super();
-		this.sidebarWasVisible = layoutService.isVisible(Parts.SIDEBAR_PART);
-		this.lastSidebarId = paneCompositeService.getActivePaneComposite(ViewContainerLocation.Sidebar)?.getId();
-
-		this._register(layoutService.onDidChangePartVisibility(e => {
-			if (e.partId === Parts.SIDEBAR_PART && !e.visible) {
-				this.sidebarWasVisible = false;
-			}
-		}));
-
-		this._register(paneCompositeService.onDidPaneCompositeOpen(e => {
-			if (e.viewContainerLocation !== ViewContainerLocation.Sidebar) {
-				return;
-			}
-			const id = e.composite.getId();
-			if (id !== DroxViews.ChatRevealViewContainerId) {
-				this.lastSidebarId = id;
-			}
-			if (this.pending) {
-				return;
-			}
-			const sidebarWasVisible = this.sidebarWasVisible;
-			this.pending = true;
-			queueMicrotask(() => {
-				this.pending = false;
-				const current = this.paneCompositeService.getActivePaneComposite(ViewContainerLocation.Sidebar);
-				if (current?.getId() !== DroxViews.ChatRevealViewContainerId) {
-					this.sidebarWasVisible = this.layoutService.isVisible(Parts.SIDEBAR_PART);
-					return;
-				}
-				void this.finish(sidebarWasVisible);
-			});
-		}));
-	}
-
-	private async finish(sidebarWasVisible: boolean): Promise<void> {
-		const chatHidden = !this.layoutService.isVisible(Parts.AUXILIARYBAR_PART);
-		if (chatHidden) {
-			await this.commandService.executeCommand(DroxCommands.OpenChat);
-		} else {
-			this.layoutService.setPartHidden(true, Parts.AUXILIARYBAR_PART);
-		}
-		if (!sidebarWasVisible) {
-			this.layoutService.setPartHidden(true, Parts.SIDEBAR_PART);
-		} else if (this.lastSidebarId && this.lastSidebarId !== DroxViews.ChatRevealViewContainerId) {
-			await this.paneCompositeService.openPaneComposite(this.lastSidebarId, ViewContainerLocation.Sidebar, !chatHidden);
-		}
-		if (chatHidden) {
-			this.layoutService.focusPart(Parts.AUXILIARYBAR_PART);
-		}
-		this.sidebarWasVisible = this.layoutService.isVisible(Parts.SIDEBAR_PART);
+		this._register(actionViewItemService.register(MenuId.TitleBar, TOGGLE_DROX_CHAT_TITLEBAR, (action, options) => {
+			return instantiationService.createInstance(DroxChatTitleBarWidget, action, options);
+		}, undefined));
 	}
 }
 
-registerWorkbenchContribution2(DroxChatRevealContribution.ID, DroxChatRevealContribution, WorkbenchPhase.AfterRestored);
+registerWorkbenchContribution2(DroxChatTitleBarContribution.ID, DroxChatTitleBarContribution, WorkbenchPhase.BlockRestore);

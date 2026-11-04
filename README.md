@@ -8,6 +8,20 @@
 
 Installeurs Windows et Linux : [**télécharger la 1.6.3**](https://github.com/DroxKiwi/Drox---IDE/releases/tag/v1.6.3).
 
+La même installation en ligne de commande. Le script prend la release marquée Latest et remplace une installation déjà présente.
+
+Windows (PowerShell) :
+
+```powershell
+irm https://raw.githubusercontent.com/DroxKiwi/Drox---IDE/main/scripts/install/install.ps1 | iex
+```
+
+Linux :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DroxKiwi/Drox---IDE/main/scripts/install/install.sh | bash
+```
+
 Drox IDE est référencé sur la page contributeur du [XERJ Corpus Hub](https://hub.xerj.org/contributors/DroxKiwi).
 
 ## L’IDE

@@ -85,3 +85,38 @@
 	outline: 1px solid #3D7A3D;
 	outline-offset: -1px;
 }
+
+/* Chat toggle beside Open in Agents. Green while the side chat is open. */
+.monaco-workbench .drox-chat-titlebar-widget {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	margin-right: 2px;
+	border-radius: 5px;
+	cursor: pointer;
+	color: var(--vscode-titleBar-activeForeground);
+	-webkit-app-region: no-drag;
+}
+
+.monaco-workbench .drox-chat-titlebar-widget.is-open {
+	color: #4ec94e;
+}
+
+.monaco-workbench .drox-chat-titlebar-widget > .drox-chat-titlebar-widget-icon {
+	font-size: 16px;
+}
+
+.monaco-workbench .drox-chat-titlebar-widget:hover {
+	background-color: color-mix(in srgb, var(--vscode-titleBar-activeForeground) 14%, transparent);
+}
+
+.monaco-workbench .drox-chat-titlebar-widget.is-open:hover {
+	background-color: color-mix(in srgb, #4ec94e 18%, transparent);
+}
+
+.monaco-workbench .drox-chat-titlebar-widget:focus-visible {
+	outline: 1px solid var(--vscode-titleBar-activeForeground);
+	outline-offset: -1px;
+}
