@@ -16,7 +16,7 @@
 | **`PROTOCOL_VERSION`** | `"1.0"`. |
 | **`rpc_types.rs`** | DTO wire JSON-RPC (`AgentRunParams`, …). |
 | **Nudge** | `Message::system` de relance (done, testing, loop, local, …). |
-| **Gate** | Blocage tool ou refus `done` (todo, testing, professor, …). |
+| **Gate** | Blocage tool ou refus `done` (todo, professor, …). `testing` n’est plus une gate. |
 | **LoopDetector** | Anti-répétition → Warn · ForceConclude · **SyntheticDone** (souvent Stop propre). |
 | **Situation card** | Bloc system réécrit chaque tour (état court du run). |
 | **Tool result spill** | Externalise / stub gros résultats outil (contexte). |

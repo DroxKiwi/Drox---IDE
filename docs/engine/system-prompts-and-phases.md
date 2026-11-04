@@ -55,7 +55,7 @@ Jamais un tool nommé `phase` / `set_phase` ([`hallucination.rs`](../../drox-eng
 | `reading` | Lecture ciblée |
 | `planning` | Organisation avant mutations |
 | `acting` | Édition / bash mutateur |
-| `testing` | Vérif après mutation **code** (soft close check en `local-27b` / `cloud-full`) |
+| `testing` | Phase encore reconnue. Elle n’est plus exigée pour clore un run |
 | `verifying` | Checks hors post-mutation build |
 | `clarifying` | Questions |
 | `answering` | **Prose utilisateur** Markdown |
@@ -67,11 +67,11 @@ Legacy **ignorés** : `[phase: reasoning]`, `[phase: next-move]`.
 
 ### `cloud-full`
 
-1. **Le moteur ferme le run** sur un tour sans outil (même filet que les profils locaux : tour vide, puis soft close check si todos ou testing). Le CORE décrit encore `[phase: done]` comme sortie ; les refus de `done` plus bas dans `drive.rs` ne s’appliquent pas à ce run parent.
+1. **Le moteur ferme le run** sur un tour sans outil (même filet que les profils locaux : tour vide, puis soft close check si des todos sont encore ouverts). Le CORE décrit encore `[phase: done]` comme sortie ; les refus de `done` plus bas dans `drive.rs` ne s’appliquent pas à ce run parent.
 2. **Le texte de gate** dit qu’un `done` exige un `answering` préalable (`MISSING_ANSWERING_PROMPT`). Ce nudge est sur le chemin professeur, pas sur la clôture parent.
 3. Prose utilisateur **dans `answering`** uniquement.
 4. **Avant mutation** : `todo_write` réussi (**gate dure**). Read-only / bash inspectif peuvent précéder.
-5. Le CORE demande encore des todos clos et un `[phase: testing]` après une mutation de code avant le dernier `answering` + `done`. Côté moteur parent, c’est le soft close check one-shot, puis l’arrêt.
+5. Le CORE ne demande plus un `[phase: testing]` après une mutation de code. Côté moteur parent, le soft close check one-shot ne parle que des todos encore ouverts, puis le run s’arrête.
 6. **Anti-boucle** : LoopDetector + texte CORE ; escalade moteur si répétition — [agent-internals.md](agent-internals.md).
 
 ### Profils locaux

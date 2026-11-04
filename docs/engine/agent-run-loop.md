@@ -62,10 +62,10 @@ Voici la réponse…
 Un tour **sans** `tool_call` ferme le run, sauf `[phase: acting]` sans tour final forcé (intention d’écriture, FX-B). `[phase: done]` n’est pas exigé pour sortir.
 
 - Tour **vide** (thinking seul compris) : un nudge **`LOCAL_EMPTY_TURN`**, puis au tour vide suivant le texte **« Run terminé »** (`ENGINE_CLOSURE_EMPTY_REPLY`).
-- **`local-27b` et `cloud-full`** : si la réponse a du texte, todos encore ouverts ou code modifié sans `[phase: testing]`, un **`LOCAL_SOFT_CLOSE_CHECK`** one-shot laisse un dernier tour. **`local-9b`** n’a pas ce contrôle.
+- **`local-27b` et `cloud-full`** : si la réponse a du texte et que des todos sont encore ouverts, un **`LOCAL_SOFT_CLOSE_CHECK`** one-shot laisse un dernier tour. Une mutation de code sans `[phase: testing]` ne prolonge pas le run. **`local-9b`** n’a pas ce contrôle.
 - Affichage : [`loop_close/engine_closure.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/loop_close/engine_closure.rs). Si `DONE_ONLY` a déjà été envoyé et que le tour suivant réécrit une conclusion sans outil ni `[phase: done]`, ce texte n’est pas renvoyé au chat et le run s’arrête.
 
-Les gates `[phase: done]` (answering préalable, todos, testing) sont plus bas dans `drive_inner`. Un run parent n’y arrive pas : le tour sans outil est déjà clos. Elles restent le chemin professeur, et le texte que le CORE `cloud-full` décrit encore au modèle.
+Les gates `[phase: done]` (answering préalable, todos) sont plus bas dans `drive_inner`. Un run parent n’y arrive pas : le tour sans outil est déjà clos. Elles restent le chemin professeur, et le texte que le CORE `cloud-full` décrit encore au modèle. La phase `testing` n’est plus une gate.
 
 ### Explore (sous-run, `explore_execution`)
 
@@ -77,7 +77,7 @@ Les gates `[phase: done]` (answering préalable, todos, testing) sont plus bas d
 |------|--------|
 | `todo_write` avant mutation | **`cloud-full` only** — bloque mutateurs sans plan todo |
 | Todos `pending` / `in_progress` | Refuse `[phase: done]` → `unfinished_todos_prompt` |
-| Mutation code sans `testing` | Refuse `done` ou nudge testing si answering sans `done` |
+| Mutation code sans `testing` | N’empêche plus la clôture |
 | `done` sans `answering` | `MISSING_ANSWERING_PROMPT` (réécriture demandée) |
 | Professor | Plan de cours / étapes (`professor.rs`) |
 | **LoopDetector** | Warn → ForceConclude (tools off) → **SyntheticDone** — voir [agent-internals.md](agent-internals.md#loopdetector-escalade-2026-10) |

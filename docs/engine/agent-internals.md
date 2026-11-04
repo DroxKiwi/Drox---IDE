@@ -53,7 +53,7 @@ Alignée sur [`agent/mod.rs`](../../drox-engine/drox/crates/drox-engine/src/agen
 | Knob | `local-9b` | `local-27b` | `cloud-full` |
 |------|------------|-------------|--------------|
 | CORE system | Allégé (`CORE_LOCAL`) | Idem | CORE 1.6.0 complet |
-| Clôture | Moteur (tour sans outil) | + soft close check (todo / testing) one-shot | Même clôture moteur que `local-27b` |
+| Clôture | Moteur (tour sans outil) | + soft close check (todos ouverts) one-shot | Même clôture moteur que `local-27b` |
 | Gate todo avant mutation | Non | Non | **Oui** |
 | Nudges plan / post-merge Explore | Réduits | Actifs | Actifs |
 | Outils parent | Allowlist courte | Allowlist élargie | Catalogue (hors `disabledTools` IDE) |
@@ -65,11 +65,11 @@ Méthodes : `is_local()`, `plan_nudges()`, `todo_before_mutation_gate()`, `expos
 Après `consume_stream` et push transcript :
 
 1. **Explore child** (`explore_execution`) : `answering` ou `done` sans tool → **Stop** immédiat (rapport moteur ensuite).
-2. **Clôture moteur** (`engine_closure` = pas professeur, pas Explore) : tour sans tool → **Stop**. Tour vide : `LOCAL_EMPTY_TURN` puis « Run terminé ». `LOCAL_SOFT_CLOSE_CHECK` one-shot en `local-27b` et `cloud-full` si todos ouverts ou testing encore dû.
-3. **`[phase: done]`** : gates answering, todos, testing, professor — seulement si l’étape 2 n’a pas déjà clos le run (professeur, Explore hors `answering`/`done`).
+2. **Clôture moteur** (`engine_closure` = pas professeur, pas Explore) : tour sans tool → **Stop**. Tour vide : `LOCAL_EMPTY_TURN` puis « Run terminé ». `LOCAL_SOFT_CLOSE_CHECK` one-shot en `local-27b` et `cloud-full` si des todos sont encore ouverts. `[phase: testing]` n’entre plus dans ce rappel.
+3. **`[phase: done]`** : gates answering, todos, professor — seulement si l’étape 2 n’a pas déjà clos le run (professeur, Explore hors `answering`/`done`).
 4. **FX-B** : `[phase: acting]` sans tool → nudges intent-only write (escalade locale → tour final forcé).
 5. **`LoopDetector::observe`** — **après** les gates `done` (répétitions de `done` bloqué par todo ne doivent pas abort trop tôt).
-6. Tour sans tool ni `done` : `DONE_ONLY` si answering OK et gates clear ; sinon `NUDGE_PROMPT` ou nudge testing.
+6. Tour sans tool ni `done` : `DONE_ONLY` si answering OK et gates clear ; sinon `NUDGE_PROMPT`.
 
 Snip / compaction : [`run/lifecycle.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/lifecycle.rs) (`maybe_snip`) + crate [`compaction/`](../../drox-engine/drox/crates/drox-engine/src/compaction/).
 

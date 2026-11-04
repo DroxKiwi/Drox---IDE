@@ -41,7 +41,7 @@ Expliquer avec précision comment un message devient des tours LLM, des appels d
 | [jsonrpc-protocol.md](jsonrpc-protocol.md) | Transport NDJSON, méthodes, schémas `agent.run`, `tool/exec` |
 | [agent-run-loop.md](agent-run-loop.md) | De `agent.run` à `drive_inner` : tours, phases, nudges, clôture |
 | [agent-internals.md](agent-internals.md) | Carte du module `agent/`, `AgentConfig`, `EngineProfile`, gates |
-| [system-prompts-and-phases.md](system-prompts-and-phases.md) | Prompt système, protocole `[phase:]`, règles done/todos/testing |
+| [system-prompts-and-phases.md](system-prompts-and-phases.md) | Prompt système, protocole `[phase:]`, règles done/todos |
 | [tools-and-permissions.md](tools-and-permissions.md) | Palette exacte, local/remote, modes, parallélisme, hooks |
 | [sessions-and-memory.md](sessions-and-memory.md) | JSONL `~/.drox/sessions`, compaction, mémoire `.drox/memory` |
 | [llm-backends.md](llm-backends.md) | Ollama, OpenAI-compat, factory, thinking |

@@ -1,8 +1,8 @@
 # 1.6.4
 
-**Statut** : **ouvert**  
+**Statut** : **shippé** (`v1.6.4`)  
 **Précédent** : [1.6.3](../1.6.3/README.md) — stable shippée (`v1.6.3`).  
-**Git** : branche `1.6.4` depuis `main`. Pas encore mergée.
+**Git** : mergée sur `main`. La branche `1.6.4` a été supprimée.
 
 ## Commits sur `1.6.4`
 
@@ -14,6 +14,7 @@
 | `882a0d4d` | Réaligner sur les fichiers changés, correction d’un tag refusé |
 | `0e29cdda` | Plus de phase testing exigée avant de clore un run |
 | `ece6bfb3` | Installation en ligne de commande, chat dans la barre de titre |
+| `c3224e30` | Tutoriels IDE et Agents, SDTCM dans la fenêtre Agents |
 
 **Régulation.** L4 `cloud-full` : un tour sans outil ferme le run. L’annexe ne demande plus de fermer les todos avant `[phase: done]`, et ne dit plus que le moteur refuse ce marqueur. L5 : si L2 est `core`, `codebase_search` n’est pas dans le schéma. Le rappel de recherche ne cite plus cet outil ; il s’appuie sur le contexte `@Codebase` déjà injecté.
 
@@ -23,11 +24,9 @@
 
 **Clôture.** La phase testing n’est plus exigée avant de fermer un run. Le rappel de fin de tour local ne parle plus que des todos encore ouverts. `local-9b` n’a pas ce rappel.
 
-**Installation.** `scripts/install/install.ps1` (Windows) et `install.sh` (Linux, x64) prennent la release GitHub marquée Latest, vérifient le SHA256, et réinstallent. Les commandes sont dans le [README](../../../README.md). Elles pointent `main` : elles répondent une fois cette branche mergée.
+**Installation.** `scripts/install/install.ps1` (Windows) et `install.sh` (Linux, x64) prennent la release GitHub marquée Latest, vérifient le SHA256, et réinstallent. Les commandes sont dans le [README](../../../README.md).
 
 **Barre de titre IDE.** Le chat n’est plus un onglet de la barre latérale. Le bouton est à côté d’Open in Agents. Vert si le chat est ouvert, gris sinon. L’apparition et la disparition du panneau sont inchangées.
-
-## Dans l’arbre, pas encore commité
 
 **Tutoriel IDE.** Bouton Tutorial à gauche d’Open in Agents. Le reste de l’écran s’assombrit, la zone en cours est éclairée. Première carte : fork de Visual Studio Code 1.127, seul endroit avec le lien vers la documentation. Ensuite Open in Agents, sans ouvrir cette fenêtre. Puis chaque bouton du chat, les fenêtres de réglage, et une fausse connexion (`http://127.0.0.1:11434`) qui n’est pas enregistrée. Ensuite Codebase, Regulation, Traffic, Ports, SDTCM : d’abord l’icône, puis l’intérieur de l’onglet. SDTCM ouvre la carte sans lancer de run. Consistency n’est pas présenté : c’est un outil de dev.
 
