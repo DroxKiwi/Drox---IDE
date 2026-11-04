@@ -18,3 +18,16 @@ Il faut une différence réelle, et une plus-value du mode full protocol.
 La 1.6.4 a retiré l’exigence de phase testing avant la clôture. Ce chantier reste ouvert : un run doit se terminer de façon stable.
 
 Point déjà noté, pas repris dans cette ouverture : [conclusion répétée](../../1.6.4/MAJ/RAPPORT-CONCLUSION-REPETEE.md).
+
+## O3 — Requêtes concurrentes
+
+Plusieurs sous-agents peuvent être déclarés dans le même tour. L’outil `Task` (Explore) est marqué concurrent. C’est trop instable.
+
+Piste retenue pour l’instant : interdire cette concurrence. Un seul sous-agent à la fois.
+
+## O4 — Cacher les mécaniques de dev en version live
+
+La surface `release` ne doit pas montrer les outils de dogfood.
+
+- **Arm debug capture** dans le chat (`drox.nativeChat.runCapture`, icône bug du titre). Le registre dev le nomme déjà `runCapture`, le bouton est encore au menu.
+- **Consistency** dans le panneau SDTCM (Run consistency). Outil de dev. Le tutoriel 1.6.4 ne le présente pas.

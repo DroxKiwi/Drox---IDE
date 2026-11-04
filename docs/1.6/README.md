@@ -13,7 +13,7 @@
 | [**1.6.2/**](1.6.2/README.md) | Onglets IDE, sync modèle, clôture locale, prompts, connexions, thème Agents et runs parallèles | **Stable** (`v1.6.2`) |
 | [**1.6.3/**](1.6.3/README.md) | Clôture full protocol, contexte allégé, probe d’historique (dev) | **Stable** (`v1.6.3`) |
 | [**1.6.4/**](1.6.4/README.md) | Régulation, Explain, SDTCM dessiné, clôture sans testing, install en ligne de commande, tutoriels IDE et Agents | **Stable** (`v1.6.4`) |
-| [**1.6.5/**](1.6.5/README.md) | Plus-value du full protocol face au local capable, stabilité des runs | **Ouvert** |
+| [**1.6.5/**](1.6.5/README.md) | Plus-value du full protocol, stabilité des runs, un seul sous-agent à la fois, outils de dev cachés en live | **Ouvert** |
 
 ---
 
