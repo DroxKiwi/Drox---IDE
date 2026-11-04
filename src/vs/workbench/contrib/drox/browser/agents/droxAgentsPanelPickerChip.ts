@@ -137,6 +137,16 @@ export function createCodebaseForcePickerChip(defaultLabel: string, title: strin
 	});
 }
 
+export function createAutoAlignPickerChip(defaultLabel: string, title: string): DroxAgentsPanelPickerChip {
+	return new DroxAgentsPanelPickerChip({
+		id: 'sdtcm-auto-align-vignette',
+		icon: Codicon.sync,
+		defaultLabel,
+		title,
+		extraClass: 'sdtcm-auto-align-vignette',
+	});
+}
+
 export function createRegulationPickerChip(defaultLabel: string, title: string): DroxAgentsPanelPickerChip {
 	return new DroxAgentsPanelPickerChip({
 		id: 'regulation-status-vignette',

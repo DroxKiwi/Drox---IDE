@@ -385,10 +385,10 @@ export class PaneCompositeBar extends Disposable {
 	}
 
 	private toCompositeBarActionItemFrom(viewContainerModel: IViewContainerModel): ICompositeBarActionItem {
-		return this.toCompositeBarActionItem(viewContainerModel.viewContainer.id, viewContainerModel.title, viewContainerModel.icon, viewContainerModel.keybindingId);
+		return this.toCompositeBarActionItem(viewContainerModel.viewContainer.id, viewContainerModel.title, viewContainerModel.icon, viewContainerModel.keybindingId, viewContainerModel.viewContainer.activityBarTooltip);
 	}
 
-	private toCompositeBarActionItem(id: string, name: string, icon: URI | ThemeIcon | undefined, keybindingId: string | undefined): ICompositeBarActionItem {
+	private toCompositeBarActionItem(id: string, name: string, icon: URI | ThemeIcon | undefined, keybindingId: string | undefined, tooltip?: string): ICompositeBarActionItem {
 		let classNames: string[] | undefined = undefined;
 		let iconUrl: URI | undefined = undefined;
 		if (this.options.icon) {
@@ -413,7 +413,7 @@ export class PaneCompositeBar extends Disposable {
 			}
 		}
 
-		return { id, name, classNames, iconUrl, keybindingId };
+		return { id, name, classNames, iconUrl, keybindingId, tooltip };
 	}
 
 	private showOrHideViewContainer(viewContainer: ViewContainer): void {

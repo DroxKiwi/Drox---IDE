@@ -7,6 +7,9 @@
 
 export const DROX_SDTCM_MAP_VERSION = 1;
 
+/** A tag reason the model may write, and the length kept when a map is read back. */
+export const DROX_SDTCM_TAG_REASON = 120;
+
 export interface IDroxSdtcmEntry {
 	readonly file: string;
 	readonly line: number;
@@ -264,7 +267,7 @@ export function normalizeDroxSdtcmTagMarks(raw: unknown): IDroxSdtcmTagMark[] {
 		}
 		const record = item as Record<string, unknown>;
 		const name = typeof record.name === 'string' ? record.name.trim() : '';
-		const reason = typeof record.reason === 'string' ? record.reason.trim().slice(0, 30) : '';
+		const reason = typeof record.reason === 'string' ? record.reason.trim().slice(0, DROX_SDTCM_TAG_REASON) : '';
 		if (!name || tags.some(mark => mark.name === name)) {
 			continue;
 		}
@@ -286,7 +289,7 @@ function normalizeDroxSdtcmPlaced(raw: unknown): IDroxSdtcmPlacedTag[] {
 		const scope = record.scope === 'folder' || record.scope === 'file' ? record.scope : undefined;
 		const on = typeof record.on === 'string' ? record.on.trim() : '';
 		const name = typeof record.name === 'string' ? record.name.trim() : '';
-		const reason = typeof record.reason === 'string' ? record.reason.trim().slice(0, 30) : '';
+		const reason = typeof record.reason === 'string' ? record.reason.trim().slice(0, DROX_SDTCM_TAG_REASON) : '';
 		if (!scope || !on || !name || placed.some(mark => mark.scope === scope && mark.on === on && mark.name === name)) {
 			continue;
 		}

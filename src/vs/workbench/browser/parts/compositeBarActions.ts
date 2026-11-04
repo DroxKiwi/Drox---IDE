@@ -6,6 +6,7 @@
 import { localize } from '../../../nls.js';
 import { Action, IAction, Separator } from '../../../base/common/actions.js';
 import { $, addDisposableListener, append, clearNode, EventHelper, EventType, getDomNodePagePosition, hide, show } from '../../../base/browser/dom.js';
+import { DROX_TOKEN_WARNING_HOVER_CLASS, droxTokenWarningHoverContent } from '../droxTokenWarningHover.js';
 import { ICommandService } from '../../../platform/commands/common/commands.js';
 import { toDisposable, DisposableStore, MutableDisposable } from '../../../base/common/lifecycle.js';
 import { IContextMenuService } from '../../../platform/contextview/browser/contextView.js';
@@ -74,6 +75,8 @@ export interface ICompositeBar {
 export interface ICompositeBarActionItem {
 	id: string;
 	name: string;
+	/** Shown on hover instead of `name` when set. */
+	tooltip?: string;
 	keybindingId?: string;
 	classNames?: string[];
 	iconUrl?: URI;
@@ -259,16 +262,27 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 			}, 800); // delayed to prevent focus feedback from showing on mouse up
 		}));
 
-		this._register(this.hoverService.setupDelayedHover(this.container, () => ({
-			content: this.computeTitle(),
-			style: HoverStyle.Pointer,
-			position: {
-				hoverPosition: this.options.hoverOptions.position(),
-			},
-			persistence: {
-				hideOnKeyDown: true,
-			},
-		}), { groupId: 'composite-bar-actions' }));
+		this._register(this.hoverService.setupDelayedHover(this.container, () => {
+			const warning = this.compositeBarActionItem.tooltip;
+			const position = { hoverPosition: this.options.hoverOptions.position() };
+			const persistence = { hideOnKeyDown: true };
+			if (warning) {
+				return {
+					content: droxTokenWarningHoverContent(warning),
+					additionalClasses: [DROX_TOKEN_WARNING_HOVER_CLASS],
+					style: HoverStyle.Pointer,
+					appearance: { compact: false, showPointer: true },
+					position,
+					persistence,
+				};
+			}
+			return {
+				content: this.computeTitle(),
+				style: HoverStyle.Pointer,
+				position,
+				persistence,
+			};
+		}, { groupId: 'composite-bar-actions' }));
 
 		// Label
 		this.label = append(container, $('a'));
@@ -415,7 +429,8 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 
 	protected computeTitle(): string {
 		this.keybindingLabel = this.computeKeybindingLabel();
-		let title = this.keybindingLabel ? localize('titleKeybinding', "{0} ({1})", this.compositeBarActionItem.name, this.keybindingLabel) : this.compositeBarActionItem.name;
+		const base = this.compositeBarActionItem.tooltip ?? this.compositeBarActionItem.name;
+		let title = this.keybindingLabel ? localize('titleKeybinding', "{0} ({1})", base, this.keybindingLabel) : base;
 
 		const badges = this.getVisibleBadges((this.action as CompositeBarAction).activities).badges;
 		for (const badge of badges) {

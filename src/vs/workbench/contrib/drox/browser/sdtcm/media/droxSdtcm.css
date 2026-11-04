@@ -35,11 +35,28 @@
 .drox-sdtcm-toolbar {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: center;
-	gap: 4px;
-	padding: 5px 8px 6px;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 5px 8px 0;
 	border-bottom: 1px solid var(--drox-ui-green);
 	background: var(--vscode-editor-background);
+}
+
+.drox-sdtcm-run,
+.drox-sdtcm-actions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.drox-sdtcm-run {
+	min-height: 28px;
+	border-bottom: 2px solid var(--drox-agents-control-border);
+}
+
+.drox-sdtcm-actions {
+	padding-bottom: 6px;
 }
 
 .drox-sdtcm-live {
@@ -148,8 +165,22 @@
 	font-size: 11px;
 }
 
+.drox-sdtcm-tag-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-sdtcm-tag-row.editing {
+	flex-wrap: wrap;
+}
+
 .drox-sdtcm-tag-add select,
-.drox-sdtcm-tag-add input[type='text'] {
+.drox-sdtcm-tag-add input[type='text'],
+.drox-sdtcm-tag-row.editing select,
+.drox-sdtcm-tag-row.editing input[type='text'] {
 	flex: 1;
 	min-width: 0;
 	height: 22px;
@@ -401,7 +432,7 @@
 	flex: 1;
 	min-height: 0;
 	overflow: hidden;
-	cursor: grab;
+	cursor: default;
 	outline: none;
 	background-color: var(--drox-sdtcm-surface);
 	background-image:
@@ -546,11 +577,16 @@
 	border: 1px solid var(--drox-sdtcm-border);
 	border-radius: 0;
 	background: var(--drox-sdtcm-raised);
+	cursor: text;
+	user-select: text;
+	-webkit-user-select: text;
 }
 
 .drox-sdtcm-journal-line {
 	padding: 2px 0;
 	opacity: 0.85;
+	user-select: text;
+	-webkit-user-select: text;
 }
 
 .drox-sdtcm.running .drox-sdtcm-journal-line:last-child {
@@ -616,7 +652,6 @@
 }
 
 .drox-sdtcm-toolbar .drox-sdtcm-side-open,
-.drox-sdtcm-toolbar .drox-sdtcm-phase,
 .drox-sdtcm-side .drox-sdtcm-side-open,
 .drox-sdtcm-side .drox-sdtcm-focus-remove {
 	display: inline-flex;
@@ -636,7 +671,6 @@
 }
 
 .drox-sdtcm-toolbar .drox-sdtcm-side-open:hover,
-.drox-sdtcm-toolbar .drox-sdtcm-phase:hover,
 .drox-sdtcm-side .drox-sdtcm-side-open:hover,
 .drox-sdtcm-side .drox-sdtcm-focus-remove:hover {
 	background: var(--vscode-toolbar-hoverBackground);
@@ -644,7 +678,6 @@
 }
 
 .drox-sdtcm-toolbar .drox-sdtcm-side-open,
-.drox-sdtcm-toolbar .drox-sdtcm-phase.on,
 .drox-sdtcm-side .drox-sdtcm-side-open {
 	background: var(--drox-agents-control-bg);
 	border-color: var(--drox-agents-control-border);
@@ -653,7 +686,6 @@
 }
 
 .drox-sdtcm-toolbar .drox-sdtcm-side-open:hover,
-.drox-sdtcm-toolbar .drox-sdtcm-phase.on:hover,
 .drox-sdtcm-side .drox-sdtcm-side-open:hover {
 	background: var(--drox-agents-control-bg-hover);
 	color: var(--vscode-foreground);
@@ -667,11 +699,38 @@
 .drox-sdtcm-phases {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 4px;
+	align-items: flex-end;
+	gap: 2px;
+}
+
+.drox-sdtcm-phase {
+	height: 26px;
+	padding: 2px 8px 4px;
+	border: none;
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--drox-sdtcm-muted);
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.drox-sdtcm-phase:hover {
+	color: var(--vscode-foreground);
+	background: transparent;
+}
+
+.drox-sdtcm-phase.on {
+	border-bottom-color: #4ec94e;
+	color: var(--vscode-foreground);
+	background: transparent;
+	box-shadow: none;
 }
 
 .drox-sdtcm-phase.locked {
 	cursor: default;
+	color: var(--drox-sdtcm-muted);
 }
 
 .drox-sdtcm-focus {
@@ -689,6 +748,32 @@
 	padding: 2px 6px;
 	box-sizing: border-box;
 	font-size: 11px;
+}
+
+.drox-sdtcm-focus-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-sdtcm-focus-path {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--drox-ui-green);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.drox-sdtcm-focus-path:hover {
+	color: var(--vscode-textLink-foreground, var(--drox-ui-green));
 }
 
 .drox-sdtcm-menu {
@@ -721,4 +806,31 @@
 .drox-sdtcm-menu button:hover {
 	background: color-mix(in srgb, var(--drox-ui-green) 12%, var(--drox-thread-brown-deep) 88%);
 	color: inherit;
+}
+
+.monaco-hover.workbench-hover.drox-sdtcm-token-warning-hover {
+	max-width: 320px;
+	background: color-mix(in srgb, var(--vscode-inputValidation-warningBackground) 62%, var(--vscode-inputValidation-errorBackground) 38%);
+	border: 2px solid var(--vscode-inputValidation-errorBorder);
+	color: var(--vscode-inputValidation-errorForeground);
+	box-shadow: 0 0 0 1px var(--vscode-inputValidation-warningBorder);
+}
+
+.monaco-hover.workbench-hover.drox-sdtcm-token-warning-hover .hover-contents {
+	padding: 8px 10px;
+}
+
+.drox-sdtcm-token-warning {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.drox-sdtcm-token-warning .codicon {
+	flex: 0 0 auto;
+	margin-top: 1px;
+	color: var(--vscode-problemsErrorIcon-foreground);
+	font-size: 18px;
 }

@@ -16,7 +16,7 @@ export interface IDroxSdtcmCanvasHandlers {
 	onSelect(node: IDroxSdtcmGraphNode): void;
 	onPressNode?(node: IDroxSdtcmGraphNode, event: PointerEvent): void;
 	onGrabFolder?(node: IDroxSdtcmGraphNode, event: PointerEvent): boolean | void;
-	onFolderMenu?(node: IDroxSdtcmGraphNode, event: MouseEvent): void;
+	onContextMenu?(node: IDroxSdtcmGraphNode, event: MouseEvent): void;
 }
 
 export function paintDroxSdtcmGraph(
@@ -111,17 +111,18 @@ function paintFrame(node: IDroxSdtcmGraphNode, selectedId: string | undefined, h
 		});
 	} else if (node.kind === 'folder') {
 		group.addEventListener('pointerdown', event => {
-			if (handlers.onGrabFolder?.(node, event) === false) {
+			if (event.button !== 0) {
 				return;
 			}
 			event.stopPropagation();
-		});
-		group.addEventListener('contextmenu', event => {
-			event.preventDefault();
-			event.stopPropagation();
-			handlers.onFolderMenu?.(node, event);
+			handlers.onGrabFolder?.(node, event);
 		});
 	}
+	group.addEventListener('contextmenu', event => {
+		event.preventDefault();
+		event.stopPropagation();
+		handlers.onContextMenu?.(node, event);
+	});
 	group.addEventListener('mouseenter', event => handlers.onEnter(node, event));
 	group.addEventListener('mouseleave', () => handlers.onLeave());
 	group.addEventListener('click', () => handlers.onSelect(node));

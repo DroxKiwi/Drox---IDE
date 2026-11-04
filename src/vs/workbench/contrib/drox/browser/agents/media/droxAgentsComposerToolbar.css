@@ -161,3 +161,54 @@
 .drox-discussion-shell .drox-agents-composer-toolbar .codebase-force-vignette.is-auto-off {
 	opacity: 0.72;
 }
+
+.drox-agents-composer-toolbar .sdtcm-auto-align-vignette.sdtcm-running {
+	animation: drox-sdtcm-align-glow 1.1s ease-in-out infinite;
+}
+
+.drox-agents-composer-toolbar .sdtcm-auto-align-vignette.sdtcm-running .codicon {
+	animation: drox-sdtcm-align-blink 0.9s steps(2, end) infinite;
+}
+
+@keyframes drox-sdtcm-align-glow {
+	0%, 100% {
+		border-color: color-mix(in srgb, var(--drox-thread-green, var(--vscode-charts-green, #89d185)) 35%, transparent);
+	}
+	50% {
+		border-color: var(--drox-thread-green, var(--vscode-charts-green, #89d185));
+		box-shadow: 0 0 0 1px var(--drox-thread-green, var(--vscode-charts-green, #89d185));
+	}
+}
+
+@keyframes drox-sdtcm-align-blink {
+	50% {
+		opacity: 0.15;
+	}
+}
+
+.monaco-hover.workbench-hover.drox-sdtcm-token-warning-hover {
+	max-width: 320px;
+	background: color-mix(in srgb, var(--vscode-inputValidation-warningBackground) 62%, var(--vscode-inputValidation-errorBackground) 38%);
+	border: 2px solid var(--vscode-inputValidation-errorBorder);
+	color: var(--vscode-inputValidation-errorForeground);
+	box-shadow: 0 0 0 1px var(--vscode-inputValidation-warningBorder);
+}
+
+.monaco-hover.workbench-hover.drox-sdtcm-token-warning-hover .hover-contents {
+	padding: 8px 10px;
+}
+
+.drox-sdtcm-token-warning {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.drox-sdtcm-token-warning .codicon {
+	flex: 0 0 auto;
+	margin-top: 1px;
+	color: var(--vscode-problemsErrorIcon-foreground);
+	font-size: 18px;
+}

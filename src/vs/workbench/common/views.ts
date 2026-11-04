@@ -93,6 +93,11 @@ export interface IViewContainerDescriptor {
 	readonly title: ILocalizedString;
 
 	/**
+	 * Hover text for the activity-bar icon. The visible name stays `title`.
+	 */
+	readonly activityBarTooltip?: string;
+
+	/**
 	 * Icon representation of the View container
 	 */
 	readonly icon?: ThemeIcon | URI;

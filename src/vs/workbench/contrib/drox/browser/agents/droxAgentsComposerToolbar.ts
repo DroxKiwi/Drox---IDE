@@ -6,6 +6,10 @@
 // allow-any-unicode-comment-file
 
 import './media/droxAgentsComposerToolbar.css';
+import { HoverPosition } from '../../../../../base/browser/ui/hover/hoverWidget.js';
+import { HoverStyle } from '../../../../../base/browser/ui/hover/hover.js';
+import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
+import { DROX_TOKEN_WARNING_HOVER_CLASS, droxTokenWarningHoverContent } from '../../../../browser/droxTokenWarningHover.js';
 import * as dom from '../../../../../base/browser/dom.js';
 import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { localize } from '../../../../../nls.js';
@@ -28,9 +32,11 @@ import {
 	createCodebaseForcePickerChip,
 	createCodebaseStatusPickerChip,
 	createModelSettingsPickerChip,
+	createAutoAlignPickerChip,
 	createRegulationPickerChip,
 	createServerSettingsPickerChip,
 } from './droxAgentsPanelPickerChip.js';
+import { IDroxSdtcmService } from '../sdtcm/droxSdtcmService.js';
 import { DroxAgentsPermissionModePicker } from './droxAgentsPermissionModePicker.js';
 import { IDroxAgentsComposerDroxChatHost } from './droxAgentsComposerDroxChatHost.js';
 
@@ -45,6 +51,7 @@ export class DroxAgentsComposerToolbar extends Disposable {
 	private readonly _codebaseChip: ReturnType<typeof createCodebaseStatusPickerChip>;
 	private readonly _codebaseForceChip: ReturnType<typeof createCodebaseForcePickerChip>;
 	private readonly _regulationChip: ReturnType<typeof createRegulationPickerChip>;
+	private readonly _alignChip: ReturnType<typeof createAutoAlignPickerChip>;
 	private readonly _permissionModePicker: DroxAgentsPermissionModePicker;
 	private readonly _chipDisposables = this._register(new DisposableStore());
 
@@ -58,6 +65,8 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		@IViewsService private readonly viewsService: IViewsService,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
 		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
+		@IDroxSdtcmService private readonly sdtcmService: IDroxSdtcmService,
+		@IHoverService hoverService: IHoverService,
 	) {
 		super();
 
@@ -84,6 +93,11 @@ export class DroxAgentsComposerToolbar extends Disposable {
 			localize('droxAgents.regulationChip', 'Regulation'),
 			localize('droxAgents.regulationChipTitle', 'Open model regulation observatory'),
 		);
+		const alignWarning = localize('droxAgents.autoAlignChipTitle', 'The selected model is called to build and update the map. This spends tokens.');
+		this._alignChip = createAutoAlignPickerChip(
+			localize('droxAgents.autoAlignChip', 'SDTCM Align'),
+			alignWarning,
+		);
 		this._permissionModePicker = this._register(instantiationService.createInstance(DroxAgentsPermissionModePicker));
 
 		this.domNode = $('.drox-agents-composer-toolbar');
@@ -95,11 +109,21 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		this._chipDisposables.add(this._codebaseChip);
 		this._chipDisposables.add(this._codebaseForceChip);
 		this._chipDisposables.add(this._regulationChip);
+		this._chipDisposables.add(this._alignChip);
 		this._modelSettingsChip.render(this.domNode);
 		this._serverSettingsChip.render(this.domNode);
 		this._codebaseChip.render(this.domNode);
 		this._codebaseForceChip.render(this.domNode);
 		this._regulationChip.render(this.domNode);
+		this._alignChip.render(this.domNode);
+		this._alignChip.triggerElement.removeAttribute('title');
+		this._register(hoverService.setupDelayedHover(this._alignChip.triggerElement, () => ({
+			content: droxTokenWarningHoverContent(alignWarning),
+			additionalClasses: [DROX_TOKEN_WARNING_HOVER_CLASS],
+			style: HoverStyle.Pointer,
+			appearance: { compact: false, showPointer: true },
+			position: { hoverPosition: HoverPosition.ABOVE },
+		})));
 		this._permissionModePicker.render(this.domNode);
 
 		this._chipDisposables.add(this._modelSettingsChip.onDidClick(() => {
@@ -125,6 +149,10 @@ export class DroxAgentsComposerToolbar extends Disposable {
 				environmentService: this.environmentService,
 			});
 		}));
+		this._chipDisposables.add(this._alignChip.onDidClick(() => {
+			this.sdtcmService.setAutoAlign(!this.sdtcmService.getAutoAlign());
+		}));
+		this._register(this.sdtcmService.onDidChangeAutoAlign(() => this._syncAlignChip()));
 
 		this._register(this.composerHost.attachToolbarRoot(this.domNode));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
@@ -137,6 +165,7 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		}));
 		this._register(this.codebaseSupervision.onDidChangeSnapshot(() => this._syncCodebaseChip()));
 		this._register(this.codebaseContext.onDidChangeForceNext(() => this._syncCodebaseForceChip()));
+		this._register(this.sdtcmService.onDidChange(() => this._syncAlignChip()));
 
 		this._register(this.composerHost.onDidReconcileToolbarUi(() => {
 			this._syncChipUi();
@@ -146,6 +175,24 @@ export class DroxAgentsComposerToolbar extends Disposable {
 		this._syncChipLabels();
 		this._syncCodebaseChip();
 		this._syncCodebaseForceChip();
+		this._syncAlignChip();
+	}
+
+	private _syncAlignChip(): void {
+		const on = this.sdtcmService.getAutoAlign();
+		const snap = this.sdtcmService.getSnapshot();
+		const running = snap.phase === 'running';
+		const progress = snap.progress || '0%';
+		this._alignChip.setLabel(running
+			? localize('droxAgents.autoAlignProgress', 'SDTCM {0}', progress)
+			: on
+				? localize('droxAgents.autoAlignOn', 'SDTCM Align on')
+				: localize('droxAgents.autoAlignChip', 'SDTCM Align'));
+		const trigger = this._alignChip.triggerElement;
+		trigger.classList.toggle('panel-open', on);
+		trigger.classList.toggle('sdtcm-running', running);
+		trigger.setAttribute('aria-pressed', on ? 'true' : 'false');
+		trigger.setAttribute('aria-busy', running ? 'true' : 'false');
 	}
 
 	private _syncCodebaseChip(): void {

@@ -18,9 +18,9 @@ import { buildDroxSdtcmGraph } from '../../../common/sdtcm/droxSdtcmGraph.js';
 import { mostLinkedDroxSdtcmFolderId } from '../../../common/sdtcm/placement/droxSdtcmFolderLinks.js';
 import { emptyDroxSdtcmMoveHistory, redoDroxSdtcmMove, rememberDroxSdtcmMove, undoDroxSdtcmMove } from '../../../common/sdtcm/placement/droxSdtcmMoveHistory.js';
 import { placeDroxSdtcmGraph } from '../../../common/sdtcm/placement/droxSdtcmPlacement.js';
-import { markDroxSdtcmFocus } from '../../../common/sdtcm/focus/droxSdtcmFocus.js';
+import { droxSdtcmAddedFocus, keepDroxSdtcmFocusVisible, markDroxSdtcmDataPath, markDroxSdtcmFocus, markDroxSdtcmKept } from '../../../common/sdtcm/focus/droxSdtcmFocus.js';
 import { droxSdtcmSystemPrompt } from '../../../common/sdtcm/droxSdtcmPrompt.js';
-import { acceptDroxSdtcmFile, acceptDroxSdtcmFolderTags, acceptDroxSdtcmLinks, acceptDroxSdtcmTags, buildDroxSdtcmTagTurn, buildDroxSdtcmTurn, completeDroxSdtcmLinks, IDroxSdtcmTag, parseDroxSdtcmTags, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
+import { acceptDroxSdtcmFile, acceptDroxSdtcmFolderTags, acceptDroxSdtcmLinks, acceptDroxSdtcmTags, buildDroxSdtcmTagTurn, buildDroxSdtcmTurn, completeDroxSdtcmLinks, droxSdtcmFreshBricks, droxSdtcmNewTag, ensureDroxSdtcmNewTag, formatDroxSdtcmMapIndex, IDroxSdtcmTag, parseDroxSdtcmTags, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
 
 suite('Drox SDTCM map', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
@@ -504,7 +504,19 @@ suite('Drox SDTCM map', () => {
 			assert.deepStrictEqual(accepted.map.bricks[0].tags, [{ name: 'front', reason: 'shown' }, { name: 'back', reason: 'stored' }]);
 		}
 		assert.strictEqual(acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'brick', id: 'b1', tag: 'back', reason: 'stored' }], [front]).ok, false);
-		assert.strictEqual(acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'brick', id: 'b1', tag: 'front', reason: 'x'.repeat(31) }], [front]).ok, false);
+		const wrongScope = acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'brick', id: 'b1', tag: 'page', reason: 'shown' }], [page]);
+		assert.strictEqual(wrongScope.ok, false);
+		if (!wrongScope.ok) {
+			assert.ok(wrongScope.errors[0].includes('You wrote scope brick.'));
+			assert.ok(wrongScope.errors[0].includes('{"scope":"file","tag":"page","reason":"…"}. Do not include id.'));
+		}
+		const withId = acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'file', id: 'b1', tag: 'page', reason: 'shown' }], [page]);
+		assert.strictEqual(withId.ok, false);
+		if (!withId.ok) {
+			assert.ok(withId.errors[0].includes('Drop the id.'));
+		}
+		assert.strictEqual(acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'brick', id: 'b1', tag: 'front', reason: 'x'.repeat(120) }], [front]).ok, true);
+		assert.strictEqual(acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'brick', id: 'b1', tag: 'front', reason: 'x'.repeat(121) }], [front]).ok, false);
 		assert.strictEqual(acceptDroxSdtcmTags(map, 'src/a.ts', [{ scope: 'data', id: 'd1', tag: 'front', reason: 'shown' }], [front]).ok, false);
 		const placed = acceptDroxSdtcmTags(map, 'src/a.ts', [
 			{ scope: 'file', id: '', tag: 'page', reason: 'client page' },
@@ -527,6 +539,22 @@ suite('Drox SDTCM map', () => {
 		assert.ok(!turn.includes('READ '));
 		const parsed = parseDroxSdtcmTags('[{"name":"front","description":"what the user sees","color":"#c4a574"}]');
 		assert.deepStrictEqual(parsed.map(item => item.name), ['front']);
+		const ensured = ensureDroxSdtcmNewTag(parsed);
+		assert.strictEqual(ensured[0].name, 'new');
+		assert.strictEqual(ensured[0].scope, 'brick');
+		assert.strictEqual(ensured[0].locked, true);
+		assert.ok(ensured[0].description.includes('NEW'));
+		assert.deepStrictEqual(ensureDroxSdtcmNewTag([droxSdtcmNewTag(false)]).map(tag => tag.enabled), [false]);
+		const fresh = droxSdtcmFreshBricks(
+			[{ file: 'src/a.ts', name: 'main', kind: 'operation', form: 'declare' }],
+			[
+				{ id: 'b9', file: 'src/a.ts', name: 'main', kind: 'operation', form: 'declare' },
+				{ id: 'b10', file: 'src/a.ts', name: 'extra', kind: 'operation', form: 'declare' },
+			],
+		);
+		assert.deepStrictEqual([...fresh], ['b10']);
+		const marked = buildDroxSdtcmTagTurn({ map, file: 'src/a.ts', text: 'def main():\n', tags: [droxSdtcmNewTag()], fresh: ['b1'] });
+		assert.ok(marked.includes('NEW b1'));
 		assert.strictEqual(parsed[0].scope, 'brick');
 		const hidden = buildDroxSdtcmGraph({
 			...map,
@@ -611,6 +639,29 @@ suite('Drox SDTCM map', () => {
 		assert.strictEqual(marks.nodes.get('folder:c'), 'dim');
 		assert.strictEqual(marks.edges.get('d1->d2'), 'linked');
 		assert.strictEqual(markDroxSdtcmFocus(graph, new Set()), undefined);
+		const selected = markDroxSdtcmDataPath(graph, { nodes: new Set(['d1', 'folder:a']), edges: new Set() });
+		const lifted = keepDroxSdtcmFocusVisible(selected, new Set(['b4', 'd2']));
+		assert.strictEqual(selected.nodes.get('b4'), 'dim');
+		assert.strictEqual(lifted.nodes.get('b4'), 'primary');
+		assert.strictEqual(lifted.nodes.get('d2'), 'primary');
+		assert.strictEqual(lifted.nodes.get('folder:c'), 'dim');
+		const map = {
+			...emptyDroxSdtcmMap(),
+			bricks: [
+				brick('b1', 'a/a.py', ['b2']),
+				brick('b2', 'b/b.py', []),
+				brick('b4', 'c/c.py', []),
+			],
+			data: [
+				born('d1', 'a', 'a/a.py', 'b1', []),
+				born('d2', 'b', 'b/b.py', 'b2', ['d1']),
+			],
+		};
+		const several = markDroxSdtcmKept(graph, map, new Set(['d1', 'b4']));
+		assert.ok(several);
+		assert.notStrictEqual(several.nodes.get('d1'), 'dim');
+		assert.notStrictEqual(several.nodes.get('b4'), 'dim');
+		assert.strictEqual(several.nodes.get('b3'), 'dim');
 	});
 
 	test('a map written before data still opens', () => {
@@ -750,6 +801,62 @@ suite('Drox SDTCM map', () => {
 		assert.ok(alone);
 		assert.strictEqual(alone.edges.size, 0);
 		assert.ok(alone.nodes.has('b1'));
+	});
+
+	test('a new folder, file, brick, and data are kept in focus', () => {
+		const before = {
+			...emptyDroxSdtcmMap(),
+			bricks: [brick('b1', 'src/a.ts', 1, 'old', 'Old', [])],
+			data: [born('d1', 'Old', 'src/a.ts', 'b1', [])],
+		};
+		const after = {
+			...before,
+			bricks: [
+				brick('b9', 'src/a.ts', 1, 'old', 'Old', []),
+				brick('b2', 'src/ui/Button.tsx', 4, 'export function Button', 'Button', []),
+			],
+			data: [
+				born('d9', 'Old', 'src/a.ts', 'b9', []),
+				born('d2', 'Button', 'src/ui/Button.tsx', 'b2', []),
+			],
+		};
+		assert.deepStrictEqual(
+			droxSdtcmAddedFocus(before, after, ['src/a.ts'], ['src/a.ts', 'src/ui/Button.tsx']),
+			['folder:src/ui', 'file:src/ui/Button.tsx', 'b2', 'd2'],
+		);
+	});
+
+	test('an align index lists the other files and skips the file being rebuilt', () => {
+		const map = {
+			...emptyDroxSdtcmMap(),
+			bricks: [
+				brick('b1', 'src/app/page.tsx', 1, 'export default function Home()', 'Home', []),
+				{ ...brick('b42', 'src/components/landing/SiteFooter.tsx', 1, 'export function SiteFooter()', 'SiteFooter', []), kind: 'operation' as const },
+			],
+			data: [
+				born('d1', 'SiteFooter', 'src/components/landing/SiteFooter.tsx', 'b42', []),
+				born('d2', 'Home', 'src/app/page.tsx', 'b1', []),
+			],
+		};
+		const index = formatDroxSdtcmMapIndex(map, 'src/app/page.tsx');
+		assert.ok(index.startsWith('MAP\n'));
+		assert.ok(index.includes('"id":"b42"'));
+		assert.ok(index.includes('"name":"SiteFooter"'));
+		assert.ok(index.includes('"id":"d1"'));
+		assert.ok(!index.includes('b1'));
+		assert.ok(!index.includes('d2'));
+		assert.ok(!index.includes('export function'));
+		const turn = buildDroxSdtcmTurn({
+			mode: 'align',
+			path: 'src/app/page.tsx',
+			files: ['src/app/page.tsx'],
+			text: 'export default function Home() {}\n',
+			reads: [],
+			focus: [],
+			mapIndex: index,
+		});
+		assert.ok(turn.includes('Already built, outside this file.'));
+		assert.ok(turn.includes('MODE realign'));
 	});
 });
 

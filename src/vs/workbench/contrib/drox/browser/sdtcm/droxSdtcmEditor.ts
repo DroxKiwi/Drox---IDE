@@ -7,6 +7,8 @@
 
 import './media/droxSdtcm.css';
 import { $, addDisposableListener, clearNode, Dimension } from '../../../../../base/browser/dom.js';
+import { HoverStyle } from '../../../../../base/browser/ui/hover/hover.js';
+import { HoverPosition } from '../../../../../base/browser/ui/hover/hoverWidget.js';
 import { Orientation, Sash, SashState } from '../../../../../base/browser/ui/sash/sash.js';
 import { VSBuffer } from '../../../../../base/common/buffer.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
@@ -21,6 +23,7 @@ import { IEditorOptions as ICodeOptions } from '../../../../../editor/common/con
 import { ITextModelService, IResolvedTextEditorModel } from '../../../../../editor/common/services/resolverService.js';
 import { IEditorOptions } from '../../../../../platform/editor/common/editor.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
@@ -29,6 +32,7 @@ import { IStorageService } from '../../../../../platform/storage/common/storage.
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import { DROX_TOKEN_WARNING_HOVER_CLASS, droxTokenWarningHoverContent } from '../../../../browser/droxTokenWarningHover.js';
 import { EditorPane } from '../../../../browser/parts/editor/editorPane.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
 import { IEditorOpenContext } from '../../../../common/editor.js';
@@ -37,7 +41,7 @@ import { IEditorGroup } from '../../../../services/editor/common/editorGroupsSer
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
 import { buildDroxSdtcmGraph, IDroxSdtcmGraph, IDroxSdtcmGraphNode } from '../../common/sdtcm/droxSdtcmGraph.js';
 import { DroxSdtcmPathKind, traceDroxSdtcmSelection } from '../../common/sdtcm/data/droxSdtcmPath.js';
-import { markDroxSdtcmDataPath, markDroxSdtcmFocus } from '../../common/sdtcm/focus/droxSdtcmFocus.js';
+import { markDroxSdtcmFocus, markDroxSdtcmKept } from '../../common/sdtcm/focus/droxSdtcmFocus.js';
 import { mostLinkedDroxSdtcmFolderId } from '../../common/sdtcm/placement/droxSdtcmFolderLinks.js';
 import { emptyDroxSdtcmMoveHistory, IDroxSdtcmMoveHistory, redoDroxSdtcmMove, rememberDroxSdtcmMove, undoDroxSdtcmMove } from '../../common/sdtcm/placement/droxSdtcmMoveHistory.js';
 import { placeDroxSdtcmGraph, shiftDroxSdtcmFolders } from '../../common/sdtcm/placement/droxSdtcmPlacement.js';
@@ -89,6 +93,7 @@ export class DroxSdtcmEditor extends EditorPane {
 	private _panY = 32;
 	private _zoom = 1;
 	private _panning = false;
+	private _blankDown = false;
 	private _moved = false;
 	private _originX = 0;
 	private _originY = 0;
@@ -112,6 +117,7 @@ export class DroxSdtcmEditor extends EditorPane {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ITextModelService private readonly textModelService: ITextModelService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
+		@IHoverService private readonly hoverService: IHoverService,
 	) {
 		super(DroxSdtcmEditor.ID, group, telemetryService, themeService, storageService);
 	}
@@ -132,7 +138,18 @@ export class DroxSdtcmEditor extends EditorPane {
 		const pick = new Set<DroxSdtcmProbePhase>(this.sdtcmService.getPhasePick());
 		const chips = new Map<DroxSdtcmProbePhase, HTMLButtonElement>();
 		const resume = $('button.drox-sdtcm-side-open') as HTMLButtonElement;
-		resume.textContent = localize('drox.sdtcm.resume', 'Run again');
+		resume.textContent = localize('drox.sdtcm.resume', 'Launch a run');
+		const launchWarning = localize('drox.sdtcm.launchWarning', 'The selected model is called to build and update the map. This spends tokens.');
+		resume.setAttribute('aria-label', `${launchWarning}: ${resume.textContent}`);
+		this._ui.add(this.hoverService.setupDelayedHover(resume, () => ({
+			content: droxTokenWarningHoverContent(launchWarning),
+			additionalClasses: [DROX_TOKEN_WARNING_HOVER_CLASS],
+			style: HoverStyle.Pointer,
+			appearance: { compact: false, showPointer: true },
+			position: { hoverPosition: HoverPosition.BELOW },
+		})));
+		const align = $('button.drox-sdtcm-side-open') as HTMLButtonElement;
+		align.textContent = localize('drox.sdtcm.align', 'Realign');
 		const paintPhases = () => {
 			const running = new Set(expandDroxSdtcmPhases([...pick]));
 			for (const phase of DROX_SDTCM_PROBE_PHASES) {
@@ -145,7 +162,9 @@ export class DroxSdtcmEditor extends EditorPane {
 				chip.classList.toggle('locked', on && !pick.has(phase));
 				chip.setAttribute('aria-pressed', on ? 'true' : 'false');
 			}
-			resume.disabled = running.size === 0 || this.sdtcmService.getSnapshot().phase === 'running';
+			const busy = this.sdtcmService.getSnapshot().phase === 'running';
+			resume.disabled = running.size === 0 || busy;
+			align.disabled = running.size === 0 || busy;
 		};
 		for (const phase of DROX_SDTCM_PROBE_PHASES) {
 			const chip = $('button.drox-sdtcm-phase') as HTMLButtonElement;
@@ -171,8 +190,6 @@ export class DroxSdtcmEditor extends EditorPane {
 		}
 		this._ui.add(this.sdtcmService.onDidChange(() => paintPhases()));
 		paintPhases();
-		const align = $('button.drox-sdtcm-side-open');
-		align.textContent = localize('drox.sdtcm.align', 'Realign');
 		const zoomOut = $('button.drox-sdtcm-side-open');
 		zoomOut.textContent = '−';
 		const zoomIn = $('button.drox-sdtcm-side-open');
@@ -184,19 +201,23 @@ export class DroxSdtcmEditor extends EditorPane {
 		this._ui.add(addDisposableListener(align, 'click', () => {
 			const folder = this.workspaceService.getWorkspace().folders[0]?.uri;
 			if (folder) {
-				void this.sdtcmService.align(folder);
+				void this.sdtcmService.align(folder, undefined, expandDroxSdtcmPhases(this.sdtcmService.getPhasePick()));
 			}
 		}));
 		this._ui.add(addDisposableListener(zoomOut, 'click', () => this._setZoom(this._zoom / 1.15)));
 		this._ui.add(addDisposableListener(zoomIn, 'click', () => this._setZoom(this._zoom * 1.15)));
 		this._ui.add(addDisposableListener(reset, 'click', () => this._resetView()));
-		toolbar.appendChild(stop);
-		toolbar.appendChild(phaseRow);
-		toolbar.appendChild(resume);
-		toolbar.appendChild(align);
-		toolbar.appendChild(zoomOut);
-		toolbar.appendChild(zoomIn);
-		toolbar.appendChild(reset);
+		const run = $('div.drox-sdtcm-run');
+		run.appendChild(phaseRow);
+		const actions = $('div.drox-sdtcm-actions');
+		actions.appendChild(stop);
+		actions.appendChild(resume);
+		actions.appendChild(align);
+		actions.appendChild(zoomOut);
+		actions.appendChild(zoomIn);
+		actions.appendChild(reset);
+		toolbar.appendChild(run);
+		toolbar.appendChild(actions);
 		this._journal = $('div.drox-sdtcm-journal');
 		this._viewport = $('div.drox-sdtcm-viewport');
 		this._viewport.tabIndex = 0;
@@ -292,6 +313,9 @@ export class DroxSdtcmEditor extends EditorPane {
 		this._applySplits();
 		this._applyTransform();
 		this._ui.add(this.sdtcmService.onDidChange(snapshot => this._render(snapshot)));
+		this._ui.add(this.sdtcmService.onDidReveal(target => {
+			void this._openBrick(target.file, target.line);
+		}));
 		this._ui.add(this.sdtcmService.onDidChangeDisplay(() => {
 			if (!this.sdtcmService.getDisplay().move && this._drag) {
 				this._folderOffset.set(this._drag.id, { x: this._drag.ox, y: this._drag.oy });
@@ -342,17 +366,33 @@ export class DroxSdtcmEditor extends EditorPane {
 
 	private _bindPointer(viewport: HTMLElement): void {
 		this._ui.add(addDisposableListener(viewport, 'pointerdown', event => {
-			if (event.button !== 0) {
+			if (event.button !== 0 || !(event.ctrlKey || event.metaKey)) {
 				return;
 			}
+			event.preventDefault();
+			event.stopPropagation();
 			viewport.focus();
+			this._drag = undefined;
+			this._press = undefined;
+			this._blankDown = false;
 			this._panning = true;
 			this._moved = false;
+			this._suppressSelect = true;
 			this._originX = event.clientX;
 			this._originY = event.clientY;
 			this._panStartX = this._panX;
 			this._panStartY = this._panY;
 			viewport.classList.add('panning');
+		}, true));
+		this._ui.add(addDisposableListener(viewport, 'pointerdown', event => {
+			if (event.button !== 0 || event.ctrlKey || event.metaKey) {
+				return;
+			}
+			viewport.focus();
+			this._blankDown = true;
+			this._moved = false;
+			this._originX = event.clientX;
+			this._originY = event.clientY;
 		}));
 		this._ui.add(addDisposableListener(window, 'pointermove', event => {
 			if (this._drag) {
@@ -363,6 +403,14 @@ export class DroxSdtcmEditor extends EditorPane {
 				}
 				this._folderOffset.set(this._drag.id, { x: this._drag.ox + dx, y: this._drag.oy + dy });
 				this._paint();
+				return;
+			}
+			if (this._blankDown && !this._panning) {
+				const dx = event.clientX - this._originX;
+				const dy = event.clientY - this._originY;
+				if (Math.abs(dx) + Math.abs(dy) > 3) {
+					this._moved = true;
+				}
 				return;
 			}
 			if (!this._panning) {
@@ -378,6 +426,19 @@ export class DroxSdtcmEditor extends EditorPane {
 			this._applyTransform();
 		}));
 		this._ui.add(addDisposableListener(window, 'pointerup', event => {
+			if (this._panning) {
+				this._panning = false;
+				this._blankDown = false;
+				viewport.classList.remove('panning');
+				this._suppressSelect = true;
+				const suppress = this._suppressSelect;
+				setTimeout(() => {
+					if (this._suppressSelect === suppress) {
+						this._suppressSelect = false;
+					}
+				}, 0);
+				return;
+			}
 			const press = this._press;
 			this._press = undefined;
 			if (press && Math.abs(event.clientX - press.x) + Math.abs(event.clientY - press.y) <= 4) {
@@ -409,24 +470,26 @@ export class DroxSdtcmEditor extends EditorPane {
 				}, 0);
 				return;
 			}
-			if (!this._panning) {
+			if (!this._blankDown) {
 				return;
 			}
 			const clear = !this._moved;
-			this._panning = false;
-			viewport.classList.remove('panning');
-			if (clear) {
-				this._selected = undefined;
-				this._path = undefined;
-				this._hideCard();
-				this._closeCode();
-				const current = this.sdtcmService.getDisplay();
-				if (current.focus.length) {
-					this.sdtcmService.setDisplay({ ...current, focus: [] });
-				} else {
-					this._paint();
-				}
+			this._blankDown = false;
+			if (!clear) {
+				this._suppressSelect = true;
+				const suppress = this._suppressSelect;
+				setTimeout(() => {
+					if (this._suppressSelect === suppress) {
+						this._suppressSelect = false;
+					}
+				}, 0);
+				return;
 			}
+			this._selected = undefined;
+			this._path = undefined;
+			this._hideCard();
+			this._closeCode();
+			this._paint();
 		}));
 		const onWheel = (event: WheelEvent) => {
 			event.preventDefault();
@@ -608,11 +671,9 @@ export class DroxSdtcmEditor extends EditorPane {
 		}
 		this._viewport.classList.toggle('locked', !display.move);
 		this._viewport.querySelector('.drox-sdtcm-hint')?.remove();
-		const focusIds = new Set(display.focus);
-		if (this._drag) {
-			focusIds.add(this._drag.id);
-		}
 		const path = !this._drag && this._path && this._snapshot ? traceDroxSdtcmSelection(this._snapshot.map, this._path.kind, this._path.id) : undefined;
+		const dragged = this._drag ? markDroxSdtcmFocus(graph, new Set([this._drag.id])) : undefined;
+		const marks = dragged ?? markDroxSdtcmKept(graph, this._snapshot.map, new Set(display.focus), path);
 		paintDroxSdtcmGraph(this._world, graph, this._selected, {
 			onEnter: (node, event) => this._showTooltip(node, event),
 			onLeave: () => this._hideTooltip(),
@@ -624,13 +685,13 @@ export class DroxSdtcmEditor extends EditorPane {
 				this._select(node);
 			},
 			onPressNode: (node, event) => {
-				if (event.button !== 0 || (node.kind !== 'file' && node.kind !== 'brick' && node.kind !== 'data')) {
+				if (event.button !== 0 || event.ctrlKey || event.metaKey || (node.kind !== 'file' && node.kind !== 'brick' && node.kind !== 'data')) {
 					return;
 				}
 				this._press = { node, x: event.clientX, y: event.clientY };
 			},
 			onGrabFolder: (node, event) => {
-				if (event.button !== 0 || !this.sdtcmService.getDisplay().move) {
+				if (event.button !== 0 || event.ctrlKey || event.metaKey || !this.sdtcmService.getDisplay().move || !this._nodeInFocus(node.id)) {
 					return false;
 				}
 				const at = this._folderOffset.get(node.id) ?? { x: 0, y: 0 };
@@ -639,24 +700,26 @@ export class DroxSdtcmEditor extends EditorPane {
 				this._paint();
 				return true;
 			},
-			onFolderMenu: (node, event) => this._openFolderMenu(node.id, event.clientX, event.clientY),
-		}, path ? markDroxSdtcmDataPath(graph, path) : markDroxSdtcmFocus(graph, focusIds));
+			onContextMenu: (node, event) => this._openFocusMenu(node.id, event.clientX, event.clientY),
+		}, marks);
 		this._applyTransform();
 	}
 
-	private _openFolderMenu(folderId: string, x: number, y: number): void {
+	private _openFocusMenu(id: string, x: number, y: number): void {
 		this._hideFolderMenu();
 		const menu = $('div.drox-sdtcm-menu');
 		menu.style.left = `${x}px`;
 		menu.style.top = `${y}px`;
 		const item = $('button');
-		item.textContent = localize('drox.sdtcm.keepInFocus', 'Keep in focus');
+		const kept = this.sdtcmService.getDisplay().focus.includes(id);
+		item.textContent = kept
+			? localize('drox.sdtcm.removeFromFocus', 'Remove from focus')
+			: localize('drox.sdtcm.keepInFocus', 'Keep in focus');
 		this._menuUi.add(addDisposableListener(item, 'click', event => {
 			event.stopPropagation();
 			const current = this.sdtcmService.getDisplay();
-			if (!current.focus.includes(folderId)) {
-				this.sdtcmService.setDisplay({ ...current, focus: [...current.focus, folderId] });
-			}
+			const focus = kept ? current.focus.filter(itemId => itemId !== id) : [...current.focus, id];
+			this.sdtcmService.setDisplay({ ...current, focus });
 			this._hideFolderMenu();
 		}));
 		this._menuUi.add(addDisposableListener(window, 'pointerdown', event => {
@@ -674,6 +737,22 @@ export class DroxSdtcmEditor extends EditorPane {
 		this._menuUi.clear();
 		this._menu?.remove();
 		this._menu = undefined;
+	}
+
+	/** A left click or a kept entity, including the folders that stay bright with them. */
+	private _nodeInFocus(id: string): boolean {
+		if (this._selected === id) {
+			return true;
+		}
+		const graph = this._placedGraph();
+		const snapshot = this._snapshot;
+		if (!graph || !snapshot) {
+			return false;
+		}
+		const path = this._path ? traceDroxSdtcmSelection(snapshot.map, this._path.kind, this._path.id) : undefined;
+		const marks = markDroxSdtcmKept(graph, snapshot.map, new Set(this.sdtcmService.getDisplay().focus), path);
+		const mark = marks?.nodes.get(id);
+		return mark !== undefined && mark !== 'dim';
 	}
 
 	private _select(node: IDroxSdtcmGraphNode): void {

@@ -49,8 +49,8 @@ form:
 Skip every line that is not a type, an operation, a value, or a source. A file still needs at least one item.`;
 
 export const DROX_SDTCM_SYSTEM_DATA = `MODE data. One birth for every declare brick of FILE whose kind is type, operation, or value. Answer:
-{"data":[{"name":"user","birth":"introduce","brick":"b3","line":12,"quote":"const user = new User()","parents":[]}]}
-Copy name, line, quote, and brick from that brick. A source import is not a birth. An apply line is not a birth. introduce has parents []. transform puts in parents the id of the data it continues, copied from DATA. The host refuses a missing brick.`;
+{"data":[{"name":"user","birth":"introduce","brick":"b3","line":12,"quote":"const user = new User()","parents":[]},{"name":"user","birth":"transform","brick":"b9","line":20,"quote":"const user = mapUser(raw)","parents":["d1"]}]}
+Copy name, line, quote, and brick from that brick. brick is a brick id, like b3. parents holds data ids only, like d1, copied from DATA. Never put a brick id in parents. A source import is not a birth. An apply line is not a birth. introduce has parents []. transform names the data it continues. If DATA has no such id, the birth is introduce. The host refuses a missing brick.`;
 
 export const DROX_SDTCM_SYSTEM_TRACE = `MODE trace. The births of FILE already exist. Extend each one. Answer:
 {"steps":[{"data":"d1","brick":"b8","name":"user","line":3,"quote":"user()","span":1}]}
@@ -58,15 +58,15 @@ A step is an apply brick of the same name. It stays in the file, or moves to a f
 
 export const DROX_SDTCM_SYSTEM_LINK = `MODE link. Connect a brick of FILE to a brick in CANDIDATES. Answer:
 {"links":[{"from":"b1","to":"b4"}]}
-from is a brick of FILE. to is the brick whose name this file uses. If the file uses ENGINE_DOCS, to is that brick, not another brick of the same file.
-Do not link two source imports that share a name. A package name is not a link. Do not link two bricks of FILE. Zero links is valid: {"links":[]}.`;
+from is a brick of FILE. FROM lists the files that brick brings. to is a brick in one of those files, or a brick that shares from's name. When the names differ, to's name must appear in FILE. Each file that from brings needs one such link when CANDIDATES has a brick of that file. Do not link two bricks of FILE. Do not link two source bricks, even when they share a name. A package name is not a link. Skip a pair you cannot justify. Zero links is valid: {"links":[]}.`;
 
 export const DROX_SDTCM_SYSTEM_TAG = `MODE tag. This pass is last. Do not answer {"read"}. When the message contains FILE, that text is already numbered.
 Answer:
-{"marks":[{"scope":"brick","id":"b1","tag":"front","reason":"renders the page"}]}
+{"marks":[{"scope":"brick","id":"b1","tag":"front","reason":"renders the page"},{"scope":"file","tag":"screen","reason":"runs in the browser"}]}
 scope is folder, file, brick, or data, and it must be the scope written on that tag in TAGS.
-A file mark and a folder mark have no id. A brick mark id is a brick of FILE. A data mark id is a data born in FILE.
-reason is why this entity takes the tag. It is at most 30 characters.
+A file mark and a folder mark have no id. Copy that shape: {"scope":"file","tag":"screen","reason":"runs in the browser"}. A brick mark id is a brick of FILE. A data mark id is a data born in FILE.
+reason is why this entity takes the tag. It is at most 120 characters.
+When FEEDBACK names a mark, rewrite that mark in the shape it gives. Do not repeat the previous marks.
 One mark places one tag. An entity may take several tags. Place a tag only when the description matches that entity without a guess. If it does not, omit it. Do not invent a tag. Zero marks is valid: {"marks":[]}.`;
 
 export type DroxSdtcmPromptMode = 'build' | 'align' | 'data' | 'trace' | 'link' | 'tag';

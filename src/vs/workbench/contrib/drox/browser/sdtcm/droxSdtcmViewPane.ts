@@ -23,7 +23,7 @@ import { IViewDescriptorService } from '../../../../common/views.js';
 import { DroxCommands } from '../../common/drox.js';
 import { DROX_SDTCM_PROBE_PHASES, DroxSdtcmProbePhase } from '../../common/sdtcm/droxSdtcmConsistency.js';
 import { DroxSdtcmForm, DroxSdtcmKind } from '../../common/sdtcm/droxSdtcmMap.js';
-import { droxSdtcmTagNameOk, IDroxSdtcmTag } from '../../common/sdtcm/droxSdtcmRole.js';
+import { DROX_SDTCM_NEW_TAG, droxSdtcmTagNameOk, IDroxSdtcmTag } from '../../common/sdtcm/droxSdtcmRole.js';
 import { IDroxSdtcmService } from './droxSdtcmService.js';
 import './media/droxSdtcm.css';
 
@@ -40,7 +40,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IOpenerService openerService: IOpenerService,
 		@IThemeService themeService: IThemeService,
-		@IHoverService hoverService: IHoverService,
+		@IHoverService private readonly hoverService: IHoverService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IDroxSdtcmService private readonly sdtcmService: IDroxSdtcmService,
 	) {
@@ -110,7 +110,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 		const renderTags = () => {
 			const listed = this.sdtcmService.getSnapshot().tags;
 			const shown = [...this.sdtcmService.getDisplay().visibleTags].sort().join('\n');
-			const stamp = `${shown}|${listed.map(tag => `${tag.name}\u0000${tag.description}\u0000${tag.color}\u0000${tag.scope}`).join('\n')}`;
+			const stamp = `${shown}|${listed.map(tag => `${tag.name}\u0000${tag.description}\u0000${tag.color}\u0000${tag.scope}\u0000${tag.enabled === false ? '0' : '1'}`).join('\n')}`;
 			if (stamp === tagStamp) {
 				return;
 			}
@@ -140,14 +140,26 @@ export class DroxSdtcmViewPane extends ViewPane {
 				scopeInput.appendChild(option);
 			}
 			scopeInput.value = 'brick';
-			const add = $('button.drox-sdtcm-side-open');
+			const add = $('button.drox-sdtcm-side-open') as HTMLButtonElement;
+			add.type = 'button';
 			add.textContent = localize('drox.sdtcm.addTag', 'Add');
+			const refusal = $('p.drox-sdtcm-side-hint');
+			refusal.hidden = true;
 			tagUi.add(addDisposableListener(add, 'click', () => {
 				const name = nameInput.value.trim();
 				const description = descriptionInput.value.trim();
 				const scope = scopeInput.value === 'folder' || scopeInput.value === 'file' || scopeInput.value === 'data' ? scopeInput.value : 'brick';
 				const tags = this.sdtcmService.getSnapshot().tags;
-				if (!droxSdtcmTagNameOk(name) || !description || tags.some(tag => tag.name === name)) {
+				const reason = !droxSdtcmTagNameOk(name)
+					? localize('drox.sdtcm.tagNameRule', 'Name starts with a letter, then letters, digits, or hyphens.')
+					: !description
+						? localize('drox.sdtcm.tagNeedsDescription', 'A description is required.')
+						: tags.some(tag => tag.name === name)
+							? localize('drox.sdtcm.tagNameTaken', 'That name is already used.')
+							: '';
+				refusal.hidden = reason.length === 0;
+				refusal.textContent = reason;
+				if (reason) {
 					return;
 				}
 				const color = DROX_SDTCM_TAG_COLORS[tags.length % DROX_SDTCM_TAG_COLORS.length];
@@ -158,6 +170,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 			form.appendChild(scopeInput);
 			form.appendChild(add);
 			tagHost.appendChild(form);
+			tagHost.appendChild(refusal);
 			const visible = this.sdtcmService.getDisplay().visibleTags;
 			for (const tag of this.sdtcmService.getSnapshot().tags) {
 				tagHost.appendChild(this._tagRow(tag, visible.has(tag.name), tagUi));
@@ -194,12 +207,12 @@ export class DroxSdtcmViewPane extends ViewPane {
 			const ids = this.sdtcmService.getDisplay().focus;
 			if (!ids.length) {
 				const empty = $('p.drox-sdtcm-side-hint');
-				empty.textContent = localize('drox.sdtcm.noFocus', 'No folder kept in focus.');
+				empty.textContent = localize('drox.sdtcm.noFocus', 'Nothing kept in focus.');
 				focusHost.appendChild(empty);
 				return;
 			}
 			const clear = $('button.drox-sdtcm-side-open');
-			clear.textContent = localize('drox.sdtcm.clearFocus', 'Clear');
+			clear.textContent = localize('drox.sdtcm.removeAllFocus', 'Remove all');
 			focusUi.add(addDisposableListener(clear, 'click', () => {
 				const current = this.sdtcmService.getDisplay();
 				this.sdtcmService.setDisplay({ ...current, focus: [] });
@@ -207,15 +220,30 @@ export class DroxSdtcmViewPane extends ViewPane {
 			focusHost.appendChild(clear);
 			for (const id of ids) {
 				const row = $('div.drox-sdtcm-focus-row');
-				const name = $('span');
-				name.textContent = id.startsWith('folder:') ? id.slice('folder:'.length) : id;
+				const target = this._focusTarget(id);
+				if (!id.startsWith('file:')) {
+					const name = $('span.drox-sdtcm-focus-name');
+					name.textContent = this._focusName(id);
+					name.title = id;
+					row.appendChild(name);
+				}
+				if (target) {
+					const path = $('button.drox-sdtcm-focus-path');
+					path.textContent = target.line > 1 ? `${target.file}:${target.line}` : target.file;
+					path.title = localize('drox.sdtcm.openFocus', 'Open {0}', path.textContent);
+					focusUi.add(addDisposableListener(path, 'click', () => {
+						void this.commandService.executeCommand(DroxCommands.OpenSdtcm).then(() => {
+							this.sdtcmService.reveal(target.file, target.line);
+						});
+					}));
+					row.appendChild(path);
+				}
 				const remove = $('button.drox-sdtcm-focus-remove');
 				remove.textContent = localize('drox.sdtcm.removeFocus', 'Remove');
 				focusUi.add(addDisposableListener(remove, 'click', () => {
 					const current = this.sdtcmService.getDisplay();
 					this.sdtcmService.setDisplay({ ...current, focus: current.focus.filter(item => item !== id) });
 				}));
-				row.appendChild(name);
 				row.appendChild(remove);
 				focusHost.appendChild(row);
 			}
@@ -226,13 +254,59 @@ export class DroxSdtcmViewPane extends ViewPane {
 		container.appendChild(root);
 	}
 
+	private _focusName(id: string): string {
+		const map = this.sdtcmService.getSnapshot().map;
+		if (id.startsWith('folder:')) {
+			return id.slice('folder:'.length);
+		}
+		if (id.startsWith('file:')) {
+			return id.slice('file:'.length);
+		}
+		const brick = map.bricks.find(item => item.id === id);
+		if (brick) {
+			return brick.name;
+		}
+		const data = map.data.find(item => item.id === id);
+		if (data) {
+			return data.name;
+		}
+		return id;
+	}
+
+	private _focusTarget(id: string): { file: string; line: number } | undefined {
+		const map = this.sdtcmService.getSnapshot().map;
+		if (id.startsWith('folder:')) {
+			return undefined;
+		}
+		if (id.startsWith('file:')) {
+			return { file: id.slice('file:'.length), line: 1 };
+		}
+		const brick = map.bricks.find(item => item.id === id);
+		if (brick) {
+			return { file: brick.file, line: brick.line };
+		}
+		const data = map.data.find(item => item.id === id);
+		if (data) {
+			return { file: data.file, line: data.line };
+		}
+		return undefined;
+	}
+
 	private _tagRow(tag: IDroxSdtcmTag, shown: boolean, store: DisposableStore): HTMLElement {
+		const locked = tag.name === DROX_SDTCM_NEW_TAG || tag.locked === true;
 		const row = $('div.drox-sdtcm-tag-row');
 		const box = $('input') as HTMLInputElement;
 		box.type = 'checkbox';
-		box.checked = shown;
-		box.title = localize('drox.sdtcm.showTag', 'Show');
+		box.checked = locked ? tag.enabled !== false : shown;
+		box.title = locked
+			? localize('drox.sdtcm.tagEnabled', 'Use this tag')
+			: localize('drox.sdtcm.showTag', 'Show');
 		store.add(addDisposableListener(box, 'change', () => {
+			if (locked) {
+				const tags = this.sdtcmService.getSnapshot().tags.map(item => item.name === tag.name ? { ...item, enabled: box.checked } : item);
+				this.sdtcmService.setTags(tags);
+				return;
+			}
 			const current = this.sdtcmService.getDisplay();
 			const visibleTags = new Set(current.visibleTags);
 			if (box.checked) {
@@ -242,9 +316,10 @@ export class DroxSdtcmViewPane extends ViewPane {
 			}
 			this.sdtcmService.setDisplay({ ...current, visibleTags });
 		}));
-		const name = $('span');
+		const name = $('span.drox-sdtcm-tag-name');
 		name.textContent = `${tag.name} · ${tag.scope}`;
 		name.title = tag.description;
+		store.add(this.hoverService.setupDelayedHover(name, { content: tag.description }));
 		const color = $('input') as HTMLInputElement;
 		color.type = 'color';
 		color.value = tag.color;
@@ -252,16 +327,85 @@ export class DroxSdtcmViewPane extends ViewPane {
 			const tags = this.sdtcmService.getSnapshot().tags.map(item => item.name === tag.name ? { ...item, color: color.value } : item);
 			this.sdtcmService.setTags(tags);
 		}));
+		row.appendChild(box);
+		row.appendChild(color);
+		if (locked) {
+			row.appendChild(name);
+			return row;
+		}
+		const edit = $('button.drox-sdtcm-focus-remove');
+		edit.type = 'button';
+		edit.textContent = localize('drox.sdtcm.editTag', 'Edit');
+		store.add(addDisposableListener(edit, 'click', () => this._editTag(row, tag, store)));
+		row.appendChild(name);
+		row.appendChild(edit);
 		const remove = $('button.drox-sdtcm-focus-remove');
 		remove.textContent = localize('drox.sdtcm.removeTag', 'Remove');
 		store.add(addDisposableListener(remove, 'click', () => {
 			this.sdtcmService.setTags(this.sdtcmService.getSnapshot().tags.filter(item => item.name !== tag.name));
 		}));
-		row.appendChild(box);
-		row.appendChild(color);
-		row.appendChild(name);
 		row.appendChild(remove);
 		return row;
+	}
+
+	private _editTag(row: HTMLElement, tag: IDroxSdtcmTag, store: DisposableStore): void {
+		const locked = tag.name === DROX_SDTCM_NEW_TAG || tag.locked === true;
+		const editor = new DisposableStore();
+		store.add(editor);
+		clearNode(row);
+		row.classList.add('editing');
+		const nameInput = $('input') as HTMLInputElement;
+		nameInput.type = 'text';
+		nameInput.value = tag.name;
+		nameInput.maxLength = 32;
+		nameInput.disabled = locked;
+		const descriptionInput = $('input') as HTMLInputElement;
+		descriptionInput.type = 'text';
+		descriptionInput.value = tag.description;
+		descriptionInput.maxLength = 240;
+		const scopeInput = $('select') as HTMLSelectElement;
+		for (const scope of ['folder', 'file', 'brick', 'data'] as const) {
+			const option = $('option') as HTMLOptionElement;
+			option.value = scope;
+			option.textContent = scope;
+			scopeInput.appendChild(option);
+		}
+		scopeInput.value = tag.scope;
+		scopeInput.disabled = locked;
+		const save = $('button.drox-sdtcm-focus-remove');
+		save.type = 'button';
+		save.textContent = localize('drox.sdtcm.saveTag', 'Save');
+		const cancel = $('button.drox-sdtcm-focus-remove');
+		cancel.type = 'button';
+		cancel.textContent = localize('drox.sdtcm.cancelTag', 'Cancel');
+		const hint = $('p.drox-sdtcm-side-hint');
+		hint.hidden = true;
+		const close = () => {
+			editor.dispose();
+			const current = this.sdtcmService.getSnapshot().tags.find(item => item.name === tag.name) ?? tag;
+			const replacement = this._tagRow(current, this.sdtcmService.getDisplay().visibleTags.has(current.name), store);
+			row.replaceWith(replacement);
+		};
+		editor.add(addDisposableListener(save, 'click', () => {
+			const scope = scopeInput.value === 'folder' || scopeInput.value === 'file' || scopeInput.value === 'data' ? scopeInput.value : 'brick';
+			const reason = this.sdtcmService.updateTag(tag.name, {
+				name: nameInput.value,
+				description: descriptionInput.value,
+				scope,
+			});
+			hint.hidden = reason.length === 0;
+			hint.textContent = reason;
+			if (!reason) {
+				close();
+			}
+		}));
+		editor.add(addDisposableListener(cancel, 'click', close));
+		row.appendChild(nameInput);
+		row.appendChild(descriptionInput);
+		row.appendChild(scopeInput);
+		row.appendChild(save);
+		row.appendChild(cancel);
+		row.appendChild(hint);
 	}
 
 	private _addToggle(parent: HTMLElement, label: string, checked: boolean, onChange: (checked: boolean) => void, read?: () => boolean): void {

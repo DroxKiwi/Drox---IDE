@@ -48,6 +48,7 @@ Registry.as<IEditorPaneRegistry>(EditorExtensions.EditorPane).registerEditorPane
 const sdtcmViewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer({
 	id: DroxViews.SdtcmViewContainerId,
 	title: localize2('drox.sdtcmContainer.label', 'SDTCM'),
+	activityBarTooltip: localize('drox.sdtcm.activityTooltip', 'The selected model is called to build and update the map. This spends tokens.'),
 	icon: sdtcmViewIcon,
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [DroxViews.SdtcmViewContainerId, { mergeViewWithContainerWhenSingleView: true }]),
 	storageId: DroxViews.SdtcmViewContainerId,

@@ -39,6 +39,7 @@ export function buildDroxSdtcmDataTurn(input: {
 	readonly map: IDroxSdtcmMap;
 	readonly reads: readonly { readonly path: string; readonly text: string }[];
 	readonly hint?: string;
+	readonly mapIndex?: string;
 }): string {
 	const bricks = input.map.bricks.filter(brick => brick.file === input.path).map(brick => ({
 		id: brick.id, name: brick.name, kind: brick.kind, form: brick.form, line: brick.line, quote: brick.quote,
@@ -48,6 +49,7 @@ export function buildDroxSdtcmDataTurn(input: {
 	return [
 		'MODE data',
 		input.hint ? `FEEDBACK\n${input.hint}` : '',
+		input.mapIndex?.trim() ? input.mapIndex.trim() : '',
 		`BRICKS ${JSON.stringify(bricks)}`,
 		`DATA ${JSON.stringify(known)}`,
 		`FILE ${input.path}\n${numberText(input.text)}`,
@@ -60,6 +62,7 @@ export function buildDroxSdtcmTraceTurn(input: {
 	readonly map: IDroxSdtcmMap;
 	readonly reads: readonly { readonly path: string; readonly text: string }[];
 	readonly hint?: string;
+	readonly mapIndex?: string;
 }): string {
 	const born = input.map.data.filter(item => item.file === input.path).map(item => ({
 		id: item.id, name: item.name, file: item.file, brick: item.brick, line: item.line, parents: item.parents,
@@ -78,6 +81,7 @@ export function buildDroxSdtcmTraceTurn(input: {
 	return [
 		'MODE trace',
 		input.hint ? `FEEDBACK\n${input.hint}` : '',
+		input.mapIndex?.trim() ? input.mapIndex.trim() : '',
 		`DATA ${JSON.stringify(born)}`,
 		`BRICKS ${JSON.stringify([...reachable.values()])}`,
 		reads,
@@ -266,7 +270,10 @@ function readParents(raw: unknown, where: string, errors: string[]): string[] | 
 	raw.forEach((item, index) => {
 		const id = typeof item === 'string' ? item.trim() : '';
 		if (!isDroxSdtcmDataId(id)) {
-			errors.push(`${where}.parents[${index}] must be a data id.`);
+			const shown = typeof item === 'string' ? item.trim() : JSON.stringify(item);
+			errors.push(shown
+				? `${where}.parents[${index}] must be a data id copied from DATA, like d1. ${shown} is not one. Use [] for introduce.`
+				: `${where}.parents[${index}] must be a data id copied from DATA, like d1. Use [] for introduce.`);
 			return;
 		}
 		if (!parents.includes(id)) {

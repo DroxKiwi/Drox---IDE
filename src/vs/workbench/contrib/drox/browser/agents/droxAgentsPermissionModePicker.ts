@@ -160,9 +160,13 @@ export class DroxAgentsPermissionModePicker extends Disposable {
 				await setDroxPermissionModeConfiguration(this._configurationService, resolved.mode, workspaceResource);
 				this._updateTrigger();
 			},
-			onHide: () => triggerElement.focus(),
+			onHide: () => {
+				triggerElement.classList.remove('panel-open');
+				triggerElement.focus();
+			},
 		};
 
+		triggerElement.classList.add('panel-open');
 		this._actionWidgetService.show<IPermissionModeItem>(
 			'droxAgentsPermissionModePicker',
 			false,

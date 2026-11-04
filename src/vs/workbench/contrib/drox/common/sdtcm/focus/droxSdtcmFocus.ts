@@ -5,8 +5,10 @@
 
 // allow-any-unicode-comment-file
 
-import { IDroxSdtcmDataPath } from '../data/droxSdtcmPath.js';
-import { droxSdtcmParentFolderId, IDroxSdtcmGraph } from '../droxSdtcmGraph.js';
+import { IDroxSdtcmDataPath, traceDroxSdtcmSelection } from '../data/droxSdtcmPath.js';
+import { droxSdtcmParentFolderId, IDroxSdtcmGraph, IDroxSdtcmGraphNode } from '../droxSdtcmGraph.js';
+import { IDroxSdtcmMap, isDroxSdtcmDataId } from '../droxSdtcmMap.js';
+import { droxSdtcmFreshBricks } from '../droxSdtcmRole.js';
 
 export type DroxSdtcmFocusMark = 'primary' | 'related' | 'involved' | 'dim';
 
@@ -103,6 +105,85 @@ export function markDroxSdtcmFocus(graph: IDroxSdtcmGraph, focusIds: ReadonlySet
 	return { nodes, edges };
 }
 
+/**
+ * The kept entities use the same bright path as a left click, joined together.
+ * A click path is added on top. With neither, the map stays evenly lit.
+ */
+export function markDroxSdtcmKept(
+	graph: IDroxSdtcmGraph,
+	map: IDroxSdtcmMap,
+	focusIds: ReadonlySet<string>,
+	click?: IDroxSdtcmDataPath,
+): IDroxSdtcmFocusMarks | undefined {
+	const nodes = new Set<string>(click?.nodes ?? []);
+	const edges = new Set<string>(click?.edges ?? []);
+	for (const id of focusIds) {
+		if (id.startsWith('folder:')) {
+			addFolderFocus(graph, id, nodes, edges);
+			continue;
+		}
+		const kind = id.startsWith('file:') ? 'file' : isDroxSdtcmDataId(id) ? 'data' : 'brick';
+		const traced = traceDroxSdtcmSelection(map, kind, id);
+		if (!traced) {
+			nodes.add(id);
+			continue;
+		}
+		for (const node of traced.nodes) {
+			nodes.add(node);
+		}
+		for (const edge of traced.edges) {
+			edges.add(edge);
+		}
+	}
+	if (!nodes.size) {
+		return undefined;
+	}
+	return markDroxSdtcmDataPath(graph, { nodes, edges });
+}
+
+function addFolderFocus(graph: IDroxSdtcmGraph, folderId: string, nodes: Set<string>, edges: Set<string>): void {
+	const inside = new Set<string>();
+	for (const node of graph.nodes) {
+		if (node.id === folderId || nodeHeldBy(folderId, node)) {
+			inside.add(node.id);
+			nodes.add(node.id);
+		}
+	}
+	nodes.add(folderId);
+	let path = folderId.slice('folder:'.length);
+	if (path !== '(root)') {
+		nodes.add('folder:(root)');
+	}
+	while (path.includes('/')) {
+		path = path.slice(0, path.lastIndexOf('/'));
+		nodes.add(`folder:${path}`);
+	}
+	for (const edge of graph.edges) {
+		if (inside.has(edge.from) && inside.has(edge.to)) {
+			edges.add(`${edge.from}->${edge.to}`);
+		}
+	}
+}
+
+function nodeHeldBy(folderId: string, node: IDroxSdtcmGraphNode): boolean {
+	if (folderId === 'folder:(root)') {
+		return true;
+	}
+	return node.id.startsWith(`${folderId}/`) || node.folder === folderId || (node.folder?.startsWith(`${folderId}/`) ?? false);
+}
+
+/** A kept entity stays bright when a selection fades the rest of the map. */
+export function keepDroxSdtcmFocusVisible(marks: IDroxSdtcmFocusMarks, focusIds: ReadonlySet<string>): IDroxSdtcmFocusMarks {
+	if (!focusIds.size) {
+		return marks;
+	}
+	const nodes = new Map(marks.nodes);
+	for (const id of focusIds) {
+		nodes.set(id, 'primary');
+	}
+	return { nodes, edges: marks.edges };
+}
+
 /** The path stays bright. Everything else fades, as when a folder is held. */
 export function markDroxSdtcmDataPath(graph: IDroxSdtcmGraph, path: IDroxSdtcmDataPath): IDroxSdtcmFocusMarks {
 	const nodes = new Map<string, DroxSdtcmFocusMark>();
@@ -123,4 +204,65 @@ export function markDroxSdtcmDataPath(graph: IDroxSdtcmGraph, path: IDroxSdtcmDa
 		edges.set(key, path.edges.has(key) ? 'linked' : 'dim');
 	}
 	return { nodes, edges };
+}
+
+/**
+ * Ids that showed up on the map: a new folder, file, brick, or data.
+ * A brick or data that was rewritten keeps its signature, so a new id alone does not count.
+ */
+export function droxSdtcmAddedFocus(before: IDroxSdtcmMap, after: IDroxSdtcmMap, beforeListed: readonly string[] = [], afterListed: readonly string[] = []): string[] {
+	const beforeFiles = droxSdtcmKnownFiles(before, beforeListed);
+	const afterFiles = droxSdtcmKnownFiles(after, afterListed);
+	const beforeFolders = droxSdtcmFolderIds(beforeFiles);
+	const added = [...droxSdtcmFolderIds(afterFiles)].filter(folder => !beforeFolders.has(folder));
+	added.sort((a, b) => a.split('/').length - b.split('/').length || (a < b ? -1 : a > b ? 1 : 0));
+	for (const file of [...afterFiles].sort()) {
+		if (!beforeFiles.has(file)) {
+			added.push(`file:${file}`);
+		}
+	}
+	for (const id of droxSdtcmFreshBricks(before.bricks, after.bricks)) {
+		added.push(id);
+	}
+	const dataLeft = new Map<string, number>();
+	for (const item of before.data) {
+		const key = `${item.file}\u0000${item.name}\u0000${item.birth}`;
+		dataLeft.set(key, (dataLeft.get(key) ?? 0) + 1);
+	}
+	for (const item of after.data) {
+		const key = `${item.file}\u0000${item.name}\u0000${item.birth}`;
+		const left = dataLeft.get(key) ?? 0;
+		if (left > 0) {
+			dataLeft.set(key, left - 1);
+		} else {
+			added.push(item.id);
+		}
+	}
+	return added;
+}
+
+function droxSdtcmKnownFiles(map: IDroxSdtcmMap, listed: readonly string[]): Set<string> {
+	const files = new Set(listed);
+	for (const brick of map.bricks) {
+		files.add(brick.file);
+	}
+	for (const item of map.data) {
+		files.add(item.file);
+	}
+	return files;
+}
+
+/** Folder ids drawn for these files, including `(root)` when a file sits there. */
+function droxSdtcmFolderIds(files: ReadonlySet<string>): Set<string> {
+	const folders = new Set<string>();
+	for (const file of files) {
+		const parts = file.split('/');
+		let current: string | undefined = parts.length < 2 ? '(root)' : parts.slice(0, -1).join('/');
+		while (current) {
+			folders.add(`folder:${current}`);
+			const slash = current.lastIndexOf('/');
+			current = current === '(root)' ? undefined : slash === -1 ? undefined : current.slice(0, slash);
+		}
+	}
+	return folders;
 }

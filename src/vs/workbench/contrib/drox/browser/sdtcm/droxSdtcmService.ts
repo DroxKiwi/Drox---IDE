@@ -14,6 +14,8 @@ import { InstantiationType, registerSingleton } from '../../../../../platform/in
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import { IStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
+import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { parseLlmProvider, readLlmProvider, resolveLlmCatalogConnection } from '../../common/droxLlmCatalog.js';
@@ -22,6 +24,7 @@ import { callDroxProseLlm } from '../../common/droxInlineChat.js';
 import { DROX_SDTCM_PROBE_PHASES, DroxSdtcmProbePhase, expandDroxSdtcmPhases, seedDroxSdtcmProbe, summarizeDroxSdtcmConsistency } from '../../common/sdtcm/droxSdtcmConsistency.js';
 import { defaultDroxSdtcmDisplay, IDroxSdtcmSavedDisplay, savedDroxSdtcmDisplay } from '../../common/sdtcm/droxSdtcmDisplay.js';
 import { focusDroxSdtcmMap, IDroxSdtcmFocus } from '../../common/sdtcm/droxSdtcmDiff.js';
+import { droxSdtcmAddedFocus } from '../../common/sdtcm/focus/droxSdtcmFocus.js';
 import {
 	droxSdtcmQuoteMatches,
 	emptyDroxSdtcmBaseline,
@@ -36,12 +39,17 @@ import {
 	acceptDroxSdtcmLinks,
 	buildDroxSdtcmLinkTurn,
 	buildDroxSdtcmTurn,
+	formatDroxSdtcmMapIndex,
 	completeDroxSdtcmLinks,
 	droxSdtcmFilesToLink,
 	acceptDroxSdtcmFolderTags,
 	acceptDroxSdtcmTags,
 	buildDroxSdtcmFolderTagTurn,
 	buildDroxSdtcmTagTurn,
+	DROX_SDTCM_NEW_TAG,
+	droxSdtcmFreshBricks,
+	droxSdtcmTagNameOk,
+	ensureDroxSdtcmNewTag,
 	IDroxSdtcmTag,
 	IDroxSdtcmTagMarkDraft,
 	readDroxSdtcmFileDraft,
@@ -105,18 +113,31 @@ export interface IDroxSdtcmService {
 	readonly _serviceBrand: undefined;
 	readonly onDidChange: Event<IDroxSdtcmSnapshot>;
 	readonly onDidChangeDisplay: Event<IDroxSdtcmDisplay>;
+	readonly onDidReveal: Event<IDroxSdtcmReveal>;
+	readonly onDidChangeAutoAlign: Event<boolean>;
 	getSnapshot(): IDroxSdtcmSnapshot;
 	getDisplay(): IDroxSdtcmDisplay;
 	setDisplay(display: IDroxSdtcmDisplay): void;
+	getAutoAlign(): boolean;
+	setAutoAlign(on: boolean): void;
+	reveal(file: string, line: number): void;
 	setTags(tags: readonly IDroxSdtcmTag[]): void;
+	updateTag(from: string, draft: { readonly name: string; readonly description: string; readonly scope: IDroxSdtcmTag['scope'] }): string;
 	open(workspace: URI): Promise<void>;
 	stop(): void;
 	getPhasePick(): readonly DroxSdtcmProbePhase[];
 	setPhasePick(phases: readonly DroxSdtcmProbePhase[]): void;
 	resume(): Promise<void>;
-	align(workspace: URI, note?: string): Promise<IDroxSdtcmAlignResult>;
+	align(workspace: URI, note?: string, phases?: readonly DroxSdtcmProbePhase[]): Promise<IDroxSdtcmAlignResult>;
 	probe(phases: readonly DroxSdtcmProbePhase[], turns: number): Promise<string>;
 }
+
+export interface IDroxSdtcmReveal {
+	readonly file: string;
+	readonly line: number;
+}
+
+const DROX_SDTCM_AUTO_ALIGN = 'drox.sdtcm.autoAlign';
 
 export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 
@@ -126,6 +147,11 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 	readonly onDidChange = this._onDidChange.event;
 	private readonly _onDidChangeDisplay = this._register(new Emitter<IDroxSdtcmDisplay>());
 	readonly onDidChangeDisplay = this._onDidChangeDisplay.event;
+	private readonly _onDidReveal = this._register(new Emitter<IDroxSdtcmReveal>());
+	readonly onDidReveal = this._onDidReveal.event;
+	private readonly _onDidChangeAutoAlign = this._register(new Emitter<boolean>());
+	readonly onDidChangeAutoAlign = this._onDidChangeAutoAlign.event;
+	private _autoAlign = false;
 	private _display: IDroxSdtcmDisplay = {
 		kinds: new Set<DroxSdtcmKind>(['type', 'operation', 'value', 'source']),
 		forms: new Set<DroxSdtcmForm>(['declare', 'apply']),
@@ -147,6 +173,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 	private _step = 0;
 	private _maxSteps = 0;
 	private _progress = '';
+	private _runPhases: readonly DroxSdtcmProbePhase[] = [];
 	private _probePlan: { turn: number; turns: number; phases: readonly DroxSdtcmProbePhase[] } | undefined;
 	private _journal: string[] = [];
 	private _exchanges: IDroxSdtcmExchange[] = [];
@@ -160,9 +187,39 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		@IDroxEngineService private readonly engineService: IDroxEngineService,
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
+		@IStorageService private readonly storageService: IStorageService,
+		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@ILogService private readonly logService: ILogService,
 	) {
 		super();
+		this._autoAlign = this.storageService.getBoolean(DROX_SDTCM_AUTO_ALIGN, StorageScope.WORKSPACE, false);
+		this._register(this.engineService.onNotification(event => {
+			if (event.method !== 'agent/done' || !this._autoAlign) {
+				return;
+			}
+			const status = (event.params as { status?: string } | undefined)?.status;
+			if (status === 'error' || status === 'cancel' || status === 'cancelled') {
+				return;
+			}
+			const folder = this._workspace ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
+			if (folder) {
+				void this.align(folder);
+			}
+		}));
+	}
+
+	getAutoAlign(): boolean {
+		return this._autoAlign;
+	}
+
+	setAutoAlign(on: boolean): void {
+		this._autoAlign = on;
+		this.storageService.store(DROX_SDTCM_AUTO_ALIGN, on, StorageScope.WORKSPACE, StorageTarget.USER);
+		this._onDidChangeAutoAlign.fire(on);
+	}
+
+	reveal(file: string, line: number): void {
+		this._onDidReveal.fire({ file, line: line > 0 ? line : 1 });
 	}
 
 	getDisplay(): IDroxSdtcmDisplay {
@@ -199,10 +256,25 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 	}
 
 	setTags(tags: readonly IDroxSdtcmTag[]): void {
-		const next = tags.map(tag => ({ name: tag.name, description: tag.description, color: tag.color, scope: tag.scope }));
+		const next = ensureDroxSdtcmNewTag(tags.map(tag => ({
+			name: tag.name,
+			description: tag.description,
+			color: tag.color,
+			scope: tag.scope,
+			locked: tag.name === DROX_SDTCM_NEW_TAG || tag.locked === true,
+			enabled: tag.enabled !== false,
+		})));
 		const names = new Set(next.map(tag => tag.name));
 		const visible = new Set([...this._display.visibleTags].filter(name => names.has(name)));
 		for (const tag of next) {
+			if (tag.name === DROX_SDTCM_NEW_TAG) {
+				if (tag.enabled === false) {
+					visible.delete(tag.name);
+				} else {
+					visible.add(tag.name);
+				}
+				continue;
+			}
 			if (!this._tags.some(current => current.name === tag.name)) {
 				visible.add(tag.name);
 			}
@@ -222,6 +294,62 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		this._emit();
 	}
 
+	private _renameTagMarks(from: string, to: string): void {
+		const rename = <T extends { readonly name: string }>(mark: T): T => mark.name === from ? { ...mark, name: to } : mark;
+		this._map = {
+			...this._map,
+			bricks: this._map.bricks.map(brick => ({ ...brick, tags: (brick.tags ?? []).map(rename) })),
+			data: this._map.data.map(item => ({ ...item, tags: (item.tags ?? []).map(rename) })),
+			placed: (this._map.placed ?? []).map(rename),
+		};
+		if (this._display.visibleTags.has(from)) {
+			const visibleTags = new Set(this._display.visibleTags);
+			visibleTags.delete(from);
+			visibleTags.add(to);
+			this._display = { ...this._display, visibleTags };
+		}
+	}
+
+	private _keepTagOnScope(name: string, scope: IDroxSdtcmTag['scope']): void {
+		this._map = {
+			...this._map,
+			bricks: scope === 'brick' ? this._map.bricks : this._map.bricks.map(brick => ({ ...brick, tags: (brick.tags ?? []).filter(mark => mark.name !== name) })),
+			data: scope === 'data' ? this._map.data : this._map.data.map(item => ({ ...item, tags: (item.tags ?? []).filter(mark => mark.name !== name) })),
+			placed: (this._map.placed ?? []).filter(mark => mark.name !== name || mark.scope === scope),
+		};
+	}
+
+	/** Returns an empty string when the tag was saved, or the reason it was refused. */
+	updateTag(from: string, draft: { readonly name: string; readonly description: string; readonly scope: IDroxSdtcmTag['scope'] }): string {
+		const current = this._tags.find(tag => tag.name === from);
+		if (!current) {
+			return 'That tag is gone.';
+		}
+		if (from === DROX_SDTCM_NEW_TAG || current.locked === true) {
+			return 'That tag cannot be edited.';
+		}
+		const name = draft.name.trim();
+		const scope = draft.scope;
+		const description = draft.description.trim().slice(0, 240);
+		if (!droxSdtcmTagNameOk(name)) {
+			return 'Name starts with a letter, then letters, digits, or hyphens.';
+		}
+		if (!description) {
+			return 'A description is required.';
+		}
+		if (name !== from && this._tags.some(tag => tag.name === name)) {
+			return 'That name is already used.';
+		}
+		if (name !== from) {
+			this._renameTagMarks(from, name);
+		}
+		if (scope !== current.scope) {
+			this._keepTagOnScope(name, scope);
+		}
+		this.setTags(this._tags.map(tag => tag.name === from ? { ...tag, name, description, scope } : tag));
+		return '';
+	}
+
 	async open(workspace: URI): Promise<void> {
 		const key = workspace.toString();
 		if (this._loadedKey === key) {
@@ -229,9 +357,6 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			return;
 		}
 		await this._load(workspace);
-		if (this._map.bricks.length === 0 && this._phase !== 'running') {
-			void this._run('build');
-		}
 	}
 
 	stop(): void {
@@ -261,19 +386,41 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			this._note('Select at least one phase.');
 			return;
 		}
+		const beforeMap = cloneDroxSdtcmMap(this._map);
+		const beforeFiles = this._files.slice();
 		this._map = seedDroxSdtcmProbe(this._map, new Set(selected));
 		if (selected.includes('build')) {
 			this._baseline = emptyDroxSdtcmBaseline();
 		}
-		await this._run('build', undefined, selected);
+		this._stripNew();
+		const result = await this._run('build', undefined, selected, beforeMap.bricks);
+		if (!result.busy && !result.stopped) {
+			this._keepAdded(beforeMap, beforeFiles);
+			this._assignNew(beforeMap.bricks);
+		}
 	}
 
-	async align(workspace: URI, note?: string): Promise<IDroxSdtcmAlignResult> {
+	async align(workspace: URI, note?: string, phases?: readonly DroxSdtcmProbePhase[]): Promise<IDroxSdtcmAlignResult> {
 		if (this._phase === 'running') {
 			return { busy: true, stopped: false, changed: false, message: 'The SDTCM role is already running.', brickCount: this._map.bricks.length };
 		}
+		const selected = phases
+			? DROX_SDTCM_PROBE_PHASES.filter(phase => phases.includes(phase))
+			: [...DROX_SDTCM_PROBE_PHASES];
+		if (!selected.length) {
+			this._note('Select at least one phase.');
+			return { busy: false, stopped: false, changed: false, message: this._message, brickCount: this._map.bricks.length };
+		}
 		await this._load(workspace);
-		return this._run('align', note);
+		const beforeMap = cloneDroxSdtcmMap(this._map);
+		const beforeFiles = this._files.slice();
+		this._stripNew();
+		const result = await this._run('align', note, selected, beforeMap.bricks);
+		if (!result.busy && !result.stopped) {
+			this._keepAdded(beforeMap, beforeFiles);
+			this._assignNew(beforeMap.bricks);
+		}
+		return result;
 	}
 
 	/** Runs the chosen phases several times and writes each map beside the live one. The live map is restored. */
@@ -348,7 +495,12 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		const stored = await readDroxSdtcmStore(this.fileService, workspace);
 		this._map = stored.map;
 		this._baseline = stored.baseline;
-		this._tags = await readDroxSdtcmTags(this.fileService, workspace);
+		const readTags = await readDroxSdtcmTags(this.fileService, workspace);
+		const tags = ensureDroxSdtcmNewTag(readTags);
+		this._tags = tags;
+		if (JSON.stringify(tags) !== JSON.stringify(readTags)) {
+			await writeDroxSdtcmTags(this.fileService, workspace, tags);
+		}
 		const saved = await readDroxSdtcmDisplay(this.fileService, workspace);
 		const names = this._tags.map(tag => tag.name);
 		const display = saved ? savedDroxSdtcmDisplay(saved, names) : defaultDroxSdtcmDisplay(names);
@@ -360,16 +512,29 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			focus: [...display.focus],
 			visibleTags: new Set(display.visibleTags ?? names),
 		};
+		const savedNew = readTags.find(tag => tag.name === DROX_SDTCM_NEW_TAG);
+		const visibleTags = new Set(this._display.visibleTags);
+		if (!savedNew) {
+			visibleTags.add(DROX_SDTCM_NEW_TAG);
+		} else if (savedNew.enabled === false) {
+			visibleTags.delete(DROX_SDTCM_NEW_TAG);
+		}
+		this._display = { ...this._display, visibleTags };
 		this._onDidChangeDisplay.fire(this._display);
 		this._files = await listDroxSdtcmSources(this.fileService, workspace);
 		if (this._phase !== 'running') {
 			this._phase = 'idle';
-			this._message = this._map.bricks.length ? 'Map loaded.' : 'No map yet. The role will write it.';
+			this._message = this._map.bricks.length ? 'Map loaded.' : 'No map yet. Launch a run to write it.';
 		}
 		this._emit();
 	}
 
-	private async _run(mode: 'build' | 'align', note?: string, only?: readonly DroxSdtcmProbePhase[]): Promise<IDroxSdtcmAlignResult> {
+	private async _run(
+		mode: 'build' | 'align',
+		note?: string,
+		only?: readonly DroxSdtcmProbePhase[],
+		previousBricks?: readonly { readonly file: string; readonly name: string; readonly kind: string; readonly form: string }[],
+	): Promise<IDroxSdtcmAlignResult> {
 		const workspace = this._workspace;
 		if (!workspace) {
 			return { busy: false, stopped: false, changed: false, message: 'No folder is open.', brickCount: 0 };
@@ -378,14 +543,27 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			return { busy: true, stopped: false, changed: false, message: 'The SDTCM role is already running.', brickCount: this._map.bricks.length };
 		}
 		const phases = new Set<DroxSdtcmProbePhase>(only ?? ['build', 'data', 'trace', 'link', 'tag']);
-		const runBuild = mode === 'align' || !only || phases.has('build');
+		const rewrite = !only || phases.has('build');
 		const token = ++this._seq;
 		this._phase = 'running';
 		this._mode = mode;
 		this._step = 0;
+		this._runPhases = DROX_SDTCM_PROBE_PHASES.filter(phase => {
+			if (!phases.has(phase)) {
+				return false;
+			}
+			if (phase === 'build') {
+				return rewrite;
+			}
+			if (phase === 'tag') {
+				return this._tags.some(tag => tag.enabled !== false && tag.name !== DROX_SDTCM_NEW_TAG);
+			}
+			return true;
+		});
+		this._progress = '0%';
 		this._journal = [];
 		this._exchanges = [];
-		if (!only || phases.has('build') || phases.has('data')) {
+		if (mode !== 'align' && (!only || phases.has('build') || phases.has('data'))) {
 			this._map = { ...this._map, data: [] };
 		}
 		this._note(mode === 'align' ? 'Realigning the map.' : only ? `Phases: ${only.join(', ')}.` : 'The role is writing the map.');
@@ -395,95 +573,126 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			const cache = new Map<string, string>();
 			let changed = false;
 			let refused = false;
-			if (runBuild) {
+			let touched: readonly string[] | undefined;
+			if (mode === 'align' || rewrite) {
 				const focus = mode === 'align' ? await this._focus(workspace) : [];
-				const queue = mode === 'align' ? focus.map(item => item.path) : sources;
+				const missing = mode === 'align' && rewrite ? [...new Set([
+					...focus.filter(item => item.missing).map(item => item.path),
+					...Object.keys(this._baseline.files).filter(path => !sources.includes(path)),
+				])] : [];
+				if (missing.length) {
+					const gone = new Set(missing);
+					this._map = {
+						...this._map,
+						bricks: this._map.bricks.filter(brick => !gone.has(brick.file)),
+						data: this._map.data.filter(item => !gone.has(item.file)),
+						placed: (this._map.placed ?? []).filter(mark => mark.scope !== 'file' || !gone.has(mark.on)),
+					};
+					changed = true;
+					await this._persist();
+				}
+				const known = new Set<string>([
+					...this._map.bricks.map(brick => brick.file),
+					...Object.keys(this._baseline.files),
+					...focus.map(item => item.path),
+				]);
+				const mapExists = this._map.bricks.length > 0 || Object.keys(this._baseline.files).length > 0;
+				const fresh = mode === 'align' && mapExists ? sources.filter(path => !known.has(path)) : [];
+				const queue = mode === 'align'
+					? [...new Set([...focus.filter(item => !item.missing).map(item => item.path), ...fresh])].sort()
+					: sources;
+				touched = mode === 'align' ? queue : undefined;
 				this._maxSteps = queue.length;
 				this._note(mode === 'align'
 					? `${queue.length} file(s) to realign. One turn per file.`
 					: `${sources.length} source file(s) kept. One turn per file.`);
 				if (!queue.length) {
-					this._finish(token, 'idle', mode === 'align' ? 'No gap with the map.' : 'No file in the tree.');
-					return { busy: false, stopped: false, changed: false, message: this._message, brickCount: this._map.bricks.length };
+					this._finish(token, 'idle', mode === 'align' ? (changed ? 'Missing files left the map.' : 'No gap with the map.') : 'No file in the tree.');
+					return { busy: false, stopped: false, changed, message: this._message, brickCount: this._map.bricks.length };
 				}
-				this._say('engine', droxSdtcmSystemPrompt(mode === 'align' ? 'align' : 'build'));
-				for (let index = 0; index < queue.length; index++) {
-					if (token !== this._seq) {
-						return this._stoppedResult();
-					}
-					const path = queue[index];
-					const text = await this._text(workspace, path, cache);
-					if (text === undefined) {
-						this._step = index + 1;
-						this._note(`Turn ${this._step}/${queue.length} — ${path} is unreadable.`);
-						continue;
-					}
-					let hint = '';
-					let accepted = false;
-					let jsonFails = 0;
-					const reads = new Map<string, string>();
-					for (let call = 0; call < 14 && !accepted && jsonFails < 3; call++) {
+				if (!rewrite) {
+					this._note(`Phases: ${[...phases].join(', ')}.`);
+				} else {
+					this._say('engine', droxSdtcmSystemPrompt(mode === 'align' ? 'align' : 'build'));
+					for (let index = 0; index < queue.length; index++) {
 						if (token !== this._seq) {
 							return this._stoppedResult();
 						}
-						this._step = index + 1;
-						this._probeAt('build', index, queue.length, path);
-						const user = buildDroxSdtcmTurn({
-							mode,
-							path,
-							files: sources,
-							text,
-							reads: [...reads].map(([readPath, readText]) => ({ path: readPath, text: readText })),
-							focus,
-							note,
-							hint,
-						});
-						this._note(`Turn ${this._step}/${queue.length} — ${path}`);
-						this._say('engine', user);
-						const raw = await this._ask(workspace, user, mode === 'align' ? 'align' : 'build');
-						if (token !== this._seq) {
-							return this._stoppedResult();
+						const path = queue[index];
+						const text = await this._text(workspace, path, cache);
+						if (text === undefined) {
+							this._step = index + 1;
+							this._note(`Turn ${this._step}/${queue.length} — ${path} is unreadable.`);
+							continue;
 						}
-						this._say('agent', raw);
-						const tool = readDroxSdtcmRead(raw);
-						if (tool) {
-							hint = await this._takeRead(workspace, tool, sources, reads, cache);
-							if (hint) {
-								this._note(hint);
+						let hint = '';
+						let accepted = false;
+						let jsonFails = 0;
+						const reads = new Map<string, string>();
+						for (let call = 0; call < 14 && !accepted && jsonFails < 3; call++) {
+							if (token !== this._seq) {
+								return this._stoppedResult();
 							}
-							continue;
+							this._step = index + 1;
+							this._probeAt('build', index, queue.length, path);
+							const user = buildDroxSdtcmTurn({
+								mode,
+								path,
+								files: sources,
+								text,
+								reads: [...reads].map(([readPath, readText]) => ({ path: readPath, text: readText })),
+								focus,
+								note,
+								hint,
+								mapIndex: this._mapIndex(path),
+							});
+							this._note(`Turn ${this._step}/${queue.length} — ${path}`);
+							this._say('engine', user);
+							const raw = await this._ask(workspace, user, mode === 'align' ? 'align' : 'build');
+							if (token !== this._seq) {
+								return this._stoppedResult();
+							}
+							this._say('agent', raw);
+							const tool = readDroxSdtcmRead(raw);
+							if (tool) {
+								hint = await this._takeRead(workspace, tool, sources, reads, cache);
+								if (hint) {
+									this._note(hint);
+								}
+								continue;
+							}
+							const draft = readDroxSdtcmFileDraft(raw, path);
+							if (!draft.ok) {
+								jsonFails++;
+								hint = draft.errors.join('\n');
+								this._note(hint);
+								continue;
+							}
+							const reviewed = acceptDroxSdtcmFile(this._map, path, draft.items, text, new Set(sources));
+							if (!reviewed.ok) {
+								jsonFails++;
+								hint = reviewed.errors.join('\n');
+								this._note(hint);
+								continue;
+							}
+							this._map = reviewed.map;
+							this._adoptBaseline(cache, [path]);
+							await this._persist();
+							changed = true;
+							accepted = true;
+							this._note(`map.json written — ${this._map.bricks.length} brick(s).`);
 						}
-						const draft = readDroxSdtcmFileDraft(raw, path);
-						if (!draft.ok) {
-							jsonFails++;
-							hint = draft.errors.join('\n');
-							this._note(hint);
-							continue;
+						if (!accepted) {
+							refused = true;
+							this._note(`${path} refused.`);
 						}
-						const reviewed = acceptDroxSdtcmFile(this._map, path, draft.items, text, new Set(sources));
-						if (!reviewed.ok) {
-							jsonFails++;
-							hint = reviewed.errors.join('\n');
-							this._note(hint);
-							continue;
-						}
-						this._map = reviewed.map;
-						this._adoptBaseline(cache, [path]);
-						await this._persist();
-						changed = true;
-						accepted = true;
-						this._note(`map.json written — ${this._map.bricks.length} brick(s).`);
-					}
-					if (!accepted) {
-						refused = true;
-						this._note(`${path} refused.`);
 					}
 				}
 			}
 			if (token !== this._seq) {
 				return this._stoppedResult();
 			}
-			const dataFiles = [...new Set(this._map.bricks.map(brick => brick.file))].sort();
+			const dataFiles = [...new Set(touched ?? this._map.bricks.map(brick => brick.file))].sort();
 			if ((!only || phases.has('data')) && dataFiles.length) {
 				this._say('engine', droxSdtcmSystemPrompt('data'));
 				const recorded = await this._dataPass(workspace, token, dataFiles, sources, cache);
@@ -496,7 +705,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 					changed = true;
 				}
 			}
-			const traceFiles = [...new Set(this._map.data.map(item => item.file))].sort();
+			const traceFiles = [...new Set(this._map.data.map(item => item.file))].filter(file => !touched || touched.includes(file)).sort();
 			if ((!only || phases.has('trace')) && traceFiles.length) {
 				this._say('engine', droxSdtcmSystemPrompt('trace'));
 				const traced = await this._tracePass(workspace, token, traceFiles, sources, cache);
@@ -509,7 +718,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 					changed = true;
 				}
 			}
-			const linkFiles = droxSdtcmFilesToLink(this._map);
+			const linkFiles = droxSdtcmFilesToLink(this._map).filter(file => !touched || touched.includes(file));
 			if ((!only || phases.has('link')) && linkFiles.length) {
 				this._say('engine', droxSdtcmSystemPrompt('link'));
 				const linked = await this._linkPass(workspace, token, linkFiles, sources, cache);
@@ -522,13 +731,17 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 					changed = true;
 				}
 			}
-			const fileScoped = this._tags.some(tag => tag.scope === 'file');
-			const tagFiles = this._tags.some(tag => tag.scope !== 'folder')
-				? (fileScoped ? [...sources].sort() : [...new Set([...this._map.bricks.map(brick => brick.file), ...this._map.data.map(item => item.file)])].sort())
-				: [];
-			if ((!only || phases.has('tag')) && this._tags.length) {
+			const activeTags = this._tags.filter(tag => tag.enabled !== false && tag.name !== DROX_SDTCM_NEW_TAG);
+			const fileScoped = activeTags.some(tag => tag.scope === 'file');
+			const tagFiles = touched
+				? [...touched]
+				: activeTags.some(tag => tag.scope !== 'folder')
+					? (fileScoped ? [...sources].sort() : [...new Set([...this._map.bricks.map(brick => brick.file), ...this._map.data.map(item => item.file)])].sort())
+					: [];
+			if ((!only || phases.has('tag')) && activeTags.length) {
 				this._say('engine', droxSdtcmSystemPrompt('tag'));
-				const tagged = await this._tagPass(workspace, token, tagFiles, sources, cache);
+				const fresh = previousBricks ? droxSdtcmFreshBricks(previousBricks, this._map.bricks) : undefined;
+				const tagged = await this._tagPass(workspace, token, tagFiles, touched ?? sources, cache, fresh);
 				if (tagged === 'stopped') {
 					return this._stoppedResult();
 				}
@@ -613,6 +826,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 					map: this._map,
 					reads: [...reads].map(([readPath, readText]) => ({ path: readPath, text: readText })),
 					hint,
+					mapIndex: this._mapIndex(path),
 				});
 				this._note(this._probePlan ? `${path}` : `Data — ${this._step}/${files.length}`);
 				this._say('engine', user);
@@ -690,6 +904,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 					map: this._map,
 					reads: [...reads].map(([readPath, readText]) => ({ path: readPath, text: readText })),
 					hint,
+					mapIndex: this._mapIndex(path),
 				});
 				this._note(this._probePlan ? `${path}` : `Trace — ${this._step}/${files.length}`);
 				this._say('engine', user);
@@ -749,6 +964,20 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			return 'refused';
 		}
 		return wrote ? 'written' : 'empty';
+	}
+
+	private _keepAdded(before: IDroxSdtcmMap, beforeFiles: readonly string[]): void {
+		const fresh = droxSdtcmAddedFocus(before, this._map, beforeFiles, this._files);
+		if (!fresh.length) {
+			return;
+		}
+		const focus = [...this._display.focus];
+		for (const id of fresh) {
+			if (!focus.includes(id)) {
+				focus.push(id);
+			}
+		}
+		this.setDisplay({ ...this._display, focus });
 	}
 
 	private async _focus(workspace: URI): Promise<IDroxSdtcmFocus[]> {
@@ -853,6 +1082,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 					files: sources,
 					reads: [...reads].map(([readPath, readText]) => ({ path: readPath, text: readText })),
 					hint,
+					mapIndex: this._mapIndex(path),
 				});
 				this._note(this._probePlan ? `${path}` : `Links — ${this._step}/${files.length}`);
 				this._say('engine', user);
@@ -909,11 +1139,13 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		files: readonly string[],
 		sources: readonly string[],
 		cache: Map<string, string>,
+		fresh?: ReadonlySet<string>,
 	): Promise<'written' | 'refused' | 'empty' | 'stopped'> {
 		let wrote = false;
 		let refused = false;
-		const fileCatalog = this._tags.filter(tag => tag.scope !== 'folder');
-		const folderCatalog = this._tags.filter(tag => tag.scope === 'folder');
+		const active = this._tags.filter(tag => tag.enabled !== false && tag.name !== DROX_SDTCM_NEW_TAG);
+		const fileCatalog = active.filter(tag => tag.scope !== 'folder');
+		const folderCatalog = active.filter(tag => tag.scope === 'folder');
 		const folders = folderCatalog.length ? droxSdtcmFolders(sources) : [];
 		const steps = (fileCatalog.length ? files.length : 0) + folders.length;
 		let step = 0;
@@ -938,9 +1170,15 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 					text,
 					tags: fileCatalog,
 					hint,
-				}), draft => acceptDroxSdtcmTags(this._map, path, draft, fileCatalog));
+					fresh: fresh ? [...fresh] : undefined,
+					mapIndex: this._mapIndex(path),
+				}), draft => acceptDroxSdtcmTags(this._map, path, draft.filter(mark => mark.tag !== DROX_SDTCM_NEW_TAG), fileCatalog, fresh ? [] : [DROX_SDTCM_NEW_TAG]));
 				if (outcome === 'stopped') {
 					return 'stopped';
+				}
+				if (this._placeNew(path, fresh)) {
+					await this._persist();
+					wrote = true;
 				}
 				if (outcome === 'refused') {
 					refused = true;
@@ -977,6 +1215,88 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			return 'refused';
 		}
 		return wrote ? 'written' : 'empty';
+	}
+
+	/** Drops every `new` mark. A run puts the tag back only on bricks that were not on the map. */
+	private _stripNew(): void {
+		this._writeNew(new Set());
+	}
+
+	private _assignNew(before: readonly { readonly file: string; readonly name: string; readonly kind: string; readonly form: string }[]): void {
+		const tag = this._tags.find(item => item.name === DROX_SDTCM_NEW_TAG);
+		const fresh = tag && tag.enabled !== false ? droxSdtcmFreshBricks(before, this._map.bricks) : new Set<string>();
+		this._writeNew(fresh);
+	}
+
+	private _writeNew(fresh: ReadonlySet<string>): void {
+		let changed = false;
+		const bricks = this._map.bricks.map(brick => {
+			const without = (brick.tags ?? []).filter(mark => mark.name !== DROX_SDTCM_NEW_TAG);
+			if (!fresh.has(brick.id)) {
+				if (without.length === (brick.tags ?? []).length) {
+					return brick;
+				}
+				changed = true;
+				return { ...brick, tags: without };
+			}
+			const reason = 'added by this run';
+			const current = (brick.tags ?? []).find(mark => mark.name === DROX_SDTCM_NEW_TAG);
+			if (current?.reason === reason && without.length + 1 === (brick.tags ?? []).length) {
+				return brick;
+			}
+			changed = true;
+			return { ...brick, tags: [...without, { name: DROX_SDTCM_NEW_TAG, reason }] };
+		});
+		const data = this._map.data.map(item => {
+			const tags = (item.tags ?? []).filter(mark => mark.name !== DROX_SDTCM_NEW_TAG);
+			if (tags.length === (item.tags ?? []).length) {
+				return item;
+			}
+			changed = true;
+			return { ...item, tags };
+		});
+		const placed = (this._map.placed ?? []).filter(mark => mark.name !== DROX_SDTCM_NEW_TAG);
+		if (placed.length !== (this._map.placed ?? []).length) {
+			changed = true;
+		}
+		if (!changed) {
+			return;
+		}
+		this._map = { ...this._map, bricks, data, placed };
+		void this._persist();
+		this._emit();
+	}
+
+	private _placeNew(path: string, fresh: ReadonlySet<string> | undefined): boolean {
+		if (!fresh) {
+			return false;
+		}
+		const tag = this._tags.find(item => item.name === DROX_SDTCM_NEW_TAG);
+		if (!tag || tag.enabled === false) {
+			return false;
+		}
+		let changed = false;
+		const bricks = this._map.bricks.map(brick => {
+			if (brick.file !== path) {
+				return brick;
+			}
+			const without = (brick.tags ?? []).filter(mark => mark.name !== DROX_SDTCM_NEW_TAG);
+			if (!fresh.has(brick.id)) {
+				if (without.length === (brick.tags ?? []).length) {
+					return brick;
+				}
+				changed = true;
+				return { ...brick, tags: without };
+			}
+			const reason = (brick.tags ?? []).find(mark => mark.name === DROX_SDTCM_NEW_TAG)?.reason || 'added by this run';
+			changed = true;
+			return { ...brick, tags: [...without, { name: DROX_SDTCM_NEW_TAG, reason }] };
+		});
+		if (!changed) {
+			return false;
+		}
+		this._map = { ...this._map, bricks };
+		return true;
 	}
 
 	private async _tagCalls(
@@ -1082,6 +1402,8 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		this._phase = phase;
 		this._mode = 'none';
 		this._step = 0;
+		this._runPhases = [];
+		this._progress = '';
 		this._note(message);
 	}
 
@@ -1093,6 +1415,12 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 	private _probeAt(phase: DroxSdtcmProbePhase, index: number, total: number, path: string): void {
 		const plan = this._probePlan;
 		if (!plan || !plan.phases.length || !plan.turns) {
+			const phases = this._runPhases;
+			const phaseIndex = Math.max(0, phases.indexOf(phase));
+			const within = total > 0 ? (index + 1) / total : 1;
+			const percent = phases.length ? Math.min(100, Math.round(100 * (phaseIndex + within) / phases.length)) : 0;
+			this._progress = `${percent}%`;
+			this._emit();
 			return;
 		}
 		const phaseIndex = Math.max(0, plan.phases.indexOf(phase));
@@ -1102,6 +1430,11 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		this._progress = `${percent}%`;
 		this._message = `Turn ${plan.turn}/${plan.turns} · ${phase} · ${index + 1}/${total} · ${path} · ${percent}%`;
 		this._emit();
+	}
+
+	/** Align only. The file being rewritten is left out: it is rebuilt from its text. */
+	private _mapIndex(file: string): string {
+		return this._mode === 'align' ? formatDroxSdtcmMapIndex(this._map, file) : '';
 	}
 
 	private _note(line: string): void {
