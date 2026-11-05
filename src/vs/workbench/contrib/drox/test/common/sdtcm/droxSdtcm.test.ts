@@ -20,10 +20,28 @@ import { emptyDroxSdtcmMoveHistory, redoDroxSdtcmMove, rememberDroxSdtcmMove, un
 import { placeDroxSdtcmGraph } from '../../../common/sdtcm/placement/droxSdtcmPlacement.js';
 import { droxSdtcmAddedFocus, keepDroxSdtcmFocusVisible, markDroxSdtcmDataPath, markDroxSdtcmFocus, markDroxSdtcmKept } from '../../../common/sdtcm/focus/droxSdtcmFocus.js';
 import { droxSdtcmSystemPrompt } from '../../../common/sdtcm/droxSdtcmPrompt.js';
+import { droxSdtcmFilesFrom, droxSdtcmPhaseAction, parseDroxSdtcmPause } from '../../../common/sdtcm/droxSdtcmPause.js';
 import { acceptDroxSdtcmFile, acceptDroxSdtcmFolderTags, acceptDroxSdtcmLinks, acceptDroxSdtcmTags, buildDroxSdtcmTagTurn, buildDroxSdtcmTurn, completeDroxSdtcmLinks, droxSdtcmFreshBricks, droxSdtcmNewTag, ensureDroxSdtcmNewTag, formatDroxSdtcmMapIndex, IDroxSdtcmTag, parseDroxSdtcmTags, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
 
 suite('Drox SDTCM map', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('pause keeps the file in progress and skips earlier phases', () => {
+		const pause = parseDroxSdtcmPause(JSON.stringify({
+			mode: 'build',
+			phase: 'data',
+			file: 'src/b.ts',
+			phases: ['build', 'data', 'trace'],
+		}));
+		assert.ok(pause);
+		assert.strictEqual(droxSdtcmPhaseAction(pause, 'build'), 'skip');
+		assert.strictEqual(droxSdtcmPhaseAction(pause, 'data'), 'from');
+		assert.strictEqual(droxSdtcmPhaseAction(pause, 'trace'), 'all');
+		assert.deepStrictEqual(droxSdtcmFilesFrom(['src/a.ts', 'src/b.ts', 'src/c.ts'], 'src/b.ts'), ['src/b.ts', 'src/c.ts']);
+		assert.deepStrictEqual(droxSdtcmFilesFrom(['src/a.ts'], 'missing.ts'), ['src/a.ts']);
+		assert.strictEqual(parseDroxSdtcmPause('{"mode":"build"}'), undefined);
+		assert.strictEqual(droxSdtcmPhaseAction(undefined, 'build'), 'all');
+	});
 
 	test('diff keeps the shared edges and reports the middle', () => {
 		const hunk = diffDroxSdtcmText('a\nb\nc\n', 'a\nB\nc\n');

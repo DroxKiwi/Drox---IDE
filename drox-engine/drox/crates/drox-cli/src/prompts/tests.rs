@@ -3,6 +3,19 @@
 use super::*;
 
 #[test]
+fn cloud_full_same_message_directs_independent_calls() {
+    let txt = CLOUD_FULL_SAME_MESSAGE_SUPPLEMENT;
+    assert!(txt.contains("this message"));
+    assert!(txt.contains("separate areas"));
+    assert!(txt.contains("one `task`"));
+    assert!(txt.contains("`ask_user_question` is alone"));
+    assert!(!txt.contains("todo_write"));
+    assert!(!txt.contains("[phase:"));
+    assert!(NATIVE_THINKING_CLOUD_FULL_SUPPLEMENT.contains("tool calls of that step"));
+    assert!(NATIVE_THINKING_LOCAL_SUPPLEMENT.contains("then the tool call"));
+}
+
+#[test]
 fn native_thinking_supplement_warns_against_duplicating_thinking() {
     assert!(NATIVE_THINKING_REASONING_SUPPLEMENT.contains("thinking"));
     assert!(NATIVE_THINKING_REASONING_SUPPLEMENT.contains("Do not duplicate"));

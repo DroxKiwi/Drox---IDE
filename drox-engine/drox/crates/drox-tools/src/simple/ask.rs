@@ -115,7 +115,46 @@ impl Tool for AskUserQuestionTool {
     }
 
     fn input_schema(&self) -> Value {
-        serde_json::to_value(schemars::schema_for!(AskUserQuestionInput)).unwrap_or(Value::Null)
+        // Schéma unique publié au modèle. `execute` accepte encore l'ancienne
+        // forme mono (`question` / `choices`) via `normalize_input`.
+        json!({
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["questions"],
+            "properties": {
+                "title": { "type": "string" },
+                "questions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["prompt", "options"],
+                        "properties": {
+                            "id": { "type": "string" },
+                            "prompt": { "type": "string" },
+                            "allowMultiple": { "type": "boolean" },
+                            "allowFreeText": { "type": "boolean" },
+                            "options": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 3,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": ["id", "label"],
+                                    "properties": {
+                                        "id": { "type": "string" },
+                                        "label": { "type": "string" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
     }
 
     async fn execute(&self, ctx: &ToolContext, input: Value) -> Result<Value, ToolError> {

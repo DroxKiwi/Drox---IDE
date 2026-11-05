@@ -3,9 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 // allow-any-unicode-comment-file
-/** Surface produit : `dev` (watch / F5) ou `release` (`drox:ship`). */
 
+import { RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
+
+/** Surface produit : `dev` (watch / F5) ou `release` (`drox:ship`). */
 export type DroxProductSurface = 'dev' | 'release';
+
+/** Vrai une fois le workbench lié, uniquement si `droxSurface` n'est pas `release`. */
+export const DroxDevSurfaceContext = new RawContextKey<boolean>('droxDevSurface', false);
+
 export type DroxDevFeatureId =
 
 	| 'chatVersionDevSuffix'
@@ -22,7 +28,9 @@ export type DroxDevFeatureId =
 
 	| 'historyProbe'
 
-	| 'sdtcmExport';
+	| 'sdtcmExport'
+
+	| 'sdtcmConsistency';
 export interface IDroxSurfaceProductInfo {
 
 	readonly droxSurface?: string;
@@ -77,6 +85,12 @@ export const DROX_DEV_FEATURES: Readonly<Record<DroxDevFeatureId, { readonly des
 	sdtcmExport: {
 
 		description: 'Bouton export de la discussion SDTCM, consigne système et injections comprises.',
+
+	},
+
+	sdtcmConsistency: {
+
+		description: 'Bloc Consistency du panneau SDTCM (phases, tours, Run consistency).',
 
 	},
 

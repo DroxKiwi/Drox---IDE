@@ -31,5 +31,7 @@ suite('droxDevSurface', () => {
 		assert.strictEqual(isDroxDevFeatureEnabled('runCapture', release), false);
 		assert.strictEqual(isDroxDevFeatureEnabled('sdtcmExport', dev), true);
 		assert.strictEqual(isDroxDevFeatureEnabled('sdtcmExport', release), false);
+		assert.strictEqual(isDroxDevFeatureEnabled('sdtcmConsistency', dev), true);
+		assert.strictEqual(isDroxDevFeatureEnabled('sdtcmConsistency', release), false);
 	});
 });

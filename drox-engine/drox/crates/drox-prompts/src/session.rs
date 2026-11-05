@@ -141,6 +141,50 @@ pub const SUBAGENTS_EXPLORE_ENTRY: PromptEntry = PromptEntry {
 	body: SUBAGENTS_EXPLORE_SUPPLEMENT,
 };
 
+/// Parent `cloud-full` uniquement. Le CORE court dit « appelle l'outil » :
+/// ce bloc dit quand ce message en contient plusieurs. Pas de plan, pas de phase.
+pub const CLOUD_FULL_SAME_MESSAGE_SUPPLEMENT: &str = r#"# Same message
+
+The next step is this message. You see its tool results on the next turn, together.
+
+- Calls that do not need each other's results go in this message.
+- A call that needs a result you do not have yet waits for the next message.
+- Known reads (`glob`, `grep`, `file_read`, `codebase_search`): send them together.
+- Several `task` calls only for separate areas. One area, one `task`. Next turn, use each report. Do not re-read those files. Do not launch `task` again on the same area.
+- `file_edit`, `file_write`, `delete_path`, and `bash`: one per message, after the reads they use. Not in the same message as a read or a `task`.
+- `ask_user_question` is alone in this message. Its answer arrives on the next turn."#;
+
+pub const CLOUD_FULL_SAME_MESSAGE_ENTRY: PromptEntry = PromptEntry {
+	id: "session.cloud_full.same_message",
+	intent: PromptIntent::Procedure,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "engine_profile_cloud_full+parent",
+	topics: &["tools", "explore"],
+	claims: &[],
+	body: CLOUD_FULL_SAME_MESSAGE_SUPPLEMENT,
+};
+
+/// Thinking natif du parent `cloud-full`. Même canal que le local, sans « un seul appel ».
+pub const NATIVE_THINKING_CLOUD_FULL_SUPPLEMENT: &str = r#"# Native thinking
+
+The server streams your internal monologue on a separate channel. Do not copy it into the reply.
+
+- Keep thinking short, then act.
+- One short sentence in the reply, then the tool calls of that step.
+- The final answer is written **once** in the reply, with no phase marker and no tool call. Do not draft it in thinking and write it again."#;
+
+pub const NATIVE_THINKING_CLOUD_FULL_ENTRY: PromptEntry = PromptEntry {
+	id: "session.native_thinking.cloud_full",
+	intent: PromptIntent::Constraint,
+	strength: PromptStrength::Prefer,
+	audience: PromptAudience::Parent,
+	when: "native_thinking+engine_profile_cloud_full",
+	topics: &["thinking", "closure"],
+	claims: &["native_thinking.duplicate_in_content=forbidden"],
+	body: NATIVE_THINKING_CLOUD_FULL_SUPPLEMENT,
+};
+
 pub const PROFESSOR_MODE_SUPPLEMENT: &str = r#"# Professor mode — course plan
 
 **HARD RULES (non-negotiable)**

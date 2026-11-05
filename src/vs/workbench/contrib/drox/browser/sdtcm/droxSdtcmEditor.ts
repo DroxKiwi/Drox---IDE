@@ -163,8 +163,13 @@ export class DroxSdtcmEditor extends EditorPane {
 				chip.classList.toggle('locked', on && !pick.has(phase));
 				chip.setAttribute('aria-pressed', on ? 'true' : 'false');
 			}
-			const busy = this.sdtcmService.getSnapshot().phase === 'running';
-			resume.disabled = running.size === 0 || busy;
+			const snapshot = this.sdtcmService.getSnapshot();
+			const busy = snapshot.phase === 'running';
+			resume.textContent = snapshot.pause
+				? localize('drox.sdtcm.resumePaused', 'Resume')
+				: localize('drox.sdtcm.resume', 'Launch a run');
+			resume.setAttribute('aria-label', `${launchWarning}: ${resume.textContent}`);
+			resume.disabled = (!snapshot.pause && running.size === 0) || busy;
 			align.disabled = running.size === 0 || busy;
 		};
 		for (const phase of DROX_SDTCM_PROBE_PHASES) {

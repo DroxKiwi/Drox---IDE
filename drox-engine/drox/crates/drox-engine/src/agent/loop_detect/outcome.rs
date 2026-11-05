@@ -25,6 +25,8 @@ pub(crate) struct TurnOutcome {
     /// Le texte content a été streamé sur la bulle visible (phase vide ou `answering`),
     /// sans fragment resté dans une phase interne.
     pub(crate) reply_already_visible: bool,
+    /// Marqueur `analyzing` vu dans le tour. Plus lu depuis le retrait du mode professeur.
+    #[allow(dead_code)]
     pub(crate) saw_analyzing: bool,
     /// Marqueur `testing` vu dans le tour. Plus lu par la clôture.
     #[allow(dead_code)]

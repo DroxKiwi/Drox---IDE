@@ -67,7 +67,7 @@ Legacy **ignorés** : `[phase: reasoning]`, `[phase: next-move]`.
 
 ### `cloud-full`
 
-Même déroulement parent que `local-27b` : CORE court, tour sans outil = fin du run, `todo_write` conseillé et non bloquant, rapport Explore inline. Le catalogue d'outils reste le catalogue complet. Le mode professeur garde le CORE de phases et sa gate de plan de cours.
+Même déroulement parent que `local-27b` : CORE court, tour sans outil = fin du run, `todo_write` conseillé et non bloquant, rapport Explore inline. Le catalogue d'outils reste le catalogue complet. Un bloc **Same message** dit quand grouper des appels dans le tour. Les rappels « plan d'abord, un seul Explore » ne partent pas sur ce parent. `ask_user_question` est dans ce CORE (pas dans `local-9b`) : un appel seul, quand un choix n'est pas déjà tranché.
 
 ### Profils locaux
 
@@ -102,9 +102,7 @@ Correct : texte en `planning` puis **tool_call** `todo_write`.
 
 ## Mode professor / course
 
-> **Non disponible** dans Drox IDE (downgrade 1.4 ; reprise éventuelle : [professor-2.0.md](../1.4/REPORT/professor-2.0.md)).
-
-`PROFESSOR_MODE_SUPPLEMENT` + [`professor.rs`](../../drox-engine/drox/crates/drox-engine/src/professor.rs) restent dans le dépôt — **pas** un mode produit actif.
+Retiré du moteur. Une chaîne `professor` retombe sur le mode de permission par défaut. L'outil `course_plan_write` n'est plus enregistré. Le texte `PROFESSOR_MODE_SUPPLEMENT` reste dans le catalogue de prompts et n'est plus envoyé.
 
 ## Lien UI
 

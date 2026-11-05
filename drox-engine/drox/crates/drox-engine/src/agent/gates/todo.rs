@@ -3,7 +3,6 @@
 use serde_json::Value;
 
 use super::super::phase::bash_is_inspect_only;
-use crate::agent_permissions::PermissionPolicy;
 
 /// Liste des outils qui exigent qu'un `todo_write` ait déjà réussi dans le run.
 /// La planification est critique **avant mutation**, pas avant exploration :
@@ -35,22 +34,12 @@ pub(crate) fn requires_todo_write_gate(
 }
 
 pub(crate) use drox_prompts::{
-	MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED, PROFESSOR_DONE_WITHOUT_PLAN,
-	SESSION_END_FORBIDDEN_FOR_MODEL, TODO_RECREATION_BLOCKED, TODO_WRITE_FORBIDDEN_IN_PROFESSOR,
+	MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED, SESSION_END_FORBIDDEN_FOR_MODEL, TODO_RECREATION_BLOCKED,
 };
 
 #[must_use]
-pub(crate) fn is_professor_run(policy: Option<&PermissionPolicy>) -> bool {
-    policy.is_some_and(|p| p.mode.is_professor())
-}
-
-#[must_use]
-pub(crate) fn plan_write_gate_satisfied(professor: bool, saw_todo_write: bool, saw_course_plan: bool) -> bool {
-    if professor {
-        saw_course_plan
-    } else {
-        saw_todo_write
-    }
+pub(crate) fn plan_write_gate_satisfied(saw_todo_write: bool) -> bool {
+    saw_todo_write
 }
 
 

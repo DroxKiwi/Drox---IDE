@@ -50,7 +50,6 @@ pub mod error;
 pub mod event;
 pub mod memory;
 pub mod agent_permissions;
-pub mod professor;
 pub mod subagent;
 pub mod tools;
 

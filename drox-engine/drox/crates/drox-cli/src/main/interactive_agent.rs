@@ -91,6 +91,8 @@ pub(crate) async fn run_interactive_agent(cli: Cli, prompt: &str) -> anyhow::Res
         .context("lecture MEMORY.md / DROX.md")?;
     let base_system = merge_optional_system(cli.system.clone(), memdir_system_prefix(&mem));
     let mut base_system = prompts::prepend_core_system_prompt(base_system);
+    base_system.push_str("\n\n");
+    base_system.push_str(prompts::CLOUD_FULL_SAME_MESSAGE_SUPPLEMENT);
     // Sprint M1 — listing des sessions archivées injecté en début de prompt.
     // Échec silencieux : un dossier .drox/memory/sessions/ illisible ne
     // doit pas casser le démarrage CLI.

@@ -21,6 +21,7 @@ import {
 	parseDroxSdtcmMap,
 } from '../../common/sdtcm/droxSdtcmMap.js';
 import { IDroxSdtcmSavedDisplay, parseDroxSdtcmDisplay } from '../../common/sdtcm/droxSdtcmDisplay.js';
+import { IDroxSdtcmPause, parseDroxSdtcmPause } from '../../common/sdtcm/droxSdtcmPause.js';
 import { IDroxSdtcmTag, parseDroxSdtcmTags } from '../../common/sdtcm/droxSdtcmRole.js';
 
 const SOURCE = new Set(['py', 'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'go', 'rs', 'java', 'kt', 'cs', 'php', 'rb', 'c', 'h', 'cc', 'cpp', 'hpp', 'vue', 'svelte', 'html', 'css', 'scss', 'json', 'yml', 'yaml', 'toml', 'sh', 'ps1', 'sql']);
@@ -54,6 +55,25 @@ export async function writeDroxSdtcmTags(fileService: IFileService, root: URI, t
 	const dir = URI.joinPath(root, '.drox', 'sdtcm');
 	await fileService.createFolder(dir);
 	await fileService.writeFile(URI.joinPath(dir, 'tags.json'), VSBuffer.fromString(`${JSON.stringify(tags, null, 2)}\n`));
+}
+
+export async function readDroxSdtcmPause(fileService: IFileService, root: URI): Promise<IDroxSdtcmPause | undefined> {
+	const raw = await readText(fileService, URI.joinPath(root, '.drox', 'sdtcm', 'pause.json'));
+	return raw === undefined ? undefined : parseDroxSdtcmPause(raw);
+}
+
+export async function writeDroxSdtcmPause(fileService: IFileService, root: URI, pause: IDroxSdtcmPause): Promise<void> {
+	const dir = URI.joinPath(root, '.drox', 'sdtcm');
+	await fileService.createFolder(dir);
+	await fileService.writeFile(URI.joinPath(dir, 'pause.json'), VSBuffer.fromString(`${JSON.stringify(pause, null, 2)}\n`));
+}
+
+export async function deleteDroxSdtcmPause(fileService: IFileService, root: URI): Promise<void> {
+	try {
+		await fileService.del(URI.joinPath(root, '.drox', 'sdtcm', 'pause.json'));
+	} catch {
+		return;
+	}
 }
 
 export async function writeDroxSdtcmStore(fileService: IFileService, root: URI, map: IDroxSdtcmMap, baseline: IDroxSdtcmBaseline): Promise<void> {

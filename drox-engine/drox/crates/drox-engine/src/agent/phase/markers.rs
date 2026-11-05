@@ -141,22 +141,6 @@ pub(crate) fn should_infer_phase_from_tool(
         || (from_native_thinking && current == Some(Phase::InternalReasoning))
 }
 
-pub(crate) fn is_workspace_exploration_tool(name: &str) -> bool {
-    matches!(
-        name,
-        "glob"
-            | "grep"
-            | "file_read"
-            | "lsp"
-            | "web_search"
-            | "web_fetch"
-            | "workspace_map_read"
-            | "memory_read"
-            | "memory_list"
-            | "task"
-    )
-}
-
 /// Outils qui comptent pour le soft nudge « work sans plan ».
 /// Toute activité utile hors planification / clarification / fin de session.
 pub(crate) fn counts_as_pre_plan_activity(name: &str) -> bool {

@@ -6,7 +6,7 @@
 use crate::entry::{PromptAudience, PromptEntry, PromptIntent, PromptStrength};
 
 macro_rules! core_local_with_plan {
-	($plan:literal) => {
+	($plan:literal, $ask:literal) => {
 		concat!(
 			r#"You are Drox, a coding agent in VS Code. You explore, modify and run things in the workspace via tools.
 
@@ -25,6 +25,7 @@ macro_rules! core_local_with_plan {
 - Shell: `bash`. On Windows the host is **`cmd.exe`**: `dir`, `type`, `findstr`. Quoted paths are fine. Prefer one command per call; `ls`/`pwd` are rewritten. No `cat`/`head`, no nested `cmd /c`. No long-running dev servers.
 "#,
 			$plan,
+			$ask,
 			r#"
 If a tool fails, read the error and change approach; do not repeat the identical call.
 
@@ -46,12 +47,17 @@ No `rm -rf` outside `target/` / `node_modules/`. No `git push --force` or `git r
 
 /// CORE parent pour les profils locaux autres que `local-9b`. Remplace `session.core` (pas d'empilement).
 pub const CORE_LOCAL_SYSTEM_PROMPT: &str = core_local_with_plan!(
-	"- Plan (optional): `todo_write` with `{\"todos\":[{\"id\":\"1\",\"content\":\"…\",\"status\":\"pending\"}]}`; status is one of `pending`, `in_progress`, `completed`, `cancelled`. Useful for multi-step work, never required.\n"
+	"- Plan (optional): `todo_write` with `{\"todos\":[{\"id\":\"1\",\"content\":\"…\",\"status\":\"pending\"}]}`; status is one of `pending`, `in_progress`, `completed`, `cancelled`. Useful for multi-step work, never required.\n",
+	r#"- Question: `ask_user_question`, only when the next action depends on a choice the request and the files do not settle. Not to confirm work the user already asked for. Not for a step you can already do.
+- That call is alone in the message. Two or three options, each `{ "id", "label" }`. Shape: `{ "questions": [{ "prompt": "…", "options": [{ "id": "a", "label": "…" }, { "id": "b", "label": "…" }] }] }`.
+- The result arrives on the next turn: `{ "answers": [{ "id", "optionIds", "freeText", "skipped" }] }`. Follow `optionIds` and `freeText`. If `skipped` is true, pick a reasonable default and do not ask again.
+"#
 );
 
 /// CORE parent `local-9b` : même texte, consigne de plan détaillée pour se repérer.
 pub const CORE_LOCAL_9B_SYSTEM_PROMPT: &str = core_local_with_plan!(
-	"- Plan: when the work has several steps, one `todo_write` lists them all — one `in_progress`, the others `pending`. Later calls update that same list. The detail is so you can find your place during the run, not to make the task heavier. Status: `pending`, `in_progress`, `completed`, `cancelled`.\n"
+	"- Plan: when the work has several steps, one `todo_write` lists them all — one `in_progress`, the others `pending`. Later calls update that same list. The detail is so you can find your place during the run, not to make the task heavier. Status: `pending`, `in_progress`, `completed`, `cancelled`.\n",
+	""
 );
 
 pub const CORE_LOCAL_SYSTEM_ENTRY: PromptEntry = PromptEntry {
@@ -265,6 +271,9 @@ mod tests {
 		assert!(CORE_LOCAL_9B_SYSTEM_PROMPT.contains("lists them all"));
 		assert!(!CORE_LOCAL_9B_SYSTEM_PROMPT.contains("\"id\":\"1\""));
 		assert!(CORE_LOCAL_SYSTEM_PROMPT.contains("never required"));
+		assert!(CORE_LOCAL_SYSTEM_PROMPT.contains("ask_user_question"));
+		assert!(CORE_LOCAL_SYSTEM_PROMPT.contains("optionIds"));
+		assert!(!CORE_LOCAL_9B_SYSTEM_PROMPT.contains("ask_user_question"));
 		assert!(!CORE_LOCAL_SYSTEM_PROMPT.contains("find your place during the run"));
 	}
 }

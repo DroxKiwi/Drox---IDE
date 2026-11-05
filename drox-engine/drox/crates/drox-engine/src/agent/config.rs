@@ -178,7 +178,7 @@ impl EngineProfile {
     /// Outil exposé au parent pour ce profil (MCP `mcp__*` toujours conservés).
     #[must_use]
     pub fn exposes_parent_tool(self, name: &str) -> bool {
-        if name.starts_with("mcp__") || name == "mcp_call" || name == "course_plan_write" {
+        if name.starts_with("mcp__") || name == "mcp_call" {
             return true;
         }
         self.parent_tool_allowlist()

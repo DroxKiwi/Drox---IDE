@@ -24,8 +24,8 @@ use super::super::dispatch::{
 };
 use super::super::config::EngineProfile;
 use super::super::gates::{
-    counts_as_mutating_for_step_tracking, is_professor_run, plan_write_gate_satisfied,
-    record_counts_as_code_mutation, PROFESSOR_DONE_WITHOUT_PLAN,
+    counts_as_mutating_for_step_tracking, plan_write_gate_satisfied,
+    record_counts_as_code_mutation,
 };
 use super::super::loop_close::{
     emit_engine_closure, emit_synthetic_done, ENGINE_CLOSURE_EMPTY_REPLY,
@@ -37,8 +37,8 @@ use super::super::nudges::{
     drop_stale_step_explore_reminders, drop_step_by_step_heads_up, drop_system_with_prefix,
     run_objective_done_nudge,
     run_objective_system_block,
-    step_by_step_todo_nudge, STEP_BY_STEP_HEADS_UP_PREFIX,
-    unfinished_course_plan_prompt, unfinished_todos_prompt, ANALYZING_PHASE_NUDGE,
+    step_by_step_todo_nudge,
+    unfinished_todos_prompt,
     DONE_ONLY_NUDGE_PROMPT, DOC_INGESTION_EXPLORE_ANNEX,
     EXPLORE_RESCUE_PARENT_READ_NUDGE, INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT,
     INTENT_ONLY_WRITE_MAX_NUDGES, INTENT_ONLY_WRITE_NUDGE_PROMPT, LOOP_DETECTED_NUDGE_PROMPT,
@@ -63,7 +63,7 @@ use super::super::context_load::{
     snapshot_from_glob_value, ContextLoadSnapshot,
 };
 use super::super::phase::{
-    counts_as_pre_plan_activity, is_workspace_exploration_tool, user_blocks_plain_text,
+    counts_as_pre_plan_activity, user_blocks_plain_text,
 };
 use super::super::situation::{
     clear_rotating_file_read_window, completed_todos_hint, counts_as_parent_heavy_read,
@@ -88,20 +88,22 @@ impl Agent {
         tx: mpsc::Sender<Result<AgentEvent, EngineError>>,
         skip_new_user_turn: bool,
     ) {
-        let professor = is_professor_run(self.config.permissions.as_ref());
         let profile = self.config.profile();
         // Tour sans outil = fin de run (local capable et full protocol).
         // `[phase: done]` reste accepté quand le modèle l'écrit. Child Explore
-        // et professeur gardent leur propre contrat.
-        let engine_closure = !professor && !self.config.explore_execution;
+        // garde son propre contrat.
+        let engine_closure = !self.config.explore_execution;
         let plan_nudges = profile.plan_nudges();
+        // Parent full protocol : la consigne « same message » dirige.
+        // Les rappels « un plan, puis un seul Explore » ne s'y ajoutent pas.
+        let same_message_tools = profile == EngineProfile::CloudFull;
         tracing::info!(
             engine_profile = profile.id(),
             engine_closure,
             plan_nudges,
             "agent.run engine profile"
         );
-        let tool_specs = build_tool_specs(&self.registry, professor, profile);
+        let tool_specs = build_tool_specs(&self.registry, profile);
         // Sprint M1 — si la mémoire de session est configurée, on greffe
         // le `SessionNotesHandle` partagé dans le `ToolContext` du run.
         // Les tools `session_note` / `memory_read` / `memory_list` y voient
@@ -197,15 +199,11 @@ impl Agent {
         // `[phase: done]` reste accepté quand le modèle l'écrit. Il n'est pas requis.
         let mut seen_answering_in_run = false;
         let mut saw_successful_todo_write_in_run = false;
-        let mut saw_successful_course_plan_write_in_run = false;
         // Snapshot du dernier `todo_write` réussi (compteurs `pending` /
         // `in_progress`). Sert à interdire `[phase: done]` tant que la to-do
         // n'est pas elle-même clôturée — cf. `unfinished_todos_prompt`.
         let mut last_todo_pending: u64 = 0;
         let mut last_todo_in_progress: u64 = 0;
-        let mut last_course_pending: u64 = 0;
-        let mut last_course_active: u64 = 0;
-        let mut professor_course_state = crate::professor::ProfessorCourseState::default();
         // Sprint Plan « un seul plan par run » — set des ids du dernier
         // `todo_write` réussi + flag « toutes les étapes étaient completed ».
         // Servent à détecter une re-création de plan from scratch après
@@ -238,8 +236,6 @@ impl Agent {
         let mut consecutive_ask_user_question_failures: u32 = 0;
         let mut live_compaction_seq: u32 = 0;
         let mut run_objective_reminder_sent = false;
-        let mut analyzing_phase_nudge_sent = false;
-        let mut saw_analyzing_phase_in_run = false;
         // FX-B — compteur de nudges « acting sans tool ».
         let mut consecutive_intent_only_write_nudges: u32 = 0;
         // 1.6.0 Vague 4 / S-1 — situation card (upsert chaque tour).
@@ -312,7 +308,6 @@ impl Agent {
                 drox_permissions::PermissionMode::Plan => "plan",
                 drox_permissions::PermissionMode::AcceptEdits => "acceptEdits",
                 drox_permissions::PermissionMode::BypassPermissions => "bypassPermissions",
-                drox_permissions::PermissionMode::Professor => "professor",
             })
             .map(str::to_string);
         let mut capture_loop = "none";
@@ -387,7 +382,12 @@ impl Agent {
                 loop_tools_disabled = true;
             }
 
-            if plan_nudges && iter == 0 && session_frames.work_plan && !work_plan_frame_nudge_sent {
+            if plan_nudges
+                && !same_message_tools
+                && iter == 0
+                && session_frames.work_plan
+                && !work_plan_frame_nudge_sent
+            {
                 debug!("work plan frame — soft nudge (turn-0)");
                 messages.push(Message::system(WORK_PLAN_FRAME_NUDGE));
                 work_plan_frame_nudge_sent = true;
@@ -410,6 +410,7 @@ impl Agent {
                 && task_tool_available
                 && session_frames.doc_ingestion
                 && !doc_ingestion_annex_sent
+                && !same_message_tools
             {
                 debug!("doc ingestion intent — Explore annex (turn-0)");
                 messages.push(Message::system(DOC_INGESTION_EXPLORE_ANNEX));
@@ -419,6 +420,7 @@ impl Agent {
             // Soft — work/doc sans todo après N outils réussis (toute activité).
             // Tools restent libres (pas de blocked) ; needles / chitchat légitimes OK.
             if plan_nudges
+                && !same_message_tools
                 && !work_without_plan_nudge_sent
                 && !saw_successful_todo_write_in_run
                 && (session_frames.work_plan || session_frames.doc_ingestion)
@@ -452,7 +454,7 @@ impl Agent {
             }
 
             // Soft — kickoff d'une nouvelle étape plan → Explore pour cette étape.
-            if task_tool_available && plan_nudges {
+            if task_tool_available && plan_nudges && !same_message_tools {
                 if let Some((step_id, step_content)) = pending_step_explore_nudge.take() {
                     if step_skips_explore_kickoff(step_content.as_deref()) {
                         debug!(%step_id, "step kickoff skipped — single file or execution");
@@ -473,6 +475,7 @@ impl Agent {
             // Soft — étape in_progress, activité parent, toujours pas de task.
             if task_tool_available
                 && plan_nudges
+                && !same_message_tools
                 && !step_without_explore_nudge_sent
                 && !step_had_task_success
                 && last_in_progress_todo_id.is_some()
@@ -575,7 +578,7 @@ impl Agent {
             }
 
             // Soft — Explore réussi → fusionner / agir (one-shot par succès).
-            if pending_post_merge_closure_nudge && !plan_nudges {
+            if pending_post_merge_closure_nudge && (!plan_nudges || same_message_tools) {
                 pending_post_merge_closure_nudge = false;
             }
             if pending_post_merge_closure_nudge {
@@ -739,10 +742,7 @@ impl Agent {
                 return; // canal consommateur fermé
             };
 
-            if !professor
-                && outcome.tool_calls.is_empty()
-                && !loop_tools_disabled
-            {
+            if outcome.tool_calls.is_empty() && !loop_tools_disabled {
                 if let Some(salvaged) = salvage_inline_todo_write(&outcome.text) {
                     debug!(
                         leftover = salvaged.cleaned_text.len(),
@@ -801,10 +801,6 @@ impl Agent {
             if outcome.saw_answering {
                 seen_answering_in_run = true;
             }
-            if outcome.saw_analyzing {
-                saw_analyzing_phase_in_run = true;
-            }
-
             // O1 — DONE_ONLY déjà parti. Le texte de ce tour n'a pas été affiché.
             // `[phase: done]` retombe sur la clôture normale plus bas. Sinon on
             // s'arrête : la première conclusion reste la seule visible.
@@ -1024,43 +1020,7 @@ impl Agent {
                     }
                     continue;
                 }
-                if professor && !saw_successful_course_plan_write_in_run {
-                    debug!("[phase: done] professor sans course_plan_write — nudge");
-                    messages.push(Message::system(PROFESSOR_DONE_WITHOUT_PLAN));
-                    // Reset OK : gate professor — comportement attendu différent.
-                    loop_detector.reset();
-                    if let Err(e) = self
-                        .flush_transcript(&messages, &mut transcript_cursor)
-                        .await
-                    {
-                        let _ = tx.send(Err(e)).await;
-                        return;
-                    }
-                    continue;
-                }
-                if professor {
-                    if last_course_pending > 0 || last_course_active > 0 {
-                        debug!(
-                            last_course_pending,
-                            last_course_active,
-                            "[phase: done] avec plan de cours ouvert — nudge"
-                        );
-                        messages.push(Message::system(unfinished_course_plan_prompt(
-                            last_course_pending,
-                            last_course_active,
-                        )));
-                        // Reset OK : plan cours ouvert — le modèle doit muter le plan.
-                        loop_detector.reset();
-                        if let Err(e) = self
-                            .flush_transcript(&messages, &mut transcript_cursor)
-                            .await
-                        {
-                            let _ = tx.send(Err(e)).await;
-                            return;
-                        }
-                        continue;
-                    }
-                } else if last_todo_pending > 0 || last_todo_in_progress > 0 {
+                if last_todo_pending > 0 || last_todo_in_progress > 0 {
                     debug!(
                         last_todo_pending,
                         last_todo_in_progress,
@@ -1282,16 +1242,8 @@ impl Agent {
             // fois la gate satisfaite, les batchs ultérieurs respectent
             // l'ordre demandé par le modèle (parfois utile pour mettre à
             // jour la to-do AVANT et le code APRÈS).
-            if !plan_write_gate_satisfied(
-                professor,
-                saw_successful_todo_write_in_run,
-                saw_successful_course_plan_write_in_run,
-            ) {
-                let plan_tool = if professor {
-                    "course_plan_write"
-                } else {
-                    "todo_write"
-                };
+            if !plan_write_gate_satisfied(saw_successful_todo_write_in_run) {
+                let plan_tool = "todo_write";
                 if let Some(idx) = outcome
                     .tool_calls
                     .iter()
@@ -1337,8 +1289,6 @@ impl Agent {
                             if let Some(msg) = self
                                 .run_tool_pre_gates(
                                     call,
-                                    professor,
-                                    &professor_course_state,
                                     saw_successful_todo_write_in_run,
                                     &last_todo_ids,
                                     last_todo_was_all_completed,
@@ -1652,8 +1602,6 @@ impl Agent {
                             if let Some(msg) = self
                                 .run_tool_pre_gates(
                                     call,
-                                    professor,
-                                    &professor_course_state,
                                     saw_successful_todo_write_in_run,
                                     &last_todo_ids,
                                     last_todo_was_all_completed,
@@ -1848,17 +1796,6 @@ impl Agent {
                                             step_had_task_success = false;
                                             step_without_explore_nudge_sent = false;
                                         }
-                                    } else if call.name == "course_plan_write" {
-                                        saw_successful_course_plan_write_in_run = true;
-                                        professor_course_state =
-                                            crate::professor::state_from_course_plan_output(
-                                                &value,
-                                            );
-                                        last_course_pending =
-                                            value["counts"]["pending"].as_u64().unwrap_or(0);
-                                        last_course_active =
-                                            value["counts"]["active"].as_u64().unwrap_or(0);
-                                        mutating_tools_since_last_todo = 0;
                                     } else if counts_as_mutating_for_step_tracking(
                                         &call.name,
                                         &call.arguments,
@@ -2263,37 +2200,6 @@ impl Agent {
                 }
             }
 
-            if session_frames.analysis
-                && professor
-                && !analyzing_phase_nudge_sent
-                && !saw_analyzing_phase_in_run
-                && iter == 0
-            {
-                let exploration_calls = outcome
-                    .tool_calls
-                    .iter()
-                    .filter(|c| is_workspace_exploration_tool(&c.name))
-                    .count();
-                if exploration_calls >= 2 {
-                    debug!(
-                        exploration_calls,
-                        "analyzing phase nudge — exploration sans marqueur analyzing"
-                    );
-                    messages.push(Message::system(ANALYZING_PHASE_NUDGE));
-                    analyzing_phase_nudge_sent = true;
-                    // Reset OK : one-shot analyzing — contrat de phase différent.
-                    loop_detector.reset();
-                    if let Err(e) = self
-                        .flush_transcript(&messages, &mut transcript_cursor)
-                        .await
-                    {
-                        let _ = tx.send(Err(e)).await;
-                        return;
-                    }
-                    continue;
-                }
-            }
-
             if consecutive_ask_user_question_failures
                 >= MAX_CONSECUTIVE_ASK_USER_QUESTION_FAILURES
             {
@@ -2323,11 +2229,7 @@ impl Agent {
             // `local-27b` et `cloud-full` le gardent, mais une seule copie :
             // le rappel précédent est retiré avant d'écrire le nouveau, et
             // retiré tout court quand le plan n'a plus d'étape ouverte.
-            let plan_still_open = if professor {
-                last_course_pending > 0 || last_course_active > 0
-            } else {
-                last_todo_pending > 0 || last_todo_in_progress > 0
-            };
+            let plan_still_open = last_todo_pending > 0 || last_todo_in_progress > 0;
             if plan_nudges && !plan_still_open {
                 drop_step_by_step_heads_up(&mut messages, &mut transcript_cursor);
             }
@@ -2336,26 +2238,14 @@ impl Agent {
                     mutating_tools_since_last_todo,
                     last_todo_pending,
                     last_todo_in_progress,
-                    last_course_pending,
-                    last_course_active,
-                    professor,
                     "step-by-step nudge : outils mutateurs accumulés sans MAJ plan"
                 );
                 drop_step_by_step_heads_up(&mut messages, &mut transcript_cursor);
-                let nudge = if professor {
-                    format!(
-                        "{STEP_BY_STEP_HEADS_UP_PREFIX}{mutating_tools_since_last_todo} mutating tools \
-                         since your last `course_plan_write`, and the course plan still has \
-                         {last_course_pending} pending + {last_course_active} active step(s). \
-                         Update the plan (`mastered` / next `active`) before continuing."
-                    )
-                } else {
-                    step_by_step_todo_nudge(
-                        mutating_tools_since_last_todo,
-                        last_todo_pending,
-                        last_todo_in_progress,
-                    )
-                };
+                let nudge = step_by_step_todo_nudge(
+                    mutating_tools_since_last_todo,
+                    last_todo_pending,
+                    last_todo_in_progress,
+                );
                 messages.push(Message::system(nudge));
                 mutating_tools_since_last_todo = 0;
                 // Reset OK : step-by-step todo — on demande un todo_write.

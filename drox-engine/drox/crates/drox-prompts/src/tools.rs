@@ -263,17 +263,12 @@ tool_prompt!(
 	ASK_USER_QUESTION_TOOL_ENTRY,
 	"tools.ask_user_question.description",
 	"ask_user_question",
-	"Asks one or more questions to the human and waits for answers. \
-         Call via native tool_calls (no JSON in assistant text). \
-         Recommended form (minimal example): \
-         `{\"questions\":[{\"prompt\":\"What text on the homepage?\",\
-         \"options\":[{\"id\":\"a\",\"label\":\"Short\"},{\"id\":\"b\",\"label\":\"Long\"}],\
-         \"allowFreeText\":true}]}`. \
-         Legacy single: `{\"question\":\"…\",\"choices\":[\"A\",\"B\"]}`. \
-         Use whenever non-trivial uncertainty changes upcoming actions \
-         (architecture, scope, tech choices) before any mutation. \
-         The run is paused until answered; the user can skip \
-         a question (`skipped: true` field in the corresponding response)."
+	"Asks the user one choice the request and the files do not settle, then waits. \
+         One call, alone in the message, via native tool_calls. \
+         Shape: {\"questions\":[{\"prompt\":\"…\",\"options\":[{\"id\":\"a\",\"label\":\"…\"},{\"id\":\"b\",\"label\":\"…\"}]}]}. \
+         Two or three options. Not a confirmation of work already asked. \
+         The result is {\"answers\":[{\"id\",\"optionIds\",\"freeText\",\"skipped\"}]}. \
+         Follow optionIds and freeText. If skipped is true, pick a reasonable default and do not ask again."
 );
 
 tool_prompt!(

@@ -11,7 +11,7 @@ use crate::simple::{
     AskUserQuestionTool, BashTool, CodebaseSearchTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
     FileWriteTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
     SkillListTool, SkillReadTool, GitWorktreeEnterTool, GitWorktreeExitTool, CopyPathTool,
-    CoursePlanWriteTool, ExploreArtifactReadTool, ExploreIndexListTool, ScopeDeferTool,
+    ExploreArtifactReadTool, ExploreIndexListTool, ScopeDeferTool,
     SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool, TaskTool, TodoWriteTool,
     WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool, SdtcmAlignTool,
 };
@@ -70,7 +70,6 @@ impl ToolRegistry {
         reg.register(coerce_tool(ExitPlanModeTool));
         reg.register(coerce_tool(BashTool));
         reg.register(coerce_tool(TodoWriteTool));
-        reg.register(coerce_tool(CoursePlanWriteTool));
         reg.register(coerce_tool(ScopeDeferTool));
         reg.register(coerce_tool(WorkspaceMapReadTool));
         reg.register(coerce_tool(WorkspaceMapNoteTool));

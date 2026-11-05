@@ -17,9 +17,10 @@ import { localize, localize2 } from '../../../../../nls.js';
 import { ServicesAccessor } from '../../../../../editor/browser/editorExtensions.js';
 import { Action2, MenuId, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { IActionViewItemService } from '../../../../../platform/actions/browser/actionViewItemService.js';
-import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';
+import { ContextKeyExpr, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { SyncDescriptor } from '../../../../../platform/instantiation/common/descriptors.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
+import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 import { Registry } from '../../../../../platform/registry/common/platform.js';
 import { registerIcon } from '../../../../../platform/theme/common/iconRegistry.js';
@@ -31,6 +32,7 @@ import { ViewPaneContainer } from '../../../../browser/parts/views/viewPaneConta
 import { IWorkbenchLayoutService, Parts } from '../../../../services/layout/browser/layoutService.js';
 import { DroxViews } from '../../common/drox.js';
 import { DroxIdeNativeChatTabEnabledContext } from '../../common/droxAgentsConfiguration.js';
+import { DroxDevSurfaceContext, isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
 import { openDroxIdeChatView } from './droxIdeChatViewRoute.js';
 import { DroxNativeChatViewPane } from './droxNativeChatViewPane.js';
 import { DroxIdeChangesViewPane } from './droxIdeChangesViewPane.js';
@@ -181,3 +183,21 @@ class DroxChatTitleBarContribution extends Disposable implements IWorkbenchContr
 }
 
 registerWorkbenchContribution2(DroxChatTitleBarContribution.ID, DroxChatTitleBarContribution, WorkbenchPhase.BlockRestore);
+
+/** Lie `droxDevSurface` avant les `when` du titre de chat (bouton bug). */
+class DroxDevSurfaceContextContribution implements IWorkbenchContribution {
+	static readonly ID = 'workbench.contrib.droxDevSurfaceContext';
+
+	constructor(
+		@IContextKeyService contextKeyService: IContextKeyService,
+		@IProductService productService: IProductService,
+	) {
+		DroxDevSurfaceContext.bindTo(contextKeyService).set(isDroxDevFeatureEnabled('runCapture', productService));
+	}
+}
+
+registerWorkbenchContribution2(
+	DroxDevSurfaceContextContribution.ID,
+	DroxDevSurfaceContextContribution,
+	WorkbenchPhase.BlockStartup,
+);

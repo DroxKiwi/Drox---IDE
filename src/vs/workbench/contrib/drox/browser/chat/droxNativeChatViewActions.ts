@@ -19,7 +19,7 @@ import { IWorkspaceContextService } from '../../../../../platform/workspace/comm
 import { IViewsService } from '../../../../services/views/common/viewsService.js';
 import { DroxViews } from '../../common/drox.js';
 import { DroxIdeNativeChatTabEnabledContext } from '../../common/droxAgentsConfiguration.js';
-import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
+import { DroxDevSurfaceContext, isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
 import { DroxRunCaptureArmedContext, isDroxRunCaptureArmed, setDroxRunCaptureArmed } from '../../common/droxRunCapture.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
@@ -93,9 +93,12 @@ export function registerDroxNativeChatViewActions(): void {
 				},
 				menu: [{
 					id: MenuId.ViewTitle,
-					when: ContextKeyExpr.or(
-						ContextKeyExpr.equals('view', DroxViews.NativeChatViewId),
-						ContextKeyExpr.equals('view', DroxViews.ChatViewId),
+					when: ContextKeyExpr.and(
+						DroxDevSurfaceContext,
+						ContextKeyExpr.or(
+							ContextKeyExpr.equals('view', DroxViews.NativeChatViewId),
+							ContextKeyExpr.equals('view', DroxViews.ChatViewId),
+						),
 					),
 					group: 'navigation',
 					order: 9,

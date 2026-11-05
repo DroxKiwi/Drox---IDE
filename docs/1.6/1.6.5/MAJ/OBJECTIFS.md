@@ -25,11 +25,11 @@ Point déjà noté, pas repris dans cette ouverture : [conclusion répétée](..
 
 Plusieurs sous-agents peuvent être déclarés dans le même tour. L’outil `Task` (Explore) est marqué concurrent.
 
-Décision : small local et local capable exécutent les outils d’un tour l’un après l’autre. Le full protocol garde le lot parallèle. Son encadrement se discute à part.
+Décision : small local et local capable exécutent les outils d’un tour l’un après l’autre. Le full protocol garde le lot parallèle. Le parent reçoit la consigne **Same message** : appels indépendants dans le même tour, un Explore par zone, mutation au tour suivant. Les rappels « plan d'abord, un seul Explore » ne partent pas sur ce parent.
 
 ## O4 — Cacher les mécaniques de dev en version live
 
 La surface `release` ne doit pas montrer les outils de dogfood.
 
-- **Arm debug capture** dans le chat (`drox.nativeChat.runCapture`, icône bug du titre). Le registre dev le nomme déjà `runCapture`, le bouton est encore au menu.
-- **Consistency** dans le panneau SDTCM (Run consistency). Outil de dev. Le tutoriel 1.6.4 ne le présente pas.
+- **Arm debug capture** dans le chat (`drox.nativeChat.runCapture`, icône bug du titre). Le bouton n'est au menu que si `droxDevSurface` est vrai. L'action reste sans effet en `release`.
+- **Consistency** dans le panneau SDTCM (phases, tours, Run consistency). Le bloc n'est pas rendu en `release`. L'export SDTCM était déjà masqué.

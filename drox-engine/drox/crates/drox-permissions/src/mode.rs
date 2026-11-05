@@ -31,9 +31,6 @@ pub enum PermissionMode {
     AcceptEdits,
     /// Bypass complet (sauf rules deny explicites).
     BypassPermissions,
-    /// Mode professeur : tuteur — écritures autorisées uniquement via les
-    /// gates moteur (`workArea` + étape `exercise`/`checkpoint` active).
-    Professor,
 }
 
 impl PermissionMode {
@@ -48,7 +45,8 @@ impl PermissionMode {
             "bypasspermissions" | "bypass-permissions" | "bypass_permissions" | "yolo" => {
                 Self::BypassPermissions
             }
-            "professor" | "professeur" | "teacher" => Self::Professor,
+            // Ancien mode professeur : jamais sorti. Traité comme le mode par défaut.
+            "professor" | "professeur" | "teacher" => Self::Default,
             _ => Self::Default,
         }
     }
@@ -61,29 +59,19 @@ impl PermissionMode {
             Self::Plan => "Plan",
             Self::AcceptEdits => "Accept",
             Self::BypassPermissions => "Bypass",
-            Self::Professor => "Professeur",
         }
     }
 
     /// `true` si le mode autorise l'auto-allow sur les écritures fichier.
     #[must_use]
     pub const fn auto_allows_writes(self) -> bool {
-        matches!(
-            self,
-            Self::AcceptEdits | Self::BypassPermissions | Self::Professor
-        )
+        matches!(self, Self::AcceptEdits | Self::BypassPermissions)
     }
 
     /// `true` si le mode interdit toute écriture (mode plan).
     #[must_use]
     pub const fn blocks_writes(self) -> bool {
         matches!(self, Self::Plan)
-    }
-
-    /// Mode pédagogique (plan de cours, pas de todo technique).
-    #[must_use]
-    pub const fn is_professor(self) -> bool {
-        matches!(self, Self::Professor)
     }
 }
 
@@ -112,7 +100,7 @@ mod tests {
         );
         assert_eq!(
             PermissionMode::from_str_lossy("professor"),
-            PermissionMode::Professor
+            PermissionMode::Default
         );
         assert_eq!(
             PermissionMode::from_str_lossy("unknown-mode"),
@@ -123,9 +111,8 @@ mod tests {
     #[test]
     fn behavior_helpers_are_consistent() {
         assert!(PermissionMode::Plan.blocks_writes());
-        assert!(!PermissionMode::Professor.blocks_writes());
-        assert!(PermissionMode::Professor.auto_allows_writes());
-        assert!(PermissionMode::Professor.is_professor());
+        assert!(PermissionMode::AcceptEdits.auto_allows_writes());
+        assert!(!PermissionMode::Default.auto_allows_writes());
         assert!(!PermissionMode::Plan.auto_allows_writes());
         assert!(PermissionMode::AcceptEdits.auto_allows_writes());
         assert!(PermissionMode::BypassPermissions.auto_allows_writes());

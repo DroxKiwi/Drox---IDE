@@ -15,12 +15,14 @@ import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IKeybindingService } from '../../../../../platform/keybinding/common/keybinding.js';
 import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
+import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 import { localize } from '../../../../../nls.js';
 import { ViewPane } from '../../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../../common/views.js';
 import { DroxCommands } from '../../common/drox.js';
+import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
 import { DROX_SDTCM_PROBE_PHASES, DroxSdtcmProbePhase } from '../../common/sdtcm/droxSdtcmConsistency.js';
 import { DroxSdtcmForm, DroxSdtcmKind } from '../../common/sdtcm/droxSdtcmMap.js';
 import { DROX_SDTCM_NEW_TAG, droxSdtcmTagNameOk, IDroxSdtcmTag } from '../../common/sdtcm/droxSdtcmRole.js';
@@ -43,6 +45,7 @@ export class DroxSdtcmViewPane extends ViewPane {
 		@IHoverService protected override readonly hoverService: IHoverService,
 		@ICommandService private readonly commandService: ICommandService,
 		@IDroxSdtcmService private readonly sdtcmService: IDroxSdtcmService,
+		@IProductService private readonly productService: IProductService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 	}
@@ -76,38 +79,40 @@ export class DroxSdtcmViewPane extends ViewPane {
 			const current = this.sdtcmService.getDisplay();
 			this.sdtcmService.setDisplay({ ...current, move: checked });
 		}, () => this.sdtcmService.getDisplay().move);
-		const consistencyTitle = $('div.drox-sdtcm-side-label');
-		consistencyTitle.textContent = localize('drox.sdtcm.consistency', 'Consistency');
-		tools.appendChild(consistencyTitle);
-		const chosen = new Set<DroxSdtcmProbePhase>(DROX_SDTCM_PROBE_PHASES);
-		for (const phase of DROX_SDTCM_PROBE_PHASES) {
-			this._addToggle(tools, phase, true, checked => {
-				if (checked) {
-					chosen.add(phase);
-				} else {
-					chosen.delete(phase);
-				}
-			});
+		if (isDroxDevFeatureEnabled('sdtcmConsistency', this.productService)) {
+			const consistencyTitle = $('div.drox-sdtcm-side-label');
+			consistencyTitle.textContent = localize('drox.sdtcm.consistency', 'Consistency');
+			tools.appendChild(consistencyTitle);
+			const chosen = new Set<DroxSdtcmProbePhase>(DROX_SDTCM_PROBE_PHASES);
+			for (const phase of DROX_SDTCM_PROBE_PHASES) {
+				this._addToggle(tools, phase, true, checked => {
+					if (checked) {
+						chosen.add(phase);
+					} else {
+						chosen.delete(phase);
+					}
+				});
+			}
+			const turnsRow = $('label.drox-sdtcm-turns');
+			turnsRow.appendChild(document.createTextNode(localize('drox.sdtcm.turns', 'Turns')));
+			const turnsInput = $('input') as HTMLInputElement;
+			turnsInput.type = 'number';
+			turnsInput.min = '1';
+			turnsInput.max = '20';
+			turnsInput.value = '2';
+			turnsRow.appendChild(turnsInput);
+			tools.appendChild(turnsRow);
+			const run = $('button.drox-sdtcm-side-open') as HTMLButtonElement;
+			run.textContent = localize('drox.sdtcm.runConsistency', 'Run consistency');
+			this._register(addDisposableListener(run, 'click', () => {
+				const turns = Number(turnsInput.value);
+				void this.sdtcmService.probe([...chosen], Number.isFinite(turns) ? turns : 2);
+			}));
+			this._register(this.sdtcmService.onDidChange(() => {
+				run.disabled = this.sdtcmService.getSnapshot().phase === 'running';
+			}));
+			tools.appendChild(run);
 		}
-		const turnsRow = $('label.drox-sdtcm-turns');
-		turnsRow.appendChild(document.createTextNode(localize('drox.sdtcm.turns', 'Turns')));
-		const turnsInput = $('input') as HTMLInputElement;
-		turnsInput.type = 'number';
-		turnsInput.min = '1';
-		turnsInput.max = '20';
-		turnsInput.value = '2';
-		turnsRow.appendChild(turnsInput);
-		tools.appendChild(turnsRow);
-		const run = $('button.drox-sdtcm-side-open') as HTMLButtonElement;
-		run.textContent = localize('drox.sdtcm.runConsistency', 'Run consistency');
-		this._register(addDisposableListener(run, 'click', () => {
-			const turns = Number(turnsInput.value);
-			void this.sdtcmService.probe([...chosen], Number.isFinite(turns) ? turns : 2);
-		}));
-		this._register(this.sdtcmService.onDidChange(() => {
-			run.disabled = this.sdtcmService.getSnapshot().phase === 'running';
-		}));
-		tools.appendChild(run);
 		const tagHost = $('div.drox-sdtcm-tags');
 		tagHost.setAttribute('data-drox-tour', 'sdtcm-tags');
 		const tagUi = this._register(new DisposableStore());

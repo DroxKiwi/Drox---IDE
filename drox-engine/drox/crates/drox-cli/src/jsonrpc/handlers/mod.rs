@@ -482,12 +482,7 @@ async fn build_agent_setup(
     log_ignored_ide_orchestration_fields(params);
 
     let (mode, policy) = build_permission_policy(params, &workspace)?;
-    // Professeur : gates plan de cours = protocole complet, quel que soit le profil IDE.
-    let engine_profile = if mode.is_professor() {
-        drox_engine::EngineProfile::CloudFull
-    } else {
-        drox_engine::EngineProfile::parse(params.engine_profile.as_deref())
-    };
+    let engine_profile = drox_engine::EngineProfile::parse(params.engine_profile.as_deref());
 
     // Kill-switch mémoire workspace (IDE `drox.memory.enabled`). Absent/`false`
     // = pas de MEMORY.md / listing archives / persist / tools mémoire.
@@ -501,16 +496,12 @@ async fn build_agent_setup(
         None
     };
     let base_system = merge_optional_system(params.system.clone(), mem_prefix);
-    let mut base_system = if mode.is_professor() {
-        match base_system {
-            Some(s) if !s.trim().is_empty() => {
-                format!("{}\n{s}", crate::prompts::CORE_SYSTEM_PROMPT)
-            }
-            _ => crate::prompts::CORE_SYSTEM_PROMPT.to_string(),
-        }
-    } else {
-        crate::prompts::prepend_core_system_prompt_for_profile(base_system, engine_profile)
-    };
+    let mut base_system =
+        crate::prompts::prepend_core_system_prompt_for_profile(base_system, engine_profile);
+    if engine_profile == drox_engine::EngineProfile::CloudFull {
+        base_system.push_str("\n\n");
+        base_system.push_str(crate::prompts::CLOUD_FULL_SAME_MESSAGE_SUPPLEMENT);
+    }
     if memory_enabled {
         // Sprint M1 — listing court des sessions archivées (≤ 10 entrées).
         let memory_listing =
@@ -585,11 +576,7 @@ async fn build_agent_setup(
             kind = "native_thinking",
             "dogfood: session supplement appended (flag)"
         );
-        let thinking = if mode.is_professor() {
-            crate::prompts::NATIVE_THINKING_REASONING_SUPPLEMENT
-        } else {
-            crate::prompts::native_thinking_supplement_for_profile(engine_profile)
-        };
+        let thinking = crate::prompts::native_thinking_supplement_for_profile(engine_profile);
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
@@ -639,11 +626,7 @@ async fn build_agent_setup(
             kind = "explore",
             "dogfood: session supplement appended (flag)"
         );
-        let supplement = if mode.is_professor() {
-            crate::prompts::SUBAGENTS_EXPLORE_SUPPLEMENT
-        } else {
-            crate::prompts::subagents_explore_supplement_for_profile(engine_profile)
-        };
+        let supplement = crate::prompts::subagents_explore_supplement_for_profile(engine_profile);
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
@@ -655,29 +638,7 @@ async fn build_agent_setup(
         }
     }
 
-    // Mode Professeur : propositions seules côté client (`applyFsWrites: false`).
-    let apply = if mode.is_professor() {
-        false
-    } else {
-        params.apply_edits.unwrap_or(false)
-    };
-
-    if mode.is_professor() {
-        tracing::debug!(
-            marker = "c3.supplement",
-            kind = "professor",
-            "dogfood: session supplement appended (flag)"
-        );
-        match &mut system_merged {
-            Some(s) => {
-                s.push_str("\n\n");
-                s.push_str(crate::prompts::PROFESSOR_MODE_SUPPLEMENT);
-            }
-            None => {
-                system_merged = Some(crate::prompts::PROFESSOR_MODE_SUPPLEMENT.to_string());
-            }
-        }
-    }
+    let apply = params.apply_edits.unwrap_or(false);
 
     let mut disabled_tools = params.disabled_tools.clone();
     if !memory_enabled {

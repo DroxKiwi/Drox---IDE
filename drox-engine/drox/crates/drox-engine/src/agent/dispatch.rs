@@ -142,7 +142,6 @@ pub(crate) fn first_user_text(messages: &[Message]) -> Option<String> {
 /// à la commande utilisateur `/session_end`).
 pub(crate) fn build_tool_specs(
     registry: &ToolRegistry,
-    professor: bool,
     profile: EngineProfile,
 ) -> Vec<ToolSpec> {
     const HIDDEN_FROM_LLM: &[&str] = &["session_end"];
@@ -161,14 +160,11 @@ pub(crate) fn build_tool_specs(
         if has_mcp_stubs && name == "mcp_call" {
             continue;
         }
-        if professor && name == "todo_write" {
-            continue;
-        }
-        if !professor && name == "course_plan_write" {
+        if name == "course_plan_write" {
             continue;
         }
         if let Some(tool) = registry.get(&name) {
-            let description = if name == "task" && !professor {
+            let description = if name == "task" {
                 drox_prompts::TASK_TOOL_DESCRIPTION_LOCAL.to_string()
             } else {
                 tool.description().to_string()
@@ -219,7 +215,7 @@ mod tests {
     fn ollama_schemas_of_real_tools_keep_string_enums() {
         let mut registry = ToolRegistry::with_simple_tools();
         registry.register_subagent_task();
-        let specs = build_tool_specs(&registry, false, EngineProfile::CloudFull);
+        let specs = build_tool_specs(&registry, EngineProfile::CloudFull);
         assert!(specs.iter().any(|s| s.name == "todo_write"));
         let mut bad = Vec::new();
         for spec in &specs {
@@ -234,8 +230,8 @@ mod tests {
     fn local_9b_specs_are_a_subset() {
         let mut registry = ToolRegistry::with_simple_tools();
         registry.register_subagent_task();
-        let full = build_tool_specs(&registry, false, EngineProfile::CloudFull);
-        let light = build_tool_specs(&registry, false, EngineProfile::Local9b);
+        let full = build_tool_specs(&registry, EngineProfile::CloudFull);
+        let light = build_tool_specs(&registry, EngineProfile::Local9b);
         assert!(light.len() < full.len());
         assert!(light.iter().any(|s| s.name == "task"));
         assert!(light.iter().any(|s| s.name == "codebase_search"));

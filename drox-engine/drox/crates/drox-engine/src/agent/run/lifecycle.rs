@@ -20,7 +20,7 @@ use super::super::dispatch::{
 use super::super::gates::{
     is_todo_recreation_from_scratch, plan_write_gate_satisfied, requires_todo_write_gate,
     MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED, SESSION_END_FORBIDDEN_FOR_MODEL,
-    TODO_RECREATION_BLOCKED, TODO_WRITE_FORBIDDEN_IN_PROFESSOR,
+    TODO_RECREATION_BLOCKED,
 };
 use super::super::hallucination::{
     is_hallucinated_phase_tool_call, PHASE_MARKER_MUST_BE_TEXT_NOT_TOOL,
@@ -335,25 +335,12 @@ impl Agent {
     pub(super) async fn run_tool_pre_gates(
         &self,
         call: &PendingToolCall,
-        professor: bool,
-        professor_course_state: &crate::professor::ProfessorCourseState,
         saw_successful_todo_write_in_run: bool,
         last_todo_ids: &std::collections::HashSet<String>,
         last_todo_was_all_completed: bool,
     ) -> Option<String> {
-        if professor && call.name == "todo_write" {
-            return Some(TODO_WRITE_FORBIDDEN_IN_PROFESSOR.to_string());
-        }
-        if professor {
-            if let Some(msg) = crate::professor::check_mutating_tool(
-                &call.name,
-                &call.arguments,
-                professor_course_state,
-            ) {
-                return Some(msg.to_string());
-            }
-        } else if self.config.profile().todo_before_mutation_gate()
-            && !plan_write_gate_satisfied(false, saw_successful_todo_write_in_run, false)
+        if self.config.profile().todo_before_mutation_gate()
+            && !plan_write_gate_satisfied(saw_successful_todo_write_in_run)
             && requires_todo_write_gate(&call.name, &call.arguments, &self.ctx.workspace_root)
         {
             return Some(MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED.to_string());
@@ -364,8 +351,7 @@ impl Agent {
         if call.name == "session_end" {
             return Some(SESSION_END_FORBIDDEN_FOR_MODEL.to_string());
         }
-        if !professor
-            && call.name == "todo_write"
+        if call.name == "todo_write"
             && is_todo_recreation_from_scratch(
                 &call.arguments,
                 last_todo_ids,

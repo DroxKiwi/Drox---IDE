@@ -358,13 +358,6 @@ mod tests {
     }
 
     #[test]
-    fn write_tools_allowed_in_professor_mode() {
-        let policy = PermissionPolicy::new(engine_with(vec![]), PermissionMode::Professor);
-        let decision = policy.evaluate("file_write", &json!({ "path": "/tmp/x", "content": "" }));
-        assert!(decision.is_allow(), "got {decision:?}");
-    }
-
-    #[test]
     fn delete_path_blocked_in_plan_mode() {
         let policy = PermissionPolicy::new(engine_with(vec![]), PermissionMode::Plan);
         let decision = policy.evaluate("delete_path", &json!({ "path": "old.txt" }));
