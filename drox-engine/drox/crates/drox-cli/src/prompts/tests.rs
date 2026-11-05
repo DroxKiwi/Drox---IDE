@@ -336,20 +336,20 @@ fn core_prompt_no_longer_uses_legacy_defensive_phrases() {
 #[test]
 fn prepend_with_none_returns_core() {
     let out = prepend_core_system_prompt(None);
-    assert_eq!(out, CORE_SYSTEM_PROMPT);
+    assert_eq!(out, CORE_LOCAL_SYSTEM_PROMPT);
 }
 
 #[test]
 fn prepend_with_empty_returns_core() {
     let out = prepend_core_system_prompt(Some(String::new()));
-    assert_eq!(out, CORE_SYSTEM_PROMPT);
+    assert_eq!(out, CORE_LOCAL_SYSTEM_PROMPT);
 }
 
 #[test]
 fn prepend_with_existing_keeps_both() {
     let custom = "Use British English.".to_string();
     let out = prepend_core_system_prompt(Some(custom.clone()));
-    assert!(out.starts_with(CORE_SYSTEM_PROMPT));
+    assert!(out.starts_with(CORE_LOCAL_SYSTEM_PROMPT));
     assert!(out.contains(&custom));
 }
 

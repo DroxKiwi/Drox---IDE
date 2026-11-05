@@ -93,16 +93,12 @@ async fn read_only_tool_before_todo_write_is_allowed() {
     );
 }
 
-/// Sprint A.7 — la gate reste **dure** sur les mutateurs shell.
-///
-/// `bash` **mutateur** (`git add`, `rm`, …) appelé sans `todo_write`
-/// préalable doit recevoir `MUTATING_TOOL_BEFORE_TODO_WRITE_BLOCKED`.
-/// Les commandes inspectives (`git status`, `ls`) sont exemptées.
+/// Sprint A.7 — un `bash` mutateur sans `todo_write` n'est plus bloqué.
+/// Le plan reste un conseil, y compris pour le profil par défaut (`cloud-full`).
 #[tokio::test]
 async fn mutating_tool_before_todo_write_still_blocked() {
     let tid_bash = ToolUseId::new();
     let llm = Arc::new(ScriptedLlm::new(vec![
-        // Tour 1 : reasoning + bash mutateur SEUL (pas de todo_write).
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
@@ -138,24 +134,19 @@ async fn mutating_tool_before_todo_write_still_blocked() {
         .collect::<Result<_, _>>()
         .unwrap();
 
-    let bash_blocked = events.iter().any(|e| {
+    let bash_ran = events.iter().any(|e| {
         matches!(
             e,
             AgentEvent::ToolFinish {
                 id,
-                is_error: true,
-                output,
+                is_error: false,
                 ..
             } if id == &tid_bash
-                && output
-                    .get("error")
-                    .and_then(|v| v.as_str())
-                    .is_some_and(|s| s.contains("mutating") || s.contains("Planning"))
         )
     });
     assert!(
-        bash_blocked,
-        "bash mutateur sans todo_write préalable doit être bloqué ; events={events:?}"
+        bash_ran,
+        "bash mutateur sans todo_write doit s'exécuter ; events={events:?}"
     );
 }
 

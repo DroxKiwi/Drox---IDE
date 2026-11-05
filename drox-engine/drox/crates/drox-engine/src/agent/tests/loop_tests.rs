@@ -539,35 +539,32 @@ async fn loop_detector_does_not_flag_legitimate_short_run() {
     assert!(events.iter().any(|e| matches!(e, Ok(AgentEvent::Stop { .. }))));
 }
 
-/// FX-B : `[phase: acting]` sans tool_calls → nudges dédiés puis abort.
+/// FX-B : `[phase: acting]` sans tool_calls → nudges dédiés, puis un tour
+/// de réponse forcée. Le parent full protocol (profil par défaut) ne s'arrête
+/// plus en `LoopDetected { kind: intent_only_write }`.
 #[tokio::test]
-async fn intent_only_write_acting_aborts_after_nudges() {
+async fn intent_only_write_acting_forces_final_answer_after_nudges() {
     let loop_text = "[phase: acting]\nJe vais écrire le fichier src/app/docs/engine/page.tsx maintenant.\n";
+    let acting = || {
+        vec![
+            StreamEvent::Start,
+            StreamEvent::TextDelta {
+                text: loop_text.into(),
+            },
+            StreamEvent::Stop {
+                reason: StopReason::EndTurn,
+                usage: Usage::default(),
+            },
+        ]
+    };
     let llm = Arc::new(ScriptedLlm::new(vec![
+        acting(),
+        acting(),
+        acting(),
         vec![
             StreamEvent::Start,
             StreamEvent::TextDelta {
-                text: loop_text.into(),
-            },
-            StreamEvent::Stop {
-                reason: StopReason::EndTurn,
-                usage: Usage::default(),
-            },
-        ],
-        vec![
-            StreamEvent::Start,
-            StreamEvent::TextDelta {
-                text: loop_text.into(),
-            },
-            StreamEvent::Stop {
-                reason: StopReason::EndTurn,
-                usage: Usage::default(),
-            },
-        ],
-        vec![
-            StreamEvent::Start,
-            StreamEvent::TextDelta {
-                text: loop_text.into(),
+                text: "La page est en place.".into(),
             },
             StreamEvent::Stop {
                 reason: StopReason::EndTurn,
@@ -584,13 +581,18 @@ async fn intent_only_write_acting_aborts_after_nudges() {
     let agent = Agent::new(llm, registry, ctx, config);
 
     let raw: Vec<_> = agent.run("Écris la page Engine").collect::<Vec<_>>().await;
-    match raw.last() {
-        Some(Err(EngineError::LoopDetected { kind, turns })) => {
-            assert_eq!(*kind, "intent_only_write");
-            assert!(*turns >= 3, "turns={turns}");
-        }
-        other => panic!("expected LoopDetected intent_only_write, got {other:?}"),
-    }
+    assert!(
+        !raw.iter().any(|e| matches!(e, Err(EngineError::LoopDetected { .. }))),
+        "le tour acting sans outil force une réponse, got {raw:?}"
+    );
+    assert!(
+        raw.iter().any(|e| matches!(e, Ok(AgentEvent::Stop { .. }))),
+        "le run doit se clôturer, got {raw:?}"
+    );
+    assert!(raw.iter().any(|e| matches!(
+        e,
+        Ok(AgentEvent::TextDelta { text }) if text.contains("La page est en place")
+    )));
 }
 
 #[tokio::test]

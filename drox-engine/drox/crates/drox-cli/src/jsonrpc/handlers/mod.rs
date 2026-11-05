@@ -501,8 +501,16 @@ async fn build_agent_setup(
         None
     };
     let base_system = merge_optional_system(params.system.clone(), mem_prefix);
-    let mut base_system =
-        crate::prompts::prepend_core_system_prompt_for_profile(base_system, engine_profile);
+    let mut base_system = if mode.is_professor() {
+        match base_system {
+            Some(s) if !s.trim().is_empty() => {
+                format!("{}\n{s}", crate::prompts::CORE_SYSTEM_PROMPT)
+            }
+            _ => crate::prompts::CORE_SYSTEM_PROMPT.to_string(),
+        }
+    } else {
+        crate::prompts::prepend_core_system_prompt_for_profile(base_system, engine_profile)
+    };
     if memory_enabled {
         // Sprint M1 — listing court des sessions archivées (≤ 10 entrées).
         let memory_listing =
@@ -577,14 +585,18 @@ async fn build_agent_setup(
             kind = "native_thinking",
             "dogfood: session supplement appended (flag)"
         );
+        let thinking = if mode.is_professor() {
+            crate::prompts::NATIVE_THINKING_REASONING_SUPPLEMENT
+        } else {
+            crate::prompts::native_thinking_supplement_for_profile(engine_profile)
+        };
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");
-                s.push_str(crate::prompts::native_thinking_supplement_for_profile(engine_profile));
+                s.push_str(thinking);
             }
             None => {
-                system_merged =
-                    Some(crate::prompts::native_thinking_supplement_for_profile(engine_profile).to_string());
+                system_merged = Some(thinking.to_string());
             }
         }
     }
@@ -627,7 +639,11 @@ async fn build_agent_setup(
             kind = "explore",
             "dogfood: session supplement appended (flag)"
         );
-        let supplement = crate::prompts::subagents_explore_supplement_for_profile(engine_profile);
+        let supplement = if mode.is_professor() {
+            crate::prompts::SUBAGENTS_EXPLORE_SUPPLEMENT
+        } else {
+            crate::prompts::subagents_explore_supplement_for_profile(engine_profile)
+        };
         match &mut system_merged {
             Some(s) => {
                 s.push_str("\n\n");

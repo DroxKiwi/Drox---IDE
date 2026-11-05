@@ -168,7 +168,7 @@ pub(crate) fn build_tool_specs(
             continue;
         }
         if let Some(tool) = registry.get(&name) {
-            let description = if name == "task" && profile.is_local() {
+            let description = if name == "task" && !professor {
                 drox_prompts::TASK_TOOL_DESCRIPTION_LOCAL.to_string()
             } else {
                 tool.description().to_string()

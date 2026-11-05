@@ -1116,10 +1116,10 @@ impl Agent {
                     consecutive_intent_only_write_nudges =
                         consecutive_intent_only_write_nudges.saturating_add(1);
                     let max_nudges = INTENT_ONLY_WRITE_MAX_NUDGES;
-                    if consecutive_intent_only_write_nudges > max_nudges && profile.is_local() {
+                    if consecutive_intent_only_write_nudges > max_nudges {
                         debug!(
                             strikes = consecutive_intent_only_write_nudges,
-                            "intent-only write — local profile: final answer turn"
+                            "intent-only write — final answer turn"
                         );
                         messages.push(Message::system(LOCAL_FINAL_ANSWER_PROMPT));
                         final_answer_forced = true;
@@ -1132,19 +1132,6 @@ impl Agent {
                             return;
                         }
                         continue;
-                    }
-                    if consecutive_intent_only_write_nudges > max_nudges {
-                        debug!(
-                            strikes = consecutive_intent_only_write_nudges,
-                            "intent-only write — soft-abort après nudges"
-                        );
-                        let _ = tx
-                            .send(Err(EngineError::LoopDetected {
-                                kind: "intent_only_write",
-                                turns: consecutive_intent_only_write_nudges,
-                            }))
-                            .await;
-                        return;
                     }
                     let nudge = if consecutive_intent_only_write_nudges >= 2 {
                         INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT
@@ -2269,7 +2256,7 @@ impl Agent {
             }
 
             if session_frames.analysis
-                && !profile.is_local()
+                && professor
                 && !analyzing_phase_nudge_sent
                 && !saw_analyzing_phase_in_run
                 && iter == 0

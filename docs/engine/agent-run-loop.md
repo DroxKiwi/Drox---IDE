@@ -75,7 +75,7 @@ Les gates `[phase: done]` (answering préalable, todos) sont plus bas dans `driv
 
 | Gate | Effet |
 |------|--------|
-| `todo_write` avant mutation | **`cloud-full` only** — bloque mutateurs sans plan todo |
+| `todo_write` avant mutation | Conseil. Aucun profil parent ne bloque le mutateur |
 | Todos `pending` / `in_progress` | Refuse `[phase: done]` → `unfinished_todos_prompt` |
 | Mutation code sans `testing` | N’empêche plus la clôture |
 | `done` sans `answering` | `MISSING_ANSWERING_PROMPT` (réécriture demandée) |

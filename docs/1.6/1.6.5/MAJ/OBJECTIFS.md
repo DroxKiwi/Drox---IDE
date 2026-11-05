@@ -13,6 +13,8 @@ Le full protocol et le local capable se ferment aujourd’hui de la même façon
 
 Il faut une différence réelle, et une plus-value du mode full protocol.
 
+Décision : le déroulement du run full protocol suit le local capable. Le catalogue d'outils ne change pas. La gate `todo_write` avant mutation est retirée. Le rapport Explore revient dans le tour, comme en local capable. Les reliquats de marqueurs de phase du parent full protocol sont retirés. Le mode professeur garde son CORE de phases.
+
 ## O2 — Continuer sur la stabilité des runs
 
 La 1.6.4 a retiré l’exigence de phase testing avant la clôture. Ce chantier reste ouvert : un run doit se terminer de façon stable.

@@ -5,8 +5,8 @@ use crate::agent::config::EngineProfile;
 
 use super::hot_snip::compact_explore_delivery_for_hot_snip;
 use super::slim_task::{
-	slim_task_tool_result_for_llm, slim_task_tool_result_for_profile, TASK_INLINE_KIND_MAX_CHARS,
-	TASK_REPORT_INLINE_MAX_CHARS, TASK_SUMMARY_MAX_CHARS,
+	slim_task_tool_result_for_llm, slim_task_tool_result_for_profile, TASK_REPORT_INLINE_MAX_CHARS,
+	TASK_SUMMARY_MAX_CHARS,
 };
 use super::thresholds::TOOL_RESULT_PREVIEW_BYTES;
 
@@ -196,8 +196,10 @@ fn slim_task_drops_report_keeps_inline() {
 		"truncated": false
 	});
 	let slim = slim_task_tool_result_for_llm(&value);
-	assert!(slim.get("report").is_none());
+	assert!(slim.get("report").is_some());
 	assert!(slim.get("report_path").is_none());
+	assert!(slim.get("artifacts").is_some());
+	assert!(slim.get("artifacts_inline").is_none());
 	let summary = slim.get("summary").and_then(|v| v.as_str()).unwrap();
 	assert!(summary.chars().count() <= TASK_SUMMARY_MAX_CHARS + 1);
 	assert!(summary.ends_with('…'));
@@ -205,17 +207,8 @@ fn slim_task_drops_report_keeps_inline() {
 		slim.get("blurb").and_then(|v| v.as_str()).unwrap().len(),
 		50
 	);
-	let inline = slim
-		.get("artifacts_inline")
-		.and_then(|v| v.as_object())
-		.unwrap();
-	assert_eq!(
-		inline.get("gaps").and_then(|v| v.as_str()),
-		Some("- missing MD pipeline")
-	);
-	let structure = inline.get("structure_map").and_then(|v| v.as_str()).unwrap();
-	assert!(structure.chars().count() <= TASK_INLINE_KIND_MAX_CHARS + 1);
-	assert!(structure.ends_with('…'));
+	let report = slim.get("report").and_then(|v| v.as_str()).unwrap();
+	assert!(report.chars().count() <= TASK_REPORT_INLINE_MAX_CHARS + 1);
 }
 
 #[test]
@@ -267,8 +260,9 @@ fn local_slim_task_keeps_inline_report() {
 	assert!(slim27.get("report").is_some());
 	assert!(slim27.get("artifacts").is_some());
 	let full = slim_task_tool_result_for_profile(&value, FULL);
-	assert!(full.get("report").is_none());
-	assert!(full.get("artifacts_inline").is_some());
+	assert!(full.get("report").is_some());
+	assert!(full.get("artifacts").is_some());
+	assert!(full.get("artifacts_inline").is_none());
 }
 
 #[test]

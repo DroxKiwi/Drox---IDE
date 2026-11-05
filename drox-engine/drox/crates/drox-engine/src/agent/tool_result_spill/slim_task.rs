@@ -19,8 +19,8 @@ pub(crate) fn slim_task_tool_result_for_llm(value: &Value) -> Value {
 	slim_task_tool_result_for_profile(value, EngineProfile::CloudFull)
 }
 
-/// `cloud-full` : slim 1.6.0. Profils locaux : `report` inline borné, sans
-/// doublon `artifacts_inline` (et sans chemins kind en `local-9b`).
+/// `local-27b` et `cloud-full` : `report` inline borné, artefacts conservés.
+/// `local-9b` : le même rapport, sans les chemins kind. Sans rapport : format court.
 #[must_use]
 pub(crate) fn slim_task_tool_result_for_profile(value: &Value, profile: EngineProfile) -> Value {
 	let mut obj = match value {
@@ -29,24 +29,22 @@ pub(crate) fn slim_task_tool_result_for_profile(value: &Value, profile: EnginePr
 			return other.clone();
 		}
 	};
-	if profile.is_local() {
-		if let Some(Value::String(report)) = obj.get("report") {
-			if !report.trim().is_empty() {
-				obj.remove("artifacts_inline");
-				if profile == EngineProfile::Local9b {
-					obj.remove("artifacts");
-				}
-				obj.remove("report_path");
-				clamp_string_field(&mut obj, "report", TASK_REPORT_INLINE_MAX_CHARS);
-				clamp_string_field(&mut obj, "summary", TASK_SUMMARY_MAX_CHARS);
-				clamp_string_field(&mut obj, "blurb", TASK_BLURB_MAX_CHARS);
-				debug!(
-					marker = "c2.slim_task_inline_report",
-					profile = profile.id(),
-					"dogfood: task outcome inline report for local profile"
-				);
-				return Value::Object(obj);
+	if let Some(Value::String(report)) = obj.get("report") {
+		if !report.trim().is_empty() {
+			obj.remove("artifacts_inline");
+			if profile == EngineProfile::Local9b {
+				obj.remove("artifacts");
 			}
+			obj.remove("report_path");
+			clamp_string_field(&mut obj, "report", TASK_REPORT_INLINE_MAX_CHARS);
+			clamp_string_field(&mut obj, "summary", TASK_SUMMARY_MAX_CHARS);
+			clamp_string_field(&mut obj, "blurb", TASK_BLURB_MAX_CHARS);
+			debug!(
+				marker = "c2.slim_task_inline_report",
+				profile = profile.id(),
+				"dogfood: task outcome inline report"
+			);
+			return Value::Object(obj);
 		}
 	}
 	let had_report = obj.remove("report").is_some();

@@ -24,8 +24,8 @@ pub fn prepend_core_system_prompt(existing: Option<String>) -> String {
 	prepend_core_system_prompt_for_profile(existing, EngineProfile::CloudFull)
 }
 
-/// Comme [`prepend_core_system_prompt`], CORE choisi par profil moteur
-/// (`cloud-full` = CORE 1.6.0 ; profils locaux = CORE allégé). Professeur garde le CORE complet.
+/// Comme [`prepend_core_system_prompt`], CORE choisi par profil moteur.
+/// `cloud-full` et `local-27b` partagent le CORE court. Le professeur garde le CORE de phases.
 #[must_use]
 pub fn prepend_core_system_prompt_for_profile(
 	existing: Option<String>,
@@ -42,27 +42,22 @@ pub fn prepend_core_system_prompt_for_profile(
 pub fn core_system_prompt_for_profile(profile: EngineProfile) -> &'static str {
 	match profile {
 		EngineProfile::Local9b => CORE_LOCAL_9B_SYSTEM_PROMPT,
-		EngineProfile::Local27b => CORE_LOCAL_SYSTEM_PROMPT,
-		EngineProfile::CloudFull => CORE_SYSTEM_PROMPT,
+		// `cloud-full` suit le même texte que `local-27b`. Le CORE de phases
+		// reste réservé au mode professeur.
+		EngineProfile::Local27b | EngineProfile::CloudFull => CORE_LOCAL_SYSTEM_PROMPT,
 	}
 }
 
 #[must_use]
 pub fn subagents_explore_supplement_for_profile(profile: EngineProfile) -> &'static str {
-	if profile.is_local() {
-		SUBAGENTS_EXPLORE_LOCAL_SUPPLEMENT
-	} else {
-		SUBAGENTS_EXPLORE_SUPPLEMENT
-	}
+	let _ = profile;
+	SUBAGENTS_EXPLORE_LOCAL_SUPPLEMENT
 }
 
-/// Supplément thinking : cloud garde les marqueurs de phase ; local interdit
-/// de réécrire la réponse finale après `[phase: answering]`.
+/// Supplément thinking du parent. `cloud-full` reprend celui du local capable.
+/// Le mode professeur garde les marqueurs de phase.
 #[must_use]
 pub fn native_thinking_supplement_for_profile(profile: EngineProfile) -> &'static str {
-	if profile.is_local() {
-		NATIVE_THINKING_LOCAL_SUPPLEMENT
-	} else {
-		NATIVE_THINKING_REASONING_SUPPLEMENT
-	}
+	let _ = profile;
+	NATIVE_THINKING_LOCAL_SUPPLEMENT
 }

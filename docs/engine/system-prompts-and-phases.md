@@ -16,11 +16,11 @@ Le moteur **parse** les marqueurs dans [`consume_llm_stream`](../../drox-engine/
 
 | Profil | Prompt principal | Clôture décrite au modèle |
 |--------|------------------|---------------------------|
-| **`cloud-full`** | `CORE_SYSTEM_PROMPT` (protocole 1.6.0 complet) | Le texte demande encore `[phase: done]` après `answering`. Le moteur ferme quand même un tour sans outil |
-| **`local-9b`**, **`local-27b`** | `CORE_LOCAL_SYSTEM_PROMPT` (allégé) | Tour **sans outil** = réponse finale ; `done` non requis |
+| **`cloud-full`** | `CORE_LOCAL_SYSTEM_PROMPT` (même texte que `local-27b`) | Tour **sans outil** = réponse finale ; `done` non requis |
+| **`local-9b`**, **`local-27b`** | `CORE_LOCAL_SYSTEM_PROMPT` / variante 9b | Tour **sans outil** = réponse finale ; `done` non requis |
 
 Annexes session (hors-WS, Explore, native thinking, professeur) : modules [`session`](../../drox-engine/drox/crates/drox-prompts/src/session.rs), [`local`](../../drox-engine/drox/crates/drox-prompts/src/local.rs).  
-Explore parent : `SUBAGENTS_EXPLORE_SUPPLEMENT` vs `SUBAGENTS_EXPLORE_LOCAL_SUPPLEMENT` ([`prompts/mod.rs`](../../drox-engine/drox/crates/drox-cli/src/prompts/mod.rs)).
+Explore parent : le supplément local (`SUBAGENTS_EXPLORE_LOCAL_SUPPLEMENT`) pour les trois profils. Le mode professeur garde `SUBAGENTS_EXPLORE_SUPPLEMENT`.
 
 Injection RPC : [`build_agent_setup`](../../drox-engine/drox/crates/drox-cli/src/jsonrpc/handlers/mod.rs) remplit `AgentConfig.system_prompt` + frames intent (`work_plan_frame`, …).
 
@@ -67,12 +67,7 @@ Legacy **ignorés** : `[phase: reasoning]`, `[phase: next-move]`.
 
 ### `cloud-full`
 
-1. **Le moteur ferme le run** sur un tour sans outil (même filet que les profils locaux : tour vide, puis soft close check si des todos sont encore ouverts). Le CORE décrit encore `[phase: done]` comme sortie ; les refus de `done` plus bas dans `drive.rs` ne s’appliquent pas à ce run parent.
-2. **Le texte de gate** dit qu’un `done` exige un `answering` préalable (`MISSING_ANSWERING_PROMPT`). Ce nudge est sur le chemin professeur, pas sur la clôture parent.
-3. Prose utilisateur **dans `answering`** uniquement.
-4. **Avant mutation** : `todo_write` réussi (**gate dure**). Read-only / bash inspectif peuvent précéder.
-5. Le CORE ne demande plus un `[phase: testing]` après une mutation de code. Côté moteur parent, le soft close check one-shot ne parle que des todos encore ouverts, puis le run s’arrête.
-6. **Anti-boucle** : LoopDetector + texte CORE ; escalade moteur si répétition — [agent-internals.md](agent-internals.md).
+Même déroulement parent que `local-27b` : CORE court, tour sans outil = fin du run, `todo_write` conseillé et non bloquant, rapport Explore inline. Le catalogue d'outils reste le catalogue complet. Le mode professeur garde le CORE de phases et sa gate de plan de cours.
 
 ### Profils locaux
 

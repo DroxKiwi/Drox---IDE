@@ -82,7 +82,7 @@ fn shorten_existing_spill_stub(content: &str) -> String {
 #[must_use]
 pub(super) fn compact_explore_delivery_for_hot_snip(
 	content: &str,
-	profile: EngineProfile,
+	_profile: EngineProfile,
 ) -> Option<String> {
 	let tool = tool_name_from_llm_wrapper(content).unwrap_or("");
 	let json_slice = json_payload_from_wrapper(content)?;
@@ -101,14 +101,10 @@ pub(super) fn compact_explore_delivery_for_hot_snip(
 	}
 
 	let label = if tool.is_empty() { "explore" } else { tool };
-	let local_report = if profile.is_local() {
-		value
-			.get("report")
-			.and_then(|v| v.as_str())
-			.filter(|r| !r.trim().is_empty())
-	} else {
-		None
-	};
+	let local_report = value
+		.get("report")
+		.and_then(|v| v.as_str())
+		.filter(|r| !r.trim().is_empty());
 	let mut lines = vec![format!(
 		"[drox: tool result for «{label}» — EXPLORE MERGE PRESERVED (hot snip)]"
 	)];

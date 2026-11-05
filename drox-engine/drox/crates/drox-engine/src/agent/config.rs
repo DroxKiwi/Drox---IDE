@@ -115,10 +115,12 @@ impl EngineProfile {
         !matches!(self, Self::Local9b)
     }
 
-    /// Gate dure « `todo_write` avant mutation » : `cloud-full` seulement.
+    /// Plus de gate dure « `todo_write` avant mutation ». Le plan reste un conseil,
+    /// y compris en `cloud-full`. Le mode professeur a sa propre gate de cours.
     #[must_use]
     pub fn todo_before_mutation_gate(self) -> bool {
-        matches!(self, Self::CloudFull)
+        let _ = self;
+        false
     }
 
     /// Outils parent masqués (schéma absent). `None` = catalogue complet.

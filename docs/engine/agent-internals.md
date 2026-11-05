@@ -52,9 +52,9 @@ Alignée sur [`agent/mod.rs`](../../drox-engine/drox/crates/drox-engine/src/agen
 
 | Knob | `local-9b` | `local-27b` | `cloud-full` |
 |------|------------|-------------|--------------|
-| CORE system | Allégé (`CORE_LOCAL`) | Idem | CORE 1.6.0 complet |
+| CORE system | Allégé (`CORE_LOCAL`) | Idem | Même texte que `local-27b` |
 | Clôture | Moteur (tour sans outil) | + soft close check (todos ouverts) one-shot | Même clôture moteur que `local-27b` |
-| Gate todo avant mutation | Non | Non | **Oui** |
+| Gate todo avant mutation | Non | Non | Non |
 | Nudges plan / post-merge Explore | Réduits | Actifs | Actifs |
 | Outils parent | Allowlist courte | Allowlist élargie | Catalogue (hors `disabledTools` IDE) |
 
