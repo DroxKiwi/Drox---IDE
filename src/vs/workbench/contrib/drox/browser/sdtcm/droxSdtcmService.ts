@@ -20,7 +20,7 @@ import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { parseLlmProvider, readLlmProvider, resolveLlmCatalogConnection } from '../../common/droxLlmCatalog.js';
 import { mergeLlmHttpHeaders } from '../../common/droxLlmHeaders.js';
-import { callDroxProseLlm } from '../../common/droxInlineChat.js';
+import { callDroxProseLlmChannels } from '../../common/droxInlineChat.js';
 import { DROX_SDTCM_PROBE_PHASES, DroxSdtcmProbePhase, expandDroxSdtcmPhases, seedDroxSdtcmProbe, summarizeDroxSdtcmConsistency } from '../../common/sdtcm/droxSdtcmConsistency.js';
 import { defaultDroxSdtcmDisplay, IDroxSdtcmSavedDisplay, savedDroxSdtcmDisplay } from '../../common/sdtcm/droxSdtcmDisplay.js';
 import { focusDroxSdtcmMap, IDroxSdtcmFocus } from '../../common/sdtcm/droxSdtcmDiff.js';
@@ -52,6 +52,7 @@ import {
 	ensureDroxSdtcmNewTag,
 	IDroxSdtcmTag,
 	IDroxSdtcmTagMarkDraft,
+	pickDroxSdtcmAnswer,
 	readDroxSdtcmFileDraft,
 	readDroxSdtcmLinkDraft,
 	readDroxSdtcmRead,
@@ -1442,7 +1443,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		}
 		const provider = parseLlmProvider(conn.provider) || readLlmProvider(this.configurationService, workspace);
 		const headers = mergeLlmHttpHeaders(conn.apiKey, conn.headers, { provider, server: conn.server });
-		const text = await callDroxProseLlm({
+		const channels = await callDroxProseLlmChannels({
 			provider,
 			server: conn.server,
 			model,
@@ -1451,6 +1452,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			temperature: 0,
 			fetchHttp: (url, hdrs, options) => this.engineService.fetchHttp(url, hdrs, options),
 		}, droxSdtcmSystemPrompt(mode), user, 180_000);
+		const text = pickDroxSdtcmAnswer(channels.content, channels.reasoning);
 		if (!text.trim()) {
 			throw new Error('The model returned nothing.');
 		}

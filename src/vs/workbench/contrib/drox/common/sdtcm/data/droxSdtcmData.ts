@@ -14,6 +14,7 @@ import {
 	isDroxSdtcmBrickId,
 	isDroxSdtcmDataId,
 } from '../droxSdtcmMap.js';
+import { extractDroxSdtcmJson } from '../droxSdtcmRole.js';
 
 export interface IDroxSdtcmDataDraft {
 	readonly name: string;
@@ -89,7 +90,7 @@ export function buildDroxSdtcmTraceTurn(input: {
 }
 
 export function readDroxSdtcmDataDraft(raw: string): { readonly ok: true; readonly data: readonly IDroxSdtcmDataDraft[] } | { readonly ok: false; readonly errors: readonly string[] } {
-	const json = extractJson(raw);
+	const json = extractDroxSdtcmJson(raw);
 	if (!json) {
 		return { ok: false, errors: ['Response has no JSON object. Return { data }.'] };
 	}
@@ -103,7 +104,7 @@ export function readDroxSdtcmDataDraft(raw: string): { readonly ok: true; readon
 }
 
 export function readDroxSdtcmTraceDraft(raw: string): { readonly ok: true; readonly steps: readonly IDroxSdtcmTraceDraft[] } | { readonly ok: false; readonly errors: readonly string[] } {
-	const json = extractJson(raw);
+	const json = extractDroxSdtcmJson(raw);
 	if (!json) {
 		return { ok: false, errors: ['Response has no JSON object. Return { steps }.'] };
 	}
@@ -330,21 +331,4 @@ function nextDataId(used: Set<string>): string {
 
 function numberText(text: string): string {
 	return droxSdtcmLines(text).map((line, index) => `${index + 1}|${line}`).join('\n');
-}
-
-function extractJson(raw: string): Record<string, unknown> | undefined {
-	const start = raw.indexOf('{');
-	const end = raw.lastIndexOf('}');
-	if (start < 0 || end <= start) {
-		return undefined;
-	}
-	try {
-		const json = JSON.parse(raw.slice(start, end + 1)) as unknown;
-		if (!json || typeof json !== 'object' || Array.isArray(json)) {
-			return undefined;
-		}
-		return json as Record<string, unknown>;
-	} catch {
-		return undefined;
-	}
 }

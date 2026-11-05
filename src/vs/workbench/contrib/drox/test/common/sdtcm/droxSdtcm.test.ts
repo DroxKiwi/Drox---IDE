@@ -21,7 +21,7 @@ import { placeDroxSdtcmGraph } from '../../../common/sdtcm/placement/droxSdtcmPl
 import { droxSdtcmAddedFocus, keepDroxSdtcmFocusVisible, markDroxSdtcmDataPath, markDroxSdtcmFocus, markDroxSdtcmKept } from '../../../common/sdtcm/focus/droxSdtcmFocus.js';
 import { droxSdtcmSystemPrompt } from '../../../common/sdtcm/droxSdtcmPrompt.js';
 import { droxSdtcmFilesFrom, droxSdtcmPhaseAction, parseDroxSdtcmPause } from '../../../common/sdtcm/droxSdtcmPause.js';
-import { acceptDroxSdtcmFile, acceptDroxSdtcmFolderTags, acceptDroxSdtcmLinks, acceptDroxSdtcmTags, buildDroxSdtcmTagTurn, buildDroxSdtcmTurn, completeDroxSdtcmLinks, droxSdtcmFreshBricks, droxSdtcmNewTag, ensureDroxSdtcmNewTag, formatDroxSdtcmMapIndex, IDroxSdtcmTag, parseDroxSdtcmTags, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
+import { acceptDroxSdtcmFile, acceptDroxSdtcmFolderTags, acceptDroxSdtcmLinks, acceptDroxSdtcmTags, buildDroxSdtcmTagTurn, buildDroxSdtcmTurn, completeDroxSdtcmLinks, droxSdtcmFreshBricks, droxSdtcmNewTag, ensureDroxSdtcmNewTag, formatDroxSdtcmMapIndex, IDroxSdtcmTag, parseDroxSdtcmTags, pickDroxSdtcmAnswer, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
 
 suite('Drox SDTCM map', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
@@ -103,6 +103,20 @@ suite('Drox SDTCM map', () => {
 		assert.strictEqual(main?.stale[0]?.reason, 'moved');
 		assert.strictEqual(main?.stale[0]?.foundLine, 2);
 		assert.strictEqual(gone?.stale[0]?.reason, 'gone');
+	});
+
+	test('braces in the preamble do not hide the JSON object', () => {
+		const raw = 'globals.css\n.a { color: red; }\n{"file":"src/app/globals.css","items":[{"kind":"value","form":"declare","name":"ink","line":1,"quote":"--ink: red;","links":[]}]}';
+		const draft = readDroxSdtcmFileDraft(raw, 'src/app/globals.css');
+		assert.strictEqual(draft.ok, true);
+		const read = readDroxSdtcmRead('note { not json }\n{"read":"src/app/page.tsx"}');
+		assert.strictEqual(read?.ok, true);
+		if (read?.ok) {
+			assert.strictEqual(read.path, 'src/app/page.tsx');
+		}
+		const visible = '{"file":"a.ts","items":[{"kind":"value","form":"declare","name":"n","line":1,"quote":"const n = 1","links":[]}]}';
+		assert.strictEqual(pickDroxSdtcmAnswer(visible, '{"read":"other.ts"}'), visible);
+		assert.ok(pickDroxSdtcmAnswer('no object here', visible).includes('"file"'));
 	});
 
 	test('a valid file is accepted and a bad quote is returned to the model', () => {

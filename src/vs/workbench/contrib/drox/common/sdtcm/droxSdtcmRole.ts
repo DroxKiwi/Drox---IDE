@@ -29,6 +29,17 @@ export interface IDroxSdtcmFileItem {
 	readonly links: readonly string[];
 }
 
+/** Prefer the visible text when it holds the object. Otherwise the reasoning channel. */
+export function pickDroxSdtcmAnswer(content: string, reasoning: string): string {
+	if (extractDroxSdtcmJson(content)) {
+		return content;
+	}
+	if (extractDroxSdtcmJson(reasoning)) {
+		return reasoning;
+	}
+	return content.trim() || reasoning.trim();
+}
+
 export function readDroxSdtcmFileDraft(
 	raw: string,
 	expectedFile: string,
@@ -854,13 +865,54 @@ function reviewAnchor(where: string, anchor: IDroxSdtcmEntry, files: ReadonlyMap
 	return anchor;
 }
 
-function extractDroxSdtcmJson(raw: string): Record<string, unknown> | undefined {
-	const start = raw.indexOf('{');
-	const end = raw.lastIndexOf('}');
-	if (start < 0 || end <= start) {
-		return undefined;
+const DROX_SDTCM_JSON_KEYS = ['items', 'read', 'links', 'data', 'steps', 'marks'] as const;
+
+export function extractDroxSdtcmJson(raw: string): Record<string, unknown> | undefined {
+	let found: Record<string, unknown> | undefined;
+	let start = -1;
+	let depth = 0;
+	let quoted = false;
+	let escape = false;
+	for (let index = 0; index < raw.length; index++) {
+		const ch = raw[index];
+		if (quoted) {
+			if (escape) {
+				escape = false;
+			} else if (ch === '\\') {
+				escape = true;
+			} else if (ch === '"') {
+				quoted = false;
+			}
+			continue;
+		}
+		if (ch === '"') {
+			quoted = true;
+			continue;
+		}
+		if (ch === '{') {
+			if (depth === 0) {
+				start = index;
+			}
+			depth++;
+			continue;
+		}
+		if (ch !== '}' || depth === 0) {
+			continue;
+		}
+		depth--;
+		if (depth !== 0 || start < 0) {
+			continue;
+		}
+		const json = parseDroxSdtcmObject(raw.slice(start, index + 1));
+		if (json && DROX_SDTCM_JSON_KEYS.some(key => Object.hasOwn(json, key))) {
+			found = json;
+		}
+		start = -1;
 	}
-	const slice = raw.slice(start, end + 1);
+	return found;
+}
+
+function parseDroxSdtcmObject(slice: string): Record<string, unknown> | undefined {
 	const json = parseDroxSdtcmJson(slice) ?? parseDroxSdtcmJson(slice.replace(/,\s*([}\]])/g, '$1'));
 	return json && typeof json === 'object' && !Array.isArray(json) ? json as Record<string, unknown> : undefined;
 }

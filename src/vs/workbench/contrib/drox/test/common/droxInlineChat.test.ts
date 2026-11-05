@@ -10,7 +10,11 @@ import {
 	buildDroxInlineChatUserMessage,
 	DROX_EXPLAIN_SYSTEM_PROMPT,
 	formatDroxExplainComment,
+	callDroxProseLlm,
 	parseDroxExplainParts,
+	quietestOllamaThink,
+	quietThinkingFields,
+	readDroxLlmMessageChannels,
 } from '../../common/droxInlineChat.js';
 
 suite('Drox inline chat prompts', () => {
@@ -38,6 +42,65 @@ suite('Drox inline chat prompts', () => {
 			formatDroxExplainComment('python', 'x | variable | Déclarée pour recevoir len.'),
 			'# x — variable : Déclarée pour recevoir len.\n',
 		);
+	});
+
+	test('ollama keeps thinking beside an empty answer', () => {
+		const channels = readDroxLlmMessageChannels('ollama', JSON.stringify({
+			message: { content: '', thinking: '{"file":"a.ts","items":[]}' },
+		}));
+		assert.strictEqual(channels.content, '');
+		assert.ok(channels.reasoning.includes('"items"'));
+	});
+
+	test('openai-compatible reads text parts and reasoning content', () => {
+		const channels = readDroxLlmMessageChannels('openai_compatible', JSON.stringify({
+			choices: [{
+				message: {
+					content: [{ type: 'text', text: '{"links":[]}' }, { type: 'reasoning', text: 'thinking' }],
+					reasoning_content: 'more',
+				},
+			}],
+		}));
+		assert.strictEqual(channels.content, '{"links":[]}');
+		assert.ok(channels.reasoning.includes('thinking'));
+		assert.ok(channels.reasoning.includes('more'));
+	});
+
+	test('ollama think picks false, otherwise the lowest named level', () => {
+		assert.strictEqual(quietestOllamaThink([true, false]), false);
+		assert.strictEqual(quietestOllamaThink(['low', 'high', 'max']), 'low');
+		assert.strictEqual(quietestOllamaThink(['max', 'high']), 'high');
+		assert.strictEqual(quietestOllamaThink(undefined), false);
+	});
+
+	test('each provider gets only the thinking field it accepts', () => {
+		assert.deepStrictEqual(quietThinkingFields('ollama', 'low'), { think: 'low' });
+		assert.deepStrictEqual(quietThinkingFields('ollama', false), { think: false });
+		for (const provider of ['vllm', 'lmstudio', 'huggingface', 'openai_compatible'] as const) {
+			assert.deepStrictEqual(quietThinkingFields(provider), { chat_template_kwargs: { enable_thinking: false } });
+		}
+		for (const provider of ['mistral', 'scaleway', 'ovhcloud'] as const) {
+			assert.deepStrictEqual(quietThinkingFields(provider), {});
+		}
+	});
+
+	test('an ollama call sends the quietest level advertised for that model', async () => {
+		let chatBody = '';
+		const text = await callDroxProseLlm({
+			provider: 'ollama',
+			server: 'https://ollama.com',
+			model: 'glm-quiet-probe',
+			disableThinking: true,
+			fetchHttp: async (url, _headers, options) => {
+				if (url.endsWith('/api/show')) {
+					return { statusCode: 200, body: JSON.stringify({ thinking: { values: ['low', 'high', 'max'] } }) };
+				}
+				chatBody = options?.body ?? '';
+				return { statusCode: 200, body: JSON.stringify({ message: { content: 'ok' } }) };
+			},
+		}, 'system', 'user');
+		assert.strictEqual(text, 'ok');
+		assert.strictEqual(JSON.parse(chatBody).think, 'low');
 	});
 
 	test('inline chat question is appended after the selection', () => {
