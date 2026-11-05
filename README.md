@@ -4,9 +4,9 @@
 
 # Drox IDE
 
-Éditeur de code avec un agent IA **open source**. Version stable **1.6.5**. Il reprend [Visual Studio Code – Open Source (Code OSS)](https://github.com/microsoft/vscode) : extensions, terminal, Git, LSP — et y ajoute un moteur agent en Rust qui tourne **chez toi**.
+Éditeur de code avec un agent IA **open source**. Version stable **1.6.7**. Il reprend [Visual Studio Code – Open Source (Code OSS)](https://github.com/microsoft/vscode) : extensions, terminal, Git, LSP — et y ajoute un moteur agent en Rust qui tourne **chez toi**.
 
-Installeurs Windows et Linux : [**télécharger la 1.6.5**](https://github.com/DroxKiwi/Drox---IDE/releases/tag/v1.6.5).
+Installeurs Windows et Linux : [**télécharger la 1.6.7**](https://github.com/DroxKiwi/Drox---IDE/releases/tag/v1.6.7).
 
 La même installation en ligne de commande. Le script prend la release marquée Latest et remplace une installation déjà présente.
 
@@ -65,7 +65,7 @@ Après chaque run, Drox note le parcours du modèle sur cinq leviers : budget de
 | | |
 |---|---|
 | **Licence** | MIT — Code OSS (Microsoft) + portions Drox / KDDS — [`NOTICE.md`](NOTICE.md) |
-| **Version** | **1.6.5** stable · base VS Code **1.127.0** |
+| **Version** | **1.6.7** stable · base VS Code **1.127.0** |
 | **Binaires** | [Releases](https://github.com/DroxKiwi/Drox---IDE/releases) — Windows et Linux |
 | **Doc moteur** | [`docs/engine/`](docs/engine/README.md) |
 | **Référencement** | [XERJ Corpus Hub — DroxKiwi](https://hub.xerj.org/contributors/DroxKiwi) |
