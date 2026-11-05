@@ -36,6 +36,15 @@ pub fn partition_tool_calls(tool_names: &[&str], registry: &ToolRegistry) -> Vec
     batches
 }
 
+/// Un appel par lot, dans l'ordre émis. `local-9b` et `local-27b` passent par là :
+/// le moteur n'entrelace pas les outils du tour.
+#[must_use]
+pub fn serial_tool_call_batches(count: usize) -> Vec<ToolCallBatch> {
+    (0..count)
+        .map(|idx| ToolCallBatch::Serial(vec![idx]))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -55,6 +64,19 @@ mod tests {
                 ToolCallBatch::Parallel(vec![4]),
             ]
         );
+    }
+
+    #[test]
+    fn serial_batches_keep_call_order() {
+        assert_eq!(
+            serial_tool_call_batches(3),
+            vec![
+                ToolCallBatch::Serial(vec![0]),
+                ToolCallBatch::Serial(vec![1]),
+                ToolCallBatch::Serial(vec![2]),
+            ]
+        );
+        assert!(serial_tool_call_batches(0).is_empty());
     }
 
     #[test]

@@ -86,7 +86,7 @@ Les nudges todo/testing **ne reset pas** le LoopDetector (répétitions de `done
 
 ## Outils dans la boucle
 
-Par `tool_call` (lots parallèles si `is_concurrency_safe`) :
+Par `tool_call`. `local-9b` et `local-27b` exécutent les appels du tour un par un, dans l'ordre. `cloud-full` les groupe en lots parallèles si `is_concurrency_safe` :
 
 1. Pre-gates (`run_tool_pre_gates` — [`run/lifecycle.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/lifecycle.rs))
 2. `PermissionPolicy` + moteur `drox-permissions`

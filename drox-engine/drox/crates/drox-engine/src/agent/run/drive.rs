@@ -13,7 +13,9 @@ use tracing::debug;
 use crate::error::EngineError;
 use crate::event::{AgentEvent, HistoryProbeEntry, Phase};
 use crate::memory::MemoryTracker;
-use crate::tool_orchestration::{partition_tool_calls, ToolCallBatch};
+use crate::tool_orchestration::{
+    partition_tool_calls, serial_tool_call_batches, ToolCallBatch,
+};
 use crate::tool_progress::ToolProgressBridge;
 
 use super::super::dispatch::{
@@ -1312,7 +1314,13 @@ impl Agent {
                 .iter()
                 .map(|c| c.name.as_str())
                 .collect();
-            let batches = partition_tool_calls(&tool_names, &self.registry);
+            // Small local et local capable : un outil après l'autre.
+            // Le full protocol garde les lots parallèles.
+            let batches = if profile.is_local() {
+                serial_tool_call_batches(tool_names.len())
+            } else {
+                partition_tool_calls(&tool_names, &self.registry)
+            };
             let mut round_tool_outputs = String::new();
 
             for batch in batches {

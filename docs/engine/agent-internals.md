@@ -57,6 +57,7 @@ Alignée sur [`agent/mod.rs`](../../drox-engine/drox/crates/drox-engine/src/agen
 | Gate todo avant mutation | Non | Non | Non |
 | Nudges plan / post-merge Explore | Réduits | Actifs | Actifs |
 | Outils parent | Allowlist courte | Allowlist élargie | Catalogue (hors `disabledTools` IDE) |
+| Outils d'un tour | Un par un | Un par un | Lots parallèles si `is_concurrency_safe` |
 
 Méthodes : `is_local()`, `plan_nudges()`, `todo_before_mutation_gate()`, `exposes_parent_tool()` — [`config.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/config.rs).
 

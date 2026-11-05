@@ -23,9 +23,9 @@ Point déjà noté, pas repris dans cette ouverture : [conclusion répétée](..
 
 ## O3 — Requêtes concurrentes
 
-Plusieurs sous-agents peuvent être déclarés dans le même tour. L’outil `Task` (Explore) est marqué concurrent. C’est trop instable.
+Plusieurs sous-agents peuvent être déclarés dans le même tour. L’outil `Task` (Explore) est marqué concurrent.
 
-Piste retenue pour l’instant : interdire cette concurrence. Un seul sous-agent à la fois.
+Décision : small local et local capable exécutent les outils d’un tour l’un après l’autre. Le full protocol garde le lot parallèle. Son encadrement se discute à part.
 
 ## O4 — Cacher les mécaniques de dev en version live
 

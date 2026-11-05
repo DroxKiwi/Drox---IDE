@@ -71,9 +71,9 @@ Les outils **`mcp__*`** restent exposés si enregistrés. Détail profils : [age
 
 [`tools/orchestration.rs`](../../drox-engine/drox/crates/drox-engine/src/tools/orchestration.rs) :
 
-1. `partition_tool_calls` : segment **Parallel** si tous `is_concurrency_safe`, sinon **Serial**.
-2. Plafond : `max_parallel_tool_calls` (défaut **8**).
-3. **`task`** : `is_concurrency_safe` = **false** même en lecture.
+1. `local-9b` et `local-27b` : un appel par lot, dans l'ordre émis (`serial_tool_call_batches`).
+2. `cloud-full` : `partition_tool_calls` — segment **Parallel** si `is_concurrency_safe`, sinon **Serial**. Plafond `max_parallel_tool_calls` (défaut **8**).
+3. **`task`** : `is_concurrency_safe` = **true**. En profil local le parent le lance quand même seul, avec les autres appels du tour.
 
 ## Permissions
 
