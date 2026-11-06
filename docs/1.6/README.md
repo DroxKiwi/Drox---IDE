@@ -12,14 +12,16 @@
 | [**1.6.1/**](1.6.1/README.md) | Sous-run par défaut · presets véhicule · charte / polish IDE | **Stable** (`v1.6.1`) |
 | [**1.6.2/**](1.6.2/README.md) | Onglets IDE, sync modèle, clôture locale, prompts, connexions, thème Agents et runs parallèles | **Stable** (`v1.6.2`) |
 | [**1.6.3/**](1.6.3/README.md) | Clôture full protocol, contexte allégé, probe d’historique (dev) | **Stable** (`v1.6.3`) |
-| [**1.6.4/**](1.6.4/README.md) | Régulation, Explain, SDTCM dessiné, clôture sans testing, install en ligne de commande, tutoriels IDE et Agents | **Stable** (`v1.6.4`) |
-| [**1.6.5/**](1.6.5/README.md) | Plus-value du full protocol, stabilité des runs, un seul sous-agent à la fois, outils de dev cachés en live | **Ouvert** |
+| [**1.6.4/**](1.6.4/README.md) | Régulation, Explain, SDTCM dessiné, clôture sans testing, install en ligne de commande, tutoriels IDE et Agents | **Stable** (release GitHub retirée) |
+| [**1.6.5/**](1.6.5/README.md) | Plus-value du full protocol, stabilité des runs, un seul sous-agent à la fois, outils de dev cachés en live | **Stable** (release GitHub retirée) |
+| 1.6.7 | Carte SDTCM lisible quel que soit le provider | **Stable** (release GitHub retirée) |
+| [**1.6.8/**](1.6.8/README.md) | Médias du répertoire : fiche, pas le corps. Images du chat inchangées | **Latest** ([`v1.6.8`](https://github.com/DroxKiwi/Drox---IDE/releases/latest)) |
 
 ---
 
 ## Git — ne pas polluer `main`
 
-`main` = dernier **produit stable shippé** (aujourd’hui `v1.6.4`). Développement courant : branche **`1.6.5`**.
+`main` = dernier **produit stable shippé** (aujourd’hui [`v1.6.8`](https://github.com/DroxKiwi/Drox---IDE/releases/latest)). Pas de branche de développement ouverte.
 
 | Branche | Rôle |
 |---------|------|
