@@ -105,6 +105,9 @@ impl Tool for GrepTool {
             if !meta.is_file() || meta.len() > MAX_FILE_BYTES {
                 continue;
             }
+            if crate::media::media_type_for_path(&path.to_string_lossy()).is_some() {
+                continue;
+            }
 
             let Ok(utf8_path) = camino::Utf8PathBuf::from_path_buf(path.to_path_buf()) else {
                 continue;
@@ -214,5 +217,22 @@ mod tests {
             .unwrap();
         let arr = out["matches"].as_array().unwrap();
         assert!(arr.len() >= 2, "matches={arr:?}");
+    }
+
+    #[tokio::test]
+    async fn skips_media_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = camino::Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+        tokio::fs::write(root.join("note.txt"), "NEEDLE in text\n").await.unwrap();
+        tokio::fs::write(root.join("pic.png"), b"NEEDLE\0\0\0\0").await.unwrap();
+        let ctx = ToolContext::new(root.clone(), false);
+        let reg = ToolRegistry::with_simple_tools();
+        let out = reg
+            .execute_named("grep", &ctx, json!({ "pattern": "NEEDLE", "path": "." }))
+            .await
+            .unwrap();
+        let arr = out["matches"].as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert!(arr[0]["path"].as_str().unwrap().ends_with("note.txt"));
     }
 }

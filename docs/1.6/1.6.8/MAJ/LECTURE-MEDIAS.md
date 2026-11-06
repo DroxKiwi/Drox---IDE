@@ -1,6 +1,6 @@
 # 1.6.8 — Médias du répertoire
 
-**Statut** : ouvert. Cadrage, pas de lot de code tant que ce n'est pas validé.
+**Statut** : en cours. Le lot décrit ci-dessous est celui qui s'applique.
 **Précédent** : 1.6.7, stable shippée (`v1.6.7`).
 
 Les images collées dans le chat restent envoyées au modèle. Un média trouvé en parcourant le répertoire ne se lit plus : le modèle reçoit une fiche.
@@ -50,6 +50,6 @@ Outils :
 - `file_read` — aujourd'hui il renvoie le contenu, tronqué à 512 Ko. C'est le trou principal. Un média répond une fiche, pas des octets.
 - `grep` — il lit jusqu'à 512 Ko et passe par `from_utf8_lossy`. Il saute ces fichiers au lieu de chercher dedans.
 
-`glob` continue de lister les noms. Rien ne change pour une image collée dans le chat : persistance `.drox/attachments/`, ligne `[Attached images]`, bloc vision envoyé au provider.
+`glob` continue de lister les noms. Rien ne change pour une image collée dans le chat : persistance `.drox/attachments/`, ligne `[Attached images]`, bloc vision envoyé au provider. Le compteur qui divise ce base64 par 4 reste en place.
 
-`bash` peut encore afficher un fichier. Ce n'est pas dans ce patch.
+`bash` : une sortie texte, même longue, garde la troncature actuelle (30 Ko, puis mise de côté au-delà de 24 Ko). Une sortie qui n'est pas du texte est remplacée par une fiche : commande terminée, sortie binaire, poids, et nom, chemin, poids et type si la commande visait un média.

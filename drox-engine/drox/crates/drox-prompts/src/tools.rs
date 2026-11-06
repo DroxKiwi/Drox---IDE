@@ -43,7 +43,8 @@ tool_prompt!(
 outside the workspace are always allowed for read-only access** (do not use bash Get-Content/cat \
 for that — this works even when the outside-workspace session toggle is off). Without `start_line`/`end_line`: reads from the beginning (truncated beyond \
 512 KiB). With both: **line window** 1-based inclusive (max 400 lines, output max ~128 KiB) \
-— ideal after a `grep` to avoid loading the entire file."
+— ideal after a `grep` to avoid loading the entire file. Image, audio, and video files \
+return a metadata fiche (name, path, size, type) and no body. SVG and text stay readable."
 );
 
 pub const TASK_TOOL_DESCRIPTION: &str = "\
@@ -149,6 +150,7 @@ tool_prompt!(
 	"grep",
 	"Searches for a regex in workspace files (respects `.gitignore` and **`.droxignore`**, limit 300 matches). \
          **Permissive** UTF-8 reading (partially binary files skipped without failing the entire search). \
+         Image, audio, and video files are skipped. \
          Option `glob`: limit to relative paths that match (e.g. `**/*.ts`)."
 );
 
@@ -176,6 +178,8 @@ tool_prompt!(
          requires a plan. On Windows: prefer `dir`/`findstr` over Unix ls/grep; avoid \
          bash heredocs and nested quotes in `git commit -m`; use `file_write` + \
          `git commit -F <file>` instead. \
+         Output that is not text is replaced by a fiche (binary, byte size, and the media \
+         path when the command names one). Text output is unchanged. \
          Default wall-clock timeout ~60s if `timeout_ms` omitted; optional `timeout_ms` for \
          long jobs (build/install) only — no product max. On timeout the engine kills the \
          command and returns `timed_out: true` — change approach, do not wait forever. \

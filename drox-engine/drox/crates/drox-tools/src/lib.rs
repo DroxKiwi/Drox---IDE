@@ -9,6 +9,7 @@
 //!
 //! Voir `docs/INVENTAIRE-NOYAU-MOTEUR.md` § 2.3.
 
+mod media;
 mod user_ask;
 mod tool_progress;
 mod tool_context;

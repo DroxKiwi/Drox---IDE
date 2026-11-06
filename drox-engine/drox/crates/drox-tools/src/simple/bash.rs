@@ -14,8 +14,11 @@ use tokio::process::{Child, Command};
 use tokio::sync::{Mutex, Notify};
 use tokio::time::timeout;
 
+use camino::Utf8Path;
+
 use crate::tool_context::ToolContext;
 use crate::error::ToolError;
+use crate::media::{bytes_look_binary, media_type_for_path};
 use crate::tool_progress::ShellProgressUpdate;
 use crate::tool::Tool;
 
@@ -189,40 +192,26 @@ impl Tool for BashTool {
         let bufs = buffers.lock().await.clone();
 
         if skipped {
-            let (stdout, stdout_trunc) = decode_truncated(bufs.stdout.as_bytes());
-            let (stderr, stderr_trunc) = decode_truncated(bufs.stderr.as_bytes());
             report_shell_progress(ctx, &bufs.combined_display(), started);
-            return Ok(json!({
-                "command": command,
-                "exit_code": null,
-                "stdout": stdout,
-                "stderr": stderr,
-                "stdout_truncated": stdout_trunc,
-                "stderr_truncated": stderr_trunc,
-                "timed_out": false,
-                "duration_ms": duration_ms,
-                "description": args.description,
-                "skipped": true,
-                "error": USER_STOPPED,
-            }));
+            let mut value = stream_result(&command, &cwd, &bufs);
+            value["exit_code"] = Value::Null;
+            value["timed_out"] = json!(false);
+            value["duration_ms"] = json!(duration_ms);
+            value["description"] = json!(args.description);
+            value["skipped"] = json!(true);
+            value["error"] = json!(USER_STOPPED);
+            return Ok(value);
         }
 
         match wait_result {
             Ok(Ok(status)) => {
-                let (stdout, stdout_trunc) = decode_truncated(bufs.stdout.as_bytes());
-                let (stderr, stderr_trunc) = decode_truncated(bufs.stderr.as_bytes());
                 report_shell_progress(ctx, &bufs.combined_display(), started);
-                Ok(json!({
-                    "command": command,
-                    "exit_code": status.code(),
-                    "stdout": stdout,
-                    "stderr": stderr,
-                    "stdout_truncated": stdout_trunc,
-                    "stderr_truncated": stderr_trunc,
-                    "timed_out": false,
-                    "duration_ms": duration_ms,
-                    "description": args.description,
-                }))
+                let mut value = stream_result(&command, &cwd, &bufs);
+                value["exit_code"] = json!(status.code());
+                value["timed_out"] = json!(false);
+                value["duration_ms"] = json!(duration_ms);
+                value["description"] = json!(args.description);
+                Ok(value)
             }
             Ok(Err(e)) => Err(ToolError::io(cwd.clone(), e)),
             Err(_elapsed) => {
@@ -245,22 +234,139 @@ impl Tool for BashTool {
 }
 
 #[derive(Debug, Clone, Default)]
+struct StreamHalf {
+    text: String,
+    bytes: usize,
+    sample: Vec<u8>,
+    binary: bool,
+}
+
+impl StreamHalf {
+    fn push(&mut self, chunk: &[u8]) {
+        self.bytes += chunk.len();
+        if self.sample.len() < 8 * 1024 {
+            let room = (8 * 1024) - self.sample.len();
+            let n = chunk.len().min(room);
+            self.sample.extend_from_slice(&chunk[..n]);
+        }
+        if !self.binary && bytes_look_binary(&self.sample) {
+            self.binary = true;
+            self.text.clear();
+        }
+        if self.binary || self.text.len() >= MAX_STREAM_BYTES {
+            return;
+        }
+        self.text.push_str(&String::from_utf8_lossy(chunk));
+    }
+
+    fn display(&self) -> String {
+        if self.binary {
+            format!("Binary output ({} bytes)", self.bytes)
+        } else {
+            self.text.clone()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 struct StreamBuffers {
-    stdout: String,
-    stderr: String,
+    stdout: StreamHalf,
+    stderr: StreamHalf,
 }
 
 impl StreamBuffers {
     fn combined_display(&self) -> String {
-        let mut out = self.stdout.clone();
-        if !self.stderr.is_empty() {
+        let mut out = self.stdout.display();
+        let err = self.stderr.display();
+        if !err.is_empty() {
             if !out.is_empty() && !out.ends_with('\n') {
                 out.push('\n');
             }
-            out.push_str(&self.stderr);
+            out.push_str(&err);
         }
         out
     }
+}
+
+struct MediaHit {
+    name: String,
+    path: String,
+    size_bytes: u64,
+    media_type: &'static str,
+}
+
+fn media_target_from_command(command: &str, cwd: &Utf8Path) -> Option<MediaHit> {
+    for raw in command.split_whitespace() {
+        let token = raw.trim_matches(|c: char| "\"'`,".contains(c));
+        let Some(media_type) = media_type_for_path(token) else {
+            continue;
+        };
+        let candidate = if std::path::Path::new(token).is_absolute() {
+            camino::Utf8PathBuf::from(token)
+        } else {
+            cwd.join(token)
+        };
+        let Ok(meta) = std::fs::metadata(candidate.as_std_path()) else {
+            continue;
+        };
+        if !meta.is_file() {
+            continue;
+        }
+        return Some(MediaHit {
+            name: candidate.file_name().unwrap_or(token).to_string(),
+            path: candidate.to_string(),
+            size_bytes: meta.len(),
+            media_type,
+        });
+    }
+    None
+}
+
+fn binary_note(bytes: usize, hit: Option<&MediaHit>) -> String {
+    let mut note = format!("Binary output, {bytes} bytes. Body not inlined.");
+    if let Some(hit) = hit {
+        note.push_str(&format!(
+            "\nname: {}\npath: {}\nsize_bytes: {}\nmedia_type: {}",
+            hit.name, hit.path, hit.size_bytes, hit.media_type
+        ));
+    }
+    note
+}
+
+fn stream_result(command: &str, cwd: &Utf8Path, bufs: &StreamBuffers) -> Value {
+    let hit = if bufs.stdout.binary || bufs.stderr.binary {
+        media_target_from_command(command, cwd)
+    } else {
+        None
+    };
+    let (stdout, stdout_trunc) = if bufs.stdout.binary {
+        (binary_note(bufs.stdout.bytes, hit.as_ref()), false)
+    } else {
+        decode_truncated(bufs.stdout.text.as_bytes())
+    };
+    let (stderr, stderr_trunc) = if bufs.stderr.binary {
+        (binary_note(bufs.stderr.bytes, hit.as_ref()), false)
+    } else {
+        decode_truncated(bufs.stderr.text.as_bytes())
+    };
+    let mut value = json!({
+        "command": command,
+        "stdout": stdout,
+        "stderr": stderr,
+        "stdout_truncated": stdout_trunc,
+        "stderr_truncated": stderr_trunc,
+    });
+    if bufs.stdout.binary || bufs.stderr.binary {
+        value["output_binary"] = json!(true);
+        value["output_bytes"] = json!(bufs.stdout.bytes.saturating_add(bufs.stderr.bytes));
+        if let Some(hit) = hit {
+            value["name"] = json!(hit.name);
+            value["path"] = json!(hit.path);
+            value["size_bytes"] = json!(hit.size_bytes);
+            value["media_type"] = json!(hit.media_type);
+        }
+    }
+    value
 }
 
 #[derive(Clone, Copy)]
@@ -348,12 +454,11 @@ async fn read_pipe<R>(
         match reader.read(&mut chunk).await {
             Ok(0) => break,
             Ok(n) => {
-                let piece = String::from_utf8_lossy(&chunk[..n]);
                 {
                     let mut b = buffers.lock().await;
                     match kind {
-                        StreamKind::Stdout => b.stdout.push_str(&piece),
-                        StreamKind::Stderr => b.stderr.push_str(&piece),
+                        StreamKind::Stdout => b.stdout.push(&chunk[..n]),
+                        StreamKind::Stderr => b.stderr.push(&chunk[..n]),
                     }
                 }
                 if last_report.elapsed() >= Duration::from_millis(PROGRESS_INTERVAL_MS) {
@@ -688,5 +793,29 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(v["exit_code"], 0, "stderr={}", v["stderr"]);
+    }
+
+    #[tokio::test]
+    async fn binary_output_is_a_fiche() {
+        let ctx = make_ctx();
+        let gif = ctx.workspace_root.join("clip.gif");
+        let body = b"GIF89a\0\0\0\0binary-body-should-not-appear";
+        std::fs::write(gif.as_std_path(), body).unwrap();
+        let reg = ToolRegistry::with_simple_tools();
+        #[cfg(windows)]
+        let command = "type clip.gif";
+        #[cfg(not(windows))]
+        let command = "cat clip.gif";
+        let v = reg
+            .execute_named("bash", &ctx, json!({ "command": command }))
+            .await
+            .unwrap();
+        assert_eq!(v["output_binary"], true, "{v}");
+        assert_eq!(v["name"], "clip.gif");
+        assert_eq!(v["media_type"], "image/gif");
+        assert_eq!(v["size_bytes"], body.len() as u64);
+        let stdout = v["stdout"].as_str().unwrap_or("");
+        assert!(stdout.contains("Body not inlined"), "{stdout}");
+        assert!(!stdout.contains("binary-body-should-not-appear"), "{stdout}");
     }
 }

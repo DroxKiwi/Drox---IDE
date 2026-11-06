@@ -84,6 +84,9 @@ impl Tool for FileReadTool {
             )));
         }
         let len = meta.len();
+        if let Some(media_type) = crate::media::media_type_for_path(resolved.as_str()) {
+            return Ok(crate::media::media_fiche(&resolved, len, media_type));
+        }
 
         match (args.start_line, args.end_line) {
             (None, None) => read_full(&resolved, len).await,
@@ -311,5 +314,33 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(out["content"], "from outside");
+    }
+
+    #[tokio::test]
+    async fn media_file_returns_a_fiche_without_the_body() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = camino::Utf8PathBuf::from_path_buf(tmp.path().to_path_buf()).unwrap();
+        let bytes = b"GIF89a\0\0\0\0binary-body-should-not-appear";
+        tokio::fs::write(root.join("clip.gif"), bytes).await.unwrap();
+        tokio::fs::write(root.join("icon.svg"), "<svg>mark</svg>").await.unwrap();
+        let ctx = ToolContext::new(root.clone(), false);
+        let reg = ToolRegistry::with_simple_tools();
+        let gif = reg
+            .execute_named("file_read", &ctx, json!({ "path": "clip.gif" }))
+            .await
+            .unwrap();
+        assert_eq!(gif["name"], "clip.gif");
+        assert_eq!(gif["media_type"], "image/gif");
+        assert_eq!(gif["size_bytes"], bytes.len() as u64);
+        assert_eq!(gif["body_inlined"], false);
+        assert!(gif.get("content").is_none());
+        let rendered = gif.to_string();
+        assert!(!rendered.contains("binary-body-should-not-appear"));
+
+        let svg = reg
+            .execute_named("file_read", &ctx, json!({ "path": "icon.svg" }))
+            .await
+            .unwrap();
+        assert_eq!(svg["content"], "<svg>mark</svg>");
     }
 }
