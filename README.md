@@ -4,6 +4,8 @@
 
 # Drox IDE
 
+Site du projet : [drox.kdds.fr](https://drox.kdds.fr).
+
 Éditeur de code avec un agent IA **open source**. Version stable **1.6.8**. Il reprend [Visual Studio Code – Open Source (Code OSS)](https://github.com/microsoft/vscode) : extensions, terminal, Git, LSP — et y ajoute un moteur agent en Rust qui tourne **chez toi**.
 
 Installeurs Windows et Linux : [**télécharger la 1.6.8**](https://github.com/DroxKiwi/Drox---IDE/releases/latest).
