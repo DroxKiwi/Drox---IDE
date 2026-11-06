@@ -68,6 +68,49 @@ export class DroxSdtcmViewPane extends ViewPane {
 		this._register(addDisposableListener(button, 'click', () => {
 			void this.commandService.executeCommand(DroxCommands.OpenSdtcm);
 		}));
+		const scopeTitle = $('div.drox-sdtcm-side-label');
+		scopeTitle.textContent = localize('drox.sdtcm.mapRoot', 'Map root');
+		const scopeHint = $('p.drox-sdtcm-side-hint');
+		scopeHint.textContent = localize('drox.sdtcm.mapRootHint', 'A path inside the open folder. Leave empty for the whole folder. The next run only reads that path.');
+		const scopeForm = $('div.drox-sdtcm-tag-add');
+		scopeForm.setAttribute('data-drox-tour', 'sdtcm-root');
+		const scopeInput = $('input') as HTMLInputElement;
+		scopeInput.type = 'text';
+		scopeInput.placeholder = localize('drox.sdtcm.mapRootPlaceholder', 'whole folder');
+		scopeInput.value = this.sdtcmService.getMapRoot();
+		const scopeUse = $('button.drox-sdtcm-side-open') as HTMLButtonElement;
+		scopeUse.type = 'button';
+		scopeUse.textContent = localize('drox.sdtcm.mapRootUse', 'Use');
+		const scopeError = $('p.drox-sdtcm-side-hint');
+		scopeError.hidden = true;
+		const applyRoot = () => {
+			scopeUse.disabled = true;
+			void this.sdtcmService.setMapRoot(scopeInput.value).then(message => {
+				scopeUse.disabled = this.sdtcmService.getSnapshot().phase === 'running';
+				scopeError.hidden = message.length === 0;
+				scopeError.textContent = message;
+				if (!message && document.activeElement !== scopeInput) {
+					scopeInput.value = this.sdtcmService.getMapRoot();
+				}
+			});
+		};
+		this._register(addDisposableListener(scopeUse, 'click', applyRoot));
+		this._register(addDisposableListener(scopeInput, 'keydown', event => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				applyRoot();
+			}
+		}));
+		this._register(this.sdtcmService.onDidChange(() => {
+			const running = this.sdtcmService.getSnapshot().phase === 'running';
+			scopeUse.disabled = running;
+			scopeInput.disabled = running;
+			if (document.activeElement !== scopeInput) {
+				scopeInput.value = this.sdtcmService.getMapRoot();
+			}
+		}));
+		scopeForm.appendChild(scopeInput);
+		scopeForm.appendChild(scopeUse);
 		const toolsTitle = $('div.drox-sdtcm-side-label');
 		toolsTitle.textContent = localize('drox.sdtcm.tools', 'Tools');
 		const tools = $('div.drox-sdtcm-filters');
@@ -203,6 +246,10 @@ export class DroxSdtcmViewPane extends ViewPane {
 		}
 		root.appendChild(hint);
 		root.appendChild(button);
+		root.appendChild(scopeTitle);
+		root.appendChild(scopeHint);
+		root.appendChild(scopeForm);
+		root.appendChild(scopeError);
 		root.appendChild(toolsTitle);
 		root.appendChild(tools);
 		root.appendChild(tagHost);

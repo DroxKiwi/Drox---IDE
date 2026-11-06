@@ -20,6 +20,7 @@ import { emptyDroxSdtcmMoveHistory, redoDroxSdtcmMove, rememberDroxSdtcmMove, un
 import { placeDroxSdtcmGraph } from '../../../common/sdtcm/placement/droxSdtcmPlacement.js';
 import { droxSdtcmAddedFocus, keepDroxSdtcmFocusVisible, markDroxSdtcmDataPath, markDroxSdtcmFocus, markDroxSdtcmKept } from '../../../common/sdtcm/focus/droxSdtcmFocus.js';
 import { droxSdtcmSystemPrompt } from '../../../common/sdtcm/droxSdtcmPrompt.js';
+import { normalizeDroxSdtcmMapRoot } from '../../../common/sdtcm/droxSdtcmMapRoot.js';
 import { droxSdtcmFilesFrom, droxSdtcmPhaseAction, parseDroxSdtcmPause } from '../../../common/sdtcm/droxSdtcmPause.js';
 import { acceptDroxSdtcmFile, acceptDroxSdtcmFolderTags, acceptDroxSdtcmLinks, acceptDroxSdtcmTags, buildDroxSdtcmTagTurn, buildDroxSdtcmTurn, completeDroxSdtcmLinks, droxSdtcmFreshBricks, droxSdtcmNewTag, ensureDroxSdtcmNewTag, formatDroxSdtcmMapIndex, IDroxSdtcmTag, parseDroxSdtcmTags, pickDroxSdtcmAnswer, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
 
@@ -889,6 +890,18 @@ suite('Drox SDTCM map', () => {
 		});
 		assert.ok(turn.includes('Already built, outside this file.'));
 		assert.ok(turn.includes('MODE realign'));
+	});
+
+	test('map root stays inside the folder', () => {
+		assert.strictEqual(normalizeDroxSdtcmMapRoot(''), '');
+		assert.strictEqual(normalizeDroxSdtcmMapRoot('  ./src/app/ '), 'src/app');
+		assert.strictEqual(normalizeDroxSdtcmMapRoot('src\\app\\'), 'src/app');
+		assert.strictEqual(normalizeDroxSdtcmMapRoot('..'), undefined);
+		assert.strictEqual(normalizeDroxSdtcmMapRoot('src/../app'), undefined);
+		assert.strictEqual(normalizeDroxSdtcmMapRoot('C:/repo'), undefined);
+		const files = Array.from({ length: 121 }, (_value, index) => `src/f${index}.ts`);
+		const turn = buildDroxSdtcmTurn({ mode: 'build', path: files[120]!, files, text: 'x', reads: [], focus: [] });
+		assert.ok(turn.includes('src/f120.ts'));
 	});
 });
 

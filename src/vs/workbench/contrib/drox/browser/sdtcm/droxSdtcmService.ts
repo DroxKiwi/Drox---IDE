@@ -68,7 +68,8 @@ import {
 	readDroxSdtcmTraceDraft,
 } from '../../common/sdtcm/data/droxSdtcmData.js';
 import { droxSdtcmFilesFrom, droxSdtcmPhaseAction, IDroxSdtcmPause } from '../../common/sdtcm/droxSdtcmPause.js';
-import { deleteDroxSdtcmPause, listDroxSdtcmSources, readDroxSdtcmDisplay, readDroxSdtcmPause, readDroxSdtcmStore, readDroxSdtcmTags, readDroxSdtcmText, writeDroxSdtcmDisplay, writeDroxSdtcmPause, writeDroxSdtcmStore, writeDroxSdtcmTags } from './droxSdtcmFiles.js';
+import { normalizeDroxSdtcmMapRoot } from '../../common/sdtcm/droxSdtcmMapRoot.js';
+import { deleteDroxSdtcmPause, listDroxSdtcmSources, readDroxSdtcmDisplay, readDroxSdtcmMapRoot, readDroxSdtcmPause, readDroxSdtcmStore, readDroxSdtcmTags, readDroxSdtcmText, writeDroxSdtcmDisplay, writeDroxSdtcmMapRoot, writeDroxSdtcmPause, writeDroxSdtcmStore, writeDroxSdtcmTags } from './droxSdtcmFiles.js';
 
 export const IDroxSdtcmService = createDecorator<IDroxSdtcmService>('droxSdtcmService');
 
@@ -88,6 +89,8 @@ export interface IDroxSdtcmSnapshot {
 	readonly journal: readonly string[];
 	readonly exchanges: readonly IDroxSdtcmExchange[];
 	readonly map: IDroxSdtcmMap;
+	/** Relative folder the map reads. Empty means the whole open folder. */
+	readonly mapRoot: string;
 	readonly files: readonly string[];
 	readonly tags: readonly IDroxSdtcmTag[];
 	/** Set when Stop saved a place to continue. Absent after a finished run. */
@@ -134,6 +137,9 @@ export interface IDroxSdtcmService {
 	stop(): void;
 	getPhasePick(): readonly DroxSdtcmProbePhase[];
 	setPhasePick(phases: readonly DroxSdtcmProbePhase[]): void;
+	getMapRoot(): string;
+	/** Empty keeps the whole folder. Returns an error message, or `''` when the root is stored. */
+	setMapRoot(raw: string): Promise<string>;
 	resume(): Promise<void>;
 	align(workspace: URI, note?: string, phases?: readonly DroxSdtcmProbePhase[]): Promise<IDroxSdtcmAlignResult>;
 	probe(phases: readonly DroxSdtcmProbePhase[], turns: number): Promise<string>;
@@ -186,6 +192,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 	private _journal: string[] = [];
 	private _exchanges: IDroxSdtcmExchange[] = [];
 	private _files: string[] = [];
+	private _mapRoot = '';
 	private _seq = 0;
 	private _pause: IDroxSdtcmPause | undefined;
 	/** File the live role run is on. Consistency does not set it. */
@@ -261,6 +268,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			journal: this._journal,
 			exchanges: this._exchanges,
 			map: this._map,
+			mapRoot: this._mapRoot,
 			files: this._files,
 			tags: this._tags,
 			pause: this._pause,
@@ -413,6 +421,46 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		this._phasePick = DROX_SDTCM_PROBE_PHASES.filter(phase => chosen.has(phase));
 	}
 
+	getMapRoot(): string {
+		return this._mapRoot;
+	}
+
+	async setMapRoot(raw: string): Promise<string> {
+		const workspace = this._workspace;
+		if (!workspace) {
+			return 'Open a folder first.';
+		}
+		if (this._phase === 'running') {
+			return 'A run is in progress.';
+		}
+		const relative = normalizeDroxSdtcmMapRoot(raw);
+		if (relative === undefined) {
+			return 'Use a path inside the open folder, without ..';
+		}
+		if (relative) {
+			try {
+				const stat = await this.fileService.resolve(URI.joinPath(workspace, ...relative.split('/')));
+				if (!stat.isDirectory) {
+					return 'This path is not a folder.';
+				}
+			} catch {
+				return 'This folder was not found.';
+			}
+		}
+		this._mapRoot = relative;
+		await writeDroxSdtcmMapRoot(this.fileService, workspace, relative);
+		this._files = await listDroxSdtcmSources(this.fileService, workspace, relative);
+		if (this._phase !== 'running' && !this._pause && !this._map.bricks.length) {
+			this._message = `No map yet. Root: ${this._rootLabel()}. Launch a run to write it.`;
+		}
+		this._emit();
+		return '';
+	}
+
+	private _rootLabel(): string {
+		return this._mapRoot || 'the whole folder';
+	}
+
 	async resume(): Promise<void> {
 		if (!this._workspace || this._phase === 'running') {
 			return;
@@ -563,13 +611,14 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 		}
 		this._display = { ...this._display, visibleTags };
 		this._onDidChangeDisplay.fire(this._display);
-		this._files = await listDroxSdtcmSources(this.fileService, workspace);
+		this._mapRoot = await readDroxSdtcmMapRoot(this.fileService, workspace);
+		this._files = await listDroxSdtcmSources(this.fileService, workspace, this._mapRoot);
 		this._pause = await readDroxSdtcmPause(this.fileService, workspace);
 		if (this._phase !== 'running') {
 			this._phase = 'idle';
 			this._message = this._pause
 				? `Paused at ${this._pause.phase} · ${this._pause.file}. Resume continues there.`
-				: this._map.bricks.length ? 'Map loaded.' : 'No map yet. Launch a run to write it.';
+				: this._map.bricks.length ? 'Map loaded.' : `No map yet. Root: ${this._rootLabel()}. Launch a run to write it.`;
 		}
 		this._emit();
 	}
@@ -617,7 +666,7 @@ export class DroxSdtcmService extends Disposable implements IDroxSdtcmService {
 			? `Resuming ${pause.phase} at ${pause.file}.`
 			: mode === 'align' ? 'Realigning the map.' : only ? `Phases: ${only.join(', ')}.` : 'The role is writing the map.');
 		try {
-			const sources = await listDroxSdtcmSources(this.fileService, workspace);
+			const sources = await listDroxSdtcmSources(this.fileService, workspace, this._mapRoot);
 			this._files = sources;
 			const cache = new Map<string, string>();
 			let changed = false;

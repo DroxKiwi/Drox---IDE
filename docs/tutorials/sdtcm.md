@@ -19,6 +19,12 @@ Quatre sortes, deux formes, quel que soit le langage :
 
 L’arbre vient de `.drox/.SDTCMignore`. Le fichier est créé au premier passage. Un nom nu ignore ce segment partout. Un chemin part de la racine du workspace. On peut y ajouter des lignes.
 
+## Choisir où la carte commence
+
+Avant **Launch a run**, le panneau latéral porte **Map root**. Le champ vide prend tout le dossier ouvert. Un chemin relatif (`src/app`) ne lit que ce dossier et ce qu’il contient. **Use** enregistre le choix dans `.drox/sdtcm/root.txt`. Le prochain run, y compris **Realign**, ne voit que cette zone : un fichier hors du chemin sort de la carte.
+
+Il n’y a pas de plafond sur le nombre de fichiers ni sur la profondeur. Restent dehors les chemins de `.drox/.SDTCMignore` et les fichiers qui ne sont pas du code source.
+
 ## Construire
 
 **Launch a run** écrit la carte. Les étapes du header sont `build`, `data`, `trace`, `link`, `tag`. En choisir une la relance, et les étapes qui en dépendent suivent : `build` reprend tout ; `data` reprend aussi `trace`.

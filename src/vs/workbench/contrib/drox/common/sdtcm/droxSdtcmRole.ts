@@ -309,7 +309,7 @@ export function buildDroxSdtcmTurn(input: {
 		gap ? `GAP\n${gap}` : '',
 		input.hint ? `FEEDBACK\n${input.hint}` : '',
 		input.mapIndex?.trim() ? input.mapIndex.trim() : '',
-		`FILES\n${input.files.slice(0, 120).join('\n')}`,
+		`FILES\n${input.files.join('\n')}`,
 		`FILE ${input.path}\n${numberDroxSdtcmText(input.text)}`,
 		reads,
 	].filter(part => part.length > 0).join('\n\n');
@@ -347,7 +347,7 @@ export function buildDroxSdtcmLinkTurn(input: {
 		'MODE link',
 		input.hint ? `FEEDBACK\n${input.hint}` : '',
 		input.mapIndex?.trim() ? input.mapIndex.trim() : '',
-		`FILES\n${input.files.slice(0, 120).join('\n')}`,
+		`FILES\n${input.files.join('\n')}`,
 		`FROM ${JSON.stringify(from)}`,
 		`CANDIDATES ${JSON.stringify(candidates)}`,
 		reads,
