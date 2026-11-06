@@ -54,7 +54,7 @@ Dans le header, un bouton passe d’une fenêtre à l’autre. Le dossier ouvert
 
 **Open in Editor**, dans Agents, revient à l’éditeur.
 
-Le même header porte une icône livre. Elle lance le tutoriel de la fenêtre en cours : le tour IDE, ou le tour Agents.
+Le même header porte une icône livre. Elle lance le tutoriel de la fenêtre en cours : le tour IDE, ou le tour Agents. Le détail du chat, des profils et du contexte : [chat](docs/tutorials/chat.md).
 
 <p align="center">
   <img src="docs/gif/launch_tutoriel_IDE.gif" alt="Tutoriel lancé depuis l’icône livre du header" />
@@ -66,7 +66,7 @@ SDTCM (*Simulator Data Transition into Code Map*) donne une carte du projet, lis
 
 Un passage interroge le modèle de discussion, fichier par fichier : construction, données, trace, liens, puis tags. Chaque citation doit être la ligne réelle du fichier. **Realign** ne reprend que les fichiers dont le texte a bougé depuis la carte. Le résultat reste dans `.drox/sdtcm/`.
 
-Dans le chat, la puce **SDTCM Align** active la mise à jour automatique. À la fin d’un run réussi, le modèle réaligne la carte. Cet appel consomme des tokens.
+Dans le chat, la puce **SDTCM Align** active la mise à jour automatique. À la fin d’un run réussi, le modèle réaligne la carte. Cet appel consomme des tokens. Usage : [SDTCM](docs/tutorials/sdtcm.md).
 
 On demande une édition au modèle. Une fois **SDTCM Align** allumé, la carte se met à jour toute seule à la fin du run.
 
@@ -84,27 +84,27 @@ Le modèle reporte ensuite ces changements sur la carte.
 
 **Codebase** sert à retrouver des extraits du dossier ouvert et à les glisser dans le contexte du run, sans que le modèle relise tout le projet. L’index est local, sous `.drox/codebase-index/`, et suit le dossier de la discussion, dans l’IDE comme dans Agents.
 
-La recherche mêle le texte et des vecteurs. La vectorisation utilise un modèle d’embedding dédié, **all-MiniLM-L6-v2** en GGUF Q4 (environ 20 Mo, 384 dimensions). Ce n’est pas le modèle de discussion. On peut le remplacer par un autre GGUF d’embedding (`drox.codebase.embedModelPath`) ; le cockpit Codebase remet le modèle par défaut. On peut aussi couper les vecteurs et ne garder que la recherche textuelle. La puce **Auto** force l’index dans le prochain message quand il est prêt. Détail : [Codebase et RAG](docs/engine/codebase-and-rag.md).
+La recherche mêle le texte et des vecteurs. La vectorisation utilise un modèle d’embedding dédié, **all-MiniLM-L6-v2** en GGUF Q4 (environ 20 Mo, 384 dimensions). Ce n’est pas le modèle de discussion. On peut le remplacer par un autre GGUF d’embedding (`drox.codebase.embedModelPath`) ; le cockpit Codebase remet le modèle par défaut. On peut aussi couper les vecteurs et ne garder que la recherche textuelle. La puce **Auto** force l’index dans le prochain message quand il est prêt. Usage : [Codebase](docs/tutorials/codebase.md). Référence : [Codebase et RAG](docs/engine/codebase-and-rag.md).
 
 ## Régulation
 
 **Regulation** sert à ajuster ce qu’on expose au modèle après un run, sans changer le modèle ni ses permissions. Cinq leviers : budget de contexte, surface d’outils, densité des consignes, strictesse du protocole, posture de recherche. Chaque run part de 100 et perd des points là où le moteur a stressé (boucle, format, annulation). La note est dans le panneau, dans l’IDE et dans Agents.
 
-**Auto**, par levier, peut resserrer le module suivant quand la note baisse. Un choix manuel fige ce levier jusqu’au retour sur Auto. Détail : [régulation](docs/engine/model-regulation.md).
+**Auto**, par levier, peut resserrer le module suivant quand la note baisse. Un choix manuel fige ce levier jusqu’au retour sur Auto. Usage : [Regulation](docs/tutorials/regulation.md). Référence : [régulation](docs/engine/model-regulation.md).
 
 ## Traffic
 
-**Traffic** sert à voir où partent les appels de Drox : modèle, embeddings, MCP, outils, RPC. Chaque ligne porte le sens, la destination et si l’appel a abouti. La capture se coupe, reste en mémoire le temps de la fenêtre, ou s’écrit sur disque. On marque un hôte d’une couleur et d’un libellé, et on peut être prévenu quand un appel part vers lui.
+**Traffic** sert à voir où partent les appels de Drox : modèle, embeddings, MCP, outils, RPC. Chaque ligne porte le sens, la destination et si l’appel a abouti. La capture se coupe, reste en mémoire le temps de la fenêtre, ou s’écrit sur disque. On marque un hôte d’une couleur et d’un libellé, et on peut être prévenu quand un appel part vers lui. Usage : [Traffic](docs/tutorials/traffic.md).
 
 ## Ports
 
-**Ports** sert à suivre un tunnel ouvert par un outil, ssh ou socat par exemple, et à dire quoi faire quand il est prêt. Chaque transfert porte l’hôte et le port distants, l’hôte et le port locaux, et le protocole (HTTP, HTTPS ou TCP). À l’ouverture : rien, une notification, la prévisualisation, ou le navigateur.
+**Ports** sert à suivre un tunnel ouvert par un outil, ssh ou socat par exemple, et à dire quoi faire quand il est prêt. Chaque transfert porte l’hôte et le port distants, l’hôte et le port locaux, et le protocole (HTTP, HTTPS ou TCP). À l’ouverture : rien, une notification, la prévisualisation, ou le navigateur. Usage : [Ports](docs/tutorials/ports.md).
 
 ## En usage
 
 - **Aucune télémétrie** Drox / KDDS.
 - **Aucun cloud imposé** pour l’agent. Tu branches [Ollama](https://ollama.com/) en local, un provider du catalogue (Mistral, vLLM, LM Studio, Hugging Face, Scaleway, OVH, …) ou n’importe quel serveur **OpenAI-compatible**. URL et clés sont les tiennes. Détail : [llm-backends](docs/engine/llm-backends.md).
-- Session, transcripts et réglages **sur ta machine** (`%APPDATA%\.drox-ide`, workspace).
+- Session, transcripts et réglages **sur ta machine** (`%APPDATA%\.drox-ide`, workspace). Édition et contenu de `.drox` : [édition](docs/tutorials/edition-et-dossier-drox.md).
 
 | | |
 |---|---|
@@ -121,7 +121,7 @@ La recherche mêle le texte et des vecteurs. La vectorisation utilise un modèle
 - [Hub](docs/README.md)
 - [Moteur](docs/engine/README.md)
 - [Pédagogie](docs/pedagogie/README.md)
-- [Navigation IDE](docs/tutorials/ide-navigation.md)
+- [Tutoriels (chat, onglets, `.drox`)](docs/tutorials/README.md)
 - [Release](docs/release/README.md)
 - [Ligne 1.6](docs/1.6/README.md)
 

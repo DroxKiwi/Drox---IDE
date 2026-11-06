@@ -1,10 +1,14 @@
 ﻿# Tutoriels Drox
 
-Guides orientés **usage / navigation**, distincts de la référence moteur.
+Guides d’usage. La référence du moteur reste [`docs/engine/`](../engine/README.md).
 
-| Tutoriel | Public |
-|----------|--------|
-| [ide-navigation.md](ide-navigation.md) | Débuter dans l’interface IDE (chat, modes, sessions) |
-
-Référence technique moteur : [`../engine/README.md`](../engine/README.md).
-
+| Page | Sujet |
+|------|--------|
+| [ide-navigation.md](ide-navigation.md) | Où sont les surfaces dans le workbench |
+| [chat.md](chat.md) | Discussion IDE et Agents, profils, contexte, images |
+| [codebase.md](codebase.md) | Onglet Codebase : index, inject, recherche |
+| [sdtcm.md](sdtcm.md) | Onglet SDTCM : carte, phases, alignement |
+| [regulation.md](regulation.md) | Onglet Regulation : leviers L1–L5 |
+| [traffic.md](traffic.md) | Onglet Traffic : journal des appels Drox |
+| [ports.md](ports.md) | Onglet Ports : tunnels et outils externes |
+| [edition-et-dossier-drox.md](edition-et-dossier-drox.md) | Édition de fichiers et contenu de `.drox` |

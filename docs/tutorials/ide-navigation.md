@@ -1,6 +1,7 @@
 ﻿# Tutoriel — naviguer dans l’interface Drox IDE
 
 Guide **utilisateur / contributeur UI** : où trouver les surfaces Drox dans le workbench.  
+L’usage de chaque onglet, du chat et du dossier `.drox` : [l’index des tutoriels](README.md).  
 Ce n’est **pas** la doc du moteur Rust — pour ça : [`docs/engine/`](../engine/README.md).
 
 > Statut : **tutoriel vivant**. Les libellés de menus peuvent évoluer ; en cas de doute, chercher la commande dans la palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) avec le préfixe **Drox**.
@@ -32,16 +33,13 @@ Racine code UI : [`src/vs/workbench/contrib/drox/`](../../src/vs/workbench/contr
 
 ## 3. Modes d’interaction (mapping mental)
 
-| Intention utilisateur | Mode permission typique côté moteur |
-|----------------------|-------------------------------------|
-| Analyser sans écrire | `plan` |
-| Laisser appliquer les edits fichier | `acceptEdits` |
-| Demander confirmation au fil de l’eau | `default` |
-| Mode tuteur / cours | **Pas disponible** — `professor` est downgradé côté IDE ([pédagogie 14](../pedagogie/14-mode-professor.md)) |
+| Vignette | Réglage |
+|----------|---------|
+| Planifier | `analyze` — pas d’écriture tant qu’elle n’est pas approuvée |
+| Trust edit | `trustEdit` — les éditions passent |
+| I'm not crazy | `imNotCrazy` — confirmation de chaque outil qui modifie |
 
-| Dogfood sans friction (attention) | `bypassPermissions` |
-
-Détail moteur : [tools-and-permissions.md](../engine/tools-and-permissions.md).
+Le mode professeur a été retiré. Les anciennes valeurs `plan`, `acceptEdits` et `professor` sont relues vers ces trois vignettes. Détail d’usage : [chat.md](chat.md). Moteur : [tools-and-permissions.md](../engine/tools-and-permissions.md).
 
 ## 3b. Profil moteur (`engineProfile`)
 
@@ -49,9 +47,9 @@ Réglage **1.6.1** : même binaire, trois comportements de boucle / prompt (pas 
 
 | Valeur UI (typique) | Effet utilisateur |
 |---------------------|-------------------|
-| **`local-9b`** | Petit modèle local — sous-runs guidés moteur ; clôture souvent sans `[phase: done]`. |
-| **`local-27b`** | Modèle local plus capable — même philosophie locale, parent plus riche. |
-| **`cloud-full`** | Protocole complet Plan→Assign — **`[phase: done]`** attendu ; gates todos / testing actives. |
+| **`local-9b`** | Petit modèle local. Outils du parent en série. Pas de question à l’utilisateur. |
+| **`local-27b`** | Modèle local capable. Outils en série. `ask_user_question` disponible. |
+| **`cloud-full`** | Protocole complet. Outils indépendants en parallèle. Complément dans le même message. |
 
 Où le régler : **paramètres généraux** du chat Drox et/ou **panneau rôle** Agents (liste déroulante « Engine profile »). Envoyé au run via `agent.run` → `AgentConfig.engine_profile`.
 
@@ -72,6 +70,8 @@ Doc : [system-prompts-and-phases.md](../engine/system-prompts-and-phases.md) · 
 - Archives projet `.drox/memory/sessions/` : écrites par le **moteur** ; l’UI peut les surfacir via outils / notes.
 
 ## 5b. Codebase & Regulation (IDE + Agents)
+
+Usage détaillé : [chat](chat.md), [Codebase](codebase.md), [SDTCM](sdtcm.md), [Regulation](regulation.md), [Traffic](traffic.md), [Ports](ports.md), [édition et `.drox`](edition-et-dossier-drox.md).
 
 - Chaque discussion Agents est liée à un **dossier racine** ; l’index RAG et les notes de régulation suivent **ce** dossier.
 - **Agents** : sur une ligne d’historique, icônes **Codebase** (database) et **Regulation** (pulse) à côté de persist / notes.
