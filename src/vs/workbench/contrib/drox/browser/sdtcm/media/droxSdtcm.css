@@ -197,6 +197,82 @@
 	flex: 0 0 auto;
 }
 
+.drox-sdtcm-root {
+	position: relative;
+	margin: 0 0 8px;
+}
+
+.drox-sdtcm-root-chosen {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 6px;
+}
+
+.drox-sdtcm-root-current,
+.drox-sdtcm-root-menu input {
+	width: 100%;
+	height: 22px;
+	background: var(--drox-agents-control-bg);
+	color: var(--vscode-foreground);
+	border: 1px solid var(--drox-agents-control-border);
+	border-radius: 0;
+	padding: 0 6px;
+	box-sizing: border-box;
+	font-size: 11px;
+	text-align: left;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.drox-sdtcm-root-menu {
+	margin-top: 2px;
+	background: var(--vscode-sideBar-background);
+	border: 1px solid var(--drox-agents-control-border);
+	box-sizing: border-box;
+}
+
+.drox-sdtcm-root-list {
+	max-height: 220px;
+	overflow: auto;
+}
+
+.drox-sdtcm-root-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	height: 22px;
+	padding: 0 6px;
+	box-sizing: border-box;
+	background: transparent;
+	color: var(--vscode-foreground);
+	border: 0;
+	font-size: 11px;
+	text-align: left;
+	cursor: pointer;
+}
+
+.drox-sdtcm-root-row:hover,
+.drox-sdtcm-root-row.picked {
+	background: var(--vscode-list-hoverBackground);
+}
+
+.drox-sdtcm-root-count {
+	flex: 0 0 auto;
+	min-width: 2.5em;
+	color: var(--vscode-descriptionForeground);
+	font-variant-numeric: tabular-nums;
+}
+
+.drox-sdtcm-root-path {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .drox-sdtcm-tag-row input[type='color'] {
 	width: 28px;
 	height: 18px;
@@ -493,6 +569,22 @@
 	opacity: 0.12;
 }
 
+.drox-sdtcm-node.quiet {
+	opacity: 0.14;
+}
+
+.drox-sdtcm-node.scope rect {
+	stroke: var(--vscode-foreground);
+	stroke-opacity: 1;
+	stroke-width: 3;
+	fill: color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+}
+
+.drox-sdtcm-edge.quiet,
+.drox-sdtcm-edge-sheen.quiet {
+	stroke-opacity: 0.12;
+}
+
 .drox-sdtcm-node.primary rect,
 .drox-sdtcm-node.related rect,
 .drox-sdtcm-node.involved rect {
@@ -501,16 +593,28 @@
 	stroke-width: 1.5;
 }
 
+.drox-sdtcm-node rect,
+.drox-sdtcm-edge,
+.drox-sdtcm-edge-sheen {
+	vector-effect: non-scaling-stroke;
+}
+
 .drox-sdtcm-node rect {
 	fill: var(--drox-sdtcm-raised);
 	stroke: var(--drox-sdtcm-border);
 	stroke-opacity: 1;
+	stroke-width: 1.25;
 }
 
 .drox-sdtcm-node.folder rect {
 	fill: transparent;
 	stroke: var(--drox-sdtcm-accent);
-	stroke-opacity: 0.55;
+	stroke-opacity: 0.95;
+	stroke-width: 1.5;
+}
+
+.drox-sdtcm-label {
+	pointer-events: none;
 }
 
 .drox-sdtcm-node.file rect {

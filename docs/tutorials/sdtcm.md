@@ -21,9 +21,9 @@ L’arbre vient de `.drox/.SDTCMignore`. Le fichier est créé au premier passag
 
 ## Choisir où la carte commence
 
-Avant **Launch a run**, le panneau latéral porte **Map root**. Le champ vide prend tout le dossier ouvert. Un chemin relatif (`src/app`) ne lit que ce dossier et ce qu’il contient. **Use** enregistre le choix dans `.drox/sdtcm/root.txt`. Le prochain run, y compris **Realign**, ne voit que cette zone : un fichier hors du chemin sort de la carte.
+Avant **Launch a run**, le panneau latéral porte **Map root**. La liste donne chaque dossier, avec devant lui le nombre de fichiers source qu’il contient. La recherche filtre par nom. Un texte qui commence par `./` est un chemin depuis la racine : `./src` ne garde que le dossier `src` et ceux qui commencent par `src/`. `./` seul montre les dossiers du premier niveau. Plusieurs dossiers peuvent être cochés. Un clic droit sur un dossier de la carte propose **Map this folder**. **whole folder** reprend tout le dossier ouvert. Les dossiers choisis laissent la carte entière visible : le reste est assombri. Le choix est dans `.drox/sdtcm/root.txt`, un chemin par ligne. **Launch a run** et **Realign** ne lisent que ces dossiers. Une brique hors de cette zone reste sur la carte. Un fichier de la zone qui a disparu en sort au réalignement.
 
-Il n’y a pas de plafond sur le nombre de fichiers ni sur la profondeur. Restent dehors les chemins de `.drox/.SDTCMignore` et les fichiers qui ne sont pas du code source.
+Il n’y a pas de plafond sur le nombre de fichiers ni sur la profondeur. Restent dehors les chemins de `.drox/.SDTCMignore` et les fichiers qui ne sont pas du code source. L’écran dessine d’abord la silhouette. Zoomer fait apparaître les fichiers et les briques qui sont dans la fenêtre. Le reste de la carte reste en place, il n’est pas redessiné.
 
 ## Construire
 

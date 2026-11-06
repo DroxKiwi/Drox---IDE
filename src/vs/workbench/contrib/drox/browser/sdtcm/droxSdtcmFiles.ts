@@ -84,17 +84,24 @@ export async function writeDroxSdtcmStore(fileService: IFileService, root: URI, 
 	await fileService.writeFile(URI.joinPath(dir, 'baseline.json'), VSBuffer.fromString(`${JSON.stringify(baseline)}\n`));
 }
 
-export async function readDroxSdtcmMapRoot(fileService: IFileService, root: URI): Promise<string> {
+export async function readDroxSdtcmMapRoots(fileService: IFileService, root: URI): Promise<string[]> {
 	const raw = await readText(fileService, URI.joinPath(root, '.drox', 'sdtcm', 'root.txt'));
 	if (raw === undefined) {
-		return '';
+		return [];
 	}
-	return normalizeDroxSdtcmMapRoot(raw.split(/\r?\n/, 1)[0] ?? '') ?? '';
+	const seen = new Set<string>();
+	for (const line of raw.split(/\r?\n/)) {
+		const path = normalizeDroxSdtcmMapRoot(line);
+		if (path) {
+			seen.add(path);
+		}
+	}
+	return [...seen].sort();
 }
 
-export async function writeDroxSdtcmMapRoot(fileService: IFileService, root: URI, mapRoot: string): Promise<void> {
+export async function writeDroxSdtcmMapRoots(fileService: IFileService, root: URI, mapRoots: readonly string[]): Promise<void> {
 	const uri = URI.joinPath(root, '.drox', 'sdtcm', 'root.txt');
-	if (!mapRoot) {
+	if (!mapRoots.length) {
 		try {
 			await fileService.del(uri);
 		} catch {
@@ -104,16 +111,32 @@ export async function writeDroxSdtcmMapRoot(fileService: IFileService, root: URI
 	}
 	const dir = URI.joinPath(root, '.drox', 'sdtcm');
 	await fileService.createFolder(dir);
-	await fileService.writeFile(uri, VSBuffer.fromString(`${mapRoot}\n`));
+	await fileService.writeFile(uri, VSBuffer.fromString(`${mapRoots.join('\n')}\n`));
 }
 
-/** Source files under `mapRoot`. Empty `mapRoot` is the whole folder. Ignored names and non-source extensions stay out. */
-export async function listDroxSdtcmSources(fileService: IFileService, root: URI, mapRoot = ''): Promise<string[]> {
-	const relative = normalizeDroxSdtcmMapRoot(mapRoot) ?? '';
+/** Source files under the chosen roots. An empty list is the whole folder. Ignored names and non-source extensions stay out. `report` sees the list so far, between directory batches. */
+export async function listDroxSdtcmSources(fileService: IFileService, root: URI, mapRoot: string | readonly string[] = '', report?: (files: readonly string[]) => void): Promise<string[]> {
+	const asked = typeof mapRoot === 'string' ? [mapRoot] : mapRoot;
+	const roots = [...new Set(asked.map(item => normalizeDroxSdtcmMapRoot(item) ?? '').filter(item => item.length > 0))].sort();
 	const patterns = parseDroxSdtcmIgnore(await ensureDroxSdtcmIgnore(fileService, root));
-	const start = relative ? URI.joinPath(root, ...relative.split('/')) : root;
-	const files: string[] = [];
-	await walk(fileService, start, relative, files, patterns);
+	if (!roots.length) {
+		const files: string[] = [];
+		await walk(fileService, root, '', files, patterns, report);
+		report?.(files);
+		return files;
+	}
+	const seen = new Set<string>();
+	for (const relative of roots) {
+		const batch: string[] = [];
+		await walk(fileService, URI.joinPath(root, ...relative.split('/')), relative, batch, patterns);
+		for (const file of batch) {
+			seen.add(file);
+		}
+		const files = [...seen].sort();
+		report?.(files);
+	}
+	const files = [...seen].sort();
+	report?.(files);
 	return files;
 }
 
@@ -132,12 +155,18 @@ export async function readDroxSdtcmText(fileService: IFileService, root: URI, re
 	return readText(fileService, URI.joinPath(root, ...relativePath.split('/')));
 }
 
-async function walk(fileService: IFileService, uri: URI, prefix: string, files: string[], patterns: readonly string[]): Promise<void> {
+async function walk(fileService: IFileService, uri: URI, prefix: string, files: string[], patterns: readonly string[], report?: (files: readonly string[]) => void): Promise<void> {
 	const pending: { uri: URI; prefix: string }[] = [{ uri, prefix }];
+	let visited = 0;
 	while (pending.length) {
 		const current = pending.pop();
 		if (!current) {
 			return;
+		}
+		visited++;
+		if (visited % 40 === 0) {
+			report?.(files);
+			await new Promise<void>(resolve => setTimeout(resolve, 0));
 		}
 		let stat;
 		try {

@@ -71,46 +71,202 @@ export class DroxSdtcmViewPane extends ViewPane {
 		const scopeTitle = $('div.drox-sdtcm-side-label');
 		scopeTitle.textContent = localize('drox.sdtcm.mapRoot', 'Map root');
 		const scopeHint = $('p.drox-sdtcm-side-hint');
-		scopeHint.textContent = localize('drox.sdtcm.mapRootHint', 'A path inside the open folder. Leave empty for the whole folder. The next run only reads that path.');
-		const scopeForm = $('div.drox-sdtcm-tag-add');
+		scopeHint.textContent = localize('drox.sdtcm.mapRootHint', 'Pick folders. The whole map stays visible and the rest is dimmed. The next run only reads those folders.');
+		const scopeForm = $('div.drox-sdtcm-root');
 		scopeForm.setAttribute('data-drox-tour', 'sdtcm-root');
-		const scopeInput = $('input') as HTMLInputElement;
-		scopeInput.type = 'text';
-		scopeInput.placeholder = localize('drox.sdtcm.mapRootPlaceholder', 'whole folder');
-		scopeInput.value = this.sdtcmService.getMapRoot();
-		const scopeUse = $('button.drox-sdtcm-side-open') as HTMLButtonElement;
-		scopeUse.type = 'button';
-		scopeUse.textContent = localize('drox.sdtcm.mapRootUse', 'Use');
+		const scopeButton = $('button.drox-sdtcm-root-current') as HTMLButtonElement;
+		scopeButton.type = 'button';
+		const scopeMenu = $('div.drox-sdtcm-root-menu');
+		scopeMenu.hidden = true;
+		const scopeSearch = $('input') as HTMLInputElement;
+		scopeSearch.type = 'text';
+		scopeSearch.placeholder = localize('drox.sdtcm.mapRootSearch', 'Folder name, or ./src');
+		const scopeList = $('div.drox-sdtcm-root-list');
+		const scopeChosen = $('div.drox-sdtcm-root-chosen');
+		scopeChosen.hidden = true;
+		const chosenUi = this._register(new DisposableStore());
 		const scopeError = $('p.drox-sdtcm-side-hint');
 		scopeError.hidden = true;
-		const applyRoot = () => {
-			scopeUse.disabled = true;
-			void this.sdtcmService.setMapRoot(scopeInput.value).then(message => {
-				scopeUse.disabled = this.sdtcmService.getSnapshot().phase === 'running';
+		const wholeFolder = localize('drox.sdtcm.mapRootWhole', 'whole folder');
+		const paintCurrent = () => {
+			const snapshot = this.sdtcmService.getSnapshot();
+			const running = snapshot.phase === 'running';
+			scopeButton.disabled = running;
+			scopeSearch.disabled = running;
+			const roots = snapshot.mapRoots;
+			const label = !roots.length ? wholeFolder : roots.length === 1 ? roots[0]! : localize('drox.sdtcm.mapRootCount', '{0} folders', roots.length);
+			const count = roots.length === 1 ? snapshot.folders.find(folder => folder.path === roots[0])?.files : snapshot.folders.find(folder => folder.path === '')?.files;
+			scopeButton.textContent = roots.length > 1 || count === undefined ? label : `${count}  ${label}`;
+		};
+		const paintChosen = () => {
+			chosenUi.clear();
+			clearNode(scopeChosen);
+			const snapshot = this.sdtcmService.getSnapshot();
+			const roots = snapshot.mapRoots;
+			const running = snapshot.phase === 'running';
+			scopeChosen.hidden = roots.length === 0;
+			if (!roots.length) {
+				return;
+			}
+			const clear = $('button.drox-sdtcm-side-open') as HTMLButtonElement;
+			clear.type = 'button';
+			clear.disabled = running;
+			clear.textContent = localize('drox.sdtcm.mapRootClear', 'Remove all');
+			chosenUi.add(addDisposableListener(clear, 'click', () => {
+				void this.sdtcmService.setMapRoots([]).then(message => {
+					scopeError.hidden = message.length === 0;
+					scopeError.textContent = message;
+				});
+			}));
+			scopeChosen.appendChild(clear);
+			for (const path of roots) {
+				const row = $('div.drox-sdtcm-focus-row');
+				const name = $('span.drox-sdtcm-focus-name');
+				name.textContent = path;
+				name.title = path;
+				const remove = $('button.drox-sdtcm-focus-remove') as HTMLButtonElement;
+				remove.type = 'button';
+				remove.disabled = running;
+				remove.textContent = localize('drox.sdtcm.removeFocus', 'Remove');
+				chosenUi.add(addDisposableListener(remove, 'click', () => {
+					const next = this.sdtcmService.getMapRoots().filter(item => item !== path);
+					void this.sdtcmService.setMapRoots(next).then(message => {
+						scopeError.hidden = message.length === 0;
+						scopeError.textContent = message;
+					});
+				}));
+				row.appendChild(name);
+				row.appendChild(remove);
+				scopeChosen.appendChild(row);
+			}
+		};
+		const paintList = () => {
+			clearNode(scopeList);
+			const snapshot = this.sdtcmService.getSnapshot();
+			const raw = scopeSearch.value.trim();
+			const rooted = raw.startsWith('./') || raw.startsWith('.\\');
+			const query = (rooted ? raw.slice(2) : raw).replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').toLowerCase();
+			const rows = snapshot.folders.filter(folder => {
+				if (!query && !rooted) {
+					return true;
+				}
+				if (!folder.path) {
+					return !rooted && wholeFolder.toLowerCase().includes(query);
+				}
+				const path = folder.path.toLowerCase();
+				if (!rooted) {
+					return path.includes(query);
+				}
+				if (!query) {
+					return !path.includes('/');
+				}
+				return path === query || path.startsWith(`${query}/`);
+			});
+			const ranked = rooted
+				? [...rows].sort((a, b) => {
+					const exact = (path: string) => path.toLowerCase() === query ? 0 : 1;
+					const byExact = exact(a.path) - exact(b.path);
+					if (byExact !== 0) {
+						return byExact;
+					}
+					const depth = (path: string) => path ? path.split('/').length : 0;
+					const byDepth = depth(a.path) - depth(b.path);
+					if (byDepth !== 0) {
+						return byDepth;
+					}
+					return a.path < b.path ? -1 : a.path > b.path ? 1 : 0;
+				})
+				: rows;
+			for (const folder of ranked.slice(0, 80)) {
+				const row = $('button.drox-sdtcm-root-row') as HTMLButtonElement;
+				row.type = 'button';
+				row.setAttribute('data-path', folder.path);
+				const picked = folder.path.length === 0 ? snapshot.mapRoots.length === 0 : snapshot.mapRoots.includes(folder.path);
+				if (picked) {
+					row.classList.add('picked');
+				}
+				const count = $('span.drox-sdtcm-root-count');
+				count.textContent = String(folder.files);
+				const name = $('span.drox-sdtcm-root-path');
+				name.textContent = folder.path || wholeFolder;
+				row.appendChild(count);
+				row.appendChild(name);
+				scopeList.appendChild(row);
+			}
+			if (!rows.length) {
+				const empty = $('p.drox-sdtcm-side-hint');
+				empty.textContent = snapshot.folders.length
+					? localize('drox.sdtcm.mapRootNone', 'No folder matches.')
+					: localize('drox.sdtcm.mapRootWait', 'Indexing the folder…');
+				scopeList.appendChild(empty);
+			} else if (ranked.length > 80) {
+				const more = $('p.drox-sdtcm-side-hint');
+				more.textContent = localize('drox.sdtcm.mapRootMore', 'Keep typing to narrow the list.');
+				scopeList.appendChild(more);
+			}
+		};
+		const closeMenu = () => {
+			scopeMenu.hidden = true;
+		};
+		this._register(addDisposableListener(scopeButton, 'click', () => {
+			scopeMenu.hidden = !scopeMenu.hidden;
+			if (!scopeMenu.hidden) {
+				scopeSearch.value = '';
+				paintList();
+				scopeSearch.focus();
+			}
+		}));
+		this._register(addDisposableListener(scopeSearch, 'input', paintList));
+		this._register(addDisposableListener(scopeSearch, 'keydown', event => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				closeMenu();
+				scopeButton.focus();
+			}
+		}));
+		this._register(addDisposableListener(scopeList, 'click', event => {
+			const row = (event.target as HTMLElement | null)?.closest('[data-path]');
+			if (!row) {
+				return;
+			}
+			const path = row.getAttribute('data-path') ?? '';
+			const current = this.sdtcmService.getMapRoots();
+			const next = path.length === 0
+				? []
+				: current.includes(path)
+					? current.filter(item => item !== path)
+					: [...current, path].sort();
+			void this.sdtcmService.setMapRoots(next).then(message => {
 				scopeError.hidden = message.length === 0;
 				scopeError.textContent = message;
-				if (!message && document.activeElement !== scopeInput) {
-					scopeInput.value = this.sdtcmService.getMapRoot();
+				paintCurrent();
+				if (!path.length) {
+					closeMenu();
+				} else {
+					paintList();
 				}
 			});
-		};
-		this._register(addDisposableListener(scopeUse, 'click', applyRoot));
-		this._register(addDisposableListener(scopeInput, 'keydown', event => {
-			if (event.key === 'Enter') {
-				event.preventDefault();
-				applyRoot();
+		}));
+		this._register(addDisposableListener(window, 'pointerdown', event => {
+			if (scopeMenu.hidden || scopeForm.contains(event.target as Node)) {
+				return;
 			}
+			closeMenu();
 		}));
 		this._register(this.sdtcmService.onDidChange(() => {
-			const running = this.sdtcmService.getSnapshot().phase === 'running';
-			scopeUse.disabled = running;
-			scopeInput.disabled = running;
-			if (document.activeElement !== scopeInput) {
-				scopeInput.value = this.sdtcmService.getMapRoot();
+			paintCurrent();
+			paintChosen();
+			if (!scopeMenu.hidden) {
+				paintList();
 			}
 		}));
-		scopeForm.appendChild(scopeInput);
-		scopeForm.appendChild(scopeUse);
+		paintCurrent();
+		paintChosen();
+		scopeMenu.appendChild(scopeSearch);
+		scopeMenu.appendChild(scopeList);
+		scopeForm.appendChild(scopeButton);
+		scopeForm.appendChild(scopeMenu);
+		scopeForm.appendChild(scopeChosen);
 		const toolsTitle = $('div.drox-sdtcm-side-label');
 		toolsTitle.textContent = localize('drox.sdtcm.tools', 'Tools');
 		const tools = $('div.drox-sdtcm-filters');

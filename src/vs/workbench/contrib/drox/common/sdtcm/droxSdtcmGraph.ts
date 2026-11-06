@@ -97,7 +97,8 @@ export function buildDroxSdtcmGraph(map: IDroxSdtcmMap, files: readonly string[]
 	if (!folderPaths.size) {
 		return { nodes: [], edges: [] };
 	}
-	const nodes = rootsOf(folderPaths).sort().flatMap(folder => layoutFolder(folder, folderPaths, directFiles, byFile, map, filter));
+	const children = childrenByParent(folderPaths);
+	const nodes = (children.get('') ?? []).flatMap(folder => layoutFolder(folder, children, directFiles, byFile, map, filter));
 	const edges: IDroxSdtcmGraphEdge[] = [];
 	if (filter && !filter.links) {
 		return { nodes, edges };
@@ -151,14 +152,27 @@ export function droxSdtcmParentFolderId(id: string, present: ReadonlySet<string>
 	return present.has(parent) ? parent : undefined;
 }
 
-function rootsOf(folderPaths: ReadonlySet<string>): string[] {
+function childrenByParent(folderPaths: ReadonlySet<string>): Map<string, string[]> {
 	const present = new Set([...folderPaths].map(folder => `folder:${folder}`));
-	return [...folderPaths].filter(folder => !droxSdtcmParentFolderId(`folder:${folder}`, present));
+	const children = new Map<string, string[]>();
+	for (const folder of folderPaths) {
+		const parent = droxSdtcmParentFolderId(`folder:${folder}`, present);
+		const key = parent ?? '';
+		const list = children.get(key);
+		if (list) {
+			list.push(folder);
+		} else {
+			children.set(key, [folder]);
+		}
+	}
+	for (const list of children.values()) {
+		list.sort();
+	}
+	return children;
 }
 
-function layoutFolder(folder: string, folderPaths: ReadonlySet<string>, directFiles: ReadonlyMap<string, string[]>, byFile: ReadonlyMap<string, IMember[]>, map: IDroxSdtcmMap, filter?: IDroxSdtcmGraphFilter): IDroxSdtcmGraphNode[] {
+function layoutFolder(folder: string, children: ReadonlyMap<string, string[]>, directFiles: ReadonlyMap<string, string[]>, byFile: ReadonlyMap<string, IMember[]>, map: IDroxSdtcmMap, filter?: IDroxSdtcmGraphFilter): IDroxSdtcmGraphNode[] {
 	const folderId = `folder:${folder}`;
-	const present = new Set([...folderPaths].map(path => `folder:${path}`));
 	const blocks: { name: string; h: number; w: number; nodes: IDroxSdtcmGraphNode[] }[] = [];
 	for (const file of (directFiles.get(folder) ?? []).sort()) {
 		const nodes = layoutFile(file, folderId, byFile.get(file) ?? [], map, filter);
@@ -167,8 +181,8 @@ function layoutFolder(folder: string, folderPaths: ReadonlySet<string>, directFi
 			blocks.push({ name: fileNode.label, h: fileNode.h, w: fileNode.w, nodes });
 		}
 	}
-	for (const child of [...folderPaths].filter(path => droxSdtcmParentFolderId(`folder:${path}`, present) === folderId).sort()) {
-		const nodes = layoutFolder(child, folderPaths, directFiles, byFile, map, filter);
+	for (const child of children.get(folderId) ?? []) {
+		const nodes = layoutFolder(child, children, directFiles, byFile, map, filter);
 		const childNode = nodes.find(node => node.id === `folder:${child}`);
 		if (childNode) {
 			blocks.push({ name: childNode.label, h: childNode.h, w: childNode.w, nodes });
@@ -286,30 +300,18 @@ interface IPackedBlock {
 	readonly nodes: readonly IDroxSdtcmGraphNode[];
 }
 
-/** Rows wrapped so the bounding box stays as close to a square as the blocks allow. */
+/** One shelf pass toward a square. A second pass per child made a large folder unusable. */
 function packSquare(blocks: readonly IPackedBlock[]): { nodes: IDroxSdtcmGraphNode[]; w: number; h: number } {
 	if (!blocks.length) {
 		return { nodes: [], w: 0, h: 0 };
 	}
-	const widest = blocks.reduce((max, block) => Math.max(max, block.w), 0);
-	const targets = new Set<number>([widest]);
+	let widest = 0;
 	let area = 0;
-	let running = 0;
 	for (const block of blocks) {
+		widest = Math.max(widest, block.w);
 		area += block.w * block.h;
-		running += block.w + GAP;
-		targets.add(Math.max(widest, running - GAP));
 	}
-	targets.add(Math.max(widest, Math.sqrt(area)));
-	let best: { nodes: IDroxSdtcmGraphNode[]; w: number; h: number; score: number } | undefined;
-	for (const target of targets) {
-		const packed = packRows(blocks, target);
-		const score = packed.h === 0 ? packed.w : Math.max(packed.w / packed.h, packed.h / packed.w);
-		if (!best || score < best.score) {
-			best = { ...packed, score };
-		}
-	}
-	return best ?? { nodes: [], w: 0, h: 0 };
+	return packRows(blocks, Math.max(widest, Math.sqrt(area)));
 }
 
 function packRows(blocks: readonly IPackedBlock[], target: number): { nodes: IDroxSdtcmGraphNode[]; w: number; h: number } {

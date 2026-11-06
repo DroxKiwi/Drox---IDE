@@ -6,6 +6,7 @@
 // allow-any-unicode-comment-file
 
 import { IDroxSdtcmGraph, IDroxSdtcmGraphNode } from '../../common/sdtcm/droxSdtcmGraph.js';
+import { droxSdtcmPathInMapRoot } from '../../common/sdtcm/droxSdtcmMapRoot.js';
 import { IDroxSdtcmFocusMarks } from '../../common/sdtcm/focus/droxSdtcmFocus.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -23,16 +24,19 @@ export function paintDroxSdtcmGraph(
 	world: SVGGElement,
 	graph: IDroxSdtcmGraph,
 	selectedId: string | undefined,
+	zoom: number,
+	mapRoots: readonly string[],
 	handlers: IDroxSdtcmCanvasHandlers,
 	focus?: IDroxSdtcmFocusMarks,
 ): void {
 	clearDroxSdtcmNode(world);
+	const scale = zoom > 0 ? zoom : 1;
 	const byId = new Map(graph.nodes.map(node => [node.id, node]));
 	for (const node of graph.nodes) {
 		if (node.kind === 'brick' || node.kind === 'data') {
 			continue;
 		}
-		world.appendChild(paintFrame(node, selectedId, handlers, focus?.nodes.get(node.id)));
+		world.appendChild(paintFrame(node, selectedId, scale, mapRoots, handlers, focus?.nodes.get(node.id)));
 	}
 	for (const edge of graph.edges) {
 		const source = byId.get(edge.from);
@@ -50,6 +54,9 @@ export function paintDroxSdtcmGraph(
 		if (edgeTone) {
 			classes.push(edgeTone);
 		}
+		if (mapRoots.length && (!nodeInMapRoot(source, mapRoots) || !nodeInMapRoot(target, mapRoots))) {
+			classes.push('quiet');
+		}
 		line.setAttribute('class', classes.join(' '));
 		const sheen = svg<SVGLineElement>('line');
 		sheen.setAttribute('x1', line.getAttribute('x1') ?? '0');
@@ -57,7 +64,14 @@ export function paintDroxSdtcmGraph(
 		sheen.setAttribute('x2', line.getAttribute('x2') ?? '0');
 		sheen.setAttribute('y2', line.getAttribute('y2') ?? '0');
 		sheen.setAttribute('pathLength', '100');
-		sheen.setAttribute('class', edgeTone === 'dim' ? 'drox-sdtcm-edge-sheen dim' : 'drox-sdtcm-edge-sheen');
+		const sheenClasses = ['drox-sdtcm-edge-sheen'];
+		if (edgeTone === 'dim') {
+			sheenClasses.push('dim');
+		}
+		if (classes.includes('quiet')) {
+			sheenClasses.push('quiet');
+		}
+		sheen.setAttribute('class', sheenClasses.join(' '));
 		world.appendChild(line);
 		world.appendChild(sheen);
 	}
@@ -65,11 +79,21 @@ export function paintDroxSdtcmGraph(
 		if (node.kind !== 'brick' && node.kind !== 'data') {
 			continue;
 		}
-		world.appendChild(paintFrame(node, selectedId, handlers, focus?.nodes.get(node.id)));
+		world.appendChild(paintFrame(node, selectedId, scale, mapRoots, handlers, focus?.nodes.get(node.id)));
 	}
 }
 
-function paintFrame(node: IDroxSdtcmGraphNode, selectedId: string | undefined, handlers: IDroxSdtcmCanvasHandlers, mark?: string): SVGGElement {
+function nodeInMapRoot(node: IDroxSdtcmGraphNode, mapRoots: readonly string[]): boolean {
+	if (node.kind === 'folder') {
+		if (!node.id.startsWith('folder:') || node.id === 'folder:(root)') {
+			return false;
+		}
+		return droxSdtcmPathInMapRoot(node.id.slice('folder:'.length), mapRoots);
+	}
+	return !!node.file && droxSdtcmPathInMapRoot(node.file, mapRoots);
+}
+
+function paintFrame(node: IDroxSdtcmGraphNode, selectedId: string | undefined, zoom: number, mapRoots: readonly string[], handlers: IDroxSdtcmCanvasHandlers, mark?: string): SVGGElement {
 	const group = svg<SVGGElement>('g');
 	const classes = ['drox-sdtcm-node', node.kind];
 	if (node.id === selectedId) {
@@ -77,6 +101,11 @@ function paintFrame(node: IDroxSdtcmGraphNode, selectedId: string | undefined, h
 	}
 	if (mark) {
 		classes.push(mark);
+	}
+	if (mapRoots.length && node.kind === 'folder' && mapRoots.some(root => node.id === `folder:${root}`)) {
+		classes.push('scope');
+	} else if (mapRoots.length && !nodeInMapRoot(node, mapRoots)) {
+		classes.push('quiet');
 	}
 	group.setAttribute('class', classes.join(' '));
 	group.setAttribute('transform', `translate(${node.x} ${node.y})`);
@@ -87,19 +116,31 @@ function paintFrame(node: IDroxSdtcmGraphNode, selectedId: string | undefined, h
 	if (node.color) {
 		rect.style.stroke = node.color;
 	}
-	const title = svg<SVGTextElement>('text');
-	title.setAttribute('x', '10');
-	title.setAttribute('y', node.kind === 'data' ? '19' : node.kind === 'brick' ? '20' : '18');
-	title.textContent = clip(node.label, Math.max(8, Math.floor(node.w / 8)));
 	group.appendChild(rect);
-	group.appendChild(title);
+	const screenW = node.w * zoom;
+	const screenH = node.h * zoom;
+	if (screenW >= 48 && screenH >= 18) {
+		const label = svg<SVGGElement>('g');
+		label.setAttribute('class', 'drox-sdtcm-label');
+		label.setAttribute('transform', `scale(${1 / zoom})`);
+		const title = svg<SVGTextElement>('text');
+		title.setAttribute('x', '8');
+		title.setAttribute('y', '16');
+		const chars = Math.max(4, Math.floor((screenW - 16) / 7));
+		const path = node.kind === 'folder' ? (node.lines[0] || node.label) : node.label;
+		title.textContent = clip(path, chars);
+		label.appendChild(title);
+		if (screenH >= 34 && node.lines[1]) {
+			const meta = svg<SVGTextElement>('text');
+			meta.setAttribute('class', 'drox-sdtcm-node-meta');
+			meta.setAttribute('x', '8');
+			meta.setAttribute('y', '30');
+			meta.textContent = clip(node.lines[1], chars);
+			label.appendChild(meta);
+		}
+		group.appendChild(label);
+	}
 	if (node.kind === 'brick' || node.kind === 'data') {
-		const meta = svg<SVGTextElement>('text');
-		meta.setAttribute('class', 'drox-sdtcm-node-meta');
-		meta.setAttribute('x', '10');
-		meta.setAttribute('y', node.kind === 'data' ? '32' : '36');
-		meta.textContent = clip(node.lines[1] ?? '', 26);
-		group.appendChild(meta);
 		group.addEventListener('pointerdown', event => {
 			event.stopPropagation();
 			handlers.onPressNode?.(node, event);

@@ -39,6 +39,7 @@ import { IEditorOpenContext } from '../../../../common/editor.js';
 import { EditorInput } from '../../../../common/editor/editorInput.js';
 import { IEditorGroup } from '../../../../services/editor/common/editorGroupsService.js';
 import { isDroxDevFeatureEnabled } from '../../common/droxDevSurface.js';
+import { frameDroxSdtcmGraph } from '../../common/sdtcm/droxSdtcmFrame.js';
 import { buildDroxSdtcmGraph, IDroxSdtcmGraph, IDroxSdtcmGraphNode } from '../../common/sdtcm/droxSdtcmGraph.js';
 import { DroxSdtcmPathKind, traceDroxSdtcmSelection } from '../../common/sdtcm/data/droxSdtcmPath.js';
 import { markDroxSdtcmFocus, markDroxSdtcmKept } from '../../common/sdtcm/focus/droxSdtcmFocus.js';
@@ -92,6 +93,11 @@ export class DroxSdtcmEditor extends EditorPane {
 	private _panX = 32;
 	private _panY = 32;
 	private _zoom = 1;
+	private _cameraHeld = false;
+	private _fitted = false;
+	private _frameHandle = 0;
+	private _baseGraph: IDroxSdtcmGraph | undefined;
+	private _baseKey = '';
 	private _panning = false;
 	private _blankDown = false;
 	private _moved = false;
@@ -333,6 +339,10 @@ export class DroxSdtcmEditor extends EditorPane {
 	}
 
 	override dispose(): void {
+		if (this._frameHandle) {
+			cancelAnimationFrame(this._frameHandle);
+			this._frameHandle = 0;
+		}
 		this._openSeq++;
 		this._codeEditor?.setModel(null);
 		this._modelRef?.dispose();
@@ -354,6 +364,8 @@ export class DroxSdtcmEditor extends EditorPane {
 				journal: [],
 				exchanges: [],
 				map: { version: 1, entry: null, bricks: [], data: [] },
+				mapRoots: [],
+				folders: [],
 				files: [],
 				tags: [],
 			});
@@ -369,9 +381,11 @@ export class DroxSdtcmEditor extends EditorPane {
 			this._container.style.width = `${dimension.width}px`;
 		}
 		this._applySplits();
+		this._scheduleFrame();
 	}
 
 	private _bindPointer(viewport: HTMLElement): void {
+		this._ui.add(addDisposableListener(viewport, 'pointerdown', () => viewport.focus(), true));
 		this._ui.add(addDisposableListener(viewport, 'pointerdown', event => {
 			if (event.button !== 0 || !(event.ctrlKey || event.metaKey)) {
 				return;
@@ -430,7 +444,9 @@ export class DroxSdtcmEditor extends EditorPane {
 			}
 			this._panX = this._panStartX + dx;
 			this._panY = this._panStartY + dy;
+			this._cameraHeld = true;
 			this._applyTransform();
+			this._scheduleFrame();
 		}));
 		this._ui.add(addDisposableListener(window, 'pointerup', event => {
 			if (this._panning) {
@@ -508,11 +524,19 @@ export class DroxSdtcmEditor extends EditorPane {
 			this._panX = px - ratio * (px - this._panX);
 			this._panY = py - ratio * (py - this._panY);
 			this._zoom = next;
+			this._cameraHeld = true;
 			this._applyTransform();
+			this._scheduleFrame();
 		};
 		viewport.addEventListener('wheel', onWheel, { passive: false });
 		this._ui.add(toDisposable(() => viewport.removeEventListener('wheel', onWheel)));
 		this._ui.add(addDisposableListener(viewport, 'keydown', event => {
+			if (event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
+				event.preventDefault();
+				event.stopPropagation();
+				this._frameMapRoot();
+				return;
+			}
 			if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) {
 				return;
 			}
@@ -621,6 +645,40 @@ export class DroxSdtcmEditor extends EditorPane {
 		}
 	}
 
+	private _frameMapRoot(): void {
+		const viewport = this._viewport;
+		const graph = this._placedGraph();
+		if (!viewport || !graph || viewport.clientWidth < 40 || viewport.clientHeight < 40) {
+			return;
+		}
+		const roots = this.sdtcmService.getMapRoots();
+		const ids = roots.length ? roots.map(root => `folder:${root}`) : ['folder:(root)'];
+		const nodes = ids.flatMap(id => {
+			const node = graph.nodes.find(item => item.id === id);
+			return node ? [node] : [];
+		});
+		if (!nodes.length) {
+			return;
+		}
+		let minX = nodes[0]!.x;
+		let minY = nodes[0]!.y;
+		let maxX = nodes[0]!.x + nodes[0]!.w;
+		let maxY = nodes[0]!.y + nodes[0]!.h;
+		for (const node of nodes) {
+			minX = Math.min(minX, node.x);
+			minY = Math.min(minY, node.y);
+			maxX = Math.max(maxX, node.x + node.w);
+			maxY = Math.max(maxY, node.y + node.h);
+		}
+		const pad = 64;
+		this._zoom = clamp(Math.min(viewport.clientWidth / (maxX - minX + pad), viewport.clientHeight / (maxY - minY + pad)));
+		this._panX = viewport.clientWidth / 2 - this._zoom * ((minX + maxX) / 2);
+		this._panY = viewport.clientHeight / 2 - this._zoom * ((minY + maxY) / 2);
+		this._cameraHeld = true;
+		this._applyTransform();
+		this._scheduleFrame();
+	}
+
 	centerOnMostLinked(): void {
 		const graph = this._placedGraph();
 		const viewport = this._viewport;
@@ -634,14 +692,49 @@ export class DroxSdtcmEditor extends EditorPane {
 		}
 		this._panX = viewport.clientWidth / 2 - this._zoom * (hub.x + hub.w / 2);
 		this._panY = viewport.clientHeight / 2 - this._zoom * (hub.y + hub.h / 2);
+		this._cameraHeld = true;
 		this._applyTransform();
+		this._scheduleFrame();
 	}
 
 	private _placedGraph(): IDroxSdtcmGraph | undefined {
+		const base = this._cachedGraph();
+		if (!base) {
+			return undefined;
+		}
+		return shiftDroxSdtcmFolders(base, this._folderOffset);
+	}
+
+	/** Full layout, reused until the file list or the filters change. */
+	private _cachedGraph(): IDroxSdtcmGraph | undefined {
 		if (!this._snapshot) {
 			return undefined;
 		}
+		if (!this._snapshot.files.length) {
+			this._cameraHeld = false;
+			this._fitted = false;
+		}
 		const display = this.sdtcmService.getDisplay();
+		let sample = this._snapshot.files.length;
+		const step = Math.max(1, Math.floor(this._snapshot.files.length / 24));
+		for (let index = 0; index < this._snapshot.files.length; index += step) {
+			sample = (sample + (this._snapshot.files[index]?.length ?? 0) * (index + 1)) | 0;
+		}
+		const key = [
+			sample,
+			this._snapshot.map.bricks.length,
+			this._snapshot.map.data.length,
+			[...display.kinds].join(','),
+			[...display.forms].join(','),
+			display.links ? '1' : '0',
+			[...display.visibleTags].join(','),
+		].join('\0');
+		if (this._baseGraph && key === this._baseKey) {
+			if (!this._cameraHeld && !this._fitted) {
+				this._fit(this._baseGraph);
+			}
+			return this._baseGraph;
+		}
 		const built = buildDroxSdtcmGraph(this._snapshot.map, this._snapshot.files, {
 			kinds: display.kinds,
 			forms: display.forms,
@@ -649,7 +742,42 @@ export class DroxSdtcmEditor extends EditorPane {
 			tags: display.visibleTags,
 			tagColors: new Map(this._snapshot.tags.map(tag => [tag.name, tag.color])),
 		});
-		return shiftDroxSdtcmFolders(placeDroxSdtcmGraph(built), this._folderOffset);
+		this._baseGraph = placeDroxSdtcmGraph(built);
+		this._baseKey = key;
+		if (!this._cameraHeld) {
+			this._fit(this._baseGraph);
+		}
+		return this._baseGraph;
+	}
+
+	private _fit(graph: IDroxSdtcmGraph): void {
+		const viewport = this._viewport;
+		if (!viewport || viewport.clientWidth < 40 || viewport.clientHeight < 40) {
+			return;
+		}
+		this._fitted = true;
+		let maxX = 1;
+		let maxY = 1;
+		for (const node of graph.nodes) {
+			if (node.kind !== 'folder') {
+				continue;
+			}
+			maxX = Math.max(maxX, node.x + node.w);
+			maxY = Math.max(maxY, node.y + node.h);
+		}
+		this._zoom = clamp(Math.min(viewport.clientWidth / (maxX + 48), viewport.clientHeight / (maxY + 48)));
+		this._panX = 24;
+		this._panY = 24;
+	}
+
+	private _scheduleFrame(): void {
+		if (this._frameHandle) {
+			return;
+		}
+		this._frameHandle = requestAnimationFrame(() => {
+			this._frameHandle = 0;
+			this._paint();
+		});
 	}
 
 	private _paint(): void {
@@ -657,17 +785,17 @@ export class DroxSdtcmEditor extends EditorPane {
 			return;
 		}
 		const display = this.sdtcmService.getDisplay();
-		const graph = this._placedGraph();
-		if (!graph) {
+		const full = this._placedGraph();
+		if (!full) {
 			return;
 		}
-		if (this._selected && !graph.nodes.some(node => node.id === this._selected)) {
+		if (this._selected && !full.nodes.some(node => node.id === this._selected)) {
 			this._selected = undefined;
 			this._hideCard();
 			this._path = undefined;
 			this._closeCode();
 		}
-		if (!graph.nodes.length) {
+		if (!full.nodes.length) {
 			clearDroxSdtcmNode(this._world);
 			const empty = $('p.drox-sdtcm-hint');
 			empty.textContent = localize('drox.sdtcm.empty', 'No file in the tree.');
@@ -678,10 +806,17 @@ export class DroxSdtcmEditor extends EditorPane {
 		}
 		this._viewport.classList.toggle('locked', !display.move);
 		this._viewport.querySelector('.drox-sdtcm-hint')?.remove();
+		const graph = frameDroxSdtcmGraph(full, {
+			panX: this._panX,
+			panY: this._panY,
+			zoom: this._zoom,
+			viewWidth: this._viewport.clientWidth || 1,
+			viewHeight: this._viewport.clientHeight || 1,
+		});
 		const path = !this._drag && this._path && this._snapshot ? traceDroxSdtcmSelection(this._snapshot.map, this._path.kind, this._path.id) : undefined;
 		const dragged = this._drag ? markDroxSdtcmFocus(graph, new Set([this._drag.id])) : undefined;
 		const marks = dragged ?? markDroxSdtcmKept(graph, this._snapshot.map, new Set(display.focus), path);
-		paintDroxSdtcmGraph(this._world, graph, this._selected, {
+		paintDroxSdtcmGraph(this._world, graph, this._selected, this._zoom, this.sdtcmService.getMapRoots(), {
 			onEnter: (node, event) => this._showTooltip(node, event),
 			onLeave: () => this._hideTooltip(),
 			onSelect: node => {
@@ -717,6 +852,29 @@ export class DroxSdtcmEditor extends EditorPane {
 		const menu = $('div.drox-sdtcm-menu');
 		menu.style.left = `${x}px`;
 		menu.style.top = `${y}px`;
+		const folder = id.startsWith('folder:') ? id.slice('folder:'.length) : undefined;
+		if (folder !== undefined) {
+			const path = folder === '(root)' ? '' : folder;
+			const roots = this.sdtcmService.getMapRoots();
+			const mapped = path.length === 0 ? roots.length === 0 : roots.includes(path);
+			const mapItem = $('button');
+			mapItem.textContent = path.length === 0
+				? localize('drox.sdtcm.mapWholeFolder', 'Map the whole folder')
+				: mapped
+					? localize('drox.sdtcm.removeFromMap', 'Remove from map')
+					: localize('drox.sdtcm.mapThisFolder', 'Map this folder');
+			this._menuUi.add(addDisposableListener(mapItem, 'click', event => {
+				event.stopPropagation();
+				const next = path.length === 0
+					? []
+					: mapped
+						? roots.filter(item => item !== path)
+						: [...roots, path].sort();
+				void this.sdtcmService.setMapRoots(next);
+				this._hideFolderMenu();
+			}));
+			menu.appendChild(mapItem);
+		}
 		const item = $('button');
 		const kept = this.sdtcmService.getDisplay().focus.includes(id);
 		item.textContent = kept
@@ -958,7 +1116,9 @@ export class DroxSdtcmEditor extends EditorPane {
 
 	private _setZoom(zoom: number): void {
 		this._zoom = clamp(zoom);
+		this._cameraHeld = true;
 		this._applyTransform();
+		this._scheduleFrame();
 	}
 
 	private _applyTransform(): void {
@@ -972,7 +1132,7 @@ export class DroxSdtcmEditor extends EditorPane {
 }
 
 function clamp(zoom: number): number {
-	return Math.min(2.6, Math.max(0.05, zoom));
+	return Math.min(2.6, Math.max(0.002, zoom));
 }
 
 function clampSize(value: number, min: number, max: number): number {

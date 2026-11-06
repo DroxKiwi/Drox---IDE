@@ -6,9 +6,9 @@
 
 Site du projet : [drox.kdds.fr](https://drox.kdds.fr).
 
-Éditeur de code avec un agent IA **open source**. Version stable **1.6.8**. Il reprend [Visual Studio Code – Open Source (Code OSS)](https://github.com/microsoft/vscode) : extensions, terminal, Git, LSP — et y ajoute un moteur agent en Rust qui tourne **chez toi**.
+Éditeur de code avec un agent IA **open source**. Version stable **1.6.9**. Il reprend [Visual Studio Code – Open Source (Code OSS)](https://github.com/microsoft/vscode) : extensions, terminal, Git, LSP — et y ajoute un moteur agent en Rust qui tourne **chez toi**.
 
-Installeurs Windows et Linux : [**télécharger la 1.6.8**](https://github.com/DroxKiwi/Drox---IDE/releases/latest).
+Installeurs Windows et Linux : [**télécharger la 1.6.9**](https://github.com/DroxKiwi/Drox---IDE/releases/latest).
 
 La même installation en ligne de commande. Le script prend la release marquée Latest et remplace une installation déjà présente.
 
@@ -111,7 +111,7 @@ La recherche mêle le texte et des vecteurs. La vectorisation utilise un modèle
 | | |
 |---|---|
 | **Licence** | MIT — Code OSS (Microsoft) + portions Drox / KDDS — [`NOTICE.md`](NOTICE.md) |
-| **Version** | **1.6.8** stable · base VS Code **1.127.0** |
+| **Version** | **1.6.9** stable · base VS Code **1.127.0** |
 | **Binaires** | [Releases](https://github.com/DroxKiwi/Drox---IDE/releases) — Windows et Linux |
 | **Doc moteur** | [`docs/engine/`](docs/engine/README.md) |
 | **Référencement** | [XERJ Corpus Hub — DroxKiwi](https://hub.xerj.org/contributors/DroxKiwi) |

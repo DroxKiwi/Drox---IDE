@@ -36,3 +36,48 @@ export function normalizeDroxSdtcmMapRoot(raw: string): string | undefined {
 	}
 	return parts.join('/');
 }
+
+export interface IDroxSdtcmFolderCount {
+	readonly path: string;
+	readonly files: number;
+}
+
+/** Source-file counts under each folder, from a file list already walked. `''` is the whole folder. */
+export function tallyDroxSdtcmFolders(files: readonly string[]): IDroxSdtcmFolderCount[] {
+	const counts = new Map<string, number>();
+	counts.set('', 0);
+	for (const file of files) {
+		counts.set('', (counts.get('') ?? 0) + 1);
+		let dir = file;
+		const slash = dir.lastIndexOf('/');
+		dir = slash === -1 ? '' : dir.slice(0, slash);
+		while (dir) {
+			counts.set(dir, (counts.get(dir) ?? 0) + 1);
+			const cut = dir.lastIndexOf('/');
+			dir = cut === -1 ? '' : dir.slice(0, cut);
+		}
+	}
+	return [...counts.entries()]
+		.map(([path, total]) => ({ path, files: total }))
+		.sort((a, b) => {
+			if (a.path === b.path) {
+				return 0;
+			}
+			if (!a.path) {
+				return -1;
+			}
+			if (!b.path) {
+				return 1;
+			}
+			return a.path < b.path ? -1 : 1;
+		});
+}
+
+/** A file or folder path lies under one chosen root. An empty list keeps the whole folder. */
+export function droxSdtcmPathInMapRoot(path: string, mapRoot: string | readonly string[]): boolean {
+	const roots = (typeof mapRoot === 'string' ? [mapRoot] : mapRoot).filter(root => root.length > 0);
+	if (!roots.length) {
+		return true;
+	}
+	return roots.some(root => path === root || path.startsWith(`${root}/`));
+}

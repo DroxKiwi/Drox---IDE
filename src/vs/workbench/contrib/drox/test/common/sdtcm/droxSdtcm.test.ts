@@ -14,13 +14,14 @@ import { parseDroxSdtcmDisplay, savedDroxSdtcmDisplay } from '../../../common/sd
 import { emptyDroxSdtcmMap, IDroxSdtcmBrick, listDroxSdtcmRows, parseDroxSdtcmMap } from '../../../common/sdtcm/droxSdtcmMap.js';
 import { acceptDroxSdtcmData, acceptDroxSdtcmTrace, buildDroxSdtcmDataTurn } from '../../../common/sdtcm/data/droxSdtcmData.js';
 import { traceDroxSdtcmSelection } from '../../../common/sdtcm/data/droxSdtcmPath.js';
-import { buildDroxSdtcmGraph } from '../../../common/sdtcm/droxSdtcmGraph.js';
+import { frameDroxSdtcmGraph } from '../../../common/sdtcm/droxSdtcmFrame.js';
+import { buildDroxSdtcmGraph, IDroxSdtcmGraphNode } from '../../../common/sdtcm/droxSdtcmGraph.js';
 import { mostLinkedDroxSdtcmFolderId } from '../../../common/sdtcm/placement/droxSdtcmFolderLinks.js';
 import { emptyDroxSdtcmMoveHistory, redoDroxSdtcmMove, rememberDroxSdtcmMove, undoDroxSdtcmMove } from '../../../common/sdtcm/placement/droxSdtcmMoveHistory.js';
 import { placeDroxSdtcmGraph } from '../../../common/sdtcm/placement/droxSdtcmPlacement.js';
 import { droxSdtcmAddedFocus, keepDroxSdtcmFocusVisible, markDroxSdtcmDataPath, markDroxSdtcmFocus, markDroxSdtcmKept } from '../../../common/sdtcm/focus/droxSdtcmFocus.js';
 import { droxSdtcmSystemPrompt } from '../../../common/sdtcm/droxSdtcmPrompt.js';
-import { normalizeDroxSdtcmMapRoot } from '../../../common/sdtcm/droxSdtcmMapRoot.js';
+import { droxSdtcmPathInMapRoot, normalizeDroxSdtcmMapRoot, tallyDroxSdtcmFolders } from '../../../common/sdtcm/droxSdtcmMapRoot.js';
 import { droxSdtcmFilesFrom, droxSdtcmPhaseAction, parseDroxSdtcmPause } from '../../../common/sdtcm/droxSdtcmPause.js';
 import { acceptDroxSdtcmFile, acceptDroxSdtcmFolderTags, acceptDroxSdtcmLinks, acceptDroxSdtcmTags, buildDroxSdtcmTagTurn, buildDroxSdtcmTurn, completeDroxSdtcmLinks, droxSdtcmFreshBricks, droxSdtcmNewTag, ensureDroxSdtcmNewTag, formatDroxSdtcmMapIndex, IDroxSdtcmTag, parseDroxSdtcmTags, pickDroxSdtcmAnswer, readDroxSdtcmFileDraft, readDroxSdtcmRead } from '../../../common/sdtcm/droxSdtcmRole.js';
 
@@ -892,6 +893,22 @@ suite('Drox SDTCM map', () => {
 		assert.ok(turn.includes('MODE realign'));
 	});
 
+	test('the frame keeps the large folders and the files under the camera', () => {
+		const folder = box('folder:src', 'folder', 0, 0, 4000, 3000);
+		const near = box('file:src/a.ts', 'file', 20, 40, 168, 46);
+		const far = box('file:src/z.ts', 'file', 50000, 40, 168, 46);
+		const graph = { nodes: [folder, near, far], edges: [{ from: 'file:src/a.ts', to: 'file:src/z.ts' }] };
+		const wide = frameDroxSdtcmGraph(graph, { panX: 0, panY: 0, zoom: 0.01, viewWidth: 800, viewHeight: 600 });
+		assert.deepStrictEqual(wide.nodes.map(node => node.id), ['folder:src']);
+		assert.strictEqual(wide.edges.length, 0);
+		const close = frameDroxSdtcmGraph(graph, { panX: -10, panY: -10, zoom: 1, viewWidth: 400, viewHeight: 400 });
+		assert.ok(close.nodes.some(node => node.id === 'file:src/a.ts'));
+		assert.ok(!close.nodes.some(node => node.id === 'file:src/z.ts'));
+		const many = Array.from({ length: 600 }, (_value, index) => box(`folder:f${index}`, 'folder', index * 10, 0, 200, 200));
+		const budget = frameDroxSdtcmGraph({ nodes: many, edges: [] }, { panX: 0, panY: 0, zoom: 1, viewWidth: 8000, viewHeight: 800 });
+		assert.ok(budget.nodes.length <= 480);
+	});
+
 	test('map root stays inside the folder', () => {
 		assert.strictEqual(normalizeDroxSdtcmMapRoot(''), '');
 		assert.strictEqual(normalizeDroxSdtcmMapRoot('  ./src/app/ '), 'src/app');
@@ -902,8 +919,24 @@ suite('Drox SDTCM map', () => {
 		const files = Array.from({ length: 121 }, (_value, index) => `src/f${index}.ts`);
 		const turn = buildDroxSdtcmTurn({ mode: 'build', path: files[120]!, files, text: 'x', reads: [], focus: [] });
 		assert.ok(turn.includes('src/f120.ts'));
+		const folders = tallyDroxSdtcmFolders(['src/app/a.ts', 'src/app/b.ts', 'src/c.ts', 'top.ts']);
+		assert.deepStrictEqual(folders, [
+			{ path: '', files: 4 },
+			{ path: 'src', files: 3 },
+			{ path: 'src/app', files: 2 },
+		]);
+		assert.strictEqual(droxSdtcmPathInMapRoot('src/app/a.ts', 'src/app'), true);
+		assert.strictEqual(droxSdtcmPathInMapRoot('src', 'src/app'), false);
+		assert.strictEqual(droxSdtcmPathInMapRoot('src/app', ''), true);
+		assert.strictEqual(droxSdtcmPathInMapRoot('docs/a.md', ['src', 'docs']), true);
+		assert.strictEqual(droxSdtcmPathInMapRoot('lib/a.ts', ['src', 'docs']), false);
+		assert.strictEqual(droxSdtcmPathInMapRoot('src/a.ts', []), true);
 	});
 });
+
+function box(id: string, kind: IDroxSdtcmGraphNode['kind'], x: number, y: number, w: number, h: number): IDroxSdtcmGraphNode {
+	return { id, label: id, kind, x, y, w, h, lines: [] };
+}
 
 function contains(outer: { x: number; y: number; w: number; h: number }, inner: { x: number; y: number; w: number; h: number }): boolean {
 	return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h;

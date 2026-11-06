@@ -1,6 +1,6 @@
 # 1.6.8
 
-**Statut** : **shippé** ([`v1.6.8`](https://github.com/DroxKiwi/Drox---IDE/releases/latest))
+**Statut** : **shippé** (release GitHub retirée)
 **Précédent** : 1.6.7 — release GitHub retirée.
 **Git** : sur `main` (`d3669102`). La branche `1.6.8` a été supprimée.
 

@@ -15,14 +15,14 @@
 | [**1.6.4/**](1.6.4/README.md) | Régulation, Explain, SDTCM dessiné, clôture sans testing, install en ligne de commande, tutoriels IDE et Agents | **Stable** (release GitHub retirée) |
 | [**1.6.5/**](1.6.5/README.md) | Plus-value du full protocol, stabilité des runs, un seul sous-agent à la fois, outils de dev cachés en live | **Stable** (release GitHub retirée) |
 | 1.6.7 | Carte SDTCM lisible quel que soit le provider | **Stable** (release GitHub retirée) |
-| [**1.6.8/**](1.6.8/README.md) | Médias du répertoire : fiche, pas le corps. Images du chat inchangées | **Latest** ([`v1.6.8`](https://github.com/DroxKiwi/Drox---IDE/releases/latest)) |
-| [**1.6.9/**](1.6.9/README.md) | Carte SDTCM sans plafond de fichiers, racine choisie avant génération | **Ouvert** |
+| [**1.6.8/**](1.6.8/README.md) | Médias du répertoire : fiche, pas le corps. Images du chat inchangées | **Stable** (release GitHub retirée) |
+| [**1.6.9/**](1.6.9/README.md) | Carte SDTCM sans plafond, plusieurs racines, silhouette lisible | **Latest** ([`v1.6.9`](https://github.com/DroxKiwi/Drox---IDE/releases/latest)) |
 
 ---
 
 ## Git — ne pas polluer `main`
 
-`main` = dernier **produit stable shippé** (aujourd’hui [`v1.6.8`](https://github.com/DroxKiwi/Drox---IDE/releases/latest)). Développement courant : branche **`1.6.9`**.
+`main` = dernier **produit stable shippé** (aujourd’hui [`v1.6.9`](https://github.com/DroxKiwi/Drox---IDE/releases/latest)).
 
 | Branche | Rôle |
 |---------|------|
