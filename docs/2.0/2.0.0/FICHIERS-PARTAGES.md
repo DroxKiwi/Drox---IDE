@@ -12,6 +12,8 @@ On ne reformate pas. On ne renomme pas. Un petit écart reste dans le fichier Mi
 
 `src/vs/platform/git/common/localGitService.ts` est revenu identique à la base. Les types et les méthodes ajoutés sont dans `src/vs/platform/git/common/droxLocalGitService.ts`. `IDroxLocalGitService` est le même jeton que `ILocalGitService`.
 
+`src/vs/platform/git/test/node/localGitService.test.ts` est revenu identique à la base. Les tests des méthodes Drox sont dans `src/vs/platform/git/test/node/droxLocalGitService.test.ts`.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -19,7 +21,7 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | | Fichier | + | - | h |
 |---|---------|--:|--:|--:|
 | fait | `src/vs/platform/git/common/localGitService.ts` | 108 | 0 | 2 |
-| | `src/vs/platform/git/test/node/localGitService.test.ts` | 127 | 9 | 10 |
+| fait | `src/vs/platform/git/test/node/localGitService.test.ts` | 127 | 9 | 10 |
 | | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/chatSubagentContentPart.ts` | 217 | 57 | 43 |
 | | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/media/chatSubagentContent.css` | 179 | 3 | 6 |
 | | `src/vs/workbench/contrib/chat/test/browser/widget/chatContentParts/chatSubagentContentPart.test.ts` | 41 | 68 | 31 |
