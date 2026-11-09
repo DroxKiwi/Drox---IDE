@@ -74,6 +74,7 @@ Carte fonctionnelle historique (audit) : [`1.4/moteur/`](1.4/moteur/README.md) �
 
 | Ligne | Statut |
 |-------|--------|
+| [2.0/](2.0/README.md) | En cours. Fichiers partagés à reprendre un par un |
 | [1.5/](1.5/README.md) | Active (plans 1.5.20+) |
 | [1.4/](1.4/) | Archivée / cartes moteur |
 | [1.3/](1.3/README.md) | Figée |
