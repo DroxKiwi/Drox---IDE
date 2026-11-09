@@ -11,7 +11,7 @@ import { observableValue } from '../../../../../../../base/common/observable.js'
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../../base/test/common/utils.js';
 import { mainWindow } from '../../../../../../../base/browser/window.js';
 import { workbenchInstantiationService } from '../../../../../../test/browser/workbenchTestServices.js';
-import { ChatSubagentContentPart } from '../../../../browser/widget/chatContentParts/chatSubagentContentPart.js';
+import { DroxChatSubagentContentPart } from '../../../../browser/widget/chatContentParts/droxChatSubagentContentPart.js';
 import { IChatMarkdownContent, IChatSubagentToolInvocationData, IChatToolInvocation, IChatToolInvocationSerialized, ToolConfirmKind } from '../../../../common/chatService/chatService.js';
 import { IChatContentPartRenderContext, InlineTextModelCollection } from '../../../../browser/widget/chatContentParts/chatContentParts.js';
 import { IChatResponseViewModel } from '../../../../common/model/chatViewModel.js';
@@ -29,7 +29,7 @@ import { RunSubagentTool } from '../../../../common/tools/builtinTools/runSubage
 import { CollapsibleListPool } from '../../../../browser/widget/chatContentParts/chatReferencesContentPart.js';
 import { ToolDataSource } from '../../../../common/tools/languageModelToolsService.js';
 
-suite('ChatSubagentContentPart', () => {
+suite('DroxChatSubagentContentPart', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	type ToolInvocationParameters = IChatToolInvocation.State extends { parameters: infer P } ? P : never;
@@ -244,9 +244,9 @@ suite('ChatSubagentContentPart', () => {
 		toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized,
 		context: IChatContentPartRenderContext,
 		idOverride?: string
-	): ChatSubagentContentPart {
+	): DroxChatSubagentContentPart {
 		const part = store.add(instantiationService.createInstance(
-			ChatSubagentContentPart,
+			DroxChatSubagentContentPart,
 			idOverride ?? toolInvocation.subAgentInvocationId ?? toolInvocation.toolCallId,
 			toolInvocation,
 			context,
@@ -264,7 +264,7 @@ suite('ChatSubagentContentPart', () => {
 	}
 
 
-	function getCollapseButton(part: ChatSubagentContentPart): HTMLElement | undefined {
+	function getCollapseButton(part: DroxChatSubagentContentPart): HTMLElement | undefined {
 		const label = part.domNode.firstElementChild;
 		if (!isHTMLElement(label)) {
 			return undefined;
@@ -284,7 +284,7 @@ suite('ChatSubagentContentPart', () => {
 		return isHTMLElement(icon) ? icon : undefined;
 	}
 
-	function getWrapperElement(part: ChatSubagentContentPart): HTMLElement | undefined {
+	function getWrapperElement(part: DroxChatSubagentContentPart): HTMLElement | undefined {
 		const wrapper = part.domNode.lastElementChild;
 		return isHTMLElement(wrapper) ? wrapper : undefined;
 	}
@@ -361,7 +361,7 @@ suite('ChatSubagentContentPart', () => {
 		// the default placeholder to a real value, or if the agentName
 		// changed to a real value. These tests cover that branch directly.
 
-		function getTitleText(part: ChatSubagentContentPart): string {
+		function getTitleText(part: DroxChatSubagentContentPart): string {
 			const button = getCollapseButton(part);
 			assert.ok(button, 'Should have collapse button');
 			const labelElement = getCollapseButtonLabel(button);

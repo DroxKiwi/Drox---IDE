@@ -94,7 +94,7 @@ import { ChatCollapsibleListContentPart, ChatUsedReferencesListContentPart, Coll
 import { ChatTaskContentPart } from './chatContentParts/chatTaskContentPart.js';
 import { ChatTextEditContentPart } from './chatContentParts/chatTextEditContentPart.js';
 import { ChatThinkingContentPart, getEffectiveThinkingDisplayMode } from './chatContentParts/chatThinkingContentPart.js';
-import { ChatSubagentContentPart } from './chatContentParts/chatSubagentContentPart.js';
+import { DroxChatSubagentContentPart } from './chatContentParts/droxChatSubagentContentPart.js';
 import { ChatTreeContentPart, TreePool } from './chatContentParts/chatTreeContentPart.js';
 import { ChatWorkspaceEditContentPart } from './chatContentParts/chatWorkspaceEditContentPart.js';
 import { ChatExternalEditContentPart } from './chatContentParts/chatExternalEditContentPart.js';
@@ -2181,7 +2181,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		return false;
 	}
 
-	private getSubagentPart(renderedParts: ReadonlyArray<IChatContentPart> | undefined, subAgentInvocationId?: string): ChatSubagentContentPart | undefined {
+	private getSubagentPart(renderedParts: ReadonlyArray<IChatContentPart> | undefined, subAgentInvocationId?: string): DroxChatSubagentContentPart | undefined {
 		if (!renderedParts || renderedParts.length === 0) {
 			return undefined;
 		}
@@ -2189,7 +2189,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		// Search backwards for the most recent subagent part
 		for (let i = renderedParts.length - 1; i >= 0; i--) {
 			const part = renderedParts[i];
-			if (part instanceof ChatSubagentContentPart) {
+			if (part instanceof DroxChatSubagentContentPart) {
 				// If looking for a specific ID, return the part with that ID regardless of active state
 				if (subAgentInvocationId && part.subAgentInvocationId === subAgentInvocationId) {
 					return part;
@@ -2212,13 +2212,13 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		// Finalize all active subagent parts (there can be multiple parallel subagents)
 		// Skip subagents that still have tools waiting for confirmation
 		for (const part of templateData.renderedParts) {
-			if (part instanceof ChatSubagentContentPart && part.getIsActive() && !part.hasToolsWaitingForConfirmation) {
+			if (part instanceof DroxChatSubagentContentPart && part.getIsActive() && !part.hasToolsWaitingForConfirmation) {
 				part.markAsInactive();
 			}
 		}
 	}
 
-	private handleSubagentToolGrouping(toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized, subagentId: string, context: IChatContentPartRenderContext, templateData: IChatListItemTemplate, codeBlockStartIndex: number): ChatSubagentContentPart {
+	private handleSubagentToolGrouping(toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized, subagentId: string, context: IChatContentPartRenderContext, templateData: IChatListItemTemplate, codeBlockStartIndex: number): DroxChatSubagentContentPart {
 		// Finalize any active thinking part since subagent tools have their own grouping
 		this.finalizeCurrentThinkingPart(context, templateData);
 
@@ -2237,7 +2237,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 		// Create a new subagent part - it will extract description/agentName/prompt and watch for completion
 		const subagentPart = this.instantiationService.createInstance(
-			ChatSubagentContentPart,
+			DroxChatSubagentContentPart,
 			subagentId,
 			toolInvocation,
 			context,
@@ -2262,7 +2262,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	/** Routes subagent confirmations to the input carousel and leaves a placeholder inline. */
 	private maybeRouteSubagentToolToCarousel(
 		toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized,
-		subagentPart: ChatSubagentContentPart,
+		subagentPart: DroxChatSubagentContentPart,
 		context: IChatContentPartRenderContext,
 		templateData: IChatListItemTemplate,
 		codeBlockStartIndex: number,
