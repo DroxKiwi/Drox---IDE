@@ -81,12 +81,14 @@ Si un commit local contient encore le trailer avant push : `git commit --amend` 
 | Champ | Exemple | Usage |
 |-------|---------|--------|
 | **`version`** | `1.122.0` | Base VS Code / API extensions (Copilot, marketplace) — ne pas remplacer par la version Drox |
-| **`droxVersion`** | `1.5.0` | Release produit : installeur, `latest.json`, dialogue **À propos** |
+| **`droxVersion`** | `2.1.0+1.145.2` | Release produit : installeur, `latest.json`, dialogue **À propos**. Triplet Drox, puis `+`, puis la base VS Code. L’exemple n’est pas une constante. |
 | **`droxSurface`** | `dev` | `dev` en sources / watch ; `release` injecté au package via `DROX_PRODUCT_SURFACE` (`build-release-win32.ps1`) |
 
-Pour une nouvelle release Drox : modifier **`droxVersion`** uniquement (sauf rebase upstream majeur → mettre à jour **`version`** aussi). Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.
+Une montée VS Code déposée sur `main` lit la dernière `droxVersion`, augmente le nombre du milieu de un, garde les deux autres, et ajoute `+` puis le numéro VS Code intégré. `2.0.0` avec la base `1.145.2` donne `2.1.0+1.145.2`. Le `+` est obligatoire. Le champ `version` reste le numéro VS Code seul.
 
-Affichage utilisateur : `1.3.1 (base VS Code 1.122.0)` via `getProductDisplayVersion()` dans le code. Build : `build/lib/droxVersion.ts`.
+Pour une release Drox sans changer la base : modifier le triplet et garder le même suffixe. Pour une montée VS Code : `docs/rebase/scripts/land-main.ps1` applique la règle ci-dessus. Ne pas committer `droxSurface: release` dans les sources — c’est le pipeline `drox:ship` qui l’écrit dans le `product.json` packagé.
+
+Build : `build/lib/droxVersion.ts`.
 
 ---
 

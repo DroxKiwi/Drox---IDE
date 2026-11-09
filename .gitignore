@@ -58,6 +58,9 @@ docs/feature-brainstorm/
 # Procédure release locale
 docs/release/
 
+# Rebase VS Code — procédures, scripts et mesures, privé
+docs/rebase/
+
 # Artefacts release (binaires via GitHub Releases, pas git)
 _upload/
 stable/
