@@ -18,6 +18,8 @@ On ne reformate pas. On ne renomme pas. Un petit écart reste dans le fichier Mi
 
 `chatSubagentContent.css` est revenu identique à la base. Les styles actuels sont dans `droxChatSubagentContent.css`, importé par la classe Drox.
 
+`chatSubagentContentPart.test.ts` est revenu identique à la base. Les tests du rendu actuel sont dans `droxChatSubagentContentPart.test.ts`.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -28,7 +30,7 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | fait | `src/vs/platform/git/test/node/localGitService.test.ts` | 127 | 9 | 10 |
 | fait | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/chatSubagentContentPart.ts` | 217 | 57 | 43 |
 | fait | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/media/chatSubagentContent.css` | 179 | 3 | 6 |
-| | `src/vs/workbench/contrib/chat/test/browser/widget/chatContentParts/chatSubagentContentPart.test.ts` | 41 | 68 | 31 |
+| fait | `src/vs/workbench/contrib/chat/test/browser/widget/chatContentParts/chatSubagentContentPart.test.ts` | 41 | 68 | 31 |
 | | `src/vs/sessions/browser/workbench.ts` | 212 | 58 | 27 |
 | | `src/vs/workbench/contrib/welcomeGettingStarted/browser/media/gettingStarted.css` | 201 | 1 | 4 |
 | | `src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts` | 79 | 166 | 38 |

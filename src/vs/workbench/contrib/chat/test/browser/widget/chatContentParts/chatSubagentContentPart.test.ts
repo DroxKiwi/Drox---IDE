@@ -11,7 +11,7 @@ import { observableValue } from '../../../../../../../base/common/observable.js'
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../../base/test/common/utils.js';
 import { mainWindow } from '../../../../../../../base/browser/window.js';
 import { workbenchInstantiationService } from '../../../../../../test/browser/workbenchTestServices.js';
-import { DroxChatSubagentContentPart } from '../../../../browser/widget/chatContentParts/droxChatSubagentContentPart.js';
+import { ChatSubagentContentPart } from '../../../../browser/widget/chatContentParts/chatSubagentContentPart.js';
 import { IChatMarkdownContent, IChatSubagentToolInvocationData, IChatToolInvocation, IChatToolInvocationSerialized, ToolConfirmKind } from '../../../../common/chatService/chatService.js';
 import { IChatContentPartRenderContext, InlineTextModelCollection } from '../../../../browser/widget/chatContentParts/chatContentParts.js';
 import { IChatResponseViewModel } from '../../../../common/model/chatViewModel.js';
@@ -29,7 +29,7 @@ import { RunSubagentTool } from '../../../../common/tools/builtinTools/runSubage
 import { CollapsibleListPool } from '../../../../browser/widget/chatContentParts/chatReferencesContentPart.js';
 import { ToolDataSource } from '../../../../common/tools/languageModelToolsService.js';
 
-suite('DroxChatSubagentContentPart', () => {
+suite('ChatSubagentContentPart', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
 
 	type ToolInvocationParameters = IChatToolInvocation.State extends { parameters: infer P } ? P : never;
@@ -244,9 +244,9 @@ suite('DroxChatSubagentContentPart', () => {
 		toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized,
 		context: IChatContentPartRenderContext,
 		idOverride?: string
-	): DroxChatSubagentContentPart {
+	): ChatSubagentContentPart {
 		const part = store.add(instantiationService.createInstance(
-			DroxChatSubagentContentPart,
+			ChatSubagentContentPart,
 			idOverride ?? toolInvocation.subAgentInvocationId ?? toolInvocation.toolCallId,
 			toolInvocation,
 			context,
@@ -264,7 +264,7 @@ suite('DroxChatSubagentContentPart', () => {
 	}
 
 
-	function getCollapseButton(part: DroxChatSubagentContentPart): HTMLElement | undefined {
+	function getCollapseButton(part: ChatSubagentContentPart): HTMLElement | undefined {
 		const label = part.domNode.firstElementChild;
 		if (!isHTMLElement(label)) {
 			return undefined;
@@ -284,7 +284,7 @@ suite('DroxChatSubagentContentPart', () => {
 		return isHTMLElement(icon) ? icon : undefined;
 	}
 
-	function getWrapperElement(part: DroxChatSubagentContentPart): HTMLElement | undefined {
+	function getWrapperElement(part: ChatSubagentContentPart): HTMLElement | undefined {
 		const wrapper = part.domNode.lastElementChild;
 		return isHTMLElement(wrapper) ? wrapper : undefined;
 	}
@@ -301,13 +301,13 @@ suite('DroxChatSubagentContentPart', () => {
 			assert.ok(part.domNode.classList.contains('chat-thinking-fixed-mode'), 'Should have chat-thinking-fixed-mode class');
 		});
 
-		test('should start expanded', () => {
+		test('should start collapsed', () => {
 			const toolInvocation = createMockToolInvocation();
 			const context = createMockRenderContext(false);
 
 			const part = createPart(toolInvocation, context);
 
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should be expanded by default');
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should be collapsed by default');
 		});
 	});
 
@@ -361,7 +361,7 @@ suite('DroxChatSubagentContentPart', () => {
 		// the default placeholder to a real value, or if the agentName
 		// changed to a real value. These tests cover that branch directly.
 
-		function getTitleText(part: DroxChatSubagentContentPart): string {
+		function getTitleText(part: ChatSubagentContentPart): string {
 			const button = getCollapseButton(part);
 			assert.ok(button, 'Should have collapse button');
 			const labelElement = getCollapseButtonLabel(button);
@@ -507,13 +507,17 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const part = createPart(toolInvocation, context);
 
-			// Already expanded by default
+			// First expand
+			const button = getCollapseButton(part);
+			button?.click();
+
+			// Verify expanded
 			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false);
 
 			part.markAsInactive();
 
-			// Stay expanded so prompt / activity / report remain readable
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should stay expanded after markAsInactive');
+			// Should collapse when inactive
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should be collapsed after markAsInactive');
 		});
 
 		test('markAsInactive should change default description to past tense', () => {
@@ -695,22 +699,24 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const part = createPart(toolInvocation, context);
 
-			// Initially expanded (Drox: follow Explore live)
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false);
+			// Initially collapsed
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'));
 
-			// Click to collapse
+			// Click to expand
 			const button = getCollapseButton(part);
 			assert.ok(button, 'Should have expand button');
 			button.click();
 
-			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'),
-				'Should be collapsed after clicking button');
+			// Should be expanded
+			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false,
+				'Should be expanded after clicking button');
 
-			// Click again to expand
+			// Click again to collapse
 			button.click();
 
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false,
-				'Should be expanded after clicking button again');
+			// Should be collapsed again
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'),
+				'Should be collapsed after clicking button again');
 		});
 
 		test('should have proper aria-expanded attribute', () => {
@@ -721,17 +727,17 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const button = getCollapseButton(part);
 			assert.ok(button, 'Button should exist');
-			assert.strictEqual(button.getAttribute('aria-expanded'), 'true', 'Should have aria-expanded="true" when expanded by default');
+			assert.strictEqual(button.getAttribute('aria-expanded'), 'false', 'Should have aria-expanded="false" when collapsed');
 
-			// Collapse
+			// Expand
 			button.click();
 
-			assert.strictEqual(button.getAttribute('aria-expanded'), 'false', 'Should have aria-expanded="false" when collapsed');
+			assert.strictEqual(button.getAttribute('aria-expanded'), 'true', 'Should have aria-expanded="true" when expanded');
 		});
 	});
 
 	suite('Lazy rendering', () => {
-		test('should render prompt/result when initially complete (expanded by default)', () => {
+		test('should defer prompt/result rendering until expanded when initially complete', () => {
 			const serializedInvocation = createMockSerializedToolInvocation({
 				toolSpecificData: {
 					kind: 'subagent',
@@ -745,17 +751,28 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const part = createPart(serializedInvocation, context);
 
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should be expanded initially');
+			// Content should be collapsed - no wrapper content initially visible
+			// Just verify that the domNode has the collapsed class
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should be collapsed initially');
 
+			// Expand to trigger lazy rendering
+			const button = getCollapseButton(part);
+			assert.ok(button, 'Expand button should exist');
+			button.click();
+
+			// After expanding, the content containers should be rendered
+			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should be expanded');
+
+			// Verify prompt and result sections exist in the expanded content
 			const wrapperContent = part.domNode.querySelector('.chat-used-context-list');
-			assert.ok(wrapperContent, 'Wrapper content should exist when expanded by default');
+			assert.ok(wrapperContent, 'Wrapper content should exist after expand');
 
+			// Check that sections were inserted
 			const sections = wrapperContent.querySelectorAll('.chat-subagent-section');
-			assert.ok(sections.length >= 2, 'Should have prompt and result sections');
-			assert.ok(wrapperContent.querySelector('.chat-subagent-boundary-end'), 'Should show finished boundary');
+			assert.ok(sections.length >= 2, 'Should have prompt and result sections after expand');
 		});
 
-		test('should render wrapper content while subagent is running (expanded by default)', () => {
+		test('should not render wrapper content while subagent is running (truly collapsed)', () => {
 			const toolInvocation = createMockToolInvocation({
 				toolSpecificData: {
 					kind: 'subagent',
@@ -769,14 +786,15 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const part = createPart(toolInvocation, context);
 
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should be expanded while running');
+			// Should be collapsed with just the title visible
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should be collapsed while running');
 
+			// Wrapper content should not be initialized yet (lazy)
 			const wrapperContent = part.domNode.querySelector('.chat-used-context-list');
-			assert.ok(wrapperContent, 'Wrapper content should be rendered while running (expanded by default)');
-			assert.ok(wrapperContent.querySelector('.chat-subagent-boundary-start'), 'Should show start boundary');
+			assert.strictEqual(wrapperContent, null, 'Wrapper content should not be rendered while running and collapsed');
 		});
 
-		test('should show prompt when expanded by default with no tool items yet', () => {
+		test('should show prompt on expand when no tool items yet', () => {
 			const toolInvocation = createMockToolInvocation({
 				toolSpecificData: {
 					kind: 'subagent',
@@ -790,12 +808,23 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const part = createPart(toolInvocation, context);
 
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should be expanded initially');
-			const wrapperContent = part.domNode.querySelector('.chat-used-context-list');
-			assert.ok(wrapperContent, 'Wrapper should exist when expanded by default');
+			// Initially collapsed with no content
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should be collapsed initially');
+			let wrapperContent = part.domNode.querySelector('.chat-used-context-list');
+			assert.strictEqual(wrapperContent, null, 'Wrapper should not exist initially');
 
+			// Expand
+			const button = getCollapseButton(part);
+			assert.ok(button, 'Expand button should exist');
+			button.click();
+
+			// Wrapper should now exist and be visible
+			wrapperContent = part.domNode.querySelector('.chat-used-context-list');
+			assert.ok(wrapperContent, 'Wrapper should exist after expand');
+
+			// Prompt section should be rendered
 			const promptSection = wrapperContent.querySelector('.chat-subagent-section');
-			assert.ok(promptSection, 'Prompt section should be visible');
+			assert.ok(promptSection, 'Prompt section should be visible after expand');
 		});
 	});
 
@@ -1078,10 +1107,8 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const part = createPart(toolInvocation, context);
 
-			// Collapse so lazy markdown is deferred
-			const collapseBtn = getCollapseButton(part);
-			collapseBtn?.click();
-			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should be collapsed after user collapse');
+			// Part is collapsed by default
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should start collapsed');
 
 			const markdownContent: IChatMarkdownContent = {
 				kind: 'markdownContent',
@@ -1226,8 +1253,8 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const part = createPart(toolInvocation, context);
 
-			// Expanded by default (Drox)
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should start expanded');
+			// Verify initially collapsed
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should start collapsed');
 
 			// Create a tool invocation that starts in executing state, then changes to WaitingForConfirmation
 			const stateObservable = observableValue('state', createState(IChatToolInvocation.StateKind.Executing));
@@ -1243,13 +1270,13 @@ suite('DroxChatSubagentContentPart', () => {
 			// Track this tool's state (this registers observers)
 			part.trackToolState(childTool);
 
-			// Still expanded while tool is executing
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should stay expanded when tool is executing');
+			// Should still be collapsed since tool is executing, not waiting for confirmation
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should still be collapsed when tool is executing');
 
 			// Now change state to WaitingForConfirmation
 			stateObservable.set(createState(IChatToolInvocation.StateKind.WaitingForConfirmation), undefined);
 
-			// Should remain / auto-expand when tool needs confirmation
+			// Should auto-expand when tool needs confirmation
 			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false,
 				'Should auto-expand when tool needs confirmation');
 		});
@@ -1345,8 +1372,8 @@ suite('DroxChatSubagentContentPart', () => {
 
 			const part = createPart(toolInvocation, context);
 
-			// Verify initially expanded
-			assert.strictEqual(part.domNode.classList.contains('chat-used-context-collapsed'), false, 'Should start expanded');
+			// Verify initially collapsed
+			assert.ok(part.domNode.classList.contains('chat-used-context-collapsed'), 'Should start collapsed');
 
 			// Create a tool that needs confirmation
 			const stateObservable = observableValue('state', createState(IChatToolInvocation.StateKind.WaitingForConfirmation));
