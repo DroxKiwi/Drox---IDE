@@ -144,7 +144,9 @@ import { MeteredConnectionChannelClient, METERED_CONNECTION_CHANNEL } from '../.
 import { PlaywrightChannel } from '../../../platform/browserView/node/playwrightChannel.js';
 import { AgentNetworkFilterService } from '../../../platform/networkFilter/common/networkFilterService.js';
 import { ILocalGitService } from '../../../platform/git/common/localGitService.js';
-import { LocalGitService } from '../../../platform/git/node/localGitService.js';
+// DROX-BEGIN
+import { DroxLocalGitService } from '../../../platform/git/node/droxLocalGitService.js';
+// DROX-END
 
 class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 
@@ -416,7 +418,9 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		services.set(ISharedWebContentExtractorService, new SyncDescriptor(SharedWebContentExtractorService));
 
 		// Local Git
-		services.set(ILocalGitService, new SyncDescriptor(LocalGitService, undefined, false /* proxied to other processes */));
+		// DROX-BEGIN
+		services.set(ILocalGitService, new SyncDescriptor(DroxLocalGitService, undefined, false /* proxied to other processes */));
+		// DROX-END
 
 		// SSH Remote Agent Host
 		services.set(ISSHRemoteAgentHostMainService, new SyncDescriptor(SSHRemoteAgentHostMainService, undefined, true));

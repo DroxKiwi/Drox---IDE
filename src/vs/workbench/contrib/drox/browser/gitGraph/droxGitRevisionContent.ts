@@ -9,7 +9,7 @@ import { ILanguageService } from '../../../../../editor/common/languages/languag
 import { ITextModel } from '../../../../../editor/common/model.js';
 import { IModelService } from '../../../../../editor/common/services/model.js';
 import { ITextModelContentProvider, ITextModelService } from '../../../../../editor/common/services/resolverService.js';
-import { ILocalGitService } from '../../../../../platform/git/common/localGitService.js';
+import { IDroxLocalGitService } from '../../../../../platform/git/common/droxLocalGitService.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../../common/contributions.js';
 
 export const DROX_GIT_REVISION_SCHEME = 'drox-git';
@@ -56,7 +56,7 @@ export class DroxGitRevisionContentProvider implements ITextModelContentProvider
 	constructor(
 		@IModelService private readonly _modelService: IModelService,
 		@ILanguageService private readonly _languageService: ILanguageService,
-		@ILocalGitService private readonly _localGitService: ILocalGitService,
+		@IDroxLocalGitService private readonly _localGitService: IDroxLocalGitService,
 	) { }
 
 	async provideTextContent(resource: URI): Promise<ITextModel | null> {
@@ -90,7 +90,7 @@ class DroxGitRevisionContribution extends Disposable implements IWorkbenchContri
 		@ITextModelService textModelService: ITextModelService,
 		@IModelService modelService: IModelService,
 		@ILanguageService languageService: ILanguageService,
-		@ILocalGitService localGitService: ILocalGitService,
+		@IDroxLocalGitService localGitService: IDroxLocalGitService,
 	) {
 		super();
 		this._register(textModelService.registerTextModelContentProvider(

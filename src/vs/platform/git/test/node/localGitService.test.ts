@@ -7,7 +7,7 @@ import assert from 'assert';
 import * as cp from 'child_process';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { NullLogService } from '../../../log/common/log.js';
-import { LocalGitService } from '../../node/localGitService.js';
+import { DroxLocalGitService } from '../../node/droxLocalGitService.js';
 
 interface IExecFileExpectation {
 	args: string[];
@@ -54,7 +54,7 @@ suite('LocalGitService', () => {
 			{ args: ['pull', '--ff-only'] },
 			{ args: ['rev-parse', 'HEAD'], stdout: 'bbbb\n' },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 
 		const changed = await service.pull('test-op', 'C:\\repo');
 
@@ -75,7 +75,7 @@ suite('LocalGitService', () => {
 			{ args: ['reset', '--hard', 'origin/main'] },
 			{ args: ['rev-parse', 'HEAD'], stdout: 'bbbb\n' },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 
 		const changed = await service.pull('test-op', 'C:\\repo', { allowHardResetOnDivergence: true });
 
@@ -91,7 +91,7 @@ suite('LocalGitService', () => {
 			{ args: ['pull', '--ff-only'], error: createDivergedPullError() },
 			{ args: ['status', '--porcelain'], stdout: ' M package.json\n' },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 
 		await assert.rejects(
 			() => service.pull('test-op', 'C:\\repo', { allowHardResetOnDivergence: true }),
@@ -106,7 +106,7 @@ suite('LocalGitService', () => {
 			{ args: ['rev-parse', 'HEAD'], stdout: 'aaaa\n' },
 			{ args: ['pull', '--ff-only'], error: pullError, stderr: 'fatal: Authentication failed' },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 
 		await assert.rejects(
 			() => service.pull('test-op', 'C:\\repo', { allowHardResetOnDivergence: true }),
@@ -123,7 +123,7 @@ suite('LocalGitService', () => {
 			{ args: ['fetch', '--prune'] },
 			{ args: ['pull', '--ff-only'], error: retryError, stderr: 'fatal: Authentication failed' },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 
 		await assert.rejects(
 			() => service.pull('test-op', 'C:\\repo', { allowHardResetOnDivergence: true }),
@@ -140,7 +140,7 @@ suite('LocalGitService', () => {
 			{ args: ['pull', '--ff-only'] },
 			{ args: ['rev-parse', 'HEAD'], stdout: 'bbbb\n' },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 
 		const changed = await service.pull('test-op', 'C:\\repo');
 
@@ -155,7 +155,7 @@ suite('LocalGitService', () => {
 			{ args: ['fetch', '--prune'] },
 			{ args: ['pull', '--ff-only'], error: createDivergedPullError() },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 
 		await assert.rejects(
 			() => service.pull('test-op', 'C:\\repo'),
@@ -173,7 +173,7 @@ suite('LocalGitService', () => {
 			{ args: ['status', '--porcelain'], stdout: '' },
 			{ args: ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], error: new Error('no upstream configured') as cp.ExecFileException },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 
 		await assert.rejects(
 			() => service.pull('test-op', 'C:\\repo', { allowHardResetOnDivergence: true }),
@@ -186,7 +186,7 @@ suite('LocalGitService', () => {
 		const expectations: IExecFileExpectation[] = [
 			{ args: ['rev-parse', '--is-inside-work-tree'], stdout: 'true\n' },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 		assert.strictEqual(await service.isGitRepository('C:\\repo'), true);
 		assert.strictEqual(expectations.length, 0);
 	});
@@ -208,7 +208,7 @@ suite('LocalGitService', () => {
 				stdout,
 			},
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 		const commits = await service.getCommitLog('C:\\repo', { maxCount: 2 });
 		assert.strictEqual(commits.length, 2);
 		assert.strictEqual(commits[0].hash, 'aaaa');
@@ -236,7 +236,7 @@ suite('LocalGitService', () => {
 				].join('\n'),
 			},
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 		const refs = await service.getRefs('C:\\repo');
 		assert.deepStrictEqual(refs, [
 			{ hash: 'aaaa', name: 'main', kind: 'head' },
@@ -257,7 +257,7 @@ suite('LocalGitService', () => {
 				stdout: `stash@{0}${'\x1f'}deadbeef${'\x1f'}WIP on main: tip${'\x1e'}`,
 			},
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 		const stashes = await service.getStashes('C:\\repo');
 		assert.deepStrictEqual(stashes, [
 			{ reflogSelector: 'stash@{0}', hash: 'deadbeef', subject: 'WIP on main: tip' },
@@ -269,7 +269,7 @@ suite('LocalGitService', () => {
 		const expectations: IExecFileExpectation[] = [
 			{ args: ['checkout', '-b', 'feature', 'abc123'] },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 		await service.createBranch('C:\\repo', 'feature', { checkout: true, startPoint: 'abc123' });
 		assert.strictEqual(expectations.length, 0);
 	});
@@ -278,7 +278,7 @@ suite('LocalGitService', () => {
 		const expectations: IExecFileExpectation[] = [
 			{ args: ['show', 'abc:src/a.ts'], stdout: 'console.log(1);\n' },
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 		const content = await service.getFileAtRevision('C:\\repo', 'abc', 'src\\a.ts');
 		assert.strictEqual(content, 'console.log(1);\n');
 		assert.strictEqual(expectations.length, 0);
@@ -291,7 +291,7 @@ suite('LocalGitService', () => {
 				stdout: `M\0src/a.ts\0A\0src/b.ts\0`,
 			},
 		];
-		const service = new LocalGitService(new NullLogService(), createExecFile(expectations));
+		const service = new DroxLocalGitService(new NullLogService(), createExecFile(expectations));
 		const files = await service.getChangedFilesBetween('C:\\repo', 'aaa', 'bbb');
 		assert.deepStrictEqual(files, [
 			{ status: 'M', path: 'src/a.ts' },

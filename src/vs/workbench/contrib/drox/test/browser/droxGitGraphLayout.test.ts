@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ILocalGitCommit } from '../../../../../platform/git/common/localGitService.js';
+import { ILocalGitCommit } from '../../../../../platform/git/common/droxLocalGitService.js';
 import { computeDroxGitGraphLayout } from '../../browser/gitGraph/droxGitGraphLayout.js';
 
 suite('computeDroxGitGraphLayout', () => {

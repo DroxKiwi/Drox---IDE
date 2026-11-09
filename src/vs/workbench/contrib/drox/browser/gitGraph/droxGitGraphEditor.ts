@@ -30,7 +30,7 @@ import { EditorPane } from '../../../../browser/parts/editor/editorPane.js';
 import { IEditorOpenContext } from '../../../../common/editor.js';
 import { IEditorOptions } from '../../../../../platform/editor/common/editor.js';
 import { IEditorGroup } from '../../../../services/editor/common/editorGroupsService.js';
-import { ILocalGitChangedFile, ILocalGitCommit, ILocalGitCommitDetails, ILocalGitRef, ILocalGitStash, LocalGitResetMode } from '../../../../../platform/git/common/localGitService.js';
+import { ILocalGitChangedFile, ILocalGitCommit, ILocalGitCommitDetails, ILocalGitRef, ILocalGitStash, LocalGitResetMode } from '../../../../../platform/git/common/droxLocalGitService.js';
 import { IDroxGitGraphService, IDroxGitGraphWindow } from '../../common/droxGitGraphService.js';
 import { computeDroxGitGraphLayout, DROX_GIT_GRAPH_LANE_WIDTH, DROX_GIT_GRAPH_ROW_HEIGHT, droxGitGraphLaneColor, IDroxGitGraphLayoutRow } from './droxGitGraphLayout.js';
 import { DROX_GIT_GRAPH_EDITOR_ID, DroxGitGraphInput } from './droxGitGraphInput.js';
