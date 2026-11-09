@@ -32,7 +32,7 @@ import { IChatMarkdownAnchorService } from './chatMarkdownAnchorService.js';
 import { CollapsibleListPool } from './chatReferencesContentPart.js';
 import { buildPhrasePool, createThinkingIcon, getToolInvocationIcon } from './chatThinkingContentPart.js';
 import { ChatToolInvocationPart } from './toolInvocationParts/chatToolInvocationPart.js';
-import './media/chatSubagentContent.css';
+import './media/droxChatSubagentContent.css';
 
 const subagentWorkingMessages = [
 	localize('chat.subagent.working.1', 'Processing'),
