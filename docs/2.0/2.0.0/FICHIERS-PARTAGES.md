@@ -28,6 +28,8 @@ La mémoire de disposition de `workbench.ts` est dans `sessionsWorkspaceLayoutCo
 
 `chatInputPart.ts` garde les branchements du compositeur Drox (barre, collage, modèle architecte), encadrés. Le corps est déjà dans `droxAgentsChatInputIntegration` et les fichiers de collage.
 
+`openInAgents.css` est revenu identique à la base. Le vert, l'icône Drox, le bouton de chat et le tutoriel sont dans `droxOpenInAgents.css`, importé juste après.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -45,7 +47,7 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | en cours | `src/vs/workbench/contrib/welcomeGettingStarted/common/gettingStartedContent.ts` | 74 | 1 | 4 |
 | fait | `src/vs/sessions/contrib/terminal/browser/sessionsTerminalContribution.ts` | 197 | 103 | 33 |
 | en cours | `src/vs/workbench/contrib/chat/browser/widget/input/chatInputPart.ts` | 177 | 4 | 23 |
-| | `src/vs/workbench/contrib/chat/electron-browser/agentSessions/media/openInAgents.css` | 176 | 8 | 10 |
+| fait | `src/vs/workbench/contrib/chat/electron-browser/agentSessions/media/openInAgents.css` | 176 | 8 | 10 |
 | | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/toolInvocationParts/chatTerminalToolProgressPart.ts` | 110 | 8 | 15 |
 | | `src/vs/sessions/contrib/chat/browser/newChatInput.ts` | 100 | 21 | 20 |
 | | `build/lib/electron.ts` | 104 | 7 | 8 |

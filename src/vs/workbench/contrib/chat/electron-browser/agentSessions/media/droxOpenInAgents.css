@@ -1,0 +1,204 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/* Loaded after openInAgents.css so these declarations replace the Microsoft ones. */
+
+.monaco-workbench .open-in-agents-titlebar-widget {
+	color: #3D7A3D;
+}
+
+.monaco-workbench .open-in-agents-titlebar-widget > .open-in-agents-titlebar-widget-icon {
+	display: inline-block;
+	background-image: url('./drox-agents-switch.svg');
+	filter: none;
+	transition: transform 160ms ease;
+}
+
+.monaco-workbench .open-in-agents-titlebar-widget:hover > .open-in-agents-titlebar-widget-icon,
+.monaco-workbench .open-in-agents-titlebar-widget:focus-visible > .open-in-agents-titlebar-widget-icon {
+	transform: rotate(-8deg) scale(1.06);
+}
+
+.monaco-workbench .open-in-agents-titlebar-widget > .open-in-agents-titlebar-widget-label {
+	color: #3D7A3D;
+	font-weight: 600;
+}
+
+.monaco-workbench .open-in-agents-titlebar-widget:hover,
+.monaco-workbench .open-in-agents-titlebar-widget:focus-visible {
+	background-color: color-mix(in srgb, #3D7A3D 18%, transparent);
+}
+
+.monaco-workbench .open-in-agents-titlebar-widget:focus-visible {
+	outline: 1px solid #3D7A3D;
+	outline-offset: -1px;
+}
+
+/* Chat toggle beside Open in Agents. Green while the side chat is open. */
+.monaco-workbench .drox-chat-titlebar-widget {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	margin-right: 2px;
+	border-radius: 5px;
+	cursor: pointer;
+	color: var(--vscode-titleBar-activeForeground);
+	-webkit-app-region: no-drag;
+}
+
+.monaco-workbench .drox-chat-titlebar-widget.is-open {
+	color: #4ec94e;
+}
+
+.monaco-workbench .drox-chat-titlebar-widget > .drox-chat-titlebar-widget-icon {
+	font-size: 16px;
+}
+
+.monaco-workbench .drox-chat-titlebar-widget:hover {
+	background-color: color-mix(in srgb, var(--vscode-titleBar-activeForeground) 14%, transparent);
+}
+
+.monaco-workbench .drox-chat-titlebar-widget.is-open:hover {
+	background-color: color-mix(in srgb, #4ec94e 18%, transparent);
+}
+
+.monaco-workbench .drox-chat-titlebar-widget:focus-visible {
+	outline: 1px solid var(--vscode-titleBar-activeForeground);
+	outline-offset: -1px;
+}
+
+.drox-tutorial-titlebar-widget {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	margin-right: 14px;
+	border-radius: 5px;
+	cursor: pointer;
+	color: var(--vscode-titleBar-activeForeground);
+	-webkit-app-region: no-drag;
+}
+
+.drox-tutorial-titlebar-widget.is-open {
+	color: #4ec94e;
+}
+
+.drox-tutorial-titlebar-widget > .drox-tutorial-titlebar-widget-icon {
+	font-size: 16px;
+}
+
+.drox-tutorial-titlebar-widget:hover {
+	background-color: color-mix(in srgb, var(--vscode-titleBar-activeForeground) 14%, transparent);
+}
+
+.drox-tutorial-titlebar-widget.is-open:hover {
+	background-color: color-mix(in srgb, #4ec94e 18%, transparent);
+}
+
+.titlebar-session-actions-container .drox-tutorial-titlebar-widget {
+	margin-right: 16px;
+	margin-left: 4px;
+}
+
+.drox-tutorial {
+	position: fixed;
+	inset: 0;
+	z-index: 250000;
+	pointer-events: auto;
+}
+
+.drox-tutorial.drox-tutorial-full {
+	background: rgba(0, 0, 0, 0.72);
+}
+
+.drox-tutorial-spot {
+	position: fixed;
+	border-radius: 10px;
+	box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72);
+	outline: 2px solid #4ec94e;
+	pointer-events: none;
+}
+
+.drox-tutorial-spot-hidden {
+	display: none;
+}
+
+.drox-tutorial-card {
+	position: fixed;
+	z-index: 1;
+	box-sizing: border-box;
+	padding: 14px 14px 12px;
+	border-radius: 10px;
+	border: 1px solid var(--vscode-editorWidget-border, #454545);
+	background: var(--vscode-editorWidget-background, #252526);
+	color: var(--vscode-editorWidget-foreground, #cccccc);
+	box-shadow: var(--vscode-shadow-md, 0 8px 24px rgba(0, 0, 0, 0.4));
+}
+
+.drox-tutorial-count {
+	margin: 0 0 4px;
+	font-size: 11px;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--vscode-descriptionForeground, #9d9d9d);
+}
+
+.drox-tutorial-title {
+	margin: 0 0 8px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.drox-tutorial-body {
+	margin: 0 0 8px;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.drox-tutorial-link[hidden] {
+	display: none;
+}
+
+.drox-tutorial-link {
+	display: inline-block;
+	margin: 0 0 12px;
+	color: #4ec94e;
+	cursor: pointer;
+}
+
+.drox-tutorial-link:hover {
+	text-decoration: underline;
+}
+
+.drox-tutorial-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+.drox-tutorial-button {
+	border: 1px solid var(--vscode-button-border, transparent);
+	border-radius: 6px;
+	padding: 4px 10px;
+	background: var(--vscode-button-secondaryBackground, #3a3d41);
+	color: var(--vscode-button-secondaryForeground, #cccccc);
+	cursor: pointer;
+}
+
+.drox-tutorial-button:hover:not(:disabled) {
+	background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+.drox-tutorial-button:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.drox-tutorial-stop {
+	margin-right: auto;
+}
