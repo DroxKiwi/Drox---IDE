@@ -28,7 +28,9 @@ import { ResourceSet } from '../../../../../../base/common/map.js';
 import { MarshalledId } from '../../../../../../base/common/marshallingIds.js';
 import { Schemas } from '../../../../../../base/common/network.js';
 import { mixin } from '../../../../../../base/common/objects.js';
+// DROX-BEGIN
 import { generateUuid } from '../../../../../../base/common/uuid.js';
+// DROX-END
 import { autorun, constObservable, derived, derivedOpts, IObservable, ISettableObservable, observableFromEvent, observableValue } from '../../../../../../base/common/observable.js';
 import { isMacintosh } from '../../../../../../base/common/platform.js';
 import { isEqual } from '../../../../../../base/common/resources.js';
@@ -144,6 +146,7 @@ import { Target } from '../../../common/promptSyntax/promptTypes.js';
 import { findLast } from '../../../../../../base/common/arraysFind.js';
 import { ConfigureToolsAction } from '../../actions/chatToolActions.js';
 import { InlineCompletionsController } from '../../../../../../editor/contrib/inlineCompletions/browser/controller/inlineCompletionsController.js';
+// DROX-BEGIN
 import {
 	createDroxAgentsChatInputToolbarHost,
 	createDroxAgentsChatStatusBarHost,
@@ -165,6 +168,7 @@ import {
 	wireToDroxSmartPasteAttachmentValue,
 } from '../../../../drox/common/droxNativeChatRequestAttachments.js';
 import { DroxSetting } from '../../../../drox/common/droxConfiguration.js';
+// DROX-END
 
 const $ = dom.$;
 
@@ -214,8 +218,10 @@ export interface IChatInputPartOptions {
 	 * When true, the secondary toolbar (permissions picker) is hidden.
 	 */
 	isSessionsWindow?: boolean;
+	// DROX-BEGIN
 	/** Drox IDE native chat — composer chips (server, modes, model settings). */
 	droxNativeComposer?: boolean;
+	// DROX-END
 }
 
 export interface IWorkingSetEntry {
@@ -339,9 +345,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 	private inputSideToolbarContainer?: HTMLElement;
 	private secondaryToolbarContainer!: HTMLElement;
+	// DROX-BEGIN
 	private _droxAgentsChatInputToolbarHost: DroxAgentsChatInputToolbarHost | undefined;
 	private _droxAgentsComposerQuickActionsHost: DroxAgentsComposerQuickActionsHost | undefined;
 	private _droxAgentsChatStatusBarHost: DroxAgentsChatStatusBarHost | undefined;
+	// DROX-END
 	private secondaryToolbar!: MenuWorkbenchToolBar;
 	private statusToolbarContainer!: HTMLElement;
 	private statusToolbar!: MenuWorkbenchToolBar;
@@ -456,7 +464,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private _lastSessionPickerAction: MenuItemAction | undefined;
 	private _lastSessionPickerOptions: IChatInputPickerOptions | undefined;
 	private readonly _waitForPersistedLanguageModel: MutableDisposable<IDisposable> = this._register(new MutableDisposable<IDisposable>());
+	// DROX-BEGIN
 	private readonly _droxArchitectModelRetry: MutableDisposable<IDisposable> = this._register(new MutableDisposable<IDisposable>());
+	// DROX-END
 	private readonly _waitForSessionHistoryLanguageModel: MutableDisposable<IDisposable> = this._register(new MutableDisposable<IDisposable>());
 	private readonly _chatSessionOptionEmitters = this._register(new DisposableMap<string, Emitter<IChatSessionProviderOptionItem>>());
 
@@ -641,7 +651,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		@IChatAttachmentWidgetRegistry private readonly _chatAttachmentWidgetRegistry: IChatAttachmentWidgetRegistry,
 		@IChatInputNotificationService private readonly chatInputNotificationService: IChatInputNotificationService,
 		@IChatPhoneInputPresenter private readonly chatPhoneInputPresenter: IChatPhoneInputPresenter,
+		// DROX-BEGIN
 		@IDroxPasteCandidateService private readonly pasteCandidateService: IDroxPasteCandidateService,
+		// DROX-END
 	) {
 		super();
 
@@ -772,9 +784,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				// value at startup. Re-apply it to a fresh empty session when it lands.
 				this._applyConfiguredDefaultForEmptySession();
 			}
+			// DROX-BEGIN
 			if (e.affectsConfiguration(DroxSetting.ArchitectModel) || e.affectsConfiguration(DroxSetting.Model)) {
 				this._preferDroxArchitectModel();
 			}
+			// DROX-END
 			if (e.affectsConfiguration(AccessibilityVerbositySettingId.Chat)) {
 				newOptions.ariaLabel = this._getAriaLabel();
 			}
@@ -1585,11 +1599,13 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		logChangesToStateModel(this._inputModel, `setCurrentLanguageModel to ${model.identifier} in ${this._currentSessionKey}, storageKey=${selectedModelStorageKey}, isDefaultKey=${selectedModelIsDefaultStorageKey}, currentSessionType=${this._currentSessionType}, getCurrentSessionType=${this.getCurrentSessionType()}, boundInputModelSession=${this._inputModelSessionResource?.toString()}, modelDetials = ${modelDetails}`, undefined, undefined, this.logService);
 		this._currentLanguageModel.set(model, undefined);
 
+		// DROX-BEGIN
 		if (isUserAction && this._usesDroxNativeComposer() && isDroxAgentsChatSessionType(this.getCurrentSessionType())) {
 			// An automatic catalog reset (often the first model) must not
 			// overwrite drox.architect.model. Only an explicit user pick writes it.
 			syncDroxArchitectModelFromChatPicker(this.configurationService, this.workspaceContextService, model.identifier);
 		}
+		// DROX-END
 
 		if (this.cachedWidth) {
 			// For quick chat and editor chat, relayout because the input may need to shrink to accomodate the model name
@@ -1739,6 +1755,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		return this.options.sessionTypePickerDelegate?.getActiveSessionProvider?.();
 	}
 
+	// DROX-BEGIN
 	private _usesDroxNativeComposer(): boolean {
 		return !!(this.options.isSessionsWindow || this.options.droxNativeComposer);
 	}
@@ -1805,6 +1822,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		// `drox.architect.model` (USER) is the source of truth — keep picker in sync after restart.
 		this.setCurrentLanguageModel(preferred, false);
 	}
+	// DROX-END
 
 	private getNotificationSessionType(): string | undefined {
 		return this._pendingDelegationTarget ?? this._currentSessionType ?? this.getCurrentSessionType();
@@ -2329,11 +2347,13 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	private _updateInputContentContextKeys(): void {
 		const inputHasText = !!this._inputEditor?.getModel()?.getValue().trim();
 		this.inputEditorHasText.set(inputHasText);
+		// DROX-BEGIN
 		const hasSendableAttachment = this._attachmentModel.attachments.some(entry =>
 			isExplicitFileOrImageVariableEntry(entry)
 			|| (this._usesDroxNativeComposer() && isDroxSendablePasteAttachment(entry)),
 		);
 		const hasSendableContent = inputHasText || hasSendableAttachment;
+		// DROX-END
 		// Block sending when the session type has no usable model (and can't
 		// fall back to Auto): there is nothing to send the request with.
 		this.inputEditorHasSendableContent.set(hasSendableContent && !this.hasNoAvailableModel());
@@ -2862,7 +2882,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				this.initSelectedModel();
 				this.checkModelInSessionPool();
 				this.checkModeInSessionPool();
+				// DROX-BEGIN
 				this._preferDroxArchitectModel();
+				// DROX-END
 				this._notificationWidget.value?.rerender();
 			} else if (e.currentSessionResource) {
 				logChangesToStateModel(this._inputModel, `[CVVM].2 onDidChangeViewModel -> session change: ${this._currentSessionType} -> ${newSessionType} in ${this._currentSessionKey}, ${e.currentSessionResource.toString()}`, undefined, this._inputModel?.state.get(), this.logService);
@@ -2872,8 +2894,10 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			// For contributed sessions with history, pre-select the model
 			// from the last request so the user resumes with the same model.
 			this.preselectModelFromSessionHistory();
+			// DROX-BEGIN
 			this._preferDroxArchitectModel();
 			this._syncDroxAgentsFollowUpInput();
+			// DROX-END
 		}));
 
 		let elements;
@@ -3107,9 +3131,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			this.inputEditorHasFocus.set(true);
 			this._onDidFocus.fire();
 			inputContainer.classList.toggle('focused', true);
+			// DROX-BEGIN
 			if (this._usesDroxNativeComposer()) {
 				this.pasteCandidateService.resync();
 			}
+			// DROX-END
 		}));
 		this._register(this._inputEditor.onDidBlurEditorText(() => {
 			this.inputEditorHasFocus.set(false);
@@ -3190,18 +3216,24 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					const itemDelegate: IModelPickerDelegate = this._createModelPickerDelegate();
 					return this.modelWidget = this.instantiationService.createInstance(ModelPickerActionItem, action, itemDelegate, pickerOptions);
 				} else if (action.id === OpenModePickerAction.ID && action instanceof MenuItemAction) {
+					// DROX-BEGIN
 					// Drox discussion shell: mode is always Agent; Agents UI uses Drox chips instead.
 					if (this._usesDroxNativeComposer()) {
 						return new HiddenActionViewItem(action);
 					}
+					// DROX-END
 					const delegate: IModePickerDelegate = this._createModePickerDelegate();
 					return this.modeWidget = this.instantiationService.createInstance(ModePickerActionItem, action, delegate, pickerOptions);
+					// DROX-BEGIN
 				} else if (action.id === ConfigureToolsAction.ID && this._usesDroxNativeComposer()) {
 					return new HiddenActionViewItem(action);
+					// DROX-END
 				} else if ((action.id === OpenSessionTargetPickerAction.ID || action.id === OpenDelegationPickerAction.ID) && action instanceof MenuItemAction) {
+					// DROX-BEGIN
 					if (this._usesDroxNativeComposer()) {
 						return new HiddenActionViewItem(action);
 					}
+					// DROX-END
 					// Use provided delegate if available, otherwise create default delegate
 					const delegate: ISessionTypePickerDelegate = this.options.sessionTypePickerDelegate ?? {
 						getActiveSessionProvider: () => {
@@ -3336,9 +3368,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			},
 			actionViewItemProvider: (action, options) => {
 				if ((action.id === OpenSessionTargetPickerAction.ID || action.id === OpenDelegationPickerAction.ID) && action instanceof MenuItemAction) {
+					// DROX-BEGIN
 					if (this._usesDroxNativeComposer()) {
 						return new HiddenActionViewItem(action);
 					}
+					// DROX-END
 					const delegate: ISessionTypePickerDelegate = this.options.sessionTypePickerDelegate ?? {
 						getActiveSessionProvider: () => {
 							return this.getActiveSessionTypeForDelegation();
@@ -3361,10 +3395,12 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 						return new HiddenActionViewItem(action);
 					}
 				} else if (action.id === OpenPermissionPickerAction.ID && action instanceof MenuItemAction) {
+					// DROX-BEGIN
 					// Drox uses DroxAgentsPermissionModePicker on the composer toolbar instead.
 					if (this._usesDroxNativeComposer()) {
 						return new HiddenActionViewItem(action);
 					}
+					// DROX-END
 					const delegate: IPermissionPickerDelegate = {
 						currentPermissionLevel: this._currentPermissionLevel,
 						setPermissionLevel: (level: ChatPermissionLevel) => {
@@ -3414,9 +3450,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 						|| action.id === OpenAgentHostPermissionModePickerAction.ID)
 					&& action instanceof MenuItemAction
 				) {
+					// DROX-BEGIN
 					if (this._usesDroxNativeComposer()) {
 						return new HiddenActionViewItem(action);
 					}
+					// DROX-END
 					const property = action.id === OpenAgentHostAutoApprovePickerAction.ID
 						? SessionConfigKey.AutoApprove
 						: action.id === OpenAgentHostPermissionModePickerAction.ID
@@ -3425,9 +3463,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 					const picker = this.instantiationService.createInstance(AgentHostChatInputPicker, widget, property);
 					return new AgentHostChatInputPickerActionViewItem(action, picker);
 				} else if (action.id === OpenAgentHostFolderPickerAction.ID && action instanceof MenuItemAction) {
+					// DROX-BEGIN
 					if (this._usesDroxNativeComposer()) {
 						return new HiddenActionViewItem(action);
 					}
+					// DROX-END
 					return this.instantiationService.createInstance(AgentHostFolderPickerActionItem, action, widget, secondaryPickerOptions);
 				} else if (action.id === ChatSessionPrimaryPickerAction.ID && action instanceof MenuItemAction) {
 					// Create all pickers and return a container action view item
@@ -3444,6 +3484,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 		this.secondaryToolbar.getElement().classList.add('chat-secondary-input-toolbar');
 		this.secondaryToolbar.context = { widget } satisfies IChatExecuteActionContext;
 		dom.append(this.secondaryToolbarContainer, genericChipsContainer);
+		// DROX-BEGIN
 		if (this._usesDroxNativeComposer()) {
 			const quickActionsHost = createDroxAgentsComposerQuickActionsHost(
 				this.instantiationService,
@@ -3480,6 +3521,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				this._syncDroxAgentsFollowUpInput();
 			}
 		}
+		// DROX-END
 		this._register(this.secondaryToolbar.onDidChangeMenuItems(() => {
 			// Update container reference for the pickers when the secondary toolbar hosts one.
 			// Only assign when found so we don't overwrite a valid primary container reference
@@ -3705,12 +3747,14 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				attachmentWidget = this.instantiationService.createInstance(ElementChatAttachmentWidget, attachment, lm, options, container, this._contextResourceLabels);
 			} else if (isPasteVariableEntry(attachment)) {
 				attachmentWidget = this.instantiationService.createInstance(PasteAttachmentWidget, attachment, lm, options, container, this._contextResourceLabels);
+				// DROX-BEGIN
 			} else if (isDroxSmartPasteVariableEntry(attachment)) {
 				const pasteLike = droxSmartPasteVariableEntryToPasteEntry(attachment);
 				if (!pasteLike) {
 					continue;
 				}
 				attachmentWidget = this.instantiationService.createInstance(PasteAttachmentWidget, pasteLike, lm, options, container, this._contextResourceLabels);
+				// DROX-END
 			} else if (isSCMHistoryItemVariableEntry(attachment)) {
 				attachmentWidget = this.instantiationService.createInstance(SCMHistoryItemAttachmentWidget, attachment, lm, options, container, this._contextResourceLabels);
 			} else if (isSCMHistoryItemChangeVariableEntry(attachment)) {
@@ -4595,7 +4639,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			// content cards. The editor width is computed here, so it must account
 			// for the same 64px total horizontal gutter or the editor overflows its
 			// container and renders wider than the message content above it.
-			inputPartHorizontalPadding: this.options.renderStyle === 'compact' ? 16 : (this._usesDroxNativeComposer() ? 64 : 24),
+			inputPartHorizontalPadding: this.options.renderStyle === 'compact' ? 16 : (
+				// DROX-BEGIN
+				this._usesDroxNativeComposer() ? 64 :
+					// DROX-END
+					24),
 			inputPartHorizontalPaddingInside: this.options.renderStyle === 'compact' ? 12 : 10,
 			toolbarsWidth: this.options.renderStyle === 'compact' ? getToolbarsWidthCompact() : 0,
 			sideToolbarWidth: inputSideToolbarWidth > 0 ? inputSideToolbarWidth + 4 /*gap*/ : 0,
