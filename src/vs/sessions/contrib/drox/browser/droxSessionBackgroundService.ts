@@ -30,7 +30,7 @@ import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
 import { LayoutController } from '../../layout/browser/desktopSessionLayoutController.js';
 import { registerSessionOpenGateAfterOpen, registerSessionOpenGatePrepare } from '../../../services/sessions/common/sessionOpenGate.js';
 import { registerSessionTerminalForegroundPolicy } from '../../terminal/common/sessionTerminalForegroundPolicy.js';
-import { SessionsTerminalContribution } from '../../terminal/browser/sessionsTerminalContribution.js';
+import { SessionsTerminalContribution } from '../../terminal/browser/droxSessionsTerminalContribution.js';
 import { ISession, SessionStatus } from '../../../services/sessions/common/session.js';
 import { IActiveSession, ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
 import {

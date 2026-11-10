@@ -9,7 +9,7 @@ import { TerminalEditorInput } from '../../../../workbench/contrib/terminal/brow
 import { ITerminalInstance } from '../../../../workbench/contrib/terminal/browser/terminal.js';
 import { IEditorService } from '../../../../workbench/services/editor/common/editorService.js';
 import { IEditorGroupsService } from '../../../../workbench/services/editor/common/editorGroupsService.js';
-import { SessionsTerminalContribution } from './sessionsTerminalContribution.js';
+import { SessionsTerminalContribution } from './droxSessionsTerminalContribution.js';
 
 /**
  * Associates terminal editor tabs with the owning session so archive/remove

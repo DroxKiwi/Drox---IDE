@@ -487,7 +487,9 @@ import './contrib/configuration/browser/configuration.contribution.js';
 import './contrib/browserView/browser/sessionBrowserView.contribution.js';
 import './contrib/editor/browser/editor.contribution.js';
 
-import './contrib/terminal/browser/sessionsTerminalContribution.js';
+// DROX-BEGIN
+import './contrib/terminal/browser/droxSessionsTerminalContribution.js';
+// DROX-END
 import './contrib/terminal/browser/sessionTerminalViewController.contribution.js';
 import './contrib/chatDebug/browser/chatDebug.contribution.js';
 import './contrib/workspace/browser/workspace.contribution.js';

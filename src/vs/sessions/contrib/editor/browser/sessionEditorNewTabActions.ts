@@ -18,7 +18,7 @@ import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
 import { SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
 import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
 import { ISessionsTasksService } from '../../chat/browser/sessionsTasksService.js';
-import { SessionsTerminalContribution } from '../../terminal/browser/sessionsTerminalContribution.js';
+import { SessionsTerminalContribution } from '../../terminal/browser/droxSessionsTerminalContribution.js';
 import { CHANGES_VIEW_ID } from '../../changes/common/changes.js';
 
 /** Submenu for the editor-tab "+" control (Cursor-like new page menu). */
