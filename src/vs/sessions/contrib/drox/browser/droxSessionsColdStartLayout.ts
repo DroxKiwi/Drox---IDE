@@ -16,10 +16,9 @@ import { ISessionsManagementService } from '../../../services/sessions/common/se
 import { IDroxSessionBackgroundService } from '../common/droxSessionBackgroundService.js';
 
 /**
- * After cold boot the Drox engine and persisted sessions can surface after the
- * initial {@link ISessionsService.restoreVisibleSessions} pass. Trigger a layout
- * pass so the grid paints; foreground template is applied at most once per
- * session entry via {@link IDroxSessionBackgroundService.applyForegroundLayout}.
+ * When the Drox engine finishes starting, reapply the active session layout
+ * once, then paint. Late session arrivals are laid out by the workbench
+ * restore pass, which only calls {@link IAgentWorkbenchLayoutService.layout}.
  */
 class DroxSessionsColdStartLayoutContribution extends Disposable implements IWorkbenchContribution {
 
@@ -37,30 +36,6 @@ class DroxSessionsColdStartLayoutContribution extends Disposable implements IWor
 		this._register(this._droxEngineService.onDidInitialize(() => {
 			void this._reconcileForegroundLayout();
 		}));
-		this._register(this._sessionsManagementService.onDidChangeSessions(e => {
-			if (e.added.length > 0) {
-				// Late-loaded sessions need a relayout only — never re-apply the
-				// default template or open editors get closed immediately.
-				this._scheduleLateSessionLayout();
-			}
-		}));
-	}
-
-	private _lateSessionLayoutScheduled = false;
-
-	private _scheduleLateSessionLayout(): void {
-		if (this._lateSessionLayoutScheduled) {
-			return;
-		}
-		this._lateSessionLayoutScheduled = true;
-		// Timers fire without user input; rAF may not after cold boot on Windows.
-		this._register(disposableTimeout(() => {
-			this._lateSessionLayoutScheduled = false;
-			this._workbenchLayoutService.layout();
-		}, 0));
-		this._register(disposableTimeout(() => {
-			this._workbenchLayoutService.layout();
-		}, 200));
 	}
 
 	private async _reconcileForegroundLayout(): Promise<void> {
