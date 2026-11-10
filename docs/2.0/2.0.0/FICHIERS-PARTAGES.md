@@ -20,6 +20,8 @@ On ne reformate pas. On ne renomme pas. Un petit écart reste dans le fichier Mi
 
 `chatSubagentContentPart.test.ts` est revenu identique à la base. Les tests du rendu actuel sont dans `droxChatSubagentContentPart.test.ts`.
 
+La mémoire de disposition de `workbench.ts` est dans `sessionsWorkspaceLayoutController.ts`. Le fichier Microsoft garde l'initialisation, la sauvegarde, le changement de dossier, les deux garde-fous et les minuteries de repeint.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -31,7 +33,7 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | fait | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/chatSubagentContentPart.ts` | 217 | 57 | 43 |
 | fait | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/media/chatSubagentContent.css` | 179 | 3 | 6 |
 | fait | `src/vs/workbench/contrib/chat/test/browser/widget/chatContentParts/chatSubagentContentPart.test.ts` | 41 | 68 | 31 |
-| | `src/vs/sessions/browser/workbench.ts` | 212 | 58 | 27 |
+| en cours | `src/vs/sessions/browser/workbench.ts` | 212 | 58 | 27 |
 | | `src/vs/workbench/contrib/welcomeGettingStarted/browser/media/gettingStarted.css` | 201 | 1 | 4 |
 | | `src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts` | 79 | 166 | 38 |
 | | `src/vs/workbench/contrib/welcomeGettingStarted/common/gettingStartedContent.ts` | 74 | 1 | 4 |

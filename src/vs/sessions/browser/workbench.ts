@@ -8,7 +8,9 @@ import './media/style.css';
 import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../base/common/lifecycle.js';
 import { Emitter, Event, setGlobalLeakWarningThreshold } from '../../base/common/event.js';
 import { getActiveDocument, getActiveElement, getClientArea, getWindowId, getWindows, IDimension, isAncestorUsingFlowTo, isHTMLElement, size, Dimension, runWhenWindowIdle } from '../../base/browser/dom.js';
+// DROX-BEGIN
 import { DeferredPromise, disposableTimeout, RunOnceScheduler } from '../../base/common/async.js';
+// DROX-END
 import { isFullscreen, onDidChangeFullscreen, isChrome, isFirefox, isSafari } from '../../base/browser/browser.js';
 import { mark } from '../../base/common/performance.js';
 import { onUnexpectedError, setUnexpectedErrorHandler } from '../../base/common/errors.js';
@@ -75,18 +77,15 @@ import { MobileTitlebarPart } from './parts/mobile/mobileTitlebarPart.js';
 import { IMobileVisualViewport } from './parts/mobile/mobileVisualViewport.js';
 import { autorun } from '../../base/common/observable.js';
 import { ISessionsService } from '../services/sessions/browser/sessionsService.js';
+// DROX-BEGIN
 import { ISessionsManagementService } from '../services/sessions/common/sessionsManagement.js';
+// DROX-END
 import { ISessionsPartService } from '../services/sessions/browser/sessionsPartService.js';
 import { ISessionsSetUpService } from './sessionsSetUpService.js';
+// DROX-BEGIN
 import { IWorkspaceContextService } from '../../platform/workspace/common/workspace.js';
-import {
-	ISessionsLayoutByWorkspaceMemento,
-	ISessionsWorkspaceLayoutSnapshot,
-	loadSessionsLayoutByWorkspaceMemento,
-	resolveSessionsWorkspaceLayoutSnapshot,
-	saveSessionsLayoutByWorkspaceMemento,
-	SESSIONS_AGENTS_WINDOW_LAYOUT_KEY,
-} from './sessionsWorkspaceLayoutStore.js';
+import { SessionsLayoutPart, SessionsWorkspaceLayoutController } from './sessionsWorkspaceLayoutController.js';
+// DROX-END
 
 //#region Workbench Options
 
@@ -325,10 +324,29 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 
 	readonly openedDefaultEditors = false;
 
-	private _savedPartSizes: IPartSizesState = {};
-	private _layoutByWorkspaceMemento: ISessionsLayoutByWorkspaceMemento = {};
-	private _layoutWorkspaceKey: string | undefined;
-	private _restoringWorkspaceLayout = false;
+	// DROX-BEGIN
+	private readonly _workspaceLayout = new SessionsWorkspaceLayoutController({
+		storageService: () => this.storageService,
+		partVisibility: this.partVisibility,
+		isPhone: () => this.layoutPolicy.viewportClass.get() === 'phone',
+		hasGrid: () => !!this.workbenchGrid,
+		measure: (part, dimension, visible) => this._measureLayoutPart(part, dimension, visible),
+		getPolicyPartSizes: () => {
+			const sizes = this.layoutPolicy.getPartSizes(this._mainContainerDimension.width, this._mainContainerDimension.height);
+			return { sideBarSize: sizes.sideBarSize, auxiliaryBarSize: sizes.auxiliaryBarSize, panelSize: sizes.panelSize };
+		},
+		setSideBarHidden: hidden => this.setSideBarHidden(hidden),
+		setAuxiliaryBarHidden: hidden => this.setAuxiliaryBarHidden(hidden),
+		setEditorHidden: hidden => this.setEditorHidden(hidden),
+		setPanelHidden: hidden => this.setPanelHidden(hidden),
+		resize: (part, visible, width, height) => this._resizeLayoutPart(part, visible, width, height),
+		layout: () => this.layout(),
+	});
+
+	private get _savedPartSizes(): IPartSizesState {
+		return this._workspaceLayout.savedPartSizes;
+	}
+	// DROX-END
 
 	//#endregion
 
@@ -339,11 +357,15 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	private paneCompositeService!: IPaneCompositePartService;
 	private viewDescriptorService!: IViewDescriptorService;
 	private sessionsService!: ISessionsService;
+	// DROX-BEGIN
 	private sessionsManagementService!: ISessionsManagementService;
+	// DROX-END
 	private sessionsPartService!: ISessionsPartService;
 	private instantiationService!: IInstantiationService;
 	private storageService!: IStorageService;
+	// DROX-BEGIN
 	private workspaceContextService!: IWorkspaceContextService;
+	// DROX-END
 
 	//#endregion
 
@@ -576,11 +598,12 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 			this._register(lifecycleService.onWillShutdown(() => this.storeFontInfo(storageService)));
 		}
 
-		// Per-project layout — persist grid sizes/visibility when flushing storage
-		this._register(storageService.onWillSaveState(() => this._persistWorkspaceLayout()));
+		// DROX-BEGIN
+		this._register(storageService.onWillSaveState(() => this._workspaceLayout.persist()));
 		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
-			this._onWorkspaceFoldersChanged();
+			this._workspaceLayout.onWorkspaceFoldersChanged();
 		}));
+		// DROX-END
 
 		// Lifecycle
 		this._register(lifecycleService.onWillShutdown(event => this._onWillShutdown.fire(event)));
@@ -589,14 +612,15 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 			this.dispose();
 		}));
 
-		// Flush storage on window focus loss (matches main workbench — do not
-		// call layout() on focus gain: it fires onDidLayoutContainer which closes
-		// open dropdown/context menus because canRelayout is false).
+		// DROX-BEGIN
+		// Flush storage on window focus loss. Do not call layout() on focus
+		// gain: it fires onDidLayoutContainer which closes open menus.
 		this._register(hostService.onDidChangeFocus(focus => {
 			if (!focus) {
 				storageService.flush();
 			}
 		}));
+		// DROX-END
 
 		// Dialogs showing/hiding
 		this._register(dialogService.onWillShowDialog(() => this.mainContainer.classList.add('modal-dialog-visible')));
@@ -655,163 +679,35 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		}
 	}
 
-	private _getWorkspaceLayoutKey(): string | undefined {
-		return SESSIONS_AGENTS_WINDOW_LAYOUT_KEY;
-	}
-
-	private _initWorkspaceLayoutStorage(): void {
-		this._layoutByWorkspaceMemento = loadSessionsLayoutByWorkspaceMemento(this.storageService);
-		this._layoutWorkspaceKey = this._getWorkspaceLayoutKey();
-		const snapshot = resolveSessionsWorkspaceLayoutSnapshot(this._layoutByWorkspaceMemento, this._layoutWorkspaceKey);
-		if (snapshot?.partSizes) {
-			this._savedPartSizes = { ...snapshot.partSizes };
-		}
-		if (this._layoutWorkspaceKey && snapshot) {
-			saveSessionsLayoutByWorkspaceMemento(this.storageService, this._layoutByWorkspaceMemento);
-		}
-	}
-
-	/**
-	 * Overlays the persisted part visibility on top of the current
-	 * (layout-policy default) `partVisibility` state. Must run before the
-	 * `WorkbenchContextKeysHandler` reads the initial visibility so that
-	 * context keys like `auxiliaryBarVisible` reflect the restored state on
-	 * reload rather than the hardcoded defaults.
-	 */
-	private _applyPersistedPartVisibility(): void {
-		if (this.layoutPolicy.viewportClass.get() === 'phone') {
-			return;
-		}
-
-		const snapshot = resolveSessionsWorkspaceLayoutSnapshot(this._layoutByWorkspaceMemento, this._layoutWorkspaceKey);
-		const savedPartVisibility = snapshot?.partVisibility ?? {};
-		this.partVisibility.editor = savedPartVisibility.editor ?? this.partVisibility.editor;
-		this.partVisibility.auxiliaryBar = savedPartVisibility.auxiliaryBar ?? this.partVisibility.auxiliaryBar;
-		this.partVisibility.sidebar = savedPartVisibility.sidebar ?? this.partVisibility.sidebar;
-		this.partVisibility.panel = savedPartVisibility.panel ?? this.partVisibility.panel;
-	}
-
-	private _captureCurrentPartSizes(): IPartSizesState {
-		if (!this.workbenchGrid) {
-			return { ...this._savedPartSizes };
-		}
-
-		// For visible parts, read the current grid view size. For hidden parts,
-		// fall back to the grid's cached visible size — i.e. the size the part
-		// had the last time it was shown — so that toggling visibility later
-		// restores the same dimensions.
-		const getSize = (view: ISerializableView, dimension: 'width' | 'height', visible: boolean): number | undefined => {
-			if (visible) {
-				return this.workbenchGrid.getViewSize(view)[dimension];
-			}
-			return this.workbenchGrid.getViewCachedVisibleSize(view);
-		};
-
-		return {
-			sidebar: getSize(this.sideBarPartView, 'width', this.partVisibility.sidebar),
-			auxiliaryBar: getSize(this.auxiliaryBarPartView, 'width', this.partVisibility.auxiliaryBar),
-			sessions: getSize(this.sessionsPartView, 'width', this.partVisibility.sessions),
-			editor: getSize(this.editorPartView, 'width', this.partVisibility.editor),
-			panel: getSize(this.panelPartView, 'height', this.partVisibility.panel),
-		};
-	}
-
-	private _persistWorkspaceLayout(): void {
-		if (this.layoutPolicy.viewportClass.get() === 'phone') {
-			return;
-		}
-
-		const key = this._layoutWorkspaceKey ?? SESSIONS_AGENTS_WINDOW_LAYOUT_KEY;
-		if (!key) {
-			return;
-		}
-
-		this._layoutByWorkspaceMemento[key] = {
-			partVisibility: {
-				editor: this.partVisibility.editor,
-				auxiliaryBar: this.partVisibility.auxiliaryBar,
-				sidebar: this.partVisibility.sidebar,
-				panel: this.partVisibility.panel,
-			},
-			partSizes: this._captureCurrentPartSizes(),
-		};
-		saveSessionsLayoutByWorkspaceMemento(this.storageService, this._layoutByWorkspaceMemento);
-	}
-
+	// DROX-BEGIN
 	private _savePartVisibility(): void {
-		if (this._restoringWorkspaceLayout) {
-			return;
-		}
-		this._persistWorkspaceLayout();
+		this._workspaceLayout.savePartVisibility();
 	}
 
-	private _onWorkspaceFoldersChanged(): void {
-		const newKey = this._getWorkspaceLayoutKey();
-		if (newKey === this._layoutWorkspaceKey) {
-			return;
+	private _measureLayoutPart(part: SessionsLayoutPart, dimension: 'width' | 'height', visible: boolean): number | undefined {
+		const view = part === 'sidebar' ? this.sideBarPartView
+			: part === 'auxiliaryBar' ? this.auxiliaryBarPartView
+				: part === 'sessions' ? this.sessionsPartView
+					: part === 'editor' ? this.editorPartView
+						: this.panelPartView;
+		if (visible) {
+			return this.workbenchGrid.getViewSize(view)[dimension];
 		}
-
-		this._persistWorkspaceLayout();
-		this._layoutWorkspaceKey = newKey;
-		const snapshot = resolveSessionsWorkspaceLayoutSnapshot(this._layoutByWorkspaceMemento, newKey);
-		this._savedPartSizes = snapshot?.partSizes ? { ...snapshot.partSizes } : {};
-		if (newKey && snapshot) {
-			saveSessionsLayoutByWorkspaceMemento(this.storageService, this._layoutByWorkspaceMemento);
-		}
-		this._applyLayoutSnapshot(snapshot);
+		return this.workbenchGrid.getViewCachedVisibleSize(view);
 	}
 
-	private _applyLayoutSnapshot(snapshot: ISessionsWorkspaceLayoutSnapshot | undefined): void {
-		if (!this.workbenchGrid) {
+	private _resizeLayoutPart(part: Parts, visible: boolean, width?: number, height?: number): void {
+		const view = this.getPartView(part);
+		if (!view || !visible) {
 			return;
 		}
-
-		this._restoringWorkspaceLayout = true;
-		try {
-			const savedPartVisibility = snapshot?.partVisibility;
-			if (savedPartVisibility?.sidebar !== undefined) {
-				this.setSideBarHidden(!savedPartVisibility.sidebar);
-			}
-			if (savedPartVisibility?.auxiliaryBar !== undefined) {
-				this.setAuxiliaryBarHidden(!savedPartVisibility.auxiliaryBar);
-			}
-			if (savedPartVisibility?.editor !== undefined) {
-				this.setEditorHidden(!savedPartVisibility.editor);
-			}
-			if (savedPartVisibility?.panel !== undefined) {
-				this.setPanelHidden(!savedPartVisibility.panel);
-			}
-			this._applyPartSizesFromSaved();
-			this.layout();
-		} finally {
-			this._restoringWorkspaceLayout = false;
-		}
+		const current = this.workbenchGrid.getViewSize(view);
+		this.workbenchGrid.resizeView(view, {
+			width: width ?? current.width,
+			height: height ?? current.height,
+		});
 	}
-
-	private _applyPartSizesFromSaved(): void {
-		if (!this.workbenchGrid) {
-			return;
-		}
-
-		const policySizes = this.layoutPolicy.getPartSizes(this._mainContainerDimension.width, this._mainContainerDimension.height);
-		const resize = (part: Parts, visible: boolean, width?: number, height?: number): void => {
-			const view = this.getPartView(part);
-			if (!view || !visible) {
-				return;
-			}
-			const current = this.workbenchGrid.getViewSize(view);
-			this.workbenchGrid.resizeView(view, {
-				width: width ?? current.width,
-				height: height ?? current.height,
-			});
-		};
-
-		resize(Parts.SIDEBAR_PART, this.partVisibility.sidebar, this._savedPartSizes.sidebar ?? policySizes.sideBarSize);
-		resize(Parts.AUXILIARYBAR_PART, this.partVisibility.auxiliaryBar, this._savedPartSizes.auxiliaryBar ?? policySizes.auxiliaryBarSize);
-		resize(Parts.SESSIONS_PART, this.partVisibility.sessions, this._savedPartSizes.sessions);
-		resize(Parts.EDITOR_PART, this.partVisibility.editor, this._savedPartSizes.editor);
-		resize(Parts.PANEL_PART, this.partVisibility.panel, undefined, this._savedPartSizes.panel ?? policySizes.panelSize);
-	}
+	// DROX-END
 
 	//#endregion
 
@@ -831,9 +727,10 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.partVisibility.panel = visibilityDefaults.panel;
 		this.partVisibility.sessions = visibilityDefaults.sessions;
 		this.partVisibility.editor = visibilityDefaults.editor;
-		this._applyPersistedPartVisibility();
-
+		// DROX-BEGIN
+		this._workspaceLayout.applyPersistedPartVisibility();
 		// `_savedPartSizes` was loaded in `initLayout` for the active project folder.
+		// DROX-END
 
 		// State specific classes
 		const platformClass = isWindows ? 'windows' : isLinux ? 'linux' : 'mac';
@@ -1065,11 +962,13 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 				this.logService.error('[Workbench] restoreVisibleSessions failed', e);
 			})
 			.finally(() => {
+				// DROX-BEGIN
 				// Session views mount before the first reliable layout pass; re-run
 				// workbench layout so chat / sidebar content is not blank until interaction.
 				if (!this._store.isDisposed) {
 					this._schedulePostRestoreLayout();
 				}
+				// DROX-END
 			});
 
 		// Set lifecycle phase to `Restored`
@@ -1122,7 +1021,9 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.instantiationService = accessor.get(IInstantiationService);
 		this.storageService = accessor.get(IStorageService);
 		this.workspaceContextService = accessor.get(IWorkspaceContextService);
-		this._initWorkspaceLayoutStorage();
+		// DROX-BEGIN
+		this._workspaceLayout.init();
+		// DROX-END
 		accessor.get(ITitleService);
 
 		// Register layout listeners
@@ -1171,11 +1072,13 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.partVisibility.sessions = visDefaults.sessions;
 		this.partVisibility.editor = visDefaults.editor;
 
+		// DROX-BEGIN
 		// Overlay the persisted visibility now so that the context keys handler
 		// (created right after initLayout) initializes part-visibility context
 		// keys (e.g. auxiliaryBarVisible) from the restored state rather than the
 		// defaults. Without this, the editor-title toggle icon is wrong on reload.
-		this._applyPersistedPartVisibility();
+		this._workspaceLayout.applyPersistedPartVisibility();
+		// DROX-END
 	}
 
 	private areAllGroupsInMainPartEmpty(): boolean {
@@ -1227,16 +1130,19 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		mainWindow.addEventListener('resize', onWindowResize);
 		this._register({ dispose: () => mainWindow.removeEventListener('resize', onWindowResize) });
 
-		// Sessions loaded after the first restore pass (e.g. Drox engine init) need
-		// another layout so the grid and sidebar render without user interaction.
+		// DROX-BEGIN
+		// Sessions loaded after the first restore pass need another layout
+		// so the grid and sidebar render without user interaction.
 		this._register(this.sessionsManagementService.onDidChangeSessions(e => {
 			if (e.added.length === 0) {
 				return;
 			}
 			this._schedulePostRestoreLayout();
 		}));
+		// DROX-END
 	}
 
+	// DROX-BEGIN
 	/** Layout passes after session restore or late session registration (cold boot). */
 	private _schedulePostRestoreLayout(): void {
 		// Always paint once synchronously — content may have mounted with a stale size.
@@ -1267,6 +1173,7 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	}
 
 	private _postRestoreLayoutScheduled = false;
+	// DROX-END
 
 	private updateFullscreenClass(): void {
 		if (this.mainWindowFullscreen) {
@@ -1505,8 +1412,10 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 	//#region Layout Methods
 
 	private _previousViewportClass: string | undefined;
+	// DROX-BEGIN
 	/** Last dimension passed to {@link handleContainerDidLayout} (avoids closing open menus). */
 	private _lastEmittedLayoutContainerDimension: IDimension | undefined;
+	// DROX-END
 
 	layout(): void {
 		this._mainContainerDimension = getClientArea(
@@ -1591,12 +1500,13 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this.workbenchGrid.layout(gridWidth, gridHeight);
 		this.layoutMobileSidebar();
 
-		// Emit as event — skip when outer dimensions are unchanged so open
-		// context/dropdown menus are not dismissed (ContextView hides when
-		// canRelayout is false and the container relayouts).
+		// DROX-BEGIN
+		// Skip the container event when the outer size is unchanged so open menus stay open.
 		this._emitLayoutContainerEventIfNeeded();
+		// DROX-END
 	}
 
+	// DROX-BEGIN
 	private _emitLayoutContainerEventIfNeeded(): void {
 		const dim = this._mainContainerDimension;
 		const prev = this._lastEmittedLayoutContainerDimension;
@@ -1606,6 +1516,7 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
 		this._lastEmittedLayoutContainerDimension = { width: dim.width, height: dim.height };
 		this.handleContainerDidLayout(this.mainContainer, dim);
 	}
+	// DROX-END
 
 	private layoutMobileSidebar(): void {
 		const sidebarContainer = this.getContainer(mainWindow, Parts.SIDEBAR_PART);
