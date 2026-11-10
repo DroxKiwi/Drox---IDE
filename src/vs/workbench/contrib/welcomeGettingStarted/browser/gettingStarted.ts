@@ -18,16 +18,23 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { onUnexpectedError } from '../../../../base/common/errors.js';
 import { KeyCode } from '../../../../base/common/keyCodes.js';
 import { splitRecentLabel } from '../../../../base/common/labels.js';
+// DROX-BEGIN
 import { DisposableStore, toDisposable } from '../../../../base/common/lifecycle.js';
+// DROX-END
 import { ILink, LinkedText } from '../../../../base/common/linkedText.js';
 import { parse } from '../../../../base/common/marshalling.js';
+// DROX-BEGIN
 import { FileAccess, Schemas, matchesScheme } from '../../../../base/common/network.js';
+// DROX-END
 import { OS } from '../../../../base/common/platform.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { assertReturnsDefined } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import './media/gettingStarted.css';
+// DROX-BEGIN
+import './media/droxGettingStarted.css';
+// DROX-END
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
 import { IMarkdownRendererService } from '../../../../platform/markdown/browser/markdownRenderer.js';
 import { localize } from '../../../../nls.js';
@@ -63,14 +70,18 @@ import { gettingStartedCheckedCodicon, gettingStartedUncheckedCodicon } from './
 import { GettingStartedEditorOptions, GettingStartedInput } from './gettingStartedInput.js';
 import { IResolvedWalkthrough, IResolvedWalkthroughStep, IWalkthroughsService, hiddenEntriesConfigurationKey, parseDescription } from './gettingStartedService.js';
 import { RestoreWalkthroughsConfigurationValue, restoreWalkthroughsConfigurationKey } from './startupPage.js';
-import { nexusWelcomeStartEntries } from '../common/gettingStartedContent.js';
+// DROX-BEGIN
+import { nexusWelcomeStartEntries } from '../common/droxGettingStartedContent.js';
+// DROX-END
 import { GroupsOrder, IEditorGroup, IEditorGroupsService, preferredSideBySideGroupDirection } from '../../../services/editor/common/editorGroupsService.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { IHostService } from '../../../services/host/browser/host.js';
 import { IWorkbenchThemeService } from '../../../services/themes/common/workbenchThemeService.js';
 import { GettingStartedIndexList } from './gettingStartedList.js';
 import { canShowAgentsBanner, createAgentsBanner } from '../../chat/browser/agentSessions/agentSessionsBanner.js';
+// DROX-BEGIN
 import { isDroxMicrosoftAgentsSurfaceEnabled } from '../../drox/common/droxMicrosoftAgentsSurface.js';
+// DROX-END
 import { IChatEntitlementService } from '../../../services/chat/common/chatEntitlementService.js';
 import { AccessibilityVerbositySettingId } from '../../accessibility/browser/accessibilityConfiguration.js';
 import { AccessibleViewAction } from '../../accessibility/browser/accessibleViewActions.js';
@@ -93,6 +104,7 @@ export interface IWelcomePageStartEntry {
 	when: ContextKeyExpression;
 }
 
+// DROX-BEGIN
 const parsedStartEntries: IWelcomePageStartEntry[] = nexusWelcomeStartEntries.map((e, i) => ({
 	command: e.content.command,
 	description: e.description,
@@ -102,6 +114,7 @@ const parsedStartEntries: IWelcomePageStartEntry[] = nexusWelcomeStartEntries.ma
 	title: e.title,
 	when: ContextKeyExpr.deserialize(e.when) ?? ContextKeyExpr.true()
 }));
+// DROX-END
 
 type GettingStartedActionClassification = {
 	command: { classification: 'PublicNonPersonalData'; purpose: 'FeatureInsight'; comment: 'The command being executed on the getting started page.' };
@@ -142,7 +155,9 @@ export class GettingStartedPage extends EditorPane {
 	private categoriesPageScrollbar: DomScrollableElement | undefined;
 	private detailsPageScrollbar: DomScrollableElement | undefined;
 
+	// DROX-BEGIN
 	private detailsScrollbar: DomScrollableElement | undefined;
+	// DROX-END
 
 	private buildSlideThrottle = this._register(new Throttler());
 
@@ -150,9 +165,11 @@ export class GettingStartedPage extends EditorPane {
 
 	private contextService: IContextKeyService;
 
+	// DROX-BEGIN
 	private recentlyOpenedList?: GettingStartedIndexList<RecentEntry>;
 	private startList?: GettingStartedIndexList<IWelcomePageStartEntry>;
 	private gettingStartedList?: GettingStartedIndexList<IResolvedWalkthrough>;
+	// DROX-END
 
 	private stepsSlide!: HTMLElement;
 	private categoriesSlide!: HTMLElement;
@@ -165,7 +182,9 @@ export class GettingStartedPage extends EditorPane {
 	private detailsRenderer: GettingStartedDetailsRenderer;
 
 	private readonly categoriesSlideDisposables: DisposableStore;
+	// DROX-BEGIN
 	private showFeaturedWalkthrough = false;
+	// DROX-END
 
 	get editorInput(): GettingStartedInput | undefined {
 		return this._input as GettingStartedInput | undefined;
@@ -460,7 +479,9 @@ export class GettingStartedPage extends EditorPane {
 				break;
 			}
 			case 'selectStartEntry': {
+				// DROX-BEGIN
 				const selected = nexusWelcomeStartEntries.find(e => e.id === argument);
+				// DROX-END
 				if (selected) {
 					this.telemetryService.publicLog2<GettingStartedActionEvent, GettingStartedActionClassification>('gettingStarted.ActionExecuted', { command: 'selectStartEntry', argument, walkthroughId: this.currentWalkthrough?.id });
 					this.runStepCommand(selected.content.command);
@@ -511,7 +532,9 @@ export class GettingStartedPage extends EditorPane {
 		const selectedCategory = this.gettingStartedCategories.find(category => category.id === categoryId);
 		if (!selectedCategory) { throw Error('Could not find category with ID ' + categoryId); }
 		this.setHiddenCategories([...this.getHiddenCategories().add(categoryId)]);
+		// DROX-BEGIN
 		this.gettingStartedList?.rerender();
+		// DROX-END
 	}
 
 	private markAllStepsComplete() {
@@ -860,7 +883,9 @@ export class GettingStartedPage extends EditorPane {
 		}
 
 		this.detailsPageScrollbar?.scanDomNode();
+		// DROX-BEGIN
 		this.detailsScrollbar?.scanDomNode();
+		// DROX-END
 	}
 
 	private updateMediaSourceForColorMode(element: HTMLImageElement, sources: { hcDark: URI; hcLight: URI; dark: URI; light: URI }) {
@@ -924,6 +949,7 @@ export class GettingStartedPage extends EditorPane {
 			onShowOnStartupChanged();
 		}));
 
+		// DROX-BEGIN
 		const titleImageSrc = FileAccess.asBrowserUri('vs/workbench/contrib/welcomeGettingStarted/common/media/kdds-title.png').toString(true);
 		const header = $('.header', {},
 			$('div.product-name.caption.kdds-welcome-brand', {},
@@ -943,11 +969,15 @@ export class GettingStartedPage extends EditorPane {
 			$('section.drox-welcome-section.drox-welcome-section-actions', {}, startList.getDomElement()),
 			$('section.drox-welcome-section.drox-welcome-section-recents', {}, recentList.getDomElement()),
 		);
+		// DROX-END
 
 		const footerChildren: HTMLElement[] = [];
 		if (
+			// DROX-BEGIN
 			isDroxMicrosoftAgentsSurfaceEnabled(this.productService)
-			&& canShowAgentsBanner(this.chatEntitlementService)
+			&&
+			// DROX-END
+			canShowAgentsBanner(this.chatEntitlementService)
 		) {
 			const agentsBanner = createAgentsBanner(
 				{
@@ -967,11 +997,13 @@ export class GettingStartedPage extends EditorPane {
 
 		const footer = $('.footer', {}, ...footerChildren);
 
+		// DROX-BEGIN
 		this.container.classList.add('noWalkthroughs', 'drox-welcome-layout');
 		recentList.setLimit(8);
 
 		reset(this.categoriesSlide, $('.gettingStartedCategoriesContainer.drox-welcome-layout', {}, header, mainPanel, footer,));
 		setTimeout(() => this.categoriesPageScrollbar?.scanDomNode(), 50);
+		// DROX-END
 		this.categoriesPageScrollbar?.scanDomNode();
 
 		this.updateCategoryProgress();
@@ -1039,6 +1071,7 @@ export class GettingStartedPage extends EditorPane {
 
 			const { name, parentPath } = splitRecentLabel(fullPath);
 
+			// DROX-BEGIN
 			const li = $('li.drox-welcome-recent-card');
 			const link = $('button.drox-welcome-recent-button', {});
 
@@ -1051,6 +1084,7 @@ export class GettingStartedPage extends EditorPane {
 			link.title = fullPath;
 			link.setAttribute('aria-label', localize('welcomePage.openFolderWithPath', "Open folder {0} with path {1}", name, parentPath));
 			link.append(icon, textBlock);
+			// DROX-END
 			link.addEventListener('click', e => {
 				this.telemetryService.publicLog2<GettingStartedActionEvent, GettingStartedActionClassification>('gettingStarted.ActionExecuted', { command: 'openRecent', argument: undefined, walkthroughId: this.currentWalkthrough?.id });
 				this.hostService.openWindow([windowOpenable], {
@@ -1085,12 +1119,14 @@ export class GettingStartedPage extends EditorPane {
 			return li;
 		};
 
+		// DROX-BEGIN
 		if (this.recentlyOpenedList) { this.recentlyOpenedList.dispose(); }
 
 		const recentlyOpenedList = this.recentlyOpenedList = new GettingStartedIndexList(
 			{
 				title: localize('nexusWelcome.recent', "Recent projects"),
 				klass: 'recently-opened drox-welcome-recents',
+				// DROX-END
 				limit: 5,
 				empty: $('.empty-recent', {},
 					localize('noRecents', "You have no recent folders,"),
@@ -1129,18 +1165,23 @@ export class GettingStartedPage extends EditorPane {
 	}
 
 	private refreshRecentlyOpened(): void {
+		// DROX-BEGIN
 		if (!this.recentlyOpenedList) {
 			return;
 		}
+		// DROX-END
 
 		this.recentlyOpened.then(({ workspaces }) => {
 			const workspacesWithID = this.filterRecentlyOpened(workspaces);
+			// DROX-BEGIN
 			this.recentlyOpenedList?.setEntries(workspacesWithID);
+			// DROX-END
 		}).catch(onUnexpectedError);
 	}
 
 	private buildStartList(): GettingStartedIndexList<IWelcomePageStartEntry> {
 		const renderStartEntry = (entry: IWelcomePageStartEntry): HTMLElement => {
+			// DROX-BEGIN
 			const isPrimary = entry.id === 'drox.openChat';
 			return $('li.drox-welcome-action-card' + (isPrimary ? '.drox-welcome-action-card-primary' : ''),
 				{},
@@ -1156,14 +1197,17 @@ export class GettingStartedPage extends EditorPane {
 					),
 				),
 			);
+			// DROX-END
 		};
 
+		// DROX-BEGIN
 		if (this.startList) { this.startList.dispose(); }
 
 		const startList = this.startList = new GettingStartedIndexList(
 			{
 				title: localize('nexusWelcome.start', "Get started"),
 				klass: 'start-container drox-welcome-actions',
+				// DROX-END
 				limit: 10,
 				renderElement: renderStartEntry,
 				rankElement: e => -e.order,
@@ -1175,15 +1219,23 @@ export class GettingStartedPage extends EditorPane {
 		return startList;
 	}
 
+	// DROX-BEGIN
+	// The walkthrough list is not built. The welcome page shows start actions and recent folders.
+	// DROX-END
+
 	layout(size: Dimension) {
+		// DROX-BEGIN
 		this.detailsScrollbar?.scanDomNode();
+		// DROX-END
 
 		this.categoriesPageScrollbar?.scanDomNode();
 		this.detailsPageScrollbar?.scanDomNode();
 
+		// DROX-BEGIN
 		this.startList?.layout(size);
 		this.gettingStartedList?.layout(size);
 		this.recentlyOpenedList?.layout(size);
+		// DROX-END
 
 		if (this.editorInput?.selectedStep && this.currentMediaType) {
 			this.mediaDisposables.clear();
@@ -1199,7 +1251,9 @@ export class GettingStartedPage extends EditorPane {
 
 		this.categoriesPageScrollbar?.scanDomNode();
 		this.detailsPageScrollbar?.scanDomNode();
+		// DROX-BEGIN
 		this.detailsScrollbar?.scanDomNode();
+		// DROX-END
 	}
 
 	private updateCategoryProgress() {
@@ -1414,7 +1468,9 @@ export class GettingStartedPage extends EditorPane {
 		if (!this.editorInput) {
 			return;
 		}
+		// DROX-BEGIN
 		if (this.detailsScrollbar) { this.detailsScrollbar.dispose(); }
+		// DROX-END
 
 		this.extensionService.whenInstalledExtensionsRegistered().then(() => {
 			// Remove internal extension id specifier from exposed id's
@@ -1545,8 +1601,10 @@ export class GettingStartedPage extends EditorPane {
 					: []),
 			)
 		);
+		// DROX-BEGIN
 		this.detailsScrollbar = this._register(new DomScrollableElement(stepsContainer, { className: 'steps-container' }));
 		const stepListComponent = this.detailsScrollbar.getDomNode();
+		// DROX-END
 
 		const categoryFooter = $('.getting-started-footer');
 		if (this.editorInput.showTelemetryNotice && getTelemetryLevel(this.configurationService) !== TelemetryLevel.NONE && this.productService.enableTelemetry) {
@@ -1558,7 +1616,9 @@ export class GettingStartedPage extends EditorPane {
 		const toExpand = category.steps.find(step => this.contextService.contextMatchesRules(step.when) && !step.done) ?? category.steps[0];
 		this.selectStep(selectedStep ?? toExpand.id, !selectedStep, preserveFocus);
 
+		// DROX-BEGIN
 		this.detailsScrollbar.scanDomNode();
+		// DROX-END
 		this.detailsPageScrollbar?.scanDomNode();
 
 		this.registerDispatchListeners();
@@ -1610,7 +1670,9 @@ export class GettingStartedPage extends EditorPane {
 					this.editorInput.walkthroughPageTitle = undefined;
 				}
 
+				// DROX-BEGIN
 				if (this.gettingStartedCategories.length !== this.gettingStartedList?.itemCount) {
+					// DROX-END
 					// extensions may have changed in the time since we last displayed the walkthrough list
 					// rebuild the list
 					this.buildCategoriesSlide();

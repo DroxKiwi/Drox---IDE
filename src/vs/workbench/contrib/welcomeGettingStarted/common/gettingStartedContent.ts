@@ -14,15 +14,19 @@ import { NotebookSetting } from '../../notebook/common/notebookCommon.js';
 import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from '../../../../platform/accessibility/common/accessibility.js';
 import { URI } from '../../../../base/common/uri.js';
 import product from '../../../../platform/product/common/product.js';
+// DROX-BEGIN
 import { DROX_PRODUCT_DOCS_URL } from '../../drox/common/droxProductUrls.js';
+// DROX-END
 
 interface IGettingStartedContentProvider {
 	(): string;
 }
 
+// DROX-BEGIN
 const gettingStartedVideoUrl = product.droxMicrosoftAgentsSurfaceEnabled === true
 	? 'https://aka.ms/vscode-getting-started-video'
 	: DROX_PRODUCT_DOCS_URL;
+// DROX-END
 
 const defaultChat = {
 	documentationUrl: product.defaultChatAgent?.documentationUrl ?? '',
@@ -228,74 +232,6 @@ export const startEntries: GettingStartedStartEntryContent = [
 	},
 ];
 
-/** Curated start actions for the Nexus / Drox welcome page (no Copilot workspace, remote menus, etc.). */
-export const nexusWelcomeStartEntries: GettingStartedStartEntryContent = [
-	{
-		id: 'drox.openChat',
-		title: localize('nexusWelcome.droxChat.title', "Open Drox"),
-		description: localize('nexusWelcome.droxChat.description', "Open the local agent panel and start coding with Drox"),
-		icon: Codicon.sparkle,
-		content: {
-			type: 'startEntry',
-			command: 'command:workbench.action.openDroxChat',
-		}
-	},
-	{
-		id: 'welcome.showNewFileEntries',
-		title: localize('gettingStarted.newFile.title', "New File..."),
-		description: localize('gettingStarted.newFile.description', "Open a new untitled text file, notebook, or custom editor."),
-		icon: Codicon.newFile,
-		content: {
-			type: 'startEntry',
-			command: 'command:welcome.showNewFileEntries',
-		}
-	},
-	{
-		id: 'topLevelOpenMac',
-		title: localize('gettingStarted.openMac.title', "Open..."),
-		description: localize('gettingStarted.openMac.description', "Open a file or folder to start working"),
-		icon: Codicon.folderOpened,
-		when: '!isWeb && isMac',
-		content: {
-			type: 'startEntry',
-			command: 'command:workbench.action.files.openFileFolder',
-		}
-	},
-	{
-		id: 'topLevelOpenFile',
-		title: localize('gettingStarted.openFile.title', "Open File..."),
-		description: localize('gettingStarted.openFile.description', "Open a file to start working"),
-		icon: Codicon.goToFile,
-		when: 'isWeb || !isMac',
-		content: {
-			type: 'startEntry',
-			command: 'command:workbench.action.files.openFile',
-		}
-	},
-	{
-		id: 'topLevelOpenFolder',
-		title: localize('gettingStarted.openFolder.title', "Open Folder..."),
-		description: localize('gettingStarted.openFolder.description', "Open a folder to start working"),
-		icon: Codicon.folderOpened,
-		when: '!isWeb && !isMac',
-		content: {
-			type: 'startEntry',
-			command: 'command:workbench.action.files.openFolder',
-		}
-	},
-	{
-		id: 'topLevelGitClone',
-		title: localize('gettingStarted.topLevelGitClone.title', "Clone Git Repository..."),
-		description: localize('gettingStarted.topLevelGitClone.description', "Clone a remote repository to a local folder"),
-		when: 'config.git.enabled && !git.missing',
-		icon: Codicon.sourceControl,
-		content: {
-			type: 'startEntry',
-			command: 'command:git.clone',
-		}
-	},
-];
-
 const Button = (title: string, href: string) => `[${title}](${href})`;
 
 const CopilotStepTitle = localize('gettingStarted.copilotSetup.title', "Use AI features with Copilot for free");
@@ -352,7 +288,11 @@ export const walkthroughs: GettingStartedWalkthroughContent = [
 				{
 					id: 'videoTutorial',
 					title: localize('gettingStarted.videoTutorial.title', "Watch video tutorials"),
-					description: localize('gettingStarted.videoTutorial.description.interpolated', "Watch the first in a series of short & practical video tutorials for VS Code's key features.\n{0}", Button(localize('watch', "Watch Tutorial"), gettingStartedVideoUrl)),
+					description: localize('gettingStarted.videoTutorial.description.interpolated', "Watch the first in a series of short & practical video tutorials for VS Code's key features.\n{0}", Button(localize('watch', "Watch Tutorial"),
+						// DROX-BEGIN
+						gettingStartedVideoUrl
+						// DROX-END
+					)),
 					media: { type: 'svg', altText: 'VS Code Settings', path: 'learn.svg' },
 				}
 			]

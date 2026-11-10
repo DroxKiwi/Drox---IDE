@@ -22,6 +22,8 @@ On ne reformate pas. On ne renomme pas. Un petit écart reste dans le fichier Mi
 
 La mémoire de disposition de `workbench.ts` est dans `sessionsWorkspaceLayoutController.ts`. Le fichier Microsoft garde l'initialisation, la sauvegarde, le changement de dossier, les deux garde-fous et les minuteries de repeint.
 
+`gettingStarted.css` est revenu identique à la base. Les styles de la page d'accueil sont dans `droxGettingStarted.css`. Les actions de démarrage sont dans `droxGettingStartedContent.ts`. `gettingStarted.ts` garde la mise en page, encadrée. `gettingStartedContent.ts` ne garde que l'adresse de la vidéo.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -34,9 +36,9 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | fait | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/media/chatSubagentContent.css` | 179 | 3 | 6 |
 | fait | `src/vs/workbench/contrib/chat/test/browser/widget/chatContentParts/chatSubagentContentPart.test.ts` | 41 | 68 | 31 |
 | en cours | `src/vs/sessions/browser/workbench.ts` | 212 | 58 | 27 |
-| | `src/vs/workbench/contrib/welcomeGettingStarted/browser/media/gettingStarted.css` | 201 | 1 | 4 |
-| | `src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts` | 79 | 166 | 38 |
-| | `src/vs/workbench/contrib/welcomeGettingStarted/common/gettingStartedContent.ts` | 74 | 1 | 4 |
+| fait | `src/vs/workbench/contrib/welcomeGettingStarted/browser/media/gettingStarted.css` | 201 | 1 | 4 |
+| en cours | `src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts` | 79 | 166 | 38 |
+| en cours | `src/vs/workbench/contrib/welcomeGettingStarted/common/gettingStartedContent.ts` | 74 | 1 | 4 |
 | | `src/vs/sessions/contrib/terminal/browser/sessionsTerminalContribution.ts` | 197 | 103 | 33 |
 | | `src/vs/workbench/contrib/chat/browser/widget/input/chatInputPart.ts` | 177 | 4 | 23 |
 | | `src/vs/workbench/contrib/chat/electron-browser/agentSessions/media/openInAgents.css` | 176 | 8 | 10 |
