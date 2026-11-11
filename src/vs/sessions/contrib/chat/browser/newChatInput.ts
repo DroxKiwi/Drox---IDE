@@ -8,7 +8,6 @@ import './media/chatInputMobile.css';
 import * as dom from '../../../../base/browser/dom.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { Emitter } from '../../../../base/common/event.js';
-import { onUnexpectedError } from '../../../../base/common/errors.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { Disposable, DisposableStore, MutableDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -35,6 +34,9 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { getDefaultHoverDelegate } from '../../../../base/browser/ui/hover/hoverDelegateFactory.js';
 import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
+// DROX-BEGIN
+import { onUnexpectedError } from '../../../../base/common/errors.js';
+import { generateUuid } from '../../../../base/common/uuid.js';
 import { appendDroxActivityGrid } from '../../../../workbench/contrib/drox/browser/droxActivityGrid.js';
 import { DROX_LOADING_SHOW_DELAY_MS } from '../../../../workbench/contrib/drox/browser/droxLoadingConstants.js';
 import { DroxAgentsComposerToolbar } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsComposerToolbar.js';
@@ -43,7 +45,7 @@ import { registerDroxSmartPasteHandler } from '../../../../workbench/contrib/dro
 import { isDroxNativeChatStackEnabled } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IDroxPasteCandidateService } from '../../../../workbench/contrib/drox/common/droxPasteCandidateService.js';
 import { isDroxSendablePasteAttachment, isDroxSmartPasteVariableEntry, toDroxSmartPasteVariableEntry, wireToDroxSmartPasteAttachmentValue } from '../../../../workbench/contrib/drox/common/droxNativeChatRequestAttachments.js';
-import { generateUuid } from '../../../../base/common/uuid.js';
+// DROX-END
 import { localize } from '../../../../nls.js';
 import * as aria from '../../../../base/browser/ui/aria/aria.js';
 import { ContextMenuController } from '../../../../editor/contrib/contextmenu/browser/contextmenu.js';
@@ -264,15 +266,17 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 	// Loading state
 	private _loadingSpinner: HTMLElement | undefined;
 	private readonly _loadingDelayDisposable = this._register(new MutableDisposable());
+	// DROX-BEGIN
+	private _smartPasteEnabled = false;
+	private _droxAgentsComposerQuickActionsHost: DroxAgentsComposerQuickActionsHost | undefined;
+	// DROX-END
 
 	// Attached context
 	private readonly _contextAttachments: NewChatContextAttachments;
-	private _smartPasteEnabled = false;
 
 	// Slash commands
 	private _slashCommandHandler: SlashCommandHandler | undefined;
 	private _agentHostInputCompletionHandler: AgentHostInputCompletionHandler | undefined;
-	private _droxAgentsComposerQuickActionsHost: DroxAgentsComposerQuickActionsHost | undefined;
 	private readonly _scopedInstantiationService: IInstantiationService;
 
 	// Input state
@@ -308,7 +312,9 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		@IStorageService private readonly storageService: IStorageService,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
+		// DROX-BEGIN
 		@IDroxPasteCandidateService private readonly pasteCandidateService: IDroxPasteCandidateService,
+		// DROX-END
 	) {
 		super();
 		this._scopedInstantiationService = this._register(this.instantiationService.createChild(new ServiceCollection(
@@ -331,29 +337,98 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		// avoids a class-mismatch when the user resizes across the
 		// phone breakpoint after the chat input mounted.
 		this.sessionTypePicker = this._register(this.instantiationService.createInstance(MobileSessionTypePicker, this.options.session));
+		// DROX-BEGIN
 		this._register(this.sessionTypePicker.onDidSelectSessionType(() => {
-			const session = this.options.session.get();
-			const sessionType = session?.sessionType ?? this.sessionTypePicker.selectedPick?.sessionTypeId;
-			this._droxAgentsComposerQuickActionsHost?.mountIfNeeded(sessionType, session?.resource);
+			this._syncDroxQuickActions(this.options.session.get());
 		}));
+		// DROX-END
 		this._register(this._contextAttachments.onDidChangeContext(() => {
 			this._updateDraftState();
 			this._updateSendButtonState();
 			this.focus();
 		}));
+		// DROX-BEGIN
 		this._smartPasteEnabled = isDroxNativeChatStackEnabled(this.configurationService);
+		// DROX-END
 		this._register(autorun(reader => {
 			this.options.canSendRequest.read(reader);
 			const isLoading = this.options.loading.read(reader);
 			this._loadingSpinner?.classList.toggle('visible', isLoading);
 			this._updateSendButtonState();
 		}));
+		// DROX-BEGIN
 		this._register(autorun(reader => {
-			const session = this.options.session.read(reader);
-			const sessionType = session?.sessionType ?? this.sessionTypePicker.selectedPick?.sessionTypeId;
-			this._droxAgentsComposerQuickActionsHost?.mountIfNeeded(sessionType, session?.resource);
+			this._syncDroxQuickActions(this.options.session.read(reader));
 		}));
+		// DROX-END
 	}
+
+	// DROX-BEGIN
+	private _syncDroxQuickActions(session: IActiveSession | undefined): void {
+		const sessionType = session?.sessionType ?? this.sessionTypePicker.selectedPick?.sessionTypeId;
+		this._droxAgentsComposerQuickActionsHost?.mountIfNeeded(sessionType, session?.resource);
+	}
+
+	private _mountDroxQuickActions(inputArea: HTMLElement): void {
+		if (!isDroxNativeChatStackEnabled(this.configurationService)) {
+			return;
+		}
+		const quickActionsHost = createDroxAgentsComposerQuickActionsHost(
+			this.instantiationService,
+			this.configurationService,
+			inputArea,
+		);
+		if (quickActionsHost) {
+			this._register(quickActionsHost);
+			this._droxAgentsComposerQuickActionsHost = quickActionsHost;
+		}
+	}
+
+	private _wireDroxSmartPaste(inputArea: HTMLElement): void {
+		if (!this._smartPasteEnabled) {
+			return;
+		}
+		this._register(registerDroxSmartPasteHandler(
+			inputArea,
+			this.pasteCandidateService,
+			candidate => {
+				this._contextAttachments.addAttachments(toDroxSmartPasteVariableEntry(
+					`drox-paste-${generateUuid()}`,
+					wireToDroxSmartPasteAttachmentValue(candidate),
+				));
+			},
+			token => this._contextAttachments.attachments.some(entry => {
+				if (!isDroxSmartPasteVariableEntry(entry)) {
+					return false;
+				}
+				const value = entry.value as { token?: string } | undefined;
+				return value?.token === token;
+			}),
+		));
+	}
+
+	private _createDroxComposerToolbar(): DroxAgentsComposerToolbar | undefined {
+		if (!isDroxNativeChatStackEnabled(this.configurationService)) {
+			return undefined;
+		}
+		try {
+			return this._register(this.instantiationService.createInstance(DroxAgentsComposerToolbar));
+		} catch (err) {
+			onUnexpectedError(err);
+			return undefined;
+		}
+	}
+
+	private _resyncDroxSmartPaste(): void {
+		if (this._smartPasteEnabled) {
+			this.pasteCandidateService.resync();
+		}
+	}
+
+	private _mountDroxLoadingIndicator(spinner: HTMLElement): void {
+		appendDroxActivityGrid(spinner);
+	}
+	// DROX-END
 
 	private _setHistoryKey(historyKey: string | undefined): void {
 		this._history.setHistoryKey(this.configurationService.getValue<boolean>(AGENT_SESSIONS_SCOPED_INPUT_HISTORY_SETTING) !== false ? historyKey : undefined);
@@ -385,55 +460,24 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		// Input area inside the input slot
 		const inputArea = dom.append(chatInputContainer, dom.$('.new-chat-input-area'));
 
-		if (isDroxNativeChatStackEnabled(this.configurationService)) {
-			const quickActionsHost = createDroxAgentsComposerQuickActionsHost(
-				this.instantiationService,
-				this.configurationService,
-				inputArea,
-			);
-			if (quickActionsHost) {
-				this._register(quickActionsHost);
-				this._droxAgentsComposerQuickActionsHost = quickActionsHost;
-			}
-		}
+		// DROX-BEGIN
+		this._mountDroxQuickActions(inputArea);
+		// DROX-END
 
 		// Attachments row (pills only) inside input area, above editor
 		const attachRow = dom.append(inputArea, dom.$('.sessions-chat-attach-row'));
 		const attachedContextContainer = dom.append(attachRow, dom.$('.sessions-chat-attached-context'));
 		this._contextAttachments.renderAttachedContext(attachedContextContainer);
-		if (this._smartPasteEnabled) {
-			this._register(registerDroxSmartPasteHandler(
-				inputArea,
-				this.pasteCandidateService,
-				candidate => {
-					this._contextAttachments.addAttachments(toDroxSmartPasteVariableEntry(
-						`drox-paste-${generateUuid()}`,
-						wireToDroxSmartPasteAttachmentValue(candidate),
-					));
-				},
-				token => this._contextAttachments.attachments.some(entry => {
-					if (!isDroxSmartPasteVariableEntry(entry)) {
-						return false;
-					}
-					const value = entry.value as { token?: string } | undefined;
-					return value?.token === token;
-				}),
-			));
-		}
+		// DROX-BEGIN
+		this._wireDroxSmartPaste(inputArea);
+		// DROX-END
 		this._contextAttachments.registerDropTarget(root);
 		this._contextAttachments.registerPasteHandler(inputArea);
 
 		this._createEditor(inputArea, editorOverflowWidgetsDomNode);
-		let droxComposerToolbar: DroxAgentsComposerToolbar | undefined;
-		// IDE native chat needs the same Connect / model chips as Agents — not only the Agents window.
-		if (isDroxNativeChatStackEnabled(this.configurationService)) {
-			try {
-				droxComposerToolbar = this._register(this.instantiationService.createInstance(DroxAgentsComposerToolbar));
-			} catch (err) {
-				onUnexpectedError(err);
-			}
-		}
-		this._createInputToolbar(inputArea, droxComposerToolbar);
+		// DROX-BEGIN
+		this._createInputToolbar(inputArea, this._createDroxComposerToolbar());
+		// DROX-END
 
 		const newChatBottomContainer = dom.append(parent, dom.$('.new-chat-bottom-container'));
 		const newChatControlsContainer = dom.append(newChatBottomContainer, dom.$('.new-chat-controls-container'));
@@ -460,6 +504,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 
 		// Generic extension point for status indicators in the new-session view.
 		const statusContainer = dom.append(repoConfigContainer, dom.$('.new-chat-status-toolbar'));
+		// DROX-BEGIN
 		if (this.configurationService.getValue<boolean>('github.copilot.chat.otel.enabled') === true) {
 			this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, statusContainer, MenuId.ChatInputStatus, {
 				hiddenItemStrategy: HiddenItemStrategy.NoHide,
@@ -474,6 +519,7 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 		} else {
 			statusContainer.style.display = 'none';
 		}
+		// DROX-END
 
 		// Restore draft input state from storage
 		this._restoreState();
@@ -493,7 +539,11 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 					if (this._sending) {
 						this._loadingSpinner?.classList.add('visible');
 					}
-				}, DROX_LOADING_SHOW_DELAY_MS);
+				},
+					// DROX-BEGIN
+					DROX_LOADING_SHOW_DELAY_MS
+					// DROX-END
+				);
 				this._loadingDelayDisposable.value = toDisposable(() => clearTimeout(timer));
 			}
 		} else {
@@ -652,9 +702,9 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 			this._updateSendButtonState();
 		}));
 		this._register(this._editor.onDidFocusEditorText(() => {
-			if (this._smartPasteEnabled) {
-				this.pasteCandidateService.resync();
-			}
+			// DROX-BEGIN
+			this._resyncDroxSmartPaste();
+			// DROX-END
 		}));
 	}
 
@@ -693,14 +743,18 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 				return undefined;
 			},
 		}));
+		// DROX-BEGIN
 		if (droxComposerToolbar) {
 			configContainer.appendChild(droxComposerToolbar.domNode);
 		}
+		// DROX-END
 
 		dom.append(toolbar, dom.$('.sessions-chat-toolbar-spacer'));
 
 		this._loadingSpinner = dom.append(toolbar, dom.$('.sessions-chat-loading-spinner'));
-		appendDroxActivityGrid(this._loadingSpinner);
+		// DROX-BEGIN
+		this._mountDroxLoadingIndicator(this._loadingSpinner);
+		// DROX-END
 		this._register(this.hoverService.setupManagedHover(getDefaultHoverDelegate('mouse'), this._loadingSpinner, localize('loading', "Loading...")));
 		this._loadingSpinner.classList.toggle('visible', this.options.loading.get());
 
@@ -781,7 +835,10 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 	private _hasSendableContent(): boolean {
 		const hasText = !!this._editor?.getModel()?.getValue().trim();
 		const hasSendableAttachment = this._contextAttachments.attachments.some(entry =>
-			isExplicitFileOrImageVariableEntry(entry) || isDroxSendablePasteAttachment(entry),
+			isExplicitFileOrImageVariableEntry(entry)
+			// DROX-BEGIN
+			|| isDroxSendablePasteAttachment(entry)
+			// DROX-END
 		);
 		return hasText || hasSendableAttachment;
 	}

@@ -32,6 +32,8 @@ La mémoire de disposition de `workbench.ts` est dans `sessionsWorkspaceLayoutCo
 
 `chatTerminalToolProgressPart.ts` garde la sortie en direct de `bash` et le bouton Skip. Les méthodes sont groupées après le constructeur. Le chemin Microsoft ne garde qu'un appel à chaque passage. Le repeint d'un miroir déjà créé est dans `refreshSnapshotOutput`.
 
+`newChatInput.ts` garde le compositeur Drox, le collage et la grille de chargement. Les méthodes sont groupées après le constructeur. Le chemin de rendu ne garde qu'un appel.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -51,7 +53,7 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | en cours | `src/vs/workbench/contrib/chat/browser/widget/input/chatInputPart.ts` | 177 | 4 | 23 |
 | fait | `src/vs/workbench/contrib/chat/electron-browser/agentSessions/media/openInAgents.css` | 176 | 8 | 10 |
 | en cours | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/toolInvocationParts/chatTerminalToolProgressPart.ts` | 110 | 8 | 15 |
-| | `src/vs/sessions/contrib/chat/browser/newChatInput.ts` | 100 | 21 | 20 |
+| en cours | `src/vs/sessions/contrib/chat/browser/newChatInput.ts` | 100 | 21 | 20 |
 | | `build/lib/electron.ts` | 104 | 7 | 8 |
 | | `build/lib/preLaunch.ts` | 98 | 3 | 6 |
 | | `src/vs/sessions/contrib/sessions/browser/views/sessionsList.ts` | 92 | 7 | 22 |
