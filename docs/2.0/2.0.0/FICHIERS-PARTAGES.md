@@ -36,6 +36,8 @@ La mémoire de disposition de `workbench.ts` est dans `sessionsWorkspaceLayoutCo
 
 Le dossier actif d'Electron (`.build/electron-active-subdir`) est dans `build/lib/droxElectronRuntime.ts`. `electron.ts` garde la marque KDDS, l'icône et l'empreinte, encadrées, et appelle ce module. `preLaunch.ts` appelle le contrôle du runtime, puis `ensureClientCompiled` dans `droxPreLaunchCompile.ts`.
 
+`sessionsSetUpService.ts` garde les branchements qui évitent la connexion GitHub, la grille de chargement et les deux mots du pied de page. Le dialogue d'accueil Drox est dans `droxSessionsWelcome.ts`.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -59,7 +61,7 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | en cours | `build/lib/electron.ts` | 104 | 7 | 8 |
 | en cours | `build/lib/preLaunch.ts` | 98 | 3 | 6 |
 | | `src/vs/sessions/contrib/sessions/browser/views/sessionsList.ts` | 92 | 7 | 22 |
-| | `src/vs/sessions/browser/sessionsSetUpService.ts` | 80 | 5 | 10 |
+| en cours | `src/vs/sessions/browser/sessionsSetUpService.ts` | 80 | 5 | 10 |
 | | `src/vs/sessions/services/sessions/browser/sessionsService.ts` | 80 | 8 | 23 |
 | | `src/vs/sessions/contrib/changes/browser/changesView.ts` | 79 | 13 | 18 |
 | | `build/lib/stylelint/vscode-known-variables.json` | 78 | 2 | 4 |
