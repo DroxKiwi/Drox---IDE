@@ -72,6 +72,7 @@ import { ElementsDragAndDropData, ListViewTargetSector } from '../../../../../ba
 import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
 import { buildSessionHoverContent } from '../sessionHoverContent.js';
 import { SessionStatusIcon } from '../../../../browser/sessionStatusIcon.js';
+// DROX-BEGIN
 import { createDroxSessionItemDashboardRow, getDroxSessionDashboardRowHeight, renderDroxSessionItemDashboard } from '../../../drox/browser/droxSessionListDashboard.js';
 import {
 	DroxSessionAllowOutsideWorkspaceContext,
@@ -81,6 +82,7 @@ import {
 } from '../../../drox/browser/droxSessionsBackgroundActions.js';
 import { DROX_SESSIONS_PROVIDER_ID, DroxChatSessionUri } from '../../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { IDroxSessionBackgroundService } from '../../../drox/common/droxSessionBackgroundService.js';
+// DROX-END
 
 const $ = DOM.$;
 
@@ -181,7 +183,9 @@ class SessionsTreeDelegate implements IListVirtualDelegate<SessionListItem> {
 	constructor(
 		private readonly _approvalModel: AgentSessionApprovalModel | undefined,
 		private readonly _isPhone: () => boolean,
+		// DROX-BEGIN
 		private readonly _droxBackgroundService: IDroxSessionBackgroundService | undefined,
+		// DROX-END
 	) { }
 
 	getHeight(element: SessionListItem): number {
@@ -199,20 +203,21 @@ class SessionsTreeDelegate implements IListVirtualDelegate<SessionListItem> {
 				height += SessionItemRenderer.getApprovalRowHeight(approval.label);
 			}
 		}
+		// DROX-BEGIN
 		if (this._droxBackgroundService && isSessionItem(element)) {
 			height += getDroxSessionDashboardRowHeight(element, this._droxBackgroundService);
 		}
+		// DROX-END
 		return height;
 	}
 
 	hasDynamicHeight(element: SessionListItem): boolean {
-		if (!isSessionItem(element)) {
-			return false;
-		}
-		if (this._approvalModel) {
+		// DROX-BEGIN
+		if (isSessionItem(element) && this._droxBackgroundService && element.providerId === DROX_SESSIONS_PROVIDER_ID) {
 			return true;
 		}
-		return !!this._droxBackgroundService && element.providerId === DROX_SESSIONS_PROVIDER_ID;
+		// DROX-END
+		return !!this._approvalModel && isSessionItem(element);
 	}
 
 	getTemplateId(element: SessionListItem): string {
@@ -263,7 +268,9 @@ interface ISessionItemTemplate {
 	readonly approvalRow: HTMLElement;
 	readonly approvalLabel: HTMLElement;
 	readonly approvalButtonContainer: HTMLElement;
+	// DROX-BEGIN
 	readonly droxDashboardRow: HTMLElement;
+	// DROX-END
 	readonly contextKeyService: IContextKeyService;
 	readonly disposables: DisposableStore;
 	readonly elementDisposables: DisposableStore;
@@ -295,7 +302,9 @@ class SessionItemRenderer implements ITreeRenderer<SessionListItem, FuzzyScore, 
 		private readonly sessionsProvidersService: ISessionsProvidersService,
 		// TEMPORARY — see the note on the `IAgentSessionsService` import above (#320480).
 		private readonly agentSessionsService: IAgentSessionsService,
+		// DROX-BEGIN
 		private readonly _droxBackgroundService: IDroxSessionBackgroundService,
+		// DROX-END
 	) {
 	}
 
@@ -322,7 +331,9 @@ class SessionItemRenderer implements ITreeRenderer<SessionListItem, FuzzyScore, 
 		}
 		disposables.add(Gesture.ignoreTarget(titleToolbarContainer));
 		const detailsRow = DOM.append(mainCol, $('.session-details-row'));
+		// DROX-BEGIN
 		const { dashboardRow: droxDashboardRow } = createDroxSessionItemDashboardRow(mainCol);
+		// DROX-END
 
 		// Approval row
 		const approvalRow = DOM.append(mainCol, $('.session-approval-row'));
@@ -337,7 +348,7 @@ class SessionItemRenderer implements ITreeRenderer<SessionListItem, FuzzyScore, 
 			actionRunner,
 		}));
 
-		return { container, statusIcon, title, titleToolbar, detailsRow, droxDashboardRow, approvalRow, approvalLabel, approvalButtonContainer, contextKeyService, disposables, elementDisposables };
+		return { container, statusIcon, title, titleToolbar, detailsRow, /* DROX-BEGIN */ droxDashboardRow, /* DROX-END */ approvalRow, approvalLabel, approvalButtonContainer, contextKeyService, disposables, elementDisposables };
 	}
 
 	renderElement(node: ITreeNode<SessionListItem, FuzzyScore>, _index: number, template: ISessionItemTemplate): void {
@@ -370,6 +381,7 @@ class SessionItemRenderer implements ITreeRenderer<SessionListItem, FuzzyScore, 
 		// Toolbar context
 		template.titleToolbar.context = element;
 
+		// DROX-BEGIN
 		const droxBackgroundPersistent = DroxSessionBackgroundPersistentContext.bindTo(template.contextKeyService);
 		const droxAllowOutsideWorkspace = DroxSessionAllowOutsideWorkspaceContext.bindTo(template.contextKeyService);
 		const droxAllowOutsideWorkspaceRead = DroxSessionAllowOutsideWorkspaceReadContext.bindTo(template.contextKeyService);
@@ -399,6 +411,7 @@ class SessionItemRenderer implements ITreeRenderer<SessionListItem, FuzzyScore, 
 			template.elementDisposables,
 			() => this._onDidChangeItemHeight.fire(element),
 		);
+		// DROX-END
 
 		// Context keys
 		const isPinned = this.options.isPinned(element);
@@ -1240,7 +1253,7 @@ export interface ISessionsList {
 	readonly onDidUpdate: Event<void>;
 	readonly onDidChangeFindOpenState: Event<boolean>;
 	refresh(): void;
-	reveal(sessionResource: URI, options?: { readonly preserveFocus?: boolean }): boolean;
+	reveal(sessionResource: URI, /* DROX-BEGIN */ options?: { readonly preserveFocus?: boolean } /* DROX-END */): boolean;
 	/**
 	 * Returns the sessions currently visible in the list, in display order.
 	 * Sessions hidden by workspace group capping ("show more") are excluded.
@@ -1297,9 +1310,11 @@ export class SessionsList extends Disposable implements ISessionsList {
 	private readonly listContainer: HTMLElement;
 	private readonly tree: WorkbenchObjectTree<SessionListItem, FuzzyScore>;
 	private sessions: ISession[] = [];
+	// DROX-BEGIN
 	private visible = false;
 	/** Session data changed while hidden or before the list had dimensions. */
 	private _stale = false;
+	// DROX-END
 	private readonly excludedSessionTypes: Set<string>;
 	private readonly excludedStatuses: Set<SessionStatus>;
 	private _excludeArchived: boolean;
@@ -1375,7 +1390,9 @@ export class SessionsList extends Disposable implements ISessionsList {
 		const sessionsProvidersService = instantiationService.invokeFunction(accessor => accessor.get(ISessionsProvidersService));
 		// TEMPORARY (#320480): see the note on the `IAgentSessionsService` import.
 		const agentSessionsService = instantiationService.invokeFunction(accessor => accessor.get(IAgentSessionsService));
+		// DROX-BEGIN
 		const droxBackgroundService = instantiationService.invokeFunction(accessor => accessor.get(IDroxSessionBackgroundService));
+		// DROX-END
 		const sessionRenderer = new SessionItemRenderer(
 			{ grouping: this.options.grouping, sorting: this.options.sorting, isPinned: s => this.isSessionPinned(s), isRead: s => this.isSessionRead(s), visibleSessions: this._sessionsService.visibleSessions, getMultiSelectedSessions: s => this.getMultiSelectedSessions(s) },
 			approvalModel,
@@ -1385,7 +1402,9 @@ export class SessionsList extends Disposable implements ISessionsList {
 			hoverService,
 			sessionsProvidersService,
 			agentSessionsService,
+			// DROX-BEGIN
 			droxBackgroundService,
+			// DROX-END
 		);
 
 		const showMoreRenderer = new SessionShowMoreRenderer();
@@ -1400,7 +1419,7 @@ export class SessionsList extends Disposable implements ISessionsList {
 		// observe the workbench's value rather than shadowing it with a fresh
 		// scoped default of `false`. The reactive height refresh below listens
 		// on the same scoped service for changes.
-		const delegate = new SessionsTreeDelegate(approvalModel, () => !!IsPhoneLayoutContext.getValue(contextKeyService), droxBackgroundService);
+		const delegate = new SessionsTreeDelegate(approvalModel, () => !!IsPhoneLayoutContext.getValue(contextKeyService), /* DROX-BEGIN */ droxBackgroundService /* DROX-END */);
 
 		this.tree = this._register(instantiationService.createInstance(
 			WorkbenchObjectTree<SessionListItem, FuzzyScore>,
@@ -1576,12 +1595,17 @@ export class SessionsList extends Disposable implements ISessionsList {
 		}));
 
 		this._register(this._sessionsManagementService.onDidChangeSessions(() => {
+			// DROX-BEGIN
 			this.sessions = this._sessionsManagementService.getSessions();
+			// DROX-END
 			if (this.visible) {
 				this.refresh();
-			} else {
+			}
+			// DROX-BEGIN
+			else {
 				this._stale = true;
 			}
+			// DROX-END
 		}));
 
 		this._register(this._sessionsListModelService.onDidChange(() => {
@@ -1915,7 +1939,9 @@ export class SessionsList extends Disposable implements ISessionsList {
 		}
 
 		this.tree.setChildren(null, children);
+		// DROX-BEGIN
 		this._layoutTreeIfSized();
+		// DROX-END
 		this._onDidUpdate.fire();
 	}
 
@@ -1949,7 +1975,7 @@ export class SessionsList extends Disposable implements ISessionsList {
 		return visibleSessions;
 	}
 
-	reveal(sessionResource: URI, options?: { readonly preserveFocus?: boolean }): boolean {
+	reveal(sessionResource: URI, /* DROX-BEGIN */ options?: { readonly preserveFocus?: boolean } /* DROX-END */): boolean {
 		const resourceStr = sessionResource.toString();
 		for (const session of this.sessions) {
 			if (session.resource.toString() === resourceStr) {
@@ -1958,9 +1984,13 @@ export class SessionsList extends Disposable implements ISessionsList {
 						this.tree.reveal(session, 0.5);
 					}
 					this.tree.setSelection([session]);
+					// DROX-BEGIN
 					if (!options?.preserveFocus) {
+						// DROX-END
 						this.tree.setFocus([session]);
+						// DROX-BEGIN
 					}
+					// DROX-END
 					return true;
 				}
 			}
@@ -1988,17 +2018,22 @@ export class SessionsList extends Disposable implements ISessionsList {
 	}
 
 	layout(height: number, width: number): void {
+		// DROX-BEGIN
 		if (height <= 0 || width <= 0) {
 			this._stale = true;
 			return;
 		}
+		// DROX-END
 		this.tree.layout(height, width);
+		// DROX-BEGIN
 		if (this._stale) {
 			this._stale = false;
 			this.update();
 		}
+		// DROX-END
 	}
 
+	// DROX-BEGIN
 	private _layoutTreeIfSized(): void {
 		const parent = this.listContainer.parentElement;
 		if (!parent) {
@@ -2013,6 +2048,7 @@ export class SessionsList extends Disposable implements ISessionsList {
 			this._stale = true;
 		}
 	}
+	// DROX-END
 
 	focus(): void {
 		this.tree.domFocus();
