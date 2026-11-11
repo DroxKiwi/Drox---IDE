@@ -34,6 +34,8 @@ La mémoire de disposition de `workbench.ts` est dans `sessionsWorkspaceLayoutCo
 
 `newChatInput.ts` garde le compositeur Drox, le collage et la grille de chargement. Les méthodes sont groupées après le constructeur. Le chemin de rendu ne garde qu'un appel.
 
+Le dossier actif d'Electron (`.build/electron-active-subdir`) est dans `build/lib/droxElectronRuntime.ts`. `electron.ts` garde la marque KDDS, l'icône et l'empreinte, encadrées, et appelle ce module. `preLaunch.ts` appelle le contrôle du runtime, puis `ensureClientCompiled` dans `droxPreLaunchCompile.ts`.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -54,8 +56,8 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | fait | `src/vs/workbench/contrib/chat/electron-browser/agentSessions/media/openInAgents.css` | 176 | 8 | 10 |
 | en cours | `src/vs/workbench/contrib/chat/browser/widget/chatContentParts/toolInvocationParts/chatTerminalToolProgressPart.ts` | 110 | 8 | 15 |
 | en cours | `src/vs/sessions/contrib/chat/browser/newChatInput.ts` | 100 | 21 | 20 |
-| | `build/lib/electron.ts` | 104 | 7 | 8 |
-| | `build/lib/preLaunch.ts` | 98 | 3 | 6 |
+| en cours | `build/lib/electron.ts` | 104 | 7 | 8 |
+| en cours | `build/lib/preLaunch.ts` | 98 | 3 | 6 |
 | | `src/vs/sessions/contrib/sessions/browser/views/sessionsList.ts` | 92 | 7 | 22 |
 | | `src/vs/sessions/browser/sessionsSetUpService.ts` | 80 | 5 | 10 |
 | | `src/vs/sessions/services/sessions/browser/sessionsService.ts` | 80 | 8 | 23 |

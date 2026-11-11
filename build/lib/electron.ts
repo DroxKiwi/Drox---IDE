@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import fs from 'fs';
-import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 import vfs from 'vinyl-fs';
@@ -13,6 +12,9 @@ import * as util from './util.ts';
 import { getVersion } from './getVersion.ts';
 import { downloadFeedPackage } from './azureFeed.ts';
 import electron from '@vscode/gulp-electron';
+// DROX-BEGIN
+import { installElectronRuntime } from './droxElectronRuntime.ts';
+// DROX-END
 
 type DarwinDocumentSuffix = 'document' | 'script' | 'file' | 'source code';
 type DarwinDocumentType = {
@@ -144,8 +146,10 @@ const electronAssetResolver = electronFeed
 export const config = {
 	version: electronVersion,
 	productAppName: product.nameLong,
+	// DROX-BEGIN
 	companyName: 'KDDS',
 	copyright: 'Copyright (C) 2026 KDDS. All rights reserved',
+	// DROX-END
 	darwinExecutable: product.nameShort,
 	darwinIcon: 'resources/darwin/code.icns',
 	darwinBundleIdentifier: product.darwinBundleIdentifier,
@@ -238,16 +242,25 @@ export const config = {
 	darwinForceDarkModeSupport: true,
 	darwinCredits: darwinCreditsTemplate ? Buffer.from(darwinCreditsTemplate({ commit: commit, date: new Date().toISOString() })) : undefined,
 	linuxExecutableName: product.applicationName,
+	// DROX-BEGIN
 	winIcon: 'resources/win32/drox.ico',
+	// DROX-END
 	token: process.env['GITHUB_TOKEN'],
 	repo: electronAssetResolver,
+	// DROX-BEGIN
 	validateChecksum: process.env['DROX_SKIP_ELECTRON_CHECKSUM'] === '1' ? false : true,
+	// DROX-END
 	checksumFile: path.join(root, 'build', 'checksums', 'electron.txt'),
 	createVersionedResources: useVersionedUpdate,
 	productVersionString: versionedResourcesFolder,
 };
 
-function getElectron(arch: string, destRel: string = '.build/electron'): () => NodeJS.ReadWriteStream {
+function getElectron(
+	arch: string,
+	// DROX-BEGIN
+	destRel: string = '.build/electron',
+	// DROX-END
+): () => NodeJS.ReadWriteStream {
 	return () => {
 		const electronOpts = {
 			...config,
@@ -265,106 +278,14 @@ function getElectron(arch: string, destRel: string = '.build/electron'): () => N
 	};
 }
 
-async function rimrafElectronWithBusyRetry(electronPath: string): Promise<void> {
-	const maxAttempts = 6;
-	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-		try {
-			await util.rimraf(electronPath)();
-			return;
-		} catch (err: unknown) {
-			const code = err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined;
-			if (code === 'EBUSY' && attempt < maxAttempts) {
-				const msg = `[electron] .build/electron is locked (EBUSY), attempt ${attempt}/${maxAttempts - 1}. Close all "${product.nameShort}" windows and retry.`;
-				console.warn(msg);
-				await new Promise(r => setTimeout(r, 2000));
-				continue;
-			}
-			if (code === 'EBUSY') {
-				console.error(
-					`[electron] Cannot remove ${electronPath}: file in use. Close "${product.nameShort}" (and any tool using .build/electron), then retry.`,
-				);
-			}
-			throw err;
-		}
-	}
-}
-
-/** File under .build root: one line = runtime subfolder name (e.g. electron or electron-runtime-123). */
-const electronActiveSubdirFile = path.join(root, '.build', 'electron-active-subdir');
-
-async function writeElectronActiveSubdir(subdirUnderBuild: string): Promise<void> {
-	if (!/^[a-zA-Z0-9._-]+$/.test(subdirUnderBuild)) {
-		throw new Error(`[electron] Nom de dossier runtime invalide: ${subdirUnderBuild}`);
-	}
-	await fsPromises.mkdir(path.join(root, '.build'), { recursive: true });
-	await fsPromises.writeFile(electronActiveSubdirFile, `${subdirUnderBuild}\n`, 'utf8');
-}
-
-async function clearElectronActiveSubdir(): Promise<void> {
-	await fsPromises.unlink(electronActiveSubdirFile).catch(() => { /* absent */ });
-}
-
-/**
- * On Windows, deleting files under .build/electron often fails with EBUSY
- * (Defender, indexer). Extract to staging then replace via rename.
- * If the old folder cannot be renamed or removed, install the runtime under
- * .build/electron-runtime-<timestamp> and record that name for code.bat / preLaunch.
- */
-async function mainWindowsElectronSwap(arch: string): Promise<void> {
-	const electronAbs = path.join(root, '.build', 'electron');
-	const stagingRel = '.build/electron-staging';
-	const stagingAbs = path.join(root, stagingRel);
-
-	await util.rimraf(stagingAbs)().catch(() => { /* staging absent ou jetable */ });
-
-	await util.streamToPromise(getElectron(arch, stagingRel)());
-
-	const hadPrevious = await fsPromises
-		.access(electronAbs)
-		.then(() => true)
-		.catch(() => false);
-
-	if (hadPrevious) {
-		const trashRel = `.build/electron-trash-${Date.now()}`;
-		const trashAbs = path.join(root, trashRel);
-		try {
-			await fsPromises.rename(electronAbs, trashAbs);
-			console.log(`[electron] Previous runtime moved to ${trashRel} (Windows EBUSY workaround).`);
-			setImmediate(() => {
-				void util.rimraf(trashAbs)().catch(() => {
-					console.warn(`[electron] Remove obsolete folder manually: ${trashRel}`);
-				});
-			});
-		} catch {
-			console.warn(
-				'[electron] Cannot rename or remove .build/electron (often Defender / indexer). ' +
-					'Installing runtime in a parallel folder...',
-			);
-			const fallbackSubdir = `electron-runtime-${Date.now()}`;
-			const fallbackAbs = path.join(root, '.build', fallbackSubdir);
-			await util.rimraf(fallbackAbs)().catch(() => { /* nouveau nom unique */ });
-			await fsPromises.rename(stagingAbs, fallbackAbs);
-			await writeElectronActiveSubdir(fallbackSubdir);
-			console.warn(
-				`[electron] Use .build/${fallbackSubdir} now (see .build/electron-active-subdir). ` +
-					'You can delete .build/electron later or add an antivirus exclusion for .build.',
-			);
-			return;
-		}
-	}
-
-	await fsPromises.rename(stagingAbs, electronAbs);
-	await clearElectronActiveSubdir();
-}
-
 async function main(arch: string = process.arch): Promise<void> {
-	const electronPath = path.join(root, '.build', 'electron');
-	if (process.platform === 'win32') {
-		await mainWindowsElectronSwap(arch);
-		return;
-	}
-	await rimrafElectronWithBusyRetry(electronPath);
-	await util.streamToPromise(getElectron(arch)());
+	// DROX-BEGIN
+	await installElectronRuntime({
+		root,
+		productNameShort: product.nameShort,
+		downloadTo: destRel => util.streamToPromise(getElectron(arch, destRel)()),
+	});
+	// DROX-END
 }
 
 if (import.meta.main) {
