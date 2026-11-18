@@ -10,25 +10,31 @@
 AppId={#AppId}
 AppName={#NameLong}
 AppVerName={#NameVersion}
+; DROX-BEGIN
 AppPublisher=KDDS
 AppPublisherURL=https://github.com/DroxKiwi/Drox---IDE---OR
 AppSupportURL=https://github.com/DroxKiwi/Drox---IDE---OR/issues
 AppUpdatesURL=https://github.com/DroxKiwi/Drox---IDE---OR/releases
+; DROX-END
 DefaultGroupName={#NameLong}
 AllowNoIcons=yes
 OutputDir={#OutputDir}
+; DROX-BEGIN
 #if "user" == InstallTarget
 OutputBaseFilename=Drox-IDE-UserSetup-{#RawVersion}-win32-{#Arch}
 #else
 OutputBaseFilename=Drox-IDE-Setup-{#RawVersion}-win32-{#Arch}
 #endif
+; DROX-END
 Compression=lzma
 SolidCompression=yes
 AppMutex={code:GetAppMutex}
 SetupMutex={code:GetSetupMutex}
 WizardImageFile="{#RepoDir}\resources\win32\inno-big-100.bmp,{#RepoDir}\resources\win32\inno-big-125.bmp,{#RepoDir}\resources\win32\inno-big-150.bmp,{#RepoDir}\resources\win32\inno-big-175.bmp,{#RepoDir}\resources\win32\inno-big-200.bmp,{#RepoDir}\resources\win32\inno-big-225.bmp,{#RepoDir}\resources\win32\inno-big-250.bmp"
 WizardSmallImageFile="{#RepoDir}\resources\win32\inno-small-100.bmp,{#RepoDir}\resources\win32\inno-small-125.bmp,{#RepoDir}\resources\win32\inno-small-150.bmp,{#RepoDir}\resources\win32\inno-small-175.bmp,{#RepoDir}\resources\win32\inno-small-200.bmp,{#RepoDir}\resources\win32\inno-small-225.bmp,{#RepoDir}\resources\win32\inno-small-250.bmp"
+; DROX-BEGIN
 SetupIconFile={#RepoDir}\resources\win32\drox.ico
+; DROX-END
 UninstallDisplayIcon={app}\{#ExeBasename}.exe
 ChangesEnvironment=true
 ChangesAssociations=true
@@ -1314,7 +1320,9 @@ Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\
 Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#ApplicationName}.exe"; ValueType: none; ValueName: "Path"; Flags: deletevalue
 
 [Code]
+; DROX-BEGIN
 #include "drox-wizard-theme.inc.iss"
+; DROX-END
 
 function IsBackgroundUpdate(): Boolean;
 begin

@@ -13,6 +13,9 @@ import { Emitter, Event } from '../../../common/event.js';
 import { Disposable, DisposableStore, toDisposable } from '../../../common/lifecycle.js';
 import { isMacintosh } from '../../../common/platform.js';
 import './sash.css';
+// DROX-BEGIN
+import './droxSash.css';
+// DROX-END
 
 /**
  * Allow the sashes to be visible at runtime.

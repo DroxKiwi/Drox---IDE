@@ -17,8 +17,10 @@ import { recommendedDeps as rpmRecommendedDependencies } from './linux/rpm/dep-l
 import * as path from 'path';
 import * as cp from 'child_process';
 import { promisify } from 'util';
+// DROX-BEGIN
 import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'fs';
 import { tmpdir } from 'os';
+// DROX-END
 
 const exec = promisify(cp.exec);
 const root = path.dirname(import.meta.dirname);
@@ -49,10 +51,12 @@ function prepareDebPackage(arch: string) {
 		const desktopUrlHandler = gulp.src('resources/linux/code-url-handler.desktop', { base: '.' })
 			.pipe(rename('usr/share/applications/' + product.applicationName + '-url-handler.desktop'));
 
+		// DROX-BEGIN
 		const desktopOpenFolder = gulp.src('resources/linux/code-open-folder.desktop', { base: '.' })
 			.pipe(rename('usr/share/applications/' + product.applicationName + '-open-folder.desktop'));
 
 		const desktops = es.merge(desktop, desktopUrlHandler, desktopOpenFolder)
+			// DROX-END
 			.pipe(replace('@@NAME_LONG@@', product.nameLong))
 			.pipe(replace('@@NAME_SHORT@@', product.nameShort))
 			.pipe(replace('@@NAME@@', product.applicationName))
@@ -135,6 +139,7 @@ function buildDebPackage(arch: string) {
 		const buildPkg = pkgName;
 		let tmpRoot: string | undefined;
 
+		// DROX-BEGIN
 		// drvfs (/mnt/c) reports 0777 and ignores chmod — dpkg-deb rejects that.
 		try {
 			if (existsSync(debianDir) && (statSync(debianDir).mode & 0o777) === 0o777) {
@@ -168,6 +173,7 @@ function buildDebPackage(arch: string) {
 			}
 			rmSync(tmpRoot, { recursive: true, force: true });
 		}
+		// DROX-END
 	};
 }
 
@@ -198,10 +204,12 @@ function prepareRpmPackage(arch: string) {
 		const desktopUrlHandler = gulp.src('resources/linux/code-url-handler.desktop', { base: '.' })
 			.pipe(rename('BUILD/usr/share/applications/' + product.applicationName + '-url-handler.desktop'));
 
+		// DROX-BEGIN
 		const desktopOpenFolder = gulp.src('resources/linux/code-open-folder.desktop', { base: '.' })
 			.pipe(rename('BUILD/usr/share/applications/' + product.applicationName + '-open-folder.desktop'));
 
 		const desktops = es.merge(desktop, desktopUrlHandler, desktopOpenFolder)
+			// DROX-END
 			.pipe(replace('@@NAME_LONG@@', product.nameLong))
 			.pipe(replace('@@NAME_SHORT@@', product.nameShort))
 			.pipe(replace('@@NAME@@', product.applicationName))
@@ -288,10 +296,12 @@ function prepareSnapPackage(arch: string) {
 		const desktopUrlHandler = gulp.src('resources/linux/code-url-handler.desktop', { base: '.' })
 			.pipe(rename(`snap/gui/${product.applicationName}-url-handler.desktop`));
 
+		// DROX-BEGIN
 		const desktopOpenFolder = gulp.src('resources/linux/code-open-folder.desktop', { base: '.' })
 			.pipe(rename(`snap/gui/${product.applicationName}-open-folder.desktop`));
 
 		const desktops = es.merge(desktop, desktopUrlHandler, desktopOpenFolder)
+			// DROX-END
 			.pipe(replace('@@NAME_LONG@@', product.nameLong))
 			.pipe(replace('@@NAME_SHORT@@', product.nameShort))
 			.pipe(replace('@@NAME@@', product.applicationName))

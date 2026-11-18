@@ -6,8 +6,6 @@
 :root {
 	--vscode-sash-size: 4px;
 	--vscode-sash-hover-size: 4px;
-	--nexus-sash-beam-core: var(--vscode-sash-hoverBorder, #6fcf6f);
-	--nexus-sash-beam-glow: color-mix(in srgb, var(--nexus-sash-beam-core) 45%, transparent);
 }
 
 .monaco-sash {
@@ -113,80 +111,13 @@
 	background: transparent;
 }
 
-.monaco-enable-motion .monaco-sash:not(.hover):not(.active):before {
+.monaco-enable-motion .monaco-sash:before {
 	transition: background-color 0.1s ease-out;
 }
 
-/* allow-any-unicode-next-line */
-/* Nexus — faisceau vert animé (hover + drag) */
 .monaco-sash.hover:before,
 .monaco-sash.active:before {
-	transition: none;
-	background-repeat: no-repeat;
-}
-
-.monaco-sash.vertical.hover:before,
-.monaco-sash.vertical.active:before {
-	background-image: linear-gradient(
-		180deg,
-		transparent 0%,
-		transparent 36%,
-		var(--nexus-sash-beam-glow) 44%,
-		var(--nexus-sash-beam-core) 50%,
-		var(--nexus-sash-beam-glow) 56%,
-		transparent 64%,
-		transparent 100%
-	);
-	background-size: 100% 42%;
-	background-position: 50% -55%;
-	animation: nexus-sash-beam-vertical 0.62s linear infinite;
-}
-
-.monaco-sash.horizontal.hover:before,
-.monaco-sash.horizontal.active:before {
-	background-image: linear-gradient(
-		90deg,
-		transparent 0%,
-		transparent 36%,
-		var(--nexus-sash-beam-glow) 44%,
-		var(--nexus-sash-beam-core) 50%,
-		var(--nexus-sash-beam-glow) 56%,
-		transparent 64%,
-		transparent 100%
-	);
-	background-size: 42% 100%;
-	background-position: -55% 50%;
-	animation: nexus-sash-beam-horizontal 0.62s linear infinite;
-}
-
-@keyframes nexus-sash-beam-vertical {
-	from {
-		background-position: 50% -55%;
-	}
-	to {
-		background-position: 50% 155%;
-	}
-}
-
-@keyframes nexus-sash-beam-horizontal {
-	from {
-		background-position: -55% 50%;
-	}
-	to {
-		background-position: 155% 50%;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.monaco-sash.vertical.hover:before,
-	.monaco-sash.vertical.active:before,
-	.monaco-sash.horizontal.hover:before,
-	.monaco-sash.horizontal.active:before {
-		animation: none;
-		background: var(--nexus-sash-beam-core);
-		background-size: auto;
-		background-image: none;
-	}
+	background: var(--vscode-sash-hoverBorder);
 }
 
 .monaco-sash.vertical:before {

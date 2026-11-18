@@ -22,8 +22,10 @@ import * as crypto from 'crypto';
 import * as cp from 'child_process';
 import * as i18n from './lib/i18n.ts';
 import { getProductionDependencies } from './lib/dependencies.ts';
+// DROX-BEGIN
 import { getDroxCopilotExtensionPackagingExclusions, shouldBundleDroxCopilotExtension } from './lib/droxBundle.ts';
 import { getPackageDroxEngineDevBuild, getPackageDroxVersion, resolveDroxProductSurfaceForPackaging } from './lib/droxVersion.ts';
+// DROX-END
 import { config } from './lib/electron.ts';
 import { createAsar } from './lib/asar.ts';
 import minimist from 'minimist';
@@ -205,11 +207,13 @@ task.task(task.define('core-ci', task.series(
 	)
 )));
 
+// DROX-BEGIN
 /** Desktop IDE only — avoids parallel server bundles (flaky NLS on Windows). Use for Drox F1 release. */
 task.task(task.define('core-ci-desktop', task.series(
 	...coreCiPreamble,
 	esbuildVscodeMinDesktop,
 )));
+// DROX-END
 
 /**
  * Compute checksums for some files.
@@ -279,7 +283,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			return !set.has(platform);
 		}).map(ext => `!.build/extensions/${ext.name}/**`);
 
-		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions, ...getDroxCopilotExtensionPackagingExclusions()], { base: '.build', dot: true });
+		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions, /* DROX-BEGIN */ ...getDroxCopilotExtensionPackagingExclusions() /* DROX-END */], { base: '.build', dot: true });
 
 		const sourceFilterPattern = stripSourceMapsInPackagingTasks
 			? ['**', '!**/*.{js,css}.map']
@@ -323,6 +327,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				if (Object.keys(agentSdks).length > 0) {
 					json.agentSdks = agentSdks;
 				}
+				// DROX-BEGIN
 				const droxVersion = getPackageDroxVersion();
 				if (droxVersion) {
 					json.droxVersion = droxVersion;
@@ -337,6 +342,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				} else {
 					delete json.droxEngineDevBuild;
 				}
+				// DROX-END
 				return json;
 			}))
 			.pipe(es.through(function (file) {
@@ -344,7 +350,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				this.emit('data', file);
 			}));
 
-		const license = gulp.src([product.licenseFileName, 'ThirdPartyNotices.txt', 'NOTICE-DROX.txt', 'licenses/**'], { base: '.', allowEmpty: true });
+		const license = gulp.src([product.licenseFileName, 'ThirdPartyNotices.txt', /* DROX-BEGIN */ 'NOTICE-DROX.txt', /* DROX-END */ 'licenses/**'], { base: '.', allowEmpty: true });
 
 		// TODO the API should be copied to `out` during compile, not here
 		const api = gulp.src('src/vscode-dts/vscode.d.ts').pipe(rename('out/vscode-dts/vscode.d.ts'));
@@ -407,7 +413,9 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				'resources/win32/bower.ico',
 				'resources/win32/c.ico',
 				'resources/win32/code.ico',
+				// DROX-BEGIN
 				'resources/win32/drox.ico',
+				// DROX-END
 				'resources/win32/config.ico',
 				'resources/win32/cpp.ico',
 				'resources/win32/csharp.ico',
@@ -545,6 +553,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				.pipe(rename('bin/' + product.applicationName)));
 		}
 
+		// DROX-BEGIN
 		// Drox engine binary (resources/drox/<target-platform>/), built via npm run package-drox
 		result = es.merge(result, gulp.src('resources/drox/**', { base: '.', dot: false })
 			.pipe(util.setExecutableBit([
@@ -554,6 +563,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 
 		// Drox curated MCP registry (product.mcpGallery + offline fallback)
 		result = es.merge(result, gulp.src('drox-engine/mcp-registry/**', { base: '.', dot: true }));
+		// DROX-END
 
 		result = inlineMeta(result, {
 			targetPaths: bootstrapEntryPoints,
@@ -571,7 +581,7 @@ function hasAuthenticodeSignature(filePath: string): Promise<boolean> {
 	return new Promise(resolve => {
 		const proc = cp.spawn('signtool.exe', ['verify', '/pa', filePath]);
 		// Local OSS builds often lack Windows SDK / signtool on PATH — treat as unsigned.
-		proc.on('error', () => resolve(false));
+		proc.on('error', () => resolve(false)); // DROX-BEGIN local builds may lack signtool DROX-END
 		proc.on('exit', code => resolve(code === 0));
 	});
 }
@@ -588,7 +598,7 @@ async function stripAuthenticodeSignature(filePath: string): Promise<void> {
 		let out = '';
 		proc.stdout?.on('data', chunk => out += chunk.toString());
 		proc.stderr?.on('data', chunk => out += chunk.toString());
-		proc.on('error', () => resolve());
+		proc.on('error', () => resolve()); // DROX-BEGIN local builds may lack signtool DROX-END
 		proc.on('exit', code => {
 			if (code === 0) {
 				resolve();
@@ -619,6 +629,7 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 			const basename = path.basename(dep);
 			const fullPath = path.join(cwd, dep);
 
+			// DROX-BEGIN
 			try {
 				await stripAuthenticodeSignature(fullPath);
 				await rcedit(fullPath, {
@@ -637,6 +648,7 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 			} catch (err) {
 				console.warn(`[patchWin32Dependencies] skip ${dep}: ${err}`);
 			}
+			// DROX-END
 		});
 
 		await Promise.all(patchPromises);
@@ -647,9 +659,11 @@ function prepareCopilotRipgrepShimTask(platform: string, arch: string, destinati
 	const outputDir = path.join(path.dirname(root), destinationFolderName);
 
 	return async () => {
+		// DROX-BEGIN
 		if (!shouldBundleDroxCopilotExtension()) {
 			return;
 		}
+		// DROX-END
 		// On Windows with win32VersionedUpdate, app resources live under a
 		// commit-hash prefix: {output}/{commitHash}/resources/app/
 		const versionedResourcesFolder = util.getVersionedResourcesFolder(platform, commit!);
@@ -663,11 +677,13 @@ function prepareCopilotRipgrepShimTask(platform: string, arch: string, destinati
 	};
 }
 
+// DROX-BEGIN
 const skipCopilotExtensionCompileBuildTask = task.define('compile-copilot-extension-build-skipped', () => Promise.resolve());
 
 function getCopilotExtensionCompileBuildTask(): task.Task {
 	return shouldBundleDroxCopilotExtension() ? compileCopilotExtensionBuildTask : skipCopilotExtensionCompileBuildTask;
 }
+// DROX-END
 
 const buildRoot = path.dirname(root);
 
