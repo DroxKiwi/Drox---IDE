@@ -4,7 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { spawnSync } from 'child_process';
+// DROX-BEGIN
 import { constants, existsSync, statSync } from 'fs';
+// DROX-END
 import { tmpdir } from 'os';
 import path from 'path';
 import manifests from '../../../cgmanifest.json' with { type: 'json' };
@@ -33,6 +35,7 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
 	const chromiumManifest = manifests.registrations.filter(registration => {
 		return registration.component.type === 'git' && registration.component.git!.name === 'chromium';
 	});
+// DROX-BEGIN
 	const vendoredDpkgShlibdeps = path.join(import.meta.dirname, 'dpkg-shlibdeps.pl');
 	let dpkgShlibdepsScriptLocation = vendoredDpkgShlibdeps;
 	if (!existsSync(vendoredDpkgShlibdeps)) {
@@ -42,6 +45,7 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
 		if (result.status !== 0) {
 			throw new Error('Cannot retrieve dpkg-shlibdeps. Stderr:\n' + result.stderr);
 		}
+// DROX-END
 	}
 	const cmd = [dpkgShlibdepsScriptLocation, '--ignore-weak-undefined'];
 	switch (arch) {

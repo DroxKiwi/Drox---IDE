@@ -175,6 +175,7 @@ const tasks = compilations.map(function (tsconfigFile) {
 
 	const cleanTask = task.define(`clean-extension-${name}`, async () => {
 		await util.rimraf(out)();
+// DROX-BEGIN
 		// Windows: antivirus / Explorer / TS LS can briefly lock *.tsbuildinfo during parallel cleans.
 		const retryable = new Set(['EPERM', 'EBUSY', 'ENOTEMPTY']);
 		for (let attempt = 0; attempt < 5; attempt++) {
@@ -190,6 +191,7 @@ const tasks = compilations.map(function (tsconfigFile) {
 				throw err;
 			}
 		}
+// DROX-END
 	});
 
 	const transpileTask = task.define(`transpile-extension:${name}`, task.series(cleanTask, () => {

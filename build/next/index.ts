@@ -245,7 +245,9 @@ const commonResourcePatterns = [
 
 	// SVGs referenced from CSS (needed for transpile/dev builds where CSS is copied as-is)
 	'vs/workbench/browser/media/code-icon.svg',
+// DROX-BEGIN
 	'vs/workbench/browser/media/kdds-code-icon.png',
+// DROX-END
 	'vs/workbench/browser/parts/editor/media/letterpress*.svg',
 	'vs/sessions/contrib/chat/browser/media/*.svg',
 	'vs/sessions/contrib/welcome/browser/media/themePreviews/*.svg'
@@ -297,9 +299,11 @@ const desktopResourcePatterns = [
 	// Sessions - built-in prompts and skills
 	'vs/sessions/prompts/*.prompt.md',
 	'vs/sessions/skills/**/SKILL.md',
+// DROX-BEGIN
 
 	// Drox IDE — chat webview (CSS + modules under media/droxChat/)
 	'vs/workbench/contrib/drox/browser/media/**/*',
+// DROX-END
 ];
 
 // Resources for server target (minimal - no UI)
@@ -409,6 +413,7 @@ function getResourcePatternsForTarget(target: BuildTarget): string[] {
 async function cleanDir(dir: string): Promise<void> {
 	const fullPath = path.join(REPO_ROOT, dir);
 	console.log(`[clean] ${dir}`);
+// DROX-BEGIN
 	const retryableCodes = new Set(['ENOTEMPTY', 'EBUSY', 'EPERM']);
 	for (let attempt = 0; attempt < 5; attempt++) {
 		try {
@@ -423,6 +428,7 @@ async function cleanDir(dir: string): Promise<void> {
 			throw err;
 		}
 	}
+// DROX-END
 	await fs.promises.mkdir(fullPath, { recursive: true });
 }
 
@@ -602,7 +608,9 @@ async function copyResources(outDir: string, target: BuildTarget): Promise<void>
 	for (const pattern of resourcePatterns) {
 		const files = await globAsync(pattern, {
 			cwd: path.join(REPO_ROOT, SRC_DIR),
+// DROX-BEGIN
 			nodir: true,
+// DROX-END
 			ignore: ignorePatterns,
 		});
 

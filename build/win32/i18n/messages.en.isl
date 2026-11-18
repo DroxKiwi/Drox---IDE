@@ -1,5 +1,7 @@
 ﻿[Messages]
+; DROX-BEGIN
 FinishedLabel=Setup has finished installing [name]. Launch from the Start menu or open the Command Palette (Ctrl+Shift+P) → "Open Drox Chat".
+; DROX-END
 ConfirmUninstall=Are you sure you want to completely remove %1 and all of its components?
 
 [CustomMessages]
@@ -14,4 +16,6 @@ RunAfter=Run %1 after installation
 Other=Other:
 SourceFile=%1 Source File
 OpenWithCodeContextMenu=Open w&ith %1
+; DROX-BEGIN
 UpdatingDroxIDE=Updating Drox IDE...
+; DROX-END

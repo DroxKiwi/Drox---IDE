@@ -46,12 +46,14 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 	// Get the files for which we want to find dependencies.
 	const canAsar = false; // TODO@esm ASAR disabled in ESM
 	const nativeModulesPath = path.join(buildDir, 'resources', 'app', canAsar ? 'node_modules.asar.unpacked' : 'node_modules');
+// DROX-BEGIN
 	const findResult = spawnSync('find', [
 		nativeModulesPath, '-name', '*.node',
 		'-not', '-path', '*musl*',
 		'-not', '-path', '*linuxmusl*',
 		'-not', '-path', '*@parcel/watcher-linux-*',
 	]);
+// DROX-END
 	if (findResult.status) {
 		console.error('Error finding files:');
 		console.error(findResult.stderr.toString());
@@ -60,7 +62,9 @@ export async function getDependencies(packageType: 'deb' | 'rpm', buildDir: stri
 
 	const appPath = path.join(buildDir, applicationName);
 	// Add the native modules
+// DROX-BEGIN
 	const files = findResult.stdout.toString().trimEnd().split('\n').filter(Boolean);
+// DROX-END
 	// Add the tunnel binary.
 	files.push(path.join(buildDir, 'bin', product.tunnelApplicationName));
 	// Add the main executable.

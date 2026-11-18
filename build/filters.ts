@@ -36,15 +36,19 @@ export const unicodeFilter = Object.freeze<string[]>([
 	'!**/ThirdPartyNotices.txt',
 	'!**/ThirdPartyNotices.cli.txt',
 	'!**/LICENSE.{txt,rtf}',
+// DROX-BEGIN
 	'!LICENSE-INSTALL.txt',
 	'!NOTICE-DROX.txt',
 	'!licenses/**',
+// DROX-END
 	'!LICENSES.chromium.html',
 	'!**/LICENSE',
 
+// DROX-BEGIN
 	'!scripts/build-release-win32.ps1',
 	'!scripts/release-publish-win32.ps1',
 
+// DROX-END
 	'!**/*.{dll,exe,png,bmp,jpg,scpt,cur,ttf,woff,eot,template,ico,icns,opus,wasm}',
 	'!**/test/**',
 	'!**/*.test.ts',
@@ -54,7 +58,11 @@ export const unicodeFilter = Object.freeze<string[]>([
 	'!**/*.provisionprofile',
 
 	'!build/win32/**',
+// DROX-BEGIN
 	'!build/linux/debian/dpkg-shlibdeps.pl',
+// DROX-BEGIN
+// DROX-END
+// DROX-END
 	'!extensions/markdown-language-features/notebook-out/*.js',
 	'!extensions/markdown-math/notebook-out/**',
 	'!extensions/mermaid-markdown-features/chat-webview-out/**',
@@ -77,7 +85,9 @@ export const unicodeFilter = Object.freeze<string[]>([
 	'!src/vs/base/browser/dompurify/**',
 	'!src/vs/workbench/services/keybinding/browser/keyboardLayouts/**',
 	'!src/vs/workbench/contrib/terminal/common/scripts/psreadline/**',
+// DROX-BEGIN
 	'!src/vs/workbench/contrib/drox/**',
+// DROX-END
 ]);
 
 export const indentationFilter = Object.freeze<string[]>([
@@ -87,12 +97,16 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!**/ThirdPartyNotices.txt',
 	'!**/ThirdPartyNotices.cli.txt',
 	'!**/LICENSE.{txt,rtf}',
+// DROX-BEGIN
 	'!LICENSE-INSTALL.txt',
 	'!NOTICE-DROX.txt',
 	'!licenses/**',
+// DROX-END
 	'!LICENSES.chromium.html',
 	'!**/LICENSE',
 	'!**/*.mp3',
+// DROX-BEGIN
+// DROX-END
 	'!src/vs/base/browser/dompurify/*',
 	'!src/vs/base/common/marked/marked.js',
 	'!src/vs/base/common/semver/semver.js',
@@ -104,8 +118,12 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!resources/linux/snap/electron-launch',
 	'!build/ext.js',
 	'!build/darwin/patch-dmg.py',
+// DROX-BEGIN
 	'!build/linux/debian/dpkg-shlibdeps.pl',
+// DROX-END
 	'!build/npm/gyp/patches/gyp_spectre_mitigation_support.patch',
+// DROX-BEGIN
+// DROX-END
 	'!product.overrides.json',
 
 	// except specific folders
@@ -154,7 +172,9 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!build/**/*.sh',
 	'!build/azure-pipelines/**/*.js',
 	'!build/azure-pipelines/**/*.config',
+// DROX-BEGIN
 	'!build/npm/gyp/custom-headers/*.patch',
+// DROX-END
 	'!**/Dockerfile',
 	'!**/Dockerfile.*',
 	'!**/*.Dockerfile',
@@ -165,6 +185,8 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!extensions/mermaid-markdown-features/chat-webview-out/*.js',
 	'!extensions/mermaid-markdown-features/markdown-preview-out/*.js',
 	'!extensions/mermaid-markdown-features/notebook-out/*.js',
+// DROX-BEGIN
+// DROX-END
 	'!extensions/markdown-language-features/media/*.js',
 	'!extensions/markdown-language-features/notebook-out/*.js',
 	'!extensions/markdown-math/notebook-out/*.js',
@@ -203,10 +225,14 @@ export const copyrightFilter = Object.freeze<string[]>([
 	'!**/*.provisionprofile',
 	'!build/**/*.init',
 	'!build/darwin/patch-dmg.py',
+// DROX-BEGIN
 	'!build/linux/debian/dpkg-shlibdeps.pl',
 	'!scripts/strip-cursor-coauthor-msg.py',
+// DROX-END
 	'!build/linux/libcxx-fetcher.*',
+// DROX-BEGIN
 	'!build/npm/gyp/custom-headers/*.patch',
+// DROX-END
 	'!resources/linux/snap/snapcraft.yaml',
 	'!resources/win32/bin/code.js',
 	'!resources/completions/**',
@@ -218,11 +244,15 @@ export const copyrightFilter = Object.freeze<string[]>([
 	'!extensions/terminal-suggest/src/completions/upstream/**',
 	'!extensions/typescript-language-features/node-maintainer/**',
 	'!extensions/html-language-features/server/src/modes/typescript/*',
+// DROX-BEGIN
+// DROX-END
 	'!extensions/*/server/bin/*',
 	'!src/vs/workbench/contrib/terminal/common/scripts/psreadline/**',
 	'!extensions/mermaid-markdown-features/chat-webview-out/**',
 	'!extensions/mermaid-markdown-features/markdown-preview-out/**',
 	'!extensions/mermaid-markdown-features/notebook-out/**',
+// DROX-BEGIN
+// DROX-END
 
 	// extensions/copilot has its own code style
 	'!extensions/copilot/**',
@@ -244,6 +274,8 @@ export const tsFormattingFilter = Object.freeze<string[]>([
 	'!extensions/**/*.test.ts',
 	'!extensions/html-language-features/server/lib/jquery.d.ts',
 	'!extensions/terminal-suggest/src/shell/zshBuiltinsCache.ts',
+// DROX-BEGIN
+// DROX-END
 	'!extensions/terminal-suggest/src/shell/fishBuiltinsCache.ts',
 
 	// extensions/copilot has its own code style
@@ -253,6 +285,8 @@ export const tsFormattingFilter = Object.freeze<string[]>([
 export const eslintFilter = Object.freeze<string[]>([
 	'**/*.{js,cjs,mjs}',
 	'**/*.{ts,tsx,mts,cts}',
+// DROX-BEGIN
+// DROX-END
 	'.eslint-plugin-local/**/*.ts',
 	...readFileSync(join(import.meta.dirname, '..', '.eslint-ignore'))
 		.toString()
