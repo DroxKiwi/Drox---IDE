@@ -37,11 +37,15 @@ import { ViewAllChangesActionViewItem } from '../../../../../sessions/contrib/ch
 import { FixtureMenuService } from '../chat/chatFixtureUtils.js';
 import { ComponentFixtureContext, createEditorServices, defineComponentFixture, defineThemedFixtureGroup, registerWorkbenchServices } from '../fixtureUtils.js';
 import { createFixtureGitHubService } from './githubFixtureUtils.js';
+// DROX-BEGIN
 import { IDroxGitGraphService } from '../../../../../workbench/contrib/drox/common/droxGitGraphService.js';
+// DROX-END
 
 // eslint-disable-next-line local/code-import-patterns
 import '../../../../../sessions/browser/parts/media/chatCompositeBar.css';
+// DROX-BEGIN
 import '../../../../../workbench/contrib/drox/browser/gitGraph/media/droxBranchBadge.css';
+// DROX-END
 
 // The command ids the session header meta toolbar contributes (and renders as the
 // pull request and diff-stats pills). Kept in sync with the production actions.
@@ -207,6 +211,7 @@ function renderHeader(ctx: ComponentFixtureContext, session: IActiveSession): vo
 			reg.defineInstance(ISessionsService, new class extends mock<ISessionsService>() {
 				override setActive() { }
 			}());
+			// DROX-BEGIN
 			reg.defineInstance(IDroxGitGraphService, new class extends mock<IDroxGitGraphService>() {
 				override currentBranch() { return constObservable<string | undefined>('feature/session-header'); }
 				override isGitRepo() { return constObservable(true); }
@@ -215,6 +220,7 @@ function renderHeader(ctx: ComponentFixtureContext, session: IActiveSession): vo
 				override async checkoutBranch() { }
 				override async openGitGraph() { }
 			}());
+			// DROX-END
 		},
 	});
 

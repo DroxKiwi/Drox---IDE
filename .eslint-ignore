@@ -60,6 +60,7 @@
 # Vendored third-party libraries
 src/vs/base/common/lit-html/**
 src/vs/base/common/signals-core/**
+# DROX-BEGIN
 
 # Drox IDE fork — webview modules and dev scripts (legacy JS / fork hygiene)
 **/src/vs/workbench/contrib/drox/**
@@ -68,3 +69,4 @@ scripts/format-drox-contrib.mjs
 scripts/package-drox-run.mjs
 scripts/split-drox-*.mjs
 drox-engine/extension-vscode/**
+# DROX-END

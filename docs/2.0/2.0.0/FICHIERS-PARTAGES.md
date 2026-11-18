@@ -108,7 +108,7 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 
 ## Petits écarts
 
-40 lignes ou moins, ajouts et retraits cumulés. On ne les déplace pas. Le passage sert à vérifier que l’écart est un bloc, puis à l’encadrer s’il ne l’est pas.
+40 lignes ou moins, ajouts et retraits cumulés. On ne les déplace pas. Le passage sert à vérifier que l’écart est un bloc, puis à l’encadrer s’il ne l’est pas. Les écarts de cette liste sont encadrés, sauf `dep-lists.ts` (régénéré), les deux JSON du thème (un commentaire y casserait le fichier) et `sessionHeader.ts` (le toucher relance un contrôle de couches déjà en échec sur ses imports). Les feuilles HTML gardent l’ancre après la politique CSP, pour ne pas changer la valeur de l’attribut.
 
 `build/linux/debian/dep-lists.ts` se régénère. On ne le rejoue pas comme un patch à la main.
 

@@ -92,11 +92,13 @@ export interface IViewContainerDescriptor {
 	 */
 	readonly title: ILocalizedString;
 
+	// DROX-BEGIN
 	/**
 	 * Hover text for the activity-bar icon. The visible name stays `title`.
 	 */
 	readonly activityBarTooltip?: string;
 
+	// DROX-END
 	/**
 	 * Icon representation of the View container
 	 */

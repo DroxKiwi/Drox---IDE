@@ -791,6 +791,8 @@ suite('ClaudeAgent', () => {
 			],
 		});
 	});
+	// DROX-BEGIN
+	// DROX-END
 
 	test('authenticate surfaces the CAPI chat-default model first; ties preserve insertion order', async () => {
 		// `IAgentModelInfo` carries no explicit `isDefault` bit; the

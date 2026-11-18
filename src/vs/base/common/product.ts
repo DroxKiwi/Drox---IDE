@@ -85,6 +85,7 @@ export interface IAgentSdkProductConfig {
 
 export interface IProductConfiguration {
 	readonly version: string;
+	// DROX-BEGIN
 	/** Drox product release (semver). `version` stays the VS Code API base for extensions. */
 	readonly droxVersion?: string;
 	/**
@@ -97,6 +98,7 @@ export interface IProductConfiguration {
 	readonly droxSurface?: 'dev' | 'release';
 	/** Dev-only: engine / gates iteration counter (shown as droxVersion.N in chat). */
 	readonly droxEngineDevBuild?: number;
+	// DROX-END
 	readonly date?: string;
 	readonly quality?: string;
 	readonly commit?: string;
@@ -262,8 +264,10 @@ export interface IProductConfiguration {
 	readonly aiGeneratedWorkspaceTrust?: IAiGeneratedWorkspaceTrust;
 
 	readonly defaultChatAgent: IDefaultChatAgent;
+	// DROX-BEGIN
 	/** Skip GitHub Copilot sign-in (local/custom LLM backends). */
 	readonly skipCopilotGitHubSignIn?: boolean;
+	// DROX-END
 	readonly chatParticipantRegistry?: string;
 	readonly chatSessionRecommendations?: IChatSessionRecommendation[];
 	readonly emergencyAlertUrl?: string;
@@ -450,6 +454,7 @@ export interface IDefaultChatAgent {
 	readonly completionsAdvancedSetting: string;
 	readonly completionsEnablementSetting: string;
 	readonly nextEditSuggestionsSetting: string;
+	// DROX-BEGIN
 
 	/** Optional OpenAI-compatible provider root (includes `/v1`), e.g. Ollama. */
 	readonly openAiCompatibleProviderBaseUrl?: string;
@@ -457,4 +462,5 @@ export interface IDefaultChatAgent {
 	readonly openAiCompatibleProviderType?: string;
 	/** Optional: forwarded as `COPILOT_MODEL` for BYOK / local providers. */
 	readonly openAiCompatibleDefaultModel?: string;
+	// DROX-END
 }

@@ -20,6 +20,7 @@ suite('WorkbenchThemeService', () => {
 			);
 		});
 
+		// DROX-BEGIN
 		test('migrates legacy Nexus theme IDs to Drox', () => {
 			assert.deepStrictEqual(
 				['Nexus Dark', 'Nexus Light'].map(migrateThemeSettingsId),
@@ -27,6 +28,7 @@ suite('WorkbenchThemeService', () => {
 			);
 		});
 
+		// DROX-END
 		test('migrates Experimental theme IDs to VS Code themes', () => {
 			assert.deepStrictEqual(
 				['Experimental Dark', 'Experimental Light', 'VS Code Dark', 'VS Code Light'].map(migrateThemeSettingsId),

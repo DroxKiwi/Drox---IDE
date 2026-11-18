@@ -1005,7 +1005,9 @@ suite('CopilotAgent', () => {
 				multiplierNumeric: 1,
 				inputCost: 3,
 				cacheCost: 1,
+				// DROX-BEGIN
 				cacheWriteCost: 1,
+				// DROX-END
 				outputCost: 15,
 				longContextInputCost: 6,
 				longContextOutputCost: 22.5,

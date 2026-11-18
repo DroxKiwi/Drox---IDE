@@ -6,10 +6,14 @@
 import * as cp from 'child_process';
 import { CancellationError } from '../../../base/common/errors.js';
 import { generateUuid } from '../../../base/common/uuid.js';
+// DROX-BEGIN
 import { IGitPullOptions } from '../common/localGitService.js';
+// DROX-END
 import { ILogService } from '../../log/common/log.js';
 
+// DROX-BEGIN
 export class LocalGitService {
+	// DROX-END
 	declare readonly _serviceBrand: undefined;
 
 	private _runningProcesses = new Map<string, cp.ChildProcess>();
@@ -19,7 +23,9 @@ export class LocalGitService {
 		private readonly _execFile: typeof cp.execFile = cp.execFile,
 	) { }
 
+	// DROX-BEGIN
 	protected _exec(operationId: string, args: string[], cwd?: string): Promise<string> {
+		// DROX-END
 		return new Promise((resolve, reject) => {
 			this._logService.trace(`[LocalGitService] git ${args.join(' ')}${cwd ? ` (cwd: ${cwd})` : ''}`);
 			const proc = this._execFile('git', args, { cwd, encoding: 'utf8' }, (err, stdout, stderr) => {

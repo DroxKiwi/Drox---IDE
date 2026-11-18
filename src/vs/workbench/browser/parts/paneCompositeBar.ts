@@ -385,10 +385,14 @@ export class PaneCompositeBar extends Disposable {
 	}
 
 	private toCompositeBarActionItemFrom(viewContainerModel: IViewContainerModel): ICompositeBarActionItem {
+		// DROX-BEGIN
 		return this.toCompositeBarActionItem(viewContainerModel.viewContainer.id, viewContainerModel.title, viewContainerModel.icon, viewContainerModel.keybindingId, viewContainerModel.viewContainer.activityBarTooltip);
+		// DROX-END
 	}
 
+	// DROX-BEGIN
 	private toCompositeBarActionItem(id: string, name: string, icon: URI | ThemeIcon | undefined, keybindingId: string | undefined, tooltip?: string): ICompositeBarActionItem {
+		// DROX-END
 		let classNames: string[] | undefined = undefined;
 		let iconUrl: URI | undefined = undefined;
 		if (this.options.icon) {
@@ -413,7 +417,9 @@ export class PaneCompositeBar extends Disposable {
 			}
 		}
 
+		// DROX-BEGIN
 		return { id, name, classNames, iconUrl, keybindingId, tooltip };
+		// DROX-END
 	}
 
 	private showOrHideViewContainer(viewContainer: ViewContainer): void {

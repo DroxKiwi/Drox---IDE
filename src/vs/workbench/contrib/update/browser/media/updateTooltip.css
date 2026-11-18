@@ -39,7 +39,9 @@
 	border-radius: var(--vscode-cornerRadius-large);
 	padding: 5px;
 	flex-shrink: 0;
+/* DROX-BEGIN */
 	background: url('../../../../browser/media/kdds-code-icon.png') center / contain no-repeat;
+/* DROX-END */
 }
 
 .update-tooltip .product-details {

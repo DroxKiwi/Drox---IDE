@@ -592,10 +592,12 @@ export const allowedMarkdownHtmlAttributes = Object.freeze<Array<string | domSan
 	'data-code',
 	'data-href',
 	'data-severity',
+	// DROX-BEGIN
 	// Drox native file-change card (path click → open editor)
 	'data-tool-id',
 	'data-path',
 	'hidden',
+	// DROX-END
 
 	// Only allow very specific styles
 	{
@@ -610,11 +612,14 @@ export const allowedMarkdownHtmlAttributes = Object.freeze<Array<string | domSan
 		}
 	},
 
+	// DROX-BEGIN
 	// Only allow codicons for classes, plus Drox native file-change card classes
 	// (chat HTML cards: .drox-native-file-change / .fc-* / .diff-*).
+	// DROX-END
 	{
 		attributeName: 'class',
 		shouldKeep: (element, data) => {
+			// DROX-BEGIN
 			if (data.attrName !== 'class') {
 				return false;
 			}
@@ -625,6 +630,7 @@ export const allowedMarkdownHtmlAttributes = Object.freeze<Array<string | domSan
 			// Drox file-change card in native chat (otherwise path links lose .fc-path and stop working)
 			if (/(?:^|\s)(?:drox-native-file-change|msg-file-change|fc-[\w-]+|diff-[\w-]+|is-(?:not-applied|cancelled))(?:\s|$)/.test(value)) {
 				return true;
+				// DROX-END
 			}
 			return false;
 		},

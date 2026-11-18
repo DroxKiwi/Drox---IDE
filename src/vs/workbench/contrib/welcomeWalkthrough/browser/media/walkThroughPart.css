@@ -113,7 +113,9 @@
 
 .file-icons-enabled .show-file-icons .vs_code_editor_walkthrough\.md-name-file-icon.md-ext-file-icon.ext-file-icon.markdown-lang-file-icon.file-icon::before {
 	content: ' ';
+/* DROX-BEGIN */
 	background-image: url('../../../../browser/media/kdds-code-icon.png');
+/* DROX-END */
 }
 
 .monaco-workbench .part.editor > .content .walkThroughContent .mac-only,

@@ -44,12 +44,14 @@ import { KeyCode } from '../../../base/common/keyCodes.js';
 import { ACTIVITY_BAR_BADGE_BACKGROUND, ACTIVITY_BAR_BADGE_FOREGROUND } from '../../common/theme.js';
 import { IBaseActionViewItemOptions } from '../../../base/browser/ui/actionbar/actionViewItems.js';
 import { ICommandService } from '../../../platform/commands/common/commands.js';
+// DROX-BEGIN
 import product from '../../../platform/product/common/product.js';
 
 /** Build Drox nominal : pas d'icone Accounts (GitHub / Copilot) dans la barre d'activite. */
 function isDroxAccountsSurfaceHidden(): boolean {
 	return product.droxMicrosoftAgentsSurfaceEnabled !== true;
 }
+// DROX-END
 
 export class GlobalCompositeBar extends Disposable {
 
@@ -138,9 +140,11 @@ export class GlobalCompositeBar extends Disposable {
 	}
 
 	getContextMenuActions(): IAction[] {
+		// DROX-BEGIN
 		if (isDroxAccountsSurfaceHidden()) {
 			return [];
 		}
+		// DROX-END
 		return [toAction({ id: 'toggleAccountsVisibility', label: localize('accounts', "Accounts"), checked: this.accountsVisibilityPreference, run: () => this.accountsVisibilityPreference = !this.accountsVisibilityPreference })];
 	}
 
@@ -737,25 +741,31 @@ export class SimpleGlobalActivityActionViewItem extends GlobalActivityActionView
 
 function simpleActivityContextMenuActions(storageService: IStorageService, isAccount: boolean): IAction[] {
 	const currentElementContextMenuActions: IAction[] = [];
+	// DROX-BEGIN
 	const accountsHidden = isDroxAccountsSurfaceHidden();
 	if (isAccount && !accountsHidden) {
+		// DROX-END
 		currentElementContextMenuActions.push(
 			toAction({ id: 'hideAccounts', label: localize('hideAccounts', "Hide Accounts"), run: () => setAccountsActionVisible(storageService, false) }),
 			new Separator()
 		);
 	}
+	// DROX-BEGIN
 	const actions: IAction[] = [...currentElementContextMenuActions];
 	if (!accountsHidden) {
 		actions.push(toAction({ id: 'toggle.hideAccounts', label: localize('accounts', "Accounts"), checked: isAccountsActionVisible(storageService), run: () => setAccountsActionVisible(storageService, !isAccountsActionVisible(storageService)) }));
 	}
 	actions.push(toAction({ id: 'toggle.hideManage', label: localize('manage', "Manage"), checked: true, enabled: false, run: () => { throw new Error('"Manage" can not be hidden'); } }));
 	return actions;
+	// DROX-END
 }
 
 export function isAccountsActionVisible(storageService: IStorageService): boolean {
+	// DROX-BEGIN
 	if (isDroxAccountsSurfaceHidden()) {
 		return false;
 	}
+	// DROX-END
 	return storageService.getBoolean(AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, StorageScope.PROFILE, true);
 }
 

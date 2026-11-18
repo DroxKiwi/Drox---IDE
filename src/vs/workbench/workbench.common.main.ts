@@ -227,9 +227,11 @@ import './contrib/chat/browser/chat.contribution.js';
 import './contrib/chat/browser/chat.view.contribution.js';
 import './contrib/inlineChat/browser/inlineChat.contribution.js';
 
+// DROX-BEGIN
 // DROX-NEXUS - Drox agent (isolated contrib)
 import './contrib/drox/browser/drox.contribution.js';
 
+// DROX-END
 // Copilot Voice
 import './contrib/agentsVoice/browser/agentsVoice.contribution.js';
 import './contrib/mcp/browser/mcp.contribution.js';

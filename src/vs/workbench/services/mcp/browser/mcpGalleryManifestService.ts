@@ -64,11 +64,14 @@ export class WorkbenchMcpGalleryManifestService extends McpGalleryManifestServic
 
 	private async getAndUpdateMcpGalleryManifest(): Promise<void> {
 		const mcpGalleryConfig = this.configurationService.getValue<IMcpGalleryConfig | undefined>('chat.mcp.gallery');
+		// DROX-BEGIN
 		const serviceUrl = await this.getConfiguredGalleryServiceUrl(mcpGalleryConfig);
 		if (serviceUrl) {
 			const version = mcpGalleryConfig?.serviceUrl ? mcpGalleryConfig.version : 'v0.1';
 			this.update(await this.createMcpGalleryManifest(serviceUrl, version));
+			// DROX-END
 		} else {
+			// DROX-BEGIN
 			this.update(null);
 		}
 	}
@@ -79,8 +82,11 @@ export class WorkbenchMcpGalleryManifestService extends McpGalleryManifestServic
 	protected async getConfiguredGalleryServiceUrl(mcpGalleryConfig: IMcpGalleryConfig | undefined): Promise<string | undefined> {
 		if (mcpGalleryConfig?.serviceUrl) {
 			return mcpGalleryConfig.serviceUrl;
+			// DROX-END
 		}
+		// DROX-BEGIN
 		return this.productService.mcpGallery?.serviceUrl;
+		// DROX-END
 	}
 
 	private update(manifest: IMcpGalleryManifest | null): void {

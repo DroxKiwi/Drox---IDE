@@ -290,7 +290,9 @@
 }
 
 .monaco-workbench .part.titlebar > .titlebar-container > .titlebar-left > .window-appicon:not(.codicon) {
+/* DROX-BEGIN */
 	background-image: url('../../../media/kdds-code-icon.png');
+/* DROX-END */
 	background-repeat: no-repeat;
 	background-position: center center;
 	background-size: 16px;

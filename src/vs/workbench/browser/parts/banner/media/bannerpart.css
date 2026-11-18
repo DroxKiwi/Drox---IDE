@@ -30,7 +30,9 @@
 	background-repeat: no-repeat;
 	background-position: center center;
 	background-size: 16px;
+/* DROX-BEGIN */
 	background-image: url('../../../../browser/media/kdds-code-icon.png');
+/* DROX-END */
 	width: 16px;
 	padding: 0;
 	margin: 0 6px 0 10px;

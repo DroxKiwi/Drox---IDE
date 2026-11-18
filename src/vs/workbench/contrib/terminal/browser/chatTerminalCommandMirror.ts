@@ -596,7 +596,9 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 	private _output: IChatTerminalToolInvocationData['terminalCommandOutput'] | undefined;
 	private _container: HTMLElement | undefined;
 	private _dirty = true;
+	// DROX-BEGIN
 	private _lastWrittenText: string | undefined;
+	// DROX-END
 	private _lastRenderedLineCount: number | undefined;
 	private _lastRenderedMaxColumnWidth: number | undefined;
 
@@ -678,11 +680,14 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 		const lineCount = output.lineCount ?? this._estimateLineCount(text);
 		if (!text) {
 			this._dirty = false;
+			// DROX-BEGIN
 			this._lastWrittenText = '';
+			// DROX-END
 			this._lastRenderedLineCount = lineCount;
 			this._lastRenderedMaxColumnWidth = 0;
 			return { lineCount: 0, maxColumnWidth: 0 };
 		}
+		// DROX-BEGIN
 		// Live updates rewrite the full snapshot — RIS (`\x1bc`) avoids appending
 		// the whole buffer again on each poll.
 		const canAppend = !!this._lastWrittenText
@@ -701,11 +706,14 @@ export class DetachedTerminalSnapshotMirror extends Disposable {
 				}
 			}
 		});
+		// DROX-END
 		if (this._store.isDisposed) {
 			return undefined;
 		}
 		this._dirty = false;
+		// DROX-BEGIN
 		this._lastWrittenText = text;
+		// DROX-END
 		this._lastRenderedLineCount = lineCount;
 		// Only compute max column width for small outputs to avoid performance issues
 		if (this._shouldComputeMaxColumnWidth(lineCount)) {

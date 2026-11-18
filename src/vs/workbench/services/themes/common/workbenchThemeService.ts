@@ -39,8 +39,10 @@ export enum ThemeSettings {
 }
 
 export namespace ThemeSettingDefaults {
+	// DROX-BEGIN
 	export const COLOR_THEME_DARK = 'Drox Dark';
 	export const COLOR_THEME_LIGHT = 'Drox Light';
+	// DROX-END
 	export const COLOR_THEME_HC_DARK = 'Default High Contrast';
 	export const COLOR_THEME_HC_LIGHT = 'Default High Contrast Light';
 
@@ -59,10 +61,12 @@ export function migrateThemeSettingsId(settingsId: string): string {
 		case 'Default Light Modern': return 'Light Modern';
 		case 'Default Dark+': return 'Dark+';
 		case 'Default Light+': return 'Light+';
+		// DROX-BEGIN
 		case 'Nexus Dark':
 			return 'Drox Dark';
 		case 'Nexus Light':
 			return 'Drox Light';
+		// DROX-END
 		case 'Experimental Dark':
 		case 'VS Code Dark':
 			return ThemeSettingDefaults.COLOR_THEME_DARK;

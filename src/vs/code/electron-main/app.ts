@@ -58,11 +58,13 @@ import { SyncDescriptor } from '../../platform/instantiation/common/descriptors.
 import { IInstantiationService, ServicesAccessor } from '../../platform/instantiation/common/instantiation.js';
 import { ServiceCollection } from '../../platform/instantiation/common/serviceCollection.js';
 import { ProcessMainService } from '../../platform/process/electron-main/processMainService.js';
+// DROX-BEGIN
 /* eslint-disable local/code-import-patterns -- DROX-NEXUS: electron-main registers Drox engine IPC channel */
 import { DROX_ENGINE_CHANNEL_NAME } from '../../workbench/contrib/drox/common/droxIpc.js';
 import { DroxEngineChannel } from '../../workbench/contrib/drox/electron-main/droxEngineChannel.js';
 import { DroxEngineMainService } from '../../workbench/contrib/drox/electron-main/droxEngineMainService.js';
 /* eslint-enable local/code-import-patterns */
+// DROX-END
 import { IKeyboardLayoutMainService, KeyboardLayoutMainService } from '../../platform/keyboardLayout/electron-main/keyboardLayoutMainService.js';
 import { ILaunchMainService, LaunchMainService } from '../../platform/launch/electron-main/launchMainService.js';
 import { ILifecycleMainService, LifecycleMainPhase, ShutdownReason } from '../../platform/lifecycle/electron-main/lifecycleMainService.js';
@@ -1295,11 +1297,13 @@ export class CodeApplication extends Disposable {
 		const processChannel = ProxyChannel.fromService(new ProcessMainService(this.logService, accessor.get(IDiagnosticsService), accessor.get(IDiagnosticsMainService)), disposables);
 		mainProcessElectronServer.registerChannel('process', processChannel);
 
+		// DROX-BEGIN
 		// DROX-NEXUS-START - Drox engine IPC channel (stdio JSON-RPC). See docs/1.2/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md
 		const droxEngineMainService = disposables.add(new DroxEngineMainService(accessor.get(ILogService)));
 		mainProcessElectronServer.registerChannel(DROX_ENGINE_CHANNEL_NAME, new DroxEngineChannel(droxEngineMainService));
 		// DROX-NEXUS-END
 
+		// DROX-END
 		// Encryption
 		const encryptionChannel = ProxyChannel.fromService(accessor.get(IEncryptionMainService), disposables);
 		mainProcessElectronServer.registerChannel('encryption', encryptionChannel);

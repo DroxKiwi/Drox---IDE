@@ -12,7 +12,9 @@ src/vs/base/browser/ui/codicons/codicon/codicon.ttf
 /out*/
 /extensions/**/out/
 build/node_modules
+# DROX-BEGIN
 **/node_modules.win.bak.*
+# DROX-END
 build/darwin/.dmgbuild
 coverage/
 test_data/
@@ -37,14 +39,27 @@ dist
 .playwright-cli
 .playwright-mcp
 .claude/
+# DROX-BEGIN
 # Outillage agent local (Cursor / skills) — hors dépôt public
 .agents/
+# DROX-BEGIN
+# DROX-END
+# DROX-END
 .github/agents/*.local.md
+# DROX-BEGIN
+# DROX-END
 .github/agents/*.local.agent.md
+# DROX-BEGIN
+# DROX-END
 .github/hooks/*.local.json
+# DROX-BEGIN
+# DROX-END
 .github/instructions/*.local.instructions.md
+# DROX-BEGIN
+# DROX-END
 .github/prompts/*.local.prompt.md
 .github/skills/.local/
+# DROX-BEGIN
 
 # Transcripts / exports locaux (ne pas publier)
 history-probe-test/
@@ -64,3 +79,4 @@ docs/rebase/
 # Artefacts release (binaires via GitHub Releases, pas git)
 _upload/
 stable/
+# DROX-END

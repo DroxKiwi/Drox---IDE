@@ -6,7 +6,9 @@
 import { localize } from '../../../nls.js';
 import { Action, IAction, Separator } from '../../../base/common/actions.js';
 import { $, addDisposableListener, append, clearNode, EventHelper, EventType, getDomNodePagePosition, hide, show } from '../../../base/browser/dom.js';
+// DROX-BEGIN
 import { DROX_TOKEN_WARNING_HOVER_CLASS, droxTokenWarningHoverContent } from '../droxTokenWarningHover.js';
+// DROX-END
 import { ICommandService } from '../../../platform/commands/common/commands.js';
 import { toDisposable, DisposableStore, MutableDisposable } from '../../../base/common/lifecycle.js';
 import { IContextMenuService } from '../../../platform/contextview/browser/contextView.js';
@@ -75,8 +77,10 @@ export interface ICompositeBar {
 export interface ICompositeBarActionItem {
 	id: string;
 	name: string;
+	// DROX-BEGIN
 	/** Shown on hover instead of `name` when set. */
 	tooltip?: string;
+	// DROX-END
 	keybindingId?: string;
 	classNames?: string[];
 	iconUrl?: URI;
@@ -262,6 +266,7 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 			}, 800); // delayed to prevent focus feedback from showing on mouse up
 		}));
 
+		// DROX-BEGIN
 		this._register(this.hoverService.setupDelayedHover(this.container, () => {
 			const warning = this.compositeBarActionItem.tooltip;
 			const position = { hoverPosition: this.options.hoverOptions.position() };
@@ -283,6 +288,7 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 				persistence,
 			};
 		}, { groupId: 'composite-bar-actions' }));
+		// DROX-END
 
 		// Label
 		this.label = append(container, $('a'));
@@ -429,8 +435,10 @@ export class CompositeBarActionViewItem extends BaseActionViewItem {
 
 	protected computeTitle(): string {
 		this.keybindingLabel = this.computeKeybindingLabel();
+		// DROX-BEGIN
 		const base = this.compositeBarActionItem.tooltip ?? this.compositeBarActionItem.name;
 		let title = this.keybindingLabel ? localize('titleKeybinding', "{0} ({1})", base, this.keybindingLabel) : base;
+		// DROX-END
 
 		const badges = this.getVisibleBadges((this.action as CompositeBarAction).activities).badges;
 		for (const badge of badges) {

@@ -14,7 +14,9 @@ import { IQuickInputService, IQuickPick, IQuickPickItem, QuickPickInput } from '
 import { AuthenticationSessionAccount, IAuthenticationService } from '../../../../services/authentication/common/authentication.js';
 import { IAuthenticationQueryService } from '../../../../services/authentication/common/authenticationQuery.js';
 import { IExtensionService } from '../../../../services/extensions/common/extensions.js';
+// DROX-BEGIN
 import { DroxCopilotSignInHiddenContext } from '../../../drox/common/droxAgentsConfiguration.js';
+// DROX-END
 
 export class ManageAccountPreferencesForExtensionAction extends Action2 {
 	constructor() {
@@ -26,7 +28,9 @@ export class ManageAccountPreferencesForExtensionAction extends Action2 {
 			menu: [{
 				id: MenuId.AccountsContext,
 				order: 100,
+				// DROX-BEGIN
 				when: DroxCopilotSignInHiddenContext.negate(),
+				// DROX-END
 			}],
 		});
 	}
