@@ -9,9 +9,13 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { ResourceMap } from '../../../../base/common/map.js';
 import { IObservable, autorun } from '../../../../base/common/observable.js';
+// DROX-BEGIN
 import { isEqual } from '../../../../base/common/resources.js';
+// DROX-END
 import { URI } from '../../../../base/common/uri.js';
+// DROX-BEGIN
 import { invokeSessionOpenGateAfterOpen, invokeSessionOpenGatePrepare } from '../common/sessionOpenGate.js';
+// DROX-END
 import { createDecorator, IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
@@ -51,11 +55,13 @@ export interface IOpenNewSessionOptions extends ICreateNewSessionOptions {
 	 * (restoring any pending draft).
 	 */
 	readonly folderUri?: URI;
+	// DROX-BEGIN
 	/**
 	 * When true, discard any in-progress draft and clear the workspace picker so
 	 * the user can choose a different project folder.
 	 */
 	readonly resetComposer?: boolean;
+	// DROX-END
 }
 
 /**
@@ -129,8 +135,10 @@ export interface ISessionsService {
 	 */
 	getRecentlyOpenedSessions(): IRecentlyOpenedSessions;
 
+	// DROX-BEGIN
 	/** Recharge l'historique MRU depuis le stockage (sync inter-fenetres). */
 	reloadRecencyFromStorage(): void;
+	// DROX-END
 
 	/**
 	 * Select an existing session as the active session and show it in the grid.
@@ -139,7 +147,7 @@ export interface ISessionsService {
 	 *
 	 * @returns `true` when the session was opened, `false` when aborted (e.g. switch dialog cancelled).
 	 */
-	openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<boolean>;
+	openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise</* DROX-BEGIN */ boolean /* DROX-END */>;
 
 	/**
 	 * Open a specific chat within a session and show it in the grid.
@@ -463,18 +471,21 @@ export class SessionsService extends Disposable implements ISessionsService {
 			const fallback = this._visibility.activeSession.get();
 			if (fallback && this.sessionsManagementService.getSession(fallback.resource)) {
 				this.openSession(fallback.resource);
-				return;
-			}
-
-			const nextSession = this._pickSessionAfterRemoval(e.removed);
-			if (nextSession) {
-				this.openSession(nextSession.resource);
 			} else {
-				this.openNewSession();
+				// DROX-BEGIN
+				const nextSession = this._pickSessionAfterRemoval(e.removed);
+				if (nextSession) {
+					this.openSession(nextSession.resource);
+				} else
+				// DROX-END
+				{
+					this.openNewSession();
+				}
 			}
 		}
 	}
 
+	// DROX-BEGIN
 	private _pickSessionAfterRemoval(removed: readonly ISession[]): ISession | undefined {
 		const removedIds = new Set(removed.map(session => session.sessionId));
 		const remaining = this.sessionsManagementService.getSessions()
@@ -484,6 +495,7 @@ export class SessionsService extends Disposable implements ISessionsService {
 		}
 		return remaining.sort((a, b) => b.updatedAt.get().getTime() - a.updatedAt.get().getTime())[0];
 	}
+	// DROX-END
 
 	private _startSendFollow(session: ISession): void {
 		const store = new DisposableStore();
@@ -508,9 +520,11 @@ export class SessionsService extends Disposable implements ISessionsService {
 		this._sendFollow.value = store;
 	}
 
+	// DROX-BEGIN
 	reloadRecencyFromStorage(): void {
 		this._recencyHistory.reloadFromStorage();
 	}
+	// DROX-END
 
 	getRecentlyOpenedSessions(): IRecentlyOpenedSessions {
 		const seen = new Set<string>();
@@ -605,13 +619,13 @@ export class SessionsService extends Disposable implements ISessionsService {
 		this.logService.trace(`[SessionsView] openChat done total=${Date.now() - t0}ms uri=${chatUri.toString()}`);
 	}
 
-	async openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<boolean> {
+	async openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise</* DROX-BEGIN */ boolean /* DROX-END */> {
 		this._cancelRestore();
 		const token = this._startOpenSession();
 		return this._doOpenSession(sessionResource, token, options);
 	}
 
-	private async _doOpenSession(sessionResource: URI, token: CancellationToken, options?: { preserveFocus?: boolean }): Promise<boolean> {
+	private async _doOpenSession(sessionResource: URI, token: CancellationToken, options?: { preserveFocus?: boolean }): Promise</* DROX-BEGIN */ boolean /* DROX-END */> {
 		const t0 = Date.now();
 		const sessionData = this.sessionsManagementService.getSession(sessionResource);
 		if (!sessionData) {
@@ -620,6 +634,7 @@ export class SessionsService extends Disposable implements ISessionsService {
 		}
 		this.logService.trace(`[SessionsView] openSession start uri=${sessionResource.toString()} provider=${sessionData.providerId}`);
 
+		// DROX-BEGIN
 		const currentActive = this._visibility.activeSession.get();
 		if (currentActive && isEqual(currentActive.resource, sessionResource)) {
 			// List single-click always fires open; re-entering the active session
@@ -637,17 +652,22 @@ export class SessionsService extends Disposable implements ISessionsService {
 				return false;
 			}
 		}
+		// DROX-END
 
 		this._activate(sessionData, options?.preserveFocus);
 		if (!await this._waitForSessionToLoad(sessionData, token)) {
 			this.logService.trace(`[SessionsView] openSession cancelled while waiting for session to load uri=${sessionResource.toString()}`);
-			return false;
+			return /* DROX-BEGIN */ false /* DROX-END */;
 		}
 
+		// DROX-BEGIN
 		await invokeSessionOpenGateAfterOpen(sessionData);
+		// DROX-END
 
 		this.logService.trace(`[SessionsView] openSession done total=${Date.now() - t0}ms uri=${sessionResource.toString()}`);
+		// DROX-BEGIN
 		return true;
+		// DROX-END
 	}
 
 	unsetNewSession(): void {
@@ -657,7 +677,9 @@ export class SessionsService extends Disposable implements ISessionsService {
 
 	openNewSession(options?: IOpenNewSessionOptions): ISession | undefined {
 		const folderUri = options?.folderUri;
+		// DROX-BEGIN
 		const resetComposer = options?.resetComposer === true;
+		// DROX-END
 		if (folderUri) {
 			this._startOpenSession();
 			try {
@@ -672,15 +694,16 @@ export class SessionsService extends Disposable implements ISessionsService {
 			}
 		}
 
+		// DROX-BEGIN
 		if (resetComposer) {
 			this.sessionsManagementService.discardNewSession();
 		}
+		// DROX-END
 
 		// Without a folder (or when folder resolution failed above): switch to
 		// the new-session composer view.
-		// No-op when no session is active (empty new-session placeholder showing),
-		// unless the caller asked to reset the composer (e.g. sidebar "New").
-		if (this._visibility.activeSession.get() === undefined && !resetComposer) {
+		// No-op when no session is active (empty new-session placeholder showing).
+		if (this._visibility.activeSession.get() === undefined /* DROX-BEGIN */ && !resetComposer /* DROX-END */) {
 			return undefined;
 		}
 		if (!folderUri) {
@@ -690,18 +713,22 @@ export class SessionsService extends Disposable implements ISessionsService {
 		// Restore the in-progress new session if one exists, so pickers re-derive
 		// their state from the still-alive session object. Otherwise clear the
 		// active session (first time / after send).
-		const newSession = resetComposer ? undefined : this.sessionsManagementService.newSession.get();
+		const newSession = /* DROX-BEGIN */ resetComposer ? undefined : /* DROX-END */ this.sessionsManagementService.newSession.get();
 		this._activate(newSession ?? undefined);
+		// DROX-BEGIN
 		if (resetComposer) {
 			this._resetNewSessionComposer();
 		}
+		// DROX-END
 		return newSession ?? undefined;
 	}
 
+	// DROX-BEGIN
 	private _resetNewSessionComposer(): void {
 		this.sessionsPartService.getSessionView(undefined)?.clearWorkspaceSelection();
 		this.sessionsPartService.focusSession(undefined);
 	}
+	// DROX-END
 
 	async openNewChatInSession(session: ISession, options?: ICreateNewChatInSessionOptions): Promise<void> {
 		this._cancelRestore();
@@ -1069,9 +1096,11 @@ export class SessionsService extends Disposable implements ISessionsService {
 		}
 		this._visibility.restoreGrid(slots, activeSlotIndex);
 
+		// DROX-BEGIN
 		if (activeSession) {
 			await invokeSessionOpenGateAfterOpen(activeSession);
 		}
+		// DROX-END
 
 		if (token.isCancellationRequested) {
 			return;

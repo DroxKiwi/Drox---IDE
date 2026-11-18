@@ -40,6 +40,8 @@ Le dossier actif d'Electron (`.build/electron-active-subdir`) est dans `build/li
 
 `sessionsList.ts` branche le tableau de bord déjà sorti, et garde la liste cachée au départ, les mises à jour en attente et le focus optionnel de `reveal`. Ces passages sont encadrés.
 
+`sessionsService.ts` garde les appels à `sessionOpenGate`, le choix de la session suivante, `resetComposer` et le rechargement de l'historique. Ces passages sont encadrés. La porte elle-même est un fichier absent de la base.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -64,7 +66,7 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | en cours | `build/lib/preLaunch.ts` | 98 | 3 | 6 |
 | en cours | `src/vs/sessions/contrib/sessions/browser/views/sessionsList.ts` | 92 | 7 | 22 |
 | en cours | `src/vs/sessions/browser/sessionsSetUpService.ts` | 80 | 5 | 10 |
-| | `src/vs/sessions/services/sessions/browser/sessionsService.ts` | 80 | 8 | 23 |
+| en cours | `src/vs/sessions/services/sessions/browser/sessionsService.ts` | 80 | 8 | 23 |
 | | `src/vs/sessions/contrib/changes/browser/changesView.ts` | 79 | 13 | 18 |
 | | `build/lib/stylelint/vscode-known-variables.json` | 78 | 2 | 4 |
 | | `src/vs/sessions/contrib/chat/browser/media/chatInput.css` | 78 | 2 | 3 |
