@@ -50,13 +50,13 @@ const SORTING_STORAGE_KEY = 'sessionsViewPane.sorting';
  * the session is already the last visible one, this is a no-op aside from
  * activation.
  */
-export async function openSessionToTheSide(sessionsService: ISessionsService, session: ISession, options?: { preserveFocus?: boolean }): Promise<boolean> {
+export async function openSessionToTheSide(sessionsService: ISessionsService, session: ISession, options?: { preserveFocus?: boolean }): Promise</* DROX-BEGIN */ boolean /* DROX-END */> {
 	const visible = sessionsService.visibleSessions.get();
 	const lastVisible = visible[visible.length - 1];
 	if (lastVisible && lastVisible.sessionId !== session.sessionId) {
 		sessionsService.insertAt(session, lastVisible.sessionId, 'right');
 	}
-	return sessionsService.openSession(session.resource, options);
+	return /* DROX-BEGIN */ sessionsService.openSession(session.resource, options) /* DROX-END */;
 }
 
 export const SessionsViewFilterSubMenu = new MenuId('SessionsViewPaneFilterSubMenu');
@@ -155,10 +155,12 @@ export class SessionsView extends ViewPane {
 		// Sessions content container
 		const sessionsContent = DOM.append(sessionsSection, $('.agent-sessions-content'));
 
+		// DROX-BEGIN
 		// Minimal header: new discussion + filter/find (container title already shows "Sessions").
 		const headerRow = this.headerRow = DOM.append(sessionsContent, $('.agent-sessions-header-row.minimal'));
 		this.headerLabel = DOM.append(headerRow, $('.agent-sessions-header-label'));
 		this.headerLabel.style.display = 'none';
+		// DROX-END
 
 		const headerActions = this.headerActions = DOM.append(headerRow, $('.agent-sessions-header-actions'));
 
@@ -204,6 +206,7 @@ export class SessionsView extends ViewPane {
 						this.layoutService.setPartHidden(true, Parts.SIDEBAR_PART);
 					}
 				};
+				// DROX-BEGIN
 				const onOpenFinished = (opened: boolean) => {
 					if (!opened) {
 						// List focus moves on click before the switch gate; restore the
@@ -213,6 +216,7 @@ export class SessionsView extends ViewPane {
 					}
 					onOpened();
 				};
+				// DROX-END
 				if (sideBySide) {
 					// Alt-click: open the session to the right of the last visible session in the grid.
 					const session = this.sessionsManagementService.getSession(resource);
@@ -226,6 +230,7 @@ export class SessionsView extends ViewPane {
 		}));
 		this._register(this.onDidChangeBodyVisibility(visible => {
 			sessionsControl.setVisible(visible);
+			// DROX-BEGIN
 			if (visible) {
 				const targetWindow = DOM.getWindow(this.element);
 				const relayout = () => this._layoutSessionsList();
@@ -235,7 +240,9 @@ export class SessionsView extends ViewPane {
 					DOM.scheduleAtNextAnimationFrame(targetWindow, relayout);
 				});
 			}
+			// DROX-END
 		}));
+		// DROX-BEGIN
 		sessionsControl.setVisible(this.isBodyVisible());
 
 		const listSizeObserver = this._register(new DOM.DisposableResizeObserver('SessionsView.list', () => {
@@ -251,6 +258,7 @@ export class SessionsView extends ViewPane {
 				}
 			});
 		}));
+		// DROX-END
 
 		// Toggle header label/actions visibility when find widget opens/closes
 		this._register(sessionsControl.onDidChangeFindOpenState(open => {
@@ -289,7 +297,7 @@ export class SessionsView extends ViewPane {
 		// Listen to list updates and restore selection if nothing is selected
 		this._register(sessionsControl.onDidUpdate(() => {
 			if (!sessionsControl.hasFocusOrSelection()) {
-				this.restoreLastSelectedSession({ preserveFocus: true });
+				this.restoreLastSelectedSession(/* DROX-BEGIN */ { preserveFocus: true } /* DROX-END */);
 			}
 		}));
 
@@ -298,7 +306,7 @@ export class SessionsView extends ViewPane {
 		this._register(autorun(reader => {
 			const activeSession = this.sessionsService.activeSession.read(reader);
 			if (activeSession) {
-				if (!sessionsControl.reveal(activeSession.resource, { preserveFocus: true })) {
+				if (!sessionsControl.reveal(activeSession.resource /* DROX-BEGIN */, { preserveFocus: true } /* DROX-END */)) {
 					sessionsControl.clearFocus();
 				}
 			} else {
@@ -354,7 +362,7 @@ export class SessionsView extends ViewPane {
 		this._customizationsWidget?.focus();
 	}
 
-	private restoreLastSelectedSession(options?: { readonly preserveFocus?: boolean }): void {
+	private restoreLastSelectedSession(/* DROX-BEGIN */ options?: { readonly preserveFocus?: boolean } /* DROX-END */): void {
 		const activeSession = this.sessionsService.activeSession.get();
 		if (activeSession && this.sessionsControl) {
 			this.sessionsControl.reveal(activeSession.resource, options);
@@ -513,9 +521,12 @@ export class SessionsView extends ViewPane {
 		super.layoutBody(height, width);
 
 		this.updateHeaderLayout();
+		// DROX-BEGIN
 		this._layoutSessionsList(width);
+		// DROX-END
 	}
 
+	// DROX-BEGIN
 	private _layoutSessionsList(width?: number): void {
 		if (!this.sessionsControl || !this.sessionsControlContainer) {
 			return;
@@ -526,6 +537,7 @@ export class SessionsView extends ViewPane {
 			this.sessionsControl.layout(listHeight, listWidth);
 		}
 	}
+	// DROX-END
 
 	override focus(): void {
 		super.focus();
@@ -565,7 +577,7 @@ export class SessionsView extends ViewPane {
 			return;
 		}
 
-		this.headerLabel.style.display = 'none';
+		this.headerLabel.style.display = /* DROX-BEGIN */ 'none' /* DROX-END */;
 		this.headerActions.style.display = '';
 	}
 

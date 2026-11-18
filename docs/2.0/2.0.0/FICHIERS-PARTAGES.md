@@ -42,6 +42,8 @@ Le dossier actif d'Electron (`.build/electron-active-subdir`) est dans `build/li
 
 `sessionsService.ts` garde les appels à `sessionOpenGate`, le choix de la session suivante, `resetComposer` et le rechargement de l'historique. Ces passages sont encadrés. La porte elle-même est un fichier absent de la base.
 
+Les vues de session (`changesView`, `sessionsView`, `sessionsPart`, `baseSessionLayoutController`, `chat.contribution`) gardent les branchements Drox encadrés. Le diff inline est déjà dans `droxChangesInlineDiffWidget`.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -67,13 +69,13 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | en cours | `src/vs/sessions/contrib/sessions/browser/views/sessionsList.ts` | 92 | 7 | 22 |
 | en cours | `src/vs/sessions/browser/sessionsSetUpService.ts` | 80 | 5 | 10 |
 | en cours | `src/vs/sessions/services/sessions/browser/sessionsService.ts` | 80 | 8 | 23 |
-| | `src/vs/sessions/contrib/changes/browser/changesView.ts` | 79 | 13 | 18 |
+| en cours | `src/vs/sessions/contrib/changes/browser/changesView.ts` | 79 | 13 | 18 |
 | | `build/lib/stylelint/vscode-known-variables.json` | 78 | 2 | 4 |
 | | `src/vs/sessions/contrib/chat/browser/media/chatInput.css` | 78 | 2 | 3 |
 | | `build/gulpfile.vscode.ts` | 76 | 26 | 20 |
 | | `src/vs/base/browser/ui/sash/sash.css` | 71 | 2 | 4 |
 | | `src/vs/sessions/contrib/chat/browser/chatView.ts` | 66 | 26 | 19 |
-| | `src/vs/sessions/contrib/sessions/browser/views/sessionsView.ts` | 59 | 18 | 17 |
+| en cours | `src/vs/sessions/contrib/sessions/browser/views/sessionsView.ts` | 59 | 18 | 17 |
 | | `src/vs/platform/agentHost/node/copilot/copilotAgent.ts` | 57 | 6 | 5 |
 | | `src/vs/sessions/contrib/chat/browser/newChatContextAttachments.ts` | 56 | 28 | 7 |
 | | `src/vs/sessions/contrib/chat/browser/runScriptAction.ts` | 53 | 2 | 6 |
@@ -81,10 +83,10 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | | `src/vs/workbench/services/extensions/electron-browser/localProcessExtensionHost.ts` | 52 | 5 | 9 |
 | | `src/vs/workbench/contrib/chat/browser/chatSetup/chatSetupProviders.ts` | 51 | 9 | 12 |
 | | `src/vs/workbench/contrib/chat/browser/widget/input/chatModelPicker.ts` | 51 | 10 | 8 |
-| | `src/vs/sessions/contrib/layout/browser/baseSessionLayoutController.ts` | 51 | 15 | 10 |
+| en cours | `src/vs/sessions/contrib/layout/browser/baseSessionLayoutController.ts` | 51 | 15 | 10 |
 | | `src/vs/workbench/contrib/chat/browser/widget/chatWidget.ts` | 51 | 5 | 5 |
-| | `src/vs/sessions/browser/parts/sessionsPart.ts` | 49 | 0 | 4 |
-| | `src/vs/sessions/contrib/chat/electron-browser/chat.contribution.ts` | 45 | 23 | 11 |
+| en cours | `src/vs/sessions/browser/parts/sessionsPart.ts` | 49 | 0 | 4 |
+| en cours | `src/vs/sessions/contrib/chat/electron-browser/chat.contribution.ts` | 45 | 23 | 11 |
 | | `src/vs/workbench/contrib/chat/test/common/model/chatModel.test.ts` | 43 | 0 | 1 |
 | | `src/vs/workbench/browser/parts/auxiliarybar/auxiliaryBarPart.ts` | 39 | 2 | 5 |
 | | `build/win32/code.iss` | 25 | 16 | 13 |

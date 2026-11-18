@@ -16,7 +16,9 @@ import { Direction, SerializableGrid, Sizing } from '../../../base/browser/ui/gr
 import { Part } from '../../../workbench/browser/part.js';
 import { ActiveSessionsContext, MultipleSessionsVisibleContext, SessionsFocusContext } from '../../common/contextkeys.js';
 import { $, addDisposableGenericMouseDownListener, addDisposableListener, EventType, isAncestor, trackFocus } from '../../../base/browser/dom.js';
+// DROX-BEGIN
 import { disposableTimeout } from '../../../base/common/async.js';
+// DROX-END
 import { IActiveSession } from '../../services/sessions/common/sessionsManagement.js';
 import { SessionView } from './sessionView.js';
 import { DisposableStore, IDisposable } from '../../../base/common/lifecycle.js';
@@ -265,9 +267,12 @@ export class SessionsPart extends Part {
 		}
 
 		this._updateContextKeys(visible);
+		// DROX-BEGIN
 		this._scheduleRelayoutAfterBind();
+		// DROX-END
 	}
 
+	// DROX-BEGIN
 	/**
 	 * Re-run the internal grid layout after rebinding session views. The first
 	 * {@link SessionView.openSession} can mount the new-session widget before this
@@ -311,6 +316,7 @@ export class SessionsPart extends Part {
 	}
 
 	private _requestedInitialWorkbenchLayout = false;
+	// DROX-END
 
 	private _updateContextKeys(visible: readonly (IActiveSession | undefined)[]): void {
 		this._multipleSessionsVisibleKey.set(visible.length > 1);
@@ -486,8 +492,10 @@ export class SessionsPart extends Part {
 		// Store the full grid-allocated dimensions so that Part.relayout() works correctly.
 		super.layout(width, height, top, left);
 
+		// DROX-BEGIN
 		// Session views may have been bound before this part was first sized.
 		this._relayoutGridIfNeeded();
+		// DROX-END
 	}
 
 	override dispose(): void {

@@ -50,10 +50,12 @@ class SelectAgentsFolderContribution extends Disposable implements IWorkbenchCon
 		// session to restore).
 		if (sessionResource) {
 			await this.openExistingSession(sessionResource);
+			// DROX-BEGIN
 			if (!this.sessionsManagementService.getSession(sessionResource) && folderUri) {
 				this.logService.warn(`[AgentsHandoff] session not found after open; falling back to folder handoff`);
 				await this.selectFolder(folderUri);
 			}
+			// DROX-END
 			return;
 		}
 		if (folderUri) {
@@ -122,6 +124,7 @@ class SelectAgentsFolderContribution extends Disposable implements IWorkbenchCon
 
 	private async selectFolder(folderUri: URI): Promise<void> {
 		await this.sessionsSetUpService.whenWelcomeDone();
+		// DROX-BEGIN
 		await this.lifecycleService.when(LifecyclePhase.Eventually);
 
 		const sessionsView = this.viewsService.getViewWithId<SessionsView>(SessionsListViewId);
@@ -149,7 +152,9 @@ class SelectAgentsFolderContribution extends Disposable implements IWorkbenchCon
 		const activeSession = this.sessionsService.activeSession.get();
 		this.sessionsPartService.getSessionView(activeSession?.sessionId)?.selectWorkspace(folderUri, resolved.providerId);
 	}
+	// DROX-END
 
+	// DROX-BEGIN
 	private waitForWorkspaceResolution(folderUri: URI): Promise<{ providerId: string } | undefined> {
 		const immediate = this.sessionsManagementService.resolveWorkspace(folderUri);
 		if (immediate) {
@@ -175,6 +180,7 @@ class SelectAgentsFolderContribution extends Disposable implements IWorkbenchCon
 			});
 		});
 	}
+	// DROX-END
 }
 
 registerWorkbenchContribution2(SelectAgentsFolderContribution.ID, SelectAgentsFolderContribution, WorkbenchPhase.BlockStartup);

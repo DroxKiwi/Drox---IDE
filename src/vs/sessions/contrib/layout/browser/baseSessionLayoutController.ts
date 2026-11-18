@@ -47,8 +47,10 @@ interface ISessionLayoutEntry {
 const SESSION_LAYOUT_STATE_KEY = 'sessions.layoutState';
 /** Legacy key — read on startup for migration only. */
 const WORKING_SETS_STORAGE_KEY = 'sessions.workingSets';
+// DROX-BEGIN
 /** Deprecated Drox stable-layout key — removed on load (per-session layout is restored). */
 const LEGACY_DROX_STABLE_EDITOR_WORKING_SET_KEY = 'sessions.droxStableEditorWorkingSet';
+// DROX-END
 
 /**
  * Shared, platform-agnostic per-session layout state management. The behaviour
@@ -80,7 +82,9 @@ export abstract class BaseLayoutController extends Disposable {
 		@IViewsService protected readonly _viewsService: IViewsService,
 		@IPaneCompositePartService protected readonly _paneCompositePartService: IPaneCompositePartService,
 		@IStorageService protected readonly _storageService: IStorageService,
+		// DROX-BEGIN
 		@IConfigurationService protected readonly _configurationService: IConfigurationService,
+		// DROX-END
 		@IEditorService private readonly _editorService: IEditorService,
 		@IEditorGroupsService private readonly _editorGroupsService: IEditorGroupsService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
@@ -105,7 +109,9 @@ export abstract class BaseLayoutController extends Disposable {
 			return this._sessionsService.visibleSessions.read(reader).length > 1;
 		});
 
+		// DROX-BEGIN
 		this._useModalConfigObs = observableConfigValue<'off' | 'some' | 'all'>('workbench.editor.useModal', 'all', this._configurationService);
+		// DROX-END
 
 		// [B5] When multiple sessions are visible, drop per-session view/panel state
 		// for each visible session (editor working sets are preserved). This ensures
@@ -189,6 +195,7 @@ export abstract class BaseLayoutController extends Disposable {
 					this._saveWorkingSet(previousSession.resource);
 				}
 
+				// DROX-BEGIN
 				// Only restore when we have a saved working set. Applying `'empty'` on every
 				// switch races with Plan B Drox snapshots after cross-directory workspace
 				// settle and wipes restored editors. Clearing the shared editor area for
@@ -197,6 +204,7 @@ export abstract class BaseLayoutController extends Disposable {
 				if (session && this._workingSets.has(session.resource)) {
 					void this._applyWorkingSet(session.resource, { isInitialRestore: !previousSession });
 				}
+				// DROX-END
 			}));
 
 			// [B2] Session state changed (archive, delete)
@@ -239,9 +247,11 @@ export abstract class BaseLayoutController extends Disposable {
 	// --- Persistence [B3] ---
 
 	private _loadState(): void {
+		// DROX-BEGIN
 		if (this._storageService.get(LEGACY_DROX_STABLE_EDITOR_WORKING_SET_KEY, StorageScope.WORKSPACE)) {
 			this._storageService.remove(LEGACY_DROX_STABLE_EDITOR_WORKING_SET_KEY, StorageScope.WORKSPACE);
 		}
+		// DROX-END
 
 		// Load from new key first
 		const raw = this._storageService.get(SESSION_LAYOUT_STATE_KEY, StorageScope.WORKSPACE);
@@ -390,12 +400,14 @@ export abstract class BaseLayoutController extends Disposable {
 	}
 
 	private _saveWorkingSet(sessionResource: URI): void {
+		// DROX-BEGIN
 		// Cross-directory switches clear editors (new session template) before
 		// `activeSessionForWorkingSet` settles. Saving then would wipe a good
 		// working set with empty — keep the prior snapshot instead.
 		if (this._editorService.visibleEditors.length === 0) {
 			return;
 		}
+		// DROX-END
 
 		this._deleteWorkingSet(sessionResource);
 		const workingSetName = `session-working-set:${sessionResource.toString()}`;
@@ -413,6 +425,7 @@ export abstract class BaseLayoutController extends Disposable {
 		this._workingSets.delete(sessionResource);
 	}
 
+	// DROX-BEGIN
 	/**
 	 * Adopts an externally captured editor working set (Plan B Drox snapshot)
 	 * so a later {@link _applyWorkingSet} restores the same tabs instead of `'empty'`.
@@ -435,4 +448,5 @@ export abstract class BaseLayoutController extends Disposable {
 		this._viewStateBySession.delete(sessionResource);
 		this._panelVisibilityBySession.delete(sessionResource);
 	}
+	// DROX-END
 }
