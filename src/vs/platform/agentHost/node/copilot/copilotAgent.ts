@@ -187,6 +187,7 @@ interface IPersistedChat {
 	readonly model?: ModelSelection;
 }
 
+// DROX-BEGIN
 /**
  * Augments the published `@vscode/copilot-api` `ModelBilling` with the `tokenPrices` field the runtime CAPI `/models`
  * payload already carries but the SDK type doesn't yet declare. Mirror of `IClaudeModelSupports` in `claudeAgent.ts`.
@@ -213,6 +214,7 @@ interface ICopilotModelBilling {
 		};
 	};
 }
+// DROX-END
 
 /**
  * Subset of the JSON-RPC `MessageConnection` we reach into via the SDK's private `connection` field to wire plan mode.

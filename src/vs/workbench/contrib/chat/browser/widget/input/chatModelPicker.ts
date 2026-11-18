@@ -422,9 +422,11 @@ function shouldShowManageModelsAction(chatEntitlementService: IChatEntitlementSe
 		chatEntitlementService.isInternal;
 }
 
+// DROX-BEGIN
 function isDroxModelPickerSurface(): boolean {
 	return product.droxMicrosoftAgentsSurfaceEnabled !== true;
 }
+// DROX-END
 
 function createManageModelsAction(commandService: ICommandService, emptyModels = false): IActionWidgetDropdownAction {
 	const openDroxSettings = isDroxModelPickerSurface();

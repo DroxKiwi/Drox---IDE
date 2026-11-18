@@ -2590,6 +2590,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 				this.chatService.removePendingRequest(this.viewModel.sessionResource, editingRequestId);
 				options.queue ??= editingPendingRequest;
 			} else {
+				// DROX-BEGIN
 				// Drox F1c — if a partial assistant response exists, ask Keep vs Discard.
 				if (this._lockedAgent?.id === 'drox') {
 					const editingId = this.viewModel.editing!.id;
@@ -2628,6 +2629,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 						}
 					}
 				}
+				// DROX-END
 				await this.chatService.cancelCurrentRequestForSession(this.viewModel.sessionResource, 'acceptInput-editing');
 				options.queue = undefined;
 			}

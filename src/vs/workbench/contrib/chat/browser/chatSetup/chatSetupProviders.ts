@@ -331,6 +331,7 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 		const widget = chatWidgetService.getWidgetBySessionResource(requestModel.session.sessionResource);
 		const modeInfo = widget?.input.currentModeInfo;
 
+		// DROX-BEGIN
 		// Local LLM (Nexus): skip auth-extension work + Copilot-era readiness waits. Running
 		// `maybeEnableAuthExtension` first can restart extension hosts and throw before resend.
 		if (this.productService.skipCopilotGitHubSignIn) {
@@ -343,6 +344,7 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 			});
 			return;
 		}
+		// DROX-END
 
 		// Ensure auth extension is enabled before waiting for chat readiness.
 		// This must run before the readiness event listeners are set up because

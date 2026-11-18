@@ -724,6 +724,7 @@ suite('Response', () => {
 		assert.strictEqual(notebookEditGroups.length, 1, 'Should have notebookEditGroup for cell edits');
 	});
 
+	// DROX-BEGIN
 	test('external subagent tool updates expose result as contentForModel text', () => {
 		const response = store.add(new Response([]));
 		response.updateContent({
@@ -766,6 +767,7 @@ suite('Response', () => {
 			]);
 		}
 	});
+	// DROX-END
 
 	test('external terminal tool updates preserve toolSpecificData when completing an existing invocation', () => {
 		const response = store.add(new Response([]));

@@ -46,6 +46,8 @@ Les vues de session (`changesView`, `sessionsView`, `sessionsPart`, `baseSession
 
 `chatInput.css` est revenu identique à la base. Les puces de collage et la pile des pièces jointes sont dans `droxChatInput.css`. `chatView.ts` et les pièces jointes du nouveau chat gardent des appels encadrés. L'action navigateur est dans `droxOpenSessionInBrowserAction.ts`.
 
+Le chat de l'IDE, le sélecteur de modèle, l'hôte d'extensions et l'agent Copilot gardent leurs ajouts encadrés. Aucune de ces classes n'a été extraite.
+
 `sash.css` est revenu identique à la base. Le faisceau est dans `droxSash.css`. Les gulpfiles et l'installeur Windows gardent la marque, l'icône et le paquet Linux encadrés. Le registre des variables CSS garde les noms `--drox-*`, `--nexus-*` et trois noms de police `--vscode-*`.
 
 ## File de reprise
@@ -80,19 +82,19 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | fait | `src/vs/base/browser/ui/sash/sash.css` | 71 | 2 | 4 |
 | en cours | `src/vs/sessions/contrib/chat/browser/chatView.ts` | 66 | 26 | 19 |
 | en cours | `src/vs/sessions/contrib/sessions/browser/views/sessionsView.ts` | 59 | 18 | 17 |
-| | `src/vs/platform/agentHost/node/copilot/copilotAgent.ts` | 57 | 6 | 5 |
+| en cours | `src/vs/platform/agentHost/node/copilot/copilotAgent.ts` | 57 | 6 | 5 |
 | en cours | `src/vs/sessions/contrib/chat/browser/newChatContextAttachments.ts` | 56 | 28 | 7 |
 | en cours | `src/vs/sessions/contrib/chat/browser/runScriptAction.ts` | 53 | 2 | 6 |
 | en cours | `build/gulpfile.vscode.linux.ts` | 53 | 6 | 5 |
-| | `src/vs/workbench/services/extensions/electron-browser/localProcessExtensionHost.ts` | 52 | 5 | 9 |
-| | `src/vs/workbench/contrib/chat/browser/chatSetup/chatSetupProviders.ts` | 51 | 9 | 12 |
-| | `src/vs/workbench/contrib/chat/browser/widget/input/chatModelPicker.ts` | 51 | 10 | 8 |
+| en cours | `src/vs/workbench/services/extensions/electron-browser/localProcessExtensionHost.ts` | 52 | 5 | 9 |
+| en cours | `src/vs/workbench/contrib/chat/browser/chatSetup/chatSetupProviders.ts` | 51 | 9 | 12 |
+| en cours | `src/vs/workbench/contrib/chat/browser/widget/input/chatModelPicker.ts` | 51 | 10 | 8 |
 | en cours | `src/vs/sessions/contrib/layout/browser/baseSessionLayoutController.ts` | 51 | 15 | 10 |
-| | `src/vs/workbench/contrib/chat/browser/widget/chatWidget.ts` | 51 | 5 | 5 |
+| en cours | `src/vs/workbench/contrib/chat/browser/widget/chatWidget.ts` | 51 | 5 | 5 |
 | en cours | `src/vs/sessions/browser/parts/sessionsPart.ts` | 49 | 0 | 4 |
 | en cours | `src/vs/sessions/contrib/chat/electron-browser/chat.contribution.ts` | 45 | 23 | 11 |
-| | `src/vs/workbench/contrib/chat/test/common/model/chatModel.test.ts` | 43 | 0 | 1 |
-| | `src/vs/workbench/browser/parts/auxiliarybar/auxiliaryBarPart.ts` | 39 | 2 | 5 |
+| en cours | `src/vs/workbench/contrib/chat/test/common/model/chatModel.test.ts` | 43 | 0 | 1 |
+| en cours | `src/vs/workbench/browser/parts/auxiliarybar/auxiliaryBarPart.ts` | 39 | 2 | 5 |
 | en cours | `build/win32/code.iss` | 25 | 16 | 13 |
 | | `src/vs/platform/agentHost/common/agentModelPricing.ts` | 0 | 59 | 1 |
 | | `README.md` | 109 | 47 | 30 |

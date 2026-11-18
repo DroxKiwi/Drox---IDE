@@ -36,6 +36,7 @@ import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { VisibleViewContainersTracker } from '../visibleViewContainersTracker.js';
 import { Extensions } from '../../panecomposite.js';
 
+// DROX-BEGIN
 /** Smallest chat width: 35% of the window, never under the workbench floor of 170. */
 function droxChatFloor(windowWidth: number): number {
 	if (windowWidth <= 0) {
@@ -43,6 +44,7 @@ function droxChatFloor(windowWidth: number): number {
 	}
 	return Math.max(170, Math.round(windowWidth * 0.35));
 }
+// DROX-END
 
 interface IAuxiliaryBarPartConfiguration {
 	position: ActivityBarPosition;
@@ -58,12 +60,14 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 	static readonly placeholdeViewContainersKey = 'workbench.auxiliarybar.placeholderPanels';
 	static readonly viewContainersWorkspaceStateKey = 'workbench.auxiliarybar.viewContainersWorkspaceState';
 
+	// DROX-BEGIN
 	// IDE chat: stop at 35% of the window. Pushing past that snaps the bar shut.
 	// While hidden, snap stays off so the sash does not pull the chat back open.
 	private chatFloor = 170;
 
 	override get minimumWidth(): number { return this.chatFloor; }
 	override get snap(): boolean { return this.layoutService.isVisible(Parts.AUXILIARYBAR_PART); }
+	// DROX-END
 	override readonly maximumWidth: number = Number.POSITIVE_INFINITY;
 	override readonly minimumHeight: number = 0;
 	override readonly maximumHeight: number = Number.POSITIVE_INFINITY;
@@ -148,6 +152,7 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 
 		this.configuration = this.resolveConfiguration();
 
+		// DROX-BEGIN
 		this._register(layoutService.onDidLayoutMainContainer(dimension => {
 			const next = droxChatFloor(dimension.width);
 			if (next === this.chatFloor) {
@@ -156,6 +161,7 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 			this.chatFloor = next;
 			this._onDidChange.fire(undefined);
 		}));
+		// DROX-END
 
 		this._register(configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(LayoutSettings.ACTIVITY_BAR_LOCATION)) {
@@ -200,6 +206,7 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 		}
 	}
 
+	// DROX-BEGIN
 	override setVisible(visible: boolean): void {
 		const frame = this.element?.parentElement;
 		if (frame && !getWindow(frame).matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -214,6 +221,7 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 		}
 		super.setVisible(visible);
 	}
+	// DROX-END
 
 	override updateStyles(): void {
 		super.updateStyles();
