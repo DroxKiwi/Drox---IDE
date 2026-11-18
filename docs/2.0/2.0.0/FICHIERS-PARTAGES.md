@@ -50,6 +50,8 @@ Le chat de l'IDE, le sélecteur de modèle, l'hôte d'extensions et l'agent Copi
 
 `sash.css` est revenu identique à la base. Le faisceau est dans `droxSash.css`. Les gulpfiles et l'installeur Windows gardent la marque, l'icône et le paquet Linux encadrés. Le registre des variables CSS garde les noms `--drox-*`, `--nexus-*` et trois noms de police `--vscode-*`.
 
+Le helper de facturation partagé est retiré et marqué, sans nouveau module. La liste eslint et le README portent le texte Drox entre ancres.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -96,9 +98,9 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | en cours | `src/vs/workbench/contrib/chat/test/common/model/chatModel.test.ts` | 43 | 0 | 1 |
 | en cours | `src/vs/workbench/browser/parts/auxiliarybar/auxiliaryBarPart.ts` | 39 | 2 | 5 |
 | en cours | `build/win32/code.iss` | 25 | 16 | 13 |
-| | `src/vs/platform/agentHost/common/agentModelPricing.ts` | 0 | 59 | 1 |
-| | `README.md` | 109 | 47 | 30 |
-| | `.eslint-allowed-javascript-files` | 91 | 0 | 1 |
+| en cours | `src/vs/platform/agentHost/common/agentModelPricing.ts` | 0 | 59 | 1 |
+| en cours | `README.md` | 109 | 47 | 30 |
+| en cours | `.eslint-allowed-javascript-files` | 91 | 0 | 1 |
 
 `agentModelPricing.ts` est une suppression, pas un ajout. `.eslint-allowed-javascript-files` est un seul ajout en fin de liste : on le marque, on n’en fait pas un module.
 

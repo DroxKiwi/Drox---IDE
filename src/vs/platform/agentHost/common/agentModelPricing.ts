@@ -83,3 +83,7 @@ export function createAgentModelPricingMeta(pricing: IAgentModelPricingMeta): Re
 	const entries = Object.entries(pricing).filter(([, value]) => value !== undefined);
 	return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
+
+// DROX-BEGIN
+// The shared CAPI billing helper is not used. Copilot keeps its own billing shape.
+// DROX-END

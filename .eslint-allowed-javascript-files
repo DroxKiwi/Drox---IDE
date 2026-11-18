@@ -158,6 +158,7 @@ test/unit/fullJsonStreamReporter.js
 test/unit/node/index.js
 test/unit/reporter.js
 
+# DROX-BEGIN
 # Drox IDE fork — chat webview modules and tooling (pre-existing JS)
 drox-engine/extension-vscode/media/chat.js
 scripts/fix-drox-chat-modules.mjs
@@ -248,3 +249,4 @@ src/vs/workbench/contrib/drox/browser/media/droxChat/stream/tools/exploreCard.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/tools/12-fileChange.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/tools/13-collapsibleTray.js
 src/vs/workbench/contrib/drox/browser/media/droxChat/user-ask/06-userAsk.js
+# DROX-END
