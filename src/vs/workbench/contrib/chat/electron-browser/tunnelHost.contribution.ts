@@ -12,7 +12,9 @@ import { ConfigurationScope, Extensions as ConfigurationExtensions, IConfigurati
 import { ContextKeyExpr, IContextKey, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+// DROX-BEGIN
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+// DROX-END
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IsSessionsWindowContext, RemoteNameContext } from '../../../common/contextkeys.js';
@@ -24,9 +26,11 @@ import { CONFIGURATION_KEY_MICROSOFT_AUTH, SHOW_TUNNEL_HOST_OUTPUT_ID, TunnelHos
 import { TUNNEL_HOST_LOG_ID } from '../../../../platform/agentHost/common/tunnelAgentHost.js';
 import { ToggleRemoteConnectionsActionViewItem } from './toggleRemoteConnectionsActionViewItem.js';
 
+// DROX-BEGIN
 /** When false, hides tunnel-host UI and blocks inbound remote session sharing (Copilot dev tunnels). */
 export const TUNNEL_HOST_ENABLED_SETTING = 'chat.tunnelHost.enabled';
 
+// DROX-END
 export const TUNNEL_HOST_SHARING_KEY = 'tunnelHostSharing';
 export const TUNNEL_HOST_SHARING_CONTEXT = new RawContextKey<boolean>(TUNNEL_HOST_SHARING_KEY, false);
 export const TOGGLE_SHARING_ID = 'sessions.tunnelHost.toggleSharing';
@@ -79,18 +83,22 @@ registerAction2(class ToggleRemoteConnectionsAction extends Action2 {
 					IsSessionsWindowContext.toNegated(),
 					RemoteNameContext.isEqualTo(''),
 					ChatContextKeyExprs.isAgentHostSession,
+					// DROX-BEGIN
 					ContextKeyExpr.equals(`config.${TUNNEL_HOST_ENABLED_SETTING}`, true),
+					// DROX-END
 				)
 			}
 		});
 	}
 
 	async run(accessor: ServicesAccessor): Promise<void> {
+		// DROX-BEGIN
 		const configurationService = accessor.get(IConfigurationService);
 		if (!configurationService.getValue<boolean>(TUNNEL_HOST_ENABLED_SETTING)) {
 			return;
 		}
 
+		// DROX-END
 		const tunnelHostService = accessor.get(ITunnelHostService);
 		const notificationService = accessor.get(INotificationService);
 
@@ -129,6 +137,7 @@ registerWorkbenchContribution2(TunnelHostContribution.ID, TunnelHostContribution
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).registerConfiguration({
 	type: 'object',
 	properties: {
+		// DROX-BEGIN
 		[TUNNEL_HOST_ENABLED_SETTING]: {
 			description: localize('tunnelHost.enabled', "Allow remote access to agent sessions from other machines via a dev tunnel. Requires signing in with GitHub or Microsoft."),
 			type: 'boolean',
@@ -136,6 +145,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 			default: true,
 			tags: ['usesOnlineServices'],
 		},
+		// DROX-END
 		[CONFIGURATION_KEY_MICROSOFT_AUTH]: {
 			description: localize('tunnelHost.enableMicrosoftAuth', "Enable Microsoft account authentication for agent host tunnels. When disabled, only GitHub authentication is used."),
 			type: 'boolean',

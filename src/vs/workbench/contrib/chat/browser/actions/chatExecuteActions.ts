@@ -949,7 +949,9 @@ export class CancelAction extends Action2 {
 					ChatContextKeys.hasActiveRequest,
 					ChatContextKeys.remoteJobCreating.negate(),
 					ChatContextKeys.currentlyEditing.negate(),
+					// DROX-BEGIN
 					ChatContextKeys.lockedCodingAgentId.notEqualsTo('drox'),
+					// DROX-END
 				),
 				order: 4,
 				group: 'navigation',
@@ -968,8 +970,10 @@ export class CancelAction extends Action2 {
 				primary: KeyMod.CtrlCmd | KeyCode.Escape,
 				when: ContextKeyExpr.and(
 					ChatContextKeys.hasActiveRequest,
+					// DROX-BEGIN
 					ChatContextKeys.remoteJobCreating.negate(),
 					ChatContextKeys.lockedCodingAgentId.notEqualsTo('drox'),
+					// DROX-END
 				),
 				win: { primary: KeyMod.Alt | KeyCode.Backspace },
 			}

@@ -456,7 +456,9 @@ registerAction2(class RemoveAction extends Action2 {
 					id: MenuId.ChatMessageTitle,
 					group: 'navigation',
 					order: 2,
+					// DROX-BEGIN
 					when: ContextKeyExpr.and(ContextKeyExpr.equals(`config.${ChatConfiguration.EditRequests}`, 'input').negate(), ContextKeyExpr.equals(`config.${ChatConfiguration.CheckpointsEnabled}`, false), ChatContextKeyExprs.allowsCodingAgentRequestEdit),
+					// DROX-END
 				}
 			]
 		});
@@ -509,7 +511,9 @@ registerAction2(class RestoreCheckpointAction extends Action2 {
 					id: MenuId.ChatMessageCheckpoint,
 					group: 'navigation',
 					order: 2,
+					// DROX-BEGIN
 					when: ContextKeyExpr.and(ChatContextKeys.isRequest, ChatContextKeyExprs.allowsCodingAgentRequestEdit, ChatContextKeys.isFirstRequest.negate())
+					// DROX-END
 				}
 			]
 		});
@@ -556,7 +560,9 @@ registerAction2(class StartOverAction extends Action2 {
 					id: MenuId.ChatMessageCheckpoint,
 					group: 'navigation',
 					order: 2,
+					// DROX-BEGIN
 					when: ContextKeyExpr.and(ChatContextKeys.isRequest, ChatContextKeyExprs.allowsCodingAgentRequestEdit, ChatContextKeys.isFirstRequest)
+					// DROX-END
 				}
 			]
 		});
@@ -590,7 +596,9 @@ registerAction2(class RestoreLastCheckpoint extends Action2 {
 			precondition: ContextKeyExpr.and(
 				ChatContextKeys.inChatSession,
 				ContextKeyExpr.equals(`config.${ChatConfiguration.CheckpointsEnabled}`, true),
+				// DROX-BEGIN
 				ChatContextKeyExprs.allowsCodingAgentRequestEdit
+				// DROX-END
 			)
 		});
 	}

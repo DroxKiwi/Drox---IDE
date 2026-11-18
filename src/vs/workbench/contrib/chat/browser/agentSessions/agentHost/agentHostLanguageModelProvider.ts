@@ -93,9 +93,13 @@ export class AgentHostLanguageModelProvider extends Disposable implements ILangu
 						pricing: multiplierNumeric !== undefined ? `${multiplierNumeric}x` : undefined,
 						multiplierNumeric,
 						inputCost: pricing.inputCost,
+						// DROX-BEGIN
+						// DROX-END
 						cacheCost: pricing.cacheCost,
 						outputCost: pricing.outputCost,
 						longContextInputCost: pricing.longContextInputCost,
+						// DROX-BEGIN
+						// DROX-END
 						longContextCacheCost: pricing.longContextCacheCost,
 						longContextOutputCost: pricing.longContextOutputCost,
 						priceCategory: pricing.priceCategory,

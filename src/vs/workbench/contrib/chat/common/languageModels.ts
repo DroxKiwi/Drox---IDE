@@ -836,18 +836,22 @@ export class LanguageModelsService implements ILanguageModelsService {
 				this._logService.error('The vendor field cannot start or end with whitespace.');
 				continue;
 			}
+			// DROX-BEGIN
 			const configuredDefaultVendor = this._productService.defaultChatAgent?.provider?.default?.id;
 			const defaultChatVendorId = typeof configuredDefaultVendor === 'string' && configuredDefaultVendor.trim() !== ''
 				? configuredDefaultVendor.trim()
 				: COPILOT_VENDOR_ID;
+			// DROX-END
 			const vendor: ILanguageModelProviderDescriptor = {
 				vendor: item.vendor,
 				displayName: item.displayName,
 				configuration: item.configuration,
 				managementCommand: item.managementCommand,
 				when: item.when,
+				// DROX-BEGIN
 				// Copilot Chat registers vendor "github" (see product.defaultChatAgent.provider.default.id), not "copilot".
 				isDefault: item.vendor === defaultChatVendorId || item.vendor === COPILOT_VENDOR_ID
+				// DROX-END
 			};
 			this._vendors.set(item.vendor, vendor);
 			addedVendorIds.push(item.vendor);
@@ -1136,11 +1140,13 @@ export class LanguageModelsService implements ILanguageModelsService {
 
 		this._providers.set(vendor, provider);
 
+		// DROX-BEGIN
 		// Nexus: resolve default chat vendor early so persisted session model ids hit _modelCache before first send.
 		if (this._vendors.get(vendor)?.isDefault) {
 			this._resolveAllLanguageModels(vendor, true);
 		}
 
+		// DROX-END
 		const modelChangeListener = provider.onDidChange(() => {
 			this._resolveAllLanguageModels(vendor, true);
 		});

@@ -259,12 +259,14 @@ export interface IChatProgressMessage {
 	shimmer?: boolean;
 }
 
+// DROX-BEGIN
 /** Drox native run warmup — grille + phrase avant le 1er token/tool. */
 export interface IChatDroxWarmupPart {
 	kind: 'droxWarmup';
 	phrase: string;
 }
 
+// DROX-END
 export interface IChatTask extends IChatTaskDto {
 	deferred: DeferredPromise<string | void>;
 	progress: (IChatWarningMessage | IChatContentReference)[];
@@ -1041,8 +1043,10 @@ export interface IChatSubagentToolInvocationData {
 	agentName?: string;
 	prompt?: string;
 	result?: string;
+	// DROX-BEGIN
 	/** Workspace-relative path to an Explore artefact (kind file under `.drox/subagents/…/`). */
 	resultPath?: string;
+	// DROX-END
 	modelName?: string;
 }
 
@@ -1279,7 +1283,9 @@ export type IChatProgress =
 	| IChatContentInlineReference
 	| IChatCodeCitation
 	| IChatProgressMessage
+	// DROX-BEGIN
 	| IChatDroxWarmupPart
+	// DROX-END
 	| IChatTask
 	| IChatTaskResult
 	| IChatCommandButton

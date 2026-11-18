@@ -457,7 +457,9 @@ export enum AgentInstructionFileType {
 	agentsMd = 'agentsMd',
 	claudeMd = 'claudeMd',
 	copilotInstructionsMd = 'copilotInstructionsMd',
+	// DROX-BEGIN
 	droxMd = 'droxMd',
+	// DROX-END
 }
 
 /**

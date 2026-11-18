@@ -4,7 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { sep } from '../../../../../base/common/path.js';
+// DROX-BEGIN
 import { AsyncIterableProducer, raceCancellationError, raceTimeout } from '../../../../../base/common/async.js';
+// DROX-END
 import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { Emitter, Event } from '../../../../../base/common/event.js';
@@ -913,6 +915,7 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 			return;
 		}
 
+		// DROX-BEGIN
 		// Attach the listener before the re-check so a registration that lands in the
 		// TOCTOU window between `has()` and subscribe cannot be missed (would hang forever).
 		const CONTENT_PROVIDER_WAIT_MS = 5_000;
@@ -933,6 +936,7 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 		} finally {
 			listener?.dispose();
 		}
+		// DROX-END
 	}
 
 	async provideChatInputCompletions(sessionResource: URI, params: IChatInputCompletionsParams, token: CancellationToken): Promise<IChatInputCompletionsResult | undefined> {
@@ -1213,6 +1217,7 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 		return session;
 	}
 
+	// DROX-BEGIN
 	evictCachedChatSession(sessionResource: URI): void {
 		const resolved = this._resolveResource(sessionResource);
 		const sessionData = this._sessions.get(resolved);
@@ -1222,6 +1227,7 @@ export class ChatSessionsService extends Disposable implements IChatSessionsServ
 		sessionData.session.dispose();
 	}
 
+	// DROX-END
 	public hasAnySessionOptions(sessionResource: URI): boolean {
 		const session = this._sessions.get(this._resolveResource(sessionResource));
 		return !!session && !!session.options && session.options.size > 0;

@@ -69,9 +69,11 @@ const chatViewDescriptor: IViewDescriptor = {
 	},
 	ctorDescriptor: new SyncDescriptor(ChatViewPane),
 	when: ContextKeyExpr.and(
+		// DROX-BEGIN
 		// Drox: hide Microsoft Chat panel when product.json has droxMicrosoftAgentsSurfaceEnabled != true
 		// (context key string only — avoid importing drox from chat).
 		ContextKeyExpr.notEquals('droxHideMicrosoftChatSurface', true),
+		// DROX-END
 		ChatContextKeys.accountPolicyGateActive.negate(),
 		ContextKeyExpr.or(
 			ContextKeyExpr.and(

@@ -31,7 +31,9 @@ import { CellUri, ICellEditOperation } from '../../../notebook/common/notebookCo
 import { ChatRequestToolReferenceEntry, IChatRequestVariableEntry, isImplicitVariableEntry, isStringImplicitContextValue, isStringVariableEntry } from '../attachments/chatVariableEntries.js';
 import { migrateLegacyTerminalToolSpecificData } from '../chat.js';
 import { ChatPerfMark, markChat } from '../chatPerf.js';
+// DROX-BEGIN
 import { ChatAgentVoteDirection, ChatRequestQueueKind, ChatResponseClearToPreviousToolInvocationReason, ElicitationState, IChatAgentMarkdownContentWithVulnerability, IChatClearToPreviousToolInvocation, IChatCodeCitation, IChatCommandButton, IChatConfirmation, IChatContentInlineReference, IChatContentReference, IChatDisabledClaudeHooksPart, IChatDroxWarmupPart, IChatEditingSessionAction, IChatElicitationRequest, IChatElicitationRequestSerialized, IChatExternalEdit, IChatExternalToolInvocationUpdate, IChatExtensionsContent, IChatFollowup, IChatHookPart, IChatLocationData, IChatMarkdownContent, IChatMcpServersStarting, IChatMcpServersStartingSerialized, IChatModelReference, IChatMultiDiffData, IChatMultiDiffDataSerialized, IChatNotebookEdit, IChatProgress, IChatPlanReview, IChatProgressMessage, IChatPullRequestContent, IChatQuestionCarousel, IChatResponseCodeblockUriPart, IChatResponseProgressFileTreeData, IChatSendRequestOptions, IChatService, IChatSessionTiming, IChatTask, IChatTaskSerialized, IChatTextEdit, IChatThinkingPart, IChatToolInvocation, IChatToolInvocationSerialized, IChatTreeData, IChatUndoStop, IChatUsage, IChatUsagePromptTokenDetail, IChatUsedContext, IChatWarningMessage, IChatInfoMessage, IChatWorkspaceEdit, ResponseModelState, ToolConfirmKind, isIUsedContext } from '../chatService/chatService.js';
+// DROX-END
 import { ChatAgentLocation, ChatModeKind, ChatPermissionLevel } from '../constants.js';
 import { ChatToolInvocation } from './chatProgressTypes/chatToolInvocation.js';
 import { ChatPlanReviewData } from './chatProgressTypes/chatPlanReviewData.js';
@@ -191,7 +193,9 @@ export type IChatProgressHistoryResponseContent =
 	| IChatMultiDiffDataSerialized
 	| IChatContentInlineReference
 	| IChatProgressMessage
+	// DROX-BEGIN
 	| IChatDroxWarmupPart
+	// DROX-END
 	| IChatCommandButton
 	| IChatWarningMessage
 	| IChatInfoMessage
@@ -601,7 +605,9 @@ class AbstractResponse implements IResponse {
 					continue;
 				case 'treeData':
 				case 'progressMessage':
+				// DROX-BEGIN
 				case 'droxWarmup':
+				// DROX-END
 				case 'codeblockUri':
 				case 'extensions':
 				case 'pullRequest':
@@ -982,17 +988,23 @@ export class Response extends AbstractResponse implements IDisposable {
 			(part): part is ChatToolInvocation => part.kind === 'toolInvocation' && part.toolCallId === progress.toolCallId
 		);
 
+		// DROX-BEGIN
 		// Subagent cards (Cursor Explore / runSubagent) render from contentForModel text parts.
 		const resultContent = externalToolInvocationResultContent(progress);
 
+		// DROX-END
 		if (existingInvocation) {
 			if (progress.toolSpecificData !== undefined) {
 				existingInvocation.toolSpecificData = progress.toolSpecificData;
+				// DROX-BEGIN
 				existingInvocation.notifyToolSpecificDataChanged();
+				// DROX-END
 			}
 			if (progress.isComplete) {
 				existingInvocation.didExecuteTool({
+					// DROX-BEGIN
 					content: resultContent,
+					// DROX-END
 					toolResultMessage: progress.pastTenseMessage,
 					toolResultError: progress.errorMessage,
 					toolResultDetails: progress.resultDetails
@@ -1029,7 +1041,9 @@ export class Response extends AbstractResponse implements IDisposable {
 				invocation.toolSpecificData = progress.toolSpecificData;
 			}
 			invocation.didExecuteTool({
+				// DROX-BEGIN
 				content: resultContent,
+				// DROX-END
 				toolResultMessage: progress.pastTenseMessage,
 				toolResultError: progress.errorMessage,
 				toolResultDetails: progress.resultDetails
@@ -1055,6 +1069,7 @@ export class Response extends AbstractResponse implements IDisposable {
 	}
 }
 
+// DROX-BEGIN
 /** Text parts so ChatSubagentContentPart can render Explore/subagent reports from external updates. */
 function externalToolInvocationResultContent(progress: IChatExternalToolInvocationUpdate): Array<{ kind: 'text'; value: string }> {
 	if (progress.toolSpecificData?.kind === 'subagent') {
@@ -1066,6 +1081,7 @@ function externalToolInvocationResultContent(progress: IChatExternalToolInvocati
 	return [];
 }
 
+// DROX-END
 export interface IChatResponseModelParameters {
 	responseContent: IMarkdownString | ReadonlyArray<SerializedChatResponsePart>;
 	session: ChatModel;

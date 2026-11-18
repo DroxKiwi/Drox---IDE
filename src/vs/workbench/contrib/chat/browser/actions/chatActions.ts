@@ -206,7 +206,9 @@ abstract class OpenChatGlobalAction extends Action2 {
 			f1: true,
 			category: CHAT_CATEGORY,
 			precondition: ContextKeyExpr.and(
+				// DROX-BEGIN
 				ContextKeyExpr.notEquals('droxHideMicrosoftChatSurface', true),
+				// DROX-END
 				ChatContextKeys.Setup.hidden.negate(),
 				ChatContextKeys.Setup.disabledInWorkspace.negate(),
 			)
@@ -607,12 +609,14 @@ export function registerChatActions() {
 			super({
 				id: TOGGLE_CHAT_ACTION_ID,
 				title: localize2('toggleChat', "Toggle Chat"),
+				// DROX-BEGIN
 				category: CHAT_CATEGORY,
 				precondition: ContextKeyExpr.and(
 					ContextKeyExpr.notEquals('droxHideMicrosoftChatSurface', true),
 					ChatContextKeys.Setup.hidden.negate(),
 					ChatContextKeys.Setup.disabledInWorkspace.negate(),
 				),
+				// DROX-END
 			});
 		}
 

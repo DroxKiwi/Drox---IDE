@@ -159,10 +159,12 @@ export class MockChatSessionsService implements IChatSessionsService {
 		return provider.provideChatSessionContent(sessionResource, token);
 	}
 
+	// DROX-BEGIN
 	evictCachedChatSession(_sessionResource: URI): void {
 		// no in-memory contributed-session cache in tests
 	}
 
+	// DROX-END
 	async canResolveChatSession(sessionType: string): Promise<boolean> {
 		return this.contentProviders.has(sessionType);
 	}

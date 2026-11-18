@@ -416,7 +416,9 @@ export class ChatQuotaNotificationContribution extends Disposable implements IWo
 			telemetryId: 'managedPlanBlocked',
 			severity: ChatInputNotificationSeverity.Info,
 			message: localize('quota.blocked.managed.title', "Usage Blocked"),
+			// DROX-BEGIN
 			description: localize('quota.blocked.managed', "Your organization or enterprise has exceeded its AI agent budget. Contact your admin to resume usage."),
+			// DROX-END
 			actions: [],
 			dismissible: true,
 			autoDismissOnMessage: true,

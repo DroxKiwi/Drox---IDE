@@ -182,6 +182,7 @@ export namespace ChatContextKeyExprs {
 	 */
 	export const isAgentHostSession = ChatContextKeys.chatIsAgentHostSession.isEqualTo(true);
 
+	// DROX-BEGIN
 	/**
 	 * Sessions that allow editing / undoing requests while locked to a coding agent.
 	 * Agent Host + Drox (`lockedCodingAgentId === 'drox'`).
@@ -192,6 +193,7 @@ export namespace ChatContextKeyExprs {
 		ChatContextKeys.lockedCodingAgentId.isEqualTo('drox'),
 	);
 
+	// DROX-END
 	/**
 	 * True when an agent session item (e.g. in the sessions viewer) is an agent
 	 * host session (agent-host-* or remote-*). Keyed on {@link ChatContextKeys.agentSessionType}

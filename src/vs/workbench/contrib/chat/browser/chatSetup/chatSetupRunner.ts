@@ -32,7 +32,9 @@ import { ChatSetupController } from './chatSetupController.js';
 import { IChatSetupResult, ChatSetupAnonymous, InstallChatEvent, InstallChatClassification, ChatSetupStrategy, ChatSetupResultValue } from './chatSetup.js';
 import { GitHubPaths, IDefaultAccountService } from '../../../../../platform/defaultAccount/common/defaultAccount.js';
 import { IHostService } from '../../../../services/host/browser/host.js';
+// DROX-BEGIN
 import { shouldSkipDroxSessionsSignIn } from '../../../drox/common/droxAgentsConfiguration.js';
+// DROX-END
 
 const defaultChat = {
 	publicCodeMatchesUrl: product.defaultChatAgent?.publicCodeMatchesUrl ?? '',
@@ -99,12 +101,14 @@ export class ChatSetup {
 		const dialogSkipped = this.skipDialogOnce;
 		this.skipDialogOnce = false;
 
+		// DROX-BEGIN
 		if (shouldSkipDroxSessionsSignIn(product)) {
 			this.context.update({ completed: true });
 			this.chatEntitlementService.markSetupCompleted();
 			return { success: true, dialogSkipped: true };
 		}
 
+		// DROX-END
 		const trusted = await this.workspaceTrustRequestService.requestWorkspaceTrust({
 			message: localize('chatWorkspaceTrust', "AI features are currently only supported in trusted workspaces.")
 		});

@@ -136,8 +136,10 @@ export enum PromptFileSource {
 	ClaudeWorkspaceLocal = 'claude-workspace-local',
 	AgentsWorkspace = 'agents-workspace',
 	AgentsPersonal = 'agents-personal',
+	// DROX-BEGIN
 	DroxWorkspace = 'drox-workspace',
 	DroxPersonal = 'drox-personal',
+	// DROX-END
 	ConfigWorkspace = 'config-workspace',
 	ConfigPersonal = 'config-personal',
 	UserData = 'user-data',
@@ -155,10 +157,12 @@ export function getSourceDescription(source: PromptFileSource): string | undefin
 			return localize('source.agentsWorkspace', "Workspace");
 		case PromptFileSource.AgentsPersonal:
 			return localize('source.agentsPersonal', "Global");
+		// DROX-BEGIN
 		case PromptFileSource.DroxWorkspace:
 			return localize('source.droxWorkspace', "Workspace (Drox)");
 		case PromptFileSource.DroxPersonal:
 			return localize('source.droxPersonal', "Global (Drox)");
+		// DROX-END
 		case PromptFileSource.GitHubWorkspace:
 			return localize('source.githubWorkspace', "Workspace (only used by Copilot agents)");
 		case PromptFileSource.CopilotPersonal:

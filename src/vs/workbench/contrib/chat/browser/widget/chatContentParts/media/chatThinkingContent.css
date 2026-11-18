@@ -216,12 +216,14 @@
 				padding-top: 0px;
 			}
 
+/* DROX-BEGIN */
 			.rendered-markdown,
 			.rendered-markdown p {
 				white-space: pre-wrap;
 				overflow-wrap: anywhere;
 			}
 
+/* DROX-END */
 			[data-code] {
 				background-color: var(--vscode-textPreformat-background);
 				padding: 1px 3px;
@@ -428,7 +430,9 @@
 	}
 
 	&.chat-used-context-collapsed .chat-used-context-list.chat-thinking-collapsible.chat-thinking-streaming {
+/* DROX-BEGIN */
 		max-height: 400px;
+/* DROX-END */
 		overflow: hidden;
 		display: block;
 		margin-left: 0px;

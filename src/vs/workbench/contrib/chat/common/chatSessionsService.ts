@@ -706,9 +706,11 @@ export interface IChatSessionsService {
 	canResolveChatSession(sessionType: string): Promise<boolean>;
 	getOrCreateChatSession(sessionResource: URI, token: CancellationToken): Promise<IChatSession>;
 
+	// DROX-BEGIN
 	/** Evicts an in-memory contributed session so the next load re-calls the content provider. */
 	evictCachedChatSession(sessionResource: URI): void;
 
+	// DROX-END
 	/**
 	 * Compute completion items for an input being composed in the chat
 	 * session identified by `sessionResource`. Delegates to the registered

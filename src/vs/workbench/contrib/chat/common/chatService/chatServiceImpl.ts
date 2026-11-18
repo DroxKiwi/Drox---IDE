@@ -447,8 +447,10 @@ export class ChatService extends Disposable implements IChatService {
 	}
 
 	async removeHistoryEntry(sessionResource: URI): Promise<void> {
+		// DROX-BEGIN
 		const localSessionId = LocalChatSessionUri.parseLocalSessionId(sessionResource);
 		await this._chatSessionStore.deleteSession(localSessionId ?? sessionResource.toString());
+		// DROX-END
 		const model = this._sessionModels.get(sessionResource);
 		if (model) {
 			model.markDeleted();
@@ -877,12 +879,14 @@ export class ChatService extends Disposable implements IChatService {
 			this.telemetryService.publicLog2<ChatPendingRequestChangeEvent, ChatPendingRequestChangeClassification>(ChatPendingRequestChangeEventName, { action: 'notCancelable', source: 'remoteSession', chatSessionId: chatSessionResourceToId(model.sessionResource) });
 			if (lastRequest && model.editingSession) {
 				// wait for timeline to load so that a 'changes' part is added when the response completes
+				// DROX-BEGIN
 				// Soft-bound: unbounded wait was burning the Native Chat 15s Agent→IDE load timeout.
 				const EDITING_SESSION_READY_TIMEOUT_MS = 3_000;
 				await raceTimeout(
 					chatEditingSessionIsReady(model.editingSession),
 					EDITING_SESSION_READY_TIMEOUT_MS,
 				);
+				// DROX-END
 				lastRequest.response?.complete();
 			}
 		}
@@ -1969,6 +1973,8 @@ export class ChatService extends Disposable implements IChatService {
 		}
 
 		model?.acceptResponseProgress(request, progress);
+		// DROX-BEGIN
+		// DROX-END
 	}
 }
 

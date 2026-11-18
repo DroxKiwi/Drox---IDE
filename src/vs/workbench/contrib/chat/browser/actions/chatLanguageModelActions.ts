@@ -19,7 +19,9 @@ import { Codicon } from '../../../../../base/common/codicons.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { ILanguageModelsProviderGroup } from '../../common/languageModelsConfiguration.js';
+// DROX-BEGIN
 import { DroxCopilotSignInHiddenContext } from '../../../drox/common/droxAgentsConfiguration.js';
+// DROX-END
 
 class ManageLanguageModelAuthenticationAction extends Action2 {
 	static readonly ID = 'workbench.action.chat.manageLanguageModelAuthentication';
@@ -33,7 +35,9 @@ class ManageLanguageModelAuthenticationAction extends Action2 {
 			menu: [{
 				id: MenuId.AccountsContext,
 				order: 100,
+				// DROX-BEGIN
 				when: DroxCopilotSignInHiddenContext.negate(),
+				// DROX-END
 			}],
 			f1: true
 		});

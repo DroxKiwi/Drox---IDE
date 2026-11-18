@@ -510,7 +510,9 @@ configurationRegistry.registerConfiguration({
 					type: 'string',
 					enum: [ChatPermissionLevel.Default, ChatPermissionLevel.AutoApprove],
 					enumDescriptions: [
+						// DROX-BEGIN
 						nls.localize('chat.defaultConfiguration.approvals.default', "Default Approvals — uses your configured settings."),
+						// DROX-END
 						nls.localize('chat.defaultConfiguration.approvals.autoApprove', "Bypass Approvals — all tool calls are auto-approved."),
 					],
 					default: ChatPermissionLevel.Default,
@@ -518,12 +520,16 @@ configurationRegistry.registerConfiguration({
 				},
 			},
 			default: { mode: 'interactive', approvals: ChatPermissionLevel.Default },
+			// DROX-BEGIN
 			markdownDescription: nls.localize('chat.defaultConfiguration.settingDescription', "Controls the default configuration for new agent sessions. You can still change the mode and approval behavior per session, and each session remembers what was used."),
+			// DROX-END
 		},
 		[ChatConfiguration.DefaultModel]: {
 			type: 'string',
 			default: '',
+			// DROX-BEGIN
 			markdownDescription: nls.localize('chat.defaultModel.description', "The default model for new chat conversations. Use \"auto\" to let the agent pick a model, a model family name (such as \"opus\" or \"gemini\") to use the latest available model in that family, or a full model id. You can still switch the model within a conversation; each new conversation starts at this model."),
+			// DROX-END
 			policy: {
 				name: 'ChatDefaultModel',
 				category: PolicyCategory.InteractiveSession,
@@ -1767,13 +1773,17 @@ configurationRegistry.registerConfiguration({
 		},
 		[ChatConfiguration.AIDisabled]: {
 			type: 'boolean',
+			// DROX-BEGIN
 			description: nls.localize('chat.disableAIFeatures', "Disable and hide built-in AI features, including chat and inline suggestions."),
+			// DROX-END
 			default: false,
 			scope: ConfigurationScope.WINDOW,
 		},
 		[ChatConfiguration.TitleBarSignInEnabled]: {
 			type: 'boolean',
+			// DROX-BEGIN
 			description: nls.localize('chat.titleBar.signIn.enabled', "Controls whether the Sign In button is shown in the title bar when signed out. When disabled, the Sign In affordance falls back to the status bar."),
+			// DROX-END
 			default: true,
 		},
 		[ChatConfiguration.TitleBarOpenInAgentsWindowEnabled]: {

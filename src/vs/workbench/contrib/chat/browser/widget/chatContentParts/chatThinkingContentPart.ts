@@ -172,7 +172,9 @@ interface ILazyThinkingItem {
 }
 
 type ILazyItem = ILazyToolItem | ILazyThinkingItem;
+// DROX-BEGIN
 const THINKING_SCROLL_MAX_HEIGHT = 400;
+// DROX-END
 
 const TITLE_CACHE_STORAGE_KEY = 'chat.thinkingTitleCache';
 const TITLE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -207,12 +209,14 @@ const toolMessages = [
 	localize('chat.thinking.tool.5', 'Evaluating'),
 ];
 
+// DROX-BEGIN
 function isGenericCopilotThinkingLabel(label: string): boolean {
 	const normalized = label.trim().toLowerCase();
 	return [...defaultThinkingMessages, ...toolMessages, ...terminalMessages]
 		.some(message => message.trim().toLowerCase() === normalized);
 }
 
+// DROX-END
 /** Easter-egg loading messages, used ~1 in {@link FUN_WORKING_MESSAGE_RATE} picks. */
 const funWorkingMessages = [
 	// Generic
@@ -247,10 +251,12 @@ function getCustomThinkingPhrases(configurationService: IConfigurationService): 
 	};
 }
 
+// DROX-BEGIN
 function usesReplaceThinkingPhrases(configurationService: IConfigurationService): boolean {
 	return getCustomThinkingPhrases(configurationService).replaceDefaults;
 }
 
+// DROX-END
 /** Returns an easter-egg message ~1 in {@link FUN_WORKING_MESSAGE_RATE}, else `undefined`. */
 export function maybePickFunWorkingMessage(configurationService: IConfigurationService, random = Math.random): string | undefined {
 	if (getCustomThinkingPhrases(configurationService).replaceDefaults) {
@@ -296,7 +302,9 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 	private currentThinkingValue: string;
 	private currentTitle: string;
 	private defaultTitle = localize('chat.thinking.header', 'Thinking');
+	// DROX-BEGIN
 	private readonly workingTitle: string;
+	// DROX-END
 	private textContainer!: HTMLElement;
 	private readonly _markdownResult = this._register(new MutableDisposable<IRenderedMarkdown>());
 	private wrapper!: HTMLElement;
@@ -392,10 +400,12 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 
 		super(extractedTitle, context, undefined, hoverService, configurationService);
 
+		// DROX-BEGIN
 		this.workingTitle = usesReplaceThinkingPhrases(this.configurationService)
 			? localize('chat.thinking.header.active', 'Thinking')
 			: localize('chat.thinking.header.working', 'Working');
 
+		// DROX-END
 		this.id = content.id;
 		this.content = content;
 		this.allThinkingParts.push(content);
@@ -810,10 +820,12 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 			contentToRender = cleanedContent.slice(2, -2);
 		}
 
+		// DROX-BEGIN
 		// Native thinking streams are plain prose with single `\n` (not MD paragraphs).
 		// Markdown collapses those into one wall of text — turn them into hard breaks.
 		contentToRender = contentToRender.replace(/\n/g, '  \n');
 
+		// DROX-END
 		const target = reuseExisting ? this._markdownResult.value?.element : undefined;
 
 		const rendered = this.chatContentMarkdownRenderer.render(new MarkdownString(contentToRender), {
@@ -1019,6 +1031,7 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 			return;
 		}
 
+		// DROX-BEGIN
 		const label = (() => {
 			const extracted = this.lastExtractedTitle ?? '';
 			if (usesReplaceThinkingPhrases(this.configurationService) && isGenericCopilotThinkingLabel(extracted)) {
@@ -1026,6 +1039,7 @@ export class ChatThinkingContentPart extends ChatCollapsibleContentPart implemen
 			}
 			return extracted;
 		})();
+		// DROX-END
 		if (!this.fixedScrollingMode && !this._isExpanded.get()) {
 			this.setTitle(label);
 		}
@@ -1497,9 +1511,11 @@ ${this.hookCount > 0 ? `EXAMPLES WITH BLOCKED CONTENT (from hooks):
 			? this.appendedItemCount === 1
 				? localize('chat.thinking.finished.withStepsSingular', 'Finished with 1 step')
 				: localize('chat.thinking.finished.withStepsPlural', 'Finished with {0} steps', this.appendedItemCount)
+			// DROX-BEGIN
 			: usesReplaceThinkingPhrases(this.configurationService)
 				? localize('chat.thinking.finished.generic', 'Finished')
 				: localize('chat.thinking.finished', 'Finished Working');
+		// DROX-END
 
 		this.currentTitle = finalLabel;
 		// With lazy rendering, wrapper may not be created yet if content hasn't been expanded

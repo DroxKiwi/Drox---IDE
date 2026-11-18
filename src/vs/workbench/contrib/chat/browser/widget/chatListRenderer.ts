@@ -58,8 +58,10 @@ import { ChatQuestionCarouselData } from '../../common/model/chatProgressTypes/c
 import { localChatSessionType, SessionType } from '../../common/chatSessionsService.js';
 import { getChatSessionType } from '../../common/model/chatUri.js';
 import { getExplicitFileOrImageAttachmentSummary, IChatRequestVariableEntry, isExplicitFileOrImageVariableEntry, isPasteVariableEntry } from '../../common/attachments/chatVariableEntries.js';
+// DROX-BEGIN
 import { isDroxSmartPasteVariableEntry } from '../../../drox/common/droxNativeChatRequestAttachments.js';
 import { ChatDroxWarmupContentPart } from '../../../drox/browser/chat/chatDroxWarmupContentPart.js';
+// DROX-END
 import { IChatChangesSummaryPart, IChatCodeCitations, IChatErrorDetailsPart, IChatReferences, IChatRendererContent, IChatRequestViewModel, IChatResponseViewModel, IChatViewModel, IChatWorkingProgress, isRequestVM, isResponseVM, IChatPendingDividerViewModel, isPendingDividerVM } from '../../common/model/chatViewModel.js';
 import { getNWords } from '../../common/model/chatWordCounter.js';
 import { ChatAgentLocation, ChatConfiguration, ChatModeKind, CollapsedToolsDisplayMode, ThinkingDisplayMode } from '../../common/constants.js';
@@ -94,7 +96,9 @@ import { ChatCollapsibleListContentPart, ChatUsedReferencesListContentPart, Coll
 import { ChatTaskContentPart } from './chatContentParts/chatTaskContentPart.js';
 import { ChatTextEditContentPart } from './chatContentParts/chatTextEditContentPart.js';
 import { ChatThinkingContentPart, getEffectiveThinkingDisplayMode } from './chatContentParts/chatThinkingContentPart.js';
+// DROX-BEGIN
 import { DroxChatSubagentContentPart } from './chatContentParts/droxChatSubagentContentPart.js';
+// DROX-END
 import { ChatTreeContentPart, TreePool } from './chatContentParts/chatTreeContentPart.js';
 import { ChatWorkspaceEditContentPart } from './chatContentParts/chatWorkspaceEditContentPart.js';
 import { ChatExternalEditContentPart } from './chatContentParts/chatExternalEditContentPart.js';
@@ -1232,7 +1236,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			if (lastThinking?.getIsActive() && !lastThinking.isFixedScrollingMode) {
 				return undefined;
 			}
+			// DROX-BEGIN
 			if (lastPart?.kind === 'progressMessage' || lastPart?.kind === 'droxWarmup') {
+				// DROX-END
 				return undefined;
 			}
 			return { kind: 'working', state: workingState };
@@ -1514,6 +1520,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		let content: IChatRendererContent[] = [];
 		const explicitFileOrImageVariables = element.variables.filter(isExplicitFileOrImageVariableEntry);
 		const explicitImageVariables = explicitFileOrImageVariables.filter(variable => variable.kind === 'image');
+		// DROX-BEGIN
 		const explicitFileOrDirectoryVariables = element.variables.filter(variable =>
 			variable.kind === 'file'
 			|| variable.kind === 'directory'
@@ -1525,6 +1532,7 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 			&& !isPasteVariableEntry(variable)
 			&& !isDroxSmartPasteVariableEntry(variable),
 		);
+		// DROX-END
 		if (!element.confirmation) {
 			const markdown = isChatFollowup(element.message) ?
 				element.message.message :
@@ -2181,7 +2189,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		return false;
 	}
 
+	// DROX-BEGIN
 	private getSubagentPart(renderedParts: ReadonlyArray<IChatContentPart> | undefined, subAgentInvocationId?: string): DroxChatSubagentContentPart | undefined {
+		// DROX-END
 		if (!renderedParts || renderedParts.length === 0) {
 			return undefined;
 		}
@@ -2189,7 +2199,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		// Search backwards for the most recent subagent part
 		for (let i = renderedParts.length - 1; i >= 0; i--) {
 			const part = renderedParts[i];
+			// DROX-BEGIN
 			if (part instanceof DroxChatSubagentContentPart) {
+				// DROX-END
 				// If looking for a specific ID, return the part with that ID regardless of active state
 				if (subAgentInvocationId && part.subAgentInvocationId === subAgentInvocationId) {
 					return part;
@@ -2212,13 +2224,17 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 		// Finalize all active subagent parts (there can be multiple parallel subagents)
 		// Skip subagents that still have tools waiting for confirmation
 		for (const part of templateData.renderedParts) {
+			// DROX-BEGIN
 			if (part instanceof DroxChatSubagentContentPart && part.getIsActive() && !part.hasToolsWaitingForConfirmation) {
+				// DROX-END
 				part.markAsInactive();
 			}
 		}
 	}
 
+	// DROX-BEGIN
 	private handleSubagentToolGrouping(toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized, subagentId: string, context: IChatContentPartRenderContext, templateData: IChatListItemTemplate, codeBlockStartIndex: number): DroxChatSubagentContentPart {
+		// DROX-END
 		// Finalize any active thinking part since subagent tools have their own grouping
 		this.finalizeCurrentThinkingPart(context, templateData);
 
@@ -2237,7 +2253,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 
 		// Create a new subagent part - it will extract description/agentName/prompt and watch for completion
 		const subagentPart = this.instantiationService.createInstance(
+			// DROX-BEGIN
 			DroxChatSubagentContentPart,
+			// DROX-END
 			subagentId,
 			toolInvocation,
 			context,
@@ -2262,7 +2280,9 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 	/** Routes subagent confirmations to the input carousel and leaves a placeholder inline. */
 	private maybeRouteSubagentToolToCarousel(
 		toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized,
+		// DROX-BEGIN
 		subagentPart: DroxChatSubagentContentPart,
+		// DROX-END
 		context: IChatContentPartRenderContext,
 		templateData: IChatListItemTemplate,
 		codeBlockStartIndex: number,
@@ -2387,8 +2407,10 @@ export class ChatListItemRenderer extends Disposable implements ITreeRenderer<Ch
 				return this.renderTreeData(content, templateData, context);
 			} else if (content.kind === 'multiDiffData') {
 				return this.renderMultiDiffData(content, templateData, context);
+				// DROX-BEGIN
 			} else if (content.kind === 'droxWarmup') {
 				return this.instantiationService.createInstance(ChatDroxWarmupContentPart, content, context);
+				// DROX-END
 			} else if (content.kind === 'progressMessage') {
 				return this.instantiationService.createInstance(ChatProgressContentPart, content, this.chatContentMarkdownRenderer, context, undefined, undefined, undefined, undefined, content.shimmer);
 			} else if (content.kind === 'working') {

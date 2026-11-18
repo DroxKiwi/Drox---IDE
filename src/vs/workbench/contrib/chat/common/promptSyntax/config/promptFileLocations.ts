@@ -51,6 +51,7 @@ export const VALID_SKILL_NAME_REGEX = /^[a-z0-9-]+$/;
  */
 export const AGENT_MD_FILENAME = 'AGENTS.md';
 
+// DROX-BEGIN
 /** Drox workspace memory / project brief at repository root. */
 export const DROX_MD_FILENAME = 'DROX.md';
 
@@ -63,6 +64,7 @@ export const DROX_CONFIG_FOLDER = '.drox';
 /** Instruction rules folder under {@link DROX_CONFIG_FOLDER}. */
 export const DROX_RULES_SOURCE_FOLDER = '.drox/rules';
 
+// DROX-END
 /**
  * Claude file name.
  */
@@ -113,11 +115,13 @@ export const LEGACY_MODE_DEFAULT_SOURCE_FOLDER = '.github/chatmodes';
  */
 export const AGENTS_SOURCE_FOLDER = '.github/agents';
 
+// DROX-BEGIN
 /**
  * Drox agents folder.
  */
 export const DROX_AGENTS_SOURCE_FOLDER = '.drox/agents';
 
+// DROX-END
 /**
  * Claude agents folder.
  */
@@ -177,11 +181,15 @@ export interface IResolvedPromptSourceFolder {
  * All default skill source folders (both workspace and user home).
  */
 export const DEFAULT_SKILL_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
+	// DROX-BEGIN
 	{ path: '.drox/skills', source: PromptFileSource.DroxWorkspace, storage: PromptsStorage.local },
+	// DROX-END
 	{ path: '.agents/skills', source: PromptFileSource.AgentsWorkspace, storage: PromptsStorage.local },
 	{ path: '.github/skills', source: PromptFileSource.GitHubWorkspace, storage: PromptsStorage.local },
 	{ path: '.claude/skills', source: PromptFileSource.ClaudeWorkspace, storage: PromptsStorage.local },
+	// DROX-BEGIN
 	{ path: '~/.drox/skills', source: PromptFileSource.DroxPersonal, storage: PromptsStorage.user },
+	// DROX-END
 	{ path: '~/.agents/skills', source: PromptFileSource.AgentsPersonal, storage: PromptsStorage.user },
 	{ path: '~/.copilot/skills', source: PromptFileSource.CopilotPersonal, storage: PromptsStorage.user },
 	{ path: '~/.claude/skills', source: PromptFileSource.ClaudePersonal, storage: PromptsStorage.user },
@@ -191,7 +199,9 @@ export const DEFAULT_SKILL_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
  * Default instructions source folders.
  */
 export const DEFAULT_INSTRUCTIONS_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
+	// DROX-BEGIN
 	{ path: DROX_RULES_SOURCE_FOLDER, source: PromptFileSource.DroxWorkspace, storage: PromptsStorage.local },
+	// DROX-END
 	{ path: INSTRUCTIONS_DEFAULT_SOURCE_FOLDER, source: PromptFileSource.GitHubWorkspace, storage: PromptsStorage.local },
 	{ path: CLAUDE_RULES_SOURCE_FOLDER, source: PromptFileSource.ClaudeWorkspace, storage: PromptsStorage.local },
 	{ path: '~/.copilot/instructions', source: PromptFileSource.CopilotPersonal, storage: PromptsStorage.user },
@@ -209,7 +219,9 @@ export const DEFAULT_PROMPT_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
  * Default agent source folders.
  */
 export const DEFAULT_AGENT_SOURCE_FOLDERS: readonly IPromptSourceFolder[] = [
+	// DROX-BEGIN
 	{ path: DROX_AGENTS_SOURCE_FOLDER, source: PromptFileSource.DroxWorkspace, storage: PromptsStorage.local },
+	// DROX-END
 	{ path: CLAUDE_AGENTS_SOURCE_FOLDER, source: PromptFileSource.ClaudeWorkspace, storage: PromptsStorage.local },
 	{ path: COPILOT_USER_AGENTS_SOURCE_FOLDER, source: PromptFileSource.CopilotPersonal, storage: PromptsStorage.user },
 	{ path: '~/' + CLAUDE_AGENTS_SOURCE_FOLDER, source: PromptFileSource.ClaudePersonal, storage: PromptsStorage.user },
@@ -232,10 +244,12 @@ export const DEFAULT_HOOK_FILE_PATHS: readonly IPromptSourceFolder[] = [
  */
 function isInAgentsFolder(fileUri: URI): boolean {
 	const dir = dirname(fileUri).path;
+	// DROX-BEGIN
 	return dir.endsWith('/' + DROX_AGENTS_SOURCE_FOLDER)
 		|| dir.endsWith('/' + AGENTS_SOURCE_FOLDER)
 		|| dir.endsWith('/' + CLAUDE_AGENTS_SOURCE_FOLDER)
 		|| isInCopilotAgentsFolder(fileUri);
+	// DROX-END
 }
 
 /**

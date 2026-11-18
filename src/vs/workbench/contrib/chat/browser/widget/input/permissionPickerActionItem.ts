@@ -107,7 +107,9 @@ function getPermissionLevelMeta(level: ChatPermissionLevel): IPermissionLevelMet
 				id: 'chat.permissions.default',
 				label: localize('permissions.default', "Default Approvals"),
 				shortLabel: localize('permissions.default.label', "Default Approvals"),
+				// DROX-BEGIN
 				detail: localize('permissions.default.subtext', "Uses your configured approval settings"),
+				// DROX-END
 				icon: ThemeIcon.fromId(Codicon.shield.id),
 				description: localize('permissions.default.description', "Use configured approval settings"),
 				elevated: false,

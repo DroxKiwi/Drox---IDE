@@ -8,16 +8,20 @@ import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
 import { Selection } from '../../../../../editor/common/core/selection.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { Action2, MenuId, registerAction2 } from '../../../../../platform/actions/common/actions.js';
+// DROX-BEGIN
 import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';
+// DROX-END
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { KeybindingWeight } from '../../../../../platform/keybinding/common/keybindingsRegistry.js';
 import { CHAT_CATEGORY } from './chatActions.js';
 import { IQuickChatOpenOptions, IQuickChatService } from '../chat.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 
+// DROX-BEGIN
 /** Drox product: hide Microsoft Quick Chat when Chat panel is suppressed. */
 const DROX_MICROSOFT_CHAT_SURFACE_ALLOWED = ContextKeyExpr.notEquals('droxHideMicrosoftChatSurface', true);
 
+// DROX-END
 export const ASK_QUICK_QUESTION_ACTION_ID = 'workbench.action.quickchat.toggle';
 export function registerQuickChatActions() {
 	registerAction2(QuickChatGlobalAction);
@@ -74,7 +78,9 @@ class QuickChatGlobalAction extends Action2 {
 		super({
 			id: ASK_QUICK_QUESTION_ACTION_ID,
 			title: localize2('quickChat', 'Open Quick Chat'),
+			// DROX-BEGIN
 			precondition: ContextKeyExpr.and(DROX_MICROSOFT_CHAT_SURFACE_ALLOWED, ChatContextKeys.enabled),
+			// DROX-END
 			icon: Codicon.chatSparkle,
 			f1: false,
 			category: CHAT_CATEGORY,
@@ -138,7 +144,9 @@ class AskQuickChatAction extends Action2 {
 			id: `workbench.action.openQuickChat`,
 			category: CHAT_CATEGORY,
 			title: localize2('interactiveSession.open', "Open Quick Chat"),
+			// DROX-BEGIN
 			precondition: ContextKeyExpr.and(DROX_MICROSOFT_CHAT_SURFACE_ALLOWED, ChatContextKeys.enabled),
+			// DROX-END
 			f1: true
 		});
 	}
