@@ -87,6 +87,7 @@ export abstract class AbstractChatView extends Disposable implements ISerializab
 		// no-op by default
 	}
 
+	// DROX-BEGIN
 	/**
 	 * Clear the workspace picker selection in this view. The default
 	 * implementation is a no-op; {@link NewChatView} overrides this.
@@ -95,6 +96,7 @@ export abstract class AbstractChatView extends Disposable implements ISerializab
 		// no-op by default
 	}
 
+	// DROX-END
 	/**
 	 * Prefill the input with the given text. The default implementation is
 	 * a no-op; subclasses that host an input widget (e.g. `NewChatView`)

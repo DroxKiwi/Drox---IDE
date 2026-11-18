@@ -47,8 +47,10 @@ export class NewChatWidget extends Disposable {
 	 */
 	private _activeEmptyState: NoAgentHostEmptyState | undefined;
 
+	// DROX-BEGIN
 	private _widgetRoot: HTMLElement | undefined;
 
+	// DROX-END
 	/**
 	 * Whether to render the session type ("harness") picker below the input
 	 * (in the controls) instead of next to the workspace picker. Read once from
@@ -138,10 +140,14 @@ export class NewChatWidget extends Disposable {
 	// --- Rendering ---
 
 	render(parent: HTMLElement): void {
+		// DROX-BEGIN
 		const element = this._widgetRoot = dom.append(parent, dom.$('.sessions-chat-widget'));
+		// DROX-END
 		const chatWidgetContainer = dom.append(element, dom.$('.new-chat-widget-container'));
+		// DROX-BEGIN
 		const sizeObserver = this._register(new dom.DisposableResizeObserver('NewChatWidget.size', () => this._layoutWhenSized()));
 		sizeObserver.observe(element);
+		// DROX-END
 		const chatWidgetContent = dom.append(chatWidgetContainer, dom.$('.new-chat-widget-content'));
 
 		this._aquariumToggle = this._register(this.aquariumService.mountToggle(element));
@@ -430,6 +436,7 @@ export class NewChatWidget extends Disposable {
 		this._newChatInput.saveState();
 	}
 
+	// DROX-BEGIN
 	layout(height: number, width: number): void {
 		this._newChatInput.layout(height, width);
 	}
@@ -444,6 +451,7 @@ export class NewChatWidget extends Disposable {
 		if (width > 0 && height > 0) {
 			this._newChatInput.layout(height, width);
 		}
+		// DROX-END
 	}
 
 	focusInput(): void {
@@ -502,11 +510,13 @@ export class NewChatWidget extends Disposable {
 	selectWorkspace(folderUri: URI, providerId?: string): void {
 		this._workspacePicker.setSelectedWorkspace(folderUri, { providerId });
 	}
+	// DROX-BEGIN
 
 	clearWorkspaceSelection(): void {
 		this._pendingPreferredUpgrade.clear();
 		this._workspacePicker.clearSelection();
 	}
+	// DROX-END
 }
 
 // #endregion

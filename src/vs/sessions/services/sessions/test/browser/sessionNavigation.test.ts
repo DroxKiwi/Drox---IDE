@@ -145,7 +145,9 @@ class MockSessionStore implements ISessionsManagementService {
 	getSessions(): ISession[] { return [...this._sessions.values()]; }
 
 	getRecentlyOpenedSessions(): IRecentlyOpenedSessions { return { recent: [...this._sessions.values()], other: [] }; }
+	// DROX-BEGIN
 	reloadRecencyFromStorage(): void { }
+	// DROX-END
 
 	getSession(resource: URI): ISession | undefined {
 		return this._sessions.get(resource.toString());
@@ -165,7 +167,9 @@ class MockSessionStore implements ISessionsManagementService {
 	getSessionTypesForFolder(_folderUri: URI): IProviderSessionType[] { return []; }
 	resolveWorkspace(_folderUri: URI): { providerId: string; workspace: ISessionWorkspace } | undefined { return undefined; }
 
+	// DROX-BEGIN
 	async openSession(sessionResource: URI): Promise<boolean> {
+		// DROX-END
 		this._openedResource = sessionResource;
 		this._openedChatResource = undefined;
 		this._openedNewSession = false;
@@ -173,7 +177,9 @@ class MockSessionStore implements ISessionsManagementService {
 		if (session) {
 			this.setActiveSession(session);
 		}
+		// DROX-BEGIN
 		return true;
+		// DROX-END
 	}
 
 	openNewSession(): ISession | undefined {

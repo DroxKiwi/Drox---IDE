@@ -15,7 +15,9 @@ import { ActiveEditorContext, EditorPartModalContext, IsAuxiliaryWindowContext, 
 import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
 import { EditorMaximizedContext } from '../../../common/contextkeys.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
+// DROX-BEGIN
 import { ConfigurationTarget, IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+// DROX-END
 import { IEditorGroupsService } from '../../../../workbench/services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../../workbench/services/editor/common/editorService.js';
 import { IListService } from '../../../../platform/list/browser/listService.js';
@@ -25,7 +27,9 @@ import { MultiDiffEditorInput } from '../../../../workbench/contrib/multiDiffEdi
 import { CHANGES_VIEW_ID } from '../../changes/common/changes.js';
 import { ChangesViewPane } from '../../changes/browser/changesView.js';
 import { prepareMoveCopyEditors } from '../../../../workbench/browser/parts/editor/editor.js';
+// DROX-BEGIN
 import './sessionEditorNewTabActions.js';
+// DROX-END
 import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
 import { MOVE_MODAL_EDITOR_TO_MAIN_COMMAND_ID } from '../../../../workbench/browser/parts/editor/editorCommands.js';
 import { TERMINAL_VIEW_ID } from '../../../../workbench/contrib/terminal/common/terminal.js';
@@ -177,8 +181,10 @@ class OpenEditorInModalEditorAction extends Action2 {
 
 		const isMaximized = layoutService.isEditorMaximized();
 
+		// DROX-BEGIN
 		// MEMORY only: never persist USER `useModal: all` (leaks into the main IDE window).
 		await configurationService.updateValue('workbench.editor.useModal', 'all', ConfigurationTarget.MEMORY);
+		// DROX-END
 
 		// Move all editors from the active group to the modal editor
 		const activeGroup = editorGroupsService.mainPart.activeGroup;
@@ -248,8 +254,10 @@ class OpenModalEditorInEditorAction extends Action2 {
 
 		const isMaximized = activeEditorPart.maximized;
 
+		// DROX-BEGIN
 		// Clear Agents modal-all without writing USER (IDE must keep normal tabs).
 		await configurationService.updateValue('workbench.editor.useModal', 'some', ConfigurationTarget.MEMORY);
+		// DROX-END
 
 		// Show the main editor part
 		layoutService.setPartHidden(false, Parts.EDITOR_PART);

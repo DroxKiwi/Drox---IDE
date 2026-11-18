@@ -144,8 +144,10 @@
 
 	.session-main {
 		padding-left: 6px;
+/* DROX-BEGIN */
 		overflow: visible;
 		min-height: 0;
+/* DROX-END */
 	}
 
 	.session-title-row,

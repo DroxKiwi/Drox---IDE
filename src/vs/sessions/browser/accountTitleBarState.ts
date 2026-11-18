@@ -58,7 +58,9 @@ export interface IAccountTitleBarStateContext {
 	readonly isAccountLoading: boolean;
 	readonly accountName?: string;
 	readonly accountProviderLabel?: string;
+	// DROX-BEGIN
 	readonly chatAgentDisplayName?: string;
+	// DROX-END
 	readonly entitlement: ChatEntitlement;
 	readonly sentiment: IChatSentiment;
 	readonly quotas: {
@@ -106,7 +108,9 @@ export function getAccountTitleBarState(context: IAccountTitleBarStateContext): 
 		};
 	}
 
+	// DROX-BEGIN
 	const copilotState = getCopilotPresentation(context.entitlement, context.sentiment, context.quotas, getChatAgentDisplayName(context));
+	// DROX-END
 	if (copilotState) {
 		return copilotState;
 	}
@@ -133,15 +137,19 @@ export function getAccountTitleBarState(context: IAccountTitleBarStateContext): 
 	};
 }
 
+// DROX-BEGIN
 function getChatAgentDisplayName(context: IAccountTitleBarStateContext): string {
 	return context.chatAgentDisplayName?.trim() || 'Drox';
 }
 
+// DROX-END
 function getCopilotPresentation(
 	entitlement: ChatEntitlement,
 	sentiment: IChatSentiment,
+	// DROX-BEGIN
 	quotas: { readonly chat?: IQuotaSnapshot; readonly completions?: IQuotaSnapshot },
 	agentName: string,
+	// DROX-END
 ): IAccountTitleBarState | undefined {
 	if (sentiment.hidden) {
 		return undefined;
@@ -162,10 +170,14 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: 'warning',
 			icon: Codicon.account,
+			// DROX-BEGIN
 			label: localize('agentsUnavailable', "{0} Unavailable", agentName),
+			// DROX-END
 			ariaLabel: sentiment.untrusted
+				// DROX-BEGIN
 				? localize('agentsUnavailableUntrustedAria', "{0} is unavailable in untrusted workspaces", agentName)
 				: localize('agentsUnavailableDisabledAria', "{0} is disabled", agentName),
+			// DROX-END
 		};
 	}
 
@@ -176,9 +188,13 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: 'warning',
 			icon: Codicon.account,
+			// DROX-BEGIN
 			label: localize('agentsQuotaReached', "Quota Reached"),
+			// DROX-END
 			dotBadge: 'error',
+			// DROX-BEGIN
 			ariaLabel: getQuotaReachedAriaLabel(chatQuotaExceeded, completionsQuotaExceeded, agentName),
+			// DROX-END
 		};
 	}
 
@@ -188,10 +204,14 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: remainingPercent <= 10 ? 'warning' : 'accent',
 			icon: Codicon.account,
+			// DROX-BEGIN
 			label: localize('agentsTokensRemaining', "Tokens Remaining"),
+			// DROX-END
 			badge: `${remainingPercent}%`,
 			dotBadge: remainingPercent <= 10 ? 'error' : 'warning',
+			// DROX-BEGIN
 			ariaLabel: localize('agentsTokensRemainingAria', "{0}% {1} tokens remaining", remainingPercent, agentName),
+			// DROX-END
 		};
 	}
 
@@ -213,14 +233,22 @@ function getLowestPositivePercent(...quotas: Array<IQuotaSnapshot | undefined>):
 	return lowest;
 }
 
+// DROX-BEGIN
 function getQuotaReachedAriaLabel(chatQuotaExceeded: boolean, completionsQuotaExceeded: boolean, agentName: string): string {
+	// DROX-END
 	if (chatQuotaExceeded && completionsQuotaExceeded) {
+		// DROX-BEGIN
 		return localize('agentsAllQuotaReachedAria', "{0} chat and inline suggestion quota reached", agentName);
+		// DROX-END
 	}
 
 	if (chatQuotaExceeded) {
+		// DROX-BEGIN
 		return localize('agentsChatQuotaReachedAria', "{0} chat quota reached", agentName);
+		// DROX-END
 	}
 
+	// DROX-BEGIN
 	return localize('agentsCompletionsQuotaReachedAria', "{0} inline suggestion quota reached", agentName);
+	// DROX-END
 }

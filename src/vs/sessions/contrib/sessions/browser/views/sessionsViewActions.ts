@@ -451,7 +451,9 @@ registerAction2(class NewSessionForWorkspaceAction extends Action2 {
 		const sessionsPartService = accessor.get(ISessionsPartService);
 		const commandService = accessor.get(ICommandService);
 
+		// DROX-BEGIN
 		sessionsService.openNewSession({ resetComposer: true });
+		// DROX-END
 
 		const session = context.sessions[0];
 		const workspace = session.workspace.get();

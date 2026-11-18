@@ -11,16 +11,20 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { autorun, derivedOpts, IObservable } from '../../../../base/common/observable.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { IActionViewItemService } from '../../../../platform/actions/browser/actionViewItemService.js';
+// DROX-BEGIN
 import { Action2, MenuItemAction, MenuRegistry, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
+// DROX-END
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
 import { IEditorService } from '../../../../workbench/services/editor/common/editorService.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
 import { Menus } from '../../../browser/menus.js';
 import { SessionHeaderMetaActionViewItem } from '../../../browser/parts/sessionHeaderMetaActionViewItem.js';
+// DROX-BEGIN
 import { SessionHasChangesContext, SessionProviderIdContext } from '../../../common/contextkeys.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+// DROX-END
 import { ISessionContext } from '../../../services/sessions/browser/sessionContext.js';
 import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
 import { IActiveSession } from '../../../services/sessions/common/sessionsManagement.js';
@@ -46,10 +50,12 @@ class ViewAllChangesAction extends Action2 {
 				id: Menus.SessionHeaderMeta,
 				group: 'navigation',
 				order: 0,
+				// DROX-BEGIN
 				when: ContextKeyExpr.and(
 					SessionHasChangesContext,
 					SessionProviderIdContext.notEqualsTo(DROX_SESSIONS_PROVIDER_ID),
 				),
+				// DROX-END
 			},
 		});
 	}
@@ -84,6 +90,7 @@ class ViewAllChangesAction extends Action2 {
 }
 registerAction2(ViewAllChangesAction);
 
+// DROX-BEGIN
 MenuRegistry.appendMenuItem(Menus.SessionComposerQuickActions, {
 	command: { id: ViewAllChangesAction.ID, title: localize2('agentSessions.changes', 'Changes') },
 	group: 'navigation',
@@ -94,6 +101,7 @@ MenuRegistry.appendMenuItem(Menus.SessionComposerQuickActions, {
 	),
 });
 
+// DROX-END
 // --- View All Changes action view item (session header diff stats)
 
 interface IDiffStats {
@@ -185,12 +193,14 @@ class ViewAllChangesActionViewItemContribution extends Disposable implements IWo
 			}
 			return instantiationService.createInstance(ViewAllChangesActionViewItem, action, options);
 		}, onDidRegister.event));
+		// DROX-BEGIN
 		this._register(actionViewItemService.register(Menus.SessionComposerQuickActions, ViewAllChangesAction.ID, (action, options, instantiationService) => {
 			if (!(action instanceof MenuItemAction)) {
 				return undefined;
 			}
 			return instantiationService.createInstance(ViewAllChangesActionViewItem, action, options);
 		}, onDidRegister.event));
+		// DROX-END
 		onDidRegister.fire();
 	}
 }

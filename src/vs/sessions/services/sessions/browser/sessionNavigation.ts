@@ -23,7 +23,9 @@ function entryKey(sessionResource: URI, chatResource: URI | undefined): string {
  * depending on the core view service.
  */
 export interface ISessionOpener {
+	// DROX-BEGIN
 	openSession(sessionResource: URI, options?: { preserveFocus?: boolean }): Promise<boolean>;
+	// DROX-END
 	openChat(session: ISession, chatResource: URI): Promise<void>;
 }
 

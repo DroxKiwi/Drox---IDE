@@ -15,8 +15,10 @@ import { IAgentHostSessionsProvider, isAgentHostProvider } from '../../../../com
 import { ISessionsProvider } from '../../../../services/sessions/common/sessionsProvider.js';
 import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
 import { IActiveSession } from '../../../../services/sessions/common/sessionsManagement.js';
+// DROX-BEGIN
 import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { getDefaultChatAgentDisplayName } from '../../../../../workbench/contrib/drox/common/droxChatAgentBranding.js';
+// DROX-END
 
 const REQUIRED_AUTO_APPROVE_VALUE = 'default';
 const REQUIRED_MODE_VALUE = 'interactive';
@@ -79,15 +81,21 @@ export class AgentHostPermissionPickerDelegate extends Disposable implements IPe
 	/** Agent-host sessions seed their default approval level from this setting. */
 	readonly defaultSettingKey = ChatConfiguration.DefaultConfiguration;
 
+	// DROX-BEGIN
 	private readonly _agentDisplayName: string;
 
+	// DROX-END
 	constructor(
 		private readonly _session: IObservable<IActiveSession | undefined>,
 		@ISessionsProvidersService private readonly _sessionsProvidersService: ISessionsProvidersService,
+		// DROX-BEGIN
 		@IProductService productService: IProductService,
+		// DROX-END
 	) {
 		super();
+		// DROX-BEGIN
 		this._agentDisplayName = getDefaultChatAgentDisplayName(productService);
+		// DROX-END
 
 		this._watchProviders(this._sessionsProvidersService.getProviders());
 		this._register(this._sessionsProvidersService.onDidChangeProviders(e => {
@@ -123,11 +131,17 @@ export class AgentHostPermissionPickerDelegate extends Disposable implements IPe
 	getPermissionLevelHover(level: ChatPermissionLevel, _meta: IPermissionLevelMeta): string {
 		switch (level) {
 			case ChatPermissionLevel.Default:
+				// DROX-BEGIN
 				return localize('agentHostPermissionPicker.defaultApprovalsHover', "{0} asks before running tools unless your configured settings allow the tool.", this._agentDisplayName);
+			// DROX-END
 			case ChatPermissionLevel.AutoApprove:
+				// DROX-BEGIN
 				return localize('agentHostPermissionPicker.autoApproveHover', "{0} runs all tools without asking for approval.", this._agentDisplayName);
+			// DROX-END
 			case ChatPermissionLevel.Autopilot:
+				// DROX-BEGIN
 				return localize('agentHostPermissionPicker.autopilotApprovalsHover', "{0} runs tools without asking for approval and continues until the task is done.", this._agentDisplayName);
+			// DROX-END
 		}
 	}
 

@@ -9,9 +9,13 @@ import { Disposable } from '../../../../base/common/lifecycle.js';
 import { ThemeIcon, themeColorFromId } from '../../../../base/common/themables.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
+// DROX-BEGIN
 import { IProductService } from '../../../../platform/product/common/productService.js';
+// DROX-END
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
+// DROX-BEGIN
 import { isDroxAgentsProduct } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+// DROX-END
 import { ISession, SessionStatus } from '../common/session.js';
 import { ISessionsManagementService } from '../common/sessionsManagement.js';
 import { ISessionsService } from './sessionsService.js';
@@ -127,7 +131,9 @@ export class SessionsListModelService extends Disposable implements ISessionsLis
 		@IStorageService private readonly storageService: IStorageService,
 		@ISessionsManagementService private readonly sessionsManagementService: ISessionsManagementService,
 		@ISessionsService private readonly sessionsService: ISessionsService,
+		// DROX-BEGIN
 		@IProductService private readonly productService: IProductService,
+		// DROX-END
 	) {
 		super();
 
@@ -273,12 +279,16 @@ export class SessionsListModelService extends Disposable implements ISessionsLis
 	// -- Status icon --
 
 	getStatusIcon(status: SessionStatus, isRead: boolean, isArchived: boolean, completedStateIcon?: ThemeIcon): ThemeIcon {
+		// DROX-BEGIN
 		const statusAccent = isDroxAgentsProduct(this.productService)
 			? themeColorFromId('drox.agentsStatusAccent')
 			: themeColorFromId('textLink.foreground');
+		// DROX-END
 		switch (status) {
 			case SessionStatus.InProgress:
+				// DROX-BEGIN
 				return { ...Codicon.sessionInProgress, color: statusAccent };
+			// DROX-END
 			case SessionStatus.NeedsInput:
 				return { ...Codicon.circleFilled, color: themeColorFromId('list.warningForeground') };
 			case SessionStatus.Error:
@@ -291,7 +301,9 @@ export class SessionsListModelService extends Disposable implements ISessionsLis
 					return completedStateIcon;
 				}
 				if (!isRead) {
+					// DROX-BEGIN
 					return { ...Codicon.circleFilled, color: statusAccent };
+					// DROX-END
 				}
 				return { ...Codicon.circleSmallFilled, color: themeColorFromId('agentSessionReadIndicator.foreground') };
 		}

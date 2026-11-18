@@ -27,11 +27,13 @@ import { SideBarVisibleContext } from '../../../../workbench/common/contextkeys.
 import { Menus } from '../../menus.js';
 import { ChatEntitlement, ChatEntitlementService, IChatEntitlementService } from '../../../../workbench/services/chat/common/chatEntitlementService.js';
 import { getAccountTitleBarState, getAccountProfileImageUrl, getAccountTitleBarBadgeKey, resolveAccountInfo } from '../../accountTitleBarState.js';
+// DROX-BEGIN
 // eslint-disable-next-line local/code-import-patterns -- Drox branding in sessions mobile title bar
 import { getDefaultChatAgentDisplayName } from '../../../../workbench/contrib/drox/common/droxChatAgentBranding.js';
 // eslint-disable-next-line local/code-import-patterns -- Drox: hide Copilot account affordances
 import { shouldSkipDroxSessionsSignIn } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
+// DROX-END
 import { IChatDashboardService } from '../../chatDashboardService.js';
 import { MOBILE_OPEN_CHANGES_VIEW_COMMAND_ID } from './contributions/mobileChangesView.js';
 
@@ -114,7 +116,9 @@ export class MobileTitlebarPart extends Disposable {
 		@IMenuService private readonly menuService: IMenuService,
 		@IChatDashboardService private readonly chatDashboardService: IChatDashboardService,
 		@ICommandService private readonly commandService: ICommandService,
+		// DROX-BEGIN
 		@IProductService private readonly productService: IProductService,
+		// DROX-END
 	) {
 		super();
 
@@ -265,11 +269,15 @@ export class MobileTitlebarPart extends Disposable {
 			const hasActions = toolbar.getItemsLength() > 0;
 			this.element.classList.toggle('show-actions', isNewChat && hasActions);
 
+			// DROX-BEGIN
 			// Right slot: swap between [+] (in-chat) and [account] (welcome).
 			// Drox nominal: hide Copilot/GitHub account button.
 			const hideAccount = shouldSkipDroxSessionsSignIn(this.productService);
+			// DROX-END
 			newSessionButton.style.display = isNewChat ? 'none' : '';
+			// DROX-BEGIN
 			this.accountButton.style.display = (!hideAccount && isNewChat) ? '' : 'none';
+			// DROX-END
 
 			// Changes pill follows the in-chat state — hidden on welcome.
 			isNewChatRef.value = isNewChat;
@@ -348,7 +356,9 @@ export class MobileTitlebarPart extends Disposable {
 			isAccountLoading: this.isAccountLoading,
 			accountName: this.accountName,
 			accountProviderLabel: this.accountProviderLabel,
+			// DROX-BEGIN
 			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
+			// DROX-END
 			entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,
@@ -435,7 +445,9 @@ export class MobileTitlebarPart extends Disposable {
 			isAccountLoading: this.isAccountLoading,
 			accountName: this.accountName,
 			accountProviderLabel: this.accountProviderLabel,
+			// DROX-BEGIN
 			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
+			// DROX-END
 			entitlement: this.chatEntitlementService.entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,

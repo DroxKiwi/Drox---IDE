@@ -10,7 +10,9 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
 import { isIMenuItem, MenuId, MenuRegistry } from '../../../../../platform/actions/common/actions.js';
 import type { ContextKeyExpression, ContextKeyValue } from '../../../../../platform/contextkey/common/contextkey.js';
 import { ChatContextKeys } from '../../../../../workbench/contrib/chat/common/actions/chatContextKeys.js';
+// DROX-BEGIN
 import { TUNNEL_HOST_ENABLED_SETTING } from '../../../../../workbench/contrib/chat/electron-browser/tunnelHost.contribution.js';
+// DROX-END
 import { IsAuxiliaryWindowContext, IsSessionsWindowContext, RemoteNameContext } from '../../../../../workbench/common/contextkeys.js';
 import { Menus } from '../../../../browser/menus.js';
 
@@ -56,19 +58,25 @@ suite('Sessions - Tunnel Host Contribution', () => {
 			[ChatContextKeys.chatIsAgentHostSession.key]: true,
 			[IsAuxiliaryWindowContext.key]: false,
 			[RemoteNameContext.key]: '',
+			// DROX-BEGIN
 			[`config.${TUNNEL_HOST_ENABLED_SETTING}`]: true,
+			// DROX-END
 		};
 
 		assert.deepStrictEqual({
 			agentsTitlebar: evalWhen(titlebarToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: true }),
+			// DROX-BEGIN
 			agentsTitlebarDisabled: evalWhen(titlebarToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: true, [`config.${TUNNEL_HOST_ENABLED_SETTING}`]: false }),
+			// DROX-END
 			editorTitlebar: evalWhen(titlebarToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: false }),
 			agentsChatInput: evalWhen(chatInputToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: true }),
 			editorChatInput: evalWhen(chatInputToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: false }),
 			remoteEditorChatInput: evalWhen(chatInputToggle.when, { ...agentHostChat, [IsSessionsWindowContext.key]: false, [RemoteNameContext.key]: 'ssh-remote' }),
 		}, {
 			agentsTitlebar: true,
+			// DROX-BEGIN
 			agentsTitlebarDisabled: false,
+			// DROX-END
 			editorTitlebar: false,
 			agentsChatInput: false,
 			editorChatInput: true,

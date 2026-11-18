@@ -203,6 +203,7 @@
 	color: var(--vscode-button-secondaryForeground);
 }
 
+/* DROX-BEGIN */
 .drox-changes-inline-host {
 	overflow-x: hidden;
 	overflow-y: auto;
@@ -222,6 +223,7 @@
 .drox-changes-inline-host .drox-changes-inline-files {
 	min-width: 0;
 	max-width: 100%;
+/* DROX-END */
 }
 
 /* Make the vertical scrollbar overlay on top of content instead of shifting it */

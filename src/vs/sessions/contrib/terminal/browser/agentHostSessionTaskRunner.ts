@@ -10,12 +10,16 @@ import { IDisposable, toDisposable } from '../../../../base/common/lifecycle.js'
 import { URI } from '../../../../base/common/uri.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { AGENT_HOST_SCHEME, fromAgentHostUri } from '../../../../platform/agentHost/common/agentHostUri.js';
+// DROX-BEGIN
 import { TerminalExitReason, TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
+// DROX-END
 import { IAgentHostTerminalService } from '../../../../workbench/contrib/terminal/browser/agentHostTerminalService.js';
+// DROX-BEGIN
 import { ITerminalEditorService, ITerminalService } from '../../../../workbench/contrib/terminal/browser/terminal.js';
 import { ACTIVE_GROUP } from '../../../../workbench/services/editor/common/editorService.js';
 import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
 import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
+// DROX-END
 import { isAgentHostProvider } from '../../../common/agentHostSessionsProvider.js';
 import { ISessionTaskRunner } from '../../chat/browser/sessionTaskRunner.js';
 import { osToTaskTargetOS, resolveTaskCommand } from '../../chat/browser/taskCommand.js';
@@ -51,8 +55,10 @@ export class AgentHostSessionTaskRunner implements ISessionTaskRunner {
 		@ISessionsTasksService private readonly _sessionsTasksService: ISessionsTasksService,
 		@IConfigurationResolverService private readonly _configurationResolverService: IConfigurationResolverService,
 		@ITerminalService private readonly _terminalService: ITerminalService,
+		// DROX-BEGIN
 		@ITerminalEditorService private readonly _terminalEditorService: ITerminalEditorService,
 		@IAgentWorkbenchLayoutService private readonly _layoutService: IAgentWorkbenchLayoutService,
+		// DROX-END
 		@ILogService private readonly _logService: ILogService,
 	) { }
 
@@ -95,11 +101,13 @@ export class AgentHostSessionTaskRunner implements ISessionTaskRunner {
 		}
 
 		this._terminalService.setActiveInstance(instance);
+		// DROX-BEGIN
 		if (instance.target !== TerminalLocation.Editor) {
 			this._terminalService.moveToEditor(instance);
 		}
 		await this._terminalEditorService.openEditor(instance, { viewColumn: ACTIVE_GROUP });
 		this._layoutService.setPartHidden(false, Parts.EDITOR_PART);
+		// DROX-END
 		await instance.sendText(command, /*shouldExecute*/ true);
 
 		return toDisposable(() => {

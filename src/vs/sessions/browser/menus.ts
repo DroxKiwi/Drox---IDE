@@ -37,6 +37,8 @@ export const Menus = {
 	SessionWorkspaceManage: new MenuId('Sessions.SessionWorkspaceManage'),
 	SessionBarToolbar: new MenuId('SessionsSessionBarToolbar'),
 	SessionHeaderMeta: new MenuId('SessionsSessionHeaderMeta'),
+	// DROX-BEGIN
 	SessionComposerQuickActions: new MenuId('SessionsSessionComposerQuickActions'),
+	// DROX-END
 	SessionHeaderContext: MenuId.SessionHeaderContext,
 } as const;

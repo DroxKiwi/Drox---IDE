@@ -9,9 +9,11 @@ import { localize2 } from '../../../../nls.js';
 import { BaseActionViewItem } from '../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+// DROX-BEGIN
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { syncDroxArchitectModelFromChatPicker } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatInputIntegration.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
+// DROX-END
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
@@ -113,7 +115,9 @@ export class ModelPicker extends Disposable {
 		@IStorageService private readonly _storageService: IStorageService,
 		@ITelemetryService private readonly _telemetryService: ITelemetryService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
+		// DROX-BEGIN
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
+		// DROX-END
 		@INewChatModelPickerService private readonly _newChatModelPickerService: INewChatModelPickerService,
 	) {
 		super();
@@ -125,14 +129,18 @@ export class ModelPicker extends Disposable {
 				this._currentModel.set(model, undefined);
 				const session = this._session.get();
 				if (session) {
+					// DROX-BEGIN
 					const isDrox = session.providerId === DROX_SESSIONS_PROVIDER_ID;
 					if (!this._settingModelInternally && !isDrox) {
 						this._storageService.store(modelPickerStorageKey(session.providerId, session.sessionType), model.identifier, StorageScope.PROFILE, StorageTarget.MACHINE);
 					}
+					// DROX-END
 					this._sessionsProvidersService.getProvider(session.providerId)?.setModel(session.sessionId, model.identifier);
+					// DROX-BEGIN
 					if (!this._settingModelInternally && isDrox) {
 						syncDroxArchitectModelFromChatPicker(this._configurationService, this._workspaceContextService, model.identifier);
 					}
+					// DROX-END
 				}
 				if (!this._settingModelInternally) {
 					reportNewChatPickerClosed(this._telemetryService, {
@@ -222,9 +230,11 @@ export class ModelPicker extends Disposable {
 		}
 
 		const current = this._currentModel.get();
+		// DROX-BEGIN
 		const provider = session ? this._sessionsProvidersService.getProvider(session.providerId) : undefined;
 		const preferredId = provider?.getPreferredModelId?.(session?.sessionId ?? '');
 		const preferred = preferredId ? models.find(m => m.identifier === preferredId) : undefined;
+		// DROX-END
 		// Key the "already seeded this chat" check on the active chat resource, not
 		// the sessionId: the untitled session is reused across "new chat" actions
 		// (back button, new session) with a stable sessionId, while each new chat
@@ -235,12 +245,14 @@ export class ModelPicker extends Disposable {
 		const isNewSession = session?.status.get() === SessionStatus.Untitled;
 		this._settingModelInternally = true;
 		try {
+			// DROX-BEGIN
 			if (preferred && current?.identifier !== preferred.identifier) {
 				this._delegate.setModel(preferred);
 				this._lastPushedChatKey = chatKey;
 				return;
 			}
 
+			// DROX-END
 			if (session && !isNewSession) {
 				// Missing session model ids are ambiguous for existing sessions:
 				// they can be restore races, or models that were removed. Only
@@ -289,6 +301,7 @@ export class ModelPicker extends Disposable {
 	}
 
 	private _getFallbackModel(session: ISession | undefined, models: readonly ILanguageModelChatMetadataAndIdentifier[]): ILanguageModelChatMetadataAndIdentifier {
+		// DROX-BEGIN
 		const provider = session ? this._sessionsProvidersService.getProvider(session.providerId) : undefined;
 		const preferredId = provider?.getPreferredModelId?.(session?.sessionId ?? '');
 		if (preferredId) {
@@ -300,6 +313,7 @@ export class ModelPicker extends Disposable {
 		if (session?.providerId === DROX_SESSIONS_PROVIDER_ID) {
 			return models[0];
 		}
+		// DROX-END
 		const rememberedModelId = session ? this._storageService.get(modelPickerStorageKey(session.providerId, session.sessionType), StorageScope.PROFILE) : undefined;
 		const remembered = rememberedModelId ? models.find(m => m.identifier === rememberedModelId) : undefined;
 		return remembered ?? models[0];

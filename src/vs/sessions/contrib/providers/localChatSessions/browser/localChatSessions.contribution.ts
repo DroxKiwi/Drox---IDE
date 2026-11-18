@@ -19,8 +19,10 @@ import { URI } from '../../../../../base/common/uri.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { raceTimeout } from '../../../../../base/common/async.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+// DROX-BEGIN
 import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { isDroxAgentsProduct } from '../../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+// DROX-END
 
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).registerConfiguration({
 	id: 'sessions',
@@ -42,14 +44,18 @@ class LocalSessionsProviderContribution extends Disposable implements IWorkbench
 		@IInstantiationService instantiationService: IInstantiationService,
 		@ISessionsProvidersService sessionsProvidersService: ISessionsProvidersService,
 		@IConfigurationService configurationService: IConfigurationService,
+		// DROX-BEGIN
 		@IProductService productService: IProductService,
+		// DROX-END
 	) {
 		super();
 
+		// DROX-BEGIN
 		if (isDroxAgentsProduct(productService)) {
 			return;
 		}
 
+		// DROX-END
 		// Only register the provider when enabled. The setting is read once
 		// at startup; toggling it requires a window reload.
 		if (!configurationService.getValue<boolean>(LOCAL_SESSION_ENABLED_SETTING)) {

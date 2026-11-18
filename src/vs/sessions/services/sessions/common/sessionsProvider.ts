@@ -206,12 +206,14 @@ export interface ISessionsProvider {
 	 */
 	readonly onDidChangeModels: Event<void>;
 
+	// DROX-BEGIN
 	/**
 	 * Optional. When set, the sessions model picker prefers this model id
 	 * (must match a {@link getModels} entry) over the first model or remembered pick.
 	 */
 	getPreferredModelId?(sessionId: string): string | undefined;
 
+	// DROX-END
 	/**
 	 * Set the model for a session.
 	 * @param sessionId The ID of the session.

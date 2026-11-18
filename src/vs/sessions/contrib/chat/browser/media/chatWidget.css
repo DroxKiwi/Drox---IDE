@@ -35,7 +35,9 @@
 
 .new-chat-widget-container.revealed .new-chat-input-container {
 	display: block;
+/* DROX-BEGIN */
 	opacity: 1;
+/* DROX-END */
 }
 
 /* Option group pickers container (above the input) */
@@ -49,7 +51,9 @@
 
 .new-chat-widget-container.revealed .new-session-workspace-picker-container {
 	display: block;
+/* DROX-BEGIN */
 	opacity: 1;
+/* DROX-END */
 }
 
 @keyframes chat-full-welcome-fade-in {

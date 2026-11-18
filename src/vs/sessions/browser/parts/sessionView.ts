@@ -4,7 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import './media/sessionView.css';
+// DROX-BEGIN
 import { $, size, DisposableResizeObserver } from '../../../base/browser/dom.js';
+// DROX-END
 import { ISerializableView, IViewSize } from '../../../base/browser/ui/grid/grid.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../base/common/lifecycle.js';
@@ -132,17 +134,21 @@ export class SessionView extends Disposable implements ISerializableView {
 		this._register(this._header.onDidChangeHeight(() => this._layoutChildren()));
 		this._register(this._compositeBar.onDidChangeVisibility(() => this._layoutChildren()));
 		this._register(this._compositeBar.onDidChangeHeight(() => this._layoutChildren()));
+		// DROX-BEGIN
 
 		// Re-layout when the grid leaf first receives dimensions. openSession can
 		// mount the new-session widget before SessionsPart.layout runs; rAF alone
 		// does not fire until the next paint (often triggered by user interaction).
 		const sizeObserver = this._register(new DisposableResizeObserver('SessionView.size', () => this._layoutChildren()));
 		sizeObserver.observe(this.element);
+		// DROX-END
 	}
 
 	openSession(session: IActiveSession | undefined, options: ISessionViewOptions): void {
 		if (this._hasOpenedSession && this._currentSession === session) {
+			// DROX-BEGIN
 			this._layoutChildren();
+			// DROX-END
 			return;
 		}
 		this._hasOpenedSession = true;
@@ -171,7 +177,9 @@ export class SessionView extends Disposable implements ISerializableView {
 				this._contentContainer.replaceChildren(view.element);
 				this._currentView.value = view;
 				view.setActive(this._isActive);
+				// DROX-BEGIN
 				this._layoutChildren();
+				// DROX-END
 			}
 
 			if (session) {
@@ -201,6 +209,7 @@ export class SessionView extends Disposable implements ISerializableView {
 	}
 
 	private _layoutChildren(): void {
+		// DROX-BEGIN
 		let width: number;
 		let height: number;
 		let top: number;
@@ -215,6 +224,9 @@ export class SessionView extends Disposable implements ISerializableView {
 			}
 			top = 0;
 			left = 0;
+			// DROX-BEGIN
+			// DROX-END
+			// DROX-END
 		}
 
 		// Apply the centered band's width first so the header and tabs wrap to
@@ -253,10 +265,12 @@ export class SessionView extends Disposable implements ISerializableView {
 		this._currentView.value?.selectWorkspace(folderUri, providerId);
 	}
 
+	// DROX-BEGIN
 	clearWorkspaceSelection(): void {
 		this._currentView.value?.clearWorkspaceSelection();
 	}
 
+	// DROX-END
 	prefillInput(text: string): void {
 		this._currentView.value?.prefillInput(text);
 	}

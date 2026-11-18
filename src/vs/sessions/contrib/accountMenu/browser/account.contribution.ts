@@ -33,10 +33,14 @@ import { ChatStatusDashboard, IChatStatusDashboardOptions } from '../../../../wo
 import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { getAccountProfileImageUrl, getAccountTitleBarBadgeKey, getAccountTitleBarState, resolveAccountInfo } from '../../../browser/accountTitleBarState.js';
+// DROX-BEGIN
 import { getDefaultChatAgentDisplayName } from '../../../../workbench/contrib/drox/common/droxChatAgentBranding.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
+// DROX-END
 import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
+// DROX-BEGIN
 import { DroxCopilotSignInHiddenContext } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+// DROX-END
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
 import { IAuthenticationAccessService } from '../../../../workbench/services/authentication/browser/authenticationAccessService.js';
 import { IAuthenticationUsageService } from '../../../../workbench/services/authentication/browser/authenticationUsageService.js';
@@ -75,10 +79,12 @@ registerAction2(class extends Action2 {
 			icon: Codicon.signIn,
 			menu: {
 				id: AccountMenu,
+				// DROX-BEGIN
 				when: ContextKeyExpr.and(
 					ContextKeyExpr.notEquals('defaultAccountStatus', 'available'),
 					DroxCopilotSignInHiddenContext.negate(),
 				),
+				// DROX-END
 				group: '1_account',
 				order: 1,
 			}
@@ -99,10 +105,12 @@ registerAction2(class extends Action2 {
 			icon: Codicon.signOut,
 			menu: {
 				id: AccountMenu,
+				// DROX-BEGIN
 				when: ContextKeyExpr.and(
 					ContextKeyExpr.equals('defaultAccountStatus', 'available'),
 					DroxCopilotSignInHiddenContext.negate(),
 				),
+				// DROX-END
 				group: '1_account',
 				order: 1,
 			}
@@ -188,12 +196,16 @@ class TitleBarAccountWidget extends BaseActionViewItem {
 		@IHoverService private readonly hoverService: IHoverService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IChatEntitlementService private readonly chatEntitlementService: ChatEntitlementService,
+		// DROX-BEGIN
 		@IProductService private readonly productService: IProductService,
+		// DROX-END
 	) {
 		super(undefined, action, options);
 		this.lastState = getAccountTitleBarState({
 			isAccountLoading: true,
+			// DROX-BEGIN
 			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
+			// DROX-END
 			entitlement: this.chatEntitlementService.entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,
@@ -272,7 +284,9 @@ class TitleBarAccountWidget extends BaseActionViewItem {
 			isAccountLoading: this.isAccountLoading,
 			accountName: this.accountName,
 			accountProviderLabel: this.accountProviderLabel,
+			// DROX-BEGIN
 			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
+			// DROX-END
 			entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,
@@ -618,10 +632,12 @@ registerAction2(class extends Action2 {
 				id: Menus.TitleBarRightLayout,
 				group: 'navigation',
 				order: 100,
+				// DROX-BEGIN
 				when: ContextKeyExpr.and(
 					IsAuxiliaryWindowContext.toNegated(),
 					DroxCopilotSignInHiddenContext.negate(),
 				),
+				// DROX-END
 			}
 		});
 	}

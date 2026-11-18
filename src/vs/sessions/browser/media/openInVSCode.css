@@ -3,7 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+/* DROX-BEGIN */
 /* "Open in Editor" titlebar widget — icon-only at rest, expands on hover/focus. */
+/* DROX-END */
 .monaco-workbench .open-in-vscode-titlebar-widget {
 	display: inline-flex;
 	align-items: center;
@@ -12,7 +14,9 @@
 	margin: 0 4px 0 2px;
 	border-radius: var(--vscode-cornerRadius-small);
 	cursor: pointer;
+/* DROX-BEGIN */
 	color: #3D7A3D;
+/* DROX-END */
 	-webkit-app-region: no-drag;
 	white-space: nowrap;
 	position: relative;
@@ -23,16 +27,22 @@
 	width: 16px;
 	height: 16px;
 	flex: 0 0 auto;
+/* DROX-BEGIN */
 	display: inline-block;
 	background-image: url('./drox-ide-switch.svg');
+/* DROX-END */
 	background-repeat: no-repeat;
 	background-position: center center;
+/* DROX-BEGIN */
+/* DROX-END */
 	background-size: contain;
 }
 
 .monaco-enable-motion .monaco-workbench .open-in-vscode-titlebar-widget > .open-in-vscode-titlebar-widget-icon,
 .monaco-workbench.monaco-enable-motion .open-in-vscode-titlebar-widget > .open-in-vscode-titlebar-widget-icon {
+/* DROX-BEGIN */
 	transition: transform 160ms ease;
+/* DROX-END */
 }
 
 .monaco-reduce-motion .monaco-workbench .open-in-vscode-titlebar-widget > .open-in-vscode-titlebar-widget-icon,
@@ -42,7 +52,9 @@
 
 .monaco-workbench .open-in-vscode-titlebar-widget:hover > .open-in-vscode-titlebar-widget-icon,
 .monaco-workbench .open-in-vscode-titlebar-widget:focus-visible > .open-in-vscode-titlebar-widget-icon {
+/* DROX-BEGIN */
 	transform: rotate(6deg) scale(1.06);
+/* DROX-END */
 }
 
 .monaco-workbench .open-in-vscode-titlebar-widget > .open-in-vscode-titlebar-widget-label {
@@ -50,9 +62,13 @@
 	max-width: 0;
 	opacity: 0;
 	margin-left: 0;
+/* DROX-BEGIN */
 	color: #3D7A3D;
+/* DROX-END */
 	font: inherit;
+/* DROX-BEGIN */
 	font-weight: 600;
+/* DROX-END */
 	overflow: hidden;
 	white-space: nowrap;
 }
@@ -77,7 +93,9 @@
 
 .monaco-workbench .open-in-vscode-titlebar-widget:hover,
 .monaco-workbench .open-in-vscode-titlebar-widget:focus-visible {
+/* DROX-BEGIN */
 	background-color: color-mix(in srgb, #3D7A3D 18%, transparent);
+/* DROX-END */
 	outline: none;
 }
 
@@ -89,6 +107,8 @@
 }
 
 .monaco-workbench .open-in-vscode-titlebar-widget:focus-visible {
+/* DROX-BEGIN */
 	outline: 1px solid #3D7A3D;
+/* DROX-END */
 	outline-offset: -1px;
 }

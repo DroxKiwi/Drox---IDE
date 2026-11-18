@@ -13,7 +13,9 @@ export type SessionsInteractionButton =
 	| 'addTask'
 	| 'generateNewTask'
 	| 'openTerminal'
+	// DROX-BEGIN
 	| 'openBrowser'
+	// DROX-END
 	| 'openInVSCode';
 
 export type SessionsInteractionSource = 'menu' | 'actionWidget' | 'titleBar' | 'sidebar';

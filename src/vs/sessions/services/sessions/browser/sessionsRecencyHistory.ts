@@ -89,6 +89,7 @@ export class SessionsRecencyHistory extends Disposable {
 		this._bumpVersion();
 	}
 
+	// DROX-BEGIN
 	/** Re-read persisted recency (e.g. after another window updated storage). */
 	reloadFromStorage(): void {
 		const loaded = this._load();
@@ -107,6 +108,7 @@ export class SessionsRecencyHistory extends Disposable {
 		this._bumpVersion();
 	}
 
+	// DROX-END
 	/** Remove every entry matching the given predicate. */
 	remove(predicate: (entry: IRecencyEntry) => boolean): void {
 		const next = this._entries.filter(e => !predicate(e));

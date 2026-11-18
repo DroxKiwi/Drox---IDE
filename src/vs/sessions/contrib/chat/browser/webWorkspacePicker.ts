@@ -20,8 +20,10 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspacesService } from '../../../../platform/workspaces/common/workspaces.js';
 import { IWorkbenchLayoutService } from '../../../../workbench/services/layout/browser/layoutService.js';
+// DROX-BEGIN
 import { IDroxGitGraphService } from '../../../../workbench/contrib/drox/common/droxGitGraphService.js';
 import { IDroxTutorialService } from '../../../../workbench/contrib/drox/browser/tutorial/droxTutorial.js';
+// DROX-END
 import { ISessionsProvidersService } from '../../../services/sessions/browser/sessionsProvidersService.js';
 import { IAgentHostFilterService } from '../../../services/agentHostFilter/common/agentHostFilter.js';
 import { IWorkspacePickerItem, WorkspacePicker } from './sessionWorkspacePicker.js';
@@ -62,8 +64,10 @@ export class WebWorkspacePicker extends WorkspacePicker {
 		@IFileDialogService fileDialogService: IFileDialogService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@INotificationService notificationService: INotificationService,
+		// DROX-BEGIN
 		@IDroxGitGraphService droxGitGraphService: IDroxGitGraphService,
 		@IDroxTutorialService droxTutorialService: IDroxTutorialService,
+		// DROX-END
 		@IAgentHostFilterService private readonly _agentHostFilterService: IAgentHostFilterService,
 		@IWorkbenchLayoutService private readonly _layoutService: IWorkbenchLayoutService,
 	) {
@@ -82,8 +86,10 @@ export class WebWorkspacePicker extends WorkspacePicker {
 			fileDialogService,
 			telemetryService,
 			notificationService,
+			// DROX-BEGIN
 			droxGitGraphService,
 			droxTutorialService,
+			// DROX-END
 		);
 
 		// When the scoped host changes, if the current selection no longer

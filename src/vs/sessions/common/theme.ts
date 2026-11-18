@@ -12,7 +12,9 @@
 
 import { localize } from '../../nls.js';
 import { registerColor, transparent } from '../../platform/theme/common/colorUtils.js';
+// DROX-BEGIN
 import { contrastBorder } from '../../platform/theme/common/colorRegistry.js';
+// DROX-END
 import { editorWidgetBorder, editorBackground, toolbarHoverBackground } from '../../platform/theme/common/colors/editorColors.js';
 import { foreground } from '../../platform/theme/common/colors/baseColors.js';
 import { buttonBackground, buttonSecondaryBorder, inputBackground, inputBorder, inputForeground, inputPlaceholderForeground } from '../../platform/theme/common/colors/inputColors.js';
@@ -24,7 +26,9 @@ import { ACTIVITY_BAR_BADGE_BACKGROUND, ACTIVITY_BAR_BADGE_FOREGROUND, SIDE_BAR_
 
 export const agentsBackground = registerColor(
 	'agents.background',
+	// DROX-BEGIN
 	{ dark: '#1E1E1E', light: SIDE_BAR_BACKGROUND, hcDark: '#000000', hcLight: editorBackground },
+	// DROX-END
 	localize('agents.background', 'Background color of the agent sessions window shell and gradient base.')
 );
 
@@ -34,7 +38,9 @@ export const agentsBackground = registerColor(
 
 export const agentsPanelBackground = registerColor(
 	'agentsPanel.background',
+	// DROX-BEGIN
 	{ dark: '#1E1E1E', light: editorBackground, hcDark: '#000000', hcLight: SIDE_BAR_BACKGROUND },
+	// DROX-END
 	localize('agentsPanel.background', 'Background color of the card panels (chat, files, terminal) in the agent sessions window.')
 );
 
@@ -102,6 +108,7 @@ export const agentsChatInputBorder = registerColor(
 );
 
 export const agentsChatInputFocusBorder = registerColor(
+	// DROX-BEGIN
 	'agentsChatInput.focusBorder',
 	{
 		dark: '#5f8f5f',
@@ -109,6 +116,7 @@ export const agentsChatInputFocusBorder = registerColor(
 		hcDark: '#9aa88a',
 		hcLight: '#2d5a2d',
 	},
+	// DROX-END
 	localize('agentsChatInput.focusBorder', 'Border color of the chat input field when focused in the agent sessions window.')
 );
 

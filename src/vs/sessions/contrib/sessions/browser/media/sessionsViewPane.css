@@ -73,6 +73,7 @@
 		display: none;
 	}
 
+/* DROX-BEGIN */
 	/* Header row: new discussion + filter/find */
 	.agent-sessions-header-row.minimal {
 		padding: 6px 8px;
@@ -90,6 +91,7 @@
 		gap: 2px;
 	}
 
+/* DROX-END */
 	/* Header row: label + action buttons */
 	.agent-sessions-header-row {
 		display: flex;

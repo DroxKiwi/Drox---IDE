@@ -85,14 +85,22 @@ class NewChatInSessionsWindowAction extends Action2 {
 	}
 
 	override run(accessor: ServicesAccessor): void {
+		// DROX-BEGIN
+		// DROX-END
 		const sessionsService = accessor.get(ISessionsService);
 		const activeSession = sessionsService.activeSession.get();
+		// DROX-BEGIN
 		// Open a blank composer so the user can pick any project folder — do not
 		// inherit the active session's workspace.
+		// DROX-BEGIN
+		// DROX-END
+		// DROX-END
 		sessionsService.openNewSession({
 			providerId: activeSession?.providerId,
 			sessionTypeId: activeSession?.sessionType,
+			// DROX-BEGIN
 			resetComposer: true,
+			// DROX-END
 		});
 	}
 }

@@ -30,6 +30,7 @@ import { IInstantiationService } from '../../../platform/instantiation/common/in
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { resolveRemoteAuthority } from '../../browser/openInVSCodeUtils.js';
 import { INativeHostService } from '../../../platform/native/common/native.js';
+// DROX-BEGIN
 import { ICommandService } from '../../../platform/commands/common/commands.js';
 import { isSingleFolderWorkspaceIdentifier } from '../../../platform/workspace/common/workspace.js';
 
@@ -39,6 +40,7 @@ const DROX_PREPARE_IDE_SESSION_HANDOFF_COMMAND_ID = 'drox.prepareIdeSessionHando
 function normalizeFsPath(fsPath: string): string {
 	return fsPath.replace(/\\/g, '/').toLowerCase();
 }
+// DROX-END
 
 export class OpenSessionInVSCodeAction extends Action2 {
 	static readonly ID = 'agents.openSessionInVSCode';
@@ -66,12 +68,15 @@ export class OpenSessionInVSCodeAction extends Action2 {
 		const sessionsProvidersService = accessor.get(ISessionsProvidersService);
 		const remoteAgentHostService = accessor.get(IRemoteAgentHostService);
 		const nativeHostService = accessor.get(INativeHostService);
+		// DROX-BEGIN
 		const commandService = accessor.get(ICommandService);
+		// DROX-END
 
 		const folderUri = this.getFolderUriToOpen(sessionsService, sessionsProvidersService, remoteAgentHostService);
 		if (!folderUri) {
 			return nativeHostService.openWindow();
 		}
+		// DROX-BEGIN
 
 		if (folderUri.scheme === Schemas.file) {
 			try {
@@ -94,6 +99,7 @@ export class OpenSessionInVSCodeAction extends Action2 {
 		return nativeHostService.openWindow([{ folderUri }], reuseExistingIde
 			? { forceReuseWindow: true }
 			: { forceNewWindow: true });
+		// DROX-END
 	}
 
 	private getFolderUriToOpen(sessionsService: ISessionsService, sessionsProvidersService: ISessionsProvidersService, remoteAgentHostService: IRemoteAgentHostService): URI | undefined {

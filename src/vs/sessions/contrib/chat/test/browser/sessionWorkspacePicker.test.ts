@@ -41,13 +41,16 @@ import { MockContextKeyService } from '../../../../../platform/keybinding/test/c
 import { IMenuService } from '../../../../../platform/actions/common/actions.js';
 import { INotification, INotificationHandle, INotificationService, NoOpNotification, NotificationMessage } from '../../../../../platform/notification/common/notification.js';
 import { TestNotificationService } from '../../../../../platform/notification/test/common/testNotificationService.js';
+// DROX-BEGIN
 import { IDroxGitGraphService } from '../../../../../workbench/contrib/drox/common/droxGitGraphService.js';
 import { IDroxTutorialService } from '../../../../../workbench/contrib/drox/browser/tutorial/droxTutorial.js';
 import { mock } from '../../../../../base/test/common/mock.js';
+// DROX-END
 
 // ---- Storage key (must match the one in sessionWorkspacePicker.ts) ----------
 const STORAGE_KEY_RECENT_WORKSPACES = 'sessions.recentlyPickedWorkspaces';
 
+// DROX-BEGIN
 function stubDroxGitGraphService(instantiationService: TestInstantiationService): void {
 	instantiationService.stub(IDroxGitGraphService, new class extends mock<IDroxGitGraphService>() {
 		override currentBranch() { return constObservable<string | undefined>(undefined); }
@@ -64,6 +67,7 @@ function stubDroxGitGraphService(instantiationService: TestInstantiationService)
 	});
 }
 
+// DROX-END
 // ---- Mock providers ---------------------------------------------------------
 
 // Maps mock provider id → URI path prefix it resolves. In production, the
@@ -267,7 +271,9 @@ function createTestPicker(
 		onDidChangeRecentlyOpened: Event.None,
 	});
 	instantiationService.stub(ITelemetryService, NullTelemetryService);
+	// DROX-BEGIN
 	stubDroxGitGraphService(instantiationService);
+	// DROX-END
 
 	return disposables.add(instantiationService.createInstance(pickerCtor));
 }
@@ -691,7 +697,9 @@ function createTestablePicker(disposables: DisposableStore, providersService: Mo
 		onDidChangeRecentlyOpened: Event.None,
 	});
 	instantiationService.stub(ITelemetryService, NullTelemetryService);
+	// DROX-BEGIN
 	stubDroxGitGraphService(instantiationService);
+	// DROX-END
 	return disposables.add(instantiationService.createInstance(TestablePicker));
 }
 
@@ -805,7 +813,9 @@ suite('WorkspacePicker - Tab discovery', () => {
 			onDidChangeRecentlyOpened: Event.None,
 		});
 		instantiationService.stub(ITelemetryService, NullTelemetryService);
+		// DROX-BEGIN
 		stubDroxGitGraphService(instantiationService);
+		// DROX-END
 		const picker = disposables.add(instantiationService.createInstance(TestablePicker));
 		// Recent workspace group ('Cloud') is not added as a tab — only
 		// browse actions and the always-present Remote group contribute tabs.
