@@ -34,8 +34,10 @@ import { basename } from '../../../../base/common/resources.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { DEFAULT_LABELS_CONTAINER, ResourceLabels } from '../../../../workbench/browser/labels.js';
 
-import { IChatRequestVariableEntry, isAgentHostCompletionVariableEntry, OmittedState, isPasteVariableEntry } from '../../../../workbench/contrib/chat/common/attachments/chatVariableEntries.js';
+import { IChatRequestVariableEntry, isAgentHostCompletionVariableEntry, OmittedState, /* DROX-BEGIN */ isPasteVariableEntry /* DROX-END */ } from '../../../../workbench/contrib/chat/common/attachments/chatVariableEntries.js';
+// DROX-BEGIN
 import { droxSmartPasteVariableEntryToPasteEntry, isDroxSmartPasteVariableEntry } from '../../../../workbench/contrib/drox/common/droxNativeChatRequestAttachments.js';
+// DROX-END
 import { isLocation } from '../../../../editor/common/languages.js';
 import { resizeImage } from '../../../../workbench/contrib/chat/browser/chatImageUtils.js';
 import { imageToHash, isImage } from '../../../../workbench/contrib/chat/browser/widget/input/editor/chatPasteProviders.js';
@@ -122,6 +124,7 @@ export class NewChatContextAttachments extends Disposable {
 			const pill = dom.append(this._container, dom.$('.sessions-chat-attachment-pill'));
 			pill.tabIndex = 0;
 			pill.role = 'button';
+			// DROX-BEGIN
 			const pasteEntry = isPasteVariableEntry(entry)
 				? entry
 				: isDroxSmartPasteVariableEntry(entry)
@@ -148,6 +151,7 @@ export class NewChatContextAttachments extends Disposable {
 					}));
 				}
 			} else {
+				// DROX-END
 				const resource = URI.isUri(entry.value) ? entry.value : isLocation(entry.value) ? entry.value.uri : undefined;
 				if (entry.kind === 'image') {
 					dom.append(pill, renderIcon(Codicon.fileMedia));

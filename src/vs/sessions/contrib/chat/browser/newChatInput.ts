@@ -4,6 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import './media/chatInput.css';
+// DROX-BEGIN
+import './media/droxChatInput.css';
+// DROX-END
 import './media/chatInputMobile.css';
 import * as dom from '../../../../base/browser/dom.js';
 import { Codicon } from '../../../../base/common/codicons.js';

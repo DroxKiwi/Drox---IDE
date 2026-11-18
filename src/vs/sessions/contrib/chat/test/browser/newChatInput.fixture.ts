@@ -23,6 +23,9 @@ import { NewChatInputWidget } from '../../browser/newChatInput.js';
 // provides the `--vscode-agentsChatInput-*` theme variables and the
 // `.agent-sessions-workbench` scope.
 import '../../browser/media/chatInput.css';
+// DROX-BEGIN
+import '../../browser/media/droxChatInput.css';
+// DROX-END
 import '../../browser/media/newChatInSession.css';
 import '../../browser/media/chatWidget.css';
 import '../../../../browser/media/style.css';

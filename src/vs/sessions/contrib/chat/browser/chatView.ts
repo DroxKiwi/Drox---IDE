@@ -3,9 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// DROX-BEGIN
 import '../../../../workbench/contrib/drox/browser/discussion/media/droxDiscussionShell.css';
+// DROX-END
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
+// DROX-BEGIN
 import { DisposableResizeObserver } from '../../../../base/browser/dom.js';
+// DROX-END
 import { MutableDisposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
@@ -19,11 +23,13 @@ import { IChatModelReference, IChatService } from '../../../../workbench/contrib
 import { ChatAgentLocation } from '../../../../workbench/contrib/chat/common/constants.js';
 import { getChatSessionType } from '../../../../workbench/contrib/chat/common/model/chatUri.js';
 import { IChatSessionsService, localChatSessionType } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
+// DROX-BEGIN
 import { DROX_CHAT_SESSION_TYPE } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { createDroxDiscussionChatWidgetOptions } from '../../../../workbench/contrib/drox/browser/discussion/droxDiscussionChatWidgetOptions.js';
 import { droxAgentsChatSessionHasLiveRun, evictDroxAgentsChatSessionForReload } from '../../../../workbench/contrib/drox/browser/agents/droxAgentsChatSessionCache.js';
 import { DroxSessionLoadingOverlay } from '../../../../workbench/contrib/drox/browser/droxSessionLoadingOverlay.js';
 import { finalizeDroxNativeChatHistoryModel } from '../../../../workbench/contrib/drox/common/droxNativeChatHistoryFinalize.js';
+// DROX-END
 import { AbstractChatView, ChatViewKind, IChatViewOptions } from '../../../browser/parts/chatView.js';
 import { IChat } from '../../../services/sessions/common/session.js';
 import { IChatViewFactory } from '../../../services/chatView/browser/chatViewFactory.js';
@@ -80,11 +86,13 @@ export class NewChatView extends AbstractChatView {
 		}
 	}
 
+	// DROX-BEGIN
 	override clearWorkspaceSelection(): void {
 		if (this._widget instanceof NewChatWidget) {
 			this._widget.clearWorkspaceSelection();
 		}
 	}
+	// DROX-END
 
 	override prefillInput(text: string): void {
 		if (this._widget instanceof NewChatWidget) {
@@ -131,7 +139,9 @@ export class ChatView extends AbstractChatView {
 	/** Whether this view currently represents the active session. */
 	private _isActive = true;
 
+	// DROX-BEGIN
 	private readonly _droxSessionLoadingOverlay: DroxSessionLoadingOverlay;
+	// DROX-END
 
 	constructor(
 		@IInstantiationService instantiationService: IInstantiationService,
@@ -154,14 +164,20 @@ export class ChatView extends AbstractChatView {
 			ChatWidget,
 			ChatAgentLocation.Chat,
 			undefined,
+			// DROX-BEGIN
 			createDroxDiscussionChatWidgetOptions('agents'),
+			// DROX-END
 			this._buildStyles(this._isActive)
 		));
 		this._widget.render(this.element);
+		// DROX-BEGIN
 		this.element.classList.add('drox-discussion-shell');
+		// DROX-END
 		this._widget.setVisible(true);
 
+		// DROX-BEGIN
 		this._droxSessionLoadingOverlay = this._register(new DroxSessionLoadingOverlay(this.element));
+		// DROX-END
 
 		// Mount the session banners directly above the chat input.
 		this._banners = this._register(instantiationService.createInstance(SessionInputBanners));
@@ -174,8 +190,10 @@ export class ChatView extends AbstractChatView {
 			}
 		}));
 
+		// DROX-BEGIN
 		const sizeObserver = this._register(new DisposableResizeObserver('ChatView.size', () => this._layoutWidgetWhenSized()));
 		sizeObserver.observe(this.element);
+		// DROX-END
 	}
 
 	override dispose(): void {
@@ -203,6 +221,7 @@ export class ChatView extends AbstractChatView {
 		this._historyKey = historyKey;
 		this._applyHistoryKey();
 
+		// DROX-BEGIN
 		const sameResource = isEqual(this._currentChatResource, resource);
 
 		// SessionView autorun may call setChat on every observable tick — never
@@ -216,12 +235,16 @@ export class ChatView extends AbstractChatView {
 				return;
 			}
 		}
+		// DROX-END
 
 		const previousChatResource = this._currentChatResource;
+		// DROX-BEGIN
 		const switchingChat = previousChatResource !== undefined && !isEqual(previousChatResource, resource);
+		// DROX-END
 		this._currentChatResource = resource;
 
 		this._loadCts.value?.cancel();
+		// DROX-BEGIN
 		if (switchingChat) {
 			this._detachWidgetFromModel();
 		}
@@ -229,6 +252,7 @@ export class ChatView extends AbstractChatView {
 			// Refresh disk-backed session content when idle; skip while a live run keeps the model hot.
 			evictDroxAgentsChatSessionForReload(resource, this.chatSessionsService, this.chatService);
 		}
+		// DROX-END
 		const cts = new CancellationTokenSource();
 		this._loadCts.value = cts;
 		const token = cts.token;
@@ -240,14 +264,18 @@ export class ChatView extends AbstractChatView {
 			}
 			this._modelRef.value = ref;
 			this._updateWidgetLockState(getChatSessionType(ref.object.sessionResource));
+			// DROX-BEGIN
 			if (getChatSessionType(ref.object.sessionResource) === DROX_CHAT_SESSION_TYPE) {
 				// History finalize marks open responses complete — never on a live background run.
 				if (!droxAgentsChatSessionHasLiveRun(ref.object)) {
 					finalizeDroxNativeChatHistoryModel(ref.object);
 				}
 			}
+			// DROX-END
 			this._widget.setModel(ref.object);
+			// DROX-BEGIN
 			this._layoutWidgetWhenSized();
+			// DROX-END
 			// Expose the bound chat resource on the DOM so test automation
 			// can synchronize with the post-rebind state without polling timeouts.
 			// Set AFTER `setModel` so observers see the attribute only once the
@@ -262,14 +290,18 @@ export class ChatView extends AbstractChatView {
 			}
 		});
 
+		// DROX-BEGIN
 		if (getChatSessionType(resource) === DROX_CHAT_SESSION_TYPE) {
 			void this._droxSessionLoadingOverlay.showWhile(loadPromise);
 		} else {
-			// Non-Drox sessions keep the generic leaf progress bar.
+			// DROX-END
 			this.showProgressWhile(loadPromise, 800);
+			// DROX-BEGIN
 		}
+		// DROX-END
 	}
 
+	// DROX-BEGIN
 	/** Detaches the chat widget without cancelling an in-flight agent run on the model. */
 	private _detachWidgetFromModel(): void {
 		this._widget.clear().catch(err => this.logService.error('[ChatView] Failed to clear chat widget', err));
@@ -280,6 +312,7 @@ export class ChatView extends AbstractChatView {
 		// before acting on the view.
 		delete this.element.dataset.boundChatResource;
 	}
+	// DROX-END
 
 	private _applyHistoryKey(): void {
 		const scopedHistory = this.configurationService.getValue<boolean>(AGENT_SESSIONS_SCOPED_INPUT_HISTORY_SETTING) !== false;
@@ -304,6 +337,7 @@ export class ChatView extends AbstractChatView {
 		return { type: ChatView.TYPE };
 	}
 
+	// DROX-BEGIN
 	private _layoutWidgetWhenSized(): void {
 		const height = this.element.clientHeight;
 		const width = this.element.clientWidth;
@@ -312,6 +346,7 @@ export class ChatView extends AbstractChatView {
 			this._widget.layout(height, width);
 		}
 	}
+	// DROX-END
 
 	protected override doLayout(width: number, height: number, _top: number, _left: number): void {
 		this._ensureBannersMounted();

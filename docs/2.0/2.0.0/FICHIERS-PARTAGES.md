@@ -44,6 +44,8 @@ Le dossier actif d'Electron (`.build/electron-active-subdir`) est dans `build/li
 
 Les vues de session (`changesView`, `sessionsView`, `sessionsPart`, `baseSessionLayoutController`, `chat.contribution`) gardent les branchements Drox encadrés. Le diff inline est déjà dans `droxChangesInlineDiffWidget`.
 
+`chatInput.css` est revenu identique à la base. Les puces de collage et la pile des pièces jointes sont dans `droxChatInput.css`. `chatView.ts` et les pièces jointes du nouveau chat gardent des appels encadrés. L'action navigateur est dans `droxOpenSessionInBrowserAction.ts`.
+
 ## File de reprise
 
 Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre la base. `h` est le nombre de blocs du diff. Tant que `h` est grand, on lit le fichier avant de déplacer quoi que ce soit.
@@ -71,14 +73,14 @@ Un fichier à la fois, dans cet ordre. La colonne `+` / `-` est le volume contre
 | en cours | `src/vs/sessions/services/sessions/browser/sessionsService.ts` | 80 | 8 | 23 |
 | en cours | `src/vs/sessions/contrib/changes/browser/changesView.ts` | 79 | 13 | 18 |
 | | `build/lib/stylelint/vscode-known-variables.json` | 78 | 2 | 4 |
-| | `src/vs/sessions/contrib/chat/browser/media/chatInput.css` | 78 | 2 | 3 |
+| fait | `src/vs/sessions/contrib/chat/browser/media/chatInput.css` | 78 | 2 | 3 |
 | | `build/gulpfile.vscode.ts` | 76 | 26 | 20 |
 | | `src/vs/base/browser/ui/sash/sash.css` | 71 | 2 | 4 |
-| | `src/vs/sessions/contrib/chat/browser/chatView.ts` | 66 | 26 | 19 |
+| en cours | `src/vs/sessions/contrib/chat/browser/chatView.ts` | 66 | 26 | 19 |
 | en cours | `src/vs/sessions/contrib/sessions/browser/views/sessionsView.ts` | 59 | 18 | 17 |
 | | `src/vs/platform/agentHost/node/copilot/copilotAgent.ts` | 57 | 6 | 5 |
-| | `src/vs/sessions/contrib/chat/browser/newChatContextAttachments.ts` | 56 | 28 | 7 |
-| | `src/vs/sessions/contrib/chat/browser/runScriptAction.ts` | 53 | 2 | 6 |
+| en cours | `src/vs/sessions/contrib/chat/browser/newChatContextAttachments.ts` | 56 | 28 | 7 |
+| en cours | `src/vs/sessions/contrib/chat/browser/runScriptAction.ts` | 53 | 2 | 6 |
 | | `build/gulpfile.vscode.linux.ts` | 53 | 6 | 5 |
 | | `src/vs/workbench/services/extensions/electron-browser/localProcessExtensionHost.ts` | 52 | 5 | 9 |
 | | `src/vs/workbench/contrib/chat/browser/chatSetup/chatSetupProviders.ts` | 51 | 9 | 12 |
