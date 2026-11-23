@@ -1,0 +1,11 @@
+[package]
+name = "atelier_rust"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "atelier_rust"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3

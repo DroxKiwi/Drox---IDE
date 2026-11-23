@@ -64,8 +64,9 @@ dist
 # Transcripts / exports locaux (ne pas publier)
 history-probe-test/
 history-prob-lab-results/
-history-probe-lab/*
-!history-probe-lab/.gitkeep
+history-probe-lab/**/.drox/
+history-probe-lab/**/__pycache__/
+history-probe-lab/**/target/
 docs/exports/
 docs/retour_discussion/
 docs/feature-brainstorm/
@@ -74,7 +75,7 @@ docs/feature-brainstorm/
 docs/release/
 
 # Rebase VS Code — procédures, scripts et mesures, privé
-docs/rebase/
+docs/Drox---IDE---rebase/
 
 # Artefacts release (binaires via GitHub Releases, pas git)
 _upload/

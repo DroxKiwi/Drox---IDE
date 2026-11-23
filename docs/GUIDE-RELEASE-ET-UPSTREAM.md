@@ -5,7 +5,7 @@
 | Besoin | Guide |
 |--------|--------|
 | Ouvrir branche, dev, merge `main` | [01-BRANCHE.md](release/01-BRANCHE.md) |
-| Mise à jour VS Code (upstream) | [02-UPSTREAM-VSCODE.md](release/02-UPSTREAM-VSCODE.md) |
+| Mise à jour VS Code | [02-UPSTREAM-VSCODE.md](release/02-UPSTREAM-VSCODE.md) — renvoie vers la procédure locale `docs/rebase` |
 | Release Windows → OR | [03-RELEASE-WINDOWS.md](release/03-RELEASE-WINDOWS.md) |
 | Release Linux → OR | [04-RELEASE-LINUX.md](release/04-RELEASE-LINUX.md) |
 | **Référence build (2 min)** | [00-BUILD-REFERENCE.md](release/00-BUILD-REFERENCE.md) |
@@ -18,7 +18,7 @@
 
 1. **`<REPO>`** = sources `Drox---IDE` · **`<OR>`** = `Drox---IDE---OR` (release publique, pas de sources).
 2. **`main` sources** ≠ canal de distribution — les binaires vont sur **GitHub Release OR**.
-3. **Upstream Microsoft** → branche locale `integrate/*`, jamais merge direct sur `main` sources.
+3. **Montée VS Code** : procédure locale `docs/rebase` (voir [02](release/02-UPSTREAM-VSCODE.md)). Pas de merge de l’historique Microsoft sur `main`.
 4. **Installeurs** jamais dans git — dossier `<OR>\_upload\`.
 
 Patches build après upstream : [PATCHES-UPSTREAM-BUILD.md](1.3/1.3.0/finalisation/PATCHES-UPSTREAM-BUILD.md)

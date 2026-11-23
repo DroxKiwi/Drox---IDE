@@ -1,5 +1,7 @@
 ﻿# Ligne de version 1.5
 
+> **Historique.** Ne pas suivre ce dossier pour monter la version de VS Code : la procédure est `docs/rebase` (locale), voir [02-UPSTREAM-VSCODE.md](../release/02-UPSTREAM-VSCODE.md).
+
 **Prérequis** : [1.4.2](../1.4/1.4.2/README.md) tag `v1.4.2` · refonte moteur **profonde**
 
 ---

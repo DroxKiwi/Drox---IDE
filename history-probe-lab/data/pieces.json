@@ -1,0 +1,6 @@
+[
+  {"code": "PL-04", "name": "Platine de fixation", "unit_price": 18.5},
+  {"code": "PL-11", "name": "Vis pack de 20", "unit_price": 4.2},
+  {"code": "PL-18", "name": "Joint torique", "unit_price": 1.1},
+  {"code": "PL-22", "name": "Câble 2 m", "unit_price": 7.8}
+]
