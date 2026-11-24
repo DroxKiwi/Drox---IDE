@@ -420,7 +420,7 @@
 .drox-ide-native-chat-active .drox-discussion-shell .interactive-input-part {
 	max-width: none;
 	margin-inline: 0;
-	margin-top: 10px;
+	margin-top: 12px;
 	width: 100%;
 }
 
@@ -513,10 +513,8 @@
 	display: none !important;
 }
 
-.drox-discussion-shell .chat-working-progress {
-	display: flex;
-	align-items: center;
-	gap: 8px;
+.drox-discussion-shell .chat-working-progress > .activity-grid {
+	display: none !important;
 }
 
 /* Grille des chips : réservée à la fenêtre Agents. Ici elle resterait visible au bootstrap (Ctrl+R). */
@@ -524,7 +522,6 @@
 	display: none !important;
 }
 
-.drox-discussion-shell .chat-working-progress > .activity-grid,
 .drox-discussion-shell .chat-response-loading .avatar-container .drox-response-loading-grid {
 	flex: 0 0 auto;
 	display: grid;
@@ -539,7 +536,11 @@
 	justify-content: center;
 }
 
-.drox-discussion-shell .avatar-container > .drox-avatar-held {
+.drox-discussion-shell .interactive-response.chat-response-loading .avatar-container > :not(.drox-response-loading-grid) {
+	display: none !important;
+}
+
+.drox-discussion-shell .interactive-response:not(.chat-response-loading) .avatar-container .drox-response-loading-grid {
 	display: none !important;
 }
 
@@ -551,7 +552,6 @@
 	height: 16px;
 }
 
-.drox-discussion-shell .chat-working-progress > .activity-grid > span,
 .drox-discussion-shell .drox-panel-loading-grid > span {
 	display: block;
 	width: 2px;
@@ -589,4 +589,84 @@
 		opacity: 1;
 		transform: scale(1);
 	}
+}
+
+.drox-native-tools-panel-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 24px 16px;
+	background: var(--vscode-widget-shadow, rgba(0, 0, 0, 0.45));
+	overflow: auto;
+}
+
+.drox-native-tools-panel {
+	max-width: 520px;
+	width: 100%;
+	background: var(--vscode-editor-background);
+	color: var(--vscode-foreground);
+	border: 1px solid var(--vscode-widget-border);
+	box-shadow: 0 8px 32px var(--vscode-widget-shadow);
+	border-radius: 6px;
+	padding: 16px 18px 20px;
+}
+
+.drox-native-tools-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
+
+.drox-native-tools-panel-header h3 {
+	margin: 0;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.drox-native-tools-panel-close {
+	border: none;
+	background: transparent;
+	color: inherit;
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0 4px;
+}
+
+.drox-native-tools-panel-status {
+	margin: 0 0 12px;
+	font-size: 12px;
+	opacity: 0.85;
+}
+
+.drox-native-tools-panel-body {
+	max-height: min(60vh, 480px);
+	overflow: auto;
+}
+
+.drox-native-tools-group {
+	margin-bottom: 14px;
+}
+
+.drox-native-tools-group h4 {
+	margin: 0 0 6px;
+	font-size: 11px;
+	text-transform: uppercase;
+	opacity: 0.75;
+}
+
+.drox-native-tools-row {
+	display: block;
+	font-size: 12px;
+	margin: 4px 0;
+	cursor: pointer;
+}
+
+.drox-native-tools-row.is-profile-blocked {
+	opacity: 0.45;
+	cursor: not-allowed;
 }

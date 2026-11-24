@@ -189,6 +189,12 @@ La chronologie moteur détaillée et les schémas opératoires vivent dans **`do
 - Édition de [`README.md`](README.md) racine : respecter la **§5** (FR, but, historique, technique, pas de trailer Cursor).
 - Tests : n’en ajouter que s’ils couvrent un comportement réel demandé, pas des assertions triviales.
 
+### Fichiers partagés (upstream Microsoft)
+
+- Toute retouche dans l’arbre VS Code **hors** `contrib/drox` / moteur : **`DROX-BEGIN` / `DROX-END`**, logique dans un module Drox, appels courts sur place (voir `docs/2.0/2.0.0/FICHIERS-PARTAGES.md`).
+- Helpers d’intégration (`*Seams.ts`), constantes Playwright / `data-testid` : **`contrib/drox`** — pas dans le corps des classes Microsoft.
+- Règle agent Cursor : `.cursor/rules/encadrement-upstream-drox.mdc`. Cas chat natif : `docs/2.0/2.0.1-1.147.0/ENCADREMENT-CHAT-NATIF.md`.
+
 ---
 
 ## 7. Phases distribution (rappel)
@@ -229,4 +235,4 @@ Checklist smoke : `docs/1.3/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md` §
 
 ---
 
-*Dernière mise à jour : 2026-06-02 — §6 orchestration (pas de listes heuristiques, pas de version dans les prompts modèle).*
+*Dernière mise à jour : 2026-11-24 — §6 encadrement upstream + fichier partagés / Playwright.*

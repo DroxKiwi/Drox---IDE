@@ -118,6 +118,9 @@ import { IChatTipService } from '../chatTipService.js';
 import { ChatInputTipPresenter } from './input/chatInputTipPresenter.js';
 import { ChatProgressSubPart } from './chatContentParts/chatProgressContentPart.js';
 import { animateChatProgress } from './chatProgressAnimation.js';
+// DROX-BEGIN
+import { getDroxChatListPaddingBottom, resolveDroxStickyProgressEnabled } from '../../../drox/browser/chat/droxChatWidgetSeams.js';
+// DROX-END
 import { IAgentSessionsService } from '../agentSessions/agentSessionsService.js';
 import { IChatDebugService } from '../../common/chatDebugService.js';
 import { getChatSessionType } from '../../common/model/chatUri.js';
@@ -2493,8 +2496,9 @@ export class ChatWidget extends Disposable implements IChatWidget {
 						backgroundShells: derived(reader => this.backgroundActivityPillSections.read(reader)?.backgroundShells?.read(reader) ?? []),
 					},
 				},
-				// DROX: le bandeau colle au-dessus du compositeur masque la fin de la reponse.
-				stickyProgress: !this.viewOptions.droxNativeComposer && !this.viewOptions.renderInputOnTop && options.renderStyle !== 'minimal',
+				// DROX-BEGIN
+				stickyProgress: resolveDroxStickyProgressEnabled(this.viewOptions, options.renderStyle),
+				// DROX-END
 				defaultElementHeight: this.viewOptions.defaultElementHeight ?? 200,
 				overflowWidgetsDomNode: overflowWidgetsContainer,
 				styles: {
@@ -2514,6 +2518,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 				tabIndex: this.viewOptions.transcriptTabIndex,
 			}
 		));
+		this._applyListPaddingBottom();
 		this.listWidget.setStickyProgressContainer(this.inputPart.persistentContentContainerElement);
 
 		// Wire up ChatWidget-specific list widget events
@@ -3258,7 +3263,15 @@ export class ChatWidget extends Disposable implements IChatWidget {
 	}
 
 	private _getListPaddingBottom(): number {
-		return this._persistentContentHeight + this._chatPetListPadding;
+		let padding = this._persistentContentHeight + this._chatPetListPadding;
+		// DROX-BEGIN
+		padding = getDroxChatListPaddingBottom(
+			this.viewOptions,
+			this.listWidget?.renderHeight ?? 0,
+			padding,
+		);
+		// DROX-END
+		return padding;
 	}
 
 	private _applyListPaddingBottom(): void {
@@ -4768,6 +4781,8 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			this.listWidget.scrollToEnd();
 		}
 		this.listContainer.style.height = `${contentHeight}px`;
+
+		this._applyListPaddingBottom();
 
 		this._onDidChangeHeight.fire(height);
 	}

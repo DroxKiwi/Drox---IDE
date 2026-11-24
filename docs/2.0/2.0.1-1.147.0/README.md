@@ -21,6 +21,14 @@ Les retouches d'interface ont d'abord été commitées sur `main` par erreur ; e
 - Bandeau de progression VS Code collé au-dessus du compositeur désactivé.
 - Marge entre le fil et la barre de saisie.
 
+## Encadrement rebase / Playwright
+
+Logique UI externalisée dans `contrib/drox`, seams dans `droxChatWidgetSeams.ts`, ancres `data-testid` sur le pane natif. Détail : [ENCADREMENT-CHAT-NATIF.md](./ENCADREMENT-CHAT-NATIF.md).
+
+## Chantiers avant livraison
+
+Suivi des lots outil « sauvegarder une règle », configuration outils × profils × régulation, et adoption ciblée des mécaniques Cline (discussion + run) : [MAJ-AVANT-LIVRAISON.md](./MAJ-AVANT-LIVRAISON.md).
+
 ## Cache LFS retiré
 
 Le fichier `extensions/copilot/test/simulation/cache/layers/225c3482-5729-4633-9555-da6ddb7cbd51.sqlite` pointait un objet Git LFS jamais présent en local ; il a été retiré des commits reconstruits de `main` et de cette branche.

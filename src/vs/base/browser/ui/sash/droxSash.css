@@ -26,16 +26,17 @@
 	background-image: linear-gradient(
 		180deg,
 		transparent 0%,
-		transparent 36%,
-		var(--nexus-sash-beam-glow) 44%,
+		transparent 44%,
+		var(--nexus-sash-beam-glow) 48%,
 		var(--nexus-sash-beam-core) 50%,
-		var(--nexus-sash-beam-glow) 56%,
-		transparent 64%,
+		var(--nexus-sash-beam-glow) 52%,
+		transparent 56%,
 		transparent 100%
 	);
-	background-size: 100% 42%;
-	background-position: 50% -55%;
-	animation: nexus-sash-beam-vertical 0.62s linear infinite;
+	/* Un seul trait : bande étroite, pas de doublon glow/core visible en parallèle. */
+	background-size: 100% 22%;
+	background-position: 50% -30%;
+	animation: nexus-sash-beam-vertical 3.2s ease-in-out infinite;
 }
 
 .monaco-sash.horizontal.hover:before,
@@ -43,33 +44,33 @@
 	background-image: linear-gradient(
 		90deg,
 		transparent 0%,
-		transparent 36%,
-		var(--nexus-sash-beam-glow) 44%,
+		transparent 44%,
+		var(--nexus-sash-beam-glow) 48%,
 		var(--nexus-sash-beam-core) 50%,
-		var(--nexus-sash-beam-glow) 56%,
-		transparent 64%,
+		var(--nexus-sash-beam-glow) 52%,
+		transparent 56%,
 		transparent 100%
 	);
-	background-size: 42% 100%;
-	background-position: -55% 50%;
-	animation: nexus-sash-beam-horizontal 0.62s linear infinite;
+	background-size: 22% 100%;
+	background-position: -30% 50%;
+	animation: nexus-sash-beam-horizontal 3.2s ease-in-out infinite;
 }
 
 @keyframes nexus-sash-beam-vertical {
 	from {
-		background-position: 50% -55%;
+		background-position: 50% -30%;
 	}
 	to {
-		background-position: 50% 155%;
+		background-position: 50% 130%;
 	}
 }
 
 @keyframes nexus-sash-beam-horizontal {
 	from {
-		background-position: -55% 50%;
+		background-position: -30% 50%;
 	}
 	to {
-		background-position: 155% 50%;
+		background-position: 130% 50%;
 	}
 }
 

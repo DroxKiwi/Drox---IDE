@@ -13,6 +13,9 @@
 		const s = payload.settings && typeof payload.settings === 'object' ? payload.settings : payload;
 		D.state.generalSettings = { ...D.state.generalSettings, ...s };
 		fn.syncGeneralSettingsVignetteHint();
+		if (typeof fn.syncEngineProfileUiFromState === 'function') {
+			fn.syncEngineProfileUiFromState();
+		}
 		if (D.state.generalSettingsPanelOpen) {
 			fn.fillGeneralSettingsPanel();
 		}

@@ -12,8 +12,9 @@ use crate::simple::{
     FileWriteTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
     SkillListTool, SkillReadTool, GitWorktreeEnterTool, GitWorktreeExitTool, CopyPathTool,
     ExploreArtifactReadTool, ExploreIndexListTool, ScopeDeferTool,
-    SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool, TaskTool, TodoWriteTool,
-    WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool, SdtcmAlignTool,
+    ProjectRuleWriteTool, SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool,
+    TaskTool, TodoWriteTool, WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool,
+    SdtcmAlignTool,
 };
 use crate::tool::{DynTool, Tool};
 
@@ -73,6 +74,7 @@ impl ToolRegistry {
         reg.register(coerce_tool(ScopeDeferTool));
         reg.register(coerce_tool(WorkspaceMapReadTool));
         reg.register(coerce_tool(WorkspaceMapNoteTool));
+        reg.register(coerce_tool(ProjectRuleWriteTool));
         reg.register(coerce_tool(SessionNoteTool));
         reg.register(coerce_tool(MemoryReadTool));
         reg.register(coerce_tool(MemoryListTool));

@@ -52,6 +52,7 @@ import { DroxChatLayoutStore, DROX_CHAT_LAYOUT_VERSION } from '../droxChatLayout
 import { newSessionId } from '../droxChatTabs.js';
 import { DroxIdeNativeChatTabStrip } from './droxIdeNativeChatTabStrip.js';
 import { attachDroxWorkingProgressGrid } from './droxNativeChatWorkingProgress.js';
+import { DROX_NATIVE_CHAT_TEST_IDS } from './droxNativeChatUiConstants.js';
 import {
 	applyIdeNativeChatTabTitles,
 	closeIdeNativeChatTab,
@@ -92,6 +93,9 @@ import {
 	pruneDroxIdeSessionHistoryGroups,
 	removeSessionsFromDroxIdeHistoryGroups,
 } from '../../common/droxIdeSessionHistoryGroups.js';
+import { DroxNativeChatToolsPanel } from './droxNativeChatToolsPanel.js';
+import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
+import { IDroxToolsSurfaceService } from '../../common/droxToolsSurfaceService.js';
 
 export class DroxNativeChatViewPane extends ViewPane {
 
@@ -117,6 +121,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 	private _startupSessionResolved = false;
 	private _awaitingWorkspaceForStartup = false;
 	private _startupSessionInFlight: Promise<void> | undefined;
+	private readonly _toolsPanel = new DroxNativeChatToolsPanel();
 
 	constructor(
 		options: IViewletViewOptions,
@@ -153,6 +158,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 		super.renderBody(container);
 
 		container.classList.add('drox-ide-native-chat');
+		container.setAttribute('data-testid', DROX_NATIVE_CHAT_TEST_IDS.idePanelRoot);
 		document.body.classList.add('drox-ide-native-chat-active');
 
 		this._tabStrip = this._register(new DroxIdeNativeChatTabStrip(container, {
@@ -183,6 +189,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 
 		const chatRoot = dom.append(container, dom.$('.drox-ide-native-chat-widget'));
 		chatRoot.classList.add('drox-discussion-shell');
+		chatRoot.setAttribute('data-testid', DROX_NATIVE_CHAT_TEST_IDS.discussionShell);
 		this._widget.render(chatRoot);
 		this._register(attachDroxWorkingProgressGrid(chatRoot));
 		this._register(this.onDidChangeBodyVisibility(visible => {
@@ -242,6 +249,27 @@ export class DroxNativeChatViewPane extends ViewPane {
 			sessionResource: DroxChatSessionUri.forSession(this._engineSessionId),
 			$mid: MarshalledId.ChatViewContext,
 		};
+	}
+
+	openToolsPanel(): void {
+		const folder = this.workspaceContextService.getWorkspace().folders[0];
+		if (!folder) {
+			this.notificationService.warn(localize('drox.nativeChat.toolsPanel.noWorkspace', 'Open a workspace folder to configure tools.'));
+			return;
+		}
+		const regulationService = this.instantiationService.invokeFunction(accessor => accessor.get(IDroxRegulationService));
+		const toolsSurfaceService = this.instantiationService.invokeFunction(accessor => accessor.get(IDroxToolsSurfaceService));
+		this.element.style.position = 'relative';
+		void regulationService.ensureHistoryLoaded(folder.uri.fsPath).then(() => {
+			this._toolsPanel.show({
+				root: this.element,
+				workspaceFsPath: folder.uri.fsPath,
+				workspaceResource: folder.uri,
+				configurationService: this.configurationService,
+				regulationService,
+				toolsSurfaceService,
+			});
+		});
 	}
 
 	async pickSession(): Promise<void> {

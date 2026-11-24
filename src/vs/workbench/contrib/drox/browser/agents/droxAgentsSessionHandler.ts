@@ -45,6 +45,7 @@ import { IDroxClientToolsService } from '../../common/droxClientToolsService.js'
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
+import { IDroxToolsSurfaceService } from '../../common/droxToolsSurfaceService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { IDroxUserAskService } from '../../common/droxUserAskService.js';
@@ -118,6 +119,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
 		@IDroxCodebaseContextService private readonly codebaseContextService: IDroxCodebaseContextService,
 		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
+		@IDroxToolsSurfaceService private readonly toolsSurfaceService: IDroxToolsSurfaceService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ILogService private readonly logService: ILogService,
 		@IFileService private readonly fileService: IFileService,
@@ -396,6 +398,7 @@ export class DroxAgentsSessionHandler extends Disposable implements IChatSession
 			fileService: this.fileService,
 			codebaseContextService: this.codebaseContextService,
 			regulationService: this.regulationService,
+			toolsSurfaceService: this.toolsSurfaceService,
 			configurationService: this.configurationService,
 			userHomeFsPath: this.pathService.userHome({ preferLocal: true }).fsPath,
 			resolveCodebaseForcePathPrefixes: ws =>

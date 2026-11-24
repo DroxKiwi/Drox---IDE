@@ -3,54 +3,52 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { RunOnceScheduler } from '../../../../../base/common/async.js';
 import { DisposableStore, IDisposable } from '../../../../../base/common/lifecycle.js';
 import { createDroxActivityGridElement } from '../droxActivityGrid.js';
 
 /**
- * Remplace le logo animé VS Code du pied de réponse par la grille 3×3 Drox.
- * Le texte reste celui des phrases Drox (`chat.thinking.phrases`).
- * Aucun noeud upstream n'est retiré : le logo est masqué en CSS.
+ * Avatar de réponse en chargement : grille 3×3 Drox à la place du logo VS Code.
+ * Les phrases (`chat.thinking.phrases`) sur `.chat-working-progress` restent texte seul —
+ * pas de second carré à côté de la phrase outil / fun copy.
  */
 export function attachDroxWorkingProgressGrid(root: HTMLElement): IDisposable {
 	const store = new DisposableStore();
-	const syncRunAvatar = (item: HTMLElement): void => {
+
+	const ensureResponseAvatarGrid = (item: HTMLElement): void => {
+		if (!item.classList.contains('chat-response-loading')) {
+			return;
+		}
 		const avatar = item.querySelector<HTMLElement>('.avatar-container');
-		if (!avatar) {
+		if (!avatar || avatar.querySelector(':scope > .drox-response-loading-grid')) {
 			return;
 		}
-		const loading = item.classList.contains('chat-response-loading');
-		let grid = avatar.querySelector<HTMLElement>(':scope > .drox-response-loading-grid');
-		if (loading) {
-			if (!grid) {
-				grid = createDroxActivityGridElement('activity-grid activity-grid-inline drox-response-loading-grid');
-				avatar.appendChild(grid);
-			}
-			for (const child of avatar.children) {
-				if (child !== grid) {
-					child.classList.add('drox-avatar-held');
-				}
-			}
-			return;
-		}
-		grid?.remove();
-		for (const child of avatar.children) {
-			child.classList.remove('drox-avatar-held');
-		}
+		avatar.appendChild(createDroxActivityGridElement('activity-grid activity-grid-inline drox-response-loading-grid'));
 	};
+
+	let observer: MutationObserver | undefined;
 	const apply = (): void => {
-		for (const row of root.querySelectorAll<HTMLElement>('.chat-working-progress')) {
-			if (row.querySelector(':scope > .activity-grid')) {
-				continue;
+		observer?.disconnect();
+		try {
+			for (const row of root.querySelectorAll<HTMLElement>('.chat-working-progress > .activity-grid')) {
+				row.remove();
 			}
-			row.prepend(createDroxActivityGridElement('activity-grid activity-grid-inline'));
-		}
-		for (const item of root.querySelectorAll<HTMLElement>('.interactive-item-container.interactive-response')) {
-			syncRunAvatar(item);
+			for (const item of root.querySelectorAll<HTMLElement>('.interactive-item-container.interactive-response')) {
+				ensureResponseAvatarGrid(item);
+			}
+		} finally {
+			if (observer) {
+				observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+			}
 		}
 	};
-	const observer = new MutationObserver(apply);
+
+	const scheduleApply = store.add(new RunOnceScheduler(apply, 0));
+
+	observer = new MutationObserver(() => scheduleApply.schedule());
 	observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-	store.add({ dispose: () => observer.disconnect() });
+	store.add({ dispose: () => observer?.disconnect() });
+
 	apply();
 	return store;
 }

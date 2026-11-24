@@ -113,6 +113,30 @@
 	color: var(--drox-thread-fg-muted);
 }
 
+.drox-agents-composer-panels-mount .general-settings-profile-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px 8px;
+	min-width: 0;
+}
+
+.drox-agents-composer-panels-mount .general-settings-profile-row > .general-settings-input,
+.drox-agents-composer-panels-mount .role-model-field-input-row > .role-model-panel-select {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.drox-agents-composer-panels-mount .general-settings-profile-suffix,
+.drox-agents-composer-panels-mount .role-model-engine-profile-suffix {
+	flex: 0 0 auto;
+	font-size: 10.5px;
+	color: var(--drox-thread-fg-muted);
+	opacity: 0.9;
+	white-space: nowrap;
+}
+
 .drox-agents-composer-panels-mount .role-model-field-input-row {
 	display: flex;
 	align-items: center;

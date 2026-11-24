@@ -3402,6 +3402,29 @@ body.drox-linear-run-active .msg-row-user.msg-user-bubble.is-last-user-sticky {
 	color: var(--vscode-descriptionForeground);
 }
 
+.general-settings-profile-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px 8px;
+	min-width: 0;
+}
+
+.general-settings-profile-row > .general-settings-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.general-settings-profile-suffix,
+.role-model-engine-profile-suffix {
+	flex: 0 0 auto;
+	font-size: 10.5px;
+	color: var(--vscode-descriptionForeground);
+	opacity: 0.9;
+	white-space: nowrap;
+}
+
 .general-settings-field-check {
 	flex-direction: row;
 	align-items: center;
