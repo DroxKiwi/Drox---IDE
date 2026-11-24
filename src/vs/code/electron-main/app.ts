@@ -713,11 +713,12 @@ export class CodeApplication extends Disposable {
 		this.logService.debug('args:', this.environmentMainService.args);
 		logNodeCompileCacheStatus(message => this.logService.info(message));
 
-		// Associate the program with the app user model id so that Windows
-		// matches it with pinned taskbar shortcuts. Use a distinct id in
-		// portable mode to not interfere with a regularly installed version.
+		// A packaged build must share its taskbar button with the pinned shortcut.
+		// From sources, that same id (KDDS.DroxIDE) wins over the window icon and
+		// shows the blank Windows glyph when the shortcut has no icon. Skip it
+		// so the dev window icon (resources/win32/code_150x150.png) is used.
 		const win32AppUserModelId = this.productService.win32AppUserModelId;
-		if (isWindows && win32AppUserModelId) {
+		if (isWindows && win32AppUserModelId && this.environmentMainService.isBuilt) {
 			app.setAppUserModelId(this.environmentMainService.isPortable ? `${win32AppUserModelId}.Portable` : win32AppUserModelId);
 		}
 

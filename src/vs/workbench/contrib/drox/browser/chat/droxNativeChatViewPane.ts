@@ -51,6 +51,7 @@ import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { DroxChatLayoutStore, DROX_CHAT_LAYOUT_VERSION } from '../droxChatLayoutStore.js';
 import { newSessionId } from '../droxChatTabs.js';
 import { DroxIdeNativeChatTabStrip } from './droxIdeNativeChatTabStrip.js';
+import { attachDroxWorkingProgressGrid } from './droxNativeChatWorkingProgress.js';
 import {
 	applyIdeNativeChatTabTitles,
 	closeIdeNativeChatTab,
@@ -183,6 +184,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 		const chatRoot = dom.append(container, dom.$('.drox-ide-native-chat-widget'));
 		chatRoot.classList.add('drox-discussion-shell');
 		this._widget.render(chatRoot);
+		this._register(attachDroxWorkingProgressGrid(chatRoot));
 		this._register(this.onDidChangeBodyVisibility(visible => {
 			this._widget?.setVisible(visible);
 		}));

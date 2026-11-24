@@ -207,6 +207,8 @@ import { SESSIONS_CHAT_CONTENT_HORIZONTAL_PADDING } from '../chatOptions.js';
 import { isIChatSessionFileChange2 } from '../../../../../common/chatSessionFileChange.js';
 // DROX-BEGIN
 import { DroxSetting } from '../../../../drox/common/droxConfiguration.js';
+import { findDroxArchitectLanguageModel, isDroxAgentsChatSessionType, createDroxAgentsChatInputToolbarHost, createDroxAgentsChatStatusBarHost, createDroxAgentsComposerQuickActionsHost, DroxAgentsChatInputToolbarHost, DroxAgentsChatStatusBarHost } from '../../../../drox/browser/agents/droxAgentsChatInputIntegration.js';
+import type { DroxAgentsComposerQuickActionsHost } from '../../../../drox/browser/agents/droxAgentsComposerQuickActions.js';
 // DROX-END
 
 const $ = dom.$;
@@ -384,6 +386,9 @@ export interface IChatInputPartOptions {
 	 * When true, the secondary toolbar (permissions picker) is hidden.
 	 */
 	isSessionsWindow?: boolean;
+
+	/** Drox discussion shell: Drox composer chips replace the session-target picker. */
+	droxNativeComposer?: boolean;
 	/**
 	 * Total horizontal gutter (in pixels) reserved outside the input box when
 	 * computing the editor width. Defaults account for the `.interactive-input-part`
@@ -2680,11 +2685,50 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 	}
 
 	// DROX-BEGIN
+	private _droxAgentsChatInputToolbarHost: DroxAgentsChatInputToolbarHost | undefined;
+	private _droxAgentsComposerQuickActionsHost: DroxAgentsComposerQuickActionsHost | undefined;
+	private _droxAgentsChatStatusBarHost: DroxAgentsChatStatusBarHost | undefined;
+	private readonly _droxArchitectModelRetry = this._register(new MutableDisposable());
+
 	private _usesDroxNativeComposer(): boolean {
-		return false;
+		return !!(this.options.isSessionsWindow || this.options.droxNativeComposer);
 	}
 
-	private _preferDroxArchitectModel(): void { }
+	private _syncDroxAgentsFollowUpInput(): void {
+		if (!this._usesDroxNativeComposer()) {
+			return;
+		}
+		const sessionType = this.getCurrentSessionType();
+		const sessionResource = this.getCurrentSessionResource();
+		this._droxAgentsChatInputToolbarHost?.mountIfNeeded(sessionType);
+		this._droxAgentsComposerQuickActionsHost?.mountIfNeeded(sessionType, sessionResource);
+		this._droxAgentsChatStatusBarHost?.mountIfNeeded(sessionType);
+	}
+
+	private _preferDroxArchitectModel(): void {
+		if (!this._usesDroxNativeComposer() || !isDroxAgentsChatSessionType(this.getCurrentSessionType())) {
+			return;
+		}
+		const preferred = findDroxArchitectLanguageModel(this.getModels(), this.configurationService, this.workspaceContextService);
+		if (!preferred) {
+			if (!this._droxArchitectModelRetry.value) {
+				this._droxArchitectModelRetry.value = this.languageModelsService.onDidChangeLanguageModels(() => {
+					const late = findDroxArchitectLanguageModel(this.getModels(), this.configurationService, this.workspaceContextService);
+					if (late) {
+						this._droxArchitectModelRetry.clear();
+						this.setCurrentLanguageModel(late, false);
+					}
+				});
+			}
+			return;
+		}
+		this._droxArchitectModelRetry.clear();
+		const current = this._currentLanguageModel.get();
+		if (current?.identifier === preferred.identifier) {
+			return;
+		}
+		this.setCurrentLanguageModel(preferred, false);
+	}
 	// DROX-END
 
 	private _getAriaLabel(): string {
@@ -3813,6 +3857,8 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			// this pool is restored
 			this.reinitializeIfOutsidePool(() => this.initSelectedModel());
 		}
+		this._syncDroxAgentsFollowUpInput();
+		this._preferDroxArchitectModel();
 	}
 
 	private restorePerTypeModelAfterViewModelAssignment(): void {
@@ -4637,6 +4683,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 						return customSecondaryItem;
 					}
 					if ((action.id === OpenSessionTargetPickerAction.ID || action.id === OpenDelegationPickerAction.ID) && action instanceof MenuItemAction) {
+						if (this._usesDroxNativeComposer()) {
+							return new HiddenActionViewItem(action);
+						}
 						const delegate: ISessionTypePickerDelegate = this.options.sessionTypePickerDelegate ?? {
 							getActiveSessionProvider: () => {
 								return this.getActiveSessionTypeForDelegation();
@@ -4662,6 +4711,9 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 						}
 						return picker;
 					} else if (action.id === OpenPermissionPickerAction.ID && action instanceof MenuItemAction) {
+						if (this._usesDroxNativeComposer()) {
+							return new HiddenActionViewItem(action);
+						}
 						const delegate: IPermissionPickerDelegate = {
 							currentPermissionLevel: this._currentPermissionLevel,
 							setPermissionLevel: (level: ChatPermissionLevel) => {
@@ -4752,6 +4804,40 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			}));
 			this.secondaryToolbar.getElement().classList.add('chat-secondary-input-toolbar');
 			this.secondaryToolbar.context = createChatInputToolbarContext(widget);
+			// DROX-BEGIN
+			if (this._usesDroxNativeComposer()) {
+				const quickActionsHost = createDroxAgentsComposerQuickActionsHost(
+					this.instantiationService,
+					this.configurationService,
+					inputContainer,
+					editorContainer,
+				);
+				if (quickActionsHost) {
+					this._register(quickActionsHost);
+					this._droxAgentsComposerQuickActionsHost = quickActionsHost;
+				}
+				const host = createDroxAgentsChatInputToolbarHost(
+					this.instantiationService,
+					this.configurationService,
+					toolbarsContainer,
+				);
+				if (host) {
+					this._register(host);
+					this._droxAgentsChatInputToolbarHost = host;
+				}
+				const statusHost = createDroxAgentsChatStatusBarHost(
+					this.instantiationService,
+					this.configurationService,
+					container,
+				);
+				if (statusHost) {
+					this._register(statusHost);
+					this._droxAgentsChatStatusBarHost = statusHost;
+				}
+				this._syncDroxAgentsFollowUpInput();
+				this._preferDroxArchitectModel();
+			}
+			// DROX-END
 			this._register(Event.runAndSubscribe(this.secondaryToolbar.onDidChangeMenuItems, () => {
 				if (!this.secondaryToolbar.hasPrimaryAction(OpenAgentHostAutoApprovePickerAction.ID)) {
 					agentHostPermissions.clear();

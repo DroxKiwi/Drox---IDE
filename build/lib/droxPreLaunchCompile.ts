@@ -5,7 +5,6 @@
 
 import path from 'path';
 import { promises as fs } from 'fs';
-import { useEsbuildTranspile } from '../buildConfig.ts';
 
 async function isEsmMainBundle(mainJsPath: string): Promise<boolean> {
 	try {
@@ -36,7 +35,7 @@ export async function ensureClientCompiled(options: {
 	}
 
 	const mainJs = path.join(options.rootDir, 'out', 'main.js');
-	if (missing.length === 0 && useEsbuildTranspile && !(await isEsmMainBundle(mainJs))) {
+	if (missing.length === 0 && !(await isEsmMainBundle(mainJs))) {
 		console.warn('[preLaunch] out/main.js is CommonJS (stale gulp output). Re-transpiling with esbuild...');
 		missing.push('out/main.js (stale CJS)');
 	}
@@ -46,9 +45,7 @@ export async function ensureClientCompiled(options: {
 	}
 	// `compile` is strict and may fail for non-runtime typing errors.
 	// Here we only need client artifacts for local launch.
-	const transpileCmd = useEsbuildTranspile
-		? ['run', 'transpile-client']
-		: ['run', 'gulp', '--', 'transpile-client'];
+	const transpileCmd = ['run', 'transpile-client'];
 	console.log(`[preLaunch] Missing ${missing.join(', ')} — running client transpile (npm ${transpileCmd.join(' ')})...`);
 	await options.runProcess(options.npm, transpileCmd);
 }

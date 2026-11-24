@@ -2493,7 +2493,8 @@ export class ChatWidget extends Disposable implements IChatWidget {
 						backgroundShells: derived(reader => this.backgroundActivityPillSections.read(reader)?.backgroundShells?.read(reader) ?? []),
 					},
 				},
-				stickyProgress: !this.viewOptions.renderInputOnTop && options.renderStyle !== 'minimal',
+				// DROX: le bandeau colle au-dessus du compositeur masque la fin de la reponse.
+				stickyProgress: !this.viewOptions.droxNativeComposer && !this.viewOptions.renderInputOnTop && options.renderStyle !== 'minimal',
 				defaultElementHeight: this.viewOptions.defaultElementHeight ?? 200,
 				overflowWidgetsDomNode: overflowWidgetsContainer,
 				styles: {
@@ -2964,6 +2965,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			defaultMode: this.viewOptions.defaultMode,
 			sessionTypePickerDelegate: this.viewOptions.sessionTypePickerDelegate,
 			isSessionsWindow: this.viewOptions.isSessionsWindow,
+			droxNativeComposer: this.viewOptions.droxNativeComposer,
 			inputPartHorizontalPadding: this.viewOptions.inputPartHorizontalPadding,
 			hostModelSelection: this.viewOptions.hostModelSelection,
 			deferredNotificationsEnabled: this.viewOptions.deferredNotificationsEnabled,

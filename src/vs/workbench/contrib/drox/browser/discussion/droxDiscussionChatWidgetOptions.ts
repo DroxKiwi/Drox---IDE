@@ -25,6 +25,7 @@ export function createDroxDiscussionChatWidgetOptions(kind: 'ide' | 'agents'): I
 		},
 		enableImplicitContext: true,
 		supportsChangingModes: false,
+		droxNativeComposer: true,
 		sessionTypePickerDelegate: {
 			getActiveSessionProvider: () => DROX_CHAT_SESSION_TYPE,
 		},

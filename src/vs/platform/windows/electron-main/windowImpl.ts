@@ -867,7 +867,9 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			if (config.minimized) {
 				options.show = false; // a window that is created visible takes focus
 			}
-			const iconPath = config.isSessionsWindow && isWindows ? join(this.environmentMainService.appRoot, 'resources/win32/sessions.ico') : undefined;
+			const iconPath = isWindows && !this.environmentMainService.isBuilt
+				? join(this.environmentMainService.appRoot, 'resources/win32/code_150x150.png')
+				: (config.isSessionsWindow && isWindows ? join(this.environmentMainService.appRoot, 'resources/win32/sessions.ico') : undefined);
 			if (iconPath) {
 				options.icon = iconPath;
 			}

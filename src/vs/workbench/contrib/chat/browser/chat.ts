@@ -401,6 +401,12 @@ export interface IChatWidgetViewOptions {
 	 */
 	isSessionsWindow?: boolean;
 
+	/**
+	 * Drox discussion shell: mount the Drox composer chips and hide the
+	 * VS Code session-target / mode / permission pickers.
+	 */
+	droxNativeComposer?: boolean;
+
 	/** Checked state of a permissions picker hosted outside the chat input. */
 	readonly sandboxToggleChecked?: IObservable<boolean>;
 
