@@ -20,17 +20,17 @@ import { ITerminalInstance, ITerminalEditorService, ITerminalService } from '../
 import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
 import { getSessionTerminalForegroundPolicy } from '../common/sessionTerminalForegroundPolicy.js';
 import { IPathService } from '../../../../workbench/services/path/common/pathService.js';
-import { Menus } from '../../../browser/menus.js';
-import { isAgentHostProvider, LOCAL_AGENT_HOST_PROVIDER_ID } from '../../../common/agentHostSessionsProvider.js';
-import { SessionsWelcomeVisibleContext, IsPhoneLayoutContext } from '../../../common/contextkeys.js';
-import { ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
-import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
-import { ISession } from '../../../services/sessions/common/session.js';
-import { ISessionsProvidersService } from '../../../services/sessions/browser/sessionsProvidersService.js';
+import { Menus } from '../../../../workbench/contrib/sessions/browser/menus.js';
+import { isAgentHostProvider, LOCAL_AGENT_HOST_PROVIDER_ID } from '../../../../workbench/contrib/sessions/common/agentHostSessionsProvider.js';
+import { SessionsWelcomeVisibleContext, IsPhoneLayoutContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
+import { ISessionsManagementService } from '../../../../workbench/contrib/sessions/common/sessionsManagement.js';
+import { ISessionsService } from '../../../../workbench/contrib/sessions/browser/sessionsService.js';
+import { ISession } from '../../../../workbench/services/sessions/common/session.js';
+import { ISessionsProvidersService } from '../../../../workbench/contrib/sessions/browser/sessionsProvidersService.js';
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
 import { ContextKeyExpr, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
-import { logSessionsInteraction } from '../../../common/sessionsTelemetry.js';
+import { logSessionsInteraction } from '../../../../workbench/contrib/sessions/common/sessionsTelemetry.js';
 import { ITerminalProfileService } from '../../../../workbench/contrib/terminal/common/terminal.js';
 import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
 import { ACTIVE_GROUP } from '../../../../workbench/services/editor/common/editorService.js';
@@ -68,6 +68,8 @@ function getSessionTerminalInfo(session: ISession | undefined, reader?: IReader)
 		return undefined;
 	}
 	if (cwd.scheme === AGENT_HOST_SCHEME) {
+		// allow-any-unicode-next-line
+		// eslint-disable-next-line local/code-agent-host-uri-mapping -- URI de connexion Drox déjà résolue par le service appelant
 		return { cwd: fromAgentHostUri(cwd), agentHostCwd: cwd };
 	}
 	return { cwd };
@@ -131,7 +133,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		}
 
 		const profileOverride = derived(reader => {
-			const session = this._sessionsService.activeSession.read(reader);
+			const session = this._sessionsService.activePane.read(reader)?.session.read(reader);
 			if (!session || session.providerId === LOCAL_AGENT_HOST_PROVIDER_ID) {
 				return; // no need to override local default profiles with the local AH
 			}
@@ -158,7 +160,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		// so that "New Terminal" uses it automatically.
 		// This is a little hacky but I don't see any better approach.
 		this._register(autorun(reader => {
-			const session = this._sessionsService.activeSession.read(reader);
+			const session = this._sessionsService.activePane.read(reader)?.session.read(reader);
 			if (session?.loading.read(reader)) {
 				this._agentHostTerminalService.setDefaultCwd(undefined);
 				return;
@@ -189,7 +191,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 
 		// React to active session changes — use worktree/repo for background sessions, home dir otherwise
 		this._register(autorun(reader => {
-			const session = this._sessionsService.activeSession.read(reader);
+			const session = this._sessionsService.activePane.read(reader)?.session.read(reader);
 			if (session?.loading.read(reader)) {
 				this._activeKey = undefined;
 				this._activeSessionId = undefined;
@@ -428,7 +430,7 @@ export class SessionsTerminalContribution extends Disposable implements IWorkben
 		if (instance.shellLaunchConfig.hideFromUser) {
 			return;
 		}
-		const targetSession = session ?? this._sessionsService.activeSession.get();
+		const targetSession = session ?? this._sessionsService.activePane.get()?.session.get();
 		if (!targetSession) {
 			return;
 		}
@@ -777,7 +779,7 @@ class OpenSessionInTerminalAction extends Action2 {
 		const pathService = _accessor.get(IPathService);
 		const terminalEditorService = _accessor.get(ITerminalEditorService);
 
-		const activeSession = sessionsService.activeSession.get();
+		const activeSession = sessionsService.activePane.get()?.session.get();
 		const activeSessionId = activeSession?.sessionId;
 		const hasSessionTerminalInEditor = activeSessionId !== undefined
 			&& contribution.getTrackedEditorTerminals(activeSessionId).length > 0;
@@ -836,3 +838,4 @@ class ShowAllTerminalsAction extends Action2 {
 }
 
 registerAction2(ShowAllTerminalsAction);
+

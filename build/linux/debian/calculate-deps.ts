@@ -5,11 +5,11 @@
 
 import { spawnSync } from 'child_process';
 // DROX-BEGIN
-import { constants, existsSync, statSync } from 'fs';
+import { constants, existsSync, mkdtempSync, statSync } from 'fs';
 // DROX-END
 import { tmpdir } from 'os';
 import path from 'path';
-import manifests from '../../../cgmanifest.json' with { type: 'json' };
+import { downloadChromiumFile } from '../../lib/chromiumSource.ts';
 import { additionalDeps } from './dep-lists.ts';
 import type { DebianArchString } from './types.ts';
 
@@ -18,6 +18,18 @@ export function generatePackageDeps(files: string[], arch: DebianArchString, chr
 	const additionalDepsSet = new Set(additionalDeps);
 	dependencies.push(additionalDepsSet);
 	return dependencies;
+}
+
+let dpkgShlibdepsScript: string | undefined;
+
+// Get the Chromium dpkg-shlibdeps file once per process.
+function getDpkgShlibdepsScript(): string {
+	if (!dpkgShlibdepsScript) {
+		const location = path.join(mkdtempSync(path.join(tmpdir(), 'dpkg-shlibdeps-')), 'dpkg-shlibdeps.pl');
+		downloadChromiumFile('third_party/dpkg-shlibdeps/dpkg-shlibdeps.pl', location);
+		dpkgShlibdepsScript = location;
+	}
+	return dpkgShlibdepsScript;
 }
 
 // Based on https://source.chromium.org/chromium/chromium/src/+/main:chrome/installer/linux/debian/calculate_package_deps.py.
@@ -31,23 +43,13 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
 		console.error('Tried to stat ' + binaryPath + ' but failed.');
 	}
 
-	// Get the Chromium dpkg-shlibdeps file.
-	const chromiumManifest = manifests.registrations.filter(registration => {
-		return registration.component.type === 'git' && registration.component.git!.name === 'chromium';
-	});
-// DROX-BEGIN
+	// DROX-BEGIN
+	// allow-any-unicode-next-line
+	// Utiliser le dpkg-shlibdeps.pl vendé dans le dépôt s'il est présent, sinon le téléchargement Chromium.
 	const vendoredDpkgShlibdeps = path.join(import.meta.dirname, 'dpkg-shlibdeps.pl');
-	let dpkgShlibdepsScriptLocation = vendoredDpkgShlibdeps;
-	if (!existsSync(vendoredDpkgShlibdeps)) {
-		const dpkgShlibdepsUrl = `https://raw.githubusercontent.com/chromium/chromium/${chromiumManifest[0].version}/third_party/dpkg-shlibdeps/dpkg-shlibdeps.pl`;
-		dpkgShlibdepsScriptLocation = `${tmpdir()}/dpkg-shlibdeps.pl`;
-		const result = spawnSync('curl', [dpkgShlibdepsUrl, '-o', dpkgShlibdepsScriptLocation]);
-		if (result.status !== 0) {
-			throw new Error('Cannot retrieve dpkg-shlibdeps. Stderr:\n' + result.stderr);
-		}
-// DROX-END
-	}
-	const cmd = [dpkgShlibdepsScriptLocation, '--ignore-weak-undefined'];
+	const dpkgShlibdepsScriptLocation = existsSync(vendoredDpkgShlibdeps) ? vendoredDpkgShlibdeps : getDpkgShlibdepsScript();
+	// DROX-END
+	const cmd = [dpkgShlibdepsScriptLocation, '--ignore-weak-undefined', '--ignore-missing-info'];
 	switch (arch) {
 		case 'amd64':
 			cmd.push(`-l${chromiumSysroot}/usr/lib/x86_64-linux-gnu`,
@@ -69,6 +71,7 @@ function calculatePackageDeps(binaryPath: string, arch: DebianArchString, chromi
 			break;
 	}
 	cmd.push(`-l${chromiumSysroot}/usr/lib`);
+	cmd.push(`-l${path.dirname(path.resolve(binaryPath))}`);
 	cmd.push(`-L${vscodeSysroot}/debian/libxkbfile1/DEBIAN/shlibs`);
 	cmd.push('-O', '-e', path.resolve(binaryPath));
 

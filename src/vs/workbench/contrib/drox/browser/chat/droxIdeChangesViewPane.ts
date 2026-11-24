@@ -25,7 +25,7 @@ import { IOpenerService } from '../../../../../platform/opener/common/opener.js'
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
 import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
 import { DroxChangesInlineDiffWidget } from '../../../../../sessions/contrib/providers/drox/browser/droxChangesInlineDiffWidget.js';
-import { ISessionFileChange } from '../../../../../sessions/services/sessions/common/session.js';
+import { ISessionFileChange } from '../../../../services/sessions/common/session.js';
 import { ViewPane } from '../../../../browser/parts/views/viewPane.js';
 import { IViewletViewOptions } from '../../../../browser/parts/views/viewsViewlet.js';
 import { IViewDescriptorService } from '../../../../common/views.js';

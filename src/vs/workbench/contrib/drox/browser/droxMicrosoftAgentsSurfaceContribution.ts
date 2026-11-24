@@ -7,6 +7,7 @@
 
 import { ChatViewContainerId, ChatViewId } from '../../chat/browser/chat.js';
 import { ChatConfiguration } from '../../chat/common/constants.js';
+import { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSettings.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IChatEntitlementService } from '../../../services/chat/common/chatEntitlementService.js';
@@ -18,7 +19,7 @@ import { isDroxAgentsWindowEnabled } from '../common/droxAgentsConfiguration.js'
 import { isDroxMicrosoftAgentsSurfaceEnabled } from '../common/droxMicrosoftAgentsSurface.js';
 import { RemoteAgentHostAutoConnectSettingId, RemoteAgentHostsEnabledSettingId } from '../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { TUNNEL_HOST_ENABLED_SETTING } from '../../chat/electron-browser/tunnelHost.contribution.js';
-import { ITunnelHostService } from '../../chat/common/tunnelHost.js';
+import { IRemoteTunnelService } from '../../../../platform/remoteTunnel/common/remoteTunnel.js';
 
 function hideMicrosoftChatSurfaces(
 	viewsService: IViewsService,
@@ -68,7 +69,7 @@ class DroxMicrosoftAgentsSurfaceContribution implements IWorkbenchContribution {
 		// D1 — Copilot / entitlement Microsoft off ; fenêtre Agents Drox on par défaut
 		chatEntitlementService.setForceHidden(true);
 		apply(ChatConfiguration.AgentEnabled, droxAgentsWindow);
-		apply(ChatConfiguration.GeneralPurposeAgentEnabled, false);
+		apply('chat.generalPurposeAgent.enabled', false);
 		apply(ChatConfiguration.AgentStatusEnabled, 'hidden');
 		apply(ChatConfiguration.UnifiedAgentsBar, false);
 		apply(ChatConfiguration.ChatViewSessionsEnabled, false);
@@ -76,7 +77,7 @@ class DroxMicrosoftAgentsSurfaceContribution implements IWorkbenchContribution {
 		apply('github.copilot.enable', false);
 		apply(ChatConfiguration.TitleBarSignInEnabled, false);
 		// D1.3 — Welcome sans Copilot ; ne pas bloquer la fenêtre Agents Drox
-		apply(ChatConfiguration.AIDisabled, !droxAgentsWindow);
+		apply(ChatAIDisabledSettingId, !droxAgentsWindow);
 		apply('workbench.welcomePage.experimentalOnboarding', false);
 		apply('workbench.welcomePage.walkthroughs.openOnInstall', false);
 		apply('settingsSync.enable', false);
@@ -111,7 +112,7 @@ class DroxTunnelHostShutdownContribution implements IWorkbenchContribution {
 	constructor(
 		@IProductService productService: IProductService,
 		@IConfigurationService configurationService: IConfigurationService,
-		@ITunnelHostService tunnelHostService: ITunnelHostService,
+		@IRemoteTunnelService remoteTunnelService: IRemoteTunnelService,
 	) {
 		if (isDroxMicrosoftAgentsSurfaceEnabled(productService)) {
 			return;
@@ -119,9 +120,12 @@ class DroxTunnelHostShutdownContribution implements IWorkbenchContribution {
 		if (configurationService.getValue<boolean>(TUNNEL_HOST_ENABLED_SETTING) !== false) {
 			return;
 		}
-		if (tunnelHostService.isSharing) {
-			void tunnelHostService.stopSharing();
-		}
+		// Successor to the removed ITunnelHostService: stop any restored dev tunnel sharing.
+		void remoteTunnelService.getMode().then(mode => {
+			if (mode.active) {
+				void remoteTunnelService.stopTunnel();
+			}
+		});
 	}
 }
 

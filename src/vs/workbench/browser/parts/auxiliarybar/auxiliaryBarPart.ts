@@ -29,12 +29,13 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
 import { AbstractPaneCompositePart, CompositeBarPosition } from '../paneCompositePart.js';
 import { ActionsOrientation } from '../../../../base/browser/ui/actionbar/actionbar.js';
 import { IPaneCompositeBarOptions } from '../paneCompositeBar.js';
-import { IMenuService, MenuId } from '../../../../platform/actions/common/actions.js';
+import { IMenuService, MenuId, SubmenuItemAction } from '../../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { getContextMenuActions } from '../../../../platform/actions/browser/menuEntryActionViewItem.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { VisibleViewContainersTracker } from '../visibleViewContainersTracker.js';
 import { Extensions } from '../../panecomposite.js';
+import { IToolBarResponsiveBehaviorOptions } from '../../../../base/browser/ui/toolbar/toolbar.js';
 
 // DROX-BEGIN
 /** Smallest chat width: 35% of the window, never under the workbench floor of 170. */
@@ -186,6 +187,17 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 				this.onDidChangeActivityBarLocation();
 			}
 		}
+	}
+
+	protected override getToolbarResponsiveBehavior(): IToolBarResponsiveBehaviorOptions {
+		return {
+			enabled: true,
+			kind: 'all',
+			minItems: 0,
+			overflowFrom: 'start',
+			actionMinWidth: 22,
+			getActionMinWidth: action => action instanceof SubmenuItemAction && action.item.isSplitButton ? 36 : undefined,
+		};
 	}
 
 	private resolveConfiguration(): IAuxiliaryBarPartConfiguration {

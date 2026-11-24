@@ -1,10 +1,13 @@
+// allow-any-unicode-next-line
 # Build Drox IDE - application packagée Windows x64 (F1)
 # Produit : ..\VSCode-win32-x64\ (parent du repo)
 #
 # Usage:
 #   .\scripts\build-release-win32.ps1
 #   .\scripts\build-release-win32.ps1 -SkipNpmInstall -SkipElectron
+// allow-any-unicode-next-line
 #   .\scripts\build-release-win32.ps1 -WithSetup    # enchaîne F2 (installeur user)
+// allow-any-unicode-next-line
 #   .\scripts\build-release-win32.ps1 -ForceCompile # rebundle out-vscode-min (requis après modif TS Drox)
 #
 # Prerequis : Node (voir .nvmrc), Rust, ~15-25 Go disque, 1-3 h selon machine.
@@ -139,6 +142,7 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 if ($WithInnoUpdaterOnly) {
 	if (-not (Test-Path $outDir)) {
+// allow-any-unicode-next-line
 		Write-Error "Dossier packagé introuvable : $outDir. Lancez d'abord un build complet sans -WithInnoUpdaterOnly."
 	}
 	Invoke-Gulp 'vscode-win32-x64-inno-updater'
@@ -190,6 +194,7 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $exe = Join-Path $outDir "$productShort.exe"
 if (-not (Test-Path $exe)) {
+// allow-any-unicode-next-line
 	# repli si le nom diffère
 	$exe = Get-ChildItem $outDir -Filter '*.exe' -ErrorAction SilentlyContinue |
 		Where-Object { $_.Name -notmatch 'inno|unins|elevate|Code Helper' } |
@@ -197,6 +202,7 @@ if (-not (Test-Path $exe)) {
 }
 
 if (-not $exe -or -not (Test-Path $exe)) {
+// allow-any-unicode-next-line
 	Write-Error "Exécutable principal introuvable sous $outDir"
 }
 
@@ -225,14 +231,18 @@ $forbidden = @(
 )
 foreach ($path in $forbidden) {
 	if (Test-Path $path) {
+// allow-any-unicode-next-line
 		Write-Warning "Présence inattendue (sources) : $path"
 	}
 }
 
 Write-Host ""
+// allow-any-unicode-next-line
 Write-Host "Build F1 terminé." -ForegroundColor Green
 Write-Host "  IDE      : $exe"
 if (Test-Path $droxBin) { Write-Host "  Moteur   : $droxBin" }
 Write-Host ""
 Write-Host 'Smoke manuel : lancer Drox IDE.exe, palette Drox Open Chat, run minimal.'
+// allow-any-unicode-next-line
 Write-Host "Checklist    : docs/1.3.0/finalisation/PLAN-DISTRIBUTION-LAUNCHER.md §8"
+

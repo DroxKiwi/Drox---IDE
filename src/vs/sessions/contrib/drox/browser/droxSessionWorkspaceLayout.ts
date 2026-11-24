@@ -10,7 +10,7 @@ import { Parts } from '../../../../workbench/services/layout/browser/layoutServi
 import { IEditorGroupsService } from '../../../../workbench/services/editor/common/editorGroupsService.js';
 import { IEditorService } from '../../../../workbench/services/editor/common/editorService.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
-import { CHANGES_VIEW_ID } from '../../changes/common/changes.js';
+import { CHANGES_VIEW_ID } from '../../../../workbench/contrib/sessions/common/changes.js';
 import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
 import { IDroxSessionLayoutSnapshot } from '../common/droxSessionBackgroundService.js';
 

@@ -13,8 +13,8 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { HiddenItemStrategy, MenuWorkbenchToolBar } from '../../../../../platform/actions/browser/toolbar.js';
 import { MenuItemAction } from '../../../../../platform/actions/common/actions.js';
-import { Menus } from '../../../../../sessions/browser/menus.js';
-import { SessionHeaderMetaActionViewItem } from '../../../../../sessions/browser/parts/sessionHeaderMetaActionViewItem.js';
+import { Menus } from '../../../sessions/browser/menus.js';
+import { ChatPillActionViewItem } from '../../../../browser/chatPills.js';
 import { isDroxNativeChatStackEnabled } from '../../common/droxAgentsConfiguration.js';
 import { shouldMountDroxComposerChrome } from '../../common/droxAgentsSession.js';
 import './media/droxAgentsComposerQuickActions.css';
@@ -70,7 +70,7 @@ export class DroxAgentsComposerQuickActionsHost extends Disposable {
 				menuOptions,
 				actionViewItemProvider: (action, options) => {
 					if (action instanceof MenuItemAction) {
-						return this.instantiationService.createInstance(SessionHeaderMetaActionViewItem, undefined, action, options);
+						return this.instantiationService.createInstance(ChatPillActionViewItem, undefined, action, options);
 					}
 					return undefined;
 				},

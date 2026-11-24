@@ -5,17 +5,18 @@
 import path from 'path';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import { getPnpmCommand } from './pnpm.ts';
 // DROX-BEGIN
 import { ensureElectronBuilt } from './droxElectronRuntime.ts';
 import { ensureClientCompiled } from './droxPreLaunchCompile.ts';
 // DROX-END
 
-const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const rootDir = path.resolve(import.meta.dirname, '..', '..');
 
-function runProcess(command: string, args: ReadonlyArray<string> = []) {
+function runPnpm(args: ReadonlyArray<string>, env: NodeJS.ProcessEnv = process.env) {
+	const pnpm = getPnpmCommand();
 	return new Promise<void>((resolve, reject) => {
-		const child = spawn(command, args, { cwd: rootDir, stdio: 'inherit', env: process.env, shell: process.platform === 'win32' });
+		const child = spawn(pnpm.command, [...pnpm.args, ...args], { cwd: rootDir, stdio: 'inherit', env, shell: pnpm.shell });
 		child.on('exit', err => !err ? resolve() : process.exit(err ?? 1));
 		child.on('error', reject);
 	});
@@ -32,19 +33,24 @@ async function exists(subdir: string) {
 
 async function ensureNodeModules() {
 	if (!(await exists('node_modules'))) {
-		await runProcess(npm, ['ci']);
+		// pnpm doesn't pass --frozen-lockfile on to the installs of the separate install roots that
+		// the postinstall runs; the environment variable reaches them.
+		await runPnpm(['install', '--frozen-lockfile'], { ...process.env, PNPM_CONFIG_FROZEN_LOCKFILE: 'true' });
 	}
 }
 
 async function getElectron() {
-	await runProcess(npm, ['run', 'electron']);
+	const { shouldDownloadElectron } = await import('./electronVersion.ts');
+	if (shouldDownloadElectron(rootDir)) {
+		await runPnpm(['run', 'electron']);
+	}
 }
 
 async function main() {
 	await ensureNodeModules();
 	// DROX-BEGIN
 	await ensureElectronBuilt({ rootDir, runElectron: getElectron });
-	await ensureClientCompiled({ rootDir, npm, runProcess });
+	await ensureClientCompiled({ rootDir, npm: getPnpmCommand().command, runProcess: (_command: string, args: readonly string[]) => runPnpm(args) });
 	// DROX-END
 
 	// Can't require this until after dependencies are installed

@@ -10,7 +10,7 @@ import { Emitter } from '../../../../../base/common/event.js';
 import { constObservable, observableValue } from '../../../../../base/common/observable.js';
 import { IAgentHostTerminalService } from '../../../../../workbench/contrib/terminal/browser/agentHostTerminalService.js';
 import { ITerminalProfileService } from '../../../../../workbench/contrib/terminal/common/terminal.js';
-import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
+import { ISessionsProvidersService } from '../../../../../workbench/contrib/sessions/browser/sessionsProvidersService.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { mock } from '../../../../../base/test/common/mock.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
@@ -19,7 +19,7 @@ import { ITerminalInstance, ITerminalService } from '../../../../../workbench/co
 import { ITerminalCapabilityStore, ICommandDetectionCapability, TerminalCapability } from '../../../../../platform/terminal/common/capabilities/capabilities.js';
 import { toAgentHostUri } from '../../../../../platform/agentHost/common/agentHostUri.js';
 import { AgentSessionProviders } from '../../../../../workbench/contrib/chat/browser/agentSessions/agentSessions.js';
-import { IChat, ISession, ISessionWorkspace } from '../../../../services/sessions/common/session.js';
+import { ChatInteractivity, IChat, ISession, ISessionWorkspace } from '../../../../../workbench/services/sessions/common/session.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { SessionsTerminalContribution } from '../../browser/droxSessionsTerminalContribution.js';
 import { TestPathService } from '../../../../../workbench/test/browser/workbenchTestServices.js';
@@ -27,8 +27,8 @@ import { IPathService } from '../../../../../workbench/services/path/common/path
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { MockContextKeyService } from '../../../../../platform/keybinding/test/common/mockKeybindingService.js';
 import { IViewsService } from '../../../../../workbench/services/views/common/viewsService.js';
-import { IActiveSession, ISessionsChangeEvent, ISessionsManagementService } from '../../../../services/sessions/common/sessionsManagement.js';
-import { ISessionsService } from '../../../../services/sessions/browser/sessionsService.js';
+import { IActiveSession, ISessionsChangeEvent, ISessionsManagementService } from '../../../../../workbench/contrib/sessions/common/sessionsManagement.js';
+import { ISessionsService } from '../../../../../workbench/contrib/sessions/browser/sessionsService.js';
 
 const HOME_DIR = URI.file('/home/user');
 
@@ -84,6 +84,10 @@ function makeAgentSession(opts: {
 		checkpoints: observableValue('test.checkpoints', undefined),
 		lastTurnEnd: observableValue('test.lastTurnEnd', undefined),
 		description: observableValue('test.description', undefined),
+		workspace: constObservable(undefined),
+		changesets: constObservable([]),
+		modelSource: constObservable(undefined),
+		interactivity: constObservable(ChatInteractivity.Full),
 	} satisfies IChat;
 	const session = {
 		sessionId: opts.sessionId ?? 'test:session',
@@ -103,10 +107,8 @@ function makeAgentSession(opts: {
 			} satisfies ISessionWorkspace
 			: undefined),
 		title: chat.title,
-		updatedAt: chat.updatedAt,
+		updatedAt: observableValue('test.updatedAt', new Date()),
 		status: chat.status,
-		changesets: constObservable([]),
-		changes: chat.changes,
 		modelId: chat.modelId,
 		mode: chat.mode,
 		loading: observableValue('test.loading', opts.loading ?? false),
@@ -117,7 +119,10 @@ function makeAgentSession(opts: {
 		chats: observableValue('test.chats', [chat]),
 		activeChat: observableValue('test.activeChat', chat),
 		mainChat: constObservable(chat),
-		capabilities: { supportsMultipleChats: false },
+		capabilities: constObservable({ supportsMultipleChats: false }),
+		harness: 'test',
+		environment: 'local',
+		application: constObservable({ id: 'test', label: 'Test' }),
 		isCreated: observableValue('test.isCreated', true),
 		sticky: observableValue('test.sticky', false),
 	} satisfies TestActiveSession;
@@ -146,6 +151,10 @@ function makeNonAgentSession(opts: { repository?: URI; worktree?: URI; providerT
 		checkpoints: observableValue('test.checkpoints', undefined),
 		lastTurnEnd: observableValue('test.lastTurnEnd', undefined),
 		description: observableValue('test.description', undefined),
+		workspace: constObservable(undefined),
+		changesets: constObservable([]),
+		modelSource: constObservable(undefined),
+		interactivity: constObservable(ChatInteractivity.Full),
 	} satisfies IChat;
 	const session = {
 		sessionId: opts.sessionId ?? 'test:non-agent',
@@ -163,10 +172,8 @@ function makeNonAgentSession(opts: { repository?: URI; worktree?: URI; providerT
 				requiresWorkspaceTrust: false,
 			} as ISessionWorkspace : undefined),
 		title: chat.title,
-		updatedAt: chat.updatedAt,
+		updatedAt: observableValue('test.updatedAt', new Date()),
 		status: chat.status,
-		changesets: constObservable([]),
-		changes: chat.changes,
 		modelId: chat.modelId,
 		mode: chat.mode,
 		loading: observableValue('test.loading', false),
@@ -176,7 +183,10 @@ function makeNonAgentSession(opts: { repository?: URI; worktree?: URI; providerT
 		description: chat.description,
 		chats: observableValue('test.chats', [chat]),
 		mainChat: constObservable(chat),
-		capabilities: { supportsMultipleChats: false },
+		capabilities: constObservable({ supportsMultipleChats: false }),
+		harness: 'test',
+		environment: 'local',
+		application: constObservable({ id: 'test', label: 'Test' }),
 	} satisfies ISession;
 	return session;
 }
@@ -271,7 +281,6 @@ suite('DroxSessionsTerminalContribution', () => {
 			override getSessions(): ISession[] { return [...allSessions]; }
 		});
 		instantiationService.stub(ISessionsService, new class extends mock<ISessionsService>() {
-			override readonly activeSession = activeSessionObs;
 		});
 
 		instantiationService.stub(ITerminalService, new class extends mock<ITerminalService>() {
@@ -387,7 +396,7 @@ suite('DroxSessionsTerminalContribution', () => {
 
 	test('creates a terminal at the worktree for a Claude session', async () => {
 		const worktreeUri = URI.file('/worktree');
-		const session = makeAgentSession({ worktree: worktreeUri, repository: URI.file('/repo'), providerType: AgentSessionProviders.Claude });
+		const session = makeAgentSession({ worktree: worktreeUri, repository: URI.file('/repo'), providerType: AgentSessionProviders.AgentHostClaude });
 		activeSessionObs.set(session, undefined);
 		await tick();
 
@@ -397,7 +406,7 @@ suite('DroxSessionsTerminalContribution', () => {
 
 	test('falls back to repository when worktree is undefined for a Claude session', async () => {
 		const repoUri = URI.file('/repo');
-		const session = makeAgentSession({ repository: repoUri, providerType: AgentSessionProviders.Claude });
+		const session = makeAgentSession({ repository: repoUri, providerType: AgentSessionProviders.AgentHostClaude });
 		activeSessionObs.set(session, undefined);
 		await tick();
 

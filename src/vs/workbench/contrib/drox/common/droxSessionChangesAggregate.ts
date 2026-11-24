@@ -7,7 +7,7 @@
 
 import { URI } from '../../../../base/common/uri.js';
 import { IDroxFileChangePayload } from './droxFileChange.js';
-import { ISessionFileChange } from '../../../../sessions/services/sessions/common/session.js';
+import { ISessionFileChange } from '../../../services/sessions/common/session.js';
 import { normalizeWindowsFsPath } from './droxPathUtil.js';
 
 export function buildAggregatedSessionFileChanges(events: readonly IDroxFileChangePayload[]): ISessionFileChange[] {

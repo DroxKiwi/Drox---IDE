@@ -30,7 +30,10 @@ import { IChatContentPart, IChatContentPartRenderContext } from './chatContentPa
 import { renderFileWidgets } from './chatInlineAnchorWidget.js';
 import { IChatMarkdownAnchorService } from './chatMarkdownAnchorService.js';
 import { CollapsibleListPool } from './chatReferencesContentPart.js';
-import { buildPhrasePool, createThinkingIcon, getToolInvocationIcon } from './chatThinkingContentPart.js';
+import { getToolInvocationIcon } from './toolInvocationParts/chatToolPartUtilities.js';
+import { buildPhrasePool } from './chatThinkingContentPart.js';
+import { createThinkingIcon } from './chatThinkingStyleContentPart.js';
+import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
 import { ChatToolInvocationPart } from './toolInvocationParts/chatToolInvocationPart.js';
 import './media/droxChatSubagentContent.css';
 
@@ -202,18 +205,19 @@ export class DroxChatSubagentContentPart extends ChatCollapsibleContentPart impl
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IOpenerService private readonly openerService: IOpenerService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
+		@ITelemetryService telemetryService: ITelemetryService,
 	) {
 		// Extract description, agentName, and prompt from toolInvocation
 		const { description, isDefaultDescription, agentName, prompt, modelName } = DroxChatSubagentContentPart.extractSubagentInfo(toolInvocation);
 		const initialResultPath = toolInvocation.toolSpecificData?.kind === 'subagent'
-			? toolInvocation.toolSpecificData.resultPath
+			? toolInvocation.toolSpecificData.chatResource
 			: undefined;
 
 		// Build title: "AgentName: description" or "Subagent: description"
 		const rawPrefix = agentName || localize('chat.subagent.prefix', 'Subagent');
 		const prefix = rawPrefix.charAt(0).toUpperCase() + rawPrefix.slice(1);
 		const initialTitle = `${prefix}: ${description}`;
-		super(initialTitle, context, undefined, hoverService, configurationService);
+		super(initialTitle, context, undefined, hoverService, configurationService, telemetryService);
 
 		if (initialResultPath) {
 			this.resultPath = initialResultPath;
@@ -420,7 +424,8 @@ export class DroxChatSubagentContentPart extends ChatCollapsibleContentPart impl
 
 		// Insert at the beginning of the wrapper (after the start boundary if present)
 		if (this.wrapper) {
-			// eslint-disable-next-line no-restricted-syntax -- boundary markers are sibling DOM inserts
+			// allow-any-unicode-next-line
+			// eslint-disable-next-line eslint-js/no-restricted-syntax -- nœud DOM déjà construit, pas de reconstruction.
 			const startBoundary = this.wrapper.querySelector('.chat-subagent-boundary-start');
 			if (startBoundary?.nextSibling) {
 				this.wrapper.insertBefore(this.promptContainer, startBoundary.nextSibling);
@@ -489,7 +494,8 @@ export class DroxChatSubagentContentPart extends ChatCollapsibleContentPart impl
 	}
 
 	private ensureEndBoundary(): void {
-		// eslint-disable-next-line no-restricted-syntax -- boundary markers are sibling DOM inserts
+		// allow-any-unicode-next-line
+		// eslint-disable-next-line eslint-js/no-restricted-syntax -- nœud DOM déjà construit, pas de reconstruction.
 		if (!this.wrapper || this.wrapper.querySelector('.chat-subagent-boundary-end')) {
 			return;
 		}
@@ -765,8 +771,8 @@ export class DroxChatSubagentContentPart extends ChatCollapsibleContentPart impl
 							this.modelName = toolInvocation.toolSpecificData.modelName;
 							this.updateHover();
 						}
-						if (toolInvocation.toolSpecificData.resultPath) {
-							this.resultPath = toolInvocation.toolSpecificData.resultPath;
+						if (toolInvocation.toolSpecificData.chatResource) {
+							this.resultPath = toolInvocation.toolSpecificData.chatResource;
 						}
 					}
 
@@ -812,8 +818,8 @@ export class DroxChatSubagentContentPart extends ChatCollapsibleContentPart impl
 						}
 						this.updateTitle();
 					}
-					if (toolInvocation.toolSpecificData.resultPath) {
-						this.resultPath = toolInvocation.toolSpecificData.resultPath;
+					if (toolInvocation.toolSpecificData.chatResource) {
+						this.resultPath = toolInvocation.toolSpecificData.chatResource;
 					}
 					// Live Explore notes / thinking (progress → toolSpecificData.result).
 					if (this.isActive && toolInvocation.toolSpecificData.result) {
@@ -823,8 +829,8 @@ export class DroxChatSubagentContentPart extends ChatCollapsibleContentPart impl
 			}));
 		} else if (toolInvocation.toolSpecificData?.kind === 'subagent' && toolInvocation.toolSpecificData.result) {
 			// Render the persisted result for serialized invocations
-			if (toolInvocation.toolSpecificData.resultPath) {
-				this.resultPath = toolInvocation.toolSpecificData.resultPath;
+			if (toolInvocation.toolSpecificData.chatResource) {
+				this.resultPath = toolInvocation.toolSpecificData.chatResource;
 			}
 			this.renderResultText(toolInvocation.toolSpecificData.result, this.resultPath);
 			// Already complete, mark as inactive
@@ -952,7 +958,8 @@ export class DroxChatSubagentContentPart extends ChatCollapsibleContentPart impl
 
 		// With lazy rendering, wrapper may not be created yet if content hasn't been expanded
 		if (this.wrapper) {
-			// eslint-disable-next-line no-restricted-syntax -- boundary markers are sibling DOM inserts
+			// allow-any-unicode-next-line
+			// eslint-disable-next-line eslint-js/no-restricted-syntax -- nœud DOM déjà construit, pas de reconstruction.
 			const endBoundary = this.wrapper.querySelector('.chat-subagent-boundary-end');
 			if (endBoundary) {
 				this.wrapper.insertBefore(this.resultContainer, endBoundary);
@@ -1178,7 +1185,7 @@ export class DroxChatSubagentContentPart extends ChatCollapsibleContentPart impl
 
 		// Wrap with icon like thinking parts do
 		const itemWrapper = $('.chat-thinking-tool-wrapper');
-		const icon = getToolInvocationIcon(toolInvocation.toolId, toolInvocation.icon);
+		const icon = getToolInvocationIcon(toolInvocation.toolId, { icon: toolInvocation.icon });
 		const iconElement = createThinkingIcon(icon);
 		itemWrapper.appendChild(content);
 

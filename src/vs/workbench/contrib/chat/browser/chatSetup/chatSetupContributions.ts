@@ -39,26 +39,29 @@ import { GitHubPaths, IDefaultAccountService } from '../../../../../platform/def
 import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
 import { ToggleTitleBarConfigAction } from '../../../../browser/parts/titlebar/titlebarActions.js';
+import { ACCOUNTS_SHARED_SIGN_IN_GROUP } from '../../../../common/activity.js';
 import { IWorkbenchContribution } from '../../../../common/contributions.js';
 import { IViewDescriptorService, ViewContainerLocation } from '../../../../common/views.js';
 import { ChatEntitlement, ChatEntitlementContext, ChatEntitlementContextKeys, ChatEntitlementRequests, ChatEntitlementService, IChatEntitlementService, isProUser } from '../../../../services/chat/common/chatEntitlementService.js';
 import { EnablementState, IWorkbenchExtensionEnablementService } from '../../../../services/extensionManagement/common/extensionManagement.js';
 import { ExtensionUrlHandlerOverrideRegistry, IExtensionUrlHandlerOverride } from '../../../../services/extensions/browser/extensionUrlHandler.js';
 import { IExtensionService } from '../../../../services/extensions/common/extensions.js';
+import { CONTEXT_DEFAULT_ACCOUNT_STATE, DefaultAccountStatus } from '../../../../services/accounts/browser/defaultAccount.js';
 import { IHostService } from '../../../../services/host/browser/host.js';
 import { IWorkbenchLayoutService, Parts } from '../../../../services/layout/browser/layoutService.js';
 import { InEditorZenModeContext } from '../../../../common/contextkeys.js';
 import { ILifecycleService } from '../../../../services/lifecycle/common/lifecycle.js';
 import { IPreferencesService } from '../../../../services/preferences/common/preferences.js';
 import { IExtension, IExtensionsWorkbenchService } from '../../../extensions/common/extensions.js';
+import { UpdateTitleBarEditorVisibleContext } from '../../../update/common/update.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { IChatSessionsService } from '../../common/chatSessionsService.js';
-import { ChatAgentLocation, ChatConfiguration, ChatModeKind } from '../../common/constants.js';
+import { ChatAIDisabledSettingId, ChatAgentLocation, ChatConfiguration, ChatModeKind } from '../../common/constants.js';
 import { CHAT_CATEGORY, CHAT_SETUP_ACTION_ID, CHAT_SETUP_SUPPORT_ANONYMOUS_ACTION_ID } from '../actions/chatActions.js';
 import { ChatViewContainerId, IChatWidget, IChatWidgetService } from '../chat.js';
 import { ChatInputNotificationSeverity, IChatInputNotificationService } from '../widget/input/chatInputNotificationService.js';
 import { chatViewsWelcomeRegistry } from '../viewsWelcome/chatViewsWelcome.js';
-import { buildUpgradeUrlWithRedirect, ChatSetupAnonymous, ChatSetupStrategy, refreshTokens } from './chatSetup.js';
+import { buildUpgradeUrlWithRedirect, ChatSetupAnonymous, ChatSetupSource, ChatSetupStrategy, IChatSetupCommandOptions, IChatSetupResult, refreshTokens } from './chatSetup.js';
 import { ChatSetupController } from './chatSetupController.js';
 import { GrowthSessionController, registerGrowthSession } from './chatSetupGrowthSession.js';
 import { AICodeActionsHelper, AINewSymbolNamesProvider, ChatCodeActionsProvider, SetupAgent } from './chatSetupProviders.js';
@@ -69,6 +72,15 @@ const defaultChat = {
 };
 
 const SIGN_IN_TITLE_BAR_ACTION_ID = 'workbench.action.chat.signInIndicator';
+
+export const ChatSetupFromAccountsWhen = ContextKeyExpr.and(
+	ChatContextKeys.Setup.hidden.negate(),
+	ChatContextKeys.Setup.disabledInWorkspace.negate(),
+	CONTEXT_DEFAULT_ACCOUNT_STATE.notEqualsTo(DefaultAccountStatus.Available),
+	// DROX-BEGIN
+	DroxCopilotSignInHiddenContext.negate(),
+	// DROX-END
+);
 
 export class ChatSetupContribution extends Disposable implements IWorkbenchContribution {
 
@@ -243,7 +255,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				});
 			}
 
-			override async run(accessor: ServicesAccessor, mode?: ChatModeKind | string, options?: { forceSignInDialog?: boolean; additionalScopes?: readonly string[]; forceAnonymous?: ChatSetupAnonymous; inputValue?: string; dialogIcon?: ThemeIcon; dialogTitle?: string; setupStrategy?: ChatSetupStrategy; disableCloseButton?: boolean; onSignInStarted?: () => void }): Promise<boolean> {
+			override async run(accessor: ServicesAccessor, mode?: ChatModeKind | string, options?: IChatSetupCommandOptions): Promise<boolean | IChatSetupResult> {
 				const widgetService = accessor.get(IChatWidgetService);
 				const instantiationService = accessor.get(IInstantiationService);
 				const dialogService = accessor.get(IDialogService);
@@ -252,7 +264,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				const configurationService = accessor.get(IConfigurationService);
 
 				await context.update({ hidden: false });
-				configurationService.updateValue(ChatConfiguration.AIDisabled, false);
+				configurationService.updateValue(ChatAIDisabledSettingId, false);
 
 				if (mode) {
 					const chatWidget = await widgetService.revealWidget();
@@ -271,8 +283,12 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				}
 
 				const setup = ChatSetup.getInstance(instantiationService, context, controller);
-				const { success } = await setup.run(options);
-				if (success === false && !lifecycleService.willShutdown) {
+				const result = await setup.run({ telemetrySource: ChatSetupSource.Command, ...options });
+				if (options?.returnResult) {
+					return result;
+				}
+				const { success } = result;
+				if (success === false && !result.errorAlreadyHandled && !lifecycleService.willShutdown) {
 					const { confirmed } = await dialogService.confirm({
 						type: Severity.Error,
 						message: localize('setupErrorDialog', "Chat setup failed. Would you like to try again?"),
@@ -309,7 +325,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				});
 			}
 
-			override async run(accessor: ServicesAccessor, options?: { dialogIcon?: ThemeIcon; dialogTitle?: string; setupStrategy?: ChatSetupStrategy }): Promise<unknown> {
+			override async run(accessor: ServicesAccessor, options?: { dialogIcon?: ThemeIcon; dialogTitle?: string; setupStrategy?: ChatSetupStrategy; telemetrySource?: ChatSetupSource }): Promise<unknown> {
 				const commandService = accessor.get(ICommandService);
 				const telemetryService = accessor.get(ITelemetryService);
 				const chatEntitlementService = accessor.get(IChatEntitlementService);
@@ -317,6 +333,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: CHAT_SETUP_ACTION_ID, from: 'api' });
 
 				return commandService.executeCommand(CHAT_SETUP_ACTION_ID, undefined, {
+					telemetrySource: ChatSetupSource.AnonymousCommand,
 					forceAnonymous: chatEntitlementService.anonymous ? ChatSetupAnonymous.EnabledWithDialog : undefined,
 					...options
 				});
@@ -338,7 +355,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 				telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: CHAT_SETUP_ACTION_ID, from: 'api' });
 
-				return commandService.executeCommand(CHAT_SETUP_ACTION_ID, undefined, { forceSignInDialog: true });
+				return commandService.executeCommand(CHAT_SETUP_ACTION_ID, undefined, { forceSignInDialog: true, telemetrySource: ChatSetupSource.ForcedSignInCommand });
 			}
 		}
 
@@ -369,16 +386,9 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 					title: localize2('triggerChatSetupFromAccounts', "Sign in to use GitHub Copilot..."),
 					menu: {
 						id: MenuId.AccountsContext,
-						group: '2_copilot',
-						when: ContextKeyExpr.and(
-							ChatContextKeys.Setup.hidden.negate(),
-							ChatContextKeys.Setup.disabledInWorkspace.negate(),
-							ChatContextKeys.Setup.completed.negate(),
-							// DROX-BEGIN
-							ChatContextKeys.Entitlement.signedOut,
-							DroxCopilotSignInHiddenContext.negate(),
-							// DROX-END
-						)
+						group: ACCOUNTS_SHARED_SIGN_IN_GROUP,
+						// Keep Copilot sign-in available after prior setup and alongside non-Copilot models.
+						when: ChatSetupFromAccountsWhen,
 					}
 				});
 			}
@@ -389,7 +399,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 				telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: CHAT_SETUP_ACTION_ID, from: 'accounts' });
 
-				return commandService.executeCommand(CHAT_SETUP_ACTION_ID);
+				return commandService.executeCommand(CHAT_SETUP_ACTION_ID, undefined, { telemetrySource: ChatSetupSource.Accounts });
 			}
 		}
 
@@ -404,19 +414,20 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 					f1: false,
 					menu: [{
 						id: MenuId.TitleBarAdjacentCenter,
-						order: 0, // same position as the update button
+						order: 0,
 						when: ContextKeyExpr.and(
 							IsWebContext.negate(),
 							ChatContextKeys.Entitlement.signedOut,
+							CONTEXT_DEFAULT_ACCOUNT_STATE.notEqualsTo(DefaultAccountStatus.Available), // hide only when signed in (a default GitHub account is present); still shown while signed out or before the account state resolves, incl. untrusted workspaces — no auth prompt
 							ChatEntitlementContextKeys.hasByokModels.negate(),
 							ChatContextKeys.Setup.hidden.negate(),
 							ChatContextKeys.Setup.disabledInWorkspace.negate(),
 							ContextKeyExpr.equals(`config.${ChatConfiguration.TitleBarSignInEnabled}`, true),
+							UpdateTitleBarEditorVisibleContext.negate(),
+							InEditorZenModeContext.negate(),
 							// DROX-BEGIN
 							DroxCopilotSignInHiddenContext.negate(),
 							// DROX-END
-							ContextKeyExpr.has('updateTitleBar').negate(),
-							InEditorZenModeContext.negate(),
 						),
 					}]
 				});
@@ -428,7 +439,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 				telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: CHAT_SETUP_ACTION_ID, from: 'titlebar' });
 
-				return commandService.executeCommand(CHAT_SETUP_ACTION_ID);
+				return commandService.executeCommand(CHAT_SETUP_ACTION_ID, undefined, { telemetrySource: ChatSetupSource.TitleBar });
 			}
 		}
 
@@ -491,6 +502,9 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: 'workbench.action.chat.upgradePlan', from: 'command' });
 
 				const baseUrl = defaultAccountService.resolveGitHubUrl(GitHubPaths.copilotUpgrade);
+				if (!baseUrl) {
+					throw new Error(localize('githubUrlUnavailable', "The GitHub Enterprise URL is unavailable. Sign in and try again."));
+				}
 				const upgradeUrl = buildUpgradeUrlWithRedirect(baseUrl, productService.urlProtocol, productService.quality);
 				openerService.open(upgradeUrl);
 
@@ -557,7 +571,11 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				const telemetryService = accessor.get(ITelemetryService);
 				const defaultAccountService = accessor.get(IDefaultAccountService);
 				telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: 'workbench.action.chat.manageAdditionalSpend', from: 'command' });
-				openerService.open(URI.parse(defaultAccountService.resolveGitHubUrl(GitHubPaths.billingBudgets)));
+				const budgetsUrl = defaultAccountService.resolveGitHubUrl(GitHubPaths.billingBudgets);
+				if (!budgetsUrl) {
+					throw new Error(localize('githubUrlUnavailable', "The GitHub Enterprise URL is unavailable. Sign in and try again."));
+				}
+				openerService.open(URI.parse(budgetsUrl));
 			}
 		}
 
@@ -603,7 +621,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 						break;
 					}
 					case 'chat.internal.review': {
-						const result = await commandService.executeCommand(CHAT_SETUP_SUPPORT_ANONYMOUS_ACTION_ID);
+						const result = await commandService.executeCommand(CHAT_SETUP_SUPPORT_ANONYMOUS_ACTION_ID, { telemetrySource: ChatSetupSource.CodeReview });
 						if (result) {
 							await commandService.executeCommand(actualCommand);
 						}
@@ -745,7 +763,7 @@ class ChatSetupExtensionUrlHandler implements IExtensionUrlHandlerOverride {
 			return false;
 		}
 
-		await this.commandService.executeCommand(CHAT_SETUP_ACTION_ID, agentParam, inputParam ? { inputValue: inputParam } : undefined);
+		await this.commandService.executeCommand(CHAT_SETUP_ACTION_ID, agentParam, { inputValue: inputParam || undefined, telemetrySource: ChatSetupSource.Url });
 		return true;
 	}
 
@@ -797,7 +815,7 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 	}
 
 	private handleChatDisabled(fromEvent: boolean): void {
-		const chatDisabled = this.configurationService.inspect(ChatConfiguration.AIDisabled);
+		const chatDisabled = this.configurationService.inspect(ChatAIDisabledSettingId);
 		if (chatDisabled.value === true) {
 			this.maybeEnableOrDisableExtension(typeof chatDisabled.workspaceValue === 'boolean' ? EnablementState.DisabledWorkspace : EnablementState.DisabledGlobally);
 			if (fromEvent) {
@@ -812,7 +830,7 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 
 		// Configuration changes
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (!e.affectsConfiguration(ChatConfiguration.AIDisabled)) {
+			if (!e.affectsConfiguration(ChatAIDisabledSettingId)) {
 				return;
 			}
 
@@ -829,11 +847,11 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 			const defaultChatExtension = this.extensionsWorkbenchService.local.find(value => ExtensionIdentifier.equals(value.identifier.id, defaultChat.chatExtensionId));
 			if (defaultChatExtension?.local && this.extensionEnablementService.isEnabled(defaultChatExtension.local)) {
 				if (defaultChatExtension.enablementState === EnablementState.EnabledWorkspace) {
-					if (this.configurationService.inspect(ChatConfiguration.AIDisabled).workspaceValue === true) {
-						this.configurationService.updateValue(ChatConfiguration.AIDisabled, false, ConfigurationTarget.WORKSPACE);
+					if (this.configurationService.inspect(ChatAIDisabledSettingId).workspaceValue === true) {
+						this.configurationService.updateValue(ChatAIDisabledSettingId, false, ConfigurationTarget.WORKSPACE);
 					}
 				} else {
-					this.configurationService.updateValue(ChatConfiguration.AIDisabled, false);
+					this.configurationService.updateValue(ChatAIDisabledSettingId, false);
 				}
 			}
 		}));
@@ -895,7 +913,7 @@ export class ChatTeardownContribution extends Disposable implements IWorkbenchCo
 			override async run(accessor: ServicesAccessor): Promise<void> {
 				const preferencesService = accessor.get(IPreferencesService);
 
-				preferencesService.openSettings({ jsonEditor: false, query: `@id:${ChatConfiguration.AIDisabled}` });
+				preferencesService.openSettings({ jsonEditor: false, query: `@id:${ChatAIDisabledSettingId}` });
 			}
 		}
 

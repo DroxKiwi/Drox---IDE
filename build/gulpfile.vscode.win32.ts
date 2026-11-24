@@ -87,7 +87,8 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		const useVersionedUpdate = (product as typeof product & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
 		const versionedResourcesFolder = useVersionedUpdate ? commit!.substring(0, 10) : '';
 		const issPath = path.join(import.meta.dirname, 'win32', 'code.iss');
-		const originalProductJsonPath = path.join(sourcePath, versionedResourcesFolder, 'resources/app/product.json');
+		const productJsonRelativePath = path.join(versionedResourcesFolder, 'resources/app/product.json');
+		const originalProductJsonPath = path.join(sourcePath, productJsonRelativePath);
 		const productJsonPath = path.join(outputPath, 'product.json');
 		const productJson = JSON.parse(fs.readFileSync(originalProductJsonPath, 'utf8'));
 		productJson['target'] = target;
@@ -124,6 +125,7 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			RepoDir: repoPath,
 			OutputDir: outputPath,
 			InstallTarget: target,
+			ProductJsonRelativePath: productJsonRelativePath,
 			ProductJsonPath: productJsonPath,
 			VersionedResourcesFolder: versionedResourcesFolder,
 			Quality: quality
@@ -143,6 +145,13 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 					definitions['FileExplorerContextMenuCLSID'] = ctxMenu[arch].clsid;
 				}
 // DROX-END
+			}
+		}
+
+		if (fs.existsSync(path.join(sourcePath, 'bin', 'copilot-shim', 'copilot.exe'))) {
+			definitions['CopilotShim'] = 'true';
+			if (fs.existsSync(path.join(sourcePath, 'bin', 'copilot-shim', 'copilot'))) {
+				definitions['CopilotShimLauncher'] = 'true';
 			}
 		}
 

@@ -1,7 +1,6 @@
 {
 	"nameShort": "Drox IDE",
 	"nameLong": "Drox IDE",
-	"droxSurface": "dev",
 	"applicationName": "drox-ide",
 	"dataFolderName": ".drox-ide",
 	"sharedDataFolderName": ".drox-ide-shared",
@@ -24,31 +23,19 @@
 	"win32arm64UserAppId": "{{5A1D24E7-8F61-7A5D-C2B4-AE9F807B6C5D}",
 	"win32AppUserModelId": "KDDS.DroxIDE",
 	"win32ShellNameShort": "Drox",
-	"quality": "stable",
-	"win32ContextMenu": {
-		"x64": {
-			"clsid": "A7B3C4D5-E6F7-4890-A1B2-C3D4E5F60718"
-		},
-		"arm64": {
-			"clsid": "B8C4D5E6-F708-4911-B2C3-D4E5F6071829"
-		}
-	},
 	"win32TunnelServiceMutex": "droxide-tunnelservice",
 	"win32TunnelMutex": "droxide-tunnel",
 	"darwinBundleIdentifier": "com.kdds.droxide",
 	"darwinProfileUUID": "6B2E359A-5845-5EA1-BF91-8F20C225A6DD",
 	"darwinProfilePayloadUUID": "7C3F46AB-6956-4FB2-CA02-9A31D336B7EE",
+	"linuxDesktopName": "com.visualstudio.CodeOSS",
 	"linuxIconName": "drox-ide",
 	"licenseFileName": "LICENSE.txt",
 	"reportIssueUrl": "https://github.com/DroxKiwi/Drox---IDE/issues/new",
-	"documentationUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/README.md",
-	"privacyStatementUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-	"nodejsRepository": "https://nodejs.org",
+	"nodejsArtifactFeed": "",
+	"electronArtifactFeed": "",
 	"urlProtocol": "drox-ide",
 	"agentsTelemetryAppName": "",
-	"enableTelemetry": false,
-	"showTelemetryOptOut": false,
-	"removeTelemetryMachineId": true,
 	"webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/",
 	"builtInExtensions": [
 		{
@@ -69,8 +56,8 @@
 		},
 		{
 			"name": "ms-vscode.js-debug",
-			"version": "1.117.0",
-			"sha256": "854eeb8a785b1f41ba2bd02d7ccd4fdbe10021b61473293973c7e96d036c7fb8",
+			"version": "1.140.1",
+			"sha256": "7accf7857ea4f4717b6211a2b75f5b434faf477033203a8919b6d26b6abc1897",
 			"repo": "https://github.com/microsoft/vscode-js-debug",
 			"metadata": {
 				"id": "25629058-ddac-4e17-abba-74678e126c5d",
@@ -85,8 +72,8 @@
 		},
 		{
 			"name": "ms-vscode.vscode-js-profile-table",
-			"version": "1.0.10",
-			"sha256": "7361748ddf9fd09d8a2ed1f2a2d7376a2cf9aae708692820b799708385c38e08",
+			"version": "1.0.11",
+			"sha256": "a962a1e6a3baf74c9354b7f47fa96e6d6f0423a63bff55d7f976b6134a748ae9",
 			"repo": "https://github.com/microsoft/vscode-js-profile-visualizer",
 			"metadata": {
 				"id": "7e52b41b-71ad-457b-ab7e-0620f1fc4feb",
@@ -100,115 +87,9 @@
 			}
 		}
 	],
-	"droxMicrosoftAgentsSurfaceEnabled": false,
-	"mcpGallery": {
-		"serviceUrl": "https://raw.githubusercontent.com/DroxKiwi/Drox---IDE/1.5.12/drox-engine/mcp-registry",
-		"itemWebUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/1.5.12/drox-engine/mcp-registry/README.md",
-		"publisherUrl": "https://github.com/modelcontextprotocol",
-		"supportUrl": "https://github.com/DroxKiwi/Drox---IDE/issues/new",
-		"privacyPolicyUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"termsOfServiceUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"reportUrl": "https://github.com/DroxKiwi/Drox---IDE/issues/new"
-	},
-	"defaultChatAgent": {
-		"extensionId": "drox.agents",
-		"chatExtensionId": "",
-		"chatExtensionOutputId": "",
-		"chatExtensionOutputExtensionStateCommand": "",
-		"documentationUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/README.md",
-		"termsStatementUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"privacyStatementUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"skusDocumentationUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"publicCodeMatchesUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"managePlanUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"upgradePlanUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"signUpUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"provider": {
-			"default": {
-				"id": "drox",
-				"name": "Drox"
-			},
-			"enterprise": {
-				"id": "github-enterprise",
-				"name": "GHE"
-			},
-			"google": {
-				"id": "google",
-				"name": "Google"
-			},
-			"apple": {
-				"id": "apple",
-				"name": "Apple"
-			}
-		},
-		"providerExtensionId": "",
-		"providerUriSetting": "",
-		"providerScopes": [],
-		"entitlementUrl": "",
-		"entitlementSignupLimitedUrl": "",
-		"chatQuotaExceededContext": "",
-		"completionsQuotaExceededContext": "",
-		"walkthroughCommand": "",
-		"completionsMenuCommand": "",
-		"chatRefreshTokenCommand": "",
-		"generateCommitMessageCommand": "",
-		"resolveMergeConflictsCommand": "",
-		"completionsAdvancedSetting": "",
-		"completionsEnablementSetting": "",
-		"nextEditSuggestionsSetting": "",
-		"tokenEntitlementUrl": "",
-		"mcpRegistryDataUrl": "",
-		"openAiCompatibleProviderBaseUrl": "http://localhost:11434/v1",
-		"openAiCompatibleProviderType": "openai"
-	},
-	"skipCopilotGitHubSignIn": true,
-	"trustedExtensionAuthAccess": {
-		"github": [
-			"github.copilot",
-			"github.copilot-chat"
-		],
-		"github-enterprise": [
-			"github.copilot",
-			"github.copilot-chat"
-		]
-	},
-	"onboardingKeymaps": [
-		{
-			"id": "vscode",
-			"label": "Default",
-			"description": "Default Drox IDE keyboard mapping"
-		},
-		{
-			"id": "sublime",
-			"label": "Sublime Text",
-			"extensionId": "ms-vscode.sublime-keybindings",
-			"description": "Keyboard mapping from Sublime Text"
-		},
-		{
-			"id": "intellij",
-			"label": "IntelliJ / JetBrains",
-			"extensionId": "k--kato.intellij-idea-keybindings",
-			"description": "Keyboard mapping from IntelliJ IDEA"
-		},
-		{
-			"id": "vim",
-			"label": "Vim",
-			"extensionId": "vscodevim.vim",
-			"description": "Vim modal editing"
-		},
-		{
-			"id": "eclipse",
-			"label": "Eclipse",
-			"extensionId": "alphabotsec.vscode-eclipse-keybindings",
-			"description": "Keyboard mapping from Eclipse"
-		},
-		{
-			"id": "notepadpp",
-			"label": "Notepad++",
-			"extensionId": "ms-vscode.notepadplusplus-keybindings",
-			"description": "Keyboard mapping from Notepad++"
-		}
-	],
+	"defaultChatAgent": {"extensionId":"drox.agents","chatExtensionId":"","chatExtensionOutputId":"","chatExtensionOutputExtensionStateCommand":"","documentationUrl":"https://github.com/DroxKiwi/Drox---IDE/blob/main/README.md","termsStatementUrl":"https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md","privacyStatementUrl":"https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md","skusDocumentationUrl":"https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md","publicCodeMatchesUrl":"https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md","managePlanUrl":"https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md","upgradePlanUrl":"https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md","signUpUrl":"https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md","provider":{"default":{"id":"drox","name":"Drox"},"enterprise":{"id":"github-enterprise","name":"GHE"},"google":{"id":"google","name":"Google"},"apple":{"id":"apple","name":"Apple"}},"providerExtensionId":"","providerUriSetting":"","providerScopes":[],"entitlementUrl":"","entitlementSignupLimitedUrl":"","chatQuotaExceededContext":"","completionsQuotaExceededContext":"","walkthroughCommand":"","completionsMenuCommand":"","chatRefreshTokenCommand":"","generateCommitMessageCommand":"","resolveMergeConflictsCommand":"","completionsAdvancedSetting":"","completionsEnablementSetting":"","nextEditSuggestionsSetting":"","tokenEntitlementUrl":"","mcpRegistryDataUrl":"","openAiCompatibleProviderBaseUrl":"http://localhost:11434/v1","openAiCompatibleProviderType":"openai"},
+	"trustedExtensionAuthAccess": {"github":["github.copilot","github.copilot-chat"],"github-enterprise":["github.copilot","github.copilot-chat"]},
+	"onboardingKeymaps": [{"id":"vscode","label":"Default","description":"Default Drox IDE keyboard mapping"},{"id":"sublime","label":"Sublime Text","extensionId":"ms-vscode.sublime-keybindings","description":"Keyboard mapping from Sublime Text"},{"id":"intellij","label":"IntelliJ / JetBrains","extensionId":"k--kato.intellij-idea-keybindings","description":"Keyboard mapping from IntelliJ IDEA"},{"id":"vim","label":"Vim","extensionId":"vscodevim.vim","description":"Vim modal editing"},{"id":"eclipse","label":"Eclipse","extensionId":"alphabotsec.vscode-eclipse-keybindings","description":"Keyboard mapping from Eclipse"},{"id":"notepadpp","label":"Notepad++","extensionId":"ms-vscode.notepadplusplus-keybindings","description":"Keyboard mapping from Notepad++"}],
 	"onboardingThemes": [
 		{
 			"id": "dark-2026",
@@ -248,5 +129,6 @@
 		}
 	],
 	"builtInExtensionsEnabledWithAutoUpdates": [],
-	"sessionsWindowAllowedExtensions": []
+	"sessionsWindowAllowedExtensions": [],
+	"voiceWsUrl": "wss://falcon-caas.mai.microsoft.com/voice-code/api/v1/realtime/voice"
 }

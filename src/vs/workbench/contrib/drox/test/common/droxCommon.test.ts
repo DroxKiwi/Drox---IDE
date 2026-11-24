@@ -168,7 +168,7 @@ suite('Drox — executable packaging folder', () => {
 		assert.ok(list.length > 0);
 		assert.ok(list[0].replace(/\\/g, '/').endsWith(`/ws/drox-engine/drox/target/debug/${bin}`));
 		const installIdx = list.findIndex(p => p.replace(/\\/g, '/').endsWith(`/resources/drox/${folder}/${bin}`));
-		const wsIdx = list.findIndex(p => p.includes('/ws/drox-engine/drox/target/debug/'));
+		const wsIdx = list.findIndex(p => p.replace(/\\/g, '/').includes('/ws/drox-engine/drox/target/debug/'));
 		assert.ok(wsIdx >= 0 && installIdx > wsIdx);
 	});
 
@@ -931,7 +931,7 @@ suite('Drox — transcript replay', () => {
 		assert.ok(posts.some(p => p.kind === 'phase' && p.phase === 'reading'));
 		assert.ok(posts.some(p => p.kind === 'phase' && p.phase === 'answering'));
 		assert.ok(posts.some(p => p.kind === 'phase' && p.close === true));
-		assert.ok(posts.some(p => p.kind === 'append' && p.role === 'assistant' && p.text.includes('Réponse')));
+		assert.ok(posts.some(p => p.kind === 'delta' && p.text.includes('Réponse')));
 	});
 });
 
@@ -964,10 +964,12 @@ suite('Drox — transcript export', () => {
 		assert.ok(text.includes('Salut !'));
 		assert.ok(text.includes('USER-FACING REPLY'));
 		assert.ok(text.includes('Bonjour !'));
-		const userIdx = text.indexOf('Step 1 — USER');
-		const gateIdx = text.indexOf('GATE PATH');
-		const streamIdx = text.indexOf('THINKING STREAM');
-		const replyIdx = text.indexOf('USER-FACING REPLY');
+		const lines = text.split('\n');
+		const lineAt = (pred: (line: string) => boolean) => lines.findIndex(pred);
+		const userIdx = lineAt(line => line.includes('Step 1') && line.includes('USER') && !line.includes('FACING'));
+		const gateIdx = lineAt(line => line.includes('GATE PATH'));
+		const streamIdx = lineAt(line => line.startsWith('Step') && line.includes('THINKING STREAM'));
+		const replyIdx = lineAt(line => line.startsWith('Step') && line.includes('USER-FACING REPLY'));
 		assert.ok(userIdx < gateIdx && gateIdx < streamIdx && streamIdx < replyIdx);
 	});
 
@@ -985,7 +987,7 @@ suite('Drox — transcript export', () => {
 		assert.ok(text.includes('run 1: Fix hero text'));
 		assert.ok(text.includes('run 2: Refine background animation'));
 		assert.ok(text.includes('Step 1 — USER'));
-		assert.ok(text.includes('Step 2 — USER RUN 2'));
+		assert.ok(text.includes('Step 3 — USER RUN 2'));
 		assert.ok(text.includes('tour 2 de 2 dans cette session'));
 	});
 

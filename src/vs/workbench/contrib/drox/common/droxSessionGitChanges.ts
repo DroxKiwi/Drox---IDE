@@ -7,9 +7,9 @@
 
 import { comparePaths } from '../../../../base/common/comparers.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IChatSessionFileChange2, isIChatSessionFileChange2 } from '../../chat/common/chatSessionsService.js';
+import { IChatSessionFileChange2, isIChatSessionFileChange2 } from '../../../common/chatSessionFileChange.js';
 import { GitDiffChange, IGitRepository, IGitService } from '../../git/common/gitService.js';
-import { ISessionFileChange, ISessionWorkspace } from '../../../../sessions/services/sessions/common/session.js';
+import { ISessionFileChange, ISessionWorkspace } from '../../../services/sessions/common/session.js';
 import { droxChangeEventKey } from './droxChangeEventKey.js';
 import { IDroxFileChangePayload } from './droxFileChange.js';
 import { droxSessionChangePathKey } from './droxPathUtil.js';

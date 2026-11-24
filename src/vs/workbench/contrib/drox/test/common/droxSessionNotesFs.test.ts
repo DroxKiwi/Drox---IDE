@@ -23,33 +23,47 @@ suite('droxSessionNotesFs', () => {
 
 	test('ensure creates template once and does not overwrite', async () => {
 		const fileService = new FileService(new NullLogService());
-		fileService.registerProvider(Schemas.file, new InMemoryFileSystemProvider());
-		const workspaceFsPath = '/ws';
-		const sessionId = 'ses_notes_test';
+		const provider = new InMemoryFileSystemProvider();
+		const registration = fileService.registerProvider(Schemas.file, provider);
+		try {
+			const workspaceFsPath = '/ws';
+			const sessionId = 'ses_notes_test';
 
-		const uri = await ensureDroxSessionNotesFile(fileService, workspaceFsPath, sessionId);
-		assert.ok(uri);
-		assert.strictEqual(uri!.toString(), URI.file(`/ws/.drox/sessions/${sessionId}.notes.md`).toString());
-		assert.strictEqual((await fileService.readFile(uri!)).value.toString(), DROX_SESSION_NOTES_TEMPLATE);
+			const uri = await ensureDroxSessionNotesFile(fileService, workspaceFsPath, sessionId);
+			assert.ok(uri);
+			assert.strictEqual(uri!.toString(), URI.file(`/ws/.drox/sessions/${sessionId}.notes.md`).toString());
+			assert.strictEqual((await fileService.readFile(uri!)).value.toString(), DROX_SESSION_NOTES_TEMPLATE);
 
-		await fileService.writeFile(uri!, VSBuffer.fromString('# Custom\n'));
-		const again = await ensureDroxSessionNotesFile(fileService, workspaceFsPath, sessionId);
-		assert.strictEqual((await fileService.readFile(again!)).value.toString(), '# Custom\n');
+			await fileService.writeFile(uri!, VSBuffer.fromString('# Custom\n'));
+			const again = await ensureDroxSessionNotesFile(fileService, workspaceFsPath, sessionId);
+			assert.strictEqual((await fileService.readFile(again!)).value.toString(), '# Custom\n');
+		} finally {
+			registration.dispose();
+			provider.dispose();
+			fileService.dispose();
+		}
 	});
 
 	test('system supplement wraps notes and lists notes in delete artefacts', async () => {
 		const fileService = new FileService(new NullLogService());
-		fileService.registerProvider(Schemas.file, new InMemoryFileSystemProvider());
-		const workspaceFsPath = '/ws';
-		const sessionId = 'ses_notes_inject';
-		const uri = await ensureDroxSessionNotesFile(fileService, workspaceFsPath, sessionId);
-		await fileService.writeFile(uri!, VSBuffer.fromString('Prefer concise answers.'));
+		const provider = new InMemoryFileSystemProvider();
+		const registration = fileService.registerProvider(Schemas.file, provider);
+		try {
+			const workspaceFsPath = '/ws';
+			const sessionId = 'ses_notes_inject';
+			const uri = await ensureDroxSessionNotesFile(fileService, workspaceFsPath, sessionId);
+			await fileService.writeFile(uri!, VSBuffer.fromString('Prefer concise answers.'));
 
-		const system = await readDroxSessionNotesSystemSupplement(fileService, workspaceFsPath, sessionId);
-		assert.ok(system?.includes('[Session notes'));
-		assert.ok(system?.includes('Prefer concise answers.'));
+			const system = await readDroxSessionNotesSystemSupplement(fileService, workspaceFsPath, sessionId);
+			assert.ok(system?.includes('[Session notes'));
+			assert.ok(system?.includes('Prefer concise answers.'));
 
-		const paths = droxSessionArtifactPaths(workspaceFsPath, sessionId);
-		assert.ok(paths.some(p => p.endsWith(`${sessionId}.notes.md`)));
+			const paths = droxSessionArtifactPaths(workspaceFsPath, sessionId);
+			assert.ok(paths.some(p => p.endsWith(`${sessionId}.notes.md`)));
+		} finally {
+			registration.dispose();
+			provider.dispose();
+			fileService.dispose();
+		}
 	});
 });

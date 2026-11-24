@@ -8,8 +8,8 @@
 import { deriveTitleFromTranscriptMessages, IDroxSessionListEntry } from './droxSession.js';
 import { IDroxSessionService } from './droxSessionService.js';
 import { sortDroxSessionEntriesByRecency } from './droxSharedChatSessionHistory.js';
+import { fromNowByDay } from '../../../../base/common/date.js';
 import { localize } from '../../../../nls.js';
-import { sessionDateFromNow } from '../../chat/browser/agentSessions/agentSessionsViewer.js';
 
 export interface IDroxNativeChatSessionResolverInput {
 	readonly workspaceFsPath: string;
@@ -59,7 +59,7 @@ export function formatDroxSessionListLabel(entry: IDroxSessionListEntry): string
 	if (title) {
 		return title.length > 80 ? `${title.slice(0, 77)}…` : title;
 	}
-	const when = sessionDateFromNow(entry.modifiedSecs * 1000);
+	const when = fromNowByDay(entry.modifiedSecs * 1000);
 	return localize('drox.session.untitledListLabel', 'Chat · {0}', when);
 }
 

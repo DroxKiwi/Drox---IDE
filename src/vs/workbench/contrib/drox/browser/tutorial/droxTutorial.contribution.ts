@@ -20,8 +20,8 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../common/contributions.js';
 import { IsAuxiliaryWindowContext, IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { TitleBarLeadingActionsGroup } from '../../../../browser/parts/titlebar/titlebarActions.js';
-import { Menus } from '../../../../../sessions/browser/menus.js';
-import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../../../sessions/common/contextkeys.js';
+import { Menus } from '../../../sessions/browser/menus.js';
+import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../sessions/common/contextkeys.js';
 import { IDroxTutorialService } from './droxTutorial.js';
 
 const TOGGLE_DROX_TUTORIAL = 'workbench.action.toggleDroxTutorial';

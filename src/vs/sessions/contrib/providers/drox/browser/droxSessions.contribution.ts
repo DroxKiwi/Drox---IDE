@@ -12,7 +12,7 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import { isDroxAgentsWindowEnabled } from '../../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { DroxSessionsProvider } from './droxSessionsProvider.js';
 import { registerDroxSessionsProviderInstance } from './droxSessionsProviderAccessor.js';
-import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
+import { ISessionsProvidersService } from '../../../../../workbench/contrib/sessions/browser/sessionsProvidersService.js';
 import '../../../../../workbench/contrib/drox/browser/droxSessionGitComposerActions.js';
 import './droxSessionExplorerDecorations.js';
 

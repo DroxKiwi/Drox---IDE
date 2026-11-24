@@ -17,8 +17,8 @@ import { IDecorationData, IDecorationsProvider, IDecorationsService } from '../.
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../../workbench/common/contributions.js';
 import { isDroxAgentsWindowEnabled } from '../../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../../../../../workbench/contrib/drox/common/droxAgentsSession.js';
-import { ISessionsService } from '../../../../services/sessions/browser/sessionsService.js';
-import { toIChangesFileItem } from '../../../changes/browser/changesViewRenderer.js';
+import { ISessionsService } from '../../../../../workbench/contrib/sessions/browser/sessionsService.js';
+import { toIChangesFileItem } from '../../../../../workbench/contrib/sessionChanges/browser/changesViewRenderer.js';
 import { getDroxSessionsProviderInstance } from './droxSessionsProviderAccessor.js';
 
 type SessionChangeDecoration = Pick<IDecorationData, 'letter' | 'tooltip' | 'strikethrough'>;
@@ -108,12 +108,12 @@ class DroxSessionExplorerDecorationsContribution extends Disposable implements I
 		this._register(decorationsService.registerDecorationsProvider(provider));
 
 		this._register(autorun(reader => {
-			const session = sessionsService.activeSession.read(reader);
+			const session = sessionsService.activePane.read(reader)?.session.read(reader);
 			if (!session) {
 				provider.refresh(undefined, undefined);
 				return;
 			}
-			session.changes.read(reader);
+			session.mainChat.read(reader).changesets.read(reader);
 			provider.refresh(session.resource, session.providerId);
 		}));
 	}

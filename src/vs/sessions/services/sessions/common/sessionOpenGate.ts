@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from '../../../../base/common/uri.js';
-import { IActiveSession } from '../common/sessionsManagement.js';
-import { ISession } from '../common/session.js';
+import { IActiveSession } from '../../../../workbench/contrib/sessions/common/sessionsManagement.js';
+import { ISession } from '../../../../workbench/services/sessions/common/session.js';
 
 export interface ISessionOpenGateContext {
 	readonly from: IActiveSession | undefined;

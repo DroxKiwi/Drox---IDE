@@ -38,7 +38,7 @@ export interface IDroxExecutableResolveOptions {
 /** `drox.executablePath` set to a bare command name — probe bundled/dev paths instead. */
 export function isBareDroxExecutableName(configuredPath: string): boolean {
 	const trimmed = configuredPath.trim();
-	if (!trimmed) {
+	if (!trimmed || /[\\/]/.test(trimmed)) {
 		return false;
 	}
 	const base = path.basename(trimmed).toLowerCase();

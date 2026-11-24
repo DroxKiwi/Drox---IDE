@@ -116,6 +116,8 @@ suite('DroxChatSubagentContentPart', () => {
 					parameters,
 					reason: ToolConfirmKind.Denied
 				};
+			default:
+				throw new Error(`Unhandled tool state ${stateType}`);
 		}
 	}
 
@@ -226,7 +228,8 @@ suite('DroxChatSubagentContentPart', () => {
 			hideHover: () => { },
 			showAndFocusLastHover: () => { },
 			setupManagedHover: () => ({ dispose: () => { }, show: () => { }, hide: () => { }, update: () => { } }),
-			showManagedHover: () => { }
+			showManagedHover: () => { },
+			getStickyHover: () => undefined,
 		};
 		instantiationService.stub(IHoverService, mockHoverService);
 

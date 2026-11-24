@@ -25,12 +25,6 @@ export function createDroxDiscussionChatWidgetOptions(kind: 'ide' | 'agents'): I
 		},
 		enableImplicitContext: true,
 		supportsChangingModes: false,
-		/** Mounts Drox toolbar / status / permission chips (Server, Model settings, …). */
-		droxNativeComposer: true,
-		/**
-		 * Welcome / empty shell has no sessionResource yet — without this delegate,
-		 * `getCurrentSessionType()` is undefined and the Server/Model chips never mount on IDE.
-		 */
 		sessionTypePickerDelegate: {
 			getActiveSessionProvider: () => DROX_CHAT_SESSION_TYPE,
 		},

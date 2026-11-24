@@ -22,17 +22,21 @@ import { generateUuid } from '../../../../../base/common/uuid.js';
 import { BrowserEditorInput } from '../../common/browserEditorInput.js';
 import { logBrowserOpen } from '../../../../../platform/browserView/common/browserViewTelemetry.js';
 import { ContextKeyExpr, IContextKeyService, RawContextKey } from '../../../../../platform/contextkey/common/contextkey.js';
+import { AGENT_HOST_SCHEME } from '../../../../../platform/agentHost/common/agentHostUri.js';
 import { BrowserViewCommandId } from '../../../../../platform/browserView/common/browserView.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../common/contributions.js';
-import { IBrowserViewModel, IBrowserViewWorkbenchService } from '../../common/browserView.js';
-import { IConfigurationRegistry, Extensions as ConfigurationExtensions } from '../../../../../platform/configuration/common/configurationRegistry.js';
+import { BROWSER_FILE_SCHEMES, BrowserRemoteProxyEnabledSettingId, BrowserDimOverlaySettingId, getLocalFileBrowserViewSession, IBrowserViewModel, IBrowserViewWorkbenchService } from '../../common/browserView.js';
+import { BrowserNewTabPlacementSettingId } from '../browserViewWorkbenchService.js';
+import { IConfigurationRegistry, Extensions as ConfigurationExtensions, ConfigurationScope } from '../../../../../platform/configuration/common/configurationRegistry.js';
 import { workbenchConfigurationNodeBase } from '../../../../common/configuration.js';
-import { IExternalOpener, IOpenerService } from '../../../../../platform/opener/common/opener.js';
 import { isLocalhostAuthority, isAllInterfacesAuthority } from '../../../../../platform/url/common/trustedDomains.js';
 import { IConfigurationService, isConfigured } from '../../../../../platform/configuration/common/configuration.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
-import { CancellationToken } from '../../../../../base/common/cancellation.js';
+import { ExternalUriOpenerPriority } from '../../../../../editor/common/languages.js';
+import { registerBuiltInExternalUriOpener } from '../../../externalUriOpener/common/configuration.js';
+import { IExternalOpenerProvider, IExternalUriOpener, IExternalUriOpenerService } from '../../../externalUriOpener/common/externalUriOpenerService.js';
 import { ToggleTitleBarConfigAction } from '../../../../browser/parts/titlebar/titlebarActions.js';
+import { NewTabButtonEntryAction } from '../../../../browser/parts/editor/newTabButton.js';
 import { Registry } from '../../../../../platform/registry/common/platform.js';
 import { match } from '../../../../../base/common/glob.js';
 import { $, addDisposableListener, EventType } from '../../../../../base/browser/dom.js';
@@ -45,7 +49,10 @@ import { IPreferencesService } from '../../../../services/preferences/common/pre
 import { disposableTimeout } from '../../../../../base/common/async.js';
 import { MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { IsSessionsWindowContext, ResourceContextKey } from '../../../../common/contextkeys.js';
-import { Schemas } from '../../../../../base/common/network.js';
+import { matchesSomeScheme, Schemas } from '../../../../../base/common/network.js';
+import { BrowserNavigationFeatures } from './browserNavigationFeatures.js';
+import { ViewColumn } from '../../../../../platform/editor/common/editor.js';
+import { IExternalUriOpenContext } from '../../../../../platform/opener/common/opener.js';
 
 const CONTEXT_BROWSER_EDITOR_OPEN = new RawContextKey<boolean>('browserEditorOpen', false, localize('browser.editorOpen', "Whether any browser editor is currently open"));
 
@@ -116,11 +123,14 @@ class BrowserTabQuickPick extends Disposable {
 			if (selected === this._openNewTabPick) {
 				logBrowserOpen(telemetryService, 'quickOpenWithoutUrl');
 				this._quickPick.hide();
-				await this._editorService.openEditor({
+				const editorPane = await this._editorService.openEditor({
 					resource: BrowserViewUri.forId(generateUuid()),
-				});
+				}, await this._browserViewService.getPreferredGroup());
+				if (editorPane instanceof BrowserEditor) {
+					editorPane.getContribution(BrowserNavigationFeatures)?.openUrlPicker();
+				}
 			} else {
-				await this._editorService.openEditor(selected.editor, selected.groupId);
+				await this._editorService.openEditor(selected.editor, await this._browserViewService.getPreferredGroup(selected.groupId));
 			}
 		}));
 
@@ -288,7 +298,7 @@ class OpenIntegratedBrowserAction extends Action2 {
 		// Parse arguments
 		const options = typeof urlOrOptions === 'string' ? { url: urlOrOptions } : (urlOrOptions ?? {});
 		const resource = BrowserViewUri.forId(generateUuid());
-		const group = options.openToSide ? SIDE_GROUP : ACTIVE_GROUP;
+		const group = await browserViewService.getPreferredGroup(options.openToSide ? SIDE_GROUP : undefined);
 
 		if (options.reuseUrlFilter) {
 			const filterUri = URI.parse(options.reuseUrlFilter);
@@ -318,6 +328,9 @@ class OpenIntegratedBrowserAction extends Action2 {
 				if (options.url) {
 					matchingEditor.navigate(options.url);
 				}
+				// Reveal the existing browser tab where it already lives rather than
+				// relocating it into the docked group (which would move a tab out of a
+				// modal group when `workbench.editor.useModal: 'all'`).
 				await editorService.openEditor(matchingEditor);
 				return;
 			}
@@ -331,14 +344,28 @@ class OpenIntegratedBrowserAction extends Action2 {
 		if (options.openToSide && editorPane?.group) {
 			editorPane.group.lock(true);
 		}
+		if (!options.url && editorPane instanceof BrowserEditor) {
+			editorPane.getContribution(BrowserNavigationFeatures)?.openUrlPicker();
+		}
 	}
 }
 
 class OpenFileInIntegratedBrowserAction extends Action2 {
 	constructor() {
-		const IS_LOCAL_HTML_FILE = ContextKeyExpr.and(
-			ResourceContextKey.Scheme.isEqualTo(Schemas.file),
-			ContextKeyExpr.regex(ResourceContextKey.Extension.key, /\.html?$/i),
+		const IS_SUPPORTED_BROWSER_FILE = ContextKeyExpr.and(
+			// Remote files can only be loaded by tabs on a remote network, which needs the remote proxy.
+			ContextKeyExpr.or(
+				ResourceContextKey.Scheme.isEqualTo(Schemas.file),
+				ContextKeyExpr.and(
+					ContextKeyExpr.has(`config.${BrowserRemoteProxyEnabledSettingId}`),
+					// Only the Agents window has a network resolver for agent hosts.
+					ContextKeyExpr.or(
+						ResourceContextKey.Scheme.isEqualTo(Schemas.vscodeRemote),
+						ContextKeyExpr.and(ResourceContextKey.Scheme.isEqualTo(AGENT_HOST_SCHEME), IsSessionsWindowContext),
+					),
+				),
+			),
+			ContextKeyExpr.regex(ResourceContextKey.Extension.key, /\.(?:html?|mht(?:ml)?)$/i),
 		);
 		super({
 			id: BrowserViewCommandId.OpenFile,
@@ -346,25 +373,25 @@ class OpenFileInIntegratedBrowserAction extends Action2 {
 			category: BrowserActionCategory,
 			icon: Codicon.globe,
 			f1: true,
-			precondition: IS_LOCAL_HTML_FILE,
+			precondition: IS_SUPPORTED_BROWSER_FILE,
 			menu: [
 				{
 					id: MenuId.ExplorerContext,
 					group: 'navigation',
 					order: 29,
-					when: IS_LOCAL_HTML_FILE,
+					when: IS_SUPPORTED_BROWSER_FILE,
 				},
 				{
 					id: MenuId.EditorTitleContext,
 					group: '1_open',
 					order: 5,
-					when: IS_LOCAL_HTML_FILE,
+					when: IS_SUPPORTED_BROWSER_FILE,
 				},
 				{
 					id: MenuId.EditorTitle,
 					group: 'navigation',
 					order: 99,
-					when: IS_LOCAL_HTML_FILE,
+					when: IS_SUPPORTED_BROWSER_FILE,
 				},
 			]
 		});
@@ -373,9 +400,10 @@ class OpenFileInIntegratedBrowserAction extends Action2 {
 	async run(accessor: ServicesAccessor, resource?: URI): Promise<void> {
 		const editorService = accessor.get(IEditorService);
 		const telemetryService = accessor.get(ITelemetryService);
+		const browserViewService = accessor.get(IBrowserViewWorkbenchService);
 
 		// Resolve the file URI from the context or the active editor
-		const fileUri = resource ?? EditorResourceAccessor.getOriginalUri(editorService.activeEditor, { filterByScheme: [Schemas.file], supportSideBySide: SideBySideEditor.PRIMARY });
+		const fileUri = resource ?? EditorResourceAccessor.getOriginalUri(editorService.activeEditor, { filterByScheme: [...BROWSER_FILE_SCHEMES], supportSideBySide: SideBySideEditor.PRIMARY });
 		if (!fileUri) {
 			return;
 		}
@@ -383,7 +411,8 @@ class OpenFileInIntegratedBrowserAction extends Action2 {
 		logBrowserOpen(telemetryService, 'openFileCommand');
 
 		const browserUri = BrowserViewUri.forId(generateUuid());
-		await editorService.openEditor({ resource: browserUri, options: { viewState: { url: fileUri.toString() } } });
+		const session = getLocalFileBrowserViewSession(fileUri, browserViewService.resolveNetwork({ type: 'user' }));
+		await editorService.openEditor({ resource: browserUri, options: { viewState: { url: fileUri.toString(), session } } }, await browserViewService.getPreferredGroup());
 	}
 }
 
@@ -413,11 +442,15 @@ class NewTabAction extends Action2 {
 	async run(accessor: ServicesAccessor, _browserEditor = accessor.get(IEditorService).activeEditorPane): Promise<void> {
 		const editorService = accessor.get(IEditorService);
 		const telemetryService = accessor.get(ITelemetryService);
+		const browserViewService = accessor.get(IBrowserViewWorkbenchService);
 		const resource = BrowserViewUri.forId(generateUuid());
 
 		logBrowserOpen(telemetryService, 'newTabCommand');
 
-		await editorService.openEditor({ resource });
+		const editorPane = await editorService.openEditor({ resource }, await browserViewService.getPreferredGroup());
+		if (editorPane instanceof BrowserEditor) {
+			editorPane.getContribution(BrowserNavigationFeatures)?.openUrlPicker();
+		}
 	}
 }
 
@@ -538,6 +571,21 @@ MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
 
 registerAction2(QuickOpenBrowserAction);
 registerAction2(OpenIntegratedBrowserAction);
+registerAction2(class OpenIntegratedBrowserFromNewTabButtonAction extends NewTabButtonEntryAction {
+	constructor() {
+		super({
+			id: BrowserViewCommandId.Open + '.fromNewTabButton',
+			title: localize2('browser.openFromNewTabButton', "New Integrated Browser"),
+			icon: Codicon.globe,
+			order: 4,
+		});
+	}
+
+	// Opens where the browser opens new tabs, by default in the (now active) group of the button.
+	protected override openTab(accessor: ServicesAccessor): Promise<unknown> {
+		return accessor.get(ICommandService).executeCommand(BrowserViewCommandId.Open);
+	}
+});
 registerAction2(OpenFileInIntegratedBrowserAction);
 registerAction2(OpenOrListBrowsersAction);
 registerAction2(NewTabAction);
@@ -574,13 +622,22 @@ class BrowserEditorOpenContextKeyContribution extends Disposable implements IWor
 registerWorkbenchContribution2(BrowserEditorOpenContextKeyContribution.ID, BrowserEditorOpenContextKeyContribution, WorkbenchPhase.AfterRestored);
 
 /**
- * Opens localhost URLs and all-interfaces URLs in the Integrated Browser when the setting is enabled.
+ * Offers the Integrated Browser as an external URI opener for http(s) links. It is preferred for
+ * localhost URLs and all-interfaces URLs when the setting is enabled.
  */
-class LocalhostLinkOpenerContribution extends Disposable implements IWorkbenchContribution, IExternalOpener {
+export class LocalhostLinkOpenerContribution extends Disposable implements IWorkbenchContribution, IExternalOpenerProvider {
 	static readonly ID = 'workbench.contrib.localhostLinkOpener';
+	static readonly OPENER_ID = 'workbench.integratedBrowser';
+
+	private readonly _opener: IExternalUriOpener = {
+		id: LocalhostLinkOpenerContribution.OPENER_ID,
+		label: localize('browser.externalUriOpener', "Open in Integrated Browser"),
+		canOpen: async uri => this.opensByDefault(uri) ? ExternalUriOpenerPriority.Preferred : ExternalUriOpenerPriority.Option,
+		openExternalUri: (href, ctx) => this.open(href, ctx),
+	};
 
 	constructor(
-		@IOpenerService openerService: IOpenerService,
+		@IExternalUriOpenerService externalUriOpenerService: IExternalUriOpenerService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IEditorService private readonly editorService: IEditorService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
@@ -588,39 +645,44 @@ class LocalhostLinkOpenerContribution extends Disposable implements IWorkbenchCo
 	) {
 		super();
 
-		this._register(openerService.registerExternalOpener(this));
+		this._register(externalUriOpenerService.registerExternalOpenerProvider(this));
+		// The Simple Browser opener delegates to the Integrated Browser, so only this one is offered
+		this._register(registerBuiltInExternalUriOpener(LocalhostLinkOpenerContribution.OPENER_ID, localize('browser.externalUriOpener.description', "Open in the Integrated Browser."), ['simpleBrowser.open']));
 	}
 
-	async openExternal(href: string, ctx: { sourceUri: URI; preferredOpenerId?: string }, _token: CancellationToken): Promise<boolean> {
+	async *getOpeners(targetUri: URI): AsyncIterable<IExternalUriOpener> {
+		if (matchesSomeScheme(targetUri, Schemas.http, Schemas.https)) {
+			yield this._opener;
+		}
+	}
+
+	private opensByDefault(uri: URI): boolean {
 		if (!this.configurationService.getValue<boolean>('workbench.browser.openLocalhostLinks')) {
 			return false;
 		}
 
-		// If we are in a remote session, always use the original source URI (and not the href which may be the forwarded address)
-		if (this.browserViewWorkbenchService.willUseRemoteProxy() && ctx.sourceUri) {
-			href = ctx.sourceUri.toString();
-		}
-
 		try {
-			const parsed = new URL(href);
-			if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-				return false;
-			}
-			if (!isLocalhostAuthority(parsed.host) && !isAllInterfacesAuthority(parsed.host)) {
-				return false;
-			}
+			const { host } = new URL(uri.toString(true));
+			return isLocalhostAuthority(host) || isAllInterfacesAuthority(host);
 		} catch {
 			return false;
+		}
+	}
+
+	private async open(href: string, ctx: IExternalUriOpenContext): Promise<boolean> {
+		// Remote browsers need the original URL, not the forwarded address or a re-encoded URI.
+		if (this.browserViewWorkbenchService.resolveNetwork({ type: 'user' })) {
+			href = ctx.sourceHref;
 		}
 
 		logBrowserOpen(this.telemetryService, 'localhostLinkOpener');
 
 		// Check whether the setting was explicitly set by the user or is still at its default value.
 		// When it is a default, tag the viewState so that the hint pill can be shown.
-		const isDefaultLinkOpen = !isConfigured(this.configurationService.inspect('workbench.browser.openLocalhostLinks'));
+		const isDefaultLinkOpen = this.opensByDefault(ctx.sourceUri) && !isConfigured(this.configurationService.inspect('workbench.browser.openLocalhostLinks'));
 
 		const browserUri = BrowserViewUri.forId(generateUuid());
-		await this.editorService.openEditor({ resource: browserUri, options: { pinned: true, viewState: { url: href, isDefaultLinkOpen } } });
+		await this.editorService.openEditor({ resource: browserUri, options: { pinned: true, viewState: { url: href, isDefaultLinkOpen } } }, await this.browserViewWorkbenchService.getPreferredGroup(ctx.viewColumn === ViewColumn.Beside ? SIDE_GROUP : undefined, ctx.sourceWindowId));
 		return true;
 	}
 }
@@ -923,6 +985,30 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 				'When enabled, localhost links (`localhost`, `127.0.0.1`, `[::1]`) and all-interfaces links (`0.0.0.0`, `[0:0:0:0:0:0:0:0]`, `[::]`) from the terminal, chat, and other sources will open in the Integrated Browser instead of the system browser.'
 			),
 			agentsWindow: { default: true },
+		},
+		[BrowserDimOverlaySettingId]: {
+			type: 'boolean',
+			default: true,
+			experiment: { mode: 'startup' },
+			markdownDescription: localize(
+				{ comment: ['This is the description for a setting.'], key: 'browser.dimOnOverlay' },
+				"Controls whether the Integrated Browser page is dimmed when a temporary element, such as a context menu or tooltip, overlaps it and causes it to pause. The page is paused regardless of this setting."
+			),
+		},
+		[BrowserNewTabPlacementSettingId]: {
+			type: 'string',
+			enum: ['activeGroup', 'sideGroup', 'window'],
+			enumDescriptions: [
+				localize({ comment: ['This is the description for a setting.'], key: 'browser.newTabPlacement.activeGroup' }, "New browser tabs open in the currently active editor group."),
+				localize({ comment: ['This is the description for a setting.'], key: 'browser.newTabPlacement.sideGroup' }, "New browser tabs open in a dedicated editor group to the side that is reused for subsequent tabs. The group is locked so other editors are not opened into it."),
+				localize({ comment: ['This is the description for a setting.'], key: 'browser.newTabPlacement.window' }, "New browser tabs open in a dedicated window that is reused for subsequent tabs. The window is locked so other editors are not opened into it.")
+			],
+			default: 'activeGroup',
+			markdownDescription: localize(
+				{ comment: ['This is the description for a setting.'], key: 'browser.newTabPlacement' },
+				"Controls where new Integrated Browser tabs are opened."
+			),
+			scope: ConfigurationScope.WINDOW,
 		}
 	}
 });

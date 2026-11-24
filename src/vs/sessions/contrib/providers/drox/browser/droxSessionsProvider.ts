@@ -62,6 +62,7 @@ import { markDroxEngineSessionOpened, removeDroxEngineSessionFromRecency } from 
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import {
 	IChat,
+	ChatInteractivity,
 	ISessionChangesSummary,
 	ISessionFileChange,
 	ISession,
@@ -73,14 +74,15 @@ import {
 	SessionStatus,
 	toSessionId,
 	SESSION_WORKSPACE_GROUP_LOCAL,
-} from '../../../../services/sessions/common/session.js';
+} from '../../../../../workbench/services/sessions/common/session.js';
 import {
 	ISendRequestOptions,
 	ISessionChangeEvent,
 	ISessionModelPickerOptions,
+	ISessionModelsSnapshot,
 	ISessionsProvider,
-} from '../../../../services/sessions/common/sessionsProvider.js';
-import { IChatSessionFileChange2 } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
+} from '../../../../../workbench/contrib/sessions/common/sessionsProvider.js';
+import { IChatSessionFileChange2 } from '../../../../../workbench/common/chatSessionFileChange.js';
 import { droxSessionChangePathKey, normalizeWindowsFsPath } from '../../../../../workbench/contrib/drox/common/droxPathUtil.js';
 import { IDroxFileChangePayload } from '../../../../../workbench/contrib/drox/common/droxFileChange.js';
 import { enrichDroxFileChangeSnapshotAsync } from '../../../../../workbench/contrib/drox/common/droxFileChangeProgress.js';
@@ -120,6 +122,10 @@ function buildChat(session: DroxSession): IChat {
 		updatedAt: session.updatedAt,
 		status: session.status,
 		changes: session.changes,
+		changesets: constObservable([]),
+		workspace: session.workspace,
+		modelSource: constObservable(undefined),
+		interactivity: constObservable(ChatInteractivity.Full),
 		checkpoints: observableValue(session, undefined),
 		modelId: session.modelId,
 		mode: constObservable(undefined),
@@ -135,6 +141,9 @@ class DroxSession extends Disposable implements ISession {
 	readonly resource: URI;
 	readonly sessionId: string;
 	readonly providerId: string;
+	readonly harness = 'drox';
+	readonly environment = 'local';
+	readonly application = constObservable({ id: 'drox', label: 'Drox' });
 	readonly sessionType = DroxSessionType.id;
 	readonly icon: ThemeIcon = DroxSessionType.icon;
 	readonly createdAt: Date;
@@ -171,11 +180,11 @@ class DroxSession extends Disposable implements ISession {
 
 	private _selectedModelId: string | undefined;
 
-	readonly capabilities = {
+	readonly capabilities = constObservable({
 		supportsMultipleChats: false,
 		supportsRename: true,
 		supportsDelete: true,
-	};
+	});
 
 	constructor(
 		workspace: ISessionWorkspace,
@@ -305,6 +314,15 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 
 	private readonly _onDidChangeSessions = this._register(new Emitter<ISessionChangeEvent>());
 	readonly onDidChangeSessions = this._onDidChangeSessions.event;
+	readonly environment = { id: 'local', label: localize('droxSessions.environment', 'Local') };
+	readonly onDidMoveChat = Event.None;
+	canMoveChat(): boolean { return false; }
+	async moveChat(): Promise<void> { }
+	canMoveSessionUnder(): boolean { return false; }
+	async moveSessionUnder(): Promise<void> { }
+	createQuickChat(): ISession { throw new Error('Drox does not create quick chats'); }
+	getModelsSnapshot(): ISessionModelsSnapshot { return { models: [], desiredModelResolution: { kind: 'notRequested' }, modelTarget: undefined }; }
+	async setSessionReadState(): Promise<void> { }
 
 	private readonly _sessionCache = new Map<string, DroxSession>();
 	private readonly _newSessions = this._register(new DisposableMap<string, DroxSession>());
@@ -1206,15 +1224,13 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 
 	getModelPickerOptions(_sessionId: string): ISessionModelPickerOptions {
 		return {
-			useGroupedModelPicker: false,
-			showFeatured: false,
 			showUnavailableFeatured: false,
 			showManageModelsAction: true,
 			showAutoModel: false,
 		};
 	}
 
-	setModel(sessionId: string, modelId: string): void {
+	setModel(sessionId: string, _chatResource: URI, modelId: string): void {
 		const session = this._newSessions.get(sessionId) ?? this._findSession(sessionId);
 		session?.setModelId(modelId);
 	}
@@ -1507,7 +1523,14 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 		}
 	}
 
-	async deleteChat(_sessionId: string, _chatUri: URI): Promise<void> { }
+	async deleteChat(_sessionId: string, _chatUri: URI): Promise<boolean> { return false; }
+
+	getNestedChatWorkspaceSupport(): undefined { return undefined; }
+	resolveNestedChatFolder(): Promise<never> { return Promise.reject(new Error('Drox nested chat workspace is not supported')); }
+	getNestedChatBranches(): Promise<readonly string[]> { return Promise.resolve([]); }
+	applyNestedChatWorkspace(): Promise<void> { return Promise.resolve(); }
+	forkChat(): Promise<IChat> { return Promise.reject(new Error('Drox chat fork is not supported')); }
+	createSideChat(): Promise<IChat> { return Promise.reject(new Error('Drox side chat is not supported')); }
 
 	async createNewChat(sessionId: string, _prompt?: string): Promise<IChat> {
 		const session = this._findSession(sessionId) ?? this._newSessions.get(sessionId);

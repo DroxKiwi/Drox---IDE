@@ -20,8 +20,8 @@ import { IDroxAgentsComposerDroxChatHost } from '../agents/droxAgentsComposerDro
 import { resolveDroxIdeChatViewId } from '../chat/droxIdeChatViewRoute.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../../common/droxAgentsSession.js';
 import { DroxCommands, DroxViews } from '../../common/drox.js';
-import { ISessionsManagementService } from '../../../../../sessions/services/sessions/common/sessionsManagement.js';
-import { ISessionsService } from '../../../../../sessions/services/sessions/browser/sessionsService.js';
+import { ISessionsManagementService } from '../../../sessions/common/sessionsManagement.js';
+import { ISessionsService } from '../../../sessions/browser/sessionsService.js';
 import { DROX_AGENTS_TUTORIAL_STEPS } from './droxAgentsTutorialSteps.js';
 import { DROX_TUTORIAL_STEPS, DroxTutorialOpen, DroxTutorialStep } from './droxTutorialSteps.js';
 
@@ -388,7 +388,7 @@ export class DroxTutorialService extends Disposable implements IDroxTutorialServ
 				return;
 			}
 			const workspace = accessor.get(IWorkspaceContextService);
-			const active = accessor.get(ISessionsService).activeSession.get();
+			const active = accessor.get(ISessionsService).activePane.get()?.session.get();
 			const folder = workspace.getWorkspace().folders[0]?.uri
 				?? active?.workspace.get()?.folders[0]?.workingDirectory
 				?? active?.workspace.get()?.folders[0]?.root;

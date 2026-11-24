@@ -37,7 +37,7 @@ export class DroxMcpGalleryManifestService extends WorkbenchMcpGalleryManifestSe
 		super(productService, remoteAgentService, requestService, logService, configurationService);
 	}
 
-	protected override async getConfiguredGalleryServiceUrl(mcpGalleryConfig: IMcpGalleryConfig | undefined): Promise<string | undefined> {
+	protected async getConfiguredGalleryServiceUrl(mcpGalleryConfig: IMcpGalleryConfig | undefined): Promise<string | undefined> {
 		if (mcpGalleryConfig?.serviceUrl) {
 			return mcpGalleryConfig.serviceUrl;
 		}
@@ -52,6 +52,6 @@ export class DroxMcpGalleryManifestService extends WorkbenchMcpGalleryManifestSe
 			return bundled;
 		}
 
-		return super.getConfiguredGalleryServiceUrl(mcpGalleryConfig);
+		return undefined;
 	}
 }

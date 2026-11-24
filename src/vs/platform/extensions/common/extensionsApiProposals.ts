@@ -9,6 +9,9 @@ const _allApiProposals = {
 	activeComment: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.activeComment.d.ts',
 	},
+	agentEditorComments: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.agentEditorComments.d.ts',
+	},
 	agentSessionsWorkspace: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.agentSessionsWorkspace.d.ts',
 	},
@@ -36,17 +39,29 @@ const _allApiProposals = {
 	authSession: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.authSession.d.ts',
 	},
+	authSessionAccountIcon: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.authSessionAccountIcon.d.ts',
+	},
 	authSessionAudience: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.authSessionAudience.d.ts',
 	},
+	authSessionExpiration: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.authSessionExpiration.d.ts',
+	},
 	authenticationChallenges: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.authenticationChallenges.d.ts',
+	},
+	autoClosingPairBeforeText: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.autoClosingPairBeforeText.d.ts',
 	},
 	browser: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.browser.d.ts',
 	},
 	canonicalUriProvider: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.canonicalUriProvider.d.ts',
+	},
+	chatArtifactIntegrations: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.chatArtifactIntegrations.d.ts',
 	},
 	chatContextProvider: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.chatContextProvider.d.ts',
@@ -123,6 +138,9 @@ const _allApiProposals = {
 	contribChatEditorInlineGutterMenu: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.contribChatEditorInlineGutterMenu.d.ts',
 	},
+	contribChatResources: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.contribChatResources.d.ts',
+	},
 	contribCommentEditorActionsMenu: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.contribCommentEditorActionsMenu.d.ts',
 	},
@@ -192,6 +210,9 @@ const _allApiProposals = {
 	contribStatusBarItems: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.contribStatusBarItems.d.ts',
 	},
+	contribTitleBar: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.contribTitleBar.d.ts',
+	},
 	contribViewContainerTitle: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.contribViewContainerTitle.d.ts',
 	},
@@ -210,8 +231,8 @@ const _allApiProposals = {
 	customEditorMove: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.customEditorMove.d.ts',
 	},
-	customEditorPriority: {
-		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.customEditorPriority.d.ts',
+	customTextEditorNavigation: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.customTextEditorNavigation.d.ts',
 	},
 	dataChannels: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.dataChannels.d.ts',
@@ -309,6 +330,9 @@ const _allApiProposals = {
 	languageModelProxy: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.languageModelProxy.d.ts',
 	},
+	languageModelRateLimit: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.languageModelRateLimit.d.ts',
+	},
 	languageModelSystem: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.languageModelSystem.d.ts',
 	},
@@ -323,6 +347,9 @@ const _allApiProposals = {
 	},
 	languageStatusText: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.languageStatusText.d.ts',
+	},
+	linkPresentation: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.linkPresentation.d.ts',
 	},
 	mappedEditsProvider: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.mappedEditsProvider.d.ts',
@@ -374,6 +401,9 @@ const _allApiProposals = {
 	},
 	notebookVariableProvider: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.notebookVariableProvider.d.ts',
+	},
+	notificationTelemetry: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.notificationTelemetry.d.ts',
 	},
 	portsAttributes: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.portsAttributes.d.ts',
@@ -429,6 +459,9 @@ const _allApiProposals = {
 	statusBarItemTooltip: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.statusBarItemTooltip.d.ts',
 	},
+	structuralDiff: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.structuralDiff.d.ts',
+	},
 	tabInputMultiDiff: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.tabInputMultiDiff.d.ts',
 	},
@@ -465,6 +498,9 @@ const _allApiProposals = {
 	terminalQuickFixProvider: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.terminalQuickFixProvider.d.ts',
 	},
+	terminalRemoteResolver: {
+		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.terminalRemoteResolver.d.ts',
+	},
 	terminalSelection: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.terminalSelection.d.ts',
 	},
@@ -494,9 +530,6 @@ const _allApiProposals = {
 	},
 	textSearchProvider2: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.textSearchProvider2.d.ts',
-	},
-	timeline: {
-		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.timeline.d.ts',
 	},
 	tokenInformation: {
 		proposal: 'https://raw.githubusercontent.com/microsoft/vscode/main/src/vscode-dts/vscode.proposed.tokenInformation.d.ts',

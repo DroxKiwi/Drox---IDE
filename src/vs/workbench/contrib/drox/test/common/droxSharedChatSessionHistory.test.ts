@@ -77,7 +77,7 @@ suite('droxSharedChatSessionHistory', () => {
 		const storage = mockStorage();
 		markDroxEngineSessionOpened(storage, ws, 'ses_sync');
 		const raw = storage.get(DROX_AGENT_SESSIONS_RECENCY_STORAGE_KEY, StorageScope.WORKSPACE);
-		assert.ok(raw?.includes('ses_sync'));
+		assert.ok(raw?.includes(droxSessionUri('ses_sync')));
 		const profile = storage.get(DROX_WORKSPACE_SESSION_RECENCY_STORAGE_KEY, StorageScope.PROFILE);
 		assert.ok(profile?.includes('ses_sync'));
 	});
@@ -91,7 +91,7 @@ suite('droxSharedChatSessionHistory', () => {
 		assert.strictEqual(readLastDroxEngineSessionId(storage, ws), 'ses_a');
 		const raw = storage.get(DROX_AGENT_SESSIONS_RECENCY_STORAGE_KEY, StorageScope.WORKSPACE);
 		assert.ok(raw);
-		assert.ok(raw.indexOf('ses_a') < raw.indexOf('ses_b'));
+		assert.ok(raw.indexOf(droxSessionUri('ses_a')) < raw.indexOf(droxSessionUri('ses_b')));
 	});
 
 	test('sortDroxSessionEntriesByRecency prefers shared order', () => {

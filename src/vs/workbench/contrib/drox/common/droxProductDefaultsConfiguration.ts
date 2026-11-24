@@ -15,6 +15,12 @@ import {
 	TelemetryConfiguration,
 } from '../../../../platform/telemetry/common/telemetry.js';
 import { ChatConfiguration } from '../../chat/common/constants.js';
+import { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSettings.js';
+
+// DROX-BEGIN
+/** Setting key for the built-in general-purpose sub-agent; kept as a literal since the base enum no longer exposes it. */
+const DROX_GENERAL_PURPOSE_AGENT_ENABLED_SETTING = 'chat.generalPurposeAgent.enabled';
+// DROX-END
 import { RemoteAgentHostAutoConnectSettingId, RemoteAgentHostsEnabledSettingId } from '../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { TUNNEL_HOST_ENABLED_SETTING } from '../../chat/electron-browser/tunnelHost.contribution.js';
 import { DROX_THINKING_PHRASES } from './droxThinkingPhrases.js';
@@ -42,7 +48,7 @@ export function registerDroxProductDefaultsConfiguration(): void {
 				),
 				scope: ConfigurationScope.APPLICATION,
 			},
-			[ChatConfiguration.GeneralPurposeAgentEnabled]: {
+			[DROX_GENERAL_PURPOSE_AGENT_ENABLED_SETTING]: {
 				type: 'boolean',
 				default: false,
 				description: localize(
@@ -182,7 +188,7 @@ export function registerDroxProductDefaultsConfiguration(): void {
 				),
 				scope: ConfigurationScope.APPLICATION,
 			},
-			[ChatConfiguration.AIDisabled]: {
+			[ChatAIDisabledSettingId]: {
 				type: 'boolean',
 				default: false,
 				description: localize(

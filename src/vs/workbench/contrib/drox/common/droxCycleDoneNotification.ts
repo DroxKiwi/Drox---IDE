@@ -6,13 +6,12 @@
 // allow-any-unicode-comment-file
 
 import { CancellationToken } from '../../../../base/common/cancellation.js';
-import { mainWindow } from '../../../../base/browser/window.js';
 import { localize } from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { FocusMode } from '../../../../platform/native/common/native.js';
-import { IHostService } from '../../../services/host/browser/host.js';
+import type { IHostService } from '../../../services/host/browser/host.js';
 import { DroxSetting } from './droxConfiguration.js';
 
 export function isDroxCycleDoneNotificationEnabled(configService: IConfigurationService): boolean {
@@ -92,6 +91,7 @@ export async function notifyDroxCycleDone(
 		return;
 	}
 
+	const { mainWindow } = await import('../../../../base/browser/window.js');
 	await deps.hostService.focus(mainWindow, { mode: FocusMode.Notify }).catch(() => undefined);
 
 	const showWorkbenchFallback = () => {
@@ -114,6 +114,7 @@ export async function notifyDroxCycleDone(
 			return;
 		}
 		if (result.clicked) {
+			const { mainWindow } = await import('../../../../base/browser/window.js');
 			await deps.hostService.focus(mainWindow, { mode: FocusMode.Force });
 		}
 	} catch (err) {

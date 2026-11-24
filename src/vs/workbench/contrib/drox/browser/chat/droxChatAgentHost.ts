@@ -24,7 +24,7 @@ import { DroxChatTabsManager } from './droxChatTabsManager.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { handleDroxFileMutationAfterToolFinish, IDroxChatFileActionsHost } from './droxChatFileActions.js';
-import { IHostService } from '../../../../services/host/browser/host.js';
+import type { IHostService } from '../../../../services/host/browser/host.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { localize } from '../../../../../nls.js';
 import { buildDroxCycleDoneNotificationLabels, notifyDroxCycleDone } from '../../common/droxCycleDoneNotification.js';

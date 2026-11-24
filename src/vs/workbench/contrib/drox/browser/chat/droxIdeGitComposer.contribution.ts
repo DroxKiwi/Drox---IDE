@@ -20,8 +20,8 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService, StorageScope } from '../../../../../platform/storage/common/storage.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
-import { Menus } from '../../../../../sessions/browser/menus.js';
-import { SessionHeaderMetaActionViewItem } from '../../../../../sessions/browser/parts/sessionHeaderMetaActionViewItem.js';
+import { Menus } from '../../../sessions/browser/menus.js';
+import { ChatPillActionViewItem } from '../../../../browser/chatPills.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../common/contributions.js';
 import { IsSessionsWindowContext, VirtualWorkspaceContext } from '../../../../common/contextkeys.js';
 import { IActivityService, NumberBadge } from '../../../../services/activity/common/activity.js';
@@ -110,7 +110,7 @@ MenuRegistry.appendMenuItem(Menus.SessionComposerQuickActions, {
 	when: droxIdeViewChangesWhen,
 });
 
-class DroxIdeViewChangesActionViewItem extends SessionHeaderMetaActionViewItem {
+class DroxIdeViewChangesActionViewItem extends ChatPillActionViewItem {
 
 	constructor(
 		action: MenuItemAction,

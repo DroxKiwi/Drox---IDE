@@ -15,7 +15,6 @@ import { ContentWidgetPositionPreference, ICodeEditor, IContentWidget, IContentW
 import { EditorContributionInstantiation, registerEditorContribution } from '../../../../../editor/browser/editorExtensions.js';
 import { ConfigurationChangedEvent, EditorOption } from '../../../../../editor/common/config/editorOptions.js';
 import { Position } from '../../../../../editor/common/core/position.js';
-import { IEditorContribution } from '../../../../../editor/common/editorCommon.js';
 import { PLAINTEXT_LANGUAGE_ID } from '../../../../../editor/common/languages/modesRegistry.js';
 import { localize } from '../../../../../nls.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
@@ -31,14 +30,31 @@ import { AccessibilityVerbositySettingId } from '../../../accessibility/browser/
 import { IChatAgentService } from '../../../chat/common/participants/chatAgents.js';
 import { ChatAgentLocation } from '../../../chat/common/constants.js';
 import { IInlineChatSessionService } from '../../../inlineChat/browser/inlineChatSessionService.js';
+import { IUntitledDocumentTelemetryService } from '../../../../services/untitled/common/untitledDocumentTelemetry.js';
+import { EmptyTextEditorHintContributionId, IEmptyTextEditorHintContribution } from './emptyTextEditorHintTypes.js';
+import { EmptyEditorHintActionsVisible, EmptyEditorHintActionsWidget, emptyEditorHintActionsSetting, IEmptyEditorHintActionsSize } from './emptyEditorHintActions.js';
+import { EmptyEditorHintAction, logEmptyEditorHintEvent } from './emptyTextEditorHintTelemetry.js';
+import { ITextModel } from '../../../../../editor/common/model.js';
+import { KeyCode } from '../../../../../base/common/keyCodes.js';
+import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
+import { EditorContextKeys } from '../../../../../editor/common/editorContextKeys.js';
+import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';
+import { KeybindingsRegistry, KeybindingWeight } from '../../../../../platform/keybinding/common/keybindingsRegistry.js';
 import './emptyTextEditorHint.css';
 
 export const emptyTextEditorHintSetting = 'workbench.editor.empty.hint';
-export class EmptyTextEditorHintContribution extends Disposable implements IEditorContribution {
 
-	static readonly ID = 'editor.contrib.emptyTextEditorHint';
+export class EmptyTextEditorHintContribution extends Disposable implements IEmptyTextEditorHintContribution {
 
-	private textHintContentWidget: EmptyTextEditorHintContentWidget | undefined;
+	static readonly ID = EmptyTextEditorHintContributionId;
+
+	private textHintContentWidget: EmptyTextEditorHintContentWidget | EmptyEditorHintActionsWidget | undefined;
+
+	/** The text models for which the user closed the hint. Untitled URIs are reused, models are not; held weakly so disposed models are dropped. */
+	private readonly closedForModels = new WeakSet<ITextModel>();
+
+	/** Set while the editor is too small for the list of actions, so that the classic hint is shown until it grows. */
+	private actionsRequiredSize: IEmptyEditorHintActionsSize | undefined;
 
 	constructor(
 		protected readonly editor: ICodeEditor,
@@ -54,19 +70,24 @@ export class EmptyTextEditorHintContribution extends Disposable implements IEdit
 		this._register(this.editor.onDidChangeModelContent(() => this.update()));
 		this._register(this.chatAgentService.onDidChangeAgents(() => this.update()));
 		this._register(this.editor.onDidChangeModelDecorations(() => this.update()));
+		this._register(this.editor.onDidLayoutChange(() => {
+			if (this.actionsRequiredSize) {
+				this.update();
+			}
+		}));
 		this._register(this.editor.onDidChangeConfiguration((e: ConfigurationChangedEvent) => {
 			if (e.hasChanged(EditorOption.readOnly)) {
 				this.update();
 			}
 		}));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration(emptyTextEditorHintSetting)) {
+			if (e.affectsConfiguration(emptyTextEditorHintSetting) || e.affectsConfiguration(emptyEditorHintActionsSetting)) {
 				this.update();
 			}
 		}));
 		this._register(inlineChatSessionService.onWillStartSession(editor => {
 			if (this.editor === editor) {
-				this.textHintContentWidget?.dispose();
+				this.disposeHint();
 			}
 		}));
 		this._register(inlineChatSessionService.onDidChangeSessions(() => {
@@ -94,6 +115,10 @@ export class EmptyTextEditorHintContribution extends Disposable implements IEdit
 			return false;
 		}
 
+		if (this.closedForModels.has(model)) {
+			return false;
+		}
+
 		if (this.editor.getModel()?.getValueLength()) {
 			return false;
 		}
@@ -113,20 +138,87 @@ export class EmptyTextEditorHintContribution extends Disposable implements IEdit
 		return hasEditorAgents || shouldRenderDefaultHint;
 	}
 
+	/**
+	 * The list of actions is experimental and only offered for new untitled files, not in diff editors.
+	 */
+	private shouldRenderActions(): boolean {
+		return this.editor.getModel()?.uri.scheme === Schemas.untitled
+			&& !this.editor.getOption(EditorOption.inDiffEditor)
+			&& this.configurationService.getValue<boolean>(emptyEditorHintActionsSetting) === true
+			&& this.actionsFit();
+	}
+
+	/**
+	 * Whether the editor is large enough for the list of actions, after it did not fit before.
+	 */
+	private actionsFit(): boolean {
+		if (!this.actionsRequiredSize) {
+			return true;
+		}
+		const layoutInfo = this.editor.getLayoutInfo();
+		return layoutInfo.width - layoutInfo.verticalScrollbarWidth >= this.actionsRequiredSize.width && layoutInfo.height >= this.actionsRequiredSize.height;
+	}
+
 	protected update(): void {
 		const shouldRenderHint = this.shouldRenderHint();
+		const shouldRenderActions = shouldRenderHint && this.shouldRenderActions();
+		if (this.textHintContentWidget && (!shouldRenderHint || shouldRenderActions !== this.textHintContentWidget instanceof EmptyEditorHintActionsWidget)) {
+			this.disposeHint();
+		}
 		if (shouldRenderHint && !this.textHintContentWidget) {
-			this.textHintContentWidget = this.instantiationService.createInstance(EmptyTextEditorHintContentWidget, this.editor);
-		} else if (!shouldRenderHint && this.textHintContentWidget) {
-			this.textHintContentWidget.dispose();
-			this.textHintContentWidget = undefined;
+			const actionsWidget = shouldRenderActions ? this.createActionsWidget() : undefined;
+			this.textHintContentWidget = actionsWidget ?? this.instantiationService.createInstance(EmptyTextEditorHintContentWidget, this.editor);
+		}
+	}
+
+	/**
+	 * Creates the list of actions, or returns `undefined` if it does not fit into the editor.
+	 */
+	private createActionsWidget(): EmptyEditorHintActionsWidget | undefined {
+		const widget: EmptyEditorHintActionsWidget = this.instantiationService.createInstance(EmptyEditorHintActionsWidget, this.editor, {
+			close: () => {
+				const model = this.editor.getModel();
+				if (model) {
+					this.closedForModels.add(model);
+				}
+				this.disposeHint();
+			},
+			dontShowAgain: () => {
+				this.configurationService.updateValue(emptyTextEditorHintSetting, 'hidden');
+				this.disposeHint();
+			},
+			doesNotFit: () => {
+				this.actionsRequiredSize = widget.requiredSize;
+				this.update();
+			},
+		});
+		if (!widget.fits) {
+			this.actionsRequiredSize = widget.requiredSize;
+			widget.dispose();
+			return undefined;
+		}
+		this.actionsRequiredSize = undefined;
+		return widget;
+	}
+
+	disposeHint(): void {
+		this.textHintContentWidget?.dispose();
+		this.textHintContentWidget = undefined;
+	}
+
+	/**
+	 * Hides the list of actions for this editor (Escape in the editor).
+	 */
+	closeActionsHint(): void {
+		if (this.textHintContentWidget instanceof EmptyEditorHintActionsWidget) {
+			this.textHintContentWidget.close('closeEscape');
 		}
 	}
 
 	override dispose(): void {
 		super.dispose();
 
-		this.textHintContentWidget?.dispose();
+		this.disposeHint();
 	}
 }
 
@@ -146,6 +238,7 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 		@IChatAgentService private readonly chatAgentService: IChatAgentService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@IContextMenuService private readonly contextMenuService: IContextMenuService,
+		@IUntitledDocumentTelemetryService private readonly untitledDocumentTelemetryService: IUntitledDocumentTelemetryService,
 	) {
 		super();
 
@@ -161,6 +254,11 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 			}
 		}));
 		this.editor.addContentWidget(this);
+		this.logHintEvent('shown');
+	}
+
+	private logHintEvent(kind: 'shown' | 'action', action?: EmptyEditorHintAction): void {
+		logEmptyEditorHintEvent(this.telemetryService, this.untitledDocumentTelemetryService, this.editor.getModel()?.uri, 'classic', kind, action);
 	}
 
 	getId(): string {
@@ -169,6 +267,7 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 
 	private disableHint(e?: MouseEvent) {
 		const disableHint = () => {
+			this.logHintEvent('action', 'dontShowAgain');
 			this.configurationService.updateValue(emptyTextEditorHintSetting, 'hidden');
 			this.dispose();
 			this.editor.focus();
@@ -221,6 +320,7 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 		const askSomethingCommandId = 'inlineChat.start';
 		const askSomething = async (e: UIEvent) => {
 			e.stopPropagation();
+			this.logHintEvent('action', 'generateCode');
 			this.telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', {
 				id: askSomethingCommandId,
 				from: 'hint'
@@ -229,6 +329,7 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 		};
 		const languageOnClickOrTap = async (e: UIEvent) => {
 			e.stopPropagation();
+			this.logHintEvent('action', 'selectLanguage');
 			// Need to focus editor before so current editor becomes active and the command is properly executed
 			this.editor.focus();
 			this.telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', {
@@ -264,7 +365,7 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 		const ariaLabel = hasInlineChatProvider ?
 			localize('defaultHintAriaLabelWithInlineChat', 'Execute {0} to ask a question, execute {1} to select a language and get started. Start typing to dismiss.', ...keybindingLabels) :
 			localize('defaultHintAriaLabelWithoutInlineChat', 'Execute {0} to select a language and get started. Start typing to dismiss.', ...keybindingLabels);
-		// eslint-disable-next-line no-restricted-syntax
+		// eslint-disable-next-line eslint-js/no-restricted-syntax
 		for (const anchor of hintElement.querySelectorAll('a')) {
 			anchor.style.cursor = 'pointer';
 		}
@@ -309,3 +410,14 @@ class EmptyTextEditorHintContentWidget extends Disposable implements IContentWid
 }
 
 registerEditorContribution(EmptyTextEditorHintContribution.ID, EmptyTextEditorHintContribution, EditorContributionInstantiation.Eager); // eager because it needs to render a help message
+
+KeybindingsRegistry.registerCommandAndKeybindingRule({
+	id: 'editor.action.hideEmptyEditorHint',
+	// Below other editor contributions, so Escape still closes their widgets first
+	weight: KeybindingWeight.EditorContrib - 50,
+	primary: KeyCode.Escape,
+	when: ContextKeyExpr.and(EmptyEditorHintActionsVisible, EditorContextKeys.editorTextFocus, EditorContextKeys.hasNonEmptySelection.toNegated(), EditorContextKeys.hasMultipleSelections.toNegated()),
+	handler: accessor => {
+		accessor.get(ICodeEditorService).getFocusedCodeEditor()?.getContribution<EmptyTextEditorHintContribution>(EmptyTextEditorHintContribution.ID)?.closeActionsHint();
+	}
+});

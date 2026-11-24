@@ -12,12 +12,11 @@ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextke
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
-import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
-import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
-import { Menus } from '../../../browser/menus.js';
-import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
-import { logSessionsInteraction } from '../../../common/sessionsTelemetry.js';
-import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
+import { IWorkbenchLayoutService, Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
+import { Menus } from '../../../../workbench/contrib/sessions/browser/menus.js';
+import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
+import { logSessionsInteraction } from '../../../../workbench/contrib/sessions/common/sessionsTelemetry.js';
+import { ISessionsService } from '../../../../workbench/contrib/sessions/browser/sessionsService.js';
 import { ISessionsTasksService } from './sessionsTasksService.js';
 
 /** Title bar shortcut for integrated browser (alongside terminal toggle). */
@@ -51,9 +50,9 @@ class OpenSessionInBrowserAction extends Action2 {
 		const sessionsService = accessor.get(ISessionsService);
 		const sessionsTasksService = accessor.get(ISessionsTasksService);
 		const commandService = accessor.get(ICommandService);
-		const layoutService = accessor.get(IAgentWorkbenchLayoutService);
+		const layoutService = accessor.get(IWorkbenchLayoutService);
 
-		const activeSession = sessionsService.activeSession.get();
+		const activeSession = sessionsService.activePane.get()?.session.get();
 		const folder = activeSession?.workspace.get()?.folders[0];
 		const browserUrl = sessionsTasksService.getBrowserUrl(folder?.root).get();
 

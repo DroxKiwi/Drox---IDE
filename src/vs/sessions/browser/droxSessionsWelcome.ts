@@ -21,7 +21,7 @@ import { createWorkbenchDialogOptions } from '../../workbench/browser/parts/dial
 import { appendDroxActivityGrid } from '../../workbench/contrib/drox/browser/droxActivityGrid.js';
 // eslint-disable-next-line local/code-import-patterns -- Drox agents window welcome
 import { shouldSkipDroxSessionsSignIn } from '../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
-import { SessionsWelcomeVisibleContext } from '../common/contextkeys.js';
+import { SessionsWelcomeVisibleContext } from '../../workbench/contrib/sessions/common/contextkeys.js';
 import { WELCOME_COMPLETE_KEY } from '../common/welcome.js';
 
 export interface IDroxSessionsWelcomeHost {

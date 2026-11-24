@@ -11,8 +11,8 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 import { IDroxEngineService } from '../../../../workbench/contrib/drox/common/droxEngineService.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
-import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
-import { ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
+import { ISessionsService } from '../../../../workbench/contrib/sessions/browser/sessionsService.js';
+import { ISessionsManagementService } from '../../../../workbench/contrib/sessions/common/sessionsManagement.js';
 import { IDroxSessionBackgroundService } from '../common/droxSessionBackgroundService.js';
 
 /**
@@ -39,7 +39,7 @@ class DroxSessionsColdStartLayoutContribution extends Disposable implements IWor
 	}
 
 	private async _reconcileForegroundLayout(): Promise<void> {
-		const active = this._sessionsService.activeSession.get();
+		const active = this._sessionsService.activePane.get()?.session.get();
 		if (!active || active.providerId !== DROX_SESSIONS_PROVIDER_ID) {
 			this._paintAfterColdStart();
 			return;

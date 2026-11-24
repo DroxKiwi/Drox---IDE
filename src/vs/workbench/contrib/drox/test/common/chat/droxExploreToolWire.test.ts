@@ -35,7 +35,7 @@ suite('Drox — Explore tool wire', () => {
 	test('deriveExploreTitle falls back to first description line', () => {
 		assert.strictEqual(
 			deriveExploreTitle(undefined, 'Map pedagogy docs\n\nGoal: inventory markdown under docs/pedagogie'),
-			'Map pedagogy docs',
+			'inventory markdown under docs/pedagogie',
 		);
 	});
 

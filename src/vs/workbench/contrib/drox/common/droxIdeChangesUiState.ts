@@ -9,7 +9,7 @@ import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { ISessionFileChange } from '../../../../sessions/services/sessions/common/session.js';
+import { ISessionFileChange } from '../../../services/sessions/common/session.js';
 import { countDroxSessionFileChangeStats } from './droxSessionGitChanges.js';
 
 export interface IDroxIdeChangesUiStats {

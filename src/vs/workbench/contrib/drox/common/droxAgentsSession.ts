@@ -10,7 +10,7 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
-import { ISessionType } from '../../../../sessions/services/sessions/common/session.js';
+import { ISessionType, SessionTypeAuthRequirement } from '../../../services/sessions/common/session.js';
 
 /** Chat session type / URI authority for Drox Agents window. */
 export const DROX_CHAT_SESSION_TYPE = 'drox';
@@ -36,6 +36,7 @@ export const DroxSessionType: ISessionType = {
 	label: localize('droxSessionType', 'Drox'),
 	icon: Codicon.sparkle,
 	chatSessionType: DROX_CHAT_SESSION_TYPE,
+	authRequirement: SessionTypeAuthRequirement.None,
 };
 
 export namespace DroxChatSessionUri {

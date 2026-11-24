@@ -211,7 +211,7 @@ export function enrichFileChangePayload(
 	beforeContent: string,
 	afterContent: string,
 ): IDroxFileChangePayload {
-	if (base.diff || base.content) {
+	if (base.diff) {
 		return base;
 	}
 	const before = beforeContent ?? '';

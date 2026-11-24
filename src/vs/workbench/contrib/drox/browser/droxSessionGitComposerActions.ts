@@ -15,14 +15,14 @@ import { ServicesAccessor } from '../../../../platform/instantiation/common/inst
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { IsSessionsWindowContext, VirtualWorkspaceContext } from '../../../common/contextkeys.js';
-import { Menus } from '../../../../sessions/browser/menus.js';
-import { ActiveSessionContextKeys } from '../../../../sessions/contrib/changes/common/changes.js';
-import { SessionHasChangesContext, SessionProviderIdContext, SessionHasGitSyncActionRunningContext, SessionWorkspaceIsVirtualContext } from '../../../../sessions/common/contextkeys.js';
-import { IChat } from '../../../../sessions/services/sessions/common/session.js';
-import { ISessionsService } from '../../../../sessions/services/sessions/browser/sessionsService.js';
-import { ISessionsManagementService } from '../../../../sessions/services/sessions/common/sessionsManagement.js';
-import { IActiveSession } from '../../../../sessions/services/sessions/common/sessionsManagement.js';
-import { ISession } from '../../../../sessions/services/sessions/common/session.js';
+import { Menus } from '../../sessions/browser/menus.js';
+import { ActiveSessionContextKeys } from '../../sessions/common/changes.js';
+import { SessionHasChangesContext, SessionProviderIdContext, SessionHasGitSyncActionRunningContext, SessionWorkspaceIsVirtualContext } from '../../sessions/common/contextkeys.js';
+import { IChat } from '../../../services/sessions/common/session.js';
+import { ISessionsService } from '../../sessions/browser/sessionsService.js';
+import { ISessionsManagementService } from '../../sessions/common/sessionsManagement.js';
+import { IActiveSession } from '../../sessions/common/sessionsManagement.js';
+import { ISession } from '../../../services/sessions/common/session.js';
 import { IWorkbenchLayoutService, Parts } from '../../../services/layout/browser/layoutService.js';
 import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IChatWidgetService } from '../../chat/browser/chat.js';
@@ -135,9 +135,9 @@ function resolveSessionSendContext(
 ): ISessionSendContext | undefined {
 	let session: ISession | undefined;
 	if (!sessionArg) {
-		session = sessionsService.activeSession.get();
+		session = sessionsService.activePane.get()?.session.get();
 	} else if (URI.isUri(sessionArg)) {
-		session = sessionsManagementService.getSession(sessionArg) ?? sessionsService.activeSession.get();
+		session = sessionsManagementService.getSession(sessionArg) ?? sessionsService.activePane.get()?.session.get();
 	} else {
 		session = sessionArg;
 	}
@@ -145,9 +145,10 @@ function resolveSessionSendContext(
 		return undefined;
 	}
 
-	const activeSession = sessionsService.activeSession.get();
+	const activePane = sessionsService.activePane.get();
+	const activeSession = activePane?.session.get();
 	const chat = activeSession && isEqual(activeSession.resource, session.resource)
-		? activeSession.activeChat.get()
+		? (activePane?.chat.get() ?? session.mainChat.get())
 		: session.mainChat.get();
 	return { session, chat };
 }
