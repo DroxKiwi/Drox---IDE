@@ -62,7 +62,7 @@ Le profil choisit un preset. La régulation ne peut qu’enlever des outils. L�
 - appels de télémétrie encore présents ;
 - outils ou branches qui dépendent de Cursor, de Copilot, ou d’un service extérieur.
 
-Livrable prévu : un inventaire dans `docs/1.6/1.6.10/`, avec pour chaque piste « garder », « couper », ou « plus tard ».
+Inventaire : [INVENTAIRE.md](INVENTAIRE.md). Chaque piste y est marquée garder, couper, ou plus tard. Rien n’est retiré dans ce document.
 
 ## 6. Ensuite — ce qui est nouveau côté VS Code
 
