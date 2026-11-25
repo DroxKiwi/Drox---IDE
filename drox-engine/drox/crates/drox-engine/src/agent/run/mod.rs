@@ -7,6 +7,7 @@
 mod api;
 mod drive;
 mod lifecycle;
+pub(crate) mod shrink_phase;
 mod run_capture;
 
 use std::sync::Arc;

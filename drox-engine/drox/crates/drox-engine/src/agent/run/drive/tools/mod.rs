@@ -18,6 +18,7 @@ use futures::{StreamExt, stream};
 use serde_json::Value;
 use tokio::sync::mpsc;
 use tracing::debug;
+use uuid::Uuid;
 
 use crate::error::EngineError;
 use crate::event::{AgentEvent, HistoryProbeEntry, Phase};
@@ -129,6 +130,24 @@ impl Agent {
             partition_tool_calls(&tool_names, &self.registry)
         };
         st.round_tool_outputs = String::new();
+
+        let any_mutating = outcome.tool_calls.iter().any(|c| {
+            counts_as_mutating_for_step_tracking(&c.name, &c.arguments, &st.ctx.workspace_root)
+        });
+        if any_mutating {
+            let checkpoint_id = format!("ckpt_{}", Uuid::new_v4());
+            if tx
+                .send(Ok(AgentEvent::WorkspaceCheckpoint {
+                    checkpoint_id,
+                    message_index: st.messages.len(),
+                    files_count: 0,
+                }))
+                .await
+                .is_err()
+            {
+                return Turn::Stop;
+            }
+        }
 
         for batch in batches {
             let step = match batch {

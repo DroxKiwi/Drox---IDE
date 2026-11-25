@@ -4397,6 +4397,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				// `vs/sessions` (see `MobileChatInputConfigPicker`).
 				if (this.chatPhoneInputPresenter.enabled.get()) {
 					if (action.id === OpenModelPickerAction.ID && action instanceof MenuItemAction) {
+						// DROX-BEGIN
+						if (this._usesDroxNativeComposer()) {
+							return new HiddenActionViewItem(action);
+						}
+						// DROX-END
 						if (!this._currentLanguageModel.get()) {
 							this.setCurrentLanguageModelToDefault();
 						}
@@ -4410,6 +4415,11 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 				}
 
 				if (action.id === OpenModelPickerAction.ID && action instanceof MenuItemAction) {
+					// DROX-BEGIN
+					if (this._usesDroxNativeComposer()) {
+						return new HiddenActionViewItem(action);
+					}
+					// DROX-END
 					if (!this._currentLanguageModel.get()) {
 						this._modelSelectionDiagnostics.report('no-model-at-toolbar-build', {}, 'info');
 						this.setCurrentLanguageModelToDefault();

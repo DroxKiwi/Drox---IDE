@@ -66,8 +66,8 @@ fn upsert_replaces_without_duplicating() {
 		Content::Text { text } => text.as_str(),
 		_ => panic!("expected text"),
 	};
-	assert!(text.contains("objective: B"));
-	assert!(!text.contains("objective: A"));
+	assert!(text.contains("obj: B"));
+	assert!(!text.contains("obj: A"));
 }
 
 #[test]

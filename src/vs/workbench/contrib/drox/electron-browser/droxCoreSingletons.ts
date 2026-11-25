@@ -60,6 +60,8 @@ import { IDroxPortsService } from '../common/ports/droxPortsService.js';
 import { DroxPortsService } from './ports/droxPortsServiceImpl.js';
 import { IDroxToolsSurfaceService } from '../common/droxToolsSurfaceService.js';
 import { DroxToolsSurfaceService } from '../browser/droxToolsSurfaceService.js';
+import { IDroxWorkspaceCheckpointService } from '../common/droxWorkspaceCheckpointService.js';
+import { DroxWorkspaceCheckpointService } from '../browser/droxWorkspaceCheckpointService.js';
 
 /** Singletons moteur Drox partagés entre l’IDE principal et la fenêtre Agents. */
 export function registerDroxCoreSingletons(): void {
@@ -94,4 +96,5 @@ export function registerDroxCoreSingletons(): void {
 	registerSingleton(IDroxToolsSurfaceService, DroxToolsSurfaceService, InstantiationType.Delayed);
 	registerSingleton(IDroxTrafficService, DroxTrafficService, InstantiationType.Eager);
 	registerSingleton(IDroxPortsService, DroxPortsService, InstantiationType.Delayed);
+	registerSingleton(IDroxWorkspaceCheckpointService, DroxWorkspaceCheckpointService, InstantiationType.Delayed);
 }

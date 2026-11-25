@@ -18,7 +18,7 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { droxConfigChangeAffectsArchitectSettings, droxConfigChangeAffectsGeneralSettings } from '../../common/droxChatConfigSync.js';
 import { DroxSetting } from '../../common/droxConfiguration.js';
 import { formatDroxNumCtxLabel } from '../../common/droxNumCtx.js';
-import { readDroxChatConfigurationValue } from '../../common/droxAgentsConfiguration.js';
+import { readDroxArchitectModelUser, readDroxChatConfigurationValue } from '../../common/droxAgentsConfiguration.js';
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { readDroxGeneralSettingsForWebview } from '../chat/droxChatGeneralSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
@@ -171,11 +171,20 @@ export class DroxAgentsComposerToolbar extends Disposable {
 	}
 
 	private _syncChipLabels(): void {
+		const model = readDroxArchitectModelUser(this.configurationService).trim();
 		const numCtx = readDroxChatConfigurationValue<number>(this.configurationService, DroxSetting.NumCtx);
-		if (typeof numCtx === 'number' && Number.isFinite(numCtx)) {
-			this._modelSettingsChip.setLabel(formatDroxNumCtxLabel(numCtx));
+		const ctxLabel = typeof numCtx === 'number' && Number.isFinite(numCtx) ? formatDroxNumCtxLabel(numCtx) : undefined;
+		const shortModel = model.length > 28 ? `${model.slice(0, 26)}…` : model;
+		if (shortModel) {
+			this._modelSettingsChip.setLabel(shortModel);
+		} else if (ctxLabel) {
+			this._modelSettingsChip.setLabel(ctxLabel);
 		} else {
 			this._modelSettingsChip.setLabel(localize('droxAgents.modelSettings', 'Model settings'));
+		}
+		const modelTitle = [model, ctxLabel].filter(Boolean).join(' · ');
+		if (modelTitle) {
+			this._modelSettingsChip.triggerElement.title = modelTitle;
 		}
 
 		const settings = readDroxGeneralSettingsForWebview({

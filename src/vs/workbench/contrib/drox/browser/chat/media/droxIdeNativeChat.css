@@ -513,43 +513,81 @@
 	display: none !important;
 }
 
-.drox-discussion-shell .chat-working-progress > .activity-grid {
-	display: none !important;
-}
-
 /* Grille des chips : réservée à la fenêtre Agents. Ici elle resterait visible au bootstrap (Ctrl+R). */
 .drox-discussion-shell .drox-panel-loading-grid {
 	display: none !important;
 }
 
-.drox-discussion-shell .chat-response-loading .avatar-container .drox-response-loading-grid {
-	flex: 0 0 auto;
-	display: grid;
-	grid-template-columns: repeat(3, 2px);
-	grid-template-rows: repeat(3, 2px);
-	gap: 1px;
+/* Masquer les spinners / logos VS Code dans le shell Drox (grille Drox à la place). */
+.drox-discussion-shell .chat-thinking-spinner-item > .chat-thinking-icon,
+.drox-discussion-shell .chat-working-progress .chat-working-logo,
+.drox-discussion-shell .chat-working-progress .chat-progress-icon > * {
+	display: none !important;
 }
 
-.drox-discussion-shell .chat-response-loading .avatar-container {
+/* Pas d’icône / logo VS Code dans l’avatar assistant Drox (run terminé inclus). */
+.drox-discussion-shell .interactive-response .avatar-container > .avatar,
+.drox-discussion-shell .interactive-response .avatar-container .chat-working-logo,
+.drox-discussion-shell .interactive-response .avatar-container .chat-progress-icon {
+	display: none !important;
+}
+
+/* Portail sur le header (VS Code replaceChildren l’avatar à chaque re-render stream). */
+.drox-discussion-shell .interactive-response[data-drox-avatar-run] .header .avatar-container {
+	position: relative;
+	min-width: 24px;
+	min-height: 24px;
+	overflow: visible;
+}
+
+.drox-discussion-shell .interactive-response[data-drox-avatar-run] .header > .drox-avatar-run-portal {
+	position: absolute;
+	left: 0;
+	top: 50%;
+	z-index: 2;
 	display: flex;
+	width: 24px;
+	height: 24px;
 	align-items: center;
 	justify-content: center;
+	pointer-events: none;
+	transform: translateY(-50%);
 }
 
-.drox-discussion-shell .interactive-response.chat-response-loading .avatar-container > :not(.drox-response-loading-grid) {
+.drox-discussion-shell .interactive-response:not([data-drox-avatar-run]) .avatar-container {
+	visibility: hidden;
+	width: 0;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+.drox-discussion-shell .drox-avatar-run-portal .drox-response-loading-grid {
+	flex: 0 0 auto;
+	display: grid !important;
+}
+
+/* Grille run −25 % (16px → 12px ; cellules 4px → 3px). */
+.drox-discussion-shell .drox-avatar-run-portal .drox-response-loading-grid,
+.drox-discussion-shell .drox-run-activity-grid {
+	grid-template-columns: repeat(3, 3px);
+	grid-template-rows: repeat(3, 3px);
+	gap: 1px;
+	width: 12px;
+	height: 12px;
+}
+
+.drox-discussion-shell .chat-thinking-spinner-item .drox-run-activity-grid {
+	flex: 0 0 auto;
+	display: inline-grid;
+	margin-right: 6px;
+	vertical-align: middle;
+}
+
+.drox-discussion-shell .chat-working-progress .drox-run-activity-grid,
+.drox-discussion-shell .chat-working-progress .drox-footer-working-grid {
 	display: none !important;
-}
-
-.drox-discussion-shell .interactive-response:not(.chat-response-loading) .avatar-container .drox-response-loading-grid {
-	display: none !important;
-}
-
-.drox-discussion-shell .chat-response-loading .avatar-container .drox-response-loading-grid {
-	grid-template-columns: repeat(3, 4px);
-	grid-template-rows: repeat(3, 4px);
-	gap: 2px;
-	width: 16px;
-	height: 16px;
 }
 
 .drox-discussion-shell .drox-panel-loading-grid > span {
@@ -561,13 +599,18 @@
 	animation: drox-grid-pulse 1.35s ease-in-out infinite;
 }
 
+.drox-discussion-shell .drox-run-activity-grid > span,
 .drox-discussion-shell .drox-response-loading-grid > span {
 	display: block;
-	width: 4px;
-	height: 4px;
-	border-radius: 1px;
+	width: 3px;
+	height: 3px;
+	border-radius: 0.75px;
 	background: var(--vscode-terminal-ansiGreen, var(--drox-ui-green, #4ade80));
 	animation: drox-grid-pulse 1.35s ease-in-out infinite;
+}
+
+.drox-discussion-shell .activity-grid-persistent > span {
+	animation-fill-mode: both;
 }
 
 .drox-discussion-shell .activity-grid > span:nth-child(1) { animation-delay: 0s; }

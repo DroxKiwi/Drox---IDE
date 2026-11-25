@@ -7,7 +7,7 @@
 
 :root {
 	--nexus-sash-beam-core: var(--vscode-sash-hoverBorder, #6fcf6f);
-	--nexus-sash-beam-glow: color-mix(in srgb, var(--nexus-sash-beam-core) 45%, transparent);
+	--nexus-sash-beam-glow: color-mix(in srgb, var(--nexus-sash-beam-core) 28%, transparent);
 }
 
 .monaco-enable-motion .monaco-sash:not(.hover):not(.active):before {
@@ -17,60 +17,60 @@
 .monaco-sash.hover:before,
 .monaco-sash.active:before {
 	transition: none;
-	background-repeat: no-repeat;
-	background: none;
+	background-color: transparent;
 }
 
 .monaco-sash.vertical.hover:before,
 .monaco-sash.vertical.active:before {
+	background-repeat: no-repeat;
 	background-image: linear-gradient(
 		180deg,
 		transparent 0%,
-		transparent 44%,
-		var(--nexus-sash-beam-glow) 48%,
+		transparent 46%,
+		var(--nexus-sash-beam-glow) 49%,
 		var(--nexus-sash-beam-core) 50%,
-		var(--nexus-sash-beam-glow) 52%,
-		transparent 56%,
+		var(--nexus-sash-beam-glow) 51%,
+		transparent 54%,
 		transparent 100%
 	);
-	/* Un seul trait : bande étroite, pas de doublon glow/core visible en parallèle. */
-	background-size: 100% 22%;
-	background-position: 50% -30%;
-	animation: nexus-sash-beam-vertical 3.2s ease-in-out infinite;
+	background-size: 100% 14%;
+	background-position: 50% -18%;
+	animation: nexus-sash-beam-vertical 5.5s ease-in-out infinite;
 }
 
 .monaco-sash.horizontal.hover:before,
 .monaco-sash.horizontal.active:before {
+	background-repeat: no-repeat;
 	background-image: linear-gradient(
 		90deg,
 		transparent 0%,
-		transparent 44%,
-		var(--nexus-sash-beam-glow) 48%,
+		transparent 46%,
+		var(--nexus-sash-beam-glow) 49%,
 		var(--nexus-sash-beam-core) 50%,
-		var(--nexus-sash-beam-glow) 52%,
-		transparent 56%,
+		var(--nexus-sash-beam-glow) 51%,
+		transparent 54%,
 		transparent 100%
 	);
-	background-size: 22% 100%;
-	background-position: -30% 50%;
-	animation: nexus-sash-beam-horizontal 3.2s ease-in-out infinite;
+	background-size: 14% 100%;
+	background-position: -18% 50%;
+	animation: nexus-sash-beam-horizontal 5.5s ease-in-out infinite;
 }
 
 @keyframes nexus-sash-beam-vertical {
 	from {
-		background-position: 50% -30%;
+		background-position: 50% -18%;
 	}
 	to {
-		background-position: 50% 130%;
+		background-position: 50% 118%;
 	}
 }
 
 @keyframes nexus-sash-beam-horizontal {
 	from {
-		background-position: -30% 50%;
+		background-position: -18% 50%;
 	}
 	to {
-		background-position: 130% 50%;
+		background-position: 118% 50%;
 	}
 }
 

@@ -20,7 +20,7 @@ import { ITerminalInstance, ITerminalEditorService, ITerminalService } from '../
 import { TerminalLocation } from '../../../../platform/terminal/common/terminal.js';
 import { getSessionTerminalForegroundPolicy } from '../common/sessionTerminalForegroundPolicy.js';
 import { IPathService } from '../../../../workbench/services/path/common/pathService.js';
-import { Menus } from '../../../../workbench/contrib/sessions/browser/menus.js';
+import { AgentsWindowMenus } from '../../../browser/agentsWindowMenus.js';
 import { isAgentHostProvider, LOCAL_AGENT_HOST_PROVIDER_ID } from '../../../../workbench/contrib/sessions/common/agentHostSessionsProvider.js';
 import { SessionsWelcomeVisibleContext, IsPhoneLayoutContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
 import { ISessionsManagementService } from '../../../../workbench/contrib/sessions/common/sessionsManagement.js';
@@ -761,7 +761,7 @@ class OpenSessionInTerminalAction extends Action2 {
 				title: localize('hideTerminal', "Hide Terminal"),
 			},
 			menu: [{
-				id: Menus.TitleBarSessionMenu,
+				id: AgentsWindowMenus.TitleBarSessionMenu,
 				group: 'navigation',
 				order: 10,
 				when: ContextKeyExpr.and(IsAuxiliaryWindowContext.toNegated(), SessionsWelcomeVisibleContext.toNegated(), IsPhoneLayoutContext.negate()),

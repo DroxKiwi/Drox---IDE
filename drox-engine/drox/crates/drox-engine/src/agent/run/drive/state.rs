@@ -88,4 +88,8 @@ pub(super) struct DriveState {
     pub(super) capture_loop: &'static str,
     pub(super) deferred_pre_tool_loop: Option<LoopDecision>,
     pub(super) round_tool_outputs: String,
+    /// Derniers `input_tokens` remontés par le provider (ancrage compaction).
+    pub(super) last_turn_input_tokens: usize,
+    /// Une récupération basic après overflow provider par tour LLM.
+    pub(super) context_overflow_retry_used: bool,
 }

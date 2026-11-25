@@ -43,6 +43,7 @@ import {
 	droxIdeNativeChatViewContext,
 	pickDroxDiscussionPlaceholder,
 } from '../discussion/droxDiscussionChatWidgetOptions.js';
+import { attachDroxDiscussionSmartPaste } from '../discussion/droxDiscussionSmartPaste.js';
 import { resolveDroxNativeChatStartupSessionId, enrichDroxSessionListEntries } from '../../common/droxNativeChatSessionResolver.js';
 import { finalizeDroxNativeChatHistoryModel } from '../../common/droxNativeChatHistoryFinalize.js';
 import { IDroxSessionListEntry } from '../../common/droxSession.js';
@@ -191,6 +192,7 @@ export class DroxNativeChatViewPane extends ViewPane {
 		chatRoot.classList.add('drox-discussion-shell');
 		chatRoot.setAttribute('data-testid', DROX_NATIVE_CHAT_TEST_IDS.discussionShell);
 		this._widget.render(chatRoot);
+		attachDroxDiscussionSmartPaste(this.configurationService, this.instantiationService, this._widget, d => this._register(d));
 		this._register(attachDroxWorkingProgressGrid(chatRoot));
 		this._register(this.onDidChangeBodyVisibility(visible => {
 			this._widget?.setVisible(visible);

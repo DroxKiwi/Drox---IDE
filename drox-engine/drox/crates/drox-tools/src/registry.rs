@@ -5,8 +5,9 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::tool_context::ToolContext;
 use crate::error::ToolError;
+use crate::normalize_for_schema::normalize_for_schema;
+use crate::tool_context::ToolContext;
 use crate::simple::{
     AskUserQuestionTool, BashTool, CodebaseSearchTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
     FileWriteTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
@@ -137,6 +138,8 @@ impl ToolRegistry {
         let tool = self
             .get(name)
             .ok_or_else(|| ToolError::UnknownTool(name.to_string()))?;
-        tool.execute(ctx, input).await
+        let schema = tool.input_schema();
+        tool.execute(ctx, normalize_for_schema(input, &schema))
+            .await
     }
 }

@@ -76,6 +76,12 @@ export interface IDroxChatAgentEventHost {
 	): void;
 	getWorkspaceUri(): URI | undefined;
 	ingestContextChunkSummary(wsUri: URI, summary: Record<string, unknown>): void;
+	getCurrentRunId(): string | undefined;
+	recordWorkspaceCheckpoint?(
+		checkpointId: string,
+		messageIndex: number,
+		filesCount: number,
+	): Promise<void>;
 }
 
 export interface IDroxChatAgentDoneHost extends IDroxChatAgentEventHost {
@@ -415,6 +421,41 @@ export function dispatchAgentEvent(host: IDroxChatAgentEventHost, params: unknow
 				bootSystemBytes: Number(ev.boot_system_bytes ?? ev.bootSystemBytes ?? 0),
 				messagesCount: Number(ev.messages_count ?? ev.messagesCount ?? 0),
 			});
+			return;
+		}
+
+		case 'status_notice': {
+			const kind = typeof ev.notice_kind === 'string'
+				? ev.notice_kind
+				: (typeof ev.noticeKind === 'string' ? ev.noticeKind : 'notice');
+			const level = typeof ev.level === 'string' ? ev.level : 'info';
+			const message = typeof ev.message === 'string' ? ev.message : '';
+			if (message.length > 0) {
+				const prefix = level === 'warn' ? '⚠' : 'ℹ';
+				host.post({
+					kind: 'append',
+					role: 'system',
+					text: `[${kind}] ${prefix} ${message}`,
+				});
+			}
+			return;
+		}
+
+		case 'workspace_checkpoint': {
+			const checkpointId = typeof ev.checkpoint_id === 'string' ? ev.checkpoint_id : (typeof ev.checkpointId === 'string' ? ev.checkpointId : '');
+			const messageIndex = Number(ev.message_index ?? ev.messageIndex ?? 0);
+			const filesCount = Number(ev.files_count ?? ev.filesCount ?? 0);
+			if (checkpointId && host.recordWorkspaceCheckpoint) {
+				void host.recordWorkspaceCheckpoint(checkpointId, messageIndex, filesCount).catch(() => undefined);
+			}
+			if (checkpointId) {
+				const suffix = filesCount > 0 ? `, ${filesCount} fichier(s)` : '';
+				host.post({
+					kind: 'append',
+					role: 'system',
+					text: `[checkpoint] point de restauration workspace (${checkpointId}${suffix}).`,
+				});
+			}
 			return;
 		}
 

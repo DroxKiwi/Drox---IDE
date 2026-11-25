@@ -12,6 +12,17 @@
 //!
 //! Les buffers par défaut sont alignés sur l'ordre de grandeur du TS
 //! (`autoCompact.ts`) mais légèrement plus prudents pour démarrer.
+//!
+//! Pour les fenêtres utilisateur (`num_ctx`), [`Self::from_user_window`] applique
+//! des ratios type Cline (90 % autocompact, 97 % blocage) sur la fenêtre effective.
+
+/// Remplissage estimé (%) de la fenêtre effective déclenchant l'autocompact.
+pub const AUTOCOMPACT_FILL_RATIO: usize = 90;
+/// Remplissage estimé (%) au-dessus duquel on refuse un tour LLM sans shrink réussi.
+pub const BLOCKING_FILL_RATIO: usize = 97;
+/// Signaux UI progressifs.
+pub const WARNING_FILL_RATIO: usize = 85;
+pub const ERROR_FILL_RATIO: usize = 92;
 
 /// État d'alerte pour un nombre de tokens donné.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +78,51 @@ impl ContextBudget {
         Self {
             window_size,
             ..Self::default()
+        }
+    }
+
+    /// Budget aligné sur la fenêtre annoncée (Ollama `num_ctx`) avec ratios 90/97 %
+    /// sur la fenêtre **effective** (après [`reserved_output`], plafonné).
+    ///
+    /// Sur grands contextes, les seuils ratio ne sont pas plus laxistes que les
+    /// buffers fixes hérités de [`Self::default`].
+    #[must_use]
+    pub fn from_user_window(num_ctx: usize, reserved_output: usize) -> Self {
+        let window_size = num_ctx.max(2048);
+        let reserved_output = reserved_output
+            .min(window_size.saturating_mul(25) / 100)
+            .max(512);
+        let effective = window_size.saturating_sub(reserved_output);
+
+        let legacy = Self::with_window(window_size.max(Self::default().window_size));
+        let ratio_autocompact = effective.saturating_mul(AUTOCOMPACT_FILL_RATIO) / 100;
+        let ratio_blocking = effective.saturating_mul(BLOCKING_FILL_RATIO) / 100;
+        let ratio_warning = effective.saturating_mul(WARNING_FILL_RATIO) / 100;
+        let ratio_error = effective.saturating_mul(ERROR_FILL_RATIO) / 100;
+
+        let autocompact_threshold = if window_size >= Self::default().window_size {
+            ratio_autocompact.min(legacy.autocompact_threshold())
+        } else {
+            ratio_autocompact
+        };
+        let blocking_limit = if window_size >= Self::default().window_size {
+            ratio_blocking.min(legacy.blocking_limit())
+        } else {
+            ratio_blocking
+        };
+
+        let autocompact_buffer = effective.saturating_sub(autocompact_threshold);
+        let manual_compact_buffer = effective.saturating_sub(blocking_limit);
+        let warning_buffer = effective.saturating_sub(ratio_warning.min(legacy.warning_threshold()));
+        let error_buffer = effective.saturating_sub(ratio_error.min(legacy.error_threshold()));
+
+        Self {
+            window_size,
+            reserved_output,
+            autocompact_buffer,
+            warning_buffer,
+            error_buffer,
+            manual_compact_buffer,
         }
     }
 
@@ -173,5 +229,33 @@ mod tests {
         assert_eq!(b.effective_window(), 7_000);
         assert_eq!(b.autocompact_threshold(), 6_000);
         assert_eq!(b.blocking_limit(), 6_800);
+    }
+
+    #[test]
+    fn from_user_window_32k_uses_ratio_thresholds() {
+        let b = ContextBudget::from_user_window(32_768, 20_000);
+        let effective = b.effective_window();
+        assert_eq!(effective, 32_768 - 8_192);
+        assert_eq!(b.autocompact_threshold(), effective * AUTOCOMPACT_FILL_RATIO / 100);
+        assert_eq!(b.blocking_limit(), effective * BLOCKING_FILL_RATIO / 100);
+    }
+
+    #[test]
+    fn from_user_window_200k_triggers_autocompact_earlier_than_legacy_buffers() {
+        let b = ContextBudget::from_user_window(200_000, 20_000);
+        let legacy = ContextBudget::default();
+        assert!(b.autocompact_threshold() < legacy.autocompact_threshold());
+        assert_eq!(
+            b.autocompact_threshold(),
+            b.effective_window() * AUTOCOMPACT_FILL_RATIO / 100
+        );
+    }
+
+    #[test]
+    fn evaluate_32k_triggers_autocompact_near_90_percent() {
+        let b = ContextBudget::from_user_window(32_768, 20_000);
+        let at_trigger = b.autocompact_threshold();
+        assert!(!b.evaluate(at_trigger.saturating_sub(1)).above_autocompact);
+        assert!(b.evaluate(at_trigger).above_autocompact);
     }
 }

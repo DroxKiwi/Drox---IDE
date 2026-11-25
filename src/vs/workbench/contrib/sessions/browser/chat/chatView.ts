@@ -39,7 +39,7 @@ import { EDITOR_DRAG_AND_DROP_BACKGROUND } from '../../../../common/theme.js';
 import { ChatContentMarkdownRenderer } from '../../../chat/browser/widget/chatContentMarkdownRenderer.js';
 import { chatPersistentContentVisibleClass, ChatWidget } from '../../../chat/browser/widget/chatWidget.js';
 import { SESSIONS_CHAT_CONTENT_HORIZONTAL_PADDING } from '../../../chat/browser/widget/chatOptions.js';
-import { IChatRespondent, IChatWidget, isResponseSelectionSupported, setModelPreservingInputTypedWhileLoading } from '../../../chat/browser/chat.js';
+import { IChatRespondent, IChatWidget, IChatWidgetViewOptions, isResponseSelectionSupported, setModelPreservingInputTypedWhileLoading } from '../../../chat/browser/chat.js';
 import { IChatOpen, IChatOpenDiagnosticsService } from '../../../chat/common/chatOpenDiagnosticsService.js';
 import { ChatSendResult, ElicitationState, IChatModelReference, IChatService, IChatToolInvocation, ResponseModelState } from '../../../chat/common/chatService/chatService.js';
 import { isChatTranscriptContextVariableEntry, IChatRequestTranscriptContextVariableEntry, IChatRequestVariableEntry } from '../../../chat/common/attachments/chatVariableEntries.js';
@@ -86,6 +86,18 @@ import { ISessionComparison, ISessionComparisonService, SessionComparisonPartici
 import { IAgentsWindowDraft } from '../../../../../platform/window/common/window.js';
 import { AGENTS_CENTERED_CONTENT_MAX_WIDTH } from '../../common/layoutConstants.js';
 import { AGENT_SESSIONS_RESPONSE_SELECTION_MENU_SETTING } from '../../common/chatConstants.js';
+// DROX-BEGIN
+import {
+	applyDroxDiscussionOptionsToAgentsChatView,
+	bindDroxAgentsChatWidgetToSession,
+	finalizeDroxAgentsChatModelIfIdle,
+	mountDroxDiscussionShellOnChatHost,
+	prepareDroxAgentsChatSessionReload,
+	showDroxAgentsChatLoadProgress,
+} from '../../../drox/browser/discussion/droxDiscussionChatViewSeam.js';
+import { attachDroxDiscussionSmartPaste } from '../../../drox/browser/discussion/droxDiscussionSmartPaste.js';
+import { DroxSessionLoadingOverlay } from '../../../drox/browser/droxSessionLoadingOverlay.js';
+// DROX-END
 
 const SESSION_CHAT_RESPONSE_INTERNAL_HORIZONTAL_PADDING = 12;
 // 14px icon + 6px padding + 4px gap + breathing room. The percentage label expands over the editor on hover.
@@ -446,6 +458,10 @@ export class ChatView extends AbstractChatView {
 	 */
 	private readonly _voiceInitiatedHereKey: IContextKey<boolean>;
 
+	// DROX-BEGIN
+	private readonly _droxSessionLoadingOverlay: DroxSessionLoadingOverlay | undefined;
+	// DROX-END
+
 	constructor(
 		options: IChatViewOptions = {},
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
@@ -495,58 +511,67 @@ export class ChatView extends AbstractChatView {
 		// Matches `AGENTS_VOICE_INITIATED_HERE` in agentsVoice.contribution.ts.
 		this._voiceInitiatedHereKey = scopedContextKeyService.createKey<boolean>('agentsVoiceInitiatedHere', false);
 
+		// DROX-BEGIN
+		const agentsChatWidgetViewOptions: IChatWidgetViewOptions = {
+			renderChatPet: options.renderChatPet,
+			filter: options.inputOnly ? () => false : undefined,
+			autoScroll: mode => mode !== ChatModeKind.Ask,
+			renderFollowups: true,
+			firstRequestSummary: derived(this, reader => {
+				const session = this._currentSessionObs.read(reader);
+				return getSessionComparisonRequestSummary(
+					this.comparisonService.comparisons.read(reader),
+					session?.resource,
+					this._currentChatResourceObs.read(reader),
+					session?.mainChat.read(reader).resource,
+				);
+			}),
+			supportsFileReferences: true,
+			rendererOptions: {
+				renderInputRequests: options.inputOnly ? false : undefined,
+				renderHtmlPreviews: true,
+				renderNativeComponents: true,
+				referencesExpandedWhenEmptyResponse: false,
+				progressMessageAtBottomOfResponse: mode => mode !== ChatModeKind.Ask,
+				contentHorizontalPadding: this._chatItemHorizontalPadding,
+			},
+			enableImplicitContext: true,
+			enableWorkingSet: 'implicit',
+			supportsChangingModes: true,
+			supportsSideChat: derived(this, reader => {
+				const session = this._currentSessionObs.read(reader);
+				return !!session && session.status.read(reader) !== SessionStatus.Untitled
+					&& !session.isArchived.read(reader) && !!session.capabilities.read(reader).supportsSideChat;
+			}),
+			renderSecondaryToolbar: shouldRenderRunningSessionSecondaryToolbar(initiallyUsesExperimentalComposerLayout),
+			inputEditorMinLines: options.input?.minLines ?? 2,
+			inputPlaceholder: options.input?.placeholder,
+			inputEditorOptions: options.inputEditorOptions,
+			isSessionsWindow: true,
+			validateInput: query => {
+				if (this.scheduledChatsService.enabled.get() && query !== this._widget.getInput()) {
+					throw new Error(localize('chat.inputChangedBeforeSend', "The input changed while preparing this request. Review it before sending again."));
+				}
+				this.scheduledChatsService.assertChatInputUnscheduled(this._widget, query);
+			},
+			sandboxToggleChecked: observeSessionSandboxToggle(this._currentSessionObs, this._currentChatResourceObs, this.sessionsProvidersService),
+			transcriptTabIndex: -1,
+			enableFind: true,
+			persistentContentHeight: this._background?.hasBackground() ? 0 : SESSION_CHAT_INPUT_TOOLBAR_HEIGHT,
+			renderGettingStartedTip: () => shouldShowSessionChatTip(this._currentSessionObs.get()?.status.get()),
+		};
+		const chatWidgetViewOptions = applyDroxDiscussionOptionsToAgentsChatView(
+			this.configurationService,
+			agentsChatWidgetViewOptions,
+		);
+		// DROX-END
 		this._widget = this._register(scopedInstantiationService.createInstance(
 			ChatWidget,
 			ChatAgentLocation.Chat,
 			undefined,
-			{
-				renderChatPet: options.renderChatPet,
-				filter: options.inputOnly ? () => false : undefined,
-				autoScroll: mode => mode !== ChatModeKind.Ask,
-				renderFollowups: true,
-				firstRequestSummary: derived(this, reader => {
-					const session = this._currentSessionObs.read(reader);
-					return getSessionComparisonRequestSummary(
-						this.comparisonService.comparisons.read(reader),
-						session?.resource,
-						this._currentChatResourceObs.read(reader),
-						session?.mainChat.read(reader).resource,
-					);
-				}),
-				supportsFileReferences: true,
-				rendererOptions: {
-					renderInputRequests: options.inputOnly ? false : undefined,
-					renderHtmlPreviews: true,
-					renderNativeComponents: true,
-					referencesExpandedWhenEmptyResponse: false,
-					progressMessageAtBottomOfResponse: mode => mode !== ChatModeKind.Ask,
-					contentHorizontalPadding: this._chatItemHorizontalPadding,
-				},
-				enableImplicitContext: true,
-				enableWorkingSet: 'implicit',
-				supportsChangingModes: true,
-				supportsSideChat: derived(this, reader => {
-					const session = this._currentSessionObs.read(reader);
-					return !!session && session.status.read(reader) !== SessionStatus.Untitled
-						&& !session.isArchived.read(reader) && !!session.capabilities.read(reader).supportsSideChat;
-				}),
-				renderSecondaryToolbar: shouldRenderRunningSessionSecondaryToolbar(initiallyUsesExperimentalComposerLayout),
-				inputEditorMinLines: options.input?.minLines ?? 2,
-				inputPlaceholder: options.input?.placeholder,
-				inputEditorOptions: options.inputEditorOptions,
-				isSessionsWindow: true,
-				validateInput: query => {
-					if (this.scheduledChatsService.enabled.get() && query !== this._widget.getInput()) {
-						throw new Error(localize('chat.inputChangedBeforeSend', "The input changed while preparing this request. Review it before sending again."));
-					}
-					this.scheduledChatsService.assertChatInputUnscheduled(this._widget, query);
-				},
-				sandboxToggleChecked: observeSessionSandboxToggle(this._currentSessionObs, this._currentChatResourceObs, this.sessionsProvidersService),
-				transcriptTabIndex: -1,
-				enableFind: true,
-				persistentContentHeight: this._background?.hasBackground() ? 0 : SESSION_CHAT_INPUT_TOOLBAR_HEIGHT,
-				renderGettingStartedTip: () => shouldShowSessionChatTip(this._currentSessionObs.get()?.status.get()),
-			},
+			// DROX-BEGIN
+			chatWidgetViewOptions,
+			// DROX-END
 			this._buildStyles(this._isActive)
 		));
 		this.onDidSubmitRequest = Event.map(this._widget.onDidAcceptRequest, ({ sessionResource, result }) => ({
@@ -554,6 +579,14 @@ export class ChatView extends AbstractChatView {
 		}));
 		this._widget.setMaximumWidth(AGENTS_CENTERED_CONTENT_MAX_WIDTH);
 		this._widget.render(this._widgetContainer, undefined, this._isActiveObs);
+		// DROX-BEGIN
+		const discussionShell = mountDroxDiscussionShellOnChatHost(this.configurationService, this.element);
+		if (discussionShell) {
+			this._register(discussionShell);
+		}
+		this._droxSessionLoadingOverlay = this._register(new DroxSessionLoadingOverlay(this.element)) as DroxSessionLoadingOverlay;
+		attachDroxDiscussionSmartPaste(this.configurationService, this.instantiationService, this._widget, d => this._register(d));
+		// DROX-END
 		const updateExperimentalComposerLayout = () => {
 			const enabled = !isPhoneLayout(this.layoutService);
 			usesExperimentalComposerLayout.set(enabled);
@@ -1074,6 +1107,9 @@ export class ChatView extends AbstractChatView {
 		const token = cts.token;
 		const open = this._openDiagnostics.value = this.chatOpenDiagnosticsService.startOpen('agentsWindow', resource, token);
 		open.mark('selectionHandled');
+		// DROX-BEGIN
+		prepareDroxAgentsChatSessionReload(this.configurationService, resource, this.chatSessionsService, this.chatService);
+		// DROX-END
 		this._setLoading(true);
 
 		// Provider replacement and explicit retry belong to the same input load window.
@@ -1153,6 +1189,9 @@ export class ChatView extends AbstractChatView {
 			}
 			this._pendingLoadInput = undefined;
 			this._modelRef.value = ref;
+			// DROX-BEGIN
+			finalizeDroxAgentsChatModelIfIdle(this.configurationService, ref.object);
+			// DROX-END
 			this._updateWidgetLockState(getChatSessionType(ref.object.sessionResource));
 			// Bound ahead of the model so a chat answered by another agent never validates against its session's models.
 			this._respondentBinding.value = session ? autorun(reader => this._widget.setRespondent(getChatRespondent(session, resource, this.sessionsProvidersService, reader), resource)) : undefined;
@@ -1161,6 +1200,9 @@ export class ChatView extends AbstractChatView {
 			} else {
 				setModelPreservingInputTypedWhileLoading(this._widget, input.inputBeforeLoad, () => this._widget.setModel(ref.object));
 			}
+			// DROX-BEGIN
+			bindDroxAgentsChatWidgetToSession(this.configurationService, this._widget, ref.object.sessionResource);
+			// DROX-END
 			const widgetViewState = this._composerOnly ? undefined : this.viewStateService.get(resource);
 			if (widgetViewState) {
 				this._widget.restoreViewState(widgetViewState);
@@ -1199,7 +1241,16 @@ export class ChatView extends AbstractChatView {
 		// Surface progress on this leaf's own bar while the chat model loads,
 		// matching how each editor group shows progress independently. The short
 		// delay avoids flashing the bar for fast cached loads.
-		this.showProgressWhile(loaded, ChatView.LOADING_FEEDBACK_DELAY_MS);
+		// DROX-BEGIN
+		showDroxAgentsChatLoadProgress(
+			this.configurationService,
+			resource,
+			loaded,
+			this._droxSessionLoadingOverlay,
+			(promise, delayMs) => this.showProgressWhile(promise, delayMs),
+			ChatView.LOADING_FEEDBACK_DELAY_MS,
+		);
+		// DROX-END
 		this._layoutChatWidget();
 		return loaded;
 	}

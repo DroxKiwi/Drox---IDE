@@ -8,6 +8,7 @@ use tracing::{debug, warn};
 
 use crate::context_policy::ContextPolicy;
 
+use super::basic::try_basic_compact;
 use super::helpers::{extract_metadata, truncate_chars};
 use super::summarize::summarize_run_for_live;
 use super::types::CompactionConfig;
@@ -218,6 +219,7 @@ pub async fn compact_until_budget(
     messages: &mut Vec<Message>,
     policy: &ContextPolicy,
     config: &CompactionConfig,
+    request_load_tokens: Option<usize>,
 ) -> Option<LiveCompactReport> {
     use drox_context::{MicrocompactConfig, microcompact_messages};
 
@@ -225,8 +227,15 @@ pub async fn compact_until_budget(
     let mc_config = MicrocompactConfig::default();
     let mut last_report: Option<LiveCompactReport> = None;
 
+    let load_tokens = |msgs: &[Message]| -> usize {
+        let msg = policy.count_tokens(msgs);
+        request_load_tokens
+            .map(|r| r.max(msg))
+            .unwrap_or(msg)
+    };
+
     for _pass in 0..LIVE_COMPACT_MAX_PASSES {
-        let tokens_start = policy.count_tokens(messages);
+        let tokens_start = load_tokens(messages);
         if tokens_start < threshold {
             break;
         }
@@ -248,7 +257,7 @@ pub async fn compact_until_budget(
             );
         }
 
-        if policy.count_tokens(messages) < threshold {
+        if load_tokens(messages) < threshold {
             break;
         }
 
@@ -261,6 +270,16 @@ pub async fn compact_until_budget(
         )
         .await
         else {
+            if let Some(basic) = try_basic_compact(messages, policy, 0, request_load_tokens) {
+                last_report = Some(LiveCompactReport {
+                    tokens_before: basic.tokens_before,
+                    tokens_after: basic.tokens_after,
+                    messages_removed: basic.messages_removed,
+                    usage: None,
+                    summary_text: String::new(),
+                    files_touched: Vec::new(),
+                });
+            }
             break;
         };
 

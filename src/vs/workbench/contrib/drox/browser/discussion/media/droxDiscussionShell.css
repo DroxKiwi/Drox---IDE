@@ -22,3 +22,125 @@
 .drox-discussion-shell .chat-welcome-view-tips {
 	display: none !important;
 }
+
+/* Agents : carte de discussion centrée, même langage visuel que le panneau IDE. */
+.agent-sessions-workbench .drox-discussion-shell {
+	--drox-ui-green: #888888;
+	--drox-thread-green: #4ec94e;
+	--drox-thread-green-dim: color-mix(in srgb, var(--drox-thread-green) 55%, var(--vscode-input-background));
+}
+
+.agent-sessions-workbench .new-chat-widget-container:has(.drox-discussion-shell) {
+	justify-content: center;
+	align-items: center;
+}
+
+.agent-sessions-workbench .new-chat-widget-content:has(.drox-discussion-shell) {
+	max-width: 800px;
+	width: 100%;
+	height: auto;
+	flex: 0 1 auto;
+	align-self: center;
+}
+
+.agent-sessions-workbench .new-chat-widget-content:has(.drox-discussion-shell) > .new-session-welcome-message {
+	display: none;
+}
+
+.agent-sessions-workbench .new-chat-input-container.drox-discussion-shell {
+	flex: 0 1 auto;
+	align-self: center;
+	width: 100%;
+	max-width: 800px;
+	min-height: 0;
+}
+
+.agent-sessions-workbench .new-chat-input-container.drox-discussion-shell .sessions-shared-chat-widget,
+.agent-sessions-workbench .new-chat-input-container.drox-discussion-shell .interactive-session {
+	flex: 0 1 auto;
+	width: 100%;
+	max-width: 800px;
+	min-height: 0;
+}
+
+.agent-sessions-workbench .drox-discussion-shell .interactive-session {
+	font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
+}
+
+.agent-sessions-workbench .drox-discussion-shell .interactive-input-editor .monaco-editor.focused {
+	outline: none !important;
+}
+
+.agent-sessions-workbench .drox-discussion-shell .interactive-item-container.interactive-request .value .rendered-markdown {
+	border-radius: 12px !important;
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green) 55%, var(--vscode-input-background)) !important;
+	background-color: color-mix(in srgb, var(--drox-thread-green) 8%, var(--vscode-editor-background)) !important;
+}
+
+.agent-sessions-workbench .drox-discussion-shell .chat-input-container {
+	border-radius: 12px !important;
+	padding: 10px 12px 8px;
+	border: 1px solid var(--drox-thread-green-dim) !important;
+	--chat-input-working-border-color1: var(--drox-thread-green);
+	--chat-input-working-border-color2: color-mix(in srgb, var(--drox-thread-green) 65%, #1e1e1e);
+	--chat-input-working-border-color3: color-mix(in srgb, var(--drox-thread-green) 45%, #9aa88a);
+}
+
+.agent-sessions-workbench .drox-discussion-shell .chat-input-container.focused {
+	border-color: color-mix(in srgb, var(--drox-thread-green) 70%, transparent) !important;
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 28%, transparent) !important;
+}
+
+.agent-sessions-workbench .drox-discussion-shell .drox-agents-chat-input-toolbar-host {
+	display: flex !important;
+	flex: 1 1 100%;
+	width: 100%;
+	min-width: 0;
+	margin-left: 0;
+}
+
+.agent-sessions-workbench .drox-discussion-shell .drox-agents-composer-toolbar {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	grid-auto-rows: 22px;
+	width: 100%;
+	gap: 6px;
+	margin-left: 0;
+	overflow: visible;
+}
+
+.agent-sessions-workbench .drox-discussion-shell .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger,
+.agent-sessions-workbench .drox-discussion-shell .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label {
+	display: inline-flex;
+	align-items: center;
+	box-sizing: border-box;
+	height: 22px;
+	padding: 0 8px;
+	border-radius: 6px;
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+	border: 1px solid color-mix(in srgb, var(--drox-thread-green) 28%, transparent);
+	background: transparent;
+	font-size: 11px;
+	color: var(--vscode-foreground);
+}
+
+.agent-sessions-workbench .drox-discussion-shell .drox-agents-composer-toolbar .drox-agents-panel-picker-trigger:hover,
+.agent-sessions-workbench .drox-discussion-shell .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label:hover {
+	background-color: color-mix(in srgb, var(--drox-thread-green) 10%, var(--vscode-input-background) 90%);
+	border-color: color-mix(in srgb, var(--drox-thread-green) 45%, transparent);
+}
+
+.agent-sessions-workbench .drox-discussion-shell .drox-agents-chat-status.status {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	padding: 6px 12px 8px;
+	margin-top: 2px;
+	border-top: 1px solid var(--drox-ui-green);
+	background: var(--vscode-editor-background);
+	color: var(--vscode-descriptionForeground);
+	font-size: 11px;
+}

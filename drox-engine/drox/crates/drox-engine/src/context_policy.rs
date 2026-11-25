@@ -14,8 +14,8 @@
 use std::sync::Arc;
 
 use drox_context::{
-    ContextBudget, MicrocompactConfig, RoughTokenCounter, SnipConfig, TokenCounter,
-    microcompact_messages,
+    ClineStyleTokenCounter, ContextBudget, MicrocompactConfig, RoughTokenCounter, SnipConfig,
+    TokenCounter, microcompact_messages,
 };
 use drox_types::Message;
 
@@ -50,7 +50,7 @@ impl Default for ContextPolicy {
     /// Politique par défaut : compteur grossier + budget 200k + snip à 1k tokens.
     fn default() -> Self {
         Self {
-            counter: Arc::new(RoughTokenCounter::default()),
+            counter: Arc::new(ClineStyleTokenCounter),
             budget: ContextBudget::default(),
             snip: Some(SnipConfig::default()),
         }
@@ -64,8 +64,8 @@ impl ContextPolicy {
     pub fn for_model_context_window(num_ctx: usize) -> Self {
         let window = num_ctx.max(2048);
         Self {
-            counter: Arc::new(RoughTokenCounter::default()),
-            budget: ContextBudget::with_window(window),
+            counter: Arc::new(ClineStyleTokenCounter),
+            budget: ContextBudget::from_user_window(window, ContextBudget::default().reserved_output),
             snip: Some(SnipConfig::default()),
         }
     }
@@ -94,6 +94,32 @@ impl ContextPolicy {
     #[must_use]
     pub fn count_tokens(&self, messages: &[Message]) -> usize {
         self.counter.count_messages(messages)
+    }
+
+    /// Compte une chaîne brute (outils JSON, system hors messages).
+    #[must_use]
+    pub fn count_text(&self, text: &str) -> usize {
+        self.counter.count_text(text)
+    }
+
+    /// Budget de décision remplacé (seuils Cline après factor provider).
+    #[must_use]
+    pub fn with_decision_budget(&self, budget: ContextBudget) -> Self {
+        Self {
+            budget,
+            ..self.clone()
+        }
+    }
+
+    /// Tokens effectifs pour décision compact : max(estimateur, plancher provider).
+    #[must_use]
+    pub fn effective_token_count(
+        &self,
+        messages: &[Message],
+        provider_input_floor: usize,
+    ) -> usize {
+        let estimated = self.count_tokens(messages);
+        estimated.max(provider_input_floor)
     }
 
     #[must_use]
