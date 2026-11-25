@@ -125,6 +125,13 @@ export function renderDroxRegulationConsole(
 		autoBtn.onclick = () => {
 			opts.onSetLeverMode?.(lever, isAuto ? 'manual' : 'auto');
 		};
+		if (lever === 'L2' && st.module === 'custom') {
+			const hint = dom.append(controls, dom.$('span.drox-regulation-l2-custom-hint.drox-codebase-muted'));
+			hint.textContent = localize(
+				'drox.regulation.l2.customHint',
+				'Custom matrix — edit via chat tool panel (wrench).',
+			);
+		}
 	}
 
 	renderCharts(section, opts.history);

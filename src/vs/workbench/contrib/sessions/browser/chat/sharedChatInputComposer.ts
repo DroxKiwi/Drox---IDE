@@ -81,6 +81,15 @@ import { isPhoneLayout } from '../../../../browser/parts/sessions/mobileLayout.j
 import { installMobileChipLaneScroll } from '../mobile/mobileChipLaneScroll.js';
 import { shownChatOf } from '../../../../services/sessions/common/sessionPane.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
+// DROX-BEGIN
+import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
+import {
+	applyDroxDiscussionOptionsToNewSessionComposer,
+	bindDroxAgentsNewSessionComposer,
+	mountDroxDiscussionShellOnChatHost,
+} from '../../../drox/browser/discussion/droxDiscussionChatViewSeam.js';
+import { attachDroxDiscussionSmartPaste } from '../../../drox/browser/discussion/droxDiscussionSmartPaste.js';
+// DROX-END
 
 /** Body height the composer lays its chat widget out with; the transcript is hidden, so it only bounds the input. */
 const COMPOSER_LAYOUT_HEIGHT = 200;
@@ -194,6 +203,7 @@ export class SharedChatInputComposer extends Disposable implements INewSessionCo
 	private _updateBottomContainerVisibility: (() => void) | undefined;
 	private _bottomPickerResponsiveLayout: ChatInputPickerResponsiveLayout | undefined;
 	private _lastLayoutWidth: number | undefined;
+	private _lastLayoutHeight: number | undefined;
 	private _updateAttachmentOffset: (() => void) | undefined;
 
 	private readonly _modelRef = this._register(new MutableDisposable<IChatModelReference>());
@@ -300,10 +310,10 @@ export class SharedChatInputComposer extends Disposable implements INewSessionCo
 		// Voice Mode belongs to this composer while it is the voice input for a draft.
 		const ownsDraftVoiceSession = derived(this, reader => this.newChatVoiceTargetService.activeComposer.read(reader) === this
 			&& isEqual(this.newChatVoiceTargetService.currentVoiceInputResource.read(reader), NEW_CHAT_VOICE_SENTINEL));
-		const widget = this._widget = this._register(widgetInstantiationService.createInstance(
-			ChatWidget,
-			ChatAgentLocation.Chat,
-			undefined,
+		const configurationService = widgetInstantiationService.invokeFunction(accessor => accessor.get(IConfigurationService));
+		// DROX-BEGIN
+		const newSessionComposerWidgetOptions = applyDroxDiscussionOptionsToNewSessionComposer(
+			configurationService,
 			{
 				renderFollowups: false,
 				renderChatPet: this.options.renderChatPet,
@@ -343,6 +353,15 @@ export class SharedChatInputComposer extends Disposable implements INewSessionCo
 					return true;
 				},
 			},
+		);
+		// DROX-END
+		const widget = this._widget = this._register(widgetInstantiationService.createInstance(
+			ChatWidget,
+			ChatAgentLocation.Chat,
+			undefined,
+			// DROX-BEGIN
+			newSessionComposerWidgetOptions,
+			// DROX-END
 			{
 				listForeground: activeSessionViewForeground,
 				listBackground: activeSessionViewBackground,
@@ -353,13 +372,23 @@ export class SharedChatInputComposer extends Disposable implements INewSessionCo
 			},
 		));
 		widget.render(widgetContainer, root, this.options.petHostPreferred, this.options.setChatPetPlatformOccupation);
+		// DROX-BEGIN
+		const discussionShell = mountDroxDiscussionShellOnChatHost(configurationService, container);
+		if (discussionShell) {
+			this._register(discussionShell);
+		}
+		bindDroxAgentsNewSessionComposer(configurationService, widget, d => this._register(d));
+		attachDroxDiscussionSmartPaste(configurationService, this.instantiationService, widget, d => this._register(d));
+		// DROX-END
 		if (this.options.hideChatWidgetWhileHidden) {
 			// The widget is a foreground chat only while its composer is visible, rather than for as long as it is rendered.
 			this._register(autorun(reader => widget.setVisible((this.options.hostVisible?.read(reader) ?? true) && (this.options.inputVisible?.read(reader) ?? true))));
 		} else {
 			widget.setVisible(true);
 		}
-		widget.setInputPartMaxHeightOverride(COMPOSER_INPUT_MAX_HEIGHT);
+		if (!container.classList.contains('drox-discussion-shell')) {
+			widget.setInputPartMaxHeightOverride(COMPOSER_INPUT_MAX_HEIGHT);
+		}
 
 		this._register(widget.onDidFocus(() => this._onDidFocus.fire()));
 		this._register(widget.inputEditor.onDidChangeModelContent(() => {
@@ -546,22 +575,25 @@ export class SharedChatInputComposer extends Disposable implements INewSessionCo
 		bottomPickerResponsiveLayout.layout();
 	}
 
-	private _layoutWidget(): void {
+	private _layoutWidget(_height?: number): void {
 		const widget = this._widget;
 		const container = this._container;
 		if (!widget || !container) {
 			return;
 		}
 		const width = container.clientWidth || this._lastLayoutWidth;
-		if (width) {
-			widget.layout(COMPOSER_LAYOUT_HEIGHT, width);
+		if (!width) {
+			return;
 		}
+		const layoutHeight = COMPOSER_LAYOUT_HEIGHT;
+		widget.layout(layoutHeight, width);
 	}
 
-	layout(_height: number, width: number): void {
+	layout(height: number, width: number): void {
 		this._lastLayoutWidth = width;
+		this._lastLayoutHeight = height;
 		this._updateAttachmentOffset?.();
-		this._layoutWidget();
+		this._layoutWidget(height);
 		this._bottomPickerResponsiveLayout?.layout();
 	}
 

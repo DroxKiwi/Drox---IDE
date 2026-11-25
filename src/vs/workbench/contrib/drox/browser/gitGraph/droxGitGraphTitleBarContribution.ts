@@ -17,7 +17,7 @@ import { ServicesAccessor } from '../../../../../platform/instantiation/common/i
 import { IsAuxiliaryWindowContext } from '../../../../common/contextkeys.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../../common/contributions.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
-import { Menus } from '../../../sessions/browser/menus.js';
+import { AgentsWindowMenus } from '../../../../../sessions/browser/agentsWindowMenus.js';
 import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../sessions/common/contextkeys.js';
 import { ISessionsService } from '../../../sessions/browser/sessionsService.js';
 import { DROX_GIT_GRAPH_OPEN_COMMAND_ID, IDroxGitGraphService } from '../../common/droxGitGraphService.js';
@@ -50,7 +50,7 @@ class OpenGitGraphTitleBarAction extends Action2 {
 			icon: Codicon.gitBranch,
 			precondition: DroxGitGraphBranchAvailableContext,
 			menu: [{
-				id: Menus.TitleBarSessionMenu,
+				id: AgentsWindowMenus.TitleBarSessionMenu,
 				group: 'navigation',
 				order: 9,
 				when: ContextKeyExpr.and(

@@ -13,7 +13,7 @@ import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
 import { IWorkbenchLayoutService, Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
-import { Menus } from '../../../../workbench/contrib/sessions/browser/menus.js';
+import { AgentsWindowMenus } from '../../../browser/agentsWindowMenus.js';
 import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
 import { logSessionsInteraction } from '../../../../workbench/contrib/sessions/common/sessionsTelemetry.js';
 import { ISessionsService } from '../../../../workbench/contrib/sessions/browser/sessionsService.js';
@@ -31,7 +31,7 @@ class OpenSessionInBrowserAction extends Action2 {
 			tooltip: localize('openInBrowserTitleBarTooltip', "Open in the integrated browser"),
 			icon: Codicon.globe,
 			menu: [{
-				id: Menus.TitleBarSessionMenu,
+				id: AgentsWindowMenus.TitleBarSessionMenu,
 				group: 'navigation',
 				order: 11,
 				when: ContextKeyExpr.and(

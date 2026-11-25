@@ -34,6 +34,8 @@ import { refreshDroxChatLlmModels } from '../chat/droxChatLlmModels.js';
 import { setDroxArchitectLlmParamsFromWebview, setDroxArchitectModelFromWebview } from '../chat/droxChatRoleModels.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { IDroxSessionBackgroundService } from '../../../../../sessions/contrib/drox/common/droxSessionBackgroundService.js';
+import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
+import { IDroxToolsSurfaceService } from '../../common/droxToolsSurfaceService.js';
 import { buildDroxComposerPanelsMarkup } from './droxComposerMarkup.js';
 import { onUnexpectedError } from '../../../../../base/common/errors.js';
 import { installDroxChatTrustedDomOverrides, setDroxAgentsComposerInnerHtml, toDroxAgentsComposerTrustedScriptUrl } from './droxAgentsComposerDom.js';
@@ -136,6 +138,8 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 		@IHostService private readonly hostService: IHostService,
 		@IDroxChatSessionService private readonly chatSessionService: IDroxChatSessionService,
 		@IDroxSessionBackgroundService private readonly sessionBackgroundService: IDroxSessionBackgroundService,
+		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
+		@IDroxToolsSurfaceService private readonly toolsSurfaceService: IDroxToolsSurfaceService,
 	) {
 		super();
 		this._hostAdapter = new ComposerHostAdapter(message => this._handleHostMessage(message));
@@ -147,7 +151,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 			}
 			if (droxConfigChangeAffectsGeneralSettings(e)) {
 				void this._ensureReady().then(() => {
-					pushGeneralSettingsToWebview(this._hostAdapter, this.runSettingsService, this.configurationService);
+					pushGeneralSettingsToWebview(this._hostAdapter, this.runSettingsService, this.configurationService, this.toolsSurfaceService);
 				});
 			}
 			if (droxConfigChangeAffectsArchitectSettings(e)) {
@@ -155,6 +159,11 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 					refreshDroxChatLlmModels(this._hostAdapter, this.llmModelsService, this.runSettingsService, this.configurationService),
 				);
 			}
+		}));
+		this._register(this.toolsSurfaceService.onDidChange(() => {
+			void this._ensureReady().then(() => {
+				pushGeneralSettingsToWebview(this._hostAdapter, this.runSettingsService, this.configurationService, this.toolsSurfaceService);
+			});
 		}));
 		this._register(this.hostService.onDidChangeFocus(focus => {
 			if (!focus) {
@@ -253,11 +262,24 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 		}
 	}
 
+	private async _pushFreshGeneralSettingsToPanels(): Promise<void> {
+		const workspaceFsPath = this.runSettingsService.getWorkspaceResource()?.fsPath;
+		if (workspaceFsPath) {
+			await this.toolsSurfaceService.reload(workspaceFsPath);
+		}
+		pushGeneralSettingsToWebview(this._hostAdapter, this.runSettingsService, this.configurationService, this.toolsSurfaceService);
+	}
+
 	async toggleServerSettingsPanel(): Promise<void> {
 		try {
 			await this._ensureReady();
 			this._bindDomFromVisibleRoot();
-			const fn = this._drox().fn;
+			const D = this._drox();
+			const opening = !D.state.generalSettingsPanelOpen;
+			if (opening) {
+				await this._pushFreshGeneralSettingsToPanels();
+			}
+			const fn = D.fn;
 			if (typeof fn.toggleGeneralSettingsPanel === 'function') {
 				fn.toggleGeneralSettingsPanel();
 			} else if (typeof fn.openGeneralSettingsPanel === 'function') {
@@ -634,7 +656,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 
 	private async _syncFromConfiguration(): Promise<void> {
 		await this._pushPermissionModeFromConfiguration();
-		pushGeneralSettingsToWebview(this._hostAdapter, this.runSettingsService, this.configurationService);
+		pushGeneralSettingsToWebview(this._hostAdapter, this.runSettingsService, this.configurationService, this.toolsSurfaceService);
 		await refreshDroxChatLlmModels(this._hostAdapter, this.llmModelsService, this.runSettingsService, this.configurationService);
 		this._reconcileVignetteUi();
 	}
@@ -660,6 +682,8 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 			dialogService: this.dialogService,
 			notificationService: this.notificationService,
 			commandService: this.commandService,
+			regulationService: this.regulationService,
+			toolsSurfaceService: this.toolsSurfaceService,
 		};
 		switch (raw.type) {
 			case 'refreshLlmModels':
@@ -731,7 +755,7 @@ export class DroxAgentsComposerDroxChatHost extends Disposable implements IDroxA
 						);
 					}
 				}
-				pushGeneralSettingsToWebview(this._hostAdapter, deps.runSettingsService, deps.configurationService);
+				pushGeneralSettingsToWebview(this._hostAdapter, deps.runSettingsService, deps.configurationService, deps.toolsSurfaceService);
 				break;
 			}
 			case 'setPermissionMode': {

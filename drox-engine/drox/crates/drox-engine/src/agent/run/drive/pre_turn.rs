@@ -92,21 +92,7 @@ impl Agent {
             "tour LLM (todo_write obligatoire AVANT tout autre outil, optionnel pour conversation pure)"
         );
 
-        if self
-            .maybe_snip(
-                &mut st.messages,
-                &tx,
-                &mut st.live_compaction_seq,
-                &mut st.transcript_cursor,
-                st.leading_injected_systems,
-            )
-            .await
-            .is_err()
-        {
-            return Turn::Stop;
-        }
-
-        // S-1 — rafraîchir la situation card après snip / avant stream_chat.
+        // S-1 — rafraîchir la situation card avant shrink (charge requête inclut la card).
         let situation = SituationSnapshot {
             objective: self.config.run_objective.clone(),
             todos_pending: st.last_todo_pending,
@@ -139,21 +125,26 @@ impl Agent {
             );
         }
 
-        // Soft plan-frame (classif isWork) — texte only.
-        // Profils locaux : budget presque épuisé → tools off, réponse obligatoire.
-        let final_reserve = if self.config.max_iterations >= 4 {
-            2
+        let tool_specs_for_load = if st.loop_tools_disabled {
+            &[] as &[_]
         } else {
-            1
+            st.tool_specs.as_slice()
         };
-        if st.engine_closure
-            && !st.final_answer_forced
-            && iter + final_reserve >= self.config.max_iterations
+        match self
+            .run_shrink_phase(
+                &mut st.messages,
+                tool_specs_for_load,
+                &tx,
+                &mut st.live_compaction_seq,
+                &mut st.transcript_cursor,
+                st.leading_injected_systems,
+                st.last_turn_input_tokens,
+            )
+            .await
         {
-            debug!(iter, "local profile — final answer turn (tools off)");
-            st.messages.push(Message::system(LOCAL_FINAL_ANSWER_PROMPT));
-            st.final_answer_forced = true;
-            st.loop_tools_disabled = true;
+            Err(()) => return Turn::Stop,
+            Ok(outcome) if outcome.blocked => return Turn::Stop,
+            Ok(_) => {}
         }
 
         if st.plan_nudges

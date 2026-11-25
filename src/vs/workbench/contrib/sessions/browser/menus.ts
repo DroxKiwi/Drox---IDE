@@ -115,8 +115,6 @@ export const Menus = {
 	ChangesAgentMergeMergePullRequest: new MenuId('SessionsChangesAgentMergeMergePullRequest'),
 
 	// DROX-BEGIN
-	/** Session menu shown in the title bar for the active session (Drox). */
-	TitleBarSessionMenu: new MenuId('SessionsTitleBarSessionMenu'),
 	/** Meta actions shown in a session header (Drox). */
 	SessionHeaderMeta: new MenuId('SessionsSessionHeaderMeta'),
 	/** Quick actions shown in the session composer (Drox). */

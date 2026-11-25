@@ -78,6 +78,29 @@ export function registerDroxNativeChatViewActions(): void {
 		}
 	});
 
+	registerAction2(class DroxNativeToolsPanelAction extends Action2 {
+		constructor() {
+			super({
+				id: 'drox.nativeChat.toolsPanel',
+				title: localize2('drox.nativeChat.toolsPanel', 'Tool activation'),
+				icon: Codicon.tools,
+				f1: false,
+				precondition: DroxIdeNativeChatTabEnabledContext,
+				menu: [{
+					id: MenuId.ViewTitle,
+					when: ContextKeyExpr.equals('view', DroxViews.NativeChatViewId),
+					group: 'navigation',
+					order: 5,
+				}],
+			});
+		}
+
+		override async run(accessor: ServicesAccessor): Promise<void> {
+			const pane = accessor.get(IViewsService).getViewWithId<DroxNativeChatViewPane>(DroxViews.NativeChatViewId);
+			pane?.openToolsPanel();
+		}
+	});
+
 	registerAction2(class DroxNativeRunCaptureAction extends Action2 {
 		constructor() {
 			super({

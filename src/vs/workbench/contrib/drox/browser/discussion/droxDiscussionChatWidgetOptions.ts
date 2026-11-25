@@ -9,6 +9,7 @@ import { ChatModeKind } from '../../../chat/common/constants.js';
 import { IChatWidgetViewOptions } from '../../../chat/browser/chat.js';
 import { DroxViews } from '../../common/drox.js';
 import { DROX_CHAT_SESSION_TYPE } from '../../common/droxAgentsSession.js';
+import { DROX_NATIVE_CHAT_TRANSCRIPT_TAIL_PADDING_RATIO } from '../chat/droxNativeChatUiConstants.js';
 
 /**
  * Shared ChatWidget view options for the Drox discussion shell (IDE panel + Agents ChatView).
@@ -25,6 +26,8 @@ export function createDroxDiscussionChatWidgetOptions(kind: 'ide' | 'agents'): I
 		},
 		enableImplicitContext: true,
 		supportsChangingModes: false,
+		droxNativeComposer: true,
+		droxTranscriptTailPaddingRatio: DROX_NATIVE_CHAT_TRANSCRIPT_TAIL_PADDING_RATIO,
 		sessionTypePickerDelegate: {
 			getActiveSessionProvider: () => DROX_CHAT_SESSION_TYPE,
 		},

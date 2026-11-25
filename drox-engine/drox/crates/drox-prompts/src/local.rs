@@ -197,8 +197,29 @@ pub const LOCAL_TEXTUAL_TOOL_TOOLS_OFF_ENTRY: PromptEntry = PromptEntry {
 /// Le modèle a imité un appel dans le texte au lieu du canal natif.
 #[must_use]
 pub fn reply_has_textual_tool_call(reply: &str) -> bool {
-	let lower = reply.to_ascii_lowercase();
-	lower.contains("<tool_call") || lower.contains("<function=")
+	reply_has_textual_tool_call_outside_code_fences(reply).is_some()
+}
+
+/// Détecte une imitation d'outil hors blocs ``` (le code utilisateur dans
+/// un fence ne doit pas bloquer la clôture).
+#[must_use]
+pub fn reply_has_textual_tool_call_outside_code_fences(reply: &str) -> Option<&str> {
+	let mut in_fence = false;
+	for line in reply.lines() {
+		let trimmed = line.trim();
+		if trimmed.starts_with("```") {
+			in_fence = !in_fence;
+			continue;
+		}
+		if in_fence {
+			continue;
+		}
+		let lower = line.to_ascii_lowercase();
+		if lower.contains("<tool_call") || lower.contains("<function=") {
+			return Some(line);
+		}
+	}
+	None
 }
 
 /// `local-27b` et `cloud-full` : rappel one-shot avant clôture (todo encore ouverte).
@@ -263,6 +284,12 @@ mod tests {
 		assert!(reply_has_textual_tool_call("<FUNCTION=file_edit>"));
 		assert!(!reply_has_textual_tool_call("J'ai mis à jour la documentation."));
 		assert!(!reply_has_textual_tool_call("appelle todo_write ensuite"));
+	}
+
+	#[test]
+	fn textual_tool_call_ignored_inside_code_fence() {
+		let fenced = "Voici l'exemple :\n```rust\n<tool_call>fake</tool_call>\n```\n";
+		assert!(!reply_has_textual_tool_call(fenced));
 	}
 
 	#[test]

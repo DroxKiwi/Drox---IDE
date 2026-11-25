@@ -19,6 +19,7 @@ import { IDroxClientToolsService } from '../../common/droxClientToolsService.js'
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
+import { IDroxToolsSurfaceService } from '../../common/droxToolsSurfaceService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePasteWire, toUserMessagePasteWire } from '../../common/droxPasteCandidates.js';
 import { formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
@@ -78,6 +79,7 @@ export async function executeDroxChatSend(
 		readonly codebaseContextService?: IDroxCodebaseContextService;
 		readonly editorService?: IEditorService;
 		readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
+		readonly toolsSurfaceService?: Pick<IDroxToolsSurfaceService, 'getStateForWorkspace'>;
 		readonly userHomeFsPath?: string;
 		readonly configurationService?: IConfigurationService;
 	},
@@ -205,6 +207,7 @@ export async function executeDroxChatSend(
 			fileService: deps.fileService,
 			codebaseContextService: deps.codebaseContextService,
 			regulationService: deps.regulationService,
+			toolsSurfaceService: deps.toolsSurfaceService,
 			userHomeFsPath: deps.userHomeFsPath,
 			configurationService: deps.configurationService,
 			resolveCodebaseForcePathPrefixes: deps.editorService

@@ -11,6 +11,10 @@ import { readLlmProvider } from '../../common/droxLlmCatalog.js';
 import { readLlmHeadersMap } from '../../common/droxLlmHeaders.js';
 import { isMcpToolsEnabled, readLlmSettings, readSubagentsSettings } from '../../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
+import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
+import { IDroxToolsSurfaceService } from '../../common/droxToolsSurfaceService.js';
+import { clearDroxCustomToolsOnEngineProfileChange } from '../../common/droxCustomToolsWorkflow.js';
+import { localize } from '../../../../../nls.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
 import { DROX_DEFAULT_SUBAGENTS_MAX_ITERATIONS, DROX_MAX_ITERATIONS_CAP } from '../../common/droxProductDefaults.js';
 import { formatDroxConnectionSummary, normalizeDroxLlmHosting } from './droxConnectionCatalog.js';
@@ -40,6 +44,8 @@ export interface IDroxGeneralSettingsWire {
 	readonly projectRulesEnabled: boolean;
 	readonly allowOutsideWorkspaceRead: boolean;
 	readonly allowOutsideWorkspaceWrite: boolean;
+	readonly customToolsActive: boolean;
+	readonly customToolsSuffix: string;
 }
 export interface IDroxGeneralSettingsPatch {
 	readonly llmHosting?: string;
@@ -83,9 +89,12 @@ function readBool(
 export function readDroxGeneralSettingsForWebview(
 	deps: Pick<{ runSettingsService: IDroxRunSettingsService }, 'runSettingsService'> & {
 		configurationService: IConfigurationService;
+		toolsSurfaceService?: IDroxToolsSurfaceService;
 	},
 ): IDroxGeneralSettingsWire {
 	const workspaceResource = deps.runSettingsService.getWorkspaceResource();
+	const workspaceFsPath = workspaceResource?.fsPath ?? '';
+	const customToolsActive = deps.toolsSurfaceService?.isCustomActive(workspaceFsPath) === true;
 	const resource = droxConfigurationResourceForRead(deps.configurationService, workspaceResource);
 	const llm = readLlmSettings(deps.configurationService, resource);
 	const subagents = readSubagentsSettings(deps.configurationService, resource);
@@ -118,6 +127,10 @@ export function readDroxGeneralSettingsForWebview(
 		projectRulesEnabled: readBool(deps.configurationService, DroxSetting.RulesEnabled, resource, true),
 		allowOutsideWorkspaceRead: readBool(deps.configurationService, DroxSetting.AllowOutsideWorkspaceRead, resource, false),
 		allowOutsideWorkspaceWrite: readBool(deps.configurationService, DroxSetting.AllowOutsideWorkspaceWrite, resource, false),
+		customToolsActive,
+		customToolsSuffix: customToolsActive
+			? localize('drox.tools.customToolsSuffix', '(custom tools)')
+			: '',
 	};
 	return {
 		...wire,
@@ -128,15 +141,18 @@ export function pushGeneralSettingsToWebview(
 	host: IDroxChatGeneralSettingsHost,
 	runSettingsService: IDroxRunSettingsService,
 	configurationService: IConfigurationService,
+	toolsSurfaceService?: IDroxToolsSurfaceService,
 ): void {
 	host.post({
 		kind: 'generalSettings',
-		settings: readDroxGeneralSettingsForWebview({ runSettingsService, configurationService }) as unknown as Record<string, unknown>,
+		settings: readDroxGeneralSettingsForWebview({ runSettingsService, configurationService, toolsSurfaceService }) as unknown as Record<string, unknown>,
 	});
 }
 export async function setDroxGeneralSettingsFromWebview(
 	deps: Pick<{ runSettingsService: IDroxRunSettingsService }, 'runSettingsService'> & {
 		configurationService: IConfigurationService;
+		regulationService?: IDroxRegulationService;
+		toolsSurfaceService?: IDroxToolsSurfaceService;
 	},
 	patch: IDroxGeneralSettingsPatch,
 ): Promise<void> {
@@ -214,7 +230,19 @@ export async function setDroxGeneralSettingsFromWebview(
 		await update(DroxSetting.MaxIterations, Math.min(DROX_MAX_ITERATIONS_CAP, Math.max(1, Math.floor(patch.maxIterations))));
 	}
 	if (patch.engineProfile !== undefined) {
-		await update(DroxSetting.EngineProfile, normalizeDroxEngineProfile(patch.engineProfile));
+		const profile = normalizeDroxEngineProfile(patch.engineProfile);
+		await update(DroxSetting.EngineProfile, profile);
+		const workspaceFsPath = workspaceResource?.fsPath ?? '';
+		if (workspaceFsPath && deps.regulationService && deps.toolsSurfaceService) {
+			await clearDroxCustomToolsOnEngineProfileChange({
+				workspaceRootFsPath: workspaceFsPath,
+				workspaceResource,
+				configurationService: deps.configurationService,
+				regulationService: deps.regulationService,
+				toolsSurfaceService: deps.toolsSurfaceService,
+				engineProfile: profile,
+			});
+		}
 	}
 	if (patch.subagentsMaxIterations !== undefined && Number.isFinite(patch.subagentsMaxIterations)) {
 		await update(DroxSetting.SubagentsMaxIterations, Math.max(1, Math.floor(patch.subagentsMaxIterations)));

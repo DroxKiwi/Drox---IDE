@@ -401,6 +401,13 @@ export interface IChatWidgetViewOptions {
 	 */
 	isSessionsWindow?: boolean;
 
+	// DROX-BEGIN
+	/** Shell discussion Drox : compositeur natif, voir droxDiscussionChatWidgetOptions. */
+	droxNativeComposer?: boolean;
+	/** Ratio × hauteur liste pour le padding bas du transcript (scroll type Cursor). */
+	droxTranscriptTailPaddingRatio?: number;
+	// DROX-END
+
 	/** Checked state of a permissions picker hosted outside the chat input. */
 	readonly sandboxToggleChecked?: IObservable<boolean>;
 

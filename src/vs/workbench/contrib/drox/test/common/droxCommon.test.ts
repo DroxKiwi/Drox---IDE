@@ -862,6 +862,7 @@ suite('Drox — transcript replay', () => {
 		const pending = new Map<string, { name: string; args: unknown }>();
 		const host: IDroxChatAgentEventHost = {
 			post: (m) => posts.push(m),
+			getCurrentRunId: () => undefined,
 			getCurrentSessionId: () => undefined,
 			setTabTitleFromModel: () => { },
 			trackUsageForActiveTab: () => { },

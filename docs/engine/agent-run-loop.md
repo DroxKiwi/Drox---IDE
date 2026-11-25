@@ -31,7 +31,7 @@ Client : agent.run(params)
     → drive_inner                  (agent/run/drive.rs)
          boucle :
            1. situation card upsert (profils concernés)
-           2. maybe_snip / compact  (run/lifecycle + compaction/)
+           2. run_shrink_phase (snip / compact — après card, avant nudges)
            3. llm.stream_chat + ToolSpec filtrés (profil + disabledTools)
            4. consume_stream        (agent/consume_llm_stream.rs)
            5. clôture ? (voir § Clôture)
@@ -59,13 +59,14 @@ Voici la réponse…
 
 `engine_closure` vaut pour tout run qui n’est **ni** professeur **ni** enfant Explore ([`drive.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive.rs)). Les trois profils parent passent par là.
 
-Un tour **sans** `tool_call` ferme le run, sauf `[phase: acting]` sans tour final forcé (intention d’écriture, FX-B). `[phase: done]` n’est pas exigé pour sortir.
+**Contrat Cline-like (2026-11)** : un tour **sans** `tool_call` **ferme** le run immédiatement, **y compris** avec `[phase: acting]`. Plus de filet FX-B / `INTENT_ONLY_WRITE_*`. `[phase: done]` n’est pas exigé.
 
-- Tour **vide** (thinking seul compris) : un nudge **`LOCAL_EMPTY_TURN`**, puis au tour vide suivant le texte **« Run terminé »** (`ENGINE_CLOSURE_EMPTY_REPLY`).
-- **`local-27b` et `cloud-full`** : si la réponse a du texte et que des todos sont encore ouverts, un **`LOCAL_SOFT_CLOSE_CHECK`** one-shot laisse un dernier tour. Une mutation de code sans `[phase: testing]` ne prolonge pas le run. **`local-9b`** n’a pas ce contrôle.
-- Affichage : [`loop_close/engine_closure.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/loop_close/engine_closure.rs). Si `DONE_ONLY` a déjà été envoyé et que le tour suivant réécrit une conclusion sans outil ni `[phase: done]`, ce texte n’est pas renvoyé au chat et le run s’arrête.
+- Tour **vide** (aucun texte) : un nudge **`LOCAL_EMPTY_TURN`** une fois, puis clôture avec **`ENGINE_CLOSURE_EMPTY_REPLY`** si toujours vide.
+- Todos encore ouvertes : **notice** transcript `open_todos_at_close` — pas de gate bloquante.
+- Imitation d’outil dans le texte (hors fences ```) : la réponse est **livrée** + notice `textual_tool_imitation`.
+- Affichage : [`loop_close/engine_closure.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/loop_close/engine_closure.rs) + `AgentEvent::StatusNotice`.
 
-Les gates `[phase: done]` (answering préalable, todos) sont plus bas dans `drive_inner`. Un run parent n’y arrive pas : le tour sans outil est déjà clos. Elles restent le chemin professeur, et le texte que le CORE `cloud-full` décrit encore au modèle. La phase `testing` n’est plus une gate.
+Les gates `[phase: done]` (answering préalable, todos) ne s’appliquent plus au chemin parent courant : le tour sans outil clôt avant. Elles restent pour les chemins non `engine_closure` (professeur, cas limites). La phase `testing` n’est plus une gate.
 
 ### Explore (sous-run, `explore_execution`)
 
@@ -99,8 +100,9 @@ Parallélisme : [`tools/orchestration.rs`](../../drox-engine/drox/crates/drox-en
 
 ## Contexte
 
-`maybe_snip` : estimation tokens (`drox-context`), snip froid, compaction live → `ContextSnip` / `ContextCompacted`.  
-Situation card : résumé court réinjecté chaque tour ([`situation/`](../../drox-engine/drox/crates/drox-engine/src/agent/situation/)).
+`prepareTurn` (via [`pre_turn.rs`](../../drox-engine/drox/crates/drox-engine/src/agent/run/drive/pre_turn.rs) + [`prepare_turn/`](../../drox-engine/drox/crates/drox-engine/src/agent/prepare_turn/)) : après la situation card, `run_shrink_phase` compare **`request_tokens`** (messages transport + JSON des `ToolSpec`, compteur **chars/3** style Cline) aux seuils 90 % / 97 % d’un budget effectif **divisé** par `min(4, ceil(prev_request / estimate))` quand le provider du tour précédent surestime l’estimateur. Le snip agit sur l’historique message ; basic / live compaction utilisent le même budget de décision. Les nudges système injectés après shrink restent une marge conservative jusqu’au tour suivant.  
+Situation card : résumé court réinjecté chaque tour ([`situation/`](../../drox-engine/drox/crates/drox-engine/src/agent/situation/)).  
+Jauge UI : `ContextUsage.parent_tokens` = `request_tokens` au moment de `llm_turn` (aligné charge provider).
 
 Voir [sessions-and-memory.md](sessions-and-memory.md).
 

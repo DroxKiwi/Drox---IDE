@@ -26,6 +26,7 @@ import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js'
 import { handleDroxFileMutationAfterToolFinish, IDroxChatFileActionsHost } from './droxChatFileActions.js';
 import type { IHostService } from '../../../../services/host/browser/host.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
+import { IDroxWorkspaceCheckpointService } from '../../common/droxWorkspaceCheckpointService.js';
 import { localize } from '../../../../../nls.js';
 import { buildDroxCycleDoneNotificationLabels, notifyDroxCycleDone } from '../../common/droxCycleDoneNotification.js';
 
@@ -65,6 +66,7 @@ export function createDroxChatAgentEventHost(
 		readonly logService: ILogService;
 		readonly runSettingsService: IDroxRunSettingsService;
 		readonly runRevertService: IDroxRunRevertService;
+		readonly workspaceCheckpointService: IDroxWorkspaceCheckpointService;
 		readonly hostService: IHostService;
 		readonly fileService: IFileService;
 	},
@@ -88,6 +90,20 @@ export function createDroxChatAgentEventHost(
 		getWorkspaceUri: () => host.workspaceUri(),
 		ingestContextChunkSummary: (wsUri: URI, summary: Record<string, unknown>) => {
 			void deps.longMemoryService.ingestContextChunkSummary(wsUri, summary);
+		},
+		recordWorkspaceCheckpoint: async (checkpointId, messageIndex, filesCount) => {
+			const wsUri = host.workspaceUri();
+			const runId = host.getCurrentRunId();
+			if (!wsUri || !runId) {
+				return;
+			}
+			const commit = deps.runRevertService.checkpointActiveRun(runId);
+			const count = commit?.files.length ?? filesCount;
+			await deps.workspaceCheckpointService.recordCheckpoint(wsUri, messageIndex, {
+				runId,
+				revertCommitId: commit?.commitId,
+				filesCount: count,
+			});
 		},
 		getSuppressedRunId: () => host.getSuppressedRunId(),
 		clearSuppressedRunId: () => host.clearSuppressedRunId(),

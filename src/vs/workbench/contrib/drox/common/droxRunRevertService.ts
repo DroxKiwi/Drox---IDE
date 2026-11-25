@@ -65,6 +65,8 @@ export interface IDroxRunRevertService {
 	getFileChangeUndoState(toolId: string): DroxFileChangeUndoState | undefined;
 	undoFileChange(toolId: string): Promise<IDroxRunRevertResult>;
 	redoFileChange(toolId: string): Promise<IDroxRunRevertResult>;
+	/** Snapshot intermédiaire (checkpoint) sans clôturer le run actif. */
+	checkpointActiveRun(runId: string): IDroxRunRevertCommit | undefined;
 	/** Clôture le run courant comme « dernier run annulable » (V1 : un seul niveau). */
 	finalizeRun(runId: string): void;
 	/** Abandonne le run courant sans remplacer le snapshot annulable. */
@@ -76,4 +78,5 @@ export interface IDroxRunRevertService {
 	revertLastRun(): Promise<IDroxRunRevertResult>;
 	listRevertHistory(workspaceRoot: string, sessionId?: string): Promise<readonly IDroxRunRevertCommit[]>;
 	revertToMessage(workspaceRoot: string, messageId: string): Promise<IDroxRunRevertResult>;
+	revertToCommit(workspaceRoot: string, commitId: string): Promise<IDroxRunRevertResult>;
 }

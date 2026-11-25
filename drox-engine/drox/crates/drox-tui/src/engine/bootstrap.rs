@@ -513,6 +513,24 @@ pub fn apply_agent_event(
         }),
         AgentEvent::RunObjective { text } => entries.push(LogEntry::RunObjective { text: text.clone() }),
         AgentEvent::ScopeParkingUpdate { .. } => {}
+        AgentEvent::StatusNotice {
+            notice_kind,
+            level,
+            message,
+            ..
+        } => {
+            let prefix = if matches!(level, drox_engine::event::StatusNoticeLevel::Warn) {
+                "⚠"
+            } else {
+                "ℹ"
+            };
+            entries.push(LogEntry::System {
+                text: format!("[{notice_kind}] {prefix} {message}"),
+            });
+        }
+        AgentEvent::WorkspaceCheckpoint { checkpoint_id, .. } => entries.push(LogEntry::System {
+            text: format!("[checkpoint] snapshot enregistré ({checkpoint_id})"),
+        }),
         AgentEvent::Stop { .. } => flush_stream(entries, streaming, true),
         _ => {}
     }

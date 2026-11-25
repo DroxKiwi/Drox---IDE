@@ -32,6 +32,7 @@ const STANDARD_TOOLS: readonly string[] = [
 	'lsp',
 	'exit_plan_mode',
 	'session_note',
+	'project_rule_write',
 	'memory_read',
 	'memory_list',
 	'session_compact',
@@ -45,6 +46,8 @@ const ALLOWED: Readonly<Record<DroxRegulationL2Module, ReadonlySet<string> | und
 	standard: new Set(STANDARD_TOOLS),
 	/** `undefined` = no extra L2 restriction (full toggleable catalogue). */
 	full: undefined,
+	/** Enabled set comes from `.drox/tools-surface.json` via effective surface. */
+	custom: undefined,
 };
 
 /** Narrow `getModule('L2')` (union) to an L2 module; unknown → standard. */
@@ -53,6 +56,7 @@ export function asDroxRegulationL2Module(module: DroxRegulationModule): DroxRegu
 		case 'core':
 		case 'standard':
 		case 'full':
+		case 'custom':
 			return module;
 		default:
 			return 'standard';

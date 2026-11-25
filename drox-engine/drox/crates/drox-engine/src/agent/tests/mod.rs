@@ -28,6 +28,7 @@ pub(crate) use crate::error::EngineError;
 pub(crate) use crate::event::{AgentEvent, Phase};
 pub(crate) use crate::agent_permissions::PermissionPolicy;
 
+mod closure_tests;
 mod gates_tests;
 mod hallucination_tests;
 mod loop_tests;

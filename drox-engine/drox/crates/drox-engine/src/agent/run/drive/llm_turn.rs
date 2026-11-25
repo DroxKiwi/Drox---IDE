@@ -11,6 +11,7 @@ use super::state::DriveState;
 
 pub(super) enum LlmStep {
     Stop,
+    RetryAfterCompact,
     Ready(TurnOutcome),
 }
 
@@ -79,6 +80,7 @@ use super::super::super::situation::{
     rotating_file_read_should_nudge, should_stub_repeated_file_read, task_outcome_telemetry,
     upsert_situation_card,
 };
+use super::super::super::prepare_turn::estimate_request_load;
 use super::super::super::todo_text_salvage::salvage_inline_todo_write;
 
 impl Agent {
@@ -113,8 +115,15 @@ impl Agent {
             }
         }
 
+        let turn_tools = if st.loop_tools_disabled {
+            Vec::new()
+        } else {
+            st.tool_specs.clone()
+        };
+
         if let Some(policy) = self.config.context.as_ref() {
-            let parent_tokens = policy.count_tokens(&transport);
+            let load = estimate_request_load(policy, &transport, &turn_tools, None);
+            let parent_tokens = load.request_tokens;
             if parent_tokens > 0
                 && tx
                     .send(Ok(AgentEvent::ContextUsage { parent_tokens }))
@@ -125,17 +134,33 @@ impl Agent {
             }
         }
 
-        let turn_tools = if st.loop_tools_disabled {
-            Vec::new()
-        } else {
-            st.tool_specs.clone()
-        };
         let options = self.config.chat_options.clone().with_tools(turn_tools);
 
         let stream = match self.llm.stream_chat(transport, options).await {
             Ok(s) => s,
             Err(err) => {
-                let _ = tx.send(Err(err.into())).await;
+                if err.is_context_length_exceeded() && !st.context_overflow_retry_used {
+                    st.context_overflow_retry_used = true;
+                    let overflow_tools = if st.loop_tools_disabled {
+                        &[] as &[_]
+                    } else {
+                        st.tool_specs.as_slice()
+                    };
+                    if self
+                        .try_context_overflow_recovery(
+                            &mut st.messages,
+                            overflow_tools,
+                            &tx,
+                            &mut st.transcript_cursor,
+                            st.leading_injected_systems,
+                            st.last_turn_input_tokens,
+                        )
+                        .await
+                    {
+                        return LlmStep::RetryAfterCompact;
+                    }
+                }
+                let _ = tx.send(Err(EngineError::Llm(err))).await;
                 return LlmStep::Stop;
             }
         };
@@ -182,6 +207,9 @@ impl Agent {
             }
         }
 
+        if outcome.usage.input_tokens > 0 {
+            st.last_turn_input_tokens = outcome.usage.input_tokens as usize;
+        }
         if (outcome.usage.input_tokens > 0 || outcome.usage.output_tokens > 0)
             && tx
                 .send(Ok(AgentEvent::TurnUsage {

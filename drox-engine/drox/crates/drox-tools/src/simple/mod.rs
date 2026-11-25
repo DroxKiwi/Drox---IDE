@@ -37,6 +37,7 @@ mod copy_path;
 mod todo_write;
 mod web_fetch;
 mod web_search;
+mod project_rule_write;
 mod workspace_map_note;
 mod workspace_map_read;
 
@@ -75,5 +76,6 @@ pub use copy_path::CopyPathTool;
 pub use todo_write::TodoWriteTool;
 pub use web_fetch::WebFetchTool;
 pub use web_search::WebSearchTool;
+pub use project_rule_write::ProjectRuleWriteTool;
 pub use workspace_map_note::WorkspaceMapNoteTool;
 pub use workspace_map_read::WorkspaceMapReadTool;

@@ -60,9 +60,8 @@
 		if (D.dom.roleModelPanelNumCtxEl) {
 			fn.syncArchitectNumCtxPanelFromState();
 		}
-		if (D.dom.roleModelPanelEngineProfileEl) {
-			const profile = D.state.generalSettings?.engineProfile;
-			D.dom.roleModelPanelEngineProfileEl.value = profile === 'local-27b' || profile === 'cloud-full' ? profile : 'local-9b';
+		if (typeof fn.syncEngineProfileUiFromState === 'function') {
+			fn.syncEngineProfileUiFromState();
 		}
 		if (D.dom.roleModelPanelMaxIterationsEl) {
 			const maxIter = D.state.generalSettings?.maxIterations;

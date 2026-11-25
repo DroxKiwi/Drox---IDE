@@ -17,6 +17,7 @@ import {
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
+import { applyDroxRegulationL2DisabledTools } from '../../common/regulation/droxRegulationL2Surface.js';
 
 function createBridgeDeps(overrides: {
 	initialize?: (opts?: unknown) => Promise<void>;
@@ -263,6 +264,7 @@ suite('Drox — droxAgentRunBridge', () => {
 				workspace: opts.workspace,
 				mode: opts.mode,
 				sessionId: opts.sessionId,
+				disabledTools: applyDroxRegulationL2DisabledTools('core', []),
 			}),
 			regulationService: {
 				getModule: lever => (lever === 'L2' ? 'core' : 'standard'),

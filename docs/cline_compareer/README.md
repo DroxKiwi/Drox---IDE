@@ -28,6 +28,7 @@ du texte et relance un tour. C'est ce second modèle qui crée les boucles visib
 | [`02-drox-run-gaps.md`](02-drox-run-gaps.md) | Comment Drox ferme un run aujourd'hui, gates par ordre d'exécution, et la liste des défauts (classés par criticité) qui produisent le symptôme. |
 | [`03-axes-dimplementation.md`](03-axes-dimplementation.md) | Axes A→G d'implémentation proposés, avec fichiers Drox concernés, référence Cline, critères d'acceptation, et ordre conseillé. |
 | [`04-mecanismes-a-etudier.md`](04-mecanismes-a-etudier.md) | Inventaire élargi des mécanismes de Cline au-delà du run : compaction, erreurs provider, hooks, team tooling, checkpoints, evals — avec priorisation. |
+| [`05-plan-transformation-moteur.md`](05-plan-transformation-moteur.md) | Plan d’exécution validé : lots, impact moteur/IDE, jalons, glossaire checkpoint contexte vs workspace. |
 
 ## Règles pour l'agent qui implémentera
 

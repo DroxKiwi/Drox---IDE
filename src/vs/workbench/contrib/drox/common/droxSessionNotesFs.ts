@@ -17,8 +17,8 @@ export const DROX_SESSION_NOTES_INJECTION_MAX_BYTES = 12 * 1024;
 
 export const DROX_SESSION_NOTES_TEMPLATE = `# Session notes
 
-## Rules
-<!-- Constraints for this discussion (tone, must / must-not). Optional. -->
+## Conventions durables
+<!-- Règles repo réutilisables → outil moteur \`project_rule_write\` → fichiers \`.drox/rules/*.instructions.md\` (injection aux runs suivants). -->
 
 ## Ideas
 <!-- Goals, hypotheses, open questions for this thread. -->

@@ -66,6 +66,11 @@ const chatViewDescriptor: IViewDescriptor = {
 	},
 	ctorDescriptor: new SyncDescriptor(ChatViewPane),
 	when: ContextKeyExpr.and(
+		// DROX-BEGIN
+		// Hide the built-in Chat view (including when it was moved into the panel)
+		// unless product.json sets droxMicrosoftAgentsSurfaceEnabled.
+		ContextKeyExpr.notEquals('droxHideMicrosoftChatSurface', true),
+		// DROX-END
 		// The chat part of an editor window with the Agents view replaces it
 		ChatContextKeys.agentsViewActive.negate(),
 		ChatContextKeys.accountPolicyGateActive.negate(),

@@ -20,7 +20,7 @@ use tokio::sync::mpsc;
 use tracing::debug;
 
 use crate::error::EngineError;
-use crate::event::{AgentEvent, HistoryProbeEntry, Phase};
+use crate::event::{AgentEvent, HistoryProbeEntry, Phase, StatusNoticeLevel};
 use crate::memory::MemoryTracker;
 use crate::tool_orchestration::{ToolCallBatch, partition_tool_calls, serial_tool_call_batches};
 use crate::tool_progress::ToolProgressBridge;
@@ -43,6 +43,7 @@ use super::super::super::loop_close::{
     emit_synthetic_done,
 };
 use super::super::super::loop_detect::{LoopDecision, LoopDetector, PendingToolCall};
+use super::super::super::status_notice::emit_status_notice;
 use super::super::super::nudges::{
     DOC_INGESTION_EXPLORE_ANNEX, DONE_ONLY_NUDGE_PROMPT, EXPLORE_ARTIFACT_READ_FAIL_NUDGE,
     EXPLORE_COVERED_REREAD_NUDGE, EXPLORE_RESCUE_PARENT_READ_NUDGE,
@@ -59,7 +60,8 @@ use super::super::super::nudges::{
     WORK_WITHOUT_PLAN_NUDGE, WORK_WITHOUT_PLAN_NUDGE_THRESHOLD, WORK_WITHOUT_PLAN_PREFIX,
     ask_user_question_loop_nudge, context_load_nudge, drop_stale_step_explore_reminders,
     drop_step_by_step_heads_up, drop_system_with_prefix, explore_incomplete_nudge,
-    reply_has_textual_tool_call, run_objective_done_nudge, run_objective_system_block,
+    reply_has_textual_tool_call_outside_code_fences, run_objective_done_nudge,
+    run_objective_system_block,
     step_by_step_todo_nudge, step_explore_kickoff_nudge, step_skips_explore_kickoff,
     step_without_explore_nudge, unfinished_todos_prompt,
 };
@@ -128,14 +130,8 @@ impl Agent {
             return Turn::Stop;
         }
 
-        // Profils locaux (CADRAGE 1.6.1 §3bis) : le moteur porte la clôture.
-        // Tour sans tool_call = réponse finale ; `[phase: done]` non requis.
-        // `[phase: acting]` sans tool reste traité par FX-B (intention d'écriture),
-        // sauf au tour final forcé.
-        if st.engine_closure
-            && outcome.tool_calls.is_empty()
-            && (st.final_answer_forced || outcome.final_phase != Some(Phase::Acting))
-        {
+        // Clôture mécanique (contrat Cline-like) : tour sans tool_call = fin.
+        if st.engine_closure && outcome.tool_calls.is_empty() {
             let reply = outcome.text.trim();
             if reply.is_empty() && st.local_soft_close_check_sent && !st.final_answer_forced {
                 debug!("local-27b — empty turn after soft close, previous reply stands");
@@ -171,76 +167,36 @@ impl Agent {
                 }
                 return Turn::Next;
             }
-            // Enveloppe d'outil dans le texte : format invalide. Une relance, puis refus.
-            // Le rappel de todo ne prolonge pas ce tour. Le XML n'est pas la réponse.
-            if reply_has_textual_tool_call(reply) {
-                if !st.local_textual_tool_nudge_sent {
-                    st.local_textual_tool_nudge_sent = true;
-                    let nudge = if st.loop_tools_disabled {
-                        debug!("textual tool envelope — tools off, one-shot nudge");
-                        LOCAL_TEXTUAL_TOOL_TOOLS_OFF_NUDGE
-                    } else {
-                        debug!("textual tool envelope — one-shot nudge");
-                        LOCAL_TEXTUAL_TOOL_NUDGE
-                    };
-                    st.messages.push(Message::system(nudge));
-                    if let Err(e) = self
-                        .flush_transcript(&st.messages, &mut st.transcript_cursor)
-                        .await
-                    {
-                        let _ = tx.send(Err(e)).await;
-                        return Turn::Stop;
-                    }
-                    return Turn::Next;
-                }
-                debug!("textual tool envelope — second time, refuse and stop");
-                emit_engine_closure(
+            if reply_has_textual_tool_call_outside_code_fences(reply).is_some() {
+                debug!("textual tool envelope outside fences — notice + deliver reply");
+                let _ = emit_status_notice(
                     &tx,
-                    &mut st.messages,
-                    ENGINE_CLOSURE_TEXTUAL_TOOL_REPLY,
-                    true,
-                    false,
+                    "textual_tool_imitation",
+                    StatusNoticeLevel::Warn,
+                    "Le modèle a imité un appel d'outil dans le texte ; seuls les appels natifs sont exécutés.",
                 )
                 .await;
-                if let Err(e) = self
-                    .flush_transcript(&st.messages, &mut st.transcript_cursor)
-                    .await
-                {
-                    let _ = tx.send(Err(e)).await;
-                    return Turn::Stop;
-                }
-                self.maybe_persist_session(&st.messages, &st.memory_tracker, &tx)
-                    .await;
-                let _ = tx
-                    .send(Ok(AgentEvent::Stop {
-                        reason: outcome.reason,
-                        usage: Usage::default(),
-                    }))
-                    .await;
-                return Turn::Stop;
             }
             let open_todos = st.last_todo_pending > 0 || st.last_todo_in_progress > 0;
-            if matches!(
-                st.profile,
-                EngineProfile::Local27b | EngineProfile::CloudFull
-            ) && !reply.is_empty()
-                && !st.final_answer_forced
-                && !st.local_soft_close_check_sent
-                && open_todos
-            {
-                debug!(open_todos, "local-27b — soft close check (one-shot)");
-                st.local_soft_close_check_sent = true;
-                st.messages
-                    .push(Message::system(LOCAL_SOFT_CLOSE_CHECK_NUDGE));
-                if let Err(e) = self
-                    .flush_transcript(&st.messages, &mut st.transcript_cursor)
-                    .await
-                {
-                    let _ = tx.send(Err(e)).await;
-                    return Turn::Stop;
-                }
-                return Turn::Next;
+            if open_todos {
+                let _ = emit_status_notice(
+                    &tx,
+                    "open_todos_at_close",
+                    StatusNoticeLevel::Info,
+                    format!(
+                        "Clôture avec {} todo(s) encore ouverte(s) ou en cours — le run se termine quand même.",
+                        st.last_todo_pending + st.last_todo_in_progress
+                    ),
+                )
+                .await;
             }
+            let _ = emit_status_notice(
+                &tx,
+                "closure_mechanical",
+                StatusNoticeLevel::Info,
+                "Tour sans outil — clôture moteur.",
+            )
+            .await;
             debug!(
                 final_answer_forced = st.final_answer_forced,
                 reply_chars = reply.len(),
@@ -295,8 +251,6 @@ impl Agent {
             if !st.seen_answering_in_run {
                 debug!("[phase: done] prématuré (answering absent) — nudge");
                 st.messages.push(Message::system(MISSING_ANSWERING_PROMPT));
-                // Reset OK : on force answering (contrat de phase différent).
-                st.loop_detector.reset();
                 if let Err(e) = self
                     .flush_transcript(&st.messages, &mut st.transcript_cursor)
                     .await
@@ -332,8 +286,6 @@ impl Agent {
                     st.messages
                         .push(Message::system(run_objective_done_nudge(obj)));
                     st.run_objective_reminder_sent = true;
-                    // Reset OK : soft reminder one-shot (contenu nouveau).
-                    st.loop_detector.reset();
                     if let Err(e) = self
                         .flush_transcript(&st.messages, &mut st.transcript_cursor)
                         .await
@@ -355,53 +307,6 @@ impl Agent {
                 }))
                 .await;
             return Turn::Stop;
-        }
-
-        // FX-B — mécanique : `[phase: acting]` sans tool_calls (pas de needles prose).
-        // **Avant** le LoopDetector : sinon un 2e tour identique court-circuite les nudges.
-        if outcome.tool_calls.is_empty() {
-            let write_intent = outcome.final_phase == Some(Phase::Acting)
-                || st.consecutive_intent_only_write_nudges > 0;
-            if write_intent {
-                st.consecutive_intent_only_write_nudges =
-                    st.consecutive_intent_only_write_nudges.saturating_add(1);
-                let max_nudges = INTENT_ONLY_WRITE_MAX_NUDGES;
-                if st.consecutive_intent_only_write_nudges > max_nudges {
-                    debug!(
-                        strikes = st.consecutive_intent_only_write_nudges,
-                        "intent-only write — final answer turn"
-                    );
-                    st.messages.push(Message::system(LOCAL_FINAL_ANSWER_PROMPT));
-                    st.final_answer_forced = true;
-                    st.loop_tools_disabled = true;
-                    if let Err(e) = self
-                        .flush_transcript(&st.messages, &mut st.transcript_cursor)
-                        .await
-                    {
-                        let _ = tx.send(Err(e)).await;
-                        return Turn::Stop;
-                    }
-                    return Turn::Next;
-                }
-                let nudge = if st.consecutive_intent_only_write_nudges >= 2 {
-                    INTENT_ONLY_WRITE_EXAMPLE_NUDGE_PROMPT
-                } else {
-                    INTENT_ONLY_WRITE_NUDGE_PROMPT
-                };
-                debug!(
-                    strike = st.consecutive_intent_only_write_nudges,
-                    "acting sans tool_call — nudge intent-only write"
-                );
-                st.messages.push(Message::system(nudge));
-                if let Err(e) = self
-                    .flush_transcript(&st.messages, &mut st.transcript_cursor)
-                    .await
-                {
-                    let _ = tx.send(Err(e)).await;
-                    return Turn::Stop;
-                }
-                return Turn::Next;
-            }
         }
 
         // Sprint Hotfix « boucle » — détection d'empreinte répétée.

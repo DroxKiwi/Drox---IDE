@@ -347,8 +347,11 @@ impl Agent {
             capture_loop,
             deferred_pre_tool_loop: None,
             round_tool_outputs: String::new(),
+            last_turn_input_tokens: 0,
+            context_overflow_retry_used: false,
         };
         for iter in 0..self.config.max_iterations {
+            st.context_overflow_retry_used = false;
             match self.pre_turn(iter, &mut st, &tx).await {
                 Turn::Stop => return,
                 Turn::Next => continue,
@@ -356,6 +359,7 @@ impl Agent {
             }
             let mut outcome = match self.llm_turn(iter, &mut st, &tx).await {
                 LlmStep::Stop => return,
+                LlmStep::RetryAfterCompact => continue,
                 LlmStep::Ready(outcome) => outcome,
             };
             match self.text_gates(&mut st, &tx, &mut outcome).await {
