@@ -140,6 +140,7 @@ impl EngineProfile {
             "codebase_search",
             "sdtcm_align",
             "exit_plan_mode",
+            "project_rule_write",
         ];
         const LOCAL_27B: &[&str] = &[
             "todo_write",
@@ -165,6 +166,7 @@ impl EngineProfile {
             "memory_read",
             "memory_list",
             "session_note",
+            "project_rule_write",
             "skill_list",
             "skill_read",
         ];

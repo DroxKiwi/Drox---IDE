@@ -13,6 +13,16 @@ import { DroxRegulationL2Module } from './regulation/droxRegulationTypes.js';
 export function droxSubagentsEnabledForRun(
 	masterEnabled: boolean,
 	l2Module: DroxRegulationL2Module,
+	customEnabledTools?: readonly string[],
 ): boolean {
-	return masterEnabled === true && (l2Module === 'standard' || l2Module === 'full');
+	if (masterEnabled !== true) {
+		return false;
+	}
+	if (l2Module === 'standard' || l2Module === 'full') {
+		return true;
+	}
+	if (l2Module === 'custom' && customEnabledTools?.includes('task')) {
+		return true;
+	}
+	return false;
 }

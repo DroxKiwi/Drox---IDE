@@ -26,6 +26,7 @@ const TABLE: Readonly<Record<DroxRegulationL2Module, Omit<IDroxRegulationL2Conte
 	core: { inject: false, maxRecommendedN: 0, kbDivisor: 40 },
 	standard: { inject: true, maxRecommendedN: 3, kbDivisor: 40 },
 	full: { inject: true, maxRecommendedN: 4, kbDivisor: 40 },
+	custom: { inject: true, maxRecommendedN: 3, kbDivisor: 40 },
 };
 
 export function droxRegulationL2ContextLoad(

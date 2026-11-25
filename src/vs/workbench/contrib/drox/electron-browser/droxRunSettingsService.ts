@@ -2,7 +2,8 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { Emitter } from '../../../../base/common/event.js';
+import { Emitter, Event } from '../../../../base/common/event.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
@@ -15,26 +16,47 @@ import {
 	IDroxLlmSettings,
 	isMcpToolsEnabled,
 	llmSettingsToEnv,
-	readDisabledToolsForRun,
 	readLlmSettings,
 	readPermissionMode,
 	readSubagentsSettings,
 } from '../common/droxRunSettings.js';
 import { IDroxRunSettingsService } from '../common/droxRunSettingsService.js';
 import { getDisabledToolNames } from '../common/droxToolCatalog.js';
+import { resolveDroxDisabledToolsForRun } from '../common/droxToolsRunResolution.js';
+import { IDroxToolsSurfaceService } from '../common/droxToolsSurfaceService.js';
+import { IDroxRegulationService } from '../common/regulation/droxRegulationServiceContract.js';
 
-export class DroxRunSettingsService implements IDroxRunSettingsService {
+export class DroxRunSettingsService extends Disposable implements IDroxRunSettingsService {
 
 	declare readonly _serviceBrand: undefined;
 
-	private readonly _onDidChangeWorkspaceResource = new Emitter<void>();
+	private readonly _onDidChangeWorkspaceResource = this._register(new Emitter<void>());
 	readonly onDidChangeWorkspaceResource = this._onDidChangeWorkspaceResource.event;
 	private _activeWorkspaceOverride: URI | undefined;
 
 	constructor(
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
-	) { }
+		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
+		@IDroxToolsSurfaceService private readonly toolsSurfaceService: IDroxToolsSurfaceService,
+	) {
+		super();
+		this._register(Event.any(
+			this.regulationService.onDidChangeSurface,
+			this.toolsSurfaceService.onDidChange,
+		)(() => this._onDidChangeWorkspaceResource.fire()));
+		const folder = this.workspaceContextService.getWorkspace().folders[0];
+		if (folder) {
+			void this.toolsSurfaceService.reload(folder.uri.fsPath);
+		}
+		this._register(this.workspaceContextService.onDidChangeWorkspaceFolders(() => {
+			const next = this.workspaceContextService.getWorkspace().folders[0];
+			if (next) {
+				void this.toolsSurfaceService.reload(next.uri.fsPath);
+			}
+			this._onDidChangeWorkspaceResource.fire();
+		}));
+	}
 
 	getWorkspaceResource(): URI | undefined {
 		return this._activeWorkspaceOverride ?? this.workspaceContextService.getWorkspace().folders[0]?.uri;
@@ -63,9 +85,17 @@ export class DroxRunSettingsService implements IDroxRunSettingsService {
 
 	}
 	getDisabledToolsForRun(resource?: URI): string[] {
-
-		return readDisabledToolsForRun(this.configurationService, this._llmConfigurationResource(resource));
-
+		const llmResource = this._llmConfigurationResource(resource);
+		const workspaceFsPath = (resource ?? this.getWorkspaceResource())?.fsPath
+			?? this.workspaceContextService.getWorkspace().folders[0]?.uri.fsPath
+			?? '';
+		return resolveDroxDisabledToolsForRun({
+			configurationService: this.configurationService,
+			resource: llmResource,
+			workspaceFsPath,
+			regulationService: this.regulationService,
+			toolsSurfaceService: this.toolsSurfaceService,
+		});
 	}
 	isMcpToolsEnabled(resource?: URI): boolean {
 

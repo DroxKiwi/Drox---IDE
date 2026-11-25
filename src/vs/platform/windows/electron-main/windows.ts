@@ -184,7 +184,9 @@ export function defaultBrowserWindowOptions(accessor: ServicesAccessor, windowSt
 		options.icon = join(environmentMainService.appRoot, 'resources/linux/code.png'); // always on Linux
 	} else if (isWindows) {
 		if (!environmentMainService.isBuilt) {
-			options.icon = join(environmentMainService.appRoot, 'resources/win32/code_150x150.png'); // only when running out of sources on Windows
+			// DROX-BEGIN icon taskbar dev
+			options.icon = join(environmentMainService.appRoot, 'resources/win32/drox_256.png'); // only when running out of sources on Windows
+			// DROX-END
 		}
 	}
 

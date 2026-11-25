@@ -129,6 +129,25 @@ export class DroxRunRevertService extends Disposable implements IDroxRunRevertSe
 		});
 	}
 
+	checkpointActiveRun(runId: string): IDroxRunRevertCommit | undefined {
+		const active = this._active;
+		if (!active || active.runId !== runId) {
+			return undefined;
+		}
+		const commit: IDroxRunRevertCommit = {
+			commitId: `rc_${generateUuid()}`,
+			runId: active.runId,
+			sessionId: active.sessionId,
+			workspaceRoot: active.workspaceRoot,
+			finishedAt: Date.now(),
+			files: [...active.files.values()],
+			firstMessageId: active.firstMessageId,
+			lastMessageId: active.lastMessageId,
+		};
+		this._historyFlush = this._historyFlush.then(() => this.appendCommitToHistory(commit, active.messageIds));
+		return commit;
+	}
+
 	finalizeRun(runId: string): void {
 		const active = this._active;
 		if (!active || active.runId !== runId || active.files.size === 0) {
@@ -236,6 +255,27 @@ export class DroxRunRevertService extends Disposable implements IDroxRunRevertSe
 			return history.commits;
 		}
 		return history.commits.filter(c => c.sessionId === sessionId);
+	}
+
+	async revertToCommit(workspaceRoot: string, commitId: string): Promise<IDroxRunRevertResult> {
+		await this._historyFlush;
+		if (this._active) {
+			return { revertedPaths: [], errors: ['Cannot restore during an active run.'] };
+		}
+		const ws = normalizeWindowsFsPath(workspaceRoot);
+		const wanted = String(commitId || '').trim();
+		if (!wanted) {
+			return { revertedPaths: [], errors: ['Missing target commit id.'] };
+		}
+		const history = await this.readHistory(ws);
+		const commit = history.commits.find(c => c.commitId === wanted);
+		if (!commit) {
+			return { revertedPaths: [], errors: [`Restore point ${wanted} not found.`] };
+		}
+		const res = await this.applySnapshot(commit);
+		this._lastRevertable = undefined;
+		this._onDidChangeRevertable.fire();
+		return res;
 	}
 
 	async revertToMessage(workspaceRoot: string, messageId: string): Promise<IDroxRunRevertResult> {

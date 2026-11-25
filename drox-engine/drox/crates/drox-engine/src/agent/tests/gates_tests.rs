@@ -458,10 +458,8 @@ async fn done_allowed_when_only_markdown_edited() {
 
 #[tokio::test]
 async fn done_blocked_when_todos_still_open() {
-    // Scénario : le modèle ouvre la to-do en `in_progress` puis tente de
-    // clôturer directement (réponse + done). La nouvelle gate doit refuser
-    // ce `done` (todo non clôturée) et nudger. Le tour 3 met à jour la
-    // to-do en `completed` et seulement là le moteur accepte de fermer.
+    // Scénario : to-do ouverte puis tour sans outil → clôture mécanique
+    // (notice `open_todos_at_close`, pas de gate bloquante).
     let tid_close = ToolUseId::new();
     let llm = Arc::new(ScriptedLlm::new(vec![
         // Tour 1 : ouverture de la to-do (in_progress).
@@ -481,40 +479,8 @@ async fn done_blocked_when_todos_still_open() {
                 usage: Usage::default(),
             },
         ],
-        // Tour 3 : le modèle clôture la to-do puis re-tente.
-        vec![
-            StreamEvent::Start,
-            StreamEvent::TextDelta {
-                text: "[phase: verifying]\nJe ferme la to-do.\n".into(),
-            },
-            StreamEvent::ToolCall {
-                id: tid_close,
-                name: "todo_write".into(),
-                arguments: json!({
-                    "todos": [{
-                        "id": "1",
-                        "content": "Étape de test",
-                        "status": "completed",
-                    }]
-                }),
-            },
-            StreamEvent::Stop {
-                reason: StopReason::ToolUse,
-                usage: Usage::default(),
-            },
-        ],
-        // Tour 4 : answering + done. Tout est OK, on doit fermer.
-        vec![
-            StreamEvent::Start,
-            StreamEvent::TextDelta {
-                text: "[phase: answering]\nréponse finale\n[phase: done]".into(),
-            },
-            StreamEvent::Stop {
-                reason: StopReason::EndTurn,
-                usage: Usage::default(),
-            },
-        ],
     ]));
+    let _ = tid_close;
     let mut registry = ToolRegistry::new();
     registry.register(Arc::new(TodoWriteTool));
     let registry = Arc::new(registry);
@@ -529,32 +495,22 @@ async fn done_blocked_when_todos_still_open() {
         .collect::<Result<_, _>>()
         .unwrap();
 
-    // On exige qu'on ait vu DEUX appels todo_write (ouverture + clôture).
-    let todo_finishes = events
-        .iter()
-        .filter(|e| matches!(e, AgentEvent::ToolFinish { is_error: false, .. }))
-        .count();
-    assert!(
-        todo_finishes >= 2,
-        "expected at least 2 successful todo_write tool finishes (open + close), got {todo_finishes} — events: {events:?}",
-    );
-
-    // Le run doit se clôturer normalement (Stop final) : la gate finit
-    // par accepter `done` une fois la to-do passée en `completed`.
     assert!(
         events
             .iter()
-            .any(|e| matches!(e, AgentEvent::PhaseEnter { phase: Phase::Done })),
-        "expected PhaseEnter(Done) eventually, got {events:?}",
+            .any(|e| matches!(
+                e,
+                AgentEvent::StatusNotice { notice_kind, .. } if notice_kind == "open_todos_at_close"
+            )),
+        "expected open_todos notice, got {events:?}"
     );
     assert!(matches!(events.last(), Some(AgentEvent::Stop { .. })));
 
-    // La réponse finale doit être celle du tour 4, pas la hâtive du tour 2.
     assert!(
         events
             .iter()
-            .any(|e| matches!(e, AgentEvent::TextDelta { text } if text.contains("réponse finale"))),
-        "expected final answer to come from the post-close turn, got {events:?}",
+            .any(|e| matches!(e, AgentEvent::TextDelta { text } if text.contains("réponse hâtive"))),
+        "expected hasty answer from tour 2, got {events:?}",
     );
 }
 

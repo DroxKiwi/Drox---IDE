@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 
 use super::super::rpc_types::{EmbedEncodeParams, EmbedLoadParams};
 use super::super::{ENGINE_ERROR, RpcError};
-use super::{decode_required, internal};
+use super::decode::{decode_required, internal};
 
 pub async fn embed_status(_params: Option<Value>) -> Result<Value, RpcError> {
     let status = tokio::task::spawn_blocking(drox_embed::status)
