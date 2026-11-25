@@ -53,7 +53,6 @@ export interface ResourceWatchState {
  * Discriminant for {@link ResourceChange.type}.
  *
  * @category Resource Watch Types
- * @exhaustive
  */
 export const enum ResourceChangeType {
 	Added = 'added',

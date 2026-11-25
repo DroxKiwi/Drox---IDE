@@ -4,19 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
-import { migrateThemeSettingsId, ThemeSettingDefaults, ThemeSettings } from '../../common/workbenchThemeService.js';
+import { migrateThemeSettingsId, ThemeSettingDefaults } from '../../common/workbenchThemeService.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { ThemeConfiguration } from '../../common/themeConfiguration.js';
-import { TestConfigurationService } from '../../../../../platform/configuration/test/common/testConfigurationService.js';
-import { IHostColorSchemeService } from '../../common/hostColorSchemeService.js';
-import { Event } from '../../../../../base/common/event.js';
-
-class TestHostColorSchemeService implements IHostColorSchemeService {
-	declare readonly _serviceBrand: undefined;
-	readonly onDidChangeColorScheme = Event.None;
-	dark = false;
-	highContrast = false;
-}
 
 suite('WorkbenchThemeService', () => {
 
@@ -31,7 +20,6 @@ suite('WorkbenchThemeService', () => {
 			);
 		});
 
-		// DROX-BEGIN
 		test('migrates legacy Nexus theme IDs to Drox', () => {
 			assert.deepStrictEqual(
 				['Nexus Dark', 'Nexus Light'].map(migrateThemeSettingsId),
@@ -39,7 +27,6 @@ suite('WorkbenchThemeService', () => {
 			);
 		});
 
-		// DROX-END
 		test('migrates Experimental theme IDs to VS Code themes', () => {
 			assert.deepStrictEqual(
 				['Experimental Dark', 'Experimental Light', 'VS Code Dark', 'VS Code Light'].map(migrateThemeSettingsId),
@@ -53,30 +40,5 @@ suite('WorkbenchThemeService', () => {
 				['Dark Modern', 'Dark 2026', 'Some Custom Theme', '']
 			);
 		});
-	});
-
-	test('restores only for preferred color scheme changes', async () => {
-		const configurationService = new TestConfigurationService({
-			[ThemeSettings.DETECT_COLOR_SCHEME]: false,
-			[ThemeSettings.DETECT_HC]: true,
-		});
-		const hostColorSchemeService = new TestHostColorSchemeService();
-		const themeConfiguration = new ThemeConfiguration(configurationService, hostColorSchemeService);
-
-		const results: boolean[] = [];
-		hostColorSchemeService.dark = true;
-		results.push(themeConfiguration.isPreferredColorSchemeChange({ dark: false, highContrast: false }));
-		hostColorSchemeService.highContrast = true;
-		results.push(themeConfiguration.isPreferredColorSchemeChange({ dark: true, highContrast: false }));
-		hostColorSchemeService.dark = false;
-		results.push(themeConfiguration.isPreferredColorSchemeChange({ dark: true, highContrast: true }));
-		hostColorSchemeService.highContrast = false;
-		results.push(themeConfiguration.isPreferredColorSchemeChange({ dark: false, highContrast: true }));
-
-		await configurationService.setUserConfiguration(ThemeSettings.DETECT_COLOR_SCHEME, true);
-		hostColorSchemeService.dark = true;
-		results.push(themeConfiguration.isPreferredColorSchemeChange({ dark: false, highContrast: false }));
-
-		assert.deepStrictEqual(results, [false, true, true, true, true]);
 	});
 });

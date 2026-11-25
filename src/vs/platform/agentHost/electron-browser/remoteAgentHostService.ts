@@ -5,6 +5,6 @@
 
 import { InstantiationType, registerSingleton } from '../../instantiation/common/extensions.js';
 import { IRemoteAgentHostService } from '../common/remoteAgentHostService.js';
-import { EditorWindowRemoteAgentHostService } from '../browser/remoteAgentHostServiceImpl.js';
+import { RemoteAgentHostService } from '../browser/remoteAgentHostServiceImpl.js';
 
-registerSingleton(IRemoteAgentHostService, EditorWindowRemoteAgentHostService, InstantiationType.Delayed);
+registerSingleton(IRemoteAgentHostService, RemoteAgentHostService, InstantiationType.Delayed);

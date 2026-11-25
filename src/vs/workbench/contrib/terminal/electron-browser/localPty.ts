@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { VSBuffer } from '../../../../base/common/buffer.js';
 import { ITerminalLaunchResult, IProcessPropertyMap, IPtyService, ITerminalChildProcess, ITerminalLaunchError, ProcessPropertyType } from '../../../../platform/terminal/common/terminal.js';
 import { BasePty } from '../common/basePty.js';
 
@@ -15,8 +14,7 @@ export class LocalPty extends BasePty implements ITerminalChildProcess {
 	constructor(
 		id: number,
 		shouldPersist: boolean,
-		private readonly _proxy: IPtyService,
-		readonly isRevived: boolean = false
+		private readonly _proxy: IPtyService
 	) {
 		super(id, shouldPersist);
 	}
@@ -65,10 +63,6 @@ export class LocalPty extends BasePty implements ITerminalChildProcess {
 
 	async clearBuffer(): Promise<void> {
 		this._proxy.clearBuffer?.(this.id);
-	}
-
-	setParentWindow(handle: VSBuffer): Promise<void> {
-		return this._proxy.setParentWindow(this.id, handle);
 	}
 
 	freePortKillProcess(port: string): Promise<{ port: string; processId: string }> {

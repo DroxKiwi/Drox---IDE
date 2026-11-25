@@ -11,9 +11,7 @@ import { EmbeddedDiffEditorWidget } from '../../../../editor/browser/widget/diff
 import { EmbeddedCodeEditorWidget } from '../../../../editor/browser/widget/codeEditor/embeddedCodeEditorWidget.js';
 import { EditorContextKeys } from '../../../../editor/common/editorContextKeys.js';
 import { InlineChatController, InlineChatRunOptions } from './inlineChatController.js';
-// DROX-BEGIN
 import { tryOpenDroxInlineChat } from './inlineChatDelegate.js';
-// DROX-END
 import { ACTION_ASK_IN_CHAT, CTX_INLINE_CHAT_FOCUSED, CTX_INLINE_CHAT_VISIBLE, CTX_INLINE_CHAT_OUTER_CURSOR_POSITION, CTX_INLINE_CHAT_POSSIBLE, ACTION_START, CTX_INLINE_CHAT_V2_ENABLED, CTX_INLINE_CHAT_FILE_BELONGS_TO_CHAT, CTX_INLINE_CHAT_TERMINATED, CTX_FIX_DIAGNOSTICS_ENABLED, CTX_INLINE_CHAT_AFFORDANCE_VISIBLE, CTX_ASK_IN_CHAT_ENABLED, CTX_INLINE_CHAT_HAS_NOTEBOOK_INLINE } from '../common/inlineChat.js';
 import { ctxHasEditorModification, ctxHasRequestInProgress } from '../../chat/browser/chatEditing/chatEditingEditorContextKeys.js';
 import { localize, localize2 } from '../../../../nls.js';
@@ -104,8 +102,6 @@ export class StartSessionAction extends Action2 {
 	}
 
 	private async _runEditorCommand(accessor: ServicesAccessor, editor: ICodeEditor, ...args: unknown[]) {
-		// DROX-BEGIN
-		// DROX-END
 
 		let options: InlineChatRunOptions | undefined;
 		const arg = args[0];
@@ -113,7 +109,6 @@ export class StartSessionAction extends Action2 {
 			options = arg;
 		}
 
-		// DROX-BEGIN
 		const handled = await tryOpenDroxInlineChat(editor, {
 			tab: 'chat',
 			message: options?.message,
@@ -128,7 +123,6 @@ export class StartSessionAction extends Action2 {
 			return;
 		}
 
-		// DROX-END
 		await ctrl?.run({ ...options });
 	}
 }
@@ -378,13 +372,12 @@ export class ContinueInlineChatInChatViewAction extends AbstractInlineChatAction
 			id: 'inlineChat2.continueInChat',
 			title: localize2('continueInChat', "Ask in Chat"),
 			icon: Codicon.chatSparkle,
-			// It continues in local chat, which the Agents view does not show
-			precondition: ContextKeyExpr.and(CTX_INLINE_CHAT_VISIBLE, CTX_INLINE_CHAT_TERMINATED, ChatContextKeys.agentsViewActive.negate()),
+			precondition: ContextKeyExpr.and(CTX_INLINE_CHAT_VISIBLE, CTX_INLINE_CHAT_TERMINATED),
 			menu: [{
 				id: MenuId.ChatEditorInlineExecute,
 				group: 'navigation',
 				order: 2,
-				when: ContextKeyExpr.and(CTX_INLINE_CHAT_TERMINATED, ChatContextKeys.agentsViewActive.negate())
+				when: CTX_INLINE_CHAT_TERMINATED
 			}]
 		});
 	}

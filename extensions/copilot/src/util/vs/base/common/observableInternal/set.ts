@@ -55,21 +55,21 @@ export class ObservableSet<T> implements Set<T> {
 		});
 	}
 
-	*entries(): SetIterator<[T, T]> {
+	*entries(): IterableIterator<[T, T]> {
 		for (const value of this._data) {
 			yield [value, value];
 		}
 	}
 
-	*keys(): SetIterator<T> {
+	*keys(): IterableIterator<T> {
 		yield* this._data.keys();
 	}
 
-	*values(): SetIterator<T> {
+	*values(): IterableIterator<T> {
 		yield* this._data.values();
 	}
 
-	[Symbol.iterator](): SetIterator<T> {
+	[Symbol.iterator](): IterableIterator<T> {
 		return this.values();
 	}
 

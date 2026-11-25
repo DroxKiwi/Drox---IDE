@@ -3,13 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
 import { dirname, relative } from 'path';
 import minimatch from 'minimatch';
+import type * as ESTree from 'estree';
 
-export default new class implements CreateRule {
+export default new class implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			layerbreaker: 'You are only allowed to define limited top level functions.'
 		},
@@ -27,8 +28,8 @@ export default new class implements CreateRule {
 		}
 	};
 
-	create(context: Context): Visitor {
-		let fileRelativePath = relative(dirname(import.meta.dirname), context.filename);
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
+		let fileRelativePath = relative(dirname(import.meta.dirname), context.getFilename());
 		if (!fileRelativePath.endsWith('/')) {
 			fileRelativePath += '/';
 		}
@@ -43,21 +44,21 @@ export default new class implements CreateRule {
 		const restrictedFunctions = ruleArgs[matchingKey];
 
 		return {
-			FunctionDeclaration: (node: ESTree.Function) => {
+			FunctionDeclaration: (node: ESTree.FunctionDeclaration & { parent?: ESTree.Node }) => {
 				const isTopLevel = node.parent?.type === 'Program';
-				const functionName = node.id!.name;
-				if (isTopLevel && !restrictedFunctions.includes(node.id!.name)) {
+				const functionName = node.id.name;
+				if (isTopLevel && !restrictedFunctions.includes(node.id.name)) {
 					context.report({
 						node,
 						message: `Top-level function '${functionName}' is restricted in this file. Allowed functions are: ${restrictedFunctions.join(', ')}.`
 					});
 				}
 			},
-			ExportNamedDeclaration(node: ESTree.ExportNamedDeclaration) {
+			ExportNamedDeclaration(node: ESTree.ExportNamedDeclaration & { parent?: ESTree.Node }) {
 				if (node.declaration && node.declaration.type === 'FunctionDeclaration') {
-					const functionName = node.declaration.id!.name;
+					const functionName = node.declaration.id.name;
 					const isTopLevel = node.parent?.type === 'Program';
-					if (isTopLevel && !restrictedFunctions.includes(node.declaration.id!.name)) {
+					if (isTopLevel && !restrictedFunctions.includes(node.declaration.id.name)) {
 						context.report({
 							node,
 							message: `Top-level function '${functionName}' is restricted in this file. Allowed functions are: ${restrictedFunctions.join(', ')}.`

@@ -6,7 +6,8 @@
 // Greenfield virtual scheduling primitives.
 //
 // This folder is the new home for virtual-time scheduling. It supersedes
-// `timeTravelScheduler.ts`, which is retained as a @deprecated re-export shim.
+// `timeTravelScheduler.ts` and `traceableTimeApi.ts`, both of which are
+// retained as @deprecated re-export shims.
 
 export type { TimeApi } from './timeApi.js';
 export { captureGlobalTimeApi, realTimeApi } from './timeApi.js';

@@ -78,7 +78,6 @@ export class CodeCell extends Disposable {
 		const initialEditorDimension = { height: this.calculateInitEditorHeight(), width: this.viewCell.layoutInfo.editorWidth };
 		this._cellLayout = new CodeCellLayout(this._useNewApproachForEditorLayout, notebookEditor, viewCell, templateData, { debug }, initialEditorDimension);
 		this.initializeEditor(initialEditorDimension);
-		this.templateData.editorOverflowWidgets.setVisible(!this.viewCell.isInputCollapsed);
 		this._renderedInputCollapseState = false; // editor is always expanded initially
 
 		this.registerNotebookEditorListeners();
@@ -377,11 +376,6 @@ export class CodeCell extends Disposable {
 		}
 
 		this._register(this.templateData.editor.onDidChangeCursorSelection((e) => {
-			// Disposal synchronously detaches the editor and fires this event while a list render may still be active; revealing would re-enter `ListView.render`.
-			if (this._isDisposed) {
-				return;
-			}
-
 			if (
 				// do not reveal the cell into view if this selection change was caused by restoring editors
 				e.source === 'restoreState' || e.oldModelVersionId === 0
@@ -554,7 +548,6 @@ export class CodeCell extends Disposable {
 	private _collapseInput() {
 		// hide the editor and execution label, keep the run button
 		DOM.hide(this.templateData.editorPart);
-		this.templateData.editorOverflowWidgets.setVisible(false);
 		this.templateData.container.classList.toggle('input-collapsed', true);
 
 		// remove input preview
@@ -588,7 +581,6 @@ export class CodeCell extends Disposable {
 	private _showInput() {
 		this._collapsedExecutionIcon.setVisibility(false);
 		DOM.show(this.templateData.editorPart);
-		this.templateData.editorOverflowWidgets.setVisible(true);
 		DOM.hide(this.templateData.cellInputCollapsedContainer);
 	}
 
@@ -721,7 +713,6 @@ export class CodeCell extends Disposable {
 
 	override dispose() {
 		this._isDisposed = true;
-		this.templateData.editorOverflowWidgets.setVisible(false);
 
 		// move focus back to the cell list otherwise the focus goes to body
 		if (this.shouldPreserveEditor()) {

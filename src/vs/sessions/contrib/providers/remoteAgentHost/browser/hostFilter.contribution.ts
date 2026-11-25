@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Disposable } from '../../../../../base/common/lifecycle.js';
-import { Emitter } from '../../../../../base/common/event.js';
+import { Emitter, Event } from '../../../../../base/common/event.js';
 import { localize2 } from '../../../../../nls.js';
 import { IActionViewItemService } from '../../../../../platform/actions/browser/actionViewItemService.js';
 import { Action2, registerAction2 } from '../../../../../platform/actions/common/actions.js';
@@ -13,11 +13,11 @@ import { IsWebContext } from '../../../../../platform/contextkey/common/contextk
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IsAuxiliaryWindowContext } from '../../../../../workbench/common/contextkeys.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../../workbench/common/contributions.js';
-import { IsNewChatSessionContext, IsPhoneLayoutContext } from '../../../../../workbench/contrib/sessions/common/contextkeys.js';
-import { Menus } from '../../../../../workbench/contrib/sessions/browser/menus.js';
-import { AgentsWindowMenus } from '../../../../browser/agentsWindowMenus.js';
-import { HostFilterActionViewItem } from '../../../../../workbench/contrib/sessions/providers/remoteAgentHost/browser/hostFilterActionViewItem.js';
-import { MobileHostFilterActionViewItem } from '../../../../../workbench/contrib/sessions/providers/remoteAgentHost/browser/mobileHostFilterActionViewItem.js';
+import { IsNewChatSessionContext, IsPhoneLayoutContext } from '../../../../common/contextkeys.js';
+import { Menus } from '../../../../browser/menus.js';
+import { IAgentHostFilterService } from '../../../../services/agentHostFilter/common/agentHostFilter.js';
+import { HostFilterActionViewItem } from './hostFilterActionViewItem.js';
+import { MobileHostFilterActionViewItem } from './mobileHostFilterActionViewItem.js';
 
 const PICK_HOST_FILTER_ID = 'sessions.agentHostFilter.pick';
 
@@ -29,7 +29,7 @@ const PICK_HOST_FILTER_ID = 'sessions.agentHostFilter.pick';
  * - Web desktop (`isWeb && !isPhoneLayout`): rendered in the sessions
  *   sidebar via `Menus.SidebarAgentHost` (see `AgentHostShortcutsWidget`).
  * - Web phone: rendered in the `MobileTitlebarPart` center slot via
- *   `AgentsWindowMenus.MobileTitleBarCenter`.
+ *   `Menus.MobileTitleBarCenter`.
  * - Electron desktop: not surfaced (no `IsWebContext`).
  */
 registerAction2(class PickAgentHostFilterAction extends Action2 {
@@ -62,7 +62,7 @@ registerAction2(class PickAgentHostFilterAction extends Action2 {
 				// when no hosts are known: tapping it opens a bottom sheet
 				// with a "Re-discover hosts" action so the user always has
 				// a way to retry discovery from the home screen.
-				id: AgentsWindowMenus.MobileTitleBarCenter,
+				id: Menus.MobileTitleBarCenter,
 				group: 'navigation',
 				order: 0,
 				when: ContextKeyExpr.and(
@@ -79,11 +79,12 @@ registerAction2(class PickAgentHostFilterAction extends Action2 {
 	}
 });
 
-export class AgentHostFilterContribution extends Disposable implements IWorkbenchContribution {
+class AgentHostFilterContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'sessions.contrib.agentHostFilter';
 
 	constructor(
+		@IAgentHostFilterService filterService: IAgentHostFilterService,
 		@IActionViewItemService actionViewItemService: IActionViewItemService,
 	) {
 		super();
@@ -92,23 +93,25 @@ export class AgentHostFilterContribution extends Disposable implements IWorkbenc
 		// this contribution registered. Without this, toolbars that
 		// already cached the default `MenuEntryActionViewItem` (which
 		// renders the action's title "Select Agent Host" with no icon)
-		// need to pick up the custom view item once. Host and discovery
-		// updates are handled in-place by the view items; refreshing the
-		// toolbar for those updates disposes an open host picker.
+		// stay stale until the host list or discovery state changes.
+		// `onDidChangeDiscovering` covers the steady-state case once
+		// discovery starts/finishes; `registered` covers the cold-start
+		// race.
 		const registered = this._register(new Emitter<void>());
+		const refreshSignal = Event.any(filterService.onDidChange, filterService.onDidChangeDiscovering, registered.event);
 
 		this._register(actionViewItemService.register(
 			Menus.SidebarAgentHost,
 			PICK_HOST_FILTER_ID,
 			(action, _options, instaService) => instaService.createInstance(HostFilterActionViewItem, action, 'sidebar'),
-			registered.event,
+			refreshSignal,
 		));
 
 		this._register(actionViewItemService.register(
-			AgentsWindowMenus.MobileTitleBarCenter,
+			Menus.MobileTitleBarCenter,
 			PICK_HOST_FILTER_ID,
 			(action, _options, instaService) => instaService.createInstance(MobileHostFilterActionViewItem, action),
-			registered.event,
+			refreshSignal,
 		));
 
 		// Fire the one-shot signal asynchronously so any toolbars that

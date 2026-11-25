@@ -51,13 +51,8 @@ export class ChatToolOutputContentSubPart extends Disposable {
 			if (part.kind === 'code') {
 				// Collect adjacent code parts and combine their contents
 				const codeParts = [part];
-				while (i + 1 < this.parts.length) {
-					const nextPart = this.parts[i + 1];
-					if (nextPart.kind !== 'code' || nextPart.title || nextPart.languageId !== part.languageId) {
-						break;
-					}
-					codeParts.push(nextPart);
-					i++;
+				while (i + 1 < this.parts.length && this.parts[i + 1].kind === 'code') {
+					codeParts.push(this.parts[++i] as IChatCollapsibleIOCodePart);
 				}
 				this.addCodeBlock(codeParts, container);
 				continue;
@@ -80,7 +75,7 @@ export class ChatToolOutputContentSubPart extends Disposable {
 	}
 
 	private addResourceGroup(parts: IChatCollapsibleIODataPart[], container: HTMLElement) {
-		const widget = this._register(this._instantiationService.createInstance(ChatResourceGroupWidget, parts, undefined));
+		const widget = this._register(this._instantiationService.createInstance(ChatResourceGroupWidget, parts));
 		container.appendChild(widget.domNode);
 	}
 

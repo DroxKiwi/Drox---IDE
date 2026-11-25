@@ -15,10 +15,7 @@ import { TerminalSettingId } from '../../../../../platform/terminal/common/termi
 import { registerWorkbenchContribution2, WorkbenchPhase, type IWorkbenchContribution } from '../../../../common/contributions.js';
 import { IChatWidgetService } from '../../../chat/browser/chat.js';
 import { ChatContextKeys } from '../../../chat/common/actions/chatContextKeys.js';
-import { ChatConfiguration } from '../../../chat/common/constants.js';
-import { ILanguageModelToolsConfirmationService } from '../../../chat/common/tools/languageModelToolsConfirmationService.js';
 import { ILanguageModelToolsService } from '../../../chat/common/tools/languageModelToolsService.js';
-import { TerminalToolId } from '../../../chat/common/tools/terminalToolIds.js';
 import { IToolResultCompressor } from '../../../chat/common/tools/toolResultCompressor.js';
 import { registerActiveInstanceAction, sharedWhenClause } from '../../../terminal/browser/terminalActions.js';
 import { TerminalContextMenuGroup } from '../../../terminal/browser/terminalMenus.js';
@@ -27,7 +24,6 @@ import { TerminalChatAgentToolsCommandId } from '../common/terminal.chatAgentToo
 import { TerminalChatAgentToolsSettingId } from '../common/terminalChatAgentToolsConfiguration.js';
 import { AgentNetworkDomainSettingId } from '../../../../../platform/networkFilter/common/settings.js';
 import { AgentHostSandboxForwarder } from './agentHostSandboxForwarder.js';
-import { TerminalToolConfirmationContribution } from './terminalToolConfirmationContribution.js';
 import { GetTerminalLastCommandTool, GetTerminalLastCommandToolData } from './tools/getTerminalLastCommandTool.js';
 import { KillTerminalTool, KillTerminalToolData } from './tools/killTerminalTool.js';
 import { GetTerminalOutputTool, GetTerminalOutputToolData } from './tools/getTerminalOutputTool.js';
@@ -40,11 +36,13 @@ import { GetTaskOutputTool, GetTaskOutputToolData } from './tools/task/getTaskOu
 import { RunTaskTool, RunTaskToolData } from './tools/task/runTaskTool.js';
 import { registerTerminalCompressors } from './tools/terminalOutputCompressor.js';
 import { InstantiationType, registerSingleton } from '../../../../../platform/instantiation/common/extensions.js';
+import { IWindowsMxcTerminalSandboxRuntime, WindowsMxcTerminalSandboxRuntime } from '../../../../../platform/sandbox/common/terminalSandboxMxcRuntime.js';
 import { ITerminalSandboxService, TerminalSandboxService } from '../common/terminalSandboxService.js';
 import { isNumber } from '../../../../../base/common/types.js';
 
 // #region Services
 
+registerSingleton(IWindowsMxcTerminalSandboxRuntime, WindowsMxcTerminalSandboxRuntime, InstantiationType.Delayed);
 registerSingleton(ITerminalSandboxService, TerminalSandboxService, InstantiationType.Delayed);
 
 // #endregion Services
@@ -96,7 +94,6 @@ export class ChatAgentToolsContribution extends Disposable implements IWorkbench
 		@ILanguageModelToolsService private readonly _toolsService: ILanguageModelToolsService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IToolResultCompressor toolResultCompressor: IToolResultCompressor,
-		@ILanguageModelToolsConfirmationService private readonly _confirmationService: ILanguageModelToolsConfirmationService,
 	) {
 		super();
 
@@ -147,19 +144,26 @@ export class ChatAgentToolsContribution extends Disposable implements IWorkbench
 
 		// #endregion
 
-		// Keep the tool description and input schema in sync with sandbox and approval settings.
+		// Re-register run_in_terminal tool when sandbox-related settings change,
+		// so the tool description and input schema stay in sync with the current
+		// sandbox state.
 		this._register(this._configurationService.onDidChangeConfiguration(e => {
 			if (
-				e.affectsConfiguration(ChatConfiguration.DefaultPermissionLevel) ||
-				e.affectsConfiguration(ChatConfiguration.GlobalAutoApprove) ||
-				e.affectsConfiguration(TerminalChatAgentToolsSettingId.EnableAutoApprove) ||
 				e.affectsConfiguration(AgentSandboxSettingId.AgentSandboxEnabled) ||
-				e.affectsConfiguration(AgentSandboxSettingId.AgentSandboxAllowNetwork) ||
+				e.affectsConfiguration(AgentSandboxSettingId.AgentSandboxWindowsEnabled) ||
+				e.affectsConfiguration(AgentSandboxSettingId.DeprecatedAgentSandboxEnabled) ||
 				e.affectsConfiguration(AgentSandboxSettingId.AgentSandboxAllowUnsandboxedCommands) ||
 				e.affectsConfiguration(AgentNetworkDomainSettingId.AllowedNetworkDomains) ||
 				e.affectsConfiguration(AgentNetworkDomainSettingId.DeniedNetworkDomains) ||
+				e.affectsConfiguration(AgentNetworkDomainSettingId.DeprecatedOldAllowedNetworkDomains) ||
+				e.affectsConfiguration(AgentNetworkDomainSettingId.DeprecatedOldDeniedNetworkDomains) ||
+				e.affectsConfiguration(AgentNetworkDomainSettingId.DeprecatedSandboxAllowedNetworkDomains) ||
+				e.affectsConfiguration(AgentNetworkDomainSettingId.DeprecatedSandboxDeniedNetworkDomains) ||
 				e.affectsConfiguration(TerminalChatAgentToolsSettingId.AgentSandboxLinuxFileSystem) ||
-				e.affectsConfiguration(TerminalChatAgentToolsSettingId.AgentSandboxMacFileSystem)
+				e.affectsConfiguration(TerminalChatAgentToolsSettingId.DeprecatedAgentSandboxLinuxFileSystem) ||
+				e.affectsConfiguration(TerminalChatAgentToolsSettingId.AgentSandboxMacFileSystem) ||
+				e.affectsConfiguration(TerminalChatAgentToolsSettingId.DeprecatedAgentSandboxMacFileSystem) ||
+				e.affectsConfiguration(TerminalChatAgentToolsSettingId.AgentSandboxWindowsFileSystem)
 			) {
 				this._registerRunInTerminalTool();
 			}
@@ -183,7 +187,6 @@ export class ChatAgentToolsContribution extends Disposable implements IWorkbench
 			const store = new DisposableStore();
 			store.add(this._toolsService.registerToolData(runInTerminalToolData));
 			store.add(this._toolsService.registerToolImplementation(runInTerminalToolData.id, this._runInTerminalTool));
-			store.add(this._confirmationService.registerConfirmationContribution(TerminalToolId.RunInTerminal, this._instantiationService.createInstance(TerminalToolConfirmationContribution)));
 			store.add(this._toolsService.executeToolSet.addTool(runInTerminalToolData));
 			this._runInTerminalToolRegistration.value = store;
 		});

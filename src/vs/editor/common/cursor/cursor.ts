@@ -90,18 +90,14 @@ export class CursorsController extends Disposable {
 	private _validateAutoClosedActions(): void {
 		if (this._autoClosedActions.length > 0) {
 			const selections: Range[] = this._cursors.getSelections();
-			const validActions: AutoClosedAction[] = [];
-			const invalidActions: AutoClosedAction[] = [];
-			for (const autoClosedAction of this._autoClosedActions) {
-				if (autoClosedAction.isValid(selections)) {
-					validActions.push(autoClosedAction);
-				} else {
-					invalidActions.push(autoClosedAction);
+			for (let i = 0; i < this._autoClosedActions.length; i++) {
+				const autoClosedAction = this._autoClosedActions[i];
+				if (!autoClosedAction.isValid(selections)) {
+					autoClosedAction.dispose();
+					this._autoClosedActions.splice(i, 1);
+					i--;
 				}
 			}
-			// Disposal fires decoration events whose listeners may re-enter the cursor.
-			this._autoClosedActions = validActions;
-			dispose(invalidActions);
 		}
 	}
 
@@ -389,10 +385,6 @@ export class CursorsController extends Disposable {
 		if (opResult.shouldPushStackElementAfter) {
 			this._model.pushStackElement();
 		}
-
-		if (result && opResult.followUp) {
-			this._executeEditOperation(opResult.followUp(this.getSelections()), editReason);
-		}
 	}
 
 	private _interpretCommandResult(cursorState: Selection[] | null): void {
@@ -474,7 +466,7 @@ export class CursorsController extends Disposable {
 
 	public executeEdits(eventsCollector: ViewModelEventsCollector, source: string | null | undefined, edits: IIdentifiedSingleEditOperation[], cursorStateComputer: ICursorStateComputer, reason: TextModelEditSource): void {
 		let autoClosingIndices: [number, number][] | null = null;
-		if (source === 'snippet' || source === 'suggest') {
+		if (source === 'snippet') {
 			autoClosingIndices = this._findAutoClosingPairs(edits);
 		}
 
@@ -606,11 +598,11 @@ export class CursorsController extends Disposable {
 		}, eventsCollector, source);
 	}
 
-	public paste(eventsCollector: ViewModelEventsCollector, text: string, pasteOnNewLine: boolean, multicursorText?: string[] | null | undefined, source?: string | null | undefined, isBlock: boolean = false): void {
+	public paste(eventsCollector: ViewModelEventsCollector, text: string, pasteOnNewLine: boolean, multicursorText?: string[] | null | undefined, source?: string | null | undefined): void {
 		const reason = EditSources.cursor({ kind: 'paste', detailedSource: source });
 
 		this._executeEdit(() => {
-			this._executeEditOperation(TypeOperations.paste(this.context.cursorConfig, this._model, this.getSelections(), text, pasteOnNewLine, multicursorText || [], isBlock), reason);
+			this._executeEditOperation(TypeOperations.paste(this.context.cursorConfig, this._model, this.getSelections(), text, pasteOnNewLine, multicursorText || []), reason);
 		}, eventsCollector, source, CursorChangeReason.Paste);
 	}
 
@@ -701,10 +693,8 @@ class AutoClosedAction {
 	}
 
 	public dispose(): void {
-		this._model.changeDecorations(accessor => {
-			this._autoClosedCharactersDecorations = accessor.deltaDecorations(this._autoClosedCharactersDecorations, []);
-			this._autoClosedEnclosingDecorations = accessor.deltaDecorations(this._autoClosedEnclosingDecorations, []);
-		});
+		this._autoClosedCharactersDecorations = this._model.deltaDecorations(this._autoClosedCharactersDecorations, []);
+		this._autoClosedEnclosingDecorations = this._model.deltaDecorations(this._autoClosedEnclosingDecorations, []);
 	}
 
 	public getAutoClosedCharactersRanges(): Range[] {

@@ -71,9 +71,7 @@ export class ActionWidgetDropdownActionViewItem extends BaseActionViewItem {
 	protected setAriaLabelAttributes(element: HTMLElement): void {
 		element.setAttribute('role', 'button');
 		element.setAttribute('aria-haspopup', 'true');
-		if (!element.hasAttribute('aria-expanded')) {
-			element.setAttribute('aria-expanded', 'false');
-		}
+		element.setAttribute('aria-expanded', 'false');
 		element.ariaLabel = (this.getTooltip() + ' - ' + (element.textContent || this._action.label)) || '';
 	}
 
@@ -86,19 +84,11 @@ export class ActionWidgetDropdownActionViewItem extends BaseActionViewItem {
 		this.actionWidgetDropdown?.show();
 	}
 
-	hide(): void {
-		this.actionWidgetDropdown?.hide();
-	}
-
-	protected setDropdownEnabled(enabled: boolean): void {
-		this.actionWidgetDropdown?.setEnabled(enabled && this.action.enabled);
-	}
-
 	protected override updateEnabled(): void {
 		const disabled = !this.action.enabled;
 		this.actionItem?.classList.toggle('disabled', disabled);
 		this.element?.classList.toggle('disabled', disabled);
-		this.setDropdownEnabled(true);
+		this.actionWidgetDropdown?.setEnabled(!disabled);
 	}
 
 }

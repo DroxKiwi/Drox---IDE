@@ -28,9 +28,9 @@ import { buildAggregatedSessionFileChanges } from '../../../../../workbench/cont
 import { countDroxSessionFileChangeStats } from '../../../../../workbench/contrib/drox/common/droxSessionGitChanges.js';
 import { IEditorService } from '../../../../../workbench/services/editor/common/editorService.js';
 import { IWorkbenchLayoutService, Parts } from '../../../../../workbench/services/layout/browser/layoutService.js';
-import { ISessionFileChange } from '../../../../../workbench/services/sessions/common/session.js';
-import { ISessionChangesService } from '../../../../../workbench/contrib/sessionChanges/browser/sessionChangesService.js';
-import { toIChangesFileItem, IChangesFileItem } from '../../../../../workbench/contrib/sessionChanges/browser/changesViewRenderer.js';
+import { ISessionFileChange } from '../../../../services/sessions/common/session.js';
+import { getChangesMultiDiffSourceUri } from '../../../changes/browser/changesMultiDiffSourceResolver.js';
+import { toIChangesFileItem, IChangesFileItem } from '../../../changes/browser/changesViewRenderer.js';
 import { buildDroxCursorStyleDiffDisplay } from './droxChangesDiffDisplay.js';
 import { getDroxSessionsProviderInstance } from './droxSessionsProviderAccessor.js';
 import './media/droxChangesInlineDiff.css';
@@ -72,7 +72,6 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 		@IFileService private readonly fileService: IFileService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@ISessionChangesService private readonly sessionChangesService: ISessionChangesService,
 	) {
 		super();
 		this.sessionResourceObs = options.sessionResourceObs;
@@ -348,7 +347,7 @@ export class DroxChangesInlineDiffWidget extends Disposable {
 		}
 
 		await this.editorService.openEditor({
-			multiDiffSource: this.sessionChangesService.getChangesEditorResource(sessionResource),
+			multiDiffSource: getChangesMultiDiffSourceUri(sessionResource),
 			label: localize('drox.changes.inline.multiDiffTitle', 'Session Changes'),
 		});
 	}

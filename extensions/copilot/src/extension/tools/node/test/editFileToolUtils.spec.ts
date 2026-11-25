@@ -6,26 +6,21 @@
 import * as fs from 'fs';
 import { homedir, tmpdir } from 'os';
 import * as path from 'path';
-import { afterEach, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
-import { IConfigurationService } from '../../../../platform/configuration/common/configurationService';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { DefaultsOnlyConfigurationService } from '../../../../platform/configuration/common/defaultsOnlyConfigurationService';
 import { InMemoryConfigurationService } from '../../../../platform/configuration/test/common/inMemoryConfigurationService';
 import { IAlternativeNotebookContentService } from '../../../../platform/notebook/common/alternativeContent';
 import { MockAlternativeNotebookContentService } from '../../../../platform/notebook/common/mockAlternativeContentService';
 import { INotebookService } from '../../../../platform/notebook/common/notebookService';
-import { IPromptsService } from '../../../../platform/promptFiles/common/promptsService';
-import { MockPromptsService } from '../../../../platform/promptFiles/test/common/mockPromptsService';
-import { createPlatformServices } from '../../../../platform/test/node/services';
+import { MockCustomInstructionsService } from '../../../../platform/test/common/testCustomInstructionsService';
 import { TestWorkspaceService } from '../../../../platform/test/node/testWorkspaceService';
-import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { WorkspaceEdit as WorkspaceEditShim } from '../../../../util/common/test/shims/editing';
 import { createTextDocumentData, IExtHostDocumentData, setDocText } from '../../../../util/common/test/shims/textDocument';
 import { isMacintosh, isWindows } from '../../../../util/vs/base/common/platform';
 import { URI } from '../../../../util/vs/base/common/uri';
 import { WorkspaceEdit } from '../../../../vscodeTypes';
 import { applyEdits as applyTextEdits } from '../../../prompt/node/intents';
-import { applyEdit, assertPathIsSafe, ConfirmationCheckResult, ContentFormatError, createEditConfirmation, makeUriConfirmationChecker, MultipleMatchesError, NoChangeError, NoMatchError, setSimilarityMatchThresholdForTests } from '../editFileToolUtils';
-import * as toolUtils from '../toolUtils';
+import { applyEdit, assertPathIsSafe, ConfirmationCheckResult, ContentFormatError, makeUriConfirmationChecker, MultipleMatchesError, NoChangeError, NoMatchError, setSimilarityMatchThresholdForTests } from '../editFileToolUtils';
 
 describe('replace_string_in_file - applyEdit', () => {
 	let workspaceEdit: WorkspaceEdit;
@@ -423,6 +418,7 @@ describe('replace_string_in_file - applyEdit', () => {
 			expect(result.updatedFile).toContain('line3');
 		});
 	});
+
 	// Similarity-based matching strategy tests
 	describe('similarity matching', () => {
 		test('matches highly similar content with minor differences', async () => {
@@ -661,16 +657,18 @@ describe('assertPathIsSafe (Windows scenarios)', () => {
 describe('makeUriConfirmationChecker', async () => {
 	let configService: InMemoryConfigurationService;
 	let workspaceService: TestWorkspaceService;
+	let customInstructionsService: MockCustomInstructionsService;
 
 	beforeEach(() => {
 		configService = new InMemoryConfigurationService(new DefaultsOnlyConfigurationService());
 		workspaceService = new TestWorkspaceService([], []);
+		customInstructionsService = new MockCustomInstructionsService();
 	});
 
 	test('allows files within workspace folder', async () => {
 		const workspaceFolder = URI.file('/workspace');
 		workspaceService = new TestWorkspaceService([workspaceFolder], []);
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		const fileInWorkspace = URI.file('/workspace/src/file.ts');
 		const result = await checker(fileInWorkspace);
@@ -680,7 +678,7 @@ describe('makeUriConfirmationChecker', async () => {
 	test('rejects files outside workspace', async () => {
 		const workspaceFolder = URI.file('/workspace');
 		workspaceService = new TestWorkspaceService([workspaceFolder], []);
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		const fileOutsideWorkspace = URI.file('/other/file.ts');
 		const result = await checker(fileOutsideWorkspace);
@@ -689,20 +687,21 @@ describe('makeUriConfirmationChecker', async () => {
 
 	test('allows untitled files', async () => {
 		workspaceService = new TestWorkspaceService([], []);
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		const untitledFile = URI.parse('untitled:Untitled-1');
 		const result = await checker(untitledFile);
 		expect(result).toBe(ConfirmationCheckResult.NoConfirmation);
 	});
 
-	test('requires confirmation for external instructions files', async () => {
+	test('allows external instructions files', async () => {
 		const workspaceFolder = URI.file('/workspace');
 		workspaceService = new TestWorkspaceService([workspaceFolder], []);
 
 		const externalInstruction = URI.file('/external/instruction.md');
+		customInstructionsService.setExternalFiles([externalInstruction]);
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 		const result = await checker(externalInstruction);
 		expect(result).toBe(ConfirmationCheckResult.OutsideWorkspace); // do not edits to external instructions files
 	});
@@ -715,7 +714,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'**/*.test.ts': true,
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 		const testFile = URI.file('/workspace/src/app.test.ts');
 		const result = await checker(testFile);
 		expect(result).toBe(ConfirmationCheckResult.NoConfirmation);
@@ -729,7 +728,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'**/*.test.ts': true,
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 		const prodFile = URI.file('/workspace/src/app.ts');
 		const result = await checker(prodFile);
 		// Files in workspace are allowed by default unless explicitly blocked
@@ -744,83 +743,20 @@ describe('makeUriConfirmationChecker', async () => {
 			'**/*.env': false,
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 		const envFile = URI.file('/workspace/.env');
 		const result = await checker(envFile);
 		expect(result).toBe(ConfirmationCheckResult.Sensitive); // Sensitive
 	});
 
-	test('always checks sensitive configuration files', async () => {
+	test('always checks .vscode/*.json files', async () => {
 		const workspaceFolder = URI.file('/workspace');
 		workspaceService = new TestWorkspaceService([workspaceFolder], []);
 
-		await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', {
-			'**/.mcp.json': true,
-			'**/.npmrc': true,
-		});
-
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-		const files = [
-			URI.file('/workspace/.mcp.json'),
-			URI.file('/workspace/.npmrc'),
-			URI.file('/workspace/packages/nested/.npmrc'),
-			URI.file('/workspace/.vscode/settings.json'),
-		];
-		const results = await Promise.all(files.map(file => checker(file)));
-		expect(results).toEqual(files.map(() => ConfirmationCheckResult.Sensitive));
-	});
-
-	test.each(['settings.json', 'settings.local.json'])('always checks Copilot hook settings despite explicit approval: %s', async filename => {
-		const workspaceFolder = URI.file('/workspace');
-		workspaceService = new TestWorkspaceService([workspaceFolder], []);
-		await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', {
-			'**/*': true,
-			'**/.github/**': true,
-			[`**/.github/copilot/${filename}`]: true,
-		});
-
-		const checker = makeUriConfirmationChecker(configService, resource => workspaceService.getWorkspaceFolder(resource), workspaceService.getWorkspaceFolders());
-		const files = [
-			URI.joinPath(workspaceFolder, '.github', 'copilot', filename),
-			URI.joinPath(workspaceFolder, 'nested', '.github', 'copilot', filename),
-		];
-		if (isMacintosh || isWindows) {
-			files.push(URI.joinPath(workspaceFolder, '.GITHUB', 'COPILOT', filename.toUpperCase()));
-		}
-
-		expect({
-			protectedFiles: await Promise.all(files.map(file => checker(file))),
-			ordinaryFile: await checker(URI.joinPath(workspaceFolder, '.github', 'copilot', 'notes.md')),
-		}).toEqual({
-			protectedFiles: files.map(() => ConfirmationCheckResult.Sensitive),
-			ordinaryFile: ConfirmationCheckResult.NoConfirmation,
-		});
-	});
-
-	test('always checks Dev Container configurations despite explicit approval', async () => {
-		const workspaceFolder = URI.file('/workspace');
-		workspaceService = new TestWorkspaceService([workspaceFolder], []);
-		await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', {
-			'**/*': true,
-			'**/.devcontainer/**': true,
-			'**/.devcontainer.json': true,
-		});
-
-		const checker = makeUriConfirmationChecker(configService, resource => workspaceService.getWorkspaceFolder(resource), workspaceService.getWorkspaceFolders());
-		const files = [
-			URI.joinPath(workspaceFolder, '.devcontainer.json'),
-			URI.joinPath(workspaceFolder, '.devcontainer', 'devcontainer.json'),
-			URI.joinPath(workspaceFolder, '.devcontainer', 'python', 'devcontainer.json'),
-			URI.joinPath(workspaceFolder, 'nested', '.devcontainer', 'devcontainer.json'),
-		];
-
-		expect({
-			protectedFiles: await Promise.all(files.map(file => checker(file))),
-			ordinaryFile: await checker(URI.joinPath(workspaceFolder, '.devcontainer', 'Dockerfile')),
-		}).toEqual({
-			protectedFiles: files.map(() => ConfirmationCheckResult.Sensitive),
-			ordinaryFile: ConfirmationCheckResult.NoConfirmation,
-		});
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
+		const settingsFile = URI.file('/workspace/.vscode/settings.json');
+		const result = await checker(settingsFile);
+		expect(result).toBe(ConfirmationCheckResult.Sensitive); // Sensitive - always requires confirmation
 	});
 
 	test('pattern precedence - later patterns override earlier ones', async () => {
@@ -832,7 +768,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'**/secret.ts': false, // More specific pattern should win
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 		const secretFile = URI.file('/workspace/src/secret.ts');
 		const result = await checker(secretFile);
 		expect(result).toBe(ConfirmationCheckResult.Sensitive); // Sensitive - specific pattern blocks
@@ -842,7 +778,7 @@ describe('makeUriConfirmationChecker', async () => {
 		const workspaceFolder = URI.file('/workspace');
 		workspaceService = new TestWorkspaceService([workspaceFolder], []);
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 		const invalidFile = URI.file('/workspace/file\0.ts');
 
 		await expect(checker(invalidFile)).rejects.toThrow();
@@ -853,7 +789,7 @@ describe('makeUriConfirmationChecker', async () => {
 		const workspace2 = URI.file('/workspace2');
 		workspaceService = new TestWorkspaceService([workspace1, workspace2], []);
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		const fileInWorkspace1 = URI.file('/workspace1/file.ts');
 		const fileInWorkspace2 = URI.file('/workspace2/file.ts');
@@ -870,7 +806,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'**/*.test.ts': true,
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		// First call should compute patterns
 		const file1 = URI.file('/workspace/test1.test.ts');
@@ -891,7 +827,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'**/Test.ts': true,
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		// Case handling should depend on platform
 		const testFile = URI.file('/workspace/Test.ts');
@@ -904,7 +840,7 @@ describe('makeUriConfirmationChecker', async () => {
 		workspaceService = new TestWorkspaceService([workspaceFolder], []);
 
 		// No autoApprove config set
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		const file = URI.file('/workspace/src/file.ts');
 		const result = await checker(file);
@@ -920,7 +856,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'/workspace/**': false,
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		// Pattern matching the workspace folder itself should not be included
 		const file = URI.file('/workspace/file.ts');
@@ -937,7 +873,7 @@ describe('makeUriConfirmationChecker', async () => {
 
 			await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', {});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const normalFile = URI.file(`${homedir()}/Library/MyApp/src/app.ts`);
 			expect(await checker(normalFile)).toBe(ConfirmationCheckResult.SystemFile);
@@ -952,7 +888,7 @@ describe('makeUriConfirmationChecker', async () => {
 				'**/*.config': false,
 			});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const normalFile = URI.file(`${homedir()}/Library/MyApp/src/app.ts`);
 			const configFile = URI.file(`${homedir()}/Library/MyApp/settings.config`);
@@ -972,7 +908,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'**/config/test/**': true, // More specific pattern
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		// More specific pattern should override the general one
 		const testConfigFile = URI.file('/workspace/config/test/settings.json');
@@ -989,7 +925,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'dist/**': false,
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		const srcFile = URI.file('/workspace/src/app.ts');
 		const distFile = URI.file('/workspace/dist/app.js');
@@ -1007,7 +943,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'secrets/**': false,
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		const secretsInWorkspace1 = URI.file('/workspace1/secrets/api-key.txt');
 		const secretsInWorkspace2 = URI.file('/workspace2/secrets/token.txt');
@@ -1028,7 +964,7 @@ describe('makeUriConfirmationChecker', async () => {
 				'.github/hooks': true,
 			});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const hookFile = URI.file('/workspace/.github/hooks/pre-commit.json');
 			expect(await checker(hookFile)).toBe(ConfirmationCheckResult.Sensitive);
@@ -1039,7 +975,7 @@ describe('makeUriConfirmationChecker', async () => {
 				'.github/hooks': true,
 			});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const folderUri = URI.file('/workspace/.github/hooks');
 			expect(await checker(folderUri)).toBe(ConfirmationCheckResult.Sensitive);
@@ -1050,7 +986,7 @@ describe('makeUriConfirmationChecker', async () => {
 				'.github/hooks': true,
 			});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const txtFile = URI.file('/workspace/.github/hooks/readme.txt');
 			expect(await checker(txtFile)).toBe(ConfirmationCheckResult.NoConfirmation);
@@ -1061,7 +997,7 @@ describe('makeUriConfirmationChecker', async () => {
 				'.github/hooks/hook.json': true,
 			});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const hookFile = URI.file('/workspace/.github/hooks/hook.json');
 			const otherFile = URI.file('/workspace/.github/hooks/other.json');
@@ -1074,7 +1010,7 @@ describe('makeUriConfirmationChecker', async () => {
 				'~/hooks': true,
 			});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const fileInWorkspace = URI.file('/workspace/hooks/hook.json');
 			expect(await checker(fileInWorkspace)).toBe(ConfirmationCheckResult.NoConfirmation);
@@ -1085,30 +1021,26 @@ describe('makeUriConfirmationChecker', async () => {
 				'.copilot/hooks/': true,
 			});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const hookFile = URI.file('/workspace/.copilot/hooks/hook.json');
 			expect(await checker(hookFile)).toBe(ConfirmationCheckResult.Sensitive);
 		});
 
-		test.each(['settings.json', 'settings.json/', 'settings.JSON', 'hooks.d', 'hooks.d/', 'assets/icon.png'])('protects JSON children regardless of configured location suffix: %s', async location => {
+		test('does not treat file extensions like .png as folders', async () => {
 			await configService.setNonExtensionConfig('chat.hookFilesLocations', {
-				[location]: true,
+				'assets/icon.png': true,
 			});
-			await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', { '**/*': true });
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-			const directory = location.replace(/\/+$/, '');
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
-			expect(await Promise.all([
-				checker(URI.file(`/workspace/${directory}/hook.json`)),
-				checker(URI.file(`/workspace/${directory}-other/hook.json`)),
-				checker(URI.file(`/workspace/${directory}/readme.txt`)),
-			])).toEqual([
-				ConfirmationCheckResult.Sensitive,
-				ConfirmationCheckResult.NoConfirmation,
-				ConfirmationCheckResult.NoConfirmation,
-			]);
+			// The .png file itself should be sensitive
+			const pngFile = URI.file('/workspace/assets/icon.png');
+			expect(await checker(pngFile)).toBe(ConfirmationCheckResult.Sensitive);
+
+			// But a JSON file next to it should not
+			const jsonFile = URI.file('/workspace/assets/icon.png/something.json');
+			expect(await checker(jsonFile)).toBe(ConfirmationCheckResult.NoConfirmation);
 		});
 
 		test('pattern starting with **/ is preserved as-is', async () => {
@@ -1116,139 +1048,10 @@ describe('makeUriConfirmationChecker', async () => {
 				'**/hooks': true,
 			});
 
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const hookFile = URI.file('/workspace/deeply/nested/hooks/hook.json');
 			expect(await checker(hookFile)).toBe(ConfirmationCheckResult.Sensitive);
-		});
-	});
-
-	describe.each(['chat.agentFilesLocations', 'chat.agentSkillsLocations'])('%s', setting => {
-		beforeEach(() => {
-			workspaceService = new TestWorkspaceService([URI.file('/workspace')], []);
-		});
-
-		test.each([
-			['custom/agents', '/workspace/custom/agents'],
-			['custom/agents', '/workspace/custom/agents/agent.md'],
-			['custom/agents', '/workspace/custom/agents/nested/skill/scripts/run.py'],
-			['custom/nested/agents', '/workspace/custom/nested/agents/skill/scripts/run.py'],
-			['custom/**/agents', '/workspace/custom/nested/agents/skill/scripts/run.py'],
-			['custom/agents/', '/workspace/custom/agents/skill/SKILL.md'],
-			['**/agents', '/workspace/nested/agents/agent.md'],
-			['/workspace/custom/agents', '/workspace/custom/agents/agent.md'],
-			['/workspace/custom/../agents', '/workspace/agents/agent.md'],
-			['./custom/agents', '/workspace/custom/agents/agent.md'],
-			['custom/../agents', '/workspace/agents/agent.md'],
-			['custom/./agents/', '/workspace/custom/agents/skill/SKILL.md'],
-			['custom/nested/../../agents', '/workspace/agents/skill/scripts/run.py'],
-			['.', '/workspace/agent.md'],
-			[' custom/agents ', '/workspace/custom/agents/agent.md'],
-			['settings.json/', '/workspace/settings.json'],
-			['settings.json', '/workspace/settings.json/agent.md'],
-			['settings.json/', '/workspace/settings.json/skill/SKILL.md'],
-			['./settings.json/', '/workspace/settings.json/nested/scripts/run.py'],
-			['custom/../settings.json/', '/workspace/settings.json/agent.md'],
-			['**/settings.json/', '/workspace/nested/settings.json/agent.md'],
-		])('requires confirmation for %s matching %s', async (location, filePath) => {
-			await configService.setNonExtensionConfig(setting, { [location]: true });
-			await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', { '**/*': true });
-
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-
-			expect(await checker(URI.file(filePath))).toBe(ConfirmationCheckResult.Sensitive);
-		});
-
-		test.each([
-			['custom/agents', '/workspace/custom/agents/agent.md'],
-			['./custom/agents', '/workspace/custom/agents/agent.md'],
-			['custom/../agents', '/workspace/agents/agent.md'],
-			['settings.json/', '/workspace/settings.json/skill/SKILL.md'],
-		])('disabled location %s still requires confirmation for %s', async (location, filePath) => {
-			await configService.setNonExtensionConfig(setting, { [location]: false });
-			await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', { '**/*': true });
-
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-
-			expect(await checker(URI.file(filePath))).toBe(ConfirmationCheckResult.Sensitive);
-		});
-
-		test.each([
-			['/workspace/custom/agents', '/workspace/custom/agents/reviewer.md'],
-			['/workspace/custom/../settings.json/', '/workspace/settings.json/skill/SKILL.md'],
-			['./custom/agents', '/workspace/custom/agents/reviewer.md'],
-		])('protects remote location %s', async (location, filePath) => {
-			const workspaceFolder = URI.from({ scheme: 'vscode-remote', authority: 'ssh-remote+host', path: '/workspace' });
-			workspaceService = new TestWorkspaceService([workspaceFolder], []);
-			await configService.setNonExtensionConfig(setting, { [location]: true });
-			await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', { '**/*': true });
-
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-
-			expect(await checker(workspaceFolder.with({ path: filePath }))).toBe(ConfirmationCheckResult.Sensitive);
-		});
-
-		test.each([
-			['file', false],
-			['file', true],
-			['vscode-remote', false],
-			['vscode-remote', true],
-		])('protects nested %s workspace roots (nested first: %s)', async (scheme, nestedFirst) => {
-			const workspaceFolder = URI.file('/repo').with({ scheme, authority: scheme === 'file' ? '' : 'ssh-remote+host' });
-			const roots = [workspaceFolder, URI.joinPath(workspaceFolder, 'project')];
-			workspaceService = new TestWorkspaceService(nestedFirst ? roots.reverse() : roots, []);
-			await configService.setNonExtensionConfig(setting, { './agents': true });
-			await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', { '**/*': true });
-
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-
-			expect(await Promise.all([
-				checker(URI.joinPath(workspaceFolder, 'agents/reviewer.md')),
-				checker(URI.joinPath(workspaceFolder, 'project/agents/reviewer.md')),
-				checker(URI.joinPath(workspaceFolder, 'project/agents-other/reviewer.md')),
-				checker(URI.joinPath(workspaceFolder, 'project/nested/agents/reviewer.md')),
-			])).toEqual([
-				ConfirmationCheckResult.Sensitive,
-				ConfirmationCheckResult.Sensitive,
-				ConfirmationCheckResult.NoConfirmation,
-				ConfirmationCheckResult.NoConfirmation,
-			]);
-		});
-
-		test.runIf(isWindows).each([
-			['C:/repo', 'C:/repo/custom/../settings.json/'],
-			['//server/share/repo', '//server/share/repo/custom/../settings.json/'],
-		])('protects native absolute location %s', async (rootPath, location) => {
-			const realPathResolution = vi.spyOn(toolUtils, 'resolveRealPathForNonexistent').mockImplementation(async resource => resource);
-			onTestFinished(() => realPathResolution.mockRestore());
-			const workspaceFolder = URI.file(rootPath);
-			workspaceService = new TestWorkspaceService([workspaceFolder], []);
-			await configService.setNonExtensionConfig(setting, { [location]: true });
-			await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', { '**/*': true });
-
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-
-			expect(await checker(URI.joinPath(workspaceFolder, 'settings.json/skill/SKILL.md'))).toBe(ConfirmationCheckResult.Sensitive);
-		});
-
-		test('skips home directory locations and unrelated files', async () => {
-			await configService.setNonExtensionConfig(setting, { '~/agents': true, './custom/agents': true, 'settings.json/': true, '   ': true });
-
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-
-			expect(await Promise.all([
-				checker(URI.file('/workspace/agents/agent.md')),
-				checker(URI.file('/workspace/custom/agents-other/agent.md')),
-				checker(URI.file('/workspace/nested/custom/agents/agent.md')),
-				checker(URI.file('/workspace/settings.json-other/agent.md')),
-				checker(URI.file('/workspace/src/file.ts')),
-			])).toEqual([
-				ConfirmationCheckResult.NoConfirmation,
-				ConfirmationCheckResult.NoConfirmation,
-				ConfirmationCheckResult.NoConfirmation,
-				ConfirmationCheckResult.NoConfirmation,
-				ConfirmationCheckResult.NoConfirmation,
-			]);
 		});
 	});
 
@@ -1261,7 +1064,7 @@ describe('makeUriConfirmationChecker', async () => {
 			'**/test/**/*.env': true, // Exception for test env files
 		});
 
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 		const prodEnv = URI.file('/workspace/.env');
 		const testEnv = URI.file('/workspace/test/integration.env');
@@ -1291,7 +1094,7 @@ describe('makeUriConfirmationChecker', async () => {
 			// repo/assets -> outsideDir; target file does not exist yet.
 			fs.symlinkSync(outsideDir, path.join(workspaceDir, 'assets'), 'dir');
 			workspaceService = new TestWorkspaceService([URI.file(workspaceDir)], []);
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const target = URI.file(path.join(workspaceDir, 'assets', 'pwned.desktop'));
 			expect(await checker(target)).toBe(ConfirmationCheckResult.OutsideWorkspace);
@@ -1303,65 +1106,10 @@ describe('makeUriConfirmationChecker', async () => {
 			// ENOENT, so the check must walk up to the symlinked ancestor.
 			fs.symlinkSync(outsideDir, path.join(workspaceDir, 'assets'), 'dir');
 			workspaceService = new TestWorkspaceService([URI.file(workspaceDir)], []);
-			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
+			const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), customInstructionsService);
 
 			const target = URI.file(path.join(workspaceDir, 'assets', 'newdir', 'pwned.desktop'));
 			expect(await checker(target)).toBe(ConfirmationCheckResult.OutsideWorkspace);
 		});
-	});
-});
-
-describe.each(['chat.agentFilesLocations', 'chat.agentSkillsLocations'])('createEditConfirmation - %s', setting => {
-	test('protects parent discovery locations without expanding the editable workspace', async () => {
-		const workspaceFolder = URI.file('/repo/app');
-		const services = createPlatformServices();
-		const configService = new InMemoryConfigurationService(new DefaultsOnlyConfigurationService());
-		services.define(IConfigurationService, configService);
-		services.define(IWorkspaceService, new TestWorkspaceService([workspaceFolder], []));
-		const promptsService = new MockPromptsService();
-		services.define(IPromptsService, promptsService);
-		promptsService.setWorkspaceFolderRoots([workspaceFolder, URI.file('/repo')]);
-		const accessor = services.createTestingAccessor();
-		onTestFinished(() => accessor.dispose());
-		await configService.setNonExtensionConfig(setting, { 'app/agents': true });
-		await configService.setNonExtensionConfig('chat.tools.edits.autoApprove', { '**/*': true });
-		await configService.setNonExtensionConfig('chat.useCustomizationsInParentRepositories', true);
-
-		const results = await Promise.all([
-			URI.file('/repo/app/agents/reviewer.agent.md'),
-			URI.file('/repo/app/src/file.ts'),
-			URI.file('/repo/src/file.ts'),
-		].map(uri => createEditConfirmation(accessor, [uri], undefined)));
-
-		expect(results.map(result => result.confirmationMessages !== undefined)).toEqual([true, false, true]);
-	});
-});
-
-describe('agent definition files require confirmation', () => {
-	let configService: InMemoryConfigurationService;
-	let workspaceService: TestWorkspaceService;
-
-	beforeEach(() => {
-		configService = new InMemoryConfigurationService(new DefaultsOnlyConfigurationService());
-		workspaceService = new TestWorkspaceService([URI.file('/workspace')], []);
-	});
-
-	test('requires confirmation for files in agent folders', async () => {
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-		const files = [
-			'/workspace/.github/agents/dev-helper.md',
-			'/workspace/.github/agents/dev-helper.agent.md',
-			'/workspace/.claude/agents/reviewer.md',
-			'/workspace/.github/agents/nested/deep.md',
-		];
-		for (const file of files) {
-			expect(await checker(URI.file(file))).toBe(ConfirmationCheckResult.Sensitive);
-		}
-	});
-
-	test('does not require confirmation for similarly-named files outside agent folders', async () => {
-		const checker = makeUriConfirmationChecker(configService, workspaceService.getWorkspaceFolder.bind(workspaceService), workspaceService.getWorkspaceFolders());
-		expect(await checker(URI.file('/workspace/src/agents/agent.md'))).toBe(ConfirmationCheckResult.NoConfirmation);
-		expect(await checker(URI.file('/workspace/.github/workflows/ci.md'))).toBe(ConfirmationCheckResult.NoConfirmation);
 	});
 });

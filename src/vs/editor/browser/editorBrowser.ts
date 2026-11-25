@@ -559,7 +559,6 @@ export interface PastePayload {
 	pasteOnNewLine: boolean;
 	multicursorText: string[] | null;
 	mode: string | null;
-	isBlock?: boolean;
 	clipboardEvent?: ClipboardEvent;
 }
 
@@ -1442,12 +1441,6 @@ export interface IDiffEditor extends editorCommon.IEditor {
 	 * Update the editor's options after the editor has been created.
 	 */
 	updateOptions(newOptions: IDiffEditorOptions): void;
-
-	/**
-	 * Restores automatic width-based layout after a temporary inline layout.
-	 * @internal
-	 */
-	resetWidthBasedLayout(): void;
 
 	/**
 	 * @internal

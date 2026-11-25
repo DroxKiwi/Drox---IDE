@@ -11,7 +11,6 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { ICodeEditor } from '../../../../browser/editorBrowser.js';
 import { observableCodeEditor } from '../../../../browser/observableCodeEditor.js';
 import { EditorOption } from '../../../../common/config/editorOptions.js';
-import { sanitizeFontFamily } from '../../../../common/config/fontInfo.js';
 import { LineRange } from '../../../../common/core/ranges/lineRange.js';
 import { InlineCompletionsHintsWidget } from '../hintsWidget/inlineCompletionsHintsWidget.js';
 import { GhostTextOrReplacement } from '../model/ghostText.js';
@@ -81,8 +80,7 @@ export class InlineSuggestionsView extends Disposable {
 		this._fontFamily = this._editorObs.getOption(EditorOption.inlineSuggest).map(val => val.fontFamily);
 
 		this._register(createStyleSheetFromObservable(derived(reader => {
-			const configuredFontFamily = this._fontFamily.read(reader);
-			const fontFamily = sanitizeFontFamily(configuredFontFamily);
+			const fontFamily = this._fontFamily.read(reader);
 			return `
 .monaco-editor .ghost-text-decoration,
 .monaco-editor .ghost-text-decoration-preview,
@@ -108,8 +106,7 @@ export class InlineSuggestionsView extends Disposable {
 			}),
 			this._gutterIndicatorState.map((s, reader) => s?.tabAction?.read(reader) ?? InlineEditTabAction.Inactive),
 			this._gutterIndicatorState.map((s, reader) => s?.gutterIndicatorOffset?.read(reader) ?? 0),
-			derived(reader => this._gutterIndicatorState.read(reader) !== undefined
-				&& (this._inlineEditWidget.read(reader)?.view.inlineEditsIsHovered.read(reader) ?? false)),
+			this._inlineEditWidget.map((w, reader) => w?.view.inlineEditsIsHovered.read(reader) ?? false),
 			this._focusIsInMenu,
 		));
 		this._indicatorIsHoverVisible.set(this._indicator.isHoverVisible, undefined);
@@ -176,7 +173,7 @@ export class InlineSuggestionsView extends Disposable {
 				inlineSuggestion: state.inlineSuggestion,
 				model,
 			};
-		} else if (state?.kind === 'inlineEdit' && state.inlineSuggestion.showInlineEditMenuPreference !== false) {
+		} else if (state?.kind === 'inlineEdit') {
 			const inlineEditWidget = this._inlineEditWidget.read(reader)?.view;
 			if (!inlineEditWidget) { return undefined; }
 

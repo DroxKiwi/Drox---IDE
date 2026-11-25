@@ -20,8 +20,8 @@ import { IInstantiationService } from '../../../../../platform/instantiation/com
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../common/contributions.js';
 import { IsAuxiliaryWindowContext, IsSessionsWindowContext } from '../../../../common/contextkeys.js';
 import { TitleBarLeadingActionsGroup } from '../../../../browser/parts/titlebar/titlebarActions.js';
-import { AgentsWindowMenus } from '../../../../../sessions/browser/agentsWindowMenus.js';
-import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../sessions/common/contextkeys.js';
+import { Menus } from '../../../../../sessions/browser/menus.js';
+import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../../../sessions/common/contextkeys.js';
 import { IDroxTutorialService } from './droxTutorial.js';
 
 const TOGGLE_DROX_TUTORIAL = 'workbench.action.toggleDroxTutorial';
@@ -59,7 +59,7 @@ class ToggleDroxAgentsTutorialAction extends Action2 {
 			icon: Codicon.book,
 			f1: false,
 			menu: {
-				id: AgentsWindowMenus.TitleBarSessionMenu,
+				id: Menus.TitleBarSessionMenu,
 				group: 'navigation',
 				order: 8,
 				when: ContextKeyExpr.and(
@@ -125,7 +125,7 @@ class DroxTutorialContribution extends Disposable implements IWorkbenchContribut
 			return instantiationService.createInstance(DroxTutorialTitleBarWidget, action, options);
 		};
 		this._register(actionViewItemService.register(MenuId.TitleBar, TOGGLE_DROX_TUTORIAL, factory, undefined));
-		this._register(actionViewItemService.register(AgentsWindowMenus.TitleBarSessionMenu, TOGGLE_DROX_AGENTS_TUTORIAL, factory, undefined));
+		this._register(actionViewItemService.register(Menus.TitleBarSessionMenu, TOGGLE_DROX_AGENTS_TUTORIAL, factory, undefined));
 	}
 }
 

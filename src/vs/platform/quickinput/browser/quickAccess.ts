@@ -56,7 +56,7 @@ export class QuickAccessController extends Disposable implements IQuickAccessCon
 	private doShowOrPick(value: string, pick: boolean, options?: IQuickAccessOptions): Promise<IQuickPickItem[] | undefined> | void {
 
 		// Find provider for the value to show
-		const [provider, descriptor] = this.getOrInstantiateProvider(value, options?.enabledProviderPrefixes, options?.providerPrefix);
+		const [provider, descriptor] = this.getOrInstantiateProvider(value, options?.enabledProviderPrefixes);
 
 		// Return early if quick access is already showing on that same prefix
 		const visibleQuickAccess = this.visibleQuickAccess;
@@ -114,8 +114,6 @@ export class QuickAccessController extends Disposable implements IQuickAccessCon
 		picker.value = value;
 		this.adjustValueSelection(picker, descriptor, options);
 		picker.placeholder = options?.placeholder ?? descriptor?.placeholder;
-		picker.anchor = options?.anchor;
-		picker.anchorPosition = options?.anchorPosition;
 		picker.quickNavigate = options?.quickNavigateConfiguration;
 		picker.hideInput = !!picker.quickNavigate && !visibleQuickAccess; // only hide input if there was no picker opened already
 		if (typeof options?.itemActivation === 'number' || options?.quickNavigateConfiguration) {
@@ -212,11 +210,10 @@ export class QuickAccessController extends Disposable implements IQuickAccessCon
 		// Whenever the value changes, check if the provider has
 		// changed and if so - re-create the picker from the beginning
 		disposables.add(picker.onDidChangeValue(value => {
-			const [providerForValue] = this.getOrInstantiateProvider(value, options?.enabledProviderPrefixes, options?.providerPrefix);
+			const [providerForValue] = this.getOrInstantiateProvider(value, options?.enabledProviderPrefixes);
 			if (providerForValue !== provider) {
 				this.show(value, {
 					enabledProviderPrefixes: options?.enabledProviderPrefixes,
-					providerPrefix: options?.providerPrefix,
 					// do not rewrite value from user typing!
 					preserveValue: true,
 					// persist the value of the providerOptions from the original showing
@@ -237,8 +234,8 @@ export class QuickAccessController extends Disposable implements IQuickAccessCon
 		return disposables;
 	}
 
-	private getOrInstantiateProvider(value: string, enabledProviderPrefixes?: string[], providerPrefix?: string): [IQuickAccessProvider | undefined, IQuickAccessProviderDescriptor | undefined] {
-		const providerDescriptor = this.registry.getQuickAccessProvider(providerPrefix ?? value, this.contextKeyService);
+	private getOrInstantiateProvider(value: string, enabledProviderPrefixes?: string[]): [IQuickAccessProvider | undefined, IQuickAccessProviderDescriptor | undefined] {
+		const providerDescriptor = this.registry.getQuickAccessProvider(value, this.contextKeyService);
 		if (!providerDescriptor || enabledProviderPrefixes && !enabledProviderPrefixes?.includes(providerDescriptor.prefix)) {
 			return [undefined, undefined];
 		}

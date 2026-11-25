@@ -45,7 +45,6 @@ export interface IMcpGalleryManifestService {
 	readonly onDidChangeMcpGalleryManifestStatus: Event<McpGalleryManifestStatus>;
 	readonly onDidChangeMcpGalleryManifest: Event<IMcpGalleryManifest | null>;
 	getMcpGalleryManifest(): Promise<IMcpGalleryManifest | null>;
-	getDefaultMcpGalleryManifest(): Promise<IMcpGalleryManifest | null>;
 }
 
 export function getMcpGalleryManifestResourceUri(manifest: IMcpGalleryManifest, type: string): string | undefined {

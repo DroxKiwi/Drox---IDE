@@ -5,7 +5,7 @@
 
 import * as os from 'os';
 import * as path from 'path';
-import { Command, commands, Disposable, MessageOptions, Position, QuickPickItem, Range, SourceControlResourceState, TextDocumentShowOptions, TextEditor, Uri, ViewColumn, window, workspace, WorkspaceEdit, WorkspaceFolder, TimelineItem, env, Selection, TextDocumentContentProvider, InputBoxValidationSeverity, TabInputText, TabInputTextMerge, QuickPickItemKind, TextDocument, LogOutputChannel, l10n, Memento, UIKind, QuickInputButton, ThemeIcon, SourceControlHistoryItem, SourceControl, InputBoxValidationMessage, Tab, TabInputNotebook, TabInputNotebookDiff, QuickInputButtonLocation, languages, SourceControlArtifact, ProgressLocation } from 'vscode';
+import { Command, commands, Disposable, MessageOptions, Position, QuickPickItem, Range, SourceControlResourceState, TextDocumentShowOptions, TextEditor, Uri, ViewColumn, window, workspace, WorkspaceEdit, WorkspaceFolder, TimelineItem, env, Selection, TextDocumentContentProvider, InputBoxValidationSeverity, TabInputText, TabInputTextMerge, QuickPickItemKind, TextDocument, LogOutputChannel, l10n, Memento, UIKind, QuickInputButton, ThemeIcon, SourceControlHistoryItem, SourceControl, InputBoxValidationMessage, Tab, TabInputNotebook, QuickInputButtonLocation, languages, SourceControlArtifact, ProgressLocation } from 'vscode';
 import TelemetryReporter from '@vscode/extension-telemetry';
 import type { CommitOptions, RemoteSourcePublisher, Remote, Branch, Ref } from './api/git';
 import { ForcePushMode, GitErrorCodes, RefType, Status } from './api/git.constants';
@@ -20,7 +20,6 @@ import { ApiRepository } from './api/api1';
 import { getRemoteSourceActions, pickRemoteSource } from './remoteSource';
 import { RemoteSourceAction } from './typings/git-base';
 import { CloneManager } from './cloneManager';
-import { getSafeNotificationMessage } from './notification';
 
 abstract class CheckoutCommandItem implements QuickPickItem {
 	abstract get label(): string;
@@ -1031,7 +1030,7 @@ export class CommandCenter {
 	}
 
 	@command('git.clone')
-	async clone(url?: string, parentPath?: string, options?: { ref?: string; postCloneAction?: 'none'; returnRepositoryPath?: boolean }): Promise<string | undefined> {
+	async clone(url?: string, parentPath?: string, options?: { ref?: string; postCloneAction?: 'none' }): Promise<string | undefined> {
 		return this.cloneManager.clone(url, { parentPath, ...options });
 	}
 
@@ -1159,11 +1158,7 @@ export class CommandCenter {
 
 			if (homeUri.toString().startsWith(uri.toString())) {
 				const yes = l10n.t('Initialize Repository');
-				const message = getSafeNotificationMessage(
-					l10n.t('This will create a Git repository in "{0}". Are you sure you want to continue?', uri.fsPath),
-					l10n.t('This will create a Git repository in the selected folder. Are you sure you want to continue?'),
-				);
-				const answer = await window.showWarningMessage(message, yes);
+				const answer = await window.showWarningMessage(l10n.t('This will create a Git repository in "{0}". Are you sure you want to continue?', uri.fsPath), yes);
 
 				if (answer !== yes) {
 					return;
@@ -1402,10 +1397,7 @@ export class CommandCenter {
 		const title = `${basename} (HEAD)`;
 
 		if (!HEAD) {
-			window.showWarningMessage(getSafeNotificationMessage(
-				l10n.t('HEAD version of "{0}" is not available.', basename),
-				l10n.t('HEAD version of this file is not available.'),
-			));
+			window.showWarningMessage(l10n.t('HEAD version of "{0}" is not available.', path.basename(resource.resourceUri.fsPath)));
 			return;
 		}
 
@@ -3553,15 +3545,7 @@ export class CommandCenter {
 		}
 
 		try {
-			const createdWorktreePath = await repository.createWorktree({ path: worktreePath, branch, commitish: commitish });
-
-			// Remember the location picked by the user so that it is used as the default next time
-			const worktreeRootStorageKey = `${Repository.WORKTREE_ROOT_STORAGE_KEY}:${repository.root}`;
-			const worktreeRoot = path.dirname(createdWorktreePath);
-			const lastWorktreeRoot = this.globalState.get<string>(worktreeRootStorageKey);
-			if (!lastWorktreeRoot || !pathEquals(worktreeRoot, lastWorktreeRoot)) {
-				await this.globalState.update(worktreeRootStorageKey, worktreeRoot);
-			}
+			await repository.createWorktree({ path: worktreePath, branch, commitish: commitish });
 		} catch (err) {
 			if (err instanceof GitError && err.gitErrorCode === GitErrorCodes.WorktreeAlreadyExists) {
 				await this.handleWorktreeAlreadyExists(err);
@@ -4742,9 +4726,16 @@ export class CommandCenter {
 			return undefined;
 		}
 
-		// Stash (the uri references the stash commit hash since the stash index changes)
+		// Stash
+		const regex = /^stash@{(\d+)}$/;
+		const match = regex.exec(stashUri.ref);
+		if (!match) {
+			return undefined;
+		}
+
+		const [, index] = match;
 		const stashes = await repository.getStashes();
-		const stash = stashes.find(stash => stash.hash === stashUri.ref);
+		const stash = stashes.find(stash => stash.index === parseInt(index));
 		if (!stash) {
 			return undefined;
 		}
@@ -4772,7 +4763,7 @@ export class CommandCenter {
 		}
 
 		const title = `Git Stash #${stash.index}: ${stash.description}`;
-		const multiDiffSourceUri = toGitUri(Uri.file(repository.root), stash.hash, { scheme: 'git-stash' });
+		const multiDiffSourceUri = toGitUri(Uri.file(repository.root), `stash@{${stash.index}}`, { scheme: 'git-stash' });
 
 		const resources: { originalUri: Uri | undefined; modifiedUri: Uri | undefined }[] = [];
 		for (const change of stashChanges) {
@@ -4848,12 +4839,11 @@ export class CommandCenter {
 	}
 
 	private async _resolveTimelineOpenCommitCommand(item: TimelineItem, uri: Uri | undefined, options?: TextDocumentShowOptions): Promise<Command | undefined> {
-		if (!GitTimelineItem.is(item)) {
+		if (uri === undefined || uri === null || !GitTimelineItem.is(item)) {
 			return undefined;
 		}
 
-		// Items of the workspace timeline have no uri, so use the repository of the item
-		const repository = this.model.getRepository(item.rootUri);
+		const repository = await this.model.getRepository(uri.fsPath);
 		if (!repository) {
 			return undefined;
 		}
@@ -4865,8 +4855,7 @@ export class CommandCenter {
 
 		const title = `${item.shortRef} - ${subject(commit.message)}`;
 		const multiDiffSourceUri = Uri.from({ scheme: 'scm-history-item', path: `${repository.root}/${commitParentId}..${commit.hash}` });
-		// Only the items of a file timeline know which file of the commit to reveal
-		const reveal = uri && item.contextValue?.startsWith('git:file') ? { modifiedUri: toGitUri(uri, commit.hash) } : undefined;
+		const reveal = { modifiedUri: toGitUri(uri, commit.hash) };
 
 		return {
 			command: '_workbench.openMultiDiffEditor',
@@ -5711,13 +5700,7 @@ export class CommandCenter {
 	}
 
 	private getSCMResource(uri?: Uri): Resource | undefined {
-		uri = uri ?? window.activeNotebookEditor?.notebook.uri ?? window.activeTextEditor?.document.uri;
-
-		// A notebook diff editor is neither the active text nor notebook editor, so
-		// fall back to its modified resource.
-		if (!uri && window.tabGroups.activeTabGroup.activeTab?.input instanceof TabInputNotebookDiff) {
-			uri = window.tabGroups.activeTabGroup.activeTab.input.modified;
-		}
+		uri = uri ? uri : (window.activeTextEditor && window.activeTextEditor.document.uri);
 
 		this.logger.debug(`[CommandCenter][getSCMResource] git.getSCMResource.uri: ${uri && uri.toString()}`);
 

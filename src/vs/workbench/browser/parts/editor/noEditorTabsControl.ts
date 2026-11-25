@@ -80,8 +80,6 @@ export class NoEditorTabsControl extends EditorTabsControl {
 
 	updateEditorLabel(editor: EditorInput): void { }
 
-	updateEditorCapabilities(editor: EditorInput): void { }
-
 	updateEditorDirty(editor: EditorInput): void { }
 
 	getHeight(): number {

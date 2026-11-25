@@ -21,7 +21,7 @@ FOR /F "tokens=*" %%g IN ('node build/lib/node.ts') do (SET NODE=%%g)
 
 if not exist "%NODE%" (
 	:: Download nodejs executable for remote
-	call pnpm run gulp node
+	call npm run gulp node
 )
 
 popd
@@ -30,4 +30,4 @@ popd
 call "%NODE%" %ROOT_DIR%\scripts\code-server.js %*
 
 
-endlocal & exit /b %errorlevel%
+endlocal

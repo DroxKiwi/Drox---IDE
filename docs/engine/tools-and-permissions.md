@@ -27,7 +27,6 @@ Source : [`registry.rs`](../../drox-engine/drox/crates/drox-tools/src/registry.r
 | `bash` | Shell — analyse **`drox-bash`** (inspectif vs mutateur) |
 | `todo_write`, `course_plan_write`, `scope_defer` | Plan / scope |
 | `workspace_map_read`, `workspace_map_note` | Carte workspace |
-| `project_rule_write` | Règles projet `.drox/rules/*.instructions.md` |
 | `session_note`, `memory_read`, `memory_list` | Mémoire locale |
 | `skill_read`, `skill_list` | Skills |
 | `git_worktree_enter`, `git_worktree_exit` | Worktrees |
@@ -50,17 +49,6 @@ Voir [mcp-and-subagents.md](mcp-and-subagents.md).
 - Descriptions textuelles outils : crate **`drox-prompts`** (`tools/`).
 
 Implémentations : [`drox-tools/src/simple/`](../../drox-engine/drox/crates/drox-tools/src/simple/).
-
-## Surface effective (IDE)
-
-À chaque `agent.run`, l’IDE calcule une liste unique **`disabledTools`** (`droxEffectiveToolSurface.ts`) :
-
-1. **Plafond profil Rust** — hors allowlist → non activable (même en custom).
-2. **Matrice custom** — si L2 manuel `custom` + `.drox/tools-surface.json` (`customActive`) : seuls les outils cochés restent au schéma (sous le plafond profil).
-3. **Preset L2** — `core` / `standard` / `full` via régulation lorsque L2 n’est pas en `custom`.
-4. **Settings** — `drox.tools.disabled`, familles (`drox.memory.enabled`, …).
-
-Entrée custom : panneau clé à molette (chat natif) → L2 manuel `custom`. **Changement de profil moteur** (Server settings) : efface la matrice, L2 repasse en Auto, preset du nouveau profil.
 
 ## Filtrage par profil moteur
 

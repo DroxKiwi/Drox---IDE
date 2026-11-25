@@ -4,9 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Codicon } from '../../base/common/codicons.js';
-import { FileAccess } from '../../base/common/network.js';
 import { ThemeIcon } from '../../base/common/themables.js';
-import { URI } from '../../base/common/uri.js';
 import { localize } from '../../nls.js';
 import { ChatEntitlement, IChatSentiment, IQuotaSnapshot } from '../../workbench/services/chat/common/chatEntitlementService.js';
 import { IDefaultAccountService } from '../../platform/defaultAccount/common/defaultAccount.js';
@@ -16,11 +14,6 @@ export interface IResolvedAccountInfo {
 	readonly accountName: string;
 	readonly accountProviderId: string;
 	readonly accountProviderLabel: string;
-	/**
-	 * The icon (avatar) supplied by the authentication provider for this
-	 * account, if any.
-	 */
-	readonly accountIcon?: URI;
 }
 
 /**
@@ -39,7 +32,6 @@ export async function resolveAccountInfo(
 			accountName: account.accountName,
 			accountProviderId: account.authenticationProvider.id,
 			accountProviderLabel: account.authenticationProvider.name,
-			accountIcon: await getSessionAccountIcon(authenticationService, account.authenticationProvider.id, account.sessionId),
 		};
 	}
 
@@ -50,7 +42,6 @@ export async function resolveAccountInfo(
 				accountName: sessions[0].account.label,
 				accountProviderId: 'github',
 				accountProviderLabel: 'GitHub',
-				accountIcon: sessions[0].account.icon,
 			};
 		}
 	} catch {
@@ -60,20 +51,6 @@ export async function resolveAccountInfo(
 	return undefined;
 }
 
-/**
- * Looks up the icon (avatar) that the authentication provider supplied for the
- * session backing the default account, if any.
- */
-async function getSessionAccountIcon(authenticationService: IAuthenticationService, providerId: string, sessionId: string): Promise<URI | undefined> {
-	try {
-		const sessions = await authenticationService.getSessions(providerId);
-		return sessions.find(session => session.id === sessionId)?.account.icon;
-	} catch {
-		// Provider not available yet
-		return undefined;
-	}
-}
-
 export type AccountTitleBarStateSource = 'account' | 'copilot';
 export type AccountTitleBarStateKind = 'default' | 'accent' | 'warning' | 'prominent';
 
@@ -81,9 +58,7 @@ export interface IAccountTitleBarStateContext {
 	readonly isAccountLoading: boolean;
 	readonly accountName?: string;
 	readonly accountProviderLabel?: string;
-	// DROX-BEGIN
 	readonly chatAgentDisplayName?: string;
-	// DROX-END
 	readonly entitlement: ChatEntitlement;
 	readonly sentiment: IChatSentiment;
 	readonly quotas: {
@@ -103,11 +78,7 @@ export interface IAccountTitleBarState {
 	readonly revealLabelOnHover?: boolean;
 }
 
-export function getAccountProfileImageUrl(accountProviderId: string | undefined, accountName: string | undefined, accountIcon?: URI): string | undefined {
-	if (accountIcon) {
-		return FileAccess.uriToBrowserUri(accountIcon).toString(true);
-	}
-
+export function getAccountProfileImageUrl(accountProviderId: string | undefined, accountName: string | undefined): string | undefined {
 	if (accountProviderId !== 'github' || !accountName?.trim()) {
 		return undefined;
 	}
@@ -135,9 +106,7 @@ export function getAccountTitleBarState(context: IAccountTitleBarStateContext): 
 		};
 	}
 
-	// DROX-BEGIN
 	const copilotState = getCopilotPresentation(context.entitlement, context.sentiment, context.quotas, getChatAgentDisplayName(context));
-	// DROX-END
 	if (copilotState) {
 		return copilotState;
 	}
@@ -164,19 +133,15 @@ export function getAccountTitleBarState(context: IAccountTitleBarStateContext): 
 	};
 }
 
-// DROX-BEGIN
 function getChatAgentDisplayName(context: IAccountTitleBarStateContext): string {
 	return context.chatAgentDisplayName?.trim() || 'Drox';
 }
 
-// DROX-END
 function getCopilotPresentation(
 	entitlement: ChatEntitlement,
 	sentiment: IChatSentiment,
 	quotas: { readonly chat?: IQuotaSnapshot; readonly completions?: IQuotaSnapshot },
-	// DROX-BEGIN
 	agentName: string,
-	// DROX-END
 ): IAccountTitleBarState | undefined {
 	if (sentiment.hidden) {
 		return undefined;
@@ -185,10 +150,10 @@ function getCopilotPresentation(
 	if (entitlement === ChatEntitlement.Unknown) {
 		return {
 			source: 'copilot',
-			kind: 'default',
+			kind: 'prominent',
 			icon: Codicon.account,
-			label: localize('agentsSignInOptional', "Sign In"),
-			ariaLabel: localize('agentsSignInOptionalAria', "Sign in to GitHub to use more agents"),
+			label: localize('agentsSignedOut', "Agents Signed Out"),
+			ariaLabel: localize('agentsSignedOutAria', "Agents is signed out"),
 		};
 	}
 
@@ -197,14 +162,10 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: 'warning',
 			icon: Codicon.account,
-			// DROX-BEGIN
 			label: localize('agentsUnavailable', "{0} Unavailable", agentName),
-			// DROX-END
 			ariaLabel: sentiment.untrusted
-				// DROX-BEGIN
 				? localize('agentsUnavailableUntrustedAria', "{0} is unavailable in untrusted workspaces", agentName)
 				: localize('agentsUnavailableDisabledAria', "{0} is disabled", agentName),
-			// DROX-END
 		};
 	}
 
@@ -215,13 +176,9 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: 'warning',
 			icon: Codicon.account,
-			// DROX-BEGIN
 			label: localize('agentsQuotaReached', "Quota Reached"),
-			// DROX-END
 			dotBadge: 'error',
-			// DROX-BEGIN
 			ariaLabel: getQuotaReachedAriaLabel(chatQuotaExceeded, completionsQuotaExceeded, agentName),
-			// DROX-END
 		};
 	}
 
@@ -231,14 +188,10 @@ function getCopilotPresentation(
 			source: 'copilot',
 			kind: remainingPercent <= 10 ? 'warning' : 'accent',
 			icon: Codicon.account,
-			// DROX-BEGIN
 			label: localize('agentsTokensRemaining', "Tokens Remaining"),
-			// DROX-END
 			badge: `${remainingPercent}%`,
 			dotBadge: remainingPercent <= 10 ? 'error' : 'warning',
-			// DROX-BEGIN
 			ariaLabel: localize('agentsTokensRemainingAria', "{0}% {1} tokens remaining", remainingPercent, agentName),
-			// DROX-END
 		};
 	}
 
@@ -260,22 +213,14 @@ function getLowestPositivePercent(...quotas: Array<IQuotaSnapshot | undefined>):
 	return lowest;
 }
 
-// DROX-BEGIN
 function getQuotaReachedAriaLabel(chatQuotaExceeded: boolean, completionsQuotaExceeded: boolean, agentName: string): string {
-	// DROX-END
 	if (chatQuotaExceeded && completionsQuotaExceeded) {
-		// DROX-BEGIN
 		return localize('agentsAllQuotaReachedAria', "{0} chat and inline suggestion quota reached", agentName);
-		// DROX-END
 	}
 
 	if (chatQuotaExceeded) {
-		// DROX-BEGIN
 		return localize('agentsChatQuotaReachedAria', "{0} chat quota reached", agentName);
-		// DROX-END
 	}
 
-	// DROX-BEGIN
 	return localize('agentsCompletionsQuotaReachedAria', "{0} inline suggestion quota reached", agentName);
-	// DROX-END
 }

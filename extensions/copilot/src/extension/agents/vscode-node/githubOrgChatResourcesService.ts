@@ -268,14 +268,8 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 		try {
 			await this.fileSystem.stat(cacheDir);
 		} catch {
-			this.logService.trace(`[GitHubOrgChatResourcesService] Creating cache directory: ${cacheDir.toString()}`);
-			try {
-				await this.fileSystem.createDirectory(cacheDir);
-			} catch (error) {
-				this.logService.error(error, '[GitHubOrgChatResourcesService] Failed to create cache directory');
-				throw error;
-			}
-			this.logService.trace(`[GitHubOrgChatResourcesService] Created cache directory: ${cacheDir.toString()}`);
+			// createDirectory should create parent directories recursively
+			await this.fileSystem.createDirectory(cacheDir);
 		}
 	}
 
@@ -323,13 +317,7 @@ export class GitHubOrgChatResourcesService extends Disposable implements IGitHub
 			}
 		}
 
-		this.logService.trace(`[GitHubOrgChatResourcesService] Writing cache file: ${fileUri.toString()}`);
-		try {
-			await this.fileSystem.writeFile(fileUri, contentBytes);
-		} catch (error) {
-			this.logService.error(error, '[GitHubOrgChatResourcesService] Failed to write cache file');
-			throw error;
-		}
+		await this.fileSystem.writeFile(fileUri, contentBytes);
 		this.logService.trace(`[GitHubOrgChatResourcesService] Wrote cache file: ${fileUri.toString()}`);
 		return hasChanges;
 	}

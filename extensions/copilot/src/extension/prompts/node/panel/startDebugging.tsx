@@ -11,6 +11,7 @@ import { IEnvService } from '../../../../platform/env/common/envService';
 import { IExtensionsService } from '../../../../platform/extensions/common/extensionsService';
 import { IFileSystemService } from '../../../../platform/filesystem/common/fileSystemService';
 import { IIgnoreService } from '../../../../platform/ignore/common/ignoreService';
+import { ICodeOrDocsSearchItem } from '../../../../platform/remoteSearch/common/codeOrDocsSearchClient';
 import { IWorkspaceService } from '../../../../platform/workspace/common/workspaceService';
 import { CancellationToken } from '../../../../util/vs/base/common/cancellation';
 import { ResourceSet } from '../../../../util/vs/base/common/map';
@@ -63,6 +64,7 @@ export interface StartDebuggingPromptProps extends BasePromptElementProps {
 }
 
 export interface StartDebuggingPromptState {
+	docSearchResults?: ICodeOrDocsSearchItem[];
 	resources?: URI[];
 	schema?: string[];
 }
@@ -376,6 +378,18 @@ export class StartDebuggingPrompt extends PromptElement<StartDebuggingPromptProp
 						{getLaunchConfigExamples(this.props.input.type, style)}<br />
 					</InstructionMessage>
 				</HistoryWithInstructions>
+				<UserMessage priority={700}>
+					{state.docSearchResults && state.docSearchResults.length > 0 && <>Below is a list of information from the Visual Studio Code documentation which might be relevant to the question. <br /></>}
+					{state.docSearchResults && state.docSearchResults.map((result) => {
+						if (result?.title && result.contents) {
+							// eslint-disable-next-line local/code-no-unused-expressions
+							<TextChunk>
+								##{result?.title?.trim()} - {result.path}<br />
+								{result.contents}
+							</TextChunk>;
+						}
+					})}
+				</UserMessage>
 				<UserMessage priority={850}>
 					{state.schema && <>Below is a list of properties that the launch config might include. <br />
 						{state.schema.map((property) => {

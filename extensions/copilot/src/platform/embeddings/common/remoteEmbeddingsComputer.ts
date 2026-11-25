@@ -19,7 +19,7 @@ import { IEmbeddingsEndpoint, postRequest } from '../../networking/common/networ
 import { GenAiAttr, GenAiOperationName, GenAiProviderName } from '../../otel/common/genAiAttributes';
 import { IOTelService, SpanKind, SpanStatusCode } from '../../otel/common/otelService';
 import { ITelemetryService } from '../../telemetry/common/telemetry';
-import { ComputeEmbeddingsOptions, Embedding, EmbeddingInputType, EmbeddingType, EmbeddingTypeInfo, EmbeddingVector, Embeddings, IEmbeddingsComputer, LEGACY_EMBEDDING_MODEL_ID, getWellKnownEmbeddingTypeInfo } from './embeddingsComputer';
+import { ComputeEmbeddingsOptions, Embedding, EmbeddingType, EmbeddingTypeInfo, EmbeddingVector, Embeddings, IEmbeddingsComputer, getWellKnownEmbeddingTypeInfo } from './embeddingsComputer';
 
 interface CAPIEmbeddingResults {
 	readonly type: 'success';
@@ -72,11 +72,7 @@ export class RemoteEmbeddingsComputer implements IEmbeddingsComputer {
 				// Determine endpoint type: use CAPI for no-auth users, otherwise use GitHub
 				const copilotToken = await this._authService.getCopilotToken();
 				if (copilotToken.isNoAuthUser) {
-					// CAPI does not expose Metis to anonymous users, so Metis-backed features are auth-gated.
-					if (getWellKnownEmbeddingTypeInfo(embeddingType)?.model === LEGACY_EMBEDDING_MODEL_ID.Metis_I16_Binary) {
-						return { type: embeddingType, values: [] };
-					}
-					const embeddings = await this.computeCAPIEmbeddings(embeddingType, inputs, options, cancellationToken);
+					const embeddings = await this.computeCAPIEmbeddings(inputs, options, cancellationToken);
 					return embeddings ?? { type: embeddingType, values: [] };
 				}
 
@@ -172,21 +168,19 @@ export class RemoteEmbeddingsComputer implements IEmbeddingsComputer {
 	}
 
 	private async computeCAPIEmbeddings(
-		embeddingType: EmbeddingType,
 		inputs: readonly string[],
 		options?: ComputeEmbeddingsOptions,
 		cancellationToken?: CancellationToken,
 	) {
-		const typeInfo = getWellKnownEmbeddingTypeInfo(embeddingType);
+		const typeInfo = getWellKnownEmbeddingTypeInfo(EmbeddingType.text3small_512);
 		if (!typeInfo) {
-			throw new Error(`Embeddings type info not found: ${embeddingType}`);
+			throw new Error(`Embeddings type info not found: ${EmbeddingType.text3small_512}`);
 		}
-		const endpointFamily = typeInfo.model === LEGACY_EMBEDDING_MODEL_ID.Metis_I16_Binary ? 'metis' : 'text3small';
-		const endpoint = await this._endpointProvider.getEmbeddingsEndpoint(endpointFamily);
+		const endpoint = await this._endpointProvider.getEmbeddingsEndpoint('text3small');
 		const batchSize = endpoint.maxBatchSize;
 		// Open AI seems to allow 1 less than max tokens for the model requests. So if the max tokens is 8192, we can only send 8191 tokens.
 		const maxTokens = endpoint.modelMaxPromptTokens - 1;
-		return this.fetchResponseWithBatches(embeddingType, typeInfo, endpoint, inputs, options?.inputType ?? 'document', cancellationToken, maxTokens, batchSize);
+		return this.fetchResponseWithBatches(typeInfo, endpoint, inputs, cancellationToken, maxTokens, batchSize);
 	}
 
 	/**
@@ -197,11 +191,9 @@ export class RemoteEmbeddingsComputer implements IEmbeddingsComputer {
 	 * @returns The embeddings
 	 */
 	private async fetchResponseWithBatches(
-		embeddingType: EmbeddingType,
 		type: EmbeddingTypeInfo,
 		endpoint: IEmbeddingsEndpoint,
 		inputs: readonly string[],
-		inputType: EmbeddingInputType,
 		cancellationToken: CancellationToken | undefined,
 		maxTokens: number,
 		batchSize: number,
@@ -226,7 +218,7 @@ export class RemoteEmbeddingsComputer implements IEmbeddingsComputer {
 						return;
 					}
 
-					const r = await this.rawEmbeddingsFetchWithTelemetry(type, endpoint, generateUuid(), currentBatch, inputType, cancellationToken);
+					const r = await this.rawEmbeddingsFetchWithTelemetry(type, endpoint, generateUuid(), currentBatch, cancellationToken);
 					if (r.type === 'failed') {
 						throw new Error('Embeddings request failed ' + r.reason);
 					}
@@ -249,7 +241,7 @@ export class RemoteEmbeddingsComputer implements IEmbeddingsComputer {
 		if (embeddings.length === 0) {
 			return undefined;
 		}
-		return { type: embeddingType, values: embeddings.map((value): Embedding => ({ type: embeddingType, value })) };
+		return { type: EmbeddingType.text3small_512, values: embeddings.map((value): Embedding => ({ type: EmbeddingType.text3small_512, value })) };
 	}
 
 	private async rawEmbeddingsFetchWithTelemetry(
@@ -257,11 +249,10 @@ export class RemoteEmbeddingsComputer implements IEmbeddingsComputer {
 		endpoint: IEmbeddingsEndpoint,
 		requestId: string,
 		inputs: readonly string[],
-		inputType: EmbeddingInputType,
 		cancellationToken: CancellationToken | undefined
 	) {
 		const startTime = Date.now();
-		const rawRequest = await this.rawEmbeddingsFetch(type, endpoint, requestId, inputs, inputType, cancellationToken);
+		const rawRequest = await this.rawEmbeddingsFetch(type, endpoint, requestId, inputs, cancellationToken);
 		if (rawRequest.type === 'failed') {
 			this._telemetryService.sendMSFTTelemetryErrorEvent('embedding.error', {
 				type: rawRequest.type,
@@ -290,18 +281,12 @@ export class RemoteEmbeddingsComputer implements IEmbeddingsComputer {
 		endpoint: IEmbeddingsEndpoint,
 		requestId: string,
 		inputs: readonly string[],
-		inputType: EmbeddingInputType,
 		cancellationToken: CancellationToken | undefined
 	): Promise<CAPIEmbeddingResults | CAPIEmbeddingError> {
 		try {
 			const token = await this._authService.getCopilotToken();
 
-			const body = {
-				input: inputs,
-				input_type: inputType,
-				model: type.model,
-				dimensions: type.dimensions
-			};
+			const body = { input: inputs, model: type.model, dimensions: type.dimensions };
 			endpoint.interceptBody?.(body);
 			const response = await this._instantiationService.invokeFunction(postRequest, {
 				endpointOrUrl: endpoint,

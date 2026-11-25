@@ -13,7 +13,6 @@ import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { Severity } from '../../../../platform/notification/common/notification.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
-import { AGENT_HOST_SCHEME } from '../../../../platform/agentHost/common/agentHostUri.js';
 import { IWorkspaceTrustEnablementService, IWorkspaceTrustManagementService, IWorkspaceTrustRequestService, WorkspaceTrustUriResponse } from '../../../../platform/workspace/common/workspaceTrust.js';
 import { Extensions as WorkbenchExtensions, IWorkbenchContribution, IWorkbenchContributionsRegistry, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
@@ -50,7 +49,6 @@ import { securityConfigurationNodeBase } from '../../../common/configuration.js'
 import { basename, dirname as uriDirname } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
-import { matchesSomeScheme, Schemas } from '../../../../base/common/network.js';
 
 const BANNER_RESTRICTED_MODE = 'workbench.banner.restrictedMode';
 const STARTUP_PROMPT_SHOWN_KEY = 'workspace.trust.startupPrompt.shown';
@@ -177,22 +175,9 @@ export class WorkspaceTrustRequestHandler extends Disposable implements IWorkben
 				`\`${this.labelService.getUriLabel(options.uri)}\``
 			];
 
-			if (options.remoteHostLabel) {
-				const remoteHostLabel = `\`${options.remoteHostLabel.replace(/`/g, '').replace(/\s+/g, ' ').trim()}\``;
-				markdownDetails.push(
-					localize('resourcesTrustRemoteEnvironment', "This folder is hosted on the remote agent environment {0}.", remoteHostLabel),
-					localize('resourcesTrustRemoteScope', "Your decision is saved in {0} on this computer and lets agent sessions read, modify, and run commands in this folder on {1}. It does not change any trust settings on the remote environment.", this.productService.nameLong, remoteHostLabel)
-				);
-			} else if (options.uri.scheme === AGENT_HOST_SCHEME) {
-				markdownDetails.push(
-					localize('resourcesTrustUnnamedRemoteEnvironment', "This folder is hosted on a remote agent environment."),
-					localize('resourcesTrustUnnamedRemoteScope', "Your decision is saved in {0} on this computer and lets agent sessions read, modify, and run commands in this folder. It does not change any trust settings on the remote environment.", this.productService.nameLong)
-				);
-			} else {
-				const sessionsTrustNote = getSessionsWindowTrustNote(this.environmentService, this.productService, false);
-				if (sessionsTrustNote) {
-					markdownDetails.push(sessionsTrustNote);
-				}
+			const sessionsTrustNote = getSessionsWindowTrustNote(this.environmentService, this.productService, false);
+			if (sessionsTrustNote) {
+				markdownDetails.push(sessionsTrustNote);
 			}
 
 			// Dialog
@@ -351,7 +336,7 @@ export class WorkspaceTrustUXHandler extends Disposable implements IWorkbenchCon
 
 	private registerListeners(): void {
 		this._register(this.workspaceContextService.onWillChangeWorkspaceFolders(e => {
-			if (e.fromCache || e.isFolderLocationChange) {
+			if (e.fromCache) {
 				return;
 			}
 			if (!this.workspaceTrustEnablementService.isWorkspaceTrustEnabled()) {
@@ -413,10 +398,7 @@ export class WorkspaceTrustUXHandler extends Disposable implements IWorkbenchCon
 				localize('folderTrust', "Do you trust the authors of the files in this folder?"));
 
 			let checkboxText: string | undefined;
-			const workspace = this.workspaceContextService.getWorkspace();
-			// Trust targets the folder the window is at now, which differs from workspace.uri while at an alternate location
-			const identifier = toWorkspaceIdentifier(workspace);
-			const workspaceIdentifier = isSingleFolderWorkspaceIdentifier(identifier) && workspace.folders.length === 1 ? { id: identifier.id, uri: workspace.folders[0].uri } : identifier;
+			const workspaceIdentifier = toWorkspaceIdentifier(this.workspaceContextService.getWorkspace());
 			const isSingleFolderWorkspace = isSingleFolderWorkspaceIdentifier(workspaceIdentifier);
 			const isEmptyWindow = isEmptyWorkspaceIdentifier(workspaceIdentifier);
 			if (!isAiGeneratedWorkspace && this.workspaceTrustManagementService.canSetParentFolderTrust()) {
@@ -515,10 +497,7 @@ export class WorkspaceTrustUXHandler extends Disposable implements IWorkbenchCon
 		}
 
 		// Don't show modal prompt for virtual workspaces by default
-		const workspace = this.workspaceContextService.getWorkspace();
-		const isNetworkWorkspace = workspace.folders.some(folder => matchesSomeScheme(folder.uri, Schemas.http, Schemas.https)) ||
-			!!workspace.configuration && matchesSomeScheme(workspace.configuration, Schemas.http, Schemas.https);
-		if (isVirtualWorkspace(workspace) && !isNetworkWorkspace) {
+		if (isVirtualWorkspace(this.workspaceContextService.getWorkspace())) {
 			this.updateWorkbenchIndicators(false);
 			return;
 		}

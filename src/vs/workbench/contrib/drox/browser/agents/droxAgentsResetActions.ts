@@ -22,7 +22,7 @@ import { clearDroxEngineSessionRecency } from '../../common/droxSharedChatSessio
 import { DROX_SESSIONS_PROVIDER_ID } from '../../common/droxAgentsSession.js';
 import { IDroxRunRevertService } from '../../common/droxRunRevertService.js';
 import { getDroxSessionsProviderInstance } from '../../../../../sessions/contrib/providers/drox/browser/droxSessionsProviderAccessor.js';
-import { ISessionsService } from '../../../sessions/browser/sessionsService.js';
+import { ISessionsService } from '../../../../../sessions/services/sessions/browser/sessionsService.js';
 
 export function registerDroxAgentsResetActions(): void {
 	registerAction2(class DroxAgentsResetWorkspaceAction extends Action2 {

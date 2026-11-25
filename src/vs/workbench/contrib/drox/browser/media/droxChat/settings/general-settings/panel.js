@@ -6,37 +6,6 @@
 (function (D) {
 	const fn = D.fn;
 
-	fn.syncEngineProfileUiFromState = function() {
-		const s = D.state.generalSettings || {};
-		const profileVal = s.engineProfile === 'local-27b' || s.engineProfile === 'cloud-full' ? s.engineProfile : 'local-9b';
-		const profileSuffix = s.customToolsSuffix ? String(s.customToolsSuffix) : '';
-		const selectIds = ['general-settings-engine-profile', 'role-model-panel-engine-profile'];
-		for (const id of selectIds) {
-			const select = document.getElementById(id);
-			if (!select) {
-				continue;
-			}
-			for (const opt of select.options) {
-				if (!opt.dataset.droxBaseLabel) {
-					opt.dataset.droxBaseLabel = opt.textContent || '';
-				}
-				const base = opt.dataset.droxBaseLabel;
-				opt.textContent = (opt.value === profileVal && profileSuffix) ? `${base} ${profileSuffix}` : base;
-			}
-			select.value = profileVal;
-		}
-		for (const suffixId of ['general-settings-engine-profile-suffix', 'role-model-panel-engine-profile-suffix']) {
-			const el = document.getElementById(suffixId);
-			if (el) {
-				el.textContent = profileSuffix;
-				el.setAttribute('aria-hidden', profileSuffix ? 'false' : 'true');
-			}
-		}
-		if (D.dom.roleModelPanelEngineProfileEl) {
-			D.dom.roleModelPanelEngineProfileEl.value = profileVal;
-		}
-	};
-
 	fn.fillGeneralSettingsPanel = function() {
 		const s = D.state.generalSettings || {};
 		const setVal = (id, value) => {
@@ -53,8 +22,9 @@
 		if (typeof fn.syncConnectionSummaryInPanel === 'function') {
 			fn.syncConnectionSummaryInPanel();
 		}
-		if (typeof fn.syncEngineProfileUiFromState === 'function') {
-			fn.syncEngineProfileUiFromState();
+		setVal('general-settings-engine-profile', s.engineProfile === 'local-27b' || s.engineProfile === 'cloud-full' ? s.engineProfile : 'local-9b');
+		if (D.dom.roleModelPanelEngineProfileEl) {
+			D.dom.roleModelPanelEngineProfileEl.value = s.engineProfile === 'local-27b' || s.engineProfile === 'cloud-full' ? s.engineProfile : 'local-9b';
 		}
 		setVal('general-settings-max-iterations', s.maxIterations ?? 50);
 		if (D.dom.roleModelPanelMaxIterationsEl) {

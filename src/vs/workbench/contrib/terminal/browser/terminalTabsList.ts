@@ -33,14 +33,19 @@ import { ElementsDragAndDropData, ListViewTargetSector, NativeDragAndDropData } 
 import { URI } from '../../../../base/common/uri.js';
 import { getColorClass, getIconId, getUriClasses } from './terminalIcon.js';
 import { IEditableData } from '../../../common/views.js';
-import { InlineEditInputBox } from '../../../browser/parts/views/inlineEditInputBox.js';
+import { IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
+import { InputBox, MessageType } from '../../../../base/browser/ui/inputbox/inputBox.js';
+import { createSingleCallFunction } from '../../../../base/common/functional.js';
+import { IKeyboardEvent } from '../../../../base/browser/keyboardEvent.js';
+import { KeyCode } from '../../../../base/common/keyCodes.js';
 import { CodeDataTransfers, containsDragType, getPathForFile } from '../../../../platform/dnd/browser/dnd.js';
-import { getTerminalAccessibleTitle, terminalStrings } from '../common/terminalStrings.js';
+import { terminalStrings } from '../common/terminalStrings.js';
 import { ILifecycleService } from '../../../services/lifecycle/common/lifecycle.js';
 import { IProcessDetails } from '../../../../platform/terminal/common/terminalProcess.js';
 import { TerminalContextKeys } from '../common/terminalContextKey.js';
 import { getTerminalResourcesFromDragEvent, parseTerminalUri } from './terminalUri.js';
 import { getInstanceHoverInfo } from './terminalTooltip.js';
+import { defaultInputBoxStyles } from '../../../../platform/theme/browser/defaultStyles.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { getColorForSeverity } from './terminalStatusList.js';
@@ -284,6 +289,7 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 		@IListService private readonly _listService: IListService,
 		@IStorageService private readonly _storageService: IStorageService,
 		@IThemeService private readonly _themeService: IThemeService,
+		@IContextViewService private readonly _contextViewService: IContextViewService,
 		@ICommandService private readonly _commandService: ICommandService,
 	) {
 	}
@@ -364,9 +370,6 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 		const hoverInfo = getInstanceHoverInfo(instance, this._storageService);
 		template.context.hoverActions = hoverInfo.actions;
 
-		// While editing, the title is shown in the input box next to the icon instead of in the label
-		const editableData = this._terminalEditingService.getEditableData(instance);
-
 		const iconId = this._instantiationService.invokeFunction(getIconId, instance);
 		let label: string = '';
 		if (!hasText) {
@@ -383,7 +386,7 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 			// Only add the title if the icon is set, this prevents the title jumping around for
 			// example when launching with a ShellLaunchConfig.name and no icon
 			if (instance.icon) {
-				label += editableData ? `$(${iconId})` : `$(${iconId}) ${instance.title}`;
+				label += `$(${iconId}) ${instance.title}`;
 			}
 		}
 
@@ -412,7 +415,7 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 		template.label.setResource({
 			resource: instance.resource,
 			name: label,
-			description: hasText && !editableData ? instance.description : undefined
+			description: hasText ? instance.description : undefined
 		}, {
 			fileDecorations: {
 				colors: true,
@@ -424,25 +427,89 @@ class TerminalTabsRenderer implements IListRenderer<ITerminalInstance, ITerminal
 			},
 			extraClasses
 		});
+		const editableData = this._terminalEditingService.getEditableData(instance);
 		template.label.element.classList.toggle('editable-tab', !!editableData);
 		if (editableData) {
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			template.elementDisposables.add(this._renderInputBox(template.label.element.querySelector('.monaco-icon-label-container')!, instance, editableData));
 			template.actionBar.clear();
 		}
 	}
 
 	private _renderInputBox(container: HTMLElement, instance: ITerminalInstance, editableData: IEditableData): IDisposable {
-		const disposables = new DisposableStore();
-		const inputBox = disposables.add(this._instantiationService.createInstance(InlineEditInputBox, container, editableData, {
-			value: instance.title || '',
-			ariaLabel: localize('terminalInputAriaLabel', "Type terminal name. Press Enter to confirm or Escape to cancel.")
-		})).inputBox;
 
-		// Prevent terminal tab keybindings, such as kill on Delete, from running while editing
-		disposables.add(DOM.addStandardDisposableListener(inputBox.inputElement, DOM.EventType.KEY_DOWN, e => e.stopPropagation()));
+		const value = instance.title || '';
 
-		return disposables;
+		const inputBox = new InputBox(container, this._contextViewService, {
+			validationOptions: {
+				validation: (value) => {
+					const message = editableData.validationMessage(value);
+					if (!message || message.severity !== Severity.Error) {
+						return null;
+					}
+
+					return {
+						content: message.content,
+						formatContent: true,
+						type: MessageType.ERROR
+					};
+				}
+			},
+			ariaLabel: localize('terminalInputAriaLabel', "Type terminal name. Press Enter to confirm or Escape to cancel."),
+			inputBoxStyles: defaultInputBoxStyles
+		});
+		inputBox.element.style.height = '22px';
+		inputBox.value = value;
+		inputBox.focus();
+		inputBox.select({ start: 0, end: value.length });
+
+		const done = createSingleCallFunction((success: boolean, finishEditing: boolean) => {
+			inputBox.element.style.display = 'none';
+			const value = inputBox.value;
+			dispose(toDispose);
+			inputBox.element.remove();
+			if (finishEditing) {
+				editableData.onFinish(value, success);
+			}
+		});
+
+		const showInputBoxNotification = () => {
+			if (inputBox.isInputValid()) {
+				const message = editableData.validationMessage(inputBox.value);
+				if (message) {
+					inputBox.showMessage({
+						content: message.content,
+						formatContent: true,
+						type: message.severity === Severity.Info ? MessageType.INFO : message.severity === Severity.Warning ? MessageType.WARNING : MessageType.ERROR
+					});
+				} else {
+					inputBox.hideMessage();
+				}
+			}
+		};
+		showInputBoxNotification();
+
+		const toDispose = [
+			inputBox,
+			DOM.addStandardDisposableListener(inputBox.inputElement, DOM.EventType.KEY_DOWN, (e: IKeyboardEvent) => {
+				e.stopPropagation();
+				if (e.equals(KeyCode.Enter)) {
+					done(inputBox.isInputValid(), true);
+				} else if (e.equals(KeyCode.Escape)) {
+					done(false, true);
+				}
+			}),
+			DOM.addStandardDisposableListener(inputBox.inputElement, DOM.EventType.KEY_UP, (e: IKeyboardEvent) => {
+				showInputBoxNotification();
+			}),
+			DOM.addDisposableListener(inputBox.inputElement, DOM.EventType.BLUR, () => {
+				done(inputBox.isInputValid(), true);
+			})
+		];
+
+		return toDisposable(() => {
+			done(false, false);
+		});
 	}
 
 	disposeElement(instance: ITerminalInstance, index: number, templateData: ITerminalTabEntryTemplate): void {
@@ -514,7 +581,7 @@ interface ITerminalTabEntryTemplate {
 }
 
 
-export class TerminalTabsAccessibilityProvider implements IListAccessibilityProvider<ITerminalInstance> {
+class TerminalTabsAccessibilityProvider implements IListAccessibilityProvider<ITerminalInstance> {
 	constructor(
 		@ITerminalGroupService private readonly _terminalGroupService: ITerminalGroupService,
 	) { }
@@ -525,7 +592,6 @@ export class TerminalTabsAccessibilityProvider implements IListAccessibilityProv
 
 	getAriaLabel(instance: ITerminalInstance): string {
 		let ariaLabel: string = '';
-		const title = getTerminalAccessibleTitle(instance.title, instance.shellLaunchConfig.hostLabel);
 		const tab = this._terminalGroupService.getGroupForInstance(instance);
 		if (tab && tab.terminalInstances?.length > 1) {
 			const terminalIndex = tab.terminalInstances.indexOf(instance);
@@ -537,7 +603,7 @@ export class TerminalTabsAccessibilityProvider implements IListAccessibilityProv
 					`The terminal's split number`,
 					`The terminal group's total split number`
 				]
-			}, "Terminal {0} {1}, split {2} of {3}", instance.instanceId, title, terminalIndex + 1, tab.terminalInstances.length);
+			}, "Terminal {0} {1}, split {2} of {3}", instance.instanceId, instance.title, terminalIndex + 1, tab.terminalInstances.length);
 		} else {
 			ariaLabel = localize({
 				key: 'terminalAriaLabel',
@@ -545,7 +611,7 @@ export class TerminalTabsAccessibilityProvider implements IListAccessibilityProv
 					`The terminal's ID`,
 					`The terminal's title`
 				]
-			}, "Terminal {0} {1}", instance.instanceId, title);
+			}, "Terminal {0} {1}", instance.instanceId, instance.title);
 		}
 		return ariaLabel;
 	}

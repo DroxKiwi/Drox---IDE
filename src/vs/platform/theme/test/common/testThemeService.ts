@@ -93,11 +93,6 @@ export class TestThemeService implements IThemeService {
 		return this._fileIconTheme;
 	}
 
-	setFileIconTheme(theme: IFileIconTheme): void {
-		this._fileIconTheme = theme;
-		this._onFileIconThemeChange.fire(theme);
-	}
-
 	public get onDidFileIconThemeChange(): Event<IFileIconTheme> {
 		return this._onFileIconThemeChange.event;
 	}

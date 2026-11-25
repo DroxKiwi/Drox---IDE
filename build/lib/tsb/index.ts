@@ -107,7 +107,7 @@ export function create(
 			if (!file.contents) {
 				return;
 			}
-			if (!config.transpileOnlyIncludesDts && /\.d\.[cm]?ts$/.test(file.path)) {
+			if (!config.transpileOnlyIncludesDts && file.path.endsWith('.d.ts')) {
 				return;
 			}
 

@@ -6,7 +6,6 @@
 import './anthropicPrompts';
 import './familyHPrompts';
 import './geminiPrompts';
-import './kimiPrompts';
 import './minimaxPrompts';
 import './vscModelPrompts';
 // vscModelPrompts must be imported before gpt5Prompt to ensure VSC model prompt resolvers are registered first.
@@ -17,10 +16,9 @@ import './openai/gpt52Prompt';
 import './openai/gpt53CodexPrompt';
 import './openai/gpt54Prompt';
 import './openai/gpt55Prompt';
-import './openai/gpt56Prompt';
 import './openai/gpt5CodexPrompt';
 import './openai/gpt5Prompt';
-import './openai/gpt6Prompt';
-import './openai/latestOpenAIPrompt';
+import './openai/hiddenModelMPrompt';
 import './xAIPrompts';
 import './zaiPrompts';
+

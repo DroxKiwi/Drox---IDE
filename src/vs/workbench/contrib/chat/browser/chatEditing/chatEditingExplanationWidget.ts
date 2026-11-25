@@ -20,7 +20,8 @@ import { overviewRulerRangeHighlight } from '../../../../../editor/common/core/e
 import { IEditorDecorationsCollection } from '../../../../../editor/common/editorCommon.js';
 import { OverviewRulerLane } from '../../../../../editor/common/model.js';
 import { themeColorFromId } from '../../../../../platform/theme/common/themeService.js';
-import { IChatWidget, IChatWidgetService } from '../chat.js';
+import { ChatViewId, IChatWidget, IChatWidgetService } from '../chat.js';
+import { IViewsService } from '../../../../services/views/common/viewsService.js';
 import * as nls from '../../../../../nls.js';
 import { IExplanationDiffInfo, IChangeExplanation as IChangeExplanationModel, IChatEditingExplanationModelManager } from './chatEditingExplanationModelManager.js';
 import { autorun } from '../../../../../base/common/observable.js';
@@ -133,6 +134,7 @@ export class ChatEditingExplanationWidget extends Disposable implements IOverlay
 		private _changes: readonly (LineRangeMapping | DetailedLineRangeMapping)[],
 		diffInfo: IExplanationDiffInfo,
 		private readonly _chatWidgetService: IChatWidgetService,
+		private readonly _viewsService: IViewsService,
 		private readonly _chatSessionResource?: URI,
 	) {
 		super();
@@ -182,7 +184,7 @@ export class ChatEditingExplanationWidget extends Disposable implements IOverlay
 
 		// Dismiss button
 		this._dismissButton = $('div.chat-explanation-dismiss');
-		this._dismissButton.appendChild(renderIcon(Codicon.closeSmall));
+		this._dismissButton.appendChild(renderIcon(Codicon.close));
 		this._dismissButton.title = nls.localize('dismiss', "Dismiss");
 		this._headerNode.appendChild(this._dismissButton);
 
@@ -272,12 +274,12 @@ export class ChatEditingExplanationWidget extends Disposable implements IOverlay
 			this._readIndicator.classList.remove('partial', 'unread');
 			this._readIndicator.title = nls.localize('markAsUnread', "Mark as unread");
 		} else if (someRead) {
-			this._readIndicator.appendChild(renderIcon(Codicon.circleFilledCompact));
+			this._readIndicator.appendChild(renderIcon(Codicon.circleFilled));
 			this._readIndicator.classList.remove('read', 'unread');
 			this._readIndicator.classList.add('partial');
 			this._readIndicator.title = nls.localize('markAllAsRead', "Mark all as read");
 		} else {
-			this._readIndicator.appendChild(renderIcon(Codicon.circleFilledCompact));
+			this._readIndicator.appendChild(renderIcon(Codicon.circleFilled));
 			this._readIndicator.classList.remove('read', 'partial');
 			this._readIndicator.classList.add('unread');
 			this._readIndicator.title = nls.localize('markAsRead', "Mark as read");
@@ -353,7 +355,8 @@ export class ChatEditingExplanationWidget extends Disposable implements IOverlay
 				if (this._chatSessionResource) {
 					chatWidget = await this._chatWidgetService.openSession(this._chatSessionResource);
 				} else {
-					chatWidget = await this._chatWidgetService.revealChatView(false);
+					await this._viewsService.openView(ChatViewId, true);
+					chatWidget = this._chatWidgetService.lastFocusedWidget;
 				}
 				if (chatWidget) {
 					chatWidget.attachmentModel.addContext(
@@ -447,7 +450,7 @@ export class ChatEditingExplanationWidget extends Disposable implements IOverlay
 			element.classList.add('read');
 			element.classList.remove('unread');
 		} else {
-			element.appendChild(renderIcon(Codicon.circleFilledCompact));
+			element.appendChild(renderIcon(Codicon.circleFilled));
 			element.classList.remove('read');
 			element.classList.add('unread');
 		}
@@ -547,6 +550,7 @@ export class ChatEditingExplanationWidgetManager extends Disposable {
 	constructor(
 		private readonly _editor: ICodeEditor,
 		private readonly _chatWidgetService: IChatWidgetService,
+		private readonly _viewsService: IViewsService,
 		modelManager: IChatEditingExplanationModelManager,
 		private readonly _modelUri: URI,
 	) {
@@ -611,6 +615,7 @@ export class ChatEditingExplanationWidgetManager extends Disposable {
 				group,
 				diffInfo,
 				this._chatWidgetService,
+				this._viewsService,
 				chatSessionResource,
 			);
 			this._widgets.push(widget);

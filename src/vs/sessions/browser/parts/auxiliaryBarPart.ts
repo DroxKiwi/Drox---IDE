@@ -15,7 +15,7 @@ import { IStorageService } from '../../../platform/storage/common/storage.js';
 import { IThemeService } from '../../../platform/theme/common/themeService.js';
 import { ActiveAuxiliaryContext, AuxiliaryBarFocusContext } from '../../../workbench/common/contextkeys.js';
 import { ACTIVITY_BAR_TOP_ACTIVE_BORDER, ACTIVITY_BAR_TOP_DRAG_AND_DROP_BORDER, ACTIVITY_BAR_TOP_FOREGROUND, ACTIVITY_BAR_TOP_INACTIVE_FOREGROUND, PANEL_ACTIVE_TITLE_BORDER, PANEL_ACTIVE_TITLE_FOREGROUND, PANEL_DRAG_AND_DROP_BORDER, PANEL_INACTIVE_TITLE_FOREGROUND, SIDE_BAR_TITLE_BORDER } from '../../../workbench/common/theme.js';
-import { agentsPanelBackground, agentsPanelBorder, agentsPanelForeground, agentsBadgeBackground, agentsBadgeForeground } from '../../../workbench/contrib/sessions/common/theme.js';
+import { agentsPanelBackground, agentsPanelBorder, agentsPanelForeground, agentsBadgeBackground, agentsBadgeForeground } from '../../common/theme.js';
 import { IViewDescriptorService, ViewContainerLocation } from '../../../workbench/common/views.js';
 import { IExtensionService } from '../../../workbench/services/extensions/common/extensions.js';
 import { IWorkbenchLayoutService, Parts } from '../../../workbench/services/layout/browser/layoutService.js';
@@ -29,7 +29,7 @@ import { ActionsOrientation, IActionViewItem } from '../../../base/browser/ui/ac
 import { IPaneCompositeBarOptions } from '../../../workbench/browser/parts/paneCompositeBar.js';
 import { IMenuService, IMenu, MenuId, MenuItemAction } from '../../../platform/actions/common/actions.js';
 import { IConfigurationService } from '../../../platform/configuration/common/configuration.js';
-import { AgentsWindowMenus } from '../agentsWindowMenus.js';
+import { Menus } from '../menus.js';
 import { IHoverService } from '../../../platform/hover/browser/hover.js';
 import { DropdownWithPrimaryActionViewItem } from '../../../platform/actions/browser/dropdownWithPrimaryActionViewItem.js';
 import { IBaseActionViewItemOptions } from '../../../base/browser/ui/actionbar/actionViewItems.js';
@@ -37,7 +37,6 @@ import { getFlatContextMenuActions } from '../../../platform/actions/browser/men
 import { IDisposable, MutableDisposable } from '../../../base/common/lifecycle.js';
 import { Extensions } from '../../../workbench/browser/panecomposite.js';
 import { mainWindow } from '../../../base/browser/window.js';
-import { getSidePaneBottomFrameInset } from '../../../workbench/browser/parts/sessions/agentsPartCard.js';
 
 /**
  * Auxiliary bar part specifically for agent sessions workbench.
@@ -50,10 +49,10 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 	static readonly placeholderViewContainersKey = 'workbench.agentsession.auxiliarybar.placeholderPanels';
 	static readonly viewContainersWorkspaceStateKey = 'workbench.agentsession.auxiliarybar.viewContainersWorkspaceState';
 
-	/** Visual margin values for the card-like appearance (non-docked layout). */
+	/** Visual margin values for the card-like appearance */
 	static readonly MARGIN_TOP = 0;
-	static readonly MARGIN_BOTTOM = 0;
-	static readonly CONTENT_PADDING_LEFT = 5;
+	static readonly MARGIN_BOTTOM = 5;
+	static readonly MARGIN_LEFT = 5;
 
 	// Action ID for run script - defined here to avoid layering issues
 	private static readonly RUN_SCRIPT_ACTION_ID = 'workbench.action.agentSessions.runScript';
@@ -128,7 +127,7 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 			SIDE_BAR_TITLE_BORDER,
 			ViewContainerLocation.AuxiliaryBar,
 			Extensions.Auxiliary,
-			AgentsWindowMenus.AuxiliaryBarTitle,
+			Menus.AuxiliaryBarTitle,
 			notificationService,
 			storageService,
 			contextMenuService,
@@ -170,13 +169,11 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 
 		const container = assertReturnsDefined(this.getContainer());
 
-		const backgroundColor = this.getPartBackgroundColor();
-
 		// Store background and border as CSS variables for the card styling on .part
-		container.style.setProperty('--part-background', backgroundColor);
+		container.style.setProperty('--part-background', this.getColor(agentsPanelBackground) || '');
 		container.style.setProperty('--part-border-color', this.getColor(agentsPanelBorder) || 'transparent');
 		container.style.setProperty('--part-foreground', this.getColor(agentsPanelForeground) || '');
-		container.style.backgroundColor = backgroundColor;
+		container.style.backgroundColor = this.getColor(agentsPanelBackground) || '';
 
 		// Clear borders - the card appearance uses border-radius instead
 		container.style.borderLeftColor = '';
@@ -185,11 +182,6 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 		container.style.borderRightStyle = '';
 		container.style.borderLeftWidth = '';
 		container.style.borderRightWidth = '';
-	}
-
-	/** The part background color. Overridden by the desktop variant to match the editor. */
-	protected getPartBackgroundColor(): string {
-		return this.getColor(agentsPanelBackground) || '';
 	}
 
 	protected getCompositeBarOptions(): IPaneCompositeBarOptions {
@@ -303,16 +295,23 @@ export class AuxiliaryBarPart extends AbstractPaneCompositePart {
 			return;
 		}
 
-		const compact = this.layoutService.isModernUICompact();
-		const borderTotal = compact ? 0 : 2;
+		const borderTotal = 2; // 1px border on each side
+
+		// The right gutter is provided by the workbench grid (see Workbench.layout).
+		// The bottom margin is 5px when the panel is visible (paired with the panel's
+		// 5px top margin to center the sash) and 0 when the panel is hidden (so the card
+		// fills its cell; the workbench grid's 10px bottom gutter provides the visible gap).
+		// When the editor is visible, padding-left: 5px keeps the inner content position
+		// invariant (matching the editor-hidden state where margin-left: 5px applies instead).
 		const editorVisible = this.layoutService.isVisible(Parts.EDITOR_PART, mainWindow);
-		const paddingLeft = editorVisible && !compact ? AuxiliaryBarPart.CONTENT_PADDING_LEFT : 0;
-		const marginBottom = !this.layoutService.mainContainer.classList.contains('dock-detail-panel')
-			? getSidePaneBottomFrameInset(this.layoutService.mainContainer, this.layoutService.getPanelSpacing())
-			: AuxiliaryBarPart.MARGIN_BOTTOM;
+		const marginLeft = editorVisible ? 0 : AuxiliaryBarPart.MARGIN_LEFT;
+		const paddingLeft = editorVisible ? AuxiliaryBarPart.MARGIN_LEFT : 0;
+		const marginBottom = this.layoutService.isVisible(Parts.PANEL_PART)
+			? AuxiliaryBarPart.MARGIN_BOTTOM
+			: 0;
 
 		super.layout(
-			width - borderTotal - paddingLeft,
+			width - marginLeft - borderTotal - paddingLeft,
 			height - AuxiliaryBarPart.MARGIN_TOP - marginBottom - borderTotal,
 			top, left
 		);

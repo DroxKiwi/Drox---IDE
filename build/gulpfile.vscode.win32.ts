@@ -8,17 +8,13 @@ import * as fs from 'fs';
 import { gulp } from './lib/gulp/facade.ts';
 import * as path from 'path';
 import rcedit from 'rcedit';
-// DROX-BEGIN
-// DROX-END
 import vfs from 'vinyl-fs';
 import product from '../product.json' with { type: 'json' };
 import { getVersion } from './lib/getVersion.ts';
 import * as task from './lib/gulp/task.ts';
 import * as util from './lib/util.ts';
-// DROX-BEGIN
 import { getDroxSetupVersion } from './lib/droxVersion.ts';
 import { resolveInnoSetupCompiler } from './lib/resolveInnoSetup.ts';
-// DROX-END
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -26,17 +22,13 @@ const require = createRequire(import.meta.url);
 const repoPath = path.dirname(import.meta.dirname);
 const commit = getVersion(repoPath);
 const buildPath = (arch: string) => path.join(path.dirname(repoPath), `VSCode-win32-${arch}`);
-// DROX-BEGIN
-// DROX-END
 const setupDir = (arch: string, target: string) => path.join(repoPath, '.build', `win32-${arch}`, `${target}-setup`);
 const signWin32Path = path.join(repoPath, 'build', 'azure-pipelines', 'common', 'sign-win32.ts');
 
 function packageInnoSetup(iss: string, options: { definitions?: Record<string, unknown> }, cb: (err?: Error | null) => void) {
 	const definitions = options.definitions || {};
-// DROX-BEGIN
 	const inno = resolveInnoSetupCompiler(repoPath);
 	console.log(`[inno] ISCC ${inno.version} (${inno.source}): ${inno.iscc}`);
-// DROX-END
 
 	if (process.argv.some(arg => arg === '--debug-inno')) {
 		definitions['Debug'] = 'true';
@@ -57,9 +49,7 @@ function packageInnoSetup(iss: string, options: { definitions?: Record<string, u
 		`/sesrp=node ${signWin32Path} $f`
 	];
 
-// DROX-BEGIN
 	cp.spawn(inno.iscc, args, { stdio: ['ignore', 'inherit', 'inherit'] })
-// DROX-END
 		.on('error', cb)
 		.on('exit', code => {
 			if (code === 0) {
@@ -87,24 +77,19 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		const useVersionedUpdate = (product as typeof product & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
 		const versionedResourcesFolder = useVersionedUpdate ? commit!.substring(0, 10) : '';
 		const issPath = path.join(import.meta.dirname, 'win32', 'code.iss');
-		const productJsonRelativePath = path.join(versionedResourcesFolder, 'resources/app/product.json');
-		const originalProductJsonPath = path.join(sourcePath, productJsonRelativePath);
+		const originalProductJsonPath = path.join(sourcePath, versionedResourcesFolder, 'resources/app/product.json');
 		const productJsonPath = path.join(outputPath, 'product.json');
 		const productJson = JSON.parse(fs.readFileSync(originalProductJsonPath, 'utf8'));
 		productJson['target'] = target;
 
-// DROX-BEGIN
 		const setupVersion = getDroxSetupVersion();
 
-// DROX-END
 		const definitions: Record<string, unknown> = {
 			NameLong: product.nameLong,
 			NameShort: product.nameShort,
 			DirName: product.win32DirName,
-// DROX-BEGIN
 			Version: setupVersion,
 			RawVersion: setupVersion,
-// DROX-END
 			Commit: commit,
 			NameVersion: product.win32NameVersion + (target === 'user' ? ' (User)' : ''),
 			ExeBasename: product.nameShort,
@@ -125,14 +110,12 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			RepoDir: repoPath,
 			OutputDir: outputPath,
 			InstallTarget: target,
-			ProductJsonRelativePath: productJsonRelativePath,
 			ProductJsonPath: productJsonPath,
 			VersionedResourcesFolder: versionedResourcesFolder,
 			Quality: quality
 		};
 
 		if (quality === 'stable' || quality === 'insider') {
-// DROX-BEGIN
 			const appxFile = `${quality === 'stable' ? 'code' : 'code_insider'}_${arch}.appx`;
 			const appxDll = `${quality === 'stable' ? 'code' : 'code_insider'}_explorer_command_${arch}.dll`;
 			// Local OSS builds often lack makeappx — only wire appx into Inno when the package exists.
@@ -144,14 +127,6 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 				if (ctxMenu && ctxMenu[arch]) {
 					definitions['FileExplorerContextMenuCLSID'] = ctxMenu[arch].clsid;
 				}
-// DROX-END
-			}
-		}
-
-		if (fs.existsSync(path.join(sourcePath, 'bin', 'copilot-shim', 'copilot.exe'))) {
-			definitions['CopilotShim'] = 'true';
-			if (fs.existsSync(path.join(sourcePath, 'bin', 'copilot-shim', 'copilot'))) {
-				definitions['CopilotShimLauncher'] = 'true';
 			}
 		}
 
@@ -180,9 +155,7 @@ function copyInnoUpdater(arch: string) {
 
 function updateIcon(executablePath: string): task.CallbackTask {
 	return cb => {
-// DROX-BEGIN
 		const icon = path.join(repoPath, 'resources', 'win32', 'drox.ico');
-// DROX-END
 		rcedit(executablePath, { icon }, cb);
 	};
 }

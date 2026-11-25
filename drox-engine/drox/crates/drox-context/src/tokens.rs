@@ -23,9 +23,6 @@ pub const IMAGE_TOKEN_SIZE: usize = 2000;
 /// Rapport bytes/token par défaut pour l'estimation grossière.
 pub const DEFAULT_BYTES_PER_TOKEN: usize = 4;
 
-/// Rapport caractères/token aligné sur Cline (`@cline/shared` ~3 chars/token).
-pub const CHARS_PER_TOKEN: usize = 3;
-
 /// Contrat d'un compteur de tokens.
 pub trait TokenCounter: Send + Sync {
     /// Compte les tokens d'une chaîne brute.
@@ -92,20 +89,6 @@ impl RoughTokenCounter {
         Self {
             bytes_per_token: bytes_per_token.max(1),
         }
-    }
-}
-
-/// Compteur style Cline : unités Unicode / 3 (arrondi vers le haut).
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ClineStyleTokenCounter;
-
-impl TokenCounter for ClineStyleTokenCounter {
-    fn count_text(&self, text: &str) -> usize {
-        let chars = text.chars().count();
-        if chars == 0 {
-            return 0;
-        }
-        chars.div_ceil(CHARS_PER_TOKEN)
     }
 }
 
@@ -189,15 +172,6 @@ fn content_to_canonical_string(content: &Content) -> String {
 mod tests {
     use super::*;
     use drox_types::ToolUseId;
-
-    #[test]
-    fn cline_counts_text_by_chars_per_token() {
-        let counter = ClineStyleTokenCounter;
-        assert_eq!(counter.count_text(""), 0);
-        assert_eq!(counter.count_text("abc"), 1);
-        assert_eq!(counter.count_text("abcd"), 2);
-        assert_eq!(counter.count_text("hello world"), 4);
-    }
 
     #[test]
     fn rough_counts_text_by_bytes_per_token() {

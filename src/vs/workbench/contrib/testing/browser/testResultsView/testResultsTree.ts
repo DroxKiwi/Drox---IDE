@@ -786,7 +786,7 @@ class TestRunElementRenderer implements ICompressibleTreeRenderer<ITreeElement, 
 			}
 		}
 
-		const descriptionElement = description ? dom.$('span.test-label-description', {}, ...renderLabelWithIcons(description)) : '';
+		const descriptionElement = description ? dom.$('span.test-label-description', {}, description) : '';
 		if (labelWithIcons) {
 			dom.reset(templateData.label, ...labelWithIcons, descriptionElement);
 		} else {

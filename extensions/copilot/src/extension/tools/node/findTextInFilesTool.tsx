@@ -30,23 +30,21 @@ import { Tag } from '../../prompts/node/base/tag';
 import { ToolName } from '../common/toolNames';
 import { CopilotToolMode, ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
 import { checkCancellation, InputGlobResult, inputGlobToPattern, patternContainsWorkspaceFolderPath } from './toolUtils';
-// eslint-disable-next-line local/code-no-restricted-zone-imports -- Pre-existing layering violation found when the zone check started resolving extensionless imports.
 import { IExperimentationService } from '../../../lib/node/chatLibMain';
-import { IGrepResultService } from './grepResultService';
 
 interface IFindTextInFilesToolParams {
 	query: string;
 	isRegexp?: boolean;
 	includePattern?: string;
 	maxResults?: number;
-	defaultMaxResults?: number;
 	/** Whether to include files that would normally be ignored according to .gitignore, other ignore files and `files.exclude` and `search.exclude` settings. */
 	includeIgnoredFiles?: boolean;
 }
 
+const MaxResultsCap = 200;
+
 interface FileMatch {
 	path: string;
-	uri: vscode.Uri;
 	matches: vscode.TextSearchMatch2[];
 	elidedMatches?: number;
 }
@@ -73,7 +71,6 @@ export class FindTextInFilesTool implements ICopilotTool<IFindTextInFilesToolPar
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@IPromptPathRepresentationService private readonly promptPathRepresentationService: IPromptPathRepresentationService,
 		@IExperimentationService private readonly experimentationService: IExperimentationService,
-		@IGrepResultService private readonly grepResultService: IGrepResultService,
 	) { }
 
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<IFindTextInFilesToolParams>, token: CancellationToken) {
@@ -99,13 +96,11 @@ export class FindTextInFilesTool implements ICopilotTool<IFindTextInFilesToolPar
 
 		const outputFormat = this.getOutputFormat();
 		const useGrepStyle = outputFormat === 'grep';
-		const defaultMaxResults = this.getDefaultMaxResults();
-		const maxResultsCap = this.getMaxResultsCap();
-		void this.sendSearchToolTelemetry(options, globResult, outputFormat, options.input.maxResults, defaultMaxResults, maxResultsCap);
+		void this.sendSearchToolTelemetry(options, globResult, outputFormat);
 
 		checkCancellation(token);
-		const askedForTooManyResults = options.input.maxResults && options.input.maxResults > maxResultsCap;
-		const maxResults = Math.min(options.input.maxResults ?? options.input.defaultMaxResults ?? defaultMaxResults, maxResultsCap);
+		const askedForTooManyResults = options.input.maxResults && options.input.maxResults > MaxResultsCap;
+		const maxResults = Math.min(options.input.maxResults ?? 20, MaxResultsCap);
 		const isRegExp = options.input.isRegexp ?? true;
 		const queryIsValidRegex = this.isValidRegex(options.input.query);
 		const includeIgnoredFiles = options.input.includeIgnoredFiles ?? false;
@@ -159,14 +154,14 @@ Then if you want to include those files you can call the tool again by setting "
 		if (useGrepStyle) {
 			return this.renderGrepStyle(results, options, maxResults, globResult, isRegExp, noMatchInstructions, token);
 		} else {
-			return this.renderTagStyle(results, options, maxResults, maxResultsCap, globResult, askedForTooManyResults, isRegExp, noMatchInstructions, token);
+			return this.renderTagStyle(results, options, maxResults, globResult, askedForTooManyResults, isRegExp, noMatchInstructions, token);
 		}
 	}
 
-	private async renderTagStyle(results: vscode.TextSearchResult2[], options: vscode.LanguageModelToolInvocationOptions<IFindTextInFilesToolParams>, maxResults: number, maxResultsCap: number, globResult: InputGlobResult | undefined, askedForTooManyResults: boolean | number | undefined, isRegExp: boolean, noMatchInstructions: string | undefined, token: CancellationToken): Promise<vscode.ExtendedLanguageModelToolResult> {
+	private async renderTagStyle(results: vscode.TextSearchResult2[], options: vscode.LanguageModelToolInvocationOptions<IFindTextInFilesToolParams>, maxResults: number, globResult: InputGlobResult | undefined, askedForTooManyResults: boolean | number | undefined, isRegExp: boolean, noMatchInstructions: string | undefined, token: CancellationToken): Promise<vscode.ExtendedLanguageModelToolResult> {
 		const prompt = await renderPromptElementJSON(this.instantiationService,
 			FindTextInFilesResult,
-			{ textResults: results, maxResults, maxResultsCap, askedForTooManyResults: Boolean(askedForTooManyResults), noMatchInstructions },
+			{ textResults: results, maxResults, askedForTooManyResults: Boolean(askedForTooManyResults), noMatchInstructions },
 			options.tokenizationOptions,
 			token);
 
@@ -190,9 +185,6 @@ Then if you want to include those files you can call the tool again by setting "
 		if (!groupedMatches) {
 			return this.errorResult(noMatchInstructions ? `No matches found. ${noMatchInstructions}` : 'No matches found.');
 		}
-		if (options.chatSessionResource !== undefined && options.chatRequestId !== undefined) {
-			this.grepResultService.addGrepResult(options.chatSessionResource, options.chatRequestId, groupedMatches);
-		}
 		const prompt = await renderPromptElementJSON(this.instantiationService,
 			FindTextInFilesGrepResult,
 			{ grouped: groupedMatches, query: options.input.query },
@@ -214,7 +206,7 @@ Then if you want to include those files you can call the tool again by setting "
 			const path = this.promptPathRepresentationService.getFilePath(textMatch.uri, true);
 			let fileMatch = groupedByFile.get(path);
 			if (fileMatch === undefined) {
-				fileMatch = { path, uri: textMatch.uri, matches: [] };
+				fileMatch = { path, matches: [] };
 				groupedByFile.set(path, fileMatch);
 			}
 			fileMatch.matches.push(textMatch);
@@ -314,7 +306,7 @@ Then if you want to include those files you can call the tool again by setting "
 		return result;
 	}
 
-	private async sendSearchToolTelemetry(options: vscode.LanguageModelToolInvocationOptions<IFindTextInFilesToolParams>, globResult: InputGlobResult | undefined, outputFormat: string, requestedMaxResults: number | undefined, defaultMaxResults: number, maxResultsCap: number): Promise<void> {
+	private async sendSearchToolTelemetry(options: vscode.LanguageModelToolInvocationOptions<IFindTextInFilesToolParams>, globResult: InputGlobResult | undefined, outputFormat: string): Promise<void> {
 		const model = options.model && (await this.endpointProvider.getChatEndpoint(options.model)).model;
 		const isMultiRoot = this.workspaceService.getWorkspaceFolders().length > 1;
 		const includePattern = options.input.includePattern;
@@ -328,10 +320,7 @@ Then if you want to include those files you can call the tool again by setting "
 				"patternScopedToFolder": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the includePattern was resolved to a specific workspace folder" },
 				"patternStartsWithFolderPath": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the raw includePattern starts with a workspace folder absolute path" },
 				"patternContainsFolderPath": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "Whether the raw includePattern contains a workspace folder absolute path anywhere" },
-				"outputFormat": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The output format of the search results" },
-				"requestedMaxResults": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The maximum number of results that was requested by the LLM. Undefined if not provided." },
-				"defaultMaxResults": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The default maximum number of results used when the LLM doesn't specify a value." },
-				"maxResultsCap": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "isMeasurement": true, "comment": "The maximum number of results that can be returned." }
+				"outputFormat": { "classification": "SystemMetaData", "purpose": "FeatureInsight", "comment": "The output format of the search results" }
 			}
 		*/
 		this.telemetryService.sendMSFTTelemetryEvent('findTextInFilesToolInvoked', {
@@ -342,10 +331,6 @@ Then if you want to include those files you can call the tool again by setting "
 			patternStartsWithFolderPath: String(!!includePattern && isAbsolute(includePattern) && !!this.workspaceService.getWorkspaceFolder(URI.file(includePattern))),
 			patternContainsFolderPath: String(patternContainsWorkspaceFolderPath(includePattern, this.workspaceService)),
 			outputFormat: outputFormat
-		}, {
-			requestedMaxResults,
-			defaultMaxResults,
-			maxResultsCap
 		});
 	}
 
@@ -456,7 +441,7 @@ Then if you want to include those files you can call the tool again by setting "
 		}
 
 		return {
-			defaultMaxResults: mode === CopilotToolMode.FullContext ? this.getMaxResultsCap() : this.getDefaultMaxResults(),
+			maxResults: mode === CopilotToolMode.FullContext ? 200 : 20,
 			...input,
 			includePattern,
 		};
@@ -464,17 +449,7 @@ Then if you want to include those files you can call the tool again by setting "
 
 	private getOutputFormat(): 'grep' | 'tag' {
 		const expFlag = this.configurationService.getExperimentBasedConfig(ConfigKey.GrepSearchOutputFormat, this.experimentationService);
-		return expFlag === 'tag' ? 'tag' : 'grep';
-	}
-
-	private getDefaultMaxResults(): number {
-		const result =  this.configurationService.getExperimentBasedConfig(ConfigKey.GrepSearchDefaultMaxResults, this.experimentationService);
-		return Number.isFinite(result) ? Math.floor(result) : 100;
-	}
-
-	private getMaxResultsCap(): number {
-		const result = this.configurationService.getExperimentBasedConfig(ConfigKey.GrepSearchMaxResultsCap, this.experimentationService);
-		return Number.isFinite(result) ? Math.floor(result) : 200;
+		return expFlag === 'grep' ? 'grep' : 'tag';
 	}
 }
 
@@ -482,7 +457,6 @@ ToolRegistry.registerTool(FindTextInFilesTool);
 export interface FindTextInFilesResultProps extends BasePromptElementProps {
 	textResults: vscode.TextSearchResult2[];
 	maxResults: number;
-	maxResultsCap: number;
 	askedForTooManyResults?: boolean;
 	noMatchInstructions?: string;
 }
@@ -505,7 +479,7 @@ export class FindTextInFilesResult extends PromptElement<FindTextInFilesResultPr
 		const resultCountToDisplay = Math.min(numResults, this.props.maxResults);
 		const numResultsText = numResults === 1 ? '1 match' : `${resultCountToDisplay} matches`;
 		const maxResultsText = numResults > this.props.maxResults ? ` (more results are available)` : '';
-		const maxResultsTooLargeText = this.props.askedForTooManyResults ? ` (maxResults capped at ${this.props.maxResultsCap})` : '';
+		const maxResultsTooLargeText = this.props.askedForTooManyResults ? ` (maxResults capped at ${MaxResultsCap})` : '';
 		return <>
 			{<TextChunk priority={20}>{numResultsText}{maxResultsText}{maxResultsTooLargeText}</TextChunk>}
 			{textMatches.flatMap(result => {

@@ -3,17 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DisposableStore, IDisposable } from '../../../../base/common/lifecycle.js';
-import { isEqual } from '../../../../base/common/resources.js';
 import { URI, UriComponents } from '../../../../base/common/uri.js';
-import { Range, type IRange } from '../../../../editor/common/core/range.js';
 import { localize } from '../../../../nls.js';
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
-import { AgentFeedbackReviewCommandId, IChatAgentFeedbackPullRequestThreadLink, IChatAgentFeedbackReviewComment } from '../../../../workbench/contrib/chat/common/chatService/chatService.js';
-import { ISessionsManagementService } from '../../../../workbench/contrib/sessions/common/sessionsManagement.js';
-import { ICodeReviewService } from '../../../../workbench/contrib/sessions/browser/codeReviewService.js';
-import { IAgentFeedbackService } from '../../../../workbench/contrib/sessions/browser/agentFeedback.js';
-import { AgentFeedbackKind, AgentFeedbackState } from '../../../../workbench/contrib/sessions/browser/agentFeedbackModel.js';
+import { AgentFeedbackReviewCommandId, IChatAgentFeedbackReviewComment } from '../../../../workbench/contrib/chat/common/chatService/chatService.js';
+import { AgentFeedbackKind, AgentFeedbackState, IAgentFeedbackService } from './agentFeedbackService.js';
 
 /**
  * Feedback kinds that originate from a review the user triages (a pull request
@@ -37,22 +31,16 @@ function kindLabel(kind: AgentFeedbackKind): string | undefined {
 	}
 }
 
-function getOwningSessionResource(sessionsManagementService: ISessionsManagementService, resource: URI): URI {
-	return sessionsManagementService.getSessionForChatResource(resource)?.session.resource ?? resource;
-}
-
 /**
  * Registers the commands the chat `viewUnreviewedComments` confirmation
  * renderer (in `vs/workbench/contrib/chat`) uses to fetch unreviewed comments
  * and apply the user's selection. Keeping the logic here means the chat layer
  * never depends on the `vs/sessions` feedback model.
  */
-export function registerAgentFeedbackReviewCommands(): IDisposable {
-	const registrations = new DisposableStore();
-
-	registrations.add(CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.GetComments, (accessor, sessionOrChatResource: UriComponents): IChatAgentFeedbackReviewComment[] => {
+export function registerAgentFeedbackReviewCommands(): void {
+	CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.GetComments, (accessor, sessionResource: UriComponents): IChatAgentFeedbackReviewComment[] => {
 		const feedbackService = accessor.get(IAgentFeedbackService);
-		const resource = getOwningSessionResource(accessor.get(ISessionsManagementService), URI.revive(sessionOrChatResource));
+		const resource = URI.revive(sessionResource);
 		return feedbackService.getFeedback(resource)
 			.filter(item => item.state === AgentFeedbackState.Created && REVIEWABLE_KINDS.has(item.kind))
 			.map(item => ({
@@ -61,70 +49,23 @@ export function registerAgentFeedbackReviewCommands(): IDisposable {
 				text: item.text,
 				fileUri: item.resourceUri,
 			}));
-	}));
+	});
 
-	registrations.add(CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.GetPullRequestThreadLinks, (accessor, sessionOrChatResource: UriComponents): IChatAgentFeedbackPullRequestThreadLink[] => {
+	CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.Reveal, async (accessor, sessionResource: UriComponents, commentId: string): Promise<void> => {
 		const feedbackService = accessor.get(IAgentFeedbackService);
-		const resource = getOwningSessionResource(accessor.get(ISessionsManagementService), URI.revive(sessionOrChatResource));
-		// Every state is linkable: a thread the agent already addressed should
-		// still reveal its comment, unlike the `created`-only review list.
-		return feedbackService.getFeedback(resource)
-			.filter(item => item.kind === AgentFeedbackKind.PRReview && !!item.sourcePRReviewCommentId)
-			.map(item => ({ pullRequestThreadId: item.sourcePRReviewCommentId!, commentId: item.id }));
-	}));
+		await feedbackService.revealFeedback(URI.revive(sessionResource), commentId);
+	});
 
-	registrations.add(CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.Reveal, async (accessor, sessionOrChatResource: UriComponents, commentId: string): Promise<void> => {
+	CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.Delete, (accessor, sessionResource: UriComponents, commentId: string): void => {
 		const feedbackService = accessor.get(IAgentFeedbackService);
-		const resource = getOwningSessionResource(accessor.get(ISessionsManagementService), URI.revive(sessionOrChatResource));
-		await feedbackService.revealFeedback(resource, commentId);
-	}));
+		feedbackService.removeFeedback(URI.revive(sessionResource), commentId);
+	});
 
-	registrations.add(CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.RevealAt, async (accessor, resourceUri: string, range: IRange): Promise<void> => {
+	CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.Accept, (accessor, sessionResource: UriComponents, commentIds: readonly string[]): void => {
 		const feedbackService = accessor.get(IAgentFeedbackService);
-		const resource = URI.parse(resourceUri);
-		// A rendered `addComment` tool call links here without knowing the
-		// session URI, so resolve the owning session from the file it commented
-		// on. Prefer the session the file belongs to (which falls back to the
-		// active session for in-scope files, so the "open file at range"
-		// affordance works even before the resource has accumulated feedback);
-		// fall back to the most recent session that has feedback for it.
-		const sessionResource = feedbackService.getFeedbackSessionResource(resource)
-			?? feedbackService.getMostRecentSessionForResource(resource);
-		if (!sessionResource) {
-			return;
-		}
-		// Prefer revealing via the matching feedback item so its editor widget
-		// expands (the navigation anchor is set from the item id); fall back to
-		// opening the file at the range when no item matches.
-		const match = feedbackService.getFeedback(sessionResource).find(item => isEqual(item.resourceUri, resource) && Range.equalsRange(item.range, range));
-		if (match) {
-			await feedbackService.revealFeedback(sessionResource, match.id);
-		} else {
-			await feedbackService.revealSessionComment(sessionResource, '', resource, range);
-		}
-	}));
-
-	registrations.add(CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.Delete, (accessor, sessionOrChatResource: UriComponents, commentId: string): void => {
-		const feedbackService = accessor.get(IAgentFeedbackService);
-		const codeReviewService = accessor.get(ICodeReviewService);
-		const resource = getOwningSessionResource(accessor.get(ISessionsManagementService), URI.revive(sessionOrChatResource));
-		// Suppress the originating PR comment first (before removing the mirror)
-		// so the PR-review seeder does not immediately re-create the mirror the
-		// user just deleted.
-		const item = feedbackService.getFeedback(resource).find(f => f.id === commentId);
-		if (item?.kind === AgentFeedbackKind.PRReview && item.sourcePRReviewCommentId) {
-			codeReviewService.dismissPRReviewComment(resource, item.sourcePRReviewCommentId);
-		}
-		feedbackService.removeFeedback(resource, commentId);
-	}));
-
-	registrations.add(CommandsRegistry.registerCommand(AgentFeedbackReviewCommandId.Accept, (accessor, sessionOrChatResource: UriComponents, commentIds: readonly string[]): void => {
-		const feedbackService = accessor.get(IAgentFeedbackService);
-		const resource = getOwningSessionResource(accessor.get(ISessionsManagementService), URI.revive(sessionOrChatResource));
+		const resource = URI.revive(sessionResource);
 		for (const id of commentIds) {
 			feedbackService.acceptFeedback(resource, id, { revealToAgent: true });
 		}
-	}));
-
-	return registrations;
+	});
 }

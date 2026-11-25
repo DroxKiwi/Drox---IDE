@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { marked } from '../../../../../base/common/marked/marked.js';
 import { basename } from '../../../../../base/common/resources.js';
@@ -32,9 +31,8 @@ export const MarkHelpfulActionId = 'workbench.action.chat.markHelpful';
 export const MarkUnhelpfulActionId = 'workbench.action.chat.markUnhelpful';
 const enableFeedbackConfig = 'config.telemetry.feedback.enabled';
 
-export function registerChatTitleActions(): DisposableStore {
-	const store = new DisposableStore();
-	store.add(registerAction2(class MarkHelpfulAction extends Action2 {
+export function registerChatTitleActions() {
+	registerAction2(class MarkHelpfulAction extends Action2 {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.markHelpful',
@@ -47,7 +45,7 @@ export function registerChatTitleActions(): DisposableStore {
 					id: MenuId.ChatMessageFooter,
 					group: 'navigation',
 					order: 2,
-					when: ContextKeyExpr.and(ChatContextKeys.extensionParticipantRegistered, ChatContextKeys.isResponse, ChatContextKeys.responseHasError.negate(), ContextKeyExpr.has(enableFeedbackConfig), ChatContextKeys.lockedToCodingAgent.negate(), ChatContextKeys.responseHasFeedbackSurvey.negate())
+					when: ContextKeyExpr.and(ChatContextKeys.extensionParticipantRegistered, ChatContextKeys.isResponse, ChatContextKeys.responseHasError.negate(), ContextKeyExpr.has(enableFeedbackConfig), ChatContextKeys.lockedToCodingAgent.negate())
 				}, {
 					id: MENU_INLINE_CHAT_WIDGET_SECONDARY,
 					group: 'navigation',
@@ -77,9 +75,9 @@ export function registerChatTitleActions(): DisposableStore {
 			});
 			item.setVote(ChatAgentVoteDirection.Up);
 		}
-	}));
+	});
 
-	store.add(registerAction2(class MarkUnhelpfulAction extends Action2 {
+	registerAction2(class MarkUnhelpfulAction extends Action2 {
 		constructor() {
 			super({
 				id: MarkUnhelpfulActionId,
@@ -92,7 +90,7 @@ export function registerChatTitleActions(): DisposableStore {
 					id: MenuId.ChatMessageFooter,
 					group: 'navigation',
 					order: 3,
-					when: ContextKeyExpr.and(ChatContextKeys.extensionParticipantRegistered, ChatContextKeys.isResponse, ContextKeyExpr.has(enableFeedbackConfig), ChatContextKeys.lockedToCodingAgent.negate(), ChatContextKeys.responseHasFeedbackSurvey.negate())
+					when: ContextKeyExpr.and(ChatContextKeys.extensionParticipantRegistered, ChatContextKeys.isResponse, ContextKeyExpr.has(enableFeedbackConfig), ChatContextKeys.lockedToCodingAgent.negate())
 				}, {
 					id: MENU_INLINE_CHAT_WIDGET_SECONDARY,
 					group: 'navigation',
@@ -123,9 +121,9 @@ export function registerChatTitleActions(): DisposableStore {
 				}
 			});
 		}
-	}));
+	});
 
-	store.add(registerAction2(class ReportIssueForBugAction extends Action2 {
+	registerAction2(class ReportIssueForBugAction extends Action2 {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.reportIssueForBug',
@@ -165,9 +163,9 @@ export function registerChatTitleActions(): DisposableStore {
 				}
 			});
 		}
-	}));
+	});
 
-	store.add(registerAction2(class RetryChatAction extends Action2 {
+	registerAction2(class RetryChatAction extends Action2 {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.retry',
@@ -254,17 +252,18 @@ export function registerChatTitleActions(): DisposableStore {
 				}
 			}
 			const request = chatModel?.getRequests().find(candidate => candidate.id === item.requestId);
+			const languageModelId = widget?.input.currentLanguageModel;
 
 			chatAccessibilityService.acceptRequest(item.sessionResource);
 			chatService.resendRequest(request!, {
-				...widget?.getSelectedModelRequestOptions(),
+				userSelectedModelId: languageModelId,
 				attempt: (request?.attempt ?? -1) + 1,
 				...widget?.getModeRequestOptions(),
 			});
 		}
-	}));
+	});
 
-	store.add(registerAction2(class InsertToNotebookAction extends Action2 {
+	registerAction2(class InsertToNotebookAction extends Action2 {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.insertIntoNotebook',
@@ -334,9 +333,7 @@ export function registerChatTitleActions(): DisposableStore {
 				);
 			}
 		}
-	}));
-
-	return store;
+	});
 }
 
 interface MarkdownContent {

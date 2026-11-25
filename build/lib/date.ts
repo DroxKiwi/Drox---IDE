@@ -46,7 +46,7 @@ export function readISODate(outDir: string): string {
 	try {
 		return fs.readFileSync(path.join(outDirectory, 'date'), 'utf8');
 	} catch {
-		// Packaging can also use the shared date recorded by the build orchestration.
+		// Fallback to out-build (old build writes date there, esbuild writes to bundle output dir)
 		if (outDir !== 'out-build') {
 			return fs.readFileSync(path.join(root, 'out-build', 'date'), 'utf8');
 		}

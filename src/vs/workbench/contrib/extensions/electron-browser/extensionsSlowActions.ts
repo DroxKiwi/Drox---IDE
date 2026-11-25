@@ -10,9 +10,8 @@ import { URI } from '../../../../base/common/uri.js';
 import { IExtensionHostProfile } from '../../../services/extensions/common/extensions.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { localize } from '../../../../nls.js';
-import { disposableTimeout } from '../../../../base/common/async.js';
-import { CancellationError } from '../../../../base/common/errors.js';
-import { DisposableStore } from '../../../../base/common/lifecycle.js';
+import { CancellationToken } from '../../../../base/common/cancellation.js';
+import { IRequestService, asText } from '../../../../platform/request/common/request.js';
 import { joinPath } from '../../../../base/common/resources.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
@@ -21,8 +20,7 @@ import { INativeWorkbenchEnvironmentService } from '../../../services/environmen
 import { Utils } from '../../../../platform/profiling/common/profiling.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
-import { ILogService } from '../../../../platform/log/common/log.js';
-import { IWorkbenchGitHubService } from '../../../services/github/common/githubService.js';
+import { IRequestContext } from '../../../../base/parts/request/common/request.js';
 
 abstract class RepoInfo {
 	abstract get base(): string;
@@ -97,33 +95,24 @@ export async function createSlowExtensionAction(
 		return undefined;
 	}
 
-	const gitHubService = accessor.get(IWorkbenchGitHubService);
+	const requestService = accessor.get(IRequestService);
 	const instaService = accessor.get(IInstantiationService);
-	const logService = accessor.get(ILogService);
-	const lifetime = new DisposableStore();
-	const controller = new AbortController();
-	const { signal } = controller;
-	const deadline = Date.now() + 10_000;
-	lifetime.add(disposableTimeout(() => controller.abort(new CancellationError()), 10_000));
-	let totalCount: number;
+	const url = `https://api.github.com/search/issues?q=is:issue+state:open+in:title+repo:${info.owner}/${info.repo}+%22Extension+causes+high+cpu+load%22`;
+	let res: IRequestContext;
 	try {
-		const client = lifetime.add(await gitHubService.acquireAnonymousApiClient(signal));
-		signal.throwIfAborted();
-		const data = await client.search.issues(`state:open in:title repo:${info.owner}/${info.repo} "Extension causes high cpu load"`, signal, {
-			caller: 'showExtensionSlowAction',
-			deadline,
-			query: { per_page: 1 },
-		});
-		signal.throwIfAborted();
-		totalCount = data.total_count;
-	} catch (error) {
-		logService.warn('[ExtensionsSlowActions] GitHub issue search failed', error);
+		res = await requestService.request({ url, callSite: 'extensionsSlowActions.getSlowExtensionAction' }, CancellationToken.None);
+	} catch {
 		return undefined;
-	} finally {
-		lifetime.dispose();
+	}
+	const rawText = await asText(res);
+	if (!rawText) {
+		return undefined;
 	}
 
-	if (totalCount === 0) {
+	const data = <{ total_count: number }>JSON.parse(rawText);
+	if (!data || typeof data.total_count !== 'number') {
+		return undefined;
+	} else if (data.total_count === 0) {
 		return instaService.createInstance(ReportExtensionSlowAction, extension, info, profile);
 	} else {
 		return instaService.createInstance(ShowExtensionSlowAction, extension, info, profile);

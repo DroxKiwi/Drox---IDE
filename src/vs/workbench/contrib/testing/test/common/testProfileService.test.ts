@@ -6,6 +6,7 @@
 
 
 import assert from 'assert';
+import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { MockContextKeyService } from '../../../../../platform/keybinding/test/common/mockKeybindingService.js';
 import { TestProfileService } from '../../common/testProfileService.js';
@@ -16,11 +17,18 @@ import { IMainThreadTestController } from '../../common/testService.js';
 
 suite('Workbench - TestProfileService', () => {
 	let t: TestProfileService;
-	const ds = ensureNoDisposablesAreLeakedInTestSuite();
+	let ds: DisposableStore;
 	let idCounter = 0;
+
+	teardown(() => {
+		ds.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	setup(() => {
 		idCounter = 0;
+		ds = new DisposableStore();
 		t = ds.add(new TestProfileService(
 			new MockContextKeyService(),
 			ds.add(new TestStorageService()),

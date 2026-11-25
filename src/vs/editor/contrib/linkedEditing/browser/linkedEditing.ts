@@ -160,7 +160,6 @@ export class LinkedEditingContribution extends Disposable implements IEditorCont
 				if (this._currentDecorations.length > 0) {
 					const referenceRange = this._currentDecorations.getRange(0);
 					if (referenceRange && e.changes.every(c => referenceRange.intersectRanges(c.range))) {
-						this._currentRequestModelVersion = model.getVersionId();
 						triggerRangeSync(this._syncRangesToken);
 						return;
 					}

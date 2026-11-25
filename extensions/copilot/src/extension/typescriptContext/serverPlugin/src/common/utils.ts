@@ -132,7 +132,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
 		return item.value;
 	}
 
-	forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void, thisArg?: unknown): void {
+	forEach(callbackfn: (value: V, key: K, map: LinkedMap<K, V>) => void, thisArg?: unknown): void {
 		const state = this._state;
 		let current = this._head;
 		while (current) {
@@ -148,15 +148,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
 		}
 	}
 
-	keys(): MapIterator<K> {
+	keys(): IterableIterator<K> {
 		const map = this;
 		const state = this._state;
 		let current = this._head;
-		const iterator: MapIterator<K> = {
+		const iterator: IterableIterator<K> = {
 			[Symbol.iterator]() {
 				return iterator;
 			},
-			[Symbol.dispose]() { /* no-op */ },
 			next(): IteratorResult<K> {
 				if (map._state !== state) {
 					throw new Error(`LinkedMap got modified during iteration.`);
@@ -173,15 +172,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
 		return iterator;
 	}
 
-	values(): MapIterator<V> {
+	values(): IterableIterator<V> {
 		const map = this;
 		const state = this._state;
 		let current = this._head;
-		const iterator: MapIterator<V> = {
+		const iterator: IterableIterator<V> = {
 			[Symbol.iterator]() {
 				return iterator;
 			},
-			[Symbol.dispose]() { /* no-op */ },
 			next(): IteratorResult<V> {
 				if (map._state !== state) {
 					throw new Error(`LinkedMap got modified during iteration.`);
@@ -198,15 +196,14 @@ export class LinkedMap<K, V> implements Map<K, V> {
 		return iterator;
 	}
 
-	entries(): MapIterator<[K, V]> {
+	entries(): IterableIterator<[K, V]> {
 		const map = this;
 		const state = this._state;
 		let current = this._head;
-		const iterator: MapIterator<[K, V]> = {
+		const iterator: IterableIterator<[K, V]> = {
 			[Symbol.iterator]() {
 				return iterator;
 			},
-			[Symbol.dispose]() { /* no-op */ },
 			next(): IteratorResult<[K, V]> {
 				if (map._state !== state) {
 					throw new Error(`LinkedMap got modified during iteration.`);
@@ -223,7 +220,7 @@ export class LinkedMap<K, V> implements Map<K, V> {
 		return iterator;
 	}
 
-	[Symbol.iterator](): MapIterator<[K, V]> {
+	[Symbol.iterator](): IterableIterator<[K, V]> {
 		return this.entries();
 	}
 

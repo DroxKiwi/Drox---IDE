@@ -123,12 +123,8 @@ export class DefaultOpenAIAgentPrompt extends PromptElement<DefaultAgentPromptPr
 
 class DefaultOpenAIPromptResolver implements IAgentPrompt {
 
-	static readonly familyPrefixes = [];
-
-	static matchesModel(endpoint: IChatEndpoint): boolean {
-		// Preserve legacy prompts without consuming new GPT generations before the provider fallback.
-		return /^(?:gpt-(?:3(?:\.5)?|4(?:\.1|\.5|o)?)|gpt-5-nano|o[34]-mini)(?:-|$)/.test(endpoint.family);
-	}
+	// This is overridden by `matchesModel` in the more specific prompt resolvers
+	static readonly familyPrefixes = ['gpt', 'o4-mini', 'o3-mini', 'OpenAI'];
 
 	resolveSystemPrompt(endpoint: IChatEndpoint): SystemPrompt | undefined {
 		return DefaultOpenAIAgentPrompt;

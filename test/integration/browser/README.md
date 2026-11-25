@@ -5,8 +5,8 @@
 Make sure to run the following commands to compile and install dependencies:
 
     cd test/integration/browser
-    pnpm install
-    pnpm run compile
+    npm i
+    npm run compile
 
 ## Run (inside Electron)
 

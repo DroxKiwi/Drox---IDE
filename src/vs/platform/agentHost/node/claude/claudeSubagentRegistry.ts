@@ -41,12 +41,11 @@ export const SUBAGENT_ID_SUFFIX_REGEX = /^\s*agentId:\s+([a-z0-9]+)\b/im;
  *     `false` (foreground is the common case); flipped to `true` when
  *     the SDK emits `system.task_started`. Background spawns have
  *     deferred completion via `system.task_notification`.
- *   - {@link subagentType} / {@link description} / {@link prompt}:
- *     metadata from the `tool_use.input` (`subagent_type`,
- *     `description` and `prompt` fields). Available once the canonical
- *     `assistant` message arrives with the complete input bag (the
- *     early `content_block_start` has empty input). Used for UI labels
- *     and to seed the subagent's opening request.
+ *   - {@link subagentType} / {@link description}: metadata from the
+ *     `tool_use.input` (`subagent_type` and `description` fields).
+ *     Available once the canonical `assistant` message arrives with
+ *     the complete input bag (the early `content_block_start` has
+ *     empty input). Used for UI labels.
  *   - {@link markAnnounced} / {@link markCompleted}: idempotency
  *     guards for the workbench-facing `subagent_started` /
  *     `subagent_completed` signals.
@@ -55,7 +54,6 @@ export class SubagentSpawn {
 	background = false;
 	subagentType: string | undefined;
 	description: string | undefined;
-	prompt: string | undefined;
 
 	private _agentId: string | undefined;
 	private _announced = false;
@@ -109,7 +107,6 @@ export interface ISubagentSpawnInit {
 	readonly agentId?: string;
 	readonly subagentType?: string;
 	readonly description?: string;
-	readonly prompt?: string;
 }
 
 /**
@@ -155,9 +152,6 @@ export class SubagentRegistry extends Disposable {
 		}
 		if (init?.description !== undefined && spawn.description === undefined) {
 			spawn.description = init.description;
-		}
-		if (init?.prompt !== undefined && spawn.prompt === undefined) {
-			spawn.prompt = init.prompt;
 		}
 		return spawn;
 	}

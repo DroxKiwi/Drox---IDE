@@ -4,36 +4,21 @@
  *--------------------------------------------------------------------------------------------*/
 
 import path from 'path';
-import { readNativeBuildConfig } from '../npm/pnpm/nativeBuildEnv.ts';
+import fs from 'fs';
 
 const root = path.dirname(path.dirname(import.meta.dirname));
+const npmrcPath = path.join(root, 'remote', '.npmrc');
+const npmrc = fs.readFileSync(npmrcPath, 'utf8');
+const version = /^target="(.*)"$/m.exec(npmrc)?.[1];
 
-/**
- * The Node.js version of the server, and its build in Microsoft's internal feeds: the `target` and
- * `msBuildId` of the `nativeBuild` field of `remote/package.json`.
- */
-export interface ServerNodeVersion {
-	readonly nodeVersion: string;
-	readonly internalNodeVersion: string;
+if (!version) {
+	throw new Error('Failed to extract Node version from .npmrc');
 }
 
-export function getServerNodeVersion(rootDir: string = root): ServerNodeVersion {
-	const remote = path.join(rootDir, 'remote');
-	const config = readNativeBuildConfig(remote);
-	if (config?.runtime !== 'node' || !config.target || !config.msBuildId) {
-		throw new Error(`The nativeBuild field of ${path.join(remote, 'package.json')} must have the runtime "node", a target and an msBuildId.`);
-	}
-	return { nodeVersion: config.target, internalNodeVersion: config.msBuildId };
-}
+const platform = process.platform;
+const arch = process.arch;
 
-/**
- * Where the server's Node.js for this platform goes (see `gulp node`).
- */
-export function getServerNodePath(rootDir: string = root): string {
-	const node = process.platform === 'win32' ? 'node.exe' : 'node';
-	return path.join(rootDir, '.build', 'node', `v${getServerNodeVersion(rootDir).nodeVersion}`, `${process.platform}-${process.arch}`, node);
-}
+const node = platform === 'win32' ? 'node.exe' : 'node';
+const nodePath = path.join(root, '.build', 'node', `v${version}`, `${platform}-${arch}`, node);
 
-if (import.meta.main) {
-	console.log(getServerNodePath());
-}
+console.log(nodePath);

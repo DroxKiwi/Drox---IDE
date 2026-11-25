@@ -18,18 +18,12 @@ export interface IMarkerReadOptions {
 	ignoreResourceFilters?: boolean;
 }
 
-export interface IMarkerChangeOptions {
-	readonly isTruncated?: boolean;
-}
-
 export interface IMarkerService {
 	readonly _serviceBrand: undefined;
 
 	getStatistics(): MarkerStatistics;
 
-	isSourceTruncated(resource: URI): boolean;
-
-	changeOne(owner: string, resource: URI, markers: IMarkerData[], options?: IMarkerChangeOptions): void;
+	changeOne(owner: string, resource: URI, markers: IMarkerData[]): void;
 
 	changeAll(owner: string, data: IResourceMarker[]): void;
 

@@ -6,7 +6,6 @@
 import { assertNever } from '../../../base/common/assert.js';
 import { IStringDictionary } from '../../../base/common/collections.js';
 import { Event } from '../../../base/common/event.js';
-import * as json from '../../../base/common/json.js';
 import * as types from '../../../base/common/types.js';
 import { URI, UriComponents } from '../../../base/common/uri.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
@@ -241,9 +240,7 @@ export function toValuesTree(properties: IStringDictionary<unknown>, conflictRep
 	const root = Object.create(null);
 
 	for (const key in properties) {
-		if (Object.hasOwn(properties, key)) {
-			addToValueTree(root, key, properties[key], conflictReporter);
-		}
+		addToValueTree(root, key, properties[key], conflictReporter);
 	}
 
 	return root;
@@ -256,11 +253,10 @@ export function addToValueTree(settingsTreeRoot: IStringDictionary<unknown>, key
 	let curr: IStringDictionary<unknown> = settingsTreeRoot;
 	for (let i = 0; i < segments.length; i++) {
 		const s = segments[i];
-		let obj = Object.hasOwn(curr, s) ? curr[s] : undefined;
+		let obj = curr[s];
 		switch (typeof obj) {
 			case 'undefined':
-				obj = Object.create(null);
-				json.setObjectProperty(curr, s, obj);
+				obj = curr[s] = Object.create(null);
 				break;
 			case 'object':
 				if (obj === null) {

@@ -92,13 +92,11 @@ export interface IViewContainerDescriptor {
 	 */
 	readonly title: ILocalizedString;
 
-	// DROX-BEGIN
 	/**
 	 * Hover text for the activity-bar icon. The visible name stays `title`.
 	 */
 	readonly activityBarTooltip?: string;
 
-	// DROX-END
 	/**
 	 * Icon representation of the View container
 	 */
@@ -889,7 +887,6 @@ export interface ITreeViewDragAndDropController {
 	readonly dropMimeTypes: string[];
 	readonly dragMimeTypes: string[];
 	handleDrag(sourceTreeItemHandles: string[], operationUuid: string, token: CancellationToken): Promise<VSDataTransfer | undefined>;
-	handleDragEnd?(operationUuid: string): void;
 	handleDrop(elements: VSDataTransfer, target: ITreeItem | undefined, token: CancellationToken, operationUuid?: string, sourceTreeId?: string, sourceTreeItemHandles?: string[]): Promise<void>;
 }
 

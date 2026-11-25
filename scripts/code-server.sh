@@ -18,7 +18,7 @@ function code() {
 	NODE=$(node build/lib/node.ts)
 	if [ ! -e $NODE ];then
 		# Load remote node
-		pnpm run gulp node
+		npm run gulp node
 	fi
 
 	popd

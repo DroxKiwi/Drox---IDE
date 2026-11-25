@@ -1,4 +1,3 @@
-<!-- DROX-BEGIN -->
 <p align="center">
   <img src="https://raw.githubusercontent.com/DroxKiwi/Droxkiwi/main/logo3.png" width="120" alt="Logo Drox" />
 </p>
@@ -139,4 +138,3 @@ Merci au **SI de [Salesky](https://www.salesky.fr/)** pour les tests et le maté
 ## Licence
 
 MIT. Code OSS © Microsoft ; portions Drox / KDDS © KDDS — [`NOTICE.md`](NOTICE.md) · [`LICENSE.txt`](LICENSE.txt).
-<!-- DROX-END -->

@@ -19,10 +19,7 @@
   ],
   "enabledApiProposals": [
     "authIssuers",
-    "authProviderSpecific",
-    "authSessionAccountIcon",
-    "authSessionExpiration",
-    "notificationTelemetry"
+    "authProviderSpecific"
   ],
   "activationEvents": [],
   "capabilities": {
@@ -30,8 +27,7 @@
     "untrustedWorkspaces": {
       "supported": "limited",
       "restrictedConfigurations": [
-        "github-enterprise.uri",
-        "github-enterprise.uris"
+        "github-enterprise.uri"
       ]
     }
   },
@@ -59,17 +55,7 @@
           "github-enterprise.uri": {
             "type": "string",
             "markdownDescription": "%config.github-enterprise.uri.description%",
-            "markdownDeprecationMessage": "%config.github-enterprise.uri.deprecation%",
             "pattern": "^(?:$|(https?)://(?!github\\.com).*)"
-          },
-          "github-enterprise.uris": {
-            "type": "array",
-            "markdownDescription": "%config.github-enterprise.uris.description%",
-            "items": {
-              "type": "string",
-              "pattern": "^(https?)://(?!github\\.com).*"
-            },
-            "uniqueItems": true
           },
           "github-authentication.useElectronFetch": {
             "type": "boolean",
@@ -95,17 +81,17 @@
     "compile-web": "node esbuild.browser.mts",
     "watch": "gulp watch-extension:github-authentication",
     "watch-web": "node esbuild.browser.mts --watch",
-    "vscode:prepublish": "pnpm run compile"
+    "vscode:prepublish": "npm run compile"
   },
   "dependencies": {
+    "node-fetch": "2.6.7",
     "@vscode/extension-telemetry": "^0.9.8",
     "vscode-tas-client": "^0.1.84"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
-    "@types/sinon": "^10.0.2",
-    "sinon": "^12.0.1"
+    "@types/node-fetch": "^2.5.7"
   },
   "repository": {
     "type": "git",

@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
 
-export default new class NoBadGDPRComment implements CreateRule {
-	readonly meta: RuleMeta = {
+export default new class NoBadGDPRComment implements eslint.Rule.RuleModule {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		type: 'problem',
 		docs: {
 			description: 'Ensure "Generate with Copilot" string in GitHubPullRequestProviders is never changed',
@@ -23,8 +23,8 @@ export default new class NoBadGDPRComment implements CreateRule {
 			}
 		]
 	}
-	create(context: Context): Visitor {
-		const options = (context.options[0] || {}) as { className?: string; string?: string };
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
+		const options = context.options[0] || {};
 		const className = options.className || 'GitHubPullRequestProviders';
 		const requiredString = options.string || 'Copilot';
 

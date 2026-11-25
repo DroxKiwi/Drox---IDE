@@ -35,15 +35,12 @@ import { createActionViewItem } from '../../../../../../platform/actions/browser
 import { IStorageService, StorageScope, StorageTarget } from '../../../../../../platform/storage/common/storage.js';
 import { FocusAgentSessionsAction } from '../agentSessionsActions.js';
 import { IWorkbenchContribution } from '../../../../../common/contributions.js';
-import { WORKBENCH_MENU_MOTION_CLASS, workbenchMenuCloseAnimation } from '../../../../../browser/actions/menuMotion.js';
 import { IActionViewItemService } from '../../../../../../platform/actions/browser/actionViewItemService.js';
 import { IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { mainWindow } from '../../../../../../base/browser/window.js';
 import { LayoutSettings } from '../../../../../services/layout/browser/layoutService.js';
 import { WindowTitle } from '../../../../../browser/parts/titlebar/windowTitle.js';
-import { IFolderLocation } from '../../../../../../platform/workspace/common/folderLocations.js';
-import { CommandCenterLabel } from '../../../../../browser/parts/titlebar/commandCenterLabel.js';
-import { ChatAIDisabledSettingId, ChatConfiguration } from '../../../common/constants.js';
+import { ChatConfiguration } from '../../../common/constants.js';
 import { IChatEntitlementService } from '../../../../../services/chat/common/chatEntitlementService.js';
 import { IChatWidgetService } from '../../chat.js';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
@@ -84,22 +81,13 @@ const PREVIOUS_FILTER_STORAGE_KEY = 'agentSessions.filterExcludes.previousUserFi
 
 type AgentStatusSettingMode = 'hidden' | 'badge' | 'compact';
 
-interface IStoredAgentSessionsFilter {
-	providers: string[];
-	states: AgentSessionStatus[];
-	archived: boolean;
-	read: boolean;
-	automation: boolean;
-	repositoryGroupCapped: boolean;
-}
-
 function shouldForceHiddenAgentStatus(configurationService: IConfigurationService, contextKeyService: IContextKeyService): boolean {
 	// Hide all agent distractions while in Zen mode
 	if (contextKeyService.getContextKeyValue<boolean>(InEditorZenModeContext.key) === true) {
 		return true;
 	}
 
-	const aiFeaturesDisabled = configurationService.getValue<boolean>(ChatAIDisabledSettingId) === true;
+	const aiFeaturesDisabled = configurationService.getValue<boolean>(ChatConfiguration.AIDisabled) === true;
 	const aiCustomizationsDisabled = configurationService.getValue<boolean>('disableAICustomizations') === true
 		|| configurationService.getValue<boolean>('workbench.disableAICustomizations') === true;
 
@@ -250,7 +238,7 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 				e.affectsConfiguration(ChatConfiguration.AgentStatusEnabled)
 				|| e.affectsConfiguration(ChatConfiguration.UnifiedAgentsBar)
 				|| e.affectsConfiguration(ChatConfiguration.ChatViewSessionsEnabled)
-				|| e.affectsConfiguration(ChatAIDisabledSettingId)
+				|| e.affectsConfiguration(ChatConfiguration.AIDisabled)
 				|| e.affectsConfiguration('disableAICustomizations')
 				|| e.affectsConfiguration('workbench.disableAICustomizations')
 			) {
@@ -362,7 +350,6 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 				attentionCount: attentionNeededSessions.length,
 				attentionText,
 				label,
-				folderLocation: this._windowTitle.folderLocationInfo ? { description: this._windowTitle.folderLocationInfo.description, icon: this._windowTitle.folderLocationInfo.icon?.id } : undefined,
 				isFilteredToUnread,
 				isFilteredToInProgress,
 				isFilteredToNeedsInput,
@@ -527,14 +514,14 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 		const isCompactMode = true;
 		pill.classList.toggle('compact-mode', isCompactMode);
 
-		// Left icon container (sparkle by default, attention icon+count when attention needed, search on hover)
+		// Left icon container (sparkle by default, report+count when attention needed, search on hover)
 		const leftIcon = $('span.agent-status-left-icon');
 		if (hasAttentionNeeded) {
-			// Show attention icon + count when sessions need attention
-			const attentionIcon = renderIcon(Codicon.reportQuestion);
+			// Show report icon + count when sessions need attention
+			const reportIcon = renderIcon(Codicon.report);
 			const countSpan = $('span.agent-status-attention-count');
 			countSpan.textContent = String(attentionNeededSessions.length);
-			reset(leftIcon, attentionIcon, countSpan);
+			reset(leftIcon, reportIcon, countSpan);
 			leftIcon.classList.add('has-attention');
 		} else {
 			reset(leftIcon, renderIcon(Codicon.searchSparkle));
@@ -562,17 +549,7 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 
 		const hoverLabel = localize('askAnythingPlaceholder', "Ask anything or describe what to build");
 
-		// While the folder is at an alternate location, the label shows the location layout
-		const folderLocation = !isCompactMode && progressText ? undefined : this._windowTitle.folderLocationInfo;
-		const commandCenterLabel = disposables.add(this.instantiationService.createInstance(CommandCenterLabel, label, getDefaultHoverDelegate('mouse')));
-		const showLabel = (text: string, location: IFolderLocation | undefined) => {
-			commandCenterLabel.update(text, location);
-			// The button's own name overrides its descendants, so it has to carry the location
-			inputArea.setAttribute('aria-label', location
-				? localize('openQuickAccessAtFolderLocation', "Open Quick Access, {0}", label.getAttribute('aria-label') ?? text)
-				: localize('openQuickAccess', "Open Quick Access"));
-		};
-		showLabel(defaultLabel, folderLocation);
+		label.textContent = defaultLabel;
 		inputArea.appendChild(label);
 
 		if (isCompactMode) {
@@ -598,14 +575,14 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 				disposables.add(addDisposableListener(inputArea, EventType.MOUSE_ENTER, () => {
 					reset(leftIcon, renderIcon(Codicon.searchSparkle));
 					leftIcon.classList.remove('has-attention');
-					showLabel(hoverLabel, undefined);
+					label.textContent = hoverLabel;
 					label.classList.remove('has-progress');
 					sendIcon.classList.remove('hidden');
 				}));
 
 				disposables.add(addDisposableListener(inputArea, EventType.MOUSE_LEAVE, () => {
 					reset(leftIcon, renderIcon(Codicon.searchSparkle));
-					showLabel(defaultLabel, folderLocation);
+					label.textContent = defaultLabel;
 					sendIcon.classList.add('hidden');
 				}));
 			}
@@ -882,11 +859,8 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 		const sparkleContainer = $('span.agent-status-badge-section.sparkle');
 		sparkleContainer.tabIndex = 0;
 
-		// Resolve menu actions lazily when the dropdown opens so that enablement (preconditions)
-		// and visibility reflect the current context rather than the state at render time
-		const menuActionsProvider = {
-			getActions: (): IAction[] => Separator.join(...this._chatTitleBarMenu.getActions({ shouldForwardArgs: true }).map(([, actions]) => actions))
-		};
+		// Get menu actions for dropdown with proper group separators
+		const menuActions: IAction[] = Separator.join(...this._chatTitleBarMenu.getActions({ shouldForwardArgs: true }).map(([, actions]) => actions));
 
 		const primaryActionId = TOGGLE_CHAT_ACTION_ID;
 		const primaryActionTitle = localize('toggleChat', "Toggle Chat");
@@ -911,9 +885,9 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 			DropdownWithPrimaryActionViewItem,
 			primaryAction,
 			dropdownAction,
-			menuActionsProvider,
+			menuActions,
 			'agent-status-sparkle-dropdown',
-			{ skipTelemetry: true, menuClassName: WORKBENCH_MENU_MOTION_CLASS, closeAnimation: workbenchMenuCloseAnimation }
+			{ skipTelemetry: true }
 		);
 		sparkleDropdown.render(sparkleContainer);
 		disposables.add(sparkleDropdown);
@@ -1017,7 +991,7 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 			needsInputSection.setAttribute('role', 'button');
 			needsInputSection.tabIndex = 0;
 			const needsInputIcon = $('span.agent-status-icon');
-			reset(needsInputIcon, renderIcon(Codicon.reportQuestion));
+			reset(needsInputIcon, renderIcon(Codicon.report));
 			needsInputSection.appendChild(needsInputIcon);
 			const needsInputCount = $('span.agent-status-text');
 			needsInputCount.textContent = String(attentionNeededSessions.length);
@@ -1037,8 +1011,8 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 			}));
 
 			const needsInputTooltip = attentionNeededSessions.length === 1
-				? localize('needsInputSessionsTooltip1', "{0} session needs attention", attentionNeededSessions.length)
-				: localize('needsInputSessionsTooltip', "{0} sessions need attention", attentionNeededSessions.length);
+				? localize('needsInputSessionsTooltip1', "{0} session needs input", attentionNeededSessions.length)
+				: localize('needsInputSessionsTooltip', "{0} sessions need input", attentionNeededSessions.length);
 			disposables.add(this.hoverService.setupManagedHover(hoverDelegate, needsInputSection, needsInputTooltip));
 		}
 
@@ -1135,21 +1109,13 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 	/**
 	 * Get the stored filter object from storage.
 	 */
-	private _getStoredFilter(): IStoredAgentSessionsFilter | undefined {
+	private _getStoredFilter(): { providers: string[]; states: AgentSessionStatus[]; archived: boolean; read: boolean } | undefined {
 		const filterStr = this.storageService.get(FILTER_STORAGE_KEY, StorageScope.PROFILE);
 		if (!filterStr) {
 			return undefined;
 		}
 		try {
-			const filter = JSON.parse(filterStr) as Partial<IStoredAgentSessionsFilter>;
-			return {
-				providers: filter.providers ?? [],
-				states: filter.states ?? [],
-				archived: filter.archived ?? true,
-				read: filter.read ?? false,
-				automation: filter.automation ?? true,
-				repositoryGroupCapped: filter.repositoryGroupCapped ?? true,
-			};
+			return JSON.parse(filterStr);
 		} catch {
 			return undefined;
 		}
@@ -1158,7 +1124,7 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 	/**
 	 * Store a filter object to storage.
 	 */
-	private _storeFilter(filter: IStoredAgentSessionsFilter): void {
+	private _storeFilter(filter: { providers: string[]; states: AgentSessionStatus[]; archived: boolean; read: boolean }): void {
 		this.storageService.store(FILTER_STORAGE_KEY, JSON.stringify(filter), StorageScope.PROFILE, StorageTarget.USER);
 	}
 
@@ -1170,9 +1136,7 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 			providers: [],
 			states: [],
 			archived: true,
-			read: false,
-			automation: true,
-			repositoryGroupCapped: true,
+			read: false
 		});
 	}
 
@@ -1228,8 +1192,6 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 		const currentFilter = this._getStoredFilter();
 		// Preserve existing provider filters (session type filters like Local, Background, etc.)
 		const preservedProviders = currentFilter?.providers ?? [];
-		const preservedAutomation = currentFilter?.automation ?? true;
-		const preservedRepositoryGroupCapped = currentFilter?.repositoryGroupCapped ?? true;
 
 		// Log telemetry for filter button clicks
 		const isToggleOff = (filterType === 'unread' && isFilteredToUnread)
@@ -1252,9 +1214,7 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 					providers: preservedProviders,
 					states: [],
 					archived: true,
-					read: true,
-					automation: preservedAutomation,
-					repositoryGroupCapped: preservedRepositoryGroupCapped,
+					read: true
 				});
 			} else if (filterType === 'inProgress') {
 				// Exclude Completed, Failed, and NeedsInput — show only InProgress
@@ -1262,9 +1222,7 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 					providers: preservedProviders,
 					states: [AgentSessionStatus.Completed, AgentSessionStatus.Failed, AgentSessionStatus.NeedsInput],
 					archived: true,
-					read: false,
-					automation: preservedAutomation,
-					repositoryGroupCapped: preservedRepositoryGroupCapped,
+					read: false
 				});
 			} else {
 				// Exclude Completed, Failed, and InProgress — show only NeedsInput
@@ -1272,9 +1230,7 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 					providers: preservedProviders,
 					states: [AgentSessionStatus.Completed, AgentSessionStatus.Failed, AgentSessionStatus.InProgress],
 					archived: true,
-					read: false,
-					automation: preservedAutomation,
-					repositoryGroupCapped: preservedRepositoryGroupCapped,
+					read: false
 				});
 			}
 			this._badgeFilterAppliedByThisWindow = filterType;
@@ -1412,7 +1368,29 @@ export class AgentTitleBarStatusWidget extends BaseActionViewItem {
 	 * Falls back to file name when tabs are hidden, or "Search" when empty.
 	 */
 	private _getLabel(): string {
-		return this._windowTitle.getCommandCenterLabel({ showFileName: this.editorGroupsService.partOptions.showTabs === 'none', fileNameAsFallback: true });
+		const { prefix, suffix } = this._windowTitle.getTitleDecorations();
+
+		// Base label: custom title, workspace name, or file name when tabs are hidden
+		let label = this._windowTitle.workspaceName;
+		if (this._windowTitle.isCustomTitleFormat()) {
+			label = this._windowTitle.getWindowTitle();
+		} else if (!label && this.editorGroupsService.partOptions.showTabs === 'none') {
+			label = this._windowTitle.fileName ?? '';
+		}
+
+		if (!label) {
+			label = localize('agentStatusWidget.search', "Search");
+		}
+
+		// Apply prefix and suffix decorations
+		if (prefix) {
+			label = localize('label1', "{0} {1}", prefix, label);
+		}
+		if (suffix) {
+			label = localize('label2', "{0} {1}", label, suffix);
+		}
+
+		return label.replaceAll(/\r\n|\r|\n/g, '\u23CE');
 	}
 
 	// #endregion
@@ -1465,7 +1443,7 @@ export class AgentTitleBarStatusRendering extends Disposable implements IWorkben
 			if (
 				e.affectsConfiguration(ChatConfiguration.AgentStatusEnabled)
 				|| e.affectsConfiguration(LayoutSettings.COMMAND_CENTER)
-				|| e.affectsConfiguration(ChatAIDisabledSettingId)
+				|| e.affectsConfiguration(ChatConfiguration.AIDisabled)
 				|| e.affectsConfiguration('disableAICustomizations')
 				|| e.affectsConfiguration('workbench.disableAICustomizations')
 			) {

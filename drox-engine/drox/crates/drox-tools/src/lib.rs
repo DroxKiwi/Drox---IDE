@@ -9,8 +9,6 @@
 //!
 //! Voir `docs/INVENTAIRE-NOYAU-MOTEUR.md` § 2.3.
 
-mod normalize_json_like;
-mod normalize_for_schema;
 mod media;
 mod user_ask;
 mod tool_progress;
@@ -31,8 +29,6 @@ pub use user_ask::{UserAnswer, UserAsker, UserQuestion};
 pub use tool_progress::{ShellProgressUpdate, TextProgressUpdate, ToolProgressSink};
 pub use tool_context::ToolContext;
 pub use error::ToolError;
-pub use normalize_json_like::normalize_json_like_strings;
-pub use normalize_for_schema::normalize_for_schema;
 pub use registry::ToolRegistry;
 pub use skills::{format_skills_listing_for_prompt, load_skills_catalog};
 pub use scope_deferred::{ScopeDeferredHandle, ScopeDeferredItem};

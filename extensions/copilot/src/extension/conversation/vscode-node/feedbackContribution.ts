@@ -21,7 +21,6 @@ export class FeedbackCommandContribution extends Disposable {
 			await vscode.commands.executeCommand('workbench.action.openIssueReporter', {
 				issueTitle: title,
 				issueSource: 'vscode',
-				uri: vscode.Uri.parse('https://github.com/microsoft/vscode'),
 				data: output.join('\n'),
 				privateUri: isTeamMember ? vscode.Uri.parse('https://github.com/microsoft/vscode-internalbacklog') : undefined,
 			});

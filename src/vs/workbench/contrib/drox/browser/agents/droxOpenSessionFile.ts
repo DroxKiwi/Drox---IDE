@@ -19,9 +19,9 @@ import { IEditorService } from '../../../../services/editor/common/editorService
 import { Parts } from '../../../../services/layout/browser/layoutService.js';
 import { IWorkbenchLayoutService } from '../../../../services/layout/browser/layoutService.js';
 import { ModifiedFileEntryState } from '../../../chat/common/editing/chatEditingService.js';
-import { getChangesEditorLabels } from '../../../sessionChanges/browser/changesEditorLabels.js';
-import { IChangesFileItem, toIChangesFileItem } from '../../../sessionChanges/browser/changesViewRenderer.js';
-import '../../../sessionChanges/browser/media/changesView.css';
+import { getChangesEditorLabels } from '../../../../../sessions/contrib/changes/browser/changesEditorLabels.js';
+import { IChangesFileItem, toIChangesFileItem } from '../../../../../sessions/contrib/changes/browser/changesViewRenderer.js';
+import '../../../../../sessions/contrib/changes/browser/media/changesView.css';
 import './media/droxNativeFileChange.css';
 import { enrichDroxFileChangeSnapshot, resolveDroxBeforeSnapshotUri } from '../../common/droxFileChangeProgress.js';
 import { IDroxSessionChangesDetailService } from '../../common/droxSessionChangesDetailService.js';

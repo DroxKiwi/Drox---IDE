@@ -14,7 +14,7 @@ import { NewFilePathGenerator } from './newFilePathGenerator';
 import { audioEditKind, baseLinkEditKind, createInsertUriListEdit, createUriListSnippet, DropOrPasteEdit, getSnippetLabelAndKind, imageEditKind, linkEditKind, videoEditKind } from './shared';
 import { InsertMarkdownLink, shouldInsertMarkdownLinkByDefault } from './smartDropOrPaste';
 
-export enum CopyFilesSettings {
+enum CopyFilesSettings {
 	Never = 'never',
 	MediaFiles = 'mediaFiles',
 }
@@ -28,7 +28,7 @@ export enum CopyFilesSettings {
  * - File object in the data transfer.
  * - Media data in the data transfer, such as `image/png`.
  */
-export class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProvider, vscode.DocumentDropEditProvider {
+class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProvider, vscode.DocumentDropEditProvider {
 
 	public static readonly mimeTypes = [
 		Mime.textUriList,
@@ -121,7 +121,7 @@ export class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProv
 			return;
 		}
 
-		let edit = await ResourcePasteOrDropProvider.createEditForMediaFiles(document, dataTransfer, settings.copyIntoWorkspace, token);
+		let edit = await this.#createEditForMediaFiles(document, dataTransfer, settings.copyIntoWorkspace, token);
 		if (token.isCancellationRequested) {
 			return;
 		}
@@ -198,12 +198,11 @@ export class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProv
 	 *
 	 * This tries copying files outside of the workspace into the workspace.
 	 */
-	static async createEditForMediaFiles(
+	async #createEditForMediaFiles(
 		document: vscode.TextDocument,
 		dataTransfer: vscode.DataTransfer,
 		copyIntoWorkspace: CopyFilesSettings,
 		token: vscode.CancellationToken,
-		materializeContents = false,
 	): Promise<DropOrPasteEdit | undefined> {
 		if (copyIntoWorkspace !== CopyFilesSettings.MediaFiles || getParentDocumentUri(document.uri).scheme === Schemes.untitled) {
 			return;
@@ -254,7 +253,7 @@ export class ResourcePasteOrDropProvider implements vscode.DocumentPasteEditProv
 		for (const entry of fileEntries) {
 			if (entry.newFile) {
 				additionalEdits.createFile(entry.uri, {
-					contents: materializeContents ? await entry.newFile.contents.data() : entry.newFile.contents,
+					contents: entry.newFile.contents,
 					overwrite: entry.newFile.overwrite,
 				});
 			}

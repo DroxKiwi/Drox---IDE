@@ -217,23 +217,12 @@ function buildEnv(mockServer, { isDevBuild = true } = {}) {
  * @param {string} logsDir
  * @returns {string[]}
  */
-function buildArgs(userDataDir, extDir, logsDir, { isDevBuild = true, extHostInspectPort = 0, traceFile = '', appRoot = ROOT, gcObjectStats = false } = {}) {
+function buildArgs(userDataDir, extDir, logsDir, { isDevBuild = true, extHostInspectPort = 0, traceFile = '', appRoot = ROOT } = {}) {
 	// Chromium switches must come BEFORE the app path (ROOT) — Chromium
 	// only processes switches that precede the first non-switch argument.
 	const chromiumFlags = [];
 	if (traceFile) {
-		// IMPORTANT: `disabled-by-default-v8.gc_stats` is intentionally OFF by
-		// default. It makes V8 run GC_OBJECT_DUMP_STATISTICS (a full per-type
-		// heap object dump) on every major GC, inflating a ~15ms GC pause to
-		// ~550ms. When such a GC lands in the measured request window it
-		// corrupts timeToFirstToken (bimodal ~250ms vs ~900ms). `v8.gc` +
-		// `disabled-by-default-v8.gc` still provide the GC events we count.
-		// Opt in via `--gc-object-stats` only for deliberate GC deep-dives
-		// (never for timing runs), accepting that timings become unreliable.
-		const gcCategories = gcObjectStats
-			? 'v8.gc,disabled-by-default-v8.gc,disabled-by-default-v8.gc_stats'
-			: 'v8.gc,disabled-by-default-v8.gc';
-		chromiumFlags.push(`--enable-tracing=${gcCategories},devtools.timeline,blink.user_timing`);
+		chromiumFlags.push(`--enable-tracing=v8.gc,disabled-by-default-v8.gc,disabled-by-default-v8.gc_stats,devtools.timeline,blink.user_timing`);
 		chromiumFlags.push(`--trace-startup-file=${traceFile}`);
 		chromiumFlags.push(`--enable-tracing-format=json`);
 	}
@@ -477,9 +466,9 @@ async function waitForCDP(port, timeoutMs = 60_000) {
  * Find the workbench page among all CDP pages.
  * For dev builds this checks for `globalThis.driver` (smoke-test driver).
  * For stable builds it checks for `.monaco-workbench` in the DOM.
- * @param {import('@playwright/test').Browser} browser
+ * @param {import('playwright').Browser} browser
  * @param {number} timeoutMs
- * @returns {Promise<import('@playwright/test').Page>}
+ * @returns {Promise<import('playwright').Page>}
  */
 async function findWorkbenchPage(browser, timeoutMs = 60_000) {
 	const deadline = Date.now() + timeoutMs;
@@ -510,10 +499,10 @@ let nextPort = 19222;
  * @param {string[]} launchArgs - Arguments to pass to the executable
  * @param {Record<string, string>} env - Environment variables
  * @param {{ verbose?: boolean }} [opts]
- * @returns {Promise<{ page: import('@playwright/test').Page, browser: import('@playwright/test').Browser, close: () => Promise<void> }>}
+ * @returns {Promise<{ page: import('playwright').Page, browser: import('playwright').Browser, close: () => Promise<void> }>}
  */
 async function launchVSCode(executable, launchArgs, env, opts = {}) {
-	const { chromium } = require('@playwright/test');
+	const { chromium } = require('playwright');
 	const port = nextPort++;
 
 	const args = [`--remote-debugging-port=${port}`, ...launchArgs];

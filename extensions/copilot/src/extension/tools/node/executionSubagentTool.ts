@@ -20,7 +20,6 @@ import { IBuildPromptContext } from '../../prompt/common/intents';
 import { ExecutionSubagentToolCallingLoop, IBackgroundCommand } from '../../prompt/node/executionSubagentToolCallingLoop';
 import { ToolName } from '../common/toolNames';
 import { CopilotToolMode, ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
-import { stripFinalAnswerTags, updateSubagentInvocation } from './subagentToolUtils';
 
 export interface IExecutionSubagentParams {
 
@@ -54,14 +53,11 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 
 		const request = this._inputContext.request!;
 		const parentSessionId = this._inputContext.conversation?.sessionId ?? generateUuid();
-		// Use the parent tool call ID so nested tools render in the parent's subagent region.
-		// Programmatic invocations without a streamed parent still need an ID for tracing.
-		const parentToolCallId = options.chatStreamToolCallId;
 		// Generate a stable session ID for this subagent invocation that will be used:
 		// 1. As subAgentInvocationId in the subagent's tool context
 		// 2. As subAgentInvocationId in toolMetadata for parent trajectory linking
 		// 3. As the session_id in the subagent's own trajectory
-		const subAgentInvocationId = parentToolCallId ?? generateUuid();
+		const subAgentInvocationId = generateUuid();
 
 		const toolCallLimit = this.configurationService.getExperimentBasedConfig(ConfigKey.Advanced.ExecutionSubagentToolCallLimit, this.experimentationService);
 
@@ -72,7 +68,7 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 			location: request.location,
 			promptText: options.input.query,
 			subAgentInvocationId: subAgentInvocationId,
-			parentToolCallId,
+			parentToolCallId: options.chatStreamToolCallId,
 			parentHeaderRequestId: this._inputContext?.parentHeaderRequestId,
 			parentModelCallId: this._inputContext?.parentModelCallId,
 			topLevelTurnId: this._inputContext?.requestId,
@@ -82,13 +78,6 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 			this._inputContext.stream,
 			part => part instanceof ChatToolInvocationPart || part instanceof ChatResponseTextEditPart || part instanceof ChatResponseNotebookEditPart
 		);
-		const modelName = await loop.getModelName();
-		updateSubagentInvocation(stream, parentToolCallId, ToolName.ExecutionSubagent, {
-			description: options.input.description,
-			agentName: 'execution',
-			prompt: options.input.query,
-			modelName,
-		});
 
 		// Create a new capturing token to group this execution subagent and all its nested tool calls
 		// Similar to how DefaultIntentRequestHandler does it
@@ -121,8 +110,7 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 			description: options.input.description,
 			// The subAgentInvocationId links this tool call to the subagent's trajectory
 			subAgentInvocationId: subAgentInvocationId,
-			agentName: 'execution',
-			modelName,
+			agentName: 'execution'
 		};
 
 		let subagentResponse = '';
@@ -136,14 +124,6 @@ class ExecutionSubagentTool implements ICopilotTool<IExecutionSubagentParams> {
 		// the subagent's run, append a Note line for each on the line(s) immediately
 		// after the final </final_answer>.
 		subagentResponse = appendBackgroundCommandNotesToFinalAnswer(subagentResponse, loop.backgroundCommands);
-		subagentResponse = stripFinalAnswerTags(subagentResponse);
-		updateSubagentInvocation(stream, parentToolCallId, ToolName.ExecutionSubagent, {
-			description: options.input.description,
-			agentName: 'execution',
-			prompt: options.input.query,
-			modelName,
-			result: subagentResponse,
-		});
 
 		// toolMetadata will be automatically included in exportAllPromptLogsAsJsonCommand
 		const result = new ExtendedLanguageModelToolResult([new LanguageModelTextPart(subagentResponse)]);

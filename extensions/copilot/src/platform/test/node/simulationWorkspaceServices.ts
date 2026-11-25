@@ -10,7 +10,7 @@ import type * as vscode from 'vscode';
 import * as glob from '../../../util/common/glob';
 import { getLanguageForResource } from '../../../util/common/languages';
 import { createTextDocumentData } from '../../../util/common/test/shims/textDocument';
-import { asArray } from '../../../util/vs/base/common/arrays';
+import { asArray, coalesce } from '../../../util/vs/base/common/arrays';
 import { AsyncIterableSource, raceTimeout } from '../../../util/vs/base/common/async';
 import { CancellationToken } from '../../../util/vs/base/common/cancellation';
 import { Emitter, Event } from '../../../util/vs/base/common/event';
@@ -23,12 +23,12 @@ import { URI } from '../../../util/vs/base/common/uri';
 import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
 import { Position, Range, TerminalShellExecutionCommandLineConfidence } from '../../../vscodeTypes';
 import { ConfigKey } from '../../configuration/common/configurationService';
+import { IDebugOutputService } from '../../debug/common/debugOutputService';
 import { IDialogService } from '../../dialog/common/dialogService';
 import { IFileSystemService } from '../../filesystem/common/fileSystemService';
 import { FileType, RelativePattern } from '../../filesystem/common/fileTypes';
 import { NodeFileSystemService } from '../../filesystem/node/fileSystemServiceImpl';
 import { IGitService, RepoContext } from '../../git/common/gitService';
-// eslint-disable-next-line local/code-layering -- Pre-existing layering violation found when the zone check started resolving extensionless imports.
 import { Branch, Change, CommitOptions, CommitShortStat, DiffChange, Ref, RefQuery, Repository, RepositoryAccessDetails } from '../../git/vscode/git';
 import { AbstractLanguageDiagnosticsService } from '../../languages/common/languageDiagnosticsService';
 import { ILanguageFeaturesService } from '../../languages/common/languageFeaturesService';
@@ -74,7 +74,7 @@ export class SimulationWorkspaceService extends AbstractWorkspaceService {
 		}
 
 		if (uri.scheme === 'file') {
-			const fileContents = await fs.readFile(uri.fsPath, 'utf8');
+			const fileContents = await fs.readFile(this.workspace.mapLocation(uri).fsPath, 'utf8');
 			const language = getLanguageForResource(uri);
 			const doc = createTextDocumentData(uri, fileContents, language.languageId);
 			this.workspace.addDocument(doc);
@@ -160,6 +160,7 @@ export class SimulationFileSystemAdaptor implements IFileSystemService {
 	private readonly _time = Date.now();
 
 	constructor(
+		private readonly _workspace: SimulationWorkspace,
 		@IWorkspaceService private _workspaceService: IWorkspaceService,
 	) {
 		this._delegate = new NodeFileSystemService();
@@ -176,9 +177,9 @@ export class SimulationFileSystemAdaptor implements IFileSystemService {
 					size: new TextEncoder().encode(doc.getText()).byteLength
 				};
 			}
-			return await this._delegate.stat(uri);
+			return await this._delegate.stat(this._workspace.mapLocation(uri));
 		} catch {
-			return await this._delegate.stat(uri);
+			return await this._delegate.stat(this._workspace.mapLocation(uri));
 		}
 	}
 
@@ -188,7 +189,7 @@ export class SimulationFileSystemAdaptor implements IFileSystemService {
 			const doc = await this._workspaceService.openTextDocument(uri);
 			return new TextEncoder().encode(doc.getText());
 		}
-		return await this._delegate.readFile(uri);
+		return await this._delegate.readFile(this._workspace.mapLocation(uri));
 	}
 
 	async readDirectory(uri: URI): Promise<[string, FileType][]> {
@@ -206,29 +207,45 @@ export class SimulationFileSystemAdaptor implements IFileSystemService {
 					}
 				}
 			}
+
+			const scenarioFolderLoc = this._workspace.mapLocation(uri);
+			if (scenarioFolderLoc) {
+				try {
+					const entries = await this._delegate.readDirectory(scenarioFolderLoc);
+					const filter = uriPath === WORKSPACE_PATH ? ((name: string) => (name.endsWith('.conversation.json') || name.endsWith('.state.json'))) : (() => false);
+					for (const [name, type] of entries) {
+						if (!seen.has(name) && !filter(name)) {
+							seen.add(name);
+							result.push([name, type]);
+						}
+					}
+				} catch (e) {
+					// ignore non existing folders
+				}
+			}
 			return result;
 		}
 		return await this._delegate.readDirectory(uri);
 	}
 
 	async createDirectory(uri: URI): Promise<void> {
-		return await this._delegate.createDirectory(uri);
+		return await this._delegate.createDirectory(this._workspace.mapLocation(uri, true));
 	}
 
 	async writeFile(uri: URI, content: Uint8Array): Promise<void> {
-		return await this._delegate.writeFile(uri, content);
+		return await this._delegate.writeFile(this._workspace.mapLocation(uri, true), content);
 	}
 
 	async delete(uri: URI, options?: { recursive?: boolean | undefined; useTrash?: boolean | undefined } | undefined): Promise<void> {
-		return await this._delegate.delete(uri, options);
+		return await this._delegate.delete(this._workspace.mapLocation(uri, true), options);
 	}
 
 	async rename(oldURI: URI, newURI: URI, options?: { overwrite?: boolean | undefined } | undefined): Promise<void> {
-		return await this._delegate.rename(oldURI, newURI, options);
+		return await this._delegate.rename(this._workspace.mapLocation(oldURI, true), this._workspace.mapLocation(newURI, true), options);
 	}
 
 	async copy(source: URI, destination: URI, options?: { overwrite?: boolean | undefined } | undefined): Promise<void> {
-		return await this._delegate.copy(source, destination, options);
+		return await this._delegate.copy(this._workspace.mapLocation(source), this._workspace.mapLocation(destination, true), options);
 	}
 
 	isWritableFileSystem(scheme: string): boolean | undefined {
@@ -634,6 +651,15 @@ export class TestingTabsAndEditorsService implements ITabsAndEditorsService {
 	}
 }
 
+export class TestingDebugOutputService implements IDebugOutputService {
+	_serviceBrand: undefined;
+	get consoleOutput(): string {
+		return this._workspace.debugConsoleOutput ?? '';
+	}
+	constructor(private readonly _workspace: SimulationWorkspace) {
+	}
+}
+
 export class TestingGitService implements IGitService {
 
 	declare readonly _serviceBrand: undefined;
@@ -684,7 +710,26 @@ export class TestingGitService implements IGitService {
 	}
 
 	get repositories(): RepoContext[] {
-		const workspaceFolderPath = this._workspace.workspaceFolders[0];
+		const workspaceFolderPath = this._workspace.workspaceFolderPath
+			? URI.file(this._workspace.workspaceFolderPath)
+			: this._workspace.workspaceFolders[0];
+
+		const workspaceStateRepos = this._workspace.repositories;
+		if (workspaceStateRepos) {
+			return coalesce(workspaceStateRepos.map((repo): RepoContext | undefined => {
+				if (!repo) {
+					return repo;
+				}
+
+				return {
+					...repo,
+					// rootUri is not set on some serialized repos
+					rootUri: repo.rootUri
+						? URI.revive(repo.rootUri)
+						: workspaceFolderPath
+				};
+			}));
+		}
 
 		if (this._createImplicitRepos) {
 			return [{
@@ -756,7 +801,7 @@ export class TestingGitService implements IGitService {
 		return undefined;
 	}
 
-	async deleteWorktree(uri: URI, path: string, options?: { force?: boolean; label?: string }): Promise<void> {
+	async deleteWorktree(uri: URI, path: string, options?: { force?: boolean }): Promise<void> {
 		return;
 	}
 
@@ -865,14 +910,17 @@ export class TestingTerminalService extends Disposable implements ITerminalServi
 		return undefined;
 	}
 
+	get terminalBuffer(): string {
+		return this._workspace.terminalBuffer ?? '';
+	}
 	get terminalLastCommand(): vscode.TerminalExecutedCommand | undefined {
-		return undefined;
+		return this._workspace.terminalLastCommand;
 	}
 	get terminalSelection(): string {
-		return '';
+		return this._workspace.terminalSelection ?? '';
 	}
 	get terminalShellType(): string {
-		return '';
+		return this._workspace.terminalShellType ?? '';
 	}
 	getBufferForTerminal(terminal: vscode.Terminal, maxChars?: number): string {
 		return '';
@@ -911,7 +959,7 @@ class SimulationTerminal extends Disposable implements vscode.Terminal {
 			throw new Error('String cwd not implemented');
 		}
 
-		this.shellIntegration = this._register(this.instantiationService.createInstance(SimulationTerminalShellIntegration, cwd, this));
+		this.shellIntegration = this._register(this.instantiationService.createInstance(SimulationTerminalShellIntegration, cwd, workspace, this));
 	}
 
 	sendText(text: string, shouldExecute: boolean = true): void {
@@ -933,10 +981,12 @@ class SimulationTerminalShellIntegration extends Disposable implements vscode.Te
 
 	constructor(
 		public readonly cwd: vscode.Uri | undefined,
+		private readonly workspace: SimulationWorkspace,
 		private readonly terminal: SimulationTerminal,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) {
 		super();
+		this.cwd = cwd && workspace.mapLocation(cwd);
 	}
 
 	executeCommand(command: string, args?: string[]): vscode.TerminalShellExecution {
@@ -944,7 +994,7 @@ class SimulationTerminalShellIntegration extends Disposable implements vscode.Te
 			command = `${command} ${args.join(' ')}`;
 		}
 
-		const exe = this._register(this.instantiationService.createInstance(SimulationTerminalShellExecution, { value: command, confidence: TerminalShellExecutionCommandLineConfidence.High, isTrusted: true }, this.cwd));
+		const exe = this._register(this.instantiationService.createInstance(SimulationTerminalShellExecution, { value: command, confidence: TerminalShellExecutionCommandLineConfidence.High, isTrusted: true }, this.cwd, this.workspace));
 		this._register(exe.onDidEndTerminalShellExecution(() => {
 			this._onDidEndTerminalShellExecution.fire({ terminal: this.terminal, shellIntegration: this, execution: exe, exitCode: undefined });
 		}));
@@ -959,20 +1009,25 @@ class SimulationTerminalShellExecution extends Disposable implements vscode.Term
 	constructor(
 		public readonly commandLine: vscode.TerminalShellExecutionCommandLine,
 		public readonly cwd: vscode.Uri | undefined,
+		private readonly workspace: SimulationWorkspace,
 		@ILogService private readonly logService: ILogService,
 	) {
 		super();
 	}
 
 	private async run(): Promise<string | undefined> {
+		const fakeWorkspacePath = this.workspace.workspaceFolders[0].fsPath.replace(/\/$/, '');
+		const realWorkspacePath = this.workspace.mapLocation(this.workspace.workspaceFolders[0]).fsPath.replace(/\/$/, '');
 		try {
-			const command = this.commandLine.value;
-			this.logService.trace(`Executing command: ${command}`);
+			let command = this.commandLine.value;
+			this.logService.trace(`Original command: ${command}`);
+			command = command.replaceAll(fakeWorkspacePath, realWorkspacePath);
+			this.logService.trace(`Command with replaced workspace path: ${command}`);
 
 			const execPromise = promisify(exec);
 			const execP = execPromise(command, { cwd: this.cwd?.fsPath });
 			const result = await raceTimeout(execP, 600_000);
-			const output = result ? result.stdout + result.stderr : undefined;
+			let output = result ? result.stdout + result.stderr : undefined;
 			this.logService.trace(`Done executing command: ${command}`);
 			let resultStr;
 			try {
@@ -982,7 +1037,9 @@ class SimulationTerminalShellExecution extends Disposable implements vscode.Term
 			}
 			this.logService.trace(`Result: ${resultStr}`);
 			if (output) {
-				this.logService.trace(`Output: ${output}`);
+				this.logService.trace(`Original output: ${output}`);
+				output = output.replaceAll(realWorkspacePath, fakeWorkspacePath);
+				this.logService.trace(`Output with replaced workspace path: ${output}`);
 			}
 			return output;
 		} catch (e) {
@@ -997,7 +1054,9 @@ class SimulationTerminalShellExecution extends Disposable implements vscode.Term
 				msg = e instanceof Error ? e.message : String(e);
 			}
 
-			this.logService.trace(`Error message: ${msg}`);
+			this.logService.trace(`Original error message: ${msg}`);
+			msg = msg.replaceAll(realWorkspacePath, fakeWorkspacePath);
+			this.logService.trace(`Error message with replaced workspace path: ${msg}`);
 			return msg;
 		}
 	}
@@ -1018,8 +1077,12 @@ export class TestingLanguageService implements ILanguageFeaturesService {
 
 	declare readonly _serviceBrand: undefined;
 
+	constructor(private readonly _workspace: SimulationWorkspace) {
+
+	}
+
 	async getWorkspaceSymbols(query: string): Promise<vscode.SymbolInformation[]> {
-		return [];
+		return this._workspace.workspaceSymbols?.filter(s => s.name.includes(query)) ?? [];
 	}
 	async getDefinitions(uri: vscode.Uri, position: vscode.Position): Promise<(vscode.Location | vscode.LocationLink)[]> {
 		throw new Error('Method not implemented.');

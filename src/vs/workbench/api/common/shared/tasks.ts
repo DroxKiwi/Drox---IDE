@@ -127,7 +127,6 @@ export interface ITaskSourceDTO {
 export interface ITaskHandleDTO {
 	id: string;
 	workspaceFolder: UriComponents | string;
-	type?: string;
 }
 
 export interface ITaskGroupDTO {

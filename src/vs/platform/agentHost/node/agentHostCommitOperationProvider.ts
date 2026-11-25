@@ -6,19 +6,18 @@
 import { Disposable, DisposableStore, IDisposable } from '../../../base/common/lifecycle.js';
 import { localize } from '../../../nls.js';
 import { IInstantiationService } from '../../instantiation/common/instantiation.js';
-import type { IChangesetOperationContribution, IChangesetOperationContext, IChangesetOperationRegistry } from '../common/agentHostChangesetOperationService.js';
 import { ChangesetKind } from '../common/changesetUri.js';
+import type { IChangesetOperationContribution, IChangesetOperationContext, IChangesetOperationRegistry } from '../common/agentHostChangesetOperationService.js';
 import { ChangesetOperationScope, ChangesetOperationStatus, type ChangesetOperation } from '../common/state/sessionState.js';
 import { AgentHostCommitOperationHandler } from './agentHostCommitOperationHandler.js';
-import { AgentHostStateManager, IAgentHostStateManager } from './agentHostStateManager.js';
-import type { IAgentHostCredentialSource } from '../common/agentHostCredentials.js';
+import { AgentHostStateManager } from './agentHostStateManager.js';
 
 export class AgentHostCommitOperationContribution extends Disposable implements IChangesetOperationContribution {
 
 	private _registry: IChangesetOperationRegistry | undefined;
 
 	constructor(
-		@IAgentHostStateManager private readonly _stateManager: AgentHostStateManager,
+		private readonly _stateManager: AgentHostStateManager,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 	) {
 		super();
@@ -28,27 +27,20 @@ export class AgentHostCommitOperationContribution extends Disposable implements 
 		this._registry = registry;
 		const store = new DisposableStore();
 		const getSessionState = (sessionKey: string) => this._stateManager.getSessionState(sessionKey);
-		const handler = this._instantiationService.createInstance(AgentHostCommitOperationHandler, getSessionState, (sessionKey: string, source?: IAgentHostCredentialSource) => this._onCommitted(sessionKey, source));
+		const handler = this._instantiationService.createInstance(AgentHostCommitOperationHandler, getSessionState, (sessionKey: string) => this._onCommitted(sessionKey));
 		store.add(registry.registerChangesetOperationHandler(AgentHostCommitOperationHandler.OPERATION_COMMIT, handler));
 		store.add({ dispose: () => { this._registry = undefined; } });
 		return store;
 	}
 
-	getOperations({ sessionKey, changesetKind, gitState }: IChangesetOperationContext): ChangesetOperation[] {
-		// Commit always commits every uncommitted change in the working directory,
-		// so it is only advertised on the changeset that shows exactly those changes.
-		if (changesetKind !== ChangesetKind.Uncommitted) {
-			return [];
-		}
-
-		const isNewSession = this._stateManager.isUnusedDraft(sessionKey) === true;
-		if (!isNewSession && (gitState?.uncommittedChanges ?? 0) <= 0) {
-			return [];
+	getOperations({ changesetKind, gitState }: IChangesetOperationContext): ChangesetOperation[] | undefined {
+		if (changesetKind !== ChangesetKind.Uncommitted || (gitState?.uncommittedChanges ?? 0) <= 0) {
+			return undefined;
 		}
 
 		return [{
 			id: AgentHostCommitOperationHandler.OPERATION_COMMIT,
-			label: localize('agentHost.changeset.commit', "Commit"),
+			label: localize('agentHost.changeset.commit', "Commit Changes"),
 			icon: 'git-commit',
 			group: 'commit',
 			scopes: [ChangesetOperationScope.Changeset],
@@ -56,8 +48,8 @@ export class AgentHostCommitOperationContribution extends Disposable implements 
 		} satisfies ChangesetOperation];
 	}
 
-	private async _onCommitted(sessionKey: string, source?: IAgentHostCredentialSource): Promise<void> {
+	private async _onCommitted(sessionKey: string): Promise<void> {
 		this._registry?.onDidChangeOperations(sessionKey);
-		await this._registry?.refreshSessionGitState(sessionKey, source);
+		await this._registry?.refreshSessionGitState(sessionKey);
 	}
 }

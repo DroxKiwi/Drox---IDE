@@ -5,7 +5,6 @@
 
 import { execFile, exec } from 'child_process';
 import { AutoOpenBarrier, ProcessTimeRunOnceScheduler, Promises, Queue, timeout } from '../../../base/common/async.js';
-import { VSBuffer } from '../../../base/common/buffer.js';
 import { Emitter, Event } from '../../../base/common/event.js';
 import { Disposable, toDisposable } from '../../../base/common/lifecycle.js';
 import { IProcessEnvironment, isWindows, OperatingSystem, OS } from '../../../base/common/platform.js';
@@ -107,12 +106,12 @@ export class PtyService extends Disposable implements IPtyService {
 
 	private readonly _autoRepliesContribution: AutoRepliesPtyServiceContribution;
 	@traceRpc
-	async installAutoReply(match: string, reply: string, ownerId: string) {
-		await this._autoRepliesContribution.installAutoReply(match, reply, ownerId);
+	async installAutoReply(match: string, reply: string) {
+		await this._autoRepliesContribution.installAutoReply(match, reply);
 	}
 	@traceRpc
-	async uninstallAllAutoReplies(ownerId: string) {
-		await this._autoRepliesContribution.uninstallAllAutoReplies(ownerId);
+	async uninstallAllAutoReplies() {
+		await this._autoRepliesContribution.uninstallAllAutoReplies();
 	}
 
 	// #endregion
@@ -140,11 +139,11 @@ export class PtyService extends Disposable implements IPtyService {
 	readonly onDidChangeProperty = this._traceEvent('_onDidChangeProperty', this._onDidChangeProperty.event);
 
 	private _traceEvent<T>(name: string, event: Event<T>): Event<T> {
-		this._register(event(e => {
+		event(e => {
 			if (this._logService.getLevel() === LogLevel.Trace) {
 				this._logService.trace(`[RPC Event] PtyService#${name}.fire(${JSON.stringify(e)})`);
 			}
-		}));
+		});
 		return event;
 	}
 
@@ -365,13 +364,9 @@ export class PtyService extends Disposable implements IPtyService {
 	}
 
 	@traceRpc
-	async attachToProcess(id: number, pid?: number): Promise<void> {
+	async attachToProcess(id: number): Promise<void> {
 		try {
-			const persistentProcess = this._throwIfNoPty(id);
-			if (pid !== undefined && persistentProcess.pid !== pid) {
-				throw new ErrorNoTelemetry(`Pty ${id} has pid ${persistentProcess.pid}, expected ${pid}`);
-			}
-			await persistentProcess.attach();
+			await this._throwIfNoPty(id).attach();
 			this._logService.info(`Persistent process reconnection "${id}"`);
 		} catch (e) {
 			this._logService.warn(`Persistent process reconnection "${id}" failed`, e.message);
@@ -392,11 +387,6 @@ export class PtyService extends Disposable implements IPtyService {
 	@traceRpc
 	async clearBuffer(id: number): Promise<void> {
 		this._throwIfNoPty(id).clearBuffer();
-	}
-
-	@traceRpc
-	async setParentWindow(id: number, handle: VSBuffer): Promise<void> {
-		this._throwIfNoPty(id).setParentWindow(handle);
 	}
 
 	@traceRpc
@@ -928,9 +918,6 @@ class PersistentTerminalProcess extends Disposable {
 		this._serializer.clearBuffer();
 		this._terminalProcess.clearBuffer();
 	}
-	setParentWindow(handle: VSBuffer): void {
-		this._terminalProcess.setParentWindow(handle);
-	}
 	setUnicodeVersion(version: '6' | '11'): void {
 		this.unicodeVersion = version;
 		this._serializer.setUnicodeVersion?.(version);
@@ -1042,7 +1029,7 @@ class MutationLogger<T> {
 	}
 }
 
-export class XtermSerializer implements ITerminalSerializer {
+class XtermSerializer implements ITerminalSerializer {
 	private readonly _xterm: XtermTerminal;
 	private readonly _shellIntegrationAddon: ShellIntegrationAddon;
 	private _unicodeAddon?: XtermUnicode11Addon;
@@ -1103,14 +1090,10 @@ export class XtermSerializer implements ITerminalSerializer {
 			options.excludeModes = true;
 		}
 		let serialized: string;
-		try {
-			if (restoreToLastReviveBuffer && this._rawReviveBuffer) {
-				serialized = this._rawReviveBuffer;
-			} else {
-				serialized = serialize.serialize(options);
-			}
-		} finally {
-			serialize.dispose();
+		if (restoreToLastReviveBuffer && this._rawReviveBuffer) {
+			serialized = this._rawReviveBuffer;
+		} else {
+			serialized = serialize.serialize(options);
 		}
 		return {
 			events: [

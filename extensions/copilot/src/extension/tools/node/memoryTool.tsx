@@ -162,15 +162,7 @@ export class MemoryTool implements ICopilotTool<MemoryToolParams> {
 		const command = options.input.command;
 		const path = command === 'rename' ? (options.input as IRenameParams).old_path ?? (options.input as IRenameParams).path : options.input.path;
 
-		const prepared = this._prepareLocalInvocation(command, path ?? '/memories/', options.chatSessionResource);
-		if (command !== 'view') {
-			prepared.confirmationMessages = {
-				title: l10n.t('Allow Memory Changes?'),
-				message: new MarkdownString(l10n.t('Memory changes can affect future chat requests. Review the changes before continuing.'))
-					.appendCodeblock(JSON.stringify(options.input, null, 2), 'json'),
-			};
-		}
-		return prepared;
+		return this._prepareLocalInvocation(command, path ?? '/memories/', options.chatSessionResource);
 	}
 
 	private _prepareLocalInvocation(command: string, path: string, chatSessionResource?: vscode.Uri): vscode.PreparedToolInvocation {

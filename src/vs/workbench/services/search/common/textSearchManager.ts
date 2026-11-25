@@ -11,9 +11,8 @@ import * as path from '../../../../base/common/path.js';
 import * as resources from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { FolderQuerySearchTree } from './folderQuerySearchTree.js';
-import { DEFAULT_MAX_SEARCH_RESULTS, hasSiblingPromiseFn, IAITextQuery, IFileMatch, IFolderQuery, excludeToGlobPattern, IPatternInfo, ISearchCompleteStats, ITextQuery, ITextSearchContext, ITextSearchMatch, ITextSearchResult, ITextSearchStats, QueryGlobTester, QueryType, resolvePatternsForProvider, resolveExcludePatternsForProvider, resolveExcludeExceptionsForProvider, ISearchRange, DEFAULT_TEXT_SEARCH_PREVIEW_OPTIONS } from './search.js';
-import { TextSearchComplete2, TextSearchMatch2, TextSearchProvider2, TextSearchProviderOptions, TextSearchQuery2, TextSearchResult2, AITextSearchProvider, AISearchResult, AISearchKeyword } from './searchExtTypes.js';
-import { supportsExcludeExceptions, TextSearchProviderFolderOptionsRipgrep } from './searchExtTypesInternal.js';
+import { DEFAULT_MAX_SEARCH_RESULTS, hasSiblingPromiseFn, IAITextQuery, IExtendedExtensionSearchOptions, IFileMatch, IFolderQuery, excludeToGlobPattern, IPatternInfo, ISearchCompleteStats, ITextQuery, ITextSearchContext, ITextSearchMatch, ITextSearchResult, ITextSearchStats, QueryGlobTester, QueryType, resolvePatternsForProvider, ISearchRange, DEFAULT_TEXT_SEARCH_PREVIEW_OPTIONS } from './search.js';
+import { TextSearchComplete2, TextSearchMatch2, TextSearchProviderFolderOptions, TextSearchProvider2, TextSearchProviderOptions, TextSearchQuery2, TextSearchResult2, AITextSearchProvider, AISearchResult, AISearchKeyword } from './searchExtTypes.js';
 
 export interface IFileUtils {
 	readdir: (resource: URI) => Promise<string[]>;
@@ -47,13 +46,6 @@ export class TextSearchManager {
 		return this.queryProviderPair.query;
 	}
 
-	/**
-	 * The limit that the provider is given, and that is applied to the results it reports.
-	 */
-	private get maxResults(): number {
-		return this.query.maxResults ?? DEFAULT_MAX_SEARCH_RESULTS;
-	}
-
 	search(onProgress: (matches: IFileMatch[]) => void, token: CancellationToken, onKeywordResult?: (keyword: AISearchKeyword) => void): Promise<ISearchCompleteStats> {
 		const folderQueries = this.query.folderQueries || [];
 		const tokenSource = new CancellationTokenSource(token);
@@ -73,12 +65,12 @@ export class TextSearchManager {
 
 				if (!this.isLimitHit) {
 					const resultSize = this.resultSize(result);
-					if (result instanceof TextSearchMatch2 && this.resultCount + resultSize > this.maxResults) {
+					if (result instanceof TextSearchMatch2 && typeof this.query.maxResults === 'number' && this.resultCount + resultSize > this.query.maxResults) {
 						this.isLimitHit = true;
 						isCanceled = true;
 						tokenSource.cancel();
 
-						result = this.trimResultToSize(result, this.maxResults - this.resultCount);
+						result = this.trimResultToSize(result, this.query.maxResults - this.resultCount);
 					}
 
 					const newResultSize = this.resultSize(result);
@@ -184,10 +176,13 @@ export class TextSearchManager {
 		const searchOptions: TextSearchProviderOptions = {
 			folderOptions,
 			maxFileSize: this.query.maxFileSize,
-			maxResults: this.maxResults,
+			maxResults: this.query.maxResults ?? DEFAULT_MAX_SEARCH_RESULTS,
 			previewOptions: this.query.previewOptions ?? DEFAULT_TEXT_SEARCH_PREVIEW_OPTIONS,
 			surroundingContext: this.query.surroundingContext ?? 0,
 		};
+		if ('usePCRE2' in this.query) {
+			(<IExtendedExtensionSearchOptions>searchOptions).usePCRE2 = this.query.usePCRE2;
+		}
 
 		let result;
 		if (this.queryProviderPair.query.type === QueryType.aiText) {
@@ -202,23 +197,23 @@ export class TextSearchManager {
 		return result;
 	}
 
-	private getSearchOptionsForFolder(fq: IFolderQuery<URI>): TextSearchProviderFolderOptionsRipgrep {
+	private getSearchOptionsForFolder(fq: IFolderQuery<URI>): TextSearchProviderFolderOptions {
 		const includes = resolvePatternsForProvider(this.query.includePattern, fq.includePattern);
 
 		let excludePattern = fq.excludePattern?.map(e => ({
 			folder: e.folder,
-			patterns: resolveExcludePatternsForProvider(this.query.excludePattern, e.pattern)
+			patterns: resolvePatternsForProvider(this.query.excludePattern, e.pattern)
 		}));
 
 		if (!excludePattern || excludePattern.length === 0) {
 			excludePattern = [{
 				folder: undefined,
-				patterns: resolveExcludePatternsForProvider(this.query.excludePattern, undefined)
+				patterns: resolvePatternsForProvider(this.query.excludePattern, undefined)
 			}];
 		}
 		const excludes = excludeToGlobPattern(excludePattern);
 
-		const options: TextSearchProviderFolderOptionsRipgrep = {
+		const options = {
 			folder: URI.from(fq.folder),
 			excludes,
 			includes,
@@ -231,19 +226,6 @@ export class TextSearchManager {
 			encoding: (fq.fileEncoding && this.fileUtils.toCanonicalName(fq.fileEncoding)) ?? '',
 			ignoreGlobCase: this.query.ignoreGlobCase || fq.ignoreGlobCase,
 		};
-
-		if (supportsExcludeExceptions(this.queryProviderPair.provider)) {
-			const folderExcludes = Object.assign({}, ...(fq.excludePattern?.map(e => e.pattern) ?? []));
-			const excludeExceptions = resolveExcludeExceptionsForProvider(this.query.excludePattern, folderExcludes);
-			if (excludeExceptions.length) {
-				options.excludeExceptions = excludeExceptions;
-				const extUri = options.ignoreGlobCase ? resources.extUriIgnorePathCase : resources.extUri;
-				options.nestedFolders = this.query.folderQueries
-					.filter(other => extUri.isEqualOrParent(other.folder, fq.folder) && !extUri.isEqual(other.folder, fq.folder))
-					.map(other => other.folder.path.substring(fq.folder.path.length).replace(/^\/+/, ''));
-			}
-		}
-
 		return options;
 	}
 }

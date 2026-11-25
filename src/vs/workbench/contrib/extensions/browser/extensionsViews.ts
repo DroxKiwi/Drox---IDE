@@ -181,10 +181,7 @@ export class ExtensionsListView extends AbstractExtensionsListView<IExtension> {
 		super.renderHeader(container);
 
 		if (!this.options.hideBadge) {
-			const badgeContainer = append(container, $('.count-badge-wrapper'));
-			badgeContainer.id = `${this.id}-count`;
-			container.setAttribute('aria-describedby', badgeContainer.id);
-			this.badge = this._register(new CountBadge(badgeContainer, {}, defaultCountBadgeStyles));
+			this.badge = this._register(new CountBadge(append(container, $('.count-badge-wrapper')), {}, defaultCountBadgeStyles));
 		}
 	}
 

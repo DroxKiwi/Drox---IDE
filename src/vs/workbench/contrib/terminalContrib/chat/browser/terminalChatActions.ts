@@ -300,7 +300,6 @@ registerActiveXtermAction({
 		ChatContextKeys.enabled,
 		ContextKeyExpr.or(TerminalContextKeys.processSupported, TerminalContextKeys.terminalHasBeenCreated),
 		TerminalChatContextKeys.requestActive.negate(),
-		TerminalChatContextKeys.usesAgentHost.negate(),
 	),
 	icon: Codicon.chatSparkle,
 	menu: [{
@@ -308,7 +307,7 @@ registerActiveXtermAction({
 		group: 'zzz',
 		order: 1,
 		isHiddenByDefault: true,
-		when: ContextKeyExpr.and(TerminalChatContextKeys.responseContainsCodeBlock, TerminalChatContextKeys.requestActive.negate(), TerminalChatContextKeys.usesAgentHost.negate()),
+		when: ContextKeyExpr.and(TerminalChatContextKeys.responseContainsCodeBlock, TerminalChatContextKeys.requestActive.negate()),
 	}],
 	run: (_xterm, _accessor, activeInstance) => {
 		if (isDetachedTerminalInstance(activeInstance)) {

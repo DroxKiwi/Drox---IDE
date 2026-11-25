@@ -7,35 +7,18 @@ import { basename } from '../../../../../base/common/resources.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { IRange } from '../../../../../editor/common/core/range.js';
 import { isLocation } from '../../../../../editor/common/languages.js';
-import { IChatProgressRenderableResponseContent, IChatProgressResponseContent, appendMarkdownString, canMergeMarkdownStrings, getLegacySubagentMarkdown, isNestedSubagentResponsePart } from '../model/chatModel.js';
+import { IChatProgressRenderableResponseContent, IChatProgressResponseContent, appendMarkdownString, canMergeMarkdownStrings } from '../model/chatModel.js';
 import { IChatAgentVulnerabilityDetails } from '../chatService/chatService.js';
 
 export const contentRefUrl = 'http://_vscodecontentref_'; // must be lowercase for URI
 
-export interface IAnnotatedChatContent {
-	readonly content: IChatProgressRenderableResponseContent;
-	readonly sourceIndexes: readonly number[];
-}
-
-export function annotateSpecialMarkdownContentWithSource(response: Iterable<IChatProgressResponseContent>): IAnnotatedChatContent[] {
+export function annotateSpecialMarkdownContent(response: Iterable<IChatProgressResponseContent>): IChatProgressRenderableResponseContent[] {
 	let refIdPool = 0;
-	const parts = Array.from(response);
-	const legacySubagentMarkdown = getLegacySubagentMarkdown(parts);
 
-	const result: IAnnotatedChatContent[] = [];
-	let sourceIndex = 0;
-	for (let item of parts) {
-		const currentSourceIndex = sourceIndex++;
-		const normalizedMarkdown = legacySubagentMarkdown.get(currentSourceIndex);
-		if (item.kind === 'markdownContent' && normalizedMarkdown !== undefined) {
-			if (!normalizedMarkdown.trim()) {
-				continue;
-			}
-			item = { ...item, content: { ...item.content, value: normalizedMarkdown } };
-		}
-		const previousItemIndex = result.findLastIndex(p => p.content.kind !== 'textEditGroup' && p.content.kind !== 'notebookEditGroup' && p.content.kind !== 'undoStop' && !isNestedSubagentResponsePart(p.content) && !(p.content.kind === 'markdownContent' && p.content.codeblockUri));
-		const previousEntry = result[previousItemIndex];
-		const previousItem = previousEntry?.content;
+	const result: IChatProgressRenderableResponseContent[] = [];
+	for (const item of response) {
+		const previousItemIndex = result.findLastIndex(p => p.kind !== 'textEditGroup' && p.kind !== 'undoStop');
+		const previousItem = result[previousItemIndex];
 		if (item.kind === 'inlineReference') {
 			let label: string | undefined = item.name;
 			if (!label) {
@@ -56,15 +39,9 @@ export function annotateSpecialMarkdownContentWithSource(response: Iterable<ICha
 			if (isInsideCodeContext(previousText)) {
 				if (previousItem?.kind === 'markdownContent') {
 					const merged = appendMarkdownString(previousItem.content, new MarkdownString(label));
-					result[previousItemIndex] = {
-						content: { ...previousItem, content: merged },
-						sourceIndexes: [...previousEntry.sourceIndexes, currentSourceIndex],
-					};
+					result[previousItemIndex] = { ...previousItem, content: merged };
 				} else {
-					result.push({
-						content: { content: new MarkdownString(label), kind: 'markdownContent' },
-						sourceIndexes: [currentSourceIndex],
-					});
+					result.push({ content: new MarkdownString(label), kind: 'markdownContent' });
 				}
 			} else {
 				const refId = refIdPool++;
@@ -75,41 +52,29 @@ export function annotateSpecialMarkdownContentWithSource(response: Iterable<ICha
 
 				if (previousItem?.kind === 'markdownContent') {
 					const merged = appendMarkdownString(previousItem.content, new MarkdownString(markdownText));
-					result[previousItemIndex] = {
-						content: { ...previousItem, content: merged, inlineReferences: { ...annotationMetadata, ...(previousItem.inlineReferences || {}) } },
-						sourceIndexes: [...previousEntry.sourceIndexes, currentSourceIndex],
-					};
+					result[previousItemIndex] = { ...previousItem, content: merged, inlineReferences: { ...annotationMetadata, ...(previousItem.inlineReferences || {}) } };
 				} else {
-					result.push({
-						content: { content: new MarkdownString(markdownText), inlineReferences: annotationMetadata, kind: 'markdownContent' },
-						sourceIndexes: [currentSourceIndex],
-					});
+					result.push({ content: new MarkdownString(markdownText), inlineReferences: annotationMetadata, kind: 'markdownContent' });
 				}
 			}
-		} else if (item.kind === 'markdownContent' && previousItem?.kind === 'markdownContent' && !previousItem.codeblockUri && !item.codeblockUri) {
+		} else if (item.kind === 'markdownContent' && previousItem?.kind === 'markdownContent') {
 			if (canMergeMarkdownStrings(previousItem.content, item.content)) {
 				const merged = appendMarkdownString(previousItem.content, item.content);
-				result[previousItemIndex] = {
-					content: { ...previousItem, content: merged },
-					sourceIndexes: [...previousEntry.sourceIndexes, currentSourceIndex],
-				};
+				result[previousItemIndex] = { ...previousItem, content: merged };
 			} else if (previousItem.inlineReferences && isContentRefOnly(previousItem.content.value)) {
 				// The previous item is a standalone inline reference whose MarkdownString
 				// was synthesized with default properties that don't match the incoming
 				// markdown (e.g., different isTrusted). Prepend the reference text and
 				// adopt the incoming item's properties so they render together in one block.
 				result[previousItemIndex] = {
+					...previousItem,
 					content: {
-						...previousItem,
-						content: {
-							...item.content,
-							value: previousItem.content.value + item.content.value,
-						},
+						...item.content,
+						value: previousItem.content.value + item.content.value,
 					},
-					sourceIndexes: [...previousEntry.sourceIndexes, currentSourceIndex],
 				};
 			} else {
-				result.push({ content: item, sourceIndexes: [currentSourceIndex] });
+				result.push(item);
 			}
 		} else if (item.kind === 'markdownVuln') {
 			const vulnText = encodeURIComponent(JSON.stringify(item.vulnerabilities));
@@ -117,46 +82,26 @@ export function annotateSpecialMarkdownContentWithSource(response: Iterable<ICha
 			if (previousItem?.kind === 'markdownContent') {
 				// Since this is inside a codeblock, it needs to be merged into the previous markdown content.
 				const merged = appendMarkdownString(previousItem.content, new MarkdownString(markdownText));
-				result[previousItemIndex] = {
-					content: { ...previousItem, content: merged },
-					sourceIndexes: [...previousEntry.sourceIndexes, currentSourceIndex],
-				};
+				result[previousItemIndex] = { ...previousItem, content: merged };
 			} else {
-				result.push({
-					content: { content: new MarkdownString(markdownText), kind: 'markdownContent' },
-					sourceIndexes: [currentSourceIndex],
-				});
+				result.push({ content: new MarkdownString(markdownText), kind: 'markdownContent' });
 			}
 		} else if (item.kind === 'codeblockUri') {
-			if (item.isStandalone || (item.subAgentInvocationId && (previousItem?.kind !== 'markdownContent' || !isInsideCodeContext(previousItem.content.value)))) {
-				result.push({
-					content: { kind: 'markdownContent', content: item.isEdit ? new MarkdownString('```\n\n```') : new MarkdownString().appendLink(item.uri, basename(item.uri)), codeblockUri: item },
-					sourceIndexes: [currentSourceIndex],
-				});
-			} else if (previousItem?.kind === 'markdownContent') {
+			if (previousItem?.kind === 'markdownContent') {
 				const isEditText = item.isEdit ? ` isEdit` : '';
 				const subAgentText = item.subAgentInvocationId ? ` subAgentInvocationId="${encodeURIComponent(item.subAgentInvocationId)}"` : '';
 				const markdownText = `<vscode_codeblock_uri${isEditText}${subAgentText}>${item.uri.toString()}</vscode_codeblock_uri>`;
 				const merged = appendMarkdownString(previousItem.content, new MarkdownString(markdownText));
 				// delete the previous and append to ensure that we don't reorder the edit before the undo stop containing it
 				result.splice(previousItemIndex, 1);
-				result.push({
-					content: { ...previousItem, content: merged },
-					sourceIndexes: [...previousEntry.sourceIndexes, currentSourceIndex],
-				});
+				result.push({ ...previousItem, content: merged });
 			}
-		} else if (item.kind === 'voiceProgress') {
-			continue;
 		} else {
-			result.push({ content: item, sourceIndexes: [currentSourceIndex] });
+			result.push(item);
 		}
 	}
 
 	return result;
-}
-
-export function annotateSpecialMarkdownContent(response: Iterable<IChatProgressResponseContent>): IChatProgressRenderableResponseContent[] {
-	return annotateSpecialMarkdownContentWithSource(response).map(entry => entry.content);
 }
 
 const contentRefPattern = new RegExp(`^(\\[.*?\\]\\(${contentRefUrl}/\\d+\\))+$`);
@@ -268,48 +213,30 @@ export interface IMarkdownVulnerability {
 	readonly description: string;
 	readonly range: IRange;
 }
-const codeblockUriPattern = /<vscode_codeblock_uri( isEdit)?( subAgentInvocationId="([^"]*)")?>([\s\S]*?)<\/vscode_codeblock_uri>/ms;
-
 export function extractCodeblockUrisFromText(text: string): { uri: URI; isEdit?: boolean; subAgentInvocationId?: string; textWithoutResult: string } | undefined {
-	const match = codeblockUriPattern.exec(text);
-	if (!match) {
-		return undefined;
-	}
-	const info = parseCodeblockUriMatch(match);
-	return info ? { ...info, textWithoutResult: text.substring(0, match.index) + text.substring(match.index + match[0].length) } : undefined;
-}
-
-export function extractEditCodeblockUrisFromText(text: string): URI[] {
-	const resources: URI[] = [];
-	for (const match of text.matchAll(new RegExp(codeblockUriPattern, 'gms'))) {
-		const info = parseCodeblockUriMatch(match);
-		if (info?.isEdit) {
-			resources.push(info.uri);
+	const match = /<vscode_codeblock_uri( isEdit)?( subAgentInvocationId="([^"]*)")?>([\s\S]*?)<\/vscode_codeblock_uri>/ms.exec(text);
+	if (match) {
+		const [all, isEdit, , encodedSubAgentId, uriString] = match;
+		if (uriString) {
+			let result: URI;
+			try {
+				result = URI.parse(uriString);
+			} catch {
+				return undefined;
+			}
+			const textWithoutResult = text.substring(0, match.index) + text.substring(match.index + all.length);
+			let subAgentInvocationId: string | undefined;
+			if (encodedSubAgentId) {
+				try {
+					subAgentInvocationId = decodeURIComponent(encodedSubAgentId);
+				} catch {
+					subAgentInvocationId = encodedSubAgentId;
+				}
+			}
+			return { uri: result, textWithoutResult, isEdit: !!isEdit, subAgentInvocationId };
 		}
 	}
-	return resources;
-}
-
-function parseCodeblockUriMatch(match: RegExpExecArray): { uri: URI; isEdit: boolean; subAgentInvocationId?: string } | undefined {
-	const [, isEdit, , encodedSubAgentId, uriString] = match;
-	if (!uriString) {
-		return undefined;
-	}
-	let uri: URI;
-	try {
-		uri = URI.parse(uriString);
-	} catch {
-		return undefined;
-	}
-	let subAgentInvocationId: string | undefined;
-	if (encodedSubAgentId) {
-		try {
-			subAgentInvocationId = decodeURIComponent(encodedSubAgentId);
-		} catch {
-			subAgentInvocationId = encodedSubAgentId;
-		}
-	}
-	return { uri, isEdit: !!isEdit, subAgentInvocationId };
+	return undefined;
 }
 
 export function extractSubAgentInvocationIdFromText(text: string): string | undefined {

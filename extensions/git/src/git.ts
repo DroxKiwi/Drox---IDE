@@ -21,12 +21,6 @@ import { StringDecoder } from 'string_decoder';
 // https://github.com/microsoft/vscode/issues/65693
 const MAX_CLI_LENGTH = 30000;
 
-function assertValidObjectId(sha: string, allowZero = false): void {
-	if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(sha) || (!allowZero && /^0+$/.test(sha))) {
-		throw new Error(allowZero ? 'Expected a full Git object ID' : 'Expected a full, non-zero Git object ID');
-	}
-}
-
 export interface IGit {
 	path: string;
 	version: string;
@@ -77,8 +71,6 @@ export interface LogFileOptions {
 	readonly reverse?: boolean;
 	readonly sortByAuthorDate?: boolean;
 	readonly shortStats?: boolean;
-	/** Optional. Resolve the path of the file at each commit, which differs from the given file before a rename when following renames. */
-	readonly filePaths?: boolean;
 }
 
 function parseVersion(raw: string): string {
@@ -707,14 +699,7 @@ export class Git {
 			options.cwd = sanitizePath(cwd);
 		}
 
-		const child = cp.spawn(this.path, args, options);
-
-		// Writing to stdin fails with EPIPE when git fails to spawn or exits before
-		// reading all of its input. The child's `error`/`exit` events already report
-		// the failure, so keep the stream error from becoming an uncaught exception.
-		child.stdin?.on('error', () => { });
-
-		return child;
+		return cp.spawn(this.path, args, options);
 	}
 
 	private getCwd(options: SpawnOptions): string | undefined {
@@ -783,8 +768,6 @@ export interface Commit {
 	refNames: string[];
 	shortStat?: CommitShortStat;
 	coAuthors?: CoAuthor[];
-	/** The path of the file at this commit, relative to the repository root. Only set by `logFile` with `filePaths`. */
-	filePath?: string;
 }
 
 export interface RefQuery extends ApiRefQuery {
@@ -986,43 +969,17 @@ export function parseGitCommits(data: string): Commit[] {
 	return commits;
 }
 
-// `--numstat` adds `<added>\t<deleted>\t<path>\0`, or `<added>\t<deleted>\t\0<old path>\0<new path>\0` for renames, after each commit
-const fileLogNumStatRegex = /(([0-9a-f]{40})\n[^\x00]*\x00\n)(?:-|\d+)\t(?:-|\d+)\t(?:\x00[^\x00]*\x00([^\x00]*)|([^\x00]*))\x00/g;
-
-/**
- * Parses the output of `git log --numstat` for a single file, setting the path of the file at each commit.
- */
-export function parseGitFileLog(data: string): Commit[] {
-	const filePaths = new Map<string, string>();
-
-	// Remove the `--numstat` records so that the remaining output is parsed like any other log
-	const log = data.replace(fileLogNumStatRegex, (_match, commit: string, hash: string, renamedPath: string | undefined, path: string | undefined) => {
-		filePaths.set(hash, renamedPath ?? path ?? '');
-		return commit;
-	});
-
-	return parseGitCommits(log).map(commit => {
-		const filePath = filePaths.get(commit.hash);
-		return filePath ? { ...commit, filePath } : commit;
-	});
-}
-
 const coAuthorRegex = /^Co-authored-by:\s*(.+?)\s*<([^>]+)>\s*$/gim;
 
 export function parseCoAuthors(message: string): CoAuthor[] {
 	const coAuthors: CoAuthor[] = [];
-	const emails = new Set<string>();
 	let match;
 
 	coAuthorRegex.lastIndex = 0;
 	while ((match = coAuthorRegex.exec(message)) !== null) {
 		const name = match[1].trim();
 		const email = match[2].trim();
-
-		// Squash merge commit messages repeat the trailers of each squashed commit
-		const emailKey = email.toLowerCase();
-		if (name && email && !emails.has(emailKey)) {
-			emails.add(emailKey);
+		if (name && email) {
 			coAuthors.push({ name, email });
 		}
 	}
@@ -1072,17 +1029,6 @@ export function parseLsFiles(raw: string): LsFilesElement[] {
 		.map(line => /^(\S+)\s+(\S+)\s+(\S+)\s+(.*)$/.exec(line)!)
 		.filter(m => !!m)
 		.map(([, mode, object, stage, file]) => ({ mode, object, stage, file }));
-}
-
-/**
- * Returns the path of a linked worktree given the content of its `gitdir` file
- * (`<commonDir>/worktrees/<name>/gitdir`). The content is relative to the folder
- * containing the `gitdir` file when the worktree uses relative paths (git >= 2.48).
- */
-export function getWorktreePathFromGitdir(worktreeGitDirPath: string, gitdirContent: string): string {
-	// Remove '/.git' suffix
-	const worktreePath = gitdirContent.replace(/\/.git.*$/, '');
-	return path.isAbsolute(worktreePath) ? worktreePath : path.resolve(worktreeGitDirPath, worktreePath);
 }
 
 const stashRegex = /([0-9a-f]{40})\n(.*)\nstash@{(\d+)}\n(WIP\s)?on\s([^:]+):\s(.*)\n(\d+)\n(\d+)(?:\x00)/gmi;
@@ -1497,11 +1443,7 @@ export class Repository {
 
 	async log(options?: LogOptions, cancellationToken?: CancellationToken): Promise<Commit[]> {
 		const spawnOptions: SpawnOptions = { cancellationToken };
-		// Depending on the user's Git settings (i18n.commitEncoding, i18n.logOutputEncoding),
-		// commit messages may appear garbled,
-		// so the output encoding for commit messages is forced to UTF-8.
-		// This setting was applied not only here, but also in other places where commit messages are retrieved.
-		const args = ['-c', 'i18n.logOutputEncoding=UTF-8', 'log', `--format=${COMMIT_FORMAT}`, '-z'];
+		const args = ['log', `--format=${COMMIT_FORMAT}`, '-z'];
 
 		if (options?.shortStats) {
 			args.push('--shortstat');
@@ -1568,7 +1510,7 @@ export class Repository {
 	}
 
 	async logFile(uri: Uri, options?: LogFileOptions, cancellationToken?: CancellationToken): Promise<Commit[]> {
-		const args = ['-c', 'i18n.logOutputEncoding=UTF-8', 'log', `--format=${COMMIT_FORMAT}`, '-z'];
+		const args = ['log', `--format=${COMMIT_FORMAT}`, '-z'];
 
 		if (options?.maxEntries && !options?.reverse) {
 			args.push(`-n${options.maxEntries}`);
@@ -1585,10 +1527,6 @@ export class Repository {
 
 		if (options?.shortStats) {
 			args.push('--shortstat');
-		}
-
-		if (options?.filePaths) {
-			args.push('--numstat');
 		}
 
 		if (options?.sortByAuthorDate) {
@@ -1608,7 +1546,7 @@ export class Repository {
 				return [];
 			}
 
-			return options?.filePaths ? parseGitFileLog(result.stdout) : parseGitCommits(result.stdout);
+			return parseGitCommits(result.stdout);
 		} catch (err) {
 			// Repository has no commits yet
 			if (/does not have any commits yet/.test(err.stderr)) {
@@ -2268,18 +2206,6 @@ export class Repository {
 		await this.exec(args);
 	}
 
-	async updateRef(ref: string, newSha: string, oldSha: string): Promise<void> {
-		const branch = ref.slice('refs/heads/'.length);
-		if (!ref.startsWith('refs/heads/') || !branch || branch.startsWith('-')) {
-			throw new Error('Expected a local branch ref');
-		}
-
-		assertValidObjectId(newSha);
-		assertValidObjectId(oldSha, true);
-		await this.exec(['check-ref-format', '--branch', branch]);
-		await this.exec(['update-ref', '--no-deref', ref, newSha, oldSha]);
-	}
-
 	async merge(ref: string): Promise<void> {
 		const args = ['merge', ref];
 
@@ -2391,14 +2317,6 @@ export class Repository {
 	async reset(treeish: string, hard: boolean = false): Promise<void> {
 		const args = ['reset', hard ? '--hard' : '--soft', treeish];
 		await this.exec(args);
-	}
-
-	async resetKeep(ref: string): Promise<void> {
-		if (!ref || ref.startsWith('-')) {
-			throw new Error('Expected a commit reference');
-		}
-
-		await this.exec(['reset', '--keep', ref]);
 	}
 
 	async revert(treeish: string, paths: string[]): Promise<void> {
@@ -2517,16 +2435,17 @@ export class Repository {
 			env: { 'GIT_HTTP_USER_AGENT': this.git.userAgent }
 		};
 
+		args.push(options.remote);
+
+		for (const tag of options.tags) {
+			args.push(`refs/tags/${tag}:refs/tags/${tag}`);
+		}
+
 		if (options.force) {
 			args.push('--force');
 		}
 
-		args.push(options.remote);
-
-		const refspecs = options.tags.map(tag => `refs/tags/${tag}:refs/tags/${tag}`);
-		for (const chunk of splitInChunks(refspecs, MAX_CLI_LENGTH)) {
-			await this.exec([...args, ...chunk], spawnOptions);
-		}
+		await this.exec(args, spawnOptions);
 	}
 
 	async pull(rebase?: boolean, remote?: string, branch?: string, options: PullOptions = {}): Promise<boolean> {
@@ -2582,21 +2501,13 @@ export class Repository {
 		}
 	}
 
-	async rebase(branch: string, options: { onto?: string; rebaseMerges?: boolean } = {}): Promise<void> {
+	async rebase(branch: string, options: PullOptions = {}): Promise<void> {
 		const args = ['rebase'];
-
-		if (options.rebaseMerges) {
-			args.push('--rebase-merges');
-		}
-
-		if (options.onto !== undefined) {
-			args.push('--onto', options.onto);
-		}
 
 		args.push(branch);
 
 		try {
-			await this.exec(args);
+			await this.exec(args, options);
 		} catch (err) {
 			if (/^CONFLICT \([^)]+\): \b/m.test(err.stdout || '')) {
 				err.gitErrorCode = GitErrorCodes.Conflict;
@@ -2608,11 +2519,11 @@ export class Repository {
 		}
 	}
 
-	async push(remote?: string, name?: string, setUpstream: boolean = false, followTags = false, forcePushMode?: ForcePushMode, tags = false, lease?: { branch: string; expectedSha: string }): Promise<void> {
+	async push(remote?: string, name?: string, setUpstream: boolean = false, followTags = false, forcePushMode?: ForcePushMode, tags = false): Promise<void> {
 		const args = ['push'];
 
 		if (forcePushMode === ForcePushMode.ForceWithLease || forcePushMode === ForcePushMode.ForceWithLeaseIfIncludes) {
-			args.push(lease ? `--force-with-lease=refs/heads/${lease.branch}:${lease.expectedSha}` : '--force-with-lease');
+			args.push('--force-with-lease');
 			if (forcePushMode === ForcePushMode.ForceWithLeaseIfIncludes && this._git.compareGitVersionTo('2.30') !== -1) {
 				args.push('--force-if-includes');
 			}
@@ -2626,8 +2537,6 @@ export class Repository {
 
 		if (followTags) {
 			args.push('--follow-tags');
-		} else if (lease) {
-			args.push('--no-follow-tags');
 		}
 
 		if (tags) {
@@ -2663,17 +2572,6 @@ export class Repository {
 
 			throw err;
 		}
-	}
-
-	async pushRefWithLease(remote: string, branch: string, newSha: string, expectedSha: string): Promise<void> {
-		if (!remote || remote.startsWith('-') || !branch || branch.startsWith('-')) {
-			throw new Error('Expected a remote and a branch name');
-		}
-
-		assertValidObjectId(newSha);
-		assertValidObjectId(expectedSha, true);
-		await this.exec(['check-ref-format', '--branch', branch]);
-		await this.push(remote, `${newSha}:refs/heads/${branch}`, false, false, ForcePushMode.ForceWithLease, false, { branch, expectedSha });
 	}
 
 	async cherryPick(commitHash: string): Promise<void> {
@@ -2714,7 +2612,7 @@ export class Repository {
 
 	async blame2(path: string, ref?: string, ignoreWhitespace?: boolean): Promise<BlameInformation[] | undefined> {
 		try {
-			const args = ['-c', 'i18n.logOutputEncoding=UTF-8', 'blame', '--root', '--incremental'];
+			const args = ['blame', '--root', '--incremental'];
 
 			if (ignoreWhitespace) {
 				args.push('-w');
@@ -3101,9 +2999,9 @@ export class Repository {
 		const fn = (line: string): Ref | null => {
 			let match: RegExpExecArray | null;
 
-			if (match = /^((?:[0-9a-f]{40}|[0-9a-f]{64}))\trefs\/heads\/([^ ]+)$/.exec(line)) {
-				return { name: match[2], commit: match[1], type: RefType.Head };
-			} else if (match = /^((?:[0-9a-f]{40}|[0-9a-f]{64}))\trefs\/tags\/([^ ]+)$/.exec(line)) {
+			if (match = /^([0-9a-f]{40})\trefs\/heads\/([^ ]+)$/.exec(line)) {
+				return { name: match[1], commit: match[2], type: RefType.Head };
+			} else if (match = /^([0-9a-f]{40})\trefs\/tags\/([^ ]+)$/.exec(line)) {
 				return { name: match[2], commit: match[1], type: RefType.Tag };
 			}
 
@@ -3164,7 +3062,8 @@ export class Repository {
 
 					result.push({
 						name: dirent.name,
-						path: getWorktreePathFromGitdir(path.dirname(gitdirPath), gitdirContent),
+						// Remove '/.git' suffix
+						path: gitdirContent.replace(/\/.git.*$/, ''),
 						// Remove 'ref: ' prefix
 						ref: headContent.replace(/^ref: /, ''),
 						// Detached if HEAD does not start with 'ref: '
@@ -3404,7 +3303,7 @@ export class Repository {
 	}
 
 	async getCommit(ref: string): Promise<Commit> {
-		const result = await this.exec(['-c', 'i18n.logOutputEncoding=UTF-8', 'show', '-s', '--decorate=full', '--shortstat', `--format=${COMMIT_FORMAT}`, '-z', ref, '--']);
+		const result = await this.exec(['show', '-s', '--decorate=full', '--shortstat', `--format=${COMMIT_FORMAT}`, '-z', ref, '--']);
 		const commits = parseGitCommits(result.stdout);
 		if (commits.length === 0) {
 			return Promise.reject<Commit>('bad commit format');
@@ -3414,7 +3313,7 @@ export class Repository {
 
 	async showChanges(ref: string): Promise<string> {
 		try {
-			const result = await this.exec(['-c', 'i18n.logOutputEncoding=UTF-8', 'log', '-p', '-n1', ref, '--']);
+			const result = await this.exec(['log', '-p', '-n1', ref, '--']);
 			return result.stdout.trim();
 		} catch (err) {
 			if (/^fatal: bad revision '.+'/.test(err.stderr || '')) {
@@ -3427,7 +3326,7 @@ export class Repository {
 
 	async showChangesBetween(ref1: string, ref2: string, path?: string): Promise<string> {
 		try {
-			const args = ['-c', 'i18n.logOutputEncoding=UTF-8', 'log', '-p', `${ref1}..${ref2}`, '--'];
+			const args = ['log', '-p', `${ref1}..${ref2}`, '--'];
 			if (path) {
 				args.push(this.sanitizeRelativePath(path));
 			}

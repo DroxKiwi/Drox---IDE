@@ -440,12 +440,6 @@
 				D.state.runRevertFileCount = typeof m.fileCount === 'number' ? m.fileCount : 0;
 				fn.updateRunRevertButton();
 				break;
-			case 'llmTurnPrepared':
-			case 'railStationDone':
-			case 'railStationHold':
-			case 'runRouting':
-			case 'sessionHistoryPageDone':
-				break;
 			default:
 				break;
 		}

@@ -29,7 +29,8 @@ app.once('ready', () => {
 		height: 600,
 		webPreferences: {
 			nodeIntegration: true,
-			contextIsolation: false
+			contextIsolation: false,
+			enableWebSQL: false
 		}
 	});
 	window.setMenuBarVisibility(false);

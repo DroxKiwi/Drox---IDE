@@ -17,9 +17,6 @@ export interface IBannerItem {
 	readonly ariaLabel?: string;
 	readonly onClose?: () => void;
 	readonly closeLabel?: string;
-	/** Higher-priority banners are shown first. Equal priorities use the most recently shown item. */
-	readonly priority?: number;
-	readonly neutral?: boolean;
 }
 
 export const IBannerService = createDecorator<IBannerService>('bannerService');

@@ -20,7 +20,6 @@ import { URI } from '../../../util/vs/base/common/uri';
 import { ExtendedLanguageModelToolResult, LanguageModelTextPart, MarkdownString } from '../../../vscodeTypes';
 import { isCustomizationsIndex } from '../../prompt/common/chatVariablesCollection';
 import { IBuildPromptContext } from '../../prompt/common/intents';
-import { getGitHubCopilotRequestTeForToolCall } from '../../prompt/common/toolCallRound';
 import { ToolName } from '../common/toolNames';
 import { CopilotToolMode, ICopilotTool, ToolRegistry } from '../common/toolsRegistry';
 import { IToolsService } from '../common/toolsService';
@@ -66,7 +65,7 @@ class SkillTool implements ICopilotTool<ISkillParams> {
 		// Emit skill content read telemetry
 		const skillInfo = this.customInstructionsService.getSkillInfo(uri);
 		if (skillInfo) {
-			sendSkillContentReadTelemetry(this.telemetryService, this.customInstructionsService, this.extensionsService, uri, skillInfo, skillContent, getGitHubCopilotRequestTeForToolCall(this._inputContext?.toolCallRounds, options.chatStreamToolCallId));
+			sendSkillContentReadTelemetry(this.telemetryService, this.customInstructionsService, this.extensionsService, uri, skillInfo, skillContent);
 		}
 
 		const mode = parseSkillContext(skillContent);

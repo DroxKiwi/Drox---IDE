@@ -12,7 +12,3 @@
 	color: var(--vscode-descriptionForeground);
 	opacity: 0.8;
 }
-
-.chat-disabled-claude-hooks-icon {
-	font-size: var(--vscode-codiconFontSize-compact);
-}

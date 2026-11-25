@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
+import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { LogLevel } from '../../../log/common/log.js';
 import {
@@ -24,8 +25,10 @@ import {
 
 suite('OtlpLogEmitter', () => {
 
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	const disposables = new DisposableStore();
 
+	teardown(() => disposables.clear());
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('level <-> severity number mappings are inverse-ish', () => {
 		// Each VS Code level → severity number, then back, should land on

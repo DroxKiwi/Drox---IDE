@@ -88,9 +88,8 @@ export class SnapshotContext {
 	public async removeOldSnapshots() {
 		const contents = await __readDirInTests(this.snapshotsDir.fsPath);
 		const toDelete = contents.filter(f => f.startsWith(this.namePrefix) && !this.usedNames.has(f));
-		const oldSnapshots = toDelete.filter(f => !f.endsWith('.actual'));
-		if (oldSnapshots.length) {
-			console.info(`Deleting ${oldSnapshots.length} old snapshots for ${this.test?.fullTitle()}`);
+		if (toDelete.length) {
+			console.info(`Deleting ${toDelete.length} old snapshots for ${this.test?.fullTitle()}`);
 		}
 
 		await Promise.all(toDelete.map(f => __unlinkInTests(URI.joinPath(this.snapshotsDir, f).fsPath)));

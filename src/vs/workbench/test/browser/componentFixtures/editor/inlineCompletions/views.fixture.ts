@@ -95,7 +95,7 @@ function renderInlineEdit(options: InlineEditOptions): void {
 
 	editor.setModel(textModel);
 	editor.setPosition({ lineNumber: options.cursorLine, column: 1 });
-	options.focus(editor);
+	editor.focus();
 
 	// Trigger inline completions
 	const controller = InlineCompletionsController.get(editor);

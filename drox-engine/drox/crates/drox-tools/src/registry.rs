@@ -5,17 +5,15 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::error::ToolError;
-use crate::normalize_for_schema::normalize_for_schema;
 use crate::tool_context::ToolContext;
+use crate::error::ToolError;
 use crate::simple::{
     AskUserQuestionTool, BashTool, CodebaseSearchTool, DeletePathTool, ExitPlanModeTool, FileEditTool, FileReadTool,
     FileWriteTool, GlobTool, GrepTool, LspTool, MemoryListTool, MemoryReadTool, NotebookEditTool,
     SkillListTool, SkillReadTool, GitWorktreeEnterTool, GitWorktreeExitTool, CopyPathTool,
     ExploreArtifactReadTool, ExploreIndexListTool, ScopeDeferTool,
-    ProjectRuleWriteTool, SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool,
-    TaskTool, TodoWriteTool, WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool,
-    SdtcmAlignTool,
+    SessionCompactTool, SessionEndTool, SessionSearchTool, SessionNoteTool, TaskTool, TodoWriteTool,
+    WebFetchTool, WebSearchTool, WorkspaceMapNoteTool, WorkspaceMapReadTool, SdtcmAlignTool,
 };
 use crate::tool::{DynTool, Tool};
 
@@ -75,7 +73,6 @@ impl ToolRegistry {
         reg.register(coerce_tool(ScopeDeferTool));
         reg.register(coerce_tool(WorkspaceMapReadTool));
         reg.register(coerce_tool(WorkspaceMapNoteTool));
-        reg.register(coerce_tool(ProjectRuleWriteTool));
         reg.register(coerce_tool(SessionNoteTool));
         reg.register(coerce_tool(MemoryReadTool));
         reg.register(coerce_tool(MemoryListTool));
@@ -138,8 +135,6 @@ impl ToolRegistry {
         let tool = self
             .get(name)
             .ok_or_else(|| ToolError::UnknownTool(name.to_string()))?;
-        let schema = tool.input_schema();
-        tool.execute(ctx, normalize_for_schema(input, &schema))
-            .await
+        tool.execute(ctx, input).await
     }
 }

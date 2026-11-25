@@ -37,8 +37,7 @@ export class McpStdioStateHandler implements IDisposable {
 
 	constructor(
 		private readonly _child: ChildProcessWithoutNullStreams,
-		private readonly _log: (message: string) => void,
-		private readonly _graceTimeMs: number = McpStdioStateHandler.GRACE_TIME_MS,
+		private readonly _graceTimeMs: number = McpStdioStateHandler.GRACE_TIME_MS
 	) { }
 
 	/**
@@ -69,7 +68,7 @@ export class McpStdioStateHandler implements IDisposable {
 
 		if (this._child.pid) {
 			if (!isWindows) {
-				await killTree(this._child.pid, false, this._log).catch(() => {
+				await killTree(this._child.pid, false).catch(() => {
 					this._child.kill('SIGTERM');
 				});
 			}
@@ -82,7 +81,7 @@ export class McpStdioStateHandler implements IDisposable {
 		this._procState = McpProcessState.KilledForceful;
 
 		if (this._child.pid) {
-			await killTree(this._child.pid, true, this._log).catch(() => {
+			await killTree(this._child.pid, true).catch(() => {
 				this._child.kill('SIGKILL');
 			});
 		} else {

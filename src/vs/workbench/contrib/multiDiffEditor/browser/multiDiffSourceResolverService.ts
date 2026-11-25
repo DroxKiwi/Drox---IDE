@@ -28,7 +28,6 @@ export interface IMultiDiffSourceResolver {
 
 export interface IResolvedMultiDiffSource {
 	readonly resources: IValueWithChangeEvent<readonly MultiDiffEditorItem[]>;
-	readonly label?: IValueWithChangeEvent<string>;
 	readonly contextKeys?: Record<string, ContextKeyValue>;
 }
 

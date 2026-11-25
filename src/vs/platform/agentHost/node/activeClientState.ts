@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { equals } from '../../../base/common/objects.js';
-import { readAgentToolOrigin } from '../common/meta/agentToolDefinitionMeta.js';
 import type { ToolDefinition } from '../common/state/protocol/state.js';
 
 /**
@@ -18,7 +17,7 @@ export interface IActiveClientStructuralSnapshot {
 }
 
 /**
- * Deep-equal two client-tool snapshots on `name + description + inputSchema + origin`.
+ * Deep-equal two client-tool snapshots on `name + description + inputSchema`.
  * `undefined` and `[]` compare equal. Order-insensitive.
  *
  * Single shared implementation for the agent-host providers — previously
@@ -47,9 +46,6 @@ export function structuralToolsEqual(
 			return false;
 		}
 		if (!equals(prev.inputSchema, t.inputSchema)) {
-			return false;
-		}
-		if (readAgentToolOrigin(prev) !== readAgentToolOrigin(t)) {
 			return false;
 		}
 	}
@@ -108,20 +104,14 @@ export class ActiveClientToolSet {
 
 	/**
 	 * The union of every client's tools, deduplicated by `name` with the
-	 * preferred client winning, then client insertion order. Only included
-	 * clients participate in selection.
+	 * first-inserted contributor winning. Order follows client insertion
+	 * order, then per-client tool order.
 	 */
-	merged(preferredClientId?: string, includesClient: (clientId: string) => boolean = () => true): readonly ToolDefinition[] {
+	merged(): readonly ToolDefinition[] {
 		const seen = new Set<string>();
 		const result: ToolDefinition[] = [];
-		const clientIds = preferredClientId && this._byClient.has(preferredClientId)
-			? [preferredClientId, ...[...this._byClient.keys()].filter(clientId => clientId !== preferredClientId)]
-			: this._byClient.keys();
-		for (const clientId of clientIds) {
-			if (!includesClient(clientId)) {
-				continue;
-			}
-			for (const tool of this.get(clientId)) {
+		for (const tools of this._byClient.values()) {
+			for (const tool of tools) {
 				if (seen.has(tool.name)) {
 					continue;
 				}
@@ -133,14 +123,12 @@ export class ActiveClientToolSet {
 	}
 
 	/**
-	 * The `clientId` that owns the tool named `toolName`, or `undefined` when
-	 * no active client provides it. When `preferredClientId` currently provides
-	 * the tool it wins; otherwise the first-inserted contributor wins.
+	 * The `clientId` that owns the merged tool named `toolName` (the
+	 * first-inserted contributor of that name), or `undefined` when no active
+	 * client provides it. Used to stamp client tool calls with their owning
+	 * client at invocation time.
 	 */
-	ownerOf(toolName: string, preferredClientId?: string): string | undefined {
-		if (preferredClientId && this.get(preferredClientId).some(tool => tool.name === toolName)) {
-			return preferredClientId;
-		}
+	ownerOf(toolName: string): string | undefined {
 		for (const [clientId, tools] of this._byClient) {
 			if (tools.some(tool => tool.name === toolName)) {
 				return clientId;

@@ -382,6 +382,7 @@ suite('Terminal history', () => {
 				remoteConnection = { remoteAuthority: 'some-remote' };
 				fileScheme = Schemas.vscodeRemote;
 				filePath = '/home/user/.zsh_history';
+				originalEnvValues = { HOME: env['HOME'], APPDATA: env['APPDATA'] };
 			});
 			teardown(() => {
 				if (originalEnvValues['HOME'] === undefined) {

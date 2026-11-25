@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { ILocalGitCommit } from '../../../../../platform/git/common/droxLocalGitService.js';
+import { ILocalGitCommit } from '../../../../../platform/git/common/localGitService.js';
 
 /** Horizontal spacing between branch swimlanes (Git Graph–style indentation). */
 export const DROX_GIT_GRAPH_LANE_WIDTH = 22;

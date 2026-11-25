@@ -3,25 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IBufferCell, IEvent } from '@xterm/xterm';
+import { IBufferCell } from '@xterm/xterm';
 
-export type XtermAttributes = Omit<IBufferCell, 'getWidth' | 'getChars' | 'getCode'> & {
-	clone?(): XtermAttributes;
-	hasExtendedAttrs?(): number;
-};
+export type XtermAttributes = Omit<IBufferCell, 'getWidth' | 'getChars' | 'getCode'> & { clone?(): XtermAttributes };
 
 export interface IXtermCore {
-	coreService: {
-		isCursorHidden: boolean;
-		onUserInput: IEvent<void>;
-	};
-
-	_bufferService: {
-		buffer: {
-			setWrapped(lineIndex: number, isWrapped: boolean): void;
-		};
-	};
-
 	viewport?: {
 		readonly scrollBarWidth: number;
 		_innerRefresh(): void;
@@ -29,10 +15,6 @@ export interface IXtermCore {
 
 	_inputHandler: {
 		_curAttrData: XtermAttributes;
-	};
-
-	_writeBuffer: {
-		_pendingData: number;
 	};
 
 	_renderService: {

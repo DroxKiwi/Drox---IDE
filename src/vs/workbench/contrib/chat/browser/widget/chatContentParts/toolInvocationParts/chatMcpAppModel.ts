@@ -6,23 +6,21 @@
 import * as dom from '../../../../../../../base/browser/dom.js';
 import { IMouseWheelEvent } from '../../../../../../../base/browser/mouseEvent.js';
 import { softAssertNever } from '../../../../../../../base/common/assert.js';
-import { DeferredPromise, disposableTimeout } from '../../../../../../../base/common/async.js';
+import { disposableTimeout } from '../../../../../../../base/common/async.js';
 import { decodeBase64 } from '../../../../../../../base/common/buffer.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../../../../base/common/cancellation.js';
-import { CancellationError } from '../../../../../../../base/common/errors.js';
 import { Emitter, Event } from '../../../../../../../base/common/event.js';
 import { hash } from '../../../../../../../base/common/hash.js';
 import { MarkdownString } from '../../../../../../../base/common/htmlContent.js';
-import { Disposable, DisposableStore, IDisposable, MutableDisposable, toDisposable } from '../../../../../../../base/common/lifecycle.js';
-import { autorun, autorunSelfDisposable, constObservable, IObservable, observableFromEvent, observableValue } from '../../../../../../../base/common/observable.js';
+import { Disposable } from '../../../../../../../base/common/lifecycle.js';
+import { autorun, autorunSelfDisposable, IObservable, observableValue } from '../../../../../../../base/common/observable.js';
 import { basename } from '../../../../../../../base/common/resources.js';
 import { isFalsyOrWhitespace } from '../../../../../../../base/common/strings.js';
 import { hasKey, isDefined } from '../../../../../../../base/common/types.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { generateUuid } from '../../../../../../../base/common/uuid.js';
 import { localize } from '../../../../../../../nls.js';
-import { toAgentHostUri } from '../../../../../../../platform/agentHost/common/agentHostUri.js';
-import { McpServerStatus } from '../../../../../../../platform/agentHost/common/state/protocol/state.js';
+import { IChatResponseResourceFileSystemProvider } from '../../../../common/widget/chatResponseResourceFileSystemProvider.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../../../../platform/log/common/log.js';
 import { IOpenerService } from '../../../../../../../platform/opener/common/opener.js';
@@ -33,13 +31,10 @@ import { IMcpAppResourceContent, McpToolCallUI } from '../../../../../mcp/browse
 import { McpResourceURI } from '../../../../../mcp/common/mcpTypes.js';
 import { MCP } from '../../../../../mcp/common/modelContextProtocol.js';
 import { McpApps } from '../../../../../mcp/common/modelContextProtocolApps.js';
-import { IOverlayWebview, IWebviewService, WebviewContentPurpose, WebviewOriginStore } from '../../../../../webview/browser/webview.js';
+import { IWebviewElement, IWebviewService, WebviewContentPurpose, WebviewOriginStore } from '../../../../../webview/browser/webview.js';
 import { IChatRequestVariableEntry } from '../../../../common/attachments/chatVariableEntries.js';
 import { IChatToolInvocation, IChatToolInvocationSerialized } from '../../../../common/chatService/chatService.js';
-import { IChatResponseResourceFileSystemProvider } from '../../../../common/widget/chatResponseResourceFileSystemProvider.js';
 import { isToolResultInputOutputDetails, IToolResult } from '../../../../common/tools/languageModelToolsService.js';
-import { IAgentHostCustomizationService } from '../../../agentSessions/agentHost/agentHostCustomizationService.js';
-import { IAgentHostMcpAppToolProvider, IAgentHostMcpAppToolsService } from '../../../agentSessions/agentHost/agentHostMcpAppToolsService.js';
 import { IChatWidgetService } from '../../../chat.js';
 import { IChatCollapsibleIODataPart } from '../chatToolInputOutputContentPart.js';
 import { IMcpAppRenderData } from './chatMcpAppSubPart.js';
@@ -52,24 +47,14 @@ const ORIGIN_STORE_KEY = 'chatMcpApp.origins';
  */
 export type McpAppLoadState =
 	| { readonly status: 'loading' }
-	| { readonly status: 'unavailable' }
 	| { readonly status: 'loaded' }
 	| { readonly status: 'error'; readonly error: Error };
 
-/** Dimensions supplied by the latest view attached to an MCP App. */
-export interface IMcpAppLayout {
-	readonly targetWindow: ReturnType<typeof dom.getWindow>;
-	readonly maxHeight: IObservable<number>;
-	readonly currentWidth: IObservable<number>;
-	/** Element the app overlay is clipped to; defaults to the nearest scrollable element. */
-	readonly clippingContainer?: HTMLElement;
-}
-
 /**
  * Model that owns an MCP App webview and all its state/logic.
- * The overlay is claimed lazily and retains hidden iframe context only while providing tools.
+ * The webview is created lazily on first claim and survives across re-renders.
  */
-export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolProvider {
+export class ChatMcpAppModel extends Disposable {
 	private static readonly heightCache = new WeakMap<IChatToolInvocation | IChatToolInvocationSerialized, number>();
 
 	/**
@@ -86,23 +71,8 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 	/** Origin store for persistent webview origins per server (local MCP only) */
 	private readonly _originStore: WebviewOriginStore;
 
-	private readonly _webview: IOverlayWebview;
-	private readonly _layout = observableValue<Pick<IMcpAppLayout, 'maxHeight' | 'currentWidth'> | undefined>(this, undefined);
-	private _attachment: { readonly container: HTMLElement; readonly clippingContainer?: HTMLElement; visible: boolean } | undefined;
-	private _overlayWindow: ReturnType<typeof dom.getWindow> | undefined;
-	private _webviewClaimed = false;
-	private _webviewContextAlive = false;
-	private _hiddenRetentionEnabled = true;
-	private readonly _appDisposables = this._register(new DisposableStore());
-	private _hasAttached = false;
-	private _appInitialized = false;
-	private _appProvidesTools = false;
-	private _toolsGeneration = 0;
-	private readonly _toolsRefreshCts = this._register(new MutableDisposable<CancellationTokenSource>());
-	private _nextRequestId = 0;
-	private readonly _pendingRequests = new Map<MCP.RequestId, DeferredPromise<MCP.Result>>();
-	private readonly _tools = observableValue<readonly MCP.Tool[]>(this, []);
-	public readonly tools: IObservable<readonly MCP.Tool[]> = this._tools;
+	/** The webview element instance */
+	private readonly _webview: IWebviewElement;
 
 	/** Tool call UI for loading resources and proxying calls */
 	private readonly _mcpToolCallUI: McpToolCallUI;
@@ -126,8 +96,6 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 	private readonly _loadState = observableValue<McpAppLoadState>(this, { status: 'loading' });
 	public readonly loadState: IObservable<McpAppLoadState> = this._loadState;
 
-	public readonly server: IObservable<ReturnType<IAgentHostCustomizationService['getMcpServers']>[number] | undefined>;
-
 	/** Event fired when height changes */
 	private readonly _onDidChangeHeight = this._register(new Emitter<void>());
 	public readonly onDidChangeHeight: Event<void> = this._onDidChangeHeight.event;
@@ -142,7 +110,9 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 	constructor(
 		public readonly toolInvocation: IChatToolInvocation | IChatToolInvocationSerialized,
 		public readonly renderData: IMcpAppRenderData,
-		private readonly _createIntersectionObserver: (callback: IntersectionObserverCallback, targetWindow: ReturnType<typeof dom.getWindow>) => IntersectionObserver = (callback, targetWindow) => new targetWindow.IntersectionObserver(callback),
+		private readonly _container: HTMLElement,
+		maxHeight: IObservable<number>,
+		currentWidth: IObservable<number>,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IChatWidgetService private readonly _chatWidgetService: IChatWidgetService,
 		@IWebviewService private readonly _webviewService: IWebviewService,
@@ -151,8 +121,6 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 		@ILogService private readonly _logService: ILogService,
 		@IProductService private readonly _productService: IProductService,
 		@IOpenerService private readonly _openerService: IOpenerService,
-		@IAgentHostCustomizationService agentHostCustomizationService: IAgentHostCustomizationService,
-		@IAgentHostMcpAppToolsService mcpAppToolsService: IAgentHostMcpAppToolsService,
 	) {
 		super();
 
@@ -161,13 +129,15 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 		this._mcpToolCallUI = this._register(this._instantiationService.createInstance(McpToolCallUI, renderData));
 		this._height = ChatMcpAppModel.heightCache.get(this.toolInvocation) ?? 300;
 
-		this._webview = this._register(this._webviewService.createWebviewOverlay({
+		// Create the webview element
+		this._webview = this._register(this._webviewService.createWebviewElement({
 			origin: this._webviewOrigin,
-			title: localize('mcpAppTitle', "MCP App"),
+			title: localize('mcpAppTitle', 'MCP App'),
 			options: {
 				purpose: WebviewContentPurpose.ChatOutputItem,
 				enableFindWidget: false,
 				disableServiceWorker: true,
+				retainContextWhenHidden: true,
 			},
 			contentOptions: {
 				allowMultipleAPIAcquire: true,
@@ -176,25 +146,23 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 			},
 			extension: undefined,
 		}));
-		if (renderData.kind === 'agentHost') {
-			this._register(mcpAppToolsService.registerApp(renderData.sessionResource, this));
-		}
+
+		// Mount the webview to the container
+		const targetWindow = dom.getWindow(this._container);
+		this._webview.mountTo(this._container, targetWindow);
 
 		// Build host context observable
-		this.hostContext = this._mcpToolCallUI.hostContext.map((context, reader) => {
-			const layout = this._layout.read(reader);
-			return {
-				...context,
-				containerDimensions: layout ? {
-					width: layout.currentWidth.read(reader),
-					maxHeight: layout.maxHeight.read(reader),
-				} : undefined,
-				toolCall: {
-					toolCallId: this.toolInvocation.toolCallId,
-					toolName: this.toolInvocation.toolId,
-				},
-			};
-		});
+		this.hostContext = this._mcpToolCallUI.hostContext.map((context, reader) => ({
+			...context,
+			containerDimensions: {
+				width: currentWidth.read(reader),
+				maxHeight: maxHeight.read(reader),
+			},
+			toolCall: {
+				toolCallId: this.toolInvocation.toolCallId,
+				toolName: this.toolInvocation.toolId,
+			},
+		}));
 
 		// Set up host context change notifications
 		this._register(autorun(reader => {
@@ -219,20 +187,8 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 			this._webview.postMessage({ jsonrpc: '2.0', method: n.method, params: n.params });
 		}));
 
-		this.server = observableFromEvent(this, agentHostCustomizationService.onDidChangeCustomizations, () => {
-			if (renderData.kind !== 'agentHost' || !renderData.serverName) {
-				return undefined;
-			}
-			return agentHostCustomizationService.getMcpServers(renderData.sessionResource).find(server => server.name === renderData.serverName);
-		});
-		const serverStatus = this.server.map(server => server?.status);
-		this._register(autorun(reader => {
-			serverStatus.read(reader);
-			// Only status changes auto-retry an unavailable load, not other customization updates.
-			if (this._loadState.read(undefined).status === 'unavailable') {
-				this.retry();
-			}
-		}));
+		// Start loading the content
+		this._loadContent();
 	}
 
 	/**
@@ -242,116 +198,15 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 		return this._height;
 	}
 
-	/** Attaches the app to a view without transferring ownership of its webview. */
-	public attach(container: HTMLElement, layout: IMcpAppLayout): IDisposable {
-		const store = new DisposableStore();
-		const attachment = { container, clippingContainer: layout.clippingContainer, visible: false };
-		this._attachment = attachment;
-		this._layout.set(layout, undefined);
-		const targetWindow = layout.targetWindow;
-		const overlay = this._webview;
-		this._releaseWebview();
-		const observer = this._createIntersectionObserver(entries => {
-			if (this._attachment !== attachment || this._disposeCts.token.isCancellationRequested) {
-				return;
-			}
-			attachment.visible = entries.some(entry => entry.isIntersecting) && container.isConnected && container.checkVisibility();
-			if (attachment.visible) {
-				if (this._overlayWindow && this._overlayWindow !== targetWindow) {
-					this._resetApp();
-				}
-				this._overlayWindow = targetWindow;
-				overlay.claim(this, targetWindow, undefined);
-				this._webviewClaimed = true;
-				this._webviewContextAlive = true;
-				overlay.setAnchorElement(container, this._getClippingContainer(attachment));
-			} else {
-				this._releaseWebview();
-			}
-		}, targetWindow);
-		store.add(toDisposable(() => observer.disconnect()));
-		observer.observe(container);
-		store.add(toDisposable(() => {
-			if (this._attachment === attachment) {
-				this._attachment = undefined;
-				this._layout.set({
-					maxHeight: constObservable(layout.maxHeight.get()),
-					currentWidth: constObservable(layout.currentWidth.get()),
-				}, undefined);
-				this._releaseWebview();
-			}
-		}));
-		if (!this._hasAttached) {
-			this._hasAttached = true;
-			void this._loadContent();
-		}
-		return store;
-	}
-
-	public remount(): void {
-		if (this._attachment?.visible) {
-			const container = this._attachment.container;
-			if (container.isConnected && container.checkVisibility()) {
-				this._webview.setAnchorElement(container, this._getClippingContainer(this._attachment));
-			} else {
-				this._attachment.visible = false;
-				this._releaseWebview();
-			}
-		}
-	}
-
-	private _getClippingContainer(attachment: { readonly container: HTMLElement; readonly clippingContainer?: HTMLElement }): HTMLElement | undefined {
-		return attachment.clippingContainer ?? dom.findParentWithClass(attachment.container, 'monaco-scrollable-element') ?? undefined;
-	}
-
-	private _releaseWebview(): void {
-		if (!this._webviewClaimed) {
-			return;
-		}
-		this._webview.release(this);
-		this._webviewClaimed = false;
-		if (!this._webview.options.retainContextWhenHidden) {
-			this._webviewContextAlive = false;
-			this._resetApp();
-		}
-	}
-
-	private _setTools(tools: readonly MCP.Tool[]): void {
-		if (this._updateRetention(this._hiddenRetentionEnabled && tools.length > 0)) {
-			this._resetApp();
-		} else {
-			this._tools.set(tools, undefined);
-		}
-	}
-
-	/** Updates hidden-frame eligibility without interrupting a visible app or disposing its view model. */
-	public setHiddenRetentionEnabled(enabled: boolean): void {
-		this._hiddenRetentionEnabled = enabled;
-		if (this._updateRetention(enabled && this._tools.get().length > 0)) {
-			this._resetApp();
-		}
-	}
-
-	/** Returns whether disabling retention destroyed an already-hidden iframe. */
-	private _updateRetention(retainContextWhenHidden: boolean): boolean {
-		this._webview.options = { ...this._webview.options, retainContextWhenHidden };
-		if (!retainContextWhenHidden && this._webviewContextAlive && !this._webviewClaimed && this._overlayWindow) {
-			// A released overlay must be reclaimed before release can destroy its retained iframe.
-			this._webview.claim(this, this._overlayWindow, undefined);
-			this._webview.release(this);
-			this._webviewContextAlive = false;
-			return true;
-		}
-		return false;
+	public remount() {
+		this._webview.reinitializeAfterDismount();
+		this._announcedCapabilities = false;
 	}
 
 	/**
 	 * Retries loading the MCP App content.
 	 */
 	public retry(): void {
-		if (this._loadState.get().status === 'loading' || this._disposeCts.token.isCancellationRequested) {
-			return;
-		}
 		this._loadState.set({ status: 'loading' }, undefined);
 		this._loadContent();
 	}
@@ -360,7 +215,6 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 	 * Loads the MCP App content into the webview.
 	 */
 	private async _loadContent(): Promise<void> {
-		this._resetApp();
 		const token = this._disposeCts.token;
 
 		try {
@@ -382,16 +236,8 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 
 			this._loadState.set({ status: 'loaded' }, undefined);
 		} catch (error) {
-			if (token.isCancellationRequested) {
-				return;
-			}
-			if (this.renderData.kind === 'agentHost' && this.renderData.serverName && this.server.get()?.status !== McpServerStatus.Ready) {
-				this._logService.trace('[MCP App] Server unavailable while loading app:', error);
-				this._loadState.set({ status: 'unavailable' }, undefined);
-			} else {
-				this._logService.error('[MCP App] Error loading app:', error);
-				this._loadState.set({ status: 'error', error: error as Error }, undefined);
-			}
+			this._logService.error('[MCP App] Error loading app:', error);
+			this._loadState.set({ status: 'error', error: error as Error }, undefined);
 		}
 	}
 
@@ -419,8 +265,8 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 
 		const cspContent = `
 			default-src 'none';
-			script-src 'self' 'unsafe-inline' 'unsafe-eval' ${cleanDomains(csp?.resourceDomains)};
-			style-src 'self' 'unsafe-inline' 'unsafe-eval' ${cleanDomains(csp?.resourceDomains)};
+			script-src 'self' 'unsafe-inline' ${cleanDomains(csp?.resourceDomains)};
+			style-src 'self' 'unsafe-inline' ${cleanDomains(csp?.resourceDomains)};
 			connect-src 'self' ${cleanDomains(csp?.connectDomains)};
 			img-src 'self' data: ${cleanDomains(csp?.resourceDomains)};
 			font-src 'self' ${cleanDomains(csp?.resourceDomains)};
@@ -589,23 +435,6 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 	 * Handles incoming JSON-RPC messages from the webview.
 	 */
 	private async _handleWebviewMessage(message: McpApps.AppMessage): Promise<void> {
-		if (this._disposeCts.token.isCancellationRequested) {
-			return;
-		}
-		if (!hasKey(message, { method: true })) {
-			const pending = message.id === undefined ? undefined : this._pendingRequests.get(message.id);
-			if (!pending) {
-				this._logService.trace('[MCP App] Ignoring response with unknown request id', message.id);
-			} else {
-				this._pendingRequests.delete(message.id!);
-				if (hasKey(message, { error: true })) {
-					await pending.error(new Error(message.error.message));
-				} else {
-					await pending.complete(message.result);
-				}
-			}
-			return;
-		}
 		const request = message;
 		const token = this._disposeCts.token;
 
@@ -614,10 +443,6 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 
 			switch (request.method) {
 				case 'ui/initialize':
-					this._resetApp();
-					if (!this._webviewContextAlive) {
-						return;
-					}
 					result = await this._handleInitialize(request.params);
 					break;
 
@@ -654,12 +479,6 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 					break;
 
 				case 'ui/notifications/initialized':
-					this._appInitialized = this._announcedCapabilities;
-					await this._refreshTools();
-					break;
-
-				case 'notifications/tools/list_changed':
-					await this._refreshTools();
 					break;
 
 				case 'ui/message':
@@ -705,9 +524,8 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 	/**
 	 * Handles the ui/initialize request from the MCP App View.
 	 */
-	private async _handleInitialize(params: McpApps.McpUiInitializeRequest['params']): Promise<McpApps.McpUiInitializeResult> {
+	private async _handleInitialize(_params: McpApps.McpUiInitializeRequest['params']): Promise<McpApps.McpUiInitializeResult> {
 		this._announcedCapabilities = true;
-		this._appProvidesTools = this.renderData.kind === 'agentHost' && params.appCapabilities?.tools !== undefined;
 
 		// "Host MUST send this notification with the complete tool arguments after the Guest UI's initialize request completes"
 		// Cast to `any` due to https://github.com/modelcontextprotocol/ext-apps/issues/197
@@ -719,8 +537,8 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 			args = this.renderData.input;
 		}
 
-		const timeout = this._appDisposables.add(disposableTimeout(async () => {
-			this._appDisposables.delete(timeout);
+		const timeout = this._register(disposableTimeout(async () => {
+			this._store.delete(timeout);
 			await this._sendNotification({
 				method: 'ui/notifications/tool-input',
 				params: { arguments: args }
@@ -730,7 +548,7 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 				this._sendToolResult(this.toolInvocation.resultDetails);
 			} else if (this.toolInvocation.kind === 'toolInvocation') {
 				const invocation = this.toolInvocation;
-				this._appDisposables.add(autorunSelfDisposable(reader => {
+				this._register(autorunSelfDisposable(reader => {
 					const state = invocation.state.read(reader);
 					if (state.type === IChatToolInvocation.StateKind.Completed) {
 						this._sendToolResult(state.resultDetails);
@@ -808,13 +626,14 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 	 * Resolves a server-relative resource URI into a workbench URI.
 	 * - Local servers: wrap in {@link McpResourceURI.fromServer} so it
 	 *   resolves through the MCP filesystem provider.
-	 * - Agent-host servers: wrap with the originating connection authority
-	 *   so the URI resolves against the server that supplied it.
+	 * - Agent-host servers: pass through as a plain {@link URI}. There's
+	 *   no host-side resolver for AHP-backed servers in v1, so these
+	 *   URIs may not be openable, but they preserve the original
+	 *   resource reference for the user.
 	 */
 	private _resolveServerResourceUri(serverUri: string): URI {
 		if (this.renderData.kind === 'agentHost') {
-			// eslint-disable-next-line local/code-agent-host-uri-mapping -- MCP server resources resolve through the Agent Host filesystem provider, not the workspace connection mapper
-			return toAgentHostUri(URI.parse(serverUri), this.renderData.connectionAuthority);
+			return URI.parse(serverUri);
 		}
 		return McpResourceURI.fromServer({ id: this.renderData.serverDefinitionId, label: '' }, serverUri);
 	}
@@ -964,7 +783,7 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 						? new TextEncoder().encode(resource.text)
 						: { base64: resource.blob };
 
-					const { resource: uri } = this._chatResponseResourceFsProvider.associate(data, { sessionResource: this.renderData.sessionResource, name: basename(parsed) });
+					const uri = this._chatResponseResourceFsProvider.associate(this.renderData.sessionResource, data, basename(parsed));
 					newParts.push({ kind: 'data', mimeType: resource.mimeType, uri });
 				} else if (content.type === 'resource_link') {
 					// ResourceLink — create a part with an MCP resource URI, resolved lazily on save
@@ -1013,7 +832,7 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 			throw new Error('Missing tool name in tools/call request');
 		}
 
-		return this._mcpToolCallUI.callTool(params, token);
+		return this._mcpToolCallUI.callTool(params.name, params.arguments || {}, token);
 	}
 
 	/**
@@ -1037,106 +856,6 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 			throw new Error('Missing params in sampling/createMessage request');
 		}
 		return this._mcpToolCallUI.sampling(params, token);
-	}
-
-	/** Invokes a tool registered by this app instance. */
-	public async callTool(name: string, args: Record<string, unknown>, token: CancellationToken): Promise<MCP.CallToolResult> {
-		if (this._disposeCts.token.isCancellationRequested || token.isCancellationRequested) {
-			throw new CancellationError();
-		}
-		if (!this._appInitialized || !this._appProvidesTools) {
-			throw new Error(localize('mcpAppNotInitialized', "The MCP App is not initialized or does not provide tools."));
-		}
-		return this._sendRequest('tools/call', { name, arguments: args }, token);
-	}
-
-	/** Refreshes all pages of app-provided tools, ignoring superseded responses. */
-	private async _refreshTools(): Promise<void> {
-		if (!this._appInitialized || !this._appProvidesTools || this._disposeCts.token.isCancellationRequested) {
-			return;
-		}
-		const generation = ++this._toolsGeneration;
-		this._toolsRefreshCts.value?.dispose(true);
-		const cts = this._toolsRefreshCts.value = new CancellationTokenSource(this._disposeCts.token);
-		const refreshStore = new DisposableStore();
-		refreshStore.add(disposableTimeout(() => cts.cancel(), 30_000));
-		const tools: MCP.Tool[] = [];
-		let cursor: string | undefined;
-		try {
-			for (let page = 0; page < 100; page++) {
-				const result = await this._sendRequest('tools/list', cursor === undefined ? {} : { cursor }, cts.token);
-				if (generation !== this._toolsGeneration) {
-					return;
-				}
-				tools.push(...result.tools);
-				cursor = result.nextCursor;
-				if (cursor === undefined) {
-					this._setTools(tools);
-					return;
-				}
-			}
-			throw new Error('MCP App tools/list exceeded the pagination limit');
-		} catch (error) {
-			if (generation === this._toolsGeneration) {
-				this._logService.warn('[MCP App] Failed to list app tools', error);
-			}
-		} finally {
-			refreshStore.dispose();
-			if (this._toolsRefreshCts.value === cts) {
-				this._toolsRefreshCts.clear();
-			}
-		}
-	}
-
-	/** Sends a cancellable JSON-RPC request to this app instance. */
-	private _sendRequest(method: 'tools/list', params: MCP.ListToolsRequest['params'], token?: CancellationToken): Promise<MCP.ListToolsResult>;
-	private _sendRequest(method: 'tools/call', params: MCP.CallToolRequest['params'], token?: CancellationToken): Promise<MCP.CallToolResult>;
-	private async _sendRequest(method: McpApps.HostRequest['method'], params: MCP.RequestParams | undefined, token: CancellationToken = CancellationToken.None): Promise<MCP.Result> {
-		if (token.isCancellationRequested || this._disposeCts.token.isCancellationRequested) {
-			throw new CancellationError();
-		}
-		const id = ++this._nextRequestId;
-		const pending = new DeferredPromise<MCP.Result>();
-		this._pendingRequests.set(id, pending);
-		const store = new DisposableStore();
-		store.add(token.onCancellationRequested(() => {
-			if (this._pendingRequests.delete(id)) {
-				void pending.error(new CancellationError());
-				void this._sendNotification({
-					jsonrpc: '2.0',
-					method: 'notifications/cancelled',
-					params: { requestId: id, reason: localize('mcpAppToolCallCancelled', "MCP App tool call cancelled") },
-				}).catch(error => this._logService.trace('[MCP App] Failed to send cancellation', error));
-			}
-		}));
-		try {
-			void this._webview.postMessage({ jsonrpc: '2.0', id, method, params }).then(sent => {
-				if (!sent) {
-					void pending.error(new Error(localize('mcpAppRequestNotDelivered', "The request could not be delivered to the MCP App.")));
-				}
-			}, error => pending.error(error));
-			return await pending.p;
-		} finally {
-			this._pendingRequests.delete(id);
-			store.dispose();
-		}
-	}
-
-	/** Invalidates requests and tools belonging to the previous app instance. */
-	private _resetApp(): void {
-		this._appDisposables.clear();
-		this._announcedCapabilities = false;
-		this._appInitialized = false;
-		this._appProvidesTools = false;
-		this._toolsGeneration++;
-		this._toolsRefreshCts.value?.dispose(true);
-		this._toolsRefreshCts.clear();
-		for (const pending of this._pendingRequests.values()) {
-			void pending.error(new CancellationError());
-		}
-		this._pendingRequests.clear();
-		this._updateRetention(false);
-		this._tools.set([], undefined);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1165,7 +884,6 @@ export class ChatMcpAppModel extends Disposable implements IAgentHostMcpAppToolP
 
 	public override dispose(): void {
 		this._disposeCts.dispose(true);
-		this._resetApp();
 		super.dispose();
 	}
 }

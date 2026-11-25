@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import * as path from 'path';
 import { IPromptWorkspaceLabels, PromptWorkspaceLabels } from '../src/extension/context/node/resolvers/promptWorkspaceLabels';
+import { INewWorkspacePreviewContentManager, NewWorkspacePreviewContentManagerImpl } from '../src/extension/intents/node/newIntent';
 import { IntentError } from '../src/extension/prompt/node/intents';
 import { ISimulationModelConfig } from '../src/extension/test/node/services';
 import { IToolsService } from '../src/extension/tools/common/toolsService';
@@ -19,9 +20,12 @@ import { TestingServiceCollection } from '../src/platform/test/node/services';
 import { ITokenizerProvider } from '../src/platform/tokenizer/node/tokenizer';
 import { count } from '../src/util/common/arrays';
 import { WellKnownLanguageId } from '../src/util/common/languages';
+import { groupBy } from '../src/util/vs/base/common/collections';
 import { BugIndicatingError } from '../src/util/vs/base/common/errors';
+import { Lazy } from '../src/util/vs/base/common/lazy';
 import { safeStringify } from '../src/util/vs/base/common/objects';
 import { SyncDescriptor } from '../src/util/vs/platform/instantiation/common/descriptors';
+import { SimulationExtHostToolsService } from './base/extHostContext/simulationExtHostToolsService';
 import { SimulationBaseline, TestBaselineComparison } from './base/simulationBaseline';
 import { CacheMode, createSimulationAccessor, CurrentTestRunInfo, SimulationServicesOptions } from './base/simulationContext';
 import { ISimulationEndpointHealth } from './base/simulationEndpointHealth';
@@ -35,6 +39,7 @@ import { ExternalSimulationTestRuntime } from './simulation/externalScenarios';
 import * as shared from './simulation/shared/sharedTypes';
 import { ITestSnapshots, TestSnapshotsImpl } from './simulation/testSnapshot';
 import { TaskRunner } from './taskRunner';
+import { TestExecutionInExtension } from './testExecutionInExtension';
 import { createScoreRenderer, printTime } from './util';
 
 /**
@@ -43,6 +48,7 @@ import { createScoreRenderer, printTime } from './util';
 export interface ITestResult {
 	test: string;
 	outcomeDirectory: string;
+	conversationPath?: string;
 	score: number;
 	usage: APIUsage;
 	// FIXME@ulugbekna: specify when the outcome is undefined
@@ -98,13 +104,54 @@ export interface SimulationTestContext {
 
 export type GroupedScores = Map<string, Map<WellKnownLanguageId | undefined, Map<string | undefined, number[]>>>;
 
+function mergeGroupedScopes(into: GroupedScores, from: GroupedScores) {
+	for (const [key, value] of from) {
+		const intoValue = into.get(key);
+		if (!intoValue) {
+			into.set(key, value);
+			continue;
+		}
+
+		for (const [language, scores] of value) {
+			const intoScores = intoValue.get(language);
+			if (intoScores) {
+				for (const [model, score] of scores) {
+					if (intoScores.has(model)) {
+						intoScores.set(model, [...intoScores.get(model)!, ...score]);
+					} else {
+						intoScores.set(model, score);
+					}
+				}
+			} else {
+				intoValue.set(language, scores);
+			}
+		}
+	}
+}
+
 export type ExecuteTestResult = {
 	testResultsPromises: Promise<ITestResult>[];
 	getGroupedScores(): Promise<GroupedScores>;
 };
 
 export async function executeTests(ctx: SimulationTestContext, testsToRun: readonly SimulationTest[]): Promise<ExecuteTestResult> {
-	return executeTestsUsing(ctx, testsToRun, executeTestOnce);
+	const location = groupBy(testsToRun as SimulationTest[], test => (test.suite.extHost ?? ctx.opts.inExtensionHost) ? 'extHost' : 'local');
+
+	const extensionRunner = new Lazy(() => TestExecutionInExtension.create(ctx));
+	const [extHost, local] = await Promise.all([
+		executeTestsUsing(ctx, location['extHost'] ?? [], (...args) => extensionRunner.value.then(e => e.executeTest(...args))),
+		executeTestsUsing(ctx, location['local'] ?? [], executeTestOnce),
+	]);
+
+	return {
+		testResultsPromises: [...extHost.testResultsPromises, ...local.testResultsPromises],
+		getGroupedScores: async () => {
+			const [fromExtHost, fromLocal] = await Promise.all([extHost.getGroupedScores(), local.getGroupedScores()]);
+			await extensionRunner.rawValue?.then(r => r.dispose());
+			mergeGroupedScopes(fromLocal, fromExtHost);
+			return fromLocal;
+		},
+	};
 }
 
 async function executeTestsUsing(ctx: SimulationTestContext, testsToRun: readonly SimulationTest[], executeTestFn: ExecuteTestOnceFn): Promise<ExecuteTestResult> {
@@ -221,6 +268,7 @@ async function executeTestNTimes(
 	return {
 		test: test.fullName,
 		outcomeDirectory: path.relative(ctx.outputPath, outcomeDirectory),
+		conversationPath: test.options.conversationPath,
 		score: currentScore,
 		duration,
 		usage,
@@ -322,12 +370,13 @@ type ExecuteTestOnceFn = (
 	runNumber: number,
 ) => Promise<ITestRunResult>;
 
-const executeTestOnce = async (
+export const executeTestOnce = async (
 	ctx: SimulationTestContext,
 	parallelism: number,
 	outcomeDirectory: string,
 	test: SimulationTest,
 	runNumber: number,
+	isInRealExtensionHost = false,
 ) => {
 	const { opts, jsonOutputPrinter } = ctx;
 	const fetchRequestCollector = new FetchRequestCollector();
@@ -336,6 +385,7 @@ const executeTestOnce = async (
 		test,
 		testRunNumber: runNumber,
 		fetchRequestCollector: fetchRequestCollector,
+		isInRealExtensionHost,
 	};
 
 	let testingServiceCollection: TestingServiceCollection;
@@ -396,6 +446,7 @@ const executeTestOnce = async (
 	testingServiceCollection.define(ISimulationTestContext, simulationTestRuntime);
 	testingServiceCollection.define(ILogService, new SyncDescriptor(LogServiceImpl, [[new ConsoleLog(`🪵 ${currentTestRunInfo.test.fullName} (Run #${currentTestRunInfo.testRunNumber + 1}):\n`), simulationTestRuntime]]));
 
+	testingServiceCollection.define(INewWorkspacePreviewContentManager, new SyncDescriptor(NewWorkspacePreviewContentManagerImpl));
 
 	let snapshots: TestSnapshotsImpl | undefined;
 	if (test.options.location) {
@@ -404,7 +455,11 @@ const executeTestOnce = async (
 	}
 
 	testingServiceCollection.define(IPromptWorkspaceLabels, new SyncDescriptor(PromptWorkspaceLabels));
-	testingServiceCollection.define(IToolsService, new SyncDescriptor(TestToolsService, [ctx.simulationServicesOptions.disabledTools]));
+	if (isInRealExtensionHost) {
+		testingServiceCollection.define(IToolsService, new SyncDescriptor(SimulationExtHostToolsService, [ctx.simulationServicesOptions.disabledTools]));
+	} else {
+		testingServiceCollection.define(IToolsService, new SyncDescriptor(TestToolsService, [ctx.simulationServicesOptions.disabledTools]));
+	}
 
 	jsonOutputPrinter.print({ type: shared.OutputType.testRunStart, name: test.fullName, runNumber } satisfies shared.ITestRunStartOutput);
 	if (process.stdout.isTTY && parallelism === 1) {

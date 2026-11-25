@@ -15,7 +15,7 @@ import { Disposable, IDisposable } from '../../../base/common/lifecycle.js';
 import { IWorkspace, IWorkspaceContextService, IWorkspaceFolder } from '../../../platform/workspace/common/workspace.js';
 
 import {
-	ContributedTask, ConfiguringTask, KeyedTaskIdentifier, ITaskExecution, Task, ITaskEvent, TaskEventKind,
+	ContributedTask, ConfiguringTask, KeyedTaskIdentifier, ITaskExecution, Task, ITaskEvent,
 	IPresentationOptions, CommandOptions, ICommandConfiguration, RuntimeType, CustomTask, TaskScope, TaskSource,
 	TaskSourceKind, IExtensionTaskSource, IRunOptions, ITaskSet, TaskGroup, TaskDefinition, PresentationOptions, RunOptions
 } from '../../contrib/tasks/common/tasks.js';
@@ -31,7 +31,8 @@ import {
 	IProcessExecutionDTO, IShellExecutionDTO, IShellExecutionOptionsDTO, ICustomExecutionDTO, ITaskDTO, ITaskSourceDTO, ITaskHandleDTO, ITaskFilterDTO, ITaskProcessStartedDTO, ITaskProcessEndedDTO, ITaskSystemInfoDTO,
 	IRunOptionsDTO, ITaskGroupDTO,
 	ITaskProblemMatcherStarted,
-	ITaskProblemMatcherEnded
+	ITaskProblemMatcherEnded,
+	TaskEventKind
 } from '../common/shared/tasks.js';
 import { IConfigurationResolverService } from '../../services/configurationResolver/common/configurationResolver.js';
 import { ConfigurationTarget } from '../../../platform/configuration/common/configuration.js';
@@ -457,8 +458,6 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 	private readonly _extHostContext: IExtHostContext | undefined;
 	private readonly _proxy: ExtHostTaskShape;
 	private readonly _providers: Map<number, { disposable: IDisposable; provider: ITaskProvider }>;
-	// Concurrent executions share a definition ID, but have distinct accepted task instances.
-	private readonly _taskStarts = new Map<Task, { readonly id: string; readonly execution: ITaskExecutionDTO }>();
 
 	constructor(
 		extHostContext: IExtHostContext,
@@ -475,21 +474,11 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 			}
 
 			const task = event.__task;
-			if (event.kind === TaskEventKind.CustomExecutionAccepted) {
-				this.reserveCustomExecution(task);
-				return;
-			}
-			if (event.kind === TaskEventKind.CustomExecutionFinished) {
-				this.endCustomExecution(task);
-				return;
-			}
 			if (event.kind === TaskEventKind.Start) {
 				const execution = TaskExecutionDTO.from(task.getTaskExecution());
-				const isCustomExecution = execution.task?.execution && CustomExecutionDTO.is(execution.task.execution);
-				const starting = isCustomExecution ? this.reserveCustomExecution(task) : undefined;
 				let resolvedDefinition: ITaskDefinitionDTO = execution.task!.definition;
-				if (isCustomExecution && event.resolvedVariables) {
-					const expr = ConfigurationResolverExpression.parse(resolvedDefinition);
+				if (execution.task?.execution && CustomExecutionDTO.is(execution.task.execution) && event.resolvedVariables) {
+					const expr = ConfigurationResolverExpression.parse(execution.task.definition);
 					for (const replacement of expr.unresolved()) {
 						const value = event.resolvedVariables.get(replacement.inner);
 						if (value !== undefined) {
@@ -499,22 +488,13 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 
 					resolvedDefinition = await this._configurationResolverService.resolveAsync(task.getWorkspaceFolder(), expr);
 				}
-				if (isCustomExecution) {
-					if (this._taskStarts.get(task) !== starting) {
-						return;
-					}
-				}
-				this._proxy.$onDidStartTask(execution, event.terminalId, resolvedDefinition, starting?.id);
+				this._proxy.$onDidStartTask(execution, event.terminalId, resolvedDefinition);
 			} else if (event.kind === TaskEventKind.ProcessStarted) {
 				this._proxy.$onDidStartTaskProcess(TaskProcessStartedDTO.from(task.getTaskExecution(), event.processId));
 			} else if (event.kind === TaskEventKind.ProcessEnded) {
 				this._proxy.$onDidEndTaskProcess(TaskProcessEndedDTO.from(task.getTaskExecution(), event.exitCode));
 			} else if (event.kind === TaskEventKind.End) {
-				if ((ContributedTask.is(task) || CustomTask.is(task)) && task.command?.runtime === RuntimeType.CustomExecution) {
-					this.endCustomExecution(task);
-				} else {
-					this._proxy.$OnDidEndTask(TaskExecutionDTO.from(task.getTaskExecution()));
-				}
+				this._proxy.$OnDidEndTask(TaskExecutionDTO.from(task.getTaskExecution()));
 			} else if (event.kind === TaskEventKind.ProblemMatcherStarted) {
 				this._proxy.$onDidStartTaskProblemMatchers(TaskProblemMatcherStartedDto.from({ execution: task.getTaskExecution() }));
 			} else if (event.kind === TaskEventKind.ProblemMatcherEnded) {
@@ -526,30 +506,11 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 		}));
 	}
 
-	private reserveCustomExecution(task: Task) {
-		let starting = this._taskStarts.get(task);
-		if (!starting) {
-			starting = { id: generateUuid(), execution: TaskExecutionDTO.from(task.getTaskExecution()) };
-			this._taskStarts.set(task, starting);
-			this._proxy.$onWillStartTask(starting.execution.id, starting.id);
-		}
-		return starting;
-	}
-
-	private endCustomExecution(task: Task): void {
-		const starting = this._taskStarts.get(task);
-		if (starting) {
-			this._taskStarts.delete(task);
-			this._proxy.$OnDidEndTask(starting.execution, starting.id);
-		}
-	}
-
 	public override dispose(): void {
 		for (const value of this._providers.values()) {
 			value.disposable.dispose();
 		}
 		this._providers.clear();
-		this._taskStarts.clear();
 		super.dispose();
 	}
 
@@ -650,7 +611,7 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 		if (TaskHandleDTO.is(value)) {
 			const workspace = this.getWorkspace(value.workspaceFolder);
 			if (workspace) {
-				const task = await this._taskService.getTask(workspace, value.id, true, value.type);
+				const task = await this._taskService.getTask(workspace, value.id, true);
 				if (task) {
 					return {
 						id: task._id,
@@ -677,7 +638,7 @@ export class MainThreadTask extends Disposable implements MainThreadTaskShape {
 			if (TaskHandleDTO.is(value)) {
 				const workspace = this.getWorkspace(value.workspaceFolder);
 				if (workspace) {
-					this._taskService.getTask(workspace, value.id, true, value.type).then((task: Task | undefined) => {
+					this._taskService.getTask(workspace, value.id, true).then((task: Task | undefined) => {
 						if (!task) {
 							reject(new Error('Task not found'));
 						} else {

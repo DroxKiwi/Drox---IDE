@@ -3,16 +3,17 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import type * as ESTree from 'estree';
 
-export default new class DeclareServiceBrand implements CreateRule {
+export default new class DeclareServiceBrand implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		fixable: 'code',
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 		return {
 			['PropertyDefinition[key.name="_serviceBrand"][value]']: (node: ESTree.PropertyDefinition) => {
 				return context.report({

@@ -5,10 +5,10 @@
 
 import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
-import { IChannel } from '../../../../base/parts/ipc/common/ipc.js';
+import { IChannel, ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
-import { IMcpGatewayServerInfo, McpGatewayChannelName } from '../../../../platform/mcp/common/mcpGateway.js';
+import { IMcpGatewayServerInfo, IMcpGatewayService, McpGatewayChannelName } from '../../../../platform/mcp/common/mcpGateway.js';
 import { IRemoteAgentService } from '../../../services/remote/common/remoteAgentService.js';
 import { IMcpGatewayResult, IMcpGatewayResultServer, IWorkbenchMcpGatewayService } from '../common/mcpGatewayService.js';
 
@@ -21,6 +21,7 @@ import { IMcpGatewayResult, IMcpGatewayResultServer, IWorkbenchMcpGatewayService
 export class WorkbenchMcpGatewayService implements IWorkbenchMcpGatewayService {
 	declare readonly _serviceBrand: undefined;
 
+	private readonly _localPlatformService: IMcpGatewayService;
 	private readonly _localChannel: IChannel;
 
 	constructor(
@@ -29,6 +30,7 @@ export class WorkbenchMcpGatewayService implements IWorkbenchMcpGatewayService {
 		@ILogService private readonly _logService: ILogService,
 	) {
 		this._localChannel = mainProcessService.getChannel(McpGatewayChannelName);
+		this._localPlatformService = ProxyChannel.toService<IMcpGatewayService>(this._localChannel);
 	}
 
 	async createGateway(inRemote: boolean, chatSessionResource?: URI): Promise<IMcpGatewayResult | undefined> {
@@ -62,9 +64,7 @@ export class WorkbenchMcpGatewayService implements IWorkbenchMcpGatewayService {
 			onDidChangeServers,
 			dispose: () => {
 				this._logService.info(`[McpGateway][Workbench] Disposing local gateway: ${info.gatewayId}`);
-				void this._localChannel.call('disposeGateway', info.gatewayId).catch(error => {
-					this._logService.warn(`[McpGateway][Workbench] Failed to dispose local gateway: ${info.gatewayId}`, error);
-				});
+				this._localPlatformService.disposeGateway(info.gatewayId);
 			}
 		};
 	}

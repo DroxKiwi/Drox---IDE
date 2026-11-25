@@ -9,7 +9,7 @@ import { MarkdownContributionProvider, MarkdownContributions } from '../markdown
 import { githubSlugifier } from '../slugify';
 import { nulLogger } from './nulLogging';
 
-export const emptyContributions = new class implements MarkdownContributionProvider {
+const emptyContributions = new class implements MarkdownContributionProvider {
 	readonly extensionUri = vscode.Uri.file('/');
 	readonly contributions = MarkdownContributions.Empty;
 

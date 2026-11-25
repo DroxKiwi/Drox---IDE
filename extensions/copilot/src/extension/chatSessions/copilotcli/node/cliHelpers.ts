@@ -7,21 +7,34 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 const COPILOT_HOME_DIRECTORY = '.copilot';
+const APP_DIRECTORY = join(COPILOT_HOME_DIRECTORY, 'ide');
+const SESSION_STATE_DIRECTORY = join(COPILOT_HOME_DIRECTORY, 'session-state');
 
 export function getCopilotHome(): string {
-	return process.env.COPILOT_HOME || join(homedir(), COPILOT_HOME_DIRECTORY);
+	const xdgHome = process.env.XDG_STATE_HOME;
+	return xdgHome ? join(xdgHome, COPILOT_HOME_DIRECTORY) : join(homedir(), COPILOT_HOME_DIRECTORY);
 }
 
 export function getCopilotCliStateDir(): string {
-	return join(getCopilotHome(), 'ide');
+	const xdgHome = process.env.XDG_STATE_HOME;
+	return xdgHome ? join(xdgHome, APP_DIRECTORY) : join(homedir(), APP_DIRECTORY);
 }
 
 export function getCopilotCLISessionStateDir(): string {
-	return join(getCopilotHome(), 'session-state');
+	const xdgHome = process.env.XDG_STATE_HOME;
+	return xdgHome ? join(xdgHome, SESSION_STATE_DIRECTORY) : join(homedir(), SESSION_STATE_DIRECTORY);
 }
 
 export function getCopilotCLISessionDir(sessionId: string): string {
 	return join(getCopilotCLISessionStateDir(), sessionId);
+}
+
+export function getCopilotCLISessionEventsFile(sessionId: string) {
+	return join(getCopilotCLISessionDir(sessionId), 'events.jsonl');
+}
+
+export function getCopilotCLIWorkspaceFile(sessionId: string) {
+	return join(getCopilotCLISessionDir(sessionId), 'workspace.yaml');
 }
 
 /**

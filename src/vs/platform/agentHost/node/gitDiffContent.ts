@@ -5,7 +5,7 @@
 
 import { URI } from '../../../base/common/uri.js';
 
-export const GIT_BLOB_SCHEME = 'git-blob';
+const GIT_BLOB_SCHEME = 'git-blob';
 
 interface IGitBlobUriQuery {
 	readonly sessionUri: string;
@@ -43,14 +43,6 @@ export interface IGitBlobUriFields {
 	readonly sessionUri: string;
 	readonly sha: string;
 	readonly repoRelativePath: string;
-	/**
-	 * Absolute working-tree path of the blob, taken from the URI `path` set by
-	 * {@link buildGitBlobUri}. Used SERVER-SIDE only to select which of the
-	 * session's own repository roots to run `git show` in — never as a working
-	 * directory itself. Empty for legacy URIs that encoded no path, which
-	 * callers treat as "fall back to the primary directory".
-	 */
-	readonly absolutePath: string;
 }
 
 /**
@@ -74,7 +66,6 @@ export function parseGitBlobUri(raw: string): IGitBlobUriFields | undefined {
 				sessionUri: query.sessionUri,
 				sha: query.sha,
 				repoRelativePath: query.repoRelativePath,
-				absolutePath: parsed.path,
 			};
 		}
 	} catch {

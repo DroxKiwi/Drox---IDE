@@ -6,23 +6,6 @@
 import { Uri } from 'vscode';
 
 /**
- * Resolve the effective URL used for schema trust checks and request dispatch.
- */
-export function getSchemaRequestUrl(uri: Uri): URL {
-	return new URL(uri.toString(true));
-}
-
-function asMatchableUri(url: Uri | URL): Uri {
-	if (!(url instanceof URL)) {
-		if (url.scheme !== 'http' && url.scheme !== 'https') {
-			return url;
-		}
-		url = getSchemaRequestUrl(url);
-	}
-	return Uri.parse(url.href).with({ authority: url.host, path: url.pathname });
-}
-
-/**
  * Check whether a URL matches the list of trusted domains or URIs.
  *
  * trustedDomains is an object where:
@@ -33,13 +16,7 @@ function asMatchableUri(url: Uri | URL): Uri {
  * @param url The URL to check
  * @param trustedDomains Object mapping domain patterns to boolean trust values
  */
-export function matchesUrlPattern(url: Uri | URL, trustedDomains: Record<string, boolean>): boolean {
-	try {
-		url = asMatchableUri(url);
-	} catch {
-		return false;
-	}
-
+export function matchesUrlPattern(url: Uri, trustedDomains: Record<string, boolean>): boolean {
 	// Check localhost
 	if (isLocalhostAuthority(url.authority)) {
 		return true;
@@ -56,7 +33,7 @@ export function matchesUrlPattern(url: Uri | URL, trustedDomains: Record<string,
 		}
 
 		try {
-			const patternUri = asMatchableUri(Uri.parse(pattern));
+			const patternUri = Uri.parse(pattern);
 
 			// Scheme must match
 			if (url.scheme !== patternUri.scheme) {

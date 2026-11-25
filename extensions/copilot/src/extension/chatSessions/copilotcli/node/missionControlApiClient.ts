@@ -43,7 +43,8 @@ export interface McSessionCreateResult {
  * Authentication options for Mission Control requests.
  *
  * Mission Control endpoints write to the `/agents/sessions` API family, which
- * requires a permissive GitHub token. Callers pass `createIfNone` to surface an interactive
+ * requires a permissive GitHub token (same scope as the Copilot Coding Agent
+ * job dispatch endpoint). Callers pass `createIfNone` to surface an interactive
  * sign-in prompt when no permissive session is available.
  */
 export interface McAuthOptions {
@@ -64,7 +65,8 @@ export interface McAuthOptions {
  * and telemetry configuration are applied consistently. Authentication uses a
  * permissive GitHub session (fetched on each call to pick up token refreshes);
  * when no permissive session exists and interactive prompting is disabled the
- * call throws {@link PermissiveAuthRequiredError}.
+ * call throws {@link PermissiveAuthRequiredError}, mirroring the pattern used
+ * by `IOctoKitService.postCopilotAgentJob`.
  */
 export class MissionControlApiClient {
 
@@ -187,7 +189,8 @@ export class MissionControlApiClient {
 	/**
 	 * Build the absolute URL and auth headers for an MC request.
 	 *
-	 * Request a permissive GitHub session, optionally with an interactive upgrade prompt.
+	 * Auth strategy follows `IOctoKitService.postCopilotAgentJob`: request a
+	 * permissive GitHub session, optionally with an interactive upgrade prompt.
 	 * If no session is available and prompting is disabled, throw
 	 * {@link PermissiveAuthRequiredError} so callers can render a dedicated UX.
 	 *

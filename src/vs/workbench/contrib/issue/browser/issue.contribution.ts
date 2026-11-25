@@ -17,6 +17,7 @@ import './issueTroubleshoot.js';
 import { IIssueFormService, IWorkbenchIssueService } from '../common/issue.js';
 import { BaseIssueContribution } from '../common/issue.contribution.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
+import { BrowserScreenshotService, IScreenshotService } from './screenshotService.js';
 import { BrowserRecordingService, IRecordingService } from './recordingService.js';
 import { BrowserGitHubUploadService, IGitHubUploadService } from './githubUploadService.js';
 
@@ -40,6 +41,7 @@ Registry.as<IWorkbenchContributionsRegistry>(Extensions.Workbench).registerWorkb
 
 registerSingleton(IWorkbenchIssueService, BrowserIssueService, InstantiationType.Delayed);
 registerSingleton(IIssueFormService, IssueFormService, InstantiationType.Delayed);
+registerSingleton(IScreenshotService, BrowserScreenshotService, InstantiationType.Delayed);
 registerSingleton(IRecordingService, BrowserRecordingService, InstantiationType.Delayed);
 registerSingleton(IGitHubUploadService, BrowserGitHubUploadService, InstantiationType.Delayed);
 

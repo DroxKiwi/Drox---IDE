@@ -7,7 +7,6 @@ import { $, addDisposableListener, append, EventType, ModifierKeyEmitter } from 
 import { StandardKeyboardEvent } from '../../../../../../base/browser/keyboardEvent.js';
 import { ActionViewItem, BaseActionViewItem, IActionViewItemOptions } from '../../../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { Action, IAction } from '../../../../../../base/common/actions.js';
-import { coalesce } from '../../../../../../base/common/arrays.js';
 import { Codicon } from '../../../../../../base/common/codicons.js';
 import { KeyCode } from '../../../../../../base/common/keyCodes.js';
 import { Disposable, IDisposable } from '../../../../../../base/common/lifecycle.js';
@@ -15,7 +14,7 @@ import { ThemeIcon } from '../../../../../../base/common/themables.js';
 import { localize } from '../../../../../../nls.js';
 import { IActionViewItemService } from '../../../../../../platform/actions/browser/actionViewItemService.js';
 import { ActionWidgetDropdownActionViewItem } from '../../../../../../platform/actions/browser/actionWidgetDropdownActionViewItem.js';
-import { IMenu, IMenuService, MenuId, MenuItemAction, SubmenuItemAction } from '../../../../../../platform/actions/common/actions.js';
+import { MenuId, SubmenuItemAction } from '../../../../../../platform/actions/common/actions.js';
 import { IActionWidgetService } from '../../../../../../platform/actionWidget/browser/actionWidget.js';
 import { IActionWidgetDropdownAction } from '../../../../../../platform/actionWidget/browser/actionWidgetDropdown.js';
 import { ICommandService } from '../../../../../../platform/commands/common/commands.js';
@@ -25,63 +24,56 @@ import { IKeybindingService } from '../../../../../../platform/keybinding/common
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
 import { IWorkbenchContribution } from '../../../../../common/contributions.js';
 import { ChatContextKeys } from '../../../common/actions/chatContextKeys.js';
-import { IChatSideChatService } from '../../../common/chatSideChatService.js';
 import { ChatConfiguration } from '../../../common/constants.js';
-import { IChatWidgetService } from '../../chat.js';
-import { ChatSubmitAction, type IChatExecuteActionContext } from '../../actions/chatExecuteActions.js';
-import { ChatAskInSideChatAction, ChatQueueMessageAction, ChatSteerWithMessageAction } from '../../actions/chatQueueActions.js';
+import { ChatSubmitAction } from '../../actions/chatExecuteActions.js';
+import { ChatQueueMessageAction, ChatSteerWithMessageAction } from '../../actions/chatQueueActions.js';
 
-interface IChatQueuePickerActionItemOptions extends IActionViewItemOptions {
-	readonly primaryAction?: ActionViewItem;
-}
-
-/** Shared Send and queue/steer split button with an action-widget dropdown. */
+/**
+ * Split-button action view item for the queue/steer picker in the chat execute toolbar.
+ * The primary button runs the current default action (queue or steer).
+ * The dropdown arrow opens a custom action widget with hover descriptions.
+ *
+ * Follows the same split-button pattern as {@link DropdownWithDefaultActionViewItem},
+ * but uses {@link ActionWidgetDropdownActionViewItem} for the dropdown to show
+ * an action widget with hover descriptions instead of a standard context menu.
+ */
 export class ChatQueuePickerActionItem extends BaseActionViewItem {
 
-	private readonly _primaryActionAction: Action | undefined;
+	private readonly _primaryActionAction: Action;
 	private readonly _primaryAction: ActionViewItem;
 	private readonly _dropdown: ActionWidgetDropdownActionViewItem;
 	private _altKeyPressed = false;
-	private readonly _secondaryExecuteMenu: IMenu;
-	private _executeContext: IChatExecuteActionContext | undefined;
 
 	constructor(
 		action: IAction,
-		options: IChatQueuePickerActionItemOptions,
+		_options: IActionViewItemOptions,
 		@ICommandService private readonly commandService: ICommandService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IActionWidgetService actionWidgetService: IActionWidgetService,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@ITelemetryService telemetryService: ITelemetryService,
-		@IChatWidgetService private readonly chatWidgetService: IChatWidgetService,
-		@IChatSideChatService private readonly chatSideChatService: IChatSideChatService,
-		@IMenuService menuService: IMenuService,
 	) {
 		super(undefined, action);
-		this._secondaryExecuteMenu = this._register(menuService.createMenu(MenuId.ChatExecuteSecondary, contextKeyService));
 
-		if (options.primaryAction) {
-			this._primaryAction = this._register(options.primaryAction);
-		} else {
-			const isSteerDefault = this._isSteerDefault();
-			const primaryAction = this._primaryActionAction = this._register(new Action(
-				'chat.queuePickerPrimary',
-				isSteerDefault ? localize('chat.steerWithMessage', "Steer with Message") : localize('chat.queueMessage', "Add to Queue"),
-				ThemeIcon.asClassName(isSteerDefault ? Codicon.newLine : Codicon.add),
-				!!this.contextKeyService.getContextKeyValue(ChatContextKeys.inputHasText.key),
-				() => this._runDefaultAction()
-			));
-			this._primaryAction = this._register(new ActionViewItem(undefined, primaryAction, { icon: true, label: false }));
-			this._register(this.contextKeyService.onDidChangeContext(() => {
-				primaryAction.enabled = !!this.contextKeyService.getContextKeyValue(ChatContextKeys.inputHasText.key);
-			}));
-		}
+		const isSteerDefault = this._isSteerDefault();
+
+		// Primary action - runs the current default (queue or steer)
+		this._primaryActionAction = this._register(new Action(
+			'chat.queuePickerPrimary',
+			isSteerDefault ? localize('chat.steerWithMessage', "Steer with Message") : localize('chat.queueMessage', "Add to Queue"),
+			ThemeIcon.asClassName(isSteerDefault ? Codicon.newLine : Codicon.add),
+			!!this.contextKeyService.getContextKeyValue(ChatContextKeys.inputHasText.key),
+			() => this._runDefaultAction()
+		));
+		this._primaryAction = this._register(new ActionViewItem(undefined, this._primaryActionAction, { icon: true, label: false }));
+
+		this._register(this.contextKeyService.onDidChangeContext(e => {
+			this._primaryActionAction.enabled = !!this.contextKeyService.getContextKeyValue(ChatContextKeys.inputHasText.key);
+		}));
 
 		// Dropdown - action widget with hover descriptions and chevron-down icon
-		const dropdownAction = this._register(new Action('chat.queuePickerDropdown', options.primaryAction
-			? localize('chat.sendOptions', "More Send Options")
-			: localize('chat.queuePicker.moreActions', "More Actions...")));
+		const dropdownAction = this._register(new Action('chat.queuePickerDropdown', localize('chat.queuePicker.moreActions', "More Actions...")));
 		this._dropdown = this._register(new ChevronActionWidgetDropdown(
 			dropdownAction,
 			{
@@ -120,9 +112,6 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 	}
 
 	private _updatePrimaryAction(): void {
-		if (!this._primaryActionAction) {
-			return;
-		}
 		const isSteer = this._isEffectiveSteer();
 		this._primaryActionAction.label = isSteer
 			? localize('chat.steerWithMessage', "Steer with Message")
@@ -184,22 +173,7 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 		this._dropdown.setFocusable(focusable);
 	}
 
-	override setActionContext(context: IChatExecuteActionContext | undefined): void {
-		super.setActionContext(context);
-		this._primaryAction.setActionContext(context);
-		this._executeContext = context;
-	}
-
 	private _getDropdownActions(): IActionWidgetDropdownAction[] {
-		const secondaryActions = this._secondaryExecuteMenu.getActions({ shouldForwardArgs: true }).flatMap(([, actions]) => actions).map(action => ({
-			id: action.id, label: action.label, tooltip: action.tooltip, enabled: action.enabled,
-			class: action.class, checked: action.checked,
-			icon: action instanceof MenuItemAction && ThemeIcon.isThemeIcon(action.item.icon) ? action.item.icon : undefined,
-			run: () => action.run(this._executeContext),
-		}));
-		if (!this._primaryActionAction) {
-			return secondaryActions;
-		}
 		const isSteerDefault = this._isSteerDefault();
 
 		// Resolve display keybindings against an overlay context that simulates the chat input
@@ -224,7 +198,7 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 			id: ChatQueueMessageAction.ID,
 			label: localize('chat.queueMessage', "Add to Queue"),
 			tooltip: '',
-			enabled: this._primaryActionAction.enabled,
+			enabled: true,
 			checked: !isSteerDefault,
 			icon: Codicon.add,
 			class: undefined,
@@ -241,7 +215,7 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 			id: ChatSteerWithMessageAction.ID,
 			label: localize('chat.steerWithMessage', "Steer with Message"),
 			tooltip: '',
-			enabled: this._primaryActionAction.enabled,
+			enabled: true,
 			checked: isSteerDefault,
 			icon: Codicon.newLine,
 			class: undefined,
@@ -265,38 +239,11 @@ export class ChatQueuePickerActionItem extends BaseActionViewItem {
 				content: localize('chat.sendImmediately.hover', "Cancel the current request and send this message immediately."),
 			},
 			run: () => {
-				this.commandService.executeCommand(ChatSubmitAction.ID, { acceptInputOptions: { cancelCurrentRequest: true } } satisfies IChatExecuteActionContext);
+				this.commandService.executeCommand(ChatSubmitAction.ID);
 			}
 		};
 
-		const askInSideChatAction: IActionWidgetDropdownAction | undefined = this._canAskInSideChat() ? {
-			id: ChatAskInSideChatAction.ID,
-			label: localize('chat.askInSideChat', "Ask in Side Chat"),
-			tooltip: '',
-			enabled: this._primaryActionAction.enabled,
-			icon: Codicon.commentDiscussion,
-			class: undefined,
-			hover: {
-				content: localize('chat.askInSideChat.hover', "Ask this question in a side chat. The current response continues uninterrupted and the question is answered alongside it, without being added to this conversation."),
-			},
-			run: () => {
-				this.commandService.executeCommand(ChatAskInSideChatAction.ID);
-			}
-		} : undefined;
-
-		return [
-			...coalesce([sendAction, queueAction, steerAction, askInSideChatAction]),
-			...secondaryActions,
-		];
-	}
-
-	/**
-	 * Side chats are provided by the layer hosting the conversation, so the entry
-	 * is offered only once a provider reports the current conversation can branch one.
-	 */
-	private _canAskInSideChat(): boolean {
-		const sessionResource = this.chatWidgetService.lastFocusedWidget?.viewModel?.model.sessionResource;
-		return !!sessionResource && this.chatSideChatService.canAskInSideChat(sessionResource);
+		return [sendAction, queueAction, steerAction];
 	}
 }
 

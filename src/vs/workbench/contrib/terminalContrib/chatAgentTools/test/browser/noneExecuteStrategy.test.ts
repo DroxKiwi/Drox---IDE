@@ -7,8 +7,7 @@ import assert from 'assert';
 import { CancellationTokenSource } from '../../../../../../base/common/cancellation.js';
 import { Emitter, Event } from '../../../../../../base/common/event.js';
 import { NullLogService } from '../../../../../../platform/log/common/log.js';
-import { GeneralShellType, type ITerminalLogService } from '../../../../../../platform/terminal/common/terminal.js';
-import { OperatingSystem } from '../../../../../../base/common/platform.js';
+import type { ITerminalLogService } from '../../../../../../platform/terminal/common/terminal.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { runWithFakedTimers } from '../../../../../../base/test/common/timeTravelScheduler.js';
 import { NoneExecuteStrategy } from '../../browser/executeStrategy/noneExecuteStrategy.js';
@@ -28,12 +27,10 @@ suite('NoneExecuteStrategy', () => {
 	 * @param contentsAsText The text that `xterm.getContentsAsText()` will return (simulates
 	 * the terminal buffer content between the start and end markers)
 	 * @param cursorLineText The text at the cursor line, used by prompt detection heuristics
-	 * @param shell The shell the mock terminal was launched with
 	 */
-	function createMockTerminalAndXterm(contentsAsText: string, cursorLineText: string, shell?: Partial<Pick<ITerminalInstance, 'shellType' | 'shellLaunchConfig' | 'os'>>): {
+	function createMockTerminalAndXterm(contentsAsText: string, cursorLineText: string): {
 		instance: ITerminalInstance;
 		onDataEmitter: Emitter<string>;
-		sentTexts: string[];
 	} {
 		const onDataEmitter = store.add(new Emitter<string>());
 		const activeBuffer = {};
@@ -64,16 +61,13 @@ suite('NoneExecuteStrategy', () => {
 			getContentsAsText: () => contentsAsText,
 		};
 
-		const sentTexts: string[] = [];
 		const mockInstance = {
 			xtermReadyPromise: Promise.resolve(mockXterm),
 			onData: onDataEmitter.event,
-			sendText: (text: string) => { sentTexts.push(text); },
-			shellLaunchConfig: {},
-			...shell,
+			sendText: () => { },
 		} as unknown as ITerminalInstance;
 
-		return { instance: mockInstance, onDataEmitter, sentTexts };
+		return { instance: mockInstance, onDataEmitter };
 	}
 
 	test('should report "Command produced no output" when output is empty', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
@@ -127,37 +121,5 @@ suite('NoneExecuteStrategy', () => {
 
 		// Should report that the command produced no output
 		assert.strictEqual(result.additionalInformation, 'Command produced no output');
-	}));
-
-	test('should only clear pending input with Ctrl+U on shells where Ctrl+U clears the line', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
-		// PSReadLine's Windows edit mode (the default on Windows) has no Ctrl+U binding and inserts
-		// it into the command line instead, which made `cmd /c rem` fail with "The term 'cmd' is
-		// not recognized". Its Emacs edit mode (the default elsewhere) clears the line.
-		const shells: Record<string, Partial<Pick<ITerminalInstance, 'shellType' | 'shellLaunchConfig' | 'os'>>> = {
-			bash: { shellLaunchConfig: { executable: '/bin/bash' }, os: OperatingSystem.Linux },
-			zsh: { shellLaunchConfig: { executable: '/bin/zsh' }, os: OperatingSystem.Macintosh },
-			gitBashWindows: { shellLaunchConfig: { executable: 'C:\\Program Files\\Git\\bin\\bash.exe' }, os: OperatingSystem.Windows },
-			pwsh: { shellLaunchConfig: { executable: 'C:\\Program Files\\PowerShell\\7\\pwsh.exe' }, os: OperatingSystem.Windows },
-			windowsPowerShell: { shellLaunchConfig: { executable: 'C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' }, os: OperatingSystem.Windows },
-			pwshShellTypeWindows: { shellLaunchConfig: {}, shellType: GeneralShellType.PowerShell, os: OperatingSystem.Windows },
-			pwshMacOS: { shellLaunchConfig: { executable: '/usr/local/bin/pwsh' }, os: OperatingSystem.Macintosh },
-		};
-		const sentTextsByShell: Record<string, string[]> = {};
-		for (const [name, shell] of Object.entries(shells)) {
-			const { instance, sentTexts } = createMockTerminalAndXterm('   ', 'user@host:~$ ', shell);
-			const strategy = store.add(new NoneExecuteStrategy(instance, () => true, new TestConfigurationService(), createLogService()));
-			await strategy.execute('cmd /c rem', store.add(new CancellationTokenSource()).token);
-			sentTextsByShell[name] = sentTexts;
-		}
-
-		assert.deepStrictEqual(sentTextsByShell, {
-			bash: ['\x15', 'cmd /c rem'],
-			zsh: ['\x15', 'cmd /c rem'],
-			gitBashWindows: ['\x15', 'cmd /c rem'],
-			pwsh: ['cmd /c rem'],
-			windowsPowerShell: ['cmd /c rem'],
-			pwshShellTypeWindows: ['cmd /c rem'],
-			pwshMacOS: ['\x15', 'cmd /c rem'],
-		});
 	}));
 });

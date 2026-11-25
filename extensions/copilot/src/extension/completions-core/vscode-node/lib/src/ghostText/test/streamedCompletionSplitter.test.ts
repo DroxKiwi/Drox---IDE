@@ -55,7 +55,6 @@ class FakeCompletionsFetchService implements ICompletionsFetchService {
 			serverExperiments: '',
 			deploymentId: '',
 			gitHubRequestId: '',
-			copilotServiceRequestId: '',
 			completionId: '',
 			created: 0
 		}, headers);

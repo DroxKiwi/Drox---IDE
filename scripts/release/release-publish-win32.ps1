@@ -132,26 +132,17 @@ if (-not (Test-Path $releaseNotes)) {
 	Write-Utf8NoBomLines $releaseNotes @(
 		"# Drox IDE $ProductVersion",
 		'',
-// allow-any-unicode-next-line
 		'## Nouveautés',
-// allow-any-unicode-next-line
 		'- Première distribution packagée Windows (installeur user).',
-// allow-any-unicode-next-line
 		'- Moteur Drox embarqué (`resources/drox/`).',
-// allow-any-unicode-next-line
 		'- Chat Drox + intégration Ollama.',
 		'',
-// allow-any-unicode-next-line
 		'## Prérequis',
-// allow-any-unicode-next-line
 		'- Windows 10 ou plus récent (64 bits)',
-// allow-any-unicode-next-line
 		'- [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (souvent déjà installé)',
-// allow-any-unicode-next-line
 		'- [Ollama](https://ollama.com/) pour le chat local (optionnel mais recommandé)',
 		'',
 		'## Licence',
-// allow-any-unicode-next-line
 		'Basé sur Code OSS (MIT). Voir [NOTICE.md](../../NOTICE.md).'
 	)
 	Write-Host "RELEASE_NOTES cree -> $releaseNotes"
@@ -179,4 +170,3 @@ Write-Host '  2. git add .gitignore stable/ NOTICE.md README.md'
 Write-Host "  3. git commit -m `"Release v$ProductVersion win32-x64 (manifest)`""
 Write-Host '  4. git push'
 Write-Host "  5. gh release create v$ProductVersion `"$destSetup`" --repo $GitHubOrg/$GitHubRepo --title `"Drox IDE $ProductVersion`" --notes-file `"$releaseNotes`""
-

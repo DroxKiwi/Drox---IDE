@@ -8,7 +8,7 @@ import { Disposable, IDisposable } from '../../../../../../../base/common/lifecy
 import { URI } from '../../../../../../../base/common/uri.js';
 import { Position } from '../../../../../../../editor/common/core/position.js';
 import { Range } from '../../../../../../../editor/common/core/range.js';
-import { CompletionItem, CompletionItemKind, CompletionList } from '../../../../../../../editor/common/languages.js';
+import { CompletionItem, CompletionList } from '../../../../../../../editor/common/languages.js';
 import { ITextModel } from '../../../../../../../editor/common/model.js';
 import { LanguageFilter } from '../../../../../../../editor/common/languageSelector.js';
 import { ILanguageFeaturesService } from '../../../../../../../editor/common/services/languageFeatures.js';
@@ -54,10 +54,9 @@ export abstract class AgentHostInputCompletionsBase<TContext, TRegData = void> e
 
 	/**
 	 * Build the Monaco completion item — including the accept command —
-	 * for one item returned by the host. Return `undefined` to omit the item
-	 * (e.g. a config-action item the client suppresses under enterprise policy).
+	 * for one item returned by the host.
 	 */
-	protected abstract _buildItem(position: Position, item: IChatInputCompletionItem, context: TContext): CompletionItem | undefined;
+	protected abstract _buildItem(position: Position, item: IChatInputCompletionItem, context: TContext): CompletionItem;
 
 	/**
 	 * Register a Monaco completion provider that delegates to this
@@ -79,7 +78,10 @@ export abstract class AgentHostInputCompletionsBase<TContext, TRegData = void> e
 
 	private async _provide(model: ITextModel, position: Position, token: CancellationToken, triggerCharacters: readonly string[], regData: TRegData): Promise<CompletionList | null> {
 		// Only consult the agent host when the cursor sits inside a token
-		// led by one of the host-announced trigger characters.
+		// led by one of the host-announced trigger characters. Without
+		// this gate Monaco re-invokes the provider on every keystroke
+		// (for filtering / incomplete-result refresh), which would
+		// produce an RPC round-trip per character.
 		if (!isAtTriggerCharacterToken(model, position, triggerCharacters)) {
 			return null;
 		}
@@ -98,16 +100,9 @@ export abstract class AgentHostInputCompletionsBase<TContext, TRegData = void> e
 
 		const suggestions: CompletionItem[] = [];
 		for (const item of result.items) {
-			const built = this._buildItem(position, item, ctx.context);
-			if (built) {
-				if (item.start && (built.kind === CompletionItemKind.File || built.kind === CompletionItemKind.Folder)) {
-					built.filterText = model.getValueInRange(Range.fromPositions(item.start, position));
-				}
-				built.sortText ??= suggestions.length.toString().padStart(6, '0');
-				suggestions.push(built);
-			}
+			suggestions.push(this._buildItem(position, item, ctx.context));
 		}
-		return { suggestions, incomplete: true };
+		return { suggestions };
 	}
 
 	/**
@@ -122,17 +117,5 @@ export abstract class AgentHostInputCompletionsBase<TContext, TRegData = void> e
 		const replace = new Range(start.lineNumber, start.column, end.lineNumber, end.column);
 		const insert = new Range(start.lineNumber, start.column, position.lineNumber, position.column);
 		return { insert, replace };
-	}
-
-	protected static buildTextCompletionItem(position: Position, item: IChatInputCompletionItem): CompletionItem {
-		return {
-			label: item.insertText.startsWith('/') && item.label !== undefined && item.label !== item.insertText && item.label !== item.insertText.trimEnd()
-				? { label: item.insertText.trimEnd(), description: item.label }
-				: item.label ?? item.insertText,
-			insertText: item.insertText,
-			filterText: item.insertText,
-			range: this.computeRange(position, item),
-			kind: CompletionItemKind.Text,
-		};
 	}
 }

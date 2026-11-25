@@ -11,17 +11,13 @@ import { IRemoteAgentService } from '../../remote/common/remoteAgentService.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IRequestService } from '../../../../platform/request/common/request.js';
 import { IMcpGalleryManifestService } from '../../../../platform/mcp/common/mcpGalleryManifest.js';
-// DROX-BEGIN
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { INativeWorkbenchEnvironmentService } from '../../environment/electron-browser/environmentService.js';
 // eslint-disable-next-line local/code-import-patterns -- Drox curated MCP gallery in workbench service
 import { DroxMcpGalleryManifestService } from '../../../contrib/drox/browser/droxMcpGalleryManifestService.js';
-// DROX-END
 
-// DROX-BEGIN
 export class McpGalleryManifestService extends DroxMcpGalleryManifestService implements IMcpGalleryManifestService {
-	// DROX-END
 
 	constructor(
 		@IProductService productService: IProductService,
@@ -30,15 +26,11 @@ export class McpGalleryManifestService extends DroxMcpGalleryManifestService imp
 		@ILogService logService: ILogService,
 		@ISharedProcessService sharedProcessService: ISharedProcessService,
 		@IConfigurationService configurationService: IConfigurationService,
-		// DROX-BEGIN
 		@IFileService fileService: IFileService,
 		@INativeWorkbenchEnvironmentService environmentService: INativeWorkbenchEnvironmentService,
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
-		// DROX-END
 	) {
-		// DROX-BEGIN
 		super(productService, remoteAgentService, requestService, logService, configurationService, fileService, environmentService, workspaceContextService);
-		// DROX-END
 
 		const channel = sharedProcessService.getChannel('mcpGalleryManifest');
 		this.getMcpGalleryManifest().then(manifest => {

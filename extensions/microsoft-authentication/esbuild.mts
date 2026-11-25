@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { resolvePackageDirectory } from '../esbuild-common.mts';
 import { run } from '../esbuild-extension-common.mts';
 
 const srcDir = path.join(import.meta.dirname, 'src');
@@ -39,7 +38,7 @@ async function copyNativeMsalFiles(outDir: string): Promise<void> {
 		return;
 	}
 
-	const msalRuntimeDir = path.join(resolvePackageDirectory(import.meta.dirname, '@azure/msal-node-runtime'), 'dist', platformFolder, arch);
+	const msalRuntimeDir = path.join(import.meta.dirname, 'node_modules', '@azure', 'msal-node-runtime', 'dist', platformFolder, arch);
 	try {
 		const files = await fs.promises.readdir(msalRuntimeDir);
 		for (const file of files) {

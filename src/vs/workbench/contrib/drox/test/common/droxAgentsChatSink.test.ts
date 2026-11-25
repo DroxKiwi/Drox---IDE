@@ -183,7 +183,7 @@ suite('Drox — droxAgentsChatSink', () => {
 		const external = parts.filter(p => p.kind === 'externalEdit');
 		assert.strictEqual(external.length, 1);
 		if (external[0].kind === 'externalEdit') {
-			assert.strictEqual(external[0].uri.fsPath.replace(/\\/g, '/').toLowerCase(), filePath.toLowerCase());
+			assert.strictEqual(external[0].uri.fsPath.replace(/\\/g, '/'), filePath);
 			assert.strictEqual(external[0].diff?.added, 1);
 			assert.strictEqual(external[0].diff?.removed, 1);
 		}
@@ -270,7 +270,6 @@ suite('Drox — droxAgentsChatSink', () => {
 				description: 'Map pedagogy docs',
 				prompt: 'Inventory markdown under docs/pedagogie.\nReturn folder map + tone notes.',
 				result: undefined,
-				resultPath: undefined,
 			});
 		}
 	});
@@ -307,7 +306,6 @@ suite('Drox — droxAgentsChatSink', () => {
 				description: 'Locate Traffic alert settings',
 				prompt: 'Locate Traffic alert settings',
 				result: undefined,
-				resultPath: undefined,
 			});
 		}
 		if (tools[1].kind === 'externalToolInvocationUpdate') {
@@ -318,7 +316,6 @@ suite('Drox — droxAgentsChatSink', () => {
 				description: 'Locate Traffic alert settings',
 				prompt: 'Locate Traffic alert settings',
 				result: 'See drox.traffic.alerts in settings.',
-				resultPath: undefined,
 			});
 		}
 	});

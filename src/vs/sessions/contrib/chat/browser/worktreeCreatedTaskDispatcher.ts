@@ -8,10 +8,9 @@ import { autorun, registerAutorunSelfDisposable } from '../../../../base/common/
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IWorkbenchContribution } from '../../../../workbench/common/contributions.js';
-import { isAgentHostProviderId } from '../../../../workbench/contrib/sessions/common/agentHostSessionsProvider.js';
-import { ISession, SessionStatus } from '../../../../workbench/services/sessions/common/session.js';
-import { ISessionsManagementService } from '../../../../workbench/contrib/sessions/common/sessionsManagement.js';
-import { TaskSettingId } from '../../../../workbench/contrib/tasks/common/tasks.js';
+import { isAgentHostProviderId } from '../../../common/agentHostSessionsProvider.js';
+import { ISession, SessionStatus } from '../../../services/sessions/common/session.js';
+import { ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
 import { ISessionsTasksService } from './sessionsTasksService.js';
 
 const LOG_PREFIX = '[WorktreeCreatedTaskDispatcher]';
@@ -27,7 +26,6 @@ export const AGENT_HOST_RUN_WORKTREE_CREATED_TASKS_SETTING = 'chat.agentHost.run
  * Workbench contribution that runs all tasks tagged with
  * `runOptions.runOn === 'worktreeCreated'` once per newly-created session,
  * when the session first reports an actual git worktree.
- * Automatic dispatch requires `task.allowAutomaticTasks` to be `on`.
  *
  * Sessions whose runtime already runs these tasks server-side (signalled via
  * {@link ISessionCapabilities.runsWorktreeCreatedTasks}) are skipped to avoid
@@ -67,7 +65,7 @@ export class WorktreeCreatedTaskDispatcher extends Disposable implements IWorkbe
 	}
 
 	private _trackSession(session: ISession): void {
-		if (session.capabilities.get().runsWorktreeCreatedTasks) {
+		if (session.capabilities.runsWorktreeCreatedTasks) {
 			// The session's runtime already runs these tasks itself.
 			return;
 		}
@@ -118,10 +116,6 @@ export class WorktreeCreatedTaskDispatcher extends Disposable implements IWorkbe
 		for (const { task } of tasks) {
 			if (task.runOptions?.runOn !== 'worktreeCreated') {
 				continue;
-			}
-			if (this._configurationService.getValue<string>(TaskSettingId.AllowAutomaticTasks) !== 'on') {
-				this._logService.trace(`${LOG_PREFIX} Skipping worktreeCreated tasks for session '${session.sessionId}' — '${TaskSettingId.AllowAutomaticTasks}' is not enabled.`);
-				return;
 			}
 			this._logService.trace(`${LOG_PREFIX} Running worktreeCreated task '${task.label}' for session '${session.sessionId}'`);
 			try {

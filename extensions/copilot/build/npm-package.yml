@@ -4,9 +4,6 @@ trigger:
     include:
       - main
       - release/*
-  paths:
-    include:
-      - extensions/copilot
 
 pr: none
 
@@ -33,9 +30,6 @@ name: "$(Date:yyyyMMdd).$(Rev:r)${{ replace(format(' (🚀 {0})', parameters.nex
 extends:
   template: azure-pipelines/npm-package/pipeline.yml@templates
   parameters:
-    # Skip the shared template's bootstrap, which invokes Yarn in this pnpm repository.
-    # Registry is configured else where for this pipeline.
-    customNPMRegistry: ''
     npmPackages:
       - name: vscode-copilot-chat
         buildSteps:
@@ -44,13 +38,11 @@ extends:
               NPM_REGISTRY: ${{ parameters.NPM_REGISTRY }}
         testPlatforms:
           - name: Linux
-            nodeVersions: [24.x]
-            # chat-lib is consumed by other products, which don't share our GLIBC requirements.
-            useSysroot: false
+            nodeVersions: [22.x]
           - name: MacOS
-            nodeVersions: [24.x]
+            nodeVersions: [22.x]
           - name: Windows
-            nodeVersions: [24.x]
+            nodeVersions: [22.x]
         workingDirectory: extensions/copilot/chat-lib
         testSteps:
           - template: extensions/copilot/build/steps/test-chat-lib.yml@self

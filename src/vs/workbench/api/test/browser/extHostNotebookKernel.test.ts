@@ -5,6 +5,7 @@
 
 import assert from 'assert';
 import { Barrier } from '../../../../base/common/async.js';
+import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { URI, UriComponents } from '../../../../base/common/uri.js';
 import { ExtensionIdentifier } from '../../../../platform/extensions/common/extensions.js';
 import { NullLogService } from '../../../../platform/log/common/log.js';
@@ -30,7 +31,6 @@ import { ExtHostFileSystemInfo } from '../../common/extHostFileSystemInfo.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { ExtHostSearch } from '../../common/extHostSearch.js';
 import { URITransformerService } from '../../common/extHostUriTransformerService.js';
-import { TestMainThreadNotebookKernels } from './TestMainThreadNotebookKernels.js';
 
 suite('NotebookKernel', function () {
 	let rpcProtocol: TestRPCProtocol;
@@ -46,11 +46,17 @@ suite('NotebookKernel', function () {
 
 	const notebookUri = URI.parse('test:///notebook.file');
 	const kernelData = new Map<number, INotebookKernelDto2>();
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	const disposables = new DisposableStore();
 
 	const cellExecuteCreate: { notebook: UriComponents; cell: number }[] = [];
 	const cellExecuteUpdates: ICellExecuteUpdateDto[] = [];
 	const cellExecuteComplete: ICellExecutionCompleteDto[] = [];
+
+	teardown(function () {
+		disposables.clear();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	setup(async function () {
 		cellExecuteCreate.length = 0;
@@ -198,30 +204,6 @@ suite('NotebookKernel', function () {
 		assert.strictEqual(first.id, 'nullExtensionDescription/foo');
 		assert.strictEqual(first.label, 'Far');
 	});
-
-	for (const supportedLanguages of [undefined, []]) {
-		test(`reset supported languages with ${supportedLanguages === undefined ? 'undefined' : 'an empty array'}`, async function () {
-			const mainThreadKernels = disposables.add(new TestMainThreadNotebookKernels(rpcProtocol));
-			rpcProtocol.set(MainContext.MainThreadNotebookKernels, mainThreadKernels.instance);
-			const kernel = disposables.add(extHostNotebookKernels.createNotebookController(nullExtensionDescription, 'foo', '*', 'Foo'));
-			kernel.supportedLanguages = ['javascript'];
-			await rpcProtocol.sync();
-
-			const registeredKernel = mainThreadKernels.getKernel('nullExtensionDescription/foo')!;
-			assert.deepStrictEqual(registeredKernel.supportedLanguages, ['javascript']);
-
-			kernel.supportedLanguages = supportedLanguages;
-			await rpcProtocol.sync();
-
-			assert.deepStrictEqual({
-				apiLanguages: kernel.supportedLanguages,
-				mainThreadLanguages: registeredKernel.supportedLanguages
-			}, {
-				apiLanguages: supportedLanguages,
-				mainThreadLanguages: ['typescript', 'javascript', 'python']
-			});
-		});
-	}
 
 	test('execute - simple createNotebookCellExecution', function () {
 		const kernel = disposables.add(extHostNotebookKernels.createNotebookController(nullExtensionDescription, 'foo', '*', 'Foo'));

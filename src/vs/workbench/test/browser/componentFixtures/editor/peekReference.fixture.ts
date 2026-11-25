@@ -44,7 +44,7 @@ async function main() {
 main();
 `;
 
-function renderPeekReference({ container, disposableStore, theme, focus }: ComponentFixtureContext): void {
+function renderPeekReference({ container, disposableStore, theme }: ComponentFixtureContext): void {
 	container.style.width = '700px';
 	container.style.height = '400px';
 	container.style.border = '1px solid var(--vscode-editorWidget-border)';
@@ -121,7 +121,7 @@ function renderPeekReference({ container, disposableStore, theme, focus }: Compo
 	);
 
 	editor.setModel(textModel);
-	focus(editor);
+	editor.focus();
 
 	const layoutData: LayoutData = { ratio: 0.7, heightInLines: 10 };
 

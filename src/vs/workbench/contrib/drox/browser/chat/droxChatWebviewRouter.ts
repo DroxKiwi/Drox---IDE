@@ -31,7 +31,6 @@ import { IDroxAttachmentsService } from '../../common/droxAttachmentsService.js'
 import { IDroxClientToolsService } from '../../common/droxClientToolsService.js';
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
-import { IDroxToolsSurfaceService } from '../../common/droxToolsSurfaceService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { DroxSlashHostMessage, IDroxSlashCommandService } from '../../common/droxSlashCommandService.js';
@@ -106,7 +105,6 @@ export interface IDroxChatWebviewRouterDeps {
 	readonly sessionBackgroundService: IDroxSessionBackgroundService;
 	readonly codebaseContextService: IDroxCodebaseContextService;
 	readonly regulationService: IDroxRegulationService;
-	readonly toolsSurfaceService: IDroxToolsSurfaceService;
 	readonly userHomeFsPath?: string;
 }
 
@@ -192,7 +190,7 @@ export async function routeDroxChatWebviewMessage(
 			break;
 		case 'setGeneralSettings':
 			await setDroxGeneralSettingsFromWebview(deps, raw.settings as IDroxGeneralSettingsPatch);
-			pushGeneralSettingsToWebview(host, deps.runSettingsService, deps.configurationService, deps.toolsSurfaceService);
+			pushGeneralSettingsToWebview(host, deps.runSettingsService, deps.configurationService);
 			break;
 		case 'send':
 			await executeDroxChatSend(host, tabs, deps, raw.prompt, raw.mode, raw.attachments, raw.references, raw.pastes);

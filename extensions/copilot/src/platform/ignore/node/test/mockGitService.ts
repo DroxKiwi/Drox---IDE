@@ -10,7 +10,6 @@ import { IObservable } from '../../../../util/vs/base/common/observableInternal'
 import { observableValue } from '../../../../util/vs/base/common/observableInternal/observables/observableValue';
 import { URI } from '../../../../util/vs/base/common/uri';
 import { IGitService, RepoContext } from '../../../git/common/gitService';
-// eslint-disable-next-line local/code-layering -- Pre-existing layering violation found when the zone check started resolving extensionless imports.
 import { Branch, Change, Commit, CommitOptions, CommitShortStat, DiffChange, LogOptions, Ref, RefQuery, Repository, RepositoryAccessDetails } from '../../../git/vscode/git';
 
 /**
@@ -26,9 +25,7 @@ export class MockGitService implements IGitService {
 	private readonly _onDidCloseRepository = new Emitter<RepoContext>();
 	public readonly onDidCloseRepository: Event<RepoContext> = this._onDidCloseRepository.event;
 
-	private readonly _onDidOpenRepository = new Emitter<RepoContext>();
-	public readonly onDidOpenRepository: Event<RepoContext> = this._onDidOpenRepository.event;
-
+	public readonly onDidOpenRepository: Event<RepoContext> = Event.None;
 	public readonly onDidFinishInitialization: Event<void> = Event.None;
 	public readonly activeRepository: IObservable<RepoContext | undefined> = observableValue('test-git-activeRepo', undefined);
 	public repositories: RepoContext[] = [];
@@ -59,13 +56,6 @@ export class MockGitService implements IGitService {
 	 */
 	fireDidCloseRepository(repo: RepoContext): void {
 		this._onDidCloseRepository.fire(repo);
-	}
-
-	/**
-	 * Fires the onDidOpenRepository event with the given repository context.
-	 */
-	fireDidOpenRepository(repo: Pick<RepoContext, 'rootUri' | 'remoteFetchUrls'>): void {
-		this._onDidOpenRepository.fire(repo as RepoContext);
 	}
 
 	getRepository(_uri: URI, _forceOpen?: boolean): Promise<RepoContext | undefined> {
@@ -132,7 +122,7 @@ export class MockGitService implements IGitService {
 		return Promise.resolve(undefined);
 	}
 
-	deleteWorktree(_uri: URI, _path: string, _options?: { force?: boolean; label?: string }): Promise<void> {
+	deleteWorktree(_uri: URI, _path: string, _options?: { force?: boolean }): Promise<void> {
 		return Promise.resolve();
 	}
 
@@ -190,6 +180,5 @@ export class MockGitService implements IGitService {
 
 	dispose(): void {
 		this._onDidCloseRepository.dispose();
-		this._onDidOpenRepository.dispose();
 	}
 }

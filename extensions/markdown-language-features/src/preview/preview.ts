@@ -9,9 +9,8 @@ import { ILogger } from '../logging';
 import { MarkdownContributionProvider } from '../markdownExtensions';
 import { Disposable } from '../util/dispose';
 import { isMarkdownFile } from '../util/file';
-import { getSafeNotificationMessage } from '../util/notification';
 import { MdLinkOpener } from '../util/openDocumentLink';
-import { areUrisEqual, getMarkdownLocalResourceRoots, WebviewResourceProvider } from '../util/resources';
+import { areUrisEqual, WebviewResourceProvider } from '../util/resources';
 import { urlToUri } from '../util/url';
 import { ImageInfo, MdDocumentRenderer } from './documentRenderer';
 import { MarkdownPreviewConfigurationManager } from './previewConfig';
@@ -41,13 +40,6 @@ interface MarkdownPreviewDelegate {
 	getLineChanges?(): MarkdownPreviewLineChanges | Promise<MarkdownPreviewLineChanges | undefined> | undefined;
 	getDiffScrollSync?(): DiffScrollSyncData | Promise<DiffScrollSyncData | undefined> | undefined;
 	openPreviewLinkToMarkdownFile(markdownLink: vscode.Uri, fragment: string | undefined): void;
-}
-
-export function getStylesLoadErrorMessage(unloadedStyles: readonly string[]): string {
-	return getSafeNotificationMessage(
-		vscode.l10n.t("Could not load 'markdown.styles': {0}", unloadedStyles.join(', ')),
-		vscode.l10n.t("Could not load the styles configured in 'markdown.styles'."),
-	);
 }
 
 function getFirstChangedLine(lineChanges: MarkdownPreviewLineChanges): number | undefined {
@@ -84,7 +76,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 
 	readonly #delay = 300;
 	#throttleTimer: any;
-	#forceNextUpdate = false;
 
 	readonly #resource: vscode.Uri;
 	readonly #webviewPanel: vscode.WebviewPanel;
@@ -95,15 +86,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 	#firstUpdate = true;
 	#scrollToFirstDiffChange: boolean;
 	#currentVersion?: PreviewDocumentVersion;
-
-	/**
-	 * Whether `webview.html` no longer matches what the preview shows.
-	 *
-	 * Updates made while the panel is visible are posted to the webview as `updateContent` messages
-	 * and leave `webview.html` untouched. VS Code discards a hidden panel's webview and rebuilds it
-	 * from `webview.html` when the panel is revealed again, so that html must be refreshed before then.
-	 */
-	#webviewHtmlOutOfDate = false;
 	#isScrolling = false;
 	#scrollingTimer?: NodeJS.Timeout;
 
@@ -176,12 +158,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 			}
 		}));
 
-		this._register(this.#webviewPanel.onDidChangeViewState(({ webviewPanel }) => {
-			if (!webviewPanel.visible && this.#webviewHtmlOutOfDate) {
-				this.refresh(true);
-			}
-		}));
-
 		if (vscode.workspace.fs.isWritableFileSystem(resource.scheme)) {
 			const watcher = this._register(vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(resource, '*')));
 			this._register(watcher.onDidChange(uri => {
@@ -221,11 +197,10 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 					vscode.commands.executeCommand('markdown.showPreviewSecuritySelector', e.source);
 					break;
 
-				case 'previewStyleLoadError': {
-					this.#logger.trace('previewStyleLoadError', e.unloadedStyles.join(', '));
-					vscode.window.showWarningMessage(getStylesLoadErrorMessage(e.unloadedStyles));
+				case 'previewStyleLoadError':
+					vscode.window.showWarningMessage(
+						vscode.l10n.t("Could not load 'markdown.styles': {0}", e.unloadedStyles.join(', ')));
 					break;
-				}
 			}
 		}));
 
@@ -269,17 +244,12 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 	 * calls happening shortly thereafter are debounced.
 	*/
 	public refresh(forceUpdate: boolean = false) {
-		// Keep a requested full reload even when an update is already scheduled
-		if (forceUpdate) {
-			this.#forceNextUpdate = true;
-		}
-
 		// Schedule update if none is pending
 		if (!this.#throttleTimer) {
 			if (this.#firstUpdate) {
 				this.#updatePreview(true);
 			} else {
-				this.#throttleTimer = setTimeout(() => this.#updatePreview(this.#forceNextUpdate), this.#delay);
+				this.#throttleTimer = setTimeout(() => this.#updatePreview(forceUpdate), this.#delay);
 			}
 		}
 
@@ -322,7 +292,6 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 	async #updatePreview(forceUpdate?: boolean): Promise<void> {
 		clearTimeout(this.#throttleTimer);
 		this.#throttleTimer = undefined;
-		this.#forceNextUpdate = false;
 
 		if (this.#disposed) {
 			return;
@@ -452,14 +421,7 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 
 		if (reloadPage) {
 			this.#webviewPanel.webview.html = html;
-			this.#webviewHtmlOutOfDate = false;
-		} else if (!this.#webviewPanel.visible) {
-			// The panel was hidden while the body was rendering. That hide saw up to date html and
-			// scheduled nothing, and the webview the body was meant for is already discarded.
-			this.#webviewHtmlOutOfDate = true;
-			this.refresh(true);
 		} else {
-			this.#webviewHtmlOutOfDate = true;
 			this.postMessage({
 				type: 'updateContent',
 				content: html,
@@ -502,7 +464,19 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 	}
 
 	#getLocalResourceRoots(): ReadonlyArray<vscode.Uri> {
-		return getMarkdownLocalResourceRoots(this.#resource, this.#contributionProvider.contributions.previewResourceRoots);
+		const baseRoots = Array.from(this.#contributionProvider.contributions.previewResourceRoots);
+
+		const folder = vscode.workspace.getWorkspaceFolder(this.#resource);
+		if (folder) {
+			const workspaceRoots = vscode.workspace.workspaceFolders?.map(folder => folder.uri);
+			if (workspaceRoots) {
+				baseRoots.push(...workspaceRoots);
+			}
+		} else {
+			baseRoots.push(uri.Utils.dirname(this.#resource));
+		}
+
+		return baseRoots;
 	}
 
 	async #onDidClickPreviewLink(href: string) {
@@ -510,7 +484,7 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 		const openLinks = config.get<string>('preview.openMarkdownLinks', 'inPreview');
 		if (openLinks === 'inPreview') {
 			const resolved = await this.#opener.resolveDocumentLink(href, this.resource);
-			if (resolved?.kind === 'file') {
+			if (resolved.kind === 'file') {
 				try {
 					const doc = await vscode.workspace.openTextDocument(vscode.Uri.from(resolved.uri));
 					if (isMarkdownFile(doc)) {

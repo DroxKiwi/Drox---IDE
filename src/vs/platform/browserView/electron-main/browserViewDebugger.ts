@@ -5,9 +5,9 @@
 
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable, DisposableMap, IDisposable, toDisposable } from '../../../base/common/lifecycle.js';
+import { ILogService } from '../../log/common/log.js';
 import { CDPEvent, CDPTargetInfo, ICDPConnection } from '../common/cdp/types.js';
 import { BrowserView } from './browserView.js';
-import { readBrowserViewAccessibilityTree, type IBrowserViewAccessibilityTree } from './browserViewAccessibility.js';
 
 /**
  * Intercepts a CDP command before it is forwarded to the Electron debugger.
@@ -64,10 +64,10 @@ export class BrowserViewDebugger extends Disposable {
 	private readonly _messageHandler: (event: Electron.Event, method: string, params: unknown, sessionId?: string) => void;
 	private readonly _electronDebugger: Electron.Debugger;
 	private readonly _interceptors = new Set<CDPCommandInterceptor>();
-	private _isDisposed = false;
 
 	constructor(
-		private readonly view: BrowserView
+		private readonly view: BrowserView,
+		readonly logService: ILogService
 	) {
 		super();
 
@@ -106,11 +106,6 @@ export class BrowserViewDebugger extends Disposable {
 		this.ensureAttached();
 		const result = await this._electronDebugger.sendCommand('Target.getTargetInfo') as { targetInfo: CDPTargetInfo };
 		return result.targetInfo;
-	}
-
-	async getAccessibilityTree(): Promise<IBrowserViewAccessibilityTree> {
-		this.ensureAttached();
-		return readBrowserViewAccessibilityTree((method, params) => this._electronDebugger.sendCommand(method, params));
 	}
 
 	/**
@@ -161,12 +156,6 @@ export class BrowserViewDebugger extends Disposable {
 	}
 
 	private ensureAttached(): void {
-		if (this._isDisposed) {
-			throw new Error('Browser view debugger is disposed');
-		}
-		if (this.view.webContents.isDestroyed()) {
-			throw new Error('Browser view is destroyed');
-		}
 		if (this._electronDebugger.isAttached()) {
 			return;
 		}
@@ -212,7 +201,7 @@ export class BrowserViewDebugger extends Disposable {
 			this.registerSession(p.sessionId, p.targetInfo, p.waitingForDebugger, sessionId);
 		} else if (method === 'Target.detachedFromTarget') {
 			const p = params as { sessionId: string };
-			this.closeSession(p.sessionId);
+			this._sessions.deleteAndDispose(p.sessionId);
 		} else if (method === 'Target.targetDestroyed') {
 			const p = params as { targetId: string };
 			this.destroyTarget(p.targetId);
@@ -220,9 +209,6 @@ export class BrowserViewDebugger extends Disposable {
 			const p = params as { targetInfo: CDPTargetInfo };
 			if (this._knownTargets.has(p.targetInfo.targetId)) {
 				this._knownTargets.set(p.targetInfo.targetId, p.targetInfo);
-				this._onTargetInfoChanged.fire(p.targetInfo);
-			} else if (p.targetInfo.targetId === this.targetId) {
-				// The page target isn't in _knownTargets, but its URL and title still change on navigation.
 				this._onTargetInfoChanged.fire(p.targetInfo);
 			}
 		} else if (method === 'Debugger.paused') {
@@ -250,7 +236,7 @@ export class BrowserViewDebugger extends Disposable {
 			}
 		}
 		for (const sessionId of toDispose) {
-			this.closeSession(sessionId);
+			this._sessions.deleteAndDispose(sessionId);
 		}
 
 		if (this._knownTargets.delete(targetId)) {
@@ -270,32 +256,14 @@ export class BrowserViewDebugger extends Disposable {
 
 		const session = new DebugSession(parentSessionId, sessionId, targetInfo.targetId, this);
 		this._sessions.set(sessionId, session);
-		const closeListener = session.onClose(() => {
-			closeListener.dispose();
-			if (this._sessions.deleteAndLeak(sessionId) !== session) {
-				return;
-			}
-			if (this._isDisposed || this.view.webContents.isDestroyed() || !this._electronDebugger.isAttached()) {
-				return;
-			}
-			void this._electronDebugger.sendCommand(
-				'Target.detachFromTarget',
-				{ sessionId },
-				parentSessionId
-			).catch(() => { });
-		});
+		session.onClose(() => this._sessions.deleteAndDispose(sessionId));
 
 		this._onSessionCreated.fire({ session, waitingForDebugger });
 
 		return session;
 	}
 
-	private closeSession(sessionId: string): void {
-		this._sessions.deleteAndLeak(sessionId)?.dispose();
-	}
-
 	override dispose(): void {
-		this._isDisposed = true;
 		this.detachElectronDebugger();
 		super.dispose();
 	}

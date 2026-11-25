@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { PromptElement, PromptSizing } from '@vscode/prompt-tsx';
-import { isXAiFamily } from '../../../../platform/endpoint/common/chatModelCapabilities';
 import { IChatEndpoint } from '../../../../platform/networking/common/networking';
 import { agenticBrowserTools, ToolName } from '../../../tools/common/toolNames';
 import { InstructionMessage } from '../base/instructionMessage';
@@ -16,7 +15,7 @@ import { CodesearchModeInstructions, DefaultAgentPromptProps, detectToolCapabili
 import { FileLinkificationInstructions } from './fileLinkificationInstructions';
 import { IAgentPrompt, PromptRegistry, SystemPrompt } from './promptRegistry';
 
-class DefaultGrokAgentPrompt extends PromptElement<DefaultAgentPromptProps> {
+class DefaultGrokCodeFastAgentPrompt extends PromptElement<DefaultAgentPromptProps> {
 	async render(state: void, sizing: PromptSizing) {
 		const tools = detectToolCapabilities(this.props.availableTools);
 
@@ -115,14 +114,10 @@ class DefaultGrokAgentPrompt extends PromptElement<DefaultAgentPromptProps> {
 }
 
 class XAIPromptResolver implements IAgentPrompt {
-	static readonly familyPrefixes = ['grok'];
-
-	static matchesModel(endpoint: IChatEndpoint): boolean {
-		return isXAiFamily(endpoint);
-	}
+	static readonly familyPrefixes = ['grok-code'];
 
 	resolveSystemPrompt(endpoint: IChatEndpoint): SystemPrompt | undefined {
-		return DefaultGrokAgentPrompt;
+		return DefaultGrokCodeFastAgentPrompt;
 	}
 
 	resolveUserQueryTagName(endpoint: IChatEndpoint): string | undefined {

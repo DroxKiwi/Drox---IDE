@@ -5,8 +5,6 @@
 
 import { DisposableStore, IDisposable, toDisposable } from '../../../base/common/lifecycle.js';
 import { mock } from '../../../base/test/common/mock.js';
-import { IHoverService } from '../../../platform/hover/browser/hover.js';
-import { NullHoverService } from '../../../platform/hover/test/browser/nullHoverService.js';
 import { EditorConfiguration } from '../../browser/config/editorConfiguration.js';
 import { IActiveCodeEditor, ICodeEditor } from '../../browser/editorBrowser.js';
 import { ICodeEditorService } from '../../browser/services/codeEditorService.js';
@@ -24,8 +22,6 @@ import { LanguageFeaturesService } from '../../common/services/languageFeaturesS
 import { LanguageService } from '../../common/services/languageService.js';
 import { IModelService } from '../../common/services/model.js';
 import { ModelService } from '../../common/services/modelService.js';
-import { ITextModelService } from '../../common/services/resolverService.js';
-import { InMemoryTextModelService } from '../../common/services/inMemoryTextModelService.js';
 import { ITextResourcePropertiesService } from '../../common/services/textResourceConfiguration.js';
 import { ViewModel } from '../../common/viewModel/viewModelImpl.js';
 import { TestConfiguration } from './config/testConfiguration.js';
@@ -227,7 +223,6 @@ export function createCodeEditorServices(disposables: Pick<DisposableStore, 'add
 	define(IClipboardService, TestClipboardService);
 	define(IEditorWorkerService, TestEditorWorkerService);
 	defineInstance(IOpenerService, NullOpenerService);
-	defineInstance(IHoverService, NullHoverService);
 	define(INotificationService, TestNotificationService);
 	define(IDialogService, TestDialogService);
 	define(IUndoRedoService, UndoRedoService);
@@ -254,7 +249,6 @@ export function createCodeEditorServices(disposables: Pick<DisposableStore, 'add
 	define(ITreeSitterLibraryService, TestTreeSitterLibraryService);
 	define(IInlineCompletionsService, InlineCompletionsService);
 	define(IUserInteractionService, MockUserInteractionService);
-	define(ITextModelService, InMemoryTextModelService);
 
 	const instantiationService = disposables.add(new TestInstantiationService(services, true));
 	disposables.add(toDisposable(() => {

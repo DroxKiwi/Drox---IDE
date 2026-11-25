@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import './media/sessionsSetUp.css';
 import { Disposable, DisposableStore, IDisposable, MutableDisposable, toDisposable } from '../../base/common/lifecycle.js';
-import { CancellationTokenSource } from '../../base/common/cancellation.js';
 import { DeferredPromise, disposableTimeout } from '../../base/common/async.js';
 import { createDecorator, IInstantiationService } from '../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../platform/log/common/log.js';
@@ -25,8 +25,7 @@ import { IKeybindingService } from '../../platform/keybinding/common/keybinding.
 import { IHostService } from '../../workbench/services/host/browser/host.js';
 import { IMarkdownRendererService } from '../../platform/markdown/browser/markdownRenderer.js';
 import { WELCOME_COMPLETE_KEY } from '../common/welcome.js';
-import { SessionsWelcomeVisibleContext } from '../../workbench/contrib/sessions/common/contextkeys.js';
-import { ConditionalAuthState, conditionalAuthState, resolveSignedOutWindowGate, SignedOutWindowGate } from '../../workbench/services/sessions/browser/sessionsAuthGate.js';
+import { SessionsWelcomeVisibleContext } from '../common/contextkeys.js';
 
 import { IConfigurationService } from '../../platform/configuration/common/configuration.js';
 import { Codicon } from '../../base/common/codicons.js';
@@ -35,9 +34,10 @@ import { Dialog, DialogContentsAlignment } from '../../base/browser/ui/dialog/di
 import { createWorkbenchDialogOptions } from '../../workbench/browser/parts/dialogs/dialog.js';
 import { MarkdownString } from '../../base/common/htmlContent.js';
 import { localize } from '../../nls.js';
-import { createSessionsSignInDialogOptions, SessionsSigningInDialog } from './sessionsSignInDialog.js';
-import { SHOULD_SHOW_RETURN_TO_VSCODE_EDITOR_COMMAND_ID } from '../../workbench/contrib/sessions/common/sessionCommands.js';
-import { ISessionsManagementService } from '../../workbench/contrib/sessions/common/sessionsManagement.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox agents window welcome
+import { shouldSkipDroxSessionsSignIn } from '../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
+// eslint-disable-next-line local/code-import-patterns -- Drox agents window welcome
+import { appendDroxActivityGrid } from '../../workbench/contrib/drox/browser/droxActivityGrid.js';
 
 const AIDisabledConfig = 'chat.disableAIFeatures';
 
@@ -45,7 +45,6 @@ export const ISessionsSetUpService = createDecorator<ISessionsSetUpService>('ses
 
 export interface ISessionsSetUpService {
 	readonly _serviceBrand: undefined;
-	readonly initialSignInDialogShown: boolean;
 	/**
 	 * Resolves when the welcome/setup flow has completed (or immediately
 	 * if it is not currently active). Use this to defer work until after
@@ -74,27 +73,12 @@ class SessionsSetUpWidget extends Disposable {
 
 	private readonly dialogRef = this._register(new MutableDisposable<DisposableStore>());
 	private readonly watcherRef = this._register(new MutableDisposable());
-	private readonly signInSetupCancellation = this._register(new MutableDisposable<CancellationTokenSource>());
-	private _initialSetupFlow = true;
-	/** True while the window is open without GitHub. */
-	private _proceedingSignedOut = false;
-	/**
-	 * Set once the initial default-account resolution has completed. Until then
-	 * the synchronous {@link IDefaultAccountService.currentDefaultAccount} snapshot
-	 * is `null` even for a signed-in user, so a `null` reading means "not known
-	 * yet", not "signed out". The conditional-auth reaction stays inert until this
-	 * flips, otherwise it forces a sign-in modal on a signed-in user during the
-	 * startup gap — one nothing can retire, since the account resolves silently.
-	 */
-	private _accountResolved = false;
-	private _waitingForSessionTypes = false;
 
 	// Non-service params must come before @-decorated service params
 	constructor(
 		private readonly onCompleted: () => void,
 		private readonly serviceWhenSetupDone: () => Promise<boolean>,
 		private readonly serviceMarkDone: () => void,
-		private readonly onInitialSignInDialogShown: () => void,
 		@IDefaultAccountService private readonly defaultAccountService: IDefaultAccountService,
 		@IProductService private readonly productService: IProductService,
 		@IStorageService private readonly storageService: IStorageService,
@@ -108,26 +92,15 @@ class SessionsSetUpWidget extends Disposable {
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
 		@IHostService private readonly hostService: IHostService,
 		@IMarkdownRendererService private readonly markdownRendererService: IMarkdownRendererService,
-		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@ISessionsManagementService private readonly sessionsManagementService: ISessionsManagementService,
 	) {
 		super();
-		this._register(this.sessionsManagementService.onDidChangeSessionTypes(() => this._onProviderAvailabilityChanged()));
 		this._start();
 	}
 
-	private _onProviderAvailabilityChanged(): void {
-		const signedIn = this.defaultAccountService.currentDefaultAccount !== null;
-		if (conditionalAuthState(this._accountResolved, signedIn) !== ConditionalAuthState.SignedOut) {
-			return;
-		}
-		if (this._initialSetupFlow) {
-			if (this._canInitializeWithoutGitHub()) {
-				this.signInSetupCancellation.value?.cancel();
-			}
-			return;
-		}
-		this._reevaluateSignedOut();
+	private _completeSessionsSetupWithoutAuth(): void {
+		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
+		this.serviceMarkDone();
+		this.onCompleted();
 	}
 
 	private _start(): void {
@@ -136,25 +109,24 @@ class SessionsSetUpWidget extends Disposable {
 			return;
 		}
 
+		if (shouldSkipDroxSessionsSignIn(this.productService)) {
+			this.logService.info('[sessions welcome] Drox agents window');
+			const isFirstLaunch = !this.storageService.getBoolean(WELCOME_COMPLETE_KEY, StorageScope.APPLICATION, false);
+			if (isFirstLaunch) {
+				void this._showDroxWelcomeDialog();
+			} else {
+				this._completeSessionsSetupWithoutAuth();
+			}
+			return;
+		}
+
 		if (!this.productService.defaultChatAgent?.chatExtensionId) {
 			this.onCompleted();
 			return;
 		}
 
-		// Learn when the default account resolves so the conditional-auth reaction
-		// can tell "signed out" from "not resolved yet". On first load the account
-		// is populated silently (no change event fires), so awaiting it once is the
-		// only signal that resolution has happened.
-		this.defaultAccountService.getDefaultAccount().then(() => {
-			if (this._store.isDisposed) {
-				return;
-			}
-			this._accountResolved = true;
-			this._onProviderAvailabilityChanged();
-		});
-
 		if (isWeb) {
-			void this._checkWebAuth().finally(() => this._initialSetupFlow = false);
+			this._checkWebAuth();
 			this._watchWebAuth();
 			return;
 		}
@@ -162,9 +134,9 @@ class SessionsSetUpWidget extends Disposable {
 		const isFirstLaunch = !this.storageService.getBoolean(WELCOME_COMPLETE_KEY, StorageScope.APPLICATION, false);
 
 		if (isFirstLaunch) {
-			void this._showWelcome(true).finally(() => this._initialSetupFlow = false);
+			this._showWelcome(true);
 		} else {
-			void this._watchSignInState().finally(() => this._initialSetupFlow = false);
+			this._watchSignInState();
 		}
 	}
 
@@ -208,16 +180,7 @@ class SessionsSetUpWidget extends Disposable {
 			return;
 		}
 		if (!initialAccount) {
-			if (this._canInitializeWithoutGitHub()) {
-				await this._proceedWithoutGitHub();
-				return;
-			}
-			const welcomeComplete = this.storageService.getBoolean(WELCOME_COMPLETE_KEY, StorageScope.APPLICATION, false);
-			if (welcomeComplete) {
-				await this._proceedWithoutGitHub();
-			} else {
-				this._showWelcome(false);
-			}
+			this._showWelcome(false);
 			return;
 		}
 		await this._ensureAIFeaturesEnabled();
@@ -231,12 +194,8 @@ class SessionsSetUpWidget extends Disposable {
 		disposables.add(this.defaultAccountService.onDidChangeDefaultAccount(account => {
 			const nowSignedIn = account !== null;
 			if (signedIn && !nowSignedIn) {
-				// Signed out: drop the completion marker and re-consult the gate.
 				this.storageService.remove(WELCOME_COMPLETE_KEY, StorageScope.APPLICATION);
-				this._reevaluateSignedOut();
-			} else if (!signedIn && nowSignedIn) {
-				// Signed in while running signed-out: the window is already open.
-				this._proceedingSignedOut = false;
+				this._showWelcome(false);
 			}
 			signedIn = nowSignedIn;
 		}));
@@ -253,72 +212,6 @@ class SessionsSetUpWidget extends Disposable {
 		}));
 
 		return disposables;
-	}
-
-	/**
-	 * Resolve the window-level signed-out gate from every advertised session type.
-	 */
-	private _signedOutWindowGate(): SignedOutWindowGate {
-		const sessionTypes = this.sessionsManagementService.getAllProviderSessionTypes().map(({ sessionType }) => sessionType);
-		return resolveSignedOutWindowGate(
-			sessionTypes.map(sessionType => sessionType.authRequirement),
-			this._canInitializeWithoutGitHub(sessionTypes),
-		);
-	}
-
-	private _canInitializeWithoutGitHub(sessionTypes = this.sessionsManagementService.getAllProviderSessionTypes().map(({ sessionType }) => sessionType)): boolean {
-		return sessionTypes.some(sessionType => sessionType.initializationOnSelection?.canInitializeWithoutGitHub === true);
-	}
-
-	/**
-	 * Re-run the signed-out decision after an input change: force GitHub sign-in
-	 * when the gate demands it, otherwise open the window without GitHub. A no-op
-	 * while a dialog is up — that dialog owns the next transition.
-	 */
-	private _reevaluateSignedOut(): void {
-		if (this._initialSetupFlow) {
-			return;
-		}
-		if (this._proceedingSignedOut) {
-			return;
-		}
-		const gate = this._signedOutWindowGate();
-		if (gate === SignedOutWindowGate.Unresolved) {
-			this._waitingForSessionTypes = true;
-			return;
-		}
-		if (this._waitingForSessionTypes) {
-			this._waitingForSessionTypes = false;
-			this.dialogRef.clear();
-		}
-		if (gate === SignedOutWindowGate.ForceGitHubSignIn) {
-			if (this.dialogRef.value) {
-				return;
-			}
-			this._proceedingSignedOut = false;
-			void this._showWelcome(false);
-		} else {
-			this.signInSetupCancellation.value?.cancel();
-			this.dialogRef.clear();
-			void this._proceedWithoutGitHub();
-		}
-	}
-
-	/**
-	 * Open the Agents window for a signed-out user. Idempotent while already proceeding.
-	 */
-	private async _proceedWithoutGitHub(): Promise<void> {
-		if (this._proceedingSignedOut) {
-			return;
-		}
-		this._proceedingSignedOut = true;
-		this.logService.info('[sessions welcome] Proceeding without GitHub sign-in');
-		await this._ensureAIFeaturesEnabled();
-		if (this._store.isDisposed) {
-			return;
-		}
-		this.onCompleted();
-		this.watcherRef.value = this._watchActiveState(false);
 	}
 
 	private async _ensureAIFeaturesEnabled(): Promise<void> {
@@ -373,18 +266,9 @@ class SessionsSetUpWidget extends Disposable {
 			return;
 		}
 
-		// A non-first-launch _showWelcome means the user is signed out. Consult the
-		// last-resort GitHub gate before forcing sign-in.
-		if (!isFirstLaunch) {
-			const gate = this._signedOutWindowGate();
-			if (gate === SignedOutWindowGate.Unresolved) {
-				this._waitingForSessionTypes = true;
-				return;
-			}
-			if (gate === SignedOutWindowGate.Proceed) {
-				await this._proceedWithoutGitHub();
-				return;
-			}
+		if (shouldSkipDroxSessionsSignIn(this.productService)) {
+			this._completeSessionsSetupWithoutAuth();
+			return;
 		}
 
 		this.watcherRef.clear();
@@ -402,6 +286,7 @@ class SessionsSetUpWidget extends Disposable {
 			if (this._store.isDisposed) {
 				return;
 			}
+
 			overlay.element.classList.add('sessions-loading-dismissed');
 			this.dialogRef.value.add(disposableTimeout(() => overlay.element.remove(), 200));
 
@@ -420,21 +305,7 @@ class SessionsSetUpWidget extends Disposable {
 
 				await this._showWelcomeDialog();
 			} else {
-				if (this._canInitializeWithoutGitHub()) {
-					this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-					this.serviceMarkDone();
-					this.dialogRef.clear();
-					await this._proceedWithoutGitHub();
-					return;
-				}
-				const continueWithoutSignIn = await this._showSignInDialog(true);
-				if (continueWithoutSignIn || this._canInitializeWithoutGitHub()) {
-					this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-					this.serviceMarkDone();
-					this.dialogRef.clear();
-					await this._proceedWithoutGitHub();
-					return;
-				}
+				await this._showSignInDialog();
 			}
 		} else {
 			await this._showSignInDialog();
@@ -450,70 +321,59 @@ class SessionsSetUpWidget extends Disposable {
 		overlay.setAttribute('role', 'status');
 		overlay.setAttribute('aria-busy', 'true');
 		overlay.setAttribute('aria-label', localize('loading', "Loading"));
-		append(overlay, $('div.sessions-loading-icon.codicon.codicon-agent'));
+		if (shouldSkipDroxSessionsSignIn(this.productService)) {
+			appendDroxActivityGrid(overlay, 'activity-grid activity-grid-inline sessions-loading-grid');
+		} else {
+			append(overlay, $('div.sessions-loading-icon.codicon.codicon-agent'));
+		}
 		return { element: overlay, dispose: () => overlay.remove() };
 	}
 
-	private async _showSignInDialog(allowContinueWithoutSignIn = false): Promise<boolean> {
-		if (this._initialSetupFlow) {
-			this.onInitialSignInDialogShown();
+	private async _showSignInDialog(): Promise<void> {
+		if (shouldSkipDroxSessionsSignIn(this.productService)) {
+			this._completeSessionsSetupWithoutAuth();
+			return;
 		}
+
 		this.logService.info('[sessions welcome] Showing sign-in dialog');
 
-		const setupCancellation = new CancellationTokenSource();
-		this.signInSetupCancellation.value = setupCancellation;
-		while (true) {
-			const attemptDisposables = new DisposableStore();
-			const signingInDialogRef = attemptDisposables.add(new MutableDisposable<SessionsSigningInDialog>());
-			let canceled = false;
-			let continueWithoutSignIn = false;
-			const showReturnToVSCodeEditor = !isWeb && (await this.commandService.executeCommand<boolean>(SHOULD_SHOW_RETURN_TO_VSCODE_EDITOR_COMMAND_ID)) === true;
-			const onContinueWithoutSignIn = () => {
-				continueWithoutSignIn = true;
-				setupCancellation.cancel();
-			};
+		const signingInDialogRef = new MutableDisposable<DisposableStore>();
 
-			let success: boolean | undefined;
-			try {
-				success = await this.commandService.executeCommand<boolean>('workbench.action.chat.triggerSetup', undefined, {
-					telemetrySource: 'sessionsSetup',
-					...createSessionsSignInDialogOptions(this.commandService, showReturnToVSCodeEditor, allowContinueWithoutSignIn, onContinueWithoutSignIn),
-					cancellationToken: setupCancellation.token,
-					onSignInStarted: (cancel: () => void) => {
-						signingInDialogRef.value = this.instantiationService.createInstance(SessionsSigningInDialog, () => {
-							canceled = true;
-							cancel();
-						});
-					}
-				});
-			} finally {
-				attemptDisposables.dispose();
+		const success = await this.commandService.executeCommand<boolean>('workbench.action.chat.triggerSetup', undefined, {
+			forceSignInDialog: true,
+			dialogIcon: Codicon.agent,
+			dialogTitle: localize('sessions.signIn', "Sign in to use Agents"),
+			disableCloseButton: true,
+			onSignInStarted: () => {
+				const disposables = new DisposableStore();
+				signingInDialogRef.value = disposables;
+				const dialog = disposables.add(new Dialog(
+					this.layoutService.activeContainer,
+					localize('sessions.signingIn', "Signing in…"),
+					[],
+					createWorkbenchDialogOptions({
+						type: 'none',
+						extraClasses: ['chat-setup-dialog', 'sessions-welcome-dialog'],
+						detail: localize('sessions.signingIn.detail', "Please complete sign-in in the browser."),
+						icon: Codicon.agent,
+						alignment: DialogContentsAlignment.Vertical,
+						cancelId: 0,
+						disableCloseButton: true,
+						disableDefaultAction: true,
+					}, this.keybindingService, this.layoutService, this.hostService)
+				));
+				dialog.show();
 			}
-			if (continueWithoutSignIn) {
-				this.logService.info('[sessions welcome] User chose to continue without GitHub sign-in');
-				this.signInSetupCancellation.clear();
-				return true;
-			}
-			if (setupCancellation.token.isCancellationRequested) {
-				this.logService.info('[sessions welcome] Sign-in dialog retired because another agent became usable');
-				this.signInSetupCancellation.clear();
-				return false;
-			}
+		});
 
-			if (canceled) {
-				this.logService.info('[sessions welcome] Sign-in canceled; returning to sign-in dialog');
-				continue;
-			}
+		signingInDialogRef.dispose();
 
-			if (success) {
-				this.logService.info('[sessions welcome] Sign-in completed successfully');
-				this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-				this.serviceMarkDone();
-			} else {
-				this.logService.info('[sessions welcome] Sign-in was canceled or failed');
-			}
-			this.signInSetupCancellation.clear();
-			return false;
+		if (success) {
+			this.logService.info('[sessions welcome] Sign-in completed successfully');
+			this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
+			this.serviceMarkDone();
+		} else {
+			this.logService.info('[sessions welcome] Sign-in was canceled or failed');
 		}
 	}
 
@@ -546,27 +406,59 @@ class SessionsSetUpWidget extends Disposable {
 		this.serviceMarkDone();
 	}
 
+	private async _showDroxWelcomeDialog(): Promise<void> {
+		if (this.dialogRef.value) {
+			return;
+		}
+
+		this.logService.info('[sessions welcome] Showing Drox welcome dialog');
+
+		const disposables = new DisposableStore();
+		this.dialogRef.value = disposables;
+
+		const welcomeVisibleKey = SessionsWelcomeVisibleContext.bindTo(this.contextKeyService);
+		welcomeVisibleKey.set(true);
+		disposables.add(toDisposable(() => welcomeVisibleKey.reset()));
+
+		const productName = this.productService.nameLong || 'Drox';
+		const dialog = disposables.add(new Dialog(
+			this.layoutService.activeContainer,
+			localize('sessions.droxWelcome.title', "Welcome to {0} Agents", productName),
+			[localize('sessions.droxWelcome.getStarted', "Get Started")],
+			createWorkbenchDialogOptions({
+				type: 'none',
+				extraClasses: ['chat-setup-dialog', 'sessions-welcome-dialog', 'sessions-main-welcome-dialog', 'sessions-drox-welcome-dialog'],
+				detail: localize(
+					'sessions.droxWelcome.detail',
+					"Local agent powered by drox.exe. Open a workspace folder, choose a model in Drox Settings, and start building — no GitHub account required.",
+				),
+				icon: Codicon.sparkle,
+				alignment: DialogContentsAlignment.Vertical,
+				cancelId: 1,
+				disableCloseButton: true,
+			}, this.keybindingService, this.layoutService, this.hostService)
+		));
+
+		await dialog.show();
+		disposables.dispose();
+		this.dialogRef.clear();
+
+		this._completeSessionsSetupWithoutAuth();
+	}
+
 	private _createWelcomeFooter(disposables: DisposableStore): HTMLElement {
 		const element = $('.chat-setup-dialog-footer');
 		const defaultChatAgent = this.productService.defaultChatAgent;
-		// DROX-BEGIN
 		const providerName = defaultChatAgent?.provider?.default?.name ?? 'Drox';
-		// DROX-END
 		const termsUrl = defaultChatAgent?.termsStatementUrl ?? '';
 		const privacyUrl = defaultChatAgent?.privacyStatementUrl ?? '';
 		const publicCodeUrl = defaultChatAgent?.publicCodeMatchesUrl ?? '';
 		const settingsUrl = this.defaultAccountService.resolveGitHubUrl(GitHubPaths.copilotSettings);
 
-		const footer = settingsUrl ? localize(
+		const footer = localize(
 			{ key: 'welcomeFooter', comment: ['{Locked="["}', '{Locked="]({1})"}', '{Locked="]({2})"}', '{Locked="]({4})"}', '{Locked="]({5})"}'] },
-			// DROX-BEGIN
 			"By continuing, you agree to {0}'s [Terms]({1}) and [Privacy Statement]({2}). {3} may show [public code]({4}) suggestions and use your data to improve the product. You can change these [settings]({5}) anytime.",
-			// DROX-END
 			providerName, termsUrl, privacyUrl, providerName, publicCodeUrl, settingsUrl
-		) : localize(
-			{ key: 'welcomeFooterWithoutSettingsLink', comment: ['{Locked="["}', '{Locked="]({1})"}', '{Locked="]({2})"}', '{Locked="]({4})"}'] },
-			"By continuing, you agree to {0}'s [Terms]({1}) and [Privacy Statement]({2}). {3} Copilot may show [public code]({4}) suggestions and use your data to improve the product. You can change these settings anytime.",
-			providerName, termsUrl, privacyUrl, providerName, publicCodeUrl
 		);
 		element.appendChild($('p', undefined, disposables.add(this.markdownRendererService.render(new MarkdownString(footer, { isTrusted: true }))).element));
 
@@ -584,11 +476,6 @@ export class SessionsSetUpService extends Disposable implements ISessionsSetUpSe
 
 	private readonly _initPromise: Promise<void>;
 	private readonly _welcomeDoneDeferred = new DeferredPromise<void>();
-	private _initialSignInDialogShown = false;
-
-	get initialSignInDialogShown(): boolean {
-		return this._initialSignInDialogShown;
-	}
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
@@ -605,8 +492,7 @@ export class SessionsSetUpService extends Disposable implements ISessionsSetUpSe
 			SessionsSetUpWidget,
 			() => this._welcomeDoneDeferred.complete(),
 			() => this.whenSetupDone(),
-			() => this.markDone(),
-			() => this._initialSignInDialogShown = true
+			() => this.markDone()
 		));
 	}
 

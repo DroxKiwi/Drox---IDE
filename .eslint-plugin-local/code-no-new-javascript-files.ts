@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
 
-export default new class NoNewJavaScriptFiles implements CreateRule {
+export default new class NoNewJavaScriptFiles implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		type: 'problem',
 		schema: [],
 		messages: {
@@ -15,7 +15,7 @@ export default new class NoNewJavaScriptFiles implements CreateRule {
 		}
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 		return {
 			Program: (node) => {
 				context.report({

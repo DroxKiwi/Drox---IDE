@@ -15,7 +15,6 @@ import { IChatWebSocketManager } from '../../networking/node/chatWebSocketManage
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../telemetry/common/telemetry';
 import { ITokenizerProvider } from '../../tokenizer/node/tokenizer';
-import type { AutoModeTier } from '../common/autoModeTiers';
 import { ICAPIClientService } from '../common/capiClient';
 import { IDomainService } from '../common/domainService';
 import { IChatModelInformation } from '../common/endpointProvider';
@@ -31,11 +30,9 @@ export class AutoChatEndpoint extends CopilotChatEndpoint {
 
 	constructor(
 		_wrappedEndpoint: IChatEndpoint,
-		private readonly _autoSessionToken: string,
+		_sessionToken: string,
 		_discountPercent: number,
 		public readonly discountRange: { low: number; high: number },
-		/** Routing tier the session token was minted for; `undefined` for the picker entry, which is never routed. */
-		public readonly autoTier: AutoModeTier | undefined,
 		@IDomainService _domainService: IDomainService,
 		@ICAPIClientService _capiClientService: ICAPIClientService,
 		@IFetcherService _fetcherService: IFetcherService,
@@ -51,7 +48,7 @@ export class AutoChatEndpoint extends CopilotChatEndpoint {
 		@ILogService _logService: ILogService,
 	) {
 		super(
-			calculateAutoModelInfo(_wrappedEndpoint, _autoSessionToken, _discountPercent),
+			calculateAutoModelInfo(_wrappedEndpoint, _sessionToken, _discountPercent),
 			_domainService,
 			_capiClientService,
 			_fetcherService,
@@ -66,15 +63,6 @@ export class AutoChatEndpoint extends CopilotChatEndpoint {
 			_chatWebSocketService,
 			_logService
 		);
-	}
-
-	/**
-	 * Stays an Auto endpoint so a request with a clamped context window keeps its
-	 * Auto attribution. The metadata already carries the session token and the
-	 * discounted multiplier, so no further discount is applied.
-	 */
-	public override cloneWithTokenOverride(modelMaxPromptTokens: number): IChatEndpoint {
-		return this._instantiationService.createInstance(AutoChatEndpoint, super.cloneWithTokenOverride(modelMaxPromptTokens), this._autoSessionToken, 0, this.discountRange, this.autoTier);
 	}
 }
 
@@ -143,16 +131,4 @@ export function isAutoModel(endpoint: IChatEndpoint | undefined): number {
 		return -1;
 	}
 	return (endpoint.model === AutoChatEndpoint.pseudoModelId || endpoint instanceof AutoChatEndpoint) ? 1 : -1;
-}
-
-/** The routing tier that served a request through Auto, or `undefined` when the request did not go through Auto. */
-export function getAutoModeTier(endpoint: IChatEndpoint | undefined): AutoModeTier | undefined {
-	return endpoint instanceof AutoChatEndpoint ? endpoint.autoTier : undefined;
-}
-
-/** Kept in sync with the workbench copy in `chatAutoModeExplainability.ts`. */
-const HIDE_AUTO_EXPLAINABILITY_TREATMENT = 'copilotchat.hideAutoExplainability';
-
-export function isAutoExplainabilityHidden(expService: IExperimentationService): boolean {
-	return expService.getTreatmentVariable<boolean>(HIDE_AUTO_EXPLAINABILITY_TREATMENT) === true;
 }

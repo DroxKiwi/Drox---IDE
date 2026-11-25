@@ -59,19 +59,19 @@ export class ObservableMap<K, V> implements Map<K, V> {
 		});
 	}
 
-	*entries(): MapIterator<[K, V]> {
+	*entries(): IterableIterator<[K, V]> {
 		yield* this._data.entries();
 	}
 
-	*keys(): MapIterator<K> {
+	*keys(): IterableIterator<K> {
 		yield* this._data.keys();
 	}
 
-	*values(): MapIterator<V> {
+	*values(): IterableIterator<V> {
 		yield* this._data.values();
 	}
 
-	[Symbol.iterator](): MapIterator<[K, V]> {
+	[Symbol.iterator](): IterableIterator<[K, V]> {
 		return this.entries();
 	}
 

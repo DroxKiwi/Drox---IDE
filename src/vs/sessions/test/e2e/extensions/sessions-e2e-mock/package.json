@@ -52,7 +52,7 @@
 			},
 			{
 				"command": "github.copilot.chat.createPullRequestCopilotCLIAgentSession.createPR",
-				"title": "Create PR",
+				"title": "Create Pull Request",
 				"icon": "$(git-pull-request-create)"
 			},
 			{

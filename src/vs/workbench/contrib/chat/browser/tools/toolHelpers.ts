@@ -8,7 +8,6 @@ import { escapeRegExpCharacters } from '../../../../../base/common/strings.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ITextModel } from '../../../../../editor/common/model.js';
 import type { ITerminalSandboxPrecheckInputs } from '../../../../../platform/sandbox/common/terminalSandboxService.js';
-import { IUriIdentityService } from '../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 import type { IChatWidgetService } from '../chat.js';
 import type { IChatService } from '../../common/chatService/chatService.js';
@@ -25,29 +24,21 @@ export interface ISymbolToolInput {
 }
 
 /**
- * Returns whether a resource is within the active working directory, or within
- * a workspace folder when no explicit working directory is set.
+ * Resolves a URI from tool input. Accepts either a full URI string or a
+ * workspace-relative file path. When a {@link workingDirectory} is provided
+ * (agents window), relative paths are resolved against it first.
+ *
+ * Relative paths that escape the resolution base directory via parent-directory
+ * segments (e.g. `../outside.ts`) are rejected and `undefined` is returned, so a
+ * `filePath` cannot traverse out of the working directory boundary.
  */
-export function isSymbolToolResourceInScope(resource: URI, workspaceContextService: IWorkspaceContextService, uriIdentityService: IUriIdentityService, workingDirectory?: URI): boolean {
-	const normalizedResource = uriIdentityService.extUri.normalizePath(resource);
-	const scopeRoots = workingDirectory ? [workingDirectory] : workspaceContextService.getWorkspace().folders.map(folder => folder.uri);
-	return scopeRoots.some(root => uriIdentityService.extUri.isEqualOrParent(normalizedResource, uriIdentityService.extUri.normalizePath(root)));
-}
-
-/**
- * Resolves an in-scope URI from tool input. Accepts either a full URI string or
- * a file path relative to the working directory when one is provided, or to the
- * first workspace folder otherwise.
- */
-export function resolveSymbolToolFileUri(input: ISymbolToolInput, workspaceContextService: IWorkspaceContextService, uriIdentityService: IUriIdentityService, workingDirectory?: URI): URI | undefined {
+export function resolveSymbolToolFileUri(input: ISymbolToolInput, workspaceContextService: IWorkspaceContextService, workingDirectory?: URI): URI | undefined {
 	if (input.uri) {
-		const uri = uriIdentityService.extUri.normalizePath(URI.parse(input.uri));
-		return isSymbolToolResourceInScope(uri, workspaceContextService, uriIdentityService, workingDirectory) ? uri : undefined;
+		return URI.parse(input.uri);
 	}
 	if (input.filePath) {
 		const workingDir = new WorkingDirectory(workspaceContextService, workingDirectory);
-		const uri = workingDir.resolveRelativePath(input.filePath);
-		return uri && isSymbolToolResourceInScope(uri, workspaceContextService, uriIdentityService, workingDirectory) ? uri : undefined;
+		return workingDir.resolveRelativePath(input.filePath);
 	}
 	return undefined;
 }

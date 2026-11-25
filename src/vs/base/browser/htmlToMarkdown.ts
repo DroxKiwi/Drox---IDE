@@ -12,7 +12,6 @@
  * chat input.
  */
 
-import { appendEscapedMarkdownInlineCode, isPortableMarkdownTarget } from '../common/htmlContent.js';
 import { createTrustedTypesPolicy } from './trustedTypes.js';
 
 const maxInputLength = 200_000;
@@ -59,14 +58,14 @@ function convertNode(node: Node): string {
 		case 'h6': return `\n###### ${convertChildren(el).trim()}\n`;
 
 		case 'pre': {
-			// eslint-disable-next-line eslint-js/no-restricted-syntax -- querying a detached DOMParser document, not the live DOM
+			// eslint-disable-next-line no-restricted-syntax -- querying a detached DOMParser document, not the live DOM
 			const codeEl = el.querySelector('code');
 			const text = (codeEl ?? el).textContent ?? '';
 			return `\n\`\`\`\n${text.replace(/^\n+|\n+$/g, '')}\n\`\`\`\n`;
 		}
 
 		case 'code':
-			return appendEscapedMarkdownInlineCode(el.textContent ?? '');
+			return `\`${el.textContent ?? ''}\``;
 
 		case 'blockquote': {
 			const inner = convertChildren(el).trim();
@@ -100,13 +99,7 @@ function convertNode(node: Node): string {
 			return `- ${convertChildren(el).trim()}\n`;
 
 		case 'p':
-		case 'summary':
 			return `${convertChildren(el)}\n\n`;
-
-		case 'tr':
-			return `\n${Array.from(el.children)
-				.filter(child => child.localName === 'th' || child.localName === 'td')
-				.map(cell => convertChildren(cell).trim()).join(' | ')}\n`;
 
 		case 'div':
 			return `${convertChildren(el)}\n`;
@@ -118,15 +111,13 @@ function convertNode(node: Node): string {
 			return '\n---\n';
 
 		case 'a': {
-			return sanitizeLink(linkTargetOf(el), convertChildren(el).trim(), (el.textContent ?? '').trim());
+			const href = el.getAttribute('href') ?? '';
+			return sanitizeLink(href, convertChildren(el).trim());
 		}
 
 		case 'img': {
 			const src = el.getAttribute('src') ?? '';
 			const alt = el.getAttribute('alt') ?? '';
-			if (!isPortableMarkdownTarget(src)) {
-				return alt ? appendEscapedMarkdownInlineCode(alt) : '';
-			}
 			return `![${alt}](${src})`;
 		}
 
@@ -143,13 +134,6 @@ function convertNode(node: Node): string {
 		case 'strike':
 			return `~~${convertChildren(el)}~~`;
 
-		// Their text is code, never content the reader saw.
-		case 'noscript':
-		case 'script':
-		case 'style':
-		case 'template':
-			return '';
-
 		default:
 			return convertChildren(el);
 	}
@@ -163,35 +147,10 @@ function convertChildren(node: Node): string {
 	return result;
 }
 
-/**
- * Reads the target of an anchor. Rendered VS Code links route clicks through `data-href`, so
- * that attribute is consulted when `href` cannot be shared — but never ahead of a usable
- * `href`, since arbitrary pages use the same attribute name and could redirect a link.
- */
-function linkTargetOf(el: HTMLElement): string {
-	const href = (el.getAttribute('href') ?? '').trim();
-	if (href && isPortableMarkdownTarget(href)) {
-		return href;
-	}
-	return (el.getAttribute('data-href') ?? '').trim() || href;
-}
-
-/**
- * Renders an anchor as markdown, keeping only targets that still mean something wherever the
- * markdown is pasted. Everything else falls back to the text the reader actually saw.
- */
-function sanitizeLink(href: string, text: string, plainText: string): string {
-	const target = href.trim();
-
-	// An executable target carries no label worth marking up as code.
-	if (/^(javascript|vbscript|data):/i.test(target)) {
+/** Produce a markdown link, stripping dangerous schemes like `javascript:`. */
+function sanitizeLink(href: string, text: string): string {
+	if (/^(javascript|vbscript|data):/i.test(href.trim())) {
 		return text;
 	}
-
-	if (!target || !isPortableMarkdownTarget(target)) {
-		// Emphasis markers around the label would be read literally inside a code span.
-		return plainText ? appendEscapedMarkdownInlineCode(plainText) : '';
-	}
-
-	return `[${text}](${target})`;
+	return `[${text}](${href})`;
 }

@@ -9,10 +9,8 @@ import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { localize } from '../../../../../nls.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
-import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IQuickInputButton, IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../../../../platform/quickinput/common/quickInput.js';
-import { getChatSessionArchiveActionPresentation, getChatSessionArchiveActionWording } from '../../../../../platform/chat/common/sessionArchiveActions.js';
 import { ISessionOpenOptions, openSession } from './agentSessionsOpener.js';
 import { IAgentSession, isAgentHostAgentSessionItem, isLocalAgentSessionItem } from './agentSessionsModel.js';
 import { IAgentSessionsService } from './agentSessionsService.js';
@@ -24,24 +22,15 @@ interface ISessionPickItem extends IQuickPickItem {
 	readonly session: IAgentSession;
 }
 
-export interface IAgentSessionArchiveButtons {
-	readonly archive: IQuickInputButton;
-	readonly unarchive: IQuickInputButton;
-}
+export const archiveButton: IQuickInputButton = {
+	iconClass: ThemeIcon.asClassName(Codicon.check),
+	tooltip: localize('archiveSession', "Archive")
+};
 
-export function createAgentSessionArchiveButtons(configurationService: IConfigurationService): IAgentSessionArchiveButtons {
-	const presentation = getChatSessionArchiveActionPresentation(getChatSessionArchiveActionWording(configurationService));
-	return {
-		archive: {
-			iconClass: ThemeIcon.asClassName(presentation.archive.icon),
-			tooltip: presentation.archive.title.value,
-		},
-		unarchive: {
-			iconClass: ThemeIcon.asClassName(presentation.unarchive.icon),
-			tooltip: presentation.unarchive.title.value,
-		},
-	};
-}
+export const unarchiveButton: IQuickInputButton = {
+	iconClass: ThemeIcon.asClassName(Codicon.inbox),
+	tooltip: localize('unarchiveSession', "Unarchive")
+};
 
 export const renameButton: IQuickInputButton = {
 	iconClass: ThemeIcon.asClassName(Codicon.edit),
@@ -61,7 +50,7 @@ export function getSessionDescription(session: IAgentSession): string {
 	return descriptionParts.join(' • ');
 }
 
-export function getSessionButtons(session: IAgentSession, archiveButtons: IAgentSessionArchiveButtons): IQuickInputButton[] {
+export function getSessionButtons(session: IAgentSession): IQuickInputButton[] {
 	const buttons: IQuickInputButton[] = [];
 
 	if (isLocalAgentSessionItem(session)) {
@@ -70,7 +59,7 @@ export function getSessionButtons(session: IAgentSession, archiveButtons: IAgent
 	} else if (isAgentHostAgentSessionItem(session)) {
 		buttons.push(renameButton);
 	}
-	buttons.push(session.isArchived() ? archiveButtons.unarchive : archiveButtons.archive);
+	buttons.push(session.isArchived() ? unarchiveButton : archiveButton);
 
 	return buttons;
 }
@@ -94,7 +83,6 @@ export class AgentSessionsPicker {
 		@IQuickInputService private readonly quickInputService: IQuickInputService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ICommandService private readonly commandService: ICommandService,
-		@IConfigurationService private readonly configurationService: IConfigurationService,
 	) { }
 
 	async pickAgentSession(): Promise<void> {
@@ -176,7 +164,7 @@ export class AgentSessionsPicker {
 
 	private toPickItem(session: IAgentSession): ISessionPickItem {
 		const description = getSessionDescription(session);
-		const buttons = getSessionButtons(session, createAgentSessionArchiveButtons(this.configurationService));
+		const buttons = getSessionButtons(session);
 
 		return {
 			id: session.resource.toString(),

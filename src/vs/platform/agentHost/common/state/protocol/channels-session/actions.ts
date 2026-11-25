@@ -8,7 +8,8 @@
 
 import { ActionType } from '../common/actions.js';
 import type { ErrorInfo, URI } from '../common/state.js';
-import type { ToolDefinition, SessionActiveClient, SessionInputRequest, Customization, CustomizationEnablement, McpServerState } from './state.js';
+import type { ToolDefinition, SessionActiveClient, Customization, McpServerState, AgentSelection } from './state.js';
+import type { ModelSelection } from '../channels-root/state.js';
 import type { Changeset } from '../channels-changeset/state.js';
 import type { ChatSummary } from '../channels-chat/state.js';
 
@@ -75,9 +76,6 @@ export interface SessionChatRemovedAction {
  * SHOULD then wait for a {@link SessionChatAddedAction | `session/chatAdded`}.
  *
  * Mirrors the root-channel `root/sessionSummaryChanged` notification.
- * When `changes.status` changes, the host MUST project that exact value into
- * the matching `SessionChatSummary.status` field and publish
- * the updated compact chat catalog through `root/sessionSummaryChanged`.
  *
  * @category Session Actions
  * @version 1
@@ -89,11 +87,8 @@ export interface SessionChatUpdatedAction {
 	/**
 	 * Mutable summary fields that changed; omitted fields are unchanged.
 	 *
-	 * `resource` is an identity field and never changes. `provider` is reported
-	 * relative to the owning session and changes only when the chat moves to
-	 * another session, which republishes the whole summary through
-	 * `session/chatAdded`. Senders MUST omit both fields here; receivers SHOULD
-	 * ignore them if present.
+	 * Identity fields (`resource`) never change and MUST be omitted by
+	 * senders; receivers SHOULD ignore them if present.
 	 */
 	changes: Partial<ChatSummary>;
 }
@@ -111,24 +106,6 @@ export interface SessionDefaultChatChangedAction {
 }
 
 /**
- * The owning session's authoritative chat catalog order changed.
- *
- * Host-emitted convergence signal; it never originates from a client
- * dispatch. `chats` is the complete resulting order and MUST contain every
- * chat currently in the session exactly once. Reducers replace the catalog
- * order while preserving each matching summary. Invalid or incomplete orders
- * are ignored.
- *
- * @category Session Actions
- * @version 1
- */
-export interface SessionChatsReorderedAction {
-	type: ActionType.SessionChatsReordered;
-	/** Every chat URI in authoritative catalog order. */
-	chats: URI[];
-}
-
-/**
  * Session title updated. Fired by the server when the title is auto-generated
  * from conversation, or dispatched by a client to rename a session.
  *
@@ -140,6 +117,42 @@ export interface SessionTitleChangedAction {
 	type: ActionType.SessionTitleChanged;
 	/** New title */
 	title: string;
+}
+
+/**
+ * Model changed for this session.
+ *
+ * @category Session Actions
+ * @version 1
+ * @clientDispatchable
+ */
+export interface SessionModelChangedAction {
+	type: ActionType.SessionModelChanged;
+	/** New model selection */
+	model: ModelSelection;
+}
+
+/**
+ * Custom agent selection changed for this session.
+ *
+ * Omitting `agent` (or setting it to `undefined`) clears the selection and
+ * resets the session to no selected custom agent (provider default behavior).
+ *
+ * When a turn is currently active, the server MUST defer the change until
+ * the active turn completes, then apply it for the next turn (same rule as
+ * {@link SessionModelChangedAction | `session/modelChanged`}).
+ *
+ * @category Session Actions
+ * @version 1
+ * @clientDispatchable
+ */
+export interface SessionAgentChangedAction {
+	type: ActionType.SessionAgentChanged;
+	/**
+	 * New agent selection, or `undefined` to clear the selection and reset the
+	 * session to no selected custom agent.
+	 */
+	agent?: AgentSelection;
 }
 
 /**
@@ -228,14 +241,12 @@ export interface SessionServerToolsChangedAction {
  * An active client for this session was added or updated.
  *
  * Upsert semantics keyed by {@link SessionActiveClient.clientId | `clientId`}:
- * a client dispatches this action with its own `SessionActiveClient` to join
- * the session's active clients or refresh its entry, replacing any existing
- * entry that has the same `clientId`. Multiple clients may be active at once.
- * This is also how a client updates its published tools or customizations —
- * re-dispatch with the full, updated entry. Use
+ * a client dispatches this action with its own `SessionActiveClient` to claim
+ * the active role or refresh its entry, replacing any existing entry that has
+ * the same `clientId`. Multiple clients may be active at once. Use
  * {@link SessionActiveClientRemovedAction | `session/activeClientRemoved`} to
- * leave. The server SHOULD automatically dispatch that removal when an active
- * client disconnects.
+ * release the role. The server SHOULD automatically dispatch that removal when
+ * an active client disconnects.
  *
  * @category Session Actions
  * @version 1
@@ -250,19 +261,9 @@ export interface SessionActiveClientSetAction {
 /**
  * An active client was removed from this session.
  *
- * Removes the entry for the client identified by `clientId` from
- * {@link SessionState.activeClients}; a no-op when no entry matches.
- *
- * The host SHOULD dispatch this automatically when a client stops participating
- * in the session — for example when it unsubscribes from the session channel,
- * when it disconnects and does not reconnect within a host-defined grace
- * period, or when a `reconnect` command's `subscriptions` omit a session the
- * client was still active in. When removing a client, the host SHOULD also
- * cancel that client's in-flight tool calls — those whose tool call state
- * carries a client `ToolCallContributor` with the matching `clientId` — by
- * dispatching `chat/toolCallComplete` with `result.success = false`. (There is
- * no per-tool-call server cancel; a failed completion is the cancellation
- * mechanism, and the call ends in `completed` status with a failed result.)
+ * Releases the active role for the client identified by `clientId`. No-op when
+ * no active client matches. The server SHOULD dispatch this automatically when
+ * an active client disconnects.
  *
  * @category Session Actions
  * @version 1
@@ -274,124 +275,24 @@ export interface SessionActiveClientRemovedAction {
 	clientId: string;
 }
 
-// ─── Working Directory Actions ───────────────────────────────────────────────
-
 /**
- * A working directory was added to the session's
- * {@link SessionState.workingDirectories} set.
+ * An active client's tool list has changed.
  *
- * Membership semantics keyed by the directory URI: the reducer appends
- * `directory` when the set does not already contain it (creating the set if
- * absent) and is a no-op when it is already present. Only valid when the agent
- * advertises {@link AgentCapabilities.multipleWorkingDirectories}.
+ * Full-replacement semantics: the `tools` array replaces the named active
+ * client's previous tools entirely. The active client is identified by
+ * `clientId`; the action is a no-op when no active client matches. The server
+ * SHOULD reject if the dispatching client is not the named active client.
  *
  * @category Session Actions
  * @version 1
  * @clientDispatchable
  */
-export interface SessionWorkingDirectorySetAction {
-	type: ActionType.SessionWorkingDirectorySet;
-	/** The working directory to grant the session's agent tool access to. */
-	directory: URI;
-}
-
-/**
- * A working directory was removed from the session's
- * {@link SessionState.workingDirectories} set.
- *
- * Removes `directory` from the set; a no-op when it is not present. There is no
- * atomic backend "remove one" primitive — a host reconfigures its agent to the
- * reduced set — so this action is safe to model as idempotent. A host MAY
- * decline to apply the removal (e.g. an immutable primary directory, see
- * {@link MultipleWorkingDirectoriesCapability.immutablePrimary}); it then leaves
- * the set unchanged. When the agent advertises
- * {@link MultipleWorkingDirectoriesCapability.primaryReplacement}, clients MUST
- * NOT use this generic membership action to remove index `0`; the host MUST
- * reject such a removal, leaving the protected slot intact.
- *
- * @category Session Actions
- * @version 1
- * @clientDispatchable
- */
-export interface SessionWorkingDirectoryRemovedAction {
-	type: ActionType.SessionWorkingDirectoryRemoved;
-	/** The working directory to revoke the session's agent tool access to. */
-	directory: URI;
-}
-
-/**
- * Atomically replaces one of the session's working directories.
- *
- * This is a targeted compare-and-swap: the reducer is a no-op when
- * {@link SessionState.workingDirectories} does not contain `directory`.
- * Otherwise it replaces that entry with `replacement` and deduplicates the
- * result, preserving every other directory's relative order. When
- * `replacement` occurs after the target, it moves to the target's position;
- * for example, `[A, B, C]` with `B → C` becomes `[A, C]`. When it occurs
- * before the target, it retains its earlier position and the target is removed;
- * `[A, B, C]` with `C → A` becomes `[A, B]`.
- *
- * Only valid when the agent advertises
- * {@link AgentCapabilities.multipleWorkingDirectories}. Replacing index `0`
- * additionally requires
- * {@link MultipleWorkingDirectoriesCapability.primaryReplacement}; clients
- * MUST NOT target an immutable primary. The host MUST validate and apply its
- * backend side effect before broadcasting an accepted action, or reject it.
- *
- * @category Session Actions
- * @version 1
- * @clientDispatchable
- */
-export interface SessionWorkingDirectoryReplacedAction {
-	type: ActionType.SessionWorkingDirectoryReplaced;
-	/** URI of the existing entry to replace. */
-	directory: URI;
-	/** URI to place in the replaced entry's position. */
-	replacement: URI;
-}
-
-// ─── Input Needed Actions ────────────────────────────────────────────────────
-
-/**
- * A session-level input request was added or updated.
- *
- * Upsert semantics keyed by {@link SessionInputRequest.id | `request.id`}: the
- * host dispatches this with the full {@link SessionInputRequest} to append a new
- * entry to {@link SessionState.inputNeeded} or replace the existing entry with
- * the same `id`.
- *
- * Server-originated: the host mirrors chat-level requests (elicitations, tool
- * confirmations, client-tool executions) into the session aggregate so clients
- * subscribed only to the session channel can discover them. Clients respond by
- * dispatching the ordinary `chat/*` action to the entry's `chat` channel — see
- * {@link SessionInputRequest}.
- *
- * @category Session Actions
- * @version 1
- */
-export interface SessionInputNeededSetAction {
-	type: ActionType.SessionInputNeededSet;
-	/** The input request to add or update, matched by `id`. */
-	request: SessionInputRequest;
-}
-
-/**
- * A session-level input request was removed.
- *
- * Removes the entry identified by `id` from
- * {@link SessionState.inputNeeded}; a no-op when no entry matches.
- *
- * Server-originated: the host dispatches this once the underlying request
- * resolves (the user answers, the tool call is confirmed, or the client
- * reports its result).
- *
- * @category Session Actions
- * @version 1
- */
-export interface SessionInputNeededRemovedAction {
-	type: ActionType.SessionInputNeededRemoved;
-	/** The `id` of the input request to remove. */
-	id: string;
+export interface SessionActiveClientToolsChangedAction {
+	type: ActionType.SessionActiveClientToolsChanged;
+	/** The `clientId` of the active client whose tools changed. */
+	clientId: string;
+	/** Updated client tools list (full replacement) */
+	tools: ToolDefinition[];
 }
 
 // ─── Customization Actions ───────────────────────────────────────────────────
@@ -412,21 +313,12 @@ export interface SessionCustomizationsChangedAction {
 }
 
 /**
- * A client updated a customization's enablement decisions.
+ * A client toggled a container customization on or off.
  *
- * Matches `id` against every top-level customization first — a plugin or
- * directory container, or a bare top-level MCP server — then against the
- * children inside each container (a skill, agent, or other entry), including
- * skills served by top-level or container-child MCP servers. Plugins and
- * MCP servers retain the matched entry's explicit decisions; other
- * entries update their `enabled` flag. Disabling a plugin still disables all
- * of its children — the effective state of a plugin child is the plugin's
- * derived enabled value and `(child.enabled ?? true)` — so toggling a child
- * only matters while its plugin is enabled. Is a no-op when no
- * customization has the given `id`.
- *
- * The `enablement` array completely replaces all explicit decisions. A caller
- * changing one scope must include every decision it intends to preserve.
+ * Targets a top-level container (plugin or directory) by `id`. Only
+ * containers have an `enabled` flag; children are always active when
+ * their container is enabled. Is a no-op when no matching container is
+ * found.
  *
  * @category Session Actions
  * @version 1
@@ -434,10 +326,10 @@ export interface SessionCustomizationsChangedAction {
  */
 export interface SessionCustomizationToggledAction {
 	type: ActionType.SessionCustomizationToggled;
-	/** The id of the container or child to update. */
+	/** The id of the container to toggle. */
 	id: string;
-	/** Explicit enablement decisions, replacing the previous list entirely. */
-	enablement: CustomizationEnablement[];
+	/** Whether to enable or disable the container. */
+	enabled: boolean;
 }
 
 /**
@@ -512,88 +404,6 @@ export interface SessionMcpServerStateChangedAction {
 	 * {@link McpServerStatus.Ready | `Ready`}).
 	 */
 	channel?: URI;
-}
-
-/**
- * Requests that the host start or restart an existing
- * {@link McpServerCustomization}.
- *
- * Locates the target entry by `id`, searching both the top-level
- * customization list and the `children` array of every container. The
- * reducer optimistically moves the server to
- * {@link McpServerStatus.Starting | `starting`} and clears any previous
- * {@link McpServerCustomization.channel | `channel`}; the host remains
- * authoritative and SHOULD follow with
- * {@link SessionMcpServerStateChangedAction | `session/mcpServerStateChanged`}
- * once the server becomes ready, needs authentication, fails, or is
- * rejected. Is a no-op when no matching `McpServerCustomization` is found.
- *
- * @category Session Actions
- * @version 1
- * @clientDispatchable
- */
-export interface SessionMcpServerStartRequestedAction {
-	type: ActionType.SessionMcpServerStartRequested;
-	/** The id of the {@link McpServerCustomization} to start. */
-	id: string;
-}
-
-/**
- * Requests that the host background the startup of an existing
- * {@link McpServerCustomization} that is currently blocking message
- * processing (see {@link McpServerStartingState.blocking}), so that new
- * messages can be processed without waiting for the server to finish
- * starting.
- *
- * The server keeps starting in the background; backgrounding only stops the
- * host from holding message processing on it.
- *
- * Locates the target entry by `id`, searching both the top-level
- * customization list and the `children` array of every container. When the
- * server is {@link McpServerStatus.Starting | `starting`} with
- * `blocking: true`, the reducer optimistically sets `blocking` to `false`,
- * preserving the rest of the entry. Is a no-op otherwise (no matching
- * `McpServerCustomization`, a different lifecycle state, or not blocking).
- * The host remains authoritative and MAY reject the request by following with
- * {@link SessionMcpServerStateChangedAction | `session/mcpServerStateChanged`}
- * restoring `blocking: true`.
- *
- * @category Session Actions
- * @version 1
- * @clientDispatchable
- */
-export interface SessionMcpServerBackgroundRequestedAction {
-	type: ActionType.SessionMcpServerBackgroundRequested;
-	/** The id of the {@link McpServerCustomization} to background. */
-	id: string;
-}
-
-/**
- * Requests that the host stop an existing {@link McpServerCustomization}.
- *
- * Locates the target entry by `id`, searching both the top-level
- * customization list and the `children` array of every container. The
- * reducer optimistically moves the server to
- * {@link McpServerStatus.Stopped | `stopped`} and clears any previous
- * {@link McpServerCustomization.channel | `channel`}. Replacing an
- * {@link McpServerStatus.AuthRequired | `authRequired`} lifecycle state with
- * `stopped` unblocks the server from waiting on authentication. If the host
- * also raised session-level input-needed state solely for that MCP server, it
- * SHOULD remove that input-needed entry when accepting the stop.
- *
- * The host remains authoritative and MAY reject the action or follow with
- * {@link SessionMcpServerStateChangedAction | `session/mcpServerStateChanged`}
- * if the final lifecycle state differs. Is a no-op when no matching
- * `McpServerCustomization` is found.
- *
- * @category Session Actions
- * @version 1
- * @clientDispatchable
- */
-export interface SessionMcpServerStopRequestedAction {
-	type: ActionType.SessionMcpServerStopRequested;
-	/** The id of the {@link McpServerCustomization} to stop. */
-	id: string;
 }
 
 // ─── Config Actions ──────────────────────────────────────────────────────────

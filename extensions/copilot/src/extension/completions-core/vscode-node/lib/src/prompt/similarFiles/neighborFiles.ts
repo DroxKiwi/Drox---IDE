@@ -31,25 +31,6 @@ export enum NeighboringFileType {
 }
 
 /**
- * Whether the given neighboring-file type denotes a language-service "related"
- * file (suggested by a language service / semantic code context) rather than an
- * open tab or cursor/workspace heuristic.
- */
-export function isRelatedNeighboringFileType(type: NeighboringFileType): boolean {
-	switch (type) {
-		case NeighboringFileType.RelatedCSharp:
-		case NeighboringFileType.RelatedCSharpRoslyn:
-		case NeighboringFileType.RelatedCpp:
-		case NeighboringFileType.RelatedTypeScript:
-		case NeighboringFileType.RelatedCppSemanticCodeContext:
-		case NeighboringFileType.RelatedOther:
-			return true;
-		default:
-			return false;
-	}
-}
-
-/**
  * We found out that considering
  * all **open** neighbor files (independent of the language) was not helpful. However, some
  * specific languages (e.g. frontend frameworks) benefit from this approach. Leaving this
@@ -104,8 +85,7 @@ export class NeighborSource {
 		telemetryData: TelemetryWithExp,
 		cancellationToken?: ICancellationToken,
 		data?: unknown,
-		forceRelatedFilesComputation?: boolean,
-		includeRelatedFiles: boolean = true
+		forceRelatedFilesComputation?: boolean
 	): Promise<{
 		docs: NeighborsCollection;
 		neighborSource: Map<NeighboringFileType, string[]>;
@@ -124,7 +104,7 @@ export class NeighborSource {
 			traits: [] as RelatedFileTrait[],
 		};
 
-		if (!includeRelatedFiles || featuresService.excludeRelatedFiles(fileType, telemetryData)) { return result; }
+		if (featuresService.excludeRelatedFiles(fileType, telemetryData)) { return result; }
 
 		const doc = await docManager.getTextDocument({ uri });
 		if (!doc) {
@@ -169,7 +149,7 @@ export class NeighborSource {
 				if (!relativePath) { return; }
 				// Check that results.docs does not already contain an entry for the given uri.
 				if (result.docs.has(uri)) { return; }
-				const relatedFileDocInfo: SimilarFileInfo = { relativePath, uri, source, isFromRelatedFile: isRelatedNeighboringFileType(type) };
+				const relatedFileDocInfo: SimilarFileInfo = { relativePath, uri, source };
 				addedDocs.unshift(relatedFileDocInfo);
 				result.docs.set(uri, relatedFileDocInfo);
 			});

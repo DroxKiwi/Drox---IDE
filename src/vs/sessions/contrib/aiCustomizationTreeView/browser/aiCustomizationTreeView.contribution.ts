@@ -17,15 +17,14 @@ import { IEditorService } from '../../../../workbench/services/editor/common/edi
 import { IFileService, FileSystemProviderCapabilities } from '../../../../platform/files/common/files.js';
 import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
-import { IPromptsService, PromptsStorage } from '../../../../workbench/contrib/chat/common/promptSyntax/service/promptsService.js';
+import { IPromptsService } from '../../../../workbench/contrib/chat/common/promptSyntax/service/promptsService.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
+import { BUILTIN_STORAGE } from '../../chat/common/builtinPromptsStorage.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
-import { SessionsView, SessionsViewId } from '../../../../workbench/contrib/sessions/browser/views/sessionsView.js';
+import { SessionsView, SessionsViewId } from '../../sessions/browser/views/sessionsView.js';
 import { IsSessionsWindowContext } from '../../../../workbench/common/contextkeys.js';
 import { TerminalContextKeys } from '../../../../workbench/contrib/terminal/common/terminalContextKey.js';
-import { ChatContextKeys } from '../../../../workbench/contrib/chat/common/actions/chatContextKeys.js';
-import { IsPhoneLayoutContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
 
 //#region Utilities
 
@@ -153,27 +152,27 @@ MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 // Context menu items (shown on right-click)
 MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 	command: { id: OPEN_AI_CUSTOMIZATION_FILE_ID, title: localize('open', "Open") },
-	group: 'navigation',
+	group: '1_open',
 	order: 1,
 });
 
 MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 	command: { id: RUN_PROMPT_FROM_VIEW_ID, title: localize('runPrompt', "Run Prompt"), icon: Codicon.play },
-	group: 'navigation',
-	order: 2,
+	group: '2_run',
+	order: 1,
 	when: ContextKeyExpr.equals(AICustomizationItemTypeContextKey.key, PromptsType.prompt),
 });
 
 MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 	command: { id: COPY_AI_CUSTOMIZATION_PATH_ID, title: localize('copyPath', "Copy Path") },
-	group: '3_copy',
+	group: '3_modify',
 	order: 1,
 });
 
 MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
-	command: { id: DELETE_AI_CUSTOMIZATION_FILE_ID, title: localize('deleteWithConfirmation', "Delete...") },
-	group: '4_manage',
-	order: 1,
+	command: { id: DELETE_AI_CUSTOMIZATION_FILE_ID, title: localize('delete', "Delete") },
+	group: '3_modify',
+	order: 10,
 });
 
 // Disable item action
@@ -241,11 +240,11 @@ registerAction2(class extends Action2 {
 // Context menu: Disable (shown when builtin item is enabled)
 MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 	command: { id: DISABLE_AI_CUSTOMIZATION_ITEM_ID, title: localize('disable', "Disable") },
-	group: '1_state',
+	group: '4_toggle',
 	order: 1,
 	when: ContextKeyExpr.and(
 		ContextKeyExpr.equals(AICustomizationItemDisabledContextKey.key, false),
-		ContextKeyExpr.equals(AICustomizationItemStorageContextKey.key, PromptsStorage.builtIn),
+		ContextKeyExpr.equals(AICustomizationItemStorageContextKey.key, BUILTIN_STORAGE),
 		ContextKeyExpr.equals(AICustomizationItemTypeContextKey.key, PromptsType.skill),
 	),
 });
@@ -253,11 +252,11 @@ MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 // Context menu: Enable (shown when builtin item is disabled)
 MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 	command: { id: ENABLE_AI_CUSTOMIZATION_ITEM_ID, title: localize('enable', "Enable") },
-	group: '1_state',
+	group: '4_toggle',
 	order: 1,
 	when: ContextKeyExpr.and(
 		ContextKeyExpr.equals(AICustomizationItemDisabledContextKey.key, true),
-		ContextKeyExpr.equals(AICustomizationItemStorageContextKey.key, PromptsStorage.builtIn),
+		ContextKeyExpr.equals(AICustomizationItemStorageContextKey.key, BUILTIN_STORAGE),
 		ContextKeyExpr.equals(AICustomizationItemTypeContextKey.key, PromptsType.skill),
 	),
 });
@@ -269,7 +268,7 @@ MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 	order: 5,
 	when: ContextKeyExpr.and(
 		ContextKeyExpr.equals(AICustomizationItemDisabledContextKey.key, false),
-		ContextKeyExpr.equals(AICustomizationItemStorageContextKey.key, PromptsStorage.builtIn),
+		ContextKeyExpr.equals(AICustomizationItemStorageContextKey.key, BUILTIN_STORAGE),
 		ContextKeyExpr.equals(AICustomizationItemTypeContextKey.key, PromptsType.skill),
 	),
 });
@@ -281,7 +280,7 @@ MenuRegistry.appendMenuItem(AICustomizationItemMenuId, {
 	order: 5,
 	when: ContextKeyExpr.and(
 		ContextKeyExpr.equals(AICustomizationItemDisabledContextKey.key, true),
-		ContextKeyExpr.equals(AICustomizationItemStorageContextKey.key, PromptsStorage.builtIn),
+		ContextKeyExpr.equals(AICustomizationItemStorageContextKey.key, BUILTIN_STORAGE),
 		ContextKeyExpr.equals(AICustomizationItemTypeContextKey.key, PromptsType.skill),
 	),
 });
@@ -296,12 +295,12 @@ registerAction2(class extends Action2 {
 			id: FOCUS_AI_CUSTOMIZATION_VIEW_ID,
 			title: localize2('focusCustomizations', "Focus Chat Customizations"),
 			category: AI_CUSTOMIZATION_CATEGORY,
-			precondition: ContextKeyExpr.and(IsSessionsWindowContext, ChatContextKeys.enabled, IsPhoneLayoutContext.negate()),
+			precondition: IsSessionsWindowContext,
 			f1: true,
 			keybinding: {
 				weight: KeybindingWeight.WorkbenchContrib,
 				primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyC,
-				when: ContextKeyExpr.and(IsSessionsWindowContext, ChatContextKeys.enabled, IsPhoneLayoutContext.negate(), TerminalContextKeys.focus.negate()),
+				when: ContextKeyExpr.and(IsSessionsWindowContext, TerminalContextKeys.focus.negate()),
 			},
 		});
 	}

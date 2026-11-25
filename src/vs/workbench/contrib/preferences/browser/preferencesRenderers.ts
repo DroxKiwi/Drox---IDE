@@ -551,9 +551,6 @@ class UnsupportedSettingsRenderer extends Disposable implements languages.CodeAc
 						}
 						continue;
 					}
-					if (setting.key === mcpConfigurationSection && this.settingsEditorModel instanceof WorkspaceConfigurationEditorModel) {
-						continue;
-					}
 					const configuration = configurationRegistry[setting.key];
 					if (configuration) {
 						this.handleUnstableSettingConfiguration(setting, configuration, markerData);
@@ -587,8 +584,7 @@ class UnsupportedSettingsRenderer extends Disposable implements languages.CodeAc
 		if (!configuration.policy) {
 			return false;
 		}
-		const policyValue = this.configurationService.inspect(setting.key).policyValue;
-		if (policyValue === undefined) {
+		if (this.configurationService.inspect(setting.key).policyValue === undefined) {
 			return false;
 		}
 		if (this.settingsEditorModel.configurationTarget === ConfigurationTarget.DEFAULT) {
@@ -598,7 +594,7 @@ class UnsupportedSettingsRenderer extends Disposable implements languages.CodeAc
 			severity: MarkerSeverity.Hint,
 			tags: [MarkerTag.Unnecessary],
 			...setting.range,
-			message: configuration.policyValueDescription?.(policyValue, setting.value) ?? nls.localize('unsupportedPolicySetting', "This setting cannot be applied because it is configured in the system policy.")
+			message: nls.localize('unsupportedPolicySetting', "This setting cannot be applied because it is configured in the system policy.")
 		});
 		return true;
 	}
@@ -914,7 +910,7 @@ class McpSettingsRenderer extends Disposable implements languages.CodeActionProv
 }
 
 class WorkspaceConfigurationRenderer extends Disposable {
-	private static readonly supportedKeys = ['folders', 'tasks', 'launch', mcpConfigurationSection, 'extensions', 'settings', 'remoteAuthority', 'transient'];
+	private static readonly supportedKeys = ['folders', 'tasks', 'launch', 'extensions', 'settings', 'remoteAuthority', 'transient'];
 
 	private readonly decorations: editorCommon.IEditorDecorationsCollection;
 	private renderingDelayer = this._register(new Delayer<void>(200));

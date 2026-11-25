@@ -8,7 +8,7 @@
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IObservable } from '../../../../base/common/observable.js';
 import { IEditorWorkingSet } from '../../../../workbench/services/editor/common/editorGroupsService.js';
-import { ISession } from '../../../../workbench/services/sessions/common/session.js';
+import { ISession } from '../../../services/sessions/common/session.js';
 
 export const IDroxSessionBackgroundService = createDecorator<IDroxSessionBackgroundService>('droxSessionBackgroundService');
 

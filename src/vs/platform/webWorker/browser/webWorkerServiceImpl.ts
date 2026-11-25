@@ -34,13 +34,8 @@ export class WebWorkerService implements IWebWorkerService {
 		const workerRunnerUrl = this.getWorkerUrl(descriptor);
 
 		const workerUrlWithNls = getWorkerBootstrapUrl(descriptor.label, workerRunnerUrl, this._getWorkerLoadingFailedErrorMessage(descriptor));
-		try {
-			const worker = createBlobWorker(workerUrlWithNls, { name: descriptor.label, type: 'module' });
-			return whenESMWorkerReady(worker).finally(() => URL.revokeObjectURL(workerUrlWithNls));
-		} catch (error) {
-			URL.revokeObjectURL(workerUrlWithNls);
-			throw error;
-		}
+		const worker = new Worker(ttPolicy ? ttPolicy.createScriptURL(workerUrlWithNls) as unknown as string : workerUrlWithNls, { name: descriptor.label, type: 'module' });
+		return whenESMWorkerReady(worker);
 	}
 
 	protected _getWorkerLoadingFailedErrorMessage(_descriptor: WebWorkerDescriptor): string | undefined {
@@ -108,7 +103,6 @@ function getWorkerBootstrapUrl(label: string, workerScriptUrl: string, workerLoa
 		`globalThis._VSCODE_NLS_MESSAGES = ${JSON.stringify(getNLSMessages())};`,
 		`globalThis._VSCODE_NLS_LANGUAGE = ${JSON.stringify(getNLSLanguage())};`,
 		`globalThis._VSCODE_FILE_ROOT = ${JSON.stringify(globalThis._VSCODE_FILE_ROOT)};`,
-		`globalThis._VSCODE_PRODUCT_JSON = ${JSON.stringify(globalThis._VSCODE_PRODUCT_JSON)};`,
 		`const ttPolicy = globalThis.trustedTypes?.createPolicy('defaultWorkerFactory', { createScriptURL: value => value });`,
 		`globalThis.workerttPolicy = ttPolicy;`,
 

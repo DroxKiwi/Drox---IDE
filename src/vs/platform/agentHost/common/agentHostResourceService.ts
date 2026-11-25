@@ -14,11 +14,12 @@ import {
 	ResourceRequestParams, ResourceResolveParams, ResourceResolveResult, ResourceWriteParams,
 } from './state/protocol/commands.js';
 
-/** Trusted identity used only by the in-process local agent host. */
-export const LOCAL_AGENT_HOST_RESOURCE_IDENTITY: unique symbol = Symbol('localAgentHostResourceIdentity');
-
-/** Authorization identity for an agent host requesting client-side resources. */
-export type AgentHostResourceIdentity = string | typeof LOCAL_AGENT_HOST_RESOURCE_IDENTITY;
+/**
+ * Stable sentinel address used for the in-process local agent host. Keyed
+ * persisted grants in user settings live under this name so that "Always
+ * allow" survives window reloads.
+ */
+export const LOCAL_AGENT_HOST_ADDRESS = 'local';
 
 /** Configuration key for persisted per-host filesystem grants. */
 export const AgentHostLocalFilePermissionsSettingId = 'chat.agentHost.localFilePermissions';
@@ -31,14 +32,9 @@ export const enum AgentHostAccessMode {
 
 /**
  * Persisted shape of {@link AgentHostLocalFilePermissionsSettingId}:
- * `{ [normalizedAddress]: { [canonicalUriString]: 'r' | 'rw' | { mode, lexicalUri } } }`.
+ * `{ [normalizedAddress]: { [uriString]: 'r' | 'rw' } }`.
  */
-export type AgentHostPermissionGrant = AgentHostAccessMode | {
-	readonly mode: AgentHostAccessMode;
-	readonly lexicalUri: string;
-};
-
-export type AgentHostPermissionsSetting = Record<string, Record<string, AgentHostPermissionGrant>>;
+export type AgentHostPermissionsSetting = Record<string, Record<string, AgentHostAccessMode>>;
 
 /**
  * Capability a request needs from the user. The protocol-level `read` and
@@ -100,10 +96,9 @@ export const IAgentHostResourceService = createDecorator<IAgentHostResourceServi
  * into one consistent interface used by both the in-process local channel
  * and the remote protocol client.
  *
- * Each FS method is gated by a permission check keyed on
- * {@link AgentHostResourceIdentity}: a normalized network host for remote
- * agent hosts, or {@link LOCAL_AGENT_HOST_RESOURCE_IDENTITY} for the local
- * utility-process host.
+ * Each FS method is gated by a permission check keyed on `address`: a
+ * normalized network host for remote agent hosts, or
+ * {@link LOCAL_AGENT_HOST_ADDRESS} for the local utility-process host.
  * Denied operations throw {@link AgentHostResourcePermissionError} carrying
  * the {@link ResourceRequestParams} that, if granted, would unlock the
  * operation.
@@ -117,29 +112,31 @@ export interface IAgentHostResourceService {
 
 	// ---- Gated filesystem operations ---------------------------------------
 
-	list(identity: AgentHostResourceIdentity, uri: URI): Promise<IResourceListResult>;
-	read(identity: AgentHostResourceIdentity, uri: URI): Promise<IResourceReadResult>;
-	write(identity: AgentHostResourceIdentity, params: ResourceWriteParams): Promise<void>;
-	del(identity: AgentHostResourceIdentity, params: ResourceDeleteParams): Promise<void>;
-	move(identity: AgentHostResourceIdentity, params: ResourceMoveParams): Promise<void>;
-	copy(identity: AgentHostResourceIdentity, params: ResourceCopyParams): Promise<void>;
-	resolve(identity: AgentHostResourceIdentity, params: ResourceResolveParams): Promise<ResourceResolveResult>;
-	mkdir(identity: AgentHostResourceIdentity, params: ResourceMkdirParams): Promise<void>;
+	list(address: string, uri: URI): Promise<IResourceListResult>;
+	read(address: string, uri: URI): Promise<IResourceReadResult>;
+	write(address: string, params: ResourceWriteParams): Promise<void>;
+	del(address: string, params: ResourceDeleteParams): Promise<void>;
+	move(address: string, params: ResourceMoveParams): Promise<void>;
+	copy(address: string, params: ResourceCopyParams): Promise<void>;
+	resolve(address: string, params: ResourceResolveParams): Promise<ResourceResolveResult>;
+	mkdir(address: string, params: ResourceMkdirParams): Promise<void>;
 
 	// ---- Permission requests / observables (UI) ----------------------------
 
 	/**
-	 * Returns whether {@link uri} is already granted for {@link mode} on the
-	 * given identity.
+	 * Returns whether {@link uri} is already granted for {@link mode} on
+	 * {@link address}. Useful as a pre-check before sending data to a host
+	 * that will read it back. The same gating runs implicitly inside every
+	 * FS method on this service.
 	 */
-	check(identity: AgentHostResourceIdentity, uri: URI, mode: AgentHostPermissionMode): Promise<boolean>;
+	check(address: string, uri: URI, mode: AgentHostPermissionMode): Promise<boolean>;
 
 	/**
 	 * Handle an inbound `resourceRequest` from a host. Resolves once access
 	 * is granted (immediately, if already covered); rejects with a
 	 * `CancellationError` if the user denies or the connection closes.
 	 */
-	request(identity: AgentHostResourceIdentity, params: ResourceRequestParams): Promise<void>;
+	request(address: string, params: ResourceRequestParams): Promise<void>;
 
 	/** Per-address observable of pending requests for UI surfaces. */
 	pendingFor(address: string): IObservable<readonly IPendingResourceRequest[]>;
@@ -156,11 +153,16 @@ export interface IAgentHostResourceService {
 	// ---- Implicit grants and lifecycle -------------------------------------
 
 	/**
-	 * Register an implicit read grant for {@link uri} (and descendants) on the
-	 * given identity.
+	 * Register an implicit read grant for {@link uri} (and descendants) on
+	 * {@link address}. Used by call sites that are about to send a URI to a
+	 * host and therefore expect that host to read it back. The returned
+	 * disposable revokes the grant.
 	 */
-	grantImplicitRead(identity: AgentHostResourceIdentity, uri: URI): IDisposable;
+	grantImplicitRead(address: string, uri: URI): IDisposable;
 
-	/** Drops grants and pending requests owned by a closed connection. */
-	connectionClosed(identity: AgentHostResourceIdentity): void;
+	/**
+	 * Notify that the connection at {@link address} has closed. Drops all
+	 * implicit grants and rejects any outstanding pending requests.
+	 */
+	connectionClosed(address: string): void;
 }

@@ -8,7 +8,7 @@ import { getWorkspaceFileDisplayPath, IWorkspaceService } from '../../../platfor
 import { CancellationToken } from '../../../util/vs/base/common/cancellation';
 import { normalizePath as normalizeUriPath } from '../../../util/vs/base/common/resources';
 import { Location, Position, Range, Uri } from '../../../vscodeTypes';
-import { LinkifiedPart, LinkifiedText, LinkifyLocationAnchor, coalesceParts, singleMatch } from './linkifiedText';
+import { coalesceParts, LinkifiedPart, LinkifiedText, LinkifyLocationAnchor } from './linkifiedText';
 import { IContributedLinkifier, LinkifierContext } from './linkifyService';
 import { IStatCache } from './statCache';
 
@@ -181,7 +181,7 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 
 			if (candidates.length) {
 				const results = await Promise.all(candidates.map(c => this.tryStat(c, preserveDirectorySlash, token)));
-				const found = singleMatch(results);
+				const found = results.find((r): r is Uri => r !== undefined);
 				if (found) {
 					return found;
 				}
@@ -192,7 +192,12 @@ export class ModelFilePathLinkifier implements IContributedLinkifier {
 		const segments = targetPath.split('/').filter(Boolean);
 		const candidates = workspaceFolders.map(folderUri => Uri.joinPath(folderUri, ...segments));
 		const results = await Promise.all(candidates.map(c => this.tryStat(c, preserveDirectorySlash, token)));
-		return singleMatch(results);
+		const found = results.find((r): r is Uri => r !== undefined);
+		if (found) {
+			return found;
+		}
+
+		return undefined;
 	}
 
 	private tryCreateFileUri(path: string): Uri | undefined {

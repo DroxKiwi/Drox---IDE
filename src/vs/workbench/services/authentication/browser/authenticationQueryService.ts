@@ -297,7 +297,7 @@ class AccountMcpServersQuery extends BaseQuery implements IAccountMcpServersQuer
 		super(providerId, queryService);
 	}
 
-	getAllowedMcpServers(): { id: string; name: string; allowed?: boolean; lastUsed?: number; trusted?: boolean; url?: string; agentHost?: { authority: string; label: string } }[] {
+	getAllowedMcpServers(): { id: string; name: string; allowed?: boolean; lastUsed?: number; trusted?: boolean }[] {
 		return this.queryService.authenticationMcpAccessService.readAllowedMcpServers(this.providerId, this.accountName)
 			.filter(server => server.allowed !== false);
 	}

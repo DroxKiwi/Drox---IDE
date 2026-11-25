@@ -9,29 +9,12 @@ import { localize } from '../../../../../nls.js';
 /**
  * Documentation link for the reusable prompts feature.
  */
-const PROMPT_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-prompt-snippets';
-const INSTRUCTIONS_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-custom-instructions';
-const AGENT_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-custom-chat-modes'; // todo
-const SKILL_DOCUMENTATION_URL = 'https://aka.ms/vscode-agent-skills';
+export const PROMPT_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-prompt-snippets';
+export const INSTRUCTIONS_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-custom-instructions';
+export const AGENT_DOCUMENTATION_URL = 'https://aka.ms/vscode-ghcp-custom-chat-modes'; // todo
+export const SKILL_DOCUMENTATION_URL = 'https://aka.ms/vscode-agent-skills';
 // TODO: update link when available
-const HOOK_DOCUMENTATION_URL = 'https://aka.ms/vscode-chat-hooks';
-
-export function getDocumentationUrl(type: PromptsType): string {
-	switch (type) {
-		case PromptsType.prompt:
-			return PROMPT_DOCUMENTATION_URL;
-		case PromptsType.instructions:
-			return INSTRUCTIONS_DOCUMENTATION_URL;
-		case PromptsType.agent:
-			return AGENT_DOCUMENTATION_URL;
-		case PromptsType.skill:
-			return SKILL_DOCUMENTATION_URL;
-		case PromptsType.hook:
-			return HOOK_DOCUMENTATION_URL;
-		default:
-			throw new Error(`Unknown prompt type: ${type}`);
-	}
-}
+export const HOOK_DOCUMENTATION_URL = 'https://aka.ms/vscode-chat-hooks';
 
 /**
  * Language ID for the reusable prompt syntax.
@@ -59,22 +42,14 @@ export const SKILL_LANGUAGE_ID = 'skill';
 export const ALL_PROMPTS_LANGUAGE_SELECTOR: LanguageSelector = [PROMPT_LANGUAGE_ID, INSTRUCTIONS_LANGUAGE_ID, AGENT_LANGUAGE_ID, SKILL_LANGUAGE_ID];
 
 /**
+ * Configuration key for enabling the agent debug log feature.
+ */
+export const AGENT_DEBUG_LOG_ENABLED_SETTING = 'github.copilot.chat.agentDebugLog.enabled';
+
+/**
  * Configuration key for enabling file logging for the agent debug log.
  */
 export const AGENT_DEBUG_LOG_FILE_LOGGING_ENABLED_SETTING = 'github.copilot.chat.agentDebugLog.fileLogging.enabled';
-
-/**
- * Configuration key for enabling agent debug logging for agent host (Copilot CLI) sessions.
- * Registered in core (see `chat.shared.contribution.ts`) since only core consumes it.
- */
-export const AgentHostAgentDebugLogEnabledSettingId = 'chat.agentHost.agentDebugLog.enabled';
-
-/**
- * Configuration key for the maximum number of debug events kept in memory for
- * agent host (Copilot CLI) sessions. Registered in core (see
- * `chat.shared.contribution.ts`) since only core consumes it.
- */
-export const AgentHostAgentDebugLogMaxEventsSettingId = 'chat.agentHost.agentDebugLog.maxEventsInMemory';
 
 /**
  * The name of the troubleshoot slash command / skill.
@@ -161,10 +136,8 @@ export enum PromptFileSource {
 	ClaudeWorkspaceLocal = 'claude-workspace-local',
 	AgentsWorkspace = 'agents-workspace',
 	AgentsPersonal = 'agents-personal',
-	// DROX-BEGIN
 	DroxWorkspace = 'drox-workspace',
 	DroxPersonal = 'drox-personal',
-	// DROX-END
 	ConfigWorkspace = 'config-workspace',
 	ConfigPersonal = 'config-personal',
 	UserData = 'user-data',
@@ -182,12 +155,10 @@ export function getSourceDescription(source: PromptFileSource): string | undefin
 			return localize('source.agentsWorkspace', "Workspace");
 		case PromptFileSource.AgentsPersonal:
 			return localize('source.agentsPersonal', "Global");
-		// DROX-BEGIN
 		case PromptFileSource.DroxWorkspace:
 			return localize('source.droxWorkspace', "Workspace (Drox)");
 		case PromptFileSource.DroxPersonal:
 			return localize('source.droxPersonal', "Global (Drox)");
-		// DROX-END
 		case PromptFileSource.GitHubWorkspace:
 			return localize('source.githubWorkspace', "Workspace (only used by Copilot agents)");
 		case PromptFileSource.CopilotPersonal:

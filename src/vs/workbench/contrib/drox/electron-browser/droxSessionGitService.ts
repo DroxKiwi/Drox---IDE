@@ -9,7 +9,7 @@
 
 import { URI } from '../../../../base/common/uri.js';
 
-import { IDroxLocalGitService } from '../../../../platform/git/common/droxLocalGitService.js';
+import { ILocalGitService } from '../../../../platform/git/common/localGitService.js';
 
 import { IDroxSessionGitService } from '../common/droxSessionGitService.js';
 
@@ -27,7 +27,7 @@ export class DroxSessionGitService implements IDroxSessionGitService {
 
 	constructor(
 
-		@IDroxLocalGitService private readonly _localGitService: IDroxLocalGitService,
+		@ILocalGitService private readonly _localGitService: ILocalGitService,
 
 	) { }
 

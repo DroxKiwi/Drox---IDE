@@ -6,7 +6,6 @@
 import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { Event } from '../../../../base/common/event.js';
 import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { LinkedText } from '../../../../base/common/linkedText.js';
 import Severity from '../../../../base/common/severity.js';
 import { compare } from '../../../../base/common/strings.js';
 import { ITextModel } from '../../../../editor/common/model.js';
@@ -23,8 +22,7 @@ export interface ILanguageStatus {
 	readonly selector: LanguageSelector;
 	readonly severity: Severity;
 	readonly label: string | { value: string; shortValue: string };
-	/** Strings are literal text. Use LinkedText for explicitly authored links. */
-	readonly detail: string | LinkedText;
+	readonly detail: string;
 	readonly busy: boolean;
 	readonly source: string;
 	readonly command: Command | undefined;

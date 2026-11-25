@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as cp from 'child_process';
-import { Limiter } from '../../../base/common/async.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { CancellationError } from '../../../base/common/errors.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
@@ -19,19 +18,9 @@ const MAX_FILES = 50_000;
 /** TTL for a cached file list before we re-enumerate. */
 const CACHE_TTL_MS = 30_000;
 
-/** Maximum number of concurrent ripgrep enumerations across all callers. */
-const MAX_CONCURRENT_ENUMERATIONS = 4;
-
-const enumerationLimiter = new Limiter<IAgentHostWorkspaceFilesResult>(MAX_CONCURRENT_ENUMERATIONS);
-
 interface ICacheEntry {
-	readonly promise: Promise<IAgentHostWorkspaceFilesResult>;
-	expiresAt?: number;
-}
-
-export interface IAgentHostWorkspaceFilesResult {
-	readonly files: readonly URI[];
-	readonly isTruncated: boolean;
+	readonly promise: Promise<readonly URI[]>;
+	expiresAt: number;
 }
 
 /**
@@ -52,7 +41,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 	private readonly _cache = new Map<string, ICacheEntry>();
 	/** Active ripgrep child processes, killed on dispose. */
 	private readonly _activeChildren = new Set<cp.ChildProcessWithoutNullStreams>();
-	private _isDisposed = false;
 
 	constructor(
 		@ILogService private readonly _logService: ILogService,
@@ -61,7 +49,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 	}
 
 	override dispose(): void {
-		this._isDisposed = true;
 		for (const child of this._activeChildren) {
 			try {
 				child.kill();
@@ -80,26 +67,23 @@ export class AgentHostWorkspaceFiles extends Disposable {
 	 *
 	 * Only `file://` URIs are supported. Other schemes return an empty list.
 	 */
-	async getFiles(workingDirectory: URI, token: CancellationToken): Promise<IAgentHostWorkspaceFilesResult> {
+	async getFiles(workingDirectory: URI, token: CancellationToken): Promise<readonly URI[]> {
 		if (workingDirectory.scheme !== Schemas.file) {
-			return { files: [], isTruncated: false };
+			return [];
 		}
 
 		const key = workingDirectory.toString();
 		const now = Date.now();
 		const existing = this._cache.get(key);
-		let shared: Promise<IAgentHostWorkspaceFilesResult>;
-		if (existing && (existing.expiresAt === undefined || existing.expiresAt > now)) {
+		let shared: Promise<readonly URI[]>;
+		if (existing && existing.expiresAt > now) {
 			shared = existing.promise;
 		} else {
-			shared = enumerationLimiter.queue(() => this._isDisposed ? Promise.resolve({ files: [], isTruncated: false }) : this._enumerate(workingDirectory));
-			const entry: ICacheEntry = { promise: shared };
+			shared = this._enumerate(workingDirectory);
+			const entry: ICacheEntry = { promise: shared, expiresAt: now + CACHE_TTL_MS };
 			this._cache.set(key, entry);
-			shared.then(() => {
-				if (this._cache.get(key) === entry) {
-					entry.expiresAt = Date.now() + CACHE_TTL_MS;
-				}
-			}, () => {
+			// If enumeration fails, drop the cache entry so the next caller retries.
+			shared.catch(() => {
 				if (this._cache.get(key) === entry) {
 					this._cache.delete(key);
 				}
@@ -116,7 +100,7 @@ export class AgentHostWorkspaceFiles extends Disposable {
 		if (token === CancellationToken.None) {
 			return shared;
 		}
-		return new Promise<IAgentHostWorkspaceFilesResult>((resolve, reject) => {
+		return new Promise<readonly URI[]>((resolve, reject) => {
 			const cancelListener = token.onCancellationRequested(() => {
 				cancelListener.dispose();
 				reject(new CancellationError());
@@ -131,9 +115,9 @@ export class AgentHostWorkspaceFiles extends Disposable {
 		});
 	}
 
-	private async _enumerate(workingDirectory: URI): Promise<IAgentHostWorkspaceFilesResult> {
+	private async _enumerate(workingDirectory: URI): Promise<readonly URI[]> {
 		const resolvedRgDiskPath = await rgDiskPath();
-		return new Promise<IAgentHostWorkspaceFilesResult>((resolve, reject) => {
+		return new Promise<readonly URI[]>(resolve => {
 			const cwd = workingDirectory.fsPath;
 			// Mirror the workbench's `ripgrepFileSearch.ts` invocation: pass
 			// `--no-config` so a user's global `~/.ripgreprc` cannot change
@@ -145,7 +129,7 @@ export class AgentHostWorkspaceFiles extends Disposable {
 				child = cp.spawn(resolvedRgDiskPath, args, { cwd });
 			} catch (err) {
 				this._logService.warn(`[AgentHostWorkspaceFiles] Failed to spawn ripgrep: ${err}`);
-				reject(err);
+				resolve([]);
 				return;
 			}
 			this._activeChildren.add(child);
@@ -155,17 +139,13 @@ export class AgentHostWorkspaceFiles extends Disposable {
 			let limitHit = false;
 			let settled = false;
 
-			const finish = (files: readonly URI[], error?: Error) => {
+			const finish = (value: readonly URI[]) => {
 				if (settled) {
 					return;
 				}
 				settled = true;
 				this._activeChildren.delete(child);
-				if (error) {
-					reject(error);
-				} else {
-					resolve({ files, isTruncated: limitHit });
-				}
+				resolve(value);
 			};
 
 			child.stdout.setEncoding('utf8');
@@ -184,7 +164,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 					results.push(URI.joinPath(workingDirectory, line));
 					if (results.length >= MAX_FILES) {
 						limitHit = true;
-						this._logService.trace(`[AgentHostWorkspaceFiles] File limit reached while enumerating ${workingDirectory.toString()}`);
 						try {
 							child.kill();
 						} catch {
@@ -202,19 +181,11 @@ export class AgentHostWorkspaceFiles extends Disposable {
 			});
 
 			child.on('error', err => {
-				if (this._isDisposed) {
-					finish([]);
-					return;
-				}
 				this._logService.warn(`[AgentHostWorkspaceFiles] ripgrep error: ${err}`);
-				finish([], err);
+				finish([]);
 			});
 
-			child.on('close', code => {
-				if (this._isDisposed) {
-					finish([]);
-					return;
-				}
+			child.on('close', () => {
 				// Flush any trailing line still in the buffer.
 				if (!limitHit && buffer.length > 0) {
 					const line = buffer.replace(/\r$/, '');
@@ -225,12 +196,6 @@ export class AgentHostWorkspaceFiles extends Disposable {
 				}
 				if (stderr) {
 					this._logService.trace(`[AgentHostWorkspaceFiles] ripgrep stderr: ${stderr}`);
-				}
-				if (!limitHit && code !== 0 && code !== 1) {
-					const error = new Error(`ripgrep exited with code ${code ?? 'unknown'} while enumerating ${workingDirectory.toString()}`);
-					this._logService.warn(`[AgentHostWorkspaceFiles] ${error.message}`);
-					finish([], error);
-					return;
 				}
 				finish(results);
 			});

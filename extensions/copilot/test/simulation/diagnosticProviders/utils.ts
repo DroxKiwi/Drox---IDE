@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import * as cp from 'child_process';
 import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -107,4 +108,13 @@ export function convertTestToVSCodeDiagnostics(diagnostics: ITestDiagnostic[], p
 		result.get(uri)!.push(diagnostic);
 	}
 	return result;
+}
+
+export function findIfInstalled(verificationCommand: { command: string; arguments: string[] }, verificationRegex: RegExp): boolean {
+	const spawnResult = cp.spawnSync(verificationCommand.command, verificationCommand.arguments, { shell: true, encoding: 'utf-8' });
+	const regexMatch = spawnResult.stdout.match(verificationRegex);
+	if (!regexMatch || regexMatch.length === 0) {
+		return false;
+	}
+	return true;
 }

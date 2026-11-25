@@ -20,30 +20,16 @@ import { IPolicyService } from '../../platform/policy/common/policy.js';
 import { IRemoteAgentService } from '../../workbench/services/remote/common/remoteAgentService.js';
 import { IWorkspaceEditingService } from '../../workbench/services/workspaces/common/workspaceEditing.js';
 import { WorkspaceTrustEnablementService, WorkspaceTrustManagementService } from '../../workbench/services/workspaces/common/workspaceTrust.js';
-import { CanonicalUriService } from '../../workbench/services/workspaces/common/canonicalUriService.js';
-import { ICanonicalUriService } from '../../platform/workspace/common/canonicalUri.js';
 import { BrowserMain, IBrowserMainWorkbench } from '../../workbench/browser/web.main.js';
 import { getWorkspaceIdentifier } from '../../platform/workspaces/common/workspaceIdentifier.js';
 import { SessionsWorkspaceContextService } from '../services/workspace/browser/workspaceContextService.js';
 import { ConfigurationService } from '../services/configuration/browser/configurationService.js';
-import { ConfigurationCache } from '../../workbench/services/configuration/common/configurationCache.js';
-import { Schemas } from '../../base/common/network.js';
-import { createSessionsWorkbench, SessionsWorkbenchFactory } from './workbenchFactory.js';
-import { IWorkbenchConstructionOptions } from '../../workbench/browser/web.api.js';
+import { Workbench as SessionsWorkbench } from './workbench.js';
 
 export class SessionsBrowserMain extends BrowserMain {
 
-	/** Entry points can select a presentation while sharing service initialization. */
-	constructor(
-		domElement: HTMLElement,
-		configuration: IWorkbenchConstructionOptions,
-		private readonly workbenchFactory: SessionsWorkbenchFactory = createSessionsWorkbench,
-	) {
-		super(domElement, configuration);
-	}
-
 	protected override createWorkbench(domElement: HTMLElement, serviceCollection: ServiceCollection, logService: ILogService): IBrowserMainWorkbench {
-		return this.workbenchFactory(domElement, undefined, serviceCollection, logService);
+		return new SessionsWorkbench(domElement, undefined, serviceCollection, logService);
 	}
 
 	protected override async createWorkspaceConfigAndStorageServices(
@@ -73,16 +59,13 @@ export class SessionsBrowserMain extends BrowserMain {
 
 		// Configuration — the sessions ConfigurationService works against the
 		// in-memory workspace model rather than a real .code-workspace file on disk.
-		const configurationCache = new ConfigurationCache([Schemas.file, Schemas.vscodeUserData], environmentService, fileService);
 		const configurationService = new ConfigurationService(
 			userDataProfileService,
 			workspaceContextService,
 			uriIdentityService,
 			fileService,
 			policyService,
-			logService,
-			configurationCache,
-			environmentService,
+			logService
 		);
 
 		try {
@@ -98,13 +81,10 @@ export class SessionsBrowserMain extends BrowserMain {
 		serviceCollection.set(IStorageService, storageService);
 
 		// Workspace Trust Service
-		const canonicalUriService = this._register(new CanonicalUriService());
-		serviceCollection.set(ICanonicalUriService, canonicalUriService);
-
 		const workspaceTrustEnablementService = new WorkspaceTrustEnablementService(configurationService, environmentService);
 		serviceCollection.set(IWorkspaceTrustEnablementService, workspaceTrustEnablementService);
 
-		const workspaceTrustManagementService = new WorkspaceTrustManagementService(configurationService, remoteAuthorityResolverService, storageService, uriIdentityService, environmentService, workspaceContextService, workspaceTrustEnablementService, fileService, canonicalUriService, logService);
+		const workspaceTrustManagementService = new WorkspaceTrustManagementService(configurationService, remoteAuthorityResolverService, storageService, uriIdentityService, environmentService, workspaceContextService, workspaceTrustEnablementService, fileService);
 		serviceCollection.set(IWorkspaceTrustManagementService, workspaceTrustManagementService);
 
 		return { configurationService, storageService };

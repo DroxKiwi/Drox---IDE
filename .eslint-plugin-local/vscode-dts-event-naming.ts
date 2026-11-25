@@ -3,13 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import type * as ESTree from 'estree';
+import { TSESTree, AST_NODE_TYPES } from '@typescript-eslint/utils';
 
-export default new class ApiEventNaming implements CreateRule {
+export default new class ApiEventNaming implements eslint.Rule.RuleModule {
 
 	private static _nameRegExp = /on(Did|Will)([A-Z][a-z]+)([A-Z][a-z]+)?/;
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		docs: {
 			url: 'https://github.com/microsoft/vscode/wiki/Extension-API-guidelines#event-naming'
 		},
@@ -22,16 +24,16 @@ export default new class ApiEventNaming implements CreateRule {
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
 		const config = context.options[0] as { allowed: string[]; verbs: string[] };
 		const allowed = new Set(config.allowed);
 		const verbs = new Set(config.verbs);
 
 		return {
-			['TSTypeAnnotation TSTypeReference Identifier[name="Event"]']: (node: ESTree.IdentifierReference) => {
+			['TSTypeAnnotation TSTypeReference Identifier[name="Event"]']: (node: ESTree.Identifier) => {
 
-				const def = node.parent?.parent?.parent;
+				const def = (node as TSESTree.Identifier).parent?.parent?.parent;
 				const ident = this.getIdent(def);
 
 				if (!ident) {
@@ -68,7 +70,7 @@ export default new class ApiEventNaming implements CreateRule {
 				// check that a subject (if present) has occurred
 				if (match[3]) {
 					const regex = new RegExp(match[3], 'ig');
-					const parts = context.sourceCode.getText().split(regex);
+					const parts = context.getSourceCode().getText().split(regex);
 					if (parts.length < 3) {
 						context.report({
 							node: ident,
@@ -81,14 +83,14 @@ export default new class ApiEventNaming implements CreateRule {
 		};
 	}
 
-	private getIdent(def: ESTree.Node | null | undefined): ESTree.IdentifierReference | ESTree.IdentifierName | ESTree.BindingIdentifier | undefined {
+	private getIdent(def: TSESTree.Node | undefined): TSESTree.Identifier | undefined {
 		if (!def) {
 			return;
 		}
 
-		if (def.type === 'Identifier') {
+		if (def.type === AST_NODE_TYPES.Identifier) {
 			return def;
-		} else if ((def.type === 'TSPropertySignature' || def.type === 'PropertyDefinition') && def.key.type === 'Identifier') {
+		} else if ((def.type === AST_NODE_TYPES.TSPropertySignature || def.type === AST_NODE_TYPES.PropertyDefinition) && def.key.type === AST_NODE_TYPES.Identifier) {
 			return def.key;
 		}
 

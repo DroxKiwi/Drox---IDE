@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
+import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { Range } from '../../../../common/core/range.js';
 import { RenameInferenceEngine } from '../../browser/model/renameSymbolProcessor.js';
@@ -37,7 +38,17 @@ suite('renameSymbolProcessor', () => {
 	// This got copied from the TypeScript language configuration.
 	const wordPattern = /(-?\d*\.\d\w*)|([^\`\@\~\!\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>/\?\s]+)/;
 
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
+
+	setup(() => {
+		disposables = new DisposableStore();
+	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('Full identifier rename', () => {
 		const model = createTextModel([

@@ -111,7 +111,6 @@ export class Button extends Disposable implements IButton {
 	protected _labelElement: HTMLElement | undefined;
 	protected _labelShortElement: HTMLElement | undefined;
 	private _hover: IManagedHover | undefined;
-	private _hoverStyleApplied = false;
 
 	private _onDidClick = this._register(new Emitter<Event>());
 	get onDidClick(): BaseEvent<Event> { return this._onDidClick.event; }
@@ -256,7 +255,6 @@ export class Button extends Disposable implements IButton {
 		this._element.style.backgroundColor = background || '';
 		this._element.style.color = foreground || '';
 		this._element.style.border = border ? `1px solid ${border}` : '';
-		this._hoverStyleApplied = hover;
 	}
 
 	get element(): HTMLElement {
@@ -280,7 +278,7 @@ export class Button extends Disposable implements IButton {
 			rendered.dispose();
 
 			// Don't include outer `<p>`
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			const root = rendered.element.querySelector('p')?.innerHTML;
 			if (root) {
 				safeSetInnerHtml(labelElement, root, buttonSanitizerConfig);
@@ -349,11 +347,6 @@ export class Button extends Disposable implements IButton {
 		} else {
 			this._element.classList.add('disabled');
 			this._element.setAttribute('aria-disabled', String(true));
-			// Disabled buttons never show hover feedback, and the blur handler only resets
-			// it while enabled, so clear any hover style applied before disabling.
-			if (this._hoverStyleApplied) {
-				this.updateStyles(false);
-			}
 		}
 	}
 
@@ -448,7 +441,7 @@ export class ButtonWithDropdown extends Disposable implements IButton {
 		this.element.appendChild(this.separatorContainer);
 
 		// Separator styles
-		const border = options.secondary ? options.buttonSecondaryBorder : options.buttonBorder;
+		const border = options.buttonBorder;
 		if (border) {
 			this.separatorContainer.style.borderTop = '1px solid ' + border;
 			this.separatorContainer.style.borderBottom = '1px solid ' + border;
@@ -715,7 +708,7 @@ export class ButtonWithIcon extends Button {
 			const rendered = renderMarkdown(value, buttonMarkdownRenderOptions, document.createElement('span'));
 			rendered.dispose();
 
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			const root = rendered.element.querySelector('p')?.innerHTML;
 			if (root) {
 				safeSetInnerHtml(this._mdlabelElement, root, buttonSanitizerConfig);

@@ -3,12 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { getActiveElement, isHTMLElement } from '../../../../../base/browser/dom.js';
 import { AsyncIterableProducer } from '../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { KeyCode, KeyMod } from '../../../../../base/common/keyCodes.js';
-import { Disposable, DisposableStore, markAsSingleton } from '../../../../../base/common/lifecycle.js';
+import { Disposable, markAsSingleton } from '../../../../../base/common/lifecycle.js';
 import { ICodeEditor } from '../../../../../editor/browser/editorBrowser.js';
 import { ServicesAccessor } from '../../../../../editor/browser/editorExtensions.js';
 import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
@@ -34,10 +33,6 @@ import { reviewEdits } from './reviewEdits.js';
 import { ITerminalEditorService, ITerminalGroupService, ITerminalService } from '../../../terminal/browser/terminal.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { ChatCopyKind, IChatService } from '../../common/chatService/chatService.js';
-import { getAgentHostProviderForTelemetry, IChatSessionsService, isAgentHostSessionResource } from '../../common/chatSessionsService.js';
-import { getChatSessionType } from '../../common/model/chatUri.js';
-import { getChatSessionTelemetryIds } from '../../common/chatService/chatServiceTelemetry.js';
-import { IAgentHostConnectionsService } from '../../../../../platform/agentHost/common/agentHostConnectionsService.js';
 import { IChatRequestViewModel, IChatResponseViewModel, isRequestVM, isResponseVM } from '../../common/model/chatViewModel.js';
 import { ChatAgentLocation } from '../../common/constants.js';
 import { IChatCodeBlockContextProviderService, IChatWidgetService } from '../chat.js';
@@ -142,9 +137,8 @@ export class CodeBlockActionRendering extends Disposable implements IWorkbenchCo
 	}
 }
 
-export function registerChatCodeBlockActions(): DisposableStore {
-	const store = new DisposableStore();
-	store.add(registerAction2(class CopyCodeBlockAction extends Action2 {
+export function registerChatCodeBlockActions() {
+	registerAction2(class CopyCodeBlockAction extends Action2 {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.copyCodeBlock',
@@ -160,7 +154,7 @@ export function registerChatCodeBlockActions(): DisposableStore {
 			});
 		}
 
-		async run(accessor: ServicesAccessor, ...args: unknown[]) {
+		run(accessor: ServicesAccessor, ...args: unknown[]) {
 			const context = args[0];
 			if (!isCodeBlockActionContext(context) || isResponseFiltered(context)) {
 				return;
@@ -168,12 +162,10 @@ export function registerChatCodeBlockActions(): DisposableStore {
 
 			const clipboardService = accessor.get(IClipboardService);
 			const aiEditTelemetryService = accessor.get(IAiEditTelemetryService);
-			const chatService = accessor.get(IChatService);
-			const chatSessionsService = accessor.get(IChatSessionsService);
-			const sessionTelemetry = isResponseVM(context.element) ? getChatSessionTelemetryIds(context.element.sessionResource, accessor.get(IAgentHostConnectionsService)) : undefined;
-			await clipboardService.writeText(context.code);
+			clipboardService.writeText(context.code);
 
 			if (isResponseVM(context.element)) {
+				const chatService = accessor.get(IChatService);
 				const requestId = context.element.requestId;
 				const request = context.element.session.getItems().find(item => item.id === requestId && isRequestVM(item)) as IChatRequestViewModel | undefined;
 				chatService.notifyUserAction({
@@ -208,16 +200,13 @@ export function registerChatCodeBlockActions(): DisposableStore {
 					presentation: 'codeBlock',
 					applyCodeBlockSuggestionId: undefined,
 					source: undefined,
-					sourceRequestId: requestId,
-					...sessionTelemetry,
-					isAgentHostSession: isAgentHostSessionResource(context.element.sessionResource),
-					provider: getAgentHostProviderForTelemetry(getChatSessionType(context.element.sessionResource), chatSessionsService),
+					sourceRequestId: undefined,
 				});
 			}
 		}
-	}));
+	});
 
-	const copyImplementation = CopyAction?.addImplementation(50000, 'chat-codeblock', (accessor) => {
+	CopyAction?.addImplementation(50000, 'chat-codeblock', (accessor) => {
 		// get active code editor
 		const editor = accessor.get(ICodeEditorService).getFocusedCodeEditor();
 		if (!editor) {
@@ -240,15 +229,11 @@ export function registerChatCodeBlockActions(): DisposableStore {
 			editor.getSelections()?.reduce((acc, selection) => acc + editorModel.getValueInRange(selection), '') ?? '';
 		const totalCharacters = editorModel.getValueLength();
 
+		// Report copy to extensions
 		const chatService = accessor.get(IChatService);
 		const aiEditTelemetryService = accessor.get(IAiEditTelemetryService);
-		const chatSessionsService = accessor.get(IChatSessionsService);
-		const sessionTelemetry = isResponseVM(context.element) ? getChatSessionTelemetryIds(context.element.sessionResource, accessor.get(IAgentHostConnectionsService)) : undefined;
-		const element = context.element;
-		const reportCopy = () => {
-			if (!isResponseVM(element)) {
-				return;
-			}
+		const element = context.element as IChatResponseViewModel | undefined;
+		if (isResponseVM(element)) {
 			const requestId = element.requestId;
 			const request = element.session.getItems().find(item => item.id === requestId && isRequestVM(item)) as IChatRequestViewModel | undefined;
 			chatService.notifyUserAction({
@@ -283,30 +268,20 @@ export function registerChatCodeBlockActions(): DisposableStore {
 				presentation: 'codeBlock',
 				applyCodeBlockSuggestionId: undefined,
 				source: undefined,
-				sourceRequestId: requestId,
-				...sessionTelemetry,
-				isAgentHostSession: isAgentHostSessionResource(element.sessionResource),
-				provider: getAgentHostProviderForTelemetry(getChatSessionType(element.sessionResource), chatSessionsService),
+				sourceRequestId: undefined,
 			});
-		};
+		}
 
 		// Copy full cell if no selection, otherwise fall back on normal editor implementation
 		if (noSelection) {
-			const clipboardService = accessor.get(IClipboardService);
-			return (async () => {
-				await clipboardService.writeText(context.code);
-				reportCopy();
-			})();
+			accessor.get(IClipboardService).writeText(context.code);
+			return true;
 		}
 
-		reportCopy();
 		return false;
 	});
-	if (copyImplementation) {
-		store.add(copyImplementation);
-	}
 
-	store.add(registerAction2(class SmartApplyInEditorAction extends ChatCodeBlockAction {
+	registerAction2(class SmartApplyInEditorAction extends ChatCodeBlockAction {
 
 		private operation: ApplyCodeBlockOperation | undefined;
 
@@ -350,9 +325,9 @@ export function registerChatCodeBlockActions(): DisposableStore {
 			}
 			return this.operation.run(context);
 		}
-	}));
+	});
 
-	store.add(registerAction2(class InsertAtCursorAction extends ChatCodeBlockAction {
+	registerAction2(class InsertAtCursorAction extends ChatCodeBlockAction {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.insertCodeBlock',
@@ -386,9 +361,9 @@ export function registerChatCodeBlockActions(): DisposableStore {
 			const operation = accessor.get(IInstantiationService).createInstance(InsertCodeBlockOperation);
 			return operation.run(context);
 		}
-	}));
+	});
 
-	store.add(registerAction2(class InsertIntoNewFileAction extends ChatCodeBlockAction {
+	registerAction2(class InsertIntoNewFileAction extends ChatCodeBlockAction {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.insertIntoNewFile',
@@ -415,12 +390,10 @@ export function registerChatCodeBlockActions(): DisposableStore {
 			const editorService = accessor.get(IEditorService);
 			const chatService = accessor.get(IChatService);
 			const aiEditTelemetryService = accessor.get(IAiEditTelemetryService);
-			const chatSessionsService = accessor.get(IChatSessionsService);
-			const sessionTelemetry = isResponseVM(context.element) ? getChatSessionTelemetryIds(context.element.sessionResource, accessor.get(IAgentHostConnectionsService)) : undefined;
 
-			const editor = await editorService.openEditor({ contents: context.code, languageId: context.languageId, resource: undefined, untitledOrigin: 'chat' } satisfies IUntitledTextResourceEditorInput);
+			editorService.openEditor({ contents: context.code, languageId: context.languageId, resource: undefined } satisfies IUntitledTextResourceEditorInput);
 
-			if (editor && isResponseVM(context.element)) {
+			if (isResponseVM(context.element)) {
 				const requestId = context.element.requestId;
 				const request = context.element.session.getItems().find(item => item.id === requestId && isRequestVM(item)) as IChatRequestViewModel | undefined;
 				chatService.notifyUserAction({
@@ -453,16 +426,13 @@ export function registerChatCodeBlockActions(): DisposableStore {
 					presentation: 'codeBlock',
 					applyCodeBlockSuggestionId: undefined,
 					source: undefined,
-					sourceRequestId: requestId,
-					...sessionTelemetry,
-					isAgentHostSession: isAgentHostSessionResource(context.element.sessionResource),
-					provider: getAgentHostProviderForTelemetry(getChatSessionType(context.element.sessionResource), chatSessionsService),
+					sourceRequestId: undefined,
 				});
 			}
 		}
-	}));
+	});
 
-	store.add(registerAction2(class RunInTerminalAction extends ChatCodeBlockAction {
+	registerAction2(class RunInTerminalAction extends ChatCodeBlockAction {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.runInTerminal',
@@ -544,7 +514,7 @@ export function registerChatCodeBlockActions(): DisposableStore {
 				});
 			}
 		}
-	}));
+	});
 
 	function navigateCodeBlocks(accessor: ServicesAccessor, reverse?: boolean): void {
 		const codeEditorService = accessor.get(ICodeEditorService);
@@ -556,21 +526,18 @@ export function registerChatCodeBlockActions(): DisposableStore {
 
 		const editor = codeEditorService.getFocusedCodeEditor();
 		const editorUri = editor?.getModel()?.uri;
-		let curCodeBlockInfo = editorUri ? widget.getCodeBlockInfoForEditor(editorUri) : undefined;
-		const activeElement = getActiveElement();
-		const focusedItem = isHTMLElement(activeElement) ? widget.getElementFromNode(activeElement) : undefined;
-		const focused = !widget.inputEditor.hasWidgetFocus() && (focusedItem ?? widget.getFocus());
+		const curCodeBlockInfo = editorUri ? widget.getCodeBlockInfoForEditor(editorUri) : undefined;
+		const focused = !widget.inputEditor.hasWidgetFocus() && widget.getFocus();
 		const focusedResponse = isResponseVM(focused) ? focused : undefined;
 
 		const elementId = curCodeBlockInfo?.elementId;
 		const element = elementId ? widget.viewModel?.getItems().find(item => item.id === elementId) : undefined;
 		const currentResponse = element ??
-			(focusedResponse ?? widget.viewModel?.getItems().findLast((item): item is IChatResponseViewModel => isResponseVM(item)));
+			(focusedResponse ?? widget.viewModel?.getItems().reverse().find((item): item is IChatResponseViewModel => isResponseVM(item)));
 		if (!currentResponse || !isResponseVM(currentResponse)) {
 			return;
 		}
 
-		curCodeBlockInfo ??= widget.getCodeBlockInfosForResponse(currentResponse).find(block => block?.isFocused);
 		widget.reveal(currentResponse);
 		const responseCodeblocks = widget.getCodeBlockInfosForResponse(currentResponse);
 		const focusIdx = curCodeBlockInfo ?
@@ -580,7 +547,7 @@ export function registerChatCodeBlockActions(): DisposableStore {
 		responseCodeblocks[focusIdx]?.focus();
 	}
 
-	store.add(registerAction2(class NextCodeBlockAction extends Action2 {
+	registerAction2(class NextCodeBlockAction extends Action2 {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.nextCodeBlock',
@@ -600,9 +567,9 @@ export function registerChatCodeBlockActions(): DisposableStore {
 		run(accessor: ServicesAccessor, ...args: unknown[]) {
 			navigateCodeBlocks(accessor);
 		}
-	}));
+	});
 
-	store.add(registerAction2(class PreviousCodeBlockAction extends Action2 {
+	registerAction2(class PreviousCodeBlockAction extends Action2 {
 		constructor() {
 			super({
 				id: 'workbench.action.chat.previousCodeBlock',
@@ -622,9 +589,7 @@ export function registerChatCodeBlockActions(): DisposableStore {
 		run(accessor: ServicesAccessor, ...args: unknown[]) {
 			navigateCodeBlocks(accessor, true);
 		}
-	}));
-
-	return store;
+	});
 }
 
 function getContextFromEditor(editor: ICodeEditor, accessor: ServicesAccessor): ICodeBlockActionContext | undefined {

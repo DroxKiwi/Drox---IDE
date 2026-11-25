@@ -21,7 +21,6 @@ import { ConfirmOnKill } from '../common/terminal.js';
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { TerminalContextKeys } from '../common/terminalContextKey.js';
-import { getTerminalAccessibleTitle } from '../common/terminalStrings.js';
 import { ConfirmResult, IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { Emitter } from '../../../../base/common/event.js';
 
@@ -182,11 +181,9 @@ export class TerminalEditorInput extends EditorInput implements IEditorCloseHand
 			this._isShuttingDown = true;
 			dispose(disposeListeners);
 
-			// Don't touch processes if the shutdown was a result of reload as they will be reattached. As in the panel, only
-			// those that persist: a detached process nothing reattaches to, such as of an agent host terminal, would outlive
-			// the window.
+			// Don't touch processes if the shutdown was a result of reload as they will be reattached
 			const shouldPersistTerminals = this._configurationService.getValue<boolean>(TerminalSettingId.EnablePersistentSessions) && e.reason === ShutdownReason.RELOAD;
-			if (shouldPersistTerminals && instance.shouldPersist) {
+			if (shouldPersistTerminals) {
 				instance.detachProcessAndDispose(TerminalExitReason.Shutdown);
 			} else {
 				instance.dispose(TerminalExitReason.Shutdown);
@@ -196,10 +193,6 @@ export class TerminalEditorInput extends EditorInput implements IEditorCloseHand
 
 	override getName() {
 		return this._terminalInstance?.title || this.resource.fragment;
-	}
-
-	override getAriaLabel(): string {
-		return getTerminalAccessibleTitle(this.getName(), this._terminalInstance?.shellLaunchConfig.hostLabel);
 	}
 
 	override getIcon(): ThemeIcon | undefined {

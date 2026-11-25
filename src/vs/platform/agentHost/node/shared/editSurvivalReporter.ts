@@ -11,9 +11,7 @@ import { FileOperationResult, IFileService, toFileOperationResult } from '../../
 import { createDecorator } from '../../../instantiation/common/instantiation.js';
 import { ILogService } from '../../../log/common/log.js';
 import { ITelemetryService } from '../../../telemetry/common/telemetry.js';
-import { AgentSession } from '../../common/agent.js';
-import type { IAgentHostClientTelemetryContext } from '../../common/agentHostTelemetry.js';
-import { toInitiatorTelemetry, type IAgentHostEventClassification, type IAgentHostEventTelemetry } from '../agentHostTelemetryReporter.js';
+import { AgentSession } from '../../common/agentService.js';
 import { computeChunkedEditSurvival, computeWholeFileEditSurvival } from './editSurvivalTracker.js';
 
 /**
@@ -29,12 +27,8 @@ import { computeChunkedEditSurvival, computeWholeFileEditSurvival } from './edit
  * revisit when we have a notebook-aware tracker.
  */
 export interface IEditSurvivalReporterLaunchParams {
-	readonly provider?: string;
-	readonly clientContext?: IAgentHostClientTelemetryContext;
 	/** Full session URI string (e.g. `claude:/abc123`). */
 	readonly sessionUri: string;
-	/** The session that owns the edit's chat. */
-	readonly ownerSessionUri: string;
 	readonly turnId: string;
 	readonly toolCallId: string;
 	/** Absolute file path on the agent host's local file system. */
@@ -52,9 +46,6 @@ export interface IEditSurvivalReporterLaunchParams {
 	 * defensively, but always expected to be set
 	 */
 	readonly modelId?: string;
-	readonly autoTier?: string;
-	/** The HydraFusion model (`hydrafusion` or `hydrafusion-max`) that routed the edit, when known. */
-	readonly fusionModel?: string;
 	/**
 	 * Explicit AI-written text chunks extracted from the tool input
 	 * (see `editChunkExtractor.ts`). When provided, survival is scored
@@ -89,11 +80,9 @@ export class NullEditSurvivalReporterFactory implements IEditSurvivalReporterFac
 	}
 }
 
-interface IEditSurvivalTelemetryEvent extends IAgentHostEventTelemetry {
+interface IEditSurvivalTelemetryEvent {
 	provider: string;
 	modelId: string;
-	autoTier?: string;
-	fusionModel?: string;
 	toolName: string;
 	agentSessionId: string;
 	turnId: string;
@@ -112,11 +101,9 @@ interface IEditSurvivalTelemetryEvent extends IAgentHostEventTelemetry {
 	currentTextLength: number;
 }
 
-type IEditSurvivalTelemetryClassification = IAgentHostEventClassification & {
+type IEditSurvivalTelemetryClassification = {
 	provider: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The provider handling the agent host session.' };
 	modelId: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The model that produced the edit, e.g. "claude-sonnet-4.5" or "gpt-5-mini". Empty if the host could not determine the per-edit model.' };
-	autoTier?: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The committed Copilot Auto tier (efficiency, balance, intelligence, fast, or a tier the Copilot service advertises, such as hydrafusion) when the edit was produced under Auto. Omitted when unknown or not Auto.' };
-	fusionModel?: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The HydraFusion model (hydrafusion or hydrafusion-max) that routed the edit, as attributed by the runtime. Omitted when the edit was not produced by HydraFusion.' };
 	toolName: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'Name of the edit tool that produced the edit, e.g. "Edit", "apply_patch". Empty if unknown.' };
 	agentSessionId: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The agent host session identifier.' };
 	turnId: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The agent host turn identifier this edit belongs to.' };
@@ -204,19 +191,13 @@ class SessionEditSurvivalReporter extends Disposable {
 					? computeChunkedEditSurvival(this._params.beforeText, this._params.afterText, aiChunks, currentText)
 					: computeWholeFileEditSurvival(this._params.beforeText, this._params.afterText, currentText);
 
-			// Provider/id reflect the owning session's harness rather than the
-			// chat scheme. See telemetry gap #6 in #8209.
-			const sessionUri = this._params.ownerSessionUri;
 			this._telemetryService.publicLog2<IEditSurvivalTelemetryEvent, IEditSurvivalTelemetryClassification>(
 				'agentHost.trackEditSurvival',
 				{
-					...toInitiatorTelemetry(this._params.clientContext),
-					provider: this._params.provider ?? AgentSession.provider(sessionUri) ?? 'unknown',
+					provider: AgentSession.provider(this._params.sessionUri) ?? 'unknown',
 					modelId: this._params.modelId ?? '',
-					...(this._params.autoTier !== undefined ? { autoTier: this._params.autoTier } : {}),
-					...(this._params.fusionModel !== undefined ? { fusionModel: this._params.fusionModel } : {}),
 					toolName: this._params.toolName ?? '',
-					agentSessionId: AgentSession.id(sessionUri),
+					agentSessionId: AgentSession.id(this._params.sessionUri),
 					turnId: this._params.turnId,
 					toolCallId: this._params.toolCallId,
 					fileExtension: extname(this._params.filePath),

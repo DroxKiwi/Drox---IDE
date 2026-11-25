@@ -42,7 +42,6 @@ import { IContextMenuService } from '../../../../platform/contextview/browser/co
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
-import { ResultKind } from '../../../../platform/keybinding/common/keybindingResolver.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { UnmanagedProgress } from '../../../../platform/progress/common/progress.js';
 import { IStorageService, StorageScope, StorageTarget, WillSaveStateReason } from '../../../../platform/storage/common/storage.js';
@@ -764,7 +763,6 @@ class TestingExplorerViewModel extends Disposable {
 		@ITestProfileService private readonly testProfileService: ITestProfileService,
 		@ITestingContinuousRunService private readonly crService: ITestingContinuousRunService,
 		@ICommandService commandService: ICommandService,
-		@IKeybindingService keybindingService: IKeybindingService,
 	) {
 		super();
 
@@ -882,8 +880,7 @@ class TestingExplorerViewModel extends Disposable {
 		this._register(dom.addStandardDisposableListener(this.tree.getHTMLElement(), 'keydown', evt => {
 			if (evt.equals(KeyCode.Enter)) {
 				this.handleExecuteKeypress(evt);
-			} else if (DefaultKeyboardNavigationDelegate.mightProducePrintableCharacter(evt)
-				&& keybindingService.softDispatch(evt, evt.target).kind === ResultKind.NoMatchingKb) {
+			} else if (DefaultKeyboardNavigationDelegate.mightProducePrintableCharacter(evt)) {
 				filterState.text.value = evt.browserEvent.key;
 				filterState.focusInput();
 			}
@@ -1493,7 +1490,6 @@ class ErrorRenderer implements ITreeRenderer<TestTreeErrorMessage, FuzzyScore, I
 interface ITestElementTemplateData {
 	current?: TestItemTreeElement;
 	label: HTMLElement;
-	hover: IManagedHover;
 	icon: HTMLElement;
 	wrapper: HTMLElement;
 	actionBar: ActionBar;
@@ -1532,7 +1528,6 @@ class TestItemRenderer extends Disposable
 		const icon = dom.append(wrapper, dom.$('.computed-state'));
 		const label = dom.append(wrapper, dom.$('.label'));
 		const disposable = new DisposableStore();
-		const hover = disposable.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('mouse'), label, ''));
 
 		dom.append(wrapper, dom.$(ThemeIcon.asCSSSelector(icons.testingHiddenIcon)));
 		const actionBar = disposable.add(new ActionBar(wrapper, {
@@ -1556,7 +1551,7 @@ class TestItemRenderer extends Disposable
 			}
 		}));
 
-		const templateData: ITestElementTemplateData = { wrapper, label, hover, actionBar, icon, elementDisposable: new DisposableStore(), templateDisposable: disposable };
+		const templateData: ITestElementTemplateData = { wrapper, label, actionBar, icon, elementDisposable: new DisposableStore(), templateDisposable: disposable };
 		return templateData;
 	}
 
@@ -1564,8 +1559,7 @@ class TestItemRenderer extends Disposable
 	 * @inheritdoc
 	 */
 	disposeTemplate(templateData: ITestElementTemplateData): void {
-		templateData.elementDisposable.dispose();
-		templateData.templateDisposable.dispose();
+		templateData.templateDisposable.clear();
 	}
 
 	/**
@@ -1573,7 +1567,6 @@ class TestItemRenderer extends Disposable
 	 */
 	disposeElement(_element: ITreeNode<TestItemTreeElement, FuzzyScore>, _: number, templateData: ITestElementTemplateData): void {
 		templateData.elementDisposable.clear();
-		templateData.hover.hide();
 	}
 
 	private fillActionBar(element: TestItemTreeElement, data: ITestElementTemplateData) {
@@ -1593,13 +1586,7 @@ class TestItemRenderer extends Disposable
 		data.elementDisposable.clear();
 		data.current = node.element;
 
-		const render = data.elementDisposable.add(new RunOnceScheduler(() => this._renderElement(node, data), 0));
-		data.elementDisposable.add(node.element.onChange(() => {
-			// A batch of test results can update the same parent's state and duration many times.
-			if (!render.isScheduled()) {
-				render.schedule();
-			}
-		}));
+		data.elementDisposable.add(node.element.onChange(() => this._renderElement(node, data)));
 		this._renderElement(node, data);
 	}
 
@@ -1619,7 +1606,7 @@ class TestItemRenderer extends Disposable
 			data.icon.className += ' retired';
 		}
 
-		data.hover.update(getLabelForTestTreeElement(node.element));
+		data.elementDisposable.add(this.hoverService.setupManagedHover(getDefaultHoverDelegate('mouse'), data.label, getLabelForTestTreeElement(node.element)));
 		if (node.element.test.item.label.trim()) {
 			dom.reset(data.label, ...renderLabelWithIcons(node.element.test.item.label));
 		} else {

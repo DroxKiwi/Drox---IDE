@@ -1328,25 +1328,18 @@ export class QuickWidget extends QuickInput implements IQuickWidget {
 	readonly type = QuickInputType.QuickWidget;
 
 	private _widget: HTMLElement | undefined;
-	private widgetUpdated = false;
+	private _widgetUpdated = false;
 
-	get widget(): HTMLElement | undefined {
+	get widget() {
 		return this._widget;
 	}
 
 	set widget(widget: HTMLElement | undefined) {
 		if (this._widget !== widget) {
 			this._widget = widget;
-			this.widgetUpdated = true;
+			this._widgetUpdated = true;
 			this.update();
 		}
-	}
-
-	override show(): void {
-		if (!this.visible) {
-			this.widgetUpdated = true;
-		}
-		super.show();
 	}
 
 	protected override update() {
@@ -1357,9 +1350,13 @@ export class QuickWidget extends QuickInput implements IQuickWidget {
 			title: !!this.title || !!this.step || !!this.titleButtons.length,
 			description: !!this.description || !!this.step
 		});
-		if (this.widgetUpdated) {
-			this.widgetUpdated = false;
-			dom.reset(this.ui.widget, ...(this._widget ? [this._widget] : []));
+		if (this._widgetUpdated) {
+			this._widgetUpdated = false;
+			if (this._widget) {
+				dom.reset(this.ui.widget, this._widget);
+			} else {
+				dom.reset(this.ui.widget);
+			}
 		}
 		super.update();
 	}

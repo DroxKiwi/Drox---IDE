@@ -333,19 +333,6 @@ describe('SessionOptionGroupBuilder', () => {
 		let folderRepositoryManager: TestFolderRepositoryManager;
 		let builder: SessionOptionGroupBuilder;
 
-		function createSessionOptionGroupBuilder(): SessionOptionGroupBuilder {
-			return new SessionOptionGroupBuilder(
-				gitService,
-				configurationService,
-				context,
-				workspaceService,
-				folderMruService,
-				agentSessionsWorkspace,
-				worktreeService,
-				folderRepositoryManager,
-			);
-		}
-
 		beforeEach(async () => {
 			vi.restoreAllMocks();
 			gitService = new TestGitService();
@@ -357,7 +344,16 @@ describe('SessionOptionGroupBuilder', () => {
 			worktreeService = new TestWorktreeService();
 			folderRepositoryManager = new TestFolderRepositoryManager();
 
-			builder = createSessionOptionGroupBuilder();
+			builder = new SessionOptionGroupBuilder(
+				gitService,
+				configurationService,
+				context,
+				workspaceService,
+				folderMruService,
+				agentSessionsWorkspace,
+				worktreeService,
+				folderRepositoryManager,
+			);
 		});
 
 		describe('getRepositoryOptionItems', () => {
@@ -386,7 +382,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('includes workspace folders without git repos in multi-root', () => {
 				workspaceService = new NullWorkspaceService([URI.file('/workspace'), URI.file('/other-folder')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				// Only one repo under /workspace
 				gitService.repositories = [makeRepo('/workspace')];
 				const items = builder.getRepositoryOptionItems();
@@ -399,7 +398,10 @@ describe('SessionOptionGroupBuilder', () => {
 				// NullWorkspaceService.getWorkspaceFolderName returns 'default', so we use git repos
 				// which derive their name from the URI path
 				workspaceService = new NullWorkspaceService([URI.file('/z-repo'), URI.file('/a-repo')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/z-repo'), makeRepo('/a-repo')];
 				const items = builder.getRepositoryOptionItems();
 				expect(items.length).toBe(2);
@@ -531,7 +533,10 @@ describe('SessionOptionGroupBuilder', () => {
 		describe('provideChatSessionProviderOptionGroups', () => {
 			it('returns repository group for multi-repo workspaces', async () => {
 				workspaceService = new NullWorkspaceService([URI.file('/repo1'), URI.file('/repo2')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/repo1'), makeRepo('/repo2')];
 
 				const groups = await builder.provideChatSessionProviderOptionGroups(undefined);
@@ -542,7 +547,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('pre-selects selectedFolderUri in multi-repo workspace', async () => {
 				workspaceService = new NullWorkspaceService([URI.file('/repo1'), URI.file('/repo2')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/repo1'), makeRepo('/repo2')];
 				gitService.getRepository.mockResolvedValue(makeRepo('/repo2'));
 				await configurationService.setConfig(ConfigKey.Advanced.CLIBranchSupport, false);
@@ -555,7 +563,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('pre-selects selectedFolderUri over previous selection in multi-repo workspace', async () => {
 				workspaceService = new NullWorkspaceService([URI.file('/repo1'), URI.file('/repo2')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/repo1'), makeRepo('/repo2')];
 				gitService.getRepository.mockResolvedValue(makeRepo('/repo2'));
 				await configurationService.setConfig(ConfigKey.Advanced.CLIBranchSupport, false);
@@ -648,7 +659,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('shows MRU items for welcome view (empty workspace)', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const mruUri = URI.file('/recent-repo');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
 					{ folder: mruUri, repository: mruUri, lastAccessed: Date.now() },
@@ -668,7 +682,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('caps MRU items at 10 entries in welcome view', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const entries = Array.from({ length: 15 }, (_, i) => {
 					const uri = URI.file(`/repo-${i}`);
 					return { folder: uri, repository: uri, lastAccessed: i } as FolderRepositoryMRUEntry;
@@ -682,7 +699,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('pre-selects selectedFolderUri in welcome view', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const mruUri1 = URI.file('/repo-a');
 				const mruUri2 = URI.file('/repo-b');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
@@ -697,7 +717,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('pre-selects selectedFolderUri over previous selection in welcome view', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const mruUri1 = URI.file('/repo-a');
 				const mruUri2 = URI.file('/repo-b');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
@@ -723,7 +746,10 @@ describe('SessionOptionGroupBuilder', () => {
 				await configurationService.setConfig(ConfigKey.Advanced.CLIBranchSupport, true);
 				await configurationService.setConfig(ConfigKey.Advanced.CLIIsolationOption, true);
 				await context.globalState.update('github.copilot.cli.lastUsedIsolationOption', IsolationMode.Worktree);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const mruUri = URI.file('/recent-repo');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
 					{ folder: mruUri, repository: mruUri, lastAccessed: Date.now() },
@@ -740,7 +766,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('selects no repo in welcome view when MRU is empty', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([]);
 
 				const groups = await builder.provideChatSessionProviderOptionGroups(undefined);
@@ -752,7 +781,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('preserves previous selection even when no longer in welcome view MRU', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const currentUri = URI.file('/current-repo');
 				const removedUri = URI.file('/removed-repo');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
@@ -777,7 +809,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('adds new folder (git repo) to top of items in welcome view', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const mruUri = URI.file('/existing-repo');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
 					{ folder: mruUri, repository: mruUri, lastAccessed: Date.now() },
@@ -794,7 +829,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('adds new folder (non-git) to top of items in welcome view', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const mruUri = URI.file('/existing-repo');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
 					{ folder: mruUri, repository: mruUri, lastAccessed: Date.now() },
@@ -810,7 +848,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('deduplicates new folder if already in MRU list', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const sharedUri = URI.file('/shared-repo');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
 					{ folder: sharedUri, repository: sharedUri, lastAccessed: Date.now() },
@@ -834,7 +875,10 @@ describe('SessionOptionGroupBuilder', () => {
 				// equality (Array.includes) caused the stale reference to be
 				// re-appended, creating a duplicate.
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const repoUri = URI.file('/my-repo');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
 					{ folder: repoUri, repository: repoUri, lastAccessed: Date.now() },
@@ -851,7 +895,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('does not add new folder when no previousInputState', async () => {
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([]);
 
 				const groups = await builder.provideChatSessionProviderOptionGroups(undefined);
@@ -863,7 +910,10 @@ describe('SessionOptionGroupBuilder', () => {
 				// When the previous selection is not in the MRU list, the builder should
 				// look it up via getTrustedRepository and add it with the correct icon.
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				const mruUri = URI.file('/current-repo');
 				const prevUri = URI.file('/prev-repo');
 				folderMruService.getRecentlyUsedFolders.mockResolvedValue([
@@ -1203,7 +1253,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 				// Simulate adding a second workspace folder
 				workspaceService = new NullWorkspaceService([URI.file('/workspace'), URI.file('/workspace2')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/workspace'), makeRepo('/workspace2')];
 
 				await builder.rebuildInputState(state);
@@ -1216,7 +1269,10 @@ describe('SessionOptionGroupBuilder', () => {
 			it('removes folder dropdown when going from two workspace folders to one', async () => {
 				// Start with two workspace folders — folder dropdown shown
 				workspaceService = new NullWorkspaceService([URI.file('/repo1'), URI.file('/repo2')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/repo1'), makeRepo('/repo2')];
 				gitService.getRepository.mockResolvedValue(makeRepo('/repo1'));
 				await configurationService.setConfig(ConfigKey.Advanced.CLIBranchSupport, false);
@@ -1229,7 +1285,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 				// Simulate removing a workspace folder
 				workspaceService = new NullWorkspaceService([URI.file('/repo1')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/repo1')];
 
 				await builder.rebuildInputState(state);
@@ -1265,7 +1324,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 			it('preserves selected folder across rebuild', async () => {
 				workspaceService = new NullWorkspaceService([URI.file('/repo1'), URI.file('/repo2')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/repo1'), makeRepo('/repo2')];
 				gitService.getRepository.mockResolvedValue(makeRepo('/repo2'));
 				await configurationService.setConfig(ConfigKey.Advanced.CLIBranchSupport, false);
@@ -1281,7 +1343,10 @@ describe('SessionOptionGroupBuilder', () => {
 
 				// Add a third folder
 				workspaceService = new NullWorkspaceService([URI.file('/repo1'), URI.file('/repo2'), URI.file('/repo3')]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				gitService.repositories = [makeRepo('/repo1'), makeRepo('/repo2'), makeRepo('/repo3')];
 
 				await builder.rebuildInputState(state);
@@ -1416,7 +1481,10 @@ describe('SessionOptionGroupBuilder', () => {
 				// In the welcome view, rebuildInputState with a selectedFolderUri should
 				// remember it so the next rebuild keeps the folder in the list.
 				workspaceService = new NullWorkspaceService([]);
-				builder = createSessionOptionGroupBuilder();
+				builder = new SessionOptionGroupBuilder(
+					gitService, configurationService, context, workspaceService,
+					folderMruService, agentSessionsWorkspace, worktreeService, folderRepositoryManager,
+				);
 				await configurationService.setConfig(ConfigKey.Advanced.CLIBranchSupport, false);
 				await configurationService.setConfig(ConfigKey.Advanced.CLIIsolationOption, false);
 

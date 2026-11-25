@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { registerAttachPromptActions } from './attachInstructionsAction.js';
 import { registerAgentActions } from './chatModeActions.js';
 import { registerRunPromptActions } from './runPromptAction.js';
@@ -17,17 +16,14 @@ import { SaveAsAgentFileAction, SaveAsInstructionsFileAction, SaveAsPromptFileAc
 /**
  * Helper to register all actions related to reusable prompt files.
  */
-export function registerPromptActions(): DisposableStore {
-	const store = new DisposableStore();
-	store.add(registerRunPromptActions());
-	store.add(registerAttachPromptActions());
-	store.add(registerSkillActions());
-	store.add(registerHookActions());
-	store.add(registerAction2(SaveAsPromptFileAction));
-	store.add(registerAction2(SaveAsInstructionsFileAction));
-	store.add(registerAction2(SaveAsAgentFileAction));
-	store.add(registerAgentActions());
-	store.add(registerNewPromptFileActions());
-
-	return store;
+export function registerPromptActions(): void {
+	registerRunPromptActions();
+	registerAttachPromptActions();
+	registerSkillActions();
+	registerHookActions();
+	registerAction2(SaveAsPromptFileAction);
+	registerAction2(SaveAsInstructionsFileAction);
+	registerAction2(SaveAsAgentFileAction);
+	registerAgentActions();
+	registerNewPromptFileActions();
 }

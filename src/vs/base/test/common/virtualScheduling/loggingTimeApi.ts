@@ -38,7 +38,5 @@ export function createLoggingTimeApi(
 		} : undefined,
 		cancelAnimationFrame: underlying.cancelAnimationFrame,
 		Date: underlying.Date,
-		performanceNow: underlying.performanceNow,
-		performanceTimeOrigin: underlying.performanceTimeOrigin,
 	};
 }

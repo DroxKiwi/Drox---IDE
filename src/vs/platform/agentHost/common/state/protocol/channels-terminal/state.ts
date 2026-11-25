@@ -22,55 +22,14 @@ export interface TerminalInfo {
 	title: string;
 	/** Who currently holds this terminal */
 	claim: TerminalClaim;
-	/** Current terminal process lifecycle. */
-	lifecycle: TerminalLifecycleState;
-}
-
-/**
- * Lifecycle status of a terminal process.
- *
- * @category Terminal Types
- * @exhaustive
- */
-export const enum TerminalLifecycleStatus {
-	Running = 'running',
-	Exited = 'exited',
-}
-
-/**
- * A terminal process that is still running.
- *
- * @category Terminal Types
- */
-export interface TerminalRunningLifecycleState {
-	status: TerminalLifecycleStatus.Running;
-}
-
-/**
- * A terminal process that has exited.
- *
- * @category Terminal Types
- */
-export interface TerminalExitedLifecycleState {
-	status: TerminalLifecycleStatus.Exited;
-	/** Process exit code, if the runtime reported one. */
+	/** Process exit code, if the terminal process has exited */
 	exitCode?: number;
 }
-
-/**
- * Current lifecycle of a terminal process.
- *
- * @category Terminal Types
- */
-export type TerminalLifecycleState =
-	| TerminalRunningLifecycleState
-	| TerminalExitedLifecycleState;
 
 /**
  * Discriminant for terminal claim kinds.
  *
  * @category Terminal Types
- * @exhaustive
  */
 export const enum TerminalClaimKind {
 	Client = 'client',
@@ -99,9 +58,7 @@ export interface TerminalSessionClaim {
 	kind: TerminalClaimKind.Session;
 	/** Session URI that claimed the terminal */
 	session: URI;
-	/** Chat URI that claimed the terminal. */
-	chat: URI;
-	/** Optional turn identifier within the chat. */
+	/** Optional turn identifier within the session */
 	turnId?: string;
 	/** Optional tool call identifier within the turn */
 	toolCallId?: string;
@@ -138,8 +95,8 @@ export interface TerminalState {
 	 * Consumers that need command boundaries can filter by part type.
 	 */
 	content: TerminalContentPart[];
-	/** Current terminal process lifecycle. */
-	lifecycle: TerminalLifecycleState;
+	/** Process exit code, set when the terminal process exits */
+	exitCode?: number;
 	/** Who currently holds this terminal */
 	claim: TerminalClaim;
 	/**
@@ -151,12 +108,6 @@ export interface TerminalState {
 	 * are absent in the normal idle state.
 	 */
 	supportsCommandDetection?: boolean;
-	/**
-	 * Whether this terminal-style resource is backed by a pseudoterminal.
-	 * When `false`, output is plain text and clients do not need to parse
-	 * VT sequences.
-	 */
-	isPty?: boolean;
 }
 
 // ─── Terminal Content Parts ──────────────────────────────────────────────────

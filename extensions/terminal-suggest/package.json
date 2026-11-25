@@ -34,8 +34,8 @@
     }
   },
   "scripts": {
-    "compile": "pnpm exec gulp compile-extension:terminal-suggest",
-    "watch": "pnpm exec gulp watch-extension:terminal-suggest",
+    "compile": "npx gulp compile-extension:terminal-suggest",
+    "watch": "npx gulp watch-extension:terminal-suggest",
     "pull-zshbuiltins": "node ./scripts/pullZshBuiltins.ts",
     "pull-fishbuiltins": "node ./scripts/pullFishBuiltins.ts"
   },
@@ -48,8 +48,6 @@
     "url": "https://github.com/microsoft/vscode.git"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "24.x",
-    "mocha": "^10.8.2"
+    "@types/node": "24.x"
   }
 }

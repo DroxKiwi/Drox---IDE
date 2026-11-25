@@ -35,7 +35,6 @@
 //!
 //! Sous-modules : [`types`], [`summarize`], [`live`], helpers privés.
 
-mod basic;
 mod helpers;
 mod live;
 mod summarize;
@@ -44,7 +43,6 @@ mod types;
 #[cfg(test)]
 mod tests;
 
-pub use basic::{try_basic_compact, BasicCompactReport, BASIC_COMPACT_TARGET_RATIO};
 pub use live::{
     choose_live_compact_split_idx, compact_until_budget, format_compact_checkpoint, try_live_compact,
     LiveCompactReport, CHECKPOINT_MAX_CHARS, LIVE_COMPACT_MAX_PASSES, LIVE_COMPACT_MAX_TAIL_RATIO,

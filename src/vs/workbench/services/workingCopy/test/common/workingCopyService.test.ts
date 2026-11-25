@@ -9,10 +9,15 @@ import { URI } from '../../../../../base/common/uri.js';
 import { TestWorkingCopy } from '../../../../test/common/workbenchTestServices.js';
 import { IWorkingCopySaveEvent, WorkingCopyService } from '../../common/workingCopyService.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
+import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 
 suite('WorkingCopyService', () => {
 
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	const disposables = new DisposableStore();
+
+	teardown(() => {
+		disposables.clear();
+	});
 
 	test('registry - basics', () => {
 		const service = disposables.add(new WorkingCopyService());
@@ -209,4 +214,5 @@ suite('WorkingCopyService', () => {
 		assert.strictEqual(service.workingCopies.length, 0);
 	});
 
+	ensureNoDisposablesAreLeakedInTestSuite();
 });

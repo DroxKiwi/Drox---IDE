@@ -4,26 +4,16 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { isTypeScriptDocument } from '../configuration/languageIds';
 import { getTsNativeExtension, tsNativeExtensionOldId } from '../commands/useTsgo';
 import { ExperimentationService } from '../experimentationService';
-import type { PluginManager } from '../tsServer/plugins.js';
-import { copilotChatExtensionId } from '../typescriptServiceClient.js';
-import { hasModifiedUnifiedConfig } from '../utils/configuration';
 
-const suggestTS7NoPluginsStorageKey = 'typescript.suggestTS7NoPlugins.dismissed';
+const suggestNativePreviewStorageKey = 'typescript.suggestNativePreview.dismissed';
 
 export async function suggestNativePreview(
 	context: vscode.ExtensionContext,
 	experimentationService: ExperimentationService,
-	pluginManager: PluginManager
 ): Promise<void> {
-	const activeEditor = vscode.window.activeTextEditor;
-	if (!activeEditor || !isTypeScriptDocument(activeEditor.document)) {
-		return;
-	}
-
-	if (context.globalState.get<boolean>(suggestTS7NoPluginsStorageKey)) {
+	if (context.globalState.get<boolean>(suggestNativePreviewStorageKey)) {
 		return;
 	}
 
@@ -32,20 +22,19 @@ export async function suggestNativePreview(
 		return;
 	}
 
-	// Don't show if the TypeScript 7 extension is already installed,
-	// or if we have any settings indicating it was installed previously.
-	if (getTsNativeExtension() || hasModifiedUnifiedConfig('experimental.useTsgo', { fallbackSection: 'typescript' })) {
-		// Also don't prompt in the future.
-		await context.globalState.update(suggestTS7NoPluginsStorageKey, true);
+	// Only show when the nightly extension is installed
+	if (!vscode.extensions.getExtension('ms-vscode.vscode-typescript-next')) {
 		return;
 	}
 
-	// TSServer plugins are not supported by TypeScript 7
-	if (pluginManager.plugins.some(plugin => plugin.extension.id.toLowerCase() !== copilotChatExtensionId)) {
+	// Don't show if the native preview extension is already installed
+	if (getTsNativeExtension()) {
+		// Also don't prompt in the future
+		await context.globalState.update(suggestNativePreviewStorageKey, true);
 		return;
 	}
 
-	const inExperiment = await experimentationService.getTreatmentVariable('suggestTS7IfNoPlugins', false);
+	const inExperiment = await experimentationService.getTreatmentVariable('suggestNativePreview', false);
 	if (!inExperiment) {
 		return;
 	}
@@ -55,18 +44,18 @@ export async function suggestNativePreview(
 	const dismiss: vscode.MessageItem = { title: vscode.l10n.t("Don't Show Again") };
 
 	const selection = await vscode.window.showInformationMessage(
-		vscode.l10n.t("Try TypeScript 7 for significantly faster type checking and language features."),
-		{ notificationId: 'typescript.nativePreview' },
+		vscode.l10n.t("Try TypeScript 7 Native Preview for significantly faster type checking and language features."),
+		{},
 		install,
 		learnMore,
 		dismiss,
 	);
 	// Don't show again
-	await context.globalState.update(suggestTS7NoPluginsStorageKey, true);
+	await context.globalState.update(suggestNativePreviewStorageKey, true);
 
 	if (selection === install) {
 		await vscode.commands.executeCommand('workbench.extensions.installExtension', tsNativeExtensionOldId);
 	} else if (selection === learnMore) {
-		await vscode.env.openExternal(vscode.Uri.parse('https://aka.ms/typescript7'));
+		await vscode.env.openExternal(vscode.Uri.parse('https://aka.ms/vscode-try-ts-7-learn-more'));
 	}
 }

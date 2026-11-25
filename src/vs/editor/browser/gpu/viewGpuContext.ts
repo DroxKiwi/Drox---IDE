@@ -12,7 +12,6 @@ import { Disposable } from '../../../base/common/lifecycle.js';
 import type { ViewportData } from '../../common/viewLayout/viewLinesViewportData.js';
 import type { ViewLineOptions } from '../viewParts/viewLines/viewLineOptions.js';
 import { observableValue, runOnChange, type IObservable } from '../../../base/common/observable.js';
-import * as strings from '../../../base/common/strings.js';
 import { IInstantiationService } from '../../../platform/instantiation/common/instantiation.js';
 import { TextureAtlas } from './atlas/textureAtlas.js';
 import { IConfigurationService } from '../../../platform/configuration/common/configuration.js';
@@ -165,8 +164,7 @@ export class ViewGpuContext extends Disposable {
 		// Check if the line has simple attributes that aren't supported
 		if (
 			data.containsRTL ||
-			data.maxColumn > this.maxGpuCols ||
-			requiresDomFullwidthCharacterRendering(options, data.content)
+			data.maxColumn > this.maxGpuCols
 		) {
 			return false;
 		}
@@ -214,9 +212,6 @@ export class ViewGpuContext extends Disposable {
 		if (data.maxColumn > this.maxGpuCols) {
 			reasons.push('maxColumn > maxGpuCols');
 		}
-		if (requiresDomFullwidthCharacterRendering(options, data.content)) {
-			reasons.push('useTwoCellFullwidthCharacters');
-		}
 		if (data.inlineDecorations.length > 0) {
 			let supported = true;
 			const problemTypes: InlineDecorationType[] = [];
@@ -260,19 +255,6 @@ export class ViewGpuContext extends Disposable {
 		}
 		return reasons;
 	}
-}
-
-function requiresDomFullwidthCharacterRendering(options: ViewLineOptions, content: string): boolean {
-	if (!options.useTwoCellFullwidthCharacters) {
-		return false;
-	}
-	const limit = options.stopRenderingLineAfter === -1 ? content.length : Math.min(options.stopRenderingLineAfter, content.length);
-	for (let offset = 0; offset < limit; offset++) {
-		if (strings.isFullWidthCharacter(content.charCodeAt(offset))) {
-			return true;
-		}
-	}
-	return false;
 }
 
 /**

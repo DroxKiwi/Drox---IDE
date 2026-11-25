@@ -18,24 +18,16 @@ import { Codicon } from '../../../../base/common/codicons.js';
 import { onUnexpectedError } from '../../../../base/common/errors.js';
 import { KeyCode } from '../../../../base/common/keyCodes.js';
 import { splitRecentLabel } from '../../../../base/common/labels.js';
-// DROX-BEGIN
 import { DisposableStore, toDisposable } from '../../../../base/common/lifecycle.js';
-// DROX-END
 import { ILink, LinkedText } from '../../../../base/common/linkedText.js';
-import { autorun, derived, observableValue } from '../../../../base/common/observable.js';
 import { parse } from '../../../../base/common/marshalling.js';
-// DROX-BEGIN
 import { FileAccess, Schemas, matchesScheme } from '../../../../base/common/network.js';
-// DROX-END
 import { OS } from '../../../../base/common/platform.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { assertReturnsDefined } from '../../../../base/common/types.js';
 import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import './media/gettingStarted.css';
-// DROX-BEGIN
-import './media/droxGettingStarted.css';
-// DROX-END
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
 import { IMarkdownRendererService } from '../../../../platform/markdown/browser/markdownRenderer.js';
 import { localize } from '../../../../nls.js';
@@ -43,7 +35,6 @@ import { IAccessibilityService } from '../../../../platform/accessibility/common
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { ContextKeyExpr, ContextKeyExpression, IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
-import { IDefaultAccountService } from '../../../../platform/defaultAccount/common/defaultAccount.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
@@ -72,16 +63,14 @@ import { gettingStartedCheckedCodicon, gettingStartedUncheckedCodicon } from './
 import { GettingStartedEditorOptions, GettingStartedInput } from './gettingStartedInput.js';
 import { IResolvedWalkthrough, IResolvedWalkthroughStep, IWalkthroughsService, hiddenEntriesConfigurationKey, parseDescription } from './gettingStartedService.js';
 import { RestoreWalkthroughsConfigurationValue, restoreWalkthroughsConfigurationKey } from './startupPage.js';
-// DROX-BEGIN
-import { nexusWelcomeStartEntries } from '../common/droxGettingStartedContent.js';
-// DROX-END
+import { nexusWelcomeStartEntries } from '../common/gettingStartedContent.js';
 import { GroupsOrder, IEditorGroup, IEditorGroupsService, preferredSideBySideGroupDirection } from '../../../services/editor/common/editorGroupsService.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { IHostService } from '../../../services/host/browser/host.js';
 import { IWorkbenchThemeService } from '../../../services/themes/common/workbenchThemeService.js';
 import { GettingStartedIndexList } from './gettingStartedList.js';
-import { createAgentsBanner } from '../../chat/browser/agentSessions/agentSessionsBanner.js';
-import { AgentsWindowGraphic } from '../../chat/browser/agentSessions/agentsWindowGraphic.js';
+import { canShowAgentsBanner, createAgentsBanner } from '../../chat/browser/agentSessions/agentSessionsBanner.js';
+import { isDroxMicrosoftAgentsSurfaceEnabled } from '../../drox/common/droxMicrosoftAgentsSurface.js';
 import { IChatEntitlementService } from '../../../services/chat/common/chatEntitlementService.js';
 import { AccessibilityVerbositySettingId } from '../../accessibility/browser/accessibilityConfiguration.js';
 import { AccessibleViewAction } from '../../accessibility/browser/accessibleViewActions.js';
@@ -104,7 +93,6 @@ export interface IWelcomePageStartEntry {
 	when: ContextKeyExpression;
 }
 
-// DROX-BEGIN
 const parsedStartEntries: IWelcomePageStartEntry[] = nexusWelcomeStartEntries.map((e, i) => ({
 	command: e.content.command,
 	description: e.description,
@@ -114,7 +102,6 @@ const parsedStartEntries: IWelcomePageStartEntry[] = nexusWelcomeStartEntries.ma
 	title: e.title,
 	when: ContextKeyExpr.deserialize(e.when) ?? ContextKeyExpr.true()
 }));
-// DROX-END
 
 type GettingStartedActionClassification = {
 	command: { classification: 'PublicNonPersonalData'; purpose: 'FeatureInsight'; comment: 'The command being executed on the getting started page.' };
@@ -131,16 +118,6 @@ type GettingStartedActionEvent = {
 };
 
 type RecentEntry = (IRecentFolder | IRecentWorkspace) & { id: string };
-
-/**
- * Sets the classes through which the page's CSS lays out the Agents window graphic: shown with room
- * to spare, shown with tighter spacing, or dropped so that only the Agents window button is shown.
- */
-function setAgentsWindowGraphicLayout(categoriesContainer: HTMLElement, layout: 'spacious' | 'compact' | 'dropped' | undefined): void {
-	categoriesContainer.classList.toggle('agents-window-graphic-shown', layout === 'spacious' || layout === 'compact');
-	categoriesContainer.classList.toggle('agents-window-graphic-spacious', layout === 'spacious');
-	categoriesContainer.classList.toggle('agents-window-graphic-dropped', layout === 'dropped');
-}
 
 const REDUCED_MOTION_KEY = 'workbench.welcomePage.preferReducedMotion';
 export class GettingStartedPage extends EditorPane {
@@ -165,9 +142,7 @@ export class GettingStartedPage extends EditorPane {
 	private categoriesPageScrollbar: DomScrollableElement | undefined;
 	private detailsPageScrollbar: DomScrollableElement | undefined;
 
-	// DROX-BEGIN
 	private detailsScrollbar: DomScrollableElement | undefined;
-	// DROX-END
 
 	private buildSlideThrottle = this._register(new Throttler());
 
@@ -175,11 +150,9 @@ export class GettingStartedPage extends EditorPane {
 
 	private contextService: IContextKeyService;
 
-	// DROX-BEGIN
 	private recentlyOpenedList?: GettingStartedIndexList<RecentEntry>;
 	private startList?: GettingStartedIndexList<IWelcomePageStartEntry>;
 	private gettingStartedList?: GettingStartedIndexList<IResolvedWalkthrough>;
-	// DROX-END
 
 	private stepsSlide!: HTMLElement;
 	private categoriesSlide!: HTMLElement;
@@ -192,9 +165,7 @@ export class GettingStartedPage extends EditorPane {
 	private detailsRenderer: GettingStartedDetailsRenderer;
 
 	private readonly categoriesSlideDisposables: DisposableStore;
-	private readonly categoriesSlideShown = observableValue<boolean>(this, false);
-	private layoutAgentsWindowGraphic: (() => void) | undefined;
-	private showFeaturedWalkthrough = true;
+	private showFeaturedWalkthrough = false;
 
 	get editorInput(): GettingStartedInput | undefined {
 		return this._input as GettingStartedInput | undefined;
@@ -227,7 +198,6 @@ export class GettingStartedPage extends EditorPane {
 		@IAccessibilityService private readonly accessibilityService: IAccessibilityService,
 		@IMarkdownRendererService private readonly markdownRendererService: IMarkdownRendererService,
 		@IChatEntitlementService private readonly chatEntitlementService: IChatEntitlementService,
-		@IDefaultAccountService private readonly defaultAccountService: IDefaultAccountService,
 	) {
 
 		super(GettingStartedPage.ID, group, telemetryService, themeService, storageService);
@@ -284,9 +254,9 @@ export class GettingStartedPage extends EditorPane {
 			ourCategory.title = category.title;
 			ourCategory.description = category.description;
 
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelectorAll<HTMLDivElement>(`[x-category-title-for="${category.id}"]`).forEach(step => (step as HTMLDivElement).innerText = ourCategory.title);
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelectorAll<HTMLDivElement>(`[x-category-description-for="${category.id}"]`).forEach(step => (step as HTMLDivElement).innerText = ourCategory.description);
 		}));
 
@@ -312,7 +282,7 @@ export class GettingStartedPage extends EditorPane {
 			ourStep.done = step.done;
 
 			if (category.id === this.currentWalkthrough?.id) {
-				// eslint-disable-next-line eslint-js/no-restricted-syntax
+				// eslint-disable-next-line no-restricted-syntax
 				const badgeelements = assertReturnsDefined(this.window.document.querySelectorAll(`[data-done-step-id="${step.id}"]`));
 				badgeelements.forEach(badgeelement => {
 					if (step.done) {
@@ -427,7 +397,7 @@ export class GettingStartedPage extends EditorPane {
 	private registerDispatchListeners() {
 		this.dispatchListeners.clear();
 
-		// eslint-disable-next-line eslint-js/no-restricted-syntax
+		// eslint-disable-next-line no-restricted-syntax
 		this.container.querySelectorAll('[x-dispatch]').forEach(element => {
 			const dispatch = element.getAttribute('x-dispatch') ?? '';
 			let command, argument;
@@ -490,9 +460,7 @@ export class GettingStartedPage extends EditorPane {
 				break;
 			}
 			case 'selectStartEntry': {
-				// DROX-BEGIN
 				const selected = nexusWelcomeStartEntries.find(e => e.id === argument);
-				// DROX-END
 				if (selected) {
 					this.telemetryService.publicLog2<GettingStartedActionEvent, GettingStartedActionClassification>('gettingStarted.ActionExecuted', { command: 'selectStartEntry', argument, walkthroughId: this.currentWalkthrough?.id });
 					this.runStepCommand(selected.content.command);
@@ -543,9 +511,7 @@ export class GettingStartedPage extends EditorPane {
 		const selectedCategory = this.gettingStartedCategories.find(category => category.id === categoryId);
 		if (!selectedCategory) { throw Error('Could not find category with ID ' + categoryId); }
 		this.setHiddenCategories([...this.getHiddenCategories().add(categoryId)]);
-		// DROX-BEGIN
 		this.gettingStartedList?.rerender();
-		// DROX-END
 	}
 
 	private markAllStepsComplete() {
@@ -846,11 +812,11 @@ export class GettingStartedPage extends EditorPane {
 			return;
 		}
 		if (id) {
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			let stepElement = this.container.querySelector<HTMLDivElement>(`[data-step-id="${id}"]`);
 			if (!stepElement) {
 				// Selected an element that is not in-context, just fallback to whatever.
-				// eslint-disable-next-line eslint-js/no-restricted-syntax
+				// eslint-disable-next-line no-restricted-syntax
 				stepElement = this.container.querySelector<HTMLDivElement>(`[data-step-id]`);
 				if (!stepElement) {
 					// No steps around... just ignore.
@@ -858,12 +824,12 @@ export class GettingStartedPage extends EditorPane {
 				}
 				id = assertReturnsDefined(stepElement.getAttribute('data-step-id'));
 			}
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			stepElement.parentElement?.querySelectorAll<HTMLElement>('.expanded').forEach(node => {
 				if (node.getAttribute('data-step-id') !== id) {
 					node.classList.remove('expanded');
 					node.setAttribute('aria-expanded', 'false');
-					// eslint-disable-next-line eslint-js/no-restricted-syntax
+					// eslint-disable-next-line no-restricted-syntax
 					const codiconElement = node.querySelector('.codicon');
 					if (codiconElement) {
 						codiconElement.removeAttribute('tabindex');
@@ -879,7 +845,7 @@ export class GettingStartedPage extends EditorPane {
 			stepElement.classList.add('expanded');
 			stepElement.setAttribute('aria-expanded', 'true');
 			this.buildMediaComponent(id, true);
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			const codiconElement = stepElement.querySelector('.codicon');
 			if (codiconElement) {
 				codiconElement.setAttribute('tabindex', '0');
@@ -894,9 +860,7 @@ export class GettingStartedPage extends EditorPane {
 		}
 
 		this.detailsPageScrollbar?.scanDomNode();
-		// DROX-BEGIN
 		this.detailsScrollbar?.scanDomNode();
-		// DROX-END
 	}
 
 	private updateMediaSourceForColorMode(element: HTMLImageElement, sources: { hcDark: URI; hcLight: URI; dark: URI; light: URI }) {
@@ -960,7 +924,6 @@ export class GettingStartedPage extends EditorPane {
 			onShowOnStartupChanged();
 		}));
 
-		// DROX-BEGIN
 		const titleImageSrc = FileAccess.asBrowserUri('vs/workbench/contrib/welcomeGettingStarted/common/media/kdds-title.png').toString(true);
 		const header = $('.header', {},
 			$('div.product-name.caption.kdds-welcome-brand', {},
@@ -980,56 +943,36 @@ export class GettingStartedPage extends EditorPane {
 			$('section.drox-welcome-section.drox-welcome-section-actions', {}, startList.getDomElement()),
 			$('section.drox-welcome-section.drox-welcome-section-recents', {}, recentList.getDomElement()),
 		);
-		// DROX-END
 
 		const footerChildren: HTMLElement[] = [];
-		const agentsWindowGraphic = this.categoriesSlideDisposables.add(this.instantiationService.createInstance(AgentsWindowGraphic));
-		const agentsBanner = createAgentsBanner(
-			{
-				cssClass: 'getting-started-category.agents-banner',
-				graphic: { element: agentsWindowGraphic.element, shownDesign: agentsWindowGraphic.shownDesign, isExposed: this.categoriesSlideShown, hasMultipleEditorWindows: agentsWindowGraphic.hasMultipleEditorWindows },
-			},
-			this.commandService,
-			this.telemetryService,
-			this.configurationService,
-			this.chatEntitlementService,
-			this.defaultAccountService,
-		);
-		this.categoriesSlideDisposables.add(agentsBanner.disposables);
-		footerChildren.push(agentsBanner.element);
+		if (
+			isDroxMicrosoftAgentsSurfaceEnabled(this.productService)
+			&& canShowAgentsBanner(this.chatEntitlementService)
+		) {
+			const agentsBanner = createAgentsBanner(
+				{
+					cssClass: 'getting-started-category.agents-banner',
+					source: 'welcomePage',
+				},
+				this.commandService,
+				this.telemetryService,
+			);
+			this.categoriesSlideDisposables.add(agentsBanner.disposables);
+			footerChildren.push(agentsBanner.element);
+		}
 		footerChildren.push($('p.showOnStartup', {},
 			showOnStartupCheckbox.domNode,
 			showOnStartupLabel,
 		));
 
 		const footer = $('.footer', {}, ...footerChildren);
-		// DROX-BEGIN
-		const categoriesContainer = $('.gettingStartedCategoriesContainer.drox-welcome-layout', {}, header, mainPanel, footer);
+
 		this.container.classList.add('noWalkthroughs', 'drox-welcome-layout');
 		recentList.setLimit(8);
-		// DROX-END
-		const graphic = derived(reader => agentsBanner.visible.read(reader) ? agentsWindowGraphic.shownDesign.read(reader) : undefined);
-		const layoutAgentsWindowGraphic = () => this.fitAgentsWindowGraphic(categoriesContainer, graphic.get() !== undefined);
 
-		const layoutLists = () => {
-			setTimeout(() => this.categoriesPageScrollbar?.scanDomNode(), 50);
-			layoutAgentsWindowGraphic();
-		};
-
-		recentList.onDidChange(layoutAgentsWindowGraphic);
-		layoutLists();
-
-		reset(this.categoriesSlide, categoriesContainer);
+		reset(this.categoriesSlide, $('.gettingStartedCategoriesContainer.drox-welcome-layout', {}, header, mainPanel, footer,));
+		setTimeout(() => this.categoriesPageScrollbar?.scanDomNode(), 50);
 		this.categoriesPageScrollbar?.scanDomNode();
-
-		// The graphics and section styles differ in height, so fit again whenever either changes
-		this.categoriesSlideDisposables.add(autorun(reader => {
-			graphic.read(reader);
-			categoriesContainer.setAttribute('data-agents-window-section-style', agentsWindowGraphic.sectionStyle.read(reader));
-			layoutAgentsWindowGraphic();
-		}));
-		this.layoutAgentsWindowGraphic = layoutAgentsWindowGraphic;
-		this.categoriesSlideDisposables.add(toDisposable(() => this.layoutAgentsWindowGraphic = undefined));
 
 		this.updateCategoryProgress();
 		this.registerDispatchListeners();
@@ -1058,7 +1001,6 @@ export class GettingStartedPage extends EditorPane {
 			const telemetryNotice = $('p.telemetry-notice');
 			this.buildTelemetryFooter(telemetryNotice);
 			footer.appendChild(telemetryNotice);
-			layoutAgentsWindowGraphic();
 		} else if (!this.productService.openToWelcomeMainPage && this.showFeaturedWalkthrough && this.storageService.isNew(StorageScope.APPLICATION) && !this.configurationService.getValue<boolean>('workbench.welcomePage.experimentalOnboarding')) {
 			const firstSessionDateString = this.storageService.get(firstSessionDateStorageKey, StorageScope.APPLICATION) || new Date().toUTCString();
 			const daysSinceFirstSession = ((+new Date()) - (+new Date(firstSessionDateString))) / 1000 / 60 / 60 / 24;
@@ -1097,7 +1039,6 @@ export class GettingStartedPage extends EditorPane {
 
 			const { name, parentPath } = splitRecentLabel(fullPath);
 
-			// DROX-BEGIN
 			const li = $('li.drox-welcome-recent-card');
 			const link = $('button.drox-welcome-recent-button', {});
 
@@ -1110,7 +1051,6 @@ export class GettingStartedPage extends EditorPane {
 			link.title = fullPath;
 			link.setAttribute('aria-label', localize('welcomePage.openFolderWithPath', "Open folder {0} with path {1}", name, parentPath));
 			link.append(icon, textBlock);
-			// DROX-END
 			link.addEventListener('click', e => {
 				this.telemetryService.publicLog2<GettingStartedActionEvent, GettingStartedActionClassification>('gettingStarted.ActionExecuted', { command: 'openRecent', argument: undefined, walkthroughId: this.currentWalkthrough?.id });
 				this.hostService.openWindow([windowOpenable], {
@@ -1145,14 +1085,12 @@ export class GettingStartedPage extends EditorPane {
 			return li;
 		};
 
-		// DROX-BEGIN
 		if (this.recentlyOpenedList) { this.recentlyOpenedList.dispose(); }
 
 		const recentlyOpenedList = this.recentlyOpenedList = new GettingStartedIndexList(
 			{
 				title: localize('nexusWelcome.recent', "Recent projects"),
 				klass: 'recently-opened drox-welcome-recents',
-				// DROX-END
 				limit: 5,
 				empty: $('.empty-recent', {},
 					localize('noRecents', "You have no recent folders,"),
@@ -1191,23 +1129,18 @@ export class GettingStartedPage extends EditorPane {
 	}
 
 	private refreshRecentlyOpened(): void {
-		// DROX-BEGIN
 		if (!this.recentlyOpenedList) {
 			return;
 		}
-		// DROX-END
 
 		this.recentlyOpened.then(({ workspaces }) => {
 			const workspacesWithID = this.filterRecentlyOpened(workspaces);
-			// DROX-BEGIN
 			this.recentlyOpenedList?.setEntries(workspacesWithID);
-			// DROX-END
 		}).catch(onUnexpectedError);
 	}
 
 	private buildStartList(): GettingStartedIndexList<IWelcomePageStartEntry> {
 		const renderStartEntry = (entry: IWelcomePageStartEntry): HTMLElement => {
-			// DROX-BEGIN
 			const isPrimary = entry.id === 'drox.openChat';
 			return $('li.drox-welcome-action-card' + (isPrimary ? '.drox-welcome-action-card-primary' : ''),
 				{},
@@ -1223,17 +1156,14 @@ export class GettingStartedPage extends EditorPane {
 					),
 				),
 			);
-			// DROX-END
 		};
 
-		// DROX-BEGIN
 		if (this.startList) { this.startList.dispose(); }
 
 		const startList = this.startList = new GettingStartedIndexList(
 			{
 				title: localize('nexusWelcome.start', "Get started"),
 				klass: 'start-container drox-welcome-actions',
-				// DROX-END
 				limit: 10,
 				renderElement: renderStartEntry,
 				rankElement: e => -e.order,
@@ -1245,23 +1175,15 @@ export class GettingStartedPage extends EditorPane {
 		return startList;
 	}
 
-	// DROX-BEGIN
-	// The walkthrough list is not built. The welcome page shows start actions and recent folders.
-	// DROX-END
-
 	layout(size: Dimension) {
-		// DROX-BEGIN
 		this.detailsScrollbar?.scanDomNode();
-		// DROX-END
 
 		this.categoriesPageScrollbar?.scanDomNode();
 		this.detailsPageScrollbar?.scanDomNode();
 
-		// DROX-BEGIN
 		this.startList?.layout(size);
 		this.gettingStartedList?.layout(size);
 		this.recentlyOpenedList?.layout(size);
-		// DROX-END
 
 		if (this.editorInput?.selectedStep && this.currentMediaType) {
 			this.mediaDisposables.clear();
@@ -1274,40 +1196,14 @@ export class GettingStartedPage extends EditorPane {
 		this.container.classList.toggle('height-constrained', size.height <= 600);
 		this.container.classList.toggle('width-constrained', size.width <= 400);
 		this.container.classList.toggle('width-semi-constrained', size.width <= 950);
-		this.layoutAgentsWindowGraphic?.();
 
 		this.categoriesPageScrollbar?.scanDomNode();
 		this.detailsPageScrollbar?.scanDomNode();
-		// DROX-BEGIN
 		this.detailsScrollbar?.scanDomNode();
-		// DROX-END
-	}
-
-	/**
-	 * Shows the Agents window graphic above the Agents window button only if the page then fits without
-	 * scrolling. With room to spare, the graphic and button are set apart from the startup checkbox.
-	 * Otherwise tighter spacing makes room for the graphic, and if that isn't enough only the button is shown.
-	 */
-	private fitAgentsWindowGraphic(categoriesContainer: HTMLElement, graphicAvailable: boolean): void {
-		let layout: 'spacious' | 'compact' | 'dropped' | undefined;
-		if (graphicAvailable) {
-			layout = 'dropped';
-			if (categoriesContainer.isConnected && this.categoriesSlide.clientHeight > 0) {
-				for (const candidate of ['spacious', 'compact'] as const) {
-					setAgentsWindowGraphicLayout(categoriesContainer, candidate);
-					if (this.categoriesSlide.scrollHeight <= this.categoriesSlide.clientHeight) {
-						layout = candidate;
-						break;
-					}
-				}
-			}
-		}
-		setAgentsWindowGraphicLayout(categoriesContainer, layout);
-		this.categoriesPageScrollbar?.scanDomNode();
 	}
 
 	private updateCategoryProgress() {
-		// eslint-disable-next-line eslint-js/no-restricted-syntax
+		// eslint-disable-next-line no-restricted-syntax
 		this.window.document.querySelectorAll('.category-progress').forEach(element => {
 			const categoryID = element.getAttribute('x-data-category-id');
 			const category = this.gettingStartedCategories.find(c => c.id === categoryID);
@@ -1315,7 +1211,7 @@ export class GettingStartedPage extends EditorPane {
 
 			const stats = this.getWalkthroughCompletionStats(category);
 
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			const bar = assertReturnsDefined(element.querySelector('.progress-bar-inner')) as HTMLDivElement;
 			bar.setAttribute('aria-valuemin', '0');
 			bar.setAttribute('aria-valuenow', '' + stats.stepsComplete);
@@ -1518,9 +1414,7 @@ export class GettingStartedPage extends EditorPane {
 		if (!this.editorInput) {
 			return;
 		}
-		// DROX-BEGIN
 		if (this.detailsScrollbar) { this.detailsScrollbar.dispose(); }
-		// DROX-END
 
 		this.extensionService.whenInstalledExtensionsRegistered().then(() => {
 			// Remove internal extension id specifier from exposed id's
@@ -1651,10 +1545,8 @@ export class GettingStartedPage extends EditorPane {
 					: []),
 			)
 		);
-		// DROX-BEGIN
 		this.detailsScrollbar = this._register(new DomScrollableElement(stepsContainer, { className: 'steps-container' }));
 		const stepListComponent = this.detailsScrollbar.getDomNode();
-		// DROX-END
 
 		const categoryFooter = $('.getting-started-footer');
 		if (this.editorInput.showTelemetryNotice && getTelemetryLevel(this.configurationService) !== TelemetryLevel.NONE && this.productService.enableTelemetry) {
@@ -1666,9 +1558,7 @@ export class GettingStartedPage extends EditorPane {
 		const toExpand = category.steps.find(step => this.contextService.contextMatchesRules(step.when) && !step.done) ?? category.steps[0];
 		this.selectStep(selectedStep ?? toExpand.id, !selectedStep, preserveFocus);
 
-		// DROX-BEGIN
 		this.detailsScrollbar.scanDomNode();
-		// DROX-END
 		this.detailsPageScrollbar?.scanDomNode();
 
 		this.registerDispatchListeners();
@@ -1720,9 +1610,7 @@ export class GettingStartedPage extends EditorPane {
 					this.editorInput.walkthroughPageTitle = undefined;
 				}
 
-				// DROX-BEGIN
 				if (this.gettingStartedCategories.length !== this.gettingStartedList?.itemCount) {
-					// DROX-END
 					// extensions may have changed in the time since we last displayed the walkthrough list
 					// rebuild the list
 					this.buildCategoriesSlide();
@@ -1748,35 +1636,34 @@ export class GettingStartedPage extends EditorPane {
 	}
 
 	private setSlide(toEnable: 'details' | 'categories', firstLaunch: boolean = false) {
-		// eslint-disable-next-line eslint-js/no-restricted-syntax
+		// eslint-disable-next-line no-restricted-syntax
 		const slideManager = assertReturnsDefined(this.container.querySelector('.gettingStarted'));
-		this.categoriesSlideShown.set(toEnable === 'categories', undefined);
 		if (toEnable === 'categories') {
 			slideManager.classList.remove('showDetails');
 			slideManager.classList.add('showCategories');
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelector<HTMLButtonElement>('.prev-button.button-link')!.style.display = 'none';
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelector('.gettingStartedSlideDetails')!.querySelectorAll('button').forEach(button => button.disabled = true);
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelector('.gettingStartedSlideCategories')!.querySelectorAll('button').forEach(button => button.disabled = false);
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelector('.gettingStartedSlideCategories')!.querySelectorAll('input').forEach(button => button.disabled = false);
 		} else {
 			slideManager.classList.add('showDetails');
 			slideManager.classList.remove('showCategories');
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			const prevButton = this.container.querySelector<HTMLButtonElement>('.prev-button.button-link');
 			prevButton!.style.display = this.editorInput?.showWelcome || this.editorInput?.returnToCommand || this.prevWalkthrough ? 'block' : 'none';
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			const moreTextElement = prevButton!.querySelector('.moreText');
 			moreTextElement!.textContent = firstLaunch ? localize('welcome', "Welcome") : localize('goBack', "Go Back");
 
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelector('.gettingStartedSlideDetails')!.querySelectorAll('button').forEach(button => button.disabled = false);
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelector('.gettingStartedSlideCategories')!.querySelectorAll('button').forEach(button => button.disabled = true);
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			this.container.querySelector('.gettingStartedSlideCategories')!.querySelectorAll('input').forEach(button => button.disabled = true);
 		}
 	}

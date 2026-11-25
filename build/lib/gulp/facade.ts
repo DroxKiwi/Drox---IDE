@@ -12,9 +12,6 @@
 /* eslint-disable local/code-no-direct-gulp-import */
 
 import filter_ from 'gulp-filter';
-import minimatch from 'minimatch';
-import path from 'path';
-import type File from 'vinyl';
 import rename_ from 'gulp-rename';
 import replace_ from 'gulp-replace';
 import plumber_ from 'gulp-plumber';
@@ -27,38 +24,12 @@ import mergeJson_ from 'gulp-merge-json';
 import azureStorage_ from 'gulp-azure-storage';
 import bom_ from 'gulp-bom';
 import buffer_ from 'gulp-buffer';
-import vinylZip_ from '@vscode/gulp-vinyl-zip';
+import vinylZip_ from 'gulp-vinyl-zip';
+import svgmin_ from 'gulp-svgmin';
 import sort_ from 'gulp-sort';
 import g from 'gulp';
 
-/**
- * gulp-filter, with glob patterns compiled once rather than for every file. Matches like gulp-filter does, which
- * applies the patterns in order: a pattern adds a matching file and a negated pattern removes it.
- */
-export function filter(pattern: string | string[] | filter_.FileFunction, options?: filter_.Options): filter_.Filter {
-	return filter_(typeof pattern === 'function' ? pattern : compileFilterPattern(pattern, options), options);
-}
-
-function compileFilterPattern(pattern: string | readonly string[], options: minimatch.IOptions = {}): filter_.FileFunction {
-	const matchers = (typeof pattern === 'string' ? [pattern] : pattern).map(glob => {
-		const negated = glob[0] === '!';
-		return { negated, matcher: new minimatch.Minimatch(negated ? glob.slice(1) : glob, options) };
-	});
-	return (file: File) => {
-		let relativePath = path.relative(file.cwd, file.path);
-		if (/^\.\.[\\/]/.test(relativePath)) {
-			relativePath = path.resolve(relativePath);
-		}
-		let matched = false;
-		for (const { negated, matcher } of matchers) {
-			if (matched === negated && matcher.match(relativePath)) {
-				matched = !negated;
-			}
-		}
-		return matched;
-	};
-}
-
+export const filter = filter_;
 export type { FileFunction } from 'gulp-filter';
 export const rename = rename_;
 export const replace = replace_;
@@ -73,6 +44,7 @@ export const azureStorage = azureStorage_;
 export const bom = bom_;
 export const buffer = buffer_;
 export const vinylZip = vinylZip_;
+export const svgmin = svgmin_;
 export const sort = sort_;
 
 export const gulp = {

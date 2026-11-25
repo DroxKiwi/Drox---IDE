@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import * as lsp from 'vscode-languageclient';
 import { MdLanguageClient } from '../client/client';
 import * as proto from '../client/protocol';
 
@@ -13,56 +12,29 @@ enum OpenMarkdownLinks {
 	currentGroup = 'currentGroup',
 }
 
-/**
- * Resolves Markdown links relative to a source resource and opens the resulting typed target.
- */
 export class MdLinkOpener {
 
-	readonly #client: Pick<MdLanguageClient, 'resolveLinkTarget'>;
+	readonly #client: MdLanguageClient;
 
 	constructor(
-		client: Pick<MdLanguageClient, 'resolveLinkTarget'>,
+		client: MdLanguageClient,
 	) {
 		this.#client = client;
 	}
 
-	/**
-	 * Resolves a link without opening it, returning `undefined` when no target exists.
-	 * Absolute non-file URIs bypass the Markdown language service.
-	 */
-	public async resolveDocumentLink(linkText: string, fromResource: vscode.Uri): Promise<proto.ResolvedDocumentLinkTarget | undefined> {
-		const absoluteUri = getAbsoluteUri(linkText);
-		if (absoluteUri && absoluteUri.scheme !== 'file') {
-			return { kind: 'external', uri: absoluteUri };
-		}
+	public async resolveDocumentLink(linkText: string, fromResource: vscode.Uri): Promise<proto.ResolvedDocumentLinkTarget> {
 		return this.#client.resolveLinkTarget(linkText, fromResource);
 	}
 
-	/**
-	 * Resolves and opens a Markdown link, doing nothing when it cannot be resolved.
-	 */
 	public async openDocumentLink(linkText: string, fromResource: vscode.Uri, viewColumn?: vscode.ViewColumn): Promise<void> {
-		const resolved = await this.resolveDocumentLink(linkText, fromResource);
-		await this.openResolvedDocumentLink(linkText, fromResource, resolved, viewColumn);
-	}
-
-	/**
-	 * Opens an already resolved target without repeating link resolution.
-	 * The original link text supplies a location fragment when a file target has no explicit position.
-	 */
-	public async openResolvedDocumentLink(
-		linkText: string,
-		fromResource: vscode.Uri,
-		resolved: proto.ResolvedDocumentLinkTarget | undefined,
-		viewColumn?: vscode.ViewColumn,
-	): Promise<void> {
+		const resolved = await this.#client.resolveLinkTarget(linkText, fromResource);
 		if (!resolved) {
 			return;
 		}
 
 		let uri = vscode.Uri.from(resolved.uri);
-		let rangeSelection = resolved.kind === 'file' ? getRangeFromPositionOrRange(resolved.positionOrRange) : undefined;
-		if (resolved.kind === 'file' && !rangeSelection) {
+		let rangeSelection: vscode.Range | undefined;
+		if (resolved.kind === 'file' && !resolved.position) {
 			if (uri.fragment) {
 				rangeSelection = getSelectionFromLocationFragment(uri.fragment);
 			} else {
@@ -70,30 +42,13 @@ export class MdLinkOpener {
 				if (locationFragment) {
 					uri = uri.with({ fragment: locationFragment });
 					rangeSelection = getSelectionFromLocationFragment(locationFragment);
-				} else {
-					const hashIndex = linkText.indexOf('#');
-					if (hashIndex !== -1) {
-						const rawSlice = linkText.slice(hashIndex + 1);
-						if (rawSlice) {
-							let raw: string | undefined;
-							try {
-								raw = decodeURIComponent(rawSlice);
-							} catch {
-								raw = undefined;
-							}
-							if (raw) {
-								uri = uri.with({ fragment: raw });
-							}
-						}
-					}
 				}
 			}
 		}
 
 		switch (resolved.kind) {
 			case 'external':
-				await openExternal(uri);
-				return;
+				return vscode.commands.executeCommand('vscode.open', uri);
 
 			case 'folder':
 				return vscode.commands.executeCommand('revealInExplorer', uri);
@@ -112,56 +67,14 @@ export class MdLinkOpener {
 				}
 
 				return vscode.commands.executeCommand('vscode.open', uri, {
-					selection: rangeSelection,
+					selection: resolved.position
+						? new vscode.Range(resolved.position.line, resolved.position.character, resolved.position.line, resolved.position.character)
+						: rangeSelection,
 					viewColumn: viewColumn ?? getViewColumn(fromResource),
 				} satisfies vscode.TextDocumentShowOptions);
 			}
 		}
 	}
-}
-
-/**
- * Converts a language-server position or range to a VS Code range.
- * Returns `undefined` for absent targets or positions with invalid coordinates.
- */
-export function getRangeFromPositionOrRange(positionOrRange: lsp.Position | lsp.Range | undefined): vscode.Range | undefined {
-	if (!positionOrRange) {
-		return undefined;
-	}
-	const range = lsp.Range.is(positionOrRange)
-		? positionOrRange
-		: { start: positionOrRange, end: positionOrRange };
-	if (!isValidPosition(range.start) || !isValidPosition(range.end)) {
-		return undefined;
-	}
-	return new vscode.Range(
-		range.start.line,
-		range.start.character,
-		range.end.line,
-		range.end.character,
-	);
-}
-
-function isValidPosition(position: lsp.Position): boolean {
-	return Number.isInteger(position.line) && position.line >= 0
-		&& Number.isInteger(position.character) && position.character >= 0;
-}
-
-async function openExternal(uri: vscode.Uri): Promise<void> {
-	if (uri.scheme === 'http' || uri.scheme === 'https') {
-		await vscode.env.openExternal(uri, { allowContributedOpeners: true });
-	} else {
-		await vscode.commands.executeCommand('vscode.open', uri);
-	}
-}
-
-/**
- * Parses URI-like absolute links while leaving Windows drive paths unresolved.
- */
-export function getAbsoluteUri(linkText: string): vscode.Uri | undefined {
-	return !/^[a-z]:[\\/]/i.test(linkText) && /^[a-z][a-z0-9+.-]*:/i.test(linkText)
-		? vscode.Uri.parse(linkText, true)
-		: undefined;
 }
 
 function getSelectionFromLocationFragment(fragment: string): vscode.Range | undefined {
@@ -241,3 +154,4 @@ function getViewColumn(resource: vscode.Uri): vscode.ViewColumn {
 			return vscode.ViewColumn.Active;
 	}
 }
+

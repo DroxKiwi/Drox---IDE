@@ -9,7 +9,6 @@ import type { IHoverService } from '../../browser/hover.js';
 
 export const NullHoverService: IHoverService = {
 	_serviceBrand: undefined,
-	getStickyHover: () => undefined,
 	hideHover: () => undefined,
 	showInstantHover: () => undefined,
 	showDelayedHover: () => undefined,

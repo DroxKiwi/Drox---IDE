@@ -57,7 +57,6 @@ export interface IViewModel extends ICursorSimpleModel, ISimpleModel {
 	getTextDirection(lineNumber: number): TextDirection;
 	getViewportViewLineRenderingData(visibleRange: Range, lineNumber: number): ViewLineRenderingData;
 	getViewLineRenderingData(lineNumber: number): ViewLineRenderingData;
-	getViewLineContinuesWithWrappedLine(lineNumber: number): boolean;
 	getViewLineData(lineNumber: number): ViewLineData;
 	getMinimapLinesRenderingData(startLineNumber: number, endLineNumber: number, needed: boolean[]): MinimapLinesRenderingData;
 	getCompletelyVisibleViewRange(): Range;

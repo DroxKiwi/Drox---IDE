@@ -15,9 +15,9 @@ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase 
 import { IEditorService, MODAL_GROUP } from '../../../../workbench/services/editor/common/editorService.js';
 import { DROX_SESSIONS_PROVIDER_ID, DroxChatSessionUri } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
 import { ensureDroxSessionNotesFile } from '../../../../workbench/contrib/drox/common/droxSessionNotesFs.js';
-import { SessionIsArchivedContext, SessionProviderIdContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
-import { ISession } from '../../../../workbench/services/sessions/common/session.js';
-import { SessionItemContextMenuId, SessionItemToolbarMenuId } from '../../../../workbench/contrib/sessions/browser/views/sessionsList.js';
+import { SessionIsArchivedContext, SessionProviderIdContext } from '../../../common/contextkeys.js';
+import { ISession } from '../../../services/sessions/common/session.js';
+import { SessionItemContextMenuId, SessionItemToolbarMenuId } from '../../sessions/browser/views/sessionsList.js';
 import { IDroxSessionBackgroundService } from '../common/droxSessionBackgroundService.js';
 
 export const DroxSessionBackgroundPersistentContext = new RawContextKey<boolean>('droxSessionBackgroundPersistent', false);

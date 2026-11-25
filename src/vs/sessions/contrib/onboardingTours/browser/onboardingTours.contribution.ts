@@ -3,15 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-// Registers the Agents window onboarding tours. Each imported module registers
-// a tour contribution (which owns the scenario and its trigger) as a side
+// Registers the Agents window onboarding tours. The imported module registers
+// the tour contribution (which owns the scenario and its trigger) as a side
 // effect. The onboarding engine and the spotlight presentation live in
 // `vs/workbench/contrib/onboarding` and are booted from the workbench
 // contribution imported in the entry point.
-import './agentHostReadinessContext.js';
-import './automationsTourContribution.js';
 import './newSessionTourContribution.js';
-import './newSessionViewV2TourContribution.js';
-import './newSessionViewV3TourContribution.js';
-import './newSessionViewTourContribution.js';
-import './parallelTasksTourContribution.js';

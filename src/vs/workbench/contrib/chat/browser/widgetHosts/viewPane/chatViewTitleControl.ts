@@ -4,14 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import './media/chatViewTitleControl.css';
-import { addDisposableListener, DisposableResizeObserver, EventType, getWindow, h } from '../../../../../../base/browser/dom.js';
+import { addDisposableListener, EventType, h } from '../../../../../../base/browser/dom.js';
 import { renderAsPlaintext } from '../../../../../../base/browser/markdownRenderer.js';
 import { Gesture, EventType as TouchEventType } from '../../../../../../base/browser/touch.js';
 import { Emitter } from '../../../../../../base/common/event.js';
 import { MarkdownString } from '../../../../../../base/common/htmlContent.js';
 import { Disposable, MutableDisposable } from '../../../../../../base/common/lifecycle.js';
 import { MarshalledId } from '../../../../../../base/common/marshallingIds.js';
-import { URI } from '../../../../../../base/common/uri.js';
 import { localize } from '../../../../../../nls.js';
 import { HiddenItemStrategy, MenuWorkbenchToolBar } from '../../../../../../platform/actions/browser/toolbar.js';
 import { Action2, MenuId, registerAction2 } from '../../../../../../platform/actions/common/actions.js';
@@ -21,13 +20,9 @@ import { IChatModel } from '../../../common/model/chatModel.js';
 import { ActionViewItem, IActionViewItemOptions } from '../../../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { IAction } from '../../../../../../base/common/actions.js';
 import { AgentSessionsPicker } from '../../agentSessions/agentSessionsPicker.js';
-import { IChatSessionsService } from '../../../common/chatSessionsService.js';
-import { getChatSessionType } from '../../../common/model/chatUri.js';
-import { getAgentSessionProvider, getAgentSessionProviderName } from '../../agentSessions/agentSessions.js';
 
 export interface IChatViewTitleDelegate {
 	focusChat(): void;
-	getInputUri(): URI | undefined;
 }
 
 export class ChatViewTitleControl extends Disposable {
@@ -39,7 +34,6 @@ export class ChatViewTitleControl extends Disposable {
 	readonly onDidChangeHeight = this._onDidChangeHeight.event;
 
 	private title: string | undefined = undefined;
-	private harnessLabel: string | undefined;
 
 	private titleContainer: HTMLElement | undefined;
 	private titleLabel = this._register(new MutableDisposable<ChatViewTitleLabel>());
@@ -55,26 +49,11 @@ export class ChatViewTitleControl extends Disposable {
 	constructor(
 		private readonly container: HTMLElement,
 		private readonly delegate: IChatViewTitleDelegate,
-		resizeObserverCtor: typeof ResizeObserver | undefined,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@IChatSessionsService private readonly chatSessionsService: IChatSessionsService,
 	) {
 		super();
 
 		this.render(this.container);
-		// Avoid forcing layout; ResizeObserver reports the final size before paint and triggers relayout.
-		const resizeObserver = this._register(new DisposableResizeObserver('ChatViewTitleControl.height', entries => {
-			const entry = entries.find(entry => entry.target === this.titleContainer);
-			if (!entry) {
-				return;
-			}
-			const height = entry.borderBoxSize[0]?.blockSize ?? entry.contentRect.height;
-			if (height !== this.lastKnownHeight) {
-				this.lastKnownHeight = height;
-				this._onDidChangeHeight.fire();
-			}
-		}, getWindow(this.titleContainer!), { resizeObserverCtor }));
-		this._register(resizeObserver.observe(this.titleContainer!, { box: 'border-box' }));
 
 		this.registerActions();
 	}
@@ -118,7 +97,7 @@ export class ChatViewTitleControl extends Disposable {
 			actionViewItemProvider: (action: IAction) => {
 				if (action.id === ChatViewTitleControl.PICK_AGENT_SESSION_ACTION_ID) {
 					this.titleLabel.value = new ChatViewTitleLabel(action);
-					this.titleLabel.value.updateTitle(this.title ?? ChatViewTitleControl.DEFAULT_TITLE, this.harnessLabel);
+					this.titleLabel.value.updateTitle(this.title ?? ChatViewTitleControl.DEFAULT_TITLE);
 
 					return this.titleLabel.value;
 				}
@@ -162,14 +141,12 @@ export class ChatViewTitleControl extends Disposable {
 	private doUpdate(): void {
 		const markdownTitle = new MarkdownString(this.model?.title ?? '');
 		this.title = renderAsPlaintext(markdownTitle);
-		this.harnessLabel = this.getHarnessLabel();
 
-		this.updateTitle(this.title ?? ChatViewTitleControl.DEFAULT_TITLE, this.harnessLabel);
+		this.updateTitle(this.title ?? ChatViewTitleControl.DEFAULT_TITLE);
 
 		const context = this.model && {
 			$mid: MarshalledId.ChatViewContext,
-			sessionResource: this.model.sessionResource,
-			inputUri: this.delegate.getInputUri(),
+			sessionResource: this.model.sessionResource
 		} satisfies IChatViewTitleActionContext;
 
 		if (this.navigationToolbar) {
@@ -181,28 +158,20 @@ export class ChatViewTitleControl extends Disposable {
 		}
 	}
 
-	private getHarnessLabel(): string | undefined {
-		if (!this.model) {
-			return undefined;
-		}
-
-		const sessionType = getChatSessionType(this.model.sessionResource);
-		const contribution = this.chatSessionsService.getChatSessionContribution(sessionType);
-		if (contribution) {
-			return contribution.displayName;
-		}
-
-		const builtInProvider = getAgentSessionProvider(sessionType);
-		return builtInProvider ? getAgentSessionProviderName(builtInProvider) : undefined;
-	}
-
-	private updateTitle(title: string, harnessLabel: string | undefined): void {
+	private updateTitle(title: string): void {
 		if (!this.titleContainer) {
 			return;
 		}
 
 		this.titleContainer.classList.toggle('visible', this.shouldRender());
-		this.titleLabel.value?.updateTitle(title, harnessLabel);
+		this.titleLabel.value?.updateTitle(title);
+
+		const currentHeight = this.getHeight();
+		if (currentHeight !== this.lastKnownHeight) {
+			this.lastKnownHeight = currentHeight;
+
+			this._onDidChangeHeight.fire();
+		}
 	}
 
 	private shouldRender(): boolean {
@@ -210,18 +179,19 @@ export class ChatViewTitleControl extends Disposable {
 	}
 
 	getHeight(): number {
-		return this.lastKnownHeight;
+		if (!this.titleContainer || this.titleContainer.style.display === 'none') {
+			return 0;
+		}
+
+		return this.titleContainer.offsetHeight;
 	}
 }
 
 class ChatViewTitleLabel extends ActionViewItem {
 
 	private title: string | undefined;
-	private harnessLabel: string | undefined;
 
 	private titleLabel: HTMLSpanElement | undefined = undefined;
-	private harnessLabelElement: HTMLSpanElement | undefined;
-	private separatorElement: HTMLSpanElement | undefined;
 
 	constructor(action: IAction, options?: IActionViewItemOptions) {
 		super(null, action, { ...options, icon: false, label: true });
@@ -233,31 +203,21 @@ class ChatViewTitleLabel extends ActionViewItem {
 		container.classList.add('chat-view-title-action-item');
 		this.label?.classList.add('chat-view-title-label-container');
 
-		this.harnessLabelElement = this.label?.appendChild(h('span.chat-view-title-harness').root);
-		this.separatorElement = this.label?.appendChild(h('span.chat-view-title-separator', { 'aria-hidden': 'true' }).root);
-		if (this.separatorElement) {
-			this.separatorElement.textContent = '·';
-		}
 		this.titleLabel = this.label?.appendChild(h('span.chat-view-title-label').root);
 
 		this.updateLabel();
 	}
 
-	updateTitle(title: string, harnessLabel: string | undefined): void {
+	updateTitle(title: string): void {
 		this.title = title;
-		this.harnessLabel = harnessLabel;
 
 		this.updateLabel();
 	}
 
 	protected override updateLabel(): void {
-		if (!this.titleLabel || !this.harnessLabelElement || !this.separatorElement) {
+		if (!this.titleLabel) {
 			return;
 		}
-
-		this.harnessLabelElement.textContent = this.harnessLabel ?? '';
-		this.harnessLabelElement.hidden = !this.harnessLabel;
-		this.separatorElement.hidden = !this.harnessLabel || !this.title;
 
 		if (this.title) {
 			this.titleLabel.textContent = this.title;

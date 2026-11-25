@@ -14,7 +14,7 @@ import { autorun } from '../../../../base/common/observable.js';
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { localize } from '../../../../nls.js';
 import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/common/droxAgentsSession.js';
-import { ISession } from '../../../../workbench/services/sessions/common/session.js';
+import { ISession } from '../../../services/sessions/common/session.js';
 import {
 	IDroxSessionBackgroundService,
 	IDroxSessionDashboardSignals,

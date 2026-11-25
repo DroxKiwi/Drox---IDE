@@ -103,6 +103,12 @@ export function getLanguageId(uri: URI) {
 	}) || ext.replace(/^\./, '');
 }
 
+export function getMdCodeBlockLanguage(uri: URI) {
+	const languageId = getLanguageId(uri);
+
+	return languageIdToMDCodeBlockLang(languageId);
+}
+
 export interface MarkdownCodeBlock {
 	/** The fence characters used to start the block. */
 	readonly startMarkup: string;

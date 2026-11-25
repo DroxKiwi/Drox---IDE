@@ -33,11 +33,10 @@ import './unifiedQuickAccessActions.js'; // Register unified quick access action
  * Contribution that watches for projection-capable sessions and shows
  * the "session ready" state in the title bar when changes are available for review.
  */
-export class AgentSessionReadyContribution extends Disposable implements IWorkbenchContribution {
+class AgentSessionReadyContribution extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'chat.agentSessionReady';
 
 	private readonly _widgetDisposables = this._register(new DisposableStore());
-	private _watchedWidget: IChatWidget | undefined;
 	private _entriesWatcher: IDisposable | undefined;
 	private _watchedSessionResource: URI | undefined;
 	private _suppressSessionReady = false; // Suppress re-showing session-ready after user explicitly exits projection
@@ -63,15 +62,6 @@ export class AgentSessionReadyContribution extends Disposable implements IWorkbe
 		this._register(this.chatWidgetService.onDidAddWidget(widget => {
 			if (widget.location === ChatAgentLocation.Chat) {
 				this._watchWidget(widget);
-			}
-		}));
-
-		this._register(this.chatWidgetService.onDidRemoveWidget(widget => {
-			if (widget === this._watchedWidget) {
-				this._watchedWidget = undefined;
-				this._widgetDisposables.clear();
-				this._clearEntriesWatcher();
-				this.agentTitleBarStatusService.exitSessionReadyMode();
 			}
 		}));
 
@@ -108,7 +98,6 @@ export class AgentSessionReadyContribution extends Disposable implements IWorkbe
 	private _watchWidget(widget: IChatWidget): void {
 		// Clear previous disposables when switching widgets
 		this._widgetDisposables.clear();
-		this._watchedWidget = widget;
 
 		// Check initial state
 		this._checkSession(widget.viewModel?.sessionResource);

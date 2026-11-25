@@ -4,86 +4,51 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Codicon } from '../../../../base/common/codicons.js';
-import { toAction } from '../../../../base/common/actions.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { localize } from '../../../../nls.js';
 import { IActionViewItemService, type IActionViewItemFactory } from '../../../../platform/actions/browser/actionViewItemService.js';
-import { Action2, MenuRegistry, registerAction2 } from '../../../../platform/actions/common/actions.js';
-import { RemoteAgentHostsEnabledSettingId } from '../../../../platform/agentHost/common/remoteAgentHostService.js';
-import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { MenuRegistry } from '../../../../platform/actions/common/actions.js';
 import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
-import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
 import { IsAuxiliaryWindowContext, IsSessionsWindowContext } from '../../../../workbench/common/contextkeys.js';
 import { ChatContextKeys } from '../../../../workbench/contrib/chat/common/actions/chatContextKeys.js';
-import { RemoteConnectionsActionViewItem } from '../../../../workbench/contrib/chat/electron-browser/toggleRemoteConnectionsActionViewItem.js';
-import { RemoteConnectionsToggleResult } from '../../../../workbench/contrib/chat/electron-browser/remoteConnectionsSharing.js';
-import { executeToggleRemoteConnections, TUNNEL_HOST_SHARING_KEY } from '../../../../workbench/contrib/chat/electron-browser/tunnelHost.contribution.js';
-import { AgentsWindowMenus } from '../../../browser/agentsWindowMenus.js';
-import { OPEN_REMOTES_EDITOR_COMMAND_ID, TOGGLE_REMOTE_CONNECTIONS_COMMAND_ID } from '../../../../workbench/contrib/sessions/common/sessionCommands.js';
-import { ENVIRONMENT_PICKER_MANAGE_REMOTES_SETTING, ENVIRONMENT_PICKER_SETTING } from '../../../../workbench/contrib/sessions/common/chatConstants.js';
+import { ITunnelHostService } from '../../../../workbench/contrib/chat/common/tunnelHost.js';
+import { ToggleRemoteConnectionsActionViewItem } from '../../../../workbench/contrib/chat/electron-browser/toggleRemoteConnectionsActionViewItem.js';
+import { TOGGLE_SHARING_ID, TUNNEL_HOST_SHARING_KEY, TUNNEL_HOST_ENABLED_SETTING } from '../../../../workbench/contrib/chat/electron-browser/tunnelHost.contribution.js';
+import { Menus } from '../../../browser/menus.js';
 
-export const TOGGLE_SHARING_FROM_AGENTS_ID = TOGGLE_REMOTE_CONNECTIONS_COMMAND_ID;
+MenuRegistry.appendMenuItem(Menus.TitleBarRightLayout, {
+	command: {
+		id: TOGGLE_SHARING_ID,
+		title: localize('toggleSharing', "Allow Remote Connections"),
+		icon: Codicon.radioTower,
+		toggled: ContextKeyExpr.equals(TUNNEL_HOST_SHARING_KEY, true),
+	},
+	group: 'navigation',
+	order: 90,
+	when: ContextKeyExpr.and(
+		ChatContextKeys.enabled,
+		IsSessionsWindowContext,
+		IsAuxiliaryWindowContext.toNegated(),
+		ContextKeyExpr.equals(`config.${TUNNEL_HOST_ENABLED_SETTING}`, true),
+	)
+});
 
-export class SessionsTunnelHostTitlebarContribution extends Disposable implements IWorkbenchContribution {
+class SessionsTunnelHostTitlebarContribution extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.sessionsTunnelHostTitlebar';
 
 	constructor(
+		@ITunnelHostService tunnelHostService: ITunnelHostService,
 		@IActionViewItemService actionViewItemService: IActionViewItemService,
-		@IConfigurationService configurationService: IConfigurationService,
-		@ICommandService commandService: ICommandService,
 	) {
 		super();
 
-		this._register(MenuRegistry.appendMenuItem(AgentsWindowMenus.TitleBarRightLayout, {
-			command: {
-				id: TOGGLE_SHARING_FROM_AGENTS_ID,
-				title: localize('toggleSharing', "Allow Remote Connections"),
-				icon: Codicon.radioTower,
-				precondition: ChatContextKeys.enabled,
-				toggled: ContextKeyExpr.equals(TUNNEL_HOST_SHARING_KEY, true),
-			},
-			group: 'navigation',
-			order: 90,
-			when: ContextKeyExpr.and(ChatContextKeys.enabled, IsSessionsWindowContext, IsAuxiliaryWindowContext.toNegated())
-		}));
-
-		this._register(registerAction2(class ToggleRemoteConnectionsFromAgentsAction extends Action2 {
-			constructor() {
-				super({
-					id: TOGGLE_SHARING_FROM_AGENTS_ID,
-					title: localize('toggleSharing', "Allow Remote Connections"),
-					icon: Codicon.radioTower,
-					toggled: ContextKeyExpr.equals(TUNNEL_HOST_SHARING_KEY, true),
-				});
-			}
-
-			run(accessor: ServicesAccessor): Promise<RemoteConnectionsToggleResult> {
-				return executeToggleRemoteConnections(
-					accessor,
-					{ authenticationProviderId: 'github', showServiceOption: false, showSuccessNotification: false },
-				);
-			}
-		}));
-
 		const viewItemFactory: IActionViewItemFactory = (action, _options, instantiationService) => {
-			return instantiationService.createInstance(RemoteConnectionsActionViewItem, action, false, {
-				getManagementAction: () => configurationService.getValue<boolean>(ENVIRONMENT_PICKER_MANAGE_REMOTES_SETTING)
-					&& configurationService.getValue<boolean>(ENVIRONMENT_PICKER_SETTING)
-					&& configurationService.getValue<boolean>(RemoteAgentHostsEnabledSettingId)
-					? toAction({
-						id: OPEN_REMOTES_EDITOR_COMMAND_ID,
-						label: localize('manageRemoteEnvironments', "Manage Remote Environments..."),
-						run: () => commandService.executeCommand(OPEN_REMOTES_EDITOR_COMMAND_ID),
-					})
-					: undefined,
-			});
+			return instantiationService.createInstance(ToggleRemoteConnectionsActionViewItem, action);
 		};
-		this._register(actionViewItemService.register(AgentsWindowMenus.TitleBarRightLayout, TOGGLE_SHARING_FROM_AGENTS_ID, viewItemFactory));
+		this._register(actionViewItemService.register(Menus.TitleBarRightLayout, TOGGLE_SHARING_ID, viewItemFactory, tunnelHostService.onDidChangeStatus));
 	}
 }
 
-// Remote Tunnel registers its delegated commands during the restored phase.
-registerWorkbenchContribution2(SessionsTunnelHostTitlebarContribution.ID, SessionsTunnelHostTitlebarContribution, WorkbenchPhase.Eventually);
+registerWorkbenchContribution2(SessionsTunnelHostTitlebarContribution.ID, SessionsTunnelHostTitlebarContribution, WorkbenchPhase.BlockRestore);

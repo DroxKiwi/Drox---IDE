@@ -7,7 +7,6 @@ import assert from 'assert';
 import * as sinon from 'sinon';
 import type * as vscode from 'vscode';
 import { CancellationToken } from '../../../../base/common/cancellation.js';
-import { CancellationError } from '../../../../base/common/errors.js';
 import { Event } from '../../../../base/common/event.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { MarshalledId } from '../../../../base/common/marshallingIds.js';
@@ -510,7 +509,6 @@ suite('MainThreadChatSessions', function () {
 	let proxy: ExtHostChatSessionsShape;
 	let chatSessionsService: IChatSessionsService;
 	let disposables: DisposableStore;
-	let logService: ILogService;
 
 	setup(function () {
 		disposables = new DisposableStore();
@@ -543,8 +541,7 @@ suite('MainThreadChatSessions', function () {
 
 		instantiationService.stub(IConfigurationService, new TestConfigurationService());
 		instantiationService.stub(IContextKeyService, disposables.add(instantiationService.createInstance(ContextKeyService)));
-		logService = new NullLogService();
-		instantiationService.stub(ILogService, logService);
+		instantiationService.stub(ILogService, new NullLogService());
 		instantiationService.stub(IEditorService, new class extends mock<IEditorService>() { });
 		instantiationService.stub(IExtensionService, new TestExtensionService());
 		instantiationService.stub(IViewsService, new class extends mock<IViewsService>() {
@@ -766,22 +763,6 @@ suite('MainThreadChatSessions', function () {
 		assert.strictEqual(storedGroups![0].items[0].id, 'modelB');
 
 		mainThread.$unregisterChatSessionContentProvider(handle);
-	});
-
-	test('provider option refresh only logs unexpected errors', async function () {
-		const provideOptionsStub = asSinonMethodStub(proxy.$provideChatSessionProviderOptions);
-		const errorSpy = sinon.spy(logService, 'error');
-		const unexpectedError = new Error('Unexpected');
-		provideOptionsStub.onFirstCall().rejects(new CancellationError());
-		provideOptionsStub.onSecondCall().rejects(unexpectedError);
-
-		mainThread.$registerChatSessionContentProvider(1, 'test-session-type');
-		await new Promise(resolve => setTimeout(resolve, 0));
-		mainThread.$onDidChangeChatSessionProviderOptions(1);
-		await new Promise(resolve => setTimeout(resolve, 0));
-
-		assert.deepStrictEqual(errorSpy.args, [['Error fetching chat session options', unexpectedError]]);
-		mainThread.$unregisterChatSessionContentProvider(1);
 	});
 
 	test('getSessionOption returns undefined for unset options', async function () {

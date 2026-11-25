@@ -57,7 +57,7 @@ import { IFetcherService } from '../../../platform/networking/common/fetcherServ
 import { IToolDeferralService } from '../../../platform/networking/common/toolDeferralService';
 import { ChatWebSocketManager, IChatWebSocketManager } from '../../../platform/networking/node/chatWebSocketManager';
 import { FetcherService } from '../../../platform/networking/vscode-node/fetcherServiceImpl';
-import { IOTelConfigResolver } from '../../../platform/otel/common/otelConfigResolution';
+import { resolveOTelConfig } from '../../../platform/otel/common/otelConfig';
 import { IOTelService } from '../../../platform/otel/common/otelService';
 import { InMemoryOTelService } from '../../../platform/otel/node/inMemoryOTelService';
 import { IOTelSqliteStore, OTelSqliteStore } from '../../../platform/otel/node/sqlite/otelSqliteStore';
@@ -69,6 +69,8 @@ import { AdoCodeSearchService, IAdoCodeSearchService } from '../../../platform/r
 import { GithubCodeSearchService, IGithubCodeSearchService } from '../../../platform/remoteCodeSearch/common/githubCodeSearchService';
 import { ICodeSearchAuthenticationService } from '../../../platform/remoteCodeSearch/node/codeSearchRepoAuth';
 import { VsCodeCodeSearchAuthenticationService } from '../../../platform/remoteCodeSearch/vscode-node/codeSearchRepoAuth';
+import { IDocsSearchClient } from '../../../platform/remoteSearch/common/codeOrDocsSearchClient';
+import { DocsSearchClient } from '../../../platform/remoteSearch/node/codeOrDocsSearchClientImpl';
 import { IRequestLogger } from '../../../platform/requestLogger/common/requestLogger';
 import { IScopeSelector } from '../../../platform/scopeSelection/common/scopeSelection';
 import { ScopeSelectorImpl } from '../../../platform/scopeSelection/vscode-node/scopeSelectionImpl';
@@ -110,12 +112,12 @@ import { IUserFeedbackService, UserFeedbackService } from '../../conversation/vs
 import { ConversationStore, IConversationStore } from '../../conversationStore/node/conversationStore';
 import { SimilarFilesContextService } from '../../inlineEdits/vscode-node/similarFilesContext';
 import { IIntentService, IntentService } from '../../intents/node/intentService';
+import { INewWorkspacePreviewContentManager, NewWorkspacePreviewContentManagerImpl } from '../../intents/node/newIntent';
 import { LanguageContextProviderService } from '../../languageContextProvider/vscode-node/languageContextProviderService';
 import { ILinkifyService, LinkifyService } from '../../linkify/common/linkifyService';
 import { DebugCommandToConfigConverter, IDebugCommandToConfigConverter } from '../../onboardDebug/node/commandToConfigConverter';
 import { DebuggableCommandIdentifier, IDebuggableCommandIdentifier } from '../../onboardDebug/node/debuggableCommandIdentifier';
 import { ILanguageToolsProvider, LanguageToolsProvider } from '../../onboardDebug/node/languageToolsProvider';
-import { VSCodeOTelConfigResolver } from '../../otel/vscode-node/otelConfigResolver';
 import { IPowerService } from '../../power/common/powerService';
 import { PowerService } from '../../power/vscode-node/powerService';
 import { ChatMLFetcherImpl } from '../../prompt/node/chatMLFetcher';
@@ -148,10 +150,6 @@ import { registerServices as registerCommonServices } from '../vscode/services';
 import { PromptsServiceImpl } from '../../../platform/promptFiles/vscode-node/promptsServiceImpl';
 import { IPromptsService } from '../../../platform/promptFiles/common/promptsService';
 import { AutomaticInstructionsCollector, IAutomaticInstructionsCollector } from '../../../platform/promptFiles/node/automaticInstructionsCollector';
-import { GrepResultService, IGrepResultService } from '../../tools/node/grepResultService';
-import { IRegionContextProviderService } from '../../../platform/languageContextProvider/common/regionContextProvider';
-import { ContainerContextProviderService } from '../../typescriptContext/vscode-node/regionContextProvider';
-
 
 // ###########################################################################################
 // ###                                                                                     ###
@@ -169,8 +167,6 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(IAutomodeService, new SyncDescriptor(AutomodeService));
 	builder.define(IConversationStore, new SyncDescriptor(ConversationStore));
 	builder.define(IDiffService, new DiffServiceImpl());
-	builder.define(IGrepResultService, new SyncDescriptor(GrepResultService));
-	builder.define(IRegionContextProviderService, new SyncDescriptor(ContainerContextProviderService));
 	builder.define(ITokenizerProvider, new SyncDescriptor(TokenizerProvider, [true]));
 	builder.define(IToolsService, new SyncDescriptor(ToolsService));
 	builder.define(IToolDeferralService, new ToolDeferralService());
@@ -223,6 +219,7 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(IWorkspaceFileIndex, new SyncDescriptor(WorkspaceFileIndex));
 	builder.define(IChunkingEndpointClient, new SyncDescriptor(ChunkingEndpointClientImpl));
 	builder.define(ICommandService, new SyncDescriptor(CommandServiceImpl));
+	builder.define(IDocsSearchClient, new SyncDescriptor(DocsSearchClient));
 	builder.define(ISearchService, new SyncDescriptor(SearchServiceImpl));
 	builder.define(ITestDepsResolver, new SyncDescriptor(TestDepsResolver));
 	builder.define(ISetupTestsDetector, new SyncDescriptor(SetupTestsDetector));
@@ -248,6 +245,7 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	builder.define(IGithubApiFetcherService, new SyncDescriptor(GithubApiFetcherService));
 	builder.define(IAdoCodeSearchService, new SyncDescriptor(AdoCodeSearchService));
 	builder.define(ISettingsEditorSearchService, new SyncDescriptor(SettingsEditorSearchServiceImpl));
+	builder.define(INewWorkspacePreviewContentManager, new SyncDescriptor(NewWorkspacePreviewContentManagerImpl));
 	builder.define(IPromptVariablesService, new SyncDescriptor(PromptVariablesServiceImpl));
 	builder.define(IPromptWorkspaceLabels, new SyncDescriptor(PromptWorkspaceLabels));
 	builder.define(IUserFeedbackService, new SyncDescriptor(UserFeedbackService));
@@ -289,11 +287,20 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 	const otelSqliteStore = new OTelSqliteStore(otelDbPath);
 	builder.define(IOTelSqliteStore, otelSqliteStore);
 
-	// Keep the exact resolution the service uses so late policy can be detected.
-	const otelConfigResolver = new VSCodeOTelConfigResolver(process.env, extensionContext.extension.packageJSON.version ?? '0.0.0', env.sessionId);
-	extensionContext.subscriptions.push(otelConfigResolver);
-	builder.define(IOTelConfigResolver, otelConfigResolver);
-	const otelConfig = otelConfigResolver.activeResolution.config;
+	// OTel service — resolve config from env + settings, create appropriate impl
+	const otelSettings = workspace.getConfiguration('github.copilot.chat.otel');
+	const otelConfig = resolveOTelConfig({
+		env: process.env,
+		settingEnabled: otelSettings.get<boolean>('enabled'),
+		settingExporterType: otelSettings.get<'otlp-grpc' | 'otlp-http' | 'console' | 'file'>('exporterType'),
+		settingOtlpEndpoint: otelSettings.get<string>('otlpEndpoint'),
+		settingCaptureContent: otelSettings.get<boolean>('captureContent'),
+		settingMaxAttributeSizeChars: otelSettings.get<number>('maxAttributeSizeChars'),
+		settingOutfile: otelSettings.get<string>('outfile') || undefined,
+		settingDbSpanExporter: otelSettings.get<boolean>('dbSpanExporter.enabled'),
+		extensionVersion: extensionContext.extension.packageJSON.version ?? '0.0.0',
+		sessionId: env.sessionId,
+	});
 	if (otelConfig.enabled) {
 		// Dynamic import to avoid loading OTel SDK when disabled
 		const { NodeOTelService } = require('../../../platform/otel/node/otelServiceImpl') as typeof import('../../../platform/otel/node/otelServiceImpl');
@@ -304,8 +311,7 @@ export function registerServices(builder: IInstantiationServiceBuilder, extensio
 			else if (level === 'warn') { console.warn(msg); }
 			else { console.info(msg); }
 		};
-		builder.define(IOTelService, new NodeOTelService(otelConfig, logFn, otelConfig.dbSpanExporter ? otelSqliteStore : undefined,
-			() => otelConfigResolver.captureIdentityAllowed));
+		builder.define(IOTelService, new NodeOTelService(otelConfig, logFn, otelConfig.dbSpanExporter ? otelSqliteStore : undefined));
 	} else {
 		builder.define(IOTelService, new InMemoryOTelService(otelConfig));
 	}

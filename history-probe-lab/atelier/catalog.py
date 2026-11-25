@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 
 
@@ -11,7 +12,7 @@ from pathlib import Path
 class Part:
     code: str
     name: str
-    unit_price: float
+    unit_price: Decimal
 
 
 class Catalog:
@@ -31,7 +32,7 @@ class Catalog:
 def load_catalog(path: Path) -> Catalog:
     raw = json.loads(path.read_text(encoding="utf-8"))
     parts = [
-        Part(code=item["code"], name=item["name"], unit_price=float(item["unit_price"]))
+        Part(code=item["code"], name=item["name"], unit_price=Decimal(str(item["unit_price"])))
         for item in raw
     ]
     return Catalog(parts)

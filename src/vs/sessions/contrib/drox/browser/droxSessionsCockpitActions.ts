@@ -20,9 +20,9 @@ import { DROX_SESSIONS_PROVIDER_ID } from '../../../../workbench/contrib/drox/co
 import { IDroxRunSettingsService } from '../../../../workbench/contrib/drox/common/droxRunSettingsService.js';
 import { IDroxRegulationService } from '../../../../workbench/contrib/drox/common/regulation/droxRegulationServiceContract.js';
 import { IDroxSdtcmService } from '../../../../workbench/contrib/drox/browser/sdtcm/droxSdtcmService.js';
-import { SessionIsArchivedContext, SessionProviderIdContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
-import { ISession } from '../../../../workbench/services/sessions/common/session.js';
-import { SessionItemContextMenuId, SessionItemToolbarMenuId } from '../../../../workbench/contrib/sessions/browser/views/sessionsList.js';
+import { SessionIsArchivedContext, SessionProviderIdContext } from '../../../common/contextkeys.js';
+import { ISession } from '../../../services/sessions/common/session.js';
+import { SessionItemContextMenuId, SessionItemToolbarMenuId } from '../../sessions/browser/views/sessionsList.js';
 
 const isDroxSession = ContextKeyExpr.equals(SessionProviderIdContext.key, DROX_SESSIONS_PROVIDER_ID);
 

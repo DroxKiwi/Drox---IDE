@@ -157,21 +157,27 @@ class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 		}
 
 		const overrideHandler = ExtensionUrlHandlerOverrideRegistry.getHandler(uri);
+		if (overrideHandler) {
+			const handled = await overrideHandler.handleURL(uri);
+			if (handled) {
+				return handled;
+			}
+		}
+
 		const extensionId = uri.authority;
 
 		const initialHandler = this.extensionHandlers.get(ExtensionIdentifier.toKey(extensionId));
 		let extensionDisplayName: string;
-		let extensionInstalled = !!initialHandler;
 
 		if (!initialHandler) {
 			// The extension is not yet activated, so let's check if it is installed and enabled
 			const extension = await this.extensionService.getExtension(extensionId);
-			extensionInstalled = !!extension;
-			if (!extension && !overrideHandler) {
+			if (!extension) {
 				await this.handleUnhandledURL(uri, extensionId, options);
 				return true;
+			} else {
+				extensionDisplayName = extension.displayName ?? '';
 			}
-			extensionDisplayName = extension?.displayName ?? extensionId;
 		} else {
 			extensionDisplayName = initialHandler.extensionDisplayName;
 		}
@@ -208,18 +214,6 @@ class ExtensionUrlHandler implements IExtensionUrlHandler, IURLHandler {
 			if (result.checkboxChecked) {
 				this.userTrustedExtensionsStorage.add(ExtensionIdentifier.toKey(extensionId));
 			}
-		}
-
-		if (overrideHandler) {
-			const handled = await overrideHandler.handleURL(uri);
-			if (handled) {
-				return handled;
-			}
-		}
-
-		if (!extensionInstalled) {
-			await this.handleUnhandledURL(uri, extensionId, { ...options, trusted: true });
-			return true;
 		}
 
 		const handler = this.extensionHandlers.get(ExtensionIdentifier.toKey(extensionId));

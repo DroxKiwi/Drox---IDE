@@ -3,13 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
 import { join } from 'path';
 import { createImportRuleListener } from './utils.ts';
 
-export default new class NoNlsInStandaloneEditorRule implements CreateRule {
+export default new class NoNlsInStandaloneEditorRule implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			badImport: 'Not allowed to import standalone editor modules.'
 		},
@@ -19,23 +19,18 @@ export default new class NoNlsInStandaloneEditorRule implements CreateRule {
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
-		if (/vs(\/|\\)editor/.test(context.filename)) {
+		if (/vs(\/|\\)editor/.test(context.getFilename())) {
 			// the vs/editor folder is allowed to use the standalone editor
 			return {};
 		}
 
 		return createImportRuleListener((node, path) => {
 
-			// the patterns below start with `vs/editor`, which isn't in the file name, so they only match when the import contains `editor`
-			if (!path.includes('editor')) {
-				return;
-			}
-
 			// resolve relative paths
 			if (path[0] === '.') {
-				path = join(context.filename, path);
+				path = join(context.getFilename(), path);
 			}
 
 			if (

@@ -3,9 +3,20 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 // @ts-check
+import { defineConfig } from 'eslint/config';
 import fs from 'fs';
 import { builtinModules } from 'module';
 import path from 'path';
+import tseslint from 'typescript-eslint';
+
+import stylisticTs from '@stylistic/eslint-plugin-ts';
+import * as pluginLocal from './.eslint-plugin-local/index.ts';
+import * as pluginCopilotLocal from './extensions/copilot/.eslintplugin/index.ts';
+import pluginImport from 'eslint-plugin-import';
+import pluginJsdoc from 'eslint-plugin-jsdoc';
+
+import pluginHeader from 'eslint-plugin-header';
+pluginHeader.rules.header.meta.schema = false;
 
 const ignores = fs.readFileSync(path.join(import.meta.dirname, '.eslint-ignore'), 'utf8')
 	.toString()
@@ -18,23 +29,7 @@ const allowedJavaScriptFiles = fs.readFileSync(path.join(import.meta.dirname, '.
 	.map(line => line.trim())
 	.filter(line => line && !line.startsWith('#'));
 
-const allowedBracketNotationFiles = fs.readFileSync(path.join(import.meta.dirname, '.eslint-allowed-bracket-notation-files'), 'utf8')
-	.toString()
-	.split(/\r\n|\n/)
-	.map(line => line.trim())
-	.filter(line => line && !line.startsWith('#'));
-
-// The layers of `local/code-layering`: each folder name maps to the layers it may import, besides its own.
-const codeLayers = {
-	'common': [],
-	'node': ['common'],
-	'browser': ['common'],
-	'electron-browser': ['common', 'browser'],
-	'electron-utility': ['common', 'node'],
-	'electron-main': ['common', 'node', 'electron-utility'],
-};
-
-export default [
+export default defineConfig(
 	// Global ignores
 	{
 		ignores: [
@@ -44,6 +39,13 @@ export default [
 	},
 	// All files (JS and TS)
 	{
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+			'header': pluginHeader,
+		},
 		rules: {
 			'constructor-super': 'warn',
 			'curly': 'warn',
@@ -54,7 +56,7 @@ export default [
 					'destructuring': 'all'
 				}
 			],
-			'eslint-js/no-buffer-constructor': 'warn',
+			'no-buffer-constructor': 'warn',
 			'no-caller': 'warn',
 			'no-case-declarations': 'warn',
 			'no-debugger': 'warn',
@@ -62,7 +64,7 @@ export default [
 			'no-duplicate-imports': 'warn',
 			'no-eval': 'warn',
 			'no-async-promise-executor': 'warn',
-			'@stylistic/no-extra-semi': 'warn',
+			'no-extra-semi': 'warn',
 			'no-new-wrappers': 'warn',
 			'no-redeclare': 'off',
 			'no-sparse-arrays': 'warn',
@@ -83,7 +85,7 @@ export default [
 				'context'
 			], // non-complete list of globals that are easy to access unintentionally
 			'no-var': 'warn',
-			'@stylistic/semi': 'warn',
+			'semi': 'warn',
 			'local/code-translation-remind': 'warn',
 			'local/code-no-declare-const-enum': 'warn',
 			'local/code-parameter-properties-must-have-explicit-accessibility': 'warn',
@@ -104,8 +106,31 @@ export default [
 			'local/code-no-icons-in-localized-strings': 'warn',
 			'local/code-no-http-import': ['warn', { target: 'src/vs/**' }],
 			'local/code-no-deep-import-of-internal': ['error', { '.*Internal': true, 'searchExtTypesInternal': false }],
-			'local/code-no-private-agent-host-meta-import': 'error',
-			'local/code-layering': ['warn', codeLayers],
+			'local/code-layering': [
+				'warn',
+				{
+					'common': [],
+					'node': [
+						'common'
+					],
+					'browser': [
+						'common'
+					],
+					'electron-browser': [
+						'common',
+						'browser'
+					],
+					'electron-utility': [
+						'common',
+						'node'
+					],
+					'electron-main': [
+						'common',
+						'node',
+						'electron-utility'
+					]
+				}
+			],
 			'header/header': [
 				2,
 				'block',
@@ -118,90 +143,42 @@ export default [
 			]
 		},
 	},
-	{
-		files: [
-			'src/vs/workbench/**/*.ts',
-			'src/vs/sessions/**/*.ts',
-		],
-		rules: {
-			'local/code-agent-host-uri-mapping': 'error',
-		},
-	},
-	// Production filesystem operations must not block the event loop.
-	{
-		files: [
-			'src/**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}',
-			'extensions/**/src/**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}',
-		],
-		ignores: [
-			// Bootstrap entry points and the AMD loader retain their startup I/O.
-			'src/*',
-			'src/vs/amdX.ts',
-			'src/vs/code/electron-main/main.ts',
-			// Core synchronous helpers and startup/shutdown infrastructure.
-			'src/vs/base/node/pfs.ts',
-			'src/vs/platform/environment/node/wait.ts',
-			'src/vs/server/node/remoteExtensionHostAgentServer.ts',
-			'src/vs/server/node/server.main.ts',
-			'src/vs/workbench/api/node/extHostCLIServer.ts',
-			'src/vs/workbench/api/node/extHostExtensionService.ts',
-			'src/vs/workbench/api/node/extHostStoragePaths.ts',
-			'**/test/**',
-			'**/tests/**',
-			'**/fixtures/**',
-			'**/*.{test,spec,stest,integrationTest}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}',
-			'**/scripts/**',
-			'**/script/**',
-			'**/build/**',
-			'extensions/vscode-test-resolver/**',
-			'extensions/vscode-api-tests/**',
-			// These isolated CLI/askpass processes do not share the application's event loop.
-			'src/vs/code/node/cli.ts',
-			'src/vs/server/node/server.cli.ts',
-			'extensions/git/src/askpass-main.ts',
-		],
-		rules: {
-			'local/code-no-sync-fs': 'error',
-		},
-	},
-	// Enforce this rule in migrated areas only.
-	{
-		files: [
-			'src/vs/platform/agentHost/node/claude/**/*.ts',
-			'src/vs/workbench/api/browser/mainThreadMcp.ts',
-			'src/vs/workbench/api/common/extHostQuickOpen.ts',
-		],
-		rules: {
-			'local/code-prefer-event-or-observable': 'error',
-		},
-	},
-	// Disallow bracket notation for property names that can use dot notation.
-	{
-		files: [
-			'**/*.{js,cjs,mjs,ts,tsx,mts,cts}',
-			'.eslint-plugin-local/**/*.ts',
-		],
-		ignores: allowedBracketNotationFiles,
-		rules: {
-			'local/code-no-bracket-notation-for-identifiers': 'warn',
-		},
-	},
 	// TS
 	{
 		files: [
 			'**/*.{ts,tsx,mts,cts}',
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'@stylistic/ts': stylisticTs,
+			'@typescript-eslint': tseslint.plugin,
+			'local': pluginLocal,
+			'jsdoc': pluginJsdoc,
+		},
 		rules: {
-			'@stylistic/member-delimiter-style': 'warn',
+			// Disable built-in semi rules in favor of stylistic
+			'semi': 'off',
+			'@stylistic/ts/semi': 'warn',
+			'@stylistic/ts/member-delimiter-style': 'warn',
 			'local/code-no-unused-expressions': [
 				'warn',
 				{
 					'allowTernary': true
 				}
 			],
-			'jsdoc-js/no-types': 'warn',
+			'jsdoc/no-types': 'warn',
 			'local/code-no-static-self-ref': 'warn',
-			'local/code-class-name-pascal-case': 'warn'
+			'@typescript-eslint/naming-convention': [
+				'warn',
+				{
+					'selector': 'class',
+					'format': [
+						'PascalCase'
+					]
+				}
+			]
 		}
 	},
 	// Disallow common telemetry properties in event data
@@ -209,18 +186,11 @@ export default [
 		files: [
 			'src/**/*.ts',
 		],
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-telemetry-common-property': 'warn',
-		}
-	},
-	// src compiles with useDefineForClassFields: false, but must keep working with JavaScript class field semantics,
-	// which src/tsconfig.defineClassFields.json checks (see define-class-fields-check in package.json)
-	{
-		files: [
-			'src/**/*.ts',
-		],
-		rules: {
-			'local/code-no-parameter-property-before-init': 'warn',
 		}
 	},
 	// Force all gulp imports under build/ to go through the gulp facade
@@ -228,6 +198,9 @@ export default [
 		files: [
 			'build/**/*.ts',
 		],
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-direct-gulp-import': 'warn',
 		}
@@ -376,6 +349,9 @@ export default [
 			'test/automation/src/playwrightDriver.ts',
 			'.eslint-plugin-local/**/*',
 		],
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-in-operator': 'warn',
 		}
@@ -386,10 +362,6 @@ export default [
 			'src/vs/platform/agentHost/**/*.ts',
 			'src/vs/workbench/contrib/chat/browser/agentSessions/**/*.ts',
 			'src/vs/workbench/services/agentHost/**/*.ts',
-			'src/vs/workbench/contrib/sessions/**/*.ts',
-			'src/vs/workbench/contrib/sessionChanges/**/*.ts',
-			'src/vs/workbench/services/sessions/**/*.ts',
-			'src/vs/workbench/browser/parts/sessions/**/*.ts',
 			'src/vs/sessions/**/*.ts',
 		],
 		ignores: [
@@ -398,15 +370,12 @@ export default [
 			'**/test/**',
 			'**/*.test.ts',
 			'**/*.integrationTest.ts',
-			// This directory is the validation boundary for typed metadata
-			// readers. Callers elsewhere must consume those readers.
-			'src/vs/platform/agentHost/common/meta/**',
-			// Copilot SDK metadata is already typed and is not an AHP `_meta`
-			// bag. Keep its access isolated in one adapter.
-			'src/vs/platform/agentHost/node/copilot/copilotSdkMeta.ts',
 			// Codex's own generated app-server protocol (not AHP `_meta`).
 			'src/vs/platform/agentHost/node/codex/protocol/**',
 		],
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-untyped-meta-access': 'warn',
 		}
@@ -840,6 +809,12 @@ export default [
 			'**/*.test.ts',
 			'**/*.integrationTest.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'@typescript-eslint': tseslint.plugin,
+		},
 		rules: {
 			'@typescript-eslint/no-explicit-any': [
 				'warn',
@@ -854,12 +829,17 @@ export default [
 		files: [
 			'**/*.test.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-dangerous-type-assertions': 'off',
 			'local/code-must-use-super-dispose': 'off',
 			'local/code-no-test-only': 'error',
 			'local/code-no-test-async-suite': 'warn',
-			'local/code-no-nested-test': 'error',
 			'local/code-must-use-result': [
 				'warn',
 				[
@@ -879,6 +859,12 @@ export default [
 		files: [
 			'src/vs/**/*.test.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-ensure-no-disposables-leak-in-test': [
 				'warn',
@@ -886,17 +872,6 @@ export default [
 					// Files should (only) be removed from the list they adopt the leak detector
 					'exclude': [
 						'src/vs/workbench/services/userActivity/test/browser/domActivityTracker.test.ts',
-					]
-				}
-			],
-			'local/code-run-with-faked-timers-whole-test': 'warn',
-			'local/code-no-timeout-polling-loop': [
-				'warn',
-				{
-					// Files should (only) be removed from the list once they no longer poll
-					'exclude': [
-						'src/vs/sessions/contrib/layout/test/browser/chatLayoutOwnership.test.ts',
-						'src/vs/sessions/contrib/layout/test/browser/desktopLayoutController.test.ts',
 					]
 				}
 			]
@@ -910,9 +885,15 @@ export default [
 		ignores: [
 			'extensions/git/src/api/git.constants.ts',
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'@typescript-eslint': tseslint.plugin,
+		},
 		rules: {
 			'no-restricted-imports': 'off',
-			'ts-eslint-js/no-restricted-imports': [
+			'@typescript-eslint/no-restricted-imports': [
 				'warn',
 				{
 					'patterns': [
@@ -932,8 +913,14 @@ export default [
 			'**/vscode.d.ts',
 			'**/vscode.proposed.*.d.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
-			'eslint-js/no-restricted-syntax': [
+			'no-restricted-syntax': [
 				'warn',
 				{
 					'selector': `TSArrayType > TSUnionType`,
@@ -1000,7 +987,6 @@ export default [
 						'register',
 						'remove',
 						'rename',
-						'reveal',
 						'save',
 						'send',
 						'start',
@@ -1019,16 +1005,19 @@ export default [
 		files: [
 			'**/vscode.d.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
 		rules: {
-			'jsdoc-js/tag-lines': 'off',
-			'jsdoc-js/valid-types': 'off',
-			'jsdoc-js/no-multi-asterisks': [
+			'jsdoc/tag-lines': 'off',
+			'jsdoc/valid-types': 'off',
+			'jsdoc/no-multi-asterisks': [
 				'warn',
 				{
 					'allowWhitespace': true
 				}
 			],
-			'jsdoc-js/require-jsdoc': [
+			'jsdoc/require-jsdoc': [
 				'warn',
 				{
 					'enableFixer': false,
@@ -1046,7 +1035,7 @@ export default [
 					]
 				}
 			],
-			'jsdoc-js/check-param-names': [
+			'jsdoc/check-param-names': [
 				'warn',
 				{
 					'enableFixer': false,
@@ -1061,6 +1050,12 @@ export default [
 		files: [
 			'src/**/{common,browser}/**/*.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-amd-node-module': 'warn'
 		}
@@ -1071,6 +1066,12 @@ export default [
 			'src/*.ts',
 			'src/**/{node,electron-main,electron-utility}/**/*.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'no-restricted-globals': [
 				'warn',
@@ -1099,6 +1100,12 @@ export default [
 			'src/vs/platform/*/electron-main/**/*.ts',
 			'src/vs/platform/*/node/**/*.ts',
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-static-node-module-import': [
 				'error',
@@ -1116,9 +1123,15 @@ export default [
 		files: [
 			'src/**/{browser,electron-browser}/**/*.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-global-document-listener': 'warn',
-			'eslint-js/no-restricted-syntax': [
+			'no-restricted-syntax': [
 				'warn',
 				{
 					'selector': `NewExpression[callee.object.name='Intl']`,
@@ -1460,6 +1473,9 @@ export default [
 		files: [
 			'src/**/electron-utility/**/*.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
 		rules: {
 			'no-restricted-imports': [
 				'warn',
@@ -1482,6 +1498,12 @@ export default [
 		files: [
 			'src/**/*.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'no-restricted-imports': [
 				'warn',
@@ -1525,7 +1547,6 @@ export default [
 						'@vscode/spdlog',
 						'@vscode/windows-process-tree',
 						'assert',
-						'async_hooks',
 						'child_process',
 						'console',
 						'cookie',
@@ -1540,8 +1561,6 @@ export default [
 						'inspector',
 						'minimist',
 						'node:module',
-						'node:url',
-						'node:v8',
 						'native-keymap',
 						'net',
 						'node-pty',
@@ -1558,7 +1577,6 @@ export default [
 						'undici',
 						'undici-types',
 						'url',
-						'module',
 						'util',
 						'vscode-regexpp',
 						'vscode-textmate',
@@ -1658,16 +1676,13 @@ export default [
 						'@microsoft/1ds-core-js', // node module allowed even in /common/
 						'@microsoft/1ds-post-js', // node module allowed even in /common/
 						'@xterm/headless', // node module allowed even in /common/
-						'@vscode/fs-copyfile', // used by agentHost for file copying after worktree creation
 						'@vscode/tree-sitter-wasm', // used by agentHost for command auto-approval
 						'@vscode/copilot-api', // used by agentHost for Copilot API requests
 						'@anthropic-ai/sdk', // used by agentHost for Anthropic API requests
 						'@anthropic-ai/claude-agent-sdk', // used by agentHost for Claude Agent SDK session enumeration / queries
 						'@modelcontextprotocol/sdk/**/*', // used by agentHost for Claude client-tool MCP result types (Phase 10)
 						'@github/copilot-sdk',
-						'zod', // used by agentHost for Claude client-tool MCP input schemas
-						{ 'when': 'hasNode', 'pattern': 'libsodium-wrappers' },
-						{ 'when': 'hasNode', 'pattern': '@hpke/core' },
+						'zod' // used by agentHost for Claude client-tool MCP input schemas
 					]
 				},
 				{
@@ -1750,30 +1765,6 @@ export default [
 					]
 				},
 				{
-					// Component fixtures render Agents window UI for screenshots. They are test-only and are
-					// the one place under vs/workbench that may import vs/sessions. Must precede
-					// 'src/vs/workbench/~', which also matches them; the first matching target wins.
-					'target': 'src/vs/workbench/test/browser/componentFixtures/**',
-					'layer': 'browser',
-					'test': true,
-					'restrictions': [
-						'vs/base/~',
-						'vs/base/parts/*/~',
-						'vs/platform/*/~',
-						'vs/editor/~',
-						'vs/editor/contrib/*/~',
-						'vs/workbench/~',
-						'vs/workbench/services/*/~',
-						'vs/workbench/contrib/*/~',
-						'vs/workbench/contrib/sessions/providers/*/~',
-						'vs/sessions/~',
-						'vs/sessions/contrib/*/~',
-						'vs/sessions/contrib/providers/*/~',
-						'vs/sessions/services/*/~',
-						'assert',
-					]
-				},
-				{
 					'target': 'src/vs/workbench/~',
 					'restrictions': [
 						'vs/base/~',
@@ -1794,7 +1785,6 @@ export default [
 					'target': 'src/vs/workbench/api/~',
 					'restrictions': [
 						'vscode',
-						'@vscode/internal-github',
 						'vs/base/~',
 						'vs/base/parts/*/~',
 						'vs/platform/*/~',
@@ -1832,41 +1822,6 @@ export default [
 					]
 				},
 				{
-					// Session providers: may import shared sessions code and sibling providers, never vs/sessions.
-					// Other code, including vs/workbench/contrib/sessions/~, cannot import them: the import pattern
-					// 'vs/workbench/contrib/*/~' expands to layer folders and does not match 'contrib/sessions/providers/*/'.
-					'target': 'src/vs/workbench/contrib/sessions/providers/*/~',
-					'restrictions': [
-						'vs/base/~',
-						'vs/base/parts/*/~',
-						'vs/platform/*/~',
-						'vs/editor/~',
-						'vs/editor/contrib/*/~',
-						'vs/workbench/~',
-						'vs/workbench/services/*/~',
-						'vs/workbench/contrib/*/~',
-						'vs/workbench/contrib/sessions/providers/*/~',
-						'@microsoft/dev-tunnels-connections', // type-only browser bundle conformance check
-						'@microsoft/dev-tunnels-management', // type-only browser bundle conformance check
-					]
-				},
-				{
-					// Shared sessions model, services and UI: the Agents window (vs/sessions) builds on them, never the reverse.
-					'target': 'src/vs/workbench/contrib/sessions/~',
-					'restrictions': [
-						'vs/base/~',
-						'vs/base/parts/*/~',
-						'vs/platform/*/~',
-						'vs/editor/~',
-						'vs/editor/contrib/*/~',
-						'vs/workbench/~',
-						'vs/workbench/services/*/~',
-						'vs/workbench/contrib/*/~',
-						'vs/workbench/contrib/terminal/terminalContribChatExports*',
-						'vs/workbench/contrib/terminal/terminalContribExports*',
-					]
-				},
-				{
 					'target': 'src/vs/workbench/contrib/*/~',
 					'restrictions': [
 						'vs/base/~',
@@ -1877,6 +1832,7 @@ export default [
 						'vs/workbench/~',
 						'vs/workbench/services/*/~',
 						'vs/workbench/contrib/*/~',
+						'vs/sessions/~',
 						'vs/workbench/contrib/terminal/terminalContribChatExports*',
 						'vs/workbench/contrib/terminal/terminalContribExports*',
 						'vscode-notebook-renderer', // Type only import
@@ -2014,7 +1970,8 @@ export default [
 						'vs/workbench/services/*/~',
 						'vs/workbench/contrib/*/~',
 						'vs/workbench/contrib/terminal/terminal.all.js',
-						'vs/sessions/sessions.core.main.js',
+						'vs/sessions/common/theme.js', // side-effect import for color registry
+						'vs/sessions/common/sizes.js' // side-effect import for size registry
 					]
 				},
 				{
@@ -2089,7 +2046,7 @@ export default [
 					]
 				},
 				{
-					'target': 'src/{bootstrap-cli.ts,bootstrap-esm.ts,bootstrap-fork.ts,bootstrap-import.ts,bootstrap-meta.ts,bootstrap-node.ts,bootstrap-server.ts,cli.ts,main.ts,mainImpl.ts,server-cli.ts,server-main.ts}',
+					'target': 'src/{bootstrap-cli.ts,bootstrap-esm.ts,bootstrap-fork.ts,bootstrap-import.ts,bootstrap-meta.ts,bootstrap-node.ts,bootstrap-server.ts,cli.ts,main.ts,server-cli.ts,server-main.ts}',
 					'restrictions': [
 						'vs/**/common/*',
 						'vs/**/node/*',
@@ -2099,7 +2056,7 @@ export default [
 					]
 				},
 				{
-					'target': 'src/vs/sessions/{sessions.core.main.ts,sessions.common.main.ts}',
+					'target': 'src/vs/sessions/sessions.common.main.ts',
 					'layer': 'browser',
 					'restrictions': [
 						'vs/base/~',
@@ -2108,7 +2065,6 @@ export default [
 						'vs/editor/~',
 						'vs/editor/contrib/*/~',
 						'vs/editor/editor.all.js',
-						'vs/workbench/contrib/sessions/providers/*/~',
 						'vs/sessions/~',
 						'vs/sessions/services/*/~',
 						'vs/sessions/contrib/*/~',
@@ -2130,7 +2086,6 @@ export default [
 						'vs/editor/~',
 						'vs/editor/contrib/*/~',
 						'vs/editor/editor.all.js',
-						'vs/workbench/contrib/sessions/providers/*/~',
 						'vs/sessions/~',
 						'vs/sessions/services/*/~',
 						'vs/sessions/contrib/*/~',
@@ -2143,33 +2098,7 @@ export default [
 					]
 				},
 				{
-					'target': 'src/vs/sessions/{sessions.core.web.main.ts,sessions.web.main.ts}',
-					'layer': 'browser',
-					'restrictions': [
-						'vs/base/~',
-						'vs/base/parts/*/~',
-						'vs/platform/*/~',
-						'vs/editor/~',
-						'vs/editor/contrib/*/~',
-						'vs/editor/editor.all.js',
-						'vs/workbench/contrib/sessions/providers/*/~',
-						'vs/sessions/~',
-						'vs/sessions/services/*/~',
-						'vs/sessions/contrib/*/~',
-						'vs/sessions/contrib/providers/*/~',
-						'vs/workbench/~',
-						'vs/workbench/api/~',
-						'vs/workbench/services/*/~',
-						'vs/workbench/contrib/*/~',
-						'vs/sessions/sessions.core.main.js',
-						'vs/sessions/sessions.core.web.main.js',
-						'vs/sessions/sessions.common.main.js'
-					]
-				},
-				{
-					// The phone entry is an allow-list: it composes the shared core and
-					// individual contributions, never the desktop entry points.
-					'target': 'src/vs/sessions/agents.web.mobile.main.ts',
+					'target': 'src/vs/sessions/sessions.web.main.ts',
 					'layer': 'browser',
 					'restrictions': [
 						'vs/base/~',
@@ -2186,9 +2115,7 @@ export default [
 						'vs/workbench/api/~',
 						'vs/workbench/services/*/~',
 						'vs/workbench/contrib/*/~',
-						'vs/workbench/contrib/terminalContrib/*/~',
-						'vs/sessions/sessions.core.main.js',
-						'vs/sessions/sessions.core.web.main.js'
+						'vs/sessions/sessions.common.main.js'
 					]
 				},
 				{
@@ -2198,7 +2125,6 @@ export default [
 						'vs/base/~',
 						'vs/base/parts/*/~',
 						'vs/platform/*/~',
-						'vs/workbench/contrib/sessions/providers/*/~',
 						'vs/sessions/~',
 						'vs/sessions/contrib/*/~',
 						'vs/sessions/contrib/providers/*/~',
@@ -2207,23 +2133,6 @@ export default [
 						'vs/workbench/services/*/~',
 						'vs/workbench/contrib/*/~',
 						'vs/sessions/sessions.web.main.js'
-					]
-				},
-				{
-					'target': 'src/vs/sessions/agents.web.mobile.main.internal.ts',
-					'layer': 'browser',
-					'restrictions': [
-						'vs/base/~',
-						'vs/base/parts/*/~',
-						'vs/platform/*/~',
-						'vs/sessions/~',
-						'vs/sessions/contrib/*/~',
-						'vs/sessions/contrib/providers/*/~',
-						'vs/workbench/~',
-						'vs/workbench/browser/**',
-						'vs/workbench/services/*/~',
-						'vs/workbench/contrib/*/~',
-						'vs/sessions/agents.web.mobile.main.js'
 					]
 				},
 				{
@@ -2245,32 +2154,13 @@ export default [
 					]
 				},
 				{
-					'target': 'src/vs/sessions/test/agents.web.mobile.test.internal.ts',
+					'target': 'src/vs/sessions/test/{web.test.ts,web.test.factory.ts}',
 					'layer': 'browser',
 					'restrictions': [
 						'vs/base/~',
 						'vs/base/parts/*/~',
 						'vs/platform/*/~',
 						'vs/sessions/~',
-						'vs/sessions/test/**',
-						'vs/sessions/contrib/*/~',
-						'vs/sessions/contrib/providers/*/~',
-						'vs/workbench/~',
-						'vs/workbench/browser/**',
-						'vs/workbench/services/*/~',
-						'vs/workbench/contrib/*/~',
-						'vs/sessions/agents.web.mobile.main.js'
-					]
-				},
-				{
-					'target': 'src/vs/sessions/test/{web.test.ts,web.test.factory.ts,web.test.terminal.ts}',
-					'layer': 'browser',
-					'restrictions': [
-						'vs/base/~',
-						'vs/base/parts/*/~',
-						'vs/platform/*/~',
-						'vs/sessions/~',
-						'vs/sessions/services/*/~',
 						'vs/sessions/test/**',
 						'vs/sessions/contrib/*/~',
 						'vs/workbench/~',
@@ -2290,7 +2180,6 @@ export default [
 						'vs/workbench/~',
 						'vs/workbench/browser/**',
 						'vs/workbench/services/*/~',
-						'vs/workbench/contrib/sessions/~', // shared sessions model, services and UI
 						'vs/sessions/~',
 						'vs/sessions/services/*/~'
 					]
@@ -2307,13 +2196,10 @@ export default [
 						'vs/workbench/browser/**',
 						'vs/workbench/services/*/~',
 						'vs/workbench/contrib/*/~',
-						'vs/workbench/contrib/sessions/providers/*/~',
 						'vs/sessions/~',
 						'vs/sessions/contrib/*/~',
 						'vs/sessions/contrib/providers/*/~',
 						'vs/sessions/services/*/~',
-						'@microsoft/dev-tunnels-connections', // type-only browser bundle conformance check
-						'@microsoft/dev-tunnels-management', // type-only browser bundle conformance check
 					]
 				},
 				{
@@ -2367,6 +2253,12 @@ export default [
 		files: [
 			'test/**/*.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-import-patterns': [
 				'warn',
@@ -2410,13 +2302,6 @@ export default [
 					]
 				},
 				{
-					'target': 'test/unit/**',
-					'restrictions': [
-						'test/unit/**',
-						'*' // node modules
-					]
-				},
-				{
 					'target': 'test/monaco/**',
 					'restrictions': [
 						'test/monaco/**',
@@ -2427,13 +2312,14 @@ export default [
 					]
 				},
 				{
-					'target': 'test/scenario/**',
+					'target': 'test/mcp/**',
 					'restrictions': [
 						'test/automation',
-						'test/scenario/**',
+						'test/mcp/**',
 						'@vscode/*',
 						'@parcel/*',
 						'@playwright/*',
+						'@modelcontextprotocol/sdk/**/*',
 						'*' // node modules
 					]
 				},
@@ -2449,36 +2335,19 @@ export default [
 		}
 	},
 	{
-		files: ['src/vs/**/*.ts'],
-		rules: {
-			'local/code-no-legacy-notification-parsing': ['error', {
-				allowedFiles: [
-					'src/vs/workbench/api/browser/mainThreadMessageService.ts',
-					'src/vs/workbench/api/browser/mainThreadProgress.ts',
-					'src/vs/platform/notification/test/common/notificationMessage.test.ts',
-					'src/vs/workbench/test/common/notifications.test.ts',
-					'src/vs/workbench/test/browser/notificationsList.test.ts',
-					'src/vs/workbench/services/progress/test/browser/progressService.test.ts',
-				],
-			}],
-		},
-	},
-	{
 		// `IAgentSessionsService` and the agent sessions model are provider-internal
 		// to Copilot. Only the Copilot chat sessions provider may consume them; the
 		// rest of the Agents window (sessions workbench) must stay provider-agnostic.
 		// See src/vs/sessions/SESSIONS.md.
 		files: [
-			'src/vs/sessions/**/*.ts',
-			'src/vs/workbench/contrib/sessions/**/*.ts',
-			'src/vs/workbench/contrib/sessionChanges/**/*.ts',
-			'src/vs/workbench/services/sessions/**/*.ts',
-			'src/vs/workbench/browser/parts/sessions/**/*.ts'
+			'src/vs/sessions/**/*.ts'
 		],
 		ignores: [
-			'src/vs/sessions/contrib/providers/copilotChatSessions/**/*.ts',
-			'src/vs/workbench/contrib/sessions/providers/copilotChatSessions/**/*.ts'
+			'src/vs/sessions/contrib/providers/copilotChatSessions/**/*.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
 		rules: {
 			'no-restricted-imports': [
 				'warn',
@@ -2498,35 +2367,15 @@ export default [
 		}
 	},
 	{
-		// Sessions depends on chat, never the reverse: contrib/chat must not import contrib/sessions.
-		files: [
-			'src/vs/workbench/contrib/chat/**/*.ts'
-		],
-		ignores: [
-			// Existing violations; remove entries as they are fixed (https://github.com/microsoft/vscode/issues/346756)
-			'src/vs/workbench/contrib/chat/browser/agentSessions/agentHost/agentHostCustomizationService.ts',
-			'src/vs/workbench/contrib/chat/browser/chatTipCatalog.ts',
-			'src/vs/workbench/contrib/chat/test/browser/chatTipService.test.ts',
-			'src/vs/workbench/contrib/chat/test/browser/widget/chatContentParts/chatToolAuthenticationSubPart.test.ts'
-		],
-		rules: {
-			'local/code-no-restricted-path-imports': [
-				'error',
-				{
-					'paths': [
-						{
-							'pattern': 'src/vs/workbench/contrib/sessions/**',
-							'message': 'contrib/chat must not import from contrib/sessions: Sessions depends on chat, never the reverse. See https://github.com/microsoft/vscode/issues/346756'
-						}
-					]
-				}
-			]
-		}
-	},
-	{
 		files: [
 			'src/vs/workbench/contrib/notebook/browser/view/renderers/*.ts'
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-runtime-import': [
 				'error',
@@ -2553,8 +2402,11 @@ export default [
 			'src/vs/workbench/contrib/terminal/**/*.ts',
 			'src/vs/workbench/contrib/terminalContrib/**/*.ts',
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
 		rules: {
-			'ts-eslint-js/naming-convention': [
+			'@typescript-eslint/naming-convention': [
 				'warn',
 				// variableLike
 				{ 'selector': 'variable', 'format': ['camelCase', 'UPPER_CASE', 'PascalCase'] },
@@ -2569,9 +2421,7 @@ export default [
 				{ 'selector': 'typeLike', 'format': ['PascalCase'] },
 				{ 'selector': 'interface', 'format': ['PascalCase'] }
 			],
-			// Covered by the `typeLike` naming convention above
-			'local/code-class-name-pascal-case': 'off',
-			'@stylistic/comma-dangle': ['warn', 'only-multiline']
+			'comma-dangle': ['warn', 'only-multiline']
 		}
 	},
 	// Ban dynamic require() and import() calls in extensions to ensure tree-shaking works
@@ -2584,7 +2434,7 @@ export default [
 			'extensions/copilot/**/*',
 		],
 		rules: {
-			'eslint-js/no-restricted-syntax': [
+			'no-restricted-syntax': [
 				'warn',
 				{
 					'selector': `CallExpression[callee.name='require'][arguments.0.type!='Literal']`,
@@ -2602,8 +2452,14 @@ export default [
 		files: [
 			'extensions/markdown-language-features/**/*.ts',
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'@typescript-eslint': tseslint.plugin,
+		},
 		rules: {
-			'eslint-js/no-restricted-syntax': [
+			'no-restricted-syntax': [
 				'warn',
 				{
 					selector: ':matches(PropertyDefinition, TSParameterProperty, MethodDefinition[key.name!="constructor"])[accessibility="private"]',
@@ -2620,10 +2476,39 @@ export default [
 			'extensions/markdown-language-features/preview-src/**/*.ts',
 			'extensions/mermaid-markdown-features/preview-src/chat/**/*.ts',
 			'extensions/mermaid-markdown-features/src/**/*.ts',
+			'extensions/media-preview/src/**/*.ts',
 			'extensions/simple-browser/**/*.ts',
 			'extensions/typescript-language-features/**/*.ts',
 		],
-		// These rules need type information: oxlint runs them with --type-aware (see typeAwareLintFolders in build/lib/changedFiles.ts).
+		languageOptions: {
+			parser: tseslint.parser,
+			parserOptions: {
+				project: [
+					// Markdown
+					'extensions/markdown-language-features/tsconfig.json',
+					'extensions/markdown-language-features/notebook/tsconfig.json',
+					'extensions/markdown-language-features/preview-src/tsconfig.json',
+
+					// Media preview
+					'extensions/media-preview/tsconfig.json',
+
+					// Media preview
+					'extensions/simple-browser/tsconfig.json',
+					'extensions/simple-browser/preview-src/tsconfig.json',
+
+					// Mermaid markdown features
+					'extensions/mermaid-markdown-features/tsconfig.json',
+					'extensions/mermaid-markdown-features/preview-src/chat/tsconfig.json',
+
+					// TypeScript
+					'extensions/typescript-language-features/tsconfig.json',
+					'extensions/typescript-language-features/web/tsconfig.json',
+				],
+			}
+		},
+		plugins: {
+			'@typescript-eslint': tseslint.plugin,
+		},
 		rules: {
 			'@typescript-eslint/prefer-optional-chain': 'warn',
 			'@typescript-eslint/prefer-readonly': 'warn',
@@ -2640,6 +2525,13 @@ export default [
 			'extensions/copilot/**/.esbuild.ts',
 			'extensions/copilot/src/extension/completions-core/vscode-node/bridge/src/completionsTelemetryServiceBridge.ts',
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'import': pluginImport,
+			'copilot-local': pluginCopilotLocal,
+		},
 		rules: {
 			'local/code-no-dangerous-type-assertions': 'off',
 			'local/code-no-any-casts': 'off',
@@ -2659,22 +2551,61 @@ export default [
 				'vscode-tas-client',
 				'web-tree-sitter'
 			],
-			// Copilot's own layers, in addition to VS Code's
-			'local/code-layering': [
-				'warn',
-				{
-					...codeLayers,
-					'vscode': ['common'],
-					'vscode-node': ['common', 'vscode', 'node'],
-					'worker': ['common'],
-					'vscode-worker': ['common', 'vscode', 'worker'],
-				}
-			],
-			// Rules between folders, which the layers can't express
-			'local/code-no-restricted-zone-imports': [
+			'import/no-restricted-paths': [
 				'warn',
 				{
 					zones: [
+						{
+							target: '**/common/**',
+							from: [
+								'**/vscode/**',
+								'**/node/**',
+								'**/vscode-node/**',
+								'**/worker/**',
+								'**/vscode-worker/**'
+							]
+						},
+						{
+							target: '**/vscode/**',
+							from: [
+								'**/node/**',
+								'**/vscode-node/**',
+								'**/worker/**',
+								'**/vscode-worker/**'
+							]
+						},
+						{
+							target: '**/node/**',
+							from: [
+								'**/vscode/**',
+								'**/vscode-node/**',
+								'**/worker/**',
+								'**/vscode-worker/**'
+							]
+						},
+						{
+							target: '**/vscode-node/**',
+							from: [
+								'**/worker/**',
+								'**/vscode-worker/**'
+							]
+						},
+						{
+							target: '**/worker/**',
+							from: [
+								'**/vscode/**',
+								'**/node/**',
+								'**/vscode-node/**',
+								'**/vscode-worker/**'
+							]
+						},
+						{
+							target: '**/vscode-worker/**',
+							from: [
+								'**/node/**',
+								'**/vscode-node/**'
+							]
+						},
 						{
 							target: './extensions/copilot/src/',
 							from: './extensions/copilot/test/'
@@ -2692,7 +2623,7 @@ export default [
 							from: ['./extensions/copilot/src/extension']
 						},
 						{
-							target: './extensions/copilot/test',
+							target: ['./extensions/copilot/test', '!./extensions/copilot/test/base/extHostContext/*.ts'],
 							from: ['**/vscode-node/**', '**/vscode-worker/**']
 						},
 						{
@@ -2755,6 +2686,9 @@ export default [
 		files: [
 			'extensions/copilot/src/extension/**/*.tsx',
 		],
+		plugins: {
+			'copilot-local': pluginCopilotLocal,
+		},
 		rules: {
 			'copilot-local/no-missing-linebreak': 'warn'
 		}
@@ -2765,6 +2699,9 @@ export default [
 			'extensions/copilot/**/*.test.ts',
 			'extensions/copilot/**/*.test.tsx',
 		],
+		plugins: {
+			'copilot-local': pluginCopilotLocal,
+		},
 		rules: {
 			'copilot-local/no-test-only': 'warn'
 		}
@@ -2861,6 +2798,7 @@ export default [
 			'extensions/copilot/src/platform/configuration/test/common/inMemoryConfigurationService.ts',
 			'extensions/copilot/src/platform/configuration/vscode/configurationServiceImpl.ts',
 			'extensions/copilot/src/platform/customInstructions/common/customInstructionsService.ts',
+			'extensions/copilot/src/platform/debug/vscode/debugOutputListener.ts',
 			'extensions/copilot/src/platform/diff/node/diffWorkerMain.ts',
 			'extensions/copilot/src/platform/editing/common/notebookDocumentSnapshot.ts',
 			'extensions/copilot/src/platform/editing/common/textDocumentSnapshot.ts',
@@ -2906,6 +2844,7 @@ export default [
 			'extensions/copilot/src/platform/parser/node/parserWorker.ts',
 			'extensions/copilot/src/platform/parser/node/treeSitterQueries.ts',
 			'extensions/copilot/src/platform/remoteCodeSearch/common/githubCodeSearchService.ts',
+			'extensions/copilot/src/platform/remoteSearch/node/codeOrDocsSearchClientImpl.ts',
 			'extensions/copilot/src/platform/review/vscode/reviewServiceImpl.ts',
 			'extensions/copilot/src/platform/scopeSelection/vscode-node/scopeSelectionImpl.ts',
 			'extensions/copilot/src/platform/snippy/common/snippyTypes.ts',
@@ -2917,6 +2856,7 @@ export default [
 			'extensions/copilot/src/platform/telemetry/node/spyingTelemetryService.ts',
 			'extensions/copilot/src/platform/terminal/common/terminalService.ts',
 			'extensions/copilot/src/platform/terminal/vscode/terminalServiceImpl.ts',
+			'extensions/copilot/src/platform/test/common/endpointTestFixtures.ts',
 			'extensions/copilot/src/platform/test/common/testExtensionsService.ts',
 			'extensions/copilot/src/platform/test/node/extensionContext.ts',
 			'extensions/copilot/src/platform/test/node/fetcher.ts',
@@ -2951,6 +2891,12 @@ export default [
 			'extensions/copilot/src/util/common/types.ts',
 			'extensions/copilot/src/util/node/worker.ts',
 		],
+		languageOptions: {
+			parser: tseslint.parser,
+		},
+		plugins: {
+			'@typescript-eslint': tseslint.plugin,
+		},
 		rules: {
 			'@typescript-eslint/no-explicit-any': [
 				'warn',
@@ -2966,8 +2912,7 @@ export default [
 			'extensions/copilot/src/lib/node/chatLibMain.ts',
 		],
 		rules: {
-			'local/code-layering': 'off',
-			'local/code-no-restricted-zone-imports': 'off'
+			'import/no-restricted-paths': 'off'
 		}
 	},
 	// Allow querySelector/querySelectorAll in test files - it's acceptable for test assertions
@@ -2977,7 +2922,7 @@ export default [
 			'extensions/**/test/**/*.ts',
 		],
 		rules: {
-			'eslint-js/no-restricted-syntax': [
+			'no-restricted-syntax': [
 				'warn',
 				// Keep the Intl helper restriction even in tests
 				{
@@ -3002,8 +2947,10 @@ export default [
 			'**/*.mjs',
 		],
 		ignores: allowedJavaScriptFiles,
+		plugins: {
+			'local': pluginLocal,
+		},
 		rules: {
 			'local/code-no-new-javascript-files': 'error',
 		},
-	},
-];
+	});

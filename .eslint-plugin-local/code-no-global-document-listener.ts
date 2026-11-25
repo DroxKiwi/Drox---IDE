@@ -3,18 +3,17 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
 
-export default new class NoGlobalDocumentListener implements CreateRule {
+export default new class NoGlobalDocumentListener implements eslint.Rule.RuleModule {
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 		return {
-			CallExpression(node: ESTree.CallExpression) {
-				const callee = node.callee;
+			CallExpression(node: any) {
 				if (
 					(
-						(callee.type === 'Identifier' && callee.name === 'addDisposableListener') ||
-						(callee.type === 'MemberExpression' && 'name' in callee.property && callee.property.name === 'addDisposableListener')
+						node.callee.name === 'addDisposableListener' ||
+						node.callee.property?.name === 'addDisposableListener'
 					) &&
 					node.arguments.length > 0 &&
 					node.arguments[0].type === 'Identifier' &&

@@ -11,7 +11,6 @@ import { getErrorMessage } from '../../../base/common/errors.js';
 import { getNodeType, parse, ParseError } from '../../../base/common/json.js';
 import { getParseErrorMessage } from '../../../base/common/jsonErrorMessages.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
-import { ResourceMap } from '../../../base/common/map.js';
 import { FileAccess, Schemas } from '../../../base/common/network.js';
 import * as path from '../../../base/common/path.js';
 import * as platform from '../../../base/common/platform.js';
@@ -23,7 +22,7 @@ import { localize } from '../../../nls.js';
 import { IEnvironmentService } from '../../environment/common/environment.js';
 import { IProductVersion, Metadata } from './extensionManagement.js';
 import { areSameExtensions, computeTargetPlatform, getExtensionId, getGalleryExtensionId } from './extensionManagementUtil.js';
-import { ExtensionType, ExtensionIdentifier, IExtensionManifest, TargetPlatform, IExtensionIdentifier, IRelaxedExtensionManifest, UNDEFINED_PUBLISHER, IExtensionDescription, getManifestCacheFileName, ExtensionIdentifierMap, parseEnabledApiProposalNames } from '../../extensions/common/extensions.js';
+import { ExtensionType, ExtensionIdentifier, IExtensionManifest, TargetPlatform, IExtensionIdentifier, IRelaxedExtensionManifest, UNDEFINED_PUBLISHER, IExtensionDescription, BUILTIN_MANIFEST_CACHE_FILE, USER_MANIFEST_CACHE_FILE, ExtensionIdentifierMap, parseEnabledApiProposalNames } from '../../extensions/common/extensions.js';
 import { validateExtensionManifest } from '../../extensions/common/extensionValidator.js';
 import { FileOperationResult, IFileService, toFileOperationResult } from '../../files/common/files.js';
 import { createDecorator, IInstantiationService } from '../../instantiation/common/instantiation.js';
@@ -943,7 +942,7 @@ interface IExtensionCacheData {
 
 class CachedExtensionsScanner extends ExtensionsScanner {
 
-	private readonly pendingValidations = new ResourceMap<ExtensionScannerInput>();
+	private input: ExtensionScannerInput | undefined;
 	private readonly cacheValidatorThrottler: ThrottledDelayer<void> = this._register(new ThrottledDelayer(3000));
 
 	private readonly _onDidChangeCache = this._register(new Emitter<void>());
@@ -965,11 +964,10 @@ class CachedExtensionsScanner extends ExtensionsScanner {
 	override async scanExtensions(input: ExtensionScannerInput): Promise<IRelaxedScannedExtension[]> {
 		const cacheFile = this.getCacheFile(input);
 		const cacheContents = await this.readExtensionCache(cacheFile);
-		if (cacheContents && cacheContents.input && ExtensionScannerInput.equals(cacheContents.input, input)) {
+		this.input = input;
+		if (cacheContents && cacheContents.input && ExtensionScannerInput.equals(cacheContents.input, this.input)) {
 			this.logService.debug('Using cached extensions scan result', input.type === ExtensionType.System ? 'system' : 'user', input.location.toString());
-			// Each cache file needs validating on its own, scanning one language says nothing about the others
-			this.pendingValidations.set(cacheFile, input);
-			this.cacheValidatorThrottler.trigger(() => this.validatePendingCaches());
+			this.cacheValidatorThrottler.trigger(() => this.validateCache());
 			return cacheContents.result.map((extension) => {
 				// revive URI object
 				extension.location = URI.revive(extension.location);
@@ -1002,13 +1000,13 @@ class CachedExtensionsScanner extends ExtensionsScanner {
 		}
 	}
 
-	private async validatePendingCaches(): Promise<void> {
-		const pending = [...this.pendingValidations.entries()];
-		this.pendingValidations.clear();
-		await Promise.all(pending.map(([cacheFile, input]) => this.validateCache(cacheFile, input)));
-	}
+	private async validateCache(): Promise<void> {
+		if (!this.input) {
+			// Input has been unset by the time we get here, so skip validation
+			return;
+		}
 
-	private async validateCache(cacheFile: URI, input: ExtensionScannerInput): Promise<void> {
+		const cacheFile = this.getCacheFile(this.input);
 		const cacheContents = await this.readExtensionCache(cacheFile);
 		if (!cacheContents) {
 			// Cache has been deleted by someone else, which is perfectly fine...
@@ -1016,7 +1014,7 @@ class CachedExtensionsScanner extends ExtensionsScanner {
 		}
 
 		const actual = cacheContents.result;
-		const expected = JSON.parse(JSON.stringify(await super.scanExtensions(input)));
+		const expected = JSON.parse(JSON.stringify(await super.scanExtensions(this.input)));
 		if (objects.equals(expected, actual)) {
 			// Cache is valid and running with it is perfectly fine...
 			return;
@@ -1034,7 +1032,7 @@ class CachedExtensionsScanner extends ExtensionsScanner {
 
 	private getCacheFile(input: ExtensionScannerInput): URI {
 		const profile = this.getProfile(input);
-		return this.uriIdentityService.extUri.joinPath(profile.cacheHome, getManifestCacheFileName(input.type, input.language));
+		return this.uriIdentityService.extUri.joinPath(profile.cacheHome, input.type === ExtensionType.System ? BUILTIN_MANIFEST_CACHE_FILE : USER_MANIFEST_CACHE_FILE);
 	}
 
 	private getProfile(input: ExtensionScannerInput): IUserDataProfile {

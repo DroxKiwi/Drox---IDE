@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import path from 'path';
 import esbuild, { type Plugin } from 'esbuild';
-import { resolvePackageDirectory } from '../esbuild-common.mts';
 import { run } from '../esbuild-webview-common.mts';
 
 const rootDir = import.meta.dirname;
@@ -40,7 +39,7 @@ const mermaidMarkdownBuildOptions: Partial<esbuild.BuildOptions> = {
 		'.ttf': 'dataurl',
 	},
 	plugins: [cssTextPlugin],
-	splitting: true,
+	minify: false,
 };
 
 await Promise.all([
@@ -49,7 +48,7 @@ await Promise.all([
 		entryPoints: {
 			'index': path.join(chatSrcDir, 'index.ts'),
 			'index-editor': path.join(chatSrcDir, 'index-editor.ts'),
-			'codicon': path.join(resolvePackageDirectory(rootDir, '@vscode/codicons'), 'dist', 'codicon.css'),
+			'codicon': path.join(rootDir, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'),
 		},
 		srcDir: chatSrcDir,
 		outdir: path.join(rootDir, 'chat-webview-out'),
@@ -78,14 +77,5 @@ await Promise.all([
 		additionalOptions: {
 			...mermaidMarkdownBuildOptions,
 		},
-	}, process.argv),
-	// Markdown editor code blocks
-	run({
-		entryPoints: {
-			'index': path.join(previewSrcDir, 'markdownEditor', 'index.ts'),
-		},
-		srcDir: previewSrcDir,
-		outdir: path.join(rootDir, 'markdown-editor-out'),
-		additionalOptions: mermaidMarkdownBuildOptions,
 	}, process.argv),
 ]);

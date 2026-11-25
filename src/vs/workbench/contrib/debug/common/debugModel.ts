@@ -1519,30 +1519,13 @@ export class DebugModel extends Disposable implements IDebugModel {
 		return this.sessions.filter(s => includeInactive || s.state !== State.Inactive);
 	}
 
-	private shouldDisposeSession(session: IDebugSession, newSession: IDebugSession): boolean {
-		if (session.state !== State.Inactive) {
-			return false;
-		}
-		if (session.configuration.name === newSession.configuration.name) {
-			return true;
-		}
-		if (newSession.parentSession) {
-			return false;
-		}
-		let rootSession = session;
-		while (rootSession.parentSession) {
-			rootSession = rootSession.parentSession;
-		}
-		return rootSession.state === State.Inactive && rootSession.configuration.name === newSession.configuration.name;
-	}
-
 	addSession(session: IDebugSession): void {
 		this.sessions = this.sessions.filter(s => {
 			if (s.getId() === session.getId()) {
 				// Make sure to de-dupe if a session is re-initialized. In case of EH debugging we are adding a session again after an attach.
 				return false;
 			}
-			if (this.shouldDisposeSession(s, session)) {
+			if (s.state === State.Inactive && s.configuration.name === session.configuration.name) {
 				// Make sure to remove all inactive sessions that are using the same configuration as the new session
 				s.dispose();
 				return false;
@@ -1661,17 +1644,15 @@ export class DebugModel extends Disposable implements IDebugModel {
 						this.schedulers.set(thread.getId(), {
 							completeDeferred: deferred,
 							scheduler: new RunOnceScheduler(() => {
-								const wasCallStackComplete = thread.reachedEndOfCallStack;
 								thread.fetchCallStack(19).then(() => {
 									const stale = thread.getStaleCallStack();
 									const current = thread.getCallStack();
-									// A thread's call stack can become complete without adding frames, so fire the change event to notify consumers.
-									let callStackChanged = stale.length !== current.length || wasCallStackComplete !== thread.reachedEndOfCallStack;
-									for (let i = 1; i < stale.length && !callStackChanged; i++) {
-										callStackChanged = !stale[i].equals(current[i]);
+									let bottomOfCallStackChanged = stale.length !== current.length;
+									for (let i = 1; i < stale.length && !bottomOfCallStackChanged; i++) {
+										bottomOfCallStackChanged = !stale[i].equals(current[i]);
 									}
 
-									if (callStackChanged) {
+									if (bottomOfCallStackChanged) {
 										this._onDidChangeCallStack.fire();
 									}
 								}).finally(() => {

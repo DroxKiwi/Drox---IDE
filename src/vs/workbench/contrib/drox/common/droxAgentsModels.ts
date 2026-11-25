@@ -47,11 +47,8 @@ export function droxLlmSnapshotToLanguageModels(
 			family: DROX_AGENTS_LM_VENDOR,
 			version: '1',
 			id: model,
-			// The provider list has no context window. A placeholder would show as
-			// "Max context" next to the model and disagree with drox.numCtx, which
-			// is the value sent on agent.run. Zero hides that label.
-			maxInputTokens: 0,
-			maxOutputTokens: 0,
+			maxInputTokens: 128_000,
+			maxOutputTokens: 32_000,
 			isDefaultForLocation: {},
 			isUserSelectable: true,
 			targetChatSessionType: DROX_CHAT_SESSION_TYPE,

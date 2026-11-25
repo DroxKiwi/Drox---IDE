@@ -539,33 +539,59 @@ async fn loop_detector_does_not_flag_legitimate_short_run() {
     assert!(events.iter().any(|e| matches!(e, Ok(AgentEvent::Stop { .. }))));
 }
 
-/// Clôture mécanique : `[phase: acting]` sans tool_calls → Stop immédiat (plus de FX-B).
+/// FX-B : `[phase: acting]` sans tool_calls → nudges dédiés, puis un tour
+/// de réponse forcée. Le parent full protocol (profil par défaut) ne s'arrête
+/// plus en `LoopDetected { kind: intent_only_write }`.
 #[tokio::test]
-async fn intent_only_write_acting_closes_in_one_turn() {
+async fn intent_only_write_acting_forces_final_answer_after_nudges() {
     let loop_text = "[phase: acting]\nJe vais écrire le fichier src/app/docs/engine/page.tsx maintenant.\n";
-    let llm = Arc::new(ScriptedLlm::new(vec![vec![
-        StreamEvent::Start,
-        StreamEvent::TextDelta {
-            text: loop_text.into(),
-        },
-        StreamEvent::Stop {
-            reason: StopReason::EndTurn,
-            usage: Usage::default(),
-        },
-    ]]));
-    let registry = Arc::new(ToolRegistry::new());
+    let acting = || {
+        vec![
+            StreamEvent::Start,
+            StreamEvent::TextDelta {
+                text: loop_text.into(),
+            },
+            StreamEvent::Stop {
+                reason: StopReason::EndTurn,
+                usage: Usage::default(),
+            },
+        ]
+    };
+    let llm = Arc::new(ScriptedLlm::new(vec![
+        acting(),
+        acting(),
+        acting(),
+        vec![
+            StreamEvent::Start,
+            StreamEvent::TextDelta {
+                text: "La page est en place.".into(),
+            },
+            StreamEvent::Stop {
+                reason: StopReason::EndTurn,
+                usage: Usage::default(),
+            },
+        ],
+    ]));
+    let mut registry = ToolRegistry::new();
+    registry.register(Arc::new(TodoWriteTool));
+    let registry = Arc::new(registry);
     let ctx = ToolContext::new(camino::Utf8PathBuf::from("."), false);
-    let agent = Agent::new(llm, registry, ctx, AgentConfig::default());
+    let mut config = AgentConfig::default();
+    config.max_iterations = 8;
+    let agent = Agent::new(llm, registry, ctx, config);
 
     let raw: Vec<_> = agent.run("Écris la page Engine").collect::<Vec<_>>().await;
-    let stops = raw
-        .iter()
-        .filter(|e| matches!(e, Ok(AgentEvent::Stop { .. })))
-        .count();
-    assert_eq!(stops, 1, "un seul Stop, got {raw:?}");
+    assert!(
+        !raw.iter().any(|e| matches!(e, Err(EngineError::LoopDetected { .. }))),
+        "le tour acting sans outil force une réponse, got {raw:?}"
+    );
+    assert!(
+        raw.iter().any(|e| matches!(e, Ok(AgentEvent::Stop { .. }))),
+        "le run doit se clôturer, got {raw:?}"
+    );
     assert!(raw.iter().any(|e| matches!(
         e,
-        Ok(AgentEvent::TextDelta { text }) if text.contains("Je vais écrire")
+        Ok(AgentEvent::TextDelta { text }) if text.contains("La page est en place")
     )));
 }
 

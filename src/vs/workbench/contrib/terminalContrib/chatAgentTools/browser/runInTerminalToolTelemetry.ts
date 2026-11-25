@@ -8,7 +8,6 @@ import { ITelemetryService } from '../../../../../platform/telemetry/common/tele
 import { TelemetryTrustedValue } from '../../../../../platform/telemetry/common/telemetryUtils.js';
 import { ChatConfiguration } from '../../../chat/common/constants.js';
 import type { ITerminalInstance } from '../../../terminal/browser/terminal.js';
-import type { Report } from './tools/consoleCompactor/consoleCompactor.js';
 import { ShellIntegrationQuality } from './toolTerminalCreator.js';
 
 export class RunInTerminalToolTelemetry {
@@ -25,7 +24,6 @@ export class RunInTerminalToolTelemetry {
 		autoApproveResult: 'approved' | 'denied' | 'manual';
 		autoApproveReason: 'subCommand' | 'commandLine' | undefined;
 		autoApproveDefault: boolean | undefined;
-		autoApproveRuleKeyForm: string | undefined;
 	}) {
 		const subCommandsSanitized = state.subCommands.map(e => {
 			const commandName = e.split(' ')[0];
@@ -68,7 +66,6 @@ export class RunInTerminalToolTelemetry {
 			autoApproveResult: string;
 			autoApproveReason: string | undefined;
 			autoApproveDefault: boolean | undefined;
-			autoApproveRuleKeyForm: string | undefined;
 		};
 		type TelemetryClassification = {
 			owner: 'meganrogge';
@@ -81,7 +78,6 @@ export class RunInTerminalToolTelemetry {
 			autoApproveResult: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'Whether the command line was auto-approved' };
 			autoApproveReason: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The reason it was auto approved or denied' };
 			autoApproveDefault: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; isMeasurement: true; comment: 'Whether the command line was auto approved due to a default rule' };
-			autoApproveRuleKeyForm: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'How the deciding auto approve rule keys are written (plain, path or regex), comma-separated. Never contains rule text' };
 		};
 
 		this._telemetryService.publicLog2<TelemetryEvent, TelemetryClassification>('toolUse.runInTerminal.prepare', {
@@ -91,7 +87,6 @@ export class RunInTerminalToolTelemetry {
 			autoApproveResult: state.autoApproveResult,
 			autoApproveReason: state.autoApproveReason,
 			autoApproveDefault: state.autoApproveDefault,
-			autoApproveRuleKeyForm: state.autoApproveRuleKeyForm,
 		});
 	}
 
@@ -218,41 +213,6 @@ export class RunInTerminalToolTelemetry {
 
 			compressOutputEnabled: this._configurationService.getValue<boolean>(ChatConfiguration.CompressOutputEnabled) === true,
 		});
-	}
-
-	/**
-	 * Reports the measurements produced by the terminal output compaction
-	 * {@link Report}, so the effectiveness of compaction (how much output was
-	 * removed and whether it was lossless) can be evaluated across sessions.
-	 */
-	logCompaction(report: Report): void {
-		type TelemetryEvent = {
-			commandKinds: TelemetryTrustedValue<string>;
-			originalChars: number;
-			compactedChars: number;
-		};
-		type TelemetryClassification = {
-			owner: 'aiday-mar';
-			comment: 'Measures how effective terminal output compaction is for the runInTerminal tool';
-			commandKinds: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The compactor tags that matched the command, encoded as a JSON array' };
-			originalChars: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; isMeasurement: true; comment: 'The number of UTF-16 characters in the original output' };
-			compactedChars: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; isMeasurement: true; comment: 'The number of UTF-16 characters in the compacted output' };
-		};
-		this._telemetryService.publicLog2<TelemetryEvent, TelemetryClassification>('toolUse.runInTerminal.compaction', {
-			commandKinds: new TelemetryTrustedValue(JSON.stringify(report.commandKinds)),
-			originalChars: report.original.chars,
-			compactedChars: report.compacted.chars
-		});
-	}
-
-	logCompactionFailed(): void {
-		type TelemetryEvent = Record<never, never>;
-		type TelemetryClassification = {
-			owner: 'aiday-mar';
-			comment: 'Tracks failures when terminal output compaction throws before producing a report';
-		};
-
-		this._telemetryService.publicLog2<TelemetryEvent, TelemetryClassification>('toolUse.runInTerminal.compactionFailed', {});
 	}
 }
 

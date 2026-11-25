@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import type * as ESTree from 'estree';
 
 /**
  * Ensures that localization keys in policy blocks match the keys used in nls.localize() calls.
@@ -21,9 +22,9 @@ import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plu
  * The key property ('autoApprove2.description') must match the first argument
  * to nls.localize() ('autoApprove2.description').
  */
-export default new class PolicyLocalizationKeyMatch implements CreateRule {
+export default new class PolicyLocalizationKeyMatch implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			mismatch: 'Localization key "{{keyValue}}" does not match the key used in nls.localize("{{localizeKey}}", ...). They must be identical.'
 		},
@@ -33,13 +34,13 @@ export default new class PolicyLocalizationKeyMatch implements CreateRule {
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
 		function checkLocalizationObject(node: ESTree.ObjectExpression) {
 			// Look for objects with structure: { key: '...', value: nls.localize('...', '...') }
 
-			let keyProperty: ESTree.ObjectProperty | undefined;
-			let valueProperty: ESTree.ObjectProperty | undefined;
+			let keyProperty: ESTree.Property | undefined;
+			let valueProperty: ESTree.Property | undefined;
 
 			for (const property of node.properties) {
 				if (property.type !== 'Property') {
@@ -115,11 +116,12 @@ export default new class PolicyLocalizationKeyMatch implements CreateRule {
 
 		function isInPolicyBlock(node: ESTree.Node): boolean {
 			// Walk up the AST to see if we're inside a policy object
-			const ancestors = context.sourceCode.getAncestors(node) as ESTree.Node[];
+			const ancestors = context.sourceCode.getAncestors(node);
 
 			for (const ancestor of ancestors) {
 				if (ancestor.type === 'Property') {
-					const property = ancestor;
+					// eslint-disable-next-line local/code-no-any-casts
+					const property = ancestor as any;
 					if (property.key && property.key.type === 'Identifier' && property.key.name === 'policy') {
 						return true;
 					}

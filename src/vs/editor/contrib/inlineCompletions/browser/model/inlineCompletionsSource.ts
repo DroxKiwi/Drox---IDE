@@ -20,6 +20,7 @@ import { DataChannelForwardingTelemetryService, forwardToChannelIf, isCopilotLik
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { observableConfigValue } from '../../../../../platform/observable/common/platformObservableUtils.js';
+import product from '../../../../../platform/product/common/product.js';
 import { StringEdit } from '../../../../common/core/edits/stringEdit.js';
 import { Position } from '../../../../common/core/position.js';
 import { Range } from '../../../../common/core/range.js';
@@ -81,7 +82,6 @@ export class InlineCompletionsSource extends Disposable {
 	public readonly suggestWidgetInlineCompletions = this._state.map(this, v => v.suggestWidgetInlineCompletions);
 
 	private readonly _renameProcessor: RenameSymbolProcessor;
-	private readonly _dataChannelTelemetryService: DataChannelForwardingTelemetryService;
 
 	private _completionsEnabled: Record<string, boolean> | undefined = undefined;
 
@@ -90,7 +90,6 @@ export class InlineCompletionsSource extends Disposable {
 		private readonly _versionId: IObservableWithChange<number | null, IModelContentChangedEvent | undefined>,
 		private readonly _debounceValue: IFeatureDebounceInformation,
 		private readonly _cursorPosition: IObservable<Position>,
-		completionsEnablementSetting: string | undefined,
 		@ILanguageConfigurationService private readonly _languageConfigurationService: ILanguageConfigurationService,
 		@ILogService private readonly _logService: ILogService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
@@ -99,7 +98,6 @@ export class InlineCompletionsSource extends Disposable {
 		@ITextModelService private readonly _textModelService: ITextModelService,
 	) {
 		super();
-		this._dataChannelTelemetryService = this._instantiationService.createInstance(DataChannelForwardingTelemetryService);
 		this._loggingEnabled = observableConfigValue('editor.inlineSuggest.logFetch', false, this._configurationService).recomputeInitiallyAndOnChange(this._store);
 		this._sendRequestData = observableConfigValue('editor.inlineSuggest.emptyResponseInformation', true, this._configurationService).recomputeInitiallyAndOnChange(this._store);
 		this._structuredFetchLogger = this._register(this._instantiationService.createInstance(StructuredLogger.cast<
@@ -113,11 +111,12 @@ export class InlineCompletionsSource extends Disposable {
 
 		this.clearOperationOnTextModelChange.recomputeInitiallyAndOnChange(this._store);
 
-		if (completionsEnablementSetting) {
-			this._updateCompletionsEnablement(completionsEnablementSetting);
+		const enablementSetting = product.defaultChatAgent?.completionsEnablementSetting ?? undefined;
+		if (enablementSetting) {
+			this._updateCompletionsEnablement(enablementSetting);
 			this._register(this._configurationService.onDidChangeConfiguration(e => {
-				if (e.affectsConfiguration(completionsEnablementSetting)) {
-					this._updateCompletionsEnablement(completionsEnablementSetting);
+				if (e.affectsConfiguration(enablementSetting)) {
+					this._updateCompletionsEnablement(enablementSetting);
 				}
 			}));
 		}
@@ -540,7 +539,6 @@ export class InlineCompletionsSource extends Disposable {
 			sameShapeReplacements: undefined,
 			longDistanceHintVisible: undefined,
 			longDistanceHintDistance: undefined,
-			isForAnotherDocument: undefined,
 			notShownReason: undefined,
 			renameCreated: false,
 			renameDuration: undefined,
@@ -551,7 +549,8 @@ export class InlineCompletionsSource extends Disposable {
 			editKind: undefined,
 		};
 
-		sendInlineCompletionsEndOfLifeTelemetry(this._dataChannelTelemetryService, emptyEndOfLifeEvent);
+		const dataChannel = this._instantiationService.createInstance(DataChannelForwardingTelemetryService);
+		sendInlineCompletionsEndOfLifeTelemetry(dataChannel, emptyEndOfLifeEvent);
 	}
 
 	public clearSuggestWidgetInlineCompletions(tx: ITransaction): void {

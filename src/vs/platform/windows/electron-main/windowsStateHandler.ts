@@ -50,37 +50,12 @@ interface ISerializedWindowState {
 	readonly uiState: IWindowUIState;
 }
 
-/**
- * Restores the windows of the previous session exactly as they were, for example
- * minimized, after the application restarted while the user was away.
- */
-export interface IExactRestoreState {
-
-	/**
-	 * macOS: hide the application again after showing its windows.
-	 */
-	readonly hideApplication: boolean;
-}
-
-function isExactRestoreState(value: unknown): value is IExactRestoreState {
-	const candidate = value as Partial<IExactRestoreState> | undefined;
-	return !!candidate && typeof candidate === 'object' && typeof candidate.hideApplication === 'boolean';
-}
-
 export class WindowsStateHandler extends Disposable {
 
 	private static readonly windowsStateStorageKey = 'windowsState';
-	private static readonly exactRestoreStorageKey = 'windowsExactRestore';
 
 	get state() { return this._state; }
 	private readonly _state: IWindowsState;
-
-	/**
-	 * Whether to restore the windows of the previous session exactly as they were.
-	 */
-	readonly exactRestore: IExactRestoreState | undefined;
-
-	private nextExactRestore: IExactRestoreState | undefined = undefined;
 
 	private lastClosedState: IWindowState | undefined = undefined;
 
@@ -96,33 +71,8 @@ export class WindowsStateHandler extends Disposable {
 		super();
 
 		this._state = restoreWindowsState(this.stateService.getItem<ISerializedWindowsState>(WindowsStateHandler.windowsStateStorageKey));
-		this.exactRestore = this.takeExactRestore();
 
 		this.registerListeners();
-	}
-
-	private takeExactRestore(): IExactRestoreState | undefined {
-		const exactRestore = this.stateService.getItem<unknown>(WindowsStateHandler.exactRestoreStorageKey);
-		if (exactRestore === undefined) {
-			return undefined;
-		}
-
-		this.stateService.removeItem(WindowsStateHandler.exactRestoreStorageKey); // only applies to the next startup
-		if (!isExactRestoreState(exactRestore)) {
-			return undefined;
-		}
-
-		this.logService.info('[WindowsStateHandler] restoring windows exactly');
-
-		return exactRestore;
-	}
-
-	/**
-	 * Restores the windows exactly as they are on the next startup, if the
-	 * application quits without veto. Pass `undefined` to cancel.
-	 */
-	setNextExactRestore(exactRestore: IExactRestoreState | undefined): void {
-		this.nextExactRestore = exactRestore;
 	}
 
 	private registerListeners(): void {
@@ -139,11 +89,6 @@ export class WindowsStateHandler extends Disposable {
 		// Handle various lifecycle events around windows
 		this._register(this.lifecycleMainService.onBeforeCloseWindow(window => this.onBeforeCloseWindow(window)));
 		this._register(this.lifecycleMainService.onBeforeShutdown(() => this.onBeforeShutdown()));
-		this._register(this.lifecycleMainService.onWillShutdown(() => {
-			if (this.nextExactRestore) {
-				this.stateService.setItem(WindowsStateHandler.exactRestoreStorageKey, this.nextExactRestore); // fires only when no window vetoed the shutdown
-			}
-		}));
 		this._register(this.windowsMainService.onDidChangeWindowsCount(e => {
 			if (e.newCount - e.oldCount > 0) {
 				// clear last closed window state when a new window opens. this helps on macOS where
@@ -207,7 +152,6 @@ export class WindowsStateHandler extends Disposable {
 		// on macOS.
 		// https://github.com/electron/electron/issues/34367
 		const displaysWithFullScreenWindow = new Set<number | undefined>();
-		const exact = !!this.nextExactRestore;
 
 		const currentWindowsState: IWindowsState = {
 			openedWindows: [],
@@ -223,7 +167,7 @@ export class WindowsStateHandler extends Disposable {
 			}
 
 			if (activeWindow) {
-				currentWindowsState.lastActiveWindow = this.toWindowState(activeWindow, exact);
+				currentWindowsState.lastActiveWindow = this.toWindowState(activeWindow);
 
 				if (currentWindowsState.lastActiveWindow.uiState.mode === WindowMode.Fullscreen) {
 					displaysWithFullScreenWindow.add(currentWindowsState.lastActiveWindow.uiState.display); // always allow fullscreen for active window
@@ -234,7 +178,7 @@ export class WindowsStateHandler extends Disposable {
 		// 2.) Find extension host window
 		const extensionHostWindow = this.windowsMainService.getWindows().find(window => window.isExtensionDevelopmentHost && !window.isExtensionTestHost);
 		if (extensionHostWindow) {
-			currentWindowsState.lastPluginDevelopmentHostWindow = this.toWindowState(extensionHostWindow, exact);
+			currentWindowsState.lastPluginDevelopmentHostWindow = this.toWindowState(extensionHostWindow);
 
 			if (currentWindowsState.lastPluginDevelopmentHostWindow.uiState.mode === WindowMode.Fullscreen) {
 				if (displaysWithFullScreenWindow.has(currentWindowsState.lastPluginDevelopmentHostWindow.uiState.display)) {
@@ -254,7 +198,7 @@ export class WindowsStateHandler extends Disposable {
 		// to come from the stored lastClosedWindowState on Win/Linux at least
 		if (this.windowsMainService.getWindowCount() > 1) {
 			currentWindowsState.openedWindows = this.windowsMainService.getWindows().filter(window => !window.isExtensionDevelopmentHost).map(window => {
-				const windowState = this.toWindowState(window, exact);
+				const windowState = this.toWindowState(window);
 
 				if (windowState.uiState.mode === WindowMode.Fullscreen) {
 					if (displaysWithFullScreenWindow.has(windowState.uiState.display)) {
@@ -312,14 +256,14 @@ export class WindowsStateHandler extends Disposable {
 		}
 	}
 
-	private toWindowState(window: ICodeWindow, exact = false): IWindowState {
+	private toWindowState(window: ICodeWindow): IWindowState {
 		return {
 			windowId: window.id,
 			workspace: isWorkspaceIdentifier(window.openedWorkspace) ? window.openedWorkspace : undefined,
 			folderUri: isSingleFolderWorkspaceIdentifier(window.openedWorkspace) ? window.openedWorkspace.uri : undefined,
 			backupPath: window.backupPath,
 			remoteAuthority: window.remoteAuthority,
-			uiState: window.serializeWindowState({ exact })
+			uiState: window.serializeWindowState()
 		};
 	}
 
@@ -449,8 +393,7 @@ export class WindowsStateHandler extends Disposable {
 				} else {
 					state = {
 						...lastActiveState,
-						zoomLevel: undefined, // do not inherit zoom level
-						alwaysOnTop: undefined
+						zoomLevel: undefined // do not inherit zoom level
 					};
 				}
 

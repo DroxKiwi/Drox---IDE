@@ -13,5 +13,5 @@ export const HISTORY_PROBE_RESULTS_DIR = 'history-prob-lab-results';
 export const HISTORY_PROBE_SCENARIO: readonly string[] = [
 	'Salut. Analyse le projet',
 	'Peux tu réécrire le projet dans un autre dossier à la racine du répertoire, en rust stp ?',
-	'Copie le dossier de documentation dans le projet rust, et met à jour la documentation pour refléter les changements.',
+	'Met à jour la documentation pour refléter les changements.',
 ];

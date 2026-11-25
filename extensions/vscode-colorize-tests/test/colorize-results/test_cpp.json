@@ -8,11 +8,11 @@
 			"dark_vs": "comment: #6A9955",
 			"light_vs": "comment: #008000",
 			"hc_black": "comment: #7CA668",
-			"2026-dark": "punctuation.definition.comment: #8B949E",
 			"dark_modern": "comment: #6A9955",
-			"2026-light": "punctuation.definition.comment: #6E7781",
 			"hc_light": "comment: #515151",
-			"light_modern": "comment: #008000"
+			"light_modern": "comment: #008000",
+			"2026-dark": "punctuation.definition.comment: #8B949E",
+			"2026-light": "punctuation.definition.comment: #6E7781"
 		}
 	},
 	{
@@ -24,11 +24,11 @@
 			"dark_vs": "comment: #6A9955",
 			"light_vs": "comment: #008000",
 			"hc_black": "comment: #7CA668",
-			"2026-dark": "comment: #8B949E",
 			"dark_modern": "comment: #6A9955",
-			"2026-light": "comment: #6E7781",
 			"hc_light": "comment: #515151",
-			"light_modern": "comment: #008000"
+			"light_modern": "comment: #008000",
+			"2026-dark": "comment: #8B949E",
+			"2026-light": "comment: #6E7781"
 		}
 	},
 	{
@@ -40,11 +40,11 @@
 			"dark_vs": "keyword.control: #569CD6",
 			"light_vs": "keyword.control: #0000FF",
 			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
 			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
 			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
 		}
 	},
 	{
@@ -56,11 +56,11 @@
 			"dark_vs": "keyword.control: #569CD6",
 			"light_vs": "keyword.control: #0000FF",
 			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
 			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
 			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
 		}
 	},
 	{
@@ -72,11 +72,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.preprocessor: #569CD6",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.preprocessor: #0000FF",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.preprocessor: #569CD6",
+			"2026-light": "meta.preprocessor: #0000FF"
 		}
 	},
 	{
@@ -88,11 +88,11 @@
 			"dark_vs": "string: #CE9178",
 			"light_vs": "string: #A31515",
 			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
 			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
 			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
 		}
 	},
 	{
@@ -104,11 +104,11 @@
 			"dark_vs": "string: #CE9178",
 			"light_vs": "string: #A31515",
 			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
 			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
 			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
 		}
 	},
 	{
@@ -120,11 +120,11 @@
 			"dark_vs": "string: #CE9178",
 			"light_vs": "string: #A31515",
 			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
 			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
 			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
 		}
 	},
 	{
@@ -136,11 +136,11 @@
 			"dark_vs": "keyword: #569CD6",
 			"light_vs": "keyword: #0000FF",
 			"hc_black": "keyword.other.using: #C586C0",
-			"2026-dark": "keyword.other.using: #C586C0",
 			"dark_modern": "keyword.other.using: #C586C0",
-			"2026-light": "keyword.other.using: #AF00DB",
 			"hc_light": "keyword.other.using: #B5200D",
-			"light_modern": "keyword.other.using: #AF00DB"
+			"light_modern": "keyword.other.using: #AF00DB",
+			"2026-dark": "keyword.other.using: #C586C0",
+			"2026-light": "keyword.other.using: #AF00DB"
 		}
 	},
 	{
@@ -152,11 +152,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -168,11 +168,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -184,11 +184,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -200,11 +200,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "entity.name.namespace: #4EC9B0",
-			"2026-dark": "entity.name.namespace: #4EC9B0",
 			"dark_modern": "entity.name.namespace: #4EC9B0",
-			"2026-light": "entity.name.namespace: #267F99",
 			"hc_light": "entity.name.namespace: #185E73",
-			"light_modern": "entity.name.namespace: #267F99"
+			"light_modern": "entity.name.namespace: #267F99",
+			"2026-dark": "entity.name.namespace: #4EC9B0",
+			"2026-light": "entity.name.namespace: #267F99"
 		}
 	},
 	{
@@ -216,11 +216,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -232,11 +232,11 @@
 			"dark_vs": "keyword.control: #569CD6",
 			"light_vs": "keyword.control: #0000FF",
 			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
 			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
 			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
 		}
 	},
 	{
@@ -248,11 +248,11 @@
 			"dark_vs": "keyword.control: #569CD6",
 			"light_vs": "keyword.control: #0000FF",
 			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
 			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
 			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
 		}
 	},
 	{
@@ -264,11 +264,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.preprocessor: #569CD6",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.preprocessor: #0000FF",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.preprocessor: #569CD6",
+			"2026-light": "meta.preprocessor: #0000FF"
 		}
 	},
 	{
@@ -280,11 +280,11 @@
 			"dark_vs": "entity.name.function.preprocessor: #569CD6",
 			"light_vs": "entity.name.function.preprocessor: #0000FF",
 			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function.preprocessor: #569CD6",
 			"dark_modern": "entity.name.function.preprocessor: #569CD6",
-			"2026-light": "entity.name.function.preprocessor: #0000FF",
 			"hc_light": "entity.name.function.preprocessor: #0F4A85",
-			"light_modern": "entity.name.function.preprocessor: #0000FF"
+			"light_modern": "entity.name.function.preprocessor: #0000FF",
+			"2026-dark": "entity.name.function.preprocessor: #569CD6",
+			"2026-light": "entity.name.function.preprocessor: #0000FF"
 		}
 	},
 	{
@@ -296,11 +296,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -312,11 +312,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -328,11 +328,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -344,11 +344,11 @@
 			"dark_vs": "string: #CE9178",
 			"light_vs": "string: #A31515",
 			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
 			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
 			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
 		}
 	},
 	{
@@ -360,11 +360,11 @@
 			"dark_vs": "string: #CE9178",
 			"light_vs": "string: #A31515",
 			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
 			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
 			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
 		}
 	},
 	{
@@ -376,11 +376,11 @@
 			"dark_vs": "string: #CE9178",
 			"light_vs": "string: #A31515",
 			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
 			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
 			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
 		}
 	},
 	{
@@ -392,11 +392,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -408,11 +408,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -424,11 +424,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "entity.name.type: #4EC9B0",
-			"2026-dark": "entity.name.type: #4EC9B0",
 			"dark_modern": "entity.name.type: #4EC9B0",
-			"2026-light": "entity.name.type: #267F99",
 			"hc_light": "entity.name.type: #185E73",
-			"light_modern": "entity.name.type: #267F99"
+			"light_modern": "entity.name.type: #267F99",
+			"2026-dark": "entity.name.type: #4EC9B0",
+			"2026-light": "entity.name.type: #267F99"
 		}
 	},
 	{
@@ -440,11 +440,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -456,123 +456,91 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
 		"c": "    ",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.declaration.cpp",
+		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
 			"light_plus": "default: #000000",
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
 		"c": "int",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.declaration.cpp meta.qualified-type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
+		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
 		"r": {
 			"dark_plus": "storage.type: #569CD6",
 			"light_plus": "storage.type: #0000FF",
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
-		"c": " ",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.declaration.cpp",
+		"c": " width",
+		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
 			"light_plus": "default: #000000",
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "width",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.declaration.cpp meta.declaration.cpp variable.lower-case.cpp variable.other.declare.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
 		"c": ",",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.declaration.cpp punctuation.separator.delimiter.comma.cpp",
+		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp punctuation.separator.delimiter.comma.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
 			"light_plus": "default: #000000",
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
-		"c": " ",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.declaration.cpp",
+		"c": " height",
+		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
 			"light_plus": "default: #000000",
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "height",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.declaration.cpp variable.lower-case.cpp variable.other.unknown.height.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -584,11 +552,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -600,11 +568,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -616,11 +584,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -632,11 +600,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -648,27 +616,27 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
 		"c": "void",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.function.definition.cpp meta.qualified-type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
+		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.function.definition.cpp meta.qualified_type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
 		"r": {
 			"dark_plus": "storage.type: #569CD6",
 			"light_plus": "storage.type: #0000FF",
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -680,11 +648,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -696,11 +664,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function: #D2A8FF",
 			"dark_modern": "entity.name.function: #DCDCAA",
-			"2026-light": "entity.name.function: #8250DF",
 			"hc_light": "entity.name.function: #5E2CBC",
-			"light_modern": "entity.name.function: #795E26"
+			"light_modern": "entity.name.function: #795E26",
+			"2026-dark": "entity.name.function: #D2A8FF",
+			"2026-light": "entity.name.function: #8250DF"
 		}
 	},
 	{
@@ -712,11 +680,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -728,11 +696,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -744,11 +712,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -760,11 +728,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -776,11 +744,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -792,11 +760,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -808,11 +776,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -824,27 +792,27 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
 		"c": "int",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.function.definition.cpp meta.qualified-type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
+		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.function.definition.cpp meta.qualified_type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
 		"r": {
 			"dark_plus": "storage.type: #569CD6",
 			"light_plus": "storage.type: #0000FF",
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -856,11 +824,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -872,11 +840,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function: #D2A8FF",
 			"dark_modern": "entity.name.function: #DCDCAA",
-			"2026-light": "entity.name.function: #8250DF",
 			"hc_light": "entity.name.function: #5E2CBC",
-			"light_modern": "entity.name.function: #795E26"
+			"light_modern": "entity.name.function: #795E26",
+			"2026-dark": "entity.name.function: #D2A8FF",
+			"2026-light": "entity.name.function: #8250DF"
 		}
 	},
 	{
@@ -888,11 +856,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -904,11 +872,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -920,11 +888,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -936,11 +904,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -952,15 +920,15 @@
 			"dark_vs": "keyword.control: #569CD6",
 			"light_vs": "keyword.control: #0000FF",
 			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
 			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
 			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
 		}
 	},
 	{
-		"c": " ",
+		"c": " width",
 		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
@@ -968,27 +936,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "width",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.unknown.width.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -1000,27 +952,27 @@
 			"dark_vs": "keyword.operator: #D4D4D4",
 			"light_vs": "keyword.operator: #000000",
 			"hc_black": "keyword.operator: #D4D4D4",
-			"2026-dark": "keyword.operator: #D4D4D4",
 			"dark_modern": "keyword.operator: #D4D4D4",
-			"2026-light": "keyword.operator: #000000",
 			"hc_light": "keyword.operator: #000000",
-			"light_modern": "keyword.operator: #000000"
+			"light_modern": "keyword.operator: #000000",
+			"2026-dark": "keyword.operator: #D4D4D4",
+			"2026-light": "keyword.operator: #000000"
 		}
 	},
 	{
 		"c": "height",
-		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.unknown.height.cpp",
+		"t": "source.cpp meta.block.class.cpp meta.body.class.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
 		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -1032,11 +984,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -1048,11 +1000,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -1064,11 +1016,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
@@ -1080,27 +1032,27 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "meta.block: #C9D1D9",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "meta.block: #1F2328",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "meta.block: #C9D1D9",
+			"2026-light": "meta.block: #1F2328"
 		}
 	},
 	{
 		"c": "void",
-		"t": "source.cpp meta.function.definition.cpp meta.qualified-type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
+		"t": "source.cpp meta.function.definition.cpp meta.qualified_type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
 		"r": {
 			"dark_plus": "storage.type: #569CD6",
 			"light_plus": "storage.type: #0000FF",
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -1112,11 +1064,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1128,11 +1080,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "entity.name.scope-resolution: #4EC9B0",
-			"2026-dark": "entity.name.scope-resolution: #4EC9B0",
 			"dark_modern": "entity.name.scope-resolution: #4EC9B0",
-			"2026-light": "entity.name.scope-resolution: #267F99",
 			"hc_light": "entity.name.scope-resolution: #185E73",
-			"light_modern": "entity.name.scope-resolution: #267F99"
+			"light_modern": "entity.name.scope-resolution: #267F99",
+			"2026-dark": "entity.name.scope-resolution: #4EC9B0",
+			"2026-light": "entity.name.scope-resolution: #267F99"
 		}
 	},
 	{
@@ -1144,11 +1096,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1160,11 +1112,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function: #D2A8FF",
 			"dark_modern": "entity.name.function: #DCDCAA",
-			"2026-light": "entity.name.function: #8250DF",
 			"hc_light": "entity.name.function: #5E2CBC",
-			"light_modern": "entity.name.function: #795E26"
+			"light_modern": "entity.name.function: #795E26",
+			"2026-dark": "entity.name.function: #D2A8FF",
+			"2026-light": "entity.name.function: #8250DF"
 		}
 	},
 	{
@@ -1176,11 +1128,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1192,11 +1144,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1208,11 +1160,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -1224,11 +1176,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1240,11 +1192,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable: #FFA657",
 			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable: #953800",
 			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "variable: #001080",
+			"2026-dark": "variable: #FFA657",
+			"2026-light": "variable: #953800"
 		}
 	},
 	{
@@ -1256,11 +1208,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1272,11 +1224,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1288,11 +1240,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -1304,11 +1256,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1320,11 +1272,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable: #FFA657",
 			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable: #953800",
 			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "variable: #001080",
+			"2026-dark": "variable: #FFA657",
+			"2026-light": "variable: #953800"
 		}
 	},
 	{
@@ -1336,11 +1288,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1352,11 +1304,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1368,15 +1320,15 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
-		"c": "  ",
+		"c": "  width ",
 		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
@@ -1384,43 +1336,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "width",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.unknown.width.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
+			"light_modern": "default: #3B3B3B",
 			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1432,15 +1352,15 @@
 			"dark_vs": "keyword.operator: #D4D4D4",
 			"light_vs": "keyword.operator: #000000",
 			"hc_black": "keyword.operator: #D4D4D4",
-			"2026-dark": "keyword.operator: #D4D4D4",
 			"dark_modern": "keyword.operator: #D4D4D4",
-			"2026-light": "keyword.operator: #000000",
 			"hc_light": "keyword.operator: #000000",
-			"light_modern": "keyword.operator: #000000"
+			"light_modern": "keyword.operator: #000000",
+			"2026-dark": "keyword.operator: #D4D4D4",
+			"2026-light": "keyword.operator: #000000"
 		}
 	},
 	{
-		"c": " ",
+		"c": " x",
 		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
@@ -1448,27 +1368,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "x",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.unknown.x.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1480,15 +1384,15 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
-		"c": "  ",
+		"c": "  height ",
 		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
@@ -1496,43 +1400,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "height",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.unknown.height.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
+			"light_modern": "default: #3B3B3B",
 			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1544,15 +1416,15 @@
 			"dark_vs": "keyword.operator: #D4D4D4",
 			"light_vs": "keyword.operator: #000000",
 			"hc_black": "keyword.operator: #D4D4D4",
-			"2026-dark": "keyword.operator: #D4D4D4",
 			"dark_modern": "keyword.operator: #D4D4D4",
-			"2026-light": "keyword.operator: #000000",
 			"hc_light": "keyword.operator: #000000",
-			"light_modern": "keyword.operator: #000000"
+			"light_modern": "keyword.operator: #000000",
+			"2026-dark": "keyword.operator: #D4D4D4",
+			"2026-light": "keyword.operator: #000000"
 		}
 	},
 	{
-		"c": " ",
+		"c": " y",
 		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
@@ -1560,27 +1432,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "y",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.unknown.y.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1592,11 +1448,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1608,59 +1464,59 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
 		"c": "long",
-		"t": "source.cpp meta.function.definition.special.operator-overload.cpp meta.qualified-type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
+		"t": "source.cpp meta.function.definition.special.operator-overload.cpp meta.qualified_type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
 		"r": {
 			"dark_plus": "storage.type: #569CD6",
 			"light_plus": "storage.type: #0000FF",
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
 		"c": " ",
-		"t": "source.cpp meta.function.definition.special.operator-overload.cpp meta.qualified-type.cpp",
+		"t": "source.cpp meta.function.definition.special.operator-overload.cpp meta.qualified_type.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
 			"light_plus": "default: #000000",
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
 		"c": "double",
-		"t": "source.cpp meta.function.definition.special.operator-overload.cpp meta.qualified-type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
+		"t": "source.cpp meta.function.definition.special.operator-overload.cpp meta.qualified_type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
 		"r": {
 			"dark_plus": "storage.type: #569CD6",
 			"light_plus": "storage.type: #0000FF",
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -1672,11 +1528,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1688,11 +1544,11 @@
 			"dark_vs": "keyword: #569CD6",
 			"light_vs": "keyword: #0000FF",
 			"hc_black": "keyword.other.operator: #C586C0",
-			"2026-dark": "keyword.other.operator: #C586C0",
 			"dark_modern": "keyword.other.operator: #C586C0",
-			"2026-light": "keyword.other.operator: #AF00DB",
 			"hc_light": "keyword.other.operator: #B5200D",
-			"light_modern": "keyword.other.operator: #AF00DB"
+			"light_modern": "keyword.other.operator: #AF00DB",
+			"2026-dark": "keyword.other.operator: #C586C0",
+			"2026-light": "keyword.other.operator: #AF00DB"
 		}
 	},
 	{
@@ -1704,11 +1560,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1720,11 +1576,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "entity.name.operator.custom-literal: #DCDCAA",
 			"dark_modern": "entity.name.operator.custom-literal: #DCDCAA",
-			"2026-light": "entity.name.operator.custom-literal: #795E26",
 			"hc_light": "entity.name.operator.custom-literal: #5E2CBC",
-			"light_modern": "entity.name.operator.custom-literal: #795E26"
+			"light_modern": "entity.name.operator.custom-literal: #795E26",
+			"2026-dark": "entity.name.operator.custom-literal: #DCDCAA",
+			"2026-light": "entity.name.operator.custom-literal: #795E26"
 		}
 	},
 	{
@@ -1736,11 +1592,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1752,11 +1608,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "entity.name.operator.custom-literal: #DCDCAA",
 			"dark_modern": "entity.name.operator.custom-literal: #DCDCAA",
-			"2026-light": "entity.name.operator.custom-literal: #795E26",
 			"hc_light": "entity.name.operator.custom-literal: #5E2CBC",
-			"light_modern": "entity.name.operator.custom-literal: #795E26"
+			"light_modern": "entity.name.operator.custom-literal: #795E26",
+			"2026-dark": "entity.name.operator.custom-literal: #DCDCAA",
+			"2026-light": "entity.name.operator.custom-literal: #795E26"
 		}
 	},
 	{
@@ -1768,11 +1624,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1784,11 +1640,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -1800,11 +1656,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1816,11 +1672,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -1832,11 +1688,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1848,11 +1704,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -1864,11 +1720,11 @@
 			"dark_vs": "keyword.control: #569CD6",
 			"light_vs": "keyword.control: #0000FF",
 			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
 			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
 			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
 		}
 	},
 	{
@@ -1880,11 +1736,11 @@
 			"dark_vs": "keyword.control: #569CD6",
 			"light_vs": "keyword.control: #0000FF",
 			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
 			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
 			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
 		}
 	},
 	{
@@ -1896,11 +1752,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.preprocessor: #569CD6",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.preprocessor: #0000FF",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.preprocessor: #569CD6",
+			"2026-light": "meta.preprocessor: #0000FF"
 		}
 	},
 	{
@@ -1912,11 +1768,11 @@
 			"dark_vs": "entity.name.function.preprocessor: #569CD6",
 			"light_vs": "entity.name.function.preprocessor: #0000FF",
 			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function.preprocessor: #569CD6",
 			"dark_modern": "entity.name.function.preprocessor: #569CD6",
-			"2026-light": "entity.name.function.preprocessor: #0000FF",
 			"hc_light": "entity.name.function.preprocessor: #0F4A85",
-			"light_modern": "entity.name.function.preprocessor: #0000FF"
+			"light_modern": "entity.name.function.preprocessor: #0000FF",
+			"2026-dark": "entity.name.function.preprocessor: #569CD6",
+			"2026-light": "entity.name.function.preprocessor: #0000FF"
 		}
 	},
 	{
@@ -1928,11 +1784,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.preprocessor: #569CD6",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.preprocessor: #0000FF",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.preprocessor: #569CD6",
+			"2026-light": "meta.preprocessor: #0000FF"
 		}
 	},
 	{
@@ -1944,11 +1800,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable: #FFA657",
 			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable: #953800",
 			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "variable: #001080",
+			"2026-dark": "variable: #FFA657",
+			"2026-light": "variable: #953800"
 		}
 	},
 	{
@@ -1960,11 +1816,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.preprocessor: #569CD6",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.preprocessor: #0000FF",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.preprocessor: #569CD6",
+			"2026-light": "meta.preprocessor: #0000FF"
 		}
 	},
 	{
@@ -1976,11 +1832,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.preprocessor: #569CD6",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.preprocessor: #0000FF",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.preprocessor: #569CD6",
+			"2026-light": "meta.preprocessor: #0000FF"
 		}
 	},
 	{
@@ -1992,11 +1848,11 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable: #FFA657",
 			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable: #953800",
 			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
+			"light_modern": "variable: #001080",
+			"2026-dark": "variable: #FFA657",
+			"2026-light": "variable: #953800"
 		}
 	},
 	{
@@ -2008,27 +1864,27 @@
 			"dark_vs": "meta.preprocessor: #569CD6",
 			"light_vs": "meta.preprocessor: #0000FF",
 			"hc_black": "meta.preprocessor: #569CD6",
-			"2026-dark": "meta.preprocessor: #569CD6",
 			"dark_modern": "meta.preprocessor: #569CD6",
-			"2026-light": "meta.preprocessor: #0000FF",
 			"hc_light": "meta.preprocessor: #0F4A85",
-			"light_modern": "meta.preprocessor: #0000FF"
+			"light_modern": "meta.preprocessor: #0000FF",
+			"2026-dark": "meta.preprocessor: #569CD6",
+			"2026-light": "meta.preprocessor: #0000FF"
 		}
 	},
 	{
 		"c": "int",
-		"t": "source.cpp meta.function.definition.cpp meta.qualified-type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
+		"t": "source.cpp meta.function.definition.cpp meta.qualified_type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
 		"r": {
 			"dark_plus": "storage.type: #569CD6",
 			"light_plus": "storage.type: #0000FF",
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -2040,11 +1896,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2056,11 +1912,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function: #D2A8FF",
 			"dark_modern": "entity.name.function: #DCDCAA",
-			"2026-light": "entity.name.function: #8250DF",
 			"hc_light": "entity.name.function: #5E2CBC",
-			"light_modern": "entity.name.function: #795E26"
+			"light_modern": "entity.name.function: #795E26",
+			"2026-dark": "entity.name.function: #D2A8FF",
+			"2026-light": "entity.name.function: #8250DF"
 		}
 	},
 	{
@@ -2072,11 +1928,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2088,11 +1944,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2104,11 +1960,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2120,11 +1976,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2136,11 +1992,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2152,11 +2008,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2168,11 +2024,11 @@
 			"dark_vs": "constant.numeric: #B5CEA8",
 			"light_vs": "constant.numeric: #098658",
 			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
 			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
 			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
 		}
 	},
 	{
@@ -2184,11 +2040,11 @@
 			"dark_vs": "constant.numeric: #B5CEA8",
 			"light_vs": "constant.numeric: #098658",
 			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
 			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
 			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
 		}
 	},
 	{
@@ -2200,11 +2056,11 @@
 			"dark_vs": "constant.numeric: #B5CEA8",
 			"light_vs": "constant.numeric: #098658",
 			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
 			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
 			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
 		}
 	},
 	{
@@ -2216,11 +2072,11 @@
 			"dark_vs": "keyword.other.unit: #B5CEA8",
 			"light_vs": "keyword.other.unit: #098658",
 			"hc_black": "keyword.other.unit: #B5CEA8",
-			"2026-dark": "keyword.other.unit: #B5CEA8",
 			"dark_modern": "keyword.other.unit: #B5CEA8",
-			"2026-light": "keyword.other.unit: #098658",
 			"hc_light": "keyword.other.unit: #096D48",
-			"light_modern": "keyword.other.unit: #098658"
+			"light_modern": "keyword.other.unit: #098658",
+			"2026-dark": "keyword.other.unit: #B5CEA8",
+			"2026-light": "keyword.other.unit: #098658"
 		}
 	},
 	{
@@ -2232,11 +2088,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2248,11 +2104,11 @@
 			"dark_vs": "comment: #6A9955",
 			"light_vs": "comment: #008000",
 			"hc_black": "comment: #7CA668",
-			"2026-dark": "comment: #8B949E",
 			"dark_modern": "comment: #6A9955",
-			"2026-light": "comment: #6E7781",
 			"hc_light": "comment: #515151",
-			"light_modern": "comment: #008000"
+			"light_modern": "comment: #008000",
+			"2026-dark": "comment: #8B949E",
+			"2026-light": "comment: #6E7781"
 		}
 	},
 	{
@@ -2264,11 +2120,11 @@
 			"dark_vs": "comment: #6A9955",
 			"light_vs": "comment: #008000",
 			"hc_black": "comment: #7CA668",
-			"2026-dark": "punctuation.definition.comment: #8B949E",
 			"dark_modern": "comment: #6A9955",
-			"2026-light": "punctuation.definition.comment: #6E7781",
 			"hc_light": "comment: #515151",
-			"light_modern": "comment: #008000"
+			"light_modern": "comment: #008000",
+			"2026-dark": "punctuation.definition.comment: #8B949E",
+			"2026-light": "punctuation.definition.comment: #6E7781"
 		}
 	},
 	{
@@ -2280,11 +2136,11 @@
 			"dark_vs": "comment: #6A9955",
 			"light_vs": "comment: #008000",
 			"hc_black": "comment: #7CA668",
-			"2026-dark": "comment: #8B949E",
 			"dark_modern": "comment: #6A9955",
-			"2026-light": "comment: #6E7781",
 			"hc_light": "comment: #515151",
-			"light_modern": "comment: #008000"
+			"light_modern": "comment: #008000",
+			"2026-dark": "comment: #8B949E",
+			"2026-light": "comment: #6E7781"
 		}
 	},
 	{
@@ -2296,11 +2152,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2312,11 +2168,11 @@
 			"dark_vs": "storage.type: #569CD6",
 			"light_vs": "storage.type: #0000FF",
 			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
 			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
 			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
 		}
 	},
 	{
@@ -2328,11 +2184,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2344,11 +2200,11 @@
 			"dark_vs": "string: #CE9178",
 			"light_vs": "string: #A31515",
 			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
 			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
 			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
 		}
 	},
 	{
@@ -2360,11 +2216,11 @@
 			"dark_vs": "meta.embedded.assembly: #CE9178",
 			"light_vs": "meta.embedded.assembly: #A31515",
 			"hc_black": "meta.embedded: #FFFFFF",
-			"2026-dark": "meta.embedded.assembly: #CE9178",
 			"dark_modern": "meta.embedded.assembly: #CE9178",
-			"2026-light": "meta.embedded.assembly: #A31515",
 			"hc_light": "meta.embedded.assembly: #0F4A85",
-			"light_modern": "meta.embedded.assembly: #A31515"
+			"light_modern": "meta.embedded.assembly: #A31515",
+			"2026-dark": "meta.embedded.assembly: #CE9178",
+			"2026-light": "meta.embedded.assembly: #A31515"
 		}
 	},
 	{
@@ -2376,11 +2232,11 @@
 			"dark_vs": "string: #CE9178",
 			"light_vs": "string: #A31515",
 			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
 			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
 			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
 		}
 	},
 	{
@@ -2392,11 +2248,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2408,11 +2264,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -2424,1167 +2280,15 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
 		"c": "MY_MACRO",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.function.call.upper-case.cpp entity.name.function.call.cpp",
-		"r": {
-			"dark_plus": "entity.name.function: #DCDCAA",
-			"light_plus": "entity.name.function: #795E26",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function: #D2A8FF",
-			"dark_modern": "entity.name.function: #DCDCAA",
-			"2026-light": "entity.name.function: #8250DF",
-			"hc_light": "entity.name.function: #5E2CBC",
-			"light_modern": "entity.name.function: #795E26"
-		}
-	},
-	{
-		"c": "(",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.begin.bracket.round.function.call.cpp punctuation.section.arguments.begin.bracket.round.function.call.upper-case.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "1",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
-		"r": {
-			"dark_plus": "constant.numeric: #B5CEA8",
-			"light_plus": "constant.numeric: #098658",
-			"dark_vs": "constant.numeric: #B5CEA8",
-			"light_vs": "constant.numeric: #098658",
-			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
-			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
-			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
-		}
-	},
-	{
-		"c": ",",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.delimiter.comma.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "2",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
-		"r": {
-			"dark_plus": "constant.numeric: #B5CEA8",
-			"light_plus": "constant.numeric: #098658",
-			"dark_vs": "constant.numeric: #B5CEA8",
-			"light_vs": "constant.numeric: #098658",
-			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
-			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
-			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
-		}
-	},
-	{
-		"c": ")",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.end.bracket.round.function.call.cpp punctuation.section.arguments.begin.bracket.round.function.call.upper-case.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": ";",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "  ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.declaration.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "Rectangle",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.declaration.cpp meta.qualified-type.cpp entity.name.type.cpp",
-		"r": {
-			"dark_plus": "entity.name.type: #4EC9B0",
-			"light_plus": "entity.name.type: #267F99",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "entity.name.type: #4EC9B0",
-			"2026-dark": "entity.name.type: #4EC9B0",
-			"dark_modern": "entity.name.type: #4EC9B0",
-			"2026-light": "entity.name.type: #267F99",
-			"hc_light": "entity.name.type: #185E73",
-			"light_modern": "entity.name.type: #267F99"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.declaration.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "rect",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.declaration.cpp meta.declaration.cpp variable.lower-case.cpp variable.other.declare.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": ";",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "  ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "rect",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.object.access.rect.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": ".",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.dot-access.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "set_values",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.function.member.cpp",
-		"r": {
-			"dark_plus": "entity.name.function: #DCDCAA",
-			"light_plus": "entity.name.function: #795E26",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function: #D2A8FF",
-			"dark_modern": "entity.name.function: #DCDCAA",
-			"2026-light": "entity.name.function: #8250DF",
-			"hc_light": "entity.name.function: #5E2CBC",
-			"light_modern": "entity.name.function: #795E26"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "(",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.begin.bracket.round.function.member.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "3",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
-		"r": {
-			"dark_plus": "constant.numeric: #B5CEA8",
-			"light_plus": "constant.numeric: #098658",
-			"dark_vs": "constant.numeric: #B5CEA8",
-			"light_vs": "constant.numeric: #098658",
-			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
-			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
-			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
-		}
-	},
-	{
-		"c": ",",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.delimiter.comma.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "4",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
-		"r": {
-			"dark_plus": "constant.numeric: #B5CEA8",
-			"light_plus": "constant.numeric: #098658",
-			"dark_vs": "constant.numeric: #B5CEA8",
-			"light_vs": "constant.numeric: #098658",
-			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
-			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
-			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
-		}
-	},
-	{
-		"c": ")",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.end.bracket.round.function.member.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": ";",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "  ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "cout",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.unknown.cout.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "<<",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.operator.bitwise.shift.cpp",
-		"r": {
-			"dark_plus": "keyword.operator: #D4D4D4",
-			"light_plus": "keyword.operator: #000000",
-			"dark_vs": "keyword.operator: #D4D4D4",
-			"light_vs": "keyword.operator: #000000",
-			"hc_black": "keyword.operator: #D4D4D4",
-			"2026-dark": "keyword.operator: #D4D4D4",
-			"dark_modern": "keyword.operator: #D4D4D4",
-			"2026-light": "keyword.operator: #000000",
-			"hc_light": "keyword.operator: #000000",
-			"light_modern": "keyword.operator: #000000"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "\"",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp punctuation.definition.string.begin.cpp",
-		"r": {
-			"dark_plus": "string: #CE9178",
-			"light_plus": "string: #A31515",
-			"dark_vs": "string: #CE9178",
-			"light_vs": "string: #A31515",
-			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
-			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
-			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
-		}
-	},
-	{
-		"c": "area: ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp",
-		"r": {
-			"dark_plus": "string: #CE9178",
-			"light_plus": "string: #A31515",
-			"dark_vs": "string: #CE9178",
-			"light_vs": "string: #A31515",
-			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
-			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
-			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
-		}
-	},
-	{
-		"c": "\"",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp punctuation.definition.string.end.cpp",
-		"r": {
-			"dark_plus": "string: #CE9178",
-			"light_plus": "string: #A31515",
-			"dark_vs": "string: #CE9178",
-			"light_vs": "string: #A31515",
-			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
-			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
-			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "<<",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.operator.bitwise.shift.cpp",
-		"r": {
-			"dark_plus": "keyword.operator: #D4D4D4",
-			"light_plus": "keyword.operator: #000000",
-			"dark_vs": "keyword.operator: #D4D4D4",
-			"light_vs": "keyword.operator: #000000",
-			"hc_black": "keyword.operator: #D4D4D4",
-			"2026-dark": "keyword.operator: #D4D4D4",
-			"dark_modern": "keyword.operator: #D4D4D4",
-			"2026-light": "keyword.operator: #000000",
-			"hc_light": "keyword.operator: #000000",
-			"light_modern": "keyword.operator: #000000"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "rect",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.lower-case.cpp variable.other.object.access.rect.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": ".",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.dot-access.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "area",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.function.member.cpp",
-		"r": {
-			"dark_plus": "entity.name.function: #DCDCAA",
-			"light_plus": "entity.name.function: #795E26",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function: #D2A8FF",
-			"dark_modern": "entity.name.function: #DCDCAA",
-			"2026-light": "entity.name.function: #8250DF",
-			"hc_light": "entity.name.function: #5E2CBC",
-			"light_modern": "entity.name.function: #795E26"
-		}
-	},
-	{
-		"c": "(",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.begin.bracket.round.function.member.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": ")",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.end.bracket.round.function.member.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": ";",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "  ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "Task",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.scope-resolution.cpp",
-		"r": {
-			"dark_plus": "entity.name.scope-resolution: #4EC9B0",
-			"light_plus": "entity.name.scope-resolution: #267F99",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "entity.name.scope-resolution: #4EC9B0",
-			"2026-dark": "entity.name.scope-resolution: #4EC9B0",
-			"dark_modern": "entity.name.scope-resolution: #4EC9B0",
-			"2026-light": "entity.name.scope-resolution: #267F99",
-			"hc_light": "entity.name.scope-resolution: #185E73",
-			"light_modern": "entity.name.scope-resolution: #267F99"
-		}
-	},
-	{
-		"c": "<",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp punctuation.section.angle-brackets.begin.template.call.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "ANY_OUTPUT_TYPE",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp meta.qualified-type.cpp entity.name.type.cpp",
-		"r": {
-			"dark_plus": "entity.name.type: #4EC9B0",
-			"light_plus": "entity.name.type: #267F99",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "entity.name.type: #4EC9B0",
-			"2026-dark": "entity.name.type: #4EC9B0",
-			"dark_modern": "entity.name.type: #4EC9B0",
-			"2026-light": "entity.name.type: #267F99",
-			"hc_light": "entity.name.type: #185E73",
-			"light_modern": "entity.name.type: #267F99"
-		}
-	},
-	{
-		"c": ",",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp punctuation.separator.delimiter.comma.template.argument.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp meta.qualified-type.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "ANY_INPUT_TYPE",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp meta.qualified-type.cpp entity.name.type.cpp",
-		"r": {
-			"dark_plus": "entity.name.type: #4EC9B0",
-			"light_plus": "entity.name.type: #267F99",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "entity.name.type: #4EC9B0",
-			"2026-dark": "entity.name.type: #4EC9B0",
-			"dark_modern": "entity.name.type: #4EC9B0",
-			"2026-light": "entity.name.type: #267F99",
-			"hc_light": "entity.name.type: #185E73",
-			"light_modern": "entity.name.type: #267F99"
-		}
-	},
-	{
-		"c": ">",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp punctuation.section.angle-brackets.end.template.call.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "::",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.namespace.access.cpp punctuation.separator.scope-resolution.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "links_to",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.snake-case.cpp variable.other.unknown.links_to.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": ";",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "  ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.assignment.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "int",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.assignment.cpp meta.qualified-type.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
-		"r": {
-			"dark_plus": "storage.type: #569CD6",
-			"light_plus": "storage.type: #0000FF",
-			"dark_vs": "storage.type: #569CD6",
-			"light_vs": "storage.type: #0000FF",
-			"hc_black": "storage.type: #569CD6",
-			"2026-dark": "storage.type: #FF7B72",
-			"dark_modern": "storage.type: #569CD6",
-			"2026-light": "storage.type: #CF222E",
-			"hc_light": "storage.type: #0F4A85",
-			"light_modern": "storage.type: #0000FF"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.assignment.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "t",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.assignment.cpp meta.assignment.cpp variable.lower-case.cpp variable.other.assignment.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.assignment.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "=",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.assignment.cpp meta.assignment.cpp keyword.operator.assignment.cpp",
-		"r": {
-			"dark_plus": "keyword.operator: #D4D4D4",
-			"light_plus": "keyword.operator: #000000",
-			"dark_vs": "keyword.operator: #D4D4D4",
-			"light_vs": "keyword.operator: #000000",
-			"hc_black": "keyword.operator: #D4D4D4",
-			"2026-dark": "keyword.operator: #D4D4D4",
-			"dark_modern": "keyword.operator: #D4D4D4",
-			"2026-light": "keyword.operator: #000000",
-			"hc_light": "keyword.operator: #000000",
-			"light_modern": "keyword.operator: #000000"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.assignment.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "2",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.assignment.cpp constant.numeric.decimal.cpp",
-		"r": {
-			"dark_plus": "constant.numeric: #B5CEA8",
-			"light_plus": "constant.numeric: #098658",
-			"dark_vs": "constant.numeric: #B5CEA8",
-			"light_vs": "constant.numeric: #098658",
-			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
-			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
-			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
-		}
-	},
-	{
-		"c": ";",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "  ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "if",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.control.if.cpp",
-		"r": {
-			"dark_plus": "keyword.control: #C586C0",
-			"light_plus": "keyword.control: #AF00DB",
-			"dark_vs": "keyword.control: #569CD6",
-			"light_vs": "keyword.control: #0000FF",
-			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
-			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
-			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "(",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp punctuation.section.parens.begin.bracket.round.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "t",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp variable.lower-case.cpp variable.other.unknown.t.cpp",
-		"r": {
-			"dark_plus": "variable: #9CDCFE",
-			"light_plus": "variable: #001080",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "variable: #9CDCFE",
-			"2026-dark": "variable.other: #C9D1D9",
-			"dark_modern": "variable: #9CDCFE",
-			"2026-light": "variable.other: #1F2328",
-			"hc_light": "variable: #001080",
-			"light_modern": "variable: #001080"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": ">",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp keyword.operator.comparison.cpp",
-		"r": {
-			"dark_plus": "keyword.operator: #D4D4D4",
-			"light_plus": "keyword.operator: #000000",
-			"dark_vs": "keyword.operator: #D4D4D4",
-			"light_vs": "keyword.operator: #000000",
-			"hc_black": "keyword.operator: #D4D4D4",
-			"2026-dark": "keyword.operator: #D4D4D4",
-			"dark_modern": "keyword.operator: #D4D4D4",
-			"2026-light": "keyword.operator: #000000",
-			"hc_light": "keyword.operator: #000000",
-			"light_modern": "keyword.operator: #000000"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "0",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp constant.numeric.decimal.cpp",
-		"r": {
-			"dark_plus": "constant.numeric: #B5CEA8",
-			"light_plus": "constant.numeric: #098658",
-			"dark_vs": "constant.numeric: #B5CEA8",
-			"light_vs": "constant.numeric: #098658",
-			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
-			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
-			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
-		}
-	},
-	{
-		"c": ")",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp punctuation.section.parens.end.bracket.round.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": " ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "puts",
 		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.function.call.cpp",
 		"r": {
 			"dark_plus": "entity.name.function: #DCDCAA",
@@ -3592,11 +2296,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "entity.name.function: #DCDCAA",
-			"2026-dark": "entity.name.function: #D2A8FF",
 			"dark_modern": "entity.name.function: #DCDCAA",
-			"2026-light": "entity.name.function: #8250DF",
 			"hc_light": "entity.name.function: #5E2CBC",
-			"light_modern": "entity.name.function: #795E26"
+			"light_modern": "entity.name.function: #795E26",
+			"2026-dark": "entity.name.function: #D2A8FF",
+			"2026-light": "entity.name.function: #8250DF"
 		}
 	},
 	{
@@ -3608,139 +2312,43 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
-		"c": "\"",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp punctuation.definition.string.begin.cpp",
+		"c": "1",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
 		"r": {
-			"dark_plus": "string: #CE9178",
-			"light_plus": "string: #A31515",
-			"dark_vs": "string: #CE9178",
-			"light_vs": "string: #A31515",
-			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
-			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
-			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
+			"dark_plus": "constant.numeric: #B5CEA8",
+			"light_plus": "constant.numeric: #098658",
+			"dark_vs": "constant.numeric: #B5CEA8",
+			"light_vs": "constant.numeric: #098658",
+			"hc_black": "constant.numeric: #B5CEA8",
+			"dark_modern": "constant.numeric: #B5CEA8",
+			"hc_light": "constant.numeric: #096D48",
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
 		}
 	},
 	{
-		"c": "\\n",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp constant.character.escape.cpp",
-		"r": {
-			"dark_plus": "constant.character.escape: #D7BA7D",
-			"light_plus": "constant.character.escape: #EE0000",
-			"dark_vs": "string: #CE9178",
-			"light_vs": "string: #A31515",
-			"hc_black": "constant.character: #569CD6",
-			"2026-dark": "constant.character.escape: #D7BA7D",
-			"dark_modern": "constant.character.escape: #D7BA7D",
-			"2026-light": "constant.character.escape: #EE0000",
-			"hc_light": "constant.character.escape: #EE0000",
-			"light_modern": "constant.character.escape: #EE0000"
-		}
-	},
-	{
-		"c": "*************************************************",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp",
-		"r": {
-			"dark_plus": "string: #CE9178",
-			"light_plus": "string: #A31515",
-			"dark_vs": "string: #CE9178",
-			"light_vs": "string: #A31515",
-			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
-			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
-			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
-		}
-	},
-	{
-		"c": "\"",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp punctuation.definition.string.end.cpp",
-		"r": {
-			"dark_plus": "string: #CE9178",
-			"light_plus": "string: #A31515",
-			"dark_vs": "string: #CE9178",
-			"light_vs": "string: #A31515",
-			"hc_black": "string: #CE9178",
-			"2026-dark": "string: #A5D6FF",
-			"dark_modern": "string: #CE9178",
-			"2026-light": "string: #0A3069",
-			"hc_light": "string: #0F4A85",
-			"light_modern": "string: #A31515"
-		}
-	},
-	{
-		"c": ")",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.end.bracket.round.function.call.cpp",
+		"c": ",",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.delimiter.comma.cpp",
 		"r": {
 			"dark_plus": "default: #D4D4D4",
 			"light_plus": "default: #000000",
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": ";",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
+			"light_modern": "default: #3B3B3B",
 			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "  ",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
-		"r": {
-			"dark_plus": "default: #D4D4D4",
-			"light_plus": "default: #000000",
-			"dark_vs": "default: #D4D4D4",
-			"light_vs": "default: #000000",
-			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
-			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
-			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
-		}
-	},
-	{
-		"c": "return",
-		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.control.return.cpp",
-		"r": {
-			"dark_plus": "keyword.control: #C586C0",
-			"light_plus": "keyword.control: #AF00DB",
-			"dark_vs": "keyword.control: #569CD6",
-			"light_vs": "keyword.control: #0000FF",
-			"hc_black": "keyword.control: #C586C0",
-			"2026-dark": "keyword.control: #C586C0",
-			"dark_modern": "keyword.control: #C586C0",
-			"2026-light": "keyword.control: #AF00DB",
-			"hc_light": "keyword.control: #B5200D",
-			"light_modern": "keyword.control: #AF00DB"
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -3752,15 +2360,15 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
-		"c": "0",
+		"c": "2",
 		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
 		"r": {
 			"dark_plus": "constant.numeric: #B5CEA8",
@@ -3768,11 +2376,27 @@
 			"dark_vs": "constant.numeric: #B5CEA8",
 			"light_vs": "constant.numeric: #098658",
 			"hc_black": "constant.numeric: #B5CEA8",
-			"2026-dark": "constant.numeric: #B5CEA8",
 			"dark_modern": "constant.numeric: #B5CEA8",
-			"2026-light": "constant.numeric: #098658",
 			"hc_light": "constant.numeric: #096D48",
-			"light_modern": "constant.numeric: #098658"
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
+		}
+	},
+	{
+		"c": ")",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.end.bracket.round.function.call.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -3784,11 +2408,1115 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "  Rectangle rect",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": ";",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "  ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "rect",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.other.object.access.cpp",
+		"r": {
+			"dark_plus": "variable: #9CDCFE",
+			"light_plus": "variable: #001080",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "variable: #9CDCFE",
+			"dark_modern": "variable: #9CDCFE",
+			"hc_light": "variable: #001080",
+			"light_modern": "variable: #001080",
+			"2026-dark": "variable.other: #C9D1D9",
+			"2026-light": "variable.other: #1F2328"
+		}
+	},
+	{
+		"c": ".",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.dot-access.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "set_values",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.function.member.cpp",
+		"r": {
+			"dark_plus": "entity.name.function: #DCDCAA",
+			"light_plus": "entity.name.function: #795E26",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "entity.name.function: #DCDCAA",
+			"dark_modern": "entity.name.function: #DCDCAA",
+			"hc_light": "entity.name.function: #5E2CBC",
+			"light_modern": "entity.name.function: #795E26",
+			"2026-dark": "entity.name.function: #D2A8FF",
+			"2026-light": "entity.name.function: #8250DF"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "(",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.begin.bracket.round.function.member.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "3",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
+		"r": {
+			"dark_plus": "constant.numeric: #B5CEA8",
+			"light_plus": "constant.numeric: #098658",
+			"dark_vs": "constant.numeric: #B5CEA8",
+			"light_vs": "constant.numeric: #098658",
+			"hc_black": "constant.numeric: #B5CEA8",
+			"dark_modern": "constant.numeric: #B5CEA8",
+			"hc_light": "constant.numeric: #096D48",
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
+		}
+	},
+	{
+		"c": ",",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.delimiter.comma.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "4",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
+		"r": {
+			"dark_plus": "constant.numeric: #B5CEA8",
+			"light_plus": "constant.numeric: #098658",
+			"dark_vs": "constant.numeric: #B5CEA8",
+			"light_vs": "constant.numeric: #098658",
+			"hc_black": "constant.numeric: #B5CEA8",
+			"dark_modern": "constant.numeric: #B5CEA8",
+			"hc_light": "constant.numeric: #096D48",
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
+		}
+	},
+	{
+		"c": ")",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.end.bracket.round.function.member.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": ";",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "  cout ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "<<",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.operator.bitwise.shift.cpp",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000",
+			"2026-dark": "keyword.operator: #D4D4D4",
+			"2026-light": "keyword.operator: #000000"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "\"",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp punctuation.definition.string.begin.cpp",
+		"r": {
+			"dark_plus": "string: #CE9178",
+			"light_plus": "string: #A31515",
+			"dark_vs": "string: #CE9178",
+			"light_vs": "string: #A31515",
+			"hc_black": "string: #CE9178",
+			"dark_modern": "string: #CE9178",
+			"hc_light": "string: #0F4A85",
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
+		}
+	},
+	{
+		"c": "area: ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp",
+		"r": {
+			"dark_plus": "string: #CE9178",
+			"light_plus": "string: #A31515",
+			"dark_vs": "string: #CE9178",
+			"light_vs": "string: #A31515",
+			"hc_black": "string: #CE9178",
+			"dark_modern": "string: #CE9178",
+			"hc_light": "string: #0F4A85",
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
+		}
+	},
+	{
+		"c": "\"",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp punctuation.definition.string.end.cpp",
+		"r": {
+			"dark_plus": "string: #CE9178",
+			"light_plus": "string: #A31515",
+			"dark_vs": "string: #CE9178",
+			"light_vs": "string: #A31515",
+			"hc_black": "string: #CE9178",
+			"dark_modern": "string: #CE9178",
+			"hc_light": "string: #0F4A85",
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "<<",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.operator.bitwise.shift.cpp",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000",
+			"2026-dark": "keyword.operator: #D4D4D4",
+			"2026-light": "keyword.operator: #000000"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "rect",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp variable.other.object.access.cpp",
+		"r": {
+			"dark_plus": "variable: #9CDCFE",
+			"light_plus": "variable: #001080",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "variable: #9CDCFE",
+			"dark_modern": "variable: #9CDCFE",
+			"hc_light": "variable: #001080",
+			"light_modern": "variable: #001080",
+			"2026-dark": "variable.other: #C9D1D9",
+			"2026-light": "variable.other: #1F2328"
+		}
+	},
+	{
+		"c": ".",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.dot-access.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "area",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.function.member.cpp",
+		"r": {
+			"dark_plus": "entity.name.function: #DCDCAA",
+			"light_plus": "entity.name.function: #795E26",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "entity.name.function: #DCDCAA",
+			"dark_modern": "entity.name.function: #DCDCAA",
+			"hc_light": "entity.name.function: #5E2CBC",
+			"light_modern": "entity.name.function: #795E26",
+			"2026-dark": "entity.name.function: #D2A8FF",
+			"2026-light": "entity.name.function: #8250DF"
+		}
+	},
+	{
+		"c": "(",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.begin.bracket.round.function.member.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": ")",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.end.bracket.round.function.member.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": ";",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "  ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "Task",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.scope-resolution.cpp",
+		"r": {
+			"dark_plus": "entity.name.scope-resolution: #4EC9B0",
+			"light_plus": "entity.name.scope-resolution: #267F99",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "entity.name.scope-resolution: #4EC9B0",
+			"dark_modern": "entity.name.scope-resolution: #4EC9B0",
+			"hc_light": "entity.name.scope-resolution: #185E73",
+			"light_modern": "entity.name.scope-resolution: #267F99",
+			"2026-dark": "entity.name.scope-resolution: #4EC9B0",
+			"2026-light": "entity.name.scope-resolution: #267F99"
+		}
+	},
+	{
+		"c": "<",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp punctuation.section.angle-brackets.begin.template.call.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "ANY_OUTPUT_TYPE",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp meta.qualified_type.cpp entity.name.type.cpp",
+		"r": {
+			"dark_plus": "entity.name.type: #4EC9B0",
+			"light_plus": "entity.name.type: #267F99",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "entity.name.type: #4EC9B0",
+			"dark_modern": "entity.name.type: #4EC9B0",
+			"hc_light": "entity.name.type: #185E73",
+			"light_modern": "entity.name.type: #267F99",
+			"2026-dark": "entity.name.type: #4EC9B0",
+			"2026-light": "entity.name.type: #267F99"
+		}
+	},
+	{
+		"c": ",",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp punctuation.separator.delimiter.comma.template.argument.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp meta.qualified_type.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "ANY_INPUT_TYPE",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp meta.qualified_type.cpp entity.name.type.cpp",
+		"r": {
+			"dark_plus": "entity.name.type: #4EC9B0",
+			"light_plus": "entity.name.type: #267F99",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "entity.name.type: #4EC9B0",
+			"dark_modern": "entity.name.type: #4EC9B0",
+			"hc_light": "entity.name.type: #185E73",
+			"light_modern": "entity.name.type: #267F99",
+			"2026-dark": "entity.name.type: #4EC9B0",
+			"2026-light": "entity.name.type: #267F99"
+		}
+	},
+	{
+		"c": ">",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.template.call.cpp meta.template.call.cpp punctuation.section.angle-brackets.end.template.call.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "::",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.separator.namespace.access.cpp punctuation.separator.scope-resolution.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "links_to",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": ";",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "  ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "int",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp storage.type.primitive.cpp storage.type.built-in.primitive.cpp",
+		"r": {
+			"dark_plus": "storage.type: #569CD6",
+			"light_plus": "storage.type: #0000FF",
+			"dark_vs": "storage.type: #569CD6",
+			"light_vs": "storage.type: #0000FF",
+			"hc_black": "storage.type: #569CD6",
+			"dark_modern": "storage.type: #569CD6",
+			"hc_light": "storage.type: #0F4A85",
+			"light_modern": "storage.type: #0000FF",
+			"2026-dark": "storage.type: #FF7B72",
+			"2026-light": "storage.type: #CF222E"
+		}
+	},
+	{
+		"c": " t ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "=",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.operator.assignment.cpp",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000",
+			"2026-dark": "keyword.operator: #D4D4D4",
+			"2026-light": "keyword.operator: #000000"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "2",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
+		"r": {
+			"dark_plus": "constant.numeric: #B5CEA8",
+			"light_plus": "constant.numeric: #098658",
+			"dark_vs": "constant.numeric: #B5CEA8",
+			"light_vs": "constant.numeric: #098658",
+			"hc_black": "constant.numeric: #B5CEA8",
+			"dark_modern": "constant.numeric: #B5CEA8",
+			"hc_light": "constant.numeric: #096D48",
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
+		}
+	},
+	{
+		"c": ";",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "  ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "if",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.control.if.cpp",
+		"r": {
+			"dark_plus": "keyword.control: #C586C0",
+			"light_plus": "keyword.control: #AF00DB",
+			"dark_vs": "keyword.control: #569CD6",
+			"light_vs": "keyword.control: #0000FF",
+			"hc_black": "keyword.control: #C586C0",
+			"dark_modern": "keyword.control: #C586C0",
+			"hc_light": "keyword.control: #B5200D",
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "(",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp punctuation.section.parens.begin.bracket.round.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "t ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": ">",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp keyword.operator.comparison.cpp",
+		"r": {
+			"dark_plus": "keyword.operator: #D4D4D4",
+			"light_plus": "keyword.operator: #000000",
+			"dark_vs": "keyword.operator: #D4D4D4",
+			"light_vs": "keyword.operator: #000000",
+			"hc_black": "keyword.operator: #D4D4D4",
+			"dark_modern": "keyword.operator: #D4D4D4",
+			"hc_light": "keyword.operator: #000000",
+			"light_modern": "keyword.operator: #000000",
+			"2026-dark": "keyword.operator: #D4D4D4",
+			"2026-light": "keyword.operator: #000000"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "0",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp constant.numeric.decimal.cpp",
+		"r": {
+			"dark_plus": "constant.numeric: #B5CEA8",
+			"light_plus": "constant.numeric: #098658",
+			"dark_vs": "constant.numeric: #B5CEA8",
+			"light_vs": "constant.numeric: #098658",
+			"hc_black": "constant.numeric: #B5CEA8",
+			"dark_modern": "constant.numeric: #B5CEA8",
+			"hc_light": "constant.numeric: #096D48",
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
+		}
+	},
+	{
+		"c": ")",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp meta.parens.cpp punctuation.section.parens.end.bracket.round.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "puts",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp entity.name.function.call.cpp",
+		"r": {
+			"dark_plus": "entity.name.function: #DCDCAA",
+			"light_plus": "entity.name.function: #795E26",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "entity.name.function: #DCDCAA",
+			"dark_modern": "entity.name.function: #DCDCAA",
+			"hc_light": "entity.name.function: #5E2CBC",
+			"light_modern": "entity.name.function: #795E26",
+			"2026-dark": "entity.name.function: #D2A8FF",
+			"2026-light": "entity.name.function: #8250DF"
+		}
+	},
+	{
+		"c": "(",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.begin.bracket.round.function.call.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "\"",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp punctuation.definition.string.begin.cpp",
+		"r": {
+			"dark_plus": "string: #CE9178",
+			"light_plus": "string: #A31515",
+			"dark_vs": "string: #CE9178",
+			"light_vs": "string: #A31515",
+			"hc_black": "string: #CE9178",
+			"dark_modern": "string: #CE9178",
+			"hc_light": "string: #0F4A85",
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
+		}
+	},
+	{
+		"c": "\\n",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp constant.character.escape.cpp",
+		"r": {
+			"dark_plus": "constant.character.escape: #D7BA7D",
+			"light_plus": "constant.character.escape: #EE0000",
+			"dark_vs": "string: #CE9178",
+			"light_vs": "string: #A31515",
+			"hc_black": "constant.character: #569CD6",
+			"dark_modern": "constant.character.escape: #D7BA7D",
+			"hc_light": "constant.character.escape: #EE0000",
+			"light_modern": "constant.character.escape: #EE0000",
+			"2026-dark": "constant.character.escape: #D7BA7D",
+			"2026-light": "constant.character.escape: #EE0000"
+		}
+	},
+	{
+		"c": "*************************************************",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp",
+		"r": {
+			"dark_plus": "string: #CE9178",
+			"light_plus": "string: #A31515",
+			"dark_vs": "string: #CE9178",
+			"light_vs": "string: #A31515",
+			"hc_black": "string: #CE9178",
+			"dark_modern": "string: #CE9178",
+			"hc_light": "string: #0F4A85",
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
+		}
+	},
+	{
+		"c": "\"",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp string.quoted.double.cpp punctuation.definition.string.end.cpp",
+		"r": {
+			"dark_plus": "string: #CE9178",
+			"light_plus": "string: #A31515",
+			"dark_vs": "string: #CE9178",
+			"light_vs": "string: #A31515",
+			"hc_black": "string: #CE9178",
+			"dark_modern": "string: #CE9178",
+			"hc_light": "string: #0F4A85",
+			"light_modern": "string: #A31515",
+			"2026-dark": "string: #A5D6FF",
+			"2026-light": "string: #0A3069"
+		}
+	},
+	{
+		"c": ")",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.section.arguments.end.bracket.round.function.call.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": ";",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "  ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "return",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp keyword.control.return.cpp",
+		"r": {
+			"dark_plus": "keyword.control: #C586C0",
+			"light_plus": "keyword.control: #AF00DB",
+			"dark_vs": "keyword.control: #569CD6",
+			"light_vs": "keyword.control: #0000FF",
+			"hc_black": "keyword.control: #C586C0",
+			"dark_modern": "keyword.control: #C586C0",
+			"hc_light": "keyword.control: #B5200D",
+			"light_modern": "keyword.control: #AF00DB",
+			"2026-dark": "keyword.control: #C586C0",
+			"2026-light": "keyword.control: #AF00DB"
+		}
+	},
+	{
+		"c": " ",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
+		}
+	},
+	{
+		"c": "0",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp constant.numeric.decimal.cpp",
+		"r": {
+			"dark_plus": "constant.numeric: #B5CEA8",
+			"light_plus": "constant.numeric: #098658",
+			"dark_vs": "constant.numeric: #B5CEA8",
+			"light_vs": "constant.numeric: #098658",
+			"hc_black": "constant.numeric: #B5CEA8",
+			"dark_modern": "constant.numeric: #B5CEA8",
+			"hc_light": "constant.numeric: #096D48",
+			"light_modern": "constant.numeric: #098658",
+			"2026-dark": "constant.numeric: #B5CEA8",
+			"2026-light": "constant.numeric: #098658"
+		}
+	},
+	{
+		"c": ";",
+		"t": "source.cpp meta.function.definition.cpp meta.body.function.definition.cpp punctuation.terminator.statement.cpp",
+		"r": {
+			"dark_plus": "default: #D4D4D4",
+			"light_plus": "default: #000000",
+			"dark_vs": "default: #D4D4D4",
+			"light_vs": "default: #000000",
+			"hc_black": "default: #FFFFFF",
+			"dark_modern": "default: #CCCCCC",
+			"hc_light": "default: #292929",
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	},
 	{
@@ -3800,11 +3528,11 @@
 			"dark_vs": "default: #D4D4D4",
 			"light_vs": "default: #000000",
 			"hc_black": "default: #FFFFFF",
-			"2026-dark": "default: #BBBEBF",
 			"dark_modern": "default: #CCCCCC",
-			"2026-light": "default: #202020",
 			"hc_light": "default: #292929",
-			"light_modern": "default: #3B3B3B"
+			"light_modern": "default: #3B3B3B",
+			"2026-dark": "default: #BBBEBF",
+			"2026-light": "default: #202020"
 		}
 	}
 ]

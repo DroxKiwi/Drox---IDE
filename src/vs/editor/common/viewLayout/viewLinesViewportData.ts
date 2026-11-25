@@ -77,10 +77,6 @@ export class ViewportData {
 		return this._model.getViewportViewLineRenderingData(this.visibleRange, lineNumber);
 	}
 
-	public getViewLineContinuesWithWrappedLine(lineNumber: number): boolean {
-		return this._model.getViewLineContinuesWithWrappedLine(lineNumber);
-	}
-
 	public getDecorationsInViewport(): ViewModelDecoration[] {
 		return this._model.getDecorationsInViewport(this.visibleRange);
 	}

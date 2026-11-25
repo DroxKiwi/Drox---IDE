@@ -27,7 +27,6 @@ import { DataChannelForwardingTelemetryService } from '../../../../../platform/d
 import { EDIT_TELEMETRY_DETAILS_SETTING_ID, EDIT_TELEMETRY_SHOW_DECORATIONS, EDIT_TELEMETRY_SHOW_STATUS_BAR } from '../settings.js';
 import { VSCodeWorkspace } from '../helpers/vscodeObservableWorkspace.js';
 import { IExtensionService } from '../../../../services/extensions/common/extensions.js';
-import { AgentHostEditMarkerService } from './agentHostEditMarkerService.js';
 
 export class EditTrackingFeature extends Disposable {
 
@@ -55,22 +54,21 @@ export class EditTrackingFeature extends Disposable {
 		const extensions = observableFromEvent(this._extensionService.onDidChangeExtensions, () => {
 			return this._extensionService.extensions;
 		});
-		const extensionIds = derived(reader => new Set(extensions.read(reader).map(e => e.identifier.value.toLowerCase())));
-		function getExtensionInfoObs(extensionId: string) {
+		const extensionIds = derived(reader => new Set(extensions.read(reader).map(e => e.id?.toLowerCase())));
+		function getExtensionInfoObs(extensionId: string, extensionService: IExtensionService) {
 			const extIdLowerCase = extensionId.toLowerCase();
 			return derived(reader => extensionIds.read(reader).has(extIdLowerCase));
 		}
 
-		const copilotInstalled = getExtensionInfoObs('GitHub.copilot');
-		const copilotChatInstalled = getExtensionInfoObs('GitHub.copilot-chat');
+		const copilotInstalled = getExtensionInfoObs('GitHub.copilot', this._extensionService);
+		const copilotChatInstalled = getExtensionInfoObs('GitHub.copilot-chat', this._extensionService);
 
 		const shouldSendDetails = derived(reader => editSourceDetailsEnabled.read(reader) || !!copilotInstalled.read(reader) || !!copilotChatInstalled.read(reader));
 
 		const instantiationServiceWithInterceptedTelemetry = this._instantiationService.createChild(new ServiceCollection(
 			[ITelemetryService, this._instantiationService.createInstance(DataChannelForwardingTelemetryService)]
 		));
-		const markerService = this._register(instantiationServiceWithInterceptedTelemetry.createInstance(AgentHostEditMarkerService));
-		const impl = this._register(instantiationServiceWithInterceptedTelemetry.createInstance(EditSourceTrackingImpl, shouldSendDetails, this._annotatedDocuments, markerService));
+		const impl = this._register(instantiationServiceWithInterceptedTelemetry.createInstance(EditSourceTrackingImpl, shouldSendDetails, this._annotatedDocuments));
 
 		this._register(autorun((reader) => {
 			if (!this._editSourceTrackingShowDecorations.read(reader)) {

@@ -20,7 +20,7 @@ fi
 
 # Get electron
 if [[ -z "${VSCODE_SKIP_PRELAUNCH}" ]]; then
-	pnpm run electron
+	npm run electron
 fi
 
 popd

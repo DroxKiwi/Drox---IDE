@@ -27,8 +27,6 @@ import { Delayer } from '../../../../../base/common/async.js';
 import { ITextModel } from '../../../../../editor/common/model.js';
 import { ResourceMap } from '../../../../../base/common/map.js';
 import { URI } from '../../../../../base/common/uri.js';
-import { autorun } from '../../../../../base/common/observable.js';
-import { ICustomizationHarnessService } from '../../common/customizationHarnessService.js';
 
 export class PromptLanguageFeaturesProvider extends Disposable implements IWorkbenchContribution {
 	static readonly ID = 'chat.promptLanguageFeatures';
@@ -52,7 +50,7 @@ export class PromptLanguageFeaturesProvider extends Disposable implements IWorkb
 }
 
 /**
- * Tracks open code editors and validates prompt files that are visible in an editor.
+ * Tracks open code editors and validates prompt models that are visible in an editor.
  * Only emits markers for models that are currently open in an editor.
  */
 class PromptValidatorContribution extends Disposable {
@@ -68,7 +66,6 @@ class PromptValidatorContribution extends Disposable {
 		@ILanguageModelsService private readonly languageModelsService: ILanguageModelsService,
 		@ILanguageModelToolsService private readonly languageModelToolsService: ILanguageModelToolsService,
 		@IChatModeService private readonly chatModeService: IChatModeService,
-		@ICustomizationHarnessService private readonly customizationHarnessService: ICustomizationHarnessService,
 	) {
 		super();
 		this.validator = instantiationService.createInstance(PromptValidator);
@@ -157,15 +154,6 @@ class PromptValidatorContribution extends Disposable {
 		this.localDisposables.add(this.languageModelToolsService.onDidChangeTools(() => validateAll()));
 		this.localDisposables.add(localModes.onDidChange(() => validateAll()));
 		this.localDisposables.add(this.languageModelsService.onDidChangeLanguageModels(() => validateAll()));
-		this.localDisposables.add(autorun(reader => {
-			this.customizationHarnessService.activeHarness.read(reader);
-			for (const descriptor of this.customizationHarnessService.availableHarnesses.read(reader)) {
-				if (descriptor.itemProvider) {
-					reader.store.add(descriptor.itemProvider.onDidChange(() => validateAll()));
-				}
-			}
-			validateAll();
-		}));
 	}
 }
 

@@ -9,8 +9,8 @@
 			"DOM",
 			"DOM.Iterable"
 		],
-		"types": [
-			"vscode-webview"
+		"typeRoots": [
+			"../node_modules/@types"
 		]
 	}
 }

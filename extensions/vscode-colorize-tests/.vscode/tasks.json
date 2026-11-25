@@ -1,6 +1,6 @@
 {
 	"version": "2.0.0",
-	"command": "pnpm",
+	"command": "npm",
 	"type": "shell",
 	"presentation": {
 		"reveal": "silent"

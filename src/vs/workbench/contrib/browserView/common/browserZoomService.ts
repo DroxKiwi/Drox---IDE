@@ -30,26 +30,26 @@ export interface IBrowserZoomChangeEvent {
 	readonly host: string | undefined;
 
 	/**
-	 * Whether the change came from an in-memory session.
-	 * - `true`  → only in-memory views need to react.
-	 * - `false` → all views for the host may be affected.
+	 * Whether the change came from an ephemeral session.
+	 * - `true`  → only ephemeral views need to react.
+	 * - `false` → all views (ephemeral and non-ephemeral) for the host may be affected.
 	 */
-	readonly isInMemoryChange: boolean;
+	readonly isEphemeralChange: boolean;
 }
 
 /**
  * Manages two independent cascading zoom hierarchies for integrated browser views:
  *
- *  Persistent views: `persistent per-host override` ?? `configured default`
- *  In-memory views:  `in-memory per-host override`  ?? `configured default`
+ *  Normal views:    `persistent per-host override` ?? `configured default`
+ *  Ephemeral views: `ephemeral per-host override`  ?? `configured default`
  *
- * In-memory views never see persistent overrides directly. Instead, when a persistent
- * value changes, it is copied into the in-memory map so that in-memory views
- * immediately reflect the new level. Conversely, in-memory changes never affect
- * persistent views.
+ * Ephemeral views never see persistent overrides directly. Instead, when a persistent
+ * value changes, it is copied into the ephemeral map so that ephemeral views
+ * immediately reflect the new level. Conversely, ephemeral changes never affect
+ * normal views.
  *
  * Per-host values that equal the current default are always removed (both persistent
- * and in-memory), so the view tracks the default going forward.
+ * and ephemeral), so the view tracks the default going forward.
  */
 export interface IBrowserZoomService {
 	readonly _serviceBrand: undefined;
@@ -61,20 +61,20 @@ export interface IBrowserZoomService {
 	 * Returns the effective zoom index for the given host and session type.
 	 * Pass `host = undefined` to obtain only the configured default zoom index.
 	 */
-	getEffectiveZoomIndex(host: string | undefined, isInMemory: boolean): number;
+	getEffectiveZoomIndex(host: string | undefined, isEphemeral: boolean): number;
 
 	/**
 	 * Set the zoom for a host.
 	 *
-	 * Persistent: persisted to storage. Also propagated into
-	 * the in-memory map so in-memory views immediately reflect the change.
+	 * Non-ephemeral: persisted to storage. Also propagated into
+	 * the ephemeral map so ephemeral views immediately reflect the change.
 	 *
-	 * In-memory: stored in memory only, dropped on restart.
+	 * Ephemeral: stored in memory only, dropped on restart.
 	 *
 	 * In both cases, if the value equals the current default, the entry is removed so the
 	 * view tracks the default going forward.
 	 */
-	setHostZoomIndex(host: string, zoomIndex: number, isInMemory: boolean): void;
+	setHostZoomIndex(host: string, zoomIndex: number, isEphemeral: boolean): void;
 
 	/**
 	 * Notifies the service of the application's current UI zoom factor.
@@ -106,7 +106,7 @@ export class BrowserZoomService extends Disposable implements IBrowserZoomServic
 	private _persistentZoomMap: Record<string, number>;
 
 	/** In-memory only; dropped on restart. */
-	private readonly _inMemoryZoomMap = new Map<string, number>();
+	private readonly _ephemeralZoomMap = new Map<string, number>();
 
 	private _windowZoomFactor: number = zoomLevelToZoomFactor(0); // default: zoom level 0 → factor 1.0
 
@@ -120,17 +120,17 @@ export class BrowserZoomService extends Disposable implements IBrowserZoomServic
 
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('workbench.browser.pageZoom')) {
-				this._onDidChangeZoom.fire({ host: undefined, isInMemoryChange: false });
+				this._onDidChangeZoom.fire({ host: undefined, isEphemeralChange: false });
 			}
 		}));
 	}
 
-	getEffectiveZoomIndex(host: string | undefined, isInMemory: boolean): number {
+	getEffectiveZoomIndex(host: string | undefined, isEphemeral: boolean): number {
 		if (host !== undefined) {
-			if (isInMemory) {
-				const inMemoryIndex = this._inMemoryZoomMap.get(host);
-				if (inMemoryIndex !== undefined) {
-					return this._clamp(inMemoryIndex);
+			if (isEphemeral) {
+				const ephemeralIndex = this._ephemeralZoomMap.get(host);
+				if (ephemeralIndex !== undefined) {
+					return this._clamp(ephemeralIndex);
 				}
 			} else {
 				const persistentIndex = this._persistentZoomMap[host];
@@ -143,24 +143,24 @@ export class BrowserZoomService extends Disposable implements IBrowserZoomServic
 		return this._getDefaultZoomIndex();
 	}
 
-	setHostZoomIndex(host: string, zoomIndex: number, isInMemory: boolean): void {
+	setHostZoomIndex(host: string, zoomIndex: number, isEphemeral: boolean): void {
 		const clamped = this._clamp(zoomIndex);
 		const defaultIndex = this._getDefaultZoomIndex();
 		const matchesDefault = clamped === defaultIndex;
 
-		if (isInMemory) {
+		if (isEphemeral) {
 			if (matchesDefault) {
-				if (!this._inMemoryZoomMap.has(host)) {
+				if (!this._ephemeralZoomMap.has(host)) {
 					return;
 				}
-				this._inMemoryZoomMap.delete(host);
+				this._ephemeralZoomMap.delete(host);
 			} else {
-				if (this._inMemoryZoomMap.get(host) === clamped) {
+				if (this._ephemeralZoomMap.get(host) === clamped) {
 					return;
 				}
-				this._inMemoryZoomMap.set(host, clamped);
+				this._ephemeralZoomMap.set(host, clamped);
 			}
-			this._onDidChangeZoom.fire({ host, isInMemoryChange: true });
+			this._onDidChangeZoom.fire({ host, isEphemeralChange: true });
 		} else {
 			let persistentChanged = false;
 			if (matchesDefault) {
@@ -173,22 +173,22 @@ export class BrowserZoomService extends Disposable implements IBrowserZoomServic
 				persistentChanged = true;
 			}
 
-			// Propagate to the in-memory map so temporary views immediately reflect the new level.
-			let inMemoryChanged = false;
+			// Propagate to ephemeral map so ephemeral views immediately reflect the new level.
+			let ephemeralChanged = false;
 			if (matchesDefault) {
-				inMemoryChanged = this._inMemoryZoomMap.delete(host);
-			} else if (this._inMemoryZoomMap.get(host) !== clamped) {
-				this._inMemoryZoomMap.set(host, clamped);
-				inMemoryChanged = true;
+				ephemeralChanged = this._ephemeralZoomMap.delete(host);
+			} else if (this._ephemeralZoomMap.get(host) !== clamped) {
+				this._ephemeralZoomMap.set(host, clamped);
+				ephemeralChanged = true;
 			}
 
-			if (!persistentChanged && !inMemoryChanged) {
+			if (!persistentChanged && !ephemeralChanged) {
 				return;
 			}
 			if (persistentChanged) {
 				this._writePersistentZoomMap();
 			}
-			this._onDidChangeZoom.fire({ host, isInMemoryChange: false });
+			this._onDidChangeZoom.fire({ host, isEphemeralChange: false });
 		}
 	}
 
@@ -196,7 +196,7 @@ export class BrowserZoomService extends Disposable implements IBrowserZoomServic
 		this._windowZoomFactor = windowZoomFactor;
 		const label = this.configurationService.getValue<string>('workbench.browser.pageZoom');
 		if (label === MATCH_WINDOW_ZOOM_LABEL) {
-			this._onDidChangeZoom.fire({ host: undefined, isInMemoryChange: false });
+			this._onDidChangeZoom.fire({ host: undefined, isEphemeralChange: false });
 		}
 	}
 

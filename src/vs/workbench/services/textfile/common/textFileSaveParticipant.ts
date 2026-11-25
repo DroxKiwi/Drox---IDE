@@ -12,7 +12,6 @@ import { IDisposable, Disposable, toDisposable } from '../../../../base/common/l
 import { LinkedList } from '../../../../base/common/linkedList.js';
 import { localize } from '../../../../nls.js';
 import { NotificationPriority } from '../../../../platform/notification/common/notification.js';
-import { NotificationTelemetryId } from '../../../../platform/notification/common/notificationTelemetry.js';
 import { CancellationError, isCancellationError } from '../../../../base/common/errors.js';
 
 export class TextFileSaveParticipant extends Disposable {
@@ -47,7 +46,6 @@ export class TextFileSaveParticipant extends Disposable {
 
 		// create an "inner" progress to allow to skip over long running save participants
 		await this.progressService.withProgress({
-			telemetry: NotificationTelemetryId.FileSaveParticipants,
 			priority: NotificationPriority.URGENT,
 			location: ProgressLocation.Notification,
 			cancellable: localize('skip', "Skip"),

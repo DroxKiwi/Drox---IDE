@@ -47,7 +47,7 @@ import { ExtHostChatAgentsShape2, ExtHostContext, IChatAgentInvokeResult, IChatS
 import { NotebookDto } from './mainThreadNotebookDto.js';
 import { getChatSessionType, isUntitledChatSession } from '../../contrib/chat/common/model/chatUri.js';
 import { ICustomizationHarnessService, ICustomizationItem, ICustomizationItemProvider, IHarnessDescriptor } from '../../contrib/chat/common/customizationHarnessService.js';
-import { AICustomizationManagementSection } from '../../contrib/chat/common/aiCustomizationWorkspaceService.js';
+import { AICustomizationManagementSection, AICustomizationSources } from '../../contrib/chat/common/aiCustomizationWorkspaceService.js';
 import { IAgentPlugin, IAgentPluginService } from '../../contrib/chat/common/plugins/agentPluginService.js';
 import { IWorkbenchEnvironmentService } from '../../services/environment/common/environmentService.js';
 
@@ -116,7 +116,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 	private readonly _customizationProviders = this._register(new DisposableMap<number, IDisposable>());
 	private readonly _customizationProviderEmitters = this._register(new DisposableMap<number, Emitter<void>>());
 
-	private readonly _pendingProgress = new Map<string, { progress: (parts: IChatProgress[]) => void; chatSession: IChatModel | undefined; isSubagent: boolean }>();
+	private readonly _pendingProgress = new Map<string, { progress: (parts: IChatProgress[]) => void; chatSession: IChatModel | undefined }>();
 	private readonly _proxy: ExtHostChatAgentsShape2;
 
 	private readonly _activeTasks = new Map<string, IChatTask>();
@@ -211,8 +211,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 				return 'extension';
 			case PromptsStorage.plugin:
 				return 'plugin';
-			case PromptsStorage.builtIn:
-				return 'builtin';
 		}
 	}
 
@@ -354,7 +352,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 		const impl: IChatAgentImplementation = {
 			invoke: async (request, progress, history, token) => {
 				const chatSession = this._chatService.getSession(request.sessionResource);
-				this._pendingProgress.set(request.requestId, { progress, chatSession, isSubagent: !!request.subAgentInvocationId });
+				this._pendingProgress.set(request.requestId, { progress, chatSession });
 				try {
 					const chatSessionResource = request.sessionResource;
 					const chatSessionContext: IChatSessionContextDto = {
@@ -484,7 +482,7 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			return;
 		}
 
-		const { progress, chatSession, isSubagent } = pendingProgress;
+		const { progress, chatSession } = pendingProgress;
 		const chatProgressParts: IChatProgress[] = [];
 
 		const response = chatSession?.getRequests().find(req => req.id === requestId)?.response;
@@ -504,44 +502,24 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 
 			if (progress.kind === 'beginToolInvocation') {
 				// Begin a streaming tool invocation
-				try {
-					this._languageModelToolsService.beginToolCall({
-						toolCallId: progress.toolCallId,
-						toolId: progress.toolName,
-						chatRequestId: requestId,
-						sessionResource: chatSession?.sessionResource,
-						subagentInvocationId: progress.subagentInvocationId,
-					});
-				} catch (error) {
-					this._logService.error(`MainThreadChatAgents2#$handleProgressChunk: Failed to begin tool invocation ${progress.toolCallId}`, error);
-				}
+				this._languageModelToolsService.beginToolCall({
+					toolCallId: progress.toolCallId,
+					toolId: progress.toolName,
+					chatRequestId: requestId,
+					sessionResource: chatSession?.sessionResource,
+					subagentInvocationId: progress.subagentInvocationId,
+				});
 				continue;
 			}
 
 			if (progress.kind === 'updateToolInvocation') {
 				// Update the streaming data for an existing tool invocation
-				this._languageModelToolsService.updateToolStream(progress.toolCallId, progress.streamData?.partialInput, CancellationToken.None).catch(error => {
-					this._logService.error(`MainThreadChatAgents2#$handleProgressChunk: Failed to update tool invocation ${progress.toolCallId}`, error);
-				});
+				this._languageModelToolsService.updateToolStream(progress.toolCallId, progress.streamData?.partialInput, CancellationToken.None);
 				continue;
 			}
 
 			if (progress.kind === 'usage') {
-				if (isSubagent) {
-					// A subagent invoked via RunSubagentTool reuses the parent request and
-					// has no request model of its own. Forward the usage to the agent's
-					// progress callback so the subagent tool can surface its credit (AIC)
-					// cost on hover, without inflating the parent request's context-window
-					// widget or token counts.
-					chatProgressParts.push({
-						kind: 'usage',
-						promptTokens: progress.promptTokens,
-						completionTokens: progress.completionTokens,
-						outputBuffer: progress.outputBuffer,
-						copilotCredits: progress.copilotCredits,
-						promptTokenDetails: progress.promptTokenDetails
-					});
-				} else if (response) {
+				if (response) {
 					response.setUsage({
 						kind: 'usage',
 						promptTokens: progress.promptTokens,
@@ -550,10 +528,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 						copilotCredits: progress.copilotCredits,
 						promptTokenDetails: progress.promptTokenDetails
 					});
-				} else {
-					// Non-subagent request with no response model: unexpected. Drop the
-					// usage rather than forwarding it as a progress part.
-					this._logService.warn(`MainThreadChatAgents2#$handleProgressChunk: No response model for usage of non-subagent request ${requestId}; dropping usage.`);
 				}
 				continue;
 			}
@@ -817,8 +791,6 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 				return folders.map(folder => ({
 					uri: URI.revive(folder.uri),
 					label: folder.label,
-					source: folder.source,
-					destinationGroupId: folder.destinationGroupId,
 				}));
 			},
 		};
@@ -851,6 +823,11 @@ export class MainThreadChatAgents2 extends Disposable implements MainThreadChatA
 			label: metadata.label,
 			icon: metadata.iconId ? ThemeIcon.fromId(metadata.iconId) : ThemeIcon.fromId(Codicon.extensions.id),
 			hiddenSections,
+			getStorageSourceFilter: () => ({
+				// Extension-provided harnesses manage their own items via the provider,
+				// so we show all sources for storage-filter-based flows.
+				sources: AICustomizationSources.all
+			}),
 			itemProvider,
 		};
 
@@ -897,7 +874,6 @@ namespace ChatNotebookEdit {
 			kind: 'notebookEdit',
 			uri: URI.revive(part.uri),
 			done: part.done,
-			autoTier: part.autoTier,
 			edits: part.edits.map(NotebookDto.fromCellEditOperationDto)
 		};
 	}

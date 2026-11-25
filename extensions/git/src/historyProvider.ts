@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { CancellationToken, Disposable, Event, EventEmitter, FileDecoration, FileDecorationProvider, SourceControlHistoryItem, SourceControlHistoryItemChange, SourceControlHistoryOptions, SourceControlHistoryProvider, Uri, window, LogOutputChannel, SourceControlHistoryItemRef, l10n, SourceControlHistoryItemRefsChangeEvent, workspace, ConfigurationChangeEvent, Command, commands } from 'vscode';
+import { CancellationToken, Disposable, Event, EventEmitter, FileDecoration, FileDecorationProvider, SourceControlHistoryItem, SourceControlHistoryItemChange, SourceControlHistoryOptions, SourceControlHistoryProvider, ThemeIcon, Uri, window, LogOutputChannel, SourceControlHistoryItemRef, l10n, SourceControlHistoryItemRefsChangeEvent, workspace, ConfigurationChangeEvent, Command, commands } from 'vscode';
 import { Repository, Resource } from './repository';
 import { IDisposable, deltaHistoryItemRefs, dispose, filterEvent, subject, truncate } from './util';
 import { toMultiFileDiffEditorUris } from './uri';
@@ -16,7 +16,6 @@ import { OperationKind, OperationResult } from './operation';
 import { ISourceControlHistoryItemDetailsProviderRegistry, provideSourceControlHistoryItemAvatar, provideSourceControlHistoryItemHoverCommands, provideSourceControlHistoryItemMessageLinks } from './historyItemDetailsProvider';
 import { throttle } from './decorators';
 import { getHistoryItemHover, getHoverCommitHashCommands, processHoverRemoteCommands } from './hover';
-import { Icons } from './icons';
 
 function compareSourceControlHistoryItemRef(ref1: SourceControlHistoryItemRef, ref2: SourceControlHistoryItemRef): number {
 	const getOrder = (ref: SourceControlHistoryItemRef): number => {
@@ -119,16 +118,15 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 					historyItemRefId = `refs/heads/${this.repository.HEAD.name}`;
 					historyItemRefName = this.repository.HEAD.name;
 
-					// Remote (skip the upstream if it could not be resolved, ex: `remote = .`
-					// with `merge` pointing to a ref that is not a local branch)
-					if (this.repository.HEAD.upstream?.commit) {
+					// Remote
+					if (this.repository.HEAD.upstream) {
 						if (this.repository.HEAD.upstream.remote === '.') {
 							// Local branch
 							this._currentHistoryItemRemoteRef = {
 								id: `refs/heads/${this.repository.HEAD.upstream.name}`,
 								name: this.repository.HEAD.upstream.name,
 								revision: this.repository.HEAD.upstream.commit,
-								icon: Icons.branch
+								icon: new ThemeIcon('git-branch')
 							};
 						} else {
 							// Remote branch
@@ -136,7 +134,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 								id: `refs/remotes/${this.repository.HEAD.upstream.remote}/${this.repository.HEAD.upstream.name}`,
 								name: `${this.repository.HEAD.upstream.remote}/${this.repository.HEAD.upstream.name}`,
 								revision: this.repository.HEAD.upstream.commit,
-								icon: Icons.remoteBranch
+								icon: new ThemeIcon('cloud')
 							};
 						}
 					} else {
@@ -154,7 +152,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 							id: `refs/remotes/${mergeBase.remote}/${mergeBase.name}`,
 							name: `${mergeBase.remote}/${mergeBase.name}`,
 							revision: mergeBase.commit,
-							icon: Icons.remoteBranch
+							icon: new ThemeIcon('cloud')
 						} : undefined;
 					} else {
 						// Update base revision if it has changed
@@ -203,7 +201,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 			id: historyItemRefId,
 			name: historyItemRefName,
 			revision: this.repository.HEAD.commit,
-			icon: Icons.head,
+			icon: new ThemeIcon('target'),
 		};
 
 		this._onDidChangeCurrentHistoryItemRefs.fire();
@@ -321,7 +319,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 					message: messageWithLinks,
 					author: commit.authorName,
 					authorEmail: commit.authorEmail,
-					authorIcon: avatarUrl ? Uri.parse(avatarUrl) : Icons.account,
+					authorIcon: avatarUrl ? Uri.parse(avatarUrl) : new ThemeIcon('account'),
 					displayId: truncate(commit.hash, this.commitShortHashLength, false),
 					timestamp: commit.authorDate?.getTime(),
 					statistics: commit.shortStat ?? { files: 0, insertions: 0, deletions: 0 },
@@ -411,7 +409,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 				message: messageWithLinks,
 				author: commit.authorName,
 				authorEmail: commit.authorEmail,
-				authorIcon: avatarUrl ? Uri.parse(avatarUrl) : Icons.account,
+				authorIcon: avatarUrl ? Uri.parse(avatarUrl) : new ThemeIcon('account'),
 				displayId: truncate(commit.hash, this.commitShortHashLength, false),
 				timestamp: commit.authorDate?.getTime(),
 				statistics: commit.shortStat ?? { files: 0, insertions: 0, deletions: 0 },
@@ -504,7 +502,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 						name: ref.substring('HEAD -> refs/heads/'.length),
 						revision: commit.hash,
 						category: l10n.t('branches'),
-						icon: Icons.head
+						icon: new ThemeIcon('target')
 					});
 					break;
 				case ref.startsWith('refs/heads/'):
@@ -513,7 +511,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 						name: ref.substring('refs/heads/'.length),
 						revision: commit.hash,
 						category: l10n.t('branches'),
-						icon: Icons.branch
+						icon: new ThemeIcon('git-branch')
 					});
 					break;
 				case ref.startsWith('refs/remotes/'):
@@ -522,7 +520,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 						name: ref.substring('refs/remotes/'.length),
 						revision: commit.hash,
 						category: l10n.t('remote branches'),
-						icon: Icons.remoteBranch
+						icon: new ThemeIcon('cloud')
 					});
 					break;
 				case ref.startsWith('tag: refs/tags/'):
@@ -531,7 +529,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 						name: ref.substring('tag: refs/tags/'.length),
 						revision: commit.hash,
 						category: l10n.t('tags'),
-						icon: Icons.tag
+						icon: new ThemeIcon('tag')
 					});
 					break;
 			}
@@ -584,7 +582,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 					name: ref.name ?? '',
 					description: ref.commit ? l10n.t('Remote branch at {0}', truncate(ref.commit, this.commitShortHashLength, false)) : undefined,
 					revision: ref.commit,
-					icon: Icons.remoteBranch,
+					icon: new ThemeIcon('cloud'),
 					category: l10n.t('remote branches')
 				};
 			case RefType.Tag:
@@ -593,7 +591,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 					name: ref.name ?? '',
 					description: ref.commit ? l10n.t('Tag at {0}', truncate(ref.commit, this.commitShortHashLength, false)) : undefined,
 					revision: ref.commit,
-					icon: Icons.tag,
+					icon: new ThemeIcon('tag'),
 					category: l10n.t('tags')
 				};
 			default:
@@ -602,7 +600,7 @@ export class GitHistoryProvider implements SourceControlHistoryProvider, FileDec
 					name: ref.name ?? '',
 					description: ref.commit ? truncate(ref.commit, this.commitShortHashLength, false) : undefined,
 					revision: ref.commit,
-					icon: Icons.branch,
+					icon: new ThemeIcon('git-branch'),
 					category: l10n.t('branches')
 				};
 		}

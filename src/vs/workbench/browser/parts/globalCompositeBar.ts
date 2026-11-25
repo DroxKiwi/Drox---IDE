@@ -3,10 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import './media/globalCompositeBar.css';
 import { localize } from '../../../nls.js';
 import { ActionBar, ActionsOrientation } from '../../../base/browser/ui/actionbar/actionbar.js';
-import { ACCOUNTS_ACTIVITY_ID, ACCOUNTS_SHARED_SIGN_IN_GROUP, GLOBAL_ACTIVITY_ID } from '../../common/activity.js';
+import { ACCOUNTS_ACTIVITY_ID, GLOBAL_ACTIVITY_ID } from '../../common/activity.js';
 import { IActivityService } from '../../services/activity/common/activity.js';
 import { IInstantiationService } from '../../../platform/instantiation/common/instantiation.js';
 import { DisposableStore, Disposable } from '../../../base/common/lifecycle.js';
@@ -18,7 +17,6 @@ import { Codicon } from '../../../base/common/codicons.js';
 import { ThemeIcon } from '../../../base/common/themables.js';
 import { registerIcon } from '../../../platform/theme/common/iconRegistry.js';
 import { Action, IAction, Separator, SubmenuAction, toAction } from '../../../base/common/actions.js';
-import { Emitter } from '../../../base/common/event.js';
 import { IMenu, IMenuService, MenuId } from '../../../platform/actions/common/actions.js';
 import { addDisposableListener, EventType, append, clearNode, hide, show, EventHelper, $, runWhenWindowIdle, getWindow } from '../../../base/browser/dom.js';
 import { StandardKeyboardEvent } from '../../../base/browser/keyboardEvent.js';
@@ -35,30 +33,23 @@ import { ILogService } from '../../../platform/log/common/log.js';
 import { IProductService } from '../../../platform/product/common/productService.js';
 import { ISecretStorageService } from '../../../platform/secrets/common/secrets.js';
 import { AuthenticationSessionInfo, getCurrentAuthenticationSessionInfo } from '../../services/authentication/browser/authenticationService.js';
-import { ACCOUNTS_AVATAR_SETTING, AuthenticationSessionAccount, IAuthenticationService, INTERNAL_AUTH_PROVIDER_PREFIX } from '../../services/authentication/common/authentication.js';
+import { AuthenticationSessionAccount, IAuthenticationService, INTERNAL_AUTH_PROVIDER_PREFIX } from '../../services/authentication/common/authentication.js';
 import { IWorkbenchEnvironmentService } from '../../services/environment/common/environmentService.js';
 import { IHoverService } from '../../../platform/hover/browser/hover.js';
 import { ILifecycleService, LifecyclePhase } from '../../services/lifecycle/common/lifecycle.js';
 import { IUserDataProfileService } from '../../services/userDataProfile/common/userDataProfile.js';
 import { DEFAULT_ICON } from '../../services/userDataProfile/common/userDataProfileIcons.js';
 import { isString } from '../../../base/common/types.js';
-import { FileAccess } from '../../../base/common/network.js';
-import { URI } from '../../../base/common/uri.js';
 import { KeyCode } from '../../../base/common/keyCodes.js';
 import { ACTIVITY_BAR_BADGE_BACKGROUND, ACTIVITY_BAR_BADGE_FOREGROUND } from '../../common/theme.js';
 import { IBaseActionViewItemOptions } from '../../../base/browser/ui/actionbar/actionViewItems.js';
 import { ICommandService } from '../../../platform/commands/common/commands.js';
-import { IDefaultAccountService } from '../../../platform/defaultAccount/common/defaultAccount.js';
-import { WORKBENCH_MENU_MOTION_CLASS, workbenchMenuCloseAnimation } from '../actions/menuMotion.js';
-import { createCodexAccountMenuActions, ICodexAccountService, shouldShowCodexAccount } from '../../services/agentHost/browser/codexAccountService.js';
-// DROX-BEGIN
 import product from '../../../platform/product/common/product.js';
 
 /** Build Drox nominal : pas d'icone Accounts (GitHub / Copilot) dans la barre d'activite. */
 function isDroxAccountsSurfaceHidden(): boolean {
 	return product.droxMicrosoftAgentsSurfaceEnabled !== true;
 }
-// DROX-END
 
 export class GlobalCompositeBar extends Disposable {
 
@@ -70,9 +61,6 @@ export class GlobalCompositeBar extends Disposable {
 	private readonly globalActivityAction = this._register(new Action(GLOBAL_ACTIVITY_ID));
 	private readonly accountAction = this._register(new Action(ACCOUNTS_ACTIVITY_ID));
 	private readonly globalActivityActionBar: ActionBar;
-
-	private readonly _onDidChange = this._register(new Emitter<void>());
-	readonly onDidChange = this._onDidChange.event;
 
 	constructor(
 		private readonly contextMenuActionsProvider: () => IAction[],
@@ -145,31 +133,26 @@ export class GlobalCompositeBar extends Disposable {
 		this.globalActivityActionBar.focus(true);
 	}
 
-	getHeight(actionHeight: number, actionGap: number): number {
-		const count = this.globalActivityActionBar.length();
-		return count * actionHeight + Math.max(0, count - 1) * actionGap;
+	size(): number {
+		return this.globalActivityActionBar.viewItems.length;
 	}
 
 	getContextMenuActions(): IAction[] {
-		// DROX-BEGIN
 		if (isDroxAccountsSurfaceHidden()) {
 			return [];
 		}
-		// DROX-END
 		return [toAction({ id: 'toggleAccountsVisibility', label: localize('accounts', "Accounts"), checked: this.accountsVisibilityPreference, run: () => this.accountsVisibilityPreference = !this.accountsVisibilityPreference })];
 	}
 
 	private toggleAccountsActivity() {
-		const accountsVisible = this.globalActivityActionBar.length() === 2;
-		if (accountsVisible === this.accountsVisibilityPreference) {
+		if (this.globalActivityActionBar.length() === 2 && this.accountsVisibilityPreference) {
 			return;
 		}
-		if (accountsVisible) {
+		if (this.globalActivityActionBar.length() === 2) {
 			this.globalActivityActionBar.pull(GlobalCompositeBar.ACCOUNTS_ACTION_INDEX);
 		} else {
 			this.globalActivityActionBar.push(this.accountAction, { index: GlobalCompositeBar.ACCOUNTS_ACTION_INDEX });
 		}
-		this._onDidChange.fire();
 	}
 
 	private get accountsVisibilityPreference(): boolean {
@@ -194,7 +177,7 @@ abstract class AbstractGlobalActivityActionViewItem extends CompositeBarActionVi
 		@IMenuService private readonly menuService: IMenuService,
 		@IContextMenuService private readonly contextMenuService: IContextMenuService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
-		@IConfigurationService protected override readonly configurationService: IConfigurationService,
+		@IConfigurationService configurationService: IConfigurationService,
 		@IKeybindingService keybindingService: IKeybindingService,
 		@IActivityService private readonly activityService: IActivityService,
 	) {
@@ -237,9 +220,7 @@ abstract class AbstractGlobalActivityActionViewItem extends CompositeBarActionVi
 			this.contextMenuService.showContextMenu({
 				getAnchor: () => event,
 				getActions: () => actions,
-				getMenuClassName: () => WORKBENCH_MENU_MOTION_CLASS,
-				onHide: () => disposables.dispose(),
-				closeAnimation: workbenchMenuCloseAnimation
+				onHide: () => disposables.dispose()
 			});
 		}));
 
@@ -272,10 +253,8 @@ abstract class AbstractGlobalActivityActionViewItem extends CompositeBarActionVi
 			anchorAlignment,
 			anchorAxisAlignment,
 			getActions: () => actions,
-			getMenuClassName: () => WORKBENCH_MENU_MOTION_CLASS,
 			onHide: () => disposables.dispose(),
 			menuActionOptions: { renderShortTitle: true },
-			closeAnimation: workbenchMenuCloseAnimation
 		});
 
 	}
@@ -294,7 +273,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 
 	private initialized = false;
 	private sessionFromEmbedder = new Lazy<Promise<AuthenticationSessionInfo | undefined>>(() => getCurrentAuthenticationSessionInfo(this.secretStorageService, this.productService));
-	private avatarImg: HTMLImageElement | undefined;
 
 	constructor(
 		contextMenuActionsProvider: () => IAction[],
@@ -316,9 +294,7 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		@ILogService private readonly logService: ILogService,
 		@IActivityService activityService: IActivityService,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@ICommandService private readonly commandService: ICommandService,
-		@ICodexAccountService private readonly codexAccountService: ICodexAccountService,
-		@IDefaultAccountService private readonly defaultAccountService: IDefaultAccountService,
+		@ICommandService private readonly commandService: ICommandService
 	) {
 		const action = instantiationService.createInstance(CompositeBarAction, {
 			id: ACCOUNTS_ACTIVITY_ID,
@@ -334,13 +310,11 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 	private registerListeners(): void {
 		this._register(this.authenticationService.onDidRegisterAuthenticationProvider(async (e) => {
 			await this.addAccountsFromProvider(e.id);
-			this.updateAvatar();
 		}));
 
 		this._register(this.authenticationService.onDidUnregisterAuthenticationProvider((e) => {
 			this.groupedAccounts.delete(e.id);
 			this.problematicProviders.delete(e.id);
-			this.updateAvatar();
 		}));
 
 		this._register(this.authenticationService.onDidChangeSessions(async e => {
@@ -356,17 +330,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 					this.logService.error(e);
 				}
 			}
-			this.updateAvatar();
-		}));
-
-		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration(ACCOUNTS_AVATAR_SETTING)) {
-				this.updateAvatar();
-			}
-		}));
-
-		this._register(this.defaultAccountService.onDidChangeDefaultAccount(() => {
-			this.updateAvatar();
 		}));
 	}
 
@@ -386,11 +349,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 	}
 
 	private async doInitialize(): Promise<void> {
-		// Resolve extension-host-backed GitHub state before exposing agent-specific accounts.
-		await this.defaultAccountService.getDefaultAccount();
-		if (this._store.isDisposed) {
-			return;
-		}
 		const providerIds = this.authenticationService.getProviderIds();
 		const results = await Promise.allSettled(providerIds.map(providerId => this.addAccountsFromProvider(providerId)));
 
@@ -402,69 +360,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		}
 
 		this.initialized = true;
-		this.updateAvatar();
-	}
-
-	override render(container: HTMLElement): void {
-		super.render(container);
-
-		this.avatarImg = $('img.accounts-avatar') as HTMLImageElement;
-		this.avatarImg.alt = '';
-		this.avatarImg.setAttribute('aria-hidden', 'true');
-		this.avatarImg.draggable = false;
-		this.avatarImg.referrerPolicy = 'no-referrer';
-		this.avatarImg.style.display = 'none';
-		this.avatarImg.onerror = () => {
-			this.avatarImg!.style.display = 'none';
-			this.label.classList.remove('has-avatar');
-		};
-		append(this.label, this.avatarImg);
-
-		this.updateAvatar();
-	}
-
-	private updateAvatar(): void {
-		if (!this.avatarImg) {
-			return;
-		}
-
-		let avatarIcon: URI | undefined;
-		if (this.configurationService.getValue<boolean>(ACCOUNTS_AVATAR_SETTING)) {
-			avatarIcon = this.getDefaultAccountAvatarIcon();
-			if (!avatarIcon) {
-				for (const accounts of this.groupedAccounts.values()) {
-					for (const account of accounts) {
-						if (account.icon) {
-							avatarIcon = account.icon;
-							break;
-						}
-					}
-					if (avatarIcon) {
-						break;
-					}
-				}
-			}
-		}
-
-		if (avatarIcon) {
-			this.avatarImg.src = FileAccess.uriToBrowserUri(avatarIcon).toString(true);
-			this.avatarImg.style.display = '';
-			this.label.classList.add('has-avatar');
-		} else {
-			this.avatarImg.removeAttribute('src');
-			this.avatarImg.style.display = 'none';
-			this.label.classList.remove('has-avatar');
-		}
-	}
-
-	private getDefaultAccountAvatarIcon(): URI | undefined {
-		const currentDefaultAccount = this.defaultAccountService.currentDefaultAccount;
-		if (!currentDefaultAccount) {
-			return undefined;
-		}
-
-		const accounts = this.groupedAccounts.get(currentDefaultAccount.authenticationProvider.id);
-		return accounts?.find(account => account.label === currentDefaultAccount.accountName)?.icon;
 	}
 
 	//#region overrides
@@ -480,9 +375,9 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 		const dynamicProviders = providers.filter(providerId => this.authenticationService.isDynamicAuthenticationProvider(providerId));
 
 		if (!this.initialized) {
-			menus.push(disposables.add(new Action('noAccountsAvailable', localize('loading', "Loading..."), undefined, false)));
+			const noAccountsAvailableAction = disposables.add(new Action('noAccountsAvailable', localize('loading', "Loading..."), undefined, false));
+			menus.push(noAccountsAvailableAction);
 		} else {
-
 			for (const providerId of registeredProviders) {
 				const provider = this.authenticationService.getProvider(providerId);
 				const accounts = this.groupedAccounts.get(providerId);
@@ -598,31 +493,17 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 			}
 		}
 
-		const sharedAccountCommandGroups = otherCommands.filter(([group]) => group === ACCOUNTS_SHARED_SIGN_IN_GROUP);
-		const remainingCommandGroups = otherCommands.filter(([group]) => group !== ACCOUNTS_SHARED_SIGN_IN_GROUP);
-		const appendCommandGroups = (groups: typeof otherCommands) => {
-			for (const [, actions] of groups) {
-				if (menus.length && actions.length) {
-					menus.push(new Separator());
-				}
-				menus = menus.concat(actions);
-			}
-		};
-		appendCommandGroups(sharedAccountCommandGroups);
-
-		const codexAccountActions = this.initialized
-			? createCodexAccountMenuActions(this.codexAccountService, shouldShowCodexAccount(this.configurationService, false))
-			: [];
-		if (codexAccountActions.length) {
-			if (menus.length) {
-				menus.push(new Separator());
-			}
-			for (const action of codexAccountActions) {
-				menus.push(action instanceof Action ? disposables.add(action) : action);
-			}
+		if (menus.length && otherCommands.length) {
+			menus.push(new Separator());
 		}
 
-		appendCommandGroups(remainingCommandGroups);
+		otherCommands.forEach((group, i) => {
+			const actions = group[1];
+			menus = menus.concat(actions);
+			if (i !== otherCommands.length - 1) {
+				menus.push(new Separator());
+			}
+		});
 
 		return menus;
 	}
@@ -665,7 +546,6 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 			if (!canSignOut) {
 				existingAccount.canSignOut = canSignOut;
 			}
-			existingAccount.icon = account.icon;
 		} else {
 			accounts.push({ ...account, canSignOut });
 		}
@@ -809,9 +689,7 @@ export class SimpleAccountActivityActionViewItem extends AccountsActivityActionV
 		@ILogService logService: ILogService,
 		@IActivityService activityService: IActivityService,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@ICommandService commandService: ICommandService,
-		@ICodexAccountService codexAccountService: ICodexAccountService,
-		@IDefaultAccountService defaultAccountService: IDefaultAccountService,
+		@ICommandService commandService: ICommandService
 	) {
 		super(() => simpleActivityContextMenuActions(storageService, true),
 			{
@@ -822,7 +700,7 @@ export class SimpleAccountActivityActionViewItem extends AccountsActivityActionV
 				}),
 				hoverOptions,
 				compact: true,
-			}, () => undefined, actions => actions, themeService, lifecycleService, hoverService, contextMenuService, menuService, contextKeyService, authenticationService, environmentService, productService, configurationService, keybindingService, secretStorageService, logService, activityService, instantiationService, commandService, codexAccountService, defaultAccountService);
+			}, () => undefined, actions => actions, themeService, lifecycleService, hoverService, contextMenuService, menuService, contextKeyService, authenticationService, environmentService, productService, configurationService, keybindingService, secretStorageService, logService, activityService, instantiationService, commandService);
 	}
 }
 
@@ -859,31 +737,25 @@ export class SimpleGlobalActivityActionViewItem extends GlobalActivityActionView
 
 function simpleActivityContextMenuActions(storageService: IStorageService, isAccount: boolean): IAction[] {
 	const currentElementContextMenuActions: IAction[] = [];
-	// DROX-BEGIN
 	const accountsHidden = isDroxAccountsSurfaceHidden();
 	if (isAccount && !accountsHidden) {
-		// DROX-END
 		currentElementContextMenuActions.push(
 			toAction({ id: 'hideAccounts', label: localize('hideAccounts', "Hide Accounts"), run: () => setAccountsActionVisible(storageService, false) }),
 			new Separator()
 		);
 	}
-	// DROX-BEGIN
 	const actions: IAction[] = [...currentElementContextMenuActions];
 	if (!accountsHidden) {
 		actions.push(toAction({ id: 'toggle.hideAccounts', label: localize('accounts', "Accounts"), checked: isAccountsActionVisible(storageService), run: () => setAccountsActionVisible(storageService, !isAccountsActionVisible(storageService)) }));
 	}
 	actions.push(toAction({ id: 'toggle.hideManage', label: localize('manage', "Manage"), checked: true, enabled: false, run: () => { throw new Error('"Manage" can not be hidden'); } }));
 	return actions;
-	// DROX-END
 }
 
 export function isAccountsActionVisible(storageService: IStorageService): boolean {
-	// DROX-BEGIN
 	if (isDroxAccountsSurfaceHidden()) {
 		return false;
 	}
-	// DROX-END
 	return storageService.getBoolean(AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, StorageScope.PROFILE, true);
 }
 

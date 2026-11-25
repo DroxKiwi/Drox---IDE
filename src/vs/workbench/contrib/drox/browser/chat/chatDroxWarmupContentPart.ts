@@ -8,20 +8,13 @@
 import * as dom from '../../../../../base/browser/dom.js';
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { IChatDroxWarmupPart } from '../../../chat/common/chatService/chatService.js';
-import { IChatRendererContent, isResponseVM } from '../../../chat/common/model/chatViewModel.js';
+import { IChatRendererContent } from '../../../chat/common/model/chatViewModel.js';
 import { ChatTreeItem } from '../../../chat/browser/chat.js';
 import { appendDroxActivityGrid } from '../droxActivityGrid.js';
 import { IChatContentPart, IChatContentPartRenderContext } from '../../../chat/browser/widget/chatContentParts/chatContentParts.js';
 
 export function shouldHideDroxWarmupForFollowingContent(followingContent: ReadonlyArray<IChatRendererContent>): boolean {
 	return followingContent.some(part => part.kind !== 'droxWarmup' && part.kind !== 'progressMessage');
-}
-
-function shouldHideDroxWarmup(element: ChatTreeItem, followingContent: ReadonlyArray<IChatRendererContent>): boolean {
-	if (isResponseVM(element)) {
-		return element.isComplete;
-	}
-	return shouldHideDroxWarmupForFollowingContent(followingContent);
 }
 
 export class ChatDroxWarmupContentPart extends Disposable implements IChatContentPart {
@@ -36,7 +29,7 @@ export class ChatDroxWarmupContentPart extends Disposable implements IChatConten
 		super();
 		this._phrase = content.phrase;
 		const followingContent = context.content.slice(context.contentIndex + 1);
-		this._hidden = shouldHideDroxWarmup(context.element, followingContent);
+		this._hidden = shouldHideDroxWarmupForFollowingContent(followingContent);
 		if (this._hidden) {
 			this.domNode = dom.$('');
 			return;
@@ -54,7 +47,7 @@ export class ChatDroxWarmupContentPart extends Disposable implements IChatConten
 		if (other.kind !== 'droxWarmup') {
 			return false;
 		}
-		const hidden = shouldHideDroxWarmup(_element, followingContent);
+		const hidden = shouldHideDroxWarmupForFollowingContent(followingContent);
 		return other.phrase === this._phrase && hidden === this._hidden;
 	}
 }

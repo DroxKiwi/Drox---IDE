@@ -31,7 +31,6 @@ import { Range } from '../../../../editor/common/core/range.js';
 import { unsupportedSchemas } from '../../../../platform/markers/common/markerService.js';
 import Severity from '../../../../base/common/severity.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-import { IListElementRenderDetails } from '../../../../base/browser/ui/list/list.js';
 
 const $ = DOM.$;
 
@@ -46,8 +45,7 @@ interface IMarkerCodeColumnTemplateData {
 	readonly sourceLabel: HighlightedLabel;
 	readonly codeLabel: HighlightedLabel;
 	readonly codeLink: Link;
-	readonly templateDisposables: DisposableStore;
-	readonly elementDisposables: DisposableStore;
+	readonly templateDisposable: DisposableStore;
 }
 
 interface IMarkerFileColumnTemplateData {
@@ -115,11 +113,6 @@ class MarkerSeverityColumnRenderer implements ITableRenderer<MarkerTableItem, IM
 		}
 	}
 
-	disposeElement(element: MarkerTableItem, index: number, templateData: IMarkerIconColumnTemplateData, details?: IListElementRenderDetails): void {
-		templateData.elementDisposables.clear();
-		templateData.actionBar.clear();
-	}
-
 	disposeTemplate(templateData: IMarkerIconColumnTemplateData): void {
 		templateData.elementDisposables.dispose();
 		templateData.actionBar.dispose();
@@ -137,20 +130,18 @@ class MarkerCodeColumnRenderer implements ITableRenderer<MarkerTableItem, IMarke
 	) { }
 
 	renderTemplate(container: HTMLElement): IMarkerCodeColumnTemplateData {
-		const templateDisposables = new DisposableStore();
-		const elementDisposables = new DisposableStore();
-		templateDisposables.add(elementDisposables);
+		const templateDisposable = new DisposableStore();
 		const codeColumn = DOM.append(container, $('.code'));
 
-		const sourceLabel = templateDisposables.add(new HighlightedLabel(codeColumn));
+		const sourceLabel = templateDisposable.add(new HighlightedLabel(codeColumn));
 		sourceLabel.element.classList.add('source-label');
 
-		const codeLabel = templateDisposables.add(new HighlightedLabel(codeColumn));
+		const codeLabel = templateDisposable.add(new HighlightedLabel(codeColumn));
 		codeLabel.element.classList.add('code-label');
 
-		const codeLink = templateDisposables.add(new Link(codeColumn, { href: '', label: '' }, {}, this.hoverService, this.openerService));
+		const codeLink = templateDisposable.add(new Link(codeColumn, { href: '', label: '' }, {}, this.hoverService, this.openerService));
 
-		return { codeColumn, sourceLabel, codeLabel, codeLink, templateDisposables, elementDisposables };
+		return { codeColumn, sourceLabel, codeLabel, codeLink, templateDisposable };
 	}
 
 	renderElement(element: MarkerTableItem, index: number, templateData: IMarkerCodeColumnTemplateData): void {
@@ -168,7 +159,7 @@ class MarkerCodeColumnRenderer implements ITableRenderer<MarkerTableItem, IMarke
 				templateData.codeColumn.title = `${element.marker.source} (${element.marker.code.value})`;
 				templateData.sourceLabel.set(element.marker.source, element.sourceMatches);
 
-				const codeLinkLabel = templateData.elementDisposables.add(new HighlightedLabel($('.code-link-label')));
+				const codeLinkLabel = templateData.templateDisposable.add(new HighlightedLabel($('.code-link-label')));
 				codeLinkLabel.set(element.marker.code.value, element.codeMatches);
 
 				templateData.codeLink.link = {
@@ -183,12 +174,8 @@ class MarkerCodeColumnRenderer implements ITableRenderer<MarkerTableItem, IMarke
 		}
 	}
 
-	disposeElement(element: MarkerTableItem, index: number, templateData: IMarkerCodeColumnTemplateData, details?: IListElementRenderDetails): void {
-		templateData.elementDisposables.clear();
-	}
-
 	disposeTemplate(templateData: IMarkerCodeColumnTemplateData): void {
-		templateData.templateDisposables.dispose();
+		templateData.templateDisposable.dispose();
 	}
 }
 
@@ -297,7 +284,7 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 	) {
 		super();
 
-		this.table = this._register(this.instantiationService.createInstance(WorkbenchTable,
+		this.table = this.instantiationService.createInstance(WorkbenchTable,
 			'Markers',
 			this.container,
 			new MarkersTableVirtualDelegate(),
@@ -352,9 +339,9 @@ export class MarkersTable extends Disposable implements IProblemsWidget {
 				this.instantiationService.createInstance(MarkerSourceColumnRenderer),
 			],
 			options
-		) as WorkbenchTable<MarkerTableItem>);
+		) as WorkbenchTable<MarkerTableItem>;
 
-		// eslint-disable-next-line eslint-js/no-restricted-syntax
+		// eslint-disable-next-line no-restricted-syntax
 		const list = this.table.domNode.querySelector('.monaco-list-rows')! as HTMLElement;
 
 		// mouseover/mouseleave event handlers

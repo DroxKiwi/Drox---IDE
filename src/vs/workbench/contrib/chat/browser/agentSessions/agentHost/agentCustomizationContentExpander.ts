@@ -4,12 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken } from '../../../../../../base/common/cancellation.js';
-import { isCancellationError } from '../../../../../../base/common/errors.js';
 import { extname } from '../../../../../../base/common/path.js';
 import { joinPath } from '../../../../../../base/common/resources.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { parseFrontMatter } from '../../../../../../base/common/yaml.js';
-import { FileOperationResult, IFileService, toFileOperationResult } from '../../../../../../platform/files/common/files.js';
+import { IFileService } from '../../../../../../platform/files/common/files.js';
 import { ILogService } from '../../../../../../platform/log/common/log.js';
 import { AICustomizationSource } from '../../../common/aiCustomizationWorkspaceService.js';
 import { ICustomizationItem } from '../../../common/customizationHarnessService.js';
@@ -28,7 +27,7 @@ export class AgentCustomizationContentExpander {
 	) {
 	}
 
-	async expandPluginContents(pluginUri: URI, delivery: 'syncedFromClient' | undefined, isBundleItem: boolean, source: AICustomizationSource, pluginLabel: string | undefined, token: CancellationToken): Promise<readonly ICustomizationItem[]> {
+	async expandPluginContents(pluginUri: URI, groupKey: string, isBundleItem: boolean, source: AICustomizationSource, pluginLabel: string | undefined, token: CancellationToken): Promise<readonly ICustomizationItem[]> {
 		// pluginUri is already an agent-host:// URI (from toRemoteUri),
 		// so use it directly as the filesystem root.
 		const fsRoot = pluginUri;
@@ -43,17 +42,7 @@ export class AgentCustomizationContentExpander {
 
 			const dirNames = ['agents', 'skills', 'commands', 'rules'] as const;
 			const promptTypes = [PromptsType.agent, PromptsType.skill, PromptsType.prompt, PromptsType.instructions] as const;
-			const stats = await Promise.all(dirNames.map(async name => {
-				const resource = URI.joinPath(fsRoot, name);
-				try {
-					return await this.fileService.resolve(resource);
-				} catch (err) {
-					if (!isExpectedFileAccessError(err, token)) {
-						this.logService.trace(`[AgentCustomizationContentExpander] Failed to resolve customization directory ${resource.toString()}: ${err}`);
-					}
-					return undefined;
-				}
-			}));
+			const stats = await this.fileService.resolveAll(dirNames.map(name => ({ resource: URI.joinPath(fsRoot, name) })));
 
 			if (token.isCancellationRequested) {
 				return [];
@@ -62,28 +51,18 @@ export class AgentCustomizationContentExpander {
 			for (let i = 0; i < dirNames.length; i++) {
 				const stat = stats[i];
 				const promptType = promptTypes[i];
-				if (!stat?.isDirectory || !stat.children) {
+				if (!stat.success || !stat.stat?.isDirectory || !stat.stat.children) {
 					continue;
 				}
 				if (promptType === PromptsType.skill) {
-					children.push(...await this.collectFromSkillDir(stat.children, pluginUri, source, delivery, isBundleItem, pluginLabel, token));
-				} else if (promptType === PromptsType.agent && isBundleItem) {
-					const namespaces = await Promise.all(stat.children
-						.filter(child => child.isDirectory && !child.name.startsWith('.'))
-						.map(child => this.fileService.resolve(child.resource)));
-					children.push(...await this.collectFromRegularDir(
-						[...stat.children, ...namespaces.flatMap(namespace => namespace.children ?? [])],
-						pluginUri, source, promptType, delivery, isBundleItem, pluginLabel, token,
-					));
+					children.push(...await this.collectFromSkillDir(stat.stat.children, pluginUri, source, groupKey, isBundleItem, pluginLabel, token));
 				} else {
-					children.push(...await this.collectFromRegularDir(stat.children, pluginUri, source, promptType, delivery, isBundleItem, pluginLabel, token));
+					children.push(...await this.collectFromRegularDir(stat.stat.children, pluginUri, source, promptType, groupKey, isBundleItem, pluginLabel, token));
 				}
 			}
 			children.sort((a, b) => `${a.type}:${a.name}`.localeCompare(`${b.type}:${b.name}`));
 		} catch (err) {
-			if (!isExpectedFileAccessError(err, token)) {
-				this.logService.trace(`[AgentCustomizationContentExpander] Failed to expand plugin ${pluginUri.toString()}: ${err}`);
-			}
+			this.logService.trace(`[AgentCustomizationContentExpander] Failed to expand plugin ${pluginUri.toString()}: ${err}`);
 			return [];
 		}
 		return children;
@@ -93,7 +72,7 @@ export class AgentCustomizationContentExpander {
 	 * Emits one item per skill subfolder that contains a SKILL.md file.
 	 * The skill metadata comes from SKILL.md frontmatter.
 	 */
-	private async collectFromSkillDir(entries: readonly { name: string; resource: URI; isDirectory: boolean }[], pluginUri: URI, source: AICustomizationSource, delivery: 'syncedFromClient' | undefined, isBundleItem: boolean, pluginLabel: string | undefined, token: CancellationToken): Promise<ICustomizationItem[]> {
+	private async collectFromSkillDir(entries: readonly { name: string; resource: URI; isDirectory: boolean }[], pluginUri: URI, source: AICustomizationSource, groupKey: string, isBundleItem: boolean, pluginLabel: string | undefined, token: CancellationToken): Promise<ICustomizationItem[]> {
 		type Entry = { name: string; resource: URI; isDirectory: boolean };
 		const eligible: Entry[] = [];
 		const readMetaDataPromises = [];
@@ -131,7 +110,7 @@ export class AgentCustomizationContentExpander {
 				name: name,
 				description,
 				source,
-				delivery,
+				groupKey,
 				extensionId: undefined,
 				pluginUri: isBundleItem ? undefined : pluginUri,
 				pluginLabel: isBundleItem ? undefined : pluginLabel,
@@ -147,7 +126,7 @@ export class AgentCustomizationContentExpander {
 	 * agents additionally surface userInvocable. Instruction (rules)
 	 * folders additionally accept `.mdc` files per the Open Plugins spec.
 	 */
-	private async collectFromRegularDir(entries: readonly { name: string; resource: URI; isDirectory: boolean }[], pluginUri: URI, source: AICustomizationSource, promptType: PromptsType, delivery: 'syncedFromClient' | undefined, isBundleItem: boolean, pluginLabel: string | undefined, token: CancellationToken): Promise<ICustomizationItem[]> {
+	private async collectFromRegularDir(entries: readonly { name: string; resource: URI; isDirectory: boolean }[], pluginUri: URI, source: AICustomizationSource, promptType: PromptsType, groupKey: string, isBundleItem: boolean, pluginLabel: string | undefined, token: CancellationToken): Promise<ICustomizationItem[]> {
 		type Entry = { name: string; resource: URI; isDirectory: boolean };
 		const eligible: Entry[] = [];
 		for (const child of entries) {
@@ -181,7 +160,7 @@ export class AgentCustomizationContentExpander {
 				name: meta?.name ?? stripPromptFileExtensions(child.name),
 				description: meta?.description,
 				source,
-				delivery,
+				groupKey,
 				extensionId: undefined,
 				pluginUri: isBundleItem ? undefined : pluginUri,
 				pluginLabel: isBundleItem ? undefined : pluginLabel,
@@ -215,18 +194,10 @@ export class AgentCustomizationContentExpander {
 			}
 			return { name: undefined, description: undefined, userInvocable: undefined };
 		} catch (err) {
-			if (!isExpectedFileAccessError(err, token)) {
-				this.logService.trace(`[AgentCustomizationContentExpander] Failed to read prompt metadata ${promptFileUri.toString()}: ${err}`);
-			}
+			this.logService.trace(`[AgentCustomizationContentExpander] Failed to read prompt metadata ${promptFileUri.toString()}: ${err}`);
 			return undefined;
 		}
 	}
-}
-
-function isExpectedFileAccessError(error: Error, token: CancellationToken): boolean {
-	return token.isCancellationRequested
-		|| isCancellationError(error)
-		|| toFileOperationResult(error) === FileOperationResult.FILE_NOT_FOUND;
 }
 
 /**

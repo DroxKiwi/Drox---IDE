@@ -172,6 +172,8 @@ async function doIt(filepaths: string[]) {
 
 			'vs/platform/instantiation/common/instantiationService.ts',
 			'vs/editor/common/core/edits/lineEdit.ts',
+			'vs/editor/common/core/edits/lengthEdit.ts',
+			'vs/editor/common/core/edits/arrayEdit.ts',
 			'vs/editor/common/core/text/positionToOffset.ts',
 			'vs/editor/common/model/mirrorTextModel.ts',
 

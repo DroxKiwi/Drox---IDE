@@ -492,22 +492,6 @@ tool_prompt!(
 );
 
 tool_prompt!(
-	PROJECT_RULE_WRITE_TOOL_DESCRIPTION,
-	PROJECT_RULE_WRITE_TOOL_ENTRY,
-	"tools.project_rule_write.description",
-	"project_rule_write",
-	"Persists a **durable workspace convention** under `.drox/rules/<slug>.instructions.md` \
-         for auto-injection on later agent runs (when project rules are enabled). \
-         Call only when the user **explicitly** asks to save/memorize a project rule — \
-         **not** for run-scratch notes (`session_note`), workspace map pivots \
-         (`workspace_map_note`), or session-thread constraints in `.drox/sessions/*.notes.md`. \
-         `always_apply` defaults to `true` (every run). Use `apply_to` + `always_apply: false` \
-         for path-scoped rules. Modes: `create` (default), `update`, `append`. \
-         Format: {\"slug\": \"kebab-case\", \"body\": \"…\", \"description\"?: \"…\", \
-         \"always_apply\"?: true, \"apply_to\"?: [\"src/**\"], \"mode\"?: \"create\"}."
-);
-
-tool_prompt!(
 	GIT_WORKTREE_ENTER_TOOL_DESCRIPTION,
 	GIT_WORKTREE_ENTER_TOOL_ENTRY,
 	"tools.git_worktree_enter.description",
@@ -562,7 +546,7 @@ pub fn all_tool_entries() -> &'static [PromptEntry] {
 	&TOOL_ENTRIES
 }
 
-static TOOL_ENTRIES: [PromptEntry; 39] = [
+static TOOL_ENTRIES: [PromptEntry; 38] = [
 	FILE_READ_TOOL_ENTRY,
 	TASK_TOOL_ENTRY,
 	EXPLORE_INDEX_LIST_TOOL_ENTRY,
@@ -596,7 +580,6 @@ static TOOL_ENTRIES: [PromptEntry; 39] = [
 	SKILL_READ_TOOL_ENTRY,
 	WORKSPACE_MAP_READ_TOOL_ENTRY,
 	WORKSPACE_MAP_NOTE_TOOL_ENTRY,
-	PROJECT_RULE_WRITE_TOOL_ENTRY,
 	GIT_WORKTREE_ENTER_TOOL_ENTRY,
 	GIT_WORKTREE_EXIT_TOOL_ENTRY,
 	MCP_CALL_TOOL_ENTRY,

@@ -3,13 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Command, commands } from 'vscode';
+import { Command, commands, InlineCompletionItem } from 'vscode';
 import { Disposable } from '../../../../../util/vs/base/common/lifecycle';
 import { IInstantiationService, ServicesAccessor } from '../../../../../util/vs/platform/instantiation/common/instantiation';
 import { collectCompletionDiagnostics, formatDiagnosticsAsMarkdown } from '../../lib/src/diagnostics';
 import { telemetry, TelemetryData } from '../../lib/src/telemetry';
 import { CMDSendCompletionsFeedbackChat } from './constants';
-import type { GhostTextCompletionItem } from './ghostText/ghostTextProvider';
 
 export const sendCompletionFeedbackCommand: Command = {
 	command: CMDSendCompletionsFeedbackChat,
@@ -18,27 +17,32 @@ export const sendCompletionFeedbackCommand: Command = {
 };
 
 export class CopilotCompletionFeedbackTracker extends Disposable {
-	private lastShownCopilotCompletionItem: GhostTextCompletionItem | undefined;
+	private lastShownCopilotCompletionItem: InlineCompletionItem | undefined;
 
 	constructor(@IInstantiationService private readonly instantiationService: IInstantiationService) {
 		super();
 		this._register(commands.registerCommand(sendCompletionFeedbackCommand.command, async () => {
-			const item = this.lastShownCopilotCompletionItem;
-			const telemetryArg: TelemetryData | undefined = item?.copilotCompletion.telemetry;
+			const commandArg: unknown = this.lastShownCopilotCompletionItem?.command?.arguments?.[0];
+			let telemetryArg: TelemetryData | undefined;
+			if (commandArg && typeof commandArg === 'object' && 'telemetry' in commandArg) {
+				if (commandArg.telemetry instanceof TelemetryData) {
+					telemetryArg = commandArg.telemetry;
+				}
+			}
 			this.instantiationService.invokeFunction(telemetry, 'ghostText.sentFeedback', telemetryArg);
 
-			await this.instantiationService.invokeFunction(openGitHubIssue, item, telemetryArg);
+			await this.instantiationService.invokeFunction(openGitHubIssue, this.lastShownCopilotCompletionItem, telemetryArg);
 		}));
 	}
 
-	trackItem(item: GhostTextCompletionItem) {
+	trackItem(item: InlineCompletionItem) {
 		this.lastShownCopilotCompletionItem = item;
 	}
 }
 
 async function openGitHubIssue(
 	accessor: ServicesAccessor,
-	item: GhostTextCompletionItem | undefined,
+	item: InlineCompletionItem | undefined,
 	telemetry: TelemetryData | undefined
 ) {
 	const body = generateGitHubIssueBody(accessor, item, telemetry);
@@ -51,10 +55,10 @@ async function openGitHubIssue(
 
 function generateGitHubIssueBody(
 	accessor: ServicesAccessor,
-	item: GhostTextCompletionItem | undefined,
+	item: InlineCompletionItem | undefined,
 	telemetry: TelemetryData | undefined
 ) {
-	const diagnostics = collectCompletionDiagnostics(accessor, telemetry, item?.opportunityId);
+	const diagnostics = collectCompletionDiagnostics(accessor, telemetry);
 	const formattedDiagnostics = formatDiagnosticsAsMarkdown(diagnostics);
 	if (typeof item?.insertText !== 'string') {
 		return '';

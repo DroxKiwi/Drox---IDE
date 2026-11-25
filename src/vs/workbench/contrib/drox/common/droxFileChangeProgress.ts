@@ -192,16 +192,12 @@ export async function resolveDroxFileChangeAfterToolFinish(
 				hadFile: captured.hadFile,
 			});
 			canUndo = true;
-			try {
-				beforeSnapshotUri = await writeBeforeSnapshotUri(
-					deps.fileService,
-					options.workspaceRoot,
-					tid,
-					captured.beforeContent,
-				);
-			} catch {
-				beforeSnapshotUri = undefined;
-			}
+			beforeSnapshotUri = await writeBeforeSnapshotUri(
+				deps.fileService,
+				options.workspaceRoot,
+				tid,
+				captured.beforeContent,
+			);
 		}
 	}
 	return {

@@ -28,7 +28,6 @@ import { IKeybindingService } from '../../../../../../platform/keybinding/common
 import { CellEditState, CellFocusMode, CellFoldingState, EXPAND_CELL_INPUT_COMMAND_ID, IActiveNotebookEditorDelegate, ICellViewModel } from '../../notebookBrowser.js';
 import { collapsedIcon, expandedIcon } from '../../notebookIcons.js';
 import { CellEditorOptions } from './cellEditorOptions.js';
-import { CellEditorOverflowWidgets } from './cellEditorOverflowWidgets.js';
 import { collapsedCellTTPolicy, MarkdownCellRenderTemplate } from '../notebookRenderingCommon.js';
 import { MarkupCellViewModel } from '../../viewModel/markupCellViewModel.js';
 import { WordHighlighterContribution } from '../../../../../../editor/contrib/wordHighlighter/browser/wordHighlighter.js';
@@ -36,7 +35,6 @@ import { WordHighlighterContribution } from '../../../../../../editor/contrib/wo
 export class MarkupCell extends Disposable {
 
 	private editor: CodeEditorWidget | null = null;
-	private editorOverflowWidgets: CellEditorOverflowWidgets | undefined;
 
 	private markdownAccessibilityContainer!: HTMLElement;
 	private editorPart: HTMLElement;
@@ -226,7 +224,6 @@ export class MarkupCell extends Disposable {
 
 	override dispose() {
 		this._isDisposed = true;
-		this.editorOverflowWidgets?.setVisible(false);
 
 		// move focus back to the cell list otherwise the focus goes to body
 		if (this.notebookEditor.getActiveCell() === this.viewCell && this.viewCell.focusMode === CellFocusMode.Editor && (this.notebookEditor.hasEditorFocus() || this.notebookEditor.getDomNode().ownerDocument.activeElement === this.notebookEditor.getDomNode().ownerDocument.body)) {
@@ -256,7 +253,6 @@ export class MarkupCell extends Disposable {
 	private viewUpdateCollapsed(): void {
 		DOM.show(this.templateData.cellInputCollapsedContainer);
 		DOM.hide(this.editorPart);
-		this.editorOverflowWidgets?.setVisible(false);
 
 		this.templateData.cellInputCollapsedContainer.innerText = '';
 
@@ -327,22 +323,22 @@ export class MarkupCell extends Disposable {
 			this.templateData.editorContainer.innerText = '';
 
 			// create a special context key service that set the inCompositeEditor-contextkey
-			const editorContextKeyService = this.editorDisposables.add(this.contextKeyService.createScoped(this.templateData.editorPart));
+			const editorContextKeyService = this.contextKeyService.createScoped(this.templateData.editorPart);
 			EditorContextKeys.inCompositeEditor.bindTo(editorContextKeyService).set(true);
 			const editorInstaService = this.editorDisposables.add(this.instantiationService.createChild(new ServiceCollection([IContextKeyService, editorContextKeyService])));
-			this.editorOverflowWidgets = this.editorDisposables.add(new CellEditorOverflowWidgets(this.notebookEditor.getOverflowContainerDomNode()));
+			this.editorDisposables.add(editorContextKeyService);
+
 			this.editor = this.editorDisposables.add(editorInstaService.createInstance(CodeEditorWidget, this.templateData.editorContainer, {
 				...this.editorOptions,
-				overflowWidgetsDomNode: this.editorOverflowWidgets.domNode,
 				dimension: {
 					width: width,
 					height: editorHeight
 				},
 				allowVariableLineHeights: false,
+				// overflowWidgetsDomNode: this.notebookEditor.getOverflowContainerDomNode()
 			}, {
 				contributions: this.notebookEditor.creationOptions.cellEditorContributions
 			}));
-			this.editorOverflowWidgets.bindEditor(this.editor);
 			this.templateData.currentEditor = this.editor;
 			this.editorDisposables.add(this.editor.onDidBlurEditorWidget(() => {
 				if (this.editor) {
@@ -392,7 +388,6 @@ export class MarkupCell extends Disposable {
 			});
 		}
 
-		this.editorOverflowWidgets?.setVisible(true);
 		this.viewCell.editorHeight = editorHeight;
 		this.focusEditorIfNeeded();
 		this.renderedEditors.set(this.viewCell, this.editor);
@@ -401,7 +396,6 @@ export class MarkupCell extends Disposable {
 	private viewUpdatePreview(): void {
 		this.viewCell.detachTextEditor();
 		DOM.hide(this.editorPart);
-		this.editorOverflowWidgets?.setVisible(false);
 		DOM.hide(this.templateData.cellInputCollapsedContainer);
 		this.markdownAccessibilityContainer.ariaHidden = 'false';
 		this.templateData.container.classList.toggle('input-collapsed', false);

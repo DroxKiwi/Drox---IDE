@@ -20,15 +20,12 @@ import { IActionWidgetDropdownAction, IActionWidgetDropdownActionProvider, IActi
 import { IContextKeyService } from '../../../../../../platform/contextkey/common/contextkey.js';
 import { IHoverService } from '../../../../../../platform/hover/browser/hover.js';
 import { IKeybindingService } from '../../../../../../platform/keybinding/common/keybinding.js';
-import { IStorageService } from '../../../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
 import { IWorkspaceContextService } from '../../../../../../platform/workspace/common/workspace.js';
 import { ISCMService } from '../../../../scm/common/scm.js';
 import type { IChatWidget } from '../../chat.js';
 import { ChatInputPickerActionViewItem, IChatInputPickerOptions } from '../../widget/input/chatInputPickerActionItem.js';
 import { IAgentHostNewSessionFolderService } from './agentHostNewSessionFolderService.js';
-import { IAgentHostCustomizationService } from './agentHostCustomizationService.js';
-import { createFolderPickerTip } from './agentHostFolderPickerTip.js';
 
 /**
  * Folder picker for agent-host sessions in multi-root windows. An agent-host
@@ -54,10 +51,8 @@ export class AgentHostFolderPickerActionItem extends ChatInputPickerActionViewIt
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IWorkspaceContextService private readonly _workspaceContextService: IWorkspaceContextService,
 		@IAgentHostNewSessionFolderService private readonly _newSessionFolderService: IAgentHostNewSessionFolderService,
-		@IAgentHostCustomizationService private readonly _customizationService: IAgentHostCustomizationService,
 		@ISCMService private readonly _scmService: ISCMService,
 		@IHoverService private readonly _hoverService: IHoverService,
-		@IStorageService storageService: IStorageService,
 	) {
 		const actionProvider: IActionWidgetDropdownActionProvider = {
 			getActions: () => {
@@ -92,7 +87,6 @@ export class AgentHostFolderPickerActionItem extends ChatInputPickerActionViewIt
 			actionBarActionProvider,
 			showItemKeybindings: false,
 			reporter: { id: 'AgentHostFolderPicker', name: 'AgentHostFolderPicker', includeOptions: false },
-			listOptionsProvider: createFolderPickerTip(storageService),
 		};
 
 		super(action, folderPickerOptions, pickerOptions, actionWidgetService, keybindingService, contextKeyService, telemetryService);
@@ -112,12 +106,6 @@ export class AgentHostFolderPickerActionItem extends ChatInputPickerActionViewIt
 				this.renderLabel(this.element);
 			}
 		}));
-		// Re-render when asynchronous session state reveals the session's working directory.
-		this._register(this._customizationService.onDidChangeCustomizations(() => {
-			if (this.element) {
-				this.renderLabel(this.element);
-			}
-		}));
 	}
 
 	private _sessionResource(): URI | undefined {
@@ -128,40 +116,27 @@ export class AgentHostFolderPickerActionItem extends ChatInputPickerActionViewIt
 		const folders = this._workspaceContextService.getWorkspace().folders;
 		const sessionResource = this._sessionResource();
 		const stored = sessionResource ? this._newSessionFolderService.getFolder(sessionResource) : undefined;
-		// Stale workspace selections are cleared by the folder service; standalone selections remain valid.
 		if (stored) {
-			return stored;
+			if (folders.some(folder => folder.uri.toString() === stored.toString())) {
+				return stored;
+			}
+			// The stored folder is no longer part of the workspace (folders
+			// changed); drop the stale selection and fall back to the first folder.
+			this._newSessionFolderService.clear(sessionResource!);
 		}
-		// A started session's working directory is fixed at creation time and may
-		// differ from the current workspace's first folder (e.g. a single-folder
-		// session opened inside a multi-root workspace), so show its own folder
-		// rather than the workspace default.
-		const sessionWorkingDirectory = sessionResource ? this._customizationService.getClientWorkingDirectoryUris(sessionResource)[0] : undefined;
-		if (sessionWorkingDirectory) {
-			return sessionWorkingDirectory;
-		}
-		// No explicit choice for this session yet: default to the folder the
-		// user last picked in this window (if still valid) so a new chat keeps
-		// the previous selection instead of resetting to the first folder.
-		return this._newSessionFolderService.getDefaultFolder() ?? folders[0]?.uri;
+		return folders[0]?.uri;
 	}
 
 	protected override renderLabel(element: HTMLElement): IDisposable | null {
+		this.setAriaLabelAttributes(element);
 		const selected = this._selectedFolder();
 		const folder = selected && this._workspaceContextService.getWorkspace().folders.find(f => f.uri.toString() === selected.toString());
 		const label = folder ? folder.name : (selected ? basename(selected) : localize('agentHost.selectFolder', "Folder"));
-		const compact = this.pickerOptions.compact.get();
-		element.classList.toggle('icon-only', compact);
 		dom.reset(
 			element,
-			...renderLabelWithIcons(`$(folder-compact)`),
-			...(!compact ? [dom.$('span.chat-input-picker-label', undefined, label)] : []),
+			...renderLabelWithIcons(`$(folder)`),
+			dom.$('span.chat-input-picker-label', undefined, label),
 		);
-		// Set the aria label after the visible text is in place: the base class
-		// derives it from `element.textContent`, so labeling first would lag one
-		// selection behind.
-		this.setAriaLabelAttributes(element);
-		element.ariaLabel = label;
 		return null;
 	}
 

@@ -3,19 +3,20 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import type * as ESTree from 'estree';
+import { TSESTree } from '@typescript-eslint/utils';
 
 /**
  * WORKAROUND for https://github.com/evanw/esbuild/issues/3823
  */
-export default new class implements CreateRule {
+export default new class implements eslint.Rule.RuleModule {
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
-		function checkProperty(inNode: ESTree.PropertyDefinition) {
+		function checkProperty(inNode: TSESTree.PropertyDefinition) {
 
-			// `getAncestors` returns AST nodes, typed as the base `Node`
-			const classDeclaration = (context.sourceCode.getAncestors(inNode) as ESTree.Node[]).find((node): node is ESTree.Class => node.type === 'ClassDeclaration');
+			const classDeclaration = context.sourceCode.getAncestors(inNode as ESTree.Node).find(node => node.type === 'ClassDeclaration');
 			const propertyDefinition = inNode;
 
 			if (!classDeclaration || !classDeclaration.id?.name) {
@@ -28,16 +29,15 @@ export default new class implements CreateRule {
 
 			const classCtor = classDeclaration.body.body.find(node => node.type === 'MethodDefinition' && node.kind === 'constructor');
 
-			// `classCtor` is always a `MethodDefinition`; this check narrows its type
-			if (!classCtor || classCtor.type !== 'MethodDefinition') {
+			if (!classCtor || classCtor.type === 'StaticBlock') {
 				return;
 			}
 
 			const name = classDeclaration.id.name;
-			const valueText = context.sourceCode.getText(propertyDefinition.value);
+			const valueText = context.sourceCode.getText(propertyDefinition.value as ESTree.Node);
 
 			if (valueText.includes(name + '.')) {
-				if (classCtor.value?.type === 'FunctionExpression' && !classCtor.value.params.find(param => param.type === 'TSParameterProperty' && param.decorators?.length > 0)) {
+				if (classCtor.value?.type === 'FunctionExpression' && !classCtor.value.params.find((param: any) => param.type === 'TSParameterProperty' && param.decorators?.length > 0)) {
 					return;
 				}
 

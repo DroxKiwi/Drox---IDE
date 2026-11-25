@@ -95,17 +95,9 @@
 	grid-template-columns: minmax(0, 1fr) auto;
 	grid-template-areas:
 		"select auto"
-		"suggest suggest"
-		"custom custom";
+		"suggest suggest";
 	gap: 6px 8px;
 	align-items: center;
-}
-
-.drox-regulation-l2-custom-hint {
-	grid-area: custom;
-	margin: 0;
-	font-size: 11px;
-	line-height: 1.35;
 }
 
 .drox-regulation-module {

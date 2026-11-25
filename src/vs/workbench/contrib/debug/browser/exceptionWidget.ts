@@ -21,8 +21,6 @@ import { ActionBar } from '../../../../base/browser/ui/actionbar/actionbar.js';
 import { Action } from '../../../../base/common/actions.js';
 import { widgetClose } from '../../../../platform/theme/common/iconRegistry.js';
 import { Range } from '../../../../editor/common/core/range.js';
-import { Codicon } from '../../../../base/common/codicons.js';
-import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
 
 const $ = dom.$;
 
@@ -41,8 +39,7 @@ export class ExceptionWidget extends ZoneWidget {
 		private debugSession: IDebugSession | undefined,
 		private readonly shouldScroll: () => boolean,
 		@IThemeService themeService: IThemeService,
-		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@IClipboardService private readonly clipboardService: IClipboardService
+		@IInstantiationService private readonly instantiationService: IInstantiationService
 	) {
 		super(editor, { showFrame: true, showArrow: true, isAccessible: true, frameWidth: 1, className: 'exception-widget-container' });
 
@@ -87,10 +84,6 @@ export class ExceptionWidget extends ZoneWidget {
 		let ariaLabel = label.textContent;
 
 		const actionBar = this._disposables.add(new ActionBar(actions));
-		actionBar.push(new Action('editor.copyExceptionInfo', nls.localize('copy', "Copy"), ThemeIcon.asClassName(Codicon.copy), true, async () => {
-			const clipboardText = this.buildExceptionText();
-			await this.clipboardService.writeText(clipboardText);
-		}), { label: false, icon: true });
 		actionBar.push(new Action('editor.closeExceptionWidget', nls.localize('close', "Close"), ThemeIcon.asClassName(widgetClose), true, async () => {
 			const contribution = this.editor.getContribution<IDebugEditorContribution>(EDITOR_CONTRIBUTION_ID);
 			contribution?.closeExceptionWidget();
@@ -137,22 +130,6 @@ export class ExceptionWidget extends ZoneWidget {
 		if (this.shouldScroll()) {
 			super.revealRange(range, isLastLine);
 		}
-	}
-
-	private buildExceptionText(): string {
-		const parts: string[] = [];
-		if (this.exceptionInfo.id) {
-			parts.push(nls.localize('exceptionThrownWithId', 'Exception has occurred: {0}', this.exceptionInfo.id));
-		} else {
-			parts.push(nls.localize('exceptionThrown', 'Exception has occurred.'));
-		}
-		if (this.exceptionInfo.description) {
-			parts.push(this.exceptionInfo.description);
-		}
-		if (this.exceptionInfo.details?.stackTrace) {
-			parts.push(this.exceptionInfo.details.stackTrace);
-		}
-		return parts.join('\n');
 	}
 
 	focus(): void {

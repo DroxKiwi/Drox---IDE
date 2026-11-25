@@ -5,7 +5,7 @@
 
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
-import { CDPTargetInfo, ICDPConnection, ICDPSessionCreatedEvent, ICDPTarget } from '../common/cdp/types.js';
+import { CDPTargetInfo, ICDPConnection, ICDPTarget } from '../common/cdp/types.js';
 import type { BrowserView } from './browserView.js';
 
 /**
@@ -17,7 +17,7 @@ export class BrowserViewCDPTarget extends Disposable implements ICDPTarget {
 	protected readonly _sessions = new Map<string, ICDPConnection>();
 	get sessions(): ReadonlyMap<string, ICDPConnection> { return this._sessions; }
 
-	private readonly _onSessionCreated = this._register(new Emitter<ICDPSessionCreatedEvent>());
+	private readonly _onSessionCreated = this._register(new Emitter<{ session: ICDPConnection; waitingForDebugger: boolean }>());
 	readonly onSessionCreated = this._onSessionCreated.event;
 
 	private readonly _onClose = this._register(new Emitter<void>());
@@ -57,18 +57,17 @@ export class BrowserViewCDPTarget extends Disposable implements ICDPTarget {
 		return {
 			...this._targetInfo,
 			attached: this._sessions.size > 0,
-			browserContextId: this.view.session.id,
-			vscodeBrowserViewId: this.view.id
+			browserContextId: this.view.session.id
 		};
 	}
 
-	async attach(requesterSessionId?: string): Promise<ICDPConnection> {
+	async attach(): Promise<ICDPConnection> {
 		const session = await this.view.debugger.attachToTarget(this.targetInfo.targetId);
-		this.notifySessionCreated(session, false, requesterSessionId);
+		this.notifySessionCreated(session, false);
 		return session;
 	}
 
-	notifySessionCreated(session: ICDPConnection, waitingForDebugger: boolean, requesterSessionId?: string): void {
+	notifySessionCreated(session: ICDPConnection, waitingForDebugger: boolean): void {
 		if (this._sessions.has(session.sessionId)) {
 			return;
 		}
@@ -86,7 +85,7 @@ export class BrowserViewCDPTarget extends Disposable implements ICDPTarget {
 			}
 		});
 
-		this._onSessionCreated.fire({ session, waitingForDebugger, requesterSessionId });
+		this._onSessionCreated.fire({ session, waitingForDebugger });
 	}
 
 	override dispose(): void {

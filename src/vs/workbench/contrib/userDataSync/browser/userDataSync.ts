@@ -7,7 +7,6 @@ import { toAction } from '../../../../base/common/actions.js';
 import { getErrorMessage, isCancellationError } from '../../../../base/common/errors.js';
 import { Event } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore, MutableDisposable, toDisposable, IDisposable } from '../../../../base/common/lifecycle.js';
-import { NotificationText } from '../../../../platform/notification/common/notificationMessage.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ServicesAccessor } from '../../../../editor/browser/editorExtensions.js';
@@ -67,7 +66,6 @@ type SyncConflictsClassification = {
 const turnOffSyncCommand = { id: 'workbench.userDataSync.actions.turnOff', title: localize2('stop sync', 'Turn Off') };
 const configureSyncCommand = { id: CONFIGURE_SYNC_COMMAND_ID, title: localize2('configure sync', 'Configure...') };
 const showConflictsCommandId = 'workbench.userDataSync.actions.showConflicts';
-const syncLogLink = NotificationText.link(localize('syncLogLink', "logs"), `command:${SHOW_SYNC_LOG_COMMAND_ID}`);
 const syncNowCommand = {
 	id: 'workbench.userDataSync.actions.syncNow',
 	title: localize2('sync now', 'Sync Now'),
@@ -229,7 +227,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		try {
 			await this.userDataSyncService.accept(syncResource, conflict.remoteResource, undefined, this.userDataSyncEnablementService.isEnabled());
 		} catch (e) {
-			this.notificationService.error(NotificationText.format(localize('accept failed linked', "Error while accepting changes. Please check {0} for more details."), syncLogLink));
+			this.notificationService.error(localize('accept failed', "Error while accepting changes. Please check [logs]({0}) for more details.", `command:${SHOW_SYNC_LOG_COMMAND_ID}`));
 		}
 	}
 
@@ -237,7 +235,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		try {
 			await this.userDataSyncService.accept(syncResource, conflict.localResource, undefined, this.userDataSyncEnablementService.isEnabled());
 		} catch (e) {
-			this.notificationService.error(NotificationText.format(localize('accept failed linked', "Error while accepting changes. Please check {0} for more details."), syncLogLink));
+			this.notificationService.error(localize('accept failed', "Error while accepting changes. Please check [logs]({0}) for more details.", `command:${SHOW_SYNC_LOG_COMMAND_ID}`));
 		}
 	}
 
@@ -350,10 +348,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 				if (this.userDataSyncEnablementService.isEnabled()) {
 					this.notificationService.notify({
 						severity: Severity.Info,
-						message: NotificationText.format(
-							localize('using separate service linked', "Settings sync now uses a separate service, more information is available in the {0}."),
-							NotificationText.link(localize('syncDocumentationLink', "Settings Sync Documentation"), 'https://aka.ms/vscode-settings-sync-help#_syncing-stable-versus-insiders'),
-						),
+						message: localize('using separate service', "Settings sync now uses a separate service, more information is available in the [Settings Sync Documentation](https://aka.ms/vscode-settings-sync-help#_syncing-stable-versus-insiders)."),
 					});
 				}
 
@@ -549,7 +544,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 						this.notificationService.error(localize('auth failed', "Error while turning on Settings Sync: Authentication failed."));
 						return;
 				}
-				this.notificationService.error(NotificationText.format(localize('turn on failed with user data sync error linked', "Error while turning on Settings Sync. Please check {0} for more details."), syncLogLink));
+				this.notificationService.error(localize('turn on failed with user data sync error', "Error while turning on Settings Sync. Please check [logs]({0}) for more details.", `command:${SHOW_SYNC_LOG_COMMAND_ID}`));
 			} else {
 				this.notificationService.error(localize({ key: 'turn on failed', comment: ['Substitution is for error reason'] }, "Error while turning on Settings Sync. {0}", getErrorMessage(e)));
 			}
@@ -1043,7 +1038,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 					await that.turnOff();
 				} catch (e) {
 					if (!isCancellationError(e)) {
-						that.notificationService.error(NotificationText.format(localize('turn off failed linked', "Error while turning off Settings Sync. Please check {0} for more details."), syncLogLink));
+						that.notificationService.error(localize('turn off failed', "Error while turning off Settings Sync. Please check [logs]({0}) for more details.", `command:${SHOW_SYNC_LOG_COMMAND_ID}`));
 					}
 				}
 			}

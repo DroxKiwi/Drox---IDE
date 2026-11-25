@@ -26,19 +26,12 @@ const defaultDialogAllowableCommands = new Set([
 	'editor.action.clipboardPasteAction'
 ]);
 
-export function createWorkbenchDialogOptions(
-	options: Partial<IDialogOptions>,
-	keybindingService: IKeybindingService,
-	layoutService: ILayoutService,
-	hostService: IHostService,
-	allowableCommands = defaultDialogAllowableCommands,
-	shouldPassThroughCommand?: (commandId: string, event: StandardKeyboardEvent) => boolean,
-): IDialogOptions {
+export function createWorkbenchDialogOptions(options: Partial<IDialogOptions>, keybindingService: IKeybindingService, layoutService: ILayoutService, hostService: IHostService, allowableCommands = defaultDialogAllowableCommands): IDialogOptions {
 	return {
 		keyEventProcessor: (event: StandardKeyboardEvent) => {
 			const resolved = keybindingService.softDispatch(event, layoutService.activeContainer);
 			if (resolved.kind === ResultKind.KbFound && resolved.commandId) {
-				if (!allowableCommands.has(resolved.commandId) && !shouldPassThroughCommand?.(resolved.commandId, event)) {
+				if (!allowableCommands.has(resolved.commandId)) {
 					EventHelper.stop(event, true);
 				}
 			}
@@ -72,3 +65,4 @@ export function createBrowserAboutDialogDetails(productService: IProductService)
 		detailsToCopy: detailsToCopy
 	};
 }
+

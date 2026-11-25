@@ -28,6 +28,7 @@ import {
 } from '../common/folderRepositoryManager';
 import { isUntitledSessionId } from '../common/utils';
 import { isWelcomeView } from '../copilotcli/node/copilotCli';
+import { IClaudeSessionStateService } from '../claude/common/claudeSessionStateService';
 import { ICopilotCLISessionService } from '../copilotcli/node/copilotcliSessionService';
 
 /**
@@ -864,7 +865,7 @@ export class CopilotCLIFolderRepositoryManager extends FolderRepositoryManager {
 	 * @inheritdoc
 	 */
 	protected async getSessionFallbackFolder(sessionId: string): Promise<vscode.Uri | undefined> {
-		const cwd = await this.sessionService.getSessionWorkingDirectory(sessionId);
+		const cwd = this.sessionService.getSessionWorkingDirectory(sessionId);
 		if (cwd && (await checkPathExists(cwd, this.fileSystem))) {
 			return cwd;
 		}
@@ -878,6 +879,41 @@ async function checkPathExists(filePath: vscode.Uri, fileSystem: IFileSystemServ
 		return true;
 	} catch (error) {
 		return false;
+	}
+}
+
+// #endregion
+
+// #region ClaudeFolderRepositoryManager
+
+/**
+ * Claude-specific implementation that resolves folder information for
+ * existing sessions using the Claude session state service as a fallback.
+ */
+export class ClaudeFolderRepositoryManager extends FolderRepositoryManager {
+	constructor(
+		@IChatSessionWorktreeService worktreeService: IChatSessionWorktreeService,
+		@IChatSessionWorkspaceFolderService workspaceFolderService: IChatSessionWorkspaceFolderService,
+		@IGitService gitService: IGitService,
+		@IWorkspaceService workspaceService: IWorkspaceService,
+		@ILogService logService: ILogService,
+		@IToolsService toolsService: IToolsService,
+		@IClaudeSessionStateService private readonly sessionStateService: IClaudeSessionStateService,
+		@IFileSystemService private readonly fileSystem: IFileSystemService,
+		@IChatSessionMetadataStore metadataStore: IChatSessionMetadataStore
+	) {
+		super(worktreeService, workspaceFolderService, gitService, workspaceService, logService, toolsService, metadataStore);
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	protected async getSessionFallbackFolder(sessionId: string): Promise<vscode.Uri | undefined> {
+		const folderInfo = this.sessionStateService.getFolderInfoForSession(sessionId);
+		if (folderInfo && (await checkPathExists(vscode.Uri.file(folderInfo.cwd), this.fileSystem))) {
+			return vscode.Uri.file(folderInfo.cwd);
+		}
+		return undefined;
 	}
 }
 

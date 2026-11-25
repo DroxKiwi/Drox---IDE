@@ -4,18 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken } from '../../../../base/common/cancellation.js';
-import { Event } from '../../../../base/common/event.js';
 import { FileAccess } from '../../../../base/common/network.js';
-import { basename, joinPath } from '../../../../base/common/resources.js';
+import { basename, dirname, joinPath } from '../../../../base/common/resources.js';
 import { SKILL_FILENAME } from '../../../../workbench/contrib/chat/common/promptSyntax/config/promptFileLocations.js';
 import { PromptsType } from '../../../../workbench/contrib/chat/common/promptSyntax/promptTypes.js';
-import { IAgentSkill, IBuiltinPromptPath, PromptsStorage } from '../../../../workbench/contrib/chat/common/promptSyntax/service/promptsService.js';
+import { IAgentSkill, IPromptPath, PromptsStorage } from '../../../../workbench/contrib/chat/common/promptSyntax/service/promptsService.js';
 import { PromptsService } from '../../../../workbench/contrib/chat/common/promptSyntax/service/promptsServiceImpl.js';
-import { AGENT_SESSIONS_APPEARANCE_TOOLS_ENABLED_SETTING } from '../../../../workbench/contrib/sessions/common/chatConstants.js';
-import { CHAT_AUTOMATIONS_ENABLED_SETTING } from '../../../../workbench/contrib/chat/common/automations/automationsEnabled.js';
-import { ChatConfiguration } from '../../../../workbench/contrib/chat/common/constants.js';
-import { getChatNativeComponentsRenderer } from '../../../../workbench/contrib/chat/browser/widget/chatContentParts/chatNativeComponents.js';
-import { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSettings.js';
+import { BUILTIN_STORAGE, IBuiltinPromptPath } from '../common/builtinPromptsStorage.js';
 
 /** URI root for built-in skills bundled with the Agents app. */
 export const BUILTIN_SKILLS_URI = FileAccess.asFileUri('vs/sessions/skills');
@@ -24,12 +19,12 @@ export const BUILTIN_SKILLS_URI = FileAccess.asFileUri('vs/sessions/skills');
  * Sessions-specific PromptsService that additionally discovers built-in skills
  * bundled at `vs/sessions/skills/{folder}/SKILL.md`.
  *
- * Built-in skills are contributed via the single {@link getBuiltinPromptFiles}
- * override, so the base service merges them into `findAgentSkills()`,
- * `listPromptFiles(skill)` and
- * `listPromptFilesForStorage(skill, PromptsStorage.builtIn)` and applies its own
- * parsing, sanitization and duplicate-name precedence. Built-ins have the lowest
- * skill priority, so a user/workspace skill with the same folder name wins.
+ * Built-in skills are merged into `findAgentSkills()` and exposed via
+ * `listPromptFilesForStorage(skill, BUILTIN_STORAGE)` so that the existing
+ * AI customization UI (groups, badges, overrides) picks them up naturally.
+ *
+ * User/workspace skills with the same folder name take precedence (built-ins
+ * are appended last and filtered when overridden).
  */
 export class AgenticPromptsService extends PromptsService {
 
@@ -70,7 +65,7 @@ export class AgenticPromptsService extends PromptsService {
 					}
 					skills.push({
 						uri: skillFileUri,
-						storage: PromptsStorage.builtIn,
+						storage: BUILTIN_STORAGE as PromptsStorage,
 						name,
 						description,
 						disableModelInvocation: parsed.header?.disableModelInvocation === true,
@@ -88,50 +83,74 @@ export class AgenticPromptsService extends PromptsService {
 
 	private async getBuiltinSkillPaths(): Promise<readonly IBuiltinPromptPath[]> {
 		const skills = await this.getBuiltinSkills();
-		return skills.filter(s => {
-			if (s.name === 'html-preview') {
-				return this.configurationService.getValue<boolean>(ChatConfiguration.HtmlPreviewEnabled) === true
-					&& !this.configurationService.getValue<boolean>(ChatAIDisabledSettingId);
-			}
-			if (s.name === 'vscode-ui') {
-				return !!getChatNativeComponentsRenderer(this.configurationService);
-			}
-			if (s.name === 'automate') {
-				return this.configurationService.getValue<boolean>(CHAT_AUTOMATIONS_ENABLED_SETTING) === true
-					&& !this.configurationService.getValue<boolean>(ChatAIDisabledSettingId);
-			}
-			return s.name !== 'generate-chat-background' || this.configurationService.getValue<boolean>(AGENT_SESSIONS_APPEARANCE_TOOLS_ENABLED_SETTING) === true;
-		}).map(s => ({
+		return skills.map(s => ({
 			uri: s.uri,
-			storage: PromptsStorage.builtIn,
+			storage: BUILTIN_STORAGE,
 			type: PromptsType.skill,
 			name: s.name,
 			description: s.description,
 		}));
 	}
 
-	/**
-	 * Contributes the built-in skills bundled with the Agents app. The base
-	 * {@link PromptsService} merges these into skill discovery
-	 * (`findAgentSkills()`), `listPromptFiles(skill)` and
-	 * `listPromptFilesForStorage(skill, PromptsStorage.builtIn)`, applying its
-	 * own parsing, sanitization and duplicate-name precedence (built-ins have
-	 * the lowest priority, so user/workspace skills of the same name win).
-	 */
-	protected override async getBuiltinPromptFiles(type: PromptsType, token: CancellationToken): Promise<readonly IBuiltinPromptPath[]> {
-		if (type !== PromptsType.skill) {
-			return [];
+	public override async findAgentSkills(token: CancellationToken): Promise<IAgentSkill[] | undefined> {
+		const baseResult = await super.findAgentSkills(token);
+		if (baseResult === undefined) {
+			return undefined;
 		}
-		return this.getBuiltinSkillPaths();
+
+		const builtinSkills = await this.getBuiltinSkills();
+		if (builtinSkills.length === 0) {
+			return baseResult;
+		}
+
+		const existingNames = new Set(
+			baseResult
+				.filter(s => s.storage === PromptsStorage.local || s.storage === PromptsStorage.user)
+				.map(s => s.name)
+		);
+		const disabledSkills = this.getDisabledPromptFiles(PromptsType.skill);
+		const nonOverridden = builtinSkills.filter(s => !existingNames.has(s.name) && !disabledSkills.has(s.uri));
+		if (nonOverridden.length === 0) {
+			return baseResult;
+		}
+
+		return [...baseResult, ...nonOverridden];
 	}
 
-	protected override get onDidChangeBuiltinPromptFiles(): Event<PromptsType> {
-		return Event.map(Event.filter(this.configurationService.onDidChangeConfiguration,
-			event => event.affectsConfiguration(AGENT_SESSIONS_APPEARANCE_TOOLS_ENABLED_SETTING)
-				|| event.affectsConfiguration(ChatConfiguration.HtmlPreviewEnabled)
-				|| event.affectsConfiguration(ChatConfiguration.NativeComponentsEnabled)
-				|| event.affectsConfiguration(CHAT_AUTOMATIONS_ENABLED_SETTING)
-				|| event.affectsConfiguration(ChatAIDisabledSettingId)), () => PromptsType.skill);
+	public override async listPromptFiles(type: PromptsType, token: CancellationToken): Promise<readonly IPromptPath[]> {
+		const baseResults = await super.listPromptFiles(type, token);
+
+		if (type !== PromptsType.skill) {
+			return baseResults;
+		}
+
+		const builtinItems = await this.getBuiltinSkillPaths();
+		if (builtinItems.length === 0) {
+			return baseResults;
+		}
+
+		// Filter out built-ins overridden by user/workspace skills of the same folder name.
+		const overriddenNames = new Set<string>();
+		for (const p of baseResults) {
+			if (p.storage === PromptsStorage.local || p.storage === PromptsStorage.user) {
+				overriddenNames.add(basename(dirname(p.uri)));
+			}
+		}
+		const nonOverridden = builtinItems.filter(p => !overriddenNames.has(basename(dirname(p.uri))));
+
+		// Built-in items use BUILTIN_STORAGE ('builtin') which is not in the core
+		// IPromptPath union but is handled by the sessions UI layer.
+		return [...baseResults, ...nonOverridden] as readonly IPromptPath[];
+	}
+
+	public override async listPromptFilesForStorage(type: PromptsType, storage: PromptsStorage, token: CancellationToken): Promise<readonly IPromptPath[]> {
+		if ((storage as PromptsStorage | typeof BUILTIN_STORAGE) === BUILTIN_STORAGE) {
+			if (type === PromptsType.skill) {
+				return this.getBuiltinSkillPaths() as Promise<readonly IPromptPath[]>;
+			}
+			return [];
+		}
+		return super.listPromptFilesForStorage(type, storage, token);
 	}
 }
 

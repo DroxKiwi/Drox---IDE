@@ -8,6 +8,8 @@
 **/extensions/copilot/.eslintplugin/**
 **/extensions/copilot/chat-lib/**
 **/extensions/copilot/test/simulation/fixtures/**
+**/extensions/copilot/test/scenarios/**
+**/extensions/copilot/test/aml/out/**
 **/extensions/copilot/src/util/vs/**
 **/extensions/copilot/src/platform/parser/test/node/fixtures/**
 **/extensions/copilot/src/extension/test/node/fixtures/**
@@ -22,7 +24,6 @@
 **/extensions/html-language-features/server/src/test/pathCompletionFixtures/**
 **/extensions/ipynb/notebook-out/**
 **/extensions/markdown-language-features/media/**
-**/extensions/markdown-language-features/markdown-editor-out/**
 **/extensions/markdown-language-features/notebook-out/**
 **/extensions/markdown-math/notebook-out/**
 **/extensions/mermaid-markdown-features/chat-webview-out/**
@@ -59,7 +60,6 @@
 # Vendored third-party libraries
 src/vs/base/common/lit-html/**
 src/vs/base/common/signals-core/**
-# DROX-BEGIN
 
 # Drox IDE fork — webview modules and dev scripts (legacy JS / fork hygiene)
 **/src/vs/workbench/contrib/drox/**
@@ -68,4 +68,3 @@ scripts/format-drox-contrib.mjs
 scripts/package-drox-run.mjs
 scripts/split-drox-*.mjs
 drox-engine/extension-vscode/**
-# DROX-END

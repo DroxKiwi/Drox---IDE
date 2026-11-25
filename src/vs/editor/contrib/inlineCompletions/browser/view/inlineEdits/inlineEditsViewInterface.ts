@@ -48,11 +48,6 @@ export class InlineCompletionViewData {
 
 	public longDistanceHintVisible: boolean | undefined = undefined;
 	public longDistanceHintDistance: number | undefined = undefined;
-	/**
-	 * Whether the suggestion targets a different text model (URI) than the active editor's,
-	 * i.e. a cross-document Next Edit Suggestion. `undefined` for inline completions / ghost text.
-	 */
-	public isForAnotherDocument: boolean | undefined = undefined;
 
 	constructor(
 		public readonly cursorColumnDistance: number,
@@ -81,8 +76,7 @@ export class InlineCompletionViewData {
 			disjointReplacements: this.disjointReplacements,
 			sameShapeReplacements: this.sameShapeReplacements,
 			longDistanceHintVisible: this.longDistanceHintVisible,
-			longDistanceHintDistance: this.longDistanceHintDistance,
-			isForAnotherDocument: this.isForAnotherDocument
+			longDistanceHintDistance: this.longDistanceHintDistance
 		};
 	}
 }

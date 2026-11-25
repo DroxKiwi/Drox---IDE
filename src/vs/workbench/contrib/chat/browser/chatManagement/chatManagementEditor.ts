@@ -86,9 +86,4 @@ export class ModelsManagementEditor extends EditorPane {
 	search(query: string): void {
 		this.modelsWidget?.search(query);
 	}
-
-	/** Lists only the Copilot models of the given session type (harness). */
-	setSessionType(sessionType: string | undefined): void {
-		this.modelsWidget?.setSessionType(sessionType);
-	}
 }

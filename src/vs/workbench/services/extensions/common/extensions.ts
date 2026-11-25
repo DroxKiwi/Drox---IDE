@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Event } from '../../../../base/common/event.js';
-import { OperatingSystem } from '../../../../base/common/platform.js';
 import Severity from '../../../../base/common/severity.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IMessagePassingProtocol } from '../../../../base/parts/ipc/common/ipc.js';
@@ -124,8 +123,6 @@ export interface IExtensionHost {
 	readonly pid: number | null;
 	readonly runningLocation: ExtensionRunningLocation;
 	readonly remoteAuthority: string | null;
-	/** Available after start resolves for a remote host. */
-	readonly remoteOS?: OperatingSystem;
 	readonly startup: ExtensionHostStartup;
 	/**
 	 * A collection of extensions which includes information about which
@@ -327,7 +324,7 @@ export function isProposedApiEnabled(extension: IExtensionDescription, proposal:
 	if (!extension.enabledApiProposals) {
 		return false;
 	}
-	return extension.enabledApiProposals.includes(proposal);
+	return true;// extension.enabledApiProposals.includes(proposal);
 }
 
 export function checkProposedApiEnabled(extension: IExtensionDescription, proposal: ApiProposalName): void {

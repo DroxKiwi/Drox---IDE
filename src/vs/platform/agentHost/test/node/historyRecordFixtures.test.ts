@@ -7,13 +7,12 @@ import assert from 'assert';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { AgentSession } from '../../common/agent.js';
-import { FileEditKind, MessageKind, ResponsePartKind, ToolResultContentType, buildChatUri } from '../../common/state/sessionState.js';
+import { AgentSession } from '../../common/agentService.js';
+import { FileEditKind, MessageKind, ResponsePartKind, ToolResultContentType } from '../../common/state/sessionState.js';
 import { SessionDatabase } from '../../node/sessionDatabase.js';
-import { parseSessionDbUri } from '../../common/sessionDbUri.js';
+import { parseSessionDbUri } from '../../node/shared/fileEditTracker.js';
 import { mapSessionEventsToHistoryRecords } from './historyRecordFixtures.js';
-import { mapSessionEvents as mapSessionEventsWithRouting } from '../../node/copilot/mapSessionEvents.js';
-import { createCopilotSdkPathMapper, toCopilotWorkspace } from '../../node/copilot/copilotWorkspace.js';
+import { mapSessionEvents } from '../../node/copilot/mapSessionEvents.js';
 import { toSessionEvents, type ISessionEvent } from './copilotTestEvents.js';
 
 suite('mapSessionEventsToHistoryRecords', () => {
@@ -21,10 +20,6 @@ suite('mapSessionEventsToHistoryRecords', () => {
 	const disposables = new DisposableStore();
 	let db: SessionDatabase | undefined;
 	const session = AgentSession.uri('copilot', 'test-session');
-
-	function mapSessionEvents(session: URI, db: undefined, events: Parameters<typeof mapSessionEventsWithRouting>[2]) {
-		return mapSessionEventsWithRouting(session, db, events, URI.parse(buildChatUri(session, 'default')), session, createCopilotSdkPathMapper(toCopilotWorkspace(URI.file(process.cwd()))));
-	}
 
 	teardown(async () => {
 		disposables.clear();
@@ -87,8 +82,6 @@ suite('mapSessionEventsToHistoryRecords', () => {
 			{ type: 'tool.execution_complete', data: { toolCallId: 'tc-read', success: true, result: { content: 'file contents' } } },
 			{ type: 'tool.execution_start', data: { toolCallId: 'tc-task-complete', toolName: 'task_complete', arguments: { summary: 'Reviewed index.html.' } } },
 			{ type: 'tool.execution_complete', data: { toolCallId: 'tc-task-complete', success: true, result: { content: 'Reviewed index.html.' } } },
-			// Runtimes that predate completion reviews report the completion without an outcome.
-			{ type: 'session.task_complete', data: { summary: 'Reviewed index.html.', success: true } },
 		];
 
 		const result = await mapSessionEvents(session, undefined, toSessionEvents(events));
@@ -107,7 +100,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 			state: 'complete',
 			parts: [
 				{ kind: ResponsePartKind.ToolCall, toolName: 'view' },
-				{ kind: ResponsePartKind.Markdown, content: '\n\n**Task completed:**\n\nReviewed index.html.' },
+				{ kind: ResponsePartKind.Markdown, content: '\n\n**Task completed:** Reviewed index.html.' },
 			],
 		}]);
 	});
@@ -320,7 +313,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				{
 					type: 'skill.invoked',
 					id: 'evt-42',
-					data: { name: 'plan', path: '/abs/repo/skills/plan/SKILL.md', content: '' },
+					data: { name: 'plan', path: '/abs/repo/skills/plan/SKILL.md' },
 				},
 				{
 					type: 'user.message',
@@ -349,7 +342,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 					toolCallId: 'synth-skill-evt-42',
 					toolName: 'skill',
 					displayName: 'Read Skill',
-					invocationMessage: { markdown: 'Read skill [plan](file:///abs/repo/skills/plan/SKILL.md)' },
+					invocationMessage: { markdown: 'Reading skill [plan](file:///abs/repo/skills/plan/SKILL.md)' },
 				},
 				skillComplete: {
 					session,
@@ -379,7 +372,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 		}
 
 		function getStart(events: ReturnType<typeof mapSessionEventsToHistoryRecords> extends Promise<infer R> ? R : never) {
-			return events[0] as { toolInput: string };
+			return events[0] as { toolInput: string; toolArguments?: string };
 		}
 
 		test('strips redundant bash cd prefix matching workingDirectory', async () => {
@@ -387,7 +380,8 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				makeBashEvent('cd /workspace/proj && ls -la'),
 			], cwd);
 			const start = getStart(result);
-			assert.strictEqual(start.toolInput, JSON.stringify({ command: 'ls -la' }, null, 2));
+			assert.strictEqual(start.toolInput, 'ls -la');
+			assert.deepStrictEqual(JSON.parse(start.toolArguments!), { command: 'ls -la' });
 		});
 
 		test('leaves command unchanged when cd dir does not match', async () => {
@@ -395,7 +389,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				makeBashEvent('cd /other && ls'),
 			], cwd);
 			const start = getStart(result);
-			assert.strictEqual(start.toolInput, JSON.stringify({ command: 'cd /other && ls' }, null, 2));
+			assert.strictEqual(start.toolInput, 'cd /other && ls');
 		});
 
 		test('leaves command unchanged when no workingDirectory provided', async () => {
@@ -403,7 +397,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				makeBashEvent('cd /workspace/proj && ls'),
 			]);
 			const start = getStart(result);
-			assert.strictEqual(start.toolInput, JSON.stringify({ command: 'cd /workspace/proj && ls' }, null, 2));
+			assert.strictEqual(start.toolInput, 'cd /workspace/proj && ls');
 		});
 
 		test('non-shell tools are not rewritten even with matching command field', async () => {
@@ -414,7 +408,8 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				},
 			], cwd);
 			const start = getStart(result);
-			assert.strictEqual(start.toolInput, '{\n  "command": "cd /workspace/proj && ls"\n}');
+			// edit tool's toolInput is derived from filePath, not command — but toolArguments preserves original
+			assert.deepStrictEqual(JSON.parse(start.toolArguments!), { command: 'cd /workspace/proj && ls' });
 		});
 
 		test('handles trailing slash on workingDirectory', async () => {
@@ -422,7 +417,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				makeBashEvent('cd /workspace/proj && ls'),
 			], URI.file('/workspace/proj/'));
 			const start = getStart(result);
-			assert.strictEqual(start.toolInput, JSON.stringify({ command: 'ls' }, null, 2));
+			assert.strictEqual(start.toolInput, 'ls');
 		});
 
 		test('handles quoted directory in cd prefix', async () => {
@@ -431,7 +426,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				makeBashEvent('cd "/workspace/my proj" && ls'),
 			], cwdWithSpaces);
 			const start = getStart(result);
-			assert.strictEqual(start.toolInput, JSON.stringify({ command: 'ls' }, null, 2));
+			assert.strictEqual(start.toolInput, 'ls');
 		});
 
 		test('rewrites powershell commands too', async () => {
@@ -442,7 +437,7 @@ suite('mapSessionEventsToHistoryRecords', () => {
 				},
 			], cwd);
 			const start = getStart(result);
-			assert.strictEqual(start.toolInput, JSON.stringify({ command: 'dir' }, null, 2));
+			assert.strictEqual(start.toolInput, 'dir');
 		});
 	});
 });

@@ -3,15 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
 import { dirname, join } from 'path';
 import { createImportRuleListener } from './utils.ts';
 
-export default new class implements CreateRule {
+export default new class implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {};
+	readonly meta: eslint.Rule.RuleMetaData = {};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
 		if (context.filename.includes('/test/')) {
 			return {};

@@ -32,7 +32,6 @@ import { CellDecorations } from '../cellParts/cellDecorations.js';
 import { CellDragAndDropController, CellDragAndDropPart } from '../cellParts/cellDnd.js';
 import { CodeCellDragImageRenderer } from '../cellParts/cellDragRenderer.js';
 import { CellEditorOptions } from '../cellParts/cellEditorOptions.js';
-import { CellEditorOverflowWidgets } from '../cellParts/cellEditorOverflowWidgets.js';
 import { CellExecutionPart } from '../cellParts/cellExecution.js';
 import { CellFocusPart } from '../cellParts/cellFocus.js';
 import { CellFocusIndicator } from '../cellParts/cellFocusIndicator.js';
@@ -285,10 +284,8 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 		const editorInstaService = templateDisposables.add(this.instantiationService.createChild(new ServiceCollection([IContextKeyService, editorContextKeyService])));
 		EditorContextKeys.inCompositeEditor.bindTo(editorContextKeyService).set(true);
 
-		const editorOverflowWidgets = templateDisposables.add(new CellEditorOverflowWidgets(this.notebookEditor.getOverflowContainerDomNode()));
 		const editor = editorInstaService.createInstance(CodeEditorWidget, editorContainer, {
 			...this.editorOptions.getDefaultValue(),
-			overflowWidgetsDomNode: editorOverflowWidgets.domNode,
 			allowVariableLineHeights: false,
 			dimension: {
 				width: 0,
@@ -305,7 +302,6 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 		});
 
 		templateDisposables.add(editor);
-		editorOverflowWidgets.bindEditor(editor);
 
 		const outputContainer = new FastDomNode(DOM.append(container, $('.output')));
 		const cellOutputCollapsedContainer = DOM.append(outputContainer.domNode, $('.output-collapse-container'));
@@ -370,7 +366,6 @@ export class CodeCellRenderer extends AbstractCellRenderer implements IListRende
 			outputContainer,
 			outputShowMoreContainer,
 			editor,
-			editorOverflowWidgets,
 			templateDisposables,
 			elementDisposables: templateDisposables.add(new DisposableStore()),
 			cellParts,

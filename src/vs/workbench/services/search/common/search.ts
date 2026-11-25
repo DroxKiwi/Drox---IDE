@@ -131,6 +131,7 @@ export interface ITextQueryProps<U extends UriComponents> extends ICommonQueryPr
 
 	previewOptions?: ITextSearchPreviewOptions;
 	maxFileSize?: number;
+	usePCRE2?: boolean;
 	surroundingContext?: number;
 
 	userDisabledExcludesAndIgnoreFiles?: boolean;
@@ -190,6 +191,10 @@ export interface INotebookPatternInfo {
 	isInNotebookMarkdownPreview?: boolean;
 	isInNotebookCellInput?: boolean;
 	isInNotebookCellOutput?: boolean;
+}
+
+export interface IExtendedExtensionSearchOptions {
+	usePCRE2?: boolean;
 }
 
 export interface IFileMatch<U extends UriComponents = URI> {
@@ -298,14 +303,6 @@ export interface ISearchEngineStats {
 	filesWalked: number;
 	cmdTime: number;
 	cmdResultCount?: number;
-	/**
-	 * The number of additional ripgrep runs for `!`-prefixed exclude exceptions.
-	 */
-	excludeExceptionRuns?: number;
-	/**
-	 * The time spent in the additional ripgrep runs for exclude exceptions.
-	 */
-	excludeExceptionTime?: number;
 }
 
 export interface IFileSearchProviderStats {
@@ -433,6 +430,7 @@ export const enum SemanticSearchBehavior {
 
 export interface ISearchConfigurationProperties {
 	exclude: glob.IExpression;
+	useRipgrep: boolean;
 	/**
 	 * Use ignore file for file search.
 	 */
@@ -442,9 +440,12 @@ export interface ISearchConfigurationProperties {
 	followSymlinks: boolean;
 	smartCase: boolean;
 	globalFindClipboard: boolean;
+	location: 'sidebar' | 'panel';
 	useReplacePreview: boolean;
 	showLineNumbers: boolean;
+	usePCRE2: boolean;
 	actionsPosition: 'auto' | 'right';
+	maintainFileSearchCache: boolean;
 	maxResults: number | null;
 	collapseResults: 'auto' | 'alwaysCollapse' | 'alwaysExpand';
 	searchOnType: boolean;
@@ -507,7 +508,7 @@ export function getExcludes(configuration: ISearchConfiguration, includeSearchEx
 
 export function pathIncludedInQuery(queryProps: ICommonQueryProps<URI>, fsPath: string): boolean {
 	const globOptions = queryProps.ignoreGlobCase ? { ignoreCase: true } : undefined;
-	if (queryProps.excludePattern && glob.parseExcludeExpression(queryProps.excludePattern, globOptions).matches(fsPath)) {
+	if (queryProps.excludePattern && glob.match(queryProps.excludePattern, fsPath, globOptions)) {
 		return false;
 	}
 
@@ -704,36 +705,10 @@ export function resolvePatternsForProvider(globalPattern: glob.IExpression | und
 		});
 }
 
-/**
- * Computes the exclude patterns that the provider handles. Also discards `!`-prefixed exceptions, which
- * providers do not understand. See {@link resolveExcludeExceptionsForProvider}.
- */
-export function resolveExcludePatternsForProvider(globalPattern: glob.IExpression | undefined, folderPattern: glob.IExpression | undefined): string[] {
-	return resolvePatternsForProvider(globalPattern, folderPattern).filter(pattern => !glob.isExcludeException(pattern));
-}
-
-/**
- * Counts the distinct enabled `!`-prefixed exclude exceptions of a query, and how many of them can match at any depth.
- */
-export function getExcludeExceptionCounts(query: ICommonQueryProps<URI>): { excludeExceptionCount: number; unanchoredExcludeExceptionCount: number } {
-	const expressions = [query.excludePattern, ...query.folderQueries.flatMap(fq => fq.excludePattern?.map(e => e.pattern) ?? [])];
-	const exceptions = new Set(expressions.flatMap(expression => glob.getExcludeExceptions(expression)));
-
-	return { excludeExceptionCount: exceptions.size, unanchoredExcludeExceptionCount: [...exceptions].filter(exception => exception.startsWith(glob.GLOBSTAR)).length };
-}
-
-/**
- * Computes the patterns of the enabled `!`-prefixed exclude exceptions, without the `!`.
- */
-export function resolveExcludeExceptionsForProvider(globalPattern: glob.IExpression | undefined, folderPattern: glob.IExpression | undefined): string[] {
-	return glob.getExcludeExceptions({ ...(globalPattern || {}), ...(folderPattern || {}) });
-}
-
-export class QueryGlobTester implements glob.IExcludeTreeEvaluator {
+export class QueryGlobTester {
 
 	private _excludeExpression: glob.IExpression[]; // TODO: evaluate globs based on baseURI of pattern
 	private _parsedExcludeExpression: glob.ParsedExpression[];
-	private _parsedExcludeExpressionWithExceptions: glob.IParsedExcludeExpression[];
 
 	private _parsedIncludeExpression: glob.ParsedExpression | null = null;
 
@@ -753,8 +728,7 @@ export class QueryGlobTester implements glob.IExcludeTreeEvaluator {
 			this._excludeExpression = [config.excludePattern || {}];
 		}
 
-		this._parsedExcludeExpressionWithExceptions = this._excludeExpression.map(e => glob.parseExcludeExpression(e, globOptions));
-		this._parsedExcludeExpression = this._parsedExcludeExpressionWithExceptions.map(e => e.matches);
+		this._parsedExcludeExpression = this._excludeExpression.map(e => glob.parse(e, globOptions));
 
 		// Empty includeExpression means include nothing, so no {} shortcuts
 		let includeExpression: glob.IExpression | undefined = config.includePattern;
@@ -839,36 +813,11 @@ export class QueryGlobTester implements glob.IExcludeTreeEvaluator {
 				});
 			}
 
-			if (excluded) {
-				return false;
-			}
-
 			return isIncluded();
 
 		})).then(e => e.some(e => !!e));
 
 
-	}
-
-	/**
-	 * Whether the path matches an exclude pattern, ignoring exclude exceptions.
-	 */
-	matchesExclude(testPath: string, basename?: string, hasSibling?: (name: string) => boolean): boolean {
-		return this._parsedExcludeExpressionWithExceptions.some(e => typeof e.matchesExclude(testPath, basename, hasSibling) === 'string');
-	}
-
-	/**
-	 * Whether the path or one of its parent folders matches an exclude exception.
-	 */
-	isExcepted(testPath: string, basename?: string): boolean {
-		return this._parsedExcludeExpressionWithExceptions.some(e => e.isExcepted(testPath, basename));
-	}
-
-	/**
-	 * Whether an exclude exception could match a path below the folder, so an excluded folder must still be walked.
-	 */
-	couldExceptionMatchBeneath(folderPath: string): boolean {
-		return this._parsedExcludeExpressionWithExceptions.some(e => e.couldExceptionMatchBeneath(folderPath));
 	}
 
 	hasSiblingExcludeClauses(): boolean {

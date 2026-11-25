@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken } from '../../../base/common/cancellation.js';
-import { DisposableMap } from '../../../base/common/lifecycle.js';
+import { IDisposable, dispose } from '../../../base/common/lifecycle.js';
 import { URI } from '../../../base/common/uri.js';
 import { ExtHostContext, ExtHostShareShape, IDocumentFilterDto, MainContext, MainThreadShareShape } from '../common/extHost.protocol.js';
 import { IShareProvider, IShareService, IShareableItem } from '../../contrib/share/common/share.js';
@@ -14,7 +14,8 @@ import { IExtHostContext, extHostNamedCustomer } from '../../services/extensions
 export class MainThreadShare implements MainThreadShareShape {
 
 	private readonly proxy: ExtHostShareShape;
-	private providerDisposables = new DisposableMap<number>();
+	private providers = new Map<number, IShareProvider>();
+	private providerDisposables = new Map<number, IDisposable>();
 
 	constructor(
 		extHostContext: IExtHostContext,
@@ -34,15 +35,19 @@ export class MainThreadShare implements MainThreadShareShape {
 				return typeof result === 'string' ? result : URI.revive(result);
 			}
 		};
+		this.providers.set(handle, provider);
 		const disposable = this.shareService.registerShareProvider(provider);
 		this.providerDisposables.set(handle, disposable);
 	}
 
 	$unregisterShareProvider(handle: number): void {
-		this.providerDisposables.deleteAndDispose(handle);
+		this.providers.delete(handle);
+		this.providerDisposables.delete(handle);
 	}
 
 	dispose(): void {
-		this.providerDisposables.dispose();
+		this.providers.clear();
+		dispose(this.providerDisposables.values());
+		this.providerDisposables.clear();
 	}
 }

@@ -148,10 +148,11 @@
 	opacity: 0.55;
 }
 
-/* Pas de grille 3×3 sur les boutons du compositeur. */
-.agent-sessions-workbench .drox-agents-panel-picker.loading .drox-panel-loading-grid,
-.agent-sessions-workbench .drox-panel-loading-grid {
-	display: none !important;
+/* Composer — chips en bootstrap */
+.agent-sessions-workbench .drox-agents-panel-picker.loading .drox-panel-loading-grid {
+	display: inline-grid !important;
+	vertical-align: middle;
+	margin-left: 4px;
 }
 
 .agent-sessions-workbench .drox-panel-loading-grid {

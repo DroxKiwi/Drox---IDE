@@ -8,13 +8,10 @@
 		["(", ")"],
 		["[", ")"],
 		["(", "]"],
-		["\\{", "\\}"],
 		["\\left(", "\\right)"],
-		["\\left(", "\\right]"],
 		["\\left(", "\\right."],
 		["\\left.", "\\right)"],
 		["\\left[", "\\right]"],
-		["\\left[", "\\right)"],
 		["\\left[", "\\right."],
 		["\\left.", "\\right]"],
 		["\\left\\{", "\\right\\}"],
@@ -37,8 +34,6 @@
 		["\\lvert", "\\rvert"],
 		["\\lVert", "\\rVert"],
 		["\\left|", "\\right|"],
-		["\\left.", "\\right|"],
-		["\\left|", "\\right."],
 		["\\left\\vert", "\\right\\vert"],
 		["\\left\\|", "\\right\\|"],
 		["\\left\\Vert", "\\right\\Vert"],
@@ -113,8 +108,8 @@
 	},
 	"folding": {
 		"markers": {
-			"start": "^\\s*(%\\s*region|%?\\s*\\\\begingroup)\\b",
-			"end": "^\\s*(%\\s*endregion|%?\\s*\\\\endgroup)\\b"
+			"start": "^\\s*%?\\s*(region|\\\\begingroup)\\b",
+			"end": "^\\s*%?\\s*(endregion|\\\\endgroup)\\b"
 		}
 	},
 	"autoCloseBefore": ";:.,={}])>\\` \n\t$",

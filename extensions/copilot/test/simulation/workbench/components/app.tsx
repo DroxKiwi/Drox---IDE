@@ -9,8 +9,7 @@ import * as mobx from 'mobx';
 import * as mobxlite from 'mobx-react-lite';
 import * as React from 'react';
 import { InitArgs } from '../initArgs';
-import { AdhocRequestOptions } from '../stores/adhocRequestOptions';
-import { AdhocRequestSender } from '../stores/adhocRequestSender';
+import { AMLProvider } from '../stores/amlSimulations';
 import { NesExternalOptions } from '../stores/nesExternalOptions';
 import { RunnerOptions } from '../stores/runnerOptions';
 import { SimulationRunsProvider } from '../stores/simulationBaseline';
@@ -18,9 +17,10 @@ import { SimulationRunner } from '../stores/simulationRunner';
 import { SimulationStorage, SimulationStorageValue } from '../stores/simulationStorage';
 import { ISimulationTest, SimulationTestsProvider } from '../stores/simulationTestsProvider';
 import { useLocalStorageState } from '../stores/storage';
-import { WorkbenchModeValue } from '../stores/workbenchMode';
-import { AdhocRequestView } from './adhocRequestView';
+import { TestSource } from '../stores/testSource';
 import { ContextMenu, ContextMenuProvider } from './contextMenu';
+import { Scorecard } from './scorecard';
+import { ScorecardByLanguage } from './scorecardByLanguage';
 import { TestFilterer } from './testFilterer';
 import { TestList } from './testList';
 import { Toolbar } from './toolbar';
@@ -28,28 +28,28 @@ import { Toolbar } from './toolbar';
 type Props = {
 	initArgs: InitArgs | undefined;
 	testsProvider: SimulationTestsProvider;
-	workbenchMode: WorkbenchModeValue;
 	runner: SimulationRunner;
 	runnerOptions: RunnerOptions;
 	nesExternalOptions: NesExternalOptions;
-	adhocRequestOptions: AdhocRequestOptions;
-	adhocRequestSender: AdhocRequestSender;
 	simulationRunsProvider: SimulationRunsProvider;
+	amlProvider: AMLProvider;
 	displayOptions: DisplayOptions;
 };
 
 export type ThemeKind = 'light' | 'dark';
 
 export const App = mobxlite.observer(
-	({ initArgs, testsProvider, workbenchMode, runner, runnerOptions, nesExternalOptions, adhocRequestOptions, adhocRequestSender, simulationRunsProvider, displayOptions }: Props) => {
+	({ initArgs, testsProvider, runner, runnerOptions, nesExternalOptions, simulationRunsProvider, amlProvider, displayOptions }: Props) => {
 
 		const [theme, setTheme] = useLocalStorageState<ThemeKind>('appTheme', undefined, 'light');
 
 		const [filterer, setFilterer] = React.useState<TestFilterer | undefined>(undefined);
 
-		const toggleTheme = React.useCallback(() => setTheme(theme === 'dark' ? 'light' : 'dark'), [theme]);
+		const displayedTests = filterer
+			? filterer.filter(testsProvider.tests)
+			: testsProvider.tests;
 
-		const isAdhocRequest = workbenchMode.value === 'adhocRequest';
+		const toggleTheme = React.useCallback(() => setTheme(theme === 'dark' ? 'light' : 'dark'), [theme]);
 
 		return (
 			<FluentProvider theme={theme === 'light' ? webLightTheme : webDarkTheme} style={{ minHeight: 'inherit' }}>
@@ -63,66 +63,40 @@ export const App = mobxlite.observer(
 							nesExternalOptions={nesExternalOptions}
 							simulationRunsProvider={simulationRunsProvider}
 							simulationTestsProvider={testsProvider}
-							workbenchMode={workbenchMode}
+							amlProvider={amlProvider}
 							testSource={testsProvider.testSource}
 							onFiltererChange={setFilterer}
+							allLanguageIds={testsProvider.allLanguageIds}
 							theme={theme}
 							toggleTheme={toggleTheme}
 						/>
-						{isAdhocRequest ? (
-							<AdhocRequestView adhocRequestOptions={adhocRequestOptions} adhocRequestSender={adhocRequestSender} />
-						) : (
-							<TestsView
-								testsProvider={testsProvider}
-								runner={runner}
-								runnerOptions={runnerOptions}
-								nesExternalOptions={nesExternalOptions}
-								displayOptions={displayOptions}
-								filterer={filterer}
-							/>
+						{testsProvider.testSource.value === TestSource.External && (
+							<Scorecard amlProvider={amlProvider} />
 						)}
+						{testsProvider.testSource.value === TestSource.External && (
+							<ScorecardByLanguage amlProvider={amlProvider} />
+						)}
+						{(testsProvider.testSource.value === TestSource.Local || testsProvider.testSource.value === TestSource.NesExternal) && <TerminationMessageBar runner={runner} />}
+						<div style={{ margin: '5px', display: 'flex', justifyContent: 'space-between' }}>
+							<div style={{ textAlign: 'left' }}>
+								<TestsInfo tests={testsProvider.tests} displayedTests={displayedTests} />
+							</div>
+							<div style={{ textAlign: 'right' }}>
+								<Checkbox
+									label='Expand prompts'
+									defaultChecked={displayOptions.expandPrompts.value}
+									onChange={mobx.action(() => displayOptions.expandPrompts.value = !displayOptions.expandPrompts.value)}
+								/>
+								<DisplayToggle displayOptions={displayOptions} />
+							</div>
+						</div>
+						<TestList tests={displayedTests} runner={runner} runnerOptions={runnerOptions} nesExternalOptions={nesExternalOptions} testSource={testsProvider.testSource} displayOptions={displayOptions} />
 					</div>
 				</ContextMenuProvider>
 			</FluentProvider>
 		);
 	}
 );
-
-type TestsViewProps = {
-	testsProvider: SimulationTestsProvider;
-	runner: SimulationRunner;
-	runnerOptions: RunnerOptions;
-	nesExternalOptions: NesExternalOptions;
-	displayOptions: DisplayOptions;
-	filterer: TestFilterer | undefined;
-};
-
-const TestsView = mobxlite.observer(({ testsProvider, runner, runnerOptions, nesExternalOptions, displayOptions, filterer }: TestsViewProps) => {
-
-	const displayedTests = filterer
-		? filterer.filter(testsProvider.tests)
-		: testsProvider.tests;
-
-	return (
-		<>
-			<TerminationMessageBar runner={runner} />
-			<div style={{ margin: '5px', display: 'flex', justifyContent: 'space-between' }}>
-				<div style={{ textAlign: 'left' }}>
-					<TestsInfo tests={testsProvider.tests} displayedTests={displayedTests} />
-				</div>
-				<div style={{ textAlign: 'right' }}>
-					<Checkbox
-						label='Expand prompts'
-						defaultChecked={displayOptions.expandPrompts.value}
-						onChange={mobx.action(() => displayOptions.expandPrompts.value = !displayOptions.expandPrompts.value)}
-					/>
-					<DisplayToggle displayOptions={displayOptions} />
-				</div>
-			</div>
-			<TestList tests={displayedTests} runner={runner} runnerOptions={runnerOptions} nesExternalOptions={nesExternalOptions} testSource={testsProvider.testSource} displayOptions={displayOptions} />
-		</>
-	);
-});
 
 const TerminationMessageBar = mobxlite.observer(({ runner }: { runner: SimulationRunner }) =>
 	runner.terminationReason === undefined

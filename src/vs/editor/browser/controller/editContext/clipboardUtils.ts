@@ -11,7 +11,6 @@ import { ILogService } from '../../../../platform/log/common/log.js';
 import { EditorOption } from '../../../common/config/editorOptions.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { VSDataTransfer } from '../../../../base/common/dataTransfer.js';
-import { getPathForFile } from '../../../../platform/dnd/browser/dnd.js';
 import { toExternalVSDataTransfer } from '../../dataTransfer.js';
 
 export function generateDataToCopyAndStoreInMemory(viewModel: IViewModel, id: string | undefined, isFirefox: boolean): { dataToCopy: ClipboardDataToCopy; metadata: ClipboardStoredMetadata } {
@@ -38,7 +37,6 @@ function generateDataToCopy(viewModel: IViewModel): { dataToCopy: ClipboardDataT
 		version: 1,
 		id: generateUuid(),
 		isFromEmptySelection: dataToCopy.isFromEmptySelection,
-		isBlock: dataToCopy.isBlock,
 		multicursorText: dataToCopy.multicursorText,
 		mode: dataToCopy.mode
 	};
@@ -46,7 +44,6 @@ function generateDataToCopy(viewModel: IViewModel): { dataToCopy: ClipboardDataT
 }
 
 function getDataToCopy(viewModel: IViewModel, modelSelections: Range[], emptySelectionClipboard: boolean, copyWithSyntaxHighlighting: boolean): ClipboardDataToCopy {
-	const isBlock = viewModel.getCursorColumnSelectData().isReal;
 	const { sourceRanges, sourceText } = viewModel.getPlainTextToCopy(modelSelections, emptySelectionClipboard, isWindows);
 	const newLineCharacter = viewModel.model.getEOL();
 
@@ -65,7 +62,6 @@ function getDataToCopy(viewModel: IViewModel, modelSelections: Range[], emptySel
 	}
 	const dataToCopy: ClipboardDataToCopy = {
 		isFromEmptySelection,
-		isBlock,
 		sourceRanges,
 		multicursorText,
 		text,
@@ -105,7 +101,6 @@ export class InMemoryClipboardMetadataManager {
 
 export interface ClipboardDataToCopy {
 	isFromEmptySelection: boolean;
-	isBlock: boolean;
 	sourceRanges: Range[];
 	multicursorText: string[] | null | undefined;
 	text: string;
@@ -117,7 +112,6 @@ export interface ClipboardStoredMetadata {
 	version: 1;
 	id: string | undefined;
 	isFromEmptySelection: boolean | undefined;
-	isBlock: boolean | undefined;
 	multicursorText: string[] | null | undefined;
 	mode: string | null;
 }
@@ -134,7 +128,7 @@ interface InMemoryClipboardMetadata {
 
 const ClipboardEventUtils = {
 
-	getTextData(clipboardData: IReadableClipboardData | DataTransfer, getFilePath: (file: File) => string | undefined): [string, ClipboardStoredMetadata | null] {
+	getTextData(clipboardData: IReadableClipboardData | DataTransfer): [string, ClipboardStoredMetadata | null] {
 		const text = clipboardData.getData(Mimes.text);
 		let metadata: ClipboardStoredMetadata | null = null;
 		const rawmetadata = clipboardData.getData('vscode-editor-data');
@@ -149,11 +143,9 @@ const ClipboardEventUtils = {
 			}
 		}
 		if (text.length === 0 && metadata === null && clipboardData.files.length > 0) {
-			// No textual data pasted. This is what Chromium does when files copied in a file manager are pasted:
-			// it only exposes the files and withholds the text (which on Linux contains their full paths).
-			// Generate text from the file paths, or from the file names when the paths are not available (e.g. web).
+			// no textual data pasted, generate text from file names
 			const files: File[] = Array.prototype.slice.call(clipboardData.files, 0);
-			return [files.map(file => getFilePath(file) || file.name).join('\n'), null];
+			return [files.map(file => file.name).join('\n'), null];
 		}
 		return [text, metadata];
 	},
@@ -304,9 +296,9 @@ export function createClipboardCopyEvent(e: ClipboardEvent, isCut: boolean, cont
 /**
  * Creates an IClipboardPasteEvent from a DOM ClipboardEvent.
  */
-export function createClipboardPasteEvent(e: ClipboardEvent, getFilePath: (file: File) => string | undefined = getPathForFile): IClipboardPasteEvent {
+export function createClipboardPasteEvent(e: ClipboardEvent): IClipboardPasteEvent {
 	let handled = false;
-	let [text, metadata] = e.clipboardData ? ClipboardEventUtils.getTextData(e.clipboardData, getFilePath) : ['', null];
+	let [text, metadata] = e.clipboardData ? ClipboardEventUtils.getTextData(e.clipboardData) : ['', null];
 	metadata = metadata || InMemoryClipboardMetadataManager.INSTANCE.get(text);
 	return {
 		clipboardData: createReadableClipboardData(e.clipboardData),

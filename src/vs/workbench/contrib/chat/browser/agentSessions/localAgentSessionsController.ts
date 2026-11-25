@@ -4,12 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { coalesce } from '../../../../../base/common/arrays.js';
-import { raceCancellation, Throttler } from '../../../../../base/common/async.js';
-import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
+import { CancellationToken } from '../../../../../base/common/cancellation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
-import { onUnexpectedError } from '../../../../../base/common/errors.js';
 import { Emitter } from '../../../../../base/common/event.js';
-import { Disposable, DisposableResourceMap, DisposableStore, MutableDisposable } from '../../../../../base/common/lifecycle.js';
+import { Disposable, DisposableResourceMap } from '../../../../../base/common/lifecycle.js';
 import { ResourceMap, ResourceSet } from '../../../../../base/common/map.js';
 import { equals } from '../../../../../base/common/objects.js';
 import { autorun, observableSignalFromEvent } from '../../../../../base/common/observable.js';
@@ -34,9 +32,9 @@ export class LocalAgentsSessionsController extends Disposable implements IChatSe
 	readonly _onDidChangeChatSessionItems = this._register(new Emitter<IChatSessionItemsDelta>());
 	readonly onDidChangeChatSessionItems = this._onDidChangeChatSessionItems.event;
 
-	private readonly _modelListeners = this._register(new DisposableResourceMap<DisposableStore>());
-	private readonly _refreshThrottler = this._register(new Throttler());
-	private readonly _refreshCancellation = this._register(new MutableDisposable<CancellationTokenSource>());
+	private readonly _modelListeners = this._register(new DisposableResourceMap());
+
+	private _isDisposed = false;
 
 	constructor(
 		@IChatService private readonly chatService: IChatService,
@@ -49,38 +47,25 @@ export class LocalAgentsSessionsController extends Disposable implements IChatSe
 		this.registerListeners();
 	}
 
+	override dispose(): void {
+		this._isDisposed = true;
+		super.dispose();
+	}
+
 	private _items = new ResourceMap<LocalChatSessionItem>();
 	get items(): readonly IChatSessionItem[] {
 		return Array.from(this._items.values());
 	}
 
-	/** Caller cancellation stops waiting without cancelling the shared refresh. */
-	refresh(token: CancellationToken): Promise<void> {
-		if (token.isCancellationRequested) {
-			return Promise.resolve();
-		}
-
-		return raceCancellation(this._refreshThrottler.queue(lifetimeToken => this.doRefresh(lifetimeToken)), token);
-	}
-
-	private async doRefresh(token: CancellationToken): Promise<void> {
-		const cancellation = this._refreshCancellation.value = new CancellationTokenSource(token);
-		let newItems: LocalChatSessionItem[];
-		try {
-			newItems = await this.provideChatSessionItems(cancellation.token);
-		} finally {
-			this._refreshCancellation.clear();
-		}
-		if (cancellation.token.isCancellationRequested) {
-			return;
-		}
+	async refresh(token: CancellationToken): Promise<void> {
+		const newItems = await this.provideChatSessionItems(token);
 
 		const newResources = new ResourceSet(newItems.map(i => i.resource));
 		const addedOrUpdated: LocalChatSessionItem[] = [];
 		const removed: URI[] = [];
 
 		for (const item of newItems) {
-			if (!this._items.get(item.resource)?.isEqual(item)) {
+			if (!this._items.has(item.resource)) {
 				addedOrUpdated.push(item);
 			}
 		}
@@ -109,26 +94,26 @@ export class LocalAgentsSessionsController extends Disposable implements IChatSe
 				return;
 			}
 
-			const modelListeners = new DisposableStore();
-			this._modelListeners.set(model.sessionResource, modelListeners);
 			await this.refresh(CancellationToken.None);
-			if (modelListeners.isDisposed || this.chatService.getSession(model.sessionResource) !== model) {
+			if (this._isDisposed) {
 				return;
 			}
 
+			this.tryUpdateLiveSessionItem(model);
+
 			const requestChangeListener = model.lastRequestObs.map(last => last?.response && observableSignalFromEvent('chatSessions.modelRequestChangeListener', last.response.onDidChange));
 			const modelChangeListener = observableSignalFromEvent('chatSessions.modelChangeListener', model.onDidChange);
-			modelListeners.add(autorun(reader => {
+			this._modelListeners.set(model.sessionResource, autorun(reader => {
 				requestChangeListener.read(reader)?.read(reader);
 				modelChangeListener.read(reader);
 
-				this.tryUpdateLiveSessionItem(model, modelListeners).catch(onUnexpectedError);
+				this.tryUpdateLiveSessionItem(model);
 			}));
 		};
 
-		this._register(this.chatService.onDidCreateModel(model => addModelListeners(model).catch(onUnexpectedError)));
+		this._register(this.chatService.onDidCreateModel(model => addModelListeners(model)));
 		for (const model of this.chatService.chatModels.get()) {
-			addModelListeners(model).catch(onUnexpectedError);
+			addModelListeners(model);
 		}
 
 		this._register(this.chatService.onDidDisposeSession(e => {
@@ -136,29 +121,18 @@ export class LocalAgentsSessionsController extends Disposable implements IChatSe
 				this._modelListeners.deleteAndDispose(sessionResource);
 			}
 
-			const localSessionResources = e.sessionResources.filter(resource => getChatSessionType(resource) === this.chatSessionType);
-			if (!localSessionResources.length) {
-				return;
-			}
-
-			// Invalidate snapshots captured before the model was unloaded or its history was deleted.
-			this._refreshCancellation.value?.cancel();
-			if (e.reason === 'cleared') {
-				for (const resource of localSessionResources) {
+			const removedSessionResources = e.sessionResources.filter(resource => getChatSessionType(resource) === this.chatSessionType);
+			if (removedSessionResources.length) {
+				for (const resource of removedSessionResources) {
 					this._items.delete(resource);
 				}
-				this._onDidChangeChatSessionItems.fire({ removed: localSessionResources });
+				this._onDidChangeChatSessionItems.fire({ removed: removedSessionResources });
 			}
-			this.refresh(CancellationToken.None).catch(onUnexpectedError);
 		}));
 	}
 
-	private async tryUpdateLiveSessionItem(model: IChatModel, modelListeners: DisposableStore): Promise<void> {
+	private async tryUpdateLiveSessionItem(model: IChatModel): Promise<void> {
 		const updated = this.toChatSessionItem(await chatModelToChatDetail(model));
-		if (modelListeners.isDisposed || this.chatService.getSession(model.sessionResource) !== model) {
-			return;
-		}
-
 		if (!updated) {
 			// The session no longer qualifies as a list item (e.g. it has no requests
 			// yet, or its requests were removed). Drop any stale item we were showing.
@@ -260,7 +234,6 @@ class LocalChatSessionItem implements IChatSessionItem {
 			&& this.timing.created === other.timing.created
 			&& this.timing.lastRequestStarted === other.timing.lastRequestStarted
 			&& this.timing.lastRequestEnded === other.timing.lastRequestEnded
-			&& equals(this.changes, other.changes)
-			&& equals(this.metadata, other.metadata);
+			&& equals(this.changes, other.changes);
 	}
 }

@@ -54,8 +54,7 @@ export class SettingsFileSystemProvider extends Disposable implements IFileSyste
 		if (uri.authority === 'schemas') {
 			content = this.getSchemaContent(uri);
 		} else if (uri.authority === SettingsFileSystemProvider.SCHEMA_ASSOCIATIONS.authority) {
-			const schemas = Object.entries(schemaRegistry.getSchemaAssociations()).map(([url, fileMatch]) => ({ url, fileMatch }));
-			content = JSON.stringify({ schemas });
+			content = JSON.stringify(schemaRegistry.getSchemaAssociations());
 		} else if (uri.authority === 'defaultsettings') {
 			content = this.preferencesService.getDefaultSettingsContent(uri);
 		}

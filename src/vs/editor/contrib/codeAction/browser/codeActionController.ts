@@ -210,27 +210,21 @@ export class CodeActionController extends Disposable implements IEditorContribut
 			return;
 		}
 
-		let actions: CodeActionSet | undefined;
+		let actions: CodeActionSet;
 		try {
-			actions = this._model.takeCodeActions(await newState.actions);
+			actions = await newState.actions;
 		} catch (e) {
 			onUnexpectedError(e);
 			return;
 		}
 
-		if (!actions) {
-			return;
-		}
-
 		if (this._disposed) {
-			actions.dispose();
 			return;
 		}
 
 
 		const selection = this._editor.getSelection();
 		if (selection?.startLineNumber !== newState.position.lineNumber) {
-			actions.dispose();
 			return;
 		}
 

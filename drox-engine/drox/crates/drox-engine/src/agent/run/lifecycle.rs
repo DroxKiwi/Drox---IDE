@@ -6,8 +6,11 @@ use drox_types::{Content, Message, Role};
 use serde_json::Value;
 use tokio::sync::mpsc;
 use tracing::{debug, warn};
+use uuid::Uuid;
+
 use crate::error::EngineError;
 use crate::event::AgentEvent;
+use crate::long_memory::ContextChunkSummaryV1;
 use crate::memory::{persist_run, MemoryTracker};
 
 use super::super::dispatch::{
@@ -94,9 +97,219 @@ impl Agent {
         }
     }
 
+    /// Si la `ContextPolicy` est définie et que l'historique dépasse le seuil
+    /// `autocompact` : (1) passe de **snip** synchrone sur les gros
+    /// `tool_result` ; (2) si toujours au-dessus du seuil **et** que
+    /// `memory` est configuré, **compaction LLM live** (checkpoint `system`)
+    /// via [`crate::compaction::try_live_compact`]. Émet `ContextSnip` et/ou
+    /// `ContextCompacted`.
+    ///
+    /// 1.6.0 C-1/C-3 : toute mutation qui réduit le contexte déjà (ou devant
+    /// être) sur disque **réécrit** le transcript JSONL et recalibre
+    /// `transcript_cursor` — sinon le prochain `agent.run` recharge l'ancien
+    /// historique plein.
+    ///
+    /// Retourne `Err(())` si le canal de sortie est fermé (cas où l'agent
+    /// doit s'arrêter sans bruit).
+    pub(super) async fn maybe_snip(
+        &self,
+        messages: &mut Vec<Message>,
+        tx: &mpsc::Sender<Result<AgentEvent, EngineError>>,
+        live_compaction_seq: &mut u32,
+        transcript_cursor: &mut usize,
+        leading_injected_systems: usize,
+    ) -> Result<(), ()> {
+        let Some(policy) = self.config.context.as_ref() else {
+            return Ok(());
+        };
+        let mut tokens = policy.count_tokens(messages);
+        let mut disk_dirty = false;
+
+        // S-2 / C1 — snip chaud sous seuil autocompact ; spill avant stub.
+        if let Some(report) = policy.maybe_snip_hot_for_profile(
+            messages,
+            Some(self.ctx.workspace_root.as_ref()),
+            self.config.profile(),
+        ) {
+            let tokens_before = tokens;
+            tokens = policy.count_tokens(messages);
+            debug!(
+                marker = "c1.hot_snip",
+                tokens_before,
+                tokens_after = tokens,
+                tokens_freed = report.tokens_freed,
+                blocks_snipped = report.blocks_snipped,
+                "dogfood: hot context snip applied (S-2/C1)"
+            );
+            disk_dirty = true;
+            tx.send(Ok(AgentEvent::ContextSnip {
+                tokens_freed: report.tokens_freed,
+                blocks_snipped: report.blocks_snipped,
+                tokens_used_after: tokens,
+            }))
+            .await
+            .map_err(|_| ())?;
+        }
+
+        let mut state = policy.budget().evaluate(tokens);
+        if !state.above_autocompact {
+            if disk_dirty {
+                if let Err(e) = self
+                    .rewrite_transcript_after_shrink(
+                        messages,
+                        transcript_cursor,
+                        leading_injected_systems,
+                    )
+                    .await
+                {
+                    let _ = tx.send(Err(e)).await;
+                    return Err(());
+                }
+            }
+            return Ok(());
+        }
+        if let Some(mc) = policy.maybe_microcompact(messages) {
+            tokens = policy.count_tokens(messages);
+            debug!(
+                tools_cleared = mc.tools_cleared,
+                blocks_cleared = mc.blocks_cleared,
+                tokens_after = tokens,
+                "microcompact applied"
+            );
+            disk_dirty = true;
+            state = policy.budget().evaluate(tokens);
+            if !state.above_autocompact {
+                if let Err(e) = self
+                    .rewrite_transcript_after_shrink(
+                        messages,
+                        transcript_cursor,
+                        leading_injected_systems,
+                    )
+                    .await
+                {
+                    let _ = tx.send(Err(e)).await;
+                    return Err(());
+                }
+                return Ok(());
+            }
+        }
+        if let Some(report) = policy.maybe_snip(messages) {
+            let tokens_before_snip = tokens;
+            tokens = policy.count_tokens(messages);
+            debug!(
+                tokens_before = tokens_before_snip,
+                tokens_after = tokens,
+                tokens_freed = report.tokens_freed,
+                blocks_snipped = report.blocks_snipped,
+                "context snip applied"
+            );
+            disk_dirty = true;
+            tx.send(Ok(AgentEvent::ContextSnip {
+                tokens_freed: report.tokens_freed,
+                blocks_snipped: report.blocks_snipped,
+                tokens_used_after: tokens,
+            }))
+            .await
+            .map_err(|_| ())?;
+            state = policy.budget().evaluate(tokens);
+        }
+        if !state.above_autocompact {
+            if disk_dirty {
+                if let Err(e) = self
+                    .rewrite_transcript_after_shrink(
+                        messages,
+                        transcript_cursor,
+                        leading_injected_systems,
+                    )
+                    .await
+                {
+                    let _ = tx.send(Err(e)).await;
+                    return Err(());
+                }
+            }
+            return Ok(());
+        }
+        let Some(memory) = self.config.memory.as_ref() else {
+            if disk_dirty {
+                if let Err(e) = self
+                    .rewrite_transcript_after_shrink(
+                        messages,
+                        transcript_cursor,
+                        leading_injected_systems,
+                    )
+                    .await
+                {
+                    let _ = tx.send(Err(e)).await;
+                    return Err(());
+                }
+            }
+            return Ok(());
+        };
+        if let Some(report) = crate::compaction::compact_until_budget(
+            memory.llm.as_ref(),
+            memory.compaction_prompt.as_str(),
+            messages,
+            policy,
+            &memory.compaction_config,
+        )
+        .await
+        {
+            disk_dirty = true;
+            *live_compaction_seq = live_compaction_seq.saturating_add(1);
+            let transcript_sid = self
+                .config
+                .transcript_session_id
+                .as_deref()
+                .filter(|s| !s.is_empty())
+                .unwrap_or("ses_none");
+            let fingerprint = if self.config.workspace_fingerprint.is_empty() {
+                self.ctx.workspace_root.as_str().to_string()
+            } else {
+                self.config.workspace_fingerprint.clone()
+            };
+            let ccs = ContextChunkSummaryV1 {
+                schema_version: 1,
+                id: format!("ccs_{}", Uuid::new_v4()),
+                workspace_fingerprint: fingerprint,
+                transcript_session_id: transcript_sid.to_string(),
+                created_at: chrono::Utc::now(),
+                compaction_seq: *live_compaction_seq,
+                tokens_before: report.tokens_before,
+                tokens_after: report.tokens_after,
+                summary_text: report.summary_text.clone(),
+                files_touched: report.files_touched.clone(),
+                tags_suggested: Vec::new(),
+                checkpoint_message_id: None,
+            };
+            tx.send(Ok(AgentEvent::ContextCompacted {
+                tokens_before: report.tokens_before,
+                tokens_after: report.tokens_after,
+                messages_removed: report.messages_removed,
+                usage: report.usage,
+                context_chunk_summary: Some(ccs),
+            }))
+            .await
+            .map_err(|_| ())?;
+        }
+        if disk_dirty {
+            if let Err(e) = self
+                .rewrite_transcript_after_shrink(
+                    messages,
+                    transcript_cursor,
+                    leading_injected_systems,
+                )
+                .await
+            {
+                let _ = tx.send(Err(e)).await;
+                return Err(());
+            }
+        }
+        Ok(())
+    }
+
     /// Réécrit le JSONL après snip/microcompact/compaction live et pose le
     /// curseur en fin de `messages` (C-1 + C-3).
-    pub(crate) async fn rewrite_transcript_after_shrink(
+    async fn rewrite_transcript_after_shrink(
         &self,
         messages: &[Message],
         cursor: &mut usize,
@@ -236,16 +449,16 @@ fn messages_for_transcript_rewrite(
         .iter()
         .enumerate()
         .filter(|(i, m)| {
-            if matches!(m.role, Role::System) {
-                let text = Content::collapse_text(&m.content);
-                if text.contains("[context checkpoint") {
-                    return true;
-                }
-            }
             if *i < leading_injected_systems {
                 return false;
             }
-            matches!(m.role, Role::System) == false
+            match m.role {
+                Role::System => {
+                    let text = Content::collapse_text(&m.content);
+                    text.contains("[context checkpoint")
+                }
+                _ => true,
+            }
         })
         .map(|(_, m)| m.clone())
         .collect()

@@ -4,11 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 import * as nls from '../../../../nls.js';
 import { Disposable, IDisposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
-import { NotificationText } from '../../../../platform/notification/common/notificationMessage.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
 import { Extensions, IViewContainersRegistry, IViewsRegistry, ViewContainer, ViewContainerLocation } from '../../../common/views.js';
 import { IRemoteExplorerService, PORT_AUTO_FALLBACK_SETTING, PORT_AUTO_FORWARD_SETTING, PORT_AUTO_SOURCE_SETTING, PORT_AUTO_SOURCE_SETTING_HYBRID, PORT_AUTO_SOURCE_SETTING_OUTPUT, PORT_AUTO_SOURCE_SETTING_PROCESS, PortsEnablement, TUNNEL_VIEW_CONTAINER_ID, TUNNEL_VIEW_ID } from '../../../services/remote/common/remoteExplorerService.js';
-import { Attributes, AutoTunnelSource, CandidatePort, forwardedPortsFeaturesEnabled, forwardedPortsViewEnabled, makeAddress, mapHasAddressLocalhostOrAllInterfaces, OnPortForward, Tunnel, TunnelCloseReason, TunnelSource } from '../../../services/remote/common/tunnelModel.js';
+import { Attributes, AutoTunnelSource, forwardedPortsFeaturesEnabled, forwardedPortsViewEnabled, makeAddress, mapHasAddressLocalhostOrAllInterfaces, OnPortForward, Tunnel, TunnelCloseReason, TunnelSource } from '../../../services/remote/common/tunnelModel.js';
 import { ForwardPortAction, OpenPortInBrowserAction, TunnelPanel, TunnelPanelDescriptor, TunnelViewModel, OpenPortInPreviewAction, openPreviewEnabledContext } from './tunnelView.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
@@ -23,7 +22,7 @@ import { ITerminalService } from '../../terminal/browser/terminal.js';
 import { IDebugService } from '../../debug/common/debug.js';
 import { IRemoteAgentService } from '../../../services/remote/common/remoteAgentService.js';
 import { isWeb, OperatingSystem } from '../../../../base/common/platform.js';
-import { isAllInterfaces, isLocalhost, ITunnelService, RemoteTunnel, TunnelPrivacyId } from '../../../../platform/tunnel/common/tunnel.js';
+import { ITunnelService, RemoteTunnel, TunnelPrivacyId } from '../../../../platform/tunnel/common/tunnel.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
 import { IActivityService, NumberBadge } from '../../../services/activity/common/activity.js';
@@ -40,22 +39,6 @@ import { IPreferencesService } from '../../../services/preferences/common/prefer
 import { IStorageService, StorageScope } from '../../../../platform/storage/common/storage.js';
 
 export const VIEWLET_ID = 'workbench.view.remote';
-export const TOGGLE_VIEW_ACTION_ID = 'remoteExplorer.toggleForwardedPortsView';
-
-/**
- * Checks if a process candidate is the remapped local endpoint of an existing tunnel.
- */
-export function isCandidateRemappedTunnelLocalEndpoint(candidate: CandidatePort, tunnels: Iterable<Pick<Tunnel, 'localPort' | 'remotePort'>>): boolean {
-	if (!isLocalhost(candidate.host) && !isAllInterfaces(candidate.host)) {
-		return false;
-	}
-	for (const tunnel of tunnels) {
-		if (tunnel.localPort === candidate.port && tunnel.remotePort !== candidate.port) {
-			return true;
-		}
-	}
-	return false;
-}
 
 export class ForwardedPortsView extends Disposable implements IWorkbenchContribution {
 	private readonly contextKeyListener = this._register(new MutableDisposable<IDisposable>());
@@ -183,7 +166,7 @@ export class ForwardedPortsView extends Disposable implements IWorkbenchContribu
 			text: `$(radio-tower) ${text}`,
 			ariaLabel: tooltip,
 			tooltip,
-			command: TOGGLE_VIEW_ACTION_ID
+			command: `${TUNNEL_VIEW_ID}.focus`
 		};
 	}
 }
@@ -351,7 +334,7 @@ export class AutomaticPortForwarding extends Disposable implements IWorkbenchCon
 	}
 }
 
-export class OnAutoForwardedAction extends Disposable {
+class OnAutoForwardedAction extends Disposable {
 	private lastNotifyTime: Date;
 	private static NOTIFY_COOL_DOWN = 5000; // milliseconds
 	private lastNotification: INotificationHandle | undefined;
@@ -465,7 +448,9 @@ export class OnAutoForwardedAction extends Disposable {
 	}
 
 	private linkMessage() {
-		return NotificationText.link(nls.localize('remote.tunnelsView.notificationLinkLabel', "See all forwarded ports"), `command:${TunnelPanel.ID}.focus`);
+		return nls.localize(
+			{ key: 'remote.tunnelsView.notificationLink2', comment: ['[See all forwarded ports]({0}) is a link. Only translate `See all forwarded ports`. Do not change brackets and parentheses or {0}'] },
+			"[See all forwarded ports]({0})", `command:${TunnelPanel.ID}.focus`);
 	}
 
 	private async showNotification(tunnel: RemoteTunnel) {
@@ -490,8 +475,9 @@ export class OnAutoForwardedAction extends Disposable {
 			choices.push(this.makePublicChoice(tunnel));
 		}
 
-		const linkedMessage = NotificationText.concat(message, this.linkMessage());
-		this.lastNotification = this.notificationService.prompt(Severity.Info, linkedMessage, choices, { neverShowAgain: { id: 'remote.tunnelsView.autoForwardNeverShow', isSecondary: true } });
+		message += this.linkMessage();
+
+		this.lastNotification = this.notificationService.prompt(Severity.Info, message, choices, { neverShowAgain: { id: 'remote.tunnelsView.autoForwardNeverShow', isSecondary: true } });
 		this.lastShownPort = tunnel.tunnelRemotePort;
 		this.lastNotifyTime = new Date();
 		this.notificationDisposable.value = this.lastNotification.onDidClose(() => {
@@ -552,7 +538,7 @@ export class OnAutoForwardedAction extends Disposable {
 				this.lastNotification?.close();
 				this.lastShownPort = newTunnel.tunnelRemotePort;
 				this.lastNotification = this.notificationService.prompt(Severity.Info,
-					NotificationText.concat(await this.basicMessage(newTunnel), this.linkMessage()),
+					await this.basicMessage(newTunnel) + this.linkMessage(),
 					[this.openBrowserChoice(newTunnel), this.openPreviewChoice(tunnel)],
 					{ neverShowAgain: { id: 'remote.tunnelsView.autoForwardNeverShow', isSecondary: true } });
 				this.notificationDisposable.value = this.lastNotification.onDidClose(() => {
@@ -745,10 +731,6 @@ class ProcAutomaticPortForwarding extends Disposable {
 		for (const value of this.remoteExplorerService.tunnelModel.candidates) {
 			if (!value.detail) {
 				this.logService.trace(`ForwardedPorts: (ProcForwarding) Port ${value.port} missing detail`);
-				continue;
-			}
-			if (isCandidateRemappedTunnelLocalEndpoint(value, this.remoteExplorerService.tunnelModel.forwarded.values())) {
-				this.logService.trace(`ForwardedPorts: (ProcForwarding) Port ${value.port} is the local port of a forwarded tunnel`);
 				continue;
 			}
 

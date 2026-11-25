@@ -8,7 +8,7 @@
 import { Disposable } from '../../../../../base/common/lifecycle.js';
 import { constObservable, derived, IObservable, observableValue } from '../../../../../base/common/observable.js';
 import { InstantiationType, registerSingleton } from '../../../../../platform/instantiation/common/extensions.js';
-import { ISession } from '../../../../services/sessions/common/session.js';
+import { ISession } from '../../../../../sessions/services/sessions/common/session.js';
 import {
 	IDroxSessionBackgroundService,
 	IDroxSessionDashboardSignals,

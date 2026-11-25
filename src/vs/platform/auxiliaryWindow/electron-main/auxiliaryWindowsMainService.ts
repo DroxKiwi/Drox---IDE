@@ -13,7 +13,7 @@ import { IAuxiliaryWindowsMainService } from './auxiliaryWindows.js';
 import { IInstantiationService } from '../../instantiation/common/instantiation.js';
 import { ILogService } from '../../log/common/log.js';
 import { IWindowState, WindowMode, defaultAuxWindowState } from '../../window/electron-main/window.js';
-import { IDefaultBrowserWindowOptionsOverrides, WindowStateValidator, defaultBrowserWindowOptions, getAuxiliaryWindowRestoreMode, getLastFocused } from '../../windows/electron-main/windows.js';
+import { IDefaultBrowserWindowOptionsOverrides, WindowStateValidator, defaultBrowserWindowOptions, getLastFocused } from '../../windows/electron-main/windows.js';
 
 export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliaryWindowsMainService {
 
@@ -36,7 +36,7 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 
 	private readonly windows = new Map<number /* webContents ID */, AuxiliaryWindow>();
 
-	private readonly pendingWindowOptionsQueue: { readonly options: BrowserWindowConstructorOptions; readonly mode: WindowMode; readonly disableMaximize: boolean }[] = [];
+	private readonly pendingWindowOptionsQueue: BrowserWindowConstructorOptions[] = [];
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
@@ -93,18 +93,17 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 	}
 
 	createWindow(details: HandlerDetails): BrowserWindowConstructorOptions {
-		const { state, overrides, disableMaximize } = this.computeWindowStateAndOverrides(details);
+		const { state, overrides } = this.computeWindowStateAndOverrides(details);
 		const options = this.instantiationService.invokeFunction(defaultBrowserWindowOptions, state, overrides, {
 			preload: FileAccess.asFileUri('vs/base/parts/sandbox/electron-browser/preload-aux.js').fsPath
 		});
-		this.pendingWindowOptionsQueue.push({ options, mode: getAuxiliaryWindowRestoreMode(state.mode), disableMaximize });
+		this.pendingWindowOptionsQueue.push(options);
 		return options;
 	}
 
-	private computeWindowStateAndOverrides(details: HandlerDetails): { readonly state: IWindowState; readonly overrides: IDefaultBrowserWindowOptionsOverrides; readonly disableMaximize: boolean } {
+	private computeWindowStateAndOverrides(details: HandlerDetails): { readonly state: IWindowState; readonly overrides: IDefaultBrowserWindowOptionsOverrides } {
 		const windowState: IWindowState = {};
 		const overrides: IDefaultBrowserWindowOptionsOverrides = {};
-		let disableMaximize = false;
 
 		const features = details.features.split(','); // for example: popup=yes,left=270,top=14.5,width=1024,height=768
 		for (const feature of features) {
@@ -143,25 +142,9 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 				case 'window-transparent':
 					overrides.transparent = true;
 					break;
-				case 'window-no-shadow':
-					overrides.noShadow = true;
-					break;
 				case 'window-not-resizable':
 					overrides.notResizable = true;
 					break;
-				case 'window-disable-maximize':
-					disableMaximize = true;
-					break;
-				case 'window-panel':
-					overrides.panel = true;
-					break;
-				case 'window-opacity': {
-					const opacity = parseFloat(value);
-					if (!isNaN(opacity)) {
-						overrides.opacity = Math.min(1, Math.max(0, opacity));
-					}
-					break;
-				}
 				case 'window-background-color':
 					if (typeof value === 'string' && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value)) {
 						overrides.backgroundColor = value;
@@ -174,15 +157,15 @@ export class AuxiliaryWindowsMainService extends Disposable implements IAuxiliar
 
 		this.logService.trace('[aux window] using window state', state);
 
-		return { state, overrides, disableMaximize };
+		return { state, overrides };
 	}
 
 	registerWindow(webContents: WebContents): void {
 		const disposables = new DisposableStore();
 
-		const pendingWindowOptions = this.pendingWindowOptionsQueue.shift();
+		const windowOptions = this.pendingWindowOptionsQueue.shift();
 
-		const auxiliaryWindow = this.instantiationService.createInstance(AuxiliaryWindow, webContents, pendingWindowOptions?.options, pendingWindowOptions?.mode, pendingWindowOptions?.disableMaximize ?? false);
+		const auxiliaryWindow = this.instantiationService.createInstance(AuxiliaryWindow, webContents, windowOptions);
 
 		this.windows.set(auxiliaryWindow.id, auxiliaryWindow);
 		disposables.add(toDisposable(() => this.windows.delete(auxiliaryWindow.id)));

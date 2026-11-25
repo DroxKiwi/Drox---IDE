@@ -7,9 +7,8 @@ import './media/chatStatus.css';
 import { Disposable, DisposableStore, MutableDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { localize } from '../../../../../nls.js';
 import { IWorkbenchContribution } from '../../../../common/contributions.js';
-import { DroxCopilotSignInHiddenContextKey } from '../../../drox/common/droxAgentsConfiguration.js';
-import { IStatusbarEntry, IStatusbarEntryAccessor, IStatusbarService, StatusbarAlignment, StatusbarEntryKind, ToggleTooltipCommand } from '../../../../services/statusbar/browser/statusbar.js';
-import { ChatEntitlement, ChatEntitlementContextKeys, ChatEntitlementService, getQuotaReset, IChatEntitlementService, isProUser } from '../../../../services/chat/common/chatEntitlementService.js';
+import { IStatusbarEntry, IStatusbarEntryAccessor, IStatusbarService, ShowTooltipCommand, StatusbarAlignment, StatusbarEntryKind } from '../../../../services/statusbar/browser/statusbar.js';
+import { ChatEntitlement, ChatEntitlementContextKeys, ChatEntitlementService, IChatEntitlementService, isProUser } from '../../../../services/chat/common/chatEntitlementService.js';
 import { CancellationToken, CancellationTokenSource } from '../../../../../base/common/cancellation.js';
 import { disposableLongTimeout, disposableTimeout } from '../../../../../base/common/async.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
@@ -29,12 +28,8 @@ import { CHAT_SETUP_ACTION_ID } from '../actions/chatActions.js';
 import { IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
 import { isWeb } from '../../../../../base/common/platform.js';
 import { InEditorZenModeContext } from '../../../../common/contextkeys.js';
-import { UpdateTitleBarEditorVisibleContext } from '../../../update/common/update.js';
 import { ChatConfiguration } from '../../common/constants.js';
-import { IWorkbenchLayoutService, Parts } from '../../../../services/layout/browser/layoutService.js';
-import { ChatStatusPromo } from './chatStatusPromo.js';
-import { ILifecycleService, LifecyclePhase } from '../../../../services/lifecycle/common/lifecycle.js';
-import { onUnexpectedError } from '../../../../../base/common/errors.js';
+import { DroxCopilotSignInHiddenContextKey } from '../../../drox/common/droxAgentsConfiguration.js';
 
 /**
  * Tracks whether Copilot is currently blocked by a reached quota limit, has
@@ -112,7 +107,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 
 	static readonly ID = 'workbench.contrib.chatStatusBarEntry';
 
-	private static readonly TITLE_BAR_CONTEXT_KEYS = new Set([...UpdateTitleBarEditorVisibleContext.keys(), ChatEntitlementContextKeys.hasByokModels.key]);
+	private static readonly TITLE_BAR_CONTEXT_KEYS = new Set(['updateTitleBar', InEditorZenModeContext.key, ChatEntitlementContextKeys.hasByokModels.key]);
 
 	private static readonly QUOTA_RESUME_STATE_KEY = 'chat.quotaResumeState';
 	private static readonly QUOTA_RESET_RETRY_DELAY = 5 * 60 * 1000; // re-check 5 min after a passed reset time
@@ -122,7 +117,6 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 	private readonly activeCodeEditorListener = this._register(new MutableDisposable());
 	private readonly entryAnchor = h('span');
 	private readonly dashboardTooltip: IStatusbarEntry['tooltip'];
-	private promo: ChatStatusPromo | undefined;
 
 	private quotaResumeState: ChatQuotaResumeState;
 	private readonly quotaResetTimer = this._register(new MutableDisposable());
@@ -138,29 +132,10 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 		@IInlineCompletionsService private readonly completionsService: IInlineCompletionsService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IStorageService private readonly storageService: IStorageService,
-		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
-		@ILifecycleService lifecycleService: ILifecycleService,
 	) {
 		super();
 
 		this.quotaResumeState = this.readPersistedQuotaResumeState();
-		lifecycleService.when(LifecyclePhase.Restored).then(() => {
-			if (!this._store.isDisposed) {
-				this.promo = this._register(this.instantiationService.createInstance(ChatStatusPromo));
-				this._register(this.promo.onDidChange(() => this.update()));
-				this.update();
-			}
-		}).catch(onUnexpectedError);
-		this._register(this.statusbarService.onDidChangeEntryVisibility(e => {
-			if (e.id === 'chat.statusBarEntry') {
-				this.update();
-			}
-		}));
-		this._register(this.layoutService.onDidChangePartVisibility(e => {
-			if (e.partId === Parts.STATUSBAR_PART) {
-				this.update();
-			}
-		}));
 
 		this.dashboardTooltip = {
 			element: (token: CancellationToken) => {
@@ -191,14 +166,12 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 	}
 
 	private update(): void {
-		// DROX-BEGIN
 		if (DroxCopilotSignInHiddenContextKey.getValue(this.contextKeyService)) {
 			this.entry?.dispose();
 			this.entry = undefined;
 			return;
 		}
 
-		// DROX-END
 		const sentiment = this.chatEntitlementService.sentiment;
 		if (!sentiment.hidden) {
 			const props = this.getEntryProps();
@@ -219,9 +192,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 		this._register(this.chatEntitlementService.onDidChangeSentiment(() => this.update()));
 		this._register(this.chatEntitlementService.onDidChangeEntitlement(() => this.onQuotaChanged()));
 		this._register(this.contextKeyService.onDidChangeContext(e => {
-			// DROX-BEGIN
 			if (e.affectsSome(ChatStatusBarEntry.TITLE_BAR_CONTEXT_KEYS) || e.affectsSome(new Set([DroxCopilotSignInHiddenContextKey.key]))) {
-				// DROX-END
 				this.update();
 			}
 		}));
@@ -272,7 +243,20 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 
 	private getQuotaResetTime(): number | undefined {
 		const quotas = this.chatEntitlementService.quotas;
-		return getQuotaReset(quotas.premiumChat, quotas)?.date.getTime();
+
+		const premiumResetAt = quotas.premiumChat?.resetAt;
+		if (typeof premiumResetAt === 'number') {
+			return premiumResetAt * 1000;
+		}
+
+		if (quotas.resetDate) {
+			const parsed = Date.parse(quotas.resetDate);
+			if (!isNaN(parsed)) {
+				return parsed;
+			}
+		}
+
+		return undefined;
 	}
 
 	private scheduleQuotaResetRefresh(): void {
@@ -356,7 +340,6 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 		let text = '$(copilot)';
 		let ariaLabel = localize('chatStatusAria', "Copilot status");
 		let kind: StatusbarEntryKind | undefined;
-		let tooltip = this.dashboardTooltip;
 
 		if (isNewUser(this.chatEntitlementService)) {
 			const entitlement = this.chatEntitlementService.entitlement;
@@ -412,27 +395,17 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 				text = '$(copilot-snooze)';
 				ariaLabel = localize('completionsSnoozedStatus', "Inline suggestions snoozed");
 			}
-
-			else {
-				const promo = this.promo?.getEntryProps(this.layoutService.isVisible(Parts.STATUSBAR_PART, mainWindow)
-					&& this.statusbarService.isEntryVisible('chat.statusBarEntry'));
-				if (promo) {
-					text = promo.showPip ? '$(copilot-dot)' : '$(copilot)';
-					ariaLabel = promo.ariaLabel;
-					tooltip = promo.tooltip;
-				}
-			}
 		}
 
 		const baseResult = {
 			name: localize('chatStatus', "Copilot Status"),
 			text,
 			ariaLabel,
-			command: ToggleTooltipCommand,
+			command: ShowTooltipCommand,
 			showInAllWindows: true,
 			kind,
 			content: this.entryAnchor,
-			tooltip
+			tooltip: this.dashboardTooltip
 		} satisfies IStatusbarEntry;
 
 		return baseResult;
@@ -466,7 +439,8 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 			return false;
 		}
 
-		if (this.contextKeyService.contextMatchesRules(UpdateTitleBarEditorVisibleContext)) {
+		const hasTitleBarUpdate = Boolean(this.contextKeyService.getContextKeyValue('updateTitleBar'));
+		if (hasTitleBarUpdate) {
 			return false;
 		}
 

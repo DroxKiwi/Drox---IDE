@@ -109,6 +109,8 @@ export interface IRPCProtocolLogger {
 	logOutgoing(msgLength: number, req: number, initiator: RequestInitiator, str: string, data?: any): void;
 }
 
+const noop = () => { };
+
 const _RPCProtocolSymbol = Symbol.for('rpcProtocol');
 const _RPCProxySymbol = Symbol.for('rpcProxy');
 
@@ -360,19 +362,19 @@ export class RPCProtocol extends Disposable implements IRPCProtocol {
 		const callId = String(req);
 
 		let promise: Promise<any>;
-		let cancel: (() => void) | undefined;
+		let cancel: () => void;
 		if (usesCancellationToken) {
 			const cancellationTokenSource = new CancellationTokenSource();
 			args.push(cancellationTokenSource.token);
 			promise = this._invokeHandler(rpcId, method, args);
 			cancel = () => cancellationTokenSource.cancel();
 		} else {
+			// cannot be cancelled
 			promise = this._invokeHandler(rpcId, method, args);
+			cancel = noop;
 		}
 
-		if (cancel) {
-			this._cancelInvokedHandlers[callId] = cancel;
-		}
+		this._cancelInvokedHandlers[callId] = cancel;
 
 		// Acknowledge the request
 		const msg = MessageIO.serializeAcknowledged(req);
@@ -395,9 +397,7 @@ export class RPCProtocol extends Disposable implements IRPCProtocol {
 	private _receiveCancel(msgLength: number, req: number): void {
 		this._logger?.logIncoming(msgLength, req, RequestInitiator.OtherSide, `receiveCancel`);
 		const callId = String(req);
-		const cancel = this._cancelInvokedHandlers[callId];
-		delete this._cancelInvokedHandlers[callId];
-		cancel?.();
+		this._cancelInvokedHandlers[callId]?.();
 	}
 
 	private _receiveReply(msgLength: number, req: number, value: any): void {

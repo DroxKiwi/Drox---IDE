@@ -34,22 +34,10 @@ export function getDocumentContext(documentUri: string, workspaceFolders: Worksp
 					return folderUri + ref.substr(1);
 				}
 			}
-			const parsedBase = URI.parse(base);
-			// URI schemes are case-insensitive, but `URI.parse` preserves their case
-			const baseUri = parsedBase.with({ scheme: parsedBase.scheme.toLowerCase() });
-			if (!isHierarchicalBase(baseUri, documentUri)) {
-				// A `<base href>` with another scheme, for example `command:`, cannot be used to
-				// resolve relative references. Doing so would give them that scheme and its query.
-				return undefined;
-			}
+			const baseUri = URI.parse(base);
 			const baseUriDir = baseUri.path.endsWith('/') ? baseUri : Utils.dirname(baseUri);
 			return Utils.resolvePath(baseUriDir, ref).toString(true);
 		},
 	};
 }
 
-const hierarchicalSchemes = new Set(['http', 'https', 'file']);
-
-function isHierarchicalBase(baseUri: URI, documentUri: string): boolean {
-	return hierarchicalSchemes.has(baseUri.scheme) || baseUri.scheme === URI.parse(documentUri).scheme.toLowerCase();
-}

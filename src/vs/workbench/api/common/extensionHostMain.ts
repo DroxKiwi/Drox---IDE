@@ -153,7 +153,7 @@ export abstract class ErrorHandler {
 		});
 
 		errors.errorHandler.addListener(err => {
-			mainThreadErrors.$onUnexpectedError(errors.transformErrorForSerialization(err));
+			mainThreadErrors.$onUnexpectedError(err);
 		});
 	}
 }

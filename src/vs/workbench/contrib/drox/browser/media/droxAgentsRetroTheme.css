@@ -361,7 +361,7 @@
 }
 
 .agent-sessions-workbench .interactive-session .chat-input-container.working::before {
-	background: conic-gradient(from var(--chat-input-anime-angle),
+	background: conic-gradient(from var(--chat-input-anim-angle),
 			transparent 0deg,
 			color-mix(in srgb, var(--drox-thread-green) 90%, transparent) 20deg,
 			var(--drox-thread-green) 30deg,
@@ -371,7 +371,7 @@
 }
 
 .agent-sessions-workbench .interactive-session .chat-input-container.working::after {
-	background: conic-gradient(from var(--chat-input-anime-angle),
+	background: conic-gradient(from var(--chat-input-anim-angle),
 			transparent 0deg,
 			color-mix(in srgb, var(--drox-thread-green) 60%, transparent) 25deg,
 			color-mix(in srgb, var(--drox-thread-green) 35%, transparent) 50deg,
@@ -420,7 +420,7 @@
 }
 
 .monaco-workbench.agent-sessions-workbench .interactive-session .chat-input-container.working::before {
-	background: conic-gradient(from var(--chat-input-anime-angle),
+	background: conic-gradient(from var(--chat-input-anim-angle),
 			transparent 0deg,
 			color-mix(in srgb, var(--drox-thread-green) 90%, transparent) 20deg,
 			var(--drox-thread-green) 30deg,
@@ -430,7 +430,7 @@
 }
 
 .monaco-workbench.agent-sessions-workbench .interactive-session .chat-input-container.working::after {
-	background: conic-gradient(from var(--chat-input-anime-angle),
+	background: conic-gradient(from var(--chat-input-anim-angle),
 			transparent 0deg,
 			color-mix(in srgb, var(--drox-thread-green) 60%, transparent) 25deg,
 			color-mix(in srgb, var(--drox-thread-green) 35%, transparent) 50deg,

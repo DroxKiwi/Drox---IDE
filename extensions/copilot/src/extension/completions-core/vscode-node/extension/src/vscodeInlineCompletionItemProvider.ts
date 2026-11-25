@@ -6,7 +6,6 @@
 import { basename } from 'path';
 import {
 	CancellationToken,
-	env,
 	InlineCompletionContext,
 	InlineCompletionEndOfLifeReason,
 	InlineCompletionItemProvider,
@@ -34,7 +33,6 @@ import { NextEditProviderTelemetryBuilder, TelemetrySender } from '../../../../i
 import { InlineEditLogger } from '../../../../inlineEdits/vscode-node/parts/inlineEditLogger';
 import { GhostTextLogContext } from '../../../common/ghostTextContext';
 import { ICompletionsTelemetryService } from '../../bridge/src/completionsTelemetryServiceBridge';
-import { ICompletionsCopilotTokenManager } from '../../lib/src/auth/copilotTokenManager';
 import { BuildInfo } from '../../lib/src/config';
 import { CopilotConfigPrefix } from '../../lib/src/constants';
 import { handleException } from '../../lib/src/defaultHandlers';
@@ -76,13 +74,14 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 
 	private readonly telemetrySender: TelemetrySender;
 
+	public onDidChange = undefined;
+
 	private readonly logger: ILogger;
 
 	constructor(
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ICompletionsTelemetryService private readonly telemetryService: ICompletionsTelemetryService,
 		@ICompletionsExtensionStatus private readonly extensionStatusService: ICompletionsExtensionStatus,
-		@ICompletionsCopilotTokenManager private readonly copilotTokenManager: ICompletionsCopilotTokenManager,
 		@ILogService logService: ILogService,
 		@IRequestLogger private readonly requestLogger: IRequestLogger,
 	) {
@@ -100,10 +99,6 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 		context: InlineCompletionContext,
 		token: CancellationToken
 	): Promise<GhostTextCompletionList | undefined> {
-
-		if (context.triggerKind === InlineCompletionTriggerKind.Automatic && env.isMeteredConnection) {
-			return;
-		}
 
 		// it's ok to return an undefined here because we don't want telemetry for when automatic completions are disabled
 		if (context.triggerKind === InlineCompletionTriggerKind.Automatic) {
@@ -189,14 +184,9 @@ export class CopilotInlineCompletionItemProvider extends Disposable implements I
 			this.logSuggestion(logContext, doc, list);
 			logContext.setResponseResults(list.items);
 
-			// Only offer the "Send Copilot Completion Feedback" command to paid users.
-			// Free and unauthenticated users would otherwise spam the issue tracker.
-			const copilotToken = this.copilotTokenManager.token;
-			const canSendCompletionFeedback = !!copilotToken && !copilotToken.isFreeUser && !copilotToken.isNoAuthUser;
-
 			return {
 				...list,
-				commands: canSendCompletionFeedback ? [sendCompletionFeedbackCommand] : [],
+				commands: [sendCompletionFeedbackCommand],
 			};
 		} catch (e) {
 			this.instantiationService.invokeFunction(exception, e, '._provideInlineCompletionItems', myLogger);

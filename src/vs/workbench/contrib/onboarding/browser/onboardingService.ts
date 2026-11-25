@@ -3,26 +3,23 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DeferredPromise, raceCancellationError } from '../../../../base/common/async.js';
-import { CancellationToken, CancellationTokenSource } from '../../../../base/common/cancellation.js';
-import { CancellationError, isCancellationError, onUnexpectedError } from '../../../../base/common/errors.js';
-import { Emitter, Event } from '../../../../base/common/event.js';
+import { DeferredPromise } from '../../../../base/common/async.js';
+import { onUnexpectedError } from '../../../../base/common/errors.js';
+import { Emitter } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
-import { autorun, IObservable, IReader, observableSignal, observableValue } from '../../../../base/common/observable.js';
+import { autorun } from '../../../../base/common/observable.js';
 import { mainWindow } from '../../../../base/browser/window.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
-import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { ILifecycleService } from '../../../services/lifecycle/common/lifecycle.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IWorkbenchAssignmentService } from '../../../services/assignment/common/assignmentService.js';
 import { Memento } from '../../../common/memento.js';
-import { IOnboardingPresentation, onboardingPresentationRegistry } from '../common/onboardingPresentation.js';
-import { runWithOnboardingPresentation } from './onboardingPresentationQueue.js';
+import { onboardingPresentationRegistry } from '../common/onboardingPresentation.js';
 import { onboardingScenarioRegistry } from '../common/onboardingRegistry.js';
-import { IOnboardingExperiment, IOnboardingRunResult, IOnboardingScenario, ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX, OnboardingOutcome } from '../common/onboardingScenario.js';
-import { isOnboardingDeveloperModeEnabled, IOnboardingScenarioService, ONBOARDING_DEVELOPER_MODE_CONFIG, ONBOARDING_ENABLED_CONFIG } from '../common/onboardingScenarioService.js';
+import { IOnboardingRunResult, IOnboardingScenario, ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX, OnboardingOutcome } from '../common/onboardingScenario.js';
+import { IOnboardingScenarioService, ONBOARDING_DEVELOPER_MODE_CONFIG, ONBOARDING_ENABLED_CONFIG } from '../common/onboardingScenarioService.js';
 
 /** Persisted "shown" state for a single scenario. */
 interface IScenarioState {
@@ -41,14 +38,6 @@ interface IExperimentState {
 	readonly behavior: boolean;
 	/** Value of the assignment-context id flag (the id the scorecard keys on). */
 	readonly assignmentContextId: string;
-}
-
-/** A queued or running scenario, shared by every caller that joins it. */
-interface IScenarioRun {
-	readonly scenario: IOnboardingScenario;
-	readonly deferred: DeferredPromise<OnboardingOutcome>;
-	/** Whether only automatic evaluation asked for this run. An explicit request clears it, even while the run waits for the presentation slot. */
-	automatic: boolean;
 }
 
 export class OnboardingScenarioService extends Disposable implements IOnboardingScenarioService {
@@ -72,11 +61,9 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 
 	/** Scenario ids currently queued or running (prevents double-scheduling). */
 	private readonly _pending = new Set<string>();
-	private readonly _isPresenting = observableValue(this, false);
-	readonly isPresenting: IObservable<boolean> = this._isPresenting;
-	private readonly _queue: IScenarioRun[] = [];
-	/** Scenarios that have been dequeued and are currently running, keyed by id. */
-	private readonly _inflight = new Map<string, IScenarioRun>();
+	private readonly _queue: { scenario: IOnboardingScenario; deferred: DeferredPromise<OnboardingOutcome> }[] = [];
+	/** Deferreds for scenarios that have been dequeued and are currently running, keyed by id. */
+	private readonly _inflight = new Map<string, DeferredPromise<OnboardingOutcome>>();
 	private _pumping = false;
 
 	/** Abort signal for the scenario currently running. */
@@ -84,9 +71,6 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 
 	/** Resolved experiment treatment state, keyed by scenario id. */
 	private readonly _experimentStates = new Map<string, IExperimentState>();
-	private readonly _experimentStatesChanged = observableSignal(this);
-	/** Scenarios whose treatment flags are being read, mapped to whether to read them again afterwards. */
-	private readonly _experimentReads = new Map<string, boolean>();
 
 	/**
 	 * Assignment-context ids whose telemetry gate is open. While an onboarding id is *not* in
@@ -107,7 +91,6 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 		@ILifecycleService private readonly lifecycleService: ILifecycleService,
 		@IWorkbenchAssignmentService private readonly assignmentService: IWorkbenchAssignmentService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
-		@IDialogService private readonly dialogService: IDialogService,
 	) {
 		super();
 
@@ -121,11 +104,7 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 		// flags resolve. The filter blocks any id with the reserved onboarding prefix unless its
 		// gate has already been opened (this session or persisted from a previous one).
 		this.assignmentService.addTelemetryAssignmentFilter({
-			id: 'onboarding',
-			exclude: assignment => {
-				const variant = getAssignmentContextVariant(assignment);
-				return variant.startsWith(ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX) && !this._openedAssignmentContextIds.has(variant);
-			},
+			exclude: assignment => assignment.startsWith(ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX) && !this._openedAssignmentContextIds.has(assignment),
 			onDidChange: this._onDidChangeOpenedIds.event
 		});
 
@@ -138,16 +117,11 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 		this._stopped = true;
 		this._activeAbort?.fire();
 
-		let entry: IScenarioRun | undefined;
+		let entry: { scenario: IOnboardingScenario; deferred: DeferredPromise<OnboardingOutcome> } | undefined;
 		while ((entry = this._queue.shift())) {
 			this._pending.delete(entry.scenario.id);
-			this._updatePresenting();
 			entry.deferred.complete(OnboardingOutcome.Aborted);
 		}
-	}
-
-	private _updatePresenting(): void {
-		this._isPresenting.set(this._pending.size > 0, undefined);
 	}
 
 	start(): void {
@@ -163,9 +137,6 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 		}));
 
 		this._register(this.contextKeyService.onDidChangeContext(() => this._evaluate()));
-		this._register(this.dialogService.onDidShowDialog(() => this._evaluate()));
-
-		this._register(this.assignmentService.onDidRefetchAssignments(() => this._resolveExperiments()));
 
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration(ONBOARDING_ENABLED_CONFIG) || e.affectsConfiguration(ONBOARDING_DEVELOPER_MODE_CONFIG)) {
@@ -182,52 +153,23 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 		return onboardingScenarioRegistry.getScenarios();
 	}
 
-	async runScenario(id: string, token: CancellationToken = CancellationToken.None): Promise<OnboardingOutcome> {
+	async runScenario(id: string): Promise<OnboardingOutcome> {
 		const scenario = onboardingScenarioRegistry.getScenario(id);
 		if (!scenario) {
 			throw new Error(`Unknown onboarding scenario '${id}'.`);
 		}
-		if (token.isCancellationRequested) {
-			return OnboardingOutcome.Aborted;
-		}
-		const store = new DisposableStore();
-		try {
-			store.add(token.onCancellationRequested(() => {
-				const index = this._queue.findIndex(entry => entry.scenario.id === id);
-				if (index >= 0) {
-					const [entry] = this._queue.splice(index, 1);
-					this._pending.delete(id);
-					this._updatePresenting();
-					entry.deferred.complete(OnboardingOutcome.Aborted);
-				} else if (this._inflight.has(id)) {
-					this._activeAbort?.fire();
-				}
-			}));
-			return await this._enqueue(scenario);
-		} finally {
-			store.dispose();
-		}
+		return this._enqueue(scenario);
 	}
 
 	hasBeenShown(id: string): boolean {
-		const scenario = onboardingScenarioRegistry.getScenario(id);
-		return this._hasBeenShownKey(scenario ? this._seenKey(scenario) : id, id);
-	}
-
-	shouldShowNudge(id: string, reader?: IReader): boolean {
-		this._experimentStatesChanged.read(reader);
-		const scenario = onboardingScenarioRegistry.getScenario(id);
-		if (!scenario) {
-			throw new Error(`Unknown onboarding scenario '${id}'.`);
+		if (this._developerMode) {
+			return this._shownSinceStart.has(id);
 		}
-		return this._enabled && !this._stopped && this._isAutoEligible(scenario, true) && this._shouldShow(scenario);
+		return !!this._state[id]?.shownAt;
 	}
 
 	reset(id: string): void {
-		const scenario = onboardingScenarioRegistry.getScenario(id);
-		const key = scenario ? this._seenKey(scenario) : id;
-		delete this._state[key];
-		this._shownSinceStart.delete(key);
+		delete this._state[id];
 		this._memento.saveMemento();
 	}
 
@@ -240,101 +182,51 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 
 	//#region Eligibility & scheduling
 
-	/**
-	 * The master switch for *automatic* onboarding. When `onboarding.enabled` is
-	 * explicitly `false`, no scenario ever runs automatically (developer mode does
-	 * NOT override this — see {@link _evaluate}). Any other value (including unset)
-	 * is treated as enabled. On-demand {@link runScenario} is intentionally exempt
-	 * from this switch.
-	 */
 	private get _enabled(): boolean {
 		return this.configurationService.getValue<boolean>(ONBOARDING_ENABLED_CONFIG) !== false;
 	}
 
-	private _isDeveloperMode(scenarioId: string): boolean {
-		return isOnboardingDeveloperModeEnabled(this.configurationService, scenarioId);
+	private get _developerMode(): boolean {
+		return this.configurationService.getValue<boolean>(ONBOARDING_DEVELOPER_MODE_CONFIG) === true;
 	}
 
 	/**
 	 * Re-evaluate every scenario and enqueue any that are eligible to run
 	 * automatically. Idempotent: already shown / queued scenarios are skipped.
 	 *
-	 * The automatic eligibility rules are:
-	 * 1. If `onboarding.enabled` is `false`, nothing runs automatically — this
-	 *    method returns immediately, and developer mode does NOT override it.
-	 * 2. If a scenario declares an `experiment`, it only runs when the experiment
-	 *    is active AND the user is in the treatment arm (see below) — OR when
-	 *    developer mode is enabled for that scenario, which bypasses the experiment
-	 *    gate so the tour can be previewed locally.
-	 * 3. If a scenario has no `experiment`, it runs for every user that meets its
-	 *    `when`/trigger criteria (the typical state once an experiment has graduated
-	 *    and the tour is rolled out to everyone).
-	 *
 	 * For an experiment-active scenario, reaching eligibility *is* the "would-show"
 	 * moment: the telemetry gate is opened for the experiment's assignment-context id
 	 * (in both arms), and then only the treatment arm is enqueued to actually show the
 	 * tour. Control opens the gate but renders nothing and is not marked as shown.
-	 * A pre-tour nudge opens the same gate earlier, at its own would-show moment.
-	 *
-	 * Developer mode is the exception: it shows the tour unconditionally and never
-	 * opens the telemetry gate, so a local preview can never affect the experiment
-	 * scorecard regardless of which arm the developer happens to be assigned to.
 	 */
 	private _evaluate(): void {
-		if (!this._enabled || this._stopped || this.dialogService.hasDialog) {
+		if (!this._enabled || this._stopped) {
 			return;
 		}
 
-		// Seen keys already claimed by a pending/queued/running non-repeatable
-		// scenario. Scenarios that share a `seenKey` are gated together, so once
-		// one sibling is scheduled we must not also schedule another in the same
-		// pass: shown state is only written when a scenario starts running, after
-		// the queue has been populated, so the shared-key check in
-		// `_isAutoEligible` cannot see the sibling yet.
-		const claimedSeenKeys = new Set<string>();
 		for (const scenario of onboardingScenarioRegistry.getScenarios()) {
-			if (!scenario.repeatable && this._pending.has(scenario.id)) {
-				claimedSeenKeys.add(this._seenKey(scenario));
-			}
-		}
-
-		const eligibleScenarios = onboardingScenarioRegistry.getScenarios()
-			.map((scenario, registrationIndex) => ({ scenario, registrationIndex }))
-			.filter(({ scenario }) => this._isAutoEligible(scenario))
-			.sort((a, b) => (b.scenario.priority ?? 0) - (a.scenario.priority ?? 0) || a.registrationIndex - b.registrationIndex);
-
-		for (const { scenario } of eligibleScenarios) {
-			const seenKey = this._seenKey(scenario);
-			if (!scenario.repeatable && claimedSeenKeys.has(seenKey)) {
-				// A sibling sharing this seen key is already scheduled this pass;
-				// showing it will mark this scenario seen too.
+			if (!this._isAutoEligible(scenario)) {
 				continue;
 			}
 
-			if (!this._shouldShow(scenario)) {
-				continue;
+			const experiment = scenario.experiment ? this._experimentStates.get(scenario.id) : undefined;
+			if (experiment?.active) {
+				// Would-show reached: start emitting the assignment-context id from now on.
+				this._openGate(experiment.assignmentContextId);
+				if (!experiment.behavior) {
+					// Control arm: the identifier now flows, but no tour is shown and the
+					// scenario is left un-shown so the user stays eligible to see it later.
+					continue;
+				}
 			}
 
-			this._enqueue(scenario, true);
-			if (!scenario.repeatable) {
-				claimedSeenKeys.add(seenKey);
-			}
+			this._enqueue(scenario);
 		}
 	}
 
-	private _shouldShow(scenario: IOnboardingScenario): boolean {
-		const experiment = scenario.experiment ? this._experimentStates.get(scenario.id) : undefined;
-		if (experiment?.active && !this._isDeveloperMode(scenario.id)) {
-			// Record the would-show moment in both arms, before any onboarding UI changes user behavior.
-			this._openGate(experiment.assignmentContextId);
-			return experiment.behavior;
-		}
-		return true;
-	}
-
-	private _isAutoEligible(scenario: IOnboardingScenario, ignoreTrigger = false): boolean {
-		// Tryouts and command triggers never run automatically.
-		if (scenario.tryout || scenario.trigger.kind === 'command') {
+	private _isAutoEligible(scenario: IOnboardingScenario): boolean {
+		// `command` triggers never run automatically.
+		if (scenario.trigger.kind === 'command') {
 			return false;
 		}
 
@@ -342,7 +234,7 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 			return false;
 		}
 
-		if (!scenario.repeatable && this._hasBeenShownKey(this._seenKey(scenario), scenario.id)) {
+		if (!scenario.repeatable && this.hasBeenShown(scenario.id)) {
 			return false;
 		}
 
@@ -353,30 +245,18 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 		// Experiment-driven scenarios only run once the experiment is active (both treatment
 		// flags resolved). The behavior flag does NOT gate eligibility — control still reaches
 		// the would-show moment so the gate opens for it too.
-		//
-		// Developer mode for this scenario bypasses the experiment gate entirely so the tour
-		// can be tested locally without the experiment running (or being assigned to the
-		// user). A developer-mode preview never opens the assignment-context gate (see
-		// `_evaluate`), so it never pollutes the scorecard.
-		if (scenario.experiment && this._experimentStates.get(scenario.id)?.active !== true && !this._isDeveloperMode(scenario.id)) {
+		if (scenario.experiment && this._experimentStates.get(scenario.id)?.active !== true) {
 			return false;
 		}
 
-		if (!ignoreTrigger && scenario.trigger.kind === 'observable' && scenario.trigger.signal.get() !== true) {
+		if (scenario.trigger.kind === 'observable' && scenario.trigger.signal.get() !== true) {
 			return false;
 		}
 
 		return true;
 	}
 
-	private _isStillEligible(scenario: IOnboardingScenario): boolean {
-		return this._enabled
-			&& !this.dialogService.hasDialog
-			&& (!scenario.when || this.contextKeyService.contextMatchesRules(scenario.when))
-			&& (scenario.trigger.kind !== 'observable' || scenario.trigger.signal.get() === true);
-	}
-
-	private _enqueue(scenario: IOnboardingScenario, automatic = false): Promise<OnboardingOutcome> {
+	private _enqueue(scenario: IOnboardingScenario): Promise<OnboardingOutcome> {
 		if (this._stopped) {
 			return Promise.resolve(OnboardingOutcome.Aborted);
 		}
@@ -384,16 +264,18 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 		// De-duplicate against both the queue and the in-flight run so a repeated
 		// `runScenario(id)` (e.g. a command invoked while the tour is active)
 		// joins the existing run instead of scheduling a second one.
-		const existing = this._queue.find(entry => entry.scenario.id === scenario.id) ?? this._inflight.get(scenario.id);
-		if (existing) {
-			existing.automatic &&= automatic;
-			return existing.deferred.p;
+		const queued = this._queue.find(entry => entry.scenario.id === scenario.id);
+		if (queued) {
+			return queued.deferred.p;
+		}
+		const inflight = this._inflight.get(scenario.id);
+		if (inflight) {
+			return inflight.p;
 		}
 
 		const deferred = new DeferredPromise<OnboardingOutcome>();
 		this._pending.add(scenario.id);
-		this._updatePresenting();
-		this._queue.push({ scenario, deferred, automatic });
+		this._queue.push({ scenario, deferred });
 		// Highest priority first; stable for equal priorities.
 		this._queue.sort((a, b) => (b.scenario.priority ?? 0) - (a.scenario.priority ?? 0));
 
@@ -414,22 +296,21 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 	private async _doPump(): Promise<void> {
 		await Promise.resolve(); // let the current synchronous batch of enqueues settle
 		try {
-			let run: IScenarioRun | undefined;
-			while (!this._stopped && (run = this._queue.shift())) {
-				const { scenario, deferred } = run;
+			let entry: { scenario: IOnboardingScenario; deferred: DeferredPromise<OnboardingOutcome> } | undefined;
+			while (!this._stopped && (entry = this._queue.shift())) {
+				const { scenario, deferred } = entry;
 				// Track the running scenario so a concurrent `_enqueue` for the same
 				// id joins this run instead of scheduling another.
-				this._inflight.set(scenario.id, run);
+				this._inflight.set(scenario.id, deferred);
 				let outcome: OnboardingOutcome;
 				try {
-					outcome = await this._runPresentation(run);
+					outcome = await this._runPresentation(scenario);
 				} catch (error) {
 					onUnexpectedError(error);
 					outcome = OnboardingOutcome.Aborted;
 				} finally {
 					this._inflight.delete(scenario.id);
 					this._pending.delete(scenario.id);
-					this._updatePresenting();
 				}
 				deferred.complete(outcome);
 			}
@@ -438,94 +319,31 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 		}
 	}
 
-	private async _runPresentation(run: IScenarioRun): Promise<OnboardingOutcome> {
-		const { scenario } = run;
+	private async _runPresentation(scenario: IOnboardingScenario): Promise<OnboardingOutcome> {
 		const presentation = onboardingPresentationRegistry.get(scenario.presentation.kind);
-		if (scenario.tryout || !presentation) {
+		if (!presentation) {
 			return OnboardingOutcome.Aborted;
 		}
 
-		const store = new DisposableStore();
-		const cancellation = store.add(new CancellationTokenSource());
-		const abort = store.add(new Emitter<void>());
-		let running = false;
-		store.add(abort.event(() => {
-			// Only cancel the queue wait; active presentations must finish their abort cleanup.
-			if (!running) {
-				cancellation.cancel();
-			}
-		}));
+		// Mark shown the moment a scenario starts so a crash/reload won't re-trigger it.
+		this._markShown(scenario.id);
+
+		const abort = new Emitter<void>();
 		this._activeAbort = abort;
-		try {
-			return await runWithOnboardingPresentation(mainWindow, cancellation.token, async () => {
-				// A modal can open while this run waits for the presentation slot.
-				while (run.automatic && this.dialogService.hasDialog) {
-					await raceCancellationError(Event.toPromise(this.dialogService.onDidShowDialog, store), cancellation.token);
-				}
-				// An automatic run can wait behind other presentations, so it only starts if it is still eligible.
-				if (this._stopped || run.automatic && !this._isStillEligible(scenario)) {
-					throw new CancellationError();
-				}
-				running = true;
-				return this._showPresentation(scenario, presentation, abort);
-			});
-		} catch (error) {
-			if (isCancellationError(error)) {
-				return OnboardingOutcome.Aborted;
-			}
-			throw error;
-		} finally {
-			if (this._activeAbort === abort) {
-				this._activeAbort = undefined;
-			}
-			store.dispose();
-		}
-	}
-
-	private async _showPresentation(scenario: IOnboardingScenario, presentation: IOnboardingPresentation, abort: Emitter<void>): Promise<OnboardingOutcome> {
-		// Mark shown only after the window is available to present the scenario.
-		this._markShown(this._seenKey(scenario));
 		const startTime = Date.now();
-		let didReportShown = false;
-		const result = await presentation.run(scenario, {
-			targetWindow: mainWindow,
-			onAbort: abort.event,
-			onDidShow: () => {
-				if (!didReportShown) {
-					didReportShown = true;
-					this._reportShown(scenario);
-				}
+		try {
+			const result = await presentation.run(scenario, { targetWindow: mainWindow, onAbort: abort.event });
+			this._recordOutcome(scenario.id, result.outcome);
+			// Only emit outcome telemetry when a tour was genuinely displayed; a degenerate
+			// run that rendered nothing (no steps / all steps skipped) must not pollute metrics.
+			if (result.shown) {
+				this._reportOutcome(scenario, result, Date.now() - startTime);
 			}
-		});
-		this._recordOutcome(this._seenKey(scenario), result.outcome);
-		// Only emit outcome telemetry when a tour was genuinely displayed.
-		if (result.shown) {
-			this._reportOutcome(scenario, result, Date.now() - startTime);
+			return result.outcome;
+		} finally {
+			this._activeAbort = undefined;
+			abort.dispose();
 		}
-		return result.outcome;
-	}
-
-	/** Emit an impression when a presentation has rendered visible onboarding UI. */
-	private _reportShown(scenario: IOnboardingScenario): void {
-		const experimentState = scenario.experiment ? this._experimentStates.get(scenario.id) : undefined;
-
-		type OnboardingScenarioShownEvent = {
-			scenarioId: string;
-			experimentActive: boolean;
-			experimentAssignmentContextId: string | undefined;
-		};
-		type OnboardingScenarioShownClassification = {
-			owner: 'benibenj';
-			comment: 'Reports a rendered onboarding tour impression. The scenario and experiment assignment identifiers are bounded product categories, not user content.';
-			scenarioId: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The stable identifier of the onboarding scenario that rendered.' };
-			experimentActive: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'Whether a valid experiment treatment selected the rendered scenario.' };
-			experimentAssignmentContextId: { classification: 'SystemMetaData'; purpose: 'FeatureInsight'; comment: 'The bounded experiment assignment-context identifier for the rendered scenario, when active.' };
-		};
-		this.telemetryService.publicLog2<OnboardingScenarioShownEvent, OnboardingScenarioShownClassification>('onboarding.scenarioShown', {
-			scenarioId: scenario.id,
-			experimentActive: experimentState?.active === true,
-			experimentAssignmentContextId: experimentState?.active ? experimentState.assignmentContextId : undefined,
-		});
 	}
 
 	/** Emit per-tour telemetry. Only called when a tour was actually shown. */
@@ -583,66 +401,45 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 	/**
 	 * Resolve the two experiment treatment flags for each scenario that declares an experiment.
 	 * The experiment is only active when both resolve: the boolean to a boolean and the id to a
-	 * non-empty string that starts with {@link ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX}. Once active,
-	 * the experiment is fixed for the window. Until then its flags are read again whenever the
-	 * assignments are refetched: experiments served by the signed-in account's experiment
-	 * endpoint only resolve once that endpoint's assignments arrive, after startup.
+	 * non-empty string that starts with {@link ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX}. Resolved
+	 * once per scenario; re-evaluation is triggered when an experiment becomes active.
 	 */
 	private _resolveExperiments(): void {
 		for (const scenario of onboardingScenarioRegistry.getScenarios()) {
-			if (scenario.experiment) {
-				this._resolveExperiment(scenario, scenario.experiment);
+			const experiment = scenario.experiment;
+			if (!experiment || this._experimentStates.has(scenario.id)) {
+				continue;
 			}
-		}
-	}
-
-	private _resolveExperiment(scenario: IOnboardingScenario, experiment: IOnboardingExperiment): void {
-		if (this._experimentStates.get(scenario.id)?.active) {
-			return;
-		}
-		if (this._experimentReads.has(scenario.id)) {
-			// The read in flight may predate the refetch, so read again once it settles.
-			this._experimentReads.set(scenario.id, true);
-			return;
-		}
-		if (!this._experimentStates.has(scenario.id)) {
 			// Seed an inactive state so the scenario is not eligible until both flags resolve.
 			this._experimentStates.set(scenario.id, { active: false, behavior: false, assignmentContextId: '' });
-		}
-		this._experimentReads.set(scenario.id, false);
-		Promise.all([
-			this.assignmentService.getTreatment<boolean>(experiment.behaviorFlag),
-			this.assignmentService.getTreatment<string>(experiment.assignmentContextIdFlag)
-		]).then(([behavior, assignmentContextId]) => {
-			const hasBehavior = typeof behavior === 'boolean';
-			const hasId = typeof assignmentContextId === 'string' && assignmentContextId.length > 0;
+			Promise.all([
+				this.assignmentService.getTreatment<boolean>(experiment.behaviorFlag),
+				this.assignmentService.getTreatment<string>(experiment.assignmentContextIdFlag)
+			]).then(([behavior, assignmentContextId]) => {
+				const hasBehavior = typeof behavior === 'boolean';
+				const hasId = typeof assignmentContextId === 'string' && assignmentContextId.length > 0;
 
-			// Defensively require the reserved prefix. The eager telemetry gate only blocks
-			// ids that start with it, so an id missing the prefix would never be gated and
-			// would leak into telemetry from the very first event — silently corrupting the
-			// scorecard baseline. Catch the misconfiguration loudly and treat the experiment
-			// as inactive rather than running it with an ungated id.
-			const hasValidId = hasId && assignmentContextId!.startsWith(ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX);
-			if (hasId && !hasValidId) {
-				onUnexpectedError(new Error(`Onboarding experiment for scenario '${scenario.id}' resolved an assignment-context id '${assignmentContextId}' that does not start with the required '${ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX}' prefix; treating the experiment as inactive.`));
-			}
+				// Defensively require the reserved prefix. The eager telemetry gate only blocks
+				// ids that start with it, so an id missing the prefix would never be gated and
+				// would leak into telemetry from the very first event — silently corrupting the
+				// scorecard baseline. Catch the misconfiguration loudly and treat the experiment
+				// as inactive rather than running it with an ungated id.
+				const hasValidId = hasId && assignmentContextId!.startsWith(ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX);
+				if (hasId && !hasValidId) {
+					onUnexpectedError(new Error(`Onboarding experiment for scenario '${scenario.id}' resolved an assignment-context id '${assignmentContextId}' that does not start with the required '${ONBOARDING_ASSIGNMENT_CONTEXT_PREFIX}' prefix; treating the experiment as inactive.`));
+				}
 
-			if (hasBehavior && hasValidId) {
+				const active = hasBehavior && hasValidId;
 				this._experimentStates.set(scenario.id, {
-					active: true,
+					active,
 					behavior: behavior === true,
-					assignmentContextId: assignmentContextId!
+					assignmentContextId: active ? assignmentContextId! : ''
 				});
-				this._experimentStatesChanged.trigger(undefined);
-				this._evaluate();
-			}
-		}, error => onUnexpectedError(error)).finally(() => {
-			const readAgain = this._experimentReads.get(scenario.id);
-			this._experimentReads.delete(scenario.id);
-			if (readAgain) {
-				this._resolveExperiment(scenario, experiment);
-			}
-		});
+				if (active) {
+					this._evaluate();
+				}
+			}, error => onUnexpectedError(error));
+		}
 	}
 
 	//#endregion
@@ -686,23 +483,6 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 
 	//#region Persistence
 
-	/**
-	 * The key under which a scenario's once-per-user "shown" state is stored.
-	 * Scenarios may opt into a shared {@link IOnboardingScenario.seenKey} so that
-	 * variations of the same onboarding are gated together; otherwise the
-	 * scenario id is used.
-	 */
-	private _seenKey(scenario: IOnboardingScenario): string {
-		return scenario.seenKey ?? scenario.id;
-	}
-
-	private _hasBeenShownKey(key: string, scenarioId: string): boolean {
-		if (this._isDeveloperMode(scenarioId)) {
-			return this._shownSinceStart.has(key);
-		}
-		return !!this._state[key]?.shownAt;
-	}
-
 	private _markShown(id: string): void {
 		this._shownSinceStart.add(id);
 		const previous = this._state[id];
@@ -724,9 +504,4 @@ export class OnboardingScenarioService extends Disposable implements IOnboarding
 	}
 
 	//#endregion
-}
-
-function getAssignmentContextVariant(assignment: string): string {
-	const separatorIndex = assignment.lastIndexOf(':');
-	return separatorIndex === -1 ? assignment : assignment.slice(0, separatorIndex);
 }

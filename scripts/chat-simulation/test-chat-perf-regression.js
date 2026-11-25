@@ -13,12 +13,12 @@
  * gathering, tool resolution, rendering, GC, and layout overhead.
  *
  * Usage:
- *   pnpm run perf:chat                                 # all scenarios vs 1.115.0
- *   pnpm run perf:chat --runs 10                       # 10 runs per scenario
- *   pnpm run perf:chat --scenario text-only            # single scenario
- *   pnpm run perf:chat --no-baseline                   # skip baseline comparison
- *   pnpm run perf:chat --build 1.110.0 --baseline-build 1.115.0
- *   pnpm run perf:chat --resume .chat-simulation-data/2026-04-14/results.json --runs 3
+ *   npm run perf:chat                                 # all scenarios vs 1.115.0
+ *   npm run perf:chat -- --runs 10                    # 10 runs per scenario
+ *   npm run perf:chat -- --scenario text-only         # single scenario
+ *   npm run perf:chat -- --no-baseline                # skip baseline comparison
+ *   npm run perf:chat -- --build 1.110.0 --baseline-build 1.115.0
+ *   npm run perf:chat -- --resume .chat-simulation-data/2026-04-14/results.json --runs 3
  */
 
 const path = require('path');
@@ -47,7 +47,6 @@ function parseArgs() {
 		noCache: false,
 		force: false,
 		heapSnapshots: false,
-		gcObjectStats: false,
 		/** @type {string[]} */
 		scenarios: [],
 		/** @type {string | undefined} */
@@ -101,7 +100,6 @@ function parseArgs() {
 			case '--no-cache': opts.noCache = true; break;
 			case '--force': opts.force = true; break;
 			case '--heap-snapshots': opts.heapSnapshots = true; break;
-			case '--gc-object-stats': opts.gcObjectStats = true; break;
 			case '--ci': opts.ci = true; opts.noCache = true; opts.heapSnapshots = true; opts.cleanupDiagnostics = true; break;
 			case '--cleanup-diagnostics': opts.cleanupDiagnostics = true; break;
 			case '--help': case '-h':
@@ -130,7 +128,6 @@ function parseArgs() {
 					'  --no-cache          Ignore cached baseline data, always run fresh',
 					'  --force             Skip build mode mismatch confirmation',
 					'  --heap-snapshots    Take heap snapshots (slow; auto-enabled in --ci mode)',
-					'  --gc-object-stats   Enable V8 gc_stats tracing for GC deep-dives only. WARNING: corrupts timings (adds ~550ms to any request hit by a major GC) — never use for benchmarking',
 					'  --ci                CI mode: write Markdown summary to ci-summary.md (implies --no-cache, --heap-snapshots, --cleanup-diagnostics)',
 					'  --cleanup-diagnostics  Remove heap snapshots, CPU profiles, and traces after each run to save disk space',
 					'  --verbose           Print per-run details',
@@ -204,7 +201,7 @@ function buildProductionBuild() {
 
 	const { execSync } = require('child_process');
 	try {
-		execSync('pnpm run gulp vscode', {
+		execSync('npm run gulp -- vscode', {
 			cwd: ROOT,
 			stdio: 'inherit',
 			timeout: 10 * 60 * 1000, // 10 minute timeout
@@ -404,7 +401,7 @@ async function runOnce(electronPath, scenario, mockServer, verbose, runIndex, ru
 	const extHostInspectPort = getNextExtHostInspectPort();
 	const vscode = await launchVSCode(
 		electronPath,
-		buildArgs(userDataDir, extDir, logsDir, { isDevBuild, extHostInspectPort, traceFile: tracePath, appRoot, gcObjectStats: runOpts?.gcObjectStats }),
+		buildArgs(userDataDir, extDir, logsDir, { isDevBuild, extHostInspectPort, traceFile: tracePath, appRoot }),
 		buildEnv(mockServer, { isDevBuild }),
 		{ verbose },
 	);
@@ -1006,7 +1003,6 @@ function generateCISummary(jsonReport, baseline, opts) {
 		['timeToFirstToken', 'timing', 'ms'],
 		['timeToComplete', 'timing', 'ms'],
 		['layoutCount', 'rendering', ''],
-		['layoutDurationMs', 'rendering', 'ms'],
 		['recalcStyleCount', 'rendering', ''],
 		['forcedReflowCount', 'rendering', ''],
 		['longTaskCount', 'rendering', ''],
@@ -1021,7 +1017,7 @@ function generateCISummary(jsonReport, baseline, opts) {
 		['extHostHeapDelta', 'extHost', 'MB'],
 		['extHostHeapDeltaPostGC', 'extHost', 'MB'],
 	];
-	const regressionMetricNames = new Set(['timeToFirstToken', 'timeToComplete', 'layoutDurationMs', 'forcedReflowCount', 'longTaskCount']);
+	const regressionMetricNames = new Set(['timeToFirstToken', 'timeToComplete', 'forcedReflowCount', 'longTaskCount', 'longAnimationFrameCount']);
 
 	const lines = [];
 	const scenarios = Object.keys(jsonReport.scenarios);
@@ -1397,7 +1393,7 @@ async function main() {
 				const runIdx = `${scenario}-resume-${prevTestRuns.length + i}`;
 				console.log(`[chat-simulation]     Run ${i + 1}/${runsToAdd}...`);
 				try {
-					const m = await runOnce(testElectron, scenario, mockServer, opts.verbose, runIdx, prevDir, 'test', { ...opts.settingsOverrides, ...opts.testSettingsOverrides }, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
+					const m = await runOnce(testElectron, scenario, mockServer, opts.verbose, runIdx, prevDir, 'test', { ...opts.settingsOverrides, ...opts.testSettingsOverrides }, { heapSnapshots: opts.heapSnapshots });
 					// Clean up previous run's diagnostics to bound disk usage; keep the latest
 					if (opts.cleanupDiagnostics && prevTestRuns.length > 0) { cleanupRunDiagnostics(prevTestRuns[prevTestRuns.length - 1]); }
 					prevTestRuns.push(m);
@@ -1415,7 +1411,7 @@ async function main() {
 					const runIdx = `baseline-${scenario}-resume-${prevBaseRuns.length + i}`;
 					console.log(`[chat-simulation]     Run ${i + 1}/${runsToAdd}...`);
 					try {
-						const m = await runOnce(baselineElectron, scenario, mockServer, opts.verbose, runIdx, prevDir, 'baseline', { ...opts.settingsOverrides, ...opts.baselineSettingsOverrides }, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
+						const m = await runOnce(baselineElectron, scenario, mockServer, opts.verbose, runIdx, prevDir, 'baseline', { ...opts.settingsOverrides, ...opts.baselineSettingsOverrides }, { heapSnapshots: opts.heapSnapshots });
 						// Clean up previous run's diagnostics to bound disk usage; keep the latest
 						if (opts.cleanupDiagnostics && prevBaseRuns.length > 0) { cleanupRunDiagnostics(prevBaseRuns[prevBaseRuns.length - 1]); }
 						prevBaseRuns.push(m);
@@ -1561,7 +1557,7 @@ async function main() {
 					const newResults = [];
 					for (let i = 0; i < runsNeeded; i++) {
 						try {
-							const m = await runOnce(baselineExePath, scenario, mockServer, opts.verbose, `baseline-${scenario}-${existingRuns.length + i}`, runDir, 'baseline', baselineSettings, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
+							const m = await runOnce(baselineExePath, scenario, mockServer, opts.verbose, `baseline-${scenario}-${existingRuns.length + i}`, runDir, 'baseline', baselineSettings, { heapSnapshots: opts.heapSnapshots });
 							// Clean up previous run's diagnostics to bound disk usage; keep the latest
 							if (opts.cleanupDiagnostics && newResults.length > 0) { cleanupRunDiagnostics(newResults[newResults.length - 1]); }
 							newResults.push(m);
@@ -1592,7 +1588,7 @@ async function main() {
 				const results = [];
 				for (let i = 0; i < opts.runs; i++) {
 					try {
-						const m = await runOnce(baselineExePath, scenario, mockServer, opts.verbose, `baseline-${scenario}-${i}`, runDir, 'baseline', baselineSettings, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
+						const m = await runOnce(baselineExePath, scenario, mockServer, opts.verbose, `baseline-${scenario}-${i}`, runDir, 'baseline', baselineSettings, { heapSnapshots: opts.heapSnapshots });
 						// Clean up previous run's diagnostics to bound disk usage; keep the latest
 						if (opts.cleanupDiagnostics && results.length > 0) { cleanupRunDiagnostics(results[results.length - 1]); }
 						results.push(m);
@@ -1648,7 +1644,7 @@ async function main() {
 		console.log('[chat-simulation]   comparisons, use the same build type for both.');
 		if (testBuildMode === 'dev') {
 			console.log('[chat-simulation]   To use a local production build instead:');
-			console.log('[chat-simulation]     pnpm run perf:chat --production-build');
+			console.log('[chat-simulation]     npm run perf:chat -- --production-build');
 		}
 		if (!opts.ci && !opts.force) {
 			const readline = require('readline');
@@ -1675,7 +1671,7 @@ async function main() {
 		for (let i = 0; i < opts.runs; i++) {
 			console.log(`[chat-simulation]   Run ${i + 1}/${opts.runs}...`);
 			try {
-				const metrics = await runOnce(electronPath, scenario, mockServer, opts.verbose, `${scenario}-${i}`, runDir, 'test', testSettings, { heapSnapshots: opts.heapSnapshots, gcObjectStats: opts.gcObjectStats });
+				const metrics = await runOnce(electronPath, scenario, mockServer, opts.verbose, `${scenario}-${i}`, runDir, 'test', testSettings, { heapSnapshots: opts.heapSnapshots });
 				// Clean up previous run's diagnostics to bound disk usage; keep the latest
 				if (opts.cleanupDiagnostics && results.length > 0) { cleanupRunDiagnostics(results[results.length - 1]); }
 				results.push(metrics);
@@ -1794,19 +1790,13 @@ async function printComparison(jsonReport, opts) {
 			// [metric, group, unit]
 			['timeToFirstToken', 'timing', 'ms'],
 			['timeToComplete', 'timing', 'ms'],
-			['layoutDurationMs', 'rendering', 'ms'],
+			['layoutCount', 'rendering', ''],
+			['recalcStyleCount', 'rendering', ''],
 			['forcedReflowCount', 'rendering', ''],
 			['longTaskCount', 'rendering', ''],
 		];
-		// Informational metrics — shown in comparison but don't trigger failure.
-		// layoutCount / recalcStyleCount are informational on purpose: they are
-		// inflated by CSS animations (compositor-driven, cheap) and don't reflect
-		// real cost — the real layout cost is layoutDurationMs (gated above). A
-		// build can do more, cheaper layouts yet spend less layout time and finish
-		// faster (e.g. giant-codeblock: +28% layoutCount but -7% layoutDurationMs).
+		// Informational metrics — shown in comparison but don't trigger failure
 		const infoMetrics = [
-			['layoutCount', 'rendering', ''],
-			['recalcStyleCount', 'rendering', ''],
 			['heapDelta', 'memory', 'MB'],
 			['gcDurationMs', 'memory', 'ms'],
 			['extHostHeapDelta', 'extHost', 'MB'],
@@ -1907,7 +1897,7 @@ async function printComparison(jsonReport, opts) {
 			console.log('');
 			console.log('[chat-simulation] Some metrics exceeded the threshold but were not statistically significant.');
 			console.log('[chat-simulation] To increase confidence, add more runs with --resume:');
-			console.log(`[chat-simulation]   pnpm run perf:chat --resume ${resultsPath} --runs ${suggestedRuns}`);
+			console.log(`[chat-simulation]   npm run perf:chat -- --resume ${resultsPath} --runs ${suggestedRuns}`);
 		}
 	}
 

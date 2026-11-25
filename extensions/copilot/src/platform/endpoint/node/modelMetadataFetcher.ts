@@ -22,8 +22,6 @@ import { IExperimentationService } from '../../telemetry/common/nullExperimentat
 import { getModelCapabilityOverride } from '../common/chatModelCapabilities';
 import { IChatModelInformation, ICompletionModelInformation, IEmbeddingModelInformation, IModelAPIResponse, isChatModelInformation, isCompletionModelInformation, isEmbeddingModelInformation } from '../common/endpointProvider';
 
-export type EmbeddingsModelFamily = 'text-embedding-3-small' | 'metis';
-
 export interface IModelMetadataFetcher {
 
 	/**
@@ -69,7 +67,7 @@ export interface IModelMetadataFetcher {
 	 * Retrieves an embeddings model by its family name
 	 * @param family The family of the model to fetch
 	 */
-	getEmbeddingsModel(family: EmbeddingsModelFamily): Promise<IEmbeddingModelInformation>;
+	getEmbeddingsModel(family: 'text-embedding-3-small'): Promise<IEmbeddingModelInformation>;
 }
 
 /**
@@ -177,10 +175,7 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 		await this._taskSingler.getOrCreate(ModelMetadataFetcher.ALL_MODEL_KEY, this._fetchModels.bind(this));
 		const resolvedModel = this._copilotUtilityModel;
 		if (!resolvedModel || !isChatModelInformation(resolvedModel)) {
-			// If the model fetch itself failed (e.g. an expired token returning HTTP 401), surface that
-			// underlying error rather than the misleading "no fallback model" message, which only makes
-			// sense when the fetch succeeded but the server genuinely marked no chat fallback.
-			throw this._lastFetchError ?? new Error(await this._getErrorMessage('Unable to resolve Copilot utility chat model (server did not mark a chat fallback model)'));
+			throw new Error(await this._getErrorMessage('Unable to resolve Copilot utility chat model (server did not mark a chat fallback model)'));
 		}
 		return resolvedModel;
 	}
@@ -189,7 +184,7 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 		await this._taskSingler.getOrCreate(ModelMetadataFetcher.ALL_MODEL_KEY, this._fetchModels.bind(this));
 		const resolvedModel = this._familyMap.get(family)?.[0];
 		if (!resolvedModel || !isChatModelInformation(resolvedModel)) {
-			throw this._lastFetchError ?? new Error(await this._getErrorMessage(`Unable to resolve chat model with CAPI family selection: ${family}`));
+			throw new Error(await this._getErrorMessage(`Unable to resolve chat model with CAPI family selection: ${family}`));
 		}
 		return resolvedModel;
 	}
@@ -221,11 +216,11 @@ export class ModelMetadataFetcher extends Disposable implements IModelMetadataFe
 		return resolvedModel;
 	}
 
-	public async getEmbeddingsModel(family: EmbeddingsModelFamily): Promise<IEmbeddingModelInformation> {
+	public async getEmbeddingsModel(family: 'text-embedding-3-small'): Promise<IEmbeddingModelInformation> {
 		await this._taskSingler.getOrCreate(ModelMetadataFetcher.ALL_MODEL_KEY, this._fetchModels.bind(this));
 		const resolvedModel = this._familyMap.get(family)?.[0];
 		if (!resolvedModel || !isEmbeddingModelInformation(resolvedModel)) {
-			throw this._lastFetchError ?? new Error(await this._getErrorMessage(`Unable to resolve embeddings model with family selection: ${family}`));
+			throw new Error(await this._getErrorMessage(`Unable to resolve embeddings model with family selection: ${family}`));
 		}
 		return resolvedModel;
 	}

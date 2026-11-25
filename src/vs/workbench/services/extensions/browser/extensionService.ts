@@ -298,7 +298,6 @@ class BrowserExtensionHostFactory implements IExtensionHostFactory {
 				return {
 					connectionData: this._remoteAuthorityResolverService.getConnectionData(remoteAuthority),
 					pid: remoteEnv.pid,
-					os: remoteEnv.os,
 					appRoot: remoteEnv.appRoot,
 					extensionHostLogsPath: remoteEnv.extensionHostLogsPath,
 					globalStorageHome: remoteEnv.globalStorageHome,

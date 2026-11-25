@@ -7,14 +7,11 @@ import type * as vscode from 'vscode';
 import { filterMap } from '../../../util/common/arrays';
 import { TaskQueue } from '../../../util/common/async';
 import { ErrorUtils } from '../../../util/common/errors';
-import { raceCancellationError } from '../../../util/vs/base/common/async';
 import { pushMany } from '../../../util/vs/base/common/arrays';
 import { assertNever, softAssert } from '../../../util/vs/base/common/assert';
-import type { CancellationToken } from '../../../util/vs/base/common/cancellation';
 import { Emitter, Event } from '../../../util/vs/base/common/event';
-import { CancellationError } from '../../../util/vs/base/common/errors';
 import { Disposable } from '../../../util/vs/base/common/lifecycle';
-import { derived, IObservable, IReader, observableFromEvent } from '../../../util/vs/base/common/observable';
+import { derived, IObservable, observableFromEvent } from '../../../util/vs/base/common/observable';
 import { CopilotToken } from '../../authentication/common/copilotToken';
 import { ICopilotTokenStore } from '../../authentication/common/copilotTokenStore';
 import { ConfigKey, ExperimentBasedConfig, IConfigurationService } from '../../configuration/common/configurationService';
@@ -24,7 +21,7 @@ import { IProxyModelsService } from '../../proxyModels/common/proxyModelsService
 import { IExperimentationService } from '../../telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../telemetry/common/telemetry';
 import { WireTypes } from '../common/dataTypes/inlineEditsModelsTypes';
-import { applyStrategyConfig, isPromptingStrategy, MODEL_CONFIGURATION_VALIDATOR, ModelConfiguration, PromptingStrategy } from '../common/dataTypes/xtabPromptOptions';
+import { isPromptingStrategy, MODEL_CONFIGURATION_VALIDATOR, ModelConfiguration, PromptingStrategy } from '../common/dataTypes/xtabPromptOptions';
 import { IInlineEditsModelService, IUndesiredModelsManager } from '../common/inlineEditsModelService';
 
 const enum ModelSource {
@@ -52,14 +49,6 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 		modelName: 'copilot-nes-xtab',
 		promptingStrategy: PromptingStrategy.CopilotNesXtab,
 		includeTagsInCurrentFile: true,
-		source: ModelSource.HardCodedDefault,
-		lintOptions: undefined,
-	};
-
-	private static readonly COPILOT_NES_LYSITHEA_24: ModelConfigurationWithSource = {
-		modelName: 'copilot-nes-lysithea-24',
-		promptingStrategy: PromptingStrategy.Xtab275,
-		includeTagsInCurrentFile: false,
 		source: ModelSource.HardCodedDefault,
 		lintOptions: undefined,
 	};
@@ -95,8 +84,6 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 	private _modelsObs: IObservable<ModelConfigurationWithSource[]>;
 	private _currentModelObs: IObservable<ModelConfigurationWithSource>;
 	private _modelInfoObs: IObservable<ModelInfo>;
-
-	public readonly supportsUnifiedCompletions: IObservable<boolean | undefined>;
 
 	public readonly onModelListUpdated: Event<void>;
 
@@ -149,9 +136,6 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 		}).recomputeInitiallyAndOnChange(this._store);
 
 		this.onModelListUpdated = Event.fromObservableLight(this._modelInfoObs);
-
-		this.supportsUnifiedCompletions = derived(this, reader =>
-			this._selectedModelConfiguration(reader).supportsUnifiedCompletions);
 	}
 
 	get modelInfo(): vscode.InlineCompletionModelInfo | undefined {
@@ -300,11 +284,7 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 	}
 
 	public selectedModelConfiguration(): ModelConfiguration {
-		return applyStrategyConfig(toModelConfiguration(this._currentModelObs.get()));
-	}
-
-	private _selectedModelConfiguration(reader: IReader): ModelConfiguration {
-		return applyStrategyConfig(toModelConfiguration(this._currentModelObs.read(reader)));
+		return toModelConfiguration(this._currentModelObs.get());
 	}
 
 	public defaultModelConfiguration(): ModelConfiguration {
@@ -312,37 +292,10 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 		if (models && models.length > 0) {
 			const defaultModels = models.filter(m => !this.isConfiguredModel(m));
 			if (defaultModels.length > 0) {
-				return applyStrategyConfig(toModelConfiguration(defaultModels[0]));
+				return toModelConfiguration(defaultModels[0]);
 			}
 		}
-		return applyStrategyConfig(toModelConfiguration(this.determineDefaultModel(this._copilotTokenObs.get(), this._defaultModelConfigObs.get())));
-	}
-
-	async ensureModelSelection(cancellationToken: CancellationToken): Promise<void> {
-		if (cancellationToken.isCancellationRequested) {
-			throw new CancellationError();
-		}
-		await raceCancellationError(this._expService.hasTreatments(), cancellationToken);
-		if (!this._selectionDependsOnModelDiscovery()) {
-			return;
-		}
-		await this._proxyModelsService.ensureModelsLoaded(cancellationToken);
-	}
-
-	private _selectionDependsOnModelDiscovery(): boolean {
-		if (!this._useSlashModelsObs.get() || this._proxyModelsService.modelsLoaded) {
-			return false;
-		}
-
-		const currentModel = this._currentModelObs.get();
-		if (currentModel.source === ModelSource.ExpConfig) {
-			return false;
-		}
-		if (currentModel.source === ModelSource.LocalConfig) {
-			const preferredModelName = this._preferredModelNameObs.get();
-			return preferredModelName !== 'none' && preferredModelName !== currentModel.modelName;
-		}
-		return true;
+		return toModelConfiguration(this.determineDefaultModel(this._copilotTokenObs.get(), this._defaultModelConfigObs.get()));
 	}
 
 	private isConfiguredModel(model: ModelConfigurationWithSource): boolean {
@@ -369,16 +322,13 @@ export class InlineEditsModelService extends Disposable implements IInlineEditsM
 		}
 
 		// otherwise, use built-in defaults
-		if (copilotToken === undefined) {
+		if (copilotToken?.isFcv1()) {
+			return InlineEditsModelService.COPILOT_NES_XTAB_MODEL;
+		} else if (copilotToken?.isFreeUser || copilotToken?.isNoAuthUser) {
+			return InlineEditsModelService.COPILOT_NES_CALLISTO;
+		} else {
 			return InlineEditsModelService.COPILOT_NES_OCT;
 		}
-		if (copilotToken.isFcv1()) {
-			return InlineEditsModelService.COPILOT_NES_XTAB_MODEL;
-		}
-		if (copilotToken.isFreeUser || copilotToken.isNoAuthUser) {
-			return InlineEditsModelService.COPILOT_NES_CALLISTO;
-		}
-		return InlineEditsModelService.COPILOT_NES_LYSITHEA_24;
 	}
 
 	private _pickModel({
@@ -457,6 +407,7 @@ function toModelConfiguration(model: ModelConfigurationWithSource): ModelConfigu
 }
 
 export namespace UndesiredModels {
+
 	const UNDESIRED_MODELS_KEY = 'copilot.chat.nextEdits.undesiredModelIds';
 	type UndesiredModelsValue = string[];
 
@@ -513,3 +464,4 @@ export namespace UndesiredModels {
 		}
 	}
 }
+

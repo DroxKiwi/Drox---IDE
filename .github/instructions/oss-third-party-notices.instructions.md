@@ -1,12 +1,10 @@
 ---
-applyTo: 'build/azure-pipelines/{oss/**,common/downloadNotice.ts,{win32,linux,darwin}/steps/product-build-*-compile.yml}'
+applyTo: 'build/azure-pipelines/oss/**'
 ---
 
 # VS Code OSS Third-Party-Notices pipeline
 
-This directory contains the thin VS Code-specific layer around Component Governance (CG) for producing OSS third-party notices. It replaces the legacy custom OSS tool with CG plus a gap-filling scanner, so release owners do not need to babysit `ThirdPartyNotices.txt` every release. The generated output should be at least as good as the legacy tool: CG provides the base NOTICE, the local scanner fills known CG gaps, and human-authored overrides cover the small set that automation cannot safely resolve.
-
-The pipeline has two halves: **generation** (this `oss/` directory — CG + scanner + merge, producing the `notice_output` artifact) and **application** (the cutover that swaps the merged notice into the shipped product — see "Applying the NOTICE (cutover)" below).
+This directory contains the thin VS Code-specific layer around Component Governance (CG) for producing OSS third-party notices. The goal is to replace the legacy custom OSS tool with CG plus a gap-filling scanner, so release owners do not need to babysit `ThirdPartyNotices.txt` every release. The generated output should be at least as good as the legacy tool: CG provides the base NOTICE, the local scanner fills known CG gaps, and human-authored overrides cover the small set that automation cannot safely resolve.
 
 ## Architecture
 
@@ -16,7 +14,7 @@ The product-quality pipeline in `build/azure-pipelines/product-quality-checks.ym
 2. `scan-licenses.ts` scans local sources CG misses and writes `ThirdPartyNotices.extensions.txt`, plus sibling index files used by the merge step.
 3. `merge-notices.ts` merges the CG output and scanner output, then applies `cglicenses.json` overrides through `apply-overrides.ts`.
 4. `check-pr-dependencies.ts` is used by `pr-oss-check.yml` as a PR-time gate. It blocks dependency additions that have no license source.
-5. If CG is down or `notice@0` emits an empty/non-trivial failure output, the pipeline substitutes the last good `ThirdPartyNotices.generated.txt` artifact. On `main` and `release/*`, fallback checks the same branch, then `main`; other branches use only `main`. Only the CG portion is cached; local scanning and overrides still run fresh against the current commit.
+5. If CG is down or `notice@0` emits an empty/non-trivial failure output, the pipeline substitutes the last good `ThirdPartyNotices.generated.txt` artifact from the same branch, then from `main`. Only the CG portion is cached; local scanning and overrides still run fresh against the current commit.
 
 Final merge output is uploaded as `ThirdPartyNotices.new.txt` in the `notice_output` artifact.
 
@@ -26,7 +24,7 @@ In `product-quality-checks.yml`:
 
 1. Component Detection runs with `ComponentGovernanceComponentDetection@0`.
 2. `notice@0` writes `$(Build.SourcesDirectory)/ThirdPartyNotices.generated.txt` and is `continueOnError: true`.
-3. The cache fallback checks whether the CG file exists and is larger than 1 KB. If not, `DownloadBuildArtifacts@1` uses `latestFromBranch` with the `cg-notice-baseline` build tag and the branch order above. Scanner-only CI builds remain untagged and cannot hide a usable baseline. The apply step still validates the downloaded CG file and preserves its provenance.
+3. The cache fallback checks whether the CG file exists and is larger than 1 KB. If not, it downloads the latest `notice_output` artifact for the current branch, then `main`, and copies the cached `ThirdPartyNotices.generated.txt` into place.
 4. TypeScript compiles the OSS scripts into `.oss-build-out`:
    - `apply-overrides.ts`
    - `scan-licenses.ts`
@@ -35,55 +33,6 @@ In `product-quality-checks.yml`:
 5. `scan-licenses.js` runs with `--repo`, `--cg`, and `--output`.
 6. `merge-notices.js` runs with `--cg`, `--extensions`, `--cglicenses`, and `--output`.
 7. The generated CG file, scanner file, final merged file, and optional cache metadata are uploaded under `notice_output`.
-
-### Cache eligibility and rollout
-
-Only non-CI builds on `main` and `release/*` can produce tagged baselines. Other branches still generate and upload their NOTICE artifacts, but skip tag updates, readback, and same-branch cache lookup.
-
-Before replacing an eligible baseline, the publisher clears this build's tag (30-second limit); failure stops replacement. After merged NOTICE and sourcemap uploads, a one-minute readback lets `common/tagNoticeBaseline.ts` verify that the CG base (>1 KB) and nonempty provenance match the staged files before re-tagging. This prevents continued upload failures from advertising incomplete baselines.
-
-Fresh and carried-forward baselines qualify; carry-forward preserves original provenance. Scanner-only output stays untagged. Errors remain visible and nonfatal under `continueOnError`. The tag does not certify freshness or license completeness; no cache age limit is enforced.
-
-Bootstrap with a successful tagged producer or an explicitly approved, verified historical `main`/`release/*` build. Untagged builds are excluded; until seeded, generation failures follow the existing no-cache path.
-
-## Applying the NOTICE (cutover)
-
-Generation (above) produces the merged `ThirdPartyNotices.new.txt` in the `notice_output` artifact. **Application** is the cutover that makes that file the one VS Code actually ships, replacing the legacy mixin notice.
-
-Consumer script: `build/azure-pipelines/common/downloadNotice.ts` (read its header comment for the full design rationale).
-
-How it works, per desktop platform compile template (`build/azure-pipelines/{win32,linux,darwin}/steps/product-build-*-compile.yml`):
-
-1. **Pull CG NOTICE (background)** — at compile start, `deemon --detach` launches `downloadNotice.ts` as a detached poller. It polls the parallel Quality stage's `notice_output` artifact while compilation runs, so the wait overlaps work already happening.
-2. **Apply CG NOTICE** — right before gulp packages the app, `deemon --attach` blocks on that poller. It downloads, extracts, validates the merged notice, and **overwrites the repo-root `ThirdPartyNotices.txt`**. `build/gulpfile.vscode.ts` then packages whatever file is at that path → the CG notice ships.
-
-Only the 7 desktop targets that bundle a notice run these steps (win32 x64/arm64, darwin universal, linux x64/arm64/armhf). REH/server/web/alpine are unaffected.
-
-### Fallback chain (never fail the build)
-
-`downloadNotice.ts` is **non-fatal — it always exits 0.** A notice problem must never break packaging. The outcomes, in order:
-
-1. **CG fresh** — the `notice_output` artifact is present and valid → overwrite with it.
-2. **Cached CG** — if CG generation failed upstream, the Quality stage substitutes the last good `ThirdPartyNotices.generated.txt` using the branch order above before the artifact is published — so the consumer still gets a CG notice.
-3. **Legacy** — if no usable artifact is available, the legacy mixin notice that `mixin-quality.ts` already laid down is left in place. `mixin-quality.ts` is deliberately left untouched (it's a shared chokepoint used by 8+ pipelines), which is what guarantees we never ship with *no* notice.
-
-The accept-gate validates the *extracted content* (file present AND non-trivial) inside the poll loop — it does not trust the artifact listing alone. A mid-upload miss re-polls rather than falling back, which prevents a "mixed notice" race where one platform ships legacy while its siblings ship CG.
-
-### Rollback lever
-
-A queue-time checkbox **"Use legacy OSS Notice"** (parameter `VSCODE_USE_LEGACY_OSS_NOTICE`, default `false`) is the instant rollback. When checked, it derives `VSCODE_OVERWRITE_TPN=false`, and `downloadNotice.ts` skips the overwrite so the legacy notice ships — no code change or redeploy needed.
-
-> ⚠️ `downloadNotice.ts` normalizes the flag with `.trim().toLowerCase()` before comparing, so YAML casing (`true`/`false` vs `True`/`False`) can't break the rollback lever. The pipeline still derives `VSCODE_OVERWRITE_TPN` as a lowercase string literal (`'true'`/`'false'`) for clarity. See the comment in `product-build-variables.yml`.
-
-### Diagnosing a build
-
-`downloadNotice.ts` logs three greppable markers so a build log answers "did the cutover work?":
-
-- `[notice-cutover] RESULT=fresh` — overwrote from `notice_output` (the happy path).
-- `[notice-cutover] RESULT=fallback` — artifact missing → kept the legacy notice.
-- `[notice-cutover] RESULT=disabled` — feature flag off → kept the legacy notice.
-
-To confirm a shipped artifact carries the CG notice, the root `resources/app/ThirdPartyNotices.txt` should be the large CG-merged file (multi-MB) rather than the ~3 MB legacy notice. Validate *intra-build* parity — all platforms in one build should produce a byte-identical notice (same SHA-256) — rather than checking against a fixed byte count, since CG's exact output size varies run-to-run.
 
 ## Script reference
 
@@ -118,12 +67,9 @@ Scanner sections:
 
 - Section 1 scans built-in extension dependencies. CG skips npm packages with `engines.vscode`, but VS Code ships built-in extensions, so their bundled dependencies are scanned from extension `node_modules` folders.
 - Section 2 scans root `node_modules` for packages whose LICENSE files exist on disk but whose ClearlyDefined coverage did not produce CG NOTICE text.
-- Sections 1 and 2 read a package's `LICENSE`/`LICENCE` file (`.md`, `.txt`, …), or else a `LICENSE-<name>` file such as `LICENSE-MIT.txt` (`punycode`) or `LICENSE-MIT` (`ignore`); with several (dual licenses), the MIT one first (`pickLicenseFileName()`, covered by `license-file.test.ts`).
-- Sections 1, 2 and 5 list the packages of a `node_modules` folder with `collectInstalledPackages()` (covered by `installed-packages.test.ts`): its top level, then, for pnpm's isolated linker, its virtual store (`.pnpm`), which holds the packages that aren't direct dependencies of the install root. The built-in extensions are members of the root workspace, whose store is in the root `node_modules`: their `node_modules` folders list the store packages that their links reach. With the hoisted linker `.pnpm` holds no packages, so only the top level counts. The scanner keeps the first version that it finds of each package, so for a package installed in several versions the linker decides which version it reports.
 - Section 3 reads `licenseDetail` from `cgmanifest.json`, and for uncovered git components without inline text it tries `fetchLicenseFromGitRepo()` at the pinned `commitHash`.
 - Section 4 harvests Rust crate licenses from `Cargo.lock`; details below.
 - Section 5 enumerates platform-specific npm binary packages; details below.
-- Section 6 seeds packages that ship on another OS into the presence index, so their `cglicenses.json` override is injected: packages whose lockfile `os` excludes the Linux agent, and production packages that pnpm skipped on the agent (`skipped` in each install root's `node_modules/.modules.yaml`), such as `windows-foreground-love`, whose lockfile entry records no `os`.
 
 ### `merge-notices.ts`
 
@@ -301,7 +247,7 @@ Useful options:
 
 What it does:
 
-1. Runs `scan-licenses.ts` through `pnpm dlx tsx`.
+1. Runs `scan-licenses.ts` through `npx --yes tsx`.
 2. Writes `ext-notices.txt` and `ext-notices.txt.presence.json` under `-OutDir`.
 3. Runs `merge-notices.ts` with `cglicenses.json`.
 4. Writes `ThirdPartyNotices.new.txt` and a focused summary.
@@ -309,7 +255,7 @@ What it does:
 Notes:
 
 - Pass `-CgNotice` with a cached CG NOTICE for realistic local validation. Without it, the merge still exercises override injection and stale detection, but it does not represent the full CG base.
-- If root `node_modules` is missing, run `pnpm install` first or the presence index will be incomplete.
+- If root `node_modules` is missing, run `npm i` first or the presence index will be incomplete.
 - Full validation is parity against the legacy OSS tool's `ThirdPartyNotices.txt`: the new output should be at least as good as legacy. Use `parse-notices.ts --diff` to compare NOTICE files and inspect package/version differences.
 
 ## Unit checks
@@ -317,16 +263,14 @@ Notes:
 Run from `build/azure-pipelines/oss`:
 
 ```powershell
-pnpm dlx tsx cargo-section4.test.ts
-pnpm dlx tsx platform-binary.test.ts
-pnpm dlx tsx license-file.test.ts
-pnpm dlx tsx installed-packages.test.ts
+npx tsx cargo-section4.test.ts
+npx tsx platform-binary.test.ts
 ```
 
 Optional live Cargo check:
 
 ```powershell
-pnpm dlx tsx cargo-section4.live.ts
+npx tsx cargo-section4.live.ts
 ```
 
 The live check performs bounded network calls to crates.io and GitHub. It is useful for validating the real Section 4 fetch path without running a full scanner pass over every crate.
@@ -352,7 +296,7 @@ Purpose: pre-ship sanity check that validates a generated NOTICE file against th
 Invocation:
 
 ```sh
-pnpm dlx tsx build/azure-pipelines/oss/audit-notices.ts \
+npx tsx build/azure-pipelines/oss/audit-notices.ts \
   --notice <path-to-ThirdPartyNotices.new.txt> \
   --repo .
 ```
@@ -360,13 +304,13 @@ pnpm dlx tsx build/azure-pipelines/oss/audit-notices.ts \
 What it checks:
 
 1. **NOTICE stats** — total entries, duplicate detection (same name@version = bug), multi-version packages (expected), license type breakdown.
-2. **Repo manifest cross-reference** — walks all `package.json` (direct deps), every `pnpm-lock.yaml` (the full transitive tree of each importer, dev filtered out), the `package-lock.json` files that remain for folders still installed with npm (`build/agent-sdk/agents/*`), `Cargo.lock`, and `cgmanifest.json`. Reports overlap, NOTICE-only entries (CG transitive deps), and manifest-only gaps (packages missing from the NOTICE).
+2. **Repo manifest cross-reference** — walks all `package.json` (direct deps), `package-lock.json` (full transitive tree, dev filtered out), `Cargo.lock`, and `cgmanifest.json`. Reports overlap, NOTICE-only entries (CG transitive deps), and manifest-only gaps (packages missing from the NOTICE).
 3. **Summary** — coverage percentage and actionable gap list.
-4. **Package source breakdown** — package counts per lockfile project (pnpm importer or npm lockfile folder), sorted by size. Shows which extensions/directories contribute the most dependencies (e.g., `extensions/copilot: 329 packages`).
+4. **Package source breakdown** — per-lockfile package counts sorted by size. Shows which extensions/directories contribute the most dependencies (e.g., `extensions/copilot: 329 packages`).
 
 Key behavior:
 
-- Lockfile parsing filters out dev-only packages (`dev: true`/`devOptional: true` in `package-lock.json`, dev-only packages of each importer in `pnpm-lock.yaml`) — only non-dev (shipping) packages are counted.
+- Lockfile parsing filters out `dev: true` and `devOptional: true` entries — only non-dev (shipping) packages are counted.
 - Cross-reference uses lowercase package names for matching.
 - The "manifest-only" gap list is the primary ship-readiness signal: each gap should be explainable (binary component, known TODO, platform-specific absence).
 

@@ -9,7 +9,7 @@ import { Action2, registerAction2 } from '../../../../../platform/actions/common
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IStorageService } from '../../../../../platform/storage/common/storage.js';
 import { localize2 } from '../../../../../nls.js';
-import { ISessionsService } from '../../../sessions/browser/sessionsService.js';
+import { ISessionsService } from '../../../../../sessions/services/sessions/browser/sessionsService.js';
 import { DroxChatSessionUri } from '../../common/droxAgentsSession.js';
 import { IDroxChatSessionService } from '../../common/droxChatSessionService.js';
 import { writeDroxIdeSessionHandoff } from '../../common/droxIdeSessionHandoff.js';
@@ -25,11 +25,11 @@ function resolveEngineSessionId(
 	if (fromService) {
 		return fromService;
 	}
-	const active = sessionsService.activePane.get()?.session.get();
+	const active = sessionsService.activeSession.get();
 	if (!active) {
 		return undefined;
 	}
-	const activeChat = active.mainChat.get();
+	const activeChat = active.activeChat.get();
 	return (activeChat ? DroxChatSessionUri.parseSessionId(activeChat.resource) : undefined)
 		?? DroxChatSessionUri.parseSessionId(active.resource);
 }

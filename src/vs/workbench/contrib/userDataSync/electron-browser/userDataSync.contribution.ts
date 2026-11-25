@@ -3,7 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { SyncStatus } from '../../../../platform/userDataSync/common/userDataSync.js';
+import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
+import { IUserDataSyncUtilService, SyncStatus } from '../../../../platform/userDataSync/common/userDataSync.js';
+import { ISharedProcessService } from '../../../../platform/ipc/electron-browser/services.js';
 import { registerAction2, Action2, MenuId } from '../../../../platform/actions/common/actions.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
@@ -13,7 +15,23 @@ import { INativeHostService } from '../../../../platform/native/common/native.js
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
 import { CONTEXT_SYNC_STATE, DOWNLOAD_ACTIVITY_ACTION_DESCRIPTOR, IUserDataSyncWorkbenchService, SYNC_TITLE } from '../../../services/userDataSync/common/userDataSync.js';
 import { Schemas } from '../../../../base/common/network.js';
-import './userDataSyncUtilChannel.contribution.js';
+import { ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js';
+import { Disposable } from '../../../../base/common/lifecycle.js';
+
+class UserDataSyncServicesContribution extends Disposable implements IWorkbenchContribution {
+
+	static readonly ID = 'workbench.contrib.userDataSyncServices';
+
+	constructor(
+		@IUserDataSyncUtilService userDataSyncUtilService: IUserDataSyncUtilService,
+		@ISharedProcessService sharedProcessService: ISharedProcessService,
+	) {
+		super();
+		sharedProcessService.registerChannel('userDataSyncUtil', ProxyChannel.fromService(userDataSyncUtilService, this._store));
+	}
+}
+
+registerWorkbenchContribution2(UserDataSyncServicesContribution.ID, UserDataSyncServicesContribution, WorkbenchPhase.BlockStartup);
 
 registerAction2(class OpenSyncBackupsFolder extends Action2 {
 	constructor() {

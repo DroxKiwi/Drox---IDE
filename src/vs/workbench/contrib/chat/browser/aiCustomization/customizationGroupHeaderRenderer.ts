@@ -9,7 +9,6 @@ import { Codicon } from '../../../../../base/common/codicons.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { IListRenderer } from '../../../../../base/browser/ui/list/list.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
-import { localize } from '../../../../../nls.js';
 
 const $ = DOM.$;
 
@@ -31,19 +30,13 @@ export interface ICustomizationGroupHeaderEntry {
 	collapsed: boolean;
 }
 
-export function getCustomizationGroupAriaLabel(label: string, count: number, description: string): string {
-	return localize('customizationGroupAriaLabel', "{0}, {1} items. {2}", label, count, description);
-}
-
 interface ICustomizationGroupHeaderTemplateData {
 	readonly container: HTMLElement;
 	readonly chevron: HTMLElement;
 	readonly icon: HTMLElement;
 	readonly label: HTMLElement;
-	readonly description: HTMLElement;
 	readonly count: HTMLElement;
 	readonly infoIcon: HTMLElement;
-	readonly actions: HTMLElement;
 	readonly disposables: DisposableStore;
 	readonly elementDisposables: DisposableStore;
 }
@@ -57,8 +50,6 @@ export class CustomizationGroupHeaderRenderer<T extends ICustomizationGroupHeade
 	constructor(
 		readonly templateId: string,
 		private readonly hoverService: IHoverService,
-		private readonly renderActions?: (entry: T, container: HTMLElement, disposables: DisposableStore) => void,
-		private readonly renderDescription?: (entry: T, container: HTMLElement, disposables: DisposableStore) => void,
 	) { }
 
 	renderTemplate(container: HTMLElement): ICustomizationGroupHeaderTemplateData {
@@ -69,36 +60,27 @@ export class CustomizationGroupHeaderRenderer<T extends ICustomizationGroupHeade
 		const chevron = DOM.append(container, $('.group-chevron'));
 		const icon = DOM.append(container, $('.group-icon'));
 		const labelGroup = DOM.append(container, $('.group-label-group'));
-		const titleRow = DOM.append(labelGroup, $('.group-title-row'));
-		const label = DOM.append(titleRow, $('.group-label'));
-		const count = DOM.append(titleRow, $('.group-count'));
-		const description = DOM.append(labelGroup, $('.group-description'));
+		const label = DOM.append(labelGroup, $('.group-label'));
+		const count = DOM.append(container, $('.group-count'));
 		const infoIcon = DOM.append(container, $('.group-info'));
 		infoIcon.classList.add(...ThemeIcon.asClassNameArray(Codicon.info));
-		const actions = DOM.append(container, $('.group-actions'));
 
-		return { container, chevron, icon, label, description, count, infoIcon, actions, disposables, elementDisposables };
+		return { container, chevron, icon, label, count, infoIcon, disposables, elementDisposables };
 	}
 
 	renderElement(element: T, _index: number, templateData: ICustomizationGroupHeaderTemplateData): void {
 		templateData.elementDisposables.clear();
 
 		templateData.chevron.className = 'group-chevron';
-		templateData.chevron.classList.add(...ThemeIcon.asClassNameArray(element.collapsed ? Codicon.chevronRightCompact : Codicon.chevronDownCompact));
+		templateData.chevron.classList.add(...ThemeIcon.asClassNameArray(element.collapsed ? Codicon.chevronRight : Codicon.chevronDown));
 
 		templateData.icon.className = 'group-icon';
 		templateData.icon.classList.add(...ThemeIcon.asClassNameArray(element.icon));
 
 		templateData.label.textContent = element.label;
 		templateData.count.textContent = `${element.count}`;
-		DOM.clearNode(templateData.description);
-		this.renderDescription?.(element, templateData.description, templateData.elementDisposables);
-		templateData.description.style.display = templateData.description.hasChildNodes() ? '' : 'none';
-		DOM.clearNode(templateData.actions);
-		this.renderActions?.(element, templateData.actions, templateData.elementDisposables);
 
-		templateData.infoIcon.style.display = 'none';
-		templateData.elementDisposables.add(this.hoverService.setupDelayedHover(templateData.label, () => ({
+		templateData.elementDisposables.add(this.hoverService.setupDelayedHover(templateData.infoIcon, () => ({
 			content: element.description,
 			appearance: {
 				compact: true,

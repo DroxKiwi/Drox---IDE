@@ -24,6 +24,7 @@ import {
 	asDroxRegulationL1Module,
 } from './regulation/droxRegulationL1Budget.js';
 import {
+	applyDroxRegulationL2DisabledTools,
 	applyDroxRegulationL2ExecutableTools,
 	asDroxRegulationL2Module,
 } from './regulation/droxRegulationL2Surface.js';
@@ -38,7 +39,6 @@ import {
 } from './regulation/droxRegulationL4Protocol.js';
 import { IDroxRegulationService } from './regulation/droxRegulationServiceContract.js';
 import { droxSubagentsEnabledForRun } from './droxSubagents.js';
-import { IDroxToolsSurfaceService } from './droxToolsSurfaceService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { URI } from '../../../../base/common/uri.js';
 import { DroxSetting } from './droxConfiguration.js';
@@ -69,8 +69,6 @@ export interface IDroxAgentRunBridgeDeps {
 	readonly configurationService?: IConfigurationService;
 	/** Optionnel : L1 notes + L2 tools + L3 directive + L4 protocol. */
 	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
-	/** Optionnel : matrice custom L2 (`.drox/tools-surface.json`). */
-	readonly toolsSurfaceService?: Pick<IDroxToolsSurfaceService, 'getStateForWorkspace'>;
 }
 
 export interface IDroxAgentRunStartOptions {
@@ -195,14 +193,18 @@ export async function startDroxAgentRun(
 	}) as Record<string, unknown>;
 	if (deps.regulationService) {
 		const l2 = asDroxRegulationL2Module(deps.regulationService.getModule('L2'));
-		const customState = deps.toolsSurfaceService?.getStateForWorkspace(options.workspace);
-		const customEnabled = customState?.customActive ? customState.enabled : undefined;
-		if (Array.isArray(runParams.disabledTools) && (runParams.disabledTools as string[]).length === 0) {
+		const existing = Array.isArray(runParams.disabledTools)
+			? (runParams.disabledTools as string[])
+			: [];
+		const disabled = applyDroxRegulationL2DisabledTools(l2, existing);
+		if (disabled.length > 0) {
+			runParams.disabledTools = disabled;
+		} else {
 			delete runParams.disabledTools;
 		}
 		// Explore master × L2: strip RPC flags when core or kill-switch off.
 		const masterOn = runParams.subagentsEnabled === true;
-		const exploreOn = droxSubagentsEnabledForRun(masterOn, l2, customEnabled);
+		const exploreOn = droxSubagentsEnabledForRun(masterOn, l2);
 		if (!exploreOn) {
 			delete runParams.subagentsEnabled;
 			delete runParams.subagentsMaxIterations;

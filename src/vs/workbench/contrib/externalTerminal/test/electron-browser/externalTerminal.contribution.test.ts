@@ -19,7 +19,6 @@ import { CommandsRegistry } from '../../../../../platform/commands/common/comman
 import { IQuickInputService, IQuickPickItem } from '../../../../../platform/quickinput/common/quickInput.js';
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 import '../../electron-browser/externalTerminal.contribution.js';
-import { testIWorkspace } from '../../../../../platform/workspace/test/common/testWorkspace.js';
 
 suite('ExternalTerminal contribution', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
@@ -72,10 +71,10 @@ suite('ExternalTerminal contribution', () => {
 
 		instantiationService.stub(IWorkspaceContextService, new class extends mock<IWorkspaceContextService>() {
 			override getWorkspace(): IWorkspace {
-				return testIWorkspace({
+				return {
 					id: 'test-workspace',
 					folders: options.folders,
-				});
+				};
 			}
 		});
 

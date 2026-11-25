@@ -13,7 +13,6 @@ import type { ClientRequest } from './protocol/generated/ClientRequest.js';
 import type { RequestId } from './protocol/generated/RequestId.js';
 import type { ServerNotification } from './protocol/generated/ServerNotification.js';
 import type { ServerRequest } from './protocol/generated/ServerRequest.js';
-import type { IAgentHostTraceContext } from '../../common/otel/agentHostOTelService.js';
 
 // #region Wire types
 //
@@ -68,14 +67,6 @@ export class JsonRpcError extends Error {
 	}
 }
 
-/**
- * A {@link JsonRpcError} that the Codex server actually returned in a
- * response envelope, so the request is known to have been answered and
- * rejected. Transport failures (exit, write failure) reject with a plain
- * {@link JsonRpcError} instead because the server's outcome is unknown.
- */
-export class JsonRpcResponseError extends JsonRpcError { }
-
 // #region Typed method projections
 //
 // Extract `<method>` → `params` / `result` for each direction. The
@@ -83,8 +74,7 @@ export class JsonRpcResponseError extends JsonRpcError { }
 // }`, so a discriminated-union pick works as a method-keyed lookup.
 
 type MethodOf<U> = U extends { method: infer M } ? M : never;
-// Index the selected member to preserve optional params without making required params optional.
-type ParamsOf<U, M> = U extends { method: M } ? U[Extract<keyof U, 'params'>] : never;
+type ParamsOf<U, M> = U extends { method: M; params: infer P } ? P : never;
 
 export type ClientRequestMethod = MethodOf<ClientRequest>;
 export type ClientNotificationMethod = MethodOf<ClientNotification>;
@@ -158,7 +148,6 @@ export interface ICodexAppServerClient extends IDisposable {
 	request<M extends ClientRequestMethod, R = unknown>(
 		method: M,
 		params: ClientRequestParams<M>,
-		trace?: IAgentHostTraceContext,
 	): Promise<R>;
 
 	/**
@@ -275,7 +264,7 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 			}
 			this._pending.delete(id);
 			if (hasKey(msg, { error: true }) && msg.error) {
-				pending.reject(new JsonRpcResponseError(msg.error.code, msg.error.message, msg.error.data));
+				pending.reject(new JsonRpcError(msg.error.code, msg.error.message, msg.error.data));
 			} else {
 				pending.resolve((msg as IWireResponseSuccess).result);
 			}
@@ -371,7 +360,6 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 	request<M extends ClientRequestMethod, R = unknown>(
 		method: M,
 		params: ClientRequestParams<M>,
-		trace?: IAgentHostTraceContext,
 	): Promise<R> {
 		if (this._disposed) {
 			return Promise.reject(new CancellationError());
@@ -382,12 +370,7 @@ export class CodexAppServerClient extends Disposable implements ICodexAppServerC
 		const id = this._nextId++;
 		return new Promise<R>((resolve, reject) => {
 			this._pending.set(id, { method, resolve: resolve as (v: unknown) => void, reject });
-			const ok = this._writeMessage({
-				id,
-				method,
-				params,
-				...(trace ? { trace: { traceparent: trace.traceparent, tracestate: trace.tracestate } } : {}),
-			});
+			const ok = this._writeMessage({ id, method, params });
 			if (!ok) {
 				this._pending.delete(id);
 				reject(new JsonRpcError(JsonRpcErrorCode.InternalError, 'write failed; transport closed'));

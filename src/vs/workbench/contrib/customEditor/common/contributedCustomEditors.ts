@@ -15,8 +15,9 @@ import { customEditorsExtensionPoint, ICustomEditorsExtensionPoint } from './ext
 import { RegisteredEditorPriority } from '../../../services/editor/common/editorResolverService.js';
 import { IExtensionPointUser } from '../../../services/extensions/common/extensionsRegistry.js';
 
-type StoredCustomEditorPriorityInfo = Omit<CustomEditorPriorityInfo, 'diff'> & {
+type StoredCustomEditorPriorityInfo = Omit<CustomEditorPriorityInfo, 'diff' | 'merge'> & {
 	readonly diff?: RegisteredEditorPriority;
+	readonly merge?: RegisteredEditorPriority;
 };
 
 type StoredCustomEditorDescriptor = Omit<CustomEditorDescriptor, 'priority'> & {
@@ -57,8 +58,9 @@ export class ContributedCustomEditors extends Disposable {
 		this._editors.clear();
 
 		for (const extension of extensions) {
+			const hasCustomEditorPriorityProposal = extension.description.enabledApiProposals?.includes('customEditorPriority') ?? false;
 			for (const webviewEditorContribution of extension.value) {
-				const priority = getPriorityFromContribution(webviewEditorContribution.priority, extension.description);
+				const priority = getPriorityFromContribution(webviewEditorContribution.priority, extension.description, hasCustomEditorPriorityProposal);
 				this.add(new CustomEditorInfo({
 					id: webviewEditorContribution.viewType,
 					displayName: webviewEditorContribution.displayName,
@@ -106,10 +108,12 @@ function normalizeStoredCustomEditorDescriptor(descriptor: StoredCustomEditorDes
 		selector: descriptor.selector,
 		priority: typeof descriptor.priority === 'string' ? {
 			editor: descriptor.priority,
-			diff: RegisteredEditorPriority.explicit,
+			diff: descriptor.priority,
+			merge: descriptor.priority,
 		} : {
 			editor: descriptor.priority.editor,
-			diff: descriptor.priority.diff ?? RegisteredEditorPriority.explicit,
+			diff: descriptor.priority.diff ?? descriptor.priority.editor,
+			merge: descriptor.priority.merge ?? descriptor.priority.editor,
 		},
 	};
 }
@@ -117,11 +121,13 @@ function normalizeStoredCustomEditorDescriptor(descriptor: StoredCustomEditorDes
 function getPriorityFromContribution(
 	contribution: ICustomEditorsExtensionPoint['priority'],
 	extension: IExtensionDescription,
+	includeDiffAndMergePriority: boolean,
 ): CustomEditorDescriptor['priority'] {
 	const editorPriority = getSinglePriorityFromContribution(typeof contribution === 'string' ? contribution : contribution?.textEditor, extension) ?? RegisteredEditorPriority.default;
 	return {
 		editor: editorPriority,
-		diff: (typeof contribution === 'string' ? undefined : getSinglePriorityFromContribution(contribution?.diffEditor, extension)) ?? RegisteredEditorPriority.explicit,
+		diff: includeDiffAndMergePriority && typeof contribution !== 'string' ? getSinglePriorityFromContribution(contribution?.diffEditor, extension) ?? editorPriority : editorPriority,
+		merge: includeDiffAndMergePriority && typeof contribution !== 'string' ? getSinglePriorityFromContribution(contribution?.mergeEditor, extension) ?? editorPriority : editorPriority,
 	};
 }
 
@@ -132,9 +138,6 @@ function getSinglePriorityFromContribution(value: CustomEditorPriority | undefin
 
 		case CustomEditorPriority.option:
 			return RegisteredEditorPriority.option;
-
-		case CustomEditorPriority.explicit:
-			return RegisteredEditorPriority.explicit;
 
 		case CustomEditorPriority.builtin:
 			// Builtin is only valid for builtin extensions

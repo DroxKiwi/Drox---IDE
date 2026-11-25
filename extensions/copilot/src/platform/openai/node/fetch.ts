@@ -15,8 +15,6 @@ export enum FetchResponseKind {
 export interface ChatResults {
 	type: FetchResponseKind.Success;
 	chatCompletions: AsyncIterable<ChatCompletion>;
-	/** HTTP correlation retained even when the stream emits no completions. */
-	modelRequestId?: RequestId;
 }
 
 export interface ChatRequestFailed {
@@ -30,8 +28,6 @@ export interface ChatRequestFailed {
 export interface ChatRequestCanceled {
 	type: FetchResponseKind.Canceled;
 	reason: string;
-	/** Raw `X-GitHub-Copilot-Request-Te` value, when the response had already been received. */
-	gitHubCopilotRequestTe?: string;
 }
 
 export enum ChatFailKind {

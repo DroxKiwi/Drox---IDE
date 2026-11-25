@@ -109,7 +109,6 @@ export function buildDroxComposerPanelsMarkup(): string {
 						<option value="local-27b">${rolePanelEngineProfileCapable}</option>
 						<option value="cloud-full">${rolePanelEngineProfileFull}</option>
 					</select>
-					<span id="role-model-panel-engine-profile-suffix" class="role-model-engine-profile-suffix" aria-hidden="true"></span>
 				</span>
 			</label>
 			<label class="role-model-field">
@@ -161,16 +160,11 @@ export function buildDroxComposerPanelsMarkup(): string {
 				<button type="button" id="general-settings-connect-ia" class="general-settings-panel-btn general-settings-connect-btn">${generalSettingsConnectIa}</button>
 			</div>
 			<p class="general-settings-section-label">${generalSettingsSectionAgent}</p>
-			<label class="general-settings-field"><span>${rolePanelEngineProfileLabel}</span>
-				<span class="general-settings-profile-row">
-					<select id="general-settings-engine-profile" class="general-settings-input">
-						<option value="local-9b">${rolePanelEngineProfileSmall}</option>
-						<option value="local-27b">${rolePanelEngineProfileCapable}</option>
-						<option value="cloud-full">${rolePanelEngineProfileFull}</option>
-					</select>
-					<span id="general-settings-engine-profile-suffix" class="general-settings-profile-suffix" aria-hidden="true"></span>
-				</span>
-			</label>
+			<label class="general-settings-field"><span>${rolePanelEngineProfileLabel}</span><select id="general-settings-engine-profile" class="general-settings-input">
+				<option value="local-9b">${rolePanelEngineProfileSmall}</option>
+				<option value="local-27b">${rolePanelEngineProfileCapable}</option>
+				<option value="cloud-full">${rolePanelEngineProfileFull}</option>
+			</select></label>
 			<label class="general-settings-field"><span>${generalSettingsMaxIterations}</span><input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" /></label>
 			<label class="general-settings-field"><span>${generalSettingsExploreMaxIterations}</span><input type="number" id="general-settings-explore-max-iterations" class="general-settings-input" min="1" step="1" /></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-enabled" checked /><span>${generalSettingsSubagentsEnabled}</span></label>

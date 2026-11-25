@@ -92,9 +92,7 @@ export class LineDecoration {
 	}
 
 	private static _typeCompare(a: InlineDecorationType, b: InlineDecorationType): number {
-		// WidthOnly, Before, After, Regular, RegularAffectingLetterSpacing.
-		// Width only decorations come from injected text, which renders before any other decoration.
-		const ORDER = [3, 1, 2, 4, 0];
+		const ORDER = [2, 0, 1, 3];
 		return ORDER[a] - ORDER[b];
 	}
 

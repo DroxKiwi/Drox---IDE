@@ -29,14 +29,12 @@ import { IModelService } from '../../../../editor/common/services/model.js';
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
 import { ILabelService } from '../../../../platform/label/common/label.js';
 import { coalesce } from '../../../../base/common/arrays.js';
-import { getLocalHistoryDateFormatter, LOCAL_HISTORY_ICON_RESTORE, LOCAL_HISTORY_MENU_CONTEXT_KEY, LOCAL_HISTORY_SINGLE_ITEM_MENU_CONTEXT_KEY } from './localHistory.js';
+import { getLocalHistoryDateFormatter, LOCAL_HISTORY_ICON_RESTORE, LOCAL_HISTORY_MENU_CONTEXT_KEY } from './localHistory.js';
 import { IPathService } from '../../../services/path/common/pathService.js';
 import { ResourceSet } from '../../../../base/common/map.js';
 import { IHistoryService } from '../../../services/history/common/history.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { IEditorOptions } from '../../../../platform/editor/common/editor.js';
-import { ITimelineService, TimelinePaneId } from '../../timeline/common/timeline.js';
-import { IViewsService } from '../../../services/views/common/viewsService.js';
 
 const LOCAL_HISTORY_CATEGORY = localize2('localHistory.category', 'Local History');
 const CTX_LOCAL_HISTORY_ENABLED = ContextKeyExpr.has('config.workbench.localHistory.enabled');
@@ -44,11 +42,6 @@ const CTX_LOCAL_HISTORY_ENABLED = ContextKeyExpr.has('config.workbench.localHist
 export interface ITimelineCommandArgument {
 	uri: URI;
 	handle: string;
-
-	/**
-	 * The identifier of the timeline provider when invoked on an item of the Timeline view.
-	 */
-	source?: string;
 }
 
 //#region Compare with File
@@ -64,7 +57,7 @@ registerAction2(class extends Action2 {
 				id: MenuId.TimelineItemContext,
 				group: '1_compare',
 				order: 1,
-				when: LOCAL_HISTORY_SINGLE_ITEM_MENU_CONTEXT_KEY
+				when: LOCAL_HISTORY_MENU_CONTEXT_KEY
 			}
 		});
 	}
@@ -92,7 +85,7 @@ registerAction2(class extends Action2 {
 				id: MenuId.TimelineItemContext,
 				group: '1_compare',
 				order: 2,
-				when: LOCAL_HISTORY_SINGLE_ITEM_MENU_CONTEXT_KEY
+				when: LOCAL_HISTORY_MENU_CONTEXT_KEY
 			}
 		});
 	}
@@ -132,7 +125,7 @@ registerAction2(class extends Action2 {
 				id: MenuId.TimelineItemContext,
 				group: '2_compare_with',
 				order: 2,
-				when: LOCAL_HISTORY_SINGLE_ITEM_MENU_CONTEXT_KEY
+				when: LOCAL_HISTORY_MENU_CONTEXT_KEY
 			}
 		});
 	}
@@ -157,7 +150,7 @@ registerAction2(class extends Action2 {
 				id: MenuId.TimelineItemContext,
 				group: '2_compare_with',
 				order: 1,
-				when: ContextKeyExpr.and(LOCAL_HISTORY_SINGLE_ITEM_MENU_CONTEXT_KEY, LocalHistoryItemSelectedForCompare)
+				when: ContextKeyExpr.and(LOCAL_HISTORY_MENU_CONTEXT_KEY, LocalHistoryItemSelectedForCompare)
 			}
 		});
 	}
@@ -194,7 +187,7 @@ registerAction2(class extends Action2 {
 				id: MenuId.TimelineItemContext,
 				group: '3_contents',
 				order: 1,
-				when: LOCAL_HISTORY_SINGLE_ITEM_MENU_CONTEXT_KEY
+				when: LOCAL_HISTORY_MENU_CONTEXT_KEY
 			}
 		});
 	}
@@ -243,7 +236,7 @@ registerAction2(class extends Action2 {
 				id: MenuId.TimelineItemContext,
 				group: '3_contents',
 				order: 2,
-				when: LOCAL_HISTORY_SINGLE_ITEM_MENU_CONTEXT_KEY
+				when: LOCAL_HISTORY_MENU_CONTEXT_KEY
 			}
 		});
 	}
@@ -450,40 +443,16 @@ registerAction2(class extends Action2 {
 				id: MenuId.TimelineItemContext,
 				group: '5_edit',
 				order: 1,
-				when: LOCAL_HISTORY_SINGLE_ITEM_MENU_CONTEXT_KEY
+				when: LOCAL_HISTORY_MENU_CONTEXT_KEY
 			}
 		});
 	}
 	async run(accessor: ServicesAccessor, item: ITimelineCommandArgument): Promise<void> {
 		const workingCopyHistoryService = accessor.get(IWorkingCopyHistoryService);
 		const quickInputService = accessor.get(IQuickInputService);
-		const timelineService = accessor.get(ITimelineService);
-		const viewsService = accessor.get(IViewsService);
 
 		const { entry } = await findLocalHistoryEntry(workingCopyHistoryService, item);
 		if (entry) {
-			const rename = (name: string) => {
-				if (name) {
-					workingCopyHistoryService.updateEntry(entry, { source: name }, CancellationToken.None);
-				}
-			};
-
-			// Rename inline when invoked on an item of the Timeline view
-			if (item.source && viewsService.isViewVisible(TimelinePaneId)) {
-				const timelineItem = { source: item.source, handle: item.handle };
-				timelineService.setEditable(timelineItem, {
-					validationMessage: () => null,
-					startingValue: SaveSourceRegistry.getSourceLabel(entry.source),
-					onFinish: async (value, success) => {
-						timelineService.setEditable(timelineItem, null);
-						if (success) {
-							rename(value);
-						}
-					}
-				});
-				return;
-			}
-
 			const disposables = new DisposableStore();
 			const inputBox = disposables.add(quickInputService.createInputBox());
 			inputBox.title = localize('renameLocalHistoryEntryTitle', "Rename Local History Entry");
@@ -492,7 +461,9 @@ registerAction2(class extends Action2 {
 			inputBox.value = SaveSourceRegistry.getSourceLabel(entry.source);
 			inputBox.show();
 			disposables.add(inputBox.onDidAccept(() => {
-				rename(inputBox.value);
+				if (inputBox.value) {
+					workingCopyHistoryService.updateEntry(entry, { source: inputBox.value }, CancellationToken.None);
+				}
 				disposables.dispose();
 			}));
 		}
@@ -516,32 +487,25 @@ registerAction2(class extends Action2 {
 			}
 		});
 	}
-	async run(accessor: ServicesAccessor, item: ITimelineCommandArgument, _uri?: URI, _source?: string, selection?: ITimelineCommandArgument[]): Promise<void> {
+	async run(accessor: ServicesAccessor, item: ITimelineCommandArgument): Promise<void> {
 		const workingCopyHistoryService = accessor.get(IWorkingCopyHistoryService);
 		const editorService = accessor.get(IEditorService);
 		const dialogService = accessor.get(IDialogService);
 
-		// Delete all selected entries when invoked on a multi-selection of the Timeline view
-		const entries = coalesce(await Promise.all((selection ?? [item]).map(async item => (await findLocalHistoryEntry(workingCopyHistoryService, item)).entry)));
-		if (entries.length === 0) {
-			return;
-		}
+		const { entry } = await findLocalHistoryEntry(workingCopyHistoryService, item);
+		if (entry) {
 
-		// Ask for confirmation
-		const { confirmed } = await dialogService.confirm({
-			type: 'warning',
-			message: entries.length === 1
-				? localize('confirmDeleteMessage', "Do you want to delete the local history entry of '{0}' from {1}?", entries[0].workingCopy.name, toLocalHistoryEntryDateLabel(entries[0].timestamp))
-				: localize('confirmDeleteMultipleMessage', "Do you want to delete {0} local history entries?", entries.length),
-			detail: localize('confirmDeleteDetail', "This action is irreversible!"),
-			primaryButton: localize({ key: 'deleteButtonLabel', comment: ['&& denotes a mnemonic'] }, "&&Delete"),
-		});
+			// Ask for confirmation
+			const { confirmed } = await dialogService.confirm({
+				type: 'warning',
+				message: localize('confirmDeleteMessage', "Do you want to delete the local history entry of '{0}' from {1}?", entry.workingCopy.name, toLocalHistoryEntryDateLabel(entry.timestamp)),
+				detail: localize('confirmDeleteDetail', "This action is irreversible!"),
+				primaryButton: localize({ key: 'deleteButtonLabel', comment: ['&& denotes a mnemonic'] }, "&&Delete"),
+			});
 
-		if (!confirmed) {
-			return;
-		}
-
-		for (const entry of entries) {
+			if (!confirmed) {
+				return;
+			}
 
 			// Remove via service
 			await workingCopyHistoryService.removeEntry(entry, CancellationToken.None);

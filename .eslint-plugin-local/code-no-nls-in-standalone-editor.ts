@@ -3,22 +3,22 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
 import { join } from 'path';
 import { createImportRuleListener } from './utils.ts';
 
-export default new class NoNlsInStandaloneEditorRule implements CreateRule {
+export default new class NoNlsInStandaloneEditorRule implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			noNls: 'Not allowed to import vs/nls in standalone editor modules. Use standaloneStrings.ts'
 		},
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
-		const fileName = context.filename;
+		const fileName = context.getFilename();
 		if (
 			/vs(\/|\\)editor(\/|\\)standalone(\/|\\)/.test(fileName)
 			|| /vs(\/|\\)editor(\/|\\)common(\/|\\)standalone(\/|\\)/.test(fileName)
@@ -29,7 +29,7 @@ export default new class NoNlsInStandaloneEditorRule implements CreateRule {
 			return createImportRuleListener((node, path) => {
 				// resolve relative paths
 				if (path[0] === '.') {
-					path = join(context.filename, path);
+					path = join(context.getFilename(), path);
 				}
 
 				if (

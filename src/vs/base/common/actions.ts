@@ -5,7 +5,6 @@
 
 import { Emitter, Event } from './event.js';
 import { Disposable, IDisposable } from './lifecycle.js';
-import { isLinux, isWindows } from './platform.js';
 import * as nls from '../../nls.js';
 
 export interface ITelemetryData {
@@ -35,14 +34,7 @@ export interface IAction {
 	class: string | undefined;
 	enabled: boolean;
 	checked?: boolean;
-	/** Alternative action for this item. */
-	readonly alt?: IAction;
 	run(...args: unknown[]): unknown;
-}
-
-export function getActionForAltMode(action: IAction, modifiers: { readonly altKey?: boolean; readonly shiftKey?: boolean }): IAction {
-	const useAlternative = modifiers.altKey || ((isWindows || isLinux) && modifiers.shiftKey);
-	return useAlternative && action.enabled && action.alt?.enabled ? action.alt : action;
 }
 
 export interface IActionRunner extends IDisposable {
@@ -208,13 +200,6 @@ export class ActionRunner extends Disposable implements IActionRunner {
 	}
 }
 
-/**
- * Separates groups of actions.
- *
- * A separator with a {@link Separator.label label} introduces the actions after it with a
- * non-interactive header. Menus render the label as a section header and native menus as a
- * disabled item, while toolbars show a plain separator.
- */
 export class Separator implements IAction {
 
 	/**
@@ -257,16 +242,11 @@ export class Separator implements IAction {
 
 	readonly id: string = Separator.ID;
 
+	readonly label: string = '';
 	readonly tooltip: string = '';
 	readonly class: string = 'separator';
 	readonly enabled: boolean = false;
 	readonly checked: undefined = undefined;
-
-	/**
-	 * @param label An optional header shown above the actions that follow the separator.
-	 */
-	constructor(readonly label: string = '') { }
-
 	async run() { }
 }
 
@@ -277,17 +257,16 @@ export class SubmenuAction implements IAction {
 	readonly class: string | undefined;
 	readonly tooltip: string = '';
 	readonly enabled: boolean = true;
-	readonly checked: boolean | undefined;
+	readonly checked: undefined = undefined;
 
 	private readonly _actions: readonly IAction[];
 	get actions(): readonly IAction[] { return this._actions; }
 
-	constructor(id: string, label: string, actions: readonly IAction[], cssClass?: string, checked?: boolean) {
+	constructor(id: string, label: string, actions: readonly IAction[], cssClass?: string) {
 		this.id = id;
 		this.label = label;
 		this.class = cssClass;
 		this._actions = actions;
-		this.checked = checked;
 	}
 
 	async run(): Promise<void> { }
@@ -302,7 +281,7 @@ export class EmptySubmenuAction extends Action {
 	}
 }
 
-export function toAction(props: { id: string; label: string; tooltip?: string; enabled?: boolean; checked?: boolean; class?: string; alt?: IAction; run: Function }): IAction {
+export function toAction(props: { id: string; label: string; tooltip?: string; enabled?: boolean; checked?: boolean; class?: string; run: Function }): IAction {
 	return {
 		id: props.id,
 		label: props.label,
@@ -310,7 +289,6 @@ export function toAction(props: { id: string; label: string; tooltip?: string; e
 		class: props.class,
 		enabled: props.enabled ?? true,
 		checked: props.checked,
-		...(props.alt ? { alt: props.alt } : {}),
 		run: async (...args: unknown[]) => props.run(...args),
 	};
 }

@@ -45,41 +45,78 @@ suite('StatementTree', function () {
 			});
 		});
 
-		const statementCases: [name: string, code: string][] = [
-			['recognizes simple expression statements', dedent`
+		test('recognizes simple expression statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️x = 1;◀️
 				▶️y = 2;◀️
-				`],
-			['ignores comments', dedent`
+				`
+			);
+		});
+
+		test('ignores comments', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️x = 1;◀️
 				// comment
 				▶️y = 2;◀️
-				`],
-			['recognizes export statements', `▶️export ▶️const x = 1;◀️◀️`],
-			['recognizes import statements', `▶️import assert from 'assert';◀️`],
-			['recognizes debugger statements', `▶️debugger;◀️`],
-			['recognizes var declarations', `▶️var x = 1;◀️`],
-			['recognizes lexical declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes export statements', async function () {
+			await testStatementBuilding('typescript', `▶️export ▶️const x = 1;◀️◀️`);
+		});
+
+		test('recognizes import statements', async function () {
+			await testStatementBuilding('typescript', `▶️import assert from 'assert';◀️`);
+		});
+
+		test('recognizes debugger statements', async function () {
+			await testStatementBuilding('typescript', `▶️debugger;◀️`);
+		});
+
+		test('recognizes var declarations', async function () {
+			await testStatementBuilding('typescript', `▶️var x = 1;◀️`);
+		});
+
+		test('recognizes lexical declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️const x = 1;◀️
 				▶️let y = 2;◀️
-				`],
-			['recognizes single-expression if statements as', dedent`
+				`
+			);
+		});
+
+		test('recognizes single-expression if statements as', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️if (x)
 					▶️y = 1;◀️◀️
-				`],
-			['recognizes single-expression if statements on a single line as single statements', `▶️if (x) y = 1;◀️`],
-			['recognizes single-expression if / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes single-expression if statements on a single line as single statements', async function () {
+			await testStatementBuilding('typescript', `▶️if (x) y = 1;◀️`);
+		});
+
+		test('recognizes single-expression if / else statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️if (x)
 					▶️y = 1;◀️
 				else
 					▶️y = 2;◀️◀️
-				`],
-		];
-		for (const [name, code] of statementCases) {
-			test(name, async function () {
-				await testStatementBuilding('typescript', code);
-			});
-		}
+				`
+			);
+		});
 
 		test('recognizes single-expression if / else statements on a single line as single statements', async function () {
 			await testStatementBuilding('typescript', `▶️if (x) y = 1; else y = 2;◀️`);
@@ -87,54 +124,104 @@ suite('StatementTree', function () {
 			await testStatementBuilding('javascript', `▶️if (x) y = 1; else y = 2;◀️`);
 		});
 
-		const moreStatementCases: [name: string, code: string][] = [
-			['recognizes if statements with blocks', dedent`
+		test('recognizes if statements with blocks', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️if (x) ▶️{
 					▶️y = 1;◀️
 				}◀️◀️
-				`],
-			['recognizes if / else statements with blocks', dedent`
+				`
+			);
+		});
+
+		test('recognizes if / else statements with blocks', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️if (x) ▶️{
 					▶️y = 1;◀️
 				}◀️ else ▶️{
 					▶️y = 2;◀️
 				}◀️◀️
-				`],
-			['recognizes switch statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes switch statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️switch (x) {
 					case 1:
 						▶️y = true;◀️
 					default:
 						▶️y = false;◀️
 				}◀️
-				`],
+				`
+			);
+		});
+
+		test('recognizes for statements', async function () {
 			// The termination expression is not it's own statement anymore.
-			['recognizes for statements', dedent`
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️for (let i = 0; i < 10; i++) ▶️{
 					▶️str += ' ';◀️
 				}◀️◀️
-				`],
-			['recognizes for...in statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes for...in statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️for (const prop in object) ▶️{
 					▶️console.log(prop, object[prop]);◀️
 				}◀️◀️
-				`],
-			['recognizes for...of statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes for...of statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️for (const item of [1, 2, 3]) ▶️{
 					▶️console.log(item);◀️
 				}◀️◀️
-				`],
-			['recognizes while statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes while statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️while (true) ▶️{
 					▶️break;◀️
 				}◀️◀️
-				`],
-			['recognizes do statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes do statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️do ▶️{
 					▶️break;◀️
 				}◀️ while (true);◀️
-				`],
-			['recognizes try / catch / finally statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes try / catch / finally statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️try ▶️{
 					▶️throw new Error('oops!');◀️
 				}◀️ catch (e) ▶️{
@@ -142,55 +229,115 @@ suite('StatementTree', function () {
 				}◀️ finally ▶️{
 					▶️console.log('done!');◀️
 				}◀️◀️
-				`],
-			['recognizes with statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes with statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️with ({x: 1}) ▶️{
 					▶️console.log(x);◀️ // 1
 				}◀️◀️
-				`],
-			['recognizes continue statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes continue statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️while (false) ▶️{
 					▶️continue;◀️
 				}◀️◀️
-				`],
-			['recognizes return statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes return statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️function foo() ▶️{
 					▶️return;◀️
 				}◀️◀️
-				`],
-			['recognizes labeled statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes labeled statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️outer: ▶️for await (chunk of stream) ▶️{
 					▶️for (const char of chunk) ▶️{
 						▶️if (char === '\n')
 							▶️break outer;◀️◀️
 					}◀️◀️
 				}◀️◀️◀️
-				`],
-			['recognizes statements with ternary expressions as single statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes statements with ternary expressions as single statements', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️let i = featureFlag ? 0 : 1;◀️
-				`],
-			['recognizes function declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes function declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️function noop() ▶️{
 					// empty
 				}◀️◀️
-				`],
-			['recognizes generator function declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes generator function declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️function* values() ▶️{
 					▶️yield 1;◀️
 					▶️yield 2;◀️
 				}◀️◀️
-				`],
-			['recognizes class declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️class Empty {
 					// empty
 				}◀️
-				`],
-			['recognizes class field declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class field declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️class ConstantIdentifier {
 					▶️readonly id = 1◀️;
 				}◀️
-				`],
-			['recognizes class method declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class method declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️class Example {
 					▶️constructor() ▶️{
 						▶️this.value = Math.random();◀️
@@ -200,8 +347,14 @@ suite('StatementTree', function () {
 						▶️return this.value;◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes class getter and setter declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class getter and setter declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️class Example {
 					▶️set value(newValue) ▶️{
 						▶️this.value = newValue;◀️
@@ -211,44 +364,61 @@ suite('StatementTree', function () {
 						▶️return this.value;◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes type alias declarations', `▶️type OptionalIdentifier = number | undefined;◀️`],
-			['recognizes interface declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes type alias declarations', async function () {
+			await testStatementBuilding('typescript', `▶️type OptionalIdentifier = number | undefined;◀️`);
+		});
+
+		test('recognizes interface declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️interface Vector {
 					x: number;
 					y: number;
 				}◀️
-				`],
-			['recognizes enum declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes enum declarations', async function () {
+			await testStatementBuilding(
+				'typescript',
+				dedent`
 				▶️enum Direction {
 					North,
 					South,
 					East,
 					West
 				}◀️
-				`],
-		];
-		for (const [name, code] of moreStatementCases) {
-			test(name, async function () {
-				await testStatementBuilding('typescript', code);
-			});
-		}
+				`
+			);
+		});
 
-		const compoundTypeCases: [name: string, doc: string, expected: boolean][] = [
-			['node.isCompoundStatementType is true for splittable statements that may contain other statements', 'if (x) { y = 1; }', true],
-			['node.isCompoundStatementType is false for un-splittable statements', 'const y = 1;', false],
-		];
-		for (const [name, doc, expected] of compoundTypeCases) {
-			test(name, async function () {
-				using tree = StatementTree.create('typescript', doc, 0, doc.length);
+		test('node.isCompoundStatementType is true for splittable statements that may contain other statements', async function () {
+			const doc = 'if (x) { y = 1; }';
+			using tree = StatementTree.create('typescript', doc, 0, doc.length);
 
-				await tree.build();
-				const statement = tree.statementAt(1);
+			await tree.build();
+			const statement = tree.statementAt(1);
 
-				assert.ok(statement);
-				assert.strictEqual(statement.isCompoundStatementType, expected);
-			});
-		}
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is false for un-splittable statements', async function () {
+			const doc = 'const y = 1;';
+			using tree = StatementTree.create('typescript', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, false);
+		});
 	});
 
 	// MARK: Python
@@ -258,133 +428,309 @@ suite('StatementTree', function () {
 			assert.strictEqual(StatementTree.isSupported('python'), true);
 		});
 
-		const statementCases: [name: string, code: string][] = [
-			['recognizes simple expression statements', dedent`
+		test('recognizes simple expression statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️x = 1◀️
 				▶️y = 2◀️
-				`],
-			['ignores comments', dedent`
+				`
+			);
+		});
+
+		test('ignores comments', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️x = 1◀️
 				# comment
 				▶️y = 2◀️
-				`],
-			['recognizes import statements', `▶️import assert◀️`],
-			['recognizes from import statements', `▶️from assert import strict◀️`],
-			['recognizes from future import statements', `▶️from __future__ import annotations◀️`],
-			['recognizes print statements', `▶️print a◀️`],
-			['recognizes assert statements', `▶️assert x◀️`],
-			['recognizes return statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes import statements', async function () {
+			await testStatementBuilding('python', `▶️import assert◀️`);
+		});
+
+		test('recognizes from import statements', async function () {
+			await testStatementBuilding('python', `▶️from assert import strict◀️`);
+		});
+
+		test('recognizes from future import statements', async function () {
+			await testStatementBuilding('python', `▶️from __future__ import annotations◀️`);
+		});
+
+		test('recognizes print statements', async function () {
+			await testStatementBuilding('python', `▶️print a◀️`);
+		});
+
+		test('recognizes assert statements', async function () {
+			await testStatementBuilding('python', `▶️assert x◀️`);
+		});
+
+		test('recognizes return statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️def example():
 					▶️▶️return 1◀️◀️◀️
-				`],
-			['recognizes delete statements', `▶️del x◀️`],
-			['recognizes raise statements', `▶️raise ValueError◀️`],
-			['recognizes pass statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes delete statements', async function () {
+			await testStatementBuilding('python', `▶️del x◀️`);
+		});
+
+		test('recognizes raise statements', async function () {
+			await testStatementBuilding('python', `▶️raise ValueError◀️`);
+		});
+
+		test('recognizes pass statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️def example():
-					▶️▶️pass◀️◀️◀️`],
-			['recognizes break statements', dedent`
+					▶️▶️pass◀️◀️◀️`
+			);
+		});
+
+		test('recognizes break statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️while True:
 					▶️▶️break◀️◀️◀️
-				`],
-			['recognizes continue statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes continue statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️while True:
 					▶️▶️continue◀️◀️◀️
-				`],
-			['recognizes global statements', `▶️global x◀️`],
-			['recognizes nonlocal statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes global statements', async function () {
+			await testStatementBuilding('python', `▶️global x◀️`);
+		});
+
+		test('recognizes nonlocal statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️def example():
-					▶️▶️nonlocal x◀️◀️◀️`],
-			['recognizes exec statements', `▶️exec 'x+=1' in None◀️`],
-			['recognizes statements with list comprehensions as single statements', `▶️some_powers_of_two = [2**n for in range(1,6) if n != 5]◀️`],
-			['recognizes statements with lamba expressions as single statements', `▶️fn = lambda x: x+1◀️`],
-			['recognizes if statements', dedent`
+					▶️▶️nonlocal x◀️◀️◀️`
+			);
+		});
+
+		test('recognizes exec statements', async function () {
+			await testStatementBuilding('python', `▶️exec 'x+=1' in None◀️`);
+		});
+
+		test('recognizes statements with list comprehensions as single statements', async function () {
+			await testStatementBuilding('python', `▶️some_powers_of_two = [2**n for in range(1,6) if n != 5]◀️`);
+		});
+
+		test('recognizes statements with lamba expressions as single statements', async function () {
+			await testStatementBuilding('python', `▶️fn = lambda x: x+1◀️`);
+		});
+
+		test('recognizes if statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️if x:
 					▶️▶️y = 1◀️◀️◀️
-				`],
-			['recognizes if statements on a single line as single statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if statements on a single line as single statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️if x: y = 1◀️
-				`],
-			['recognizes if / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if / else statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️if x:
 					▶️▶️y = 1◀️◀️
 				else:
 					▶️▶️y = 2◀️◀️◀️
-				`],
-			['recognizes compact if / else statements as compound statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes compact if / else statements as compound statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️if x: ▶️▶️y = 1◀️◀️
 				else: ▶️▶️y = 2◀️◀️◀️
-				`],
-			['recognizes if / elif / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if / elif / else statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️if x:
 					▶️▶️y = 1◀️◀️
 				elif y:
 					▶️▶️y = 2◀️◀️
 				else:
 					▶️▶️y = 3◀️◀️◀️
-				`],
-			['recognizes statements with conditional expressions as single statements', `▶️result = x if y else z◀️`],
-			['recognizes for statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes statements with conditional expressions as single statements', async function () {
+			await testStatementBuilding('python', `▶️result = x if y else z◀️`);
+		});
+
+		test('recognizes for statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️for i in range(10):
 					▶️▶️y = 1◀️◀️◀️
-				`],
-			['recognizes for / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes for / else statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️for line in lines:
 					▶️▶️print line◀️◀️
 				else:
 					▶️▶️print x◀️◀️◀️
-				`],
-			['recognizes while statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes while statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️while x:
 					▶️▶️print y◀️◀️◀️
-				`],
-			['recognizes while / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes while / else statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️while x:
 					▶️▶️print y◀️◀️
 				else:
 					▶️▶️print z◀️◀️◀️
-				`],
-			['recognizes try / except / finally statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes try / except / finally statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️try:
 					▶️▶️x = 1◀️◀️
 				except:
 					▶️▶️x = 2◀️◀️
 				finally:
 					▶️▶️x = 3◀️◀️◀️
-				`],
-			['recognizes with statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes with statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️with open('file.txt') as f:
 					▶️▶️x = f.read()◀️◀️◀️
-				`],
-			['recognizes function definitions', dedent`
+				`
+			);
+		});
+
+		test('recognizes function definitions', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️def add(x, y):
 					▶️▶️return x + y◀️◀️◀️
-				`],
+				`
+			);
+		});
+
+		test('recognizes docstrings as expressions', async function () {
 			// this is slightly odd that the grammar gives these an expression type,
 			// but it is ok for the purposes of completion trimming and block
 			// position determination
-			['recognizes docstrings as expressions', dedent`
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️def example():
 					▶️▶️"""
 					This is a docstring.
 					"""◀️
 					▶️pass◀️◀️◀️
-				`],
-			['recognizes class definitions', dedent`
+				`
+			);
+		});
+
+		test('recognizes class definitions', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️class Example:
 						▶️▶️pass◀️◀️◀️
-				`],
-			['recognizes class method definitions', dedent`
+				`
+			);
+		});
+
+		test('recognizes class method definitions', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️class Example:
 					▶️▶️def method(self):
 						▶️▶️pass◀️◀️◀️◀️◀️
-				`],
-			['recognizes decorated definitions', dedent`
+				`
+			);
+		});
+
+		test('recognizes decorated definitions', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️@decorator1
 				@decorator2
 				▶️def example():
 					▶️▶️pass◀️◀️◀️◀️
-				`],
-			['recognizes match statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes match statements', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️match x:▶️
 					case 1:
 						▶️▶️y = 1◀️◀️
@@ -392,45 +738,139 @@ suite('StatementTree', function () {
 						▶️▶️y = 2◀️◀️
 					case _:
 						▶️▶️y = 3◀️◀️◀️◀️
-				`],
-			['permits type annotations on variable assignments', `▶️x: list[int] = []◀️`],
-			['permits type annotations on functions', dedent`
+				`
+			);
+		});
+
+		test('permits type annotations on variable assignments', async function () {
+			await testStatementBuilding('python', `▶️x: list[int] = []◀️`);
+		});
+
+		test('permits type annotations on functions', async function () {
+			await testStatementBuilding(
+				'python',
+				dedent`
 				▶️def example(x: int) -> int:
 					▶️▶️return x + 1◀️◀️◀️
-				`],
+				`
+			);
+		});
+
+		test('permits type aliases but omits the type keyword from the statement', async function () {
 			// this is to document the behavior of the current grammar
 			// type alias is not supported in 0.23 Python grammar. Results in no statement.
-			['permits type aliases but omits the type keyword from the statement', `type Vector = list[float]`],
-		];
-		for (const [name, code] of statementCases) {
-			test(name, async function () {
-				await testStatementBuilding('python', code);
-			});
-		}
+			await testStatementBuilding('python', `type Vector = list[float]`);
+		});
 
-		const compoundTypeCases: [name: string, doc: string, expected: boolean][] = [
-			['node.isCompoundStatementType is false for un-splittable statements', 'y = 1', false],
-			['node.isCompoundStatementType is true for if statements', 'if x:\n\tpass', true],
-			['node.isCompoundStatementType is true for for statements', 'for i in range(10):\n\tpass', true],
-			['node.isCompoundStatementType is true for while statements', 'while x:\n\tpass', true],
-			['node.isCompoundStatementType is true for try statements', 'try:\n\tpass\nexcept:\n\tpass', true],
-			['node.isCompoundStatementType is true for with statements', 'with open("file.txt") as f:\n\tpass', true],
-			['node.isCompoundStatementType is true for function definition statements', 'def example():\n\tpass', true],
-			['node.isCompoundStatementType is true for class definition statements', 'class Example:\n\tpass', true],
-			['node.isCompoundStatementType is true for decorated definition statements', '@decorator\ndef example():\n\tpass', true],
-			['node.isCompoundStatementType is true for match statements', 'match x:\n\tcase 1:\n\t\tpass', true],
-		];
-		for (const [name, doc, expected] of compoundTypeCases) {
-			test(name, async function () {
-				using tree = StatementTree.create('python', doc, 0, doc.length);
+		test('node.isCompoundStatementType is false for un-splittable statements', async function () {
+			const doc = 'y = 1';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
 
-				await tree.build();
-				const statement = tree.statementAt(1);
+			await tree.build();
+			const statement = tree.statementAt(1);
 
-				assert.ok(statement);
-				assert.strictEqual(statement.isCompoundStatementType, expected);
-			});
-		}
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, false);
+		});
+
+		test('node.isCompoundStatementType is true for if statements', async function () {
+			const doc = 'if x:\n\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is true for for statements', async function () {
+			const doc = 'for i in range(10):\n\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is true for while statements', async function () {
+			const doc = 'while x:\n\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is true for try statements', async function () {
+			const doc = 'try:\n\tpass\nexcept:\n\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is true for with statements', async function () {
+			const doc = 'with open("file.txt") as f:\n\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is true for function definition statements', async function () {
+			const doc = 'def example():\n\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is true for class definition statements', async function () {
+			const doc = 'class Example:\n\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is true for decorated definition statements', async function () {
+			const doc = '@decorator\ndef example():\n\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is true for match statements', async function () {
+			const doc = 'match x:\n\tcase 1:\n\t\tpass';
+			using tree = StatementTree.create('python', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(1);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
 	});
 
 	// MARK: Go
@@ -440,98 +880,187 @@ suite('StatementTree', function () {
 			assert.strictEqual(StatementTree.isSupported('go'), true);
 		});
 
-		const statementCases: [name: string, code: string][] = [
-			['recognizes package clauses', `▶️package main◀️`],
-			['recognizes function declarations', dedent`
+		test('recognizes package clauses', async function () {
+			await testStatementBuilding('go', `▶️package main◀️`);
+		});
+
+		test('recognizes function declarations', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func example() ▶️{}◀️◀️
-				`],
-			['recognizes method declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes method declarations', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func (self Document) GetLine(n int) ▶️{}◀️◀️
-				`],
-			['recognizes import declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes import declarations', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️import "fmt"◀️
-				`],
-			['recognizes grouped import declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes grouped import declarations', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️import (
 					"fmt"
 					"os
 				)◀️
-				`],
-			['ignores comments', dedent`
+				`
+			);
+		});
+
+		test('ignores comments', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
 					// comment
 				}◀️◀️
-				`],
-			['ignores block comments', dedent`
+				`
+			);
+		});
+
+		test('ignores block comments', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				/*
 				 * Comment
 				 */
 				▶️func main() ▶️{}◀️◀️
-				`],
-			['recognizes single constant declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes single constant declarations', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️const zero = 0◀️
-				`],
-			['recognizes grouped constant declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes grouped constant declarations', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️const (
 					zero = 0
 					one = 1
 				)◀️
-				`],
-			['recognizes var declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes var declarations', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️var counter = 0◀️
-				`],
-			['recognizes type declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes type declarations', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️type a b◀️
-				`],
-			['recognizes simple expression statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes simple expression statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
 					▶️x := 1◀️
 				}◀️◀️
-				`],
-			['recognizes return statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes return statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
 					▶️return◀️
 				}◀️◀️
-				`],
-			['recognizes go statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes go statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
 					▶️go f()◀️
 				}◀️◀️
-				`],
-			['recognizes defer statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes defer statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
 					▶️defer f()◀️
 				}◀️◀️
-				`],
-			['recognizes if statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -539,8 +1068,14 @@ suite('StatementTree', function () {
 						▶️b◀️
 					}◀️◀️
 				}◀️◀️
-				`],
-			['recognizes if statements with an initializer', dedent`
+				`
+			);
+		});
+
+		test('recognizes if statements with an initializer', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -548,8 +1083,14 @@ suite('StatementTree', function () {
 						▶️b *= -1◀️
 					}◀️◀️
 				}◀️◀️
-				`],
-			['recognizes if / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if / else statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -559,8 +1100,14 @@ suite('StatementTree', function () {
 						▶️c()◀️
 					}◀️◀️
 				}◀️◀️
-				`],
-			['recognizes simple for statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes simple for statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -568,8 +1115,14 @@ suite('StatementTree', function () {
 						▶️a()◀️
 					}◀️◀️
 				}◀️◀️
-				`],
-			['recognizes for statements with conditions', dedent`
+				`
+			);
+		});
+
+		test('recognizes for statements with conditions', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 				▶️import "fmt"◀️
 
@@ -578,8 +1131,14 @@ suite('StatementTree', function () {
 						▶️fmt.Println(i)◀️
 					}◀️◀️
 				}◀️◀️
-				`],
-			['recognizes expression switch statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes expression switch statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 				▶️import "fmt"◀️
 
@@ -593,8 +1152,14 @@ suite('StatementTree', function () {
 							▶️d◀️
 					}◀️
 				}◀️◀️
-				`],
-			['recognizes type switch statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes type switch statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func debug(i interface{}) ▶️{
@@ -607,8 +1172,14 @@ suite('StatementTree', function () {
 							▶️fmt.Printf("%T is unknown", v)◀️
 					}◀️
 				}◀️◀️
-				`],
-			['recognizes select statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes select statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func demux(a chan string, b chan string) ▶️{
@@ -619,8 +1190,14 @@ suite('StatementTree', function () {
 							▶️dispatch(msg)◀️
 					}◀️
 				}◀️◀️
-				`],
-			['recognizes labeled statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes labeled statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -628,8 +1205,14 @@ suite('StatementTree', function () {
 					▶️a()◀️◀️
 					▶️b()◀️
 				}◀️◀️
-				`],
-			['recognizes fallthrough statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes fallthrough statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -640,8 +1223,14 @@ suite('StatementTree', function () {
 							▶️f(i)◀️
 					}◀️
 				}◀️◀️
-				`],
-			['recognizes break statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes break statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -652,8 +1241,14 @@ suite('StatementTree', function () {
 							▶️f(i)◀️
 					}◀️
 				}◀️◀️
-				`],
-			['recognizes continue statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes continue statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -664,8 +1259,14 @@ suite('StatementTree', function () {
 						▶️f(i)◀️
 					}◀️◀️
 				}◀️◀️
-				`],
-			['recognizes goto statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes goto statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -673,8 +1274,14 @@ suite('StatementTree', function () {
 				▶️end:
 					▶️return◀️◀️
 				}◀️◀️
-				`],
-			['recognizes nested blocks', dedent`
+				`
+			);
+		});
+
+		test('recognizes nested blocks', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func main() ▶️{
@@ -682,20 +1289,22 @@ suite('StatementTree', function () {
 						▶️a()◀️
 					}◀️
 				}◀️◀️
-				`],
-			['recognizes empty statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes empty statements', async function () {
+			await testStatementBuilding(
+				'go',
+				dedent`
 				▶️package main◀️
 
 				▶️func noop() ▶️{
 					▶️;◀️
 				}◀️◀️
-				`],
-		];
-		for (const [name, code] of statementCases) {
-			test(name, async function () {
-				await testStatementBuilding('go', code);
-			});
-		}
+				`
+			);
+		});
 
 		test('node.isCompoundStatementType is false for un-splittable statements', async function () {
 			await assertStatementIsNotCompoundType(dedent`
@@ -707,18 +1316,24 @@ suite('StatementTree', function () {
 			`);
 		});
 
-		const compoundCases: [name: string, code: string][] = [
-			['node.isCompoundStatementType is true for function declarations', dedent`
+		test('node.isCompoundStatementType is true for function declarations', async function () {
+			await assertStatementIsCompoundType(dedent`
 				package main
 
 				❚func main() {}
-			`],
-			['node.isCompoundStatementType is true for method declarations', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for method declarations', async function () {
+			await assertStatementIsCompoundType(dedent`
 				package main
 
 				❚func (self Document) GetLine (n int) {}
-			`],
-			['node.isCompoundStatementType is true for if statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for if statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				package main
 
 				func main() {
@@ -726,8 +1341,11 @@ suite('StatementTree', function () {
 						b
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for for statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for for statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				package main
 
 				func main() {
@@ -735,8 +1353,11 @@ suite('StatementTree', function () {
 						a()
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for expression switch statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for expression switch statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				package main
 
 				func main() {
@@ -747,8 +1368,11 @@ suite('StatementTree', function () {
 							c
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for type switch statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for type switch statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				package main
 
 				func f(i interface{}) {
@@ -759,8 +1383,11 @@ suite('StatementTree', function () {
 							c
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for select statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for select statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				package main
 
 				func demux(a chan string, b chan string) {
@@ -771,13 +1398,8 @@ suite('StatementTree', function () {
 							dispatch(msg)
 					}
 				}
-			`],
-		];
-		for (const [name, code] of compoundCases) {
-			test(name, async function () {
-				await assertStatementIsCompoundType(code);
-			});
-		}
+			`);
+		});
 
 		async function testStatementIsCompoundType(text: string, expectedResult: boolean) {
 			const posIndicator = '❚';
@@ -807,21 +1429,35 @@ suite('StatementTree', function () {
 			assert.strictEqual(StatementTree.isSupported('php'), true);
 		});
 
-		const statementCases: [name: string, code: string][] = [
-			['recognizes simple expressions', dedent`
+		test('recognizes simple expressions', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️echo "hello";◀️
 				▶️$b = $a = 5;◀️
 				?>
-				`],
-			['recognizes named if statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes named if statements', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️if (1 == 2) ▶️{
 					▶️echo "hello";◀️
 				}◀️◀️
 				?>
-				`],
-			['recognizes if statements with else', dedent`
+				`
+			);
+		});
+
+		test('recognizes if statements with else', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️if (1 == 2) ▶️{
 					▶️echo "hello";◀️
@@ -829,8 +1465,14 @@ suite('StatementTree', function () {
 					▶️echo "world";◀️
 				}◀️◀️
 				?>
-				`],
-			['recognizes if statements with else if', dedent`
+				`
+			);
+		});
+
+		test('recognizes if statements with else if', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️if (1 == 2) ▶️{
 					▶️echo "hello";◀️
@@ -840,8 +1482,14 @@ suite('StatementTree', function () {
 					▶️echo "foo";◀️
 				}◀️◀️
 				?>
-				`],
-			['recognizes switch statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes switch statements', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️switch ($a) {
 					case 1:
@@ -854,36 +1502,66 @@ suite('StatementTree', function () {
 						▶️echo "foo";◀️
 				}◀️
 				?>
-				`],
-			['recognizes while statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes while statements', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️while (true) ▶️{
 					▶️break;◀️
 				}◀️◀️
 				?>
-				`],
-			['recognizes do statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes do statements', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️do ▶️{
 					▶️break;◀️
 				}◀️ while (true);◀️
 				?>
-				`],
-			['recognizes for statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes for statements', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️for ($i = 0; $i < 10; $i++) ▶️{
 					▶️$str += ' ';◀️
 				}◀️◀️
 				?>
-				`],
-			['recognizes foreach statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes foreach statements', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️foreach ($arr as $key => $value) ▶️{
 					▶️echo $key;◀️
 				}◀️◀️
 				?>
-				`],
-			['recognizes try statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes try statements', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️try ▶️{
 					▶️throw new Exception();◀️
@@ -893,22 +1571,40 @@ suite('StatementTree', function () {
 					▶️echo "done";◀️
 				}◀️◀️
 				?>
-				`],
-			['recognizes function declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes function declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️function example($arg_1) ▶️{
 					▶️echo "hello";◀️
 					▶️return $retval;◀️
 				}◀️◀️
 				?>
-				`],
-			['recognizes class declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️class Example {
 				}◀️
 				?>
-				`],
-			['recognizes class method declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class method declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️class Example {
 					▶️public function example($arg_1) ▶️{
@@ -917,37 +1613,67 @@ suite('StatementTree', function () {
 					}◀️◀️
 				}◀️
 				?>
-				`],
-			['recognizes class field declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class field declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️class Example {
 					▶️public $field_1;◀️
 					▶️private $field_2;◀️
 				}◀️
 				?>
-				`],
-			['recognizes class constant declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class constant declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️class Example {
 					▶️const EXAMPLE = 1;◀️
 				}◀️
 				?>
-				`],
-			['recognizes class interface and trait uses', dedent`
+				`
+			);
+		});
+
+		test('recognizes class interface and trait uses', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️class Example extends BaseClass implements Interface1, Interface2 {
 					▶️use Trait1, Trait2;◀️
 				}◀️
 				?>
-				`],
-			['recognizes interface declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes interface declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️interface Example {
 					▶️public function example($arg_1);◀️
 				}◀️
 				?>
-				`],
-			['recognizes trait declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes trait declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️trait Example {
 					▶️public function example($arg_1) ▶️{
@@ -955,46 +1681,60 @@ suite('StatementTree', function () {
 					}◀️◀️
 				}◀️
 				?>
-				`],
-			['recognizes namespace declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes namespace declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️namespace Example;◀️
 				?>
-				`],
-			['recognizes namespace use declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes namespace use declarations', async function () {
+			await testStatementBuilding(
+				'php',
+				dedent`
 				<?php
 				▶️use Example\\ExampleClass;◀️
 				?>
-				`],
-		];
-		for (const [name, code] of statementCases) {
-			test(name, async function () {
-				await testStatementBuilding('php', code);
-			});
-		}
+				`
+			);
+		});
 
-		const compoundTypeCases: [name: string, doc: string, expected: boolean][] = [
-			['node.isCompoundStatementType is true for splittable statements that may contain other statements', dedent`<?php
+		test('node.isCompoundStatementType is true for splittable statements that may contain other statements', async function () {
+			const doc = dedent`<?php
 			if (true)
 			{
 				$foo = 1;
 			}
-			?>`, true],
-			['node.isCompoundStatementType is false for un-splittable statements', dedent`<?php
+			?>`;
+			using tree = StatementTree.create('php', doc, 0, doc.length);
+
+			await tree.build();
+			const statement = tree.statementAt(6);
+
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, true);
+		});
+
+		test('node.isCompoundStatementType is false for un-splittable statements', async function () {
+			const doc = dedent`<?php
 			$foo = 1;
-			?>`, false],
-		];
-		for (const [name, doc, expected] of compoundTypeCases) {
-			test(name, async function () {
-				using tree = StatementTree.create('php', doc, 0, doc.length);
+			?>`;
+			using tree = StatementTree.create('php', doc, 0, doc.length);
 
-				await tree.build();
-				const statement = tree.statementAt(6);
+			await tree.build();
+			const statement = tree.statementAt(6);
 
-				assert.ok(statement);
-				assert.strictEqual(statement.isCompoundStatementType, expected);
-			});
-		}
+			assert.ok(statement);
+			assert.strictEqual(statement.isCompoundStatementType, false);
+		});
 	});
 
 	// MARK: Ruby
@@ -1003,29 +1743,55 @@ suite('StatementTree', function () {
 			assert.strictEqual(StatementTree.isSupported('ruby'), true);
 		});
 
-		const statementCases: [name: string, code: string][] = [
-			['recognizes simple expression statements', dedent`
+		test('recognizes simple expression statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️x = 1◀️
 				▶️y = 2◀️
-				`],
-			['ignores comments', dedent`
+				`
+			);
+		});
+
+		test('ignores comments', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️x = 1◀️
 				# comment
 				▶️y = 2◀️
-				`],
-			['recognizes if statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️if ▶️x◀️
 					▶️y = 1◀️
 				end◀️
-				`],
-			['recognizes if / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if / else statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️if ▶️x◀️
 					▶️y = 1◀️
 				else
 					▶️y = 2◀️
 				end◀️
-				`],
-			['recognizes if / elsif / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if / elsif / else statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️if ▶️x◀️
 					▶️y = 1◀️
 				elsif ▶️y◀️
@@ -1033,20 +1799,38 @@ suite('StatementTree', function () {
 				else
 					▶️y = 3◀️
 				end◀️
-				`],
-			['recognizes unless statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes unless statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️unless ▶️x◀️
 					▶️y = 1◀️
 				end◀️
-				`],
-			['recognizes unless / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes unless / else statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️unless ▶️x◀️
 					▶️y = 1◀️
 				else
 					▶️y = 2◀️
 				end◀️
-				`],
-			['recognizes unless / elsif / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes unless / elsif / else statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️unless ▶️x◀️
 					▶️y = 1◀️
 				elsif ▶️y◀️
@@ -1054,17 +1838,41 @@ suite('StatementTree', function () {
 				else
 					▶️y = 3◀️
 				end◀️
-				`],
-			['recognizes if modifier statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if modifier statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️▶️x = 1◀️ if y◀️
-				`],
-			['recognizes unless modifier statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes unless modifier statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️▶️x = 1◀️ unless y◀️
-				`],
-			['recognizes range statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes range statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️x = 1..10◀️
-				`],
-			['recognizes case statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes case statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️case ▶️x◀️
 					▶️when 1
 						▶️y = 1◀️◀️
@@ -1073,27 +1881,57 @@ suite('StatementTree', function () {
 					else
 						▶️y = 3◀️
 				end◀️
-				`],
-			['recognizes for statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes for statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️for i in 1..10 do
 					▶️y = 1◀️
 				end◀️
-				`],
-			['recognizes while statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes while statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️while ▶️x◀️
 					▶️y = 1◀️
 				end◀️
-				`],
-			['recognizes until statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes until statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️until ▶️x◀️
 					▶️y = 1◀️
 				end◀️
-				`],
-			['recognizes loop modifier statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes loop modifier statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️▶️sleep◀️ while idle◀️
 				▶️▶️sleep◀️ until idle◀️
-				`],
-			['recognizes begin / rescue / else / ensure statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes begin / rescue / else / ensure statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️begin
 					▶️x = 1◀️
 				rescue
@@ -1103,57 +1941,101 @@ suite('StatementTree', function () {
 				ensure
 					▶️x = 4◀️
 				end◀️
-				`],
-			['recognizes begin statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes begin statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️BEGIN {
 					▶️x = 1◀️
 				}◀️
-				`],
-			['recognizes end statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes end statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️END {
 					▶️x = 1◀️
 				}◀️
-				`],
-			['recognizes class definitions', dedent`
+				`
+			);
+		});
+
+		test('recognizes class definitions', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️class Example < Base
 					▶️x = 1◀️
 				end◀️
-				`],
-			['recognizes class definitions with methods', dedent`
+				`
+			);
+		});
+
+		test('recognizes class definitions with methods', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️class Example < Base
 					▶️def method
 						▶️x = 1◀️
 					end◀️
 				end◀️
-				`],
-			['recognizes module definitions', dedent`
+				`
+			);
+		});
+
+		test('recognizes module definitions', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️module Example
 					▶️x = 1◀️
 				end◀️
-				`],
-			['recognizes module definitions with methods', dedent`
+				`
+			);
+		});
+
+		test('recognizes module definitions with methods', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️module Example
 					▶️def method
 						▶️x = 1◀️
 					end◀️
 				end◀️
-				`],
-			['recognizes def statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes def statements', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️def example
 					▶️x = 1◀️
 				end◀️
-				`],
-			['recognizes method invocation with a block argument,', dedent`
+				`
+			);
+		});
+
+		test('recognizes method invocation with a block argument,', async function () {
+			await testStatementBuilding(
+				'ruby',
+				dedent`
 				▶️someArray.select do |item|
 					▶️item %2 == 0◀️
 				end◀️
-				`],
-		];
-		for (const [name, code] of statementCases) {
-			test(name, async function () {
-				await testStatementBuilding('ruby', code);
-			});
-		}
+				`
+			);
+		});
 
 		test('node.isCompoundStatementType is true for splittable statements that may contain other statements', async function () {
 			const doc = dedent`
@@ -1252,23 +2134,37 @@ suite('StatementTree', function () {
 			assert.strictEqual(StatementTree.isSupported('java'), true);
 		});
 
-		const statementCases: [name: string, code: string][] = [
-			['recognizes blocks', dedent`
+		test('recognizes blocks', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class BlockSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️{}◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes assert statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes assert statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class AssertSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int x = 10;◀️
 						▶️assert x > 0 : "x should be positive";◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes break statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes break statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class BreakSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️for (int i = 0; i < 10; i++) ▶️{
@@ -1278,8 +2174,14 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes continue statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes continue statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class ContinueSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️for (int i = 0; i < 10; i++) ▶️{
@@ -1289,8 +2191,14 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes do statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes do statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class DoWhileSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int i = 0;◀️
@@ -1302,8 +2210,14 @@ suite('StatementTree', function () {
 						}◀️ while (i < 10);◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes for-each (enhanced_for) statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes for-each (enhanced_for) statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class ForEachSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int[] numbers = {1, 2, 3, 4, 5};◀️
@@ -1314,15 +2228,27 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes simple expression statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes simple expression statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class SimpleExpressionSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int x = 1;◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes for statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes for statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class ForSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️for (int i = 0; i < 10; i++) ▶️{
@@ -1330,8 +2256,14 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes if statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class IfSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int number = 1;◀️
@@ -1340,8 +2272,14 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes labeled statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes labeled statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class LabelSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️myLabel: ▶️{
@@ -1349,15 +2287,27 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes local variable declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes local variable declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class LocalVariableSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int x = 1;◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes return statement', dedent`
+				`
+			);
+		});
+
+		test('recognizes return statement', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class ReturnSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int number = ReturnSample.add(5, 10);◀️
@@ -1366,8 +2316,14 @@ suite('StatementTree', function () {
 						▶️return a + b;◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes switch statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes switch statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class SwitchSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int test = 1;◀️
@@ -1384,8 +2340,14 @@ suite('StatementTree', function () {
 						}◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes synchronized statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes synchronized statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class SynchronizedSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int counter = 0;◀️
@@ -1394,15 +2356,27 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes throw statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes throw statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class ThrowSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️throw new RuntimeException("This is a runtime exception");◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes try statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes try statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class TrySample {
 					▶️public static void main(String[] args) ▶️{
 						▶️try ▶️{
@@ -1412,8 +2386,14 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes try with resources statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes try with resources statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class TrySample {
 					▶️public static void main(String[] args) ▶️{
 						▶️try (BufferedReader br = new BufferedReader()) ▶️{
@@ -1423,8 +2403,14 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes enum declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes enum declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class EnumSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️public enum Day {
@@ -1432,15 +2418,27 @@ suite('StatementTree', function () {
 						}◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes import declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes import declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️import java.util.List;◀️
 				▶️public class ImportSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes interface declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes interface declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public interface Animal {
 					▶️void makeSound();◀️
 				}◀️
@@ -1448,8 +2446,14 @@ suite('StatementTree', function () {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes method declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes method declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class MethodSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
@@ -1458,23 +2462,41 @@ suite('StatementTree', function () {
 						▶️System.out.println("Sum: " + sum);◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes field declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes field declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class InterfaceSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
 					▶️public static int x = 0;◀️
 				}◀️
-				`],
-			['recognizes compact constructor declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes compact constructor declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public record Person(String firstName, String lastName) {
 					▶️public Person ▶️{
 						▶️firstName = firstName;◀️
 						▶️lastName = lastName;◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes class declaration inside a class body', dedent`
+				`
+			);
+		});
+
+		test('recognizes class declaration inside a class body', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class OuterSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
@@ -1484,8 +2506,14 @@ suite('StatementTree', function () {
 						}◀️◀️
 					}◀️
 				}◀️
-				`],
-			['recognizes interface declaration inside a class body', dedent`
+				`
+			);
+		});
+
+		test('recognizes interface declaration inside a class body', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class OuterSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
@@ -1493,16 +2521,28 @@ suite('StatementTree', function () {
 						▶️void innerMethod();◀️
 					}◀️
 				}◀️
-				`],
-			['recognizes annotation type declaration inside a class body', dedent`
+				`
+			);
+		});
+
+		test('recognizes annotation type declaration inside a class body', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class AnnotateSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
 					▶️public @interface MyAnnotation {
 					}◀️
 				}◀️
-				`],
-			['recognizes enum declarations inside a class body', dedent`
+				`
+			);
+		});
+
+		test('recognizes enum declarations inside a class body', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class EnumClassSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
@@ -1510,8 +2550,14 @@ suite('StatementTree', function () {
 						MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY
 					}◀️
 				}◀️
-				`],
-			['recognizes static initializer inside a class body', dedent`
+				`
+			);
+		});
+
+		test('recognizes static initializer inside a class body', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class StaticInitClassSample {
 					▶️static int count;◀️
 					▶️static ▶️{
@@ -1520,8 +2566,14 @@ suite('StatementTree', function () {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes constructor declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes constructor declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class ConstructorSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
@@ -1531,23 +2583,41 @@ suite('StatementTree', function () {
 						▶️int x = 0;◀️
 					}◀️
 				}◀️
-				`],
-			['recognizes record declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes record declarations', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public record Point(int x, int y) {}◀️
 				▶️public class RecordSample {
 					▶️public static void main(String[] args) ▶️{
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes ternary statements as one line', dedent`
+				`
+			);
+		});
+
+		test('recognizes ternary statements as one line', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class RecordSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int x = 5;◀️
 						▶️int y = (x == 5) ? 0 : 1;◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes single line if statements as one statement', dedent`
+				`
+			);
+		});
+
+		test('recognizes single line if statements as one statement', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class SingleLineIfSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int x = 5;◀️
@@ -1555,8 +2625,14 @@ suite('StatementTree', function () {
 						▶️if (x == 5) y = 0;◀️
 					}◀️◀️
 				}◀️
-				`],
-			['recognizes single line if else statements with blocks as multiple statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes single line if else statements with blocks as multiple statements', async function () {
+			await testStatementBuilding(
+				'java',
+				dedent`
 				▶️public class SingleLineIfSample {
 					▶️public static void main(String[] args) ▶️{
 						▶️int x = 5;◀️
@@ -1564,110 +2640,152 @@ suite('StatementTree', function () {
 						▶️if (x == 5) ▶️{ ▶️y = 0;◀️ }◀️◀️
 					}◀️◀️
 				}◀️
-				`],
-		];
-		for (const [name, code] of statementCases) {
-			test(name, async function () {
-				await testStatementBuilding('java', code);
-			});
-		}
+				`
+			);
+		});
 
-		const compoundCases: [name: string, code: string][] = [
-			['node.isCompoundStatementType is true for splittable block statements', dedent`
+		test('node.isCompoundStatementType is true for splittable block statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 						{
 							int x = 1;
-						}`],
-			['node.isCompoundStatementType is true for splittable do statements', dedent`
+						}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable do statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 						do {
 							int x = 1;
-						} while (true);`],
-			['node.isCompoundStatementType is true for splittable enhanced for statements', dedent`
+						} while (true);`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable enhanced for statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				for (int n : numbers) {
 					int x = 1;
-				}`],
-			['node.isCompoundStatementType is true for splittable for statements', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable for statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				for (int i = 0; i < 10; i++) {
 					int x = 1;
-				}`],
-			['node.isCompoundStatementType is true for splittable labeled statements', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable labeled statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				myLabel: {
 					int x = 1;
-				}`],
-			['node.isCompoundStatementType is true for splittable switch expression', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable switch expression', async function () {
+			await assertStatementIsCompoundType(dedent`
 				switch (test) {
 					case 0:
 						System.out.println("The number is one.");
 						break;
-				}`],
-			['node.isCompoundStatementType is true for splittable synchronized statement', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable synchronized statement', async function () {
+			await assertStatementIsCompoundType(dedent`
 				synchronized (ReturnSample.class) {
 					int x = 1;
-				}`],
-			['node.isCompoundStatementType is true for splittable try statement', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable try statement', async function () {
+			await assertStatementIsCompoundType(dedent`
 				try {
 					int result = 10 / 0;
 				} catch (ArithmeticException e) {
 					System.out.println("Cannot divide by zero");
-				}`],
-			['node.isCompoundStatementType is true for splittable try with resources statement', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable try with resources statement', async function () {
+			await assertStatementIsCompoundType(dedent`
 				try (BufferedReader br = new BufferedReader(new FileReader("file.txt"))) {
 					int result = 10 / 0;
 				} catch (ArithmeticException e) {
 					System.out.println("Cannot divide by zero");
-				}`],
-			['node.isCompoundStatementType is true for splittable while statement', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable while statement', async function () {
+			await assertStatementIsCompoundType(dedent`
 				while (true) {
 					int x = 1;
-				}`],
-			['node.isCompoundStatementType is true for splittable interface declaration', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable interface declaration', async function () {
+			await assertStatementIsCompoundType(dedent`
 				public interface InnerInterface {
 					void innerMethod();
-				}`],
-			['node.isCompoundStatementType is true for splittable method declaration', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable method declaration', async function () {
+			await assertStatementIsCompoundType(dedent`
 				public static void add(int a, int b) {
 					int sum = a + b;
-				}`],
-			['node.isCompoundStatementType is true for splittable constructor declaration', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable constructor declaration', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class MyClass {
 					 ❚public MyClass() {
 						int x = 0;
 					}
-				}`],
-			['node.isCompoundStatementType is true for splittable compact constructor declaration', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable compact constructor declaration', async function () {
+			await assertStatementIsCompoundType(dedent`
 				public record Person(String firstName, String lastName) {
 					❚public Person {
 						firstName = firstName;
 						lastName = lastName;
 					}
-				}`],
-			['node.isCompoundStatementType is true for splittable class declaration', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable class declaration', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class MyClass {
 					 public MyClass() {
 						int x = 0;
 					}
-				}`],
-			['node.isCompoundStatementType is true for splittable annotation type declaration', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable annotation type declaration', async function () {
+			await assertStatementIsCompoundType(dedent`
 				public @interface MyAnnotation {
 					void myMethod();
-				}`],
-			['node.isCompoundStatementType is true for splittable static initializer', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable static initializer', async function () {
+			await assertStatementIsCompoundType(dedent`
 				public class StaticInitClassSample {
 					static int count
 					❚static
 					{
 						count = 100;
 					}
-				}`],
-			['node.isCompoundStatementType is true for splittable if statements', dedent`
+				}`);
+		});
+
+		test('node.isCompoundStatementType is true for splittable if statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 						if (true) {
 							int x = 1;
-						}`],
-		];
-		for (const [name, code] of compoundCases) {
-			test(name, async function () {
-				await assertStatementIsCompoundType(code);
-			});
-		}
+						}`);
+		});
 
 		test('node.isCompoundStatementType is false for un-splittable statements', async function () {
 			await assertStatementIsNotCompoundType('int x = 1;');
@@ -1702,11 +2820,22 @@ suite('StatementTree', function () {
 			assert.strictEqual(StatementTree.isSupported('csharp'), true);
 		});
 
-		const statementCases: [name: string, code: string][] = [
-			['recognizes extern alias directives', `▶️extern alias Example;◀️`],
-			['recognizes using directives', `▶️using System;◀️`],
-			['recognizes global attributes', `▶️[assembly: AssemblyTitle("Example")]◀️`],
-			['recognizes top-level pre-processor directives', dedent`
+		test('recognizes extern alias directives', async function () {
+			await testStatementBuilding('csharp', `▶️extern alias Example;◀️`);
+		});
+
+		test('recognizes using directives', async function () {
+			await testStatementBuilding('csharp', `▶️using System;◀️`);
+		});
+
+		test('recognizes global attributes', async function () {
+			await testStatementBuilding('csharp', `▶️[assembly: AssemblyTitle("Example")]◀️`);
+		});
+
+		test('recognizes top-level pre-processor directives', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️#if WIN32
 						▶️string os = "Win32";◀️
 					#elif MACOS
@@ -1714,11 +2843,26 @@ suite('StatementTree', function () {
 					#else
 						▶️string os = "Linux";◀️
 					#endif◀️
-				`],
-			['recognizes file-scoped namespace declarations', `▶️namespace Example;◀️`],
-			['recognizes namespace declarations', `▶️namespace Example { }◀️`],
-			['recognizes top-level statements', `▶️Console.WriteLine("example");◀️`],
-			['recognizes enum declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes file-scoped namespace declarations', async function () {
+			await testStatementBuilding('csharp', `▶️namespace Example;◀️`);
+		});
+
+		test('recognizes namespace declarations', async function () {
+			await testStatementBuilding('csharp', `▶️namespace Example { }◀️`);
+		});
+
+		test('recognizes top-level statements', async function () {
+			await testStatementBuilding('csharp', `▶️Console.WriteLine("example");◀️`);
+		});
+
+		test('recognizes enum declarations', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️enum Direction
 					{
 						North,
@@ -1726,40 +2870,82 @@ suite('StatementTree', function () {
 						East,
 						West
 					}◀️
-				`],
-			['recognizes class declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes class declarations', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 					}◀️
-				`],
-			['recognizes struct declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes struct declarations', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️struct Example
 					{
 					}◀️
-				`],
-			['recognizes record declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes record declarations', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️record Example
 					{
 					}◀️
-				`],
-			['recognizes interface declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes interface declarations', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️interface Example
 					{
 					}◀️
-				`],
-			['recognizes fields', dedent`
+				`
+			);
+		});
+
+		test('recognizes fields', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️bool flag = true;◀️
 					}◀️
-				`],
-			['recognizes event fields', dedent`
+				`
+			);
+		});
+
+		test('recognizes event fields', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️event EventHandler onEvent;◀️
 					}◀️
-				`],
-			['recognizes properties', dedent`
+				`
+			);
+		});
+
+		test('recognizes properties', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️int Len
@@ -1768,27 +2954,51 @@ suite('StatementTree', function () {
 							▶️set ▶️{ ▶️_len = value;◀️ }◀️◀️
 						}◀️
 					}◀️
-				`],
-			['recognizes automatic properties', dedent`
+				`
+			);
+		});
+
+		test('recognizes automatic properties', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️int Len { ▶️get;◀️ ▶️set;◀️ }◀️
 						▶️int Capacity { ▶️get;◀️ ▶️init;◀️ }◀️
 					}◀️
-				`],
-			['recognizes properties with initial values', dedent`
+				`
+			);
+		});
+
+		test('recognizes properties with initial values', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️int Len { ▶️get;◀️ } = 0;◀️
 					}◀️
-				`],
-			['recognizes properties with an arrow expression', dedent`
+				`
+			);
+		});
+
+		test('recognizes properties with an arrow expression', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️int Area => _width * _height;◀️
 					}◀️
-				`],
-			['recognizes event declarations with add / remove functions', dedent`
+				`
+			);
+		});
+
+		test('recognizes event declarations with add / remove functions', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️event EventHandler onEvent
@@ -1796,32 +3006,56 @@ suite('StatementTree', function () {
 							▶️add ▶️{ ▶️someWork();◀️ }◀️◀️
 						}◀️
 					}◀️
-				`],
-			['recognizes methods', dedent`
+				`
+			);
+		});
+
+		test('recognizes methods', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
 						▶️{
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes constructors', dedent`
+				`
+			);
+		});
+
+		test('recognizes constructors', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️Example()
 						▶️{
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes destructors', dedent`
+				`
+			);
+		});
+
+		test('recognizes destructors', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️~Example()
 						▶️{
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes indexers', dedent`
+				`
+			);
+		});
+
+		test('recognizes indexers', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️int this[int index]()
@@ -1830,26 +3064,50 @@ suite('StatementTree', function () {
 							▶️set ▶️{ ▶️_items[index] = value;◀️ }◀️◀️
 						}◀️
 					}◀️
-				`],
-			['recognizes operators', dedent`
+				`
+			);
+		});
+
+		test('recognizes operators', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️Example operator +(Example e) ▶️{ ▶️return new Example();◀️ }◀️◀️
 					}◀️
-				`],
-			['recognizes conversion operators', dedent`
+				`
+			);
+		});
+
+		test('recognizes conversion operators', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️explicit operator int(Example e) ▶️{ ▶️return 0;◀️ }◀️◀️
 					}◀️
-				`],
-			['recognizes delegates', dedent`
+				`
+			);
+		});
+
+		test('recognizes delegates', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️delegate void Action();◀️
 					}◀️
-				`],
-			['recognizes block statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes block statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1859,8 +3117,14 @@ suite('StatementTree', function () {
 							}◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes break statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes break statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1870,8 +3134,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes expression statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes expression statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1879,8 +3149,14 @@ suite('StatementTree', function () {
 							▶️x = y * 4 + 2;◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes checked statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes checked statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1892,8 +3168,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes do statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes do statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1906,8 +3188,14 @@ suite('StatementTree', function () {
 							}◀️ while (i < 10);◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes empty statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes empty statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1915,8 +3203,14 @@ suite('StatementTree', function () {
 							▶️;◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes unsafe statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes unsafe statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1928,8 +3222,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes fixed statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes fixed statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1944,8 +3244,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes for statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes for statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1956,8 +3262,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes return statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes return statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1965,8 +3277,14 @@ suite('StatementTree', function () {
 							▶️return;◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes lock statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes lock statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -1977,8 +3295,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes yield statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes yield statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️IEnumerable<int> Odds(int through)
@@ -1989,8 +3313,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes switch statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes switch statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Diagnostics(int a, int b)
@@ -2009,8 +3339,14 @@ suite('StatementTree', function () {
 							}◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes throw statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes throw statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -2018,8 +3354,14 @@ suite('StatementTree', function () {
 							▶️throw new Exception("Error occurred");◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes try / catch / finally statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes try / catch / finally statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -2038,8 +3380,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes using statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes using statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void ReadFile(string path)
@@ -2047,8 +3395,14 @@ suite('StatementTree', function () {
 							▶️using var file = new StreamReader(path);◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes foreach statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes foreach statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void PrintAll(List<int> numbers)
@@ -2059,8 +3413,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes goto and labeled statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes goto and labeled statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -2071,8 +3431,14 @@ suite('StatementTree', function () {
 							▶️return;◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes if / else statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes if / else statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️bool IsEven(int number)
@@ -2087,8 +3453,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['collapses single-line if statements without braces', dedent`
+				`
+			);
+		});
+
+		test('collapses single-line if statements without braces', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run(bool flag)
@@ -2096,8 +3468,14 @@ suite('StatementTree', function () {
 							▶️if (flag) return;◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes while statements', dedent`
+				`
+			);
+		});
+
+		test('recognizes while statements', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void PrintTimes(string message, int times)
@@ -2110,8 +3488,14 @@ suite('StatementTree', function () {
 							}◀️◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes local variable declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes local variable declarations', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -2119,8 +3503,14 @@ suite('StatementTree', function () {
 							▶️int x = 10;◀️
 						}◀️◀️
 					}◀️
-				`],
-			['recognizes local function declarations', dedent`
+				`
+			);
+		});
+
+		test('recognizes local function declarations', async function () {
+			await testStatementBuilding(
+				'csharp',
+				dedent`
 					▶️class Example
 					{
 						▶️void Run()
@@ -2129,13 +3519,9 @@ suite('StatementTree', function () {
 							▶️LocalFunction();◀️
 						}◀️◀️
 					}◀️
-				`],
-		];
-		for (const [name, code] of statementCases) {
-			test(name, async function () {
-				await testStatementBuilding('csharp', code);
-			});
-		}
+				`
+			);
+		});
 
 		test('node.isCompoundStatementType is false for un-splittable statements', async function () {
 			await assertStatementIsNotCompoundType(dedent`
@@ -2149,47 +3535,65 @@ suite('StatementTree', function () {
 			`);
 		});
 
-		const compoundCases: [name: string, code: string][] = [
-			['node.isCompoundStatementType is true for class declarations', dedent`
+		test('node.isCompoundStatementType is true for class declarations', async function () {
+			await assertStatementIsCompoundType(dedent`
 				❚class Example
 				{
 				}
-			`],
-			['node.isCompoundStatementType is true for struct declarations', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for struct declarations', async function () {
+			await assertStatementIsCompoundType(dedent`
 				❚struct Example
 				{
 				}
-			`],
-			['node.isCompoundStatementType is true for interface declarations', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for interface declarations', async function () {
+			await assertStatementIsCompoundType(dedent`
 				❚interface Example
 				{
 				}
-			`],
-			['node.isCompoundStatementType is true for method declarations', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for method declarations', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					❚void Run()
 					{
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for constructor declarations', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for constructor declarations', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					❚Example()
 					{
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for destructor declarations', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for destructor declarations', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					❚~Example()
 					{
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for blocks', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for blocks', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2198,8 +3602,11 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for checked statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for checked statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2209,8 +3616,11 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for do statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for do statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2220,8 +3630,11 @@ suite('StatementTree', function () {
 						} while (false);
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for fixed statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for fixed statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2231,8 +3644,11 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for for statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for for statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2242,8 +3658,11 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for lock statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for lock statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2253,8 +3672,11 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for switch statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for switch statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2264,8 +3686,11 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for try statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for try statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2278,8 +3703,11 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for unsafe statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for unsafe statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2289,8 +3717,11 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-			['node.isCompoundStatementType is true for foreach statements', dedent`
+			`);
+		});
+
+		test('node.isCompoundStatementType is true for foreach statements', async function () {
+			await assertStatementIsCompoundType(dedent`
 				class Example
 				{
 					void Run()
@@ -2300,13 +3731,8 @@ suite('StatementTree', function () {
 						}
 					}
 				}
-			`],
-		];
-		for (const [name, code] of compoundCases) {
-			test(name, async function () {
-				await assertStatementIsCompoundType(code);
-			});
-		}
+			`);
+		});
 
 		test('node.isCompoundStatementType is true for uncollapsed if statements', async function () {
 			await assertStatementIsCompoundType(dedent`
@@ -2378,55 +3804,105 @@ suite('StatementTree', function () {
 		});
 
 		suite('Statement identification (C, C++)', function () {
-			const statementCases: [name: string, code: string][] = [
-				['recognizes extern declarations', `▶️extern int foo();◀️`],
-				['recognizes typedef declarations', `▶️typedef int myInt;◀️`],
-				['recognizes struct declarations', dedent`
+			test('recognizes extern declarations', async function () {
+				await testStatementBuilding('c', `▶️extern int foo();◀️`);
+			});
+
+			test('recognizes typedef declarations', async function () {
+				await testStatementBuilding('c', `▶️typedef int myInt;◀️`);
+			});
+
+			test('recognizes struct declarations', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️typedef struct Obj
 					▶️{
 						▶️int x;◀️
 						▶️float y;◀️
 					}◀️ obj;◀️
-				`],
-				['recognizes union declarations', dedent`
+				`
+				);
+			});
+
+			test('recognizes union declarations', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️union Example
 					▶️{
 						▶️int x;◀️
 						▶️float y;◀️
 					}◀️ example◀️
-				`],
-				['recognizes enum declarations', dedent`
+				`
+				);
+			});
+
+			test('recognizes enum declarations', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️enum Color
 					{
 						RED,
 						GREEN,
 						BLUE
 					}◀️
-				`],
-				['recognizes function declarations', dedent`
+				`
+				);
+			});
+
+			test('recognizes function declarations', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️int add(int a, int b)
 					▶️{
 						▶️return a + b;◀️
 					}◀️◀️
-				`],
-				['recognizes old style function declarations', dedent`
+				`
+				);
+			});
+
+			test('recognizes old style function declarations', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️int add(a, b)◀️
 					▶️int a;◀️
 					▶️int b;◀️
 					▶️{
 						▶️return a + b;◀️
 					}◀️
-				`],
-				['recognizes variable declarations', dedent`
+				`
+				);
+			});
+
+			test('recognizes variable declarations', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️int x = 10;◀️
-				`],
-				['recognizes compound statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes compound statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️{
 						▶️int x = 10;◀️
 						▶️int y = 20;◀️
 					}◀️
-				`],
-				['recognizes if statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes if statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️void example()
 					▶️{
 						▶️if (x > 0)
@@ -2434,8 +3910,14 @@ suite('StatementTree', function () {
 							▶️printf("Positive");◀️
 						}◀️◀️
 					}◀️◀️
-				`],
-				['recognizes else and else if statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes else and else if statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️void example()
 					▶️{
 						▶️if (x > 0)
@@ -2450,8 +3932,14 @@ suite('StatementTree', function () {
 							▶️printf("Zero");◀️
 						}◀️◀️◀️
 					}◀️◀️
-				`],
-				['recognizes switch statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes switch statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️void example()
 					▶️{
 						▶️switch (x)
@@ -2467,8 +3955,14 @@ suite('StatementTree', function () {
 								▶️break;◀️◀️
 						}◀️◀️
 					}◀️◀️
-				`],
-				['recognizes while statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes while statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️void example()
 					▶️{
 						▶️while (x < 10)
@@ -2478,8 +3972,14 @@ suite('StatementTree', function () {
 							▶️continue;◀️
 						}◀️◀️
 					}◀️◀️
-				`],
-				['recognizes for statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes for statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️void example()
 					▶️{
 						▶️for (▶️int i = 0;◀️ i < 10; i++)
@@ -2487,8 +3987,14 @@ suite('StatementTree', function () {
 							▶️printf("%d", i);◀️
 						}◀️◀️
 					}◀️◀️
-				`],
-				['recognizes do while statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes do while statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️void example()
 					▶️{
 						▶️do
@@ -2496,13 +4002,25 @@ suite('StatementTree', function () {
 							▶️printf("%d", x);◀️
 						}◀️ while (x < 10);◀️
 					}◀️◀️
-				`],
-				['recognizes goto statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes goto statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️goto label;◀️
 					▶️label:
 						▶️printf("Label reached");◀️◀️
-				`],
-				['recognizes preprocessor if statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes preprocessor if statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️#if DEBUG
 						▶️#define STACK 0
 					◀️#elif RELEASE
@@ -2510,47 +4028,75 @@ suite('StatementTree', function () {
 					◀️#else
 						▶️printf("Unknown mode");◀️
 					#endif◀️
-				`],
-				['recognizes ifdef statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes ifdef statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️#ifdef DEBUG
 						▶️printf("Debug mode");◀️
 					#endif◀️
-				`],
-				['recognizes include statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes include statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️#include <stdio.h>
 					◀️▶️#include "myheader.h"◀️
-				`],
-				['recognizes preprocessor call statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes preprocessor call statements', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️#import "..\\file"
 					◀️▶️#line 10
 					◀️▶️#pragma once
 					◀️▶️#using "using_assembly_A.dll"
 					◀️▶️#undef ADD
 					◀️▶️#error C++ compiler required.◀️
-				`],
-				['recognizes preprocessor functions', dedent`
+				`
+				);
+			});
+
+			test('recognizes preprocessor functions', async function () {
+				await testStatementBuilding(
+					'c',
+					dedent`
 					▶️#define SQUARE(x) ((x) * (x))
 					◀️▶️#define MAX(a, b) (\\
 						(a) > (b) ? (a) : (b) \\
 					)◀️
-				`],
-			];
-			for (const [name, code] of statementCases) {
-				test(name, async function () {
-					await testStatementBuilding('c', code);
-				});
-			}
+				`
+				);
+			});
 		});
 
 		suite('Statement identification (C++)', function () {
-			const statementCases: [name: string, code: string][] = [
-				['recognizes namespace statements', dedent`
+			test('recognizes namespace statements', async function () {
+				await testStatementBuilding(
+					'cpp',
+					dedent`
 					▶️namespace MyNamespace
 					{
 						▶️int x;◀️
 					}◀️
-				`],
-				['recognizes class definitions', dedent`
+				`
+				);
+			});
+
+			test('recognizes class definitions', async function () {
+				await testStatementBuilding(
+					'cpp',
+					dedent`
 					▶️class MyClass
 					▶️{
 						▶️int x;◀️
@@ -2558,65 +4104,103 @@ suite('StatementTree', function () {
 							▶️x = 1;◀️
 						}◀️◀️
 					}◀️◀️
-				`],
-				['recognizes template declarations', dedent`
+				`
+				);
+			});
+
+			test('recognizes template declarations', async function () {
+				await testStatementBuilding(
+					'cpp',
+					dedent`
 					▶️template <typename T> ▶️T myMax(T x, T y) ▶️{
 						▶️return (x > y) ? x : y;◀️
 					}◀️◀️◀️
-				`],
-				['recognizes concept definitions', dedent`
+				`
+				);
+			});
+
+			test('recognizes concept definitions', async function () {
+				await testStatementBuilding(
+					'cpp',
+					dedent`
 					▶️template<typename T>
 					▶️concept MyConcept = requires(T t)
 					{
 						▶️{ t.foo() } -> std::same_as<int>;◀️
 					}◀️◀️
-				`],
-				['recognizes using statements', dedent`
+				`
+				);
+			});
+
+			test('recognizes using statements', async function () {
+				await testStatementBuilding(
+					'cpp',
+					dedent`
 					▶️using MyType = int;◀️
-				`],
-				['recognizes alias declarations', dedent`
+				`
+				);
+			});
+
+			test('recognizes alias declarations', async function () {
+				await testStatementBuilding(
+					'cpp',
+					dedent`
 					▶️using MyAlias = int;◀️
-				`],
-				['recognizes static assertions', dedent`
+				`
+				);
+			});
+
+			test('recognizes static assertions', async function () {
+				await testStatementBuilding(
+					'cpp',
+					dedent`
 					▶️static_assert(sizeof(int) == 4, "int is not 4 bytes");◀️
-				`],
-			];
-			for (const [name, code] of statementCases) {
-				test(name, async function () {
-					await testStatementBuilding('cpp', code);
-				});
-			}
+				`
+				);
+			});
 		});
 
 		suite('Compound Statement Identification (C, C++)', function () {
-			const compoundCases: [name: string, code: string][] = [
-				['node.isCompoundStatementType is true for struct declarations', dedent`
+			test('node.isCompoundStatementType is true for struct declarations', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚struct Obj
 					{
 						int x;
 						float y;
 					} obj;
-				`],
-				['node.isCompoundStatementType is true for union declarations', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for union declarations', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚union Obj
 					{
 						int x;
 						float y;
 					} obj;
-				`],
-				['node.isCompoundStatementType is true for enum declarations', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for enum declarations', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚enum Color
 					{
 						RED,
 						GREEN,
 						BLUE
 					} obj;
-				`],
-				['node.isCompoundStatementType is true for empty blocks', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for empty blocks', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚{
 					}
-				`],
-				['node.isCompoundStatementType is true for function declarations', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for function declarations', async function () {
+				await assertStatementIsCompoundType(dedent`
 					void example()
 					{
 						❚int add(int a, int b)
@@ -2624,14 +4208,20 @@ suite('StatementTree', function () {
 							return a + b;
 						}
 					}
-				`],
-				['node.isCompoundStatementType is true for compound statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for compound statements', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚{
 						int x = 10;
 						int y = 20;
 					}
-				`],
-				['node.isCompoundStatementType is true for if statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for if statements', async function () {
+				await assertStatementIsCompoundType(dedent`
 					void example()
 					{
 						❚if (x > 0)
@@ -2639,15 +4229,21 @@ suite('StatementTree', function () {
 							printf("Positive");
 						}
 					}
-				`],
-				['node.isCompoundStatementType is true for type definitions', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for type definitions', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚typedef struct Obj
 					{
 						int x;
 						float y;
 					} obj;
-				`],
-				['node.isCompoundStatementType is true for for statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for for statements', async function () {
+				await assertStatementIsCompoundType(dedent`
 					void example()
 					{
 						❚for (int i = 0; i < 10; i++)
@@ -2655,8 +4251,11 @@ suite('StatementTree', function () {
 							printf("%d", i);
 						}
 					}
-				`],
-				['node.isCompoundStatementType is true for while statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for while statements', async function () {
+				await assertStatementIsCompoundType(dedent`
 					void example()
 					{
 						❚while (x < 10)
@@ -2665,8 +4264,11 @@ suite('StatementTree', function () {
 							x++;
 						}
 					}
-				`],
-				['node.isCompoundStatementType is true for do while statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for do while statements', async function () {
+				await assertStatementIsCompoundType(dedent`
 					void example()
 					{
 						❚do
@@ -2674,8 +4276,11 @@ suite('StatementTree', function () {
 							printf("%d", x);
 						} while (x < 10);
 					}
-				`],
-				['node.isCompoundStatementType is true for switch statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for switch statements', async function () {
+				await assertStatementIsCompoundType(dedent`
 					void example()
 					{
 						❚switch (x)
@@ -2685,8 +4290,11 @@ suite('StatementTree', function () {
 								break;
 						}
 					}
-				`],
-				['node.isCompoundStatementType is true for preprocessor if statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for preprocessor if statements', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚#if DEBUG
 						#define STACK 0
 					#elif RELEASE
@@ -2694,49 +4302,57 @@ suite('StatementTree', function () {
 					#else
 						printf("Unknown mode");
 					#endif
-				`],
-				['node.isCompoundStatementType is true for preprocessor ifdef statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for preprocessor ifdef statements', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚#ifdef DEBUG
 						printf("Debug mode");
 					#endif
-				`],
-			];
-			for (const [name, code] of compoundCases) {
-				test(name, async function () {
-					await assertStatementIsCompoundType(code);
-				});
-			}
+				`);
+			});
 
-			const nonCompoundCases: [name: string, code: string][] = [
-				['node.isCompoundStatementType is false for declaration statements', dedent`
+			test('node.isCompoundStatementType is false for declaration statements', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					int foo() {
 						❚int x = 10;
 					}
-				`],
-				['node.isCompoundStatementType is false for return statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for return statements', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					int foo() {
 						❚return 1;
 					}
-				`],
-				['node.isCompoundStatementType is false for goto statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for goto statements', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					❚goto label;
-				`],
-				['node.isCompoundStatementType is false for label statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for label statements', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					❚label:
 						printf("Label reached");
-				`],
-				['node.isCompoundStatementType is false for preprocessor include statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for preprocessor include statements', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					❚#include <stdio.h>
-				`],
-				['node.isCompoundStatementType is false for preprocessor functions', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for preprocessor functions', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					❚#define SQUARE(x) ((x) * (x))
-				`],
-			];
-			for (const [name, code] of nonCompoundCases) {
-				test(name, async function () {
-					await assertStatementIsNotCompoundType(code);
-				});
-			}
+				`);
+			});
 
 			async function assertStatementIsCompoundType(text: string) {
 				await testStatementIsCompoundType('c', text, true);
@@ -2748,82 +4364,99 @@ suite('StatementTree', function () {
 		});
 
 		suite('Compound Statement Identification (C++)', function () {
-			const compoundCases: [name: string, code: string][] = [
-				['node.isCompoundStatementType is true for namespace definitions', dedent`
+			test('node.isCompoundStatementType is true for namespace definitions', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚namespace MyNamespace
 					{
 						int x;
 					}
-				`],
-				['node.isCompoundStatementType is true for template declaratations', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for template declaratations', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚template<typename T>
 					class MyClass
 					{
 						T value;
 					}
-				`],
-				['node.isCompoundStatementType is true for concept definitions', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for concept definitions', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚concept MyConcept = requires(T t)
 					{
 						{ t.foo() } -> std::same_as<int>;
 					};
-				`],
-				['node.isCompoundStatementType is true for class declarations', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for class declarations', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚class MyClass
 					{
 						int x;
 						float y;
 					};
-				`],
-				['node.isCompoundStatementType is true for class declarations with template', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for class declarations with template', async function () {
+				await assertStatementIsCompoundType(dedent`
 					❚template<typename T>
 					class MyClass
 					{
 						T value;
 					};
-				`],
-				['node.isCompoundStatementType is true for field declaration lists', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is true for field declaration lists', async function () {
+				await assertStatementIsCompoundType(dedent`
 					class MyClass
 					❚{
 						int x;
 						float y;
 						double z;
 					};
-				`],
-			];
-			for (const [name, code] of compoundCases) {
-				test(name, async function () {
-					await assertStatementIsCompoundType(code);
-				});
-			}
+				`);
+			});
 
-			const nonCompoundCases: [name: string, code: string][] = [
-				['node.isCompoundStatementType is false for field declarations', dedent`
+			test('node.isCompoundStatementType is false for field declarations', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					class MyClass
 					{
 						❚int x;
 						float y;
 					};
-				`],
-				['node.isCompoundStatementType is false for single-line concept definitions', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for single-line concept definitions', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					template<class T, class U>
 					❚concept Derived = std::is_base_of<U, T>::value;
-				`],
-				['node.isCompoundStatementType is false for using statements', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for using statements', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					❚using MyType = int;
-				`],
-				['node.isCompoundStatementType is false for alias declarations', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for alias declarations', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					❚using MyAlias = int;
-				`],
-				['node.isCompoundStatementType is false for static assertions', dedent`
+				`);
+			});
+
+			test('node.isCompoundStatementType is false for static assertions', async function () {
+				await assertStatementIsNotCompoundType(dedent`
 					❚static_assert(sizeof(int) == 4, "int is not 4 bytes");
-				`],
-			];
-			for (const [name, code] of nonCompoundCases) {
-				test(name, async function () {
-					await assertStatementIsNotCompoundType(code);
-				});
-			}
+				`);
+			});
 
 			async function assertStatementIsCompoundType(text: string) {
 				await testStatementIsCompoundType('cpp', text, true);

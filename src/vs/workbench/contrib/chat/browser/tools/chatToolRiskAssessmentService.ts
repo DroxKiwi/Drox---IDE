@@ -11,7 +11,6 @@ import { IConfigurationService } from '../../../../../platform/configuration/com
 import { createDecorator } from '../../../../../platform/instantiation/common/instantiation.js';
 import { ChatConfiguration } from '../../common/constants.js';
 import { ChatMessageRole, ILanguageModelsService } from '../../common/languageModels.js';
-import { IChatUtilityModelService } from '../../common/chatUtilityModelService.js';
 import { TerminalToolId } from '../../common/tools/terminalToolIds.js';
 import { IToolData } from '../../common/tools/languageModelToolsService.js';
 
@@ -65,7 +64,6 @@ export class ChatToolRiskAssessmentService implements IChatToolRiskAssessmentSer
 	constructor(
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@ILanguageModelsService private readonly _languageModelsService: ILanguageModelsService,
-		@IChatUtilityModelService private readonly _chatUtilityModelService: IChatUtilityModelService,
 	) { }
 
 	isEnabled(): boolean {
@@ -126,12 +124,31 @@ export class ChatToolRiskAssessmentService implements IChatToolRiskAssessmentSer
 		}
 
 		const prompt = buildPrompt(tool, parameters, kind);
-		const text = await this._chatUtilityModelService.sendRequest({
-			purpose: 'toolRiskAssessment',
-			model: models[0],
-			messages: [{ role: ChatMessageRole.User, content: [{ type: 'text', value: prompt }] }],
-		}, token);
-		if (text === undefined || token.isCancellationRequested) {
+		const response = await this._languageModelsService.sendChatRequest(
+			models[0],
+			undefined,
+			[{ role: ChatMessageRole.User, content: [{ type: 'text', value: prompt }] }],
+			{},
+			token
+		);
+
+		let text = '';
+		for await (const part of response.stream) {
+			if (token.isCancellationRequested) {
+				return undefined;
+			}
+			if (Array.isArray(part)) {
+				for (const p of part) {
+					if (p.type === 'text') {
+						text += p.value;
+					}
+				}
+			} else if (part.type === 'text') {
+				text += part.value;
+			}
+		}
+		await response.result;
+		if (token.isCancellationRequested) {
 			return undefined;
 		}
 

@@ -13,10 +13,9 @@ import { ITelemetryAppender, TelemetryLogGroup, isLoggingOnly, telemetryLogId, v
 export class TelemetryLogAppender extends Disposable implements ITelemetryAppender {
 
 	private readonly logger: ILogger;
-	private readonly prefix: string;
 
 	constructor(
-		prefixOrOptions: string | { readonly prefix: string; readonly loggerId: string },
+		private readonly prefix: string,
 		remote: boolean,
 		@ILoggerService loggerService: ILoggerService,
 		@IEnvironmentService environmentService: IEnvironmentService,
@@ -24,9 +23,7 @@ export class TelemetryLogAppender extends Disposable implements ITelemetryAppend
 	) {
 		super();
 
-		const prefix = typeof prefixOrOptions === 'string' ? prefixOrOptions : prefixOrOptions.prefix;
-		this.prefix = prefix;
-		const id = typeof prefixOrOptions === 'string' ? (remote ? 'remoteTelemetry' : telemetryLogId) : prefixOrOptions.loggerId;
+		const id = remote ? 'remoteTelemetry' : telemetryLogId;
 		const logger = loggerService.getLogger(id);
 		if (logger) {
 			this.logger = this._register(logger);
@@ -51,3 +48,4 @@ export class TelemetryLogAppender extends Disposable implements ITelemetryAppend
 		this.logger.trace(`${this.prefix}telemetry/${eventName}`, validateTelemetryData(data));
 	}
 }
+

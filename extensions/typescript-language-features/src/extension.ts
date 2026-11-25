@@ -50,7 +50,7 @@ export function activate(
 		context.subscriptions.push(experimentTelemetryReporter);
 
 		const experimentationService = new ExperimentationService(experimentTelemetryReporter, id, version, context.globalState);
-		suggestNativePreview(context, experimentationService, pluginManager);
+		suggestNativePreview(context, experimentationService);
 	}
 
 	// Register features that work in both TSGO and non-TSGO modes
@@ -109,6 +109,6 @@ export function activate(
 	return getExtensionApi(onCompletionAccepted.event, pluginManager);
 }
 
-export async function deactivate(): Promise<void> {
-	await fs.promises.rm(temp.instanceTempDir.value, { recursive: true, force: true });
+export function deactivate() {
+	fs.rmSync(temp.instanceTempDir.value, { recursive: true, force: true });
 }

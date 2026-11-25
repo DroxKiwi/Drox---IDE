@@ -6,7 +6,6 @@
 import * as dom from '../../../../base/browser/dom.js';
 import { observableValue, derived, autorun, type ISettableObservable, type IReader } from '../../../../base/common/observable.js';
 import { Disposable, toDisposable } from '../../../../base/common/lifecycle.js';
-import { Event } from '../../../../base/common/event.js';
 import { localize } from '../../../../nls.js';
 import { URI } from '../../../../base/common/uri.js';
 import { getWindow } from '../../../../base/browser/dom.js';
@@ -18,10 +17,8 @@ import { createSessionList, type SessionRowData, type SessionGroupData } from '.
 import { createFeedbackDialog, type FeedbackDialogState } from './components/feedbackDialog.js';
 import { createOnboarding } from './components/onboardingComponent.js';
 import { createVoiceBar } from './components/voiceBarComponent.js';
-import { FONT_SIZE, addKeyboardActivation, isSecondaryPointerGesture } from './components/tokens.js';
+import { FONT_SIZE, addKeyboardActivation } from './components/tokens.js';
 import type { VoiceState, IPendingToolConfirmation, ITranscriptTurn } from '../../chat/browser/voiceClient/voiceSessionController.js';
-import { computeVoiceMicGlowBoxShadow, IVoiceGlowColors } from '../../chat/browser/voiceClient/voiceGlow.js';
-import { createVoiceGlowController, GlowThemeKind, IVoiceGlowController } from '../../chat/browser/voiceClient/voiceGlowController.js';
 
 export interface VoiceWidgetCallbacks {
 	readonly copilotIconSrc: string;
@@ -30,8 +27,6 @@ export interface VoiceWidgetCallbacks {
 	disconnect(): void;
 	pttDown(): void;
 	pttUp(): void;
-	/** Toggle whether the microphone is muted while keeping the session connected. */
-	toggleMute(): void;
 	closeWindow(): void;
 	stopPlayback(): void;
 	openSession(resource: URI): void;
@@ -40,16 +35,10 @@ export interface VoiceWidgetCallbacks {
 	/** Select a session as the transcription target. */
 	selectTargetSession(resource: URI | undefined): void;
 	/** Create a new session and set it as transcription target. */
-	newSessionAsTarget(): Promise<boolean>;
+	newSessionAsTarget(): void;
 	getAnalyserNode(): AnalyserNode | null;
 	onResize(): void;
 	openPttKeySettings(): void;
-	/**
-	 * Show the Voice Mode context menu (Configure, Select Microphone, Disable
-	 * Voice Mode) anchored at the triggering event. Wired to a right-click /
-	 * context-menu gesture on the voice mode mic icon.
-	 */
-	showVoiceContextMenu(e: MouseEvent): void;
 	/** Optional — when provided, header renders a "popout" button. */
 	openPopout?(): void;
 	/** Submit user feedback. Returns success/failure. */
@@ -62,14 +51,6 @@ export interface VoiceWidgetCallbacks {
 	 * sessions quickpick with a "set as voice target" action.
 	 */
 	showSessionsPicker?(): void;
-	/** Active theme kind, for the ambient voice glow. */
-	getGlowTheme(): GlowThemeKind;
-	/** Theme-derived per-state accents for the ambient voice glow. */
-	getGlowColors(): IVoiceGlowColors;
-	/** Whether the user has asked for reduced motion. */
-	isMotionReduced(): boolean;
-	/** Fires when the color theme changes, so the glow can re-derive its accents. */
-	readonly onDidChangeGlowTheme: Event<void>;
 }
 
 /**
@@ -151,7 +132,6 @@ export class AgentsVoiceWidget extends Disposable {
 	private readonly _isConnected: ISettableObservable<boolean> = observableValue(this, false);
 	private readonly _isConnecting: ISettableObservable<boolean> = observableValue(this, false);
 	private readonly _isReconnecting: ISettableObservable<boolean> = observableValue(this, false);
-	private readonly _isMuted: ISettableObservable<boolean> = observableValue(this, false);
 	private readonly _voiceState: ISettableObservable<VoiceState> = observableValue(this, 'idle');
 	private readonly _expanded: ISettableObservable<boolean> = observableValue(this, false);
 	private readonly _workingCount: ISettableObservable<number> = observableValue(this, 0);
@@ -200,10 +180,8 @@ export class AgentsVoiceWidget extends Disposable {
 	private readonly _inputBoxPlaceholder: HTMLElement | undefined;
 	private readonly _inputBoxToolbar: HTMLElement | undefined;
 	private readonly _inputBoxMicBtn: HTMLElement | undefined;
+	private readonly _inputBoxGearBtn: HTMLElement | undefined;
 	private readonly _inputBoxConnIndicator: HTMLElement | undefined;
-	private readonly _inputBoxMuteBtn: HTMLElement | undefined;
-	/** Ambient voice glow on the input box (input-box layout only). */
-	private readonly _glowController: IVoiceGlowController | undefined;
 	private readonly _inputBoxFeedbackBtn: HTMLElement | undefined;
 	private readonly _inputBoxSessionsBtn: HTMLElement | undefined;
 	private readonly _inputBoxCloseBtn: HTMLElement | undefined;
@@ -332,13 +310,6 @@ export class AgentsVoiceWidget extends Disposable {
 			this._inputBoxTranscriptComponent.element.style.display = 'none';
 			this._inputBoxContainer.append(this._inputBoxPlaceholder, this._inputBoxTranscriptComponent.element);
 
-			this._glowController = this._register(createVoiceGlowController(
-				this._inputBoxContainer,
-				() => this.callbacks.getGlowTheme(),
-				() => this.callbacks.getGlowColors(),
-			));
-			this._register(this.callbacks.onDidChangeGlowTheme(() => this._glowController?.refreshTheme()));
-
 			// Toolbar row below the input box
 			this._inputBoxToolbar = dom.$('div');
 			this._inputBoxToolbar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 4px 2px;-webkit-app-region:no-drag;';
@@ -363,22 +334,16 @@ export class AgentsVoiceWidget extends Disposable {
 			this._inputBoxMicBtn.ariaLabel = localize('agentsVoice.pushToTalkSpace', "Push to talk (Space)");
 			this._inputBoxMicBtn.title = localize('agentsVoice.pushToTalkSpace', "Push to talk (Space)");
 			this._inputBoxMicBtn.style.cssText = `font-size:${FONT_SIZE.iconMd};cursor:pointer;-webkit-app-region:no-drag;border-radius:4px;padding:2px;`;
-			this._register(dom.addDisposableListener(this._inputBoxMicBtn, 'contextmenu', (e: MouseEvent) => {
-				e.preventDefault(); e.stopPropagation();
-				this.callbacks.showVoiceContextMenu(e);
-			}));
 
 			// Connection indicator
 			this._inputBoxConnIndicator = toolbarBtn('codicon-debug-connected',
 				localize('agentsVoice.disconnect', "Disconnect"),
 				localize('agentsVoice.disconnect', "Disconnect"));
 
-			// Mute microphone button — color/label managed reactively in update.
-			this._inputBoxMuteBtn = dom.$('span.codicon.codicon-mic');
-			this._inputBoxMuteBtn.role = 'button';
-			this._inputBoxMuteBtn.tabIndex = 0;
-			this._inputBoxMuteBtn.style.cssText = `font-size:${FONT_SIZE.iconSm};color:var(--vscode-descriptionForeground);cursor:pointer;-webkit-app-region:no-drag;padding:2px;`;
-			addKeyboardActivation(this._inputBoxMuteBtn);
+			// Gear button
+			this._inputBoxGearBtn = toolbarBtn('codicon-gear',
+				localize('agentsVoice.configureKeybinding', "Configure keybinding"),
+				localize('agentsVoice.configureKeybinding', "Configure keybinding"));
 
 			// Feedback button
 			this._inputBoxFeedbackBtn = toolbarBtn('codicon-feedback',
@@ -405,7 +370,7 @@ export class AgentsVoiceWidget extends Disposable {
 			this._inputBoxToolbar.append(
 				this._inputBoxMicBtn,
 				this._inputBoxConnIndicator,
-				this._inputBoxMuteBtn,
+				this._inputBoxGearBtn,
 				toolbarSpacer,
 				this._inputBoxFeedbackBtn,
 				this._inputBoxSessionsBtn,
@@ -448,35 +413,12 @@ export class AgentsVoiceWidget extends Disposable {
 			// Track which key triggered PTT so keyup releases correctly
 			// even when the user rebinds pushToTalk to a different key.
 			// We capture the last keydown code at the document level (capture
-			// phase) and snapshot it once recording begins (see the autorun
-			// on the `listening` state below).
+			// phase) before the VS Code keybinding handler fires pttDown.
 			let pttKeyCode: string | undefined;
-			let heldKeyCode: string | undefined;
-			// True when a key was pressed and released again BEFORE recording
-			// actually began (e.g. the user tapped the PTT key during the async
-			// connect() that precedes the first pttDown()). Without this the
-			// release is lost - listening starts with no key to watch for and
-			// never stops. Reset whenever we return to a non-listening state.
-			let releasedBeforeListening = false;
-			const onDocKeydown = (e: KeyboardEvent) => { heldKeyCode = e.code; releasedBeforeListening = false; };
-			// Clear the tracked key once it is released so a stale code is
-			// never mistaken for a held PTT key (e.g. mouse-initiated PTT). If
-			// recording hasn't begun yet, remember that the key was released so
-			// the listening transition below can stop immediately.
-			const onDocKeyup = (e: KeyboardEvent) => {
-				if (e.code === heldKeyCode) {
-					heldKeyCode = undefined;
-					if (pttKeyCode === undefined) {
-						releasedBeforeListening = true;
-					}
-				}
-			};
+			let lastKeyDownCode: string | undefined;
+			const onDocKeydown = (e: KeyboardEvent) => { lastKeyDownCode = e.code; };
 			win.document.addEventListener('keydown', onDocKeydown, true);
-			win.document.addEventListener('keyup', onDocKeyup, true);
-			this._register(toDisposable(() => {
-				win.document.removeEventListener('keydown', onDocKeydown, true);
-				win.document.removeEventListener('keyup', onDocKeyup, true);
-			}));
+			this._register(toDisposable(() => win.document.removeEventListener('keydown', onDocKeydown, true)));
 
 			this._register(dom.addDisposableListener(this.container, 'keydown', (e: KeyboardEvent) => {
 				if (!_isTextInput(e.target) && pttKeyCode && e.code === pttKeyCode) {
@@ -493,32 +435,12 @@ export class AgentsVoiceWidget extends Disposable {
 				}
 			}));
 
-			// Snapshot which key started PTT when recording actually begins.
-			// The keyboard Push-to-Talk command calls the controller's
-			// `pttDown()` directly (bypassing `callbacks.pttDown`), so hook the
-			// resulting `listening` state transition to capture the key rather
-			// than the callback. Only snapshot when a key is physically held
-			// (keyboard PTT); mouse/pointer PTT leaves `heldKeyCode` undefined
-			// and releases via `pointerup`.
-			let wasListening = false;
-			this._register(autorun(reader => {
-				const listening = this._voiceState.read(reader) === 'listening';
-				if (listening && !wasListening && pttKeyCode === undefined) {
-					if (heldKeyCode !== undefined) {
-						pttKeyCode = heldKeyCode;
-					} else if (releasedBeforeListening) {
-						// The PTT key was already released while we were still
-						// connecting - stop recording right away instead of
-						// getting stuck listening with no key to release.
-						releasedBeforeListening = false;
-						this.callbacks.pttUp();
-					}
-				}
-				if (!listening) {
-					releasedBeforeListening = false;
-				}
-				wasListening = listening;
-			}));
+			// Hook into pttDown to snapshot which key started PTT.
+			const origPttDown = this.callbacks.pttDown;
+			(this.callbacks as VoiceWidgetCallbacks).pttDown = () => {
+				pttKeyCode = lastKeyDownCode;
+				origPttDown.call(this.callbacks);
+			};
 			// Catch pointerup outside the container too (mirrors the chat view pane behavior)
 			const onDocPointerUp = () => this.callbacks.pttUp();
 			win.document.addEventListener('pointerup', onDocPointerUp);
@@ -604,16 +526,8 @@ export class AgentsVoiceWidget extends Disposable {
 			this._register(reshowDisposable);
 		}
 
-		// Keep the connection glow alive between voice turns.
-		this._register(autorun(reader => {
-			const onboarding = this._showOnboarding.read(reader);
-			const connected = this._isConnected.read(reader);
-			if (onboarding || connected) {
-				this._startWaveformAnimation();
-			} else {
-				this._stopWaveformAnimation();
-			}
-		}));
+		// Start waveform animation
+		this._startWaveformAnimation();
 		this._register(toDisposable(() => this._stopWaveformAnimation()));
 	}
 
@@ -626,14 +540,11 @@ export class AgentsVoiceWidget extends Disposable {
 	}
 
 	private _updateDOMInputBoxLayout(reader: IReader): void {
+		const onboarding = this._showOnboarding.read(reader);
 		const voiceState = this._voiceState.read(reader);
 		const isConnected = this._isConnected.read(reader);
 		const isConnecting = this._isConnecting.read(reader);
 		const isReconnecting = this._isReconnecting.read(reader);
-		// The onboarding branch returns early, so showing it during a reconnect
-		// hides every progress affordance below and leaves a static "Get Started"
-		// button while the socket is actively retrying.
-		const onboarding = this._showOnboarding.read(reader) && !isReconnecting;
 		const showConnected = isConnected || isReconnecting;
 		const opts = this._options;
 		const showExpanded = this._shouldShowExpanded.read(reader) && opts.showExpandChevron;
@@ -656,7 +567,7 @@ export class AgentsVoiceWidget extends Disposable {
 
 			this._onboardingComponent.update({
 				pttKeyLabel: this._pttKeyLabel.read(reader),
-				isConnecting: this._onboardingPendingConnect.read(reader) || isConnecting || isReconnecting,
+				isConnecting: this._onboardingPendingConnect.read(reader) || isConnecting,
 				onGetStarted: (e) => { e.preventDefault(); e.stopPropagation(); this._dismissOnboarding(true); },
 				onOpenPttKeySettings: (e) => { e.preventDefault(); e.stopPropagation(); this.callbacks.openPttKeySettings(); },
 				onOpenPopout: this.callbacks.openPopout ? (e) => { e.preventDefault(); e.stopPropagation(); this.callbacks.openPopout?.(); } : undefined,
@@ -688,12 +599,14 @@ export class AgentsVoiceWidget extends Disposable {
 		const transcriptTurns = this._transcriptTurns.read(reader);
 		const hasTranscript = transcriptTurns.some(t => t.text.length > 0 || (t.speaker === 'user' && t.isPartial));
 
-		// The ambient glow is owned by the glow controller; clear it whenever the
-		// input box shouldn't be lit so no stale frame is left behind.
-		const shouldShowInputGlow = isConnected;
-		if (!shouldShowInputGlow) {
-			this._glowController?.clear();
+		// Toggle voice-active glow on the input container (base state; wave animation overrides dynamically)
+		if (!showConnected || (voiceState !== 'listening' && voiceState !== 'speaking')) {
+			this._inputBoxContainer!.style.borderColor = 'var(--vscode-input-border, transparent)';
+			this._inputBoxContainer!.style.boxShadow = 'none';
 		}
+
+		// Toggle processing comet animation when agent is thinking
+		this._inputBoxContainer!.classList.toggle('processing', voiceState === 'processing');
 
 		if (hasTranscript) {
 			if (showExpanded) {
@@ -718,33 +631,13 @@ export class AgentsVoiceWidget extends Disposable {
 			this._inputBoxTranscriptComponent.element.style.display = 'none';
 			this._transcriptComponent.element.style.display = 'none';
 			const keyLabel = this._pttKeyLabel.read(reader);
-			if (isReconnecting) {
-				// Prefer the status text: it carries the close reason for a retryable
-				// failure, which is the whole point of showing anything here.
-				this._inputBoxPlaceholder!.textContent = this._statusText.read(reader)
-					|| localize('agentsVoice.reconnecting', "Reconnecting...");
-			} else if (isConnecting) {
-				this._inputBoxPlaceholder!.textContent = localize('agentsVoice.connecting', "Connecting...");
-			} else if (isConnected && (voiceState === 'listening' || voiceState === 'speaking')) {
-				this._inputBoxPlaceholder!.textContent = '';
-			} else if (isConnected) {
-				this._inputBoxPlaceholder!.textContent = keyLabel
-					? localize('agentsVoice.holdToTalk', "Hold {0} to talk", keyLabel)
-					: localize('agentsVoice.holdMicToTalk', "Hold the mic to talk");
+			if (showConnected) {
+				this._inputBoxPlaceholder!.textContent = localize('agentsVoice.listening', "Listening");
 			} else if (keyLabel) {
 				this._inputBoxPlaceholder!.textContent = localize('agentsVoice.holdToTalk', "Hold {0} to talk", keyLabel);
 			} else {
 				this._inputBoxPlaceholder!.textContent = localize('agentsVoice.clickMicToTalk', "Click voice mode to talk");
 			}
-		}
-
-		// A transcript otherwise hides the placeholder, so a mid-session drop shows
-		// no progress at all. Keep the line visible while a connect is in flight.
-		if (isReconnecting || isConnecting) {
-			this._inputBoxPlaceholder!.style.display = '';
-			this._inputBoxPlaceholder!.textContent = isReconnecting
-				? (this._statusText.read(reader) || localize('agentsVoice.reconnecting', "Reconnecting..."))
-				: localize('agentsVoice.connecting', "Connecting...");
 		}
 
 		// Status rows — hide in inputBoxLayout (no "No active sessions" text needed)
@@ -782,40 +675,27 @@ export class AgentsVoiceWidget extends Disposable {
 		this._inputBoxMicBtn!.title = micTooltip;
 		this._inputBoxMicBtn!.ariaLabel = micTooltip;
 		const micColor = voiceState === 'error' ? 'var(--vscode-editorError-foreground)'
-			: isConnected ? 'var(--vscode-editorInfo-foreground)'
-				: 'var(--vscode-descriptionForeground)';
+			: voiceState === 'listening' ? 'var(--vscode-editorInfo-foreground)'
+				: voiceState === 'speaking' ? 'var(--vscode-agentsVoice-speakingForeground)'
+					: 'var(--vscode-descriptionForeground)';
 		this._inputBoxMicBtn!.style.color = micColor;
-		const micIsActive = isConnected;
+		const micIsActive = voiceState === 'listening' || voiceState === 'speaking';
 		this._inputBoxMicBtn!.classList.toggle('agents-voice-mode-active', micIsActive);
-		this._inputBoxMicBtn!.style.setProperty('--agents-voice-input-icon-rgb', '88,166,255');
+		this._inputBoxMicBtn!.style.setProperty('--agents-voice-input-icon-rgb', voiceState === 'speaking' ? '163,113,247' : '88,166,255');
 		this._inputBoxMicBtn!.style.borderRadius = '50%';
 		if (!micIsActive) {
 			this._inputBoxMicBtn!.style.boxShadow = 'none';
 		}
-		this._inputBoxMicBtn!.onmousedown = (e: MouseEvent) => { if (isSecondaryPointerGesture(e)) { return; } e.preventDefault(); this.callbacks.pttDown(); };
-		this._inputBoxMicBtn!.onmouseup = (e: MouseEvent) => { if (isSecondaryPointerGesture(e)) { return; } this.callbacks.pttUp(); };
+		this._inputBoxMicBtn!.onmousedown = (e: MouseEvent) => { e.preventDefault(); this.callbacks.pttDown(); };
+		this._inputBoxMicBtn!.onmouseup = () => { this.callbacks.pttUp(); };
 
 		// Connection indicator — visible when connected
 		this._inputBoxConnIndicator!.style.display = showConnected ? '' : 'none';
 		this._inputBoxConnIndicator!.onclick = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.disconnect(); };
 
-		// Mute microphone button — visible when connected, keeps the session alive
-		const muted = this._isMuted.read(reader);
-		this._inputBoxMuteBtn!.style.display = showConnected ? '' : 'none';
-		// Reflect the current mic state: muted shows the crossed-out mic, active shows the open mic.
-		this._inputBoxMuteBtn!.classList.toggle('codicon-mic-off', muted);
-		this._inputBoxMuteBtn!.classList.toggle('codicon-mic', !muted);
-		const muteColor = 'var(--vscode-descriptionForeground)';
-		this._inputBoxMuteBtn!.style.color = muteColor;
-		const muteLabel = muted
-			? localize('agentsVoice.unmuteMic', "Unmute Microphone")
-			: localize('agentsVoice.muteMic', "Mute Microphone");
-		this._inputBoxMuteBtn!.title = muteLabel;
-		this._inputBoxMuteBtn!.ariaLabel = muteLabel;
-		this._inputBoxMuteBtn!.setAttribute('aria-pressed', muted ? 'true' : 'false');
-		this._inputBoxMuteBtn!.onmouseenter = () => { this._inputBoxMuteBtn!.style.color = 'var(--vscode-foreground)'; };
-		this._inputBoxMuteBtn!.onmouseleave = () => { this._inputBoxMuteBtn!.style.color = muteColor; };
-		this._inputBoxMuteBtn!.onclick = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.toggleMute(); };
+		// Gear button — always visible
+		this._inputBoxGearBtn!.style.display = '';
+		this._inputBoxGearBtn!.onclick = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.openPttKeySettings(); };
 
 		// Feedback button — always visible
 		this._inputBoxFeedbackBtn!.onclick = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this._toggleFeedbackDialog(); };
@@ -842,7 +722,7 @@ export class AgentsVoiceWidget extends Disposable {
 		this._titleRow.style.display = (onboarding || !opts.title) ? 'none' : 'flex';
 
 		// Onboarding vs main UI
-		if (onboarding && !this._isReconnecting.read(reader)) {
+		if (onboarding) {
 			this._onboardingComponent.element.style.display = '';
 			this._headerComponent.element.style.display = 'none';
 			this._voiceBarComponent.element.style.display = 'none';
@@ -879,7 +759,6 @@ export class AgentsVoiceWidget extends Disposable {
 				showPopout: !!this.callbacks.openPopout && this._popoutAvailable.read(reader),
 				hideDisconnect: this.callbacks.hideDisconnect,
 				centerConnectButton: opts.centerConnectButton,
-				isMuted: this._isMuted.read(reader),
 				onMicDown: (e: MouseEvent) => { e.preventDefault(); this.callbacks.pttDown(); },
 				onMicUp: () => { this.callbacks.pttUp(); },
 				onConnectClick: (e: MouseEvent) => {
@@ -895,8 +774,7 @@ export class AgentsVoiceWidget extends Disposable {
 				onDisconnectClick: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.disconnect(); },
 				onCloseClick: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.closeWindow(); },
 				onToggleClick: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this._expanded.set(!this._expanded.get(), undefined); },
-				onMicContextMenu: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.showVoiceContextMenu(e); },
-				onMuteClick: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.toggleMute(); },
+				onPttKeyClick: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.openPttKeySettings(); },
 				onPopoutClick: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this.callbacks.openPopout?.(); },
 				onFeedbackClick: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); this._toggleFeedbackDialog(); },
 				pttKeyLabel: this._pttKeyLabel.read(reader),
@@ -991,10 +869,6 @@ export class AgentsVoiceWidget extends Disposable {
 
 	setReconnecting(reconnecting: boolean): void {
 		this._isReconnecting.set(reconnecting, undefined);
-	}
-
-	setMuted(muted: boolean): void {
-		this._isMuted.set(muted, undefined);
 	}
 
 	setVoiceState(state: VoiceState): void {
@@ -1111,11 +985,18 @@ export class AgentsVoiceWidget extends Disposable {
 		const animate = () => {
 			this._animationFrameId = getWindow(this.container).requestAnimationFrame(animate);
 			const onboarding = this._showOnboarding.get();
-			const connected = this._isConnected.get();
-			// The reactive autorun starts/stops this loop; guard against a frame
-			// that races a transition to a non-glowing state (styles are cleared
-			// by _stopWaveformAnimation()).
-			if (!(onboarding || connected)) {
+			const voiceState = this._voiceState.get();
+			const glowActive = onboarding || voiceState === 'speaking' || voiceState === 'listening';
+
+			if (!glowActive) {
+				this._glowDiv.style.display = 'none';
+				if (this._inputBoxContainer) {
+					this._inputBoxContainer.style.borderColor = 'var(--vscode-input-border, transparent)';
+					this._inputBoxContainer.style.boxShadow = 'none';
+				}
+				if (this._inputBoxMicBtn) {
+					this._inputBoxMicBtn.style.boxShadow = 'none';
+				}
 				return;
 			}
 
@@ -1136,23 +1017,32 @@ export class AgentsVoiceWidget extends Disposable {
 			}
 
 			// Animate input box container border/shadow (inputBoxLayout)
-			if (this._glowController && connected) {
-				this._glowController.render(intensity, this.callbacks.isMotionReduced());
+			if (this._inputBoxContainer) {
+				const r = (voiceState === 'speaking') ? '163,113,247' : '88,166,255';
+				const borderAlpha = 0.4 + intensity * 0.5;
+				const shadowSpread = 4 + intensity * 12;
+				const shadowAlpha = 0.15 + intensity * 0.35;
+				this._inputBoxContainer.style.borderColor = `rgba(${r},${borderAlpha})`;
+				this._inputBoxContainer.style.boxShadow = `0 0 ${shadowSpread}px rgba(${r},${shadowAlpha}), inset 0 0 ${shadowSpread * 0.4}px rgba(${r},${shadowAlpha * 0.3})`;
 			}
 
-			const colors = this.callbacks.getGlowColors();
 			if (this._inputBoxMicBtn) {
-				this._inputBoxMicBtn.style.boxShadow = connected
-					? computeVoiceMicGlowBoxShadow(intensity, colors)
-					: 'none';
+				const iconGlowActive = voiceState === 'listening' || voiceState === 'speaking';
+				if (iconGlowActive) {
+					const r = voiceState === 'speaking' ? '163,113,247' : '88,166,255';
+					const shadowSpread = 3 + intensity * 8;
+					const shadowAlpha = 0.2 + intensity * 0.45;
+					this._inputBoxMicBtn.style.boxShadow = `0 0 ${shadowSpread}px rgba(${r},${shadowAlpha})`;
+				} else {
+					this._inputBoxMicBtn.style.boxShadow = 'none';
+				}
 			}
 
 			// Classic layout glow div
 			this._glowDiv.style.display = '';
 			const baseOpacity = 0.15 + intensity * 0.4;
-			const { r, g, b } = colors.listening.rgba;
-			const rgb = `${r},${g},${b}`;
-			this._glowDiv.style.background = `radial-gradient(ellipse 40% 70% at 50% 0%, rgba(${rgb},${baseOpacity}) 0%, transparent 100%), radial-gradient(ellipse 70% 100% at 50% 0%, rgba(${rgb},${baseOpacity * 0.4}) 0%, transparent 100%)`;
+			const r = (onboarding || voiceState === 'speaking') ? '163,113,247' : '88,166,255';
+			this._glowDiv.style.background = `radial-gradient(ellipse 40% 70% at 50% 0%, rgba(${r},${baseOpacity}) 0%, transparent 100%), radial-gradient(ellipse 70% 100% at 50% 0%, rgba(${r},${baseOpacity * 0.4}) 0%, transparent 100%)`;
 		};
 		this._animationFrameId = getWindow(this.container).requestAnimationFrame(animate);
 	}
@@ -1161,12 +1051,6 @@ export class AgentsVoiceWidget extends Disposable {
 		if (this._animationFrameId !== undefined) {
 			getWindow(this.container).cancelAnimationFrame(this._animationFrameId);
 			this._animationFrameId = undefined;
-		}
-		// Clear any glow left by the last rendered frame after disconnecting.
-		this._glowDiv.style.display = 'none';
-		this._glowController?.clear();
-		if (this._inputBoxMicBtn) {
-			this._inputBoxMicBtn.style.boxShadow = 'none';
 		}
 	}
 }

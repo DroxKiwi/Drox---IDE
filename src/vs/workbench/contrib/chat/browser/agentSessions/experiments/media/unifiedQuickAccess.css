@@ -23,7 +23,7 @@
 .unified-quick-access-tabs .monaco-custom-radio .monaco-button {
 	padding: 5px 10px;
 	font-size: 12px;
-	font-weight: var(--vscode-fontWeight-semiBold);
+	font-weight: 500;
 	border-radius: var(--vscode-cornerRadius-small);
 	background: transparent;
 	color: var(--vscode-quickInput-foreground);
@@ -60,7 +60,7 @@
 	gap: 4px;
 	padding: 4px 12px;
 	font-size: 12px;
-	font-weight: var(--vscode-fontWeight-semiBold);
+	font-weight: 500;
 	border-radius: 4px;
 	background: var(--vscode-button-background);
 	color: var(--vscode-button-foreground);
@@ -79,12 +79,12 @@
 }
 
 .unified-send-button .codicon {
-	font-size: var(--vscode-codiconFontSize-compact) !important;
+	font-size: 14px !important;
 	color: var(--vscode-button-foreground) !important;
 }
 
 .unified-send-label {
-	font-weight: var(--vscode-fontWeight-semiBold);
+	font-weight: 500;
 }
 
 /* Quick pick item enhancements for agent sessions */
@@ -109,7 +109,7 @@
 	padding: 2px 6px;
 	border-radius: 10px;
 	font-size: 11px;
-	font-weight: var(--vscode-fontWeight-semiBold);
+	font-weight: 500;
 	background: var(--vscode-badge-background);
 	color: var(--vscode-badge-foreground);
 }
@@ -149,7 +149,7 @@
 }
 
 .unified-quick-access-pr-badge .codicon {
-	font-size: var(--vscode-codiconFontSize-compact);
+	font-size: 12px;
 }
 
 /* Action text styling (e.g., "Run 'zsh' command?") */

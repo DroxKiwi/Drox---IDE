@@ -150,7 +150,7 @@ export function createStatusRows(): StatusRowsComponent {
 
 			if (showCounters) {
 				workingRow.update('var(--vscode-charts-green)', props.workingCount, localize('agentsVoice.working', "working"));
-				needsInputRow.update('var(--vscode-editorWarning-foreground)', props.needsInputCount, localize('agentsVoice.needsInput', "needs attention"));
+				needsInputRow.update('var(--vscode-editorWarning-foreground)', props.needsInputCount, localize('agentsVoice.needsInput', "needs input"));
 				doneRow.update('var(--vscode-disabledForeground)', props.doneCount, localize('agentsVoice.done', "done"));
 				noSessionsRow.style.display = !hasAny ? 'flex' : 'none';
 			} else {

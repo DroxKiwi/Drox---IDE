@@ -18,7 +18,6 @@ import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
 import { INotificationService, Progress, ProgressLocation } from '../../../platform/notification/common/notificationService';
-import { getSafeNotificationMessage } from '../../../platform/notification/common/notificationMessage';
 import { CodeReviewInput, CodeReviewResult, toCodeReviewResult } from '../../../platform/review/common/reviewCommand';
 import { IReviewService, ReviewComment } from '../../../platform/review/common/reviewService';
 import { IScopeSelector } from '../../../platform/scopeSelection/common/scopeSelection';
@@ -279,10 +278,7 @@ export type ReviewGroup = 'selection' | 'index' | 'workingTree' | 'all' | { grou
  */
 export function getReviewTitle(group: ReviewGroup, editor?: TextEditor): string {
 	if (group === 'selection') {
-		return getSafeNotificationMessage(
-			l10n.t('Reviewing selected code in {0}...', path.posix.basename(editor!.document.uri.path)),
-			l10n.t('Reviewing selected code...'),
-		);
+		return l10n.t('Reviewing selected code in {0}...', path.posix.basename(editor!.document.uri.path));
 	}
 	if (group === 'index') {
 		return l10n.t('Reviewing staged changes...');
@@ -297,15 +293,9 @@ export function getReviewTitle(group: ReviewGroup, editor?: TextEditor): string 
 		return l10n.t('Reviewing changes...');
 	}
 	if (group.group === 'index') {
-		return getSafeNotificationMessage(
-			l10n.t('Reviewing staged changes in {0}...', path.posix.basename(group.file.path)),
-			l10n.t('Reviewing staged changes...'),
-		);
+		return l10n.t('Reviewing staged changes in {0}...', path.posix.basename(group.file.path));
 	}
-	return getSafeNotificationMessage(
-		l10n.t('Reviewing unstaged changes in {0}...', path.posix.basename(group.file.path)),
-		l10n.t('Reviewing unstaged changes...'),
-	);
+	return l10n.t('Reviewing unstaged changes in {0}...', path.posix.basename(group.file.path));
 }
 
 export function combineCancellationTokens(token1: CancellationToken, token2: CancellationToken): CancellationToken {

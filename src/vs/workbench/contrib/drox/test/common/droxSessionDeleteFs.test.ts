@@ -18,24 +18,18 @@ suite('droxSessionDeleteFs', () => {
 
 	test('deleteDroxSessionOnDisk removes transcript and auxiliary files', async () => {
 		const fileService = new FileService(new NullLogService());
-		const provider = new InMemoryFileSystemProvider();
-		const registration = fileService.registerProvider(Schemas.file, provider);
-		try {
-			const workspaceFsPath = '/ws';
-			const sessionId = 'ses_test-delete';
-			for (const path of droxSessionArtifactPaths(workspaceFsPath, sessionId)) {
-				await fileService.writeFile(URI.file(path), VSBuffer.fromString(''));
-			}
+		fileService.registerProvider(Schemas.file, new InMemoryFileSystemProvider());
 
-			await deleteDroxSessionOnDisk(fileService, workspaceFsPath, sessionId);
+		const workspaceFsPath = '/ws';
+		const sessionId = 'ses_test-delete';
+		for (const path of droxSessionArtifactPaths(workspaceFsPath, sessionId)) {
+			await fileService.writeFile(URI.file(path), VSBuffer.fromString(''));
+		}
 
-			for (const path of droxSessionArtifactPaths(workspaceFsPath, sessionId)) {
-				assert.strictEqual(await fileService.exists(URI.file(path)), false, path);
-			}
-		} finally {
-			registration.dispose();
-			provider.dispose();
-			fileService.dispose();
+		await deleteDroxSessionOnDisk(fileService, workspaceFsPath, sessionId);
+
+		for (const path of droxSessionArtifactPaths(workspaceFsPath, sessionId)) {
+			assert.strictEqual(await fileService.exists(URI.file(path)), false, path);
 		}
 	});
 });

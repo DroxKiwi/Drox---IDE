@@ -110,7 +110,7 @@ There are two phases:
 ### Phase 1: Generate (uses LLM — slow, run once)
 
 ```bash
-pnpm run generate
+npm run generate
 ```
 
 For each `.scenario.md` file, the generate script:
@@ -136,7 +136,7 @@ test plan that everyone runs.
 ### Phase 2: Test (no LLM — fast, deterministic)
 
 ```bash
-pnpm test
+npm test
 ```
 
 The test runner reads each `.commands.json` and replays the `playwright-cli`
@@ -145,7 +145,7 @@ Just sequential commands and assertions.
 
 ### When to Re-generate
 
-Run `pnpm run generate` when:
+Run `npm run generate` when:
 - You add a new `.scenario.md` file
 - The UI changes and refs are stale (tests start failing)
 - You modify an existing scenario's steps
@@ -185,11 +185,15 @@ scripts/
 
 ## Prerequisites
 
-- VS Code compiled (`out/` at the repo root). This folder is a member of the root pnpm workspace, so the root `pnpm install` also installs its dependencies:
+- VS Code compiled (`out/` at the repo root):
   ```bash
-  pnpm install && pnpm run compile
+  npm install && npm run compile
   ```
-- Copilot CLI available (for `pnpm run generate` only):
+- Dependencies installed:
+  ```bash
+  cd src/vs/sessions/test/e2e && npm install
+  ```
+- Copilot CLI available (for `npm run generate` only):
   ```bash
   copilot --version
   ```
@@ -200,10 +204,10 @@ scripts/
 cd src/vs/sessions/test/e2e
 
 # First time or after UI changes:
-pnpm run generate
+npm run generate
 
 # Run tests (fast, deterministic):
-pnpm test
+npm test
 ```
 
 Example test output:
@@ -244,9 +248,9 @@ Results: 6 passed, 0 failed
 4. Verify the repository picker dropdown is visible
 ```
 
-3. Run `pnpm run generate` to compile it into a `.commands.json` file.
+3. Run `npm run generate` to compile it into a `.commands.json` file.
 
-4. Run `pnpm test` to verify it works.
+4. Run `npm test` to verify it works.
 
 5. Commit both the `.scenario.md` and `.commands.json` files.
 
@@ -325,7 +329,7 @@ It shells out to `playwright-cli click e143`. Done. No parsing, no matching.
 - **One action per step** — keep steps atomic for clear failure messages.
 - **Order matters** — scenarios run sequentially; an Escape is pressed between them.
 - **Prefix filenames** with numbers (`01-`, `02-`, …) to control execution order.
-- **Re-generate selectively**: `pnpm run generate 01-repo` to recompile one scenario.
+- **Re-generate selectively**: `npm run generate -- 01-repo` to recompile one scenario.
 
 ### Testing File Diffs
 

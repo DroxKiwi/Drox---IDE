@@ -15,11 +15,11 @@ import { IsAuxiliaryWindowContext, IsSessionsWindowContext, IsTopRightEditorGrou
 import { Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
 import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
-import { SessionsWelcomeVisibleContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
-import { ISessionsService } from '../../../../workbench/contrib/sessions/browser/sessionsService.js';
+import { SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
+import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
 import { ISessionsTasksService } from '../../chat/browser/sessionsTasksService.js';
-import { SessionsTerminalContribution } from '../../terminal/browser/droxSessionsTerminalContribution.js';
-import { CHANGES_VIEW_ID } from '../../../../workbench/contrib/sessions/common/changes.js';
+import { SessionsTerminalContribution } from '../../terminal/browser/sessionsTerminalContribution.js';
+import { CHANGES_VIEW_ID } from '../../changes/common/changes.js';
 
 /** Submenu for the editor-tab "+" control (Cursor-like new page menu). */
 export const SessionEditorNewTabMenu = new MenuId('SessionEditorNewTabMenu');
@@ -71,7 +71,7 @@ registerAction2(class extends Action2 {
 	override async run(accessor: ServicesAccessor): Promise<void> {
 		const sessionsService = accessor.get(ISessionsService);
 		const contribution = getWorkbenchContribution<SessionsTerminalContribution>(SessionsTerminalContribution.ID);
-		await contribution.openNewTerminal(sessionsService.activePane.get()?.session.get());
+		await contribution.openNewTerminal(sessionsService.activeSession.get());
 	}
 });
 
@@ -93,7 +93,7 @@ registerAction2(class extends Action2 {
 
 		revealEditorPart(layoutService);
 
-		const activeSession = sessionsService.activePane.get()?.session.get();
+		const activeSession = sessionsService.activeSession.get();
 		const folder = activeSession?.workspace.get()?.folders[0];
 		const browserUrl = sessionsTasksService.getBrowserUrl(folder?.root).get();
 		if (browserUrl) {

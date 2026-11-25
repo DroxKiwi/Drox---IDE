@@ -1,7 +1,158 @@
-# 02 — Mise à jour VS Code
+# 02 — Mise à jour VS Code (upstream)
 
-Cette page ne décrit plus la montée. L’ancienne méthode (merge de `upstream/main`, puis recopie d’une liste de dossiers) écrase des réglages Drox et n’est plus à suivre.
+À faire **seulement** si tu changes `version` (base VS Code) dans `package.json`.
 
-La procédure actuelle est locale, dans `docs/Drox---IDE---rebase/README.md`. Ce dossier est ignoré par git : il n’est pas dans le dépôt public. On la lance par `docs/Drox---IDE---rebase/scripts/rebase.ps1 etat`, qui indique l’étape suivante.
+**Ne pas** merger `upstream/main` directement sur `main` sources (historiques séparés).
 
-Elle rejoue la couche Drox sur la version VS Code demandée, dans un dossier d’atelier, puis dépose l’arbre sur la branche de départ seulement sur demande. Elle ne fait pas de merge.
+---
+
+## 1. Sauvegarder
+
+```powershell
+cd <REPO>
+git checkout main
+git pull origin main
+git tag <DROX_VER>-pre-upstream main
+```
+
+---
+
+## 2. Créer / mettre à jour la branche integrate
+
+**Si une base `integrate/vscode-from-*` existe déjà** (cas habituel) :
+
+```powershell
+git fetch upstream
+git checkout -B integrate/vscode-<VSCODE_VER>-from-<DROX_VER> integrate/vscode-from-<ancre>
+git merge upstream/main -m "merge: upstream/main vers <VSCODE_VER>"
+```
+
+**Première fois** (pas encore de base integrate) :
+
+```powershell
+git checkout -b integrate/vscode-from-<DROX_VER> <tag-ou-branche-drox>
+git merge upstream/main
+```
+
+---
+
+## 3. Réappliquer la couche Drox depuis `main`
+
+```powershell
+git checkout main -- `
+  src/vs/workbench/contrib/drox `
+  drox-engine `
+  package.json product.json `
+  build/lib/droxVersion.ts `
+  build/lib/stylelint/vscode-known-variables.json `
+  .eslint-allowed-javascript-files `
+  scripts/drox-release.ps1 scripts/fix-drox-precommit.mjs `
+  scripts/lib/drox-bundle-readiness.ps1 scripts/lib/drox-release-manifest.mjs `
+  resources/drox resources/win32/drox.ico resources/win32/drox_256.png `
+  NOTICE-DROX.txt LICENSE-INSTALL.txt logo3.png `
+  .github/workflows/drox-release-linux.yml `
+  scripts/templates/NOTICE.md `
+  src/vs/workbench/browser/media/kdds-code-icon.png `
+  scripts/release/build-release-linux.sh scripts/release/release-publish-linux.sh `
+  scripts/verify-packaged-linux.sh `
+  scripts/release/wsl-linux-build-isolated.ps1 `
+  scripts/release/wsl-linux-build.sh `
+  scripts/release/restore-windows-dev.ps1 `
+  scripts/release/restore-windows-dev-deps.ps1 `
+  scripts/release/drox-release.ps1 scripts/release/build-release-win32.ps1 `
+  scripts/wsl-linux-build.ps1 scripts/wsl-linux-build.sh `
+  scripts/restore-windows-dev.ps1 scripts/restore-windows-dev-deps.ps1
+```
+
+Supprimer les fichiers morts (présents sur integrate, absents de `main`) :
+
+```powershell
+git status --short
+git rm -f <fichier-obsolète>
+```
+
+Mettre à jour `package.json` :
+
+- `version` → `<VSCODE_VER>` (depuis upstream)
+- `droxVersion` → inchangé (ex. `1.5.4`)
+- `distro` → valeur upstream si conflit
+
+---
+
+## 4. Résoudre conflits build fork
+
+Fichiers sensibles — garder les patches Drox :
+
+| Fichier | Garder |
+|---------|--------|
+| `build/lib/electron.ts` | `winIcon` drox · `DROX_SKIP_ELECTRON_CHECKSUM` · feed upstream si présent |
+| `build/gulpfile.vscode.ts` | `core-ci-desktop` · embarquement `resources/drox` |
+
+Détail : [PATCHES-UPSTREAM-BUILD.md](../1.3/1.3.0/finalisation/PATCHES-UPSTREAM-BUILD.md)
+
+`vscode-known-variables.json` : prendre upstream + variables `--drox-*` / `--nexus-*` de `main`.
+
+---
+
+## 5. Valider integrate
+
+```powershell
+.\scripts\list-nexus-patches.ps1
+npm run compile
+cd drox-engine/drox; cargo test --workspace; cd ../..
+npm run precommit
+git add -A
+git commit -m "Intégrer VS Code <VSCODE_VER> avec couche Drox <DROX_VER>."
+```
+
+Smoke F5 identique à [01-BRANCHE.md](01-BRANCHE.md) §3.
+
+**Release depuis integrate** : possible sans merger `main` → [03-RELEASE-WINDOWS.md](03-RELEASE-WINDOWS.md).
+
+---
+
+## 6. (Optionnel) Publier l’intégration sur `main` sources
+
+```powershell
+git fetch origin
+git checkout -B publish/vscode-<DROX_VER> origin/main
+$env:GIT_LFS_SKIP_SMUDGE = "1"
+git read-tree -u --reset integrate/vscode-<VSCODE_VER>-from-<DROX_VER>
+git rm -r -f extensions/copilot/test/simulation/cache 2>$null
+git commit -m "Intégrer VS Code <VSCODE_VER> avec Drox <DROX_VER> sur main."
+git push origin publish/vscode-<DROX_VER>:main
+git checkout main && git pull origin main
+```
+
+La branche `integrate/*` peut rester **locale**.
+
+---
+
+## Checklist post-merge (fichiers Drox)
+
+Après intégration VS Code, vérifier que ces éléments **Drox** n’ont pas été écrasés :
+
+| Fichier / zone | Pourquoi |
+|----------------|----------|
+| `resources/linux/code-open-folder.desktop` | Menu « Ouvrir avec Drox » + build `.deb` |
+| `resources/linux/code.png` | Icône paquet Linux |
+| `product.json` (`linuxIconName`, `applicationName`, `nameLong`) | Desktop + `.deb` |
+| `build/win32/code.iss` | Installeur Windows + menus contextuels |
+| `drox-engine/`, `resources/drox/` | Moteur bundlé |
+
+```powershell
+git diff integrate/vscode-* -- resources/linux/code-open-folder.desktop product.json
+```
+
+Si `code-open-folder.desktop` manque : `git checkout <commit-avant-merge> -- resources/linux/code-open-folder.desktop`
+
+---
+
+## Problèmes
+
+| Symptôme | Action |
+|----------|--------|
+| `refusing to merge unrelated histories` sur `main` | Normal — utiliser branche `integrate/*` + overlay (ce guide), pas merge direct sur `main` |
+| Hygiene : variables CSS inconnues | Compléter `vscode-known-variables.json` (voir upstream + vars Drox) |
+| `drox-engine` écrasé | `git checkout main -- drox-engine` |
+| Fichiers `contrib/drox` obsolètes restants | `git checkout main -- src/vs/workbench/contrib/drox` puis `git rm` des extras listés par `git status` |

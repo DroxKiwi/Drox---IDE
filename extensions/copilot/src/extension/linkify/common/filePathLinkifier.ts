@@ -13,7 +13,7 @@ import { isWindows } from '../../../util/vs/base/common/platform';
 import * as resources from '../../../util/vs/base/common/resources';
 import { isUriComponents } from '../../../util/vs/base/common/uri';
 import { Uri } from '../../../vscodeTypes';
-import { LinkifiedPart, LinkifiedText, LinkifyLocationAnchor, coalesceParts, singleMatch } from './linkifiedText';
+import { coalesceParts, LinkifiedPart, LinkifiedText, LinkifyLocationAnchor } from './linkifiedText';
 import { IContributedLinkifier, LinkifierContext } from './linkifyService';
 import { IStatCache } from './statCache';
 
@@ -36,14 +36,6 @@ const pathMatchRe = new RegExp(
  * foo.ts
  * ```
  */
-/**
- * Whether the author wrote something path-shaped rather than a bare word. `web` or `FooBar`
- * are far more likely prose than a reference to a same-named folder.
- */
-function looksLikePath(text: string): boolean {
-	return /[\\/]/.test(text) || /\.[^.\s\\/]+$/.test(text);
-}
-
 export class FilePathLinkifier implements IContributedLinkifier {
 
 	constructor(
@@ -125,7 +117,7 @@ export class FilePathLinkifier implements IContributedLinkifier {
 			return;
 		}
 
-		const result = await this.resolveInWorkspaceFolders(workspaceFolders, pathText, includeDirectorySlash, looksLikePath(pathText));
+		const result = await this.resolveInWorkspaceFolders(workspaceFolders, pathText, includeDirectorySlash);
 		if (result) {
 			return result;
 		}
@@ -137,35 +129,35 @@ export class FilePathLinkifier implements IContributedLinkifier {
 		// Also skip if text contains code-like characters that are rarely in real filenames.
 		if (!pathText.includes('/') && !pathText.includes('\\') && !/[${}()]/.test(pathText)) {
 			const name = path.basename(pathText);
-			return singleMatch(context.references
+			const refUri = context.references
 				.map(ref => {
 					if ('variableName' in ref.anchor) {
 						return isUriComponents(ref.anchor.value) ? ref.anchor.value : ref.anchor.value?.uri;
 					}
 					return isUriComponents(ref.anchor) ? ref.anchor : ref.anchor.uri;
 				})
-				.filter((item): item is Uri => !!item && resources.basename(item) === name));
+				.filter((item): item is Uri => !!item)
+				.find(refUri => resources.basename(refUri) === name);
+
+			return refUri;
 		}
 
 		return undefined;
 	}
 
-	private async resolveInWorkspaceFolders(workspaceFolders: readonly Uri[], pathText: string, includeDirectorySlash: boolean, allowDirectories: boolean): Promise<Uri | undefined> {
+	private async resolveInWorkspaceFolders(workspaceFolders: readonly Uri[], pathText: string, includeDirectorySlash: boolean): Promise<Uri | undefined> {
 		const candidates = workspaceFolders.map(folder => Uri.joinPath(folder, pathText));
-		const results = await Promise.all(candidates.map(uri => this.statAndNormalizeUri(uri, includeDirectorySlash, allowDirectories)));
-		return singleMatch(results);
+		const results = await Promise.all(candidates.map(uri => this.statAndNormalizeUri(uri, includeDirectorySlash)));
+		return results.find((r): r is Uri => r !== undefined);
 	}
 
-	private async statAndNormalizeUri(uri: Uri, includeDirectorySlash: boolean, allowDirectories = true): Promise<Uri | undefined> {
+	private async statAndNormalizeUri(uri: Uri, includeDirectorySlash: boolean): Promise<Uri | undefined> {
 		try {
 			const stat = await this.statCache.stat(uri);
 			if (!stat) {
 				return undefined;
 			}
 			if (stat.type === FileType.Directory) {
-				if (!allowDirectories) {
-					return undefined;
-				}
 				if (includeDirectorySlash) {
 					return uri.path.endsWith('/') ? uri : uri.with({ path: `${uri.path}/` });
 				}

@@ -6,11 +6,9 @@
 import { bufferToStream, VSBuffer } from '../../../common/buffer.js';
 import { CancellationToken } from '../../../common/cancellation.js';
 import { canceled } from '../../../common/errors.js';
-import { clearMarks, mark } from '../../../common/performance.js';
-import { StopWatch } from '../../../common/stopwatch.js';
 import { IHeaders, IRequestContext, IRequestOptions, OfflineError } from './request.js';
 
-export async function request(options: IRequestOptions, token: CancellationToken, isOnline?: () => boolean, fetcher: typeof fetch = fetch): Promise<IRequestContext> {
+export async function request(options: IRequestOptions, token: CancellationToken, isOnline?: () => boolean): Promise<IRequestContext> {
 	if (token.isCancellationRequested) {
 		throw canceled();
 	}
@@ -21,16 +19,6 @@ export async function request(options: IRequestOptions, token: CancellationToken
 		cancellation.signal,
 		AbortSignal.timeout(options.timeout),
 	]) : cancellation.signal;
-	const watch = options.diagnosticId ? StopWatch.create(false) : undefined;
-	const marks: string[] = [];
-	let phase = 'headers';
-	const trace = (event: string) => {
-		if (options.diagnosticId) {
-			const name = `code/request/${options.diagnosticId}/${event}`;
-			marks.push(name);
-			mark(name);
-		}
-	};
 
 	try {
 		const fetchInit: RequestInit = {
@@ -42,46 +30,27 @@ export async function request(options: IRequestOptions, token: CancellationToken
 		if (options.disableCache) {
 			fetchInit.cache = 'no-store';
 		}
-		if (options.followRedirects === 0) {
-			fetchInit.redirect = 'manual';
-		}
-		trace('start');
-		const res = await fetcher(options.url || '', fetchInit);
-		const responseHeadersMs = watch?.elapsed();
-		trace('headersReceived');
-		phase = 'body';
-		const body = new Uint8Array(await res.arrayBuffer());
-		const responseBodyMs = watch && responseHeadersMs !== undefined ? watch.elapsed() - responseHeadersMs : undefined;
-		trace('bodyReceived');
+		const res = await fetch(options.url || '', fetchInit);
 		return {
 			res: {
 				statusCode: res.status,
 				headers: getResponseHeaders(res),
 			},
-			stream: bufferToStream(VSBuffer.wrap(body)),
-			...(responseHeadersMs !== undefined && responseBodyMs !== undefined ? {
-				timings: { responseHeadersMs, responseBodyMs, decodedBodyBytes: body.byteLength },
-			} : {}),
+			stream: bufferToStream(VSBuffer.wrap(new Uint8Array(await res.arrayBuffer()))),
 		};
 	} catch (err) {
-		// Chromium body reads throw AbortError even when the signal was aborted by a timeout.
-		const timedOut = err?.name === 'TimeoutError' || (err?.name === 'AbortError' && signal.reason?.name === 'TimeoutError');
-		trace(`${phase}/${!timedOut && (token.isCancellationRequested || err?.name === 'AbortError') ? 'cancelled' : 'failed'}`);
 		if (isOnline && !isOnline()) {
 			throw new OfflineError();
-		}
-		if (timedOut) {
-			throw new Error(`Fetch timeout: ${options.timeout}ms`);
 		}
 		if (err?.name === 'AbortError') {
 			throw canceled();
 		}
+		if (err?.name === 'TimeoutError') {
+			throw new Error(`Fetch timeout: ${options.timeout}ms`);
+		}
 		throw err;
 	} finally {
 		disposable.dispose();
-		for (const name of marks) {
-			clearMarks(name);
-		}
 	}
 }
 

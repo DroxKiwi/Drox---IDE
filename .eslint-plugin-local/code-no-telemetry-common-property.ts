@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import type * as ESTree from 'estree';
 
 const telemetryMethods = new Set(['publicLog', 'publicLog2', 'publicLogError', 'publicLogError2']);
 
@@ -46,22 +47,19 @@ const commonTelemetryProperties = new Set([
 	'common.useragent',
 	'common.istouchdevice',
 	'common.copilottrackingid',
-	'common.copilotsdkversion',
-	'common.copilotruntimeversion',
-	'copilotsku',
 	'common.isagentswindow',
 ]);
 
-export default new class NoTelemetryCommonProperty implements CreateRule {
+export default new class NoTelemetryCommonProperty implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			noCommonProperty: 'Telemetry events must not contain the common property "{{name}}". Common properties are automatically added by the telemetry pipeline and will be dropped.',
 		},
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
 		/**
 		 * Check whether any property key in an object expression is a reserved common telemetry property.

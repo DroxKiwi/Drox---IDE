@@ -55,6 +55,8 @@ export class GitHubCopilotLogger extends Disposable implements GitHubLogger {
 	) {
 		super();
 		this._register(onCopilotToken(authenticationService, t => this.checkCopilotToken(t)));
+
+		this.createChannel();
 	}
 
 	private checkCopilotToken = (token: Omit<CopilotToken, 'token'>) => {
@@ -86,12 +88,8 @@ export class GitHubCopilotLogger extends Disposable implements GitHubLogger {
 			return this.output.value;
 		}
 
-		this.output.value = new CodeReferenceOutputChannel(this.createOutputChannel());
+		this.output.value = new CodeReferenceOutputChannel(window.createOutputChannel(citationsChannelName, 'code-referencing'));
 		return this.output.value;
-	}
-
-	protected createOutputChannel(): OutputChannel {
-		return window.createOutputChannel(citationsChannelName, 'code-referencing');
 	}
 
 	private getChannel(): CodeReferenceOutputChannel | undefined {

@@ -20,7 +20,7 @@ export class SaturationBox extends Disposable {
 	private width!: number;
 	private height!: number;
 
-	private readonly monitor = this._register(new GlobalPointerMoveMonitor());
+	private monitor: GlobalPointerMoveMonitor | null;
 	private readonly _onDidChange = this._register(new Emitter<{ s: number; v: number }>());
 	readonly onDidChange: Event<{ s: number; v: number }> = this._onDidChange.event;
 
@@ -46,6 +46,7 @@ export class SaturationBox extends Disposable {
 
 		this._register(dom.addDisposableListener(this._domNode, dom.EventType.POINTER_DOWN, e => this.onPointerDown(e)));
 		this._register(this.model.onDidChangeColor(this.onDidChangeColor, this));
+		this.monitor = null;
 	}
 
 	public get domNode() {
@@ -56,6 +57,7 @@ export class SaturationBox extends Disposable {
 		if (!e.target || !(e.target instanceof Element)) {
 			return;
 		}
+		this.monitor = this._register(new GlobalPointerMoveMonitor());
 		const origin = dom.getDomNodePagePosition(this._domNode);
 
 		if (e.target !== this.selection) {
@@ -67,7 +69,10 @@ export class SaturationBox extends Disposable {
 		const pointerUpListener = dom.addDisposableListener(e.target.ownerDocument, dom.EventType.POINTER_UP, () => {
 			this._onColorFlushed.fire();
 			pointerUpListener.dispose();
-			this.monitor.stopMonitoring(true);
+			if (this.monitor) {
+				this.monitor.stopMonitoring(true);
+				this.monitor = null;
+			}
 		}, true);
 	}
 
@@ -119,7 +124,7 @@ export class SaturationBox extends Disposable {
 	}
 
 	private onDidChangeColor(color: Color): void {
-		if (this.monitor.isMonitoring()) {
+		if (this.monitor && this.monitor.isMonitoring()) {
 			return;
 		}
 		this.paint();

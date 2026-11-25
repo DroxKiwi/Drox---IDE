@@ -15,20 +15,14 @@ yaserver.createServer({
 	const server = http.createServer((request, response) => {
 		return staticServer.handle(request, response);
 	});
-	server.listen(PORT, '127.0.0.1', async () => {
-		try {
-			await runTests();
+	server.listen(PORT, '127.0.0.1', () => {
+		runTests().then(() => {
 			console.log(`All good`);
-		} catch (err) {
+			process.exit(0);
+		}, (err) => {
 			console.error(err);
-			process.exitCode = 1;
-		} finally {
-			// Let the event loop drain instead of calling `process.exit()`. Exiting
-			// that way skips V8 heap teardown and can deadlock while joining V8
-			// background threads (https://github.com/nodejs/node/issues/54918).
-			server.close();
-			server.closeAllConnections();
-		}
+			process.exit(1);
+		});
 	});
 });
 

@@ -31,7 +31,8 @@ import { NotificationsToasts } from './parts/notifications/notificationsToasts.j
 import { setARIAContainer } from '../../base/browser/ui/aria/aria.js';
 import { FontMeasurements } from '../../editor/browser/config/fontMeasurements.js';
 import { createBareFontInfoFromRawSettings } from '../../editor/common/config/fontInfoFromSettings.js';
-import { createUnexpectedErrorHandler, ILogService } from '../../platform/log/common/log.js';
+import { ILogService } from '../../platform/log/common/log.js';
+import { toErrorMessage } from '../../base/common/errorMessage.js';
 import { WorkbenchContextKeysHandler } from './contextkeys.js';
 import { coalesce } from '../../base/common/arrays.js';
 import { InstantiationService } from '../../platform/instantiation/common/instantiationService.js';
@@ -105,7 +106,26 @@ export class Workbench extends Layout {
 		});
 
 		// Install handler for unexpected errors
-		setUnexpectedErrorHandler(createUnexpectedErrorHandler(logService));
+		setUnexpectedErrorHandler(error => this.handleUnexpectedError(error, logService));
+	}
+
+	private previousUnexpectedError: { message: string | undefined; time: number } = { message: undefined, time: 0 };
+	private handleUnexpectedError(error: unknown, logService: ILogService): void {
+		const message = toErrorMessage(error, true);
+		if (!message) {
+			return;
+		}
+
+		const now = Date.now();
+		if (message === this.previousUnexpectedError.message && now - this.previousUnexpectedError.time <= 1000) {
+			return; // Return if error message identical to previous and shorter than 1 second
+		}
+
+		this.previousUnexpectedError.time = now;
+		this.previousUnexpectedError.message = message;
+
+		// Log it
+		logService.error(message);
 	}
 
 	startup(): IInstantiationService {
@@ -328,8 +348,6 @@ export class Workbench extends Layout {
 			{ id: Parts.BANNER_PART, role: 'banner', classes: ['banner'] },
 			{ id: Parts.ACTIVITYBAR_PART, role: 'none', classes: ['activitybar', this.getSideBarPosition() === Position.LEFT ? 'left' : 'right'] }, // Use role 'none' for some parts to make screen readers less chatty #114892
 			{ id: Parts.SIDEBAR_PART, role: 'none', classes: ['sidebar', this.getSideBarPosition() === Position.LEFT ? 'left' : 'right'] },
-			// A chat part only where a feature registered one as the window started
-			...(this.hasPart(Parts.CHAT_PART) ? [{ id: Parts.CHAT_PART, role: 'none', classes: ['chat'] }] : []),
 			{ id: Parts.EDITOR_PART, role: 'main', classes: ['editor'], options: { restorePreviousState: this.willRestoreEditors() } },
 			{ id: Parts.PANEL_PART, role: 'none', classes: ['panel', 'basepanel', positionToString(this.getPanelPosition())] },
 			{ id: Parts.AUXILIARYBAR_PART, role: 'none', classes: ['auxiliarybar', 'basepanel', this.getSideBarPosition() === Position.LEFT ? 'right' : 'left'] },
@@ -380,7 +398,7 @@ export class Workbench extends Layout {
 		}));
 
 		// Register Commands
-		this._register(registerNotificationCommands(notificationsCenter, notificationsToasts, notificationService.model));
+		registerNotificationCommands(notificationsCenter, notificationsToasts, notificationService.model);
 
 		// Register notification accessible view
 		AccessibleViewRegistry.register(new NotificationAccessibleView());

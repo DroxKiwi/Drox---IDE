@@ -56,10 +56,7 @@ export class LanguagePackCachedDataCleaner extends Disposable {
 		}
 	}
 
-	/**
-	 * Public for testing.
-	 */
-	async cleanUpLanguagePackCache(): Promise<void> {
+	private async cleanUpLanguagePackCache(): Promise<void> {
 		this.logService.trace('[language pack cache cleanup]: Starting to clean up unused language packs.');
 
 		try {
@@ -92,15 +89,7 @@ export class LanguagePackCachedDataCleaner extends Disposable {
 			const now = Date.now();
 			for (const packEntry of Object.keys(installed)) {
 				const folder = join(cacheDir, packEntry);
-				let entries: string[];
-				try {
-					entries = await Promises.readdir(folder);
-				} catch (error) {
-					if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-						continue;
-					}
-					throw error;
-				}
+				const entries = await Promises.readdir(folder);
 				for (const entry of entries) {
 					if (entry === 'tcf.json') {
 						continue;

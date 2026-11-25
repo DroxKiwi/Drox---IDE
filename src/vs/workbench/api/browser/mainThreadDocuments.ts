@@ -303,8 +303,7 @@ export class MainThreadDocuments extends Disposable implements MainThreadDocumen
 			associatedResource,
 			languageId: options?.language,
 			initialValue: options?.content,
-			encoding: options?.encoding,
-			origin: 'extensionApi'
+			encoding: options?.encoding
 		});
 		if (options?.encoding) {
 			await model.setEncoding(options.encoding);

@@ -10,6 +10,7 @@ import { Codicon } from '../../../../../base/common/codicons.js';
 import { Emitter } from '../../../../../base/common/event.js';
 import { Disposable, DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
+import { appendDroxActivityGrid } from '../droxActivityGrid.js';
 
 export interface IDroxAgentsPanelPickerChipOptions {
 	readonly id: string;
@@ -54,6 +55,8 @@ export class DroxAgentsPanelPickerChip extends Disposable {
 		this.triggerElement.tabIndex = 0;
 		this.triggerElement.role = 'button';
 		this.triggerElement.setAttribute('aria-expanded', 'false');
+
+		appendDroxActivityGrid(this.triggerElement, 'activity-grid activity-grid-inline drox-panel-loading-grid');
 
 		this._renderDisposables.add(Gesture.addTarget(this.triggerElement));
 		for (const eventType of [dom.EventType.CLICK, TouchEventType.Tap]) {

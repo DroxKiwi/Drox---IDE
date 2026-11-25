@@ -15,7 +15,6 @@ export interface INativeMcpDiscoveryData {
 	// platform and homedir are duplicated by the remote/native environment, but here for convenience
 	platform: Platform;
 	homedir: URI;
-	copilotHome?: URI;
 	winAppData?: URI;
 	xdgHome?: URI;
 }

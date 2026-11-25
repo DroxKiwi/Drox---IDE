@@ -3,20 +3,21 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import type * as ESTree from 'estree';
 
-export default new class ApiVsCodeInComments implements CreateRule {
+export default new class ApiVsCodeInComments implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			comment: `Don't use the term 'vs code' in comments`
 		},
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
-		const sourceCode = context.sourceCode;
+		const sourceCode = context.getSourceCode();
 
 		return {
 			['Program']: (_node: ESTree.Program) => {

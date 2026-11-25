@@ -8,22 +8,19 @@ import { Button } from '../../../../../../../base/browser/ui/button/button.js';
 import { Codicon } from '../../../../../../../base/common/codicons.js';
 import { Event } from '../../../../../../../base/common/event.js';
 import { MarkdownString } from '../../../../../../../base/common/htmlContent.js';
-import { DisposableStore, MutableDisposable } from '../../../../../../../base/common/lifecycle.js';
-import { autorun, derivedOpts, observableValue } from '../../../../../../../base/common/observable.js';
+import { MutableDisposable } from '../../../../../../../base/common/lifecycle.js';
+import { autorun, observableValue } from '../../../../../../../base/common/observable.js';
 import { ThemeIcon } from '../../../../../../../base/common/themables.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { localize } from '../../../../../../../nls.js';
-import { McpServerStatus } from '../../../../../../../platform/agentHost/common/state/protocol/state.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js';
 import { IMarkdownRendererService } from '../../../../../../../platform/markdown/browser/markdownRenderer.js';
 import { defaultButtonStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { ChatErrorLevel, ChatMcpAppData, IChatToolInvocation, IChatToolInvocationSerialized } from '../../../../common/chatService/chatService.js';
-import { getMcpServerDisplayLabel, IAgentHostCustomizationService } from '../../../agentSessions/agentHost/agentHostCustomizationService.js';
-import { IAgentHostMcpAppToolsService } from '../../../agentSessions/agentHost/agentHostMcpAppToolsService.js';
-import { renderMcpServerSignInButton } from '../../../aiCustomization/mcpServerSignInButton.js';
 import { IChatCodeBlockInfo } from '../../../chat.js';
 import { IChatContentPartRenderContext } from '../chatContentParts.js';
 import { ChatErrorWidget } from '../chatErrorContentPart.js';
+import { ChatProgressSubPart } from '../chatProgressContentPart.js';
 import { ChatResourceGroupWidget } from '../chatResourceGroupWidget.js';
 import { ChatMcpAppModel, McpAppLoadState } from './chatMcpAppModel.js';
 import { BaseChatToolInvocationSubPart } from './chatToolInvocationSubPart.js';
@@ -42,12 +39,6 @@ export type IMcpAppRenderData = ChatMcpAppData & {
 	readonly sessionResource: URI;
 };
 
-interface IMcpAppServerPresentation {
-	readonly status: McpServerStatus | undefined;
-	readonly label: string | undefined;
-	readonly authenticating: boolean;
-}
-
 const maxWebviewHeightPct = 0.75;
 
 /**
@@ -65,10 +56,8 @@ export class ChatMcpAppSubPart extends BaseChatToolInvocationSubPart {
 	/** The webview container */
 	private readonly _webviewContainer: HTMLElement;
 
-	/** Current loading or unavailable placeholder */
-	private _placeholderNode: HTMLElement | undefined;
-
-	private readonly _signInDisposables = this._register(new DisposableStore());
+	/** Current progress part for loading state */
+	private readonly _progressPart = this._register(new MutableDisposable<ChatProgressSubPart>());
 
 	/** Current error node */
 	private _errorNode: HTMLElement | undefined;
@@ -86,8 +75,6 @@ export class ChatMcpAppSubPart extends BaseChatToolInvocationSubPart {
 		private readonly _renderData: IMcpAppRenderData,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IMarkdownRendererService private readonly _markdownRendererService: IMarkdownRendererService,
-		@IAgentHostCustomizationService private readonly _agentHostCustomizationService: IAgentHostCustomizationService,
-		@IAgentHostMcpAppToolsService appToolsService: IAgentHostMcpAppToolsService,
 	) {
 		super(toolInvocation);
 
@@ -103,36 +90,28 @@ export class ChatMcpAppSubPart extends BaseChatToolInvocationSubPart {
 		this._downloadContainer = dom.$('div.mcp-app-downloads');
 		this.domNode.appendChild(this._downloadContainer);
 
-		const targetWindow = dom.getWindow(context.container);
+		const targetWindow = dom.getWindow(this.domNode);
 		const getMaxHeight = () => maxWebviewHeightPct * targetWindow.innerHeight;
-		const maxHeight = observableValue(this, getMaxHeight());
-		this._register(dom.addDisposableListener(targetWindow, 'resize', () => maxHeight.set(getMaxHeight(), undefined)));
+		const maxHeight = observableValue('mcpAppMaxHeight', getMaxHeight());
+		dom.addDisposableListener(targetWindow, 'resize', () => maxHeight.set(getMaxHeight(), undefined));
 
-		const createModel = () => this._instantiationService.createInstance(ChatMcpAppModel, toolInvocation, this._renderData, undefined);
-		this._model = this._renderData.kind === 'agentHost'
-			? this._register(appToolsService.acquire(this._renderData, toolInvocation.toolCallId, createModel)).object
-			: this._register(createModel());
-		this._register(this._model.attach(this._webviewContainer, { targetWindow, maxHeight, currentWidth: context.currentWidth, clippingContainer: context.getOverlayClippingContainer?.() }));
+		// Create the model - it will mount the webview to the container
+		this._model = this._register(this._instantiationService.createInstance(
+			ChatMcpAppModel,
+			toolInvocation,
+			this._renderData,
+			this._webviewContainer,
+			maxHeight,
+			context.currentWidth,
+		));
 
 		// Update container height from model
 		this._updateContainerHeight();
 
-		const serverPresentation = derivedOpts<IMcpAppServerPresentation>({
-			equalsFn: (a, b) => a.status === b.status && a.label === b.label && a.authenticating === b.authenticating,
-		}, reader => {
-			const server = this._model.server.read(reader);
-			return {
-				status: server?.status,
-				label: server ? getMcpServerDisplayLabel(server) : this._renderData.kind === 'agentHost' ? this._renderData.serverName : undefined,
-				authenticating: !!server?.authenticating,
-			};
-		});
-
 		// Set up load state handling
 		this._register(autorun(reader => {
 			const loadState = this._model.loadState.read(reader);
-			const presentation = loadState.status === 'unavailable' ? serverPresentation.read(reader) : undefined;
-			this._handleLoadStateChange(this._webviewContainer, loadState, presentation);
+			this._handleLoadStateChange(this._webviewContainer, loadState);
 		}));
 
 		// Subscribe to model height changes
@@ -150,7 +129,7 @@ export class ChatMcpAppSubPart extends BaseChatToolInvocationSubPart {
 			}
 
 			dom.clearNode(this._downloadContainer);
-			const widget = this._instantiationService.createInstance(ChatResourceGroupWidget, parts, undefined);
+			const widget = this._instantiationService.createInstance(ChatResourceGroupWidget, parts);
 			this._downloadWidget.value = widget;
 			this._downloadContainer.appendChild(widget.domNode);
 		}));
@@ -166,44 +145,33 @@ export class ChatMcpAppSubPart extends BaseChatToolInvocationSubPart {
 		}));
 	}
 
-	private _handleLoadStateChange(container: HTMLElement, loadState: McpAppLoadState, server: IMcpAppServerPresentation | undefined): void {
-		this._signInDisposables.clear();
+	private _handleLoadStateChange(container: HTMLElement, loadState: McpAppLoadState): void {
 		// Remove any existing loading/error indicators
-		if (this._placeholderNode) {
-			this._placeholderNode.remove();
-			this._placeholderNode = undefined;
+		if (this._progressPart.value) {
+			this._progressPart.value.domNode.remove();
 		}
+		this._progressPart.clear();
 		if (this._errorNode) {
 			this._errorNode.remove();
 			this._errorNode = undefined;
 		}
 
 		switch (loadState.status) {
-			case 'loading':
-			case 'unavailable': {
+			case 'loading': {
+				// Hide the webview container while loading
 				container.style.display = 'none';
-				const loading = loadState.status === 'loading';
-				const placeholder = dom.$('div.mcp-app-placeholder', { role: 'status' });
-				placeholder.classList.toggle('loading', loading);
-				dom.append(placeholder, dom.$('span', { class: ThemeIcon.asClassName(loading ? Codicon.loading : Codicon.info), 'aria-hidden': 'true' }));
-				const text = dom.append(placeholder, dom.$('span.mcp-app-placeholder-message'));
-				if (loading) {
-					text.textContent = localize('loadingMcpApp', 'Loading MCP App...');
-				} else if (server?.status === McpServerStatus.AuthRequired && server.label) {
-					text.textContent = localize('mcpAppSignIn', "Sign in to {0} to load this app.", server.label);
-					renderMcpServerSignInButton(placeholder, this._signInDisposables, server.label, async () => {
-						const currentServer = this._model.server.get();
-						if (currentServer) {
-							await this._agentHostCustomizationService.authenticateMcpServer(this._renderData.sessionResource, currentServer.id);
-						}
-					}, server.authenticating);
-				} else {
-					text.textContent = server?.label
-						? localize('mcpAppWaitingForServer', "MCP server {0} isn't available yet. The app will load when it is.", server.label)
-						: localize('mcpAppWaitingForUnknownServer', "The MCP server for this app isn't available yet. The app will load when it is.");
-				}
-				this.domNode.appendChild(placeholder);
-				this._placeholderNode = placeholder;
+
+				const progressMessage = dom.$('span');
+				progressMessage.textContent = localize('loadingMcpApp', 'Loading MCP App...');
+				const progressPart = this._instantiationService.createInstance(
+					ChatProgressSubPart,
+					progressMessage,
+					ThemeIcon.modify(Codicon.loading, 'spin'),
+					undefined
+				);
+				this._progressPart.value = progressPart;
+				// Append to domNode (parent), not the webview container
+				this.domNode.appendChild(progressPart.domNode);
 				break;
 			}
 			case 'loaded': {

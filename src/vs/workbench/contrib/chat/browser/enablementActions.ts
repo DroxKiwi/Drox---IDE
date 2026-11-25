@@ -16,20 +16,16 @@ export function createEnablementActions(
 	key: string,
 	enablementModel: IEnablementModel,
 	idPrefix: string,
-	setEnabled = (state: ContributionEnablementState): Promise<void> => {
-		enablementModel.setEnabled(key, state);
-		return Promise.resolve();
-	},
 ): [enable: Action, enableWorkspace: Action, disable: Action, disableWorkspace: Action] {
 	return [
 		new Action(`${idPrefix}.enable`, localize('enable', "Enable"), undefined, true,
-			() => setEnabled(ContributionEnablementState.EnabledProfile)),
+			() => { enablementModel.setEnabled(key, ContributionEnablementState.EnabledProfile); return Promise.resolve(); }),
 		new Action(`${idPrefix}.enableForWorkspace`, localize('enableForWorkspace', "Enable (Workspace)"), undefined, true,
-			() => setEnabled(ContributionEnablementState.EnabledWorkspace)),
+			() => { enablementModel.setEnabled(key, ContributionEnablementState.EnabledWorkspace); return Promise.resolve(); }),
 		new Action(`${idPrefix}.disable`, localize('disable', "Disable"), undefined, true,
-			() => setEnabled(ContributionEnablementState.DisabledProfile)),
+			() => { enablementModel.setEnabled(key, ContributionEnablementState.DisabledProfile); return Promise.resolve(); }),
 		new Action(`${idPrefix}.disableForWorkspace`, localize('disableForWorkspace', "Disable (Workspace)"), undefined, true,
-			() => setEnabled(ContributionEnablementState.DisabledWorkspace)),
+			() => { enablementModel.setEnabled(key, ContributionEnablementState.DisabledWorkspace); return Promise.resolve(); }),
 	];
 }
 
@@ -45,10 +41,9 @@ export function buildEnablementContextMenuGroup(
 	enablementModel: IEnablementModel,
 	workspaceContextService: IWorkspaceContextService,
 	idPrefix: string,
-	setEnabled?: (state: ContributionEnablementState) => Promise<void>,
 ): IAction[] {
 	const hasWorkspace = workspaceContextService.getWorkbenchState() !== WorkbenchState.EMPTY;
-	const [enable, enableWorkspace, disable, disableWorkspace] = createEnablementActions(key, enablementModel, idPrefix, setEnabled);
+	const [enable, enableWorkspace, disable, disableWorkspace] = createEnablementActions(key, enablementModel, idPrefix);
 	const actions: IAction[] = [];
 	if (isContributionDisabled(enablementState)) {
 		actions.push(enable);

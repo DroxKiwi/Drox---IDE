@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
 
 /**
  * Disallows `declare const enum` declarations. esbuild does not inline
@@ -14,9 +14,9 @@ import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plu
  *
  * See https://github.com/evanw/esbuild/issues/4394
  */
-export default new class NoDeclareConstEnum implements CreateRule {
+export default new class NoDeclareConstEnum implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			noDeclareConstEnum: '"declare const enum" is not supported by esbuild. Use "const enum" instead. See https://github.com/evanw/esbuild/issues/4394',
 		},
@@ -24,9 +24,9 @@ export default new class NoDeclareConstEnum implements CreateRule {
 		fixable: 'code',
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 		return {
-			TSEnumDeclaration(node: ESTree.TSEnumDeclaration) {
+			TSEnumDeclaration(node: any) {
 				if (node.const && node.declare) {
 					context.report({
 						node,

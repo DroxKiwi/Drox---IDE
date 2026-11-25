@@ -28,7 +28,6 @@ import { IDroxClientToolsService } from '../common/droxClientToolsService.js';
 import { IDroxCodebaseContextService } from '../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../common/droxEngineService.js';
 import { IDroxRegulationService } from '../common/regulation/droxRegulationServiceContract.js';
-import { IDroxToolsSurfaceService } from '../common/droxToolsSurfaceService.js';
 import { applyDroxConfigurationUpdate } from '../common/droxAgentsConfiguration.js';
 import { DroxSetting } from '../common/droxConfiguration.js';
 import {
@@ -67,7 +66,6 @@ import { pushLlmModelsSnapshotToWebview, refreshDroxChatLlmModels } from './chat
 import { IDroxChatWebviewRouterDeps, IDroxChatWebviewRouterHost, routeDroxChatWebviewMessage } from './chat/droxChatWebviewRouter.js';
 import { IDroxLlmModelsService } from '../common/droxLlmModelsService.js';
 import { IDroxRunRevertService } from '../common/droxRunRevertService.js';
-import { IDroxWorkspaceCheckpointService } from '../common/droxWorkspaceCheckpointService.js';
 import { IDroxReleaseNotesService } from '../common/droxReleaseNotesService.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { formatDroxChatVersionLabel, formatDroxChatVersionTitle } from '../common/droxProductVersion.js';
@@ -95,7 +93,6 @@ export class DroxChatController extends Disposable
 		@IDroxClientToolsService private readonly clientToolsService: IDroxClientToolsService,
 		@IDroxCodebaseContextService private readonly codebaseContextService: IDroxCodebaseContextService,
 		@IDroxRegulationService private readonly regulationService: IDroxRegulationService,
-		@IDroxToolsSurfaceService private readonly toolsSurfaceService: IDroxToolsSurfaceService,
 		@IDroxRunSettingsService private readonly runSettingsService: IDroxRunSettingsService,
 		@IDroxUserAskService private readonly userAskService: IDroxUserAskService,
 		@IDroxAttachmentsService private readonly attachmentsService: IDroxAttachmentsService,
@@ -120,7 +117,6 @@ export class DroxChatController extends Disposable
 		@IOutputService private readonly outputService: IOutputService,
 		@IDroxLlmModelsService private readonly llmModelsService: IDroxLlmModelsService,
 		@IDroxRunRevertService private readonly runRevertService: IDroxRunRevertService,
-		@IDroxWorkspaceCheckpointService private readonly workspaceCheckpointService: IDroxWorkspaceCheckpointService,
 		@IClipboardService private readonly clipboardService: IClipboardService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IHostService private readonly hostService: IHostService,
@@ -185,7 +181,7 @@ export class DroxChatController extends Disposable
 				this.post({ kind: 'permissionMode', mode: this.runSettingsService.getPermissionMode() });
 			}
 			if (droxConfigChangeAffectsGeneralSettings(e)) {
-				pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService, this.toolsSurfaceService);
+				pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService);
 			}
 			if (droxConfigChangeAffectsArchitectSettings(e)) {
 				void refreshDroxChatLlmModels(this, this.llmModelsService, this.runSettingsService, this.configurationService);
@@ -202,7 +198,7 @@ export class DroxChatController extends Disposable
 			}
 			this.reconcileChatBusyState();
 			this.post({ kind: 'permissionMode', mode: this.runSettingsService.getPermissionMode() });
-			pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService, this.toolsSurfaceService);
+			pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService);
 			const workspaceResource = this.workspaceContextService.getWorkspace().folders[0]?.uri;
 			if (droxLlmSnapshotDiffersFromConfiguration(this.llmModelsService.snapshot, this.configurationService, workspaceResource)) {
 				void refreshDroxChatLlmModels(this, this.llmModelsService, this.runSettingsService, this.configurationService);
@@ -330,7 +326,7 @@ export class DroxChatController extends Disposable
 				this.runSettingsService,
 				this.configurationService,
 			);
-			pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService, this.toolsSurfaceService);
+			pushGeneralSettingsToWebview(this, this.runSettingsService, this.configurationService);
 			if (this._tabs.currentSessionId) {
 				const tab = this._tabs.getActiveTab();
 				this.post({
@@ -512,7 +508,6 @@ export class DroxChatController extends Disposable
 			sessionBackgroundService: this.sessionBackgroundService,
 			codebaseContextService: this.codebaseContextService,
 			regulationService: this.regulationService,
-			toolsSurfaceService: this.toolsSurfaceService,
 			userHomeFsPath: this.pathService.userHome({ preferLocal: true }).fsPath,
 		};
 	}
@@ -528,7 +523,6 @@ export class DroxChatController extends Disposable
 			logService: this.logService,
 			runSettingsService: this.runSettingsService,
 			runRevertService: this.runRevertService,
-			workspaceCheckpointService: this.workspaceCheckpointService,
 			hostService: this.hostService,
 			fileService: this.fileService,
 		};

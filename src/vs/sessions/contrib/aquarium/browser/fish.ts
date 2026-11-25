@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { $ } from '../../../../base/browser/dom.js';
 import { VSCODE_LOGO_PATH } from './vscodeLogoPath.js';
 
 /**
@@ -99,14 +98,16 @@ export class Fish {
 		this.size = opts.size;
 		this.wanderAngle = Math.atan2(opts.velocityY, opts.velocityX);
 
-		this.element = $<HTMLDivElement>('.agents-aquarium-fish');
+		this.element = targetDocument.createElement('div');
+		this.element.className = 'agents-aquarium-fish';
 		this.element.style.width = `${opts.size}px`;
 		this.element.style.height = `${opts.size}px`;
 		this.element.style.color = SPECIES_COLOR[opts.species];
 
 		// Inner element receives the directional flip so the body strip animations
 		// (driven by --agents-aquarium-strip-index) are unaffected by direction changes.
-		this.innerElement = $<HTMLDivElement>('.agents-aquarium-fish-inner');
+		this.innerElement = targetDocument.createElement('div');
+		this.innerElement.className = 'agents-aquarium-fish-inner';
 		this.innerElement.appendChild(buildFishSvg(targetDocument));
 		this.element.appendChild(this.innerElement);
 
@@ -170,6 +171,8 @@ export class Fish {
 	}
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
 /**
  * Number of vertical strips the body is sliced into. More strips = smoother
  * wave, but each strip is one `<use>` node and one CSS animation per fish.
@@ -201,8 +204,8 @@ function ensureSharedDefs(targetDocument: Document): void {
 		return;
 	}
 	const stripWidth = (BODY_X_END - BODY_X_START) / NUM_BODY_STRIPS;
-	const container = $.SVG<SVGSVGElement>('svg');
-	container.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+	const container = targetDocument.createElementNS(SVG_NS, 'svg');
+	container.setAttribute('xmlns', SVG_NS);
 	container.setAttribute('width', '0');
 	container.setAttribute('height', '0');
 	container.setAttribute('aria-hidden', 'true');
@@ -214,14 +217,14 @@ function ensureSharedDefs(targetDocument: Document): void {
 
 	// All strips reference this symbol via `<use href="#agents-aquarium-fish-logo">`,
 	// so the path data is parsed exactly ONCE per session instead of FISH_COUNT * NUM_STRIPS.
-	container.appendChild(createVSCodeLogoSymbol());
+	container.appendChild(createVSCodeLogoSymbol(targetDocument));
 
-	const defs = $.SVG<SVGDefsElement>('defs');
+	const defs = targetDocument.createElementNS(SVG_NS, 'defs');
 	for (let i = 0; i < NUM_BODY_STRIPS; i++) {
-		const clip = $.SVG<SVGClipPathElement>('clipPath');
+		const clip = targetDocument.createElementNS(SVG_NS, 'clipPath');
 		clip.setAttribute('id', `agents-aquarium-fish-clip-${i}`);
 		clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
-		const rect = $.SVG<SVGRectElement>('rect');
+		const rect = targetDocument.createElementNS(SVG_NS, 'rect');
 		rect.setAttribute('x', String(BODY_X_START + i * stripWidth));
 		rect.setAttribute('y', '-20');
 		// Larger overlap (0.8 user-units) hides seams when adjacent strips
@@ -236,13 +239,13 @@ function ensureSharedDefs(targetDocument: Document): void {
 	sharedDefsByDocument.set(targetDocument, container);
 }
 
-function createVSCodeLogoSymbol(): SVGSymbolElement {
-	const symbol = $.SVG<SVGSymbolElement>('symbol');
+function createVSCodeLogoSymbol(targetDocument: Document): SVGSymbolElement {
+	const symbol = targetDocument.createElementNS(SVG_NS, 'symbol');
 	symbol.setAttribute('id', SHARED_LOGO_SYMBOL_ID);
 	symbol.setAttribute('viewBox', '0 0 96 96');
 	symbol.setAttribute('overflow', 'visible');
 
-	const logoPath = $.SVG<SVGPathElement>('path');
+	const logoPath = targetDocument.createElementNS(SVG_NS, 'path');
 	logoPath.setAttribute('d', VSCODE_LOGO_PATH);
 	logoPath.setAttribute('fill', 'currentColor');
 	logoPath.setAttribute('fill-rule', 'evenodd');
@@ -256,8 +259,8 @@ function createVSCodeLogoSymbol(): SVGSymbolElement {
  *   - VS Code logo body, sliced into N vertical strips that each oscillate in
  *     Y with a phase-offset CSS animation (the "swimming" sine wave)
  *
- * Colors come from `currentColor` on the parent element. Built without
- * `innerHTML` to satisfy Trusted Types.
+ * Colors come from `currentColor` on the parent element. Built with
+ * `document.createElementNS` (no innerHTML) to satisfy Trusted Types.
  *
  * The strip clipPath defs and the logo symbol are shared across all fish via
  * {@link ensureSharedDefs}.
@@ -265,8 +268,8 @@ function createVSCodeLogoSymbol(): SVGSymbolElement {
 function buildFishSvg(targetDocument: Document): SVGSVGElement {
 	ensureSharedDefs(targetDocument);
 
-	const svg = $.SVG<SVGSVGElement>('svg');
-	svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+	const svg = targetDocument.createElementNS(SVG_NS, 'svg');
+	svg.setAttribute('xmlns', SVG_NS);
 	svg.setAttribute('focusable', 'false');
 	// viewBox 0..96 matches the original VS Code icon.
 	svg.setAttribute('viewBox', '0 0 96 96');
@@ -278,13 +281,13 @@ function buildFishSvg(targetDocument: Document): SVGSVGElement {
 	// Body: NUM_BODY_STRIPS overlapping references to the shared logo symbol,
 	// each clipped to its vertical band via shared clipPath defs. Each strip
 	// animates translateY with a phase offset driven by --agents-aquarium-strip-index.
-	const bodyGroup = $.SVG<SVGGElement>('g');
+	const bodyGroup = targetDocument.createElementNS(SVG_NS, 'g');
 	bodyGroup.setAttribute('class', 'agents-aquarium-fish-body');
 	for (let i = 0; i < NUM_BODY_STRIPS; i++) {
-		const stripG = $.SVG<SVGGElement>('g');
+		const stripG = targetDocument.createElementNS(SVG_NS, 'g');
 		stripG.setAttribute('class', 'agents-aquarium-fish-strip');
 		stripG.style.setProperty('--agents-aquarium-strip-index', String(i));
-		const stripUse = $.SVG<SVGUseElement>('use');
+		const stripUse = targetDocument.createElementNS(SVG_NS, 'use');
 		stripUse.setAttribute('href', `#${SHARED_LOGO_SYMBOL_ID}`);
 		stripUse.setAttribute('clip-path', `url(#agents-aquarium-fish-clip-${i})`);
 		stripG.appendChild(stripUse);

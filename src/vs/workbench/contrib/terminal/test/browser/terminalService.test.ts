@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { fail, strictEqual } from 'assert';
-import { timeout } from '../../../../../base/common/async.js';
 import { Emitter } from '../../../../../base/common/event.js';
 import { runWithFakedTimers } from '../../../../../base/test/common/timeTravelScheduler.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
@@ -25,7 +24,6 @@ suite('Workbench - TerminalService', () => {
 	let terminalService: TerminalService;
 	let configurationService: TestConfigurationService;
 	let dialogService: TestDialogService;
-	let instantiationService: ReturnType<typeof workbenchInstantiationService>;
 
 	setup(async () => {
 		dialogService = new TestDialogService();
@@ -39,7 +37,7 @@ suite('Workbench - TerminalService', () => {
 			}
 		});
 
-		instantiationService = workbenchInstantiationService({
+		const instantiationService = workbenchInstantiationService({
 			configurationService: () => configurationService,
 		}, store);
 		instantiationService.stub(IDialogService, dialogService);
@@ -49,38 +47,6 @@ suite('Workbench - TerminalService', () => {
 
 		terminalService = store.add(instantiationService.createInstance(TerminalService));
 		instantiationService.stub(ITerminalService, terminalService);
-	});
-
-	suite('background terminals', () => {
-		test('should remove disposed hidden terminals and their listeners', async () => {
-			const disposalEmitters = Array.from({ length: 3 }, () => store.add(new Emitter<ITerminalInstance>()));
-			const instances = disposalEmitters.map((emitter, index) => ({
-				instanceId: index + 1,
-				onDisposed: emitter.event,
-			} satisfies Partial<ITerminalInstance> as unknown as ITerminalInstance));
-			let instanceIndex = 0;
-			instantiationService.stub(ITerminalInstanceService, 'convertProfileToShellLaunchConfig', () => ({ hideFromUser: true }));
-			instantiationService.stub(ITerminalInstanceService, 'createInstance', () => instances[instanceIndex++]);
-			terminalService.registerProcessSupport(true);
-
-			const backgroundedTerminalDisposables = Reflect.get(terminalService, '_backgroundedTerminalDisposables') as { size: number };
-			for (let i = 0; i < instances.length; i++) {
-				const instance = await terminalService.createTerminal({
-					config: { hideFromUser: true },
-					skipContributedProfileCheck: true,
-				});
-
-				strictEqual(terminalService.instances.includes(instance), true);
-				strictEqual(backgroundedTerminalDisposables.size, 1);
-				strictEqual(disposalEmitters[i].hasListeners(), true);
-
-				disposalEmitters[i].fire(instance);
-
-				strictEqual(terminalService.instances.includes(instance), false);
-				strictEqual(backgroundedTerminalDisposables.size, 0);
-				strictEqual(disposalEmitters[i].hasListeners(), false);
-			}
-		});
 	});
 
 	suite('safeDisposeTerminal', () => {
@@ -204,29 +170,31 @@ suite('Workbench - TerminalService', () => {
 			(terminalService as unknown as { _primaryBackend: Partial<ITerminalBackend> })._primaryBackend = backend;
 		});
 
-		test('should not update pty host metadata for custom pty terminals', () => runWithFakedTimers({}, async () => {
+		test('should not update pty host metadata for custom pty terminals', async () => {
 			const instance = createTerminalInstance({ customPtyImplementation: true });
 
-			updateTitle(terminalService, instance);
-			updateIcon(terminalService, instance, false);
-			await timeout(500);
+			await runWithFakedTimers({}, async () => {
+				updateTitle(terminalService, instance);
+				updateIcon(terminalService, instance, false);
+			});
 
 			strictEqual(backend.titleUpdateCount, 0);
 			strictEqual(backend.iconUpdateCount, 0);
-		}));
+		});
 
-		test('should update pty host metadata for regular pty terminals', () => runWithFakedTimers({}, async () => {
+		test('should update pty host metadata for regular pty terminals', async () => {
 			const instance = createTerminalInstance();
 
-			updateTitle(terminalService, instance);
-			updateIcon(terminalService, instance, true);
-			await timeout(500);
+			await runWithFakedTimers({}, async () => {
+				updateTitle(terminalService, instance);
+				updateIcon(terminalService, instance, true);
+			});
 
 			strictEqual(backend.titleUpdateCount, 1);
 			strictEqual(backend.iconUpdateCount, 1);
 			strictEqual(backend.lastTitle, 'terminal title');
 			strictEqual(backend.lastIconUserInitiated, true);
-		}));
+		});
 	});
 });
 

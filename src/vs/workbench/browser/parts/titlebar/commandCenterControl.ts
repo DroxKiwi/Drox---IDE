@@ -21,12 +21,11 @@ import { IInstantiationService } from '../../../../platform/instantiation/common
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
 import { WindowTitle } from './windowTitle.js';
-import { CommandCenterLabel } from './commandCenterLabel.js';
 import { IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSettings.js';
 
+const AI_DISABLED_SETTING = 'chat.disableAIFeatures';
 const AGENT_STATUS_ENABLED_SETTING = 'chat.agentsControl.enabled';
 
 export class CommandCenterControl {
@@ -166,7 +165,7 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 
 							// When agent control mode is 'compact', hide search icon and left-align the label
 							// Backward compat: the old boolean setting (true) and the new default (undefined) both map to compact
-							const aiFeaturesDisabled = that._configurationService.getValue<boolean>(ChatAIDisabledSettingId) === true;
+							const aiFeaturesDisabled = that._configurationService.getValue<boolean>(AI_DISABLED_SETTING) === true;
 							const aiCustomizationsDisabled = that._configurationService.getValue<boolean>('disableAICustomizations') === true
 								|| that._configurationService.getValue<boolean>('workbench.disableAICustomizations') === true;
 							const forcedHidden = aiFeaturesDisabled && aiCustomizationsDisabled;
@@ -183,9 +182,10 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 							searchIcon.classList.add('search-icon');
 
 							// label: just workspace name and optional decorations
+							const label = this._getLabel();
 							const labelElement = document.createElement('span');
 							labelElement.classList.add('search-label');
-							this._renderLabel(labelElement);
+							labelElement.textContent = label;
 							if (isCompactMode) {
 								reset(container, labelElement);
 							} else {
@@ -197,23 +197,16 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 							// update label & tooltip when window title changes
 							this._store.add(that._windowTitle.onDidChange(() => {
 								hover.update(this.getTooltip());
-								this._renderLabel(labelElement);
+								labelElement.textContent = this._getLabel();
 							}));
 
 							// update label & tooltip when tabs visibility changes
 							this._store.add(that._editorGroupService.onDidChangeEditorPartOptions(({ newPartOptions, oldPartOptions }) => {
 								if (newPartOptions.showTabs !== oldPartOptions.showTabs) {
 									hover.update(this.getTooltip());
-									this._renderLabel(labelElement);
+									labelElement.textContent = this._getLabel();
 								}
 							}));
-						}
-
-						private _label: CommandCenterLabel | undefined;
-
-						private _renderLabel(labelElement: HTMLElement): void {
-							this._label ??= this._store.add(that._instaService.createInstance(CommandCenterLabel, labelElement, that._hoverDelegate));
-							this._label.update(this._getLabel(), that._windowTitle.folderLocationInfo);
 						}
 
 						protected override getTooltip() {
@@ -221,7 +214,24 @@ class CommandCenterCenterViewItem extends BaseActionViewItem {
 						}
 
 						private _getLabel(): string {
-							return that._windowTitle.getCommandCenterLabel({ showFileName: that._editorGroupService.partOptions.showTabs === 'none' });
+							const { prefix, suffix } = that._windowTitle.getTitleDecorations();
+							let label = that._windowTitle.workspaceName;
+							if (that._windowTitle.isCustomTitleFormat()) {
+								label = that._windowTitle.getWindowTitle();
+							} else if (that._editorGroupService.partOptions.showTabs === 'none') {
+								label = that._windowTitle.fileName ?? label;
+							}
+							if (!label) {
+								label = localize('label.dfl', "Search");
+							}
+							if (prefix) {
+								label = localize('label1', "{0} {1}", prefix, label);
+							}
+							if (suffix) {
+								label = localize('label2', "{0} {1}", label, suffix);
+							}
+
+							return label.replaceAll(/\r\n|\r|\n/g, '\u23CE');
 						}
 					});
 				}

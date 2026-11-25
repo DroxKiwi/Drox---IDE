@@ -18,28 +18,22 @@ import { HiddenItemStrategy, MenuWorkbenchToolBar } from '../../../../platform/a
 import { IMenuService } from '../../../../platform/actions/common/actions.js';
 import { fillInActionBarActions } from '../../../../platform/actions/browser/menuEntryActionViewItem.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IDefaultAccountService } from '../../../../platform/defaultAccount/common/defaultAccount.js';
-import { ACCOUNTS_AVATAR_SETTING, IAuthenticationService } from '../../../../workbench/services/authentication/common/authentication.js';
-import { getMainWindowHost, ISessionHost, ISessionHostService } from '../../../../workbench/services/sessions/browser/sessionHost.js';
-import { ISessionFileChange } from '../../../../workbench/services/sessions/common/session.js';
-import { IsNewChatSessionContext } from '../../../../workbench/contrib/sessions/common/contextkeys.js';
+import { IAuthenticationService } from '../../../../workbench/services/authentication/common/authentication.js';
+import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
+import { ISessionFileChange } from '../../../services/sessions/common/session.js';
+import { IsNewChatSessionContext } from '../../../common/contextkeys.js';
 import { SideBarVisibleContext } from '../../../../workbench/common/contextkeys.js';
-import { AgentsWindowMenus } from '../../agentsWindowMenus.js';
+import { Menus } from '../../menus.js';
 import { ChatEntitlement, ChatEntitlementService, IChatEntitlementService } from '../../../../workbench/services/chat/common/chatEntitlementService.js';
 import { getAccountTitleBarState, getAccountProfileImageUrl, getAccountTitleBarBadgeKey, resolveAccountInfo } from '../../accountTitleBarState.js';
-// DROX-BEGIN
 // eslint-disable-next-line local/code-import-patterns -- Drox branding in sessions mobile title bar
 import { getDefaultChatAgentDisplayName } from '../../../../workbench/contrib/drox/common/droxChatAgentBranding.js';
 // eslint-disable-next-line local/code-import-patterns -- Drox: hide Copilot account affordances
 import { shouldSkipDroxSessionsSignIn } from '../../../../workbench/contrib/drox/common/droxAgentsConfiguration.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
-// DROX-END
 import { IChatDashboardService } from '../../chatDashboardService.js';
 import { MOBILE_OPEN_CHANGES_VIEW_COMMAND_ID } from './contributions/mobileChangesView.js';
-import { URI } from '../../../../base/common/uri.js';
-import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-import { HoverStyle } from '../../../../base/browser/ui/hover/hover.js';
 
 /**
  * Mobile titlebar — prepended above the workbench grid on phone viewports
@@ -54,9 +48,9 @@ import { HoverStyle } from '../../../../base/browser/ui/hover/hover.js';
  * (home/empty) screen is visible:
  *
  *  - **Welcome hidden** → shows the active session title (live, from
- *    the session the main window's host shows).
+ *    {@link ISessionsService.activeSession}).
  *  - **Welcome visible** → shows whatever is contributed to the
- *    {@link AgentsWindowMenus.MobileTitleBarCenter} menu. On web, the host filter
+ *    {@link Menus.MobileTitleBarCenter} menu. On web, the host filter
  *    contribution appends its host dropdown + connection button there.
  *
  * The switch is driven entirely by the menu: when the toolbar has no
@@ -75,7 +69,6 @@ export class MobileTitlebarPart extends Disposable {
 
 	private readonly sessionTitleElement: HTMLElement;
 	private readonly actionsContainer: HTMLElement;
-	private readonly centerToolbar: MenuWorkbenchToolBar;
 
 	private readonly _onDidClickHamburger = this._register(new Emitter<void>());
 	readonly onDidClickHamburger: Event<void> = this._onDidClickHamburger.event;
@@ -94,7 +87,6 @@ export class MobileTitlebarPart extends Disposable {
 	private accountName: string | undefined;
 	private accountProviderId: string | undefined;
 	private accountProviderLabel: string | undefined;
-	private accountIcon: URI | undefined;
 	private isAccountLoading = true;
 	private accountRequestCounter = 0;
 	private avatarRequestCounter = 0;
@@ -111,28 +103,20 @@ export class MobileTitlebarPart extends Disposable {
 	// latest set without re-deriving it on each tap.
 	private latestChanges: readonly ISessionFileChange[] = [];
 
-	/** The host of the window, the main window: phones have one. */
-	protected readonly mainWindowHost: ISessionHost;
-
 	constructor(
 		parent: HTMLElement,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@ISessionHostService sessionHostService: ISessionHostService,
-		@IContextKeyService protected readonly contextKeyService: IContextKeyService,
+		@ISessionsService private readonly sessionsService: ISessionsService,
+		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IDefaultAccountService private readonly defaultAccountService: IDefaultAccountService,
 		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
 		@IChatEntitlementService private readonly chatEntitlementService: ChatEntitlementService,
 		@IMenuService private readonly menuService: IMenuService,
 		@IChatDashboardService private readonly chatDashboardService: IChatDashboardService,
 		@ICommandService private readonly commandService: ICommandService,
-		@IConfigurationService private readonly configurationService: IConfigurationService,
-		@IHoverService hoverService: IHoverService,
-		// DROX-BEGIN
 		@IProductService private readonly productService: IProductService,
-		// DROX-END
 	) {
 		super();
-		this.mainWindowHost = getMainWindowHost(sessionHostService);
 
 		this.element = document.createElement('div');
 		this.element.className = 'mobile-top-bar';
@@ -217,20 +201,18 @@ export class MobileTitlebarPart extends Disposable {
 		this._register(this.chatEntitlementService.onDidChangeSentiment(() => this.renderAccountState()));
 		this._register(this.chatEntitlementService.onDidChangeQuotaExceeded(() => this.renderAccountState()));
 		this._register(this.chatEntitlementService.onDidChangeQuotaRemaining(() => this.renderAccountState()));
-		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration(ACCOUNTS_AVATAR_SETTING)) {
-				this.refreshAvatar();
-			}
-		}));
 		this.refreshAccount();
 
-		this.registerTitleListener();
+		// Keep the title in sync with the active session
+		this._register(autorun(reader => {
+			const session = this.sessionsService.activeSession.read(reader);
+			const title = session?.title.read(reader);
+			this.sessionTitleElement.textContent = title || localize('mobileTopBar.newSession', "New Session");
+		}));
 
-		// Keep the changes pill in sync with the active chat's changes.
+		// Keep the changes pill in sync with the active session's changes.
 		// Hidden when there are no changes (counts are zero and list is empty).
 		const isNewChatRef = { value: !!IsNewChatSessionContext.getValue(contextKeyService) };
-		let changesTooltip = '';
-		this._register(hoverService.setupDelayedHover(changesPill, () => ({ content: changesTooltip, style: HoverStyle.Pointer })));
 		const renderChangesPill = () => {
 			const changes = this.latestChanges;
 			let added = 0;
@@ -247,31 +229,30 @@ export class MobileTitlebarPart extends Disposable {
 				if (added > 0 || removed > 0) {
 					changesAddedEl.textContent = `+${added}`;
 					changesRemovedEl.textContent = `-${removed}`;
-					changesTooltip = localize('mobileTopBar.changesTooltip', "{0} files changed (+{1} -{2})", changes.length, added, removed);
+					changesPill.title = localize('mobileTopBar.changesTooltip', "{0} files changed (+{1} -{2})", changes.length, added, removed);
 				} else {
 					changesAddedEl.textContent = changes.length === 1
 						? localize('mobileTopBar.singleFileChanged', "1 file")
 						: localize('mobileTopBar.filesChangedCount', "{0} files", changes.length);
 					changesRemovedEl.textContent = '';
-					changesTooltip = changes.length === 1
+					changesPill.title = changes.length === 1
 						? localize('mobileTopBar.singleFileChangedTooltip', "1 file changed")
 						: localize('mobileTopBar.filesChangedTooltip', "{0} files changed", changes.length);
 				}
-				changesPill.setAttribute('aria-description', changesTooltip);
 			}
 		};
 		this._register(autorun(reader => {
-			this.latestChanges = this.mainWindowHost.chat.read(reader)?.changes.read(reader) ?? [];
+			const session = this.sessionsService.activeSession.read(reader);
+			this.latestChanges = session?.changes.read(reader) ?? [];
 			renderChangesPill();
 		}));
 
 		// Mount the center toolbar (host filter widget on web welcome, etc.)
-		const toolbar = this._register(instantiationService.createInstance(MenuWorkbenchToolBar, this.actionsContainer, AgentsWindowMenus.MobileTitleBarCenter, {
+		const toolbar = this._register(instantiationService.createInstance(MenuWorkbenchToolBar, this.actionsContainer, Menus.MobileTitleBarCenter, {
 			hiddenItemStrategy: HiddenItemStrategy.NoHide,
 			telemetrySource: 'mobileTitlebar.center',
 			toolbarOptions: { primaryGroup: () => true },
 		}));
-		this.centerToolbar = toolbar;
 
 		// Switch between title and toolbar based on whether a new (empty)
 		// chat session is active AND whether the toolbar has anything to
@@ -284,15 +265,11 @@ export class MobileTitlebarPart extends Disposable {
 			const hasActions = toolbar.getItemsLength() > 0;
 			this.element.classList.toggle('show-actions', isNewChat && hasActions);
 
-			// DROX-BEGIN
 			// Right slot: swap between [+] (in-chat) and [account] (welcome).
 			// Drox nominal: hide Copilot/GitHub account button.
 			const hideAccount = shouldSkipDroxSessionsSignIn(this.productService);
-			// DROX-END
 			newSessionButton.style.display = isNewChat ? 'none' : '';
-			// DROX-BEGIN
 			this.accountButton.style.display = (!hideAccount && isNewChat) ? '' : 'none';
-			// DROX-END
 
 			// Changes pill follows the in-chat state — hidden on welcome.
 			isNewChatRef.value = isNewChat;
@@ -310,14 +287,6 @@ export class MobileTitlebarPart extends Disposable {
 		this._register(toolbar.onDidChangeMenuItems(() => updateCenterMode()));
 	}
 
-	focus(): void {
-		if (this.element.classList.contains('show-actions')) {
-			this.centerToolbar.focus();
-		} else {
-			this.sessionTitleElement.focus();
-		}
-	}
-
 	/**
 	 * Explicitly set the title shown in the center slot. Called only when
 	 * overriding the live session title (tests, placeholders). The live
@@ -325,14 +294,6 @@ export class MobileTitlebarPart extends Disposable {
 	 */
 	setTitle(title: string): void {
 		this.sessionTitleElement.textContent = title;
-	}
-
-	protected registerTitleListener(): void {
-		this._register(autorun(reader => {
-			const session = this.mainWindowHost.session.read(reader);
-			const title = session?.title.read(reader);
-			this.sessionTitleElement.textContent = title || localize('mobileTopBar.newSession', "New Session");
-		}));
 	}
 
 	// --- Changes Pill --- //
@@ -369,7 +330,6 @@ export class MobileTitlebarPart extends Disposable {
 		this.accountName = info?.accountName;
 		this.accountProviderId = info?.accountProviderId;
 		this.accountProviderLabel = info?.accountProviderLabel;
-		this.accountIcon = info?.accountIcon;
 		this.isAccountLoading = false;
 		this.refreshAvatar();
 		this.renderAccountState();
@@ -388,9 +348,7 @@ export class MobileTitlebarPart extends Disposable {
 			isAccountLoading: this.isAccountLoading,
 			accountName: this.accountName,
 			accountProviderLabel: this.accountProviderLabel,
-			// DROX-BEGIN
 			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
-			// DROX-END
 			entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,
@@ -426,9 +384,7 @@ export class MobileTitlebarPart extends Disposable {
 	}
 
 	private refreshAvatar(): void {
-		const avatarUrl = this.configurationService.getValue<boolean>(ACCOUNTS_AVATAR_SETTING)
-			? getAccountProfileImageUrl(this.accountProviderId, this.accountName, this.accountIcon)
-			: undefined;
+		const avatarUrl = getAccountProfileImageUrl(this.accountProviderId, this.accountName);
 		if (avatarUrl === this.currentAvatarUrl) {
 			return;
 		}
@@ -479,9 +435,7 @@ export class MobileTitlebarPart extends Disposable {
 			isAccountLoading: this.isAccountLoading,
 			accountName: this.accountName,
 			accountProviderLabel: this.accountProviderLabel,
-			// DROX-BEGIN
 			chatAgentDisplayName: getDefaultChatAgentDisplayName(this.productService),
-			// DROX-END
 			entitlement: this.chatEntitlementService.entitlement,
 			sentiment: this.chatEntitlementService.sentiment,
 			quotas: this.chatEntitlementService.quotas,
@@ -502,7 +456,19 @@ export class MobileTitlebarPart extends Disposable {
 
 		const closeSheet = () => this.accountPanelDisposable.clear();
 
-		const { sheet, registerAction } = this.createAccountSheet(panelStore, closeSheet);
+		// Full-screen sheet inside the workbench container
+		const workbenchContainer = this.element.parentElement!;
+		const sheet = append(workbenchContainer, $('div.mobile-account-sheet'));
+		panelStore.add(toDisposable(() => sheet.remove()));
+
+		// Header: title + close button
+		const header = append(sheet, $('div.mobile-account-sheet-header'));
+		const headerTitle = append(header, $('h2.mobile-account-sheet-title'));
+		headerTitle.textContent = localize('mobileAccount.title', "Account");
+		const closeButton = append(header, $('button.mobile-account-sheet-close', { type: 'button' })) as HTMLButtonElement;
+		closeButton.setAttribute('aria-label', localize('mobileAccount.close', "Close"));
+		append(closeButton, $('span')).classList.add(...ThemeIcon.asClassNameArray(Codicon.close));
+		panelStore.add(addDisposableListener(closeButton, EventType.CLICK, closeSheet));
 
 		// Scrollable content
 		const content = append(sheet, $('div.mobile-account-sheet-content'));
@@ -559,7 +525,6 @@ export class MobileTitlebarPart extends Disposable {
 			}
 			const row = append(actionsSection, $('button.mobile-account-sheet-action', { type: 'button' })) as HTMLButtonElement;
 			row.disabled = !action.enabled;
-			registerAction?.(row);
 			row.setAttribute('aria-label', action.tooltip || action.label);
 			const icon = this.getActionIcon(action);
 			if (icon) {
@@ -575,26 +540,8 @@ export class MobileTitlebarPart extends Disposable {
 		}
 	}
 
-	protected createAccountSheet(panelStore: DisposableStore, closeSheet: () => void): { sheet: HTMLElement; closeButton: HTMLButtonElement; registerAction?: (button: HTMLButtonElement) => void } {
-		// Full-screen sheet inside the workbench container
-		const workbenchContainer = this.element.parentElement!;
-		const sheet = append(workbenchContainer, $('div.mobile-account-sheet'));
-		panelStore.add(toDisposable(() => sheet.remove()));
-
-		// Header: title + close button
-		const header = append(sheet, $('div.mobile-account-sheet-header'));
-		const headerTitle = append(header, $('h2.mobile-account-sheet-title'));
-		headerTitle.textContent = localize('mobileAccount.title', "Account");
-		const closeButton = append(header, $('button.mobile-account-sheet-close', { type: 'button' })) as HTMLButtonElement;
-		closeButton.setAttribute('aria-label', localize('mobileAccount.close', "Close"));
-		append(closeButton, $('span')).classList.add(...ThemeIcon.asClassNameArray(Codicon.close));
-		panelStore.add(addDisposableListener(closeButton, EventType.CLICK, closeSheet));
-
-		return { sheet, closeButton };
-	}
-
 	private getSheetActions(): IAction[] {
-		const menu = this.menuService.createMenu(AgentsWindowMenus.AccountMenu, this.contextKeyService);
+		const menu = this.menuService.createMenu(Menus.AccountMenu, this.contextKeyService);
 		const rawActions: IAction[] = [];
 		fillInActionBarActions(menu.getActions(), rawActions);
 		menu.dispose();

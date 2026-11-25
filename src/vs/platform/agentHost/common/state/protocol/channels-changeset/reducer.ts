@@ -15,11 +15,10 @@ import { softAssertNever } from '../common/reducer-helpers.js';
  * Pure reducer for changeset state. Handles all {@link ChangesetAction}
  * variants.
  *
- * The reducer preserves a stable file order by appending new files via
- * {@link ActionType.ChangesetFileSet} when the id is unknown, and replacing in
- * place when it matches an existing entry. Per-file review lives on
- * {@link ChangesetFile.reviewed} and is toggled (per file, in batches) by the
- * client-dispatchable {@link ActionType.ChangesetFilesReviewChanged}.
+ * Per the spec, every changeset action is server-only; the reducer
+ * preserves a stable file order by appending new files via
+ * {@link ActionType.ChangesetFileSet} when the id is unknown, and
+ * replacing in place when it matches an existing entry.
  */
 export function changesetReducer(state: ChangesetState, action: ChangesetAction, log?: (msg: string) => void): ChangesetState {
 	switch (action.type) {
@@ -53,23 +52,15 @@ export function changesetReducer(state: ChangesetState, action: ChangesetAction,
 			return { ...state, files: next };
 		}
 
-		case ActionType.ChangesetFilesReviewChanged: {
-			let changed = false;
-			const ids = new Set(action.files);
-			const next: ChangesetFile[] = state.files.map(f => {
-				if (!ids.has(f.id) || f.reviewed === action.reviewed) {
-					return f;
-				}
-				changed = true;
-				return { ...f, reviewed: action.reviewed };
-			});
-			return changed ? { ...state, files: next } : state;
-		}
-
 		case ActionType.ChangesetContentChanged: {
-			return action.operations === undefined
+			const next = action.operations === undefined
 				? { ...state, files: action.files }
 				: { ...state, files: action.files, operations: action.operations };
+			if (action.error === undefined) {
+				const { error: _ignored, ...rest } = next;
+				return rest;
+			}
+			return { ...next, error: action.error };
 		}
 
 		case ActionType.ChangesetOperationsChanged: {

@@ -538,9 +538,9 @@ export class Grid<T extends IView = IView> extends Disposable {
 	 * Resize a {@link IView view}.
 	 *
 	 * @param view The {@link IView view} to resize.
-	 * @param size The size the view should be. A dimension left out keeps its size.
+	 * @param size The size the view should be.
 	 */
-	resizeView(view: T, size: Partial<IViewSize>): void {
+	resizeView(view: T, size: IViewSize): void {
 		const location = this.getViewLocation(view);
 		return this.gridview.resizeView(location, size);
 	}
@@ -629,7 +629,8 @@ export class Grid<T extends IView = IView> extends Disposable {
 	}
 
 	/**
-	 * Distribute the size among all {@link IView views} within the entire grid.
+	 * Distribute the size among all {@link IView views} within the entire
+	 * grid or within a single {@link SplitView}.
 	 */
 	distributeViewSizes(): void {
 		this.gridview.distributeViewSizes();
@@ -649,15 +650,10 @@ export class Grid<T extends IView = IView> extends Disposable {
 	 * Set the visibility state of a {@link IView view}.
 	 *
 	 * @param view The {@link IView view}.
-	 * @param sizing Whether to redistribute the containing {@link SplitView} after revealing the view.
 	 */
-	setViewVisible(view: T, visible: boolean, sizing?: DistributeSizing): void {
+	setViewVisible(view: T, visible: boolean): void {
 		const location = this.getViewLocation(view);
 		this.gridview.setViewVisible(location, visible);
-		if (visible && sizing?.type === 'distribute') {
-			const parentLocation = location.length > 0 ? tail(location)[0] : undefined;
-			this.gridview.distributeViewSizes(parentLocation);
-		}
 	}
 
 	/**

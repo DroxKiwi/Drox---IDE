@@ -89,7 +89,7 @@ export async function showGoToContextMenu(accessor: ServicesAccessor, editor: IC
 		onHide: () => {
 			editor.focus();
 		},
-		autoSelectItem: true,
+		autoSelectFirstItem: true,
 	});
 
 }

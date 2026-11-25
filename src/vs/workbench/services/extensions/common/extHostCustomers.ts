@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IDisposable } from '../../../../base/common/lifecycle.js';
-import { OperatingSystem } from '../../../../base/common/platform.js';
 import { BrandedService, IConstructorSignature } from '../../../../platform/instantiation/common/instantiation.js';
 import { ExtensionHostKind } from './extensionHostKind.js';
 import { IExtensionHostProxy } from './extensionHostProxy.js';
@@ -13,7 +12,6 @@ import { IRPCProtocol, ProxyIdentifier } from './proxyIdentifier.js';
 
 export interface IExtHostContext extends IRPCProtocol {
 	readonly remoteAuthority: string | null;
-	readonly remoteOS?: OperatingSystem;
 	readonly extensionHostKind: ExtensionHostKind;
 }
 

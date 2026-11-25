@@ -14,7 +14,7 @@ import { DroxChatSessionUri, DROX_SESSIONS_PROVIDER_ID } from '../../../../workb
 import { IDroxRunSettingsService } from '../../../../workbench/contrib/drox/common/droxRunSettingsService.js';
 import { IDroxRegulationService } from '../../../../workbench/contrib/drox/common/regulation/droxRegulationServiceContract.js';
 import { markDroxEngineSessionOpened } from '../../../../workbench/contrib/drox/common/droxSharedChatSessionHistory.js';
-import { ISessionsService } from '../../../../workbench/contrib/sessions/browser/sessionsService.js';
+import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
 
 /** Persiste la session Drox active (fenêtre Agents) pour reprise dans l’IDE Native. */
 class DroxSessionsActiveSessionSync extends Disposable implements IWorkbenchContribution {
@@ -30,7 +30,7 @@ class DroxSessionsActiveSessionSync extends Disposable implements IWorkbenchCont
 	) {
 		super();
 		this._register(autorun(reader => {
-			const active = this.sessionsService.activePane.read(reader)?.session.read(reader);
+			const active = this.sessionsService.activeSession.read(reader);
 			if (!active || active.providerId !== DROX_SESSIONS_PROVIDER_ID) {
 				return;
 			}

@@ -16,7 +16,6 @@ import { IDroxClientToolsService } from '../../common/droxClientToolsService.js'
 import { IDroxCodebaseContextService } from '../../common/codebase/droxCodebaseContextService.js';
 import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
-import { IDroxToolsSurfaceService } from '../../common/droxToolsSurfaceService.js';
 import {
 	buildEnginePromptFromLastUserTranscript,
 	findLastUserMessageIdInUiReplay,
@@ -136,7 +135,6 @@ type IRunRecoveryDeps = {
 	readonly codebaseContextService?: IDroxCodebaseContextService;
 	readonly editorService?: IEditorService;
 	readonly regulationService?: Pick<IDroxRegulationService, 'getModule'>;
-	readonly toolsSurfaceService?: Pick<IDroxToolsSurfaceService, 'getStateForWorkspace'>;
 	readonly userHomeFsPath?: string;
 	readonly configurationService?: IConfigurationService;
 };
@@ -221,7 +219,6 @@ async function startRecoveryRun(
 			fileService: deps.fileService,
 			codebaseContextService: deps.codebaseContextService,
 			regulationService: deps.regulationService,
-			toolsSurfaceService: deps.toolsSurfaceService,
 			userHomeFsPath: deps.userHomeFsPath,
 			configurationService: deps.configurationService,
 			resolveCodebaseForcePathPrefixes: deps.editorService

@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { SourceLineMap } from '../src/util/sourceLineMap';
 import { SettingsManager } from './settings';
 
 const codeLineClass = 'code-line';
@@ -40,13 +39,13 @@ export class CodeLineElement {
 	}
 }
 
-const getCodeLineMap = (() => {
-	let cachedMap: SourceLineMap<CodeLineElement> | undefined;
+const getCodeLineElements = (() => {
+	let cachedElements: CodeLineElement[] | undefined;
 	let cachedVersion = -1;
 	return (documentVersion: number) => {
-		if (!cachedMap || documentVersion !== cachedVersion) {
+		if (!cachedElements || documentVersion !== cachedVersion) {
 			cachedVersion = documentVersion;
-			const elements: [CodeLineElement, ...CodeLineElement[]] = [new CodeLineElement(document.body, -1)];
+			cachedElements = [new CodeLineElement(document.body, -1)];
 			for (const element of document.getElementsByClassName(codeLineClass)) {
 				if (!(element instanceof HTMLElement)) {
 					continue;
@@ -57,26 +56,25 @@ const getCodeLineMap = (() => {
 					continue;
 				}
 
-				if (element.tagName === 'CODE' && element.parentElement?.tagName === 'PRE') {
+				if (element.tagName === 'CODE' && element.parentElement && element.parentElement.tagName === 'PRE') {
 					// Fenced code blocks are a special case since the `code-line` can only be marked on
 					// the `<code>` element and not the parent `<pre>` element.
 					// Calculate the end line by counting newlines in the code block
 					const text = element.textContent || '';
 					const lineCount = (text.match(/\n/g) || []).length + 1;
 					const endLine = line + lineCount - 1;
-					elements.push(new CodeLineElement(element.parentElement, line, element, endLine));
+					cachedElements.push(new CodeLineElement(element.parentElement, line, element, endLine));
 				} else if (element.tagName === 'PRE') {
 					// Skip PRE elements as they will be handled via their CODE children
 					// This prevents duplicate entries for the same line number
 				} else if (element.tagName === 'UL' || element.tagName === 'OL') {
 					// Skip adding list elements since the first child has the same code line (and should be preferred)
 				} else {
-					elements.push(new CodeLineElement(element, line));
+					cachedElements.push(new CodeLineElement(element, line));
 				}
 			}
-			cachedMap = new SourceLineMap(elements);
 		}
-		return cachedMap;
+		return cachedElements;
 	};
 })();
 
@@ -87,13 +85,24 @@ const getCodeLineMap = (() => {
  * returns the element prior to and the element after the given line.
  */
 export function getElementsForSourceLine(targetLine: number, documentVersion: number): { previous: CodeLineElement; next?: CodeLineElement } {
-	return getCodeLineMap(documentVersion).getElementsForSourceLine(targetLine);
+	const lineNumber = Math.floor(targetLine);
+	const lines = getCodeLineElements(documentVersion);
+	let previous = lines[0] || null;
+	for (const entry of lines) {
+		if (entry.line === lineNumber) {
+			return { previous: entry, next: undefined };
+		} else if (entry.line > lineNumber) {
+			return { previous, next: entry };
+		}
+		previous = entry;
+	}
+	return { previous };
 }
 
 export function getElementsForSourceLineRange(startLine: number, endLine: number, documentVersion: number): readonly CodeLineElement[] {
 	const rangeStart = Math.floor(startLine);
 	const rangeEnd = Math.max(rangeStart + 1, Math.ceil(endLine));
-	const lines = getCodeLineMap(documentVersion).elements.filter(element => element.line >= 0);
+	const lines = getCodeLineElements(documentVersion).filter(element => element.line >= 0);
 	const elements: CodeLineElement[] = [];
 	for (let i = 0; i < lines.length; i++) {
 		const element = lines[i];
@@ -117,7 +126,7 @@ function rangesIntersect(startA: number, endA: number, startB: number, endB: num
  * Find the html elements that are at a specific pixel offset on the page.
  */
 export function getLineElementsAtPageOffset(offset: number, documentVersion: number): { previous: CodeLineElement; next?: CodeLineElement } {
-	const lines = getCodeLineMap(documentVersion).elements.filter(x => x.isVisible);
+	const lines = getCodeLineElements(documentVersion).filter(x => x.isVisible);
 	const position = offset - window.scrollY;
 	let lo = -1;
 	let hi = lines.length - 1;
@@ -322,7 +331,7 @@ export function getEditorLineNumberForPageOffset(offset: number, documentVersion
  * Try to find the html element by using a fragment id
  */
 export function getLineElementForFragment(fragment: string, documentVersion: number): CodeLineElement | undefined {
-	return getCodeLineMap(documentVersion).elements.find((element) => {
+	return getCodeLineElements(documentVersion).find((element) => {
 		return element.element.id === fragment;
 	});
 }

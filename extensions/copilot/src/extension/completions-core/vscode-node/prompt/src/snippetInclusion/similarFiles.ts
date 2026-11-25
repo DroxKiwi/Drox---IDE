@@ -71,22 +71,13 @@ function getMatcher(doc: DocumentInfoWithOffset, selection: SimilarFilesOptions)
 }
 
 /**
- * A {@link SnippetWithProviderInfo} enriched with the provenance of the similar file it
- * came from: the source-document `uri` and whether that file is a language-service
- * "related" file. {@link getSimilarSnippets} always populates both, so consumers can
- * reason about a snippet's origin without re-deriving it (e.g. in multi-root workspaces
- * where two documents can share a relative path).
- */
-export type SnippetWithSourceInfo = SnippetWithProviderInfo & { uri: string; isFromRelatedFile: boolean };
-
-/**
  * @returns A SnippetWithProviderInfo describing the best matches from similar files.
  */
 export async function getSimilarSnippets(
 	doc: DocumentInfoWithOffset,
 	similarFiles: SimilarFileInfo[],
 	options: SimilarFilesOptions
-): Promise<SnippetWithSourceInfo[]> {
+): Promise<SnippetWithProviderInfo[]> {
 	const matcher = getMatcher(doc, options);
 	if (options.maxTopSnippets === 0) {
 		return [];
@@ -105,13 +96,11 @@ export async function getSimilarSnippets(
 				) =>
 					(await acc).concat(
 						(await matcher.findMatches(similarFile, options.maxSnippetsPerFile)).map(snippet => ({
-							...snippet,
 							relativePath: similarFile.relativePath,
-							uri: similarFile.uri,
-							isFromRelatedFile: similarFile.isFromRelatedFile ?? false,
+							...snippet,
 						}))
 					),
-				Promise.resolve([] as SnippetWithSourceInfo[])
+				Promise.resolve([] as SnippetWithProviderInfo[])
 			)
 	)
 		.filter(

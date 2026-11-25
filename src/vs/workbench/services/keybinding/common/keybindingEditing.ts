@@ -134,9 +134,8 @@ export class KeybindingsEditingService extends Disposable implements IKeybinding
 				this.applyEditsToBuffer(edits[0], model);
 			}
 		} else {
-			// Add the new keybinding with new key. A default system-wide keybinding only registers while its `when` clause
-			// holds, but a user's registers always, so the user's copy is not system-wide.
-			this.applyEditsToBuffer(setProperty(model.getValue(), [-1], this.asObject(newKey, keybindingItem.command, when, false, keybindingItem.commandArgs, !keybindingItem.isDefault && keybindingItem.systemWide), { tabSize, insertSpaces, eol })[0], model);
+			// Add the new keybinding with new key
+			this.applyEditsToBuffer(setProperty(model.getValue(), [-1], this.asObject(newKey, keybindingItem.command, when, false), { tabSize, insertSpaces, eol })[0], model);
 		}
 	}
 
@@ -201,19 +200,13 @@ export class KeybindingsEditingService extends Disposable implements IKeybinding
 		return indices;
 	}
 
-	private asObject(key: string, command: string | null, when: string | undefined, negate: boolean, args?: unknown, systemWide?: boolean): IUserFriendlyKeybinding {
+	private asObject(key: string, command: string | null, when: string | undefined, negate: boolean): any {
 		const object: any = { key };
 		if (command) {
 			object['command'] = negate ? `-${command}` : command;
 		}
 		if (when) {
 			object['when'] = when;
-		}
-		if (args !== undefined && args !== null) {
-			object['args'] = args;
-		}
-		if (systemWide) {
-			object['systemWide'] = true;
 		}
 		return object;
 	}

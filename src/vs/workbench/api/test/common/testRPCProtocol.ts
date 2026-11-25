@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { isThenable } from '../../../../base/common/async.js';
-import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { CharCode } from '../../../../base/common/charCode.js';
 import { IExtHostRpcService } from '../../common/extHostRpcService.js';
 import { IExtHostContext } from '../../../services/extensions/common/extHostCustomers.js';
@@ -157,10 +156,6 @@ export class TestRPCProtocol implements IExtHostContext, IExtHostRpcService {
 
 function simulateWireTransfer<T>(obj: T): T {
 	if (!obj) {
-		return obj;
-	}
-
-	if (CancellationToken.isCancellationToken(obj)) {
 		return obj;
 	}
 

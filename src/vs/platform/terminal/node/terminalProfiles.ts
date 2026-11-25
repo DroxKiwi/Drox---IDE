@@ -5,10 +5,8 @@
 
 import * as fs from 'fs';
 import * as cp from 'child_process';
-import { userInfo } from 'os';
-import { distinct } from '../../../base/common/arrays.js';
 import { Codicon } from '../../../base/common/codicons.js';
-import { basename, delimiter, normalize, dirname, resolve, isAbsolute } from '../../../base/common/path.js';
+import { basename, delimiter, normalize, dirname, resolve } from '../../../base/common/path.js';
 import { isLinux, isWindows } from '../../../base/common/platform.js';
 import { findExecutable } from '../../../base/node/processes.js';
 import { hasKey, isObject, isString } from '../../../base/common/types.js';
@@ -37,8 +35,7 @@ export function detectAvailableProfiles(
 	fsProvider?: IFsProvider,
 	logService?: ILogService,
 	variableResolver?: (text: string[]) => Promise<string[]>,
-	testPwshSourcePaths?: string[],
-	testLoginShells?: string[]
+	testPwshSourcePaths?: string[]
 ): Promise<ITerminalProfile[]> {
 	fsProvider = fsProvider || {
 		existsFile: pfs.SymlinkSupport.existsFile,
@@ -65,8 +62,7 @@ export function detectAvailableProfiles(
 		isString(defaultProfile) ? defaultProfile : configurationService.getValue<string>(isLinux ? TerminalSettingId.DefaultProfileLinux : TerminalSettingId.DefaultProfileMacOs),
 		testPwshSourcePaths,
 		variableResolver,
-		shellEnv,
-		testLoginShells ?? getLoginShells(shellEnv)
+		shellEnv
 	);
 }
 
@@ -176,11 +172,10 @@ async function transformToTerminalProfiles(
 	shellEnv: typeof process.env = process.env,
 	logService?: ILogService,
 	variableResolver?: (text: string[]) => Promise<string[]>,
-	loginShells?: string[]
 ): Promise<ITerminalProfile[]> {
 	const promises: Promise<ITerminalProfile | undefined>[] = [];
 	for (const [profileName, profile] of entries) {
-		promises.push(getValidatedProfile(profileName, profile, defaultProfileName, fsProvider, shellEnv, logService, variableResolver, loginShells));
+		promises.push(getValidatedProfile(profileName, profile, defaultProfileName, fsProvider, shellEnv, logService, variableResolver));
 	}
 	return (await Promise.all(promises)).filter(e => !!e);
 }
@@ -192,8 +187,7 @@ async function getValidatedProfile(
 	fsProvider: IFsProvider,
 	shellEnv: typeof process.env = process.env,
 	logService?: ILogService,
-	variableResolver?: (text: string[]) => Promise<string[]>,
-	loginShells?: string[]
+	variableResolver?: (text: string[]) => Promise<string[]>
 ): Promise<ITerminalProfile | undefined> {
 	if (profile === null) {
 		return undefined;
@@ -243,10 +237,6 @@ async function getValidatedProfile(
 	} else {
 		paths = originalPaths.slice();
 	}
-
-	// The login shell may be missing from the resolved PATH (stale $SHELL or failed shell env resolution)
-	const bareNames = paths.filter((e): e is string => isString(e) && basename(e) === e);
-	paths.push(...bareNames.flatMap(name => (loginShells ?? []).filter(e => basename(e) === name)));
 
 	let requiresUnsafePath: string | undefined;
 	if (profile.requiresPath) {
@@ -416,8 +406,7 @@ async function detectAvailableUnixProfiles(
 	defaultProfileName?: string,
 	testPaths?: string[],
 	variableResolver?: (text: string[]) => Promise<string[]>,
-	shellEnv?: typeof process.env,
-	loginShells?: string[]
+	shellEnv?: typeof process.env
 ): Promise<ITerminalProfile[]> {
 	const detectedProfiles: Map<string, IUnresolvedTerminalProfile> = new Map();
 
@@ -447,21 +436,7 @@ async function detectAvailableUnixProfiles(
 
 	applyConfigProfilesToMap(configProfiles, detectedProfiles);
 
-	return await transformToTerminalProfiles(detectedProfiles.entries(), defaultProfileName, fsProvider, shellEnv, logService, variableResolver, loginShells);
-}
-
-/**
- * Gets the absolute paths of the user's login shell, from both $SHELL and the user database since
- * $SHELL can be stale, for example in apps launched from the macOS Dock after `chsh`.
- */
-function getLoginShells(shellEnv: typeof process.env): string[] {
-	const shells = [shellEnv.SHELL, process.env.SHELL];
-	try {
-		shells.push(userInfo().shell ?? undefined);
-	} catch {
-		// userInfo throws when the user has no username or home directory
-	}
-	return distinct(shells.filter((e): e is string => !!e && isAbsolute(e)));
+	return await transformToTerminalProfiles(detectedProfiles.entries(), defaultProfileName, fsProvider, shellEnv, logService, variableResolver);
 }
 
 function applyConfigProfilesToMap(configProfiles: { [key: string]: IUnresolvedTerminalProfile } | undefined, profilesMap: Map<string, IUnresolvedTerminalProfile>) {
@@ -507,7 +482,7 @@ async function validateProfilePaths(profileName: string, defaultProfileName: str
 		const envPaths: string[] | undefined = shellEnv.PATH ? shellEnv.PATH.split(delimiter) : undefined;
 		const executable = await findExecutable(actualPath, undefined, envPaths, undefined, fsProvider.existsFile);
 		if (!executable) {
-			return validateProfilePaths(profileName, defaultProfileName, potentialPaths, fsProvider, shellEnv, args, env, overrideName, isAutoDetected);
+			return validateProfilePaths(profileName, defaultProfileName, potentialPaths, fsProvider, shellEnv, args);
 		}
 		profile.path = executable;
 		profile.isFromPath = true;

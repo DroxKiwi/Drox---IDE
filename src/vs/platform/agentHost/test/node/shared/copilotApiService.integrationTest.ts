@@ -20,11 +20,9 @@ import { NullLogService } from '../../../../log/common/log.js';
 import product from '../../../../product/common/product.js';
 import { IProductService } from '../../../../product/common/productService.js';
 import { CopilotApiService } from '../../../node/shared/copilotApiService.js';
-import { createTestGitHubEndpointService } from '../testGitHubEndpointService.js';
-import { NullTelemetryService } from '../../../../telemetry/common/telemetryUtils.js';
 
 suite('CopilotApiService.utilityChatCompletion (real CAPI)', () => {
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	const githubToken = process.env.COPILOT_GITHUB_TOKEN;
 	const hasToken = !!githubToken;
@@ -36,7 +34,7 @@ suite('CopilotApiService.utilityChatCompletion (real CAPI)', () => {
 		// `globalThis.fetch` through `this._fetch(...)` throws
 		// "Illegal invocation" in the Electron renderer.
 		const boundFetch: typeof globalThis.fetch = (...args) => globalThis.fetch(...args);
-		return disposables.add(new CopilotApiService(boundFetch, new NullLogService(), productService, createTestGitHubEndpointService(), NullTelemetryService));
+		return new CopilotApiService(boundFetch, new NullLogService(), productService);
 	}
 
 	(hasToken ? test : test.skip)('answers a trivial arithmetic prompt', async function () {
@@ -47,7 +45,6 @@ suite('CopilotApiService.utilityChatCompletion (real CAPI)', () => {
 				{ role: 'system', content: 'You answer math questions with only the integer result, no words, no punctuation.' },
 				{ role: 'user', content: 'What is 1+3?' },
 			],
-			telemetry: { source: 'title' },
 		});
 		assert.ok(answer.includes('4'), `expected the answer to contain "4", got: ${JSON.stringify(answer)}`);
 	});
@@ -60,26 +57,25 @@ suite('CopilotApiService.utilityChatCompletion (real CAPI)', () => {
 				{ role: 'system', content: 'You reverse the word the user gives you and reply with only the reversed word, nothing else.' },
 				{ role: 'user', content: 'hello' },
 			],
-			telemetry: { source: 'title' },
 		});
 		assert.strictEqual(answer.trim().toLowerCase(), 'olleh');
 	});
 
-	(hasToken ? test : test.skip)('reuses endpoint and model discovery across calls', async function () {
+	(hasToken ? test : test.skip)('caches the Copilot session token across calls', async function () {
 		this.timeout(60_000);
 		const service = createService();
 
 		const first = await service.utilityChatCompletion(githubToken!, {
 			messages: [{ role: 'user', content: 'Say "ok" and nothing else.' }],
-			telemetry: { source: 'title' },
 		});
 		const second = await service.utilityChatCompletion(githubToken!, {
 			messages: [{ role: 'user', content: 'Say "ok" and nothing else.' }],
-			telemetry: { source: 'title' },
 		});
 
-		// Both calls succeed; the second reuses endpoint and model discovery.
-		// Cache-hit assertions live in the unit-test suite.
+		// Both calls succeed; the second is served from the cached
+		// Copilot token + resolved model id. Cache-hit assertions live in
+		// the unit-test suite (see copilotApiService.test.ts) where we can
+		// count `RequestType.CopilotToken` calls against a fake fetch.
 		assert.ok(first.toLowerCase().includes('ok'));
 		assert.ok(second.toLowerCase().includes('ok'));
 	});

@@ -89,10 +89,6 @@ export class ChatElicitationContentPart extends Disposable implements IChatConte
 		}));
 		this._confirmWidget = confirmationWidget;
 		confirmationWidget.setShowButtons(elicitation.kind === 'elicitation2' && elicitation.state.get() === ElicitationState.Pending);
-		const keepActions = elicitation.kind === 'elicitation2' && elicitation.keepActionsWhilePending === true;
-		if (elicitation.kind === 'elicitation2' && keepActions) {
-			this._register(autorun(reader => confirmationWidget.setShowButtons(elicitation.state.read(reader) === ElicitationState.Pending)));
-		}
 
 		this._register(confirmationWidget.onDidClick(async ({ button: e }) => {
 			if (elicitation.kind !== 'elicitation2') {
@@ -113,9 +109,7 @@ export class ChatElicitationContentPart extends Disposable implements IChatConte
 				await elicitation.reject();
 			}
 
-			if (!keepActions) {
-				confirmationWidget.setShowButtons(false);
-			}
+			confirmationWidget.setShowButtons(false);
 			confirmationWidget.updateMessage(this.getMessageToRender(elicitation));
 		}));
 

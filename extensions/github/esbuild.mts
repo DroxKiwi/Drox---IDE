@@ -18,7 +18,7 @@ run({
 	outdir: outDir,
 	additionalOptions: {
 		banner: {
-			// CommonJS dependencies need this shim in the ESM bundle.
+			// The tunnel package uses `require` and needs this shim to work in an ESM environment
 			js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
 		},
 	},

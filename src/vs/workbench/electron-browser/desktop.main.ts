@@ -30,7 +30,6 @@ import { RemoteAgentService } from '../services/remote/electron-browser/remoteAg
 import { IRemoteAgentService } from '../services/remote/common/remoteAgentService.js';
 import { FileService } from '../../platform/files/common/fileService.js';
 import { IFileService } from '../../platform/files/common/files.js';
-import { BrowserResourceService, IBrowserResourceService } from '../../platform/files/browser/browserResourceService.js';
 import { RemoteFileSystemProviderClient } from '../services/remote/common/remoteFileSystemProviderClient.js';
 import { ConfigurationCache } from '../services/configuration/common/configurationCache.js';
 import { ISignService } from '../../platform/sign/common/sign.js';
@@ -44,8 +43,6 @@ import { ProxyChannel } from '../../base/parts/ipc/common/ipc.js';
 import { NativeLogService } from '../services/log/electron-browser/logService.js';
 import { WorkspaceTrustEnablementService, WorkspaceTrustManagementService } from '../services/workspaces/common/workspaceTrust.js';
 import { IWorkspaceTrustEnablementService, IWorkspaceTrustManagementService } from '../../platform/workspace/common/workspaceTrust.js';
-import { CanonicalUriService } from '../services/workspaces/common/canonicalUriService.js';
-import { ICanonicalUriService } from '../../platform/workspace/common/canonicalUri.js';
 import { safeStringify } from '../../base/common/objects.js';
 import { IUtilityProcessWorkerWorkbenchService, UtilityProcessWorkerWorkbenchService } from '../services/utilityProcess/electron-browser/utilityProcessWorkerWorkbenchService.js';
 import { isCI, isMacintosh, isTahoeOrNewer } from '../../base/common/platform.js';
@@ -55,15 +52,16 @@ import { FileUserDataProvider } from '../../platform/userData/common/fileUserDat
 import { IUserDataProfilesService, reviveProfile } from '../../platform/userDataProfile/common/userDataProfile.js';
 import { UserDataProfilesService } from '../../platform/userDataProfile/common/userDataProfileIpc.js';
 import { PolicyChannelClient } from '../../platform/policy/common/policyIpc.js';
-import { NativeManagedSettingsChannelClient } from '../../platform/policy/common/nativeManagedSettingsIpc.js';
-import { INativeManagedSettingsService, IFileManagedSettingsService, IManagedSettingsService } from '../../platform/policy/common/copilotManagedSettings.js';
-import { FileManagedSettingsChannelClient } from '../../platform/policy/common/fileManagedSettingsIpc.js';
+import { CopilotManagedSettingsChannelClient } from '../../platform/policy/common/copilotManagedSettingsIpc.js';
+import { ICopilotManagedSettingsService } from '../../platform/policy/common/copilotManagedSettings.js';
 import { IPolicyService } from '../../platform/policy/common/policy.js';
 import { UserDataProfileService } from '../services/userDataProfile/common/userDataProfileService.js';
 import { IUserDataProfileService } from '../services/userDataProfile/common/userDataProfile.js';
 import { BrowserSocketFactory } from '../../platform/remote/browser/browserSocketFactory.js';
 import { RemoteSocketFactoryService, IRemoteSocketFactoryService } from '../../platform/remote/common/remoteSocketFactoryService.js';
-import { createBrowserResourceUriProvider, ElectronRemoteResourceLoader } from '../../platform/remote/electron-browser/electronRemoteResourceLoader.js';
+import { ElectronRemoteResourceLoader } from '../../platform/remote/electron-browser/electronRemoteResourceLoader.js';
+import { RemoteFileSystemProxyServer } from '../../platform/files/electron-browser/remoteFileSystemProxyServer.js';
+import { RemoteFileSystemProxyClient } from '../../platform/files/electron-browser/remoteFileSystemProxyClient.js';
 import { IConfigurationService } from '../../platform/configuration/common/configuration.js';
 import { applyZoom } from '../../platform/window/electron-browser/window.js';
 import { mainWindow } from '../../base/browser/window.js';
@@ -222,12 +220,9 @@ export class DesktopMain extends Disposable {
 		// Policies
 		let policyService: IPolicyService;
 		const policyChannel = this.configuration.policiesData ? this._register(new PolicyChannelClient(this.configuration.policiesData, mainProcessService.getChannel('policy'))) : undefined;
-		const nativeManagedSettings = this._register(new NativeManagedSettingsChannelClient(mainProcessService.getChannel('nativeManagedSettings'), logService));
-		serviceCollection.set(INativeManagedSettingsService, nativeManagedSettings);
-		const fileManagedSettings = this._register(new FileManagedSettingsChannelClient(mainProcessService.getChannel('fileManagedSettings')));
-		serviceCollection.set(IFileManagedSettingsService, fileManagedSettings);
-		const accountPolicy = this._register(new AccountPolicyService(logService, defaultAccountService, policyChannel, nativeManagedSettings, fileManagedSettings));
-		serviceCollection.set(IManagedSettingsService, accountPolicy);
+		const copilotManagedSettings = this._register(new CopilotManagedSettingsChannelClient(mainProcessService.getChannel('copilotManagedSettings')));
+		serviceCollection.set(ICopilotManagedSettingsService, copilotManagedSettings);
+		const accountPolicy = this._register(new AccountPolicyService(logService, defaultAccountService, policyChannel, copilotManagedSettings));
 		if (policyChannel) {
 			policyService = this._register(new MultiplexPolicyService([policyChannel, accountPolicy], logService));
 		} else {
@@ -263,9 +258,7 @@ export class DesktopMain extends Disposable {
 		serviceCollection.set(IFileService, fileService);
 
 		// Remote
-		const browserResourceService = this._register(new BrowserResourceService(createBrowserResourceUriProvider(environmentService.window.id), fileService));
-		serviceCollection.set(IBrowserResourceService, browserResourceService);
-		const remoteAuthorityResolverService = new RemoteAuthorityResolverService(productService, this._register(new ElectronRemoteResourceLoader(environmentService.window.id, mainProcessService, fileService, browserResourceService)));
+		const remoteAuthorityResolverService = new RemoteAuthorityResolverService(productService, new ElectronRemoteResourceLoader(environmentService.window.id, mainProcessService, fileService));
 		serviceCollection.set(IRemoteAuthorityResolverService, remoteAuthorityResolverService);
 
 		// Local Files
@@ -295,6 +288,12 @@ export class DesktopMain extends Disposable {
 
 		// Remote Files
 		this._register(RemoteFileSystemProviderClient.register(remoteAgentService, fileService, logService));
+
+		// Remote File System Proxy
+		// Server: allows other windows to read remote files from this window's providers
+		this._register(new RemoteFileSystemProxyServer(mainProcessService, fileService));
+		// Client: allows this window to read remote files from other windows' providers
+		this._register(RemoteFileSystemProxyClient.register(fileService, mainProcessService, logService, environmentService.remoteAuthority));
 
 		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		//
@@ -337,13 +336,10 @@ export class DesktopMain extends Disposable {
 		]);
 
 		// Workspace Trust Service
-		const canonicalUriService = this._register(new CanonicalUriService());
-		serviceCollection.set(ICanonicalUriService, canonicalUriService);
-
 		const workspaceTrustEnablementService = new WorkspaceTrustEnablementService(configurationService, environmentService);
 		serviceCollection.set(IWorkspaceTrustEnablementService, workspaceTrustEnablementService);
 
-		const workspaceTrustManagementService = new WorkspaceTrustManagementService(configurationService, remoteAuthorityResolverService, storageService, uriIdentityService, environmentService, configurationService, workspaceTrustEnablementService, fileService, canonicalUriService, logService);
+		const workspaceTrustManagementService = new WorkspaceTrustManagementService(configurationService, remoteAuthorityResolverService, storageService, uriIdentityService, environmentService, configurationService, workspaceTrustEnablementService, fileService);
 		serviceCollection.set(IWorkspaceTrustManagementService, workspaceTrustManagementService);
 
 		// Update workspace trust so that configuration is updated accordingly
@@ -375,22 +371,6 @@ export class DesktopMain extends Disposable {
 		return toWorkspaceIdentifier(this.configuration.backupPath, environmentService.isExtensionDevelopment);
 	}
 
-	/**
-	 * The alternate location a local single-folder window has been persisted at. It is applied
-	 * without granting any trust. The main process has validated that it exists before loading the
-	 * window, so only its URI is checked here. `FolderLocationPersistenceContribution` has it
-	 * confirmed by a provider after startup.
-	 */
-	private resolveFolderLocation(workspace: IAnyWorkspaceIdentifier, environmentService: INativeWorkbenchEnvironmentService): URI | undefined {
-		const persisted = environmentService.folderLocation;
-		if (!persisted || !isSingleFolderWorkspaceIdentifier(workspace) || workspace.uri.scheme !== Schemas.file) {
-			return undefined;
-		}
-
-		const location = URI.parse(persisted.uri);
-		return location.scheme === Schemas.file ? location : undefined;
-	}
-
 	private async createWorkspaceService(
 		workspace: IAnyWorkspaceIdentifier,
 		environmentService: INativeWorkbenchEnvironmentService,
@@ -406,7 +386,7 @@ export class DesktopMain extends Disposable {
 		const workspaceService = new WorkspaceService({ remoteAuthority: environmentService.remoteAuthority, configurationCache }, environmentService, userDataProfileService, userDataProfilesService, fileService, remoteAgentService, uriIdentityService, logService, policyService);
 
 		try {
-			await workspaceService.initialize(workspace, this.resolveFolderLocation(workspace, environmentService));
+			await workspaceService.initialize(workspace);
 
 			return workspaceService;
 		} catch (error) {

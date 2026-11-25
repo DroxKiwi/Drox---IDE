@@ -13,8 +13,6 @@ suite('Drox — Explore sub-agents gate', () => {
 	test('droxSubagentsEnabledForRun requires master ON and L2 standard/full', () => {
 		assert.strictEqual(droxSubagentsEnabledForRun(true, 'standard'), true);
 		assert.strictEqual(droxSubagentsEnabledForRun(true, 'full'), true);
-		assert.strictEqual(droxSubagentsEnabledForRun(true, 'custom', ['grep']), false);
-		assert.strictEqual(droxSubagentsEnabledForRun(true, 'custom', ['task', 'grep']), true);
 		assert.strictEqual(droxSubagentsEnabledForRun(true, 'core'), false);
 		assert.strictEqual(droxSubagentsEnabledForRun(false, 'standard'), false);
 		assert.strictEqual(droxSubagentsEnabledForRun(false, 'full'), false);

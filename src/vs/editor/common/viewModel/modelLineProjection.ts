@@ -27,7 +27,6 @@ export interface IModelLineProjection {
 	getViewLineLength(model: ISimpleModel, modelLineNumber: number, outputLineIndex: number): number;
 	getViewLineMinColumn(model: ISimpleModel, modelLineNumber: number, outputLineIndex: number): number;
 	getViewLineMaxColumn(model: ISimpleModel, modelLineNumber: number, outputLineIndex: number): number;
-	getViewLineContinuesWithWrappedLine(outputLineIndex: number): boolean;
 	getViewLineData(model: ISimpleModel, modelLineNumber: number, outputLineIndex: number, baseViewLineNumber: number): ViewLineData;
 	getViewLinesData(model: ISimpleModel, modelLineNumber: number, outputLineIdx: number, lineCount: number, baseViewLineNumber: number, globalStartIndex: number, needed: boolean[], result: Array<ViewLineData | null>): void;
 
@@ -149,10 +148,6 @@ class ModelLineProjection implements IModelLineProjection {
 		return this._projectionData.getMaxOutputOffset(outputLineIndex) + 1;
 	}
 
-	public getViewLineContinuesWithWrappedLine(outputLineIndex: number): boolean {
-		return outputLineIndex + 1 < this.getViewLineCount();
-	}
-
 	/**
 	 * Try using {@link getViewLinesData} instead.
 	*/
@@ -208,7 +203,7 @@ class ModelLineProjection implements IModelLineProjection {
 
 		const minColumn = this._projectionData.getMinOutputOffset(outputLineIndex) + 1;
 		const maxColumn = lineContent.length + 1;
-		const continuesWithWrappedLine = this.getViewLineContinuesWithWrappedLine(outputLineIndex);
+		const continuesWithWrappedLine = (outputLineIndex + 1 < this.getViewLineCount());
 		const startVisibleColumn = (outputLineIndex === 0 ? 0 : lineBreakData.breakOffsetsVisibleColumn[outputLineIndex - 1]);
 
 		return new ViewLineData(
@@ -300,10 +295,6 @@ class IdentityModelLineProjection implements IModelLineProjection {
 		return model.getLineMaxColumn(modelLineNumber);
 	}
 
-	public getViewLineContinuesWithWrappedLine(_outputLineIndex: number): boolean {
-		return false;
-	}
-
 	public getViewLineData(model: ISimpleModel, modelLineNumber: number, _outputLineIndex: number, _baseViewLineNumber: number): ViewLineData {
 		const lineTokens = model.tokenization.getLineTokens(modelLineNumber);
 		const lineContent = lineTokens.getLineContent();
@@ -387,10 +378,6 @@ class HiddenModelLineProjection implements IModelLineProjection {
 	}
 
 	public getViewLineMaxColumn(_model: ISimpleModel, _modelLineNumber: number, _outputLineIndex: number): number {
-		throw new Error('Not supported');
-	}
-
-	public getViewLineContinuesWithWrappedLine(_outputLineIndex: number): boolean {
 		throw new Error('Not supported');
 	}
 

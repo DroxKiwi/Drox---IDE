@@ -12,18 +12,17 @@ const minimist = require('minimist');
 
 const [, , ...args] = process.argv;
 const opts = minimist(args, {
-	boolean: ['web', 'fail-zero'],
+	boolean: ['web'],
 	string: ['f', 'g']
 });
 
-const suite = opts.web ? 'Browser Smoke Tests' : 'Desktop Smoke Tests';
+const suite = opts['web'] ? 'Browser Smoke Tests' : 'Desktop Smoke Tests';
 
 const options = {
 	color: true,
 	timeout: 2 * 60 * 1000,
 	slow: 30 * 1000,
-	grep: opts.f || opts.g,
-	failZero: opts['fail-zero']
+	grep: opts['f'] || opts['g']
 };
 
 if (process.env.BUILD_ARTIFACTSTAGINGDIRECTORY || process.env.GITHUB_WORKSPACE) {
@@ -40,30 +39,7 @@ if (process.env.BUILD_ARTIFACTSTAGINGDIRECTORY || process.env.GITHUB_WORKSPACE) 
 
 const mocha = new Mocha(options);
 mocha.addFile('out/main.js');
-
-/** @type {Map<Mocha.Suite, number>} */
-const topLevelSuiteStartTimes = new Map();
-/** @type {{ title: string; duration: number }[]} */
-const topLevelSuiteDurations = [];
-
-/** @param {Mocha.Suite} suite */
-function isTopLevelSuite(suite) {
-	return !!suite.parent?.parent?.root && !suite.isPending();
-}
-
-function printTopLevelSuiteDurations() {
-	if (!topLevelSuiteDurations.length) {
-		return;
-	}
-
-	const lines = topLevelSuiteDurations
-		.sort((a, b) => b.duration - a.duration)
-		.map(({ title, duration }) => `${String(Math.round(duration / 1000)).padStart(6)}s  ${title}`);
-	console.log(`\nSuite durations (shard balancing estimates are in test/smoke/src/shard.ts):\n${lines.join('\n')}\n`);
-}
-
-const runner = mocha.run(failures => {
-	printTopLevelSuiteDurations();
+mocha.run(failures => {
 
 	// Indicate location of log files for further diagnosis
 	if (failures) {
@@ -116,16 +92,4 @@ const runner = mocha.run(failures => {
 	}
 
 	process.exit(failures ? -1 : 0);
-});
-
-runner.on('suite', suite => {
-	if (isTopLevelSuite(suite)) {
-		topLevelSuiteStartTimes.set(suite, Date.now());
-	}
-});
-runner.on('suite end', suite => {
-	const startTime = topLevelSuiteStartTimes.get(suite);
-	if (startTime !== undefined) {
-		topLevelSuiteDurations.push({ title: suite.title, duration: Date.now() - startTime });
-	}
 });

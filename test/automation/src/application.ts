@@ -70,10 +70,6 @@ export class Application {
 		return this._userDataPath;
 	}
 
-	get extraEnv(): Readonly<Record<string, string | undefined>> | undefined {
-		return this.options.extraEnv;
-	}
-
 	private _profiler: Profiler | undefined;
 
 	get profiler(): Profiler { return this._profiler!; }

@@ -80,7 +80,6 @@ export interface IExtensionGalleryManifestService {
 	readonly onDidChangeExtensionGalleryManifestStatus: Event<ExtensionGalleryManifestStatus>;
 	readonly onDidChangeExtensionGalleryManifest: Event<IExtensionGalleryManifest | null>;
 	getExtensionGalleryManifest(): Promise<IExtensionGalleryManifest | null>;
-	getAccessToken(targetUrl: string): Promise<string | undefined>;
 }
 
 export function getExtensionGalleryManifestResourceUri(manifest: IExtensionGalleryManifest, type: string): string | undefined {
@@ -99,5 +98,3 @@ export function getExtensionGalleryManifestResourceUri(manifest: IExtensionGalle
 }
 
 export const ExtensionGalleryServiceUrlConfigKey = 'extensions.gallery.serviceUrl';
-
-export const ExtensionGalleryAuthProviderConfigKey = 'extensions.gallery.authProvider';

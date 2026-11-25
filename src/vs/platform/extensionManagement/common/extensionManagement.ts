@@ -21,7 +21,6 @@ import { IExtensionGalleryManifest } from './extensionGalleryManifest.js';
 
 export const EXTENSION_IDENTIFIER_PATTERN = '^([a-z0-9A-Z][a-z0-9-A-Z]*)\\.([a-z0-9A-Z][a-z0-9-A-Z]*)$';
 export const EXTENSION_IDENTIFIER_REGEX = new RegExp(EXTENSION_IDENTIFIER_PATTERN);
-export const EXTENSION_PUBLISHER_IDENTIFIER_PATTERN = '^([a-z0-9A-Z][a-z0-9-A-Z]*)$';
 export const WEB_EXTENSION_TAG = '__web_extension';
 export const LANGUAGE_MODEL_CHAT_PROVIDER_EXTENSION_TAG = 'language-models';
 export const EXTENSION_INSTALL_SKIP_WALKTHROUGH_CONTEXT = 'skipWalkthrough';
@@ -175,24 +174,6 @@ export interface IGalleryExtensionProperties {
 	executesCode?: boolean;
 }
 
-/** Who made the blocking statement: the marketplace, or a policy scoped to this tenant. */
-export const enum ExtensionBlockingOrigin {
-	/** Also the degraded value for any origin this client does not recognize, being the more severe. */
-	Service = 'service',
-	Policy = 'policy',
-}
-
-export const enum ExtensionBlockingScope {
-	Extension = 'extension',
-	Version = 'version',
-}
-
-/** Present only when the gallery reports an extension, or the version in hand, as blocked. */
-export interface IExtensionBlockingInfo {
-	readonly origin: ExtensionBlockingOrigin;
-	readonly scope: ExtensionBlockingScope;
-}
-
 export interface IGalleryExtensionAsset {
 	uri: string;
 	fallbackUri: string;
@@ -256,8 +237,6 @@ export interface IGalleryExtension {
 	lastUpdated: number;
 	preview: boolean;
 	private: boolean;
-	/** Set when this extension, or the version in hand, must not be acquired or used. Absence means "not known to be blocked", not "known to be safe". */
-	blockingInfo?: IExtensionBlockingInfo;
 	hasPreReleaseVersion: boolean;
 	hasReleaseVersion: boolean;
 	isSigned: boolean;
@@ -412,8 +391,6 @@ export interface IExtensionQueryOptions {
 	productVersion?: IProductVersion;
 	compatible?: boolean;
 	queryAllVersions?: boolean;
-	/** Include a blocked version only when it is requested by exact version. */
-	includeBlockedVersions?: boolean;
 	source?: string;
 }
 
@@ -777,7 +754,7 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration)
 				},
 				additionalProperties: false,
 				patternProperties: {
-					[EXTENSION_IDENTIFIER_PATTERN]: {
+					'([a-z0-9A-Z][a-z0-9-A-Z]*)\\.([a-z0-9A-Z][a-z0-9-A-Z]*)$': {
 						anyOf: [
 							{
 								type: ['boolean', 'string'],
@@ -798,7 +775,7 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration)
 							},
 						]
 					},
-					[EXTENSION_PUBLISHER_IDENTIFIER_PATTERN]: {
+					'([a-z0-9A-Z][a-z0-9-A-Z]*)$': {
 						type: ['boolean', 'string'],
 						enum: [true, false, 'stable'],
 						description: localize('extension.publisher.allow.description', "Allow or disallow all extensions from the publisher."),
@@ -828,3 +805,4 @@ export function shouldRequireRepositorySignatureFor(isPrivate: boolean, galleryM
 	}
 	return galleryManifest?.capabilities.signing?.allPublicRepositorySigned === true;
 }
+

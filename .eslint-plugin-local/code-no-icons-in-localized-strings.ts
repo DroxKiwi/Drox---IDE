@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import { TSESTree } from '@typescript-eslint/utils';
 
 /**
  * Prevents theme icon syntax `$(iconName)` from appearing inside localized
@@ -20,9 +21,9 @@ import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plu
  * ❌ nls.localize('key', "$(loading~spin) Loading...")
  * ✅ '$(loading~spin) ' + nls.localize('key', "Loading...")
  */
-export default new class NoIconsInLocalizedStrings implements CreateRule {
+export default new class NoIconsInLocalizedStrings implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			noIconInLocalizedString: 'Theme icon syntax $(…) should not appear inside localized strings. Move it outside the localize call or pass it as a placeholder argument.'
 		},
@@ -33,12 +34,12 @@ export default new class NoIconsInLocalizedStrings implements CreateRule {
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
 		// Matches $(iconName) or $(iconName~modifier) but not escaped \$(...)
 		const iconPattern = /(?<!\\)\$\([a-zA-Z][\w~-]*\)/;
 
-		function isLocalizeCall(callee: ESTree.CallExpression['callee']): { isLocalize: boolean; messageArgIndex: number } {
+		function isLocalizeCall(callee: TSESTree.CallExpression['callee']): { isLocalize: boolean; messageArgIndex: number } {
 			// Direct localize('key', "message", ...) or localize2('key', "message", ...)
 			if (callee.type === 'Identifier' && (callee.name === 'localize' || callee.name === 'localize2')) {
 				return { isLocalize: true, messageArgIndex: 1 };
@@ -52,7 +53,7 @@ export default new class NoIconsInLocalizedStrings implements CreateRule {
 			return { isLocalize: false, messageArgIndex: -1 };
 		}
 
-		function getStringValue(node: ESTree.Node): string | undefined {
+		function getStringValue(node: TSESTree.Node): string | undefined {
 			if (node.type === 'Literal' && typeof node.value === 'string') {
 				return node.value;
 			}
@@ -62,7 +63,7 @@ export default new class NoIconsInLocalizedStrings implements CreateRule {
 			return undefined;
 		}
 
-		function checkCallExpression(node: ESTree.CallExpression) {
+		function checkCallExpression(node: TSESTree.CallExpression) {
 			const { isLocalize, messageArgIndex } = isLocalizeCall(node.callee);
 			if (!isLocalize) {
 				return;
@@ -92,7 +93,7 @@ export default new class NoIconsInLocalizedStrings implements CreateRule {
 		}
 
 		return {
-			CallExpression: (node: ESTree.CallExpression) => checkCallExpression(node)
+			CallExpression: (node: any) => checkCallExpression(node as TSESTree.CallExpression)
 		};
 	}
 };

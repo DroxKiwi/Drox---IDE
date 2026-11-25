@@ -13,6 +13,7 @@ import { IEditorSerializer } from '../../../common/editor.js';
 import { EditorInput } from '../../../common/editor/editorInput.js';
 import { CustomEditorInput } from './customEditorInput.js';
 import { CustomEditorDiffInput, CustomEditorSideBySideDiffInput, CustomEditorSideBySideDiffSide } from './customEditorDiffInput.js';
+import { ICustomEditorService } from '../common/customEditor.js';
 import { NotebookEditorInput } from '../../notebook/common/notebookEditorInput.js';
 import { IWebviewService, WebviewContentOptions, WebviewContentPurpose, WebviewExtensionDescription, WebviewOptions } from '../../webview/browser/webview.js';
 import { DeserializedWebview, restoreWebviewContentOptions, restoreWebviewOptions, reviveWebviewExtensionDescription, reviveWebviewIconPath, SerializedWebview, SerializedWebviewOptions, WebviewEditorInputSerializer } from '../../webviewPanel/browser/webviewEditorInputSerializer.js';
@@ -238,6 +239,7 @@ export class ComplexCustomWorkingCopyEditorHandler extends Disposable implements
 		@IWorkingCopyEditorService _workingCopyEditorService: IWorkingCopyEditorService,
 		@IWorkingCopyBackupService private readonly _workingCopyBackupService: IWorkingCopyBackupService,
 		@IWebviewService private readonly _webviewService: IWebviewService,
+		@ICustomEditorService _customEditorService: ICustomEditorService // DO NOT REMOVE (needed on startup to register overrides properly)
 	) {
 		super();
 

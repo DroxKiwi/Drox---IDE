@@ -6,11 +6,6 @@
 import { BasePromptElementProps, PromptElement, Raw } from '@vscode/prompt-tsx';
 import { CustomDataPartMimeTypes } from './endpointTypes';
 
-export const MISSING_STATEFUL_TOOL_RESULT = JSON.stringify({
-	status: 'outcome_unknown',
-	message: 'No tool output was recorded. Verify the current state before retrying this tool if its result is still needed.',
-});
-
 /**
  * A type representing a stateful marker that can be stored in an opaque part in raw chat messages.
  */
@@ -19,16 +14,7 @@ interface IStatefulMarkerContainer {
 	value: StatefulMarkerWithModel;
 }
 
-export type StatefulMarkerWithModel = {
-	modelId: string;
-	marker: string;
-	/**
-	 * The local summary generation included when an extension-contributed/BYOK
-	 * response created this marker. Used only to filter stale markers before
-	 * crossing the `vscode.lm` boundary; first-party state is managed separately.
-	 */
-	summarizedAtRoundId?: string;
-};
+type StatefulMarkerWithModel = { modelId: string; marker: string };
 
 export interface IStatefulMarkerContainerProps extends BasePromptElementProps {
 	statefulMarker: StatefulMarkerWithModel;

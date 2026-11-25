@@ -429,12 +429,11 @@ suite('Drox SDTCM map', () => {
 			...emptyDroxSdtcmMap(),
 			bricks: ['a', 'b', 'c', 'd'].map(name => brick(name, `src/${name}.ts`)),
 		});
-		const placedRow = placeDroxSdtcmGraph(row);
-		const files = placedRow.nodes.filter(node => node.kind === 'file');
+		const files = row.nodes.filter(node => node.kind === 'file');
 		assert.strictEqual(files.length, 4);
-		const folder = placedRow.nodes.find(node => node.id === 'folder:src');
+		assert.ok(files.some((file, index) => files.some((other, otherIndex) => otherIndex !== index && Math.abs(file.y - other.y) < 2)));
+		const folder = row.nodes.find(node => node.id === 'folder:src');
 		assert.ok(folder);
-		assert.ok(files.every(file => contains(folder, file)));
 		assert.ok(folder.w / folder.h < 4 && folder.h / folder.w < 4);
 	});
 

@@ -30,9 +30,8 @@ import { AccessibilitySignal, IAccessibilitySignalService } from '../../../../..
 import { editorSelectionBackground } from '../../../../../platform/theme/common/colorRegistry.js';
 import { ICellEditOperation } from '../../../notebook/common/notebookCommon.js';
 import { ModifiedFileEntryState } from '../../common/editing/chatEditingService.js';
-import { IChatEditMetadata, IChatResponseModel } from '../../common/model/chatModel.js';
+import { IChatResponseModel } from '../../common/model/chatModel.js';
 import { ChatAgentLocation } from '../../common/constants.js';
-import { getAutoModelTier } from '../../common/languageModels.js';
 import { IDocumentDiff2 } from './chatEditingCodeEditorIntegration.js';
 import { pendingRewriteMinimap } from './chatEditingModifiedFileEntry.js';
 import { chatSessionResourceToId } from '../../common/model/chatUri.js';
@@ -148,15 +147,6 @@ export class ChatEditingTextModelChangeService extends Disposable {
 		}
 	}
 
-	/**
-	 * Maps the original to the modified document with `edit` until their diff
-	 * is computed, so that a user edit meanwhile applies to the original where
-	 * it should. Otherwise the mapping is the last diff's.
-	 */
-	public setOriginalToModifiedEdit(edit: StringEdit): void {
-		this._originalToModifiedEdit = edit;
-	}
-
 	private updateLineChangeCount(diff: IDocumentDiff) {
 		this.lineChangeCount = 0;
 		this.linesAdded = 0;
@@ -183,7 +173,7 @@ export class ChatEditingTextModelChangeService extends Disposable {
 		return diff ? diff.identical : false;
 	}
 
-	async acceptAgentEdits(resource: URI, textEdits: (TextEdit | ICellEditOperation)[], isLastEdits: boolean, responseModel: IChatResponseModel | undefined, metadata: IChatEditMetadata): Promise<{ rewriteRatio: number; maxLineNumber: number }> {
+	async acceptAgentEdits(resource: URI, textEdits: (TextEdit | ICellEditOperation)[], isLastEdits: boolean, responseModel: IChatResponseModel | undefined): Promise<{ rewriteRatio: number; maxLineNumber: number }> {
 
 		assertType(textEdits.every(TextEdit.isTextEdit), 'INVALID args, can only handle text edits');
 		assert(isEqual(resource, this.modifiedModel.uri), ' INVALID args, can only edit THIS document');
@@ -192,7 +182,7 @@ export class ChatEditingTextModelChangeService extends Disposable {
 		let maxLineNumber = 0;
 		let rewriteRatio = 0;
 
-		const source = this._createEditSource(responseModel, metadata);
+		const source = this._createEditSource(responseModel);
 
 		if (isAtomicEdits) {
 			// EDIT and DONE
@@ -265,30 +255,36 @@ export class ChatEditingTextModelChangeService extends Disposable {
 		return { rewriteRatio, maxLineNumber };
 	}
 
-	private _createEditSource(responseModel: IChatResponseModel | undefined, metadata: IChatEditMetadata) {
+	private _createEditSource(responseModel: IChatResponseModel | undefined) {
 
 		if (!responseModel) {
 			return EditSources.unknown({ name: 'editSessionUndoRedo' });
 		}
 
-		const request = responseModel.request;
+		const sessionId = chatSessionResourceToId(responseModel.session.sessionResource);
+		const request = responseModel.session.getRequests().at(-1);
+		const languageId = this.modifiedModel.getLanguageId();
 		const agent = responseModel.agent;
-		const data = {
-			modelId: request?.modelId,
-			autoTier: getAutoModelTier(request?.modelId, metadata.autoTier),
-			requestId: responseModel.requestId,
-			sessionId: chatSessionResourceToId(responseModel.session.sessionResource),
-			languageId: this.modifiedModel.getLanguageId(),
-			extensionId: VersionedExtensionId.tryCreate(agent?.extensionId.value, agent?.extensionVersion),
-		};
+		const extensionId = VersionedExtensionId.tryCreate(agent?.extensionId.value, agent?.extensionVersion);
 
-		if (request?.locationData?.type === ChatAgentLocation.EditorInline) {
-			return EditSources.inlineChatApplyEdit(data);
+		if (responseModel.request?.locationData?.type === ChatAgentLocation.EditorInline) {
+
+			return EditSources.inlineChatApplyEdit({
+				modelId: request?.modelId,
+				requestId: request?.id,
+				sessionId,
+				languageId,
+				extensionId,
+			});
 		}
 
 		return EditSources.chatApplyEdits({
-			...data,
+			modelId: request?.modelId,
+			requestId: request?.id,
+			sessionId,
+			languageId,
 			mode: request?.modeInfo?.telemetryModeId,
+			extensionId,
 			codeBlockSuggestionId: request?.modeInfo?.applyCodeBlockSuggestionId,
 		});
 	}

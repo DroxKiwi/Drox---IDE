@@ -25,18 +25,13 @@ export class Trace {
 	constructor(
 		public readonly parent: Trace | undefined,
 		public readonly label: string,
-		private readonly _stack: string | Error | undefined = undefined,
+		public readonly stack: string | undefined = undefined,
 	) {
 		this.root = parent?.root ?? this;
 		this.depth = (parent?.depth ?? -1) + 1;
 	}
 
-	/** Captured errors defer stack formatting until diagnostics need it. */
-	get stack(): string | undefined {
-		return typeof this._stack === 'string' ? this._stack : this._stack?.stack;
-	}
-
-	child(label: string, stack?: string | Error): Trace {
+	child(label: string, stack?: string): Trace {
 		return new Trace(this, label, stack);
 	}
 
@@ -55,7 +50,7 @@ export class Trace {
 /** Sentinel for "no known causal predecessor". */
 export const ROOT_TRACE: Trace = new Trace(undefined, '<root>');
 
-export function createTraceRoot(label: string, stack?: string | Error): Trace {
+export function createTraceRoot(label: string, stack?: string): Trace {
 	return new Trace(undefined, label, stack);
 }
 

@@ -4,9 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { McpSdkServerConfigWithInstance } from '@anthropic-ai/claude-agent-sdk';
-import type { IAgentServerToolDefinition, IAgentServerToolHost } from '../../common/agentServerTools.js';
+import type { IAgentServerToolHost } from '../../common/agentServerTools.js';
 import type { IClaudeAgentSdkService } from './claudeAgentSdkService.js';
-import { extractToolUseId } from './clientTools/claudeClientToolMcpServer.js';
 import { jsonSchemaToZodRawShape } from './clientTools/claudeJsonSchemaToZod.js';
 
 /**
@@ -36,12 +35,6 @@ export function serverToolAllowList(toolNames: readonly string[]): string[] {
 	return toolNames.map(name => `mcp__${CLAUDE_SERVER_TOOL_MCP_SERVER_NAME}__${name}`);
 }
 
-/** Returns the bare host server-tool name from its Claude SDK-prefixed name. */
-export function extractServerToolName(toolName: string): string | undefined {
-	const prefix = `mcp__${CLAUDE_SERVER_TOOL_MCP_SERVER_NAME}__`;
-	return toolName.startsWith(prefix) ? toolName.slice(prefix.length) : undefined;
-}
-
 /**
  * Build the per-session in-process MCP server that surfaces the agent host's
  * server tools to the Claude SDK.
@@ -57,24 +50,22 @@ export function extractServerToolName(toolName: string): string | undefined {
  */
 export async function buildServerToolMcpServer(
 	host: IAgentServerToolHost,
-	chatUri: string,
+	sessionUri: string,
 	sdk: IClaudeAgentSdkService,
-	definitions: readonly IAgentServerToolDefinition[] = host.definitions,
 ): Promise<McpSdkServerConfigWithInstance> {
-	const tools = await Promise.all(definitions.map(def => sdk.tool(
+	const tools = await Promise.all(host.definitions.map(def => sdk.tool(
 		def.name,
 		def.description ?? '',
 		jsonSchemaToZodRawShape(def.inputSchema),
-		async (args, extra) => {
+		async args => {
 			try {
-				const text = await host.executeTool(chatUri, def.name, args, extractToolUseId(extra));
+				const text = host.executeTool(sessionUri, def.name, args);
 				return { content: [{ type: 'text' as const, text }] };
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				return { content: [{ type: 'text' as const, text: message }], isError: true };
 			}
-		},
-		def.deferLoading === undefined ? undefined : { alwaysLoad: !def.deferLoading },
+		}
 	)));
 	return sdk.createSdkMcpServer({ name: CLAUDE_SERVER_TOOL_MCP_SERVER_NAME, tools });
 }

@@ -1,4 +1,3 @@
-# NE PAS UTILISER pour une montee VS Code : procedure remplacee par docs/rebase (rebase.ps1 etat).
 # Liste les fichiers du fork Nexus hors contrib/drox contenant des marqueurs Drox/Nexus.
 # Usage : .\scripts\list-nexus-patches.ps1
 # See: docs/1.2.0/steps/03-upstream/ARCHITECTURE-DECOUPLAGE-UPSTREAM.md section 5

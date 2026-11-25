@@ -11,7 +11,6 @@ import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ITerminalLogService } from '../../../../../platform/terminal/common/terminal.js';
 import { IEnvironmentService } from '../../../../../platform/environment/common/environment.js';
 import { MAX_OUTPUT_LENGTH, truncateLargeOutput } from './outputHelpers.js';
-import { getTerminalOutputDirectory } from '../common/terminalOutput.js';
 
 /**
  * Writes large terminal output to temp files so the model can read the full
@@ -56,7 +55,7 @@ export class LargeOutputFileWriter extends Disposable {
 	private async _writeToTempFile(output: string): Promise<string | undefined> {
 		try {
 			const fileName = `copilot-terminal-output-${generateUuid()}.txt`;
-			const dirUri = getTerminalOutputDirectory(this._environmentService.cacheHome);
+			const dirUri = URI.joinPath(this._environmentService.cacheHome, 'copilot-terminal-output');
 			const fileUri = URI.joinPath(dirUri, fileName);
 
 			// Pretty-print JSON in the file for readability (matches agent-runtime behavior)

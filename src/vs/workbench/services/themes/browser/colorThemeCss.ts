@@ -7,7 +7,6 @@ import { IColorTheme, ICssStyleCollector, IThemingParticipant } from '../../../.
 import { asCssVariableName, getColorRegistry } from '../../../../platform/theme/common/colorRegistry.js';
 import { asCssVariableName as asSizeCssVariableName, getSizeRegistry, sizeValueToCss } from '../../../../platform/theme/common/sizeRegistry.js';
 import { IEnvironmentService } from '../../../../platform/environment/common/environment.js';
-import { ISizeService } from '../../../../platform/theme/common/sizeService.js';
 
 /**
  * Generates CSS content (variables + theming participant rules) for a color theme.
@@ -22,8 +21,7 @@ export function generateColorThemeCSS(
 	theme: IColorTheme,
 	scopeSelector: string,
 	themingParticipants?: readonly IThemingParticipant[],
-	environmentService?: IEnvironmentService,
-	sizeService?: ISizeService,
+	environmentService?: IEnvironmentService
 ): CSSValue {
 	const cssRules = new Set<string>();
 	const ruleCollector: ICssStyleCollector = {
@@ -55,7 +53,7 @@ export function generateColorThemeCSS(
 
 	// Size CSS variables
 	for (const item of getSizeRegistry().getSizes()) {
-		const sizeValue = sizeService ? sizeService.getSize(item.id, theme) : getSizeRegistry().resolveDefaultSize(item.id, theme);
+		const sizeValue = getSizeRegistry().resolveDefaultSize(item.id, theme);
 		if (sizeValue) {
 			variables.push(`${asSizeCssVariableName(item.id)}: ${sizeValueToCss(sizeValue)};`);
 		}

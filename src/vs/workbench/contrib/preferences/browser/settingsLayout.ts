@@ -6,7 +6,6 @@
 import { isWeb, isWindows } from '../../../../base/common/platform.js';
 import { localize } from '../../../../nls.js';
 import { ISetting, ISettingsGroup } from '../../../services/preferences/common/preferences.js';
-import { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSettings.js';
 
 export interface ITOCFilter {
 	include?: {
@@ -266,6 +265,7 @@ export const tocData: ITOCEntry<string> = {
 						'chat.useHooks',
 						'chat.includeApplyingInstructions',
 						'chat.includeReferencedInstructions',
+						'chat.sendElementsToChat.*',
 						'chat.useClaudeMdFile'
 					]
 				},
@@ -278,7 +278,7 @@ export const tocData: ITOCEntry<string> = {
 					id: 'chat/miscellaneous',
 					label: localize('chatMiscellaneous', "Miscellaneous"),
 					settings: [
-						ChatAIDisabledSettingId,
+						'chat.disableAIFeatures',
 						'chat.allowAnonymousAccess'
 					]
 				},

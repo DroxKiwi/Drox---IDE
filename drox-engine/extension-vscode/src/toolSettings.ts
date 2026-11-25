@@ -100,11 +100,6 @@ export const DROX_TOOL_GROUPS: DroxToolGroup[] = [
         label: "session_search",
         description: "Recherche dans la mémoire longue (client IDE)",
       },
-      {
-        name: "project_rule_write",
-        label: "project_rule_write",
-        description: "Règle durable sous .drox/rules",
-      },
     ],
   },
   {

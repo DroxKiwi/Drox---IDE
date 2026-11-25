@@ -4,8 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { URI } from '../../../../../base/common/uri.js';
-import { getExcludeExceptionCounts, ITextSearchPreviewOptions, OneLineRange, QueryGlobTester, QueryType, resolveExcludeExceptionsForProvider, resolveExcludePatternsForProvider, TextSearchMatch, SearchRange, isFilePatternMatch } from '../../common/search.js';
+import { ITextSearchPreviewOptions, OneLineRange, TextSearchMatch, SearchRange, isFilePatternMatch } from '../../common/search.js';
 
 suite('TextSearchResult', () => {
 
@@ -162,50 +161,5 @@ suite('isFilePatternMatch', () => {
 		const candidate = { relativePath: 'src/MyComponent.TSX', searchPath: undefined };
 		assert.strictEqual(isFilePatternMatch(candidate, '**/*.tsx', false), false);
 		assert.strictEqual(isFilePatternMatch(candidate, '**/*.tsx', false, true), true);
-	});
-});
-
-suite('exclude exceptions', () => {
-	ensureNoDisposablesAreLeakedInTestSuite();
-
-	const folder = URI.file('/workspace');
-	const excludePattern = { 'node_modules': true, '**/*.js': { when: '$(basename).ts' }, '!node_modules/@types': true, '!off': false };
-
-	test('QueryGlobTester applies exceptions, also when evaluating sibling clauses asynchronously', async () => {
-		const tester = new QueryGlobTester({ type: QueryType.File, folderQueries: [] }, { folder, excludePattern: [{ pattern: excludePattern }] });
-		const hasSibling = (name: string) => Promise.resolve(name === 'a.ts');
-
-		assert.deepStrictEqual({
-			excluded: tester.matchesExcludesSync('node_modules'),
-			includedAsync: await tester.includedInQuery('node_modules', 'node_modules', hasSibling),
-			siblingExcludedAsync: await tester.includedInQuery('a.js', 'a.js', hasSibling),
-			excepted: tester.isExcepted('node_modules/@types/node/index.d.ts'),
-			leadsToException: tester.couldExceptionMatchBeneath('node_modules'),
-			unrelatedFolder: tester.couldExceptionMatchBeneath('src'),
-		}, {
-			excluded: true,
-			includedAsync: false,
-			siblingExcludedAsync: false,
-			excepted: true,
-			leadsToException: true,
-			unrelatedFolder: false,
-		});
-	});
-
-	test('providers receive exclude patterns without exceptions', () => {
-		assert.deepStrictEqual({
-			excludes: resolveExcludePatternsForProvider({ '!gulpfile.js': true }, excludePattern),
-			exceptions: resolveExcludeExceptionsForProvider({ '!gulpfile.js': true }, excludePattern),
-		}, {
-			excludes: ['node_modules'],
-			exceptions: ['gulpfile.js', 'node_modules/@types'],
-		});
-	});
-
-	test('getExcludeExceptionCounts counts distinct exceptions of a query', () => {
-		assert.deepStrictEqual(getExcludeExceptionCounts({
-			excludePattern: { '!**/Scripts': true },
-			folderQueries: [{ folder, excludePattern: [{ pattern: excludePattern }, { pattern: excludePattern }] }],
-		}), { excludeExceptionCount: 2, unanchoredExcludeExceptionCount: 1 });
 	});
 });

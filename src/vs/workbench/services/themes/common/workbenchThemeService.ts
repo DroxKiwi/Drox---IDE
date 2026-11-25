@@ -11,7 +11,6 @@ import { ConfigurationTarget } from '../../../../platform/configuration/common/c
 import { isBoolean, isString } from '../../../../base/common/types.js';
 import { IconContribution, IconDefinition } from '../../../../platform/theme/common/iconRegistry.js';
 import { ColorScheme, ThemeTypeSelector } from '../../../../platform/theme/common/theme.js';
-import { IDisposable } from '../../../../base/common/lifecycle.js';
 
 export const IWorkbenchThemeService = refineServiceDecorator<IThemeService, IWorkbenchThemeService>(IThemeService);
 
@@ -40,10 +39,8 @@ export enum ThemeSettings {
 }
 
 export namespace ThemeSettingDefaults {
-	// DROX-BEGIN
 	export const COLOR_THEME_DARK = 'Drox Dark';
 	export const COLOR_THEME_LIGHT = 'Drox Light';
-	// DROX-END
 	export const COLOR_THEME_HC_DARK = 'Default High Contrast';
 	export const COLOR_THEME_HC_LIGHT = 'Default High Contrast Light';
 
@@ -62,12 +59,10 @@ export function migrateThemeSettingsId(settingsId: string): string {
 		case 'Default Light Modern': return 'Light Modern';
 		case 'Default Dark+': return 'Dark+';
 		case 'Default Light+': return 'Light+';
-		// DROX-BEGIN
 		case 'Nexus Dark':
 			return 'Drox Dark';
 		case 'Nexus Light':
 			return 'Drox Light';
-		// DROX-END
 		case 'Experimental Dark':
 		case 'VS Code Dark':
 			return ThemeSettingDefaults.COLOR_THEME_DARK;
@@ -193,9 +188,9 @@ export const COLOR_THEME_DARK_INITIAL_COLORS = {
 	'tab.inactiveBackground': '#181818',
 	'tab.inactiveForeground': '#9D9D9D',
 	'tab.lastPinnedBorder': '#ccc3',
-	'tab.selectedBackground': '#37373D',
+	'tab.selectedBackground': '#222222',
 	'tab.selectedBorderTop': '#6caddf',
-	'tab.selectedForeground': '#FFFFFF',
+	'tab.selectedForeground': '#ffffffa0',
 	'tab.unfocusedActiveBorder': '#1F1F1F',
 	'tab.unfocusedActiveBorderTop': '#2B2B2B',
 	'tab.unfocusedHoverBackground': '#1F1F1F',
@@ -345,9 +340,9 @@ export const COLOR_THEME_LIGHT_INITIAL_COLORS = {
 	'tab.inactiveBackground': '#F8F8F8',
 	'tab.inactiveForeground': '#868686',
 	'tab.lastPinnedBorder': '#D4D4D4',
-	'tab.selectedBackground': '#E4E6F1',
+	'tab.selectedBackground': '#ffffffa5',
 	'tab.selectedBorderTop': '#68a3da',
-	'tab.selectedForeground': '#333333',
+	'tab.selectedForeground': '#333333b3',
 	'tab.unfocusedActiveBorder': '#F8F8F8',
 	'tab.unfocusedActiveBorderTop': '#E5E5E5',
 	'tab.unfocusedHoverBackground': '#F8F8F8',
@@ -405,14 +400,9 @@ export interface IWorkbenchThemeService extends IThemeService {
 	readonly _serviceBrand: undefined;
 	setColorTheme(themeId: string | undefined | IWorkbenchColorTheme, settingsTarget: ThemeSettingTarget): Promise<IWorkbenchColorTheme | null>;
 	getColorTheme(): IWorkbenchColorTheme;
-	/** Returns the selected theme and user customizations without window-local overlays. */
-	getBaseColorTheme(): IWorkbenchColorTheme;
 	getColorThemes(): Promise<IWorkbenchColorTheme[]>;
 	getMarketplaceColorThemes(publisher: string, name: string, version: string): Promise<IWorkbenchColorTheme[]>;
 	readonly onDidColorThemeChange: Event<IWorkbenchColorTheme>;
-
-	/** Applies window-local colors computed from the base theme, without persisting them or changing the selected theme. */
-	registerColorThemeOverlay(getColors: (theme: IWorkbenchColorTheme) => IColorMap): IDisposable;
 
 	getPreferredColorScheme(): ColorScheme | undefined;
 

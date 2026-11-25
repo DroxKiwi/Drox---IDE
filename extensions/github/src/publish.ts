@@ -5,10 +5,10 @@
 
 import * as vscode from 'vscode';
 import type { API as GitAPI, Repository } from './typings/git.d.ts';
-import { GitHubService } from './auth.js';
+import { getOctokit } from './auth.js';
 import { TextEncoder } from 'util';
 import { basename } from 'path';
-import type { GitHubClient, GitHubRepository } from '@vscode/internal-github';
+import { Octokit } from '@octokit/rest';
 import { isInCodespaces } from './pushErrorHandler.js';
 
 function sanitizeRepositoryName(value: string): string {
@@ -22,7 +22,7 @@ function getPick<T extends vscode.QuickPickItem>(quickpick: vscode.QuickPick<T>)
 	]);
 }
 
-export async function publishRepository(gitAPI: GitAPI, githubService: GitHubService, repository?: Repository): Promise<void> {
+export async function publishRepository(gitAPI: GitAPI, repository?: Repository): Promise<void> {
 	if (!vscode.workspace.workspaceFolders?.length) {
 		return;
 	}
@@ -57,11 +57,11 @@ export async function publishRepository(gitAPI: GitAPI, githubService: GitHubSer
 	quickpick.busy = true;
 
 	let owner: string;
-	let client: GitHubClient;
+	let octokit: Octokit;
 	try {
-		client = await githubService.getClient();
-		const user = await client.users.getAuthenticated();
-		owner = user.login;
+		octokit = await getOctokit();
+		const user = await octokit.users.getAuthenticated({});
+		owner = user.data.login;
 	} catch (e) {
 		// User has cancelled sign in
 		quickpick.dispose();
@@ -100,8 +100,8 @@ export async function publishRepository(gitAPI: GitAPI, githubService: GitHubSer
 			try {
 				quickpick.busy = true;
 				const fullName = `${owner}/${repo}`;
-				const result = await client.repositories.get({ owner, repo });
-				if (result.full_name.toLowerCase() !== fullName.toLowerCase()) {
+				const result = await octokit.repos.get({ owner, repo: repo });
+				if (result.data.full_name.toLowerCase() !== fullName.toLowerCase()) {
 					// Repository has moved permanently due to it being renamed
 					break;
 				}
@@ -178,15 +178,17 @@ export async function publishRepository(gitAPI: GitAPI, githubService: GitHubSer
 			increment: 25
 		});
 
-		let createdGithubRepository: GitHubRepository | undefined = undefined;
+		type CreateRepositoryResponseData = Awaited<ReturnType<typeof octokit.repos.createForAuthenticatedUser>>['data'];
+		let createdGithubRepository: CreateRepositoryResponseData | undefined = undefined;
 
 		if (isInCodespaces()) {
-			createdGithubRepository = await vscode.commands.executeCommand<GitHubRepository>('github.codespaces.publish', { name: repo!, isPrivate });
+			createdGithubRepository = await vscode.commands.executeCommand<CreateRepositoryResponseData>('github.codespaces.publish', { name: repo!, isPrivate });
 		} else {
-			createdGithubRepository = await client.repositories.create({
+			const res = await octokit.repos.createForAuthenticatedUser({
 				name: repo!,
 				private: isPrivate
 			});
+			createdGithubRepository = res.data;
 		}
 
 		if (createdGithubRepository) {

@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DisposableStore } from '../../../../../base/common/lifecycle.js';
-import { CHAT_CATEGORY } from '../actions/chatActions.js';
+import { ChatViewId } from '../chat.js';
+import { CHAT_CATEGORY, CHAT_CONFIG_MENU_ID } from '../actions/chatActions.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
 import { PromptFilePickers } from './pickers/promptFilePickers.js';
@@ -12,6 +12,7 @@ import { ServicesAccessor } from '../../../../../editor/browser/editorExtensions
 import { Action2, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
+import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contextkey.js';
 import { PromptsType } from '../../common/promptSyntax/promptTypes.js';
 import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
 
@@ -30,7 +31,13 @@ class ManageSkillsAction extends Action2 {
 			icon: Codicon.lightbulb,
 			f1: true,
 			precondition: ChatContextKeys.enabled,
-			category: CHAT_CATEGORY
+			category: CHAT_CATEGORY,
+			menu: {
+				id: CHAT_CONFIG_MENU_ID,
+				when: ContextKeyExpr.and(ChatContextKeys.enabled, ContextKeyExpr.equals('view', ChatViewId)),
+				order: 9,
+				group: '1_level'
+			}
 		});
 	}
 
@@ -57,9 +64,6 @@ class ManageSkillsAction extends Action2 {
 /**
  * Helper to register the `Manage Skills` action.
  */
-export function registerSkillActions(): DisposableStore {
-	const store = new DisposableStore();
-	store.add(registerAction2(ManageSkillsAction));
-
-	return store;
+export function registerSkillActions(): void {
+	registerAction2(ManageSkillsAction);
 }

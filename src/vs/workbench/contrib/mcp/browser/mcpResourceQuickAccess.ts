@@ -19,7 +19,7 @@ import { INotificationService } from '../../../../platform/notification/common/n
 import { DefaultQuickAccessFilterValue, IQuickAccessProvider, IQuickAccessProviderRunOptions } from '../../../../platform/quickinput/common/quickAccess.js';
 import { IQuickInputService, IQuickPick, IQuickPickItem, IQuickPickSeparator } from '../../../../platform/quickinput/common/quickInput.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
-import { IChatViewHostService } from '../../chat/browser/chatViewHost.js';
+import { IViewsService } from '../../../services/views/common/viewsService.js';
 import { IChatWidgetService } from '../../chat/browser/chat.js';
 import { IChatAttachmentResolveService } from '../../chat/browser/attachments/chatAttachmentResolveService.js';
 import { IChatRequestVariableEntry } from '../../chat/common/attachments/chatVariableEntries.js';
@@ -462,7 +462,7 @@ export abstract class AbstractMcpResourceAccessPick {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IChatWidgetService protected readonly _chatWidgetService: IChatWidgetService,
-		@IChatViewHostService private readonly _chatViewHostService: IChatViewHostService,
+		@IViewsService private readonly _viewsService: IViewsService,
 	) {
 	}
 
@@ -515,7 +515,7 @@ export abstract class AbstractMcpResourceAccessPick {
 				if (attachment instanceof Promise) {
 					attachment.then(async a => {
 						if (a !== 'noop') {
-							const widget = await openPanelChatAndGetWidget(this._chatViewHostService);
+							const widget = await openPanelChatAndGetWidget(this._viewsService, this._chatWidgetService);
 							widget?.attachmentModel.addContext(...asArray(a));
 						}
 						picker.hide();
@@ -565,10 +565,10 @@ export class McpResourceQuickPick extends AbstractMcpResourceAccessPick {
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IEditorService editorService: IEditorService,
 		@IChatWidgetService chatWidgetService: IChatWidgetService,
-		@IChatViewHostService chatViewHostService: IChatViewHostService,
+		@IViewsService viewsService: IViewsService,
 		@IQuickInputService private readonly _quickInputService: IQuickInputService,
 	) {
-		super(scopeTo, instantiationService, editorService, chatWidgetService, chatViewHostService);
+		super(scopeTo, instantiationService, editorService, chatWidgetService, viewsService);
 	}
 
 	public async pick(token = CancellationToken.None) {
@@ -591,9 +591,9 @@ export class McpResourceQuickAccess extends AbstractMcpResourceAccessPick implem
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IEditorService editorService: IEditorService,
 		@IChatWidgetService chatWidgetService: IChatWidgetService,
-		@IChatViewHostService chatViewHostService: IChatViewHostService
+		@IViewsService viewsService: IViewsService
 	) {
-		super(undefined, instantiationService, editorService, chatWidgetService, chatViewHostService);
+		super(undefined, instantiationService, editorService, chatWidgetService, viewsService);
 	}
 
 	provide(picker: IQuickPick<IQuickPickItem, { useSeparators: true }>, token: CancellationToken, runOptions?: IQuickAccessProviderRunOptions): IDisposable {

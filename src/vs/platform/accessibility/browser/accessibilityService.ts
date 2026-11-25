@@ -81,20 +81,14 @@ export class AccessibilityService extends Disposable implements IAccessibilitySe
 			}
 		}));
 
-		const updateContainerClasses = (container: HTMLElement) => {
-			const reduce = this.isMotionReduced();
-			container.classList.toggle('monaco-reduce-motion', reduce);
-			container.classList.toggle('monaco-enable-motion', !reduce);
-		};
 		const updateRootClasses = () => {
-			for (const container of this._layoutService.containers) {
-				updateContainerClasses(container);
-			}
+			const reduce = this.isMotionReduced();
+			this._layoutService.mainContainer.classList.toggle('monaco-reduce-motion', reduce);
+			this._layoutService.mainContainer.classList.toggle('monaco-enable-motion', !reduce);
 		};
 
 		updateRootClasses();
 		this._register(this.onDidChangeReducedMotion(() => updateRootClasses()));
-		this._register(this._layoutService.onDidAddContainer(({ container }) => updateContainerClasses(container)));
 	}
 
 	private initReducedTransparencyListeners(reduceTransparencyMatcher: MediaQueryList) {

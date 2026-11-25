@@ -3,6 +3,15 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { computeBuiltInDepsCacheKey } from './cacheKeys.ts';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 
-process.stdout.write(computeBuiltInDepsCacheKey());
+const productjson = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '../../../product.json'), 'utf8'));
+const shasum = crypto.createHash('sha256');
+
+for (const ext of productjson.builtInExtensions) {
+	shasum.update(`${ext.name}@${ext.version}`);
+}
+
+process.stdout.write(shasum.digest('hex'));

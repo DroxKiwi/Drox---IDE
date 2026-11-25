@@ -1170,8 +1170,8 @@ function workbenchTreeDataPreamble<T, TFilterData, TOptions extends IAbstractTre
 			expandOnlyOnTwistieClick: options.expandOnlyOnTwistieClick ?? (configurationService.getValue<'singleClick' | 'doubleClick'>(treeExpandMode) === 'doubleClick'),
 			contextViewProvider: contextViewService as IContextViewProvider,
 			findWidgetStyles: defaultFindWidgetStyles,
-			enableStickyScroll: options.enableStickyScroll ?? Boolean(configurationService.getValue(treeStickyScroll)),
-			stickyScrollMaxItemCount: options.stickyScrollMaxItemCount ?? Number(configurationService.getValue(treeStickyScrollMaxElements)),
+			enableStickyScroll: Boolean(configurationService.getValue(treeStickyScroll)),
+			stickyScrollMaxItemCount: Number(configurationService.getValue(treeStickyScrollMaxElements)),
 		} as TOptions
 	};
 }
@@ -1321,11 +1321,11 @@ class WorkbenchTreeInternals<TInput, T, TFilterData> {
 				if (e.affectsConfiguration(treeExpandMode) && options.expandOnlyOnTwistieClick === undefined) {
 					newOptions = { ...newOptions, expandOnlyOnTwistieClick: configurationService.getValue<'singleClick' | 'doubleClick'>(treeExpandMode) === 'doubleClick' };
 				}
-				if (e.affectsConfiguration(treeStickyScroll) && options.enableStickyScroll === undefined) {
+				if (e.affectsConfiguration(treeStickyScroll)) {
 					const enableStickyScroll = configurationService.getValue<boolean>(treeStickyScroll);
 					newOptions = { ...newOptions, enableStickyScroll };
 				}
-				if (e.affectsConfiguration(treeStickyScrollMaxElements) && options.stickyScrollMaxItemCount === undefined) {
+				if (e.affectsConfiguration(treeStickyScrollMaxElements)) {
 					const stickyScrollMaxItemCount = Math.max(1, configurationService.getValue<number>(treeStickyScrollMaxElements));
 					newOptions = { ...newOptions, stickyScrollMaxItemCount };
 				}

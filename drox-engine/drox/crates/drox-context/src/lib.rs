@@ -34,6 +34,5 @@ pub use snip::{
     SNIP_PLACEHOLDER, SnipConfig, SnipOutcome, snip_messages, snip_messages_with,
 };
 pub use tokens::{
-    CHARS_PER_TOKEN, ClineStyleTokenCounter, DEFAULT_BYTES_PER_TOKEN, IMAGE_TOKEN_SIZE,
-    RoughTokenCounter, TiktokenCounter, TokenCounter,
+    DEFAULT_BYTES_PER_TOKEN, IMAGE_TOKEN_SIZE, RoughTokenCounter, TiktokenCounter, TokenCounter,
 };

@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { RunOnceScheduler } from '../../../base/common/async.js';
 import { parse } from '../../../base/common/path.js';
+import { debounce, throttle } from '../../../base/common/decorators.js';
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { ProcessItem } from '../../../base/common/processes.js';
@@ -25,8 +25,8 @@ const enum Constants {
 export const ignoreProcessNames: string[] = [];
 
 /**
- * Monitors child processes at different intervals after input and output.
- * Pending checks are canceled when the monitor is disposed.
+ * Monitors a process for child processes, checking at differing times depending on input and output
+ * calls into the monitor.
  */
 export class ChildProcessMonitor extends Disposable {
 	private _hasChildProcesses: boolean = false;
@@ -48,10 +48,6 @@ export class ChildProcessMonitor extends Disposable {
 	 */
 	readonly onDidChangeHasChildProcesses = this._onDidChangeHasChildProcesses.event;
 
-	private readonly _refreshActiveScheduler = this._register(new RunOnceScheduler(() => this._refreshActive(), Constants.ActiveDebounceDuration));
-	private readonly _refreshInactiveScheduler = this._register(new RunOnceScheduler(() => this._refreshInactive(), Constants.InactiveThrottleDuration));
-	private _lastInactiveRefreshTime = -Number.MAX_VALUE;
-
 	constructor(
 		private _pid: number,
 		@ILogService private readonly _logService: ILogService
@@ -71,26 +67,17 @@ export class ChildProcessMonitor extends Disposable {
 	 * Input was triggered on the process.
 	 */
 	handleInput() {
-		if (!this._store.isDisposed) {
-			this._refreshActiveScheduler.schedule();
-		}
+		this._refreshActive();
 	}
 
 	/**
 	 * Output was triggered on the process.
 	 */
 	handleOutput() {
-		if (this._store.isDisposed || this._refreshInactiveScheduler.isScheduled()) {
-			return;
-		}
-		const delay = this._lastInactiveRefreshTime + Constants.InactiveThrottleDuration - Date.now();
-		if (delay <= 0) {
-			this._refreshInactive();
-		} else {
-			this._refreshInactiveScheduler.schedule(delay);
-		}
+		this._refreshInactive();
 	}
 
+	@debounce(Constants.ActiveDebounceDuration)
 	private async _refreshActive(): Promise<void> {
 		if (this._store.isDisposed) {
 			return;
@@ -103,9 +90,9 @@ export class ChildProcessMonitor extends Disposable {
 		}
 	}
 
+	@throttle(Constants.InactiveThrottleDuration)
 	private _refreshInactive(): void {
-		this._lastInactiveRefreshTime = Date.now();
-		this._refreshActiveScheduler.schedule();
+		this._refreshActive();
 	}
 
 	private _processContainsChildren(processItem: ProcessItem): boolean {

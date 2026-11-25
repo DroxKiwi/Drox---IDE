@@ -10,11 +10,17 @@ export function setup(logger: Logger) {
 
 	describe('Localization', () => {
 
-		installAllHandlers(logger);
+		// Shared before/after handling
+		installAllHandlers(logger, opts => {
+			opts.verbose = true; // enable verbose logging for tracing
+			opts.snapshots = true; // enable network tab in devtools for tracing since we install an extension
+			return opts;
+		});
 
 		it('starts with "DE" locale and verifies title and viewlets text is in German', async function () {
 			const app = this.app as Application;
 
+			await app.workbench.extensions.installExtension('ms-ceintl.vscode-language-pack-de', false);
 			await app.restart({ extraArgs: ['--locale=DE'] });
 
 			const result = await app.workbench.localization.getLocalizedStrings();

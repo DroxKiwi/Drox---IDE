@@ -17,9 +17,9 @@ import { ServicesAccessor } from '../../../../../platform/instantiation/common/i
 import { IsAuxiliaryWindowContext } from '../../../../common/contextkeys.js';
 import { IWorkbenchContribution, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../../common/contributions.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
-import { AgentsWindowMenus } from '../../../../../sessions/browser/agentsWindowMenus.js';
-import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../sessions/common/contextkeys.js';
-import { ISessionsService } from '../../../sessions/browser/sessionsService.js';
+import { Menus } from '../../../../../sessions/browser/menus.js';
+import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../../../sessions/common/contextkeys.js';
+import { ISessionsService } from '../../../../../sessions/services/sessions/browser/sessionsService.js';
 import { DROX_GIT_GRAPH_OPEN_COMMAND_ID, IDroxGitGraphService } from '../../common/droxGitGraphService.js';
 
 /** True when the active session folder is a git repo with a current branch. */
@@ -32,7 +32,7 @@ export const DroxGitGraphBranchAvailableContext = new RawContextKey<boolean>(
 const DROX_GIT_GRAPH_TITLE_BAR_ACTION_ID = 'drox.gitGraph.openTitleBar';
 
 function resolveSessionFolder(sessionsService: ISessionsService): URI | undefined {
-	const session = sessionsService.activePane.get()?.session.get();
+	const session = sessionsService.activeSession.get();
 	const folder = session?.workspace.get()?.folders[0];
 	if (!folder) {
 		return undefined;
@@ -50,7 +50,7 @@ class OpenGitGraphTitleBarAction extends Action2 {
 			icon: Codicon.gitBranch,
 			precondition: DroxGitGraphBranchAvailableContext,
 			menu: [{
-				id: AgentsWindowMenus.TitleBarSessionMenu,
+				id: Menus.TitleBarSessionMenu,
 				group: 'navigation',
 				order: 9,
 				when: ContextKeyExpr.and(
@@ -90,7 +90,7 @@ class DroxGitGraphTitleBarContribution extends Disposable implements IWorkbenchC
 		this._available = DroxGitGraphBranchAvailableContext.bindTo(contextKeyService);
 
 		this._register(autorun(reader => {
-			const session = this._sessionsService.activePane.read(reader)?.session.read(reader);
+			const session = this._sessionsService.activeSession.read(reader);
 			const workspace = session?.workspace.read(reader);
 			const folder = workspace?.folders[0];
 			const uri = folder ? (folder.workingDirectory ?? folder.root) : undefined;

@@ -124,17 +124,17 @@ export class SetWithKey<T> implements Set<T> {
 		return this._map.has(this.toKey(value));
 	}
 
-	*entries(): SetIterator<[T, T]> {
+	*entries(): IterableIterator<[T, T]> {
 		for (const entry of this._map.values()) {
 			yield [entry, entry];
 		}
 	}
 
-	keys(): SetIterator<T> {
+	keys(): IterableIterator<T> {
 		return this.values();
 	}
 
-	*values(): SetIterator<T> {
+	*values(): IterableIterator<T> {
 		for (const entry of this._map.values()) {
 			yield entry;
 		}
@@ -148,7 +148,7 @@ export class SetWithKey<T> implements Set<T> {
 		this._map.forEach(entry => callbackfn.call(thisArg, entry, entry, this));
 	}
 
-	[Symbol.iterator](): SetIterator<T> {
+	[Symbol.iterator](): IterableIterator<T> {
 		return this.values();
 	}
 

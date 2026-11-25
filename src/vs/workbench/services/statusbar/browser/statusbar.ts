@@ -106,11 +106,6 @@ export const ShowTooltipCommand: Command = {
 	title: ''
 };
 
-export const ToggleTooltipCommand: Command = {
-	id: 'statusBar.entry.toggleTooltip',
-	title: ''
-};
-
 export interface IStatusbarStyleOverride {
 	readonly priority: number; // lower has higher priority
 	readonly foreground?: ColorIdentifier;
@@ -126,8 +121,6 @@ export type TooltipContent = string | IMarkdownString | HTMLElement | IManagedHo
 export interface ITooltipWithCommands {
 	readonly content: TooltipContent;
 	readonly commands: Command[];
-	/** Called only after the tooltip is displayed. */
-	readonly onDidShow?: () => void;
 }
 
 export function isTooltipWithCommands(thing: unknown): thing is ITooltipWithCommands {
@@ -189,10 +182,10 @@ export interface IStatusbarEntry {
 	/**
 	 * An optional command to execute on click.
 	 *
-	 * Can use the special `ShowTooltipCommand` to show the tooltip on click,
-	 * or `ToggleTooltipCommand` to show and focus it or hide an already pinned tooltip.
+	 * Can use the special `ShowTooltipCommand` to
+	 * show the tooltip on click if provided.
 	 */
-	readonly command?: string | Command | typeof ShowTooltipCommand | typeof ToggleTooltipCommand;
+	readonly command?: string | Command | typeof ShowTooltipCommand;
 
 	/**
 	 * Whether to show a beak above the status bar entry.

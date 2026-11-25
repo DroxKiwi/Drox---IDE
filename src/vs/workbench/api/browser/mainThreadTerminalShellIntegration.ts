@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Event } from '../../../base/common/event.js';
-import { combinedDisposable, Disposable, DisposableMap, DisposableStore } from '../../../base/common/lifecycle.js';
+import { Disposable, toDisposable, type IDisposable } from '../../../base/common/lifecycle.js';
 import { TerminalCapability, type ITerminalCommand } from '../../../platform/terminal/common/capabilities/capabilities.js';
 import { ExtHostContext, MainContext, type ExtHostTerminalShellIntegrationShape, type MainThreadTerminalShellIntegrationShape } from '../common/extHost.protocol.js';
 import { ITerminalService, type ITerminalInstance } from '../../contrib/terminal/browser/terminal.js';
@@ -27,7 +27,12 @@ export class MainThreadTerminalShellIntegration extends Disposable implements Ma
 
 		this._proxy = extHostContext.getProxy(ExtHostContext.ExtHostTerminalShellIntegration);
 
-		const instanceDataListeners = this._register(new DisposableMap<number>());
+		const instanceDataListeners: Map<number, IDisposable> = new Map();
+		this._register(toDisposable(() => {
+			for (const listener of instanceDataListeners.values()) {
+				listener.dispose();
+			}
+		}));
 
 		// onDidChangeTerminalShellIntegration initial state
 		for (const terminal of this._terminalService.instances) {
@@ -81,13 +86,10 @@ export class MainThreadTerminalShellIntegration extends Disposable implements Ma
 
 			// TerminalShellExecution.createDataStream
 			// Debounce events to reduce the message count - when this listener is disposed the events will be flushed
-			instanceDataListeners.deleteAndDispose(instanceId);
-			const dataDisposables = new DisposableStore();
-			const listener = Event.accumulate(e.instance.onData, 50, true, dataDisposables)(events => {
+			instanceDataListeners.get(instanceId)?.dispose();
+			instanceDataListeners.set(instanceId, Event.accumulate(e.instance.onData, 50, true, this._store)(events => {
 				this._proxy.$shellExecutionData(instanceId, events.join(''));
-			});
-			// Flush buffered data by removing the listener before disposing the accumulator.
-			instanceDataListeners.set(instanceId, combinedDisposable(listener, dataDisposables));
+			}));
 		}));
 
 		// onDidEndTerminalShellExecution
@@ -95,7 +97,7 @@ export class MainThreadTerminalShellIntegration extends Disposable implements Ma
 		this._store.add(commandDetectionEndEvent.event(e => {
 			currentCommand = undefined;
 			const instanceId = e.instance.instanceId;
-			instanceDataListeners.deleteAndDispose(instanceId);
+			instanceDataListeners.get(instanceId)?.dispose();
 			// Shell integration C (executed) and D (command finished) sequences should always be in
 			// their own events, so send this immediately. This means that the D sequence will not
 			// be included as it's currently being parsed when the command finished event fires.
@@ -103,10 +105,7 @@ export class MainThreadTerminalShellIntegration extends Disposable implements Ma
 		}));
 
 		// Clean up after dispose
-		this._store.add(this._terminalService.onDidDisposeInstance(e => {
-			instanceDataListeners.deleteAndDispose(e.instanceId);
-			this._proxy.$closeTerminal(e.instanceId);
-		}));
+		this._store.add(this._terminalService.onDidDisposeInstance(e => this._proxy.$closeTerminal(e.instanceId)));
 	}
 
 	$executeCommand(terminalId: number, commandLine: string): void {

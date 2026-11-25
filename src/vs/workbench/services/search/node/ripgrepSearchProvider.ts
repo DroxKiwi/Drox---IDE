@@ -12,7 +12,6 @@ import { Schemas } from '../../../../base/common/network.js';
 import type { RipgrepTextSearchOptions } from '../common/searchExtTypesInternal.js';
 
 export class RipgrepSearchProvider implements TextSearchProvider2 {
-	readonly supportsExcludeExceptions = true;
 	private inProgress: Set<CancellationTokenSource> = new Set();
 
 	constructor(private outputChannel: OutputChannel, private getNumThreads: () => Promise<number | undefined>) {
@@ -47,10 +46,6 @@ export class RipgrepSearchProvider implements TextSearchProvider2 {
 				// todo: get this to actually check
 				limitHit: e.some(complete => !!complete && complete.limitHit)
 			};
-			const messages = e.flatMap(complete => complete?.message ?? []);
-			if (messages.length) {
-				complete.message = messages;
-			}
 			return complete;
 		}));
 

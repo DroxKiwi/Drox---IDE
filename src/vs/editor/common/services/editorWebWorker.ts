@@ -5,7 +5,6 @@
 
 import { stringDiff } from '../../../base/common/diff/diff.js';
 import { IDisposable } from '../../../base/common/lifecycle.js';
-import { isHighSurrogate } from '../../../base/common/strings.js';
 import { URI } from '../../../base/common/uri.js';
 import { IWebWorkerServerRequestHandler } from '../../../base/common/worker/webWorker.js';
 import { Position } from '../core/position.js';
@@ -15,7 +14,7 @@ import { IMirrorTextModel, IModelChangedEvent } from '../model/mirrorTextModel.j
 import { IColorInformation, IInplaceReplaceSupportResult, ILink, TextEdit } from '../languages.js';
 import { computeLinks } from '../languages/linkComputer.js';
 import { BasicInplaceReplace } from '../languages/supports/inplaceReplaceSupport.js';
-import { DiffAlgorithmName, IDiffComputationResult, ILineChange, IStringDiffOptions, IStringEditFromDiff, IUnicodeHighlightsResult } from './editorWorker.js';
+import { DiffAlgorithmName, IDiffComputationResult, ILineChange, IUnicodeHighlightsResult } from './editorWorker.js';
 import { createMonacoBaseAPI } from './editorBaseApi.js';
 import { StopWatch } from '../../../base/common/stopwatch.js';
 import { UnicodeTextModelHighlighter, UnicodeHighlighterOptions } from './unicodeTextModelHighlighter.js';
@@ -24,14 +23,12 @@ import { ILinesDiffComputer, ILinesDiffComputerOptions } from '../diff/linesDiff
 import { DetailedLineRangeMapping } from '../diff/rangeMapping.js';
 import { linesDiffComputers } from '../diff/linesDiffComputers.js';
 import { IDocumentDiffProviderOptions } from '../diff/documentDiffProvider.js';
-import { ILinesDiffWithFallback, resolveLinesDiffComputerWithFallback } from '../diff/linesDiffWithFallback.js';
 import { BugIndicatingError } from '../../../base/common/errors.js';
 import { computeDefaultDocumentColors } from '../languages/defaultDocumentColorsComputer.js';
 import { FindSectionHeaderOptions, SectionHeader, findSectionHeaders } from './findSectionHeaders.js';
 import { IRawModelData, IWorkerTextModelSyncChannelServer } from './textModelSync/textModelSync.protocol.js';
 import { ICommonModel, WorkerTextModelSyncServer } from './textModelSync/textModelSync.impl.js';
 import { ISerializedStringEdit, StringEdit } from '../core/edits/stringEdit.js';
-import { TextEdit as CoreTextEdit } from '../core/edits/textEdit.js';
 import { StringText } from '../core/text/abstractText.js';
 import { ensureDependenciesAreSet } from '../core/text/positionToOffset.js';
 
@@ -124,26 +121,24 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 
 	// ---- BEGIN diff --------------------------------------------------------------------------
 
-	public async $computeDiff(originalUrl: string, modifiedUrl: string, options: IDocumentDiffProviderOptions, algorithm: DiffAlgorithmName, verify: boolean = false): Promise<IDiffComputationResult | null> {
+	public async $computeDiff(originalUrl: string, modifiedUrl: string, options: IDocumentDiffProviderOptions, algorithm: DiffAlgorithmName): Promise<IDiffComputationResult | null> {
 		const original = this._getModel(originalUrl);
 		const modified = this._getModel(modifiedUrl);
 		if (!original || !modified) {
 			return null;
 		}
 
-		const computeDiff = await resolveLinesDiffComputerWithFallback(algorithm, a => this._resolveLinesDiffComputer(a));
-		// Read the models only after the await, so the diff and the identity check below see the same model state.
-		const computed = computeDiff(original.getLinesContent(), modified.getLinesContent(), options, verify);
-		return EditorWorker.toDiffComputationResult(original, modified, computed);
+		const diffAlgorithm = await resolveLinesDiffComputer(algorithm);
+		const result = EditorWorker.computeDiff(original, modified, options, diffAlgorithm);
+		return result;
 	}
 
-	/** Overridden in tests. */
-	protected _resolveLinesDiffComputer(algorithm: DiffAlgorithmName): ILinesDiffComputer | Promise<ILinesDiffComputer> {
-		return resolveLinesDiffComputer(algorithm);
-	}
+	private static computeDiff(originalTextModel: ICommonModel | ITextModel, modifiedTextModel: ICommonModel | ITextModel, options: IDocumentDiffProviderOptions, diffAlgorithm: ILinesDiffComputer): IDiffComputationResult {
 
-	private static toDiffComputationResult(originalTextModel: ICommonModel | ITextModel, modifiedTextModel: ICommonModel | ITextModel, computed: ILinesDiffWithFallback): IDiffComputationResult {
-		const { result, validity, fallback } = computed;
+		const originalLines = originalTextModel.getLinesContent();
+		const modifiedLines = modifiedTextModel.getLinesContent();
+
+		const result = diffAlgorithm.computeDiff(originalLines, modifiedLines, options);
 
 		const identical = (result.changes.length > 0 ? false : this._modelsAreIdentical(originalTextModel, modifiedTextModel));
 
@@ -163,8 +158,6 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return {
 			identical,
 			quitEarly: result.hitTimeout,
-			validity,
-			fallback,
 			changes: getLineChanges(result.changes),
 			moves: result.moves.map(m => ([
 				m.lineRangeMapping.original.startLineNumber,
@@ -211,9 +204,8 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 		return diffComputer.computeDiff().changes;
 	}
 
-	public async $computeStringDiff(original: string, modified: string, options: IStringDiffOptions, algorithm: DiffAlgorithmName): Promise<{ edit: ISerializedStringEdit; isCoarse: boolean }> {
-		const result = await computeStringDiffWithMetadata(original, modified, options, algorithm);
-		return { edit: result.edit.toJson(), isCoarse: result.isCoarse };
+	public async $computeStringDiff(original: string, modified: string, options: { maxComputationTimeMs: number }, algorithm: DiffAlgorithmName): Promise<ISerializedStringEdit> {
+		return (await computeStringDiff(original, modified, options, algorithm)).toJson();
 	}
 
 	// ---- END diff --------------------------------------------------------------------------
@@ -283,36 +275,18 @@ export class EditorWorker implements IDisposable, IWorkerTextModelSyncChannelSer
 			// compute diff between original and edit.text
 			const changes = stringDiff(original, text, pretty);
 			const editOffset = model.offsetAt(Range.lift(range).getStartPosition());
-			const newEdits: TextEdit[] = [];
-			let useOriginalEdit = false;
 
 			for (const change of changes) {
-				const originalEnd = change.originalStart + change.originalLength;
 				const start = model.positionAt(editOffset + change.originalStart);
-				const end = model.positionAt(editOffset + originalEnd);
-				const startLineContent = model.getLineContent(start.lineNumber);
-				const endLineContent = model.getLineContent(end.lineNumber);
-				const startFollowsHighSurrogate = start.column > 1 && isHighSurrogate(startLineContent.charCodeAt(start.column - 2));
-				const endFollowsHighSurrogate = end.column > 1 && end.column <= endLineContent.length && isHighSurrogate(endLineContent.charCodeAt(end.column - 2));
-				if (startFollowsHighSurrogate || endFollowsHighSurrogate) {
-					useOriginalEdit = true;
-					break;
-				}
-
+				const end = model.positionAt(editOffset + change.originalStart + change.originalLength);
 				const newEdit: TextEdit = {
-					text: text.slice(change.modifiedStart, change.modifiedStart + change.modifiedLength),
+					text: text.substr(change.modifiedStart, change.modifiedLength),
 					range: { startLineNumber: start.lineNumber, startColumn: start.column, endLineNumber: end.lineNumber, endColumn: end.column }
 				};
 
 				if (model.getValueInRange(newEdit.range) !== newEdit.text) {
-					newEdits.push(newEdit);
+					result.push(newEdit);
 				}
-			}
-
-			if (useOriginalEdit) {
-				result.push({ range, text });
-			} else {
-				result.push(...newEdits);
 			}
 		}
 
@@ -574,12 +548,9 @@ function resolveLinesDiffComputer(algorithm: DiffAlgorithmName): ILinesDiffCompu
 /**
  * @internal
 */
-export async function computeStringDiff(original: string, modified: string, options: IStringDiffOptions, algorithm: DiffAlgorithmName): Promise<StringEdit> {
-	return (await computeStringDiffWithMetadata(original, modified, options, algorithm)).edit;
-}
+export async function computeStringDiff(original: string, modified: string, options: { maxComputationTimeMs: number }, algorithm: DiffAlgorithmName): Promise<StringEdit> {
+	const diffAlgorithm = await resolveLinesDiffComputer(algorithm);
 
-/** @internal */
-export async function computeStringDiffWithMetadata(original: string, modified: string, options: IStringDiffOptions, algorithm: DiffAlgorithmName): Promise<IStringEditFromDiff> {
 	ensureDependenciesAreSet();
 
 	const originalText = new StringText(original);
@@ -587,21 +558,10 @@ export async function computeStringDiffWithMetadata(original: string, modified: 
 	const modifiedText = new StringText(modified);
 	const modifiedLines = modifiedText.getLines();
 
-	const diffOptions: ILinesDiffComputerOptions = { ignoreTrimWhitespace: false, maxComputationTimeMs: options.maxComputationTimeMs, computeMoves: false, extendToSubwords: false };
-	if (options.computeRawChanges) {
-		if (algorithm !== 'advanced') {
-			throw new BugIndicatingError('Raw character changes require the built-in advanced diff algorithm.');
-		}
-		const result = linesDiffComputers.getDefault().computeDiffWithRawChanges(originalLines, modifiedLines, diffOptions);
-		const edit = originalText.getTransformer().getStringEdit(new CoreTextEdit(result.rawChanges.map(change => change.toTextEdit(modifiedText))));
-		return { edit, isCoarse: result.diff.hitTimeout };
-	}
-
-	const diffAlgorithm = await resolveLinesDiffComputer(algorithm);
-	const result = diffAlgorithm.computeDiff(originalLines, modifiedLines, diffOptions);
+	const result = diffAlgorithm.computeDiff(originalLines, modifiedLines, { ignoreTrimWhitespace: false, maxComputationTimeMs: options.maxComputationTimeMs, computeMoves: false, extendToSubwords: false });
 
 	const textEdit = DetailedLineRangeMapping.toTextEdit(result.changes, modifiedText);
 	const strEdit = originalText.getTransformer().getStringEdit(textEdit);
 
-	return { edit: strEdit, isCoarse: result.hitTimeout };
+	return strEdit;
 }

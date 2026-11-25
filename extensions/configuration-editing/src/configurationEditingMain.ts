@@ -7,12 +7,9 @@ import { getLocation, JSONPath, parse, visit, Location } from 'jsonc-parser';
 import * as vscode from 'vscode';
 import { SettingsDocument } from './settingsDocumentHelper';
 import { provideInstalledExtensionProposals } from './extensionsProposals';
-import { registerGitHubGistProfileContentHandler } from './importExportProfiles';
+import './importExportProfiles';
 
 export function activate(context: vscode.ExtensionContext): void {
-	// GitHub gist profile import/export
-	context.subscriptions.push(registerGitHubGistProfileContentHandler());
-
 	//settings.json suggestions
 	context.subscriptions.push(registerSettingsCompletions());
 

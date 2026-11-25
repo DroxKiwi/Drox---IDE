@@ -896,41 +896,6 @@ suite('githubReviewAgent', () => {
 			} as unknown as IGitExtensionService;
 		};
 
-		async function runGithubReview(
-			authenticationService: MockAuthenticationService,
-			capiClientService: MockCAPIClientService,
-			domainService: IDomainService,
-			fetcherService: IFetcherService,
-			envService: IEnvService,
-			workspaceService: MockWorkspaceService,
-			fileUri: URI
-		) {
-			const { githubReview } = await import('../githubReviewAgent');
-			return githubReview(
-				new TestLogService(),
-				createMockGitExtensionService(),
-				authenticationService as unknown as IAuthenticationService,
-				capiClientService as unknown as ICAPIClientService,
-				domainService,
-				fetcherService,
-				envService,
-				new NullIgnoreService(),
-				workspaceService,
-				new MockCustomInstructionsService(),
-				{
-					repositoryRoot: '/test',
-					commitMessages: ['test commit'],
-					patches: [{
-						patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
-						fileUri: fileUri.toString(),
-					}]
-				},
-				undefined,
-				{ report: () => { } },
-				CancellationToken.None
-			);
-		}
-
 		test('returns success with empty comments when git extension is not available', async () => {
 			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, fetcherService, envService } = createBaseMocks();
@@ -1117,6 +1082,7 @@ suite('githubReviewAgent', () => {
 		});
 
 		test('handles cancelled request via abort signal', async () => {
+			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, envService } = createBaseMocks();
 
 			// Create auth service with token
@@ -1158,13 +1124,36 @@ suite('githubReviewAgent', () => {
 				}
 			}
 
-			const result = await runGithubReview(new TestAuthenticationService(), new TestCAPIClientService(), domainService, fetcherService, envService, new TestWorkspaceService(), fileUri);
+			const result = await githubReview(
+				new TestLogService(),
+				createMockGitExtensionService(),
+				new TestAuthenticationService() as unknown as IAuthenticationService,
+				new TestCAPIClientService() as unknown as ICAPIClientService,
+				domainService,
+				fetcherService,
+				envService,
+				new NullIgnoreService(),
+				new TestWorkspaceService(),
+				new MockCustomInstructionsService(),
+				{
+					repositoryRoot: '/test',
+					commitMessages: ['test commit'],
+					patches: [{
+						patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
+						fileUri: fileUri.toString(),
+					}]
+				},
+				undefined,
+				{ report: () => { } },
+				CancellationToken.None
+			);
 
 			// When aborted, should return cancelled
 			assert.strictEqual(result.type, 'cancelled');
 		});
 
 		test('handles HTTP 402 quota exceeded error', async () => {
+			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, fetcherService, envService } = createBaseMocks();
 
 			// Create auth service with token
@@ -1204,7 +1193,29 @@ suite('githubReviewAgent', () => {
 			}
 
 			try {
-				await runGithubReview(new TestAuthenticationService(), new TestCAPIClientService(), domainService, fetcherService, envService, new TestWorkspaceService(), fileUri);
+				await githubReview(
+					new TestLogService(),
+					createMockGitExtensionService(),
+					new TestAuthenticationService() as unknown as IAuthenticationService,
+					new TestCAPIClientService() as unknown as ICAPIClientService,
+					domainService,
+					fetcherService,
+					envService,
+					new NullIgnoreService(),
+					new TestWorkspaceService(),
+					new MockCustomInstructionsService(),
+					{
+						repositoryRoot: '/test',
+						commitMessages: ['test commit'],
+						patches: [{
+							patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
+							fileUri: fileUri.toString(),
+						}]
+					},
+					undefined,
+					{ report: () => { } },
+					CancellationToken.None
+				);
 				assert.fail('Should have thrown an error');
 			} catch (err: unknown) {
 				const error = err as Error & { severity?: string };
@@ -1214,6 +1225,7 @@ suite('githubReviewAgent', () => {
 		});
 
 		test('handles HTTP error response', async () => {
+			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, fetcherService, envService } = createBaseMocks();
 
 			// Create auth service with token
@@ -1253,7 +1265,29 @@ suite('githubReviewAgent', () => {
 			}
 
 			try {
-				await runGithubReview(new TestAuthenticationService(), new TestCAPIClientService(), domainService, fetcherService, envService, new TestWorkspaceService(), fileUri);
+				await githubReview(
+					new TestLogService(),
+					createMockGitExtensionService(),
+					new TestAuthenticationService() as unknown as IAuthenticationService,
+					new TestCAPIClientService() as unknown as ICAPIClientService,
+					domainService,
+					fetcherService,
+					envService,
+					new NullIgnoreService(),
+					new TestWorkspaceService(),
+					new MockCustomInstructionsService(),
+					{
+						repositoryRoot: '/test',
+						commitMessages: ['test commit'],
+						patches: [{
+							patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
+							fileUri: fileUri.toString(),
+						}]
+					},
+					undefined,
+					{ report: () => { } },
+					CancellationToken.None
+				);
 				assert.fail('Should have thrown an error');
 			} catch (err: unknown) {
 				const error = err as Error;
@@ -1263,6 +1297,7 @@ suite('githubReviewAgent', () => {
 		});
 
 		test('propagates non-abort fetch errors', async () => {
+			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, envService } = createBaseMocks();
 
 			// Create auth service with token
@@ -1305,7 +1340,29 @@ suite('githubReviewAgent', () => {
 			}
 
 			try {
-				await runGithubReview(new TestAuthenticationService(), new TestCAPIClientService(), domainService, fetcherService, envService, new TestWorkspaceService(), fileUri);
+				await githubReview(
+					new TestLogService(),
+					createMockGitExtensionService(),
+					new TestAuthenticationService() as unknown as IAuthenticationService,
+					new TestCAPIClientService() as unknown as ICAPIClientService,
+					domainService,
+					fetcherService,
+					envService,
+					new NullIgnoreService(),
+					new TestWorkspaceService(),
+					new MockCustomInstructionsService(),
+					{
+						repositoryRoot: '/test',
+						commitMessages: ['test commit'],
+						patches: [{
+							patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
+							fileUri: fileUri.toString(),
+						}]
+					},
+					undefined,
+					{ report: () => { } },
+					CancellationToken.None
+				);
 				assert.fail('Should have thrown an error');
 			} catch (err: unknown) {
 				const error = err as Error;
@@ -1314,6 +1371,7 @@ suite('githubReviewAgent', () => {
 		});
 
 		test('ignores comments with paths not matching any change', async () => {
+			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, fetcherService, envService } = createBaseMocks();
 
 			// Extend MockAuthenticationService to return a valid token
@@ -1359,7 +1417,29 @@ suite('githubReviewAgent', () => {
 				}
 			}
 
-			const result = await runGithubReview(new TestAuthenticationService(), new TestCAPIClientService(), domainService, fetcherService, envService, new TestWorkspaceService(), fileUri);
+			const result = await githubReview(
+				new TestLogService(),
+				createMockGitExtensionService(),
+				new TestAuthenticationService() as unknown as IAuthenticationService,
+				new TestCAPIClientService() as unknown as ICAPIClientService,
+				domainService,
+				fetcherService,
+				envService,
+				new NullIgnoreService(),
+				new TestWorkspaceService(),
+				new MockCustomInstructionsService(),
+				{
+					repositoryRoot: '/test',
+					commitMessages: ['test commit'],
+					patches: [{
+						patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
+						fileUri: fileUri.toString(),
+					}]
+				},
+				undefined,
+				{ report: () => { } },
+				CancellationToken.None
+			);
 
 			// Should succeed but with no comments (the mismatched path comment is skipped)
 			assert.strictEqual(result.type, 'success');
@@ -1369,6 +1449,7 @@ suite('githubReviewAgent', () => {
 		});
 
 		test('returns excluded comments in result', async () => {
+			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, fetcherService, envService } = createBaseMocks();
 
 			class TestAuthenticationService extends MockAuthenticationService {
@@ -1410,7 +1491,29 @@ suite('githubReviewAgent', () => {
 				}
 			}
 
-			const result = await runGithubReview(new TestAuthenticationService(), new TestCAPIClientService(), domainService, fetcherService, envService, new TestWorkspaceService(), fileUri);
+			const result = await githubReview(
+				new TestLogService(),
+				createMockGitExtensionService(),
+				new TestAuthenticationService() as unknown as IAuthenticationService,
+				new TestCAPIClientService() as unknown as ICAPIClientService,
+				domainService,
+				fetcherService,
+				envService,
+				new NullIgnoreService(),
+				new TestWorkspaceService(),
+				new MockCustomInstructionsService(),
+				{
+					repositoryRoot: '/test',
+					commitMessages: ['test commit'],
+					patches: [{
+						patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
+						fileUri: fileUri.toString(),
+					}]
+				},
+				undefined,
+				{ report: () => { } },
+				CancellationToken.None
+			);
 
 			assert.strictEqual(result.type, 'success');
 			if (result.type === 'success') {
@@ -1422,6 +1525,7 @@ suite('githubReviewAgent', () => {
 		});
 
 		test('returns unsupported language reason when no comments and excluded files exist', async () => {
+			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, fetcherService, envService } = createBaseMocks();
 
 			class TestAuthenticationService extends MockAuthenticationService {
@@ -1462,7 +1566,29 @@ suite('githubReviewAgent', () => {
 				}
 			}
 
-			const result = await runGithubReview(new TestAuthenticationService(), new TestCAPIClientService(), domainService, fetcherService, envService, new TestWorkspaceService(), fileUri);
+			const result = await githubReview(
+				new TestLogService(),
+				createMockGitExtensionService(),
+				new TestAuthenticationService() as unknown as IAuthenticationService,
+				new TestCAPIClientService() as unknown as ICAPIClientService,
+				domainService,
+				fetcherService,
+				envService,
+				new NullIgnoreService(),
+				new TestWorkspaceService(),
+				new MockCustomInstructionsService(),
+				{
+					repositoryRoot: '/test',
+					commitMessages: ['test commit'],
+					patches: [{
+						patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
+						fileUri: fileUri.toString(),
+					}]
+				},
+				undefined,
+				{ report: () => { } },
+				CancellationToken.None
+			);
 
 			assert.strictEqual(result.type, 'success');
 			if (result.type === 'success') {
@@ -1473,6 +1599,7 @@ suite('githubReviewAgent', () => {
 		});
 
 		test('does not report unsupported languages when comments exist', async () => {
+			const { githubReview } = await import('../githubReviewAgent');
 			const { domainService, fetcherService, envService } = createBaseMocks();
 
 			class TestAuthenticationService extends MockAuthenticationService {
@@ -1523,7 +1650,29 @@ suite('githubReviewAgent', () => {
 				}
 			}
 
-			const result = await runGithubReview(new TestAuthenticationService(), new TestCAPIClientService(), domainService, fetcherService, envService, new TestWorkspaceService(), fileUri);
+			const result = await githubReview(
+				new TestLogService(),
+				createMockGitExtensionService(),
+				new TestAuthenticationService() as unknown as IAuthenticationService,
+				new TestCAPIClientService() as unknown as ICAPIClientService,
+				domainService,
+				fetcherService,
+				envService,
+				new NullIgnoreService(),
+				new TestWorkspaceService(),
+				new MockCustomInstructionsService(),
+				{
+					repositoryRoot: '/test',
+					commitMessages: ['test commit'],
+					patches: [{
+						patch: '@@ -1,1 +1,1 @@\n-const x = 1;\n+let x = 1;',
+						fileUri: fileUri.toString(),
+					}]
+				},
+				undefined,
+				{ report: () => { } },
+				CancellationToken.None
+			);
 
 			assert.strictEqual(result.type, 'success');
 			if (result.type === 'success') {

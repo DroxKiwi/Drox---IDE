@@ -3,15 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { $ } from '../../../base/browser/dom.js';
-import { ButtonBar, ButtonWithDropdown, IButton } from '../../../base/browser/ui/button/button.js';
-import { createPixelSpinner } from '../../../base/browser/ui/pixelSpinner/pixelSpinner.js';
-import './buttonbar.css';
+import { ButtonBar, IButton } from '../../../base/browser/ui/button/button.js';
 import { createInstantHoverDelegate } from '../../../base/browser/ui/hover/hoverDelegateFactory.js';
 import { ActionRunner, IAction, IActionRunner, IRunEvent, SubmenuAction, WorkbenchActionExecutedClassification, WorkbenchActionExecutedEvent } from '../../../base/common/actions.js';
 import { Codicon } from '../../../base/common/codicons.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { IMarkdownString } from '../../../base/common/htmlContent.js';
+import { IMarkdownString, isMarkdownString, MarkdownString } from '../../../base/common/htmlContent.js';
 import { DisposableStore } from '../../../base/common/lifecycle.js';
 import { autorun, IObservable } from '../../../base/common/observable.js';
 import { ThemeIcon } from '../../../base/common/themables.js';
@@ -27,34 +24,20 @@ import { ITelemetryService } from '../../telemetry/common/telemetry.js';
 import { renderAsPlaintext } from '../../../base/browser/markdownRenderer.js';
 import { stripIcons } from '../../../base/common/iconLabels.js';
 
-export interface IButtonConfig {
+export type IButtonConfigProvider = (action: IAction, index: number) => {
 	showIcon?: boolean;
 	showLabel?: boolean;
 	isSecondary?: boolean;
 	customLabel?: string | IMarkdownString;
 	customLabelObs?: IObservable<string | IMarkdownString | undefined>;
 	customClass?: string;
-	/**
-	 * Renders an animated spinner ahead of the label, for a button whose work
-	 * is currently in flight rather than waiting to be started.
-	 *
-	 * The spinner occupies the button's leading slot. Where the button renders
-	 * an icon at rest — `showIcon` with an action that carries one — the spinner
-	 * takes that icon's place rather than adding to it, so the button keeps its
-	 * width while its work runs. A button with nothing in that slot at rest
-	 * grows by the width of the spinner instead.
-	 */
-	showSpinner?: boolean;
-}
-
-export type IButtonConfigProvider = (action: IAction, index: number) => IButtonConfig | undefined;
+} | undefined;
 
 export interface IWorkbenchButtonBarOptions {
 	telemetrySource?: string;
 	buttonConfigProvider?: IButtonConfigProvider;
 	small?: boolean;
 	disableWhileRunning?: boolean;
-	renderSecondaryActions?: boolean;
 }
 
 export class WorkbenchButtonBar extends ButtonBar {
@@ -81,7 +64,7 @@ export class WorkbenchButtonBar extends ButtonBar {
 
 		this._actionRunner = this._store.add(new ActionRunner());
 		if (_options?.telemetrySource) {
-			this._actionRunner.onWillRun(e => {
+			this._actionRunner.onDidRun(e => {
 				telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>(
 					'workbenchActionExecuted',
 					{ id: e.action.id, from: _options.telemetrySource! }
@@ -107,10 +90,7 @@ export class WorkbenchButtonBar extends ButtonBar {
 		// Support instant hover between buttons
 		const hoverDelegate = this._updateStore.add(createInstantHoverDelegate());
 
-		const actionCount = this._options?.renderSecondaryActions === false
-			? Math.min(actions.length, 1)
-			: actions.length;
-		for (let i = 0; i < actionCount; i++) {
+		for (let i = 0; i < actions.length; i++) {
 
 			const secondary = i > 0;
 			const actionOrSubmenu = actions[i];
@@ -126,7 +106,6 @@ export class WorkbenchButtonBar extends ButtonBar {
 				tooltip = this._keybindingService.appendKeybinding(tooltip, action.id);
 
 				btn = this.addButtonWithDropdown({
-					addPrimaryActionToDropdown: false,
 					secondary: configProvider(action, i)?.isSecondary ?? secondary,
 					actionRunner: this._actionRunner,
 					actions: rest,
@@ -166,46 +145,22 @@ export class WorkbenchButtonBar extends ButtonBar {
 				btn.element.classList.add(customClass);
 			}
 
-			// The icon a button shows always comes from the action, which carries
-			// it as a CSS class. `MenuItemAction` derives that class from the
-			// icon its command declares — including the toggled icon while it is
-			// checked, which reading `item.icon` directly would miss.
-			const renderActionIcon = (): HTMLElement | undefined => {
-				if (!action.class) {
-					return undefined;
+			const composeLabel = (labelValue: string | IMarkdownString): string | IMarkdownString => {
+				if (showIcon && action instanceof MenuItemAction && ThemeIcon.isThemeIcon(action.item.icon) && showLabel) {
+					// this is REALLY hacky but combining a codicon and normal text is ugly because
+					// the former define a font which doesn't work for text
+					return isMarkdownString(labelValue)
+						? new MarkdownString(`$(${action.item.icon.id}) ${labelValue.value}`, {
+							isTrusted: labelValue.isTrusted, supportThemeIcons: true, supportHtml: labelValue.supportHtml
+						})
+						: `$(${action.item.icon.id}) ${labelValue}`;
 				}
-				const element = $('span');
-				element.classList.add(...action.class.split(' '));
-				return element;
-			};
-
-			// The button's leading slot holds either its icon or — while its work
-			// is in flight — the spinner, never both. Both are sized identically
-			// (see buttonbar.css), so swapping one for the other leaves the
-			// button's width untouched.
-			const showSpinner = config?.showSpinner;
-			const leading = showSpinner
-				? this._updateStore.add(createPixelSpinner()).element
-				: showIcon && showLabel ? renderActionIcon() : undefined;
-			if (leading) {
-				leading.classList.add('monaco-button-leading-icon');
-				if (!showLabel) {
-					// Nothing follows it, so it carries no gap to a label.
-					leading.classList.add('monaco-button-leading-icon-only');
-				}
-			}
-
-			// Setting the label resets the button's children, so the leading slot
-			// is (re-)attached after every label write rather than once up front.
-			const applyLeading = () => {
-				if (leading) {
-					(btn instanceof ButtonWithDropdown ? btn.primaryButton.element : btn.element).prepend(leading);
-				}
+				return labelValue;
 			};
 
 			const applyLabel = (labelValue: string | IMarkdownString) => {
 				if (showLabel) {
-					btn.label = labelValue;
+					btn.label = composeLabel(labelValue);
 				}
 
 				const labelStringValue = stripIcons(renderAsPlaintext(labelValue));
@@ -213,21 +168,19 @@ export class WorkbenchButtonBar extends ButtonBar {
 
 				btn.setTitle(ariaLabelWithKeybinding);
 				btn.setAriaLabel(ariaLabelWithKeybinding);
-				applyLeading();
 			};
 
 			if (showLabel) {
-				btn.label = customLabel ?? action.label;
+				btn.label = composeLabel(customLabel ?? action.label);
 			} else {
 				btn.element.classList.add('monaco-text-button');
 			}
-			applyLeading();
 
-			// An icon-only button wears its icon as a codicon class on the button
-			// itself, so it is left off while the spinner stands in for it.
-			if (showIcon && !showLabel && !showSpinner) {
+			if (showIcon) {
 				if (action instanceof MenuItemAction && ThemeIcon.isThemeIcon(action.item.icon)) {
-					btn.icon = action.item.icon;
+					if (!showLabel) {
+						btn.icon = action.item.icon;
+					}
 				} else if (action.class) {
 					btn.element.classList.add(...action.class.split(' '));
 				}
@@ -255,7 +208,7 @@ export class WorkbenchButtonBar extends ButtonBar {
 			}));
 		}
 
-		if (this._options?.renderSecondaryActions !== false && secondary.length > 0) {
+		if (secondary.length > 0) {
 
 			const btn = this.addButton({
 				secondary: true,

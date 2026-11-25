@@ -84,7 +84,6 @@ export interface ISCMProvider extends IDisposable {
 	readonly iconPath?: URI | { light: URI; dark: URI } | ThemeIcon;
 	readonly isHidden?: boolean;
 	readonly inputBoxTextModel: ITextModel;
-	readonly activeRepositoryName: IObservable<string | undefined>;
 	readonly contextValue: IObservable<string | undefined>;
 	readonly count: IObservable<number | undefined>;
 	readonly commitTemplate: IObservable<string>;

@@ -48,7 +48,6 @@ export class NullTestService extends Disposable implements ITestService {
 	registerExtHost(): IDisposable { return Disposable.None; }
 	registerTestController(): IDisposable { return Disposable.None; }
 	getTestController() { return undefined; }
-	getTestControllers() { return Iterable.empty(); }
 	async refreshTests(): Promise<void> { }
 	cancelRefreshTests(): void { }
 	async startContinuousRun(): Promise<void> { }
@@ -96,3 +95,4 @@ export class NullTestResultService extends Disposable implements ITestResultServ
 	getResult(): ITestResult | undefined { return undefined; }
 	getStateById() { return undefined; }
 }
+

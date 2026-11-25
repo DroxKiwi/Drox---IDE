@@ -23,12 +23,7 @@ suite('Configuration Defaults', () => {
 		testObject = new TestConfigurationServiceImpl({
 			_serviceBrand: undefined,
 			copilotToken: undefined,
-			onDidStoreUpdate: Event.None,
-			onDidChangeTokenData: Event.None,
-			githubEnterpriseUri: undefined,
-			onDidChangeGitHubEnterpriseUri: Event.None,
-			authenticationState: 'unknown',
-			onDidChangeAuthenticationState: Event.None
+			onDidStoreUpdate: Event.None
 		});
 	});
 

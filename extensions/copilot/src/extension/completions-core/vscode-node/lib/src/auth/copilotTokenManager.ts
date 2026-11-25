@@ -5,7 +5,6 @@
 
 import { IAuthenticationService } from '../../../../../../platform/authentication/common/authentication';
 import { CopilotToken } from '../../../../../../platform/authentication/common/copilotToken';
-import { FetchedValue } from '../../../../../../shared-fetch-utils/common/fetchedValue';
 import { createServiceIdentifier } from '../../../../../../util/common/services';
 import { ThrottledDelayer } from '../../../../../../util/vs/base/common/async';
 import { Disposable } from '../../../../../../util/vs/base/common/lifecycle';
@@ -23,14 +22,11 @@ export interface ICompletionsCopilotTokenManager {
 
 export class CopilotTokenManagerImpl extends Disposable implements ICompletionsCopilotTokenManager {
 	declare _serviceBrand: undefined;
-	private readonly tokenRefetcher: ThrottledDelayer<CopilotToken>;
-	private readonly tokenValue: FetchedValue<CopilotToken>;
-
+	private tokenRefetcher = new ThrottledDelayer(5_000);
+	private _token: CopilotToken | undefined;
 	get token() {
-		void this.tokenRefetcher.trigger(() => this.tokenValue.resolve()).catch(() => {
-			// Foreground getToken calls surface the cached error.
-		});
-		return this.tokenValue.value;
+		void this.tokenRefetcher.trigger(() => this.updateCachedToken());
+		return this._token;
 	}
 
 	constructor(
@@ -39,15 +35,8 @@ export class CopilotTokenManagerImpl extends Disposable implements ICompletionsC
 	) {
 		super();
 
-		this.tokenRefetcher = this._register(new ThrottledDelayer(5_000));
-		this.tokenValue = this._register(new FetchedValue({
-			fetch: () => this.authenticationService.getCopilotToken(),
-			isStale: () => true,
-			getRetryAfterMs: () => 5_000,
-		}));
-
-		this.resolveInBackground();
-		this._register(this.authenticationService.onDidCopilotTokenChange(() => this.resolveInBackground(true)));
+		this.updateCachedToken();
+		this._register(this.authenticationService.onDidCopilotTokenChange(() => this.updateCachedToken()));
 	}
 
 	/**
@@ -65,17 +54,15 @@ export class CopilotTokenManagerImpl extends Disposable implements ICompletionsC
 	}
 
 	async getToken(): Promise<CopilotToken> {
-		return this.tokenValue.resolve();
+		return this.updateCachedToken();
 	}
 
-	private resolveInBackground(force?: boolean): void {
-		void this.tokenValue.resolve(force).catch(() => {
-			// Foreground getToken calls surface the cached error.
-		});
+	private async updateCachedToken(): Promise<CopilotToken> {
+		this._token = await this.authenticationService.getCopilotToken();
+		return this._token;
 	}
 
 	resetToken(httpError?: number): void {
-		this.tokenValue.invalidate();
 		this.authenticationService.resetCopilotToken();
 	}
 

@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken } from '../../../../base/common/cancellation.js';
-import { isCancellationError } from '../../../../base/common/errors.js';
 import { Iterable } from '../../../../base/common/iterator.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { LinkedList } from '../../../../base/common/linkedList.js';
@@ -15,7 +14,7 @@ import * as nls from '../../../../nls.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
-import { IExternalOpener, IExternalUriOpenContext, IOpenerService, OpenInternalOptions } from '../../../../platform/opener/common/opener.js';
+import { IExternalOpener, IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../../../platform/quickinput/common/quickInput.js';
 import { defaultExternalUriOpenerId, ExternalUriOpenersConfiguration, externalUriOpenersSettingId } from './configuration.js';
 import { testUrlMatchesGlob } from '../../../../platform/url/common/urlGlob.js';
@@ -34,12 +33,7 @@ export interface IExternalUriOpener {
 	readonly label: string;
 
 	canOpen(uri: URI, token: CancellationToken): Promise<languages.ExternalUriOpenerPriority>;
-
-	/**
-	 * @param href The link to open, after port forwarding, as written. Openers that pass it on as a
-	 * string should use it as is, because parsing it into a URI loses its encoding.
-	 */
-	openExternalUri(href: string, ctx: IExternalUriOpenContext, token: CancellationToken): Promise<boolean>;
+	openExternalUri(uri: URI, ctx: { sourceUri: URI }, token: CancellationToken): Promise<boolean>;
 }
 
 export interface IExternalUriOpenerService {
@@ -52,63 +46,9 @@ export interface IExternalUriOpenerService {
 
 	/**
 	 * Get the configured IExternalUriOpener for the uri.
-	 * If there is no opener configured, then returns the best opener that can handle the uri.
+	 * If there is no opener configured, then returns the first opener that can handle the uri.
 	 */
-	getOpener(uri: URI, ctx: { sourceUri: URI }, token: CancellationToken): Promise<IExternalUriOpener | undefined>;
-
-	/**
-	 * Returns the ways to open a link, so that the user can choose one: the openers that can open
-	 * it and the editor's default opener. The one that opening the link without choosing uses comes
-	 * first; there is none if opening it prompts. Returns no handlers for links that no opener supports.
-	 *
-	 * @param href The link as written.
-	 */
-	getLinkHandlers(href: string, token: CancellationToken): Promise<readonly ILinkHandler[]>;
-}
-
-/**
- * A way to open a link, such as an external URI opener.
- */
-export interface ILinkHandler {
-	readonly id: string;
-	readonly label: string;
-
-	/**
-	 * Whether opening the link without choosing a handler uses this handler.
-	 */
-	readonly isDefault: boolean;
-
-	open(options?: OpenInternalOptions): Promise<boolean>;
-}
-
-interface IValidOpener {
-	readonly opener: IExternalUriOpener;
-	readonly priority: languages.ExternalUriOpenerPriority;
-}
-
-/**
- * What opening a uri without choosing an opener uses: an opener, the editor's default opener, or a
- * prompt to choose between the openers.
- *
- * The first preferred opener wins. Otherwise a single opener of `Default` priority wins, and several
- * prompt. Optional openers never win or prompt on their own.
- */
-function chooseOpener(validOpeners: readonly IValidOpener[]): IExternalUriOpener | typeof defaultExternalUriOpenerId | 'prompt' {
-	const best = validOpeners.at(0);
-	if (best?.priority === languages.ExternalUriOpenerPriority.Preferred) {
-		return best.opener;
-	}
-	const defaultPriorityOpeners = validOpeners.filter(value => value.priority === languages.ExternalUriOpenerPriority.Default);
-	if (defaultPriorityOpeners.length === 0) {
-		return defaultExternalUriOpenerId;
-	}
-	return defaultPriorityOpeners.length === 1 ? defaultPriorityOpeners[0].opener : 'prompt';
-}
-
-function getDefaultOpenerLabel(): string {
-	return isWeb
-		? nls.localize('selectOpenerDefaultLabel.web', "Open in New Browser Window")
-		: nls.localize('selectOpenerDefaultLabel', "Open in Default Browser");
+	getOpener(uri: URI, ctx: { sourceUri: URI; preferredOpenerId?: string }, token: CancellationToken): Promise<IExternalUriOpener | undefined>;
 }
 
 export class ExternalUriOpenerService extends Disposable implements IExternalUriOpenerService, IExternalOpener {
@@ -118,7 +58,7 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 	private readonly _providers = new LinkedList<IExternalOpenerProvider>();
 
 	constructor(
-		@IOpenerService private readonly openerService: IOpenerService,
+		@IOpenerService openerService: IOpenerService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ILogService private readonly logService: ILogService,
 		@IPreferencesService private readonly preferencesService: IPreferencesService,
@@ -133,106 +73,110 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 		return { dispose: remove };
 	}
 
-	async openExternal(href: string, ctx: IExternalUriOpenContext & { preferredOpenerId?: string }, token: CancellationToken): Promise<boolean> {
-		const targetUri = URI.parse(href);
+	private async getOpeners(targetUri: URI, allowOptional: boolean, ctx: { sourceUri: URI; preferredOpenerId?: string }, token: CancellationToken): Promise<IExternalUriOpener[]> {
 		const allOpeners = await this.getAllOpenersForUri(targetUri);
-		if (allOpeners.size === 0) {
-			return false;
-		}
 
-		const requestedOpener = this.getRequestedOpener(allOpeners, targetUri, ctx.preferredOpenerId);
-		if (requestedOpener) {
-			return requestedOpener !== defaultExternalUriOpenerId && requestedOpener.openExternalUri(href, ctx, token);
-		}
-
-		const validOpeners = await this.getValidOpeners(allOpeners, ctx.sourceUri, token);
-		const choice = chooseOpener(validOpeners);
-		if (choice === 'prompt') {
-			return this.showOpenerPrompt(validOpeners.map(value => value.opener), href, ctx, token);
-		}
-		return choice !== defaultExternalUriOpenerId && choice.openExternalUri(href, ctx, token);
-	}
-
-	async getOpener(targetUri: URI, ctx: { sourceUri: URI }, token: CancellationToken): Promise<IExternalUriOpener | undefined> {
-		const allOpeners = await this.getAllOpenersForUri(targetUri);
-		const requestedOpener = this.getRequestedOpener(allOpeners, targetUri, undefined);
-		if (requestedOpener) {
-			return requestedOpener === defaultExternalUriOpenerId ? undefined : requestedOpener;
-		}
-		return (await this.getValidOpeners(allOpeners, ctx.sourceUri, token)).at(0)?.opener;
-	}
-
-	async getLinkHandlers(href: string, token: CancellationToken): Promise<readonly ILinkHandler[]> {
-		const targetUri = URI.parse(href);
-		const allOpeners = await this.getAllOpenersForUri(targetUri);
 		if (allOpeners.size === 0) {
 			return [];
 		}
 
-		const validOpeners = await this.getValidOpeners(allOpeners, targetUri, token);
-		const requestedOpener = this.getRequestedOpener(allOpeners, targetUri, undefined);
-		const choice = requestedOpener ?? chooseOpener(validOpeners);
-		const defaultHandlerId = choice === 'prompt' ? undefined : choice === defaultExternalUriOpenerId ? choice : choice.id;
-		const openers = validOpeners.map(value => value.opener);
-		if (requestedOpener && requestedOpener !== defaultExternalUriOpenerId && !openers.includes(requestedOpener)) {
-			openers.unshift(requestedOpener);
+		// First see if we have a preferredOpener
+		if (ctx.preferredOpenerId) {
+			if (ctx.preferredOpenerId === defaultExternalUriOpenerId) {
+				return [];
+			}
+
+			const preferredOpener = allOpeners.get(ctx.preferredOpenerId);
+			if (preferredOpener) {
+				// Skip the `canOpen` check here since the opener was specifically requested.
+				return [preferredOpener];
+			}
 		}
 
-		const handlers = [
-			...openers.map(opener => ({ id: opener.id, label: opener.label })),
-			{ id: defaultExternalUriOpenerId, label: getDefaultOpenerLabel() },
-		].map(({ id, label }): ILinkHandler => ({
-			id,
-			label,
-			isDefault: id === defaultHandlerId,
-			open: options => this.openerService.open(href, { ...options, allowContributedOpeners: id }),
-		}));
-		return [...handlers.filter(handler => handler.isDefault), ...handlers.filter(handler => !handler.isDefault)];
-	}
-
-	/**
-	 * The opener that the caller or the user's settings ask for. It is used without checking `canOpen`.
-	 */
-	private getRequestedOpener(allOpeners: ReadonlyMap<string, IExternalUriOpener>, targetUri: URI, preferredOpenerId: string | undefined): IExternalUriOpener | typeof defaultExternalUriOpenerId | undefined {
-		if (preferredOpenerId === defaultExternalUriOpenerId) {
-			return defaultExternalUriOpenerId;
+		// Check to see if we have a configured opener
+		const configuredOpener = this.getConfiguredOpenerForUri(allOpeners, targetUri);
+		if (configuredOpener) {
+			// Skip the `canOpen` check here since the opener was specifically requested.
+			return configuredOpener === defaultExternalUriOpenerId ? [] : [configuredOpener];
 		}
-		return (preferredOpenerId ? allOpeners.get(preferredOpenerId) : undefined) ?? this.getConfiguredOpenerForUri(allOpeners, targetUri);
-	}
 
-	/**
-	 * The openers that can open the uri, best first; openers of equal priority keep their order.
-	 */
-	private async getValidOpeners(allOpeners: ReadonlyMap<string, IExternalUriOpener>, sourceUri: URI, token: CancellationToken): Promise<IValidOpener[]> {
-		const openers = await Promise.all(Array.from(allOpeners.values(), async (opener): Promise<IValidOpener | undefined> => {
+		// Then check to see if there is a valid opener
+		const validOpeners: Array<{ opener: IExternalUriOpener; priority: languages.ExternalUriOpenerPriority }> = [];
+		await Promise.all(Array.from(allOpeners.values()).map(async opener => {
+			let priority: languages.ExternalUriOpenerPriority;
 			try {
-				return { opener, priority: await opener.canOpen(sourceUri, token) };
+				priority = await opener.canOpen(ctx.sourceUri, token);
 			} catch (e) {
-				if (!isCancellationError(e)) {
-					this.logService.error(e);
-				}
-				return undefined;
+				this.logService.error(e);
+				return;
+			}
+
+			switch (priority) {
+				case languages.ExternalUriOpenerPriority.Option:
+				case languages.ExternalUriOpenerPriority.Default:
+				case languages.ExternalUriOpenerPriority.Preferred:
+					validOpeners.push({ opener, priority });
+					break;
 			}
 		}));
-		return openers
-			.filter((value): value is IValidOpener => !!value && value.priority !== languages.ExternalUriOpenerPriority.None)
-			.sort((a, b) => b.priority - a.priority);
+
+		if (validOpeners.length === 0) {
+			return [];
+		}
+
+		// See if we have a preferred opener first
+		const preferred = validOpeners.filter(x => x.priority === languages.ExternalUriOpenerPriority.Preferred).at(0);
+		if (preferred) {
+			return [preferred.opener];
+		}
+
+		// See if we only have optional openers, use the default opener
+		if (!allowOptional && validOpeners.every(x => x.priority === languages.ExternalUriOpenerPriority.Option)) {
+			return [];
+		}
+
+		return validOpeners.map(value => value.opener);
 	}
 
-	/**
-	 * All openers for the uri, in the order of their providers.
-	 */
+	async openExternal(href: string, ctx: { sourceUri: URI; preferredOpenerId?: string }, token: CancellationToken): Promise<boolean> {
+
+		const targetUri = typeof href === 'string' ? URI.parse(href) : href;
+
+		const allOpeners = await this.getOpeners(targetUri, false, ctx, token);
+		if (allOpeners.length === 0) {
+			return false;
+		} else if (allOpeners.length === 1) {
+			return allOpeners[0].openExternalUri(targetUri, ctx, token);
+		}
+
+		// Otherwise prompt
+		return this.showOpenerPrompt(allOpeners, targetUri, ctx, token);
+	}
+
+	async getOpener(targetUri: URI, ctx: { sourceUri: URI; preferredOpenerId?: string }, token: CancellationToken): Promise<IExternalUriOpener | undefined> {
+		const allOpeners = await this.getOpeners(targetUri, true, ctx, token);
+		if (allOpeners.length >= 1) {
+			return allOpeners[0];
+		}
+		return undefined;
+	}
+
 	private async getAllOpenersForUri(targetUri: URI): Promise<Map<string, IExternalUriOpener>> {
-		const openersByProvider = await Promise.all(Array.from(this._providers, provider => Iterable.asyncToArray(provider.getOpeners(targetUri))));
-		return new Map(openersByProvider.flat().map(opener => [opener.id, opener]));
+		const allOpeners = new Map<string, IExternalUriOpener>();
+		await Promise.all(Iterable.map(this._providers, async (provider) => {
+			for await (const opener of provider.getOpeners(targetUri)) {
+				allOpeners.set(opener.id, opener);
+			}
+		}));
+		return allOpeners;
 	}
 
-	private getConfiguredOpenerForUri(openers: ReadonlyMap<string, IExternalUriOpener>, targetUri: URI): IExternalUriOpener | typeof defaultExternalUriOpenerId | undefined {
+	private getConfiguredOpenerForUri(openers: Map<string, IExternalUriOpener>, targetUri: URI): IExternalUriOpener | 'default' | undefined {
 		const config = this.configurationService.getValue<ExternalUriOpenersConfiguration>(externalUriOpenersSettingId) || {};
 		for (const [uriGlob, id] of Object.entries(config)) {
 			if (testUrlMatchesGlob(targetUri, uriGlob)) {
 				if (id === defaultExternalUriOpenerId) {
-					return defaultExternalUriOpenerId;
+					return 'default';
 				}
 
 				const entry = openers.get(id);
@@ -246,8 +190,8 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 
 	private async showOpenerPrompt(
 		openers: ReadonlyArray<IExternalUriOpener>,
-		href: string,
-		ctx: IExternalUriOpenContext,
+		targetUri: URI,
+		ctx: { sourceUri: URI },
 		token: CancellationToken
 	): Promise<boolean> {
 		type PickItem = IQuickPickItem & { opener?: IExternalUriOpener | 'configureDefault' };
@@ -260,7 +204,9 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 		});
 		items.push(
 			{
-				label: getDefaultOpenerLabel(),
+				label: isWeb
+					? nls.localize('selectOpenerDefaultLabel.web', 'Open in new browser window')
+					: nls.localize('selectOpenerDefaultLabel', 'Open in default browser'),
 				opener: undefined
 			},
 			{ type: 'separator' },
@@ -270,7 +216,7 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 			});
 
 		const picked = await this.quickInputService.pick(items, {
-			placeHolder: nls.localize('selectOpenerPlaceHolder', "How would you like to open: {0}", URI.parse(href).toString())
+			placeHolder: nls.localize('selectOpenerPlaceHolder', "How would you like to open: {0}", targetUri.toString())
 		});
 
 		if (!picked) {
@@ -287,7 +233,7 @@ export class ExternalUriOpenerService extends Disposable implements IExternalUri
 			});
 			return true;
 		} else {
-			return picked.opener.openExternalUri(href, ctx, token);
+			return picked.opener.openExternalUri(targetUri, ctx, token);
 		}
 	}
 }

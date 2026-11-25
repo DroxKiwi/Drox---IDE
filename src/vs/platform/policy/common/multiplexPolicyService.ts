@@ -5,6 +5,7 @@
 
 import { IStringDictionary } from '../../../base/common/collections.js';
 import { Event } from '../../../base/common/event.js';
+import { Iterable } from '../../../base/common/iterator.js';
 import { ILogService } from '../../log/common/log.js';
 import { AbstractPolicyService, IPolicyService, PolicyDefinition, PolicyValue } from './policy.js';
 
@@ -25,7 +26,7 @@ export class MultiplexPolicyService extends AbstractPolicyService implements IPo
 
 	override async updatePolicyDefinitions(policyDefinitions: IStringDictionary<PolicyDefinition>): Promise<IStringDictionary<PolicyValue>> {
 		await this._updatePolicyDefinitions(policyDefinitions);
-		return this.getPolicyValues();
+		return Iterable.reduce(this.policies.entries(), (r, [name, value]) => ({ ...r, [name]: value }), {});
 	}
 
 	protected async _updatePolicyDefinitions(policyDefinitions: IStringDictionary<PolicyDefinition>): Promise<void> {
@@ -34,7 +35,7 @@ export class MultiplexPolicyService extends AbstractPolicyService implements IPo
 	}
 
 	private updatePolicies(): void {
-		this.clearPolicyValues();
+		this.policies.clear();
 		const updated: string[] = [];
 		for (const service of this.policyServices) {
 			const definitions = service.policyDefinitions;
@@ -43,7 +44,7 @@ export class MultiplexPolicyService extends AbstractPolicyService implements IPo
 				this.policyDefinitions[name] = definitions[name];
 				if (value !== undefined) {
 					updated.push(name);
-					this.updatePolicyValue(name, value, service.getPolicyValueSource(name));
+					this.policies.set(name, value);
 				}
 			}
 		}

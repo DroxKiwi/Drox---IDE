@@ -11,9 +11,20 @@ import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { localize } from '../../../../../nls.js';
 import { DROX_CHAT_SESSION_TYPE } from '../../../../../workbench/contrib/drox/common/droxAgentsSession.js';
-import { AICustomizationManagementSection } from '../../../../../workbench/contrib/chat/common/aiCustomizationWorkspaceService.js';
+import { AICustomizationManagementSection, AICustomizationSources, type AICustomizationSource, IStorageSourceFilter } from '../../../../../workbench/contrib/chat/common/aiCustomizationWorkspaceService.js';
 import { IHarnessDescriptor } from '../../../../../workbench/contrib/chat/common/customizationHarnessService.js';
-import { DROX_CONFIG_FOLDER, DROX_MD_FILENAME, MEMORY_MD_FILENAME } from '../../../../../workbench/contrib/chat/common/promptSyntax/config/promptFileLocations.js';
+import { DROX_CONFIG_FOLDER, DROX_MD_FILENAME, DROX_RULES_SOURCE_FOLDER, MEMORY_MD_FILENAME } from '../../../../../workbench/contrib/chat/common/promptSyntax/config/promptFileLocations.js';
+import { PromptsType } from '../../../../../workbench/contrib/chat/common/promptSyntax/promptTypes.js';
+
+const DROX_HARNESS_SOURCES: readonly AICustomizationSource[] = [
+	AICustomizationSources.local,
+	AICustomizationSources.user,
+	AICustomizationSources.builtin,
+];
+
+const DROX_HOOKS_FILTER: IStorageSourceFilter = {
+	sources: [AICustomizationSources.local, AICustomizationSources.user],
+};
 
 /**
  * User-home roots scanned by the Drox harness (skills, rules, etc.).
@@ -33,8 +44,17 @@ export function createDroxHarnessDescriptor(
 	userHome: URI,
 	opts?: { readonly rulesEnabled?: boolean },
 ): IHarnessDescriptor {
-	void userHome;
-	void opts;
+	const droxUserRoots = getDroxUserRoots(userHome);
+	const allRootsFilter: IStorageSourceFilter = { sources: DROX_HARNESS_SOURCES };
+	const restrictedFilter: IStorageSourceFilter = {
+		sources: DROX_HARNESS_SOURCES,
+		includedUserFileRoots: droxUserRoots,
+	};
+	const rulesEnabled = opts?.rulesEnabled !== false;
+	const instructionFileFilter = rulesEnabled
+		? [DROX_MD_FILENAME, MEMORY_MD_FILENAME, `${DROX_RULES_SOURCE_FOLDER}/`]
+		: [DROX_MD_FILENAME, MEMORY_MD_FILENAME];
+
 	return {
 		id: DROX_CHAT_SESSION_TYPE,
 		label: localize('droxCustomizationHarness.label', 'Drox'),
@@ -45,10 +65,21 @@ export function createDroxHarnessDescriptor(
 			AICustomizationManagementSection.Hooks,
 		],
 		hideGenerateButton: true,
+		workspaceSubpaths: [DROX_CONFIG_FOLDER],
+		instructionFileFilter,
 		sectionOverrides: new Map([
 			[AICustomizationManagementSection.Instructions, {
 				rootFileShortcuts: [DROX_MD_FILENAME, MEMORY_MD_FILENAME],
 			}],
 		]),
+		getStorageSourceFilter(type: PromptsType): IStorageSourceFilter {
+			if (type === PromptsType.hook) {
+				return DROX_HOOKS_FILTER;
+			}
+			if (type === PromptsType.prompt) {
+				return allRootsFilter;
+			}
+			return restrictedFilter;
+		},
 	};
 }

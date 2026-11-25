@@ -148,8 +148,9 @@ export function raceCancellablePromises<T>(cancellablePromises: (CancelablePromi
 			}
 		});
 	};
-	const cancel = () => promise.cancel();
-	promise.then(cancel, cancel);
+	promise.finally(() => {
+		promise.cancel();
+	});
 	return promise;
 }
 
@@ -264,8 +265,8 @@ export class Throttler implements IDisposable {
 					return result;
 				};
 
-				this.queuedPromise = new Promise((resolve, reject) => {
-					this.activePromise!.then(onComplete, onComplete).then(resolve, reject);
+				this.queuedPromise = new Promise(resolve => {
+					this.activePromise!.then(onComplete, onComplete).then(resolve);
 				});
 			}
 
@@ -289,7 +290,6 @@ export class Throttler implements IDisposable {
 
 	dispose(): void {
 		this.cancellationTokenSource.cancel();
-		this.queuedPromiseFactory = null;
 	}
 }
 
@@ -299,39 +299,6 @@ export class Sequencer {
 
 	queue<T>(promiseTask: ITask<Promise<T>>): Promise<T> {
 		return this.current = this.current.then(() => promiseTask(), () => promiseTask());
-	}
-}
-
-/**
- * A {@link Throttler} per key. Calls for the same key coalesce (only the most
- * recently queued task runs after the active one settles); calls for different
- * keys are independent. Idle keys are cleaned up automatically.
- */
-export class ThrottlerByKey<TKey> implements IDisposable {
-
-	private readonly throttlers = new Map<TKey, { throttler: Throttler; count: number }>();
-
-	queue<T>(key: TKey, task: ITask<Promise<T>>): Promise<T> {
-		let entry = this.throttlers.get(key);
-		if (!entry) {
-			entry = { throttler: new Throttler(), count: 0 };
-			this.throttlers.set(key, entry);
-		}
-
-		entry.count++;
-		return entry.throttler.queue(task).finally(() => {
-			if (--entry!.count === 0) {
-				entry!.throttler.dispose();
-				this.throttlers.delete(key);
-			}
-		});
-	}
-
-	dispose(): void {
-		for (const { throttler } of this.throttlers.values()) {
-			throttler.dispose();
-		}
-		this.throttlers.clear();
 	}
 }
 
@@ -440,21 +407,19 @@ export class Delayer<T> implements IDisposable {
 		this.cancelTimeout();
 
 		if (!this.completionPromise) {
-			const completionPromise: Promise<any> = new Promise((resolve, reject) => {
+			this.completionPromise = new Promise((resolve, reject) => {
 				this.doResolve = resolve;
 				this.doReject = reject;
 			}).then(() => {
-				if (this.completionPromise !== completionPromise) {
-					// canceled after the delay elapsed, possibly followed by a new trigger
-					throw new CancellationError();
-				}
 				this.completionPromise = null;
 				this.doResolve = null;
-				const task = this.task!;
-				this.task = null;
-				return task();
+				if (this.task) {
+					const task = this.task;
+					this.task = null;
+					return task();
+				}
+				return undefined;
 			});
-			this.completionPromise = completionPromise;
 		}
 
 		const fn = () => {
@@ -473,7 +438,6 @@ export class Delayer<T> implements IDisposable {
 
 	cancel(): void {
 		this.cancelTimeout();
-		this.task = null;
 
 		if (this.completionPromise) {
 			this.doReject?.(new CancellationError());
@@ -1518,7 +1482,7 @@ type IdleApi = Pick<typeof globalThis, 'requestIdleCallback' | 'cancelIdleCallba
  * doesn't support it.
  *
  * @param callback The callback to run when idle, this includes an
- * [IdleDeadline] that provides the time allotted for the idle callback by the
+ * [IdleDeadline] that provides the time alloted for the idle callback by the
  * browser. Not respecting this deadline will result in a degraded user
  * experience.
  * @param timeout A timeout at which point to queue no longer wait for an idle

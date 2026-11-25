@@ -4,13 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { assert, assertNever } from '../../../../util/vs/base/common/assert';
-import { groupAdjacentBy, pushMany } from '../../../../util/vs/base/common/arrays';
 import { Disposable } from '../../../../util/vs/base/common/lifecycle';
 import { LinkedList } from '../../../../util/vs/base/common/linkedList';
 import { mapObservableArrayCached } from '../../../../util/vs/base/common/observable';
 import { derived, IObservable } from '../../../../util/vs/base/common/observableInternal';
 import { LineEdit } from '../../../../util/vs/editor/common/core/edits/lineEdit';
-import { StringEdit, StringReplacement } from '../../../../util/vs/editor/common/core/edits/stringEdit';
+import { StringEdit } from '../../../../util/vs/editor/common/core/edits/stringEdit';
 import { OffsetRange } from '../../../../util/vs/editor/common/core/ranges/offsetRange';
 import { StringText } from '../../../../util/vs/editor/common/core/text/abstractText';
 import { ConfigKey, IConfigurationService } from '../../../configuration/common/configurationService';
@@ -24,8 +23,6 @@ import { Instant, now } from '../utils/utils';
 
 export interface IXtabHistoryDocumentEntry {
 	docId: DocumentId;
-	/** Monotonically increasing position among captured history entries. */
-	readonly ordinal: number;
 }
 
 export interface IXtabHistoryEditEntry extends IXtabHistoryDocumentEntry {
@@ -37,17 +34,6 @@ export interface IXtabHistoryVisibleRangesEntry extends IXtabHistoryDocumentEntr
 	kind: 'visibleRanges';
 	visibleRanges: readonly OffsetRange[];
 	documentContent: StringText;
-}
-
-export interface IXtabHistoryDiffHunk {
-	readonly startLineNumber: number;
-	readonly oldLines: readonly string[];
-	readonly newLines: readonly string[];
-}
-
-export interface IXtabHistoryRejectedEditEntry extends IXtabHistoryDocumentEntry {
-	readonly kind: 'rejectedEdit';
-	readonly hunks: readonly IXtabHistoryDiffHunk[];
 }
 
 export type IXtabHistoryEntry =
@@ -129,15 +115,11 @@ export class NesXtabHistoryTracker extends Disposable {
 
 	/** Max # of entries in history */
 	private static MAX_HISTORY_SIZE = 50;
-	private static MAX_REJECTED_EDIT_HISTORY_SIZE = 3;
-	private static MAX_REJECTED_EDIT_CHARS = 3000;
 
 	private readonly idToEntry: Map<DocumentId, { entry: IXtabHistoryEntry; removeFromHistory: () => void; lastEditTimestamp: Instant }>;
 	private readonly history: LinkedList<IXtabHistoryEntry>;
-	private readonly rejectedEditHistory = new LinkedList<IXtabHistoryRejectedEditEntry>();
 
 	private readonly maxHistorySize: number;
-	private historyEntryOrdinal = 0;
 
 	protected mergeStrategy: IObservable<XtabEditMergeStrategy>;
 
@@ -182,67 +164,6 @@ export class NesXtabHistoryTracker extends Disposable {
 		return [...this.history];
 	}
 
-	getRejectedEditHistory(): IXtabHistoryRejectedEditEntry[] {
-		return [...this.rejectedEditHistory];
-	}
-
-	recordRejectedEdit(docId: DocumentId, base: StringText, edit: StringReplacement): void {
-		if (edit.replaceRange.length + edit.newText.length > NesXtabHistoryTracker.MAX_REJECTED_EDIT_CHARS) {
-			return;
-		}
-
-		const lineEdit = RootedEdit.toLineEdit(new RootedEdit(base, edit.toEdit()));
-		const baseLines = base.getLines();
-		const hunks: IXtabHistoryDiffHunk[] = [];
-		let retainedChars = 0;
-
-		for (const lineEditGroup of groupAdjacentBy(lineEdit.replacements, (left, right) => left.lineRange.endLineNumberExclusive >= right.lineRange.startLineNumber)) {
-			const oldLines: string[] = [];
-			const newLines: string[] = [];
-			let previousEndLineNumberExclusive = lineEditGroup[0].lineRange.startLineNumber;
-
-			for (const replacement of lineEditGroup) {
-				if (previousEndLineNumberExclusive < replacement.lineRange.startLineNumber) {
-					const unchangedLines = baseLines.slice(previousEndLineNumberExclusive - 1, replacement.lineRange.startLineNumber - 1);
-					pushMany(oldLines, unchangedLines);
-					pushMany(newLines, unchangedLines);
-				}
-				pushMany(oldLines, baseLines.slice(replacement.lineRange.startLineNumber - 1, replacement.lineRange.endLineNumberExclusive - 1));
-				pushMany(newLines, replacement.newLines);
-				previousEndLineNumberExclusive = replacement.lineRange.endLineNumberExclusive;
-			}
-
-			if (oldLines.every(line => line.trim().length === 0) && newLines.every(line => line.trim().length === 0)) {
-				continue;
-			}
-			if (oldLines.length === newLines.length && oldLines.every((line, i) => line === newLines[i])) {
-				continue;
-			}
-
-			retainedChars += oldLines.reduce((total, line) => total + line.length, 0);
-			retainedChars += newLines.reduce((total, line) => total + line.length, 0);
-			if (retainedChars > NesXtabHistoryTracker.MAX_REJECTED_EDIT_CHARS) {
-				// Discard the whole entry so rejected edits are not truncated/incomplete in the prompt.
-				return;
-			}
-
-			hunks.push({
-				startLineNumber: lineEditGroup[0].lineRange.startLineNumber - 1,
-				oldLines,
-				newLines,
-			});
-		}
-
-		if (hunks.length === 0) {
-			return;
-		}
-
-		this.rejectedEditHistory.push({ kind: 'rejectedEdit', docId, ordinal: this.historyEntryOrdinal++, hunks });
-		if (this.rejectedEditHistory.size > NesXtabHistoryTracker.MAX_REJECTED_EDIT_HISTORY_SIZE) {
-			this.rejectedEditHistory.shift();
-		}
-	}
-
 	/**
 	 * If the document isn't already in history, add it to the history.
 	 * If the document is in history either with an edit or selection entry, do not include it again.
@@ -264,7 +185,7 @@ export class NesXtabHistoryTracker extends Disposable {
 			previousRecord.removeFromHistory();
 		}
 
-		const entry: IXtabHistoryEntry = { docId: doc.id, kind: 'visibleRanges', ordinal: this.historyEntryOrdinal++, visibleRanges: visibleRangesChange.value, documentContent: doc.value.get() };
+		const entry: IXtabHistoryEntry = { docId: doc.id, kind: 'visibleRanges', visibleRanges: visibleRangesChange.value, documentContent: doc.value.get() };
 		const removeFromHistory = this.history.push(entry);
 		this.idToEntry.set(doc.id, { entry, removeFromHistory, lastEditTimestamp: now() });
 
@@ -332,7 +253,7 @@ export class NesXtabHistoryTracker extends Disposable {
 	}
 
 	private pushToHistory(docId: DocumentId, edit: RootedEdit) {
-		const entry: IXtabHistoryEntry = { docId, kind: 'edit', ordinal: this.historyEntryOrdinal++, edit };
+		const entry: IXtabHistoryEntry = { docId, kind: 'edit', edit };
 		const removeFromHistory = this.history.push(entry);
 		this.idToEntry.set(docId, { entry, removeFromHistory, lastEditTimestamp: now() });
 

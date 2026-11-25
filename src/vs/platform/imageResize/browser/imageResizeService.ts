@@ -91,11 +91,10 @@ export class ImageResizeService implements IImageResizeService {
 
 	convertStringToUInt8Array(data: string): Uint8Array {
 		const base64Data = data.includes(',') ? data.split(',')[1] : data;
-		try {
+		if (this.isValidBase64(base64Data)) {
 			return decodeBase64(base64Data).buffer;
-		} catch {
-			return new TextEncoder().encode(data);
 		}
+		return new TextEncoder().encode(data);
 	}
 
 	// Only used for URLs

@@ -8,8 +8,8 @@
 	flex-direction: column;
 	gap: 12px;
 	padding: 6px 6px;
-	width: 300px;
-	max-width: calc(100% - var(--vscode-spacing-size120));
+	min-width: 300px;
+	max-width: 350px;
 	color: var(--vscode-descriptionForeground);
 	font-size: var(--vscode-bodyFontSize-small);
 }
@@ -39,9 +39,7 @@
 	border-radius: var(--vscode-cornerRadius-large);
 	padding: 5px;
 	flex-shrink: 0;
-/* DROX-BEGIN */
 	background: url('../../../../browser/media/kdds-code-icon.png') center / contain no-repeat;
-/* DROX-END */
 }
 
 .update-tooltip .product-details {
@@ -99,7 +97,7 @@
 .update-tooltip .release-notes-button {
 	background-color: var(--vscode-button-secondaryBackground);
 	color: var(--vscode-button-secondaryForeground);
-	border: 1px solid var(--vscode-button-secondaryBorder, var(--vscode-button-border, transparent));
+	border: 1px solid var(--vscode-button-border, transparent);
 }
 
 .update-tooltip .release-notes-button:hover {

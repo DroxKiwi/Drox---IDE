@@ -5,26 +5,23 @@
 
 import { Emitter } from '../../../base/common/event.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
-import { Disposable, DisposableMap } from '../../../base/common/lifecycle.js';
-import { URI, UriComponents } from '../../../base/common/uri.js';
+import { URI } from '../../../base/common/uri.js';
 import { ILogService } from '../../../platform/log/common/log.js';
 import { MainContext, MainThreadTimelineShape, ExtHostTimelineShape, ExtHostContext } from '../common/extHost.protocol.js';
 import { extHostNamedCustomer, IExtHostContext } from '../../services/extensions/common/extHostCustomers.js';
-import { TimelineOptions, TimelineProviderDescriptor, ITimelineService, Timeline, WorkspaceTimelineProviderDescriptor } from '../../contrib/timeline/common/timeline.js';
+import { TimelineChangeEvent, TimelineOptions, TimelineProviderDescriptor, ITimelineService, Timeline } from '../../contrib/timeline/common/timeline.js';
 import { revive } from '../../../base/common/marshalling.js';
 
 @extHostNamedCustomer(MainContext.MainThreadTimeline)
-export class MainThreadTimeline extends Disposable implements MainThreadTimelineShape {
+export class MainThreadTimeline implements MainThreadTimelineShape {
 	private readonly _proxy: ExtHostTimelineShape;
-	private readonly _providerEmitters = this._register(new DisposableMap<string, Emitter<readonly URI[] | undefined>>());
-	private readonly _workspaceProviderEmitters = this._register(new DisposableMap<string, Emitter<void>>());
+	private readonly _providerEmitters = new Map<string, Emitter<TimelineChangeEvent>>();
 
 	constructor(
 		context: IExtHostContext,
 		@ILogService private readonly logService: ILogService,
 		@ITimelineService private readonly _timelineService: ITimelineService
 	) {
-		super();
 		this._proxy = context.getProxy(ExtHostContext.ExtHostTimeline);
 	}
 
@@ -36,7 +33,7 @@ export class MainThreadTimeline extends Disposable implements MainThreadTimeline
 		const emitters = this._providerEmitters;
 		let onDidChange = emitters.get(provider.id);
 		if (onDidChange === undefined) {
-			onDidChange = new Emitter<readonly URI[] | undefined>();
+			onDidChange = new Emitter<TimelineChangeEvent>();
 			emitters.set(provider.id, onDidChange);
 		}
 
@@ -47,7 +44,8 @@ export class MainThreadTimeline extends Disposable implements MainThreadTimeline
 				return revive<Timeline>(await proxy.$getTimeline(provider.id, uri, options, token));
 			},
 			dispose() {
-				emitters.deleteAndDispose(provider.id);
+				emitters.delete(provider.id);
+				onDidChange?.dispose();
 			}
 		});
 	}
@@ -56,59 +54,16 @@ export class MainThreadTimeline extends Disposable implements MainThreadTimeline
 		this.logService.trace(`MainThreadTimeline#unregisterTimelineProvider: id=${id}`);
 
 		this._timelineService.unregisterTimelineProvider(id);
-		this._providerEmitters.deleteAndDispose(id);
 	}
 
-	$registerWorkspaceTimelineProvider(provider: WorkspaceTimelineProviderDescriptor): void {
-		this.logService.trace(`MainThreadTimeline#registerWorkspaceTimelineProvider: id=${provider.id}`);
+	$emitTimelineChangeEvent(e: TimelineChangeEvent): void {
+		this.logService.trace(`MainThreadTimeline#emitChangeEvent: id=${e.id}, uri=${e.uri?.toString(true)}`);
 
-		const proxy = this._proxy;
-
-		const emitters = this._workspaceProviderEmitters;
-		let onDidChange = emitters.get(provider.id);
-		if (onDidChange === undefined) {
-			onDidChange = new Emitter<void>();
-			emitters.set(provider.id, onDidChange);
-		}
-
-		this._timelineService.registerWorkspaceTimelineProvider({
-			...provider,
-			onDidChange: onDidChange.event,
-			async provideWorkspaceTimeline(options: TimelineOptions, token: CancellationToken) {
-				return revive<Timeline>(await proxy.$getTimeline(provider.id, undefined, options, token));
-			},
-			dispose() {
-				emitters.deleteAndDispose(provider.id);
-			}
-		});
+		const emitter = this._providerEmitters.get(e.id);
+		emitter?.fire(e);
 	}
 
-	$unregisterWorkspaceTimelineProvider(id: string): void {
-		this.logService.trace(`MainThreadTimeline#unregisterWorkspaceTimelineProvider: id=${id}`);
-
-		this._timelineService.unregisterWorkspaceTimelineProvider(id);
-		this._workspaceProviderEmitters.deleteAndDispose(id);
-	}
-
-	$emitTimelineChangeEvent(id: string, uris: UriComponents[] | undefined): void {
-		this.logService.trace(`MainThreadTimeline#emitChangeEvent: id=${id}, uris=${uris?.map(uri => URI.revive(uri).toString(true)).join(', ')}`);
-
-		this._providerEmitters.get(id)?.fire(uris?.map(uri => URI.revive(uri)));
-	}
-
-	$emitWorkspaceTimelineChangeEvent(id: string): void {
-		this.logService.trace(`MainThreadTimeline#emitWorkspaceChangeEvent: id=${id}`);
-
-		this._workspaceProviderEmitters.get(id)?.fire();
-	}
-
-	override dispose(): void {
-		for (const id of this._providerEmitters.keys()) {
-			this.$unregisterTimelineProvider(id);
-		}
-		for (const id of this._workspaceProviderEmitters.keys()) {
-			this.$unregisterWorkspaceTimelineProvider(id);
-		}
-		super.dispose();
+	dispose(): void {
+		// noop
 	}
 }

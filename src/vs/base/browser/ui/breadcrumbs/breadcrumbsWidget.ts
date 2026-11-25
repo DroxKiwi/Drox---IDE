@@ -10,7 +10,7 @@ import { DomScrollableElement } from '../scrollbar/scrollableElement.js';
 import { commonPrefixLength } from '../../../common/arrays.js';
 import { ThemeIcon } from '../../../common/themables.js';
 import { Emitter, Event } from '../../../common/event.js';
-import { DisposableStore, dispose, IDisposable, MutableDisposable } from '../../../common/lifecycle.js';
+import { DisposableStore, dispose, IDisposable } from '../../../common/lifecycle.js';
 import { ScrollbarVisibility } from '../../../common/scrollable.js';
 import './breadcrumbsWidget.css';
 
@@ -60,7 +60,6 @@ export class BreadcrumbsWidget {
 
 	private _pendingDimLayout: IDisposable | undefined;
 	private _pendingLayout: IDisposable | undefined;
-	private readonly _pendingReveal = this._disposables.add(new MutableDisposable<IDisposable>());
 	private _dimension: dom.Dimension | undefined;
 
 	constructor(
@@ -68,8 +67,7 @@ export class BreadcrumbsWidget {
 		horizontalScrollbarSize: number,
 		horizontalScrollbarVisibility: ScrollbarVisibility = ScrollbarVisibility.Auto,
 		separatorIcon: ThemeIcon,
-		styles: IBreadcrumbsWidgetStyles,
-		private readonly _measure: typeof dom.measure = dom.measure,
+		styles: IBreadcrumbsWidgetStyles
 	) {
 		this._domNode = document.createElement('div');
 		this._domNode.className = 'monaco-breadcrumbs';
@@ -116,8 +114,6 @@ export class BreadcrumbsWidget {
 		this._onDidFocusItem.dispose();
 		this._onDidChangeFocus.dispose();
 		this._domNode.remove();
-		dispose(this._items);
-		this._items.length = 0;
 		this._nodes.length = 0;
 		this._freeNodes.length = 0;
 	}
@@ -160,7 +156,7 @@ export class BreadcrumbsWidget {
 	private _style(styleElement: HTMLStyleElement, style: IBreadcrumbsWidgetStyles): void {
 		let content = '';
 		if (style.breadcrumbsBackground) {
-			content += `.monaco-breadcrumbs { background-color: ${style.breadcrumbsBackground}}\n`;
+			content += `.monaco-breadcrumbs { background-color: ${style.breadcrumbsBackground}}`;
 		}
 		if (style.breadcrumbsForeground) {
 			content += `.monaco-breadcrumbs .monaco-breadcrumb-item { color: ${style.breadcrumbsForeground}}\n`;
@@ -172,7 +168,7 @@ export class BreadcrumbsWidget {
 			content += `.monaco-breadcrumbs .monaco-breadcrumb-item.focused.selected { color: ${style.breadcrumbsFocusAndSelectionForeground}}\n`;
 		}
 		if (style.breadcrumbsHoverForeground) {
-			content += `.monaco-breadcrumbs:not(.disabled) .monaco-breadcrumb-item:hover:not(.focused):not(.selected) { color: ${style.breadcrumbsHoverForeground}}\n`;
+			content += `.monaco-breadcrumbs:not(.disabled	) .monaco-breadcrumb-item:hover:not(.focused):not(.selected) { color: ${style.breadcrumbsHoverForeground}}\n`;
 		}
 		styleElement.textContent = content;
 	}
@@ -243,7 +239,6 @@ export class BreadcrumbsWidget {
 	}
 
 	private _reveal(nth: number, minimal: boolean): void {
-		this._pendingReveal.clear();
 		if (nth < 0 || nth >= this._nodes.length) {
 			return;
 		}
@@ -251,25 +246,11 @@ export class BreadcrumbsWidget {
 		if (!node) {
 			return;
 		}
-		if (!minimal) {
-			this._pendingReveal.value = this._measure(dom.getWindow(this._domNode), () => {
-				if (this._nodes[nth] === node) {
-					this._revealNode(node, false);
-				}
-			});
-			return;
-		}
-
-		this._revealNode(node, true);
-	}
-
-	private _revealNode(node: HTMLElement, minimal: boolean): void {
 		const { width } = this._scrollable.getScrollDimensions();
 		const { scrollLeft } = this._scrollable.getScrollPosition();
-		const nodeOffsetLeft = node.offsetLeft;
-		if (!minimal || nodeOffsetLeft > scrollLeft + width || nodeOffsetLeft < scrollLeft) {
+		if (!minimal || node.offsetLeft > scrollLeft + width || node.offsetLeft < scrollLeft) {
 			this._scrollable.setRevealOnScroll(false);
-			this._scrollable.setScrollPosition({ scrollLeft: nodeOffsetLeft });
+			this._scrollable.setScrollPosition({ scrollLeft: node.offsetLeft });
 			this._scrollable.setRevealOnScroll(true);
 		}
 	}

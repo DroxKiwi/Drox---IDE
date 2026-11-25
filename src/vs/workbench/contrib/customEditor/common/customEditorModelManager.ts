@@ -21,11 +21,7 @@ export class CustomEditorModelManager implements ICustomEditorModelManager {
 		const models = [];
 		for (const [key, entry] of this._references) {
 			if (key.startsWith(keyStart) && entry.model) {
-				try {
-					models.push(await entry.model);
-				} catch {
-					// Skip models that failed to resolve
-				}
+				models.push(await entry.model);
 			}
 		}
 		return models;
@@ -50,8 +46,7 @@ export class CustomEditorModelManager implements ICustomEditorModelManager {
 			return {
 				object: model,
 				dispose: createSingleCallFunction(() => {
-					// The model may already be disposed and replaced, for example after its resource was deleted
-					if (--entry.counter <= 0 && this._references.get(key) === entry) {
+					if (--entry.counter <= 0) {
 						entry.model.then(x => x.dispose());
 						this._references.delete(key);
 					}
@@ -67,40 +62,17 @@ export class CustomEditorModelManager implements ICustomEditorModelManager {
 			throw new Error('Model already exists');
 		}
 
-		const entry = { viewType, model, counter: 0 };
-		this._references.set(key, entry);
-
-		// Forget models that fail to resolve so that opening the resource again creates a new model
-		model.catch(() => {
-			if (this._references.get(key) === entry) {
-				this._references.delete(key);
-			}
-		});
-
+		this._references.set(key, { viewType, model, counter: 0 });
 		return this.tryRetain(resource, viewType)!;
 	}
 
 	public disposeAllModelsForView(viewType: string): void {
 		for (const [key, value] of this._references) {
 			if (value.viewType === viewType) {
-				this.disposeModel(value.model);
+				value.model.then(x => x.dispose());
 				this._references.delete(key);
 			}
 		}
-	}
-
-	public disposeAllModelsForResource(resource: URI): void {
-		const keyStart = `${resource.toString()}@@@`;
-		for (const [key, value] of this._references) {
-			if (key.startsWith(keyStart)) {
-				this.disposeModel(value.model);
-				this._references.delete(key);
-			}
-		}
-	}
-
-	private disposeModel(model: Promise<ICustomEditorModel>): void {
-		model.then(model => model.dispose(), () => { /* nothing to dispose when the model failed to resolve */ });
 	}
 
 	private key(resource: URI, viewType: string): string {

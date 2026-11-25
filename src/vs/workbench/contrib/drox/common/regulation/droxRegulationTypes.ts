@@ -16,7 +16,7 @@ export type DroxRegulationLeverId = 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
 export const DROX_REGULATION_LEVER_IDS: readonly DroxRegulationLeverId[] = ['L1', 'L2', 'L3', 'L4', 'L5'];
 
 export type DroxRegulationL1Module = 'minimal' | 'compact' | 'standard' | 'rich';
-export type DroxRegulationL2Module = 'core' | 'standard' | 'full' | 'custom';
+export type DroxRegulationL2Module = 'core' | 'standard' | 'full';
 export type DroxRegulationL3Module = 'laissez-faire' | 'guided' | 'assertive';
 export type DroxRegulationL4Module = 'soft' | 'normal' | 'strict';
 export type DroxRegulationL5Module = 'passive' | 'nudge' | 'aggressive';
@@ -61,7 +61,7 @@ export const DROX_REGULATION_MODULES_FOR_LEVER: {
 	readonly L5: readonly DroxRegulationL5Module[];
 } = {
 	L1: ['minimal', 'compact', 'standard', 'rich'],
-	L2: ['core', 'standard', 'full', 'custom'],
+	L2: ['core', 'standard', 'full'],
 	L3: ['laissez-faire', 'guided', 'assertive'],
 	L4: ['soft', 'normal', 'strict'],
 	L5: ['passive', 'nudge', 'aggressive'],

@@ -37,7 +37,7 @@ export class AgentSessionsService extends Disposable implements IAgentSessionsSe
 
 				this._onDidChangeSessionArchivedState.fire(session);
 			}));
-			this._model.resolve(undefined /* all providers */, undefined, 'automatic');
+			this._model.resolve(undefined /* all providers */);
 		}
 
 		return this._model;

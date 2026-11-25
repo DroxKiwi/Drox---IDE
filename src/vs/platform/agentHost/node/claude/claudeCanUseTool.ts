@@ -4,18 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { PermissionResult, PermissionUpdate } from '@anthropic-ai/claude-agent-sdk';
-import { AgentPermissionKind, type IAgentChatOwnerRef } from '../../common/agent.js';
-import type { IAgentServerToolHost } from '../../common/agentServerTools.js';
 import { ClaudePermissionMode, ClaudeSessionConfigKey } from '../../common/claudeSessionConfigKeys.js';
-import { ChatInputRequestPurpose, withChatInputRequestPurpose } from '../../common/meta/agentChatInputRequestMeta.js';
 import { ChatInputResponseKind, ToolCallPendingConfirmationState, ToolCallStatus } from '../../common/state/protocol/state.js';
 import { IAgentConfigurationService } from '../agentConfigurationService.js';
-import { getServerToolDisplay } from '../shared/serverToolGroups.js';
 import { ClaudeAgentSession } from './claudeAgentSession.js';
-import { extractServerToolName } from './claudeServerToolMcpServer.js';
 import { buildAskUserSessionInputQuestions, buildExitPlanModeConfirmationState, flattenAskUserAnswers, parseAskUserQuestionInput } from './claudeInteractiveTools.js';
-import { CLAUDE_PLAN_DECLINED_MESSAGE, CLAUDE_QUESTION_CANCELLED_MESSAGE, CLAUDE_USER_DECLINED_MESSAGE } from './claudeToolDenial.js';
-import { claudeConfigTarget } from './claudeSessionPermissionMode.js';
 import { getClaudeConfirmationTitle, getClaudeInvocationMessage, getClaudePermissionKind, getClaudeToolDisplayName, getClaudeToolInputString, getClaudeToolPath, INTERACTIVE_CLAUDE_TOOLS, buildClaudeToolMeta } from './claudeToolDisplay.js';
 
 /**
@@ -26,17 +19,10 @@ import { getClaudeConfirmationTitle, getClaudeInvocationMessage, getClaudePermis
  * Subagent correlation reads from `session.subagents` (the per-session
  * {@link import('./claudeSubagentRegistry.js').SubagentRegistry}); the
  * bridge no longer takes a host-singleton resolver dep.
- *
- * `owner` is the session that owns the invoking chat
- * (`IAgentChatContext.owner`), read when the bridge writes config. `ExitPlanMode`'s permission-mode write
- * changes the invoking chat's own config, which the chat's runtime reads
- * back; other chats of the session keep theirs.
  */
 export interface IClaudeCanUseToolDeps {
 	readonly getSession: (sessionId: string) => ClaudeAgentSession | undefined;
 	readonly configurationService: IAgentConfigurationService;
-	readonly owner: IAgentChatOwnerRef;
-	readonly serverToolHost: IAgentServerToolHost | undefined;
 }
 
 /**
@@ -48,7 +34,6 @@ export interface IClaudeCanUseToolOptions {
 	readonly signal: AbortSignal;
 	readonly blockedPath?: string;
 	readonly toolUseID: string;
-	readonly requestId: string;
 	/**
 	 * Phase 12 step 5 — SDK-supplied subagent id for inner-tool
 	 * confirmations. When set, the bridge resolves the parent
@@ -65,11 +50,11 @@ export interface IClaudeCanUseToolOptions {
  * {@link ClaudeAgentSession.requestUserInput} for `AskUserQuestion`)
  * until the workbench dispatches a response.
  *
- * The SDK owns general auto-approval / auto-denial via `permissionMode`
+ * **Pure UI bridge.** No permission judgement of its own — the SDK
+ * owns auto-approval / auto-denial via `permissionMode`
  * ([sdk.d.ts:1558](../../../../../../extensions/copilot/node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts#L1558))
  * and only invokes `canUseTool` for tools it has decided the host
- * needs to surface. The bridge additionally allows a server tool when its
- * current session state has nothing to confirm. The interactive built-ins (`AskUserQuestion`,
+ * needs to surface. The interactive built-ins (`AskUserQuestion`,
  * `ExitPlanMode`) are exempt from auto-approval and always reach
  * `canUseTool` regardless of mode — their "permission" is itself the
  * user-facing question.
@@ -135,31 +120,19 @@ async function dispatchCanUseTool(
 		return handleInteractiveTool(deps, session, toolName, input, options);
 	}
 
-	const serverToolName = extractServerToolName(toolName);
-	const serverToolHost = deps.serverToolHost;
-	if (serverToolName
-		&& serverToolHost?.toolNames.includes(serverToolName)
-		&& !serverToolHost.requiresConfirmation(session.chatChannelUri.toString(), serverToolName)
-	) {
-		return { behavior: 'allow', updatedInput: input };
-	}
-
 	const permissionKind = getClaudePermissionKind(toolName);
 	const displayName = getClaudeToolDisplayName(toolName);
-	const target = getClaudeToolPath(toolName, input);
-	const permissionPath = permissionKind === AgentPermissionKind.Url ? undefined : options.blockedPath ?? target;
-	const permissionUrl = permissionKind === AgentPermissionKind.Url ? target : undefined;
-	const serverDisplay = serverToolName ? serverToolHost?.getConfirmationDisplay(serverToolName, input) ?? getServerToolDisplay(serverToolName, input) : undefined;
-	const toolInputString = serverDisplay?.hideConfirmationInput ? undefined : getClaudeToolInputString(toolName, input);
+	const permissionPath = options.blockedPath ?? getClaudeToolPath(toolName, input);
+	const toolInputString = getClaudeToolInputString(toolName, input);
 	const meta = buildClaudeToolMeta(toolName);
 	const state: ToolCallPendingConfirmationState = {
 		status: ToolCallStatus.PendingConfirmation,
 		toolCallId: options.toolUseID,
 		toolName,
 		displayName,
-		invocationMessage: serverDisplay?.confirmationMessage ?? getClaudeInvocationMessage(toolName, displayName, input),
+		invocationMessage: getClaudeInvocationMessage(toolName, displayName, input),
 		toolInput: toolInputString,
-		confirmationTitle: serverDisplay?.confirmationTitle ?? getClaudeConfirmationTitle(toolName),
+		confirmationTitle: getClaudeConfirmationTitle(toolName),
 		...(meta ? { _meta: meta } : {}),
 	};
 
@@ -170,13 +143,11 @@ async function dispatchCanUseTool(
 		state,
 		permissionKind,
 		...(permissionPath !== undefined ? { permissionPath } : {}),
-		...(permissionUrl !== undefined ? { permissionUrl } : {}),
-		...(permissionKind === AgentPermissionKind.Shell ? { shellLanguage: 'bash', shellCommand: typeof input.command === 'string' ? input.command : undefined } : {}),
 		...(parentToolCallId !== undefined ? { parentToolCallId } : {}),
 	});
 	return approved
 		? { behavior: 'allow', updatedInput: input }
-		: { behavior: 'deny', message: CLAUDE_USER_DECLINED_MESSAGE };
+		: { behavior: 'deny', message: 'User declined' };
 }
 
 /**
@@ -262,12 +233,12 @@ async function handleExitPlanMode(
 		...(parentToolCallId !== undefined ? { parentToolCallId } : {}),
 	});
 	if (approved) {
-		deps.configurationService.updateChatConfig(claudeConfigTarget(deps.owner.get(), session.chatChannelUri), {
+		deps.configurationService.updateSessionConfig(session.sessionUri.toString(), {
 			[ClaudeSessionConfigKey.PermissionMode]: 'acceptEdits' satisfies ClaudePermissionMode,
 		});
 		return { behavior: 'allow', updatedInput: input };
 	}
-	return { behavior: 'deny', message: CLAUDE_PLAN_DECLINED_MESSAGE };
+	return { behavior: 'deny', message: 'The user declined the plan, maybe ask why?' };
 }
 
 /**
@@ -289,17 +260,17 @@ async function handleAskUserQuestion(
 	}
 
 	const parentToolCallId = resolveSubagentParent(session, options);
-	const answer = await session.requestUserInput(withChatInputRequestPurpose({
+	const answer = await session.requestUserInput({
 		id: toolUseID,
 		questions: buildAskUserSessionInputQuestions(askInput),
-	}, ChatInputRequestPurpose.AskUser), parentToolCallId);
+	}, parentToolCallId);
 	if (answer.response !== ChatInputResponseKind.Accept || !answer.answers) {
-		return { behavior: 'deny', message: CLAUDE_QUESTION_CANCELLED_MESSAGE };
+		return { behavior: 'deny', message: 'The user cancelled the question' };
 	}
 
 	const answers = flattenAskUserAnswers(askInput, answer.answers);
 	if (Object.keys(answers).length === 0) {
-		return { behavior: 'deny', message: CLAUDE_QUESTION_CANCELLED_MESSAGE };
+		return { behavior: 'deny', message: 'The user cancelled the question' };
 	}
 	return { behavior: 'allow', updatedInput: { ...input, answers } };
 }

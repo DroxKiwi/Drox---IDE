@@ -17,17 +17,11 @@ suite('droxSessionMetaFs', () => {
 
 	test('write and read custom session title', async () => {
 		const fileService = new FileService(new NullLogService());
-		const provider = new InMemoryFileSystemProvider();
-		const registration = fileService.registerProvider(Schemas.file, provider);
-		try {
-			await writeDroxSessionMeta(fileService, '/ws', 'ses_rename_test', { customTitle: 'Mon titre' });
-			const meta = await readDroxSessionMeta(fileService, '/ws', 'ses_rename_test');
-			assert.strictEqual(meta?.customTitle, 'Mon titre');
-			assert.strictEqual(await fileService.exists(URI.file('/ws/.drox/sessions/ses_rename_test.meta.json')), true);
-		} finally {
-			registration.dispose();
-			provider.dispose();
-			fileService.dispose();
-		}
+		fileService.registerProvider(Schemas.file, new InMemoryFileSystemProvider());
+
+		await writeDroxSessionMeta(fileService, '/ws', 'ses_rename_test', { customTitle: 'Mon titre' });
+		const meta = await readDroxSessionMeta(fileService, '/ws', 'ses_rename_test');
+		assert.strictEqual(meta?.customTitle, 'Mon titre');
+		assert.strictEqual(await fileService.exists(URI.file('/ws/.drox/sessions/ses_rename_test.meta.json')), true);
 	});
 });

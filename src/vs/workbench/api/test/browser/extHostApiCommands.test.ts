@@ -84,7 +84,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 	let rpcProtocol: TestRPCProtocol;
 	let extHost: ExtHostLanguageFeatures;
 	let mainThread: MainThreadLanguageFeatures;
-	let mainThreadCommands: MainThreadCommands;
 	let commands: ExtHostCommands;
 	let disposables: vscode.Disposable[] = [];
 
@@ -181,7 +180,7 @@ suite('ExtHostLanguageFeatureCommands', function () {
 			}
 		});
 		rpcProtocol.set(ExtHostContext.ExtHostCommands, commands);
-		mainThreadCommands = rpcProtocol.set(MainContext.MainThreadCommands, insta.createInstance(MainThreadCommands, rpcProtocol));
+		rpcProtocol.set(MainContext.MainThreadCommands, insta.createInstance(MainThreadCommands, rpcProtocol));
 		ExtHostApiCommands.register(commands);
 
 		const diagnostics = new ExtHostDiagnostics(rpcProtocol, new NullLogService(), new class extends mock<IExtHostFileSystemInfo>() { }, extHostDocumentsAndEditors);
@@ -206,7 +205,6 @@ suite('ExtHostLanguageFeatureCommands', function () {
 		setUnexpectedErrorHandler(originalErrorHandler);
 		model.dispose();
 		mainThread.dispose();
-		mainThreadCommands.dispose();
 
 		(<OutlineModelService>insta.get(IOutlineModelService)).dispose();
 		insta.dispose();

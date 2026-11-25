@@ -16,48 +16,6 @@ import { DebugRecorder } from './debugRecorder';
 import { NES_GH_TELEMETRY_EVENT_NAME } from './nextEditProviderTelemetry';
 
 /**
- * The continuous-recording payload serialized into the `recording` telemetry
- * property by {@link ContinuousEnhancedTelemetrySender._sendNow}.
- *
- * A continuous slice is a sliding window of recent edit activity; unlike a
- * per-request ("alternative action") recording it has **no `requestTime`**.
- */
-export interface IContinuousRecording {
-	/**
-	 * The recorded edit timeline for the window, or `undefined` when the
-	 * serialized entries exceed {@link
-	 * ContinuousEnhancedTelemetrySender.MAX_ENTRIES_CHARS} — only `entriesSize`
-	 * is shipped in that case.
-	 */
-	readonly entries: LogEntry[] | undefined;
-
-	/** Size, in UTF-16 code units, of the serialized entries at capture time. */
-	readonly entriesSize: number;
-
-	/**
-	 * Window start in epoch milliseconds (recorder clock). Adjacent slices can
-	 * have gaps, so consecutive windows are not necessarily contiguous.
-	 */
-	readonly windowStart: number;
-
-	/** Window end in epoch milliseconds (recorder clock). */
-	readonly windowEnd: number;
-
-	/**
-	 * Identifies the sender instance. Stable per sender lifetime; a single
-	 * extension session can span several ids (a new sender is created on
-	 * copilot-token change, etc.).
-	 */
-	readonly sessionId: string;
-
-	/**
-	 * Slice index, monotonically increasing per `sessionId`. Not necessarily
-	 * contiguous — empty slices are skipped at capture time.
-	 */
-	readonly sequenceNumber: number;
-}
-
-/**
  * Periodically sends an enhanced GH telemetry event with a fixed-length slice of recent workspace activity.
  *
  * Each event is shipped on the existing {@link NES_GH_TELEMETRY_EVENT_NAME} channel (so we reuse the existing
@@ -96,7 +54,7 @@ export interface IContinuousRecording {
  * ## Reconstruction
  *
  * Each event carries a `sessionId` (stable per sender lifetime — note that a new sender is created
- * whenever `InlineEditProviderFeatureContribution`'s autorun reruns, e.g. on copilot-token change, so one extension
+ * whenever `InlineEditProviderFeature`'s autorun reruns, e.g. on copilot-token change, so one extension
  * session can produce multiple `sessionId`s), a monotonically increasing `sequenceNumber`, and explicit
  * `windowStart`/`windowEnd` timestamps. The backend stitches a longer recording by grouping events by
  * `sessionId`, ordering by `windowStart`, and deduplicating entries in the overlap zone by
@@ -205,7 +163,7 @@ export class ContinuousEnhancedTelemetrySender extends Disposable {
 		const entriesSize = entriesJson.length;
 		const sequenceNumber = this._sequenceNumber++;
 
-		const recording: IContinuousRecording = {
+		const recording = {
 			entries: entriesSize > ContinuousEnhancedTelemetrySender.MAX_ENTRIES_CHARS ? undefined : entries,
 			entriesSize,
 			windowStart,
@@ -216,15 +174,15 @@ export class ContinuousEnhancedTelemetrySender extends Disposable {
 
 		const repositoryUrls = this._collectWorkspaceRepositories();
 
-		void multiplexProperties({
-			continuous: 'true',
-			recording: JSON.stringify(recording),
-			// `activeDocumentRepository` is intentionally omitted: a continuous slice spans many
-			// documents across `WINDOW_MS`, so there's no single "active" doc that meaningfully
-			// applies. The full workspace repo set is reported via `repositories` instead.
-			repositories: repositoryUrls === undefined ? undefined : JSON.stringify(repositoryUrls),
-		}).then(properties => this._telemetryService.sendEnhancedGHTelemetryEvent(NES_GH_TELEMETRY_EVENT_NAME,
-			properties,
+		this._telemetryService.sendEnhancedGHTelemetryEvent(NES_GH_TELEMETRY_EVENT_NAME,
+			multiplexProperties({
+				continuous: 'true',
+				recording: JSON.stringify(recording),
+				// `activeDocumentRepository` is intentionally omitted: a continuous slice spans many
+				// documents across `WINDOW_MS`, so there's no single "active" doc that meaningfully
+				// applies. The full workspace repo set is reported via `repositories` instead.
+				repositories: repositoryUrls === undefined ? undefined : JSON.stringify(repositoryUrls),
+			}),
 			{
 				continuousWindowDurationMs: ContinuousEnhancedTelemetrySender.WINDOW_MS,
 				continuousOverlapMs: ContinuousEnhancedTelemetrySender.OVERLAP_MS,
@@ -232,7 +190,7 @@ export class ContinuousEnhancedTelemetrySender extends Disposable {
 				continuousEntriesSize: entriesSize,
 				continuousSequenceNumber: sequenceNumber,
 			}
-		)).catch(() => { /* best-effort telemetry */ });
+		);
 	}
 
 	private _collectWorkspaceRepositories(): string[] | undefined {

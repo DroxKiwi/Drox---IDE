@@ -1,6 +1,6 @@
 {
 	"recommendations": [
-		"oxc.oxc-vscode",
+		"dbaeumer.vscode-eslint",
 		"esbenp.prettier-vscode",
 		"connor4312.esbuild-problem-matchers",
 		"ms-vscode.extension-test-runner",

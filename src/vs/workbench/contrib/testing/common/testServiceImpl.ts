@@ -299,7 +299,7 @@ export class TestService extends Disposable implements ITestService {
 	 */
 	public async provideTestFollowups(req: TestMessageFollowupRequest, token: CancellationToken): Promise<ITestFollowups> {
 		const reqs = await Promise.all([...this.testExtHosts].map(async ctrl =>
-		({ ctrl, followups: await ctrl.provideTestFollowups(req, token) })));
+			({ ctrl, followups: await ctrl.provideTestFollowups(req, token) })));
 
 		const followups: ITestFollowups = {
 			followups: reqs.flatMap(({ ctrl, followups }) => followups.map(f => ({
@@ -335,10 +335,6 @@ export class TestService extends Disposable implements ITestService {
 	 */
 	public getTestController(id: string) {
 		return this.testControllers.get().get(id);
-	}
-
-	public getTestControllers(): Iterable<IMainThreadTestController> {
-		return this.testControllers.get().values();
 	}
 
 	/**
@@ -451,4 +447,5 @@ export class TestService extends Disposable implements ITestService {
 		return;
 	}
 }
+
 

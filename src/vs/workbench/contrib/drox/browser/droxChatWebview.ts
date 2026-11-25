@@ -224,14 +224,11 @@ export function getDroxChatHtml(
 
 				<span>${rolePanelEngineProfileLabel}</span>
 
-				<span class="general-settings-profile-row">
-					<select id="general-settings-engine-profile" class="general-settings-input">
-						<option value="local-9b">${rolePanelEngineProfileSmall}</option>
-						<option value="local-27b">${rolePanelEngineProfileCapable}</option>
-						<option value="cloud-full">${rolePanelEngineProfileFull}</option>
-					</select>
-					<span id="general-settings-engine-profile-suffix" class="general-settings-profile-suffix" aria-hidden="true"></span>
-				</span>
+				<select id="general-settings-engine-profile" class="general-settings-input">
+					<option value="local-9b">${rolePanelEngineProfileSmall}</option>
+					<option value="local-27b">${rolePanelEngineProfileCapable}</option>
+					<option value="cloud-full">${rolePanelEngineProfileFull}</option>
+				</select>
 
 			</label>
 

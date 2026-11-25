@@ -28,8 +28,8 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 	private readonly _toDispose = new DisposableStore();
 	private readonly _debugAdapters: Map<number, ExtensionHostDebugAdapter>;
 	private _debugAdaptersHandleCounter = 1;
-	private readonly _debugConfigurationProviders = this._toDispose.add(new DisposableMap<number>());
-	private readonly _debugAdapterDescriptorFactories = this._toDispose.add(new DisposableMap<number>());
+	private readonly _debugConfigurationProviders: Map<number, IDebugConfigurationProvider>;
+	private readonly _debugAdapterDescriptorFactories: Map<number, IDebugAdapterDescriptorFactory>;
 	private readonly _extHostKnownSessions: Set<DebugSessionUUID>;
 	private readonly _visualizerHandles = new Map<string, IDisposable>();
 	private readonly _visualizerTreeHandles = new Map<string, IDisposable>();
@@ -86,6 +86,8 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 		}));
 
 		this._debugAdapters = new Map();
+		this._debugConfigurationProviders = new Map();
+		this._debugAdapterDescriptorFactories = new Map();
 		this._extHostKnownSessions = new Set();
 
 		const viewModel = this.debugService.getViewModel();
@@ -271,13 +273,18 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 				return this._proxy.$resolveDebugConfigurationWithSubstitutedVariables(handle, folder, config, token);
 			};
 		}
-		this._debugConfigurationProviders.set(handle, this.debugService.getConfigurationManager().registerDebugConfigurationProvider(provider));
+		this._debugConfigurationProviders.set(handle, provider);
+		this._toDispose.add(this.debugService.getConfigurationManager().registerDebugConfigurationProvider(provider));
 
 		return Promise.resolve(undefined);
 	}
 
 	public $unregisterDebugConfigurationProvider(handle: number): void {
-		this._debugConfigurationProviders.deleteAndDispose(handle);
+		const provider = this._debugConfigurationProviders.get(handle);
+		if (provider) {
+			this._debugConfigurationProviders.delete(handle);
+			this.debugService.getConfigurationManager().unregisterDebugConfigurationProvider(provider);
+		}
 	}
 
 	public $registerDebugAdapterDescriptorFactory(debugType: string, handle: number): Promise<void> {
@@ -288,13 +295,18 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 				return Promise.resolve(this._proxy.$provideDebugAdapter(handle, this.getSessionDto(session)));
 			}
 		};
-		this._debugAdapterDescriptorFactories.set(handle, this.debugService.getAdapterManager().registerDebugAdapterDescriptorFactory(provider));
+		this._debugAdapterDescriptorFactories.set(handle, provider);
+		this._toDispose.add(this.debugService.getAdapterManager().registerDebugAdapterDescriptorFactory(provider));
 
 		return Promise.resolve(undefined);
 	}
 
 	public $unregisterDebugAdapterDescriptorFactory(handle: number): void {
-		this._debugAdapterDescriptorFactories.deleteAndDispose(handle);
+		const provider = this._debugAdapterDescriptorFactories.get(handle);
+		if (provider) {
+			this._debugAdapterDescriptorFactories.delete(handle);
+			this.debugService.getAdapterManager().unregisterDebugAdapterDescriptorFactory(provider);
+		}
 	}
 
 	private getSession(sessionId: DebugSessionUUID | undefined): IDebugSession | undefined {
@@ -376,8 +388,7 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 	}
 
 	public $acceptDAMessage(handle: number, message: DebugProtocol.ProtocolMessage) {
-		// don't use getDebugAdapter since a message can still be in-flight after the adapter was removed on session end
-		this._debugAdapters.get(handle)?.acceptMessage(convertToVSCPaths(message, false));
+		this.getDebugAdapter(handle).acceptMessage(convertToVSCPaths(message, false));
 	}
 
 	public $acceptDAError(handle: number, name: string, message: string, stack: string) {
@@ -388,6 +399,14 @@ export class MainThreadDebugService implements MainThreadDebugServiceShape, IDeb
 	public $acceptDAExit(handle: number, code: number, signal: string) {
 		// don't use getDebugAdapter since an error can be expected on a post-close
 		this._debugAdapters.get(handle)?.fireExit(handle, code, signal);
+	}
+
+	private getDebugAdapter(handle: number): ExtensionHostDebugAdapter {
+		const adapter = this._debugAdapters.get(handle);
+		if (!adapter) {
+			throw new Error('Invalid debug adapter');
+		}
+		return adapter;
 	}
 
 	// dto helpers

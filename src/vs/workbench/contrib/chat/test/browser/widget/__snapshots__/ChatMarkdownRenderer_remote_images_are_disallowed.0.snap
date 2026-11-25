@@ -1,5 +1,5 @@
-<div class="rendered-markdown"><p>
+<div class="rendered-markdown">
 
-&lt;img src="http://disallowed.com/image.jpg"&gt;
+<div>&lt;img src="http://disallowed.com/image.jpg"&gt;</div>
 
-</p></div>
+</div>

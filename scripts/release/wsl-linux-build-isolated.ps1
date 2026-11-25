@@ -6,7 +6,6 @@
 # Usage (PowerShell, from Windows repo root):
 #   .\scripts\release\wsl-linux-build-isolated.ps1
 #
-// allow-any-unicode-next-line
 # Changements locaux non commités : commit auto avant sync (voir -SkipCommit).
 # Log: .build/wsl-linux-build-isolated.log (on Windows repo)
 
@@ -127,7 +126,6 @@ sync_clone() {
 	fi
 	echo "==> Sync clone Linux sur HEAD Windows ($WIN_HEAD)"
 	git reset --hard "$WIN_HEAD"
-// allow-any-unicode-next-line
 	echo "==> Overlay working tree Windows (changements non commités inclus)"
 	rsync -a --delete \
 		--exclude '.git/' \
@@ -185,4 +183,3 @@ $upload = Join-Path (Split-Path -Parent $winRepo) 'Drox---IDE---OR\_upload'
 if (Test-Path $upload) {
 	Get-ChildItem $upload -Filter '*.deb' | ForEach-Object { Write-Host "  $($_.FullName)" }
 }
-

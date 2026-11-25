@@ -66,10 +66,6 @@ export function debouncedObservable<T>(observable: IObservable<T>, debounceMs: n
 		return {
 			dispose() {
 				d.dispose();
-				if (timeout !== undefined) {
-					clearTimeout(timeout);
-					timeout = undefined;
-				}
 				hasValue = false;
 				lastValue = undefined;
 			},

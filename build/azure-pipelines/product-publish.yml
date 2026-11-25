@@ -3,19 +3,13 @@ parameters:
     type: string
   - name: VSCODE_SCHEDULEDBUILD
     type: boolean
-  - name: VSCODE_POOL_NAME
-    type: string
-    default: 1es-windows-2022-x64
-  - name: VSCODE_BUILD_WEB_MOBILE
-    type: boolean
-    default: false
 
 jobs:
   - job: PublishBuild
     displayName: Publish Build
     timeoutInMinutes: 180
     pool:
-      name: ${{ parameters.VSCODE_POOL_NAME }}
+      name: 1es-windows-2022-x64
       os: windows
     variables:
       - name: BUILDS_API_URL
@@ -32,7 +26,10 @@ jobs:
     steps:
       - template: ./common/checkout.yml@self
 
-      - template: ./common/setup-node.yml@self
+      - task: NodeTool@0
+        inputs:
+          versionSource: fromFile
+          versionFilePath: .nvmrc
 
       - template: ./distro/download-distro.yml@self
 
@@ -58,26 +55,7 @@ jobs:
         displayName: Add build tag
 
       - pwsh: |
-          $ErrorActionPreference = 'Stop'
-          # Set the private NPM registry to the global npmrc file
-          # so that authentication works for subfolders like build/, remote/, extensions/ etc
-          # which does not have their own .npmrc file
-          npm config set registry "$env:NPM_REGISTRY"
-          $NpmrcPath = (npm config get userconfig)
-          Write-Host "##vso[task.setvariable variable=NPMRC_PATH]$NpmrcPath"
-        condition: and(succeeded(), ne(variables['NPM_REGISTRY'], 'none'))
-        displayName: Setup NPM
-
-      - task: npmAuthenticate@0
-        inputs:
-          workingFile: $(NPMRC_PATH)
-        condition: and(succeeded(), ne(variables['NPM_REGISTRY'], 'none'))
-        displayName: Setup NPM Authentication
-
-      - template: ./common/install-pnpm.yml@self
-
-      - pwsh: |
-          pnpm install --frozen-lockfile
+          npm ci
         workingDirectory: build
         env:
           GITHUB_TOKEN: "$(github-token-code-oss)"
@@ -127,7 +105,6 @@ jobs:
 
       - pwsh: node build/azure-pipelines/common/publish.ts
         env:
-          VSCODE_BUILD_STAGE_MOBILE: ${{ parameters.VSCODE_BUILD_WEB_MOBILE }}
           SYSTEM_ACCESSTOKEN: $(System.AccessToken)
           PUBLISH_AUTH_TOKENS: "$(PUBLISH_AUTH_TOKENS)"
           RELEASE_TENANT_ID: "$(ESRP_TENANT_ID)"

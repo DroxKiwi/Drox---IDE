@@ -46,8 +46,12 @@ export interface IExplorerService {
 
 	registerView(contextAndRefreshProvider: IExplorerView): void;
 
-	/** The explorer view id for this application, available before the view is instantiated. */
-	getViewId(): string;
+	/**
+	 * The id of the currently registered explorer view, if any. This differs between
+	 * the default workbench window and the agents (sessions) window, where the explorer
+	 * view is re-registered under a different id.
+	 */
+	getViewId(): string | undefined;
 }
 
 export const IExplorerService = createDecorator<IExplorerService>('explorerService');

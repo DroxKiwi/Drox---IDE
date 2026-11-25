@@ -533,13 +533,9 @@ export class ExtensionEditor extends EditorPane {
 		this.transientDisposables.clear();
 
 		const token = this.transientDisposables.add(new CancellationTokenSource()).token;
-		// Rendering another extension, or clearing the editor, stops rendering this one, which would otherwise show it once its
-		// manifest arrives.
-		let isDisposed = false;
-		this.transientDisposables.add(toDisposable(() => { isDisposed = true; }));
 
 		const gallery = await this.getGalleryVersionToShow(extension, (this.options as IExtensionEditorOptions)?.showPreReleaseVersion);
-		if (isDisposed) {
+		if (token.isCancellationRequested) {
 			return;
 		}
 
@@ -564,7 +560,7 @@ export class ExtensionEditor extends EditorPane {
 		}
 
 		const manifest = await this.extensionManifest.get().promise;
-		if (isDisposed) {
+		if (token.isCancellationRequested) {
 			return;
 		}
 

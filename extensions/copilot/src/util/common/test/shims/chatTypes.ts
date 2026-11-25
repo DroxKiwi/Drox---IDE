@@ -80,13 +80,6 @@ export class ChatResponseHookPart {
 	}
 }
 
-export class ChatResponseVoiceProgressPart {
-	constructor(
-		readonly id: vscode.ChatResponseVoiceProgressStage,
-		readonly value: string,
-	) { }
-}
-
 export class ChatResponseExternalEditPart {
 	applied: Thenable<string>;
 	didGetApplied!: (value: string) => void;
@@ -193,14 +186,6 @@ export class ChatResponsePullRequestPart {
 }
 
 
-export class ChatResponseAutoModeResolutionPart {
-	resolvedModel: { id: string; name: string } | undefined;
-	constructor(resolvedModel?: { id: string; name: string }) {
-		this.resolvedModel = resolvedModel;
-	}
-}
-
-
 export class ChatResponseCodeCitationPart {
 	value: vscode.Uri;
 	license: string;
@@ -232,7 +217,6 @@ export class ChatResponseTextEditPart {
 	uri: vscode.Uri;
 	edits: vscode.TextEdit[];
 	isDone?: boolean;
-	autoTier?: vscode.ChatAutoModeTier;
 	constructor(uri: vscode.Uri, editsOrDone: vscode.TextEdit | vscode.TextEdit[] | true) {
 		this.uri = uri;
 		if (editsOrDone === true) {
@@ -248,7 +232,6 @@ export class ChatResponseNotebookEditPart implements vscode.ChatResponseNotebook
 	uri: vscode.Uri;
 	edits: vscode.NotebookEdit[];
 	isDone?: boolean;
-	autoTier?: vscode.ChatAutoModeTier;
 	constructor(uri: vscode.Uri, editsOrDone: vscode.NotebookEdit | vscode.NotebookEdit[] | true) {
 		this.uri = uri;
 		if (editsOrDone === true) {
@@ -349,7 +332,6 @@ export class ChatRequestTurn2 implements vscode.ChatRequestTurn2 {
 		readonly id: string | undefined,
 		readonly modelId: string | undefined,
 		readonly modeInstructions2: vscode.ChatRequestModeInstructions | undefined,
-		readonly isSystemInitiated?: boolean,
 	) { }
 }
 
@@ -566,12 +548,6 @@ export class LanguageModelToolResultPart2 implements vscode.LanguageModelToolRes
 	}
 }
 
-export enum LanguageModelChatApiType {
-	ChatCompletions = 1,
-	Responses = 2,
-	Messages = 3
-}
-
 export enum LanguageModelChatMessageRole {
 	User = 1,
 	Assistant = 2,
@@ -643,7 +619,6 @@ export class ChatSubagentToolInvocationData {
 	agentName?: string;
 	prompt?: string;
 	result?: string;
-	modelName?: string;
 	constructor(description?: string, agentName?: string, prompt?: string, result?: string) {
 		this.description = description;
 		this.agentName = agentName;

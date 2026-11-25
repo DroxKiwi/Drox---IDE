@@ -72,20 +72,15 @@ BUILD_TARGETS.forEach(buildTarget => {
 	task.task(setupSymbolsTask);
 });
 
-/**
- * Returns the files of the production dependencies, at their packaged paths.
- */
-function getProductionDependencyFiles(): NodeJS.ReadWriteStream {
+function getProductionDependencySources() {
 	const productionDependencies = deps.getProductionDependencies(root);
-	const sources = productionDependencies.map(d => path.relative(root, d.source)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat();
-	return gulp.src(sources, { base: '.', dot: true })
-		.pipe(deps.toPackagedLayout(productionDependencies));
+	return productionDependencies.map(d => path.relative(root, d)).map(d => [`${d}/**`, `!${d}/**/{test,tests}/**`]).flat();
 }
 
 function nodeModules(destinationExe: string, destinationPdb: string, platform: string): task.CallbackTask {
 
 	const exe = () => {
-		return getProductionDependencyFiles()
+		return gulp.src(getProductionDependencySources(), { base: '.', dot: true })
 			.pipe(filter([
 				'**/*.node',
 				// Exclude these paths.
@@ -97,7 +92,7 @@ function nodeModules(destinationExe: string, destinationPdb: string, platform: s
 
 	if (platform === 'win32') {
 		const pdb = () => {
-			return getProductionDependencyFiles()
+			return gulp.src(getProductionDependencySources(), { base: '.', dot: true })
 				.pipe(filter(['**/*.pdb']))
 				.pipe(gulp.dest(destinationPdb));
 		};
@@ -107,7 +102,7 @@ function nodeModules(destinationExe: string, destinationPdb: string, platform: s
 
 	if (platform === 'linux') {
 		const pdb = () => {
-			return getProductionDependencyFiles()
+			return gulp.src(getProductionDependencySources(), { base: '.', dot: true })
 				.pipe(filter(['**/*.sym']))
 				.pipe(gulp.dest(destinationPdb));
 		};

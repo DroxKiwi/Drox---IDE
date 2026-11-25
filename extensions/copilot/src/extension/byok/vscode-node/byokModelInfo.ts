@@ -8,7 +8,7 @@ import { buildReasoningEffortSchemaProperty } from '../../conversation/common/la
 
 /**
  * Wraps {@link byokKnownModelToAPIInfo} and enriches the model entry with
- * a localized configurationSchema for the "Effort Level" picker when the
+ * a localized configurationSchema for the "Thinking Effort" picker when the
  * model's capabilities include `supportsReasoningEffort`.
  */
 export function byokKnownModelToAPIInfoWithEffort(providerName: string, id: string, capabilities: BYOKModelCapabilities): LanguageModelChatInformation {
@@ -17,15 +17,11 @@ export function byokKnownModelToAPIInfoWithEffort(providerName: string, id: stri
 	if (!effortLevels || effortLevels.length === 0) {
 		return model;
 	}
-	const reasoningEffort = buildReasoningEffortSchemaProperty(effortLevels, model.family);
-	if (capabilities.defaultReasoningEffort && effortLevels.includes(capabilities.defaultReasoningEffort)) {
-		reasoningEffort.default = capabilities.defaultReasoningEffort;
-	}
 	return {
 		...model,
 		configurationSchema: {
 			properties: {
-				reasoningEffort,
+				reasoningEffort: buildReasoningEffortSchemaProperty(effortLevels, model.family),
 			},
 		},
 	};
@@ -40,3 +36,4 @@ export function byokKnownModelsToAPIInfoWithEffort(providerName: string, knownMo
 	}
 	return Object.entries(knownModels).map(([id, capabilities]) => byokKnownModelToAPIInfoWithEffort(providerName, id, capabilities));
 }
+

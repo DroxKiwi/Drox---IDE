@@ -7,7 +7,6 @@ import assert from 'assert';
 import { isAncestorOfActiveElement } from '../../../../../../../base/browser/dom.js';
 import { mainWindow } from '../../../../../../../base/browser/window.js';
 import { Event } from '../../../../../../../base/common/event.js';
-import { toDisposable } from '../../../../../../../base/common/lifecycle.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../../base/test/common/utils.js';
 import { IConfigurationService } from '../../../../../../../platform/configuration/common/configuration.js';
@@ -169,7 +168,6 @@ suite('ChatTodoListWidget Accessibility', () => {
 		instantiationService.stub(IConfigurationService, emptyConfigurationService);
 		const emptyWidget = store.add(instantiationService.createInstance(ChatTodoListWidget));
 		mainWindow.document.body.appendChild(emptyWidget.domNode);
-		store.add(toDisposable(() => emptyWidget.domNode.remove()));
 
 		emptyWidget.render(testSessionUri);
 
@@ -235,9 +233,12 @@ suite('ChatTodoListWidget Accessibility', () => {
 		instantiationService.stub(IConfigurationService, emptyConfigurationService);
 		const emptyWidget = store.add(instantiationService.createInstance(ChatTodoListWidget));
 		mainWindow.document.body.appendChild(emptyWidget.domNode);
-		store.add(toDisposable(() => emptyWidget.domNode.remove()));
 
 		emptyWidget.render(testSessionUri);
 		assert.strictEqual(emptyWidget.hasTodos(), false, 'Widget should report no todos when the list is empty');
+
+		if (emptyWidget.domNode.parentNode) {
+			emptyWidget.domNode.parentNode.removeChild(emptyWidget.domNode);
+		}
 	});
 });

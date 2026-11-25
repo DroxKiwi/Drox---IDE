@@ -76,7 +76,7 @@ suite('ParameterHintsModel', () => {
 		});
 	}
 
-	test('Provider should get trigger character on type', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('Provider should get trigger character on type', async () => {
 		const { promise: donePromise, resolve: done } = promiseWithResolvers<void>();
 
 		const triggerChar = '(';
@@ -96,11 +96,13 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		editor.trigger('keyboard', Handler.Type, { text: triggerChar });
-		await donePromise;
-	}));
+		await runWithFakedTimers({ useFakeTimers: true }, async () => {
+			editor.trigger('keyboard', Handler.Type, { text: triggerChar });
+			await donePromise;
+		});
+	});
 
-	test('Provider should be retriggered if already active', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('Provider should be retriggered if already active', async () => {
 		const { promise: donePromise, resolve: done } = promiseWithResolvers<void>();
 
 		const triggerChar = '(';
@@ -141,11 +143,13 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		editor.trigger('keyboard', Handler.Type, { text: triggerChar });
-		await donePromise;
-	}));
+		await runWithFakedTimers({ useFakeTimers: true }, async () => {
+			editor.trigger('keyboard', Handler.Type, { text: triggerChar });
+			await donePromise;
+		});
+	});
 
-	test('Provider should not be retriggered if previous help is canceled first', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('Provider should not be retriggered if previous help is canceled first', async () => {
 		const { promise: donePromise, resolve: done } = promiseWithResolvers<void>();
 
 		const triggerChar = '(';
@@ -186,11 +190,13 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		editor.trigger('keyboard', Handler.Type, { text: triggerChar });
-		return donePromise;
-	}));
+		await runWithFakedTimers({ useFakeTimers: true }, () => {
+			editor.trigger('keyboard', Handler.Type, { text: triggerChar });
+			return donePromise;
+		});
+	});
 
-	test('Provider should get last trigger character when triggered multiple times and only be invoked once', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('Provider should get last trigger character when triggered multiple times and only be invoked once', async () => {
 		const { promise: donePromise, resolve: done } = promiseWithResolvers<void>();
 
 		const editor = createMockEditor('');
@@ -223,14 +229,16 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		editor.trigger('keyboard', Handler.Type, { text: 'a' });
-		editor.trigger('keyboard', Handler.Type, { text: 'b' });
-		editor.trigger('keyboard', Handler.Type, { text: 'c' });
+		await runWithFakedTimers({ useFakeTimers: true }, async () => {
+			editor.trigger('keyboard', Handler.Type, { text: 'a' });
+			editor.trigger('keyboard', Handler.Type, { text: 'b' });
+			editor.trigger('keyboard', Handler.Type, { text: 'c' });
 
-		await donePromise;
-	}));
+			await donePromise;
+		});
+	});
 
-	test('Provider should be retriggered if already active', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('Provider should be retriggered if already active', async () => {
 		const { promise: donePromise, resolve: done } = promiseWithResolvers<void>();
 
 		const editor = createMockEditor('');
@@ -268,11 +276,14 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		editor.trigger('keyboard', Handler.Type, { text: 'a' });
-		return donePromise;
-	}));
+		await runWithFakedTimers({ useFakeTimers: true }, () => {
+			editor.trigger('keyboard', Handler.Type, { text: 'a' });
+			return donePromise;
+		});
+	});
 
-	test('Should cancel existing request when new request comes in', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('Should cancel existing request when new request comes in', async () => {
+
 		const editor = createMockEditor('abc def');
 		const hintsModel = disposables.add(new ParameterHintsModel(editor, registry));
 
@@ -317,22 +328,25 @@ suite('ParameterHintsModel', () => {
 
 		disposables.add(registry.register(mockFileSelector, longRunningProvider));
 
-		hintsModel.trigger({ triggerKind: languages.SignatureHelpTriggerKind.Invoke }, 0);
-		assert.strictEqual(-1, didRequestCancellationOf);
+		await runWithFakedTimers({ useFakeTimers: true }, async () => {
 
-		return new Promise<void>((resolve, reject) =>
-			disposables.add(hintsModel.onChangedHints(newParamterHints => {
-				try {
-					assert.strictEqual(0, didRequestCancellationOf);
-					assert.strictEqual('1', newParamterHints!.signatures[0].label);
-					resolve();
-				} catch (e) {
-					reject(e);
-				}
-			})));
-	}));
+			hintsModel.trigger({ triggerKind: languages.SignatureHelpTriggerKind.Invoke }, 0);
+			assert.strictEqual(-1, didRequestCancellationOf);
 
-	test('Provider should be retriggered by retrigger character', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+			return new Promise<void>((resolve, reject) =>
+				disposables.add(hintsModel.onChangedHints(newParamterHints => {
+					try {
+						assert.strictEqual(0, didRequestCancellationOf);
+						assert.strictEqual('1', newParamterHints!.signatures[0].label);
+						resolve();
+					} catch (e) {
+						reject(e);
+					}
+				})));
+		});
+	});
+
+	test('Provider should be retriggered by retrigger character', async () => {
 		const { promise: donePromise, resolve: done } = promiseWithResolvers<void>();
 
 		const triggerChar = 'a';
@@ -372,16 +386,18 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		// This should not trigger anything
-		editor.trigger('keyboard', Handler.Type, { text: retriggerChar });
+		await runWithFakedTimers({ useFakeTimers: true }, async () => {
+			// This should not trigger anything
+			editor.trigger('keyboard', Handler.Type, { text: retriggerChar });
 
-		// But a trigger character should
-		editor.trigger('keyboard', Handler.Type, { text: triggerChar });
+			// But a trigger character should
+			editor.trigger('keyboard', Handler.Type, { text: triggerChar });
 
-		return donePromise;
-	}));
+			return donePromise;
+		});
+	});
 
-	test('should use first result from multiple providers', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('should use first result from multiple providers', async () => {
 		const triggerChar = 'a';
 		const firstProviderId = 'firstProvider';
 		const secondProviderId = 'secondProvider';
@@ -446,20 +462,22 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		editor.trigger('keyboard', Handler.Type, { text: triggerChar });
+		await runWithFakedTimers({ useFakeTimers: true }, async () => {
+			editor.trigger('keyboard', Handler.Type, { text: triggerChar });
 
-		const firstHint = (await getNextHint(model))!.value;
-		assert.strictEqual(firstHint.signatures[0].label, firstProviderId);
-		assert.strictEqual(firstHint.activeSignature, 0);
-		assert.strictEqual(firstHint.signatures[0].parameters[0].label, paramterLabel);
+			const firstHint = (await getNextHint(model))!.value;
+			assert.strictEqual(firstHint.signatures[0].label, firstProviderId);
+			assert.strictEqual(firstHint.activeSignature, 0);
+			assert.strictEqual(firstHint.signatures[0].parameters[0].label, paramterLabel);
 
-		const secondHint = (await getNextHint(model))!.value;
-		assert.strictEqual(secondHint.signatures[0].label, secondProviderId);
-		assert.strictEqual(secondHint.activeSignature, 1);
-		assert.strictEqual(secondHint.signatures[0].parameters[0].label, paramterLabel);
-	}));
+			const secondHint = (await getNextHint(model))!.value;
+			assert.strictEqual(secondHint.signatures[0].label, secondProviderId);
+			assert.strictEqual(secondHint.activeSignature, 1);
+			assert.strictEqual(secondHint.signatures[0].parameters[0].label, paramterLabel);
+		});
+	});
 
-	test('Quick typing should use the first trigger character', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('Quick typing should use the first trigger character', async () => {
 		const editor = createMockEditor('');
 		const model = disposables.add(new ParameterHintsModel(editor, registry, 50));
 
@@ -489,13 +507,15 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		editor.trigger('keyboard', Handler.Type, { text: triggerCharacter });
-		editor.trigger('keyboard', Handler.Type, { text: 'x' });
+		await runWithFakedTimers({ useFakeTimers: true }, async () => {
+			editor.trigger('keyboard', Handler.Type, { text: triggerCharacter });
+			editor.trigger('keyboard', Handler.Type, { text: 'x' });
 
-		await getNextHint(model);
-	}));
+			await getNextHint(model);
+		});
+	});
 
-	test('Retrigger while a pending resolve is still going on should preserve last active signature #96702', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
+	test('Retrigger while a pending resolve is still going on should preserve last active signature #96702', async () => {
 		const { promise: donePromise, resolve: done } = promiseWithResolvers<void>();
 
 		const editor = createMockEditor('');
@@ -538,11 +558,14 @@ suite('ParameterHintsModel', () => {
 			}
 		}));
 
-		editor.trigger('keyboard', Handler.Type, { text: triggerCharacter });
+		await runWithFakedTimers({ useFakeTimers: true }, async () => {
 
-		await getNextHint(model);
-		await getNextHint(model);
+			editor.trigger('keyboard', Handler.Type, { text: triggerCharacter });
 
-		await donePromise;
-	}));
+			await getNextHint(model);
+			await getNextHint(model);
+
+			await donePromise;
+		});
+	});
 });

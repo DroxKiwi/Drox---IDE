@@ -78,7 +78,7 @@ async function renderFindWidget(options: FindFixtureOptions): Promise<void> {
 	));
 
 	editor.setModel(textModel);
-	options.focus(editor);
+	editor.focus();
 
 	const state = disposableStore.add(new FindReplaceState());
 

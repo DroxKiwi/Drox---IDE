@@ -427,10 +427,7 @@ export class SideBySideEditor extends AbstractEditorWithViewState<ISideBySideEdi
 		this.getLastFocusedEditorPane()?.focus();
 	}
 
-	/**
-	 * Gets the editor pane of the side that was focused last, or the primary side if neither was.
-	 */
-	getLastFocusedEditorPane(): EditorPane | undefined {
+	private getLastFocusedEditorPane(): EditorPane | undefined {
 		if (this.lastFocusedSide === Side.SECONDARY) {
 			return this.secondaryEditorPane;
 		}

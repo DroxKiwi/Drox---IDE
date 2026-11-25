@@ -5,7 +5,7 @@
 
 import { EventType } from '../../../../../base/browser/dom.js';
 import { IMarkdownString, MarkdownString } from '../../../../../base/common/htmlContent.js';
-import { DisposableStore, dispose, IDisposable, MutableDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
+import { DisposableStore, dispose, IDisposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { isMacintosh, OS } from '../../../../../base/common/platform.js';
 import { URI } from '../../../../../base/common/uri.js';
 import * as nls from '../../../../../nls.js';
@@ -47,7 +47,6 @@ export class TerminalLinkManager extends DisposableStore {
 	private readonly _linkProvidersDisposables: IDisposable[] = [];
 	private readonly _externalLinkProviders: IDisposable[] = [];
 	private readonly _openers: Map<TerminalLinkType, ITerminalLinkOpener> = new Map();
-	private readonly _linkHoverInvalidationDisposable = this.add(new MutableDisposable<IDisposable>());
 
 	externalProvideLinksCb?: OmitFirstArg<ITerminalExternalLinkProvider['provideLinks']>;
 
@@ -406,14 +405,9 @@ export class TerminalLinkManager extends DisposableStore {
 			const widget = this._instantiationService.createInstance(TerminalHover, targetOptions, text, actions, linkHandler);
 			const attached = this._widgetManager.attachWidget(widget);
 			if (attached) {
-				const store = new DisposableStore();
-				store.add(attached);
-				if (link) {
-					store.add(link.onInvalidated(() => store.dispose()));
-				}
-				this._linkHoverInvalidationDisposable.value = store;
-				return store;
+				link?.onInvalidated(() => attached.dispose());
 			}
+			return attached;
 		}
 		return undefined;
 	}
@@ -488,22 +482,25 @@ export class TerminalLinkManager extends DisposableStore {
 		}
 
 		const markdown = new MarkdownString('', true);
-		// Escapes markdown in the label. appendLink uses the target as is.
-		const rawLabel = label || fallbackLabel;
+		// Escapes markdown in label & uri
 		if (label) {
 			label = markdown.appendText(label).value;
+			markdown.value = '';
+		}
+		if (uri) {
+			uri = markdown.appendText(uri).value;
 			markdown.value = '';
 		}
 
 		label = label || fallbackLabel;
 		// Use the label when uri is '' so the link displays correctly
-		let target = uri || rawLabel;
+		uri = uri || label;
 		// Although if there is a space in the uri, just replace it completely
-		if (/\s/.test(target)) {
-			target = nls.localize('followLinkUrl', 'Link');
+		if (/(\s|&nbsp;)/.test(uri)) {
+			uri = nls.localize('followLinkUrl', 'Link');
 		}
 
-		return markdown.appendLink(target, label).appendMarkdown(` (${clickLabel})`);
+		return markdown.appendLink(uri, label).appendMarkdown(` (${clickLabel})`);
 	}
 }
 

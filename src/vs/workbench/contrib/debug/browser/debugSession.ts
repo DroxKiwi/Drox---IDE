@@ -545,15 +545,11 @@ export class DebugSession implements IDebugSession {
 			const args: DebugProtocol.SetExceptionBreakpointsArguments = this.capabilities.supportsExceptionFilterOptions ? {
 				filters: [],
 				filterOptions: exbpts.map(exb => {
-					const filterOptions: DebugProtocol.ExceptionFilterOptions = { filterId: exb.filter };
 					if (exb.condition) {
-						filterOptions.condition = exb.condition;
-					}
-					if (exb.mode) {
-						filterOptions.mode = exb.mode;
+						return { filterId: exb.filter, condition: exb.condition };
 					}
 
-					return filterOptions;
+					return { filterId: exb.filter };
 				})
 			} : { filters: exbpts.map(exb => exb.filter) };
 
@@ -1135,7 +1131,6 @@ export class DebugSession implements IDebugSession {
 
 		this.rawListeners.add(this.raw.onDidContinued(async event => {
 			const allThreads = event.body.allThreadsContinued !== false;
-			this.stoppedDetails = allThreads ? [] : this.stoppedDetails.filter(sd => sd.threadId !== event.body.threadId);
 
 			let affectedThreads: number[] | Promise<number[]>;
 			if (!allThreads) {
@@ -1155,6 +1150,7 @@ export class DebugSession implements IDebugSession {
 
 			statusQueue.cancel(allThreads ? undefined : [event.body.threadId]);
 			await statusQueue.run(affectedThreads, threadId => {
+				this.stoppedDetails = this.stoppedDetails.filter(sd => sd.threadId !== threadId);
 				const tokens = this.cancellationMap.get(threadId);
 				this.cancellationMap.delete(threadId);
 				tokens?.forEach(t => t.dispose(true));

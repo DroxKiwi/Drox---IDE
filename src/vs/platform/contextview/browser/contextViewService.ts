@@ -19,9 +19,7 @@ export class ContextViewHandler extends Disposable implements IContextViewProvid
 	) {
 		super();
 
-		this.contextView = this._register(new ContextView(this.layoutService.mainContainer, ContextViewDOMPosition.ABSOLUTE, {
-			getFallbackContainer: owner => this.layoutService.getContainer(getWindow(owner))
-		}));
+		this.contextView = this._register(new ContextView(this.layoutService.mainContainer, ContextViewDOMPosition.ABSOLUTE));
 
 		this.layout();
 		this._register(layoutService.onDidLayoutContainer(() => this.layout()));
@@ -29,11 +27,9 @@ export class ContextViewHandler extends Disposable implements IContextViewProvid
 
 	// ContextView
 
-	showContextView(delegate: IContextViewDelegate, container?: HTMLElement, shadowRoot?: boolean, useWindowContainerForShadowRoot?: boolean): IOpenContextView {
+	showContextView(delegate: IContextViewDelegate, container?: HTMLElement, shadowRoot?: boolean): IOpenContextView {
 		let domPosition: ContextViewDOMPosition;
-		if (container && delegate.hostAsPopover && !useWindowContainerForShadowRoot) {
-			domPosition = shadowRoot ? ContextViewDOMPosition.POPOVER_SHADOW : ContextViewDOMPosition.POPOVER;
-		} else if (container) {
+		if (container) {
 			if (container === this.layoutService.getContainer(getWindow(container))) {
 				domPosition = ContextViewDOMPosition.ABSOLUTE;
 			} else if (shadowRoot) {
@@ -45,8 +41,7 @@ export class ContextViewHandler extends Disposable implements IContextViewProvid
 			domPosition = ContextViewDOMPosition.ABSOLUTE;
 		}
 
-		const contextViewContainer = useWindowContainerForShadowRoot && container ? this.layoutService.getContainer(getWindow(container)) : container ?? this.layoutService.activeContainer;
-		this.contextView.setContainer(contextViewContainer, domPosition);
+		this.contextView.setContainer(container ?? this.layoutService.activeContainer, domPosition);
 
 		this.contextView.show(delegate);
 

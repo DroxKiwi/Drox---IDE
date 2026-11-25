@@ -3,13 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { LogOutputChannel, SourceControlArtifactProvider, SourceControlArtifactGroup, SourceControlArtifact, Event, EventEmitter, l10n, workspace, Uri, Disposable, Command } from 'vscode';
+import { LogOutputChannel, SourceControlArtifactProvider, SourceControlArtifactGroup, SourceControlArtifact, Event, EventEmitter, ThemeIcon, l10n, workspace, Uri, Disposable, Command } from 'vscode';
 import { coalesce, dispose, filterEvent, IDisposable, isCopilotWorktreeFolder } from './util';
 import { Repository } from './repository';
 import type { Ref, Worktree } from './api/git';
 import { RefType } from './api/git.constants';
 import { OperationKind } from './operation';
-import { Icons } from './icons';
 
 /**
  * Sorts refs like a directory tree: refs with more path segments (directories) appear first
@@ -78,19 +77,11 @@ export class GitArtifactProvider implements SourceControlArtifactProvider, IDisp
 		private readonly repository: Repository,
 		private readonly logger: LogOutputChannel
 	) {
-		// If this is the agents window we don't need to initialize the
-		// repository artifacts provider since the agents window does not
-		// have the Repository explorer view.
-		if (workspace.isAgentSessionsWorkspace) {
-			this._groups = [];
-			return;
-		}
-
 		this._groups = [
-			{ id: 'branches', name: l10n.t('Branches'), icon: Icons.branch, supportsFolders: true },
-			{ id: 'stashes', name: l10n.t('Stashes'), icon: Icons.stash, supportsFolders: false },
-			{ id: 'tags', name: l10n.t('Tags'), icon: Icons.tag, supportsFolders: true },
-			{ id: 'worktrees', name: l10n.t('Worktrees'), icon: Icons.worktree, supportsFolders: false }
+			{ id: 'branches', name: l10n.t('Branches'), icon: new ThemeIcon('git-branch'), supportsFolders: true },
+			{ id: 'stashes', name: l10n.t('Stashes'), icon: new ThemeIcon('git-stash'), supportsFolders: false },
+			{ id: 'tags', name: l10n.t('Tags'), icon: new ThemeIcon('tag'), supportsFolders: true },
+			{ id: 'worktrees', name: l10n.t('Worktrees'), icon: new ThemeIcon('worktree'), supportsFolders: false }
 		];
 
 		this._disposables.push(this._onDidChangeArtifacts);
@@ -140,8 +131,8 @@ export class GitArtifactProvider implements SourceControlArtifactProvider, IDisp
 						r.commitDetails?.message.split('\n')[0]
 					]).join(' \u2022 '),
 					icon: this.repository.HEAD?.type === RefType.Head && r.name === this.repository.HEAD?.name
-						? Icons.head
-						: Icons.branch,
+						? new ThemeIcon('target')
+						: new ThemeIcon('git-branch'),
 					timestamp: r.commitDetails?.commitDate?.getTime()
 				}));
 			} else if (group === 'tags') {
@@ -156,8 +147,8 @@ export class GitArtifactProvider implements SourceControlArtifactProvider, IDisp
 						r.commitDetails?.message.split('\n')[0]
 					]).join(' \u2022 '),
 					icon: this.repository.HEAD?.type === RefType.Tag && r.name === this.repository.HEAD?.name
-						? Icons.head
-						: Icons.tag,
+						? new ThemeIcon('target')
+						: new ThemeIcon('tag'),
 					timestamp: r.commitDetails?.commitDate?.getTime()
 				}));
 			} else if (group === 'stashes') {
@@ -167,7 +158,7 @@ export class GitArtifactProvider implements SourceControlArtifactProvider, IDisp
 					id: `stash@{${s.index}}`,
 					name: s.description,
 					description: s.branchName,
-					icon: Icons.stash,
+					icon: new ThemeIcon('git-stash'),
 					timestamp: s.commitDate?.getTime(),
 					command: {
 						title: l10n.t('View Stash'),
@@ -186,10 +177,10 @@ export class GitArtifactProvider implements SourceControlArtifactProvider, IDisp
 						w.commitDetails?.message.split('\n')[0]
 					]).join(' \u2022 '),
 					icon: w.main
-						? Icons.repository
+						? new ThemeIcon('repo')
 						: isCopilotWorktreeFolder(w.path)
-							? Icons.chatWorktree
-							: Icons.worktree
+							? new ThemeIcon('chat-sparkle')
+							: new ThemeIcon('worktree')
 				}));
 			}
 		} catch (err) {

@@ -71,7 +71,8 @@ export class UserDataProfileManagementService extends Disposable implements IUse
 	}
 
 	private getWorkspaceUri(): URI | undefined {
-		return this.workspaceContextService.getWorkspace().uri;
+		const workspace = this.workspaceContextService.getWorkspace();
+		return workspace.configuration ?? workspace.folders[0]?.uri;
 	}
 
 	private getProfileToUseForCurrentWorkspace(): IUserDataProfile {

@@ -5,8 +5,7 @@
 
 import './iconSelectBox.css';
 import * as dom from '../../dom.js';
-import { StandardKeyboardEvent } from '../../keyboardEvent.js';
-import { status } from '../aria/aria.js';
+import { alert } from '../aria/aria.js';
 import { IInputBoxStyles, InputBox } from '../inputbox/inputBox.js';
 import { DomScrollableElement } from '../scrollbar/scrollableElement.js';
 import { Emitter } from '../../../common/event.js';
@@ -16,7 +15,6 @@ import { localize } from '../../../../nls.js';
 import { IMatch } from '../../../common/filters.js';
 import { ScrollbarVisibility } from '../../../common/scrollable.js';
 import { HighlightedLabel } from '../highlightedlabel/highlightedLabel.js';
-import { KeyCode } from '../../../common/keyCodes.js';
 
 export interface IIconSelectBoxOptions {
 	readonly icons: ThemeIcon[];
@@ -44,7 +42,6 @@ export class IconSelectBox extends Disposable {
 
 	private focusedItemIndex: number = 0;
 	private numberOfElementsPerRow: number = 1;
-	private dimension: dom.Dimension | undefined;
 
 	protected inputBox: InputBox | undefined;
 	private scrollableElement: DomScrollableElement | undefined;
@@ -59,38 +56,6 @@ export class IconSelectBox extends Disposable {
 		super();
 		this.domNode = dom.$('.icon-select-box');
 		this._register(this.create());
-		this._register(dom.addDisposableListener(this.domNode, dom.EventType.KEY_DOWN, event => this.onKeyDown(event)));
-	}
-
-	private onKeyDown(event: KeyboardEvent): void {
-		const key = new StandardKeyboardEvent(event).keyCode;
-		const inputFocused = this.inputBox?.hasFocus();
-		if (inputFocused && (key === KeyCode.LeftArrow || key === KeyCode.RightArrow || key === KeyCode.Home || key === KeyCode.End)) {
-			event.stopPropagation();
-			return;
-		}
-		if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
-			return;
-		}
-		if (inputFocused && key !== KeyCode.DownArrow && key !== KeyCode.UpArrow && key !== KeyCode.Enter) {
-			return;
-		}
-		switch (key) {
-			case KeyCode.DownArrow: this.focusNextRow(); break;
-			case KeyCode.UpArrow: this.focusPreviousRow(); break;
-			case KeyCode.RightArrow: this.focusNext(); break;
-			case KeyCode.LeftArrow: this.focusPrevious(); break;
-			case KeyCode.Home: this.focusFirst(); break;
-			case KeyCode.End: this.focusLast(); break;
-			case KeyCode.Enter:
-			case KeyCode.Space:
-				if (this.focusedItemIndex >= 0) {
-					this.setSelection(this.focusedItemIndex);
-				}
-				break;
-			default: return;
-		}
-		dom.EventHelper.stop(event, true);
 	}
 
 	private create(): IDisposable {
@@ -103,13 +68,11 @@ export class IconSelectBox extends Disposable {
 		iconSelectInputContainer.style.paddingBottom = '10px';
 		this.inputBox = disposables.add(new InputBox(iconSelectInputContainer, undefined, {
 			placeholder: localize('iconSelect.placeholder', "Search icons"),
-			ariaLabel: localize('iconSelect.search', "Search icons"),
 			inputBoxStyles: this.options.inputBoxStyles,
 		}));
 
 		const iconsContainer = this.iconsContainer = dom.$('.icon-select-icons-container', { id: `${this.domId}_icons` });
 		iconsContainer.role = 'listbox';
-		iconsContainer.ariaLabel = localize('iconSelect.icons', "Icons");
 		iconsContainer.tabIndex = 0;
 		this.scrollableElement = disposables.add(new DomScrollableElement(iconsContainer, {
 			useShadows: false,
@@ -134,16 +97,14 @@ export class IconSelectBox extends Disposable {
 					matches.push(match);
 				}
 			}
-			iconsDisposables.value = this.renderIcons(icons, matches, iconsContainer);
-			if (this.dimension) {
-				this.layout(this.dimension);
-			} else {
+			if (icons.length) {
+				iconsDisposables.value = this.renderIcons(icons, matches, iconsContainer);
 				this.scrollableElement?.scanDomNode();
 			}
 		}));
 
 		this.inputBox.inputElement.role = 'combobox';
-		this.inputBox.inputElement.ariaHasPopup = 'listbox';
+		this.inputBox.inputElement.ariaHasPopup = 'menu';
 		this.inputBox.inputElement.ariaAutoComplete = 'list';
 		this.inputBox.inputElement.ariaExpanded = 'true';
 		this.inputBox.inputElement.setAttribute('aria-controls', iconsContainer.id);
@@ -164,12 +125,10 @@ export class IconSelectBox extends Disposable {
 				iconContainer.style.width = `${this.iconContainerWidth}px`;
 				iconContainer.style.height = `${this.iconContainerHeight}px`;
 				iconContainer.title = icon.id;
-				iconContainer.role = 'option';
-				iconContainer.ariaLabel = icon.id;
-				iconContainer.ariaSelected = 'false';
+				iconContainer.role = 'button';
 				iconContainer.setAttribute('aria-setsize', `${icons.length}`);
 				iconContainer.setAttribute('aria-posinset', `${index + 1}`);
-				dom.append(iconContainer, dom.$(ThemeIcon.asCSSSelector(icon))).ariaHidden = 'true';
+				dom.append(iconContainer, dom.$(ThemeIcon.asCSSSelector(icon)));
 				renderedIcons.push({ icon, element: iconContainer, highlightMatches: matches[index] });
 
 				disposables.add(dom.addDisposableListener(iconContainer, dom.EventType.CLICK, (e: MouseEvent) => {
@@ -184,9 +143,7 @@ export class IconSelectBox extends Disposable {
 		} else {
 			const noResults = localize('iconSelect.noResults', "No results");
 			dom.append(container, dom.$('.icon-no-results', undefined, noResults));
-			if (this.renderedIcons.length > 0) {
-				status(noResults);
-			}
+			alert(noResults);
 		}
 
 		this.renderedIcons.splice(0, this.renderedIcons.length, ...renderedIcons);
@@ -199,23 +156,13 @@ export class IconSelectBox extends Disposable {
 		const existing = this.renderedIcons[this.focusedItemIndex];
 		if (existing) {
 			existing.element.classList.remove('focused');
-			existing.element.ariaSelected = 'false';
 		}
 
-		index = this.renderedIcons.length === 0 ? -1 : Math.max(0, Math.min(index, this.renderedIcons.length - 1));
 		this.focusedItemIndex = index;
 		const renderedItem = this.renderedIcons[index];
 
 		if (renderedItem) {
 			renderedItem.element.classList.add('focused');
-			renderedItem.element.ariaSelected = 'true';
-		}
-		if (this.iconsContainer) {
-			if (renderedItem) {
-				this.iconsContainer.setAttribute('aria-activedescendant', renderedItem.element.id);
-			} else {
-				this.iconsContainer.removeAttribute('aria-activedescendant');
-			}
 		}
 
 		if (this.inputBox) {
@@ -228,9 +175,7 @@ export class IconSelectBox extends Disposable {
 
 		if (this.iconIdElement) {
 			if (renderedItem) {
-				const label = localize('iconSelect.iconName', "Icon name: {0}", renderedItem.icon.id);
-				const offset = label.indexOf(renderedItem.icon.id);
-				this.iconIdElement.set(label, renderedItem.highlightMatches?.map(match => ({ start: match.start + offset, end: match.end + offset })));
+				this.iconIdElement.set(renderedItem.icon.id, renderedItem.highlightMatches);
 			} else {
 				this.iconIdElement.set('');
 			}
@@ -268,7 +213,6 @@ export class IconSelectBox extends Disposable {
 	}
 
 	layout(dimension: dom.Dimension): void {
-		this.dimension = dimension;
 		this.domNode.style.width = `${dimension.width}px`;
 		this.domNode.style.height = `${dimension.height}px`;
 
@@ -294,11 +238,10 @@ export class IconSelectBox extends Disposable {
 			this.scrollableElement.getDomNode().style.height = `${this.iconIdElement ? dimension.height - 80 : dimension.height - 40}px`;
 			this.scrollableElement.scanDomNode();
 		}
-		this.reveal(this.focusedItemIndex);
 	}
 
 	getFocus(): number[] {
-		return this.focusedItemIndex < 0 ? [] : [this.focusedItemIndex];
+		return [this.focusedItemIndex];
 	}
 
 	setSelection(index: number): void {
@@ -321,39 +264,38 @@ export class IconSelectBox extends Disposable {
 	}
 
 	focusNext(): void {
-		this.focusIcon(this.focusedItemIndex + 1);
+		this.focusIcon((this.focusedItemIndex + 1) % this.renderedIcons.length);
 	}
 
 	focusPrevious(): void {
-		this.focusIcon(this.focusedItemIndex - 1);
+		this.focusIcon((this.focusedItemIndex - 1 + this.renderedIcons.length) % this.renderedIcons.length);
 	}
 
 	focusNextRow(): void {
-		if (this.renderedIcons.length > 0 && this.inputBox?.hasFocus()) {
-			this.iconsContainer?.focus();
-			return;
+		let nextRowIndex = this.focusedItemIndex + this.numberOfElementsPerRow;
+		if (nextRowIndex >= this.renderedIcons.length) {
+			nextRowIndex = (nextRowIndex + 1) % this.numberOfElementsPerRow;
+			nextRowIndex = nextRowIndex >= this.renderedIcons.length ? 0 : nextRowIndex;
 		}
-		this.focusIcon(this.focusedItemIndex + this.numberOfElementsPerRow);
+		this.focusIcon(nextRowIndex);
 	}
 
 	focusPreviousRow(): void {
-		if (this.focusedItemIndex < this.numberOfElementsPerRow) {
-			this.inputBox?.focus();
-			return;
+		let previousRowIndex = this.focusedItemIndex - this.numberOfElementsPerRow;
+		if (previousRowIndex < 0) {
+			const numberOfRows = Math.floor(this.renderedIcons.length / this.numberOfElementsPerRow);
+			previousRowIndex = this.focusedItemIndex + (this.numberOfElementsPerRow * numberOfRows) - 1;
+			previousRowIndex = previousRowIndex < 0
+				? this.renderedIcons.length - 1
+				: previousRowIndex >= this.renderedIcons.length
+					? previousRowIndex - this.numberOfElementsPerRow
+					: previousRowIndex;
 		}
-		this.focusIcon(this.focusedItemIndex - this.numberOfElementsPerRow);
+		this.focusIcon(previousRowIndex);
 	}
 
-	focusFirst(): void {
-		this.focusIcon(0);
-	}
-
-	focusLast(): void {
-		this.focusIcon(this.renderedIcons.length - 1);
-	}
-
-	getFocusedIcon(): ThemeIcon | undefined {
-		return this.renderedIcons[this.focusedItemIndex]?.icon;
+	getFocusedIcon(): ThemeIcon {
+		return this.renderedIcons[this.focusedItemIndex].icon;
 	}
 
 }

@@ -53,8 +53,7 @@ suite('MainThreadDiagnostics', function () {
 			}
 		);
 
-		const resource = URI.file('a');
-		diag.$changeMany('foo', [[resource, [{
+		diag.$changeMany('foo', [[URI.file('a'), [{
 			code: '666',
 			startLineNumber: 1,
 			startColumn: 1,
@@ -63,23 +62,11 @@ suite('MainThreadDiagnostics', function () {
 			message: 'fffff',
 			severity: 1,
 			source: 'me'
-		}], true]]);
+		}]]]);
 
-		assert.deepStrictEqual({
-			markers: markerService.read().length,
-			diagnosticsTruncated: markerService.isSourceTruncated(resource)
-		}, {
-			markers: 1,
-			diagnosticsTruncated: true
-		});
+		assert.strictEqual(markerService.read().length, 1);
 		diag.dispose();
-		assert.deepStrictEqual({
-			markers: markerService.read().length,
-			diagnosticsTruncated: markerService.isSourceTruncated(resource)
-		}, {
-			markers: 0,
-			diagnosticsTruncated: false
-		});
+		assert.strictEqual(markerService.read().length, 0);
 	});
 
 	test('OnDidChangeDiagnostics triggers twice on same diagnostics #136434', function () {

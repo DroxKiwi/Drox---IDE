@@ -3,13 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as l10n from '@vscode/l10n';
-import { AuthenticationSession, env, window } from 'vscode';
-import { FetchBlockedError } from '../../../shared-fetch-utils/common/fetchTypes';
-import { DEFAULT_RATE_LIMIT_BACKOFF_MS, MAX_RATE_LIMIT_BACKOFF_MS } from '../../../shared-fetch-utils/common/middleware/rateLimitBackoffMiddleware';
+import { env, window } from 'vscode';
 import { TaskSingler } from '../../../util/common/taskSingler';
-import { isEqual } from '../../../util/vs/base/common/resources';
-import { AuthProviderId, ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
+import { ConfigKey, IConfigurationService } from '../../configuration/common/configurationService';
 import { ICAPIClientService } from '../../endpoint/common/capiClient';
 import { IDomainService } from '../../endpoint/common/domainService';
 import { IEnvService } from '../../env/common/envService';
@@ -20,9 +16,6 @@ import { ITelemetryService } from '../../telemetry/common/telemetry';
 import { CopilotToken, ExtendedTokenInfo, TokenErrorNotificationId, TokenInfoOrError } from '../common/copilotToken';
 import { ErrorNoTelemetry } from '../../../util/vs/base/common/errors';
 import { nowSeconds } from '../common/copilotTokenManager';
-import { authProviderId } from '../common/authentication';
-import { ICopilotTokenStore } from '../common/copilotTokenStore';
-import { authenticationSessionIdentityEquals, resolveGitHubSessionUri } from '../common/enterprise';
 import { BaseCopilotTokenManager } from '../node/copilotTokenManager';
 import { getAnyAuthSession } from './session';
 
@@ -34,12 +27,7 @@ export class SubscriptionExpiredError extends Error { }
 export class ContactSupportError extends Error { }
 export class EnterpriseManagedError extends Error { }
 export class InvalidTokenError extends Error { }
-export class RateLimitedError extends FetchBlockedError {
-	constructor(retryAfterMs: number) {
-		const boundedRetryAfterMs = Math.min(retryAfterMs, MAX_RATE_LIMIT_BACKOFF_MS);
-		super('Your account has exceeded GitHub\'s API rate limit. Please try again later.', boundedRetryAfterMs);
-	}
-}
+export class RateLimitedError extends Error { }
 export class GitHubLoginFailedError extends ErrorNoTelemetry { }
 
 export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
@@ -52,8 +40,7 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 		@ICAPIClientService capiClientService: ICAPIClientService,
 		@IFetcherService fetcherService: IFetcherService,
 		@IEnvService envService: IEnvService,
-		@IConfigurationService protected readonly configurationService: IConfigurationService,
-		@ICopilotTokenStore private readonly _tokenStore: ICopilotTokenStore
+		@IConfigurationService protected readonly configurationService: IConfigurationService
 	) {
 		super(new BaseOctoKitService(capiClientService, fetcherService, logService, telemetryService), logService, telemetryService, domainService, capiClientService, fetcherService, envService);
 	}
@@ -78,8 +65,14 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 		return new CopilotToken(this.copilotToken);
 	}
 
-	private async _auth(session: AuthenticationSession | undefined, providerId: AuthProviderId): Promise<TokenInfoOrError> {
-		const allowNoAuthAccess = providerId === AuthProviderId.GitHub && this.configurationService.getNonExtensionConfig<boolean>('chat.allowAnonymousAccess');
+	private async _auth(): Promise<TokenInfoOrError> {
+		const failWith = this.configurationService.getConfig(ConfigKey.Advanced.DebugGitHubAuthFailWith);
+		if (failWith) {
+			return { kind: 'failure', reason: failWith };
+		}
+
+		const allowNoAuthAccess = this.configurationService.getNonExtensionConfig<boolean>('chat.allowAnonymousAccess');
+		const session = await getAnyAuthSession(this.configurationService, { silent: true });
 		if (!session && !allowNoAuthAccess) {
 			this._logService.warn('GitHub login failed');
 			this._telemetryService.sendGHTelemetryErrorEvent('auth.github_login_failed');
@@ -100,8 +93,6 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 			if (tokenResult.kind === 'success') {
 				this._logService.info(`Got Copilot token for devDeviceId`);
 				this._logService.info(`Copilot Chat: ${this._envService.getVersion()}, VS Code: ${this._envService.vscodeVersion}`);
-			} else if (tokenResult.reason === 'RateLimited') {
-				return tokenResult;
 			} else {
 				this._logService.warn('GitHub login failed');
 				return { kind: 'failure', reason: 'GitHubLoginFailed' };
@@ -111,25 +102,7 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 	}
 
 	private async _authShowWarnings(): Promise<ExtendedTokenInfo> {
-		const failWith = this.configurationService.getConfig(ConfigKey.Advanced.DebugGitHubAuthFailWith);
-		let tokenResult: TokenInfoOrError;
-		if (failWith) {
-			tokenResult = { kind: 'failure', reason: failWith };
-		} else {
-			const providerId = authProviderId(this.configurationService);
-			const session = await getAnyAuthSession(this.configurationService, { silent: true });
-			const enterpriseUri = session && providerId === AuthProviderId.GitHubEnterprise ? resolveGitHubSessionUri(session, providerId) : undefined;
-			if (providerId !== authProviderId(this.configurationService) || (session && !isEqual(enterpriseUri, this._tokenStore.githubEnterpriseUri))) {
-				throw new GitHubLoginFailedError(l10n.t('The GitHub account changed while getting a session.'));
-			}
-			const key = JSON.stringify([providerId, session?.account.id, session?.authorizationServer?.toString(), session?.accessToken]);
-			tokenResult = await this._taskSingler.getOrCreate(key, () => this._auth(session, providerId));
-			// A token minted for an account the user has since switched away from must not be adopted for the new one.
-			const sessionAfterFetch = await getAnyAuthSession(this.configurationService, { silent: true });
-			if (providerId !== authProviderId(this.configurationService) || (session && !isEqual(enterpriseUri, this._tokenStore.githubEnterpriseUri)) || !authenticationSessionIdentityEquals(session, sessionAfterFetch)) {
-				throw new GitHubLoginFailedError(l10n.t('The GitHub account changed while fetching a Copilot token.'));
-			}
-		}
+		const tokenResult = await this._taskSingler.getOrCreate('auth', () => this._auth());
 		this.sendTokenResultErrorTelemetry(tokenResult);
 
 		if (tokenResult.kind === 'failure' && tokenResult.reason === 'NotAuthorized') {
@@ -164,7 +137,7 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 		}
 
 		if (tokenResult.kind === 'failure' && tokenResult.reason === 'RateLimited') {
-			throw new RateLimitedError(tokenResult.retryAfterMs ?? DEFAULT_RATE_LIMIT_BACKOFF_MS);
+			throw new RateLimitedError(`Your account has exceeded GitHub's API rate limit. Please try again later.`);
 		}
 
 		if (tokenResult.kind === 'failure') {

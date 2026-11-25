@@ -15,9 +15,10 @@ import { ChatViewPaneTarget, IChatWidgetService } from '../chat.js';
 import { IChatEditorOptions } from '../widgetHosts/editor/chatEditor.js';
 import { ChatEditorInput } from '../widgetHosts/editor/chatEditorInput.js';
 import { ChatContextKeys } from '../../common/actions/chatContextKeys.js';
-import { parseChatImport } from '../../common/model/chatModel.js';
+import { isExportableSessionData } from '../../common/model/chatModel.js';
 import { IChatService } from '../../common/chatService/chatService.js';
 import { URI } from '../../../../../base/common/uri.js';
+import { revive } from '../../../../../base/common/marshalling.js';
 import { ACTIVE_GROUP, PreferredGroup } from '../../../../services/editor/common/editorService.js';
 
 const defaultFileName = 'chat.json';
@@ -112,14 +113,17 @@ export function registerChatExportActions() {
 
 			const content = await fileService.readFile(inputPath);
 			try {
-				const importedData = parseChatImport(content.value.toString());
+				const data = revive(JSON.parse(content.value.toString()));
+				if (!isExportableSessionData(data)) {
+					throw new Error('Invalid chat session data');
+				}
 
 				let sessionResource: URI;
 				let resolvedTarget: typeof ChatViewPaneTarget | PreferredGroup;
 				let options: IChatEditorOptions;
 
 				if (opts?.target === 'chatViewPane') {
-					const modelRef = chatService.loadSessionFromData(importedData, 'ChatImportExport#importToChatView');
+					const modelRef = chatService.loadSessionFromData(data, 'ChatImportExport#importToChatView');
 					try {
 						sessionResource = modelRef.object.sessionResource;
 						resolvedTarget = ChatViewPaneTarget;
@@ -131,7 +135,7 @@ export function registerChatExportActions() {
 				} else {
 					sessionResource = ChatEditorInput.getNewEditorUri();
 					resolvedTarget = ACTIVE_GROUP;
-					options = { target: { data: importedData }, pinned: true };
+					options = { target: { data }, pinned: true };
 					await widgetService.openSession(sessionResource, resolvedTarget, options);
 				}
 			} catch (err) {

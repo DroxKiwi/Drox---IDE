@@ -70,35 +70,28 @@ suite('droxNativeChatRequestAttachments', () => {
 
 	test('prepareDroxNativeChatRunPrompt appends file reference block', async () => {
 		const fileService = new FileService(new NullLogService());
-		const provider = new InMemoryFileSystemProvider();
-		const registration = fileService.registerProvider(Schemas.file, provider);
-		try {
-			const readme = URI.file('/ws/README.md');
-			await fileService.writeFile(readme, VSBuffer.fromString('# hello'));
+		fileService.registerProvider(Schemas.file, new InMemoryFileSystemProvider());
+		const readme = URI.file('/ws/README.md');
+		await fileService.writeFile(readme, VSBuffer.fromString('# hello'));
 
-			const attachmentsService: IDroxAttachmentsService = {
-				_serviceBrand: undefined,
-				persistAttachments: async () => [],
-			};
+		const attachmentsService: IDroxAttachmentsService = {
+			_serviceBrand: undefined,
+			persistAttachments: async () => [],
+		};
 
-			const result = await prepareDroxNativeChatRunPrompt(attachmentsService, fileService, {
-				message: 'Explique ce fichier',
-				variables: {
-					variables: [{ id: 'f1', name: 'README.md', kind: 'file', value: readme }],
-				},
-				workspaceRoot: '/ws',
-			});
+		const result = await prepareDroxNativeChatRunPrompt(attachmentsService, fileService, {
+			message: 'Explique ce fichier',
+			variables: {
+				variables: [{ id: 'f1', name: 'README.md', kind: 'file', value: readme }],
+			},
+			workspaceRoot: '/ws',
+		});
 
-			assert.strictEqual(result.ok, true);
-			if (result.ok) {
-				assert.ok(result.prompt.includes('[User references]'));
-				assert.ok(result.prompt.includes('README.md'));
-				assert.ok(result.prompt.includes('Explique ce fichier'));
-			}
-		} finally {
-			registration.dispose();
-			provider.dispose();
-			fileService.dispose();
+		assert.strictEqual(result.ok, true);
+		if (result.ok) {
+			assert.ok(result.prompt.includes('[User references]'));
+			assert.ok(result.prompt.includes('README.md'));
+			assert.ok(result.prompt.includes('Explique ce fichier'));
 		}
 	});
 
@@ -157,38 +150,31 @@ suite('droxNativeChatRequestAttachments', () => {
 		assert.strictEqual(all.length, 2);
 
 		const fileService = new FileService(new NullLogService());
-		const provider = new InMemoryFileSystemProvider();
-		const registration = fileService.registerProvider(Schemas.file, provider);
-		try {
-			await fileService.writeFile(fileUri, VSBuffer.fromString('# hello'));
-			const attachmentsService: IDroxAttachmentsService = {
-				_serviceBrand: undefined,
-				persistAttachments: async () => [],
-			};
-			const result = await prepareDroxNativeChatRunPrompt(attachmentsService, fileService, {
-				message: 'Analyse',
-				variables: {
-					variables: [
-						{ id: 'f1', name: 'README.md', kind: 'file', value: fileUri },
-						smartPaste,
-						standardPaste,
-					],
-				},
-				workspaceRoot: '/ws',
-			});
-			assert.strictEqual(result.ok, true);
-			if (result.ok) {
-				assert.ok(result.prompt.includes('[User references]'));
-				assert.ok(result.prompt.includes('[Smart paste — user-selected snippets]'));
-				assert.ok(result.prompt.includes('src/main.ts'));
-				assert.ok(result.prompt.includes('util.ts'));
-				assert.ok(result.prompt.includes('const x = 1'));
-				assert.ok(result.prompt.includes('return true'));
-			}
-		} finally {
-			registration.dispose();
-			provider.dispose();
-			fileService.dispose();
+		fileService.registerProvider(Schemas.file, new InMemoryFileSystemProvider());
+		await fileService.writeFile(fileUri, VSBuffer.fromString('# hello'));
+		const attachmentsService: IDroxAttachmentsService = {
+			_serviceBrand: undefined,
+			persistAttachments: async () => [],
+		};
+		const result = await prepareDroxNativeChatRunPrompt(attachmentsService, fileService, {
+			message: 'Analyse',
+			variables: {
+				variables: [
+					{ id: 'f1', name: 'README.md', kind: 'file', value: fileUri },
+					smartPaste,
+					standardPaste,
+				],
+			},
+			workspaceRoot: '/ws',
+		});
+		assert.strictEqual(result.ok, true);
+		if (result.ok) {
+			assert.ok(result.prompt.includes('[User references]'));
+			assert.ok(result.prompt.includes('[Smart paste — user-selected snippets]'));
+			assert.ok(result.prompt.includes('src/main.ts'));
+			assert.ok(result.prompt.includes('util.ts'));
+			assert.ok(result.prompt.includes('const x = 1'));
+			assert.ok(result.prompt.includes('return true'));
 		}
 	});
 });

@@ -63,7 +63,7 @@ export class RemoteAuthorityResolverService extends Disposable implements IRemot
 		if (!request.isResolved) {
 			return null;
 		}
-		const connectionToken = this._connectionTokens.get(authority) ?? request.value!.authority.connectionToken;
+		const connectionToken = this._connectionTokens.get(authority);
 		return {
 			connectTo: request.value!.authority.connectTo,
 			connectionToken: connectionToken

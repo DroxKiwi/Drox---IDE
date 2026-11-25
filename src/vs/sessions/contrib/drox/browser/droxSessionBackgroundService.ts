@@ -27,11 +27,12 @@ import { IEditorGroupsService } from '../../../../workbench/services/editor/comm
 import { IEditorService } from '../../../../workbench/services/editor/common/editorService.js';
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
 import { IAgentWorkbenchLayoutService } from '../../../browser/workbench.js';
+import { LayoutController } from '../../layout/browser/desktopSessionLayoutController.js';
 import { registerSessionOpenGateAfterOpen, registerSessionOpenGatePrepare } from '../../../services/sessions/common/sessionOpenGate.js';
 import { registerSessionTerminalForegroundPolicy } from '../../terminal/common/sessionTerminalForegroundPolicy.js';
-import { SessionsTerminalContribution } from '../../terminal/browser/droxSessionsTerminalContribution.js';
-import { ISession, SessionStatus } from '../../../../workbench/services/sessions/common/session.js';
-import { IActiveSession, ISessionsManagementService } from '../../../../workbench/contrib/sessions/common/sessionsManagement.js';
+import { SessionsTerminalContribution } from '../../terminal/browser/sessionsTerminalContribution.js';
+import { ISession, SessionStatus } from '../../../services/sessions/common/session.js';
+import { IActiveSession, ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
 import {
 	DROX_SKIP_BACKGROUND_SWITCH_CONFIRM_KEY,
 	IDroxSessionBackgroundService,
@@ -474,7 +475,7 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 				const weight = sessionResourceActivityWeight(activity);
 				totalWeight += weight;
 
-				const changeCount = session?.mainChat.get().changesets.get()?.reduce((count, changeset) => count + changeset.changes.get().length, 0) ?? 0;
+				const changeCount = session?.changes.get().length ?? 0;
 				let hasDroxCache = this._droxCachePresence.get(sessionId) ?? false;
 				if (session && !this._droxCachePresence.has(sessionId)) {
 					hasDroxCache = await this._probeDroxCacheDir(session);
@@ -650,9 +651,23 @@ export class DroxSessionBackgroundService extends Disposable implements IDroxSes
 		}
 	}
 
-	private _forgetUpstreamLayout(_session: ISession): void { }
+	private _forgetUpstreamLayout(session: ISession): void {
+		try {
+			const layoutController = getWorkbenchContribution<LayoutController>(LayoutController.ID);
+			layoutController.forgetSessionLayout(session.resource);
+		} catch {
+			// ignore
+		}
+	}
 
-	private _adoptSnapshotIntoLayoutController(_sessionResource: URI, _snapshot: IDroxSessionLayoutSnapshot): void { }
+	private _adoptSnapshotIntoLayoutController(sessionResource: URI, snapshot: IDroxSessionLayoutSnapshot): void {
+		try {
+			const layoutController = getWorkbenchContribution<LayoutController>(LayoutController.ID);
+			layoutController.adoptEditorWorkingSet(sessionResource, snapshot.editorWorkingSet);
+		} catch {
+			// ignore
+		}
+	}
 
 	/**
 	 * Resolves when the workbench workspace folder matches the session's folder

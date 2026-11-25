@@ -29,9 +29,7 @@ export class McpGalleryManifestService extends Disposable implements IMcpGallery
 	}
 
 	constructor(
-		// DROX-BEGIN
 		@IProductService protected readonly productService: IProductService,
-		// DROX-END
 		@IRequestService private readonly requestService: IRequestService,
 		@ILogService protected readonly logService: ILogService,
 	) {
@@ -39,10 +37,6 @@ export class McpGalleryManifestService extends Disposable implements IMcpGallery
 	}
 
 	async getMcpGalleryManifest(): Promise<IMcpGalleryManifest | null> {
-		return this.getDefaultMcpGalleryManifest();
-	}
-
-	async getDefaultMcpGalleryManifest(): Promise<IMcpGalleryManifest | null> {
 		if (!this.productService.mcpGallery) {
 			return null;
 		}

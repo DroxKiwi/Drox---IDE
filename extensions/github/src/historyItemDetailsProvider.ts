@@ -4,12 +4,49 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Command, l10n, LogOutputChannel, workspace } from 'vscode';
+import { Commit, Repository as GitHubRepository, Maybe } from '@octokit/graphql-schema';
 import type { API, AvatarQuery, AvatarQueryCommit, Repository, SourceControlHistoryItemDetailsProvider } from './typings/git.d.ts';
 import { DisposableStore, getRepositoryDefaultRemote, getRepositoryDefaultRemoteUrl, getRepositoryFromUrl, groupBy, sequentialize } from './util.js';
-import { AuthenticationError, GitHubService } from './auth.js';
+import { AuthenticationError, OctokitService } from './auth.js';
 import { getAvatarLink } from './links.js';
 
 const ISSUE_EXPRESSION = /(([A-Za-z0-9_.\-]+)\/([A-Za-z0-9_.\-]+))?(#|GH-)([1-9][0-9]*)($|\b)/g;
+
+const ASSIGNABLE_USERS_QUERY = `
+	query assignableUsers($owner: String!, $repo: String!) {
+		repository(owner: $owner, name: $repo) {
+			assignableUsers(first: 100) {
+				nodes {
+					id
+					login
+					name
+					email
+					avatarUrl
+				}
+			}
+		}
+	}
+`;
+
+const COMMIT_AUTHOR_QUERY = `
+	query commitAuthor($owner: String!, $repo: String!, $commit: String!) {
+		repository(owner: $owner, name: $repo) {
+			object(expression: $commit) {
+				... on Commit {
+					author {
+						name
+						email
+						avatarUrl
+						user {
+							id
+							login
+						}
+					}
+				}
+			}
+		}
+	}
+`;
 
 interface GitHubRepositoryStore {
 	readonly users: GitHubUser[];
@@ -19,7 +56,7 @@ interface GitHubRepositoryStore {
 interface GitHubUser {
 	readonly id: string;
 	readonly login: string;
-	readonly name?: string | null;
+	readonly name?: Maybe<string>;
 	readonly email: string;
 	readonly avatarUrl: string;
 }
@@ -47,12 +84,12 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 
 	constructor(
 		private readonly _gitAPI: API,
-		private readonly _githubService: GitHubService,
+		private readonly _octokitService: OctokitService,
 		private readonly _logger: LogOutputChannel
 	) {
 		this._disposables.add(this._gitAPI.onDidCloseRepository(repository => this._onDidCloseRepository(repository)));
 
-		this._disposables.add(this._githubService.onDidChangeSessions(() => {
+		this._disposables.add(this._octokitService.onDidChangeSessions(() => {
 			this._isUserAuthenticated = true;
 			this._store.clear();
 		}));
@@ -233,14 +270,11 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 		this._logger.trace(`[GitHubSourceControlHistoryItemDetailsProvider][_loadAssignableUsers] Querying assignable user(s) for ${descriptor.owner}/${descriptor.repo}.`);
 
 		try {
-			const client = await this._githubService.getClient(true);
-			const result = await client.repositories.listAssignableUsers(descriptor);
-			if (!result) {
-				throw new Error('GitHub assignable users are unavailable.');
-			}
+			const graphql = await this._octokitService.getOctokitGraphql();
+			const { repository } = await graphql<{ repository: GitHubRepository }>(ASSIGNABLE_USERS_QUERY, descriptor);
 
 			const users: GitHubUser[] = [];
-			for (const node of result.nodes ?? []) {
+			for (const node of repository.assignableUsers.nodes ?? []) {
 				if (!node) {
 					continue;
 				}
@@ -266,11 +300,13 @@ export class GitHubSourceControlHistoryItemDetailsProvider implements SourceCont
 		this._logger.trace(`[GitHubSourceControlHistoryItemDetailsProvider][_getCommitAuthor] Querying commit author for ${descriptor.owner}/${descriptor.repo}/${commit}.`);
 
 		try {
-			const client = await this._githubService.getClient(true);
-			const commitAuthor = await client.repositories.getCommitAuthor(descriptor, commit);
+			const graphql = await this._octokitService.getOctokitGraphql();
+			const { repository } = await graphql<{ repository: GitHubRepository }>(COMMIT_AUTHOR_QUERY, { ...descriptor, commit });
+
+			const commitAuthor = (repository.object as Commit).author;
 			if (!commitAuthor?.user?.id || !commitAuthor.user?.login ||
 				!commitAuthor?.name || !commitAuthor?.email || !commitAuthor?.avatarUrl) {
-				this._logger.info(`[GitHubSourceControlHistoryItemDetailsProvider][_getCommitAuthor] Incomplete commit author for ${descriptor.owner}/${descriptor.repo}/${commit}.`);
+				this._logger.info(`[GitHubSourceControlHistoryItemDetailsProvider][_getCommitAuthor] Incomplete commit author for ${descriptor.owner}/${descriptor.repo}/${commit}: ${JSON.stringify(repository.object)}`);
 
 				return undefined;
 			}

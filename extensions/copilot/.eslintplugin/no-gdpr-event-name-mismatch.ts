@@ -3,34 +3,35 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import { TSESTree } from '@typescript-eslint/typescript-estree';
+import * as eslint from 'eslint';
 
-export default new class NoGDPREventNameMismatch implements CreateRule {
+export default new class NoGDPREventNameMismatch implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		type: "problem",
 		fixable: "code",
 		docs: {
 			description: "Finds common cases where the gdpr comment does not match the telemetry event name in code.",
 		},
 	};
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
-		function getParentOfType<NodeType extends ESTree.Node>(node: ESTree.Node, type: string): NodeType | undefined {
-			let parentNode: ESTree.Node | null = node.parent;
+		function getParentOfType<NodeType extends TSESTree.Node>(node: TSESTree.Node, type: string): NodeType | undefined {
+			let parentNode: TSESTree.Node | undefined = node.parent;
 			while (parentNode && parentNode.type !== type) {
 				parentNode = parentNode.parent;
 			}
 			return parentNode as NodeType;
 		}
 
-		function getEventNameFromLeadingGdprComment(esNode: ESTree.Node): string | undefined {
+		function getEventNameFromLeadingGdprComment(esNode: TSESTree.Node): string | undefined {
 			const statement = getParentOfType(esNode, 'ExpressionStatement');
 			if (!statement) {
 				return;
 			}
 
-			const comments = context.sourceCode.getCommentsBefore(statement);
+			const comments = context.sourceCode.getCommentsBefore(statement as any);
 			if (comments.length === 0) {
 				return;
 			}
@@ -54,20 +55,20 @@ export default new class NoGDPREventNameMismatch implements CreateRule {
 		}
 
 		return {
-			['ExpressionStatement MemberExpression Identifier[name=/^send.*TelemetryEvent$/]'](node: ESTree.Node) {
-				const esNode = node as ESTree.IdentifierName;
+			['ExpressionStatement MemberExpression Identifier[name=/^send.*TelemetryEvent$/]'](node: any) {
+				const esNode = node as TSESTree.Identifier;
 				const gdprCommentEventName = getEventNameFromLeadingGdprComment(esNode);
 				if (!gdprCommentEventName) {
 					return;
 				}
 
-				const callExpr = getParentOfType<ESTree.CallExpression>(esNode, 'CallExpression');
+				const callExpr = getParentOfType<TSESTree.CallExpression>(esNode, 'CallExpression');
 				if (!callExpr) {
 					return;
 				}
 
 				const firstArg = callExpr.arguments[0];
-				if (firstArg.type !== 'Literal') {
+				if (firstArg.type !== TSESTree.AST_NODE_TYPES.Literal) {
 					return;
 				}
 

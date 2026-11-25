@@ -29,7 +29,6 @@ export interface IOutlineService {
 	canCreateOutline(editor: IEditorPane): boolean;
 	createOutline(editor: IEditorPane, target: OutlineTarget, token: CancellationToken): Promise<IOutline<any> | undefined>;
 	registerOutlineCreator(creator: IOutlineCreator<any, any>): IDisposable;
-	notifyOutlineChanged(): void;
 }
 
 export interface IOutlineCreator<P extends IEditorPane, E> {

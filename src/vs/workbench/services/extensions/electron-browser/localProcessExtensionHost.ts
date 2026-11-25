@@ -240,9 +240,7 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 			objects.mixin(env, this._environmentService.debugExtensionHost.env);
 		}
 
-		// DROX-BEGIN
 		await this._applyCopilotProviderEnv(env);
-		// DROX-END
 
 		removeDangerousEnvVariables(env);
 
@@ -390,7 +388,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 		return protocol;
 	}
 
-	// DROX-BEGIN
 	private async _applyCopilotProviderEnv(env: { [key: string]: string | undefined }): Promise<void> {
 		const nexusEndpointKey = 'nexus.llm.endpoint';
 		const nexusApiSecretKey = 'nexus.llm.apiKey';
@@ -428,7 +425,6 @@ export class NativeLocalProcessExtensionHost extends Disposable implements IExte
 		}
 
 	}
-	// DROX-END
 
 	/**
 	 * Find a free port if extension host debugging is enabled.

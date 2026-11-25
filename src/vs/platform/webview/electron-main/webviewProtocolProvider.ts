@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import electron from 'electron';
+import { protocol } from 'electron';
 import { IDisposable } from '../../../base/common/lifecycle.js';
 import { AppResourcePath, COI, FileAccess, Schemas } from '../../../base/common/network.js';
 import { URI } from '../../../base/common/uri.js';
@@ -23,11 +23,11 @@ export class WebviewProtocolProvider implements IDisposable {
 	) {
 		// Register the protocol for loading webview html
 		const webviewHandler = this.handleWebviewRequest.bind(this);
-		electron.protocol.handle(Schemas.vscodeWebview, webviewHandler);
+		protocol.handle(Schemas.vscodeWebview, webviewHandler);
 	}
 
 	dispose(): void {
-		electron.protocol.unhandle(Schemas.vscodeWebview);
+		protocol.unhandle(Schemas.vscodeWebview);
 	}
 
 	private async handleWebviewRequest(request: GlobalRequest): Promise<GlobalResponse> {

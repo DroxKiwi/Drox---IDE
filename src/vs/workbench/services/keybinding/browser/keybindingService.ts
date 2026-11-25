@@ -441,11 +441,8 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 
 	protected _getResolver(): KeybindingResolver {
 		if (!this._cachedResolver) {
-			const { defaults, overrides } = KeybindingResolver.applyAliases(
-				this._resolveKeybindingItems(KeybindingsRegistry.getDefaultKeybindings(), true),
-				this._resolveUserKeybindingItems(this.userKeybindings.keybindings, false),
-				KeybindingsRegistry.getKeybindingAliases()
-			);
+			const defaults = this._resolveKeybindingItems(KeybindingsRegistry.getDefaultKeybindings(), true);
+			const overrides = this._resolveUserKeybindingItems(this.userKeybindings.keybindings, false);
 			this._cachedResolver = new KeybindingResolver(defaults, overrides, (str) => this._log(str));
 		}
 		return this._cachedResolver;
@@ -475,7 +472,7 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 				const resolvedKeybindings = this._keyboardMapper.resolveKeybinding(keybinding);
 				for (let i = resolvedKeybindings.length - 1; i >= 0; i--) {
 					const resolvedKeybinding = resolvedKeybindings[i];
-					result[resultLen++] = new ResolvedKeybindingItem(resolvedKeybinding, item.command, item.commandArgs, when, isDefault, item.extensionId, item.isBuiltinExtension, item.systemWide);
+					result[resultLen++] = new ResolvedKeybindingItem(resolvedKeybinding, item.command, item.commandArgs, when, isDefault, item.extensionId, item.isBuiltinExtension);
 				}
 			}
 		}
@@ -490,11 +487,11 @@ export class WorkbenchKeybindingService extends AbstractKeybindingService {
 			const when = item.when || undefined;
 			if (!item.keybinding) {
 				// This might be a removal keybinding item in user settings => accept it
-				result[resultLen++] = new ResolvedKeybindingItem(undefined, item.command, item.commandArgs, when, isDefault, null, false, item.systemWide);
+				result[resultLen++] = new ResolvedKeybindingItem(undefined, item.command, item.commandArgs, when, isDefault, null, false);
 			} else {
 				const resolvedKeybindings = this._keyboardMapper.resolveKeybinding(item.keybinding);
 				for (const resolvedKeybinding of resolvedKeybindings) {
-					result[resultLen++] = new ResolvedKeybindingItem(resolvedKeybinding, item.command, item.commandArgs, when, isDefault, null, false, item.systemWide);
+					result[resultLen++] = new ResolvedKeybindingItem(resolvedKeybinding, item.command, item.commandArgs, when, isDefault, null, false);
 				}
 			}
 		}
@@ -929,11 +926,6 @@ class KeybindingsJsonSchema {
 				},
 				'args': {
 					'description': nls.localize('keybindings.json.args', "Arguments to pass to the command to execute.")
-				},
-				'systemWide': {
-					'type': 'boolean',
-					'default': false,
-					'markdownDescription': nls.localize('keybindings.json.systemWide', "When `true`, registers this keybinding as a system-wide (OS global) shortcut that fires even when the application is not focused. Desktop only. Only single key combinations are supported (no chords), and any `when` clause is ignored for the global trigger.")
 				}
 			},
 			'$ref': '#/definitions/commandsSchemas'

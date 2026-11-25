@@ -472,10 +472,6 @@ export class NotebookTextDiffEditor extends EditorPane implements INotebookTextD
 		await super.setInput(input, options, context, token);
 
 		const model = await input.resolve();
-		if (token.isCancellationRequested || this.input !== input) {
-			return;
-		}
-
 		if (this._model !== model) {
 			this._detachModel();
 			this._attachModel(model);
@@ -512,13 +508,12 @@ export class NotebookTextDiffEditor extends EditorPane implements INotebookTextD
 		}));
 
 		await this._createOriginalWebview(generateUuid(), this._model.original.viewType, this._model.original.resource);
-		if (token.isCancellationRequested || this.input !== input || this._model !== model) {
-			return;
+		if (this._originalWebview) {
+			this._modifiedResourceDisposableStore.add(this._originalWebview);
 		}
-
 		await this._createModifiedWebview(generateUuid(), this._model.modified.viewType, this._model.modified.resource);
-		if (token.isCancellationRequested || this.input !== input || this._model !== model) {
-			return;
+		if (this._modifiedWebview) {
+			this._modifiedResourceDisposableStore.add(this._modifiedWebview);
 		}
 
 		await this.updateLayout(this._layoutCancellationTokenSource.token, options?.cellSelections ? cellRangesToIndexes(options.cellSelections) : undefined);
@@ -532,8 +527,6 @@ export class NotebookTextDiffEditor extends EditorPane implements INotebookTextD
 	}
 
 	private _detachModel() {
-		this._layoutCancellationTokenSource?.dispose(true);
-		this._layoutCancellationTokenSource = undefined;
 		this._localStore.clear();
 		this._originalWebview?.dispose();
 		this._originalWebview?.element.remove();
@@ -542,17 +535,16 @@ export class NotebookTextDiffEditor extends EditorPane implements INotebookTextD
 		this._modifiedWebview?.element.remove();
 		this._modifiedWebview = null;
 
+		this.notebookDiffViewModel?.dispose();
 		this.notebookDiffViewModel = undefined;
-		this._eventDispatcher = undefined;
 
 		this._modifiedResourceDisposableStore.clear();
 		this._list.clear();
-		this._currentChangedIndex.set(-1, undefined);
 
 	}
 	private _attachModel(model: INotebookDiffEditorModel) {
 		this._model = model;
-		this._eventDispatcher = this._localStore.add(new NotebookDiffEditorEventDispatcher());
+		this._eventDispatcher = new NotebookDiffEditorEventDispatcher();
 		const updateInsets = () => {
 			DOM.scheduleAtNextAnimationFrame(this.window, () => {
 				if (this._isDisposed) {
@@ -592,7 +584,7 @@ export class NotebookTextDiffEditor extends EditorPane implements INotebookTextD
 			updateInsets();
 		}));
 
-		const vm = this.notebookDiffViewModel = this._localStore.add(new NotebookDiffViewModel(this._model, this.notebookEditorWorkerService, this.configurationService, this._eventDispatcher!, this.notebookService, this.diffEditorCalcuator, this.fontInfo, undefined));
+		const vm = this.notebookDiffViewModel = this._register(new NotebookDiffViewModel(this._model, this.notebookEditorWorkerService, this.configurationService, this._eventDispatcher!, this.notebookService, this.diffEditorCalcuator, this.fontInfo, undefined));
 		this._localStore.add(this.notebookDiffViewModel.onDidChangeItems(e => {
 			this._originalWebview?.removeInsets([...this._originalWebview?.insetMapping.keys()]);
 			this._modifiedWebview?.removeInsets([...this._modifiedWebview?.insetMapping.keys()]);
@@ -614,11 +606,10 @@ export class NotebookTextDiffEditor extends EditorPane implements INotebookTextD
 	private async _createModifiedWebview(id: string, viewType: string, resource: URI): Promise<void> {
 		this._modifiedWebview?.dispose();
 
-		const webview = this._modifiedWebview = this._modifiedResourceDisposableStore.add(this.instantiationService.createInstance(BackLayerWebView, this, id, viewType, resource, {
+		this._modifiedWebview = this.instantiationService.createInstance(BackLayerWebView, this, id, viewType, resource, {
 			...this._notebookOptions.computeDiffWebviewOptions(),
 			fontFamily: this._generateFontFamily()
-		}, undefined) as BackLayerWebView<IDiffCellInfo>);
-		this._modifiedResourceDisposableStore.add(toDisposable(() => webview.element.remove()));
+		}, undefined) as BackLayerWebView<IDiffCellInfo>;
 		// attach the webview container to the DOM tree first
 		this._list.rowsContainer.insertAdjacentElement('afterbegin', this._modifiedWebview.element);
 		this._modifiedWebview.createWebview(this.window);
@@ -632,11 +623,10 @@ export class NotebookTextDiffEditor extends EditorPane implements INotebookTextD
 	private async _createOriginalWebview(id: string, viewType: string, resource: URI): Promise<void> {
 		this._originalWebview?.dispose();
 
-		const webview = this._originalWebview = this._modifiedResourceDisposableStore.add(this.instantiationService.createInstance(BackLayerWebView, this, id, viewType, resource, {
+		this._originalWebview = this.instantiationService.createInstance(BackLayerWebView, this, id, viewType, resource, {
 			...this._notebookOptions.computeDiffWebviewOptions(),
 			fontFamily: this._generateFontFamily()
-		}, undefined) as BackLayerWebView<IDiffCellInfo>);
-		this._modifiedResourceDisposableStore.add(toDisposable(() => webview.element.remove()));
+		}, undefined) as BackLayerWebView<IDiffCellInfo>;
 		// attach the webview container to the DOM tree first
 		this._list.rowsContainer.insertAdjacentElement('afterbegin', this._originalWebview.element);
 		this._originalWebview.createWebview(this.window);
@@ -930,8 +920,11 @@ export class NotebookTextDiffEditor extends EditorPane implements INotebookTextD
 
 		super.clearInput();
 
-		this._detachModel();
+		this._modifiedResourceDisposableStore.clear();
+		this._list?.splice(0, this._list?.length || 0);
 		this._model = null;
+		this.notebookDiffViewModel?.dispose();
+		this.notebookDiffViewModel = undefined;
 	}
 
 	deltaCellOutputContainerClassNames(diffSide: DiffSide, cellId: string, added: string[], removed: string[]) {

@@ -88,21 +88,6 @@ export interface ISpeechProvider {
 	createKeywordRecognitionSession(token: CancellationToken): IKeywordRecognitionSession;
 }
 
-export interface IVoiceLiveSession {
-	readonly sessionId: string;
-	readonly sdp: string;
-}
-
-export interface IVoiceLiveSessionResult {
-	readonly available: boolean;
-	readonly session?: IVoiceLiveSession;
-}
-
-export interface IVoiceLiveSessionProvider {
-	readonly metadata: ISpeechProviderMetadata;
-	createVoiceLiveSession(sdp: string | undefined, token: CancellationToken): Promise<IVoiceLiveSessionResult | undefined>;
-}
-
 export interface ISpeechService {
 
 	readonly _serviceBrand: undefined;
@@ -112,8 +97,6 @@ export interface ISpeechService {
 	readonly hasSpeechProvider: boolean;
 
 	registerSpeechProvider(identifier: string, provider: ISpeechProvider): IDisposable;
-	registerVoiceLiveSessionProvider(identifier: string, provider: IVoiceLiveSessionProvider): IDisposable;
-	createVoiceLiveSession(identifier: string, extension: ExtensionIdentifier, sdp: string | undefined, token: CancellationToken): Promise<IVoiceLiveSessionResult | undefined>;
 
 	readonly onDidStartSpeechToTextSession: Event<void>;
 	readonly onDidEndSpeechToTextSession: Event<void>;

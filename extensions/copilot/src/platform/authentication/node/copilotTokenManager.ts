@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { RequestType } from '@vscode/copilot-api';
-import { retryAfterFromRateLimitHeaders } from '../../../shared-fetch-utils/common/middleware/rateLimitBackoffMiddleware';
 import { Emitter } from '../../../util/vs/base/common/event';
 import { Disposable, toDisposable } from '../../../util/vs/base/common/lifecycle';
 import { SyncDescriptor } from '../../../util/vs/platform/instantiation/common/descriptors';
@@ -29,7 +28,6 @@ type FetchTokenResult = {
 	ok: boolean;
 	status: number;
 	statusText: string;
-	retryAfterMs?: number;
 } & (
 		// success
 		| { body: TokenEnvelope; kind: 'token' }
@@ -44,9 +42,25 @@ type FetchTokenResult = {
 export const tokenErrorString = `Tests: either GITHUB_PAT, GITHUB_OAUTH_TOKEN, or GITHUB_OAUTH_TOKEN+VSCODE_COPILOT_CHAT_TOKEN must be set unless running from an IS_SCENARIO_AUTOMATION environment. Run "npm run get_token" to get credentials.`;
 
 export function createStaticGitHubTokenProvider(): (() => string) | undefined {
-	// An injected Copilot token manager or BYOK endpoint need not have a GitHub session.
-	const token = process.env.GITHUB_PAT || process.env.GITHUB_OAUTH_TOKEN;
-	return token ? () => token : undefined;
+	const pat = process.env.GITHUB_PAT;
+	const oauthToken = process.env.GITHUB_OAUTH_TOKEN;
+
+	// In automation scenarios, NoAuth/BYOK-only scenarios are expected to not have any tokens set.
+	if (isScenarioAutomation && !pat && !oauthToken) {
+		return undefined;
+	}
+
+	return () => {
+		if (pat) {
+			return pat;
+		}
+
+		if (oauthToken) {
+			return oauthToken;
+		}
+
+		throw new Error(tokenErrorString);
+	};
 }
 
 export function getOrCreateTestingCopilotTokenManager(deviceId: string): SyncDescriptor<ICopilotTokenManager & CheckCopilotToken> {
@@ -166,10 +180,6 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 		// Handle HTTP errors
 		if (!result.ok) {
 			this._logService.warn(`Failed to get copilot token due to status ${result.status} ${result.statusText}`);
-			if (result.status === 429) {
-				this._telemetryService.sendGHTelemetryErrorEvent('auth.rate_limited');
-				return { kind: 'failure', reason: 'RateLimited', retryAfterMs: result.retryAfterMs };
-			}
 			const data = TelemetryData.createAndMarkAsIssued({
 				status: result.status.toString(),
 				status_text: result.statusText,
@@ -196,7 +206,7 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 			if (result.body.message?.startsWith('API rate limit exceeded')) {
 				this._logService.warn('Failed to get copilot token due to exceeding API rate limit');
 				this._telemetryService.sendGHTelemetryErrorEvent('auth.rate_limited');
-				return { kind: 'failure', reason: 'RateLimited', retryAfterMs: result.retryAfterMs };
+				return { kind: 'failure', reason: 'RateLimited' };
 			}
 			this._logService.warn(`Failed to get copilot token due to: ${result.body.message}`);
 			return { kind: 'failure', reason: 'NotAuthorized' };
@@ -280,12 +290,7 @@ export abstract class BaseCopilotTokenManager extends Disposable implements ICop
 	 * Returns a structured result with HTTP status and validated body.
 	 */
 	private async parseTokenResponse(response: Response): Promise<FetchTokenResult> {
-		const httpInfo = {
-			ok: response.ok,
-			status: response.status,
-			statusText: response.statusText,
-			retryAfterMs: retryAfterFromRateLimitHeaders(response.headers),
-		};
+		const httpInfo = { ok: response.ok, status: response.status, statusText: response.statusText };
 
 		let parsed: unknown;
 		try {

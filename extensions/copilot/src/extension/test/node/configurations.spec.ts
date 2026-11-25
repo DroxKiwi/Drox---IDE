@@ -115,12 +115,13 @@ describe('Configurations', () => {
 		});
 	});
 
-	it('Agents window default for github.copilot.enable keeps the catch-all language entry', () => {
-		const setting = packageJson.contributes.configuration.map(section => section.properties[ConfigKey.Enable.fullyQualifiedId]).find(setting => setting !== undefined);
+	it('prompt override string setting uses camelCase', () => {
+		const advancedSection = packageJson.contributes.configuration.find(section => section.id === 'advanced')!;
+		const promptOverrideStringKey = ConfigKey.Advanced.DebugPromptOverrideString;
 
-		// `agentsWindow.default` replaces the default instead of merging into it, so it must repeat the
-		// `*` entry. Without it, next edit suggestions are off for every language it does not list.
-		expect(setting?.agentsWindow?.default).toEqual({ ...setting?.default, markdown: true, plaintext: true });
+		expect(promptOverrideStringKey.fullyQualifiedId).toBe('github.copilot.chat.debug.promptOverrideString');
+		expect(promptOverrideStringKey.fullyQualifiedOldId).toBeUndefined();
+		expect(Object.keys(advancedSection.properties)).toContain(promptOverrideStringKey.fullyQualifiedId);
 	});
 
 	it('all localization strings in package.json are present in package.nls.json', async () => {

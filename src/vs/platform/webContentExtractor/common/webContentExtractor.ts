@@ -40,8 +40,6 @@ export interface IWebContentExtractorService {
 export interface ISharedWebContentExtractorService {
 	_serviceBrand: undefined;
 	readImage(uri: URI, token: CancellationToken): Promise<VSBuffer | undefined>;
-	/** Reads image bytes and their MIME type without renderer CORS restrictions; undefined means unavailable on this platform or cancelled. */
-	readImageWithMetadata(uri: URI, token: CancellationToken): Promise<{ data: VSBuffer; mimeType: string } | undefined>;
 }
 
 /**
@@ -61,8 +59,5 @@ export class NullSharedWebContentExtractorService implements ISharedWebContentEx
 	_serviceBrand: undefined;
 	readImage(_uri: URI, _token: CancellationToken): Promise<VSBuffer | undefined> {
 		throw new Error('Not implemented');
-	}
-	async readImageWithMetadata(_uri: URI, _token: CancellationToken): Promise<undefined> {
-		return undefined;
 	}
 }

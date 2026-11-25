@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Event } from '../../../../base/common/event.js';
-import { CancellationToken } from '../../../../base/common/cancellation.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IActiveCodeEditor, ICodeEditor } from '../../../../editor/browser/editorBrowser.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
@@ -18,7 +17,7 @@ class NullInlineChatSessionService implements IInlineChatSessionService {
 
 	dispose(): void { }
 
-	async createSession(_editor: ICodeEditor, _isNotebook: boolean, _token: CancellationToken): Promise<IInlineChatSession> {
+	createSession(_editor: ICodeEditor): IInlineChatSession {
 		throw new Error('Inline chat sessions are not supported in the sessions window');
 	}
 

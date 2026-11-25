@@ -111,17 +111,6 @@ export function registerLanguageConfiguration(languageConfigurationService: ILan
 	}
 }
 
-function createTestServiceCollection(disposables: Pick<DisposableStore, 'add'>, language: Language): ServiceCollection {
-	const languageService = disposables.add(new LanguageService());
-	const languageConfigurationService = disposables.add(new TestLanguageConfigurationService());
-	disposables.add(registerLanguage(languageService, language));
-	disposables.add(registerLanguageConfiguration(languageConfigurationService, language));
-	return new ServiceCollection(
-		[ILanguageService, languageService],
-		[ILanguageConfigurationService, languageConfigurationService]
-	);
-}
-
 export interface StandardTokenTypeData {
 	startIndex: number;
 	standardTokenType: StandardTokenType;
@@ -328,11 +317,31 @@ suite('Change Indentation to Tabs -  TypeScript/Javascript', () => {
 suite('Indent With Tab - TypeScript/JavaScript', () => {
 
 	const languageId = Language.TypeScript;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
+	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('temp issue because there should be at least one passing test in a suite', () => {
+		assert.ok(true);
 	});
 
 	test.skip('issue #63388: perserve correct indentation on tab 1', () => {
@@ -387,12 +396,28 @@ suite('Indent With Tab - TypeScript/JavaScript', () => {
 suite('Auto Indent On Paste - TypeScript/JavaScript', () => {
 
 	const languageId = Language.TypeScript;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
 	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('issue #119225: Do not add extra leading space when pasting JSDoc', () => {
 
@@ -798,12 +823,28 @@ suite('Auto Indent On Paste - TypeScript/JavaScript', () => {
 suite('Auto Indent On Type - TypeScript/JavaScript', () => {
 
 	const languageId = Language.TypeScript;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
 	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	// Failing tests from issues...
 
@@ -1068,30 +1109,6 @@ suite('Auto Indent On Type - TypeScript/JavaScript', () => {
 				'}'
 			].join('\n'));
 		});
-	});
-
-	test('issue #225916: surrounding with brackets works after arrow function', () => {
-
-		// https://github.com/microsoft/vscode/issues/225916
-
-		const bracketPairs = [['{', '}'], ['[', ']'], ['(', ')']];
-
-		for (const [open, close] of bracketPairs) {
-			const model = createTextModel([
-				'const fn = () =>',
-				'    doSomething()',
-			].join('\n'), languageId, {});
-			disposables.add(model);
-
-			withTestCodeEditor(model, { autoIndent: 'full', serviceCollection }, (editor, viewModel) => {
-				editor.setSelection(new Selection(2, 5, 2, 18));
-				viewModel.type(open, 'keyboard');
-				assert.strictEqual(model.getValue(), [
-					'const fn = () =>',
-					`    ${open}doSomething()${close}`,
-				].join('\n'), `failed to surround selection with ${open}${close}`);
-			});
-		}
 	});
 
 	// Failing tests...
@@ -1367,12 +1384,28 @@ suite('Auto Indent On Type - TypeScript/JavaScript', () => {
 suite('Auto Indent On Type - Ruby', () => {
 
 	const languageId = Language.Ruby;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
 	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('issue #198350: in or when incorrectly match non keywords for Ruby', () => {
 
@@ -1420,12 +1453,28 @@ suite('Auto Indent On Type - Ruby', () => {
 suite('Auto Indent On Type - PHP', () => {
 
 	const languageId = Language.PHP;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
 	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	test('issue #199050: should not indent after { detected in a string', () => {
 
@@ -1456,11 +1505,31 @@ suite('Auto Indent On Type - PHP', () => {
 suite('Auto Indent On Paste - Go', () => {
 
 	const languageId = Language.Go;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
+	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('temp issue because there should be at least one passing test in a suite', () => {
+		assert.ok(true);
 	});
 
 	test.skip('issue #199050: should not indent after { detected in a string', () => {
@@ -1494,11 +1563,31 @@ suite('Auto Indent On Paste - Go', () => {
 suite('Auto Indent On Type - CPP', () => {
 
 	const languageId = Language.CPP;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
+	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('temp issue because there should be at least one passing test in a suite', () => {
+		assert.ok(true);
 	});
 
 	test.skip('issue #178334: incorrect outdent of } when signature spans multiple lines', () => {
@@ -1569,11 +1658,31 @@ suite('Auto Indent On Type - CPP', () => {
 suite('Auto Indent On Type - HTML', () => {
 
 	const languageId = Language.HTML;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
+	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('temp issue because there should be at least one passing test in a suite', () => {
+		assert.ok(true);
 	});
 
 	test.skip('issue #61510: incorrect indentation after // in html file', () => {
@@ -1603,11 +1712,31 @@ suite('Auto Indent On Type - HTML', () => {
 suite('Auto Indent On Type - Visual Basic', () => {
 
 	const languageId = Language.VB;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
+	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('temp issue because there should be at least one passing test in a suite', () => {
+		assert.ok(true);
 	});
 
 	test('issue #118932: no indentation in visual basic files', () => {
@@ -2228,11 +2357,31 @@ suite('Auto Indent On Type - Visual Basic', () => {
 suite('Auto Indent On Type - Latex', () => {
 
 	const languageId = Language.Latex;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
+	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('temp issue because there should be at least one passing test in a suite', () => {
+		assert.ok(true);
 	});
 
 	test.skip('issue #178075: no auto closing pair when indentation done', () => {
@@ -2259,11 +2408,31 @@ suite('Auto Indent On Type - Latex', () => {
 suite('Auto Indent On Type - Lua', () => {
 
 	const languageId = Language.Lua;
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	let disposables: DisposableStore;
 	let serviceCollection: ServiceCollection;
 
 	setup(() => {
-		serviceCollection = createTestServiceCollection(disposables, languageId);
+		disposables = new DisposableStore();
+		const languageService = new LanguageService();
+		const languageConfigurationService = new TestLanguageConfigurationService();
+		disposables.add(languageService);
+		disposables.add(languageConfigurationService);
+		disposables.add(registerLanguage(languageService, languageId));
+		disposables.add(registerLanguageConfiguration(languageConfigurationService, languageId));
+		serviceCollection = new ServiceCollection(
+			[ILanguageService, languageService],
+			[ILanguageConfigurationService, languageConfigurationService]
+		);
+	});
+
+	teardown(() => {
+		disposables.dispose();
+	});
+
+	ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('temp issue because there should be at least one passing test in a suite', () => {
+		assert.ok(true);
 	});
 
 	test.skip('issue #178075: no auto closing pair when indentation done', () => {

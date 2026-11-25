@@ -52,14 +52,6 @@ export class AttachmentCleaner implements vscode.CodeActionProvider {
 		}));
 
 		this._disposables.push(vscode.workspace.onDidChangeNotebookDocument(e => {
-			for (const change of e.contentChanges) {
-				for (const cell of change.removedCells) {
-					if (cell.document.isClosed) {
-						this._imageDiagnosticCollection.delete(cell.document.uri);
-					}
-				}
-			}
-
 			this._delayer.trigger(() => {
 
 				e.cellChanges.forEach(change => {
@@ -119,9 +111,6 @@ export class AttachmentCleaner implements vscode.CodeActionProvider {
 
 		this._disposables.push(vscode.workspace.onDidCloseNotebookDocument(e => {
 			this._attachmentCache.delete(e.uri.toString());
-			for (const cell of e.getCells()) {
-				this._imageDiagnosticCollection.delete(cell.document.uri);
-			}
 		}));
 
 		this._disposables.push(vscode.workspace.onWillRenameFiles(e => {
@@ -144,7 +133,7 @@ export class AttachmentCleaner implements vscode.CodeActionProvider {
 		}));
 
 		this._disposables.push(vscode.workspace.onDidCloseTextDocument(e => {
-			this._imageDiagnosticCollection.delete(e.uri);
+			this.analyzeMissingAttachments(e);
 		}));
 
 		vscode.workspace.textDocuments.forEach(document => {
@@ -257,7 +246,7 @@ export class AttachmentCleaner implements vscode.CodeActionProvider {
 		}
 
 		if (document.isClosed) {
-			this._imageDiagnosticCollection.delete(document.uri);
+			this.updateDiagnostics(document.uri, []);
 			return;
 		}
 
@@ -399,3 +388,4 @@ export class AttachmentCleaner implements vscode.CodeActionProvider {
 		this._delayer.dispose();
 	}
 }
+

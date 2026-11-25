@@ -18,7 +18,7 @@ import {
 	ILocalGitStashPushOptions,
 	ILocalGitStatusSummary,
 	LocalGitResetMode,
-} from '../../../../platform/git/common/droxLocalGitService.js';
+} from '../../../../platform/git/common/localGitService.js';
 
 export const IDroxGitGraphService = createDecorator<IDroxGitGraphService>('droxGitGraphService');
 

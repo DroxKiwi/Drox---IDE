@@ -24,7 +24,8 @@
 		flex-shrink: 0;
 	}
 
-	.monaco-action-bar > .actions-container > .action-item.toolbar-shrinkable-item {
+	.monaco-action-bar:not(.has-overflow) > .actions-container > .action-item:last-child,
+	.monaco-action-bar.has-overflow > .actions-container > .action-item:nth-last-child(2) {
 		flex-shrink: 1;
 		min-width: var(--vscode-toolbar-action-min-width, 20px);
 	}

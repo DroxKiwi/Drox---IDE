@@ -38,6 +38,7 @@ const INFO_INACTIVE_TASK_STATUS: ITerminalStatus = { id: TASK_TERMINAL_STATUS_ID
 
 export class TaskTerminalStatus extends Disposable {
 	private terminalMap: DisposableMap<number, ITerminalData> = this._register(new DisposableMap());
+	private _marker: IMarker | undefined;
 	constructor(@ITaskService taskService: ITaskService, @IAccessibilitySignalService private readonly _accessibilitySignalService: IAccessibilitySignalService) {
 		super();
 		this._register(taskService.onDidStateChange((event) => {
@@ -54,21 +55,20 @@ export class TaskTerminalStatus extends Disposable {
 		const status: ITerminalStatus = { id: TASK_TERMINAL_STATUS_ID, severity: Severity.Info };
 		terminal.statusList.add(status);
 		const store = new DisposableStore();
-		let marker: IMarker | undefined;
 		store.add(problemMatcher.onDidFindFirstMatch(() => {
-			marker = terminal.registerMarker();
-			if (marker) {
-				store.add(marker);
+			this._marker = terminal.registerMarker();
+			if (this._marker) {
+				store.add(this._marker);
 			}
 		}));
 		store.add(problemMatcher.onDidFindErrors(() => {
-			if (marker) {
-				terminal.addBufferMarker({ marker, hoverMessage: nls.localize('task.watchFirstError', "Beginning of detected errors for this run"), disableCommandStorage: true });
+			if (this._marker) {
+				terminal.addBufferMarker({ marker: this._marker, hoverMessage: nls.localize('task.watchFirstError', "Beginning of detected errors for this run"), disableCommandStorage: true });
 			}
 		}));
 		store.add(problemMatcher.onDidRequestInvalidateLastMarker(() => {
-			marker?.dispose();
-			marker = undefined;
+			this._marker?.dispose();
+			this._marker = undefined;
 		}));
 
 		store.add(terminal.onDisposed(() => {

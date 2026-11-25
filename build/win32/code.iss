@@ -10,31 +10,25 @@
 AppId={#AppId}
 AppName={#NameLong}
 AppVerName={#NameVersion}
-; DROX-BEGIN
 AppPublisher=KDDS
 AppPublisherURL=https://github.com/DroxKiwi/Drox---IDE---OR
 AppSupportURL=https://github.com/DroxKiwi/Drox---IDE---OR/issues
 AppUpdatesURL=https://github.com/DroxKiwi/Drox---IDE---OR/releases
-; DROX-END
 DefaultGroupName={#NameLong}
 AllowNoIcons=yes
 OutputDir={#OutputDir}
-; DROX-BEGIN
 #if "user" == InstallTarget
 OutputBaseFilename=Drox-IDE-UserSetup-{#RawVersion}-win32-{#Arch}
 #else
 OutputBaseFilename=Drox-IDE-Setup-{#RawVersion}-win32-{#Arch}
 #endif
-; DROX-END
 Compression=lzma
 SolidCompression=yes
 AppMutex={code:GetAppMutex}
 SetupMutex={code:GetSetupMutex}
 WizardImageFile="{#RepoDir}\resources\win32\inno-big-100.bmp,{#RepoDir}\resources\win32\inno-big-125.bmp,{#RepoDir}\resources\win32\inno-big-150.bmp,{#RepoDir}\resources\win32\inno-big-175.bmp,{#RepoDir}\resources\win32\inno-big-200.bmp,{#RepoDir}\resources\win32\inno-big-225.bmp,{#RepoDir}\resources\win32\inno-big-250.bmp"
 WizardSmallImageFile="{#RepoDir}\resources\win32\inno-small-100.bmp,{#RepoDir}\resources\win32\inno-small-125.bmp,{#RepoDir}\resources\win32\inno-small-150.bmp,{#RepoDir}\resources\win32\inno-small-175.bmp,{#RepoDir}\resources\win32\inno-small-200.bmp,{#RepoDir}\resources\win32\inno-small-225.bmp,{#RepoDir}\resources\win32\inno-small-250.bmp"
-; DROX-BEGIN
 SetupIconFile={#RepoDir}\resources\win32\drox.ico
-; DROX-END
 UninstallDisplayIcon={app}\{#ExeBasename}.exe
 ChangesEnvironment=true
 ChangesAssociations=true
@@ -108,19 +102,11 @@ Name: "runcode"; Description: "{cm:RunAfter,{#NameShort}}"; GroupDescription: "{
 Name: "{app}"; AfterInstall: DisableAppDirInheritance
 
 [Files]
-#ifdef CopilotShim
-; Listed first so it can be extracted quickly from the solid archive. The Copilot code publishes it to {app}\bin\copilot-shim.
-Source: "bin\copilot-shim\copilot.exe"; Flags: dontcopy noencryption
-#ifdef CopilotShimLauncher
-; The copilot command for WSL, Git Bash, and Cygwin, which the Copilot code publishes next to the shim.
-Source: "bin\copilot-shim\copilot"; Flags: dontcopy noencryption
-#endif
-#endif
-Source: "*"; Excludes: "\CodeSignSummary*.md,\tools,\tools\*,\policies,\policies\*,\appx,\appx\*,\{#ProductJsonRelativePath},\{#ExeBasename}.exe,\{#ExeBasename}.VisualElementsManifest.xml,\bin,\bin\*"; DestDir: "{code:GetDestDir}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "*"; Excludes: "\CodeSignSummary*.md,\tools,\tools\*,\policies,\policies\*,\appx,\appx\*,\resources\app\product.json,\{#ExeBasename}.exe,\{#ExeBasename}.VisualElementsManifest.xml,\bin,\bin\*"; DestDir: "{code:GetDestDir}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#ExeBasename}.exe"; DestDir: "{code:GetDestDir}"; DestName: "{code:GetExeBasename}"; Flags: ignoreversion
 Source: "{#ExeBasename}.VisualElementsManifest.xml"; DestDir: "{code:GetDestDir}"; DestName: "{code:GetVisualElementsManifest}"; Flags: ignoreversion
 Source: "tools\*"; DestDir: "{app}\{#VersionedResourcesFolder}\tools"; Flags: ignoreversion
-Source: "policies\*"; DestDir: "{code:GetDestDir}\{#VersionedResourcesFolder}\policies"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
+Source: "policies\*"; DestDir: "{code:GetDestDir}\{#VersionedResourcesFolder}\policies"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "bin\{#TunnelApplicationName}.exe"; DestDir: "{code:GetDestDir}\bin"; DestName: "{code:GetBinDirTunnelApplicationFilename}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "bin\{#ApplicationName}.cmd"; DestDir: "{code:GetDestDir}\bin"; DestName: "{code:GetBinDirApplicationCmdFilename}"; Flags: ignoreversion
 Source: "bin\{#ApplicationName}"; DestDir: "{code:GetDestDir}\bin"; DestName: "{code:GetBinDirApplicationFilename}"; Flags: ignoreversion
@@ -136,7 +122,7 @@ Name: "{autodesktop}\{#NameLong}"; Filename: "{app}\{#ExeBasename}.exe"; Tasks: 
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#NameLong}"; Filename: "{app}\{#ExeBasename}.exe"; Tasks: quicklaunchicon; AppUserModelID: "{#AppUserId}"; Check: ShouldUpdateShortcut(ExpandConstant('{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#NameLong}.lnk'))
 
 [Run]
-Filename: "{app}\{#ExeBasename}.exe"; Parameters: "{code:GetRelaunchArgs}"; Description: "{cm:LaunchProgram,{#NameLong}}"; Tasks: runcode; Flags: nowait postinstall; Check: ShouldRunAfterUpdate; AfterInstall: DeleteRelaunchArgsFile
+Filename: "{app}\{#ExeBasename}.exe"; Description: "{cm:LaunchProgram,{#NameLong}}"; Tasks: runcode; Flags: nowait postinstall; Check: ShouldRunAfterUpdate
 Filename: "{app}\{#ExeBasename}.exe"; Description: "{cm:LaunchProgram,{#NameLong}}"; Flags: nowait postinstall; Check: WizardNotSilent
 
 [Registry]
@@ -1328,57 +1314,7 @@ Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\
 Root: {#EnvironmentRootKey}; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#ApplicationName}.exe"; ValueType: none; ValueName: "Path"; Flags: deletevalue
 
 [Code]
-; DROX-BEGIN
 #include "drox-wizard-theme.inc.iss"
-; DROX-END
-// Imports MultiByteToWideChar to decode UTF-8 bytes (LoadStringFromFile returns raw bytes) into a Unicode string.
-function MultiByteToWideChar(CodePage: Cardinal; dwFlags: Cardinal; const lpMultiByteStr: AnsiString; cbMultiByte: Integer; lpWideCharStr: String; cchWideChar: Integer): Integer;
-  external 'MultiByteToWideChar@kernel32.dll stdcall';
-
-// Decodes UTF-8 bytes into a Unicode string; falls back to a raw byte conversion on failure.
-function UTF8ToString(const Bytes: AnsiString): String;
-var
-  CharCount: Integer;
-begin
-  Result := '';
-  if Length(Bytes) = 0 then
-    Exit;
-
-  CharCount := MultiByteToWideChar(65001, 0, Bytes, Length(Bytes), '', 0); // 65001 = CP_UTF8
-  if CharCount <= 0 then
-  begin
-    Result := String(Bytes);
-    Exit;
-  end;
-
-  SetLength(Result, CharCount);
-  MultiByteToWideChar(65001, 0, Bytes, Length(Bytes), Result, CharCount);
-end;
-
-// Returns the arguments to pass when relaunching after an update. VS Code writes them (UTF-8, already quoted) to the
-// file given by the /relaunchargs parameter so arguments such as --extensions-dir are preserved. See #322663.
-function GetRelaunchArgs(Value: String): String;
-var
-  ArgsFile: String;
-  RawArgs: AnsiString;
-begin
-  Result := '';
-  ArgsFile := ExpandConstant('{param:relaunchargs|}');
-  if (ArgsFile <> '') and FileExists(ArgsFile) then
-  begin
-    if LoadStringFromFile(ArgsFile, RawArgs) then
-      Result := Trim(UTF8ToString(RawArgs));
-  end;
-end;
-
-procedure DeleteRelaunchArgsFile();
-var
-  ArgsFile: String;
-begin
-  ArgsFile := ExpandConstant('{param:relaunchargs|}');
-  if (ArgsFile <> '') and FileExists(ArgsFile) then
-    DeleteFile(ArgsFile);
-end;
 
 function IsBackgroundUpdate(): Boolean;
 begin
@@ -1743,8 +1679,8 @@ begin
 
   Command :=
     '-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -Command "' +
-    'Get-CimInstance Win32_Process -Filter \"Name = ''dllhost.exe''\" | ' +
-    'Where-Object { $_.CommandLine -like ''*{#FileExplorerContextMenuCLSID}*'' } | ' +
+    'Get-CimInstance Win32_Process -Filter ""Name = ''dllhost.exe''"" | ' +
+    'Where-Object { $_.CommandLine -like ''*/Processid:{#FileExplorerContextMenuCLSID}*'' } | ' +
     'ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {} }"';
 
   if not ShellExec('', 'powershell.exe', Command, '', SW_HIDE, ewWaitUntilTerminated, KillErrorCode) then
@@ -1815,6 +1751,15 @@ var
   RemoveAppxPackageResultCode: Integer;
 begin
   KillContextMenuComSurrogate();
+  // Remove the old context menu package
+  // Following condition can be removed in v1.111.
+  if QualityIsInsiders() and not SessionEndFileExists() and AppxPackageInstalled('Microsoft.VSCodeInsiders', RemoveAppxPackageResultCode) then begin
+    Log('Deleting old appx ' + AppxPackageFullname + ' installation...');
+    ShellExec('', 'powershell.exe', '-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -Command ' + AddQuotes('Remove-AppxPackage -Package ''' + AppxPackageFullname + ''''), '', SW_HIDE, ewWaitUntilTerminated, RemoveAppxPackageResultCode);
+    Log('Remove-AppxPackage for old appx completed with result code ' + IntToStr(RemoveAppxPackageResultCode) + '.');
+    DeleteFile(ExpandConstant('{app}\appx\code_insiders_explorer_{#Arch}.appx'));
+    DeleteFile(ExpandConstant('{app}\appx\code_insiders_explorer_command.dll'));
+  end;
   if not SessionEndFileExists() and AppxPackageInstalled(ExpandConstant('{#AppxPackageName}'), RemoveAppxPackageResultCode) then begin
     Log('Removing current ' + AppxPackageFullname + ' appx installation...');
 #if "user" == InstallTarget
@@ -1827,10 +1772,6 @@ begin
     Log('Skipping Remove-AppxPackage for current appx because package is not installed.');
   end;
 end;
-#endif
-
-#ifdef CopilotShim
-#include AddBackslash(SourcePath) + "copilot.iss"
 #endif
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -1908,12 +1849,6 @@ begin
       Log('Starting the tunnel service completed with result code ' + IntToStr(StartServiceResultCode));
       ShouldRestartTunnelService := False
     end;
-
-#ifdef CopilotShim
-    // Background updates publish the shim only after inno_updater has applied the update.
-    if IsNotBackgroundUpdate() or (not SessionEndFileExists() and not CancelFileExists()) then
-      CopilotPostInstall();
-#endif
   end;
 end;
 
@@ -1969,15 +1904,12 @@ var
   NewPath: string;
   i: Integer;
 begin
-  if CurUninstallStep <> usUninstall then begin
+  if not CurUninstallStep = usUninstall then begin
     exit;
   end;
 
 #ifdef AppxPackageName
   RemoveAppxPackage();
-#endif
-#ifdef CopilotShim
-  CopilotUninstall();
 #endif
   if not RegQueryStringValue({#EnvironmentRootKey}, '{#EnvironmentKey}', 'Path', Path)
   then begin

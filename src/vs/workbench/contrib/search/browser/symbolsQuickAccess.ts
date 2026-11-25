@@ -14,7 +14,6 @@ import { ILabelService } from '../../../../platform/label/common/label.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IEditorService, SIDE_GROUP, ACTIVE_GROUP } from '../../../services/editor/common/editorService.js';
-import { IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
 import { Range } from '../../../../editor/common/core/range.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IWorkbenchEditorConfiguration } from '../../../common/editor.js';
@@ -68,8 +67,7 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 		@IEditorService private readonly editorService: IEditorService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ICodeEditorService private readonly codeEditorService: ICodeEditorService,
-		@IChatWidgetService private readonly chatWidgetService: IChatWidgetService,
-		@IEditorGroupsService private readonly editorGroupService: IEditorGroupsService
+		@IChatWidgetService private readonly chatWidgetService: IChatWidgetService
 	) {
 		super(SymbolsQuickAccessProvider.PREFIX, {
 			canAcceptInBackground: true,
@@ -204,12 +202,12 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 				},
 				description: containerLabel,
 				strikethrough: deprecated,
-				buttons: this.editorGroupService.supportsSplitting ? [
+				buttons: [
 					{
 						iconClass: openSideBySideDirection === 'right' ? ThemeIcon.asClassName(Codicon.splitHorizontal) : ThemeIcon.asClassName(Codicon.splitVertical),
 						tooltip: openSideBySideDirection === 'right' ? localize('openToSide', "Open to the Side") : localize('openToBottom', "Open to the Bottom")
 					}
-				] : undefined,
+				],
 				trigger: (buttonIndex, keyMods) => {
 					this.openSymbol(provider, symbol, token, { keyMods, forceOpenSideBySide: true });
 
@@ -267,7 +265,6 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 
 		// Otherwise open as editor
 		else {
-			const openToSide = this.editorGroupService.supportsSplitting && (options.keyMods.alt || (this.configuration.openEditorPinned && options.keyMods.ctrlCmd) || options?.forceOpenSideBySide);
 			await this.editorService.openEditor({
 				resource: symbolToOpen.location.uri,
 				options: {
@@ -275,7 +272,7 @@ export class SymbolsQuickAccessProvider extends PickerQuickAccessProvider<ISymbo
 					pinned: options.keyMods.ctrlCmd || options.forcePinned || this.configuration.openEditorPinned,
 					selection: symbolToOpen.location.range ? Range.collapseToStart(symbolToOpen.location.range) : undefined
 				}
-			}, openToSide ? SIDE_GROUP : ACTIVE_GROUP);
+			}, options.keyMods.alt || (this.configuration.openEditorPinned && options.keyMods.ctrlCmd) || options?.forceOpenSideBySide ? SIDE_GROUP : ACTIVE_GROUP);
 		}
 	}
 

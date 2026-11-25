@@ -15,7 +15,7 @@ import { ICopilotInlineCompletionItemProviderService } from '../../completions/c
 import { LineRange0Based } from '../../xtab/common/lineRange';
 import { INeighborFileSnippet, ISimilarFilesContextService } from '../../xtab/common/similarFilesContextService';
 
-type RankedSnippet = SnippetWithProviderInfo & { uri: string; isFromRelatedFile: boolean; relativePath?: string };
+type RankedSnippet = SnippetWithProviderInfo & { relativePath?: string };
 
 export class SimilarFilesContextService implements ISimilarFilesContextService {
 
@@ -25,9 +25,9 @@ export class SimilarFilesContextService implements ISimilarFilesContextService {
 		@ICopilotInlineCompletionItemProviderService private readonly _copilotService: ICopilotInlineCompletionItemProviderService,
 	) { }
 
-	async compute(uri: string, languageId: string, source: string, cursorOffset: number, includeRelatedFiles: boolean): Promise<string | undefined> {
+	async compute(uri: string, languageId: string, source: string, cursorOffset: number): Promise<string | undefined> {
 		try {
-			const result = await this._gatherSnippets(uri, languageId, source, cursorOffset, includeRelatedFiles);
+			const result = await this._gatherSnippets(uri, languageId, source, cursorOffset);
 			if (!result) {
 				return undefined;
 			}
@@ -47,32 +47,31 @@ export class SimilarFilesContextService implements ISimilarFilesContextService {
 		}
 	}
 
-	async getSnippetsForPrompt(uri: string, languageId: string, source: string, cursorOffset: number, includeRelatedFiles: boolean): Promise<readonly INeighborFileSnippet[] | undefined> {
+	async getSnippetsForPrompt(uri: string, languageId: string, source: string, cursorOffset: number): Promise<readonly INeighborFileSnippet[] | undefined> {
 		try {
-			const result = await this._gatherSnippets(uri, languageId, source, cursorOffset, includeRelatedFiles);
+			const result = await this._gatherSnippets(uri, languageId, source, cursorOffset);
 			if (!result) {
 				return undefined;
 			}
-			const { snippets } = result;
+			const { snippets, relativePathToUri } = result;
 			return snippets.map(s => ({
-				uri: s.uri,
+				uri: (s.relativePath && relativePathToUri.get(s.relativePath)) ?? uri,
 				relativePath: s.relativePath,
 				snippet: s.snippet,
 				lineRange: new LineRange0Based(s.startLine, s.endLine),
 				score: s.score,
-				isFromRelatedFile: s.isFromRelatedFile,
 			}));
 		} catch {
 			return undefined;
 		}
 	}
 
-	private async _gatherSnippets(uri: string, languageId: string, source: string, cursorOffset: number, includeRelatedFiles: boolean): Promise<{ neighborFileCount: number; snippets: RankedSnippet[] } | undefined> {
+	private async _gatherSnippets(uri: string, languageId: string, source: string, cursorOffset: number): Promise<{ neighborFileCount: number; snippets: RankedSnippet[]; relativePathToUri: Map<string, string> } | undefined> {
 		const completionsInstaService = this._copilotService.getOrCreateInstantiationService();
 		const telemetryData = TelemetryWithExp.createEmptyConfigForTesting();
 
 		const { docs } = await completionsInstaService.invokeFunction(
-			accessor => NeighborSource.getNeighborFilesAndTraits(accessor, uri, languageId, telemetryData, undefined, undefined, undefined, includeRelatedFiles)
+			accessor => NeighborSource.getNeighborFilesAndTraits(accessor, uri, languageId, telemetryData)
 		);
 
 		const promptOptions = completionsInstaService.invokeFunction(getPromptOptions, telemetryData, languageId);
@@ -92,6 +91,12 @@ export class SimilarFilesContextService implements ISimilarFilesContextService {
 		};
 
 		const neighborDocs = Array.from(docs.values());
+		const relativePathToUri = new Map<string, string>();
+		for (const doc of neighborDocs) {
+			if (doc.relativePath) {
+				relativePathToUri.set(doc.relativePath, doc.uri);
+			}
+		}
 
 		const snippets = (await getSimilarSnippets(
 			docInfo,
@@ -101,6 +106,6 @@ export class SimilarFilesContextService implements ISimilarFilesContextService {
 			.filter(s => s.snippet.length > 0)
 			.sort((a, b) => a.score - b.score);
 
-		return { neighborFileCount: docs.size, snippets };
+		return { neighborFileCount: docs.size, snippets, relativePathToUri };
 	}
 }

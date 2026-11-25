@@ -99,9 +99,8 @@ class PixelRatioMonitorFacade {
 			pixelRatioMonitor = markAsSingleton(new PixelRatioMonitorImpl(targetWindow));
 			this.mapWindowIdToPixelRatioMonitor.set(targetWindowId, pixelRatioMonitor);
 
-			const unregisterListener = markAsSingleton(onDidUnregisterWindow(({ vscodeWindowId }) => {
+			markAsSingleton(Event.once(onDidUnregisterWindow)(({ vscodeWindowId }) => {
 				if (vscodeWindowId === targetWindowId) {
-					unregisterListener.dispose();
 					pixelRatioMonitor?.dispose();
 					this.mapWindowIdToPixelRatioMonitor.delete(targetWindowId);
 				}

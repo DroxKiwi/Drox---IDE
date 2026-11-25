@@ -162,11 +162,7 @@ export class StickyScrollWidget extends Disposable implements IOverlayWidget {
 		}
 		let totalHeight = 0;
 		for (let i = 0; i < candidateLineNumbers.length; i++) {
-			const position = new Position(candidateLineNumbers[i], 1);
-			const viewModel = this._editor._getViewModel();
-			if (viewModel && position.lineNumber <= viewModel.getLineCount()) {
-				totalHeight += this._editor.getLineHeightForPosition(new Position(candidateLineNumbers[i], 1));
-			}
+			totalHeight += this._editor.getLineHeightForPosition(new Position(candidateLineNumbers[i], 1));
 		}
 		if (totalHeight === 0) {
 			return { lineNumbers: [], lastLineRelativePosition: 0 };
@@ -233,11 +229,7 @@ export class StickyScrollWidget extends Disposable implements IOverlayWidget {
 		}
 		const layoutInfo = this._editor.getLayoutInfo();
 		for (let i = rebuildFromIndex; i < lineNumbers.length; i++) {
-			const lineNumber = lineNumbers[i];
-			if (lineNumber > viewModel.getLineCount()) {
-				continue;
-			}
-			const stickyLine = this._renderChildNode(viewModel, i, lineNumber, top, lastLineNumber === lineNumber, foldingModel, layoutInfo);
+			const stickyLine = this._renderChildNode(viewModel, i, lineNumbers[i], top, lastLineNumber === lineNumbers[i], foldingModel, layoutInfo);
 			top += stickyLine.height;
 			this._linesDomNode.appendChild(stickyLine.lineDomNode);
 			this._lineNumbersDomNode.appendChild(stickyLine.lineNumberDomNode);
@@ -462,15 +454,13 @@ class RenderedStickyLine {
 
 		const lineHeight = editor.getLineHeightForPosition(new Position(lineNumber, 1));
 		const textDirection = viewModel.getTextDirection(lineNumber);
-		const fontInfo = editor.getOption(EditorOption.fontInfo);
 		const renderLineInput: RenderLineInput = new RenderLineInput(true, true, lineRenderingData.content,
 			lineRenderingData.continuesWithWrappedLine,
 			lineRenderingData.isBasicASCII, lineRenderingData.containsRTL, 0,
 			lineRenderingData.tokens, actualInlineDecorations,
 			lineRenderingData.tabSize, lineRenderingData.startVisibleColumn,
-			fontInfo.spaceWidth, 1, 1, 500, 'none', true, true, null,
-			textDirection, verticalScrollbarSize, false,
-			editor.getOption(EditorOption.effectiveFullwidthCharacterWidth) === 'twoCells'
+			1, 1, 1, 500, 'none', true, true, null,
+			textDirection, verticalScrollbarSize
 		);
 
 		const sb = new StringBuilder(2000);

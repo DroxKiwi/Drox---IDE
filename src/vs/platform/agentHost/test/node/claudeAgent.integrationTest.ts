@@ -34,49 +34,34 @@
  */
 
 import type Anthropic from '@anthropic-ai/sdk';
-import type { GetSessionMessagesOptions, Options, PermissionResult, Query, SDKControlInterruptResponse, SDKMessage, SDKResultSuccess, SDKSessionInfo, SDKSystemMessage, SDKUserMessage, SessionMessage, WarmQuery } from '@anthropic-ai/claude-agent-sdk';
+import type { GetSessionMessagesOptions, Options, PermissionResult, Query, SDKMessage, SDKResultSuccess, SDKSessionInfo, SDKSystemMessage, SDKUserMessage, SessionMessage, WarmQuery } from '@anthropic-ai/claude-agent-sdk';
 import type { CCAModel } from '@vscode/copilot-api';
 import assert from 'assert';
-import { mock } from '../../../../base/test/common/mock.js';
 import type * as http from 'http';
-import { DeferredPromise } from '../../../../base/common/async.js';
-import { Event } from '../../../../base/common/event.js';
 import { URI } from '../../../../base/common/uri.js';
-import { generateUuid } from '../../../../base/common/uuid.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { DisposableStore } from '../../../../base/common/lifecycle.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { ServiceCollection } from '../../../instantiation/common/serviceCollection.js';
 import { InstantiationService } from '../../../instantiation/common/instantiationService.js';
 import { ILogService, NullLogService } from '../../../log/common/log.js';
-import { IAgentHostStartupPerformance, NullAgentHostStartupPerformance } from '../../node/agentHostStartupPerformance.js';
 import { FileService } from '../../../files/common/fileService.js';
 import { IFileService } from '../../../files/common/files.js';
 import { InMemoryFileSystemProvider } from '../../../files/common/inMemoryFilesystemProvider.js';
 import { INativeEnvironmentService } from '../../../environment/common/environment.js';
-import { AgentPermissionKind, AgentSession, type AgentSignal, type IAgentChatContext, type IAgentCreateSessionConfig, GITHUB_COPILOT_PROTECTED_RESOURCE, fixedChatOwnerRef } from '../../common/agent.js';
+import { type AgentSignal, GITHUB_COPILOT_PROTECTED_RESOURCE } from '../../common/agentService.js';
 import { ActionType } from '../../common/state/sessionActions.js';
-import { buildDefaultChatUri, ResponsePartKind, ToolResultContentType, ChatInputResponseKind, ChatInputAnswerState, ChatInputAnswerValueKind, type ChatInputRequest, type ClientPluginCustomization } from '../../common/state/sessionState.js';
+import { ResponsePartKind, ToolResultContentType, type ClientPluginCustomization } from '../../common/state/sessionState.js';
 import { ISessionDataService } from '../../common/sessionDataService.js';
-import { IAgentHostOTelService } from '../../common/otel/agentHostOTelService.js';
 import { AgentConfigurationService, IAgentConfigurationService } from '../../node/agentConfigurationService.js';
-import { IAgentHostGitHubEndpointService } from '../../node/agentHostGitHubEndpointService.js';
-import { createTestGitHubEndpointService } from './testGitHubEndpointService.js';
-import { AgentHostStateManager, IAgentHostStateManager } from '../../node/agentHostStateManager.js';
-import { AgentHostSessionTitleSignal, IAgentHostSessionTitleSignal } from '../../node/agentHostSessionTitleSignal.js';
+import { AgentHostStateManager } from '../../node/agentHostStateManager.js';
 import { IAgentHostGitService } from '../../common/agentHostGitService.js';
-import { IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE } from '../../common/agentHostCheckpointService.js';
-import { IAgentHostCustomizationEnablementService } from '../../node/agentHostCustomizationEnablementService.js';
-import { createNoopCustomizationEnablementService } from './testCustomizationEnablementService.js';
-import { IAgentHostAuthenticationService } from '../../node/agentHostAuthenticationService.js';
 import { ClaudeAgent } from '../../node/claude/claudeAgent.js';
 import { IClaudeAgentSdkService } from '../../node/claude/claudeAgentSdkService.js';
-import { IAgentSdkDownloader } from '../../node/agentSdkDownloader.js';
 import { IAgentPluginManager } from '../../common/agentPluginManager.js';
 import { ClaudeProxyService, IClaudeProxyService } from '../../node/claude/claudeProxyService.js';
 import { ICopilotApiService, type ICopilotApiServiceRequestOptions } from '../../node/shared/copilotApiService.js';
 import { createNoopGitService, createSessionDataService } from '../common/sessionTestHelpers.js';
-import { RecordingAgentSdkDownloader } from './testAgentSdkDownloader.js';
 import {
 	makeContentBlockStartText,
 	makeContentBlockStartToolUse,
@@ -88,27 +73,6 @@ import {
 	makeTextDelta,
 	makeUserToolResultMessage,
 } from './claudeMapSessionEventsTestUtils.js';
-import { createTestChatOwnershipService } from './chatOwnershipTestUtils.js';
-import { IAgentHostChatOwnershipService } from '../../node/agentHostChatOwnershipService.js';
-
-const noopOTelService: IAgentHostOTelService = {
-	_serviceBrand: undefined,
-	enabled: false,
-	diagnosticsEnabled: false,
-	emitTurnTiming: () => { },
-	emitFirstResponse: () => { },
-	emitUserInteraction: () => { },
-	getSdkTelemetryConfig: async () => undefined,
-	getNativeSdkTelemetryConfig: async () => undefined,
-	getSessionTraceContext: () => undefined,
-	setSessionComparisonMetadata: () => { },
-	releaseSessionTraceContext: () => { },
-	withTraceContext: <T>(_context: undefined, fn: () => T): T => fn(),
-	getCurrentTraceContext: () => undefined,
-	getSpansDbPath: () => undefined,
-	emitSessionTitleChanged: () => { },
-	flush: async () => { },
-};
 
 // #region Test fixtures
 
@@ -127,18 +91,6 @@ function claudeFileEnvServices(disposables: Pick<DisposableStore, 'add'>): [type
 		[IFileService, fileService],
 		[INativeEnvironmentService, env as INativeEnvironmentService],
 	];
-}
-
-function createTestAuthenticationService(): IAgentHostAuthenticationService {
-	return new class extends mock<IAgentHostAuthenticationService>() {
-		override readonly onDidChangeAuthToken = Event.None;
-		override getAuthAccount() { return undefined; }
-		override getSessionCredentialSource() { return undefined; }
-		override getSessionCredentialPrincipal() { return undefined; }
-		override getAuthToken(request: Parameters<IAgentHostAuthenticationService['getAuthToken']>[0]) {
-			return request.resource === GITHUB_COPILOT_PROTECTED_RESOURCE.resource ? 'gh-int-test-token' : undefined;
-		}
-	}();
 }
 
 const ANTHROPIC_MODEL: CCAModel = {
@@ -287,9 +239,6 @@ class StubCopilotApiService implements ICopilotApiService {
 
 	readonly messagesCallCount = { count: 0 };
 
-	async resolveRestrictedTelemetryContext() { return { restrictedTelemetryEnabled: false, trackingId: undefined, telemetryEndpoint: undefined }; }
-	async resolveApiEndpoint() { return undefined; }
-
 	messages(
 		token: string,
 		request: Anthropic.MessageCreateParamsStreaming,
@@ -368,19 +317,10 @@ interface CanUseToolMarker {
 	readonly toolUseID: string;
 }
 
-interface ElicitationMarker {
-	readonly kind: 'elicitation';
-	readonly request: Parameters<NonNullable<Options['onElicitation']>>[0];
-}
-
-type QueryStreamItem = SDKMessage | CanUseToolMarker | ElicitationMarker;
+type QueryStreamItem = SDKMessage | CanUseToolMarker;
 
 function isCanUseToolMarker(item: QueryStreamItem): item is CanUseToolMarker {
 	return (item as CanUseToolMarker).kind === 'canUseTool';
-}
-
-function isElicitationMarker(item: QueryStreamItem): item is ElicitationMarker {
-	return (item as ElicitationMarker).kind === 'elicitation';
 }
 
 /**
@@ -408,20 +348,13 @@ class ProxyRoundTripSdkService implements IClaudeAgentSdkService {
 	queryMessages: QueryStreamItem[] = [];
 
 	/** Records the {@link PermissionResult} returned by each `canUseTool` invocation in {@link queryMessages} order. */
-	readonly canUseToolResults: (PermissionResult | null)[] = [];
-	readonly elicitationResults: Awaited<ReturnType<NonNullable<Options['onElicitation']>>>[] = [];
+	readonly canUseToolResults: PermissionResult[] = [];
 
 	readonly warmQueries: RoundTripWarmQuery[] = [];
 
 	async listSessions(): Promise<readonly SDKSessionInfo[]> {
 		return [];
 	}
-
-	async canLoadWithoutDownload(): Promise<boolean> {
-		return true;
-	}
-
-	async ensureAvailable(): Promise<void> { }
 
 	async getSessionInfo(_sessionId: string): Promise<SDKSessionInfo | undefined> {
 		return undefined;
@@ -439,19 +372,12 @@ class ProxyRoundTripSdkService implements IClaudeAgentSdkService {
 		return [];
 	}
 
-	async forkSession(sessionId: string): Promise<{ sessionId: string }> {
-		return { sessionId: `forked-${sessionId}` };
-	}
-
-	async deleteSession(): Promise<void> { /* not exercised by the proxy round-trip */ }
-
 	async createSdkMcpServer(): Promise<never> { throw new Error('not implemented in integration test fake'); }
 	async tool(): Promise<never> { throw new Error('not implemented in integration test fake'); }
 
-	async query(_params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }): Promise<Query> { throw new Error('query not used in proxy round-trip integration test'); }
-
 	async startup(params: { options: Options; initializeTimeoutMs?: number }): Promise<WarmQuery> {
 		this.capturedStartupOptions.push(params.options);
+
 		const settings = params.options.settings;
 		const settingsEnv = (settings && typeof settings === 'object' && settings.env) ? settings.env : {};
 		const baseUrl = settingsEnv['ANTHROPIC_BASE_URL'];
@@ -529,18 +455,8 @@ class RoundTripQuery implements AsyncGenerator<SDKMessage, void> {
 				const result = await startup.canUseTool(item.toolName, item.input, {
 					signal: new AbortController().signal,
 					toolUseID: item.toolUseID,
-					requestId: item.toolUseID,
 				});
 				this._sdk.canUseToolResults.push(result);
-				continue;
-			}
-			if (isElicitationMarker(item)) {
-				const startup = this._sdk.capturedStartupOptions[0];
-				if (!startup?.onElicitation) {
-					throw new Error('integration test: elicitation marker but Options.onElicitation not wired');
-				}
-				const result = await startup.onElicitation(item.request, { signal: new AbortController().signal, requestId: 'integration-elicitation' });
-				this._sdk.elicitationResults.push(result);
 				continue;
 			}
 			return { done: false, value: item };
@@ -557,16 +473,13 @@ class RoundTripQuery implements AsyncGenerator<SDKMessage, void> {
 		throw err;
 	}
 
-	async interrupt(): Promise<SDKControlInterruptResponse | undefined> { return undefined; }
+	async interrupt(): Promise<void> { /* not used */ }
 
 	setPermissionMode(): never { throw new Error('not modeled'); }
-	setMcpPermissionModeOverride(): never { throw new Error('not modeled'); }
 	setModel(): never { throw new Error('not modeled'); }
 	setMaxThinkingTokens(): never { throw new Error('not modeled'); }
 	applyFlagSettings(): never { throw new Error('not modeled'); }
-	updateSettings(): never { throw new Error('not modeled'); }
 	initializationResult(): never { throw new Error('not modeled'); }
-	reinitialize(): never { throw new Error('not modeled'); }
 	supportedCommands(): never { throw new Error('not modeled'); }
 	supportedModels(): never { throw new Error('not modeled'); }
 	supportedAgents(): never { throw new Error('not modeled'); }
@@ -577,7 +490,6 @@ class RoundTripQuery implements AsyncGenerator<SDKMessage, void> {
 	accountInfo(): never { throw new Error('not modeled'); }
 	rewindFiles(): never { throw new Error('not modeled'); }
 	readFile(): never { throw new Error('not modeled'); }
-	readMcpResource(): never { throw new Error('not modeled'); }
 	seedReadState(): never { throw new Error('not modeled'); }
 	reconnectMcpServer(): never { throw new Error('not modeled'); }
 	toggleMcpServer(): never { throw new Error('not modeled'); }
@@ -585,7 +497,6 @@ class RoundTripQuery implements AsyncGenerator<SDKMessage, void> {
 	streamInput(): never { throw new Error('not modeled'); }
 	stopTask(): never { throw new Error('not modeled'); }
 	reloadSkills(): never { throw new Error('not modeled'); }
-	reloadOutputStyles(): never { throw new Error('not modeled'); }
 	backgroundTasks(): never { throw new Error('not modeled'); }
 	close(): void { /* no-op */ }
 	[Symbol.asyncDispose](): Promise<void> { return Promise.resolve(); }
@@ -669,45 +580,6 @@ function parseSseFrames(raw: string): { type: string; data: unknown }[] {
 
 // #endregion
 
-// #region Session helpers
-
-/**
- * Provisions a session the way Agent Host does: the host mints both the session
- * URI and the chat URI it starts the session with, and creates them together
- * through the single `IAgentChats.createChat` seam with the session's create
- * config flattened onto the creation options. Returns the chat URI plus the SDK
- * conversation id the provider bound to it — independent of the AH session id —
- * which these tests need to stage the fake SDK transcript.
- */
-async function createSession(agent: ClaudeAgent, config: IAgentCreateSessionConfig): Promise<{ session: URI; chat: URI; sessionId: string }> {
-	const session = AgentSession.uri('claude', generateUuid());
-	const chat = URI.parse(buildDefaultChatUri(session));
-	const created = await agent.chats.createChat(chat, chatContext(chat, session), {
-		model: config.model,
-		agent: config.agent,
-		workingDirectories: config.workingDirectories,
-		config: config.config,
-		activeClient: config.activeClient,
-		deferBacking: !config.importConversation,
-		importConversation: config.importConversation,
-	});
-	if (!created?.backingSession) {
-		throw new Error('Expected chat backing metadata');
-	}
-	return { session, chat, sessionId: AgentSession.id(created.backingSession) };
-}
-
-/**
- * The host-owned {@link IAgentChatContext} Agent Host stamps on every addressed
- * chat operation. A session-backed default chat is scoped to the session
- * resource, mirroring the orchestrator's own context builder.
- */
-function chatContext(chat: URI, session: URI): IAgentChatContext {
-	return { sessionSettings: undefined, launchWorkingDirectories: undefined, workspaceless: false, owner: fixedChatOwnerRef(session), resource: session };
-}
-
-// #endregion
-
 // #region Suite
 
 suite('ClaudeAgent integration (proxy-backed)', function () {
@@ -735,28 +607,17 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 
 		const services = new ServiceCollection(
 			[ILogService, logService],
-			[IAgentHostStartupPerformance, NullAgentHostStartupPerformance],
 			[ICopilotApiService, capi],
 			[IClaudeProxyService, realProxy],
 			[ISessionDataService, createSessionDataService()],
 			[IClaudeAgentSdkService, sdk],
-			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
 			[IAgentPluginManager, {
 				_serviceBrand: undefined,
 				basePath: URI.from({ scheme: 'inmemory', path: '/agentPlugins' }),
-				hostPluginsPath: URI.from({ scheme: 'inmemory', path: '/agentPlugins/.host' }),
 				async syncCustomizations(_clientId: string, _customizations: ClientPluginCustomization[]) { return []; },
 			}],
 			[IAgentConfigurationService, configService],
-			[IAgentHostOTelService, noopOTelService],
-			[IAgentHostStateManager, stateManager],
-			[IAgentHostChatOwnershipService, createTestChatOwnershipService(stateManager)],
-			[IAgentHostSessionTitleSignal, disposables.add(new AgentHostSessionTitleSignal(stateManager))],
-			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
 			[IAgentHostGitService, createNoopGitService()],
-			[IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE],
-			[IAgentHostCustomizationEnablementService, createNoopCustomizationEnablementService()],
-			[IAgentHostAuthenticationService, createTestAuthenticationService()],
 			...claudeFileEnvServices(disposables),
 		);
 		const instantiationService = disposables.add(new InstantiationService(services));
@@ -767,16 +628,16 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 		assert.strictEqual(accepted, true);
 
 		// Create a provisional session — no SDK contact yet.
-		const created = await createSession(agent, { workingDirectories: [URI.file('/integration-cwd')] });
-		assert.strictEqual(sdk.capturedStartupOptions.length, 0, 'createChat does not touch the SDK');
+		const created = await agent.createSession({ workingDirectory: URI.file('/integration-cwd') });
+		assert.strictEqual(sdk.capturedStartupOptions.length, 0, 'createSession does not touch the SDK');
 
 		// Stage a transcript on the SDK so `sendMessage` resolves.
-		const sessionId = created.sessionId;
+		const sessionId = created.session.path.replace(/^\//, '');
 		sdk.queryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
 
 		// First send materializes — drives `startup()`, which performs
 		// the real HTTP round-trip on the real proxy.
-		await agent.chats.sendMessage(created.chat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(created.chat, created.session));
+		await agent.sendMessage(created.session, 'hi', undefined, 'turn-1');
 
 		// Snapshot what flowed through the integration in a single
 		// assertion so the failure surface is the whole pipeline.
@@ -826,12 +687,10 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 			],
 		});
 
-		// Cleanup: tear the chat down and assert the WarmQuery was
-		// closed via Symbol.asyncDispose (no orphan subprocess). Trace-context
-		// release for the default chat now happens inside disposeChat itself —
-		// there is no separate finalize step.
-		await agent.chats.disposeChat(created.chat, chatContext(created.chat, created.session));
-		assert.strictEqual(sdk.warmQueries[0].asyncDisposeCount, 1, 'WarmQuery is asyncDisposed on chat dispose');
+		// Cleanup: dispose the agent and assert the WarmQuery was
+		// closed via Symbol.asyncDispose (no orphan subprocess).
+		await agent.disposeSession(created.session);
+		assert.strictEqual(sdk.warmQueries[0].asyncDisposeCount, 1, 'WarmQuery is asyncDisposed on session dispose');
 	});
 
 	test('proxy rejects a request whose bearer carries a wrong nonce (auth contract)', async () => {
@@ -878,69 +737,43 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 
 		const services = new ServiceCollection(
 			[ILogService, logService],
-			[IAgentHostStartupPerformance, NullAgentHostStartupPerformance],
 			[ICopilotApiService, capi],
 			[IClaudeProxyService, realProxy],
 			[ISessionDataService, createSessionDataService()],
 			[IClaudeAgentSdkService, sdk],
-			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
 			[IAgentPluginManager, {
 				_serviceBrand: undefined,
 				basePath: URI.from({ scheme: 'inmemory', path: '/agentPlugins' }),
-				hostPluginsPath: URI.from({ scheme: 'inmemory', path: '/agentPlugins/.host' }),
 				async syncCustomizations(_clientId: string, _customizations: ClientPluginCustomization[]) { return []; },
 			}],
 			[IAgentConfigurationService, configService],
-			[IAgentHostOTelService, noopOTelService],
-			[IAgentHostStateManager, stateManager],
-			[IAgentHostChatOwnershipService, createTestChatOwnershipService(stateManager)],
-			[IAgentHostSessionTitleSignal, disposables.add(new AgentHostSessionTitleSignal(stateManager))],
-			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
 			[IAgentHostGitService, createNoopGitService()],
-			[IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE],
-			[IAgentHostCustomizationEnablementService, createNoopCustomizationEnablementService()],
-			[IAgentHostAuthenticationService, createTestAuthenticationService()],
 			...claudeFileEnvServices(disposables),
 		);
 		const instantiationService = disposables.add(new InstantiationService(services));
 		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
 
 		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'gh-int-test-token');
-		const created = await createSession(agent, { workingDirectories: [URI.file('/integration-cwd')] });
-		const sessionId = created.sessionId;
-		sdk.queryMessages = [
-			makeSystemInitMessage(sessionId),
-			{
-				kind: 'elicitation',
-				request: { serverName: 'mcp-test', message: 'pick a side', mode: 'form', requestedSchema: { type: 'object', properties: { side: { type: 'string' } } } },
-			},
-			makeResultSuccess(sessionId),
-		];
+		const created = await agent.createSession({ workingDirectory: URI.file('/integration-cwd') });
+		const sessionId = created.session.path.replace(/^\//, '');
+		sdk.queryMessages = [makeSystemInitMessage(sessionId), makeResultSuccess(sessionId)];
 
-		const inputRequested = new DeferredPromise<ChatInputRequest>();
-		disposables.add(agent.onDidChatProgress(s => {
-			if (s.kind === 'action' && s.action.type === ActionType.ChatInputRequested) {
-				inputRequested.complete(s.action.request);
-			}
-		}));
-
-		const sendPromise = agent.chats.sendMessage(created.chat, 'hi', undefined, undefined, 'turn-1', undefined, undefined, chatContext(created.chat, created.session));
-		const inputRequest = await inputRequested.p;
+		await agent.sendMessage(created.session, 'hi', undefined, 'turn-1');
 
 		const startup = sdk.capturedStartupOptions[0];
 		assert.ok(typeof startup.canUseTool === 'function', 'canUseTool was wired into Options');
 		assert.ok(typeof startup.onElicitation === 'function', 'onElicitation was wired into Options');
 
-		agent.respondToUserInputRequest(inputRequest.id, ChatInputResponseKind.Accept, {
-			side: { state: ChatInputAnswerState.Submitted, value: { kind: ChatInputAnswerValueKind.Text, value: 'left' } },
-		});
-		await sendPromise;
+		const elicitResult = await startup.onElicitation!(
+			{ serverName: 'mcp-test', message: 'pick a side', mode: 'form' },
+			{ signal: new AbortController().signal },
+		);
 
 		assert.deepStrictEqual({
-			elicitResult: sdk.elicitationResults[0],
+			elicitResult,
 			permissionMode: startup.permissionMode,
 		}, {
-			elicitResult: { action: 'accept', content: { side: 'left' } },
+			elicitResult: { action: 'cancel' },
 			permissionMode: 'default',
 		});
 	});
@@ -963,36 +796,25 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 
 		const services = new ServiceCollection(
 			[ILogService, logService],
-			[IAgentHostStartupPerformance, NullAgentHostStartupPerformance],
 			[ICopilotApiService, capi],
 			[IClaudeProxyService, realProxy],
 			[ISessionDataService, createSessionDataService()],
 			[IClaudeAgentSdkService, sdk],
-			[IAgentSdkDownloader, new RecordingAgentSdkDownloader()],
 			[IAgentPluginManager, {
 				_serviceBrand: undefined,
 				basePath: URI.from({ scheme: 'inmemory', path: '/agentPlugins' }),
-				hostPluginsPath: URI.from({ scheme: 'inmemory', path: '/agentPlugins/.host' }),
 				async syncCustomizations(_clientId: string, _customizations: ClientPluginCustomization[]) { return []; },
 			}],
 			[IAgentConfigurationService, configService],
-			[IAgentHostOTelService, noopOTelService],
-			[IAgentHostStateManager, stateManager],
-			[IAgentHostChatOwnershipService, createTestChatOwnershipService(stateManager)],
-			[IAgentHostSessionTitleSignal, disposables.add(new AgentHostSessionTitleSignal(stateManager))],
-			[IAgentHostGitHubEndpointService, createTestGitHubEndpointService()],
 			[IAgentHostGitService, createNoopGitService()],
-			[IAgentHostCheckpointService, NULL_CHECKPOINT_SERVICE],
-			[IAgentHostCustomizationEnablementService, createNoopCustomizationEnablementService()],
-			[IAgentHostAuthenticationService, createTestAuthenticationService()],
 			...claudeFileEnvServices(disposables),
 		);
 		const instantiationService = disposables.add(new InstantiationService(services));
 		const agent = disposables.add(instantiationService.createInstance(ClaudeAgent));
 
 		await agent.authenticate(GITHUB_COPILOT_PROTECTED_RESOURCE.resource, 'gh-int-test-token');
-		const created = await createSession(agent, { workingDirectories: [URI.file('/integration-cwd')] });
-		const sessionId = created.sessionId;
+		const created = await agent.createSession({ workingDirectory: URI.file('/integration-cwd') });
+		const sessionId = created.session.path.replace(/^\//, '');
 
 		// Canned turn: assistant says "reading", calls `Read`, the SDK
 		// invokes `canUseTool`, then a synthetic user `tool_result`
@@ -1019,14 +841,14 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 		];
 
 		const signals: AgentSignal[] = [];
-		disposables.add(agent.onDidChatProgress(s => {
+		disposables.add(agent.onDidSessionProgress(s => {
 			signals.push(s);
 			if (s.kind === 'pending_confirmation' && s.state.toolCallId === TOOL_USE_ID) {
 				agent.respondToPermissionRequest(TOOL_USE_ID, true);
 			}
 		}));
 
-		await agent.chats.sendMessage(created.chat, 'please read /tmp/x', undefined, undefined, 'turn-1', undefined, undefined, chatContext(created.chat, created.session));
+		await agent.sendMessage(created.session, 'please read /tmp/x', undefined, 'turn-1');
 
 		// Snapshot the agent-side emission stream as a single shape so
 		// the failure surface is the whole pipeline.
@@ -1078,7 +900,7 @@ suite('ClaudeAgent integration (proxy-backed)', function () {
 				// `Streaming`; `sessionPermissions` then emits a second Ready
 				// for the pending_confirmation card below.
 				{ kind: 'action', type: ActionType.ChatToolCallReady },
-				{ kind: 'pending_confirmation', toolCallId: TOOL_USE_ID, toolName: 'Read', permissionKind: AgentPermissionKind.Read, permissionPath: '/tmp/x' },
+				{ kind: 'pending_confirmation', toolCallId: TOOL_USE_ID, toolName: 'Read', permissionKind: 'read', permissionPath: '/tmp/x' },
 				{ kind: 'action', type: ActionType.ChatToolCallComplete, toolCallId: TOOL_USE_ID, success: true, content: [{ type: ToolResultContentType.Text, text: 'file contents' }] },
 				{ kind: 'action', type: ActionType.ChatResponsePart, partKind: ResponsePartKind.Markdown, content: '' },
 				{ kind: 'action', type: ActionType.ChatDelta, content: 'done' },

@@ -11,13 +11,10 @@
 		["(", ")"],
 		["[", ")"],
 		["(", "]"],
-		["\\{", "\\}"],
 		["\\left(", "\\right)"],
-		["\\left(", "\\right]"],
 		["\\left(", "\\right."],
 		["\\left.", "\\right)"],
 		["\\left[", "\\right]"],
-		["\\left[", "\\right)"],
 		["\\left[", "\\right."],
 		["\\left.", "\\right]"],
 		["\\left\\{", "\\right\\}"],
@@ -40,8 +37,6 @@
 		["\\lvert", "\\rvert"],
 		["\\lVert", "\\rVert"],
 		["\\left|", "\\right|"],
-		["\\left.", "\\right|"],
-		["\\left|", "\\right."],
 		["\\left\\vert", "\\right\\vert"],
 		["\\left\\|", "\\right\\|"],
 		["\\left\\Vert", "\\right\\Vert"],
@@ -119,7 +114,7 @@
 	"folding": {
 		"offSide": true,
 		"markers": {
-			"start": "^\\s*<!--\\s*#?region\\b\\s*(?<label>.*?)\\s*-->",
+			"start": "^\\s*<!--\\s*#?region\\b.*-->",
 			"end": "^\\s*<!--\\s*#?endregion\\b.*-->"
 		}
 	},

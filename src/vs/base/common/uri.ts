@@ -603,31 +603,21 @@ function encodeURIComponentFast(uriComponent: string, isPath: boolean, isAuthori
 }
 
 function encodeURIComponentMinimal(path: string): string {
-	let pos = path.indexOf('?');
-	const hashPos = path.indexOf('#');
-	if (pos === -1 || (hashPos !== -1 && hashPos < pos)) {
-		pos = hashPos;
-	}
-	if (pos === -1) {
-		return path;
-	}
-
-	let res = path.substring(0, pos);
-	let copyStart = pos;
-	for (; pos < path.length; pos++) {
+	let res: string | undefined = undefined;
+	for (let pos = 0; pos < path.length; pos++) {
 		const code = path.charCodeAt(pos);
 		if (code === CharCode.Hash || code === CharCode.QuestionMark) {
-			if (copyStart < pos) {
-				res += path.substring(copyStart, pos);
+			if (res === undefined) {
+				res = path.substr(0, pos);
 			}
 			res += encodeTable[code];
-			copyStart = pos + 1;
+		} else {
+			if (res !== undefined) {
+				res += path[pos];
+			}
 		}
 	}
-	if (copyStart < path.length) {
-		res += path.substring(copyStart);
-	}
-	return res;
+	return res !== undefined ? res : path;
 }
 
 /**
@@ -685,14 +675,14 @@ function _asFormatted(uri: URI, skipEncoding: boolean): string {
 			// <user>@<auth>
 			const userinfo = authority.substr(0, idx);
 			authority = authority.substr(idx + 1);
-			idx = userinfo.indexOf(':');
+			idx = userinfo.lastIndexOf(':');
 			if (idx === -1) {
 				res += encoder(userinfo, false, false);
 			} else {
 				// <user>:<pass>@<auth>
 				res += encoder(userinfo.substr(0, idx), false, false);
 				res += ':';
-				res += encoder(userinfo.substr(idx + 1), false, false);
+				res += encoder(userinfo.substr(idx + 1), false, true);
 			}
 			res += '@';
 		}
@@ -707,16 +697,15 @@ function _asFormatted(uri: URI, skipEncoding: boolean): string {
 		}
 	}
 	if (path) {
-		// HTTP paths are case-sensitive, even when their first segment resembles a drive letter.
-		const lowerScheme = scheme.toLowerCase();
+		// lower-case windows drive letters in /C:/fff or C:/fff
 		if (path.length >= 3 && path.charCodeAt(0) === CharCode.Slash && path.charCodeAt(2) === CharCode.Colon) {
 			const code = path.charCodeAt(1);
-			if (code >= CharCode.A && code <= CharCode.Z && lowerScheme !== 'http' && lowerScheme !== 'https') {
+			if (code >= CharCode.A && code <= CharCode.Z) {
 				path = `/${String.fromCharCode(code + 32)}:${path.substr(3)}`; // "/c:".length === 3
 			}
 		} else if (path.length >= 2 && path.charCodeAt(1) === CharCode.Colon) {
 			const code = path.charCodeAt(0);
-			if (code >= CharCode.A && code <= CharCode.Z && lowerScheme !== 'http' && lowerScheme !== 'https') {
+			if (code >= CharCode.A && code <= CharCode.Z) {
 				path = `${String.fromCharCode(code + 32)}:${path.substr(2)}`; // "/c:".length === 3
 			}
 		}

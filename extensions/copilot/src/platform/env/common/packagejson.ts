@@ -22,10 +22,6 @@ export interface PackageJSONShape {
 				[key: string]: {
 					default?: any;
 					tags?: string[];
-					agentsWindow?: {
-						default?: any;
-						readOnly?: boolean;
-					};
 				};
 			};
 		}[];

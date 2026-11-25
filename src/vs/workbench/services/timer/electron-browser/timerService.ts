@@ -68,16 +68,12 @@ export class TimerService extends AbstractTimerService {
 			info.loadavg = osStatistics.loadavg;
 			info.isARM64Emulated = isARM64Emulated;
 
-			// TODO(deepak1556): Re-enable with Electron 44; it can crash during shutdown (#344240).
-			if (false) {
-				// @ts-ignore.
-				const processMemoryInfo = await process.getProcessMemoryInfo();
-				info.meminfo = {
-					workingSetSize: processMemoryInfo.residentSet,
-					privateBytes: processMemoryInfo.private,
-					sharedBytes: processMemoryInfo.shared
-				};
-			}
+			const processMemoryInfo = await process.getProcessMemoryInfo();
+			info.meminfo = {
+				workingSetSize: processMemoryInfo.residentSet,
+				privateBytes: processMemoryInfo.private,
+				sharedBytes: processMemoryInfo.shared
+			};
 
 			info.isVMLikelyhood = Math.round((virtualMachineHint * 100));
 

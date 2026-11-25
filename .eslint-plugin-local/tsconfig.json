@@ -15,8 +15,8 @@
 		"useUnknownInCatchVariables": false,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"types": [
-			"node"
+		"typeRoots": [
+			"."
 		]
 	},
 	"include": [

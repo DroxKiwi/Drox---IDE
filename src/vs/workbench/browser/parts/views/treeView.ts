@@ -308,7 +308,7 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 			this.initializeShowRefreshAction();
 		});
 
-		this.treeViewDnd = this._register(this.instantiationService.createInstance(CustomTreeViewDragAndDrop, this.id));
+		this.treeViewDnd = this.instantiationService.createInstance(CustomTreeViewDragAndDrop, this.id);
 		if (this._dragAndDropController) {
 			this.treeViewDnd.controller = this._dragAndDropController;
 		}
@@ -794,9 +794,6 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 				this._onDidExpandItem.fire(element);
 			}
 		}));
-		// The view may have been laid out before the tree was created (e.g. a view that
-		// starts collapsed and is expanded later), so apply the last known dimensions.
-		this.layout(this._height, this._width);
 		this.tree.setInput(this.root).then(() => this.updateContentAreas());
 
 		this.treeDisposables.add(this.tree.onDidOpen(async (e) => {
@@ -1005,7 +1002,7 @@ abstract class AbstractTreeView extends Disposable implements ITreeView {
 	getOptimalWidth(): number {
 		if (this.tree) {
 			const parentNode = this.tree.getHTMLElement();
-			// eslint-disable-next-line eslint-js/no-restricted-syntax
+			// eslint-disable-next-line no-restricted-syntax
 			const childNodes = ([] as HTMLElement[]).slice.call(parentNode.querySelectorAll('.outline-item-label > a'));
 			return DOM.getLargestChildWidth(parentNode, childNodes);
 		}
@@ -1202,33 +1199,37 @@ class TreeDataSource implements IAsyncDataSource<ITreeItem, ITreeItem> {
 		return !!this.treeView.dataProvider && (element.collapsibleState !== TreeItemCollapsibleState.None);
 	}
 
-	private pendingBatch: { readonly elements: ITreeItem[]; readonly children: Promise<(readonly ITreeItem[])[] | undefined> } | undefined;
+	private batch: ITreeItem[] | undefined;
+	private batchPromise: Promise<(readonly ITreeItem[])[] | undefined> | undefined;
 	async getChildren(element: ITreeItem): Promise<readonly ITreeItem[]> {
 		const dataProvider = this.treeView.dataProvider;
 		if (!dataProvider) {
 			return [];
 		}
-		// Calls made in the same tick share one request. Each call reads its children from the batch it joined, so calls
-		// made once that request is sent, such as from the continuation of an earlier call, start a new batch.
-		if (!this.pendingBatch) {
-			const elements: ITreeItem[] = [];
-			const children = timeout(0).then(() => {
-				this.pendingBatch = undefined;
-				return this.withProgress(doGetChildrenOrBatch(dataProvider, elements));
-			});
-			this.pendingBatch = { elements, children };
+		if (this.batch === undefined) {
+			this.batch = [element];
+			this.batchPromise = undefined;
+		} else {
+			this.batch.push(element);
 		}
-		const batch = this.pendingBatch;
-		const index = batch.elements.push(element) - 1;
-		try {
-			const children = await batch.children;
-			return children?.[index] ?? [];
-		} catch (e) {
-			if ((<string>e.message).startsWith('Bad progress location:')) {
-				return [];
-			}
-			throw e;
-		}
+		const indexInBatch = this.batch.length - 1;
+		return new Promise<readonly ITreeItem[]>((resolve, reject) => {
+			setTimeout(async () => {
+				const batch = this.batch;
+				this.batch = undefined;
+				if (!this.batchPromise) {
+					this.batchPromise = this.withProgress(doGetChildrenOrBatch(dataProvider, batch));
+				}
+				try {
+					const result = await this.batchPromise;
+					resolve((result && (indexInBatch < result.length)) ? result[indexInBatch] : []);
+				} catch (e) {
+					if (!(<string>e.message).startsWith('Bad progress location:')) {
+						reject(e);
+					}
+				}
+			}, 0);
+		});
 	}
 }
 
@@ -1474,8 +1475,6 @@ class TreeRenderer extends Disposable implements ITreeRenderer<ITreeItem, FuzzyS
 				iconClass = ThemeIcon.asClassName(node.themeIcon);
 				if (node.themeIcon.color) {
 					templateData.icon.style.color = this.themeService.getColorTheme().getColor(node.themeIcon.color.id)?.toString() ?? '';
-				} else {
-					iconClass = iconClass + ' codicon-colored';
 				}
 			}
 			templateData.icon.className = iconClass ? `custom-view-tree-node-item-icon ${iconClass}` : '';
@@ -1678,12 +1677,6 @@ class Aligner extends Disposable {
 	private hasIcon(node: ITreeItem): boolean {
 		const icon = !isDark(this.themeService.getColorTheme().type) ? node.icon : node.iconDark;
 		if (icon) {
-			return true;
-		}
-		// `file` and `folder` ThemeIcons defer to the file icon theme only when the item has a resource.
-		// Any other ThemeIcon, or a `file`/`folder` ThemeIcon on an item without a resource, is always
-		// rendered as a codicon and therefore always has an icon regardless of the file icon theme.
-		if (node.themeIcon && (!node.resourceUri || (node.themeIcon.id !== FileThemeIcon.id && node.themeIcon.id !== FolderThemeIcon.id))) {
 			return true;
 		}
 		if (node.resourceUri || node.themeIcon) {
@@ -1918,7 +1911,7 @@ interface TreeDragSourceInfo {
 export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 	private readonly treeMimeType: string;
 	private readonly treeItemsTransfer = LocalSelectionTransfer.getInstance<DraggedTreeItemsIdentifier>();
-	private dragOperation: { uuid: string; controller: ITreeViewDragAndDropController; cancellationToken: CancellationTokenSource } | undefined;
+	private dragCancellationToken: CancellationTokenSource | undefined;
 
 	constructor(
 		private readonly treeId: string,
@@ -1931,22 +1924,7 @@ export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 
 	private dndController: ITreeViewDragAndDropController | undefined;
 	set controller(controller: ITreeViewDragAndDropController | undefined) {
-		this.cancelDragOperation();
 		this.dndController = controller;
-	}
-
-	private cancelDragOperation(): void {
-		const operation = this.dragOperation;
-		this.dragOperation = undefined;
-		if (!operation) {
-			return;
-		}
-		operation.cancellationToken.dispose(true);
-		this.treeViewsDragAndDropService.removeDragOperationTransfer(operation.uuid);
-		operation.controller.handleDragEnd?.(operation.uuid);
-		if (this.treeItemsTransfer.getData(DraggedTreeItemsIdentifier.prototype)?.[0].identifier === operation.uuid) {
-			this.treeItemsTransfer.clearData(DraggedTreeItemsIdentifier.prototype);
-		}
 	}
 
 	private handleDragAndLog(dndController: ITreeViewDragAndDropController, itemHandles: string[], uuid: string, dragCancellationToken: CancellationToken): Promise<VSDataTransfer | undefined> {
@@ -1972,10 +1950,8 @@ export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 		}
 		const uuid = generateUuid();
 
-		this.cancelDragOperation();
-		const cancellationToken = new CancellationTokenSource();
-		this.dragOperation = { uuid, controller: this.dndController, cancellationToken };
-		this.treeViewsDragAndDropService.addDragOperationTransfer(uuid, this.handleDragAndLog(this.dndController, itemHandles, uuid, cancellationToken.token));
+		this.dragCancellationToken = new CancellationTokenSource();
+		this.treeViewsDragAndDropService.addDragOperationTransfer(uuid, this.handleDragAndLog(this.dndController, itemHandles, uuid, this.dragCancellationToken.token));
 		this.treeItemsTransfer.setData([new DraggedTreeItemsIdentifier(uuid)], DraggedTreeItemsIdentifier.prototype);
 		originalEvent.dataTransfer.clearData(Mimes.text);
 		if (this.dndController.dragMimeTypes.find((element) => element === Mimes.uriList)) {
@@ -2125,17 +2101,11 @@ export class CustomTreeViewDragAndDrop implements ITreeDragAndDrop<ITreeItem> {
 	onDragEnd(originalEvent: DragEvent): void {
 		// Check if the drag was cancelled.
 		if (originalEvent.dataTransfer?.dropEffect === 'none') {
-			this.cancelDragOperation();
-		} else {
-			// A successful drop may still be awaiting its additional transfer data.
-			this.dragOperation?.cancellationToken.dispose();
-			this.dragOperation = undefined;
+			this.dragCancellationToken?.cancel();
 		}
 	}
 
-	dispose(): void {
-		this.cancelDragOperation();
-	}
+	dispose(): void { }
 }
 
 function setCascadingCheckboxUpdates(items: readonly ITreeItem[]) {

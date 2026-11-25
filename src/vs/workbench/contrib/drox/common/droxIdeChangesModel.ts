@@ -8,9 +8,9 @@
 import { basename } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
-import { IChatSessionFileChange2 } from '../../../common/chatSessionFileChange.js';
+import { IChatSessionFileChange2 } from '../../chat/common/chatSessionsService.js';
 import { IGitService } from '../../git/common/gitService.js';
-import { ISessionFileChange } from '../../../services/sessions/common/session.js';
+import { ISessionFileChange } from '../../../../sessions/services/sessions/common/session.js';
 import { DroxChatSessionUri } from './droxAgentsSession.js';
 import { discoverGitRoots, matchGitRootForPath } from './droxDiscoverGitRoots.js';
 import { droxChangeEventKey } from './droxChangeEventKey.js';

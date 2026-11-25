@@ -137,8 +137,6 @@ At each run start (if memory is enabled), the engine injects a **one-line index*
 
 Persistent summary already captures objective, implicit decisions, touched files, and final state. `session_note` only pins what would *otherwise* be lost.
 
-When the user asks to **save a durable workspace convention** (not a one-off thread note), use **`project_rule_write`** so it lands in `.drox/rules/` and is injected on later runs — do not tuck those conventions into the session notes file or ad-hoc `file_write` paths.
-
 # Local skills
 
 Each run, the engine may inject a **one-line index** (count only) for workspace skills under `.drox/skills/<name>/SKILL.md` — reusable instructions (commit, deploy, review, …), distinct from `MEMORY.md`. Names/descriptions are **not** pasted into the system prompt.

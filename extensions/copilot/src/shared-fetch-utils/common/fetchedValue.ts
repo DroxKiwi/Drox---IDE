@@ -28,13 +28,6 @@ export interface FetchedValueOptions<T> {
 	 * is re-fetched periodically regardless of whether it is being read.
 	 */
 	keepCacheHot?: boolean;
-
-	/**
-	 * Returns how long a failed fetch should prevent another attempt.
-	 *
-	 * {@link FetchBlockedError.retryAfterMs} always takes precedence.
-	 */
-	getRetryAfterMs?: (error: unknown) => number | undefined;
 }
 
 /**
@@ -66,19 +59,15 @@ export class FetchedValue<T> {
 	private _value: T | undefined;
 	private _hasFetched = false;
 	private _inflightFetch: Promise<T> | undefined;
-	private _blockedFailure: { readonly error: unknown; readonly until: number; readonly returnCachedValue: boolean } | undefined;
-	private _generation = 0;
 	private _disposed = false;
 	private _keepCacheHotTimer: ReturnType<typeof setInterval> | undefined;
 
 	private _fetch: (() => Promise<T>) | undefined;
 	private readonly _isStale: (value: T) => boolean;
-	private readonly _getRetryAfterMs: ((error: unknown) => number | undefined) | undefined;
 
 	constructor(options: FetchedValueOptions<T>) {
 		this._fetch = options.fetch;
 		this._isStale = options.isStale;
-		this._getRetryAfterMs = options.getRetryAfterMs;
 		if (options.keepCacheHot) {
 			this._keepCacheHotTimer = setInterval(() => {
 				this.resolve().catch(() => { /* swallow — next interval will retry */ });
@@ -108,49 +97,22 @@ export class FetchedValue<T> {
 		if (!force && this._hasFetched && !this._isStale(this._value as T)) {
 			return this._value as T;
 		}
-		if (!force && this._blockedFailure) {
-			if (Date.now() < this._blockedFailure.until) {
-				if (this._blockedFailure.returnCachedValue && this._hasFetched) {
-					return this._value as T;
-				}
-				throw this._blockedFailure.error;
-			}
-			this._blockedFailure = undefined;
-		}
 		if (this._inflightFetch) {
 			return this._inflightFetch;
 		}
-		const inflightFetch = this._doFetch(this._generation);
-		this._inflightFetch = inflightFetch;
+		this._inflightFetch = this._doFetch();
 		try {
-			return await inflightFetch;
+			return await this._inflightFetch;
 		} finally {
-			if (this._inflightFetch === inflightFetch) {
-				this._inflightFetch = undefined;
-			}
+			this._inflightFetch = undefined;
 		}
-	}
-
-	/**
-	 * Clears the cached value and retry state. In-flight work may finish for its caller, but cannot
-	 * repopulate this cache.
-	 */
-	invalidate(): void {
-		this._throwIfDisposed();
-		this._generation++;
-		this._value = undefined;
-		this._hasFetched = false;
-		this._inflightFetch = undefined;
-		this._blockedFailure = undefined;
 	}
 
 	dispose(): void {
 		this._disposed = true;
-		this._generation++;
 		this._value = undefined;
 		this._hasFetched = false;
 		this._inflightFetch = undefined;
-		this._blockedFailure = undefined;
 		this._fetch = undefined;
 		if (this._keepCacheHotTimer !== undefined) {
 			clearInterval(this._keepCacheHotTimer);
@@ -158,25 +120,17 @@ export class FetchedValue<T> {
 		}
 	}
 
-	private async _doFetch(generation: number): Promise<T> {
+	private async _doFetch(): Promise<T> {
 		this._throwIfDisposed();
 		try {
 			const newValue = await this._fetch!();
 			this._throwIfDisposed();
-			if (generation === this._generation) {
-				this._value = newValue;
-				this._hasFetched = true;
-				this._blockedFailure = undefined;
-			}
+			this._value = newValue;
+			this._hasFetched = true;
 			return newValue;
 		} catch (err) {
-			const retryAfterMs = err instanceof FetchBlockedError ? err.retryAfterMs : this._getRetryAfterMs?.(err);
-			if (generation === this._generation && retryAfterMs !== undefined && retryAfterMs > 0) {
-				const returnCachedValue = err instanceof FetchBlockedError;
-				this._blockedFailure = { error: err, until: Date.now() + retryAfterMs, returnCachedValue };
-				if (returnCachedValue && this._hasFetched) {
-					return this._value as T;
-				}
+			if (err instanceof FetchBlockedError && this._hasFetched) {
+				return this._value as T;
 			}
 			throw err;
 		}
@@ -188,3 +142,5 @@ export class FetchedValue<T> {
 		}
 	}
 }
+
+

@@ -4,43 +4,21 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { registerSingleton, InstantiationType } from '../../../../platform/instantiation/common/extensions.js';
-import { IBrowserViewWorkbenchService, IBrowserViewCDPService, IBrowserViewModel, IBrowserViewContextualFilter, IBrowserViewOpenHandler, IBrowserViewWorkbenchCreateOptions, IBrowserViewNetworkProxyProvider, IBrowserViewNetworkResolver, IBrowserViewNetworkStatus } from '../common/browserView.js';
-import type { PreferredGroup } from '../../../services/editor/common/editorService.js';
+import { IBrowserViewWorkbenchService, IBrowserViewCDPService, IBrowserViewModel, IBrowserEditorViewState, IBrowserViewContextualFilter, IBrowserViewOpenHandler } from '../common/browserView.js';
 import { Event } from '../../../../base/common/event.js';
-import { Schemas } from '../../../../base/common/network.js';
-import { Disposable, IDisposable, IReference } from '../../../../base/common/lifecycle.js';
-import { IBrowserViewEditorOpenOptions, IBrowserViewNetwork, IBrowserViewNetworkFileSystem } from '../../../../platform/browserView/common/browserView.js';
+import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { CDPEvent, CDPRequest, CDPResponse } from '../../../../platform/browserView/common/cdp/types.js';
-import { BrowserEditorInput, IBrowserEditorInputData } from '../common/browserEditorInput.js';
+import { ITunnelProxyInfo } from '../../../../platform/tunnel/common/tunnelProxy.js';
+import { BrowserEditorInput } from '../common/browserEditorInput.js';
 
 class WebBrowserViewWorkbenchService implements IBrowserViewWorkbenchService {
 	declare readonly _serviceBrand: undefined;
 
-	resolveNetwork(): undefined {
-		return undefined;
+	willUseRemoteProxy(): boolean {
+		return false;
 	}
 
-	getNetworkFileSystem(): IBrowserViewNetworkFileSystem {
-		return { scheme: Schemas.vscodeRemote, caseSensitive: true };
-	}
-
-	async acquireNetwork(): Promise<IReference<undefined>> {
-		return { object: undefined, dispose: () => { } };
-	}
-
-	getNetworkStatus(network: IBrowserViewNetwork): IBrowserViewNetworkStatus {
-		return { label: network.authority, connected: false, proxySupported: false };
-	}
-
-	readonly onDidChangeNetworkStatus = Event.None;
-
-	registerNetworkResolver(_resolver: IBrowserViewNetworkResolver): IDisposable {
-		return Disposable.None;
-	}
-
-	registerNetworkProxyProvider(_provider: IBrowserViewNetworkProxyProvider): IDisposable {
-		return Disposable.None;
-	}
+	setRemoteProxyInfo(_info: ITunnelProxyInfo | undefined): void { }
 
 	readonly onDidChangeBrowserViews = Event.None;
 	readonly onDidChangeSharingAvailable = Event.None;
@@ -60,23 +38,11 @@ class WebBrowserViewWorkbenchService implements IBrowserViewWorkbenchService {
 		return this._known;
 	}
 
-	async getPreferredGroup(preferredGroup?: PreferredGroup, _sourceWindowId?: number): Promise<PreferredGroup | undefined> {
-		return preferredGroup;
-	}
-
 	registerOpenHandler(_handler: IBrowserViewOpenHandler): IDisposable {
 		return Disposable.None;
 	}
 
-	async createBrowserView(_options: IBrowserViewWorkbenchCreateOptions, _editorOpenOptions?: IBrowserViewEditorOpenOptions): Promise<BrowserEditorInput> {
-		throw new Error('Integrated Browser is not available in web.');
-	}
-
-	async createExternalBrowserView(_initialUrl: string): Promise<IBrowserViewModel> {
-		throw new Error('External browser views are not available in web.');
-	}
-
-	getOrCreateLazy(_data: IBrowserEditorInputData): BrowserEditorInput {
+	getOrCreateLazy(_id: string, _state: IBrowserEditorViewState): BrowserEditorInput {
 		throw new Error('Integrated Browser is not available in web.');
 	}
 

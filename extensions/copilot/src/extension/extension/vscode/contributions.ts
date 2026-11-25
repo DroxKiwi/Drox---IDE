@@ -8,7 +8,6 @@ import { asContributionFactory, IExtensionContributionFactory } from '../../comm
 import * as contextContribution from '../../context/vscode/context.contribution';
 import { LifecycleTelemetryContrib } from '../../telemetry/common/lifecycleTelemetryContrib';
 import { GithubTelemetryForwardingContrib } from '../../telemetry/vscode/githubTelemetryForwardingContrib';
-import { ChatModelFeedbackSurveyForwardingContrib } from '../../telemetry/vscode/chatModelFeedbackSurveyForwardingContrib';
 
 // ###############################################################################
 // ###                                                                         ###
@@ -22,7 +21,6 @@ const vscodeContributions: IExtensionContributionFactory[] = [
 	asContributionFactory(LifecycleTelemetryContrib),
 	asContributionFactory(NesActivationTelemetryContribution),
 	asContributionFactory(GithubTelemetryForwardingContrib),
-	asContributionFactory(ChatModelFeedbackSurveyForwardingContrib),
 	contextContribution,
 ];
 

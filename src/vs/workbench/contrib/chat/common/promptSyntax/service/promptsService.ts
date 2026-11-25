@@ -11,7 +11,6 @@ import { ITextModel } from '../../../../../../editor/common/model.js';
 import { ExtensionIdentifier, IExtensionDescription } from '../../../../../../platform/extensions/common/extensions.js';
 import { createDecorator } from '../../../../../../platform/instantiation/common/instantiation.js';
 import { IChatModeInstructions, IVariableReference } from '../../chatModes.js';
-import { ChatModeKind } from '../../constants.js';
 import { PromptFileSource, PromptsType, Target } from '../promptTypes.js';
 import { IHandOff, ParsedPromptFile } from '../promptFileParser.js';
 import { ResourceSet } from '../../../../../../base/common/map.js';
@@ -30,7 +29,6 @@ export interface InstructionsCollectionDebugEntry {
 }
 
 export type InstructionsCollectionEvent = {
-	provider?: string;
 	applyingInstructionsCount: number;
 	referencedInstructionsCount: number;
 	agentInstructionsCount: number;
@@ -119,18 +117,13 @@ export enum PromptsStorage {
 	user = 'user',
 	extension = 'extension',
 	plugin = 'plugin',
-	builtIn = 'builtin',
-}
-
-export function isUserToggleableCustomization(type: PromptsType, storage: PromptsStorage): boolean {
-	return type === PromptsType.skill && storage === PromptsStorage.builtIn;
 }
 
 /**
  * Represents a prompt path with its type.
  * This is used for both prompt files and prompt source folders.
  */
-export type IPromptPath = IExtensionPromptPath | ILocalPromptPath | IUserPromptPath | IPluginPromptPath | IBuiltinPromptPath;
+export type IPromptPath = IExtensionPromptPath | ILocalPromptPath | IUserPromptPath | IPluginPromptPath;
 
 
 export interface IPromptPathBase {
@@ -205,29 +198,14 @@ export interface IPluginPromptPath extends IPromptPathBase {
 	readonly source: PromptFileSource.Plugin;
 }
 
-/**
- * Prompt path for built-in prompts bundled with the application (e.g. skills
- * shipped with the Agents app). These are read-only and provided by
- * {@link IPromptsService.listPromptFiles}/`listPromptFilesForStorage`.
- */
-export interface IBuiltinPromptPath extends IPromptPathBase {
-	readonly storage: PromptsStorage.builtIn;
-}
-
-export function isBuiltinPromptPath(obj: IPromptPath): obj is IBuiltinPromptPath {
-	return obj.storage === PromptsStorage.builtIn;
-}
-
-export type IAgentSource = ({
+export type IAgentSource = {
 	readonly storage: PromptsStorage.extension;
 	readonly extensionId: ExtensionIdentifier;
 } | {
-	readonly storage: PromptsStorage.local | PromptsStorage.user | PromptsStorage.builtIn;
+	readonly storage: PromptsStorage.local | PromptsStorage.user;
 } | {
 	readonly storage: PromptsStorage.plugin;
 	readonly pluginUri: URI;
-}) & {
-	readonly label?: string;
 };
 
 export namespace IAgentSource {
@@ -248,7 +226,7 @@ export namespace IAgentSource {
 		if (!a || !b) {
 			return false;
 		}
-		if (a.storage !== b.storage || a.label !== b.label) {
+		if (a.storage !== b.storage) {
 			return false;
 		}
 		if (a.storage === PromptsStorage.extension && b.storage === PromptsStorage.extension) {
@@ -283,18 +261,10 @@ export function isCustomAgentVisibility(obj: unknown): obj is ICustomAgentVisibi
 export interface ICustomAgent {
 
 	readonly id: string;
-	/** Optional Ask semantics for a host-provided read-only agent. */
-	readonly kind?: ChatModeKind.Ask;
 	/**
 	 * URI of a custom agent file.
 	 */
 	readonly uri: URI;
-
-	/**
-	 * Original location of an agent that was copied for another host, such as a VS Code agent synced to an Agent Host.
-	 * Provenance checks, like whether an agent is organization-provided, need it because {@link uri} is the copy.
-	 */
-	readonly sourceUri?: URI;
 
 	/**
 	 * Name of the custom agent as used in prompt files or contexts
@@ -315,9 +285,6 @@ export interface ICustomAgent {
 	 * Model metadata in the prompt header.
 	 */
 	readonly model?: readonly string[];
-	/** Reasoning effort metadata in the prompt header. */
-	readonly reasoningEffort?: string;
-	readonly modelPolicy?: 'preferred' | 'required';
 
 	/**
 	 * Argument hint metadata in the prompt header that describes what inputs the agent expects or supports.
@@ -397,7 +364,7 @@ export interface IChatPromptSlashCommand {
 }
 
 export interface IResolvedChatPromptSlashCommand extends IChatPromptSlashCommand {
-	readonly parsedPromptFile?: ParsedPromptFile;
+	readonly parsedPromptFile: ParsedPromptFile;
 }
 
 
@@ -490,9 +457,7 @@ export enum AgentInstructionFileType {
 	agentsMd = 'agentsMd',
 	claudeMd = 'claudeMd',
 	copilotInstructionsMd = 'copilotInstructionsMd',
-	// DROX-BEGIN
 	droxMd = 'droxMd',
-	// DROX-END
 }
 
 /**
@@ -637,9 +602,9 @@ export interface IPromptsService extends IDisposable {
 	listPromptFiles(type: PromptsType, token: CancellationToken): Promise<readonly IPromptPath[]>;
 
 	/**
-	 * Lists all available prompt files from a storage location. For local storage, root scopes relative locations; it is ignored for other storages, and without it the current workspace folders are used.
+	 * List all available prompt files.
 	 */
-	listPromptFilesForStorage(type: PromptsType, storage: PromptsStorage, token: CancellationToken, root?: URI): Promise<readonly IPromptPath[]>;
+	listPromptFilesForStorage(type: PromptsType, storage: PromptsStorage, token: CancellationToken): Promise<readonly IPromptPath[]>;
 
 	/**
 	 * Get a list of prompt source folders based on the provided prompt type.
@@ -699,11 +664,6 @@ export interface IPromptsService extends IDisposable {
 	readonly onDidChangeInstructions: Event<void>;
 
 	/**
-	 * Event that is triggered when the list of agent instruction files changes.
-	 */
-	readonly onDidChangeAgentInstructions: Event<void>;
-
-	/**
 	 * Finds all available custom agents
 	 */
 	getCustomAgents(token: CancellationToken): Promise<readonly ICustomAgent[]>;
@@ -733,18 +693,6 @@ export interface IPromptsService extends IDisposable {
 	 * Combines results from listAgentMDs (non-nested), listClaudeMDs, and listCopilotInstructionsMDs.
 	 */
 	listAgentInstructions(token: CancellationToken, logger?: Logger): Promise<IAgentInstructionFile[]>;
-
-	/**
-	 * Gets the combined voice customization from `~/.copilot/voice.md` and each
-	 * trusted workspace's `.github/voice.md`.
-	 */
-	getVoiceInstructions(token: CancellationToken): Promise<string | undefined>;
-
-	/**
-	 * Gets the combined dictation customization from `~/.copilot/dictation.md`
-	 * and each trusted workspace's `.github/dictation.md`.
-	 */
-	getDictationInstructions(token: CancellationToken): Promise<string | undefined>;
 
 	/**
 	 * For a chat mode file URI, return the name of the agent file that it should use.

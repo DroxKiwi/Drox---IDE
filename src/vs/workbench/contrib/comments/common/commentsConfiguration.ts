@@ -12,10 +12,3 @@ export interface ICommentsConfiguration {
 }
 
 export const COMMENTS_SECTION = 'comments';
-
-export const COMMENTS_THREAD_EXPERIMENTAL_STYLE_SETTING = 'comments.thread.experimental.style';
-
-/**
- * How comment threads are shown in the editor: between the lines of code, or floating above them.
- */
-export type CommentThreadStyle = 'inline' | 'floating';

@@ -30,7 +30,7 @@ suite('FindTextInFilesResult', () => {
 		const clz = class extends PromptElement {
 			render() {
 				return <UserMessage>
-					<FindTextInFilesResult textResults={results} maxResults={20} maxResultsCap={200} />
+					<FindTextInFilesResult textResults={results} maxResults={20} />
 				</UserMessage>;
 			}
 		};
@@ -207,7 +207,6 @@ suite('FindTextInFilesGrepResult', () => {
 			files: [
 				{
 					path: '/src/a.ts',
-					uri: URI.file('/src/a.ts'),
 					matches: [lineMatch(URI.file('/src/a.ts'), 5, 'const a = 1;'), lineMatch(URI.file('/src/a.ts'), 9, 'const b = 2;')],
 				},
 			],
@@ -226,12 +225,10 @@ suite('FindTextInFilesGrepResult', () => {
 			files: [
 				{
 					path: '/src/a.ts',
-					uri: URI.file('/src/a.ts'),
 					matches: [lineMatch(URI.file('/src/a.ts'), 5, 'alpha')],
 				},
 				{
 					path: '/src/b.ts',
-					uri: URI.file('/src/b.ts'),
 					matches: [lineMatch(URI.file('/src/b.ts'), 1, 'beta'), lineMatch(URI.file('/src/b.ts'), 3, 'gamma')],
 					elidedMatches: 1,
 				},
@@ -259,7 +256,6 @@ suite('FindTextInFilesGrepResult', () => {
 			files: [
 				{
 					path: '/src/big.ts',
-					uri: URI.file('/src/big.ts'),
 					matches: [{
 						uri,
 						previewText,
@@ -288,7 +284,6 @@ suite('FindTextInFilesGrepResult', () => {
 			files: [
 				{
 					path: '/src/big.ts',
-					uri: URI.file('/src/big.ts'),
 					matches: [{
 						uri,
 						previewText,

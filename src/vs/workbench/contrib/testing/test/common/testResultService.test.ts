@@ -44,8 +44,6 @@ suite('Workbench - Test Results Service', () => {
 	let insertCounter = 0;
 
 	class TestLiveTestResult extends LiveTestResult {
-		public disposed = false;
-
 		constructor(
 			id: string,
 			persist: boolean,
@@ -57,11 +55,6 @@ suite('Workbench - Test Results Service', () => {
 
 		public setAllToStatePublic(state: TestResultState, taskId: string, when: (task: ITestTaskState, item: TestResultItem) => boolean) {
 			this.setAllToState(state, taskId, when);
-		}
-
-		public override dispose(): void {
-			this.disposed = true;
-			super.dispose();
 		}
 	}
 
@@ -260,7 +253,6 @@ suite('Workbench - Test Results Service', () => {
 			expected.item.children = undefined;
 			expected.retired = true;
 			delete expected.children;
-			delete expected.computedStateCache;
 			assert.deepStrictEqual(actual, { ...expected });
 			assert.deepStrictEqual(rehydrated.counts, r.counts);
 			assert.strictEqual(typeof rehydrated.completedAt, 'number');
@@ -280,7 +272,6 @@ suite('Workbench - Test Results Service', () => {
 			results.clear();
 
 			assert.deepStrictEqual(results.results, [r2]);
-			assert.strictEqual(r.disposed, true);
 		});
 
 		test('keeps ongoing tests on top, restored order when done', async () => {
@@ -339,19 +330,6 @@ suite('Workbench - Test Results Service', () => {
 			const hydrated2 = await makeHydrated(30);
 			results.push(hydrated2);
 			assert.deepStrictEqual(results.results, [r, hydrated1, hydrated2]);
-		});
-
-		test('disposes a completed result that is immediately evicted', async () => {
-			const newerCompletedAt = Date.now() + 1000;
-			for (let i = 0; i < 128; i++) {
-				results.push(await makeHydrated(newerCompletedAt + i));
-			}
-
-			const older = new TestLiveTestResult('older', false, defaultOpts([]));
-			older.markComplete();
-			results.push(older);
-
-			assert.deepStrictEqual({ retained: results.results.includes(older), disposed: older.disposed }, { retained: false, disposed: true });
 		});
 	});
 

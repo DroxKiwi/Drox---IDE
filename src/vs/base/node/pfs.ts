@@ -9,7 +9,7 @@ import { promisify } from 'util';
 import { ResourceQueue, timeout } from '../common/async.js';
 import { isEqualOrParent, isRootOrDriveLetter, randomPath } from '../common/extpath.js';
 import { normalizeNFC } from '../common/normalization.js';
-import { basename, dirname, join, normalize, resolve, sep } from '../common/path.js';
+import { basename, dirname, join, normalize, sep } from '../common/path.js';
 import { isLinux, isMacintosh, isWindows } from '../common/platform.js';
 import { extUriBiasedIgnorePathCase } from '../common/resources.js';
 import { URI } from '../common/uri.js';
@@ -500,7 +500,13 @@ async function rename(source: string, target: string, windowsRetryTimeout: numbe
 	}
 
 	try {
-		await renameAtomic(source, target, windowsRetryTimeout);
+		if (isWindows && typeof windowsRetryTimeout === 'number') {
+			// On Windows, a rename can fail when either source or target
+			// is locked by AV software.
+			await renameWithRetry(source, target, Date.now(), windowsRetryTimeout);
+		} else {
+			await fs.promises.rename(source, target);
+		}
 	} catch (error) {
 		// In two cases we fallback to classic copy and delete:
 		//
@@ -519,21 +525,9 @@ async function rename(source: string, target: string, windowsRetryTimeout: numbe
 	}
 }
 
-/** Renames without copy/delete fallback, retaining Windows retries for transient errors. */
-async function renameAtomic(source: string, target: string, windowsRetryTimeout: number | false = 60000, renameFn: typeof fs.promises.rename = fs.promises.rename): Promise<void> {
-	if (source === target) {
-		return;
-	}
-	if (isWindows && typeof windowsRetryTimeout === 'number') {
-		await renameWithRetry(source, target, Date.now(), windowsRetryTimeout, 0, renameFn);
-	} else {
-		await renameFn(source, target);
-	}
-}
-
-async function renameWithRetry(source: string, target: string, startTime: number, retryTimeout: number, attempt: number, renameFn: typeof fs.promises.rename): Promise<void> {
+async function renameWithRetry(source: string, target: string, startTime: number, retryTimeout: number, attempt = 0): Promise<void> {
 	try {
-		return await renameFn(source, target);
+		return await fs.promises.rename(source, target);
 	} catch (error) {
 		if (error.code !== 'EACCES' && error.code !== 'EPERM' && error.code !== 'EBUSY') {
 			throw error; // only for errors we think are temporary
@@ -565,7 +559,7 @@ async function renameWithRetry(source: string, target: string, startTime: number
 		await timeout(Math.min(100, attempt * 10));
 
 		// Attempt again
-		return renameWithRetry(source, target, startTime, retryTimeout, attempt + 1, renameFn);
+		return renameWithRetry(source, target, startTime, retryTimeout, attempt + 1);
 	}
 }
 
@@ -730,17 +724,14 @@ export async function realcase(path: string, token?: CancellationToken): Promise
 	return null;
 }
 
-async function realpath(path: string, options?: { readonly strict?: boolean }): Promise<string> {
+async function realpath(path: string): Promise<string> {
 	try {
 		// DO NOT USE `fs.promises.realpath` here as it internally
 		// calls `fs.native.realpath` which will result in subst
 		// drives to be resolved to their target on Windows
 		// https://github.com/microsoft/vscode/issues/118562
 		return await promisify(fs.realpath)(path);
-	} catch (error) {
-		if (options?.strict) {
-			throw error;
-		}
+	} catch {
 
 		// We hit an error calling fs.realpath(). Since fs.realpath() is doing some path normalization
 		// we now do a similar normalization and then try again if we can access the path with read
@@ -836,10 +827,7 @@ export const Promises = new class {
 		};
 	}
 
-	get readFile() { return promisify(fs.readFile); }
-
 	get fdatasync() { return promisify(fs.fdatasync); } // not exposed as API in 22.x yet
-	get fstat() { return promisify(fs.fstat); } 		// not exposed as API due to the `FileHandle` return type of `open`
 
 	get open() { return promisify(fs.open); } 			// changed to return `FileHandle` in promise API
 	get close() { return promisify(fs.close); } 		// not exposed as API due to the `FileHandle` return type of `open`
@@ -849,23 +837,6 @@ export const Promises = new class {
 	//#endregion
 
 	//#region Implemented by us
-
-	/** Returns available filesystem bytes, using the nearest existing ancestor for a missing path. */
-	async getFreeDiskSpace(path: string): Promise<number> {
-		path = resolve(path);
-		while (true) {
-			try {
-				const { bavail, bsize } = await fs.promises.statfs(path);
-				return bavail * bsize;
-			} catch (error) {
-				const parent = dirname(path);
-				if (error.code !== 'ENOENT' || parent === path) {
-					throw error;
-				}
-				path = parent;
-			}
-		}
-	}
 
 	async exists(path: string): Promise<boolean> {
 		try {
@@ -885,7 +856,6 @@ export const Promises = new class {
 	get rm() { return rimraf; }
 
 	get rename() { return rename; }
-	get renameAtomic() { return renameAtomic; }
 	get copy() { return copy; }
 
 	get realpath() { return realpath; }	// `fs.promises.realpath` will use `fs.realpath.native` which we do not want

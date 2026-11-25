@@ -12,7 +12,6 @@ import { Event, Emitter } from '../../../../base/common/event.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { Disposable, DisposableResourceMap, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { UntitledTextEditorOrigin } from '../../../common/editor.js';
 
 export const IUntitledTextEditorService = createDecorator<IUntitledTextEditorService>('untitledTextEditorService');
 
@@ -33,11 +32,6 @@ export interface INewUntitledTextEditorOptions {
 	 * Preferred encoding to use when saving the untitled editor.
 	 */
 	encoding?: string;
-
-	/**
-	 * Where the untitled editor is created from. Only used for telemetry.
-	 */
-	origin?: UntitledTextEditorOrigin;
 }
 
 export interface IExistingUntitledTextEditorOptions extends INewUntitledTextEditorOptions {
@@ -262,7 +256,6 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 		// Take over encoding and initial value
 		massagedOptions.encoding = options.encoding;
 		massagedOptions.initialValue = options.initialValue;
-		massagedOptions.origin = options.origin;
 
 		return massagedOptions;
 	}
@@ -280,7 +273,7 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 		}
 
 		// Create new model with provided options
-		const model = this.instantiationService.createInstance(UntitledTextEditorModel, untitledResource, !!options.associatedResource, options.initialValue, options.languageId, options.encoding, options.origin);
+		const model = this.instantiationService.createInstance(UntitledTextEditorModel, untitledResource, !!options.associatedResource, options.initialValue, options.languageId, options.encoding);
 
 		this.registerModel(model);
 

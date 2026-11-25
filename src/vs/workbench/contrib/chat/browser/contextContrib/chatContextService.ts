@@ -20,22 +20,12 @@ export const IChatContextService = createDecorator<IChatContextService>('chatCon
 
 export interface IChatContextService extends ChatContextService { }
 
-/**
- * A selector describing which tabs a resource context provider applies to. Either a
- * {@link LanguageSelector} matched against a resource's URI, or a webview `viewType`.
- */
-export type ChatTabSelector = { uri: LanguageSelector } | { viewType: string };
-
-function isViewTypeTabSelector(selector: ChatTabSelector): selector is { viewType: string } {
-	return (selector as { viewType?: string }).viewType !== undefined;
-}
-
 interface IChatContextProviderEntry {
 	picker?: { title: string; icon: ThemeIcon };
 	workspaceProvider?: IChatWorkspaceContextProvider;
 	explicitProvider?: IChatExplicitContextProvider;
 	resourceProvider?: {
-		selector: ChatTabSelector;
+		selector: LanguageSelector;
 		provider: IChatResourceContextProvider;
 	};
 }
@@ -96,7 +86,7 @@ export class ChatContextService extends Disposable {
 		this._registerWithPickService(id);
 	}
 
-	registerChatResourceContextProvider(id: string, selector: ChatTabSelector, provider: IChatResourceContextProvider): void {
+	registerChatResourceContextProvider(id: string, selector: LanguageSelector, provider: IChatResourceContextProvider): void {
 		const providerEntry = this._providers.get(id) ?? {};
 		providerEntry.resourceProvider = { selector, provider };
 		this._providers.set(id, providerEntry);
@@ -132,20 +122,17 @@ export class ChatContextService extends Disposable {
 		return items;
 	}
 
-	async contextForResource(uri: URI, language?: string, viewType?: string): Promise<StringChatContextValue | undefined> {
-		return this._contextForResource(uri, false, language, viewType);
+	async contextForResource(uri: URI, language?: string): Promise<StringChatContextValue | undefined> {
+		return this._contextForResource(uri, false, language);
 	}
 
-	private async _contextForResource(uri: URI, withValue: boolean, language?: string, viewType?: string): Promise<StringChatContextValue | undefined> {
+	private async _contextForResource(uri: URI, withValue: boolean, language?: string): Promise<StringChatContextValue | undefined> {
 		const scoredProviders: Array<{ score: number; provider: IChatResourceContextProvider }> = [];
 		for (const providerEntry of this._providers.values()) {
 			if (!providerEntry.resourceProvider) {
 				continue;
 			}
-			const selector = providerEntry.resourceProvider.selector;
-			const matchScore = isViewTypeTabSelector(selector)
-				? (viewType !== undefined && selector.viewType === viewType ? 10 : 0)
-				: score(selector.uri, uri, language ?? '', true, undefined, undefined);
+			const matchScore = score(providerEntry.resourceProvider.selector, uri, language ?? '', true, undefined, undefined);
 			scoredProviders.push({ score: matchScore, provider: providerEntry.resourceProvider.provider });
 		}
 		scoredProviders.sort((a, b) => b.score - a.score);
@@ -153,7 +140,7 @@ export class ChatContextService extends Disposable {
 			return;
 		}
 		const provider = scoredProviders[0].provider;
-		const context = (await provider.provideChatContext(uri, withValue, viewType, CancellationToken.None));
+		const context = (await provider.provideChatContext(uri, withValue, CancellationToken.None));
 		if (!context) {
 			return;
 		}
@@ -163,7 +150,7 @@ export class ChatContextService extends Disposable {
 		const contextValue: StringChatContextValue = {
 			value: undefined,
 			name: derivedLabel,
-			iconPath: context.iconPath,
+			icon: context.icon,
 			uri: uri,
 			resourceUri: context.resourceUri,
 			modelDescription: context.modelDescription,
@@ -225,14 +212,9 @@ export class ChatContextService extends Disposable {
 					return items.map(item => {
 						// Derive label from resourceUri if label is not set
 						const derivedLabel = item.label ?? (item.resourceUri ? basename(item.resourceUri) : 'Unknown');
-						const iconPath = item.iconPath;
-						const isThemeIcon = ThemeIcon.isThemeIcon(iconPath);
 						return {
 							label: derivedLabel,
-							iconClass: isThemeIcon ? ThemeIcon.asClassName(iconPath) : undefined,
-							iconPath: (!isThemeIcon && iconPath)
-								? (URI.isUri(iconPath) ? { dark: iconPath, light: iconPath } : { dark: iconPath.dark, light: iconPath.light })
-								: undefined,
+							iconClass: item.icon ? ThemeIcon.asClassName(item.icon) : undefined,
 							asAttachment: async (): Promise<IGenericChatRequestVariableEntry> => {
 								let contextValue = item;
 								if ((contextValue.value === undefined) && providerEntry?.explicitProvider) {
@@ -244,9 +226,8 @@ export class ChatContextService extends Disposable {
 									kind: 'generic',
 									id: resolvedLabel,
 									name: resolvedLabel,
-									iconPath: contextValue.iconPath ?? item.iconPath,
+									icon: contextValue.icon,
 									value: contextValue.value,
-									tooltip: contextValue.tooltip ?? item.tooltip,
 								};
 							}
 						};

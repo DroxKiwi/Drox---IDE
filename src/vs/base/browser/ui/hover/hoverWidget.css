@@ -112,25 +112,24 @@
 	white-space: var(--vscode-hover-sourceWhiteSpace, pre-wrap);
 }
 
-.hover-row.status-bar {
+.monaco-hover .hover-row.status-bar {
 	font-size: 12px;
 	line-height: 22px;
 }
 
-.hover-row.status-bar .info {
+.monaco-hover .hover-row.status-bar .info {
 	font-style: italic;
 	padding: 0px 8px;
 }
 
-.hover-row.status-bar .actions {
+.monaco-hover .hover-row.status-bar .actions {
 	display: flex;
 	padding: 0px 8px;
 	width: 100%;
 	box-sizing: border-box;
-	background: var(--vscode-editorHoverWidget-statusBarBackground);
 }
 
-.hover-row.status-bar .actions .action-container {
+.monaco-hover .hover-row.status-bar .actions .action-container {
 	margin-right: 16px;
 	cursor: pointer;
 	overflow: hidden;
@@ -138,22 +137,18 @@
 	text-overflow: ellipsis;
 }
 
-.hover-row.status-bar .actions .action-container .action {
-	display: inline-flex;
-	align-items: center;
-}
-
-.hover-row.status-bar .actions .action-container .action .icon {
+.monaco-hover .hover-row.status-bar .actions .action-container .action .icon {
 	padding-right: 4px;
+	vertical-align: middle;
 	font-size: inherit;
 }
 
-.hover-row.status-bar .actions .action-container a {
+.monaco-hover .hover-row.status-bar .actions .action-container a {
 	color: var(--vscode-textLink-foreground);
 	text-decoration: var(--text-link-decoration);
 }
 
-.hover-row.status-bar .actions .action-container a .icon.codicon {
+.monaco-hover .hover-row.status-bar .actions .action-container a .icon.codicon {
 	color: var(--vscode-textLink-foreground);
 }
 

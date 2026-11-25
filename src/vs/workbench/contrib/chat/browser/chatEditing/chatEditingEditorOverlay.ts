@@ -8,7 +8,7 @@ import { combinedDisposable, Disposable, DisposableMap, DisposableStore, Mutable
 import { autorun, derived, derivedOpts, IObservable, observableFromEvent, observableSignalFromEvent, observableValue, transaction } from '../../../../../base/common/observable.js';
 import { HiddenItemStrategy, MenuWorkbenchToolBar } from '../../../../../platform/actions/browser/toolbar.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
-import { findChatEditingSessionEntry, IChatEditReviewSession, IChatEditingService, IModifiedFileEntry, ModifiedFileEntryState } from '../../common/editing/chatEditingService.js';
+import { IChatEditingService, IChatEditingSession, IModifiedFileEntry, ModifiedFileEntryState } from '../../common/editing/chatEditingService.js';
 import { MenuId } from '../../../../../platform/actions/common/actions.js';
 import { ActionViewItem, IActionViewItemOptions } from '../../../../../base/browser/ui/actionbar/actionViewItems.js';
 import { IAction, IActionRunner } from '../../../../../base/common/actions.js';
@@ -108,9 +108,9 @@ class ChatEditorOverlayWidget extends Disposable {
 
 	private readonly _showStore = this._store.add(new DisposableStore());
 
-	private readonly _session = observableValue<IChatEditReviewSession | undefined>(this, undefined);
+	private readonly _session = observableValue<IChatEditingSession | undefined>(this, undefined);
 	private readonly _entry = observableValue<IModifiedFileEntry | undefined>(this, undefined);
-	readonly isBusy: IObservable<boolean | undefined>;
+	private readonly _isBusy: IObservable<boolean | undefined>;
 
 	private readonly _navigationBearings = observableValue<{ changeCount: number; activeIdx: number; entriesCount: number }>(this, { changeCount: -1, activeIdx: -1, entriesCount: -1 });
 
@@ -123,7 +123,7 @@ class ChatEditorOverlayWidget extends Disposable {
 		this._domNode = document.createElement('div');
 		this._domNode.classList.add('chat-editor-overlay-widget');
 
-		this.isBusy = derived(r => {
+		this._isBusy = derived(r => {
 			const entry = this._entry.read(r);
 			return entry?.waitsForLastEdits.read(r);
 		});
@@ -131,12 +131,12 @@ class ChatEditorOverlayWidget extends Disposable {
 
 		const progressNode = document.createElement('div');
 		progressNode.classList.add('chat-editor-overlay-progress');
-		append(progressNode, renderIcon(ThemeIcon.modify(Codicon.loadingCompact, 'spin')));
+		append(progressNode, renderIcon(ThemeIcon.modify(Codicon.loading, 'spin')));
 		const textProgress = append(progressNode, $('span.progress-message'));
 		this._domNode.appendChild(progressNode);
 
 		this._store.add(autorun(r => {
-			const busy = this.isBusy.read(r);
+			const busy = this._isBusy.read(r);
 
 			this._domNode.classList.toggle('busy', busy);
 			textProgress.innerText = '';
@@ -156,7 +156,7 @@ class ChatEditorOverlayWidget extends Disposable {
 		return this._domNode;
 	}
 
-	show(session: IChatEditReviewSession, entry: IModifiedFileEntry | undefined, indicies: { entryIndex: IObservable<number>; changeIndex: IObservable<number> }) {
+	show(session: IChatEditingSession, entry: IModifiedFileEntry | undefined, indicies: { entryIndex: IObservable<number>; changeIndex: IObservable<number> }) {
 
 		this._showStore.clear();
 
@@ -248,7 +248,7 @@ class ChatEditorOverlayWidget extends Disposable {
 							} else {
 								result = localize('tooltip_nm', "{0} changes in {1} files", changeCount, entriesCount);
 							}
-							if (!that.isBusy.get()) {
+							if (!that._isBusy.get()) {
 								return result;
 							}
 							return localize('tooltip_busy', "{0} - Working...", result);
@@ -300,11 +300,6 @@ class ChatEditingOverlayController {
 		this._store.add(toDisposable(() => this._domNode.remove()));
 		this._store.add(widget);
 
-		// The busy pulse is drawn on this unclipped host because the widget clips its overflow
-		this._store.add(autorun(r => {
-			this._domNode.classList.toggle('busy', !!widget.isBusy.read(r));
-		}));
-
 		const show = () => {
 			if (!container.contains(this._domNode)) {
 				container.appendChild(this._domNode);
@@ -345,7 +340,16 @@ class ChatEditingOverlayController {
 			}
 
 			// Directly query global editing sessions (inline chat has its own overlay)
-			return findChatEditingSessionEntry(chatEditingService.editingSessionsObs.read(r).filter(session => session.isGlobalEditingSession.read(r)), uri, r);
+			for (const session of chatEditingService.editingSessionsObs.read(r)) {
+				if (!session.isGlobalEditingSession) {
+					continue;
+				}
+				const entry = session.readEntry(uri, r);
+				if (entry) {
+					return { session, entry };
+				}
+			}
+			return undefined;
 		});
 
 		this._store.add(autorun(r => {

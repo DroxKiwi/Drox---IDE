@@ -19,7 +19,6 @@ import { createTextModel } from '../../../../test/common/testTextModel.js';
 import { ServiceCollection } from '../../../../../platform/instantiation/common/serviceCollection.js';
 import { ILabelService } from '../../../../../platform/label/common/label.js';
 import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
-import { testIWorkspace } from '../../../../../platform/workspace/test/common/testWorkspace.js';
 
 suite('SnippetSession', function () {
 
@@ -43,10 +42,10 @@ suite('SnippetSession', function () {
 			[ILanguageConfigurationService, languageConfigurationService],
 			[IWorkspaceContextService, new class extends mock<IWorkspaceContextService>() {
 				override getWorkspace() {
-					return testIWorkspace({
+					return {
 						id: 'workspace-id',
 						folders: [],
-					});
+					};
 				}
 			}],
 		);

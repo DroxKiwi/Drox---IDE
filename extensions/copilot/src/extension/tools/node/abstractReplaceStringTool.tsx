@@ -15,7 +15,6 @@ import { ILanguageDiagnosticsService } from '../../../platform/languages/common/
 import { ILogService } from '../../../platform/log/common/logService';
 import { IAlternativeNotebookContentService } from '../../../platform/notebook/common/alternativeContent';
 import { IAlternativeNotebookContentEditGenerator, NotebookEditGenerationTelemtryOptions, NotebookEditGenrationSource } from '../../../platform/notebook/common/alternativeContentEditGenerator';
-import { gitHubCopilotRequestTeProperty } from '../../../platform/networking/common/fetch';
 import { INotebookService } from '../../../platform/notebook/common/notebookService';
 import { emitEditSurvivalEvent } from '../../../platform/otel/common/genAiEvents';
 import { GenAiMetrics } from '../../../platform/otel/common/genAiMetrics';
@@ -34,7 +33,6 @@ import { URI } from '../../../util/vs/base/common/uri';
 import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
 import { ChatRequestEditorData, ChatResponseTextEditPart, EndOfLine, ExtendedLanguageModelToolResult, Position as ExtPosition, LanguageModelPromptTsxPart, LanguageModelToolResult, TextEdit } from '../../../vscodeTypes';
 import { IBuildPromptContext } from '../../prompt/common/intents';
-import { getGitHubCopilotRequestTeForToolCall } from '../../prompt/common/toolCallRound';
 import { renderPromptElementJSON } from '../../prompts/node/base/promptRenderer';
 import { CellOrNotebookEdit, processFullRewriteNotebookEdits } from '../../prompts/node/codeMapper/codeMapper';
 import { EditTools, IEditToolLearningService } from '../common/editToolLearningService';
@@ -313,7 +311,6 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 				}
 				responseStream.textEdit(uri, true);
 
-				const gitHubCopilotRequestTe = getGitHubCopilotRequestTeForToolCall(this._promptContext.toolCallRounds, options.chatStreamToolCallId);
 				timeout(2000).then(() => {
 					// The tool can't wait for edits to be applied, so just wait before starting the survival tracker.
 					// TODO@roblourens see if this improves the survival metric, find a better fix.
@@ -354,7 +351,6 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 						});
 						res.telemetryService.sendGHTelemetryEvent('replaceString/trackEditSurvival', {
 							headerRequestId: this._promptContext?.requestId,
-							...gitHubCopilotRequestTeProperty(gitHubCopilotRequestTe),
 							requestSource: 'agent',
 							mapper: 'stringReplaceTool',
 							headBranchName: res.workspace?.headBranchName,
@@ -523,14 +519,13 @@ export abstract class AbstractReplaceStringTool<T extends { explanation: string 
 			}, { isNotebook, didHeal: didHeal === undefined ? -1 : (didHeal ? 1 : 0), isMulti }
 		);
 
-		void multiplexProperties({
+		this.telemetryService.sendEnhancedGHTelemetryEvent('replaceStringTool', multiplexProperties({
 			headerRequestId: options.chatRequestId,
 			baseModel: model,
 			messageText: file,
 			completionTextJson: JSON.stringify(input),
 			postProcessingOutcome: outcome,
-			...gitHubCopilotRequestTeProperty(getGitHubCopilotRequestTeForToolCall(this._promptContext?.toolCallRounds, 'chatStreamToolCallId' in options ? options.chatStreamToolCallId : undefined)),
-		}).then(properties => this.telemetryService.sendEnhancedGHTelemetryEvent('replaceStringTool', properties, { isNotebook })).catch(() => { /* best-effort telemetry */ });
+		}), { isNotebook });
 	}
 
 	private async sendHealingTelemetry(options: vscode.LanguageModelToolInvocationOptions<T> | vscode.LanguageModelToolInvocationPrepareOptions<T>, healError: string | undefined, applicationError: string | undefined) {

@@ -195,8 +195,7 @@ class SessionStoreSqlTool implements ICopilotTool<SessionStoreSqlParams> {
 	/**
 	 * Execute a model-supplied SQL query against the local SQLite session store.
 	 * The query has already been validated by the allowlist + blocklist in `_invokeQuery`.
-	 * `executeReadOnly` requires engine-level enforcement via `setAuthorizer` and fails closed
-	 * when unavailable.
+	 * `executeReadOnly` adds engine-level enforcement via `setAuthorizer` when available.
 	 */
 	private _executeLocal(sql: string): Record<string, unknown>[] {
 		return this._sessionStore.executeReadOnly(sql);

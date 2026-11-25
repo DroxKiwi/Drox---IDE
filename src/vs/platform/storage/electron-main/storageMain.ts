@@ -156,16 +156,7 @@ abstract class BaseStorageMain extends Disposable implements IStorageMain {
 				try {
 
 					// Create storage via subclasses
-					const storage = await this.doCreate();
-					if (this._store.isDisposed) {
-						try {
-							await storage.close();
-						} finally {
-							storage.dispose();
-						}
-						return;
-					}
-					this._register(storage);
+					const storage = this._register(await this.doCreate());
 
 					// Replace our in-memory storage with the real
 					// once as soon as possible without awaiting
@@ -392,7 +383,7 @@ export class ApplicationSharedStorageMain extends BaseStorageMain {
 		await this.applicationStorage.init();
 		this.logService.info(`[shared storage] Fallback application storage initialized with ${this.applicationStorage.items.size} items`);
 
-		const migratingStorage = new MigratingStorage(database, { hint: wasCreated ? StorageHint.STORAGE_DOES_NOT_EXIST : undefined });
+		const migratingStorage = this._register(new MigratingStorage(database, { hint: wasCreated ? StorageHint.STORAGE_DOES_NOT_EXIST : undefined }));
 		migratingStorage.setFallbackStorage(this.applicationStorage.storage, false);
 		return migratingStorage;
 	}

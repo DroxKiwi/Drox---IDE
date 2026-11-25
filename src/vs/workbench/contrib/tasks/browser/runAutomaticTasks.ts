@@ -26,7 +26,6 @@ const ALLOW_AUTOMATIC_TASKS = 'task.allowAutomaticTasks';
 
 export class RunAutomaticTasks extends Disposable implements IWorkbenchContribution {
 	private _hasRunTasks: boolean = false;
-	private _trustVersion = 0;
 	constructor(
 		@ITaskService private readonly _taskService: ITaskService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
@@ -37,26 +36,11 @@ export class RunAutomaticTasks extends Disposable implements IWorkbenchContribut
 		@IOpenerService private readonly _openerService: IOpenerService) {
 		super();
 		if (this._taskService.isReconnected) {
-			this._tryRunTasks().catch(error => this._logService.error('Automatic task execution failed', error));
+			this._tryRunTasks();
 		} else {
-			this._register(Event.once(this._taskService.onDidReconnectToTasks)(() => {
-				this._tryRunTasks().catch(error => this._logService.error('Automatic task execution failed', error));
-			}));
+			this._register(Event.once(this._taskService.onDidReconnectToTasks)(async () => await this._tryRunTasks()));
 		}
-		this._register(this._workspaceTrustManagementService.onDidChangeTrust(trusted => {
-			if (!trusted) {
-				this._trustVersion++;
-			}
-			this._tryRunTasks().catch(error => this._logService.error('Automatic task execution failed', error));
-		}));
-	}
-
-	private _canRunTasks(trustVersion: number): boolean {
-		const canRun = !this._store.isDisposed && trustVersion === this._trustVersion && this._workspaceTrustManagementService.isWorkspaceTrusted();
-		if (!canRun) {
-			this._logService.trace('RunAutomaticTasks: Cancelled pending automatic tasks.');
-		}
-		return canRun;
+		this._register(this._workspaceTrustManagementService.onDidChangeTrust(async () => await this._tryRunTasks()));
 	}
 
 	private async _tryRunTasks() {
@@ -69,20 +53,13 @@ export class RunAutomaticTasks extends Disposable implements IWorkbenchContribut
 			return;
 		}
 		this._hasRunTasks = true;
-		const trustVersion = this._trustVersion;
 		this._logService.trace('RunAutomaticTasks: Trying to run tasks.');
 		// Wait until we have task system info (the extension host and workspace folders are available).
-		while (this._canRunTasks(trustVersion) && !this._taskService.hasTaskSystemInfo) {
+		if (!this._taskService.hasTaskSystemInfo) {
 			this._logService.trace('RunAutomaticTasks: Awaiting task system info.');
-			await Event.toPromise(Event.filter(this._taskService.onDidChangeTaskSystemInfo, () => this._taskService.hasTaskSystemInfo), this._store);
-		}
-		if (!this._canRunTasks(trustVersion)) {
-			return;
+			await Event.toPromise(Event.once(this._taskService.onDidChangeTaskSystemInfo));
 		}
 		let workspaceTasks = await this._taskService.getWorkspaceTasks(TaskRunSource.FolderOpen);
-		if (!this._canRunTasks(trustVersion)) {
-			return;
-		}
 		this._logService.trace(`RunAutomaticTasks: Found ${workspaceTasks.size} automatic tasks`);
 
 		let autoTasks = this._findAutoTasks(this._taskService, workspaceTasks);
@@ -99,32 +76,31 @@ export class RunAutomaticTasks extends Disposable implements IWorkbenchContribut
 					const timer = setTimeout(() => { clearTimeout(timer); resolve(false); }, 10000);
 				})]);
 
-			if (!this._canRunTasks(trustVersion)) {
-				return;
-			}
 			if (!updatedWithinTimeout) {
 				this._logService.trace(`RunAutomaticTasks: waited some extra time, but no update of tasks configuration`);
 				return;
 			}
 
 			workspaceTasks = await this._taskService.getWorkspaceTasks(TaskRunSource.FolderOpen);
-			if (!this._canRunTasks(trustVersion)) {
-				return;
-			}
 			autoTasks = this._findAutoTasks(this._taskService, workspaceTasks);
 			this._logService.trace(`RunAutomaticTasks: updated taskNames=${JSON.stringify(autoTasks.taskNames)}`);
 		}
 
-		await this._runWithPermission(this._taskService, this._configurationService, this._storageService, this._notificationService, this._openerService, autoTasks.tasks, autoTasks.taskNames, autoTasks.locations, trustVersion);
+		this._runWithPermission(this._taskService, this._configurationService, this._storageService, this._notificationService, this._openerService, autoTasks.tasks, autoTasks.taskNames, autoTasks.locations);
 	}
 
-	private async _runTasks(taskService: ITaskService, tasks: Array<Task | Promise<Task | undefined>>, trustVersion: number) {
-		await Promise.all(tasks.map(async task => {
-			const taskToRun = await task;
-			if (taskToRun && this._canRunTasks(trustVersion)) {
-				await taskService.run(taskToRun);
+	private _runTasks(taskService: ITaskService, tasks: Array<Task | Promise<Task | undefined>>) {
+		tasks.forEach(task => {
+			if (task instanceof Promise) {
+				task.then(promiseResult => {
+					if (promiseResult) {
+						taskService.run(promiseResult);
+					}
+				});
+			} else {
+				taskService.run(task);
 			}
-		}));
+		});
 	}
 
 	private _getTaskSource(source: TaskSource): URI | undefined {
@@ -182,12 +158,12 @@ export class RunAutomaticTasks extends Disposable implements IWorkbenchContribut
 		return { tasks, taskNames, locations };
 	}
 
-	private async _runWithPermission(taskService: ITaskService, configurationService: IConfigurationService, storageService: IStorageService, notificationService: INotificationService, openerService: IOpenerService, tasks: (Task | Promise<Task | undefined>)[], taskNames: string[], locations: Map<string, URI>, trustVersion: number) {
-		if (taskNames.length === 0 || !this._canRunTasks(trustVersion)) {
+	private async _runWithPermission(taskService: ITaskService, configurationService: IConfigurationService, storageService: IStorageService, notificationService: INotificationService, openerService: IOpenerService, tasks: (Task | Promise<Task | undefined>)[], taskNames: string[], locations: Map<string, URI>) {
+		if (taskNames.length === 0) {
 			return;
 		}
 		if (configurationService.getValue(ALLOW_AUTOMATIC_TASKS) === 'on') {
-			await this._runTasks(taskService, tasks, trustVersion);
+			this._runTasks(taskService, tasks);
 			return;
 		}
 		const hasShownPromptForAutomaticTasks = storageService.getBoolean(HAS_PROMPTED_FOR_AUTOMATIC_TASKS, StorageScope.WORKSPACE, false);
@@ -196,8 +172,8 @@ export class RunAutomaticTasks extends Disposable implements IWorkbenchContribut
 		}
 		// We have automatic tasks - prompt to allow.
 		const allow = await this._showPrompt(notificationService, storageService, openerService, configurationService, taskNames, locations);
-		if (allow && this._canRunTasks(trustVersion)) {
-			await this._runTasks(taskService, tasks, trustVersion);
+		if (allow) {
+			this._runTasks(taskService, tasks);
 		}
 	}
 

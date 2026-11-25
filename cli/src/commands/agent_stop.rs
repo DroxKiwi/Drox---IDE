@@ -6,40 +6,27 @@
 use ahp_types::actions::{ChatTurnCancelledAction, StateAction};
 use ahp_types::commands::{SubscribeParams, SubscribeResult};
 use ahp_types::state::{SessionStatus, SnapshotState};
-use jiff::Timestamp;
 
 use crate::log;
 use crate::util::errors::{wrap, AnyError};
 
 use super::agent;
-use super::agent_discovery;
 use super::args::AgentStopArgs;
 use super::CommandContext;
 
 /// Cancels the active turn of every in-progress chat in a session on a running
 /// agent host.
 pub async fn agent_stop(ctx: CommandContext, args: AgentStopArgs) -> Result<i32, AnyError> {
-	let client = match (
-		args.discovery.address.as_deref(),
-		args.discovery.tunnel.as_deref(),
-	) {
-		(None, None) => {
-			agent_discovery::connect_to_session_host(
-				&ctx,
-				&args.session,
-				args.discovery.user_data_dir.as_deref(),
-			)
-			.await?
-		}
-		(address, tunnel) => agent::connect_explicit(&ctx, address, tunnel).await?,
-	};
+	let client = agent::connect(&ctx, args.address.as_deref(), args.tunnel.as_deref()).await?;
 
 	// Subscribe to the session to get its catalog of chats.
 	let result: SubscribeResult = agent::request_with_auth(
 		&ctx,
 		&client,
 		"subscribe",
-		SubscribeParams::new(args.session.clone()),
+		SubscribeParams {
+			channel: args.session.clone(),
+		},
 	)
 	.await?;
 
@@ -62,31 +49,20 @@ pub async fn agent_stop(ctx: CommandContext, args: AgentStopArgs) -> Result<i32,
 			&ctx,
 			&client,
 			"subscribe",
-			SubscribeParams::new(chat_uri.clone()),
+			SubscribeParams {
+				channel: chat_uri.clone(),
+			},
 		)
 		.await?;
 
-		let active_turn = match chat_result.snapshot.map(|s| s.state) {
-			Some(SnapshotState::Chat(chat)) => chat.active_turn,
+		let turn_id = match chat_result.snapshot.map(|s| s.state) {
+			Some(SnapshotState::Chat(chat)) => chat.active_turn.map(|t| t.id),
 			_ => None,
 		};
 
-		let Some(active_turn) = active_turn else {
+		let Some(turn_id) = turn_id else {
 			continue;
 		};
-		let started_at: Timestamp = active_turn.started_at.parse().map_err(|e| {
-			wrap(
-				e,
-				"Agent host returned an invalid active turn start timestamp",
-			)
-		})?;
-		
-		// Defensive programming: Prevent negative duration values caused by clock skew
-		let now_ms = Timestamp::now().as_millisecond();
-		let started_ms = started_at.as_millisecond();
-		let duration = std::cmp::max(0, now_ms - started_ms);
-
-		let turn_id = active_turn.id;
 
 		debug!(ctx.log, "Cancelling turn {} on {}", turn_id, chat_uri);
 
@@ -95,7 +71,6 @@ pub async fn agent_stop(ctx: CommandContext, args: AgentStopArgs) -> Result<i32,
 				chat_uri.clone(),
 				StateAction::ChatTurnCancelled(ChatTurnCancelledAction {
 					turn_id: turn_id.clone(),
-					duration,
 					meta: None,
 				}),
 			)

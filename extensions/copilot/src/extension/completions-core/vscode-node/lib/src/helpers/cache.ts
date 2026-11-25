@@ -65,19 +65,19 @@ export class LRUCacheMap<K, T> implements Map<K, T> {
 		return this.valueMap.size;
 	}
 
-	keys(): MapIterator<K> {
+	keys(): IterableIterator<K> {
 		return new Map(this.valueMap).keys();
 	}
 
-	values(): MapIterator<T> {
+	values(): IterableIterator<T> {
 		return new Map(this.valueMap).values();
 	}
 
-	entries(): MapIterator<[K, T]> {
+	entries(): IterableIterator<[K, T]> {
 		return new Map(this.valueMap).entries();
 	}
 
-	[Symbol.iterator](): MapIterator<[K, T]> {
+	[Symbol.iterator](): IterableIterator<[K, T]> {
 		return this.entries();
 	}
 

@@ -33,8 +33,6 @@ import { mainWindow } from '../../../../base/browser/window.js';
 import { getActiveElement } from '../../../../base/browser/dom.js';
 import { isWeb } from '../../../../base/common/platform.js';
 import { IOnboardingService } from '../../welcomeOnboarding/common/onboardingService.js';
-// DROX-BEGIN
-// DROX-END
 import { ONBOARDING_STORAGE_KEY } from '../../welcomeOnboarding/common/onboardingTypes.js';
 
 export const restoreWalkthroughsConfigurationKey = 'workbench.welcomePage.restorableWalkthroughs';
@@ -96,8 +94,6 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 		@IStorageService private readonly storageService: IStorageService,
 		@INotificationService private readonly notificationService: INotificationService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
-		// DROX-BEGIN
-		// DROX-END
 		@IOnboardingService private readonly onboardingService: IOnboardingService,
 	) {
 		super();
@@ -247,8 +243,6 @@ export class StartupPageRunnerContribution extends Disposable implements IWorkbe
 		if (!this.configurationService.getValue<boolean>('workbench.welcomePage.experimentalOnboarding')) {
 			return; // experimental onboarding is disabled
 		}
-		// DROX-BEGIN
-		// DROX-END
 
 		if (!this.storageService.isNew(StorageScope.APPLICATION)) {
 			return; // only show onboarding for new users who have never used the product before

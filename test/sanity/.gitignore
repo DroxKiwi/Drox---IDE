@@ -2,7 +2,6 @@
 .dbus
 .dotnet
 .DS_Store
-artifacts/
 .local
 .mozilla
 .pki

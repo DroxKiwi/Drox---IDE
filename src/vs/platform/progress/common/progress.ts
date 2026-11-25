@@ -9,9 +9,6 @@ import { CancellationToken, CancellationTokenSource } from '../../../base/common
 import { Disposable, DisposableStore, toDisposable } from '../../../base/common/lifecycle.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { INotificationSource, NotificationPriority } from '../../notification/common/notification.js';
-import type { LegacyExtensionLinkParsing } from '../../notification/common/notificationLegacy.js';
-import { NotificationText } from '../../notification/common/notificationMessage.js';
-import type { NotificationTelemetry } from '../../notification/common/notificationTelemetry.js';
 
 export const IProgressService = createDecorator<IProgressService>('progressService');
 
@@ -55,11 +52,7 @@ export const enum ProgressLocation {
 
 export interface IProgressOptions {
 	readonly location: ProgressLocation | string;
-	/** Used only if this operation is presented as a workbench notification. */
-	readonly telemetry?: NotificationTelemetry;
-	readonly title?: string | NotificationText;
-	/** Preserves link parsing for extension API progress. Core callers must use literal text or `NotificationText`. */
-	readonly legacyExtensionLinkParsing?: LegacyExtensionLinkParsing;
+	readonly title?: string;
 	readonly source?: string | INotificationSource;
 	readonly total?: number;
 	readonly cancellable?: boolean | string;
@@ -93,7 +86,7 @@ export interface IProgressCompositeOptions extends IProgressOptions {
 }
 
 export interface IProgressStep {
-	message?: string | NotificationText;
+	message?: string;
 	increment?: number;
 	total?: number;
 }

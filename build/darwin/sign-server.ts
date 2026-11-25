@@ -6,7 +6,6 @@
 import { spawn } from '@malept/cross-spawn-promise';
 import fs from 'fs';
 import path from 'path';
-import { retryOnTransientSignError } from './sign.ts';
 
 const MACHO_MAGIC_NUMBERS = new Set([
 	0xFEEDFACE, // MH_MAGIC (32-bit)
@@ -61,8 +60,7 @@ async function main(serverDir: string): Promise<void> {
 			const filePath = path.join(entry.parentPath, entry.name);
 			if (isMachOBinary(filePath)) {
 				console.log(`Signing: ${filePath}`);
-				// Apple's timestamp service can stall briefly; --force makes signing the same file again safe.
-				await retryOnTransientSignError(() => spawn('codesign', [
+				await spawn('codesign', [
 					'--sign', identity,
 					'--keychain', keychain,
 					'--options', 'runtime',
@@ -70,7 +68,7 @@ async function main(serverDir: string): Promise<void> {
 					'--force',
 					'--entitlements', entitlementsPath,
 					filePath
-				]));
+				]);
 			}
 		}
 	}

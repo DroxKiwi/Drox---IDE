@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { getWindowId, onDidUnregisterWindow } from '../../../base/browser/dom.js';
+import { getWindowId } from '../../../base/browser/dom.js';
 import { PixelRatio } from '../../../base/browser/pixelRatio.js';
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
@@ -43,13 +43,6 @@ export class FontMeasurementsImpl extends Disposable {
 	private readonly _onDidChange = this._register(new Emitter<void>());
 	public readonly onDidChange = this._onDidChange.event;
 
-	constructor() {
-		super();
-		this._register(onDidUnregisterWindow(({ vscodeWindowId }) => {
-			this._cache.delete(vscodeWindowId);
-		}));
-	}
-
 	public override dispose(): void {
 		if (this._evictUntrustedReadingsTimeout !== -1) {
 			clearTimeout(this._evictUntrustedReadingsTimeout);
@@ -76,9 +69,9 @@ export class FontMeasurementsImpl extends Disposable {
 		return cache;
 	}
 
-	private _writeToCache(targetWindow: Window, item: BareFontInfo, value: FontInfo, isRestored: boolean): void {
+	private _writeToCache(targetWindow: Window, item: BareFontInfo, value: FontInfo): void {
 		const cache = this._ensureCache(targetWindow);
-		cache.put(item, value, isRestored);
+		cache.put(item, value);
 
 		if (!value.isTrusted && this._evictUntrustedReadingsTimeout === -1) {
 			// Try reading again after some time
@@ -90,10 +83,7 @@ export class FontMeasurementsImpl extends Disposable {
 	}
 
 	private _evictUntrustedReadings(targetWindow: Window): void {
-		const cache = this._cache.get(getWindowId(targetWindow));
-		if (!cache) {
-			return; // The window closed or the font cache was cleared while waiting.
-		}
+		const cache = this._ensureCache(targetWindow);
 		const values = cache.getValues();
 		let somethingRemoved = false;
 		for (const item of values) {
@@ -108,13 +98,11 @@ export class FontMeasurementsImpl extends Disposable {
 	}
 
 	/**
-	 * Returns trusted cached font information, or undefined when the cache contains only restored readings.
+	 * Serialized currently cached font information.
 	 */
-	public serializeFontInfo(targetWindow: Window): ISerializedFontInfo[] | undefined {
+	public serializeFontInfo(targetWindow: Window): ISerializedFontInfo[] {
+		// Only save trusted font info (that has been measured in this running instance)
 		const cache = this._ensureCache(targetWindow);
-		if (cache.shouldPreservePersistedValues()) {
-			return undefined;
-		}
 		return cache.getValues().filter(item => item.isTrusted);
 	}
 
@@ -130,7 +118,7 @@ export class FontMeasurementsImpl extends Disposable {
 				continue;
 			}
 			const fontInfo = new FontInfo(savedFontInfo, false);
-			this._writeToCache(targetWindow, fontInfo, fontInfo, true);
+			this._writeToCache(targetWindow, fontInfo, fontInfo);
 		}
 	}
 
@@ -164,7 +152,7 @@ export class FontMeasurementsImpl extends Disposable {
 				}, false);
 			}
 
-			this._writeToCache(targetWindow, bareFontInfo, readConfig, false);
+			this._writeToCache(targetWindow, bareFontInfo, readConfig);
 		}
 		return cache.get(bareFontInfo);
 	}
@@ -212,23 +200,15 @@ export class FontMeasurementsImpl extends Disposable {
 			this._createRequest(monospaceTestChars.charAt(i), CharWidthRequestType.Bold, all, monospace);
 		}
 
-		if (bareFontInfo.fontFeatureSettings !== EditorFontLigatures.OFF) {
-			const monospaceLigatureTestStrings = ['fi', '<=', '=>', '==='];
-			for (const testString of monospaceLigatureTestStrings) {
-				this._createRequest(testString, CharWidthRequestType.Regular, all, monospace);
-			}
-		}
-
 		readCharWidths(targetWindow, bareFontInfo, all);
 
 		const maxDigitWidth = Math.max(digit0.width, digit1.width, digit2.width, digit3.width, digit4.width, digit5.width, digit6.width, digit7.width, digit8.width, digit9.width);
 
-		let isMonospace = true;
+		let isMonospace = (bareFontInfo.fontFeatureSettings === EditorFontLigatures.OFF);
 		const referenceWidth = monospace[0].width;
 		for (let i = 1, len = monospace.length; isMonospace && i < len; i++) {
-			const request = monospace[i];
-			const diff = referenceWidth * request.chr.length - request.width;
-			if (diff < -0.005 || diff > 0.005) {
+			const diff = referenceWidth - monospace[i].width;
+			if (diff < -0.001 || diff > 0.001) {
 				isMonospace = false;
 				break;
 			}
@@ -269,8 +249,6 @@ class FontMeasurementsCache {
 
 	private readonly _keys: { [key: string]: BareFontInfo };
 	private readonly _values: { [key: string]: FontInfo };
-	private _wasPopulatedWithRestoredValues = false;
-	private _wasPopulatedWithCurrentSessionValues = false;
 
 	constructor() {
 		this._keys = Object.create(null);
@@ -287,15 +265,10 @@ class FontMeasurementsCache {
 		return this._values[itemId];
 	}
 
-	public put(item: BareFontInfo, value: FontInfo, isRestored: boolean): void {
+	public put(item: BareFontInfo, value: FontInfo): void {
 		const itemId = item.getId();
 		this._keys[itemId] = item;
 		this._values[itemId] = value;
-		if (isRestored) {
-			this._wasPopulatedWithRestoredValues = true;
-		} else {
-			this._wasPopulatedWithCurrentSessionValues = true;
-		}
 	}
 
 	public remove(item: FontInfo): void {
@@ -306,10 +279,6 @@ class FontMeasurementsCache {
 
 	public getValues(): FontInfo[] {
 		return Object.keys(this._keys).map(id => this._values[id]);
-	}
-
-	public shouldPreservePersistedValues(): boolean {
-		return this._wasPopulatedWithRestoredValues && !this._wasPopulatedWithCurrentSessionValues;
 	}
 }
 

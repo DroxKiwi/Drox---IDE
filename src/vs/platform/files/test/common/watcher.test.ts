@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { Emitter, Event } from '../../../../base/common/event.js';
-import { Disposable } from '../../../../base/common/lifecycle.js';
+import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { isLinux, isWindows } from '../../../../base/common/platform.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { URI } from '../../../../base/common/uri.js';
@@ -189,7 +189,11 @@ suite('Watcher', () => {
 
 suite('Watcher Events Normalizer', () => {
 
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	const disposables = new DisposableStore();
+
+	teardown(() => {
+		disposables.clear();
+	});
 
 	test('simple add/update/delete', done => {
 		const watch = disposables.add(new TestFileWatcher());
@@ -426,4 +430,5 @@ suite('Watcher Events Normalizer', () => {
 		assert.strictEqual(isFiltered({ resource, type: FileChangeType.UPDATED }, FileChangeFilter.ADDED | FileChangeFilter.DELETED | FileChangeFilter.UPDATED), false);
 	});
 
+	ensureNoDisposablesAreLeakedInTestSuite();
 });

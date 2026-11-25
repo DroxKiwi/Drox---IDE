@@ -26,7 +26,7 @@ suite('DroxCodebaseEmbedSanitize', () => {
 		assert.strictEqual(prepared.skipEncode, false);
 		assert.strictEqual(prepared.text, 'helloworld');
 		assert.strictEqual(prepared.issues[0]?.reason, 'null_byte');
-		assert.ok(prepared.issues[0]?.guidance.toLowerCase().includes('exclud'));
+		assert.ok(prepared.issues[0]?.guidance.includes('Exclude'));
 	});
 
 	test('skips binary control-heavy content', () => {

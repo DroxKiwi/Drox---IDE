@@ -346,7 +346,8 @@ export abstract class AbstractUserDataProfileElement extends Disposable {
 	}
 
 	getCurrentWorkspace(): URI | undefined {
-		return this.workspaceContextService.getWorkspace().uri;
+		const workspace = this.workspaceContextService.getWorkspace();
+		return workspace.configuration ?? workspace.folders[0]?.uri;
 	}
 
 	openWorkspace(workspace: URI): void {

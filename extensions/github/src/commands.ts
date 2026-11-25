@@ -9,7 +9,7 @@ import type { API as GitAPI, Repository } from './typings/git.d.ts';
 import { publishRepository } from './publish.js';
 import { DisposableStore, getRepositoryFromUrl } from './util.js';
 import { LinkContext, getCommitLink, getLink, getVscodeDevHost } from './links.js';
-import { GitHubService } from './auth.js';
+import { getOctokit } from './auth.js';
 
 async function copyVscodeDevLink(gitAPI: GitAPI, useSelection: boolean, context: LinkContext, includeRange = true) {
 	try {
@@ -125,15 +125,17 @@ async function createPullRequest(gitAPI: GitAPI, sessionResource: vscode.Uri | u
 	vscode.env.openExternal(vscode.Uri.parse(prUrl));
 }
 
-async function openPullRequest(gitAPI: GitAPI, githubService: GitHubService, _sessionResource: vscode.Uri | undefined, sessionMetadata: { worktreePath?: string } | undefined): Promise<void> {
+async function openPullRequest(gitAPI: GitAPI, _sessionResource: vscode.Uri | undefined, sessionMetadata: { worktreePath?: string } | undefined): Promise<void> {
 	const resolved = resolveSessionRepo(gitAPI, sessionMetadata, true);
 	if (!resolved) {
 		return;
 	}
 
 	try {
-		const client = await githubService.getClient();
-		const pullRequests = await client.pullRequests.list(resolved.remoteInfo, {
+		const octokit = await getOctokit();
+		const { data: pullRequests } = await octokit.pulls.list({
+			owner: resolved.remoteInfo.owner,
+			repo: resolved.remoteInfo.repo,
 			head: `${resolved.remoteInfo.owner}:${resolved.head.name}`,
 			state: 'all',
 		});
@@ -174,12 +176,12 @@ async function openOnGitHub(repository: Repository, commit: string): Promise<voi
 	vscode.env.openExternal(vscode.Uri.parse(link));
 }
 
-export function registerCommands(gitAPI: GitAPI, githubService: GitHubService): vscode.Disposable {
+export function registerCommands(gitAPI: GitAPI): vscode.Disposable {
 	const disposables = new DisposableStore();
 
 	disposables.add(vscode.commands.registerCommand('github.publish', async () => {
 		try {
-			publishRepository(gitAPI, githubService);
+			publishRepository(gitAPI);
 		} catch (err) {
 			vscode.window.showErrorMessage(err.message);
 		}
@@ -237,7 +239,7 @@ export function registerCommands(gitAPI: GitAPI, githubService: GitHubService): 
 	}));
 
 	disposables.add(vscode.commands.registerCommand('github.openPullRequest', async (sessionResource: vscode.Uri | undefined, sessionMetadata: { worktreePath?: string } | undefined) => {
-		return openPullRequest(gitAPI, githubService, sessionResource, sessionMetadata);
+		return openPullRequest(gitAPI, sessionResource, sessionMetadata);
 	}));
 
 	return disposables;

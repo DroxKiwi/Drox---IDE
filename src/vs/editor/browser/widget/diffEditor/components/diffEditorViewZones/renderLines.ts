@@ -122,7 +122,6 @@ export class RenderOptions {
 			modifiedEditorOptions.get(EditorOption.renderControlCharacters),
 			modifiedEditorOptions.get(EditorOption.fontLigatures),
 			modifiedEditorOptions.get(EditorOption.scrollbar).verticalScrollbarSize,
-			modifiedEditorOptions.get(EditorOption.effectiveFullwidthCharacterWidth) === 'twoCells',
 		);
 	}
 
@@ -139,7 +138,6 @@ export class RenderOptions {
 		public readonly renderControlCharacters: boolean,
 		public readonly fontLigatures: FindComputedEditorOptionValueById<EditorOption.fontLigatures>,
 		public readonly verticalScrollbarSize: number,
-		public readonly useTwoCellFullwidthCharacters: boolean = false,
 		public readonly setWidth = true,
 	) { }
 
@@ -157,7 +155,6 @@ export class RenderOptions {
 			this.renderControlCharacters,
 			this.fontLigatures,
 			this.verticalScrollbarSize,
-			this.useTwoCellFullwidthCharacters,
 			setWidth,
 		);
 	}
@@ -176,7 +173,6 @@ export class RenderOptions {
 			this.renderControlCharacters,
 			this.fontLigatures,
 			this.verticalScrollbarSize,
-			this.useTwoCellFullwidthCharacters,
 			this.setWidth,
 		);
 	}
@@ -215,7 +211,7 @@ export class RenderLinesResult {
 		}
 
 		// Find the view line index based on the element
-		// eslint-disable-next-line eslint-js/no-restricted-syntax
+		// eslint-disable-next-line no-restricted-syntax
 		const viewLines = container.querySelectorAll('.view-line');
 		let viewLineIndex = -1;
 		for (let i = 0; i < viewLines.length; i++) {
@@ -310,9 +306,7 @@ function renderOriginalLine(
 		options.fontLigatures !== EditorFontLigatures.OFF,
 		null, // Send no selections, original line cannot be selected
 		null,
-		options.verticalScrollbarSize,
-		false,
-		options.useTwoCellFullwidthCharacters
+		options.verticalScrollbarSize
 	), sb);
 
 	sb.appendString('</div>');

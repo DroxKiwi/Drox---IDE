@@ -14,7 +14,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { generateUuid } from '../../../../base/common/uuid.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { IFileService } from '../../../../platform/files/common/files.js';
-import { IDroxLocalGitService, ILocalGitChangedFile, ILocalGitCommitDetails, ILocalGitCreateBranchOptions, ILocalGitStashPushOptions, LocalGitResetMode } from '../../../../platform/git/common/droxLocalGitService.js';
+import { ILocalGitChangedFile, ILocalGitCommitDetails, ILocalGitCreateBranchOptions, ILocalGitService, ILocalGitStashPushOptions, LocalGitResetMode } from '../../../../platform/git/common/localGitService.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { DROX_GIT_GRAPH_OPEN_COMMAND_ID, IDroxGitGraphService, IDroxGitGraphWindow } from '../common/droxGitGraphService.js';
 
@@ -35,7 +35,7 @@ export class DroxGitGraphService extends Disposable implements IDroxGitGraphServ
 	private readonly _repos = new Map<string, IRepoEntry>();
 
 	constructor(
-		@IDroxLocalGitService private readonly _localGitService: IDroxLocalGitService,
+		@ILocalGitService private readonly _localGitService: ILocalGitService,
 		@IFileService private readonly _fileService: IFileService,
 		@ILogService private readonly _logService: ILogService,
 		@ICommandService private readonly _commandService: ICommandService,

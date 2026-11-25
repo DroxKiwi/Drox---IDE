@@ -3,20 +3,23 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import type * as ESTree from 'estree';
+import { TSESTree } from '@typescript-eslint/utils';
 
-function isCallExpression(node: ESTree.Node): node is ESTree.CallExpression {
+function isCallExpression(node: TSESTree.Node): node is TSESTree.CallExpression {
 	return node.type === 'CallExpression';
 }
 
-function isFunctionExpression(node: ESTree.Node): node is ESTree.Function | ESTree.ArrowFunctionExpression {
+function isFunctionExpression(node: TSESTree.Node): node is TSESTree.FunctionExpression {
 	return node.type.includes('FunctionExpression');
 }
 
-export default new class NoAsyncSuite implements CreateRule {
+export default new class NoAsyncSuite implements eslint.Rule.RuleModule {
 
-	create(context: Context): Visitor {
-		function hasAsyncSuite(tsNode: ESTree.Node) {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
+		function hasAsyncSuite(node: ESTree.Node) {
+			const tsNode = node as TSESTree.Node;
 			if (isCallExpression(tsNode) && tsNode.arguments.length >= 2 && isFunctionExpression(tsNode.arguments[1]) && tsNode.arguments[1].async) {
 				return context.report({
 					node: tsNode,

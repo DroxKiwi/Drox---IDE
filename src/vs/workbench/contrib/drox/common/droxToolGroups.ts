@@ -79,7 +79,6 @@ export const DROX_TOOL_GROUPS: readonly IDroxToolGroup[] = [
 			{ name: 'memory_list', label: 'memory_list', description: localize('drox.tool.memoryList', 'List memory entries') },
 			{ name: 'session_compact', label: 'session_compact', description: localize('drox.tool.sessionCompact', 'Compact transcript (IDE client)') },
 			{ name: 'session_search', label: 'session_search', description: localize('drox.tool.sessionSearch', 'Search long memory (IDE client)') },
-			{ name: 'project_rule_write', label: 'project_rule_write', description: localize('drox.tool.projectRuleWrite', 'Persist a workspace rule under .drox/rules') },
 		],
 	},
 	{

@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plugins';
+import * as eslint from 'eslint';
+import { TSESTree } from '@typescript-eslint/utils';
 
 /**
  * Prevents the use of template literals in localization function calls.
@@ -18,9 +19,9 @@ import type { Context, CreateRule, ESTree, RuleMeta, Visitor } from '@oxlint/plu
  * ❌ nls.localize('key', `Message ${value}`)
  * ✅ nls.localize('key', 'Message {0}', value)
  */
-export default new class NoLocalizationTemplateLiterals implements CreateRule {
+export default new class NoLocalizationTemplateLiterals implements eslint.Rule.RuleModule {
 
-	readonly meta: RuleMeta = {
+	readonly meta: eslint.Rule.RuleMetaData = {
 		messages: {
 			noTemplateLiteral: 'Template literals cannot be used in localization calls. Use placeholders like {0}, {1} instead.'
 		},
@@ -30,9 +31,9 @@ export default new class NoLocalizationTemplateLiterals implements CreateRule {
 		schema: false,
 	};
 
-	create(context: Context): Visitor {
+	create(context: eslint.Rule.RuleContext): eslint.Rule.RuleListener {
 
-		function checkCallExpression(node: ESTree.CallExpression) {
+		function checkCallExpression(node: TSESTree.CallExpression) {
 			const callee = node.callee;
 			let isLocalizationCall = false;
 			let isNlsLocalize = false;
@@ -83,7 +84,7 @@ export default new class NoLocalizationTemplateLiterals implements CreateRule {
 		}
 
 		return {
-			CallExpression: (node: ESTree.CallExpression) => checkCallExpression(node)
+			CallExpression: (node: any) => checkCallExpression(node as TSESTree.CallExpression)
 		};
 	}
 };

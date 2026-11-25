@@ -6,15 +6,14 @@ trigger:
 
 pr: none
 
-variables:
-  - name: Codeql.SkipTaskAutoInjection
-    value: true
-
 pool:
   vmImage: ubuntu-latest
 
 steps:
-  - template: ../common/setup-node.yml@self
+  - task: NodeTool@0
+    inputs:
+      versionSource: fromFile
+      versionFilePath: .nvmrc
 
   - bash: |
       TAG_VERSION=$(git describe --tags `git rev-list --tags --max-count=1`)
@@ -32,11 +31,9 @@ steps:
       fi
     displayName: Check 1.999.0 tag
 
-  - template: ../common/install-pnpm.yml@self
-
   - bash: |
       # Install build dependencies
-      (cd build && pnpm install --frozen-lockfile)
+      (cd build && npm ci)
       node build/azure-pipelines/publish-types/check-version.ts
     displayName: Check version
 

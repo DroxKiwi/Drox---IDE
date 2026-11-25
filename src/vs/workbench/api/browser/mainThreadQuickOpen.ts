@@ -53,7 +53,7 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 		}
 	}
 
-	async $show(instance: number, options: IPickOptions<TransferQuickPickItem>, token: CancellationToken): Promise<number | number[] | undefined> {
+	$show(instance: number, options: IPickOptions<TransferQuickPickItem>, token: CancellationToken): Promise<number | number[] | undefined> {
 		const contents = new Promise<TransferQuickPickItemOrSeparator[]>((resolve, reject) => {
 			this._items[instance] = { resolve, reject };
 		});
@@ -67,23 +67,20 @@ export class MainThreadQuickOpen implements MainThreadQuickOpenShape {
 			}
 		};
 
-		try {
-			if (options.canPickMany) {
-				const items = await this._quickInputService.pick(contents, options as { canPickMany: true }, token);
+		if (options.canPickMany) {
+			return this._quickInputService.pick(contents, options as { canPickMany: true }, token).then(items => {
 				if (items) {
 					return items.map(item => item.handle);
 				}
 				return undefined;
-			} else {
-				const item = await this._quickInputService.pick(contents, options, token);
+			});
+		} else {
+			return this._quickInputService.pick(contents, options, token).then(item => {
 				if (item) {
 					return item.handle;
 				}
 				return undefined;
-			}
-		} finally {
-			// Closing before items arrive must also release the pending contents.
-			delete this._items[instance];
+			});
 		}
 	}
 

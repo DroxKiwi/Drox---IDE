@@ -21,10 +21,6 @@ export class DialogService extends Disposable implements IDialogService {
 
 	readonly onDidShowDialog = this.model.onDidShowDialog;
 
-	get hasDialog(): boolean {
-		return this.model.dialogs.length > 0;
-	}
-
 	constructor(
 		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 		@ILogService private readonly logService: ILogService

@@ -3,38 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import type { IWebglAddonOptions, WebglAddon } from '@xterm/addon-webgl';
+import type { WebglAddon } from '@xterm/addon-webgl';
 import type { IEvent } from '@xterm/xterm';
 import { Emitter } from '../../../../../../base/common/event.js';
-import { upcastPartial } from '../../../../../../base/test/common/mock.js';
-import { IViewDescriptor, IViewDescriptorService, ViewContainerLocation } from '../../../../../common/views.js';
 import { XtermAddonImporter, type IXtermAddonNameToCtor } from '../../../browser/xterm/xtermAddonImporter.js';
-import { TERMINAL_VIEW_ID } from '../../../common/terminal.js';
-
-export class TestViewDescriptorService implements Partial<IViewDescriptorService> {
-	private _location = ViewContainerLocation.Panel;
-	private _onDidChangeLocation = new Emitter<{ views: IViewDescriptor[]; from: ViewContainerLocation; to: ViewContainerLocation }>();
-	onDidChangeLocation = this._onDidChangeLocation.event;
-	getViewLocationById(id: string) {
-		return this._location;
-	}
-	moveTerminalToLocation(to: ViewContainerLocation) {
-		const oldLocation = this._location;
-		this._location = to;
-		this._onDidChangeLocation.fire({
-			views: [
-				upcastPartial<IViewDescriptor>({ id: TERMINAL_VIEW_ID })
-			],
-			from: oldLocation,
-			to
-		});
-	}
-}
 
 export class TestWebglAddon implements WebglAddon {
 	static shouldThrow = false;
 	static isEnabled = false;
-	static readonly customGlyphOptions: (boolean | undefined)[] = [];
 	private readonly _onChangeTextureAtlas = new Emitter<HTMLCanvasElement>();
 	private readonly _onAddTextureAtlasCanvas = new Emitter<HTMLCanvasElement>();
 	private readonly _onRemoveTextureAtlasCanvas = new Emitter<HTMLCanvasElement>();
@@ -43,8 +19,7 @@ export class TestWebglAddon implements WebglAddon {
 	readonly onAddTextureAtlasCanvas = this._onAddTextureAtlasCanvas.event as IEvent<HTMLCanvasElement>;
 	readonly onRemoveTextureAtlasCanvas = this._onRemoveTextureAtlasCanvas.event as IEvent<HTMLCanvasElement, void>;
 	readonly onContextLoss = this._onContextLoss.event as IEvent<void>;
-	constructor(options?: IWebglAddonOptions) {
-		TestWebglAddon.customGlyphOptions.push(options?.customGlyphs);
+	constructor(preserveDrawingBuffer?: boolean) {
 	}
 	activate(): void {
 		TestWebglAddon.isEnabled = !TestWebglAddon.shouldThrow;
@@ -70,3 +45,4 @@ export class TestXtermAddonImporter extends XtermAddonImporter {
 		return super.importAddon(name);
 	}
 }
+

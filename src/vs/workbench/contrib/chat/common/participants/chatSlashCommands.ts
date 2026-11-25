@@ -30,11 +30,6 @@ export interface IChatSlashData {
 	executeImmediately?: boolean;
 
 	/**
-	 * Whether a silent command can execute independently while the chat has a request in progress.
-	 */
-	executeDuringRequest?: boolean;
-
-	/**
 	 * Whether the command should be added as a request/response
 	 * turn to the chat history. Defaults to `false`.
 	 *
@@ -52,41 +47,12 @@ export interface IChatSlashData {
 	 * When set, the command is only shown if the expression evaluates to true.
 	 */
 	when?: ContextKeyExpression;
-
-	/**
-	 * Alternate presentations of this command in the leading slash completion
-	 * list. These are UI templates, not separately executable commands.
-	 */
-	completionVariants?: readonly IChatSlashCommandCompletionVariant[];
-}
-
-export interface IChatSlashCommandCompletionVariant {
-	readonly label: string;
-	readonly insertText: string;
-	readonly detail?: string;
-	readonly argumentHint?: string;
-	readonly executeImmediately?: boolean;
-}
-
-/** Original composer text captured before a slash command clears its input. */
-export interface IChatSlashCommandExecutionContext {
-	readonly input: string;
 }
 
 export interface IChatSlashFragment {
 	content: string | { treeData: IChatResponseProgressFileTreeData };
 }
-/**
- * A silent immediate command may retain ownership of its source draft while
- * an asynchronous action completes. The action must restore or clear that
- * draft itself without overwriting input typed after invocation.
- */
-export interface IChatSlashCommandResult {
-	readonly followUp: IChatFollowup[];
-	readonly preserveInput?: boolean;
-}
-
-export type IChatSlashCallback = { (prompt: string, progress: IProgress<IChatProgress>, history: IChatMessage[], location: ChatAgentLocation, sessionResource: URI, token: CancellationToken, options?: IChatSendRequestOptions, executionContext?: IChatSlashCommandExecutionContext): Promise<IChatSlashCommandResult | void> };
+export type IChatSlashCallback = { (prompt: string, progress: IProgress<IChatProgress>, history: IChatMessage[], location: ChatAgentLocation, sessionResource: URI, token: CancellationToken, options?: IChatSendRequestOptions): Promise<{ followUp: IChatFollowup[] } | void> };
 
 export const IChatSlashCommandService = createDecorator<IChatSlashCommandService>('chatSlashCommandService');
 
@@ -97,7 +63,7 @@ export interface IChatSlashCommandService {
 	_serviceBrand: undefined;
 	readonly onDidChangeCommands: Event<void>;
 	registerSlashCommand(data: IChatSlashData, command: IChatSlashCallback): IDisposable;
-	executeCommand(id: string, prompt: string, progress: IProgress<IChatProgress>, history: IChatMessage[], location: ChatAgentLocation, sessionResource: URI, token: CancellationToken, options?: IChatSendRequestOptions, executionContext?: IChatSlashCommandExecutionContext): Promise<IChatSlashCommandResult | void>;
+	executeCommand(id: string, prompt: string, progress: IProgress<IChatProgress>, history: IChatMessage[], location: ChatAgentLocation, sessionResource: URI, token: CancellationToken, options?: IChatSendRequestOptions): Promise<{ followUp: IChatFollowup[] } | void>;
 	getCommands(location: ChatAgentLocation, mode: ChatModeKind): Array<IChatSlashData>;
 	hasCommand(id: string, sessionType: string): boolean;
 }
@@ -180,7 +146,7 @@ export class ChatSlashCommandService extends Disposable implements IChatSlashCom
 		return !!this.getCommand(id, sessionType);
 	}
 
-	async executeCommand(id: string, prompt: string, progress: IProgress<IChatProgress>, history: IChatMessage[], location: ChatAgentLocation, sessionResource: URI, token: CancellationToken, options?: IChatSendRequestOptions, executionContext?: IChatSlashCommandExecutionContext): Promise<IChatSlashCommandResult | void> {
+	async executeCommand(id: string, prompt: string, progress: IProgress<IChatProgress>, history: IChatMessage[], location: ChatAgentLocation, sessionResource: URI, token: CancellationToken, options?: IChatSendRequestOptions): Promise<{ followUp: IChatFollowup[] } | void> {
 		const data = this.getCommand(id, getChatSessionType(sessionResource));
 		if (!data) {
 			throw new Error(`No command with id ${id} NOT registered`);
@@ -192,6 +158,6 @@ export class ChatSlashCommandService extends Disposable implements IChatSlashCom
 			throw new Error(`No command with id ${id} NOT resolved`);
 		}
 
-		return await data.command(prompt, progress, history, location, sessionResource, token, options, executionContext);
+		return await data.command(prompt, progress, history, location, sessionResource, token, options);
 	}
 }

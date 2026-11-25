@@ -40,10 +40,12 @@ export async function buildUserEnvironment(startParamsEnv: { [key: string]: stri
 	const env: IProcessEnvironment = {
 		...processEnv,
 		...userShellEnv,
-		...startParamsEnv,
-		VSCODE_ESM_ENTRYPOINT: 'vs/workbench/api/node/extensionHostProcess',
-		VSCODE_HANDLES_UNCAUGHT_ERRORS: 'true',
-		VSCODE_NLS_CONFIG: JSON.stringify(nlsConfig)
+		...{
+			VSCODE_ESM_ENTRYPOINT: 'vs/workbench/api/node/extensionHostProcess',
+			VSCODE_HANDLES_UNCAUGHT_ERRORS: 'true',
+			VSCODE_NLS_CONFIG: JSON.stringify(nlsConfig)
+		},
+		...startParamsEnv
 	};
 
 	const binFolder = environmentService.isBuilt ? join(environmentService.appRoot, 'bin') : join(environmentService.appRoot, 'resources', 'server', 'bin-dev');

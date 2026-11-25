@@ -18,7 +18,6 @@ import { SideBySideEditorInput } from '../../common/editor/sideBySideEditorInput
 import { AbstractTextResourceEditorInput } from '../../common/editor/textResourceEditorInput.js';
 import { ChatEditorInput } from '../../contrib/chat/browser/widgetHosts/editor/chatEditorInput.js';
 import { CustomEditorInput } from '../../contrib/customEditor/browser/customEditorInput.js';
-import { isCustomEditorCompatibleInput } from '../../contrib/customEditor/common/customEditor.js';
 import { InteractiveEditorInput } from '../../contrib/interactive/browser/interactiveEditorInput.js';
 import { MergeEditorInput } from '../../contrib/mergeEditor/browser/mergeEditorInput.js';
 import { MultiDiffEditorInput } from '../../contrib/multiDiffEditor/browser/multiDiffEditorInput.js';
@@ -46,10 +45,8 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 	private readonly _groupLookup: Map<number, IEditorTabGroupDto> = new Map();
 	// Lookup table for finding tab by id
 	private readonly _tabInfoLookup: Map<string, TabInfo> = new Map();
-	// Tracks resource-change listeners for currently open multi-diff tabs
-	private readonly _multiDiffEditorInputListeners: DisposableMap<string> = new DisposableMap();
-	// The group that the extension host knows as the active one
-	private _activeGroupId: number | undefined;
+	// Tracks the currently open MultiDiffEditorInputs to listen to resource changes
+	private readonly _multiDiffEditorInputListeners: DisposableMap<MultiDiffEditorInput> = new DisposableMap();
 
 	constructor(
 		extHostContext: IExtHostContext,
@@ -72,14 +69,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		}));
 
 		this._dispoables.add(this._multiDiffEditorInputListeners);
-
-		// Focus moving to another editor part, such as one of another window, changes the active group
-		// without that group activating within its part
-		this._dispoables.add(this._editorGroupsService.onDidChangeActiveGroup(() => {
-			if (this._editorGroupsService.activeGroup.id !== this._activeGroupId) {
-				this._onDidGroupActivate();
-			}
-		}));
 
 		// Structural group changes (add, remove, move, etc) are difficult to patch.
 		// Since they happen infrequently we just rebuild the entire model
@@ -166,15 +155,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 			return {
 				kind: TabInputKind.CustomEditorInput,
 				viewType: editor.viewType,
-				uri: editor.resource,
-			};
-		}
-
-		// Checked before webviews, since some of these inputs are webviews
-		if (isCustomEditorCompatibleInput(editor)) {
-			return {
-				kind: TabInputKind.CustomEditorInput,
-				viewType: editor.customEditorViewType,
 				uri: editor.resource,
 			};
 		}
@@ -272,7 +252,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		if (activeGroup) {
 			// Ok not to loop as exthost accepts last active group
 			activeGroup.isActive = true;
-			this._activeGroupId = activeGroupId;
 			this._proxy.$acceptTabGroupUpdate(activeGroup);
 		}
 	}
@@ -295,9 +274,6 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 				kind: TabModelOperationKind.TAB_UPDATE
 			});
 		} else {
-			if (this._editorGroupsService.activeModalEditorPart?.groups.some(group => group.id === groupId)) {
-				return;
-			}
 			this._logService.error('Invalid model for label change, rebuilding');
 			this._createTabsModel();
 		}
@@ -330,15 +306,12 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		this._tabInfoLookup.set(tabId, { group, editorInput, tab: tabObject });
 
 		if (editorInput instanceof MultiDiffEditorInput) {
-			this._multiDiffEditorInputListeners.set(tabId, Event.fromObservableLight(editorInput.resources)(() => {
+			this._multiDiffEditorInputListeners.set(editorInput, Event.fromObservableLight(editorInput.resources)(() => {
 				const tabInfo = this._tabInfoLookup.get(tabId);
 				if (!tabInfo) {
 					return;
 				}
-				// Refresh the DTO in place. The group's `tabs` array holds this very object,
-				// so swapping in a new one would leave that copy behind and let the two
-				// caches drift apart, e.g. a later update could re-send a stale `isActive`.
-				Object.assign(tabInfo.tab, this._buildTabObject(group, editorInput, editorIndex));
+				tabInfo.tab = this._buildTabObject(group, editorInput, editorIndex);
 				this._proxy.$acceptTabOperation({
 					groupId,
 					index: editorIndex,
@@ -378,8 +351,11 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 		}
 
 		// Update lookup
-		this._tabInfoLookup.delete(removedTab[0].id);
-		this._multiDiffEditorInputListeners.deleteAndDispose(removedTab[0].id);
+		this._tabInfoLookup.delete(removedTab[0]?.id ?? '');
+
+		if (removedTab[0]?.input instanceof MultiDiffEditorInput) {
+			this._multiDiffEditorInputListeners.deleteAndDispose(removedTab[0]?.input);
+		}
 
 		this._proxy.$acceptTabOperation({
 			groupId,
@@ -401,15 +377,8 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 			return;
 		}
 		const activeTab = tabs[editorIndex];
+		// No need to loop over as the exthost uses the most recently marked active tab
 		activeTab.isActive = true;
-		// Clear the flag on the other tabs of the group. Otherwise a later `TAB_UPDATE`
-		// re-sending one of those still-cached DTOs (label, dirty, pin or preview change)
-		// would repoint the exthost at a tab that is no longer active.
-		for (const tab of tabs) {
-			if (tab !== activeTab) {
-				tab.isActive = false;
-			}
-		}
 		// Send DTO update to the exthost
 		this._proxy.$acceptTabOperation({
 			groupId,
@@ -559,9 +528,28 @@ export class MainThreadEditorTabs implements MainThreadEditorTabsShape {
 			tabs = [];
 		}
 		// notify the ext host of the new model
-		this._activeGroupId = this._editorGroupsService.activeGroup.id;
 		this._proxy.$acceptEditorTabModel(this._tabGroupModel);
 	}
+
+	// TODOD @lramos15 Remove this after done finishing the tab model code
+	// private _eventToString(event: IEditorsChangeEvent | IEditorsMoveEvent): string {
+	// 	let eventString = '';
+	// 	switch (event.kind) {
+	// 		case GroupModelChangeKind.GROUP_INDEX: eventString += 'GROUP_INDEX'; break;
+	// 		case GroupModelChangeKind.EDITOR_ACTIVE: eventString += 'EDITOR_ACTIVE'; break;
+	// 		case GroupModelChangeKind.EDITOR_PIN: eventString += 'EDITOR_PIN'; break;
+	// 		case GroupModelChangeKind.EDITOR_OPEN: eventString += 'EDITOR_OPEN'; break;
+	// 		case GroupModelChangeKind.EDITOR_CLOSE: eventString += 'EDITOR_CLOSE'; break;
+	// 		case GroupModelChangeKind.EDITOR_MOVE: eventString += 'EDITOR_MOVE'; break;
+	// 		case GroupModelChangeKind.EDITOR_LABEL: eventString += 'EDITOR_LABEL'; break;
+	// 		case GroupModelChangeKind.GROUP_ACTIVE: eventString += 'GROUP_ACTIVE'; break;
+	// 		case GroupModelChangeKind.GROUP_LOCKED: eventString += 'GROUP_LOCKED'; break;
+	// 		case GroupModelChangeKind.EDITOR_DIRTY: eventString += 'EDITOR_DIRTY'; break;
+	// 		case GroupModelChangeKind.EDITOR_STICKY: eventString += 'EDITOR_STICKY'; break;
+	// 		default: eventString += `UNKNOWN: ${event.kind}`; break;
+	// 	}
+	// 	return eventString;
+	// }
 
 	/**
 	 * The main handler for the tab events

@@ -29,7 +29,7 @@ pub(crate) use drox_prompts::{
 	WORK_WITHOUT_PLAN_PREFIX,
 	LOCAL_EMPTY_TURN_NUDGE, LOCAL_EXPLORE_KICKOFF_NUDGE, LOCAL_FINAL_ANSWER_PROMPT,
 	LOCAL_SOFT_CLOSE_CHECK_NUDGE, LOCAL_TEXTUAL_TOOL_NUDGE, LOCAL_TEXTUAL_TOOL_TOOLS_OFF_NUDGE,
-	reply_has_textual_tool_call, reply_has_textual_tool_call_outside_code_fences,
+	reply_has_textual_tool_call,
 };
 
 /// Wrapper : injecte l'exemple JSON canonique de `drox-tools` (évite cycle crates).

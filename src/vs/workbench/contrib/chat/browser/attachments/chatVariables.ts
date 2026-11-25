@@ -10,27 +10,8 @@ import { ChatDynamicVariableModel } from './chatDynamicVariables.js';
 import { Range } from '../../../../../editor/common/core/range.js';
 import { URI } from '../../../../../base/common/uri.js';
 
-/**
- * The references in the prompt that the widget's input represents, including
- * those of inline attachment pills. Their ranges are in the text that
- * {@link IChatWidget.getInput} returns.
- *
- * @param options.forModel Whether the references are parsed into the request
- * sent to the model, which reads each pill as the name and location of its
- * attachment rather than the text that the pill stands for.
- */
-export function getDynamicVariablesForWidget(widget: IChatWidget, options?: { readonly forModel?: boolean }): ReadonlyArray<IDynamicVariable> {
-	const references = getInputDynamicVariablesForWidget(widget);
-	return widget.input.inlineAttachments?.project(references, options)?.references ?? references;
-}
-
-/**
- * The references in the widget's input editor, with ranges in the editor's
- * text. Unlike {@link getDynamicVariablesForWidget}, these exclude inline
- * attachment pills, which stand in for their text with a single character.
- */
-export function getInputDynamicVariablesForWidget(widget: IChatWidget): ReadonlyArray<IDynamicVariable> {
-	if (!widget.viewModel) {
+export function getDynamicVariablesForWidget(widget: IChatWidget): ReadonlyArray<IDynamicVariable> {
+	if (!widget.viewModel || !widget.supportsFileReferences) {
 		return [];
 	}
 
@@ -38,18 +19,13 @@ export function getInputDynamicVariablesForWidget(widget: IChatWidget): Readonly
 	if (!model) {
 		return [];
 	}
-	if (!widget.supportsFileReferences) {
-		return model.variables.filter(variable => variable.isAttachmentReference);
-	}
 
 	// track for editing state
 	if (widget.viewModel.editing && model.variables.length > 0) {
 		return model.variables;
 	}
 
-	// Ranges of attachments are offsets in the prompt, which differs from the
-	// input when inline attachment pills stand for text; the pills own those.
-	if (widget.input.attachmentModel.attachments.length > 0 && widget.viewModel.editing && !widget.input.inlineAttachments?.isEnabled) {
+	if (widget.input.attachmentModel.attachments.length > 0 && widget.viewModel.editing) {
 		const references: IDynamicVariable[] = [];
 		const editorModel = widget.inputEditor.getModel();
 		const modelTextLength = editorModel?.getValueLength() ?? 0;
@@ -107,8 +83,7 @@ export class ChatVariablesService implements IChatVariablesService {
 		if (!widget) {
 			return [];
 		}
-		// The request parser takes these to parse the request that is sent.
-		return getDynamicVariablesForWidget(widget, { forModel: true });
+		return getDynamicVariablesForWidget(widget);
 	}
 
 	getSelectedToolAndToolSets(sessionResource: URI): ToolAndToolSetEnablementMap {

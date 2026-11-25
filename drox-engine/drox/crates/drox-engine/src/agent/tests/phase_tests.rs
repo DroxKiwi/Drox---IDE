@@ -352,10 +352,14 @@ async fn explore_execution_stops_on_answering_without_done() {
 }
 
 #[tokio::test]
-async fn done_without_answering_still_closes_when_no_tools() {
+async fn done_without_answering_triggers_re_emission_nudge() {
+    // Sprint A.3 : `done` sans `answering` → refus. Todo obligatoire d'abord.
     let llm = Arc::new(ScriptedLlm::new(vec![
         read_then_one_todo_turn("Analyse demandée."),
+        // Tour 2 : reading + texte + done (PAS d'answering)
         premature_done_turn("Voici l'analyse complète du projet."),
+        // Tour 3 (post-nudge MISSING_ANSWERING_PROMPT) : conforme.
+        done_turn("Voici l'analyse complète du projet (en answering)."),
     ]));
     let mut registry = ToolRegistry::new();
     registry.register(Arc::new(TodoWriteTool));
@@ -371,11 +375,20 @@ async fn done_without_answering_still_closes_when_no_tools() {
         .collect::<Result<_, _>>()
         .unwrap();
 
+    let phases: Vec<Phase> = events
+        .iter()
+        .filter_map(|e| match e {
+            AgentEvent::PhaseEnter { phase } => Some(*phase),
+            _ => None,
+        })
+        .collect();
+    assert!(phases.contains(&Phase::Reading));
+    assert!(phases.contains(&Phase::Answering));
+    assert!(
+        phases.iter().filter(|p| **p == Phase::Done).count() >= 2,
+        "le Done prématuré doit être ignoré comme signal d'arrêt, donc 2 Done visibles ; got {phases:?}"
+    );
     assert!(matches!(events.last(), Some(AgentEvent::Stop { .. })));
-    assert!(events.iter().any(|e| matches!(
-        e,
-        AgentEvent::StatusNotice { notice_kind, .. } if notice_kind == "closure_mechanical"
-    )));
 }
 
 #[tokio::test]

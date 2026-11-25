@@ -11,7 +11,6 @@ import { l10n, workspace, window, Uri, ProgressLocation, commands } from 'vscode
 import { RepositoryCache, RepositoryCacheInfo } from './repositoryCache';
 import TelemetryReporter from '@vscode/extension-telemetry';
 import { Model } from './model';
-import { getSafeNotificationMessage } from './notification';
 
 type ApiPostCloneAction = 'none';
 enum PostCloneAction { Open, OpenNewWindow, AddToWorkspace, None }
@@ -21,7 +20,6 @@ export interface CloneOptions {
 	ref?: string;
 	recursive?: boolean;
 	postCloneAction?: ApiPostCloneAction;
-	returnRepositoryPath?: boolean;
 }
 
 export class CloneManager {
@@ -53,7 +51,7 @@ export class CloneManager {
 
 		const cachedRepository = this.repositoryCache.get(url);
 		if (cachedRepository && (cachedRepository.length > 0)) {
-			return this.tryOpenExistingRepository(cachedRepository, url, options.postCloneAction, options.parentPath, options.ref, options.returnRepositoryPath);
+			return this.tryOpenExistingRepository(cachedRepository, url, options.postCloneAction, options.parentPath, options.ref);
 		}
 		return this.cloneRepository(url, options.parentPath, options);
 	}
@@ -92,10 +90,7 @@ export class CloneManager {
 		try {
 			const opts = {
 				location: ProgressLocation.Notification,
-				title: getSafeNotificationMessage(
-					l10n.t('Cloning git repository "{0}"...', url),
-					l10n.t('Cloning git repository...'),
-				),
+				title: l10n.t('Cloning git repository "{0}"...', url),
 				cancellable: true
 			};
 
@@ -214,11 +209,10 @@ export class CloneManager {
 		}
 	}
 
-	private async tryOpenExistingRepository(cachedRepository: RepositoryCacheInfo[], url: string, postCloneAction?: ApiPostCloneAction, parentPath?: string, ref?: string, returnRepositoryPath?: boolean): Promise<string | undefined> {
-		// Ignore cached entries whose requested path no longer exists.
+	private async tryOpenExistingRepository(cachedRepository: RepositoryCacheInfo[], url: string, postCloneAction?: ApiPostCloneAction, parentPath?: string, ref?: string): Promise<string | undefined> {
+		// Gather existing folders/workspace files (ignore ones that no longer exist)
 		const existingCachedRepositories: RepositoryCacheInfo[] = (await Promise.all<RepositoryCacheInfo | undefined>(cachedRepository.map(async folder => {
-			const cachedPath = returnRepositoryPath ? folder.repositoryPath : folder.workspacePath;
-			const stat = await fs.promises.stat(cachedPath).catch(() => undefined);
+			const stat = await fs.promises.stat(folder.workspacePath).catch(() => undefined);
 			if (stat) {
 				return folder;
 			}
@@ -237,7 +231,7 @@ export class CloneManager {
 		});
 
 		if (matchingInCurrentWorkspace) {
-			return returnRepositoryPath ? matchingInCurrentWorkspace.repositoryPath : matchingInCurrentWorkspace.workspacePath;
+			return matchingInCurrentWorkspace.workspacePath;
 		}
 
 		let repoForWorkspace: string | undefined = (existingCachedRepositories.length === 1 ? existingCachedRepositories[0].workspacePath : undefined);
@@ -246,9 +240,7 @@ export class CloneManager {
 		}
 		if (repoForWorkspace) {
 			await this.doPostCloneAction(repoForWorkspace, postCloneAction);
-			return returnRepositoryPath
-				? existingCachedRepositories.find(repository => repository.workspacePath === repoForWorkspace)?.repositoryPath ?? repoForWorkspace
-				: repoForWorkspace;
+			return repoForWorkspace;
 		}
 		return;
 	}

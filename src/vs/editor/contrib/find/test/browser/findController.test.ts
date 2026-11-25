@@ -13,9 +13,8 @@ import { EditOperation } from '../../../../common/core/editOperation.js';
 import { Position } from '../../../../common/core/position.js';
 import { Range } from '../../../../common/core/range.js';
 import { Selection } from '../../../../common/core/selection.js';
-import { CommonFindController, FindStartFocusAction, IFindStartOptions, NextMatchFindAction, NextSelectionMatchFindAction, StartFindAction, StartFindReplaceAction, StartFindWithArgsAction, StartFindWithSelectionAction } from '../../browser/findController.js';
+import { CommonFindController, FindStartFocusAction, IFindStartOptions, NextMatchFindAction, NextSelectionMatchFindAction, StartFindAction, StartFindReplaceAction, StartFindWithSelectionAction } from '../../browser/findController.js';
 import { CONTEXT_FIND_INPUT_FOCUSED } from '../../browser/findModel.js';
-import { INewFindReplaceState } from '../../browser/findState.js';
 import { withAsyncTestCodeEditor } from '../../../../test/browser/testCodeEditor.js';
 import { IClipboardService } from '../../../../../platform/clipboard/common/clipboardService.js';
 import { IContextKey, IContextKeyService } from '../../../../../platform/contextkey/common/contextkey.js';
@@ -46,8 +45,8 @@ class TestFindController extends CommonFindController {
 		this.hasFocus = false;
 	}
 
-	protected override async _start(opts: IFindStartOptions, newState?: INewFindReplaceState): Promise<void> {
-		await super._start(opts, newState);
+	protected override async _start(opts: IFindStartOptions): Promise<void> {
+		await super._start(opts);
 
 		if (opts.shouldFocus !== FindStartFocusAction.NoFocusChange) {
 			this.hasFocus = true;
@@ -70,7 +69,7 @@ function executeAction(instantiationService: IInstantiationService, editor: ICod
 
 suite('FindController', () => {
 
-	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
+	ensureNoDisposablesAreLeakedInTestSuite();
 
 	let clipboardState = '';
 	const serviceCollection = new ServiceCollection();
@@ -158,37 +157,6 @@ suite('FindController', () => {
 			findController.dispose();
 		});
 	}); */
-
-	for (const searchString of [undefined, '', 'explicit']) {
-		test(`issue #151311: findWithArgs respects searchString ${JSON.stringify(searchString)}`, async () => {
-			const services = new ServiceCollection([IStorageService, disposables.add(new InMemoryStorageService())]);
-			await withAsyncTestCodeEditor(['needle'], { serviceCollection: services, find: { globalFindClipboard: false } }, async (editor, _, instantiationService) => {
-				const controller = editor.registerAndInstantiateContribution(TestFindController.ID, TestFindController);
-				const action = new StartFindWithArgsAction();
-				editor.setSelection(new Selection(1, 1, 1, 7));
-				for (let i = 0; i < 3; i++) {
-					await executeAction(instantiationService, editor, action, { searchString, isRegex: true });
-					assert.strictEqual(controller.getState().searchString, searchString ?? 'needle');
-				}
-			});
-		});
-	}
-
-	for (const searchString of [undefined, '', 'explicit']) {
-		test(`issue #151311: findWithArgs respects clipboard searchString ${JSON.stringify(searchString)}`, async () => {
-			const services = new ServiceCollection([IStorageService, disposables.add(new InMemoryStorageService())]);
-			await withAsyncTestCodeEditor(['needle'], { serviceCollection: services, find: { globalFindClipboard: true, seedSearchStringFromSelection: 'never' } }, async (editor, _, instantiationService) => {
-				const controller = editor.registerAndInstantiateContribution(TestFindController.ID, TestFindController);
-				const action = new StartFindWithArgsAction();
-				const clipboardService = instantiationService.get(IClipboardService);
-				for (let i = 0; i < 3; i++) {
-					await clipboardService.writeFindText('clipboard');
-					await executeAction(instantiationService, editor, action, { searchString, isRegex: true });
-					assert.strictEqual(controller.getState().searchString, searchString ?? 'clipboard');
-				}
-			});
-		});
-	}
 
 	test('issue #1857: F3, Find Next, acts like "Find Under Cursor"', async () => {
 		await withAsyncTestCodeEditor([

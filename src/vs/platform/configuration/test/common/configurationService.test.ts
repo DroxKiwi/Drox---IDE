@@ -11,10 +11,11 @@ import { URI } from '../../../../base/common/uri.js';
 import { runWithFakedTimers } from '../../../../base/test/common/timeTravelScheduler.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
 import { ConfigurationTarget, isConfigured } from '../../common/configuration.js';
-import { Extensions as ConfigurationExtensions, IConfigurationNode, IConfigurationRegistry } from '../../common/configurationRegistry.js';
+import { Extensions as ConfigurationExtensions, IConfigurationRegistry } from '../../common/configurationRegistry.js';
 import { ConfigurationService } from '../../common/configurationService.js';
 import { IFileService } from '../../../files/common/files.js';
-import { createInMemoryFileService } from '../../../files/test/common/inMemoryFileService.js';
+import { FileService } from '../../../files/common/fileService.js';
+import { InMemoryFileSystemProvider } from '../../../files/common/inMemoryFilesystemProvider.js';
 import { NullLogService } from '../../../log/common/log.js';
 import { FilePolicyService } from '../../../policy/common/filePolicyService.js';
 import { NullPolicyService } from '../../../policy/common/policy.js';
@@ -28,18 +29,11 @@ suite('ConfigurationService.test.ts', () => {
 	let fileService: IFileService;
 	let settingsResource: URI;
 
-	// Tests register settings in the global registry: deregister them, so that later test files do not see them.
-	const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration);
-	let registeredBefore: Set<IConfigurationNode>;
-
 	setup(async () => {
-		registeredBefore = new Set(registry.getConfigurations());
-		fileService = createInMemoryFileService(disposables, Schemas.file);
+		fileService = disposables.add(new FileService(new NullLogService()));
+		const diskFileSystemProvider = disposables.add(new InMemoryFileSystemProvider());
+		disposables.add(fileService.registerProvider(Schemas.file, diskFileSystemProvider));
 		settingsResource = URI.file('settings.json');
-	});
-
-	teardown(() => {
-		registry.deregisterConfigurations(registry.getConfigurations().filter(node => !registeredBefore.has(node)));
 	});
 
 	test('simple', () => runWithFakedTimers<void>({ useFakeTimers: true }, async () => {
@@ -366,7 +360,7 @@ suite('ConfigurationService.test.ts', () => {
 			await testObject.updateValue('configurationService.testSetting', 'value', ConfigurationTarget.WORKSPACE);
 			assert.fail('Should fail with error');
 		} catch (e) {
-			// success
+			// succeess
 		}
 	});
 
@@ -400,7 +394,7 @@ suite('ConfigurationService.test.ts', () => {
 			await testObject.updateValue('configurationService.policySetting', 'value');
 			assert.fail('Should throw error');
 		} catch (error) {
-			// success
+			// succeess
 		}
 	});
 });

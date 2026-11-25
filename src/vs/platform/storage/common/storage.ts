@@ -106,12 +106,6 @@ export interface IStorageService {
 	get(key: string, scope: StorageScope, fallbackValue: string): string;
 	get(key: string, scope: StorageScope, fallbackValue?: string): string | undefined;
 
-	/** Read authoritative shared state, bypassing the renderer cache. */
-	readApplicationSharedValue(key: string): Promise<string | undefined>;
-
-	/** Atomically update local, machine-only shared state across windows. */
-	compareAndSwapApplicationSharedValue(key: string, expectedValue: string | undefined, newValue: string): Promise<{ swapped: boolean; currentValue: string | undefined }>;
-
 	/**
 	 * Retrieve an element stored with the given key from storage. Use
 	 * the provided `defaultValue` if the element is `null` or `undefined`.
@@ -181,7 +175,9 @@ export interface IStorageService {
 	 * Returns all the keys used in the storage for the provided `scope`
 	 * and `target`.
 	 *
-	 * Omitting `target` includes keys without target metadata.
+	 * Note: this will NOT return all keys stored in the storage layer.
+	 * Some keys may not have an associated `StorageTarget` and thus
+	 * will be excluded from the results.
 	 *
 	 * @param scope allows to define the scope for the keys
 	 * to either the current workspace only, all workspaces or all profiles.
@@ -189,7 +185,7 @@ export interface IStorageService {
 	 * @param target allows to define the target for the keys
 	 * to either the current machine or user.
 	 */
-	keys(scope: StorageScope, target?: StorageTarget): string[];
+	keys(scope: StorageScope, target: StorageTarget): string[];
 
 	/**
 	 * Log the contents of the storage to the console.
@@ -360,17 +356,6 @@ export abstract class AbstractStorageService extends Disposable implements IStor
 		return Event.filter(this._onDidChangeValue.event, e => e.scope === scope && (key === undefined || e.key === key), disposable);
 	}
 
-	async readApplicationSharedValue(key: string): Promise<string | undefined> {
-		return this.get(key, StorageScope.APPLICATION_SHARED);
-	}
-
-	async compareAndSwapApplicationSharedValue(key: string, expectedValue: string | undefined, newValue: string): Promise<{ swapped: boolean; currentValue: string | undefined }> {
-		const currentValue = this.get(key, StorageScope.APPLICATION_SHARED);
-		if (currentValue !== expectedValue) { return { swapped: false, currentValue }; }
-		this.store(key, newValue, StorageScope.APPLICATION_SHARED, StorageTarget.MACHINE);
-		return { swapped: true, currentValue: newValue };
-	}
-
 	private doFlushWhenIdle(): void {
 		this.runFlushWhenIdle.value = runWhenGlobalIdle(() => {
 			if (this.shouldFlushWhenIdle()) {
@@ -533,10 +518,7 @@ export abstract class AbstractStorageService extends Disposable implements IStor
 		}
 	}
 
-	keys(scope: StorageScope, target?: StorageTarget): string[] {
-		if (target === undefined) {
-			return [...(this.getStorage(scope)?.items.keys() ?? [])];
-		}
+	keys(scope: StorageScope, target: StorageTarget): string[] {
 		const keys: string[] = [];
 
 		const keyTargets = this.getKeyTargets(scope);
@@ -550,7 +532,7 @@ export abstract class AbstractStorageService extends Disposable implements IStor
 		return keys;
 	}
 
-	protected updateKeyTarget(key: string, scope: StorageScope, target: StorageTarget | undefined, external = false): void {
+	private updateKeyTarget(key: string, scope: StorageScope, target: StorageTarget | undefined, external = false): void {
 
 		// Add
 		const keyTargets = this.getKeyTargets(scope);

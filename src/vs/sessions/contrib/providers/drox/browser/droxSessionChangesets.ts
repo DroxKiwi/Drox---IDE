@@ -16,8 +16,8 @@ import {
 	ISessionChangesetOperationTarget,
 	ISessionFileChange,
 	sessionFileChangesEqual,
-} from '../../../../../workbench/services/sessions/common/session.js';
-import { isIChatSessionFileChange2 } from '../../../../../workbench/common/chatSessionFileChange.js';
+} from '../../../../services/sessions/common/session.js';
+import { isIChatSessionFileChange2 } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
 import { matchGitRootForPath } from '../../../../../workbench/contrib/drox/common/droxDiscoverGitRoots.js';
 
 function changeFsPath(change: ISessionFileChange): string | undefined {

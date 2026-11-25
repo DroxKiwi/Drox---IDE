@@ -7,11 +7,10 @@ import { CancellationTokenSource } from '../../../../base/common/cancellation.js
 import { CancellationError } from '../../../../base/common/errors.js';
 import { Emitter } from '../../../../base/common/event.js';
 import { Disposable, DisposableStore, IReference, MutableDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
-import { autorun, IObservable, observableValue, transaction } from '../../../../base/common/observable.js';
+import { autorun, IObservable, observableValue } from '../../../../base/common/observable.js';
 import { localize } from '../../../../nls.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogger, log, LogLevel } from '../../../../platform/log/common/log.js';
-import { McpServerPolicyValues } from '../../../../platform/mcp/common/allowedMcpServers.js';
 import { IMcpHostDelegate, IMcpMessageTransport } from './mcpRegistryTypes.js';
 import { McpServerRequestHandler } from './mcpServerRequestHandler.js';
 import { McpTaskManager } from './mcpTaskManager.js';
@@ -20,7 +19,6 @@ import { IMcpClientMethods, IMcpPotentialSandboxBlock, IMcpServerConnection, Mcp
 export class McpServerConnection extends Disposable implements IMcpServerConnection {
 	private readonly _launch = this._register(new MutableDisposable<IReference<IMcpMessageTransport>>());
 	private readonly _state = observableValue<McpConnectionState>('mcpServerState', { state: McpConnectionState.Kind.Stopped });
-	private readonly _stopRequested = observableValue(this, false);
 	private readonly _requestHandler = observableValue<McpServerRequestHandler | undefined>('mcpServerRequestHandler', undefined);
 	private readonly _onPotentialSandboxBlock = this._register(new Emitter<IMcpPotentialSandboxBlock>());
 
@@ -42,29 +40,18 @@ export class McpServerConnection extends Disposable implements IMcpServerConnect
 	}
 
 	/** @inheritdoc */
-	resolvePolicyVariables(values: readonly string[]): Promise<McpServerPolicyValues> {
-		return this._delegate.resolvePolicyVariables(values);
-	}
-
-	/** @inheritdoc */
-	public async start(methods: IMcpClientMethods, policyValues: McpServerPolicyValues): Promise<McpConnectionState> {
-		if (this._store.isDisposed) {
-			return this._state.get();
-		}
+	public async start(methods: IMcpClientMethods): Promise<McpConnectionState> {
 		const currentState = this._state.get();
 		if (!McpConnectionState.canBeStarted(currentState.state)) {
 			return this._waitForState(McpConnectionState.Kind.Running, McpConnectionState.Kind.Error);
 		}
 
 		this._launch.value = undefined;
-		transaction(tx => {
-			this._stopRequested.set(false, tx);
-			this._state.set({ state: McpConnectionState.Kind.Starting }, tx);
-		});
+		this._state.set({ state: McpConnectionState.Kind.Starting }, undefined);
 		this._logger.info(localize('mcpServer.starting', 'Starting server {0}', this.definition.label));
 
 		try {
-			const launch = this._delegate.start(this._collection, this.definition, this.launchDefinition, { errorOnUserInteraction: this._errorOnUserInteraction, policyValues });
+			const launch = this._delegate.start(this._collection, this.definition, this.launchDefinition, { errorOnUserInteraction: this._errorOnUserInteraction });
 			this._launch.value = this.adoptLaunch(launch, methods);
 			return this._waitForState(McpConnectionState.Kind.Running, McpConnectionState.Kind.Error);
 		} catch (e) {
@@ -108,7 +95,7 @@ export class McpServerConnection extends Disposable implements IMcpServerConnect
 				}, cts.token).then(
 					handler => {
 						if (!store.isDisposed) {
-							this._requestHandler.set(store.add(handler), undefined);
+							this._requestHandler.set(handler, undefined);
 						} else {
 							handler.dispose();
 						}
@@ -134,32 +121,27 @@ export class McpServerConnection extends Disposable implements IMcpServerConnect
 	}
 
 	public async stop(): Promise<void> {
-		this._stopRequested.set(true, undefined);
 		this._logger.info(localize('mcpServer.stopping', 'Stopping server {0}', this.definition.label));
 		this._launch.value?.object.stop();
 		await this._waitForState(McpConnectionState.Kind.Stopped, McpConnectionState.Kind.Error);
 	}
 
 	public override dispose(): void {
-		transaction(tx => {
-			this._stopRequested.set(true, tx);
-			super.dispose();
-			this._state.set({ state: McpConnectionState.Kind.Stopped }, tx);
-		});
+		this._requestHandler.get()?.dispose();
+		super.dispose();
+		this._state.set({ state: McpConnectionState.Kind.Stopped }, undefined);
 	}
 
 	private _waitForState(...kinds: McpConnectionState.Kind[]): Promise<McpConnectionState> {
 		const current = this._state.get();
-		if (kinds.includes(current.state) || (current.state === McpConnectionState.Kind.Stopped && this._stopRequested.get())) {
+		if (kinds.includes(current.state)) {
 			return Promise.resolve(current);
 		}
 
 		return new Promise(resolve => {
 			const disposable = autorun(reader => {
 				const state = this._state.read(reader);
-				// A transport may still expose its previous Stopped state while a restart begins.
-				const stopped = this._stopRequested.read(reader) && state.state === McpConnectionState.Kind.Stopped;
-				if (kinds.includes(state.state) || stopped) {
+				if (kinds.includes(state.state)) {
 					disposable.dispose();
 					resolve(state);
 				}

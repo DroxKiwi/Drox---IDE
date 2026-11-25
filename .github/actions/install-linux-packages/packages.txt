@@ -1,9 +1,0 @@
-pkg-config
-xvfb
-libgtk-3-0
-libxkbfile-dev
-libkrb5-dev
-libgbm1
-rpm
-bubblewrap
-socat

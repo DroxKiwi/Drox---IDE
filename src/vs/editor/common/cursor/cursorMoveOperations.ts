@@ -114,7 +114,7 @@ export class MoveOperations {
 			lineNumber = lineNumber + 1;
 			column = model.getLineMinColumn(lineNumber);
 		}
-		return model.normalizePosition(new Position(lineNumber, column), PositionAffinity.Right);
+		return new Position(lineNumber, column);
 	}
 
 	public static rightPositionAtomicSoftTabs(model: ICursorSimpleModel, lineNumber: number, column: number, tabSize: number, indentSize: number): Position {

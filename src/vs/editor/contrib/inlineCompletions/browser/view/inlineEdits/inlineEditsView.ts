@@ -292,8 +292,7 @@ export class InlineEditsView extends Disposable {
 		if (model.inlineEdit.action === undefined) {
 			return undefined;
 		}
-		const editorModel = this._editorObs.model.read(reader);
-		if (!editorModel || !model.inlineEdit.originalText.targets(editorModel)) {
+		if (model.inlineEdit.originalText.uri.toString() !== this._editorObs.model.read(reader)?.uri.toString()) {
 			return {
 				isVisible: true,
 				lineNumber: model.inlineEdit.cursorPosition.lineNumber,
@@ -359,8 +358,6 @@ export class InlineEditsView extends Disposable {
 		if (longDistanceHint && longDistanceHint.isVisible) {
 			state.viewData.setLongDistanceViewData(longDistanceHint.lineNumber, inlineEdit.lineEdit.lineRange.startLineNumber);
 		}
-
-		state.viewData.isForAnotherDocument = !inlineEdit.originalText.targets(textModel);
 
 		if (state.kind === InlineCompletionViewKind.SideBySide) {
 			const indentationAdjustmentEdit = createReindentEdit(newText.getValue(), inlineEdit.modifiedLineRange, textModel.getOptions().tabSize);
@@ -556,7 +553,7 @@ export class InlineEditsView extends Disposable {
 			return {
 				kind: InlineCompletionViewKind.JumpTo as const,
 				position: model.inlineEdit.action.position,
-				viewData: createEmptyViewData(),
+				viewData: emptyViewData,
 			};
 		}
 
@@ -679,10 +676,10 @@ export class InlineEditsView extends Disposable {
 	}
 }
 
-const createEmptyViewData = () => new InlineCompletionViewData(-1, -1, -1, -1, -1, -1, -1, true);
+const emptyViewData = new InlineCompletionViewData(-1, -1, -1, -1, -1, -1, -1, true);
 function getViewData(inlineEdit: InlineEditWithChanges, stringChanges: { originalRange: Range; modifiedRange: Range; original: string; modified: string }[], textModel: ITextModel) {
 	if (!inlineEdit.edit) {
-		return createEmptyViewData();
+		return emptyViewData;
 	}
 
 	const cursorPosition = inlineEdit.cursorPosition;

@@ -14,8 +14,6 @@ import { IWebviewService, IWebview } from './webview.js';
 import { WebviewInput } from '../../webviewPanel/browser/webviewEditorInput.js';
 import { IEditorService } from '../../../services/editor/common/editorService.js';
 import { WebviewFindAccessibilityHelp } from './webviewFindAccessibilityHelp.js';
-import { WebviewUnattendedRestartParticipant } from './webviewUnattendedRestart.js';
-import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 
 
 const PRIORITY = 100;
@@ -90,5 +88,3 @@ if (PasteAction) {
 
 // Register webview find accessibility help
 AccessibleViewRegistry.register(new WebviewFindAccessibilityHelp());
-
-registerWorkbenchContribution2(WebviewUnattendedRestartParticipant.ID, WebviewUnattendedRestartParticipant, WorkbenchPhase.AfterRestored);

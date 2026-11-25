@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { assert, suite, test } from 'vitest';
+import { assert } from 'chai';
+import { suite, test } from 'vitest';
 import type { ChatVulnerability } from 'vscode';
 import { URI } from '../../../../util/vs/base/common/uri';
 import { MarkdownString } from '../../../../vscodeTypes';

@@ -7,7 +7,6 @@
 import { outdent } from 'outdent';
 import * as yaml from 'yaml';
 import { IAuthenticationService } from '../../src/platform/authentication/common/authentication';
-import type { QuotaTokenRefreshRequest } from '../../src/platform/authentication/common/quotaTokenRefresh';
 import * as fetcher from '../../src/platform/nesFetch/common/completionsFetchService';
 import { ResponseStream } from '../../src/platform/nesFetch/common/responseStream';
 import { CompletionsFetchService, FetchResponse, IFetchRequestParams } from '../../src/platform/nesFetch/node/completionsFetchServiceImpl';
@@ -149,15 +148,14 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 	protected override async _fetchFromUrl(
 		url: string,
 		options: fetcher.Completions.Internal.FetchOptions,
-		ct: CancellationToken,
-		quotaRequest: QuotaTokenRefreshRequest,
+		ct: CancellationToken
 	): Promise<Result<FetchResponse, fetcher.Completions.CompletionsFetchFailure>> {
 
 		const request = new CacheableCompletionRequest(url, options);
 
 		if (this.cacheMode === CacheMode.Disable) {
 			this.requests.set(options.requestId, { request, hitsCache: false });
-			return this._fetchFromUrlAndCache(request, url, options, ct, quotaRequest);
+			return this._fetchFromUrlAndCache(request, url, options, ct);
 		}
 
 		return CachingCompletionsFetchService.Locks.withLock(request.hash, async () => {
@@ -183,7 +181,7 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 
 				throw err;
 			}
-			return this._fetchFromUrlAndCache(request, url, options, ct, quotaRequest);
+			return this._fetchFromUrlAndCache(request, url, options, ct);
 		});
 	}
 
@@ -192,7 +190,6 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 		url: string,
 		options: fetcher.Completions.Internal.FetchOptions,
 		ct: CancellationToken,
-		quotaRequest: QuotaTokenRefreshRequest,
 	): Promise<Result<FetchResponse, fetcher.Completions.CompletionsFetchFailure>> {
 
 		const throttler = CachingCompletionsFetchService.throttlers.get(url);
@@ -213,7 +210,7 @@ export class CachingCompletionsFetchService extends CompletionsFetchService {
 						async () => {
 							try {
 								startTime = Date.now();
-								const r = await super._fetchFromUrl(url, options, ct, quotaRequest);
+								const r = await super._fetchFromUrl(url, options, ct);
 								resolve(r);
 							} catch (e) {
 								reject(e);

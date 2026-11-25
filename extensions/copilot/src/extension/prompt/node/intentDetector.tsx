@@ -13,7 +13,6 @@ import { TextDocumentSnapshot } from '../../../platform/editing/common/textDocum
 import { IEndpointProvider } from '../../../platform/endpoint/common/endpointProvider';
 import { IIgnoreService } from '../../../platform/ignore/common/ignoreService';
 import { ILogService } from '../../../platform/log/common/logService';
-import { gitHubCopilotRequestTeProperty } from '../../../platform/networking/common/fetch';
 import { ITabsAndEditorsService } from '../../../platform/tabs/common/tabsAndEditorsService';
 import { IExperimentationService } from '../../../platform/telemetry/common/nullExperimentationService';
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry';
@@ -359,7 +358,6 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 				messageText,
 				promptContext: cleanedIntentResponses.join(),
 				intent: chosenIntent || 'unknown',
-				...gitHubCopilotRequestTeProperty(fetchResult.gitHubCopilotRequestTe),
 			});
 			this.telemetryService.sendEnhancedGHTelemetryEvent('conversation.promptIntent', promptTelemetryData.raw.properties, promptTelemetryData.raw.measurements);
 		}
@@ -368,12 +366,11 @@ export class IntentDetector implements ChatParticipantDetectionProvider {
 
 	private sendPromptIntentErrorTelemetry(
 		baseUserTelemetry: ConversationalBaseTelemetryData,
-		fetchResult: { type: string; reason: string; requestId: string; gitHubCopilotRequestTe?: string }
+		fetchResult: { type: string; reason: string; requestId: string }
 	) {
 		const telemetryErrorData = baseUserTelemetry.extendedBy({
 			resultType: fetchResult.type,
 			reason: fetchResult.reason,
-			...gitHubCopilotRequestTeProperty(fetchResult.gitHubCopilotRequestTe),
 		});
 		this.telemetryService.sendEnhancedGHTelemetryErrorEvent('conversation.promptIntentError', telemetryErrorData.raw.properties, telemetryErrorData.raw.measurements);
 	}

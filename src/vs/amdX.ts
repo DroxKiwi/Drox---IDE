@@ -9,6 +9,8 @@ import { IProductConfiguration } from './base/common/product.js';
 import { URI } from './base/common/uri.js';
 import { generateUuid } from './base/common/uuid.js';
 
+export const canASAR = false; // TODO@esm: ASAR disabled in ESM
+
 declare const window: any;
 declare const document: any;
 declare const self: any;
@@ -35,7 +37,6 @@ class AMDModuleImporter {
 	private readonly _isRenderer = typeof document === 'object';
 
 	private readonly _defineCalls: DefineCall[] = [];
-	private _define: ((id: any, dependencies: any, callback: any) => void) | undefined;
 	private _state = AMDModuleImporterState.Uninitialized;
 	private _amdPolicy: Pick<TrustedTypePolicy, 'name' | 'createScriptURL'> | undefined;
 
@@ -53,7 +54,7 @@ class AMDModuleImporter {
 
 		this._state = AMDModuleImporterState.InitializedInternal;
 
-		const define = (id: any, dependencies: any, callback: any) => {
+		globalThis.define = (id: any, dependencies: any, callback: any) => {
 			if (typeof id !== 'string') {
 				callback = dependencies;
 				dependencies = id;
@@ -68,15 +69,8 @@ class AMDModuleImporter {
 			// }
 			this._defineCalls.push(new DefineCall(id, dependencies, callback));
 		};
-		define.amd = true;
-		this._define = define;
 
-		// Scripts run asynchronously in renderers and web workers, so `define` stays global there. In node.js,
-		// `_nodeJSLoadScript` runs them synchronously and makes `define` global only meanwhile: with a global AMD
-		// `define`, UMD packages that are imported later register with it instead of exporting their API.
-		if (this._isRenderer || this._isWebWorker) {
-			globalThis.define = define;
-		}
+		globalThis.define.amd = true;
 
 		if (this._isRenderer) {
 			this._amdPolicy = globalThis._VSCODE_WEB_PACKAGE_TTP ?? window.trustedTypes?.createPolicy('amdLoader', {
@@ -183,33 +177,16 @@ class AMDModuleImporter {
 
 	private async _nodeJSLoadScript(scriptSrc: string): Promise<DefineCall | undefined> {
 		try {
-			// `import('module')` is not remapped (only `fs` is), so it yields the real
-			// `module` builtin. We use its `createRequire` to obtain `fs`/`vm`: the ESM
-			// resolution hook maps `import('fs')` to the ASAR-unaware `original-fs`, but
-			// `scriptSrc` may point inside the `node_modules.asar` archive. The `fs`
-			// returned by `require` stays ASAR-aware in Electron, so it can read module
-			// files from within the archive.
+			const fs = (await import(/* webpackIgnore: true */ /* @vite-ignore */ `${'fs'}`)).default;
+			const vm = (await import(/* webpackIgnore: true */ /* @vite-ignore */ `${'vm'}`)).default;
 			const module = (await import(/* webpackIgnore: true */ /* @vite-ignore */ `${'module'}`)).default;
-			const nodeRequire = module.createRequire(import.meta.url);
-			const fs = nodeRequire('fs');
-			const vm = nodeRequire('vm');
 
 			const filePath = URI.parse(scriptSrc).fsPath;
 			const content = fs.readFileSync(filePath).toString();
 			const scriptSource = module.wrap(content.replace(/^#!.*/, ''));
 			const script = new vm.Script(scriptSource);
 			const compileWrapper = script.runInThisContext();
-			const previousDefine = globalThis.define;
-			globalThis.define = this._define;
-			try {
-				compileWrapper.apply();
-			} finally {
-				if (previousDefine === undefined) {
-					delete globalThis.define;
-				} else {
-					globalThis.define = previousDefine;
-				}
-			}
+			compileWrapper.apply();
 			return this._defineCalls.pop();
 		} catch (error) {
 			throw error;
@@ -241,7 +218,7 @@ export async function importAMDNodeModule<T>(nodeModuleName: string, pathInsideN
 		// bit of a special case for: src/vs/workbench/services/languageDetection/browser/languageDetectionWebWorker.ts
 		scriptSrc = nodeModulePath;
 	} else {
-		const useASAR = (isBuilt && (platform.isElectron || (platform.isWebWorker && platform.hasElectronUserAgent)));
+		const useASAR = (canASAR && isBuilt && !platform.isWeb);
 		const actualNodeModulesPath = (useASAR ? nodeModulesAsarPath : nodeModulesPath);
 		const resourcePath: AppResourcePath = `${actualNodeModulesPath}/${nodeModulePath}`;
 		scriptSrc = FileAccess.asBrowserUri(resourcePath).toString(true);
@@ -254,7 +231,7 @@ export async function importAMDNodeModule<T>(nodeModuleName: string, pathInsideN
 export function resolveAmdNodeModulePath(nodeModuleName: string, pathInsideNodeModule: string): string {
 	const product = globalThis._VSCODE_PRODUCT_JSON as unknown as IProductConfiguration;
 	const isBuilt = Boolean((product ?? globalThis.vscode?.context?.configuration()?.product)?.commit);
-	const useASAR = (isBuilt && (platform.isElectron || (platform.isWebWorker && platform.hasElectronUserAgent)));
+	const useASAR = (canASAR && isBuilt && !platform.isWeb);
 
 	const nodeModulePath = `${nodeModuleName}/${pathInsideNodeModule}`;
 	const actualNodeModulesPath = (useASAR ? nodeModulesAsarPath : nodeModulesPath);

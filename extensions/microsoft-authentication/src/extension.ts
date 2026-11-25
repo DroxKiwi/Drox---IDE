@@ -9,12 +9,11 @@ import { MsalAuthProvider } from './node/authProvider';
 import { UriEventHandler } from './UriEventHandler';
 import { authentication, commands, ExtensionContext, l10n, window, workspace, Disposable, Uri } from 'vscode';
 import { MicrosoftAuthenticationTelemetryReporter, MicrosoftSovereignCloudAuthenticationTelemetryReporter } from './common/telemetryReporter';
-import { getSafeNotificationMessage } from './common/notification';
 
 let implementation: 'msal' | 'msal-no-broker' = 'msal';
 const getImplementation = () => workspace.getConfiguration('microsoft-authentication').get<'msal' | 'msal-no-broker'>('implementation') ?? 'msal';
 
-export async function initMicrosoftSovereignCloudAuthProvider(
+async function initMicrosoftSovereignCloudAuthProvider(
 	context: ExtensionContext,
 	uriHandler: UriEventHandler
 ): Promise<Disposable | undefined> {
@@ -36,12 +35,7 @@ export async function initMicrosoftSovereignCloudAuthProvider(
 		try {
 			Environment.add(customEnv);
 		} catch (e) {
-			const message = l10n.t('Error validating custom environment setting: {0}', e.message);
-			Logger.error(message);
-			const res = await window.showErrorMessage(getSafeNotificationMessage(
-				message,
-				l10n.t('Error validating custom environment setting. Check the Microsoft Authentication output for details.'),
-			), l10n.t('Open settings'));
+			const res = await window.showErrorMessage(l10n.t('Error validating custom environment setting: {0}', e.message), l10n.t('Open settings'));
 			if (res) {
 				await commands.executeCommand('workbench.action.openSettings', 'microsoft-sovereign-cloud.customEnvironment');
 			}
@@ -54,12 +48,7 @@ export async function initMicrosoftSovereignCloudAuthProvider(
 
 	const env = Environment.get(authProviderName);
 	if (!env) {
-		const message = l10n.t('The environment `{0}` is not a valid environment.', authProviderName);
-		Logger.error(message);
-		await window.showErrorMessage(getSafeNotificationMessage(
-			message,
-			l10n.t('The configured environment is not a valid environment.'),
-		), l10n.t('Open settings'));
+		await window.showErrorMessage(l10n.t('The environment `{0}` is not a valid environment.', authProviderName), l10n.t('Open settings'));
 		return undefined;
 	}
 

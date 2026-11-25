@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { h } from '../../dom.js';
-import { pauseCSSAnimationsWhenHidden } from '../../animationSync.js';
+import { getWindow, h, onDidUnregisterWindow } from '../../dom.js';
+import { CodeWindow } from '../../window.js';
 import { IDisposable } from '../../../common/lifecycle.js';
 import './pixelSpinner.css';
 
@@ -26,10 +26,6 @@ export interface IPixelSpinnerOptions {
 	readonly variant?: 'grid' | 'ring';
 }
 
-export interface IPixelSpinner extends IDisposable {
-	readonly element: HTMLElement;
-}
-
 /**
  * Creates a small pixel-art style spinner. Color is driven by `currentColor`,
  * so consumers can control the visual color via the parent element's `color`
@@ -39,9 +35,9 @@ export interface IPixelSpinner extends IDisposable {
  *
  * @param parent Optional parent to append the spinner to.
  * @param options Optional spinner configuration.
- * @returns The spinner and its root element.
+ * @returns The spinner root element.
  */
-export function createPixelSpinner(parent?: HTMLElement, options?: IPixelSpinnerOptions): IPixelSpinner {
+export function createPixelSpinner(parent?: HTMLElement, options?: IPixelSpinnerOptions): HTMLElement {
 	const variant = options?.variant ?? 'grid';
 	const rootClass = variant === 'ring' ? 'span.monaco-pixel-spinner.monaco-pixel-spinner-ring' : 'span.monaco-pixel-spinner';
 	const root = h(rootClass).root;
@@ -55,29 +51,54 @@ export function createPixelSpinner(parent?: HTMLElement, options?: IPixelSpinner
 		root.appendChild(h('span.monaco-pixel-spinner-dot').root);
 	}
 	parent?.appendChild(root);
-	const animationTracking = trackSpinner(root);
-	return {
-		element: root,
-		dispose: () => animationTracking.dispose(),
-	};
+	trackSpinner(root);
+	return root;
 }
 
 
 const PAUSED_CLASS = 'monaco-pixel-spinner-paused';
-// Keyframes names used by the spinner variants (see pixelSpinner.css). The sync
-// is scoped to these so it never disturbs unrelated animations/transitions
-// (e.g. the icon cross-fade) that may run on the same subtree.
-const SPINNER_ANIMATION_NAMES = new Set([
-	'monaco-pixel-spinner-dot-cycle',
-	'monaco-pixel-spinner-dot-cycle-long',
-	'monaco-pixel-spinner-dot-cycle-short',
-	'monaco-pixel-spinner-ring-pulse',
-]);
+const observersByWindow = new Map<CodeWindow, IntersectionObserver>();
+let unregisterWindowListener: IDisposable | undefined;
 
-function trackSpinner(root: HTMLElement): IDisposable {
-	return pauseCSSAnimationsWhenHidden(root, {
-		pausedClass: PAUSED_CLASS,
-		subtree: true,
-		animationNames: SPINNER_ANIMATION_NAMES,
-	});
+function getObserverFor(targetWindow: CodeWindow): IntersectionObserver | undefined {
+	if (typeof targetWindow.IntersectionObserver !== 'function') {
+		return undefined;
+	}
+	let observer = observersByWindow.get(targetWindow);
+	if (!observer) {
+		observer = new targetWindow.IntersectionObserver(entries => {
+			for (const entry of entries) {
+				const target = entry.target as HTMLElement;
+				if (!target.isConnected) {
+					observer!.unobserve(target);
+					continue;
+				}
+				target.classList.toggle(PAUSED_CLASS, !entry.isIntersecting);
+			}
+		});
+		observersByWindow.set(targetWindow, observer);
+
+		if (!unregisterWindowListener) {
+			unregisterWindowListener = onDidUnregisterWindow(window => {
+				const obs = observersByWindow.get(window);
+				if (obs) {
+					obs.disconnect();
+					observersByWindow.delete(window);
+				}
+			});
+		}
+	}
+	return observer;
 }
+
+function trackSpinner(root: HTMLElement): void {
+	const observer = getObserverFor(getWindow(root));
+	if (!observer) {
+		return;
+	}
+	// Start paused; the observer delivers an initial notification that resumes
+	// the spinner if it is actually on screen.
+	root.classList.add(PAUSED_CLASS);
+	observer.observe(root);
+}
+

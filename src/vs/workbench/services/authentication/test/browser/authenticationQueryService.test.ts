@@ -297,15 +297,19 @@ suite('AuthenticationQueryService Integration Tests', () => {
 		let eventFired = false;
 
 		// Listen for access change events through the query service
-		disposables.add(queryService.onDidChangeAccess(() => {
+		const disposable = queryService.onDidChangeAccess(() => {
 			eventFired = true;
-		}));
+		});
 
-		// Trigger an access change that should fire an event
-		queryService.provider('github').account('user@example.com').extension('my-extension').setAccessAllowed(true, 'My Extension');
+		try {
+			// Trigger an access change that should fire an event
+			queryService.provider('github').account('user@example.com').extension('my-extension').setAccessAllowed(true, 'My Extension');
 
-		// Verify the event was fired
-		assert.strictEqual(eventFired, true);
+			// Verify the event was fired
+			assert.strictEqual(eventFired, true);
+		} finally {
+			disposable.dispose();
+		}
 	});
 
 	test('error handling for invalid inputs works correctly', () => {
@@ -1089,19 +1093,6 @@ suite('AuthenticationQueryService Integration Tests', () => {
 		assert.ok(userServer);
 		assert.strictEqual(userServer.trusted, undefined);
 		assert.strictEqual(userServer.allowed, true);
-	});
-
-	test('getAllowedMcpServers method exposes agentHost metadata', () => {
-		authService.registerAuthenticationProvider('github', createProvider({ id: 'github', label: 'GitHub' }));
-		authService.addAccounts('github', [{ id: 'user1', label: 'user@github.com' }]);
-
-		mcpAccessService.updateAllowedMcpServers('github', 'user@github.com', [
-			{ id: 'agent-host-mcp:remote/GitHub/https://api.example/mcp', name: 'GitHub', allowed: true, agentHost: { authority: 'remote', label: 'SSH: my-host' } }
-		]);
-
-		const allowedServers = queryService.provider('github').account('user@github.com').mcpServers().getAllowedMcpServers();
-		const agentHostServer = allowedServers.find(s => s.id === 'agent-host-mcp:remote/GitHub/https://api.example/mcp');
-		assert.deepStrictEqual(agentHostServer?.agentHost, { authority: 'remote', label: 'SSH: my-host' });
 	});
 
 	test('getAllowedExtensions returns extension data with trusted state', () => {

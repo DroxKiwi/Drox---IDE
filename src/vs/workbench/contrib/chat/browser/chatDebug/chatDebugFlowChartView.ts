@@ -296,10 +296,8 @@ export class ChatDebugFlowChartView extends Disposable {
 		const targetDocument = DOM.getWindow(this.content).document;
 		this._register(DOM.addDisposableListener(targetDocument, DOM.EventType.MOUSE_MOVE, e => this.handleMouseMove(e)));
 		this._register(DOM.addDisposableListener(targetDocument, DOM.EventType.MOUSE_UP, e => this.handleMouseUp(e)));
-		// DROX-BEGIN
 		// Capture so a focused/selected node does not eat the wheel before pan.
 		this._register(DOM.addDisposableListener(this.content, 'wheel', e => this.handleWheel(e), { passive: false, capture: true }));
-		// DROX-END
 	}
 
 	private setupKeyboard(): void {
@@ -680,7 +678,6 @@ export class ChatDebugFlowChartView extends Disposable {
 
 		this.hasUserPanned = true;
 
-		// DROX-BEGIN
 		if (e.ctrlKey || e.metaKey) {
 			const rect = this.content.getBoundingClientRect();
 			const mouseX = e.clientX - rect.left;
@@ -701,7 +698,6 @@ export class ChatDebugFlowChartView extends Disposable {
 			this.translateX -= dx;
 			this.translateY -= dy;
 		}
-		// DROX-END
 
 		this.applyTransform();
 	}

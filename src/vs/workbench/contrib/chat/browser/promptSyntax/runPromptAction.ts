@@ -3,9 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DisposableStore } from '../../../../../base/common/lifecycle.js';
-import { IChatWidget, IChatWidgetService } from '../chat.js';
-import { ACTION_ID_NEW_CHAT, CHAT_CATEGORY } from '../actions/chatActions.js';
+import { ChatViewId, IChatWidget, IChatWidgetService } from '../chat.js';
+import { ACTION_ID_NEW_CHAT, CHAT_CATEGORY, CHAT_CONFIG_MENU_ID } from '../actions/chatActions.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { OS } from '../../../../../base/common/platform.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
@@ -251,7 +250,13 @@ class ManagePromptFilesAction extends Action2 {
 			icon: Codicon.bookmark,
 			f1: true,
 			precondition: ChatContextKeys.enabled,
-			category: CHAT_CATEGORY
+			category: CHAT_CATEGORY,
+			menu: {
+				id: CHAT_CONFIG_MENU_ID,
+				when: ContextKeyExpr.and(ChatContextKeys.enabled, ContextKeyExpr.equals('view', ChatViewId)),
+				order: 11,
+				group: '0_level'
+			},
 		});
 	}
 
@@ -337,12 +342,9 @@ class RunCurrentPromptInNewChatAction extends RunPromptBaseAction {
 /**
  * Helper to register all the `Run Current Prompt` actions.
  */
-export function registerRunPromptActions(): DisposableStore {
-	const store = new DisposableStore();
-	store.add(registerAction2(RunCurrentPromptInNewChatAction));
-	store.add(registerAction2(RunCurrentPromptAction));
-	store.add(registerAction2(RunSelectedPromptAction));
-	store.add(registerAction2(ManagePromptFilesAction));
-
-	return store;
+export function registerRunPromptActions(): void {
+	registerAction2(RunCurrentPromptInNewChatAction);
+	registerAction2(RunCurrentPromptAction);
+	registerAction2(RunSelectedPromptAction);
+	registerAction2(ManagePromptFilesAction);
 }

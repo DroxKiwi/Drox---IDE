@@ -14,8 +14,6 @@ import { Schemas } from '../../../base/common/network.js';
 import { ILogService } from '../../../platform/log/common/log.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { splitLines } from '../../../base/common/strings.js';
-import { SequencerByKey } from '../../../base/common/async.js';
-import { getComparisonKey } from '../../../base/common/resources.js';
 
 export class ExtHostDocumentContentProvider implements ExtHostDocumentContentProvidersShape {
 
@@ -47,9 +45,9 @@ export class ExtHostDocumentContentProvider implements ExtHostDocumentContentPro
 		let subscription: IDisposable | undefined;
 		if (typeof provider.onDidChange === 'function') {
 
-			const documentUpdateQueue = new SequencerByKey<string>();
+			let lastEvent: Promise<void> | undefined;
 
-			subscription = provider.onDidChange(uri => {
+			subscription = provider.onDidChange(async uri => {
 				if (uri.scheme !== scheme) {
 					this._logService.warn(`Provider for scheme '${scheme}' is firing event for schema '${uri.scheme}' which will be IGNORED`);
 					return;
@@ -59,30 +57,38 @@ export class ExtHostDocumentContentProvider implements ExtHostDocumentContentPro
 					return;
 				}
 
-				documentUpdateQueue.queue(getComparisonKey(uri), async () => {
-					if (!this._documentContentProviders.has(handle)) {
-						return;
-					}
+				if (lastEvent) {
+					await lastEvent;
+				}
 
-					const value = await this.$provideTextDocumentContent(handle, uri);
-					if (!value && typeof value !== 'string') {
-						return;
-					}
+				const thisEvent = this.$provideTextDocumentContent(handle, uri)
+					.then(async value => {
+						if (!value && typeof value !== 'string') {
+							return;
+						}
 
-					const document = this._documentsAndEditors.getDocument(uri);
-					if (!document) {
-						// disposed in the meantime
-						return;
-					}
+						const document = this._documentsAndEditors.getDocument(uri);
+						if (!document) {
+							// disposed in the meantime
+							return;
+						}
 
-					// create lines and compare
-					const lines = splitLines(value);
+						// create lines and compare
+						const lines = splitLines(value);
 
-					// broadcast event when content changed
-					if (!document.equalLines(lines)) {
-						return this._proxy.$onVirtualDocumentChange(uri, value);
-					}
-				}).catch(onUnexpectedError);
+						// broadcast event when content changed
+						if (!document.equalLines(lines)) {
+							return this._proxy.$onVirtualDocumentChange(uri, value);
+						}
+					})
+					.catch(onUnexpectedError)
+					.finally(() => {
+						if (lastEvent === thisEvent) {
+							lastEvent = undefined;
+						}
+					});
+
+				lastEvent = thisEvent;
 			});
 		}
 		return new Disposable(() => {
