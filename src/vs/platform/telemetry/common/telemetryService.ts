@@ -354,6 +354,7 @@ configurationRegistry.registerConfiguration({
 		},
 		// Deprecated telemetry setting
 		[TELEMETRY_OLD_SETTING_ID]: {
+			'included': false,
 			'type': 'boolean',
 			'markdownDescription':
 				!product.privacyStatementUrl ?

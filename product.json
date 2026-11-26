@@ -49,7 +49,6 @@
 	"enableTelemetry": false,
 	"showTelemetryOptOut": false,
 	"removeTelemetryMachineId": true,
-	"webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/",
 	"builtInExtensions": [
 		{
 			"name": "ms-vscode.js-debug-companion",

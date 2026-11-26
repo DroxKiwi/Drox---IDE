@@ -81,10 +81,10 @@ import { IStateService } from '../../platform/state/node/state.js';
 import { StorageDatabaseChannel } from '../../platform/storage/electron-main/storageIpc.js';
 import { ApplicationStorageMainService, IApplicationStorageMainService, IStorageMainService, StorageMainService } from '../../platform/storage/electron-main/storageMainService.js';
 import { resolveCommonProperties } from '../../platform/telemetry/common/commonProperties.js';
-import { ITelemetryService, TelemetryLevel } from '../../platform/telemetry/common/telemetry.js';
+import { ITelemetryService } from '../../platform/telemetry/common/telemetry.js';
 import { TelemetryAppenderClient } from '../../platform/telemetry/common/telemetryIpc.js';
 import { ITelemetryServiceConfig, TelemetryService } from '../../platform/telemetry/common/telemetryService.js';
-import { getPiiPathsFromEnvironment, getTelemetryLevel, isInternalTelemetry, NullTelemetryService, supportsTelemetry } from '../../platform/telemetry/common/telemetryUtils.js';
+import { getPiiPathsFromEnvironment, isInternalTelemetry, NullTelemetryService, supportsTelemetry } from '../../platform/telemetry/common/telemetryUtils.js';
 import { IUpdateService } from '../../platform/update/common/update.js';
 import { UpdateChannel } from '../../platform/update/common/updateIpc.js';
 import { NotAvailableUpdateDialog } from '../../platform/update/electron-main/notAvailableUpdateDialog.js';
@@ -1747,8 +1747,9 @@ export class CodeApplication extends Disposable {
 			const argvContent = await this.fileService.readFile(this.environmentMainService.argvResource);
 			const argvString = argvContent.value.toString();
 			const argvJSON = parse<{ 'enable-crash-reporter'?: boolean }>(argvString);
-			const telemetryLevel = getTelemetryLevel(this.configurationService);
-			const enableCrashReporter = telemetryLevel >= TelemetryLevel.CRASH;
+			// DROX-BEGIN no crash reporter
+			const enableCrashReporter = false;
+			// DROX-END
 
 			// Initial startup
 			if (argvJSON['enable-crash-reporter'] === undefined) {
