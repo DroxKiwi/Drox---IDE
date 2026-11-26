@@ -27,9 +27,9 @@ Pas de compte dans le produit. Pas de service tiers payant branché par Drox.
 | | Piste | Où | Pourquoi |
 |---|-------|----|----------|
 | 🟢 | Chat et monitoring Copilot | `extensions/copilot` | Retiré du suivi Git. L’install et l’hygiène ne le réclament plus. Les connecteurs BYOK de ce dossier partent avec lui. Reste local possible : `node_modules` si le watch verrouille `esbuild.exe`. Pas encore commité |
-| 🔴 | Compte Copilot | `product.json` `trustedExtensionAuthAccess` pour `github.copilot` et `github.copilot-chat` | Donne à ces extensions le jeton GitHub. Drox n’a pas de compte Copilot |
+| 🟢 | Compte Copilot | `product.json` `trustedExtensionAuthAccess` vide. Boutons retirés du walkthrough, de l’onboarding et de la carte « Try GitHub Copilot » | Plus d’autorisation de jeton GitHub pour `github.copilot`. Les menus Sign in restent masqués par `droxCopilotSignInHidden` |
 | 🔴 | Identités du chat agent | `defaultChatAgent.provider` : `github-enterprise`, `google`, `apple` à côté de `drox` | Connexion de compte, pas un provider de modèle |
-| 🔴 | Abonnements | `managePlanUrl`, `upgradePlanUrl`, `signUpUrl`, `skusDocumentationUrl`, quotas `entitlementUrl` | Vocabulaire de plan payant. Les URL pointent déjà vers `NOTICE.md`, le schéma reste |
+| 🟢 | Abonnements | `managePlanUrl`, `upgradePlanUrl`, `signUpUrl`, `skusDocumentationUrl` vides. `upgradePlan` n’ouvre plus le paiement GitHub | Boutons Upgrade, Manage Budget et liens Pro retirés du sélecteur, du quota et du menu |
 | 🔴 | Envoi de télémétrie | `src/vs/platform/telemetry/common/1dsAppender.ts` → `https://mobile.events.data.microsoft.com/OneCollector/1.0` | Inerte aujourd’hui. Si `enableTelemetry` repasse à vrai, les événements partent chez Microsoft |
 | 🔴 | Réglage visible | `telemetry.telemetryLevel` dans `telemetryService.ts` | L’écran de paramètres parle encore d’une télémétrie produit |
 

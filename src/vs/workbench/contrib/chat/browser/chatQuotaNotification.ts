@@ -6,6 +6,7 @@
 import { Disposable, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { safeIntl } from '../../../../base/common/date.js';
 import { localize } from '../../../../nls.js';
+import product from '../../../../platform/product/common/product.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
@@ -248,6 +249,9 @@ export class ChatQuotaNotificationContribution extends Disposable implements IWo
 		if (entitlement === ChatEntitlement.Unknown) {
 			description = localize('quota.exhausted.anonymous', "Sign in to keep going.");
 			actions = [{ label: localize('signIn', "Sign In"), commandId: 'workbench.action.chat.triggerSetup' }];
+		} else if (product.skipCopilotGitHubSignIn) {
+			description = localize('quota.exhausted.local', "The limit for this run is reached.");
+			actions = [];
 		} else if (entitlement === ChatEntitlement.Free) {
 			description = localize('quota.exhausted.free', "Upgrade to keep going.");
 			actions = [{ label: localize('upgrade', "Upgrade"), commandId: 'workbench.action.chat.upgradePlan' }];
@@ -303,8 +307,12 @@ export class ChatQuotaNotificationContribution extends Disposable implements IWo
 		let actions: IChatInputNotification['actions'];
 
 		if (entitlement === ChatEntitlement.Unknown || entitlement === ChatEntitlement.Free) {
-			description = localize('quota.approaching.free', "Upgrade to continue past the limit.");
-			actions = [{ label: localize('upgrade2', "Upgrade"), commandId: 'workbench.action.chat.upgradePlan' }];
+			description = product.skipCopilotGitHubSignIn
+				? localize('quota.approaching.free.local', "You are close to the limit.")
+				: localize('quota.approaching.free', "Upgrade to continue past the limit.");
+			actions = product.skipCopilotGitHubSignIn
+				? []
+				: [{ label: localize('upgrade2', "Upgrade"), commandId: 'workbench.action.chat.upgradePlan' }];
 		} else if (this._isManagedPlan(entitlement)) {
 			description = localize('quota.approaching.managed', "Contact your admin to increase your limits.");
 			actions = [];

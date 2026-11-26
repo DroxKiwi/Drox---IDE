@@ -117,7 +117,11 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 	private _footerSignInBtn: HTMLButtonElement | undefined;
 
 	private currentStepIndex = 0;
-	private readonly steps = ONBOARDING_STEPS;
+	// DROX-BEGIN no copilot account
+	private readonly steps = product.skipCopilotGitHubSignIn
+		? ONBOARDING_STEPS.filter(id => id !== OnboardingStepId.SignIn)
+		: ONBOARDING_STEPS;
+	// DROX-END
 	private readonly disposables = this._register(new DisposableStore());
 	private readonly stepDisposables = this._register(new DisposableStore());
 	private previouslyFocusedElement: HTMLElement | undefined;
@@ -442,7 +446,9 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
 			}
 		}
 		if (this.footerLeft) {
-			if (this._isLastStep()) {
+			// DROX-BEGIN no copilot account
+			if (this._isLastStep() && !product.skipCopilotGitHubSignIn) {
+				// DROX-END
 				// Show sign-in nudge in footer
 				if (!this._footerSignInBtn && !this._userSignedIn) {
 					this._footerSignInBtn = append(this.footerLeft, $<HTMLButtonElement>('button.onboarding-a-signin-nudge-btn'));

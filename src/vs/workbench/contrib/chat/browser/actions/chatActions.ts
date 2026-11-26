@@ -1241,6 +1241,12 @@ export function registerChatActions() {
 			const dialogService = accessor.get(IDialogService);
 			const telemetryService = accessor.get(ITelemetryService);
 
+			// DROX-BEGIN no subscription
+			if (product.skipCopilotGitHubSignIn) {
+				return;
+			}
+			// DROX-END
+
 			let message: string;
 			const chatQuotaExceeded = chatEntitlementService.quotas.chat?.percentRemaining === 0;
 			const completionsQuotaExceeded = chatEntitlementService.quotas.completions?.percentRemaining === 0;

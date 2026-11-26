@@ -118,11 +118,11 @@
 		"documentationUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/README.md",
 		"termsStatementUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
 		"privacyStatementUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"skusDocumentationUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
+		"skusDocumentationUrl": "",
 		"publicCodeMatchesUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"managePlanUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"upgradePlanUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
-		"signUpUrl": "https://github.com/DroxKiwi/Drox---IDE/blob/main/NOTICE.md",
+		"managePlanUrl": "",
+		"upgradePlanUrl": "",
+		"signUpUrl": "",
 		"provider": {
 			"default": {
 				"id": "drox",
@@ -162,16 +162,7 @@
 		"openAiCompatibleProviderType": "openai"
 	},
 	"skipCopilotGitHubSignIn": true,
-	"trustedExtensionAuthAccess": {
-		"github": [
-			"github.copilot",
-			"github.copilot-chat"
-		],
-		"github-enterprise": [
-			"github.copilot",
-			"github.copilot-chat"
-		]
-	},
+	"trustedExtensionAuthAccess": {},
 	"onboardingKeymaps": [
 		{
 			"id": "vscode",

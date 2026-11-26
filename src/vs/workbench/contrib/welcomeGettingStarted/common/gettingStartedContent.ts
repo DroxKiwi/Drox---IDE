@@ -315,7 +315,9 @@ function createCopilotSetupStep(id: string, button: string, when: string, includ
 		id,
 		title: CopilotStepTitle,
 		description,
-		when: `${when} && !chatSetupHidden && !chatSetupDisabledInWorkspace`,
+		// DROX-BEGIN no copilot account
+		when: `${when} && !chatSetupHidden && !chatSetupDisabledInWorkspace && !droxCopilotSignInHidden`,
+		// DROX-END
 		media: {
 			type: 'svg', altText: 'VS Code Copilot multi file edits', path: 'multi-file-edits.svg'
 		},

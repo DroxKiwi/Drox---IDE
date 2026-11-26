@@ -169,8 +169,8 @@ export class ChatStatusDashboard extends DomWidget {
 			}));
 
 			// Add Additional Spend / Upgrade buttons to the header
-			const canConfigureAdditionalSpend = this.chatEntitlementService.entitlement === ChatEntitlement.EDU || this.chatEntitlementService.entitlement === ChatEntitlement.Pro || this.chatEntitlementService.entitlement === ChatEntitlement.ProPlus || this.chatEntitlementService.entitlement === ChatEntitlement.Max;
-			const showUpgrade = this.chatEntitlementService.quotas.canUpgradePlan ?? false;
+			const canConfigureAdditionalSpend = !product.skipCopilotGitHubSignIn && (this.chatEntitlementService.entitlement === ChatEntitlement.EDU || this.chatEntitlementService.entitlement === ChatEntitlement.Pro || this.chatEntitlementService.entitlement === ChatEntitlement.ProPlus || this.chatEntitlementService.entitlement === ChatEntitlement.Max);
+			const showUpgrade = !product.skipCopilotGitHubSignIn && (this.chatEntitlementService.quotas.canUpgradePlan ?? false);
 
 			const actionBarElement = header.lastElementChild;
 
@@ -201,8 +201,8 @@ export class ChatStatusDashboard extends DomWidget {
 		// CTA buttons for compact mode — rendered into a caller-provided container
 		if (hasUsageSection && this.options?.compactQuotaLayout && this.options.ctaButtonsContainer) {
 			const ctaContainer = this.options.ctaButtonsContainer;
-			const canConfigureAdditionalSpend = this.chatEntitlementService.entitlement === ChatEntitlement.EDU || this.chatEntitlementService.entitlement === ChatEntitlement.Pro || this.chatEntitlementService.entitlement === ChatEntitlement.ProPlus || this.chatEntitlementService.entitlement === ChatEntitlement.Max;
-			const showUpgrade = this.chatEntitlementService.quotas.canUpgradePlan ?? false;
+			const canConfigureAdditionalSpend = !product.skipCopilotGitHubSignIn && (this.chatEntitlementService.entitlement === ChatEntitlement.EDU || this.chatEntitlementService.entitlement === ChatEntitlement.Pro || this.chatEntitlementService.entitlement === ChatEntitlement.ProPlus || this.chatEntitlementService.entitlement === ChatEntitlement.Max);
+			const showUpgrade = !product.skipCopilotGitHubSignIn && (this.chatEntitlementService.quotas.canUpgradePlan ?? false);
 
 			if (canConfigureAdditionalSpend) {
 				headerAdditionalSpendButton = this._store.add(new Button(ctaContainer, { ...defaultButtonStyles, hoverDelegate: nativeHoverDelegate, secondary: true }));

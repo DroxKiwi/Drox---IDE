@@ -454,6 +454,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 					precondition: ContextKeyExpr.and(
 						ChatContextKeys.Setup.hidden.negate(),
 						ChatContextKeys.Setup.disabledInWorkspace.negate(),
+						DroxCopilotSignInHiddenContext.negate(),
 						ContextKeyExpr.or(
 							ChatContextKeys.Entitlement.canSignUp,
 							ChatContextKeys.Entitlement.planFree
@@ -464,6 +465,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 						group: 'a_first',
 						order: 1,
 						when: ContextKeyExpr.and(
+							DroxCopilotSignInHiddenContext.negate(),
 							ChatContextKeys.Entitlement.planFree,
 							ContextKeyExpr.or(
 								ChatContextKeys.chatQuotaExceeded,
@@ -481,6 +483,12 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 				const telemetryService = accessor.get(ITelemetryService);
 				const defaultAccountService = accessor.get(IDefaultAccountService);
 				const productService = accessor.get(IProductService);
+
+				// DROX-BEGIN no subscription
+				if (productService.skipCopilotGitHubSignIn || !productService.defaultChatAgent?.upgradePlanUrl) {
+					return;
+				}
+				// DROX-END
 
 				telemetryService.publicLog2<WorkbenchActionExecutedEvent, WorkbenchActionExecutedClassification>('workbenchActionExecuted', { id: 'workbench.action.chat.upgradePlan', from: 'command' });
 
