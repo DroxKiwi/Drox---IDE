@@ -1,7 +1,5 @@
 # Drox 1.6.10
 
-Note de la mise à jour en cours. À la première ouverture de cette version, c’est ce texte qui s’affiche.
-
 ## <span style="color:#3fb950">Nouveautés</span>
 
 - <span style="color:#3fb950">+</span> Avant chaque tour, le moteur réduit le contexte (carte de situation, extrait chaud, compactage, snip) sans remplacer la boucle Drox.
