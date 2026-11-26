@@ -71,6 +71,39 @@
 	opacity: 0.72;
 }
 
+.drox-release-notes-section {
+	list-style: none;
+	margin-top: 10px;
+	font-weight: 650;
+}
+
+.drox-release-notes-section.is-news {
+	color: #3fb950;
+}
+
+.drox-release-notes-section.is-fix {
+	color: #f85149;
+}
+
+.drox-release-notes-section.is-experimental {
+	color: #6cb6ff;
+}
+
+.drox-release-notes-mark {
+	display: inline-block;
+	width: 1em;
+	margin-right: 6px;
+	font-weight: 700;
+}
+
+.drox-release-notes-mark.is-add {
+	color: #3fb950;
+}
+
+.drox-release-notes-mark.is-remove {
+	color: #f85149;
+}
+
 .drox-release-notes-title {
 	margin: 0;
 	font-size: 15px;

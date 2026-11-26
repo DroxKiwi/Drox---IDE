@@ -8,6 +8,7 @@ import TelemetryReporter from '@vscode/extension-telemetry';
 import { uniqueNamesGenerator, adjectives, animals, colors, NumberDictionary } from '@joaomoreno/unique-names-generator';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
+import * as os from 'os';
 import * as path from 'path';
 import picomatch from 'picomatch';
 import { CancellationError, CancellationToken, CancellationTokenSource, Command, commands, CustomExecution, Disposable, Event, EventEmitter, ExcludeSettingOptions, FileDecoration, l10n, LogLevel, LogOutputChannel, Memento, ProcessExecution, ProgressLocation, ProgressOptions, RelativePattern, scm, ShellExecution, SourceControl, SourceControlInputBox, SourceControlInputBoxValidation, SourceControlInputBoxValidationType, SourceControlResourceDecorations, SourceControlResourceGroup, SourceControlResourceState, TabInputNotebookDiff, TabInputTextDiff, TabInputTextMultiDiff, Task, TaskPanelKind, TaskRevealKind, TaskRunOn, tasks, ThemeColor, ThemeIcon, Uri, window, workspace, WorkspaceEdit, WorkspaceFolder } from 'vscode';
@@ -27,6 +28,7 @@ import { IRemoteSourcePublisherRegistry } from './remotePublisher';
 import { StatusBarCommands } from './statusbar';
 import { toGitUri } from './uri';
 import { anyEvent, combinedDisposable, debounceEvent, dispose, EmptyDisposable, eventToPromise, filterEvent, find, getCommitShortHash, IDisposable, isCopilotWorktreeFolder, isDescendant, isLinuxSnap, isRemote, isWindows, Limiter, onceEvent, pathEquals, relativePath } from './util';
+import { createWorktreeSymlink, filterWorktreeSymlinkFolders, getWorktreeSymlinkFolderCandidates } from './worktreeSymlink';
 import { IFileWatcher, watch } from './watch';
 import { ISourceControlHistoryItemDetailsProviderRegistry } from './historyItemDetailsProvider';
 import { GitArtifactProvider } from './artifactProvider';
@@ -1979,11 +1981,92 @@ export class Repository implements Disposable {
 	}
 
 	private async _setupWorktree(worktreePath: string): Promise<void> {
-		// Copy worktree include files and wait for the copy to complete
-		// before running any worktree-created tasks.
+		await this._symlinkWorktreeFolders(worktreePath);
 		await this._copyWorktreeIncludeFiles(worktreePath);
-
 		await this._runWorktreeCreatedTasks(worktreePath);
+	}
+
+	private async _symlinkWorktreeFolders(worktreePath: string): Promise<void> {
+		try {
+			const directories = await this._getWorktreeSymlinkFolders();
+			if (directories.length === 0) {
+				return;
+			}
+			const errors: { directory: string; error: string }[] = [];
+			for (const directory of directories) {
+				try {
+					await createWorktreeSymlink(this.root, worktreePath, directory);
+				} catch (err) {
+					errors.push({ directory, error: String(err) });
+				}
+			}
+			if (errors.length > 0) {
+				window.showWarningMessage(l10n.t('Failed to create {0} worktree folder symlink(s).', errors.length));
+				for (const error of errors) {
+					this.logger.warn(`[Repository][_symlinkWorktreeFolders] ${error.directory}: ${error.error}`);
+				}
+			}
+		} catch (err) {
+			this.logger.warn(`[Repository][_symlinkWorktreeFolders] Failed to symlink folders to worktree: ${err}`);
+		}
+	}
+
+	private async _getWorktreeSymlinkFolders(): Promise<string[]> {
+		const config = workspace.getConfiguration('git', Uri.file(this.root));
+		const worktreeSymlinkFolders = config.get<string[]>('worktreeSymlinkFolders', []);
+		const patterns = worktreeSymlinkFolders.filter(pattern => !/[\r\n]/.test(pattern));
+		if (patterns.length === 0) {
+			return [];
+		}
+		const tempDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'vscode-git-worktree-symlink-'));
+		const patternsFile = path.join(tempDir, 'patterns');
+		try {
+			await fsPromises.writeFile(patternsFile, patterns.join('\n') + '\n', 'utf8');
+			const tryExec = async (cwd: string, args: string[], input?: string, allowNoMatches = false): Promise<string | undefined> => {
+				try {
+					return (await this.repository.git.exec(cwd, args, { input })).stdout;
+				} catch (err) {
+					if (allowNoMatches && err instanceof GitError && err.exitCode === 1) {
+						return '';
+					}
+					this.logger.warn(`[Repository][_getWorktreeSymlinkFolders] Failed to execute 'git ${args.join(' ')}': ${err}`);
+					return undefined;
+				}
+			};
+			const baseArgs = ['ls-files', '--others', '--ignored', '-z'];
+			const [ignoredOutput, matchedOutput, directoryOutput] = await Promise.all([
+				tryExec(this.root, [...baseArgs, '--exclude-standard']),
+				tryExec(this.root, [...baseArgs, `--exclude-from=${patternsFile}`]),
+				tryExec(this.root, [...baseArgs, '--exclude-standard', '--directory'])
+			]);
+			if (ignoredOutput === undefined || matchedOutput === undefined || directoryOutput === undefined) {
+				return [];
+			}
+			const candidates = getWorktreeSymlinkFolderCandidates(ignoredOutput, matchedOutput);
+			if (candidates.length === 0) {
+				return [];
+			}
+			const matcherRoot = path.join(tempDir, 'matcher');
+			await fsPromises.mkdir(matcherRoot);
+			if (await tryExec(matcherRoot, ['init', '--quiet']) === undefined) {
+				return [];
+			}
+			const candidateInput = candidates.map(candidate => `${candidate}/`).join('\0');
+			const [ignoredDirectoriesOutput, matchedDirectoriesOutput] = await Promise.all([
+				tryExec(this.root, ['check-ignore', '--no-index', '-z', '--stdin'], candidateInput, true),
+				tryExec(matcherRoot, ['-c', `core.excludesFile=${patternsFile}`, 'check-ignore', '--no-index', '-z', '--stdin'], candidateInput, true)
+			]);
+			if (ignoredDirectoriesOutput === undefined || matchedDirectoriesOutput === undefined) {
+				return [];
+			}
+			return filterWorktreeSymlinkFolders(candidates, ignoredDirectoriesOutput, matchedDirectoriesOutput, directoryOutput);
+		} finally {
+			try {
+				await fsPromises.rm(tempDir, { recursive: true, force: true });
+			} catch {
+				// best-effort
+			}
+		}
 	}
 
 	private async _runWorktreeCreatedTasks(worktreePath: string): Promise<void> {

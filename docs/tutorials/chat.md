@@ -15,9 +15,9 @@ Trois profils, un seul binaire :
 
 | Profil | Ce que le modèle peut faire |
 |--------|------------------------------|
-| **local-9b** | Petit modèle local. Les outils du parent s’exécutent un par un. Pas d’outil de question à l’utilisateur. |
-| **local-27b** | Modèle local capable. Outils en série aussi. L’outil `ask_user_question` est disponible : une question à la fois dans le message, au plus 3 questions, 2 ou 3 options. |
-| **cloud-full** | Protocole complet. Les outils indépendants partent en parallèle. Un complément dans le même message n’est permis que sur ce profil. `ask_user_question` est disponible. Un enfant Explore lancé depuis un parent local reste en protocole complet. |
+| **SLM** (`local-9b`) | Consignes courtes. Les outils du parent s’exécutent un par un. Pas d’outil de question à l’utilisateur. |
+| **MLM** (`local-27b`) | Consignes guidées. Outils en série aussi. L’outil `ask_user_question` est disponible : une question à la fois dans le message, au plus 3 questions, 2 ou 3 options. |
+| **LLM** (`cloud-full`) | Consignes complètes. Les outils indépendants partent en parallèle. Un complément dans le même message n’est permis que sur ce profil. `ask_user_question` est disponible. Un enfant Explore lancé depuis un parent local reste en consignes complètes. |
 
 Un run parent se ferme sur un tour sans outil, y compris en `cloud-full`. Le mode professeur n’existe plus.
 

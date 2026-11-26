@@ -1592,17 +1592,15 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		if (this.isDisposed) {
 			return;
 		}
-		const trusted = await this._trust();
-		// Allow remote terminals in a remote workspace to be created when trust is denied, but
-		// still block local terminals (those without a remoteAuthority) even when the workspace is remote.
-		const isRemoteTerminal = !!this.remoteAuthority;
-		if (!trusted && !(isRemoteTerminal && this._workbenchEnvironmentService.remoteAuthority)) {
-			this._onProcessExit({ message: nls.localize('workspaceNotTrustedCreateTerminal', "Cannot launch a terminal process in an untrusted workspace") });
-		} else if (this._workspaceContextService.getWorkspace().folders.length === 0 && this._cwd && this._userHome && normalizeDriveLetter(this._cwd) !== normalizeDriveLetter(this._userHome)) {
+		if (!await this._ensureWorkspaceTrustedForProcess()) {
+			return;
+		}
+		if (this._workspaceContextService.getWorkspace().folders.length === 0 && this._cwd && this._userHome && normalizeDriveLetter(this._cwd) !== normalizeDriveLetter(this._userHome)) {
 			// something strange is going on if cwd is not userHome in an empty workspace
 			this._onProcessExit({
 				message: nls.localize('workspaceEmptyCreateTerminalCwd', "Cannot launch a terminal process in an empty workspace with cwd {0} different from userHome {1}", this._cwd, this._userHome)
 			});
+			return;
 		}
 		// Re-evaluate dimensions if the container has been set since the xterm instance was created
 		if (this._container && this._cols === 0 && this._rows === 0) {
@@ -1895,6 +1893,11 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 			shell.initialText = ' ';
 		}
 
+		// DROX-BEGIN CVE-2026-102233
+		if (!await this._ensureWorkspaceTrustedForProcess()) {
+			return;
+		}
+		// DROX-END
 		// Set the new shell launch config
 		this._shellLaunchConfig = shell; // Must be done before calling _createProcess()
 		this._agentShellTypeFromSequence = undefined;
@@ -1944,6 +1947,18 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		}
 		this.setShellType(shellType);
 	}
+
+	// DROX-BEGIN CVE-2026-102233
+	private async _ensureWorkspaceTrustedForProcess(): Promise<boolean> {
+		const trusted = await this._trust();
+		const isRemoteTerminal = !!this.remoteAuthority;
+		if (!trusted && !(isRemoteTerminal && this._workbenchEnvironmentService.remoteAuthority)) {
+			this._onProcessExit({ message: nls.localize('workspaceNotTrustedCreateTerminal', "Cannot launch a terminal process in an untrusted workspace") });
+			return false;
+		}
+		return true;
+	}
+	// DROX-END
 
 	private async _trust(): Promise<boolean> {
 		if (this._configurationService.getValue(TerminalSettingId.AllowInUntrustedWorkspace)) {

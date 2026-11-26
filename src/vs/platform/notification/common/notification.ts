@@ -8,12 +8,13 @@ import { IAction } from '../../../base/common/actions.js';
 import { Event } from '../../../base/common/event.js';
 import BaseSeverity from '../../../base/common/severity.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
+import { NotificationText } from './notificationMessage.js';
 
 export import Severity = BaseSeverity;
 
 export const INotificationService = createDecorator<INotificationService>('notificationService');
 
-export type NotificationMessage = string | Error;
+export type NotificationMessage = string | Error | NotificationText;
 
 export enum NotificationPriority {
 

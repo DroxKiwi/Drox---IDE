@@ -33,6 +33,17 @@
 				});
 			}
 		}
+		const rolePanel = document.getElementById('role-model-panel');
+		if (rolePanel) {
+			for (const el of rolePanel.querySelectorAll('input, select')) {
+				if (!el.id || !el.id.startsWith('general-settings-')) {
+					continue;
+				}
+				el.addEventListener('change', () => {
+					fn.persistGeneralSettingsFromPanel();
+				});
+			}
+		}
 		document.addEventListener('click', (e) => {
 			if (!D.state.generalSettingsPanelOpen || !panel) {
 				return;

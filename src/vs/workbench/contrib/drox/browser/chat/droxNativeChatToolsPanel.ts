@@ -18,6 +18,11 @@ import { persistDroxCustomToolsSurface } from '../../common/droxCustomToolsWorkf
 import { IDroxToolsSurfaceService } from '../../common/droxToolsSurfaceService.js';
 import { IDroxToolsSurfaceState } from '../../common/droxToolsSurfaceStore.js';
 import { URI } from '../../../../../base/common/uri.js';
+import { getActiveWindow } from '../../../../../base/browser/dom.js';
+import { IWorkbenchLayoutService } from '../../../../services/layout/browser/layoutService.js';
+import { INotificationService } from '../../../../../platform/notification/common/notification.js';
+import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
+import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 
 export interface IDroxNativeChatToolsPanelHost {
 	readonly root: HTMLElement;
@@ -126,6 +131,26 @@ export class DroxNativeChatToolsPanel {
 			this._overlay = undefined;
 		}
 	}
+}
+
+const toolsPanel = new DroxNativeChatToolsPanel();
+
+export function openDroxToolsSurface(accessor: ServicesAccessor): void {
+	const notificationService = accessor.get(INotificationService);
+	const folder = accessor.get(IWorkspaceContextService).getWorkspace().folders[0];
+	if (!folder) {
+		notificationService.warn(localize('drox.nativeChat.toolsPanel.noWorkspace', 'Open a workspace folder before changing tools.'));
+		return;
+	}
+	const root = accessor.get(IWorkbenchLayoutService).getContainer(getActiveWindow());
+	toolsPanel.show({
+		root,
+		workspaceFsPath: folder.uri.fsPath,
+		workspaceResource: folder.uri,
+		configurationService: accessor.get(IConfigurationService),
+		regulationService: accessor.get(IDroxRegulationService),
+		toolsSurfaceService: accessor.get(IDroxToolsSurfaceService),
+	});
 }
 
 async function persistToggle(host: IDroxNativeChatToolsPanelHost, enabled: string[]): Promise<void> {

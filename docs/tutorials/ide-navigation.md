@@ -47,11 +47,11 @@ Réglage **1.6.1** : même binaire, trois comportements de boucle / prompt (pas 
 
 | Valeur UI (typique) | Effet utilisateur |
 |---------------------|-------------------|
-| **`local-9b`** | Petit modèle local. Outils du parent en série. Pas de question à l’utilisateur. |
-| **`local-27b`** | Modèle local capable. Outils en série. `ask_user_question` disponible. |
-| **`cloud-full`** | Protocole complet. Outils indépendants en parallèle. Complément dans le même message. |
+| **SLM** (`local-9b`) | Consignes courtes. Outils du parent en série. Pas de question à l’utilisateur. |
+| **MLM** (`local-27b`) | Consignes guidées. Outils en série. `ask_user_question` disponible. |
+| **LLM** (`cloud-full`) | Consignes complètes. Outils indépendants en parallèle. Complément dans le même message. |
 
-Où le régler : **paramètres généraux** du chat Drox et/ou **panneau rôle** Agents (liste déroulante « Engine profile »). Envoyé au run via `agent.run` → `AgentConfig.engine_profile`.
+Où le régler : **Model settings** du chat Drox (liste SLM / MLM / LLM). Envoyé au run via `agent.run` → `AgentConfig.engine_profile`.
 
 Doc : [system-prompts-and-phases.md](../engine/system-prompts-and-phases.md) · pédagogie [07](../pedagogie/07-phases-et-gates.md).
 

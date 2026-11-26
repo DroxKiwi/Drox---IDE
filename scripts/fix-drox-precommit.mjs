@@ -64,7 +64,6 @@ function fixSplitMjs(filePath) {
 const droxFiles = [
 	'src/vs/workbench/contrib/drox/browser/chat/droxChatGeneralSettings.ts',
 	'src/vs/workbench/contrib/drox/browser/chat/droxChatRoleModels.ts',
-	'src/vs/workbench/contrib/drox/browser/droxTelemetryContribution.ts',
 	'src/vs/workbench/contrib/drox/browser/droxHelpMenuContribution.ts',
 	'src/vs/workbench/contrib/drox/browser/droxExternalUrlRemapContribution.ts',
 	'src/vs/workbench/contrib/drox/common/droxExternalUrlRemap.ts',

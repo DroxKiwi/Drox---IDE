@@ -299,6 +299,11 @@ function createGitIndexVinyls(paths: string[]): Promise<VinylFile[]> {
 					{ maxBuffer: Math.max(stat.size * 2, 1024 * 1024), encoding: 'buffer' },
 					(err, out) => {
 						if (err) {
+							// Staged removal while the file stays on disk (local-only notes).
+							const message = String((err as { stderr?: Buffer }).stderr ?? err.message ?? '');
+							if (message.includes('not in the index') || message.includes('exists on disk, but not in the index')) {
+								return c(null);
+							}
 							return e(err);
 						}
 

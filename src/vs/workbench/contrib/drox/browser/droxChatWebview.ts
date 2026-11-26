@@ -121,6 +121,7 @@ export function getDroxChatHtml(
 
 	const ready = localize('droxChatReady', 'Ready');
 
+	const toolsLabel = localize('droxChatTools', 'Tool activation');
 	const historyLabel = localize('droxChatHistory', 'Sessions');
 	const exportTranscriptLabel = localize('droxChatExportTranscript', 'Export discussion (dev — full file + latest-transcript.txt)');
 	const resetWorkspaceLabel = localize(
@@ -179,15 +180,15 @@ export function getDroxChatHtml(
 	const generalSettingsPickerLabel = localize('droxChatGeneralSettingsPicker', 'General settings');
 	const generalSettingsPanelTitle = localize('droxChatGeneralSettingsPanelTitle', 'General settings');
 	const generalSettingsSectionConnection = localize('droxChatGeneralSettingsSectionConnection', 'Connection');
+	const generalSettingsSavedConnections = localize('droxChatGeneralSettingsSavedConnections', 'Saved connections');
 	const generalSettingsConnectIa = localize('droxChatGeneralSettingsConnectIa', 'Connect your AI');
 	const generalSettingsConnectionNotConfigured = localize('droxChatGeneralSettingsConnectionNotConfigured', 'Not configured');
-	const generalSettingsSectionAgent = localize('droxChatGeneralSettingsSectionAgent', 'Agent');
 	const generalSettingsSectionBehavior = localize('droxChatGeneralSettingsSectionBehavior', 'Behavior');
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const rolePanelEngineProfileLabel = localize('droxChatRolePanelEngineProfile', 'Engine profile');
-	const rolePanelEngineProfileSmall = localize('droxChatRolePanelEngineProfileSmall', 'Small model — engine-led sub-runs (default)');
-	const rolePanelEngineProfileCapable = localize('droxChatRolePanelEngineProfileCapable', 'Local capable — same sub-runs, richer parent');
-	const rolePanelEngineProfileFull = localize('droxChatRolePanelEngineProfileFull', 'Full protocol — 1.6.0 Plan→Assign');
+	const rolePanelEngineProfileSmall = localize('droxChatRolePanelEngineProfileSmall', 'SLM');
+	const rolePanelEngineProfileCapable = localize('droxChatRolePanelEngineProfileCapable', 'MLM');
+	const rolePanelEngineProfileFull = localize('droxChatRolePanelEngineProfileFull', 'LLM');
 	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
 	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
 	const generalSettingsSubagentsExecutionThink = localize('droxChatGeneralSettingsSubagentsExecutionThink', 'Explore execution thinking');
@@ -211,43 +212,12 @@ export function getDroxChatHtml(
 	const iconAdd = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" d="M8 3v10M3 8h10"/>');
 	const iconClose = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" d="M4.2 4.2l7.6 7.6M11.8 4.2 4.2 11.8"/>');
 	const iconHistory = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" d="M2.5 8a5.5 5.5 0 1 0 1.2-3.4M2.5 4.5V8h3.5"/>');
+	const iconTools = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" d="M9.2 2.4a2 2 0 0 0-2.6 2.2L3.2 8a1.6 1.6 0 0 0 0 2.3l2.5 2.5a1.6 1.6 0 0 0 2.3 0l3.4-3.4a2 2 0 0 0 2.2-2.6L11.8 8.6 9.4 6.2l1.8-1.8z"/>');
 	const iconExport = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" d="M4.5 2.5h7v9h-7zM6 11.5h4M8 11.5V14M5.5 5.5h5M5.5 7.5h5M5.5 9.5h3"/>');
 	const iconSend = droxIcon('<path fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" d="M8 11V4.5M8 4.5 5.25 7.25 8 4.5l2.75 2.75"/>');
 	const iconStop = droxIcon('<rect x="5" y="5" width="6" height="6" rx="1" fill="currentColor"/>');
 
-	const agentSectionLabel = `
-			<p class="general-settings-section-label">${generalSettingsSectionAgent}</p>
-`;
-
 	const agentFields = `
-			<label class="general-settings-field">
-
-				<span>${rolePanelEngineProfileLabel}</span>
-
-				<select id="general-settings-engine-profile" class="general-settings-input">
-					<option value="local-9b">${rolePanelEngineProfileSmall}</option>
-					<option value="local-27b">${rolePanelEngineProfileCapable}</option>
-					<option value="cloud-full">${rolePanelEngineProfileFull}</option>
-				</select>
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsMaxIterations}</span>
-
-				<input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" />
-
-			</label>
-
-			<label class="general-settings-field">
-
-				<span>${generalSettingsExploreMaxIterations}</span>
-
-				<input type="number" id="general-settings-explore-max-iterations" class="general-settings-input" min="1" step="1" />
-
-			</label>
-
 			<label class="general-settings-field general-settings-field-check">
 
 				<input type="checkbox" id="general-settings-subagents-enabled" checked />
@@ -490,6 +460,7 @@ ${cssLinks}
 
 				${showExportTranscript ? `<button type="button" id="export-transcript" class="icon-btn" title="${exportTranscriptLabel}" aria-label="${exportTranscriptLabel}">${iconExport}</button>` : ''}
 
+				<button type="button" id="tools-toggle" class="icon-btn" title="${toolsLabel}" aria-label="${toolsLabel}">${iconTools}</button>
 				<button type="button" id="history-toggle" class="icon-btn" title="${historyLabel}" aria-label="${historyLabel}">${iconHistory}</button>
 
 				<button type="button" id="new-chat" class="icon-btn" title="${newChatLabel}" aria-label="${newChatLabel}">${iconAdd}</button>
@@ -585,6 +556,7 @@ ${cssLinks}
 			</label>
 
 			${architectContextField}
+			${agentFields}
 
 			${architectSamplingFields}
 
@@ -638,10 +610,11 @@ ${cssLinks}
 				<p id="general-settings-connection-summary" class="general-settings-connection-summary">${generalSettingsConnectionNotConfigured}</p>
 				<button type="button" id="general-settings-connect-ia" class="general-settings-panel-btn general-settings-connect-btn">${generalSettingsConnectIa}</button>
 			</div>
-
-			${agentSectionLabel}
-
-			${agentFields}
+			<p id="general-settings-saved-label" class="general-settings-section-label general-settings-saved-label" hidden>
+				<svg class="general-settings-saved-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.5 2.5h9v11l-4.5-2.4L3.5 13.5z"/></svg>
+				<span>${generalSettingsSavedConnections}</span>
+			</p>
+			<div id="general-settings-saved-connections" class="general-settings-saved-connections"></div>
 
 			<p class="general-settings-section-label">${generalSettingsSectionBehavior}</p>
 

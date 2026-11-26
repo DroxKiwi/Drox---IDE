@@ -12,6 +12,7 @@ import { TernarySearchTree } from '../../../base/common/ternarySearchTree.js';
 import { URI } from '../../../base/common/uri.js';
 import { generateUuid } from '../../../base/common/uuid.js';
 import { validatedIpcMain } from '../../../base/parts/ipc/electron-main/ipcMain.js';
+import { isUNCAccessAllowed } from '../../../base/node/unc.js';
 import { INativeEnvironmentService } from '../../environment/common/environment.js';
 import { ILogService } from '../../log/common/log.js';
 import { IIPCObjectUrl, IProtocolMainService } from './protocol.js';
@@ -129,7 +130,9 @@ export class ProtocolMainService extends Disposable implements IProtocolMainServ
 		}
 
 		// then check by validExtensions
-		if (this.validExtensions.has(extname(path).toLowerCase())) {
+		// DROX-BEGIN CVE-2026-119976
+		if (this.validExtensions.has(extname(path).toLowerCase()) && isUNCAccessAllowed(path)) {
+			// DROX-END
 			return callback({ path, headers });
 		}
 

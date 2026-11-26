@@ -1,0 +1,72 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.drox-native-tools-panel-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: color-mix(in srgb, var(--vscode-editor-background) 35%, transparent);
+}
+
+.drox-native-tools-panel {
+	width: min(420px, calc(100vw - 32px));
+	max-height: min(70vh, 560px);
+	overflow: auto;
+	padding: 12px 14px 16px;
+	border-radius: 8px;
+	border: 1px solid var(--vscode-panel-border, #444);
+	background: var(--vscode-editor-background);
+	color: var(--vscode-foreground);
+	box-shadow: 0 8px 28px color-mix(in srgb, #000 35%, transparent);
+}
+
+.drox-native-tools-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.drox-native-tools-panel-header h3 {
+	margin: 0;
+	font-size: 13px;
+}
+
+.drox-native-tools-panel-close {
+	border: none;
+	background: transparent;
+	color: var(--vscode-foreground);
+	cursor: pointer;
+	font-size: 16px;
+}
+
+.drox-native-tools-panel-status {
+	margin: 8px 0;
+	font-size: 12px;
+	opacity: 0.85;
+}
+
+.drox-native-tools-group h4 {
+	margin: 10px 0 4px;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	opacity: 0.7;
+}
+
+.drox-native-tools-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 2px 0;
+	font-size: 13px;
+}
+
+.drox-native-tools-row.is-profile-blocked {
+	opacity: 0.45;
+}

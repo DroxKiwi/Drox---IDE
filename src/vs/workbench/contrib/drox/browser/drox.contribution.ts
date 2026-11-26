@@ -30,7 +30,6 @@ import './droxMicrosoftAgentsSurfaceContribution.js';
 import './droxMicrosoftChatSurfaceContextContribution.js';
 import './agents/droxAgentsComposerDroxChatHost.js';
 import './droxCopilotSignInContextContribution.js';
-import './droxTelemetryContribution.js';
 import './droxExternalUrlRemapContribution.js';
 import './droxHelpMenuContribution.js';
 import './droxReleaseNotesContribution.js';

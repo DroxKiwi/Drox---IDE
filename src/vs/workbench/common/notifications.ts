@@ -4,13 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { INotification, INotificationHandle, INotificationActions, INotificationProgress, NoOpNotification, Severity, NotificationMessage, IPromptChoice, IStatusMessageOptions, NotificationsFilter, INotificationProgressProperties, IPromptChoiceWithMenu, NotificationPriority, INotificationSource, isNotificationSource, IStatusHandle } from '../../platform/notification/common/notification.js';
+import { NotificationText } from '../../platform/notification/common/notificationMessage.js';
+import { LinkedText, parseLinkedText } from '../../base/common/linkedText.js';
 import { toErrorMessage, isErrorWithActions } from '../../base/common/errorMessage.js';
 import { Event, Emitter } from '../../base/common/event.js';
 import { Disposable } from '../../base/common/lifecycle.js';
 import { isCancellationError } from '../../base/common/errors.js';
 import { Action } from '../../base/common/actions.js';
 import { equals } from '../../base/common/arrays.js';
-import { parseLinkedText, LinkedText } from '../../base/common/linkedText.js';
 import { mapsStrictEqualIgnoreOrder } from '../../base/common/map.js';
 import { IConfigurationService } from '../../platform/configuration/common/configuration.js';
 
@@ -507,6 +508,9 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 		let message: string | undefined;
 		if (input instanceof Error) {
 			message = toErrorMessage(input, false);
+		} else if (input instanceof NotificationText) {
+			message = input.toString();
+			return { raw: message, linkedText: new LinkedText([message]), original: input };
 		} else if (typeof input === 'string') {
 			message = input;
 		}

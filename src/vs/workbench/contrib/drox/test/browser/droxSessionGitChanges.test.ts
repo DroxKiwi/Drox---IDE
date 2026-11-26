@@ -8,6 +8,7 @@ import { URI } from '../../../../../base/common/uri.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import {
 	collectCommittedChangeEventKeys,
+	countTextInsertions,
 	mergeDroxSessionFileChanges,
 } from '../../common/droxSessionGitChanges.js';
 import { IDroxFileChangePayload } from '../../common/droxFileChange.js';
@@ -62,6 +63,13 @@ suite('DroxSessionGitChanges', () => {
 		assert.strictEqual(merged.length, 1);
 		assert.strictEqual(merged[0]!.insertions, 12);
 		assert.strictEqual(merged[0]!.deletions, 1);
+	});
+
+	test('countTextInsertions counts lines of an untracked file', () => {
+		assert.strictEqual(countTextInsertions(''), 0);
+		assert.strictEqual(countTextInsertions('a'), 1);
+		assert.strictEqual(countTextInsertions('a\nb\n'), 2);
+		assert.strictEqual(countTextInsertions('a\0b'), 1);
 	});
 
 	test('collectCommittedChangeEventKeys only drops dirty→clean paths', () => {

@@ -2,7 +2,6 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import elkLayouts from '@mermaid-js/layout-elk';
 import tidyTreeLayouts from '@mermaid-js/layout-tidy-tree';
 import zenuml from '@mermaid-js/mermaid-zenuml';
 import mermaid, { MermaidConfig } from 'mermaid';
@@ -128,7 +127,6 @@ export async function renderMermaidBlocksInElement(
 
 export async function registerMermaidAddons() {
 	mermaid.registerIconPacks(iconPacks);
-	mermaid.registerLayoutLoaders(elkLayouts);
 	mermaid.registerLayoutLoaders(tidyTreeLayouts);
 	await mermaid.registerExternalDiagrams([zenuml]);
 }
@@ -163,6 +161,9 @@ export function buildMermaidConfig(
 ): MermaidConfig {
 	return {
 		startOnLoad: false,
+		// DROX-BEGIN mermaid 12
+		look: 'classic',
+		// DROX-END
 		...vsCodeThemeTracker.resolveMermaidTheme(extensionConfig),
 	};
 }

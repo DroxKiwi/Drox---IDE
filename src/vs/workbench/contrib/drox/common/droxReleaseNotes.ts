@@ -42,6 +42,52 @@ export function markDroxReleaseNotesSeen(storageService: IStorageService, versio
 
 export function getDroxReleaseNotesItems(version: string): readonly string[] {
 	switch (version) {
+		case '1.6.10':
+			return [
+				localize('drox.releaseNotes.1610.newsHead', 'Nouveautés'),
+				localize('drox.releaseNotes.1610.shrink', '+ Avant chaque tour, le moteur réduit le contexte (carte de situation, extrait chaud, compactage, snip) sans remplacer la boucle Drox.'),
+				localize('drox.releaseNotes.1610.budget', '+ Budget de contexte et estimation de la requête avant l’appel au modèle.'),
+				localize('drox.releaseNotes.1610.overflow', '+ Reprise du run après un dépassement de contexte signalé par le provider.'),
+				localize('drox.releaseNotes.1610.schema', '+ Arguments d’outils contrôlés contre le schéma de l’outil.'),
+				localize('drox.releaseNotes.1610.checkpoint', '+ Checkpoint des fichiers du workspace en revert d’abord : un instantané par run, avant les écritures.'),
+				localize('drox.releaseNotes.1610.restore', '+ Bouton pour restaurer les fichiers jusqu’à un message utilisateur. Deux messages du même run reviennent au même instantané.'),
+				localize('drox.releaseNotes.1610.closure', '+ Notices de clôture de run, et première vague de compaction écrite sur la session.'),
+				localize('drox.releaseNotes.1610.rules', '+ Règles projet .drox/rules/*.instructions.md, relues au tour suivant. Outil project_rule_write (créer, mettre à jour, ajouter).'),
+				localize('drox.releaseNotes.1610.surface', '+ Surface d’outils core / standard / full / custom. Le profil est un plafond. La régulation ne peut qu’enlever des outils.'),
+				localize('drox.releaseNotes.1610.wrench', '+ Clé à molette dans le chat IDE et dans le cadre d’historique du mode Agent. Un outil décoché est écrit dans .drox/tools-surface.json et n’est pas réactivé par un preset.'),
+				localize('drox.releaseNotes.1610.mentions', '+ Mentions @fichier et @dossier à l’envoi. Le texte part au modèle. La bulle affichée reste le texte tapé. Le glisser-déposer des pièces jointes ne change pas.'),
+				localize('drox.releaseNotes.1610.profiles', '+ Profils affichés SLM, MLM, LLM (identifiants internes inchangés : local-9b, local-27b, cloud-full).'),
+				localize('drox.releaseNotes.1610.modelSettings', '+ Profil, itérations, Explore, sous-agents, règles projet, lecture et écriture hors workspace, pensée native et langue : dans Model settings.'),
+				localize('drox.releaseNotes.1610.saved', '+ Sous Change connection, section Connexions enregistrées : raccourcis des backends déjà utilisés.'),
+				localize('drox.releaseNotes.1610.changes', '+ Pastille Changes : les fichiers non suivis comptent leurs lignes (un binaire ou un fichier illisible compte pour 1). Même calcul dans l’IDE et le mode Agent.'),
+				localize('drox.releaseNotes.1610.badge', '+ Badge Changes carré sur les deux chats. Le + est vert, le − est rouge.'),
+				localize('drox.releaseNotes.1610.composer', '+ Compositeur IDE : cadre gris à angles droits, boutons sans contour, comme le mode Agent.'),
+				localize('drox.releaseNotes.1610.mdCopy', '+ Bouton copier sur les blocs de code de l’aperçu Markdown.'),
+				localize('drox.releaseNotes.1610.wrap', '+ Indicateur de lignes repliées (editor.renderWordWrapIndicator).'),
+				localize('drox.releaseNotes.1610.worktree', '+ git.worktreeSymlinkFolders : un nouveau worktree peut symlink les dossiers ignorés qui correspondent au réglage.'),
+				localize('drox.releaseNotes.1610.mermaid', '+ Mermaid 12 pour l’aperçu Markdown et les notebooks.'),
+				localize('drox.releaseNotes.1610.fixHead', 'Corrections'),
+				localize('drox.releaseNotes.1610.secMermaid', '+ Notebook Mermaid : un contenu non fiable ne sort plus du mode restreint.'),
+				localize('drox.releaseNotes.1610.secWorker', '+ Worker d’extension : plus d’exécution cross-origin.'),
+				localize('drox.releaseNotes.1610.secTerm', '+ Le terminal ne démarre pas dans un workspace non fiable, y compris à la relance.'),
+				localize('drox.releaseNotes.1610.secLinks', '+ Les schémas de liens du terminal ne contournent plus la confiance du workspace.'),
+				localize('drox.releaseNotes.1610.secOsc', '+ Un lien OSC 99 du terminal ne lance plus une commande.'),
+				localize('drox.releaseNotes.1610.secWebview', '+ Une webview ne lit plus hors de localResourceRoots.'),
+				localize('drox.releaseNotes.1610.secConfig', '+ Un objet de configuration imbriqué ne réactive plus un réglage restreint.'),
+				localize('drox.releaseNotes.1610.secProto', '+ __proto__ n’est plus un setter pendant la fusion de configuration.'),
+				localize('drox.releaseNotes.1610.secTrust', '+ Une valeur mal formée de security.workspace.trust.enabled ne désactive plus la confiance.'),
+				localize('drox.releaseNotes.1610.secDialog', '+ Le dialogue de confiance n’interprète plus le nom d’éditeur comme un lien Markdown.'),
+				localize('drox.releaseNotes.1610.secGallery', '+ Le texte de galerie d’une extension n’est plus rendu comme du Markdown exécutable.'),
+				localize('drox.releaseNotes.1610.secPublisher', '+ Un nom d’éditeur hérité (constructor, etc.) ne passe plus la politique d’extensions autorisées.'),
+				localize('drox.releaseNotes.1610.secMcpName', '+ Le nom d’un serveur MCP ne sort plus du dossier de stockage.'),
+				localize('drox.releaseNotes.1610.secElicit', '+ Une notification d’élicitation MCP n’est plus un lien cliquable contrôlé par le serveur.'),
+				localize('drox.releaseNotes.1610.secUnc', '+ Une image Markdown en chemin UNC ne passe plus par vscode-file sans allowlist.'),
+				localize('drox.releaseNotes.1610.telemetryPopup', '+ Plus de fenêtre d’erreur au démarrage pour telemetry.enableTelemetry et telemetry.telemetryLevel.'),
+				localize('drox.releaseNotes.1610.telemetryWrite', '- L’écriture forcée de ces deux réglages au lancement. L’envoi 1DS reste coupé. telemetry.feedback.enabled reste.'),
+				localize('drox.releaseNotes.1610.copilotWatch', '- Les scripts et tâches watch-copilot, qui ouvraient extensions/copilot absent et arrêtaient npm run watch.'),
+				localize('drox.releaseNotes.1610.expHead', 'Expérimental'),
+				localize('drox.releaseNotes.1610.modern', '+ workbench.experimental.modernUI est activé par défaut : barres et panneau en cartes. Le réglage se coupe.'),
+			];
 		case '1.6.0':
 			return [
 				localize('drox.releaseNotes.160.loops', '**Loop guards** — identical assistant replies without tools stop after a few turns; DONE_ONLY nudges no longer reset the detector; repeated identical tool calls abort (changing output still counts as progress).'),
@@ -184,6 +230,11 @@ export function getDroxReleaseNotesDetail(version: string): string {
 
 export function getDroxReleaseNotesLeadMessage(version: string): string {
 	switch (version) {
+		case '1.6.10':
+			return localize(
+				'drox.releaseNotes.1610.message',
+				'Mentions de fichiers, restauration jusqu’à un message, outils au profil, profils SLM / MLM / LLM, et la pastille Changes alignée sur le dépôt.',
+			);
 		case '1.6.0':
 			return localize(
 				'drox.releaseNotes.160.message',

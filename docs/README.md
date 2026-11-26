@@ -1,80 +1,30 @@
-Rédigé à l'aide de Cursor Agent
+# Documentation Drox
 
-# Documentation Drox — hub
-
-**Racine doc** : ce dossier (`docs/`), anciennement `drox-engine/docs/`.
+Ce dossier est la doc du produit. Les notes de travail par version (plans, diagnostics, passations) restent sur la machine et ne sont pas dans git.
 
 | Entrée | Contenu |
 |--------|---------|
-| **[`pedagogie/`](pedagogie/README.md)** | Guides **accompagnés** (Rust + moteur, ligne à ligne) |
-| **[`engine/`](engine/README.md)** | Référence moteur (`tui_mono`) |
-| **[`tutorials/ide-navigation.md`](tutorials/ide-navigation.md)** | Navigation dans l’interface IDE |
-| **[`release/`](release/README.md)** | Build, release Windows/Linux, branches |
-| **[`1.5/`](1.5/README.md)** | Plans / clôtures ligne 1.5.x |
-| **[`1.4/`](1.4/)** · **[`1.3/`](1.3/)** · **[`1.2/`](1.2/)** · **[`0.0/`](0.0/)** | Historique (archives) |
+| [Notes de mise à jour](releases-notes/latest.md) | Ce qui change dans la version en cours |
+| [Tutoriels](tutorials/README.md) | IDE, chat, Codebase, régulation, SDTCM, Traffic, Ports |
+| [Moteur](engine/README.md) | Référence du moteur (`tui_mono`) |
+| [Pédagogie](pedagogie/README.md) | Lecture guidée du moteur, ligne à ligne |
 
-Onboarding court racine fork : [`../DROX.md`](../DROX.md) (si présent).
-
----
-
-## Pédagogie (lecture guidée)
-
-Voir **[`pedagogie/`](pedagogie/README.md)** — série **01 → 16** (socle Ollama … régulation · Codebase/RAG ; le **14 professor** = intention **pas dispo** IDE).  
-Vulgarisation courte : [`pedagogie/Cours/`](pedagogie/Cours/) (01 gros modèle vs Drox · 02 axes moteur).
-
----
-
-## Moteur (doc publique de référence)
-
-Voir **[`engine/`](engine/README.md)** :
+## Moteur
 
 | Document | Contenu |
 |----------|---------|
 | [Architecture](engine/architecture-overview.md) | Crates et clients |
-| [JSON-RPC](engine/jsonrpc-protocol.md) | Wire NDJSON + schémas |
-| [Boucle agent](engine/agent-run-loop.md) | `agent.run` → `drive_inner` |
-| [Internes `agent/`](engine/agent-internals.md) | Module agent, profils, gates, anti-boucle |
-| [Prompts & phases](engine/system-prompts-and-phases.md) | Contrat `[phase:]` |
-| [Outils & permissions](engine/tools-and-permissions.md) | Palette, hooks, parallélisme |
-| [Sessions & mémoire](engine/sessions-and-memory.md) | JSONL, compaction, archives |
-| [Backends LLM](engine/llm-backends.md) | Ollama / OpenAI-compat |
-| [MCP & sous-agents](engine/mcp-and-subagents.md) | `mcp__*`, Explore/`task` |
-| [Clients TUI vs RPC](engine/clients-tui-vs-rpc.md) | Deux entrées |
-| [Intégration IDE](engine/ide-integration.md) | Spawn / bridge |
-| [Régulation modèle](engine/model-regulation.md) | Notes L1–L5 · Auto |
-| [Codebase / RAG](engine/codebase-and-rag.md) | Index local · Agents |
-| [Guide développeur](engine/developer-guide.md) | Build & tests |
-| [Migration 1.4](engine/migration-from-1.4.md) | Rail / `role_split` → `tui_mono` |
+| [JSON-RPC](engine/jsonrpc-protocol.md) | Wire NDJSON |
+| [Boucle agent](engine/agent-run-loop.md) | `agent.run` |
+| [Internes](engine/agent-internals.md) | Profils, gates, anti-boucle |
+| [Prompts et phases](engine/system-prompts-and-phases.md) | Marqueurs `[phase:]` |
+| [Outils et permissions](engine/tools-and-permissions.md) | Palette, hooks |
+| [Sessions et mémoire](engine/sessions-and-memory.md) | JSONL, compaction |
+| [Backends](engine/llm-backends.md) | Ollama et OpenAI-compatible |
+| [MCP et sous-agents](engine/mcp-and-subagents.md) | Explore, `task` |
+| [Clients](engine/clients-tui-vs-rpc.md) | TUI et RPC |
+| [Intégration IDE](engine/ide-integration.md) | Spawn et bridge |
+| [Régulation](engine/model-regulation.md) | Notes L1–L5 |
+| [Codebase](engine/codebase-and-rag.md) | Index local |
+| [Guide développeur](engine/developer-guide.md) | Build et tests |
 | [Glossaire](engine/glossary.md) | Lexique |
-
-Carte fonctionnelle historique (audit) : [`1.4/moteur/`](1.4/moteur/README.md) — **archive** ; filtrer `role_split` et chemins obsolètes.
-
----
-
-## Tutoriels interface
-
-| Guide | Contenu |
-|-------|---------|
-| [Naviguer dans l’IDE](tutorials/ide-navigation.md) | Surfaces chat, modes, sessions, liens code UI |
-
----
-
-## Opérations
-
-| Guide | Quand |
-|-------|--------|
-| [release/README.md](release/README.md) | Index release |
-| [00-BUILD-REFERENCE.md](release/00-BUILD-REFERENCE.md) | Quelle commande lancer |
-| [03-RELEASE-WINDOWS.md](release/03-RELEASE-WINDOWS.md) | Ship Windows |
-| [04-RELEASE-LINUX.md](release/04-RELEASE-LINUX.md) | Ship Linux |
-
----
-
-## Versions (historique)
-
-| Ligne | Statut |
-|-------|--------|
-| [1.5/](1.5/README.md) | Active (plans 1.5.20+) |
-| [1.4/](1.4/) | Archivée / cartes moteur |
-| [1.3/](1.3/README.md) | Figée |
-| [1.2/](1.2/) · [0.0/](0.0/) | Archives anciennes |

@@ -6,6 +6,7 @@
 // allow-any-unicode-comment-file
 
 import './media/droxRunCapture.css';
+import './media/droxNativeChatToolsPanel.css';
 import { Codicon } from '../../../../../base/common/codicons.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { Action2, MenuId, registerAction2 } from '../../../../../platform/actions/common/actions.js';
@@ -26,6 +27,7 @@ import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxSessionService } from '../../common/droxSessionService.js';
 import { exportDroxSessionTranscript } from './droxChatTranscriptExport.js';
 import { DroxNativeChatViewPane } from './droxNativeChatViewPane.js';
+import { openDroxToolsSurface } from './droxNativeChatToolsPanel.js';
 
 /** Un clic sur l'icône bug déclenche parfois l'action deux fois. */
 let runCaptureToggleGuard = false;
@@ -52,6 +54,34 @@ export function registerDroxNativeChatViewActions(): void {
 		override async run(accessor: ServicesAccessor): Promise<void> {
 			const pane = accessor.get(IViewsService).getViewWithId<DroxNativeChatViewPane>(DroxViews.NativeChatViewId);
 			await pane?.startNewChat();
+		}
+	});
+
+	registerAction2(class DroxOpenToolsSurfaceAction extends Action2 {
+		constructor() {
+			super({
+				id: 'drox.openToolsSurface',
+				title: localize2('drox.openToolsSurface', 'Tool activation'),
+				icon: Codicon.wrench,
+				f1: false,
+				menu: [
+					{
+						id: MenuId.ViewTitle,
+						when: ContextKeyExpr.equals('view', DroxViews.NativeChatViewId),
+						group: 'navigation',
+						order: -3,
+					},
+					{
+						id: MenuId.AgentSessionsToolbar,
+						group: 'navigation',
+						order: 1,
+					},
+				],
+			});
+		}
+
+		override run(accessor: ServicesAccessor): void {
+			openDroxToolsSurface(accessor);
 		}
 	});
 

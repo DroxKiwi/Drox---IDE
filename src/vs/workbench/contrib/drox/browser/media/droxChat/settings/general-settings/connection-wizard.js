@@ -120,6 +120,47 @@
 		if (typeof fn.syncConnectionVignetteAttention === 'function') {
 			fn.syncConnectionVignetteAttention();
 		}
+		if (typeof fn.renderSavedConnectionShortcuts === 'function') {
+			fn.renderSavedConnectionShortcuts();
+		}
+	};
+
+	fn.renderSavedConnectionShortcuts = function() {
+		const host = document.getElementById('general-settings-saved-connections');
+		if (!host || typeof fn.listSavedLlmConnections !== 'function') {
+			return;
+		}
+		const saved = fn.listSavedLlmConnections(D.state.generalSettings);
+		const label = document.getElementById('general-settings-saved-label');
+		if (label) {
+			label.hidden = saved.length === 0;
+		}
+		const activeKey = typeof fn.savedLlmConnectionKey === 'function'
+			? fn.savedLlmConnectionKey(D.state.generalSettings || {})
+			: '';
+		host.replaceChildren();
+		for (const item of saved) {
+			const key = fn.savedLlmConnectionKey(item);
+			const btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'general-settings-panel-btn general-settings-saved-connection' + (key === activeKey ? ' is-active' : '');
+			btn.textContent = fn.savedLlmConnectionLabel(item);
+			btn.addEventListener('click', () => {
+				D.vscode.postMessage({
+					type: 'setGeneralSettings',
+					settings: {
+						llmHosting: item.hosting,
+						llmProvider: item.provider,
+						server: item.server,
+						apiKey: item.apiKey,
+						llmHeaders: item.llmHeaders,
+						savedConnections: saved,
+					},
+				});
+				D.vscode.postMessage({ type: 'refreshLlmModels' });
+			});
+			host.appendChild(btn);
+		}
 	};
 
 	function setWizardStep(step) {

@@ -30,7 +30,10 @@ async function getClient(instrumentationKey: string, addInternalFlag?: boolean, 
 		return {
 			pluginVersionString: '',
 			track() { },
-			unload(_isAsync, unloadComplete) { unloadComplete({}); }
+			unload(isAsync, unloadComplete) {
+				const state: ITelemetryUnloadState = { reason: 0, isAsync };
+				unloadComplete(state);
+			}
 		};
 	}
 	// DROX-END

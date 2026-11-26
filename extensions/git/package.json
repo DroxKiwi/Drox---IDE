@@ -3732,6 +3732,15 @@
           "default": 50,
           "description": "%config.detectWorktreesLimit%"
         },
+        "git.worktreeSymlinkFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "%config.worktreeSymlinkFolders%",
+          "scope": "resource"
+        },
         "git.worktreeIncludeFiles": {
           "type": "array",
           "items": {

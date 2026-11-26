@@ -126,7 +126,7 @@ export async function buildDroxIdeChangesCategories(opts: {
 	const branchLabels: string[] = [];
 	let anyRootReachable = false;
 	for (const root of roots) {
-		const gitChanges = await loadDroxGitUncommittedChangesForRoot(opts.gitService, root);
+		const gitChanges = await loadDroxGitUncommittedChangesForRoot(opts.gitService, root, opts.fileService);
 		if (gitChanges) {
 			anyRootReachable = true;
 			allGit.push(...gitChanges);

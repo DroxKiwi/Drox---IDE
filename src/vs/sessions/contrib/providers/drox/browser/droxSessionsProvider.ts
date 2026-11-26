@@ -674,7 +674,7 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 				const allGit: IChatSessionFileChange2[] = [];
 				let anyReachable = false;
 				for (const root of discoveredRoots) {
-					const rootChanges = await loadDroxGitUncommittedChangesForRoot(this.gitService, root);
+					const rootChanges = await loadDroxGitUncommittedChangesForRoot(this.gitService, root, this.fileService);
 					if (rootChanges) {
 						anyReachable = true;
 						allGit.push(...rootChanges);
@@ -687,7 +687,7 @@ export class DroxSessionsProvider extends Disposable implements ISessionsProvide
 					merged = mergeDroxSessionFileChanges(sessionChanges, allGit);
 				}
 			} else {
-				const gitChanges = await loadDroxGitUncommittedChanges(this.gitService, workspace);
+				const gitChanges = await loadDroxGitUncommittedChanges(this.gitService, workspace, this.fileService);
 				if (this._syncGeneration.get(key) !== generation) {
 					return;
 				}

@@ -18,7 +18,7 @@ pub use session::{session_compact, session_list, session_read, session_truncate_
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+use std::collections::BTreeMap;
 
     use drox_engine::{PermissionMode, default_tool_registry};
     use drox_tools::{ToolError, UserAsker, UserQuestion};

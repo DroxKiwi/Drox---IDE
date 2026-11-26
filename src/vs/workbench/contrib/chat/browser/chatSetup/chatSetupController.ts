@@ -188,7 +188,7 @@ export class ChatSetupController extends Disposable {
 		if (options.forceAnonymous && entitlement === ChatEntitlement.Unknown) {
 			provider = 'anonymous';
 		} else {
-			provider = options.useSocialProvider ?? (options.useEnterpriseProvider ? defaultChat.provider.enterprise?.id : defaultChat.provider.default.id);
+			provider = options.useSocialProvider ?? (options.useEnterpriseProvider ? defaultChat.provider.enterprise?.id ?? '' : defaultChat.provider.default.id);
 		}
 
 		try {
