@@ -15,7 +15,7 @@ $script:DroxBundleResourceSentinels = @(
 # Contributions TS bundlees dans workbench.desktop.main.js (pas de .js separe).
 $script:DroxWorkbenchBundleMarkers = @(
 	'droxChat/core/00-bootstrap.js',
-	'workbench.contrib.droxTelemetry',
+	'workbench.contrib.droxReleaseNotes',
 	'workbench.contrib.droxHelpMenu'
 )
 
