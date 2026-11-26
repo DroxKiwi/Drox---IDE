@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/DroxKiwi/Droxkiwi/main/logo3.png" width="120" alt="Logo Drox" />
+  <img src="logo3.png" width="120" alt="Logo Drox" />
 </p>
 
 # Drox IDE
 
 Site du projet : [drox.kdds.fr](https://drox.kdds.fr).
 
-Éditeur de code avec un agent IA **open source**. Version stable **1.6.9**. Il reprend [Visual Studio Code – Open Source (Code OSS)](https://github.com/microsoft/vscode) : extensions, terminal, Git, LSP — et y ajoute un moteur agent en Rust qui tourne **chez toi**.
+Éditeur de code avec un agent IA **open source**. Version stable **1.6.10**. Extensions, terminal, Git, LSP, et un moteur agent en Rust qui tourne **chez toi**.
 
 Notes de la mise à jour en cours : [**latest.md**](docs/releases-notes/latest.md).
 
-Installeurs Windows et Linux : [**télécharger la 1.6.9**](https://github.com/DroxKiwi/Drox---IDE/releases/latest).
+Installeurs Windows et Linux : [**télécharger la 1.6.10**](https://github.com/DroxKiwi/Drox---IDE/releases/latest).
 
 La même installation en ligne de commande. Le script prend la release marquée Latest et remplace une installation déjà présente.
 
@@ -113,7 +113,7 @@ La recherche mêle le texte et des vecteurs. La vectorisation utilise un modèle
 | | |
 |---|---|
 | **Licence** | MIT — Code OSS (Microsoft) + portions Drox / KDDS — [`NOTICE.md`](NOTICE.md) |
-| **Version** | **1.6.9** stable · base VS Code **1.127.0** |
+| **Version** | **1.6.10** |
 | **Binaires** | [Releases](https://github.com/DroxKiwi/Drox---IDE/releases) — Windows et Linux |
 | **Doc moteur** | [`docs/engine/`](docs/engine/README.md) |
 | **Référencement** | [XERJ Corpus Hub — DroxKiwi](https://hub.xerj.org/contributors/DroxKiwi) |
@@ -126,8 +126,7 @@ La recherche mêle le texte et des vecteurs. La vectorisation utilise un modèle
 - [Moteur](docs/engine/README.md)
 - [Pédagogie](docs/pedagogie/README.md)
 - [Tutoriels (chat, onglets, `.drox`)](docs/tutorials/README.md)
-- [Release](docs/release/README.md)
-- [Ligne 1.6](docs/1.6/README.md)
+- [Notes de mise à jour](docs/releases-notes/latest.md)
 
 ---
 
