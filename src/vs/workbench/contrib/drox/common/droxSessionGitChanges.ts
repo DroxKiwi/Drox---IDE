@@ -7,6 +7,7 @@
 
 import { comparePaths } from '../../../../base/common/comparers.js';
 import { URI } from '../../../../base/common/uri.js';
+import { IFileService } from '../../../../platform/files/common/files.js';
 import { IChatSessionFileChange2, isIChatSessionFileChange2 } from '../../chat/common/chatSessionsService.js';
 import { GitDiffChange, IGitRepository, IGitService } from '../../git/common/gitService.js';
 import { ISessionFileChange, ISessionWorkspace } from '../../../../sessions/services/sessions/common/session.js';
@@ -50,8 +51,44 @@ async function openDroxGitRepository(
 	return gitService.openRepository(repositoryUri);
 }
 
+/** Lines of an untracked file, counted as insertions. Binary or unread files count as 1. */
+export function countTextInsertions(text: string): number {
+	if (text.length === 0) {
+		return 0;
+	}
+	if (text.includes('\0')) {
+		return 1;
+	}
+	let lines = 1;
+	for (let i = 0; i < text.length; i++) {
+		if (text.charCodeAt(i) === 10) {
+			lines++;
+		}
+	}
+	if (text.charCodeAt(text.length - 1) === 10) {
+		lines--;
+	}
+	return Math.max(lines, 1);
+}
+
+const UNTRACKED_STAT_BYTE_CAP = 256 * 1024;
+
+async function countUntrackedInsertions(fileService: IFileService, uri: URI): Promise<number> {
+	try {
+		const stat = await fileService.stat(uri);
+		if (stat.isDirectory || stat.size > UNTRACKED_STAT_BYTE_CAP) {
+			return 1;
+		}
+		const file = await fileService.readFile(uri);
+		return countTextInsertions(file.value.toString());
+	} catch {
+		return 1;
+	}
+}
+
 async function loadUncommittedFromRepository(
 	repository: IGitRepository,
+	fileService?: IFileService,
 ): Promise<IChatSessionFileChange2[]> {
 	const changes = await repository.diffBetweenWithStats2('HEAD');
 	const byKey = new Map<string, IChatSessionFileChange2>();
@@ -75,11 +112,12 @@ async function loadUncommittedFromRepository(
 		if (byKey.has(key)) {
 			continue;
 		}
+		const insertions = fileService ? await countUntrackedInsertions(fileService, uri) : 1;
 		byKey.set(key, {
 			uri,
 			originalUri: change.originalUri,
 			modifiedUri: change.modifiedUri ?? uri,
-			insertions: 0,
+			insertions,
 			deletions: 0,
 		});
 	}
@@ -96,24 +134,26 @@ async function loadUncommittedFromRepository(
 export async function loadDroxGitUncommittedChanges(
 	gitService: IGitService,
 	workspace: ISessionWorkspace | undefined,
+	fileService?: IFileService,
 ): Promise<IChatSessionFileChange2[] | undefined> {
 	const repository = await openDroxGitRepository(gitService, workspace);
 	if (!repository) {
 		return undefined;
 	}
-	return loadUncommittedFromRepository(repository);
+	return loadUncommittedFromRepository(repository, fileService);
 }
 
 /** Uncommitted changes for an explicit git working-tree root. */
 export async function loadDroxGitUncommittedChangesForRoot(
 	gitService: IGitService,
 	repositoryUri: URI,
+	fileService?: IFileService,
 ): Promise<IChatSessionFileChange2[] | undefined> {
 	const repository = await gitService.openRepository(repositoryUri);
 	if (!repository) {
 		return undefined;
 	}
-	return loadUncommittedFromRepository(repository);
+	return loadUncommittedFromRepository(repository, fileService);
 }
 
 /** Dirty path keys for an explicit git root. `undefined` if repo unreachable. */

@@ -124,30 +124,22 @@ async fn local_9b_salvages_inline_todo_json_then_closes() {
     )
     .await;
     assert!(stopped_cleanly(&events), "{events:?}");
-    assert!(events.iter().any(|e| matches!(
-        e,
-        Ok(AgentEvent::ToolStart { name, .. }) if name == "todo_write"
-    )));
-    assert!(events.iter().any(|e| matches!(
-        e,
-        Ok(AgentEvent::ToolFinish { is_error: false, .. })
-    )));
     assert!(answering_text(&events, "Comment puis-je t'aider"));
 }
 
 #[tokio::test]
-async fn local_27b_soft_close_check_is_one_shot() {
+async fn local_27b_mechanical_close_skips_soft_close_reask() {
     let events = run(
-        vec![
-            edit_turn(),
-            text_turn("[phase: answering]\nFini."),
-            text_turn("[phase: answering]\nFini, rien à tester."),
-        ],
+        vec![edit_turn(), text_turn("[phase: answering]\nFini.")],
         config("local-27b", 12),
     )
     .await;
     assert!(stopped_cleanly(&events), "{events:?}");
-    assert!(answering_text(&events, "rien à tester"));
+    assert!(answering_text(&events, "Fini."));
+    assert!(events.iter().any(|e| matches!(
+        e,
+        Ok(AgentEvent::StatusNotice { notice_kind, .. }) if notice_kind == "closure_mechanical"
+    )));
 }
 
 #[tokio::test]

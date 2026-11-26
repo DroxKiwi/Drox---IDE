@@ -80,6 +80,8 @@ export type DroxWebviewToHostMessage =
 
 	| { readonly type: 'openSettings' }
 
+	| { readonly type: 'openToolsPanel' }
+
 	| { readonly type: 'pickReferences' }
 
 	| { readonly type: 'openPasteSource'; readonly kind?: string; readonly absPath?: string; readonly relPath?: string | null; readonly startLine?: number; readonly endLine?: number }
@@ -325,7 +327,7 @@ export function isDroxWebviewToHostMessage(msg: unknown): msg is DroxWebviewToHo
 
 	const t = (msg as { type?: unknown }).type;
 
-	if (t === 'webviewReady' || t === 'cancelRun' || t === 'skipShell' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'setRunCapture' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings') {
+	if (t === 'webviewReady' || t === 'cancelRun' || t === 'skipShell' || t === 'revertLastRun' || t === 'exportTranscript' || t === 'setRunCapture' || t === 'showReleaseNotes' || t === 'listSessions' || t === 'resetWorkspace' || t === 'newChat' || t === 'openSettings' || t === 'openToolsPanel' || t === 'pickReferences' || t === 'composerDrop' || t === 'refreshLlmModels' || t === 'setGeneralSettings') {
 
 		return true;
 

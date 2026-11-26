@@ -39,6 +39,7 @@
 	D.dom.exportTranscriptBtn = document.getElementById('export-transcript');
 	D.dom.runCaptureBtn = document.getElementById('run-capture');
 	D.dom.historyToggleBtn = document.getElementById('history-toggle');
+	D.dom.toolsToggleBtn = document.getElementById('tools-toggle');
 	D.dom.historyCloseBtn = document.getElementById('history-close');
 	D.dom.historyResetWorkspaceBtn = document.getElementById('history-reset-workspace');
 	D.dom.historyPanel = document.getElementById('history-panel');

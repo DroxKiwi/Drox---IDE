@@ -65,17 +65,21 @@
 
 
 
-/* Bordure verte sur le conteneur input (remplace le bleu VS Code). */
+/* Cadre gris carré, comme la fenêtre Agents. */
 
 .drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-input-container {
 
-	border-color: var(--drox-thread-green-dim) !important;
+	border-radius: 0 !important;
 
-	--chat-input-working-border-color1: var(--drox-thread-green);
+	border-color: #333333 !important;
 
-	--chat-input-working-border-color2: color-mix(in srgb, var(--drox-thread-green) 65%, #1e1e1e);
+	box-shadow: none !important;
 
-	--chat-input-working-border-color3: color-mix(in srgb, var(--drox-thread-green) 45%, #9aa88a);
+	--chat-input-working-border-color1: #333333;
+
+	--chat-input-working-border-color2: #333333;
+
+	--chat-input-working-border-color3: #333333;
 
 }
 
@@ -83,9 +87,9 @@
 
 .drox-ide-native-chat-active .drox-ide-native-chat .interactive-session .chat-input-container.focused {
 
-	border-color: color-mix(in srgb, var(--drox-thread-green) 70%, transparent) !important;
+	border-color: #333333 !important;
 
-	box-shadow: 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 28%, transparent) !important;
+	box-shadow: none !important;
 
 }
 
@@ -110,6 +114,7 @@
 	flex-wrap: wrap;
 	gap: 6px;
 	min-width: 0;
+	width: 100%;
 	height: auto;
 }
 
@@ -138,10 +143,10 @@
 
 .drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar,
 .drox-ide-native-chat-active .drox-discussion-shell .drox-agents-composer-toolbar {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	grid-auto-rows: 22px;
-	align-items: stretch;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	align-content: flex-start;
 	width: 100%;
 	height: auto;
 	min-width: 0;
@@ -179,7 +184,7 @@
 
 	padding: 0 8px;
 
-	border-radius: 6px;
+	border-radius: 0;
 
 	cursor: pointer;
 
@@ -187,7 +192,7 @@
 
 	white-space: nowrap;
 
-	width: 100%;
+	width: auto;
 
 	min-width: 0;
 
@@ -195,7 +200,7 @@
 
 	overflow: hidden;
 
-	border: 1px solid color-mix(in srgb, var(--drox-thread-green) 28%, transparent);
+	border: none;
 
 	background: transparent;
 
@@ -214,9 +219,9 @@
 .drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label:hover,
 .drox-ide-native-chat-active .drox-discussion-shell .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label:hover {
 
-	background-color: color-mix(in srgb, var(--drox-thread-green) 10%, var(--vscode-input-background) 90%);
+	background-color: var(--vscode-toolbar-hoverBackground);
 
-	border-color: color-mix(in srgb, var(--drox-thread-green) 45%, transparent);
+	border-color: transparent;
 
 }
 
@@ -243,11 +248,11 @@
 .drox-ide-native-chat-active .drox-ide-native-chat .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label.panel-open,
 .drox-ide-native-chat-active .drox-discussion-shell .drox-agents-composer-toolbar .drox-agents-permission-picker .action-label.panel-open {
 
-	background-color: color-mix(in srgb, var(--drox-thread-green) 12%, var(--vscode-input-background) 88%);
+	background-color: var(--vscode-toolbar-hoverBackground);
 
-	border-color: color-mix(in srgb, var(--drox-thread-green) 52%, transparent);
+	border-color: transparent;
 
-	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drox-thread-green) 14%, transparent);
+	box-shadow: none;
 
 }
 
@@ -407,8 +412,36 @@
 }
 
 .drox-ide-native-chat-active .drox-discussion-shell .chat-input-container {
-	border-radius: 12px;
+	border-radius: 0 !important;
 	padding: 10px 12px 8px;
+	border-color: #333333 !important;
+	box-shadow: none !important;
+}
+
+.drox-ide-native-chat-active .drox-discussion-shell .drox-composer-quick-actions-host {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	padding: 0 0 8px;
+	box-sizing: border-box;
+}
+
+.drox-ide-native-chat-active .drox-discussion-shell .drox-composer-quick-actions-host .monaco-action-bar .actions-container {
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.drox-ide-native-chat-active .drox-discussion-shell .drox-composer-quick-actions-host .chat-composite-bar-meta-item-button {
+	border-radius: 0;
+}
+
+.drox-ide-native-chat-active .drox-discussion-shell .drox-composer-quick-actions-host .chat-composite-bar-meta-added {
+	color: var(--vscode-chat-linesAddedForeground, #3fb950);
+}
+
+.drox-ide-native-chat-active .drox-discussion-shell .drox-composer-quick-actions-host .chat-composite-bar-meta-removed {
+	color: var(--vscode-chat-linesRemovedForeground, #f85149);
 }
 
 .drox-ide-native-chat-active .drox-discussion-shell .interactive-input-part {

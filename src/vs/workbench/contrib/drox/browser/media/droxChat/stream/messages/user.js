@@ -83,6 +83,37 @@
 		toolbar.appendChild(copyBtn);
 	};
 
+	fn.attachUserMessageRestoreAction = function (row) {
+		if (!row || row.querySelector('.msg-user-restore')) {
+			return;
+		}
+		const messageId = String(row.dataset.msgId || '').trim();
+		if (!messageId || messageId.startsWith('optimistic_')) {
+			return;
+		}
+		let toolbar = row.querySelector('.msg-user-toolbar');
+		if (!toolbar) {
+			toolbar = document.createElement('div');
+			toolbar.className = 'msg-user-toolbar';
+			row.insertBefore(toolbar, row.firstChild);
+		}
+		const btn = document.createElement('button');
+		btn.type = 'button';
+		btn.className = 'msg-user-copy msg-user-restore';
+		btn.title = 'Restaurer le workspace jusqu’ici';
+		btn.setAttribute('aria-label', 'Restaurer le workspace jusqu’ici');
+		btn.textContent = '↩';
+		btn.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (!window.confirm('Restaurer les fichiers du workspace tels qu’ils étaient avant ce message ?')) {
+				return;
+			}
+			D.vscode.postMessage({ type: 'revertToMessage', messageId });
+		});
+		toolbar.appendChild(btn);
+	};
+
 	const USER_COMMIT_HINT =
 		'Commit regularly — the agent can make mistakes.';
 

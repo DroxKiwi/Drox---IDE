@@ -222,6 +222,7 @@ export function registerDroxProductDefaultsConfiguration(): void {
 			[TELEMETRY_SETTING_ID]: {
 				type: 'string',
 				default: TelemetryConfiguration.OFF,
+				included: false,
 				description: localize(
 					'drox.product.telemetryLevel',
 					'Controls Microsoft product telemetry. Drox IDE disables all telemetry by default.',
@@ -231,6 +232,7 @@ export function registerDroxProductDefaultsConfiguration(): void {
 			[TELEMETRY_OLD_SETTING_ID]: {
 				type: 'boolean',
 				default: false,
+				included: false,
 				description: localize(
 					'drox.product.enableTelemetry',
 					'Legacy telemetry toggle. Disabled by default in Drox IDE.',
@@ -240,6 +242,7 @@ export function registerDroxProductDefaultsConfiguration(): void {
 			[TELEMETRY_CRASH_REPORTER_SETTING_ID]: {
 				type: 'boolean',
 				default: false,
+				included: false,
 				description: localize(
 					'drox.product.enableCrashReporter',
 					'Microsoft crash reporter. Disabled by default in Drox IDE.',

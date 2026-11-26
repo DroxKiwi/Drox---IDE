@@ -518,7 +518,7 @@ export function buildModelPickerItems(
 			// users, attach an inline upgrade link on the right (matching the
 			// unavailable-model upgrade affordance elsewhere in the picker).
 			const entitlement = chatEntitlementService.entitlement;
-			const canUpgrade = entitlement === ChatEntitlement.Free || entitlement === ChatEntitlement.EDU;
+			const canUpgrade = !product.skipCopilotGitHubSignIn && (entitlement === ChatEntitlement.Free || entitlement === ChatEntitlement.EDU);
 			const description = canUpgrade
 				? new MarkdownString(localize('chat.modelPicker.upgradeLink', "[Upgrade](command:workbench.action.chat.upgradePlan \" \")"), { isTrusted: true })
 				: undefined;
@@ -919,7 +919,9 @@ function createUnavailableModelItem(
 	let description: string | MarkdownString | undefined;
 
 	if (reason === 'upgrade') {
-		description = new MarkdownString(localize('chat.modelPicker.upgradeLink', "[Upgrade](command:workbench.action.chat.upgradePlan \" \")"), { isTrusted: true });
+		if (!product.skipCopilotGitHubSignIn) {
+			description = new MarkdownString(localize('chat.modelPicker.upgradeLink', "[Upgrade](command:workbench.action.chat.upgradePlan \" \")"), { isTrusted: true });
+		}
 	} else if (reason === 'update') {
 		description = localize('chat.modelPicker.updateDescription', "Update VS Code");
 	} else {
@@ -929,13 +931,16 @@ function createUnavailableModelItem(
 	}
 
 	let hoverContent: MarkdownString;
-	if (reason === 'upgrade') {
+	if (reason === 'upgrade' && !product.skipCopilotGitHubSignIn) {
 		hoverContent = new MarkdownString('', { isTrusted: true, supportThemeIcons: true });
 		if (chatEntitlementService.entitlement === ChatEntitlement.Pro) {
 			hoverContent.appendMarkdown(localize('chat.modelPicker.upgradeHoverProPlus', "[Upgrade to GitHub Copilot Pro+](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
 		} else {
 			hoverContent.appendMarkdown(localize('chat.modelPicker.upgradeHover', "[Upgrade to GitHub Copilot Pro](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
 		}
+	} else if (reason === 'upgrade') {
+		hoverContent = new MarkdownString('', { isTrusted: true, supportThemeIcons: true });
+		hoverContent.appendMarkdown(localize('chat.modelPicker.unavailable', "This model is not available."));
 	} else if (reason === 'update') {
 		hoverContent = getUpdateHoverContent(updateStateType);
 	} else {

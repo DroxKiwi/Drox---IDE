@@ -23,6 +23,16 @@
 	gap: 6px;
 }
 
-.agent-sessions-workbench .drox-composer-quick-actions-host .chat-composite-bar-meta-item-button {
-	border-radius: 999px;
+.drox-composer-quick-actions-host .chat-composite-bar-meta-item-button {
+	border-radius: 0;
+	display: inline-flex;
+	gap: 4px;
+}
+
+.drox-composer-quick-actions-host .chat-composite-bar-meta-added {
+	color: var(--vscode-chat-linesAddedForeground, #3fb950);
+}
+
+.drox-composer-quick-actions-host .chat-composite-bar-meta-removed {
+	color: var(--vscode-chat-linesRemovedForeground, #f85149);
 }

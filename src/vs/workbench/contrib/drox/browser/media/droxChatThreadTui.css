@@ -111,6 +111,7 @@ body {
 }
 
 #log .msg-user-copy,
+#log .msg-user-restore,
 #log .msg-file-change .fc-undo,
 #log .msg-file-change .fc-redo {
 	border-radius: var(--drox-thread-radius);

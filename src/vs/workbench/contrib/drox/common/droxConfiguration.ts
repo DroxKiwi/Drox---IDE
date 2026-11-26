@@ -585,15 +585,15 @@ export const droxConfigurationNode: IConfigurationNode = {
 			type: 'string',
 			enum: ['local-9b', 'local-27b', 'cloud-full'],
 			enumDescriptions: [
-				localize('drox.engine.profile.local9b', 'Small model — engine-led sub-runs; light parent protocol (default).'),
-				localize('drox.engine.profile.local27b', 'Local capable — same sub-runs; parent a bit more tools and gates.'),
-				localize('drox.engine.profile.cloudFull', 'Full protocol — 1.6.0 manual Plan→Assign, full CORE and tools.'),
+				localize('drox.engine.profile.local9b', 'SLM — short instructions, engine-led sub-runs (default).'),
+				localize('drox.engine.profile.local27b', 'MLM — guided instructions, same sub-runs, richer parent.'),
+				localize('drox.engine.profile.cloudFull', 'LLM — full instruction set, full tool catalogue.'),
 			],
 			default: 'local-9b',
 			scope: ConfigurationScope.RESOURCE,
 			markdownDescription: localize(
 				'drox.engine.profile',
-				'**Agent engine profile** (`engineProfile` on `agent.run`). Does not change model weights. Local profiles: a reply without tools closes the run, smaller parent tool surface, inline Explore reports, `todo_write` optional (9B). `cloud-full` keeps the 1.6.0 protocol.',
+				'**Instruction profile** (`engineProfile` on `agent.run`). Does not change model weights. SLM and MLM close a reply without tools and run tools one after another. LLM keeps the long protocol and the full tool catalogue.',
 			),
 		},
 

@@ -1324,3 +1324,11 @@ export function getNodeType(value: unknown): NodeType {
 		default: return 'null';
 	}
 }
+
+/** Sets an object key and refuses `__proto__`, `constructor`, and `prototype`. */
+export function setObjectProperty(target: object, key: string, value: unknown): void {
+	if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+		return;
+	}
+	(target as Record<string, unknown>)[key] = value;
+}

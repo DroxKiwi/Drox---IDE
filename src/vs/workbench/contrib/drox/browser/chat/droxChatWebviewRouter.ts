@@ -353,6 +353,9 @@ export async function routeDroxChatWebviewMessage(
 		case 'openSettings':
 			await deps.commandService.executeCommand(DroxCommands.OpenSettings);
 			break;
+		case 'openToolsPanel':
+			await deps.commandService.executeCommand('drox.openToolsSurface');
+			break;
 		case 'pickReferences':
 			await deps.commandService.executeCommand(DroxCommands.AddReferences);
 			break;

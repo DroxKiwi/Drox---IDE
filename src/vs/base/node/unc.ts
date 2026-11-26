@@ -3,6 +3,23 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+// DROX-BEGIN CVE-2026-119976
+export function isPathAllowedByUNCHostAllowlist(path: string, allowedHosts: readonly string[]): boolean {
+	const host = getUNCHost(path)?.toLowerCase();
+	if (host) {
+		return allowedHosts.some(allowedHost => allowedHost.toLowerCase() === host);
+	}
+	return !/^[\\/]{2}/.test(path);
+}
+
+export function isUNCAccessAllowed(path: string): boolean {
+	if (process.platform !== 'win32' || isUNCAccessRestrictionsDisabled()) {
+		return true;
+	}
+	return isPathAllowedByUNCHostAllowlist(path, getUNCHostAllowlist());
+}
+// DROX-END
+
 export function getUNCHostAllowlist(): string[] {
 	const allowlist = processUNCHostAllowlist();
 	if (allowlist) {

@@ -184,6 +184,7 @@
 					const messageId = typeof m.messageId === 'string' ? m.messageId : fn.randomId();
 					if (userRow) {
 						userRow.dataset.msgId = messageId;
+						fn.attachUserMessageRestoreAction?.(userRow);
 					}
 					if (D.state.userPromptStickyPendingLink) {
 						fn.linkUserPromptStickyToMessage(messageId);

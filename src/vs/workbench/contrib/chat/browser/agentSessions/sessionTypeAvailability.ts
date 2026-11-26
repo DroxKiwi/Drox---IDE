@@ -5,6 +5,7 @@
 
 import { IMarkdownString, MarkdownString } from '../../../../../base/common/htmlContent.js';
 import { localize } from '../../../../../nls.js';
+import product from '../../../../../platform/product/common/product.js';
 import { ChatEntitlement, IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
 import { IChatSessionsService } from '../../common/chatSessionsService.js';
 import { ILanguageModelsService } from '../../common/languageModels.js';
@@ -102,6 +103,9 @@ function hasModelsTargetingSessionType(languageModelsService: ILanguageModelsSer
 export function getSessionTypeUnavailableDescription(availability: SessionTypeAvailability): IMarkdownString | undefined {
 	switch (availability) {
 		case SessionTypeAvailability.UpgradeRequired:
+			if (product.skipCopilotGitHubSignIn) {
+				return new MarkdownString(localize('chat.sessionType.noModels', "No models available"));
+			}
 			return new MarkdownString(
 				localize('chat.sessionType.upgradeLink', "[Upgrade](command:workbench.action.chat.upgradePlan)"),
 				{ isTrusted: { enabledCommands: ['workbench.action.chat.upgradePlan'] } }
@@ -121,6 +125,9 @@ export function getSessionTypeUnavailableDescription(availability: SessionTypeAv
 export function getSessionTypeUnavailableHover(availability: SessionTypeAvailability): IMarkdownString | undefined {
 	switch (availability) {
 		case SessionTypeAvailability.UpgradeRequired: {
+			if (product.skipCopilotGitHubSignIn) {
+				return new MarkdownString(localize('chat.sessionType.noModels', "No models available"));
+			}
 			const hover = new MarkdownString('', { isTrusted: { enabledCommands: ['workbench.action.chat.upgradePlan'] }, supportThemeIcons: true });
 			hover.appendMarkdown(localize('chat.sessionType.upgradeHover', "[Upgrade to GitHub Copilot Pro](command:workbench.action.chat.upgradePlan) to use this agent."));
 			return hover;

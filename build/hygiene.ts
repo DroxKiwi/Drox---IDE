@@ -32,8 +32,14 @@ interface VinylFileWithLines extends VinylFile {
  * Returns an error message if mismatched, or undefined if OK.
  */
 export function checkCopilotEnginesVersion(repoRoot: string): string | undefined {
+	// DROX-BEGIN no copilot extension
+	const copilotPkgPath = path.join(repoRoot, 'extensions/copilot/package.json');
+	if (!fs.existsSync(copilotPkgPath)) {
+		return undefined;
+	}
+	// DROX-END
 	const rootPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-	const copilotPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'extensions/copilot/package.json'), 'utf8'));
+	const copilotPkg = JSON.parse(fs.readFileSync(copilotPkgPath, 'utf8'));
 	const expected = `^${rootPkg.version}`;
 	const actual = copilotPkg?.engines?.vscode;
 	if (actual !== expected) {
@@ -293,6 +299,11 @@ function createGitIndexVinyls(paths: string[]): Promise<VinylFile[]> {
 					{ maxBuffer: Math.max(stat.size * 2, 1024 * 1024), encoding: 'buffer' },
 					(err, out) => {
 						if (err) {
+							// Staged removal while the file stays on disk (local-only notes).
+							const message = String((err as { stderr?: Buffer }).stderr ?? err.message ?? '');
+							if (message.includes('not in the index') || message.includes('exists on disk, but not in the index')) {
+								return c(null);
+							}
 							return e(err);
 						}
 

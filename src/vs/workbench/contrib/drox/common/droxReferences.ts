@@ -111,6 +111,85 @@ export async function resolveDroxReferences(
 	return out;
 }
 
+const MENTION_FILE_CAP = 6;
+const MENTION_FILE_CHARS = 24_000;
+const MENTION_DIR_ENTRIES = 40;
+
+/** Chemins écrits `@relatif` dans le texte. Le glisser-déposer reste un autre canal. */
+export function extractAtMentionPaths(prompt: string): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	const re = /(?:^|\s)@([^\s@]+)/g;
+	for (const match of prompt.matchAll(re)) {
+		let raw = (match[1] ?? '').replace(/[),.;:]+$/, '');
+		raw = raw.replace(/^\.\//, '').replaceAll('\\', '/');
+		if (!raw || raw === '.' || seen.has(raw)) {
+			continue;
+		}
+		seen.add(raw);
+		out.push(raw);
+	}
+	return out;
+}
+
+/**
+ * Injecte le contenu des `@fichier` et la liste des `@dossier` dans le prompt moteur.
+ * Les chemins déjà présents comme références (puces) ne sont pas relus.
+ */
+export async function formatAtMentionContext(
+	fileService: IFileService,
+	workspaceRoot: string,
+	prompt: string,
+	already: readonly IResolvedDroxReference[] = [],
+): Promise<string> {
+	const paths = extractAtMentionPaths(prompt);
+	if (paths.length === 0) {
+		return '';
+	}
+	const taken = new Set(already.map(r => r.rel.replace(/^\.\//, '').replaceAll('\\', '/')));
+	const blocks: string[] = [];
+	let files = 0;
+	for (const rel of paths) {
+		if (taken.has(rel) || files >= MENTION_FILE_CAP) {
+			continue;
+		}
+		const uri = URI.joinPath(URI.file(workspaceRoot), ...rel.split('/').filter(Boolean));
+		let stat;
+		try {
+			stat = await fileService.stat(uri);
+		} catch {
+			continue;
+		}
+		files++;
+		try {
+			if (stat.isDirectory) {
+				const children = await fileService.resolve(uri);
+				const names = (children.children ?? [])
+					.slice(0, MENTION_DIR_ENTRIES)
+					.map(c => c.name + (c.isDirectory ? '/' : ''));
+				const more = (children.children?.length ?? 0) > names.length ? '\n…' : '';
+				blocks.push(`[@folder ${rel}]\n${names.join('\n')}${more}`);
+			} else {
+				const raw = await fileService.readFile(uri);
+				let text = raw.value.toString();
+				if (text.includes('\u0000')) {
+					blocks.push(`[@file ${rel}]\n(binaire, contenu non injecté)`);
+					continue;
+				}
+				let clipped = '';
+				if (text.length > MENTION_FILE_CHARS) {
+					text = text.slice(0, MENTION_FILE_CHARS);
+					clipped = '\n…';
+				}
+				blocks.push(`[@file ${rel}]\n${text}${clipped}`);
+			}
+		} catch {
+			continue;
+		}
+	}
+	return blocks.length > 0 ? blocks.join('\n\n') : '';
+}
+
 export function formatReferencesPromptBlock(workspaceRoot: string, resolved: readonly IResolvedDroxReference[]): string {
 	const list = resolved
 		.map(r => {

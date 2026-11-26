@@ -304,7 +304,10 @@ configurationRegistry.registerConfiguration({
 				localize('telemetry.telemetryLevel.off', "Disables all product telemetry.")
 			],
 			'markdownDescription': getTelemetryLevelSettingDescription(),
-			'default': TelemetryConfiguration.ON,
+			'default': TelemetryConfiguration.OFF,
+			// DROX-BEGIN hide telemetry setting
+			'included': false,
+			// DROX-END
 			'restricted': true,
 			'scope': ConfigurationScope.APPLICATION,
 			'tags': ['usesOnlineServices', 'telemetry'],
@@ -351,6 +354,7 @@ configurationRegistry.registerConfiguration({
 		},
 		// Deprecated telemetry setting
 		[TELEMETRY_OLD_SETTING_ID]: {
+			'included': false,
 			'type': 'boolean',
 			'markdownDescription':
 				!product.privacyStatementUrl ?

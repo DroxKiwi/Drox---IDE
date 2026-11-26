@@ -21,7 +21,7 @@ import { IDroxEngineService } from '../../common/droxEngineService.js';
 import { IDroxRegulationService } from '../../common/regulation/droxRegulationServiceContract.js';
 import { IDroxRunSettingsService } from '../../common/droxRunSettingsService.js';
 import { formatPastesForPrompt, IDroxPasteAttachmentPayload, IDroxUserMessagePasteWire, toUserMessagePasteWire } from '../../common/droxPasteCandidates.js';
-import { formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
+import { formatAtMentionContext, formatReferencesPromptBlock, IDroxReferencePayload, IDroxUserMessageReferenceWire, IResolvedDroxReference, resolveDroxReferences, toUserMessageReferenceWire } from '../../common/droxReferences.js';
 import { buildUserPromptStickyPayload } from '../../common/droxUserPromptSticky.js';
 import { IDroxUserAskService } from '../../common/droxUserAskService.js';
 import { DroxHostToWebviewMessage } from '../droxChatBridge.js';
@@ -150,13 +150,18 @@ export async function executeDroxChatSend(
 		}
 	}
 	let userMessageRefs: IDroxUserMessageReferenceWire[] = [];
+	let resolvedRefs: IResolvedDroxReference[] = [];
 	if (hasReferences) {
-		const resolved = await resolveDroxReferences(deps.fileService, ws, references);
-		if (resolved.length > 0) {
-			const block = formatReferencesPromptBlock(ws, resolved);
+		resolvedRefs = await resolveDroxReferences(deps.fileService, ws, references);
+		if (resolvedRefs.length > 0) {
+			const block = formatReferencesPromptBlock(ws, resolvedRefs);
 			finalPrompt = finalPrompt ? `${finalPrompt}\n\n${block}` : block;
-			userMessageRefs = resolved.map(toUserMessageReferenceWire);
+			userMessageRefs = resolvedRefs.map(toUserMessageReferenceWire);
 		}
+	}
+	const mentionBlock = await formatAtMentionContext(deps.fileService, ws, trimmed, resolvedRefs);
+	if (mentionBlock) {
+		finalPrompt = finalPrompt ? `${finalPrompt}\n\n${mentionBlock}` : mentionBlock;
 	}
 	let userMessagePastes: IDroxUserMessagePasteWire[] = [];
 	if (hasPastes) {

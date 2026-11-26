@@ -700,6 +700,11 @@ export class AgentSessionsWelcomePage extends EditorPane {
 	private static readonly PRIVACY_NOTICE_DISMISSED_KEY = 'agentSessionsWelcome.privacyNoticeDismissed';
 
 	private buildPrivacyNotice(container: HTMLElement): void {
+		// DROX-BEGIN no copilot account
+		if (this.productService.skipCopilotGitHubSignIn) {
+			return;
+		}
+		// DROX-END
 		// TOS/Privacy notice for users who are not signed in - reusing walkthrough card design
 		if (!this.chatEntitlementService.anonymous) {
 			return;

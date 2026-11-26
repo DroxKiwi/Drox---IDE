@@ -212,11 +212,15 @@ export class ChatSetup {
 			const defaultProviderButton: ContinueWithButton = [localize('continueWith', "Continue with {0}", defaultChat.provider.default.name), ChatSetupStrategy.SetupWithoutEnterpriseProvider, styleButton('continue-button', 'default')];
 			const defaultProviderLink: ContinueWithButton = [defaultProviderButton[0], defaultProviderButton[1], styleButton('link-button')];
 
-			const enterpriseProviderButton: ContinueWithButton = [localize('continueWith', "Continue with {0}", defaultChat.provider.enterprise.name), ChatSetupStrategy.SetupWithEnterpriseProvider, styleButton('continue-button', 'default')];
-			const enterpriseProviderLink: ContinueWithButton = [enterpriseProviderButton[0], enterpriseProviderButton[1], styleButton('link-button')];
-
-			const googleProviderButton: ContinueWithButton = [localize('continueWith', "Continue with {0}", defaultChat.provider.google.name), ChatSetupStrategy.SetupWithGoogleProvider, styleButton('continue-button', 'google')];
-			const appleProviderButton: ContinueWithButton = [localize('continueWith', "Continue with {0}", defaultChat.provider.apple.name), ChatSetupStrategy.SetupWithAppleProvider, styleButton('continue-button', 'apple')];
+			// DROX-BEGIN no chat agent identities
+			const enterprise = defaultChat.provider.enterprise;
+			const google = defaultChat.provider.google;
+			const apple = defaultChat.provider.apple;
+			const enterpriseProviderButton: ContinueWithButton | undefined = enterprise ? [localize('continueWith', "Continue with {0}", enterprise.name), ChatSetupStrategy.SetupWithEnterpriseProvider, styleButton('continue-button', 'default')] : undefined;
+			const enterpriseProviderLink: ContinueWithButton | undefined = enterpriseProviderButton ? [enterpriseProviderButton[0], enterpriseProviderButton[1], styleButton('link-button')] : undefined;
+			const googleProviderButton: ContinueWithButton | undefined = google ? [localize('continueWith', "Continue with {0}", google.name), ChatSetupStrategy.SetupWithGoogleProvider, styleButton('continue-button', 'google')] : undefined;
+			const appleProviderButton: ContinueWithButton | undefined = apple ? [localize('continueWith', "Continue with {0}", apple.name), ChatSetupStrategy.SetupWithAppleProvider, styleButton('continue-button', 'apple')] : undefined;
+			// DROX-END
 
 			if (!this.defaultAccountService.getDefaultAccountAuthenticationProvider().enterprise) {
 				buttons = coalesce([

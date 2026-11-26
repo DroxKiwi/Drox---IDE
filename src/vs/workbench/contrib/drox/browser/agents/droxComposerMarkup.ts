@@ -22,9 +22,9 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const rolePanelTempLabel = localize('droxChatRolePanelTemperature', 'Temperature');
 	const rolePanelSectionAgent = localize('droxChatRolePanelSectionAgent', 'Agent');
 	const rolePanelEngineProfileLabel = localize('droxChatRolePanelEngineProfile', 'Engine profile');
-	const rolePanelEngineProfileSmall = localize('droxChatRolePanelEngineProfileSmall', 'Small model — engine-led sub-runs (default)');
-	const rolePanelEngineProfileCapable = localize('droxChatRolePanelEngineProfileCapable', 'Local capable — same sub-runs, richer parent');
-	const rolePanelEngineProfileFull = localize('droxChatRolePanelEngineProfileFull', 'Full protocol — 1.6.0 Plan→Assign');
+	const rolePanelEngineProfileSmall = localize('droxChatRolePanelEngineProfileSmall', 'SLM');
+	const rolePanelEngineProfileCapable = localize('droxChatRolePanelEngineProfileCapable', 'MLM');
+	const rolePanelEngineProfileFull = localize('droxChatRolePanelEngineProfileFull', 'LLM');
 	const rolePanelMaxIterationsLabel = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const rolePanelSectionSampling = localize('droxChatRolePanelSectionSampling', 'Sampling');
 	const rolePanelSectionOutput = localize('droxChatRolePanelSectionOutput', 'Output');
@@ -56,9 +56,9 @@ export function buildDroxComposerPanelsMarkup(): string {
 				</span>
 			</label>`;
 	const generalSettingsSectionConnection = localize('droxChatGeneralSettingsSectionConnection', 'Connection');
+	const generalSettingsSavedConnections = localize('droxChatGeneralSettingsSavedConnections', 'Saved connections');
 	const generalSettingsConnectIa = localize('droxChatGeneralSettingsConnectIa', 'Connect your AI');
 	const generalSettingsConnectionNotConfigured = localize('droxChatGeneralSettingsConnectionNotConfigured', 'Not configured');
-	const generalSettingsSectionAgent = localize('droxChatGeneralSettingsSectionAgent', 'Agent');
 	const generalSettingsSectionBehavior = localize('droxChatGeneralSettingsSectionBehavior', 'Behavior');
 	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
@@ -123,6 +123,14 @@ export function buildDroxComposerPanelsMarkup(): string {
 					<input type="number" id="role-model-panel-explore-max-iterations" class="role-model-panel-input" min="1" step="1" />
 				</span>
 			</label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-enabled" checked /><span>${generalSettingsSubagentsEnabled}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-execution-think" /><span>${generalSettingsSubagentsExecutionThink}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-report-think" /><span>${generalSettingsSubagentsReportThink}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-project-rules-enabled" checked /><span>${generalSettingsProjectRulesEnabled}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-outside-ws-read" /><span>${generalSettingsOutsideWsRead}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-outside-ws-write" /><span>${generalSettingsOutsideWsWrite}</span></label>
+			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-native-thinking" /><span>${generalSettingsNativeThinking}</span></label>
+			<label class="general-settings-field"><span>${generalSettingsPrimaryLanguage}</span><input type="text" id="general-settings-primary-language" class="general-settings-input" spellcheck="false" /></label>
 			<p class="role-model-panel-section-label">${rolePanelSectionSampling}</p>
 			${muteableField('temperature', rolePanelTempLabel, `<input type="number" id="role-model-panel-temperature" class="role-model-panel-input" min="0" max="2" step="0.1" placeholder="—" />`)}
 			${muteableField('topP', rolePanelTopPLabel, `<input type="number" id="role-model-panel-top-p" class="role-model-panel-input" min="0" max="1" step="0.05" placeholder="—" />`)}
@@ -159,22 +167,11 @@ export function buildDroxComposerPanelsMarkup(): string {
 				<p id="general-settings-connection-summary" class="general-settings-connection-summary">${generalSettingsConnectionNotConfigured}</p>
 				<button type="button" id="general-settings-connect-ia" class="general-settings-panel-btn general-settings-connect-btn">${generalSettingsConnectIa}</button>
 			</div>
-			<p class="general-settings-section-label">${generalSettingsSectionAgent}</p>
-			<label class="general-settings-field"><span>${rolePanelEngineProfileLabel}</span><select id="general-settings-engine-profile" class="general-settings-input">
-				<option value="local-9b">${rolePanelEngineProfileSmall}</option>
-				<option value="local-27b">${rolePanelEngineProfileCapable}</option>
-				<option value="cloud-full">${rolePanelEngineProfileFull}</option>
-			</select></label>
-			<label class="general-settings-field"><span>${generalSettingsMaxIterations}</span><input type="number" id="general-settings-max-iterations" class="general-settings-input" min="1" max="${DROX_MAX_ITERATIONS_CAP}" step="1" /></label>
-			<label class="general-settings-field"><span>${generalSettingsExploreMaxIterations}</span><input type="number" id="general-settings-explore-max-iterations" class="general-settings-input" min="1" step="1" /></label>
-			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-enabled" checked /><span>${generalSettingsSubagentsEnabled}</span></label>
-			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-execution-think" /><span>${generalSettingsSubagentsExecutionThink}</span></label>
-			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-subagents-report-think" /><span>${generalSettingsSubagentsReportThink}</span></label>
-			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-project-rules-enabled" checked /><span>${generalSettingsProjectRulesEnabled}</span></label>
-			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-outside-ws-read" /><span>${generalSettingsOutsideWsRead}</span></label>
-			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-outside-ws-write" /><span>${generalSettingsOutsideWsWrite}</span></label>
-			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-native-thinking" /><span>${generalSettingsNativeThinking}</span></label>
-			<label class="general-settings-field"><span>${generalSettingsPrimaryLanguage}</span><input type="text" id="general-settings-primary-language" class="general-settings-input" spellcheck="false" /></label>
+			<p id="general-settings-saved-label" class="general-settings-section-label general-settings-saved-label" hidden>
+				<svg class="general-settings-saved-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.5 2.5h9v11l-4.5-2.4L3.5 13.5z"/></svg>
+				<span>${generalSettingsSavedConnections}</span>
+			</p>
+			<div id="general-settings-saved-connections" class="general-settings-saved-connections"></div>
 			<p class="general-settings-section-label">${generalSettingsSectionBehavior}</p>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-warm-start" checked /><span>${generalSettingsWarmStart}</span></label>
 			<label class="general-settings-field general-settings-field-check"><input type="checkbox" id="general-settings-confirm-file-writes" /><span>${generalSettingsConfirmFileWrites}</span></label>

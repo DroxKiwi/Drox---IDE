@@ -63,4 +63,24 @@ impl LlmError {
             | Self::RetryExhausted { .. } => false,
         }
     }
+
+    /// Contexte provider saturé (overflow fenêtre).
+    #[must_use]
+    pub fn is_context_length_exceeded(&self) -> bool {
+        match self {
+            Self::Api { status, body, .. } => {
+                let lower = body.to_ascii_lowercase();
+                *status == 413
+                    || *status == 422
+                    || (*status == 400
+                        && (lower.contains("context") || lower.contains("token")))
+                    || lower.contains("context length")
+                    || lower.contains("maximum context")
+                    || lower.contains("context_window")
+                    || lower.contains("too many tokens")
+            }
+            Self::RetryExhausted { source, .. } => source.is_context_length_exceeded(),
+            _ => false,
+        }
+    }
 }

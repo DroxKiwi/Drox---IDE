@@ -159,7 +159,16 @@ async fn unknown_tool_yields_is_error_finish() {
                 usage: Usage::default(),
             },
         ],
-        done_turn(""),
+        vec![
+            StreamEvent::Start,
+            StreamEvent::TextDelta {
+                text: "[phase: answering]\nFin.\n".into(),
+            },
+            StreamEvent::Stop {
+                reason: StopReason::EndTurn,
+                usage: Usage::default(),
+            },
+        ],
     ]));
     let mut registry = ToolRegistry::new();
     registry.register(Arc::new(TodoWriteTool));
@@ -664,7 +673,7 @@ async fn live_compaction_emits_context_compacted_when_over_budget() {
     let ws = camino::Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
 
     let history: Vec<Message> = (0..14)
-        .map(|_| Message::user("z".repeat(10_000)))
+        .map(|i| Message::user(format!("prefix-{i}-{}", "z".repeat(10_000))))
         .collect();
 
     let llm = Arc::new(ScriptedLlm::new(vec![

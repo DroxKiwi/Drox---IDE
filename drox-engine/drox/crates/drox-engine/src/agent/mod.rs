@@ -43,6 +43,8 @@ pub mod hallucination;
 pub mod loop_close;
 pub mod loop_detect;
 pub mod nudges;
+pub(crate) mod prepare_turn;
+pub(crate) mod status_notice;
 pub mod phase;
 pub mod run;
 pub mod history_transport;

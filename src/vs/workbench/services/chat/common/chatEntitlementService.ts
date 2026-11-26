@@ -1177,10 +1177,10 @@ export class ChatEntitlementRequests extends Disposable {
 						label: localize('ok', "OK"),
 						run: () => { /* noop */ }
 					},
-					{
+					...(defaultChatAgent.upgradePlanUrl ? [{
 						label: localize('learnMore', "Learn More"),
 						run: () => this.openerService.open(URI.parse(defaultChatAgent.upgradePlanUrl))
-					}
+					}] : [])
 				]
 			});
 		}
@@ -1189,7 +1189,9 @@ export class ChatEntitlementRequests extends Disposable {
 	async signIn(options?: { useSocialProvider?: string; additionalScopes?: readonly string[] }): Promise<{ defaultAccount?: IDefaultAccount; entitlements?: IEntitlements }> {
 		const defaultAccount = await this.defaultAccountService.signIn({
 			additionalScopes: options?.additionalScopes,
-			extraAuthorizeParameters: { get_started_with: 'copilot-vscode' },
+			// DROX-BEGIN no subscription
+			extraAuthorizeParameters: product.skipCopilotGitHubSignIn ? undefined : { get_started_with: 'copilot-vscode' },
+			// DROX-END
 			provider: options?.useSocialProvider
 		});
 		if (!defaultAccount) {

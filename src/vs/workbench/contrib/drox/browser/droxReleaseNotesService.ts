@@ -131,7 +131,21 @@ export class DroxReleaseNotesService extends Disposable implements IDroxReleaseN
 
 		const list = dom.append(body, dom.$('ul.drox-release-notes-list'));
 		for (const item of content.items) {
-			dom.append(list, dom.$('li', undefined, item));
+			if (item === 'Nouveautés' || item === 'Corrections' || item === 'Expérimental') {
+				const heading = dom.append(list, dom.$('li.drox-release-notes-section', undefined, item));
+				heading.classList.add(
+					item === 'Nouveautés' ? 'is-news' : item === 'Corrections' ? 'is-fix' : 'is-experimental',
+				);
+				continue;
+			}
+			const line = dom.append(list, dom.$('li'));
+			const mark = item.startsWith('+ ') ? '+' : item.startsWith('- ') ? '−' : '';
+			const text = mark ? item.slice(2) : item;
+			if (mark) {
+				const sign = dom.append(line, dom.$('span.drox-release-notes-mark', undefined, mark));
+				sign.classList.add(mark === '+' ? 'is-add' : 'is-remove');
+			}
+			dom.append(line, document.createTextNode(text));
 		}
 
 		const understoodBtn = dom.append(

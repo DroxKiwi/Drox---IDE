@@ -7,6 +7,14 @@ use serde_json::Value;
 
 use crate::long_memory::ContextChunkSummaryV1;
 
+/// Niveau d'une notice transcript (style Cline `status-notice`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StatusNoticeLevel {
+    Info,
+    Warn,
+}
+
 /// Phase courante du protocole agent (Sprint A — refonte « phases + objectif »).
 ///
 /// Le modèle est invité à structurer ses réponses comme une suite de phases ;
@@ -207,5 +215,21 @@ pub enum AgentEvent {
         hook_event: String,
         /// Nombre de hooks encore en cours (0 = terminé pour cette phase).
         in_progress: usize,
+    },
+    /// Notice discrète dans le transcript (compaction, clôture, todos, etc.).
+    StatusNotice {
+        #[serde(rename = "notice_kind")]
+        notice_kind: String,
+        level: StatusNoticeLevel,
+        message: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        detail: Option<Value>,
+    },
+    /// Snapshot workspace corrélé à un tour (checkpoints agent — phase 2).
+    WorkspaceCheckpoint {
+        checkpoint_id: String,
+        message_index: usize,
+        #[serde(default)]
+        files_count: usize,
     },
 }

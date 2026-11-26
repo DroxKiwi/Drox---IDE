@@ -14,6 +14,7 @@ import { assertType } from '../../../../../../base/common/types.js';
 import { IMarkdownRenderer } from '../../../../../../platform/markdown/browser/markdownRenderer.js';
 import { localize } from '../../../../../../nls.js';
 import { ICommandService } from '../../../../../../platform/commands/common/commands.js';
+import product from '../../../../../../platform/product/common/product.js';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
 import { defaultButtonStyles } from '../../../../../../platform/theme/browser/defaultStyles.js';
 import { ChatEntitlement, IChatEntitlementService } from '../../../../../services/chat/common/chatEntitlementService.js';
@@ -48,17 +49,21 @@ export class ChatQuotaExceededPart extends Disposable implements IChatContentPar
 		dom.append(messageContainer, markdownContent.element);
 
 		let primaryButtonLabel: string | undefined;
-		switch (chatEntitlementService.entitlement) {
-			case ChatEntitlement.EDU:
-			case ChatEntitlement.Pro:
-			case ChatEntitlement.ProPlus:
-			case ChatEntitlement.Max:
-				primaryButtonLabel = localize('manageBudget', "Manage Budget");
-				break;
-			case ChatEntitlement.Free:
-				primaryButtonLabel = localize('upgradeToCopilotPro', "Upgrade to GitHub Copilot Pro");
-				break;
+		// DROX-BEGIN no subscription
+		if (!product.skipCopilotGitHubSignIn) {
+			switch (chatEntitlementService.entitlement) {
+				case ChatEntitlement.EDU:
+				case ChatEntitlement.Pro:
+				case ChatEntitlement.ProPlus:
+				case ChatEntitlement.Max:
+					primaryButtonLabel = localize('manageBudget', "Manage Budget");
+					break;
+				case ChatEntitlement.Free:
+					primaryButtonLabel = localize('upgradeToCopilotPro', "Upgrade to GitHub Copilot Pro");
+					break;
+			}
 		}
+		// DROX-END
 
 		if (primaryButtonLabel) {
 			const primaryButton = this._register(new Button(messageContainer, { ...defaultButtonStyles, supportIcons: true }));

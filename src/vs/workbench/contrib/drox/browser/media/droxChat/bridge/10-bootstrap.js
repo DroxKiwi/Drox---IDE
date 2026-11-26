@@ -210,6 +210,11 @@
 	if (D.dom.historyToggleBtn) {
 		D.dom.historyToggleBtn.addEventListener('click', () => fn.toggleHistory());
 	}
+	if (D.dom.toolsToggleBtn) {
+		D.dom.toolsToggleBtn.addEventListener('click', () => {
+			D.vscode.postMessage({ type: 'openToolsPanel' });
+		});
+	}
 	if (D.dom.historyCloseBtn) {
 		D.dom.historyCloseBtn.addEventListener('click', () => fn.closeHistory());
 	}
