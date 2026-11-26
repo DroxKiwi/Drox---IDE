@@ -100,8 +100,8 @@ function toDefaultAccountConfig(defaultChatAgent: IDefaultChatAgent): IDefaultAc
 				name: defaultChatAgent.provider.default.name,
 			},
 			enterprise: {
-				id: defaultChatAgent.provider.enterprise.id,
-				name: defaultChatAgent.provider.enterprise.name,
+				id: defaultChatAgent.provider.enterprise?.id ?? '',
+				name: defaultChatAgent.provider.enterprise?.name ?? '',
 			},
 			enterpriseProviderConfig: `${defaultChatAgent.completionsAdvancedSetting}.authProvider`,
 			enterpriseProviderUriSetting: defaultChatAgent.providerUriSetting,

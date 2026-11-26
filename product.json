@@ -127,18 +127,6 @@
 			"default": {
 				"id": "drox",
 				"name": "Drox"
-			},
-			"enterprise": {
-				"id": "github-enterprise",
-				"name": "GHE"
-			},
-			"google": {
-				"id": "google",
-				"name": "Google"
-			},
-			"apple": {
-				"id": "apple",
-				"name": "Apple"
 			}
 		},
 		"providerExtensionId": "",
