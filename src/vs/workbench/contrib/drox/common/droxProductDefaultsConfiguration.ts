@@ -222,6 +222,7 @@ export function registerDroxProductDefaultsConfiguration(): void {
 			[TELEMETRY_SETTING_ID]: {
 				type: 'string',
 				default: TelemetryConfiguration.OFF,
+				included: false,
 				description: localize(
 					'drox.product.telemetryLevel',
 					'Controls Microsoft product telemetry. Drox IDE disables all telemetry by default.',

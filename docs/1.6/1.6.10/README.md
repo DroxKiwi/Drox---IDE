@@ -6,4 +6,4 @@
 
 La source des lots à reprendre est la branche locale `2.0.1-1.147.0` (`e94b6e10632`). On y reprend le moteur, les règles et la surface d’outils. On n’y reprend pas la réécriture du chat natif faite pour VS Code 1.147.
 
-Notes : [MAJ/NOTES.md](MAJ/NOTES.md). Inventaire de nettoyage : [MAJ/INVENTAIRE.md](MAJ/INVENTAIRE.md).
+Notes : [NOTES.md](NOTES.md). Inventaire de nettoyage : [INVENTAIRE.md](INVENTAIRE.md).

@@ -19,10 +19,21 @@ export interface IAppInsightsCore {
 	unload(isAsync: boolean, unloadComplete: (unloadState: ITelemetryUnloadState) => void): void;
 }
 
-const endpointUrl = 'https://mobile.events.data.microsoft.com/OneCollector/1.0';
-const endpointHealthUrl = 'https://mobile.events.data.microsoft.com/ping';
+// DROX-BEGIN no telemetry send
+const endpointUrl = '';
+const endpointHealthUrl = '';
+// DROX-END
 
 async function getClient(instrumentationKey: string, addInternalFlag?: boolean, xhrOverride?: IXHROverride): Promise<IAppInsightsCore> {
+	// DROX-BEGIN no telemetry send
+	if (!endpointUrl) {
+		return {
+			pluginVersionString: '',
+			track() { },
+			unload(_isAsync, unloadComplete) { unloadComplete({}); }
+		};
+	}
+	// DROX-END
 	// eslint-disable-next-line local/code-amd-node-module
 	const oneDs = isWeb ? await importAMDNodeModule<typeof import('@microsoft/1ds-core-js')>('@microsoft/1ds-core-js', 'bundle/ms.core.min.js') : await import('@microsoft/1ds-core-js');
 	// eslint-disable-next-line local/code-amd-node-module

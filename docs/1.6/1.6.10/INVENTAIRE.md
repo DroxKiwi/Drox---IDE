@@ -30,8 +30,8 @@ Pas de compte dans le produit. Pas de service tiers payant branché par Drox.
 | 🟢 | Compte Copilot | `product.json` `trustedExtensionAuthAccess` vide. Boutons retirés du walkthrough, de l’onboarding et de la carte « Try GitHub Copilot » | Plus d’autorisation de jeton GitHub pour `github.copilot`. Les menus Sign in restent masqués par `droxCopilotSignInHidden` |
 | 🟢 | Identités du chat agent | `defaultChatAgent.provider` ne garde que `drox` | Plus de boutons Continue with Google, Apple ou GitHub Enterprise |
 | 🟢 | Abonnements | `managePlanUrl`, `upgradePlanUrl`, `signUpUrl`, `skusDocumentationUrl` vides. `upgradePlan` n’ouvre plus le paiement GitHub | Boutons Upgrade, Manage Budget et liens Pro retirés du sélecteur, du quota et du menu |
-| 🔴 | Envoi de télémétrie | `src/vs/platform/telemetry/common/1dsAppender.ts` → `https://mobile.events.data.microsoft.com/OneCollector/1.0` | Inerte aujourd’hui. Si `enableTelemetry` repasse à vrai, les événements partent chez Microsoft |
-| 🔴 | Réglage visible | `telemetry.telemetryLevel` dans `telemetryService.ts` | L’écran de paramètres parle encore d’une télémétrie produit |
+| 🟢 | Envoi de télémétrie | `src/vs/platform/telemetry/common/1dsAppender.ts` | Plus d’URL OneCollector. L’appender n’ouvre pas de connexion, même si `enableTelemetry` repasse à vrai |
+| 🟢 | Réglage visible | `telemetry.telemetryLevel` dans `telemetryService.ts` | Retiré de l’écran de paramètres. Le défaut reste `off` |
 
 Les connexions OpenAI-compatible, Ollama ou autre serveur que l’utilisateur configure dans le moteur ne sont pas dans cette liste.
 

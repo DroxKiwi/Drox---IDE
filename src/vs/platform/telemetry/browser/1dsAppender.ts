@@ -15,6 +15,11 @@ export class OneDataSystemWebAppender extends AbstractOneDataSystemAppender {
 	) {
 		super(isInternalTelemetry, eventPrefix, defaultData, iKeyOrClientFactory);
 
+		// DROX-BEGIN no telemetry send
+		if (!this.endPointHealthUrl) {
+			return;
+		}
+		// DROX-END
 		// If we cannot fetch the endpoint it means it is down and we should not send any telemetry.
 		// This is most likely due to ad blockers
 		fetch(this.endPointHealthUrl, { method: 'GET' }).catch(err => {
