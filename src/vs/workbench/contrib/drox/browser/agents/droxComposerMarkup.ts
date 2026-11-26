@@ -60,7 +60,6 @@ export function buildDroxComposerPanelsMarkup(): string {
 	const generalSettingsConnectIa = localize('droxChatGeneralSettingsConnectIa', 'Connect your AI');
 	const generalSettingsConnectionNotConfigured = localize('droxChatGeneralSettingsConnectionNotConfigured', 'Not configured');
 	const generalSettingsSectionBehavior = localize('droxChatGeneralSettingsSectionBehavior', 'Behavior');
-	const generalSettingsMaxIterations = localize('droxChatGeneralSettingsMaxIterations', 'Max iterations');
 	const generalSettingsExploreMaxIterations = localize('droxChatGeneralSettingsExploreMaxIterations', 'Explore max iterations');
 	const generalSettingsSubagentsEnabled = localize('droxChatGeneralSettingsSubagentsEnabled', 'Explore sub-agents (task)');
 	const generalSettingsSubagentsExecutionThink = localize('droxChatGeneralSettingsSubagentsExecutionThink', 'Explore execution thinking');
